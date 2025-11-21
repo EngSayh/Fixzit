@@ -49,6 +49,15 @@ curl -X POST https://fixzit.co/api/copilot/stream \
   -d '{"message":"What is Fixzit?","locale":"en"}'
 ```
 
+## 🧠 Seed Copilot Knowledge (FAQ)
+
+```bash
+# Populate Copilot with system FAQs and overviews (desktop run, requires Mongo)
+pnpm tsx scripts/seed-copilot-knowledge.ts
+```
+
+The seed adds global knowledge for architecture, deployment/env FAQs, Copilot usage, background jobs, Souq claims, and testing commands. Re-run after major changes to refresh embeddings.
+
 ---
 
 ## 📊 What's New

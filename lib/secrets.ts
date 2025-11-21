@@ -20,10 +20,22 @@ let secretsClient: SecretsManagerClient | null = null;
 /**
  * Initialize AWS Secrets Manager client
  * Only initializes in production with proper AWS credentials
+ * 
+ * BUILD-SAFE: Returns null during Next.js build phase to prevent build failures
  */
 function getSecretsClient(): SecretsManagerClient | null {
-  if (secretsClient) {
+  // Return cached client if already initialized
+  if (secretsClient !== undefined) {
     return secretsClient;
+  }
+
+  // Skip AWS initialization during Next.js build phase
+  // This prevents build failures when AWS credentials are not available
+  const isNextBuild = process.env.NEXT_PHASE === 'phase-production-build';
+  if (isNextBuild) {
+    logger.info('[Secrets] Skipping AWS initialization during build phase');
+    secretsClient = null;
+    return null;
   }
 
   // Initialize if AWS region is configured
@@ -34,22 +46,34 @@ function getSecretsClient(): SecretsManagerClient | null {
   // - EC2 instance metadata
   const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION;
   if (!region) {
+    secretsClient = null;
     return null;
   }
 
-  secretsClient = new SecretsManagerClient({
-    region,
-    // Only provide explicit credentials if both are present
-    credentials: (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY)
-      ? {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-        }
-      : undefined // Use AWS SDK default credential provider chain
-  });
-  
-  logger.info('[Secrets] AWS Secrets Manager initialized', { region });
-  return secretsClient;
+  try {
+    secretsClient = new SecretsManagerClient({
+      region,
+      // Only provide explicit credentials if both are present
+      credentials: (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY)
+        ? {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+          }
+        : undefined // Use AWS SDK default credential provider chain
+    });
+    
+    logger.info('[Secrets] AWS Secrets Manager initialized', { region });
+    return secretsClient;
+  } catch (error) {
+    // Gracefully handle AWS initialization errors
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.warn('[Secrets] Could not initialize AWS Secrets Manager', { 
+      region, 
+      error: errorMessage 
+    });
+    secretsClient = null;
+    return null;
+  }
 }
 
 /**

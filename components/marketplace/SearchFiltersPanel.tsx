@@ -12,11 +12,11 @@ export default function SearchFiltersPanel({ facets }: SearchFiltersPanelProps) 
   const params = useSearchParams();
 
   const selected = {
-    category: params.get('cat') ?? undefined,
-    brand: params.get('brand') ?? undefined,
-    standard: params.get('std') ?? undefined,
-    minPrice: params.get('min') ? Number(params.get('min')) : undefined,
-    maxPrice: params.get('max') ? Number(params.get('max')) : undefined
+    category: params?.get('cat') ?? undefined,
+    brand: params?.get('brand') ?? undefined,
+    standard: params?.get('std') ?? undefined,
+    minPrice: params?.get('min') ? Number(params.get('min')) : undefined,
+    maxPrice: params?.get('max') ? Number(params.get('max')) : undefined
   };
 
   return (
@@ -24,7 +24,7 @@ export default function SearchFiltersPanel({ facets }: SearchFiltersPanelProps) 
       facets={facets}
       selected={selected}
       onChange={next => {
-        const search = new URLSearchParams(params.toString());
+        const search = new URLSearchParams(params?.toString() || '');
         if (next.category !== undefined) {
           if (next.category) search.set('cat', next.category);
           else search.delete('cat');
@@ -51,4 +51,3 @@ export default function SearchFiltersPanel({ facets }: SearchFiltersPanelProps) 
     />
   );
 }
-

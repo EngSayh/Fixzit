@@ -7,7 +7,7 @@ import { Users, DollarSign, Calendar, Clock } from 'lucide-react';
 
 export default function HRLayout({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const router = useRouter();
 
   // Determine active tab from pathname

@@ -45,6 +45,7 @@ export default function PropertyDetailsPage() {
   const { data: session } = useSession();
   const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'properties' });
   const { t } = useTranslation();
+  const propertyId = Array.isArray(params?.id) ? params.id[0] : params?.id;
   
   if (!hasOrgContext || !orgId) {
     return guard;
@@ -61,6 +62,11 @@ export default function PropertyDetailsPage() {
     }
     if (!orgId) {
       toast.error(t('fm.properties.detail.errors.noOrgId', 'Organization ID missing'));
+      return;
+    }
+
+    if (!params?.id) {
+      toast.error(t('fm.properties.detail.errors.noPropertyId', 'Property ID missing'));
       return;
     }
 
@@ -98,7 +104,7 @@ export default function PropertyDetailsPage() {
   };
 
   const { data: property, error, isLoading } = useSWR(
-    orgId ? `/api/properties/${params.id}` : null, 
+    orgId && params?.id ? `/api/properties/${params.id}` : null, 
     fetcher
   );
 
@@ -134,7 +140,11 @@ export default function PropertyDetailsPage() {
         <div className="flex items-center space-x-2">
           <Button 
             variant="outline"
-            onClick={() => router.push(`/fm/properties/${params.id}/edit`)}
+            onClick={() => {
+              if (propertyId) {
+                router.push(`/fm/properties/${propertyId}/edit`);
+              }
+            }}
           >
             <Edit className="w-4 h-4 me-2" />
             Edit

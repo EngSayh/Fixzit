@@ -24,7 +24,7 @@ export interface GovernorResult {
 /**
  * Rate limiting governor - prevent abuse
  */
-function checkRateLimit(context: GovernorContext): GovernorResult {
+function checkRateLimit(_context: GovernorContext): GovernorResult {
   // Rate limiting is handled at the route level
   // This is a placeholder for additional business logic
   return { allowed: true };

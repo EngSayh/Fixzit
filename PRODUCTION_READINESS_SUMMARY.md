@@ -1,20 +1,20 @@
 # 🚀 Production Deployment Status - Fixzit
 
-**Generated:** December 2024  
+**Updated:** Current session  
 **Target:** fixzit.co (GoDaddy)  
 **Platform:** Vercel  
-**Current State:** ✅ READY TO DEPLOY
+**Current State:** ✅ Deployable with caveats
 
 ---
 
-## ✅ Code Quality: 100%
+## ✅ Code Quality Snapshot (this run)
 
-- **TypeScript:** 0 errors
-- **ESLint:** 0 errors  
-- **Tests:** 830 passing (full suite), 0 failures
-- **Build:** Clean (verified with placeholder envs)
-- **Git:** Committed to main (3a0a1d827)
-- **React Warnings:** Fixed (topbar act() issue resolved)
+- **TypeScript:** ✅ `pnpm typecheck`
+- **ESLint:** ✅ `pnpm lint`
+- **Targeted Tests:** ✅ `pnpm vitest -c vitest.config.api.ts run tests/server/copilot/approveQuotation.test.ts`
+- **Playwright/E2E:** ⚪️ Not executed in this run (previous `pnpm test` attempt hit “No tests found” because the path is a Vitest file, not a Playwright spec)
+- **Build:** ⚪️ Not re-run in this session
+- **Git:** Local changes exist (mongo, ads, finance fixes) — commit before deploy
 
 ---
 
@@ -23,8 +23,8 @@
 ### ✅ Completed
 - [x] Vercel CLI installed (`/opt/homebrew/bin/vercel`)
 - [x] vercel.json configuration exists
-- [x] Code quality perfect
-- [x] All tests passing
+- [x] Lint + typecheck passing (this session)
+- [x] Targeted unit test passing (approveQuotation)
 - [x] Domain ready (fixzit.co on GoDaddy)
 - [x] Notifications default to background dispatch for <500ms API latency; set `background: false` in `sendNotification` when a controller must block on delivery attempts.
 
@@ -182,15 +182,16 @@ vercel --prod
 ## 📊 Risk Assessment
 
 ### Zero Risk (Can deploy now)
-- Code quality is perfect
-- Tests all pass
-- No TypeScript/ESLint errors
-- Build succeeds
+- Lint and typecheck are green
+- Targeted unit test green (approveQuotation)
+- No TypeScript/ESLint errors in this run
+- Build not re-run this session (run `pnpm build` before next prod deploy)
 
 ### Low Risk (Easy to fix)
 - Missing MongoDB Atlas → 10 minutes to create
 - Missing env vars → 5 minutes to add
 - DNS propagation → Automatic, just wait
+- Full Playwright/E2E coverage not executed in this session → run `pnpm test:e2e` when specs are available
 
 ### No Risk Items
 - SSL certificate → Vercel handles automatically
@@ -218,6 +219,9 @@ vercel --prod
    - AWS Access Key ID
    - AWS Secret Access Key
    - S3 Bucket name
+4. **Before the next production deploy:**
+   - Run `pnpm build`
+   - Run Playwright/E2E suite when specs are ready (`pnpm test:e2e`)
 
 ### What I'll Do After You Respond:
 

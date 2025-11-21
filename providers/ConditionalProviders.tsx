@@ -48,7 +48,7 @@ export default function ConditionalProviders({
   children: React.ReactNode;
   initialLocale?: Locale;
 }) {
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
   
   // Check if current route is public
   const isPublicRoute = 

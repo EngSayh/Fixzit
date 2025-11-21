@@ -2,9 +2,11 @@ import crypto from "crypto";
 import { db } from "@/lib/mongo";
 import { CopilotKnowledge, KnowledgeDoc } from "@/server/models/CopilotKnowledge";
 import { CopilotSession } from "./session";
+import { Types } from "mongoose";
 
 const EMBEDDING_MODEL = process.env.COPILOT_EMBEDDING_MODEL || "text-embedding-3-small";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GLOBAL_KNOWLEDGE_ORG = new Types.ObjectId("000000000000000000000000");
 
 async function callEmbedding(text: string): Promise<number[]> {
   if (!OPENAI_API_KEY) {
@@ -65,10 +67,18 @@ export async function retrieveKnowledge(session: CopilotSession, query: string, 
   await db;
 
   const embedding = await callEmbedding(query);
+  const tenantObjectId = Types.ObjectId.isValid(session.tenantId) ? new Types.ObjectId(session.tenantId) : null;
 
   const docs = await CopilotKnowledge.find({
     $and: [
-      { $or: [{ orgId: session.tenantId }, { orgId: null }] },
+      {
+        $or: [
+          { orgId: session.tenantId },
+          ...(tenantObjectId ? [{ orgId: tenantObjectId }] : []),
+          { orgId: null },
+          { orgId: GLOBAL_KNOWLEDGE_ORG },
+        ],
+      },
       { locale: { $in: [session.locale, "en"] } }
     ]
   }).lean<KnowledgeDoc[]>();
@@ -96,13 +106,17 @@ export async function retrieveKnowledge(session: CopilotSession, query: string, 
 export async function upsertKnowledgeDocument(doc: Partial<KnowledgeDoc> & { slug: string; title: string; content: string; orgId?: string }): Promise<void> {
   await db;
   const embedding = doc.embedding?.length ? doc.embedding : await callEmbedding(doc.content);
+  const orgId =
+    doc.orgId && Types.ObjectId.isValid(doc.orgId)
+      ? new Types.ObjectId(doc.orgId)
+      : GLOBAL_KNOWLEDGE_ORG;
   await CopilotKnowledge.findOneAndUpdate(
     { slug: doc.slug },
     {
       $set: {
         title: doc.title,
         content: doc.content,
-        orgId: doc.orgId || '',
+        orgId,
         roles: doc.roles ?? [],
         locale: doc.locale ?? "en",
         tags: doc.tags ?? [],

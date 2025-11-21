@@ -193,24 +193,24 @@ export class CampaignService {
     const db = await getDatabase();
 
     const campaign = await db
-      .collection('souq_ad_campaigns')
+      .collection<Campaign>('souq_ad_campaigns')
       .findOne({ campaignId });
 
-    this.ensureOwnership(campaign as Campaign | null, sellerId, 'update');
+    const existingCampaign = this.ensureOwnership(campaign, sellerId, 'update');
 
-    const nextBiddingStrategy = updates.biddingStrategy ?? campaign.biddingStrategy;
-    const nextDefaultBid = updates.defaultBid ?? campaign.defaultBid ?? MIN_BID_SAR;
+    const nextBiddingStrategy = updates.biddingStrategy ?? existingCampaign.biddingStrategy;
+    const nextDefaultBid = updates.defaultBid ?? existingCampaign.defaultBid ?? MIN_BID_SAR;
     if (nextBiddingStrategy === 'automatic' || nextBiddingStrategy === 'manual') {
       if (nextDefaultBid < MIN_BID_SAR) {
         throw new Error(`Default bid must be at least ${MIN_BID_SAR} SAR for ${nextBiddingStrategy} bidding`);
       }
     }
 
-    const nextDailyBudget = updates.dailyBudget ?? campaign.dailyBudget;
+    const nextDailyBudget = updates.dailyBudget ?? existingCampaign.dailyBudget;
     this.assertBudget(nextDailyBudget);
 
-    const nextStartDate = updates.startDate ?? campaign.startDate;
-    const nextEndDate = updates.endDate ?? campaign.endDate;
+    const nextStartDate = updates.startDate ?? existingCampaign.startDate;
+    const nextEndDate = updates.endDate ?? existingCampaign.endDate;
     this.assertDates(nextStartDate, nextEndDate);
 
     const updateDoc = {

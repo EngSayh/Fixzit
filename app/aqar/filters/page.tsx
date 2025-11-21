@@ -82,6 +82,7 @@ export default function FiltersPage() {
 
   // ---------- init from URL or sessionStorage ----------
   useEffect(() => {
+    if (!params) return;
     const fromURL: Partial<FilterState> = {};
     params.forEach((v, k) => {
       if ((k as keyof FilterState) in DEFAULT_FILTERS) {

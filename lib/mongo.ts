@@ -70,7 +70,8 @@ const rawMongoUri = getEnv('MONGODB_URI');
 const dbName = process.env.MONGODB_DB || 'fixzit';
 const isProd = process.env.NODE_ENV === 'production';
 const allowLocalMongo = process.env.ALLOW_LOCAL_MONGODB === 'true';
-const disableMongoForBuild = process.env.DISABLE_MONGODB_FOR_BUILD === 'true';
+const isNextBuild = process.env.NEXT_PHASE === 'phase-production-build';
+const disableMongoForBuild = process.env.DISABLE_MONGODB_FOR_BUILD === 'true' || isNextBuild;
 const allowOfflineMongo = process.env.ALLOW_OFFLINE_MONGODB === 'true';
 
 function resolveMongoUri(): string {
@@ -183,7 +184,9 @@ if (!conn) {
             }
           } catch (poolError) {
             // Non-critical: Log but don't fail if pool attachment fails
-            logger.warn('[Mongo] Could not attach database pool (non-critical):', poolError instanceof Error ? poolError : undefined);
+            logger.warn('[Mongo] Could not attach database pool (non-critical):', {
+              error: poolError instanceof Error ? poolError.message : String(poolError),
+            });
           }
         }
         

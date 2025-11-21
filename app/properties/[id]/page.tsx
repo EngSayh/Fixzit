@@ -8,7 +8,7 @@ import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 export default function PropertyDetailPage() {
   const params = useParams();
-  const propertyId = params.id;
+  const propertyId = params?.id?.toString() ?? '';
   const { isRTL } = useTranslation();
   const auto = useAutoTranslator('properties.detail');
   

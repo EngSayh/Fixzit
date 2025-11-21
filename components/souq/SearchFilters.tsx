@@ -26,11 +26,11 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
   );
 
   // Get current filter values
-  const currentCategory = searchParams.get('category');
-  const currentMinPrice = searchParams.get('minPrice');
-  const currentMaxPrice = searchParams.get('maxPrice');
-  const currentMinRating = searchParams.get('minRating');
-  const currentBadges = searchParams.get('badges')?.split(',').filter(Boolean) || [];
+  const currentCategory = searchParams?.get('category');
+  const currentMinPrice = searchParams?.get('minPrice');
+  const currentMaxPrice = searchParams?.get('maxPrice');
+  const currentMinRating = searchParams?.get('minRating');
+  const currentBadges = searchParams?.get('badges')?.split(',').filter(Boolean) || [];
 
   // Toggle section expansion
   const toggleSection = (section: string) => {
@@ -45,7 +45,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
 
   // Apply filter
   const applyFilter = (key: string, value: string | null) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
     
     if (value === null) {
       params.delete(key);
@@ -61,7 +61,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
 
   // Toggle badge filter
   const toggleBadge = (badge: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() || '');
     const currentBadges = params.get('badges')?.split(',').filter(Boolean) || [];
     
     if (currentBadges.includes(badge)) {
@@ -84,7 +84,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
   // Clear all filters
   const clearAllFilters = () => {
     const params = new URLSearchParams();
-    const query = searchParams.get('q');
+    const query = searchParams?.get('q');
     if (query) params.set('q', query);
     router.push(`/souq/search?${params.toString()}`);
   };
@@ -194,9 +194,10 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
                 onClick={() => {
                   if (isActive) {
                     applyFilter('minPrice', null);
-                    applyFilter('maxPrice', null);
-                  } else if (min && max) {
-                    const params = new URLSearchParams(searchParams.toString());
+                applyFilter('maxPrice', null);
+              } else if (min && max) {
+                if (!searchParams) return;
+                const params = new URLSearchParams(searchParams.toString());
                     params.set('minPrice', min);
                     params.set('maxPrice', max);
                     params.set('page', '1');

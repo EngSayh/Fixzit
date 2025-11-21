@@ -39,6 +39,7 @@ interface SearchResponse {
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
+  const params = searchParams ?? new URLSearchParams();
   const auto = useAutoTranslator('souq.search');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('relevance');
@@ -47,13 +48,13 @@ export default function SearchPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Get query params
-  const query = searchParams.get('q') || '';
-  const page = parseInt(searchParams.get('page') || '1');
-  const category = searchParams.get('category');
-  const minPrice = searchParams.get('minPrice');
-  const maxPrice = searchParams.get('maxPrice');
-  const minRating = searchParams.get('minRating');
-  const badges = searchParams.get('badges');
+  const query = params.get('q') || '';
+  const page = parseInt(params.get('page') || '1');
+  const category = params.get('category');
+  const minPrice = params.get('minPrice');
+  const maxPrice = params.get('maxPrice');
+  const minRating = params.get('minRating');
+  const badges = params.get('badges');
 
   // Fetch search results
   useEffect(() => {
@@ -99,6 +100,7 @@ export default function SearchPage() {
 
   // Handle pagination
   const handlePageChange = (newPage: number) => {
+    if (!searchParams) return;
     const params = new URLSearchParams(searchParams.toString());
     params.set('page', newPage.toString());
     window.location.href = `/souq/search?${params.toString()}`;

@@ -46,15 +46,15 @@ function addBillingPeriod(from: Date, cycle: 'MONTHLY' | 'ANNUAL'): { periodStar
 }
 
 type SubscriptionDocument = Awaited<ReturnType<typeof Subscription.findById>>;
-type CreatedSubscription = Awaited<ReturnType<typeof Subscription.create>>;
+type SubscriptionNonNull = NonNullable<SubscriptionDocument>;
 
-export async function createSubscriptionFromCheckout(input: CreateSubscriptionInput): Promise<CreatedSubscription> {
+export async function createSubscriptionFromCheckout(input: CreateSubscriptionInput): Promise<SubscriptionNonNull> {
   await connectToDatabase();
   
   const priceBook = await PriceBook.findById(input.priceBookId);
   if (!priceBook) throw new Error('Invalid price_book_id');
   
-  const sub = await Subscription.create({
+  const created = await Subscription.create({
     subscriber_type: input.subscriberType,
     tenant_id: input.subscriberType === 'CORPORATE' ? input.tenantId : undefined,
     owner_user_id: input.subscriberType === 'OWNER' ? input.ownerUserId : undefined,
@@ -65,10 +65,10 @@ export async function createSubscriptionFromCheckout(input: CreateSubscriptionIn
     currency: input.currency,
     amount: 0, // Will be calculated
     status: 'INCOMPLETE',
-  });
+  }) as SubscriptionNonNull;
   
-  logger.info('[Subscription] Created new subscription', { id: sub._id });
-  return sub;
+  logger.info('[Subscription] Created new subscription', { id: created._id });
+  return created;
 }
 
 export async function markSubscriptionPaid(subscriptionId: string, charge: PayTabsChargeResult): Promise<SubscriptionDocument> {

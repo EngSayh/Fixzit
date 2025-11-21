@@ -493,7 +493,7 @@ export default function ClientSidebar() {
             {!collapsed[section.id] && (
               <ul className="mt-1 space-y-1">
                 {section.items.map((item) => {
-                  const active = pathname.startsWith(item.path);
+                  const active = pathname?.startsWith(item.path) ?? false;
                   return (
                     <li key={item.path}>
                       <Link

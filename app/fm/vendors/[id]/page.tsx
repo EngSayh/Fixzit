@@ -89,6 +89,11 @@ export default function VendorDetailsPage() {
       return;
     }
 
+    if (!params?.id) {
+      toast.error(t('fm.vendors.detail.errors.noVendorId', 'Vendor ID missing'));
+      return;
+    }
+
     const toastId = toast.loading(t('fm.vendors.detail.toasts.deleting', 'Deleting vendor...'));
     try {
       const res = await fetch(`/api/vendors/${params.id}`, {
@@ -123,7 +128,7 @@ export default function VendorDetailsPage() {
   };
 
   const { data: vendor, error, isLoading } = useSWR<Vendor>(
-    orgId ? `/api/vendors/${params.id}` : null, 
+    orgId && params?.id ? `/api/vendors/${params.id}` : null, 
     fetcher
   );
 
@@ -165,7 +170,11 @@ export default function VendorDetailsPage() {
         <div className="flex items-center space-x-2">
           <Button 
             variant="outline"
-            onClick={() => router.push(`/fm/vendors/${params.id}/edit`)}
+            onClick={() => {
+              if (params?.id) {
+                router.push(`/fm/vendors/${params.id}/edit`);
+              }
+            }}
           >
             <Edit className="w-4 h-4 me-2" />
             Edit

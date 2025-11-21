@@ -1,4 +1,4 @@
-import { Schema, Types, InferSchemaType, HydratedDocument } from "mongoose";
+import { Schema, Types, InferSchemaType, HydratedDocument, Model, model } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 import { getModel } from '@/src/types/mongoose-compat';
@@ -399,8 +399,7 @@ ServiceProviderSchema.methods.transitionStatus = async function(
   
   try {
     // Use findByIdAndUpdate for atomic operation
-    const serviceProviderModel = this.model<ServiceProvider>('ServiceProvider');
-    const updated = await serviceProviderModel.findByIdAndUpdate(
+    const updated = await ServiceProviderModel.findByIdAndUpdate(
       this._id,
       { $set: updateFields },
       { new: true, runValidators: true }

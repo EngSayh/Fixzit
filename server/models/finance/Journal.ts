@@ -266,8 +266,9 @@ JournalSchema.pre('save', async function(next) {
 JournalSchema.pre('save', async function(next) {
   if (this.isNew) return next();
 
-  const journalModel = this.model<IJournal>('Journal');
-  const existing = await journalModel.findById(this._id).select('status').lean();
+  // Use the registered model to avoid type narrowing on the document instance
+  const JournalModel = model<IJournal>('Journal');
+  const existing = await JournalModel.findById(this._id).select('status').lean();
   if (existing?.status === 'POSTED' && this.isModified()) {
     if (this.status === 'VOID') {
       return next();

@@ -144,7 +144,7 @@ type UserRoleOrGuest = UserRoleType | 'guest';
 export default function ClientLayout({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<UserRoleOrGuest>('guest');
   const [loading, setLoading] = useState(true);
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const router = useRouter();
 
   // ✅ FIXED: SessionProvider is now always available (in PublicProviders)

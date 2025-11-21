@@ -95,7 +95,7 @@ export class AqarOfflineCacheService {
     const cacheKey = this.buildCacheKey(input);
     const now = new Date();
 
-    const collection = db.collection(this.COLLECTION);
+    const collection: Collection<OfflineBundleDoc> = db.collection<OfflineBundleDoc>(this.COLLECTION);
     await this.ensureIndexes(collection);
     const existing = await collection.findOne({ cacheKey, expiresAt: { $gt: now } }) as OfflineBundleDoc | null;
 

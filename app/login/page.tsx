@@ -99,7 +99,7 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const { t, isRTL } = useTranslation();
 
-  const redirectTarget = searchParams.get('next') || searchParams.get('callbackUrl') || null;
+  const redirectTarget = searchParams?.get('next') || searchParams?.get('callbackUrl') || null;
   // Only show demo credentials in development, never in production
   const showDemoCredentials = process.env.NODE_ENV === 'development';
 

@@ -78,6 +78,7 @@ interface Vendor {
 
 export default function EditVendorPage() {
   const params = useParams();
+  const vendorId = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const router = useRouter();
   const { data: session } = useSession();
   const auto = useAutoTranslator('fm.vendors.edit');
@@ -107,13 +108,14 @@ export default function EditVendorPage() {
   };
 
   const { data: vendor, error, isLoading } = useSWR<Vendor>(
-    orgId ? `/api/vendors/${params.id}` : null, 
+    orgId && vendorId ? `/api/vendors/${vendorId}` : null, 
     fetcher
   );
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!orgId) return toast.error(auto('Organization ID missing', 'errors.noOrg'));
+    if (!vendorId) return toast.error(auto('Vendor ID missing', 'errors.noVendor'));
     
     setIsSaving(true);
     setErrors({});
@@ -124,7 +126,7 @@ export default function EditVendorPage() {
     
     // ✅ FIX 4: Use getOptionalString for all optional fields to match validation schema
     const data: Partial<UpdateVendorInput> = {
-      id: params.id as string,
+      id: vendorId,
       name: formData.get('name')?.toString() || '', // Required field
       code: getOptionalString(formData.get('code')),
       type: getOptionalString(formData.get('type')),
@@ -158,7 +160,7 @@ export default function EditVendorPage() {
       // Validate with Zod
       UpdateVendorSchema.parse(data);
 
-      const res = await fetch(`/api/vendors/${params.id}`, {
+      const res = await fetch(`/api/vendors/${vendorId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -173,7 +175,7 @@ export default function EditVendorPage() {
       }
 
       toast.success(auto('Vendor updated successfully', 'toast.success'));
-      router.push(`/fm/vendors/${params.id}`);
+      router.push(`/fm/vendors/${vendorId}`);
     } catch (_error) {
       if (_error instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
@@ -204,6 +206,9 @@ export default function EditVendorPage() {
       </div>
     );
   }
+  if (!vendorId) {
+    return <div className="text-destructive">{auto('Vendor ID missing', 'errors.noVendor')}</div>;
+  }
   if (error) return <div className="text-destructive">{auto('Failed to load vendor', 'errors.loadFailed')}</div>;
   if (isLoading || !vendor) return <CardGridSkeleton count={1} />;
 
@@ -213,7 +218,7 @@ export default function EditVendorPage() {
       {supportBanner}
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href={`/fm/vendors/${params.id}`}>
+        <Link href={vendorId ? `/fm/vendors/${vendorId}` : '/fm/vendors'}>
           <Button variant="ghost" size="icon">
             <ChevronLeft className="h-5 w-5" />
           </Button>
@@ -508,7 +513,7 @@ export default function EditVendorPage() {
 
         {/* Actions */}
         <div className="flex justify-end gap-4 mt-6">
-          <Link href={`/fm/vendors/${params.id}`}>
+          <Link href={vendorId ? `/fm/vendors/${vendorId}` : '/fm/vendors'}>
             <Button type="button" variant="outline">
               {auto('Cancel', 'actions.cancel')}
             </Button>

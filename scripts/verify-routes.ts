@@ -10,7 +10,12 @@ function crawl(dir: string, pathParts: string[] = []) {
   for (const name of readdirSync(dir)) {
     const full = join(dir, name);
     const s = statSync(full);
-    if (s.isDirectory()) crawl(full, [...pathParts, name]);
+    if (s.isDirectory()) {
+      // Strip Next.js route groups like "(app)" and "(dashboard)" from the URL
+      const isRouteGroup = name.startsWith("(") && name.endsWith(")");
+      const nextParts = isRouteGroup ? pathParts : [...pathParts, name];
+      crawl(full, nextParts);
+    }
     else {
       if (/^page\.(tsx|jsx|js|mdx)$/.test(name)) {
         const route = "/" + pathParts.join("/");

@@ -71,6 +71,11 @@ function getInteger(key: string, fallback: number): number {
 // =============================================================================
 
 const NODE_ENV = (process.env.NODE_ENV || 'development') as Environment;
+const IS_NEXT_BUILD = process.env.NEXT_PHASE === 'phase-production-build';
+const SKIP_CONFIG_VALIDATION =
+  process.env.SKIP_CONFIG_VALIDATION === 'true' ||
+  process.env.DISABLE_MONGODB_FOR_BUILD === 'true' ||
+  IS_NEXT_BUILD;
 
 export const Config = {
   /**
@@ -124,13 +129,13 @@ export const Config = {
    * AWS Configuration
    */
   aws: {
-    region: getRequired('AWS_REGION', 'us-east-1'),
+    region: getOptional('AWS_REGION', 'us-east-1'),
     accessKeyId: getOptional('AWS_ACCESS_KEY_ID'),
     secretAccessKey: getOptional('AWS_SECRET_ACCESS_KEY'),
     
     // S3 Configuration
     s3: {
-      bucket: getRequired('AWS_S3_BUCKET', 'fixzit-dev-uploads'),
+      bucket: getOptional('AWS_S3_BUCKET', 'fixzit-dev-uploads'),
       uploadsPrefix: getOptional('S3_UPLOADS_PREFIX', 'uploads/'),
       publicUrl: getOptional('S3_PUBLIC_URL', ''),
     },
@@ -251,13 +256,11 @@ export const Config = {
 // Runtime Validation (Production Only)
 // =============================================================================
 
-if (Config.env.isProduction) {
+if (Config.env.isProduction && !SKIP_CONFIG_VALIDATION) {
   // Validate critical production configuration
   const criticalVars = [
     'NEXTAUTH_SECRET',
     'MONGODB_URI',
-    'AWS_S3_BUCKET',
-    'AWS_REGION',
   ];
   
   const missing = criticalVars.filter(key => {
@@ -269,6 +272,11 @@ if (Config.env.isProduction) {
     throw new ConfigurationError(
       `Missing critical environment variables in production: ${missing.join(', ')}`
     );
+  }
+  
+  // Warn if AWS is not configured (S3 uploads will not work)
+  if (!Config.aws.region || !Config.aws.s3.bucket) {
+    console.warn('[Config] ⚠️  AWS not fully configured - S3 file uploads will be disabled');
   }
   
   // Validate MongoDB URI format
@@ -288,4 +296,3 @@ if (Config.env.isProduction) {
 // =============================================================================
 
 export type ConfigType = typeof Config;
-

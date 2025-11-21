@@ -22,7 +22,7 @@ const getQueryViews = (moduleId: ModuleId): QueryView[] => {
 export function useModuleView(moduleId: ModuleId) {
   const searchParams = useSearchParams();
   const views = useMemo(() => getQueryViews(moduleId), [moduleId]);
-  const requested = searchParams.get('view');
+  const requested = searchParams?.get('view');
   const currentView =
     views.find((view) => view.value === requested) ?? (views.length ? views[0] : undefined);
 
@@ -48,8 +48,9 @@ export default function ModuleViewTabs({ moduleId, className }: ModuleViewTabsPr
 
   const handleSelect = (value: string) => {
     if (currentView?.value === value) return;
+    const paramsString = searchParams?.toString() ?? '';
     startTransition(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(paramsString);
       params.set('view', value);
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     });
