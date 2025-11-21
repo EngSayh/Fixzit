@@ -7,6 +7,16 @@ import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
+interface RFQDocument {
+  _id: unknown;
+  code?: string;
+  status?: string;
+  workflow?: {
+    publishedAt?: Date | null;
+  };
+  [key: string]: unknown;
+}
+
 /**
  * Publishes a draft RFQ by id for the current user's tenant.
  *
@@ -65,13 +75,14 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
     // Vendor notifications sent via background job
 
+    const rfqTyped = rfq as unknown as RFQDocument;
     return NextResponse.json({
       success: true,
       rfq: {
-        id: rfq._id,
-        code: rfq.code,
-        status: rfq.status,
-        publishedAt: (rfq as any)?.workflow?.publishedAt || null  // TODO(type-safety): Add workflow to RFQ schema
+        id: rfqTyped._id,
+        code: rfqTyped.code,
+        status: rfqTyped.status,
+        publishedAt: rfqTyped.workflow?.publishedAt || null
       }
     });
   } catch (error: unknown) {

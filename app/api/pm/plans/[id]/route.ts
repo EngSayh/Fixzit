@@ -111,11 +111,11 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const plan = (await (FMPMPlan as any).findByIdAndUpdate(
+    const plan = await FMPMPlan.findByIdAndUpdate(
       id,
       { $set: { status: 'INACTIVE' } },
       { new: true }
-    ));
+    );
     
     if (!plan) {
       return NextResponse.json(

@@ -35,8 +35,7 @@ export async function GET() {
     // Get the first active organization (or you can get by orgId from session)
     const { Organization } = await import('@/server/models/Organization');
     type OrgDoc = { name?: string; logo?: string; branding?: { primaryColor?: string; secondaryColor?: string; accentColor?: string } };
-    // TODO(type-safety): Verify Organization.findOne return type
-    const org = (await (Organization as any).findOne({ /* isActive: true */ }).select('name logo branding').lean()) as OrgDoc | null;
+    const org = await Organization.findOne({ /* isActive: true */ }).select('name logo branding').lean() as unknown as OrgDoc | null;
 
     if (!org) {
       // Return default settings if no organization found

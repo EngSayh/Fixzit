@@ -7,6 +7,11 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
 
+interface JobWithScreening {
+  screeningRules?: unknown;
+  [key: string]: unknown;
+}
+
 /**
  * @openapi
  * /api/careers/apply:
@@ -74,7 +79,8 @@ export async function POST(req: NextRequest) {
 
     const phoneE164 = String(formData.get('phoneE164') || '').trim();
 
-    const normalizedJob = { ...(job as any), screeningRules: job?.screeningRules ?? undefined };
+    const jobTyped = job as unknown as JobWithScreening;
+    const normalizedJob = { ...jobTyped, screeningRules: jobTyped.screeningRules ?? undefined };
 
     try {
       const result = await submitApplicationFromForm({

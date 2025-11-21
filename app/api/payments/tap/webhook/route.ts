@@ -616,7 +616,8 @@ async function updateRefundRecord(
     });
   }
   transaction.events = transaction.events || [];
-  (transaction.events as any).push({
+  const eventsTyped = transaction.events as unknown as TransactionEvent[];
+  eventsTyped.push({
     type:
       status === 'SUCCEEDED'
         ? 'refund.succeeded'
@@ -631,8 +632,8 @@ async function updateRefundRecord(
       responseMessage: refund.response?.message,
     },
   });
-  if (transaction.events.length > 25) {
-    transaction.events = (transaction.events as any).slice(transaction.events.length - 25);
+  if (eventsTyped.length > 25) {
+    transaction.events = eventsTyped.slice(eventsTyped.length - 25) as unknown as typeof transaction.events;
   }
   await transaction.save();
 

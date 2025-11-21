@@ -3,6 +3,8 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import { TranslationProvider } from '@/contexts/TranslationContext';
+import arDict from '@/i18n/dictionaries/ar';
+import enDict from '@/i18n/dictionaries/en';
 import LandingPage from '@/app/page';
 
 const ORIGINAL_FETCH = global.fetch;
@@ -19,7 +21,7 @@ describe('LandingPage translations', () => {
   it('renders Arabic hero CTA when locale is Arabic', async () => {
     await act(async () => {
       render(
-        <I18nProvider initialLocale="ar">
+        <I18nProvider initialLocale="ar" initialDict={arDict}>
           <TranslationProvider>
             <LandingPage />
           </TranslationProvider>
@@ -35,7 +37,7 @@ describe('LandingPage translations', () => {
   it('renders English hero CTA when locale is English', async () => {
     await act(async () => {
       render(
-        <I18nProvider initialLocale="en">
+        <I18nProvider initialLocale="en" initialDict={enDict}>
           <TranslationProvider>
             <LandingPage />
           </TranslationProvider>

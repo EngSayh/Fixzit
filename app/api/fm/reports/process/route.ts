@@ -26,6 +26,10 @@ type ReportJob = {
   clean?: boolean;
 };
 
+interface ReportJobDocument extends ReportJob {
+  [key: string]: unknown;
+}
+
 const COLLECTION = 'fm_report_jobs';
 
 export async function POST(req: NextRequest) {
@@ -52,25 +56,25 @@ export async function POST(req: NextRequest) {
 
     let processed = 0;
     for (const job of queued) {
-      const jobAny = job as any;
-      const id = String(jobAny._id);
+      const jobDoc = job as ReportJobDocument;
+      const id = String(jobDoc._id);
       const key = `${tenantId}/reports/${id}.csv`;
 
       try {
-        await collection.updateOne({ _id: jobAny._id }, { $set: { status: 'processing' } });
+        await collection.updateOne({ _id: jobDoc._id }, { $set: { status: 'processing' } });
         const report = await generateReport({
           id,
-          name: jobAny.name,
-          type: jobAny.type,
+          name: jobDoc.name,
+          type: jobDoc.type,
           format: 'csv',
-          dateRange: `${jobAny.startDate || ''}-${jobAny.endDate || ''}`,
-          notes: jobAny.notes,
+          dateRange: `${jobDoc.startDate || ''}-${jobDoc.endDate || ''}`,
+          notes: jobDoc.notes,
         });
 
         await putObjectBuffer(key, report.buffer, report.mime);
         const clean = await scanS3Object(key).catch(() => false);
         await collection.updateOne(
-          { _id: jobAny._id },
+          { _id: jobDoc._id },
           {
             $set: {
               status: clean ? 'ready' : 'failed',
@@ -79,7 +83,7 @@ export async function POST(req: NextRequest) {
               fileSize: report.size,
               clean,
               updatedAt: new Date(),
-              notes: clean ? jobAny.notes : 'AV scan failed',
+              notes: clean ? jobDoc.notes : 'AV scan failed',
             },
           }
         );
@@ -87,7 +91,7 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         logger.error('FM Reports worker failed to process job', err as Error, { jobId: id });
         await collection.updateOne(
-          { _id: jobAny._id },
+          { _id: jobDoc._id },
           { $set: { status: 'failed', updatedAt: new Date(), notes: `Error: ${String(err)}` } }
         );
       }
@@ -97,10 +101,10 @@ export async function POST(req: NextRequest) {
     const ready = await collection.find({ org_id: tenantId, status: 'ready' }).sort({ updatedAt: -1 }).limit(5).toArray();
     const urls = await Promise.all(
       ready.map(async (job) => {
-        const j = job as any;
-        const fileKey = j.fileKey;
+        const jobReady = job as ReportJobDocument;
+        const fileKey = jobReady.fileKey;
         return {
-          id: String(j._id),
+          id: String(jobReady._id),
           fileKey,
           downloadUrl: fileKey ? await getPresignedGetUrl(fileKey, 600) : null,
         };

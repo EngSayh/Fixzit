@@ -34,17 +34,24 @@ function setCookie(name: string, value: string, days = 365) {
 
 export const I18nProvider: React.FC<{
   initialLocale?: Locale;
+  /** Optional preloaded dictionary for the initial locale (useful in tests to avoid async loads). */
+  initialDict?: Record<string, unknown>;
   children: React.ReactNode;
-}> = ({ initialLocale = DEFAULT_LOCALE, children }) => {
+}> = ({ initialLocale = DEFAULT_LOCALE, initialDict, children }) => {
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
-  const [dict, setDict] = useState<Record<string, unknown>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [dict, setDict] = useState<Record<string, unknown>>(initialDict ?? {});
+  const [isLoading, setIsLoading] = useState(!initialDict);
   const meta = LOCALE_META[locale];
 
   // ⚡ PERFORMANCE: Load dictionary dynamically when locale changes
   useEffect(() => {
+    // If a prefetched dictionary was provided for the initial locale, skip async load
+    if (initialDict && locale === initialLocale) {
+      return;
+    }
+
     let cancelled = false;
-    
+
     setIsLoading(true);
     DICTIONARIES[locale]()
       .then((module) => {

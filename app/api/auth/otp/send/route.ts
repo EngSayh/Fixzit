@@ -30,7 +30,6 @@ interface UserDocument {
   role?: string;
   professional?: { role?: string };
   roles?: string[];
-  _id?: { toString: () => string };
   [key: string]: unknown;
 }
 
@@ -425,13 +424,13 @@ export async function POST(request: NextRequest) {
     if (!userPhone && TEST_USERS_FALLBACK_PHONE && isDemoUserForPhone) {
       userPhone = TEST_USERS_FALLBACK_PHONE;
       logger.warn('[OTP] Using fallback phone for demo/test user', {
-        userId: user._id.toString(),
+        userId: user._id?.toString?.() || loginIdentifier,
         identifier: loginIdentifier,
       });
     }
 
     if (!userPhone) {
-      logger.error('[OTP] User has no phone number', { userId: user._id.toString() });
+      logger.error('[OTP] User has no phone number', { userId: user._id?.toString?.() || loginIdentifier });
       return NextResponse.json(
         {
           success: false,
@@ -444,7 +443,7 @@ export async function POST(request: NextRequest) {
     // 9. Validate phone number (Saudi format)
     if (!isValidSaudiPhone(userPhone)) {
       logger.error('[OTP] Invalid phone number format', {
-        userId: user._id.toString(),
+        userId: user._id?.toString?.() || loginIdentifier,
         phone: userPhone,
       });
       return NextResponse.json(
@@ -474,7 +473,7 @@ export async function POST(request: NextRequest) {
 
     if (!OFFLINE_MODE) {
       const logResult = await logCommunication({
-        userId: user._id.toString(),
+        userId: user._id?.toString?.() || loginIdentifier,
         channel: 'otp',
         type: 'otp',
         recipient: userPhone,

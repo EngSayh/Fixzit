@@ -248,7 +248,7 @@ export async function PUT(request: NextRequest) {
     }
     
     const currentPreferences = user.preferences || {};
-    user.preferences = deepMerge({}, currentPreferences, sanitizedUpdates) as any;
+    user.preferences = deepMerge({}, currentPreferences, sanitizedUpdates) as UserPreferences;
     
     await user.save();
 

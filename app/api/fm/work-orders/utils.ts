@@ -1,9 +1,29 @@
 import type { DefaultSession } from 'next-auth';
 import type { WorkOrder, WorkOrderUser } from '@/types/fm';
 import type { getDatabase } from '@/lib/mongodb-unified';
+import type { ObjectId } from 'mongodb';
 
 export type WorkOrderDocument = Partial<WorkOrder> & {
-  [key: string]: any;
+  _id?: ObjectId;
+  id?: string;
+  workOrderNumber?: string;
+  woNumber?: string;
+  code?: string;
+  category?: string;
+  unitId?: string;
+  technicianId?: string;
+  estimatedCost?: number;
+  actualCost?: number;
+  currency?: string;
+  photos?: unknown[];
+  attachments?: unknown[];
+  comments?: unknown[];
+  timeline?: unknown[];
+  requester?: unknown;
+  assignee?: unknown;
+  technician?: unknown;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
 };
 
 /**

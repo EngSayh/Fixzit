@@ -4,6 +4,10 @@ import { FMPMPlan } from '@/server/models/FMPMPlan';
 
 import { logger } from '@/lib/logger';
 
+interface PMPlanWithMethods extends PMPlanDocument {
+  recordGeneration?: (id: unknown, woNumber: string, status: string) => Promise<unknown>;
+}
+
 interface PMPlanDocument {
   _id: unknown;
   planNumber?: string;
@@ -75,12 +79,14 @@ export async function POST() {
         logger.info(`[PM] WO Data:`, { workOrderData });
         
         // Record generation in plan
-        // TODO(type-safety): Add recordGeneration method to PMPlan model
-        await (plan as any).recordGeneration(
-          plan._id, // In real impl, this would be the actual WorkOrder._id
-          woNumber,
-          'SUCCESS'
-        );
+        const planWithMethods = plan as unknown as PMPlanWithMethods;
+        if (planWithMethods.recordGeneration) {
+          await planWithMethods.recordGeneration(
+            plan._id, // In real impl, this would be the actual WorkOrder._id
+            woNumber,
+            'SUCCESS'
+          );
+        }
         
         results.generated++;
         results.workOrders.push({

@@ -5,6 +5,18 @@ import { logger } from '@/lib/logger';
 import { LeaveService } from '@/server/services/hr/leave.service';
 import type { LeaveRequestStatus } from '@/server/models/hr.models';
 
+interface LeaveRequestInput {
+  orgId: string;
+  employeeId: string;
+  leaveTypeId: string;
+  startDate: Date;
+  endDate: Date;
+  numberOfDays: number;
+  status: string;
+  reason?: string;
+  approvalHistory: unknown[];
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
@@ -40,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    const requestDoc = await LeaveService.request({
+    const leaveInput: LeaveRequestInput = {
       orgId: session.user.orgId,
       employeeId: body.employeeId,
       leaveTypeId: body.leaveTypeId,
@@ -50,7 +62,8 @@ export async function POST(req: NextRequest) {
       status: 'PENDING',
       reason: body.reason,
       approvalHistory: [],
-    } as any);
+    };
+    const requestDoc = await LeaveService.request(leaveInput);
 
     return NextResponse.json(requestDoc, { status: 201 });
   } catch (error) {
