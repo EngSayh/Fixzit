@@ -6,7 +6,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { FMAction } from '@/types/fm/enums';
 import { ObjectId } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { WOStatus, WOPriority, type WorkOrder, WOCategory } from '@/types/fm';

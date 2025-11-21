@@ -41,17 +41,17 @@ export type SimplePaymentRequest = {
   invoiceId?: string;
   returnUrl: string;
   callbackUrl: string;
-}
+};
 
 export type SimplePaymentResponse = { success: true; paymentUrl: string; transactionId: string } | { success: false; error: string };
 
 const paytabsResilience = SERVICE_RESILIENCE.paytabs;
 const paytabsBreaker = getCircuitBreaker('paytabs');
 
+type PaytabsOverride = { profileId?: string; serverKey?: string; baseUrl?: string };
+
 const getPaytabsConfig = () => {
-  const override = (global as any)?.PAYTABS_CONFIG as
-    | { profileId?: string; serverKey?: string; baseUrl?: string }
-    | undefined;
+  const override = (globalThis as { PAYTABS_CONFIG?: PaytabsOverride }).PAYTABS_CONFIG;
 
   if (override) {
     return {

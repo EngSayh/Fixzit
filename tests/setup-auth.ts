@@ -17,16 +17,24 @@ type RoleConfig = {
  * Creates storage states for all user roles using OTP authentication
  * Mirrors the real OTP → verify → credentials callback flow so server-side
  * RBAC hooks and OTP session validation stay intact.
+ * 
+ * Production-ready: Works with real MongoDB connection and actual user data
+ * Offline mode: For CI/CD without database dependency
  */
 async function globalSetup(config: FullConfig) {
   console.log('\n🔐 Setting up authentication states for all roles (OTP flow)...\n');
 
-  const baseURL = config.projects[0].use.baseURL || 'http://localhost:3000';
+  const baseURL = config.projects[0].use.baseURL || process.env.BASE_URL || 'http://localhost:3000';
   const offlineMode = process.env.ALLOW_OFFLINE_MONGODB === 'true';
   const nextAuthSecret =
     process.env.NEXTAUTH_SECRET ||
     process.env.AUTH_SECRET ||
     'playwright-secret';
+  
+  console.log(`📍 Base URL: ${baseURL}`);
+  console.log(`🗄️  Database Mode: ${offlineMode ? 'Offline (Mock Sessions)' : 'Online (Real MongoDB)'}`);
+  console.log(`🔑 Using NextAuth Secret: ${nextAuthSecret.substring(0, 10)}...`);
+  
   const baseOrigin = (() => {
     try {
       return new URL(baseURL).origin;
@@ -108,7 +116,9 @@ async function globalSetup(config: FullConfig) {
   const browser = await chromium.launch();
 
   if (offlineMode) {
-    console.warn('\n⚠️  Offline mode detected - creating signed NextAuth session cookies for each role.\n');
+    console.warn('\n⚠️  OFFLINE MODE - Creating mock JWT session cookies (for CI/CD without database)\n');
+    console.warn('⚠️  These sessions bypass real authentication and should NOT be used in production!\n');
+    
     for (const role of roles) {
       const context = await browser.newContext();
       try {
@@ -173,6 +183,7 @@ async function globalSetup(config: FullConfig) {
 
         state.origins = filteredOrigins;
         await writeFile(role.statePath, JSON.stringify(state, null, 2), 'utf-8');
+        console.log(`  ✅ ${role.name} - Offline session created`);
       } catch (err) {
         console.error(`❌ Failed to create offline session for ${role.name}:`, err);
       } finally {
@@ -180,9 +191,12 @@ async function globalSetup(config: FullConfig) {
       }
     }
     await browser.close();
-    console.log('\n✅ Offline auth states ready (signed JWT sessions)\n');
+    console.log('\n✅ Offline auth states ready (mock JWT sessions for CI/CD)\n');
     return;
   }
+  
+  // PRODUCTION-READY: Real authentication flow with MongoDB
+  console.log('🗄️  PRODUCTION MODE - Authenticating with real MongoDB and OTP flow\n');
 
   for (const role of roles) {
     const context = await browser.newContext();
@@ -190,11 +204,12 @@ async function globalSetup(config: FullConfig) {
       const identifier = process.env[role.identifierEnv]!;
       const password = process.env[role.passwordEnv]!;
       const phone = role.phoneEnv ? process.env[role.phoneEnv] : undefined;
-      console.log(`🔑 Authenticating as ${role.name} (${identifier})...`);
+      console.log(`🔑 ${role.name}: Authenticating ${identifier}...`);
 
       const page = await context.newPage();
 
       // Step 1: Send OTP (credentials provider requires identifier + password)
+      console.log(`  📤 Sending OTP request...`);
       const otpResponse = await page.request.post(`${baseURL}/api/auth/otp/send`, {
         headers: { 'Content-Type': 'application/json' },
         data: { identifier, password },
@@ -202,7 +217,8 @@ async function globalSetup(config: FullConfig) {
 
       if (!otpResponse.ok()) {
         const body = await otpResponse.text();
-        throw new Error(`Failed to send OTP (${otpResponse.status()}): ${body}`);
+        console.error(`  ❌ OTP send failed (${otpResponse.status()}): ${body}`);
+        throw new Error(`Failed to send OTP for ${role.name} (${otpResponse.status()}): ${body}`);
       }
 
       const otpPayload = await otpResponse.json();
@@ -213,12 +229,14 @@ async function globalSetup(config: FullConfig) {
         otpPayload?.code;
 
       if (!otpCode) {
-        throw new Error('OTP code not returned from /otp/send (enable SMS dev mode)');
+        console.error(`  ❌ No OTP code in response:`, otpPayload);
+        throw new Error('OTP code not returned from /otp/send (ensure SMS dev mode is enabled or user exists in database)');
       }
 
-      console.log(`  📱 OTP sent (dev code ${otpCode})${phone ? ` to ${phone}` : ''}`);
+      console.log(`  ✅ OTP received: ${otpCode}${phone ? ` (sent to ${phone})` : ''}`);
 
       // Step 2: Verify OTP to receive otpToken
+      console.log(`  🔐 Verifying OTP...`);
       const verifyResponse = await page.request.post(`${baseURL}/api/auth/otp/verify`, {
         headers: { 'Content-Type': 'application/json' },
         data: { identifier, otp: otpCode },
@@ -226,16 +244,21 @@ async function globalSetup(config: FullConfig) {
 
       if (!verifyResponse.ok()) {
         const body = await verifyResponse.text();
-        throw new Error(`Failed to verify OTP (${verifyResponse.status()}): ${body}`);
+        console.error(`  ❌ OTP verification failed (${verifyResponse.status()}): ${body}`);
+        throw new Error(`Failed to verify OTP for ${role.name} (${verifyResponse.status()}): ${body}`);
       }
 
       const verifyPayload = await verifyResponse.json();
       const otpToken = verifyPayload?.data?.otpToken;
       if (!otpToken) {
+        console.error(`  ❌ No otpToken in verify response:`, verifyPayload);
         throw new Error('OTP verification succeeded but otpToken missing from response');
       }
 
+      console.log(`  ✅ OTP verified, token received`);
+
       // Step 3: Obtain CSRF token (NextAuth requires the CSRF cookie + token)
+      console.log(`  🛡️  Getting CSRF token...`);
       const csrfResponse = await page.goto(`${baseURL}/api/auth/csrf`);
       const csrfText = await csrfResponse?.text();
       const csrfToken = csrfText ? JSON.parse(csrfText).csrfToken : undefined;
@@ -244,7 +267,10 @@ async function globalSetup(config: FullConfig) {
         throw new Error('Failed to retrieve CSRF token');
       }
 
+      console.log(`  ✅ CSRF token obtained`);
+
       // Step 4: Create a NextAuth session through the credentials callback
+      console.log(`  🔓 Creating session...`);
       const form = new URLSearchParams({
         identifier,
         password,
@@ -263,17 +289,21 @@ async function globalSetup(config: FullConfig) {
 
       if (!sessionResponse.ok()) {
         const body = await sessionResponse.text();
-        throw new Error(`Failed to create session (${sessionResponse.status()}): ${body}`);
+        console.error(`  ❌ Session creation failed (${sessionResponse.status()}): ${body}`);
+        throw new Error(`Failed to create session for ${role.name} (${sessionResponse.status()}): ${body}`);
       }
 
+      console.log(`  ✅ Session created`);
+
       // Step 5: Load dashboard to ensure cookies + session storage are populated
+      console.log(`  🏠 Loading dashboard...`);
       await page.goto(`${baseURL}/dashboard`, { waitUntil: 'networkidle' }).catch(() => {});
       await page.waitForTimeout(2000);
 
       await ensureSessionCookie(context, baseURL);
 
       await context.storageState({ path: role.statePath });
-      console.log(`✅ ${role.name} authenticated successfully`);
+      console.log(`✅ ${role.name} - Authentication complete (state saved to ${role.statePath})`);
     } catch (error) {
       console.error(`❌ Failed to authenticate ${role.name}:`, error);
     } finally {

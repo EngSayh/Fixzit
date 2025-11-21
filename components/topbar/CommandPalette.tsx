@@ -42,7 +42,7 @@ export function CommandPalette({
   onActionClick,
   onSavedSearchSelect,
 }: CommandPaletteProps) {
-  const { t, isRTL } = useTranslation();
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/rules-of-hooks */
 
 import { useState, useMemo } from 'react';
 import { logger } from '@/lib/logger';

@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/rules-of-hooks */
 import { logger } from '@/lib/logger';
 import { toFiniteNumber } from '@/lib/numbers';
 

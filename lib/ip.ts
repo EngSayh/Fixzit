@@ -15,7 +15,7 @@ import { isPrivateIP, validateTrustedProxyCount } from '@/server/security/ip-uti
  * @returns Client IP address or 'unknown' if not determinable
  */
 export function extractClientIP(request: NextRequest): string {
-  if (!request?.headers || typeof (request as any).headers.get !== 'function') {
+  if (!request?.headers || typeof request.headers.get !== 'function') {
     return 'unknown';
   }
   // 1) Cloudflare's CF-Connecting-IP is most trustworthy

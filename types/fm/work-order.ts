@@ -323,7 +323,7 @@ export function isFinalStatus(status: WOStatus | WorkOrderStatus): boolean {
     'cancelled',
     'completed',
   ];
-  return finalStates.includes(status as any);
+  return finalStates.includes(status as WOStatus | WorkOrderStatus);
 }
 
 /**

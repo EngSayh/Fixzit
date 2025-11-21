@@ -3,103 +3,98 @@
 # =============================================================================
 # Regenerate Playwright Test Authentication States
 # =============================================================================
-# This script regenerates the auth state files in tests/state/
-# Run this when:
-# - Test auth tokens expire
-# - Test user credentials change
-# - You get 401 errors in Playwright tests
+# Production-ready: Works with real MongoDB connection and actual user data
+# Run this when auth tokens expire or you get 401 errors in Playwright tests
 # =============================================================================
 
 set -e
 
-echo "🔐 Regenerating Playwright authentication states..."
+echo "🔐 Regenerating Playwright authentication states (Production-Ready)..."
 echo ""
 
 # Check if .env.test exists
 if [ ! -f ".env.test" ]; then
   echo "❌ Error: .env.test file not found"
-  echo "   Create .env.test with test user credentials"
-  echo "   See .env.example for reference"
+  echo "   Create .env.test with test credentials and MongoDB URI"
   exit 1
 fi
 
 # Load environment variables
-export $(grep -v '^#' .env.test | xargs)
+set -a
+source .env.test 2>/dev/null
+set +a
 
-# Ensure the app is running
-echo "📡 Checking if app is running on ${BASE_URL:-http://localhost:3000}..."
-if ! curl -s "${BASE_URL:-http://localhost:3000}" > /dev/null; then
-  echo "❌ Error: App is not running"
-  echo ""
-  echo "   Start the app first:"
-  echo "   pnpm dev"
-  echo ""
-  echo "   Or in another terminal:"
-  echo "   ALLOW_OFFLINE_MONGODB=true SKIP_ENV_VALIDATION=true pnpm dev"
+BASE_URL="${BASE_URL:-http://localhost:3000}"
+
+echo "📋 Configuration:"
+echo "   BASE_URL: ${BASE_URL}"
+echo "   MONGODB: ${MONGODB_URI:0:30}..."
+echo "   OFFLINE: ${ALLOW_OFFLINE_MONGODB:-false}"
+echo ""
+
+# Check if app is running
+echo "📡 Checking if app is running..."
+if ! curl -sf --max-time 5 "${BASE_URL}" > /dev/null 2>&1; then
+  echo "❌ App not running. Start with:"
+  echo "   MONGODB_URI=mongodb://localhost:27017/fixzit_test pnpm dev"
   exit 1
 fi
 
 echo "✅ App is running"
 echo ""
 
-# Create state directory if it doesn't exist
 mkdir -p tests/state
 
-# Run the global setup to regenerate auth states
-echo "🔄 Running auth setup..."
-echo ""
+# Run auth setup
+echo "🔄 Running authentication setup..."
+if command -v pnpm &> /dev/null; then
+  NODE_OPTIONS="--no-warnings" pnpm exec tsx tests/setup-auth.ts
+else
+  NODE_OPTIONS="--no-warnings" npx tsx tests/setup-auth.ts
+fi
 
-NODE_OPTIONS="--no-warnings" npx playwright test --config tests/playwright.config.ts \
-  --grep "@auth-setup" \
-  || echo "⚠️  Auth setup may have failed, but checking state files..."
+EXIT_CODE=$?
 
-# Alternative: directly run the setup script
-if [ -f "tests/setup-auth.ts" ]; then
+if [ $EXIT_CODE -ne 0 ]; then
   echo ""
-  echo "🔄 Running setup-auth.ts directly..."
-  NODE_OPTIONS="--no-warnings" tsx tests/setup-auth.ts
+  echo "❌ Setup failed! Check:"
+  echo "  • Test users exist in MongoDB"
+  echo "  • Credentials in .env.test are correct"
+  echo "  • NEXTAUTH_SECRET matches dev server"
+  exit $EXIT_CODE
 fi
 
 echo ""
-echo "📋 Checking generated state files..."
+echo "📋 Verifying state files..."
 echo ""
 
-# Verify state files were created
 ROLES=("superadmin" "admin" "manager" "technician" "tenant" "vendor")
-ALL_EXIST=true
+ALL_VALID=true
 
 for role in "${ROLES[@]}"; do
-  STATE_FILE="tests/state/${role}.json"
-  if [ -f "$STATE_FILE" ]; then
-    SIZE=$(wc -c < "$STATE_FILE" | tr -d ' ')
+  FILE="tests/state/${role}.json"
+  if [ -f "$FILE" ]; then
+    SIZE=$(stat -f%z "$FILE" 2>/dev/null || stat -c%s "$FILE" 2>/dev/null)
     if [ "$SIZE" -gt 100 ]; then
       echo "✅ ${role}.json (${SIZE} bytes)"
     else
-      echo "⚠️  ${role}.json exists but seems too small (${SIZE} bytes)"
-      ALL_EXIST=false
+      echo "⚠️  ${role}.json too small"
+      ALL_VALID=false
     fi
   else
-    echo "❌ ${role}.json - NOT FOUND"
-    ALL_EXIST=false
+    echo "❌ ${role}.json NOT FOUND"
+    ALL_VALID=false
   fi
 done
 
 echo ""
 
-if [ "$ALL_EXIST" = true ]; then
-  echo "✅ All authentication states regenerated successfully!"
+if [ "$ALL_VALID" = true ]; then
+  echo "✅ Authentication states regenerated successfully!"
   echo ""
-  echo "You can now run Playwright tests:"
-  echo "  pnpm playwright test"
+  echo "Run tests with:"
   echo "  pnpm playwright test --project='Desktop:EN:Admin'"
-  echo "  pnpm playwright test tests/specs/smoke.spec.ts"
 else
-  echo "⚠️  Some authentication states are missing or invalid"
-  echo ""
-  echo "Troubleshooting:"
-  echo "1. Check that test users exist in your database"
-  echo "2. Verify credentials in .env.test are correct"
-  echo "3. Ensure OTP dev mode is enabled in your app"
-  echo "4. Check app logs for authentication errors"
+  echo "⚠️  Some states are invalid. Check app logs."
   exit 1
 fi

@@ -1,5 +1,3 @@
-import path from 'path';
-import { promises as fs } from 'fs';
 import { Types } from 'mongoose';
 import { Candidate } from '@/server/models/Candidate';
 import { Application } from '@/server/models/Application';

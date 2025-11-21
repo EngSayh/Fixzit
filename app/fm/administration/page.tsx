@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 
 export default function AdministrationPage() {
-  const { hasOrgContext, guard, orgId, supportOrg, supportBanner } = useFmOrgGuard({ moduleId: 'administration' });
+  const { guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'administration' });
   const { data: session, status } = useSession();
   const router = useRouter();
   const { t } = useTranslation();

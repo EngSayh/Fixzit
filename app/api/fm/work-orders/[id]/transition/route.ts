@@ -7,7 +7,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { FMAction } from '@/types/fm/enums';
 import { ObjectId } from 'mongodb';
 import { logger } from '@/lib/logger';
 import { getDatabase } from '@/lib/mongodb-unified';
@@ -31,7 +30,6 @@ import {
 import { resolveTenantId } from '../../../utils/tenant';
 import { getSessionUser, UnauthorizedError, type SessionUser } from '@/server/middleware/withAuthRbac';
 import { requireFmAbility } from '../../../utils/auth';
-import type { WorkOrder } from '@/types/fm';
 import type { NotificationChannel, NotificationRecipient } from '@/lib/fm-notifications';
 
 /**

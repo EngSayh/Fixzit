@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (err) {
+  } catch (_err) {
     return NextResponse.json({ error: 'Failed to verify object metadata' }, { status: 500 });
   }
 }
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (err) {
+  } catch (_err) {
     return NextResponse.json({ error: 'Failed to verify object metadata' }, { status: 500 });
   }
 }

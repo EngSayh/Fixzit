@@ -10,7 +10,7 @@ import type { WorkOrderAttachment } from '@/components/fm/WorkOrderAttachments';
 
 export default function NewWorkOrderPage() {
   const { t } = useTranslation();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'work_orders' });
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'work_orders' });
   const [attachments, setAttachments] = useState<WorkOrderAttachment[]>([]);
   const [workOrderId, setWorkOrderId] = useState<string | null>(null);
   const [title, setTitle] = useState('');

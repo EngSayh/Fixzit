@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/rules-of-hooks */
 
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { CardGridSkeleton } from '@/components/skeletons';

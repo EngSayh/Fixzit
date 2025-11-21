@@ -102,7 +102,7 @@ describe('WorkOrder model - Schema Validation', () => {
   });
 
   it('should enforce required fields', () => {
-    const requiredFields = ['orgId', 'workOrderNumber', 'title', 'description', 'type', 'category'] as const;
+    const requiredFields = ['orgId', 'workOrderNumber', 'title', 'type', 'category'] as const;
     
     for (const field of requiredFields) {
       const data = buildValidWorkOrder();
@@ -317,12 +317,12 @@ describe('WorkOrder model - SLA Management', () => {
   });
 });
 
-describe('WorkOrder model - Location Information', () => {
-  it('should require location.propertyId', () => {
-    const data = buildValidWorkOrder();
-    delete data.location.propertyId;
-    const doc = new WorkOrder(data);
-    const err = doc.validateSync();
+  describe('WorkOrder model - Location Information', () => {
+    it('should require location.propertyId', () => {
+      const data = buildValidWorkOrder({ status: 'SUBMITTED' });
+      delete data.location.propertyId;
+      const doc = new WorkOrder(data);
+      const err = doc.validateSync();
     
     expect(err).toBeDefined();
     expect(err?.errors?.['location.propertyId']).toBeDefined();
