@@ -41,6 +41,8 @@ describe('GET /api/upload/scan-status', () => {
     vi.clearAllMocks();
     (getSessionUser as vi.Mock).mockResolvedValue(mockUser);
     (rateLimit as vi.Mock).mockReturnValue({ allowed: true });
+    process.env.SCAN_STATUS_TOKEN_REQUIRED = 'false';
+    delete process.env.SCAN_STATUS_TOKEN;
   });
 
   it('enforces rate limiting', async () => {
@@ -61,6 +63,34 @@ describe('GET /api/upload/scan-status', () => {
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.error).toBe('Unauthorized');
+  });
+
+  it('allows token-based access without auth', async () => {
+    (getSessionUser as vi.Mock).mockResolvedValue(null);
+    process.env.SCAN_STATUS_TOKEN_REQUIRED = 'true';
+    process.env.SCAN_STATUS_TOKEN = 'secret';
+    const mockDb = {
+      collection: vi.fn().mockReturnValue({
+        find: vi.fn().mockReturnValue({
+          sort: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              next: vi.fn().mockResolvedValue({ key: 'token-file', status: 'clean' }),
+            }),
+          }),
+        }),
+      }),
+    };
+    (getDatabase as vi.Mock).mockResolvedValue(mockDb);
+    process.env.SCAN_STATUS_TOKEN = 'secret';
+
+    const req = createRequest('https://test.com/api/upload/scan-status?key=token-file', {
+      'x-scan-token': 'secret',
+    });
+    const res = await GET(req as any);
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe('clean');
   });
 
   it('validates key parameter is provided', async () => {
@@ -99,8 +129,8 @@ describe('GET /api/upload/scan-status', () => {
     expect(body.status).toBe('clean');
 
     // Verify cache headers are present
-    expect(res.headers.get('Cache-Control')).toBe('private, max-age=5');
-    expect(res.headers.get('CDN-Cache-Control')).toBe('no-store');
+    expect(res.headers.get('Cache-Control')).toBe('public, max-age=5');
+    expect(res.headers.get('CDN-Cache-Control')).toBe('max-age=5');
   });
 
   it('normalizes status to valid enum values', async () => {
@@ -159,6 +189,8 @@ describe('POST /api/upload/scan-status', () => {
     vi.clearAllMocks();
     (getSessionUser as vi.Mock).mockResolvedValue(mockUser);
     (rateLimit as vi.Mock).mockReturnValue({ allowed: true });
+    process.env.SCAN_STATUS_TOKEN_REQUIRED = 'false';
+    delete process.env.SCAN_STATUS_TOKEN;
   });
 
   it('validates key in request body', async () => {
@@ -197,30 +229,53 @@ describe('POST /api/upload/scan-status', () => {
     expect(body.findings).toEqual(['virus.exe']);
 
     // Verify cache headers
-    expect(res.headers.get('Cache-Control')).toBe('private, max-age=5');
-    expect(res.headers.get('CDN-Cache-Control')).toBe('no-store');
+    expect(res.headers.get('Cache-Control')).toBe('public, max-age=5');
+    expect(res.headers.get('CDN-Cache-Control')).toBe('max-age=5');
   });
 
   it('enforces rate limiting on POST', async () => {
     (rateLimit as vi.Mock).mockReturnValue({ allowed: false });
+    process.env.SCAN_STATUS_TOKEN_REQUIRED = 'false';
 
     const req = createPostRequest({ key: 'test.jpg' });
     const res = await POST(req as any);
 
     expect(res.status).toBe(429);
   });
+
+  it('requires token when token-required flag set', async () => {
+    process.env.SCAN_STATUS_TOKEN_REQUIRED = 'true';
+    process.env.SCAN_STATUS_TOKEN = 'secret';
+    (getSessionUser as vi.Mock).mockResolvedValue(null);
+
+    const req = createPostRequest({ key: 'test.jpg' });
+    const res = await POST(req as any);
+
+    expect(res.status).toBe(401);
+
+    const reqWithToken = createPostRequest({ key: 'test.jpg' });
+    (reqWithToken as any).headers.get = (name: string) => (name.toLowerCase() === 'x-scan-token' ? 'secret' : undefined);
+    const res2 = await POST(reqWithToken as any);
+    expect(res2.status).toBe(200);
+  });
 });
 
 // Helper functions
-function createRequest(url: string) {
+function createRequest(url: string, headers: Record<string, string> = {}) {
   return {
     url,
-  };
+    headers: {
+      get: (name: string) => headers[name.toLowerCase()] || headers[name],
+    } as any,
+  } as any;
 }
 
 function createPostRequest(body: Record<string, unknown>) {
   return {
     url: 'https://test.com/api/upload/scan-status',
     json: async () => body,
+    headers: {
+      get: (_name: string) => undefined,
+    },
   };
 }

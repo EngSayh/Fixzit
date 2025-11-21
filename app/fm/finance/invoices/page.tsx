@@ -74,6 +74,7 @@ export default function InvoicesPage() {
   const { t } = useTranslation();
   const { data: session } = useSession();
   const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
+  const resolvedOrgId = orgId || (supportOrg as any)?.orgId || (session?.user as any)?.orgId;
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -135,7 +136,7 @@ export default function InvoicesPage() {
             <DialogHeader>
               <DialogTitle>{t('fm.invoices.createInvoice', 'Create Invoice')}</DialogTitle>
             </DialogHeader>
-            <CreateInvoiceForm onCreated={() => { mutate(); setCreateOpen(false); }} />
+            <CreateInvoiceForm orgId={resolvedOrgId} onCreated={() => { mutate(); setCreateOpen(false); }} />
           </DialogContent>
         </Dialog>
       </div>
@@ -445,7 +446,7 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
   );
 }
 
-function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
+function CreateInvoiceForm({ onCreated, orgId }: { onCreated: () => void; orgId?: string }) {
   const { t } = useTranslation();
   
   const [formData, setFormData] = useState({
@@ -537,11 +538,12 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const orgForRequest = orgId;
       const response = await fetch('/api/finance/invoices', {
         method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              orgId,
+              orgId: orgForRequest,
               type: formData.type,
               issueDate: formData.issueDate,
               dueDate: formData.dueDate,

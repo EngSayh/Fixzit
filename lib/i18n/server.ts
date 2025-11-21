@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { SupportedTranslationLocale, TranslationDictionary } from '@/i18n/dictionaries/types';
 import { logger } from '@/lib/logger';
+import { APP_DEFAULTS } from '@/config/constants';
 
 type TranslationValues = Record<string, string | number>;
 
@@ -68,8 +69,8 @@ export async function getServerI18n(): Promise<ServerI18nResult> {
   } catch (_err) {
     return {
       t: (k: string, f: string = k, values?: TranslationValues) => interpolate(f, values),
-      isRTL: false,
-      locale: 'en',
+      isRTL: APP_DEFAULTS.language === 'ar',
+      locale: APP_DEFAULTS.language as SupportedTranslationLocale,
     };
   }
 }
@@ -95,7 +96,7 @@ function normalizeLocaleToken(input?: string | null): SupportedTranslationLocale
 }
 
 function resolveLocale(preferred?: string | null): SupportedTranslationLocale {
-  return normalizeLocaleToken(preferred) ?? 'en';
+  return normalizeLocaleToken(preferred) ?? (APP_DEFAULTS.language as SupportedTranslationLocale);
 }
 
 function loadDictionary(locale: SupportedTranslationLocale): TranslationDictionary {

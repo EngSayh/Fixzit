@@ -15,6 +15,12 @@ export function buildRateLimitKey(
   if (userId) {
     keyParts.push(userId);
   }
-  keyParts.push(getClientIP(req));
+  let ip = 'unknown';
+  try {
+    ip = getClientIP(req);
+  } catch {
+    ip = 'unknown';
+  }
+  keyParts.push(ip);
   return keyParts.join(':');
 }

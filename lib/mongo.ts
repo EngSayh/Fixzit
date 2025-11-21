@@ -152,7 +152,7 @@ if (!conn) {
         w: 'majority',
       })
       .then((m) => {
-        return m.connection.db as DatabaseHandle;
+        return m.connection.db as unknown as DatabaseHandle;
       })
       .catch((err) => {
         const errorObj = err instanceof Error ? err : new Error(String(err));

@@ -92,10 +92,13 @@ export default function ResponsiveLayout({
         )}
 
         {/* Main content - ✅ FIXED: Use SIDEBAR_WIDTH_CLASS constant */}
-        <main className={`
-          flex-1 flex flex-col transition-all duration-300
-          ${sidebar && (screenInfo.isDesktop || screenInfo.isLarge) ? `md:ms-64` : 'ms-0'}
-        `}>
+        <main
+          id="main-content"
+          className={`
+            flex-1 flex flex-col transition-all duration-300
+            ${sidebar && (screenInfo.isDesktop || screenInfo.isLarge) ? `md:ms-64` : 'ms-0'}
+          `}
+        >
           <div className={`${responsiveClasses.container} py-6`}>
             {children}
           </div>

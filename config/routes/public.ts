@@ -13,7 +13,6 @@ export const MARKETING_ROUTES = [
 export const MARKETING_ROUTE_PREFIXES = [
   '/aqar',
   '/souq',
-  '/marketplace',
   '/test',
   '/test-rtl',
   '/test-translations',
@@ -47,6 +46,7 @@ export const PROTECTED_ROUTE_PREFIXES = [
   '/souq/purchase',
   '/souq/my-orders',
   '/souq/my-rfqs',
+  '/marketplace',
   '/marketplace/cart',
   '/marketplace/checkout',
 ];

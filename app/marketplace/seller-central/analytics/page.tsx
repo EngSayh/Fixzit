@@ -150,11 +150,9 @@ export default function AnalyticsPage() {
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : auto('An error occurred', 'errors.generic'));
-        if (process.env.NODE_ENV === 'development') {
-          if (process.env.NODE_ENV !== 'production') {
-            // eslint-disable-next-line no-console
-            console.error('Analytics fetch error:', err);
-          }
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.error('Analytics fetch error:', err);
         }
       } finally {
         setIsLoading(false);

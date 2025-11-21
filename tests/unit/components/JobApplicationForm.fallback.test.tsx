@@ -1,7 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { JobApplicationForm } from '@/components/careers/JobApplicationForm';
 
 vi.mock('@/contexts/TranslationContext', () => ({
   useTranslation: () => ({ t: (_key: string, fallback?: string) => fallback || _key }),
@@ -14,8 +13,14 @@ vi.mock('next/navigation', () => ({
 
 const toast = { success: vi.fn(), error: vi.fn() };
 vi.mock('react-hot-toast', () => ({
+  __esModule: true,
   default: toast,
 }));
+
+let JobApplicationForm: any;
+beforeAll(async () => {
+  ({ JobApplicationForm } = await import('@/components/careers/JobApplicationForm'));
+});
 
 describe('JobApplicationForm presign fallback', () => {
   beforeEach(() => {

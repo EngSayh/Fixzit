@@ -9,6 +9,7 @@ import { createCrudHandlers } from '@/lib/api/crud-factory';
 import { WorkOrder } from '@/server/models/WorkOrder';
 import { z } from 'zod';
 import { resolveSlaTarget, WorkOrderPriority } from '@/lib/sla';
+import { logger } from '@/lib/logger';
 import { WOPriority } from '@/server/work-orders/wo.schema';
 import { deleteObject } from '@/lib/storage/s3';
 
@@ -162,7 +163,7 @@ export const { GET, POST } = createCrudHandlers({
     };
   },
   onUpdate: async (id: string, updates: Record<string, unknown>, user) => {
-    // best-effort cleanup of removed attachment keys
+    // best-effort cleanup of removed attachment keys with observability
     if (!Array.isArray(updates.attachments)) {
       return updates;
     }
@@ -174,7 +175,33 @@ export const { GET, POST } = createCrudHandlers({
     const nextKeys = new Set((updates.attachments as any[]).map((a) => a.key).filter(Boolean) as string[]);
     const removed = [...existingKeys].filter((k) => !nextKeys.has(k));
     if (removed.length) {
-      void Promise.allSettled(removed.map((key) => deleteObject(key).catch(() => undefined)));
+      void (async () => {
+        const results = await Promise.allSettled(removed.map((key) => deleteObject(key)));
+        const failed = results.filter((r) => r.status === 'rejected');
+        if (failed.length) {
+          logger.warn('[WorkOrder PATCH] S3 cleanup partial failure', {
+            workOrderId: id,
+            total: removed.length,
+            failed: failed.length,
+          });
+          failed.forEach((res, idx) => {
+            logger.error('[WorkOrder PATCH] S3 cleanup failed', {
+              workOrderId: id,
+              key: removed[idx],
+              error: (res as PromiseRejectedResult).reason,
+            });
+          });
+          logger.info('[WorkOrder PATCH] S3 cleanup retry not implemented', {
+            workOrderId: id,
+            todo: 'enqueue cleanup retry job when queue available',
+          });
+        } else {
+          logger.info('[WorkOrder PATCH] S3 cleanup success', {
+            workOrderId: id,
+            total: removed.length,
+          });
+        }
+      })();
     }
     return updates;
   }

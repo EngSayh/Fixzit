@@ -55,22 +55,42 @@ if (!skipSecretValidation) {
   
   // Google OAuth credentials are optional (can use credentials provider only)
   if (!GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_SECRET) {
-    logger.warn('⚠️  Google OAuth not configured. Only credentials authentication will be available.');
+    // Both missing - credentials-only auth mode
+    if (process.env.NODE_ENV === 'production') {
+      logger.warn('⚠️  [PRODUCTION] Google OAuth not configured. Only credentials authentication available.');
+      logger.warn('   Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable OAuth login.');
+    } else {
+      logger.info('ℹ️  Google OAuth not configured (optional). Using credentials-only authentication.');
+      logger.info('   To enable Google OAuth: Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local');
+    }
   } else if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    // If one is set, both must be set
+    // One is set, other is missing - configuration error
     if (!GOOGLE_CLIENT_ID) missingSecrets.push('GOOGLE_CLIENT_ID');
     if (!GOOGLE_CLIENT_SECRET) missingSecrets.push('GOOGLE_CLIENT_SECRET');
+    logger.error('❌ Google OAuth partial configuration detected!');
+    logger.error('   Both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together.');
+  } else {
+    // Both are set - OAuth enabled
+    logger.info('✅ Google OAuth configured successfully.');
   }
 
   if (missingSecrets.length > 0) {
+    const errorMsg = `Missing required authentication secrets: ${missingSecrets.join(', ')}.`;
+    logger.error(`❌ ${errorMsg}`);
+    logger.error('   Solutions:');
+    logger.error('   1. Add missing secrets to .env.local (development) or .env.test (tests)');
+    logger.error('   2. Set SKIP_ENV_VALIDATION=true to bypass (not recommended for production)');
+    logger.error('   3. For CI builds: Set CI=true environment variable');
     throw new Error(
-      `Missing required authentication secrets: ${missingSecrets.join(', ')}. See README env section. Set SKIP_ENV_VALIDATION=true to skip secret checks during build (NOT recommended for production).`
+      `${errorMsg} See console logs above for resolution steps.`
     );
   }
 } else if (isCI) {
-  logger.warn('⚠️  CI=true: Secret validation skipped for CI build. Secrets will be required at runtime.');
+  logger.info('ℹ️  CI environment detected: Secret validation skipped for build.');
+  logger.info('   Secrets will be validated at runtime from GitHub Secrets.');
 } else {
-  logger.warn('⚠️  SKIP_ENV_VALIDATION=true: Secret validation skipped. Secrets will be required at runtime.');
+  logger.warn('⚠️  SKIP_ENV_VALIDATION=true: Secret validation bypassed.');
+  logger.warn('   Ensure secrets are properly configured before production deployment.');
 }
 
 // Helper functions for OAuth provisioning (reserved for future use)

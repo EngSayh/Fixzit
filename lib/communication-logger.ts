@@ -212,7 +212,7 @@ export async function getUserCommunications(
     return logs.map((log) => ({
       ...log,
       _id: log._id?.toString(),
-    })) as CommunicationLog[];
+    })) as unknown as CommunicationLog[];
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;

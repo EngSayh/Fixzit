@@ -105,6 +105,7 @@ export enum FMAction {
   DELEGATE = 'delegate',
   ESCALATE = 'escalate',
   BULK_ASSIGN = 'bulk_assign',
+  EXPORT = 'export',
   
   // Admin
   MANAGE_ROLES = 'manage_roles',

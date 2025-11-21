@@ -42,7 +42,7 @@ describe('lib/i18n/server', () => {
     expect(locale).toBe('ar');
   });
 
-  it('defaults to English when cookies/headers missing', async () => {
+  it('defaults to Arabic when cookies/headers missing (APP_DEFAULTS)', async () => {
     mockedCookies.mockReturnValue({
       get: () => undefined,
     });
@@ -52,9 +52,9 @@ describe('lib/i18n/server', () => {
 
     const { t, isRTL, locale } = await getServerI18n();
 
-    expect(t('landing.hero.actions.bookDemo', 'Book a live demo')).toBe('Book a live demo');
-    expect(isRTL).toBe(false);
-    expect(locale).toBe('en');
+    expect(t('landing.hero.actions.bookDemo', 'Book a live demo')).toBe('احجز عرضًا مباشرًا');
+    expect(isRTL).toBe(true);
+    expect(locale).toBe('ar');
   });
 
   it('getServerTranslation() returns Arabic strings for NextRequest', async () => {

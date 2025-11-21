@@ -94,6 +94,7 @@ export default function TopBar() {
   const [userPos, setUserPos] = useState<Pos>({ top: 60, left: 16, width: 224 });
 
   const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min), max);
+  const logoAlt = `${orgSettings?.name || 'Fixzit'} logo - Fixzit`;
 
   const router = useRouter();
   const pathname = usePathname();
@@ -370,15 +371,15 @@ export default function TopBar() {
             {orgSettings.logo && !logoError ? (
               <Image
                 src={orgSettings.logo}
-                alt={orgSettings.name}
+                alt={logoAlt}
                 width={36}
                 height={36}
-                className="rounded-2xl object-cover"
+                className="rounded-2xl object-cover fxz-brand-logo"
                 onError={() => setLogoError(true)}
               />
             ) : (
               <div
-                className="h-9 w-9 rounded-2xl fxz-topbar-logo flex items-center justify-center text-xs font-semibold"
+                className="h-9 w-9 rounded-2xl fxz-topbar-logo fxz-brand-logo flex items-center justify-center text-xs font-semibold"
                 aria-hidden="true"
               >
                 {orgSettings?.name?.substring(0, 2).toUpperCase() || 'FX'}

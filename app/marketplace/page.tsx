@@ -139,8 +139,9 @@ export default async function MarketplaceHome() {
           </div>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {featured.map((product, idx) => {
-              const key = product.id ?? product._id ?? product.slug ?? `featured-${idx}`;
-              const normalized = { ...product, id: product.id ?? product._id ?? product.slug ?? key };
+              const p = product as any;
+              const key = p?.id ?? p?._id ?? p?.slug ?? `featured-${idx}`;
+              const normalized = { ...p, id: key };
               return (
                 <ProductCard
                   key={key}

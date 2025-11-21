@@ -6,6 +6,19 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { isOriginAllowed } from '@/lib/security/cors-allowlist';
 
+vi.mock('@/lib/monitoring/security-events', () => ({
+  logSecurityEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
 describe('CORS Security Tests', () => {
   describe('Production CORS', () => {
     beforeAll(() => {

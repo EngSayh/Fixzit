@@ -7,8 +7,8 @@ describe('i18n config', () => {
       expect(SUPPORTED_LOCALES).toContain(DEFAULT_LOCALE);
     });
 
-    it('should equal "en" by default', () => {
-      expect(DEFAULT_LOCALE).toBe('en');
+    it('should equal "ar" by default', () => {
+      expect(DEFAULT_LOCALE).toBe('ar');
     });
   });
 

@@ -1,6 +1,6 @@
 export type Locale = 'en' | 'ar';
 
-export const DEFAULT_LOCALE: Locale = 'en';
+export const DEFAULT_LOCALE: Locale = 'ar';
 export const SUPPORTED_LOCALES: Locale[] = ['en', 'ar'];
 
 export const LOCALE_META: Record<Locale, {

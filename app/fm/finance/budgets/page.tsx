@@ -16,10 +16,11 @@ import { useEffect } from 'react';
 export default function BudgetsPage() {
   const auto = useAutoTranslator('fm.finance.budgets');
   const { data: session } = useSession();
-  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
+  const { hasOrgContext, guard, supportOrg, orgId } = useFmOrgGuard({ moduleId: 'finance' });
   const [searchQuery, setSearchQuery] = useState('');
   const [budgets, setBudgets] = useState<BudgetCardProps[]>([]);
   const [loading, setLoading] = useState(false);
+  const resolvedOrgId = orgId || (supportOrg as any)?.orgId || (session?.user as any)?.orgId;
 
   useEffect(() => {
     const fetchBudgets = async () => {
@@ -62,6 +63,7 @@ export default function BudgetsPage() {
         </div>
         <CreateBudgetDialog
           onCreated={(budget) => setBudgets((prev) => [budget, ...prev])}
+          orgId={resolvedOrgId}
         />
       </div>
 
@@ -180,7 +182,7 @@ function BudgetCard({ name, department, allocated, spent = 0, currency }: Budget
   );
 }
 
-function CreateBudgetDialog({ onCreated }: { onCreated: (budget: BudgetCardProps) => void }) {
+function CreateBudgetDialog({ onCreated, orgId }: { onCreated: (budget: BudgetCardProps) => void; orgId?: string }) {
   const auto = useAutoTranslator('fm.finance.budgets.create');
   const [submitting, setSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
@@ -204,11 +206,12 @@ function CreateBudgetDialog({ onCreated }: { onCreated: (budget: BudgetCardProps
         throw new Error(auto('Allocated amount must be greater than 0', 'toast.amountInvalid'));
       }
 
+      const payloadOrgId = orgId;
       const res = await fetch('/api/fm/finance/budgets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orgId,
+          orgId: payloadOrgId,
           name,
           department,
           allocated: parsedAmount,

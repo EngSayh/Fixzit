@@ -534,10 +534,11 @@ export interface RefundStatusResponse {
  */
 export async function createRefund(request: RefundRequest): Promise<RefundResponse> {
   validatePayTabsConfig();
+  const config = getPaytabsConfig();
   
   try {
     const payload = {
-      profile_id: PAYTABS_CONFIG.profileId,
+      profile_id: config.profileId,
       tran_ref: request.originalTransactionId,
       tran_type: 'refund',
       tran_class: 'ecom',
@@ -558,10 +559,10 @@ export async function createRefund(request: RefundRequest): Promise<RefundRespon
       currency: request.currency
     });
 
-    const response = await fetchWithRetry(`${PAYTABS_CONFIG.baseUrl}/payment/request`, {
+    const response = await fetchWithRetry(`${config.baseUrl}/payment/request`, {
       method: 'POST',
       headers: {
-        'Authorization': PAYTABS_CONFIG.serverKey!,
+        'Authorization': config.serverKey!,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
@@ -612,18 +613,19 @@ export async function createRefund(request: RefundRequest): Promise<RefundRespon
  */
 export async function queryRefundStatus(tranRef: string): Promise<RefundStatusResponse> {
   validatePayTabsConfig();
+  const config = getPaytabsConfig();
   
   try {
     logger.info('[PayTabs] Querying refund status', { tranRef });
 
-    const response = await fetchWithRetry(`${PAYTABS_CONFIG.baseUrl}/payment/query`, {
+    const response = await fetchWithRetry(`${config.baseUrl}/payment/query`, {
       method: 'POST',
       headers: {
-        'Authorization': PAYTABS_CONFIG.serverKey!,
+        'Authorization': config.serverKey!,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        profile_id: PAYTABS_CONFIG.profileId,
+        profile_id: config.profileId,
         tran_ref: tranRef
       })
     }, {

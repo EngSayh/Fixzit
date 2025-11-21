@@ -149,11 +149,9 @@ export default function SellerOnboarding() {
       router.push('/marketplace/vendor/portal');
     } catch (error) {
       // Log error for debugging while preserving user experience
-      if (process.env.NODE_ENV === 'development') {
-        if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.error('Onboarding error:', error);
-        }
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('Onboarding error:', error);
       }
       setSubmitError(
         error instanceof Error

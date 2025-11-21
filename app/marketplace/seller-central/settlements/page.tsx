@@ -40,11 +40,9 @@ export default function SellerSettlementsPage() {
         setBalance(data.balance);
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.error('Error fetching balance:', error);
-        }
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('Error fetching balance:', error);
       }
     } finally {
       setLoading(false);

@@ -77,8 +77,8 @@ describe('TranslationProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default hook state
-    mockLocale = 'en';
-    mockDir = 'ltr';
+    mockLocale = 'ar';
+    mockDir = 'rtl';
     mockTranslateImpl = (k) => 'translated:' + k;
   });
 

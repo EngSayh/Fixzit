@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useState, FormEvent, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -28,6 +29,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [selectedResume, setSelectedResume] = useState<File | null>(null);
   const [resumeKey, setResumeKey] = useState<string | null>(null);
   const [resumeStatus, setResumeStatus] = useState<'pending' | 'clean' | 'infected' | 'error' | null>(null);
   // Honeypot (bots only)
@@ -71,7 +73,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
     const phone = String(fd.get('phone') || '').trim();
     const linkedin = String(fd.get('linkedin') || '').trim();
     const experience = String(fd.get('experience') || '').trim();
-    const resume = fd.get('resume');
+    const resume = (fd.get('resume') as File | null) ?? selectedResume ?? null;
 
     if (!fullName) next.fullName = t('careers.fullNameRequired', 'Full name is required');
 
@@ -126,6 +128,11 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
     return next;
   };
 
+  const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setSelectedResume(file);
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -141,6 +148,9 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
       const formEl = e.currentTarget;
       const formData = new FormData(formEl);
+      if (selectedResume) {
+        formData.set('resume', selectedResume);
+      }
 
       // Basic normalization
       formData.set('jobId', jobId);
@@ -148,6 +158,10 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
       if (skills) formData.set('skills', skills.replace(/\s*,\s*/g, ', ')); // clean commas
 
       const fieldErrs = validate(formData);
+      if (process.env.NODE_ENV === 'test') {
+        // Surface validation results in tests to aid debugging
+        console.debug('[JobApplicationForm] validation', fieldErrs);
+      }
       if (Object.keys(fieldErrs).length) {
         setErrors(fieldErrs);
         focusFirstError(formEl, ['fullName', 'email', 'phone', 'linkedin', 'experience', 'resume'], fieldErrs);
@@ -246,6 +260,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
       // Reset + route to jobs with a flag
       formEl.reset();
       setErrors({});
+      setSelectedResume(null);
       setTimeout(() => router.push('/careers?applied=true'), 600);
     } catch (err) {
       const msg = err instanceof Error ? err.message : t('careers.applyFailed', 'Failed to submit application');
@@ -455,6 +470,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
                      disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isSubmitting}
           data-testid="resume"
+          onChange={handleResumeChange}
         />
         <p className="text-xs text-muted-foreground mt-1">
           {t('careers.resumeHint', 'PDF only · Max 5MB')}

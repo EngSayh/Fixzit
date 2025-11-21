@@ -222,7 +222,7 @@ export default function NewWorkOrderPage() {
               workOrderId={workOrderId ?? undefined}
               onChange={setAttachments}
               draftCreator={async () => {
-                if (workOrderId || draftSaving) return workOrderId;
+                if (workOrderId || draftSaving) return workOrderId || undefined;
                 setDraftSaving(true);
                 setError(null);
                 try {

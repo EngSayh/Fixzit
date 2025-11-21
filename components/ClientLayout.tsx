@@ -195,7 +195,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     }
     let unmounted = false;
     const flagKey = '__fixzit_sw_ready';
-    const windowRecord: Record<string, unknown> = window;
+    const windowRecord = window as unknown as Record<string, unknown>;
     if (windowRecord[flagKey]) {
       return;
     }
@@ -286,7 +286,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       } catch (e) {
         // Silently fail - localStorage may be unavailable (private browsing, quota exceeded)
         if (process.env.NODE_ENV === 'development') {
-          logger.warn('localStorage.setItem failed:', e);
+          logger.warn('localStorage.setItem failed', { error: e });
         }
       }
       setLoading(false);
@@ -298,7 +298,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       } catch (e) {
         // Silently fail - localStorage may be unavailable (private browsing)
         if (process.env.NODE_ENV === 'development') {
-          logger.warn('localStorage.removeItem failed:', e);
+          logger.warn('localStorage.removeItem failed', { error: e });
         }
       }
       setLoading(false);
@@ -356,11 +356,19 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       <>
         <HtmlAttrs />
         <div className="min-h-screen bg-muted/30">
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 bg-primary text-primary-foreground px-3 py-2 rounded shadow"
+          >
+            Skip to main content
+          </a>
           <AutoFixInitializer />
           <AutoIncidentReporter />
           <PreferenceBroadcast />
           <TopBar />
-          {children}
+          <main id="main-content" className="flex-1">
+            {children}
+          </main>
           <Footer />
           <CopilotWidget />
         </div>
@@ -373,6 +381,12 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     <>
       <HtmlAttrs />
       <div className="min-h-screen bg-muted/30">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 bg-primary text-primary-foreground px-3 py-2 rounded shadow"
+        >
+          Skip to main content
+        </a>
         <AutoFixInitializer />
         <ResponsiveLayout
           header={<TopBar />}

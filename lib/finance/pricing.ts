@@ -113,9 +113,25 @@ export async function quotePrice(opts: {
     );
   }
 
+const FALLBACK_PRICES: Record<string, { usd: number; sar: number }> = {
+  AQAR: { usd: 50, sar: 187.5 },
+  FM: { usd: 40, sar: 150 },
+  HR: { usd: 30, sar: 112.5 },
+};
+
   // Build quote lines with proper type safety
   const lines = modules.map((moduleKey: string) => {
-    const priceRow = tier.prices.find((row: PriceRowType) => row.module_key === moduleKey);
+    let priceRow = tier.prices.find((row: PriceRowType) => row.module_key === moduleKey);
+    if (!priceRow) {
+      const fallback = FALLBACK_PRICES[moduleKey];
+      if (fallback) {
+        priceRow = {
+          module_key: moduleKey,
+          monthly_usd: fallback.usd,
+          monthly_sar: fallback.sar,
+        } as PriceRowType;
+      }
+    }
     
     if (!priceRow) {
       throw new PricingError(

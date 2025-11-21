@@ -243,11 +243,9 @@ export default function RouteMetricsPage() {
         setDuplicationTrend({ current: null, previous: null });
       }
     } catch (err) {
-      if (process.env.NODE_ENV === 'development') {
-        if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.error(err);
-        }
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error(err);
       }
       toast.error(auto('Failed to load history', 'history.error'));
     }

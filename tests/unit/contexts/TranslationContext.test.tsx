@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 const hoistedMocks = vi.hoisted(() => {
   const setLocale = vi.fn<(locale: 'en' | 'ar') => void>();
@@ -100,7 +100,9 @@ describe('TranslationProvider / useTranslation', () => {
     });
 
     expect(captured).not.toBeNull();
-    captured!.setLanguage('en');
+    await act(async () => {
+      captured!.setLanguage('en');
+    });
     expect(mockSetLocale).toHaveBeenCalledWith('en');
   });
 
@@ -111,11 +113,15 @@ describe('TranslationProvider / useTranslation', () => {
     });
 
     expect(captured).not.toBeNull();
-    captured!.setLocale('en-GB');
+    await act(async () => {
+      captured!.setLocale('en-GB');
+    });
     expect(mockSetLocale).toHaveBeenCalledWith('en');
 
     mockSetLocale.mockClear();
-    captured!.setLocale('ar-SA');
+    await act(async () => {
+      captured!.setLocale('ar-SA');
+    });
     expect(mockSetLocale).toHaveBeenCalledWith('ar');
   });
 
@@ -126,7 +132,9 @@ describe('TranslationProvider / useTranslation', () => {
     });
 
     expect(captured).not.toBeNull();
-    captured!.setLocale('fr-FR');
+    await act(async () => {
+      captured!.setLocale('fr-FR');
+    });
     expect(mockSetLocale).toHaveBeenCalledWith('ar');
   });
 

@@ -38,6 +38,9 @@ const SIDEBAR_ITEMS: Array<{ labels: string[] }> = [
   { labels: ['Properties', 'العقارات'] },
 ];
 
+const NAV_OPTIONAL_PATHS = new Set<string>(['/']);
+const SIDEBAR_OPTIONAL_PATHS = new Set<string>(['/']);
+
 const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 test.describe('Global Layout & Navigation - All Pages', () => {
@@ -105,21 +108,22 @@ test.describe('Global Layout & Navigation - All Pages', () => {
 
       // Sidebar navigation - check for key items
       const navCount = await browser.getByRole('navigation').count();
-      if (navCount > 0) {
+      if (!NAV_OPTIONAL_PATHS.has(page.path)) {
+        expect.soft(navCount, `${page.path} should render navigation sidebar`).toBeGreaterThan(0);
+      }
+      if (navCount > 0 && !SIDEBAR_OPTIONAL_PATHS.has(page.path)) {
         for (const item of SIDEBAR_ITEMS) {
           const labelPattern = new RegExp(item.labels.map(escapeRegex).join('|'), 'i');
           const sidebarItem = browser.getByRole('link', { name: labelPattern }).or(
             browser.getByRole('button', { name: labelPattern })
           );
           const firstItem = sidebarItem.first();
-          if ((await firstItem.count()) === 0) {
-            console.warn(`⚠️  Sidebar item not found (skipped): ${item.labels.join('/')}`);
-            continue;
-          }
           await expect.soft(firstItem).toBeVisible({ timeout: 5000 });
         }
       } else {
-        console.warn('⚠️  Sidebar navigation not present on this page, skipping sidebar checks.');
+        if (!NAV_OPTIONAL_PATHS.has(page.path)) {
+          console.warn('⚠️  Sidebar navigation not present on this page, skipping sidebar checks.');
+        }
       }
 
       // ============ LANGUAGE & CURRENCY SELECTORS ============

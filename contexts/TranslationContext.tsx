@@ -1,6 +1,6 @@
 'use client';
 import { logger } from '@/lib/logger';
-import React, { createContext, useContext, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import {
   LANGUAGE_OPTIONS,
   findLanguageByCode,
@@ -84,6 +84,17 @@ export function TranslationProvider({ children, initialLanguage }: TranslationPr
 
   // ✅ FIX: Always call useI18n at top level (React Hooks rules) - no try-catch allowed
   const i18nHookResult = useI18n();
+  const [activeOption, setActiveOption] = useState<LanguageOption>(fallbackOption);
+
+  useEffect(() => {
+    const next =
+      i18nHookResult && i18nHookResult.locale
+        ? findLanguageByLocale(i18nHookResult.locale) ??
+          findLanguageByCode(i18nHookResult.locale) ??
+          fallbackOption
+        : fallbackOption;
+    setActiveOption(next);
+  }, [i18nHookResult?.locale, fallbackOption]);
 
   const contextValue = useMemo(() => {
     // If i18n hook returns invalid data, use fallback
@@ -92,13 +103,12 @@ export function TranslationProvider({ children, initialLanguage }: TranslationPr
       return createFallbackContext(fallbackOption);
     }
 
-    const { locale: i18nLocale, dir, setLocale: i18nSetLocale, t: i18nTranslate } = i18nHookResult;
-    const activeOption =
-      findLanguageByLocale(i18nLocale) ?? findLanguageByCode(i18nLocale) ?? fallbackOption;
+    const { dir, setLocale: i18nSetLocale, t: i18nTranslate } = i18nHookResult;
 
     const setLanguage = (lang: Language) => {
       const nextOption = findLanguageByCode(lang);
       if (nextOption) {
+        setActiveOption(nextOption);
         i18nSetLocale(nextOption.language as Locale);
       }
     };
@@ -106,8 +116,10 @@ export function TranslationProvider({ children, initialLanguage }: TranslationPr
     const setLocale = (locale: string) => {
       const nextOption = findLanguageByLocale(locale) ?? findLanguageByCode(locale);
       if (nextOption) {
+        setActiveOption(nextOption);
         i18nSetLocale(nextOption.language as Locale);
       } else {
+        setActiveOption((prev) => prev);
         i18nSetLocale(activeOption.language as Locale);
       }
     };

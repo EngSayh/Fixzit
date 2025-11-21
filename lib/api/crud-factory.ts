@@ -66,6 +66,8 @@ export interface CrudFactoryOptions<T = unknown> {
   buildFilter?: (searchParams: URLSearchParams, orgId: string) => Record<string, unknown>;
   /** Optional: Hook to transform data before creation (e.g., add SLA, init state) */
   onCreate?: (data: Record<string, unknown>, user: { id: string; orgId: string; role: string }) => Promise<Record<string, unknown>> | Record<string, unknown>;
+  /** Optional: Hook to transform data before update (consumer calls manually) */
+  onUpdate?: (id: string, updates: Record<string, unknown>, user: { id: string; orgId: string; role: string }) => Promise<Record<string, unknown>> | Record<string, unknown>;
 }
 
 /**

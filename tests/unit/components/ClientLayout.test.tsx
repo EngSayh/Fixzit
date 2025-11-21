@@ -152,6 +152,8 @@ describe('ClientLayout', () => {
       throw new Error('SessionProvider not available');
     });
 
+    const originalError = console.error;
+    console.error = vi.fn();
     // Expect a throw so we are explicit about current behavior
     expect(() => {
       render(
@@ -160,5 +162,6 @@ describe('ClientLayout', () => {
         </ClientLayout>
       );
     }).toThrow('SessionProvider not available');
+    console.error = originalError;
   });
 });

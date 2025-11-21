@@ -1,4 +1,18 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Load environment variables from .env.test if it exists
+// This ensures GOOGLE_CLIENT_ID/SECRET and other test credentials are available
+const envPath = path.resolve(process.cwd(), '.env.test');
+try {
+  const result = dotenv.config({ path: envPath });
+  if (result.parsed && Object.keys(result.parsed).length > 0) {
+    process.stdout.write('✅ Loaded test environment variables from .env.test\n');
+  }
+} catch (error) {
+  process.stderr.write('⚠️  .env.test not found. Copy .env.test.example to .env.test and add your credentials.\n');
+}
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -6,8 +20,28 @@ import { defineConfig, devices } from '@playwright/test';
 // MongoDB-only configuration
 export default defineConfig({
   testDir: './',
-  testMatch: ['**/tests/**/*.spec.ts', '**/qa/tests/**/*.spec.ts', '**/*.e2e.ts'],
-  testIgnore: ['**/*.test.ts', '**/*.test.tsx', '**/node_modules/**', '**/i18n-en.unit.spec.ts'],
+  // Restrict to Playwright suites only; avoid pulling in Vitest unit specs that also use *.spec.ts
+  testMatch: [
+    'tests/e2e/**/*.spec.ts',
+    'tests/specs/**/*.spec.ts',
+    'tests/smoke/**/*.spec.ts',
+    'tests/copilot/**/*.spec.ts',
+    'tests/copilot.spec.ts',
+    'tests/marketplace.smoke.spec.ts',
+    'tests/hfv.e2e.spec.ts',
+    'qa/tests/**/*.spec.ts',
+    '**/*.e2e.ts',
+  ],
+  testIgnore: [
+    '**/*.test.ts',
+    '**/*.test.tsx',
+    '**/node_modules/**',
+    '**/i18n-en.unit.spec.ts',
+    'tests/unit/**',
+    'tests/config/**',
+    'tests/policy.spec.ts',
+    'tests/tools.spec.ts',
+  ],
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -81,6 +115,15 @@ export default defineConfig({
     env: {
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'playwright-secret',
       AUTH_SECRET: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'playwright-secret',
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+      // Pass Google OAuth credentials to prevent warning logs
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
+      // Skip validation in test environment (credentials loaded from .env.test)
+      SKIP_ENV_VALIDATION: process.env.CI ? 'false' : 'true',
+      // Allow MongoDB offline mode for tests
+      ALLOW_OFFLINE_MONGODB: 'true',
+      NODE_ENV: 'test',
     },
   },
 });
