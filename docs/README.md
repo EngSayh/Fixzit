@@ -9,6 +9,7 @@
 - **Frontend**: React dashboard fully functional
 - **Database**: MongoDB connection on localhost:3000
 - **Security**: Production-grade middleware active
+- **Notifications**: Dispatch defaults to background for sub-500ms API latency; set `sendNotification(..., { background: false })` when a route must block on delivery attempts.
 
 ### 🏗️ Implemented Features
 

@@ -97,11 +97,12 @@ export class CampaignService {
       throw new Error('At least one product must be selected');
     }
 
-    if (
-      (input.biddingStrategy === 'automatic' || input.biddingStrategy === 'manual') &&
-      (input.defaultBid === undefined || input.defaultBid < MIN_BID_SAR)
-    ) {
-      throw new Error(`Default bid required and must be at least ${MIN_BID_SAR} SAR`);
+    const effectiveDefaultBid =
+      input.defaultBid !== undefined ? input.defaultBid : input.biddingStrategy === 'manual' ? MIN_BID_SAR : undefined;
+    if (input.biddingStrategy === 'automatic' || input.biddingStrategy === 'manual') {
+      if (effectiveDefaultBid === undefined || effectiveDefaultBid < MIN_BID_SAR) {
+        throw new Error(`Default bid required and must be at least ${MIN_BID_SAR} SAR`);
+      }
     }
 
     // Generate campaign ID
@@ -112,7 +113,7 @@ export class CampaignService {
       campaignId,
       input.targeting,
       input.products,
-      input.defaultBid!
+      (effectiveDefaultBid as number)
     );
 
     const campaign: Campaign = {
@@ -165,12 +166,11 @@ export class CampaignService {
     }
 
     const nextBiddingStrategy = updates.biddingStrategy ?? campaign.biddingStrategy;
-    const nextDefaultBid = updates.defaultBid ?? campaign.defaultBid;
-    if (
-      (nextBiddingStrategy === 'automatic' || nextBiddingStrategy === 'manual') &&
-      (nextDefaultBid === undefined || nextDefaultBid < MIN_BID_SAR)
-    ) {
-      throw new Error(`Default bid must be at least ${MIN_BID_SAR} SAR for ${nextBiddingStrategy} bidding`);
+    const nextDefaultBid = updates.defaultBid ?? campaign.defaultBid ?? MIN_BID_SAR;
+    if (nextBiddingStrategy === 'automatic' || nextBiddingStrategy === 'manual') {
+      if (nextDefaultBid < MIN_BID_SAR) {
+        throw new Error(`Default bid must be at least ${MIN_BID_SAR} SAR for ${nextBiddingStrategy} bidding`);
+      }
     }
 
     const updateDoc = {

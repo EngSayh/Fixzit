@@ -37,8 +37,9 @@ Successfully completed **Option B: Quick Win** task by removing deprecated code 
 
 **Required Secrets**:
 
-1. `SENDGRID_API_KEY`: `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`
+1. `SENDGRID_API_KEY`: `SG.<your_sendgrid_api_key>`
 2. `FROM_EMAIL`: `noreply@fixzit.co`
+   - Rotate the live SendGrid key if it was ever stored in this document.
 
 **Action Required**: User must add secrets via GitHub web interface at:
 

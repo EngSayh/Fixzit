@@ -13,7 +13,10 @@ const leanResult = <T,>(data: T) => ({
   lean: vi.fn().mockResolvedValue(data),
 });
 
-vi.mock('fs', () => ({ promises: mockFs }));
+vi.mock('fs', () => ({
+  promises: mockFs,
+  default: { promises: mockFs },
+}));
 vi.mock('@/lib/mongo', () => ({ db: Promise.resolve() }));
 vi.mock('@/server/models/WorkOrder', () => ({ WorkOrder: mockWorkOrder }));
 

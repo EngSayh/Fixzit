@@ -14,6 +14,7 @@
 - [x] Code committed and pushed (commit: 3a0a1d827)
 - [x] Vercel CLI installed at `/opt/homebrew/bin/vercel`
 - [x] React act() warnings fixed in topbar test
+- [x] Notifications default to background dispatch for <500ms API latency; set `sendNotification(..., { background: false })` if a route must block on delivery attempts.
 
 ---
 

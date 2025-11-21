@@ -17,7 +17,7 @@
 #### 1. SENDGRID_API_KEY
 
 ```
-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
+SG.<your_sendgrid_api_key>
 ```
 
 #### 2. FROM_EMAIL
@@ -38,7 +38,7 @@ noreply@fixzit.co
 2. **Add SENDGRID_API_KEY**
    - Click **New repository secret**
    - Name: `SENDGRID_API_KEY`
-   - Secret: `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`
+   - Secret: `SG.<your_sendgrid_api_key>`
    - Click **Add secret**
 
 3. **Add FROM_EMAIL**
@@ -54,7 +54,7 @@ If you have proper permissions on your local machine:
 ```bash
 # Set SENDGRID_API_KEY
 gh secret set SENDGRID_API_KEY \
-  --body "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" \
+  --body "SG.<your_sendgrid_api_key>" \
   --repo EngSayh/Fixzit
 
 # Set FROM_EMAIL
@@ -69,7 +69,7 @@ Create `.env.local` file in project root (never commit this file):
 
 ```bash
 # SendGrid Email Service
-SENDGRID_API_KEY=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
+SENDGRID_API_KEY=SG.<your_sendgrid_api_key>
 FROM_EMAIL=noreply@fixzit.co
 
 # MongoDB Connection (to be configured)
@@ -102,6 +102,7 @@ FROM_EMAIL        Updated YYYY-MM-DD
 ## Security Notes
 
 - ✅ Never commit secrets to Git
+- ✅ Regenerate the SendGrid API key if you ever stored the real value in documentation; the key has been intentionally redacted here.
 - ✅ Always use environment variables or GitHub Secrets
 - ✅ Rotate API keys before production deployment
 - ⚠️ Trial account expires Nov 1, 2025 - upgrade before production

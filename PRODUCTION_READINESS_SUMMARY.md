@@ -11,7 +11,7 @@
 
 - **TypeScript:** 0 errors
 - **ESLint:** 0 errors  
-- **Tests:** 891 passing, 0 failures
+- **Tests:** 830 passing (full suite), 0 failures
 - **Build:** Clean (verified with placeholder envs)
 - **Git:** Committed to main (3a0a1d827)
 - **React Warnings:** Fixed (topbar act() issue resolved)
@@ -26,6 +26,7 @@
 - [x] Code quality perfect
 - [x] All tests passing
 - [x] Domain ready (fixzit.co on GoDaddy)
+- [x] Notifications default to background dispatch for <500ms API latency; set `background: false` in `sendNotification` when a controller must block on delivery attempts.
 
 ### 🔴 **CRITICAL: Required Before Deployment**
 
@@ -65,13 +66,13 @@ NEXTAUTH_URL=https://fixzit.co
 **Important (Features won't work):**
 ```env
 # Email (SendGrid) - You already have this key in .env.local
-SENDGRID_API_KEY=SG.0objYexwTxusM1G3yIcADQ...
+SENDGRID_API_KEY=SG.<your_sendgrid_api_key>
 SENDGRID_FROM_EMAIL=info@lifetree.world
 
 # SMS (Twilio) - You already have this in .env.local
-TWILIO_ACCOUNT_SID=SK6b4f56316c9e9971ed5f836c1383cdff
-TWILIO_AUTH_TOKEN=a2uLIWrKxCLhE1cAKFTkPFkTBgYfT0Qe
-TWILIO_PHONE_NUMBER=+966552233456
+TWILIO_ACCOUNT_SID=ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_PHONE_NUMBER=+966XXXXXXXXX
 
 # AWS S3 (File uploads) - If you have AWS account
 AWS_ACCESS_KEY_ID=your_key
@@ -79,6 +80,7 @@ AWS_SECRET_ACCESS_KEY=your_secret
 AWS_S3_BUCKET=fixzit-uploads-prod
 AWS_REGION=us-east-1
 ```
+> Security hygiene: regenerate any SendGrid or Twilio credentials that were previously stored in docs and keep new values only in secret managers.
 
 **Optional (Can add later):**
 ```env
