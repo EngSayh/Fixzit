@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
 import { NextResponse } from 'next/server';
+import { PATCH } from '../../../../app/api/work-orders/[id]/route';
 
 // Mock dependencies
 vi.mock('@/lib/mongodb-unified', () => ({
@@ -16,7 +17,7 @@ vi.mock('@/server/models/WorkOrder', () => ({
 }));
 
 vi.mock('@/server/middleware/withAuthRbac', () => ({
-  requireAbility: vi.fn(),
+  getSessionUser: vi.fn(),
 }));
 
 vi.mock('@/lib/sla', () => ({
@@ -39,12 +40,12 @@ vi.mock('@/lib/logger', () => ({
   },
 }));
 
-import { PATCH } from '@/app/api/work-orders/[id]/route';
 import { WorkOrder } from '@/server/models/WorkOrder';
-import { requireAbility } from '@/server/middleware/withAuthRbac';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { deleteObject } from '@/lib/storage/s3';
 import { logger } from '@/lib/logger';
+const callPatch = (req: any, params: any) => PATCH(req, params);
 
 describe('PATCH /api/work-orders/[id]', () => {
   const mockUser = {
@@ -63,15 +64,18 @@ describe('PATCH /api/work-orders/[id]', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (requireAbility as vi.Mock).mockImplementation(() => async () => mockUser);
-    
+    (getSessionUser as vi.Mock).mockResolvedValue(mockUser);
+    (getDatabase as vi.Mock).mockResolvedValue({
+      collection: vi.fn().mockReturnValue({ countDocuments: vi.fn().mockResolvedValue(0) }),
+    });
+
     // Mock WorkOrder.findOne to return chainable methods
     const mockFindOne = {
       select: vi.fn().mockReturnThis(),
       lean: vi.fn().mockResolvedValue(mockWorkOrder),
     };
     (WorkOrder.findOne as vi.Mock).mockReturnValue(mockFindOne);
-    
+
     (WorkOrder.findOneAndUpdate as vi.Mock).mockResolvedValue({
       ...mockWorkOrder,
       title: 'Updated Title',
@@ -92,7 +96,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         propertyId: '507f1f77bcf86cd799439012',
       });
 
-      const res = await PATCH(req as any, {
+      const res = await callPatch(req as any, {
         params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
       });
 
@@ -115,7 +119,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         propertyId: '507f1f77bcf86cd799439012',
       });
 
-      const res = await PATCH(req as any, {
+      const res = await callPatch(req as any, {
         params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
       });
 
@@ -140,7 +144,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         unitNumber: '3B',
       });
 
-      const res = await PATCH(req as any, {
+      const res = await callPatch(req as any, {
         params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
       });
 
@@ -168,7 +172,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         },
       });
 
-      const res = await PATCH(req as any, {
+      const res = await callPatch(req as any, {
         params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
       });
 
@@ -192,7 +196,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         },
       });
 
-      const res = await PATCH(req as any, {
+      const res = await callPatch(req as any, {
         params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
       });
 
@@ -211,7 +215,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         priority: 'CRITICAL',
       });
 
-      const res = await PATCH(req as any, {
+      const res = await callPatch(req as any, {
         params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
       });
 
@@ -228,13 +232,13 @@ describe('PATCH /api/work-orders/[id]', () => {
         dueAt: customDue.toISOString(),
       });
 
-      const res = await PATCH(req as any, {
+      const res = await callPatch(req as any, {
         params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
       });
 
       expect(res.status).toBe(200);
       const updateCall = (WorkOrder.findOneAndUpdate as vi.Mock).mock.calls[0];
-      expect(updateCall[1].$set.dueAt).toEqual(customDue);
+      expect(new Date(updateCall[1].$set.dueAt)).toEqual(customDue);
     });
   });
 
@@ -257,7 +261,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         attachments: [{ key: 'new-1.jpg', url: 'https://s3/new-1.jpg' }],
       });
 
-      const res = await PATCH(req as any, {
+      const res = await callPatch(req as any, {
         params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
       });
 
@@ -299,7 +303,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         attachments: [{ key: 'keep-me.jpg', url: 'https://s3/keep.jpg' }],
       });
 
-      const res = await PATCH(req as any, {
+      const res = await callPatch(req as any, {
         params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
       });
 
@@ -331,7 +335,7 @@ describe('PATCH /api/work-orders/[id]', () => {
         },
       });
 
-      const res = await PATCH(req as any, {
+      const res = await callPatch(req as any, {
         params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
       });
 
