@@ -1,9 +1,16 @@
 import { CopilotSession } from "./session";
 import { redactSensitiveText } from "./policy";
 import { RetrievedDoc } from "./retrieval";
+import { streamText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const CHAT_MODEL = process.env.COPILOT_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini";
+
+// Initialize OpenAI provider with API key
+const openai = createOpenAI({
+  apiKey: OPENAI_API_KEY || '',
+});
 
 interface Message {
   role: "system" | "user" | "assistant";
@@ -28,6 +35,45 @@ function buildSystemPrompt(_session: CopilotSession): string {
   ].join(" ");
 }
 
+/**
+ * Generate streaming AI response using Vercel AI SDK
+ * Returns a stream that can be consumed for real-time responses
+ */
+export async function generateCopilotStreamResponse(options: ChatCompletionOptions) {
+  const context = options.docs?.slice(0, 5).map(doc => `Title: ${doc.title}\nSource: ${doc.source || 'internal'}\nContent:\n${doc.content}`).join("\n---\n");
+  
+  if (!OPENAI_API_KEY) {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  const systemPrompt = buildSystemPrompt(options.session);
+  const userPrompt = options.session.locale === "ar"
+    ? `اللغة: العربية\nالسياق:\n${context || 'لا يوجد'}\nالسؤال: ${options.prompt}`
+    : `Locale: ${options.session.locale}\nContext:\n${context || 'none'}\nQuestion: ${options.prompt}`;
+
+  // Convert history to proper format
+  const messages = [
+    { role: 'system' as const, content: systemPrompt },
+    ...(options.history || []).map(msg => ({
+      role: msg.role as 'user' | 'assistant',
+      content: msg.content,
+    })),
+    { role: 'user' as const, content: userPrompt },
+  ];
+
+  const result = streamText({
+    model: openai(CHAT_MODEL),
+    messages,
+    temperature: 0.3,
+    maxRetries: 2,
+  });
+
+  return result;
+}
+
+/**
+ * Generate non-streaming AI response (backward compatible)
+ */
 export async function generateCopilotResponse(options: ChatCompletionOptions): Promise<string> {
   const context = options.docs?.slice(0, 5).map(doc => `Title: ${doc.title}\nSource: ${doc.source || 'internal'}\nContent:\n${doc.content}`).join("\n---\n");
   const messages: Message[] = [

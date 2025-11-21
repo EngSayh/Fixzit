@@ -84,14 +84,47 @@ interface AdBid {
 }
 
 export class CampaignService {
+  private static assertBudget(num: number, field = 'dailyBudget'): void {
+    if (!Number.isFinite(num) || num <= 0) {
+      throw new Error(`${field} must be a positive number`);
+    }
+  }
+
+  private static assertDates(startDate: Date, endDate?: Date): void {
+    if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime())) {
+      throw new Error('Invalid start date');
+    }
+    if (endDate) {
+      if (!(endDate instanceof Date) || Number.isNaN(endDate.getTime())) {
+        throw new Error('Invalid end date');
+      }
+      if (endDate < startDate) {
+        throw new Error('End date must be on or after start date');
+      }
+    }
+  }
+
+  private static ensureOwnership<T extends { sellerId: string }>(
+    doc: T | null,
+    sellerId: string,
+    action: string
+  ): T {
+    if (!doc) {
+      throw new Error(`Campaign not found for ${action}`);
+    }
+    if (doc.sellerId !== sellerId) {
+      throw new Error('Forbidden: campaign does not belong to seller');
+    }
+    return doc;
+  }
+
   /**
    * Create new ad campaign
    */
   static async createCampaign(input: CreateCampaignInput): Promise<Campaign> {
     // Validation
-    if (input.dailyBudget < 10) {
-      throw new Error('Daily budget must be at least 10 SAR');
-    }
+    this.assertBudget(input.dailyBudget);
+    this.assertDates(input.startDate, input.endDate);
 
     if (input.products.length === 0) {
       throw new Error('At least one product must be selected');
@@ -152,7 +185,8 @@ export class CampaignService {
    */
   static async updateCampaign(
     campaignId: string,
-    updates: UpdateCampaignInput
+    updates: UpdateCampaignInput,
+    sellerId: string
   ): Promise<Campaign> {
     const { getDatabase } = await import('@/lib/mongodb-unified');
     const db = await getDatabase();
@@ -161,9 +195,7 @@ export class CampaignService {
       .collection('souq_ad_campaigns')
       .findOne({ campaignId });
 
-    if (!campaign) {
-      throw new Error(`Campaign not found: ${campaignId}`);
-    }
+    this.ensureOwnership(campaign as Campaign | null, sellerId, 'update');
 
     const nextBiddingStrategy = updates.biddingStrategy ?? campaign.biddingStrategy;
     const nextDefaultBid = updates.defaultBid ?? campaign.defaultBid ?? MIN_BID_SAR;
@@ -172,6 +204,13 @@ export class CampaignService {
         throw new Error(`Default bid must be at least ${MIN_BID_SAR} SAR for ${nextBiddingStrategy} bidding`);
       }
     }
+
+    const nextDailyBudget = updates.dailyBudget ?? campaign.dailyBudget;
+    this.assertBudget(nextDailyBudget);
+
+    const nextStartDate = updates.startDate ?? campaign.startDate;
+    const nextEndDate = updates.endDate ?? campaign.endDate;
+    this.assertDates(nextStartDate, nextEndDate);
 
     const updateDoc = {
       ...updates,
@@ -199,9 +238,12 @@ export class CampaignService {
   /**
    * Delete campaign
    */
-  static async deleteCampaign(campaignId: string): Promise<void> {
+  static async deleteCampaign(campaignId: string, sellerId: string): Promise<void> {
     const { getDatabase } = await import('@/lib/mongodb-unified');
     const db = await getDatabase();
+
+    const campaign = await db.collection<Campaign>('souq_ad_campaigns').findOne({ campaignId });
+    this.ensureOwnership(campaign, sellerId, 'delete');
 
     // Delete bids
     await db.collection('souq_ad_bids').deleteMany({ campaignId });
@@ -286,7 +328,10 @@ export class CampaignService {
   /**
    * Get campaign performance stats
    */
-  static async getCampaignStats(campaignId: string): Promise<{
+  static async getCampaignStats(
+    campaignId: string,
+    sellerId: string
+  ): Promise<{
     impressions: number;
     clicks: number;
     conversions: number;
@@ -299,6 +344,9 @@ export class CampaignService {
   }> {
     const { getDatabase } = await import('@/lib/mongodb-unified');
     const db = await getDatabase();
+
+    const campaign = await db.collection<Campaign>('souq_ad_campaigns').findOne({ campaignId });
+    this.ensureOwnership(campaign, sellerId, 'stats');
 
     // Aggregate stats from all bids in campaign
     const bids = await db
