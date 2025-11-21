@@ -15,6 +15,23 @@ import { resolveTenantId } from '../../../utils/tenant';
 import { requireFmAbility } from '../../../utils/auth';
 import { FMErrors } from '../../../errors';
 
+interface CommentDocument {
+  _id?: { toString?: () => string };
+  id?: string;
+  workOrderId?: string;
+  comment?: string;
+  type?: string;
+  createdAt?: Date | string | number;
+  createdBy?: {
+    id?: string;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+  };
+  [key: string]: unknown;
+}
+
 const COMMENT_TYPES = new Set<WorkOrderComment['type']>(['comment', 'internal']);
 
 export async function GET(
@@ -160,7 +177,7 @@ export async function POST(
   }
 }
 
-function mapCommentDocument(doc: any): WorkOrderComment {
+function mapCommentDocument(doc: CommentDocument): WorkOrderComment {
   const createdAt = doc.createdAt instanceof Date ? doc.createdAt : new Date(doc.createdAt);
   const createdBy = doc.createdBy || {};
 

@@ -24,6 +24,13 @@ interface TransactionEvent {
   payload: unknown;
 }
 
+interface InvoicePayment {
+  transactionId?: string;
+  status?: string;
+  notes?: string;
+  [key: string]: unknown;
+}
+
 /**
  * POST /api/payments/tap/webhook
  * 
@@ -510,7 +517,8 @@ async function allocateInvoicePayment(
   }
 
   invoice.payments = invoice.payments || [];
-  const existing = invoice.payments.find((p: any) => p.transactionId === charge.id);
+  const paymentsTyped = invoice.payments as unknown as InvoicePayment[];
+  const existing = paymentsTyped.find((p) => p.transactionId === charge.id);
   if (existing) {
     existing.status = 'COMPLETED';
     existing.notes = 'Paid via Tap';
@@ -555,7 +563,8 @@ async function markInvoicePaymentStatus(
 
   invoice.payments = invoice.payments || [];
   const amount = tapPayments.halalasToSAR(charge.amount || transaction.amountHalalas || 0);
-  const existing = invoice.payments.find((p: any) => p.transactionId === charge.id);
+  const paymentsTyped = invoice.payments as unknown as InvoicePayment[];
+  const existing = paymentsTyped.find((p) => p.transactionId === charge.id);
   if (existing) {
     existing.status = status;
     existing.notes = message;
@@ -645,7 +654,8 @@ async function updateRefundRecord(
   if (transaction.invoiceId) {
     const invoice = await Invoice.findById(transaction.invoiceId);
     if (invoice) {
-      const entry = invoice.payments?.find((p: any) => p.transactionId === refund.charge);
+      const paymentsTyped = invoice.payments as unknown as InvoicePayment[] | undefined;
+      const entry = paymentsTyped?.find((p) => p.transactionId === refund.charge);
       if (entry) {
         entry.status = status === 'SUCCEEDED' ? 'REFUNDED' : status;
         entry.notes = refund.reason || entry.notes;

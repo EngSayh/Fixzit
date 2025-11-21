@@ -29,6 +29,30 @@ import {
 } from '../../utils';
 import { resolveTenantId } from '../../../utils/tenant';
 import { getSessionUser, UnauthorizedError, type SessionUser } from '@/server/middleware/withAuthRbac';
+
+interface AttachmentWithCategory {
+  category?: string;
+  type?: string;
+  [key: string]: unknown;
+}
+
+interface WorkOrderForTransition {
+  orgId?: { toString?: () => string } | string;
+  propertyId?: string;
+  requesterId?: string;
+  ownerUserId?: string;
+  location?: { propertyId?: string };
+  requester?: { userId?: string };
+  assignment?: {
+    assignedTo?: {
+      userId?: string;
+      vendorId?: string;
+      technicianId?: string;
+    };
+  };
+  attachments?: AttachmentWithCategory[];
+  [key: string]: unknown;
+}
 import { requireFmAbility } from '../../../utils/auth';
 import type { NotificationChannel, NotificationRecipient } from '@/lib/fm-notifications';
 
@@ -343,7 +367,7 @@ function resolvePlan(plan?: string | null): FMPlan {
 }
 
 function buildResourceContext(
-  workOrder: any,
+  workOrder: WorkOrderForTransition,
   user: SessionUser,
   tenantId: string,
   role: FMRole
@@ -377,7 +401,7 @@ function buildResourceContext(
   };
 }
 
-function collectUploadedMedia(attachments: any[] | undefined): ResourceCtx['uploadedMedia'] {
+function collectUploadedMedia(attachments: AttachmentWithCategory[] | undefined): ResourceCtx['uploadedMedia'] {
   if (!attachments?.length) return [];
   const allowed = new Set(['BEFORE', 'AFTER', 'DURING', 'QUOTE']);
   const collected = attachments
@@ -389,7 +413,7 @@ function collectUploadedMedia(attachments: any[] | undefined): ResourceCtx['uplo
   ) as ResourceCtx['uploadedMedia'];
 }
 
-function isActorAssignedToWorkOrder(workOrder: any, user: SessionUser): boolean {
+function isActorAssignedToWorkOrder(workOrder: WorkOrderForTransition, user: SessionUser): boolean {
   const actorId = (user?.id ?? user?.email)?.toString();
   if (!actorId) return false;
 

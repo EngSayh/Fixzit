@@ -14,6 +14,18 @@ import { resolveTenantId } from '../../../utils/tenant';
 import { requireFmAbility } from '../../../utils/auth';
 import { FMErrors } from '../../../errors';
 
+interface AttachmentDocument {
+  _id?: { toString?: () => string };
+  id?: string;
+  url?: string;
+  thumbnailUrl?: string;
+  type?: string;
+  caption?: string;
+  fileName?: string;
+  uploadedAt?: Date | string | number;
+  [key: string]: unknown;
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -200,7 +212,7 @@ export async function DELETE(
   }
 }
 
-function mapAttachmentDocument(doc: any): WorkOrderPhoto {
+function mapAttachmentDocument(doc: AttachmentDocument): WorkOrderPhoto {
   const uploadedAt =
     doc.uploadedAt instanceof Date ? doc.uploadedAt : new Date(doc.uploadedAt ?? Date.now());
 

@@ -8,6 +8,19 @@ import { requireFmAbility } from '../../../utils/auth';
 import { resolveTenantId } from '../../../utils/tenant';
 import { FMErrors } from '../../../errors';
 
+interface TimelineDocument {
+  _id?: { toString?: () => string };
+  id?: string;
+  workOrderId?: string;
+  action?: string;
+  description?: string;
+  performedAt?: Date | string | number;
+  performedBy?: string;
+  metadata?: Record<string, unknown>;
+  comment?: string;
+  [key: string]: unknown;
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -61,7 +74,7 @@ export async function GET(
   }
 }
 
-function mapTimelineDocument(doc: any): WorkOrderTimeline {
+function mapTimelineDocument(doc: TimelineDocument): WorkOrderTimeline {
   const performedAt =
     doc.performedAt instanceof Date
       ? doc.performedAt

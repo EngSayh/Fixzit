@@ -97,10 +97,15 @@ export async function POST(req: NextRequest) {
       employmentStatus: 'ACTIVE',
       hireDate,
       compensation: {
-        baseSalary: jobAny.salaryRange?.min || jobAny.salaryRange?.max || 0,
-        currency: jobAny.currency || 'SAR',
+        baseSalary: jobTyped.salaryRange?.min || jobTyped.salaryRange?.max || 0,
+        currency: jobTyped.currency || 'SAR',
       },
-      meta: { source: 'ats', jobId: jobAny._id?.toString?.() || String(jobAny._id), applicationId: app._id.toString(), convertedBy: user?.id || 'system' }
+      meta: {
+        source: 'ats',
+        jobId: jobTyped._id?.toString?.() || String(jobTyped._id),
+        applicationId: app._id.toString(),
+        convertedBy: user?.id || 'system',
+      }
     });
     return NextResponse.json({ success: true, data: employee });
   } catch (error) {
@@ -108,4 +113,3 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: "Failed to convert to employee" }, 500, req);
   }
 }
-
