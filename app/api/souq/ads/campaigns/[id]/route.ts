@@ -111,7 +111,7 @@ export async function PUT(
     if (body.biddingStrategy) updates.biddingStrategy = body.biddingStrategy;
     if (body.defaultBid) updates.defaultBid = parseFloat(body.defaultBid);
 
-    const updated = await CampaignService.updateCampaign(params.id, updates);
+    const updated = await CampaignService.updateCampaign(params.id, updates, session.user.id);
 
     return NextResponse.json({
       success: true,
@@ -166,7 +166,7 @@ export async function DELETE(
       );
     }
 
-    await CampaignService.deleteCampaign(params.id);
+    await CampaignService.deleteCampaign(params.id, session.user.id);
 
     return NextResponse.json({
       success: true,

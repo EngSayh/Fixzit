@@ -38,7 +38,7 @@ export async function GET(
       );
     }
 
-    const stats = await CampaignService.getCampaignStats(params.id);
+    const stats = await CampaignService.getCampaignStats(params.id, session.user.id);
 
     return NextResponse.json({
       success: true,

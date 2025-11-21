@@ -39,10 +39,15 @@ export async function POST(req: NextRequest) {
   if (req.headers.get('x-cron-secret') !== Config.security.cronSecret) return createSecureResponse({ error:'UNAUTH' }, 401, req);
   await connectToDatabase();
   const today = new Date();
-  const dueSubs = (await Subscription.find({ billingCycle:'monthly', status:'active', nextInvoiceAt: { $lte: today }, paytabsTokenId: { $ne: null } }));
+  const dueSubs = await Subscription.find({
+    billing_cycle: 'MONTHLY',
+    status: 'ACTIVE',
+    next_billing_date: { $lte: today },
+    paytabs_token_id: { $ne: null },
+  });
 
   for (const s of dueSubs) {
-    const pm = (await PaymentMethod.findById(s.paytabsTokenId));
+    const pm = await PaymentMethod.findById(s.paytabs_token_id);
     if (!pm) continue;
 
     // Calculate billing period
@@ -55,7 +60,7 @@ export async function POST(req: NextRequest) {
     const inv = (await SubscriptionInvoice.create({
       orgId: s.tenant_id, // Required by tenantIsolationPlugin
       subscriptionId: s._id, 
-      amount: s.totalMonthly, 
+      amount: s.amount, 
       currency: s.currency,
       dueDate: today,
       periodStart,  // ✅ ADDED: Billing period start
@@ -70,7 +75,10 @@ export async function POST(req: NextRequest) {
         headers: { 'Content-Type':'application/json', 'authorization': Config.payment.paytabs.serverKey },
         body: JSON.stringify({
           profile_id: Config.payment.paytabs.profileId, tran_type:'sale', tran_class:'recurring',
-          cart_id: `INV-${inv._id}`, cart_description: `Fixzit Monthly ${s.planType}`, cart_amount: inv.amount, cart_currency: inv.currency,
+          cart_id: `INV-${inv._id}`,
+          cart_description: 'Fixzit Monthly Subscription',
+          cart_amount: inv.amount,
+          cart_currency: inv.currency,
           token: pm.pt_token // ✅ FIXED: Use pt_token not token
         })
       });
@@ -96,11 +104,13 @@ export async function POST(req: NextRequest) {
       inv.errorMessage = error instanceof Error ? error.message : 'Payment gateway error';
       await inv.save();
     }
-    s.nextInvoiceAt = new Date(new Date().setMonth(today.getMonth()+1)); await s.save();
+    const nextBilling = new Date(today);
+    nextBilling.setMonth(nextBilling.getMonth() + 1);
+    s.next_billing_date = nextBilling;
+    await s.save();
   }
 
   return createSecureResponse({ ok: true, count: dueSubs.length });
 }
-
 
 

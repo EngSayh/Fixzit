@@ -467,6 +467,7 @@ class ReturnsService {
       inspectionNotes || '',
       inspectionPhotos
     );
+    await rma.save();
 
     // Always adjust inventory so unsellable units are tracked correctly.
     for (const item of rma.items) {
@@ -550,6 +551,7 @@ class ReturnsService {
 
     // Process refund via payment gateway
     // In production, integrate with Stripe/PayTabs/etc.
+    rma.refund.amount = refundAmount;
     const refundData = {
       amount: refundAmount,
       method: refundMethod,
@@ -560,6 +562,7 @@ class ReturnsService {
     };
 
     await rma.completeRefund(refundData);
+    await rma.save();
 
     // Notify buyer
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {

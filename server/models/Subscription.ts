@@ -1,4 +1,4 @@
-import { Schema, Document } from 'mongoose';
+import { Schema, Document, Types } from 'mongoose';
 import { getModel } from '@/src/types/mongoose-compat';
 import { auditPlugin } from '../plugins/auditPlugin';
 import { MODULE_KEYS } from './Module';
@@ -81,6 +81,7 @@ const SubscriptionSchema = new Schema(
       type: [BillingHistorySchema],
       default: []
     },
+    paytabs_token_id: { type: Schema.Types.ObjectId, ref: 'PaymentMethod' },
     metadata: { type: Schema.Types.Mixed },
   },
   { timestamps: true }
@@ -150,6 +151,7 @@ interface ISubscription extends Document {
   paytabs?: IPayTabsInfo;
   next_billing_date?: Date;
   billing_history: IBillingHistory[];
+  paytabs_token_id?: Types.ObjectId;
   metadata?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;

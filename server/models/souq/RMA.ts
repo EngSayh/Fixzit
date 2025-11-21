@@ -28,7 +28,7 @@ export interface IRMATimeline {
 export interface IRMAInspection {
   inspectedAt: Date;
   inspectedBy: string;
-  condition: 'as_new' | 'minor_wear' | 'damaged' | 'defective' | 'wrong_item';
+  condition: 'as_new' | 'minor_wear' | 'damaged' | 'defective' | 'wrong_item' | 'good' | 'acceptable' | 'like_new';
   notes: string;
   approved: boolean;
   restockable: boolean;
@@ -154,7 +154,7 @@ const RMAInspectionSchema = new Schema<IRMAInspection>({
   inspectedBy: { type: String, required: true },
   condition: { 
     type: String, 
-    enum: ['as_new', 'minor_wear', 'damaged', 'defective', 'wrong_item'],
+    enum: ['as_new', 'minor_wear', 'damaged', 'defective', 'wrong_item', 'good', 'acceptable', 'like_new'],
     required: true 
   },
   notes: { type: String, required: true },
@@ -326,7 +326,7 @@ RMASchema.methods.startInspection = function(): void {
  */
 RMASchema.methods.completeInspection = function(
   inspectedBy: string,
-  condition: string,
+  condition: IRMAInspection['condition'],
   approved: boolean,
   restockable: boolean,
   notes: string,
@@ -335,7 +335,7 @@ RMASchema.methods.completeInspection = function(
   this.inspection = {
     inspectedAt: new Date(),
     inspectedBy,
-    condition: condition as 'as_new' | 'minor_wear' | 'damaged' | 'defective' | 'wrong_item',
+    condition,
     notes,
     approved,
     restockable,

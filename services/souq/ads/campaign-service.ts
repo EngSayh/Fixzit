@@ -13,6 +13,7 @@ import { nanoid } from 'nanoid';
 import { logger } from '@/lib/logger';
 
 const MIN_BID_SAR = 0.05;
+const MIN_DAILY_BUDGET_SAR = 10;
 
 type KeywordMatchType = 'exact' | 'phrase' | 'broad';
 type KeywordTargetInput = string | {
@@ -84,9 +85,9 @@ interface AdBid {
 }
 
 export class CampaignService {
-  private static assertBudget(num: number, field = 'dailyBudget'): void {
-    if (!Number.isFinite(num) || num <= 0) {
-      throw new Error(`${field} must be a positive number`);
+  private static assertBudget(num: number, field = 'dailyBudget', min = MIN_DAILY_BUDGET_SAR): void {
+    if (!Number.isFinite(num) || num < min) {
+      throw new Error(`${field} must be at least ${min} SAR`);
     }
   }
 
@@ -160,7 +161,7 @@ export class CampaignService {
       startDate: input.startDate,
       endDate: input.endDate,
       biddingStrategy: input.biddingStrategy,
-      defaultBid: input.defaultBid,
+      defaultBid: effectiveDefaultBid,
       targeting: input.targeting,
       products: input.products,
       bids,

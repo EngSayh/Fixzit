@@ -137,7 +137,7 @@ export async function createSubscriptionCheckout(
     profile_id: paytabsProfileId,
     customer_email: input.customer.email,
     cart_id: cartId,
-  } as unknown;
+  };
   subscription.amount = quote.total;
   await subscription.save();
 
@@ -149,4 +149,3 @@ export async function createSubscriptionCheckout(
     quote,
   };
 }
-

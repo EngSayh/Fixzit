@@ -4,12 +4,15 @@ import { getEnv } from '@/lib/env';
 
 // Vercel Functions database pool management for serverless optimization
 let attachDatabasePool: ((client: unknown) => void) | undefined;
-try {
-  // Dynamically import @vercel/functions only if available (production environment)
-  attachDatabasePool = require('@vercel/functions').attachDatabasePool;
-} catch {
-  // Package not available or not in Vercel environment - skip pool attachment
-  attachDatabasePool = undefined;
+async function loadAttachDatabasePool(): Promise<typeof attachDatabasePool> {
+  if (attachDatabasePool !== undefined) return attachDatabasePool;
+  try {
+    const mod = await import('@vercel/functions');
+    attachDatabasePool = mod.attachDatabasePool as unknown as (client: unknown) => void;
+  } catch {
+    attachDatabasePool = undefined;
+  }
+  return attachDatabasePool;
 }
 
 // Safe TLS detection function
@@ -167,14 +170,15 @@ if (!conn) {
         // Vercel-optimized settings
         compressors: ['zlib'], // Enable compression for bandwidth savings
       })
-      .then((m) => {
+      .then(async (m) => {
         // Attach database pool for Vercel Functions optimization
         // This ensures proper cleanup when functions suspend and resume
-        if (attachDatabasePool && m.connection.getClient) {
+        const pool = await loadAttachDatabasePool();
+        if (pool && m.connection.getClient) {
           try {
             const client = m.connection.getClient();
             if (client) {
-              attachDatabasePool(client);
+              pool(client);
               logger.info('[Mongo] ✅ Vercel database pool attached for optimal serverless performance');
             }
           } catch (poolError) {

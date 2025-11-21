@@ -71,7 +71,13 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
 
   subscription.status = 'ACTIVE';
   subscription.amount = payload.amount ?? subscription.amount;
-  subscription.currency = (payload.currency as unknown) || subscription.currency;
+  const incomingCurrency =
+    typeof payload.currency === 'string'
+      ? payload.currency.toUpperCase()
+      : undefined;
+  if (incomingCurrency === 'USD' || incomingCurrency === 'SAR') {
+    subscription.currency = incomingCurrency;
+  }
   
   // Set next_billing_date for recurring subscriptions
   if (!subscription.next_billing_date) {
@@ -85,7 +91,7 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
     customer_email: payload.customerEmail ?? subscription.paytabs?.customer_email,
     cart_id: subscription.paytabs?.cart_id,
     profile_id: subscription.paytabs?.profile_id,
-  } as unknown;
+  };
   
   // Record successful payment in billing history
   subscription.billing_history.push({

@@ -191,20 +191,33 @@ export async function POST(req: NextRequest) {
 
       await inv.save();
 
-      if (verifiedOk && token && sub.billingCycle === 'monthly') {
-        const paymentInfo = verificationData.payment_info;
+      if (verifiedOk && token && sub.billing_cycle === 'MONTHLY') {
+        type PaytabsPaymentInfo = {
+          card_scheme?: string;
+          payment_description?: string;
+          expiryMonth?: string;
+          expYear?: string;
+          customer_email?: string;
+        };
+        const paymentInfo = verificationData.payment_info as PaytabsPaymentInfo | undefined;
         if (!paymentInfo) {
           logger.warn('[Billing Callback] No payment_info in verification response, skipping token storage');
         } else {
-          const pm = await PaymentMethod.create({
-            customerId: sub.customerId,
-            token,
-            scheme: paymentInfo.card_scheme,
-            last4: (paymentInfo.payment_description || '').slice(-4),
-            expMonth: paymentInfo.expiryMonth,
-            expYear: paymentInfo.expYear,
-          });
-          sub.paytabsTokenId = pm._id;
+          const paymentMethodPayload: Record<string, unknown> = {
+            gateway: 'PAYTABS',
+            pt_token: token,
+            pt_masked_card: paymentInfo.payment_description,
+            pt_customer_email: paymentInfo.customer_email,
+          };
+
+          if (sub.subscriber_type === 'OWNER' && sub.owner_user_id) {
+            paymentMethodPayload.owner_user_id = sub.owner_user_id;
+          } else if (sub.tenant_id) {
+            paymentMethodPayload.org_id = sub.tenant_id;
+          }
+
+          const pm = await PaymentMethod.create(paymentMethodPayload);
+          sub.paytabs_token_id = pm._id;
           await sub.save();
         }
       }
