@@ -29,7 +29,7 @@ jobs:
           echo "needs_review=$needs_review" >> $GITHUB_OUTPUT
       
       - name: Upload review report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: documentation-review-report
           path: doc-review-report.txt

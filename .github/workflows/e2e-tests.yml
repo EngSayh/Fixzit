@@ -1,0 +1,227 @@
+name: E2E Tests (Playwright)
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'tests/**'
+      - 'playwright.config.ts'
+      - 'tests/playwright.config.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Playwright project to run (leave empty for all)'
+        required: false
+        default: ''
+      test_path:
+        description: 'Specific test file to run (leave empty for all)'
+        required: false
+        default: ''
+
+# Prevent concurrent runs for same PR/ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Least-privilege permissions
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        # Run critical smoke tests in parallel
+        project: 
+          - 'Desktop:EN:Admin'
+          - 'Mobile:AR:Tenant'
+    
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      PLAYWRIGHT_CONFIG: tests/playwright.config.ts
+      PW_WEB_SERVER: pnpm dev
+      PW_WEB_PORT: 3000
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node with pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps
+
+      - name: Setup test database (MongoDB)
+        run: |
+          # Use MongoDB container for E2E tests
+          docker run -d \
+            --name mongodb-test \
+            -p 27017:27017 \
+            -e MONGO_INITDB_DATABASE=fixzit_test \
+            mongo:7
+          
+          # Wait for MongoDB to be ready
+          timeout 30 bash -c 'until docker exec mongodb-test mongosh --eval "db.adminCommand(\"ping\")" > /dev/null 2>&1; do sleep 1; done'
+          
+          echo "✅ MongoDB test database ready"
+
+      - name: Prepare E2E env vars
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork || 'false' }}" = "true" ]; then
+            echo "Using safe defaults for forked PR (GitHub secrets are unavailable)."
+            echo "NEXTAUTH_SECRET=e2e-test-secret-do-not-use-in-production" >> "$GITHUB_ENV"
+            echo "AUTH_SECRET=e2e-test-secret-do-not-use-in-production" >> "$GITHUB_ENV"
+            echo "GOOGLE_CLIENT_ID=" >> "$GITHUB_ENV"
+            echo "GOOGLE_CLIENT_SECRET=" >> "$GITHUB_ENV"
+          else
+            echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET || 'e2e-test-secret-do-not-use-in-production' }}" >> "$GITHUB_ENV"
+            echo "AUTH_SECRET=${{ secrets.NEXTAUTH_SECRET || 'e2e-test-secret-do-not-use-in-production' }}" >> "$GITHUB_ENV"
+            echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID || '' }}" >> "$GITHUB_ENV"
+            echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET || '' }}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Run Playwright E2E Tests
+        env:
+          # Authentication (NextAuth)
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: ${{ env.NEXTAUTH_SECRET }}
+          AUTH_SECRET: ${{ env.AUTH_SECRET }}
+          
+          # Google OAuth (from GitHub Secrets - optional)
+          # These secrets are optional - if not set, they will be empty strings
+          # The application handles missing OAuth gracefully with SKIP_ENV_VALIDATION=true
+          GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ env.GOOGLE_CLIENT_SECRET }}
+          
+          # Database
+          MONGODB_URI: mongodb://localhost:27017/fixzit_test
+          ALLOW_OFFLINE_MONGODB: 'true'
+          
+          # Test environment
+          NODE_ENV: test
+          CI: 'true'
+          SKIP_ENV_VALIDATION: 'true'
+          
+          # Base URL
+          BASE_URL: http://localhost:3000
+          
+        run: |
+          project_arg=""
+          test_path_arg=""
+          
+          # Use matrix project or workflow input
+          if [ -n "${{ matrix.project }}" ]; then
+            project_arg="--project=${{ matrix.project }}"
+          elif [ -n "${{ github.event.inputs.project }}" ]; then
+            project_arg="--project=${{ github.event.inputs.project }}"
+          fi
+          
+          # Use specific test path from workflow input
+          if [ -n "${{ github.event.inputs.test_path }}" ]; then
+            test_path_arg="${{ github.event.inputs.test_path }}"
+          fi
+          
+          echo "Running Playwright tests..."
+          echo "Project: ${project_arg:-all projects}"
+          echo "Test path: ${test_path_arg:-all tests}"
+          
+          pnpm exec playwright test --config "$PLAYWRIGHT_CONFIG" ${project_arg} ${test_path_arg}
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: |
+            tests/playwright-report/
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+      - name: Upload Error Context
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: error-context-${{ matrix.project }}
+          path: |
+            tests/playwright-artifacts/**
+            tests/playwright-artifacts/**/error-context.md
+            tests/playwright-artifacts/**/*.png
+          retention-days: 14
+
+      - name: Cleanup test database
+        if: always()
+        run: |
+          docker stop mongodb-test || true
+          docker rm mongodb-test || true
+
+      - name: Comment PR with results
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request' && always()
+        with:
+          script: |
+            const project = '${{ matrix.project }}';
+            const jobStatus = '${{ job.status }}';
+            
+            let body = `## 🎭 E2E Test Results - ${project}\n\n`;
+            
+            if (jobStatus === 'success') {
+              body += '✅ All tests passed!\n';
+            } else {
+              body += '❌ Some tests failed. Check the [action logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.\n';
+            }
+            
+            body += `\n[View full Playwright report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+            
+            try {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            } catch (error) {
+              core.warning(`Failed to create PR comment: ${error.message}`);
+            }
+
+  e2e-summary:
+    needs: e2e-tests
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Check E2E Test Results
+        run: |
+          echo "## 🎭 E2E Tests Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
+            echo "✅ **All E2E tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          else
+            echo "❌ **Some E2E tests failed.**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Check individual job results above for details." >> $GITHUB_STEP_SUMMARY
+            echo "Download artifacts to view error screenshots and context." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
