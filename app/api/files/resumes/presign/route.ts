@@ -8,7 +8,7 @@ import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 import { validateBucketPolicies } from '@/lib/security/s3-policy';
-import { getClientIP } from '@/lib/security/client-ip';
+import { getClientIp } from '@/lib/security/client-ip';
 
 const ALLOWED_TYPES = new Set(['application/pdf', 'application/x-pdf']);
 const ALLOWED_EXTENSIONS = new Set(['pdf']);
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
     const safeIp = (() => {
       try {
-        return getClientIP(req);
+        return getClientIp(req);
       } catch {
         return 'unknown';
       }
