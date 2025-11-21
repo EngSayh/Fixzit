@@ -19,7 +19,22 @@ const objectIdSchema = z
   .string()
   .regex(/^[a-f\d]{24}$/i, 'Invalid identifier format');
 
-const getDocumentId = (value: any) => {
+interface ListingDocument {
+  _id: Types.ObjectId;
+  availableQuantity?: number;
+  reservedQuantity?: number;
+  reserveStock?: (quantity: number) => Promise<boolean>;
+  releaseStock?: (quantity: number) => Promise<void>;
+  save?: () => Promise<unknown>;
+  [key: string]: unknown;
+}
+
+interface DocumentWithId {
+  _id: Types.ObjectId;
+  [key: string]: unknown;
+}
+
+const getDocumentId = (value: DocumentWithId | Types.ObjectId | unknown): Types.ObjectId | unknown => {
   if (value && typeof value === 'object' && '_id' in value) {
     return (value as { _id: Types.ObjectId })._id;
   }
@@ -63,7 +78,7 @@ const orderCreateSchema = z.object({
 
 export async function POST(request: NextRequest) {
   type Reservation = {
-    listing: any;
+    listing: ListingDocument;
     quantity: number;
     manualFallback: boolean;
   };
@@ -98,7 +113,7 @@ export async function POST(request: NextRequest) {
     reservations.length = 0;
   };
 
-  const reserveStockForListing = async (listingDoc: any, quantity: number) => {
+  const reserveStockForListing = async (listingDoc: ListingDocument, quantity: number) => {
     if (typeof listingDoc.reserveStock === 'function') {
       const success = await listingDoc.reserveStock(quantity);
       return { success, manualFallback: false };
@@ -142,12 +157,12 @@ export async function POST(request: NextRequest) {
     }
     const listingsQuery = SouqListing.find({
       _id: { $in: listingObjectIds },
-    }) as any;
+    });
     const listingsResult =
-      typeof listingsQuery?.populate === 'function'
-        ? await listingsQuery.populate('productId sellerId')
+      typeof (listingsQuery as { populate?: (fields: string) => Promise<unknown> }).populate === 'function'
+        ? await (listingsQuery as { populate: (fields: string) => Promise<unknown> }).populate('productId sellerId')
         : await listingsQuery;
-    const listings: any[] = Array.isArray(listingsResult) ? listingsResult : [];
+    const listings = (Array.isArray(listingsResult) ? listingsResult : []) as ListingDocument[];
 
     if (listings.length !== validatedData.items.length) {
       if (process.env.NODE_ENV === 'test') {
@@ -168,7 +183,7 @@ export async function POST(request: NextRequest) {
     let subtotal = 0;
 
     for (const itemRequest of validatedData.items) {
-      const listing = listings.find((l: any) => l._id.toString() === itemRequest.listingId);
+      const listing = listings.find((l) => l._id.toString() === itemRequest.listingId);
 
       if (!listing) {
         await releaseReservations();

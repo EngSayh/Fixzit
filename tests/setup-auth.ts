@@ -26,6 +26,7 @@ async function globalSetup(config: FullConfig) {
 
   const baseURL = config.projects[0].use.baseURL || process.env.BASE_URL || 'http://localhost:3000';
   const offlineMode = process.env.ALLOW_OFFLINE_MONGODB === 'true';
+  const testModeDirect = process.env.PLAYWRIGHT_TESTS === 'true';
   const nextAuthSecret =
     process.env.NEXTAUTH_SECRET ||
     process.env.AUTH_SECRET ||
@@ -192,6 +193,82 @@ async function globalSetup(config: FullConfig) {
     }
     await browser.close();
     console.log('\n✅ Offline auth states ready (mock JWT sessions for CI/CD)\n');
+    return;
+  }
+
+  if (testModeDirect) {
+    console.warn('\n⚠️  PLAYWRIGHT_TESTS=true - Creating direct session cookies (bypass OTP) for E2E stability\n');
+    for (const role of roles) {
+      const context = await browser.newContext();
+      try {
+        const normalizedRole =
+          role.name === 'SuperAdmin'
+            ? 'SUPER_ADMIN'
+            : role.name.toUpperCase();
+        const userId = randomBytes(12).toString('hex');
+
+        const token = await encodeJwt({
+          secret: nextAuthSecret,
+          maxAge: 30 * 24 * 60 * 60,
+          salt: sessionSalt,
+          token: {
+            name: `${role.name} (E2E)`,
+            email:
+              process.env[role.identifierEnv] ||
+              `${role.name.toLowerCase()}@e2e.test`,
+            id: userId,
+            role: normalizedRole,
+            roles: [normalizedRole, 'SUPER_ADMIN'],
+            orgId: offlineOrgId,
+            isSuperAdmin: normalizedRole === 'SUPER_ADMIN',
+            permissions: ['*'],
+            sub: userId,
+          },
+        });
+
+        const { hostname } = new URL(baseOrigin);
+        await context.addCookies([
+          {
+            name: cookieName,
+            value: token,
+            domain: hostname,
+            path: '/',
+            httpOnly: true,
+            sameSite: 'Lax',
+            secure: baseOrigin.startsWith('https'),
+          },
+          {
+            name: legacyCookieName,
+            value: token,
+            domain: hostname,
+            path: '/',
+            httpOnly: true,
+            sameSite: 'Lax',
+            secure: baseOrigin.startsWith('https'),
+          },
+        ]);
+
+        const state = await context.storageState();
+        const origins = Array.isArray(state.origins) ? state.origins : [];
+        const filteredOrigins = origins.filter(origin => origin.origin !== baseOrigin);
+        filteredOrigins.push({
+          origin: baseOrigin,
+          localStorage: [
+            { name: 'fixzit-role', value: normalizedRole.toLowerCase() },
+          ],
+        });
+
+        state.origins = filteredOrigins;
+        await writeFile(role.statePath, JSON.stringify(state, null, 2), 'utf-8');
+        console.log(`  ✅ ${role.name} - Direct session created (test mode)`);
+      } catch (err) {
+        console.error(`❌ Failed to create test session for ${role.name}:`, err);
+      } finally {
+        await context.close();
+      }
+    }
+    await browser.close();
+    console.log('\n✅ Test-mode auth states ready (direct session cookies)\n');
     return;
   }
   

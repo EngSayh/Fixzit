@@ -1,41 +1,21 @@
 {
   "cookies": [
     {
-      "name": "authjs.csrf-token",
-      "value": "4e3908e20af70d3a3eef01a2cac7fa6e3f4773159d982721d1022300b2f8ea71%7Cc5738491748d6bb7e07c07659225092c8daf37e92e26bcb3e9dd742c55b08b89",
-      "domain": "localhost",
-      "path": "/",
-      "expires": -1,
-      "httpOnly": true,
-      "secure": false,
-      "sameSite": "Lax"
-    },
-    {
-      "name": "authjs.callback-url",
-      "value": "http%3A%2F%2Flocalhost%3A3000%2Fdashboard",
-      "domain": "localhost",
-      "path": "/",
-      "expires": -1,
-      "httpOnly": true,
-      "secure": false,
-      "sameSite": "Lax"
-    },
-    {
-      "name": "fxz.currency",
-      "value": "SAR",
-      "domain": "localhost",
-      "path": "/",
-      "expires": 1795240796.195427,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Strict"
-    },
-    {
       "name": "authjs.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..RGC87t1Xe0rx4wZK1CRdmg.F8AZosqehyuGL5IasQHAMe9TL9AaP9iMWU-Ej6eJnaK_h01bk88qUKQ_jpQeyriW_oX58qkPgfqlRqHy9lCPxYPa9D18PM4GwDiJ0dSVPljPpAqQZsSlf1ZpC_v052S2P7FBGhXaQa0H-DEmbcnZnWGEmyE-CexUS-kIsofMlp6Ij1m9s6uru89FvrOiD5edglL23gLCNPH9Ff88RB_GdUXMfu5HprTaXB0RY6-4kM3v5lvPW_hO040T3DyBxYOHAlloW4ZznaBB6oUo--DUXxFzB80iUIcFHBOI3SaJG68v9AB6FqX0fumls4Kd9u2eJeTdQLmqjPx_tS5hzx3R8IITpfWBFT75qwUBoUlzYAn-tP7Q8V50WMekBREi4RIrpV4baUqY1nG_HDJzCFiZTu15cPkWa-9kLNQjOU_3UQt5qgULggMVijrM97PUdrRN9f0bJcT9ySpaPzMZBt9Dcw.FaYo12M6vze9n5F0l38mFZNpbWjKfKnuy6T1gk3H4HA",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..76TDYL8BuSlD3l_ct82XsQ.Q2WiNXEPNmRc6gHlApuqbzS61sr3T1eGAKintSi7OTOUyEfvNlIJYaet8EJul5FR9xAx08gndOJE-OIIv8MCwzaankXMRW3wZGOJn3YBP57tlkYh1EbWrl5wd05MpYjdiQyO_SHPraacblcn9k73dkDz7AgXngdfQUcnBlFp6ipW450U_BDawXfafqhu1DJG76Vk_p0SJFZvKuYyLEJm0mebm5Fs9vJ35gJZWMLQ1XWIgMtSykodrpCq_8QPwa7UL1FgbBd1qe5eDN_wDoVX2XmR6Q2O0_8KarMftMtPAmStND07bg2zO3EsA3l45VylG8eWCzM-8_1eoH8N89m3UN95x7bfXrSuUuRIkQBKb0GPUsA3JZVFSy8WozDXeQy6ZUGJVEtZuxHU-urQQQgGhZKF2HUra6AfSg-d3naNjsQea4tb6Gb9yhpB9xTFAQnOv90IzkdiwDKVTbpzRNMm9w.EnOaTAQ1cJeInkLrbr58nxHh564ycK5GEeMwftCgc3Y",
       "domain": "localhost",
       "path": "/",
-      "expires": 1766296797.365874,
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "next-auth.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..76TDYL8BuSlD3l_ct82XsQ.Q2WiNXEPNmRc6gHlApuqbzS61sr3T1eGAKintSi7OTOUyEfvNlIJYaet8EJul5FR9xAx08gndOJE-OIIv8MCwzaankXMRW3wZGOJn3YBP57tlkYh1EbWrl5wd05MpYjdiQyO_SHPraacblcn9k73dkDz7AgXngdfQUcnBlFp6ipW450U_BDawXfafqhu1DJG76Vk_p0SJFZvKuYyLEJm0mebm5Fs9vJ35gJZWMLQ1XWIgMtSykodrpCq_8QPwa7UL1FgbBd1qe5eDN_wDoVX2XmR6Q2O0_8KarMftMtPAmStND07bg2zO3EsA3l45VylG8eWCzM-8_1eoH8N89m3UN95x7bfXrSuUuRIkQBKb0GPUsA3JZVFSy8WozDXeQy6ZUGJVEtZuxHU-urQQQgGhZKF2HUra6AfSg-d3naNjsQea4tb6Gb9yhpB9xTFAQnOv90IzkdiwDKVTbpzRNMm9w.EnOaTAQ1cJeInkLrbr58nxHh564ycK5GEeMwftCgc3Y",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
@@ -46,24 +26,8 @@
       "origin": "http://localhost:3000",
       "localStorage": [
         {
-          "name": "theme",
-          "value": "light"
-        },
-        {
-          "name": "fxz.theme",
-          "value": "light"
-        },
-        {
-          "name": "fixzit-currency",
-          "value": "SAR"
-        },
-        {
           "name": "fixzit-role",
-          "value": "MANAGER"
-        },
-        {
-          "name": "sidebarCollapsed",
-          "value": "{}"
+          "value": "manager"
         }
       ]
     }

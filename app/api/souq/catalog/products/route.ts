@@ -14,6 +14,28 @@ import { SouqBrand } from '@/server/models/souq/Brand';
 import { connectDb } from '@/lib/mongodb-unified';
 import { getServerSession } from '@/lib/auth/getServerSession';
 
+interface LocalizedField {
+  en?: string;
+  ar?: string;
+  [key: string]: string | undefined;
+}
+
+interface ProductWithLocalization {
+  _id: unknown;
+  fsin: string;
+  title: LocalizedField | string;
+  description?: LocalizedField | string;
+  pricing?: {
+    basePrice?: number;
+    [key: string]: unknown;
+  };
+  categoryId: string;
+  brandId?: string;
+  searchKeywords?: string[];
+  isActive: boolean;
+  [key: string]: unknown;
+}
+
 // Validation schemas
 const CreateProductSchema = z.object({
   title: z.record(z.string(), z.string()).refine(data => data.en && data.ar, {
@@ -125,7 +147,7 @@ export async function POST(request: NextRequest) {
     // Create product
     const product = new SouqProduct({
       fsin: finalFsin,
-      ...(validated as any),
+      ...validated,
       org_id: orgId,
       createdBy: session.user.id,
       isActive: true,
@@ -136,12 +158,15 @@ export async function POST(request: NextRequest) {
     // Index in search engine using shared Meilisearch client
     try {
       const { indexProduct } = await import('@/lib/meilisearch-client');
-      // TODO(type-safety): Verify indexProduct function signature
+      // Index product with localized fields
+      const productTyped = product as unknown as ProductWithLocalization;
+      const titleObj = typeof productTyped.title === 'object' ? productTyped.title : { en: productTyped.title };
+      const descObj = typeof productTyped.description === 'object' ? productTyped.description : { en: productTyped.description };
       await indexProduct({
         id: product._id.toString(),
         fsin: product.fsin,
-        title: (product as any)?.title?.en ?? (product as any)?.title?.ar ?? (product as any)?.title ?? '',
-        description: (product as any)?.description?.en ?? (product as any)?.description?.ar ?? '',
+        title: titleObj.en ?? titleObj.ar ?? '',
+        description: descObj.en ?? descObj.ar ?? '',
         categoryId: product.categoryId,
         brandId: product.brandId,
         searchKeywords: product.searchKeywords,
@@ -168,7 +193,7 @@ export async function POST(request: NextRequest) {
           categoryId: product.categoryId,
           brandId: product.brandId,
           title: product.title,
-          price: (product as any)?.pricing?.basePrice || 0,  // TODO(type-safety): Verify pricing structure
+          price: (product as unknown as ProductWithLocalization).pricing?.basePrice || 0,
           timestamp: new Date().toISOString(),
         });
       }
