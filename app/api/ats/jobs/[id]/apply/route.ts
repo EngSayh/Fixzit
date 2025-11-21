@@ -6,8 +6,15 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
 import { logger } from '@/lib/logger';
+import { Types } from 'mongoose';
 
 interface JobWithScreening {
+  _id: string | Types.ObjectId;
+  orgId?: string | Types.ObjectId | null;
+  status?: string;
+  visibility?: string;
+  skills?: string[];
+  requirements?: string[];
   screeningRules?: unknown;
   [key: string]: unknown;
 }

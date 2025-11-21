@@ -217,11 +217,11 @@ function mapAttachmentDocument(doc: AttachmentDocument): WorkOrderPhoto {
     doc.uploadedAt instanceof Date ? doc.uploadedAt : new Date(doc.uploadedAt ?? Date.now());
 
   return {
-    id: doc._id?.toString?.() ?? doc.id,
-    url: doc.url,
-    thumbnailUrl: doc.thumbnailUrl,
-    type: doc.type,
-    caption: doc.caption ?? doc.fileName,
+    id: doc._id?.toString?.() ?? doc.id ?? '',
+    url: doc.url ?? '',
+    thumbnailUrl: doc.thumbnailUrl ?? '',
+    type: (doc.type as 'before' | 'after' | 'attachment' | undefined) ?? 'attachment',
+    caption: doc.caption ?? doc.fileName ?? '',
     uploadedAt: uploadedAt.toISOString(),
   };
 }

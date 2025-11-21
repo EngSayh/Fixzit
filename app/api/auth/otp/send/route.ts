@@ -16,6 +16,7 @@ import {
 import { enforceRateLimit } from '@/lib/middleware/rate-limit';
 
 interface UserDocument {
+  _id?: { toString: () => string };
   email: string;
   username?: string;
   employeeId?: string;
@@ -414,7 +415,7 @@ export async function POST(request: NextRequest) {
       if (fallbackPhone) {
         userPhone = fallbackPhone;
         logger.warn('[OTP] Using fallback phone for super admin', {
-          userId: user._id.toString(),
+          userId: user._id?.toString?.() || loginIdentifier,
         });
       }
     }

@@ -81,10 +81,10 @@ function mapTimelineDocument(doc: TimelineDocument): WorkOrderTimeline {
       : new Date(doc.performedAt ?? Date.now());
 
   return {
-    id: doc._id?.toString?.() ?? doc.id,
-    workOrderId: doc.workOrderId,
+    id: doc._id?.toString?.() ?? doc.id ?? '',
+    workOrderId: doc.workOrderId ?? '',
     action: doc.action ?? 'updated',
-    description: doc.description,
+    description: doc.description ?? '',
     performedAt: performedAt.toISOString(),
     user: buildWorkOrderUser(null, {
       id: doc.performedBy ?? undefined,

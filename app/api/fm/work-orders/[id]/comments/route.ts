@@ -178,14 +178,14 @@ export async function POST(
 }
 
 function mapCommentDocument(doc: CommentDocument): WorkOrderComment {
-  const createdAt = doc.createdAt instanceof Date ? doc.createdAt : new Date(doc.createdAt);
+  const createdAt = doc.createdAt instanceof Date ? doc.createdAt : new Date(doc.createdAt ?? Date.now());
   const createdBy = doc.createdBy || {};
 
   return {
-    id: doc._id?.toString?.() ?? doc.id,
-    workOrderId: doc.workOrderId,
-    comment: doc.comment,
-    type: COMMENT_TYPES.has(doc.type) ? doc.type : 'comment',
+    id: doc._id?.toString?.() ?? doc.id ?? '',
+    workOrderId: doc.workOrderId ?? '',
+    comment: doc.comment ?? '',
+    type: (COMMENT_TYPES.has(doc.type as 'comment' | 'internal') ? doc.type : 'comment') as 'comment' | 'internal',
     createdAt: createdAt.toISOString(),
     user: buildWorkOrderUser(null, {
       id: createdBy.id ?? createdBy.email ?? undefined,

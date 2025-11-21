@@ -41,7 +41,7 @@ interface WorkOrderForTransition {
   propertyId?: string;
   requesterId?: string;
   ownerUserId?: string;
-  location?: { propertyId?: string };
+  location?: string | { propertyId?: string };
   requester?: { userId?: string };
   assignment?: {
     assignedTo?: {
@@ -406,7 +406,7 @@ function collectUploadedMedia(attachments: AttachmentWithCategory[] | undefined)
   const allowed = new Set(['BEFORE', 'AFTER', 'DURING', 'QUOTE']);
   const collected = attachments
     .map((attachment) => attachment?.category ?? attachment?.type)
-    .filter(Boolean)
+    .filter((cat): cat is string => Boolean(cat))
     .map((category) => category.toString().toUpperCase());
   return Array.from(
     new Set(collected.filter((value) => allowed.has(value)))
