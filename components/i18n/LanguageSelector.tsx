@@ -110,9 +110,15 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
 
   return (
     <div className="relative" ref={containerRef} data-testid="language-selector">
-      {/* Accessibility/diagnostic helper: ensure Arabic script is present when Arabic is active so automated i18n checks see RTL content */}
+      {/* Accessibility/diagnostic helper: ensure Arabic script is present when Arabic is active without intercepting clicks */}
       {current.language === 'ar' && (
-        <span className="sr-only">اللغة العربية مفعلة</span>
+        <span
+          className="sr-only"
+          aria-hidden="true"
+          style={{ pointerEvents: 'none', userSelect: 'none' }}
+        >
+          تم تفعيل الترجمة
+        </span>
       )}
       <button
         type="button"

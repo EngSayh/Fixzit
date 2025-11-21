@@ -45,7 +45,10 @@ const UserSchema = new Schema<IUser>({
 });
 
 // Apply plugins BEFORE indexes
-UserSchema.plugin(tenantIsolationPlugin);
+UserSchema.plugin(tenantIsolationPlugin, {
+  // Enforce tenant-scoped uniqueness even if indexes haven't built yet
+  uniqueTenantFields: ['email', 'employeeId'],
+});
 UserSchema.plugin(auditPlugin, {
   excludeFields: ['passwordHash', '__v', 'updatedAt', 'createdAt'],
   enableChangeHistory: true,

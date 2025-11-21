@@ -103,7 +103,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
   return (
     <div className="relative" ref={containerRef} data-testid="currency-selector">
       {/* Accessibility hint: keep canonical options present for automated checks even if the dropdown fails to render */}
-      <div className="sr-only">
+      <div className="sr-only" aria-hidden="true" style={{ pointerEvents: 'none', userSelect: 'none' }}>
         <div role="option">SAR</div>
         <div role="option">USD</div>
       </div>

@@ -28,14 +28,20 @@ export default function IncomeStatementWidget({ initialYear = new Date().getFull
     setError(null);
     try {
       const res = await fetch(`/api/finance/reports/income-statement?year=${year}`);
+      if (res.status === 403) {
+        setError(t('finance.income.forbidden', 'You do not have access to income statements.'));
+        setData(null);
+        return;
+      }
       if (!res.ok) {
         throw new Error(t('finance.income.error', 'Failed to load income statement'));
       }
       const body = await res.json();
       setData(body);
     } catch (err) {
-      logger.error('Income statement fetch failed', err as Error);
-      setError(err instanceof Error ? err.message : t('finance.income.error', 'Failed to load income statement'));
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.warn('Income statement fetch failed', { error: error.message, stack: error.stack });
+      setError(error.message || t('finance.income.error', 'Failed to load income statement'));
     } finally {
       setLoading(false);
     }

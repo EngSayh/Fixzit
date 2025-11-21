@@ -194,7 +194,10 @@ const UserSchema = new Schema({
 });
 
 // Apply plugins
-UserSchema.plugin(tenantIsolationPlugin);
+UserSchema.plugin(tenantIsolationPlugin, {
+  // Enforce tenant-scoped uniqueness before indexes are ready
+  uniqueTenantFields: ['email', 'username', 'code', 'employeeId'],
+});
 UserSchema.plugin(auditPlugin);
 
 // Indexes for performance (orgId is already indexed by tenantIsolationPlugin)

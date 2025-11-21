@@ -27,14 +27,20 @@ export default function BalanceSheetWidget({ initialDate = new Date().toISOStrin
     setError(null);
     try {
       const res = await fetch(`/api/finance/reports/balance-sheet?asOf=${asOf}`);
+      if (res.status === 403) {
+        setError(t('finance.balance.forbidden', 'You do not have access to balance sheets.'));
+        setData(null);
+        return;
+      }
       if (!res.ok) {
         throw new Error(t('finance.balance.error', 'Failed to load balance sheet'));
       }
       const body = await res.json();
       setData(body);
     } catch (err) {
-      logger.error('Balance sheet fetch failed', err as Error);
-      setError(err instanceof Error ? err.message : t('finance.balance.error', 'Failed to load balance sheet'));
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.warn('Balance sheet fetch failed', { error: error.message, stack: error.stack });
+      setError(error.message || t('finance.balance.error', 'Failed to load balance sheet'));
     } finally {
       setLoading(false);
     }

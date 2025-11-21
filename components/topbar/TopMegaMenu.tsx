@@ -18,7 +18,7 @@ export function TopMegaMenu() {
       <button
         type="button"
         onClick={() => setMegaMenuCollapsed(false)}
-        className="hidden xl:inline-flex items-center gap-1 rounded-full border border-white/30 px-3 py-1 text-xs font-medium text-white/80 hover:bg-white/10 transition-colors"
+        className="hidden xl:inline-flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
         aria-label={t('topbar.expandMenu', 'Show module menu')}
       >
         ▸ {t('topbar.modules', 'Modules')}
@@ -27,8 +27,8 @@ export function TopMegaMenu() {
   }
 
   return (
-    <div className="hidden xl:flex items-center gap-2 rounded-full bg-white/10 px-3 py-1">
-      <span className="text-[11px] uppercase tracking-wide text-white/70">
+    <div className="hidden xl:flex items-center gap-2 rounded-full bg-muted/60 px-3 py-1 text-foreground">
+      <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
         {t('topbar.modules', 'Modules')}
       </span>
       <div className={cn('flex items-center gap-1', isRTL && 'flex-row-reverse')}>
@@ -42,8 +42,8 @@ export function TopMegaMenu() {
               className={cn(
                 'rounded-full px-3 py-1 text-xs transition-colors',
                 active
-                  ? 'bg-white text-primary font-semibold'
-                  : 'text-white/80 hover:bg-white/20'
+                  ? 'bg-primary text-primary-foreground font-semibold'
+                  : 'text-foreground/80 hover:bg-muted'
               )}
             >
               {t(name, fallbackLabel)}
@@ -54,7 +54,7 @@ export function TopMegaMenu() {
       <button
         type="button"
         onClick={() => setMegaMenuCollapsed(true)}
-        className="ms-2 inline-flex items-center rounded-full border border-white/30 px-2 py-1 text-white/70 hover:bg-white/10 transition-colors"
+        className="ms-2 inline-flex items-center rounded-full border border-border px-2 py-1 text-muted-foreground hover:bg-muted transition-colors"
         aria-label={t('topbar.collapseMenu', 'Hide module menu')}
       >
         <ChevronDown className="h-3 w-3" />

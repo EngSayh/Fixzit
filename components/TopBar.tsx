@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
 import { useFormState } from '@/contexts/FormStateContext';
+import { MARKETING_ROUTES, MARKETING_ROUTE_PREFIXES } from '@/config/routes/public';
 
 // Constants
 import { APP_STORAGE_KEYS, STORAGE_KEYS, STORAGE_PREFIXES } from '@/config/constants';
@@ -111,6 +112,12 @@ export default function TopBar() {
   const { appLabelKey, appFallbackLabel, moduleLabelKey, moduleFallbackLabel } = useTopBar();
   const appLabel = t(appLabelKey, appFallbackLabel);
   const moduleLabel = t(moduleLabelKey, moduleFallbackLabel);
+  const marketingRoutes = React.useMemo(() => new Set(MARKETING_ROUTES), []);
+  const isMarketingPage = React.useMemo(() => {
+    const path = pathname || '/';
+    if (marketingRoutes.has(path)) return true;
+    return MARKETING_ROUTE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+  }, [marketingRoutes, pathname]);
 
   // Close all popups helper
   const closeAllPopups = useCallback(() => {
@@ -389,16 +396,22 @@ export default function TopBar() {
               <span className={`font-semibold leading-tight ${isMobile ? 'hidden' : 'text-base'}`}>
                 {orgSettings?.name || t('common.brand')}
               </span>
-              <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
-                <span className="px-2 py-0.5 fxz-topbar-pill uppercase tracking-wide">
-                  {appLabel}
-                </span>
-                <span>{moduleLabel}</span>
-              </div>
+              {!isMarketingPage && (
+                <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                  <span className="px-2 py-0.5 fxz-topbar-pill uppercase tracking-wide">
+                    {appLabel}
+                  </span>
+                  <span>{moduleLabel}</span>
+                </div>
+              )}
             </div>
           </Button>
-          <AppSwitcher />
-          <TopMegaMenu />
+          {!isMarketingPage && (
+            <>
+              <AppSwitcher />
+              <TopMegaMenu />
+            </>
+          )}
         </div>
         
         {/* Center Section: Global Search */}
@@ -427,10 +440,10 @@ export default function TopBar() {
           )}
 
           {/* Quick Actions (authenticated only) */}
-          {isAuthenticated && <QuickActions />}
+          {isAuthenticated && !isMarketingPage && <QuickActions />}
           
           {/* Notifications (authenticated only) */}
-          {isAuthenticated && (
+          {isAuthenticated && !isMarketingPage && (
             <NotificationPopup
               isRTL={isRTL}
               notifOpen={notifOpen}
@@ -452,6 +465,11 @@ export default function TopBar() {
             />
           )}
           
+          {/* Public language toggle for marketing/unauthenticated views */}
+          {!isAuthenticated && (
+            <LanguageSelector variant="compact" />
+          )}
+
           {/* User menu or Sign In button */}
           {isAuthenticated ? (
             <UserMenuPopup
