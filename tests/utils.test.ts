@@ -43,12 +43,9 @@ describe('generateSlug', () => {
     expect(generateSlug('Hello__World')).toBe('helloworld');
   });
 
-  test.skip('strips non-ASCII letters (no transliteration)', () => {
-    // SKIPPED: Contradicts lib/utils.test.ts which expects Unicode preservation
-    // This test expects ASCII-only slugs, but the authoritative implementation
-    // in lib/utils.ts preserves Unicode for i18n support (as of Nov 5)
-    expect(generateSlug('Café Déjà Vu')).toBe('caf-dj-vu');
-    expect(generateSlug('naïve façade rôle')).toBe('nave-faade-rle');
+  test('preserves Unicode letters (no transliteration)', () => {
+    expect(generateSlug('Café Déjà Vu')).toBe('café-déjà-vu');
+    expect(generateSlug('naïve façade rôle')).toBe('naïve-façade-rôle');
   });
 
   test('keeps digits and separates them around spaces', () => {
@@ -63,11 +60,8 @@ describe('generateSlug', () => {
     expect(generateSlug('\nTabbed\tName\r')).toBe('tabbed-name');
   });
 
-  test.skip('non-Latin characters only produce empty slug', () => {
-    // SKIPPED: Contradicts lib/utils.test.ts which expects Unicode preservation
-    // This test expects non-Latin chars stripped, but the authoritative implementation
-    // in lib/utils.ts preserves them for i18n support (as of Nov 5)
-    expect(generateSlug('你好 мир مرحبا')).toBe('');
+  test('preserves non-Latin scripts', () => {
+    expect(generateSlug('你好 мир مرحبا')).toBe('你好-мир-مرحبا');
   });
 
   test('is idempotent (running twice yields same result)', () => {

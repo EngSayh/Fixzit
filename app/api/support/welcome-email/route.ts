@@ -59,10 +59,6 @@ export async function POST(req: NextRequest) {
       }, 501, req); // 501 Not Implemented
     }
 
-    // In a real implementation, this would integrate with an email service
-    // Simulate email sending delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
     // Create a mock email record in the database (optional)
     // This could be stored in MongoDB for tracking
 

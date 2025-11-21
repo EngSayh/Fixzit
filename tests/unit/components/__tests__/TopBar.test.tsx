@@ -537,10 +537,16 @@ describe('TopBar Component', () => {
   });
 
   describe('Unsaved Changes Dialog', () => {
-    // These tests removed - unsaved changes detection now requires explicit form registration
-    // via FormStateContext.registerForm(), which is the responsibility of individual forms,
-    // not TopBar. TopBar only displays the dialog when hasUnsavedChanges is true.
-    it.skip('unsaved changes require form registration - skipping legacy tests', () => {});
+    it('does not render unsaved dialog when no forms are registered', async () => {
+      await renderWithProviders(<TopBar />);
+      // With no registered forms, TopBar should not surface an unsaved-changes dialog
+      expect(screen.queryByText(/unsaved/i)).not.toBeInTheDocument();
+    });
+
+    it('renders baseline layout without unsaved prompt by default', async () => {
+      await renderWithProviders(<TopBar />);
+      expect(screen.getByRole('banner')).toBeInTheDocument();
+    });
   });
 
   describe('Responsive Behavior', () => {

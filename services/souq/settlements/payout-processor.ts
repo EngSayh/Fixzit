@@ -337,22 +337,44 @@ export class PayoutProcessorService {
     payout: PayoutRequest
   ): Promise<BankTransferResponse> {
     if (process.env.ENABLE_SADAD_PAYOUTS !== 'true') {
-      logger.warn('[PayoutProcessor] SADAD/SPAN integration disabled. Using manual fallback. See docs/payments/manual-withdrawal-process.md for the current runbook.');
+      logger.warn('[PayoutProcessor] SADAD/SPAN integration disabled. Using manual fallback. See docs/payments/manual-withdrawal-process.md for the current runbook.', {
+        metric: 'payout_integration_disabled',
+        provider: 'SADAD_SPAN',
+        method: payout.method,
+      });
       return {
         success: false,
         errorCode: 'INTEGRATION_DISABLED',
         errorMessage: 'SADAD/SPAN payouts are deferred until banking approvals complete.',
       };
     }
-    // Placeholder for future SADAD/SPAN integration. When ENABLE_SADAD_PAYOUTS=true
-    // this block should be replaced with the actual bank API client.
+    
+    /**
+     * SADAD/SPAN Integration - Currently Simulated
+     * 
+     * Feature Flag: ENABLE_SADAD_PAYOUTS=true
+     * Status: Awaiting banking API credentials and approvals
+     * 
+     * When enabled, replace simulation with:
+     * - Real SADAD/SPAN API client
+     * - Production credentials from env
+     * - Proper error handling and retry logic
+     * - Webhook handlers for payment status
+     * 
+     * Current behavior: 95% success simulation for testing flows
+     */
 
-    logger.info(`Executing ${payout.method.toUpperCase()} transfer for ${payout.amount} SAR to ${payout.bankAccount.iban}`);
+    logger.info(`Executing ${payout.method.toUpperCase()} transfer for ${payout.amount} SAR to ${payout.bankAccount.iban}`, {
+      metric: 'payout_simulated',
+      provider: 'SADAD_SPAN',
+      method: payout.method,
+      amount: payout.amount,
+    });
 
-    // Simulate API call
+    // Simulate API call (replace with real client when ENABLE_SADAD_PAYOUTS=true)
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    // Simulate 95% success rate
+    // Simulate 95% success rate (remove when using real integration)
     const isSuccess = Math.random() < 0.95;
 
     if (isSuccess) {
