@@ -81,7 +81,8 @@ export async function POST(
     };
 
     if (Array.isArray(counterEvidence) && counterEvidence.length) {
-      sellerResponse.counterEvidence = counterEvidence.map((item: any, idx: number): Evidence => ({
+      interface EvidenceInput { type: string; url: string; description?: string; [key: string]: unknown }
+      sellerResponse.counterEvidence = (counterEvidence as EvidenceInput[]).map((item, idx: number): Evidence => ({
         evidenceId: `SR-${params.id}-${idx + 1}`,
         uploadedBy: 'seller',
         type: item.type,

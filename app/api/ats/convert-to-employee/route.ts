@@ -11,6 +11,15 @@ import {notFoundError, validationError, rateLimitError} from '@/server/utils/err
 import { createSecureResponse } from '@/server/security/headers';
 import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
+interface JobDocument {
+  code?: string;
+  title?: string;
+  startDate?: Date | string;
+  departmentId?: string;
+  employmentType?: string;
+  [key: string]: unknown;
+}
+
 /**
  * @openapi
  * /api/ats/convert-to-employee:
@@ -71,9 +80,9 @@ export async function POST(req: NextRequest) {
     const existing = await Employee.findOne({ orgId, email: cand.email, isDeleted: false }).lean();
     if (existing) return NextResponse.json({ success: true, data: existing, message: 'Employee already exists' });
 
-    const jobAny = job as any;
-    const employeeCode = `ATS-${(jobAny.code || jobAny.title || 'NEW').slice(0, 4).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
-    const hireDate = jobAny.startDate ? new Date(jobAny.startDate) : new Date();
+    const jobTyped = job as unknown as JobDocument;
+    const employeeCode = `ATS-${(jobTyped.code || jobTyped.title || 'NEW').slice(0, 4).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+    const hireDate = jobTyped.startDate ? new Date(jobTyped.startDate) : new Date();
 
     const employee = await Employee.create({
       orgId,
@@ -82,9 +91,9 @@ export async function POST(req: NextRequest) {
       lastName: cand.lastName,
       email: cand.email,
       phone: cand.phone,
-      jobTitle: jobAny.title || 'Employee',
-      departmentId: jobAny.departmentId,
-      employmentType: jobAny.employmentType || 'FULL_TIME',
+      jobTitle: jobTyped.title || 'Employee',
+      departmentId: jobTyped.departmentId,
+      employmentType: jobTyped.employmentType || 'FULL_TIME',
       employmentStatus: 'ACTIVE',
       hireDate,
       compensation: {

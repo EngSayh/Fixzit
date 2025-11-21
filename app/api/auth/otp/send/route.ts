@@ -19,9 +19,17 @@ interface UserDocument {
   email: string;
   username?: string;
   employeeId?: string;
+  password?: string;
   isActive?: boolean;
   status?: string;
   __isDemoUser?: boolean;
+  contact?: { phone?: string };
+  personal?: { phone?: string };
+  phone?: string;
+  role?: string;
+  professional?: { role?: string };
+  roles?: string[];
+  _id?: { toString: () => string };
   [key: string]: unknown;
 }
 

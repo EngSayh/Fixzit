@@ -5,6 +5,11 @@ import { getDatabase } from '@/lib/mongodb-unified';
 import { ObjectId } from 'mongodb';
 import { logger } from '@/lib/logger';
 
+interface CounterEvidenceEntry {
+  type?: string;
+  [key: string]: unknown;
+}
+
 /**
  * POST /api/souq/claims/[id]/decision
  * Make decision on claim (admin only)
@@ -74,7 +79,7 @@ export async function POST(
     const counterEvidence = claim.sellerResponse?.counterEvidence;
     let sellerProtected = false;
     if (Array.isArray(counterEvidence)) {
-      const evidenceTypes = counterEvidence.map((entry: any) =>
+      const evidenceTypes = (counterEvidence as CounterEvidenceEntry[]).map((entry) =>
         (entry?.type || '').toString().toLowerCase()
       );
       sellerProtected = evidenceTypes.includes('tracking') && evidenceTypes.includes('signature');

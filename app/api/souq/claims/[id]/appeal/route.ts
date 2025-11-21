@@ -5,6 +5,13 @@ import { getDatabase } from '@/lib/mongodb-unified';
 import { ObjectId } from 'mongodb';
 import { logger } from '@/lib/logger';
 
+interface EvidenceItem {
+  type: string;
+  url: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
 /**
  * POST /api/souq/claims/[id]/appeal
  * File appeal on claim decision
@@ -69,7 +76,7 @@ export async function POST(
       appealedBy,
       reasoning,
       submittedAt: new Date(),
-      evidence: additionalEvidence.map((item: any, idx: number) => ({
+      evidence: (additionalEvidence as EvidenceItem[]).map((item, idx: number) => ({
         evidenceId: `APPEAL-${params.id}-${idx + 1}`,
         type: item.type,
         url: item.url,
