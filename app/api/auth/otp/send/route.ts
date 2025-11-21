@@ -15,6 +15,16 @@ import {
 } from '@/lib/otp-store';
 import { enforceRateLimit } from '@/lib/middleware/rate-limit';
 
+interface UserDocument {
+  email: string;
+  username?: string;
+  employeeId?: string;
+  isActive?: boolean;
+  status?: string;
+  __isDemoUser?: boolean;
+  [key: string]: unknown;
+}
+
 const DEMO_EMAILS = new Set([
   'superadmin@fixzit.co',
   'admin@fixzit.co',
@@ -291,7 +301,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Resolve user (test users → skip DB, otherwise perform lookup)
-    let user: any | null = null;
+    let user: UserDocument | null = null;
     const testUser = smsDevMode ? resolveTestUser(loginIdentifier, password, loginType) : null;
 
     if (testUser) {
@@ -340,7 +350,7 @@ export async function POST(request: NextRequest) {
         isDemoIdentifier(user.email) ||
         isDemoIdentifier(user.username) ||
         isDemoIdentifier(user.employeeId) ||
-        Boolean((user as any)?.__isDemoUser);
+        Boolean(user.__isDemoUser);
 
       if (!isValid && isDemoUserCandidate && matchesDemoPassword(password)) {
         isValid = true;
@@ -359,7 +369,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const isDemoUser = Boolean((user as any)?.__isDemoUser);
+    const isDemoUser = Boolean(user.__isDemoUser);
 
     // 7. Check if user is active
     const isUserActive = user.isActive !== undefined ? user.isActive : user.status === 'ACTIVE';

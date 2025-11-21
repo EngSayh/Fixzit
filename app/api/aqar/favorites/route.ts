@@ -70,15 +70,16 @@ export async function GET(request: NextRequest) {
       query.targetType = targetType;
     }
     
-    // Fetch favorites with pagination and total count in parallel
-    const [favorites, total] = await Promise.all([
-      AqarFavorite.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      AqarFavorite.countDocuments(query)
-    ]);
+    // Fetch favorites with pagination
+    const favoritesRaw = await AqarFavorite.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .exec();
+
+    const favorites = favoritesRaw as Array<{ _id: mongoose.Types.ObjectId } & AqarFavoriteDocument>;
+    const total = await AqarFavorite.countDocuments(query);
     
     // Batch-fetch targets to eliminate N+1 queries
     // Step 1: Collect all targetIds by targetType
@@ -119,7 +120,7 @@ export async function GET(request: NextRequest) {
     );
     
     // Step 4: Attach targets to favorites
-    const favoritesWithTargets = (favorites as AqarFavoriteDocument[]).map((fav) => {
+    const favoritesWithTargets = favorites.map((fav) => {
       const targetIdStr = fav.targetId.toString();
       
       if (fav.targetType === 'LISTING') {

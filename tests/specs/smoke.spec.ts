@@ -90,10 +90,10 @@ test.describe('Global Layout & Navigation - All Pages', () => {
         }
       });
 
-      // Navigate to page
-      await browser.goto(page.path, { 
-        waitUntil: 'networkidle',
-        timeout: 30000 
+      // Navigate to page (use domcontentloaded to avoid hanging on long-lived connections)
+      await browser.goto(page.path, {
+        waitUntil: 'domcontentloaded',
+        timeout: 30000,
       });
 
       // Wait for main content to stabilize

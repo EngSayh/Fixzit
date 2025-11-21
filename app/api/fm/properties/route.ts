@@ -8,6 +8,11 @@ import { FMErrors } from '@/app/api/fm/errors';
 import { requireFmPermission } from '@/app/api/fm/permissions';
 import { resolveTenantId } from '../utils/tenant';
 
+interface MongoFindAndModifyResult<T> {
+  value?: T;
+  ok?: number;
+}
+
 type PropertyDocument = {
   _id: ObjectId;
   org_id: string;
@@ -301,7 +306,8 @@ export async function PATCH(req: NextRequest) {
       { returnDocument: 'after' }
     );
 
-    const doc = (result as any)?.value ?? (result as any);
+    const mongoResult = result as MongoFindAndModifyResult<PropertyDocument> | PropertyDocument;
+    const doc = 'value' in mongoResult ? mongoResult.value : mongoResult;
     if (!doc) {
       return FMErrors.notFound('Property');
     }
@@ -345,7 +351,8 @@ export async function DELETE(req: NextRequest) {
       org_id: tenantId,
     });
 
-    const deleted = (result as any)?.value ?? (result as any);
+    const mongoResult = result as MongoFindAndModifyResult<PropertyDocument> | PropertyDocument;
+    const deleted = 'value' in mongoResult ? mongoResult.value : mongoResult;
     if (!deleted) {
       return FMErrors.notFound('Property');
     }

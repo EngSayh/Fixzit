@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     return createSecureResponse({
       ok: true,
-      data: orders.map((order: any) => serializeOrder(order))
+      data: orders.map((order) => serializeOrder(order))
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

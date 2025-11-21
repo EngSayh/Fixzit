@@ -66,7 +66,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       { upsert: true, returnDocument: 'after' }
     );
 
-    const doc = (result as any)?.value ?? (result as any);
+    interface MongoResult<T> { value?: T; ok?: number; }
+    const mongoResult = result as MongoResult<Record<string, unknown>> | Record<string, unknown>;
+    const doc = 'value' in mongoResult ? mongoResult.value : mongoResult;
     if (!doc) {
       return FMErrors.internalError();
     }

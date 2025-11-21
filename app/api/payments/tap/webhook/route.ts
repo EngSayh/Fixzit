@@ -17,6 +17,13 @@ import { rateLimitError } from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
 import { withIdempotency } from '@/server/security/idempotency';
 
+interface TransactionEvent {
+  type: string;
+  status: string;
+  at: Date;
+  payload: unknown;
+}
+
 /**
  * POST /api/payments/tap/webhook
  * 
@@ -403,14 +410,15 @@ async function upsertTransactionFromCharge(
   }
 
   transaction.events = transaction.events || [];
-  (transaction.events as any).push({
+  const events = transaction.events as unknown as TransactionEvent[];
+  events.push({
     type: eventType,
     status: charge.status,
     at: new Date(),
     payload,
   });
-  if (transaction.events.length > 25) {
-    transaction.events = (transaction.events as any).slice(transaction.events.length - 25);
+  if (events.length > 25) {
+    transaction.events = events.slice(events.length - 25) as unknown as typeof transaction.events;
   }
 
   await transaction.save();

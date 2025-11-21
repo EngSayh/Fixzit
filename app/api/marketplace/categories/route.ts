@@ -30,10 +30,17 @@ export async function GET(request: NextRequest) {
     const context = await resolveMarketplaceContext(request);
     await connectToDatabase();
     const categories = await Category.find({ orgId: context.orgId }).sort({ createdAt: 1 }).lean();
-    const serialized = categories.map((category: any) => serializeCategory(category));
+    
+    interface CategorySerialized {
+      _id: string;
+      parentId?: string;
+      [key: string]: unknown;
+    }
+    
+    const serialized = categories.map((category) => serializeCategory(category)) as CategorySerialized[];
 
-    const parentMap = new Map<string, unknown[]>();
-    serialized.forEach((category: any) => {
+    const parentMap = new Map<string, CategorySerialized[]>();
+    serialized.forEach((category) => {
       const parentId = category.parentId ?? 'root';
       if (!parentMap.has(parentId)) {
         parentMap.set(parentId, []);

@@ -10,6 +10,23 @@ import { objectIdFrom } from '@/lib/marketplace/objectIds';
 import { serializeOrder, serializeProduct } from '@/lib/marketplace/serializers';
 import { getOrCreateCart, recalcCartTotals } from '@/lib/marketplace/cart';
 import { unauthorizedError, notFoundError, rateLimitError, zodValidationError } from '@/server/utils/errorResponses';
+import { Types } from 'mongoose';
+
+interface CartLine {
+  productId: Types.ObjectId | string;
+  qty: number;
+  price: number;
+  currency: string;
+  uom: string;
+  total: number;
+  product?: unknown;
+}
+
+interface CartDocument {
+  lines: CartLine[];
+  save?: () => Promise<unknown>;
+  [key: string]: unknown;
+}
 
 const AddToCartSchema = z.object({
   productId: z.string(),
@@ -40,16 +57,21 @@ export async function GET(request: NextRequest) {
       return unauthorizedError();
     }
     await connectToDatabase();
-    const cart = await getOrCreateCart(context.orgId, context.userId);
-    const productIds = cart.lines.map((line: any) => line.productId);
+    const cart = await getOrCreateCart(context.orgId, context.userId) as CartDocument;
+    const productIds = cart.lines.map((line) => line.productId);
     const products = await Product.find({ _id: { $in: productIds } }).lean();
-    const productMap = new Map(products.map((product: any) => [product._id.toString(), serializeProduct(product as Record<string, unknown>)]));
+    const productMap = new Map(
+      products.map((product) => {
+        const id = (product as { _id: Types.ObjectId })._id.toString();
+        return [id, serializeProduct(product as Record<string, unknown>)];
+      })
+    );
 
     return createSecureResponse({
       ok: true,
       data: {
         ...serializeOrder(cart),
-        lines: cart.lines.map((line: any) => ({
+        lines: cart.lines.map((line) => ({
           ...line,
           productId: line.productId.toString(),
           product: productMap.get(line.productId.toString())
@@ -86,8 +108,8 @@ export async function POST(request: NextRequest) {
       return notFoundError('Product');
     }
 
-    const cart = await getOrCreateCart(context.orgId, context.userId);
-    const lineIndex = cart.lines.findIndex((line: any) => line.productId.toString() === productId.toString());
+    const cart = await getOrCreateCart(context.orgId, context.userId) as CartDocument;
+    const lineIndex = cart.lines.findIndex((line) => line.productId.toString() === productId.toString());
 
     if (lineIndex >= 0) {
       cart.lines[lineIndex].qty += payload.quantity;
@@ -118,6 +140,5 @@ export async function POST(request: NextRequest) {
     return createSecureResponse({ error: 'Unable to update cart' }, 500, request);
   }
 }
-
 
 

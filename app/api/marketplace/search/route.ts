@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     let facetCategories: ReturnType<typeof serializeCategory>[] = [];
     try {
       const categoryDocs = await Category.find({ _id: { $in: facets.categories }, orgId: context.orgId }).lean();
-      facetCategories = categoryDocs.map((doc: any) => serializeCategory(doc));
+      facetCategories = categoryDocs.map((doc) => serializeCategory(doc));
     } catch (error) {
       logger.error('Error fetching marketplace categories', { error });
       // Continue with empty categories rather than failing entire request

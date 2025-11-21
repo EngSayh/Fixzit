@@ -16,6 +16,25 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { TapTransaction } from '@/server/models/finance/TapTransaction';
 import { Invoice } from '@/server/models/Invoice';
 
+interface SessionUser {
+  id: string;
+  email: string;
+  orgId: string;
+  [key: string]: unknown;
+}
+
+interface InvoiceRecipient {
+  name?: string;
+  customerId?: string;
+  [key: string]: unknown;
+}
+
+interface InvoiceDocument {
+  _id: Types.ObjectId;
+  recipient?: InvoiceRecipient;
+  [key: string]: unknown;
+}
+
 // SECURITY: Explicit non-empty string validation (not just truthy check)
 const TAP_PAYMENTS_CONFIGURED = 
   typeof process.env.TAP_SECRET_KEY === 'string' && 
@@ -95,9 +114,9 @@ export async function POST(req: NextRequest) {
 
   try {
     // Authenticate user
-    let user: any;
+    let user: SessionUser;
     try {
-      user = await getSessionUser(req);
+      user = await getSessionUser(req) as SessionUser;
     } catch (_error) {
       logger.warn('[POST /api/payments/tap/checkout] Unauthenticated request', { correlationId });
       return NextResponse.json(
@@ -249,7 +268,8 @@ export async function POST(req: NextRequest) {
       `${tapCustomer.first_name} ${tapCustomer.last_name}`.trim() ||
       user.email;
     const resolvedPartyType = paymentContext?.partyType || 'CUSTOMER';
-    const resolvedPartyId = paymentContext?.partyId || (invoice?.recipient as any)?.customerId;
+    const invoiceTyped = invoice as InvoiceDocument | null;
+    const resolvedPartyId = paymentContext?.partyId || invoiceTyped?.recipient?.customerId;
 
     await TapTransaction.create({
       orgId: orgObjectId,
@@ -334,9 +354,9 @@ export async function GET(req: NextRequest) {
 
   try {
     // Authenticate user
-    let user: any;
+    let user: SessionUser;
     try {
-      user = await getSessionUser(req);
+      user = await getSessionUser(req) as SessionUser;
     } catch (_error) {
       logger.warn('[GET /api/payments/tap/checkout] Unauthenticated request', { correlationId });
       return NextResponse.json(

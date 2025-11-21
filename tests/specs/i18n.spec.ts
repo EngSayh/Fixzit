@@ -100,7 +100,7 @@ test.describe('i18n: No Missing Translation Keys', () => {
 test.describe('i18n: Language Switching', () => {
   test('English to Arabic switch updates content and RTL direction', async ({ page }) => {
     // Start in English (force locale in URL)
-    await page.goto('/dashboard?locale=en', { waitUntil: 'networkidle' });
+    await page.goto('/dashboard?locale=en', { waitUntil: 'domcontentloaded' });
     
     // Wait for page to stabilize with correct direction
     await page.waitForTimeout(1000);
@@ -135,7 +135,7 @@ test.describe('i18n: Language Switching', () => {
   });
 
   test('Currency selector shows SAR and USD options', async ({ page }) => {
-    await page.goto('/dashboard', { waitUntil: 'networkidle' });
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
 
     // Find currency button (may be overlapped on mobile); if clickable, open it
     const currencyButton = page.getByRole('button', { name: /currency|sar|usd|riyal|dollar|عملة/i }).first();
