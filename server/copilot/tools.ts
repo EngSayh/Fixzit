@@ -68,6 +68,18 @@ function inferRequesterType(role: CopilotSession["role"]): RequesterType {
 
 function buildWorkOrderFilter(session: CopilotSession) {
   const filter: Record<string, unknown> = { orgId: session.tenantId, isDeleted: { $ne: true } };
+  const orgScopedRoles = new Set([
+    "SUPER_ADMIN",
+    "ADMIN",
+    "CORPORATE_ADMIN",
+    "FM_MANAGER",
+    "PROPERTY_MANAGER",
+  ]);
+
+  if (orgScopedRoles.has(session.role)) {
+    return filter;
+  }
+
   if (session.role === "TECHNICIAN") {
     filter["assignment.assignedTo.userId"] = session.userId;
   } else if (session.role === "VENDOR") {
@@ -177,6 +189,7 @@ async function listMyWorkOrders(session: CopilotSession): Promise<ToolExecutionR
   await db;
 
   const filter = buildWorkOrderFilter(session);
+  const limit = 20;
   type LeanWorkOrder = Pick<WorkOrderDoc, "workOrderNumber" | "title" | "status" | "priority" | "updatedAt"> & {
     _id: Types.ObjectId;
   };
@@ -186,11 +199,20 @@ async function listMyWorkOrders(session: CopilotSession): Promise<ToolExecutionR
   try {
     leanResults = (await WorkOrder.find(filter)
       .sort({ updatedAt: -1 })
-      .limit(5)
+      .limit(limit)
       .select(["workOrderNumber", "title", "status", "priority", "updatedAt"])
       .lean()) as LeanWorkOrder[];
   } catch (error) {
-    logger.error('Failed to fetch work orders', error instanceof Error ? error : new Error(String(error)));
+    const safeError = error instanceof Error ? error : new Error(String(error));
+    logger.error('Failed to fetch work orders', safeError);
+    return {
+      success: false,
+      intent: "listMyWorkOrders",
+      message: session.locale === "ar"
+        ? "تعذر جلب أوامر العمل حالياً. يرجى المحاولة لاحقاً."
+        : "Unable to fetch work orders right now. Please try again later.",
+      data: [],
+    };
   }
 
   const items = leanResults.map((item) => ({
@@ -226,40 +248,93 @@ async function dispatchWorkOrder(session: CopilotSession, input: Record<string, 
     throw new Error("Work order not found");
   }
 
-  const hasAssignee = typeof input.assigneeUserId === "string" || typeof input.assigneeVendorId === "string";
-  const nextStatus = hasAssignee ? "ASSIGNED" : current.status;
-  const setUpdate: Record<string, unknown> = {
-    status: nextStatus,
-    "assignment.assignedBy": session.userId,
-    "assignment.assignedAt": new Date(),
-  };
-
-  if (typeof input.assigneeUserId === "string") {
-    setUpdate["assignment.assignedTo.userId"] = input.assigneeUserId;
-  } else if (input.assigneeUserId === null) {
-    setUpdate["assignment.assignedTo.userId"] = null;
+  const terminalStatuses = new Set(["CLOSED", "CANCELLED", "COMPLETED", "VERIFIED", "REJECTED"]);
+  if (terminalStatuses.has(current.status as string)) {
+    throw new Error(`Cannot dispatch a work order in status ${current.status}`);
   }
 
-  if (typeof input.assigneeVendorId === "string") {
-    setUpdate["assignment.assignedTo.vendorId"] = input.assigneeVendorId;
-  } else if (input.assigneeVendorId === null) {
-    setUpdate["assignment.assignedTo.vendorId"] = null;
+  const requestedUserId = typeof input.assigneeUserId === "string" ? input.assigneeUserId.trim() : undefined;
+  const requestedVendorId = typeof input.assigneeVendorId === "string" ? input.assigneeVendorId.trim() : undefined;
+  const clearUser = input.assigneeUserId === null;
+  const clearVendor = input.assigneeVendorId === null;
+
+  const currentUserId = current.assignment?.assignedTo?.userId
+    ? (current.assignment.assignedTo.userId as { toString(): string }).toString()
+    : undefined;
+  const currentVendorId = current.assignment?.assignedTo?.vendorId
+    ? (current.assignment.assignedTo.vendorId as { toString(): string }).toString()
+    : undefined;
+
+  const setUpdate: Record<string, unknown> = {};
+
+  const userChanged = requestedUserId !== undefined
+    ? requestedUserId !== currentUserId
+    : clearUser
+      ? currentUserId !== undefined
+      : false;
+  const vendorChanged = requestedVendorId !== undefined
+    ? requestedVendorId !== currentVendorId
+    : clearVendor
+      ? currentVendorId !== undefined
+      : false;
+
+  if (requestedUserId !== undefined || clearUser) {
+    setUpdate["assignment.assignedTo.userId"] = requestedUserId ?? null;
+  }
+
+  if (requestedVendorId !== undefined || clearVendor) {
+    setUpdate["assignment.assignedTo.vendorId"] = requestedVendorId ?? null;
+  }
+
+  const assignmentChanged = userChanged || vendorChanged;
+
+  let nextStatus = current.status;
+  if (assignmentChanged && current.status === "SUBMITTED") {
+    nextStatus = "ASSIGNED";
+  }
+  const statusChanged = nextStatus !== current.status;
+
+  if (assignmentChanged) {
+    setUpdate["assignment.assignedBy"] = session.userId;
+    setUpdate["assignment.assignedAt"] = new Date();
+  }
+
+  if (statusChanged) {
+    setUpdate["status"] = nextStatus;
+  }
+
+  if (!assignmentChanged && !statusChanged) {
+    return {
+      success: true,
+      intent: "dispatchWorkOrder",
+      message: session.locale === "ar"
+        ? "لا توجد تغييرات في الإسناد."
+        : "No assignment changes were applied.",
+      data: {
+        code: current.workOrderNumber,
+        status: current.status,
+        assigneeUserId: current.assignment?.assignedTo?.userId,
+        assigneeVendorId: current.assignment?.assignedTo?.vendorId
+      }
+    };
+  }
+
+  const updatePayload: Record<string, unknown> = { $set: setUpdate };
+  if (assignmentChanged || statusChanged) {
+    updatePayload.$push = {
+      statusHistory: {
+        fromStatus: current.status,
+        toStatus: nextStatus,
+        changedBy: session.userId,
+        changedAt: new Date(),
+        notes: assignmentChanged ? "Assigned via Copilot assistant" : "Dispatch via Copilot assistant"
+      }
+    };
   }
 
   const updated = await WorkOrder.findByIdAndUpdate(
     current._id,
-    {
-      $set: setUpdate,
-      $push: {
-        statusHistory: {
-          fromStatus: current.status,
-          toStatus: nextStatus,
-          changedBy: session.userId,
-          changedAt: new Date(),
-          notes: "Assigned via Copilot assistant"
-        }
-      }
-    },
+    updatePayload,
     { new: true }
   );
 
@@ -298,12 +373,38 @@ async function scheduleVisit(session: CopilotSession, input: Record<string, unkn
     throw new Error("Work order not found");
   }
 
+  const existingResolution = current.sla?.resolutionDeadline
+    ? new Date(current.sla.resolutionDeadline)
+    : undefined;
+  const computedResolutionDeadline = existingResolution
+    ? new Date(Math.min(existingResolution.getTime(), scheduledFor.getTime()))
+    : scheduledFor;
+
+  const scheduledDateChanged = !current.assignment?.scheduledDate
+    || new Date(current.assignment.scheduledDate).getTime() !== scheduledFor.getTime();
+  const resolutionChanged = !existingResolution
+    || computedResolutionDeadline.getTime() !== existingResolution.getTime();
+
+  if (!scheduledDateChanged && !resolutionChanged) {
+    return {
+      success: true,
+      intent: "scheduleVisit",
+      message: session.locale === "ar"
+        ? "لا توجد تغييرات في الموعد."
+        : "Visit schedule is already up to date.",
+      data: {
+        code: current.workOrderNumber,
+        dueAt: current.sla?.resolutionDeadline
+      }
+    };
+  }
+
   const updated = await WorkOrder.findByIdAndUpdate(
     current._id,
     {
       $set: {
         "assignment.scheduledDate": scheduledFor,
-        "sla.resolutionDeadline": scheduledFor
+        "sla.resolutionDeadline": computedResolutionDeadline
       },
       $push: {
         statusHistory: {
@@ -341,6 +442,32 @@ async function uploadWorkOrderPhoto(session: CopilotSession, payload: UploadPayl
 
   if (!payload.workOrderId) {
     throw new Error("workOrderId is required");
+  }
+
+  const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+  const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
+  const normalizedMime = (payload.mimeType || "").toLowerCase();
+
+  if (payload.buffer.length > MAX_UPLOAD_BYTES) {
+    throw new Error("File too large. Maximum allowed size is 10 MB.");
+  }
+
+  if (!ALLOWED_MIME_TYPES.has(normalizedMime)) {
+    throw new Error("Unsupported file type. Allowed: JPEG, PNG, WEBP, PDF.");
+  }
+
+  const current = await WorkOrder.findOne({ _id: payload.workOrderId, orgId: session.tenantId })
+    .select(["workOrderNumber", "attachments"])
+    .lean<{ workOrderNumber?: string; attachments?: Array<unknown> } | null>();
+
+  if (!current) {
+    throw new Error("Work order not found");
+  }
+
+  const MAX_ATTACHMENTS = 20;
+  const currentAttachments = Array.isArray(current.attachments) ? current.attachments.length : 0;
+  if (currentAttachments >= MAX_ATTACHMENTS) {
+    throw new Error("Attachment limit reached for this work order");
   }
 
   const uploadsDir = path.join(process.cwd(), "public", "uploads", "work-orders");
@@ -482,7 +609,6 @@ async function approveQuotation(session: CopilotSession, input: Record<string, u
       'OWNER',
     ]);
     const isPrivileged = privilegedRoles.has(session.role);
-
     const isStageApprover = approval
       ? approval.approverId?.toString() === session.userId ||
         (Array.isArray(approval.stages) &&
@@ -495,7 +621,26 @@ async function approveQuotation(session: CopilotSession, input: Record<string, u
           }))
       : false;
 
-    if (approval && !isPrivileged && !isStageApprover) {
+    if (!approval) {
+      const message = session.locale === 'ar'
+        ? 'لا يوجد مسار اعتماد نشط لهذا العرض'
+        : 'No active approval workflow exists for this quotation';
+      await recordAudit({
+        session,
+        intent,
+        tool: intent,
+        status: "DENIED",
+        message,
+        metadata: { quotationId }
+      });
+      return {
+        success: false,
+        message,
+        intent,
+      };
+    }
+
+    if (!isPrivileged && !isStageApprover) {
       const message = session.locale === 'ar'
         ? 'ليست لديك صلاحية اعتماد هذا العرض'
         : 'You are not authorized to approve this quotation';
@@ -516,7 +661,7 @@ async function approveQuotation(session: CopilotSession, input: Record<string, u
 
     const now = new Date();
     const updatedQuotation = await FMQuotation.findOneAndUpdate(
-      { _id: quotationObjectId, org_id: session.tenantId },
+      { _id: quotationObjectId, org_id: session.tenantId, status: { $ne: 'APPROVED' } },
       {
         $set: {
           status: 'APPROVED',
@@ -558,7 +703,7 @@ async function approveQuotation(session: CopilotSession, input: Record<string, u
           approverEmail: session.email ?? approval.approverEmail,
         },
         $push: { history: historyEntry },
-      });
+      }, { new: true, runValidators: true });
     }
 
     // Notify requester (best-effort, background)

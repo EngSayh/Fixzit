@@ -5,7 +5,7 @@
  */
 
 import { logger } from '@/lib/logger';
-import { Schema } from 'mongoose';
+import { Schema, type Query } from 'mongoose';
 import { getRequestContext } from '../../lib/authContext';
 
 export interface TenantAuditFields {
@@ -99,26 +99,26 @@ export function tenantAuditPlugin(schema: Schema): void {
   });
 
   // Enforce tenant isolation on queries
-  schema.pre(/^find/, function (next) {
+  schema.pre(/^find/, function (this: Query<unknown, unknown>, next) {
     const context = getRequestContext();
-    const query = (this as any).getQuery() as Record<string, unknown>;
+    const query = this.getQuery() as Record<string, unknown>;
     if (context?.orgId && !query.orgId) {
-      (this as any).where({ orgId: context.orgId });
+      this.where({ orgId: context.orgId });
     }
     next();
   });
 
   // Enforce tenant isolation on updates
-  schema.pre(/^update/, function (next) {
+  schema.pre(/^update/, function (this: Query<unknown, unknown>, next) {
     const context = getRequestContext();
-    const query = (this as any).getQuery() as Record<string, unknown>;
+    const query = this.getQuery() as Record<string, unknown>;
     if (context?.orgId && !query.orgId) {
-      (this as any).where({ orgId: context.orgId });
+      this.where({ orgId: context.orgId });
     }
     if (context?.userId) {
-      const update = (this as any).getUpdate() as { $set?: Record<string, unknown> };
+      const update = this.getUpdate() as { $set?: Record<string, unknown> };
       if (!update.$set) {
-        (this as any).set({ updatedBy: context.userId });
+        this.set({ updatedBy: context.userId });
       } else {
         update.$set.updatedBy = context.userId;
       }

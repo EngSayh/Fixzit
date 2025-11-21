@@ -1,5 +1,5 @@
-import { Schema, model, models, Model, Document } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import { Schema, Document } from 'mongoose';
+import { getModel } from '@/src/types/mongoose-compat';
 import { auditPlugin } from '../plugins/auditPlugin';
 import { MODULE_KEYS } from './Module';
 
@@ -157,5 +157,5 @@ interface ISubscription extends Document {
   updatedBy?: Schema.Types.ObjectId;
 }
 
-const Subscription = getModel<any>('Subscription', SubscriptionSchema) as any;
+const Subscription = getModel<ISubscription>('Subscription', SubscriptionSchema);
 export default Subscription;

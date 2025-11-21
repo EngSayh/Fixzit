@@ -275,9 +275,16 @@ export function generateLinks(
     || process.env.NEXT_PUBLIC_APP_URL
     || 'https://app.fixzit.com').replace(/\/$/, '');
   const deepLinkSchemeRaw = process.env.NEXT_PUBLIC_FIXZIT_DEEP_LINK_SCHEME || 'fixzit://';
-  const deepLinkScheme = deepLinkSchemeRaw.endsWith('://')
-    ? deepLinkSchemeRaw
-    : `${deepLinkSchemeRaw.replace(/\/+$/, '')}://`;
+
+  const normalizeDeepLinkBase = (raw: string): string => {
+    const prepared = raw.includes('://') ? raw : `${raw}://`;
+    const [scheme, restRaw = ''] = prepared.split('://');
+    const rest = restRaw.replace(/\/+$/, '');
+    // When no host/path is provided, keep the trailing double slashes (scheme only).
+    return rest ? `${scheme}://${rest}` : `${scheme}://`;
+  };
+
+  const deepLinkBase = normalizeDeepLinkBase(deepLinkSchemeRaw);
 
   const paths: Record<typeof type, string> = {
     'work-order': `/fm/work-orders/${id}`,
@@ -293,9 +300,14 @@ export function generateLinks(
     path = `${path}/${subPath}`;
   }
 
+  const deepLinkPath = path.replace(/^\/+/, '');
+  const deepLink = deepLinkBase.endsWith('//')
+    ? `${deepLinkBase}${deepLinkPath}`
+    : `${deepLinkBase}/${deepLinkPath}`;
+
   return {
     webUrl: `${webBase}${path}`,
-    deepLink: `${deepLinkScheme}${path.replace(/^\//, '')}`
+    deepLink
   };
 }
 
@@ -405,158 +417,196 @@ export function buildNotification(
 
 /**
  * Send notification with concurrent execution (Performance Fix)
- * Uses Promise.allSettled to prevent blocking and ensure <500ms API response
+ * Uses Promise.allSettled to prevent blocking and ensure <500ms API response by default
  * 
  * ARCHITECTURAL NOTE: For enterprise scale, offload to background queue (BullMQ/Redis/SQS)
  * to decouple notification dispatch from API response time
  */
 export async function sendNotification(
   notification: NotificationPayload,
+  maxRetries = 3,
+  options?: { background?: boolean }
+): Promise<void> {
+  const background = options?.background ?? true;
+
+  const dispatch = async (): Promise<void> => {
+    logger.info('[Notifications] Dispatching notification', { 
+      id: notification.id,
+      event: notification.event,
+      recipientCount: notification.recipients.length,
+      title: notification.title
+    });
+  
+    // Group recipients by channel with defensive checks
+    const channelGroups: Record<NotificationChannel, NotificationRecipient[]> = {
+      push: [],
+      email: [],
+      sms: [],
+      whatsapp: []
+    };
+  
+    notification.recipients.forEach(recipient => {
+      recipient.preferredChannels.forEach(channel => {
+        // Defensive Check: Ensure required contact info exists for the channel
+        if (channel === 'email' && !recipient.email) {
+          logger.warn(`[Notifications] Recipient ${recipient.userId} prefers email but has no address`);
+          return;
+        }
+        if ((channel === 'sms' || channel === 'whatsapp') && !recipient.phone) {
+          logger.warn(`[Notifications] Recipient ${recipient.userId} prefers ${channel} but has no phone`);
+          return;
+        }
+        if (channel === 'push' && !recipient.fcmToken) {
+          logger.warn(`[Notifications] Recipient ${recipient.userId} prefers push but has no FCM token`);
+          return;
+        }
+        
+        channelGroups[channel].push(recipient);
+      });
+    });
+  
+    const channelAttempts: Partial<Record<NotificationChannel, { attempts: number; lastAttemptAt?: Date }>> = {};
+  
+    const sendWithRetry = async (channel: NotificationChannel, sendFn: () => Promise<void>) => {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        channelAttempts[channel] = { attempts: attempt, lastAttemptAt: new Date() };
+        try {
+          await sendFn();
+          return;
+        } catch (_error) {
+          const error = _error instanceof Error ? _error : new Error(String(_error));
+          void error;
+          logger.error(
+            `[Notifications] ${channel} attempt ${attempt}/${maxRetries} failed`,
+            error,
+            { notificationId: notification.id }
+          );
+          if (attempt === maxRetries) throw error; // Let Promise.allSettled handle final failure
+        }
+      }
+    };
+  
+    // Prepare promises for CONCURRENT execution (Performance Fix)
+    const sendOperations: Array<{ channel: NotificationChannel; promise: Promise<void> }> = [];
+  
+    if (channelGroups.push.length > 0) {
+      sendOperations.push({
+        channel: 'push',
+        promise: sendWithRetry('push', () => sendPushNotifications(notification, channelGroups.push)),
+      });
+    }
+    if (channelGroups.email.length > 0) {
+      sendOperations.push({
+        channel: 'email',
+        promise: sendWithRetry('email', () => sendEmailNotifications(notification, channelGroups.email)),
+      });
+    }
+    if (channelGroups.sms.length > 0) {
+      sendOperations.push({
+        channel: 'sms',
+        promise: sendWithRetry('sms', () => sendSMSNotifications(notification, channelGroups.sms)),
+      });
+    }
+    if (channelGroups.whatsapp.length > 0) {
+      sendOperations.push({
+        channel: 'whatsapp',
+        promise: sendWithRetry('whatsapp', () => sendWhatsAppNotifications(notification, channelGroups.whatsapp)),
+      });
+    }
+  
+    const results = await Promise.allSettled(sendOperations.map(op => op.promise));
+    const channelResults: ChannelDispatchResult[] = sendOperations.map((operation, index) => {
+      const attemptsInfo = channelAttempts[operation.channel];
+      const attempts = attemptsInfo?.attempts ?? 0;
+      const lastAttemptAt = attemptsInfo?.lastAttemptAt;
+      const result = results[index];
+      if (result?.status === 'fulfilled') {
+        return { channel: operation.channel, status: 'sent', attempts, lastAttemptAt };
+      }
+      const error =
+        result && result.status === 'rejected'
+          ? result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason)
+          : 'Unknown error';
+      return {
+        channel: operation.channel,
+        status: 'failed',
+        attempts,
+        lastAttemptAt,
+        error,
+      };
+    });
+  
+    const failures = channelResults.filter(result => result.status === 'failed');
+  
+    if (failures.length > 0) {
+      logger.error('[Notifications] Failures during notification dispatch', { 
+        id: notification.id, 
+        failureCount: failures.length,
+        failures
+      });
+      
+      // Update status based on outcome
+      if (failures.length === sendOperations.length && sendOperations.length > 0) {
+        notification.status = 'failed';
+        notification.failureReason = `All ${failures.length} channels failed`;
+      } else {
+        notification.status = 'partial_failure';
+        notification.failureReason = `${failures.length} of ${sendOperations.length} channels failed`;
+      }
+    } else if (sendOperations.length > 0) {
+      notification.status = 'sent';
+    } else {
+      logger.warn('[Notifications] No channels attempted', { id: notification.id });
+      notification.status = 'failed';
+      notification.failureReason = 'No valid channels or recipients';
+    }
+  
+    notification.sentAt = new Date();
+    await saveNotification(notification, channelResults); // Persist updated status to database
+    await enqueueDeadLetters(notification, failures);
+    
+    logger.info('[Notifications] Notification dispatch complete', {
+      id: notification.id,
+      status: notification.status,
+      attempted: sendOperations.length,
+      failed: failures.length
+    });
+  };
+
+  // Default: Fire-and-forget to keep API responses under 500ms.
+  if (background) {
+    dispatch().catch(error => {
+      logger.error('[Notifications] Background dispatch failed', error, { id: notification.id });
+    });
+    return;
+  }
+
+  await dispatch();
+}
+
+/**
+ * Group recipients by locale to avoid cross-language payloads
+ */
+async function sendNotificationByLocale(
+  context: NotificationContext,
+  recipients: NotificationRecipient[],
   maxRetries = 3
 ): Promise<void> {
-  logger.info('[Notifications] Dispatching notification', { 
-    id: notification.id,
-    event: notification.event,
-    recipientCount: notification.recipients.length,
-    title: notification.title
-  });
+  const localeGroups = recipients.reduce<Record<string, NotificationRecipient[]>>((acc, recipient) => {
+    const locale = recipient.locale || 'en';
+    acc[locale] = acc[locale] || [];
+    acc[locale].push(recipient);
+    return acc;
+  }, {});
 
-  // Group recipients by channel with defensive checks
-  const channelGroups: Record<NotificationChannel, NotificationRecipient[]> = {
-    push: [],
-    email: [],
-    sms: [],
-    whatsapp: []
-  };
-
-  notification.recipients.forEach(recipient => {
-    recipient.preferredChannels.forEach(channel => {
-      // Defensive Check: Ensure required contact info exists for the channel
-      if (channel === 'email' && !recipient.email) {
-        logger.warn(`[Notifications] Recipient ${recipient.userId} prefers email but has no address`);
-        return;
-      }
-      if ((channel === 'sms' || channel === 'whatsapp') && !recipient.phone) {
-        logger.warn(`[Notifications] Recipient ${recipient.userId} prefers ${channel} but has no phone`);
-        return;
-      }
-      if (channel === 'push' && !recipient.fcmToken) {
-        logger.warn(`[Notifications] Recipient ${recipient.userId} prefers push but has no FCM token`);
-        return;
-      }
-      
-      channelGroups[channel].push(recipient);
-    });
-  });
-
-  const channelAttempts: Partial<Record<NotificationChannel, { attempts: number; lastAttemptAt?: Date }>> = {};
-
-  const sendWithRetry = async (channel: NotificationChannel, sendFn: () => Promise<void>) => {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      channelAttempts[channel] = { attempts: attempt, lastAttemptAt: new Date() };
-      try {
-        await sendFn();
-        return;
-      } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
-        void error;
-        logger.error(
-          `[Notifications] ${channel} attempt ${attempt}/${maxRetries} failed`,
-          error,
-          { notificationId: notification.id }
-        );
-        if (attempt === maxRetries) throw error; // Let Promise.allSettled handle final failure
-      }
-    }
-  };
-
-  // Prepare promises for CONCURRENT execution (Performance Fix)
-  const sendOperations: Array<{ channel: NotificationChannel; promise: Promise<void> }> = [];
-
-  if (channelGroups.push.length > 0) {
-    sendOperations.push({
-      channel: 'push',
-      promise: sendWithRetry('push', () => sendPushNotifications(notification, channelGroups.push)),
-    });
-  }
-  if (channelGroups.email.length > 0) {
-    sendOperations.push({
-      channel: 'email',
-      promise: sendWithRetry('email', () => sendEmailNotifications(notification, channelGroups.email)),
-    });
-  }
-  if (channelGroups.sms.length > 0) {
-    sendOperations.push({
-      channel: 'sms',
-      promise: sendWithRetry('sms', () => sendSMSNotifications(notification, channelGroups.sms)),
-    });
-  }
-  if (channelGroups.whatsapp.length > 0) {
-    sendOperations.push({
-      channel: 'whatsapp',
-      promise: sendWithRetry('whatsapp', () => sendWhatsAppNotifications(notification, channelGroups.whatsapp)),
-    });
-  }
-
-  const results = await Promise.allSettled(sendOperations.map(op => op.promise));
-  const channelResults: ChannelDispatchResult[] = sendOperations.map((operation, index) => {
-    const attemptsInfo = channelAttempts[operation.channel];
-    const attempts = attemptsInfo?.attempts ?? 0;
-    const lastAttemptAt = attemptsInfo?.lastAttemptAt;
-    const result = results[index];
-    if (result?.status === 'fulfilled') {
-      return { channel: operation.channel, status: 'sent', attempts, lastAttemptAt };
-    }
-    const error =
-      result && result.status === 'rejected'
-        ? result.reason instanceof Error
-          ? result.reason.message
-          : String(result.reason)
-        : 'Unknown error';
-    return {
-      channel: operation.channel,
-      status: 'failed',
-      attempts,
-      lastAttemptAt,
-      error,
-    };
-  });
-
-  const failures = channelResults.filter(result => result.status === 'failed');
-
-  if (failures.length > 0) {
-    logger.error('[Notifications] Failures during notification dispatch', { 
-      id: notification.id, 
-      failureCount: failures.length,
-      failures
-    });
-    
-    // Update status based on outcome
-    if (failures.length === sendOperations.length && sendOperations.length > 0) {
-      notification.status = 'failed';
-      notification.failureReason = `All ${failures.length} channels failed`;
-    } else {
-      notification.status = 'partial_failure';
-      notification.failureReason = `${failures.length} of ${sendOperations.length} channels failed`;
-    }
-  } else if (sendOperations.length > 0) {
-    notification.status = 'sent';
-  } else {
-    logger.warn('[Notifications] No channels attempted', { id: notification.id });
-    notification.status = 'failed';
-    notification.failureReason = 'No valid channels or recipients';
-  }
-
-  notification.sentAt = new Date();
-  await saveNotification(notification, channelResults); // Persist updated status to database
-  await enqueueDeadLetters(notification, failures);
-  
-  logger.info('[Notifications] Notification dispatch complete', {
-    id: notification.id,
-    status: notification.status,
-    attempted: sendOperations.length,
-    failed: failures.length
-  });
+  await Promise.all(
+    Object.values(localeGroups).map(group => {
+      const notification = buildNotification(context, group);
+      return sendNotification(notification, maxRetries);
+    })
+  );
 }
 
 /**
@@ -809,8 +859,7 @@ export async function onTicketCreated(
     description
   };
   
-  const notification = buildNotification(context, recipients);
-  await sendNotification(notification);
+  await sendNotificationByLocale(context, recipients);
 }
 
 export async function onAssign(
@@ -828,8 +877,7 @@ export async function onAssign(
     description
   };
   
-  const notification = buildNotification(context, recipients);
-  await sendNotification(notification);
+  await sendNotificationByLocale(context, recipients);
 }
 
 export async function onApprovalRequested(
@@ -847,8 +895,7 @@ export async function onApprovalRequested(
     description
   };
   
-  const notification = buildNotification(context, recipients);
-  await sendNotification(notification);
+  await sendNotificationByLocale(context, recipients);
 }
 
 export async function onApproved(
@@ -862,8 +909,7 @@ export async function onApproved(
     quotationId
   };
   
-  const notification = buildNotification(context, recipients);
-  await sendNotification(notification);
+  await sendNotificationByLocale(context, recipients);
 }
 
 export async function onClosed(
@@ -879,6 +925,5 @@ export async function onClosed(
     propertyId
   };
   
-  const notification = buildNotification(context, recipients);
-  await sendNotification(notification);
+  await sendNotificationByLocale(context, recipients);
 }

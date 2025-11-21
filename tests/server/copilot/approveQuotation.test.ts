@@ -59,6 +59,29 @@ describe('Copilot approveQuotation tool', () => {
     expect(mockFMQuotation.findOne).not.toHaveBeenCalled();
   });
 
+  it('denies approval when no workflow (FMApproval) exists', async () => {
+    const quotationId = new Types.ObjectId().toString();
+    const { executeTool } = await import('@/server/copilot/tools');
+
+    mockFMQuotation.findOne.mockReturnValue(
+      leanResult({
+        _id: new Types.ObjectId(quotationId),
+        org_id: baseSession.tenantId,
+        status: 'PENDING',
+      })
+    );
+    mockFMApproval.findOne.mockReturnValue(leanResult(null));
+
+    const result = await executeTool('approveQuotation', { quotationId }, baseSession);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/approval workflow/i);
+    expect(mockRecordAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'DENIED', intent: 'approveQuotation' })
+    );
+    expect(mockFMQuotation.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
   it('approves a quotation, updates status, and audits success', async () => {
     const quotationId = new Types.ObjectId().toString();
     const { executeTool } = await import('@/server/copilot/tools');
@@ -77,7 +100,14 @@ describe('Copilot approveQuotation tool', () => {
         status: 'APPROVED',
       })
     );
-    mockFMApproval.findOne.mockReturnValue(leanResult(null));
+    mockFMApproval.findOne.mockReturnValue(
+      leanResult({
+        _id: new Types.ObjectId(),
+        status: 'PENDING',
+        approverId: new Types.ObjectId(baseSession.userId),
+        stages: [{ approvers: [baseSession.userId], status: 'PENDING' }],
+      })
+    );
 
     const result = await executeTool('approveQuotation', { quotationId }, baseSession);
 

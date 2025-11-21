@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { logger } from '@/lib/logger';
 import { connectDb } from '@/lib/mongo';
-import type { Db } from 'mongodb';
+import type { Db, Collection } from 'mongodb';
 import { AqarListing } from '@/models/aqar';
 import {
   ListingStatus,
@@ -87,6 +87,7 @@ export class AqarOfflineCacheService {
   private static readonly TTL_MS = 15 * 60 * 1000;
   private static readonly PROJECTION =
     '_id title city neighborhood price areaSqm propertyType intent rnplEligible immersive proptech pricingInsights ai updatedAt publishedAt';
+  private static ttlIndexPromise: Promise<void> | null = null;
 
   static async getOrBuildBundle(input: OfflineBundleInput): Promise<OfflineBundleRecord> {
     const dbHandle = await connectDb();
@@ -95,6 +96,7 @@ export class AqarOfflineCacheService {
     const now = new Date();
 
     const collection = db.collection(this.COLLECTION);
+    await this.ensureIndexes(collection);
     const existing = await collection.findOne({ cacheKey, expiresAt: { $gt: now } }) as OfflineBundleDoc | null;
 
     if (existing) {
@@ -172,8 +174,14 @@ export class AqarOfflineCacheService {
       proptech: this.buildFacet(snapshots, (item) => item.proptech?.smartHomeLevel || 'NONE'),
     };
 
+    const versionSeed = JSON.stringify({
+      cacheHint: input.cacheHint ?? '',
+      listingIds: snapshots.map((snapshot) => snapshot.id),
+      facets,
+    });
+
     return {
-      version: this.computeVersion(input),
+      version: this.computeVersion(versionSeed),
       generatedAt: new Date().toISOString(),
       listings: snapshots,
       facets,
@@ -208,10 +216,9 @@ export class AqarOfflineCacheService {
     }, {});
   }
 
-  private static computeVersion(input: OfflineBundleInput): number {
-    const hint = input.cacheHint ?? '';
-    const base = hint ? createHash('md5').update(hint).digest('hex') : Date.now().toString(16);
-    return Number.parseInt(base.slice(0, 8), 16) || Math.floor(Date.now() / 1000);
+  private static computeVersion(seed: string): number {
+    const base = createHash('md5').update(seed).digest('hex');
+    return Number.parseInt(base.slice(0, 8), 16) || 1;
   }
 
   private static computeChecksum(payload: OfflineBundlePayload): string {
@@ -262,5 +269,17 @@ export class AqarOfflineCacheService {
         error: (error as Error)?.message ?? String(error),
       });
     }
+  }
+
+  private static async ensureIndexes(collection: Collection<OfflineBundleDoc>): Promise<void> {
+    if (!this.ttlIndexPromise) {
+      this.ttlIndexPromise = collection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
+        .catch((_error) => {
+          const error = _error instanceof Error ? _error : new Error(String(_error));
+          logger.warn('AQAR_OFFLINE_TTL_INDEX_FAILED', { error: error.message });
+          this.ttlIndexPromise = null;
+        }) as Promise<void>;
+    }
+    return this.ttlIndexPromise;
   }
 }

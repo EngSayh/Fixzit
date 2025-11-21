@@ -47,17 +47,19 @@ vi.mock('@/components/topbar/GlobalSearch', () => ({
 
 describe('TopBar (marketing/public view)', () => {
   it('shows language toggle and hides app/module pills and app switcher', async () => {
-    render(
+    const { container } = render(
       <PublicProviders initialLocale="ar">
         <TopBar />
       </PublicProviders>
     );
 
     // Wait until providers settle and topbar renders
-    await screen.findByRole('banner');
+    const banner = await screen.findByRole('banner');
+    expect(banner).toBeInTheDocument();
 
     // Language selector should be visible for guests
-    expect(await screen.findByTestId('language-selector')).toBeInTheDocument();
+    const languageSelector = await screen.findByTestId('language-selector');
+    expect(languageSelector).toBeInTheDocument();
 
     // App/module pills should NOT render on marketing routes
     expect(screen.queryByText('إدارة المنشآت (FM)')).toBeNull();

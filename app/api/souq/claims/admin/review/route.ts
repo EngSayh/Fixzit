@@ -248,7 +248,9 @@ export async function GET(request: NextRequest) {
 
     // Enrich claims with fraud detection and recommendations
     const enrichedClaims = claims.map((claim: any) => {
-      const claimAmount = normalizeAmount(claim.requestedAmount ?? claim.orderAmount ?? 0);
+      const claimAmount = normalizeAmount(
+        claim.requestedAmount ?? claim.orderAmount ?? claim.claimAmount ?? 0
+      );
       // Calculate fraud score
       const fraudAnalysis = calculateFraudScore(claim);
       
@@ -267,11 +269,13 @@ export async function GET(request: NextRequest) {
 
       const claimNumber = claim.claimNumber || claim.claimId || claim.orderNumber;
 
+      const claimType = claim.claimType || claim.type;
+
       return {
         claimId: claim._id?.toString?.() ?? claim.claimId,
         claimNumber,
         orderId: claim.orderId,
-        claimType: claim.claimType,
+        claimType,
         status: claim.status,
         claimAmount,
         buyerName: claim.buyerId?.name || claim.buyerName || 'Unknown',

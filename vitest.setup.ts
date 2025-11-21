@@ -15,9 +15,7 @@ import * as ClaimEvidenceRoute from '@/app/api/souq/claims/[id]/evidence/route';
 import * as ClaimResponseRoute from '@/app/api/souq/claims/[id]/response/route';
 import * as ClaimDecisionRoute from '@/app/api/souq/claims/[id]/decision/route';
 import * as ClaimAppealRoute from '@/app/api/souq/claims/[id]/appeal/route';
-
-// Keep logging lightweight in tests; default to console if structured logger is unavailable.
-const logger = console;
+import { logger } from '@/lib/logger';
 
 // Polyfill TextEncoder/TextDecoder for environments where global objects are missing
 if (typeof globalThis.TextEncoder === 'undefined') {
@@ -335,7 +333,7 @@ const mockFetch: typeof globalThis.fetch = async (input, init) => {
   try {
     return await handler(requestWithNext, { params: match.params });
   } catch (error) {
-    console.error('Mock fetch handler failed:', error);
+    logger.error('Mock fetch handler failed', error as Error);
     return new Response('Internal Mock Error', { status: 500 });
   }
 };
@@ -404,7 +402,7 @@ beforeAll(async () => {
     
     logger.debug('✅ MongoDB Memory Server started:', { mongoUri });
   } catch (error) {
-    console.error('❌ Failed to start MongoDB Memory Server:', error);
+    logger.error('❌ Failed to start MongoDB Memory Server', error as Error);
     throw error;
   }
 }, 60000); // 60 second timeout for MongoDB download on first run
@@ -447,10 +445,10 @@ afterAll(async () => {
     // Stop MongoDB Memory Server
     if (mongoServer) {
       await mongoServer.stop();
-      console.log('MongoDB Memory Server stopped');
+      logger.debug('MongoDB Memory Server stopped');
     }
   } catch (error) {
-    console.error('❌ Failed to stop MongoDB Memory Server:', error);
+    logger.error('❌ Failed to stop MongoDB Memory Server', error as Error);
     throw error;
   }
 }, 30000); // 30 second timeout

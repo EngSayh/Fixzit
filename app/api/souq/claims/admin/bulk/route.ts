@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { connectDb } from '@/lib/mongo';
 import { logger } from '@/lib/logger';
 import { SouqClaim } from '@/server/models/souq/Claim';
+import { Types } from 'mongoose';
 
 const ELIGIBLE_STATUSES = [
   'submitted',
@@ -78,10 +79,18 @@ export async function POST(request: NextRequest) {
 
     await connectDb();
 
+    const normalizedIds = claimIds.map((id: string) => String(id));
+    const objectIds = normalizedIds
+      .filter((id: string) => Types.ObjectId.isValid(id))
+      .map((id: string) => new Types.ObjectId(id));
+
     // Fetch all claims to validate they exist and can be bulk processed
     const claims = await SouqClaim.find({
-      _id: { $in: claimIds },
-      status: { $in: ELIGIBLE_STATUSES }
+      status: { $in: ELIGIBLE_STATUSES },
+      $or: [
+        { _id: { $in: objectIds } },
+        { claimId: { $in: normalizedIds } },
+      ],
     });
 
     if (claims.length === 0) {

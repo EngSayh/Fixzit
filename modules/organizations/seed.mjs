@@ -2,6 +2,7 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import Organization from './schema.ts';
+import { logger } from '../../lib/logger';
 
 dotenv.config();
 
@@ -48,36 +49,36 @@ const organizations = [
 
 async function seedOrganizations() {
   try {
-    console.log('🌱 Starting organization seed...\n');
+    logger.debug('🌱 Starting organization seed...');
     const mongoUri = process.env.MONGODB_URI;
     if (!mongoUri) throw new Error('MONGODB_URI not found');
     
-    console.log('📡 Connecting to MongoDB...');
+    logger.debug('📡 Connecting to MongoDB...');
     await mongoose.connect(mongoUri);
-    console.log('✅ Connected\n');
+    logger.debug('✅ Connected');
     
     let created = 0, updated = 0;
     for (const orgData of organizations) {
-      console.log(`📋 Processing: ${orgData.name}`);
+      logger.debug(`📋 Processing: ${orgData.name}`);
       const result = await Organization.updateOne(
         { name: orgData.name },
         { $set: orgData },
         { upsert: true }
       );
-      if (result.upsertedCount > 0) { created++; console.log('   ✅ Created'); }
-      else if (result.modifiedCount > 0) { updated++; console.log('   ♻️  Updated'); }
-      else console.log('   ⏭️  No changes');
+      if (result.upsertedCount > 0) { created++; logger.debug('   ✅ Created'); }
+      else if (result.modifiedCount > 0) { updated++; logger.debug('   ♻️  Updated'); }
+      else logger.debug('   ⏭️  No changes');
     }
     
-    console.log(`\n📊 Created: ${created}, Updated: ${updated}, Total: ${organizations.length}`);
+    logger.debug(`📊 Created: ${created}, Updated: ${updated}, Total: ${organizations.length}`);
     const count = await Organization.countDocuments();
-    console.log(`✅ Total organizations in database: ${count}`);
+    logger.debug(`✅ Total organizations in database: ${count}`);
   } catch (error) {
-    console.error('❌ Seed failed:', error);
+    logger.error('❌ Seed failed', error instanceof Error ? error : undefined);
     process.exit(1);
   } finally {
     await mongoose.disconnect();
-    console.log('\n👋 Disconnected');
+    logger.debug('👋 Disconnected');
   }
 }
 

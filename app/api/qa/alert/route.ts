@@ -10,7 +10,8 @@ import { createSecureResponse } from '@/server/security/headers';
 type GetDbFn = () => Promise<any>;
 
 async function resolveDatabase() {
-  const override = (globalThis as any).__mockGetDatabase as GetDbFn | undefined;
+  const mock = (globalThis as Record<string, unknown>).__mockGetDatabase;
+  const override = typeof mock === 'function' ? (mock as GetDbFn) : undefined;
   if (typeof override === 'function') {
     return override();
   }

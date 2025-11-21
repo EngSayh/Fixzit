@@ -12,6 +12,8 @@
 import { nanoid } from 'nanoid';
 import { logger } from '@/lib/logger';
 
+const MIN_BID_SAR = 0.05;
+
 type KeywordMatchType = 'exact' | 'phrase' | 'broad';
 type KeywordTargetInput = string | {
   value: string;
@@ -95,8 +97,11 @@ export class CampaignService {
       throw new Error('At least one product must be selected');
     }
 
-    if (input.biddingStrategy === 'automatic' && !input.defaultBid) {
-      throw new Error('Default bid required for automatic bidding');
+    if (
+      (input.biddingStrategy === 'automatic' || input.biddingStrategy === 'manual') &&
+      (input.defaultBid === undefined || input.defaultBid < MIN_BID_SAR)
+    ) {
+      throw new Error(`Default bid required and must be at least ${MIN_BID_SAR} SAR`);
     }
 
     // Generate campaign ID
@@ -107,7 +112,7 @@ export class CampaignService {
       campaignId,
       input.targeting,
       input.products,
-      input.biddingStrategy === 'automatic' ? input.defaultBid! : 0
+      input.defaultBid!
     );
 
     const campaign: Campaign = {
@@ -157,6 +162,15 @@ export class CampaignService {
 
     if (!campaign) {
       throw new Error(`Campaign not found: ${campaignId}`);
+    }
+
+    const nextBiddingStrategy = updates.biddingStrategy ?? campaign.biddingStrategy;
+    const nextDefaultBid = updates.defaultBid ?? campaign.defaultBid;
+    if (
+      (nextBiddingStrategy === 'automatic' || nextBiddingStrategy === 'manual') &&
+      (nextDefaultBid === undefined || nextDefaultBid < MIN_BID_SAR)
+    ) {
+      throw new Error(`Default bid must be at least ${MIN_BID_SAR} SAR for ${nextBiddingStrategy} bidding`);
     }
 
     const updateDoc = {
@@ -331,8 +345,8 @@ export class CampaignService {
     bidId: string,
     newBidAmount: number
   ): Promise<void> {
-    if (newBidAmount < 0.05) {
-      throw new Error('Bid amount must be at least 0.05 SAR');
+    if (newBidAmount < MIN_BID_SAR) {
+      throw new Error(`Bid amount must be at least ${MIN_BID_SAR} SAR`);
     }
 
     const { getDatabase } = await import('@/lib/mongodb-unified');
@@ -371,6 +385,10 @@ export class CampaignService {
     productId: string,
     matchType: KeywordMatchType = 'broad'
   ): Promise<AdBid> {
+    if (bidAmount < MIN_BID_SAR) {
+      throw new Error(`Bid amount must be at least ${MIN_BID_SAR} SAR`);
+    }
+
     const bidId = `bid_${nanoid(12)}`;
 
     const bid: AdBid = {

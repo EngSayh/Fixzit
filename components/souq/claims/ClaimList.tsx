@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ComponentType } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,9 @@ interface Claim {
   orderId: string;
   claimType: string;
   status: string;
-  claimAmount: number;
+  claimAmount?: number;
+  requestedAmount?: number;
+  type?: string;
   buyerName?: string;
   sellerName?: string;
   createdAt: string;
@@ -44,7 +46,7 @@ interface ClaimListProps {
   onSelectClaim?: (_claimId: string) => void;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ComponentType<{ className?: string }> }> = {
+const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: ComponentType<{ className?: string }> }> = {
   // Legacy UI keys
   filed: { label: 'تم التقديم', variant: 'default', icon: FileText },
   'seller-notified': { label: 'تم إشعار البائع', variant: 'secondary', icon: MessageSquare },
@@ -102,6 +104,8 @@ const CLAIM_TYPE_LABELS = CLAIM_TYPE_OPTIONS.reduce<Record<string, string>>((acc
   return acc;
 }, {});
 
+const TYPE_FILTER_OPTIONS = [{ value: 'all', label: 'جميع الأنواع (All)' }, ...CLAIM_TYPE_OPTIONS];
+
 export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,8 +143,18 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
       const response = await fetch(`/api/souq/claims?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
-        setClaims(data.claims);
-        setTotalPages(data.totalPages);
+        setClaims(Array.isArray(data.claims) ? data.claims : []);
+
+        const totalPagesFromApi =
+          data?.pagination?.totalPages ??
+          data?.pagination?.pages ??
+          data?.totalPages;
+        const parsedTotalPages =
+          typeof totalPagesFromApi === 'number' && Number.isFinite(totalPagesFromApi)
+            ? totalPagesFromApi
+            : 1;
+
+        setTotalPages(parsedTotalPages > 0 ? parsedTotalPages : 1);
       } else {
         // Show user-friendly error message
         const payload = await response.json().catch(() => ({}));
@@ -183,6 +197,18 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
     if (view === 'seller') return 'المطالبات المقدمة ضدي (Claims Against Me)';
     return 'جميع المطالبات (All Claims)';
   };
+
+  const getClaimAmount = (claim: Claim) => {
+    const amount = claim.claimAmount ?? claim.requestedAmount ?? 0;
+    return Number.isFinite(amount) ? amount : 0;
+  };
+
+  const getClaimTypeLabel = (claim: Claim) =>
+    CLAIM_TYPE_LABELS[claim.claimType] ??
+    CLAIM_TYPE_LABELS[claim.type || ''] ??
+    claim.claimType;
+
+  const getClaimDisplayId = (claim: Claim) => claim.claimNumber || claim.claimId;
 
   const getDescription = () => {
     if (view === 'buyer') return 'عرض وإدارة جميع مطالبات حماية المشتري الخاصة بك';
@@ -264,13 +290,11 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
               className="ps-9"
               wrapperClassName="w-full"
             >
-              <SelectItem value="all">جميع الأنواع (All)</SelectItem>
-              <SelectItem value="item_not_received">لم أستلم السلعة</SelectItem>
-              <SelectItem value="defective">السلعة معيبة</SelectItem>
-              <SelectItem value="not_as_described">لا تطابق الوصف</SelectItem>
-              <SelectItem value="wrong_item">سلعة خاطئة</SelectItem>
-              <SelectItem value="missing_parts">أجزاء ناقصة</SelectItem>
-              <SelectItem value="counterfeit">سلعة مزيفة</SelectItem>
+              {TYPE_FILTER_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
             </Select>
           </div>
         </div>
@@ -324,10 +348,10 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => onSelectClaim?.(claim.claimId)}
                     >
-                      <TableCell className="font-medium">{claim.claimNumber}</TableCell>
+                      <TableCell className="font-medium">{getClaimDisplayId(claim)}</TableCell>
                       <TableCell>{claim.orderId}</TableCell>
                       <TableCell>
-                        <span className="text-sm">{CLAIM_TYPE_LABELS[claim.claimType]}</span>
+                        <span className="text-sm">{getClaimTypeLabel(claim)}</span>
                       </TableCell>
                       <TableCell>{getStatusBadge(claim.status)}</TableCell>
                       {view === 'buyer' && <TableCell>{claim.sellerName}</TableCell>}
@@ -339,7 +363,7 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
                         </>
                       )}
                       <TableCell className="font-medium">
-                        {claim.claimAmount} SAR
+                        {getClaimAmount(claim)} SAR
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(claim.createdAt).toLocaleDateString('ar-SA')}
@@ -373,14 +397,14 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
                   <CardContent className="pt-4 space-y-3">
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="font-medium">#{claim.claimNumber}</p>
+                        <p className="font-medium">#{getClaimDisplayId(claim)}</p>
                         <p className="text-sm text-muted-foreground">Order #{claim.orderId}</p>
                       </div>
                       {getStatusBadge(claim.status)}
                     </div>
                     <div className="space-y-1">
-                      <p className="text-sm">{CLAIM_TYPE_LABELS[claim.claimType]}</p>
-                      <p className="text-sm font-medium">{claim.claimAmount} SAR</p>
+                      <p className="text-sm">{getClaimTypeLabel(claim)}</p>
+                      <p className="text-sm font-medium">{getClaimAmount(claim)} SAR</p>
                     </div>
                     {view === 'buyer' && claim.sellerName && (
                       <p className="text-sm text-muted-foreground">البائع: {claim.sellerName}</p>

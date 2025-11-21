@@ -7,7 +7,8 @@ import { getClientIP } from '@/server/security/headers';
 type ConnectFn = () => Promise<any>;
 
 async function getDatabaseConnection() {
-  const override = (globalThis as any).__connectToDatabaseMock as ConnectFn | undefined;
+  const mock = (globalThis as Record<string, unknown>).__connectToDatabaseMock;
+  const override = typeof mock === 'function' ? (mock as ConnectFn) : undefined;
   if (typeof override === 'function') {
     return override();
   }

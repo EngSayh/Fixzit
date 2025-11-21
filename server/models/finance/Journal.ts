@@ -266,7 +266,8 @@ JournalSchema.pre('save', async function(next) {
 JournalSchema.pre('save', async function(next) {
   if (this.isNew) return next();
 
-  const existing = await (this as any).constructor.findById(this._id).select('status').lean();
+  const journalModel = this.model<IJournal>('Journal');
+  const existing = await journalModel.findById(this._id).select('status').lean();
   if (existing?.status === 'POSTED' && this.isModified()) {
     if (this.status === 'VOID') {
       return next();

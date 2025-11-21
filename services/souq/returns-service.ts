@@ -15,17 +15,13 @@ import { SouqListing as Listing } from '@/server/models/souq/Listing';
 import { inventoryService } from './inventory-service';
 import { fulfillmentService } from './fulfillment-service';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
+import { nanoid } from 'nanoid';
 import mongoose from 'mongoose';
 
 // Helper type for accessing order properties safely
 interface OrderWithDates extends IOrder {
   deliveredAt?: Date;
   updatedAt: Date;
-}
-
-// Helper type for order with referenced IDs
-interface OrderWithRefs extends IOrder {
-  buyerId: mongoose.Types.ObjectId;
 }
 
 interface InitiateReturnParams {
@@ -90,7 +86,7 @@ class ReturnsService {
     reason?: string;
     daysRemaining?: number;
   }> {
-    const order = await Order.findById(orderId);
+    const order = await this.findOrder(orderId);
     if (!order) {
       return { eligible: false, reason: 'Order not found' };
     }
@@ -102,6 +98,9 @@ class ReturnsService {
     // Check return window (30 days from delivery)
     const orderWithDates = order as OrderWithDates;
     const deliveryDate = orderWithDates.deliveredAt || orderWithDates.updatedAt;
+    if (!deliveryDate) {
+      return { eligible: false, reason: 'Delivery date unavailable' };
+    }
     const daysSinceDelivery = Math.floor((Date.now() - deliveryDate.getTime()) / (1000 * 60 * 60 * 24));
     const returnWindow = 30;
 
@@ -111,7 +110,7 @@ class ReturnsService {
 
     // Check if already returned
     const existingRMA = await RMA.findOne({ 
-      orderId, 
+      orderId: order._id.toString(), 
       'items.listingId': listingId,
       status: { $in: ['initiated', 'approved', 'in_transit', 'received', 'inspected'] }
     });
@@ -133,14 +132,12 @@ class ReturnsService {
     const { orderId, buyerId, items, buyerPhotos } = params;
 
     // Validate order
-    const order = await Order.findById(orderId);
+    const order = await this.findOrder(orderId);
     if (!order) {
       throw new Error('Order not found');
     }
 
-    // Type assertion: Order document with ObjectId refs (not populated)
-    const orderWithRefs: OrderWithRefs = order as unknown as OrderWithRefs;
-    if (orderWithRefs.buyerId.toString() !== buyerId) {
+    if (order.customerId.toString() !== buyerId) {
       throw new Error('Unauthorized: Not your order');
     }
 
@@ -154,18 +151,57 @@ class ReturnsService {
       }
     }
 
+    // Build RMA items using order line data to satisfy schema requirements
+    const rmaItems = items.map((item) => {
+      const orderItem = order.items.find((oi) => oi.listingId.toString() === item.listingId);
+      if (!orderItem) {
+        throw new Error(`Item ${item.listingId} not found on order`);
+      }
+
+      return {
+        orderItemId: orderItem.listingId.toString(),
+        listingId: orderItem.listingId.toString(),
+        productId: orderItem.productId.toString(),
+        productName: orderItem.title,
+        quantity: item.quantity,
+        unitPrice: orderItem.pricePerUnit,
+        reason: item.reason,
+        returnReason: this.mapReturnReason(item.reason),
+      };
+    });
+
+    const refundAmount = rmaItems.reduce(
+      (sum, item) => sum + (item.unitPrice * item.quantity),
+      0
+    );
+
+    const orderWithDates = order as OrderWithDates;
+    const deliveryDate = orderWithDates.deliveredAt || orderWithDates.updatedAt || new Date();
+    const returnWindowDays = 30;
+    const returnDeadline = new Date(deliveryDate);
+    returnDeadline.setDate(returnDeadline.getDate() + returnWindowDays);
+
     // Create RMA
     const rma = await RMA.create({
-      orderId: new mongoose.Types.ObjectId(orderId),
-      buyerId: new mongoose.Types.ObjectId(buyerId),
+      rmaId: `RMA-${nanoid(10)}`,
+      orderId: order._id.toString(),
+      orderNumber: order.orderId,
+      buyerId,
       sellerId: sellerId.toString(),
-      items: items.map(item => ({
-        listingId: new mongoose.Types.ObjectId(item.listingId),
-        quantity: item.quantity,
-        reason: item.reason,
-        comments: item.comments
-      })),
+      items: rmaItems,
       status: 'initiated',
+      returnWindowDays,
+      returnDeadline,
+      refund: {
+        amount: refundAmount,
+        method: 'original_payment',
+        status: 'pending'
+      },
+      shipping: { shippingCost: 0, paidBy: 'seller' },
+      buyerNotes: items
+        .map((item) => item.comments)
+        .filter(Boolean)
+        .join('; ') || undefined,
       buyerPhotos: buyerPhotos || [],
       timeline: [{
         status: 'initiated',
@@ -267,16 +303,15 @@ class ReturnsService {
     labelUrl: string;
     carrier: string;
   }> {
-    const rma = await RMA.findById(rmaId).populate('orderId');
+    const rma = await RMA.findById(rmaId);
     if (!rma) {
       throw new Error('RMA not found');
     }
 
-    // Type guard: rma.orderId is populated as IOrder document
-    if (typeof rma.orderId === 'string') {
-      throw new Error('Order not populated');
+    const order = await this.findOrder(rma.orderId);
+    if (!order) {
+      throw new Error('Order not found for RMA');
     }
-    const order = rma.orderId as IOrder;
     
     // Get buyer's address from order
     const _destination = order.shippingAddress;
@@ -311,6 +346,12 @@ class ReturnsService {
 
     const rates = await fulfillmentService.getRates(labelRequest);
     const splRate = rates.find(r => r.carrier === 'SPL') || rates[0];
+    if (!splRate) {
+      throw new Error('No return shipping rates available');
+    }
+    const shippingCost = typeof (splRate as { cost?: unknown }).cost === 'number'
+      ? (splRate as { cost: number }).cost
+      : 0;
 
     // In production, this would call the actual carrier API
     const label = {
@@ -321,7 +362,8 @@ class ReturnsService {
 
     // Update RMA with label info
     rma.shipping = {
-      ...(rma.shipping || { shippingCost: 0, paidBy: 'seller' }),
+      ...(rma.shipping || { shippingCost, paidBy: 'seller' }),
+      shippingCost,
       carrier: label.carrier,
       trackingNumber: label.trackingNumber,
       labelUrl: label.labelUrl,
@@ -454,14 +496,11 @@ class ReturnsService {
    * Calculate refund amount based on inspection
    */
   private async calculateRefundAmount(rmaId: string, condition: string, restockable: boolean): Promise<number> {
-    const rma = await RMA.findById(rmaId).populate('orderId');
+    const rma = await RMA.findById(rmaId);
     if (!rma) return 0;
 
-    // Type guard: rma.orderId is populated as IOrder document
-    if (typeof rma.orderId === 'string') {
-      return 0;
-    }
-    const order = rma.orderId as IOrder;
+    const order = await this.findOrder(rma.orderId);
+    if (!order) return 0;
     
     // Base refund: original item price
     let refundAmount = 0;
@@ -637,9 +676,39 @@ class ReturnsService {
         status: r.status,
         createdAt: r.createdAt,
         items: r.items.length,
-        refundAmount: r.refund?.amount
-      };
-    });
+      refundAmount: r.refund?.amount
+    };
+  });
+  }
+
+  private async findOrder(orderId: string): Promise<IOrder | null> {
+    if (mongoose.Types.ObjectId.isValid(orderId)) {
+      const matchByObjectId = await Order.findById(orderId);
+      if (matchByObjectId) {
+        return matchByObjectId;
+      }
+    }
+    return Order.findOne({ orderId });
+  }
+
+  private mapReturnReason(
+    reason: InitiateReturnParams['items'][number]['reason']
+  ): 'defective' | 'wrong_item' | 'not_as_described' | 'no_longer_needed' | 'damaged_in_shipping' | 'other' {
+    switch (reason) {
+      case 'defective':
+        return 'defective';
+      case 'damaged':
+        return 'damaged_in_shipping';
+      case 'wrong_item':
+        return 'wrong_item';
+      case 'not_as_described':
+        return 'not_as_described';
+      case 'changed_mind':
+      case 'better_price':
+        return 'no_longer_needed';
+      default:
+        return 'other';
+    }
   }
 
   /**
@@ -683,6 +752,19 @@ class ReturnsService {
 
     let completed = 0;
     for (const rma of receivedReturns) {
+      const hasReceivedScan = Array.isArray((rma as { timeline?: Array<{ status?: string }> }).timeline)
+        ? (rma as { timeline: Array<{ status?: string }> }).timeline.some(t => t.status === 'received')
+        : false;
+      if (!hasReceivedScan || !rma.shipping?.trackingNumber) {
+        await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
+          type: 'internal',
+          to: 'inspection-team',
+          priority: 'medium',
+          message: `RMA ${rma._id} skipped auto-complete due to missing receipt confirmation`
+        }, { priority: 3 });
+        continue;
+      }
+
       // Auto-inspect as "good" condition, restockable
       await this.inspectReturn({
         rmaId: rma._id.toString(),

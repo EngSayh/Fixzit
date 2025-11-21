@@ -1,4 +1,4 @@
-import { Schema, Types, Model, InferSchemaType } from "mongoose";
+import { Schema, Types, InferSchemaType, HydratedDocument } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 import { getModel } from '@/src/types/mongoose-compat';
@@ -359,6 +359,8 @@ ServiceProviderSchema.methods.isAvailableAt = function(date: Date): boolean {
   return true;
 };
 
+type ServiceProviderDoc = HydratedDocument<ServiceProvider>;
+
 // Controlled status transitions
 const ALLOWED: Record<TProviderStatus, TProviderStatus[]> = {
   PENDING: ["APPROVED", "REJECTED", "BLACKLISTED"],
@@ -370,6 +372,7 @@ const ALLOWED: Record<TProviderStatus, TProviderStatus[]> = {
 };
 
 ServiceProviderSchema.methods.transitionStatus = async function(
+  this: ServiceProviderDoc,
   next: TProviderStatus,
   actorId?: Types.ObjectId,
   reason?: string
@@ -396,8 +399,8 @@ ServiceProviderSchema.methods.transitionStatus = async function(
   
   try {
     // Use findByIdAndUpdate for atomic operation
-    const ModelClass = (this.constructor as any) as typeof ServiceProviderModel;
-    const updated = await ModelClass.findByIdAndUpdate(
+    const serviceProviderModel = this.model<ServiceProvider>('ServiceProvider');
+    const updated = await serviceProviderModel.findByIdAndUpdate(
       this._id,
       { $set: updateFields },
       { new: true, runValidators: true }

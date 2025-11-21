@@ -271,6 +271,7 @@ export interface AttendanceRecordDoc extends BaseOrgDoc {
   clockIn?: Date;
   clockOut?: Date;
   overtimeMinutes?: number;
+  calculatedOvertime?: number;
   source: 'MANUAL' | 'IMPORT' | 'BIOMETRIC';
   notes?: string;
 }
@@ -303,11 +304,11 @@ AttendanceRecordSchema.virtual('calculatedOvertime').get(function(this: Attendan
   return 0;
 });
 
-AttendanceRecordSchema.pre('save', function(next) {
+AttendanceRecordSchema.pre('save', function(this: AttendanceRecordDoc, next) {
   if (this.clockOut && this.clockIn && this.clockOut <= this.clockIn) {
     return next(new Error('clockOut must be after clockIn'));
   }
-  (this as AttendanceRecordDoc).overtimeMinutes = (this as any).calculatedOvertime || 0;
+  this.overtimeMinutes = this.calculatedOvertime ?? 0;
   next();
 });
 
@@ -348,6 +349,7 @@ export interface LeaveBalanceDoc extends BaseOrgDoc {
   accrued: number;
   taken: number;
   remaining: number;
+  calculatedRemaining?: number;
 }
 
 const LeaveBalanceSchema = new Schema<LeaveBalanceDoc>({
@@ -371,8 +373,8 @@ LeaveBalanceSchema.virtual('calculatedRemaining').get(function(this: LeaveBalanc
   return (this.openingBalance || 0) + (this.accrued || 0) - (this.taken || 0);
 });
 
-LeaveBalanceSchema.pre('save', function(next) {
-  (this as LeaveBalanceDoc).remaining = (this as any).calculatedRemaining || 0;
+LeaveBalanceSchema.pre('save', function(this: LeaveBalanceDoc, next) {
+  this.remaining = this.calculatedRemaining ?? 0;
   next();
 });
 
@@ -457,6 +459,7 @@ interface PayrollLine {
   taxDeduction: number;
   gosiContribution: number;
   netPay: number;
+  calculatedNetPay?: number;
   currency: string;
   notes?: string;
   earnings?: PayrollComponentLine[];
@@ -567,11 +570,18 @@ const PayrollRunSchema = new Schema<PayrollRunDoc>({
 PayrollRunSchema.index({ orgId: 1, periodStart: 1, periodEnd: 1 });
 PayrollRunSchema.plugin(tenantIsolationPlugin);
 
-PayrollRunSchema.pre('save', function(next) {
-  const normalizedLines = (this.lines || []).map((line) => ({
-    ...line,
-    netPay: (line as any).calculatedNetPay ?? line.netPay
-  }));
+PayrollRunSchema.pre('save', function(this: PayrollRunDoc, next) {
+  const normalizedLines = (this.lines || []).map((line) => {
+    const netPay =
+      typeof line.calculatedNetPay === 'number'
+        ? line.calculatedNetPay
+        : line.netPay ?? 0;
+
+    return {
+      ...line,
+      netPay,
+    };
+  });
 
   this.lines = normalizedLines;
 

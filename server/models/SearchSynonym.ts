@@ -10,7 +10,12 @@ const SearchSynonymSchemaDef = {
 
 export const SearchSynonymSchema = new Schema(SearchSynonymSchemaDef, { timestamps: true });
 // Expose raw definition for environments that mock mongoose schema internals
-(SearchSynonymSchema as any).obj = (SearchSynonymSchema as any).obj || SearchSynonymSchemaDef;
+const synonymSchemaWithObj = SearchSynonymSchema as typeof SearchSynonymSchema & {
+  obj?: typeof SearchSynonymSchemaDef;
+};
+if (!synonymSchemaWithObj.obj) {
+  synonymSchemaWithObj.obj = SearchSynonymSchemaDef;
+}
 
 // NOTE: SearchSynonym is global platform configuration (no tenantIsolationPlugin)
 // Apply audit plugin to track who changes synonyms (affects search for all users)
