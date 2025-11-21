@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { ModifyResult } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 import { ModuleKey } from '@/domain/fm/fm.behavior';
@@ -32,6 +33,18 @@ interface ReportJobDocument extends ReportJob {
 
 const COLLECTION = 'fm_report_jobs';
 
+/**
+ * POST /api/fm/reports/process
+ * 
+ * Worker endpoint to claim and process queued report jobs atomically.
+ * Uses findOneAndUpdate for race-safe job claiming (up to 5 jobs per request).
+ * 
+ * Note: Jobs that remain in 'processing' status after worker crashes should be
+ * recovered by a separate cleanup job that resets status back to 'queued' based
+ * on updatedAt timestamp (e.g., older than 10 minutes).
+ * 
+ * @security Requires FM FINANCE/EXPORT permission
+ */
 export async function POST(req: NextRequest) {
   try {
     const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.EXPORT });
@@ -48,7 +61,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Bucket policy/encryption invalid' }, { status: 503 });
     }
     const collection = db.collection<ReportJob>(COLLECTION);
-    const queued = await collection.find({ org_id: tenantId, status: 'queued' }).limit(5).toArray();
+    const queued: ReportJobDocument[] = [];
+    while (queued.length < 5) {
+      const claim = await collection.findOneAndUpdate(
+        { org_id: tenantId, status: 'queued' },
+        { $set: { status: 'processing', updatedAt: new Date() } },
+        { sort: { updatedAt: 1, _id: 1 }, returnDocument: 'after' }
+      ) as ModifyResult<ReportJob>;
+      if (!claim?.value) break;
+      queued.push(claim.value as ReportJobDocument);
+    }
 
     if (!queued.length) {
       return NextResponse.json({ success: true, processed: 0, message: 'No queued jobs' });
@@ -56,12 +78,11 @@ export async function POST(req: NextRequest) {
 
     let processed = 0;
     for (const job of queued) {
-      const jobDoc = job as ReportJobDocument;
+      const jobDoc = job;
       const id = String(jobDoc._id);
       const key = `${tenantId}/reports/${id}.csv`;
 
       try {
-        await collection.updateOne({ _id: jobDoc._id }, { $set: { status: 'processing' } });
         const report = await generateReport({
           id,
           name: jobDoc.name,

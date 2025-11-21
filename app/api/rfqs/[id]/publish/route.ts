@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
+import { Types } from "mongoose";
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
@@ -55,6 +56,11 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     if (!rl.allowed) {
       return rateLimitError();
     }
+
+    if (!Types.ObjectId.isValid(params.id)) {
+      return createSecureResponse({ error: "Invalid RFQ id" }, 400, req);
+    }
+
     await connectToDatabase();
 
     const { RFQ } = await import('@/server/models/RFQ');
@@ -86,6 +92,9 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       }
     });
   } catch (error: unknown) {
+    if (error instanceof UnauthorizedError) {
+      return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    }
     return handleApiError(error);
   }
 }

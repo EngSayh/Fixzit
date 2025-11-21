@@ -9,6 +9,9 @@ type ThemePreference = 'light' | 'dark' | 'system';
 
 interface UserPreferences {
   language?: string;
+  timezone?: string;
+  currency?: string;
+  dateFormat?: string;
   theme?: ThemePreference;
   notifications?: {
     email?: boolean;
@@ -24,8 +27,28 @@ const DEFAULT_NOTIFICATIONS = {
   sms: false,
 };
 
+const NOTIFICATION_KEYS = ['email', 'push', 'sms'] as const;
+
+const normalizeNotifications = (value?: unknown) => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return { ...DEFAULT_NOTIFICATIONS };
+  }
+  const source = value as Record<string, unknown>;
+  const normalized: Record<(typeof NOTIFICATION_KEYS)[number], boolean> = { ...DEFAULT_NOTIFICATIONS };
+  for (const key of NOTIFICATION_KEYS) {
+    const current = source[key];
+    if (typeof current === 'boolean') {
+      normalized[key] = current;
+    }
+  }
+  return normalized;
+};
+
 const DEFAULT_PREFERENCES = {
   language: APP_DEFAULTS.language,
+  timezone: APP_DEFAULTS.timezone,
+  currency: APP_DEFAULTS.currency,
+  dateFormat: 'YYYY-MM-DD',
   theme: APP_DEFAULTS.theme,
   notifications: DEFAULT_NOTIFICATIONS,
 };
@@ -55,10 +78,7 @@ const mapThemeToStorage = (value: ThemePreference): string => {
 
 const normalizePreferencesResponse = (prefs?: Record<string, unknown>) => {
   const language = typeof prefs?.language === 'string' ? prefs.language : DEFAULT_PREFERENCES.language;
-  const notificationsObject =
-    prefs?.notifications && typeof prefs.notifications === 'object' && !Array.isArray(prefs.notifications)
-      ? { ...DEFAULT_NOTIFICATIONS, ...(prefs.notifications as Record<string, unknown>) }
-      : { ...DEFAULT_NOTIFICATIONS };
+  const notificationsObject = normalizeNotifications(prefs?.notifications);
 
   return {
     ...prefs,
@@ -225,14 +245,24 @@ export async function PUT(request: NextRequest) {
     }
 
     if (Object.prototype.hasOwnProperty.call(body, 'notifications')) {
-      if (
-        typeof body.notifications !== 'object' ||
-        body.notifications === null ||
-        Array.isArray(body.notifications)
-      ) {
+      const notificationsInput = body.notifications;
+      if (typeof notificationsInput !== 'object' || notificationsInput === null || Array.isArray(notificationsInput)) {
         return NextResponse.json({ error: 'Notifications must be an object' }, { status: 400 });
       }
-      sanitizedUpdates.notifications = body.notifications;
+      const notificationUpdates: Partial<Record<(typeof NOTIFICATION_KEYS)[number], boolean>> = {};
+      for (const [key, value] of Object.entries(notificationsInput)) {
+        if (!NOTIFICATION_KEYS.includes(key as (typeof NOTIFICATION_KEYS)[number])) {
+          return NextResponse.json({ error: `Invalid notification key: ${key}` }, { status: 400 });
+        }
+        if (typeof value !== 'boolean') {
+          return NextResponse.json(
+            { error: `Notification setting '${key}' must be a boolean` },
+            { status: 400 }
+          );
+        }
+        notificationUpdates[key as (typeof NOTIFICATION_KEYS)[number]] = value;
+      }
+      sanitizedUpdates.notifications = notificationUpdates;
     }
 
     if (Object.prototype.hasOwnProperty.call(body, 'theme')) {
@@ -243,7 +273,16 @@ export async function PUT(request: NextRequest) {
           { status: 400 }
         );
       }
-      sanitizedUpdates.theme = mapThemeToStorage(normalizedTheme);
+      const themeForStorage = mapThemeToStorage(normalizedTheme);
+      // Validate that the storage format is one of the expected enum values
+      if (!['LIGHT', 'DARK', 'SYSTEM'].includes(themeForStorage)) {
+        logger.error('Theme mapping produced invalid storage value', { normalizedTheme, themeForStorage });
+        return NextResponse.json(
+          { error: 'Theme processing error' },
+          { status: 500 }
+        );
+      }
+      sanitizedUpdates.theme = themeForStorage;
     }
     
     if (process.env.ALLOW_OFFLINE_MONGODB === 'true') {
@@ -259,7 +298,29 @@ export async function PUT(request: NextRequest) {
     }
     
     const currentPreferences = user.preferences || {};
-    user.preferences = deepMerge({}, currentPreferences, sanitizedUpdates) as UserPreferences;
+    const merged = deepMerge(
+      {},
+      DEFAULT_PREFERENCES,
+      currentPreferences,
+      sanitizedUpdates
+    ) as UserPreferences;
+    merged.timezone = merged.timezone ?? APP_DEFAULTS.timezone;
+    merged.language = merged.language ?? APP_DEFAULTS.language;
+    merged.theme = merged.theme ?? APP_DEFAULTS.theme;
+    merged.notifications = merged.notifications ?? { ...DEFAULT_NOTIFICATIONS };
+    // Assign merged preferences, ensuring compatibility with User model schema
+    // Note: merged.theme is ThemePreference ('light' | 'dark' | 'system') 
+    // but User model expects uppercase storage format ('LIGHT' | 'DARK' | 'SYSTEM')
+    const themeValue = typeof merged.theme === 'string' ? merged.theme.toUpperCase() : undefined;
+    user.preferences = {
+      ...merged,
+      timezone: merged.timezone ?? APP_DEFAULTS.timezone,
+      language: merged.language ?? APP_DEFAULTS.language,
+      theme: (themeValue === 'LIGHT' || themeValue === 'DARK' || themeValue === 'SYSTEM') 
+        ? themeValue 
+        : mapThemeToStorage(APP_DEFAULTS.theme),
+      notifications: merged.notifications ?? { ...DEFAULT_NOTIFICATIONS }
+    };
     
     await user.save();
 

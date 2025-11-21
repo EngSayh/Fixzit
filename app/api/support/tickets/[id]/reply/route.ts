@@ -38,7 +38,7 @@ const schema = z.object({ text: z.string().min(1) });
  */
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
-  
+
   // Authenticate user first
   const user = await getSessionUser(req).catch(() => null);
   if (!user) {
@@ -51,12 +51,19 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     return rateLimitError();
   }
 
-  await connectToDatabase();
-  const body = schema.parse(await req.json());
+  // Validate payload early to avoid DB work on bad requests
+  const parsedBody = schema.safeParse(await req.json());
+  if (!parsedBody.success) {
+    return createSecureResponse({ error: 'Invalid body', details: parsedBody.error.format() }, 400, req);
+  }
+
   // Validate MongoDB ObjectId format
-  if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
+  if (!Types.ObjectId.isValid(params.id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
+
+  await connectToDatabase();
+
   const creatorMatch = user?.id ? [{ createdBy: Types.ObjectId.isValid(user.id) ? new Types.ObjectId(user.id) : user.id }] : [];
   const adminMatch = user && ["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [];
   const t = await SupportTicket.findOne({ 
@@ -75,20 +82,24 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   const isOwner = !!user && ticketTyped.createdBy?.toString?.() === user.id;
   if (!isAdmin && !isOwner) return createSecureResponse({ error: "Forbidden"}, 403, req);
 
-  const ticketDoc = t as unknown as {
-    messages: Array<{ byUserId?: string; byRole: string; text: string; at: Date }>;
-    status?: string;
+  // Use atomic $push to prevent race conditions when multiple users reply simultaneously
+  const updateOps: Record<string, unknown> = {
+    $push: {
+      messages: {
+        byUserId: user?.id,
+        byRole: isAdmin ? "ADMIN" : "USER",
+        text: parsedBody.data.text,
+        at: new Date()
+      }
+    }
   };
-  ticketDoc.messages ??= [];
-  ticketDoc.messages.push({
-    byUserId: user?.id,
-    byRole: isAdmin ? "ADMIN" : "USER",
-    text: body.text,
-    at: new Date()
-  });
+  
+  // Conditionally update status if currently "Waiting"
+  const ticketDoc = t as unknown as { status?: string };
   if (ticketDoc.status === "Waiting") {
-    ticketDoc.status = "Open";
+    updateOps.$set = { status: "Open", updatedAt: new Date() };
   }
-  await t.save();
+  
+  await SupportTicket.updateOne({ _id: params.id }, updateOps);
   return createSecureResponse({ ok: true }, 200, req);
 }

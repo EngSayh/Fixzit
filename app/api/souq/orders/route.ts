@@ -201,21 +201,20 @@ export async function POST(request: NextRequest) {
         return SouqErrors.forbidden('Cannot create orders for another seller');
       }
 
-      if (listing.availableQuantity < itemRequest.quantity) {
+      const availableQty =
+        typeof listing.availableQuantity === 'number' ? listing.availableQuantity : 0;
+      if (availableQty < itemRequest.quantity) {
         await releaseReservations();
         return SouqErrors.conflict('Insufficient stock', {
           listingId: listing._id.toString(),
           requested: itemRequest.quantity,
-          available: listing.availableQuantity,
+          available: availableQty,
         });
       }
 
-      const listingDoc = listing as unknown as {
-        reserveStock?: (_quantity: number) => Promise<boolean>;
-        availableQuantity?: number;
-        reservedQuantity?: number;
-        save?: () => Promise<unknown>;
-        releaseStock?: (_quantity: number) => Promise<void>;
+      const listingDoc: ListingDocument = {
+        ...(listing as unknown as Record<string, unknown>),
+        _id: listing._id as Types.ObjectId,
       };
       const { success, manualFallback } = await reserveStockForListing(
         listingDoc,
@@ -233,7 +232,8 @@ export async function POST(request: NextRequest) {
         manualFallback,
       });
 
-      const itemSubtotal = listing.price * itemRequest.quantity;
+      const pricePerUnit = typeof listing.price === 'number' ? listing.price : 0;
+      const itemSubtotal = pricePerUnit * itemRequest.quantity;
       subtotal += itemSubtotal;
 
       orderItems.push({
@@ -248,7 +248,7 @@ export async function POST(request: NextRequest) {
             ? (listing.productId as { title?: string }).title ?? 'Product'
             : 'Product',
         quantity: itemRequest.quantity,
-        pricePerUnit: listing.price,
+        pricePerUnit,
         subtotal: itemSubtotal,
         fulfillmentMethod: listing.fulfillmentMethod,
         status: 'pending',

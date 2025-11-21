@@ -273,8 +273,8 @@ async function handleChargeFailed(event: TapWebhookEvent, correlationId: string)
     status: charge.status,
     amount: charge.amount,
     customerEmail: charge.customer.email,
-    responseCode: charge.response.code,
-    responseMessage: charge.response.message,
+    responseCode: charge.response?.code,
+    responseMessage: charge.response?.message,
   });
 
   const transaction = await upsertTransactionFromCharge(event.type, charge, correlationId, {
@@ -330,8 +330,8 @@ async function handleRefundFailed(event: TapWebhookEvent, correlationId: string)
     refundId: refund.id,
     chargeId: refund.charge,
     amount: refund.amount,
-    responseCode: refund.response.code,
-    responseMessage: refund.response.message,
+    responseCode: refund.response?.code,
+    responseMessage: refund.response?.message,
   });
 
   await updateRefundRecord(refund, 'FAILED', correlationId);

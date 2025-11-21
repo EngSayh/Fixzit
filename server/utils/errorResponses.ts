@@ -2,6 +2,7 @@ import { ZodError } from 'zod';
 import { createSecureResponse } from '@/server/security/headers';
 import { NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { UnauthorizedError } from '@/server/middleware/withAuthRbac';
 
 export interface ErrorResponse {
   error: string;
@@ -130,7 +131,11 @@ export function handleApiError(error: unknown): NextResponse {
   if (error instanceof ApiError) {
     return createErrorResponse(error.message, error.statusCode, error.details, error.code);
   }
-  
+
+  if (error instanceof UnauthorizedError) {
+    return unauthorizedError();
+  }
+
   if (error instanceof ZodError) {
     return handleZodError(error);
   }
@@ -138,11 +143,14 @@ export function handleApiError(error: unknown): NextResponse {
   if (error instanceof Error) {
     // Log the full error but return generic message
     // SECURITY: Never expose stack traces or internal details to clients in production
+    const isProd = process.env.NODE_ENV === 'production';
     logger.error('Unhandled API error', {
       name: error.name,
-      message: error.message,
-      stack: process.env.NODE_ENV === 'production' ? '[REDACTED]' : error.stack,
-      timestamp: new Date().toISOString()
+      message: isProd ? '[REDACTED]' : error.message,
+      stack: isProd ? '[REDACTED]' : error.stack,
+      timestamp: new Date().toISOString(),
+      // Keep error code/type for debugging even in production
+      errorCode: error.name
     });
     
     return internalServerError();
