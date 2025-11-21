@@ -4,6 +4,12 @@ import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
 import { auditPlugin } from '@/server/plugins/auditPlugin';
 import { Role } from '@/domain/fm/fm.behavior';
 
+// Ensure tests use this schema even if another User model was registered earlier.
+if (process.env.NODE_ENV === 'test' && mongoose.models.User) {
+  delete mongoose.models.User;
+  delete (mongoose as typeof mongoose & { modelSchemas?: Record<string, unknown> }).modelSchemas?.User;
+}
+
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   orgId: string; // Changed to string to match plugin type
