@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectItem } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 import {
   Table,
   TableBody,
@@ -21,6 +22,7 @@ import {
   FileText,
   Filter,
   MessageSquare,
+  Package,
   Search,
   XCircle,
 } from 'lucide-react';
@@ -43,6 +45,7 @@ interface ClaimListProps {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ComponentType<{ className?: string }> }> = {
+  // Legacy UI keys
   filed: { label: 'تم التقديم', variant: 'default', icon: FileText },
   'seller-notified': { label: 'تم إشعار البائع', variant: 'secondary', icon: MessageSquare },
   'under-investigation': { label: 'قيد التحقيق', variant: 'secondary', icon: Clock },
@@ -54,7 +57,36 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secon
   rejected: { label: 'مرفوض', variant: 'destructive', icon: XCircle },
   'under-appeal': { label: 'قيد الاستئناف', variant: 'secondary', icon: AlertCircle },
   closed: { label: 'مغلق', variant: 'outline', icon: CheckCircle2 },
+  // Backend statuses
+  pending_review: { label: 'بانتظار المراجعة', variant: 'secondary', icon: Clock },
+  under_review: { label: 'قيد المراجعة', variant: 'secondary', icon: Clock },
+  pending_investigation: { label: 'قيد التحقيق', variant: 'secondary', icon: Clock },
+  pending_evidence: { label: 'بانتظار الأدلة', variant: 'secondary', icon: Clock },
+  approved_backend: { label: 'تمت الموافقة', variant: 'default', icon: CheckCircle2 },
+  resolved_refund_full: { label: 'استرجاع كامل', variant: 'default', icon: CheckCircle2 },
+  resolved_refund_partial: { label: 'استرجاع جزئي', variant: 'default', icon: CheckCircle2 },
+  resolved_replacement: { label: 'استبدال', variant: 'default', icon: Package },
+  escalated: { label: 'تصعيد', variant: 'secondary', icon: AlertCircle },
+  under_appeal: { label: 'قيد الاستئناف', variant: 'secondary', icon: AlertCircle },
+  withdrawn: { label: 'تم السحب', variant: 'outline', icon: XCircle },
 };
+
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: 'جميع الحالات (All)' },
+  { value: 'pending_review', label: 'بانتظار المراجعة' },
+  { value: 'pending_seller_response', label: 'بانتظار رد البائع' },
+  { value: 'under_review', label: 'قيد المراجعة' },
+  { value: 'pending_investigation', label: 'قيد التحقيق' },
+  { value: 'resolved_refund_full', label: 'استرجاع كامل' },
+  { value: 'resolved_refund_partial', label: 'استرجاع جزئي' },
+  { value: 'resolved_replacement', label: 'استبدال' },
+  { value: 'rejected', label: 'مرفوض' },
+  { value: 'approved', label: 'تمت الموافقة' },
+  { value: 'closed', label: 'مغلق' },
+  { value: 'under_appeal', label: 'قيد الاستئناف' },
+  { value: 'escalated', label: 'تصعيد' },
+  { value: 'withdrawn', label: 'تم السحب' },
+];
 
 const CLAIM_TYPE_OPTIONS = [
   { value: 'item_not_received', label: 'لم أستلم السلعة (Item Not Received)' },
@@ -79,6 +111,7 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 10;
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchClaims();
@@ -108,19 +141,34 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
         const data = await response.json();
         setClaims(data.claims);
         setTotalPages(data.totalPages);
+      } else {
+        // Show user-friendly error message
+        const payload = await response.json().catch(() => ({}));
+        toast({
+          title: 'فشل في تحميل المطالبات (Failed to load claims)',
+          description:
+            payload?.error ||
+            'حدث خطأ أثناء تحميل المطالبات. يرجى المحاولة مرة أخرى. (An error occurred while loading claims. Please try again.)',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Failed to fetch claims:', error);
       }
-      // TODO: Show user-friendly error toast/notification
+      // Show user-friendly error notification
+      toast({
+        title: 'خطأ في الاتصال (Connection Error)',
+        description: 'تعذر الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى. (Unable to connect to server. Please check your internet connection and try again.)',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const getStatusBadge = (status: string) => {
-    const config = STATUS_CONFIG[status] || STATUS_CONFIG.filed;
+    const config = STATUS_CONFIG[status] || STATUS_CONFIG['pending_review'] || STATUS_CONFIG.filed;
     const Icon = config.icon;
     return (
       <Badge variant={config.variant} className="flex items-center gap-1 w-fit">
@@ -198,14 +246,11 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
               wrapperClassName="w-full"
             >
               <SelectItem value="all">جميع الحالات (All)</SelectItem>
-              <SelectItem value="filed">تم التقديم</SelectItem>
-              <SelectItem value="under-investigation">قيد التحقيق</SelectItem>
-              <SelectItem value="pending-seller-response">بانتظار رد البائع</SelectItem>
-              <SelectItem value="seller-responded">رد البائع</SelectItem>
-              <SelectItem value="approved">تمت الموافقة</SelectItem>
-              <SelectItem value="rejected">مرفوض</SelectItem>
-              <SelectItem value="under-appeal">قيد الاستئناف</SelectItem>
-              <SelectItem value="closed">مغلق</SelectItem>
+              {STATUS_FILTER_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
             </Select>
           </div>
 

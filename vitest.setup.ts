@@ -1,5 +1,6 @@
 // Global test setup for Vitest with Jest compatibility
 import React from 'react';
+import { TextEncoder, TextDecoder } from 'node:util';
 import { render } from '@testing-library/react';
 import { SessionProvider } from 'next-auth/react';
 import { TranslationProvider } from '@/contexts/TranslationContext';
@@ -14,6 +15,17 @@ import * as ClaimEvidenceRoute from '@/app/api/souq/claims/[id]/evidence/route';
 import * as ClaimResponseRoute from '@/app/api/souq/claims/[id]/response/route';
 import * as ClaimDecisionRoute from '@/app/api/souq/claims/[id]/decision/route';
 import * as ClaimAppealRoute from '@/app/api/souq/claims/[id]/appeal/route';
+
+// Keep logging lightweight in tests; default to console if structured logger is unavailable.
+const logger = console;
+
+// Polyfill TextEncoder/TextDecoder for environments where global objects are missing
+if (typeof globalThis.TextEncoder === 'undefined') {
+  globalThis.TextEncoder = TextEncoder;
+}
+if (typeof globalThis.TextDecoder === 'undefined') {
+  globalThis.TextDecoder = TextDecoder as unknown as typeof globalThis.TextDecoder;
+}
 
 declare global {
   var jest: typeof vi | undefined;
@@ -333,6 +345,33 @@ globalThis.fetch = mockFetch;
 // --- MongoDB Memory Server Setup ---
 const shouldUseInMemoryMongo = process.env.SKIP_GLOBAL_MONGO !== 'true';
 let mongoServer: MongoMemoryServer | undefined;
+const mongoStartAttempts = Number(process.env.MONGO_MEMORY_ATTEMPTS || '3');
+
+async function startMongoMemoryServer() {
+  for (let attempt = 1; attempt <= mongoStartAttempts; attempt++) {
+    try {
+      mongoServer = await MongoMemoryServer.create({
+        instance: {
+          dbName: 'fixzit-test',
+          launchTimeout: MONGO_MEMORY_LAUNCH_TIMEOUT_MS,
+          port: 0, // let the server choose a free port
+        },
+      });
+      return mongoServer;
+    } catch (_error: unknown) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const message = error.message || '';
+      const isPortInUse = message.includes('Port') && message.includes('in use');
+      if (isPortInUse && attempt < mongoStartAttempts) {
+        logger.warn(`MongoMemoryServer port conflict (attempt ${attempt}). Retrying...`);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('Failed to start MongoMemoryServer after retries');
+}
 
 /**
  * Start MongoDB Memory Server before all tests
@@ -343,15 +382,13 @@ beforeAll(async () => {
     return;
   }
   try {
-    // Start MongoDB Memory Server
-    mongoServer = await MongoMemoryServer.create({
-      instance: {
-        dbName: 'fixzit-test',
-        launchTimeout: MONGO_MEMORY_LAUNCH_TIMEOUT_MS,
-        // Explicitly request a random available port to avoid collisions
-        port: 0,
-      },
-    });
+    if (!mongoServer) {
+      await startMongoMemoryServer();
+    }
+    
+    if (!mongoServer) {
+      throw new Error('Failed to start MongoDB Memory Server');
+    }
     
     const mongoUri = mongoServer.getUri();
     process.env.MONGODB_URI = mongoUri;
@@ -365,7 +402,7 @@ beforeAll(async () => {
       autoIndex: true,
     });
     
-    console.log('✅ MongoDB Memory Server started:', mongoUri);
+    logger.debug('✅ MongoDB Memory Server started:', { mongoUri });
   } catch (error) {
     console.error('❌ Failed to start MongoDB Memory Server:', error);
     throw error;
@@ -410,7 +447,7 @@ afterAll(async () => {
     // Stop MongoDB Memory Server
     if (mongoServer) {
       await mongoServer.stop();
-      console.log('✅ MongoDB Memory Server stopped');
+      console.log('MongoDB Memory Server stopped');
     }
   } catch (error) {
     console.error('❌ Failed to stop MongoDB Memory Server:', error);

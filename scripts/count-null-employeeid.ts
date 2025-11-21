@@ -11,7 +11,7 @@ async function count() {
     }).select('email username code employeeId').lean();
     
     console.log(`Found ${users.length} users with orgId=68dc8955a1ba6ed80ff372dc and employeeId=null:`);
-    users.forEach((u: any) => {
+    users.forEach((u) => {
       console.log(`  ${u.code || 'NO_CODE'} | ${u.username || 'NO_USERNAME'} | ${u.email} | employeeId: ${u.employeeId}`);
     });
     

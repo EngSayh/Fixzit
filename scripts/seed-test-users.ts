@@ -34,16 +34,16 @@ async function seedTestUsers() {
     console.log('🧪 Seeding test users...\n');
     let created = 0, updated = 0, skipped = 0;
     for (const userData of normalizedUsers) {
-      const existingUser = await (User as any).findOne({ email: userData.email });
+      const existingUser = await User.findOne({ email: userData.email });
       const hashedPassword = await hashPassword(userData.password);
       const userWithHashedPassword = { ...userData, password: hashedPassword };
       if (existingUser) {
-        await (User as any).updateOne({ _id: existingUser._id }, { $set: { password: hashedPassword, status: 'ACTIVE', username: userData.username, role: userData.professional.role, 'professional.role': userData.professional.role, employeeId: userData.employeeId, 'employment.employeeId': userData.employment.employeeId, isSuperAdmin: userData.isSuperAdmin || false } });
+        await User.updateOne({ _id: existingUser._id }, { $set: { password: hashedPassword, status: 'ACTIVE', username: userData.username, role: userData.professional.role, 'professional.role': userData.professional.role, employeeId: userData.employeeId, 'employment.employeeId': userData.employment.employeeId, isSuperAdmin: userData.isSuperAdmin || false } });
         console.log(`✅ Updated: ${userData.email} (${userData.professional.role})`);
         updated++;
       } else {
         try {
-          await (User as any).create(userWithHashedPassword);
+          await User.create(userWithHashedPassword);
           console.log(`✅ Created: ${userData.email} (${userData.professional.role})`);
           created++;
         } catch (error: unknown) {

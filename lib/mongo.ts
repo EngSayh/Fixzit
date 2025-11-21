@@ -36,7 +36,7 @@ interface Collection {
   findOne: (query: Record<string, unknown>) => Promise<unknown>;
   insertOne: (doc: Record<string, unknown>) => Promise<unknown>;
   insertMany: (docs: Record<string, unknown>[]) => Promise<unknown>;
-  updateOne: (filter: Record<string, unknown>, update: Record<string, unknown>) => Promise<unknown>;
+  updateOne: (filter: Record<string, unknown>, update: Record<string, unknown>, options?: Record<string, unknown>) => Promise<unknown>;
   updateMany: (filter: Record<string, unknown>, update: Record<string, unknown>) => Promise<unknown>;
   deleteOne: (filter: Record<string, unknown>) => Promise<unknown>;
   deleteMany: (filter: Record<string, unknown>) => Promise<unknown>;

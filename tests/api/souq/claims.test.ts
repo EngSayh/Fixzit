@@ -42,11 +42,17 @@ describe('Claims API - Core Functionality', () => {
     await db.collection('claims').deleteMany({ testData: true });
     await db.collection('orders').deleteMany({ testData: true });
     await db.collection('users').deleteMany({ testData: true });
+    const orgId = new ObjectId();
+    const buyerCode = new ObjectId().toHexString();
+    const sellerCode = new ObjectId().toHexString();
 
     // Create test users
     const buyerResult = await db.collection('users').insertOne({
       email: 'buyer@test.com',
       role: 'tenant',
+      orgId,
+      code: buyerCode,
+      username: 'buyer_user',
       testData: true,
       createdAt: new Date(),
     });
@@ -55,6 +61,9 @@ describe('Claims API - Core Functionality', () => {
     const sellerResult = await db.collection('users').insertOne({
       email: 'seller@test.com',
       role: 'vendor',
+      orgId,
+      code: sellerCode,
+      username: 'seller_user',
       testData: true,
       createdAt: new Date(),
     });

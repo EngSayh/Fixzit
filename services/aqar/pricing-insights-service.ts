@@ -8,11 +8,12 @@ import {
   ListingIntent,
   PropertyType,
 } from '@/models/aqar/Listing';
-import type { FilterQuery, Model, PipelineStage } from 'mongoose';
+import type { FilterQuery, PipelineStage } from 'mongoose';
 import { Types } from 'mongoose';
 
 const PRICE_BUCKETS = [0, 250_000, 500_000, 1_000_000, 2_000_000, 4_000_000, 8_000_000];
-const listingModel = AqarListing as unknown as Model<IListing>;
+// AqarListing is already typed as Model<IListing> from the import
+const listingModel = AqarListing;
 
 export interface PricingInsightRequest {
   city?: string;

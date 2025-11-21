@@ -13,10 +13,11 @@ import {
   PropertyType,
   SmartHomeLevel,
 } from '@/models/aqar/Listing';
-import type { FilterQuery, Model } from 'mongoose';
+import type { FilterQuery } from 'mongoose';
 import { Types } from 'mongoose';
 
-const listingModel = AqarListing as unknown as Model<IListing>;
+// AqarListing is already typed as Model<IListing> from the import
+const listingModel = AqarListing;
 
 export type RecommendationBadge =
   | 'smart-home'

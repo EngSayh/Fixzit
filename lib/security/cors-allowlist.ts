@@ -11,7 +11,7 @@ const STATIC_ALLOWED_ORIGINS = [
 
 const DEV_ALLOWED_ORIGINS = ['http://localhost:3000', 'http://localhost:3001'] as const;
 
-function parseOrigins(value?: string | null): string[] {
+export function parseOrigins(value?: string | null): string[] {
   if (!value) return [];
   return value
     .split(',')

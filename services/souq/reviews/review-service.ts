@@ -8,6 +8,7 @@ import { SouqOrder } from '@/server/models/souq/Order';
 import { SouqProduct } from '@/server/models/souq/Product';
 import { nanoid } from 'nanoid';
 import type mongoose from 'mongoose';
+import { Types } from 'mongoose';
 
 export interface CreateReviewDto {
   productId: string;
@@ -262,7 +263,7 @@ class ReviewService {
     review.sellerResponse = {
       content,
       respondedAt: new Date(),
-      respondedBy: sellerId as unknown as mongoose.Types.ObjectId,
+      respondedBy: new Types.ObjectId(sellerId),
     };
 
     await review.save();

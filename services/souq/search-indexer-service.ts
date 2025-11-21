@@ -305,12 +305,14 @@ export class SearchIndexerService {
     const { getDatabase } = await import('@/lib/mongodb-unified');
     const db = await getDatabase();
     
-    return await db
-      .collection('souq_listings')
+    const results = await db
+      .collection<SouqListing>('souq_listings')
       .find({ status: 'active' })
       .skip(offset)
       .limit(limit)
-      .toArray() as unknown as SouqListing[];
+      .toArray();
+    
+    return results;
   }
 
   /**
@@ -320,9 +322,11 @@ export class SearchIndexerService {
     const { getDatabase } = await import('@/lib/mongodb-unified');
     const db = await getDatabase();
     
-    return await db
-      .collection('souq_listings')
-      .findOne({ listingId }) as unknown as SouqListing | null;
+    const result = await db
+      .collection<SouqListing>('souq_listings')
+      .findOne({ listingId });
+    
+    return result;
   }
 
   /**
@@ -332,12 +336,14 @@ export class SearchIndexerService {
     const { getDatabase } = await import('@/lib/mongodb-unified');
     const db = await getDatabase();
     
-    return await db
-      .collection('souq_sellers')
+    const results = await db
+      .collection<SouqSeller>('souq_sellers')
       .find({ status: 'active' })
       .skip(offset)
       .limit(limit)
-      .toArray() as unknown as SouqSeller[];
+      .toArray();
+    
+    return results;
   }
 
   /**
@@ -347,9 +353,11 @@ export class SearchIndexerService {
     const { getDatabase } = await import('@/lib/mongodb-unified');
     const db = await getDatabase();
     
-    return await db
-      .collection('souq_sellers')
-      .findOne({ sellerId }) as unknown as SouqSeller | null;
+    const result = await db
+      .collection<SouqSeller>('souq_sellers')
+      .findOne({ sellerId });
+    
+    return result;
   }
 
   /**
@@ -367,14 +375,14 @@ export class SearchIndexerService {
     const sellerIds = listings.map(l => l.sellerId);
 
     const products = await db
-      .collection('souq_products')
+      .collection<SouqProduct>('souq_products')
       .find({ fsin: { $in: productIds } })
-      .toArray() as unknown as SouqProduct[];
+      .toArray();
 
     const sellers = await db
-      .collection('souq_sellers')
+      .collection<SouqSeller>('souq_sellers')
       .find({ sellerId: { $in: sellerIds } })
-      .toArray() as unknown as SouqSeller[];
+      .toArray();
 
     // Create lookup maps
     const productMap = new Map(products.map(p => [p.fsin, p]));

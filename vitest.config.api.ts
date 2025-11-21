@@ -21,12 +21,24 @@ const sharedProjectConfig = {
   testTimeout: 600000, // 10 minutes - MongoMemoryServer tests need extended timeout
   hookTimeout: 120000, // 2 minutes - MongoDB Memory Server setup/teardown
   teardownTimeout: 30000, // 30 seconds - cleanup connections
+  env: {
+    NEXTAUTH_SECRET: 'test-secret',
+    AUTH_SECRET: 'test-secret',
+    NEXTAUTH_URL: 'http://localhost:3000',
+    SKIP_ENV_VALIDATION: 'true',
+  },
+  server: {
+    deps: {
+      inline: ['next-auth', 'next'],
+    },
+  },
 };
 
 const sharedViteConfig = {
   resolve: {
     alias: {
       '@': path.resolve(__dirname),
+      'next/server': 'next/server.js',
     },
   },
 };

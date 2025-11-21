@@ -10,11 +10,24 @@
 
 import { SouqRMA as RMA } from '@/server/models/souq/RMA';
 import { SouqOrder as Order } from '@/server/models/souq/Order';
+import type { IOrder } from '@/server/models/souq/Order';
 import { SouqListing as Listing } from '@/server/models/souq/Listing';
 import { inventoryService } from './inventory-service';
 import { fulfillmentService } from './fulfillment-service';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 import mongoose from 'mongoose';
+
+// Helper type for accessing order properties safely
+interface OrderWithDates extends IOrder {
+  deliveredAt?: Date;
+  updatedAt: Date;
+}
+
+// Helper type for order with referenced IDs
+interface OrderWithRefs extends IOrder {
+  buyerId: mongoose.Types.ObjectId;
+  sellerId: mongoose.Types.ObjectId;
+}
 
 interface InitiateReturnParams {
   orderId: string;
@@ -69,7 +82,8 @@ class ReturnsService {
     }
 
     // Check return window (30 days from delivery)
-    const deliveryDate = (order as unknown as { deliveredAt?: Date; updatedAt: Date }).deliveredAt || order.updatedAt;
+    const orderWithDates = order as OrderWithDates;
+    const deliveryDate = orderWithDates.deliveredAt || orderWithDates.updatedAt;
     const daysSinceDelivery = Math.floor((Date.now() - deliveryDate.getTime()) / (1000 * 60 * 60 * 24));
     const returnWindow = 30;
 
@@ -106,7 +120,9 @@ class ReturnsService {
       throw new Error('Order not found');
     }
 
-    if ((order as unknown as { buyerId: { toString(): string } }).buyerId.toString() !== buyerId) {
+    // Type assertion: Order document with ObjectId refs (not populated)
+    const orderWithRefs: OrderWithRefs = order as unknown as OrderWithRefs;
+    if (orderWithRefs.buyerId.toString() !== buyerId) {
       throw new Error('Unauthorized: Not your order');
     }
 
@@ -122,7 +138,7 @@ class ReturnsService {
     const rma = await RMA.create({
       orderId: new mongoose.Types.ObjectId(orderId),
       buyerId: new mongoose.Types.ObjectId(buyerId),
-      sellerId: (order as unknown as { sellerId: mongoose.Types.ObjectId }).sellerId,
+      sellerId: orderWithRefs.sellerId,
       items: items.map(item => ({
         listingId: new mongoose.Types.ObjectId(item.listingId),
         quantity: item.quantity,
@@ -149,7 +165,7 @@ class ReturnsService {
     // Notify seller
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
       type: 'email',
-      to: (order as unknown as { sellerId: { toString(): string } }).sellerId.toString(),
+      to: orderWithRefs.sellerId.toString(),
       template: 'return_initiated',
       data: { rmaId: rma._id.toString(), orderId, items }
     });
@@ -236,17 +252,22 @@ class ReturnsService {
       throw new Error('RMA not found');
     }
 
-    const order = rma.orderId as unknown as { _id: unknown; shippingAddress: unknown };
+    // Type guard: rma.orderId is populated as IOrder document
+    if (typeof rma.orderId === 'string') {
+      throw new Error('Order not populated');
+    }
+    const order = rma.orderId as IOrder;
     
     // Get buyer's address from order
     const _destination = order.shippingAddress;
     
     // Get seller's address (or warehouse for FBF)
     const listing = await Listing.findById(rma.items[0].listingId);
-    const origin = (listing as unknown as { warehouseAddress?: { name?: string; street?: string; city?: string; state?: string; postalCode?: string; country?: string } })?.warehouseAddress || {
+    // warehouseLocation is a string field, not an address object
+    const origin = {
       name: 'Fixzit Returns Center',
       street: '123 Warehouse St',
-      city: 'Riyadh',
+      city: listing?.warehouseLocation || 'Riyadh',
       state: 'Riyadh Province',
       postalCode: '11564',
       country: 'SA'
@@ -416,16 +437,20 @@ class ReturnsService {
     const rma = await RMA.findById(rmaId).populate('orderId');
     if (!rma) return 0;
 
-    const order = rma.orderId as unknown as { items: Array<{ listingId: unknown; price: number; quantity: number }> };
+    // Type guard: rma.orderId is populated as IOrder document
+    if (typeof rma.orderId === 'string') {
+      return 0;
+    }
+    const order = rma.orderId as IOrder;
     
     // Base refund: original item price
     let refundAmount = 0;
     for (const item of rma.items) {
       const orderItem = order.items.find((oi) =>
-        String((oi.listingId as { toString(): string }).toString()) === item.listingId.toString()
+        oi.listingId.toString() === item.listingId.toString()
       );
       if (orderItem) {
-        refundAmount += orderItem.price * item.quantity;
+        refundAmount += orderItem.pricePerUnit * item.quantity;
       }
     }
 

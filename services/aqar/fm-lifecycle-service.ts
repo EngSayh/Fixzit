@@ -8,10 +8,10 @@ import {
 } from '@/models/aqar/Listing';
 import { generateZATCAQR } from '@/lib/zatca';
 import { create as createWorkOrder } from '@/server/work-orders/wo.service';
-import type { Model } from 'mongoose';
 import { Types } from 'mongoose';
 
-const listingModel = AqarListing as unknown as Model<IListing>;
+// AqarListing is already typed as Model<IListing> from the import
+const listingModel = AqarListing;
 
 const isDevEnvironment = ['development', 'test'].includes(process.env.NODE_ENV || '');
 

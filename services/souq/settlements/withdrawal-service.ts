@@ -243,12 +243,12 @@ export class WithdrawalService {
   ): Promise<Withdrawal[]> {
     const db = await getDatabase();
     const withdrawals = await db
-      .collection(this.COLLECTION)
+      .collection<Withdrawal>(this.COLLECTION)
       .find({ sellerId })
       .sort({ createdAt: -1 })
       .limit(limit)
       .toArray();
-    return withdrawals as unknown as Withdrawal[];
+    return withdrawals;
   }
 
   private static isPayTabsEnabled(): boolean {

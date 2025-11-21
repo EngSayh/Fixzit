@@ -20,7 +20,7 @@ async function listUsers() {
     }).select('code username email professional.role status').lean();
     
     console.log(`Found ${users.length} users:\n`);
-    users.forEach((u: any) => {
+    users.forEach((u) => {
       console.log(`  ${u.code?.padEnd(25)} ${u.email?.padEnd(35)} ${u.professional?.role || 'NO_ROLE'}`);
     });
     

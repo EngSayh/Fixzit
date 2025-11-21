@@ -170,12 +170,16 @@ export class CampaignService {
     );
 
     const updated = await db
-      .collection('souq_ad_campaigns')
+      .collection<Campaign>('souq_ad_campaigns')
       .findOne({ campaignId });
+
+    if (!updated) {
+      throw new Error(`Campaign not found after update: ${campaignId}`);
+    }
 
     logger.info(`[CampaignService] Updated campaign: ${campaignId}`);
 
-    return updated as unknown as Campaign;
+    return updated;
   }
 
   /**
@@ -209,10 +213,12 @@ export class CampaignService {
 
     // Fetch bids
     const bids = await db
-      .collection('souq_ad_bids')
+      .collection<AdBid>('souq_ad_bids')
       .find({ campaignId })
       .toArray();
 
+    // Type assertion: MongoDB document structure matches Campaign interface
+    // The spread operator creates a new object with all campaign properties plus bids
     return {
       ...campaign,
       bids,
@@ -246,11 +252,13 @@ export class CampaignService {
     // Fetch bids for each campaign
     const campaignsWithBids = await Promise.all(
       campaigns.map(async (campaign) => {
+        const campaignId = (campaign as unknown as { campaignId: string }).campaignId;
         const bids = await db
-          .collection('souq_ad_bids')
-          .find({ campaignId: campaign.campaignId })
+          .collection<AdBid>('souq_ad_bids')
+          .find({ campaignId })
           .toArray();
 
+        // Type assertion: MongoDB document structure matches Campaign interface
         return {
           ...campaign,
           bids,

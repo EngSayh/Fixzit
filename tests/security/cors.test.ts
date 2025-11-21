@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { isOriginAllowed } from '@/lib/security/cors-allowlist';
+import { isOriginAllowed, parseOrigins } from '@/lib/security/cors-allowlist';
 
 vi.mock('@/lib/monitoring/security-events', () => ({
   logSecurityEvent: vi.fn().mockResolvedValue(undefined),
@@ -75,15 +75,18 @@ describe('CORS Security Tests', () => {
   });
 
   describe('CORS parseOrigins validation', () => {
-    it.skip('should reject invalid URLs', () => {
-      // TODO: Export parseOrigins from cors-allowlist.ts and test with mixed valid/invalid entries
-      // e.g., vi.stubEnv('CORS_ORIGINS', 'not-a-url,http://valid.com')
-      // and assert invalid entries are filtered out
+    it('should reject invalid URLs', () => {
+      vi.stubEnv('NODE_ENV', 'development');
+      const origins = parseOrigins('not-a-url, http://valid.com , missing-scheme');
+      expect(origins).toEqual(['http://valid.com']);
+      vi.unstubAllEnvs();
     });
 
-    it.skip('should reject non-http(s) protocols', () => {
-      // TODO: Test that ftp://, file://, data: protocols are rejected
-      // Should only allow http: and https:
+    it('should reject non-http(s) protocols', () => {
+      vi.stubEnv('NODE_ENV', 'development');
+      const origins = parseOrigins('ftp://example.com,https://good.com,file:///tmp/test');
+      expect(origins).toEqual(['https://good.com']);
+      vi.unstubAllEnvs();
     });
   });
 });

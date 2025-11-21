@@ -6,46 +6,59 @@
 import { SouqListing } from '@/server/models/souq/Listing';
 import { SouqSeller } from '@/server/models/souq/Seller';
 import type { ISeller } from '@/server/models/souq/Seller';
-import type { IListing } from '@/server/models/souq/Listing';
 
-interface BuyBoxCandidate {
+// Type for listing with populated sellerId (lean query result)
+interface IListingPopulated {
+  _id: unknown;
+  listingId: string;
   sellerId: ISeller;
   fsin: string;
   price: number;
   fulfillmentMethod: 'fbf' | 'fbm';
+  status: string;
+  buyBoxEligible: boolean;
+  availableQuantity: number;
   metrics: {
     orderCount: number;
     cancelRate: number;
     defectRate: number;
     onTimeShipRate: number;
     customerRating: number;
+    priceCompetitiveness: number;
   };
+  condition?: string;
 }
+
+// Alias for clarity - BuyBoxCandidate is an IListingPopulated
+type BuyBoxCandidate = IListingPopulated;
 
 export class BuyBoxService {
   /**
    * Calculate Buy Box winner for a given FSIN
    */
-  static async calculateBuyBoxWinner(fsin: string): Promise<unknown> {
-    const listings = (await SouqListing.find({
+  static async calculateBuyBoxWinner(fsin: string): Promise<IListingPopulated | null> {
+    const listings = await SouqListing.find({
       fsin,
       status: 'active',
       buyBoxEligible: true,
       availableQuantity: { $gt: 0 },
     })
       .populate('sellerId')
-      .lean()) as unknown as BuyBoxCandidate[];
+      .lean();
 
-    if (listings.length === 0) {
+    // lean() with populate returns the proper structure; cast via unknown to satisfy TS
+    const typedListings = listings as unknown as BuyBoxCandidate[];
+
+    if (typedListings.length === 0) {
       return null;
     }
 
-    if (listings.length === 1) {
-      return listings[0];
+    if (typedListings.length === 1) {
+      return typedListings[0];
     }
 
     const scoredListings = await Promise.all(
-      listings.map(async (listing) => {
+      typedListings.map(async (listing) => {
         const score = await this.calculateBuyBoxScore(listing);
         return { listing, score };
       })
@@ -55,10 +68,11 @@ export class BuyBoxService {
       if (b.score !== a.score) {
         return b.score - a.score;
       }
-      return (a.listing as unknown as IListing).price - (b.listing as unknown as IListing).price;
+      // Both listings have price property from BuyBoxCandidate
+      return a.listing.price - b.listing.price;
     });
 
-    return scoredListings[0].listing as unknown;
+    return scoredListings[0].listing;
   }
 
   /**

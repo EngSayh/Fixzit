@@ -63,13 +63,14 @@ export async function POST(req: NextRequest) {
     const collection = db.collection<ReportJob>(COLLECTION);
     const queued: ReportJobDocument[] = [];
     while (queued.length < 5) {
-      const claim = await collection.findOneAndUpdate(
+      const claimResult = (await collection.findOneAndUpdate(
         { org_id: tenantId, status: 'queued' },
         { $set: { status: 'processing', updatedAt: new Date() } },
         { sort: { updatedAt: 1, _id: 1 }, returnDocument: 'after' }
-      ) as ModifyResult<ReportJob>;
-      if (!claim?.value) break;
-      queued.push(claim.value as ReportJobDocument);
+      )) as ModifyResult<ReportJob> | null;
+      const claim = claimResult?.value as ReportJobDocument | undefined;
+      if (!claim) break;
+      queued.push(claim);
     }
 
     if (!queued.length) {

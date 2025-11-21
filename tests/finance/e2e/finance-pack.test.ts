@@ -3,7 +3,7 @@
  * Tests: Full journal lifecycle, expense approval, payment allocation, rollback scenarios
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, expectTypeOf } from 'vitest';
 import mongoose from 'mongoose';
 import postingService from '../../../server/services/finance/postingService';
 import Journal from '../../../server/models/finance/Journal';
@@ -17,6 +17,22 @@ import { toMinor } from '../../../server/lib/currency';
 // TYPESCRIPT FIX: Use ObjectIds instead of strings for type safety
 const TEST_ORG_ID = new mongoose.Types.ObjectId();
 const TEST_USER_ID = new mongoose.Types.ObjectId();
+
+describe('Finance Pack type safety', () => {
+  type ExpenseDoc = Awaited<ReturnType<(typeof Expense)['create']>>;
+  type PaymentDoc = Awaited<ReturnType<(typeof Payment)['create']>>;
+
+  it('matches method signatures for Expense and Payment workflows', () => {
+    expectTypeOf<ExpenseDoc['submit']>().parameters.toEqualTypeOf<[]>();
+    expectTypeOf<ExpenseDoc['approve']>().parameters.toEqualTypeOf<[mongoose.Types.ObjectId, string, string?]>();
+    expectTypeOf<ExpenseDoc['reject']>().parameters.toEqualTypeOf<[mongoose.Types.ObjectId, string, string]>();
+    expectTypeOf<ExpenseDoc['markAsPaid']>().parameters.toEqualTypeOf<[mongoose.Types.ObjectId, string?]>();
+
+    expectTypeOf<PaymentDoc['allocateToInvoice']>().parameters.toEqualTypeOf<
+      [mongoose.Types.ObjectId | string, string, number]
+    >();
+  });
+});
 
 describe('Finance Pack E2E Tests', () => {
   let cashAccountId: mongoose.Types.ObjectId;
@@ -173,6 +189,13 @@ describe('Finance Pack E2E Tests', () => {
       const expenseAmount = toMinor(500, 'SAR');
       const taxAmount = toMinor(75, 'SAR'); // 15% VAT
       const totalAmount = expenseAmount + taxAmount;
+      const approvals = [
+        {
+          level: 1,
+          approverRole: 'FINANCE',
+          status: 'PENDING' as const,
+        },
+      ];
 
       // Step 1: Create draft expense
       const expense = await Expense.create({
@@ -200,31 +223,43 @@ describe('Finance Pack E2E Tests', () => {
         totalAmount,
         status: 'DRAFT',
         createdBy: TEST_USER_ID,
+        approvals,
+        currentApprovalLevel: 0,
       });
 
       expect(expense.status).toBe('DRAFT');
 
       // Step 2: Submit for approval
-      // TODO(type-safety): Verify Expense.submit method signature
-      await (expense as any).submit(TEST_USER_ID);
+      await expense.submit();
       expect(expense.status).toBe('SUBMITTED');
+      expect(expense.currentApprovalLevel).toBe(1);
       expect(expense.approvals).toHaveLength(1);
-      expect((expense.approvals[0] as any).action).toBe('SUBMITTED');
+      expect(expense.approvals[0].status).toBe('PENDING');
 
       // Step 3: Approve expense
-      await (expense as any).approve(TEST_USER_ID, 'Approved for payment');
+      await expense.approve(TEST_USER_ID, 'Finance Approver', 'Approved for payment');
       expect(expense.status).toBe('APPROVED');
-      expect(expense.approvals).toHaveLength(2);
-      expect((expense.approvals[1] as any).action).toBe('APPROVED');
+      expect(expense.approvals).toHaveLength(1);
+      expect(expense.approvals[0].status).toBe('APPROVED');
+      expect(expense.approvals[0].approverId?.toString()).toBe(TEST_USER_ID.toString());
 
       // Step 4: Mark as paid
-      await (expense as any).markAsPaid('PAY-TEST-001');
+      const paymentId = new mongoose.Types.ObjectId();
+      await expense.markAsPaid(paymentId, 'PAY-TEST-001');
       expect(expense.status).toBe('PAID');
-      expect((expense as any).paidDate).toBeDefined();
-      expect((expense as any).paymentReference).toBe('PAY-TEST-001');
+      expect(expense.paidAt).toBeDefined();
+      expect(expense.paymentReference).toBe('PAY-TEST-001');
+      expect(expense.paymentId?.toString()).toBe(paymentId.toString());
     });
 
     it('should handle expense rejection workflow', async () => {
+      const approvals = [
+        {
+          level: 1,
+          approverRole: 'FINANCE',
+          status: 'PENDING' as const,
+        },
+      ];
       const expense = await Expense.create({
         orgId: TEST_ORG_ID,
         expenseNumber: 'EXP-TEST-002',
@@ -250,15 +285,17 @@ describe('Finance Pack E2E Tests', () => {
         totalAmount: toMinor(100, 'SAR'),
         status: 'DRAFT',
         createdBy: TEST_USER_ID,
+        approvals,
+        currentApprovalLevel: 0,
       });
 
-      await (expense as any).submit(TEST_USER_ID);
-      await (expense as any).reject(TEST_USER_ID, 'Invalid expense category');
+      await expense.submit();
+      await expense.reject(TEST_USER_ID, 'Finance Approver', 'Invalid expense category');
 
       expect(expense.status).toBe('REJECTED');
-      expect(expense.approvals).toHaveLength(2);
-      expect((expense.approvals[1] as any).action).toBe('REJECTED');
-      expect((expense.approvals[1] as any).comments).toBe('Invalid expense category');
+      expect(expense.approvals).toHaveLength(1);
+      expect(expense.approvals[0].status).toBe('REJECTED');
+      expect(expense.approvals[0].comments).toBe('Invalid expense category');
     });
   });
 
@@ -281,23 +318,21 @@ describe('Finance Pack E2E Tests', () => {
         description: 'E2E payment allocation test',
         status: 'POSTED',
         createdBy: TEST_USER_ID,
+        allocations: [],
       });
 
       // Allocate to multiple invoices
-      // TODO(type-safety): Verify Payment.allocateToInvoice parameter types
-      await (payment as any).allocateToInvoice('invoice-001', toMinor(500, 'SAR').toString(), 'First invoice');
-      await (payment as any).allocateToInvoice('invoice-002', toMinor(700, 'SAR').toString(), 'Second invoice');
-      await (payment as any).allocateToInvoice('invoice-003', toMinor(300, 'SAR').toString(), 'Third invoice');
+      await payment.allocateToInvoice(new mongoose.Types.ObjectId(), 'invoice-001', toMinor(500, 'SAR'));
+      await payment.allocateToInvoice(new mongoose.Types.ObjectId(), 'invoice-002', toMinor(700, 'SAR'));
+      await payment.allocateToInvoice(new mongoose.Types.ObjectId(), 'invoice-003', toMinor(300, 'SAR'));
 
       // Verify allocations
-      expect((payment as any).invoiceAllocations).toHaveLength(3);
-      expect((payment as any).unallocatedAmount).toBe(0); // Fully allocated
+      expect((payment as any).invoiceAllocations ?? (payment as any).allocations).toHaveLength(3);
+      expect(payment.unallocatedAmount).toBe(0); // Fully allocated
 
       // TYPESCRIPT FIX: Explicit types for reduce callback parameters
-      const totalAllocated = (payment as any).invoiceAllocations.reduce(
-        (sum: number, alloc: { amount: number }) => sum + alloc.amount,
-        0
-      );
+      const invoiceAllocations = (payment as any).invoiceAllocations ?? (payment as any).allocations;
+      const totalAllocated = invoiceAllocations.reduce((sum: number, alloc: { amount: number }) => sum + alloc.amount, 0);
       expect(totalAllocated).toBe(paymentAmount);
     });
   });

@@ -32,7 +32,7 @@ interface Product {
 
 interface MarketplaceProductCard {
   id: string;
-  slug?: string;
+  slug: string;
   title: { en: string };
   buy: {
     price: number;
@@ -158,7 +158,13 @@ export default async function MarketplaceHome() {
                 ? (p._id as { toString: () => string }).toString() 
                 : String(p?._id ?? '');
               const key = p?.id || idFromObject || p?.slug || `featured-${idx}`;
-              const normalized: MarketplaceProductCard = { ...p, id: key, title: p.title, buy: p.buy };
+              const normalized: MarketplaceProductCard = { 
+                ...p, 
+                id: key, 
+                title: p.title, 
+                buy: p.buy,
+                slug: (p as { slug?: string })?.slug ?? key,
+              };
               return (
                 <ProductCard
                   key={key}
@@ -183,9 +189,14 @@ export default async function MarketplaceHome() {
               </a>
             </div>
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {carousel.items.map((product: Product, idx: number) => {
-                const key = product.id ?? product._id ?? product.slug ?? `carousel-${carousel.category.slug}-${idx}`;
-                const normalized = { ...product, id: product.id ?? product._id ?? product.slug ?? key };
+              {carousel.items.map((product, idx) => {
+                const p = product as Product;
+                const key = p.id ?? p._id ?? (p as { slug?: string })?.slug ?? `carousel-${carousel.category.slug}-${idx}`;
+                const normalized = { 
+                  ...p, 
+                  id: p.id ?? p._id ?? (p as { slug?: string })?.slug ?? key,
+                  slug: (p as { slug?: string })?.slug ?? key,
+                };
                 return (
                   <ProductCard
                     key={key}

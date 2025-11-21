@@ -414,11 +414,11 @@ export class AuctionEngine {
     const db = await getDatabase();
 
     const bids = await db
-      .collection('souq_ad_bids')
+      .collection<AdBid>('souq_ad_bids')
       .find({ campaignId })
       .toArray();
 
-    return bids as unknown as AdBid[];
+    return bids;
   }
 
   /**
@@ -432,7 +432,7 @@ export class AuctionEngine {
     const db = await getDatabase();
 
     const campaigns = await db
-      .collection('souq_ad_campaigns')
+      .collection<AdCampaign>('souq_ad_campaigns')
       .find({
         type,
         status: 'active',
@@ -440,7 +440,7 @@ export class AuctionEngine {
       })
       .toArray();
 
-    return campaigns as unknown as AdCampaign[];
+    return campaigns;
   }
 
   /**

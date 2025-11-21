@@ -8,7 +8,7 @@ async function listUsers() {
     const users = await User.find({}).select('email username professional.role status').limit(20);
     
     console.log(`📋 Found ${users.length} users:\n`);
-    users.forEach((user: any) => {
+    users.forEach((user) => {
       console.log(`${user.email || 'N/A'} | ${user.username || 'N/A'} | ${user.professional?.role || 'N/A'} | ${user.status || 'N/A'}`);
     });
     

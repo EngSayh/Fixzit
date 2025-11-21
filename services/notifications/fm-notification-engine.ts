@@ -300,6 +300,24 @@ export function generateLinks(
 }
 
 /**
+ * Helper to convert context to i18n params safely
+ * Extracts only serializable properties needed for template interpolation
+ */
+function contextToI18nParams(context: NotificationContext): Record<string, unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { event, description, ...params } = context;
+  return params;
+}
+
+/**
+ * Helper to convert context to payload data
+ * Preserves all context properties for storage and potential future use
+ */
+function contextToPayloadData(context: NotificationContext): Record<string, unknown> {
+  return { ...context };
+}
+
+/**
  * Build notification from template with per-recipient localization
  * NOTE: Full i18n implementation should group recipients by locale and create separate payloads
  */
@@ -318,32 +336,35 @@ export function buildNotification(
   let priority: 'high' | 'normal' | 'low' = 'normal';
   const event = context.event;
 
+  // Extract i18n params once for all cases
+  const i18nParams = contextToI18nParams(context);
+
   // TypeScript now knows exact context type for each case
   switch (context.event) {
     case 'onTicketCreated':
       title = i18n.t('notifications.onTicketCreated.title', locale);
-      body = i18n.t('notifications.onTicketCreated.body', locale, context as unknown as Record<string, unknown>);
+      body = i18n.t('notifications.onTicketCreated.body', locale, i18nParams);
       links = generateLinks('work-order', context.workOrderId);
       priority = 'high';
       break;
 
     case 'onAssign':
       title = i18n.t('notifications.onAssign.title', locale);
-      body = i18n.t('notifications.onAssign.body', locale, context as unknown as Record<string, unknown>);
+      body = i18n.t('notifications.onAssign.body', locale, i18nParams);
       links = generateLinks('work-order', context.workOrderId);
       priority = 'high';
       break;
 
     case 'onApprovalRequested':
       title = i18n.t('notifications.onApprovalRequested.title', locale);
-      body = i18n.t('notifications.onApprovalRequested.body', locale, context as unknown as Record<string, unknown>);
+      body = i18n.t('notifications.onApprovalRequested.body', locale, i18nParams);
       links = generateLinks('approval', context.quotationId);
       priority = 'high';
       break;
 
     case 'onApproved':
       title = i18n.t('notifications.onApproved.title', locale);
-      body = i18n.t('notifications.onApproved.body', locale, context as unknown as Record<string, unknown>);
+      body = i18n.t('notifications.onApproved.body', locale, i18nParams);
       links = generateLinks('approval', context.quotationId);
       priority = 'normal';
       break;
@@ -351,7 +372,7 @@ export function buildNotification(
     case 'onClosed': {
       // LOGIC FIX: Link to the Work Order, not financials
       title = i18n.t('notifications.onClosed.title', locale);
-      body = i18n.t('notifications.onClosed.body', locale, context as unknown as Record<string, unknown>);
+      body = i18n.t('notifications.onClosed.body', locale, i18nParams);
       links = generateLinks('work-order', context.workOrderId);
       priority = 'normal';
       break;
@@ -372,7 +393,7 @@ export function buildNotification(
     body,
     deepLink: links?.deepLink,
     webUrl: links?.webUrl,
-    data: context as unknown as Record<string, unknown>,
+    data: contextToPayloadData(context),
     priority,
     createdAt: new Date(),
     status: 'pending'
@@ -580,7 +601,7 @@ async function sendPushNotifications(
      * 
      * Method signature: admin.messaging().sendMulticast(message: MulticastMessage): Promise<BatchResponse>
      * Reference: https://firebase.google.com/docs/reference/admin/node/firebase-admin.messaging.messaging.md#messagingsendmulticast
-     * 
+    /**
      * This is safe to suppress because:
      * 1. Runtime API is stable and documented
      * 2. firebase-admin version is pinned in package.json
@@ -588,6 +609,7 @@ async function sendPushNotifications(
      * 
      * Alternative: Update @types/firebase-admin if newer types become available
      */
+    // @ts-expect-error sendMulticast exists in runtime but may be missing from type definitions
     const response = await admin.messaging().sendMulticast({
       tokens: batch,
       notification: {

@@ -21,12 +21,25 @@ const sharedProjectConfig = {
   testTimeout: 600000, // 10 minutes - MongoMemoryServer initialization takes time
   hookTimeout: 120000, // 2 minutes - beforeAll/afterAll with MongoDB setup
   teardownTimeout: 30000, // 30 seconds - cleanup
+  env: {
+    NEXTAUTH_SECRET: 'test-secret',
+    AUTH_SECRET: 'test-secret',
+    NEXTAUTH_URL: 'http://localhost:3000',
+    SKIP_ENV_VALIDATION: 'true',
+  },
+  server: {
+    deps: {
+      inline: ['next-auth', 'next'],
+    },
+  },
 };
 
 const sharedViteConfig = {
   resolve: {
     alias: {
       '@': path.resolve(__dirname),
+      // Vitest (ESM) sometimes struggles to resolve the extensionless "next/server" entry.
+      'next/server': 'next/server.js',
     },
   },
 };

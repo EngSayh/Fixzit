@@ -105,6 +105,18 @@ const STATUS_CONFIG: Record<string, { label: string; variant: BadgeVariant; icon
   rejected: { label: 'مرفوض (Rejected)', variant: 'destructive', icon: XCircle },
   'under-appeal': { label: 'قيد الاستئناف (Under Appeal)', variant: 'secondary', icon: AlertCircle },
   closed: { label: 'مغلق (Closed)', variant: 'outline', icon: CheckCircle2 },
+  // Backend statuses
+  pending_review: { label: 'بانتظار المراجعة (Pending Review)', variant: 'secondary', icon: Clock },
+  pending_seller_response: { label: 'بانتظار رد البائع (Awaiting Seller)', variant: 'secondary', icon: Clock },
+  under_review: { label: 'قيد المراجعة (Under Review)', variant: 'secondary', icon: Clock },
+  pending_investigation: { label: 'قيد التحقيق (Pending Investigation)', variant: 'secondary', icon: Clock },
+  pending_evidence: { label: 'بانتظار الأدلة (Pending Evidence)', variant: 'secondary', icon: Clock },
+  resolved_refund_full: { label: 'استرجاع كامل (Refund Full)', variant: 'default', icon: CheckCircle2 },
+  resolved_refund_partial: { label: 'استرجاع جزئي (Refund Partial)', variant: 'default', icon: CheckCircle2 },
+  resolved_replacement: { label: 'استبدال (Replacement)', variant: 'default', icon: Package },
+  under_appeal: { label: 'قيد الاستئناف (Under Appeal)', variant: 'secondary', icon: AlertCircle },
+  escalated: { label: 'تصعيد (Escalated)', variant: 'secondary', icon: AlertCircle },
+  withdrawn: { label: 'تم السحب (Withdrawn)', variant: 'outline', icon: XCircle },
 };
 
 const CLAIM_TYPE_LABELS: Record<string, string> = {

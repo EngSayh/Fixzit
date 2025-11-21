@@ -42,13 +42,19 @@ async function loadCmsPage(slug: string): Promise<CmsPageLike | null> {
       updatedAt?: Date | string;
     }) | null;
     if (doc) {
+      const updatedBy =
+        typeof doc.updatedBy === 'string'
+          ? doc.updatedBy
+          : doc.updatedBy
+            ? doc.updatedBy.toString()
+            : undefined;
       return {
         slug: doc.slug,
         title: doc.title,
         content: doc.content,
         status: doc.status,
         updatedAt: doc.updatedAt ? new Date(doc.updatedAt) : undefined,
-        updatedBy: (doc as { updatedBy?: string }).updatedBy,
+        updatedBy,
       };
     }
   } catch (error) {
@@ -113,11 +119,10 @@ export default async function CmsPageScreen(props: { params: Promise<{slug:strin
             dangerouslySetInnerHTML={{ __html: await renderMarkdownSanitized(page.content) }} 
           />
           
-          <div className="mt-8 pt-6 border-t border-border">
+              <div className="mt-8 pt-6 border-t border-border">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div>
                 Last updated {updatedAt ? <ClientDate date={updatedAt} format="date-only" /> : null}
-                {/* TODO(type-safety): Add updatedBy to Page schema */}
                 {page.updatedBy && ` by ${page.updatedBy}`}
               </div>
               <Link 

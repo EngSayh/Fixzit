@@ -5,6 +5,7 @@ import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.test' });
 
 const isCI = !!process.env.CI;
+const isPlaywrightTestMode = process.env.PLAYWRIGHT_TESTS === 'true';
 const defaultWebServerCommand = isCI ? 'pnpm start' : 'pnpm dev';
 
 const initialBaseURL = process.env.BASE_URL ?? 'http://localhost:3000';
@@ -135,6 +136,11 @@ const mobileProjects = locales.flatMap(({ label, locale, timezoneId }) =>
   })),
 );
 
+// Reduce parallel load in test-mode runs to avoid overwhelming the dev server.
+const resolvedWorkers = isPlaywrightTestMode ? 4 : isCI ? 2 : undefined;
+const resolvedFullyParallel = isPlaywrightTestMode ? false : true;
+const resolvedNavigationTimeout = isPlaywrightTestMode ? 60_000 : 30_000;
+
 export default defineConfig({
   testDir: './specs',
   
@@ -145,8 +151,8 @@ export default defineConfig({
   // CI behavior
   retries: isCI ? 2 : 1,     // More retries in CI for flake resistance
   forbidOnly: isCI,          // Prevent accidentally committed .only
-  workers: isCI ? 2 : undefined, // Let local use all cores, limit CI
-  fullyParallel: true,       // Run all tests in parallel
+  workers: resolvedWorkers,  // Limit workers in test-mode/CI to ease load
+  fullyParallel: resolvedFullyParallel,       // Avoid overwhelming dev server in test-mode
   maxFailures: isCI ? 10 : undefined, // Stop after 10 failures in CI
   
   // Auth bootstrap (pre-authenticate all roles)
@@ -170,7 +176,7 @@ export default defineConfig({
     headless: true,
     viewport: { width: 1366, height: 900 },
     actionTimeout: 15_000,
-    navigationTimeout: 30_000,
+    navigationTimeout: resolvedNavigationTimeout,
     trace: 'on-first-retry',
     video: 'on-first-retry',
     screenshot: 'only-on-failure',

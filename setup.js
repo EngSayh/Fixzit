@@ -9,7 +9,7 @@ function write(filePath, contents) {
   const targetDir = path.dirname(filePath);
   fs.mkdirSync(targetDir, { recursive: true });
   fs.writeFileSync(filePath, contents.trim(), 'utf8');
-  console.log('✅', filePath);
+  // File created successfully (setup.js)
 }
 
 module.exports = { write };

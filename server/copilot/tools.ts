@@ -182,19 +182,6 @@ async function listMyWorkOrders(session: CopilotSession): Promise<ToolExecutionR
   };
 
   let leanResults: LeanWorkOrder[] = [];
-  type QuotationLean = {
-    _id?: Types.ObjectId | string;
-    status?: string;
-    work_order_id?: Types.ObjectId | string;
-  };
-  type ApprovalLean = {
-    _id?: Types.ObjectId | string;
-    approverId?: Types.ObjectId | string;
-    approverName?: string;
-    approverEmail?: string;
-    status?: string;
-    stages?: Array<{ approvers?: Array<{ toString(): string } | string> }>;
-  };
 
   try {
     leanResults = (await WorkOrder.find(filter)
@@ -424,14 +411,6 @@ async function approveQuotation(session: CopilotSession, input: Record<string, u
     status?: string;
     work_order_id?: Types.ObjectId | string;
   };
-  type ApprovalLean = {
-    _id?: Types.ObjectId | string;
-    approverId?: Types.ObjectId | string;
-    approverName?: string;
-    approverEmail?: string;
-    status?: string;
-    stages?: Array<{ approvers?: Array<{ toString(): string } | string> }>;
-  };
 
   try {
     const [{ FMQuotation }, { FMApproval }, { User }] = await Promise.all([
@@ -507,9 +486,9 @@ async function approveQuotation(session: CopilotSession, input: Record<string, u
     const isStageApprover = approval
       ? approval.approverId?.toString() === session.userId ||
         (Array.isArray(approval.stages) &&
-          approval.stages.some((stage: ApprovalLean['stages'][number]) => {
+          approval.stages.some((stage: { approvers?: Array<{ toString(): string } | string>; status?: string }) => {
             const stageApprovers = stage?.approvers ?? [];
-            return stageApprovers.some((approver) => {
+            return stageApprovers.some((approver: { toString(): string } | string) => {
               const approverId = typeof approver === 'string' ? approver : approver?.toString?.();
               return approverId === session.userId;
             });

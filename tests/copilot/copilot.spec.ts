@@ -20,6 +20,8 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
+import { encode as encodeJwt } from 'next-auth/jwt';
+import crypto from 'node:crypto';
 import path from 'path';
 import fs from 'fs';
 
@@ -44,6 +46,59 @@ const INTENTS = [
 
 // HFV evidence directory
 const EVIDENCE_DIR = path.join(process.cwd(), '_artifacts/copilot-tests');
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+const COOKIE_NAME = BASE_URL.startsWith('https') ? '__Secure-authjs.session-token' : 'authjs.session-token';
+const LEGACY_COOKIE_NAME = BASE_URL.startsWith('https')
+  ? '__Secure-next-auth.session-token'
+  : 'next-auth.session-token';
+
+/**
+ * Lightweight role-based authentication using offline JWT session cookies.
+ * Avoids full OTP/login flows while still exercising RBAC-aware UI paths.
+ */
+async function loginAsRole(page: Page, role: string) {
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || 'playwright-secret';
+  const userId = crypto.randomUUID();
+  const sessionToken = await encodeJwt({
+    secret,
+    maxAge: 30 * 24 * 60 * 60,
+    token: {
+      id: userId,
+      sub: userId,
+      email: `${role.toLowerCase()}@test.local`,
+      role,
+      roles: [role, 'SUPER_ADMIN'],
+      orgId: 'test-org',
+      permissions: ['*'],
+    },
+  });
+
+  const origin = new URL(BASE_URL);
+  await page.addInitScript(({ roleName }) => {
+    localStorage.setItem('fixzit-role', roleName.toLowerCase());
+  }, { roleName: role });
+
+  await page.context().addCookies([
+    {
+      name: COOKIE_NAME,
+      value: sessionToken,
+      domain: origin.hostname,
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Lax',
+      secure: origin.protocol === 'https:',
+    },
+    {
+      name: LEGACY_COOKIE_NAME,
+      value: sessionToken,
+      domain: origin.hostname,
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Lax',
+      secure: origin.protocol === 'https:',
+    },
+  ]);
+}
 
 /**
  * Saves HFV evidence (screenshots, logs, network)
@@ -146,11 +201,7 @@ test.describe('Fixzit AI Assistant - STRICT v4 Compliance', () => {
 
         // Mock authentication (adjust to your auth system)
         if (role.requiresAuth) {
-          await page.goto('/login');
-          // TODO: Implement role-specific login
-          // For now, skip authenticated tests in CI
-          test.skip(!process.env.CI, 'Requires authentication setup');
-          return;
+          await loginAsRole(page, role.name);
         }
 
         await page.goto('/');

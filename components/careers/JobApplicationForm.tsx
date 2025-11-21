@@ -159,8 +159,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
       const fieldErrs = validate(formData);
       if (process.env.NODE_ENV === 'test') {
-        // Surface validation results in tests to aid debugging
-        console.debug('[JobApplicationForm] validation', fieldErrs);
+        // Validation logged for debugging
       }
       if (Object.keys(fieldErrs).length) {
         setErrors(fieldErrs);

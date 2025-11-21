@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,12 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
+const STATUS_FILTER_MAP: Record<string, string[]> = {
+  'pending-decision': ['pending_investigation', 'pending_seller_response', 'under_review', 'pending_review'],
+  'under-investigation': ['pending_investigation', 'under_review'],
+  'under-appeal': ['escalated', 'under_appeal'],
+};
+
 interface ClaimForReview {
   claimId: string;
   claimNumber: string;
@@ -57,8 +63,10 @@ interface ClaimForReview {
   riskLevel: 'low' | 'medium' | 'high';
   recommendedAction: 'approve-full' | 'approve-partial' | 'reject' | 'pending-review';
   confidence: number;
+  fraudFlags?: string[];
   evidenceCount: number;
   createdAt: string;
+  updatedAt?: string;
   priority: 'high' | 'medium' | 'low';
 }
 
@@ -76,6 +84,12 @@ export default function ClaimReviewPanel() {
   const { toast } = useToast();
   const [claims, setClaims] = useState<ClaimForReview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reviewStats, setReviewStats] = useState<{
+    pendingReview: number;
+    highPriority: number;
+    highRisk: number;
+    totalAmount: number;
+  } | null>(null);
   const [selectedClaim, setSelectedClaim] = useState<ClaimForReview | null>(null);
   const [showDecisionDialog, setShowDecisionDialog] = useState(false);
   const [decisionData, setDecisionData] = useState<DecisionData>({
@@ -86,6 +100,10 @@ export default function ClaimReviewPanel() {
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('pending-decision');
   const [selectedClaims, setSelectedClaims] = useState<Set<string>>(new Set());
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkAction, setBulkAction] = useState<'approve' | 'reject' | null>(null);
+  const [bulkReason, setBulkReason] = useState('');
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
 
   useEffect(() => {
     fetchClaimsForReview();
@@ -95,7 +113,6 @@ export default function ClaimReviewPanel() {
     setLoading(true);
     try {
       const params = new URLSearchParams({
-        view: 'admin',  // Use standard endpoint with admin view
         status: statusFilter,
       });
       if (priorityFilter !== 'all') {
@@ -105,25 +122,36 @@ export default function ClaimReviewPanel() {
         params.append('search', searchQuery);
       }
 
-      // TODO: Create dedicated /api/souq/claims/admin/review endpoint with fraud detection
-      // For now, use standard endpoint with view=admin and add default fraud scores
-      const response = await fetch(`/api/souq/claims?${params.toString()}`);
+      // Use dedicated fraud detection endpoint
+      const response = await fetch(`/api/souq/claims/admin/review?${params.toString()}`);
       if (response.ok) {
-        const data: { claims: Partial<ClaimForReview>[] } = await response.json();
-        // Transform response to add fraud detection defaults until proper endpoint exists
-        const claimsWithDefaults: ClaimForReview[] = data.claims.map((claim: Partial<ClaimForReview>) => ({
-          ...claim,
-          fraudScore: claim.fraudScore ?? 0,
-          riskLevel: claim.riskLevel ?? 'low',
-          recommendedAction: claim.recommendedAction ?? 'pending-review',
-        } as ClaimForReview));
-        setClaims(claimsWithDefaults);
+        const data: {
+          claims: ClaimForReview[];
+          stats?: {
+            pendingReview: number;
+            highPriority: number;
+            highRisk: number;
+            totalAmount: number;
+          };
+        } = await response.json();
+        setClaims(data.claims || []);
+        setReviewStats(data.stats ?? null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'فشل تحميل قائمة المطالبات. يرجى المحاولة مرة أخرى.');
       }
     } catch (error) {
       if (process.env.NODE_ENV !== 'production') {
         // eslint-disable-next-line no-console
         console.error('Failed to fetch claims:', error);
       }
+      const message =
+        error instanceof Error ? error.message : 'تعذر الاتصال بالخادم. يرجى المحاولة مرة أخرى.';
+      toast({
+        variant: 'destructive',
+        title: 'خطأ في تحميل المطالبات',
+        description: message,
+      });
     } finally {
       setLoading(false);
     }
@@ -195,7 +223,7 @@ export default function ClaimReviewPanel() {
     }
   };
 
-  const handleBulkAction = async (_action: 'approve' | 'reject') => {
+  const handleBulkAction = (action: 'approve' | 'reject') => {
     if (selectedClaims.size === 0) {
       toast({
         variant: 'destructive',
@@ -205,14 +233,61 @@ export default function ClaimReviewPanel() {
       return;
     }
 
-    // Bulk action implementation
-    toast({
-      title: 'جاري المعالجة',
-      description: `تطبيق الإجراء على ${selectedClaims.size} مطالبة...`,
-    });
+    setBulkAction(action);
+    setBulkReason('');
+    setBulkDialogOpen(true);
+  };
 
-    // TODO: Implement bulk action API call
-    setSelectedClaims(new Set());
+  const submitBulkAction = async () => {
+    if (!bulkAction) return;
+
+    if (bulkReason.trim().length < 20) {
+      toast({
+        variant: 'destructive',
+        title: 'خطأ',
+        description: 'يجب إدخال سبب لا يقل عن 20 حرفاً',
+      });
+      return;
+    }
+
+    setBulkSubmitting(true);
+
+    try {
+      const response = await fetch('/api/souq/claims/admin/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: bulkAction,
+          claimIds: Array.from(selectedClaims),
+          reason: bulkReason.trim(),
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || 'فشل تنفيذ الإجراء الجماعي');
+      }
+
+      toast({
+        title: 'تم بنجاح',
+        description:
+          payload.message ||
+          `تمت معالجة ${payload.results?.success ?? selectedClaims.size} مطالبة بنجاح`,
+      });
+
+      setSelectedClaims(new Set());
+      setBulkDialogOpen(false);
+      fetchClaimsForReview();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast({
+        variant: 'destructive',
+        title: 'خطأ',
+        description: errorMessage,
+      });
+    } finally {
+      setBulkSubmitting(false);
+    }
   };
 
   const toggleClaimSelection = (claimId: string) => {
@@ -278,6 +353,25 @@ export default function ClaimReviewPanel() {
     setDecisionData((prev) => ({ ...prev, outcome: value }));
   };
 
+  const stats = useMemo(() => {
+    const matchesFilter = (claim: ClaimForReview, filterKey: string) => {
+      const mapped = STATUS_FILTER_MAP[filterKey];
+      return mapped ? mapped.includes(claim.status) : claim.status === filterKey;
+    };
+
+    const pending = claims.filter(c => matchesFilter(c, 'pending-decision')).length;
+    const highPriority = claims.filter(c => c.priority === 'high').length;
+    const highRisk = claims.filter(c => c.fraudScore >= 70).length;
+    const totalAmount = claims.reduce((sum, c) => sum + c.claimAmount, 0);
+
+    return {
+      pending: reviewStats?.pendingReview ?? pending,
+      highPriority: reviewStats?.highPriority ?? highPriority,
+      highRisk: reviewStats?.highRisk ?? highRisk,
+      totalAmount: reviewStats?.totalAmount ?? totalAmount,
+    };
+  }, [claims, reviewStats]);
+
   return (
     <>
       <Card className="w-full">
@@ -322,7 +416,7 @@ export default function ClaimReviewPanel() {
                   <div>
                     <p className="text-sm text-muted-foreground">بانتظار المراجعة</p>
                     <p className="text-2xl font-bold">
-                      {claims.filter(c => c.status === 'pending-decision').length}
+                      {stats.pending}
                     </p>
                   </div>
                   <Clock className="w-8 h-8 text-muted-foreground" />
@@ -336,7 +430,7 @@ export default function ClaimReviewPanel() {
                   <div>
                     <p className="text-sm text-muted-foreground">عالية الأولوية</p>
                     <p className="text-2xl font-bold text-destructive">
-                      {claims.filter(c => c.priority === 'high').length}
+                      {stats.highPriority}
                     </p>
                   </div>
                   <AlertCircle className="w-8 h-8 text-destructive" />
@@ -350,7 +444,7 @@ export default function ClaimReviewPanel() {
                   <div>
                     <p className="text-sm text-muted-foreground">احتيال محتمل</p>
                     <p className="text-2xl font-bold text-orange-600">
-                      {claims.filter(c => c.fraudScore >= 70).length}
+                      {stats.highRisk}
                     </p>
                   </div>
                   <AlertCircle className="w-8 h-8 text-orange-600" />
@@ -364,7 +458,7 @@ export default function ClaimReviewPanel() {
                   <div>
                     <p className="text-sm text-muted-foreground">إجمالي المبلغ</p>
                     <p className="text-2xl font-bold">
-                      {claims.reduce((sum, c) => sum + c.claimAmount, 0).toLocaleString()} SAR
+                      {stats.totalAmount.toLocaleString()} SAR
                     </p>
                   </div>
                   <TrendingUp className="w-8 h-8 text-muted-foreground" />
@@ -625,6 +719,49 @@ export default function ClaimReviewPanel() {
             </Button>
             <Button onClick={submitDecision}>
               تأكيد القرار
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Action Dialog */}
+      <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {bulkAction === 'approve' ? 'موافقة جماعية' : 'رفض جماعي'}
+            </DialogTitle>
+            <DialogDescription>
+              سيجري تطبيق الإجراء على {selectedClaims.size} مطالبة. يرجى توضيح السبب.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <Alert>
+              <AlertDescription className="text-sm">
+                سيتم إخطار المشترين والبائعين بعد تطبيق الإجراء.
+              </AlertDescription>
+            </Alert>
+            <div className="space-y-2">
+              <Label>سبب الإجراء *</Label>
+              <Textarea
+                value={bulkReason}
+                onChange={(e) => setBulkReason(e.target.value)}
+                placeholder="اشرح سبب الموافقة أو الرفض..."
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">
+                {bulkReason.length}/500 - الحد الأدنى 20 حرف
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDialogOpen(false)} disabled={bulkSubmitting}>
+              إلغاء
+            </Button>
+            <Button onClick={submitBulkAction} disabled={bulkSubmitting}>
+              {bulkSubmitting ? 'جاري التطبيق...' : 'تأكيد الإجراء'}
             </Button>
           </DialogFooter>
         </DialogContent>

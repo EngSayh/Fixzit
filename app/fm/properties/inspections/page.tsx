@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { ClipboardList, Home, Loader2, MapPin, Shield, Wrench, AlertCircle } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useProperties } from '@/hooks/fm/useProperties';
 import { toast } from 'sonner';
 import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
@@ -35,6 +35,8 @@ export default function PropertyInspectionWorkspace() {
     }
   };
 
+  const [vendorCount, setVendorCount] = useState<number>(0);
+  
   const stats = useMemo(() => {
     const total = properties.length;
     const risk = properties.filter((property) => (property.units?.length ?? 0) > 5);
@@ -47,14 +49,33 @@ export default function PropertyInspectionWorkspace() {
         }
       })
     );
-    const vendorCount = vendorIds.size || Math.max(1, Math.ceil(total / 4)); // TODO: replace fallback once vendor assignments are exposed via inspections API.
+    const vendorCountValue = vendorCount > 0 ? vendorCount : vendorIds.size;
+    
     return [
       { label: auto('Upcoming inspections', 'metrics.upcoming'), value: total.toString(), hint: auto('Based on scheduled properties', 'metrics.upcoming.hint') },
       { label: auto('Risk flagged', 'metrics.risk'), value: risk.length.toString(), hint: auto('Need QA presence', 'metrics.risk.hint') },
       { label: auto('Pending reports', 'metrics.pendingReports'), value: Math.max(0, total - risk.length).toString(), hint: auto('Awaiting upload', 'metrics.pendingReports.hint') },
-      { label: auto('Vendors scheduled', 'metrics.vendors'), value: vendorCount.toString(), hint: auto('Across trades', 'metrics.vendors.hint') },
+      { label: auto('Vendors scheduled', 'metrics.vendors'), value: vendorCountValue.toString(), hint: auto('Across trades', 'metrics.vendors.hint') },
     ];
-  }, [auto, properties]);
+  }, [auto, properties, vendorCount]);
+  
+  // Fetch vendor count from API
+  useEffect(() => {
+    const fetchVendorCount = async () => {
+      try {
+        const response = await fetch('/api/fm/inspections/vendor-assignments');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.stats?.uniqueVendors) {
+            setVendorCount(data.stats.uniqueVendors);
+          }
+        }
+      } catch {
+        // Fallback to calculated value on error (already handled in stats)
+      }
+    };
+    fetchVendorCount();
+  }, [properties.length]);
 
   const inspectionQueue = useMemo(() => {
     return properties.slice(0, 5).map((property, index) => ({

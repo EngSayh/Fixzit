@@ -5,7 +5,7 @@ import { connectDb } from '@/lib/mongo';
 import { APP_DEFAULTS } from '@/config/constants';
 import { logger } from '@/lib/logger';
 
-type ThemePreference = 'light' | 'dark' | 'system';
+type ThemePreference = 'light' | 'dark' | 'system' | 'LIGHT' | 'DARK' | 'SYSTEM' | 'AUTO';
 
 interface UserPreferences {
   language?: string;
@@ -311,14 +311,17 @@ export async function PUT(request: NextRequest) {
     // Assign merged preferences, ensuring compatibility with User model schema
     // Note: merged.theme is ThemePreference ('light' | 'dark' | 'system') 
     // but User model expects uppercase storage format ('LIGHT' | 'DARK' | 'SYSTEM')
-    const themeValue = typeof merged.theme === 'string' ? merged.theme.toUpperCase() : undefined;
+    const themeValueRaw = typeof merged.theme === 'string' ? merged.theme.toUpperCase() : undefined;
+    const themeValue =
+      themeValueRaw === 'LIGHT' || themeValueRaw === 'DARK' || themeValueRaw === 'SYSTEM' || themeValueRaw === 'AUTO'
+        ? (themeValueRaw as 'LIGHT' | 'DARK' | 'SYSTEM' | 'AUTO')
+        : (mapThemeToStorage(APP_DEFAULTS.theme) as 'LIGHT' | 'DARK' | 'SYSTEM' | 'AUTO');
+
     user.preferences = {
       ...merged,
       timezone: merged.timezone ?? APP_DEFAULTS.timezone,
       language: merged.language ?? APP_DEFAULTS.language,
-      theme: (themeValue === 'LIGHT' || themeValue === 'DARK' || themeValue === 'SYSTEM') 
-        ? themeValue 
-        : mapThemeToStorage(APP_DEFAULTS.theme),
+      theme: themeValue,
       notifications: merged.notifications ?? { ...DEFAULT_NOTIFICATIONS }
     };
     

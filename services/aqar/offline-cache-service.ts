@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { logger } from '@/lib/logger';
 import { connectDb } from '@/lib/mongo';
+import type { Db } from 'mongodb';
 import { AqarListing } from '@/models/aqar';
 import {
   ListingStatus,
@@ -11,11 +12,11 @@ import {
   ListingIntent,
   PropertyType,
 } from '@/models/aqar/Listing';
-import type { FilterQuery, Model } from 'mongoose';
+import type { FilterQuery } from 'mongoose';
 import { Types } from 'mongoose';
-import type { Collection as MongoCollection, Db } from 'mongodb';
 
-const listingModel = AqarListing as unknown as Model<IListing>;
+// AqarListing is already typed as Model<IListing> from the import
+const listingModel = AqarListing;
 
 type OfflineBundleDoc = OfflineBundleRecord & { _id?: unknown };
 type LeanListing = {
@@ -93,12 +94,12 @@ export class AqarOfflineCacheService {
     const cacheKey = this.buildCacheKey(input);
     const now = new Date();
 
-    const collection: MongoCollection<OfflineBundleDoc> = db.collection(this.COLLECTION);
-    const existing = await collection.findOne({ cacheKey, expiresAt: { $gt: now } });
+    const collection = db.collection(this.COLLECTION);
+    const existing = await collection.findOne({ cacheKey, expiresAt: { $gt: now } }) as OfflineBundleDoc | null;
 
     if (existing) {
       const { _id, ...rest } = existing;
-      return rest;
+      return rest as OfflineBundleRecord;
     }
 
     const payload = await this.buildPayload(input);
@@ -134,7 +135,8 @@ export class AqarOfflineCacheService {
       .sort({ 'ai.recommendationScore': -1, publishedAt: -1 })
       .limit(limit)
       .lean();
-    const typedListings = listings as unknown as LeanListing[];
+    // lean() returns plain objects matching the LeanListing type
+    const typedListings = listings as LeanListing[];
     const toIsoString = (value?: string | Date): string | undefined => {
       if (!value) return undefined;
       if (value instanceof Date) {
