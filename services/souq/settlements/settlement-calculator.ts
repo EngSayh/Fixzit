@@ -106,6 +106,8 @@ interface SettlementStatement {
   _id?: ObjectId;
   statementId: string;
   sellerId: string;
+  orgId?: string;
+  escrowAccountId?: string;
   period: {
     start: Date;
     end: Date;

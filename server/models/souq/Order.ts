@@ -5,6 +5,7 @@
 
 import mongoose, { Schema, type Document } from 'mongoose'
 import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import { EscrowState, type EscrowStateValue } from '@/server/models/finance/EscrowAccount';
 
 export interface IOrder extends Document {
   _id: mongoose.Types.ObjectId;
@@ -88,6 +89,14 @@ export interface IOrder extends Document {
     status: 'pending' | 'approved' | 'rejected' | 'completed';
     approvedAt?: Date;
     refundedAt?: Date;
+  };
+
+  escrow?: {
+    accountId?: mongoose.Types.ObjectId;
+    status?: EscrowStateValue;
+    releaseAfter?: Date;
+    lastEventId?: string;
+    idempotencyKey?: string;
   };
   
   notes?: string;
@@ -300,6 +309,13 @@ const OrderSchema = new Schema<IOrder>(
       },
       approvedAt: Date,
       refundedAt: Date,
+    },
+    escrow: {
+      accountId: { type: Schema.Types.ObjectId, ref: 'EscrowAccount', index: true },
+      status: { type: String, enum: Object.values(EscrowState) },
+      releaseAfter: { type: Date },
+      lastEventId: { type: String },
+      idempotencyKey: { type: String },
     },
     notes: String,
     confirmedAt: Date,

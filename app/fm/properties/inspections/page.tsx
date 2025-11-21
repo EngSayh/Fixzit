@@ -16,6 +16,10 @@ export default function PropertyInspectionWorkspace() {
   const auto = useAutoTranslator('fm.properties.inspections');
   const [isReserving, setReserving] = useState(false);
   const { properties, isLoading, error, refresh } = useProperties('?limit=50');
+  const vendorAssignmentsApiEnabled = process.env.NEXT_PUBLIC_VENDOR_ASSIGNMENTS_API_ENABLED === 'true';
+  const vendorAssignmentsMocksEnabled =
+    process.env.NEXT_PUBLIC_VENDOR_ASSIGNMENTS_API_MOCKS === 'true' || process.env.NODE_ENV !== 'production';
+  const shouldQueryVendorAssignments = vendorAssignmentsApiEnabled || vendorAssignmentsMocksEnabled;
   const handleReserveSlot = async () => {
     setReserving(true);
     const toastId = toast.loading(auto('Securing inspection slot...', 'header.reserve.loading'));
@@ -61,6 +65,8 @@ export default function PropertyInspectionWorkspace() {
   
   // Fetch vendor count from API
   useEffect(() => {
+    if (!shouldQueryVendorAssignments) return;
+
     const fetchVendorCount = async () => {
       try {
         const response = await fetch('/api/fm/inspections/vendor-assignments');
@@ -75,7 +81,7 @@ export default function PropertyInspectionWorkspace() {
       }
     };
     fetchVendorCount();
-  }, [properties.length]);
+  }, [properties.length, shouldQueryVendorAssignments]);
 
   const inspectionQueue = useMemo(() => {
     return properties.slice(0, 5).map((property, index) => ({

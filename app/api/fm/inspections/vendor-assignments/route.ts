@@ -1,7 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { connectDb } from '@/lib/mongo';
 import { logger } from '@/lib/logger';
+
+const VENDOR_ASSIGNMENTS_API_ENABLED = process.env.VENDOR_ASSIGNMENTS_API_ENABLED === 'true';
+const VENDOR_ASSIGNMENTS_API_MOCKS =
+  process.env.VENDOR_ASSIGNMENTS_API_MOCKS === 'true' || process.env.NODE_ENV !== 'production';
+
+type VendorAssignmentsMode = 'disabled' | 'mock' | 'flagged-mock' | 'pending-real';
+
+const resolveVendorAssignmentsMode = (): VendorAssignmentsMode => {
+  if (!VENDOR_ASSIGNMENTS_API_ENABLED && !VENDOR_ASSIGNMENTS_API_MOCKS) {
+    return 'disabled';
+  }
+
+  if (VENDOR_ASSIGNMENTS_API_ENABLED && !VENDOR_ASSIGNMENTS_API_MOCKS) {
+    return 'pending-real';
+  }
+
+  if (VENDOR_ASSIGNMENTS_API_ENABLED && VENDOR_ASSIGNMENTS_API_MOCKS) {
+    return 'flagged-mock';
+  }
+
+  return 'mock';
+};
 
 interface VendorAssignment {
   inspectionId: string;
@@ -49,7 +70,34 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const limit = parseInt(searchParams.get('limit') || '100');
 
-    await connectDb();
+    const mode = resolveVendorAssignmentsMode();
+
+    if (mode === 'disabled') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Vendor assignments API disabled',
+          note:
+            'Set VENDOR_ASSIGNMENTS_API_MOCKS=true to enable mock responses while FMInspection integration is wired.',
+        },
+        { status: 503 }
+      );
+    }
+
+    if (mode === 'pending-real') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Vendor assignments data source not implemented yet',
+          note:
+            'Leave VENDOR_ASSIGNMENTS_API_ENABLED=false or enable VENDOR_ASSIGNMENTS_API_MOCKS=true until FMInspection-backed assignments are available.',
+        },
+        { status: 501 }
+      );
+    }
+
+    // Real FMInspection integration not wired yet; allow mock payloads only when flags permit.
+    const usingMockData = mode === 'mock' || mode === 'flagged-mock';
 
     // For now, return mock data structure
     // In production, this would query from FMInspection or similar collection
@@ -101,9 +149,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      source: usingMockData ? 'mock' : 'database',
       assignments: filteredAssignments.slice(0, limit),
       stats,
-      note: 'This endpoint returns mock data. Integration with FMInspection collection pending.',
+      note:
+        mode === 'flagged-mock'
+          ? 'VENDOR_ASSIGNMENTS_API_ENABLED is true but using mock data until FMInspection integration is completed.'
+          : 'Mock vendor assignments payload. Set VENDOR_ASSIGNMENTS_API_MOCKS=true only in non-production or after integration is ready.',
     });
   } catch (error) {
     logger.error('Vendor assignments API error', error as Error);
@@ -149,6 +201,33 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { inspectionId, propertyId, vendorId, trade, scheduledDate } = body;
 
+    const mode = resolveVendorAssignmentsMode();
+    if (mode === 'disabled') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Vendor assignments API disabled',
+          note:
+            'Set VENDOR_ASSIGNMENTS_API_MOCKS=true to allow mock creation responses while FMInspection integration is wired.',
+        },
+        { status: 503 }
+      );
+    }
+
+    if (mode === 'pending-real') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Vendor assignments persistence not implemented yet',
+          note:
+            'Disable VENDOR_ASSIGNMENTS_API_ENABLED or enable VENDOR_ASSIGNMENTS_API_MOCKS=true to use mock assignments until FMInspection-backed storage is available.',
+        },
+        { status: 501 }
+      );
+    }
+
+    const usingMockData = mode === 'mock' || mode === 'flagged-mock';
+
     // Validate required fields
     if (!inspectionId || !propertyId || !vendorId || !trade) {
       return NextResponse.json(
@@ -156,8 +235,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    await connectDb();
 
     // In production, this would:
     // 1. Verify inspection exists
@@ -185,9 +262,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      source: usingMockData ? 'mock' : 'database',
       assignment,
       message: 'Vendor assigned successfully',
-      note: 'This endpoint currently creates mock assignments. Database integration pending.',
+      note:
+        mode === 'flagged-mock'
+          ? 'VENDOR_ASSIGNMENTS_API_ENABLED is true but using mock data until FMInspection integration is completed.'
+          : 'Mock vendor assignment created. Enable VENDOR_ASSIGNMENTS_API_MOCKS=true explicitly while integration is pending.',
     }, { status: 201 });
   } catch (error) {
     logger.error('Create vendor assignment error', error as Error);

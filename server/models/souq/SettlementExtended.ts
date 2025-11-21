@@ -9,6 +9,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface ISouqSettlement extends Document {
   settlementId: string;
   sellerId: mongoose.Types.ObjectId;
+  escrowAccountId?: mongoose.Types.ObjectId;
   period: {
     start: Date;
     end: Date;
@@ -57,6 +58,10 @@ const SouqSettlementSchema = new Schema<ISouqSettlement>(
       required: true,
       ref: 'User',
       index: true,
+    },
+    escrowAccountId: {
+      type: Schema.Types.ObjectId,
+      ref: 'EscrowAccount',
     },
     period: {
       start: { type: Date, required: true },

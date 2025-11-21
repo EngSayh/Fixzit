@@ -14,6 +14,8 @@ import { SouqErrors } from '../errors';
 import { auth } from '@/auth';
 import { SouqOrder } from '@/server/models/souq/Order';
 import { SouqListing } from '@/server/models/souq/Listing';
+import { escrowService } from '@/services/souq/settlements/escrow-service';
+import { EscrowSource } from '@/server/models/finance/EscrowAccount';
 
 const objectIdSchema = z
   .string()
@@ -285,6 +287,51 @@ export async function POST(request: NextRequest) {
       status: 'pending',
       orgId: sellerOrgId,
     });
+
+    const sellerIds = Array.from(
+      new Set(
+        orderItems
+          .map((item) => {
+            const value = item.sellerId as unknown;
+            if (!value) return undefined;
+            if (value instanceof Types.ObjectId) return value.toString();
+            if (typeof value === 'string') return value;
+            if (typeof value === 'object' && '_id' in (value as { _id?: Types.ObjectId })) {
+              const ref = (value as { _id?: Types.ObjectId })._id;
+              return ref?.toString();
+            }
+            return undefined;
+          })
+          .filter(Boolean) as string[]
+      )
+    );
+
+    const escrowSellerId =
+      sellerIds.length === 1 && Types.ObjectId.isValid(sellerIds[0])
+        ? new Types.ObjectId(sellerIds[0])
+        : undefined;
+
+    const escrowAccount = await escrowService.createEscrowAccount({
+      source: EscrowSource.MARKETPLACE_ORDER,
+      sourceId: order._id,
+      orderId: order._id,
+      orgId: new Types.ObjectId(sellerOrgId),
+      buyerId: customerObjectId,
+      sellerId: escrowSellerId,
+      expectedAmount: total,
+      currency: 'SAR',
+      releaseAfter: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      idempotencyKey: request.headers.get('x-idempotency-key') ?? orderId,
+      riskHold: false,
+    });
+
+    order.escrow = {
+      accountId: escrowAccount._id,
+      status: escrowAccount.status,
+      releaseAfter: escrowAccount.releasePolicy?.autoReleaseAt,
+      idempotencyKey: escrowAccount.idempotencyKeys?.[0],
+    };
+    await order.save();
 
     return NextResponse.json({
       success: true,

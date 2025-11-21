@@ -7,6 +7,7 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose'
 import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import { EscrowState, type EscrowStateValue } from '@/server/models/finance/EscrowAccount';
 
 export enum BookingStatus {
   PENDING = 'PENDING',           // Awaiting host confirmation
@@ -64,6 +65,15 @@ export interface IBooking extends Document {
   // Check-in/out
   checkedInAt?: Date;
   checkedOutAt?: Date;
+
+  // Escrow
+  escrow?: {
+    accountId?: mongoose.Types.ObjectId;
+    status?: EscrowStateValue;
+    releaseAfter?: Date;
+    lastEventId?: string;
+    idempotencyKey?: string;
+  };
   
   // Timestamps
   createdAt: Date;
@@ -114,6 +124,13 @@ const BookingSchema = new Schema<IBooking>(
     
     checkedInAt: { type: Date },
     checkedOutAt: { type: Date },
+    escrow: {
+      accountId: { type: Schema.Types.ObjectId, ref: 'EscrowAccount', index: true },
+      status: { type: String, enum: Object.values(EscrowState) },
+      releaseAfter: { type: Date },
+      lastEventId: { type: String },
+      idempotencyKey: { type: String },
+    },
   },
   {
     timestamps: true,

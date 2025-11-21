@@ -10,6 +10,7 @@ export interface ISouqPayoutRequest extends Document {
   payoutId: string;
   sellerId: mongoose.Types.ObjectId;
   statementId: string;
+  escrowAccountId?: mongoose.Types.ObjectId;
   amount: number;
   currency: string;
   bankAccount: {
@@ -52,6 +53,10 @@ const SouqPayoutRequestSchema = new Schema<ISouqPayoutRequest>(
       type: String,
       required: true,
       index: true,
+    },
+    escrowAccountId: {
+      type: Schema.Types.ObjectId,
+      ref: 'EscrowAccount',
     },
     amount: {
       type: Number,

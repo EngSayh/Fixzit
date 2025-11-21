@@ -17,6 +17,7 @@
  */
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
+import { EscrowSource, EscrowState, type EscrowStateValue } from '@/server/models/finance/EscrowAccount';
 
 export enum BookingStatus {
   PENDING = 'PENDING',
@@ -82,6 +83,15 @@ export interface IBooking extends Document {
   checkedInAt?: Date;
   checkedOutAt?: Date;
 
+  // Escrow
+  escrow?: {
+    accountId?: mongoose.Types.ObjectId;
+    status?: EscrowStateValue;
+    releaseAfter?: Date;
+    lastEventId?: string;
+    idempotencyKey?: string;
+  };
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -138,6 +148,13 @@ const BookingSchema = new Schema<IBooking>(
 
     checkedInAt: { type: Date },
     checkedOutAt: { type: Date },
+    escrow: {
+      accountId: { type: Schema.Types.ObjectId, ref: 'EscrowAccount', index: true },
+      status: { type: String, enum: Object.values(EscrowState) },
+      releaseAfter: { type: Date },
+      lastEventId: { type: String },
+      idempotencyKey: { type: String },
+    },
   },
   {
     timestamps: true,
@@ -455,7 +472,42 @@ BookingSchema.statics.createWithAvailability = async function (
     ],
     { session }
   );
-  return created[0];
+  const bookingDoc = created[0];
+
+  // Create escrow account tied to this booking (critical for payouts)
+  const { escrowService } = await import('@/services/souq/settlements/escrow-service');
+  const { logger } = await import('@/lib/logger');
+  try {
+    const account = await escrowService.createEscrowAccount({
+      source: EscrowSource.AQAR_BOOKING,
+      sourceId: bookingDoc._id,
+      bookingId: bookingDoc._id,
+      orgId: bookingDoc.orgId,
+      buyerId: bookingDoc.guestId,
+      sellerId: bookingDoc.hostId,
+      expectedAmount: bookingDoc.totalPrice,
+      currency: 'SAR',
+      releaseAfter: bookingDoc.checkOutDate,
+      idempotencyKey: bookingDoc._id.toString(),
+      riskHold: false,
+    });
+
+    bookingDoc.escrow = {
+      accountId: account._id,
+      status: account.status,
+      releaseAfter: account.releasePolicy?.autoReleaseAt,
+      idempotencyKey: account.idempotencyKeys?.[0],
+    };
+    await bookingDoc.save();
+  } catch (error) {
+    logger.error('[Escrow] Failed to create account for booking', {
+      bookingId: bookingDoc._id.toString(),
+      error,
+    });
+    throw error;
+  }
+
+  return bookingDoc;
 };
 
 /* ---------------- Model Export ---------------- */

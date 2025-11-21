@@ -11,6 +11,7 @@ export interface ISettlement {
   settlementId: string;
   sellerId: Types.ObjectId;
   org_id: string;
+  escrowAccountId?: Types.ObjectId;
   period: string; // YYYY-MM format
   startDate: Date;
   endDate: Date;
@@ -45,6 +46,10 @@ const SettlementSchema = new Schema<ISettlement>(
       ref: 'SouqSeller',
       required: true,
       index: true,
+    },
+    escrowAccountId: {
+      type: Schema.Types.ObjectId,
+      ref: 'EscrowAccount',
     },
     org_id: {
       type: String,

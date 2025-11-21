@@ -14,9 +14,11 @@
  */
 
 import { ObjectId } from 'mongodb';
+import { Types } from 'mongoose';
 import { connectDb } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 import type { SettlementStatement } from './settlement-calculator';
+import { escrowService } from './escrow-service';
 
 /**
  * Payout status types
@@ -52,6 +54,8 @@ interface PayoutRequest {
   payoutId: string;
   sellerId: string;
   statementId: string;
+  orgId?: string;
+  escrowAccountId?: string;
   amount: number;
   currency: string;
   bankAccount: BankAccount;
@@ -107,6 +111,35 @@ const PAYOUT_CONFIG = {
   batchDay: 5, // Friday (0 = Sunday, 6 = Saturday)
   currency: 'SAR',
 } as const;
+
+/**
+ * SADAD/SPAN readiness configuration (simulated until credentials are available)
+ */
+const SADAD_REQUIRED_ENV_VARS = ['SADAD_API_KEY', 'SADAD_API_SECRET', 'SADAD_API_ENDPOINT'] as const;
+type SadadSpanReadiness =
+  | { status: 'disabled' }
+  | { status: 'incomplete'; missingEnv: string[] }
+  | { status: 'simulation'; mode: 'simulation' }
+  | { status: 'live_not_implemented'; mode: string };
+
+function getSadadSpanReadiness(): SadadSpanReadiness {
+  const flagEnabled = process.env.ENABLE_SADAD_PAYOUTS === 'true';
+  if (!flagEnabled) {
+    return { status: 'disabled' };
+  }
+
+  const missingEnv = SADAD_REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
+  if (missingEnv.length > 0) {
+    return { status: 'incomplete', missingEnv };
+  }
+
+  const mode = (process.env.SADAD_SPAN_MODE || 'simulation').toLowerCase();
+  if (mode !== 'simulation') {
+    return { status: 'live_not_implemented', mode };
+  }
+
+  return { status: 'simulation', mode: 'simulation' };
+}
 
 async function getDbInstance() {
   const mongooseInstance = await connectDb();
@@ -175,6 +208,8 @@ export class PayoutProcessorService {
       payoutId,
       sellerId,
       statementId,
+      orgId: (statement as SettlementStatement & { orgId?: string }).orgId,
+      escrowAccountId: (statement as SettlementStatement & { escrowAccountId?: string }).escrowAccountId,
       amount: statement.summary.netPayout,
       currency: PAYOUT_CONFIG.currency,
       bankAccount,
@@ -247,6 +282,39 @@ export class PayoutProcessorService {
 
         // Send notification to seller
         await this.sendPayoutNotification(payout, 'success');
+
+        if (payout.escrowAccountId) {
+          const orgId = payout.orgId;
+          if (!orgId) {
+            logger.warn('[PayoutProcessor] Missing orgId on payout; escrow release skipped', {
+              payoutId,
+              escrowAccountId: payout.escrowAccountId,
+            });
+          } else {
+            try {
+              await escrowService.releaseFunds({
+                escrowAccountId: new Types.ObjectId(payout.escrowAccountId),
+                orgId: new Types.ObjectId(orgId),
+                amount: payout.amount,
+                currency: payout.currency,
+                provider:
+                  payout.method === 'sadad'
+                    ? 'SADAD'
+                    : payout.method === 'span'
+                      ? 'SPAN'
+                      : 'MANUAL',
+                idempotencyKey: `payout-${payout.payoutId}`,
+                reason: 'Settlement payout completed',
+              });
+            } catch (escrowError) {
+              logger.error('[PayoutProcessor] Failed to release escrow after payout completion', {
+                payoutId,
+                escrowAccountId: payout.escrowAccountId,
+                error: escrowError,
+              });
+            }
+          }
+        }
 
         return {
           ...payout,
@@ -336,7 +404,9 @@ export class PayoutProcessorService {
   private static async executeBankTransfer(
     payout: PayoutRequest
   ): Promise<BankTransferResponse> {
-    if (process.env.ENABLE_SADAD_PAYOUTS !== 'true') {
+    const readiness = getSadadSpanReadiness();
+
+    if (readiness.status === 'disabled') {
       logger.warn('[PayoutProcessor] SADAD/SPAN integration disabled. Using manual fallback. See docs/payments/manual-withdrawal-process.md for the current runbook.', {
         metric: 'payout_integration_disabled',
         provider: 'SADAD_SPAN',
@@ -348,7 +418,36 @@ export class PayoutProcessorService {
         errorMessage: 'SADAD/SPAN payouts are deferred until banking approvals complete.',
       };
     }
-    
+
+    if (readiness.status === 'incomplete') {
+      const missingEnvList = readiness.missingEnv.join(', ');
+      logger.error('[PayoutProcessor] SADAD/SPAN flagged on but credentials are missing. Failing fast.', {
+        metric: 'payout_integration_misconfigured',
+        provider: 'SADAD_SPAN',
+        method: payout.method,
+        missingEnv: readiness.missingEnv,
+      });
+      return {
+        success: false,
+        errorCode: 'INTEGRATION_NOT_CONFIGURED',
+        errorMessage: `SADAD/SPAN credentials missing: ${missingEnvList}`,
+      };
+    }
+
+    if (readiness.status === 'live_not_implemented') {
+      logger.error('[PayoutProcessor] SADAD/SPAN live mode requested but not implemented. Staying in manual fallback.', {
+        metric: 'payout_integration_not_implemented',
+        provider: 'SADAD_SPAN',
+        method: payout.method,
+        mode: readiness.mode,
+      });
+      return {
+        success: false,
+        errorCode: 'INTEGRATION_NOT_AVAILABLE',
+        errorMessage: 'SADAD/SPAN live mode is not implemented yet. Keep ENABLE_SADAD_PAYOUTS=false or SADAD_SPAN_MODE=simulation.',
+      };
+    }
+
     /**
      * SADAD/SPAN Integration - Currently Simulated
      * 
@@ -369,6 +468,7 @@ export class PayoutProcessorService {
       provider: 'SADAD_SPAN',
       method: payout.method,
       amount: payout.amount,
+      mode: readiness.mode,
     });
 
     // Simulate API call (replace with real client when ENABLE_SADAD_PAYOUTS=true)

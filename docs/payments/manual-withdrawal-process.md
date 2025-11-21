@@ -63,7 +63,10 @@ The fully automated SADAD/SPAN rail is **deferred to Q1 2026** pending a banking
 
 - Toggle: `ENABLE_SADAD_PAYOUTS`
 - Current default: `false` – the `PayoutProcessorService.executeBankTransfer` method detects this flag and returns a “integration deferred” error, which routes the payout back to manual handling.
-- When the partnership is ready, flip the flag to `true` and supply the API credentials in the secrets manager before deploying the integration.
+- Required secrets when enabling: `SADAD_API_KEY`, `SADAD_API_SECRET`, `SADAD_API_ENDPOINT`
+- Mode flag: `SADAD_SPAN_MODE=simulation` (default). Live mode is not implemented yet; setting other values will fail fast to avoid accidental activation without a real client.
+- If `ENABLE_SADAD_PAYOUTS=true` but any required secret is missing, the service returns `INTEGRATION_NOT_CONFIGURED` and logs an error, keeping payouts in manual mode.
+- When the partnership is ready, flip the flag to `true`, set the secrets in the secret manager, and replace the simulator with the real client before deployment.
 
 Refer to `services/souq/settlements/payout-processor.ts` for the status check and `docs/completion/EPIC_I_SETTLEMENT_AUTOMATION_COMPLETE.md` for the original implementation plan.
 
