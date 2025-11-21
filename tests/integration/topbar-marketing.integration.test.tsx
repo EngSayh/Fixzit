@@ -1,7 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { act } from 'react';
+import { render, screen } from '@testing-library/react';
 import TopBar from '@/components/TopBar';
 import PublicProviders from '@/providers/PublicProviders';
 
@@ -48,23 +47,17 @@ vi.mock('@/components/topbar/GlobalSearch', () => ({
 
 describe('TopBar (marketing/public view)', () => {
   it('shows language toggle and hides app/module pills and app switcher', async () => {
-    await act(async () => {
-      render(
-        <PublicProviders initialLocale="ar">
-          <TopBar />
-        </PublicProviders>
-      );
-    });
-    // Flush any pending effects
-    await act(async () => {});
+    render(
+      <PublicProviders initialLocale="ar">
+        <TopBar />
+      </PublicProviders>
+    );
 
     // Wait until providers settle and topbar renders
-    await waitFor(() => {
-      expect(screen.getByRole('banner')).toBeInTheDocument();
-    });
+    await screen.findByRole('banner');
 
     // Language selector should be visible for guests
-    expect(screen.getByTestId('language-selector')).toBeInTheDocument();
+    expect(await screen.findByTestId('language-selector')).toBeInTheDocument();
 
     // App/module pills should NOT render on marketing routes
     expect(screen.queryByText('إدارة المنشآت (FM)')).toBeNull();
