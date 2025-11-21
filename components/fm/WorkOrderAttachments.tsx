@@ -14,6 +14,7 @@ export interface WorkOrderAttachment {
   size: number;
   type?: string;
   scanStatus: ScanStatus;
+  mimeVerified?: boolean;
 }
 
 interface Props {
@@ -22,6 +23,8 @@ interface Props {
   initialAttachments?: WorkOrderAttachment[];
   draftCreator?: () => Promise<string | undefined>;
 }
+
+type UploadingFile = { key: string; name: string; size: number; status: 'uploading' | 'error' | 'canceled' };
 
 const ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'application/pdf']);
 const ALLOWED_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'pdf']);
@@ -40,24 +43,22 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<Record<string, number>>({});
+  const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const uploadControllers = useRef<Record<string, XMLHttpRequest>>({});
-  const [uploadingFiles, setUploadingFiles] = useState<
-    { key: string; name: string; size: number; status: 'uploading' | 'error' | 'canceled' }[]
-  >([]);
 
-  // Sync incoming attachments (e.g., edit/detail pages)
+  // Sync incoming attachments (edit/detail pages)
   useEffect(() => {
     if (!initialAttachments) return;
     const normalized = initialAttachments.map((att) => ({ ...att, scanStatus: att.scanStatus || 'pending' }));
-    const currentKeys = new Set(attachments.map((a) => a.key));
-    const incomingKeys = new Set(normalized.map((a) => a.key));
-    const keysChanged = currentKeys.size !== incomingKeys.size || [...currentKeys].some((k) => !incomingKeys.has(k));
-    if (keysChanged) {
+    const currKeys = new Set(attachments.map((a) => a.key));
+    const nextKeys = new Set(normalized.map((a) => a.key));
+    const changed = currKeys.size !== nextKeys.size || [...currKeys].some((k) => !nextKeys.has(k));
+    if (changed) {
       setAttachments(normalized);
     }
   }, [initialAttachments, attachments]);
 
-  // Poll AV scan status for pending items to allow UI badges to refresh
+  // Poll AV scan status for pending items
   useEffect(() => {
     const pending = attachments.filter((att) => att.scanStatus === 'pending');
     if (pending.length === 0) return undefined;
@@ -84,7 +85,7 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
           map.set(updated.key, { ...map.get(updated.key), ...updated });
         }
         const next = Array.from(map.values());
-        if (onChange) onChange(next);
+        onChange?.(next);
         return next;
       });
     }, 7000);
@@ -92,151 +93,200 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
     return () => window.clearInterval(interval);
   }, [attachments, onChange]);
 
-  const handleFiles = async (fileList: FileList | null) => {
-    if (!fileList || fileList.length === 0) return;
-    let targetWorkOrderId = workOrderId;
-    if (!targetWorkOrderId && draftCreator) {
-      targetWorkOrderId = await draftCreator();
-    }
-    if (!targetWorkOrderId) {
-      setError('Save the work order first to enable attachments.');
-      return;
-    }
+  const ensureWorkOrderId = async () => {
+    if (workOrderId) return workOrderId;
+    if (draftCreator) return draftCreator();
+    return undefined;
+  };
 
-    const safeFiles = Array.from(fileList).filter((file) => {
+  const validateFiles = (fileList: FileList | null) => {
+    const files = fileList ? Array.from(fileList) : [];
+    const valid: File[] = [];
+    for (const file of files) {
       const ext = file.name.split('.').pop()?.toLowerCase();
       if (!ext || !ALLOWED_EXTENSIONS.has(ext)) {
         setError(`Unsupported file extension: .${ext || 'unknown'} (png, jpg, jpeg, pdf only)`);
-        return false;
+        continue;
       }
       if (ext && EXTENSION_MIME_MAP[ext] && !EXTENSION_MIME_MAP[ext].includes(file.type)) {
         setError(`File type does not match extension (${file.type || 'unknown'} for .${ext})`);
-        return false;
+        continue;
       }
       if (!ALLOWED_TYPES.has(file.type)) {
         setError(`Unsupported file type: ${file.type || 'unknown'} (PNG, JPG, PDF only)`);
-        return false;
+        continue;
       }
       if (file.size > MAX_SIZE_BYTES) {
         setError(`File too large: ${(file.size / 1024 / 1024).toFixed(1)} MB (max 15 MB)`);
-        return false;
+        continue;
+      }
+      valid.push(file);
+    }
+    return valid;
+  };
+
+  const handleCancel = (key: string) => {
+    const xhr = uploadControllers.current[key];
+    if (xhr) xhr.abort();
+    setUploadingFiles((prev) => prev.map((f) => (f.key === key ? { ...f, status: 'canceled' } : f)));
+    setProgress((prev) => ({ ...prev, [key]: 0 }));
+    delete uploadControllers.current[key];
+  };
+
+  const verifyMetadata = async (key: string, ext: string | undefined) => {
+    try {
+      const res = await fetch(`/api/upload/verify-metadata?key=${encodeURIComponent(key)}`);
+      if (!res.ok) return true;
+      const meta = (await res.json().catch(() => ({}))) as { contentType?: string };
+      const actualMime = meta?.contentType;
+      if (actualMime && ext && EXTENSION_MIME_MAP[ext]) {
+        return EXTENSION_MIME_MAP[ext].includes(actualMime);
       }
       return true;
-    });
+    } catch {
+      return true;
+    }
+  };
 
-    if (safeFiles.length === 0) return;
+  const handleFiles = async (fileList: FileList | null) => {
+    const files = validateFiles(fileList);
+    if (files.length === 0) return;
+
+    const targetId = await ensureWorkOrderId();
+    if (!targetId) {
+      setError('Save the work order first to enable attachments.');
+      return;
+    }
 
     setUploading(true);
     setError(null);
     const next: WorkOrderAttachment[] = [];
 
     try {
-      for (const file of safeFiles) {
-        try {
-          const presignRes = await fetch(`/api/work-orders/${targetWorkOrderId}/attachments/presign`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: file.name, type: file.type || 'application/octet-stream', size: file.size }),
+      for (const file of files) {
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        const presignRes = await fetch(`/api/work-orders/${targetId}/attachments/presign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: file.name, type: file.type || 'application/octet-stream', size: file.size }),
+        });
+        if (!presignRes.ok) throw new Error(await presignRes.text());
+        const presign = await presignRes.json();
+        setUploadingFiles((prev) => [...prev, { key: presign.key, name: file.name, size: file.size, status: 'uploading' }]);
+
+        const headers: Record<string, string> = {
+          ...(presign.headers || {}),
+          'Content-Type': file.type || 'application/octet-stream',
+        };
+
+        const uploadOnce = () =>
+          new Promise<void>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('PUT', presign.putUrl);
+            uploadControllers.current[presign.key] = xhr;
+            Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+            xhr.upload.onprogress = (evt) => {
+              if (evt.lengthComputable) {
+                const pct = Math.round((evt.loaded / evt.total) * 100);
+                setProgress((prev) => ({ ...prev, [presign.key]: pct }));
+              }
+            };
+            xhr.onload = () => {
+              setProgress((prev) => ({ ...prev, [presign.key]: 100 }));
+              if (xhr.status >= 200 && xhr.status < 300) resolve();
+              else reject(new Error(`Upload failed (${xhr.status})`));
+            };
+            xhr.onerror = () => reject(new Error('Upload failed'));
+            xhr.onabort = () => reject(new Error('Upload canceled'));
+            xhr.send(file);
           });
-          if (!presignRes.ok) {
-            throw new Error(await presignRes.text());
-          }
-          const presign = await presignRes.json();
-          const headers: Record<string, string> = {
-            ...(presign.headers || {}),
-            'Content-Type': file.type || 'application/octet-stream',
-          };
 
-          const uploadOnce = () =>
-            new Promise<void>((resolve, reject) => {
-              const xhr = new XMLHttpRequest();
-              xhr.open('PUT', presign.putUrl);
-              Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
-              xhr.upload.onprogress = (evt) => {
-                if (evt.lengthComputable) {
-                  const pct = Math.round((evt.loaded / evt.total) * 100);
-                  setProgress((prev) => ({ ...prev, [presign.key]: pct }));
-                }
-              };
-              xhr.onload = () => {
-                setProgress((prev) => ({ ...prev, [presign.key]: 100 }));
-                if (xhr.status >= 200 && xhr.status < 300) resolve();
-                else reject(new Error(`Upload failed (${xhr.status})`));
-              };
-              xhr.onerror = () => reject(new Error('Upload failed'));
-              xhr.send(file);
-            });
-
-          const delays = [0, 500, 1500];
-          for (let attempt = 0; attempt < delays.length; attempt += 1) {
-            if (attempt > 0) {
-              await new Promise((r) => setTimeout(r, delays[attempt]));
-            }
-            try {
-              await uploadOnce();
-              break;
-            } catch (err) {
-              if (attempt === delays.length - 1) {
+        const delays = [0, 400, 1200, 2500];
+        let uploaded = false;
+        for (let attempt = 0; attempt < delays.length; attempt += 1) {
+          if (attempt > 0) await new Promise((r) => setTimeout(r, delays[attempt]));
+          try {
+            await uploadOnce();
+            uploaded = true;
+            break;
+          } catch (err) {
+            const canceled = err instanceof Error && err.message.includes('canceled');
+            if (attempt === delays.length - 1 || canceled) {
+              setUploadingFiles((prev) =>
+                prev.map((f) => (f.key === presign.key ? { ...f, status: canceled ? 'canceled' : 'error' } : f))
+              );
+              delete uploadControllers.current[presign.key];
+              if (!canceled) {
                 throw err instanceof Error ? err : new Error('Upload failed');
               }
+              uploaded = false;
+              break;
             }
           }
+        }
 
-          const publicUrl = String(presign.putUrl).split('?')[0];
-          let scanStatus: ScanStatus = 'pending';
-          try {
-            const scanRes = await fetch(`/api/upload/scan-status?key=${encodeURIComponent(presign.key)}`, {
-              method: 'GET',
-            });
-            if (scanRes.ok) {
-              const scanJson = await scanRes.json().catch(() => ({}));
-              if (typeof scanJson.status === 'string') {
-                const normalized = scanJson.status as ScanStatus;
-                scanStatus = ['pending', 'clean', 'infected', 'error'].includes(normalized) ? normalized : 'pending';
-              }
-            } else {
-              scanStatus = 'error';
+        if (!uploaded) continue;
+
+        const publicUrl = String(presign.putUrl).split('?')[0];
+        setUploadingFiles((prev) => prev.filter((f) => f.key !== presign.key));
+        delete uploadControllers.current[presign.key];
+
+        let mimeVerified = true;
+        if (ext) {
+          mimeVerified = await verifyMetadata(presign.key, ext);
+        }
+
+        let scanStatus: ScanStatus = 'pending';
+        try {
+          const scanRes = await fetch(`/api/upload/scan-status?key=${encodeURIComponent(presign.key)}`);
+          if (scanRes.ok) {
+            const scanJson = await scanRes.json().catch(() => ({}));
+            if (typeof scanJson.status === 'string') {
+              const normalized = scanJson.status as ScanStatus;
+              scanStatus = ['pending', 'clean', 'infected', 'error'].includes(normalized) ? normalized : 'pending';
             }
-          } catch (scanErr) {
-            const msg = scanErr instanceof Error ? scanErr.message : 'Scan check failed';
-            setError(msg);
+          } else {
             scanStatus = 'error';
           }
-
-          next.push({
-            key: presign.key,
-            url: publicUrl,
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            scanStatus,
-          });
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to upload attachment');
+        } catch (scanErr) {
+          const msg = scanErr instanceof Error ? scanErr.message : 'Scan check failed';
+          setError(msg);
+          scanStatus = 'error';
         }
+
+        next.push({
+          key: presign.key,
+          url: publicUrl,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          scanStatus,
+          mimeVerified,
+        });
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload attachment');
     } finally {
       setUploading(false);
       setProgress({});
+      uploadControllers.current = {};
+      setUploadingFiles([]);
     }
 
     if (next.length) {
       const merged = [...attachments, ...next];
       setAttachments(merged);
       onChange?.(merged);
-      if (targetWorkOrderId) {
+      if (targetId) {
         try {
-          const saveRes = await fetch(`/api/work-orders/${targetWorkOrderId}`, {
+          const saveRes = await fetch(`/api/work-orders/${targetId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ attachments: merged }),
           });
-          if (!saveRes.ok) {
-            throw new Error('Failed to save attachments to work order');
-          }
+          if (!saveRes.ok) throw new Error('Failed to save attachments to work order');
         } catch (persistErr) {
           setError(persistErr instanceof Error ? persistErr.message : 'Could not save attachments');
-          // Rollback on failure
           setAttachments(attachments);
           onChange?.(attachments);
         }
@@ -245,8 +295,7 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
   };
 
   const handleRemove = async (key: string) => {
-    const targetId = workOrderId;
-    if (!targetId) return;
+    if (!workOrderId) return;
     if (!confirm('Remove this attachment?')) return;
 
     const updated = attachments.filter((att) => att.key !== key);
@@ -254,17 +303,14 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
     onChange?.(updated);
 
     try {
-      const res = await fetch(`/api/work-orders/${targetId}`, {
+      const res = await fetch(`/api/work-orders/${workOrderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attachments: updated }),
       });
-      if (!res.ok) {
-        throw new Error('Failed to remove attachment');
-      }
+      if (!res.ok) throw new Error('Failed to remove attachment');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove attachment');
-      // Revert on error
       setAttachments(attachments);
       onChange?.(attachments);
     }
@@ -296,13 +342,7 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
             Uploading...
           </div>
         )}
-        <Input
-          type="file"
-          multiple
-          onChange={(e) => handleFiles(e.target.files)}
-          disabled={uploading || (!workOrderId && !draftCreator)}
-          className="max-w-xs"
-        />
+        <Input type="file" multiple onChange={(e) => handleFiles(e.target.files)} disabled={uploading && !workOrderId} className="max-w-xs" />
       </div>
       {error && (
         <div className="text-xs text-destructive flex items-center gap-2">
@@ -310,6 +350,22 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
           {error}
         </div>
       )}
+
+      {uploadingFiles.length > 0 && (
+        <div className="space-y-2 rounded border border-border bg-muted/30 p-2 text-xs">
+          <div className="font-medium text-foreground">Uploading</div>
+          {uploadingFiles.map((file) => (
+            <div key={file.key} className="flex items-center gap-2">
+              <span className="truncate flex-1">{file.name}</span>
+              <span className="text-muted-foreground">{progress[file.key] !== undefined ? `${progress[file.key]}%` : '…'}</span>
+              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleCancel(file.key)}>
+                Cancel
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="space-y-2">
         {attachments.length === 0 && <p className="text-sm text-muted-foreground">No attachments uploaded yet.</p>}
         {attachments.map((att) => (
@@ -318,10 +374,8 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
               <p className="text-sm font-medium">{att.name}</p>
               <p className="text-xs text-muted-foreground">
                 {(() => {
-                  const bytes = att.size ?? (att as any).fileSize;
-                  if (typeof bytes === 'number' && !Number.isNaN(bytes)) {
-                    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
-                  }
+                  const bytes = att.size || (att as any).fileSize;
+                  if (typeof bytes === 'number' && !Number.isNaN(bytes)) return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
                   return 'Size unknown';
                 })()}
               </p>
@@ -332,16 +386,21 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
                     <span>{progress[att.key]}%</span>
                   </div>
                   <div className="h-1.5 w-full rounded bg-muted">
-                    <div
-                      className="h-1.5 rounded bg-primary transition-all"
-                      style={{ width: `${progress[att.key]}%` }}
-                    />
+                    <div className="h-1.5 rounded bg-primary transition-all" style={{ width: `${progress[att.key]}%` }} />
                   </div>
                 </div>
+              )}
+              {att.mimeVerified === false && (
+                <p className="text-[11px] text-amber-600 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  MIME/extension mismatch detected
+                </p>
               )}
             </div>
             <div className="flex items-center gap-2">
               {statusBadge(att.scanStatus)}
+            </div>
+            <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="sm"

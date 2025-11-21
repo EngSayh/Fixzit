@@ -37,7 +37,10 @@ const WorkOrderSchema = new Schema({
   // Basic Information
   workOrderNumber: { type: String, required: true },
   title: { type: String, required: true, trim: true },
-  description: { type: String, required: true },
+  description: { 
+    type: String, 
+    required: function(this: any) { return this.status !== 'DRAFT'; } 
+  },
   type: { type: String, enum: WorkOrderType, required: true },
   category: { type: String, required: true },
   subcategory: String,
@@ -60,7 +63,11 @@ const WorkOrderSchema = new Schema({
 
   // Location Information
   location: {
-    propertyId: { type: Schema.Types.ObjectId, ref: 'Property', required: true },
+    propertyId: { 
+      type: Schema.Types.ObjectId, 
+      ref: 'Property', 
+      required: function(this: any) { return this.status !== 'DRAFT'; } 
+    },
     unitNumber: String,
     floor: String,
     building: String,
