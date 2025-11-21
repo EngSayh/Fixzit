@@ -208,54 +208,65 @@ async function globalSetup(config: FullConfig) {
 
       const page = await context.newPage();
 
-      // Step 1: Send OTP (credentials provider requires identifier + password)
-      console.log(`  📤 Sending OTP request...`);
-      const otpResponse = await page.request.post(`${baseURL}/api/auth/otp/send`, {
-        headers: { 'Content-Type': 'application/json' },
-        data: { identifier, password },
-      });
+      // Step 1/2: Send + verify OTP (retry on transient 400/expired)
+      let otpToken: string | undefined;
+      let lastError: string | undefined;
+      for (let attempt = 1; attempt <= 3 && !otpToken; attempt++) {
+        console.log(`  📤 Sending OTP request... (attempt ${attempt}/3)`);
+        const otpResponse = await page.request.post(`${baseURL}/api/auth/otp/send`, {
+          headers: { 'Content-Type': 'application/json' },
+          data: { identifier, password },
+        });
 
-      if (!otpResponse.ok()) {
-        const body = await otpResponse.text();
-        console.error(`  ❌ OTP send failed (${otpResponse.status()}): ${body}`);
-        throw new Error(`Failed to send OTP for ${role.name} (${otpResponse.status()}): ${body}`);
+        if (!otpResponse.ok()) {
+          const body = await otpResponse.text();
+          lastError = `Failed to send OTP for ${role.name} (${otpResponse.status()}): ${body}`;
+          console.error(`  ❌ ${lastError}`);
+          continue;
+        }
+
+        const otpPayload = await otpResponse.json();
+        const otpCode =
+          otpPayload?.data?.devCode ??
+          otpPayload?.data?.otp ??
+          otpPayload?.otp ??
+          otpPayload?.code;
+
+        if (!otpCode) {
+          lastError = 'OTP code not returned from /otp/send (ensure SMS dev mode is enabled or user exists in database)';
+          console.error(`  ❌ ${lastError}`, otpPayload);
+          continue;
+        }
+
+        console.log(`  ✅ OTP received: ${otpCode}${phone ? ` (sent to ${phone})` : ''}`);
+
+        console.log(`  🔐 Verifying OTP...`);
+        const verifyResponse = await page.request.post(`${baseURL}/api/auth/otp/verify`, {
+          headers: { 'Content-Type': 'application/json' },
+          data: { identifier, otp: otpCode },
+        });
+
+        if (!verifyResponse.ok()) {
+          const body = await verifyResponse.text();
+          lastError = `Failed to verify OTP for ${role.name} (${verifyResponse.status()}): ${body}`;
+          console.error(`  ❌ ${lastError}`);
+          continue;
+        }
+
+        const verifyPayload = await verifyResponse.json();
+        otpToken = verifyPayload?.data?.otpToken;
+        if (!otpToken) {
+          lastError = 'OTP verification succeeded but otpToken missing from response';
+          console.error(`  ❌ ${lastError}`, verifyPayload);
+          continue;
+        }
+
+        console.log(`  ✅ OTP verified, token received`);
       }
 
-      const otpPayload = await otpResponse.json();
-      const otpCode =
-        otpPayload?.data?.devCode ??
-        otpPayload?.data?.otp ??
-        otpPayload?.otp ??
-        otpPayload?.code;
-
-      if (!otpCode) {
-        console.error(`  ❌ No OTP code in response:`, otpPayload);
-        throw new Error('OTP code not returned from /otp/send (ensure SMS dev mode is enabled or user exists in database)');
-      }
-
-      console.log(`  ✅ OTP received: ${otpCode}${phone ? ` (sent to ${phone})` : ''}`);
-
-      // Step 2: Verify OTP to receive otpToken
-      console.log(`  🔐 Verifying OTP...`);
-      const verifyResponse = await page.request.post(`${baseURL}/api/auth/otp/verify`, {
-        headers: { 'Content-Type': 'application/json' },
-        data: { identifier, otp: otpCode },
-      });
-
-      if (!verifyResponse.ok()) {
-        const body = await verifyResponse.text();
-        console.error(`  ❌ OTP verification failed (${verifyResponse.status()}): ${body}`);
-        throw new Error(`Failed to verify OTP for ${role.name} (${verifyResponse.status()}): ${body}`);
-      }
-
-      const verifyPayload = await verifyResponse.json();
-      const otpToken = verifyPayload?.data?.otpToken;
       if (!otpToken) {
-        console.error(`  ❌ No otpToken in verify response:`, verifyPayload);
-        throw new Error('OTP verification succeeded but otpToken missing from response');
+        throw new Error(lastError || 'OTP verification failed after retries');
       }
-
-      console.log(`  ✅ OTP verified, token received`);
 
       // Step 3: Obtain CSRF token (NextAuth requires the CSRF cookie + token)
       console.log(`  🛡️  Getting CSRF token...`);

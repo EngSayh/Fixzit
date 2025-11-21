@@ -172,7 +172,9 @@ export const { GET, POST } = createCrudHandlers({
       .lean<{ attachments?: { key?: string }[] } | null>();
     if (!existing?.attachments) return updates;
     const existingKeys = new Set((existing.attachments || []).map((a) => a.key).filter(Boolean) as string[]);
-    const nextKeys = new Set((updates.attachments as any[]).map((a) => a.key).filter(Boolean) as string[]);
+    // Type assertion for attachments array with key property
+    const updatesAttachments = updates.attachments as Array<{ key?: string }> | undefined;
+    const nextKeys = new Set((updatesAttachments || []).map((a) => a.key).filter(Boolean) as string[]);
     const removed = [...existingKeys].filter((k) => !nextKeys.has(k));
     if (removed.length) {
       void (async () => {

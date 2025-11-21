@@ -15,6 +15,24 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 export const runtime = 'nodejs';
 
+interface AqarListingDocument {
+  _id: mongoose.Types.ObjectId;
+  orgId?: string;
+  [key: string]: unknown;
+}
+
+interface AqarProjectDocument {
+  _id: mongoose.Types.ObjectId;
+  orgId?: string;
+  [key: string]: unknown;
+}
+
+interface AqarFavoriteDocument {
+  targetId: mongoose.Types.ObjectId;
+  targetType: 'LISTING' | 'PROJECT';
+  [key: string]: unknown;
+}
+
 // GET /api/aqar/favorites
 export async function GET(request: NextRequest) {
   try {
@@ -93,11 +111,15 @@ export async function GET(request: NextRequest) {
     ]);
     
     // Step 3: Create lookup maps for O(1) access
-    const listingMap = new Map<string, any>(listings.map((l: any) => [String(l._id), l] as const));
-    const projectMap = new Map<string, any>(projects.map((p: any) => [String(p._id), p] as const));
+    const listingMap = new Map<string, AqarListingDocument>(
+      (listings as AqarListingDocument[]).map((l) => [String(l._id), l] as const)
+    );
+    const projectMap = new Map<string, AqarProjectDocument>(
+      (projects as AqarProjectDocument[]).map((p) => [String(p._id), p] as const)
+    );
     
     // Step 4: Attach targets to favorites
-    const favoritesWithTargets = favorites.map((fav: any) => {
+    const favoritesWithTargets = (favorites as AqarFavoriteDocument[]).map((fav) => {
       const targetIdStr = fav.targetId.toString();
       
       if (fav.targetType === 'LISTING') {

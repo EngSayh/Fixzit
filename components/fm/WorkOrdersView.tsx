@@ -363,8 +363,10 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {workOrder.attachments.slice(0, 4).map((att, idx) => {
                         const status = att.scanStatus as string;
-                        const name = att.name || (att as any).fileName || (att as any).originalName || 'Attachment';
-                        const url = att.url || (att as any).fileUrl;
+                        // Support legacy field names for backward compatibility
+                        const attAny = att as typeof att & { fileName?: string; originalName?: string; fileUrl?: string };
+                        const name = att.name || attAny.fileName || attAny.originalName || 'Attachment';
+                        const url = att.url || attAny.fileUrl;
                         const content = (
                           <>
                             <span className="truncate flex-1">{name}</span>

@@ -16,6 +16,8 @@ export interface WorkOrderAttachment {
   type?: string;
   scanStatus: ScanStatus;
   mimeVerified?: boolean;
+  // Legacy field names for backward compatibility
+  fileSize?: number;
 }
 
 interface Props {
@@ -375,7 +377,7 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
               <p className="text-sm font-medium">{att.name}</p>
               <p className="text-xs text-muted-foreground">
                 {(() => {
-                  const bytes = att.size || (att as any).fileSize;
+                  const bytes = att.size || att.fileSize;
                   if (typeof bytes === 'number' && !Number.isNaN(bytes)) return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
                   return 'Size unknown';
                 })()}

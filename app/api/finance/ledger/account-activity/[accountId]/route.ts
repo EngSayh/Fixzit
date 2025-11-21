@@ -14,6 +14,15 @@ import LedgerEntry from '@/server/models/finance/LedgerEntry';
 import ChartAccount from '@/server/models/finance/ChartAccount';
 import { Types } from 'mongoose';
 
+interface LedgerEntryDocument {
+  _id: Types.ObjectId;
+  debit: number;
+  credit: number;
+  journalDate: Date;
+  createdAt: Date;
+  [key: string]: unknown;
+}
+
 import { logger } from '@/lib/logger';
 // ============================================================================
 // HELPER: Get User Session
@@ -113,7 +122,7 @@ export async function GET(
             journalDate: { $lt: new Date(startDate) }
           }).sort({ journalDate: 1, createdAt: 1 });
           
-          openingBalance = entriesBeforeStart.reduce((balance: number, entry: any) => {
+          openingBalance = (entriesBeforeStart as LedgerEntryDocument[]).reduce((balance: number, entry) => {
             return balance + entry.debit - entry.credit;
           }, 0);
         }
@@ -139,12 +148,12 @@ export async function GET(
             .limit(skip)
             .lean();
           
-          runningBalance = previousEntries.reduce((balance: number, entry: any) => {
+          runningBalance = (previousEntries as LedgerEntryDocument[]).reduce((balance: number, entry) => {
             return balance + entry.debit - entry.credit;
           }, openingBalance);
         }
         
-        const transactionsWithBalance = transactions.map((entry: any) => {
+        const transactionsWithBalance = (transactions as LedgerEntryDocument[]).map((entry) => {
           runningBalance += entry.debit - entry.credit;
           return {
             _id: entry._id.toString(),
@@ -171,8 +180,9 @@ export async function GET(
           .sort({ journalDate: 1, createdAt: 1 })
           .lean();
         
-        const totalDebits = allTransactions.reduce((sum: number, entry: any) => sum + (entry.debit || 0), 0);
-        const totalCredits = allTransactions.reduce((sum: number, entry: any) => sum + (entry.credit || 0), 0);
+        const allTyped = allTransactions as LedgerEntryDocument[];
+        const totalDebits = allTyped.reduce((sum: number, entry) => sum + (entry.debit || 0), 0);
+        const totalCredits = allTyped.reduce((sum: number, entry) => sum + (entry.credit || 0), 0);
         const closingBalance = openingBalance + totalDebits - totalCredits;
         
         return NextResponse.json({
