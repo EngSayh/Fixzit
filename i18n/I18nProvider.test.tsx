@@ -10,13 +10,16 @@ import { vi, beforeEach, afterEach, describe, test, expect } from 'vitest';
  * Mock config and dictionaries BEFORE importing the module under test
  * to ensure DICTIONARIES and meta are built from predictable values.
  */
+const DEFAULT_LOCALE = 'ar';
+const LOCALE_META = {
+  en: { dir: 'ltr' },
+  ar: { dir: 'rtl' },
+} as const;
+
 vi.mock('./config', () => ({
-  DEFAULT_LOCALE: 'en',
+  DEFAULT_LOCALE,
   SUPPORTED_LOCALES: ['en', 'ar'],
-  LOCALE_META: {
-    en: { dir: 'ltr' },
-    ar: { dir: 'rtl' },
-  },
+  LOCALE_META,
 }));
 
 vi.mock('./dictionaries/en', () => ({
@@ -70,21 +73,25 @@ describe('I18nProvider', () => {
       </I18nProvider>
     );
 
-    expect(screen.getByTestId('locale').textContent).toBe('en');
-    expect(screen.getByTestId('dir').textContent).toBe('ltr');
+    expect(screen.getByTestId('locale').textContent).toBe(DEFAULT_LOCALE);
+    expect(screen.getByTestId('dir').textContent).toBe(LOCALE_META[DEFAULT_LOCALE].dir);
 
     // Wait for dictionary to load asynchronously
     await waitFor(() => {
       const dict = JSON.parse(screen.getByTestId('dict').textContent || '{}');
-      expect(dict).toEqual({ greeting: 'Hello', code: 'en' });
+      const expectedDict = DEFAULT_LOCALE === 'ar'
+        ? { greeting: 'مرحبا', code: 'ar' }
+        : { greeting: 'Hello', code: 'en' };
+      expect(dict).toEqual(expectedDict);
     });
 
     // Document attributes should reflect initial locale
-    expect(document.documentElement.lang).toBe('en');
-    expect(document.documentElement.dir).toBe('ltr');
-    expect(document.documentElement.classList.contains('rtl')).toBe(false);
-    expect(document.documentElement.getAttribute('data-locale')).toBe('en');
-    expect(document.body.style.direction).toBe('ltr');
+    const defaultDir = LOCALE_META[DEFAULT_LOCALE].dir;
+    expect(document.documentElement.lang).toBe(DEFAULT_LOCALE);
+    expect(document.documentElement.dir).toBe(defaultDir);
+    expect(document.documentElement.classList.contains('rtl')).toBe(defaultDir === 'rtl');
+    expect(document.documentElement.getAttribute('data-locale')).toBe(DEFAULT_LOCALE);
+    expect(document.body.style.direction).toBe(defaultDir);
   });
 
   test('respects initialLocale prop', async () => {
@@ -290,7 +297,7 @@ describe('I18nProvider', () => {
   test('dict re-computes when locale changes', async () => {
     let ctxRef: any;
     render(
-      <I18nProvider>
+      <I18nProvider initialLocale="en">
         <CaptureContext onValue={(v) => (ctxRef = v)} />
       </I18nProvider>
     );

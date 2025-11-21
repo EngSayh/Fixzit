@@ -24,6 +24,18 @@ set -a
 source .env.test 2>/dev/null
 set +a
 
+# Guardrails: require real MongoDB, no offline fallback for prod readiness
+if [ -z "${MONGODB_URI:-}" ]; then
+  echo "❌ Error: MONGODB_URI is not set. A real MongoDB connection string is required."
+  exit 1
+fi
+
+if [ "${ALLOW_OFFLINE_MONGODB:-false}" = "true" ]; then
+  echo "❌ ALLOW_OFFLINE_MONGODB=true is not allowed for production-ready auth state generation."
+  echo "   Set ALLOW_OFFLINE_MONGODB=false and point MONGODB_URI to your real database."
+  exit 1
+fi
+
 BASE_URL="${BASE_URL:-http://localhost:3000}"
 
 echo "📋 Configuration:"
@@ -32,11 +44,49 @@ echo "   MONGODB: ${MONGODB_URI:0:30}..."
 echo "   OFFLINE: ${ALLOW_OFFLINE_MONGODB:-false}"
 echo ""
 
+# Verify MongoDB connectivity (built-in timeout)
+echo "🔍 Verifying MongoDB connectivity..."
+if node <<'NODE'
+const { MongoClient } = require('mongodb');
+const uri = process.env.MONGODB_URI;
+const dbName = process.env.MONGODB_DB || 'fixzit';
+const client = new MongoClient(uri, { serverSelectionTimeoutMS: 8000, connectTimeoutMS: 8000 });
+
+async function probe() {
+  const timeoutMs = 10000;
+  const timer = setTimeout(() => {
+    console.error(`MongoDB ping timed out after ${timeoutMs}ms`);
+    process.exit(1);
+  }, timeoutMs);
+  try {
+    await client.connect();
+    await client.db(dbName).command({ ping: 1 });
+  } finally {
+    clearTimeout(timer);
+    await client.close().catch(() => {});
+  }
+}
+
+probe().catch(err => {
+  console.error(err);
+  process.exit(1);
+});
+NODE
+then
+  echo "✅ MongoDB connectivity verified."
+else
+  echo "❌ Unable to connect to MongoDB at ${MONGODB_URI}"
+  exit 1
+fi
+echo ""
+
 # Check if app is running
 echo "📡 Checking if app is running..."
 if ! curl -sf --max-time 5 "${BASE_URL}" > /dev/null 2>&1; then
   echo "❌ App not running. Start with:"
   echo "   MONGODB_URI=mongodb://localhost:27017/fixzit_test pnpm dev"
+  echo "   # or prod-parity after build:"
+  echo "   pnpm build && MONGODB_URI=mongodb://localhost:27017/fixzit_test pnpm start"
   exit 1
 fi
 
@@ -48,9 +98,9 @@ mkdir -p tests/state
 # Run auth setup
 echo "🔄 Running authentication setup..."
 if command -v pnpm &> /dev/null; then
-  NODE_OPTIONS="--no-warnings" pnpm exec tsx tests/setup-auth.ts
+  NODE_OPTIONS="--no-warnings" PW_SKIP_WEB_SERVER=true BASE_URL="${BASE_URL}" pnpm exec tsx tests/setup-auth.ts
 else
-  NODE_OPTIONS="--no-warnings" npx tsx tests/setup-auth.ts
+  NODE_OPTIONS="--no-warnings" PW_SKIP_WEB_SERVER=true BASE_URL="${BASE_URL}" npx tsx tests/setup-auth.ts
 fi
 
 EXIT_CODE=$?

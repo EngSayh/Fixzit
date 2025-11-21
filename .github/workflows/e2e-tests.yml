@@ -80,6 +80,7 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -105,12 +106,38 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps
 
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+            .next/static
+          key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            nextjs-${{ runner.os }}-
+
       - name: Build app (production)
         env:
           NODE_ENV: production
           SKIP_ENV_VALIDATION: 'true'
           ALLOW_OFFLINE_MONGODB: 'true'
         run: pnpm build
+
+      - name: Verify MongoDB health
+        run: |
+          echo "🔍 Checking MongoDB service health..."
+          for i in {1..10}; do
+            if mongosh --quiet --eval "db.adminCommand('ping')" mongodb://localhost:27017/admin > /dev/null 2>&1; then
+              echo "✅ MongoDB is healthy and accepting connections"
+              mongosh --quiet --eval "db.version()" mongodb://localhost:27017/admin
+              exit 0
+            fi
+            echo "⏳ Waiting for MongoDB... (attempt $i/10)"
+            sleep 2
+          done
+          echo "❌ MongoDB health check failed after 10 attempts"
+          exit 1
 
       - name: Prepare E2E env vars
         run: |
@@ -213,6 +240,10 @@ jobs:
           project="${{ matrix.project }}"
           status="${{ job.status }}"
           
+          # Save status to artifact for summary job
+          mkdir -p test-results
+          echo "${status}" > "test-results/${project//[:\/]/-}-status.txt"
+          
           echo "PROJECT_NAME=${project}" >> $GITHUB_ENV
           echo "PROJECT_STATUS=${status}" >> $GITHUB_ENV
           
@@ -225,6 +256,14 @@ jobs:
           fi
           echo "[📊 Download report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload test status
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-status-${{ matrix.project }}
+          path: test-results/
+          retention-days: 1
 
       - name: Comment PR with results
         uses: actions/github-script@v7
@@ -264,32 +303,72 @@ jobs:
     if: always()
     
     steps:
+      - name: Download all test statuses
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-status-*
+          path: test-statuses
+          merge-multiple: true
+        continue-on-error: true
+      
       - name: Generate comprehensive summary
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
+            const path = require('path');
             const result = '${{ needs.e2e-tests.result }}';
             const runId = '${{ github.run_id }}';
             const repo = context.repo;
             
+            // Read individual project statuses
+            const projects = [
+              { name: 'Desktop:EN:Admin', locale: 'EN', persona: 'Admin' },
+              { name: 'Mobile:AR:Tenant', locale: 'AR', persona: 'Tenant' },
+              { name: 'Desktop:AR:Tenant', locale: 'AR', persona: 'Tenant' },
+              { name: 'Mobile:EN:Admin', locale: 'EN', persona: 'Admin' }
+            ];
+            
+            const statuses = {};
+            const statusDir = 'test-statuses';
+            
+            if (fs.existsSync(statusDir)) {
+              for (const project of projects) {
+                const fileName = `${project.name.replace(/:/g, '-')}-status.txt`;
+                const filePath = path.join(statusDir, fileName);
+                
+                if (fs.existsSync(filePath)) {
+                  statuses[project.name] = fs.readFileSync(filePath, 'utf8').trim();
+                } else {
+                  statuses[project.name] = 'unknown';
+                }
+              }
+            }
+            
             let summary = '## 🎭 E2E Tests - Complete Summary\n\n';
+            
+            // Count successes and failures
+            const successCount = Object.values(statuses).filter(s => s === 'success').length;
+            const failureCount = Object.values(statuses).filter(s => s === 'failure').length;
             
             // Overall status
             if (result === 'success') {
-              summary += '✅ **All E2E test projects passed successfully!**\n\n';
+              summary += `✅ **All ${projects.length} E2E test projects passed successfully!**\n\n`;
             } else {
-              summary += '❌ **Some E2E test projects failed**\n\n';
+              summary += `❌ **${failureCount} of ${projects.length} E2E test projects failed**\n\n`;
             }
             
-            // Project breakdown
+            // Project breakdown with individual statuses
             summary += '### Test Projects Coverage\n\n';
             summary += '| Project | Locale | Persona | Status |\n';
             summary += '|---------|--------|---------|--------|\n';
-            summary += '| Desktop:EN:Admin | EN | Admin | ${{ needs.e2e-tests.result }} |\n';
-            summary += '| Mobile:AR:Tenant | AR | Tenant | ${{ needs.e2e-tests.result }} |\n';
-            summary += '| Desktop:AR:Tenant | AR | Tenant | ${{ needs.e2e-tests.result }} |\n';
-            summary += '| Mobile:EN:Admin | EN | Admin | ${{ needs.e2e-tests.result }} |\n\n';
+            
+            for (const project of projects) {
+              const status = statuses[project.name] || 'unknown';
+              const icon = status === 'success' ? '✅' : status === 'failure' ? '❌' : '❓';
+              summary += `| ${project.name} | ${project.locale} | ${project.persona} | ${icon} ${status} |\n`;
+            }
+            summary += '\n';
             
             summary += '### Resources\n\n';
             summary += `- [View workflow run](${context.payload.repository.html_url}/actions/runs/${runId})\n`;
@@ -302,10 +381,11 @@ jobs:
             summary += '- **Timeout:** 30 minutes per project\n';
             summary += '- **Database:** Isolated MongoDB per project\n';
             summary += '- **Browser cache:** Playwright browsers cached across runs\n';
+            summary += '- **Build cache:** Next.js build artifacts cached\n';
             
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
             
             // Exit with error if tests failed
             if (result !== 'success') {
-              core.setFailed('E2E tests failed. Check individual project logs above.');
+              core.setFailed(`E2E tests failed: ${failureCount} project(s) with failures. Check individual project logs above.`);
             }
