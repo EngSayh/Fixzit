@@ -2,6 +2,16 @@ import mongoose from 'mongoose';
 import { logger } from '@/lib/logger';
 import { getEnv } from '@/lib/env';
 
+// Vercel Functions database pool management for serverless optimization
+let attachDatabasePool: ((client: unknown) => void) | undefined;
+try {
+  // Dynamically import @vercel/functions only if available (production environment)
+  attachDatabasePool = require('@vercel/functions').attachDatabasePool;
+} catch {
+  // Package not available or not in Vercel environment - skip pool attachment
+  attachDatabasePool = undefined;
+}
+
 // Safe TLS detection function
 function isTlsEnabled(uri: string): boolean {
   if (!uri) return false;
@@ -145,13 +155,35 @@ if (!conn) {
         dbName,
         autoIndex: true,
         maxPoolSize: 10,
+        minPoolSize: 2, // Maintain minimum connections for faster response
+        maxIdleTimeMS: 30000, // Close idle connections after 30s
         serverSelectionTimeoutMS: 8000,
         connectTimeoutMS: 8000,
+        socketTimeoutMS: 45000, // Socket timeout for long-running queries
         retryWrites: true,
+        retryReads: true, // Enable read retries
         tls: isTlsEnabled(connectionUri),
         w: 'majority',
+        // Vercel-optimized settings
+        compressors: ['zlib'], // Enable compression for bandwidth savings
       })
       .then((m) => {
+        // Attach database pool for Vercel Functions optimization
+        // This ensures proper cleanup when functions suspend and resume
+        if (attachDatabasePool && m.connection.getClient) {
+          try {
+            const client = m.connection.getClient();
+            if (client) {
+              attachDatabasePool(client);
+              logger.info('[Mongo] ✅ Vercel database pool attached for optimal serverless performance');
+            }
+          } catch (poolError) {
+            // Non-critical: Log but don't fail if pool attachment fails
+            logger.warn('[Mongo] Could not attach database pool (non-critical):', poolError instanceof Error ? poolError : undefined);
+          }
+        }
+        
+        logger.info('[Mongo] ✅ Connected successfully to MongoDB');
         return m.connection.db as unknown as DatabaseHandle;
       })
       .catch((err) => {

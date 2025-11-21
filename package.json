@@ -129,6 +129,7 @@
     "@sentry/nextjs": "^10.25.0",
     "@smithy/smithy-client": "^4.9.7",
     "@types/redis": "^4.0.11",
+    "@vercel/functions": "^3.3.3",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.63.2",
