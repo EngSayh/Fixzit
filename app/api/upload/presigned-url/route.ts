@@ -6,6 +6,7 @@ import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 import { createSecureResponse } from '@/server/security/headers';
 import { getPresignedPutUrl } from '@/lib/storage/s3';
 import { Config } from '@/lib/config/constants';
+import { logger } from '@/lib/logger';
 
 const ALLOWED_TYPES = new Set([
   'application/pdf',
@@ -112,10 +113,7 @@ export async function POST(req: NextRequest) {
       allowedTypes: Array.from(ALLOWED_TYPES),
     });
   } catch (err) {
-    if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
-      console.error('[Presign] Failed to create presigned URL:', err);
-    }
+    logger.error('[Presign] Failed to create presigned URL', { error: err });
     return createSecureResponse({ error: 'Failed to presign' }, 500, req);
   }
 }

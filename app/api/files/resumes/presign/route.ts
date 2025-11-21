@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { getPresignedPutUrl, buildResumeKey } from '@/lib/storage/s3';
+import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
@@ -89,10 +90,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ url, key, headers, scanRequired: scanEnforced });
   } catch (err) {
-    if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
-      console.error('[Resumes Presign] error', err);
-    }
+    logger.error('[Resumes Presign] error', { error: err });
     return createSecureResponse({ error: 'Failed to presign' }, 500, req);
   }
 }
