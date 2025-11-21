@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
 import { requireAbility } from "@/server/middleware/withAuthRbac";
+import { WOAbility } from "@/types/work-orders/abilities";
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   }
 
   const params = await props.params;
-  const user = await requireAbility("ASSIGN")(req);
+  const user = await requireAbility(WOAbility.ASSIGN)(req);
   if (user instanceof NextResponse) return user;
   await connectToDatabase();
 

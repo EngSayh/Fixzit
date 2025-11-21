@@ -4,6 +4,7 @@ import { computePricingInsight } from '@/src/lib/aqar/pricingInsights';
 import { ListingIntent, PropertyType } from '@/models/aqar/Listing';
 import { rateLimit } from '@/server/security/rateLimit';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 

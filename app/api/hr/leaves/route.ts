@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       status: 'PENDING',
       reason: body.reason,
       approvalHistory: [],
-    });
+    } as any);
 
     return NextResponse.json(requestDoc, { status: 201 });
   } catch (error) {

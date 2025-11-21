@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { inventoryService } from '@/services/souq/inventory-service';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/souq/inventory/[listingId]

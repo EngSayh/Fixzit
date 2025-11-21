@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth/getServerSession';
 import { fulfillmentService } from '@/services/souq/fulfillment-service';
 import { SouqOrder } from '@/server/models/souq/Order';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/souq/fulfillment/sla/[orderId]

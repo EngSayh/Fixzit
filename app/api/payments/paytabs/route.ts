@@ -9,6 +9,7 @@ import { getClientIP } from '@/server/security/headers';
 import { fetchWithRetry } from '@/lib/http/fetchWithRetry';
 import { SERVICE_RESILIENCE } from '@/config/service-timeouts';
 import { getCircuitBreaker } from '@/lib/resilience';
+import { Config } from '@/lib/config/constants';
 
 const PaymentSchema = z.object({
   orderId: z.string(),
@@ -59,13 +60,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = PaymentSchema.parse(body);
     
-    const serverKey = process.env.PAYTABS_API_SERVER_KEY || process.env.PAYTABS_SERVER_KEY;
+    const serverKey = Config.payment.paytabs.serverKey;
     if (!serverKey) {
       return createSecureResponse({ error: 'PAYTABS server key not configured' }, 500, req);
     }
 
     const payload = {
-      profile_id: process.env.PAYTABS_PROFILE_ID || '85119',
+      profile_id: Config.payment.paytabs.profileId,
       tran_type: 'sale',
       tran_class: 'ecom',
       cart_id: data.orderId,
@@ -78,8 +79,8 @@ export async function POST(req: NextRequest) {
         phone: data.customerPhone,
         country: 'SA'
       },
-      callback: `${process.env.NEXTAUTH_URL}/api/payments/paytabs/callback`,
-      return: `${process.env.NEXTAUTH_URL}/marketplace/order-success`
+      callback: `${Config.auth.url}/api/payments/paytabs/callback`,
+      return: `${Config.auth.url}/marketplace/order-success`
     };
     
     const paytabsResilience = SERVICE_RESILIENCE.paytabs;

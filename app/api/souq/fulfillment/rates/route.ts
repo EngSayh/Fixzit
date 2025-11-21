@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth/getServerSession';
 import { fulfillmentService } from '@/services/souq/fulfillment-service';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/souq/fulfillment/rates

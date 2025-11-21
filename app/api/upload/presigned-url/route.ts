@@ -5,6 +5,7 @@ import { rateLimitError } from '@/server/utils/errorResponses';
 import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 import { createSecureResponse } from '@/server/security/headers';
 import { getPresignedPutUrl } from '@/lib/storage/s3';
+import { Config } from '@/lib/config/constants';
 
 const ALLOWED_TYPES = new Set([
   'application/pdf',
@@ -48,11 +49,11 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
 
-    if (!process.env.AWS_S3_BUCKET || !process.env.AWS_REGION) {
+    if (!Config.aws.s3.bucket || !Config.aws.region) {
       return createSecureResponse({ error: 'Storage not configured' }, 500, req);
     }
-    const scanEnforced = process.env.S3_SCAN_REQUIRED === 'true';
-    if (scanEnforced && !process.env.AV_SCAN_ENDPOINT) {
+    const scanEnforced = Config.aws.scan.required;
+    if (scanEnforced && !Config.aws.scan.endpoint) {
       return createSecureResponse({ error: 'AV scanning not configured' }, 503, req);
     }
 
@@ -83,9 +84,9 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: `File too large. Max ${Math.round(maxSize / (1024 * 1024))}MB` }, 400, req);
     }
 
-    const cat: PresignCategory = category && typeof category === 'string'
+    const cat = (category && typeof category === 'string'
       ? category
-      : (fileType.startsWith('image/') ? 'document' : 'document');
+      : (fileType.startsWith('image/') ? 'document' : 'document')) as PresignCategory;
 
     const key = buildKey(tenantId, userId, cat, fileName);
     const { url: uploadUrl, headers: uploadHeaders } = await getPresignedPutUrl(

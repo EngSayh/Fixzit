@@ -8,6 +8,7 @@ import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 import { logger } from '@/lib/logger';
+import { Config } from '@/lib/config/constants';
 
 // POST with secret header from cron – for each sub due this day: charge recurring via token
 /**
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     return rateLimitError();
   }
 
-  if (req.headers.get('x-cron-secret') !== process.env.CRON_SECRET) return createSecureResponse({ error:'UNAUTH' }, 401, req);
+  if (req.headers.get('x-cron-secret') !== Config.security.cronSecret) return createSecureResponse({ error:'UNAUTH' }, 401, req);
   await connectToDatabase();
   const today = new Date();
   const dueSubs = (await Subscription.find({ billingCycle:'monthly', status:'active', nextInvoiceAt: { $lte: today }, paytabsTokenId: { $ne: null } }));
@@ -64,11 +65,11 @@ export async function POST(req: NextRequest) {
 
     // recurring charge (server-to-server) with error handling
     try {
-      const response = await fetch(`${process.env.PAYTABS_RECURRING_BASE || 'https://secure.paytabs.com'}/payment/request`, {
+      const response = await fetch(`${Config.payment.paytabs.baseUrl}/payment/request`, {
         method:'POST',
-        headers: { 'Content-Type':'application/json', 'authorization': process.env.PAYTABS_SERVER_KEY! },
+        headers: { 'Content-Type':'application/json', 'authorization': Config.payment.paytabs.serverKey },
         body: JSON.stringify({
-          profile_id: process.env.PAYTABS_PROFILE_ID, tran_type:'sale', tran_class:'recurring',
+          profile_id: Config.payment.paytabs.profileId, tran_type:'sale', tran_class:'recurring',
           cart_id: `INV-${inv._id}`, cart_description: `Fixzit Monthly ${s.planType}`, cart_amount: inv.amount, cart_currency: inv.currency,
           token: pm.pt_token // ✅ FIXED: Use pt_token not token
         })

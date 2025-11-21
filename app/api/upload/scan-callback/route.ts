@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
+import { Config } from '@/lib/config/constants';
 
 type ScanStatus = 'pending' | 'clean' | 'infected' | 'error';
 
@@ -28,7 +29,7 @@ const mapStatus = (value: unknown): ScanStatus => {
 
 export async function POST(req: NextRequest) {
   const token = req.headers.get('x-scan-token');
-  const expected = process.env.SCAN_WEBHOOK_TOKEN;
+  const expected = Config.aws.scan.webhookToken;
   if (!expected || token !== expected) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }

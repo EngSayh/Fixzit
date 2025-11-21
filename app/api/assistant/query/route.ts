@@ -9,6 +9,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { logger } from '@/lib/logger';
 
 const BodySchema = z.object({
   question: z.string().min(1)});
@@ -260,4 +261,3 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ answer, citations });
 }
-

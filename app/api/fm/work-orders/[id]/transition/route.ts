@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { FMAction } from '@/types/fm/enums';
 import { ObjectId } from 'mongodb';
 import { logger } from '@/lib/logger';
 import { getDatabase } from '@/lib/mongodb-unified';

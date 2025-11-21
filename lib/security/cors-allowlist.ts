@@ -1,4 +1,5 @@
 import { logSecurityEvent } from '@/lib/monitoring/security-events';
+import { logger } from '@/lib/logger';
 
 const STATIC_ALLOWED_ORIGINS = [
   'https://fixzit.sa',
@@ -23,8 +24,7 @@ function parseOrigins(value?: string | null): string[] {
         // Only allow http/https protocols
         if (!['http:', 'https:'].includes(url.protocol)) {
           if (process.env.NODE_ENV !== 'production') {
-            // eslint-disable-next-line no-console
-            console.warn(`[CORS] Invalid protocol in origin: ${origin}`);
+            logger.warn('Invalid protocol in origin', { component: 'CORS', origin, protocol: url.protocol });
           }
           return false;
         }
@@ -32,16 +32,14 @@ function parseOrigins(value?: string | null): string[] {
         if (process.env.NODE_ENV === 'production' && 
             (url.hostname === 'localhost' || url.hostname === '127.0.0.1')) {
           if (process.env.NODE_ENV !== 'production') {
-            // eslint-disable-next-line no-console
-            console.warn(`[CORS] Localhost not allowed in production CORS_ORIGINS: ${origin}`);
+            logger.warn('Localhost not allowed in production CORS_ORIGINS', { component: 'CORS', origin });
           }
           return false;
         }
         return true;
       } catch (err) {
         if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.warn(`[CORS] Invalid URL in CORS_ORIGINS: ${origin}`, err);
+          logger.warn('Invalid URL in CORS_ORIGINS', { component: 'CORS', origin, error: err });
         }
         return false;
       }

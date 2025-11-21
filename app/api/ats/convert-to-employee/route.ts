@@ -71,8 +71,9 @@ export async function POST(req: NextRequest) {
     const existing = await Employee.findOne({ orgId, email: cand.email, isDeleted: false }).lean();
     if (existing) return NextResponse.json({ success: true, data: existing, message: 'Employee already exists' });
 
-    const employeeCode = `ATS-${(job.code || job.title || 'NEW').slice(0, 4).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
-    const hireDate = job.startDate ? new Date(job.startDate) : new Date();
+    const jobAny = job as any;
+    const employeeCode = `ATS-${(jobAny.code || jobAny.title || 'NEW').slice(0, 4).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+    const hireDate = jobAny.startDate ? new Date(jobAny.startDate) : new Date();
 
     const employee = await Employee.create({
       orgId,
@@ -81,16 +82,16 @@ export async function POST(req: NextRequest) {
       lastName: cand.lastName,
       email: cand.email,
       phone: cand.phone,
-      jobTitle: job.title || 'Employee',
-      departmentId: job.departmentId,
-      employmentType: job.employmentType || 'FULL_TIME',
+      jobTitle: jobAny.title || 'Employee',
+      departmentId: jobAny.departmentId,
+      employmentType: jobAny.employmentType || 'FULL_TIME',
       employmentStatus: 'ACTIVE',
       hireDate,
       compensation: {
-        baseSalary: job.salaryRange?.min || job.salaryRange?.max || 0,
-        currency: job.currency || 'SAR',
+        baseSalary: jobAny.salaryRange?.min || jobAny.salaryRange?.max || 0,
+        currency: jobAny.currency || 'SAR',
       },
-      meta: { source: 'ats', jobId: job._id.toString(), applicationId: app._id.toString(), convertedBy: user?.id || 'system' }
+      meta: { source: 'ats', jobId: jobAny._id?.toString?.() || String(jobAny._id), applicationId: app._id.toString(), convertedBy: user?.id || 'system' }
     });
     return NextResponse.json({ success: true, data: employee });
   } catch (error) {
@@ -98,5 +99,4 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: "Failed to convert to employee" }, 500, req);
   }
 }
-
 

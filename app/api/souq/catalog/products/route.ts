@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     // Create product
     const product = new SouqProduct({
       fsin: finalFsin,
-      ...validated,
+      ...(validated as any),
       org_id: orgId,
       createdBy: session.user.id,
       isActive: true,
@@ -140,8 +140,8 @@ export async function POST(request: NextRequest) {
       await indexProduct({
         id: product._id.toString(),
         fsin: product.fsin,
-        title: product.title,
-        description: product.description,
+        title: (product as any)?.title?.en ?? (product as any)?.title?.ar ?? (product as any)?.title ?? '',
+        description: (product as any)?.description?.en ?? (product as any)?.description?.ar ?? '',
         categoryId: product.categoryId,
         brandId: product.brandId,
         searchKeywords: product.searchKeywords,
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
           categoryId: product.categoryId,
           brandId: product.brandId,
           title: product.title,
-          price: product.pricing?.basePrice || 0,  // TODO(type-safety): Verify pricing structure
+          price: (product as any)?.pricing?.basePrice || 0,  // TODO(type-safety): Verify pricing structure
           timestamp: new Date().toISOString(),
         });
       }

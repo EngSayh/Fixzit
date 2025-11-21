@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
 import { BuyBoxService } from '@/services/souq/buybox-service';
 import { connectDb } from '@/lib/mongodb-unified';
 import { getServerSession } from '@/lib/auth/getServerSession';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   _request: Request,

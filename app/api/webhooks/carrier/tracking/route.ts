@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fulfillmentService } from '@/services/souq/fulfillment-service';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/webhooks/carrier/tracking

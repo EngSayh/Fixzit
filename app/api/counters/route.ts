@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getAllCounters } from '@/lib/queries';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/counters - Fetch live dashboard counters

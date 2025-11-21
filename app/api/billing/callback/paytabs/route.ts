@@ -19,10 +19,10 @@ import { withIdempotency } from '@/server/security/idempotency';
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { createSecureResponse, getClientIP } from '@/server/security/headers';
+import { Config } from '@/lib/config/constants';
 
-const PAYTABS_SERVER_KEY =
-  process.env.PAYTABS_SERVER_KEY || process.env.PAYTABS_API_SERVER_KEY || '';
-const PAYTABS_CONFIGURED = Boolean(PAYTABS_SERVER_KEY && process.env.PAYTABS_PROFILE_ID);
+const PAYTABS_SERVER_KEY = Config.payment.paytabs.serverKey;
+const PAYTABS_CONFIGURED = Boolean(PAYTABS_SERVER_KEY && Config.payment.paytabs.profileId);
 /**
  * @openapi
  * /api/billing/callback/paytabs:

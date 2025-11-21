@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing jobId' }, { status: 400 });
     }
 
-    const job = await Job.findById(jobId);
+    const job = await Job.findById(jobId).lean();
     if (!job) {
       return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
     }
@@ -74,9 +74,11 @@ export async function POST(req: NextRequest) {
 
     const phoneE164 = String(formData.get('phoneE164') || '').trim();
 
+    const normalizedJob = { ...(job as any), screeningRules: job?.screeningRules ?? undefined };
+
     try {
       const result = await submitApplicationFromForm({
-        job,
+        job: normalizedJob,
         resumeFile: resumePayload,
         resumeKey,
         resumeUrl,

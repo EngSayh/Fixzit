@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BuyBoxService } from '@/services/souq/buybox-service';
+import { logger } from '@/lib/logger';
 
 interface RouteContext {
   params: Promise<{ fsin: string }>;

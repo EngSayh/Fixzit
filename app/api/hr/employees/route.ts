@@ -25,7 +25,10 @@ export async function GET(req: NextRequest) {
     const { items, total } = await EmployeeService.searchWithPagination(
       {
         orgId: session.user.orgId,
-        employmentStatus: status || undefined,
+        employmentStatus: (() => {
+          const allowed = new Set(['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED']);
+          return status && allowed.has(status) ? (status as 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED') : undefined;
+        })(),
         departmentId: department || undefined,
         text: search || undefined,
       },

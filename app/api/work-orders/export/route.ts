@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import {requireAbility } from "@/server/middleware/withAuthRbac";
+import { WOAbility } from "@/types/work-orders/abilities";
 
 // Define type for exported work order fields
 interface WorkOrderExportDoc {
@@ -33,7 +34,7 @@ interface WorkOrderExportDoc {
  *         description: Rate limit exceeded
  */
 export async function GET(req:NextRequest): Promise<NextResponse> {
-  const user = await requireAbility("EXPORT")(req);
+  const user = await requireAbility(WOAbility.EXPORT)(req);
   if (user instanceof NextResponse) return user;
   await connectToDatabase();
   

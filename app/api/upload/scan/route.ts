@@ -3,6 +3,7 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { createSecureResponse } from '@/server/security/headers';
 import { scanS3Object } from '@/lib/security/av-scan';
 import { validateBucketPolicies } from '@/lib/security/s3-policy';
+import { Config } from '@/lib/config/constants';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: 'Missing key' }, 400, req);
     }
 
-    if (!process.env.AWS_S3_BUCKET || !process.env.AV_SCAN_ENDPOINT) {
+    if (!Config.aws.s3.bucket || !Config.aws.scan.endpoint) {
       return createSecureResponse({ error: 'Scan not configured' }, 503, req);
     }
 
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: 'Bucket policy/encryption invalid' }, 503, req);
     }
 
-    const clean = await scanS3Object(key, process.env.AWS_S3_BUCKET);
+    const clean = await scanS3Object(key, Config.aws.s3.bucket);
     if (!clean) {
       return createSecureResponse({ success: false, clean: false, error: 'Scan failed or malware detected' }, 400, req);
     }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ClaimService } from '@/services/souq/claims/claim-service';
 import { enforceRateLimit } from '@/lib/middleware/rate-limit';
 import { resolveRequestSession } from '@/lib/auth/request-session';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/souq/claims/[id]/evidence

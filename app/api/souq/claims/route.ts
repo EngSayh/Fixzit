@@ -4,6 +4,7 @@ import { enforceRateLimit } from '@/lib/middleware/rate-limit';
 import { resolveRequestSession } from '@/lib/auth/request-session';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { ObjectId } from 'mongodb';
+import { logger } from '@/lib/logger';
 
 const CLAIM_DEADLINE_MS = 30 * 24 * 60 * 60 * 1000;
 

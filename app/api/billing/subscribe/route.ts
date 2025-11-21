@@ -13,6 +13,7 @@ import { createSecureResponse } from '@/server/security/headers';
 import { z } from 'zod';
 import { getClientIP } from '@/server/security/headers';
 import { canManageSubscriptions } from '@/lib/auth/role-guards';
+import { Config } from '@/lib/config/constants';
 
 const subscriptionSchema = z.object({
   customer: z.object({
@@ -133,7 +134,7 @@ export async function POST(req: NextRequest) {
 
     // 5) Create PayTabs HPP. For monthly: include tokenise=2 to capture token. For annual: no token needed.
     const basePayload = {
-      profile_id: process.env.PAYTABS_PROFILE_ID,
+      profile_id: Config.payment.paytabs.profileId,
       tran_type: 'sale',
       tran_class: body.billingCycle === 'monthly' ? 'ecom' : 'ecom',
       cart_id: `SUB-${sub._id}`,

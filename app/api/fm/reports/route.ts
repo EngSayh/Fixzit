@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 import { ModuleKey } from '@/domain/fm/fm.behavior';
+import { FMAction } from '@/types/fm/enums';
 import { requireFmPermission } from '@/app/api/fm/permissions';
 import { resolveTenantId } from '@/app/api/fm/utils/tenant';
 import { FMErrors } from '@/app/api/fm/errors';
@@ -81,7 +82,7 @@ const mapJob = (doc: ReportJobDocument) => ({
 
 export async function GET(req: NextRequest) {
   try {
-    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: 'export' });
+    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.EXPORT });
     if (actor instanceof NextResponse) return actor;
 
     const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
@@ -101,7 +102,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: 'export' });
+    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.EXPORT });
     if (actor instanceof NextResponse) return actor;
 
     const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);

@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
 import { requireAbility } from "@/server/middleware/withAuthRbac";
+import { WOAbility } from "@/types/work-orders/abilities";
 
 import { createSecureResponse } from '@/server/security/headers';
 
@@ -32,7 +33,7 @@ interface WorkOrderDoc {
  */
 export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}): Promise<NextResponse> {
   const params = await props.params;
-  const user = await requireAbility("EDIT")(req);
+  const user = await requireAbility(WOAbility.EDIT)(req);
   if (user instanceof NextResponse) return user;
   await connectToDatabase();
   const data = schema.parse(await req.json());

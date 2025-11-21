@@ -11,6 +11,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { LanguageCode } from '@/config/language-options';
+import { logger } from '@/lib/logger';
 
 // Supported locales (only those with real translations)
 const SUPPORTED_LOCALES: LanguageCode[] = ['en', 'ar'];
@@ -61,8 +62,7 @@ export function loadTranslations(): Record<LanguageCode, Record<string, string>>
           loaded[locale] = dict;
         } catch (err) {
           if (process.env.NODE_ENV !== 'production') {
-            // eslint-disable-next-line no-console
-            console.error(`❌ Failed to parse ${locale} dictionary:`, err);
+            logger.error(`Failed to parse ${locale} dictionary`, err, { component: 'i18n-loader', locale });
           }
           loaded[locale] = {}; // Fallback on parse error
         }
@@ -70,11 +70,9 @@ export function loadTranslations(): Record<LanguageCode, Record<string, string>>
       
       if (missing.length > 0) {
         if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.warn(
-            `⚠️  Missing translation artifacts for: ${missing.join(', ')}\n` +
-            `   Generate all locales with: pnpm i18n:build\n` +
-            `   Falling back to empty dictionaries for missing locales`
+          logger.warn(
+            `Missing translation artifacts for: ${missing.join(', ')}. Generate with: pnpm i18n:build`,
+            { component: 'i18n-loader', missingLocales: missing }
           );
         }
       }
@@ -84,8 +82,7 @@ export function loadTranslations(): Record<LanguageCode, Record<string, string>>
       
     } catch (err) {
       if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('❌ Failed to load translations:', err);
+        logger.error('Failed to load translations', err, { component: 'i18n-loader' });
       }
       throw err; // Don't silently fail - app needs translations
     }

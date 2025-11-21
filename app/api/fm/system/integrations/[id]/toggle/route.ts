@@ -6,6 +6,7 @@ import { FMErrors } from '@/app/api/fm/errors';
 import { requireFmPermission } from '@/app/api/fm/permissions';
 import { resolveTenantId } from '@/app/api/fm/utils/tenant';
 import { ModuleKey } from '@/domain/fm/fm.behavior';
+import { FMAction } from '@/types/fm/enums';
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { buildRateLimitKey } from '@/server/security/rateLimitKey';
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   try {
-    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: 'update' });
+    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.UPDATE });
     if (actor instanceof NextResponse) return actor;
     const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
     if ('error' in tenantResolution) return tenantResolution.error;
@@ -65,11 +66,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       { upsert: true, returnDocument: 'after' }
     );
 
-    if (!result.value) {
+    const doc = (result as any)?.value ?? (result as any);
+    if (!doc) {
       return FMErrors.internalError();
     }
 
-    return NextResponse.json({ success: true, data: mapIntegration(result.value) });
+    return NextResponse.json({ success: true, data: mapIntegration(doc) });
   } catch (error) {
     logger.error('FM Integrations toggle API error', error as Error);
     return FMErrors.internalError();

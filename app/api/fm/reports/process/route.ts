@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 import { ModuleKey } from '@/domain/fm/fm.behavior';
+import { FMAction } from '@/types/fm/enums';
 import { requireFmPermission } from '@/app/api/fm/permissions';
 import { resolveTenantId } from '@/app/api/fm/utils/tenant';
 import { FMErrors } from '@/app/api/fm/errors';
@@ -29,7 +30,7 @@ const COLLECTION = 'fm_report_jobs';
 
 export async function POST(req: NextRequest) {
   try {
-    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: 'export' });
+    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.EXPORT });
     if (actor instanceof NextResponse) return actor;
 
     const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
@@ -51,24 +52,25 @@ export async function POST(req: NextRequest) {
 
     let processed = 0;
     for (const job of queued) {
-      const id = job._id.toString();
+      const jobAny = job as any;
+      const id = String(jobAny._id);
       const key = `${tenantId}/reports/${id}.csv`;
 
       try {
-        await collection.updateOne({ _id: job._id }, { $set: { status: 'processing' } });
+        await collection.updateOne({ _id: jobAny._id }, { $set: { status: 'processing' } });
         const report = await generateReport({
           id,
-          name: job.name,
-          type: job.type,
+          name: jobAny.name,
+          type: jobAny.type,
           format: 'csv',
-          dateRange: `${job.startDate || ''}-${job.endDate || ''}`,
-          notes: job.notes,
+          dateRange: `${jobAny.startDate || ''}-${jobAny.endDate || ''}`,
+          notes: jobAny.notes,
         });
 
         await putObjectBuffer(key, report.buffer, report.mime);
         const clean = await scanS3Object(key).catch(() => false);
         await collection.updateOne(
-          { _id: job._id },
+          { _id: jobAny._id },
           {
             $set: {
               status: clean ? 'ready' : 'failed',
@@ -77,7 +79,7 @@ export async function POST(req: NextRequest) {
               fileSize: report.size,
               clean,
               updatedAt: new Date(),
-              notes: clean ? job.notes : 'AV scan failed',
+              notes: clean ? jobAny.notes : 'AV scan failed',
             },
           }
         );
@@ -85,7 +87,7 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         logger.error('FM Reports worker failed to process job', err as Error, { jobId: id });
         await collection.updateOne(
-          { _id: job._id },
+          { _id: jobAny._id },
           { $set: { status: 'failed', updatedAt: new Date(), notes: `Error: ${String(err)}` } }
         );
       }
@@ -94,11 +96,15 @@ export async function POST(req: NextRequest) {
     // Provide presigned URLs for the newly processed jobs
     const ready = await collection.find({ org_id: tenantId, status: 'ready' }).sort({ updatedAt: -1 }).limit(5).toArray();
     const urls = await Promise.all(
-      ready.map(async (job) => ({
-        id: job._id.toString(),
-        fileKey: job.fileKey,
-        downloadUrl: job.fileKey ? await getPresignedGetUrl(job.fileKey, 600) : null,
-      }))
+      ready.map(async (job) => {
+        const j = job as any;
+        const fileKey = j.fileKey;
+        return {
+          id: String(j._id),
+          fileKey,
+          downloadUrl: fileKey ? await getPresignedGetUrl(fileKey, 600) : null,
+        };
+      })
     );
 
     return NextResponse.json({ success: true, processed, ready: urls });

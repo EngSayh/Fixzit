@@ -5,6 +5,7 @@
  */
 
 import { getEnv } from './env';
+import { logger } from '@/lib/logger';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -18,7 +19,7 @@ export function getValidatedMongoUri(): string {
   }
   
   if (!isProd) {
-    console.warn('[Mongo] MONGODB_URI not set, using localhost fallback');
+    logger.warn('MONGODB_URI not set, using localhost fallback', { component: 'MongoDB' });
     return 'mongodb://127.0.0.1:27017';
   }
   

@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 
 import { RouteHealthEntry } from './aliasMetrics';
+import { logger } from '@/lib/logger';
 
 const projectRoot = process.cwd();
 const ROUTE_HEALTH_ENDPOINT = process.env.ROUTE_HEALTH_ENDPOINT;
@@ -37,10 +38,8 @@ export async function loadRouteHealthData(): Promise<RouteHealthEntry[]> {
       }
     } catch (_error) {
       const error = _error instanceof Error ? _error : new Error(String(_error));
-      void error;
       if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('Failed to fetch route health endpoint', error);
+        logger.error('Failed to fetch route health endpoint', error, { component: 'routeHealth', endpoint: ROUTE_HEALTH_ENDPOINT });
       }
     }
   }

@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 import { ModuleKey, SubmoduleKey } from '@/domain/fm/fm.behavior';
+import { FMAction } from '@/types/fm/enums';
 import { FMErrors } from '@/app/api/fm/errors';
 import { requireFmPermission } from '@/app/api/fm/permissions';
 import { resolveTenantId } from '../utils/tenant';
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
     const actor = await requireFmPermission(req, {
       module: ModuleKey.PROPERTIES,
       submodule: SubmoduleKey.PROP_LIST,
-      action: 'view',
+      action: FMAction.VIEW,
     });
     if (actor instanceof NextResponse) return actor;
     const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
@@ -178,7 +179,7 @@ export async function POST(req: NextRequest) {
     const actor = await requireFmPermission(req, {
       module: ModuleKey.PROPERTIES,
       submodule: SubmoduleKey.PROP_LIST,
-      action: 'create',
+      action: FMAction.CREATE,
     });
     if (actor instanceof NextResponse) return actor;
     const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
@@ -244,7 +245,7 @@ export async function PATCH(req: NextRequest) {
     const actor = await requireFmPermission(req, {
       module: ModuleKey.PROPERTIES,
       submodule: SubmoduleKey.PROP_LIST,
-      action: 'edit',
+      action: FMAction.UPDATE,
     });
     if (actor instanceof NextResponse) return actor;
     const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
@@ -300,13 +301,14 @@ export async function PATCH(req: NextRequest) {
       { returnDocument: 'after' }
     );
 
-    if (!result.value) {
+    const doc = (result as any)?.value ?? (result as any);
+    if (!doc) {
       return FMErrors.notFound('Property');
     }
 
     return NextResponse.json({
       success: true,
-      data: mapProperty(result.value),
+      data: mapProperty(doc),
       message: 'Property updated successfully',
     });
   } catch (error) {
@@ -320,7 +322,7 @@ export async function DELETE(req: NextRequest) {
     const actor = await requireFmPermission(req, {
       module: ModuleKey.PROPERTIES,
       submodule: SubmoduleKey.PROP_LIST,
-      action: 'delete',
+      action: FMAction.DELETE,
     });
     if (actor instanceof NextResponse) return actor;
     const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
@@ -343,7 +345,8 @@ export async function DELETE(req: NextRequest) {
       org_id: tenantId,
     });
 
-    if (!result.value) {
+    const deleted = (result as any)?.value ?? (result as any);
+    if (!deleted) {
       return FMErrors.notFound('Property');
     }
 

@@ -45,8 +45,15 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: 'Bucket policy/encryption invalid' }, 503, req);
     }
 
+    const safeIp = (() => {
+      try {
+        return getClientIP(req);
+      } catch {
+        return 'unknown';
+      }
+    })();
     const rl = rateLimit(
-      buildRateLimitKey(req, user?.id),
+      buildRateLimitKey(req, user?.id || safeIp),
       user ? 60 : 20, // tighter window for anonymous callers
       60_000
     );
@@ -58,18 +65,18 @@ export async function POST(req: NextRequest) {
     const fileNameRaw = typeof body.fileName === 'string' ? body.fileName : '';
     const contentType = typeof body.contentType === 'string' ? body.contentType : '';
     const size = typeof (body as { size?: number }).size === 'number' ? (body as { size?: number }).size : undefined;
-    if (!fileNameRaw || !contentType) return createSecureResponse({ error: 'Missing fileName or contentType' }, 400, req);
+    if (!fileNameRaw || !contentType) return NextResponse.json({ error: 'Missing fileName or contentType' }, { status: 400 });
 
     const baseName = path.basename(fileNameRaw).replace(/[^\w.-]/g, '_');
     const ext = baseName.split('.').pop()?.toLowerCase();
     if (!ext || !ALLOWED_EXTENSIONS.has(ext)) {
-      return createSecureResponse({ error: 'Unsupported file extension (PDF only)' }, 415, req);
+      return NextResponse.json({ error: 'Unsupported file extension (PDF only)' }, { status: 415 });
     }
     if (!ALLOWED_TYPES.has(contentType)) {
-      return createSecureResponse({ error: 'Unsupported content type' }, 415, req);
+      return NextResponse.json({ error: 'Unsupported content type' }, { status: 415 });
     }
     if (typeof size === 'number' && size > MAX_SIZE_BYTES) {
-      return createSecureResponse({ error: 'File too large (max 5MB)' }, 400, req);
+      return NextResponse.json({ error: 'File too large (max 5MB)' }, { status: 400 });
     }
 
     const key = buildResumeKey(user?.tenantId || 'public', `${Date.now()}-${baseName}`);

@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { SupportedTranslationLocale, TranslationDictionary } from '@/i18n/dictionaries/types';
+import { logger } from '@/lib/logger';
 
 type TranslationValues = Record<string, string | number>;
 
@@ -111,8 +112,7 @@ function loadDictionary(locale: SupportedTranslationLocale): TranslationDictiona
     return parsed;
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
-      console.error(`[i18n] Failed to load dictionary ${locale}:`, err);
+      logger.error('Failed to load dictionary', err, { component: 'i18n', locale });
     }
     if (locale !== 'en') {
       return loadDictionary('en');

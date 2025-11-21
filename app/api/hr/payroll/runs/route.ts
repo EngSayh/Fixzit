@@ -18,7 +18,10 @@ export async function GET(req: NextRequest) {
 
     const runs = await PayrollService.list({
       orgId: session.user.orgId,
-      status: status || undefined,
+      status: (() => {
+        const allowed = new Set(['DRAFT', 'APPROVED', 'IN_REVIEW', 'LOCKED', 'EXPORTED']);
+        return status && allowed.has(status) ? (status as 'DRAFT' | 'APPROVED' | 'IN_REVIEW' | 'LOCKED' | 'EXPORTED') : undefined;
+      })(),
     });
 
     return NextResponse.json({ runs });

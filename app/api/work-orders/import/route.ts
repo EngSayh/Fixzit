@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import {requireAbility } from "@/server/middleware/withAuthRbac";
 import { z } from "zod";
+import { WOAbility } from "@/types/work-orders/abilities";
 
 import { createSecureResponse } from '@/server/security/headers';
 
@@ -36,7 +37,7 @@ const ImportRequestSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function POST(req:NextRequest): Promise<NextResponse> {
-  const user = await requireAbility("EDIT")(req);
+  const user = await requireAbility(WOAbility.EDIT)(req);
   if (user instanceof NextResponse) return user;
   await connectToDatabase();
   

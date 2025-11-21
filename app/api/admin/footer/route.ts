@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
         contentEn: footerContent.contentEn,
         contentAr: footerContent.contentAr,
         updatedAt: footerContent.updatedAt,
-        updatedBy: footerContent.updatedBy
+        updatedBy: (footerContent as any)?.updatedBy ?? null
       }
     });
 

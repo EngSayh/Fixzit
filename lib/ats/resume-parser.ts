@@ -3,6 +3,8 @@
  * Phase 2 implementation - Basic text extraction and pattern matching
  */
 
+import { logger } from '@/lib/logger';
+
 interface ParsedResume {
   skills: string[];
   experience: {
@@ -39,7 +41,7 @@ export async function parseResumePDF(pdfBuffer: Buffer): Promise<ParsedResume> {
     const parsed = parsePlainText(data.text);
     return { ...parsed, rawText: data.text };
   } catch (_error) {
-    console.warn('pdf-parse not installed or failed, using fallback parser');
+    logger.warn('pdf-parse not installed or failed, using fallback parser', { component: 'ATS', action: 'parseResume', error: _error });
     return parsePlainText('');
   }
 }

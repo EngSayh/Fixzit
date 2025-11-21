@@ -25,6 +25,7 @@ type PermissionOptions = {
 type PermissionSuccess = SessionUser & {
   fmRole: Role;
   plan: Plan;
+  userId?: string;
 };
 
 const ROLE_ALIAS_MAP: Record<string, Role> = {
@@ -138,6 +139,7 @@ export async function requireFmPermission(
       ...sessionUser,
       fmRole,
       plan,
+      userId: sessionUser.id,
     };
   } catch (error) {
     if (error instanceof UnauthorizedError) {

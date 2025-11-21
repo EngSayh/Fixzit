@@ -5,6 +5,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 import { getS3Client } from '@/lib/storage/s3';
+import { Config } from '@/lib/config/constants';
 
 export async function GET(req: NextRequest) {
   const user = await getSessionUser(req).catch(() => null);
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const client = getS3Client();
-    const cmd = new HeadObjectCommand({ Bucket: process.env.AWS_S3_BUCKET, Key: key });
+    const cmd = new HeadObjectCommand({ Bucket: Config.aws.s3.bucket, Key: key });
     const res = await client.send(cmd);
 
     return NextResponse.json(
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const client = getS3Client();
-    const cmd = new HeadObjectCommand({ Bucket: process.env.AWS_S3_BUCKET, Key: key });
+    const cmd = new HeadObjectCommand({ Bucket: Config.aws.s3.bucket, Key: key });
     const res = await client.send(cmd);
 
     return NextResponse.json(

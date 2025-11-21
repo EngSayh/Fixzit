@@ -6,6 +6,7 @@ import { FMErrors } from '@/app/api/fm/errors';
 import { requireFmPermission } from '@/app/api/fm/permissions';
 import { resolveTenantId } from '@/app/api/fm/utils/tenant';
 import { ModuleKey } from '@/domain/fm/fm.behavior';
+import { FMAction } from '@/types/fm/enums';
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { buildRateLimitKey } from '@/server/security/rateLimitKey';
@@ -59,7 +60,7 @@ const mapInvite = (doc: InviteDocument) => ({
 
 export async function GET(req: NextRequest) {
   try {
-    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: 'view' });
+    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.VIEW });
     if (actor instanceof NextResponse) return actor;
     const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
     if ('error' in tenantResolution) return tenantResolution.error;
@@ -77,7 +78,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: 'create' });
+    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.CREATE });
     if (actor instanceof NextResponse) return actor;
     const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
     if ('error' in tenantResolution) return tenantResolution.error;

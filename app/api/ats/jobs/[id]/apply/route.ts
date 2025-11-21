@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     await connectToDatabase();
 
     const formData = await req.formData();
-    const job = await Job.findById(params.id);
+    const job = await Job.findById(params.id).lean();
 
     if (!job) {
       return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
@@ -70,9 +70,11 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
     const phoneE164 = String(formData.get('phoneE164') || '').trim();
 
+    const normalizedJob = { ...(job as any), screeningRules: job?.screeningRules ?? undefined };
+
     try {
       const result = await submitApplicationFromForm({
-        job,
+        job: normalizedJob,
         resumeFile: resumePayload,
         resumeKey,
         resumeUrl,
