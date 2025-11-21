@@ -17,6 +17,9 @@ interface JobDocument {
   startDate?: Date | string;
   departmentId?: string;
   employmentType?: string;
+   salaryRange?: { min?: number; max?: number };
+   currency?: string;
+   _id?: { toString?: () => string } | string;
   [key: string]: unknown;
 }
 

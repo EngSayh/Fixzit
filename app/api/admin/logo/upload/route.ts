@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
 
     await connectToDatabase();
 
-    const settings: any = await PlatformSettings.findOne({ orgId: user.orgId });
+    const settings = await PlatformSettings.findOne({ orgId: user.orgId }) as unknown as PlatformSettingsDocument | null;
     
     const logoData = settings ? {
       logoUrl: settings.logoUrl,

@@ -213,7 +213,7 @@ export async function POST(req: NextRequest) {
       .limit(5)
       .select(["workOrderNumber", "title", "status"])
       .lean();
-    const lines = items.map((it: any) => `• ${(it as WorkOrderItem).workOrderNumber}: ${it.title} – ${it.status}`);
+    const lines = items.map((it) => `• ${(it as WorkOrderItem).workOrderNumber}: ${it.title} – ${it.status}`);
     const answer = lines.length ? `Your recent work orders:\n${lines.join("\n")}` : "You have no work orders yet.";
     return NextResponse.json({ answer, citations: [] as Citation[] });
   }

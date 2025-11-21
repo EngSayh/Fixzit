@@ -3,6 +3,19 @@ import { NextResponse } from 'next/server';
 import { FMPMPlan } from '@/server/models/FMPMPlan';
 
 import { logger } from '@/lib/logger';
+
+interface PMPlanDocument {
+  _id: unknown;
+  planNumber?: string;
+  title?: string;
+  propertyId?: string;
+  nextScheduledDate: Date;
+  woLeadTimeDays: number;
+  lastGeneratedDate?: Date;
+  woTitle?: string;
+  estimatedCost?: number;
+  [key: string]: unknown;
+}
 /**
  * POST /api/pm/generate-wos
  * Auto-generate work orders from PM plans that are due
@@ -109,14 +122,15 @@ export async function GET() {
       nextScheduledDate: { $exists: true }
     }).lean();
     
-    const preview = plans.filter((plan: any) => {
+    const plansTyped = plans as unknown as PMPlanDocument[];
+    const preview = plansTyped.filter((plan) => {
       // Manually check shouldGenerateNow logic
       const now = new Date();
       const leadTime = plan.woLeadTimeDays * 24 * 60 * 60 * 1000;
       const generateByDate = new Date(plan.nextScheduledDate.getTime() - leadTime);
       
       return now >= generateByDate && (!plan.lastGeneratedDate || plan.lastGeneratedDate < generateByDate);
-    }).map((plan: any) => ({
+    }).map((plan) => ({
       planId: plan._id,
       planNumber: plan.planNumber,
       title: plan.title,

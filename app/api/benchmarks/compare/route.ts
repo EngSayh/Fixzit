@@ -10,6 +10,12 @@ import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses'
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 
+interface BenchmarkDocument {
+  pricingModel?: string;
+  priceMonthly?: number;
+  [key: string]: unknown;
+}
+
 const compareSchema = z.object({
   seatTotal: z.number().positive(),
   billingCycle: z.enum(['monthly', 'annual']),
@@ -54,9 +60,9 @@ export async function POST(req: NextRequest) {
     });
     if (ours.contactSales) return createSecureResponse(ours, 200, req);
 
-    const rows: any = (await Benchmark.find({}));
-    const perUserRows = rows.filter((r: any) => r.pricingModel==='per_user_month' && r.priceMonthly);
-    const monthlyMedian = perUserRows.sort((a: any, b: any)=>a.priceMonthly-b.priceMonthly)[Math.floor(perUserRows.length/2)]?.priceMonthly || 0;
+    const rows = await Benchmark.find({}) as unknown as BenchmarkDocument[];
+    const perUserRows = rows.filter((r) => r.pricingModel==='per_user_month' && r.priceMonthly);
+    const monthlyMedian = perUserRows.sort((a, b)=>(a.priceMonthly || 0) - (b.priceMonthly || 0))[Math.floor(perUserRows.length/2)]?.priceMonthly || 0;
 
     const compMonthly = monthlyMedian * body.seatTotal; // FM core-like proxy
     const diff = ours.monthly - compMonthly;

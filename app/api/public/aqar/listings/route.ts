@@ -16,6 +16,17 @@ import { ListingIntent, PropertyType, ListingStatus, type IListing } from '@/mod
 import { checkRateLimit } from '@/lib/rateLimit';
 import type { Model } from 'mongoose';
 
+interface ListingQuery {
+  status: string;
+  'location.cityId'?: string;
+  intent?: string;
+  propertyType?: string;
+  price?: { $gte?: number; $lte?: number };
+  beds?: number;
+  baths?: number;
+  [key: string]: unknown;
+}
+
 export const runtime = 'nodejs';
 
 const listingModel = AqarListing as unknown as Model<IListing>;
@@ -106,7 +117,7 @@ export async function GET(request: NextRequest) {
     const offset = parseIntegerParam(searchParams.get('offset'), 0, { min: 0 });
     
     // Build query - only active listings
-    const query: any = {
+    const query: ListingQuery = {
       status: ListingStatus.ACTIVE,
     };
     
