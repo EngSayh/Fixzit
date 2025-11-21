@@ -1,20 +1,12 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
+  "buildCommand": "pnpm build",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": "nextjs",
   "build": {
     "env": {
       "NODE_OPTIONS": "--max-old-space-size=4096"
     }
   },
-  "regions": ["iad1"],
   "github": {
     "enabled": true,
     "autoAlias": true,
