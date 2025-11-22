@@ -36,7 +36,7 @@ import { spawn } from 'child_process';
 
 // Configuration
 const PORT = argv.port || 3000;
-const APPLY = argv.apply || false;
+const _APPLY = argv.apply || false;
 const REPORT_FLAG = argv.report || false;
 const SINCE_DAYS = argv.since || 5;
 const KEEP_ALIVE = argv.keepAlive !== false;
@@ -82,7 +82,7 @@ async function main() {
     console.log(`Analyzing fixes since: ${SINCE_DAYS} days ago`);
 
     await setupEnvironment();
-    const pm = await detectPackageManager();
+    const _pm = await detectPackageManager();
 
     await installTooling(pm);
     await baselineChecks(pm);
@@ -269,7 +269,7 @@ function hasUnhandledRejection(content, filePath) {
     }
     
     // Special cases: API routes with NextResponse (intentional pattern)
-    if (/app\/api\/.*route\.(ts|js)/.test(filePath) && /NextResponse\./i.test(content)) {
+    if (/app/api/.*route\.(ts|js)/.test(filePath) && /NextResponse\./i.test(content)) {
         return false; // API routes typically handle errors with NextResponse
     }
     
@@ -289,8 +289,8 @@ async function sweepSimilarIssues() {
         { name: 'Hydration/Server-Client Mismatch (Potential)', pattern: /Hydration failed|Text content did not match|use(Layout)?Effect/i },
         { name: 'Undefined Property Access (Potential)', pattern: /Cannot read propert(y|ies) .* of undefined|TypeError:/i },
         { name: 'i18n/RTL Issues (Potential)', pattern: /t\(['"]MISSING_KEY|dir=["'](ltr|rtl)["']|text-left|text-right|pl-|pr-|ml-|mr-/i },
-        { name: 'Fragile Relative Imports', pattern: /import .* from '(\.\.\/){3,}/ },
-        { name: 'Alias Misuse ( "@/src" )', pattern: /import .* from '@\/src\// },
+        { name: 'Fragile Relative Imports', pattern: /import .* from '(\.\./){3,}/ },
+        { name: 'Alias Misuse ( "@/src" )', pattern: /import .* from '@/src// },
         { name: 'NextResponse Usage', pattern: /NextResponse\.(json|redirect|next)/i },
         { name: 'TypeScript Assignability Issues (Potential)', pattern: /is not assignable to type|Type '.*' does not satisfy/i }
         // Note: Unhandled Rejections now uses context-aware function below
@@ -387,7 +387,7 @@ async function duplicateAudit() {
                 } else {
                     fileHashes.set(hash, [file]);
                 }
-            } catch (e) {
+            } catch (_e) {
                 // Skip unreadable files
             }
 
@@ -420,19 +420,19 @@ async function generateMovePlan() {
 
     // Next.js protected patterns (must NOT be moved)
     const PROTECTED_PATTERNS = [
-        /^app\/layout\.tsx?$/,                  // Root layout
-        /^app\/.*\/layout\.tsx?$/,              // Nested layouts
-        /^app\/page\.tsx?$/,                    // Root page
-        /^app\/.*\/page\.tsx?$/,                // Nested pages
-        /^app\/.*\/loading\.tsx?$/,             // Loading states
-        /^app\/.*\/error\.tsx?$/,               // Error boundaries
-        /^app\/.*\/not-found\.tsx?$/,           // 404 pages
-        /^app\/.*\/template\.tsx?$/,            // Templates
-        /^app\/.*\/default\.tsx?$/,             // Default pages (parallel routes)
-        /^app\/api\//,                          // API routes
-        /^app\/\(.*\)\//,                       // Route groups
-        /^app\/global\.css$/,                   // Global styles
-        /^app\/globals\.css$/,                  // Global styles (alt)
+        /^app/layout\.tsx?$/,                  // Root layout
+        /^app/.*/layout\.tsx?$/,              // Nested layouts
+        /^app/page\.tsx?$/,                    // Root page
+        /^app/.*/page\.tsx?$/,                // Nested pages
+        /^app/.*/loading\.tsx?$/,             // Loading states
+        /^app/.*/error\.tsx?$/,               // Error boundaries
+        /^app/.*/not-found\.tsx?$/,           // 404 pages
+        /^app/.*/template\.tsx?$/,            // Templates
+        /^app/.*/default\.tsx?$/,             // Default pages (parallel routes)
+        /^app/api//,                          // API routes
+        /^app/\(.*\)//,                       // Route groups
+        /^app/global\.css$/,                   // Global styles
+        /^app/globals\.css$/,                  // Global styles (alt)
     ];
 
     // Module namespace boundaries (keep separate)
@@ -457,7 +457,7 @@ async function generateMovePlan() {
             // Skip files already in proper utility directories
             if (file.startsWith('lib/') || file.startsWith('utils/') || file.startsWith('hooks/')) {
                 // Only move if they're clearly misplaced (e.g., lib/fm-* should be in app/fm)
-                const shouldMove = /^(lib|utils|hooks)\/[^\/]*-(dashboard|work-orders|properties|finance|hr|administration|crm|marketplace|support|compliance|reports|system)/.test(file);
+                const shouldMove = /^(lib|utils|hooks)/[^/]*-(dashboard|work-orders|properties|finance|hr|administration|crm|marketplace|support|compliance|reports|system)/.test(file);
                 if (!shouldMove) continue;
             }
 
@@ -467,7 +467,7 @@ async function generateMovePlan() {
             if (currentBucket) continue;
 
             for (const [regexStr, bucket] of Object.entries(HEURISTICS_MAP)) {
-                const match = regexStr.match(/^\/(.*)\/([gimuy]*)$/);
+                const match = regexStr.match(/^/(.*)/([gimuy]*)$/);
                 const regex = new RegExp(match[1], match[2] || '');
 
                 if (regex.test(file)) {
@@ -590,7 +590,7 @@ async function readLogTail(logFile, lines = 50) {
     try {
         const content = await fs.promises.readFile(path.join(REPORTS_DIR, logFile), 'utf-8');
         return content.split('\n').slice(-lines).join('\n');
-    } catch (e) {
+    } catch (_e) {
         return `Log file not found or unreadable: ${logFile}`;
     }
 }

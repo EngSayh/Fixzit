@@ -94,7 +94,7 @@ async function verifyPropertyOwnerFeatures() {
       const status = passed ? `${colors.green}✅ WORKING${colors.reset}` : `${colors.red}❌ MISSING${colors.reset}`;
       console.log(`  ${status} ${test.name}`);
       results.propertyOwner.push({ name: test.name, passed });
-    } catch (e) {
+    } catch (_e) {
       console.log(`  ${colors.red}❌ ERROR${colors.reset} ${test.name}: ${e.message}`);
       results.propertyOwner.push({ name: test.name, passed: false });
     }

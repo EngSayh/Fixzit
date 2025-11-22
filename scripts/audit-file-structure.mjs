@@ -20,7 +20,7 @@ import { glob } from 'glob';
 import crypto from 'crypto';
 
 const ROOT = process.cwd();
-const APPLY = process.argv.includes('--apply');
+const _APPLY = process.argv.includes('--apply');
 const OUTPUT_FILE = '_artifacts/file-structure-audit.json';
 
 // Domain module mapping per Governance V5
@@ -80,7 +80,7 @@ for (const file of files) {
     } else {
       fileHashes.set(hash, file);
     }
-  } catch (e) {
+  } catch (_e) {
     console.warn(`⚠️  Could not read ${file}: ${e.message}`);
   }
 }
@@ -213,7 +213,7 @@ if (orphanedUtils.length > 0) {
 // Helper functions
 function suggestDomainPath(currentPath, domain) {
   const filename = basename(currentPath);
-  const ext = extname(currentPath);
+  const _ext = extname(currentPath);
   
   // Determine if it's a component, lib, or model
   if (currentPath.includes('components/')) {

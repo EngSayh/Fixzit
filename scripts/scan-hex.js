@@ -102,7 +102,7 @@ function scanFiles() {
       .split('\n')
       .filter(f => f && PATTERNS.some(p => f.endsWith(p.slice(1))));
     files = gitFiles;
-  } catch (err) {
+  } catch (_err) {
     console.error('❌ Error: Not a git repository or git not available');
     process.exit(1);
   }
@@ -149,7 +149,7 @@ function scanFiles() {
           });
         }
       }
-    } catch (err) {
+    } catch (_err) {
       // Skip files that can't be read
       continue;
     }

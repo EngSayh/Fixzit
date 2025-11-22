@@ -19,7 +19,7 @@ try {
   console.log('   ✅ bcryptjs installed');
   require('express-validator');
   console.log('   ✅ express-validator installed');
-} catch (e) {
+} catch (_e) {
   console.log('   ❌ Missing dependency:', e.message);
 }
 
@@ -32,7 +32,7 @@ try {
   console.log('   ✅ auth middleware loaded');
   require('./middleware/validation');
   console.log('   ✅ validation middleware loaded');
-} catch (e) {
+} catch (_e) {
   console.log('   ❌ Middleware error:', e.message);
 }
 
@@ -43,7 +43,7 @@ try {
   console.log('   ✅ User model loaded');
   require('./models/Tenant');
   console.log('   ✅ Tenant model loaded');
-} catch (e) {
+} catch (_e) {
   console.log('   ❌ Model error:', e.message);
 }
 
@@ -52,7 +52,7 @@ console.log('\n5️⃣ Routes Check:');
 try {
   require('./routes/auth');
   console.log('   ✅ Auth routes loaded');
-} catch (e) {
+} catch (_e) {
   console.log('   ❌ Routes error:', e.message);
 }
 

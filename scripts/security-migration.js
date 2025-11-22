@@ -1,7 +1,7 @@
 // security-migration.js - Run this script to apply all security fixes
 const fs = require('fs').promises;
-const path = require('path');
-const crypto = require('crypto');
+const _path = require('path');
+const _crypto = require('crypto');
 
 // Color codes for console output
 const colors = {
@@ -86,7 +86,7 @@ const fixes = {
         
         // Add crypto import if not present
         if (!content.includes("require('crypto')")) {
-          content = "const crypto = require('crypto');\n" + content;
+          content = "const _crypto = require('crypto');\n" + content;
         }
         
         // Apply fixes
@@ -125,7 +125,7 @@ const fixes = {
     for (const filePath of filesToFix) {
       try {
         let content = await fs.readFile(filePath, 'utf8');
-        const originalLength = content.length;
+        const _originalLength = content.length;
         
         // Remove console.log, console.error, console.warn statements
         const patterns = [
@@ -180,7 +180,7 @@ const fixes = {
     
     // Update logger with professional version
     const loggerContent = `const winston = require('winston');
-const path = require('path');
+const _path = require('path');
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',

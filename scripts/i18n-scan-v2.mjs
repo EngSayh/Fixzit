@@ -64,7 +64,7 @@ function extractFromTranslationContext(filePath) {
     for (const [lang, block] of [['en', enBlock], ['ar', arBlock]]) {
       const keys = new Set();
       if (block && block[1]) {
-        const rx = /['"\`]([A-Za-z0-9_.-]+)['"\`]\s*:/g;
+        const rx = /['"`]([A-Za-z0-9_.-]+)['"`]\s*:/g;
         let m;
         while ((m = rx.exec(block[1]))) {
           keys.add(m[1]);
@@ -114,7 +114,7 @@ async function extractUsedKeys() {
   });
   
   const keys = new Set();
-  const rx = /(?:^|[^A-Za-z0-9_])(i18n\.)?t\(\s*['"\`]([A-Za-z0-9_.-]+)['"\`]\s*[\),]/g;
+    const rx = /(?:^|[^A-Za-z0-9_])(i18n\.)?t\(\s*['"`]([A-Za-z0-9_.-]+)['"`]\s*[\),]/g;
   
   for (const f of files) {
     const text = await fsp.readFile(f, 'utf8').catch(() => '');

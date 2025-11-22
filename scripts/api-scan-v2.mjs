@@ -51,7 +51,7 @@ void (async function main() {
   const reDestructure = /\bexport\s+const\s*\{\s*([A-Z,\s]+)\s*\}\s*=\s*[^;]+;/g;
   
   // Named re-export: export { GET, POST } from './factory'
-  const reNamed = /\bexport\s*\{\s*([^}]+)\s*\}\s*from\s*['"\`][^'"\`]+['"\`]\s*;/g;
+  const reNamed = /\bexport\s*\{\s*([^}]+)\s*\}\s*from\s*['"`][^'"`]+['"`]\s*;/g;
   
   // NextAuth v5 pattern: export const { GET, POST } = handlers
   const reNextAuth = /\bexport\s+const\s*\{\s*([A-Z,\s]+)\s*\}\s*=\s*handlers\s*;/g;
@@ -95,7 +95,7 @@ void (async function main() {
       }
     }
 
-    const importsNextServer = /from\s+['"\`]next\/server['"\`]/.test(text);
+    const importsNextServer = /from\s+['"`]next\/server['"`]/.test(text);
     
     out.push({
       file: f.replace(/\\/g, '/'),

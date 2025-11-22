@@ -3,12 +3,12 @@ const logger = require('./src/logger');
 const loggingMiddleware = require('./src/middleware/logging');
 const errorHandler = require('./src/middleware/error');
 const { setupSecurity } = require('./src/middleware/security');
-const Env = require('./src/config/env');
+const _Env = require('./src/config/env');
 const { requireEnv } = require('../lib/env');
 
 const express = require('express');
 const http = require('http');
-const path = require('path');
+const _path = require('path');
 const cors = require('cors');
 const morgan = require('morgan');
 const { realtimeService } = require('./services/realtime');
