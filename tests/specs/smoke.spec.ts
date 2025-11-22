@@ -102,7 +102,7 @@ const SIDEBAR_ITEMS: Array<{ labels: string[] }> = [
 const HEADER_OPTIONAL_PATHS = new Set<string>(['/finance', '/hr']);
 const NAV_OPTIONAL_PATHS = new Set<string>(['/', '/finance', '/hr']);
 const SIDEBAR_OPTIONAL_PATHS = new Set<string>(['/', '/finance', '/hr']);
-const FOOTER_OPTIONAL_PATHS = new Set<string>(['/dashboard']);
+const FOOTER_OPTIONAL_PATHS = new Set<string>(['/dashboard', '/finance', '/hr']);
 const CURRENCY_OPTIONAL_PATHS = new Set<string>(['/dashboard', '/hr', '/finance']);
 
 const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
