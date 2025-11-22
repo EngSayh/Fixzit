@@ -90,12 +90,13 @@ export default [
     plugins: {
       'react-hooks': reactHooks,
       '@next/next': nextPlugin,
+      '@typescript-eslint': tseslint.plugin,
     },
     rules: {
       ...eslint.configs.recommended.rules,
       
       /* TypeScript - Balanced approach between strict and permissive */
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn', // Re-enabled to measure type-safety debt
       '@typescript-eslint/no-unused-vars': 'off',
       'no-unused-vars': 'off',
       '@typescript-eslint/no-var-requires': 'off',

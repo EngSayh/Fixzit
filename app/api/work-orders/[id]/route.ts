@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
 import { requireAbility } from "@/server/middleware/withAuthRbac";
+import type { Ability } from "@/server/rbac/workOrdersPolicy";
 import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
 import { WOPriority } from "@/server/work-orders/wo.schema";
 
@@ -81,7 +82,8 @@ const patchSchema = z.object({
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
   const params = await props.params;
-  const user = await requireAbility("EDIT")(req);
+  const ability: Ability = "EDIT"; // Type-safe: must match Ability union type
+  const user = await requireAbility(ability)(req);
   if (user instanceof NextResponse) return user;
   await connectToDatabase();
   const updates = patchSchema.parse(await req.json());
