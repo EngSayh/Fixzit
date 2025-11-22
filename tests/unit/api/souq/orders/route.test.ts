@@ -87,10 +87,6 @@ describe('/api/souq/orders', () => {
     })
     );
     const body = await res.json();
-    if (res.status !== 403) {
-      // eslint-disable-next-line no-console
-      console.error('debug forbidden', res.status, body);
-    }
     expect(res.status).toBe(403);
     expect(body.error).toBe('forbidden');
   });

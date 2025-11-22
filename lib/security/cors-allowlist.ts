@@ -2,11 +2,21 @@ import { logSecurityEvent } from '@/lib/monitoring/security-events';
 import { logger } from '@/lib/logger';
 
 const STATIC_ALLOWED_ORIGINS = [
+  // Production (.co)
+  'https://fixzit.co',
+  'https://www.fixzit.co',
+  'https://app.fixzit.co',
+  'https://dashboard.fixzit.co',
+  'https://staging.fixzit.co',
+  'https://api.fixzit.co',
+
+  // Legacy/secondary (.sa)
   'https://fixzit.sa',
   'https://www.fixzit.sa',
   'https://app.fixzit.sa',
   'https://dashboard.fixzit.sa',
   'https://staging.fixzit.sa',
+  'https://api.fixzit.sa',
 ];
 
 const DEV_ALLOWED_ORIGINS = ['http://localhost:3000', 'http://localhost:3001'] as const;
