@@ -100,12 +100,17 @@ When reporting a vulnerability, please include:
    - Use proper error handling
    - Never trust client-side data
 
-4. **Dependencies**
+4. **Secrets & URIs**
+   - Never commit database URIs or credentials; always use environment variables
+   - Use placeholders in docs/templates (`mongodb+srv://<user>:<password>@<host>/<db>`)
+   - Local/CI guardrail: `bash scripts/security/check-hardcoded-uris.sh` (runs in CI to fail on hard-coded URIs)
+
+5. **Dependencies**
    - Run `pnpm audit` before submitting PRs
    - Keep dependencies up to date
    - Review new dependencies for security issues
 
-5. **Error Handling**
+6. **Error Handling**
    - Never expose stack traces to users
    - Log errors securely
    - Use generic error messages for users
@@ -117,7 +122,7 @@ When reporting a vulnerability, please include:
    # Required secure variables
    NEXTAUTH_SECRET=          # Strong random string (min 32 chars)
    JWT_SECRET=               # Different from NEXTAUTH_SECRET
-   DATABASE_URL=             # Secure MongoDB connection string
+   MONGODB_URI=              # Secure MongoDB connection string (do not commit)
    ```
 
 2. **HTTPS Enforcement**

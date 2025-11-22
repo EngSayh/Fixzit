@@ -163,3 +163,29 @@ jobs:
 
       - name: Run hard-coded URI scan
         run: bash scripts/security/check-hardcoded-uris.sh
+
+  precommit-sim:
+    name: Pre-commit Sim (lint:prod + security scan)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9.0.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run lint:prod
+        run: pnpm lint:prod
+
+      - name: Run security scan
+        run: bash scripts/security/check-hardcoded-uris.sh

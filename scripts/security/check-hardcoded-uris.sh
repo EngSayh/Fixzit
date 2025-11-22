@@ -35,6 +35,13 @@ PATTERNS=(
   "TWILIO_ACCOUNT_SID\\s*[:=]\\s*['\"]AC[A-Za-z0-9]{32}['\"]"
   "GOOGLE_API_KEY\\s*[:=]\\s*['\"][A-Za-z0-9-_]{16,}['\"]"
   "SMTP_PASSWORD\\s*[:=]\\s*['\"][^'\"]{8,}['\"]"
+  "AWS_SESSION_TOKEN\\s*[:=]\\s*['\"][A-Za-z0-9/+=]{16,}['\"]"
+  "pk_(live|test)_[A-Za-z0-9]{10,}"
+  "xox[baprs]-[A-Za-z0-9-]{10,}"
+  "xoxc-[A-Za-z0-9-]{10,}"
+  "xapp-[A-Za-z0-9-]{10,}"
+  "xoxa-[A-Za-z0-9-]{10,}"
+  "whsec_[A-Za-z0-9]{12,}"
 )
 
 # Directories to scan (code only)
