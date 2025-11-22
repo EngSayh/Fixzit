@@ -30,7 +30,7 @@ function loadTypeScriptModule(tsPath) {
   let typescript;
   try {
     typescript = localRequire('typescript');
-  } catch (error) {
+  } catch (_error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Unable to load TypeScript compiler. Install dependencies first. Original error: ${message}`);
   }
@@ -98,11 +98,7 @@ function createUpsert(db) {
     const normalizedDoc = normalizeDocument(doc);
 
     // Surface predicate errors even when the collection is empty so callers can catch issues early.
-    try {
-      predicate(normalizedDoc);
-    } catch (error) {
-      throw error;
-    }
+    predicate(normalizedDoc);
 
     if (idx >= 0) {
       const { _id: _ignoreId, createdAt: _ignoreCreatedAt, ...rest } = normalizedDoc;
@@ -144,7 +140,7 @@ function resolveMockDatabase() {
       if (moduleExport && typeof moduleExport.getInstance === 'function') {
         return moduleExport;
       }
-    } catch (error) {
+    } catch (_error) {
       const absolutePath = path.resolve(__dirname, candidate);
       const message = error instanceof Error ? error.message : String(error);
 
@@ -159,7 +155,7 @@ function resolveMockDatabase() {
           }
           errors.push(`${absolutePath}: module did not expose MockDatabase`);
           continue;
-        } catch (tsError) {
+        } catch (_tsError) {
           const tsMessage = tsError instanceof Error ? tsError.message : String(tsError);
           errors.push(`${absolutePath}: ${tsMessage}`);
           continue;
