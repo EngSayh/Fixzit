@@ -82,14 +82,14 @@
    - Visit: https://vercel.com/fixzit/fixzit/settings/environment-variables
 
 2. **Check MONGODB_URI exists**:
-   - Should be set to: `mongodb+srv://EngSayh:EngSayh%401985@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit`
+   - Should be set to: `mongodb+srv://<user>:<password>@<host>/<db>?retryWrites=true&w=majority&appName=Fixzit`
    - Should be enabled for: **Production**, **Preview**, **Development**
 
 3. **If not set or needs update**:
    - Click **"Edit"** on existing MONGODB_URI
    - Or click **"Add New"** if missing
    - **Key**: `MONGODB_URI`
-   - **Value**: `mongodb+srv://EngSayh:EngSayh%401985@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit`
+   - **Value**: `mongodb+srv://<user>:<password>@<host>/<db>?retryWrites=true&w=majority&appName=Fixzit`
    - Select: **Production**, **Preview**, **Development**
    - Mark as **Sensitive** ✅
    - Click **"Save"**
@@ -249,7 +249,7 @@ ls -la /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/package.json
 
 **Check 1: Connection String Format**
 ```
-mongodb+srv://EngSayh:EngSayh%401985@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
+mongodb+srv://<user>:<password>@<host>/<db>?retryWrites=true&w=majority&appName=Fixzit
 ```
 - Note: Password has `%40` (URL-encoded `@`)
 

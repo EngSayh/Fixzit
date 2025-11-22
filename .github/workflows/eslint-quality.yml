@@ -8,6 +8,8 @@ on:
       - 'components/**'
       - 'lib/**'
       - 'services/**'
+      - 'scripts/**'
+      - 'tools/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'eslint.config.mjs'
@@ -18,9 +20,12 @@ on:
       - 'components/**'
       - 'lib/**'
       - 'services/**'
+      - 'scripts/**'
+      - 'tools/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'eslint.config.mjs'
+  workflow_dispatch:
 
 jobs:
   lint-production-code:
@@ -72,6 +77,12 @@ jobs:
           pnpm eslint app components lib services --ext .ts,.tsx,.js,.jsx \
             --max-warnings 0 \
             --report-unused-disable-directives
+      
+      - name: Run hard-coded URI guardrail
+        run: |
+          echo "🔒 Scanning for hard-coded database URIs with credentials..."
+          bash scripts/security/check-hardcoded-uris.sh
+*** End Patch
 
       - name: Upload ESLint results
         if: always()
@@ -142,3 +153,13 @@ jobs:
           name: eslint-scripts-tools-results
           path: _artifacts/eslint-scripts-tools.json
           retention-days: 30
+
+  security-hardcoded-uris:
+    name: Security Scan (Hard-coded URIs)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run hard-coded URI scan
+        run: bash scripts/security/check-hardcoded-uris.sh

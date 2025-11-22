@@ -1,26 +1,32 @@
 #!/usr/bin/env tsx
 /**
- * Script to check production MongoDB and list login credentials
+ * Script to check MongoDB and list collections.
+ * NOTE: Access is gated to prevent accidental prod access and to avoid hard-coded secrets.
  */
 
 import mongoose from 'mongoose';
 
 async function checkProductionDatabase() {
   try {
-    console.log('🔍 Checking PRODUCTION MongoDB Atlas connection...\n');
+    if (process.env.ALLOW_PROD_DB !== '1') {
+      console.error('❌ Refusing to run: set ALLOW_PROD_DB=1 and provide MONGODB_URI explicitly.');
+      process.exit(1);
+    }
+
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      console.error('❌ MONGODB_URI not set. Provide the URI via environment variable.');
+      process.exit(1);
+    }
+
+    console.log('🔍 Checking MongoDB connection...\n');
     
-    // Use the production MongoDB URI
-    const mongoUri = 'mongodb+srv://EngSayh:EngSayh%401985@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit';
-    
-    console.log('📡 Connecting to MongoDB Atlas (Production)...');
-    console.log('Cluster: fixzit.vgfiiff.mongodb.net');
-    console.log('Database: fixzit\n');
-    
+    console.log('📡 Connecting to MongoDB...');
     await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 10000,
     });
     
-    console.log('✅ Connected to MongoDB Atlas successfully!\n');
+    console.log('✅ Connected to MongoDB successfully!\n');
 
     const db = mongoose.connection.db;
     if (!db) {
@@ -125,60 +131,25 @@ async function checkProductionDatabase() {
     console.log(`   NextAuth Accounts: ${accountCount}`);
     console.log(`   Users with Passwords: ${usersWithPassword.length}`);
 
-    console.log('\n💡 LOGIN INFORMATION:\n');
-    console.log('   🌐 Production URL: https://fixzit.co/login');
-    console.log('   📧 Login with: email + password');
-    console.log('\n   ⚠️  IMPORTANT: Passwords are hashed with bcrypt and cannot be retrieved');
-    console.log('   🔧 To reset password: Use forgot password flow or create new test user');
-
-    // Check for demo/test users
-    console.log('\n🧪 Common test accounts to try:\n');
-    const testEmails = [
-      'superadmin@fixzit.co',
-      'admin@fixzit.co',
-      'manager@fixzit.co',
-      'tenant@fixzit.co',
-      'vendor@fixzit.co',
-      'superadmin@test.fixzit.co',
-      'admin@test.fixzit.co',
-    ];
-
-    for (const email of testEmails) {
-      const user = await db.collection('users').findOne({ email });
-      if (user) {
-        const hasPassword = user.password ? '✅ Has password' : '❌ No password';
-        console.log(`   ${email.padEnd(35)} ${hasPassword}`);
-      }
-    }
-
-    console.log('\n📝 Common test password: "password123" or "Test@123" or "admin123"');
-    console.log('   (Try these with the accounts that have passwords)');
+    console.log('\n💡 LOGIN INFORMATION NOT SHOWN (guarded).');
+    console.log('   - To audit auth data, run with explicit queries and appropriate approvals.');
 
   } catch (error: unknown) {
     const err = error as Error;
     console.error('\n❌ Error:', err.message);
     
     if (err.message.includes('ENOTFOUND')) {
-      console.error('\n🔧 Cannot reach MongoDB Atlas. Check:');
-      console.error('   - Internet connection');
-      console.error('   - MongoDB Atlas cluster is running');
-      console.error('   - Firewall not blocking connection');
-    } else if (error.message.includes('Authentication failed')) {
-      console.error('\n🔧 Authentication failed. Check:');
-      console.error('   - Username: EngSayh');
-      console.error('   - Password is correct');
-      console.error('   - User has database permissions');
-    } else if (error.name === 'MongoServerSelectionError') {
-      console.error('\n🔧 Cannot connect to server. Check:');
-      console.error('   - IP address is whitelisted (0.0.0.0/0)');
-      console.error('   - Cluster is not paused');
-      console.error('   - Network connectivity');
+      console.error('\n🔧 Cannot reach MongoDB. Check connectivity/whitelists.');
+    } else if (err.message.includes('Authentication failed')) {
+      console.error('\n🔧 Authentication failed. Verify credentials and roles.');
+    } else if (err.name === 'MongoServerSelectionError') {
+      console.error('\n🔧 Cannot connect to server. Check cluster status and IP allow list.');
     }
     
     process.exit(1);
   } finally {
     await mongoose.disconnect();
-    console.log('\n👋 Disconnected from MongoDB Atlas');
+    console.log('\n👋 Disconnected from MongoDB');
   }
 }
 

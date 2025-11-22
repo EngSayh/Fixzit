@@ -144,9 +144,10 @@ jobs:
       - name: Prepare E2E env vars
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
-            echo "Using safe defaults for forked PR (GitHub secrets are unavailable)."
-            echo "NEXTAUTH_SECRET=e2e-test-secret-do-not-use-in-production" >> "$GITHUB_ENV"
-            echo "AUTH_SECRET=e2e-test-secret-do-not-use-in-production" >> "$GITHUB_ENV"
+            echo "Using generated secrets for forked PR (GitHub secrets are unavailable)."
+            RAND_SECRET="$(node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\")"
+            echo "NEXTAUTH_SECRET=${RAND_SECRET}" >> "$GITHUB_ENV"
+            echo "AUTH_SECRET=${RAND_SECRET}" >> "$GITHUB_ENV"
             echo "GOOGLE_CLIENT_ID=" >> "$GITHUB_ENV"
             echo "GOOGLE_CLIENT_SECRET=" >> "$GITHUB_ENV"
           else

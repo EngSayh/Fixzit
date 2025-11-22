@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 /**
- * Script to verify test passwords against production database
+ * Script to verify weak passwords against a MongoDB users collection.
+ * Guarded to prevent accidental production use and to avoid hard-coded secrets.
  */
 
 import mongoose from 'mongoose';
@@ -8,15 +9,24 @@ import bcrypt from 'bcryptjs';
 
 async function verifyPasswords() {
   try {
-    console.log('🔐 Verifying test passwords against production database...\n');
-    
-    const mongoUri = 'mongodb+srv://EngSayh:EngSayh%401985@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit';
+    if (process.env.ALLOW_PASSWORD_AUDIT !== '1') {
+      console.error('❌ Refusing to run: set ALLOW_PASSWORD_AUDIT=1 and MONGODB_URI explicitly.');
+      process.exit(1);
+    }
+
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      console.error('❌ MONGODB_URI not set. Provide the URI via environment variable.');
+      process.exit(1);
+    }
+
+    console.log('🔐 Verifying weak passwords against MongoDB...\n');
     
     await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 10000,
     });
     
-    console.log('✅ Connected to MongoDB Atlas\n');
+    console.log('✅ Connected to MongoDB\n');
 
     const db = mongoose.connection.db;
     if (!db) throw new Error('Database connection failed');
@@ -24,9 +34,10 @@ async function verifyPasswords() {
     // Get users with passwords
     const users = await db.collection('users')
       .find({ password: { $exists: true, $ne: null } })
+      .project({ email: 1, password: 1 })
       .toArray();
 
-    console.log(`Found ${users.length} users with passwords\n`);
+    console.log(`Found ${users.length} users with password hashes\n`);
     console.log('='.repeat(80));
 
     // Common test passwords to try
@@ -66,36 +77,14 @@ async function verifyPasswords() {
       
       if (!found) {
         console.log(`   ⚠️  None of the common passwords matched`);
-        console.log(`   💡 Try: "password123" or contact admin to reset`);
+        console.log(`   💡 Reset this account's password if needed`);
       }
     }
 
     console.log('\n' + '='.repeat(80));
-    console.log('\n📋 VERIFIED LOGIN CREDENTIALS:\n');
-
-    // Re-check and list verified accounts
-    for (const user of users) {
-      for (const testPassword of testPasswords) {
-        try {
-          const isMatch = await bcrypt.compare(testPassword, user.password);
-          if (isMatch) {
-            console.log(`   📧 Email: ${user.email}`);
-            console.log(`   🔐 Password: ${testPassword}`);
-            console.log(`   🌐 Login: https://fixzit.co/login`);
-            console.log('');
-            break;
-          }
-        } catch (_error) {
-          // Skip
-        }
-      }
-    }
-
-    console.log('='.repeat(80));
-    console.log('\n💡 TO LOGIN:\n');
-    console.log('   1. Go to: https://fixzit.co/login');
-    console.log('   2. Use one of the email/password combinations above');
-    console.log('   3. If login fails, check browser console for errors');
+    console.log('\n📋 REPORT SUMMARY:\n');
+    console.log('   - Matching weak passwords were reported above per account.');
+    console.log('   - Reset weak credentials immediately.');
 
   } catch (error: unknown) {
     const err = error as Error;
@@ -103,7 +92,7 @@ async function verifyPasswords() {
     process.exit(1);
   } finally {
     await mongoose.disconnect();
-    console.log('\n👋 Disconnected from MongoDB Atlas\n');
+    console.log('\n👋 Disconnected from MongoDB\n');
   }
 }
 

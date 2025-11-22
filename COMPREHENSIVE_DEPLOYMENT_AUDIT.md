@@ -156,7 +156,7 @@ Time          Status   Duration   Error
 
 #### Connection String Analysis
 ```
-mongodb+srv://EngSayh:EngSayh%401985@fixzit.vgfiiff.mongodb.net/fixzit?retryWrites=true&w=majority&appName=Fixzit
+mongodb+srv://<user>:<password>@<host>/<db>?retryWrites=true&w=majority&appName=Fixzit
 ```
 
 **Components**:

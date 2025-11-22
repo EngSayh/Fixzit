@@ -269,6 +269,6 @@
     }
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm lint:prod"
+    "pre-commit": "pnpm lint:prod && bash scripts/security/check-hardcoded-uris.sh"
   }
 }
