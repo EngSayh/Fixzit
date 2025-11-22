@@ -220,6 +220,10 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   // ⚡ FIXED: Unified auth check - fetch JWT auth if NextAuth isn't authenticated
   useEffect(() => {
     let abort = false;
+    // Skip auth probe on public marketing/auth routes to avoid 401 noise
+    if (isMarketingPage || isAuthPage) {
+      return () => { abort = true; };
+    }
     // Only fetch if NextAuth isn't authenticated yet
     if (status !== 'authenticated' && status !== 'loading') {
       const checkAuth = async () => {
