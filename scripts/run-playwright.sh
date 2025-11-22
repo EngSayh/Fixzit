@@ -13,9 +13,12 @@ cleanup
 
 CONFIG_FILE="${PLAYWRIGHT_CONFIG:-tests/playwright.config.ts}"
 CMD=("npx" "playwright" "test" "--config=${CONFIG_FILE}")
+WORKERS_FLAG=("--workers=${PLAYWRIGHT_WORKERS:-1}")
 
 if [ "$#" -gt 0 ]; then
-  CMD+=("$@")
+  CMD+=("${WORKERS_FLAG[@]}" "$@")
+else
+  CMD+=("${WORKERS_FLAG[@]}")
 fi
 
 "${CMD[@]}"

@@ -2,7 +2,7 @@
 // ⚡ FIXED: Uses environment variables provided by docker-compose (no hardcoded credentials)
 
 // This script runs in the Mongo container context
-// eslint-disable-next-line no-undef
+ 
 /* global db, process */
 
 // Create application database and user if provided

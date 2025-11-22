@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateSlug } from './utils';
+// Note: @ts-expect-error annotations later deliberately pass invalid types to test runtime robustness.
 
 describe('generateSlug', () => {
   // Happy paths

@@ -48,7 +48,7 @@ function parseConflicts(content: string): FileConflicts | null {
   const lines = content.split('\n');
   const conflicts: ConflictSection[] = [];
   const beforeFirst: string[] = [];
-  let afterLast: string[] = [];
+  const afterLast: string[] = [];
   
   let inConflict = false;
   let inOurs = false;

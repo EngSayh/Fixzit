@@ -15,6 +15,7 @@ import { test, expect, Page } from '@playwright/test';
 const IGNORED_ERROR_PATTERNS = [
   /status of 404/i,
   /status of 429/i,
+  /api\/auth\/me/i, // unauthenticated checks are expected on public pages
 ];
 
 const CORE_PAGES = [
@@ -82,6 +83,9 @@ test.describe('Global Layout & Navigation - All Pages', () => {
       browser.on('response', (response) => {
         const status = response.status();
         if (status >= 400) {
+          if (response.url().includes('/api/auth/me')) {
+            return; // public pages may probe session; ignore 401/403 there
+          }
           networkFailures.push({
             method: response.request().method(),
             url: response.url(),

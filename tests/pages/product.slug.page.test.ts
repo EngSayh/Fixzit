@@ -9,7 +9,7 @@
  *  - Validate edge cases and error states.
  */
 
-// @ts-nocheck
+// @ts-nocheck - tests focus on runtime rendering/mocking server component without full Next typings
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 

@@ -3,6 +3,7 @@
  * Tests the ACTUAL production values used in the system
  */
 import { computeSlaMinutes, computeDueAt, resolveSlaTarget, WorkOrderPriority } from './sla';
+// Note: @ts-expect-error usages in this file intentionally feed invalid inputs to verify runtime behavior.
 
 describe('computeSlaMinutes', () => {
   it('returns 4 hours (240 mins) for CRITICAL priority', () => {

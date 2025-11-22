@@ -41,9 +41,11 @@ export default function AutoIncidentReporter(){
           : null; 
       } catch (e) {
         // Silently return null - invalid JSON or localStorage unavailable
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Failed to parse user session from localStorage:', e);
-        }
+        logger.warn('Failed to parse user session from localStorage', {
+          component: 'AutoIncidentReporter',
+          action: 'getUser',
+          error: e,
+        });
         return null;
       }
     };
@@ -86,16 +88,20 @@ export default function AutoIncidentReporter(){
         if ('sendBeacon' in navigator && typeof navigator.sendBeacon === 'function' && navigator.sendBeacon(url, blob)) return;
       } catch (e) {
         // Blob creation or sendBeacon may fail in restrictive environments
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('[Telemetry] sendBeacon failed, falling back to fetch:', e);
-        }
+        logger.warn('[Telemetry] sendBeacon failed, falling back to fetch', {
+          component: 'AutoIncidentReporter',
+          action: 'sendBeacon',
+          error: e,
+        });
       }
       // Fire-and-forget: Incident reporting must never crash the app, even if API fails
       fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch((err)=>{
-        // Log fetch failures in development for debugging telemetry pipeline
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('[Telemetry] Incident report fetch failed:', err);
-        }
+        // Log fetch failures for debugging telemetry pipeline
+        logger.warn('[Telemetry] Incident report fetch failed', {
+          component: 'AutoIncidentReporter',
+          action: 'send',
+          error: err,
+        });
         saveQueued([...loadQueued(), payload]);
       });
     };

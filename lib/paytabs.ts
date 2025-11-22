@@ -82,6 +82,13 @@ function validatePayTabsConfig(): void {
   }
 }
 
+type PaytabsPaymentResponse = {
+  redirect_url?: string;
+  tran_ref?: string;
+  message?: string;
+  [key: string]: unknown;
+};
+
 export async function createPaymentPage(request: SimplePaymentRequest): Promise<SimplePaymentResponse> {
   // Validate credentials before making API call
   validatePayTabsConfig();
@@ -136,7 +143,7 @@ export async function createPaymentPage(request: SimplePaymentRequest): Promise<
       label: 'paytabs-payment-create',
     });
 
-    const data = await response.json();
+    const data = (await response.json()) as PaytabsPaymentResponse;
 
     if (data.redirect_url) {
       return {
@@ -162,7 +169,9 @@ export async function createPaymentPage(request: SimplePaymentRequest): Promise<
   }
 }
 
-export async function verifyPayment(tranRef: string): Promise<unknown> {
+type PaytabsVerifyResponse = Record<string, unknown>;
+
+export async function verifyPayment(tranRef: string): Promise<PaytabsVerifyResponse> {
   // Validate credentials before making API call
   validatePayTabsConfig();
   const config = getPaytabsConfig();
@@ -186,7 +195,7 @@ export async function verifyPayment(tranRef: string): Promise<unknown> {
       label: 'paytabs-verify',
     });
 
-    return await response.json();
+    return (await response.json()) as PaytabsVerifyResponse;
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;

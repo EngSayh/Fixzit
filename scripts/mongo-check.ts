@@ -7,7 +7,7 @@ if (!uri) {
 (async () => {
   try {
     // Dynamic require to avoid dependency when unused
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const { MongoClient } = require("mongodb") as { MongoClient: typeof import("mongodb").MongoClient };
     const client = new MongoClient(uri, { serverSelectionTimeoutMS: 4000 });
     await client.connect();

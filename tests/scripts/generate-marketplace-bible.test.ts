@@ -20,7 +20,7 @@ import fs from "fs";
 import { spawnSync } from "child_process";
 
 // Try Vitest first; if running under Jest, fall back to globals.
-// @ts-ignore
+// @ts-ignore - tolerate missing vitest types when running under Jest
 let usingVitest = false;
 try {
    

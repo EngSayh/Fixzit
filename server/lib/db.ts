@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
+import type { Db } from 'mongodb';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 
-export async function getDb() {
+export async function getDb(): Promise<Db> {
   await connectToDatabase();
   if (!mongoose.connection.db) {
     throw new Error('Database connection not established');

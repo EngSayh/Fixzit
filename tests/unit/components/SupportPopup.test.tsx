@@ -6,6 +6,7 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, describe, test, expect, beforeEach, afterEach } from "vitest";
+// Note: @ts-expect-error annotations in this file are used only to mock clipboard APIs in jsdom.
 
 // Using path mapping for cleaner imports
 import SupportPopup from "@/components/SupportPopup";

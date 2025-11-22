@@ -36,7 +36,7 @@ const results: TestResult[] = [];
 let authToken: string | null = null;
 let testUserId: string | null = null;
 let sessionCookie: string | null = null;
-let allCookies: string[] = []; // Store all cookies for cookie jar
+const allCookies: string[] = []; // Store all cookies for cookie jar
 
 // Login helper to get auth token and session cookie
 async function authenticateTestUser() {
