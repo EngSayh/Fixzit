@@ -149,12 +149,12 @@ export async function createPaymentPage(request: SimplePaymentRequest): Promise<
       return {
         success: true,
         paymentUrl: data.redirect_url,
-        transactionId: data.tran_ref
+        transactionId: data.tran_ref ?? ''
       };
     } else {
       return {
         success: false,
-        error: data.message || 'Payment initialization failed'
+        error: data.message ?? 'Payment initialization failed'
       } as const;
     }
   } catch (_error: unknown) {

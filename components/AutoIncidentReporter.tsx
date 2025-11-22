@@ -1,6 +1,7 @@
 'use client';
 import { useEffect } from 'react';
 import { STORAGE_KEYS } from '@/config/constants';
+import { logger } from '@/lib/logger';
 
 declare global { interface Window { __incidentReporter?: boolean; __incidentLastAt?: number; } }
 

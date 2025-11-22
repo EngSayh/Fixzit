@@ -161,7 +161,7 @@
     "lucide-react": "^0.294.0",
     "meilisearch": "^0.54.0",
     "mongodb": "^6.21.0",
-    "mongoose": "^8.20.0",
+    "mongoose": "^8.20.1",
     "morgan": "^1.10.1",
     "nanoid": "^5.1.6",
     "nats": "^2.29.3",
@@ -257,7 +257,8 @@
     "overrides": {
       "vite": "^7.1.11",
       "import-in-the-middle": "1.15.0",
-      "require-in-the-middle": "7.5.2"
+      "require-in-the-middle": "7.5.2",
+      "mongodb": "6.21.0"
     }
   }
 }

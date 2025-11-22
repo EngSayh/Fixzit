@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
       await recordAudit({ 
         session, 
         intent: "guest_info", 
-        status: "INFO", 
+        status: "SUCCESS", 
         message: guestMessage, 
         prompt: body.message 
       });
