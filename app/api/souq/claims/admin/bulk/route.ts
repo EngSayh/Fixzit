@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { connectDb } from '@/lib/mongo';
 import { logger } from '@/lib/logger';
 import { SouqClaim } from '@/server/models/souq/Claim';
+import { SouqOrder, type IOrder } from '@/server/models/souq/Order';
 import { Types } from 'mongoose';
 import { RefundProcessor } from '@/services/souq/claims/refund-processor';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
@@ -105,15 +106,69 @@ export async function POST(request: NextRequest) {
     const results = {
       success: 0,
       failed: 0,
-      errors: [] as { claimId: string; error: string }[],
+      partialSuccess: 0, // Claim saved but notification/refund failed
+      errors: [] as { claimId: string; error: string; stage: string }[],
+      warnings: [] as { claimId: string; warning: string }[],
     };
 
     // Process each claim
     for (const claim of claims) {
+      const claimIdStr = String(claim._id);
+      let claimSaved = false;
+      let refundProcessed = false;
+
       try {
         const newStatus = action === 'approve' ? 'resolved' : 'closed';
         const refundAmount = action === 'approve' ? claim.requestedAmount : 0;
 
+        // Validate refund amount
+        if (action === 'approve' && refundAmount <= 0) {
+          results.failed++;
+          results.errors.push({
+            claimId: claimIdStr,
+            error: 'Requested refund amount must be greater than 0',
+            stage: 'validation',
+          });
+          continue;
+        }
+
+        // Fetch order for payment details (required for refund)
+        let order: IOrder | null = null;
+        if (action === 'approve' && refundAmount > 0) {
+          order = await SouqOrder.findById(claim.orderId).lean() as IOrder | null;
+          
+          if (!order) {
+            results.failed++;
+            results.errors.push({
+              claimId: claimIdStr,
+              error: 'Order not found - cannot process refund',
+              stage: 'order_lookup',
+            });
+            continue;
+          }
+
+          if (!order.payment?.transactionId) {
+            results.failed++;
+            results.errors.push({
+              claimId: claimIdStr,
+              error: 'Order payment transaction ID missing - cannot process refund',
+              stage: 'payment_validation',
+            });
+            continue;
+          }
+
+          if (!order.payment?.method) {
+            results.failed++;
+            results.errors.push({
+              claimId: claimIdStr,
+              error: 'Order payment method missing - cannot process refund',
+              stage: 'payment_validation',
+            });
+            continue;
+          }
+        }
+
+        // Update claim status and decision
         claim.status = newStatus;
         claim.decision = {
           decidedBy: session.user.id,
@@ -135,67 +190,110 @@ export async function POST(request: NextRequest) {
           note: `Bulk action: ${reason.trim()}`,
         });
 
+        // Save claim first
         await claim.save();
-        results.success++;
+        claimSaved = true;
 
         // Send notification to buyer and seller
-        await addJob(QUEUE_NAMES.NOTIFICATIONS, 'souq-claim-decision', {
-          claimId: String(claim._id),
-          buyerId: String(claim.buyerId),
-          sellerId: String(claim.sellerId),
-          decision: action === 'approve' ? 'approved' : 'denied',
-          reasoning: reason.trim(),
-          refundAmount,
-        }).catch(notifError => {
-          logger.error('Failed to queue claim decision notification', notifError as Error, {
-            claimId: String(claim._id),
+        try {
+          await addJob(QUEUE_NAMES.NOTIFICATIONS, 'souq-claim-decision', {
+            claimId: claimIdStr,
+            buyerId: String(claim.buyerId),
+            sellerId: String(claim.sellerId),
+            decision: action === 'approve' ? 'approved' : 'denied',
+            reasoning: reason.trim(),
+            refundAmount,
           });
-        });
+        } catch (notifError) {
+          logger.error('Failed to queue claim decision notification', notifError as Error, {
+            claimId: claimIdStr,
+          });
+          results.warnings.push({
+            claimId: claimIdStr,
+            warning: 'Notification queuing failed - manual notification may be required',
+          });
+        }
 
         // Process refund if approved
-        if (action === 'approve' && refundAmount > 0) {
+        if (action === 'approve' && refundAmount > 0 && order) {
           try {
             await RefundProcessor.processRefund({
-              claimId: String(claim._id),
+              claimId: claimIdStr,
               orderId: String(claim.orderId),
               buyerId: String(claim.buyerId),
               sellerId: String(claim.sellerId),
               amount: refundAmount,
               reason: reason.trim(),
-              originalPaymentMethod: 'card', // Default payment method - actual method stored in Order model
-              originalTransactionId: undefined, // Transaction ID retrieved from Order by RefundProcessor
+              originalPaymentMethod: order.payment.method,
+              originalTransactionId: order.payment.transactionId,
             });
+            refundProcessed = true;
           } catch (refundError) {
             logger.error('Refund processing failed for approved claim', refundError as Error, {
-              claimId: String(claim._id),
+              claimId: claimIdStr,
               refundAmount,
+              orderId: String(claim.orderId),
+              transactionId: order.payment.transactionId,
             });
-            // Don't fail the bulk action, but log the error for manual follow-up
+            results.warnings.push({
+              claimId: claimIdStr,
+              warning: `Refund processing failed: ${refundError instanceof Error ? refundError.message : 'Unknown error'} - manual refund required`,
+            });
+          }
+        }
+
+        // Determine final status
+        if (claimSaved) {
+          if (action === 'reject' || (action === 'approve' && refundAmount === 0)) {
+            // No refund needed for rejection or zero amount
+            results.success++;
+          } else if (action === 'approve' && refundProcessed) {
+            // Full success: claim saved + refund processed
+            results.success++;
+          } else {
+            // Partial success: claim saved but refund failed
+            results.partialSuccess++;
+            results.warnings.push({
+              claimId: claimIdStr,
+              warning: 'Claim decision saved but refund processing incomplete',
+            });
           }
         }
       } catch (error) {
         results.failed++;
         results.errors.push({
-          claimId: String(claim._id),
+          claimId: claimIdStr,
           error: error instanceof Error ? error.message : 'Unknown error',
+          stage: claimSaved ? 'post_save' : 'claim_update',
         });
         logger.error('Bulk action failed for claim', error as Error, {
-          claimId: String(claim._id),
+          claimId: claimIdStr,
           action,
+          stage: claimSaved ? 'post_save' : 'claim_update',
         });
       }
     }
 
+    // Calculate overall success
+    const hasFailures = results.failed > 0;
+    const hasWarnings = results.warnings.length > 0 || results.partialSuccess > 0;
+    
     return NextResponse.json({
-      success: true,
-      message: `Processed ${results.success} claims successfully`,
+      success: !hasFailures,
+      message: hasFailures
+        ? `Bulk action completed with ${results.failed} failures`
+        : hasWarnings
+        ? `Processed ${results.success} claims with ${results.partialSuccess} partial successes`
+        : `Successfully processed ${results.success} claims`,
       results: {
         total: claimIds.length,
         processed: claims.length,
         success: results.success,
+        partialSuccess: results.partialSuccess,
         failed: results.failed,
         notFound: claimIds.length - claims.length,
         errors: results.errors,
+        warnings: results.warnings,
       },
     });
   } catch (error) {
