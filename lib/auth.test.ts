@@ -238,7 +238,21 @@ describe('auth lib - authenticateUser', () => {
     mockGetJWTSecret.mockResolvedValue('test-secret-key');
   });
 
-  const makeUser = (overrides: Partial<any> = {}) => ({
+  type MockUser = {
+    _id: { toString: () => string };
+    code: string;
+    username: string;
+    email: string;
+    password: string;
+    personal: { firstName: string; lastName: string };
+    professional: { role: string };
+    status: string;
+    tenantId: string;
+    orgId: { toString: () => string };
+    [key: string]: unknown;
+  };
+
+  const makeUser = (overrides: Partial<MockUser> = {}): MockUser => ({
     _id: { toString: () => '1' }, // Mock MongoDB ObjectId
     code: 'USR-001',
     username: 'superadmin',

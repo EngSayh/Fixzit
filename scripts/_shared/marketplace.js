@@ -2,7 +2,7 @@
 // Provides path resolution and seeding helpers without TS/alias dependencies
 
 import { fileURLToPath } from 'node:url';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 
 const __filename = fileURLToPath(import.meta.url);

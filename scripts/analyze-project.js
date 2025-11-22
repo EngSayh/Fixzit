@@ -113,12 +113,12 @@ class ProjectAnalyzer {
           } else {
             totalSize += stats.size;
           }
-        } catch (err) {
+        } catch (_err) {
           // Skip files we can't access
           continue;
         }
       }
-    } catch (err) {
+    } catch (_err) {
       this.errors.push(`Cannot read folder: ${folderPath}`);
     }
     
@@ -199,10 +199,10 @@ class ProjectAnalyzer {
       }
       
       // Check if this is a FIXZIT module
-      for (const module of CONFIG.fixzitModules) {
-        if (relativePath.includes(module) || folderName === module) {
-          if (!this.moduleAnalysis[module]) {
-            this.moduleAnalysis[module] = {
+      for (const fixzitModule of CONFIG.fixzitModules) {
+        if (relativePath.includes(fixzitModule) || folderName === fixzitModule) {
+          if (!this.moduleAnalysis[fixzitModule]) {
+            this.moduleAnalysis[fixzitModule] = {
               fileCount: 0,
               totalSize: 0,
               components: [],
@@ -227,25 +227,25 @@ class ProjectAnalyzer {
             await this.analyzeFile(filePath, stats);
             
             // Update module analysis
-            for (const module of CONFIG.fixzitModules) {
-              if (relativePath.includes(module)) {
-                this.moduleAnalysis[module].fileCount++;
-                this.moduleAnalysis[module].totalSize += stats.size;
+            for (const fixzitModule of CONFIG.fixzitModules) {
+              if (relativePath.includes(fixzitModule)) {
+                this.moduleAnalysis[fixzitModule].fileCount++;
+                this.moduleAnalysis[fixzitModule].totalSize += stats.size;
                 
                 const ext = path.extname(file).toLowerCase();
                 if (CONFIG.codeExtensions.includes(ext)) {
-                  this.moduleAnalysis[module].components.push(file);
+                  this.moduleAnalysis[fixzitModule].components.push(file);
                 } else if (CONFIG.assetExtensions.includes(ext)) {
-                  this.moduleAnalysis[module].assets.push(file);
+                  this.moduleAnalysis[fixzitModule].assets.push(file);
                 }
               }
             }
           }
-        } catch (err) {
+        } catch (_err) {
           this.errors.push(`Cannot stat: ${filePath}`);
         }
       }
-    } catch (err) {
+    } catch (_err) {
       this.errors.push(`Cannot read directory: ${dirPath}`);
     }
   }
@@ -287,7 +287,7 @@ class ProjectAnalyzer {
           
           return orphanPackages.sort((a, b) => b.size - a.size);
         }
-      } catch (err) {
+      } catch (_err) {
         this.errors.push('Failed to analyze package.json');
       }
     }

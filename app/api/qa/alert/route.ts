@@ -6,8 +6,10 @@ import { getClientIP } from '@/server/security/headers';
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import type { ConnectionDb } from '@/lib/mongodb-unified';
 
-type GetDbFn = () => Promise<any>;
+type GetDbFn = () => Promise<ConnectionDb>;
+type QaAlertPayload = { event: string; data: unknown };
 
 async function resolveDatabase() {
   const mock = (globalThis as Record<string, unknown>).__mockGetDatabase;
@@ -44,7 +46,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
+    const body = await req.json() as QaAlertPayload;
     const { event, data } = body;
 
     // Log the alert to database

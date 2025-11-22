@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import type { DefaultSession } from "next-auth";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { logger } from "@/lib/logger";
 
 type Role =
   | "Super Admin"
@@ -402,9 +403,7 @@ export default function ClientSidebar() {
     if (!orgId) return;
     fetchCounters(orgId).then(setCounters).catch((error) => {
       // Log counter fetch failures for debugging
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('[Sidebar] Failed to fetch notification counters:', error);
-      }
+      logger.warn('[Sidebar] Failed to fetch notification counters', { component: 'ClientSidebar', action: 'fetchCounters', error });
       // Set empty counters as fallback
       setCounters({});
     });

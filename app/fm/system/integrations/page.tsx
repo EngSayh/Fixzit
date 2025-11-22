@@ -12,6 +12,7 @@ import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Plug, Check, X, Settings } from 'lucide-react';
 import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 interface RemoteIntegration {
   id: string;
@@ -134,9 +135,7 @@ export default function IntegrationsPage() {
         { id: toastId }
       );
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[Integrations] Toggle failed:', error);
-      }
+      logger.error('[Integrations] Toggle failed', error, { component: 'IntegrationsPage', action: 'toggleIntegration', integrationId });
       toast.error(auto('Operation failed', 'toast.error'), { id: toastId });
     }
   };

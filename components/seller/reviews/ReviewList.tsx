@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { ReviewCard } from './ReviewCard';
 import type { IReview } from '@/server/models/souq/Review';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { logger } from '@/lib/logger';
 
 interface ReviewListProps {
   productId?: string;
@@ -64,7 +65,7 @@ export function ReviewList({
       setReviews(data.data || []);
       setTotalPages(data.pagination?.pages || 1);
     } catch (error) {
-      console.error('Failed to fetch reviews:', error);
+      logger.error('Failed to fetch reviews', error, { component: 'ReviewList', action: 'fetchReviews', productId });
     } finally {
       setLoading(false);
     }

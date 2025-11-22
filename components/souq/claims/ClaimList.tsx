@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectItem } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 import {
   Table,
   TableBody,
@@ -167,9 +168,7 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
         });
       }
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('Failed to fetch claims:', error);
-      }
+      logger.error('Failed to fetch claims', error, { component: 'ClaimList', action: 'fetchClaims' });
       // Show user-friendly error notification
       toast({
         title: 'خطأ في الاتصال (Connection Error)',

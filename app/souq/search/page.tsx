@@ -8,6 +8,7 @@ import { Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { logger } from '@/lib/logger';
 
 interface Product {
   fsin: string;
@@ -81,9 +82,7 @@ export default function SearchPage() {
         const data = await response.json();
         setResults(data.data);
       } catch (err) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Search failed:', err);
-        }
+        logger.error('Search failed', err, { component: 'SouqSearchPage', action: 'fetchResults', query, category });
         setError(auto('Failed to load search results. Please try again.', 'errors.loadFailed'));
       } finally {
         setLoading(false);

@@ -3,8 +3,9 @@ import { logger } from '@/lib/logger';
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
+import type mongoose from 'mongoose';
 
-type ConnectFn = () => Promise<any>;
+type ConnectFn = () => Promise<typeof mongoose>;
 
 async function getDatabaseConnection() {
   const mock = (globalThis as Record<string, unknown>).__connectToDatabaseMock;

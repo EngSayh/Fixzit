@@ -1,0 +1,826 @@
+{
+  "aqar.map.auctions": {
+    "en": "auctions",
+    "ar": "مزادات"
+  },
+  "aqar.map.rnpl": {
+    "en": "RNPL-ready",
+    "ar": "RNPL جاهز"
+  },
+  "aqar.map.legend": {
+    "en": "Cluster tooltip shows avg price • auction-ready listings • RNPL-ready listings.",
+    "ar": "يظهر تلميح الأدوات العنقودية متوسط ​​السعر • قوائم جاهزة للمزاد • قوائم جاهزة لـ RNPL."
+  },
+  "aqar.compliance.title": {
+    "en": "Enterprise-grade trust",
+    "ar": "الثقة على مستوى المؤسسة"
+  },
+  "aqar.compliance.desc": {
+    "en": "Mandatory Nafath, FAL, foreign ownership checks and RNPL financing baked into every listing.",
+    "ar": "يتم تضمين Nafath وFAL وشيكات الملكية الأجنبية وتمويل RNPL الإلزامي في كل قائمة."
+  },
+  "aqar.compliance.nafath": {
+    "en": "Nafath & FAL",
+    "ar": "نفاث وفال"
+  },
+  "aqar.compliance.nafath.desc": {
+    "en": "Agents must pass Nafath identity checks plus FAL/ad permit validation before publishing.",
+    "ar": "يجب على الوكلاء اجتياز اختبارات هوية Nafath بالإضافة إلى التحقق من صحة تصريح FAL/الإعلان قبل النشر."
+  },
+  "aqar.compliance.foreign": {
+    "en": "Foreign ownership",
+    "ar": "ملكية أجنبية"
+  },
+  "aqar.compliance.foreign.desc": {
+    "en": "Foreign-owner flag, REGA zone controls, and audit history for every listing.",
+    "ar": "علم المالك الأجنبي، وضوابط منطقة REGA، وسجل التدقيق لكل قائمة."
+  },
+  "aqar.compliance.rnpl": {
+    "en": "RNPL journeys",
+    "ar": "رحلات RNPL"
+  },
+  "aqar.compliance.rnpl.desc": {
+    "en": "Instant Rent-Now-Pay-Later eligibility, installment calculators, and lead routing to fintech partners.",
+    "ar": "الأهلية الفورية للإيجار الآن والدفع لاحقًا، وحاسبات الأقساط، وتوجيه العملاء المحتملين إلى شركاء التكنولوجيا المالية."
+  },
+  "aqar.compliance.auctionCta": {
+    "en": "Browse auctions",
+    "ar": "تصفح المزادات"
+  },
+  "aqar.compliance.rnplCta": {
+    "en": "Check RNPL eligibility",
+    "ar": "تحقق من أهلية RNPL"
+  },
+  "aqar.vr.tag": {
+    "en": "Immersive",
+    "ar": "غامرة"
+  },
+  "aqar.vr.title": {
+    "en": "VR + 3D walkthroughs",
+    "ar": "VR + 3D إرشادات"
+  },
+  "aqar.vr.desc": {
+    "en": "Invite buyers to explore every floor, balcony, and amenity using Matterport / 3D tours directly inside the Fixzit shell.",
+    "ar": "قم بدعوة المشترين لاستكشاف كل طابق وشرفة ووسائل الراحة باستخدام جولات Matterport / 3D مباشرة داخل هيكل Fixzit."
+  },
+  "aqar.vr.point1": {
+    "en": "Supports Matterport, Kuula, and custom WebXR sources",
+    "ar": "يدعم Matterport وKula ومصادر WebXR المخصصة"
+  },
+  "aqar.vr.point2": {
+    "en": "Auto-fallback to photo carousel if device does not support VR",
+    "ar": "الرجوع التلقائي إلى مكتبة الصور إذا كان الجهاز لا يدعم الواقع الافتراضي"
+  },
+  "aqar.vr.point3": {
+    "en": "Audited for accessibility and performance",
+    "ar": "تم تدقيقها من أجل إمكانية الوصول والأداء"
+  },
+  "aqar.vr.demo": {
+    "en": "Sedra Show Home",
+    "ar": "سيدرا شو هوم"
+  },
+  "aqar.properties.badge.rnpl": {
+    "en": "RNPL Ready",
+    "ar": "RNPL جاهز"
+  },
+  "aqar.properties.badge.auction": {
+    "en": "Auction",
+    "ar": "مزاد"
+  },
+  "finance.reports.title": {
+    "en": "Financial Reports",
+    "ar": "التقارير المالية"
+  },
+  "finance.reports.subtitle": {
+    "en": "Trial balance, P&L, and owner statements at a glance",
+    "ar": "نظرة سريعة على ميزان المراجعة والأرباح والخسائر وبيانات المالك"
+  },
+  "login.errors.rateLimited": {
+    "en": "Too many attempts. Please try again later.",
+    "ar": "محاولات كثيرة جدًا.يرجى المحاولة مرة أخرى في وقت لاحق."
+  },
+  "login.errors.noPhone": {
+    "en": "No phone number registered. Please contact support.",
+    "ar": "لم يتم تسجيل رقم الهاتف.يرجى الاتصال بالدعم."
+  },
+  "login.errors.otpFailed": {
+    "en": "Failed to send verification code. Please try again.",
+    "ar": "فشل في إرسال رمز التحقق.يرجى المحاولة مرة أخرى."
+  },
+  "otp.errors.sessionExpired": {
+    "en": "Your verification session expired. Please sign in again.",
+    "ar": "انتهت صلاحية جلسة التحقق الخاصة بك.الرجاء تسجيل الدخول مرة أخرى."
+  },
+  "otp.errors.resendFailed": {
+    "en": "Failed to resend OTP",
+    "ar": "فشل في إعادة إرسال كلمة المرور لمرة واحدة (OTP)."
+  },
+  "otp.errors.networkError": {
+    "en": "Network error. Please try again.",
+    "ar": "خطأ في الشبكة.يرجى المحاولة مرة أخرى."
+  },
+  "marketplace.claims.buyer.title": {
+    "en": "Buyer claims",
+    "ar": "مطالبات المشتري"
+  },
+  "marketplace.claims.buyer.subtitle": {
+    "en": "Track every claim you have filed and monitor status updates",
+    "ar": "تتبع كل مطالبة قدمتها وراقب تحديثات الحالة"
+  },
+  "marketplace.claims.buyer.newClaim": {
+    "en": "File new claim",
+    "ar": "تقديم مطالبة جديدة"
+  },
+  "marketplace.claims.seller.title": {
+    "en": "Seller claims desk",
+    "ar": "مكتب مطالبات البائع"
+  },
+  "marketplace.claims.seller.subtitle": {
+    "en": "Review open disputes and respond before deadlines",
+    "ar": "راجع النزاعات المفتوحة واستجب قبل المهل الزمنية"
+  },
+  "marketplace.claims.seller.importantNotice": {
+    "en": "Important notice",
+    "ar": "تنبيه هام"
+  },
+  "marketplace.claims.seller.responseDeadline": {
+    "en": "Respond within 3 calendar days to avoid automatic resolutions",
+    "ar": "يجب الرد خلال ٣ أيام تقويمية لتجنب الحسم التلقائي"
+  },
+  "marketplace.claims.seller.respondToClaim": {
+    "en": "Respond to claim",
+    "ar": "الرد على المطالبة"
+  },
+  "marketplace.claims.seller.respondToClaimSubtitle": {
+    "en": "Provide documentation, refunds, or counter evidence to resolve the dispute",
+    "ar": "قدّم المستندات أو المبالغ المستردة أو الأدلة المضادة لحل النزاع"
+  },
+  "marketplace.settlements.withdrawalSuccess": {
+    "en": "Withdrawal submitted successfully",
+    "ar": "تم إرسال طلب السحب بنجاح"
+  },
+  "marketplace.settlements.pleaseLogin": {
+    "en": "Please sign in to view settlements",
+    "ar": "الرجاء تسجيل الدخول لعرض التسويات"
+  },
+  "marketplace.settlements.mustBeSeller": {
+    "en": "You must be a registered seller to access settlements",
+    "ar": "يجب أن تكون بائعاً مسجلاً للوصول إلى التسويات"
+  },
+  "marketplace.settlements.loading": {
+    "en": "Loading settlements...",
+    "ar": "جاري تحميل التسويات..."
+  },
+  "marketplace.settlements.title": {
+    "en": "Seller settlements",
+    "ar": "تسويات البائع"
+  },
+  "marketplace.settlements.tabs.transactions": {
+    "en": "Transactions",
+    "ar": "المعاملات"
+  },
+  "marketplace.settlements.tabs.statements": {
+    "en": "Statements",
+    "ar": "الكشوفات"
+  },
+  "marketplace.settlements.comingSoon": {
+    "en": "Statements export coming soon",
+    "ar": "تصدير الكشوفات قادم قريباً"
+  },
+  "souq.features.catalog.title": {
+    "en": "Catalog Management",
+    "ar": "إدارة الكتالوج"
+  },
+  "souq.features.catalog.description": {
+    "en": "Browse and manage your product catalog with advanced filtering",
+    "ar": "تصفح وإدارة كتالوج المنتجات الخاصة بك مع التصفية المتقدمة"
+  },
+  "souq.features.vendors.title": {
+    "en": "Vendor Portal",
+    "ar": "بوابة البائع"
+  },
+  "souq.features.vendors.description": {
+    "en": "Connect with verified vendors and suppliers",
+    "ar": "تواصل مع البائعين والموردين الذين تم التحقق منهم"
+  },
+  "souq.features.rfqs.title": {
+    "en": "RFQs & Bids",
+    "ar": "طلبات عروض الأسعار والعطاءات"
+  },
+  "souq.features.rfqs.description": {
+    "en": "Request for quotations and manage bidding processes",
+    "ar": "طلب عروض الأسعار وإدارة عمليات تقديم العطاءات"
+  },
+  "souq.features.orders.title": {
+    "en": "Order Management",
+    "ar": "إدارة الطلبات"
+  },
+  "souq.features.orders.description": {
+    "en": "Track orders, purchase orders, and delivery status",
+    "ar": "تتبع الطلبات وأوامر الشراء وحالة التسليم"
+  },
+  "souq.features.shipping.title": {
+    "en": "Shipping & Logistics",
+    "ar": "الشحن والخدمات اللوجستية"
+  },
+  "souq.features.shipping.description": {
+    "en": "Manage shipping, tracking, and logistics partners",
+    "ar": "إدارة شركاء الشحن والتتبع والخدمات اللوجستية"
+  },
+  "souq.features.reviews.title": {
+    "en": "Reviews & Ratings",
+    "ar": "التعليقات والتقييمات"
+  },
+  "souq.features.reviews.description": {
+    "en": "View and manage product reviews and vendor ratings",
+    "ar": "عرض وإدارة مراجعات المنتجات وتقييمات البائعين"
+  },
+  "souq.hero.title": {
+    "en": "Fixzit Souq",
+    "ar": "سوق فكسزيت"
+  },
+  "souq.hero.subtitle": {
+    "en": "Your complete marketplace for facility management materials, equipment, and services",
+    "ar": "سوقك الكامل لمواد ومعدات وخدمات إدارة المرافق"
+  },
+  "souq.hero.browseCatalog": {
+    "en": "Browse Catalog",
+    "ar": "تصفح الكتالوج"
+  },
+  "souq.hero.viewVendors": {
+    "en": "View Vendors",
+    "ar": "عرض البائعين"
+  },
+  "souq.features.title": {
+    "en": "Marketplace Features",
+    "ar": "ميزات السوق"
+  },
+  "support.modulePlaceholder": {
+    "en": "Select module",
+    "ar": "حدد الوحدة النمطية"
+  },
+  "support.categoryPlaceholder": {
+    "en": "Select category",
+    "ar": "اختر فئة"
+  },
+  "support.subCategoryPlaceholder": {
+    "en": "Select sub-category",
+    "ar": "حدد فئة فرعية"
+  },
+  "support.typePlaceholder": {
+    "en": "Select type",
+    "ar": "اختر النوع"
+  },
+  "support.priorityPlaceholder": {
+    "en": "Select priority",
+    "ar": "حدد الأولوية"
+  },
+  "admin.notifications.errors.historyFetch": {
+    "en": "Failed to load notification history",
+    "ar": "فشل تحميل سجل الإشعارات"
+  },
+  "admin.notifications.errors.noChannels": {
+    "en": "Please select at least one channel",
+    "ar": "الرجاء تحديد قناة واحدة على الأقل"
+  },
+  "admin.notifications.errors.emptyFields": {
+    "en": "Subject and message are required",
+    "ar": "مطلوب الموضوع والرسالة"
+  },
+  "admin.notifications.success": {
+    "en": "Notification sent successfully",
+    "ar": "تم إرسال الإشعار بنجاح"
+  },
+  "admin.notifications.errors.sendFailed": {
+    "en": "Failed to send notification",
+    "ar": "فشل في إرسال الإخطار"
+  },
+  "admin.notifications.subtitle": {
+    "en": "Broadcast messages via Email, SMS, or WhatsApp",
+    "ar": "بث الرسائل عبر البريد الإلكتروني أو الرسائل القصيرة أو WhatsApp"
+  },
+  "admin.notifications.hideHistory": {
+    "en": "Hide History",
+    "ar": "إخفاء التاريخ"
+  },
+  "admin.notifications.showHistory": {
+    "en": "Show History",
+    "ar": "عرض التاريخ"
+  },
+  "admin.notifications.recipientType": {
+    "en": "Recipient Type",
+    "ar": "نوع المستلم"
+  },
+  "admin.notifications.recipients.users": {
+    "en": "Users",
+    "ar": "المستخدمين"
+  },
+  "admin.notifications.recipients.tenants": {
+    "en": "Tenants",
+    "ar": "المستأجرين"
+  },
+  "admin.notifications.recipients.corporate": {
+    "en": "Corporate",
+    "ar": "شركة كبرى"
+  },
+  "admin.notifications.recipients.all": {
+    "en": "All",
+    "ar": "الجميع"
+  },
+  "admin.notifications.channels": {
+    "en": "Delivery Channels",
+    "ar": "قنوات التسليم"
+  },
+  "admin.notifications.comingSoon": {
+    "en": "Coming Soon",
+    "ar": "قريباً"
+  },
+  "admin.notifications.message": {
+    "en": "Message Content",
+    "ar": "محتوى الرسالة"
+  },
+  "admin.notifications.priority": {
+    "en": "Priority",
+    "ar": "أولوية"
+  },
+  "admin.notifications.priority.low": {
+    "en": "Low",
+    "ar": "قليل"
+  },
+  "admin.notifications.priority.normal": {
+    "en": "Normal",
+    "ar": "طبيعي"
+  },
+  "admin.notifications.priority.high": {
+    "en": "High",
+    "ar": "عالي"
+  },
+  "admin.notifications.priority.urgent": {
+    "en": "Urgent",
+    "ar": "عاجل"
+  },
+  "admin.notifications.subject": {
+    "en": "Subject",
+    "ar": "موضوع"
+  },
+  "admin.notifications.subjectPlaceholder": {
+    "en": "Enter notification subject...",
+    "ar": "أدخل موضوع الإخطار..."
+  },
+  "admin.notifications.messageBody": {
+    "en": "Message",
+    "ar": "رسالة"
+  },
+  "admin.notifications.messagePlaceholder": {
+    "en": "Enter your message here...",
+    "ar": "أدخل رسالتك هنا..."
+  },
+  "admin.notifications.characters": {
+    "en": "characters",
+    "ar": "الشخصيات"
+  },
+  "admin.notifications.preview": {
+    "en": "Preview",
+    "ar": "معاينة"
+  },
+  "admin.notifications.to": {
+    "en": "To",
+    "ar": "ل"
+  },
+  "admin.notifications.via": {
+    "en": "Via",
+    "ar": "عبر"
+  },
+  "admin.notifications.none": {
+    "en": "None",
+    "ar": "لا أحد"
+  },
+  "admin.notifications.noSubject": {
+    "en": "[No Subject]",
+    "ar": "[لا يوجد موضوع]"
+  },
+  "admin.notifications.noMessage": {
+    "en": "[No Message]",
+    "ar": "[لا توجد رسالة]"
+  },
+  "admin.notifications.sending": {
+    "en": "Sending...",
+    "ar": "إرسال..."
+  },
+  "admin.notifications.send": {
+    "en": "Send Notification",
+    "ar": "إرسال الإخطار"
+  },
+  "admin.notifications.important": {
+    "en": "Important",
+    "ar": "مهم"
+  },
+  "admin.notifications.info.1": {
+    "en": "All notifications are logged for audit",
+    "ar": "يتم تسجيل جميع الإخطارات للتدقيق"
+  },
+  "admin.notifications.info.2": {
+    "en": "Email requires SENDGRID_API_KEY",
+    "ar": "يتطلب البريد الإلكتروني SENDGRID_API_KEY"
+  },
+  "admin.notifications.info.3": {
+    "en": "SMS requires TWILIO credentials",
+    "ar": "تتطلب الرسائل القصيرة بيانات اعتماد TWILIO"
+  },
+  "admin.notifications.info.4": {
+    "en": "WhatsApp coming soon",
+    "ar": "الواتس اب قريبا"
+  },
+  "admin.notifications.historyTitle": {
+    "en": "Notification History",
+    "ar": "تاريخ الإخطار"
+  },
+  "admin.notifications.noHistory": {
+    "en": "No notifications sent yet",
+    "ar": "لم يتم إرسال أي إخطارات حتى الآن"
+  },
+  "admin.notifications.sentBy": {
+    "en": "Sent by",
+    "ar": "أرسلت بواسطة"
+  },
+  "communications.title": {
+    "en": "Communication Dashboard",
+    "ar": "لوحة الاتصالات"
+  },
+  "communications.subtitle": {
+    "en": "Track all SMS, Email, and WhatsApp communications",
+    "ar": "تتبع جميع اتصالات الرسائل النصية القصيرة والبريد الإلكتروني وواتساب"
+  },
+  "communications.export": {
+    "en": "Export",
+    "ar": "يصدّر"
+  },
+  "communications.refresh": {
+    "en": "Refresh",
+    "ar": "ينعش"
+  },
+  "communications.stats.totalSent": {
+    "en": "Total Sent",
+    "ar": "إجمالي المرسلة"
+  },
+  "communications.stats.deliveryRate": {
+    "en": "Delivery Rate",
+    "ar": "معدل التسليم"
+  },
+  "communications.stats.failureRate": {
+    "en": "Failure Rate",
+    "ar": "معدل الفشل"
+  },
+  "communications.stats.byChannel": {
+    "en": "By Channel",
+    "ar": "بواسطة القناة"
+  },
+  "communications.search": {
+    "en": "Search by user, phone, email...",
+    "ar": "البحث حسب المستخدم والهاتف والبريد الإلكتروني ..."
+  },
+  "communications.filter.allChannels": {
+    "en": "All Channels",
+    "ar": "جميع القنوات"
+  },
+  "communications.filter.allStatuses": {
+    "en": "All Statuses",
+    "ar": "جميع الحالات"
+  },
+  "communications.table.date": {
+    "en": "Date",
+    "ar": "تاريخ"
+  },
+  "communications.table.user": {
+    "en": "User",
+    "ar": "مستخدم"
+  },
+  "communications.table.channel": {
+    "en": "Channel",
+    "ar": "قناة"
+  },
+  "communications.table.recipient": {
+    "en": "Recipient",
+    "ar": "متلقي"
+  },
+  "communications.table.status": {
+    "en": "Status",
+    "ar": "حالة"
+  },
+  "communications.table.message": {
+    "en": "Message",
+    "ar": "رسالة"
+  },
+  "communications.table.actions": {
+    "en": "Actions",
+    "ar": "الإجراءات"
+  },
+  "communications.loading": {
+    "en": "Loading communications...",
+    "ar": "جارٍ تحميل الاتصالات..."
+  },
+  "communications.noData": {
+    "en": "No communications found",
+    "ar": "لم يتم العثور على اتصالات"
+  },
+  "communications.view": {
+    "en": "View",
+    "ar": "منظر"
+  },
+  "communications.previous": {
+    "en": "Previous",
+    "ar": "سابق"
+  },
+  "communications.page": {
+    "en": "Page",
+    "ar": "صفحة"
+  },
+  "communications.of": {
+    "en": "of",
+    "ar": "ل"
+  },
+  "communications.next": {
+    "en": "Next",
+    "ar": "التالي"
+  },
+  "communications.details.title": {
+    "en": "Communication Details",
+    "ar": "تفاصيل الاتصالات"
+  },
+  "communications.details.user": {
+    "en": "User",
+    "ar": "مستخدم"
+  },
+  "communications.details.channel": {
+    "en": "Channel",
+    "ar": "قناة"
+  },
+  "communications.details.status": {
+    "en": "Status",
+    "ar": "حالة"
+  },
+  "communications.details.recipient": {
+    "en": "Recipient",
+    "ar": "متلقي"
+  },
+  "communications.details.subject": {
+    "en": "Subject",
+    "ar": "موضوع"
+  },
+  "communications.details.message": {
+    "en": "Message",
+    "ar": "رسالة"
+  },
+  "communications.details.sent": {
+    "en": "Sent At",
+    "ar": "أرسلت في"
+  },
+  "communications.details.delivered": {
+    "en": "Delivered At",
+    "ar": "تم التسليم في"
+  },
+  "communications.details.error": {
+    "en": "Error",
+    "ar": "خطأ"
+  },
+  "communications.details.metadata": {
+    "en": "Metadata",
+    "ar": "البيانات الوصفية"
+  },
+  "otp.errors.invalid": {
+    "en": "Please enter a valid 6-digit code",
+    "ar": "الرجاء إدخال رمز صالح مكون من 6 أرقام"
+  },
+  "otp.errors.verifyFailed": {
+    "en": "Failed to verify OTP",
+    "ar": "فشل في التحقق من OTP"
+  },
+  "otp.title": {
+    "en": "Enter Verification Code",
+    "ar": "أدخل رمز التحقق"
+  },
+  "otp.subtitle": {
+    "en": "We sent a 6-digit code to",
+    "ar": "لقد أرسلنا رمزًا مكونًا من 6 أرقام إلى"
+  },
+  "otp.devModeTitle": {
+    "en": "Developer mode active",
+    "ar": "وضع المطور نشط"
+  },
+  "otp.useDevCode": {
+    "en": "Auto-fill code",
+    "ar": "رمز الملء التلقائي"
+  },
+  "otp.devModeDescription": {
+    "en": "Shown only in local development to speed up testing.",
+    "ar": "يظهر فقط في التنمية المحلية لتسريع الاختبار."
+  },
+  "otp.label": {
+    "en": "Verification Code",
+    "ar": "رمز التحقق"
+  },
+  "otp.expiresIn": {
+    "en": "Expires in",
+    "ar": "تنتهي في"
+  },
+  "otp.expired": {
+    "en": "Code expired. Please request a new one.",
+    "ar": "انتهت صلاحية الرمز.يرجى طلب واحدة جديدة."
+  },
+  "otp.verifying": {
+    "en": "Verifying...",
+    "ar": "جارٍ التحقق..."
+  },
+  "otp.verify": {
+    "en": "Verify & Continue",
+    "ar": "التحقق والمتابعة"
+  },
+  "otp.didntReceive": {
+    "en": "Didn",
+    "ar": "لم أفعل ذلك"
+  },
+  "otp.resending": {
+    "en": "Sending...",
+    "ar": "إرسال..."
+  },
+  "otp.resendIn": {
+    "en": "Resend in",
+    "ar": "إعادة الإرسال في"
+  },
+  "otp.resend": {
+    "en": "Resend Code",
+    "ar": "إعادة إرسال الرمز"
+  },
+  "otp.backToLogin": {
+    "en": "Back to Login",
+    "ar": "العودة إلى تسجيل الدخول"
+  },
+  "finance.balance.error": {
+    "en": "Failed to load balance sheet",
+    "ar": "فشل تحميل الميزانية العمومية"
+  },
+  "finance.balance.title": {
+    "en": "Balance Sheet",
+    "ar": "الميزانية العمومية"
+  },
+  "finance.balance.asOf": {
+    "en": "As of",
+    "ar": "اعتبارا من"
+  },
+  "finance.balance.assets": {
+    "en": "Assets",
+    "ar": "أصول"
+  },
+  "finance.balance.liabilities": {
+    "en": "Liabilities",
+    "ar": "الإلتزامات"
+  },
+  "finance.balance.equity": {
+    "en": "Equity",
+    "ar": "عدالة"
+  },
+  "finance.balance.ok": {
+    "en": "Assets = Liabilities + Equity",
+    "ar": "الأصول = الخصوم + حقوق الملكية"
+  },
+  "finance.balance.notOk": {
+    "en": "Equation mismatch detected",
+    "ar": "تم اكتشاف عدم تطابق المعادلة"
+  },
+  "finance.income.error": {
+    "en": "Failed to load income statement",
+    "ar": "فشل في تحميل بيان الدخل"
+  },
+  "finance.income.title": {
+    "en": "Income Statement",
+    "ar": "بيان الدخل"
+  },
+  "finance.income.period": {
+    "en": "Period",
+    "ar": "فترة"
+  },
+  "finance.income.revenue": {
+    "en": "Revenue",
+    "ar": "ربح"
+  },
+  "finance.income.expense": {
+    "en": "Expenses",
+    "ar": "نفقات"
+  },
+  "finance.income.net": {
+    "en": "Net Income",
+    "ar": "صافي الدخل"
+  },
+  "finance.owner.error": {
+    "en": "Failed to load owner statement",
+    "ar": "فشل تحميل بيان المالك"
+  },
+  "finance.owner.title": {
+    "en": "Owner Statement",
+    "ar": "بيان المالك"
+  },
+  "finance.owner.propertyId": {
+    "en": "Property ID",
+    "ar": "معرف العقار"
+  },
+  "finance.owner.prompt": {
+    "en": "Enter a property ID to load the statement",
+    "ar": "أدخل معرف الملكية لتحميل الكشف"
+  },
+  "finance.owner.period": {
+    "en": "Period",
+    "ar": "فترة"
+  },
+  "finance.owner.opening": {
+    "en": "Opening Balance",
+    "ar": "الرصيد الافتتاحي"
+  },
+  "finance.owner.charges": {
+    "en": "Charges",
+    "ar": "رسوم"
+  },
+  "finance.owner.receipts": {
+    "en": "Receipts",
+    "ar": "الإيصالات"
+  },
+  "finance.owner.ending": {
+    "en": "Ending Balance",
+    "ar": "الرصيد الختامي"
+  },
+  "finance.selectYear": {
+    "en": "Select year",
+    "ar": "اختر السنة"
+  },
+  "finance.selectPeriod": {
+    "en": "Select period",
+    "ar": "اختر الفترة"
+  },
+  "status.dispatched": {
+    "en": "Dispatched",
+    "ar": "مُرسَل"
+  },
+  "status.inProgress": {
+    "en": "In Progress",
+    "ar": "في تَقَدم"
+  },
+  "status.onHold": {
+    "en": "On Hold",
+    "ar": "في الانتظار"
+  },
+  "status.verified": {
+    "en": "Verified",
+    "ar": "تم التحقق منه"
+  },
+  "status.closed": {
+    "en": "Closed",
+    "ar": "مغلق"
+  },
+  "status.cancelled": {
+    "en": "Cancelled",
+    "ar": "تم الإلغاء"
+  },
+  "workOrders.create.button": {
+    "en": "New Work Order",
+    "ar": "أمر عمل جديد"
+  },
+  "workOrders.create.title": {
+    "en": "Create work order",
+    "ar": "إنشاء أمر العمل"
+  },
+  "workOrders.create.form.titleLabel": {
+    "en": "Title *",
+    "ar": "عنوان *"
+  },
+  "workOrders.create.form.descriptionLabel": {
+    "en": "Description",
+    "ar": "وصف"
+  },
+  "workOrders.create.form.priorityLabel": {
+    "en": "Priority",
+    "ar": "أولوية"
+  },
+  "workOrders.create.form.categoryLabel": {
+    "en": "Category",
+    "ar": "فئة"
+  },
+  "workOrders.create.form.propertyIdLabel": {
+    "en": "Property ID",
+    "ar": "معرف العقار"
+  },
+  "workOrders.create.form.propertyIdPlaceholder": {
+    "en": "Optional — link to a property",
+    "ar": "اختياري — رابط إلى خاصية"
+  },
+  "workOrders.create.form.cancelButton": {
+    "en": "Cancel",
+    "ar": "يلغي"
+  },
+  "workOrders.create.form.submitButton": {
+    "en": "Create",
+    "ar": "يخلق"
+  },
+  "search.results.title": {
+    "en": "Results",
+    "ar": "نتائج"
+  }
+}

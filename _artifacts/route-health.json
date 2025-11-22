@@ -1,0 +1,8 @@
+[
+  { "target": "app/properties/inspections/page.tsx", "pageViews": 1250, "errorRate": 0.01 },
+  { "target": "app/properties/units/page.tsx", "pageViews": 980, "errorRate": 0.015 },
+  { "target": "app/finance/invoices/new/page.tsx", "pageViews": 1575, "errorRate": 0.02 },
+  { "target": "app/compliance/page.tsx", "pageViews": 460, "errorRate": 0.03 },
+  { "target": "app/crm/page.tsx", "pageViews": 1120, "errorRate": 0.012 },
+  { "target": "app/administration/page.tsx", "pageViews": 320, "errorRate": 0.025 }
+]

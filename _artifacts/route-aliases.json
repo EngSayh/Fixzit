@@ -1,0 +1,84 @@
+{
+  "generatedAt": "2025-11-21T16:59:02.295Z",
+  "totals": {
+    "aliasFiles": 2,
+    "modules": 2,
+    "reusedTargets": 0,
+    "uniqueTargets": 2,
+    "duplicateAliases": 0,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "invoices",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/invoices/page.tsx"
+      ]
+    },
+    {
+      "module": "reports",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/finance/reports/page.tsx"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "module": "invoices",
+      "aliasFile": "app/fm/invoices/page.tsx",
+      "importTarget": "@/app/fm/finance/invoices/page",
+      "resolvedPath": "app/fm/finance/invoices/page.tsx",
+      "targetExists": true
+    },
+    {
+      "module": "reports",
+      "aliasFile": "app/fm/reports/page.tsx",
+      "importTarget": "@/app/fm/finance/reports/page",
+      "resolvedPath": "app/fm/finance/reports/page.tsx",
+      "targetExists": true
+    }
+  ],
+  "reuse": [],
+  "insights": {
+    "duplicateHistory": [],
+    "averageResolutionDays": null,
+    "routeHealth": [
+      {
+        "target": "app/properties/inspections/page.tsx",
+        "pageViews": 1250,
+        "errorRate": 0.01
+      },
+      {
+        "target": "app/properties/units/page.tsx",
+        "pageViews": 980,
+        "errorRate": 0.015
+      },
+      {
+        "target": "app/finance/invoices/new/page.tsx",
+        "pageViews": 1575,
+        "errorRate": 0.02
+      },
+      {
+        "target": "app/compliance/page.tsx",
+        "pageViews": 460,
+        "errorRate": 0.03
+      },
+      {
+        "target": "app/crm/page.tsx",
+        "pageViews": 1120,
+        "errorRate": 0.012
+      },
+      {
+        "target": "app/administration/page.tsx",
+        "pageViews": 320,
+        "errorRate": 0.025
+      }
+    ]
+  }
+}

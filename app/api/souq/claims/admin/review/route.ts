@@ -4,6 +4,26 @@ import { connectDb } from '@/lib/mongo';
 import { logger } from '@/lib/logger';
 import { SouqClaim } from '@/server/models/souq/Claim';
 
+type ClaimLean = {
+  buyerEvidence?: unknown[];
+  sellerEvidence?: unknown[];
+  buyerMetadata?: { totalClaims?: number };
+  requestedAmount?: unknown;
+  claimAmount?: unknown;
+  orderAmount?: unknown;
+  createdAt?: Date | string;
+  orderDate?: Date | string;
+  buyerDescription?: string;
+  description?: string;
+  sellerRespondedAt?: unknown;
+  sellerResponse?: unknown;
+  priority?: string;
+  status?: string;
+  claimId?: string;
+  orderNumber?: string;
+  orderId?: string;
+} & Record<string, unknown>;
+
 const STATUS_MAP: Record<string, string[]> = {
   // UI-friendly filters mapped to persisted statuses
   'pending-decision': ['pending_investigation', 'pending_seller_response', 'under_review'],
@@ -17,7 +37,7 @@ const normalizeAmount = (amount: unknown): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const extractEvidenceCounts = (claim: any) => {
+const extractEvidenceCounts = (claim: ClaimLean) => {
   const buyerEvidenceCount = Array.isArray(claim.buyerEvidence) ? claim.buyerEvidence.length : 0;
   const sellerEvidenceCount = Array.isArray(claim.sellerEvidence) ? claim.sellerEvidence.length : 0;
   const totalEvidence = buyerEvidenceCount + sellerEvidenceCount;
@@ -30,7 +50,7 @@ const extractEvidenceCounts = (claim: any) => {
  * Analyzes claim patterns and calculates fraud risk score (0-100)
  */
 function calculateFraudScore(
-  claim: any
+  claim: ClaimLean
 ): { score: number; riskLevel: 'low' | 'medium' | 'high'; flags: string[] } {
   let score = 0;
   const flags: string[] = [];
@@ -107,7 +127,7 @@ function calculateFraudScore(
  * 
  * Provides recommended action based on claim analysis
  */
-function generateRecommendation(claim: any, fraudAnalysis: ReturnType<typeof calculateFraudScore>): {
+function generateRecommendation(claim: ClaimLean, fraudAnalysis: ReturnType<typeof calculateFraudScore>): {
   action: 'approve-full' | 'approve-partial' | 'reject' | 'pending-review';
   confidence: number;
   reasoning: string;
@@ -215,7 +235,7 @@ export async function GET(request: NextRequest) {
     await connectDb();
 
     // Build query
-    const query: any = {};
+    const query: Record<string, unknown> = {};
 
     if (statusParam && statusParam !== 'all') {
       const mapped = STATUS_MAP[statusParam];
@@ -236,7 +256,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch claims with pagination
     const skip = (page - 1) * limit;
-    const claims = await SouqClaim.find(query)
+    const claims: ClaimLean[] = await SouqClaim.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -247,7 +267,7 @@ export async function GET(request: NextRequest) {
     const totalClaims = await SouqClaim.countDocuments(query);
 
     // Enrich claims with fraud detection and recommendations
-    const enrichedClaims = claims.map((claim: any) => {
+    const enrichedClaims = claims.map((claim: ClaimLean) => {
       const claimAmount = normalizeAmount(
         claim.requestedAmount ?? claim.orderAmount ?? claim.claimAmount ?? 0
       );

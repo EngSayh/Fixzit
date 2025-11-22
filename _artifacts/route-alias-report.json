@@ -1,0 +1,245 @@
+{
+  "timestamp": "2025-11-18T10:14:46.638Z",
+  "results": [
+    {
+      "alias": "app/fm/admin/page.tsx",
+      "target": "app/admin/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/administration/assets/new/page.tsx",
+      "target": "app/administration/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/administration/policies/new/page.tsx",
+      "target": "app/administration/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/compliance/audits/new/page.tsx",
+      "target": "app/compliance/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/compliance/contracts/new/page.tsx",
+      "target": "app/compliance/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/crm/accounts/new/page.tsx",
+      "target": "app/crm/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/crm/leads/new/page.tsx",
+      "target": "app/crm/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/finance/budgets/new/page.tsx",
+      "target": "app/finance/budgets/new/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/finance/budgets/page.tsx",
+      "target": "app/fm/finance/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/finance/expenses/new/page.tsx",
+      "target": "app/finance/expenses/new/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/finance/expenses/page.tsx",
+      "target": "app/fm/finance/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/finance/invoices/new/page.tsx",
+      "target": "app/finance/invoices/new/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/finance/invoices/page.tsx",
+      "target": "app/fm/invoices/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/finance/payments/new/page.tsx",
+      "target": "app/finance/payments/new/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/finance/payments/page.tsx",
+      "target": "app/fm/finance/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/finance/reports/page.tsx",
+      "target": "app/fm/reports/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/hr/directory/new/page.tsx",
+      "target": "app/hr/employees/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/hr/directory/page.tsx",
+      "target": "app/hr/employees/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/hr/employees/page.tsx",
+      "target": "app/hr/employees/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/hr/leave/approvals/page.tsx",
+      "target": "app/hr/leave/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/hr/leave/page.tsx",
+      "target": "app/hr/leave/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/hr/payroll/page.tsx",
+      "target": "app/hr/payroll/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/hr/payroll/run/page.tsx",
+      "target": "app/hr/payroll/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/hr/recruitment/page.tsx",
+      "target": "app/hr/ats/jobs/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/invoices/new/page.tsx",
+      "target": "app/finance/invoices/new/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/marketplace/listings/new/page.tsx",
+      "target": "app/marketplace/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/marketplace/orders/new/page.tsx",
+      "target": "app/marketplace/orders/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/marketplace/vendors/new/page.tsx",
+      "target": "app/vendors/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/properties/documents/page.tsx",
+      "target": "app/properties/documents/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/properties/inspections/new/page.tsx",
+      "target": "app/properties/inspections/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/properties/inspections/page.tsx",
+      "target": "app/properties/inspections/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/properties/leases/page.tsx",
+      "target": "app/properties/leases/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/properties/new/page.tsx",
+      "target": "app/fm/properties/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/properties/units/new/page.tsx",
+      "target": "app/properties/units/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/properties/units/page.tsx",
+      "target": "app/properties/units/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/reports/new/page.tsx",
+      "target": "app/fm/reports/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/reports/schedules/new/page.tsx",
+      "target": "app/fm/reports/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/support/escalations/new/page.tsx",
+      "target": "app/support/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/support/tickets/new/page.tsx",
+      "target": "app/support/my-tickets/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/system/integrations/page.tsx",
+      "target": "app/system/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/system/roles/new/page.tsx",
+      "target": "app/system/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/system/users/invite/page.tsx",
+      "target": "app/system/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/tenants/new/page.tsx",
+      "target": "app/fm/tenants/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/work-orders/approvals/page.tsx",
+      "target": "app/work-orders/approvals/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/work-orders/board/page.tsx",
+      "target": "app/work-orders/board/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/work-orders/history/page.tsx",
+      "target": "app/work-orders/history/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/work-orders/new/page.tsx",
+      "target": "app/work-orders/new/page.tsx",
+      "exists": true
+    },
+    {
+      "alias": "app/fm/work-orders/pm/page.tsx",
+      "target": "app/work-orders/pm/page.tsx",
+      "exists": true
+    }
+  ]
+}

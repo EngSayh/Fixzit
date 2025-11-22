@@ -20,9 +20,6 @@ import * as cron from 'node-cron';
 import { db } from '@/lib/mongo';
 import { logger } from '@/lib/logger';
 
-// Use require for pdf-parse (CommonJS module with PDFParse class)
-const { PDFParse } = require('pdf-parse');
-
 // Documents to scan (from your Blueprint/Design System PDFs)
 // Note: Only .pdf files are supported. .docx files will be skipped.
 const DOCUMENTS = [
@@ -124,6 +121,7 @@ async function scanDocument(filename: string): Promise<number> {
   }
 
   try {
+    const pdfParse = (await import('pdf-parse')).default as (data: Buffer) => Promise<{ text: string }>;
     const fileHash = calculateFileHash(fullPath);
     const database = await db;
     const collection = database.collection('ai_kb');
@@ -137,10 +135,8 @@ async function scanDocument(filename: string): Promise<number> {
 
     // Parse PDF
     const dataBuffer = fs.readFileSync(fullPath);
-    const parser = new PDFParse({ data: dataBuffer });
-    const pdfData = await parser.getText();
+    const pdfData = await pdfParse(dataBuffer);
     const text = pdfData.text;
-    await parser.destroy();
 
     if (!text || text.trim().length === 0) {
       logger.warn(`[systemScan] Empty PDF: ${filename}`);
