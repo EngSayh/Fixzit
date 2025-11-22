@@ -45,7 +45,10 @@ if (missingNonSecrets.length > 0) {
 }
 
 // Validate secrets only when not in CI and not explicitly skipped
-const skipSecretValidation = isCI || process.env.SKIP_ENV_VALIDATION === 'true';
+const skipSecretValidation =
+  isCI ||
+  process.env.SKIP_ENV_VALIDATION === 'true' ||
+  process.env.NEXT_PHASE === 'phase-production-build';
 
 if (!skipSecretValidation) {
   const missingSecrets: string[] = [];

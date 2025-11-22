@@ -1960,6 +1960,12 @@ const rawNavigationConfig: NavigationConfig = {
               href: '/admin/system/notifications',
             },
             {
+              id: 'help_articles_admin',
+              label: 'Help Articles',
+              labelAr: 'مقالات المساعدة',
+              href: '/admin/help-articles',
+            },
+            {
               id: 'email_templates',
               label: 'Email Templates',
               labelAr: 'قوالب البريد الإلكتروني',

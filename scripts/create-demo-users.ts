@@ -143,7 +143,12 @@ async function createUsers() {
     await db;
     console.log('🌱 Creating missing demo users...\n');
     
-    const hashedPassword = await hashPassword('password123');
+    const superAdminPassword = 'admin123';
+    const defaultPassword = 'password123';
+    const [hashedSuperAdminPassword, hashedDefaultPassword] = await Promise.all([
+      hashPassword(superAdminPassword),
+      hashPassword(defaultPassword)
+    ]);
     let created = 0;
     
     for (const userData of newUsers) {
@@ -157,7 +162,7 @@ async function createUsers() {
         // Use insertOne to bypass validation plugins
         const result = await User.collection.insertOne({
           ...userData,
-          password: hashedPassword,
+          password: userData.username === 'superadmin' ? hashedSuperAdminPassword : hashedDefaultPassword,
           createdAt: new Date(),
           updatedAt: new Date(),
           version: 1,
@@ -177,7 +182,7 @@ async function createUsers() {
     
     console.log(`\n📊 Created ${created} new users`);
     console.log('\n📝 All demo users should now be available:');
-    console.log('   superadmin@fixzit.co / password123');
+    console.log(`   superadmin@fixzit.co / ${superAdminPassword}`);
     console.log('   admin@fixzit.co / password123');
     console.log('   manager@fixzit.co / password123');
     console.log('   tenant@fixzit.co / password123');

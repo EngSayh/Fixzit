@@ -6,6 +6,27 @@ const APP = join(ROOT, "app");
 const BASE = process.env.ROUTE_VERIFY_BASE || "http://localhost:3000";
 const pages: string[] = [];
 
+function replaceDynamicSegments(route: string): string {
+  const parts = route.split('/').filter(Boolean);
+  const normalized = parts.map((segment) => {
+    if (segment.startsWith('[') && segment.endsWith(']')) {
+      const key = segment.slice(1, -1).toLowerCase();
+      if (key.includes('id') || key.includes('order') || key.includes('account')) {
+        return '507f1f77bcf86cd799439011'; // valid ObjectId-ish value for tests
+      }
+      if (key.includes('slug')) {
+        return 'test-slug';
+      }
+      if (key.includes('file')) {
+        return 'sample.pdf';
+      }
+      return 'test';
+    }
+    return segment;
+  });
+  return '/' + normalized.join('/');
+}
+
 function crawl(dir: string, pathParts: string[] = []) {
   for (const name of readdirSync(dir)) {
     const full = join(dir, name);
@@ -59,7 +80,7 @@ function formatConnectionHint(url: string): string {
 (async () => {
   let failures = 0;
   for (const r of unique) {
-    const url = BASE + r;
+    const url = BASE + replaceDynamicSegments(r);
     try {
       const res = await fetch(url, { redirect: "manual" });
       if (res.status >= 400) {

@@ -163,6 +163,12 @@ const nextConfig = {
         'bcryptjs': false,
       };
     }
+
+    // Silence critical-dependency noise from @opentelemetry instrumentation (third-party issue)
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      /@opentelemetry\/instrumentation\/build\/esm\/platform\/node\/instrumentation\.js/,
+    ];
     
     config.resolve.fallback = {
       ...config.resolve.fallback,

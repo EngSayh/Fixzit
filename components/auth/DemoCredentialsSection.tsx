@@ -18,7 +18,7 @@ const DEMO_CREDENTIALS: DemoCredential[] = [
   {
     role: 'Super Admin',
     email: 'superadmin@fixzit.co',
-    password: 'password123',
+    password: 'admin123',
     description: 'Full system access',
     icon: Shield,
     color: 'bg-destructive/10 text-destructive-foreground border-destructive/20'

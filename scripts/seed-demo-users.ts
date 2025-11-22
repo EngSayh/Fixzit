@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Seed demo users that match the login page credentials
- * All users have password: "password123"
+ * Default passwords: superadmin uses "admin123", others use "password123"
  */
 import { db } from '../lib/mongo';
 import { User } from '../server/models/User';
@@ -22,7 +22,7 @@ const demoUsers = [
     code: 'USR-SUPERADMIN',
     username: 'superadmin',
     email: 'superadmin@fixzit.co',
-    password: 'password123',
+    password: 'admin123',
     phone: demoPhones.superadmin,
     orgId: '68dc8955a1ba6ed80ff372dc',
     personal: {
@@ -295,7 +295,7 @@ async function seedDemoUsers() {
     console.log('   Total:   ' + (created + updated + skipped));
     console.log('\n✅ Demo user seeding completed!');
     console.log('\n📝 Login credentials:');
-    console.log('   Personal:  superadmin@fixzit.co / password123');
+    console.log('   Personal:  superadmin@fixzit.co / admin123');
     console.log('   Personal:  admin@fixzit.co / password123');
     console.log('   Personal:  manager@fixzit.co / password123');
     console.log('   Personal:  tenant@fixzit.co / password123');

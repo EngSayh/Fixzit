@@ -89,6 +89,7 @@ export default [
     },
     plugins: {
       'react-hooks': reactHooks,
+      '@next/next': nextPlugin,
     },
     rules: {
       ...eslint.configs.recommended.rules,
@@ -108,6 +109,7 @@ export default [
       'no-mixed-spaces-and-tabs': 'off',
 
       /* Next.js specific rules */
+      ...nextPlugin.configs.recommended.rules,
 
       /* React Hooks Rules */
       'react-hooks/rules-of-hooks': 'error',

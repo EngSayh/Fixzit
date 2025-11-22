@@ -243,7 +243,7 @@ describe('auth lib - authenticateUser', () => {
     code: 'USR-001',
     username: 'superadmin',
     email: 'superadmin@fixzit.co',
-    password: 'hashed:Admin@123', // matches bcrypt mock behavior
+    password: 'hashed:admin123', // matches bcrypt mock behavior
     personal: { firstName: 'System', lastName: 'Administrator' },
     professional: { role: 'SUPER_ADMIN' },
     status: 'ACTIVE',
@@ -257,7 +257,7 @@ describe('auth lib - authenticateUser', () => {
     mockFindOne.mockResolvedValue(user);
     
     const auth = await loadAuthModule();
-    const result = await auth.authenticateUser('superadmin@fixzit.co', 'Admin@123', 'personal');
+    const result = await auth.authenticateUser('superadmin@fixzit.co', 'admin123', 'personal');
 
     expect(mockFindOne).toHaveBeenCalledWith({ email: 'superadmin@fixzit.co' });
     expect(result).toHaveProperty('token');
@@ -275,7 +275,7 @@ describe('auth lib - authenticateUser', () => {
     mockFindOne.mockResolvedValue(user);
     
     const auth = await loadAuthModule();
-    const res = await auth.authenticateUser('superadmin', 'Admin@123', 'corporate');
+    const res = await auth.authenticateUser('superadmin', 'admin123', 'corporate');
     
     expect(mockFindOne).toHaveBeenCalledWith({ username: 'superadmin' });
     expect(res.user.email).toBe('superadmin@fixzit.co');
@@ -305,7 +305,7 @@ describe('auth lib - authenticateUser', () => {
     mockFindOne.mockResolvedValue(inactiveUser);
 
     const auth = await loadAuthModule();
-    await expect(auth.authenticateUser('inactive@x.com', 'Admin@123', 'personal')).rejects.toThrow(
+    await expect(auth.authenticateUser('inactive@x.com', 'admin123', 'personal')).rejects.toThrow(
       'Account is not active'
     );
   });

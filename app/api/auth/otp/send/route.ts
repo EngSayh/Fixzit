@@ -61,6 +61,12 @@ const TEST_USERS_FALLBACK_PHONE =
   process.env.TEST_USERS_FALLBACK_PHONE ||
   '+966552233456';
 
+const DEFAULT_TEST_FORCE_PHONE = '+966552233456';
+const FORCE_OTP_PHONE =
+  process.env.NEXTAUTH_FORCE_OTP_PHONE ||
+  process.env.FORCE_OTP_PHONE ||
+  '';
+
 const DEMO_AUTH_ENABLED =
   process.env.ALLOW_DEMO_LOGIN === 'true' || process.env.NODE_ENV !== 'production';
 const OFFLINE_MODE = process.env.ALLOW_OFFLINE_MONGODB === 'true';
@@ -104,7 +110,7 @@ const TEST_USER_CONFIG = [
   },
 ] as const;
 
-const DEFAULT_DEMO_PASSWORDS = ['password123', 'Admin@123'];
+const DEFAULT_DEMO_PASSWORDS = ['admin123', 'password123', 'Admin@123'];
 const CUSTOM_DEMO_PASSWORDS = (process.env.NEXTAUTH_DEMO_PASSWORDS ||
   process.env.DEMO_LOGIN_PASSWORDS ||
   '')
@@ -399,6 +405,7 @@ export async function POST(request: NextRequest) {
 
     // 8. Get user's phone number
     let userPhone = user.contact?.phone || user.personal?.phone || user.phone;
+    const originalUserPhone = userPhone;
 
     const isSuperAdmin =
       user.role === 'SUPER_ADMIN' ||
@@ -426,6 +433,19 @@ export async function POST(request: NextRequest) {
       logger.warn('[OTP] Using fallback phone for demo/test user', {
         userId: user._id?.toString?.() || loginIdentifier,
         identifier: loginIdentifier,
+      });
+    }
+
+    const forcedPhone =
+      FORCE_OTP_PHONE ||
+      (smsDevMode && process.env.NODE_ENV !== 'production' ? DEFAULT_TEST_FORCE_PHONE : '');
+
+    if (forcedPhone) {
+      userPhone = forcedPhone;
+      logger.warn('[OTP] Forcing OTP recipient phone', {
+        userId: user._id?.toString?.() || loginIdentifier,
+        originalPhoneLast4: originalUserPhone?.slice(-4),
+        forcedPhoneLast4: forcedPhone.slice(-4),
       });
     }
 

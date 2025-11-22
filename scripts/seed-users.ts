@@ -7,7 +7,7 @@ const initialUsers = [
     code: 'USR-001',
     username: 'admin',
     email: 'admin@fixzit.co',
-    password: 'Admin@123',
+    password: 'admin123',
     personal: {
       firstName: 'System',
       lastName: 'Administrator',

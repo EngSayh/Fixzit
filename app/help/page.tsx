@@ -1,205 +1,296 @@
 'use client';
 
-import { useState } from 'react';
-import dynamic from 'next/dynamic';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { MessageSquare, Plus, Bot, BookOpen, Play, ChevronRight, Star, Users, Building2, DollarSign, Wrench, FileText } from 'lucide-react';
+import {
+  MessageSquare,
+  Plus,
+  Bot,
+  BookOpen,
+  Play,
+  ChevronRight,
+  Star,
+  Users,
+  Building2,
+  DollarSign,
+  Wrench,
+  FileText
+} from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logger } from '@/lib/logger';
 
-interface Tutorial {
+type Difficulty = 'Beginner' | 'Intermediate' | 'Advanced';
+
+type Tutorial = {
   id: string;
   title: string;
   description: string;
   category: string;
   duration: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  difficulty: Difficulty;
   featured?: boolean;
   completed?: boolean;
-}
+  href: string;
+};
 
-interface HelpArticle {
-  id: string;
+type HelpArticle = {
+  slug: string;
   title: string;
-  category: string;
-  description: string;
-  readTime: string;
-  lastUpdated: string;
-}
+  category?: string;
+  updatedAt?: string;
+};
 
-const AIChat = dynamic(() => import('@/components/AIChat'), { ssr: false });
+const formatUpdatedDate = (value?: string) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
+};
+
+const getCategoryIcon = (category: string) => {
+  switch (category.toLowerCase()) {
+    case 'facility management':
+      return <Building2 className="w-5 h-5 text-primary" />;
+    case 'work orders':
+      return <Wrench className="w-5 h-5 text-success" />;
+    case 'procurement':
+      return <FileText className="w-5 h-5 text-secondary-foreground" />;
+    case 'customer service':
+      return <Users className="w-5 h-5 text-accent-foreground" />;
+    case 'finance':
+      return <DollarSign className="w-5 h-5 text-success" />;
+    default:
+      return <BookOpen className="w-5 h-5 text-muted-foreground" />;
+  }
+};
+
+const getDifficultyColor = (difficulty: string, t: ReturnType<typeof useTranslation>['t']) => {
+  switch (difficulty) {
+    case 'Beginner':
+    case t('helpCenter.difficulty.beginner'):
+      return 'bg-success/10 text-success-foreground';
+    case 'Intermediate':
+    case t('helpCenter.difficulty.intermediate'):
+      return 'bg-warning/10 text-warning-foreground';
+    case 'Advanced':
+    case t('helpCenter.difficulty.advanced'):
+      return 'bg-destructive/10 text-destructive-foreground';
+    default:
+      return 'bg-muted text-foreground';
+  }
+};
 
 export default function HelpHome() {
-  const [showAIChat, setShowAIChat] = useState(false);
-  const { t } = useTranslation();
+  const { t, isRTL } = useTranslation();
+  const [articles, setArticles] = useState<HelpArticle[]>([]);
+  const [isLoadingArticles, setIsLoadingArticles] = useState(true);
+  const [hasArticleError, setHasArticleError] = useState(false);
 
-  // Interactive tutorials
-  const tutorials: Tutorial[] = [
-    {
-      id: '1',
-      title: t('helpCenter.tutorials.gettingStarted.title'),
-      description: t('helpCenter.tutorials.gettingStarted.description'),
-      category: t('helpCenter.categories.facilityManagement'),
-      duration: `15 ${t('helpCenter.min')}`,
-      difficulty: 'Beginner',
-      featured: true,
-      completed: false
-    },
-    {
-      id: '2',
-      title: t('helpCenter.tutorials.firstWorkOrder.title'),
-      description: t('helpCenter.tutorials.firstWorkOrder.description'),
-      category: t('helpCenter.categories.workOrders'),
-      duration: `10 ${t('helpCenter.min')}`,
-      difficulty: 'Beginner',
-      completed: false
-    },
-    {
-      id: '3',
-      title: t('helpCenter.tutorials.vendorManagement.title'),
-      description: t('helpCenter.tutorials.vendorManagement.description'),
-      category: t('helpCenter.categories.procurement'),
-      duration: `20 ${t('helpCenter.min')}`,
-      difficulty: 'Intermediate',
-      completed: false
-    },
-    {
-      id: '4',
-      title: t('helpCenter.tutorials.tenantRelations.title'),
-      description: t('helpCenter.tutorials.tenantRelations.description'),
-      category: t('helpCenter.categories.customerService'),
-      duration: `12 ${t('helpCenter.min')}`,
-      difficulty: 'Beginner',
-      completed: false
-    },
-    {
-      id: '5',
-      title: t('helpCenter.tutorials.financialReporting.title'),
-      description: t('helpCenter.tutorials.financialReporting.description'),
-      category: t('helpCenter.categories.finance'),
-      duration: `25 ${t('helpCenter.min')}`,
-      difficulty: 'Intermediate',
-      completed: false
-    }
-  ];
+  const strings = useMemo(
+    () => ({
+      title: t('helpCenterV2.title', 'Fixzit Knowledge Center'),
+      subtitle: t(
+        'helpCenterV2.subtitle',
+        'Interactive tutorials, guides, and resources to master Fixzit Enterprise'
+      ),
+      askAi: t('helpCenterV2.askAssistant', 'Ask AI Assistant'),
+      createTicket: t('helpCenterV2.createTicket', 'Create Support Ticket'),
+      viewTickets: t('helpCenterV2.viewTickets', 'View My Tickets'),
+      interactiveTitle: t('helpCenterV2.interactiveTutorials', 'Interactive Tutorials'),
+      interactiveSubtitle: t('helpCenterV2.interactiveSubtitle', 'Learn Fixzit step-by-step with our guided tutorials'),
+      viewAllTutorials: t('helpCenterV2.viewAllTutorials', 'View All Tutorials'),
+      helpArticles: t('helpCenterV2.helpArticles', 'Latest Help Articles'),
+      articlesSubtitle: t('helpCenterV2.articlesSubtitle', 'Fresh product docs and how-tos'),
+      readMore: t('helpCenterV2.readMore', 'Read More'),
+      emptyArticles: t('helpCenterV2.emptyArticles', 'No articles found.'),
+      updated: t('helpCenterV2.updated', 'Updated'),
+      loadingArticles: t('helpCenterV2.loadingArticles', 'Loading articles...'),
+      generalCategory: t('helpCenterV2.generalCategory', 'General'),
+      systemOverview: t('helpCenterV2.systemOverview', 'System Overview'),
+      overviewSubtitle: t('helpCenterV2.overviewSubtitle', 'High-level overview of the system'),
+      propertiesTitle: t('helpCenterV2.propertiesTitle', 'Properties'),
+      propertiesCopy: t('helpCenterV2.propertiesCopy', 'Add and manage properties'),
+      workOrdersTitle: t('helpCenterV2.workOrdersTitle', 'Work Orders'),
+      workOrdersCopy: t('helpCenterV2.workOrdersCopy', 'Create and track work orders'),
+      vendorsTitle: t('helpCenterV2.vendorsTitle', 'Vendors'),
+      vendorsCopy: t('helpCenterV2.vendorsCopy', 'Manage vendors and contracts'),
+      financeTitle: t('helpCenterV2.financeTitle', 'Finance'),
+      financeCopy: t('helpCenterV2.financeCopy', 'Manage budgets, invoices, and expenses'),
+      untitledArticle: t('helpCenterV2.untitledArticle', 'Untitled Article')
+    }),
+    [t]
+  );
 
-  // Help articles
-  const helpArticles: HelpArticle[] = [
-    {
-      id: '1',
-      title: t('helpCenter.articles.createProperties.title'),
-      category: t('helpCenter.categories.properties'),
-      description: t('helpCenter.articles.createProperties.description'),
-      readTime: `5 ${t('helpCenter.min')} ${t('helpCenter.read')}`,
-      lastUpdated: '2025-01-15'
-    },
-    {
-      id: '2',
-      title: t('helpCenter.articles.workOrderLifecycle.title'),
-      category: t('helpCenter.categories.workOrders'),
-      description: t('helpCenter.articles.workOrderLifecycle.description'),
-      readTime: `8 ${t('helpCenter.min')} ${t('helpCenter.read')}`,
-      lastUpdated: '2025-01-14'
-    },
-    {
-      id: '3',
-      title: t('helpCenter.articles.vendorOnboarding.title'),
-      category: t('helpCenter.categories.vendors'),
-      description: t('helpCenter.articles.vendorOnboarding.description'),
-      readTime: `6 ${t('helpCenter.min')} ${t('helpCenter.read')}`,
-      lastUpdated: '2025-01-13'
-    },
-    {
-      id: '4',
-      title: t('helpCenter.articles.invoiceGeneration.title'),
-      category: t('helpCenter.categories.finance'),
-      description: t('helpCenter.articles.invoiceGeneration.description'),
-      readTime: `10 ${t('helpCenter.min')} ${t('helpCenter.read')}`,
-      lastUpdated: '2025-01-12'
-    }
-  ];
+  const tutorials: Tutorial[] = useMemo(
+    () => [
+      {
+        id: 'getting-started',
+        title: t('helpCenterV2.tutorials.gettingStarted.title', 'Getting Started with Fixzit FM'),
+        description: t(
+          'helpCenterV2.tutorials.gettingStarted.description',
+          'Learn the basics of facility management in Fixzit'
+        ),
+        category: t('helpCenterV2.categories.facilityManagement', 'Facility Management'),
+        duration: t('helpCenterV2.tutorials.gettingStarted.duration', '15 min'),
+        difficulty: 'Beginner',
+        featured: true,
+        completed: false,
+        href: '/help/tutorial/getting-started'
+      },
+      {
+        id: 'first-work-order',
+        title: t('helpCenterV2.tutorials.firstWorkOrder.title', 'Creating Your First Work Order'),
+        description: t(
+          'helpCenterV2.tutorials.firstWorkOrder.description',
+          'Step-by-step guide to create and assign work orders'
+        ),
+        category: t('helpCenterV2.categories.workOrders', 'Work Orders'),
+        duration: t('helpCenterV2.tutorials.firstWorkOrder.duration', '10 min'),
+        difficulty: 'Beginner',
+        href: '/help/tutorial/first-work-order'
+      },
+      {
+        id: 'vendor-management',
+        title: t('helpCenterV2.tutorials.vendorManagement.title', 'Vendor Management Best Practices'),
+        description: t(
+          'helpCenterV2.tutorials.vendorManagement.description',
+          'Learn how to manage vendors and procurement processes'
+        ),
+        category: t('helpCenterV2.categories.procurement', 'Procurement'),
+        duration: t('helpCenterV2.tutorials.vendorManagement.duration', '20 min'),
+        difficulty: 'Intermediate',
+        href: '/help/tutorial/vendor-management'
+      },
+      {
+        id: 'tenant-relations',
+        title: t('helpCenterV2.tutorials.tenantRelations.title', 'Tenant Relations & Communication'),
+        description: t(
+          'helpCenterV2.tutorials.tenantRelations.description',
+          'Master tenant communication and relationship management'
+        ),
+        category: t('helpCenterV2.categories.customerService', 'Customer Service'),
+        duration: t('helpCenterV2.tutorials.tenantRelations.duration', '12 min'),
+        difficulty: 'Beginner',
+        href: '/help/tutorial/tenant-relations'
+      },
+      {
+        id: 'financial-reporting',
+        title: t('helpCenterV2.tutorials.financialReporting.title', 'Financial Reporting & Invoicing'),
+        description: t(
+          'helpCenterV2.tutorials.financialReporting.description',
+          'Complete guide to financial management in Fixzit'
+        ),
+        category: t('helpCenterV2.categories.finance', 'Finance'),
+        duration: t('helpCenterV2.tutorials.financialReporting.duration', '25 min'),
+        difficulty: 'Intermediate',
+        href: '/help/tutorial/financial-reporting'
+      }
+    ],
+    [t]
+  );
 
-  const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'facility management':
-        return <Building2 className="w-5 h-5 text-primary" />;
-      case 'work orders':
-        return <Wrench className="w-5 h-5 text-success" />;
-      case 'procurement':
-        return <FileText className="w-5 h-5 text-secondary-foreground" />;
-      case 'customer service':
-        return <Users className="w-5 h-5 text-accent-foreground" />;
-      case 'finance':
-        return <DollarSign className="w-5 h-5 text-success" />;
-      default:
-        return <BookOpen className="w-5 h-5 text-muted-foreground" />;
-    }
-  };
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Beginner': 
-      case t('helpCenter.difficulty.beginner'): 
-        return 'bg-success/10 text-success-foreground';
-      case 'Intermediate':
-      case t('helpCenter.difficulty.intermediate'):
-        return 'bg-warning/10 text-warning-foreground';
-      case 'Advanced':
-      case t('helpCenter.difficulty.advanced'):
-        return 'bg-destructive/10 text-destructive-foreground';
-      default: return 'bg-muted text-foreground';
-    }
+    const loadArticles = async () => {
+      try {
+        setHasArticleError(false);
+        const response = await fetch('/api/help/articles', {
+          credentials: 'include',
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const items: HelpArticle[] = Array.isArray(payload?.items)
+          ? payload.items.map((item: Partial<HelpArticle> & { updated_at?: string }, idx: number) => ({
+              slug: item.slug || `article-${idx + 1}`,
+              title: item.title || strings.untitledArticle,
+              category: item.category || undefined,
+              updatedAt: item.updatedAt || item.updated_at
+            }))
+          : [];
+
+        if (!active) return;
+        setArticles(items);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        logger.warn('[Help] Failed to load articles', { error });
+        if (!active) return;
+        setHasArticleError(true);
+        setArticles([]);
+      } finally {
+        if (active) {
+          setIsLoadingArticles(false);
+        }
+      }
+    };
+
+    loadArticles();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [strings.untitledArticle]);
+
+  const openInNewTab = (path: string) => {
+    if (typeof window === 'undefined') return;
+    window.open(path, '_blank', 'noopener,noreferrer');
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col">
-      {/* Hero Section */}
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col" dir={isRTL ? 'rtl' : 'ltr'}>
       <section className="bg-gradient-to-r from-primary via-primary to-success text-primary-foreground py-16">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
-          <h1 className="text-4xl font-bold mb-4">{t('helpCenter.title')}</h1>
-          <p className="text-xl opacity-90 mb-8">
-            {t('helpCenter.subtitle')}
-          </p>
+          <h1 className="text-4xl font-bold mb-4">{strings.title}</h1>
+          <p className="text-xl opacity-90 mb-8">{strings.subtitle}</p>
 
-          {/* Quick Actions */}
           <div className="flex flex-wrap gap-4">
             <button
-              onClick={() => setShowAIChat(true)}
+              type="button"
+              onClick={() => openInNewTab('/help/ai-chat')}
               className="bg-card text-primary px-6 py-3 rounded-2xl font-semibold hover:bg-muted transition-colors flex items-center gap-2"
             >
               <Bot className="w-5 h-5" />
-              {t('helpCenter.askAI')}
+              {strings.askAi}
             </button>
-            <Link
-              href="/help/support-ticket"
+            <button
+              type="button"
+              onClick={() => openInNewTab('/help/support-ticket')}
               className="bg-accent text-foreground px-6 py-3 rounded-2xl font-semibold hover:bg-accent-dark transition-colors flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
-              {t('helpCenter.createTicket')}
-            </Link>
+              {strings.createTicket}
+            </button>
             <Link
               href="/support/my-tickets"
               className="bg-white/10 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-white/20 transition-colors flex items-center gap-2 border border-white/20"
             >
               <MessageSquare className="w-5 h-5" />
-              {t('helpCenter.viewTickets')}
+              {strings.viewTickets}
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Interactive Tutorials Section */}
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">{t('helpCenter.interactiveTutorials')}</h2>
-            <p className="text-xl text-muted-foreground">
-              {t('helpCenter.tutorialsSubtitle')}
-            </p>
+            <h2 className="text-3xl font-bold text-foreground mb-4">{strings.interactiveTitle}</h2>
+            <p className="text-xl text-muted-foreground">{strings.interactiveSubtitle}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {tutorials.map((tutorial) => (
-              <div key={tutorial.id} className="bg-card rounded-2xl shadow-md border border-border p-6 hover:shadow-lg transition-shadow">
+              <div
+                key={tutorial.id}
+                className="bg-card rounded-2xl shadow-md border border-border p-6 hover:shadow-lg transition-shadow"
+              >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -218,29 +309,30 @@ export default function HelpHome() {
                       <Play className="w-4 h-4" />
                       {tutorial.duration}
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(tutorial.difficulty)}`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(
+                        tutorial.difficulty,
+                        t
+                      )}`}
+                    >
                       {tutorial.difficulty}
                     </span>
                   </div>
-                  <Link
-                    href={`/help/tutorial/${tutorial.id}`}
+                  <button
+                    type="button"
+                    onClick={() => openInNewTab(tutorial.href)}
                     className="text-primary hover:text-primary font-medium text-sm flex items-center gap-1"
                   >
                     {t('helpCenter.startTutorial')}
                     <ChevronRight className="w-4 h-4" />
-                  </Link>
+                  </button>
                 </div>
 
                 <div className="w-full bg-muted rounded-full h-2">
-                  <div
-                    className="bg-primary h-2 rounded-full"
-                    style={{ width: tutorial.completed ? '100%' : '0%' }}
-                  ></div>
+                  <div className="bg-primary h-2 rounded-full" style={{ width: tutorial.completed ? '100%' : '0%' }} />
                 </div>
                 {tutorial.completed && (
-                  <div className="mt-2 text-success text-sm font-medium">
-                    ✓ {t('helpCenter.completed')}
-                  </div>
+                  <div className="mt-2 text-success text-sm font-medium">✓ {t('helpCenter.completed')}</div>
                 )}
               </div>
             ))}
@@ -251,73 +343,74 @@ export default function HelpHome() {
               href="/help/tutorials"
               className="inline-block bg-muted text-foreground px-6 py-3 rounded-2xl font-medium hover:bg-muted transition-colors"
             >
-              {t('helpCenter.viewAllTutorials')}
+              {strings.viewAllTutorials}
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Help Articles Section */}
       <section className="py-16 bg-muted">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">{t('helpCenter.helpArticles')}</h2>
-            <p className="text-xl text-muted-foreground">
-              {t('helpCenter.articlesSubtitle')}
-            </p>
+            <h2 className="text-3xl font-bold text-foreground mb-4">{strings.helpArticles}</h2>
+            <p className="text-xl text-muted-foreground">{strings.articlesSubtitle}</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {helpArticles.map((article) => (
-              <div key={article.id} className="bg-card rounded-2xl shadow-md border border-border p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0">
-                    {getCategoryIcon(article.category)}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
-                      {article.title}
-                    </h3>
-                    <p className="text-muted-foreground text-sm mb-3">{article.description}</p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>{article.category}</span>
-                        <span>•</span>
-                        <span>{article.readTime} read</span>
+          {isLoadingArticles ? (
+            <p className="text-center text-muted-foreground">{strings.loadingArticles}</p>
+          ) : !articles.length ? (
+            <p className="text-center text-muted-foreground">{strings.emptyArticles}</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {articles.map((article) => {
+                const category = article.category || strings.generalCategory;
+                const updated = formatUpdatedDate(article.updatedAt);
+                return (
+                  <div
+                    key={article.slug || article.title}
+                    className="bg-card rounded-2xl shadow-md border border-border p-6 hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0">{getCategoryIcon(category)}</div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-foreground mb-2">{article.title}</h3>
+                        <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                          <span className="flex items-center gap-2">
+                            <span>{category}</span>
+                            {updated ? <span aria-label="updated-at">• {strings.updated} {updated}</span> : null}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">{strings.articlesSubtitle}</span>
+                          <Link
+                            href={`/help/${article.slug}`}
+                            className="text-primary hover:text-primary font-medium text-sm flex items-center gap-1"
+                          >
+                            {strings.readMore}
+                            <ChevronRight className="w-4 h-4" />
+                          </Link>
+                        </div>
                       </div>
-                      <Link
-                        href={`/help/article/${article.id}`}
-                        className="text-primary hover:text-primary font-medium text-sm flex items-center gap-1"
-                      >
-                        {t('helpCenter.readMore')}
-                        <ChevronRight className="w-4 h-4" />
-                      </Link>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
-          <div className="text-center mt-8">
-            <Link
-              href="/help/articles"
-              className="inline-block bg-card text-foreground px-6 py-3 rounded-2xl font-medium hover:bg-muted transition-colors border border-border"
-            >
-              {t('helpCenter.viewAllArticles')}
-            </Link>
-          </div>
+          {hasArticleError && !isLoadingArticles ? (
+            <p className="mt-4 text-center text-xs text-muted-foreground">
+              {t('helpCenterV2.fallbackNotice', 'Unable to load the latest articles right now.')}
+            </p>
+          ) : null}
         </div>
       </section>
 
-      {/* System Overview Section */}
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">{t('helpCenter.systemOverview')}</h2>
-            <p className="text-xl text-muted-foreground">
-              {t('helpCenter.overviewSubtitle')}
-            </p>
+            <h2 className="text-3xl font-bold text-foreground mb-4">{strings.systemOverview}</h2>
+            <p className="text-xl text-muted-foreground">{strings.overviewSubtitle}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -325,49 +418,36 @@ export default function HelpHome() {
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Building2 className="w-8 h-8 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">{t('helpCenter.systemModules.properties.title')}</h3>
-              <p className="text-muted-foreground text-sm">
-                {t('helpCenter.systemModules.properties.description')}
-              </p>
+              <h3 className="text-lg font-semibold text-foreground mb-2">{strings.propertiesTitle}</h3>
+              <p className="text-muted-foreground text-sm">{strings.propertiesCopy}</p>
             </div>
 
             <div className="text-center">
               <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Wrench className="w-8 h-8 text-success" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">{t('helpCenter.systemModules.workOrders.title')}</h3>
-              <p className="text-muted-foreground text-sm">
-                {t('helpCenter.systemModules.workOrders.description')}
-              </p>
+              <h3 className="text-lg font-semibold text-foreground mb-2">{strings.workOrdersTitle}</h3>
+              <p className="text-muted-foreground text-sm">{strings.workOrdersCopy}</p>
             </div>
 
             <div className="text-center">
               <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="w-8 h-8 text-secondary-foreground" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">{t('helpCenter.systemModules.vendors.title')}</h3>
-              <p className="text-muted-foreground text-sm">
-                {t('helpCenter.systemModules.vendors.description')}
-              </p>
+              <h3 className="text-lg font-semibold text-foreground mb-2">{strings.vendorsTitle}</h3>
+              <p className="text-muted-foreground text-sm">{strings.vendorsCopy}</p>
             </div>
 
             <div className="text-center">
               <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <DollarSign className="w-8 h-8 text-accent-foreground" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">{t('helpCenter.systemModules.finance.title')}</h3>
-              <p className="text-muted-foreground text-sm">
-                {t('helpCenter.systemModules.finance.description')}
-              </p>
+              <h3 className="text-lg font-semibold text-foreground mb-2">{strings.financeTitle}</h3>
+              <p className="text-muted-foreground text-sm">{strings.financeCopy}</p>
             </div>
           </div>
         </div>
       </section>
-
-      {/* AI Chat Modal */}
-      {showAIChat && <AIChat onClose={() => setShowAIChat(false)} />}
-      
     </div>
   );
 }
-

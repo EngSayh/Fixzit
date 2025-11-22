@@ -37,6 +37,10 @@ async function main() {
     process.env.ROUTE_VERIFY_BUILD_FLAGS?.split(' ').filter(Boolean) ?? ['--no-lint'];
   const sharedEnv = {
     ...process.env,
+    // Allow opting into live Mongo during local verification unless explicitly disabled
+    ...(process.env.NODE_ENV !== 'production' && !process.env.ALLOW_MONGODB_DURING_BUILD
+      ? { ALLOW_MONGODB_DURING_BUILD: 'true' }
+      : {}),
     ALLOW_LOCAL_MONGODB: 'true',
     DISABLE_MONGODB_FOR_BUILD: 'true',
   };

@@ -4,7 +4,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { ObjectId } from "mongodb";
 
-import {validationError} from '@/server/utils/errorResponses';
+import { validationError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 import { logger } from '@/lib/logger';
@@ -55,6 +55,22 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const tenantScope = { $or: [ { orgId: user.orgId }, { orgId: { $exists: false } }, { orgId: null } ] };
     const filter = { ...baseFilter, ...tenantScope };
 
+    const article = await coll.findOne(filter);
+    if (!article) return createSecureResponse({ error: "Not found" }, 404, req);
+
+    const isSuperAdmin = user?.role === 'SUPER_ADMIN' || (Array.isArray(user?.roles) && user.roles.includes('SUPER_ADMIN'));
+    const canModerate = isSuperAdmin || (Array.isArray(user?.permissions) && user.permissions.includes('help:moderate'));
+
+    // Only SUPER_ADMIN (or explicit help:moderate) can publish or change published content
+    if (!canModerate) {
+      if (data.status === 'PUBLISHED') {
+        return createSecureResponse({ error: 'Only SUPER_ADMIN can publish articles' }, 403, req);
+      }
+      if (article.status === 'PUBLISHED') {
+        return createSecureResponse({ error: 'Only SUPER_ADMIN can modify published articles' }, 403, req);
+      }
+    }
+
     const update = {
       $set: {
         ...data,
@@ -64,20 +80,20 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     };
 
     const res = await coll.findOneAndUpdate(filter, update, { returnDocument: 'after' });
-    const article = res?.value || null;
-    if (!article) return createSecureResponse({ error: "Not found" }, 404, req);
+    const updatedArticle = res?.value || null;
+    if (!updatedArticle) return createSecureResponse({ error: "Not found" }, 404, req);
     // Trigger async KB ingest (best-effort) via internal helper to avoid auth issues
     import('@/kb/ingest')
       .then(({ upsertArticleEmbeddings }) => upsertArticleEmbeddings({
-        orgId: article?.orgId ?? user?.orgId ?? null,
-        articleId: article.slug,
+        orgId: updatedArticle?.orgId ?? user?.orgId ?? null,
+        articleId: updatedArticle.slug,
         lang: 'en',
-        route: `/help/${article.slug}`,
+        route: `/help/${updatedArticle.slug}`,
         roleScopes: ['USER'],
-        content: article.content || ''
+        content: updatedArticle.content || ''
       }))
-      .catch((e) => logger.error(`Failed to trigger KB ingest for article ${article.slug}:`, e));
-    const response = NextResponse.json(article);
+      .catch((e) => logger.error(`Failed to trigger KB ingest for article ${updatedArticle.slug}:`, e));
+    const response = NextResponse.json(updatedArticle);
     response.headers.set('Cache-Control', 'no-store, max-age=0');
     return response;
   } catch (_err: unknown) {
