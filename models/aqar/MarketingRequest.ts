@@ -212,6 +212,6 @@ MarketingRequestSchema.methods.linkListing = async function (
 };
 
 const MarketingRequest =
-  getModel<any>('AqarMarketingRequest', MarketingRequestSchema);
+  getModel<IMarketingRequest>('AqarMarketingRequest', MarketingRequestSchema);
 
 export default MarketingRequest;

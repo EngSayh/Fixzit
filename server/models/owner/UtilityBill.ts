@@ -276,4 +276,4 @@ UtilityBillSchema.methods.recordPayment = function(
 
 // Export type and model
 export type UtilityBill = InferSchemaType<typeof UtilityBillSchema>;
-export const UtilityBillModel = getModel<any>("UtilityBill", UtilityBillSchema);
+export const UtilityBillModel = getModel<UtilityBill>("UtilityBill", UtilityBillSchema);

@@ -296,4 +296,4 @@ AdvertisementSchema.virtual('isActive').get(function() {
 
 // Export type and model
 export type Advertisement = InferSchemaType<typeof AdvertisementSchema>;
-export const AdvertisementModel = getModel<any>("Advertisement", AdvertisementSchema);
+export const AdvertisementModel = getModel<Advertisement>("Advertisement", AdvertisementSchema);

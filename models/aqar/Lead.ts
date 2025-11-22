@@ -254,6 +254,6 @@ LeadSchema.methods.markAsSpam = async function (this: ILead) {
 };
 
 const Lead =
-  getModel<any>('AqarLead', LeadSchema);
+  getModel<ILead>('AqarLead', LeadSchema);
 
 export default Lead;

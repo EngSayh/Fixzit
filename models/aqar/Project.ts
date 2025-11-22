@@ -161,6 +161,6 @@ ProjectSchema.methods.incrementInquiries = async function (this: IProject) {
 };
 
 const Project =
-  getModel<any>('AqarProject', ProjectSchema);
+  getModel<IProject>('AqarProject', ProjectSchema);
 
 export default Project;

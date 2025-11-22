@@ -7,7 +7,6 @@
 
 const { exec } = require('child_process');
 const fs = require('fs');
-const path = require('path');
 
 class ProductionCheck {
   constructor() {
@@ -71,7 +70,7 @@ class ProductionCheck {
       // Check for security vulnerabilities
       await this.execCheck('npm audit --audit-level=high', 'No high/critical vulnerabilities');
       
-    } catch (error) {
+    } catch (_error) {
       this.check('package.json readable', false);
     }
   }
@@ -146,7 +145,7 @@ class ProductionCheck {
 
   async execCheck(command, description) {
     return new Promise((resolve) => {
-      exec(command, (error, stdout, stderr) => {
+      exec(command, (error) => {
         this.check(description, error === null);
         resolve();
       });

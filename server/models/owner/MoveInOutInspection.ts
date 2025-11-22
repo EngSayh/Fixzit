@@ -355,4 +355,4 @@ MoveInOutInspectionSchema.methods.allSignaturesCollected = function() {
 
 // Export type and model
 export type MoveInOutInspection = InferSchemaType<typeof MoveInOutInspectionSchema>;
-export const MoveInOutInspectionModel = getModel<any>("MoveInOutInspection", MoveInOutInspectionSchema);
+export const MoveInOutInspectionModel = getModel<MoveInOutInspection>("MoveInOutInspection", MoveInOutInspectionSchema);

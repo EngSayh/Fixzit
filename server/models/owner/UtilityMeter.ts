@@ -188,4 +188,4 @@ UtilityMeterSchema.methods.recordReading = function(value: number, readBy: strin
 
 // Export type and model
 export type UtilityMeter = InferSchemaType<typeof UtilityMeterSchema>;
-export const UtilityMeterModel = getModel<any>("UtilityMeter", UtilityMeterSchema);
+export const UtilityMeterModel = getModel<UtilityMeter>("UtilityMeter", UtilityMeterSchema);

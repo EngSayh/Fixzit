@@ -17,7 +17,7 @@ async function getAuthToken() {
       password: 'Admin@1234'
     });
     return res.data.token;
-  } catch (e) {
+  } catch (_e) {
     console.log('❌ AUTH FAILED - Backend not running?');
     return null;
   }
@@ -141,7 +141,7 @@ async function verifyPropertyOwnerFeatures() {
       const status = passed ? `${colors.green}✅ WORKING${colors.reset}` : `${colors.red}❌ MISSING${colors.reset}`;
       console.log(`  ${status} ${test.name}`);
       results.deputy.push({ name: test.name, passed });
-    } catch (e) {
+    } catch (_e) {
       console.log(`  ${colors.red}❌ ERROR${colors.reset} ${test.name}`);
       results.deputy.push({ name: test.name, passed: false });
     }
@@ -204,7 +204,7 @@ async function verifyPropertyOwnerFeatures() {
       const status = passed ? `${colors.green}✅ WORKING${colors.reset}` : `${colors.red}❌ MISSING${colors.reset}`;
       console.log(`  ${status} ${test.name}`);
       results.subscription.push({ name: test.name, passed });
-    } catch (e) {
+    } catch (_e) {
       console.log(`  ${colors.red}❌ ERROR${colors.reset} ${test.name}`);
       results.subscription.push({ name: test.name, passed: false });
     }
@@ -266,7 +266,7 @@ async function verifyPropertyOwnerFeatures() {
       const status = passed ? `${colors.green}✅ WORKING${colors.reset}` : `${colors.red}❌ MISSING${colors.reset}`;
       console.log(`  ${status} ${test.name}`);
       results.doa.push({ name: test.name, passed });
-    } catch (e) {
+    } catch (_e) {
       console.log(`  ${colors.red}❌ ERROR${colors.reset} ${test.name}`);
       results.doa.push({ name: test.name, passed: false });
     }
@@ -315,7 +315,7 @@ async function verifyPropertyOwnerFeatures() {
       const status = passed ? `${colors.green}✅ WORKING${colors.reset}` : `${colors.red}❌ MISSING${colors.reset}`;
       console.log(`  ${status} ${test.name}`);
       results.revenue.push({ name: test.name, passed });
-    } catch (e) {
+    } catch (_e) {
       console.log(`  ${colors.red}❌ ERROR${colors.reset} ${test.name}`);
       results.revenue.push({ name: test.name, passed: false });
     }

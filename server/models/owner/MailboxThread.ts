@@ -308,4 +308,4 @@ MailboxThreadSchema.methods.markAsRead = function(messageId: string, userId: Typ
 
 // Export type and model
 export type MailboxThread = InferSchemaType<typeof MailboxThreadSchema>;
-export const MailboxThreadModel = getModel<any>("MailboxThread", MailboxThreadSchema);
+export const MailboxThreadModel = getModel<MailboxThread>("MailboxThread", MailboxThreadSchema);

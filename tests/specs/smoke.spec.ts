@@ -16,6 +16,7 @@ const IGNORED_ERROR_PATTERNS = [
   /status of 404/i,
   /status of 429/i,
   /api\/auth\/me/i, // unauthenticated checks are expected on public pages
+  /Failed to load resource: the server responded with a status of 401/i, // public routes probing session
 ];
 
 const CORE_PAGES = [

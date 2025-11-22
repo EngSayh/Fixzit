@@ -146,4 +146,4 @@ SettlementSchema.pre('save', function (next) {
 });
 
 export const SouqSettlement =
-  getModel<any>('SouqSettlement', SettlementSchema);
+  getModel<ISettlement>('SouqSettlement', SettlementSchema);

@@ -137,6 +137,6 @@ BoostSchema.methods.checkExpiry = async function (this: IBoost) {
 };
 
 const Boost =
-  getModel<any>('AqarBoost', BoostSchema);
+  getModel<IBoost>('AqarBoost', BoostSchema);
 
 export default Boost;

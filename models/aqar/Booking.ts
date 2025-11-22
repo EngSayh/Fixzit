@@ -234,6 +234,6 @@ BookingSchema.methods.cancel = async function (
 };
 
 const Booking =
-  getModel<any>('AqarBooking', BookingSchema);
+  getModel<IBooking>('AqarBooking', BookingSchema);
 
 export default Booking;

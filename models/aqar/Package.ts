@@ -151,6 +151,6 @@ PackageSchema.methods.checkExpiry = async function (this: IPackage) {
 };
 
 const Package =
-  getModel<any>('AqarPackage', PackageSchema);
+  getModel<IPackage>('AqarPackage', PackageSchema);
 
 export default Package;

@@ -304,4 +304,4 @@ WarrantySchema.methods.addClaim = function(claimData: {
 
 // Export type and model
 export type Warranty = InferSchemaType<typeof WarrantySchema>;
-export const WarrantyModel = getModel<any>("Warranty", WarrantySchema);
+export const WarrantyModel = getModel<Warranty>("Warranty", WarrantySchema);

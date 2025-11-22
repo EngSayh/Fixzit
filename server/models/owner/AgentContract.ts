@@ -187,4 +187,4 @@ AgentContractSchema.pre('save', function(next) {
 
 // Export type and model
 export type AgentContract = InferSchemaType<typeof AgentContractSchema>;
-export const AgentContractModel = getModel<any>("AgentContract", AgentContractSchema);
+export const AgentContractModel = getModel<AgentContract>("AgentContract", AgentContractSchema);

@@ -301,6 +301,6 @@ PaymentSchema.methods.markAsRefunded = async function (
 };
 
 const Payment =
-  getModel<any>('AqarPayment', PaymentSchema);
+  getModel<IPayment>('AqarPayment', PaymentSchema);
 
 export default Payment;

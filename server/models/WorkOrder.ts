@@ -39,7 +39,7 @@ const WorkOrderSchema = new Schema({
   title: { type: String, required: true, trim: true },
   description: { 
     type: String, 
-    required: function(this: any) { return this.status !== 'DRAFT'; } 
+    required: function(this: { status?: string }) { return this.status !== 'DRAFT'; } 
   },
   type: { type: String, enum: WorkOrderType, required: true },
   category: { type: String, required: true },
@@ -66,7 +66,7 @@ const WorkOrderSchema = new Schema({
     propertyId: { 
       type: Schema.Types.ObjectId, 
       ref: 'Property', 
-      required: function(this: any) { return this.status !== 'DRAFT'; } 
+      required: function(this: { status?: string }) { return this.status !== 'DRAFT'; } 
     },
     unitNumber: String,
     floor: String,

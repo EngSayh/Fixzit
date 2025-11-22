@@ -137,6 +137,6 @@ SavedSearchSchema.methods.toggleActive = async function (this: ISavedSearch) {
 };
 
 const SavedSearch =
-  getModel<any>('AqarSavedSearch', SavedSearchSchema);
+  getModel<ISavedSearch>('AqarSavedSearch', SavedSearchSchema);
 
 export default SavedSearch;

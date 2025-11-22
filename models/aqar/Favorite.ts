@@ -57,6 +57,6 @@ FavoriteSchema.index({ userId: 1, targetType: 1, createdAt: -1 });
 FavoriteSchema.index({ userId: 1, targetId: 1, targetType: 1 }, { unique: true }); // Prevent duplicates
 
 const Favorite =
-  getModel<any>('AqarFavorite', FavoriteSchema);
+  getModel<IFavorite>('AqarFavorite', FavoriteSchema);
 
 export default Favorite;

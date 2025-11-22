@@ -298,4 +298,4 @@ DelegationSchema.methods.canApproveAmount = function(amount: number): boolean {
 
 // Export type and model
 export type Delegation = InferSchemaType<typeof DelegationSchema>;
-export const DelegationModel = getModel<any>("Delegation", DelegationSchema);
+export const DelegationModel = getModel<Delegation>("Delegation", DelegationSchema);

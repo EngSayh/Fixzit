@@ -71,10 +71,11 @@ async function validateAfterPhotos(workOrderId: Types.ObjectId): Promise<boolean
   // Check rooms for AFTER photos
   if (inspection.rooms && inspection.rooms.length > 0) {
     for (const room of inspection.rooms) {
+      const roomData = room as { walls?: { photos?: { timestamp?: string }[] }, ceiling?: { photos?: { timestamp?: string }[] }, floor?: { photos?: { timestamp?: string }[] } };
       const afterPhotos = [
-        ...(room.walls?.photos || []),
-        ...(room.ceiling?.photos || []),
-        ...(room.floor?.photos || [])
+        ...(roomData.walls?.photos || []),
+        ...(roomData.ceiling?.photos || []),
+        ...(roomData.floor?.photos || [])
       ].filter(p => p.timestamp === 'AFTER');
 
       if (afterPhotos.length > 0) {
@@ -314,7 +315,7 @@ export async function postUtilityBillPayment(
       return {
         success: true,
         alreadyPosted: true,
-        journalId: bill.finance.journalEntryId
+        journalId: bill.finance.journalEntryId || undefined
       };
     }
 
@@ -342,7 +343,7 @@ export async function postUtilityBillPayment(
     // Create journal entry
     const journal = await postingService.createJournal({
       orgId,
-      journalDate: bill.payment.paidDate || new Date(),
+      journalDate: bill.payment?.paidDate || new Date(),
       description: `Utility Bill ${bill.billNumber} - ${bill.meterId}`,
       sourceType: 'EXPENSE',
       sourceId: billId,
@@ -351,16 +352,16 @@ export async function postUtilityBillPayment(
         {
           accountId: utilityExpenseAccount._id,
           description: `Utility expense - ${bill.billNumber}`,
-          debit: bill.charges.totalAmount,
+          debit: bill.charges?.totalAmount || 0,
           credit: 0,
-          propertyId: bill.propertyId,
-          ownerId: bill.responsibility.ownerId
+          propertyId: bill.propertyId || undefined,
+          ownerId: bill.responsibility?.ownerId || undefined
         },
         {
           accountId: cashAccount._id,
           description: `Payment for utility bill ${bill.billNumber}`,
           debit: 0,
-          credit: bill.charges.totalAmount
+          credit: bill.charges?.totalAmount || 0
         }
       ],
       userId
