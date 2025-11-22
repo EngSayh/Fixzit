@@ -110,9 +110,10 @@ export function AutoFixAgent() {
 
     window.addEventListener('error', onError);
     window.addEventListener('unhandledrejection', onRejection);
-    window.addEventListener('fixzit:errorBoundary', (e:any) => {
-      bufferRuntime('runtime-error', e.detail?.error?.message || 'ErrorBoundary', e.detail?.error?.stack);
-      haltAndHeal('runtime-error', e.detail?.error?.message || 'ErrorBoundary');
+    window.addEventListener('fixzit:errorBoundary', (e: Event) => {
+      const customEvent = e as CustomEvent<{ error?: { message?: string; stack?: string } }>;
+      bufferRuntime('runtime-error', customEvent.detail?.error?.message || 'ErrorBoundary', customEvent.detail?.error?.stack);
+      haltAndHeal('runtime-error', customEvent.detail?.error?.message || 'ErrorBoundary');
     });
 
     return () => { undo(); window.removeEventListener('error', onError); window.removeEventListener('unhandledrejection', onRejection); };
