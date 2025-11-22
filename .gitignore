@@ -58,7 +58,6 @@ duplicate-detection-report.json
 /_archive/
 /.archive/
 /_artifacts/
-!/_artifacts/
 !/_artifacts/eslint-baseline.json
 !/_artifacts/eslint-any-scan.json
 !/_artifacts/eslint-scripts-tools-scan.json
