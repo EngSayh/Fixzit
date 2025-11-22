@@ -3,7 +3,6 @@
 import React from 'react';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { APP_DEFAULTS } from '@/config/constants';
 import landingTranslations from '@/i18n/sources/landing.translations.json';
 
 const LANDING_TRANSLATIONS = landingTranslations as {
@@ -37,69 +36,11 @@ export default function LandingPage() {
     return auto(getLandingFallback(resolvedLocale, id, fallback), id, params);
   };
 
-  const formatNumber = (value: number, options?: Intl.NumberFormatOptions) => {
-    try {
-      return new Intl.NumberFormat(resolvedLocale, options).format(value);
-    } catch {
-      return value.toString();
-    }
-  };
-
-  const formatCurrency = (value: number) =>
-    formatNumber(value, {
-      style: 'currency',
-      currency: APP_DEFAULTS.currency,
-      notation: 'compact',
-      maximumFractionDigits: 1,
-    });
-
-  const formatPercent = (value: number) =>
-    formatNumber(value, {
-      style: 'percent',
-      maximumFractionDigits: 0,
-    });
-
-  const workOrderCount = 124;
-  const overdueCount = 18;
-  const propertyCount = 32;
-  const occupancyRatio = 0.91;
-  const invoiceValue = 1_400_000;
-
   const heroHighlights = [
     { id: 'rapid-rfq', text: translate('Rapid RFQ', 'hero.highlights.rapidRfq') },
-    { id: 'linked-orders', text: translate('Work Order linked orders', 'hero.highlights.linkedOrders') },
+    { id: 'linked-orders', text: translate('Work Order linked orders', 'hero.highlights.linkedOrkers') },
     { id: 'finance-ready', text: translate('Finance ready invoices', 'hero.highlights.financeReady') },
   ];
-
-  const heroMetrics = [
-    {
-      id: 'work-orders',
-      label: translate('Work Orders', 'hero.metrics.workOrders.label'),
-      value: formatNumber(workOrderCount),
-      subLabel: translate('{{count}} overdue', 'hero.metrics.workOrders.sub', {
-        count: formatNumber(overdueCount),
-      }),
-    },
-    {
-      id: 'properties',
-      label: translate('Properties', 'hero.metrics.properties.label'),
-      value: formatNumber(propertyCount),
-      subLabel: translate('{{percentage}} occupied', 'hero.metrics.properties.sub', {
-        percentage: formatPercent(occupancyRatio),
-      }),
-    },
-    {
-      id: 'invoices',
-      label: translate('Invoices', 'hero.metrics.invoices.label'),
-      value: formatCurrency(invoiceValue),
-      subLabel: translate('this month', 'hero.metrics.invoices.sub'),
-    },
-  ];
-
-  const heroSubtitle = translate('{{active}} active work orders · {{overdue}} overdue', 'hero.metrics.subtitle', {
-    active: formatNumber(workOrderCount),
-    overdue: formatNumber(overdueCount),
-  });
 
   const modules = [
     {
@@ -189,32 +130,53 @@ export default function LandingPage() {
 
           <div className="flex-1 w-full">
             <div className="fxz-card p-4 sm:p-5">
-              <div className="flex justify-between items-center mb-4">
-                <div className="space-y-1">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    {translate('Today · Portfolio overview', 'hero.metrics.title')}
-                  </p>
-                  <p className="font-semibold text-sm">
-                    {heroSubtitle}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">
+                    {translate('Complete facility management suite', 'hero.preview.title')}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {translate('Everything you need to manage properties, work orders, vendors, and finances in one unified platform.', 'hero.preview.description')}
                   </p>
                 </div>
-                <span className="px-2 py-1 rounded-full text-[11px] bg-secondary text-secondary-foreground">
-                  {translate('FM Command', 'hero.metrics.badge')}
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                {heroMetrics.map((metric) => (
-                  <div key={metric.id} className="p-3 rounded-xl border border-border bg-card">
-                    <p className="text-[11px] text-muted-foreground">{metric.label}</p>
-                    <p className="text-lg font-semibold">{metric.value}</p>
-                    <p className="text-[11px] text-muted-foreground">{metric.subLabel}</p>
+                
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10">
+                      <svg className="h-3 w-3 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{translate('Real-time work order tracking', 'hero.preview.feature1')}</p>
+                      <p className="text-xs text-muted-foreground">{translate('Monitor status, SLAs, and team performance', 'hero.preview.feature1.desc')}</p>
+                    </div>
                   </div>
-                ))}
-              </div>
-              <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
-                <div className="h-16 rounded-xl bg-muted" />
-                <div className="h-16 rounded-xl bg-muted" />
-                <div className="h-16 rounded-xl bg-muted" />
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10">
+                      <svg className="h-3 w-3 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{translate('Vendor & procurement management', 'hero.preview.feature2')}</p>
+                      <p className="text-xs text-muted-foreground">{translate('RFQs, purchase orders, and vendor ratings', 'hero.preview.feature2.desc')}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary/10">
+                      <svg className="h-3 w-3 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{translate('ZATCA-compliant invoicing', 'hero.preview.feature3')}</p>
+                      <p className="text-xs text-muted-foreground">{translate('Automated billing with Saudi e-invoicing standards', 'hero.preview.feature3.desc')}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
