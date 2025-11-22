@@ -1,7 +1,6 @@
 'use client';
-/* eslint-disable react-hooks/rules-of-hooks */
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -19,7 +18,7 @@ import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 interface MaintenanceRecord {
   date?: string;
 }
@@ -41,13 +40,23 @@ interface AssetItem {
 }
 
 export default function AssetsPage() {
+  return (
+    <FmGuardedPage moduleId="administration">
+      {({ orgId, supportBanner }) => (
+        <AssetsPageContent orgId={orgId!} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type AssetsPageContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode;
+};
+
+function AssetsPageContent({ orgId, supportBanner }: AssetsPageContentProps) {
   const { data: session } = useSession();
-  const { hasOrgContext, guard: guardView, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'administration' });
   const auto = useAutoTranslator('fm.assets');
-  
-  if (!hasOrgContext || !orgId) {
-    return guardView;
-  }
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -76,15 +85,6 @@ export default function AssetsPage() {
   // Show loading state if no session yet
   if (!session) {
     return <CardGridSkeleton count={6} />;
-  }
-
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        {supportBanner}
-        {guardView}
-      </div>
-    );
   }
 
   return (

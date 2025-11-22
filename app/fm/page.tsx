@@ -1,12 +1,11 @@
 'use client';
-/* eslint-disable react-hooks/rules-of-hooks */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { logger } from '@/lib/logger';
 import { useTranslation } from '@/contexts/TranslationContext';
 // 🟩 MIGRATED: Now using consolidated useFormTracking hook
 import { useFormTracking } from '@/hooks/useFormTracking';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 import { Card, CardContent} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -148,14 +147,21 @@ const PURCHASE_ORDERS: PurchaseOrder[] = [
 ];
 
 export default function FMPage() {
+  return (
+    <FmGuardedPage moduleId="marketplace">
+      {({ supportBanner }) => <FMPageContent supportBanner={supportBanner} />}
+    </FmGuardedPage>
+  );
+}
+
+type FMPageContentProps = {
+  supportBanner?: ReactNode;
+};
+
+function FMPageContent({ supportBanner }: FMPageContentProps) {
   const { t } = useTranslation();
-  const { hasOrgContext, orgId, guard, supportBanner } = useFmOrgGuard({ moduleId: 'marketplace' });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  
-  if (!hasOrgContext || !orgId) {
-    return guard;
-  }
 
   // Track initial state for dirty detection
   const [initialState] = useState({ searchTerm: '', statusFilter: 'all' });
@@ -238,10 +244,6 @@ export default function FMPage() {
       default: return 'bg-muted text-foreground border-border';
     }
   };
-
-  if (!orgId) {
-    return <div className="p-6">{guard}</div>;
-  }
 
   return (
     <div className="space-y-6">

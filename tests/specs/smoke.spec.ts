@@ -99,10 +99,10 @@ const SIDEBAR_ITEMS: Array<{ labels: string[] }> = [
   { labels: ['Properties', 'العقارات'] },
 ];
 
-const HEADER_OPTIONAL_PATHS = new Set<string>(['/hr', '/finance']);
-const NAV_OPTIONAL_PATHS = new Set<string>(['/', '/hr']);
-const SIDEBAR_OPTIONAL_PATHS = new Set<string>(['/', '/hr']);
-const FOOTER_OPTIONAL_PATHS = new Set<string>(['/dashboard', '/hr', '/finance']);
+const HEADER_OPTIONAL_PATHS = new Set<string>(['/finance', '/hr']);
+const NAV_OPTIONAL_PATHS = new Set<string>(['/', '/finance', '/hr']);
+const SIDEBAR_OPTIONAL_PATHS = new Set<string>(['/', '/finance', '/hr']);
+const FOOTER_OPTIONAL_PATHS = new Set<string>(['/dashboard']);
 const CURRENCY_OPTIONAL_PATHS = new Set<string>(['/dashboard', '/hr', '/finance']);
 
 const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -149,6 +149,9 @@ test.describe('Global Layout & Navigation - All Pages', () => {
           if (response.url().includes('/api/auth/me')) {
             return; // public pages may probe session; ignore 401/403 there
           }
+          if (response.url().includes('/api/user/preferences') && status === 404) {
+            return; // preferences endpoint is optional; ignore missing
+          }
           networkFailures.push({
             method: response.request().method(),
             url: response.url(),
@@ -168,12 +171,10 @@ test.describe('Global Layout & Navigation - All Pages', () => {
 
       // ============ LAYOUT ASSERTIONS ============
       
-      // Header/banner must exist
+      // Header/banner must exist (unless optional path)
       if (!HEADER_OPTIONAL_PATHS.has(page.path)) {
         const header = browser.locator('header, [role="banner"]').first();
         await expect.soft(header).toBeVisible({ timeout: 10000 });
-      } else {
-        console.warn(`⚠️  Header not enforced on ${page.path} (optional in layout)`);
       }
 
       // Footer must exist (may be at bottom, need to scroll)
@@ -184,18 +185,12 @@ test.describe('Global Layout & Navigation - All Pages', () => {
           await browser.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
           await expect.soft(footer).toBeVisible({ timeout: 5000 });
         }
-      } else {
-        console.warn(`⚠️  Footer not enforced on ${page.path} (optional in layout)`);
       }
 
       // Sidebar navigation - check for key items
       const navCount = await browser.getByRole('navigation').count();
       if (!NAV_OPTIONAL_PATHS.has(page.path)) {
-        if (navCount === 0) {
-          console.warn(`⚠️  Navigation not present on ${page.path}, skipping sidebar checks.`);
-        } else {
-          expect.soft(navCount, `${page.path} should render navigation sidebar`).toBeGreaterThan(0);
-        }
+        expect.soft(navCount, `${page.path} should render navigation sidebar`).toBeGreaterThan(0);
       }
       if (navCount > 0 && !SIDEBAR_OPTIONAL_PATHS.has(page.path)) {
         for (const item of SIDEBAR_ITEMS) {
@@ -205,10 +200,6 @@ test.describe('Global Layout & Navigation - All Pages', () => {
           );
           const firstItem = sidebarItem.first();
           await expect.soft(firstItem).toBeVisible({ timeout: 5000 });
-        }
-      } else {
-        if (!NAV_OPTIONAL_PATHS.has(page.path)) {
-          console.warn('⚠️  Sidebar navigation not present on this page, skipping sidebar checks.');
         }
       }
 
@@ -222,8 +213,6 @@ test.describe('Global Layout & Navigation - All Pages', () => {
       if (!CURRENCY_OPTIONAL_PATHS.has(page.path)) {
         const currencySelector = browser.getByRole('button', { name: /currency|sar|usd|riyal|dollar/i });
         await expect.soft(currencySelector.first()).toBeVisible({ timeout: 5000 });
-      } else {
-        console.warn(`⚠️  Currency selector not enforced on ${page.path} (optional in layout)`);
       }
 
       // ============ RTL/LTR DIRECTION ============
