@@ -100,7 +100,6 @@ describe('SearchSynonym schema defaults (real import)', () => {
     const attempts: string[] = [];
     for (const p of candidates) {
       try {
-        // eslint-disable-next-line no-await-in-loop
         const mod = await import(p);
         const candidateKeys = Object.keys(mod).join(',');
         const candidate = (mod as any).SearchSynonym || (mod as any).default || mod;

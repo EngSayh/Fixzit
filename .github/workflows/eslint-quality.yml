@@ -1,0 +1,142 @@
+name: ESLint Production Code Quality
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'services/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'eslint.config.mjs'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'services/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'eslint.config.mjs'
+
+jobs:
+  lint-production-code:
+    name: Lint Production Code
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9.0.0
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint on production code
+        run: |
+          echo "🔍 Linting production code (app, components, lib, services)..."
+          pnpm eslint app components lib services --ext .ts,.tsx,.js,.jsx \
+            --max-warnings 0 \
+            --report-unused-disable-directives \
+            --format json \
+            -o _artifacts/eslint-results.json || true
+          
+          # Also output to console
+          pnpm eslint app components lib services --ext .ts,.tsx,.js,.jsx \
+            --max-warnings 0 \
+            --report-unused-disable-directives
+
+      - name: Upload ESLint results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-results
+          path: _artifacts/eslint-results.json
+          retention-days: 30
+
+      - name: Generate baseline comparison
+        if: always()
+        run: |
+          if [ -f "_artifacts/eslint-results.json" ]; then
+            echo "📊 ESLint Results Summary:"
+            echo "See uploaded artifacts for detailed report"
+          fi
+
+  lint-scripts-tools:
+    name: Lint Scripts & Tools (Non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9.0.0
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint on scripts and tools (informational)
+        run: |
+          echo "🔍 Linting scripts and tools (non-blocking)..."
+          pnpm eslint scripts tools --ext .ts,.tsx,.js,.jsx \
+            --format json \
+            -o _artifacts/eslint-scripts-tools.json || true
+          
+          echo "⚠️ This job is informational only and does not block CI"
+
+      - name: Upload scripts/tools lint results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-scripts-tools-results
+          path: _artifacts/eslint-scripts-tools.json
+          retention-days: 30
