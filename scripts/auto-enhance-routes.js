@@ -42,7 +42,7 @@ import { createSecureResponse } from '@/server/security/headers';`;
 /**
  * Determines rate limit category based on route path
  */
-function getRateLimitConfig(routePath) {
+function _getRateLimitConfig(routePath) {
   if (routePath.includes('/auth/')) return RATE_LIMITS.auth;
   if (routePath.includes('/payment')) return RATE_LIMITS.payment;
   if (routePath.includes('/subscribe')) return RATE_LIMITS.subscription;
@@ -96,7 +96,7 @@ function addImports(content) {
 /**
  * Generates OpenAPI documentation for a route
  */
-function generateOpenAPIDoc(routePath, method, existingJSDoc) {
+function _generateOpenAPIDoc(routePath, method, _existingJSDoc) {
   const routeName = routePath.replace('app/api/', '').replace('/route.ts', '');
   const tag = routeName.split('/')[0];
   

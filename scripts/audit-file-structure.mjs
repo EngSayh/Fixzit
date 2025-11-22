@@ -14,8 +14,8 @@
  * Output: _artifacts/file-structure-audit.json
  */
 
-import { readFileSync, writeFileSync, existsSync, statSync } from 'fs';
-import { join, relative, basename, dirname, extname } from 'path';
+import { readFileSync, writeFileSync, statSync } from 'fs';
+import { join, basename, extname } from 'path';
 import { glob } from 'glob';
 import crypto from 'crypto';
 

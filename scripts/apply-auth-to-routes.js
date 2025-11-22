@@ -25,7 +25,7 @@ function applyAuthToRoutes(directory) {
       applyAuthToRoutes(fullPath);
     } else if (file.endsWith('.js') && file !== 'auth.js') {
       let content = fs.readFileSync(fullPath, 'utf8');
-      const originalContent = content;
+      const _originalContent = content;
       
       // Skip if already has enhanced auth
       if (content.includes('enhancedAuth') || content.includes('middleware/enhancedAuth')) {
@@ -65,7 +65,7 @@ function applyAuthToRoutes(directory) {
       while ((match = routeHandlerRegex.exec(content)) !== null) {
         const method = match[1];
         const routeParams = match[2];
-        const funcParams = match[3];
+        const _funcParams = match[3];
         const nextParam = match[4] || '';
         
         // Replace with asyncHandler wrapper

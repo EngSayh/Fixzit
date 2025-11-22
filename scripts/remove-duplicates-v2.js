@@ -25,7 +25,7 @@ function removeDuplicates(filePath) {
 
   // Helper: regex to capture keys (supports quoted and unquoted keys)
   // Matches:    keyName: {   or   'key-name': 'value',   or   "key.name": {
-  const keyRegex = /^(\s*)(?:['"]?)([\w.\-]+)(?:['"]?)\s*:\s*(\{|['"])/;
+const keyRegex = /^(\s*)(?:['"]?)([\w.-]+)(?:['"]?)\s*:\s*(\{|['"])/;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];

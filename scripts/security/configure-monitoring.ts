@@ -396,7 +396,7 @@ pnpm tsx scripts/security/run-all-security-tests.sh
 Check your logs for security events:
 
 \`\`\`bash
-grep "RateLimit\|CORS\|Auth" logs/*.log
+grep "RateLimit|CORS|Auth" logs/*.log
 \`\`\`
 
 ## Step 6: Set Up Dashboard (Optional)

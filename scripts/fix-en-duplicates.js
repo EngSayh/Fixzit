@@ -80,7 +80,7 @@ if (lastBraceIndex !== -1) {
   const suffix = content.substring(lastBraceIndex + 1);
   
   // Check if suffix contains only whitespace and/or comments
-  const hasOnlyWhitespaceOrComments = /^[\s\/\*]*$/.test(suffix);
+const hasOnlyWhitespaceOrComments = /^[\s/*]*$/.test(suffix);
   
   if (hasOnlyWhitespaceOrComments || suffix.trim() === '') {
     // Safe to add semicolon

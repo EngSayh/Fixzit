@@ -21,7 +21,7 @@ function slugify(input: string) {
 }
 
 async function collectDocs(globs: string[]): Promise<DocInput[]> {
-  const files = await fg(globs, { ignore: ['**/node_modules/**', '**/.next/**', '**/\.git/**'], onlyFiles: true });
+  const files = await fg(globs, { ignore: ['**/node_modules/**', '**/.next/**', '**/.git/**'], onlyFiles: true });
   const docs: DocInput[] = [];
   for (const file of files) {
     const absolute = path.resolve(file);

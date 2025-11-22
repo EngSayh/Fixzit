@@ -30,7 +30,7 @@ function fixDuplicateKeys(filePath) {
     bracketDepth += openBrackets - closeBrackets;
     
     // Check for key definitions (key: { or key: "value")
-    const keyMatch = trimmed.match(/^(\w+):\s*[{"\[]/);
+    const keyMatch = trimmed.match(/^(\w+):\s*(?:\{|\[)/);
     if (keyMatch && bracketDepth >= 1) {
       const key = keyMatch[1];
       

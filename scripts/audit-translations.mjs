@@ -350,7 +350,7 @@ async function main() {
     
     // Find insertion points for both locales
     const arInsertPoint = ctx.lastIndexOf('}', ctx.indexOf('en:'));
-    const enInsertPoint = ctx.lastIndexOf('}');
+    const _enInsertPoint = ctx.lastIndexOf('}');
 
     if (arInsertPoint > -1 && bareList.length) {
       const arInsertions = bareList

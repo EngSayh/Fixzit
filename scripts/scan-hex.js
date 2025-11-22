@@ -25,7 +25,7 @@
 
 const { readFileSync, existsSync } = require('fs');
 const { execSync } = require('child_process');
-const { resolve } = require('path');
+const { resolve: _resolve } = require('path');
 
 // ============================================================================
 // APPROVED COLOR WHITELIST

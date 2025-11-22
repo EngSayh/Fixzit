@@ -114,7 +114,7 @@ async function extractUsedKeys() {
   });
   
   const keys = new Set();
-    const rx = /(?:^|[^A-Za-z0-9_])(i18n\.)?t\(\s*['"`]([A-Za-z0-9_.-]+)['"`]\s*[\),]/g;
+  const rx = /(?:^|[^A-Za-z0-9_])(i18n\.)?t\(\s*['"`]([A-Za-z0-9_.-]+)['"`]\s*[),]/g;
   
   for (const f of files) {
     const text = await fsp.readFile(f, 'utf8').catch(() => '');
