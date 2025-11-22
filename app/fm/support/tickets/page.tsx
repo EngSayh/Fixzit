@@ -1,7 +1,6 @@
 'use client';
-/* eslint-disable react-hooks/rules-of-hooks */
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
@@ -12,7 +11,7 @@ import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 interface TicketItem {
   id: string;
   code?: string;
@@ -24,29 +23,35 @@ interface TicketItem {
 }
 
 export default function SupportTicketsPage() {
+  return (
+    <FmGuardedPage moduleId="support">
+      {({ orgId, supportBanner }) => (
+        <SupportTicketsContent orgId={orgId!} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type SupportTicketsContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function SupportTicketsContent({ orgId, supportBanner }: SupportTicketsContentProps) {
   const auto = useAutoTranslator('fm.supportTickets');
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'support' });
-  
-  if (!hasOrgContext || !orgId) {
-    return guard;
-  }
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
 
-  const fetcher = (url: string) => {
-    if (!orgId) {
-      return Promise.reject(new Error(auto('No organization ID', 'errors.missingOrg')));
-    }
-    return fetch(url, { 
-      headers: { 'x-tenant-id': orgId } 
+  const fetcher = (url: string) =>
+    fetch(url, {
+      headers: { 'x-tenant-id': orgId }
     })
-      .then(r => r.json())
-      .catch(error => {
+      .then((r) => r.json())
+      .catch((error) => {
         logger.error('FM tickets fetch error', error);
         throw error;
       });
-  };
 
   const { data, mutate, isLoading } = useSWR(
     orgId ? `/api/support/tickets?status=${status}&priority=${priority}` : null,
@@ -54,11 +59,6 @@ export default function SupportTicketsPage() {
   );
 
   const updateTicket = async (id: string, updates: { status?: string }) => {
-    if (!orgId) {
-        toast.error(auto('No organization ID found', 'errors.missingOrg'));
-        return;
-      }
-
     const toastId = toast.loading(auto('Updating ticket status...', 'toast.updating'));
 
     try {
@@ -92,15 +92,6 @@ export default function SupportTicketsPage() {
 
   if (!session) {
     return <TableSkeleton rows={5} />;
-  }
-
-  if (!orgId) {
-    return (
-      <div className="p-6 space-y-6">
-        <ModuleViewTabs moduleId="support" />
-        {guard}
-      </div>
-    );
   }
 
   return (

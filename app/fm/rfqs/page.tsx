@@ -1,7 +1,6 @@
 'use client';
-/* eslint-disable react-hooks/rules-of-hooks */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
@@ -22,7 +21,7 @@ import {
   Shield, Package, Wrench, Building2
 } from 'lucide-react';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 
 interface RFQItem {
   id: string;
@@ -55,31 +54,37 @@ interface RFQItem {
 }
 
 export default function RFQsPage() {
+  return (
+    <FmGuardedPage moduleId="administration">
+      {({ orgId, supportBanner }) => (
+        <RFQsContent orgId={orgId!} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type RFQsContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function RFQsContent({ orgId, supportBanner }: RFQsContentProps) {
   const auto = useAutoTranslator('fm.rfqs');
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'administration' });
-  
-  if (!hasOrgContext || !orgId) {
-    return guard;
-  }
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
-  const fetcher = (url: string) => {
-    if (!orgId) {
-      return Promise.reject(new Error(auto('No organization ID', 'errors.noOrg')));
-    }
-    return fetch(url, { 
-      headers: { 'x-tenant-id': orgId } 
+  const fetcher = (url: string) =>
+    fetch(url, {
+      headers: { 'x-tenant-id': orgId }
     })
-      .then(r => r.json())
-      .catch(error => {
+      .then((r) => r.json())
+      .catch((error) => {
         logger.error('FM RFQs fetch error', error);
         throw error;
       });
-  };
 
   const { data, mutate, isLoading } = useSWR(
     orgId ? `/api/rfqs?search=${encodeURIComponent(search)}&status=${statusFilter}&category=${categoryFilter}` : null,
@@ -88,15 +93,6 @@ export default function RFQsPage() {
 
   if (!session) {
     return <CardGridSkeleton count={6} />;
-  }
-
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        {supportBanner}
-        {guard}
-      </div>
-    );
   }
 
   const rfqs = data?.items || [];

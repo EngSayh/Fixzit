@@ -118,6 +118,7 @@
     "check:mock-flags": "node scripts/check-mock-flags.js",
     "lint:md": "markdownlint \"**/*.md\" \"!node_modules\" \"!.next\"",
     "lint:md:fix": "markdownlint --fix \"**/*.md\" \"!node_modules\" \"!.next\"",
+    "guard:fm-hooks": "bash -lc \"if rg -n 'eslint-disable react-hooks/rules-of-hooks' app/fm; then echo '❌ Found react-hooks/rules-of-hooks disables in app/fm (use FmGuardedPage)'; exit 1; fi\"",
     "prepare": "simple-git-hooks"
   },
   "dependencies": {
@@ -269,6 +270,6 @@
     }
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm lint:prod && bash scripts/security/check-hardcoded-uris.sh"
+    "pre-commit": "pnpm lint:prod && pnpm guard:fm-hooks && bash scripts/security/check-hardcoded-uris.sh"
   }
 }

@@ -34,6 +34,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         className={`min-h-screen bg-background text-foreground ${inter.variable} ${notoSansArabic.variable}`}
         style={{ direction: dir }}
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:start-4 z-50 bg-background text-foreground px-3 py-2 rounded-md shadow"
+        >
+          Skip to content
+        </a>
         <ConditionalProviders initialLocale={locale}>
           <>
             <ClientLayout>

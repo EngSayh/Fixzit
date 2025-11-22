@@ -1,8 +1,8 @@
 'use client';
-/* eslint-disable react-hooks/rules-of-hooks */
 import { logger } from '@/lib/logger';
 
 import useSWR from 'swr';
+import type { ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -19,7 +19,7 @@ import {
 import Link from 'next/link';
 import ClientDate from '@/components/ClientDate';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 
 interface Vendor {
   id: string;
@@ -65,15 +65,25 @@ const statusColors: Record<string, string> = {
 };
 
 export default function VendorDetailsPage() {
+  return (
+    <FmGuardedPage moduleId="vendors">
+      {({ orgId, supportBanner }) => (
+        <VendorDetailsContent orgId={orgId!} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type VendorDetailsContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProps) {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'vendors' });
   const { t } = useTranslation();
-  
-  if (!hasOrgContext || !orgId) {
-    return guard;
-  }
 
   const handleDelete = async () => {
     const confirmMessage = t(
@@ -128,19 +138,11 @@ export default function VendorDetailsPage() {
   };
 
   const { data: vendor, error, isLoading } = useSWR<Vendor>(
-    orgId && params?.id ? `/api/vendors/${params.id}` : null, 
+    orgId && params?.id ? `/api/vendors/${params.id}` : null,
     fetcher
   );
 
   if (!session) return <CardGridSkeleton count={3} />;
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        <ModuleViewTabs moduleId="vendors" />
-        {guard}
-      </div>
-    );
-  }
   if (error) return <div>{t('fm.vendors.detail.errors.loadFailed', 'Failed to load vendor')}</div>;
   if (isLoading || !vendor) return <CardGridSkeleton count={3} />;
 

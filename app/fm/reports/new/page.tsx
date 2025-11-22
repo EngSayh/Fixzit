@@ -1,7 +1,6 @@
 'use client';
-/* eslint-disable react-hooks/rules-of-hooks */
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -15,7 +14,7 @@ import { CardGridSkeleton } from '@/components/skeletons';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { FileText, Calendar, Download } from 'lucide-react';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 
 const REPORT_TYPES = [
   { value: 'workorders', label: 'Work Orders Summary' },
@@ -42,14 +41,24 @@ const FORMATS = [
 ];
 
 export default function NewReportPage() {
+  return (
+    <FmGuardedPage moduleId="reports">
+      {({ orgId, supportBanner }) => (
+        <NewReportContent orgId={orgId!} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type NewReportContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function NewReportContent({ orgId, supportBanner }: NewReportContentProps) {
   const auto = useAutoTranslator('fm.reports.new');
   const { data: session } = useSession();
   const router = useRouter();
-  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'reports' });
-  
-  if (!hasOrgContext || !orgId) {
-    return guard;
-  }
   const [reportType, setReportType] = useState('');
   const [title, setTitle] = useState('');
   const [dateRange, setDateRange] = useState('month');
@@ -62,10 +71,6 @@ export default function NewReportPage() {
 
   if (!session) {
     return <CardGridSkeleton count={1} />;
-  }
-
-  if (!hasOrgContext || !orgId) {
-    return guard;
   }
 
   const handleGenerate = async (e: React.FormEvent) => {

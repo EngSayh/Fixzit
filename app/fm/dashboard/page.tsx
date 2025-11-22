@@ -1,9 +1,8 @@
 'use client';
-/* eslint-disable react-hooks/rules-of-hooks */
 import { logger } from '@/lib/logger';
 import { toFiniteNumber } from '@/lib/numbers';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
@@ -21,7 +20,7 @@ import {
 } from 'lucide-react';
 import type { WorkOrder } from '@/types/fm';
 import { WOStatus } from '@/types/fm';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 
 interface User {
   name?: string;
@@ -63,16 +62,26 @@ interface WorkOrderWithDue extends WorkOrder {
 }
 
 export default function DashboardPage() {
+  return (
+    <FmGuardedPage moduleId="dashboard">
+      {({ orgId, supportBanner }) => (
+        <DashboardContent orgId={orgId!} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type DashboardContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function DashboardContent({ orgId, supportBanner }: DashboardContentProps) {
   const [user, setUser] = useState<User | null>(null);
   const { t } = useTranslation();
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
-  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'dashboard' });
   const userRole = (session?.user as { role?: string })?.role;
-  
-  if (!hasOrgContext || !orgId) {
-    return guard;
-  }
 
   // Role-based redirect logic
   useEffect(() => {
@@ -93,21 +102,17 @@ export default function DashboardPage() {
     }
   }, [session]);
 
-  const fetcher = (url: string) => {
-    if (!orgId) {
-      return Promise.reject(new Error('No organization ID'));
-    }
-    return fetch(url, {
-      headers: { 
+  const fetcher = (url: string) =>
+    fetch(url, {
+      headers: {
         'x-tenant-id': orgId
       }
     })
-      .then(r => r.json())
-      .catch(error => {
+      .then((r) => r.json())
+      .catch((error) => {
         logger.error('FM dashboard fetch error', error);
         throw error;
       });
-  };
 
   // Fetch dashboard data
   const { data: workOrders } = useSWR(orgId ? '/api/work-orders?limit=5' : null, fetcher);
@@ -120,15 +125,6 @@ export default function DashboardPage() {
 
   if (!session) {
     return <StatsCardSkeleton count={4} />;
-  }
-
-  if (!orgId) {
-    return (
-      <div className="space-y-6 p-6">
-        <ModuleViewTabs moduleId="dashboard" />
-        {guard}
-      </div>
-    );
   }
 
   const stats = {
