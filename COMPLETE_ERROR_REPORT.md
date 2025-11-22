@@ -66,17 +66,18 @@ The "59k" number was a red herring from counting violations in ignored/disabled 
   - `no-useless-escape`: keep `warn` but capture metrics.
 
 ### D. Address TypeScript/security gaps (this sprint)
-- Enforce enums for permissions (`FMAction`) by updating signatures in `lib/auth-middleware.ts` and fixing call sites flagged in `TYPESCRIPT_AUDIT_REPORT.md`.  
+- Enforce enums for permissions (`FMAction`) by updating signatures in `lib/auth-middleware.ts` and fixing call sites flagged in `TYPESCRIPT_AUDIT_REPORT.md`. **(Done in `server/middleware/withAuthRbac.ts` with runtime validation.)**  
 - Run `pnpm typecheck` to surface real type errors that lint currently misses (especially `any` hot spots).
 
 ### E. CI and guardrails (this sprint)
 - Add a CI step that uploads `_artifacts/eslint-baseline.json` for tracking.  
 - Add a pre-commit hook: `pnpm lint --report-unused-disable-directives --max-warnings 0` over `app components lib services`.  
-- Keep a separate “backlog” lint job for `scripts/tools` so it does not block releases while still producing numbers.
+- Keep a separate “backlog” lint job for `scripts/tools` so it does not block releases while still producing numbers.  
+- Use `simple-git-hooks` for team-wide pre-commit install.
 
 ## Metrics to track going forward
 - **Lint (app/components/lib/services)**: errors, warnings, unused-disable count. Current: **0 errors, 0 warnings**.
-- **Lint (scripts/tools)**: errors/warnings once coverage is enabled. Current: **not measured**.
+- **Lint (scripts/tools)**: errors/warnings once coverage is enabled. Current: **97 errors, 18 warnings (non-blocking scan)**.
 - **Type-safety debt**: count of `any` (initially from CODE_RABBIT ≈235+; replace with measured counts after enabling the rule).
 - **Permission enum compliance**: number of string-literal call sites to `requireAbility/requireFmPermission`; target 0.
 
@@ -92,17 +93,20 @@ The "59k" number was a red herring from counting violations in ignored/disabled 
 - Package scripts: `lint:prod`, `lint:ci`, `lint:scripts`, `lint:prod:baseline`
 
 ✅ **Steps 1-3: Type Safety & Measurements**
-- Generated trusted baseline: `_artifacts/eslint-baseline.json` (244KB)
-- Re-enabled `no-explicit-any` as 'warn' for measurement
+- Generated trusted baseline: `_artifacts/eslint-baseline.json`
+- Re-enabled `no-explicit-any` as 'warn' for measurement (current: 0 in prod scope)
 - Fixed 8 `any` violations in 4 files (now 0 warnings)
-- Fixed permission string literal with typed `Ability` constant
+- Enforced typed ability + runtime validation in `server/middleware/withAuthRbac.ts`
 - Migrated 5 files from console to structured logger
+✅ **Scripts/Tools Cleanup Progress**
+- Reduced scripts/tools lint backlog to **97 errors, 18 warnings** (from 129/43)
+- Fixed no-useless-escape in guardrail generator and unused vars in multiple scripts
+- Addressed module variable naming in route checks and verification scripts
 
 ## Outstanding Work
 ⚠️ **Scripts/Tools Backlog** (non-blocking)
-- 129 errors, 43 warnings in 223 files
-- Artifact: `_artifacts/eslint-scripts-tools-scan.json`
-- Top issues: unused variables, CommonJS patterns
+- 97 errors, 18 warnings in 223 files (per `_artifacts/eslint-scripts-tools-scan.json`)
+- Top issues: unused variables, regex escapes, CommonJS/require usage
 - Recommendation: Gradual cleanup, does not block releases
 
 📊 **Next Metrics to Track**
@@ -110,9 +114,9 @@ The "59k" number was a red herring from counting violations in ignored/disabled 
 - Monthly: Check scripts/tools progress: `pnpm lint:scripts --format json`
 - Quarterly: Type-safety audit: expand `no-explicit-any` enforcement to services/
 
-🔒 **Optional Hardening**
-- Add enum/union types to `withAuthRbac` signatures to prevent string literal regressions
-- Enable `@typescript-eslint/no-unused-vars` in scripts/tools directories
+🔒 **Hardening**
+- Enum/union validation enforced in `withAuthRbac` to prevent string literal regressions
+- Enable/measure `@typescript-eslint/no-unused-vars` in scripts/tools directories (backlog)
 
 ---
 
