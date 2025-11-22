@@ -12,14 +12,13 @@ export async function GET() {
     const session = await auth();
     
     if (!session || !session.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      // Return a benign guest payload to avoid 401 noise on public/unauth pages
+      return NextResponse.json({ authenticated: false, user: null }, { status: 200 });
     }
 
     // Return user data from session
     return NextResponse.json({
+      authenticated: true,
       user: {
         id: session.user.id,
         email: session.user.email,

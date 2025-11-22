@@ -7,7 +7,7 @@
  * Emits a JSON + human summary so CI can fail fast when an alias target is missing.
  */
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const ROOT = process.cwd();
@@ -87,8 +87,8 @@ if (missing.length === 0) {
 
 const reportPath = path.join(ROOT, '_artifacts', 'route-alias-report.json');
 try {
-  require('node:fs').mkdirSync(path.dirname(reportPath), { recursive: true });
-  require('node:fs').writeFileSync(
+  mkdirSync(path.dirname(reportPath), { recursive: true });
+  writeFileSync(
     reportPath,
     JSON.stringify({ timestamp: new Date().toISOString(), results }, null, 2)
   );

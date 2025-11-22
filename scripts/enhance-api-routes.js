@@ -24,38 +24,6 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const APPLY = process.argv.includes('--apply');
 const SINGLE_ROUTE = process.argv.find(arg => arg.startsWith('--route='))?.split('=')[1];
 
-// Route priority classifications
-const ROUTE_PRIORITIES = {
-  P0_CRITICAL: [
-    'api/auth/login',
-    'api/auth/signup',
-    'api/auth/me',
-    'api/payments/paytabs/callback',
-    'api/payments/create',
-    'api/subscribe/corporate',
-    'api/subscribe/owner',
-  ],
-  P1_HIGH: [
-    'api/work-orders',
-    'api/invoices',
-    'api/properties',
-    'api/projects',
-    'api/vendors',
-    'api/assets',
-    'api/tenants',
-    'api/rfqs',
-    'api/slas',
-    'api/marketplace',
-  ],
-  P2_MEDIUM: [
-    'api/ats',
-    'api/support',
-    'api/notifications',
-    'api/admin',
-    'api/copilot',
-  ]
-};
-
 // Rate limiting recommendations by route type
 const RATE_LIMITS = {
   auth: { limit: 5, window: 900_000 }, // 5 req per 15 min
@@ -108,7 +76,7 @@ async function analyzeRoute(filePath) {
 }
 
 // Generate OpenAPI doc comment for a method
-function generateOpenAPIDoc(method, routePath, existingValidation) {
+function generateOpenAPIDoc(method, routePath) {
   const projectRoot = process.cwd();
   // Use path.posix for consistent forward slashes across all platforms
   const normalizedRoute = routePath.split(path.sep).join(path.posix.sep);
@@ -198,7 +166,7 @@ async function enhanceRoute(filePath) {
   // Add OpenAPI docs if missing
   if (!analysis.hasOpenAPI) {
     for (const method of analysis.methods) {
-      const openAPIDoc = generateOpenAPIDoc(method, filePath, analysis.hasZodValidation);
+      const openAPIDoc = generateOpenAPIDoc(method, filePath);
       content = addOpenAPIBeforeMethod(content, method, openAPIDoc);
       changes.push(`Added OpenAPI doc for ${method}`);
     }

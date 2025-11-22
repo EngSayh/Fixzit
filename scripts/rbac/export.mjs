@@ -49,8 +49,6 @@ const rows = [["role", "file", "route_or_context", "action", "line_number", "pat
 function scanFile(filePath) {
   try {
     const content = fs.readFileSync(filePath, "utf8");
-    const lines = content.split('\n');
-    
     // Extract roles
     const roleMatches = [];
     ROLE_PATTERNS.forEach((regex) => {

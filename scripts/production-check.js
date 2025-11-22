@@ -117,7 +117,7 @@ class ProductionCheck {
       // Check API documentation
       this.check('API documentation available', this.codeContains('server.js', 'api-docs'));
       
-    } catch (error) {
+    } catch {
       this.check('Server reachable', false);
     }
   }

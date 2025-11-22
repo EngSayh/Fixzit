@@ -439,7 +439,7 @@ async function runAllTests() {
   if (problemPages.length === 0) {
     console.log('🎉 No problematic pages found! All pages working correctly.');
   } else {
-    problemPages.forEach(([path, stats]) => {
+    problemPages.forEach(([, stats]) => {
       console.log(`❌ ${stats.name.padEnd(40)} ${stats.failed}/${stats.total} failures`);
     });
   }
@@ -508,9 +508,9 @@ function generateMarkdownReport(data) {
   } else {
     md += `| Page | Failures | Total Tests |\n`;
     md += `|------|----------|-------------|\n`;
-    problemPages.forEach(([path, stats]) => {
-      md += `| ${stats.name} | ${stats.failed} | ${stats.total} |\n`;
-    });
+  problemPages.forEach(([, stats]) => {
+    md += `| ${stats.name} | ${stats.failed} | ${stats.total} |\n`;
+  });
     md += `\n`;
   }
   

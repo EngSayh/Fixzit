@@ -16,7 +16,6 @@ function fixDuplicateKeys(filePath) {
   const seen = new Set();
   const duplicates = [];
   const toRemove = [];
-  let currentKey = null;
   let bracketDepth = 0;
   
   // Find all duplicate keys

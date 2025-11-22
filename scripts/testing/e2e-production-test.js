@@ -298,10 +298,10 @@ async function testLogin(userType, credentials) {
           console.log('   ❌ FAILED: No token in response');
           results.summary.failed++;
         }
-      } catch (e) {
+      } catch (error) {
         test.status = 'failed';
         test.message = '❌ Invalid JSON response';
-        console.log('   ❌ FAILED: Invalid JSON response');
+        console.log('   ❌ FAILED: Invalid JSON response', error?.message || '');
         results.summary.failed++;
       }
     } else {

@@ -1,6 +1,7 @@
 import fg from 'fast-glob';
 import fs from 'fs';
 import recast from 'recast';
+import * as typescriptParser from 'recast/parsers/typescript';
 
 const files = await fg(['**/*.{ts,tsx,js,jsx}', '!node_modules/**']);
 
@@ -8,7 +9,7 @@ for (const f of files) {
   const code = fs.readFileSync(f, 'utf8');
   if (!/mongodb/.test(code)) continue;
 
-  const ast = recast.parse(code, { parser: require('recast/parsers/typescript') });
+  const ast = recast.parse(code, { parser: typescriptParser });
   let changed = false;
 
   recast.visit(ast, {

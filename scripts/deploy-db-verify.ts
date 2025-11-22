@@ -18,13 +18,13 @@ interface VerificationResult {
   passed: boolean;
   duration: number;
   error?: string;
-  details?: any;
+  details?: unknown;
 }
 
 class DatabaseVerifier {
   private results: VerificationResult[] = [];
   
-  private async runTest(testName: string, testFn: () => Promise<any>): Promise<void> {
+  private async runTest(testName: string, testFn: () => Promise<unknown>): Promise<void> {
     const startTime = Date.now();
     try {
       console.log(`🧪 Testing: ${testName}...`);
@@ -118,7 +118,7 @@ class DatabaseVerifier {
       
       // Check common collections exist and have proper indexes
       const collections = ['users', 'properties', 'work_orders', 'tenancies'];
-      const indexInfo: any = {};
+      const indexInfo: Record<string, unknown> = {};
       
       for (const collName of collections) {
         try {
@@ -128,7 +128,7 @@ class DatabaseVerifier {
             count: indexes.length,
             indexes: indexes.map(idx => idx.name)
           };
-        } catch (error) {
+        } catch (_error) {
           indexInfo[collName] = { error: 'Collection not found or accessible' };
         }
       }

@@ -83,7 +83,7 @@ async function loadLocaleKeys(filePath) {
     const json = JSON.parse(content);
     return flattenKeys(json);
   } catch (error) {
-    console.warn(`⚠️  Failed to load locale file: ${filePath}`);
+    console.warn(`⚠️  Failed to load locale file: ${filePath}`, error?.message || '');
     return [];
   }
 }

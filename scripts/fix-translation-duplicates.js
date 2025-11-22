@@ -14,7 +14,6 @@ function fixDuplicates(filePath) {
   const fixes = [];
 
   let currentSection = '';
-  let depth = 0;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -23,9 +22,6 @@ function fixDuplicates(filePath) {
     if (match) {
       const indent = match[1].length;
       const key = match[2];
-      
-      // Track nesting depth
-      if (line.includes('{')) depth++;
       
       // Update current section for top-level keys (2 spaces indent)
       if (indent === 2) {
@@ -65,7 +61,6 @@ function fixDuplicates(filePath) {
       }
     }
     
-    if (line.includes('}')) depth--;
   }
 
   // Write fixed content

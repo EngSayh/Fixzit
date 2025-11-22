@@ -128,7 +128,14 @@ async function checkTestUsersSeeded() {
     }).toArray();
     
     const requiredRoles = ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'TECHNICIAN', 'TENANT', 'VENDOR'];
-    const existingRoles = users.map(u => u.role || (u as any).professional?.role);
+    const existingRoles = users.map((u) => {
+      const role = (u as { role?: string }).role;
+      const professionalRole =
+        typeof u === 'object' && u !== null && 'professional' in u
+          ? (u as { professional?: { role?: string } }).professional?.role
+          : undefined;
+      return role || professionalRole;
+    });
     const missingRoles = requiredRoles.filter(role => !existingRoles.includes(role));
     
     if (missingRoles.length > 0) {

@@ -71,6 +71,6 @@ try {
   const unknownCount = (finalErrors.match(/error TS18046/g) || []).length;
   console.log(`\nFinal TypeScript errors: ${finalCount}`);
   console.log(`Unknown type errors remaining: ${unknownCount}`);
-} catch (e) {
+} catch (_error) {
   console.log('Could not count final errors');
 }

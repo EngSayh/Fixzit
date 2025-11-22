@@ -31,9 +31,6 @@ files.forEach(file => {
   // Pattern 3: models.X || model<IX>('X', XSchema)
   // Pattern 4: mongoose.models.X || mongoose.model<IX>('X', XSchema)
   
-  // Regex to match various model declaration patterns
-  const replacements = [];
-  
   // Pattern 1: (models.X || model<IType>('Name', Schema))
   let regex1 = /\(models\.([A-Za-z0-9_]+)\s*\|\|\s*model<([A-Za-z0-9_<>, ]+)>\('([A-Za-z0-9_]+)',\s*([A-Za-z0-9_]+)\)\)/g;
   content = content.replace(regex1, (match, modelVar, typeName, modelName, schemaName) => {

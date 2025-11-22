@@ -67,7 +67,7 @@ app.use('/api/workorders', require('./routes/workorders'));
 app.use('/api/finance', require('./routes/finance'));
 
 // Error handling
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error(err.stack);
   // Don't leak error details in production
   const message = process.env.NODE_ENV === 'production' 

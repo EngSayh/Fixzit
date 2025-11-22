@@ -23,9 +23,10 @@ async function checkUsers() {
         console.log(`   Role: ${user.professional?.role || 'N/A'}`);
         console.log(`   Status: ${user.status || 'N/A'}`);
         // TODO(type-safety): Verify User schema has isActive field
-        console.log(`   isActive: ${(user as any).isActive !== undefined ? (user as any).isActive : 'N/A'}`);
+        const userFlags = user as { isActive?: boolean; password?: unknown; passwordHash?: unknown };
+        console.log(`   isActive: ${userFlags.isActive !== undefined ? userFlags.isActive : 'N/A'}`);
         // TODO(type-safety): User schema has 'password' not 'passwordHash'
-        console.log(`   Has password: ${!!user.password || !!(user as any).passwordHash}`);
+        console.log(`   Has password: ${Boolean(userFlags.password ?? userFlags.passwordHash)}`);
       } else {
         console.log(`❌ ${email} - NOT FOUND`);
       }
@@ -39,7 +40,7 @@ async function checkUsers() {
     }).select('employeeNumber email professional.role status');
     
     if (corpUsers.length > 0) {
-      corpUsers.forEach((user: any) => {
+      corpUsers.forEach((user) => {
         console.log(`✅ ${user.employeeNumber} (${user.email})`);
         console.log(`   Role: ${user.professional?.role || 'N/A'}`);
       });

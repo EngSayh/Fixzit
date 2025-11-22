@@ -25,6 +25,35 @@ import { SouqOrder } from '@/server/models/souq/Order';
 import { SouqReview } from '@/server/models/souq/Review';
 import { nanoid } from 'nanoid';
 
+type SeedProduct = {
+  fsin?: string;
+  productId?: string;
+  name?: string;
+  price?: number;
+  [key: string]: unknown;
+};
+
+type SeedOrderItem = {
+  fsin?: string;
+  productId?: string;
+  productName?: string;
+  quantity?: number;
+  price?: number;
+  subtotal?: number;
+};
+
+type SeedOrder = {
+  status?: string;
+  items: SeedOrderItem[];
+  customerId?: string;
+  customerName?: string;
+  orderId?: string;
+  statusHistory?: Array<{ status: string; updatedAt: Date; updatedBy: string }>;
+  channel?: string;
+  total?: number;
+  [key: string]: unknown;
+};
+
 // Test organization ID (replace with your actual test org ID)
 const TEST_ORG_ID = 'org-test-001';
 const TEST_SELLER_ID = '6740b53c5b1a08c748eec97f'; // Valid MongoDB ObjectId format
@@ -213,10 +242,10 @@ function randomSubset<T>(array: T[], count: number): T[] {
 /**
  * Seed test products
  */
-async function seedProducts() {
+async function seedProducts(): Promise<SeedProduct[]> {
   console.log('🌱 Seeding products...');
   
-  const products = [];
+  const products: SeedProduct[] = [];
   
   for (let i = 0; i < PRODUCT_TEMPLATES.length; i++) {
     const template = PRODUCT_TEMPLATES[i];
@@ -242,7 +271,7 @@ async function seedProducts() {
   await SouqProduct.deleteMany({ createdBy: TEST_SELLER_ID });
   
   // Insert new products
-  const insertedProducts = await SouqProduct.insertMany(products);
+  const insertedProducts = (await SouqProduct.insertMany(products)) as SeedProduct[];
   console.log(`✅ Created ${insertedProducts.length} products`);
   
   return insertedProducts;
@@ -251,10 +280,10 @@ async function seedProducts() {
 /**
  * Seed test orders
  */
-async function seedOrders(products: any[]) {
+async function seedOrders(products: SeedProduct[]): Promise<SeedOrder[]> {
   console.log('🌱 Seeding orders...');
   
-  const orders = [];
+  const orders: SeedOrder[] = [];
   const orderStatuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'completed'];
   
   for (let i = 0; i < 50; i++) {
@@ -266,7 +295,7 @@ async function seedOrders(products: any[]) {
     const itemCount = Math.floor(Math.random() * 3) + 1;
     const orderProducts = randomSubset(products, itemCount);
     
-    const items = orderProducts.map(product => {
+    const items = orderProducts.map((product) => {
       const quantity = Math.floor(Math.random() * 3) + 1;
       return {
         fsin: product.fsin,
@@ -319,7 +348,7 @@ async function seedOrders(products: any[]) {
   await SouqOrder.deleteMany({ org_id: TEST_ORG_ID });
   
   // Insert new orders
-  const insertedOrders = await SouqOrder.insertMany(orders);
+  const insertedOrders = (await SouqOrder.insertMany(orders)) as SeedOrder[];
   console.log(`✅ Created ${insertedOrders.length} orders`);
   
   return insertedOrders;
@@ -328,7 +357,7 @@ async function seedOrders(products: any[]) {
 /**
  * Seed test reviews
  */
-async function seedReviews(products: any[], orders: any[]) {
+async function seedReviews(products: SeedProduct[], orders: SeedOrder[]) {
   console.log('🌱 Seeding reviews...');
   
   const reviews = [];

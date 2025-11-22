@@ -18,9 +18,8 @@
  *   - Rollback support
  */
 
-import mongoose, { Types } from 'mongoose';
+import mongoose from 'mongoose';
 import { dbConnect } from '../db/mongoose';
-import RFQModel from '../server/models/marketplace/RFQ';
 // Note: ProjectBid model must be created before running this migration
 // import ProjectBidModel from '../server/models/marketplace/ProjectBid';
 
@@ -31,30 +30,6 @@ interface OldRFQBid {
   currency: string;
   leadDays?: number;
   submittedAt: Date;
-}
-
-interface OldRFQDocument {
-  _id: mongoose.Types.ObjectId;
-  orgId: mongoose.Types.ObjectId;
-  requesterId: mongoose.Types.ObjectId;
-  title: string;
-  bids: OldRFQBid[]; // OLD: Embedded array
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface ProjectBidDocument {
-  _id: mongoose.Types.ObjectId;
-  orgId: mongoose.Types.ObjectId;
-  rfqId: mongoose.Types.ObjectId;
-  vendorId: mongoose.Types.ObjectId;
-  amount: number;
-  currency: string;
-  leadDays?: number;
-  submittedAt: Date;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 const args = process.argv.slice(2);

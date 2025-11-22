@@ -93,9 +93,10 @@ async function checkDatabase() {
     console.log('   3. Password is hashed with bcrypt');
     console.log('\n📝 Note: Passwords are not shown for security reasons');
 
-  } catch (error: any) {
-    console.error('\n❌ Error:', error.message);
-    if (error.code === 'ENOTFOUND') {
+  } catch (error: unknown) {
+    const err = error as Error & { code?: string | number };
+    console.error('\n❌ Error:', err.message);
+    if (err.code === 'ENOTFOUND') {
       console.error('\n🔧 DNS resolution failed. Check:');
       console.error('   - Network connection');
       console.error('   - MongoDB Atlas cluster is running');

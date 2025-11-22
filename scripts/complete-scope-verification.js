@@ -8,8 +8,8 @@ async function getAuthToken() {
       password: 'Admin@1234'
     });
     return res.data.token;
-  } catch (e) {
-    console.log('❌ AUTH FAILED - Backend not running?');
+  } catch (error) {
+    console.log('❌ AUTH FAILED - Backend not running?', error?.message || '');
     return null;
   }
 }
@@ -214,7 +214,7 @@ async function testAllEndpoints() {
           console.log(`❌ ${test.name} - PLACEHOLDER/FAKE`);
         }
       } catch (error) {
-        console.log(`❌ ${test.name} - ERROR/NOT IMPLEMENTED`);
+        console.log(`❌ ${test.name} - ERROR/NOT IMPLEMENTED`, error?.message || '');
       }
       totalEndpoints++;
     }

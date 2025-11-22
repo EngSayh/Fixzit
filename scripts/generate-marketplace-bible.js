@@ -2,19 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const { randomUUID } = require('node:crypto');
 
-// Import ESM helper for better path resolution and utilities
-const { createRequire } = require('node:module');
-const require2 = createRequire(__filename);
-
-let marketplaceHelper;
-try {
-  // Try to import ESM helper if available
-  marketplaceHelper = require2('./_shared/marketplace.js');
-} catch {
-  // Fallback to basic functionality if helper not available
-  marketplaceHelper = null;
-}
-
 const OUT_DIR = path.join(process.cwd(), '_artifacts');
 const OUT_FILE = path.join(OUT_DIR, 'Fixzit_Marketplace_Bible_v1.md');
 

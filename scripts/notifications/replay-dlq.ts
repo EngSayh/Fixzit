@@ -28,6 +28,26 @@ type ReplayOptions = {
   dryRun: boolean;
 };
 
+type DLQEntry = {
+  payload?: {
+    title?: string;
+    body?: string;
+    deepLink?: string;
+    data?: Record<string, unknown>;
+  };
+  recipient?: {
+    userId?: string;
+    email?: string;
+    phone?: string;
+  };
+  notificationId?: string;
+  event?: string;
+  priority?: string;
+  createdAt?: string | number | Date;
+  status?: string;
+  [key: string]: unknown;
+};
+
 const SUPPORTED_CHANNELS: NotificationChannel[] = ['push', 'email', 'sms', 'whatsapp'];
 
 function parseArgs(): ReplayOptions {
@@ -80,7 +100,7 @@ function parseArgs(): ReplayOptions {
   return options;
 }
 
-async function replayEntry(channel: NotificationChannel, entry: any): Promise<void> {
+async function replayEntry(channel: NotificationChannel, entry: DLQEntry): Promise<void> {
   const payload = entry.payload || {};
   const recipient = entry.recipient || {};
 

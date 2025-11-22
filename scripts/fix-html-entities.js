@@ -6,7 +6,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
 // File extensions that should NOT have HTML entities
 const JS_EXTENSIONS = ['.js', '.ts', '.mjs', '.cjs'];

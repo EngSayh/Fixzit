@@ -6,7 +6,7 @@
  * Usage: pnpm tsx scripts/security/configure-monitoring.ts
  */
 
-import { writeFileSync, readFileSync, existsSync } from 'fs';
+import { writeFileSync } from 'fs';
 import { join } from 'path';
 
 const MONITORING_CONFIG = {

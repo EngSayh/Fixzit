@@ -60,6 +60,7 @@ jobs:
 
       - name: Run ESLint on production code
         run: |
+          mkdir -p _artifacts
           echo "🔍 Linting production code (app, components, lib, services)..."
           pnpm eslint app components lib services --ext .ts,.tsx,.js,.jsx \
             --max-warnings 0 \
@@ -126,6 +127,7 @@ jobs:
 
       - name: Run ESLint on scripts and tools (informational)
         run: |
+          mkdir -p _artifacts
           echo "🔍 Linting scripts and tools (non-blocking)..."
           pnpm eslint scripts tools --ext .ts,.tsx,.js,.jsx \
             --format json \

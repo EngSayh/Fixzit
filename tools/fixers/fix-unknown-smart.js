@@ -91,7 +91,7 @@ const fileErrors = {};
 errorLines.forEach(line => {
   const match = line.match(/^(.+?)\((\d+),(\d+)\): error TS18046: '(.+)' is of type 'unknown'/);
   if (match) {
-    const [, file, lineNum, col, varName] = match;
+    const [, file, lineNum, , varName] = match;
     if (!fileErrors[file]) fileErrors[file] = [];
     fileErrors[file].push({ lineNum: parseInt(lineNum), varName });
   }
@@ -185,6 +185,6 @@ try {
   }
   const errorCount = (remaining.match(/error TS/g) || []).length;
   console.log(`Remaining TypeScript errors: ${errorCount}`);
-} catch (e) {
+} catch (_error) {
   console.log('Could not count remaining errors');
 }

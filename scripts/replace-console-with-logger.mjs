@@ -5,7 +5,6 @@
  */
 
 import fs from 'fs';
-import path from 'path';
 import { glob } from 'glob';
 
 const LOGGER_IMPORT = "import { logger } from '@/lib/logger';";

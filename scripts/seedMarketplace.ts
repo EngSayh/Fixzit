@@ -15,7 +15,8 @@ async function ensureAssetExists(relativeUrl: string) {
   try {
     await access(filePath);
   } catch (error) {
-    throw new Error(`Marketplace seed asset missing: ${filePath}. Ensure marketplace docs and images are generated before seeding.`);
+    const detail = error instanceof Error ? ` (${error.message})` : '';
+    throw new Error(`Marketplace seed asset missing: ${filePath}. Ensure marketplace docs and images are generated before seeding.${detail}`);
   }
 }
 
@@ -153,5 +154,4 @@ run().catch((error) => {
   console.error(error);
   process.exit(1);
 });
-
 

@@ -15,7 +15,7 @@ type QaEvent = {
   role: string;
   orgId: string;
   ts: number;
-  meta?: any;
+  meta?: Record<string, unknown>;
   screenshot?: string; // data URL when captured
 };
 
@@ -143,13 +143,14 @@ export function AutoFixAgent() {
           haltAndHeal('network-error', `HTTP ${res.status} on ${url}`);
         }
         return res;
-      } catch (err:any) {
+      } catch (err: unknown) {
         // Only intercept if agent is active
         if (active) {
+          const error = err as Error;
           setErrors(s => ({ ...s, network: s.network + 1 }));
           const url = typeof input === 'string' ? input : (input as Request).url;
           bufferNetwork(url, -1);
-          haltAndHeal('network-error', `Network error on ${url}: ${String(err?.message || err)}`);
+          haltAndHeal('network-error', `Network error on ${url}: ${String(error?.message || error)}`);
         }
         throw err;
       }

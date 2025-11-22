@@ -29,7 +29,7 @@ const fileErrors = {};
 unknownErrors.forEach(line => {
   const match = line.match(/^(.+?)\((\d+),\d+\): error TS18046: '(.+)' is of type 'unknown'/);
   if (match) {
-    const [, file, lineNum, varName] = match;
+    const [, file, , varName] = match;
     if (!fileErrors[file]) fileErrors[file] = new Set();
     fileErrors[file].add(varName);
   }

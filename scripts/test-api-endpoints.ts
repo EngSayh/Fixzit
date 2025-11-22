@@ -29,7 +29,7 @@ interface TestResult {
   statusCode?: number;
   duration: number;
   error?: string;
-  response?: any;
+  response?: unknown;
 }
 
 const results: TestResult[] = [];
@@ -60,7 +60,7 @@ async function authenticateTestUser() {
     let otpResult;
     try {
       otpResult = JSON.parse(otpText);
-    } catch (e) {
+    } catch {
       log(`Failed to parse OTP response: ${otpText}`, 'ERROR');
       return false;
     }
@@ -95,7 +95,7 @@ async function authenticateTestUser() {
     let verifyResult;
     try {
       verifyResult = JSON.parse(verifyText);
-    } catch (e) {
+    } catch {
       log(`Failed to parse verify response: ${verifyText}`, 'ERROR');
       return false;
     }
@@ -212,7 +212,7 @@ async function testEndpoint(
   method: string,
   path: string,
   options: {
-    body?: any;
+    body?: unknown;
     headers?: Record<string, string>;
     expectedStatus?: number;
     requiresAuth?: boolean;
@@ -254,9 +254,6 @@ async function testEndpoint(
 
     const duration = Date.now() - start;
     const statusCode = response.status;
-    
-    // Clone response before reading body to avoid "body already read" error
-    const responseClone = response.clone();
     
     let responseData;
     try {

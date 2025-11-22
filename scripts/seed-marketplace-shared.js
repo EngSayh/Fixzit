@@ -30,7 +30,7 @@ function loadTypeScriptModule(tsPath) {
   let typescript;
   try {
     typescript = localRequire('typescript');
-  } catch (_error) {
+  } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Unable to load TypeScript compiler. Install dependencies first. Original error: ${message}`);
   }
@@ -140,7 +140,7 @@ function resolveMockDatabase() {
       if (moduleExport && typeof moduleExport.getInstance === 'function') {
         return moduleExport;
       }
-    } catch (_error) {
+    } catch (error) {
       const absolutePath = path.resolve(__dirname, candidate);
       const message = error instanceof Error ? error.message : String(error);
 
@@ -155,7 +155,7 @@ function resolveMockDatabase() {
           }
           errors.push(`${absolutePath}: module did not expose MockDatabase`);
           continue;
-        } catch (_tsError) {
+        } catch (tsError) {
           const tsMessage = tsError instanceof Error ? tsError.message : String(tsError);
           errors.push(`${absolutePath}: ${tsMessage}`);
           continue;

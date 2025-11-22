@@ -6,7 +6,6 @@
  */
 
 const fs = require('fs');
-const path = require('path');
 const { execSync } = require('child_process');
 
 console.log('🔍 Starting comprehensive system error analysis...\n');
@@ -261,7 +260,7 @@ for (const filePath of files) {
       analysis.fileDetails.push(fileErrors);
     }
 
-  } catch (error) {
+  } catch (_error) {
     // Skip files that can't be read
   }
 }

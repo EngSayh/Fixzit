@@ -41,8 +41,8 @@ async function stopDevServer() {
     try {
       process.kill(pid, 0); // Signal 0 checks if process exists without killing
       console.log('✅ Process is running. Sending SIGTERM...');
-    } catch (err) {
-      console.log('ℹ️  Process not found. Removing stale PID file.');
+    } catch (error) {
+      console.log('ℹ️  Process not found. Removing stale PID file.', error?.message || '');
       fs.unlinkSync(PID_FILE);
       return;
     }
@@ -60,14 +60,14 @@ async function stopDevServer() {
         console.log('⚠️  Process still running. Sending SIGKILL...');
         process.kill(pid, 'SIGKILL');
         await sleep(1000);
-      } catch (err) {
+      } catch (_error) {
         console.log('✅ Process terminated gracefully.');
       }
-    } catch (err) {
-      if (err.code === 'ESRCH') {
+    } catch (error) {
+      if (error.code === 'ESRCH') {
         console.log('✅ Process already terminated.');
       } else {
-        throw err;
+        throw error;
       }
     }
 

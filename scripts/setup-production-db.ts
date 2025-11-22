@@ -8,6 +8,11 @@
 import { connectToDatabase, disconnectFromDatabase } from '@/lib/mongodb-unified';
 import { ObjectId } from 'mongodb';
 
+const loadMongoose = async () => {
+  const { default: mongoose } = await import('mongoose');
+  return mongoose;
+};
+
 async function validateProductionConfig() {
   console.log('🔧 Validating Production MongoDB Configuration...\n');
 
@@ -53,7 +58,7 @@ async function setupProductionIndexes() {
 
   try {
     await connectToDatabase();
-    const mongoose = require('mongoose');
+    const mongoose = await loadMongoose();
     const db = mongoose.connection.db;
 
     // Create essential indexes for production performance
@@ -102,7 +107,7 @@ async function createDefaultTenant() {
 
   try {
     await connectToDatabase();
-    const mongoose = require('mongoose');
+    const mongoose = await loadMongoose();
     const db = mongoose.connection.db;
 
     const orgId = new ObjectId();

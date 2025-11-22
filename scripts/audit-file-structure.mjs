@@ -80,8 +80,8 @@ for (const file of files) {
     } else {
       fileHashes.set(hash, file);
     }
-  } catch (_e) {
-    console.warn(`⚠️  Could not read ${file}: ${e.message}`);
+  } catch (error) {
+    console.warn(`⚠️  Could not read ${file}: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

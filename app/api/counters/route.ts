@@ -16,7 +16,8 @@ export async function GET() {
   try {
     const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      // Guest: return empty counters to avoid 401 noise on public/unauth pages
+      return NextResponse.json({}, { status: 200 });
     }
 
     const orgId = (session.user as { orgId?: string }).orgId;

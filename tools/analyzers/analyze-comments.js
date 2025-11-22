@@ -4,7 +4,6 @@
  */
 
 const fs = require('fs');
-const path = require('path');
 const { execSync } = require('child_process');
 
 // Get all TS/JS files
@@ -62,7 +61,7 @@ files.forEach(file => {
         }
       }
     });
-  } catch (err) {
+  } catch (_err) {
     // Skip files that can't be read
   }
 });

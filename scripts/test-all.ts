@@ -4,12 +4,13 @@
  * Comprehensive test script that verifies all key functionality
  */
 
+import { execSync } from 'child_process';
 import { verifyCore } from './verify-core';
 
 async function testAll() {
   console.log('🚀 Running comprehensive tests...\n');
   
-  const results: { name: string; success: boolean; error?: any }[] = [];
+  const results: { name: string; success: boolean; error?: unknown }[] = [];
   
   // Test 1: Core functionality
   console.log('1️⃣ Testing core functionality...');
@@ -25,7 +26,6 @@ async function testAll() {
   // Test 2: Build verification
   console.log('2️⃣ Testing build process...');
   try {
-    const { execSync } = require('child_process');
     execSync('npm run build', { stdio: 'pipe' });
     results.push({ name: 'Build Process', success: true });
     console.log('✅ Build test passed\n');
@@ -37,7 +37,6 @@ async function testAll() {
   // Test 3: TypeScript validation
   console.log('3️⃣ Testing TypeScript validation...');
   try {
-    const { execSync } = require('child_process');
     execSync('npm run typecheck', { stdio: 'pipe' });
     results.push({ name: 'TypeScript Validation', success: true });
     console.log('✅ TypeScript test passed\n');

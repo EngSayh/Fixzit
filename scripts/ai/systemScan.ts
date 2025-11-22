@@ -41,7 +41,6 @@ const DOCS_DIRS = [
   path.resolve(process.cwd(), 'public/docs'),
 ];
 
-const DOCS_DIR = DOCS_DIRS.find(dir => fs.existsSync(dir)) || DOCS_DIRS[0];
 const CHUNK_SIZE = 1000; // Characters per chunk for RAG
 const CHUNK_OVERLAP = 200; // Overlap between chunks to preserve context
 
@@ -121,7 +120,7 @@ async function scanDocument(filename: string): Promise<number> {
   }
 
   try {
-    const pdfParse = (await import('pdf-parse')).default as (data: Buffer) => Promise<{ text: string }>;
+    const pdfParse = (await import('pdf-parse')).default as (_data: Buffer) => Promise<{ text: string }>;
     const fileHash = calculateFileHash(fullPath);
     const database = await db;
     const collection = database.collection('ai_kb');

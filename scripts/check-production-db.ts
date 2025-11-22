@@ -5,26 +5,6 @@
 
 import mongoose from 'mongoose';
 
-// User schema
-const userSchema = new mongoose.Schema({
-  email: String,
-  name: String,
-  phone: String,
-  role: String,
-  organizationId: String,
-}, { collection: 'users', strict: false });
-
-// Account schema (NextAuth)
-const accountSchema = new mongoose.Schema({
-  userId: mongoose.Schema.Types.ObjectId,
-  type: String,
-  provider: String,
-  providerAccountId: String,
-}, { collection: 'accounts', strict: false });
-
-const User = mongoose.models.User || mongoose.model('User', userSchema);
-const Account = mongoose.models.Account || mongoose.model('Account', accountSchema);
-
 async function checkProductionDatabase() {
   try {
     console.log('🔍 Checking PRODUCTION MongoDB Atlas connection...\n');
@@ -80,7 +60,7 @@ async function checkProductionDatabase() {
         .limit(50)
         .toArray();
 
-      users.forEach((user: any, index: number) => {
+      users.forEach((user: { name?: string; email?: string; phone?: string; role?: string; organizationId?: string; _id: unknown; createdAt?: Date }, index: number) => {
         console.log(`\n${index + 1}. ${user.name || 'Unnamed User'}`);
         console.log(`   📧 Email: ${user.email || 'N/A'}`);
         console.log(`   📱 Phone: ${user.phone || 'N/A'}`);
@@ -127,7 +107,7 @@ async function checkProductionDatabase() {
 
     if (usersWithPassword.length > 0) {
       console.log(`✅ Found ${usersWithPassword.length} user(s) with password field:`);
-      usersWithPassword.forEach((user: any) => {
+      usersWithPassword.forEach((user: { email: string; password?: string }) => {
         console.log(`\n   📧 Email: ${user.email}`);
         console.log(`   🔐 Has password: ${user.password ? 'Yes (hashed)' : 'No'}`);
         console.log(`   🔐 Hash preview: ${user.password ? user.password.substring(0, 20) + '...' : 'N/A'}`);
@@ -174,10 +154,11 @@ async function checkProductionDatabase() {
     console.log('\n📝 Common test password: "password123" or "Test@123" or "admin123"');
     console.log('   (Try these with the accounts that have passwords)');
 
-  } catch (error: any) {
-    console.error('\n❌ Error:', error.message);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('\n❌ Error:', err.message);
     
-    if (error.message.includes('ENOTFOUND')) {
+    if (err.message.includes('ENOTFOUND')) {
       console.error('\n🔧 Cannot reach MongoDB Atlas. Check:');
       console.error('   - Internet connection');
       console.error('   - MongoDB Atlas cluster is running');

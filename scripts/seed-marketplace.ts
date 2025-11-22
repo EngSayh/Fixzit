@@ -21,16 +21,16 @@ const logError = (message: string, error?: unknown) => {
 type MockDocument = Record<string, unknown>;
 
 type MockDbInstance = {
-  getCollection: (name: string) => MockDocument[];
-  setCollection: (name: string, data: MockDocument[]) => void;
+  getCollection: (_name: string) => MockDocument[];
+  setCollection: (_name: string, _data: MockDocument[]) => void;
 };
 
 type MockDbModule = { MockDatabase: { getInstance: () => MockDbInstance } };
 
 type UpsertFn = (
-  collection: string,
-  predicate: (entry: MockDocument) => boolean,
-  doc: MockDocument
+  _collection: string,
+  _predicate: (_entry: MockDocument) => boolean,
+  _doc: MockDocument
 ) => MockDocument;
 
 const {
@@ -42,8 +42,8 @@ const {
 } = require('./seed-marketplace-shared.js') as {
   DEFAULT_TENANT_ID: string;
   COLLECTIONS: { SYNONYMS: string; PRODUCTS: string };
-  createUpsert: (db: MockDbInstance) => UpsertFn;
-  getSeedData: (tenantId?: string) => {
+  createUpsert: (_db: MockDbInstance) => UpsertFn;
+  getSeedData: (_tenantId?: string) => {
     synonyms: Array<Record<string, unknown>>;
     products: Array<Record<string, unknown>>;
   };

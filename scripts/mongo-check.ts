@@ -7,8 +7,7 @@ if (!uri) {
 (async () => {
   try {
     // Dynamic require to avoid dependency when unused
-     
-    const { MongoClient } = require("mongodb") as { MongoClient: typeof import("mongodb").MongoClient };
+    const { MongoClient } = await import("mongodb");
     const client = new MongoClient(uri, { serverSelectionTimeoutMS: 4000 });
     await client.connect();
     await client.db().command({ ping: 1 });

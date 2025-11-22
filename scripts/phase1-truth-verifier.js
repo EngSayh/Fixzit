@@ -243,7 +243,6 @@ async function runVerification() {
     'routes/marketplace.js'
   ];
   
-  let placeholderCount = 0;
   filesToCheck.forEach(file => {
     if (fs.existsSync(file)) {
       const content = fs.readFileSync(file, 'utf8');
@@ -251,7 +250,6 @@ async function runVerification() {
           content.includes('res.send("') ||
           content.includes('// TODO') ||
           content.includes('return { success: true }')) {
-        placeholderCount++;
         results.fake.push(`${file}: Contains placeholder code`);
       }
     } else {

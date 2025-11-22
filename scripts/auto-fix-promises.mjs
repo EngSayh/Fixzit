@@ -19,7 +19,7 @@ let skipped = 0;
 let failed = 0;
 
 for (const issue of issues) {
-  const { file, line, code, severity } = issue;
+  const { file, line, code, severity: _severity } = issue;
   
   // Skip test files, scripts, and certain patterns
   if (file.includes('/tests/') || 

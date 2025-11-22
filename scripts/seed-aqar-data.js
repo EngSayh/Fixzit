@@ -19,7 +19,6 @@ const mongoose = require('mongoose');
 const { faker } = require('@faker-js/faker');
 
 // Import models
-const { AqarListing } = require('../models/aqar');
 const { PropertyListing } = require('../server/models/aqar/PropertyListing');
 const { RealEstateAgent } = require('../server/models/aqar/RealEstateAgent');
 const { ViewingRequest } = require('../server/models/aqar/ViewingRequest');

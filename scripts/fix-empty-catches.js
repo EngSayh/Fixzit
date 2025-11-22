@@ -24,7 +24,6 @@ function fixEmptyCatches(directory) {
       fixEmptyCatches(fullPath);
     } else if (file.endsWith('.js')) {
       let content = fs.readFileSync(fullPath, 'utf8');
-      const originalContent = content;
       let fileFixCount = 0;
       
       // Pattern 1: Empty catch blocks

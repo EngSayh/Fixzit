@@ -549,7 +549,7 @@ class MasterAuditSystem {
   consolidateIssues() {
     let critical = 0, high = 0, medium = 0, low = 0;
     
-    for (const [module, issues] of this.issues) {
+    for (const [, issues] of this.issues) {
       for (const issue of issues) {
         switch (issue.severity) {
           case 'CRITICAL': critical++; break;

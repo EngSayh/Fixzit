@@ -1,6 +1,5 @@
 // combine-all-models.js
 const fs = require('fs');
-const path = require('path');
 
 console.log('📦 COMBINING ALL 15 MODELS FROM 3 PARTS...\n');
 

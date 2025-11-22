@@ -59,7 +59,7 @@ async function verifyPasswords() {
             found = true;
             break;
           }
-        } catch (error) {
+        } catch (_error) {
           // Skip invalid hashes
         }
       }
@@ -85,7 +85,7 @@ async function verifyPasswords() {
             console.log('');
             break;
           }
-        } catch (error) {
+        } catch (_error) {
           // Skip
         }
       }
@@ -97,8 +97,9 @@ async function verifyPasswords() {
     console.log('   2. Use one of the email/password combinations above');
     console.log('   3. If login fails, check browser console for errors');
 
-  } catch (error: any) {
-    console.error('\n❌ Error:', error.message);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('\n❌ Error:', err.message);
     process.exit(1);
   } finally {
     await mongoose.disconnect();

@@ -5,7 +5,7 @@ const { requireEnv } = require('../lib/env');
 let jwtSecret;
 try {
   jwtSecret = requireEnv('JWT_SECRET');
-} catch (error) {
+} catch (_error) {
   console.error('❌ JWT_SECRET is required to run this script.');
   console.error('   Set JWT_SECRET in your environment before running auth tests.');
   process.exit(1);

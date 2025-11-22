@@ -17,7 +17,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
 const DRY_RUN = process.argv.includes('--dry-run');
 
@@ -114,15 +113,6 @@ const COLOR_MAPPINGS = {
   
   'hover:bg-indigo-700': 'hover:bg-accent',
 };
-
-// Gray colors - keep Tailwind (neutral, used for UI structure)
-const SKIP_PATTERNS = [
-  /bg-gray-/,
-  /text-gray-/,
-  /border-gray-/,
-  /hover:bg-gray-/,
-  /hover:text-gray-/,
-];
 
 function shouldSkipFile(filePath) {
   const skipPaths = [

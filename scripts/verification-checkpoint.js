@@ -51,7 +51,7 @@ async function quickHealthCheck() {
     const dashboard = await fetch('http://localhost:5000/dashboard.html');
     checks.dashboardAccessible = dashboard.ok;
     
-  } catch (error) {
+  } catch (_error) {
     console.log("⚠️ Some checks failed - this is normal on first run");
   }
 
@@ -139,7 +139,7 @@ async function checkCriticalWorkflows() {
     const approval = await fetch('http://localhost:5000/api/auth/login');
     workflows.ownerApprovalFlow = (approval.status !== 500);
     
-  } catch (error) {
+  } catch (_error) {
     console.log("⚠️ Workflow checks incomplete");
   }
   
@@ -161,6 +161,7 @@ async function runVerificationCheckpoint() {
   console.log("🛑 FIXZIT SOUQ VERIFICATION CHECKPOINT");
   console.log("⏰ Time check: " + new Date().toISOString());
   console.log("============================================================");
+  console.log("Checkpoint metadata:", JSON.stringify(VERIFICATION_CHECKPOINT));
   
   // Run all checks
   const healthOK = await quickHealthCheck();

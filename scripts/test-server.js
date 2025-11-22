@@ -19,8 +19,8 @@ try {
   console.log('   ✅ bcryptjs installed');
   require('express-validator');
   console.log('   ✅ express-validator installed');
-} catch (_e) {
-  console.log('   ❌ Missing dependency:', e.message);
+} catch (error) {
+  console.log('   ❌ Missing dependency:', error instanceof Error ? error.message : String(error));
 }
 
 // Test 3: Middleware
@@ -32,8 +32,8 @@ try {
   console.log('   ✅ auth middleware loaded');
   require('./middleware/validation');
   console.log('   ✅ validation middleware loaded');
-} catch (_e) {
-  console.log('   ❌ Middleware error:', e.message);
+} catch (error) {
+  console.log('   ❌ Middleware error:', error instanceof Error ? error.message : String(error));
 }
 
 // Test 4: Models
@@ -43,8 +43,8 @@ try {
   console.log('   ✅ User model loaded');
   require('./models/Tenant');
   console.log('   ✅ Tenant model loaded');
-} catch (_e) {
-  console.log('   ❌ Model error:', e.message);
+} catch (error) {
+  console.log('   ❌ Model error:', error instanceof Error ? error.message : String(error));
 }
 
 // Test 5: Routes
@@ -52,8 +52,8 @@ console.log('\n5️⃣ Routes Check:');
 try {
   require('./routes/auth');
   console.log('   ✅ Auth routes loaded');
-} catch (_e) {
-  console.log('   ❌ Routes error:', e.message);
+} catch (error) {
+  console.log('   ❌ Routes error:', error instanceof Error ? error.message : String(error));
 }
 
 console.log('\n✅ All tests completed!');

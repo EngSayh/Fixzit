@@ -16,7 +16,6 @@
  */
 
 import { promises as fs } from 'fs';
-import path from 'path';
 
 interface FixResult {
   file: string;
@@ -24,6 +23,17 @@ interface FixResult {
   linesChanged: number[];
   success: boolean;
   error?: string;
+}
+
+interface PriorityIssue {
+  severity: string;
+  file: string;
+  line: number;
+  type: string;
+}
+
+interface IssueReport {
+  issues: PriorityIssue[];
 }
 
 const fixes: FixResult[] = [];
@@ -37,18 +47,18 @@ async function fixUnhandledPromises() {
   
   const report = JSON.parse(
     await fs.readFile('_artifacts/scans/unhandled-promises.json', 'utf-8')
-  );
+  ) as IssueReport;
 
-  const critical = report.issues.filter((i: any) => i.severity === 'critical');
-  const major = report.issues.filter((i: any) => i.severity === 'major');
+  const critical = report.issues.filter((i) => i.severity === 'critical');
+  const major = report.issues.filter((i) => i.severity === 'major');
 
   console.log(`🔴 ${critical.length} critical issues`);
   console.log(`🟧 ${major.length} major issues\n`);
 
   // Group by file for batch processing
-  const fileGroups = new Map<string, any[]>();
+  const fileGroups = new Map<string, PriorityIssue[]>();
   
-  [...critical, ...major].forEach((issue: any) => {
+  [...critical, ...major].forEach((issue) => {
     if (!fileGroups.has(issue.file)) {
       fileGroups.set(issue.file, []);
     }
@@ -154,15 +164,15 @@ async function fixHydrationMismatches() {
   
   const report = JSON.parse(
     await fs.readFile('_artifacts/scans/hydration-mismatches.json', 'utf-8')
-  );
+  ) as IssueReport;
 
-  const critical = report.issues.filter((i: any) => i.severity === 'critical');
+  const critical = report.issues.filter((i) => i.severity === 'critical');
 
   console.log(`🔴 ${critical.length} critical hydration issues\n`);
 
   // Group by file
-  const fileGroups = new Map<string, any[]>();
-  critical.forEach((issue: any) => {
+  const fileGroups = new Map<string, PriorityIssue[]>();
+  critical.forEach((issue) => {
     if (!fileGroups.has(issue.file)) {
       fileGroups.set(issue.file, []);
     }

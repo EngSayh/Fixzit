@@ -43,7 +43,15 @@ function parseArgs(argv: string[]): Options {
 
 async function run() {
   const opts = parseArgs(process.argv);
-  const result: any = { success: false, filePath: opts.filePath };
+  interface RunResult {
+    success: boolean;
+    filePath: string;
+    message?: string;
+    backupPath?: string;
+    bytesWritten?: number;
+  }
+
+  const result: RunResult = { success: false, filePath: opts.filePath };
   
   try {
     const exists = fs.existsSync(opts.filePath);

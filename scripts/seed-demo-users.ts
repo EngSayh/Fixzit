@@ -246,7 +246,7 @@ async function seedDemoUsers() {
       
       if (existingUser) {
         // Update existing user's password using direct MongoDB update to skip validation
-        const updateFields: Record<string, any> = {
+        const updateFields: Record<string, unknown> = {
           password: hashedPassword,
           status: 'ACTIVE',
           username: userData.username

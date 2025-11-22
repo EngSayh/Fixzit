@@ -9,10 +9,11 @@ async function listIndexes() {
       throw new Error('Database connection not established');
     }
     const coll = mongoose.connection.db.collection('users');
-    const indexes = await coll.listIndexes().toArray();
+    type IndexInfo = { name?: string; key?: unknown; unique?: boolean; sparse?: boolean };
+    const indexes = (await coll.listIndexes().toArray()) as IndexInfo[];
     
     console.log('Users collection indexes:');
-    indexes.forEach((idx: any) => {
+    indexes.forEach((idx) => {
       console.log(`\n  Name: ${idx.name}`);
       console.log(`  Keys: ${JSON.stringify(idx.key)}`);
       if (idx.unique) console.log(`  Unique: YES`);

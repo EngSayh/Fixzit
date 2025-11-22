@@ -36,8 +36,8 @@ async function testIndexes(db) {
         const keys = Object.keys(idx.key).join(', ');
         console.log(`    - ${idx.name}: ${keys}${idx.unique ? ' (unique)' : ''}`);
       });
-    } catch (err) {
-      console.log(`⚠️  ${collName}: Collection not found`);
+    } catch (error) {
+      console.log(`⚠️  ${collName}: Collection not found (${error.message})`);
     }
   }
 }

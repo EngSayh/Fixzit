@@ -33,12 +33,7 @@ export default [
       'public/**',
       
       // Large non-critical directories
-      'packages/**',
       'database/**',
-      'deployment/**',
-      'scripts/**',
-      'tools/**',
-      'qa/**',
       '_deprecated/**',
       'aws/dist/**',
       'models/**',
@@ -285,14 +280,31 @@ export default [
   // Scripts and tooling - Most permissive
   {
     files: ['scripts/**/*', 'packages/**/*', 'deployment/**/*', 'tools/**/*'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        $: 'readonly', // zx
+        cd: 'readonly',
+        db: 'readonly', // mongo shell
+        ObjectId: 'readonly', // mongo shell
+        __ENV: 'readonly', // k6
+      },
+    },
     rules: {
       '@typescript-eslint/no-var-requires': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/ban-ts-comment': 'off',
-      'no-undef': 'off',
-      'no-unused-vars': 'off',
+      '@typescript-eslint/no-explicit-any': ['error'],
+      '@typescript-eslint/no-unused-vars': ['error', { 
+        argsIgnorePattern: '^_', 
+        varsIgnorePattern: '^_', 
+        caughtErrorsIgnorePattern: '^_' 
+      }],
+      'no-unused-vars': ['error', { 
+        argsIgnorePattern: '^_', 
+        varsIgnorePattern: '^_', 
+        caughtErrorsIgnorePattern: '^_' 
+      }],
     },
   },
 ];

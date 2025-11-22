@@ -232,6 +232,7 @@ app.post('/api/test/tenant-request', require('./routes/auth').authenticateToken,
       result
     });
   } catch (error) {
+        console.error('Workflow test failed:', error);
         res.status(500).json({ error: 'Workflow test failed' });
   }
 });
@@ -260,13 +261,14 @@ app.post('/api/test/websocket', require('./routes/auth').authenticateToken, asyn
       connections: realtimeService.trackActiveConnections()
     });
   } catch (error) {
+        console.error('WebSocket test failed:', error);
         res.status(500).json({ error: 'WebSocket test failed' });
   }
 });
 
 // Home route
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(_path.join(__dirname, 'public', 'index.html'));
 });
 
 // 404 handler

@@ -9,7 +9,7 @@ import { Property } from '@/server/models/Property';
 import { WorkOrder } from '@/server/models/WorkOrder';
 import { computeDueAt, computeSlaMinutes } from '@/lib/sla';
 import { Invoice } from '@/server/models/Invoice';
-import { Asset } from '@/server/models/Asset';
+import type { WorkOrderPriority } from '@/server/models/WorkOrder';
 
 async function main() {
   const tenantId = 'demo-tenant';
@@ -23,7 +23,8 @@ async function main() {
     { code: 'PROP-REAL-003', name: 'Dammam Logistics Park', type: 'INDUSTRIAL', city: 'Dammam', region: 'Eastern', lat: 26.4207, lng: 50.0888, area: 78000, floors: 3, occ: 73 },
   ];
 
-  const createdProps: any[] = [];
+  type CreatedProp = { _id?: { toString(): string }; id?: string };
+  const createdProps: CreatedProp[] = [];
   for (const p of props) {
     const doc = await Property.findOneAndUpdate(
       { tenantId, code: p.code },
@@ -69,8 +70,8 @@ async function main() {
     const seq = Math.floor((Date.now() / 1000) % 100000);
     const code = `WO-REAL-${seq}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
     const createdAt = new Date();
-    // TODO(type-safety): Ensure w.priority matches WorkOrderPriority enum
-    const slaMinutes = computeSlaMinutes(w.priority as any);
+    const priority = w.priority as WorkOrderPriority;
+    const slaMinutes = computeSlaMinutes(priority);
     const dueAt = computeDueAt(createdAt, slaMinutes);
     const propId = createdProps[w.prop]?._id?.toString() || createdProps[w.prop]?.id;
     await WorkOrder.create({
@@ -127,4 +128,3 @@ main().then(() => process.exit(0)).catch((err) => {
   console.error('❌ Real DB seed failed:', err);
   process.exit(1);
 });
-

@@ -63,7 +63,7 @@ function makeRequest(url, options = {}) {
             headers: res.headers,
             data: parsed
           });
-        } catch (e) {
+        } catch (_e) {
           resolve({
             status: res.statusCode,
             headers: res.headers,

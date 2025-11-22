@@ -30,7 +30,7 @@ async function createATSIndexes() {
   
   try {
     // Connect to MongoDB
-    const conn = await dbConnect();
+    await dbConnect();
     console.log('✅ Connected to MongoDB\n');
     
     const db = mongoose.connection.db;

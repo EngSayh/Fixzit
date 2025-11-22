@@ -5,7 +5,7 @@
  */
 
 // Secrets currently in Vercel (from vercel env ls)
-const vercelSecrets = [
+const _vercelSecrets = [
   'Next_Auth_Secret',
   'GOOGLE_MAPS_API_KEY',
   'SEND_GRID',

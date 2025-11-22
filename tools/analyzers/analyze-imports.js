@@ -97,7 +97,7 @@ files.forEach(file => {
         }
       }
     });
-  } catch (err) {
+  } catch (_err) {
     // Skip files that can't be read
   }
 });

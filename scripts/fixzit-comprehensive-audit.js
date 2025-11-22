@@ -41,8 +41,6 @@ const auditResults = {
   }
 };
 
-// Track progress
-let filesScanned = 0;
 let issuesFound = 0;
 let issuesFixed = 0;
 
@@ -51,7 +49,6 @@ let issuesFixed = 0;
 // ==============================================================
 
 function scanFile(filePath, relativePath) {
-  filesScanned++;
   const content = fs.readFileSync(filePath, 'utf8');
   const lines = content.split('\n');
   let fileIssues = [];

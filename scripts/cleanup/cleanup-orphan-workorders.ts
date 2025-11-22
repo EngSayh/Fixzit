@@ -21,14 +21,17 @@ async function cleanup() {
   let attachmentDeletes = 0;
   let attachmentFailures = 0;
 
-  for (const wo of orphans) {
-    const keys = (wo.attachments || []).map((a: any) => a.key).filter(Boolean) as string[];
+  type OrphanWorkOrder = { _id?: unknown; attachments?: Array<{ key?: string }> };
+
+  for (const wo of orphans as OrphanWorkOrder[]) {
+    const attachments = wo.attachments ?? [];
+    const keys = attachments.map((a) => a.key).filter(Boolean) as string[];
     if (keys.length) {
       const results = await Promise.allSettled(keys.map((k) => deleteObject(k)));
       attachmentDeletes += results.filter((r) => r.status === 'fulfilled').length;
       attachmentFailures += results.filter((r) => r.status === 'rejected').length;
     }
-    await WorkOrder.deleteOne({ _id: (wo as any)._id });
+    await WorkOrder.deleteOne({ _id: wo._id });
     woDeleted += 1;
   }
 
