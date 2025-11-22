@@ -4,6 +4,20 @@ import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 
+const logInfo = (message: string) => {
+  process.stdout.write(`${message}\n`);
+};
+
+const logError = (message: string, error?: unknown) => {
+  const detail =
+    error instanceof Error
+      ? ` ${error.message}${error.stack ? `\n${error.stack}` : ''}`
+      : error
+      ? ` ${String(error)}`
+      : '';
+  process.stderr.write(`${message}${detail}\n`);
+};
+
 type MockDocument = Record<string, unknown>;
 
 type MockDbInstance = {
@@ -49,8 +63,7 @@ export async function main() {
   const tenantId = DEFAULT_TENANT_ID;
   const { synonyms, products } = getSeedData(tenantId);
 
-  // eslint-disable-next-line no-console
-  console.log(`[Marketplace seed] Preparing data for tenant: ${tenantId}`);
+  logInfo(`[Marketplace seed] Preparing data for tenant: ${tenantId}`);
 
   synonyms.forEach((synonym) => {
     upsert(
@@ -69,8 +82,7 @@ export async function main() {
     );
   });
 
-  // eslint-disable-next-line no-console
-  console.log('✔ Marketplace seed complete (MockDB)');
+  logInfo('✔ Marketplace seed complete (MockDB)');
 }
 
 export default main;
@@ -91,8 +103,7 @@ const isDirectExecution = (() => {
 
 if (isDirectExecution) {
   main().catch(error => {
-    // eslint-disable-next-line no-console
-    console.error('Failed to seed marketplace (MockDB)', error);
+    logError('Failed to seed marketplace (MockDB)', error);
     process.exitCode = 1;
   });
 }

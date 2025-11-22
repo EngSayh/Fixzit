@@ -18,6 +18,10 @@ try {
 const OUT_DIR = path.join(process.cwd(), '_artifacts');
 const OUT_FILE = path.join(OUT_DIR, 'Fixzit_Marketplace_Bible_v1.md');
 
+const logInfo = (message) => process.stdout.write(`${message}\n`);
+const logWarn = (message) => process.stderr.write(`${message}\n`);
+const logError = (message) => process.stderr.write(`${message}\n`);
+
 function ensureArtifactsDir(dirPath, fsModule) {
   if (!fsModule.existsSync(dirPath)) {
     fsModule.mkdirSync(dirPath, { recursive: true });
@@ -60,8 +64,7 @@ function main(options = {}) {
     if (isTestEnv) {
       shouldForceFailure = true;
     } else {
-      // eslint-disable-next-line no-console
-      console.warn(
+      logWarn(
         `[${correlationId}] Ignoring FIXZIT_BIBLE_FORCE_WRITE_ERROR because NODE_ENV is '${process.env.NODE_ENV ?? ''}'`
       );
     }
@@ -72,14 +75,12 @@ function main(options = {}) {
 
   if (shouldForceFailure) {
     const error = new Error('Forced write failure for tests');
-    // eslint-disable-next-line no-console
-    console.error(`[${correlationId}] Forced write failure:`, error.message);
+    logError(`[${correlationId}] Forced write failure: ${error.message}`);
     throw error;
   }
 
   fsModule.writeFileSync(OUT_FILE, content, 'utf8');
-  // eslint-disable-next-line no-console
-  console.log(`[${correlationId}] ✔ Marketplace Bible generated at`, OUT_FILE);
+  logInfo(`[${correlationId}] ✔ Marketplace Bible generated at ${OUT_FILE}`);
   return OUT_FILE;
 }
 
@@ -88,9 +89,8 @@ if (require.main === module) {
   try {
     main({ correlationId });
   } catch (error) {
-    // eslint-disable-next-line no-console
     const message = error instanceof Error ? error.message : String(error);
-    console.error(`[${correlationId}] Failed to generate marketplace bible:`, message);
+    logError(`[${correlationId}] Failed to generate marketplace bible: ${message}`);
     process.exitCode = 1;
   }
 }

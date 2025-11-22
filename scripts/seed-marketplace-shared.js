@@ -16,6 +16,10 @@ const MARKETPLACE_COLLECTIONS = {
 const localRequire = createRequire(__filename);
 const compiledTsCache = new Map();
 
+const logWarn = (message) => {
+  process.stderr.write(`${message}\n`);
+};
+
 function loadTypeScriptModule(tsPath) {
   const absolutePath = path.resolve(tsPath);
 
@@ -64,8 +68,7 @@ const DEFAULT_TENANT_ID = (() => {
   const isValid = /^[A-Za-z0-9_-]{3,50}$/.test(trimmed);
 
   if (!isValid) {
-    // eslint-disable-next-line no-console
-    console.warn(
+    logWarn(
       `[MarketplaceSeed] Invalid MARKETPLACE_DEFAULT_TENANT value "${envValue}". Falling back to "${DEFAULT_TENANT_FALLBACK}".`
     );
     return DEFAULT_TENANT_FALLBACK;
