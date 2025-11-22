@@ -1,12 +1,11 @@
 import { NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
-import { getDatabase } from '@/lib/mongodb-unified';
+import { getDatabase, type ConnectionDb } from '@/lib/mongodb-unified';
 import { getClientIP } from '@/server/security/headers';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import type { ConnectionDb } from '@/lib/mongodb-unified';
 
 type GetDbFn = () => Promise<ConnectionDb>;
 type QaAlertPayload = { event: string; data: unknown };
@@ -59,7 +58,7 @@ export async function POST(req: NextRequest) {
       userAgent: req.headers.get('user-agent'),
     });
 
-    logger.warn(`🚨 QA Alert: ${event}`, data);
+    logger.warn(`🚨 QA Alert: ${event}`, { event, data: typeof data === 'object' ? data : { value: data } });
 
     const successBody = { success: true };
     return createSecureResponse(successBody, 200, req);

@@ -8,10 +8,6 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const crypto = require('crypto');
-const { exec } = require('child_process');
-const util = require('util');
-const execPromise = util.promisify(exec);
 
 // Color codes for terminal output
 const colors = {
@@ -112,8 +108,9 @@ ${colors.reset}`);
       // Generate Report
       await this.generateReport();
       
-    } catch (error) {
-      console.error(`${colors.red}Scanner Error: ${error.message}${colors.reset}`);
+    } catch (_error) {
+      const message = _error instanceof Error ? _error.message : String(_error);
+      console.error(`${colors.red}Scanner Error: ${message}${colors.reset}`);
       process.exit(1);
     }
   }
@@ -146,7 +143,7 @@ ${colors.reset}`);
           issue: `Large file: ${lines} lines`
         });
       }
-    } catch (error) {
+    } catch (_error) {
       // File might be binary or inaccessible
     }
   }
@@ -193,7 +190,7 @@ ${colors.reset}`);
             }
           }
         }
-      } catch (err) {
+      } catch (_err) {
         // Directory might not be accessible
       }
     };
@@ -408,7 +405,7 @@ ${colors.reset}`);
       // Type errors
       { pattern: /any(?:\[\])?(?:\s*[,;]|\s*))/g, issue: 'Using "any" type', severity: Severity.LOW },
       { pattern: /@ts-ignore|@ts-nocheck/g, issue: 'TypeScript checks disabled', severity: Severity.MEDIUM },
-      { pattern: /\!\./g, issue: 'Non-null assertion operator', severity: Severity.LOW },
+      { pattern: /!\./g, issue: 'Non-null assertion operator', severity: Severity.LOW },
       
       // Common errors
       { pattern: /TODO|FIXME|HACK|XXX/g, issue: 'Unresolved TODO/FIXME', severity: Severity.LOW },
@@ -468,7 +465,7 @@ ${colors.reset}`);
           issue: `Many dev dependencies (${devDepCount})`,
         });
       }
-    } catch (err) {
+    } catch (_err) {
       // package.json might not exist
     }
     

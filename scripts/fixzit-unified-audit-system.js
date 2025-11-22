@@ -294,12 +294,12 @@ class MasterAuditSystem {
     console.log('📊 Auditing Facility Management Platform...');
     const results = [];
 
-    for (const module of this.fm.modules) {
-      const moduleAudit = await this.auditModule('FM', module);
+    for (const mod of this.fm.modules) {
+      const moduleAudit = await this.auditModule('FM', mod);
       results.push(moduleAudit);
       
       if (moduleAudit.issues.length > 0) {
-        this.issues.set(`FM.${module}`, moduleAudit.issues);
+        this.issues.set(`FM.${mod}`, moduleAudit.issues);
       }
     }
 
@@ -324,12 +324,12 @@ class MasterAuditSystem {
     console.log('🛒 Auditing Fixzit Souq Platform...');
     const results = [];
 
-    for (const module of this.souq.modules) {
-      const moduleAudit = await this.auditModule('SOUQ', module);
+    for (const mod of this.souq.modules) {
+      const moduleAudit = await this.auditModule('SOUQ', mod);
       results.push(moduleAudit);
       
       if (moduleAudit.issues.length > 0) {
-        this.issues.set(`SOUQ.${module}`, moduleAudit.issues);
+        this.issues.set(`SOUQ.${mod}`, moduleAudit.issues);
       }
     }
 
@@ -354,12 +354,12 @@ class MasterAuditSystem {
     console.log('🏠 Auditing Aqar Souq Platform...');
     const results = [];
 
-    for (const module of this.aqar.modules) {
-      const moduleAudit = await this.auditModule('AQAR', module);
+    for (const mod of this.aqar.modules) {
+      const moduleAudit = await this.auditModule('AQAR', mod);
       results.push(moduleAudit);
       
       if (moduleAudit.issues.length > 0) {
-        this.issues.set(`AQAR.${module}`, moduleAudit.issues);
+        this.issues.set(`AQAR.${mod}`, moduleAudit.issues);
       }
     }
 
@@ -625,16 +625,16 @@ class MasterAuditSystem {
   checkArabicTranslation() { return true; }
   checkHijriCalendar() { return true; }
   
-  checkModuleLoads(platform, module) {
+  checkModuleLoads(_platform, _module) {
     return Promise.resolve({ success: true, issue: null });
   }
-  checkModulePermissions(platform, module) {
+  checkModulePermissions(_platform, _module) {
     return Promise.resolve({ success: true, issue: null });
   }
-  checkModuleData(platform, module) {
+  checkModuleData(_platform, _module) {
     return Promise.resolve({ success: true, issue: null });
   }
-  checkModuleUI(platform, module) {
+  checkModuleUI(_platform, _module) {
     return Promise.resolve({ success: true, issue: null });
   }
   

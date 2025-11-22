@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { can } from "../rbac/workOrdersPolicy";
-import type { Role as WorkOrderRole } from "../rbac/workOrdersPolicy";
+import type { Role as WorkOrderRole, Ability as WorkOrderAbility } from "../rbac/workOrdersPolicy";
 import { auth } from "@/auth";
 import { logger } from '@/lib/logger';
 import { verifyToken } from '@/lib/auth';
@@ -46,6 +46,25 @@ const normalizeWorkOrderRole = (role?: UserRoleType): WorkOrderRole | null => {
   if (!role) return null;
   const upper = role.toUpperCase() as WorkOrderRole;
   return WORK_ORDER_ROLES.includes(upper) ? upper : null;
+};
+
+const WORK_ORDER_ABILITIES: WorkOrderAbility[] = [
+  "VIEW",
+  "CREATE",
+  "EDIT",
+  "ASSIGN",
+  "STATUS",
+  "VERIFY",
+  "CLOSE",
+  "DELETE",
+  "EXPORT",
+  "COMMENT",
+];
+
+const assertValidAbility = (ability: WorkOrderAbility) => {
+  if (!WORK_ORDER_ABILITIES.includes(ability)) {
+    throw new Error(`Invalid ability: ${ability}`);
+  }
 };
 
 /**
@@ -336,7 +355,8 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
   };
 }
 
-export function requireAbility(ability: Parameters<typeof can>[1]) {
+export function requireAbility(ability: WorkOrderAbility) {
+  assertValidAbility(ability);
   return async (req: NextRequest) => {
     try {
       const user = await getSessionUser(req);

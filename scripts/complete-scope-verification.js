@@ -178,13 +178,13 @@ async function testAllEndpoints() {
   let totalEndpoints = 0;
   let moduleResults = [];
   
-  for (const module of allModules) {
-    console.log(`\n📦 ${module.name.toUpperCase()} MODULE (${module.target} endpoints)`);
+  for (const mod of allModules) {
+    console.log(`\n📦 ${mod.name.toUpperCase()} MODULE (${mod.target} endpoints)`);
     console.log('-'.repeat(50));
     
     let moduleWorking = 0;
     
-    for (const test of module.tests) {
+    for (const test of mod.tests) {
       try {
         const config = {
           method: test.method,
@@ -219,15 +219,15 @@ async function testAllEndpoints() {
       totalEndpoints++;
     }
     
-    const modulePercentage = Math.round((moduleWorking / module.target) * 100);
+    const modulePercentage = Math.round((moduleWorking / mod.target) * 100);
     moduleResults.push({
-      name: module.name,
+      name: mod.name,
       working: moduleWorking,
-      total: module.target,
+      total: mod.target,
       percentage: modulePercentage
     });
     
-    console.log(`📊 ${module.name}: ${moduleWorking}/${module.target} = ${modulePercentage}%`);
+    console.log(`📊 ${mod.name}: ${moduleWorking}/${mod.target} = ${modulePercentage}%`);
   }
   
   const overallPercentage = Math.round((totalWorking / totalEndpoints) * 100);

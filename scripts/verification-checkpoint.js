@@ -90,17 +90,17 @@ async function checkModuleFunctionality() {
   
   let workingModules = 0;
   
-  for (const module of modules) {
+  for (const mod of modules) {
     try {
-      const response = await fetch(`http://localhost:5000/api/${module}`);
+      const response = await fetch(`http://localhost:5000/api/${mod}`);
       if (response.ok || response.status === 401 || response.status === 404) { // 404 means server responds
         workingModules++;
-        console.log(`✅ ${module}: Server responds`);
+        console.log(`✅ ${mod}: Server responds`);
       } else {
-        console.log(`❌ ${module}: Not responding`);
+        console.log(`❌ ${mod}: Not responding`);
       }
     } catch (error) {
-      console.log(`❌ ${module}: Error - ${error.message}`);
+      console.log(`❌ ${mod}: Error - ${error.message}`);
     }
   }
   

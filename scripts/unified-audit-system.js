@@ -313,8 +313,8 @@ class MasterAuditSystem {
     const moduleResults = [];
     let passedModules = 0;
     
-    for (const module of platform.modules) {
-      const moduleResult = await this.auditModule(platformName, module, authToken);
+    for (const mod of platform.modules) {
+      const moduleResult = await this.auditModule(platformName, mod, authToken);
       moduleResults.push(moduleResult);
       if (moduleResult.status === 'PASS') passedModules++;
     }
@@ -333,7 +333,7 @@ class MasterAuditSystem {
     return platformResult;
   }
 
-  async auditModule(platform, module, authToken) {
+  async auditModule(platform, moduleName, authToken) {
     // Map modules to actual API endpoints
     const endpointMap = {
       'Dashboard': '/api/dashboard',
@@ -350,7 +350,7 @@ class MasterAuditSystem {
       'Compliance': '/api/audit-logs'
     };
 
-    const endpoint = endpointMap[module] || `/api/${module.toLowerCase()}`;
+    const endpoint = endpointMap[moduleName] || `/api/${moduleName.toLowerCase()}`;
     
     try {
       const response = await axios.get(`${BASE_URL}${endpoint}`, {
@@ -359,7 +359,7 @@ class MasterAuditSystem {
       });
 
       return {
-        module,
+        module: moduleName,
         platform,
         endpoint,
         status: 'PASS',
@@ -369,7 +369,7 @@ class MasterAuditSystem {
       };
     } catch (error) {
       return {
-        module,
+        module: moduleName,
         platform,
         endpoint,
         status: 'FAIL',
@@ -748,7 +748,7 @@ class MasterAuditSystem {
   }
 
   // Mock test methods for demonstration
-  async testUnifiedRole(roleConfig, authToken) {
+  async testUnifiedRole(roleConfig, _authToken) {
     return { valid: true, crossPlatformAccess: roleConfig.crossPlatform };
   }
 
@@ -760,7 +760,7 @@ class MasterAuditSystem {
     return { valid: !!authToken, type: 'JWT' };
   }
 
-  async checkAPIPerformance(authToken) {
+  async checkAPIPerformance(_authToken) {
     return { averageResponseTime: '95ms', status: 'Good' };
   }
 
@@ -772,15 +772,15 @@ class MasterAuditSystem {
     return { supported: true, isolation: 'Organization-based' };
   }
 
-  async testWorkOrderFlow(authToken) {
+  async testWorkOrderFlow(_authToken) {
     return { operational: true, stages: 7 };
   }
 
-  async testProcurementFlow(authToken) {
+  async testProcurementFlow(_authToken) {
     return { operational: true, stages: 8 };
   }
 
-  async testListingFlow(authToken) {
+  async testListingFlow(_authToken) {
     return { operational: true, stages: 7 };
   }
 }

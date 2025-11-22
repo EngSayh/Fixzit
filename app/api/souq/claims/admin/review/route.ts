@@ -22,6 +22,15 @@ type ClaimLean = {
   claimId?: string;
   orderNumber?: string;
   orderId?: string;
+  buyerId?: { _id?: unknown; name?: string; email?: string } | string;
+  sellerId?: { _id?: unknown; name?: string; email?: string } | string;
+  buyerName?: string;
+  sellerName?: string;
+  claimNumber?: string;
+  type?: string;
+  claimType?: string;
+  _id?: { toString?: () => string };
+  updatedAt?: Date | string;
 } & Record<string, unknown>;
 
 const STATUS_MAP: Record<string, string[]> = {
@@ -298,8 +307,8 @@ export async function GET(request: NextRequest) {
         claimType,
         status: claim.status,
         claimAmount,
-        buyerName: claim.buyerId?.name || claim.buyerName || 'Unknown',
-        sellerName: claim.sellerId?.name || claim.sellerName || 'Unknown',
+        buyerName: (typeof claim.buyerId === 'object' && claim.buyerId?.name) || claim.buyerName || 'Unknown',
+        sellerName: (typeof claim.sellerId === 'object' && claim.sellerId?.name) || claim.sellerName || 'Unknown',
         
         // Fraud detection data
         fraudScore: fraudAnalysis.score,

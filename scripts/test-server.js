@@ -1,5 +1,4 @@
 require('dotenv').config();
-const mongoose = require('mongoose');
 
 console.log('🧪 Testing Fixzit Souq Server Components...\n');
 
@@ -27,11 +26,11 @@ try {
 // Test 3: Middleware
 console.log('\n3️⃣ Middleware Check:');
 try {
-  const asyncHandler = require('./utils/asyncHandler');
+  require('./utils/asyncHandler');
   console.log('   ✅ asyncHandler loaded');
-  const auth = require('./middleware/auth');
+  require('./middleware/auth');
   console.log('   ✅ auth middleware loaded');
-  const validation = require('./middleware/validation');
+  require('./middleware/validation');
   console.log('   ✅ validation middleware loaded');
 } catch (e) {
   console.log('   ❌ Middleware error:', e.message);
@@ -40,9 +39,9 @@ try {
 // Test 4: Models
 console.log('\n4️⃣ Models Check:');
 try {
-  const User = require('./models/User');
+  require('./models/User');
   console.log('   ✅ User model loaded');
-  const Tenant = require('./models/Tenant');
+  require('./models/Tenant');
   console.log('   ✅ Tenant model loaded');
 } catch (e) {
   console.log('   ❌ Model error:', e.message);
@@ -51,7 +50,7 @@ try {
 // Test 5: Routes
 console.log('\n5️⃣ Routes Check:');
 try {
-  const authRoutes = require('./routes/auth');
+  require('./routes/auth');
   console.log('   ✅ Auth routes loaded');
 } catch (e) {
   console.log('   ❌ Routes error:', e.message);

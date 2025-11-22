@@ -25,11 +25,20 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
 console.log('Updated: package.json\n');
 
 // Create scripts
-write('scripts/dedup/rules.ts', 'export const GOLDEN = { components: { Header: \"app/components/layout/Header.tsx\" } };');
-write('scripts/dedup/consolidate.ts', '#!/usr/bin/env tsx\nconst DRY = process.argv.includes(\"--dry\");\nconsole.log(DRY ? \"DRY RUN\" : \"APPLYING\");');
-write('scripts/ui/ui_freeze_check.ts', '#!/usr/bin/env tsx\nimport fs from \"fs\";\nif (fs.existsSync(\"app/layout.tsx\")) console.log(\"OK\");');
-write('scripts/sidebar/snapshot_check.ts', '#!/usr/bin/env tsx\nimport fs from \"fs\";\nconst snap = \"configs/sidebar.snapshot.json\";\nif (!fs.existsSync(snap)) fs.writeFileSync(snap, JSON.stringify([\"dashboard\"], null, 2));\nconsole.log(\"OK\");');
-write('scripts/i18n/check_language_selector.ts', '#!/usr/bin/env tsx\nconsole.log(\"Language selector OK\");');
+write('scripts/dedup/rules.ts', `export const GOLDEN = { components: { Header: "app/components/layout/Header.tsx" } };`);
+write('scripts/dedup/consolidate.ts', `#!/usr/bin/env tsx
+const DRY = process.argv.includes('--dry');
+console.log(DRY ? 'DRY RUN' : 'APPLYING');`);
+write('scripts/ui/ui_freeze_check.ts', `#!/usr/bin/env tsx
+import fs from 'fs';
+if (fs.existsSync('app/layout.tsx')) console.log('OK');`);
+write('scripts/sidebar/snapshot_check.ts', `#!/usr/bin/env tsx
+import fs from 'fs';
+const snap = 'configs/sidebar.snapshot.json';
+if (!fs.existsSync(snap)) fs.writeFileSync(snap, JSON.stringify(['dashboard'], null, 2));
+console.log('OK');`);
+write('scripts/i18n/check_language_selector.ts', `#!/usr/bin/env tsx
+console.log('Language selector OK');`);
 
 // Create GitHub files
 write('.github/workflows/guardrails.yml', 'name: Guardrails\non:\n  pull_request:\n    branches: [main]\njobs:\n  check:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n      - run: npm ci\n      - run: npm run ui:freeze:check');

@@ -50,10 +50,10 @@ function logSummary(metrics: RouteAliasMetrics) {
   console.log('✅ All alias files resolved to real target files.');
 
   console.log('\nModule summary:');
-  for (const module of metrics.modules) {
-    const targetWord = module.uniqueTargets === 1 ? 'target' : 'targets';
+  for (const mod of metrics.modules) {
+    const targetWord = mod.uniqueTargets === 1 ? 'target' : 'targets';
     console.log(
-      ` - ${module.module}: ${module.aliases} alias files, ${module.uniqueTargets} ${targetWord} (${module.missing} missing)`
+      ` - ${mod.module}: ${mod.aliases} alias files, ${mod.uniqueTargets} ${targetWord} (${mod.missing} missing)`
     );
   }
 

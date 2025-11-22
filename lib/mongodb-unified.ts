@@ -86,7 +86,7 @@ export async function checkDatabaseHealth(): Promise<boolean> {
   }
 }
 
-type ConnectionDb = NonNullable<typeof mongoose.connection.db>;
+export type ConnectionDb = NonNullable<typeof mongoose.connection.db>;
 
 export async function getDatabase(): Promise<ConnectionDb> {
   if (disableMongoForBuild) {
