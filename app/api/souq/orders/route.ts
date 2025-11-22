@@ -154,8 +154,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (process.env.NODE_ENV === 'test') {
-      // eslint-disable-next-line no-console
-      console.error('[Souq orders debug] SouqListing.find type', typeof SouqListing.find);
+      logger.error('[Souq orders debug] SouqListing.find type', { type: typeof SouqListing.find });
     }
     const listingsQuery = SouqListing.find({
       _id: { $in: listingObjectIds },
@@ -168,8 +167,7 @@ export async function POST(request: NextRequest) {
 
     if (listings.length !== validatedData.items.length) {
       if (process.env.NODE_ENV === 'test') {
-        // eslint-disable-next-line no-console
-        console.error('[Souq orders debug] listings mismatch', {
+        logger.error('[Souq orders debug] listings mismatch', {
           requestedIds: listingObjectIds.map((id) => id.toString()),
           resultLength: listings.length,
           rawResult: listingsResult,
@@ -356,8 +354,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (process.env.NODE_ENV === 'test') {
-      // eslint-disable-next-line no-console
-      console.error('[Souq orders error]', (error as Error)?.message);
+      logger.error('[Souq orders error]', { message: (error as Error)?.message });
     }
 
     logger.error('Order creation error:', error as Error);

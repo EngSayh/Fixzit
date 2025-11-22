@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Star, ShoppingCart } from 'lucide-react';
 import { AuctionWinner } from '@/services/souq/ads/auction-engine';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { logger } from '@/lib/logger';
 
 interface ProductDetailAdProps {
   winners: AuctionWinner[];
@@ -96,10 +97,7 @@ export function ProductDetailAd({
         }),
       });
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('[ProductDetailAd] Failed to track impression:', error);
-      }
+      logger.error('[ProductDetailAd] Failed to track impression', error);
     }
   };
 
@@ -125,10 +123,7 @@ export function ProductDetailAd({
 
       window.location.href = `/souq/products/${winner.productId}`;
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('[ProductDetailAd] Failed to track click:', error);
-      }
+      logger.error('[ProductDetailAd] Failed to track click', error);
       window.location.href = `/souq/products/${winner.productId}`;
     }
   };

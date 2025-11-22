@@ -89,10 +89,7 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
         setPagination(data.pagination);
       }
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('Error fetching transactions:', error);
-      }
+      logger.error('Error fetching transactions', error);
     } finally {
       setLoading(false);
     }

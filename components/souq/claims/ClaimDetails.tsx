@@ -25,6 +25,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 interface Evidence {
   url: string;
@@ -149,10 +150,7 @@ export default function ClaimDetails({ claimId, userRole, onActionRequired }: Cl
         setClaim(data.claim || data);
       }
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('Failed to fetch claim:', error);
-      }
+      logger.error('Failed to fetch claim', error);
     } finally {
       setLoading(false);
     }

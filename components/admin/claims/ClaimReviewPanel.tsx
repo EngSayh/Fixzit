@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 const STATUS_FILTER_MAP: Record<string, string[]> = {
   'pending-decision': ['pending_investigation', 'pending_seller_response', 'under_review', 'pending_review'],
@@ -141,10 +142,7 @@ export default function ClaimReviewPanel() {
         throw new Error(errorData.error || 'فشل تحميل قائمة المطالبات. يرجى المحاولة مرة أخرى.');
       }
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('Failed to fetch claims:', error);
-      }
+      logger.error('Failed to fetch claims', error);
       const message =
         error instanceof Error ? error.message : 'تعذر الاتصال بالخادم. يرجى المحاولة مرة أخرى.';
       toast({

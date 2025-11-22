@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface Product {
   fsin: string;
@@ -119,10 +120,7 @@ export function SponsoredBrandBanner({
         }),
       });
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('[SponsoredBrandBanner] Failed to track impression:', error);
-      }
+      logger.error('[SponsoredBrandBanner] Failed to track impression', error);
     }
   };
 
@@ -149,10 +147,7 @@ export function SponsoredBrandBanner({
 
       window.location.href = `/souq/products/${productId}`;
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('[SponsoredBrandBanner] Failed to track click:', error);
-      }
+      logger.error('[SponsoredBrandBanner] Failed to track click', error);
       window.location.href = `/souq/products/${productId}`;
     }
   };

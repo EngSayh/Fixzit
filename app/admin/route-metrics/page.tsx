@@ -15,6 +15,7 @@ import {
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { toast } from 'sonner';
 import { BarChart, Activity, Target, AlertCircle, TrendingUp, RefreshCw, Loader2, Download } from 'lucide-react';
+import { logger } from '@/lib/logger';
 import {
   AreaChart,
   Area,
@@ -243,10 +244,7 @@ export default function RouteMetricsPage() {
         setDuplicationTrend({ current: null, previous: null });
       }
     } catch (err) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error(err);
-      }
+      logger.error('[RouteMetrics] Failed to load history snapshots', err);
       toast.error(auto('Failed to load history', 'history.error'));
     }
   }, [auto]);

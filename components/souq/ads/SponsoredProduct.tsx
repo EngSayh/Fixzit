@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Star, ShoppingCart } from 'lucide-react';
 import { AuctionWinner } from '@/services/souq/ads/auction-engine';
+import { logger } from '@/lib/logger';
 
 interface SponsoredProductProps {
   winner: AuctionWinner;
@@ -98,10 +99,7 @@ export function SponsoredProduct({
         }),
       });
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('[SponsoredProduct] Failed to track impression:', error);
-      }
+      logger.error('[SponsoredProduct] Failed to track impression', error);
     }
   };
 
@@ -130,19 +128,13 @@ export function SponsoredProduct({
       });
 
       if (!response.ok) {
-        if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.error('[SponsoredProduct] Click tracking failed:', response.statusText);
-        }
+        logger.error('[SponsoredProduct] Click tracking failed', { statusText: response.statusText });
       }
 
       // Navigate to product page
       window.location.href = `/souq/products/${winner.productId}`;
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('[SponsoredProduct] Failed to track click:', error);
-      }
+      logger.error('[SponsoredProduct] Failed to track click', error);
       // Still navigate even if tracking fails
       window.location.href = `/souq/products/${winner.productId}`;
     } finally {

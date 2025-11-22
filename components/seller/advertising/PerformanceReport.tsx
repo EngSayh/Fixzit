@@ -9,6 +9,7 @@ import {
   ArrowUpDown,
 } from 'lucide-react';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { logger } from '@/lib/logger';
 
 interface PerformanceData {
   date: string;
@@ -133,10 +134,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
       setKeywordData(report.keywords || []);
       setProductData(report.products || []);
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('Failed to load performance data:', error);
-      }
+      logger.error('Failed to load performance data', error);
     } finally {
       setIsLoading(false);
     }

@@ -3,6 +3,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
 import { logSecurityEvent } from '@/lib/monitoring/security-events';
+import { logger } from '@/lib/logger';
 
 type RateLimitOptions = {
   /**
@@ -55,10 +56,7 @@ export function enforceRateLimit(
     }).catch(err => {
       // Silently fail logging to avoid blocking rate limit enforcement
       // Error is already handled by logSecurityEvent internal logging
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('[RateLimit] Failed to log security event:', err);
-      }
+      logger.error('[RateLimit] Failed to log security event', err);
     });
 
     const response = rateLimitError();

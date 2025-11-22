@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { logger } from '@/lib/logger';
 
 // Helper to generate unique IDs using modern crypto API
 const generateId = (): string => {
@@ -39,17 +40,11 @@ export default function ChatWidget() {
       
       // Check HTTP status before parsing
       if (!res.ok) {
-        if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.error('[ChatWidget] API error:', res.status, res.statusText);
-        }
+        logger.error('[ChatWidget] API error', { status: res.status, statusText: res.statusText });
         let errorMsg = 'حدث خطأ، يرجى المحاولة لاحقًا.';
         try {
           const errorData = await res.json();
-          if (process.env.NODE_ENV !== 'production') {
-            // eslint-disable-next-line no-console
-            console.error('[ChatWidget] Error details:', errorData);
-          }
+          logger.error('[ChatWidget] Error details', errorData);
           errorMsg = errorData.error || errorMsg;
         } catch {
           // Failed to parse error JSON, use default message
@@ -64,10 +59,7 @@ export default function ChatWidget() {
       const botReplyId = `bot-${generateId()}`;
       setMessages((prev) => [...prev, { id: botReplyId, from: 'bot', text: reply }]);
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('[ChatWidget] Network error:', error);
-      }
+      logger.error('[ChatWidget] Network error', error);
       const botNetworkErrorId = `bot-${generateId()}`;
       setMessages((prev) => [...prev, { id: botNetworkErrorId, from: 'bot', text: 'تعذر إرسال الرسالة، حاول مرة أخرى.' }]);
     } finally {

@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 type ReportJob = {
   id: string;
@@ -42,10 +43,7 @@ export default function ReportsPage() {
         setJobs(data.data || []);
       }
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('Failed to load report jobs', error);
-      }
+      logger.error('Failed to load report jobs', error);
     } finally {
       setLoading(false);
     }

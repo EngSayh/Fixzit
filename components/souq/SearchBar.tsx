@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, X, Clock, TrendingUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDebounce } from '@/hooks/useDebounce';
+import { logger } from '@/lib/logger';
 
 interface SearchSuggestion {
   type: 'product' | 'category' | 'recent';
@@ -73,10 +74,7 @@ export default function SearchBar({
 
         setSuggestions([...productSuggestions, ...categorySuggestions]);
       } catch (error) {
-        if (process.env.NODE_ENV !== 'production') {
-          // eslint-disable-next-line no-console
-          console.error('Failed to fetch search suggestions:', error);
-        }
+        logger.error('Failed to fetch search suggestions', error);
         setSuggestions([]);
       } finally {
         setIsLoading(false);
@@ -196,10 +194,7 @@ export default function SearchBar({
       const updated = [searchQuery, ...recent.filter((s: string) => s !== searchQuery)].slice(0, 10);
       localStorage.setItem('recentSearches', JSON.stringify(updated));
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('Failed to save recent search:', error);
-      }
+      logger.error('Failed to save recent search', error);
     }
   };
 

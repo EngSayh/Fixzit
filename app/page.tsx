@@ -38,7 +38,7 @@ export default function LandingPage() {
 
   const heroHighlights = [
     { id: 'rapid-rfq', text: translate('Rapid RFQ', 'hero.highlights.rapidRfq') },
-    { id: 'linked-orders', text: translate('Work Order linked orders', 'hero.highlights.linkedOrkers') },
+    { id: 'linked-orders', text: translate('Work Order linked orders', 'hero.highlights.linkedOrders') },
     { id: 'finance-ready', text: translate('Finance ready invoices', 'hero.highlights.financeReady') },
   ];
 

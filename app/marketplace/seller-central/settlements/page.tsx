@@ -12,6 +12,7 @@ import { WithdrawalForm } from '@/components/seller/settlements/WithdrawalForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useI18n } from '@/i18n/useI18n';
+import { logger } from '@/lib/logger';
 
 export default function SellerSettlementsPage() {
   const { t } = useI18n();
@@ -40,10 +41,7 @@ export default function SellerSettlementsPage() {
         setBalance(data.balance);
       }
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('Error fetching balance:', error);
-      }
+      logger.error('Error fetching balance', error);
     } finally {
       setLoading(false);
     }

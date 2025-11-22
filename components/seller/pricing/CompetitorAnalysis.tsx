@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { logger } from '@/lib/logger';
 
 interface CompetitorAnalysisProps {
   fsin: string;
@@ -32,10 +33,7 @@ export default function CompetitorAnalysis({ fsin }: CompetitorAnalysisProps) {
         const data = await response.json();
         setAnalysis(data.analysis);
     } catch (error) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('Failed to fetch competitor analysis:', error);
-      }
+      logger.error('Failed to fetch competitor analysis', error);
     } finally {
       setLoading(false);
     }

@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { CheckCircle, Upload, FileText, CreditCard, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logger } from '@/lib/logger';
 
 interface FileUpload {
   file: File | null;
@@ -149,10 +150,7 @@ export default function SellerOnboarding() {
       router.push('/marketplace/vendor/portal');
     } catch (error) {
       // Log error for debugging while preserving user experience
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.error('Onboarding error:', error);
-      }
+      logger.error('Onboarding error', error);
       setSubmitError(
         error instanceof Error
           ? error.message

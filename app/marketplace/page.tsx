@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { logger } from '@/lib/logger';
 import ProductCard from '@/components/marketplace/ProductCard';

@@ -63,8 +63,7 @@ export async function POST(req: NextRequest) {
     return createSecureResponse(successBody, 200, req);
   } catch (error) {
     if (process.env.NODE_ENV === 'test') {
-      // eslint-disable-next-line no-console
-      console.error('[QA alert debug]', error);
+      logger.error('[QA alert debug]', error);
     }
     logger.error('Failed to process QA alert:', error instanceof Error ? error.message : 'Unknown error');
     const errorBody = { error: 'Failed to process alert' };

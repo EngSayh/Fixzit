@@ -4,6 +4,7 @@ import { createSecureResponse } from '@/server/security/headers';
 import { scanS3Object } from '@/lib/security/av-scan';
 import { validateBucketPolicies } from '@/lib/security/s3-policy';
 import { Config } from '@/lib/config/constants';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,10 +32,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, clean: true });
   } catch (err) {
-    if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
-      console.error('[Upload Scan] Error', err);
-    }
+    logger.error('[Upload Scan] Error', err);
     return createSecureResponse({ error: 'Scan error' }, 500, req);
   }
 }

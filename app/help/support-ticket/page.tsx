@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { FormWithNavigation } from '@/components/ui/navigation-buttons';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { logger } from '@/lib/logger';
 
 /**
  * Renders a support ticket submission form and handles creating tickets via the app API.
@@ -107,10 +108,7 @@ export default function SupportTicketPage() {
       if (typeof alert === 'function') {
         alert(errorMessage);
       }
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('[SupportTicket] Submission error:', err);
-      }
+      logger.error('[SupportTicket] Submission error', err);
     } finally {
       // Defer reset so UI stays in "submitting" state briefly (helps UX and tests)
       setTimeout(() => setIsSubmitting(false), 50);
