@@ -107,8 +107,8 @@ test.describe('Global Layout & Navigation - All Pages', () => {
 
       // ============ LAYOUT ASSERTIONS ============
       
-      // Header must exist
-      const header = browser.locator('header').first();
+      // Header/banner must exist
+      const header = browser.locator('header, [role=\"banner\"]').first();
       await expect.soft(header).toBeVisible({ timeout: 10000 });
 
       // Footer must exist (may be at bottom, need to scroll)

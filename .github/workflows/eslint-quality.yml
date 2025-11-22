@@ -82,7 +82,6 @@ jobs:
         run: |
           echo "🔒 Scanning for hard-coded database URIs with credentials..."
           bash scripts/security/check-hardcoded-uris.sh
-*** End Patch
 
       - name: Upload ESLint results
         if: always()
@@ -157,6 +156,8 @@ jobs:
   security-hardcoded-uris:
     name: Security Scan (Hard-coded URIs)
     runs-on: ubuntu-latest
+    schedule:
+      - cron: '0 3 * * *'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

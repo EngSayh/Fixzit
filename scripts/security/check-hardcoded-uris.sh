@@ -42,6 +42,12 @@ PATTERNS=(
   "xapp-[A-Za-z0-9-]{10,}"
   "xoxa-[A-Za-z0-9-]{10,}"
   "whsec_[A-Za-z0-9]{12,}"
+  "gh[pousr]_[A-Za-z0-9]{20,}"
+  "glpat-[A-Za-z0-9_-]{20,}"
+  "HEROKU_API_KEY\\s*[:=]\\s*['\"][A-Za-z0-9_-]{20,}['\"]"
+  "DO_TOKEN\\s*[:=]\\s*['\"][A-Za-z0-9_-]{20,}['\"]"
+  "AZURE_(CLIENT_SECRET|PASSWORD)\\s*[:=]\\s*['\"][^'\"]{12,}['\"]"
+  "AIza[0-9A-Za-z\\-_]{35}"
 )
 
 # Directories to scan (code only)
