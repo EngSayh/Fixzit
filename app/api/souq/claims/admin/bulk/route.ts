@@ -4,6 +4,8 @@ import { connectDb } from '@/lib/mongo';
 import { logger } from '@/lib/logger';
 import { SouqClaim } from '@/server/models/souq/Claim';
 import { Types } from 'mongoose';
+import { RefundProcessor } from '@/services/souq/claims/refund-processor';
+import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 
 const ELIGIBLE_STATUSES = [
   'submitted',
@@ -136,8 +138,41 @@ export async function POST(request: NextRequest) {
         await claim.save();
         results.success++;
 
-        // TODO: Send notification to buyer and seller
-        // TODO: Process refund if approved
+        // Send notification to buyer and seller
+        await addJob(QUEUE_NAMES.NOTIFICATIONS, 'souq-claim-decision', {
+          claimId: String(claim._id),
+          buyerId: String(claim.buyerId),
+          sellerId: String(claim.sellerId),
+          decision: action === 'approve' ? 'approved' : 'denied',
+          reasoning: reason.trim(),
+          refundAmount,
+        }).catch(notifError => {
+          logger.error('Failed to queue claim decision notification', notifError as Error, {
+            claimId: String(claim._id),
+          });
+        });
+
+        // Process refund if approved
+        if (action === 'approve' && refundAmount > 0) {
+          try {
+            await RefundProcessor.processRefund({
+              claimId: String(claim._id),
+              orderId: String(claim.orderId),
+              buyerId: String(claim.buyerId),
+              sellerId: String(claim.sellerId),
+              amount: refundAmount,
+              reason: reason.trim(),
+              originalPaymentMethod: 'card', // Default payment method - actual method stored in Order model
+              originalTransactionId: undefined, // Transaction ID retrieved from Order by RefundProcessor
+            });
+          } catch (refundError) {
+            logger.error('Refund processing failed for approved claim', refundError as Error, {
+              claimId: String(claim._id),
+              refundAmount,
+            });
+            // Don't fail the bulk action, but log the error for manual follow-up
+          }
+        }
       } catch (error) {
         results.failed++;
         results.errors.push({

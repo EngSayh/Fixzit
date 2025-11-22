@@ -27,9 +27,9 @@ export const heuristics: Heuristic[] = [
       // Lazy re-import dynamic modules by nudging Next router without losing state
       // and ensuring ESM default interop gets normalized.
       // We simply refresh the current route shallowly.
-      // @ts-expect-error
+      // @ts-expect-error - Accessing Next.js internal router API (window.next) which is not part of public types
       if (window.next?.router?.replace) {
-        //@ts-ignore
+        // @ts-expect-error - Next.js internal router replace method has undocumented options parameter
         await window.next.router.replace(window.location.pathname, { scroll: false });
       } else {
         window.location.hash = `#heal-${Date.now()}`;
