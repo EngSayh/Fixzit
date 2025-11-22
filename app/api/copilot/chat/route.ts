@@ -112,13 +112,36 @@ export async function POST(req: NextRequest) {
   const locale = body.locale || session.locale;
 
   try {
+    // Enhanced GUEST user guidance
+    if (session.role === "GUEST" && body.message) {
+      const guestMessage = locale === "ar"
+        ? "مرحباً! يمكنني مساعدتك في معرفة المزيد عن Fixzit.\n\nيمكنني:\n• شرح كيفية عمل النظام\n• الإجابة على الأسئلة حول الميزات\n• مساعدتك في البدء\n\nلإنشاء طلبات صيانة أو الوصول إلى بيانات محددة، يرجى تسجيل الدخول أو التسجيل للحصول على حساب."
+        : "Hi! I can help you learn about Fixzit.\n\nI can:\n• Explain how the system works\n• Answer questions about features\n• Help you get started\n\nTo create maintenance tickets, access specific data, or perform actions, please sign in or register for an account.";
+      
+      await recordAudit({ 
+        session, 
+        intent: "guest_info", 
+        status: "INFO", 
+        message: guestMessage, 
+        prompt: body.message 
+      });
+      
+      return NextResponse.json({ 
+        reply: guestMessage,
+        intent: "guest_info",
+        requiresAuth: true
+      });
+    }
+
     if (body.tool) {
       if (!getPermittedTools(session.role).includes(body.tool.name)) {
         await recordAudit({ session, intent: body.tool.name, tool: body.tool.name, status: "DENIED", message: "Tool not allowed" });
+        const deniedMessage = locale === "ar"
+          ? "ليست لديك الصلاحية لاستخدام هذا الإجراء. يرجى تسجيل الدخول للوصول إلى هذه الميزة."
+          : "You do not have permission to run this action. Please sign in to access this feature.";
         return createSecureResponse({
-          reply: locale === "ar"
-            ? "ليست لديك الصلاحية لاستخدام هذا الإجراء."
-            : "You do not have permission to run this action."
+          reply: deniedMessage,
+          requiresAuth: session.role === "GUEST"
         }, 403, req);
       }
 

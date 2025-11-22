@@ -62,6 +62,7 @@ const fmRoutes = PROTECTED_ROUTE_PREFIXES.filter((route) => route.startsWith('/f
 
 const publicApiPrefixes = [
   '/api/auth',
+  '/api/copilot',
   '/api/health',
   '/api/i18n',
   '/api/qa/health',
@@ -72,6 +73,7 @@ const publicApiPrefixes = [
   '/api/webhooks',
   '/api/admin/notifications/send',
   // SECURITY: /api/admin/* endpoints require auth - do NOT add to public list
+  // NOTE: /api/copilot is public but enforces role-based policies internally via CopilotSession
 ];
 
 // Dev helpers gate
