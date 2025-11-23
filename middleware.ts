@@ -268,12 +268,15 @@ export async function middleware(request: NextRequest) {
 
   // Unauthenticated flows → redirect for protected zones
   if (!user) {
-    if (
+    const isProtected =
+      matchesAnyRoute(pathname, PROTECTED_ROUTE_PREFIXES) ||
       matchesAnyRoute(pathname, fmRoutes) ||
-      matchesAnyRoute(pathname, protectedMarketplaceActions)
-    ) {
+      matchesAnyRoute(pathname, protectedMarketplaceActions);
+
+    if (isProtected) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
+
     return NextResponse.next();
   }
 
@@ -302,7 +305,7 @@ export async function middleware(request: NextRequest) {
 
   // Authenticated users visiting /login should be redirected to dashboard
   if (pathname === '/login') {
-    return NextResponse.redirect(new URL('/fm/dashboard', request.url));
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   // Optional org requirement for FM

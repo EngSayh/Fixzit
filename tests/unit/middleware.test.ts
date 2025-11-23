@@ -5,7 +5,7 @@ import { generateToken } from '../../lib/auth';
 
 // Mock NextAuth - middleware uses dynamic import of @/auth
 vi.mock('@/auth', () => ({
-  auth: (handler: any) => {
+  auth: (handler: (ctx: { auth: null | { user: { id: string; email: string; role: string; orgId: string } } }) => Promise<Response | NextResponse>) => {
     return async (request: NextRequest) => {
       // Extract token from cookies to determine if user is authenticated
       const token = request.cookies.get('fixzit_auth')?.value;
