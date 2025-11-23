@@ -213,7 +213,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
   const abortControllerRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const mountedRef = useRef(true);
-  const escalationTimerRef = useRef<NodeJS.Timeout>();
+  const escalationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync with global language - use TranslationContext instead of API locale
   const locale: 'en' | 'ar' = globalLocale === 'ar' ? 'ar' : 'en';
@@ -225,8 +225,9 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      if (escalationTimerRef.current) {
+      if (escalationTimerRef.current !== null) {
         clearTimeout(escalationTimerRef.current);
+        escalationTimerRef.current = null;
       }
     };
   }, []);

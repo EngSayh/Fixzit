@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const validMethods = ['original_payment', 'store_credit', 'bank_transfer'];
+    const validMethods = ['original_payment', 'wallet', 'bank_transfer'];
     if (!validMethods.includes(refundMethod)) {
       return NextResponse.json({ 
         error: `Invalid refundMethod. Must be one of: ${validMethods.join(', ')}` 

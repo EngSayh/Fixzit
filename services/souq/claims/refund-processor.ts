@@ -135,8 +135,32 @@ export class RefundProcessor {
    * Execute refund with payment gateway (PayTabs)
    */
   private static async executeRefund(refund: Refund): Promise<RefundResult> {
-    // Update to processing
-    await this.updateRefundStatus(refund.refundId, 'processing');
+    // Atomically transition to in_progress to prevent concurrent processing
+    // This guards against race conditions from queue + in-process timer or multiple workers
+    const collection = await this.collection();
+    const result = await collection.updateOne(
+      { 
+        refundId: refund.refundId, 
+        status: { $in: ['initiated', 'processing'] } 
+      },
+      { 
+        $set: { 
+          status: 'in_progress', 
+          updatedAt: new Date() 
+        } 
+      }
+    );
+    
+    if (result.matchedCount === 0) {
+      logger.info('[Refunds] Skipping executeRefund; already in progress or completed', {
+        refundId: refund.refundId,
+      });
+      return {
+        refundId: refund.refundId,
+        status: 'processing',
+        amount: refund.amount,
+      };
+    }
 
     try {
       // Call PayTabs refund API
