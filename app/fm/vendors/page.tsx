@@ -18,7 +18,7 @@ import {
   Search, Download, Eye, Edit, Trash2,
   Star, Phone, Mail, MapPin
 } from 'lucide-react';
-import { FmPageShell } from '@/components/fm/FmPageShell';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 
 interface Vendor {
   id: string;
@@ -62,11 +62,11 @@ const fetcher = async (url: string, orgId: string) => {
 
 export default function FMVendorsPage() {
   return (
-    <FmPageShell moduleId="vendors">
+    <FmGuardedPage moduleId="vendors">
       {({ orgId, supportBanner }) => (
         <FMVendorsContent orgId={orgId} supportBanner={supportBanner} />
       )}
-    </FmPageShell>
+    </FmGuardedPage>
   );
 }
 

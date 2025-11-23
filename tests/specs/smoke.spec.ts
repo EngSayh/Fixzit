@@ -12,10 +12,10 @@ const COOKIE_NAME = BASE_URL.startsWith('https') ? '__Secure-authjs.session-toke
 const LEGACY_COOKIE_NAME = BASE_URL.startsWith('https')
   ? '__Secure-next-auth.session-token'
   : 'next-auth.session-token';
-const SESSION_COOKIE_PATTERNS = ['session-token', 'session'];
+const SESSION_COOKIE_NAMES = [COOKIE_NAME, LEGACY_COOKIE_NAME];
 const hasSessionCookie = async (context: BrowserContext) => {
   const cookies = await context.cookies();
-  return cookies.some((cookie) => SESSION_COOKIE_PATTERNS.some((pattern) => cookie.name.includes(pattern)));
+  return cookies.some((cookie) => SESSION_COOKIE_NAMES.includes(cookie.name));
 };
 
 // Inject a fresh authenticated session before each test to avoid stale storage states

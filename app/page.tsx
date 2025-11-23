@@ -96,6 +96,13 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:start-4 z-50 bg-background text-foreground px-3 py-2 rounded-md shadow"
+        data-testid="skip-to-content"
+      >
+        Skip to content
+      </a>
       <header role="banner" className="border-b bg-background">
         <nav aria-label="Primary">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-4">
@@ -116,7 +123,7 @@ export default function LandingPage() {
           </div>
         </nav>
       </header>
-      <section className="fxz-hero">
+      <section id="main-content" className="fxz-hero">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 flex flex-col lg:flex-row items-center gap-10">
           <div className="flex-1 space-y-6">
             <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">

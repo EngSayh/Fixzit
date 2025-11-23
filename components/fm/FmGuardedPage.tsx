@@ -4,7 +4,8 @@ import React from 'react';
 import { useFmOrgGuard } from './useFmOrgGuard';
 import type { ModuleId } from '@/config/navigation';
 
-type GuardRender = (ctx: ReturnType<typeof useFmOrgGuard>) => React.ReactNode;
+type GuardedContext = ReturnType<typeof useFmOrgGuard> & { orgId: string };
+type GuardRender = (ctx: GuardedContext) => React.ReactNode;
 
 type FmGuardedPageProps = {
   moduleId: ModuleId;
@@ -22,5 +23,6 @@ export function FmGuardedPage({ moduleId, children }: FmGuardedPageProps) {
     return guardCtx.guard;
   }
 
-  return <>{children(guardCtx)}</>;
+  // At this point, we know orgId is not null, so we can safely cast
+  return <>{children(guardCtx as GuardedContext)}</>;
 }

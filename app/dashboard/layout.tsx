@@ -27,8 +27,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const session = await auth();
   const allowTestBypass = process.env.ALLOW_DASHBOARD_TEST_AUTH === 'true';
 
-  const isAuthenticated = Boolean(session?.user?.email);
-  if (!isAuthenticated && !allowTestBypass) {
+  if (!session && !allowTestBypass) {
     redirect('/login');
   }
 
@@ -38,6 +37,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:bg-primary focus:text-primary-foreground focus:px-3 focus:py-2 focus:rounded"
+          data-testid="skip-to-content"
         >
           Skip to main content
         </a>

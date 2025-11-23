@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Users, Plus, Search, Mail, Phone, MapPin, Eye, Edit, Trash2, User, Building, Shield } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { CreateTenantForm } from '@/components/fm/tenants/CreateTenantForm';
-import { FmPageShell } from '@/components/fm/FmPageShell';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 import { logger } from '@/lib/logger';
 interface TenantProperty {
   occupancy?: {
@@ -57,11 +57,11 @@ const sarCurrencyFormatter = new Intl.NumberFormat('en-SA', {
 
 export default function TenantsPage() {
   return (
-    <FmPageShell moduleId="tenants">
+    <FmGuardedPage moduleId="tenants">
       {({ orgId, supportBanner }) => (
         <TenantsContent orgId={orgId} supportBanner={supportBanner} />
       )}
-    </FmPageShell>
+    </FmGuardedPage>
   );
 }
 

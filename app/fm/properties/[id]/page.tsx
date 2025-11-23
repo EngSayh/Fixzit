@@ -18,7 +18,7 @@ import {
 import Link from 'next/link';
 import ClientDate from '@/components/ClientDate';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { FmPageShell } from '@/components/fm/FmPageShell';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 import type { ReactNode } from 'react';
 
 interface MaintenanceIssue {
@@ -41,11 +41,11 @@ interface PropertyUnit {
 
 export default function PropertyDetailsPage() {
   return (
-    <FmPageShell moduleId="properties">
+    <FmGuardedPage moduleId="properties">
       {({ orgId, supportBanner }) => (
         <PropertyDetailsContent orgId={orgId} supportBanner={supportBanner} />
       )}
-    </FmPageShell>
+    </FmGuardedPage>
   );
 }
 

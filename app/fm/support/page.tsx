@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
-import { FmPageShell } from '@/components/fm/FmPageShell';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 export default function SupportPage() {
   const auto = useAutoTranslator('fm.support');
   return (
-    <FmPageShell moduleId="support">
+    <FmGuardedPage moduleId="support">
       {({ supportBanner }) => (
         <div className="p-6 space-y-6">
           {supportBanner}
@@ -81,6 +81,6 @@ export default function SupportPage() {
           </div>
         </div>
       )}
-    </FmPageShell>
+    </FmGuardedPage>
   );
 }

@@ -11,7 +11,7 @@ import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { FmPageShell } from '@/components/fm/FmPageShell';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 interface TicketItem {
   id: string;
   code?: string;
@@ -24,11 +24,11 @@ interface TicketItem {
 
 export default function SupportTicketsPage() {
   return (
-    <FmPageShell moduleId="support">
+    <FmGuardedPage moduleId="support">
       {({ orgId, supportBanner }) => (
         <SupportTicketsContent orgId={orgId} supportBanner={supportBanner} />
       )}
-    </FmPageShell>
+    </FmGuardedPage>
   );
 }
 

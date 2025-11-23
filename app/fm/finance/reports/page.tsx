@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
-import { FmPageShell } from '@/components/fm/FmPageShell';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 
 type ReportJob = {
   id: string;
@@ -24,11 +24,11 @@ type ReportJob = {
 
 export default function ReportsPage() {
   return (
-    <FmPageShell moduleId="finance">
+    <FmGuardedPage moduleId="finance">
       {({ orgId, supportBanner }) => (
         <ReportsContent orgId={orgId} supportBanner={supportBanner} />
       )}
-    </FmPageShell>
+    </FmGuardedPage>
   );
 }
 
@@ -39,6 +39,7 @@ type ReportsContentProps = {
 
 function ReportsContent({ orgId, supportBanner }: ReportsContentProps) {
   const auto = useAutoTranslator('fm.reports');
+  // orgId is accepted as a prop for future organization-specific API calls, but is not currently used.
   void orgId;
   const [jobs, setJobs] = useState<ReportJob[]>([]);
   const [loading, setLoading] = useState(false);
