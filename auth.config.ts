@@ -31,12 +31,38 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
 
+// Derive NEXTAUTH_URL when missing (helps preview builds)
+const derivedNextAuthUrl =
+  process.env.NEXTAUTH_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.BASE_URL;
+
+if (!process.env.NEXTAUTH_URL && derivedNextAuthUrl) {
+  process.env.NEXTAUTH_URL = derivedNextAuthUrl;
+  if (process.env.NODE_ENV === 'production') {
+    logger.warn(`⚠️  NEXTAUTH_URL not provided. Using derived value: ${derivedNextAuthUrl}`);
+  }
+}
+
 // Validate non-secret variables always (fail-fast at startup), but allow CI builds
 const missingNonSecrets: string[] = [];
 const isCI = process.env.CI === 'true' || process.env.SKIP_ENV_VALIDATION === 'true';
+const isVercelBuild = process.env.VERCEL === '1' || process.env.NEXT_PHASE === 'phase-production-build';
+const isVercelPreview = process.env.VERCEL === '1' && process.env.VERCEL_ENV === 'preview';
+const allowMissingNextAuthUrl =
+  isCI ||
+  isVercelBuild ||
+  isVercelPreview ||
+  process.env.ALLOW_MISSING_NEXTAUTH_URL === 'true';
 
-if (process.env.NODE_ENV === 'production' && !isCI) {
-  if (!process.env.NEXTAUTH_URL) missingNonSecrets.push('NEXTAUTH_URL');
+// Only validate NEXTAUTH_URL in production runtime (not during builds)
+if (process.env.NODE_ENV === 'production' && !allowMissingNextAuthUrl && !isVercelBuild) {
+  if (!process.env.NEXTAUTH_URL && !derivedNextAuthUrl) {
+    missingNonSecrets.push('NEXTAUTH_URL');
+  }
+} else if (!process.env.NEXTAUTH_URL && !isCI && !isVercelBuild) {
+  logger.warn('⚠️  NEXTAUTH_URL not set; continuing with derived/default value for non-production build.');
 }
 
 if (missingNonSecrets.length > 0) {
