@@ -70,7 +70,7 @@ vi.mock('@/contexts/FormStateContext', () => ({
 const ConsoleError = console.error;
 beforeAll(() => {
   // Silence expected error boundary logs in tests that trigger errors
-  console.error = (...args: any[]) => {
+  console.error = (...args: Parameters<typeof console.error>) => {
     const msg = args[0];
     if (typeof msg === 'string' && (msg.includes('ErrorBoundary') || msg.includes('The above error'))) {
       return;
@@ -90,7 +90,7 @@ vi.mock('@/components/ErrorBoundary', () => {
     </div>
   );
   class MockErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error?: Error }> {
-    constructor(props: any) {
+    constructor(props: { children: React.ReactNode }) {
       super(props);
       this.state = { hasError: false, error: undefined };
     }

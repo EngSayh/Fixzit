@@ -55,8 +55,16 @@ export async function fillLoginForm(page: Page, identifier: string, password: st
   await page.waitForSelector(loginSelectors.identifier, { timeout: 20000 });
   await page.waitForSelector(loginSelectors.password, { timeout: 20000 });
   await page.waitForSelector(loginSelectors.submit, { timeout: 20000 });
+  
+  // Wait for form to be fully interactive
+  await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+  
   await page.fill(loginSelectors.identifier, identifier);
   await page.fill(loginSelectors.password, password);
+  
+  // Wait a bit for any validation to complete
+  await page.waitForTimeout(500);
+  
   await page.click(loginSelectors.submit);
 }
 
@@ -76,50 +84,33 @@ export async function attemptLogin(page: Page, identifier: string, password: str
   const errorLocator = getErrorLocator(page);
 
   try {
+    // Wait for either success redirect, error message, or timeout
     const raceResult = await Promise.race([
-      page.waitForURL(successPattern, { timeout: 15000 }).then(() => ({ success: true })),
-      errorLocator.first().waitFor({ state: 'visible', timeout: 15000 }).then(async () => ({
+      page.waitForURL(successPattern, { timeout: 20000 }).then(() => ({ success: true })),
+      errorLocator.first().waitFor({ state: 'visible', timeout: 20000 }).then(async () => ({
         success: false,
-        errorText: await errorLocator.first().innerText().catch(() => undefined),
+        errorText: await errorLocator.first().innerText().catch(() => 'Login error displayed'),
       })),
-      page.waitForTimeout(15000).then(() => ({ success: false, errorText: 'timeout waiting for login result' })),
+      page.waitForTimeout(20000).then(() => ({ success: false, errorText: 'Login timeout - no redirect or error' })),
     ]);
 
     resultDetails.success = raceResult.success;
     resultDetails.errorText = raceResult.errorText;
 
+    // If still on login page after timeout, check if we're actually logged in
     if (!resultDetails.success) {
-      // Fallback: programmatic login via API (ensures CSRF handled)
-      try {
-        const csrfResp = await page.request.get('/api/auth/csrf');
-        const csrfJson = await csrfResp.json();
-        const csrfToken = csrfJson?.csrfToken;
-        if (csrfToken) {
-          const form = new URLSearchParams({
-            identifier,
-            password,
-            csrfToken,
-            rememberMe: 'on',
-            redirect: 'false',
-            callbackUrl: '/dashboard',
-            json: 'true',
-          });
-
-          const resp = await page.request.post('/api/auth/callback/credentials', {
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            data: form.toString(),
-          });
-
-          if (resp.status() === 200 || resp.status() === 302) {
-            await page.goto('/dashboard');
-            resultDetails.success = true;
-            resultDetails.errorText = undefined;
-            return resultDetails;
-          }
-          resultDetails.errorText = `fallback login failed: ${resp.status()}`;
+      const currentUrl = page.url();
+      if (currentUrl.includes('/dashboard') || currentUrl.includes('/home')) {
+        resultDetails.success = true;
+        resultDetails.errorText = undefined;
+      } else {
+        // Try to manually navigate to dashboard to see if session exists
+        await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
+        const finalUrl = page.url();
+        if (finalUrl.includes('/dashboard') && !finalUrl.includes('/login')) {
+          resultDetails.success = true;
+          resultDetails.errorText = undefined;
         }
-      } catch (fallbackErr) {
-        resultDetails.errorText = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
       }
     }
 

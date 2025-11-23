@@ -17,7 +17,7 @@ vi.mock('react-hot-toast', () => ({
   default: toast,
 }));
 
-let JobApplicationForm: any;
+let JobApplicationForm: React.ComponentType;
 beforeAll(async () => {
   ({ JobApplicationForm } = await import('@/components/careers/JobApplicationForm'));
 });

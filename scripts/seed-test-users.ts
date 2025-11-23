@@ -336,16 +336,11 @@ export async function seedTestUsers() {
     const normalizedUsername = userData.username;
 
     const existing = await User.findOne({
-      $and: [
-        { orgId: { $in: orgCandidates } },
-        {
-          $or: [
-            { email: userData.email },
-            { employeeId: normalizedEmployeeId },
-            { username: normalizedUsername },
-            { code: userData.code },
-          ],
-        },
+      $or: [
+        { email: userData.email },
+        { employeeId: normalizedEmployeeId },
+        { username: normalizedUsername },
+        { code: userData.code },
       ],
     });
 
@@ -363,9 +358,20 @@ export async function seedTestUsers() {
       updatedAt: new Date(),
     };
 
+    const upsertFilter = existing
+      ? { _id: existing._id }
+      : {
+          $or: [
+            { code: userData.code },
+            { email: userData.email },
+            { employeeId: normalizedEmployeeId },
+            { username: normalizedUsername },
+          ],
+        };
+
     try {
       await User.updateOne(
-        existing ? { _id: existing._id } : { orgId: orgIdToUse, code: userData.code },
+        upsertFilter,
         {
           $set: {
             ...userDoc,
@@ -392,16 +398,22 @@ export async function seedTestUsers() {
           : undefined;
       if (duplicateKey?.code === 11000) {
         try {
-          await User.updateOne(
-            { orgId: orgIdToUse, code: userData.code },
-            {
-              $set: {
-                ...userDoc,
-              },
-            },
-            { upsert: true }
-          );
-          console.log(`♻️  Repaired duplicate via code for ${userData.email.padEnd(32)} (${userData.professional.role})`);
+          const dedupeFilter = {
+            orgId: { $in: orgCandidates },
+            $or: [
+              { email: userData.email },
+              { employeeId: normalizedEmployeeId },
+              { username: normalizedUsername },
+              { code: userData.code },
+            ],
+          };
+          const removed = await User.deleteMany(dedupeFilter);
+          await User.create({
+            ...userDoc,
+            createdAt: new Date(),
+            createdBy: userData.createdBy || SEED_USER_ID,
+          });
+          console.log(`♻️  Reset user ${userData.email.padEnd(32)} (${userData.professional.role}) (removed ${removed.deletedCount} duplicates)`);
           updated++;
         } catch (repairErr) {
           const message = repairErr instanceof Error ? repairErr.message : String(repairErr);

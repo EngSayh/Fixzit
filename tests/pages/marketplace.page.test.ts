@@ -18,7 +18,7 @@ vi.mock('@/lib/marketplace/serverFetch', () => ({
 
 // Mock next/link to avoid Next.js runtime during tests
 vi.mock('next/link', () => {
-  const MockLink = ({ href, className, children }: any) =>
+  const MockLink = ({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) =>
     React.createElement(
       'a',
       { href, className, 'data-testid': 'next-link-mock' },
@@ -30,7 +30,7 @@ vi.mock('next/link', () => {
 
 vi.mock('@/components/marketplace/ProductCard', () => ({
   __esModule: true,
-  default: ({ product }: any) =>
+  default: ({ product }: { product: { slug?: string; id?: string; title?: { en?: string } | string; rating?: { avg?: number; count?: number }; inventories?: Array<{ leadDays?: number }> } }) =>
     React.createElement(
       'a',
       {

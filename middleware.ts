@@ -288,7 +288,10 @@ export async function middleware(request: NextRequest) {
 
   // --------- Non-API protected areas ----------
   // Resolve user from NextAuth session only
-  const user = await getAuthSession(request);
+  const hasSessionCookie =
+    Boolean(request.cookies.get('authjs.session-token')) ||
+    Boolean(request.cookies.get('next-auth.session-token'));
+  const user = hasSessionCookie ? await getAuthSession(request) : null;
 
   // Unauthenticated flows → redirect for protected zones
   if (!user) {
@@ -327,7 +330,7 @@ export async function middleware(request: NextRequest) {
 
   // Authenticated users visiting /login should be redirected to dashboard
   if (pathname === '/login') {
-    return NextResponse.redirect(new URL('/fm/dashboard', request.url));
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   // Optional org requirement for FM

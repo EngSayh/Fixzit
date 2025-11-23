@@ -43,13 +43,13 @@ export default defineConfig({
     'tests/tools.spec.ts',
   ],
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['html', { outputFolder: './playwright-report' }],
@@ -100,13 +100,13 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    // Use webpack dev server to avoid Turbopack/OTel instability during Playwright
-    command: 'npm run dev:webpack -- --hostname 0.0.0.0 --port 3000',
+    // Use standard Next dev server; instrumentation is gated in non-prod
+    command: 'npm run dev -- --hostname 0.0.0.0 --port 3000',
     url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-    stdout: 'ignore',
-    stderr: 'ignore',
+    reuseExistingServer: false,
+    timeout: 180 * 1000, // Increased to 3 minutes for slower starts
+    stdout: 'pipe',
+    stderr: 'pipe',
     env: {
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'playwright-secret',
       AUTH_SECRET: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'playwright-secret',

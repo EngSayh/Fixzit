@@ -14,7 +14,7 @@ vi.mock('next-auth/react', () => ({
 
 vi.mock('swr', () => ({
   __esModule: true,
-  default: (...args: any[]) => mockUseSWR(...args),
+  default: (...args: Parameters<typeof mockUseSWR>) => mockUseSWR(...args),
 }));
 
 vi.mock('@/components/fm/useFmOrgGuard', () => ({

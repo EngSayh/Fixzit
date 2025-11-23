@@ -41,10 +41,8 @@ async function gotoWithRetry(page: Page, path: string, attempts = 3) {
   throw lastError;
 }
 
-function ensureLoginOrSkip(result: { success: boolean; errorText?: string }) {
-  if (!result.success) {
-    test.skip(`Login failed: ${result.errorText || 'unknown error'}`);
-  }
+function ensureLoginOrFail(result: { success: boolean; errorText?: string }) {
+  expect(result.success, `Login failed: ${result.errorText || 'unknown error'}`).toBeTruthy();
 }
 
 test.describe('Authentication', () => {
@@ -72,7 +70,7 @@ test.describe('Authentication', () => {
 
     test('should login with email and password', async ({ page }) => {
       const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
-      ensureLoginOrSkip(result);
+      ensureLoginOrFail(result);
 
       const profileButton = page.locator('[data-testid="user-menu"]').first();
       await expect(profileButton).toBeVisible();
@@ -80,7 +78,7 @@ test.describe('Authentication', () => {
 
     test('should login with employee number', async ({ page }) => {
       const result = await attemptLogin(page, PRIMARY_USER!.employeeNumber!, PRIMARY_USER!.password);
-      ensureLoginOrSkip(result);
+      ensureLoginOrFail(result);
     });
 
     test('should show error for invalid credentials', async ({ page }) => {
@@ -103,7 +101,7 @@ test.describe('Authentication', () => {
   test.describe('Session Management', () => {
     test('should persist session after page reload', async ({ page }) => {
       const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
-      ensureLoginOrSkip(result);
+      ensureLoginOrFail(result);
 
       await page.reload();
 
@@ -116,7 +114,7 @@ test.describe('Authentication', () => {
       const page1 = await context.newPage();
       await gotoWithRetry(page1, '/login');
       const result = await attemptLogin(page1, PRIMARY_USER!.email, PRIMARY_USER!.password);
-      ensureLoginOrSkip(result);
+      ensureLoginOrFail(result);
 
       const page2 = await context.newPage();
       await gotoWithRetry(page2, '/dashboard');

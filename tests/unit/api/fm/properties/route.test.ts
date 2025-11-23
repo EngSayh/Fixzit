@@ -146,7 +146,7 @@ function mockPermission() {
 }
 
 type DbOptions = {
-  findResult?: any[];
+  findResult?: Array<Record<string, unknown>>;
   count?: number;
   findExisting?: boolean;
   updateValue?: Record<string, unknown> | null;

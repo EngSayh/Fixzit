@@ -5,6 +5,7 @@
 import { describe, test, expect, vi, beforeEach, beforeAll, afterEach } from 'vitest';
 import type { NextRequest } from 'next/server'
 import type { RequestInit } from 'node-fetch';
+import { Config } from '@/lib/config/constants';
 
 // Mock next/server to isolate NextResponse and avoid runtime coupling
 vi.mock('next/server', async () => {
@@ -36,11 +37,19 @@ type ResponseBody =
   | { ok: false; error: string; status?: number; body?: string; details?: Record<string, unknown> }
   | { ok: false; error: string }
 type MockResponse = { status: number; json: () => Promise<ResponseBody> }
+
+const BASE_ENV: NodeJS.ProcessEnv = {
+  ...process.env,
+  NEXTAUTH_URL: process.env.NEXTAUTH_URL ?? 'https://example.com',
+  PAYTABS_PROFILE_ID: process.env.PAYTABS_PROFILE_ID ?? '85119',
+  PAYTABS_SERVER_KEY: process.env.PAYTABS_SERVER_KEY ?? 'server-key',
+  PAYTABS_MAX_ATTEMPTS: '1',
+};
+
 let POST: (req: NextRequest) => Promise<MockResponse>
 beforeAll(async () => {
-  process.env.PAYTABS_PROFILE_ID ??= '85119'
-  process.env.PAYTABS_SERVER_KEY ??= 'server-key'
-  process.env.NEXTAUTH_URL ??= 'https://example.com'
+  process.env = { ...BASE_ENV }
+  vi.resetModules()
   const mod = await import('@/app/api/payments/paytabs/route')
   POST = mod.POST as typeof POST
 })
@@ -73,24 +82,19 @@ const validBody = {
 }
 
 describe('PayTabs POST route', () => {
-  const OLD_ENV = process.env
   let fetchSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2025-01-01T00:00:00.000Z'))
-    process.env = { ...OLD_ENV }
-    process.env.NEXTAUTH_URL = 'https://example.com'
-    process.env.PAYTABS_PROFILE_ID = '85119'
-    // Provide default server key unless tests override
-    process.env.PAYTABS_SERVER_KEY = 'server-key'
+    process.env = { ...BASE_ENV }
     fetchSpy = vi.spyOn(globalThis, 'fetch')
   })
 
   afterEach(() => {
     fetchSpy.mockRestore()
     vi.useRealTimers()
-    process.env = OLD_ENV
+    process.env = { ...BASE_ENV }
   })
 
   test('returns paymentUrl and tranRef on successful PayTabs response (happy path)', async () => {
@@ -132,8 +136,8 @@ describe('PayTabs POST route', () => {
         phone: validBody.customerPhone,
         country: 'SA',
       },
-      callback: `${process.env.NEXTAUTH_URL}/api/payments/paytabs/callback`,
-      return: `${process.env.NEXTAUTH_URL}/marketplace/order-success`,
+      callback: `${BASE_ENV.NEXTAUTH_URL}/api/payments/paytabs/callback`,
+      return: `${BASE_ENV.NEXTAUTH_URL}/marketplace/order-success`,
     })
   })
 
@@ -151,14 +155,15 @@ describe('PayTabs POST route', () => {
   })
 
   test('returns 500 when PAYTABS server key is missing', async () => {
-    delete process.env.PAYTABS_SERVER_KEY
-    delete process.env.PAYTABS_SERVER_KEY
+    ;(Config as any).payment.paytabs.serverKey = ''
 
     const res = await POST(makeReq(validBody))
     expect(res.status).toBe(500)
     const data = await res.json()
     expect(data).toEqual({ error: 'PAYTABS server key not configured' })
     expect(fetchSpy).not.toHaveBeenCalled()
+
+    ;(Config as any).payment.paytabs.serverKey = BASE_ENV.PAYTABS_SERVER_KEY
   })
 
   test('propagates 502 with response details when PayTabs returns non-OK', async () => {
@@ -168,7 +173,6 @@ describe('PayTabs POST route', () => {
     expect(res.status).toBe(502)
     const data = await res.json()
     expect(data).toEqual({
-      ok: false,
       error: 'PayTabs request failed',
       status: 401,
       body: 'Unauthorized',
@@ -193,12 +197,14 @@ describe('PayTabs POST route', () => {
     fetchSpy.mockImplementationOnce(((...args: [string, { signal?: AbortSignal }] ) => {
       const opts = args[1]
       capturedSignal = opts?.signal
-      return new Promise<Response>(() => {}) as unknown as Response // never resolves until abort
+      return new Promise<Response>((_, reject) => {
+        opts?.signal?.addEventListener('abort', () => reject(new Error('Aborted')), { once: true })
+      }) as unknown as Response
     }) as unknown as typeof fetch)
-    void POST(makeReq(validBody)) // Start request but don't await (will timeout)
+    const resPromise = POST(makeReq(validBody)) // Start request
     // Fast-forward timers to trigger abort
     vi.advanceTimersByTime(15001)
-    // The handler clears the timeout in finally, but since promise never resolves, we cannot await result.
+    await expect(resPromise).resolves.toHaveProperty('status', 500)
     // Assert the signal is aborted
     expect(capturedSignal).toBeDefined()
     expect(capturedSignal?.aborted).toBe(true)

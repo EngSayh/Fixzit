@@ -302,15 +302,15 @@ describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
     vi.stubGlobal('crypto', {
       subtle: {
         importKey: vi.fn(async () => ({} as CryptoKey)),
-        sign: vi.fn(async (_algo: string, _key: any, _data: ArrayBuffer) => {
+        sign: vi.fn(async (_algo: string, _key: CryptoKey, _data: ArrayBuffer) => {
           return signatureBytes.buffer as ArrayBuffer;
         }),
-      } as any,
+      } as unknown as SubtleCrypto,
     });
   }
 
   it('returns false when server key missing or signature missing', async () => {
-    const { validateCallbackRaw } = lib as any;
+    const { validateCallbackRaw } = lib as { validateCallbackRaw: (body: string, signature?: string) => Promise<boolean> };
 
     // No server key
     const restore = setEnv({ PAYTABS_API_SERVER_KEY: undefined, PAYTABS_SERVER_KEY: undefined });

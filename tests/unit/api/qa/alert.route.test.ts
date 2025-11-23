@@ -30,14 +30,14 @@ type HeadersLike = {
   get: (key: string) => string | null;
 };
 type NextRequestLike = {
-  json: () => Promise<any>;
+  json: () => Promise<Record<string, unknown>>;
   headers: HeadersLike;
   ip?: string | null;
   url?: string;
   nextUrl?: { protocol: string };
 };
 
-const asNextRequest = (obj: Partial<NextRequestLike>): any => ({
+const asNextRequest = (obj: Partial<NextRequestLike>): NextRequestLike => ({
   url: 'http://localhost:3000/api/qa/alert',
   nextUrl: { protocol: 'http:' },
   ...obj

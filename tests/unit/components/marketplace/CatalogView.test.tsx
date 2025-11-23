@@ -124,7 +124,22 @@ function setSWRCategories(state: Partial<SWRCategoriesState>) {
   if ('isLoading' in state) _categoriesState.isLoading = state.isLoading
 }
 
-function makeProduct(overrides: Partial<any> = {}) {
+type Product = {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  currency: string;
+  unit: string;
+  stock: number;
+  rating: number;
+  reviewCount: number;
+  images: unknown[];
+  vendor: { id: string; name: string; verified: boolean };
+  category: { id: string; name: string; slug: string };
+} & Record<string, unknown>;
+
+function makeProduct(overrides: Partial<Product> = {}): Product {
   return {
     id: 'p1',
     title: 'Premium Cement',
@@ -146,7 +161,7 @@ function makeProduct(overrides: Partial<any> = {}) {
   }
 }
 
-function makeCatalog(products: any[]) {
+function makeCatalog(products: Product[]) {
   return {
     products,
     pagination: {
@@ -159,7 +174,9 @@ function makeCatalog(products: any[]) {
   }
 }
 
-function makeCategories(cats: any[]) {
+type Category = { id: string; name: string; slug: string } & Record<string, unknown>;
+
+function makeCategories(cats: Category[]) {
   return {
     categories: cats,
     tenantId: 'demo-tenant',

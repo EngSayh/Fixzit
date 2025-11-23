@@ -351,7 +351,7 @@ describe('validateCallback', () => {
 describe('PAYMENT_METHODS and CURRENCIES', () => {
   it('exposes expected currency codes', async () => {
     const mod = await importPaytabs();
-    const { CURRENCIES } = mod as any;
+    const { CURRENCIES } = mod as { CURRENCIES: Record<string, string> };
     expect(CURRENCIES).toMatchObject({
       SAR: 'SAR',
       USD: 'USD',
@@ -362,10 +362,13 @@ describe('PAYMENT_METHODS and CURRENCIES', () => {
 
   it('getAvailablePaymentMethods returns the expected enabled methods (without TABBY)', async () => {
     const mod = await importPaytabs();
-    const { PAYMENT_METHODS, getAvailablePaymentMethods } = mod as any;
+    const { PAYMENT_METHODS, getAvailablePaymentMethods } = mod as {
+      PAYMENT_METHODS: Record<string, string>;
+      getAvailablePaymentMethods: () => Array<{ id: string }>;
+    };
 
     const methods = getAvailablePaymentMethods();
-    const ids = methods.map((m: any) => m.id);
+    const ids = methods.map((m: { id: string }) => m.id);
 
     // Expected list from implementation
     expect(methods).toHaveLength(6);

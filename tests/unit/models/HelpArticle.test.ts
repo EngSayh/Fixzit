@@ -137,7 +137,7 @@ describe("HelpArticle model schema", () => {
   });
   
   it("configures timestamps and has orgId from tenant isolation plugin", () => {
-    const schema: any = HelpArticle.schema;
+    const schema = HelpArticle.schema;
     
     // Check timestamps option
     expect(schema.options.timestamps).toBe(true);
