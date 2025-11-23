@@ -177,6 +177,28 @@ BoostSchema.index(
  * Get pricing for boost type and duration
  * Configurable via environment variables (defaults in SAR/day)
  */
+type PricingOverride = Partial<Record<BoostType, number>>;
+
+function loadPricingOverrides(): PricingOverride | null {
+  const raw = process.env.AQAR_BOOST_PRICING_JSON;
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as PricingOverride;
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.warn('[BoostPricing] Invalid AQAR_BOOST_PRICING_JSON, using defaults', error);
+    }
+    return null;
+  }
+}
+
+const defaultPricing: PricingOverride = {
+  [BoostType.FEATURED]: 100,
+  [BoostType.PINNED]: 50,
+  [BoostType.HIGHLIGHTED]: 25,
+};
+
 BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
   if (!Object.values(BoostType).includes(type)) {
     throw new Error('Invalid boost type');
@@ -186,12 +208,16 @@ BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
   }
   
   // Pricing configurable via environment variables with sensible defaults
-  const perDay = {
-    [BoostType.FEATURED]: Number(process.env.BOOST_FEATURED_PRICE_PER_DAY) || 100,     // SAR/day
-    [BoostType.PINNED]: Number(process.env.BOOST_PINNED_PRICE_PER_DAY) || 50,          // SAR/day
-    [BoostType.HIGHLIGHTED]: Number(process.env.BOOST_HIGHLIGHTED_PRICE_PER_DAY) || 25, // SAR/day
-  } as const;
-  return perDay[type] * days;
+  const perDay: PricingOverride = {
+    [BoostType.FEATURED]: Number(process.env.BOOST_FEATURED_PRICE_PER_DAY) || defaultPricing[BoostType.FEATURED]!,
+    [BoostType.PINNED]: Number(process.env.BOOST_PINNED_PRICE_PER_DAY) || defaultPricing[BoostType.PINNED]!,
+    [BoostType.HIGHLIGHTED]:
+      Number(process.env.BOOST_HIGHLIGHTED_PRICE_PER_DAY) || defaultPricing[BoostType.HIGHLIGHTED]!,
+  };
+
+  const jsonOverrides = loadPricingOverrides() || {};
+  const base = jsonOverrides[type] ?? perDay[type] ?? 0;
+  return base * days;
 };
 
 /* ---------------- Hooks ---------------- */

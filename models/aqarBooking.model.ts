@@ -346,7 +346,7 @@ BookingSchema.methods.cancel = async function (
 
 /* ---------------- Statics: availability & atomic create ---------------- */
 
-interface BookingModel  {
+interface BookingModel extends Model<IBooking> {
   /**
    * Check if any active booking overlaps with the given nights
    * @param orgId - Organization ID
@@ -432,8 +432,8 @@ BookingSchema.statics.isAvailable = async function ({
   const inUTC = toUTCDateOnly(checkInDate);
   const outUTC = toUTCDateOnly(checkOutDate);
   const nights = enumerateNightsUTC(inUTC, outUTC);
-  // TODO(type-safety): Verify BookingModel type definition matches usage
-  return !(await (this as unknown as BookingModel).overlaps({ orgId, listingId, nights }));
+  const bookingModel = this as unknown as BookingModel;
+  return !(await bookingModel.overlaps({ orgId, listingId, nights }));
 };
 
 /**
@@ -450,8 +450,8 @@ BookingSchema.statics.createWithAvailability = async function (
   const nights = enumerateNightsUTC(inUTC, outUTC);
 
   // Pre-check for conflicts (UX feedback)
-  // TODO(type-safety): Verify BookingModel type definition matches usage
-  const conflict = await (this as unknown as BookingModel).overlaps({
+  const bookingModel = this as unknown as BookingModel;
+  const conflict = await bookingModel.overlaps({
     orgId: doc.orgId as mongoose.Types.ObjectId,
     listingId: doc.listingId as mongoose.Types.ObjectId,
     nights,
@@ -519,9 +519,8 @@ BookingSchema.statics.createWithAvailability = async function (
 /* ---------------- Model Export ---------------- */
 
 const Booking =
-  (mongoose.models.AqarBooking as unknown as BookingModel) ||
-  // TODO(type-safety): Resolve BookingModel type conversion
-  (mongoose.model<IBooking, BookingModel>('AqarBooking', BookingSchema) as unknown as BookingModel);
+  (mongoose.models.AqarBooking as BookingModel | undefined) ||
+  mongoose.model<IBooking, BookingModel>('AqarBooking', BookingSchema);
 
 export default Booking;
 export type BookingDoc = IBooking;

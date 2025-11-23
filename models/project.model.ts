@@ -519,7 +519,6 @@ const ALLOWED: Record<TProjectStatus, TProjectStatus[]> = {
   CLOSED: [],
 };
 
-// TODO(type-safety): Resolve ProjectModel static method type compatibility
 ProjectSchema.statics.setStatus = (async function (
   this: ProjectModel,
   projectId: Types.ObjectId,
@@ -539,7 +538,6 @@ ProjectSchema.statics.setStatus = (async function (
   );
 }) as ProjectModel['setStatus'];
 
-// TODO(type-safety): Resolve ProjectModel static method type compatibility
 ProjectSchema.statics.recomputeBudget = (async function (
   this: ProjectModel,
   projectId: Types.ObjectId,
