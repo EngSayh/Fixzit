@@ -149,7 +149,7 @@ function mockSession(user: SessionInput) {
   abilityUser.tenantId = user.tenantId ?? user.orgId ?? 'tenant-1';
 }
 
-function mockDatabase(workOrder: any, updatedDoc?: any) {
+function mockDatabase(workOrder: Record<string, unknown>, updatedDoc?: Record<string, unknown>) {
   const workordersCollection = {
     findOne: vi.fn().mockResolvedValue(workOrder),
     findOneAndUpdate: vi.fn().mockResolvedValue({ value: updatedDoc ?? workOrder }),

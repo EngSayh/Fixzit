@@ -39,6 +39,7 @@ type ReportsContentProps = {
 
 function ReportsContent({ orgId, supportBanner }: ReportsContentProps) {
   const auto = useAutoTranslator('fm.reports');
+  const tenantHeaders = { 'x-tenant-id': orgId };
   const [jobs, setJobs] = useState<ReportJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -46,9 +47,7 @@ function ReportsContent({ orgId, supportBanner }: ReportsContentProps) {
     try {
       setLoading(true);
       const res = await fetch('/api/fm/reports', {
-        headers: {
-          'x-tenant-id': orgId,
-        },
+        headers: tenantHeaders,
       });
       const data = await res.json();
       if (res.ok && data?.success) {
@@ -69,9 +68,7 @@ function ReportsContent({ orgId, supportBanner }: ReportsContentProps) {
     try {
       setDownloadingId(id);
       const res = await fetch(`/api/fm/reports/${id}/download`, {
-        headers: {
-          'x-tenant-id': orgId,
-        },
+        headers: tenantHeaders,
       });
       const data = await res.json();
       if (!res.ok || !data?.success || !data.downloadUrl) {

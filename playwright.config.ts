@@ -100,11 +100,11 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    // Use standard Next dev server; instrumentation is gated in non-prod
-    command: 'npm run dev -- --hostname 0.0.0.0 --port 3000',
+    // Use webpack dev server to avoid Turbopack/OTel instability during Playwright
+    command: 'npm run dev:webpack -- --hostname 0.0.0.0 --port 3000',
     url: 'http://localhost:3000',
-    reuseExistingServer: false,
-    timeout: 180 * 1000, // Increased to 3 minutes for slower starts
+    reuseExistingServer: !process.env.CI,
+    timeout: 180 * 1000, // Increased to 3 minutes for slower builds
     stdout: 'pipe',
     stderr: 'pipe',
     env: {

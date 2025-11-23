@@ -5,7 +5,6 @@
 import { describe, test, expect, vi, beforeEach, beforeAll, afterEach } from 'vitest';
 import type { NextRequest } from 'next/server'
 import type { RequestInit } from 'node-fetch';
-import { Config } from '@/lib/config/constants';
 
 // Mock next/server to isolate NextResponse and avoid runtime coupling
 vi.mock('next/server', async () => {
@@ -46,10 +45,13 @@ const BASE_ENV: NodeJS.ProcessEnv = {
   PAYTABS_MAX_ATTEMPTS: '1',
 };
 
+let Config: typeof import('@/lib/config/constants').Config;
 let POST: (req: NextRequest) => Promise<MockResponse>
 beforeAll(async () => {
   process.env = { ...BASE_ENV }
   vi.resetModules()
+  const configModule = await import('@/lib/config/constants')
+  Config = configModule.Config
   const mod = await import('@/app/api/payments/paytabs/route')
   POST = mod.POST as typeof POST
 })
@@ -203,7 +205,7 @@ describe('PayTabs POST route', () => {
     }) as unknown as typeof fetch)
     const resPromise = POST(makeReq(validBody)) // Start request
     // Fast-forward timers to trigger abort
-    vi.advanceTimersByTime(15001)
+    await vi.advanceTimersByTimeAsync(15001)
     await expect(resPromise).resolves.toHaveProperty('status', 500)
     // Assert the signal is aborted
     expect(capturedSignal).toBeDefined()
