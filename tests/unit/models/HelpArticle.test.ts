@@ -107,7 +107,7 @@ describe("HelpArticle model schema", () => {
       slug: 'test2',
       title: 'Test2',
       content: 'Content2',
-      status: 'INVALID_STATUS' as any,
+      status: 'INVALID_STATUS',
       createdBy,
     });
     const err = invalidDoc.validateSync();

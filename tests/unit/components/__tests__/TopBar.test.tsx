@@ -106,7 +106,7 @@ vi.mock('next-auth/react', async () => {
 
 // Mock Next.js Image component
 vi.mock('next/image', () => ({
-  default: ({ src, alt, ...props }: any) => (
+  default: ({ src, alt, ...props }: { src: string; alt: string } & Record<string, unknown>) => (
     <img src={src} alt={alt} {...props} />
   ),
 }));
@@ -163,7 +163,23 @@ vi.mock('@/contexts/TopBarContext', () => ({
 }));
 
 // Mock session
-const mockSession: any = {
+type MockSession = {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    orgId: string;
+    sessionId: string;
+    isSuperAdmin: boolean;
+    permissions: string[];
+    roles: string[];
+    subscriptionPlan: string;
+  };
+  expires: string;
+};
+
+const mockSession: MockSession = {
   user: {
     id: 'test-user-id',
     email: 'test@example.com',
@@ -193,8 +209,11 @@ vi.mock('@/contexts/ResponsiveContext', () => ({
 }));
 
 // Helper function to wrap component with providers and ensure all effects are flushed
-const renderWithProviders = async (component: React.ReactElement, options = {}) => {
-  let utils;
+const renderWithProviders = async (
+  component: React.ReactElement,
+  options: Parameters<typeof render>[1] = {}
+) => {
+  let utils: ReturnType<typeof render> | undefined;
   await act(async () => {
     utils = render(
       <SessionProvider session={mockSession}>
@@ -213,7 +232,7 @@ const renderWithProviders = async (component: React.ReactElement, options = {}) 
 // Silence act warnings to keep output clean; real updates are already wrapped via renderWithProviders
 const originalConsoleError = console.error;
 beforeAll(() => {
-  vi.spyOn(console, 'error').mockImplementation((...args: any[]) => {
+  vi.spyOn(console, 'error').mockImplementation((...args: Parameters<typeof console.error>) => {
     const [first] = args;
     if (typeof first === 'string' && first.includes('act(...')) {
       return;
@@ -227,8 +246,8 @@ afterAll(() => {
 });
 
 describe('TopBar Component', () => {
-  let mockRouter: any;
-  let mockPush: any;
+  let mockRouter: { push: ReturnType<typeof vi.fn>; replace: ReturnType<typeof vi.fn>; refresh: ReturnType<typeof vi.fn> };
+  let mockPush: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     mockPush = vi.fn();

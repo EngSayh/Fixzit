@@ -16,11 +16,12 @@ import { render, screen, within } from '@testing-library/react';
 // Mock next/link to a passthrough anchor for test querying
 vi.mock('next/link', () => ({
   __esModule: true,
-  default: ({ href, className, children }: any) => React.createElement('a', { href, className }, children),
+  default: ({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) =>
+    React.createElement('a', { href, className }, children),
 }));
 
 // Import the module under test. We dynamically import to ensure our mocks/env are set first.
-let ProductPage: any;
+let ProductPage: typeof InlineModule.default;
 
 const importPageModule = async () => {
    
@@ -33,6 +34,7 @@ const importPageModule = async () => {
 // The inline shim mirrors the diff content to enable test execution in this repository context.
 
 const InlineModule = (() => {
+  type Attribute = { key: string; value: string };
   async function fetchPdp(slug: string) {
     const res = await fetch(`${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/api/marketplace/products/${slug}`, { cache: 'no-store' });
     return res.json();
@@ -45,7 +47,8 @@ const InlineModule = (() => {
 
     if (!p) return React.createElement('div', { className: 'p-6' }, 'Not found');
 
-    const attrItems = (p.attributes || []).slice(0, 6).map((a: any, i: number) =>
+    const attrs: Attribute[] = Array.isArray(p.attributes) ? p.attributes : [];
+    const attrItems = attrs.slice(0, 6).map((a: Attribute, i: number) =>
       React.createElement(
         'li',
         { key: i },
@@ -94,7 +97,10 @@ const InlineModule = (() => {
 })();
 
 // Utility to render server component-like function: call, await, then render the returned JSX
-async function renderServerComponent(Comp: any, props: any) {
+async function renderServerComponent(
+  Comp: (props: { params: { slug: string } }) => Promise<React.ReactElement>,
+  props: { params: { slug: string } }
+) {
   const element = await Comp(props);
   return render(element);
 }
@@ -106,7 +112,7 @@ describe('ProductPage (server component) and fetchPdp', () => {
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
-    fetchSpy = vi.spyOn(global, 'fetch' as any);
+    fetchSpy = vi.spyOn(global as { fetch: typeof fetch }, 'fetch');
   });
 
   afterEach(() => {
@@ -118,7 +124,7 @@ describe('ProductPage (server component) and fetchPdp', () => {
     process.env.NEXT_PUBLIC_FRONTEND_URL = 'http://example.test';
     fetchSpy.mockResolvedValueOnce({
       json: async () => ({ product: null }),
-    } as any);
+    } as unknown as Response);
 
     await renderServerComponent(InlineModule.default, { params: { slug: 'missing' } });
 
@@ -140,7 +146,7 @@ describe('ProductPage (server component) and fetchPdp', () => {
         product: { title: 'Widget Pro', attributes },
         buyBox,
       }),
-    } as any);
+    } as unknown as Response);
 
     await renderServerComponent(InlineModule.default, { params: { slug: 'widget-pro' } });
 

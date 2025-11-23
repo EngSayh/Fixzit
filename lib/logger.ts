@@ -83,6 +83,11 @@ class Logger {
     message: string,
     context?: LogContext
   ): Promise<void> {
+    // Suppress monitoring integrations outside production to avoid noisy dev/test instrumentation
+    if (process.env.NODE_ENV !== 'production') {
+      return;
+    }
+
     try {
       // Sentry integration for error tracking
       if (level === 'error' && process.env.NEXT_PUBLIC_SENTRY_DSN) {

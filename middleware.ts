@@ -38,6 +38,14 @@ type WrappedReq = NextRequest & { auth?: AuthSession | null };
 // ---------- Configurable switches ----------
 const API_PROTECT_ALL = process.env.API_PROTECT_ALL !== 'false'; // secure-by-default
 const REQUIRE_ORG_ID_FOR_FM = process.env.REQUIRE_ORG_ID === 'true';
+
+// ---------- Rate limiting for credential logins (tests expect 429 on abuse) ----------
+const LOGIN_RATE_LIMIT_WINDOW_MS =
+  Number(process.env.LOGIN_RATE_LIMIT_WINDOW_MS) || 60_000; // 1 minute default
+const LOGIN_RATE_LIMIT_MAX =
+  Number(process.env.LOGIN_RATE_LIMIT_MAX_ATTEMPTS) || 5;
+type RateEntry = { count: number; expiresAt: number };
+const loginAttempts = new Map<string, RateEntry>();
 // ---------- Route helpers ----------
 function matchesRoute(pathname: string, route: string): boolean {
   if (pathname === route) return true;
@@ -170,6 +178,22 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const method = request.method;
   const isApiRequest = pathname.startsWith('/api');
+  const clientIp = getClientIP(request) || 'unknown';
+
+  // Lightweight rate limit specifically for credential callback to satisfy abuse protection and tests
+  if (pathname === '/api/auth/callback/credentials' && method === 'POST') {
+    const entry = loginAttempts.get(clientIp);
+    const now = Date.now();
+    if (entry && entry.expiresAt > now) {
+      if (entry.count >= LOGIN_RATE_LIMIT_MAX) {
+        return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: 429 });
+      }
+      entry.count += 1;
+      loginAttempts.set(clientIp, entry);
+    } else {
+      loginAttempts.set(clientIp, { count: 1, expiresAt: now + LOGIN_RATE_LIMIT_WINDOW_MS });
+    }
+  }
 
   if (isApiRequest) {
     if (method === 'OPTIONS') {
@@ -182,7 +206,7 @@ export async function middleware(request: NextRequest) {
       // Log CORS block for monitoring
       logSecurityEvent({
         type: 'cors_block',
-        ip: getClientIP(request),
+        ip: clientIp,
         path: pathname,
         timestamp: new Date().toISOString(),
         metadata: {
@@ -268,10 +292,11 @@ export async function middleware(request: NextRequest) {
 
   // Unauthenticated flows → redirect for protected zones
   if (!user) {
-    if (
-      matchesAnyRoute(pathname, fmRoutes) ||
-      matchesAnyRoute(pathname, protectedMarketplaceActions)
-    ) {
+    const isProtectedRoute =
+      matchesAnyRoute(pathname, PROTECTED_ROUTE_PREFIXES) ||
+      matchesAnyRoute(pathname, protectedMarketplaceActions);
+
+    if (isProtectedRoute) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
     return NextResponse.next();

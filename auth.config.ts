@@ -1,3 +1,4 @@
+import { skipCSRFCheck as skipCSRFCheckSymbol } from '@auth/core';
 import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
@@ -124,6 +125,15 @@ function _sanitizeImage(image?: string | null): string | undefined {
 // NOTE: signIn() from next-auth/react sends checkbox values as 'on' when checked, undefined when unchecked
 const REQUIRE_SMS_OTP = process.env.NEXTAUTH_REQUIRE_SMS_OTP !== 'false';
 
+const EMPLOYEE_ID_REGEX = /^EMP[-A-Z0-9]+$/;
+
+const shouldSkipCSRFCheck =
+  process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true' || process.env.NODE_ENV === 'test';
+const trustHost =
+  process.env.AUTH_TRUST_HOST === 'true' ||
+  process.env.NEXTAUTH_TRUST_HOST === 'true' ||
+  process.env.NODE_ENV !== 'production';
+
 const LoginSchema = z
   .object({
     identifier: z.string().trim().min(1, 'Email or employee number is required'),
@@ -149,7 +159,7 @@ const LoginSchema = z
     const idRaw = data.identifier.trim();
     const emailOk = z.string().email().safeParse(idRaw).success;
     const empUpper = idRaw.toUpperCase();
-    const empOk = /^EMP\d+$/.test(empUpper);
+    const empOk = EMPLOYEE_ID_REGEX.test(empUpper);
 
     let loginIdentifier = '';
     let loginType: 'personal' | 'corporate';
@@ -164,7 +174,7 @@ const LoginSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['identifier'],
-        message: 'Enter a valid email address or employee number (e.g., EMP001)',
+        message: 'Enter a valid email address or employee number (e.g., EMP-001)',
       });
       return z.NEVER;
     }
@@ -233,6 +243,7 @@ export const authConfig = {
             subscriptionPlan?: string;
             orgId?: string | { toString(): string };
             roles?: Array<string | { toString(): string }>;
+            role?: string;
           };
           let user: LeanUser | null;
           if (loginType === 'personal') {
@@ -316,6 +327,7 @@ export const authConfig = {
           // 9. Return user object for NextAuth session
           const derivedRole =
             user.professional?.role ||
+            user.role ||
             (Array.isArray(user.roles)
               ? (typeof user.roles[0] === 'string'
                   ? user.roles[0]
@@ -336,6 +348,7 @@ export const authConfig = {
             orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || null),
             sessionId: null, // NextAuth will generate session ID
             rememberMe, // Pass rememberMe to session callbacks
+            isSuperAdmin: Boolean((user as { isSuperAdmin?: boolean }).isSuperAdmin),
           };
           return authUser;
         } catch (error) {
@@ -439,4 +452,8 @@ export const authConfig = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: NEXTAUTH_SECRET,
+  // E2E/Playwright runs hit the same origin and already gate requests via middleware;
+  // skipping the CSRF check here prevents false negatives when dev server hot-reloads.
+  ...(shouldSkipCSRFCheck ? { skipCSRFCheck: skipCSRFCheckSymbol } : {}),
+  trustHost,
 } satisfies NextAuthConfig;

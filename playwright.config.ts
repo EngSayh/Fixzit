@@ -95,23 +95,18 @@ export default defineConfig({
       use: { ...devices['iPhone 12'] },
     },
 
-    /* Test against branded browsers. */
-    {
-      name: 'Microsoft Edge',
-      use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    },
-    {
-      name: 'Google Chrome',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    },
+    // Branded channels disabled for local runs (avoid missing msedge/chrome channel)
   ],
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
+    // Use webpack dev server to avoid Turbopack/OTel instability during Playwright
+    command: 'npm run dev:webpack -- --hostname 0.0.0.0 --port 3000',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
+    stdout: 'ignore',
+    stderr: 'ignore',
     env: {
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'playwright-secret',
       AUTH_SECRET: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'playwright-secret',
@@ -123,7 +118,15 @@ export default defineConfig({
       SKIP_ENV_VALIDATION: process.env.CI ? 'false' : 'true',
       // Allow MongoDB offline mode for tests
       ALLOW_OFFLINE_MONGODB: 'true',
+      AUTH_TRUST_HOST: 'true',
+      NEXTAUTH_TRUST_HOST: 'true',
       NODE_ENV: 'test',
+      LOGIN_RATE_LIMIT_MAX_ATTEMPTS: '100',
+      LOGIN_RATE_LIMIT_WINDOW_MS: '120000',
+      // Reduce noise from telemetry/instrumentation in E2E
+      NEXT_TELEMETRY_DISABLED: '1',
+      SENTRY_SKIP_INIT: '1',
+      OTEL_SDK_DISABLED: '1',
     },
   },
 });

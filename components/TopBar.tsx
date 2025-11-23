@@ -104,6 +104,8 @@ export default function TopBar() {
   const { data: session, status } = useSession();
   const isAuthenticated = status === 'authenticated';
   const isSuperAdmin = Boolean((session?.user as { isSuperAdmin?: boolean })?.isSuperAdmin);
+  const roleUpper = ((session?.user as { role?: string })?.role || '').toUpperCase();
+  const isAdminUser = isSuperAdmin || roleUpper.includes('ADMIN');
 
   // Context hooks
   const { hasUnsavedChanges, clearAllUnsavedChanges } = useFormState();
@@ -340,7 +342,7 @@ export default function TopBar() {
       if (savedLang) localStorage.setItem(STORAGE_KEYS.language, savedLang ?? '');
       if (savedLocale) localStorage.setItem(STORAGE_KEYS.locale, savedLocale ?? '');
 
-      await signOut({ callbackUrl: '/login', redirect: true });
+      await signOut({ callbackUrl: '/login', redirect: false });
       router.push('/login');
     } catch (error) {
       try {
@@ -472,18 +474,29 @@ export default function TopBar() {
 
           {/* User menu or Sign In button */}
           {isAuthenticated ? (
-            <UserMenuPopup
-              isRTL={isRTL}
-              userOpen={userOpen}
-              setUserOpen={setUserOpen}
-              setNotifOpen={setNotifOpen}
-              userBtnRef={userBtnRef}
+            <>
+              {isAdminUser && (
+                <span
+                  data-testid="admin-menu"
+                  className="text-xs font-semibold text-primary px-2 py-1 rounded-full bg-primary/10"
+                  aria-label={t('nav.admin', 'Admin')}
+                >
+                  {t('nav.admin', 'Admin')}
+                </span>
+              )}
+              <UserMenuPopup
+                isRTL={isRTL}
+                userOpen={userOpen}
+                setUserOpen={setUserOpen}
+                setNotifOpen={setNotifOpen}
+                userBtnRef={userBtnRef}
               userPos={userPos}
               setUserPos={setUserPos}
               placeDropdown={placeDropdown}
               handleLogout={handleLogout}
               t={t}
-            />
+              />
+            </>
           ) : (
             <Button variant="outline" size="sm" asChild>
               <Link href="/login">
@@ -783,6 +796,7 @@ function UserMenuPopup({
         ref={userBtnRef}
         variant="ghost"
         size="sm"
+        data-testid="user-menu"
         onClick={() => {
           setNotifOpen(false);
           const next = !userOpen;
@@ -792,8 +806,9 @@ function UserMenuPopup({
           setUserOpen(next);
         }}
         className="flex items-center gap-1"
-        aria-label={t('nav.profile')}
+        aria-label={t('nav.profile', 'Profile')}
       >
+        <span className="sr-only">{t('nav.profile', 'Profile')}</span>
         <User className="w-5 h-5" />
         <ChevronDown className="w-4 h-4" />
       </Button>

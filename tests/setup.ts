@@ -43,11 +43,14 @@ vi.mock('mongoose', async (importOriginal) => {
   const storeByModel = new Map<string, Map<string, AnyDoc>>();
   const mkId = () => (original.Types?.ObjectId ? new original.Types.ObjectId() : { toString: () => `${Date.now()}${Math.random()}` });
 
-  const matchQuery = (doc: AnyDoc, query: Record<string, any>) => {
+  const matchQuery = (doc: AnyDoc, query: Record<string, unknown>) => {
     if (!query || Object.keys(query).length === 0) return true;
     return Object.entries(query).every(([k, v]) => {
       if (v && v._bsontype === 'ObjectID') return doc[k]?.toString() === v.toString();
-      if (v && typeof v === 'object' && v.$in) return v.$in.map((x: any) => x.toString()).includes(doc[k]?.toString());
+      if (v && typeof v === 'object' && (v as { $in?: unknown[] }).$in) {
+        const values = (v as { $in: unknown[] }).$in;
+        return values.map((x) => (x as { toString?: () => string })?.toString?.() ?? String(x)).includes(doc[k]?.toString());
+      }
       if (v && typeof v === 'object' && ('$gte' in v || '$lte' in v)) {
         const val = doc[k];
         if (v.$gte !== undefined && val < v.$gte) return false;
@@ -58,14 +61,14 @@ vi.mock('mongoose', async (importOriginal) => {
     });
   };
 
-  const applyUpdate = (update: any) => {
+  const applyUpdate = (update: AnyDoc) => {
     if (!update) return {};
     if (update.$set) return update.$set;
     if (update.$unset) return {};
     return update;
   };
 
-  function populateQueryHelpers(obj: any) {
+  function populateQueryHelpers<T extends AnyDoc>(obj: T): T {
     obj.populate = vi.fn().mockReturnValue(obj);
     obj.select = vi.fn().mockReturnValue(obj);
     obj.lean = vi.fn().mockResolvedValue(obj);
@@ -74,12 +77,12 @@ vi.mock('mongoose', async (importOriginal) => {
 
   class MockSchema {
     static Types = original.Schema?.Types || original.Types || { ObjectId: Object };
-    paths: Record<string, any>;
-    virtuals: Record<string, any>;
-    options: Record<string, any>;
-    methods: Record<string, any>;
-    statics: Record<string, any>;
-    constructor(public definition: any = {}, opts: any = {}) {
+    paths: Record<string, unknown>;
+    virtuals: Record<string, unknown>;
+    options: Record<string, unknown>;
+    methods: Record<string, unknown>;
+    statics: Record<string, unknown>;
+    constructor(public definition: AnyDoc = {}, opts: AnyDoc = {}) {
       this.options = opts;
       this.paths = {};
       this.virtuals = {};
@@ -161,7 +164,7 @@ vi.mock('mongoose', async (importOriginal) => {
           .map((d) => new Model(d));
         const arr: AnyDoc = results;
         arr.exec = async () => arr;
-        arr.lean = async () => arr.map((i: any) => i.toObject());
+        arr.lean = async () => (arr as unknown as ModelInstance[]).map((i) => i.toObject());
         arr.limit = (n: number) => {
           arr.splice(n);
           return arr;
@@ -248,7 +251,7 @@ vi.mock('mongoose', async (importOriginal) => {
         return { modifiedCount: 0 };
       }
 
-      static async updateMany(filter: any, update: any) {
+  static async updateMany(filter: AnyDoc, update: AnyDoc) {
         const updated: string[] = [];
         Array.from(store.entries()).forEach(([key, value]) => {
           if (matchQuery(value, filter)) {
@@ -260,7 +263,7 @@ vi.mock('mongoose', async (importOriginal) => {
         return { modifiedCount: updated.length, matchedCount: updated.length };
       }
 
-      static async deleteOne(filter: any) {
+  static async deleteOne(filter: AnyDoc) {
         const entry = Array.from(store.entries()).find(([, v]) => matchQuery(v, filter));
         if (entry) {
           store.delete(entry[0]);
@@ -269,13 +272,13 @@ vi.mock('mongoose', async (importOriginal) => {
         return { deletedCount: 0 };
       }
 
-      static async deleteMany(filter: any) {
+  static async deleteMany(filter: AnyDoc) {
         const toDelete = Array.from(store.entries()).filter(([, v]) => matchQuery(v, filter));
         toDelete.forEach(([k]) => store.delete(k));
         return { deletedCount: toDelete.length };
       }
 
-      static async countDocuments(filter: any = {}) {
+  static async countDocuments(filter: AnyDoc = {}) {
         const count = Array.from(store.values()).filter((d) => matchQuery(d, filter)).length;
         return count;
       }
@@ -286,7 +289,7 @@ vi.mock('mongoose', async (importOriginal) => {
         };
       }
 
-      static async getAccountBalance(orgId: any, accountId: any) {
+  static async getAccountBalance(orgId: AnyDoc, accountId: AnyDoc) {
         const entries = Array.from(store.values()).filter((e) => {
           const accountMatch = e.accountId?.toString?.() === accountId?.toString?.();
           const orgMatch = !orgId || e.orgId?.toString?.() === orgId?.toString?.();
@@ -295,7 +298,7 @@ vi.mock('mongoose', async (importOriginal) => {
         if (entries.length === 0) return 0;
         const last = entries[entries.length - 1];
         if (typeof last.balance === 'number') return last.balance;
-        return entries.reduce((sum, en: any) => {
+       return entries.reduce((sum, en: AnyDoc) => {
           const acctType = en.accountType;
           if (acctType === 'REVENUE' || acctType === 'LIABILITY' || acctType === 'EQUITY') {
             return sum + (en.credit || 0) - (en.debit || 0);
@@ -308,10 +311,10 @@ vi.mock('mongoose', async (importOriginal) => {
     return Model;
   };
 
-  const mocked: any = {
+  const mocked: Partial<typeof original> & { models: Record<string, unknown>; default?: unknown; connection: AnyDoc } = {
     ...original,
-    connect: vi.fn(async (..._args: any[]) => ({ connection: mocked.connection })),
-    createConnection: (...args: any[]) => original.createConnection?.(...args),
+    connect: vi.fn(async (..._args: unknown[]) => ({ connection: mocked.connection })),
+    createConnection: (...args: unknown[]) => original.createConnection?.(...args),
     disconnect: vi.fn(async () => {}),
     connection: {
       readyState: 1,
@@ -342,7 +345,7 @@ vi.mock('mongoose', async (importOriginal) => {
       }
       return mocked.models[name];
     }),
-    models: {} as Record<string, any>,
+    models: {} as Record<string, unknown>,
   };
 
   mocked.default = mocked;
@@ -381,7 +384,7 @@ vi.mock('@/modules/users/schema', () => {
   return {
     __esModule: true,
     User: {
-      findOne: vi.fn(async (query: any) => {
+      findOne: vi.fn(async (query: Record<string, unknown>) => {
         // Inactive user for auth tests
         if (query.email === 'inactive@x.com' || query.username === 'inactive') {
           return inactiveUser();
@@ -432,7 +435,7 @@ vi.mock('@/modules/users/schema', () => {
         }
         return null;
       }),
-      create: vi.fn(async (data: any) => ({ _id: 'new-id', ...data })),
+      create: vi.fn(async (data: Record<string, unknown>) => ({ _id: 'new-id', ...data })),
       updateOne: vi.fn(async () => ({ modifiedCount: 1 })),
       deleteOne: vi.fn(async () => ({ deletedCount: 1 })),
     },
@@ -524,7 +527,7 @@ global.fetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
 
 // Mock NextRequest for API route tests
 vi.mock('next/server', async (importOriginal) => {
-  const actual = await importOriginal() as any;
+  const actual = await importOriginal<typeof import('next/server')>();
   
   return {
     ...actual,

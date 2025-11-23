@@ -5,10 +5,15 @@ describe('inspect Journal module', () => {
      
     console.log('Journal is', typeof Journal);
      
-    console.log('Journal keys', Object.keys(Journal as any));
+    const journalExport = Journal as Record<string, unknown>;
+    console.log('Journal keys', Object.keys(journalExport));
      
-    console.log('Journal.default type', typeof (Journal as any).default);
+    const defaultExport = (journalExport as { default?: unknown }).default;
+    console.log('Journal.default type', typeof defaultExport);
      
-    console.log('Journal.default keys', Object.keys((Journal as any).default || {}));
+    const defaultKeys = defaultExport && typeof defaultExport === 'object'
+      ? Object.keys(defaultExport as Record<string, unknown>)
+      : [];
+    console.log('Journal.default keys', defaultKeys);
   });
 });

@@ -109,14 +109,14 @@ describe('MarketplacePage', () => {
     {
       _id: '1',
       slug: 'cool-cement',
-      title: 'Cool Cement' as any,
+      title: 'Cool Cement',
         rating: { avg: 4.5, count: 12 },
         inventories: [{ leadDays: 5 }],
       },
       {
         // missing _id to force key fallback to slug
         slug: 'fast-cement',
-        title: 'Fast Cement' as any,
+        title: 'Fast Cement',
         rating: { avg: 3.8, count: 3 },
         inventories: [{ leadDays: 2 }],
       },

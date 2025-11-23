@@ -14,10 +14,14 @@ const repoRoot = path.resolve(process.cwd())
 const candidateModulePaths = [
   path.join(repoRoot, 'scripts', 'seed-marketplace.ts'),
 ]
+type SeedModule = {
+  upsert: (collection: string, predicate: (doc: Doc) => boolean, payload: Doc) => Doc;
+  main?: () => Promise<void>;
+};
 
 // Lightweight mock in lieu of the actual MockDatabase implementation.
 // use jest.mock with a virtual module to intercept that import.
-type Doc = Record<string, any>;
+type Doc = Record<string, unknown>;
 
 class InMemoryMockDatabase {
   private static instance: InMemoryMockDatabase;
@@ -70,7 +74,7 @@ afterEach(() => {
   delete (globalThis as any).__FIXZIT_MARKETPLACE_DB_MOCK__
 })
 
-async function importTargetModule() {
+async function importTargetModule(): Promise<SeedModule> {
   for (const p of candidateModulePaths) {
     try {
       // Use file URL for ESM imports if needed
@@ -86,7 +90,7 @@ async function importTargetModule() {
 
 describe('seed-marketplace script', () => {
   test('upsert inserts when no match and sets timestamps and _id', async () => {
-    const mod: any = await importTargetModule()
+    const mod = await importTargetModule()
     const db = InMemoryMockDatabase.getInstance()
 
     const before = db.getCollection('searchsynonyms')
@@ -94,7 +98,7 @@ describe('seed-marketplace script', () => {
 
     const created = mod.upsert(
       'searchsynonyms',
-      (x: any) => x.locale === 'en' && x.term === 'ac filter',
+      (x: Doc) => x.locale === 'en' && x.term === 'ac filter',
       { locale: 'en', term: 'ac filter', synonyms: ['hvac filter'] }
     )
 
@@ -114,12 +118,12 @@ describe('seed-marketplace script', () => {
   })
 
   test('upsert updates when match exists and preserves createdAt while refreshing updatedAt', async () => {
-    const mod: any = await importTargetModule()
+    const mod = await importTargetModule()
     const db = InMemoryMockDatabase.getInstance()
 
     const first = mod.upsert(
       'searchsynonyms',
-      (x: any) => x.locale === 'en' && x.term === 'ac filter',
+      (x: Doc) => x.locale === 'en' && x.term === 'ac filter',
       { locale: 'en', term: 'ac filter', synonyms: ['hvac filter'] }
     )
 
@@ -132,7 +136,7 @@ describe('seed-marketplace script', () => {
 
       const updated = mod.upsert(
         'searchsynonyms',
-        (x: any) => x.locale === 'en' && x.term === 'ac filter',
+        (x: Doc) => x.locale === 'en' && x.term === 'ac filter',
         { synonyms: ['hvac filter', 'air filter'] } // partial update payload
       )
 
@@ -152,7 +156,7 @@ describe('seed-marketplace script', () => {
   })
 
   test('main() seeds the expected synonyms and product for demo-tenant', async () => {
-    const mod: any = await importTargetModule()
+    const mod = await importTargetModule()
     const db = InMemoryMockDatabase.getInstance()
 
     // The module calls main() on import in the provided snippet.
@@ -202,7 +206,7 @@ describe('seed-marketplace script', () => {
   })
 
   test('idempotency: running main() twice should update existing docs, not create duplicates', async () => {
-    const mod: any = await importTargetModule()
+    const mod = await importTargetModule()
     const db = InMemoryMockDatabase.getInstance()
 
     db.reset()
@@ -226,7 +230,7 @@ describe('seed-marketplace script', () => {
   })
 
   test('upsert handles predicates that throw by propagating the error', async () => {
-    const mod: any = await importTargetModule()
+    const mod = await importTargetModule()
     const db = InMemoryMockDatabase.getInstance()
     db.reset()
 

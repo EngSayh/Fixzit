@@ -1,14 +1,28 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { NextRequest } from 'next/server';
 import { Types } from 'mongoose';
+import type { Mock } from 'vitest';
 
 process.env.SKIP_ENV_VALIDATION = 'true';
 process.env.NEXTAUTH_SECRET = 'test-secret';
 
+type JsonBody = { error?: string } | Record<string, string | number | boolean | null | object>;
+type JsonResponse = { status: number; body: JsonBody };
+type InterviewRequestBody = {
+  applicationId: string;
+  scheduledAt: string;
+  stage: string;
+  status: string;
+  duration: number;
+  interviewers: string[];
+  metadata?: Record<string, string | number | boolean | null | object>;
+  feedback?: Record<string, string | number | boolean | null | object>;
+};
+
 vi.mock('next/server', () => ({
   NextRequest: class {},
   NextResponse: {
-    json: (body: any, init?: ResponseInit) => ({
+    json: (body: JsonBody, init?: ResponseInit): JsonResponse => ({
       status: init?.status ?? 200,
       body
     })
@@ -68,9 +82,9 @@ vi.mock('@/server/models/ats/Interview', () => ({
   Interview: InterviewMock
 }));
 
-let GET: any;
-let POST: any;
-let atsRBAC: any;
+let GET: (req: NextRequest) => Promise<JsonResponse> | JsonResponse;
+let POST: (req: NextRequest) => Promise<JsonResponse> | JsonResponse;
+let atsRBAC: Mock;
 
 describe('API /api/ats/interviews', () => {
   beforeAll(async () => {
@@ -100,7 +114,7 @@ describe('API /api/ats/interviews', () => {
   }) as NextRequest;
 
   it('rejects invalid from date values', async () => {
-    const res: any = await GET(getRequest('?from=not-a-date'));
+    const res = await GET(getRequest('?from=not-a-date'));
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('Invalid from date');
   });
@@ -116,7 +130,7 @@ describe('API /api/ats/interviews', () => {
 
     const req = {
       url: 'https://example.com/api/ats/interviews',
-      json: async () => ({
+      json: async (): Promise<InterviewRequestBody> => ({
         applicationId: appId.toHexString(),
         scheduledAt: '2024-01-01T00:00:00.000Z',
         stage: 'technical',
@@ -128,7 +142,7 @@ describe('API /api/ats/interviews', () => {
       })
     } as unknown as NextRequest;
 
-    const res: any = await POST(req);
+    const res = await POST(req);
 
     expect(res.status).toBe(201);
     expect(InterviewMock.create).toHaveBeenCalledTimes(1);

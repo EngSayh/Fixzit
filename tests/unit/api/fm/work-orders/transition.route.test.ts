@@ -84,7 +84,7 @@ describe('api/fm/work-orders/[id]/transition route', () => {
       { toStatus: WOStatus.ESTIMATE_PENDING },
       { 'x-tenant-id': 'tenant-1' }
     );
-    const res = await POST(req as any, { params: { id: WORK_ORDER_ID } });
+    const res = await POST(req, { params: { id: WORK_ORDER_ID } });
     const body = await res.json();
     expect(res.status).toBe(400);
     expect(body.error).toBe('validation-error');
@@ -114,7 +114,7 @@ describe('api/fm/work-orders/[id]/transition route', () => {
       { toStatus: WOStatus.IN_PROGRESS },
       { 'x-tenant-id': 'tenant-1' }
     );
-    const res = await POST(req as any, { params: { id: WORK_ORDER_ID } });
+    const res = await POST(req, { params: { id: WORK_ORDER_ID } });
     const body = await res.json();
     expect(res.status).toBe(403);
     expect(body.error).toBe('forbidden');
@@ -143,7 +143,7 @@ function mockSession(user: SessionInput) {
     name: user.name ?? 'Test User',
     permissions: [],
     roles: [],
-  } as any);
+  });
   abilityUser.id = user.id ?? 'user-1';
   abilityUser.orgId = user.orgId ?? 'tenant-1';
   abilityUser.tenantId = user.tenantId ?? user.orgId ?? 'tenant-1';
@@ -170,24 +170,18 @@ function mockDatabase(workOrder: any, updatedDoc?: any) {
       if (name === 'users') return usersCollection;
       throw new Error(`Unknown collection ${name}`);
     }),
-  } as any);
+  });
 }
 
 type Headers = Record<string, string>;
 
 function createMockRequest(body: unknown, headers: Headers = {}) {
-  const normalized = Object.entries(headers).reduce<Record<string, string>>(
-    (acc, [key, value]) => {
-      acc[key.toLowerCase()] = value;
-      return acc;
-    },
-    {}
-  );
-
-  return {
+  return new Request(`https://test.com/api/fm/work-orders/${WORK_ORDER_ID}/transition`, {
+    method: 'POST',
     headers: {
-      get: (key: string) => normalized[key.toLowerCase()] ?? null,
+      'content-type': 'application/json',
+      ...headers,
     },
-    json: async () => body,
-  };
+    body: JSON.stringify(body),
+  });
 }

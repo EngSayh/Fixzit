@@ -1,14 +1,18 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { NextRequest } from 'next/server';
 import { Types } from 'mongoose';
+import type { Mock } from 'vitest';
 
 process.env.SKIP_ENV_VALIDATION = 'true';
 process.env.NEXTAUTH_SECRET = 'test-secret';
 
+type JsonBody = { error?: string } | Record<string, string | number | boolean | null | object>;
+type JsonResponse = { status: number; body: JsonBody };
+
 vi.mock('next/server', () => ({
   NextRequest: class {},
   NextResponse: {
-    json: (body: any, init?: ResponseInit) => ({
+    json: (body: JsonBody, init?: ResponseInit): JsonResponse => ({
       status: init?.status ?? 200,
       body
     })
@@ -57,8 +61,8 @@ vi.mock('@/server/models/Job', () => ({
   Job: JobMock
 }));
 
-let GET: any;
-let atsRBAC: any;
+let GET: (req: NextRequest) => Promise<JsonResponse> | JsonResponse;
+let atsRBAC: Mock;
 
 describe('API /api/ats/analytics', () => {
   beforeAll(async () => {
@@ -93,14 +97,14 @@ describe('API /api/ats/analytics', () => {
   };
 
   it('rejects invalid period values', async () => {
-    const res: any = await callGET('?period=0');
+    const res = await callGET('?period=0');
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('Invalid period');
   });
 
   it('casts jobId filter when provided', async () => {
     const jobId = new Types.ObjectId().toHexString();
-    const res: any = await callGET(`?period=30&jobId=${jobId}`);
+    const res = await callGET(`?period=30&jobId=${jobId}`);
     expect(res.status).toBe(200);
 
     const matchStage = ApplicationMock.aggregate.mock.calls[0][0][0];

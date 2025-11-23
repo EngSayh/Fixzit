@@ -23,6 +23,7 @@ vi.mock('@/app/api/fm/utils/auth', () => ({
 }));
 
 import { GET } from '@/app/api/fm/work-orders/stats/route';
+import { makeGetRequest } from '@/tests/helpers/request';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { resolveTenantId } from '@/app/api/fm/utils/tenant';
 import { requireFmAbility } from '@/app/api/fm/utils/auth';
@@ -40,7 +41,7 @@ describe('api/fm/work-orders/stats route', () => {
     const guardResponse = NextResponse.json({ error: 'forbidden' }, { status: 403 });
     (requireFmAbility as vi.Mock).mockImplementation(() => async () => guardResponse);
     const req = createRequest();
-    const res = await GET(req as any);
+    const res = await GET(req);
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.error).toBe('forbidden');
@@ -51,7 +52,7 @@ describe('api/fm/work-orders/stats route', () => {
     mockAbility();
     (resolveTenantId as vi.Mock).mockReturnValue({ error: FMErrors.forbidden('mismatch') });
     const req = createRequest();
-    const res = await GET(req as any);
+    const res = await GET(req);
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.error).toBe('forbidden');
@@ -63,7 +64,7 @@ describe('api/fm/work-orders/stats route', () => {
     (resolveTenantId as vi.Mock).mockReturnValue({ tenantId: 'tenant-1', source: 'session' });
     mockDb();
     const req = createRequest();
-    const res = await GET(req as any);
+    const res = await GET(req);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
@@ -108,9 +109,5 @@ function mockDb() {
 
 function createRequest() {
   const url = new URL('https://fixzit.test/api/fm/work-orders/stats');
-  return {
-    url: url.toString(),
-    headers: new Headers(),
-    nextUrl: url,
-  };
+  return makeGetRequest(url.toString());
 }

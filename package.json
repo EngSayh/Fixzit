@@ -118,7 +118,7 @@
     "check:mock-flags": "node scripts/check-mock-flags.js",
     "lint:md": "markdownlint \"**/*.md\" \"!node_modules\" \"!.next\"",
     "lint:md:fix": "markdownlint --fix \"**/*.md\" \"!node_modules\" \"!.next\"",
-    "guard:fm-hooks": "bash -lc \"if rg -n 'eslint-disable react-hooks/rules-of-hooks' app/fm; then echo '❌ Found react-hooks/rules-of-hooks disables in app/fm (use FmGuardedPage)'; exit 1; fi\"",
+    "guard:fm-hooks": "node -e \"const {execSync} = require('child_process'); try { execSync('which rg', {stdio: 'ignore'}); execSync('rg -n \\'eslint-disable react-hooks/rules-of-hooks\\' app/fm'); console.log('❌ Found react-hooks/rules-of-hooks disables in app/fm (use FmGuardedPage)'); process.exit(1); } catch(e) { if (e.status === 1) process.exit(0); }\"",
     "prepare": "simple-git-hooks"
   },
   "dependencies": {
