@@ -135,24 +135,27 @@ export class RefundProcessor {
    * Execute refund with payment gateway (PayTabs)
    */
   private static async executeRefund(refund: Refund): Promise<RefundResult> {
-    // Atomically transition to in_progress to prevent concurrent processing
+    // Atomically check and lock to prevent concurrent processing
     // This guards against race conditions from queue + in-process timer or multiple workers
     const collection = await this.collection();
     const result = await collection.updateOne(
       { 
         refundId: refund.refundId, 
-        status: { $in: ['initiated', 'processing'] } 
+        status: { $in: ['initiated', 'processing'] },
+        // Add a processing lock flag that's only set during active execution
+        processingLock: { $exists: false }
       },
       { 
         $set: { 
-          status: 'in_progress', 
+          status: 'processing',
+          processingLock: new Date(),
           updatedAt: new Date() 
         } 
       }
     );
     
     if (result.matchedCount === 0) {
-      logger.info('[Refunds] Skipping executeRefund; already in progress or completed', {
+      logger.info('[Refunds] Skipping executeRefund; already being processed', {
         refundId: refund.refundId,
       });
       return {
@@ -166,6 +169,12 @@ export class RefundProcessor {
       // Call PayTabs refund API
       const gatewayResult = await this.callPaymentGateway(refund);
 
+      // Clear processing lock on success
+      await collection.updateOne(
+        { refundId: refund.refundId },
+        { $unset: { processingLock: '' } }
+      );
+
       return {
         refundId: refund.refundId,
         status: 'completed',
@@ -178,6 +187,12 @@ export class RefundProcessor {
       void error;
       // Retry logic
       if (refund.retryCount < this.MAX_RETRIES) {
+        // Clear lock before scheduling retry
+        await collection.updateOne(
+          { refundId: refund.refundId },
+          { $unset: { processingLock: '' } }
+        );
+        
         await this.scheduleRetry(refund);
         
         return {
@@ -186,6 +201,12 @@ export class RefundProcessor {
           amount: refund.amount,
         };
       }
+
+      // Clear lock on final failure
+      await collection.updateOne(
+        { refundId: refund.refundId },
+        { $unset: { processingLock: '' } }
+      );
 
       return {
         refundId: refund.refundId,

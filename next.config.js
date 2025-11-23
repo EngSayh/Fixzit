@@ -9,9 +9,10 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 
 // ---- Production guardrails (fail fast for unsafe flags/secrets) ----
+// Only validate on actual Vercel deployments, not CI test builds
 const isProdDeploy =
   process.env.VERCEL_ENV === 'production' ||
-  (process.env.NODE_ENV === 'production' && process.env.CI === 'true');
+  process.env.VERCEL_ENV === 'preview';
 
 if (isProdDeploy) {
   const violations = [];
