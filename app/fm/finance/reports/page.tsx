@@ -37,9 +37,8 @@ type ReportsContentProps = {
   supportBanner?: ReactNode | null;
 };
 
-function ReportsContent({ orgId, supportBanner }: ReportsContentProps) {
+function ReportsContent({ orgId: _orgId, supportBanner }: ReportsContentProps) {
   const auto = useAutoTranslator('fm.reports');
-  void orgId;
   const [jobs, setJobs] = useState<ReportJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
