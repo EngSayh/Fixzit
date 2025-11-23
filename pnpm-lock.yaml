@@ -17,6 +17,9 @@ importers:
       '@ai-sdk/openai':
         specifier: ^2.0.71
         version: 2.0.71(zod@4.1.12)
+      '@auth/core':
+        specifier: 0.41.0
+        version: 0.41.0
       '@aws-sdk/client-s3':
         specifier: ^3.933.0
         version: 3.937.0

@@ -18,10 +18,32 @@ global.fetch = global.fetch || vi.fn();
 vi.mock('mongoose', async (importOriginal) => {
   const original = await importOriginal<typeof import('mongoose')>();
 
-  const storeByModel = new Map<string, Map<string, any>>();
+  type AnyDoc = Record<string, unknown>;
+  type IdLike = { toString(): string } | string | number | undefined;
+  type ModelInstance = AnyDoc & {
+    _id?: IdLike;
+    isNew?: boolean;
+    validateSync: () => unknown;
+    populate: () => Promise<ModelInstance>;
+    toObject: () => AnyDoc;
+    toJSON: () => AnyDoc;
+    lean: () => Promise<AnyDoc>;
+    exec: () => Promise<ModelInstance>;
+    save: () => Promise<ModelInstance>;
+    lines?: Array<{ debit?: number; credit?: number }>;
+    status?: string;
+    journalDate?: Date;
+    totalDebit?: number;
+    totalCredit?: number;
+    isBalanced?: boolean;
+    fiscalYear?: number;
+    fiscalPeriod?: number;
+  };
+
+  const storeByModel = new Map<string, Map<string, AnyDoc>>();
   const mkId = () => (original.Types?.ObjectId ? new original.Types.ObjectId() : { toString: () => `${Date.now()}${Math.random()}` });
 
-  const matchQuery = (doc: any, query: Record<string, any>) => {
+  const matchQuery = (doc: AnyDoc, query: Record<string, any>) => {
     if (!query || Object.keys(query).length === 0) return true;
     return Object.entries(query).every(([k, v]) => {
       if (v && v._bsontype === 'ObjectID') return doc[k]?.toString() === v.toString();
@@ -76,7 +98,7 @@ vi.mock('mongoose', async (importOriginal) => {
   }
 
   const makeModel = (name: string) => {
-    const store = storeByModel.get(name) || new Map<string, any>();
+    const store = storeByModel.get(name) || new Map<string, AnyDoc>();
     storeByModel.set(name, store);
 
     class Model {
@@ -84,59 +106,60 @@ vi.mock('mongoose', async (importOriginal) => {
       static schema = new MockSchema();
       static Types = original.Types;
 
-      constructor(data: any = {}) {
-        Object.assign(this, data);
-        (this as any).isNew = !data?._id;
-        (this as any).validateSync = vi.fn(() => undefined);
-        (this as any).populate = vi.fn(async () => this);
-        (this as any).toObject = vi.fn(() => ({ ...this }));
-        (this as any).toJSON = vi.fn(() => ({ ...this }));
-        (this as any).lean = vi.fn(async () => ((this as any).toObject ? (this as any).toObject() : { ...this }));
-        (this as any).exec = vi.fn(async () => this);
-        (this as any).save = vi.fn(async () => {
-          const id = (this as any)._id || mkId();
-          (this as any)._id = id;
+      constructor(data: AnyDoc = {}) {
+        const self = this as unknown as ModelInstance;
+        Object.assign(self, data);
+        self.isNew = !data?._id;
+        self.validateSync = vi.fn(() => undefined);
+        self.populate = vi.fn(async () => self);
+        self.toObject = vi.fn(() => ({ ...self }));
+        self.toJSON = vi.fn(() => ({ ...self }));
+        self.lean = vi.fn(async () => (self.toObject ? self.toObject() : { ...self }));
+        self.exec = vi.fn(async () => self);
+        self.save = vi.fn(async () => {
+          const id = self._id || mkId();
+          self._id = id;
           const existing = store.get(id.toString());
           if (name && /journal/i.test(name) && existing && existing.status === 'POSTED') {
-            if ((this as any).status === 'VOID') {
+            if (self.status === 'VOID') {
               // allow voiding a posted journal
             } else {
-              const currentSnapshot = JSON.stringify({ ...this, save: undefined, validateSync: undefined });
+              const currentSnapshot = JSON.stringify({ ...self, save: undefined, validateSync: undefined });
               const existingSnapshot = JSON.stringify(existing);
               if (currentSnapshot !== existingSnapshot) {
                 throw new Error('Posted journals cannot be modified');
               }
             }
           }
-          if (name && /journal/i.test(name) && Array.isArray((this as any).lines)) {
-            const totalDebit = (this as any).lines.reduce((sum: number, l: any) => sum + (l.debit || 0), 0);
-            const totalCredit = (this as any).lines.reduce((sum: number, l: any) => sum + (l.credit || 0), 0);
-            (this as any).totalDebit = totalDebit;
-            (this as any).totalCredit = totalCredit;
-            (this as any).isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
-            if (!(this as any).fiscalYear || !(this as any).fiscalPeriod) {
-              const d = (this as any).journalDate ? new Date((this as any).journalDate) : new Date();
-              (this as any).fiscalYear = d.getFullYear();
-              (this as any).fiscalPeriod = d.getMonth() + 1;
+          if (name && /journal/i.test(name) && Array.isArray(self.lines)) {
+            const totalDebit = self.lines.reduce((sum: number, l) => sum + (l.debit || 0), 0);
+            const totalCredit = self.lines.reduce((sum: number, l) => sum + (l.credit || 0), 0);
+            self.totalDebit = totalDebit;
+            self.totalCredit = totalCredit;
+            self.isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
+            if (!self.fiscalYear || !self.fiscalPeriod) {
+              const d = self.journalDate ? new Date(self.journalDate) : new Date();
+              self.fiscalYear = d.getFullYear();
+              self.fiscalPeriod = d.getMonth() + 1;
             }
           }
-          store.set(id.toString(), { ...this });
-          (this as any).isNew = false;
-          return this;
+          store.set(id.toString(), { ...self });
+          self.isNew = false;
+          return self;
         });
       }
 
-      static async create(data: any) {
+      static async create(data: AnyDoc) {
         const inst = new Model(data);
-        await (inst as any).save();
+        await (inst as unknown as ModelInstance).save();
         return inst;
       }
 
-      static find(query: any = {}) {
+      static find(query: AnyDoc = {}) {
         const results = Array.from(store.values())
           .filter((d) => matchQuery(d, query))
           .map((d) => new Model(d));
-        const arr: any = results;
+        const arr: AnyDoc = results;
         arr.exec = async () => arr;
         arr.lean = async () => arr.map((i: any) => i.toObject());
         arr.limit = (n: number) => {
@@ -149,10 +172,10 @@ vi.mock('mongoose', async (importOriginal) => {
         return arr;
       }
 
-      static findOne(query: any = {}) {
+      static findOne(query: AnyDoc = {}) {
         const found = Array.from(store.values()).find((d) => matchQuery(d, query));
         if (!found) {
-          const queryObj: any = {};
+          const queryObj: AnyDoc = {};
           queryObj.lean = vi.fn(async () => null);
           queryObj.exec = vi.fn(async () => null);
           queryObj.populate = vi.fn().mockReturnValue(queryObj);
@@ -160,52 +183,53 @@ vi.mock('mongoose', async (importOriginal) => {
           return queryObj;
         }
         const instance = new Model(found);
-        (instance as any).lean = vi.fn(async () => (instance as any).toObject());
-        (instance as any).exec = vi.fn(async () => instance);
-        (instance as any).populate = vi.fn().mockReturnValue(instance);
-        (instance as any).select = vi.fn().mockReturnValue(instance);
+        const self = instance as unknown as ModelInstance;
+        self.lean = vi.fn(async () => self.toObject());
+        self.exec = vi.fn(async () => instance);
+        self.populate = vi.fn().mockReturnValue(instance);
+        self.select = vi.fn().mockReturnValue(instance);
         return instance;
       }
 
-      static async findById(id: any) {
+      static async findById(id: AnyDoc) {
         const key = id?.toString?.() ?? String(id);
         const found = store.get(key);
         return found ? new Model(found) : null;
       }
 
-      static findOneAndUpdate(filter: any, update: any, options?: any) {
+      static findOneAndUpdate(filter: AnyDoc, update: AnyDoc, options?: AnyDoc) {
         const entry = Array.from(store.entries()).find(([, v]) => matchQuery(v, filter));
-        let value: any = null;
+        let value: ModelInstance | null = null;
         if (entry) {
           const updated = { ...entry[1], ...applyUpdate(update) };
           store.set(entry[0], updated);
-          value = new Model(updated);
+          value = new Model(updated) as unknown as ModelInstance;
         } else if (options?.upsert) {
           const id = mkId().toString();
           const updated = { ...applyUpdate(update), _id: id };
           store.set(id, updated);
-          value = new Model(updated);
+          value = new Model(updated) as unknown as ModelInstance;
         }
-        const res: any = { value };
+        const res: AnyDoc = { value };
         res.exec = async () => res;
         res.lean = async () => (value ? value.toObject() : null);
         return res;
       }
 
-      static findOneAndDelete(filter: any) {
+      static findOneAndDelete(filter: AnyDoc) {
         const entry = Array.from(store.entries()).find(([, v]) => matchQuery(v, filter));
-        let value: any = null;
+        let value: ModelInstance | null = null;
         if (entry) {
           store.delete(entry[0]);
-          value = new Model(entry[1]);
+          value = new Model(entry[1]) as unknown as ModelInstance;
         }
-        const res: any = { value };
+        const res: AnyDoc = { value };
         res.exec = async () => res;
         res.lean = async () => (value ? value.toObject() : null);
         return res;
       }
 
-      static async findByIdAndUpdate(id: any, update: any) {
+      static async findByIdAndUpdate(id: AnyDoc, update: AnyDoc) {
         const key = id?.toString?.() ?? String(id);
         const existing = store.get(key);
         if (!existing) return null;
@@ -214,7 +238,7 @@ vi.mock('mongoose', async (importOriginal) => {
         return new Model(updated);
       }
 
-      static async updateOne(filter: any, update: any) {
+      static async updateOne(filter: AnyDoc, update: AnyDoc) {
         const entry = Array.from(store.entries()).find(([, v]) => matchQuery(v, filter));
         if (entry) {
           const updated = { ...entry[1], ...applyUpdate(update) };

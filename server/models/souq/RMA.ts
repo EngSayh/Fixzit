@@ -38,6 +38,7 @@ export interface IRMAInspection {
 export interface IRMARefund {
   amount: number;
   method: 'original_payment' | 'wallet' | 'bank_transfer';
+  processedBy?: string;
   processedAt?: Date;
   transactionId?: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
@@ -170,6 +171,7 @@ const RMARefundSchema = new Schema<IRMARefund>({
     enum: ['original_payment', 'wallet', 'bank_transfer'],
     default: 'original_payment'
   },
+  processedBy: String,
   processedAt: Date,
   transactionId: String,
   status: { 

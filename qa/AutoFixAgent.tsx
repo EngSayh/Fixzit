@@ -47,7 +47,7 @@ export function AutoFixAgent() {
     : 'unknown';
   const hudRef = useRef<HTMLDivElement>(null);
   const eventBuffer = useRef<QaEvent[]>([]);
-  const originalFetchRef = useRef<any>(null);
+  const originalFetchRef = useRef<typeof fetch | null>(null);
 
   const sendBatch = async () => {
     if (!eventBuffer.current.length) return;

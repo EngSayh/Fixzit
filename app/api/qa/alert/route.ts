@@ -58,7 +58,8 @@ export async function POST(req: NextRequest) {
       userAgent: req.headers.get('user-agent'),
     });
 
-    logger.warn(`🚨 QA Alert: ${event}`, { event, data: typeof data === 'object' ? data : { value: data } });
+    // Log minimal payload for observability (flatten for easier inspection)
+    logger.warn(`🚨 QA Alert: ${event}`, { payload: data });
 
     const successBody = { success: true };
     return createSecureResponse(successBody, 200, req);
