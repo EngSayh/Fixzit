@@ -346,6 +346,31 @@ async function fetchCounters(orgId: string): Promise<Counters> {
   return res.json();
 }
 
+function normalizeRoleFromSession(raw?: string): Role {
+  if (!raw) return "Super Admin";
+
+  const value = raw.trim();
+  const lower = value.toLowerCase();
+
+  if (lower === "super admin" || lower === "super_admin" || lower === "superadmin") {
+    return "Super Admin";
+  }
+  if (lower === "admin" || lower === "corporate admin" || lower === "corporate_admin") {
+    return "Corporate Admin";
+  }
+  if (lower === "management" || lower === "manager" || lower === "property_manager") {
+    return "Management";
+  }
+  if (lower === "finance") return "Finance";
+  if (lower === "hr") return "HR";
+  if (lower === "technician") return "Technician";
+  if (lower === "tenant" || lower === "tenant / end-user" || lower === "tenant/end-user") {
+    return "Tenant / End-User";
+  }
+  // Default for employees or any unknown roles
+  return "Corporate Employee";
+}
+
 function hasAccess(role: Role, path: string): boolean {
   if (role === "Super Admin") return true;
   if (role === "Corporate Admin") return !path.startsWith("/dashboard/system");
@@ -376,7 +401,7 @@ export default function ClientSidebar() {
   const { t } = useTranslation();
 
   const sessionUser = session?.user as SessionUserExtras | undefined;
-  const role: Role = sessionUser?.role ?? "Super Admin";
+  const role: Role = normalizeRoleFromSession(sessionUser?.role);
   const orgId = sessionUser?.orgId ?? "platform";
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
@@ -478,45 +503,53 @@ export default function ClientSidebar() {
         </button>
       </div>
       <nav className="p-2 space-y-2">
-        {navSections.map((section) => (
-          <div key={section.id}>
-            <button
-              className="w-full flex items-center justify-between ps-2 pe-2 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wide"
-              onClick={() => toggleSection(section.id)}
+        {navSections.map((section) => {
+          const isAdminSection =
+            section.id === "administration" || section.id === "system-management";
+
+          return (
+            <div
+              key={section.id}
+              data-testid={isAdminSection ? "admin-menu" : undefined}
             >
-              <span>{section.title}</span>
-              <span className="rtl-flip">
-                {collapsed[section.id] ? "▸" : "▾"}
-              </span>
-            </button>
-            {!collapsed[section.id] && (
-              <ul className="mt-1 space-y-1">
-                {section.items.map((item) => {
-                  const active = pathname?.startsWith(item.path) ?? false;
-                  return (
-                    <li key={item.path}>
-                      <Link
-                        href={item.path}
-                        className={`flex items-center justify-between rounded-md px-3 py-2 text-sm ${
-                          active
-                            ? "bg-[var(--primary)] text-white"
-                            : "text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        }`}
-                      >
-                        <span>{item.label}</span>
-                        {item.badge && item.badge > 0 && (
-                          <span className="ms-2 rounded-full bg-destructive/90 text-white text-xs px-2">
-                            {item.badge}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        ))}
+              <button
+                className="w-full flex items-center justify-between ps-2 pe-2 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wide"
+                onClick={() => toggleSection(section.id)}
+              >
+                <span>{section.title}</span>
+                <span className="rtl-flip">
+                  {collapsed[section.id] ? "▸" : "▾"}
+                </span>
+              </button>
+              {!collapsed[section.id] && (
+                <ul className="mt-1 space-y-1">
+                  {section.items.map((item) => {
+                    const active = pathname?.startsWith(item.path) ?? false;
+                    return (
+                      <li key={item.path}>
+                        <Link
+                          href={item.path}
+                          className={`flex items-center justify-between rounded-md px-3 py-2 text-sm ${
+                            active
+                              ? "bg-[var(--primary)] text-white"
+                              : "text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          <span>{item.label}</span>
+                          {item.badge && item.badge > 0 && (
+                            <span className="ms-2 rounded-full bg-destructive/90 text-white text-xs px-2">
+                              {item.badge}
+                            </span>
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          );
+        })}
       </nav>
     </aside>
   );

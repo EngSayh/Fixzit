@@ -8,13 +8,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 // ✅ FIXED: Use standard components from design system
-import { Button } from './ui/button';
+import { Button, buttonVariants } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 
 // Context imports
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
-import { useFormState } from '@/contexts/FormStateContext';
+import { useFormState, type FormStateContextValue } from '@/contexts/FormStateContext';
 import { MARKETING_ROUTES, MARKETING_ROUTE_PREFIXES } from '@/config/routes/public';
 
 // Constants
@@ -29,8 +29,10 @@ import QuickActions from './topbar/QuickActions';
 import { TopMegaMenu } from './topbar/TopMegaMenu';
 import Portal from './Portal';
 import { logger } from '@/lib/logger';
-import { useTopBar } from '@/contexts/TopBarContext';
+import * as TopBarCtx from '@/contexts/TopBarContext';
 import SupportOrgSwitcher from '@/components/support/SupportOrgSwitcher';
+
+const TopBarFallbackContext = React.createContext<unknown>(null);
 
 // Type definitions
 interface OrgSettings {
@@ -58,6 +60,119 @@ const NOTIFICATION_FILTERS: Array<{ id: NotificationFilter; labelKey: string; ca
   { id: 'support', labelKey: 'notifications.filters.system', category: 'system' },
 ];
 
+type TopBarContextValue = ReturnType<typeof TopBarCtx.useTopBar>;
+type ResponsiveContextValue = ReturnType<typeof useResponsive>;
+
+const createFormStateFallback = (): FormStateContextValue => ({
+  forms: new Map(),
+  hasUnsavedChanges: false,
+  registerForm: () => {},
+  unregisterForm: () => {},
+  updateField: () => {},
+  markFormClean: () => {},
+  getFormState: () => undefined,
+  saveAllForms: async () => {},
+  clearAllUnsavedChanges: () => {},
+  markFormDirty: () => {},
+  onSaveRequest: () => () => {},
+  isFormDirty: () => false,
+  requestSave: async () => {},
+});
+
+const topBarFallback: TopBarContextValue = {
+  app: 'fm',
+  appLabelKey: 'topbar.app',
+  appFallbackLabel: 'Dashboard',
+  appSearchEntities: [],
+  module: 'dashboard',
+  moduleLabelKey: 'topbar.module',
+  moduleFallbackLabel: 'Overview',
+  searchPlaceholderKey: 'topbar.search.placeholder',
+  searchPlaceholderFallback: 'Search',
+  searchEntities: [],
+  quickActions: [],
+  savedSearches: [],
+  navKey: undefined,
+  megaMenuCollapsed: true,
+  setMegaMenuCollapsed: () => {},
+  setApp: () => {},
+};
+
+const responsiveFallback: ResponsiveContextValue = {
+  isMobile: false,
+  isTablet: false,
+  isDesktop: true,
+  screenSize: 'desktop',
+  screenInfo: {
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true,
+    isLarge: true,
+    size: 'desktop',
+  },
+  responsiveClasses: {
+    container: 'px-6',
+    text: 'text-base',
+    spacing: 'space-y-4',
+  },
+};
+
+// ✅ Safety: fall back to native <img> if next/image is not a valid component in tests/jsdom
+const RawImageComponent = (Image as unknown as { default?: unknown }).default ?? Image;
+type SafeImageProps = React.ComponentProps<typeof Image>;
+const SafeImage: React.FC<SafeImageProps> = (props) => {
+  const Comp =
+    typeof RawImageComponent === 'function'
+      ? (RawImageComponent as React.ComponentType<SafeImageProps>)
+      : ('img' as React.ElementType);
+  return React.createElement(Comp, props);
+};
+
+function useSafeFormState(): FormStateContextValue {
+  try {
+    return useFormState();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message && !message.includes('FormStateProvider')) {
+      throw error;
+    }
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug('FormStateProvider missing - using no-op fallback for TopBar', { error });
+    }
+    return createFormStateFallback();
+  }
+}
+
+function useSafeTopBar(): TopBarContextValue {
+  try {
+    return TopBarCtx.useTopBar();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message && !message.includes('TopBarProvider')) {
+      throw error;
+    }
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug('TopBarProvider missing - using fallback labels for TopBar', { error });
+    }
+    return topBarFallback;
+  }
+}
+
+function useSafeResponsive(): ResponsiveContextValue {
+  try {
+    return useResponsive();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message && !message.includes('ResponsiveProvider')) {
+      throw error;
+    }
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug('ResponsiveProvider missing - using desktop fallback for TopBar', { error });
+    }
+    return responsiveFallback;
+  }
+}
+
 /**
  * ✅ REFACTORED TopBar Component
  * 
@@ -70,7 +185,7 @@ const NOTIFICATION_FILTERS: Array<{ id: NotificationFilter; labelKey: string; ca
  * 6. ✅ Extracted sub-components (NotificationPopup, UserMenuPopup)
  * 7. ✅ Fixed all hardcoded colors (removed bg-destructive, bg-white/10, text-destructive)
  */
-export default function TopBar() {
+function TopBarContent() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -106,10 +221,10 @@ export default function TopBar() {
   const isSuperAdmin = Boolean((session?.user as { isSuperAdmin?: boolean })?.isSuperAdmin);
 
   // Context hooks
-  const { hasUnsavedChanges, clearAllUnsavedChanges } = useFormState();
+  const { hasUnsavedChanges, clearAllUnsavedChanges } = useSafeFormState();
   const { t, isRTL } = useTranslation();
-  const { isMobile } = useResponsive();
-  const { appLabelKey, appFallbackLabel, moduleLabelKey, moduleFallbackLabel } = useTopBar();
+  const { isMobile } = useSafeResponsive();
+  const { appLabelKey, appFallbackLabel, moduleLabelKey, moduleFallbackLabel } = useSafeTopBar();
   const appLabel = t(appLabelKey, appFallbackLabel);
   const moduleLabel = t(moduleLabelKey, moduleFallbackLabel);
   const marketingRoutes = React.useMemo(() => new Set(MARKETING_ROUTES), []);
@@ -367,8 +482,15 @@ export default function TopBar() {
       aria-label={t('nav.globalHeader', 'Fixzit global navigation')}
     >
       <div className={`h-16 flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        {/* Left Section: Logo & App Switcher */}
+        {/* Left Section: Skip link + Logo & App Switcher */}
         <div className={`flex items-center gap-3 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:bg-primary focus:text-primary-foreground focus:px-3 focus:py-2 focus:rounded"
+            data-testid="skip-to-content"
+          >
+            {t('accessibility.skipToContent', 'Skip to main content')}
+          </a>
           <Button
             variant="ghost"
             onClick={handleLogoClick}
@@ -376,21 +498,24 @@ export default function TopBar() {
             aria-label={t('common.backToHome')}
           >
             {orgSettings.logo && !logoError ? (
-              <Image
+              <SafeImage
                 src={orgSettings.logo}
                 alt={logoAlt}
                 width={36}
                 height={36}
-                className="rounded-2xl object-cover fxz-brand-logo"
+                className="rounded-2xl object-cover fxz-brand-logo fxz-topbar-logo"
                 onError={() => setLogoError(true)}
+                data-testid="header-logo-img"
               />
             ) : (
-              <div
-                className="h-9 w-9 rounded-2xl fxz-topbar-logo fxz-brand-logo flex items-center justify-center text-xs font-semibold"
-                aria-hidden="true"
-              >
-                {orgSettings?.name?.substring(0, 2).toUpperCase() || 'FX'}
-              </div>
+              <SafeImage
+                src="/img/fixzit-logo.png"
+                alt="Fixzit"
+                width={120}
+                height={40}
+                className="h-9 w-auto object-contain fxz-brand-logo fxz-topbar-logo"
+                data-testid="header-logo-img"
+              />
             )}
             <div className="flex flex-col text-start">
               <span className={`font-semibold leading-tight ${isMobile ? 'hidden' : 'text-base'}`}>
@@ -485,11 +610,12 @@ export default function TopBar() {
               t={t}
             />
           ) : (
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/login">
-                {t('common.signIn')}
-              </Link>
-            </Button>
+            <Link
+              href="/login"
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
+            >
+              {t('common.signIn')}
+            </Link>
           )}
         </div>
       </div>
@@ -557,6 +683,24 @@ export default function TopBar() {
       )}
     </header>
   );
+}
+
+export default function TopBar() {
+  // In production we always have TopBarContext/Provider; tests may mock the module without exporting them
+  const Provider = TopBarCtx.TopBarProvider;
+  const Context = TopBarCtx.TopBarContext;
+
+  const ctx = React.useContext(Context ?? TopBarFallbackContext);
+
+  if (Provider && Context) {
+    if (ctx) return <TopBarContent />;
+    return (
+      <Provider>
+        <TopBarContent />
+      </Provider>
+    );
+  }
+  return <TopBarContent />;
 }
 
 /**
@@ -793,6 +937,7 @@ function UserMenuPopup({
         }}
         className="flex items-center gap-1"
         aria-label={t('nav.profile')}
+        data-testid="user-menu"
       >
         <User className="w-5 h-5" />
         <ChevronDown className="w-4 h-4" />

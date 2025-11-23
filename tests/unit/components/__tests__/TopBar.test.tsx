@@ -1,9 +1,10 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll, Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { SessionProvider, signOut } from 'next-auth/react';
 import TopBar from '@/components/TopBar';
+import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { TranslationProvider } from '@/contexts/TranslationContext';
 // Stub TranslationProvider/useTranslation to avoid i18n context errors in unit tests
 vi.mock('@/contexts/TranslationContext', () => {
@@ -141,8 +142,9 @@ vi.mock('@/components/topbar/TopMegaMenu', () => ({
   TopMegaMenu: () => <div data-testid="mega-menu">Mega Menu</div>,
 }));
 
-vi.mock('@/contexts/TopBarContext', () => ({
-  useTopBar: () => ({
+vi.mock('@/contexts/TopBarContext', () => {
+  const React = require('react');
+  const mockValue = {
     app: 'fm',
     appLabelKey: 'app.fm',
     appFallbackLabel: 'Facility Management (FM)',
@@ -159,8 +161,16 @@ vi.mock('@/contexts/TopBarContext', () => ({
     megaMenuCollapsed: false,
     setMegaMenuCollapsed: vi.fn(),
     setApp: vi.fn(),
-  }),
-}));
+  };
+  const TopBarContext = React.createContext(mockValue);
+  return {
+    TopBarContext,
+    TopBarProvider: ({ children }: { children: React.ReactNode }) => (
+      <TopBarContext.Provider value={mockValue}>{children}</TopBarContext.Provider>
+    ),
+    useTopBar: () => mockValue,
+  };
+});
 
 // Mock session
 const mockSession: any = {
@@ -212,8 +222,9 @@ const renderWithProviders = async (component: React.ReactElement, options = {}) 
 
 // Silence act warnings to keep output clean; real updates are already wrapped via renderWithProviders
 const originalConsoleError = console.error;
+let consoleErrorSpy: ReturnType<typeof vi.spyOn<typeof console, 'error'>> | undefined;
 beforeAll(() => {
-  vi.spyOn(console, 'error').mockImplementation((...args: any[]) => {
+  consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation((...args: Parameters<typeof console.error>) => {
     const [first] = args;
     if (typeof first === 'string' && first.includes('act(...')) {
       return;
@@ -223,7 +234,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  (console.error as any).mockRestore?.();
+  consoleErrorSpy?.mockRestore();
 });
 
 describe('TopBar Component', () => {
@@ -236,9 +247,9 @@ describe('TopBar Component', () => {
       push: mockPush,
       replace: vi.fn(),
       refresh: vi.fn(),
-    };
-    (useRouter as any).mockReturnValue(mockRouter);
-    (usePathname as any).mockReturnValue('/dashboard');
+    } as Partial<AppRouterInstance>;
+    (useRouter as Mock).mockReturnValue(mockRouter);
+    (usePathname as Mock).mockReturnValue('/dashboard');
 
     // Mock fetch API with proper responses
     global.fetch = vi.fn((url: string) => {
@@ -259,7 +270,7 @@ describe('TopBar Component', () => {
         status: 404,
         json: () => Promise.resolve({ error: 'Not found' }),
       });
-    }) as any;
+    }) as unknown as typeof fetch;
 
     // Reset localStorage
     localStorage.clear();
@@ -575,7 +586,7 @@ describe('TopBar Component', () => {
       fireEvent.click(bellButton);
 
       // Simulate route change
-      (usePathname as any).mockReturnValue('/settings');
+      (usePathname as Mock).mockReturnValue('/settings');
       rerender(
         <TranslationProvider>
           <ResponsiveProvider>

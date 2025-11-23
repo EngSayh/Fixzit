@@ -40,6 +40,7 @@ interface TopBarState {
 }
 
 const TopBarContext = createContext<TopBarState | null>(null);
+export { TopBarContext };
 const MEGA_MENU_PREF_KEY = 'fixzit:topbar:megaMenuCollapsed';
 const APP_FALLBACK_LABELS: Record<AppKey, string> = {
   fm: 'Facility Management (FM)',

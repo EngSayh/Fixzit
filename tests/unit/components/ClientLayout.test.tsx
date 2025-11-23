@@ -50,6 +50,13 @@ vi.mock('next/dynamic', () => ({
   },
 }));
 
+// Mock next/link to avoid act warnings from Link state updates
+vi.mock('next/link', () => ({
+  __esModule: true,
+  default: ({ href, children }: { href: string; children: React.ReactNode }) =>
+    React.createElement('a', { href }, children),
+}));
+
 describe('ClientLayout', () => {
   beforeEach(() => {
     // Clear all mocks before each test

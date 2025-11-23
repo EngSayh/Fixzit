@@ -6,6 +6,9 @@ import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
+import TopBar from './TopBar';
+import Sidebar from './Sidebar';
+import Footer from './Footer';
 import AutoFixInitializer from './AutoFixInitializer';
 import ResponsiveLayout from './ResponsiveLayout';
 import HtmlAttrs from './HtmlAttrs';
@@ -134,9 +137,6 @@ const mapCountersToBadgeCounts = (counters?: CounterPayload): BadgeCounts | unde
 };
 
 // Dynamic imports for heavy components to reduce initial bundle size
-const TopBar = dynamic(() => import('./TopBar'), { ssr: false });
-const Sidebar = dynamic(() => import('./Sidebar'), { ssr: false });
-const Footer = dynamic(() => import('./Footer'), { ssr: false });
 const AutoIncidentReporter = dynamic(() => import('@/components/AutoIncidentReporter'), { ssr: false });
 
 type UserRoleOrGuest = UserRoleType | 'guest';
@@ -317,18 +317,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       router.replace('/login');
     }
   }, [loading, role, isProtectedRoute, router]);
-
-  // Loading shell (protected routes only)
-  if (loading && isProtectedRoute) {
-    return (
-      <>
-        <HtmlAttrs />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-          Loading...
-        </div>
-      </>
-    );
-  }
 
   // Auth pages => minimal layout, no widgets
   if (isAuthPage) {
