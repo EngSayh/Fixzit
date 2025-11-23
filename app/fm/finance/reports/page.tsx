@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
-import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
+import { FmPageShell } from '@/components/fm/FmPageShell';
 
 type ReportJob = {
   id: string;
@@ -24,11 +24,11 @@ type ReportJob = {
 
 export default function ReportsPage() {
   return (
-    <FmGuardedPage moduleId="finance">
+    <FmPageShell moduleId="finance">
       {({ orgId, supportBanner }) => (
-        <ReportsContent orgId={orgId!} supportBanner={supportBanner} />
+        <ReportsContent orgId={orgId} supportBanner={supportBanner} />
       )}
-    </FmGuardedPage>
+    </FmPageShell>
   );
 }
 

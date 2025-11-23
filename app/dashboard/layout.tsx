@@ -26,14 +26,21 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   // Server-side authentication check
   const session = await auth();
   const allowTestBypass = process.env.ALLOW_DASHBOARD_TEST_AUTH === 'true';
-  
-  if (!session && !allowTestBypass) {
+
+  const isAuthenticated = Boolean(session?.user?.email);
+  if (!isAuthenticated && !allowTestBypass) {
     redirect('/login');
   }
 
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-background">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:bg-primary focus:text-primary-foreground focus:px-3 focus:py-2 focus:rounded"
+        >
+          Skip to main content
+        </a>
         {/* Header */}
         <header className="fixed top-0 inset-x-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <TopBar />
@@ -47,7 +54,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           </aside>
 
           {/* Main Content Area */}
-          <main className="flex-1 ms-64 overflow-y-auto">
+          <main id="main-content" className="flex-1 ms-64 overflow-y-auto">
             <ErrorBoundary>
               <div className="container mx-auto p-6 max-w-7xl">
                 {children}

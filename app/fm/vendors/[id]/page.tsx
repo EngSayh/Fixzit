@@ -19,7 +19,7 @@ import {
 import Link from 'next/link';
 import ClientDate from '@/components/ClientDate';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
+import { FmPageShell } from '@/components/fm/FmPageShell';
 
 interface Vendor {
   id: string;
@@ -66,11 +66,11 @@ const statusColors: Record<string, string> = {
 
 export default function VendorDetailsPage() {
   return (
-    <FmGuardedPage moduleId="vendors">
+    <FmPageShell moduleId="vendors">
       {({ orgId, supportBanner }) => (
-        <VendorDetailsContent orgId={orgId!} supportBanner={supportBanner} />
+        <VendorDetailsContent orgId={orgId} supportBanner={supportBanner} />
       )}
-    </FmGuardedPage>
+    </FmPageShell>
   );
 }
 

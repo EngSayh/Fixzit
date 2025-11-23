@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
+import { FmPageShell } from '@/components/fm/FmPageShell';
 
 const SEVERITIES = ['critical', 'high', 'medium', 'low'] as const;
 const CHANNELS = ['email', 'slack', 'bridge', 'pagerduty'] as const;
@@ -38,11 +38,11 @@ type EscalationForm = {
 
 export default function NewEscalationPage() {
   return (
-    <FmGuardedPage moduleId="support">
+    <FmPageShell moduleId="support">
       {({ orgId, supportBanner }) => (
-        <NewEscalationContent orgId={orgId!} supportBanner={supportBanner} />
+        <NewEscalationContent orgId={orgId} supportBanner={supportBanner} />
       )}
-    </FmGuardedPage>
+    </FmPageShell>
   );
 }
 

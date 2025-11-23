@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { useTranslation } from '@/contexts/TranslationContext';
 import landingTranslations from '@/i18n/sources/landing.translations.json';
@@ -95,6 +96,26 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+      <header role="banner" className="border-b bg-background">
+        <nav aria-label="Primary">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-4">
+            <span className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <img
+                src="/img/fixzit-logo.png"
+                alt="Fixzit"
+                className="h-6 w-auto fxz-topbar-logo"
+                data-testid="header-logo-img"
+              />
+              Fixzit
+            </span>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <Link className="hover:text-foreground" href="/properties">Properties</Link>
+              <Link className="hover:text-foreground" href="/work-orders">Work Orders</Link>
+              <Link className="hover:text-foreground" href="/finance">Finance</Link>
+            </div>
+          </div>
+        </nav>
+      </header>
       <section className="fxz-hero">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 flex flex-col lg:flex-row items-center gap-10">
           <div className="flex-1 space-y-6">

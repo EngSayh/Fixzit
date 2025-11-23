@@ -20,7 +20,7 @@ import {
   Construction, Hammer, PaintBucket, Building 
 } from 'lucide-react';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
+import { FmPageShell } from '@/components/fm/FmPageShell';
 
 interface ProjectItem {
   id: string;
@@ -46,11 +46,11 @@ interface ProjectItem {
 
 export default function ProjectsPage() {
   return (
-    <FmGuardedPage moduleId="administration">
+    <FmPageShell moduleId="administration">
       {({ orgId, supportBanner }) => (
-        <ProjectsContent orgId={orgId!} supportBanner={supportBanner} />
+        <ProjectsContent orgId={orgId} supportBanner={supportBanner} />
       )}
-    </FmGuardedPage>
+    </FmPageShell>
   );
 }
 

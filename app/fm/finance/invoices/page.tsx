@@ -20,7 +20,7 @@ import {
   QrCode, Send, Eye, Download, Mail, CheckCircle,
   AlertCircle, Clock } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
+import { FmPageShell } from '@/components/fm/FmPageShell';
 import ClientDate from '@/components/ClientDate';
 import { parseDate } from '@/lib/date-utils';
 
@@ -72,11 +72,11 @@ interface Invoice {
 
 export default function InvoicesPage() {
   return (
-    <FmGuardedPage moduleId="finance">
-      {({ orgId, supportOrg }) => (
-        <InvoicesContent orgId={orgId!} supportOrg={supportOrg} />
+    <FmPageShell moduleId="finance">
+      {({ orgId }) => (
+        <InvoicesContent orgId={orgId} supportOrg={null} />
       )}
-    </FmGuardedPage>
+    </FmPageShell>
   );
 }
 

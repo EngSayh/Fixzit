@@ -21,7 +21,7 @@ import {
   Shield, Package, Wrench, Building2
 } from 'lucide-react';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
+import { FmPageShell } from '@/components/fm/FmPageShell';
 
 interface RFQItem {
   id: string;
@@ -55,11 +55,11 @@ interface RFQItem {
 
 export default function RFQsPage() {
   return (
-    <FmGuardedPage moduleId="administration">
+    <FmPageShell moduleId="administration">
       {({ orgId, supportBanner }) => (
-        <RFQsContent orgId={orgId!} supportBanner={supportBanner} />
+        <RFQsContent orgId={orgId} supportBanner={supportBanner} />
       )}
-    </FmGuardedPage>
+    </FmPageShell>
   );
 }
 

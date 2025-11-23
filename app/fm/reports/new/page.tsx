@@ -14,7 +14,7 @@ import { CardGridSkeleton } from '@/components/skeletons';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { FileText, Calendar, Download } from 'lucide-react';
-import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
+import { FmPageShell } from '@/components/fm/FmPageShell';
 
 const REPORT_TYPES = [
   { value: 'workorders', label: 'Work Orders Summary' },
@@ -42,11 +42,11 @@ const FORMATS = [
 
 export default function NewReportPage() {
   return (
-    <FmGuardedPage moduleId="reports">
+    <FmPageShell moduleId="reports">
       {({ orgId, supportBanner }) => (
-        <NewReportContent orgId={orgId!} supportBanner={supportBanner} />
+        <NewReportContent orgId={orgId} supportBanner={supportBanner} />
       )}
-    </FmGuardedPage>
+    </FmPageShell>
   );
 }
 

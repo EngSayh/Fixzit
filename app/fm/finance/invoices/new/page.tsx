@@ -13,7 +13,7 @@ import { CalendarRange, FileSpreadsheet, Inbox, Send, ShieldCheck } from 'lucide
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
-import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
+import { FmPageShell } from '@/components/fm/FmPageShell';
 
 const checklist = [
   { title: 'Validate customer master data', detail: 'VAT info + billing contacts' },
@@ -29,11 +29,11 @@ const timeline = [
 
 export default function FinanceInvoiceCreatePage() {
   return (
-    <FmGuardedPage moduleId="finance">
+    <FmPageShell moduleId="finance">
       {({ orgId, supportBanner }) => (
-        <FinanceInvoiceCreateContent orgId={orgId!} supportBanner={supportBanner} />
+        <FinanceInvoiceCreateContent orgId={orgId} supportBanner={supportBanner} />
       )}
-    </FmGuardedPage>
+    </FmPageShell>
   );
 }
 

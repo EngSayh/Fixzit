@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import type { WorkOrder } from '@/types/fm';
 import { WOStatus } from '@/types/fm';
-import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
+import { FmPageShell } from '@/components/fm/FmPageShell';
 
 interface User {
   name?: string;
@@ -63,11 +63,11 @@ interface WorkOrderWithDue extends WorkOrder {
 
 export default function DashboardPage() {
   return (
-    <FmGuardedPage moduleId="dashboard">
+    <FmPageShell moduleId="dashboard">
       {({ orgId, supportBanner }) => (
-        <DashboardContent orgId={orgId!} supportBanner={supportBanner} />
+        <DashboardContent orgId={orgId} supportBanner={supportBanner} />
       )}
-    </FmGuardedPage>
+    </FmPageShell>
   );
 }
 
