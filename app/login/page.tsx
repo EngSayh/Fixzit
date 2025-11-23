@@ -334,7 +334,6 @@ export default function LoginPage() {
         { route: '/login' }
       );
       setErrors({ general: t('login.errors.networkError', 'Network error. Please check your connection.') });
-      setLoading(false);
     } finally {
       // Ensure the submit button re-enables on any non-redirecting path
       setLoading(false);
@@ -389,7 +388,6 @@ export default function LoginPage() {
       );
       setErrors({ general: t('login.errors.networkError', 'Network error. Please check your connection.') });
       setShowOTP(false);
-      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -708,7 +706,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 data-testid="login-submit"
-                disabled={loading}
+                disabled={loading || !password || (loginMethod === 'personal' ? !email : !employeeNumber)}
                 className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (

@@ -29,7 +29,10 @@ if (envPath) {
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit_test';
 const MONGODB_DB = process.env.MONGODB_DB || 'fixzit_test';
-const TEST_ORG_ID = process.env.TEST_ORG_ID || '68dc8955a1ba6ed80ff372dc';
+const TEST_ORG_ID = process.env.TEST_ORG_ID || (() => {
+  console.warn('⚠️  TEST_ORG_ID not set, generating random test org ID');
+  return new mongoose.Types.ObjectId().toString();
+})();
 
 const orgObjectId = mongoose.Types.ObjectId.isValid(TEST_ORG_ID)
   ? new mongoose.Types.ObjectId(TEST_ORG_ID)

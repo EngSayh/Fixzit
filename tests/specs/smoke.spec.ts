@@ -241,7 +241,7 @@ test.describe('Global Layout & Navigation - All Pages', () => {
       expect(errors, `Console errors found:\n${errors.join('\n')}`).toHaveLength(0);
 
       // Network failures should be empty (except 404s for optional resources)
-      const hasSession = await hasSessionCookie(browser.context());
+      const hasSession = await hasSessionCookie(context);
       const criticalFailures = networkFailures.filter((f) => {
         const isAuthFailure = f.status === 401 || f.status === 403;
         if (isAuthFailure && !hasSession) {

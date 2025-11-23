@@ -31,7 +31,8 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
 const shouldSkipCSRFCheck =
-  process.env.NODE_ENV === 'test' || process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true';
+  (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') &&
+  process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true';
 
 // Validate non-secret variables always (fail-fast at startup), but allow CI builds
 const missingNonSecrets: string[] = [];
