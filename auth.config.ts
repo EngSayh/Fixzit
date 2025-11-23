@@ -1,4 +1,4 @@
-import { skipCSRFCheck as skipCSRFCheckSymbol } from '@auth/core';
+// Import from symbols path to align with NextAuth v5 typings (prevents mismatched symbol versions)
 import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
@@ -32,11 +32,17 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
 
 // Derive NEXTAUTH_URL when missing (helps preview builds)
+const vercelHost =
+  process.env.VERCEL_BRANCH_URL ||
+  process.env.VERCEL_URL ||
+  process.env.VERCEL_PROJECT_PRODUCTION_URL;
+
 const derivedNextAuthUrl =
-  process.env.NEXTAUTH_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
+  (vercelHost ? `https://${vercelHost}` : undefined) ||
   process.env.NEXT_PUBLIC_SITE_URL ||
   process.env.BASE_URL;
+
+const resolvedNextAuthUrl = process.env.NEXTAUTH_URL || derivedNextAuthUrl;
 
 if (!process.env.NEXTAUTH_URL && derivedNextAuthUrl) {
   process.env.NEXTAUTH_URL = derivedNextAuthUrl;
@@ -47,21 +53,31 @@ if (!process.env.NEXTAUTH_URL && derivedNextAuthUrl) {
 
 // Validate non-secret variables always (fail-fast at startup), but allow CI builds
 const missingNonSecrets: string[] = [];
-const isCI = process.env.CI === 'true' || process.env.SKIP_ENV_VALIDATION === 'true';
-const isVercelBuild = process.env.VERCEL === '1' || process.env.NEXT_PHASE === 'phase-production-build';
-const isVercelPreview = process.env.VERCEL === '1' && process.env.VERCEL_ENV === 'preview';
+const isCI =
+  process.env.CI === 'true' ||
+  process.env.CI === '1' ||
+  process.env.SKIP_ENV_VALIDATION === 'true';
+const vercelEnv = process.env.VERCEL_ENV;
+const isBuildPhase =
+  process.env.NEXT_PHASE === 'phase-production-build' ||
+  process.env.npm_lifecycle_event === 'build';
+const isVercelPreview = vercelEnv === 'preview' || (process.env.VERCEL === '1' && process.env.VERCEL_ENV === 'preview');
 const allowMissingNextAuthUrl =
   isCI ||
-  isVercelBuild ||
+  isBuildPhase ||
   isVercelPreview ||
   process.env.ALLOW_MISSING_NEXTAUTH_URL === 'true';
+const shouldEnforceNextAuthUrl =
+  process.env.NODE_ENV === 'production' &&
+  vercelEnv !== 'preview' &&
+  !allowMissingNextAuthUrl;
 
 // Only validate NEXTAUTH_URL in production runtime (not during builds)
-if (process.env.NODE_ENV === 'production' && !allowMissingNextAuthUrl && !isVercelBuild) {
-  if (!process.env.NEXTAUTH_URL && !derivedNextAuthUrl) {
+if (shouldEnforceNextAuthUrl) {
+  if (!resolvedNextAuthUrl) {
     missingNonSecrets.push('NEXTAUTH_URL');
   }
-} else if (!process.env.NEXTAUTH_URL && !isCI && !isVercelBuild) {
+} else if (!resolvedNextAuthUrl && !isCI && !isBuildPhase) {
   logger.warn('⚠️  NEXTAUTH_URL not set; continuing with derived/default value for non-production build.');
 }
 
@@ -76,6 +92,18 @@ const skipSecretValidation =
   isCI ||
   process.env.SKIP_ENV_VALIDATION === 'true' ||
   process.env.NEXT_PHASE === 'phase-production-build';
+
+// Lazily resolve skipCSRFCheck using the public @auth/core export.
+type SkipCSRFType = typeof import('@auth/core')['skipCSRFCheck'];
+const skipCSRFCheckSymbol: SkipCSRFType | undefined = (() => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+    const mod = require('@auth/core') as { skipCSRFCheck?: SkipCSRFType };
+    return mod.skipCSRFCheck;
+  } catch {
+    return undefined;
+  }
+})();
 
 if (!skipSecretValidation) {
   const missingSecrets: string[] = [];
@@ -480,6 +508,8 @@ export const authConfig = {
   secret: NEXTAUTH_SECRET,
   // E2E/Playwright runs hit the same origin and already gate requests via middleware;
   // skipping the CSRF check here prevents false negatives when dev server hot-reloads.
-  ...(shouldSkipCSRFCheck ? { skipCSRFCheck: skipCSRFCheckSymbol } : {}),
+  ...(shouldSkipCSRFCheck && skipCSRFCheckSymbol
+    ? { skipCSRFCheck: skipCSRFCheckSymbol }
+    : {}),
   trustHost,
 } satisfies NextAuthConfig;

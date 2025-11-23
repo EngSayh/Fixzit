@@ -22,6 +22,7 @@ import { logger } from '@/lib/logger';
 
 // Check if OTP is required (matches auth.config.ts logic)
 const REQUIRE_SMS_OTP = process.env.NEXT_PUBLIC_REQUIRE_SMS_OTP !== 'false';
+const SKIP_CSRF = process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true' || process.env.NODE_ENV === 'test';
 
 const GoogleSignInButton = dynamic(() => import('@/components/auth/GoogleSignInButton'), {
   loading: () => (
@@ -112,8 +113,12 @@ export default function LoginPage() {
   useEffect(() => {
     const fetchCsrf = async () => {
       try {
+        if (SKIP_CSRF) {
+          setCsrfToken('csrf-disabled');
+          return;
+        }
         const token = await getCsrfToken();
-        setCsrfToken(token);
+        setCsrfToken(token || undefined);
       } catch (error) {
         logger.error('Failed to fetch CSRF token', error instanceof Error ? error : new Error(String(error)));
       }
@@ -238,16 +243,19 @@ export default function LoginPage() {
     try {
       const rawIdentifier = resolveIdentifier();
       const identifier = isEmployeeId(rawIdentifier) ? rawIdentifier.toUpperCase() : rawIdentifier;
-      
-      let tokenToUse = csrfToken;
-      if (!tokenToUse) {
+      const ensureCsrfToken = async () => {
+        if (csrfToken) return csrfToken;
+        if (SKIP_CSRF) return 'csrf-disabled';
         try {
-          tokenToUse = await getCsrfToken();
-          setCsrfToken(tokenToUse);
+          const token = await getCsrfToken();
+          setCsrfToken(token || undefined);
+          return token || undefined;
         } catch (err) {
           logger.error('Failed to refresh CSRF token before login', err instanceof Error ? err : new Error(String(err)));
+          return undefined;
         }
-      }
+      };
+      let tokenToUse = await ensureCsrfToken();
 
       // If OTP not required, login directly without SMS verification
       if (!REQUIRE_SMS_OTP) {
@@ -340,8 +348,12 @@ export default function LoginPage() {
     try {
       let tokenToUse = csrfToken;
       if (!tokenToUse) {
-        tokenToUse = await getCsrfToken();
-        setCsrfToken(tokenToUse);
+        if (SKIP_CSRF) {
+          tokenToUse = 'csrf-disabled';
+        } else {
+          tokenToUse = await getCsrfToken();
+          setCsrfToken(tokenToUse || undefined);
+        }
       }
       if (!tokenToUse) {
         tokenToUse = 'csrf-disabled';
@@ -632,6 +644,7 @@ export default function LoginPage() {
                   <Lock className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
                   <Input
                     id="password"
+                    name="password"
                     data-testid="login-password"
                     type={showPassword ? 'text' : 'password'}
                     inputMode="text"

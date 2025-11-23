@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logger } from '@/lib/logger';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -36,7 +37,7 @@ export default function ForgotPassword() {
       setSuccess(true);
     } catch (err) {
       // For tests and offline flows, show success state even if the backend stub fails
-      console.error('Password reset request failed (stub):', err);
+      logger.warn('Password reset request failed (stub)', { error: err, email });
       setSuccess(true);
     } finally {
       setLoading(false);

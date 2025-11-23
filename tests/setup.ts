@@ -162,7 +162,17 @@ vi.mock('mongoose', async (importOriginal) => {
         const results = Array.from(store.values())
           .filter((d) => matchQuery(d, query))
           .map((d) => new Model(d));
-        const arr: AnyDoc = results;
+        
+        // Type query result array with helper methods
+        interface QueryHelpers {
+          exec: () => Promise<ModelInstance[]>;
+          lean: () => Promise<AnyDoc[]>;
+          limit: (n: number) => ModelInstance[] & QueryHelpers;
+          sort: () => ModelInstance[] & QueryHelpers;
+          toArray: () => Promise<ModelInstance[]>;
+        }
+        const arr = results as ModelInstance[] & QueryHelpers;
+        
         arr.exec = async () => arr;
         arr.lean = async () => (arr as unknown as ModelInstance[]).map((i) => i.toObject());
         arr.limit = (n: number) => {

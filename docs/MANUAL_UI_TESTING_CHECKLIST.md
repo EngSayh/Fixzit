@@ -44,7 +44,7 @@ curl -I http://localhost:3000/login
 - **Manager - Premium plan:** `manager.premium@fixzit.com` / password per vault.
 - **Support user:** `support@fixzit.com` – ensure `canImpersonate=true` and at least two organizations exist for switcher tests.
 - **Org fixtures:** Run `pnpm tsx scripts/seed-demo-users.ts` followed by `node scripts/create-test-data.js` to ensure org, property, and work-order data exist before suites 3 & 4.
-- **Cleanup:** After impersonation, run `document.cookie = \"support_org_id=; path=/; max-age=0\"` or hit `/api/support/impersonation` `DELETE` to avoid polluting other suites.
+- **Cleanup:** After impersonation, hit `/api/support/impersonation` `DELETE` to avoid polluting other suites. **Note:** For manual cookie clearing, see `/app/logout/page.tsx` for proper implementation (requires clearing Secure variants: `__Secure-*`, `__Host-*`).
 
 ---
 

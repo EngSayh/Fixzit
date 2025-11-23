@@ -536,7 +536,8 @@ describe('TopBar Component', () => {
       fireEvent.click(signOutButton);
 
       await waitFor(() => {
-        expect(signOut).toHaveBeenCalledWith({ callbackUrl: '/login', redirect: true });
+        expect(mockPush).toHaveBeenCalledWith('/logout');
+        expect(signOut).not.toHaveBeenCalled();
       });
     });
 

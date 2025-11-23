@@ -8,6 +8,34 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });
 
+// ---- Production guardrails (fail fast for unsafe flags/secrets) ----
+const isProdDeploy =
+  process.env.VERCEL_ENV === 'production' ||
+  (process.env.NODE_ENV === 'production' && process.env.CI === 'true');
+
+if (isProdDeploy) {
+  const violations = [];
+  if (process.env.SKIP_ENV_VALIDATION === 'true') {
+    violations.push('SKIP_ENV_VALIDATION must be false in production');
+  }
+  if (process.env.DISABLE_MONGODB_FOR_BUILD === 'true') {
+    violations.push('DISABLE_MONGODB_FOR_BUILD must be false in production');
+  }
+  if (!process.env.TAP_PUBLIC_KEY) {
+    violations.push('TAP_PUBLIC_KEY is required for production payment flows');
+  }
+  if (!process.env.TAP_WEBHOOK_SECRET) {
+    violations.push('TAP_WEBHOOK_SECRET is required to verify payment webhooks');
+  }
+
+  if (violations.length > 0) {
+    // Throwing here fails the build early and loudly
+    throw new Error(
+      `Production env validation failed:\n- ${violations.join('\n- ')}`
+    );
+  }
+}
+
 
 const nextConfig = {
   // App Router is enabled by default in Next.js 14
@@ -150,6 +178,16 @@ const nextConfig = {
       '@opentelemetry/api/build/esm/internal/global-utils.js': otelShim,
     };
     
+    // Silence vendor dynamic-require warnings from OpenTelemetry/Sentry bundles
+    config.module = config.module || {};
+    config.module.parser = {
+      ...config.module.parser,
+      javascript: {
+        ...config.module.parser?.javascript,
+        exprContextCritical: false, // suppress "request of a dependency is an expression"
+      },
+    };
+    
     // ⚡ FIX: Exclude mongoose and server models from Edge Runtime
     // Edge Runtime (middleware) cannot use dynamic code evaluation (mongoose, bcrypt, etc.)
     // This ensures these packages are never bundled for Edge Runtime
@@ -168,6 +206,7 @@ const nextConfig = {
     config.ignoreWarnings = [
       ...(config.ignoreWarnings || []),
       /@opentelemetry\/instrumentation\/build\/esm\/platform\/node\/instrumentation\.js/,
+      /Critical dependency: the request of a dependency is an expression/,
     ];
     
     config.resolve.fallback = {

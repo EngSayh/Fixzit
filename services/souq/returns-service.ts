@@ -507,11 +507,8 @@ class ReturnsService {
         };
       }
     }
-    if (typeof rmaDoc.save === 'function') {
-      await rmaDoc.save();
-    } else {
-      await rma.save();
-    }
+    // Save the updated RMA document
+    await rma.save();
 
     // Always adjust inventory so unsellable units are tracked correctly.
     for (const item of rma.items) {
@@ -603,6 +600,14 @@ class ReturnsService {
     };
 
     // Ensure persisted refund fields reflect the calculated amount and chosen method
+    // Defensive check for legacy/corrupted documents or test mocks
+    if (!rma.refund) {
+      rma.refund = {
+        amount: 0,
+        method: 'original_payment' as const,
+        status: 'pending' as const,
+      };
+    }
     rma.refund.amount = refundAmount;
     rma.refund.method = refundMethod;
 
@@ -625,11 +630,8 @@ class ReturnsService {
       rmaRefundDoc.status = 'completed';
       rmaRefundDoc.completedAt = refundData.processedAt;
     }
-    if (typeof rmaRefundDoc.save === 'function') {
-      await rmaRefundDoc.save();
-    } else {
-      await rma.save();
-    }
+    // Save the updated RMA document
+    await rma.save();
 
     // Notify buyer
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {

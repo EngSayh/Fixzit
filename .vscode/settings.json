@@ -65,6 +65,8 @@
   "typescript.tsserver.pluginPaths": [],
   "typescript.locale": "en",
 
+  // Keep Node memory cap but avoid enabling the inspector, which was forcing
+  // auto-attach/debugger pauses on every terminal command (e.g., pnpm, Playwright).
   "terminal.integrated.env.windows": {
     "NODE_OPTIONS": "--max-old-space-size=8192"
   },

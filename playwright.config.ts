@@ -52,7 +52,8 @@ export default defineConfig({
   workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html', { outputFolder: './playwright-report' }],
+    // Keep HTML artifacts but never launch the preview server (it was keeping CLI runs alive)
+    ['html', { outputFolder: './playwright-report', open: 'never' }],
     ['json', { outputFile: './test-results/results.json' }],
     ['list']
   ],

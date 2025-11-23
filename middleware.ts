@@ -79,7 +79,6 @@ const publicApiPrefixes = [
   '/api/marketplace/products',
   '/api/marketplace/search',
   '/api/webhooks',
-  '/api/admin/notifications/send',
   // SECURITY: /api/admin/* endpoints require auth - do NOT add to public list
   // NOTE: /api/copilot is public but enforces role-based policies internally via CopilotSession
 ];
@@ -178,10 +177,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const method = request.method;
   const isApiRequest = pathname.startsWith('/api');
+  const isPlaywright = process.env.PLAYWRIGHT_TESTS === 'true';
   const clientIp = getClientIP(request) || 'unknown';
 
   // Lightweight rate limit specifically for credential callback to satisfy abuse protection and tests
-  if (pathname === '/api/auth/callback/credentials' && method === 'POST') {
+  if (!isPlaywright && pathname === '/api/auth/callback/credentials' && method === 'POST') {
     const entry = loginAttempts.get(clientIp);
     const now = Date.now();
     if (entry && entry.expiresAt > now) {

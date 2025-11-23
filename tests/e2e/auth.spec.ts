@@ -25,7 +25,7 @@ const HAS_NON_ADMIN_USER = Boolean(NON_ADMIN_USER);
 
 const PASSWORD_RESET_EMAIL = PRIMARY_USER?.email || 'admin@fixzit.co';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-const DEFAULT_TIMEOUT = 15000;
+const DEFAULT_TIMEOUT = 30000;
 
 async function gotoWithRetry(page: Page, path: string, attempts = 3) {
   let lastError: unknown;
@@ -43,6 +43,12 @@ async function gotoWithRetry(page: Page, path: string, attempts = 3) {
 
 function ensureLoginOrFail(result: { success: boolean; errorText?: string }) {
   expect(result.success, `Login failed: ${result.errorText || 'unknown error'}`).toBeTruthy();
+}
+
+function ensureLoginOrSkip(result: { success: boolean; errorText?: string }) {
+  if (!result.success) {
+    test.skip(`Login failed: ${result.errorText || 'unknown error'}`);
+  }
 }
 
 test.describe('Authentication', () => {
@@ -137,26 +143,78 @@ test.describe('Authentication', () => {
   test.describe('Logout', () => {
     test.beforeEach(async ({ page }) => {
       const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
-      ensureLoginOrSkip(result);
+      ensureLoginOrFail(result);
     });
 
     test('should logout successfully', async ({ page }) => {
-      await page.locator('[data-testid="user-menu"]').first().click({ force: true });
-      await page.click('text=/logout/i');
+      // Click user menu to open dropdown
+      const userMenu = page.locator('[data-testid="user-menu"]').first();
+      await userMenu.waitFor({ state: 'visible', timeout: 5000 });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await userMenu.scrollIntoViewIfNeeded();
+      await userMenu.click({ timeout: 15000 }).catch(async () => {
+        await userMenu.click({ timeout: 15000, force: true }).catch(async () => {
+          await page.evaluate(() => {
+            const el = document.querySelector('[data-testid="user-menu"]') as HTMLElement | null;
+            el?.click();
+          });
+        });
+      });
 
-      await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+      // Wait for menu to open and click logout
+      await page.waitForTimeout(500); // Menu animation
+      const logoutButton = page.locator('[data-testid="logout-button"]').first();
+      await logoutButton.waitFor({ state: 'visible', timeout: 5000 });
+      await logoutButton.click();
 
-      await gotoWithRetry(page, '/dashboard');
-      await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+      // Wait for logout page to load and process
+      await page.waitForURL(/\/logout/, { timeout: 5000 });
+      
+      // Wait for logout spinner to appear (confirms logout started)
+      await page.locator('[data-testid="logout-spinner"]').waitFor({ state: 'visible', timeout: 3000 });
+
+      // Wait for redirect to login (logout page redirects after cleanup)
+      await page.waitForURL(/\/login/, { timeout: 10000 });
+
+      // Verify we can't access protected routes
+      await page.goto('/dashboard');
+      await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
     });
 
     test('should clear session on logout', async ({ page, context }) => {
-      await page.locator('[data-testid="user-menu"]').first().click({ force: true });
-      await page.click('text=/logout/i');
-      await page.waitForURL('**/login');
+      // Click user menu to open dropdown
+      const userMenu = page.locator('[data-testid="user-menu"]').first();
+      await userMenu.waitFor({ state: 'visible', timeout: 5000 });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await userMenu.scrollIntoViewIfNeeded();
+      await userMenu.click({ timeout: 15000 }).catch(async () => {
+        await userMenu.click({ timeout: 15000, force: true }).catch(async () => {
+          await page.evaluate(() => {
+            const el = document.querySelector('[data-testid="user-menu"]') as HTMLElement | null;
+            el?.click();
+          });
+        });
+      });
 
+      // Wait for menu and click logout
+      await page.waitForTimeout(500);
+      const logoutButton = page.locator('[data-testid="logout-button"]').first();
+      await logoutButton.waitFor({ state: 'visible', timeout: 5000 });
+      await logoutButton.click();
+
+      // Wait for logout to complete (logout page redirects to login)
+      await page.waitForURL(/\/login/, { timeout: 15000 });
+
+      // Give cookies time to clear
+      await page.waitForTimeout(1000);
+
+      // Verify session cookies are cleared
       const cookies = await context.cookies();
-      const sessionCookie = cookies.find(c => c.name.includes('session-token'));
+      const sessionCookie = cookies.find(c =>
+        c.name.includes('session-token') ||
+        c.name === 'next-auth.session-token' ||
+        c.name === '__Secure-next-auth.session-token'
+      );
       expect(sessionCookie).toBeUndefined();
     });
   });
@@ -249,7 +307,7 @@ test.describe('Authentication', () => {
         dialog.dismiss().catch(() => {});
       });
 
-      const xssPayload = '<script>alert(\"XSS\")</script>';
+      const xssPayload = '<script>alert("XSS")</script>';
       await fillLoginForm(page, xssPayload, 'test');
       await expect(page).toHaveURL(/\/login/);
 

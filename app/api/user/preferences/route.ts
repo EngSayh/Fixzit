@@ -187,9 +187,19 @@ export async function PUT(request: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    const body = await request.json();
-    
+
+    // Safely parse JSON body; return 400 for malformed or missing payloads instead of throwing
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      logger.warn('Preferences update received invalid JSON body', { error: parseError });
+      return NextResponse.json(
+        { error: 'Invalid JSON payload' },
+        { status: 400 }
+      );
+    }
+
     // Validate input: body must be a non-array object
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return NextResponse.json(
@@ -199,8 +209,10 @@ export async function PUT(request: NextRequest) {
     }
     
     // Whitelist expected preference keys
+    const payload = body as Record<string, unknown>;
+
     const allowedKeys = ['language', 'theme', 'notifications', 'timezone', 'currency', 'dateFormat'];
-    const bodyKeys = Object.keys(body);
+    const bodyKeys = Object.keys(payload);
     const invalidKeys = bodyKeys.filter(key => !allowedKeys.includes(key));
     
     if (invalidKeys.length > 0) {
@@ -216,36 +228,36 @@ export async function PUT(request: NextRequest) {
 
     const sanitizedUpdates: Record<string, unknown> = {};
 
-    if (Object.prototype.hasOwnProperty.call(body, 'language')) {
-      if (typeof body.language !== 'string') {
+    if (Object.prototype.hasOwnProperty.call(payload, 'language')) {
+      if (typeof payload.language !== 'string') {
         return NextResponse.json({ error: 'Language must be a string' }, { status: 400 });
       }
-      sanitizedUpdates.language = body.language.trim();
+      sanitizedUpdates.language = payload.language.trim();
     }
 
-    if (Object.prototype.hasOwnProperty.call(body, 'timezone')) {
-      if (typeof body.timezone !== 'string') {
+    if (Object.prototype.hasOwnProperty.call(payload, 'timezone')) {
+      if (typeof payload.timezone !== 'string') {
         return NextResponse.json({ error: 'Timezone must be a string' }, { status: 400 });
       }
-      sanitizedUpdates.timezone = body.timezone.trim();
+      sanitizedUpdates.timezone = payload.timezone.trim();
     }
 
-    if (Object.prototype.hasOwnProperty.call(body, 'currency')) {
-      if (typeof body.currency !== 'string') {
+    if (Object.prototype.hasOwnProperty.call(payload, 'currency')) {
+      if (typeof payload.currency !== 'string') {
         return NextResponse.json({ error: 'Currency must be a string' }, { status: 400 });
       }
-      sanitizedUpdates.currency = body.currency.trim();
+      sanitizedUpdates.currency = payload.currency.trim();
     }
 
-    if (Object.prototype.hasOwnProperty.call(body, 'dateFormat')) {
-      if (typeof body.dateFormat !== 'string') {
+    if (Object.prototype.hasOwnProperty.call(payload, 'dateFormat')) {
+      if (typeof payload.dateFormat !== 'string') {
         return NextResponse.json({ error: 'dateFormat must be a string' }, { status: 400 });
       }
-      sanitizedUpdates.dateFormat = body.dateFormat.trim();
+      sanitizedUpdates.dateFormat = payload.dateFormat.trim();
     }
 
-    if (Object.prototype.hasOwnProperty.call(body, 'notifications')) {
-      const notificationsInput = body.notifications;
+    if (Object.prototype.hasOwnProperty.call(payload, 'notifications')) {
+      const notificationsInput = payload.notifications;
       if (typeof notificationsInput !== 'object' || notificationsInput === null || Array.isArray(notificationsInput)) {
         return NextResponse.json({ error: 'Notifications must be an object' }, { status: 400 });
       }
@@ -265,8 +277,8 @@ export async function PUT(request: NextRequest) {
       sanitizedUpdates.notifications = notificationUpdates;
     }
 
-    if (Object.prototype.hasOwnProperty.call(body, 'theme')) {
-      const normalizedTheme = normalizeThemePreference(body.theme);
+    if (Object.prototype.hasOwnProperty.call(payload, 'theme')) {
+      const normalizedTheme = normalizeThemePreference(payload.theme);
       if (!normalizedTheme) {
         return NextResponse.json(
           { error: 'Invalid theme value', allowedValues: ['light', 'dark', 'system'] },
