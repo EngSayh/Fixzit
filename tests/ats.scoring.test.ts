@@ -5,8 +5,9 @@ describe('extractSkillsFromText', () => {
   it('returns empty array for empty or falsy input', () => {
     expect(extractSkillsFromText('')).toEqual([]);
     // Test runtime behavior with invalid types (TypeScript allows these now)
-    expect(extractSkillsFromText(undefined as any)).toEqual([]);
-    expect(extractSkillsFromText(null as any)).toEqual([]);
+    const unsafeExtract = extractSkillsFromText as (value: unknown) => string[];
+    expect(unsafeExtract(undefined)).toEqual([]);
+    expect(unsafeExtract(null)).toEqual([]);
   });
 
   it('extracts lowercase unique tokens and removes common stopwords', () => {

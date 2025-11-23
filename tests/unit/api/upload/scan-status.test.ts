@@ -49,7 +49,7 @@ describe('GET /api/upload/scan-status', () => {
     (rateLimit as vi.Mock).mockReturnValue({ allowed: false });
 
     const req = createRequest('https://test.com/api/upload/scan-status?key=test.jpg');
-    const res = await GET(req as any);
+    const res = await GET(req);
 
     expect(res.status).toBe(429);
   });
@@ -58,7 +58,7 @@ describe('GET /api/upload/scan-status', () => {
     (getSessionUser as vi.Mock).mockResolvedValue(null);
 
     const req = createRequest('https://test.com/api/upload/scan-status?key=test.jpg');
-    const res = await GET(req as any);
+    const res = await GET(req);
 
     expect(res.status).toBe(401);
     const body = await res.json();
@@ -95,7 +95,7 @@ describe('GET /api/upload/scan-status', () => {
 
   it('validates key parameter is provided', async () => {
     const req = createRequest('https://test.com/api/upload/scan-status');
-    const res = await GET(req as any);
+    const res = await GET(req);
 
     expect(res.status).toBe(400);
     const body = await res.json();
@@ -121,7 +121,7 @@ describe('GET /api/upload/scan-status', () => {
     (getDatabase as vi.Mock).mockResolvedValue(mockDb);
 
     const req = createRequest('https://test.com/api/upload/scan-status?key=test.jpg');
-    const res = await GET(req as any);
+    const res = await GET(req);
 
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -151,7 +151,7 @@ describe('GET /api/upload/scan-status', () => {
     (getDatabase as vi.Mock).mockResolvedValue(mockDb);
 
     const req = createRequest('https://test.com/api/upload/scan-status?key=test.jpg');
-    const res = await GET(req as any);
+    const res = await GET(req);
 
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -173,7 +173,7 @@ describe('GET /api/upload/scan-status', () => {
     (getDatabase as vi.Mock).mockResolvedValue(mockDb);
 
     const req = createRequest('https://test.com/api/upload/scan-status?key=new-file.jpg');
-    const res = await GET(req as any);
+    const res = await GET(req);
 
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -195,7 +195,7 @@ describe('POST /api/upload/scan-status', () => {
 
   it('validates key in request body', async () => {
     const req = createPostRequest({});
-    const res = await POST(req as any);
+    const res = await POST(req);
 
     expect(res.status).toBe(400);
     const body = await res.json();
@@ -221,7 +221,7 @@ describe('POST /api/upload/scan-status', () => {
     (getDatabase as vi.Mock).mockResolvedValue(mockDb);
 
     const req = createPostRequest({ key: 'test.jpg' });
-    const res = await POST(req as any);
+    const res = await POST(req);
 
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -238,7 +238,7 @@ describe('POST /api/upload/scan-status', () => {
     process.env.SCAN_STATUS_TOKEN_REQUIRED = 'false';
 
     const req = createPostRequest({ key: 'test.jpg' });
-    const res = await POST(req as any);
+    const res = await POST(req);
 
     expect(res.status).toBe(429);
   });
@@ -249,33 +249,28 @@ describe('POST /api/upload/scan-status', () => {
     (getSessionUser as vi.Mock).mockResolvedValue(null);
 
     const req = createPostRequest({ key: 'test.jpg' });
-    const res = await POST(req as any);
+    const res = await POST(req);
 
     expect(res.status).toBe(401);
 
-    const reqWithToken = createPostRequest({ key: 'test.jpg' });
-    (reqWithToken as any).headers.get = (name: string) => (name.toLowerCase() === 'x-scan-token' ? 'secret' : undefined);
-    const res2 = await POST(reqWithToken as any);
+    const reqWithToken = createPostRequest({ key: 'test.jpg' }, { 'x-scan-token': 'secret' });
+    const res2 = await POST(reqWithToken);
     expect(res2.status).toBe(200);
   });
 });
 
 // Helper functions
 function createRequest(url: string, headers: Record<string, string> = {}) {
-  return {
-    url,
-    headers: {
-      get: (name: string) => headers[name.toLowerCase()] || headers[name],
-    } as any,
-  } as any;
+  return new Request(url, { headers });
 }
 
-function createPostRequest(body: Record<string, unknown>) {
-  return {
-    url: 'https://test.com/api/upload/scan-status',
-    json: async () => body,
+function createPostRequest(body: Record<string, unknown>, headers: Record<string, string> = {}) {
+  return new Request('https://test.com/api/upload/scan-status', {
+    method: 'POST',
     headers: {
-      get: (_name: string) => undefined,
+      'content-type': 'application/json',
+      ...headers,
     },
-  };
+    body: JSON.stringify(body),
+  });
 }

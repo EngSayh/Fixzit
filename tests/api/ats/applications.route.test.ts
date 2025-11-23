@@ -9,7 +9,7 @@ vi.mock('next/server', () => {
   return {
     NextRequest: class {},
     NextResponse: {
-      json: (body: any, init?: ResponseInit) => ({
+      json: (body: unknown, init?: ResponseInit) => ({
         status: init?.status ?? 200,
         body
       })
@@ -56,8 +56,9 @@ vi.mock('@/server/models/Application', () => ({
   Application: ApplicationMock
 }));
 
-let GET: any;
-let atsRBAC: any;
+type ApiResponse = { status: number; body: Record<string, unknown> };
+let GET: (req: NextRequest) => Promise<ApiResponse>;
+let atsRBAC: ReturnType<typeof vi.fn>;
 
 describe('API /api/ats/applications', () => {
   beforeAll(async () => {
@@ -87,7 +88,7 @@ describe('API /api/ats/applications', () => {
   };
 
   it('rejects invalid page parameter', async () => {
-    const res: any = await callGET('?page=abc');
+    const res = await callGET('?page=abc');
 
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('Invalid page');
@@ -96,7 +97,7 @@ describe('API /api/ats/applications', () => {
   it('casts jobId and candidateId filters to ObjectId when valid', async () => {
     const jobId = new Types.ObjectId().toHexString();
     const candidateId = new Types.ObjectId().toHexString();
-    const res: any = await callGET(`?jobId=${jobId}&candidateId=${candidateId}&stage=screening&page=2&limit=75`);
+    const res = await callGET(`?jobId=${jobId}&candidateId=${candidateId}&stage=screening&page=2&limit=75`);
 
     expect(res.status).toBe(200);
     expect(ApplicationMock.find).toHaveBeenCalledTimes(1);

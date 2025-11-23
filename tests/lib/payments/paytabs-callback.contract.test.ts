@@ -59,7 +59,7 @@ describe('extractPaytabsSignature', () => {
     };
     const signature = extractPaytabsSignature(req, {
       signature: 'body-sig',
-    } as any);
+    } as Partial<PaytabsCallback>);
     expect(signature).toBe('header-sig');
   });
 
@@ -67,7 +67,7 @@ describe('extractPaytabsSignature', () => {
     const req = { headers: new Headers() };
     const signature = extractPaytabsSignature(req, {
       payment_signature: 'payload-sig',
-    } as any);
+    } as Partial<PaytabsCallback>);
     expect(signature).toBe('payload-sig');
   });
 });

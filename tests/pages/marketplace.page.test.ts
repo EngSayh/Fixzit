@@ -18,7 +18,8 @@ vi.mock('@/lib/marketplace/serverFetch', () => ({
 
 // Mock next/link to avoid Next.js runtime during tests
 vi.mock('next/link', () => {
-  const MockLink = ({ href, className, children }: any) =>
+  type LinkProps = { href: string; className?: string; children: React.ReactNode };
+  const MockLink = ({ href, className, children }: LinkProps) =>
     React.createElement(
       'a',
       { href, className, 'data-testid': 'next-link-mock' },
@@ -30,7 +31,7 @@ vi.mock('next/link', () => {
 
 vi.mock('@/components/marketplace/ProductCard', () => ({
   __esModule: true,
-  default: ({ product }: any) =>
+  default: ({ product }: { product: Product }) =>
     React.createElement(
       'a',
       {
@@ -67,7 +68,7 @@ type Product = {
 };
 
 const originalEnv = { ...process.env };
-const mockServerFetch = serverFetchJsonWithTenant as unknown as ReturnType<typeof vi.fn>;
+const mockServerFetch = serverFetchJsonWithTenant as unknown as vi.MockedFunction<typeof serverFetchJsonWithTenant>;
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -109,17 +110,17 @@ describe('MarketplacePage', () => {
     {
       _id: '1',
       slug: 'cool-cement',
-      title: 'Cool Cement' as any,
-        rating: { avg: 4.5, count: 12 },
-        inventories: [{ leadDays: 5 }],
-      },
-      {
-        // missing _id to force key fallback to slug
-        slug: 'fast-cement',
-        title: 'Fast Cement' as any,
-        rating: { avg: 3.8, count: 3 },
-        inventories: [{ leadDays: 2 }],
-      },
+      title: 'Cool Cement',
+      rating: { avg: 4.5, count: 12 },
+      inventories: [{ leadDays: 5 }],
+    },
+    {
+      // missing _id to force key fallback to slug
+      slug: 'fast-cement',
+      title: 'Fast Cement',
+      rating: { avg: 3.8, count: 3 },
+      inventories: [{ leadDays: 2 }],
+    },
     ];
     setupMarketplaceFetchMock(items);
 

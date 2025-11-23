@@ -3,10 +3,10 @@ import { cfg } from '../config';
 
 test.describe('Landing & Branding (@smoke)', () => {
   test('Hero, tokens, 0 errors', async ({ page }) => {
-    const errors: any[] = [];
+    const errors: unknown[] = [];
     page.on('pageerror', e => errors.push(e));
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-    const failed: any[] = [];
+    const failed: { url: string; status: number }[] = [];
     page.on('response', r => { if (r.status() >= 400) failed.push({url:r.url(),status:r.status()}); });
 
     await page.goto('/');

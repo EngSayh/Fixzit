@@ -8,11 +8,28 @@ import { test, expect } from '@playwright/test';
 const TEST_USER_EMAIL = 'admin@fixzit.co';
 const TEST_USER_PASSWORD = process.env.TEST_USER_PASSWORD || 'admin123';
 const TEST_EMPLOYEE_NUMBER = 'EMP001';
+const DEFAULT_TIMEOUT = 15000;
+
+async function gotoWithRetry(page: Page, path: string, attempts = 3) {
+  let lastError: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await page.goto(path, { waitUntil: 'load', timeout: DEFAULT_TIMEOUT });
+      return;
+    } catch (error) {
+      lastError = error;
+      await page.waitForTimeout(1000);
+    }
+  }
+  throw lastError;
+}
 
 test.describe('Authentication', () => {
   test.beforeEach(async ({ page }) => {
+    // Ensure clean session before each test
+    await page.context().clearCookies();
     // Navigate to login page
-    await page.goto('/login');
+    await gotoWithRetry(page, '/login');
   });
 
   test.describe('Login Flow', () => {
@@ -41,7 +58,7 @@ test.describe('Authentication', () => {
       await expect(page).toHaveURL(/\/dashboard/);
 
       // Check user menu is visible
-      const userMenu = page.locator('[data-testid="user-menu"]');
+      const userMenu = page.locator('[data-testid="user-menu"]').first();
       await expect(userMenu).toBeVisible();
     });
 
@@ -97,14 +114,14 @@ test.describe('Authentication', () => {
 
       // Verify still logged in
       await expect(page).toHaveURL(/\/dashboard/);
-      const userMenu = page.locator('[data-testid="user-menu"]');
+      const userMenu = page.locator('[data-testid="user-menu"]').first();
       await expect(userMenu).toBeVisible();
     });
 
     test('should persist session across tabs', async ({ context }) => {
       // Create first page and login
       const page1 = await context.newPage();
-      await page1.goto('/login');
+      await gotoWithRetry(page1, '/login');
       await page1.fill('input[name="loginIdentifier"]', TEST_USER_EMAIL);
       await page1.fill('input[name="password"]', TEST_USER_PASSWORD);
       await page1.click('button[type="submit"]');
@@ -112,11 +129,11 @@ test.describe('Authentication', () => {
 
       // Create second page
       const page2 = await context.newPage();
-      await page2.goto('/dashboard');
+      await gotoWithRetry(page2, '/dashboard');
 
       // Verify session is shared (no redirect to login)
       await expect(page2).toHaveURL(/\/dashboard/);
-      const userMenu = page2.locator('[data-testid="user-menu"]');
+      const userMenu = page2.locator('[data-testid="user-menu"]').first();
       await expect(userMenu).toBeVisible();
 
       // Cleanup
@@ -145,7 +162,7 @@ test.describe('Authentication', () => {
 
     test('should logout successfully', async ({ page }) => {
       // Click user menu
-      await page.click('[data-testid="user-menu"]');
+      await page.locator('[data-testid="user-menu"]').first().click();
 
       // Click logout
       await page.click('text=/logout/i');
@@ -162,7 +179,7 @@ test.describe('Authentication', () => {
 
     test('should clear session on logout', async ({ page, context }) => {
       // Logout
-      await page.click('[data-testid="user-menu"]');
+      await page.locator('[data-testid="user-menu"]').first().click();
       await page.click('text=/logout/i');
       await page.waitForURL('**/login');
 

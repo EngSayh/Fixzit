@@ -140,7 +140,7 @@ describe('getPermittedTools', () => {
   })
 
   it('unknown role returns empty array (defensive)', () => {
-    const tools = getPermittedTools('UNKNOWN_ROLE' as any)
+    const tools = getPermittedTools('UNKNOWN_ROLE' as unknown as CopilotRole)
     expect(Array.isArray(tools)).toBe(true)
     expect(tools.length).toBe(0)
   })

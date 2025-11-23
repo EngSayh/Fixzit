@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 
 const MARKETPLACE_API_GLOB = '**/api/marketplace/search*';
 
-function mockApi(route: any, payload: any, status: number = 200, headers: Record<string,string> = {}) {
+function mockApi(route: string | RegExp, payload: unknown, status: number = 200, headers: Record<string,string> = {}) {
   return route.fulfill({
     status,
     headers: {

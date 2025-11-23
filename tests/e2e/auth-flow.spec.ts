@@ -23,7 +23,7 @@ test.describe('Authentication Flow', () => {
     await expect(page.locator('button[type="submit"]')).toBeVisible();
     
     // Check language selector
-    await expect(page.locator('[aria-label*="language" i], [aria-label*="اللغة" i]')).toBeVisible();
+    await expect(page.locator('[aria-label*="language" i], [aria-label*="اللغة" i], [data-testid="language-selector"]')).toBeVisible();
   });
 
   test('should show validation errors for invalid login', async ({ page }) => {
@@ -32,9 +32,10 @@ test.describe('Authentication Flow', () => {
     // Try to submit empty form
     await page.locator('button[type="submit"]').click();
     
-    // Should see validation errors or stay on page
-    await page.waitForTimeout(1000);
-    expect(page.url()).toContain('/login');
+    // Should see validation errors and remain on login
+    const errors = page.locator('[role="alert"], [data-testid*="error"], text=/required/i');
+    await expect(errors.first()).toBeVisible({ timeout: 5000 });
+    await expect(page).toHaveURL(/\/login/);
   });
 
   test('should handle login with invalid credentials', async ({ page }) => {
@@ -47,20 +48,20 @@ test.describe('Authentication Flow', () => {
     // Submit form
     await page.locator('button[type="submit"]').click();
     
-    // Should show error message or stay on login page
-    await page.waitForTimeout(2000);
-    expect(page.url()).toContain('/login');
+    // Should show error message and remain on login
+    const error = page.locator('[role="alert"], [data-testid="auth-error"], text=/invalid|incorrect|failed/i');
+    await expect(error.first()).toBeVisible({ timeout: 5000 });
+    await expect(page).toHaveURL(/\/login/);
   });
 
   test('should navigate to signup page', async ({ page }) => {
     await page.goto('/login');
     
     // Find and click signup link
-    const signupLink = page.locator('a[href*="/signup"]');
-    if (await signupLink.isVisible()) {
-      await signupLink.click();
-      await expect(page).toHaveURL(/.*signup/);
-    }
+    const signupLink = page.locator('a[href*="/signup"], [data-testid="go-to-signup"]');
+    await expect(signupLink.first()).toBeVisible();
+    await signupLink.first().click();
+    await expect(page).toHaveURL(/\/signup/);
   });
 
   test('should display signup page correctly', async ({ page }) => {
@@ -86,40 +87,35 @@ test.describe('Authentication Flow', () => {
     await page.locator('button[type="submit"]').click();
     
     // Should show validation error
-    await page.waitForTimeout(1000);
-    expect(page.url()).toContain('/signup');
+    const pwError = page.locator('[role="alert"], [data-testid*="password-error"], text=/password/i');
+    await expect(pwError.first()).toBeVisible({ timeout: 5000 });
+    await expect(page).toHaveURL(/\/signup/);
   });
 
   test('should handle forgot password flow', async ({ page }) => {
     await page.goto('/login');
     
     // Find forgot password link
-    const forgotLink = page.locator('a[href*="forgot"]');
-    if (await forgotLink.isVisible()) {
-      await forgotLink.click();
-      await expect(page).toHaveURL(/.*forgot/);
-      
-      // Check email input exists
-      await expect(page.locator('input[type="email"]')).toBeVisible();
-    }
+    const forgotLink = page.locator('a[href*="forgot"], [data-testid="forgot-password-link"]');
+    await expect(forgotLink.first()).toBeVisible();
+    await forgotLink.first().click();
+    await expect(page).toHaveURL(/\/forgot/);
+    
+    // Check email input exists
+    await expect(page.locator('input[type="email"]')).toBeVisible();
   });
 
   test('should switch language on auth pages', async ({ page }) => {
     await page.goto('/login');
     
     // Find language selector
-    const langSelector = page.locator('[aria-label*="language" i], [aria-label*="اللغة" i], button:has-text("العربية"), button:has-text("English")').first();
+    const langSelector = page.locator('[aria-label*="language" i], [aria-label*="اللغة" i], button:has-text("العربية"), button:has-text("English"), [data-testid="language-selector"]').first();
     
-    if (await langSelector.isVisible()) {
-      await langSelector.click();
-      
-      // Wait for dropdown
-      await page.waitForTimeout(500);
-      
-      // Check direction attribute changes
-      const htmlDir = await page.locator('html').getAttribute('dir');
-      expect(htmlDir).toBeTruthy();
-    }
+    await expect(langSelector).toBeVisible();
+    await langSelector.click();
+    
+    // Wait for dropdown and ensure dir attribute is set to ltr or rtl
+    await expect(page.locator('html')).toHaveAttribute('dir', /ltr|rtl/, { timeout: 3000 });
   });
 });
 
@@ -140,8 +136,6 @@ test.describe('Authentication - Guest User', () => {
     await page.goto('/dashboard');
     
     // Should redirect to login or show access denied
-    await page.waitForTimeout(2000);
-    const url = page.url();
-    expect(url.includes('/login') || url.includes('/') || url.includes('access-denied')).toBeTruthy();
+    await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
   });
 });

@@ -52,10 +52,11 @@ vi.mock('@sendgrid/mail', () => ({
 }));
 
 const buildRequest = (body: Record<string, unknown>) =>
-  ({
-    headers: new Headers(),
-    json: async () => body,
-  } as unknown as Request);
+  new Request('http://localhost/api/jobs/process', {
+    method: 'POST',
+    headers: new Headers({ 'content-type': 'application/json' }),
+    body: JSON.stringify(body),
+  });
 
 describe('/api/jobs/process POST', () => {
   beforeEach(() => {
@@ -83,7 +84,7 @@ describe('/api/jobs/process POST', () => {
 
     const { POST } = await import('@/app/api/jobs/process/route');
 
-    const res = await POST(buildRequest({ type: 's3-cleanup', maxJobs: 1 }) as any);
+    const res = await POST(buildRequest({ type: 's3-cleanup', maxJobs: 1 }));
     const json = await (res as NextResponse).json();
 
     expect(res.status).toBe(200);
@@ -107,7 +108,7 @@ describe('/api/jobs/process POST', () => {
 
     const { POST } = await import('@/app/api/jobs/process/route');
 
-    const res = await POST(buildRequest({ type: 's3-cleanup', maxJobs: 1 }) as any);
+    const res = await POST(buildRequest({ type: 's3-cleanup', maxJobs: 1 }));
     const json = await (res as NextResponse).json();
 
     expect(res.status).toBe(200);

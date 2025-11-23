@@ -27,8 +27,9 @@ test('rejects malformed inputs', () => {
   expect(parseCartAmount('abc')).toBe(0);
   expect(parseCartAmount('12.34.56')).toBe(0);
   expect(parseCartAmount('1,2,3')).toBe(0);
-  expect(parseCartAmount(null as any)).toBe(0);
-  expect(parseCartAmount(undefined as any)).toBe(0);
+  const unsafeParse = parseCartAmount as (value: unknown) => number;
+  expect(unsafeParse(null)).toBe(0);
+  expect(unsafeParse(undefined)).toBe(0);
 });
 
 test('rejects non-finite numbers', () => {

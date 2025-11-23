@@ -7,18 +7,19 @@
 
 import { config } from 'dotenv';
 import { resolve } from 'path';
+import type { FullConfig } from '@playwright/test';
 import globalSetup from './setup-auth';
 
 // Load .env.test file
 config({ path: resolve(__dirname, '../.env.test') });
 
-const mockConfig = {
+const mockConfig: Pick<FullConfig, 'projects'> = {
   projects: [{
     use: {
       baseURL: process.env.BASE_URL || 'http://localhost:3000'
     }
   }]
-} as any;
+};
 
 globalSetup(mockConfig)
   .then(() => {

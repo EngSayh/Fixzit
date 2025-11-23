@@ -10,18 +10,21 @@ import { vi, describe, it, expect, beforeAll, afterAll, beforeEach } from 'vites
  // Update the import below to match your actual module path if different.
  // Try common locations in order via require.resolve in a try/catch chain.
 interface PayTabsHelpers {
-  // Add expected function signatures here, e.g.:
-  // createPayment(params: CreatePaymentParams): Promise<PaymentResult>;
-  // verifyPayment(id: string): Promise<VerificationResult>;
-  // For now, use index signature to allow any property, but avoid `any` type.
-  [key: string]: unknown;
+  paytabsBase(region?: string): string;
+  createHppRequest(region: string, payload: unknown): Promise<unknown>;
+  createPaymentPage(request: Record<string, unknown>): Promise<unknown>;
+  verifyPayment(ref: string): Promise<unknown>;
+  validateCallbackRaw(body: string, signature: string | null): Promise<boolean>;
+  CURRENCIES?: unknown;
+  PAYMENT_METHODS?: unknown;
 }
 let lib: PayTabsHelpers;
 // Define the exact path to the PayTabs helpers module here.
 const PAYTABS_HELPERS_MODULE_PATH = '@/lib/paytabs'; // <-- Update this path as needed
-async function loadModule() {
+async function loadModule(): Promise<PayTabsHelpers> {
   try {
-    return await import(PAYTABS_HELPERS_MODULE_PATH);
+    const mod = await import(PAYTABS_HELPERS_MODULE_PATH);
+    return mod as PayTabsHelpers;
   } catch (e) {
     throw new Error(`Could not resolve module for PayTabs helpers at "${PAYTABS_HELPERS_MODULE_PATH}". Please adjust PAYTABS_HELPERS_MODULE_PATH in qa/tests/lib-paytabs.spec.ts`);
   }
@@ -36,22 +39,25 @@ beforeAll(async () => {
 type FetchResponse = {
   ok?: boolean;
   status?: number;
-  json: () => Promise<any>;
+  json: () => Promise<Record<string, unknown>>;
 };
-function mockFetchOnce(impl: (input: RequestInfo | URL, init?: RequestInit) => Promise<FetchResponse>) {
-  (global as any).fetch = vi.fn(impl);
+type FetchMock = ReturnType<typeof vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<FetchResponse>>>;
+const fetchMock: FetchMock = vi.fn();
+function mockFetchOnce(impl: Parameters<FetchMock>[0]) {
+  fetchMock.mockImplementationOnce(impl);
+  vi.stubGlobal('fetch', fetchMock);
 }
 
 function setEnv(obj: Record<string, string | undefined>) {
   const backup: Record<string, string | undefined> = {};
   for (const k of Object.keys(obj)) {
     backup[k] = process.env[k];
-    if (typeof obj[k] === 'undefined') delete (process.env as any)[k];
+    if (typeof obj[k] === 'undefined') delete process.env[k];
     else process.env[k] = obj[k] as string;
   }
   return () => {
     for (const k of Object.keys(backup)) {
-      if (typeof backup[k] === 'undefined') delete (process.env as any)[k];
+      if (typeof backup[k] === 'undefined') delete process.env[k];
       else process.env[k] = backup[k] as string;
     }
   };
@@ -59,7 +65,7 @@ function setEnv(obj: Record<string, string | undefined>) {
 
 describe('paytabsBase', () => {
   it('returns base URL for known regions and falls back to GLOBAL', () => {
-    const { paytabsBase } = lib as any;
+    const { paytabsBase } = lib;
     expect(paytabsBase('KSA')).toBe('https://secure.paytabs.sa');
     expect(paytabsBase('UAE')).toBe('https://secure.paytabs.com');
     expect(paytabsBase('EGYPT')).toBe('https://secure-egypt.paytabs.com');
@@ -79,7 +85,7 @@ describe('createHppRequest', () => {
   afterAll(restoreEnv);
 
   it('POSTs to region-specific endpoint with correct headers and body', async () => {
-    const { createHppRequest } = lib as any;
+    const { createHppRequest } = lib;
     const payload = { a: 1, b: 'x' };
 
     mockFetchOnce(async (input, init) => {
@@ -98,7 +104,7 @@ describe('createHppRequest', () => {
   });
 
   it('falls back to GLOBAL region when unknown', async () => {
-    const { createHppRequest } = lib as any;
+    const { createHppRequest } = lib;
 
     mockFetchOnce(async (input, _init) => {
       expect(String(input)).toBe('https://secure-global.paytabs.com/payment/request');
@@ -112,7 +118,7 @@ describe('createHppRequest', () => {
   it('uses PAYTABS_API_SERVER_KEY if PAYTABS_SERVER_KEY missing (indirect via headers variable)', async () => {
     const restore = setEnv({ PAYTABS_SERVER_KEY: undefined, PAYTABS_API_SERVER_KEY: 'api_sv_key' });
     try {
-      const { createHppRequest } = lib as any;
+      const { createHppRequest } = lib;
 
       mockFetchOnce(async (_input, init) => {
         expect(init?.headers).toMatchObject({ authorization: 'api_sv_key' });
@@ -136,11 +142,11 @@ describe('createPaymentPage', () => {
   beforeEach(() => {
     // Inject PAYTABS_CONFIG as a writable global/module var if present
     // If the library reads PAYTABS_CONFIG from its own module scope, we need it to exist.
-    (global as any).PAYTABS_CONFIG = PAYTABS_CONFIG;
+    (globalThis as { PAYTABS_CONFIG?: typeof PAYTABS_CONFIG }).PAYTABS_CONFIG = PAYTABS_CONFIG;
   });
 
   it('returns success with url and transaction id when redirect_url present', async () => {
-    const { createPaymentPage } = lib as any;
+    const { createPaymentPage } = lib;
     const request = {
       invoiceId: 'INV-1',
       currency: 'SAR',
@@ -188,7 +194,7 @@ describe('createPaymentPage', () => {
   });
 
   it('generates cart_id when invoiceId is missing and handles failure without redirect_url', async () => {
-    const { createPaymentPage } = lib as any;
+    const { createPaymentPage } = lib;
     const request = {
       currency: 'SAR',
       amount: 50,
@@ -302,7 +308,7 @@ describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
     vi.stubGlobal('crypto', {
       subtle: {
         importKey: vi.fn(async () => ({} as CryptoKey)),
-        sign: vi.fn(async (_algo: string, _key: any, _data: ArrayBuffer) => {
+        sign: vi.fn(async (_algo: string, _key: CryptoKey | ArrayBuffer | string, _data: ArrayBuffer) => {
           return signatureBytes.buffer as ArrayBuffer;
         }),
       } as any,

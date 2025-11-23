@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import mongoose from 'mongoose';
-import { quotePrice, PricingError } from '@/lib/finance/pricing';
+import { quotePrice, PricingError, type BillingCycle } from '@/lib/finance/pricing';
 import PriceBook from '@/server/models/PriceBook';
 import DiscountRule from '@/server/models/DiscountRule';
 
@@ -112,7 +112,7 @@ describe('Pricing Service Unit Tests', () => {
     it('should reject invalid currency', async () => {
       await expect(
         quotePrice({
-          priceBookCurrency: 'EUR' as any,
+          priceBookCurrency: 'EUR' as 'SAR' | 'USD', // Intentional type violation for test
           seats: 5,
           modules: ['AQAR'],
           billingCycle: 'MONTHLY',
@@ -184,7 +184,7 @@ describe('Pricing Service Unit Tests', () => {
           priceBookCurrency: 'USD',
           seats: 5,
           modules: ['AQAR'],
-          billingCycle: 'QUARTERLY' as any,
+          billingCycle: 'QUARTERLY' as 'MONTHLY' | 'ANNUAL', // Intentional type violation for test
         })
       ).rejects.toThrow(PricingError);
     });
@@ -590,7 +590,7 @@ describe('Pricing Service Unit Tests', () => {
     it('should throw error for non-existent currency', async () => {
       try {
         await quotePrice({
-          priceBookCurrency: 'GBP' as any,
+          priceBookCurrency: 'GBP' as 'SAR' | 'USD', // Intentional type violation for test
           seats: 5,
           modules: ['AQAR'],
           billingCycle: 'MONTHLY',
@@ -670,7 +670,7 @@ describe('Pricing Service Unit Tests', () => {
           priceBookCurrency: 'USD',
           seats: -10,
           modules: [],
-          billingCycle: 'INVALID' as any,
+          billingCycle: 'INVALID' as unknown as BillingCycle,
         });
       } catch (error: unknown) {
         expect(error).toBeInstanceOf(PricingError);

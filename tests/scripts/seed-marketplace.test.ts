@@ -17,7 +17,12 @@ const candidateModulePaths = [
 
 // Lightweight mock in lieu of the actual MockDatabase implementation.
 // use jest.mock with a virtual module to intercept that import.
-type Doc = Record<string, any>;
+type Doc = Record<string, unknown>;
+
+type SeedModule = {
+  upsert: (collection: string, predicate: (doc: Doc) => boolean, payload: Partial<Doc>) => Doc;
+  main?: () => Promise<void> | void;
+};
 
 class InMemoryMockDatabase {
   private static instance: InMemoryMockDatabase;
@@ -46,6 +51,12 @@ class InMemoryMockDatabase {
   }
 }
 
+declare global {
+  // Used by the marketplace seed script to share the mock database
+  // eslint-disable-next-line no-var
+  var __FIXZIT_MARKETPLACE_DB_MOCK__: typeof InMemoryMockDatabase | undefined;
+}
+
 // Mock the MockDatabase module used by the seeding script.
 // We need to ensure our mock path matches what Node resolves at runtime from that module.
 vi.mock('@/server/database', () => {
@@ -61,22 +72,25 @@ let consoleSpy: ReturnType<typeof vi.spyOn>
 beforeEach(() => {
   // Reset the singleton state between tests
   InMemoryMockDatabase.getInstance().reset()
-  ;(globalThis as any).__FIXZIT_MARKETPLACE_DB_MOCK__ = InMemoryMockDatabase
+  globalThis.__FIXZIT_MARKETPLACE_DB_MOCK__ = InMemoryMockDatabase
   consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 })
 
 afterEach(() => {
   consoleSpy.mockRestore()
-  delete (globalThis as any).__FIXZIT_MARKETPLACE_DB_MOCK__
+  delete globalThis.__FIXZIT_MARKETPLACE_DB_MOCK__
 })
 
-async function importTargetModule() {
+async function importTargetModule(): Promise<SeedModule> {
   for (const p of candidateModulePaths) {
     try {
       // Use file URL for ESM imports if needed
       const fileUrl = url.pathToFileURL(p).href
        
-      return await import(fileUrl)
+      const imported = await import(fileUrl)
+      if (imported && typeof imported.upsert === 'function') {
+        return imported as SeedModule;
+      }
     } catch (e) {
       // continue to next candidate
     }
@@ -86,7 +100,7 @@ async function importTargetModule() {
 
 describe('seed-marketplace script', () => {
   test('upsert inserts when no match and sets timestamps and _id', async () => {
-    const mod: any = await importTargetModule()
+    const mod = await importTargetModule()
     const db = InMemoryMockDatabase.getInstance()
 
     const before = db.getCollection('searchsynonyms')
@@ -94,13 +108,13 @@ describe('seed-marketplace script', () => {
 
     const created = mod.upsert(
       'searchsynonyms',
-      (x: any) => x.locale === 'en' && x.term === 'ac filter',
+      (x: Doc) => x.locale === 'en' && x.term === 'ac filter',
       { locale: 'en', term: 'ac filter', synonyms: ['hvac filter'] }
     )
 
     const after = db.getCollection('searchsynonyms')
     expect(after).toHaveLength(1)
-    expect(created).toMatchObject({
+    expect(created as Partial<Doc>).toMatchObject({
       locale: 'en',
       term: 'ac filter',
       synonyms: ['hvac filter'],
@@ -109,17 +123,17 @@ describe('seed-marketplace script', () => {
     expect(typeof created._id).toBe('string')
     expect(created).toHaveProperty('createdAt')
     expect(created).toHaveProperty('updatedAt')
-    expect(new Date(created.createdAt).getTime()).toBeGreaterThan(0)
-    expect(new Date(created.updatedAt).getTime()).toBeGreaterThan(0)
+    expect(new Date((created as { createdAt?: string }).createdAt ?? '').getTime()).toBeGreaterThan(0)
+    expect(new Date((created as { updatedAt?: string }).updatedAt ?? '').getTime()).toBeGreaterThan(0)
   })
 
   test('upsert updates when match exists and preserves createdAt while refreshing updatedAt', async () => {
-    const mod: any = await importTargetModule()
+    const mod = await importTargetModule()
     const db = InMemoryMockDatabase.getInstance()
 
     const first = mod.upsert(
       'searchsynonyms',
-      (x: any) => x.locale === 'en' && x.term === 'ac filter',
+      (x: Doc) => x.locale === 'en' && x.term === 'ac filter',
       { locale: 'en', term: 'ac filter', synonyms: ['hvac filter'] }
     )
 
@@ -132,16 +146,17 @@ describe('seed-marketplace script', () => {
 
       const updated = mod.upsert(
         'searchsynonyms',
-        (x: any) => x.locale === 'en' && x.term === 'ac filter',
+        (x: Doc) => x.locale === 'en' && x.term === 'ac filter',
         { synonyms: ['hvac filter', 'air filter'] } // partial update payload
       )
 
-      expect(updated._id).toBe(first._id)
-      expect(updated.createdAt).toEqual(first.createdAt)
-      expect(new Date(updated.updatedAt).getTime()).toBeGreaterThan(new Date(first.updatedAt).getTime())
-      expect(updated.synonyms).toEqual(['hvac filter', 'air filter'])
-      expect(updated.term).toBe('ac filter') // unchanged
-      expect(updated.locale).toBe('en')
+      expect((updated as { _id?: unknown })._id).toBe((first as { _id?: unknown })._id)
+      expect((updated as { createdAt?: unknown }).createdAt).toEqual((first as { createdAt?: unknown }).createdAt)
+      expect(new Date((updated as { updatedAt?: string }).updatedAt ?? '').getTime())
+        .toBeGreaterThan(new Date((first as { updatedAt?: string }).updatedAt ?? '').getTime())
+      expect((updated as { synonyms?: unknown }).synonyms).toEqual(['hvac filter', 'air filter'])
+      expect((updated as { term?: unknown }).term).toBe('ac filter') // unchanged
+      expect((updated as { locale?: unknown }).locale).toBe('en')
     } finally {
       if (typeof (Date.now as unknown as { mockRestore?: () => void }).mockRestore === 'function') {
         (Date.now as unknown as { mockRestore: () => void }).mockRestore();
@@ -152,7 +167,7 @@ describe('seed-marketplace script', () => {
   })
 
   test('main() seeds the expected synonyms and product for demo-tenant', async () => {
-    const mod: any = await importTargetModule()
+    const mod = await importTargetModule()
     const db = InMemoryMockDatabase.getInstance()
 
     // The module calls main() on import in the provided snippet.
@@ -168,17 +183,23 @@ describe('seed-marketplace script', () => {
     const products = db.getCollection('marketplaceproducts')
 
     // Verify two specific synonym entries exist
-    const enAc = synonyms.find(x => x.locale === 'en' && x.term === 'ac filter')!
-    const arPaint = synonyms.find(x => x.locale === 'ar' && x.term === 'دهان')!
+    const enAc = synonyms.find(x => x.locale === 'en' && x.term === 'ac filter') as Doc
+    const arPaint = synonyms.find(x => x.locale === 'ar' && x.term === 'دهان') as Doc
 
     expect(enAc).toBeTruthy()
-    expect(enAc.synonyms).toEqual(expect.arrayContaining(['hvac filter', 'air filter', 'فلتر مكيف']))
+    expect((enAc as { synonyms?: unknown[] }).synonyms).toEqual(
+      expect.arrayContaining(['hvac filter', 'air filter', 'فلتر مكيف'])
+    )
 
     expect(arPaint).toBeTruthy()
-    expect(arPaint.synonyms).toEqual(expect.arrayContaining(['طلاء', 'paint', 'painter']))
+    expect((arPaint as { synonyms?: unknown[] }).synonyms).toEqual(
+      expect.arrayContaining(['طلاء', 'paint', 'painter'])
+    )
 
     // Verify product
-    const product = products.find(x => x.slug === 'portland-cement-type-1-2-50kg' && x.tenantId === 'demo-tenant')!
+    const product = products.find(
+      x => x.slug === 'portland-cement-type-1-2-50kg' && x.tenantId === 'demo-tenant'
+    ) as Doc | undefined
     expect(product).toBeTruthy()
     expect(product).toMatchObject({
       tenantId: 'demo-tenant',
@@ -194,15 +215,15 @@ describe('seed-marketplace script', () => {
     expect(product.searchable).toEqual(
       expect.objectContaining({ en: expect.stringContaining('Portland Cement') })
     )
-    expect(product._id).toBeDefined()
-    expect(product.createdAt).toBeDefined()
-    expect(product.updatedAt).toBeDefined()
+    expect((product as { _id?: unknown })._id).toBeDefined()
+    expect((product as { createdAt?: unknown }).createdAt).toBeDefined()
+    expect((product as { updatedAt?: unknown }).updatedAt).toBeDefined()
 
     // Verify console side effect
   })
 
   test('idempotency: running main() twice should update existing docs, not create duplicates', async () => {
-    const mod: any = await importTargetModule()
+    const mod = await importTargetModule()
     const db = InMemoryMockDatabase.getInstance()
 
     db.reset()
@@ -226,7 +247,7 @@ describe('seed-marketplace script', () => {
   })
 
   test('upsert handles predicates that throw by propagating the error', async () => {
-    const mod: any = await importTargetModule()
+    const mod = await importTargetModule()
     const db = InMemoryMockDatabase.getInstance()
     db.reset()
 

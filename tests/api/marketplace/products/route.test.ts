@@ -43,7 +43,7 @@ describe('API GET /marketplace/products/[slug]', () => {
       lean: vi.fn().mockResolvedValue(null),
     });
 
-    const res: any = await callGET('missing');
+    const res = await callGET('missing');
     expect(mockFindOne).toHaveBeenCalledWith({
       tenantId: 'demo-tenant',
       slug: 'missing',
@@ -63,7 +63,7 @@ describe('API GET /marketplace/products/[slug]', () => {
       lean: vi.fn().mockResolvedValue(doc),
     });
 
-    const res: any = await callGET('toy');
+    const res = await callGET('toy');
 
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);

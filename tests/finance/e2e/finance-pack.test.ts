@@ -327,12 +327,18 @@ describe('Finance Pack E2E Tests', () => {
       await payment.allocateToInvoice(new mongoose.Types.ObjectId(), 'invoice-003', toMinor(300, 'SAR'));
 
       // Verify allocations
-      expect((payment as any).invoiceAllocations ?? (payment as any).allocations).toHaveLength(3);
+      const allocations =
+        (payment.invoiceAllocations as unknown[] | undefined) ??
+        (payment.allocations as unknown[] | undefined) ??
+        [];
+      expect(allocations).toHaveLength(3);
       expect(payment.unallocatedAmount).toBe(0); // Fully allocated
 
       // TYPESCRIPT FIX: Explicit types for reduce callback parameters
-      const invoiceAllocations = (payment as any).invoiceAllocations ?? (payment as any).allocations;
-      const totalAllocated = invoiceAllocations.reduce((sum: number, alloc: { amount: number }) => sum + alloc.amount, 0);
+      const totalAllocated = allocations.reduce((sum: number, alloc) => {
+        const amount = typeof alloc.amount === 'number' ? alloc.amount : 0;
+        return sum + amount;
+      }, 0);
       expect(totalAllocated).toBe(paymentAmount);
     });
   });

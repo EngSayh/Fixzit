@@ -2,6 +2,8 @@
 import { test, expect } from '@playwright/test';
 import { createPaymentPage } from '../../lib/paytabs.js';
 
+type FetchArgs = Parameters<typeof fetch>;
+
 test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
   test('creates payment page successfully and posts correct payload', async () => {
     delete process.env.PAYTABS_BASE_URL; // force default to GLOBAL
@@ -33,11 +35,11 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
     };
 
     const originalFetch = globalThis.fetch;
-    const calls: any[] = [];
-    globalThis.fetch = ((...args: any[]) => {
+    const calls: FetchArgs[] = [];
+    globalThis.fetch = ((...args: FetchArgs) => {
       calls.push(args);
-      return Promise.resolve({ json: async () => mockResponse } as any);
-    }) as any;
+      return Promise.resolve({ json: async () => mockResponse } as unknown as Response);
+    }) as typeof fetch;
 
     try {
       const result = await createPaymentPage(validRequest);
@@ -57,7 +59,7 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
       });
 
       // Body fields
-      const body = JSON.parse(calls[0][1].body);
+      const body = JSON.parse(calls[0][1]?.body as string);
       expect(body.profile_id).toBe('test-profile-id');
       expect(body.tran_type).toBe('sale');
       expect(body.tran_class).toBe('ecom');
@@ -86,7 +88,7 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
       expect(body.hide_shipping).toBe(true);
       expect(body.paypage_lang).toBe('ar');
     } finally {
-      globalThis.fetch = originalFetch as any;
+      globalThis.fetch = originalFetch as typeof fetch;
     }
   });
 
@@ -97,11 +99,11 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
 
     const originalFetch = globalThis.fetch;
     const captured: string[] = [];
-    globalThis.fetch = ((...args: any[]) => {
-      const body = args[1]?.body;
+    globalThis.fetch = ((...args: FetchArgs) => {
+      const body = args[1]?.body as string;
       captured.push(body);
-      return Promise.resolve({ json: async () => ({ redirect_url: 'url', tran_ref: 'ref' }) } as any);
-    }) as any;
+      return Promise.resolve({ json: async () => ({ redirect_url: 'url', tran_ref: 'ref' }) } as unknown as Response);
+    }) as typeof fetch;
 
     try {
       await createPaymentPage({
@@ -132,7 +134,7 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
       } as any);
       expect(captured[captured.length - 1]).toContain('"cart_amount":"999999999.99"');
     } finally {
-      globalThis.fetch = originalFetch as any;
+      globalThis.fetch = originalFetch as typeof fetch;
     }
   });
 
@@ -142,11 +144,11 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
     process.env.PAYTABS_SERVER_KEY = 'key';
 
     const originalFetch = globalThis.fetch;
-    let lastBody: any;
-    globalThis.fetch = ((...args: any[]) => {
-      lastBody = JSON.parse(args[1]?.body);
-      return Promise.resolve({ json: async () => ({ redirect_url: 'url', tran_ref: 'ref' }) } as any);
-    }) as any;
+    let lastBody: Record<string, unknown> | undefined;
+    globalThis.fetch = ((...args: FetchArgs) => {
+      lastBody = JSON.parse(args[1]?.body as string);
+      return Promise.resolve({ json: async () => ({ redirect_url: 'url', tran_ref: 'ref' }) } as unknown as Response);
+    }) as typeof fetch;
 
     try {
       await createPaymentPage({
@@ -158,7 +160,7 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
       expect(typeof lastBody.cart_id).toBe('string');
       expect(lastBody.cart_id.startsWith('CART-')).toBe(true);
     } finally {
-      globalThis.fetch = originalFetch as any;
+      globalThis.fetch = originalFetch as typeof fetch;
     }
   });
 
@@ -170,9 +172,9 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
     const originalFetch = globalThis.fetch;
 
     // Case: { message: 'Invalid payment details' }
-    globalThis.fetch = ((..._args: any[]) => {
-      return Promise.resolve({ json: async () => ({ message: 'Invalid payment details' }) } as any);
-    }) as any;
+    globalThis.fetch = ((..._args: FetchArgs) => {
+      return Promise.resolve({ json: async () => ({ message: 'Invalid payment details' }) } as unknown as Response);
+    }) as typeof fetch;
 
     try {
       const err1 = await createPaymentPage({
@@ -183,9 +185,9 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
       expect(err1).toEqual({ success: false, error: 'Invalid payment details' });
 
       // Case: {}
-      globalThis.fetch = ((..._args: any[]) => {
-        return Promise.resolve({ json: async () => ({}) } as any);
-      }) as any;
+      globalThis.fetch = ((..._args: FetchArgs) => {
+        return Promise.resolve({ json: async () => ({}) } as unknown as Response);
+      }) as typeof fetch;
 
       const err2 = await createPaymentPage({
         amount: 10, currency: 'SAR',
@@ -194,7 +196,7 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
       } as any);
       expect(err2).toEqual({ success: false, error: 'Payment initialization failed' });
     } finally {
-      globalThis.fetch = originalFetch as any;
+      globalThis.fetch = originalFetch as typeof fetch;
     }
   });
 
@@ -204,7 +206,7 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
     process.env.PAYTABS_SERVER_KEY = 'key';
 
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = ((..._args: any[]) => Promise.reject('string error')) as any;
+    globalThis.fetch = ((..._args: FetchArgs) => Promise.reject('string error')) as typeof fetch;
 
     try {
       const res = await createPaymentPage({
@@ -214,7 +216,7 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
       } as any);
       expect(res).toEqual({ success: false, error: 'Payment gateway error' });
     } finally {
-      globalThis.fetch = originalFetch as any;
+      globalThis.fetch = originalFetch as typeof fetch;
     }
   });
 
@@ -224,11 +226,11 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
     process.env.PAYTABS_SERVER_KEY = 'key';
 
     const originalFetch = globalThis.fetch;
-    let bodyObj: any;
-    globalThis.fetch = ((...args: any[]) => {
-      bodyObj = JSON.parse(args[1]?.body);
-      return Promise.resolve({ json: async () => ({ redirect_url: 'url', tran_ref: 'ref' }) } as any);
-    }) as any;
+    let bodyObj: Record<string, unknown> | undefined;
+    globalThis.fetch = ((...args: FetchArgs) => {
+      bodyObj = JSON.parse(args[1]?.body as string);
+      return Promise.resolve({ json: async () => ({ redirect_url: 'url', tran_ref: 'ref' }) } as unknown as Response);
+    }) as typeof fetch;
 
     try {
       await createPaymentPage({

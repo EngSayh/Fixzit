@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import mongoose from 'mongoose';
 
-type MarketplaceProductModel = mongoose.Model<any>;
+type MarketplaceProductModel = mongoose.Model<unknown> & { schema: mongoose.Schema };
+
+const isMarketplaceProductModel = (candidate: unknown): candidate is MarketplaceProductModel =>
+  Boolean(candidate && typeof (candidate as { schema?: unknown }).schema === 'object');
 
 const candidateImports = [
   '@/server/models/MarketplaceProduct',
@@ -20,7 +23,11 @@ async function loadMarketplaceProduct(): Promise<MarketplaceProductModel> {
     for (const mod of candidateImports) {
       try {
         const imported = await import(mod);
-        return (imported as any).MarketplaceProduct || (imported as any).default || imported;
+        const candidateModule = imported as Record<string, unknown>;
+        const candidate = candidateModule.MarketplaceProduct || candidateModule.default || imported;
+        if (isMarketplaceProductModel(candidate)) {
+          return candidate;
+        }
       } catch (err) {
         lastError = err;
         continue;

@@ -8,7 +8,7 @@ process.env.NEXTAUTH_SECRET = 'test-secret';
 vi.mock('next/server', () => ({
   NextRequest: class {},
   NextResponse: {
-    json: (body: any, init?: ResponseInit) => ({
+    json: (body: unknown, init?: ResponseInit) => ({
       status: init?.status ?? 200,
       body
     })
@@ -68,9 +68,10 @@ vi.mock('@/server/models/ats/Interview', () => ({
   Interview: InterviewMock
 }));
 
-let GET: any;
-let POST: any;
-let atsRBAC: any;
+type ApiResponse = { status: number; body: Record<string, unknown> };
+let GET: (req: NextRequest) => Promise<ApiResponse>;
+let POST: (req: NextRequest) => Promise<ApiResponse>;
+let atsRBAC: ReturnType<typeof vi.fn>;
 
 describe('API /api/ats/interviews', () => {
   beforeAll(async () => {
@@ -100,7 +101,7 @@ describe('API /api/ats/interviews', () => {
   }) as NextRequest;
 
   it('rejects invalid from date values', async () => {
-    const res: any = await GET(getRequest('?from=not-a-date'));
+    const res: ApiResponse = await GET(getRequest('?from=not-a-date'));
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('Invalid from date');
   });
@@ -128,7 +129,7 @@ describe('API /api/ats/interviews', () => {
       })
     } as unknown as NextRequest;
 
-    const res: any = await POST(req);
+    const res: ApiResponse = await POST(req);
 
     expect(res.status).toBe(201);
     expect(InterviewMock.create).toHaveBeenCalledTimes(1);

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { NextResponse } from 'next/server';
 
 // Mockable Mongoose-like models exposed via globals for tests
@@ -7,9 +6,9 @@ type SynonymDoc = { synonyms?: string[] } | null;
 
 declare global {
   // Tracking and configuration hooks for tests
-  var __mp_find_calls__: any[];
-  var __mp_sort_calls__: any[];
-  var __mp_limit_calls__: any[];
+  var __mp_find_calls__: unknown[];
+  var __mp_sort_calls__: unknown[];
+  var __mp_limit_calls__: unknown[];
   var __mp_throw_on_lean__: boolean;
   var __syn_findOne_queue__: { locale: string; term: string; result: SynonymDoc; throwError: boolean }[];
 }
@@ -39,10 +38,10 @@ export const SearchSynonym = {
 
 // Simulated MarketplaceProduct model with chainable query
 export const MarketplaceProduct = {
-  find(filter: any) {
+  find(filter: Record<string, unknown>) {
     globalThis.__mp_find_calls__.push([filter]);
     const chain = {
-      sort(sortArg: any) {
+      sort(sortArg: Record<string, unknown>) {
         globalThis.__mp_sort_calls__.push(sortArg);
         return chain2;
       },
@@ -77,7 +76,7 @@ export async function GET(req: { url: string }) {
     // Expand with synonyms (best effort)
     let terms = [q];
     try {
-      const syn = await (SearchSynonym as any).findOne({ locale, term: q.toLowerCase() });
+      const syn = await SearchSynonym.findOne({ locale, term: q.toLowerCase() });
       if (syn && syn.synonyms?.length) terms = Array.from(new Set([q, ...syn.synonyms]));
     } catch {}
 
@@ -89,7 +88,7 @@ export async function GET(req: { url: string }) {
       { brand: new RegExp(escapeRegex(q), 'i') },
     ];
 
-    const docs = await (MarketplaceProduct as any)
+    const docs = await MarketplaceProduct
       .find({ orgId, $or: or })
       .sort({ updatedAt: -1 })
       .limit(24)

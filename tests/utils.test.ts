@@ -71,8 +71,9 @@ describe('generateSlug', () => {
   });
 
   test('gracefully handles undefined and null at runtime', () => {
-    expect((generateSlug as any)(undefined)).toBe('');
-    expect((generateSlug as any)(null)).toBe('');
+    const unsafeGenerateSlug = generateSlug as (value: unknown) => string;
+    expect(unsafeGenerateSlug(undefined)).toBe('');
+    expect(unsafeGenerateSlug(null)).toBe('');
   });
 
   test('handles very long inputs efficiently (sanity checks)', () => {

@@ -8,6 +8,18 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+type PaytabsModule = {
+  paytabsBase: (region?: string) => string;
+  createHppRequest: (region: string, payload: Record<string, unknown>) => Promise<unknown>;
+  createPaymentPage: (payload: Record<string, unknown>) => Promise<unknown>;
+  verifyPayment: (params: Record<string, string | undefined>) => Promise<unknown>;
+  validateCallback: (payload: unknown, signature: string) => boolean;
+  generateCallbackSignature: (payload: unknown) => string;
+  CURRENCIES: Record<string, string>;
+  PAYMENT_METHODS: Record<string, string>;
+  getAvailablePaymentMethods: () => Array<{ id: string; enabled: boolean; name: string; icon: string }>;
+};
+
 const loggerMock = {
   error: vi.fn(),
   warn: vi.fn(),
@@ -55,7 +67,7 @@ function setEnv(overrides?: Partial<NodeJS.ProcessEnv>) {
  * Try to import the PayTabs module from common locations.
  * Adjust this list if your module lives elsewhere.
  */
-async function importPaytabs() {
+async function importPaytabs(): Promise<PaytabsModule> {
   const candidates = [
     '../src/paytabs',
     '../src/lib/paytabs',
@@ -67,7 +79,7 @@ async function importPaytabs() {
   for (const p of candidates) {
     try {
        
-      return await import(p);
+      return (await import(p)) as PaytabsModule;
     } catch (_e) {
       // try next candidate
     }
@@ -89,10 +101,11 @@ describe('paytabsBase', () => {
     expect(paytabsBase('GLOBAL')).toBe('https://secure-global.paytabs.com');
 
     // Unknown -> fallback to GLOBAL
-    expect(paytabsBase('UNKNOWN_REGION' as any)).toBe('https://secure-global.paytabs.com');
+    // @ts-expect-error intentionally passing invalid region to verify fallback
+    expect(paytabsBase('UNKNOWN_REGION')).toBe('https://secure-global.paytabs.com');
 
     // Default param -> GLOBAL
-    expect(paytabsBase(undefined as any)).toBe('https://secure-global.paytabs.com');
+    expect(paytabsBase()).toBe('https://secure-global.paytabs.com');
   });
 });
 
@@ -100,19 +113,20 @@ describe('createHppRequest', () => {
   it('posts to region-specific /payment/request with correct headers and payload and returns parsed JSON', async () => {
     setEnv({ PAYTABS_SERVER_KEY: 'sk_test_example_key_for_testing' });
     const mod = await importPaytabs();
-    const { createHppRequest, paytabsBase } = mod as any;
+    const { createHppRequest, paytabsBase } = mod;
 
     const mockResponse = { ok: true, id: 'hpp_req_1' };
-    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+    const fetchMock = vi.fn().mockResolvedValue({
       json: vi.fn().mockResolvedValue(mockResponse),
     });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const payload = { amount: 100, currency: 'SAR', note: 'Test' };
     const region = 'EGYPT';
     const result = await createHppRequest(region, payload);
 
-    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-    const [url, options] = (globalThis.fetch as any).mock.calls[0];
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe(`${paytabsBase(region)}/payment/request`);
     expect(options.method).toBe('POST');
     // Header key is intentionally lowercase 'authorization' in this function
@@ -150,12 +164,12 @@ describe('createPaymentPage', () => {
     });
 
     const mod = await importPaytabs();
-    const { createPaymentPage } = mod as any;
+    const { createPaymentPage } = mod;
 
     const responseJson = { redirect_url: 'https://paytabs.example/redirect', tran_ref: 'TRX123' };
-    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       json: vi.fn().mockResolvedValue(responseJson),
-    });
+    }) as unknown as typeof fetch;
 
     const req = { ...baseRequest, invoiceId: 'INV-1001' };
     const result = await createPaymentPage(req);
@@ -166,7 +180,7 @@ describe('createPaymentPage', () => {
       transactionId: 'TRX123',
     });
 
-    const [url, options] = (globalThis.fetch as any).mock.calls[0];
+    const [url, options] = (globalThis.fetch as unknown as vi.Mock).mock.calls[0] as [string, RequestInit];
     expect(url).toBe('https://secure.paytabs.sa/payment/request');
     expect(options.method).toBe('POST');
     expect(options.headers['Authorization']).toBe('server_key_xyz');
@@ -206,17 +220,17 @@ describe('createPaymentPage', () => {
     vi.spyOn(Date, 'now').mockReturnValue(1700000000123);
 
     const mod = await importPaytabs();
-    const { createPaymentPage } = mod as any;
+    const { createPaymentPage } = mod;
 
-    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       json: vi.fn().mockResolvedValue({ redirect_url: 'https://pt/ok', tran_ref: 'REF1' }),
-    });
+    }) as unknown as typeof fetch;
 
     const req = { ...baseRequest }; // no invoiceId
     const result = await createPaymentPage(req);
     expect(result.success).toBe(true);
 
-    const [, options] = (globalThis.fetch as any).mock.calls[0];
+    const [, options] = (globalThis.fetch as unknown as vi.Mock).mock.calls[0] as [string, RequestInit];
     const body = JSON.parse(options.body);
     expect(body.cart_id).toBe('CART-1700000000123');
   });
@@ -229,11 +243,11 @@ describe('createPaymentPage', () => {
     });
 
     const mod = await importPaytabs();
-    const { createPaymentPage } = mod as any;
+    const { createPaymentPage } = mod;
 
-    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       json: vi.fn().mockResolvedValue({ message: 'Invalid amount' }),
-    });
+    }) as unknown as typeof fetch;
 
     const req = { ...baseRequest };
     const result = await createPaymentPage(req);
@@ -252,11 +266,11 @@ describe('createPaymentPage', () => {
     });
 
     const mod = await importPaytabs();
-    const { createPaymentPage } = mod as any;
+    const { createPaymentPage } = mod;
 
-    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       json: vi.fn().mockResolvedValue({ /* empty */ }),
-    });
+    }) as unknown as typeof fetch;
 
     const req = { ...baseRequest };
     const result = await createPaymentPage(req);
@@ -274,9 +288,9 @@ describe('createPaymentPage', () => {
     });
 
     const mod = await importPaytabs();
-    const { createPaymentPage } = mod as any;
+    const { createPaymentPage } = mod;
 
-    (globalThis as any).fetch = vi.fn().mockRejectedValue(new Error('Network down'));
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network down')) as unknown as typeof fetch;
 
     const req = { ...baseRequest };
     const result = await createPaymentPage(req);
@@ -297,17 +311,17 @@ describe('verifyPayment', () => {
     });
 
     const mod = await importPaytabs();
-    const { verifyPayment } = mod as any;
+    const { verifyPayment } = mod;
 
     const mockJson = { tran_ref: 'TR-XYZ', payment_result: { response_status: 'A' } };
-    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       json: vi.fn().mockResolvedValue(mockJson),
-    });
+    }) as unknown as typeof fetch;
 
     const result = await verifyPayment('TR-XYZ');
     expect(result).toEqual(mockJson);
 
-    const [url, options] = (globalThis.fetch as any).mock.calls[0];
+    const [url, options] = (globalThis.fetch as unknown as vi.Mock).mock.calls[0] as [string, RequestInit];
     expect(url).toBe('https://secure-jordan.paytabs.com/payment/query');
     expect(options.method).toBe('POST');
     expect(options.headers['Authorization']).toBe('server_key_Q');
@@ -325,9 +339,9 @@ describe('verifyPayment', () => {
     });
 
     const mod = await importPaytabs();
-    const { verifyPayment } = mod as any;
+    const { verifyPayment } = mod;
 
-    (globalThis as any).fetch = vi.fn().mockRejectedValue(new Error('Server 500'));
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('Server 500')) as unknown as typeof fetch;
 
     await expect(verifyPayment('TR-ERR')).rejects.toThrow('Server 500');
     expect(loggerMock.error).toHaveBeenCalled();
@@ -338,7 +352,7 @@ describe('validateCallback', () => {
   it('returns true only when provided signature matches generated one (placeholder implementation)', async () => {
     setEnv({ PAYTABS_SERVER_KEY: 'server_key_SIG' });
     const mod = await importPaytabs();
-    const { validateCallback, generateCallbackSignature } = mod as any;
+    const { validateCallback, generateCallbackSignature } = mod;
 
     const payload = { any: 'payload', amount: '100' };
     const sig = generateCallbackSignature(payload);
@@ -351,7 +365,7 @@ describe('validateCallback', () => {
 describe('PAYMENT_METHODS and CURRENCIES', () => {
   it('exposes expected currency codes', async () => {
     const mod = await importPaytabs();
-    const { CURRENCIES } = mod as any;
+    const { CURRENCIES } = mod;
     expect(CURRENCIES).toMatchObject({
       SAR: 'SAR',
       USD: 'USD',
@@ -362,10 +376,10 @@ describe('PAYMENT_METHODS and CURRENCIES', () => {
 
   it('getAvailablePaymentMethods returns the expected enabled methods (without TABBY)', async () => {
     const mod = await importPaytabs();
-    const { PAYMENT_METHODS, getAvailablePaymentMethods } = mod as any;
+    const { PAYMENT_METHODS, getAvailablePaymentMethods } = mod;
 
     const methods = getAvailablePaymentMethods();
-    const ids = methods.map((m: any) => m.id);
+    const ids = methods.map((m) => m.id);
 
     // Expected list from implementation
     expect(methods).toHaveLength(6);

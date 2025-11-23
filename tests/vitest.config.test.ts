@@ -32,8 +32,8 @@ const normalizeAlias = (alias: unknown): Array<{ find: string; replacement: stri
   if (!alias) return [];
   if (Array.isArray(alias)) {
     return alias.map((entry) => ({
-      find: String((entry as any).find),
-      replacement: String((entry as any).replacement),
+      find: String((entry as { find: unknown }).find),
+      replacement: String((entry as { replacement: unknown }).replacement),
     }));
   }
   if (typeof alias === 'object') {

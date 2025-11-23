@@ -6,7 +6,7 @@ process.env.SKIP_ENV_VALIDATION = 'true';
 vi.mock('next/server', () => ({
   NextRequest: class {},
   NextResponse: {
-    json: (body: any, init?: ResponseInit) => ({
+    json: (body: unknown, init?: ResponseInit) => ({
       status: init?.status ?? 200,
       body,
     }),
@@ -22,7 +22,7 @@ vi.mock('@/server/middleware/withAuthRbac', () => ({
 }));
 
 vi.mock('@/lib/storage/s3', () => ({
-  getPresignedPutUrl: (...args: any[]) => getPresignedPutUrl(...args),
+  getPresignedPutUrl: (...args: unknown[]) => getPresignedPutUrl(...args),
   buildResumeKey: (tenant: string, fileName: string) => `${tenant}/resumes/${fileName}`,
 }));
 
@@ -35,10 +35,11 @@ vi.mock('@/server/utils/errorResponses', () => ({
 }));
 
 vi.mock('@/lib/security/s3-policy', () => ({
-  validateBucketPolicies: (...args: any[]) => validateBucketPolicies(...args),
+  validateBucketPolicies: (...args: unknown[]) => validateBucketPolicies(...args),
 }));
 
-let POST: (req: NextRequest) => Promise<any>;
+type PresignResponse = { status: number; body: Record<string, unknown> };
+let POST: (req: NextRequest) => Promise<PresignResponse>;
 
 describe('POST /api/files/resumes/presign', () => {
   beforeAll(async () => {
@@ -65,7 +66,7 @@ describe('POST /api/files/resumes/presign', () => {
     }) as unknown as NextRequest;
 
   it('returns presign details for valid PDF input (anonymous allowed)', async () => {
-    const res: any = await POST(
+    const res = await POST(
       buildRequest({ fileName: 'resume.pdf', contentType: 'application/pdf', size: 1024 })
     );
 
@@ -76,7 +77,7 @@ describe('POST /api/files/resumes/presign', () => {
   });
 
   it('rejects unsupported extension', async () => {
-    const res: any = await POST(
+    const res = await POST(
       buildRequest({ fileName: 'resume.exe', contentType: 'application/pdf', size: 1024 })
     );
 
@@ -85,7 +86,7 @@ describe('POST /api/files/resumes/presign', () => {
   });
 
   it('rejects files over 5MB', async () => {
-    const res: any = await POST(
+    const res = await POST(
       buildRequest({ fileName: 'resume.pdf', contentType: 'application/pdf', size: 6 * 1024 * 1024 })
     );
 

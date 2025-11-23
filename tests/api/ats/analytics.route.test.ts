@@ -8,7 +8,7 @@ process.env.NEXTAUTH_SECRET = 'test-secret';
 vi.mock('next/server', () => ({
   NextRequest: class {},
   NextResponse: {
-    json: (body: any, init?: ResponseInit) => ({
+    json: (body: unknown, init?: ResponseInit) => ({
       status: init?.status ?? 200,
       body
     })
@@ -57,8 +57,9 @@ vi.mock('@/server/models/Job', () => ({
   Job: JobMock
 }));
 
-let GET: any;
-let atsRBAC: any;
+type ApiResponse = { status: number; body: Record<string, unknown> };
+let GET: (req: NextRequest) => Promise<ApiResponse>;
+let atsRBAC: ReturnType<typeof vi.fn>;
 
 describe('API /api/ats/analytics', () => {
   beforeAll(async () => {
@@ -93,14 +94,14 @@ describe('API /api/ats/analytics', () => {
   };
 
   it('rejects invalid period values', async () => {
-    const res: any = await callGET('?period=0');
+    const res = await callGET('?period=0');
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('Invalid period');
   });
 
   it('casts jobId filter when provided', async () => {
     const jobId = new Types.ObjectId().toHexString();
-    const res: any = await callGET(`?period=30&jobId=${jobId}`);
+    const res = await callGET(`?period=30&jobId=${jobId}`);
     expect(res.status).toBe(200);
 
     const matchStage = ApplicationMock.aggregate.mock.calls[0][0][0];

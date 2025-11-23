@@ -37,7 +37,8 @@ function createCookieStore(initial: Record<string, string> = {}) {
   };
 }
 
-function createRequest(overrides: Partial<Request> & { cookies?: any } = {}) {
+type RequestCookies = { get: (name: string) => { name: string; value: string } | undefined };
+function createRequest(overrides: Partial<Request> & { cookies?: RequestCookies } = {}) {
   return {
     cookies: overrides.cookies ?? createCookieStore(),
     json: overrides.json ?? (async () => ({})),

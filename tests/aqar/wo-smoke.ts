@@ -7,11 +7,13 @@ const user = {
   orgId: "org-001"
 };
 
-async function call(path: string, init: any = {}) {
+type CallInit = RequestInit & { headers?: HeadersInit };
+
+async function call(path: string, init: CallInit = {}) {
   init.headers = { ...(init.headers||{}), "x-user": JSON.stringify(user), "content-type":"application/json" };
   const res = await fetch(BASE + path, init);
   const txt = await res.text();
-  let body: any;
+  let body: unknown;
   try { body = JSON.parse(txt); } catch { body = txt; }
   console.log(`API Call: ${init.method || 'GET'} ${path}`);
   console.log(`Response: ${res.status} - ${txt.substring(0, 200)}...`);

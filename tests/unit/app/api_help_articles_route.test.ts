@@ -8,7 +8,7 @@
 import { vi, describe, test, expect, beforeAll, afterEach } from 'vitest';
 import type { NextRequest } from 'next/server'
 
-let fallbackItems: any[] = []
+let fallbackItems: Array<Record<string, unknown>> = []
 let fallbackTotal = 0
 let activeColl: MockColl | undefined
 
@@ -51,10 +51,10 @@ vi.mock('@/app/api/help/articles/route', () => {
         await coll.createIndex({ status: 1, updatedAt: -1 })
         await coll.createIndex({ title: 'text', content: 'text', tags: 'text' })
 
-        const baseFilter: any = { status }
+        const baseFilter: Record<string, unknown> = { status }
         if (category) baseFilter.category = category
 
-        let items: any[] = []
+        let items: Array<Record<string, unknown>> = []
         let total = 0
 
         if (q) {
@@ -106,7 +106,7 @@ vi.mock('next/server', () => {
     // We only need the type for NextRequest; at runtime, GET only uses req.url, so we pass a minimal object.
     NextRequest: class {},
     NextResponse: {
-      json: vi.fn((data: any, init?: ResponseInit) => {
+      json: vi.fn((data: unknown, init?: ResponseInit) => {
         // Return a plain object that resembles a minimal Response for ease of assertions
         return {
           __mockResponse: true,
@@ -142,7 +142,7 @@ vi.mock('@/server/security/rateLimitKey', () => ({
 }))
 
 vi.mock('@/server/security/headers', () => ({
-  createSecureResponse: (body: any, status = 200) => ({
+  createSecureResponse: (body: unknown, status = 200) => ({
     __mockResponse: true,
     status,
     data: body,
@@ -170,7 +170,7 @@ import * as HelpArticlesRoute from '@/app/api/help/articles/route'
 // Import the route handler under test.
 // Try common Next.js route locations; adjust if your project structure differs.
 
-let GET: (req: NextRequest) => Promise<any>
+let GET: (req: NextRequest) => Promise<unknown>
 
 // We'll attempt dynamic import paths that are commonly used in Next.js app router.
 // In CI, you likely know the exact path; if different, update this accordingly.
@@ -188,8 +188,16 @@ type MockColl = {
   countDocuments: ReturnType<typeof vi.fn>
 }
 
-function buildMockCursor(items: any[] = []) {
-  const chain: any = {
+function buildMockCursor(items: Array<Record<string, unknown>> = []) {
+  const chain: Record<string, unknown> & {
+    _sortArg?: unknown;
+    _skipArg?: unknown;
+    _limitArg?: unknown;
+    sort: ReturnType<typeof vi.fn>;
+    skip: ReturnType<typeof vi.fn>;
+    limit: ReturnType<typeof vi.fn>;
+    toArray: ReturnType<typeof vi.fn>;
+  } = {
     _sortArg: undefined,
     _skipArg: undefined,
     _limitArg: undefined,
@@ -214,7 +222,7 @@ function setupDbMocks({
   items = [],
   total = 0
 }: {
-  items?: any[]
+  items?: Array<Record<string, unknown>>
   total?: number
 }) {
   const coll: MockColl = {
@@ -237,7 +245,7 @@ function setupDbMocks({
 
 function makeReq(url: string): NextRequest {
   // Minimal object satisfying what GET uses (only req.url is accessed)
-  return { url } as any as NextRequest
+  return { url } as Pick<NextRequest, 'url'>
 }
 
 describe('GET /api/help-articles', () => {

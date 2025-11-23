@@ -25,7 +25,7 @@ vi.mock('@/lib/paytabs', () => ({
 }));
 
 const mockCreateSecureResponse = vi.fn(
-  (body: any, status = 200) =>
+  (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), {
       status,
       headers: { 'content-type': 'application/json' },

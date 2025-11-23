@@ -50,9 +50,9 @@ const renderWorkOrdersView = (
 beforeEach(() => {
   // FIX: Use real timers by default since SWR + debouncing + useEffect causes hangs with fake timers
   // Individual tests can opt into fake timers if needed for specific debounce testing
-  (global as any).fetch = vi.fn();
-  (window.localStorage as any).clear();
-  (window as any).alert = vi.fn();
+  vi.stubGlobal('fetch', vi.fn() as unknown as typeof fetch);
+  window.localStorage.clear();
+  vi.stubGlobal('alert', vi.fn());
   // Clear SWR cache before each test
   globalMutate(() => true, undefined, { revalidate: false });
 });

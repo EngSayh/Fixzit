@@ -22,7 +22,7 @@ import type { NextRequest } from 'next/server';
 vi.mock('next/server', () => {
   return {
     NextResponse: {
-      json: vi.fn((payload: any, init?: { status?: number }) => ({
+      json: vi.fn((payload: Record<string, unknown>, init?: { status?: number }) => ({
         ok: true,
         status: init?.status ?? 200,
         json: payload
@@ -45,7 +45,7 @@ vi.mock('@/lib/mongodb-unified', () => ({
   getDatabase: getDatabaseMock,
 }));
 
-const supportTicketCreateMock = vi.fn(async (doc: any) => ({
+const supportTicketCreateMock = vi.fn(async (doc: Record<string, unknown>) => ({
   ...doc,
   code: doc.code || 'SUP-2024-99999',
 }));

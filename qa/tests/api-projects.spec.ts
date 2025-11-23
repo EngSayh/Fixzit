@@ -14,7 +14,9 @@ const rand = () => Math.random().toString(36).slice(2, 10);
 const newTenantId = () => `tenant-${Date.now()}-${rand()}`;
 const newUser = (tenantId = newTenantId()) => ({ id: `u-${rand()}`, tenantId, orgId: tenantId, role: 'admin' });
 
-async function newAuthedRequest(playwright: any, baseURL: string | undefined, user = newUser()) {
+import type { Playwright } from '@playwright/test';
+
+async function newAuthedRequest(playwright: Playwright, baseURL: string | undefined, user = newUser()) {
   const ctx = await playwright.request.newContext({
     baseURL,
     extraHTTPHeaders: { "x-user": JSON.stringify(user) }
@@ -193,7 +195,7 @@ test.describe("Projects API - GET /api/projects", () => {
       const body = await res.json();
       expect(
         body.items.some(
-          (p: any) =>
+          (p: { name?: string; description?: string }) =>
             String(p.name || "").includes(unique) ||
             String(p.description || "").includes(unique)
         )
