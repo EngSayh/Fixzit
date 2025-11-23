@@ -39,6 +39,7 @@ type ReportsContentProps = {
 
 function ReportsContent({ orgId, supportBanner }: ReportsContentProps) {
   const auto = useAutoTranslator('fm.reports');
+  // orgId passed for consistency with other FM pages, may be used for future org-specific report filtering
   void orgId;
   const [jobs, setJobs] = useState<ReportJob[]>([]);
   const [loading, setLoading] = useState(false);

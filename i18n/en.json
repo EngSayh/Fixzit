@@ -1240,6 +1240,12 @@
       "selectAll": "Select All",
       "clearAll": "Clear All",
       "actions": "Actions"
+    },
+    "finance": {
+      "support": {
+        "activeOrg": "Support context: {{name}}",
+        "orgFallbackName": "Support organization"
+      }
     }
   },
   "orders": {

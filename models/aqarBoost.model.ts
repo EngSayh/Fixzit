@@ -193,6 +193,9 @@ function loadPricingOverrides(): PricingOverride | null {
   }
 }
 
+// Cache the parsed JSON overrides at module initialization to avoid repeated parsing
+const cachedJsonOverrides = loadPricingOverrides() || {};
+
 const defaultPricing: PricingOverride = {
   [BoostType.FEATURED]: 100,
   [BoostType.PINNED]: 50,
@@ -215,8 +218,7 @@ BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
       Number(process.env.BOOST_HIGHLIGHTED_PRICE_PER_DAY) || defaultPricing[BoostType.HIGHLIGHTED]!,
   };
 
-  const jsonOverrides = loadPricingOverrides() || {};
-  const base = jsonOverrides[type] ?? perDay[type] ?? 0;
+  const base = cachedJsonOverrides[type] ?? perDay[type] ?? 0;
   return base * days;
 };
 

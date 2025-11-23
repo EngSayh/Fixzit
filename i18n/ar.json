@@ -1240,6 +1240,12 @@
       "selectAll": "تحديد الكل",
       "clearAll": "مسح الكل",
       "actions": "الإجراءات"
+    },
+    "finance": {
+      "support": {
+        "activeOrg": "سياق الدعم: {{name}}",
+        "orgFallbackName": "منظمة الدعم"
+      }
     }
   },
   "orders": {
