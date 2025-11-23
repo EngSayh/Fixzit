@@ -199,6 +199,9 @@ const defaultPricing: PricingOverride = {
   [BoostType.HIGHLIGHTED]: 25,
 };
 
+// Cache pricing overrides at module initialization to avoid repeated JSON parsing
+const jsonOverrides = loadPricingOverrides() || {};
+
 BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
   if (!Object.values(BoostType).includes(type)) {
     throw new Error('Invalid boost type');
@@ -215,7 +218,6 @@ BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
       Number(process.env.BOOST_HIGHLIGHTED_PRICE_PER_DAY) || defaultPricing[BoostType.HIGHLIGHTED]!,
   };
 
-  const jsonOverrides = loadPricingOverrides() || {};
   const base = jsonOverrides[type] ?? perDay[type] ?? 0;
   return base * days;
 };

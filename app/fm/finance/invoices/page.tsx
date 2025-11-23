@@ -147,7 +147,9 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
       </div>
       {supportOrg && (
         <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-          {t('fm.finance.support.activeOrg', 'Support context: {{name}}', { name: supportOrg.name ?? 'Support org' })}
+          {t('fm.finance.support.activeOrg', 'Support context: {{name}}', { 
+            name: supportOrg.name ?? t('fm.finance.support.orgFallbackName', 'Support org') 
+          })}
         </div>
       )}
 
