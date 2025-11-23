@@ -6,11 +6,11 @@
 const violations = [];
 
 const env = process.env;
-const isProdDeploy =
-  env.VERCEL_ENV === 'production' ||
-  (env.NODE_ENV === 'production' && env.CI === 'true');
+// Only validate in actual production/preview deployments (Vercel), not in CI test builds
+const isProdDeploy = env.VERCEL_ENV === 'production' || env.VERCEL_ENV === 'preview';
 
 if (!isProdDeploy) {
+  console.log('[verify-prod-env] Skipping validation (not a Vercel production/preview deployment)');
   process.exit(0);
 }
 
