@@ -44,7 +44,7 @@ export default function NewReportPage() {
   return (
     <FmGuardedPage moduleId="reports">
       {({ orgId, supportBanner }) => (
-        <NewReportContent orgId={orgId!} supportBanner={supportBanner} />
+        <NewReportContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );

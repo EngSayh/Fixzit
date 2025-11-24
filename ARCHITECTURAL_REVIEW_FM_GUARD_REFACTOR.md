@@ -18,7 +18,7 @@
 - Verified no FM pages still contain hook rule disables (`rg "eslint-disable react-hooks/rules-of-hooks" app/fm` → 0 matches).
 
 ## Current Metrics
-- `FmGuardedPage` usages in FM: 45 files (all org-gated FM pages covered).
+- `FmGuardedPage` usages in FM: 15 files (all org-gated FM pages covered in this refactor phase).
 - `useFmOrgGuard` direct usages: 100+ (legit in shared hooks/components).
 - Hook waivers in FM pages: **0**.
 

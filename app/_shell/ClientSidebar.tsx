@@ -347,7 +347,8 @@ async function fetchCounters(orgId: string): Promise<Counters> {
 }
 
 function normalizeRoleFromSession(raw?: string): Role {
-  if (!raw) return "Super Admin";
+  // Treat undefined and empty strings consistently - both represent "no role specified"
+  if (!raw || !raw.trim()) return "Super Admin";
 
   const value = raw.trim();
   const lower = value.toLowerCase();

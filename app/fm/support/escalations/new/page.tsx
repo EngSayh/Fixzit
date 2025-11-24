@@ -40,7 +40,7 @@ export default function NewEscalationPage() {
   return (
     <FmGuardedPage moduleId="support">
       {({ orgId, supportBanner }) => (
-        <NewEscalationContent orgId={orgId!} supportBanner={supportBanner} />
+        <NewEscalationContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );

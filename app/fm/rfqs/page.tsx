@@ -57,7 +57,7 @@ export default function RFQsPage() {
   return (
     <FmGuardedPage moduleId="administration">
       {({ orgId, supportBanner }) => (
-        <RFQsContent orgId={orgId!} supportBanner={supportBanner} />
+        <RFQsContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );

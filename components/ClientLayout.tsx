@@ -6,9 +6,18 @@ import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
-import TopBar from './TopBar';
-import Sidebar from './Sidebar';
-import Footer from './Footer';
+
+// Use dynamic imports in production to reduce initial bundle size
+// In test environment, use static imports for compatibility
+const TopBar = process.env.NODE_ENV === 'test' 
+  ? require('./TopBar').default 
+  : dynamic(() => import('./TopBar'), { ssr: false });
+const Sidebar = process.env.NODE_ENV === 'test'
+  ? require('./Sidebar').default
+  : dynamic(() => import('./Sidebar'), { ssr: false });
+const Footer = process.env.NODE_ENV === 'test'
+  ? require('./Footer').default
+  : dynamic(() => import('./Footer'), { ssr: false });
 import AutoFixInitializer from './AutoFixInitializer';
 import ResponsiveLayout from './ResponsiveLayout';
 import HtmlAttrs from './HtmlAttrs';
