@@ -16,7 +16,7 @@ _Last updated: November 18, 2025_
   route-based provider split.
 - [`architecture/BACKBONE_INDEX.md`](architecture/BACKBONE_INDEX.md) – module map.
 - [`FIXZIT_ONBOARDING_VERIFICATION_BLUEPRINT_V7.md`](FIXZIT_ONBOARDING_VERIFICATION_BLUEPRINT_V7.md) –
-  Prisma/PostgreSQL onboarding, verification, tutorials, help, and admin blueprint.
+  Mongoose/Mongo onboarding, verification, tutorials, help, and admin blueprint.
 - [`owner-portal-architecture.md`](owner-portal-architecture.md) – owner portal
   component breakdown.
 - [`MODEL_CONSOLIDATION_STRATEGY.md`](MODEL_CONSOLIDATION_STRATEGY.md) and

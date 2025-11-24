@@ -6,8 +6,7 @@ export async function GET(req: NextRequest) {
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const moduleParam = new URL(req.url).searchParams.get('module') || '';
-  const escalation = await resolveEscalationContact(user, moduleParam);
+  const escalation = await resolveEscalationContact(user);
 
   // TODO: integrate KnowledgeBase collection for contextual articles
   return NextResponse.json({ articles: [], escalation }, { status: 200 });

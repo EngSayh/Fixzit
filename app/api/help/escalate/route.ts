@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   await connectMongo();
   if (user.orgId) setTenantContext({ orgId: user.orgId });
 
-  const escalation = await resolveEscalationContact(user, moduleNormalized);
+  const escalation = await resolveEscalationContact(user);
   
   // Defensive check: ensure escalation contact has a valid user_id
   if (!escalation || !escalation.user_id) {

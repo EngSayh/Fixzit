@@ -1228,6 +1228,16 @@
       "completed": "مكتملة",
       "closed": "مغلقة",
       "cancelled": "ملغاة",
+      "attachmentsCount": "{{count}} مرفقات",
+      "new": {
+        "requiredFields": "يرجى ملء جميع الحقول المطلوبة",
+        "success": "تم إنشاء أمر العمل بنجاح",
+        "woNumber": "أمر العمل #{{number}}",
+        "uploadHint": "قم برفع الصور أو المستندات المتعلقة بأمر العمل هذا"
+      },
+      "attachments": {
+        "missingUrl": "عنوان المرفق غير متوفر"
+      },
       "board": {
         "title": "لوحة أوامر العمل",
         "description": "تتبع وتعيين أوامر العمل عبر جميع العقارات"

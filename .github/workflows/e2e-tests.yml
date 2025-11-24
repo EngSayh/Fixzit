@@ -166,8 +166,16 @@ jobs:
             echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> "$GITHUB_ENV"
             echo "AUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> "$GITHUB_ENV"
             # Google OAuth is optional - set to empty string if not configured
-            echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> "$GITHUB_ENV"
-            echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> "$GITHUB_ENV"
+            if [ -n "${{ secrets.GOOGLE_CLIENT_ID }}" ]; then
+              echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> "$GITHUB_ENV"
+            else
+              echo "GOOGLE_CLIENT_ID=" >> "$GITHUB_ENV"
+            fi
+            if [ -n "${{ secrets.GOOGLE_CLIENT_SECRET }}" ]; then
+              echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> "$GITHUB_ENV"
+            else
+              echo "GOOGLE_CLIENT_SECRET=" >> "$GITHUB_ENV"
+            fi
           fi
 
       - name: Run Playwright E2E Tests
