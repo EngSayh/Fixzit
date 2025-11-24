@@ -82,7 +82,7 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
-          cache-dependency-path: Fixzit/pnpm-lock.yaml
+          cache-dependency-path: 'pnpm-lock.yaml'
 
       - name: Install dependencies
         working-directory: Fixzit
@@ -90,6 +90,7 @@ jobs:
 
       - name: Get Playwright version
         id: playwright-version
+        working-directory: Fixzit
         run: echo "version=$(pnpm list @playwright/test --depth=0 --json | jq -r '.[0].devDependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
 
       - name: Cache Playwright browsers
