@@ -93,18 +93,6 @@ const skipSecretValidation =
   process.env.SKIP_ENV_VALIDATION === 'true' ||
   process.env.NEXT_PHASE === 'phase-production-build';
 
-// Lazily resolve skipCSRFCheck using the public @auth/core export.
-type SkipCSRFType = typeof import('@auth/core')['skipCSRFCheck'];
-const skipCSRFCheckSymbol: SkipCSRFType | undefined = (() => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
-    const mod = require('@auth/core') as { skipCSRFCheck?: SkipCSRFType };
-    return mod.skipCSRFCheck;
-  } catch {
-    return undefined;
-  }
-})();
-
 if (!skipSecretValidation) {
   const missingSecrets: string[] = [];
   
@@ -181,8 +169,6 @@ const REQUIRE_SMS_OTP = process.env.NEXTAUTH_REQUIRE_SMS_OTP !== 'false';
 
 const EMPLOYEE_ID_REGEX = /^EMP[-A-Z0-9]+$/;
 
-const shouldSkipCSRFCheck =
-  process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true' || process.env.NODE_ENV === 'test';
 const trustHost =
   process.env.AUTH_TRUST_HOST === 'true' ||
   process.env.NEXTAUTH_TRUST_HOST === 'true' ||
@@ -506,10 +492,5 @@ export const authConfig = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: NEXTAUTH_SECRET,
-  // E2E/Playwright runs hit the same origin and already gate requests via middleware;
-  // skipping the CSRF check here prevents false negatives when dev server hot-reloads.
-  ...(shouldSkipCSRFCheck && skipCSRFCheckSymbol
-    ? { skipCSRFCheck: skipCSRFCheckSymbol }
-    : {}),
   trustHost,
 } satisfies NextAuthConfig;
