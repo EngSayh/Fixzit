@@ -32,8 +32,6 @@ import { logger } from '@/lib/logger';
 import * as TopBarCtx from '@/contexts/TopBarContext';
 import SupportOrgSwitcher from '@/components/support/SupportOrgSwitcher';
 
-const TopBarFallbackContext = React.createContext<unknown>(null);
-
 // Type definitions
 interface OrgSettings {
   name: string;
@@ -685,21 +683,12 @@ function TopBarContent() {
   );
 }
 
+/**
+ * TopBar export wrapper
+ * Note: Safe hooks (useSafeTopBar, useSafeFormState, useSafeResponsive) already handle
+ * missing context gracefully with fallbacks. No need for self-providing wrapper.
+ */
 export default function TopBar() {
-  // In production we always have TopBarContext/Provider; tests may mock the module without exporting them
-  const Provider = TopBarCtx.TopBarProvider;
-  const Context = TopBarCtx.TopBarContext;
-
-  const ctx = React.useContext(Context ?? TopBarFallbackContext);
-
-  if (Provider && Context) {
-    if (ctx) return <TopBarContent />;
-    return (
-      <Provider>
-        <TopBarContent />
-      </Provider>
-    );
-  }
   return <TopBarContent />;
 }
 

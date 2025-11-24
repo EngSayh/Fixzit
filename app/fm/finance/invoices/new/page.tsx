@@ -31,7 +31,7 @@ export default function FinanceInvoiceCreatePage() {
   return (
     <FmGuardedPage moduleId="finance">
       {({ orgId, supportBanner }) => (
-        <FinanceInvoiceCreateContent orgId={orgId!} supportBanner={supportBanner} />
+        <FinanceInvoiceCreateContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );

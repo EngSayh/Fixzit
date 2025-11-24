@@ -48,7 +48,7 @@ export default function ProjectsPage() {
   return (
     <FmGuardedPage moduleId="administration">
       {({ orgId, supportBanner }) => (
-        <ProjectsContent orgId={orgId!} supportBanner={supportBanner} />
+        <ProjectsContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );
