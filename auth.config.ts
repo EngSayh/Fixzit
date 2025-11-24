@@ -42,12 +42,13 @@ const derivedNextAuthUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
   process.env.BASE_URL;
 
+// Use local constant instead of mutating process.env at runtime
+// This prevents race conditions where NextAuth may initialize before the mutation
 const resolvedNextAuthUrl = process.env.NEXTAUTH_URL || derivedNextAuthUrl;
 
-if (!process.env.NEXTAUTH_URL && derivedNextAuthUrl) {
-  process.env.NEXTAUTH_URL = derivedNextAuthUrl;
+if (!process.env.NEXTAUTH_URL && resolvedNextAuthUrl) {
   if (process.env.NODE_ENV === 'production') {
-    logger.warn(`⚠️  NEXTAUTH_URL not provided. Using derived value: ${derivedNextAuthUrl}`);
+    logger.warn(`⚠️  NEXTAUTH_URL not provided. Using derived value: ${resolvedNextAuthUrl}`);
   }
 }
 
@@ -67,6 +68,11 @@ const allowMissingNextAuthUrl =
   isBuildPhase ||
   isVercelPreview ||
   process.env.ALLOW_MISSING_NEXTAUTH_URL === 'true';
+const suppressEnvWarnings =
+  process.env.SUPPRESS_ENV_WARNINGS === 'true' ||
+  process.env.SKIP_ENV_VALIDATION === 'true' ||
+  process.env.NODE_ENV !== 'production' ||
+  process.env.NEXT_PHASE === 'phase-production-build';
 const shouldEnforceNextAuthUrl =
   process.env.NODE_ENV === 'production' &&
   vercelEnv !== 'preview' &&
@@ -135,8 +141,15 @@ if (!skipSecretValidation) {
   logger.info('ℹ️  CI environment detected: Secret validation skipped for build.');
   logger.info('   Secrets will be validated at runtime from GitHub Secrets.');
 } else {
-  logger.warn('⚠️  SKIP_ENV_VALIDATION=true: Secret validation bypassed.');
-  logger.warn('   Ensure secrets are properly configured before production deployment.');
+  const msg1 = '⚠️  SKIP_ENV_VALIDATION=true: Secret validation bypassed.';
+  const msg2 = '   Ensure secrets are properly configured before production deployment.';
+  if (suppressEnvWarnings) {
+    logger.info(msg1);
+    logger.info(msg2);
+  } else {
+    logger.warn(msg1);
+    logger.warn(msg2);
+  }
 }
 
 // Helper functions for OAuth provisioning (reserved for future use)
@@ -169,10 +182,12 @@ const REQUIRE_SMS_OTP = process.env.NEXTAUTH_REQUIRE_SMS_OTP !== 'false';
 
 const EMPLOYEE_ID_REGEX = /^EMP[-A-Z0-9]+$/;
 
+// Secure by default: trustHost requires explicit environment variable opt-in
+// For development, set AUTH_TRUST_HOST=true or NEXTAUTH_TRUST_HOST=true in .env.local
+// Production and staging should NOT set these variables (defaults to false for security)
 const trustHost =
   process.env.AUTH_TRUST_HOST === 'true' ||
-  process.env.NEXTAUTH_TRUST_HOST === 'true' ||
-  process.env.NODE_ENV !== 'production';
+  process.env.NEXTAUTH_TRUST_HOST === 'true';
 
 const LoginSchema = z
   .object({

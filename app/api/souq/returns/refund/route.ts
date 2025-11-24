@@ -30,6 +30,28 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Org boundary enforcement: Verify RMA belongs to admin's organization
+    // SUPER_ADMIN can process refunds across all organizations
+    if (session.user.role !== 'SUPER_ADMIN' && session.user.orgId) {
+      const rma = await returnsService.getRMAById(rmaId);
+      if (!rma) {
+        return NextResponse.json({ 
+          error: 'RMA not found' 
+        }, { status: 404 });
+      }
+      if (rma.organizationId !== session.user.orgId) {
+        logger.warn('Org boundary violation attempt in refund processing', { 
+          userId: session.user.id, 
+          userOrg: session.user.orgId,
+          rmaOrg: rma.organizationId,
+          rmaId 
+        });
+        return NextResponse.json({ 
+          error: 'Access denied: RMA belongs to different organization' 
+        }, { status: 403 });
+      }
+    }
+
     const validMethods = ['original_payment', 'wallet', 'bank_transfer'];
     if (!validMethods.includes(refundMethod)) {
       return NextResponse.json({ 
