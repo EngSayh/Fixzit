@@ -8,13 +8,16 @@ import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 
 // Use dynamic imports in production to reduce initial bundle size
-// In test environment, use static imports for compatibility
+// In test environment, dynamic imports can cause issues with jsdom/vitest
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const TopBar = process.env.NODE_ENV === 'test' 
   ? require('./TopBar').default 
   : dynamic(() => import('./TopBar'), { ssr: false });
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const Sidebar = process.env.NODE_ENV === 'test'
   ? require('./Sidebar').default
   : dynamic(() => import('./Sidebar'), { ssr: false });
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const Footer = process.env.NODE_ENV === 'test'
   ? require('./Footer').default
   : dynamic(() => import('./Footer'), { ssr: false });

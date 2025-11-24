@@ -144,7 +144,7 @@ vi.mock('@/components/topbar/TopMegaMenu', () => ({
 
 vi.mock('@/contexts/TopBarContext', () => {
   const React = require('react');
-  let mockValue = {
+  const defaultMockValue = {
     app: 'fm',
     appLabelKey: 'app.fm',
     appFallbackLabel: 'Facility Management (FM)',
@@ -163,9 +163,16 @@ vi.mock('@/contexts/TopBarContext', () => {
     setApp: vi.fn(),
   };
   
-  // Allow tests to customize the context value
+  let mockValue = { ...defaultMockValue };
+  
+  // Allow tests to customize the context value without mutating shared state
   const setMockTopBarValue = (value: Partial<typeof mockValue>) => {
-    mockValue = { ...mockValue, ...value };
+    mockValue = { ...defaultMockValue, ...value };
+  };
+  
+  // Reset to default between tests
+  const resetMockTopBarValue = () => {
+    mockValue = { ...defaultMockValue };
   };
   
   const TopBarContext = React.createContext(mockValue);
@@ -176,6 +183,7 @@ vi.mock('@/contexts/TopBarContext', () => {
     ),
     useTopBar: () => mockValue,
     setMockTopBarValue, // Export for test customization
+    resetMockTopBarValue, // Export for test cleanup
   };
 });
 
