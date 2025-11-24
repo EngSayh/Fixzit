@@ -111,8 +111,8 @@ jobs:
       - name: Cache Next.js build
         uses: actions/cache@v4
         with:
-          path: Fixzit/.next/cache
-          key: nextjs-${{ runner.os }}-${{ hashFiles('Fixzit/pnpm-lock.yaml', 'Fixzit/package.json', 'Fixzit/tsconfig*.json', 'Fixzit/next.config.*', 'Fixzit/next-env.d.ts', 'Fixzit/middleware.*', 'Fixzit/tailwind.config.*', 'Fixzit/postcss.config.*', 'Fixzit/babel.config.*', 'Fixzit/turbo.json', 'Fixzit/app/**', 'Fixzit/pages/**', 'Fixzit/components/**', 'Fixzit/lib/**', 'Fixzit/src/**', 'Fixzit/styles/**', 'Fixzit/public/**', 'Fixzit/public_local/**') }}
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'package.json', 'tsconfig*.json', 'next.config.*', 'next-env.d.ts', 'middleware.*', 'tailwind.config.*', 'postcss.config.*', 'babel.config.*', 'turbo.json', 'app/**', 'pages/**', 'components/**', 'lib/**', 'src/**', 'styles/**', 'public/**', 'public_local/**') }}
           restore-keys: |
             nextjs-${{ runner.os }}-
 
