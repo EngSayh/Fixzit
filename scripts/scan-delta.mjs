@@ -35,6 +35,8 @@ const IGNORE_DIRS = new Set(
     ".git",
     ".turbo",
     ".vercel",
+    ".tmp",
+    "tmp",
     ...(WAIVERS?.duplicates?.ignore_dirs || []),
   ].map((s) => s.replace(/\/+$/, "").toLowerCase()),
 );
