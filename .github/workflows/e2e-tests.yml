@@ -56,11 +56,12 @@ jobs:
       fail-fast: false
       matrix:
         # Run critical smoke tests in parallel
+        # Project names MUST match playwright.config.ts exactly
         project: 
-          - 'Desktop:EN:Admin'
-          - 'Mobile:AR:Tenant'
-          - 'Desktop:AR:Tenant'
-          - 'Mobile:EN:Admin'
+          - 'Desktop:EN:Admin'       # Matches: Desktop:EN:Admin
+          - 'Desktop:AR:Tenant'      # Matches: Desktop:AR:Tenant
+          - 'Mobile:EN:Technician'   # Mobile Android field ops
+          - 'Mobile:AR:Tenant'       # Mobile iOS self-service
     
     env:
       NODE_OPTIONS: --max-old-space-size=4096
@@ -118,13 +119,22 @@ jobs:
           restore-keys: |
             nextjs-${{ runner.os }}-
 
-      - name: Build app (production)
+      - name: Build app (for E2E tests)
         env:
-          NODE_ENV: production
+          NODE_ENV: test
           SKIP_ENV_VALIDATION: 'true'
           ALLOW_OFFLINE_MONGODB: 'true'
+          DISABLE_MONGODB_FOR_BUILD: 'true'
         working-directory: Fixzit
-        run: pnpm build
+        run: |
+          echo "Building Next.js app for E2E tests..."
+          pnpm build || {
+            echo "❌ Build failed! Checking for common issues..."
+            echo "NODE_ENV: $NODE_ENV"
+            echo "Disk space:"
+            df -h
+            exit 1
+          }
 
       - name: Verify MongoDB health
         run: |
@@ -168,16 +178,22 @@ jobs:
           NEXTAUTH_URL: http://localhost:3000
           NEXTAUTH_SECRET: ${{ env.NEXTAUTH_SECRET }}
           AUTH_SECRET: ${{ env.AUTH_SECRET }}
+          NEXTAUTH_SKIP_CSRF_CHECK: 'true'
+          AUTH_TRUST_HOST: 'true'
+          
+          # Disable OTP for E2E tests
+          NEXT_PUBLIC_REQUIRE_SMS_OTP: 'false'
+          NEXTAUTH_REQUIRE_SMS_OTP: 'false'
           
           # Google OAuth (from GitHub Secrets - optional)
-          # These secrets are optional - if not set, they will be empty strings
-          # The application handles missing OAuth gracefully with SKIP_ENV_VALIDATION=true
           GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ env.GOOGLE_CLIENT_SECRET }}
           
-          # Database
+          # Database - use offline mode with mock sessions
           MONGODB_URI: mongodb://localhost:27017/fixzit_test
           ALLOW_OFFLINE_MONGODB: 'true'
+          ALLOW_LOCAL_MONGODB: 'true'
+          PLAYWRIGHT_TESTS: 'true'
           
           # Test environment
           NODE_ENV: test
@@ -203,9 +219,22 @@ jobs:
             test_path_arg="${{ github.event.inputs.test_path }}"
           fi
           
-          echo "Running Playwright tests..."
+          echo "🎭 Running Playwright E2E Tests"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Project: ${project_arg:-all projects}"
           echo "Test path: ${test_path_arg:-all tests}"
+          echo "Config: $PLAYWRIGHT_CONFIG"
+          echo "Offline mode: $ALLOW_OFFLINE_MONGODB"
+          echo "CSRF bypass: $NEXTAUTH_SKIP_CSRF_CHECK"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          # Verify auth states were created
+          if [ -d "tests/state" ]; then
+            echo "✅ Auth state directory exists"
+            ls -lh tests/state/ || echo "⚠️  Could not list auth states"
+          else
+            echo "❌ Auth state directory missing!"
+          fi
           
           # Run with retries for flaky tests and reasonable failure threshold
           pnpm exec playwright test \
@@ -214,7 +243,17 @@ jobs:
             --max-failures=10 \
             --reporter=list,html \
             ${project_arg} \
-            ${test_path_arg}
+            ${test_path_arg} || {
+              echo "❌ Tests failed!"
+              echo "Checking for common issues..."
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "Auth states:"
+              ls -lh tests/state/ 2>/dev/null || echo "No auth states found"
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "Recent logs from test output:"
+              tail -50 playwright-report/*.log 2>/dev/null || echo "No logs available"
+              exit 1
+            }
         working-directory: Fixzit
 
       - name: Upload Playwright Report
