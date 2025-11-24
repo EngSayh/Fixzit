@@ -260,14 +260,9 @@
     "webpack": "^5.103.0",
     "zx": "^8.8.5"
   },
-  "overrides": {
-    "postcss-selector-parser": "6.0.13",
-    "vite": "^7.1.11",
-    "import-in-the-middle": "1.15.0",
-    "require-in-the-middle": "7.5.2"
-  },
   "pnpm": {
     "overrides": {
+      "postcss-selector-parser": "6.0.13",
       "vite": "^7.1.11",
       "import-in-the-middle": "1.15.0",
       "require-in-the-middle": "7.5.2",

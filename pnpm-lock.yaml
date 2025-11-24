@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  postcss-selector-parser: 6.0.13
   vite: ^7.1.11
   import-in-the-middle: 1.15.0
   require-in-the-middle: 7.5.2
@@ -5224,8 +5225,8 @@ packages:
     peerDependencies:
       postcss: ^8.2.14
 
-  postcss-selector-parser@6.1.2:
-    resolution: {integrity: sha512-Q8qQfPiZ+THO/3ZrOrO0cJJKfpYCagtMUkXbnEfmgUjwXg6z/WBeOyS9APBBPCTSiDV+s4SwQGu8yFsiMRIudg==}
+  postcss-selector-parser@6.0.13:
+    resolution: {integrity: sha512-EaV1Gl4mUEV4ddhDnv/xtj7sxwrwxdetHdWUGnT4VJQf+4d05v6lHYZr8N573k5Z0BViss7BDhfWtKS3+sfAqQ==}
     engines: {node: '>=4'}
 
   postcss-value-parser@4.2.0:
@@ -12025,14 +12026,14 @@ snapshots:
   postcss-nested@6.0.0(postcss@8.5.6):
     dependencies:
       postcss: 8.5.6
-      postcss-selector-parser: 6.1.2
+      postcss-selector-parser: 6.0.13
 
   postcss-nested@6.2.0(postcss@8.5.6):
     dependencies:
       postcss: 8.5.6
-      postcss-selector-parser: 6.1.2
+      postcss-selector-parser: 6.0.13
 
-  postcss-selector-parser@6.1.2:
+  postcss-selector-parser@6.0.13:
     dependencies:
       cssesc: 3.0.0
       util-deprecate: 1.0.2
@@ -12812,7 +12813,7 @@ snapshots:
       postcss-js: 4.1.0(postcss@8.5.6)
       postcss-load-config: 3.1.4(postcss@8.5.6)
       postcss-nested: 6.0.0(postcss@8.5.6)
-      postcss-selector-parser: 6.1.2
+      postcss-selector-parser: 6.0.13
       postcss-value-parser: 4.2.0
       quick-lru: 5.1.1
       resolve: 1.22.11
@@ -12841,7 +12842,7 @@ snapshots:
       postcss-js: 4.1.0(postcss@8.5.6)
       postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.20.6)(yaml@1.10.2)
       postcss-nested: 6.2.0(postcss@8.5.6)
-      postcss-selector-parser: 6.1.2
+      postcss-selector-parser: 6.0.13
       resolve: 1.22.11
       sucrase: 3.35.1
     transitivePeerDependencies:
