@@ -44,7 +44,12 @@ export async function PATCH(
 
     const previousStatus = doc.status;
     doc.status = decision as (typeof DOCUMENT_STATUSES)[number];
-    doc.rejection_reason = rejection_reason;
+    // rejection_reason expects i18n object { en?, ar? } or undefined
+    if (rejection_reason) {
+      doc.rejection_reason = { en: rejection_reason };
+    } else {
+      doc.rejection_reason = undefined;
+    }
     doc.verified_by_id = new Types.ObjectId(user.id);
     await doc.save();
 

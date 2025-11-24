@@ -41,6 +41,17 @@ export async function resolveEscalationContact(
   user: SessionUser,
   context?: string,
 ): Promise<EscalationContact> {
+  // Authorization check: Only allow users with elevated roles to query org contacts
+  const allowedRoles = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN', 'OWNER', 'TENANT', 'VENDOR', 'AGENT'];
+  if (!allowedRoles.includes(user.role)) {
+    // Return fallback for unauthorized users without exposing org structure
+    return {
+      role: 'SUPPORT',
+      email: process.env.ESCALATION_FALLBACK_EMAIL || 'support@fixzit.sa',
+      name: 'Fixzit Support Team',
+    };
+  }
+
   if (user?.orgId) {
     try {
       await connectMongo();

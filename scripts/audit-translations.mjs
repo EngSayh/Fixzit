@@ -371,8 +371,13 @@ async function main() {
   console.log('  - docs/translations/translation-audit.json');
   console.log('  - docs/translations/translation-audit.csv');
 
-  // Optional autofix
-  if (DO_FIX && (missingInAr.length || missingInEn.length || missingDetail.length)) {
+  // Detect JSON catalogs (canonical source) vs TS fallback
+  const hasJsonCatalog =
+    (await exists(path.join(ROOT, 'i18n', 'en.json'))) &&
+    (await exists(path.join(ROOT, 'i18n', 'ar.json')));
+
+  // Optional autofix (only for TS-based catalogs – JSON catalogs must be edited directly)
+  if (DO_FIX && !hasJsonCatalog && (missingInAr.length || missingInEn.length || missingDetail.length)) {
     console.log('\n' + COLOR.b('🛠  --fix enabled: applying missing keys to TranslationContext.tsx ...'));
     let ctx = await readText(ctxPath);
 
@@ -415,6 +420,8 @@ async function main() {
 
     await fs.writeFile(ctxPath, ctx, 'utf8');
     console.log(COLOR.g('✔ Catalog updated with placeholder values for missing keys (EN/AR).'));
+  } else if (DO_FIX && hasJsonCatalog) {
+    console.log('\n' + COLOR.y('⚠️  --fix skipped: JSON catalogs detected. Please edit i18n/en.json and i18n/ar.json directly.'));
   }
 
   // STRICT v4 / Governance: non-zero exit if any gap (dynamic is warning only)
