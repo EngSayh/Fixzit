@@ -48,7 +48,14 @@ const validateZatcaConfig = (): ZatcaConfig => {
   return { sellerName, vatNumber };
 };
 
-const ZATCA_CONFIG = validateZatcaConfig();
+// Lazy initialization - only validate when actually used, not at module load time
+let ZATCA_CONFIG: ZatcaConfig | undefined;
+const getZatcaConfig = (): ZatcaConfig => {
+  if (ZATCA_CONFIG === undefined) {
+    ZATCA_CONFIG = validateZatcaConfig();
+  }
+  return ZATCA_CONFIG;
+};
 
 export interface ListingLifecycleEvent {
   listingId: string;
@@ -234,10 +241,11 @@ export class AqarFmLifecycleService {
       return undefined;
     }
     try {
-      if (!ZATCA_CONFIG) {
+      const zatcaConfig = getZatcaConfig();
+      if (!zatcaConfig) {
         return undefined;
       }
-      const { sellerName, vatNumber } = ZATCA_CONFIG;
+      const { sellerName, vatNumber } = zatcaConfig;
       const payload = {
         sellerName,
         vatNumber,
