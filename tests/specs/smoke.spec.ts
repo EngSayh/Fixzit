@@ -298,10 +298,10 @@ test.describe('Branding & Theme Consistency', () => {
   test('Logo and brand elements are visible', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    // Logo in header
+    // Logo in header - prefer test-id for stability, fallback to semantic selectors
     const logo = page
       .locator(
-        'header img[alt*="fixzit" i], header svg[class*="logo"], header .fxz-topbar-logo, [data-testid="header-logo-img"]'
+        '[data-testid="header-logo-img"], header img[alt*="fixzit" i]'
       )
       .first();
     await expect.soft(logo).toBeVisible({ timeout: 15000 });

@@ -144,7 +144,7 @@ vi.mock('@/components/topbar/TopMegaMenu', () => ({
 
 vi.mock('@/contexts/TopBarContext', () => {
   const React = require('react');
-  const mockValue = {
+  let mockValue = {
     app: 'fm',
     appLabelKey: 'app.fm',
     appFallbackLabel: 'Facility Management (FM)',
@@ -162,6 +162,12 @@ vi.mock('@/contexts/TopBarContext', () => {
     setMegaMenuCollapsed: vi.fn(),
     setApp: vi.fn(),
   };
+  
+  // Allow tests to customize the context value
+  const setMockTopBarValue = (value: Partial<typeof mockValue>) => {
+    mockValue = { ...mockValue, ...value };
+  };
+  
   const TopBarContext = React.createContext(mockValue);
   return {
     TopBarContext,
@@ -169,6 +175,7 @@ vi.mock('@/contexts/TopBarContext', () => {
       <TopBarContext.Provider value={mockValue}>{children}</TopBarContext.Provider>
     ),
     useTopBar: () => mockValue,
+    setMockTopBarValue, // Export for test customization
   };
 });
 
