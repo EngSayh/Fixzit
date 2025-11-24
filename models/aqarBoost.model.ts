@@ -7,7 +7,7 @@
  * - Auto-expiry guard in pre-save hook (computes expiresAt from activatedAt + duration)
  * - isActiveNow virtual (checks active && expiresAt > now)
  * - Analytics-safe counters: recordImpression/recordClick use $inc with min-0 protection
- * - Configurable pricing: getPricing(type, days) static (currently hardcoded, TODO: org config)
+ * - ✅ Configurable pricing: getPricing(type, days) static uses environment variables (BOOST_*_PRICE_PER_DAY) with sensible defaults
  * - Query helpers: findActiveFor(orgId, listingId, type?), activateExclusive(id)
  *
  * **Overlap Prevention:**

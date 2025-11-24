@@ -1,6 +1,6 @@
 /**
  * Aqar Souq - Booking Model (hotel-style daily rentals)
- *
+ * 
  * **Production Features:**
  * - Hard conflict prevention via reservedNights[] + unique partial index
  * - UTC-normalized date math (no timezone bugs)
@@ -9,27 +9,24 @@
  * - Guarded status transitions (confirm/checkIn/checkOut/cancel)
  * - Auto-computed pricing: totalPrice, platformFee (15%), hostPayout
  * - Query helpers: isAvailable(), overlaps()
- *
+ * 
  * **Conflict Strategy:**
  * The unique partial index on (orgId, listingId, reservedNights) where status IN [PENDING, CONFIRMED, CHECKED_IN]
  * is the ONLY reliable way to prevent double-bookings at DB level without heavyweight transactions.
  * Each booking has an array of UTC date-only nights [checkIn..checkOut-1].
  */
 
-import mongoose, { Schema, Document, Model } from "mongoose";
-import {
-  EscrowSource,
-  EscrowState,
-  type EscrowStateValue,
-} from "@/server/models/finance/EscrowAccount";
+import mongoose, { Schema, Document, Model } from 'mongoose';
+import type { MModel } from '@/src/types/mongoose-compat';
+import { EscrowSource, EscrowState, type EscrowStateValue } from '@/server/models/finance/EscrowAccount';
 
 export enum BookingStatus {
-  PENDING = "PENDING",
-  CONFIRMED = "CONFIRMED",
-  CHECKED_IN = "CHECKED_IN",
-  CHECKED_OUT = "CHECKED_OUT",
-  CANCELLED = "CANCELLED",
-  REJECTED = "REJECTED",
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  CHECKED_IN = 'CHECKED_IN',
+  CHECKED_OUT = 'CHECKED_OUT',
+  CANCELLED = 'CANCELLED',
+  REJECTED = 'REJECTED',
 }
 
 const ACTIVE_STATUSES: BookingStatus[] = [
@@ -48,16 +45,16 @@ export interface IBooking extends Document {
   hostId: mongoose.Types.ObjectId;
 
   // Dates (UTC date-only, checkOutDate is exclusive)
-  checkInDate: Date; // inclusive (00:00 UTC)
-  checkOutDate: Date; // exclusive (00:00 UTC next day)
+  checkInDate: Date;     // inclusive (00:00 UTC)
+  checkOutDate: Date;    // exclusive (00:00 UTC next day)
   nights: number;
   reservedNights: Date[]; // array of UTC date-only nights [checkIn..checkOut-1]
 
   // Pricing (SAR)
-  pricePerNight: number; // >= 0
-  totalPrice: number; // computed: pricePerNight × nights
-  platformFee: number; // computed: 15% of totalPrice (consider moving to org config)
-  hostPayout: number; // computed: totalPrice - platformFee
+  pricePerNight: number;     // >= 0
+  totalPrice: number;        // computed: pricePerNight × nights
+  platformFee: number;       // computed: 15% of totalPrice (consider moving to org config)
+  hostPayout: number;        // computed: totalPrice - platformFee
 
   // Guests
   adults: number;
@@ -109,31 +106,11 @@ export interface IBooking extends Document {
 
 const BookingSchema = new Schema<IBooking>(
   {
-    listingId: {
-      type: Schema.Types.ObjectId,
-      ref: "AqarListing",
-      required: true,
-      index: true,
-    },
-    orgId: {
-      type: Schema.Types.ObjectId,
-      ref: "Organization",
-      required: true,
-      index: true,
-    },
+    listingId: { type: Schema.Types.ObjectId, ref: 'AqarListing', required: true, index: true },
+    orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
 
-    guestId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
-    hostId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
+    guestId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    hostId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
 
     checkInDate: { type: Date, required: true, index: true },
     checkOutDate: { type: Date, required: true, index: true },
@@ -162,22 +139,18 @@ const BookingSchema = new Schema<IBooking>(
     specialRequests: { type: String, maxlength: 1000, trim: true },
     hostNotes: { type: String, maxlength: 1000, trim: true },
 
-    paymentId: { type: Schema.Types.ObjectId, ref: "Payment" },
+    paymentId: { type: Schema.Types.ObjectId, ref: 'Payment' },
     paidAt: { type: Date },
 
     cancelledAt: { type: Date },
-    cancelledBy: { type: Schema.Types.ObjectId, ref: "User" },
+    cancelledBy: { type: Schema.Types.ObjectId, ref: 'User' },
     cancellationReason: { type: String, maxlength: 500, trim: true },
     refundAmount: { type: Number, min: 0 },
 
     checkedInAt: { type: Date },
     checkedOutAt: { type: Date },
     escrow: {
-      accountId: {
-        type: Schema.Types.ObjectId,
-        ref: "EscrowAccount",
-        index: true,
-      },
+      accountId: { type: Schema.Types.ObjectId, ref: 'EscrowAccount', index: true },
       status: { type: String, enum: Object.values(EscrowState) },
       releaseAfter: { type: Date },
       lastEventId: { type: String },
@@ -186,19 +159,14 @@ const BookingSchema = new Schema<IBooking>(
   },
   {
     timestamps: true,
-    collection: "aqar_bookings",
-  },
+    collection: 'aqar_bookings',
+  }
 );
 
 /* ---------------- Indexes ---------------- */
 
 // Query patterns: bookings by listing/guest/host within tenant, sorted by date
-BookingSchema.index({
-  orgId: 1,
-  listingId: 1,
-  checkInDate: 1,
-  checkOutDate: 1,
-});
+BookingSchema.index({ orgId: 1, listingId: 1, checkInDate: 1, checkOutDate: 1 });
 BookingSchema.index({ orgId: 1, guestId: 1, status: 1, checkInDate: -1 });
 BookingSchema.index({ orgId: 1, hostId: 1, status: 1, checkInDate: -1 });
 BookingSchema.index({ createdAt: -1 });
@@ -207,7 +175,7 @@ BookingSchema.index({ createdAt: -1 });
  * Hard no-overlap guarantee: unique per (orgId, listingId, reservedNight) while status is active.
  * This prevents two bookings from reserving the same night for the same listing.
  * Each booking has reservedNights[] with one UTC Date per booked night.
- *
+ * 
  * **Critical:** This is the ONLY reliable way to enforce no overlaps at DB level in MongoDB
  * without heavyweight transactions on date ranges.
  */
@@ -216,8 +184,8 @@ BookingSchema.index(
   {
     unique: true,
     partialFilterExpression: { status: { $in: ACTIVE_STATUSES } },
-    name: "uniq_active_reservation_per_night",
-  },
+    name: 'uniq_active_reservation_per_night',
+  }
 );
 
 /* ---------------- Helpers ---------------- */
@@ -253,19 +221,16 @@ function enumerateNightsUTC(checkIn: Date, checkOut: Date): Date[] {
  * Pre-validate hook: compute nights, normalize dates to UTC, populate reservedNights
  * This runs before validation, ensuring nights >= 1 constraint is checked
  */
-BookingSchema.pre("validate", function (next) {
+BookingSchema.pre('validate', function (next) {
   // Normalize to UTC date-only and compute nights
-  if (this.isModified("checkInDate") || this.isModified("checkOutDate")) {
+  if (this.isModified('checkInDate') || this.isModified('checkOutDate')) {
     const inUTC = toUTCDateOnly(this.checkInDate);
     const outUTC = toUTCDateOnly(this.checkOutDate);
-    const nights = Math.max(
-      0,
-      Math.round((outUTC.getTime() - inUTC.getTime()) / MS_PER_DAY),
-    );
+    const nights = Math.max(0, Math.round((outUTC.getTime() - inUTC.getTime()) / MS_PER_DAY));
     this.nights = nights;
 
     if (this.nights < 1) {
-      return next(new Error("Check-out must be at least 1 day after check-in"));
+      return next(new Error('Check-out must be at least 1 day after check-in'));
     }
 
     this.checkInDate = inUTC;
@@ -274,11 +239,7 @@ BookingSchema.pre("validate", function (next) {
   }
 
   // Auto-compute pricing (totalPrice, platformFee, hostPayout)
-  if (
-    this.isModified("pricePerNight") ||
-    this.isModified("nights") ||
-    this.isNew
-  ) {
+  if (this.isModified('pricePerNight') || this.isModified('nights') || this.isNew) {
     const total = Math.max(0, (this.pricePerNight || 0) * (this.nights || 0));
     // Platform fee: 15% default, configurable via PLATFORM_FEE_PERCENTAGE env var
     const feePercentage = Number(process.env.PLATFORM_FEE_PERCENTAGE) || 15;
@@ -300,7 +261,7 @@ BookingSchema.pre("validate", function (next) {
  */
 BookingSchema.methods.confirm = async function (this: IBooking) {
   if (this.status !== BookingStatus.PENDING) {
-    throw new Error("Only pending bookings can be confirmed");
+    throw new Error('Only pending bookings can be confirmed');
   }
   this.status = BookingStatus.CONFIRMED;
   await this.save();
@@ -313,11 +274,11 @@ BookingSchema.methods.confirm = async function (this: IBooking) {
  */
 BookingSchema.methods.checkIn = async function (this: IBooking) {
   if (this.status !== BookingStatus.CONFIRMED) {
-    throw new Error("Only confirmed bookings can be checked in");
+    throw new Error('Only confirmed bookings can be checked in');
   }
   const todayUTC = toUTCDateOnly(new Date());
   if (todayUTC < this.checkInDate) {
-    throw new Error("Cannot check in before the check-in date");
+    throw new Error('Cannot check in before the check-in date');
   }
   this.status = BookingStatus.CHECKED_IN;
   this.checkedInAt = new Date();
@@ -330,7 +291,7 @@ BookingSchema.methods.checkIn = async function (this: IBooking) {
  */
 BookingSchema.methods.checkOut = async function (this: IBooking) {
   if (this.status !== BookingStatus.CHECKED_IN) {
-    throw new Error("Only checked-in bookings can be checked out");
+    throw new Error('Only checked-in bookings can be checked out');
   }
   this.status = BookingStatus.CHECKED_OUT;
   this.checkedOutAt = new Date();
@@ -343,21 +304,19 @@ BookingSchema.methods.checkOut = async function (this: IBooking) {
  * - >= 7 days: 100% refund
  * - >= 3 days: 50% refund
  * - < 3 days: 0% refund
- *
+ * 
  * Throws if already checked out, cancelled, or currently checked in
  */
 BookingSchema.methods.cancel = async function (
   this: IBooking,
   userId: mongoose.Types.ObjectId,
-  reason?: string,
+  reason?: string
 ) {
-  if (
-    [BookingStatus.CHECKED_OUT, BookingStatus.CANCELLED].includes(this.status)
-  ) {
-    throw new Error("Cannot cancel completed or already cancelled booking");
+  if ([BookingStatus.CHECKED_OUT, BookingStatus.CANCELLED].includes(this.status)) {
+    throw new Error('Cannot cancel completed or already cancelled booking');
   }
   if (this.status === BookingStatus.CHECKED_IN) {
-    throw new Error("Cannot cancel an active stay. Please check out first.");
+    throw new Error('Cannot cancel an active stay. Please check out first.');
   }
 
   this.status = BookingStatus.CANCELLED;
@@ -369,23 +328,18 @@ BookingSchema.methods.cancel = async function (
   // Days thresholds for full refund (default 7 days)
   const fullRefundDays = Number(process.env.BOOKING_FULL_REFUND_DAYS) || 7;
   // Days threshold for partial refund (default 3 days)
-  const partialRefundDays =
-    Number(process.env.BOOKING_PARTIAL_REFUND_DAYS) || 3;
+  const partialRefundDays = Number(process.env.BOOKING_PARTIAL_REFUND_DAYS) || 3;
   // Partial refund percentage (default 50%)
-  const partialRefundPercent =
-    Number(process.env.BOOKING_PARTIAL_REFUND_PERCENT) || 50;
-
-  const diffMs =
-    this.checkInDate.getTime() - toUTCDateOnly(new Date()).getTime();
+  const partialRefundPercent = Number(process.env.BOOKING_PARTIAL_REFUND_PERCENT) || 50;
+  
+  const diffMs = this.checkInDate.getTime() - toUTCDateOnly(new Date()).getTime();
   const daysUntilCheckIn = Math.max(0, Math.floor(diffMs / MS_PER_DAY));
   if (daysUntilCheckIn >= fullRefundDays) {
-    this.refundAmount = this.totalPrice; // Full refund
+    this.refundAmount = this.totalPrice;                         // Full refund
   } else if (daysUntilCheckIn >= partialRefundDays) {
-    this.refundAmount = Math.round(
-      this.totalPrice * (partialRefundPercent / 100),
-    ); // Configurable % refund
+    this.refundAmount = Math.round(this.totalPrice * (partialRefundPercent / 100));  // Configurable % refund
   } else {
-    this.refundAmount = 0; // No refund
+    this.refundAmount = 0;                                       // No refund
   }
 
   await this.save();
@@ -393,7 +347,7 @@ BookingSchema.methods.cancel = async function (
 
 /* ---------------- Statics: availability & atomic create ---------------- */
 
-interface BookingModel {
+interface BookingModel extends MModel<IBooking> {
   /**
    * Check if any active booking overlaps with the given nights
    * @param orgId - Organization ID
@@ -426,7 +380,7 @@ interface BookingModel {
    * Atomically create booking only if dates are available
    * Throws "Dates not available" if conflicts exist
    * The unique index provides final race protection
-   *
+   * 
    * @param doc - Booking document to create
    * @param session - Optional MongoDB session for transactions
    * @returns Created booking document
@@ -434,7 +388,7 @@ interface BookingModel {
    */
   createWithAvailability(
     doc: Partial<IBooking>,
-    session?: mongoose.ClientSession,
+    session?: mongoose.ClientSession
   ): Promise<IBooking>;
 }
 
@@ -465,50 +419,49 @@ BookingSchema.statics.overlaps = async function ({
  * Check if listing is available for booking (no overlaps)
  * Normalizes dates to UTC and checks for conflicts
  */
-BookingSchema.statics.isAvailable = async function ({
-  orgId,
-  listingId,
-  checkInDate,
-  checkOutDate,
-}: {
-  orgId: mongoose.Types.ObjectId;
-  listingId: mongoose.Types.ObjectId;
-  checkInDate: Date;
-  checkOutDate: Date;
-}): Promise<boolean> {
+// ✅ FIXED: Type-safe static method with proper BookingModel interface typing
+BookingSchema.statics.isAvailable = (async function (
+  this: BookingModel,
+  {
+    orgId,
+    listingId,
+    checkInDate,
+    checkOutDate,
+  }: {
+    orgId: mongoose.Types.ObjectId;
+    listingId: mongoose.Types.ObjectId;
+    checkInDate: Date;
+    checkOutDate: Date;
+  }
+): Promise<boolean> {
   const inUTC = toUTCDateOnly(checkInDate);
   const outUTC = toUTCDateOnly(checkOutDate);
   const nights = enumerateNightsUTC(inUTC, outUTC);
-  // TODO(type-safety): Verify BookingModel type definition matches usage
-  return !(await (this as unknown as BookingModel).overlaps({
-    orgId,
-    listingId,
-    nights,
-  }));
-};
+  return !(await this.overlaps({ orgId, listingId, nights }));
+}) as BookingModel['isAvailable'];
 
 /**
  * Atomically create booking with availability check
  * Throws if dates are not available
  * The unique index on reservedNights provides final race protection
  */
-BookingSchema.statics.createWithAvailability = async function (
+BookingSchema.statics.createWithAvailability = (async function (
+  this: BookingModel,
   doc: Partial<IBooking>,
-  session?: mongoose.ClientSession,
+  session?: mongoose.ClientSession
 ): Promise<IBooking> {
   const inUTC = toUTCDateOnly(doc.checkInDate as Date);
   const outUTC = toUTCDateOnly(doc.checkOutDate as Date);
   const nights = enumerateNightsUTC(inUTC, outUTC);
 
   // Pre-check for conflicts (UX feedback)
-  // TODO(type-safety): Verify BookingModel type definition matches usage
-  const conflict = await (this as unknown as BookingModel).overlaps({
+  const conflict = await this.overlaps({
     orgId: doc.orgId as mongoose.Types.ObjectId,
     listingId: doc.listingId as mongoose.Types.ObjectId,
     nights,
   });
   if (conflict) {
-    throw new Error("Dates not available for this listing");
+    throw new Error('Dates not available for this listing');
   }
 
   // Create (unique index also guards race condition)
@@ -521,17 +474,15 @@ BookingSchema.statics.createWithAvailability = async function (
         reservedNights: nights,
       },
     ],
-    { session },
+    { session }
   );
   const bookingDoc = created[0];
 
   // Create escrow account tied to this booking (critical for payouts)
-  const { escrowService } = await import(
-    "@/services/souq/settlements/escrow-service"
-  );
-  const { logger } = await import("@/lib/logger");
+  const { escrowService } = await import('@/services/souq/settlements/escrow-service');
+  const { logger } = await import('@/lib/logger');
   try {
-    if (process.env.FEATURE_ESCROW_ENABLED !== "false") {
+    if (process.env.FEATURE_ESCROW_ENABLED !== 'false') {
       const account = await escrowService.createEscrowAccount({
         source: EscrowSource.AQAR_BOOKING,
         sourceId: bookingDoc._id,
@@ -540,7 +491,7 @@ BookingSchema.statics.createWithAvailability = async function (
         buyerId: bookingDoc.guestId,
         sellerId: bookingDoc.hostId,
         expectedAmount: bookingDoc.totalPrice,
-        currency: "SAR",
+        currency: 'SAR',
         releaseAfter: bookingDoc.checkOutDate,
         idempotencyKey: bookingDoc._id.toString(),
         riskHold: false,
@@ -554,15 +505,12 @@ BookingSchema.statics.createWithAvailability = async function (
       };
       await bookingDoc.save();
     } else {
-      logger.info(
-        "[Escrow] Skipping escrow creation for booking (feature flag disabled)",
-        {
-          bookingId: bookingDoc._id.toString(),
-        },
-      );
+      logger.info('[Escrow] Skipping escrow creation for booking (feature flag disabled)', {
+        bookingId: bookingDoc._id.toString(),
+      });
     }
   } catch (error) {
-    logger.error("[Escrow] Failed to create account for booking", {
+    logger.error('[Escrow] Failed to create account for booking', {
       bookingId: bookingDoc._id.toString(),
       error,
     });
@@ -570,17 +518,14 @@ BookingSchema.statics.createWithAvailability = async function (
   }
 
   return bookingDoc;
-};
+}) as BookingModel['createWithAvailability'];
 
 /* ---------------- Model Export ---------------- */
 
-const Booking =
-  (mongoose.models.AqarBooking as unknown as BookingModel) ||
-  // TODO(type-safety): Resolve BookingModel type conversion
-  (mongoose.model<IBooking, BookingModel>(
-    "AqarBooking",
-    BookingSchema,
-  ) as unknown as BookingModel);
+// ✅ FIXED: Type-safe model export with proper BookingModel interface typing  
+const Booking: BookingModel =
+  (mongoose.models.AqarBooking as BookingModel) ||
+  mongoose.model<IBooking, BookingModel>('AqarBooking', BookingSchema);
 
 export default Booking;
 export type BookingDoc = IBooking;

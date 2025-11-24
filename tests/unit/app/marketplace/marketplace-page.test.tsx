@@ -56,7 +56,7 @@ vi.mock("@/lib/marketplace/serverFetch", () => ({
 // Mock ProductCard component to simplify assertions
 vi.mock("@/components/marketplace/ProductCard", () => ({
   __esModule: true,
-  default: ({ product }: { product: any }) => (
+  default: ({ product }: { product: { title: { en?: string } } }) => (
     <div data-testid="product-card">{product.title.en}</div>
   ),
 }));

@@ -1,14 +1,26 @@
-import { defineConfig, devices } from "@playwright/test";
-import * as dotenv from "dotenv";
+import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+import path from 'path';
 
 // Load test environment variables
-dotenv.config({ path: ".env.test" });
+dotenv.config({ path: '.env.test' });
 
 const isCI = !!process.env.CI;
-const isPlaywrightTestMode = process.env.PLAYWRIGHT_TESTS === "true";
-const defaultWebServerCommand = isCI ? "pnpm start" : "pnpm dev";
+const isPlaywrightTestMode = process.env.PLAYWRIGHT_TESTS === 'true';
+const defaultWebServerCommand = isCI ? 'pnpm start' : 'pnpm dev';
+const skipGlobalSetup = process.env.PW_SKIP_GLOBAL_SETUP === 'true';
+const skipAuthState = process.env.PW_SKIP_AUTH_STATE === 'true';
+// Resolve test directory relative to repo root (process.cwd()), not the config file location.
+// This avoids accidental paths like tests/tests/e2e when PW_TEST_DIR includes "tests/".
+const rawTestDir = process.env.PW_TEST_DIR || 'tests/specs';
+const resolvedTestDir = path.isAbsolute(rawTestDir)
+  ? rawTestDir
+  : path.resolve(process.cwd(), rawTestDir);
+const resolvedTestMatch = process.env.PW_TEST_MATCH
+  ? process.env.PW_TEST_MATCH.split(',').map(pattern => pattern.trim()).filter(Boolean)
+  : undefined;
 
-const initialBaseURL = process.env.BASE_URL ?? "http://localhost:3000";
+const initialBaseURL = process.env.BASE_URL ?? 'http://localhost:3000';
 
 let parsedBaseURL: URL | undefined;
 try {
@@ -17,21 +29,17 @@ try {
   parsedBaseURL = undefined;
 }
 
-const baseHostname = parsedBaseURL?.hostname ?? "localhost";
+const baseHostname = parsedBaseURL?.hostname ?? 'localhost';
 const inferredPort =
-  parsedBaseURL?.port !== undefined && parsedBaseURL.port !== ""
+  parsedBaseURL?.port !== undefined && parsedBaseURL.port !== ''
     ? Number(parsedBaseURL.port)
     : undefined;
 
-const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(
-  baseHostname,
-);
-const skipWebServer = process.env.PW_SKIP_WEB_SERVER === "true";
+const isLocalHost = ['localhost', '127.0.0.1', '0.0.0.0'].includes(baseHostname);
+const skipWebServer = process.env.PW_SKIP_WEB_SERVER === 'true';
 const resolvedWebServerCommand =
-  process.env.PW_WEB_SERVER ??
-  (isLocalHost ? defaultWebServerCommand : undefined);
-const shouldStartWebServer =
-  !skipWebServer && resolvedWebServerCommand !== undefined;
+  process.env.PW_WEB_SERVER ?? (isLocalHost ? defaultWebServerCommand : undefined);
+const shouldStartWebServer = !skipWebServer && resolvedWebServerCommand !== undefined;
 const webServerPort = Number(process.env.PW_WEB_PORT ?? inferredPort ?? 3000);
 const webServerUrl = process.env.PW_WEB_URL ?? undefined;
 
@@ -40,19 +48,19 @@ const resolvedBaseURL = (() => {
     return process.env.BASE_URL;
   }
   if (webServerUrl) {
-    return webServerUrl.replace(/\/$/, "");
+    return webServerUrl.replace(/\/$/, '');
   }
   if (shouldStartWebServer) {
     return `http://localhost:${webServerPort}`;
   }
-  return "http://localhost:3000";
+  return 'http://localhost:3000';
 })();
 
 const baseURL = resolvedBaseURL;
 
 /**
  * Playwright Configuration for Fixzit E2E Testing
- *
+ * 
  * Production-grade setup with:
  * - Matrix-based project generation (no duplication)
  * - Multi-tenant aware (x-org-id header support)
@@ -60,50 +68,43 @@ const baseURL = resolvedBaseURL;
  * - Stable selectors (data-testid)
  * - CI-optimized (retries, workers, reporters)
  * - Artifact isolation (playwright-artifacts/)
- *
+ * 
  * Test Matrix:
  * - Desktop: 6 roles × 2 locales = 12 projects
  * - Mobile: 2 roles × 2 locales = 4 projects
  * - Total: 16 projects
- *
+ * 
  * Roles: SuperAdmin, Admin, Manager, Technician, Tenant, Vendor
  * Locales: English (en-US, LTR), Arabic (ar-SA, RTL)
- *
+ * 
  * Usage:
  *   # Single project
  *   npx playwright test --project="AR:Tenant"
- *
+ * 
  *   # With org context (tests tenant isolation)
  *   ORG_ID=66f2a0b1e1c2a3b4c5d6e7f8 npx playwright test
- *
+ * 
  *   # Let Playwright start dev server
  *   PW_WEB_SERVER="pnpm dev" PW_WEB_PORT=3000 npx playwright test
- *
+ * 
  *   # (New) Auto server behavior
  *   # - Defaults to pnpm dev when BASE_URL points to localhost
  *   # - Override command via PW_WEB_SERVER or disable via PW_SKIP_WEB_SERVER=true
  */
 
 // Roles tested across all locales
-const roles = [
-  "superadmin",
-  "admin",
-  "manager",
-  "technician",
-  "tenant",
-  "vendor",
-] as const;
+const roles = ['superadmin', 'admin', 'manager', 'technician', 'tenant', 'vendor'] as const;
 
 // Locales we support (LTR and RTL)
 const locales = [
-  { label: "EN", locale: "en-US", timezoneId: "Asia/Riyadh" as const },
-  { label: "AR", locale: "ar-SA", timezoneId: "Asia/Riyadh" as const },
+  { label: 'EN', locale: 'en-US', timezoneId: 'Asia/Riyadh' as const },
+  { label: 'AR', locale: 'ar-SA', timezoneId: 'Asia/Riyadh' as const },
 ] as const;
 
 // Mobile-critical roles (field ops and self-service)
 const mobileRoles = [
-  { role: "technician", device: "Pixel 5" as const }, // Android field ops
-  { role: "tenant", device: "iPhone 13" as const }, // iOS self-service
+  { role: 'technician', device: 'Pixel 5' as const },     // Android field ops
+  { role: 'tenant', device: 'iPhone 13' as const },       // iOS self-service
 ] as const;
 
 // Generate desktop projects programmatically
@@ -111,22 +112,20 @@ const desktopProjects = locales.flatMap(({ label, locale, timezoneId }) =>
   roles.map((role) => ({
     name: `Desktop:${label}:${role[0].toUpperCase()}${role.slice(1)}`,
     use: {
-      ...devices["Desktop Chrome"],
+      ...devices['Desktop Chrome'],
       baseURL,
       // Stable test selectors to survive UI refactors
-      testIdAttribute: "data-testid",
+      testIdAttribute: 'data-testid',
       // Auth state per role (generated by globalSetup)
-      storageState: `tests/state/${role}.json`,
+      ...(skipAuthState ? {} : { storageState: `tests/state/${role}.json` }),
       // i18n & KSA timezone
       locale,
       timezoneId,
       // Riyadh geolocation for distance/dispatch/SLA tests
       geolocation: { longitude: 46.6753, latitude: 24.7136 },
-      permissions: ["geolocation"],
+      permissions: ['geolocation'],
       // Multi-tenant header (set ORG_ID env to test tenant isolation)
-      ...(process.env.ORG_ID
-        ? { extraHTTPHeaders: { "x-org-id": process.env.ORG_ID } }
-        : {}),
+      ...(process.env.ORG_ID ? { extraHTTPHeaders: { 'x-org-id': process.env.ORG_ID } } : {}),
     },
   })),
 );
@@ -138,15 +137,13 @@ const mobileProjects = locales.flatMap(({ label, locale, timezoneId }) =>
     use: {
       ...devices[device],
       baseURL,
-      testIdAttribute: "data-testid",
-      storageState: `tests/state/${role}.json`,
+      testIdAttribute: 'data-testid',
+      ...(skipAuthState ? {} : { storageState: `tests/state/${role}.json` }),
       locale,
       timezoneId,
       geolocation: { longitude: 46.6753, latitude: 24.7136 },
-      permissions: ["geolocation"],
-      ...(process.env.ORG_ID
-        ? { extraHTTPHeaders: { "x-org-id": process.env.ORG_ID } }
-        : {}),
+      permissions: ['geolocation'],
+      ...(process.env.ORG_ID ? { extraHTTPHeaders: { 'x-org-id': process.env.ORG_ID } } : {}),
     },
   })),
 );
@@ -157,34 +154,35 @@ const resolvedFullyParallel = isPlaywrightTestMode ? false : true;
 const resolvedNavigationTimeout = isPlaywrightTestMode ? 60_000 : 30_000;
 
 export default defineConfig({
-  testDir: "./specs",
-
+  testDir: resolvedTestDir,
+  ...(resolvedTestMatch ? { testMatch: resolvedTestMatch } : {}),
+  
   // Global timeouts
-  timeout: 120_000, // 2 minutes per test
+  timeout: 120_000,          // 2 minutes per test
   expect: { timeout: 10_000 }, // 10 seconds for assertions
-
+  
   // CI behavior
-  retries: isCI ? 2 : 1, // More retries in CI for flake resistance
-  forbidOnly: isCI, // Prevent accidentally committed .only
-  workers: resolvedWorkers, // Limit workers in test-mode/CI to ease load
-  fullyParallel: resolvedFullyParallel, // Avoid overwhelming dev server in test-mode
+  retries: isCI ? 2 : 1,     // More retries in CI for flake resistance
+  forbidOnly: isCI,          // Prevent accidentally committed .only
+  workers: resolvedWorkers,  // Limit workers in test-mode/CI to ease load
+  fullyParallel: resolvedFullyParallel,       // Avoid overwhelming dev server in test-mode
   maxFailures: isCI ? 10 : undefined, // Stop after 10 failures in CI
-
+  
   // Auth bootstrap (pre-authenticate all roles)
-  globalSetup: "./setup-auth.ts",
-
+  ...(skipGlobalSetup ? {} : { globalSetup: './setup-auth.ts' }),
+  
   // Reporters (CI gets GitHub Actions integration)
   reporter: isCI
     ? [
-        ["github"], // GitHub Actions annotations
-        ["html", { open: "never", outputFolder: "playwright-report" }],
-        ["json", { outputFile: "playwright-report/results.json" }],
+        ['github'],          // GitHub Actions annotations
+        ['html', { open: 'never', outputFolder: 'playwright-report' }],
+        ['json', { outputFile: 'playwright-report/results.json' }],
       ]
     : [
-        ["line"], // Console output
-        ["html", { open: "never", outputFolder: "playwright-report" }],
+        ['line'],            // Console output
+        ['html', { open: 'never', outputFolder: 'playwright-report' }],
       ],
-
+  
   // Default context options (overridable per project)
   use: {
     baseURL,
@@ -192,17 +190,17 @@ export default defineConfig({
     viewport: { width: 1366, height: 900 },
     actionTimeout: 15_000,
     navigationTimeout: resolvedNavigationTimeout,
-    trace: "on-first-retry",
-    video: "on-first-retry",
-    screenshot: "only-on-failure",
+    trace: 'on-first-retry',
+    video: 'on-first-retry',
+    screenshot: 'only-on-failure',
   },
-
+  
   // Isolated artifact directory (cleaner than test-results/)
-  outputDir: "playwright-artifacts",
-
+  outputDir: 'playwright-artifacts',
+  
   // Project matrix: 12 desktop + 4 mobile = 16 total
   projects: [...desktopProjects, ...mobileProjects],
-
+  
   // Auto-start Next.js dev server for local runs (override or skip via env vars)
   webServer: shouldStartWebServer
     ? {

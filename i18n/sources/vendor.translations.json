@@ -1,5 +1,6 @@
 {
   "en": {
+    "Vendor": "Vendor",
     "vendor.category": "Category",
     "vendor.code": "Vendor Code",
     "vendor.responseTime": "Response Time",
@@ -7,6 +8,7 @@
     "vendor.type": "Vendor Type"
   },
   "ar": {
+    "Vendor": "[AR] Vendor",
     "vendor.category": "الفئة",
     "vendor.code": "رمز البائع",
     "vendor.responseTime": "وقت الاستجابة",

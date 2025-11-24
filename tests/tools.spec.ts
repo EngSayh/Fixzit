@@ -1,12 +1,16 @@
 import { vi } from "vitest";
 
+type DetectResult = { name: string; args: Record<string, unknown> } | null;
+type ExecuteTool = (name: string, args: Record<string, unknown>, session: Session) => Promise<unknown>;
+type ToolsModule = { executeTool: ExecuteTool; detectToolFromMessage: (msg: string) => DetectResult };
+
 // Determine import path to the implementation under test.
 // Adjust this path if the actual file differs. We search common locations.
-let mod: any;
-let executeTool: any;
-let detectToolFromMessage: any;
+let mod: ToolsModule;
+let executeTool: ExecuteTool;
+let detectToolFromMessage: (msg: string) => DetectResult;
 
-const tryImportCandidates = async () => {
+const tryImportCandidates = async (): Promise<ToolsModule> => {
   const candidates = [
     "@/server/copilot/tools",
     "@/src/tools",
@@ -102,13 +106,22 @@ vi.mock("./policy", () => ({
 // Session type import not needed; we construct plain objects for tests.
 
 // Now re-import module under test after mocks are registered
-let tools: any;
+let tools: ToolsModule;
 beforeAll(async () => {
   tools = await tryImportCandidates();
 });
 
 // Helpers
-const makeSession = (overrides: Partial<any> = {}): any => ({
+type Session = {
+  tenantId: string;
+  userId: string;
+  role: string;
+  name: string;
+  email: string;
+  locale: string;
+};
+
+const makeSession = (overrides: Partial<Session> = {}): Session => ({
   tenantId: "tenant-1",
   userId: "user-1",
   role: "MANAGER",

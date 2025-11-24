@@ -1,10 +1,10 @@
 {
   "stats": {
-    "files": 680,
-    "usedKeys": 2634,
+    "files": 757,
+    "usedKeys": 2691,
     "hasDynamic": false,
-    "enCount": 30720,
-    "arCount": 30720,
+    "enCount": 30852,
+    "arCount": 30852,
     "parityGap": 0
   },
   "missing": {
@@ -142,6 +142,7 @@
     ],
     "common.saving": [
       "Fixzit/app/admin/cms/footer/page.tsx",
+      "Fixzit/app/fm/work-orders/new/page.tsx",
       "Fixzit/components/finance/JournalEntryForm.tsx",
       "Fixzit/components/fm/tenants/CreateTenantForm.tsx"
     ],
@@ -151,8 +152,7 @@
       "Fixzit/app/finance/invoices/new/page.tsx",
       "Fixzit/app/fm/finance/budgets/new/page.tsx",
       "Fixzit/app/fm/finance/expenses/new/page.tsx",
-      "Fixzit/app/fm/page.tsx",
-      "Fixzit/app/fm/work-orders/new/page.tsx"
+      "Fixzit/app/fm/page.tsx"
     ],
     "admin.footer.contentEn": [
       "Fixzit/app/admin/cms/footer/page.tsx"
@@ -1168,6 +1168,7 @@
       "Fixzit/app/finance/invoices/new/page.tsx",
       "Fixzit/app/fm/finance/budgets/new/page.tsx",
       "Fixzit/app/fm/finance/expenses/new/page.tsx",
+      "Fixzit/app/fm/work-orders/new/page.tsx",
       "Fixzit/components/finance/TrialBalanceReport.tsx"
     ],
     "finance.invoice.created": [
@@ -1358,7 +1359,9 @@
       "Fixzit/app/fm/finance/expenses/new/page.tsx",
       "Fixzit/app/fm/work-orders/approvals/page.tsx",
       "Fixzit/app/fm/work-orders/board/page.tsx",
-      "Fixzit/app/fm/work-orders/new/page.tsx"
+      "Fixzit/app/fm/work-orders/history/page.tsx",
+      "Fixzit/app/fm/work-orders/new/page.tsx",
+      "Fixzit/app/fm/work-orders/pm/page.tsx"
     ],
     "finance.invoice.createFromTemplate": [
       "Fixzit/app/finance/invoices/new/page.tsx"
@@ -1602,9 +1605,6 @@
     ],
     "admin.users.online": [
       "Fixzit/app/fm/administration/page.tsx"
-    ],
-    "dashboard.errors.noOrgSession": [
-      "Fixzit/app/fm/dashboard/page.tsx"
     ],
     "dashboard.welcomeBack": [
       "Fixzit/app/fm/dashboard/page.tsx"
@@ -2087,21 +2087,6 @@
     "common.selected": [
       "Fixzit/app/fm/finance/expenses/new/page.tsx"
     ],
-    "fm.errors.noOrgSession": [
-      "Fixzit/app/fm/finance/invoices/new/page.tsx",
-      "Fixzit/app/fm/finance/invoices/page.tsx",
-      "Fixzit/app/fm/properties/new/page.tsx",
-      "Fixzit/app/fm/properties/page.tsx",
-      "Fixzit/app/fm/tenants/new/page.tsx",
-      "Fixzit/app/fm/tenants/page.tsx",
-      "Fixzit/components/fm/tenants/CreateTenantForm.tsx"
-    ],
-    "fm.finance.invoices.errors.selectOrg": [
-      "Fixzit/app/fm/finance/invoices/page.tsx"
-    ],
-    "fm.finance.invoices.errors.selectOrgHint": [
-      "Fixzit/app/fm/finance/invoices/page.tsx"
-    ],
     "fm.invoices.title": [
       "Fixzit/app/fm/finance/invoices/page.tsx"
     ],
@@ -2448,15 +2433,41 @@
     "Create Payment": [
       "Fixzit/app/fm/finance/payments/new/page.tsx"
     ],
+    "fm.org.supportContext": [
+      "Fixzit/app/fm/hr/directory/new/page.tsx",
+      "Fixzit/app/fm/hr/directory/page.tsx",
+      "Fixzit/app/fm/hr/employees/page.tsx",
+      "Fixzit/app/fm/hr/leave/approvals/page.tsx",
+      "Fixzit/app/fm/hr/leave/page.tsx",
+      "Fixzit/app/fm/hr/page.tsx",
+      "Fixzit/app/fm/hr/payroll/page.tsx",
+      "Fixzit/app/fm/hr/payroll/run/page.tsx",
+      "Fixzit/app/fm/hr/recruitment/page.tsx",
+      "Fixzit/app/fm/marketplace/listings/new/page.tsx",
+      "Fixzit/app/fm/marketplace/orders/new/page.tsx",
+      "Fixzit/app/fm/marketplace/page.tsx",
+      "Fixzit/app/fm/marketplace/vendors/new/page.tsx",
+      "Fixzit/app/fm/work-orders/approvals/page.tsx",
+      "Fixzit/app/fm/work-orders/board/page.tsx",
+      "Fixzit/app/fm/work-orders/history/page.tsx",
+      "Fixzit/app/fm/work-orders/new/page.tsx",
+      "Fixzit/app/fm/work-orders/page.tsx",
+      "Fixzit/app/fm/work-orders/pm/page.tsx",
+      "Fixzit/app/work-orders/page.tsx",
+      "Fixzit/components/fm/useFmOrgGuard.tsx",
+      "Fixzit/hooks/fm/useOrgGuard.tsx"
+    ],
     "common.notAvailable": [
       "Fixzit/app/fm/hr/directory/page.tsx",
       "Fixzit/app/fm/hr/employees/page.tsx",
       "Fixzit/app/fm/hr/recruitment/page.tsx",
       "Fixzit/app/fm/tenants/page.tsx",
+      "Fixzit/app/fm/work-orders/pm/page.tsx",
       "Fixzit/app/hr/leave/page.tsx",
       "Fixzit/app/hr/payroll/page.tsx",
       "Fixzit/app/hr/settings/page.tsx",
-      "Fixzit/app/marketplace/orders/page.tsx"
+      "Fixzit/app/marketplace/orders/page.tsx",
+      "Fixzit/components/fm/WorkOrdersView.tsx"
     ],
     "hr.employees.jobTitle": [
       "Fixzit/app/fm/hr/directory/page.tsx"
@@ -2723,16 +2734,14 @@
       "Fixzit/app/fm/page.tsx"
     ],
     "status.submitted": [
-      "Fixzit/app/fm/orders/page.tsx",
-      "Fixzit/components/fm/WorkOrdersView.tsx"
+      "Fixzit/app/fm/orders/page.tsx"
     ],
     "status.approved": [
       "Fixzit/app/fm/orders/page.tsx",
       "Fixzit/app/fm/vendors/page.tsx"
     ],
     "status.completed": [
-      "Fixzit/app/fm/orders/page.tsx",
-      "Fixzit/components/fm/WorkOrdersView.tsx"
+      "Fixzit/app/fm/orders/page.tsx"
     ],
     "orders.tabs.purchase": [
       "Fixzit/app/fm/orders/page.tsx"
@@ -2831,6 +2840,9 @@
       "Fixzit/app/fm/properties/[id]/page.tsx"
     ],
     "fm.properties.detail.errors.noOrgId": [
+      "Fixzit/app/fm/properties/[id]/page.tsx"
+    ],
+    "fm.properties.detail.errors.noPropertyId": [
       "Fixzit/app/fm/properties/[id]/page.tsx"
     ],
     "fm.properties.detail.toasts.deleting": [
@@ -3015,12 +3027,6 @@
     "fm.properties.new.sectionDescription": [
       "Fixzit/app/fm/properties/new/page.tsx"
     ],
-    "fm.properties.errors.selectOrg": [
-      "Fixzit/app/fm/properties/page.tsx"
-    ],
-    "fm.properties.errors.selectOrgHint": [
-      "Fixzit/app/fm/properties/page.tsx"
-    ],
     "fm.properties.support.activeOrg": [
       "Fixzit/app/fm/properties/page.tsx"
     ],
@@ -3101,6 +3107,10 @@
     ],
     "fm.properties.tenants": [
       "Fixzit/app/fm/properties/page.tsx"
+    ],
+    "fm.errors.noOrgSession": [
+      "Fixzit/app/fm/properties/page.tsx",
+      "Fixzit/components/fm/tenants/CreateTenantForm.tsx"
     ],
     "fm.properties.toast.creating": [
       "Fixzit/app/fm/properties/page.tsx"
@@ -3245,6 +3255,9 @@
     "fm.vendors.detail.errors.noOrgId": [
       "Fixzit/app/fm/vendors/[id]/page.tsx"
     ],
+    "fm.vendors.detail.errors.noVendorId": [
+      "Fixzit/app/fm/vendors/[id]/page.tsx"
+    ],
     "fm.vendors.detail.toasts.deleting": [
       "Fixzit/app/fm/vendors/[id]/page.tsx"
     ],
@@ -3337,6 +3350,15 @@
       "Fixzit/app/fm/work-orders/approvals/page.tsx",
       "Fixzit/app/fm/work-orders/board/page.tsx"
     ],
+    "workOrders.approvals.details.requestedBy": [
+      "Fixzit/app/fm/work-orders/approvals/page.tsx"
+    ],
+    "workOrders.approvals.details.date": [
+      "Fixzit/app/fm/work-orders/approvals/page.tsx"
+    ],
+    "workOrders.approvals.details.estimatedCost": [
+      "Fixzit/app/fm/work-orders/approvals/page.tsx"
+    ],
     "common.approve": [
       "Fixzit/app/fm/work-orders/approvals/page.tsx"
     ],
@@ -3353,7 +3375,8 @@
       "Fixzit/app/fm/work-orders/approvals/page.tsx"
     ],
     "workOrders.woId": [
-      "Fixzit/app/fm/work-orders/approvals/page.tsx"
+      "Fixzit/app/fm/work-orders/approvals/page.tsx",
+      "Fixzit/app/fm/work-orders/history/page.tsx"
     ],
     "workOrders.title": [
       "Fixzit/app/fm/work-orders/approvals/page.tsx",
@@ -3452,16 +3475,76 @@
     "common.viewCharts": [
       "Fixzit/app/fm/work-orders/history/page.tsx"
     ],
+    "workOrders.history.table.title": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
+    "workOrders.history.table.property": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
+    "workOrders.history.table.technician": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
+    "workOrders.history.table.completionDate": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
+    "workOrders.history.table.duration": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
+    "workOrders.history.table.cost": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
+    "workOrders.history.table.rating": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
+    "workOrders.history.table.status": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
+    "workOrders.history.table.actions": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
+    "workOrders.history.table.ratingOutOf": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
     "workOrders.history.view": [
       "Fixzit/app/fm/work-orders/history/page.tsx"
     ],
     "workOrders.history.invoice": [
       "Fixzit/app/fm/work-orders/history/page.tsx"
     ],
+    "workOrders.history.quickActions.analytics": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
+    "workOrders.history.quickActions.trends": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
+    "workOrders.history.quickActions.cost": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
+    "workOrders.history.quickActions.techPerformance": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
+    "workOrders.history.quickActions.reports": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
+    "workOrders.history.quickActions.settings": [
+      "Fixzit/app/fm/work-orders/history/page.tsx"
+    ],
     "workOrders.new.title": [
       "Fixzit/app/fm/work-orders/new/page.tsx"
     ],
     "workOrders.new.subtitle": [
+      "Fixzit/app/fm/work-orders/new/page.tsx"
+    ],
+    "workOrders.new.requiredFields": [
+      "Fixzit/app/fm/work-orders/new/page.tsx"
+    ],
+    "workOrders.new.success": [
+      "Fixzit/app/fm/work-orders/new/page.tsx"
+    ],
+    "workOrders.new.woNumber": [
+      "Fixzit/app/fm/work-orders/new/page.tsx"
+    ],
+    "workOrders.new.uploadHint": [
       "Fixzit/app/fm/work-orders/new/page.tsx"
     ],
     "workOrders.new.basicInfo": [
@@ -3471,9 +3554,6 @@
       "Fixzit/app/fm/work-orders/new/page.tsx"
     ],
     "workOrders.priority": [
-      "Fixzit/app/fm/work-orders/new/page.tsx"
-    ],
-    "workOrders.selectPriority": [
       "Fixzit/app/fm/work-orders/new/page.tsx"
     ],
     "workOrders.priority.p1": [
@@ -3523,12 +3603,10 @@
       "Fixzit/app/fm/work-orders/new/page.tsx"
     ],
     "workOrders.attachments": [
-      "Fixzit/app/fm/work-orders/new/page.tsx"
+      "Fixzit/app/fm/work-orders/new/page.tsx",
+      "Fixzit/components/fm/WorkOrdersView.tsx"
     ],
-    "workOrders.dropFiles": [
-      "Fixzit/app/fm/work-orders/new/page.tsx"
-    ],
-    "common.chooseFiles": [
+    "workOrders.attachmentsCount": [
       "Fixzit/app/fm/work-orders/new/page.tsx"
     ],
     "workOrders.createFromTemplate": [
@@ -3573,6 +3651,15 @@
     "workOrders.pm.filters.search": [
       "Fixzit/app/fm/work-orders/pm/page.tsx"
     ],
+    "workOrders.pm.table.id": [
+      "Fixzit/app/fm/work-orders/pm/page.tsx"
+    ],
+    "workOrders.pm.table.title": [
+      "Fixzit/app/fm/work-orders/pm/page.tsx"
+    ],
+    "workOrders.pm.table.property": [
+      "Fixzit/app/fm/work-orders/pm/page.tsx"
+    ],
     "workOrders.pm.frequency": [
       "Fixzit/app/fm/work-orders/pm/page.tsx"
     ],
@@ -3582,10 +3669,40 @@
     "workOrders.pm.nextDue": [
       "Fixzit/app/fm/work-orders/pm/page.tsx"
     ],
+    "workOrders.pm.table.status": [
+      "Fixzit/app/fm/work-orders/pm/page.tsx"
+    ],
+    "workOrders.pm.table.assigned": [
+      "Fixzit/app/fm/work-orders/pm/page.tsx"
+    ],
+    "workOrders.pm.table.actions": [
+      "Fixzit/app/fm/work-orders/pm/page.tsx"
+    ],
     "workOrders.pm.emptyState": [
       "Fixzit/app/fm/work-orders/pm/page.tsx"
     ],
+    "workOrders.pm.table.generated": [
+      "Fixzit/app/fm/work-orders/pm/page.tsx"
+    ],
     "workOrders.pm.generate": [
+      "Fixzit/app/fm/work-orders/pm/page.tsx"
+    ],
+    "workOrders.pm.quickActions.schedule": [
+      "Fixzit/app/fm/work-orders/pm/page.tsx"
+    ],
+    "workOrders.pm.quickActions.templates": [
+      "Fixzit/app/fm/work-orders/pm/page.tsx"
+    ],
+    "workOrders.pm.quickActions.reports": [
+      "Fixzit/app/fm/work-orders/pm/page.tsx"
+    ],
+    "workOrders.pm.quickActions.checklists": [
+      "Fixzit/app/fm/work-orders/pm/page.tsx"
+    ],
+    "workOrders.pm.quickActions.settings": [
+      "Fixzit/app/fm/work-orders/pm/page.tsx"
+    ],
+    "workOrders.pm.quickActions.export": [
       "Fixzit/app/fm/work-orders/pm/page.tsx"
     ],
     "forgotPassword.success.title": [
@@ -3636,16 +3753,16 @@
     "help.article.feedback.prompt": [
       "Fixzit/app/help/[slug]/page.tsx"
     ],
-    "help.article.feedback.helpfulAria": [
-      "Fixzit/app/help/[slug]/page.tsx"
-    ],
     "help.article.feedback.yes": [
       "Fixzit/app/help/[slug]/page.tsx"
     ],
-    "help.article.feedback.notHelpfulAria": [
+    "help.article.feedback.no": [
       "Fixzit/app/help/[slug]/page.tsx"
     ],
-    "help.article.feedback.no": [
+    "help.article.feedback.helpfulAria": [
+      "Fixzit/app/help/[slug]/page.tsx"
+    ],
+    "help.article.feedback.notHelpfulAria": [
       "Fixzit/app/help/[slug]/page.tsx"
     ],
     "help.article.sidebar.ctaTitle": [
@@ -3657,86 +3774,23 @@
     "help.article.sidebar.cta": [
       "Fixzit/app/help/[slug]/page.tsx"
     ],
-    "helpCenter.tutorials.gettingStarted.title": [
-      "Fixzit/app/help/page.tsx"
+    "help.article.comments.title": [
+      "Fixzit/app/help/[slug]/page.tsx"
     ],
-    "helpCenter.tutorials.gettingStarted.description": [
-      "Fixzit/app/help/page.tsx"
+    "help.article.comments.placeholder": [
+      "Fixzit/app/help/[slug]/page.tsx"
     ],
-    "helpCenter.categories.facilityManagement": [
-      "Fixzit/app/help/page.tsx"
+    "help.article.comments.submit": [
+      "Fixzit/app/help/[slug]/page.tsx"
     ],
-    "helpCenter.min": [
-      "Fixzit/app/help/page.tsx"
+    "help.article.comments.success": [
+      "Fixzit/app/help/[slug]/page.tsx"
     ],
-    "helpCenter.tutorials.firstWorkOrder.title": [
-      "Fixzit/app/help/page.tsx"
+    "help.article.comments.error": [
+      "Fixzit/app/help/[slug]/page.tsx"
     ],
-    "helpCenter.tutorials.firstWorkOrder.description": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.categories.workOrders": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.tutorials.vendorManagement.title": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.tutorials.vendorManagement.description": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.categories.procurement": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.tutorials.tenantRelations.title": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.tutorials.tenantRelations.description": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.categories.customerService": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.tutorials.financialReporting.title": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.tutorials.financialReporting.description": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.categories.finance": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.articles.createProperties.title": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.categories.properties": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.articles.createProperties.description": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.read": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.articles.workOrderLifecycle.title": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.articles.workOrderLifecycle.description": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.articles.vendorOnboarding.title": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.categories.vendors": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.articles.vendorOnboarding.description": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.articles.invoiceGeneration.title": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.articles.invoiceGeneration.description": [
-      "Fixzit/app/help/page.tsx"
+    "help.article.comments.auth": [
+      "Fixzit/app/help/[slug]/page.tsx"
     ],
     "helpCenter.difficulty.beginner": [
       "Fixzit/app/help/page.tsx"
@@ -3747,25 +3801,142 @@
     "helpCenter.difficulty.advanced": [
       "Fixzit/app/help/page.tsx"
     ],
-    "helpCenter.title": [
+    "helpCenterV2.title": [
       "Fixzit/app/help/page.tsx"
     ],
-    "helpCenter.subtitle": [
+    "helpCenterV2.subtitle": [
       "Fixzit/app/help/page.tsx"
     ],
-    "helpCenter.askAI": [
+    "helpCenterV2.askAssistant": [
       "Fixzit/app/help/page.tsx"
     ],
-    "helpCenter.createTicket": [
+    "helpCenterV2.createTicket": [
       "Fixzit/app/help/page.tsx"
     ],
-    "helpCenter.viewTickets": [
+    "helpCenterV2.viewTickets": [
       "Fixzit/app/help/page.tsx"
     ],
-    "helpCenter.interactiveTutorials": [
+    "helpCenterV2.interactiveTutorials": [
       "Fixzit/app/help/page.tsx"
     ],
-    "helpCenter.tutorialsSubtitle": [
+    "helpCenterV2.interactiveSubtitle": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.viewAllTutorials": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.helpArticles": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.articlesSubtitle": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.readMore": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.emptyArticles": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.updated": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.loadingArticles": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.generalCategory": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.systemOverview": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.overviewSubtitle": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.propertiesTitle": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.propertiesCopy": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.workOrdersTitle": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.workOrdersCopy": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.vendorsTitle": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.vendorsCopy": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.financeTitle": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.financeCopy": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.untitledArticle": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.gettingStarted.title": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.gettingStarted.description": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.categories.facilityManagement": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.gettingStarted.duration": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.firstWorkOrder.title": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.firstWorkOrder.description": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.categories.workOrders": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.firstWorkOrder.duration": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.vendorManagement.title": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.vendorManagement.description": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.categories.procurement": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.vendorManagement.duration": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.tenantRelations.title": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.tenantRelations.description": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.categories.customerService": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.tenantRelations.duration": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.financialReporting.title": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.financialReporting.description": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.categories.finance": [
+      "Fixzit/app/help/page.tsx"
+    ],
+    "helpCenterV2.tutorials.financialReporting.duration": [
       "Fixzit/app/help/page.tsx"
     ],
     "helpCenter.startTutorial": [
@@ -3774,49 +3945,7 @@
     "helpCenter.completed": [
       "Fixzit/app/help/page.tsx"
     ],
-    "helpCenter.viewAllTutorials": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.helpArticles": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.articlesSubtitle": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.readMore": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.viewAllArticles": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.systemOverview": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.overviewSubtitle": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.systemModules.properties.title": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.systemModules.properties.description": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.systemModules.workOrders.title": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.systemModules.workOrders.description": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.systemModules.vendors.title": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.systemModules.vendors.description": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.systemModules.finance.title": [
-      "Fixzit/app/help/page.tsx"
-    ],
-    "helpCenter.systemModules.finance.description": [
+    "helpCenterV2.fallbackNotice": [
       "Fixzit/app/help/page.tsx"
     ],
     "hr.ats.jobs.new.toast.creating": [
@@ -4356,12 +4485,6 @@
     "login.errors.emailRequired": [
       "Fixzit/app/login/page.tsx"
     ],
-    "login.errors.emailInvalid": [
-      "Fixzit/app/login/page.tsx"
-    ],
-    "login.errors.employeeRequired": [
-      "Fixzit/app/login/page.tsx"
-    ],
     "login.errors.employeeInvalid": [
       "Fixzit/app/login/page.tsx"
     ],
@@ -4510,6 +4633,21 @@
       "Fixzit/app/logout/page.tsx"
     ],
     "logout.pleaseWait": [
+      "Fixzit/app/logout/page.tsx"
+    ],
+    "logout.success": [
+      "Fixzit/app/logout/page.tsx"
+    ],
+    "logout.redirecting": [
+      "Fixzit/app/logout/page.tsx"
+    ],
+    "logout.error": [
+      "Fixzit/app/logout/page.tsx"
+    ],
+    "logout.errorMessage": [
+      "Fixzit/app/logout/page.tsx"
+    ],
+    "logout.redirectingAfterError": [
       "Fixzit/app/logout/page.tsx"
     ],
     "marketplace.orders.status.unknown": [
@@ -5938,6 +6076,9 @@
     "workOrders.sla.safeList": [
       "Fixzit/app/work-orders/sla-watchlist/page.tsx"
     ],
+    "workOrders.sla.safeMore": [
+      "Fixzit/app/work-orders/sla-watchlist/page.tsx"
+    ],
     "workOrders.sla.noActive": [
       "Fixzit/app/work-orders/sla-watchlist/page.tsx"
     ],
@@ -6083,10 +6224,10 @@
     "support.errorReport": [
       "Fixzit/components/SupportPopup.tsx"
     ],
-    "support.autoErrorReport": [
+    "support.errorId": [
       "Fixzit/components/SupportPopup.tsx"
     ],
-    "support.errorId": [
+    "support.autoErrorReport": [
       "Fixzit/components/SupportPopup.tsx"
     ],
     "support.timestamp": [
@@ -6397,6 +6538,9 @@
       "Fixzit/components/TopBar.tsx"
     ],
     "nav.globalHeader": [
+      "Fixzit/components/TopBar.tsx"
+    ],
+    "nav.admin": [
       "Fixzit/components/TopBar.tsx"
     ],
     "common.unsavedChanges": [
@@ -7301,6 +7445,12 @@
     "careers.spamDetected": [
       "Fixzit/components/careers/JobApplicationForm.tsx"
     ],
+    "careers.uploadFailed": [
+      "Fixzit/components/careers/JobApplicationForm.tsx"
+    ],
+    "careers.presignFailed": [
+      "Fixzit/components/careers/JobApplicationForm.tsx"
+    ],
     "careers.tooMany": [
       "Fixzit/components/careers/JobApplicationForm.tsx"
     ],
@@ -7362,6 +7512,12 @@
       "Fixzit/components/careers/JobApplicationForm.tsx"
     ],
     "careers.resumeHint": [
+      "Fixzit/components/careers/JobApplicationForm.tsx"
+    ],
+    "careers.resumeUploadNote": [
+      "Fixzit/components/careers/JobApplicationForm.tsx"
+    ],
+    "careers.resumeScanStatus": [
       "Fixzit/components/careers/JobApplicationForm.tsx"
     ],
     "careers.submitting": [
@@ -7548,6 +7704,9 @@
     "Select an account to view activity": [
       "Fixzit/components/finance/AccountActivityViewer.tsx"
     ],
+    "finance.balance.forbidden": [
+      "Fixzit/components/finance/BalanceSheetWidget.tsx"
+    ],
     "finance.balance.error": [
       "Fixzit/components/finance/BalanceSheetWidget.tsx"
     ],
@@ -7571,6 +7730,9 @@
     ],
     "finance.balance.notOk": [
       "Fixzit/components/finance/BalanceSheetWidget.tsx"
+    ],
+    "finance.income.forbidden": [
+      "Fixzit/components/finance/IncomeStatementWidget.tsx"
     ],
     "finance.income.error": [
       "Fixzit/components/finance/IncomeStatementWidget.tsx"
@@ -7794,22 +7956,16 @@
     "finance.trialBalance.loadData": [
       "Fixzit/components/finance/TrialBalanceReport.tsx"
     ],
-    "status.dispatched": [
-      "Fixzit/components/fm/WorkOrdersView.tsx"
+    "fm.org.required": [
+      "Fixzit/components/fm/OrgContextPrompt.tsx"
     ],
-    "status.inProgress": [
-      "Fixzit/components/fm/WorkOrdersView.tsx"
+    "fm.org.selectPrompt": [
+      "Fixzit/components/fm/OrgContextPrompt.tsx"
     ],
-    "status.onHold": [
-      "Fixzit/components/fm/WorkOrdersView.tsx"
+    "fm.org.contactAdmin": [
+      "Fixzit/components/fm/OrgContextPrompt.tsx"
     ],
-    "status.verified": [
-      "Fixzit/components/fm/WorkOrdersView.tsx"
-    ],
-    "status.closed": [
-      "Fixzit/components/fm/WorkOrdersView.tsx"
-    ],
-    "status.cancelled": [
+    "workOrders.list.values.notScheduled": [
       "Fixzit/components/fm/WorkOrdersView.tsx"
     ],
     "workOrders.list.heading": [
@@ -7881,13 +8037,28 @@
     "workOrders.list.searchPlaceholder": [
       "Fixzit/components/fm/WorkOrdersView.tsx"
     ],
+    "workOrders.list.values.slaHours": [
+      "Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "workOrders.attachments.missingUrl": [
+      "Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
     "workOrders.list.pagination.summary": [
       "Fixzit/components/fm/WorkOrdersView.tsx"
     ],
     "workOrders.list.pagination.previous": [
       "Fixzit/components/fm/WorkOrdersView.tsx"
     ],
+    "workOrders.list.pagination.pageXofY": [
+      "Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
     "workOrders.list.pagination.next": [
+      "Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "workOrders.create.toast.success": [
+      "Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "workOrders.create.toast.error": [
       "Fixzit/components/fm/WorkOrdersView.tsx"
     ],
     "workOrders.create.button": [
@@ -7903,6 +8074,9 @@
       "Fixzit/components/fm/WorkOrdersView.tsx"
     ],
     "workOrders.create.form.priorityLabel": [
+      "Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "workOrders.create.form.priorityPlaceholder": [
       "Fixzit/components/fm/WorkOrdersView.tsx"
     ],
     "workOrders.create.form.categoryLabel": [
@@ -7973,6 +8147,24 @@
     ],
     "a11y.languageSelectorHelp": [
       "Fixzit/components/i18n/LanguageSelector.tsx"
+    ],
+    "marketplace.productCard.toast.success": [
+      "Fixzit/components/marketplace/ProductCard.tsx"
+    ],
+    "marketplace.productCard.toast.error": [
+      "Fixzit/components/marketplace/ProductCard.tsx"
+    ],
+    "marketplace.productCard.unitLabel": [
+      "Fixzit/components/marketplace/ProductCard.tsx"
+    ],
+    "marketplace.productCard.leadTime": [
+      "Fixzit/components/marketplace/ProductCard.tsx"
+    ],
+    "marketplace.productCard.button.adding": [
+      "Fixzit/components/marketplace/ProductCard.tsx"
+    ],
+    "marketplace.productCard.button.add": [
+      "Fixzit/components/marketplace/ProductCard.tsx"
     ],
     "support.impersonation.errors.identifierRequired": [
       "Fixzit/components/support/SupportOrgSwitcher.tsx"
@@ -8122,5 +8314,5 @@
       "Fixzit/components/ui/pagination.tsx"
     ]
   },
-  "timestamp": "2025-11-18T16:21:18.304Z"
+  "timestamp": "2025-11-24T09:48:07.572Z"
 }

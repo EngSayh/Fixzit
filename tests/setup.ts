@@ -1,11 +1,11 @@
-import React from "react";
-import { render } from "@testing-library/react";
-import "@testing-library/jest-dom";
-import { vi } from "vitest";
-import { requireEnv } from "@/lib/env";
+import React from 'react';
+import { render } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { vi } from 'vitest';
+import { requireEnv } from '@/lib/env';
 
 // Hide Mongoose's "Jest + jsdom" warning noise
-process.env.SUPPRESS_JEST_WARNINGS = "true";
+process.env.SUPPRESS_JEST_WARNINGS = 'true';
 
 // Mock Next.js environment for comprehensive testing
 global.Request = global.Request || class Request {};
@@ -15,23 +15,43 @@ global.fetch = global.fetch || vi.fn();
 // ============================================
 // 1. MOCK MONGOOSE (Fixes "reading 'Mixed'" error)
 // ============================================
-vi.mock("mongoose", async (importOriginal) => {
-  const original = await importOriginal<typeof import("mongoose")>();
+vi.mock('mongoose', async (importOriginal) => {
+  const original = await importOriginal<typeof import('mongoose')>();
 
-  const storeByModel = new Map<string, Map<string, any>>();
-  const mkId = () =>
-    original.Types?.ObjectId
-      ? new original.Types.ObjectId()
-      : { toString: () => `${Date.now()}${Math.random()}` };
+  type AnyDoc = Record<string, unknown>;
+  type IdLike = { toString(): string } | string | number | undefined;
+  type ModelInstance = AnyDoc & {
+    _id?: IdLike;
+    isNew?: boolean;
+    validateSync: () => unknown;
+    populate: () => Promise<ModelInstance>;
+    toObject: () => AnyDoc;
+    toJSON: () => AnyDoc;
+    lean: () => Promise<AnyDoc>;
+    exec: () => Promise<ModelInstance>;
+    save: () => Promise<ModelInstance>;
+    lines?: Array<{ debit?: number; credit?: number }>;
+    status?: string;
+    journalDate?: Date;
+    totalDebit?: number;
+    totalCredit?: number;
+    isBalanced?: boolean;
+    fiscalYear?: number;
+    fiscalPeriod?: number;
+  };
 
-  const matchQuery = (doc: any, query: Record<string, any>) => {
+  const storeByModel = new Map<string, Map<string, AnyDoc>>();
+  const mkId = () => (original.Types?.ObjectId ? new original.Types.ObjectId() : { toString: () => `${Date.now()}${Math.random()}` });
+
+  const matchQuery = (doc: AnyDoc, query: Record<string, unknown>) => {
     if (!query || Object.keys(query).length === 0) return true;
     return Object.entries(query).every(([k, v]) => {
-      if (v && v._bsontype === "ObjectID")
-        return doc[k]?.toString() === v.toString();
-      if (v && typeof v === "object" && v.$in)
-        return v.$in.map((x: any) => x.toString()).includes(doc[k]?.toString());
-      if (v && typeof v === "object" && ("$gte" in v || "$lte" in v)) {
+      if (v && v._bsontype === 'ObjectID') return doc[k]?.toString() === v.toString();
+      if (v && typeof v === 'object' && (v as { $in?: unknown[] }).$in) {
+        const values = (v as { $in: unknown[] }).$in;
+        return values.map((x) => (x as { toString?: () => string })?.toString?.() ?? String(x)).includes(doc[k]?.toString());
+      }
+      if (v && typeof v === 'object' && ('$gte' in v || '$lte' in v)) {
         const val = doc[k];
         if (v.$gte !== undefined && val < v.$gte) return false;
         if (v.$lte !== undefined && val > v.$lte) return false;
@@ -41,14 +61,14 @@ vi.mock("mongoose", async (importOriginal) => {
     });
   };
 
-  const applyUpdate = (update: any) => {
+  const applyUpdate = (update: AnyDoc) => {
     if (!update) return {};
     if (update.$set) return update.$set;
     if (update.$unset) return {};
     return update;
   };
 
-  function populateQueryHelpers(obj: any) {
+  function populateQueryHelpers<T extends AnyDoc>(obj: T): T {
     obj.populate = vi.fn().mockReturnValue(obj);
     obj.select = vi.fn().mockReturnValue(obj);
     obj.lean = vi.fn().mockResolvedValue(obj);
@@ -56,17 +76,13 @@ vi.mock("mongoose", async (importOriginal) => {
   }
 
   class MockSchema {
-    static Types = original.Schema?.Types ||
-      original.Types || { ObjectId: Object };
-    paths: Record<string, any>;
-    virtuals: Record<string, any>;
-    options: Record<string, any>;
-    methods: Record<string, any>;
-    statics: Record<string, any>;
-    constructor(
-      public definition: any = {},
-      opts: any = {},
-    ) {
+    static Types = original.Schema?.Types || original.Types || { ObjectId: Object };
+    paths: Record<string, unknown>;
+    virtuals: Record<string, unknown>;
+    options: Record<string, unknown>;
+    methods: Record<string, unknown>;
+    statics: Record<string, unknown>;
+    constructor(public definition: AnyDoc = {}, opts: AnyDoc = {}) {
       this.options = opts;
       this.paths = {};
       this.virtuals = {};
@@ -85,7 +101,7 @@ vi.mock("mongoose", async (importOriginal) => {
   }
 
   const makeModel = (name: string) => {
-    const store = storeByModel.get(name) || new Map<string, any>();
+    const store = storeByModel.get(name) || new Map<string, AnyDoc>();
     storeByModel.set(name, store);
 
     class Model {
@@ -93,85 +109,72 @@ vi.mock("mongoose", async (importOriginal) => {
       static schema = new MockSchema();
       static Types = original.Types;
 
-      constructor(data: any = {}) {
-        Object.assign(this, data);
-        (this as any).isNew = !data?._id;
-        (this as any).validateSync = vi.fn(() => undefined);
-        (this as any).populate = vi.fn(async () => this);
-        (this as any).toObject = vi.fn(() => ({ ...this }));
-        (this as any).toJSON = vi.fn(() => ({ ...this }));
-        (this as any).lean = vi.fn(async () =>
-          (this as any).toObject ? (this as any).toObject() : { ...this },
-        );
-        (this as any).exec = vi.fn(async () => this);
-        (this as any).save = vi.fn(async () => {
-          const id = (this as any)._id || mkId();
-          (this as any)._id = id;
+      constructor(data: AnyDoc = {}) {
+        const self = this as unknown as ModelInstance;
+        Object.assign(self, data);
+        self.isNew = !data?._id;
+        self.validateSync = vi.fn(() => undefined);
+        self.populate = vi.fn(async () => self);
+        self.toObject = vi.fn(() => ({ ...self }));
+        self.toJSON = vi.fn(() => ({ ...self }));
+        self.lean = vi.fn(async () => (self.toObject ? self.toObject() : { ...self }));
+        self.exec = vi.fn(async () => self);
+        self.save = vi.fn(async () => {
+          const id = self._id || mkId();
+          self._id = id;
           const existing = store.get(id.toString());
-          if (
-            name &&
-            /journal/i.test(name) &&
-            existing &&
-            existing.status === "POSTED"
-          ) {
-            if ((this as any).status === "VOID") {
+          if (name && /journal/i.test(name) && existing && existing.status === 'POSTED') {
+            if (self.status === 'VOID') {
               // allow voiding a posted journal
             } else {
-              const currentSnapshot = JSON.stringify({
-                ...this,
-                save: undefined,
-                validateSync: undefined,
-              });
+              const currentSnapshot = JSON.stringify({ ...self, save: undefined, validateSync: undefined });
               const existingSnapshot = JSON.stringify(existing);
               if (currentSnapshot !== existingSnapshot) {
-                throw new Error("Posted journals cannot be modified");
+                throw new Error('Posted journals cannot be modified');
               }
             }
           }
-          if (
-            name &&
-            /journal/i.test(name) &&
-            Array.isArray((this as any).lines)
-          ) {
-            const totalDebit = (this as any).lines.reduce(
-              (sum: number, l: any) => sum + (l.debit || 0),
-              0,
-            );
-            const totalCredit = (this as any).lines.reduce(
-              (sum: number, l: any) => sum + (l.credit || 0),
-              0,
-            );
-            (this as any).totalDebit = totalDebit;
-            (this as any).totalCredit = totalCredit;
-            (this as any).isBalanced =
-              Math.abs(totalDebit - totalCredit) < 0.01;
-            if (!(this as any).fiscalYear || !(this as any).fiscalPeriod) {
-              const d = (this as any).journalDate
-                ? new Date((this as any).journalDate)
-                : new Date();
-              (this as any).fiscalYear = d.getFullYear();
-              (this as any).fiscalPeriod = d.getMonth() + 1;
+          if (name && /journal/i.test(name) && Array.isArray(self.lines)) {
+            const totalDebit = self.lines.reduce((sum: number, l) => sum + (l.debit || 0), 0);
+            const totalCredit = self.lines.reduce((sum: number, l) => sum + (l.credit || 0), 0);
+            self.totalDebit = totalDebit;
+            self.totalCredit = totalCredit;
+            self.isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
+            if (!self.fiscalYear || !self.fiscalPeriod) {
+              const d = self.journalDate ? new Date(self.journalDate) : new Date();
+              self.fiscalYear = d.getFullYear();
+              self.fiscalPeriod = d.getMonth() + 1;
             }
           }
-          store.set(id.toString(), { ...this });
-          (this as any).isNew = false;
-          return this;
+          store.set(id.toString(), { ...self });
+          self.isNew = false;
+          return self;
         });
       }
 
-      static async create(data: any) {
+      static async create(data: AnyDoc) {
         const inst = new Model(data);
-        await (inst as any).save();
+        await (inst as unknown as ModelInstance).save();
         return inst;
       }
 
-      static find(query: any = {}) {
+      static find(query: AnyDoc = {}) {
         const results = Array.from(store.values())
           .filter((d) => matchQuery(d, query))
           .map((d) => new Model(d));
-        const arr: any = results;
+        
+        // Type query result array with helper methods
+        interface QueryHelpers {
+          exec: () => Promise<ModelInstance[]>;
+          lean: () => Promise<AnyDoc[]>;
+          limit: (n: number) => ModelInstance[] & QueryHelpers;
+          sort: () => ModelInstance[] & QueryHelpers;
+          toArray: () => Promise<ModelInstance[]>;
+        }
+        const arr = results as ModelInstance[] & QueryHelpers;
+        
         arr.exec = async () => arr;
-        arr.lean = async () => arr.map((i: any) => i.toObject());
+        arr.lean = async () => (arr as unknown as ModelInstance[]).map((i) => i.toObject());
         arr.limit = (n: number) => {
           arr.splice(n);
           return arr;
@@ -182,12 +185,10 @@ vi.mock("mongoose", async (importOriginal) => {
         return arr;
       }
 
-      static findOne(query: any = {}) {
-        const found = Array.from(store.values()).find((d) =>
-          matchQuery(d, query),
-        );
+      static findOne(query: AnyDoc = {}) {
+        const found = Array.from(store.values()).find((d) => matchQuery(d, query));
         if (!found) {
-          const queryObj: any = {};
+          const queryObj: AnyDoc = {};
           queryObj.lean = vi.fn(async () => null);
           queryObj.exec = vi.fn(async () => null);
           queryObj.populate = vi.fn().mockReturnValue(queryObj);
@@ -195,58 +196,53 @@ vi.mock("mongoose", async (importOriginal) => {
           return queryObj;
         }
         const instance = new Model(found);
-        (instance as any).lean = vi.fn(async () =>
-          (instance as any).toObject(),
-        );
-        (instance as any).exec = vi.fn(async () => instance);
-        (instance as any).populate = vi.fn().mockReturnValue(instance);
-        (instance as any).select = vi.fn().mockReturnValue(instance);
+        const self = instance as unknown as ModelInstance;
+        self.lean = vi.fn(async () => self.toObject());
+        self.exec = vi.fn(async () => instance);
+        self.populate = vi.fn().mockReturnValue(instance);
+        self.select = vi.fn().mockReturnValue(instance);
         return instance;
       }
 
-      static async findById(id: any) {
+      static async findById(id: AnyDoc) {
         const key = id?.toString?.() ?? String(id);
         const found = store.get(key);
         return found ? new Model(found) : null;
       }
 
-      static findOneAndUpdate(filter: any, update: any, options?: any) {
-        const entry = Array.from(store.entries()).find(([, v]) =>
-          matchQuery(v, filter),
-        );
-        let value: any = null;
+      static findOneAndUpdate(filter: AnyDoc, update: AnyDoc, options?: AnyDoc) {
+        const entry = Array.from(store.entries()).find(([, v]) => matchQuery(v, filter));
+        let value: ModelInstance | null = null;
         if (entry) {
           const updated = { ...entry[1], ...applyUpdate(update) };
           store.set(entry[0], updated);
-          value = new Model(updated);
+          value = new Model(updated) as unknown as ModelInstance;
         } else if (options?.upsert) {
           const id = mkId().toString();
           const updated = { ...applyUpdate(update), _id: id };
           store.set(id, updated);
-          value = new Model(updated);
+          value = new Model(updated) as unknown as ModelInstance;
         }
-        const res: any = { value };
+        const res: AnyDoc = { value };
         res.exec = async () => res;
         res.lean = async () => (value ? value.toObject() : null);
         return res;
       }
 
-      static findOneAndDelete(filter: any) {
-        const entry = Array.from(store.entries()).find(([, v]) =>
-          matchQuery(v, filter),
-        );
-        let value: any = null;
+      static findOneAndDelete(filter: AnyDoc) {
+        const entry = Array.from(store.entries()).find(([, v]) => matchQuery(v, filter));
+        let value: ModelInstance | null = null;
         if (entry) {
           store.delete(entry[0]);
-          value = new Model(entry[1]);
+          value = new Model(entry[1]) as unknown as ModelInstance;
         }
-        const res: any = { value };
+        const res: AnyDoc = { value };
         res.exec = async () => res;
         res.lean = async () => (value ? value.toObject() : null);
         return res;
       }
 
-      static async findByIdAndUpdate(id: any, update: any) {
+      static async findByIdAndUpdate(id: AnyDoc, update: AnyDoc) {
         const key = id?.toString?.() ?? String(id);
         const existing = store.get(key);
         if (!existing) return null;
@@ -255,10 +251,8 @@ vi.mock("mongoose", async (importOriginal) => {
         return new Model(updated);
       }
 
-      static async updateOne(filter: any, update: any) {
-        const entry = Array.from(store.entries()).find(([, v]) =>
-          matchQuery(v, filter),
-        );
+      static async updateOne(filter: AnyDoc, update: AnyDoc) {
+        const entry = Array.from(store.entries()).find(([, v]) => matchQuery(v, filter));
         if (entry) {
           const updated = { ...entry[1], ...applyUpdate(update) };
           store.set(entry[0], updated);
@@ -267,7 +261,7 @@ vi.mock("mongoose", async (importOriginal) => {
         return { modifiedCount: 0 };
       }
 
-      static async updateMany(filter: any, update: any) {
+  static async updateMany(filter: AnyDoc, update: AnyDoc) {
         const updated: string[] = [];
         Array.from(store.entries()).forEach(([key, value]) => {
           if (matchQuery(value, filter)) {
@@ -279,10 +273,8 @@ vi.mock("mongoose", async (importOriginal) => {
         return { modifiedCount: updated.length, matchedCount: updated.length };
       }
 
-      static async deleteOne(filter: any) {
-        const entry = Array.from(store.entries()).find(([, v]) =>
-          matchQuery(v, filter),
-        );
+  static async deleteOne(filter: AnyDoc) {
+        const entry = Array.from(store.entries()).find(([, v]) => matchQuery(v, filter));
         if (entry) {
           store.delete(entry[0]);
           return { deletedCount: 1 };
@@ -290,18 +282,14 @@ vi.mock("mongoose", async (importOriginal) => {
         return { deletedCount: 0 };
       }
 
-      static async deleteMany(filter: any) {
-        const toDelete = Array.from(store.entries()).filter(([, v]) =>
-          matchQuery(v, filter),
-        );
+  static async deleteMany(filter: AnyDoc) {
+        const toDelete = Array.from(store.entries()).filter(([, v]) => matchQuery(v, filter));
         toDelete.forEach(([k]) => store.delete(k));
         return { deletedCount: toDelete.length };
       }
 
-      static async countDocuments(filter: any = {}) {
-        const count = Array.from(store.values()).filter((d) =>
-          matchQuery(d, filter),
-        ).length;
+  static async countDocuments(filter: AnyDoc = {}) {
+        const count = Array.from(store.values()).filter((d) => matchQuery(d, filter)).length;
         return count;
       }
 
@@ -311,24 +299,18 @@ vi.mock("mongoose", async (importOriginal) => {
         };
       }
 
-      static async getAccountBalance(orgId: any, accountId: any) {
+  static async getAccountBalance(orgId: AnyDoc, accountId: AnyDoc) {
         const entries = Array.from(store.values()).filter((e) => {
-          const accountMatch =
-            e.accountId?.toString?.() === accountId?.toString?.();
-          const orgMatch =
-            !orgId || e.orgId?.toString?.() === orgId?.toString?.();
+          const accountMatch = e.accountId?.toString?.() === accountId?.toString?.();
+          const orgMatch = !orgId || e.orgId?.toString?.() === orgId?.toString?.();
           return accountMatch && orgMatch;
         });
         if (entries.length === 0) return 0;
         const last = entries[entries.length - 1];
-        if (typeof last.balance === "number") return last.balance;
-        return entries.reduce((sum, en: any) => {
+        if (typeof last.balance === 'number') return last.balance;
+       return entries.reduce((sum, en: AnyDoc) => {
           const acctType = en.accountType;
-          if (
-            acctType === "REVENUE" ||
-            acctType === "LIABILITY" ||
-            acctType === "EQUITY"
-          ) {
+          if (acctType === 'REVENUE' || acctType === 'LIABILITY' || acctType === 'EQUITY') {
             return sum + (en.credit || 0) - (en.debit || 0);
           }
           return sum + (en.debit || 0) - (en.credit || 0);
@@ -339,12 +321,10 @@ vi.mock("mongoose", async (importOriginal) => {
     return Model;
   };
 
-  const mocked: any = {
+  const mocked: Partial<typeof original> & { models: Record<string, unknown>; default?: unknown; connection: AnyDoc } = {
     ...original,
-    connect: vi.fn(async (..._args: any[]) => ({
-      connection: mocked.connection,
-    })),
-    createConnection: (...args: any[]) => original.createConnection?.(...args),
+    connect: vi.fn(async (..._args: unknown[]) => ({ connection: mocked.connection })),
+    createConnection: (...args: unknown[]) => original.createConnection?.(...args),
     disconnect: vi.fn(async () => {}),
     connection: {
       readyState: 1,
@@ -375,7 +355,7 @@ vi.mock("mongoose", async (importOriginal) => {
       }
       return mocked.models[name];
     }),
-    models: {} as Record<string, any>,
+    models: {} as Record<string, unknown>,
   };
 
   mocked.default = mocked;
@@ -384,93 +364,88 @@ vi.mock("mongoose", async (importOriginal) => {
 // ============================================
 // 1.5. MOCK USER MODEL (for auth tests)
 // ============================================
-vi.mock("@/modules/users/schema", () => {
+vi.mock('@/modules/users/schema', () => {
   const makeDefaultUser = () => ({
-    _id: "1",
-    code: "USR-001",
-    username: "superadmin",
-    email: "superadmin@fixzit.co",
-    password: "$2b$10$igvySIqTp4AO9Hwg0c5fOOZUDAbDFAwsfBM3IlbQBs6GReiw1lG2W", // bcrypt hash of 'admin123'
-    personal: { firstName: "System", lastName: "Administrator" },
-    professional: { role: "SUPER_ADMIN" },
-    status: "ACTIVE",
-    tenantId: "demo-tenant",
-    orgId: "demo-tenant",
+    _id: '1',
+    code: 'USR-001',
+    username: 'superadmin',
+    email: 'superadmin@fixzit.co',
+    password: '$2b$10$igvySIqTp4AO9Hwg0c5fOOZUDAbDFAwsfBM3IlbQBs6GReiw1lG2W', // bcrypt hash of 'admin123'
+    personal: { firstName: 'System', lastName: 'Administrator' },
+    professional: { role: 'SUPER_ADMIN' },
+    status: 'ACTIVE',
+    tenantId: 'demo-tenant',
+    orgId: 'demo-tenant',
   });
 
   const inactiveUser = () => ({
-    _id: "99",
-    code: "USR-099",
-    username: "inactive",
-    email: "inactive@x.com",
-    password: "$2b$10$igvySIqTp4AO9Hwg0c5fOOZUDAbDFAwsfBM3IlbQBs6GReiw1lG2W",
-    personal: { firstName: "Inactive", lastName: "User" },
-    professional: { role: "USER" },
-    status: "SUSPENDED",
-    tenantId: "demo-tenant",
-    orgId: "demo-tenant",
+    _id: '99',
+    code: 'USR-099',
+    username: 'inactive',
+    email: 'inactive@x.com',
+    password: '$2b$10$igvySIqTp4AO9Hwg0c5fOOZUDAbDFAwsfBM3IlbQBs6GReiw1lG2W',
+    personal: { firstName: 'Inactive', lastName: 'User' },
+    professional: { role: 'USER' },
+    status: 'SUSPENDED',
+    tenantId: 'demo-tenant',
+    orgId: 'demo-tenant',
   });
 
   return {
     __esModule: true,
     User: {
-      findOne: vi.fn(async (query: any) => {
+      findOne: vi.fn(async (query: Record<string, unknown>) => {
         // Inactive user for auth tests
-        if (query.email === "inactive@x.com" || query.username === "inactive") {
+        if (query.email === 'inactive@x.com' || query.username === 'inactive') {
           return inactiveUser();
         }
-
+        
         // Default superadmin user
-        if (
-          query.email === "superadmin@fixzit.co" ||
-          query.username === "superadmin"
-        ) {
+        if (query.email === 'superadmin@fixzit.co' || query.username === 'superadmin') {
           return makeDefaultUser();
         }
-
+        
         // For getUserFromToken test - user by _id
-        if (query._id === "42") {
+        if (query._id === '42') {
           return {
-            _id: "42",
-            email: "ok@x.com",
-            username: "okuser",
-            password:
-              "$2b$10$igvySIqTp4AO9Hwg0c5fOOZUDAbDFAwsfBM3IlbQBs6GReiw1lG2W",
-            personal: { firstName: "Ok", lastName: "User" },
-            professional: { role: "ADMIN" },
-            status: "ACTIVE",
-            tenantId: "tenant-42",
-            orgId: "tenant-42",
+            _id: '42',
+            email: 'ok@x.com',
+            username: 'okuser',
+            password: '$2b$10$igvySIqTp4AO9Hwg0c5fOOZUDAbDFAwsfBM3IlbQBs6GReiw1lG2W',
+            personal: { firstName: 'Ok', lastName: 'User' },
+            professional: { role: 'ADMIN' },
+            status: 'ACTIVE',
+            tenantId: 'tenant-42',
+            orgId: 'tenant-42',
           };
         }
-
+        
         // Not found
         return null;
       }),
       findById: vi.fn(async (id: string) => {
-        if (id === "42") {
+        if (id === '42') {
           return {
-            _id: "42",
-            email: "ok@x.com",
-            username: "okuser",
-            password:
-              "$2b$10$igvySIqTp4AO9Hwg0c5fOOZUDAbDFAwsfBM3IlbQBs6GReiw1lG2W",
-            personal: { firstName: "Ok", lastName: "User" },
-            professional: { role: "ADMIN" },
-            status: "ACTIVE",
-            tenantId: "tenant-42",
-            orgId: "tenant-42",
+            _id: '42',
+            email: 'ok@x.com',
+            username: 'okuser',
+            password: '$2b$10$igvySIqTp4AO9Hwg0c5fOOZUDAbDFAwsfBM3IlbQBs6GReiw1lG2W',
+            personal: { firstName: 'Ok', lastName: 'User' },
+            professional: { role: 'ADMIN' },
+            status: 'ACTIVE',
+            tenantId: 'tenant-42',
+            orgId: 'tenant-42',
           };
         }
-        if (id === "1") {
+        if (id === '1') {
           return makeDefaultUser();
         }
-        if (id === "99") {
+        if (id === '99') {
           return inactiveUser();
         }
         return null;
       }),
-      create: vi.fn(async (data: any) => ({ _id: "new-id", ...data })),
+      create: vi.fn(async (data: Record<string, unknown>) => ({ _id: 'new-id', ...data })),
       updateOne: vi.fn(async () => ({ modifiedCount: 1 })),
       deleteOne: vi.fn(async () => ({ deletedCount: 1 })),
     },
@@ -480,43 +455,41 @@ vi.mock("@/modules/users/schema", () => {
 // ============================================
 // 2. MOCK NEXT-AUTH
 // ============================================
-vi.mock("next-auth/react", () => ({
+vi.mock('next-auth/react', () => ({
   useSession: vi.fn(() => ({
     data: {
       user: {
-        id: "test-user-id",
-        email: "admin@fixzit.co",
-        name: "Test Admin",
-        role: "SUPER_ADMIN",
-        orgId: "test-org-id",
+        id: 'test-user-id',
+        email: 'admin@fixzit.co',
+        name: 'Test Admin',
+        role: 'SUPER_ADMIN',
+        orgId: 'test-org-id',
       },
-      expires: "9999-12-31T23:59:59.999Z",
+      expires: '9999-12-31T23:59:59.999Z',
     },
-    status: "authenticated",
+    status: 'authenticated',
     update: vi.fn(),
   })),
-  SessionProvider: ({ children }: { children: React.ReactNode }) =>
+  SessionProvider: ({ children }: { children: React.ReactNode }) => 
     React.createElement(React.Fragment, null, children),
   signIn: vi.fn(),
   signOut: vi.fn(),
-  getCsrfToken: vi.fn(() => Promise.resolve("mock-csrf-token")),
+  getCsrfToken: vi.fn(() => Promise.resolve('mock-csrf-token')),
   getProviders: vi.fn(() => Promise.resolve({})),
-  getSession: vi.fn(() =>
-    Promise.resolve({
-      user: {
-        id: "test-user-id",
-        email: "admin@fixzit.co",
-        name: "Test Admin",
-        role: "SUPER_ADMIN",
-        orgId: "test-org-id",
-      },
-      expires: "9999-12-31T23:59:59.999Z",
-    }),
-  ),
+  getSession: vi.fn(() => Promise.resolve({
+    user: {
+      id: 'test-user-id',
+      email: 'admin@fixzit.co',
+      name: 'Test Admin',
+      role: 'SUPER_ADMIN',
+      orgId: 'test-org-id',
+    },
+    expires: '9999-12-31T23:59:59.999Z',
+  })),
 }));
 
 // Mock next/navigation
-vi.mock("next/navigation", () => ({
+vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),
@@ -524,10 +497,10 @@ vi.mock("next/navigation", () => ({
     back: vi.fn(),
     forward: vi.fn(),
     refresh: vi.fn(),
-    pathname: "/",
+    pathname: '/',
     query: {},
   }),
-  usePathname: () => "/",
+  usePathname: () => '/',
   useSearchParams: () => new URLSearchParams(),
   useParams: () => ({}),
   notFound: vi.fn(),
@@ -537,20 +510,15 @@ vi.mock("next/navigation", () => ({
 
 // Mock fetch globally for SWR and API route tests
 global.fetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
-  const urlStr =
-    typeof url === "string"
-      ? url
-      : url instanceof URL
-        ? url.toString()
-        : url.url;
-  const method = init?.method || "GET";
-
+  const urlStr = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
+  const method = init?.method || 'GET';
+  
   // Return generic success responses to prevent test timeouts
   const response = {
     ok: true,
     status: 200,
-    statusText: "OK",
-    headers: new Headers({ "content-type": "application/json" }),
+    statusText: 'OK',
+    headers: new Headers({ 'content-type': 'application/json' }),
     json: async () => ({
       items: [],
       page: 1,
@@ -561,71 +529,57 @@ global.fetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     text: async () => JSON.stringify({ items: [], page: 1, total: 0 }),
     blob: async () => new Blob(),
     arrayBuffer: async () => new ArrayBuffer(0),
-    clone: function () {
-      return this;
-    },
+    clone: function() { return this; },
   } as Response;
-
+  
   return Promise.resolve(response);
 }) as unknown as typeof fetch;
 
 // Mock NextRequest for API route tests
-vi.mock("next/server", async (importOriginal) => {
-  const actual = (await importOriginal()) as any;
-
+vi.mock('next/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('next/server')>();
+  
   return {
     ...actual,
-    NextRequest: vi
-      .fn()
-      .mockImplementation((url: string | URL | Request, init?: RequestInit) => {
-        const urlObj =
-          typeof url === "string"
-            ? new URL(url, "http://localhost:3000")
-            : url instanceof URL
-              ? url
-              : new URL((url as Request).url);
-
-        return {
-          url: urlObj.toString(),
-          nextUrl: {
-            href: urlObj.toString(),
-            origin: urlObj.origin,
-            protocol: urlObj.protocol,
-            username: urlObj.username,
-            password: urlObj.password,
-            host: urlObj.host,
-            hostname: urlObj.hostname,
-            port: urlObj.port,
-            pathname: urlObj.pathname,
-            search: urlObj.search,
-            searchParams: urlObj.searchParams,
-            hash: urlObj.hash,
-          },
-          headers: new Headers(init?.headers),
-          method: init?.method || "GET",
-          body: init?.body,
-          cookies: {
-            get: vi.fn((name: string) => ({
-              name,
-              value: "mock-cookie-value",
-            })),
-            getAll: vi.fn(() => []),
-            set: vi.fn(),
-            delete: vi.fn(),
-            has: vi.fn(() => false),
-          },
-          geo: undefined,
-          ip: "127.0.0.1",
-          json: async () => (init?.body ? JSON.parse(init.body as string) : {}),
-          text: async () => (init?.body ? String(init.body) : ""),
-          formData: async () => new FormData(),
-          arrayBuffer: async () => new ArrayBuffer(0),
-          blob: async () => new Blob(),
-          clone: function () {
-            return this;
-          },
-        };
-      }),
+    NextRequest: vi.fn().mockImplementation((url: string | URL | Request, init?: RequestInit) => {
+      const urlObj = typeof url === 'string' ? new URL(url, 'http://localhost:3000') : url instanceof URL ? url : new URL((url as Request).url);
+      
+      return {
+        url: urlObj.toString(),
+        nextUrl: {
+          href: urlObj.toString(),
+          origin: urlObj.origin,
+          protocol: urlObj.protocol,
+          username: urlObj.username,
+          password: urlObj.password,
+          host: urlObj.host,
+          hostname: urlObj.hostname,
+          port: urlObj.port,
+          pathname: urlObj.pathname,
+          search: urlObj.search,
+          searchParams: urlObj.searchParams,
+          hash: urlObj.hash,
+        },
+        headers: new Headers(init?.headers),
+        method: init?.method || 'GET',
+        body: init?.body,
+        cookies: {
+          get: vi.fn((name: string) => ({ name, value: 'mock-cookie-value' })),
+          getAll: vi.fn(() => []),
+          set: vi.fn(),
+          delete: vi.fn(),
+          has: vi.fn(() => false),
+        },
+        geo: undefined,
+        ip: '127.0.0.1',
+        json: async () => (init?.body ? JSON.parse(init.body as string) : {}),
+        text: async () => (init?.body ? String(init.body) : ''),
+        formData: async () => new FormData(),
+        arrayBuffer: async () => new ArrayBuffer(0),
+        blob: async () => new Blob(),
+        clone: function() { return this; },
+      };
+    }),
   };
 });
 
@@ -644,10 +598,10 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 }));
 
 // Mock matchMedia for responsive tests (only in browser/jsdom environment)
-if (typeof window !== "undefined") {
-  Object.defineProperty(window, "matchMedia", {
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: vi.fn().mockImplementation((query) => ({
+    value: vi.fn().mockImplementation(query => ({
       matches: false,
       media: query,
       onchange: null,
@@ -662,34 +616,29 @@ if (typeof window !== "undefined") {
 
 // Mock environment variables with secure defaults
 if (!process.env.NODE_ENV) {
-  Object.defineProperty(process.env, "NODE_ENV", {
-    value: "test",
-    writable: true,
-  });
+  Object.defineProperty(process.env, 'NODE_ENV', { value: 'test', writable: true });
 }
 
 // NODE_ENV already set above
-process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
-process.env.MONGODB_URI =
-  process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit_test";
+process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
+process.env.MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit_test';
 // Using real MongoDB for all test environments
-process.env.JWT_SECRET = requireEnv("JWT_SECRET", {
-  testFallback: "test-secret-key-for-jest-tests-minimum-32-characters-long",
+process.env.JWT_SECRET = requireEnv('JWT_SECRET', {
+  testFallback: 'test-secret-key-for-jest-tests-minimum-32-characters-long',
 });
 process.env.NEXTAUTH_SECRET =
-  process.env.NEXTAUTH_SECRET ||
-  "test-nextauth-secret-for-jest-tests-minimum-32-characters-long";
-process.env.NEXTAUTH_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  process.env.NEXTAUTH_SECRET || 'test-nextauth-secret-for-jest-tests-minimum-32-characters-long';
+process.env.NEXTAUTH_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
 // Mock crypto for secure random generation in tests
-if (typeof globalThis.crypto === "undefined") {
-  const { webcrypto } = require("crypto");
+if (typeof globalThis.crypto === 'undefined') {
+  const { webcrypto } = require('crypto');
   globalThis.crypto = webcrypto as Crypto;
 }
 
 // Global error handler for unhandled promise rejections
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 // ============================================
@@ -698,34 +647,34 @@ process.on("unhandledRejection", (reason, promise) => {
 // This wraps all components with necessary providers for testing
 const mockSession = {
   user: {
-    id: "test-user-id",
-    email: "admin@fixzit.co",
-    name: "Test Admin",
-    role: "SUPER_ADMIN",
-    orgId: "test-org-id",
+    id: 'test-user-id',
+    email: 'admin@fixzit.co',
+    name: 'Test Admin',
+    role: 'SUPER_ADMIN',
+    orgId: 'test-org-id',
   },
-  expires: "9999-12-31T23:59:59.999Z",
+  expires: '9999-12-31T23:59:59.999Z',
 };
 
 // Note: Import providers dynamically to avoid circular dependencies
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   // We use the mocked SessionProvider from next-auth/react above
-  const { SessionProvider } = require("next-auth/react");
-
+  const { SessionProvider } = require('next-auth/react');
+  
   // Wrap with TranslationProvider if available
   try {
-    const { TranslationProvider } = require("@/contexts/TranslationContext");
+    const { TranslationProvider } = require('@/contexts/TranslationContext');
     return React.createElement(
       SessionProvider,
       { session: mockSession },
-      React.createElement(TranslationProvider, null, children),
+      React.createElement(TranslationProvider, null, children)
     );
   } catch {
     // If TranslationProvider doesn't exist or fails, just use SessionProvider
     return React.createElement(
       SessionProvider,
       { session: mockSession },
-      children,
+      children
     );
   }
 };
@@ -734,6 +683,6 @@ const customRender = (ui: React.ReactElement, options = {}) =>
   render(ui, { wrapper: AllTheProviders, ...options });
 
 // Re-export everything from @testing-library/react
-export * from "@testing-library/react";
+export * from '@testing-library/react';
 // Override the render method with our custom one
 export { customRender as render };

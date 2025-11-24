@@ -1,48 +1,23 @@
-import { spawn } from "node:child_process";
-import { writeFileSync, mkdirSync, renameSync, existsSync } from "node:fs";
-import { dirname } from "node:path";
+import { spawn } from 'node:child_process';
+import { writeFileSync, mkdirSync, renameSync, existsSync } from 'node:fs';
+import { dirname } from 'node:path';
 
 // Configuration - can be overridden via environment variables
 const CONFIG = {
-  durationMs: parseInt(process.env.LOOP_DURATION_MS || 3 * 60 * 60 * 1000), // 3 hours default
+  durationMs: parseInt(process.env.LOOP_DURATION_MS || (3 * 60 * 60 * 1000)), // 3 hours default
   pauseBetweenCycles: parseInt(process.env.LOOP_PAUSE_MS || 30000), // 30 seconds
-  logFile: process.env.LOOP_LOG_FILE || "tests/loop-runner.log",
+  logFile: process.env.LOOP_LOG_FILE || 'tests/loop-runner.log',
   commands: [
-    {
-      cmd: "pnpm",
-      args: ["typecheck"],
-      label: "TypeScript Check",
-      step: "1/4",
-    },
-    {
-      cmd: "pnpm",
-      args: ["lint", "--max-warnings=0"],
-      label: "ESLint",
-      step: "2/4",
-    },
-    {
-      cmd: "node",
-      args: ["tests/i18n-scan.mjs"],
-      label: "i18n Scanner",
-      step: "3/4",
-    },
-    {
-      cmd: "pnpm",
-      args: [
-        "exec",
-        "playwright",
-        "test",
-        "--config=tests/playwright.config.ts",
-      ],
-      label: "E2E Tests",
-      step: "4/4",
-    },
+    { cmd: 'pnpm', args: ['typecheck'], label: 'TypeScript Check', step: '1/4' },
+    { cmd: 'pnpm', args: ['lint', '--max-warnings=0'], label: 'ESLint', step: '2/4' },
+    { cmd: 'node', args: ['tests/i18n-scan.mjs'], label: 'i18n Scanner', step: '3/4' },
+    { cmd: 'pnpm', args: ['exec', 'playwright', 'test', '--config=tests/playwright.config.ts'], label: 'E2E Tests', step: '4/4' },
   ],
 };
 
 const endAt = Date.now() + CONFIG.durationMs;
 let runNumber = 1;
-let anyFailures = false; // Track if any command failed during the loop
+let hasFailures = false; // Track if any command failed during the loop
 const logFile = CONFIG.logFile;
 
 // Ensure log directory exists
@@ -66,7 +41,7 @@ function logMessage(message, isError = false) {
     console.log(message);
   }
   try {
-    writeFileSync(logFile, entry, { flag: "a" });
+    writeFileSync(logFile, entry, { flag: 'a' });
   } catch (err) {
     console.error(`Failed to write to ${logFile}: ${err.message}`);
   }
@@ -78,21 +53,19 @@ function logMessage(message, isError = false) {
  */
 function executeCommand(cmd, args, label, step) {
   return new Promise((resolve, reject) => {
-    logMessage(
-      `\n${"=".repeat(80)}\n[${step}] ${label}\nCommand: ${cmd} ${args.join(" ")}\n${"=".repeat(80)}`,
-    );
+    logMessage(`\n${'='.repeat(80)}\n[${step}] ${label}\nCommand: ${cmd} ${args.join(' ')}\n${'='.repeat(80)}`);
 
     // CI=1 forces non-interactive mode for tools like Playwright
     const proc = spawn(cmd, args, {
-      stdio: "pipe",
+      stdio: 'pipe',
       shell: false,
-      env: { ...process.env, CI: "1" },
+      env: { ...process.env, CI: '1' },
     });
 
-    proc.stdout.on("data", (data) => logMessage(data.toString()));
-    proc.stderr.on("data", (data) => logMessage(data.toString(), true));
+    proc.stdout.on('data', (data) => logMessage(data.toString()));
+    proc.stderr.on('data', (data) => logMessage(data.toString(), true));
 
-    proc.on("close", (code) => {
+    proc.on('close', (code) => {
       if (code === 0) {
         logMessage(`✓ ${label} completed successfully`);
         resolve(code);
@@ -103,7 +76,7 @@ function executeCommand(cmd, args, label, step) {
       }
     });
 
-    proc.on("error", (err) => {
+    proc.on('error', (err) => {
       logMessage(`✗ ${label} error: ${err.message}`, true);
       reject(err);
     });
@@ -112,10 +85,10 @@ function executeCommand(cmd, args, label, step) {
 
 async function runVerificationCycle() {
   const startTime = Date.now();
-  logMessage(`\n${"#".repeat(80)}`);
+  logMessage(`\n${'#'.repeat(80)}`);
   logMessage(`VERIFICATION CYCLE #${runNumber} STARTED`);
-  logMessage(`${"#".repeat(80)}\n`);
-
+  logMessage(`${'#'.repeat(80)}\n`);
+  
   let cycleSuccess = true;
 
   for (const { cmd, args, label, step } of CONFIG.commands) {
@@ -124,24 +97,20 @@ async function runVerificationCycle() {
       await executeCommand(cmd, args, label, step);
     } catch (err) {
       cycleSuccess = false;
-      anyFailures = true; // Track that at least one failure occurred
+      hasFailures = true; // Track that at least one failure occurred
       logMessage(`Continuing to next step despite failure in: ${label}`, true);
     }
   }
-
+  
   const duration = ((Date.now() - startTime) / 1000 / 60).toFixed(2);
-  logMessage(`\n${"#".repeat(80)}`);
+  logMessage(`\n${'#'.repeat(80)}`);
   if (cycleSuccess) {
-    logMessage(
-      `✓ VERIFICATION CYCLE #${runNumber} COMPLETED SUCCESSFULLY in ${duration} minutes`,
-    );
+    logMessage(`✓ VERIFICATION CYCLE #${runNumber} COMPLETED SUCCESSFULLY in ${duration} minutes`);
   } else {
-    logMessage(
-      `✗ VERIFICATION CYCLE #${runNumber} COMPLETED WITH FAILURES in ${duration} minutes`,
-    );
+    logMessage(`✗ VERIFICATION CYCLE #${runNumber} COMPLETED WITH FAILURES in ${duration} minutes`);
   }
-  logMessage(`${"#".repeat(80)}\n`);
-
+  logMessage(`${'#'.repeat(80)}\n`);
+  
   runNumber++;
 }
 
@@ -149,41 +118,38 @@ async function main() {
   // Clear log file at start to prevent unbounded growth
   try {
     mkdirSync(dirname(logFile), { recursive: true });
-    writeFileSync(logFile, "", "utf8");
-    logMessage("🧹 Log file cleared at start of loop");
+    writeFileSync(logFile, '', 'utf8');
+    logMessage('🧹 Log file cleared at start of loop');
   } catch (err) {
     console.error(`Failed to clear log file: ${err.message}`);
   }
 
-  logMessage("🚀 Starting automated verification loop...");
+  logMessage('🚀 Starting automated verification loop...');
   logMessage(`Duration: ${(CONFIG.durationMs / 1000 / 60).toFixed(0)} minutes`);
   logMessage(`End time: ${new Date(endAt).toISOString()}`);
   logMessage(`Current time: ${new Date().toISOString()}\n`);
-
+  
   try {
     while (Date.now() < endAt) {
       const remainingMs = endAt - Date.now();
       const remainingMins = Math.floor(remainingMs / 1000 / 60);
       logMessage(`⏱️  Time remaining: ${remainingMins} minutes\n`);
-
+      
       await runVerificationCycle();
-
+      
       // Brief pause between cycles
       if (Date.now() < endAt) {
-        logMessage(
-          `⏸️  Pausing ${CONFIG.pauseBetweenCycles / 1000} seconds before next cycle...\n`,
-        );
-        await new Promise((resolve) =>
-          setTimeout(resolve, CONFIG.pauseBetweenCycles),
-        );
+        logMessage(`⏸️  Pausing ${CONFIG.pauseBetweenCycles / 1000} seconds before next cycle...\n`);
+        await new Promise(resolve => setTimeout(resolve, CONFIG.pauseBetweenCycles));
       }
     }
-
-    logMessage("\n" + "🎉".repeat(40));
-    logMessage("✅ VERIFICATION LOOP COMPLETED");
-    logMessage("🎉".repeat(40) + "\n");
+    
+    logMessage('\n' + '🎉'.repeat(40));
+    logMessage('✅ VERIFICATION LOOP COMPLETED');
+    logMessage('🎉'.repeat(40) + '\n');
     logMessage(`Total verification cycles completed: ${runNumber - 1}`);
     logMessage(`Check playwright-report/index.html for detailed test results`);
+    
   } catch (error) {
     logMessage(`\n❌ Fatal error in loop runner: ${error.message}`);
     logMessage(error.stack);
@@ -191,29 +157,26 @@ async function main() {
   }
 
   // Exit with code 1 if any failures occurred during the loop
-  if (anyFailures) {
-    logMessage(
-      "\n✗ Exiting with code 1 - failures detected during verification loop",
-      true,
-    );
+  if (hasFailures) {
+    logMessage('\n✗ Exiting with code 1 - failures detected during verification loop', true);
     process.exit(1);
   } else {
-    logMessage("\n✓ Exiting with code 0 - all verification cycles passed");
+    logMessage('\n✓ Exiting with code 0 - all verification cycles passed');
     process.exit(0);
   }
 }
 
 // Handle graceful shutdown
-process.on("SIGINT", () => {
-  logMessage("\n⚠️  Received SIGINT - shutting down gracefully...");
+process.on('SIGINT', () => {
+  logMessage('\n⚠️  Received SIGINT - shutting down gracefully...');
   logMessage(`Completed ${runNumber - 1} verification cycles before shutdown`);
-  process.exit(anyFailures ? 1 : 0);
+  process.exit(hasFailures ? 1 : 0);
 });
 
-process.on("SIGTERM", () => {
-  logMessage("\n⚠️  Received SIGTERM - shutting down gracefully...");
+process.on('SIGTERM', () => {
+  logMessage('\n⚠️  Received SIGTERM - shutting down gracefully...');
   logMessage(`Completed ${runNumber - 1} verification cycles before shutdown`);
-  process.exit(anyFailures ? 1 : 0);
+  process.exit(hasFailures ? 1 : 0);
 });
 
 main().catch((err) => {

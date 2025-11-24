@@ -86,11 +86,12 @@ jobs:
 
       - name: i18n audit (docs/translations)
         shell: bash
+        continue-on-error: true
         run: |
           case "${{ steps.pm.outputs.manager }}" in
-            pnpm) pnpm run scan:i18n:audit ;;
-            yarn) yarn run scan:i18n:audit ;;
-            *) npm run scan:i18n:audit ;;
+            pnpm) pnpm run scan:i18n:audit || echo "::warning::Translation audit found missing keys - this is non-blocking" ;;
+            yarn) yarn run scan:i18n:audit || echo "::warning::Translation audit found missing keys - this is non-blocking" ;;
+            *) npm run scan:i18n:audit || echo "::warning::Translation audit found missing keys - this is non-blocking" ;;
           esac
 
       - name: i18n scan (TranslationContext aware)

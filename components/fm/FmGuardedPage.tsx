@@ -24,7 +24,9 @@ type FmGuardedPageProps = {
 /**
  * Renders the FM page only when org context is available.
  * Keeps hooks inside children unconditional, so we can avoid eslint rule-of-hooks waivers.
- * Children receive GuaranteedFmContext with non-null orgId, eliminating need for assertions.
+ * 
+ * Type safety: orgId is guaranteed non-null when children render (checked in if condition).
+ * Children receive GuaranteedFmContext with orgId: string (not string | null).
  */
 export function FmGuardedPage({ moduleId, children }: FmGuardedPageProps) {
   const guardCtx = useFmOrgGuard({ moduleId });

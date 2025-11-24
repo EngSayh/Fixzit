@@ -4,24 +4,24 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
-      - "app/**"
-      - "components/**"
-      - "lib/**"
-      - "tests/**"
-      - "playwright.config.ts"
-      - "tests/playwright.config.ts"
-      - "package.json"
-      - "pnpm-lock.yaml"
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'tests/**'
+      - 'playwright.config.ts'
+      - 'tests/playwright.config.ts'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
   workflow_dispatch:
     inputs:
       project:
-        description: "Playwright project to run (leave empty for all)"
+        description: 'Playwright project to run (leave empty for all)'
         required: false
-        default: ""
+        default: ''
       test_path:
-        description: "Specific test file to run (leave empty for all)"
+        description: 'Specific test file to run (leave empty for all)'
         required: false
-        default: ""
+        default: ''
 
 # Prevent concurrent runs for same PR/ref
 concurrency:
@@ -37,7 +37,7 @@ jobs:
   e2e-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
+    
     # MongoDB service per job to avoid port conflicts
     services:
       mongodb:
@@ -51,24 +51,25 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
+    
     strategy:
       fail-fast: false
       matrix:
         # Run critical smoke tests in parallel
-        project:
-          - "Desktop:EN:Admin"
-          - "Mobile:AR:Tenant"
-          - "Desktop:AR:Tenant"
-          - "Mobile:EN:Admin"
-
+        # Project names MUST match playwright.config.ts exactly
+        project: 
+          - 'Desktop:EN:Admin'       # Matches: Desktop:EN:Admin
+          - 'Desktop:AR:Tenant'      # Matches: Desktop:AR:Tenant
+          - 'Mobile:EN:Technician'   # Mobile Android field ops
+          - 'Mobile:AR:Tenant'       # Mobile iOS self-service
+    
     env:
       NODE_OPTIONS: --max-old-space-size=4096
       PLAYWRIGHT_CONFIG: tests/playwright.config.ts
       PW_WEB_SERVER: pnpm --dir Fixzit dev
       PW_WEB_PORT: 3000
       PLAYWRIGHT_BROWSERS_PATH: 0
-
+      
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -80,11 +81,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "pnpm"
-          cache-dependency-path: Fixzit/pnpm-lock.yaml
+          cache: 'pnpm'
+          cache-dependency-path: 'pnpm-lock.yaml'
 
       - name: Install dependencies
-        working-directory: Fixzit
         run: pnpm install --frozen-lockfile
 
       - name: Get Playwright version
@@ -102,29 +102,37 @@ jobs:
 
       - name: Install Playwright Browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        working-directory: Fixzit
         run: pnpm exec playwright install --with-deps
-
+      
       - name: Install Playwright system dependencies
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        working-directory: Fixzit
         run: pnpm exec playwright install-deps
 
       - name: Cache Next.js build
         uses: actions/cache@v4
         with:
-          path: Fixzit/.next/cache
-          key: nextjs-${{ runner.os }}-${{ hashFiles('Fixzit/pnpm-lock.yaml', 'Fixzit/package.json', 'Fixzit/tsconfig*.json', 'Fixzit/next.config.*', 'Fixzit/next-env.d.ts', 'Fixzit/middleware.*', 'Fixzit/tailwind.config.*', 'Fixzit/postcss.config.*', 'Fixzit/babel.config.*', 'Fixzit/turbo.json', 'Fixzit/app/**', 'Fixzit/pages/**', 'Fixzit/components/**', 'Fixzit/lib/**', 'Fixzit/src/**', 'Fixzit/styles/**', 'Fixzit/public/**', 'Fixzit/public_local/**') }}
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'package.json', 'tsconfig*.json', 'next.config.*', 'next-env.d.ts', 'middleware.*', 'tailwind.config.*', 'postcss.config.*', 'babel.config.*', 'turbo.json', 'app/**', 'pages/**', 'components/**', 'lib/**', 'src/**', 'styles/**', 'public/**', 'public_local/**') }}
           restore-keys: |
             nextjs-${{ runner.os }}-
 
-      - name: Build app (production)
+      - name: Build app (for E2E tests)
         env:
-          NODE_ENV: production
-          SKIP_ENV_VALIDATION: "true"
-          ALLOW_OFFLINE_MONGODB: "true"
-        working-directory: Fixzit
-        run: pnpm build
+          NODE_ENV: test
+          SKIP_ENV_VALIDATION: 'true'
+          ALLOW_OFFLINE_MONGODB: 'true'
+        run: |
+          echo "Building Next.js app for E2E tests..."
+          if [ "$ALLOW_OFFLINE_MONGODB" = "true" ]; then
+            echo "⏭️  Building in offline mode (MongoDB disabled)..."
+          fi
+          pnpm build || {
+            echo "❌ Build failed! Checking for common issues..."
+            echo "NODE_ENV: $NODE_ENV"
+            echo "Disk space:"
+            df -h
+            exit 1
+          }
 
       - name: Verify MongoDB health
         run: |
@@ -158,8 +166,13 @@ jobs:
             echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> "$GITHUB_ENV"
             echo "AUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> "$GITHUB_ENV"
             # Google OAuth is optional - set to empty string if not configured
-            echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> "$GITHUB_ENV"
-            echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> "$GITHUB_ENV"
+            if [ -n "${{ secrets.GOOGLE_CLIENT_ID }}" ]; then
+              echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> "$GITHUB_ENV"
+            else
+              echo "GOOGLE_CLIENT_ID=" >> "$GITHUB_ENV"
+            fi
+            # Note: secrets.GOOGLE_CLIENT_SECRET is conditionally set
+            echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET || '' }}" >> "$GITHUB_ENV"
           fi
 
       - name: Run Playwright E2E Tests
@@ -168,45 +181,63 @@ jobs:
           NEXTAUTH_URL: http://localhost:3000
           NEXTAUTH_SECRET: ${{ env.NEXTAUTH_SECRET }}
           AUTH_SECRET: ${{ env.AUTH_SECRET }}
-
+          NEXTAUTH_SKIP_CSRF_CHECK: 'true'
+          AUTH_TRUST_HOST: 'true'
+          
+          # Disable OTP for E2E tests
+          NEXT_PUBLIC_REQUIRE_SMS_OTP: 'false'
+          NEXTAUTH_REQUIRE_SMS_OTP: 'false'
+          
           # Google OAuth (from GitHub Secrets - optional)
-          # These secrets are optional - if not set, they will be empty strings
-          # The application handles missing OAuth gracefully with SKIP_ENV_VALIDATION=true
           GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ env.GOOGLE_CLIENT_SECRET }}
-
-          # Database
+          
+          # Database - use offline mode with mock sessions
           MONGODB_URI: mongodb://localhost:27017/fixzit_test
-          ALLOW_OFFLINE_MONGODB: "true"
-
+          ALLOW_OFFLINE_MONGODB: 'true'
+          PLAYWRIGHT_TESTS: 'true'
+          
           # Test environment
           NODE_ENV: test
-          CI: "true"
-          SKIP_ENV_VALIDATION: "true"
-
+          CI: 'true'
+          SKIP_ENV_VALIDATION: 'true'
+          
           # Base URL
           BASE_URL: http://localhost:3000
-
+          
         run: |
           project_arg=""
           test_path_arg=""
-
+          
           # Use matrix project or workflow input
           if [ -n "${{ matrix.project }}" ]; then
             project_arg="--project=${{ matrix.project }}"
           elif [ -n "${{ github.event.inputs.project }}" ]; then
             project_arg="--project=${{ github.event.inputs.project }}"
           fi
-
+          
           # Use specific test path from workflow input
           if [ -n "${{ github.event.inputs.test_path }}" ]; then
             test_path_arg="${{ github.event.inputs.test_path }}"
           fi
-
-          echo "Running Playwright tests..."
+          
+          echo "🎭 Running Playwright E2E Tests"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Project: ${project_arg:-all projects}"
           echo "Test path: ${test_path_arg:-all tests}"
-
+          echo "Config: $PLAYWRIGHT_CONFIG"
+          echo "Offline mode: $ALLOW_OFFLINE_MONGODB"
+          echo "CSRF bypass: $NEXTAUTH_SKIP_CSRF_CHECK"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          # Verify auth states were created
+          if [ -d "tests/state" ]; then
+            echo "✅ Auth state directory exists"
+            ls -lh tests/state/ || echo "⚠️  Could not list auth states"
+          else
+            echo "❌ Auth state directory missing!"
+          fi
+          
           # Run with retries for flaky tests and reasonable failure threshold
           pnpm exec playwright test \
             --config "$PLAYWRIGHT_CONFIG" \
@@ -214,8 +245,17 @@ jobs:
             --max-failures=10 \
             --reporter=list,html \
             ${project_arg} \
-            ${test_path_arg}
-        working-directory: Fixzit
+            ${test_path_arg} || {
+              echo "❌ Tests failed!"
+              echo "Checking for common issues..."
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "Auth states:"
+              ls -lh tests/state/ 2>/dev/null || echo "No auth states found"
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "Recent logs from test output:"
+              tail -50 playwright-report/*.log 2>/dev/null || echo "No logs available"
+              exit 1
+            }
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
@@ -246,14 +286,14 @@ jobs:
         run: |
           project="${{ matrix.project }}"
           status="${{ job.status }}"
-
+          
           # Save status to artifact for summary job
           mkdir -p test-results
           echo "${status}" > "test-results/${project//[:\/]/-}-status.txt"
-
+          
           echo "PROJECT_NAME=${project}" >> $GITHUB_ENV
           echo "PROJECT_STATUS=${status}" >> $GITHUB_ENV
-
+          
           # Create project-specific summary
           echo "### 🎭 ${project}" >> $GITHUB_STEP_SUMMARY
           if [ "${status}" = "success" ]; then
@@ -263,7 +303,7 @@ jobs:
           fi
           echo "[📊 Download report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-
+      
       - name: Upload test status
         uses: actions/upload-artifact@v4
         if: always()
@@ -281,10 +321,10 @@ jobs:
             const jobStatus = '${{ job.status }}';
             const runId = '${{ github.run_id }}';
             const repo = context.repo;
-
+            
             const statusIcon = jobStatus === 'success' ? '✅' : '❌';
             const statusText = jobStatus === 'success' ? 'All tests passed' : 'Some tests failed';
-
+            
             let body = `## 🎭 E2E Test Results - ${project}\n\n`;
             body += `${statusIcon} **${statusText}**\n\n`;
             body += `**Details:**\n`;
@@ -292,7 +332,7 @@ jobs:
             body += `- Status: ${jobStatus}\n`;
             body += `- [View action logs](${context.payload.repository.html_url}/actions/runs/${runId})\n`;
             body += `- [Download artifacts](${context.payload.repository.html_url}/actions/runs/${runId}#artifacts)\n`;
-
+            
             try {
               await github.rest.issues.createComment({
                 issue_number: context.issue.number,
@@ -308,7 +348,7 @@ jobs:
     needs: e2e-tests
     runs-on: ubuntu-latest
     if: always()
-
+    
     steps:
       - name: Download all test statuses
         uses: actions/download-artifact@v4
@@ -317,7 +357,7 @@ jobs:
           path: test-statuses
           merge-multiple: true
         continue-on-error: true
-
+      
       - name: Generate comprehensive summary
         uses: actions/github-script@v7
         with:
@@ -327,18 +367,18 @@ jobs:
             const result = '${{ needs.e2e-tests.result }}';
             const runId = '${{ github.run_id }}';
             const repo = context.repo;
-
+            
             // Read individual project statuses
             const projects = [
               { name: 'Desktop:EN:Admin', locale: 'EN', persona: 'Admin' },
               { name: 'Mobile:AR:Tenant', locale: 'AR', persona: 'Tenant' },
               { name: 'Desktop:AR:Tenant', locale: 'AR', persona: 'Tenant' },
-              { name: 'Mobile:EN:Admin', locale: 'EN', persona: 'Admin' }
+              { name: 'Mobile:EN:Technician', locale: 'EN', persona: 'Technician' }
             ];
-
+            
             const statuses = {};
             const statusDir = 'test-statuses';
-
+            
             if (fs.existsSync(statusDir)) {
               for (const project of projects) {
                 const fileName = `${project.name.replace(/:/g, '-')}-status.txt`;
@@ -351,37 +391,37 @@ jobs:
                 }
               }
             }
-
+            
             let summary = '## 🎭 E2E Tests - Complete Summary\n\n';
-
+            
             // Count successes and failures
             const successCount = Object.values(statuses).filter(s => s === 'success').length;
             const failureCount = Object.values(statuses).filter(s => s === 'failure').length;
-
+            
             // Overall status
             if (result === 'success') {
               summary += `✅ **All ${projects.length} E2E test projects passed successfully!**\n\n`;
             } else {
               summary += `❌ **${failureCount} of ${projects.length} E2E test projects failed**\n\n`;
             }
-
+            
             // Project breakdown with individual statuses
             summary += '### Test Projects Coverage\n\n';
             summary += '| Project | Locale | Persona | Status |\n';
             summary += '|---------|--------|---------|--------|\n';
-
+            
             for (const project of projects) {
               const status = statuses[project.name] || 'unknown';
               const icon = status === 'success' ? '✅' : status === 'failure' ? '❌' : '❓';
               summary += `| ${project.name} | ${project.locale} | ${project.persona} | ${icon} ${status} |\n`;
             }
             summary += '\n';
-
+            
             summary += '### Resources\n\n';
             summary += `- [View workflow run](${context.payload.repository.html_url}/actions/runs/${runId})\n`;
             summary += `- [Download all artifacts](${context.payload.repository.html_url}/actions/runs/${runId}#artifacts)\n`;
             summary += '- Reports retained for 7 days\n\n';
-
+            
             summary += '### Configuration\n\n';
             summary += '- **Retries:** 2 attempts per test (for flakiness)\n';
             summary += '- **Max failures:** Stop after 10 failures per project\n';
@@ -389,9 +429,9 @@ jobs:
             summary += '- **Database:** Isolated MongoDB per project\n';
             summary += '- **Browser cache:** Playwright browsers cached across runs\n';
             summary += '- **Build cache:** Next.js build artifacts cached\n';
-
+            
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
-
+            
             // Exit with error if tests failed
             if (result !== 'success') {
               core.setFailed(`E2E tests failed: ${failureCount} project(s) with failures. Check individual project logs above.`);

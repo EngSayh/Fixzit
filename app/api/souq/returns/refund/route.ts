@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { logger } from "@/lib/logger";
-import { returnsService } from "@/services/souq/returns-service";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
+import { returnsService } from '@/services/souq/returns-service';
 
 /**
  * POST /api/souq/returns/refund
@@ -12,12 +12,12 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Admin only
-    if (!["ADMIN", "SUPER_ADMIN"].includes(session.user.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -25,31 +25,46 @@ export async function POST(request: NextRequest) {
 
     // Validation
     if (!rmaId || !refundAmount || !refundMethod) {
-      return NextResponse.json(
-        {
-          error: "Missing required fields: rmaId, refundAmount, refundMethod",
-        },
-        { status: 400 },
-      );
+      return NextResponse.json({ 
+        error: 'Missing required fields: rmaId, refundAmount, refundMethod' 
+      }, { status: 400 });
     }
 
-    const validMethods = ["original_payment", "store_credit", "bank_transfer"];
+    // Org boundary enforcement: Verify RMA belongs to admin's organization
+    // SUPER_ADMIN can process refunds across all organizations
+    if (session.user.role !== 'SUPER_ADMIN' && session.user.orgId) {
+      const { SouqRMA } = await import('@/server/models/souq/RMA');
+      const rma = await SouqRMA.findById(rmaId).lean();
+      if (!rma) {
+        return NextResponse.json({ 
+          error: 'RMA not found' 
+        }, { status: 404 });
+      }
+      // Verify organization match - sellerId should match orgId for tenant isolation
+      if (rma.sellerId?.toString() !== session.user.orgId) {
+        logger.warn('Org boundary violation attempt in refund processing', { 
+          userId: session.user.id, 
+          userOrg: session.user.orgId,
+          rmaSeller: rma.sellerId,
+          rmaId 
+        });
+        return NextResponse.json({ 
+          error: 'Access denied: RMA belongs to different organization' 
+        }, { status: 403 });
+      }
+    }
+
+    const validMethods = ['original_payment', 'wallet', 'bank_transfer'];
     if (!validMethods.includes(refundMethod)) {
-      return NextResponse.json(
-        {
-          error: `Invalid refundMethod. Must be one of: ${validMethods.join(", ")}`,
-        },
-        { status: 400 },
-      );
+      return NextResponse.json({ 
+        error: `Invalid refundMethod. Must be one of: ${validMethods.join(', ')}` 
+      }, { status: 400 });
     }
 
     if (refundAmount <= 0) {
-      return NextResponse.json(
-        {
-          error: "Refund amount must be greater than 0",
-        },
-        { status: 400 },
-      );
+      return NextResponse.json({ 
+        error: 'Refund amount must be greater than 0' 
+      }, { status: 400 });
     }
 
     // Process refund
@@ -57,21 +72,19 @@ export async function POST(request: NextRequest) {
       rmaId,
       refundAmount,
       refundMethod,
-      processorId: session.user.id,
+      processorId: session.user.id
     });
 
-    return NextResponse.json({
+    return NextResponse.json({ 
       success: true,
-      message: "Refund processed successfully",
+      message: 'Refund processed successfully'
     });
+
   } catch (error) {
-    logger.error("Process refund error", { error });
-    return NextResponse.json(
-      {
-        error: "Failed to process refund",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    );
+    logger.error('Process refund error', { error });
+    return NextResponse.json({ 
+      error: 'Failed to process refund',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

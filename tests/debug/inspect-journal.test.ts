@@ -1,16 +1,19 @@
-import Journal from "@/server/models/finance/Journal";
+import Journal from '@/server/models/finance/Journal';
 
-describe("inspect Journal module", () => {
-  it("logs shape", () => {
-    console.log("Journal is", typeof Journal);
-
-    console.log("Journal keys", Object.keys(Journal as any));
-
-    console.log("Journal.default type", typeof (Journal as any).default);
-
-    console.log(
-      "Journal.default keys",
-      Object.keys((Journal as any).default || {}),
-    );
+describe('inspect Journal module', () => {
+  it('logs shape', () => {
+     
+    console.log('Journal is', typeof Journal);
+     
+    const journalExport = Journal as Record<string, unknown>;
+    console.log('Journal keys', Object.keys(journalExport));
+     
+    const defaultExport = (journalExport as { default?: unknown }).default;
+    console.log('Journal.default type', typeof defaultExport);
+     
+    const defaultKeys = defaultExport && typeof defaultExport === 'object'
+      ? Object.keys(defaultExport as Record<string, unknown>)
+      : [];
+    console.log('Journal.default keys', defaultKeys);
   });
 });

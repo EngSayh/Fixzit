@@ -26,8 +26,9 @@ vi.mock("@/lib/paytabs", () => ({
   validateCallback: (...args: unknown[]) => mockValidateCallback(...args),
 }));
 
+type JsonBody = Record<string, unknown>;
 const mockCreateSecureResponse = vi.fn(
-  (body: any, status = 200) =>
+  (body: JsonBody, status = 200) =>
     new Response(JSON.stringify(body), {
       status,
       headers: { "content-type": "application/json" },

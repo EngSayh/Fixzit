@@ -16,7 +16,7 @@ vi.mock("@/components/fm/ModuleViewTabs", () => ({
 
 vi.mock("@/components/fm/WorkOrdersView", () => ({
   __esModule: true,
-  WorkOrdersView: (props: any) => {
+  WorkOrdersView: (props: { orgId?: string }) => {
     workOrdersViewSpy(props);
     return <div data-testid="work-orders-view">org:{props.orgId}</div>;
   },

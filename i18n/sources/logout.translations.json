@@ -1,10 +1,20 @@
 {
   "en": {
+    "logout.error": "Error",
+    "logout.errorMessage": "Error Message",
     "logout.pleaseWait": "Please wait",
-    "logout.signingOut": "Signing out..."
+    "logout.redirecting": "Redirecting",
+    "logout.redirectingAfterError": "Redirecting After Error",
+    "logout.signingOut": "Signing out...",
+    "logout.success": "Success"
   },
   "ar": {
+    "logout.error": "خطأ",
+    "logout.errorMessage": "خطأ Message",
     "logout.pleaseWait": "يرجى الانتظار",
-    "logout.signingOut": "جاري تسجيل الخروج..."
+    "logout.redirecting": "[AR] Redirecting",
+    "logout.redirectingAfterError": "Redirecting After خطأ",
+    "logout.signingOut": "جاري تسجيل الخروج...",
+    "logout.success": "نجح"
   }
 }

@@ -3,55 +3,54 @@ name: I18n Validation
 on:
   pull_request:
     paths:
-      - "i18n/sources/**/*.json"
-      - "i18n/new-translations.ts"
-      - "i18n/dictionaries/**/*.ts"
-      - "scripts/generate-dictionaries-json.ts"
-      - "scripts/flatten-base-dictionaries.ts"
-      - "scripts/split-translations.ts"
-      - "scripts/check-translation-parity.ts"
+      - 'i18n/sources/**/*.json'
+      - 'i18n/new-translations.ts'
+      - 'i18n/dictionaries/**/*.ts'
+      - 'scripts/generate-dictionaries-json.ts'
+      - 'scripts/flatten-base-dictionaries.ts'
+      - 'scripts/split-translations.ts'
+      - 'scripts/check-translation-parity.ts'
   push:
     branches:
       - main
       - develop
     paths:
-      - "i18n/sources/**/*.json"
-      - "i18n/new-translations.ts"
-      - "i18n/dictionaries/**/*.ts"
-      - "scripts/**/*.ts"
+      - 'i18n/sources/**/*.json'
+      - 'i18n/new-translations.ts'
+      - 'i18n/dictionaries/**/*.ts'
+      - 'scripts/**/*.ts'
   workflow_dispatch:
     inputs:
       skip_parity_check:
-        description: "Skip parity check (for baseline updates)"
+        description: 'Skip parity check (for baseline updates)'
         required: false
-        default: "false"
+        default: 'false'
 
 jobs:
   validate-translations:
     name: Validate Translation Artifacts
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
           run_install: false
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "pnpm"
-
+          node-version: '20'
+          cache: 'pnpm'
+      
       - name: Get pnpm store directory
         id: pnpm-store
         shell: bash
         run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
-
+      
       - name: Setup pnpm cache
         uses: actions/cache@v4
         with:
@@ -59,13 +58,13 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
-
+      
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
+      
       - name: RTL logical lint
         run: pnpm run lint:rtl
-
+      
       - name: Validate source files (check mode)
         run: |
           echo "🔍 Validating translation source files..."
@@ -76,7 +75,7 @@ jobs:
             }
           fi
           echo "✅ Source files validated"
-
+      
       - name: Check translation parity
         id: check-parity
         if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_parity_check == 'true') }}
@@ -94,10 +93,10 @@ jobs:
         run: |
           echo "❌ Translation parity regression detected. See parity report artifact."
           exit 1
-
+      
       - name: Build translation dictionaries
         run: pnpm i18n:build
-
+      
       - name: Check generated artifacts are up-to-date
         run: |
           if [ -n "$(git status --porcelain i18n/generated/)" ]; then
@@ -115,7 +114,7 @@ jobs:
             exit 1
           fi
           echo "✅ Generated artifacts are up-to-date"
-
+      
       - name: Check source artifacts drift
         run: |
           # Check if any source files were modified by the build
@@ -134,48 +133,50 @@ jobs:
             exit 1
           fi
           echo "✅ Source files unchanged"
-
+      
       - name: TypeScript check
         run: pnpm tsc --noEmit
-
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+      
       - name: Verify translation coverage baseline
         run: |
           EN_KEYS=$(jq 'keys | length' i18n/generated/en.dictionary.json)
           AR_KEYS=$(jq 'keys | length' i18n/generated/ar.dictionary.json)
-
+          
           echo "📊 Translation Coverage:"
           echo "   English keys: $EN_KEYS"
           echo "   Arabic keys:  $AR_KEYS"
           echo "   Difference:   $((EN_KEYS - AR_KEYS))"
           echo ""
-
+          
           # Current baseline from actual state (29672 EN, 29672 AR)
           BASELINE_EN=29672
           BASELINE_AR=29672
-
+          
           if [ "$EN_KEYS" -lt "$BASELINE_EN" ]; then
             echo "❌ English key count dropped below baseline ($BASELINE_EN)"
             echo "   Current: $EN_KEYS, Expected: >= $BASELINE_EN"
             exit 1
           fi
-
+          
           if [ "$AR_KEYS" -lt "$BASELINE_AR" ]; then
             echo "❌ Arabic key count dropped below baseline ($BASELINE_AR)"
             echo "   Current: $AR_KEYS, Expected: >= $BASELINE_AR"
             exit 1
           fi
-
+          
           # Allow difference but warn if it grows
           DIFF=$((EN_KEYS > AR_KEYS ? EN_KEYS - AR_KEYS : AR_KEYS - EN_KEYS))
           MAX_DIFF=50
-
+          
           if [ "$DIFF" -gt "$MAX_DIFF" ]; then
             echo "⚠️  WARNING: Key count difference ($DIFF) exceeds threshold ($MAX_DIFF)"
             echo "   This may indicate missing translations"
           fi
-
+          
           echo "✅ Coverage baseline check passed"
-
+      
       - name: High-Fidelity Coverage Check (EN/AR only)
         run: |
           echo "🔍 Running high-fidelity coverage analysis..."
@@ -185,7 +186,7 @@ jobs:
             exit 1
           }
           echo "✅ EN/AR coverage verified"
-
+      
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
@@ -212,14 +213,13 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
           run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "pnpm"
+          node-version: '20'
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -229,7 +229,7 @@ jobs:
 
       - name: RTL smoke tests (layout + dashboards + souq)
         env:
-          ALLOW_DASHBOARD_TEST_AUTH: "true"
+          ALLOW_DASHBOARD_TEST_AUTH: 'true'
         run: |
           npx playwright test \
             tests/smoke/rtl-layout.smoke.spec.ts \

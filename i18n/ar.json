@@ -66,6 +66,12 @@
     "phone": "رقم الهاتف",
     "phoneLabel": "هاتفك"
   },
+  "careers": {
+    "uploadFailed": "فشل تحميل السيرة الذاتية",
+    "presignFailed": "فشل الحصول على رابط التحميل",
+    "resumeUploadNote": "يرجى تحميل سيرتك الذاتية بصيغة PDF (بحد أقصى 5 ميجابايت)",
+    "resumeScanStatus": "جاري فحص السيرة الذاتية من الفيروسات..."
+  },
   "auth": {
     "login": {
       "title": "تسجيل الدخول",
@@ -118,7 +124,12 @@
     },
     "logout": {
       "signingOut": "جاري تسجيل الخروج...",
-      "pleaseWait": "يرجى الانتظار"
+      "pleaseWait": "يرجى الانتظار",
+      "redirectingAfterError": "إعادة التوجيه بعد حدوث خطأ...",
+      "success": "تم تسجيل الخروج بنجاح",
+      "redirecting": "إعادة التوجيه إلى صفحة تسجيل الدخول...",
+      "error": "فشل تسجيل الخروج",
+      "errorMessage": "حدث خطأ أثناء تسجيل الخروج. يرجى المحاولة مرة أخرى."
     },
     "signup": {
       "title": "إنشاء حساب",
@@ -374,6 +385,7 @@
   },
   "workOrders": {
     "title": "أوامر العمل",
+    "attachmentsCount": "{{count}} مرفق(ات)",
     "create": {
       "button": "أمر عمل جديد",
       "title": "إنشاء أمر العمل",
@@ -387,6 +399,12 @@
         "cancelButton": "يلغي",
         "submitButton": "يخلق"
       }
+    },
+    "new": {
+      "requiredFields": "يرجى ملء جميع الحقول المطلوبة",
+      "success": "تم إنشاء أمر العمل بنجاح",
+      "woNumber": "أمر العمل #{{number}}",
+      "uploadHint": "اسحب وأفلت الملفات هنا، أو انقر للتصفح"
     },
     "status": {
       "open": "مفتوح",
@@ -409,6 +427,9 @@
       "dueDate": "تاريخ الاستحقاق",
       "status": "الحالة",
       "priority": "الأولوية"
+    },
+    "attachments": {
+      "missingUrl": "رابط المرفق مفقود"
     }
   },
   "properties": {
@@ -477,7 +498,8 @@
       "liabilities": "الإلتزامات",
       "equity": "عدالة",
       "ok": "الأصول = الخصوم + حقوق الملكية",
-      "notOk": "تم اكتشاف عدم تطابق المعادلة"
+      "notOk": "تم اكتشاف عدم تطابق المعادلة",
+      "forbidden": "ليس لديك صلاحية لعرض الميزانية العمومية"
     },
     "income": {
       "error": "فشل في تحميل بيان الدخل",
@@ -485,7 +507,8 @@
       "period": "فترة",
       "revenue": "ربح",
       "expense": "نفقات",
-      "net": "صافي الدخل"
+      "net": "صافي الدخل",
+      "forbidden": "ليس لديك صلاحية لعرض قائمة الدخل"
     },
     "owner": {
       "error": "فشل تحميل بيان المالك",
@@ -682,7 +705,89 @@
     "search": "ابحث في المقالات",
     "categories": "الفئات",
     "popular": "المقالات الشائعة",
-    "getStarted": "البدء"
+    "getStarted": "البدء",
+    "article": {
+      "comments": {
+        "title": "التعليقات",
+        "placeholder": "اكتب تعليقك...",
+        "submit": "نشر التعليق",
+        "success": "تم نشر التعليق بنجاح",
+        "error": "فشل نشر التعليق",
+        "auth": "يرجى تسجيل الدخول للتعليق"
+      }
+    }
+  },
+  "helpCenterV2": {
+    "title": "مركز المساعدة",
+    "subtitle": "ابحث عن إجابات واحصل على الدعم",
+    "askAssistant": "اسأل المساعد الذكي",
+    "createTicket": "إنشاء تذكرة دعم",
+    "viewTickets": "عرض تذاكري",
+    "interactiveTutorials": "دروس تفاعلية",
+    "interactiveSubtitle": "دروس إرشادية خطوة بخطوة",
+    "viewAllTutorials": "عرض جميع الدروس",
+    "helpArticles": "مقالات المساعدة",
+    "articlesSubtitle": "تصفح قاعدة المعرفة",
+    "readMore": "اقرأ المزيد",
+    "emptyArticles": "لم يتم العثور على مقالات",
+    "updated": "تم التحديث {{date}}",
+    "loadingArticles": "جاري تحميل المقالات...",
+    "generalCategory": "عام",
+    "systemOverview": "نظرة عامة على النظام",
+    "overviewSubtitle": "تعرف على الميزات الأساسية لـ فيكزت",
+    "propertiesTitle": "العقارات",
+    "propertiesCopy": "إدارة محفظة العقارات الخاصة بك",
+    "workOrdersTitle": "أوامر العمل",
+    "workOrdersCopy": "تتبع وإدارة طلبات الصيانة",
+    "vendorsTitle": "الموردون",
+    "vendorsCopy": "التنسيق مع مزودي الخدمات",
+    "financeTitle": "الماليات",
+    "financeCopy": "إدارة الفواتير والنفقات",
+    "untitledArticle": "مقالة بدون عنوان",
+    "tutorials": {
+      "gettingStarted": {
+        "title": "البدء مع فيكزت لإدارة المرافق",
+        "description": "تعلم أساسيات إدارة العقارات مع فيكزت",
+        "duration": "15 دقيقة"
+      },
+      "firstWorkOrder": {
+        "title": "إنشاء أول أمر عمل",
+        "description": "دليل خطوة بخطوة لإنشاء وإدارة أوامر العمل",
+        "duration": "10 دقائق"
+      },
+      "vendorManagement": {
+        "title": "أفضل ممارسات إدارة الموردين",
+        "description": "تعلم كيفية إدارة والتنسيق مع الموردين بفعالية",
+        "duration": "20 دقيقة"
+      },
+      "tenantRelations": {
+        "title": "العلاقات والتواصل مع المستأجرين",
+        "description": "أفضل الممارسات للتواصل وخدمة المستأجرين",
+        "duration": "12 دقيقة"
+      },
+      "financialReporting": {
+        "title": "التقارير المالية والفوترة",
+        "description": "إتقان التقارير المالية وسير عمل الفوترة",
+        "duration": "25 دقيقة"
+      }
+    },
+    "categories": {
+      "facilityManagement": "إدارة المرافق",
+      "workOrders": "أوامر العمل",
+      "procurement": "المشتريات",
+      "customerService": "خدمة العملاء",
+      "finance": "الماليات"
+    },
+    "fallbackNotice": "قد يظهر بعض المحتوى باللغة الإنجليزية حتى تتوفر الترجمات"
+  },
+  "logout": {
+    "signingOut": "جاري تسجيل خروجك...",
+    "pleaseWait": "يرجى الانتظار أثناء تسجيل خروجك بشكل آمن.",
+    "success": "تم تسجيل الخروج بنجاح",
+    "redirecting": "إعادة التوجيه إلى صفحة تسجيل الدخول...",
+    "error": "خطأ في تسجيل الخروج",
+    "errorMessage": "حدث خطأ أثناء تسجيل الخروج",
+    "redirectingAfterError": "إعادة التوجيه إلى صفحة تسجيل الدخول..."
   },
   "souq": {
     "search": {
@@ -784,6 +889,7 @@
     "brand": "فكس إت",
     "backToHome": "العودة للصفحة الرئيسية",
     "signIn": "تسجيل الدخول",
+    "skipToContent": "انتقل إلى المحتوى",
     "unsavedChanges": "تغييرات غير محفوظة",
     "unsavedChangesMessage": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد مغادرة هذه الصفحة؟",
     "discard": "تجاهل التغييرات",
@@ -877,6 +983,7 @@
     "reports": "التقارير",
     "system": "النظام",
     "administration": "الإدارة",
+    "admin": "الإدارة",
     "settings": "الإعدادات",
     "help": "المساعدة",
     "logout": "تسجيل الخروج",
@@ -1099,7 +1206,7 @@
       "details": "تفاصيل العقار",
       "detail": {
         "errors": {
-          "noPropertyId": "معرف العقار مفقود أو غير صالح"
+          "noPropertyId": "معرف العقار مطلوب"
         }
       }
     },
@@ -1125,6 +1232,16 @@
       "completed": "مكتملة",
       "closed": "مغلقة",
       "cancelled": "ملغاة",
+      "attachmentsCount": "{{count}} مرفقات",
+      "new": {
+        "requiredFields": "يرجى ملء جميع الحقول المطلوبة",
+        "success": "تم إنشاء أمر العمل بنجاح",
+        "woNumber": "أمر العمل #{{number}}",
+        "uploadHint": "قم برفع الصور أو المستندات المتعلقة بأمر العمل هذا"
+      },
+      "attachments": {
+        "missingUrl": "عنوان المرفق غير متوفر"
+      },
       "board": {
         "title": "لوحة أوامر العمل",
         "description": "تتبع وتعيين أوامر العمل عبر جميع العقارات"
@@ -1172,7 +1289,7 @@
       "rejected": "مرفوض",
       "detail": {
         "errors": {
-          "noVendorId": "معرف المورد مفقود أو غير صالح"
+          "noVendorId": "معرف المورد مطلوب"
         }
       }
     },
