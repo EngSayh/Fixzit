@@ -843,6 +843,9 @@
       "unexpected": "An unexpected error occurred"
     }
   },
+  "accessibility": {
+    "skipToContent": "Skip to main content"
+  },
   "app": {
     "fm": "Facility Management",
     "souq": "Marketplace",
@@ -1093,7 +1096,12 @@
       "residential": "Residential",
       "commercial": "Commercial",
       "mixed": "Mixed",
-      "details": "Property Details"
+      "details": "Property Details",
+      "detail": {
+        "errors": {
+          "noPropertyId": "Property ID is missing or invalid"
+        }
+      }
     },
     "title": "Facility Management",
     "dashboard": "Dashboard",
@@ -1161,7 +1169,12 @@
       "all": "All Vendors",
       "approved": "Approved",
       "pending": "Pending",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "detail": {
+        "errors": {
+          "noVendorId": "Vendor ID is missing or invalid"
+        }
+      }
     },
     "projects": {
       "title": "Projects",

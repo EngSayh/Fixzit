@@ -843,6 +843,9 @@
       "unexpected": "حدث خطأ غير متوقع"
     }
   },
+  "accessibility": {
+    "skipToContent": "انتقل إلى المحتوى الرئيسي"
+  },
   "app": {
     "fm": "إدارة المرافق",
     "souq": "السوق",
@@ -1093,7 +1096,12 @@
       "residential": "سكني",
       "commercial": "تجاري",
       "mixed": "مختلط",
-      "details": "تفاصيل العقار"
+      "details": "تفاصيل العقار",
+      "detail": {
+        "errors": {
+          "noPropertyId": "معرف العقار مفقود أو غير صالح"
+        }
+      }
     },
     "title": "إدارة المرافق",
     "dashboard": "لوحة التحكم",
@@ -1161,7 +1169,12 @@
       "all": "جميع الموردين",
       "approved": "معتمد",
       "pending": "قيد المراجعة",
-      "rejected": "مرفوض"
+      "rejected": "مرفوض",
+      "detail": {
+        "errors": {
+          "noVendorId": "معرف المورد مفقود أو غير صالح"
+        }
+      }
     },
     "projects": {
       "title": "المشاريع",
