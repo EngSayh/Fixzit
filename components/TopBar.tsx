@@ -1037,9 +1037,7 @@ function UserMenuPopup({
         }}
         className="flex items-center gap-1"
         aria-label={t("nav.profile", "Profile")}
-        data-testid="user-menu"
       >
-        <span className="sr-only">{t('nav.profile', 'Profile')}</span>
         <User className="w-5 h-5" />
         <ChevronDown className="w-4 h-4" />
       </Button>
