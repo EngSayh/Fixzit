@@ -10,7 +10,7 @@ type RequiredRole = 'TENANT' | 'VENDOR';
 export async function ensureVerifiedDocs(
   user: SessionUser,
   requiredRole: RequiredRole,
-  path?: string,
+  _path?: string,
 ) {
   await connectMongo();
   const caseRecord = await OnboardingCase.findOne({

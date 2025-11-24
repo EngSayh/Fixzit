@@ -39,6 +39,7 @@ function deriveDisplayName(user: UserLike | null | undefined): string | undefine
 
 export async function resolveEscalationContact(
   user: SessionUser,
+  context?: string,
 ): Promise<EscalationContact> {
   if (user?.orgId) {
     try {
@@ -82,6 +83,7 @@ export async function resolveEscalationContact(
     userId: user.id,
     hasOrgId: !!user.orgId,
     fallbackEmail,
+    context,
   });
 
   return {

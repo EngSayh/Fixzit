@@ -171,11 +171,8 @@ jobs:
             else
               echo "GOOGLE_CLIENT_ID=" >> "$GITHUB_ENV"
             fi
-            if [ -n "${{ secrets.GOOGLE_CLIENT_SECRET }}" ]; then
-              echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> "$GITHUB_ENV"
-            else
-              echo "GOOGLE_CLIENT_SECRET=" >> "$GITHUB_ENV"
-            fi
+            # Note: secrets.GOOGLE_CLIENT_SECRET is conditionally set
+            echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET || '' }}" >> "$GITHUB_ENV"
           fi
 
       - name: Run Playwright E2E Tests
