@@ -3,8 +3,8 @@
     "files": 757,
     "usedKeys": 2693,
     "hasDynamic": false,
-    "enCount": 1133,
-    "arCount": 1133,
+    "enCount": 1141,
+    "arCount": 1141,
     "parityGap": 0
   },
   "missing": {
@@ -19372,78 +19372,6 @@
         "files": [
           "Fixzit/components/topbar/TopMegaMenu.tsx"
         ]
-      },
-      {
-        "key": "topbar.modules",
-        "bare": "topbar.modules",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/components/topbar/TopMegaMenu.tsx"
-        ]
-      },
-      {
-        "key": "topbar.collapseMenu",
-        "bare": "topbar.collapseMenu",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/components/topbar/TopMegaMenu.tsx"
-        ]
-      },
-      {
-        "key": "navigation.back",
-        "bare": "navigation.back",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/components/ui/navigation-buttons.tsx"
-        ]
-      },
-      {
-        "key": "navigation.saving",
-        "bare": "navigation.saving",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/components/ui/navigation-buttons.tsx"
-        ]
-      },
-      {
-        "key": "pagination.showing",
-        "bare": "pagination.showing",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/components/ui/pagination.tsx"
-        ]
-      },
-      {
-        "key": "pagination.to",
-        "bare": "pagination.to",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/components/ui/pagination.tsx"
-        ]
-      },
-      {
-        "key": "pagination.of",
-        "bare": "pagination.of",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/components/ui/pagination.tsx"
-        ]
-      },
-      {
-        "key": "pagination.results",
-        "bare": "pagination.results",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "Fixzit/components/ui/pagination.tsx"
-        ]
       }
     ]
   },
@@ -27755,5 +27683,5 @@
       "Fixzit/components/ui/pagination.tsx"
     ]
   },
-  "timestamp": "2025-11-24T14:20:35.657Z"
+  "timestamp": "2025-11-24T14:30:39.964Z"
 }
