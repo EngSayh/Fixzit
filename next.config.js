@@ -9,24 +9,29 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 
 // ---- Production guardrails (fail fast for unsafe flags/secrets) ----
-// Only validate on actual Vercel deployments, not CI test builds
-const isProdDeploy =
-  process.env.VERCEL_ENV === 'production' ||
-  process.env.VERCEL_ENV === 'preview';
+// Only validate critical settings on actual production deployments
+const isProdDeploy = process.env.VERCEL_ENV === 'production';
+const isVercelDeploy = process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview';
 
-if (isProdDeploy) {
+if (isVercelDeploy) {
   const violations = [];
+  
+  // Critical security checks for all Vercel deployments
   if (process.env.SKIP_ENV_VALIDATION === 'true') {
     violations.push('SKIP_ENV_VALIDATION must be false in production');
   }
   if (process.env.DISABLE_MONGODB_FOR_BUILD === 'true') {
     violations.push('DISABLE_MONGODB_FOR_BUILD must be false in production');
   }
-  if (!process.env.TAP_PUBLIC_KEY) {
-    violations.push('TAP_PUBLIC_KEY is required for production payment flows');
-  }
-  if (!process.env.TAP_WEBHOOK_SECRET) {
-    violations.push('TAP_WEBHOOK_SECRET is required to verify payment webhooks');
+  
+  // Payment keys only required for actual production (not preview)
+  if (isProdDeploy) {
+    if (!process.env.TAP_PUBLIC_KEY) {
+      violations.push('TAP_PUBLIC_KEY is required for production payment flows');
+    }
+    if (!process.env.TAP_WEBHOOK_SECRET) {
+      violations.push('TAP_WEBHOOK_SECRET is required to verify payment webhooks');
+    }
   }
 
   if (violations.length > 0) {
