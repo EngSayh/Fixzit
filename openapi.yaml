@@ -2,7 +2,16 @@ openapi: 3.0.3
 info:
   title: Fixzit Aqar Real Estate API
   version: 1.0.0
-  description: REST API for Aqar real estate marketplace with listings, leads, favorites, and packages
+  description: |-
+    REST API for Aqar real estate marketplace with listings, leads, favorites, and packages
+    
+    ## Breaking Changes
+    ### v2.0.26 - Souq Refund Methods
+    - **DEPRECATED**: `store_credit` refund method removed
+    - **NEW**: Use `wallet` for refunds to user's digital wallet
+    - **Affected Endpoints**: `/api/souq/returns/refund`
+    - **Migration**: Update API clients to use `wallet` instead of `store_credit`
+    - **Timeline**: `store_credit` was removed in v2.0.26 (November 2025)
 
 servers:
   - url: http://localhost:3000/api
