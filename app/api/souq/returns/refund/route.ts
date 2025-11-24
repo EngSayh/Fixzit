@@ -33,17 +33,19 @@ export async function POST(request: NextRequest) {
     // Org boundary enforcement: Verify RMA belongs to admin's organization
     // SUPER_ADMIN can process refunds across all organizations
     if (session.user.role !== 'SUPER_ADMIN' && session.user.orgId) {
-      const rma = await returnsService.getRMAById(rmaId);
+      const { SouqRMA } = await import('@/server/models/souq/RMA');
+      const rma = await SouqRMA.findById(rmaId).lean();
       if (!rma) {
         return NextResponse.json({ 
           error: 'RMA not found' 
         }, { status: 404 });
       }
-      if (rma.organizationId !== session.user.orgId) {
+      // Verify organization match - sellerId should match orgId for tenant isolation
+      if (rma.sellerId?.toString() !== session.user.orgId) {
         logger.warn('Org boundary violation attempt in refund processing', { 
           userId: session.user.id, 
           userOrg: session.user.orgId,
-          rmaOrg: rma.organizationId,
+          rmaSeller: rma.sellerId,
           rmaId 
         });
         return NextResponse.json({ 
