@@ -5,6 +5,7 @@ import { connectMongo } from '@/lib/mongo';
 import { OnboardingCase } from '@/models/onboarding/OnboardingCase';
 import { resolveEscalationContact } from '@/server/services/escalation.service';
 import { setTenantContext } from '@/server/plugins/tenantIsolation';
+import { logger } from '@/lib/logger';
 import type { SessionUser } from './withAuthRbac';
 
 type RequiredRole = 'TENANT' | 'VENDOR';
@@ -69,7 +70,7 @@ export async function ensureVerifiedDocs(
 
     return {};
   } catch (error) {
-    console.error('[ensureVerifiedDocs] DB operation failed:', {
+    logger.error('[ensureVerifiedDocs] DB operation failed', {
       userId: user.id,
       requiredRole,
       correlationId,

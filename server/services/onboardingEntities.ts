@@ -10,11 +10,11 @@ type OnboardingCaseLean = IOnboardingCase & { _id: Types.ObjectId };
 const ticketMessages = {
   en: {
     subject: (role: string) => `Onboarding provisioning needed: ${role}`,
-    message: (caseId: any, role: string) => `Auto-created from onboarding approval. Case: ${caseId}. Role: ${role}.`,
+    message: (caseId: Types.ObjectId | string, role: string) => `Auto-created from onboarding approval. Case: ${caseId}. Role: ${role}.`,
   },
   ar: {
     subject: (role: string) => `مطلوب تجهيز الإعداد: ${role}`,
-    message: (caseId: any, role: string) => `تم الإنشاء تلقائيًا من الموافقة على الإعداد. الحالة: ${caseId}. الدور: ${role}.`,
+    message: (caseId: Types.ObjectId | string, role: string) => `تم الإنشاء تلقائيًا من الموافقة على الإعداد. الحالة: ${caseId}. الدور: ${role}.`,
   },
 };
 

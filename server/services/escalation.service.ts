@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import type { SessionUser } from '@/server/middleware/withAuthRbac';
 import { connectMongo } from '@/lib/mongo';
+import { logger } from '@/lib/logger';
 
 export type EscalationContact = {
   role: string;
@@ -80,7 +81,7 @@ export async function resolveEscalationContact(
         };
       }
     } catch (err) {
-      console.error('[resolveEscalationContact] DB lookup failed, using fallback:', {
+      logger.error('[resolveEscalationContact] DB lookup failed, using fallback', {
         orgId: user.orgId,
         error: err instanceof Error ? err.message : String(err),
       });
@@ -90,7 +91,7 @@ export async function resolveEscalationContact(
 
   const fallbackEmail = process.env.ESCALATION_FALLBACK_EMAIL || 'support@fixzit.co';
   
-  console.info('[resolveEscalationContact] Using fallback contact:', {
+  logger.info('[resolveEscalationContact] Using fallback contact', {
     userId: user.id,
     hasOrgId: !!user.orgId,
     fallbackEmail,
