@@ -121,7 +121,6 @@ jobs:
           NODE_ENV: test
           SKIP_ENV_VALIDATION: 'true'
           ALLOW_OFFLINE_MONGODB: 'true'
-          DISABLE_MONGODB_FOR_BUILD: 'true'
         run: |
           echo "Building Next.js app for E2E tests..."
           pnpm build || {

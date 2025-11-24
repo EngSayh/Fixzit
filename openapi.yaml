@@ -191,7 +191,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [rmaId, refundMethod, amount]
+              required: [rmaId, refundMethod, refundAmount]
               properties:
                 rmaId:
                   type: string
@@ -204,13 +204,10 @@ paths:
                     - `original_payment`: Refund to original payment method
                     - `wallet`: Refund to user's digital wallet (replaces deprecated `store_credit`)
                     - `bank_transfer`: Direct bank transfer
-                amount:
+                refundAmount:
                   type: number
                   minimum: 0.01
                   description: Refund amount in SAR
-                reason:
-                  type: string
-                  description: Optional reason for refund
       responses:
         '200':
           description: Refund processed successfully
@@ -219,25 +216,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  refund:
-                    type: object
-                    properties:
-                      transactionId:
-                        type: string
-                        description: Unique transaction identifier
-                      method:
-                        type: string
-                        description: Refund method used
-                      amount:
-                        type: number
-                        description: Refunded amount
-                      processedAt:
-                        type: string
-                        format: date-time
-                        description: Timestamp of refund processing
-                  correlationId:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
                     type: string
-                    description: Request correlation ID for tracking
+                    example: 'Refund processed successfully'
         '400':
           $ref: '#/components/responses/BadRequest'
         '403':
