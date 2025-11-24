@@ -134,9 +134,9 @@ async function loadCatalogKeys(ctxPath) {
   const errors = [];
   let hasPrimaryCatalog = false;
 
-  // Check for i18n JSON files first (actual project structure)
-  const enJsonPath = path.join(ROOT, 'i18n', 'en.json');
-  const arJsonPath = path.join(ROOT, 'i18n', 'ar.json');
+  // Check for generated dictionary JSON files first
+  const enJsonPath = path.join(ROOT, 'i18n', 'generated', 'en.dictionary.json');
+  const arJsonPath = path.join(ROOT, 'i18n', 'generated', 'ar.dictionary.json');
   
   if (await exists(enJsonPath) && await exists(arJsonPath)) {
     try {
@@ -145,11 +145,12 @@ async function loadCatalogKeys(ctxPath) {
       const enData = JSON.parse(enContent);
       const arData = JSON.parse(arContent);
       
-      flattenKeys(enData).forEach(key => enKeys.add(key));
-      flattenKeys(arData).forEach(key => arKeys.add(key));
+      // The generated dictionaries are already flat, so just get the keys
+      Object.keys(enData).forEach(key => enKeys.add(key));
+      Object.keys(arData).forEach(key => arKeys.add(key));
       hasPrimaryCatalog = true;
     } catch (err) {
-      errors.push(`Failed to parse i18n JSON files: ${err.message}`);
+      errors.push(`Failed to parse i18n generated dictionary files: ${err.message}`);
     }
   }
   
