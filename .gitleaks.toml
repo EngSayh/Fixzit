@@ -5,7 +5,6 @@
 description = "Allow example credentials in documentation and migration guides"
 
 # Allow entire documentation directories
-[[allowlist.paths]]
 paths = [
   '''docs/migrations/.*\.md$''',
   '''docs/api/.*\.md$''',
@@ -14,11 +13,7 @@ paths = [
 ]
 
 # Allow common placeholder patterns
-[[allowlist.regexes]]
-regex = '''YOUR_TOKEN|YOUR_API_KEY|your-secret-key|example-token|xxx-xxx-xxx'''
-description = "Placeholder credentials in documentation"
-
-# Allow Bearer tokens in curl examples
-[[allowlist.regexes]]
-regex = '''Authorization:\s+Bearer\s+(YOUR_|your-|example-)'''
-description = "Example Bearer tokens in curl commands"
+regexes = [
+  '''YOUR_TOKEN|YOUR_API_KEY|your-secret-key|example-token|xxx-xxx-xxx''',
+  '''Authorization:\s+Bearer\s+(YOUR_|your-|example-)'''
+]
