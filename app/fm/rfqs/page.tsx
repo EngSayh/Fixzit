@@ -80,7 +80,15 @@ function RFQsContent({ orgId, supportBanner }: RFQsContentProps) {
     fetch(url, {
       headers: { 'x-tenant-id': orgId }
     })
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) {
+          const payload = await r.json().catch(() => ({}));
+          const error = new Error(payload?.error || `Failed to load RFQs (${r.status})`) as Error & { status?: number };
+          error.status = r.status;
+          throw error;
+        }
+        return r.json();
+      })
       .catch((error) => {
         logger.error('FM RFQs fetch error', error);
         throw error;

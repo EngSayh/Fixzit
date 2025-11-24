@@ -382,6 +382,11 @@ export default function LoginPage() {
         setShowOTP(false);
         return;
       }
+      
+      // Persist refreshed CSRF token for subsequent operations
+      if (!csrfToken && tokenToUse) {
+        setCsrfToken(tokenToUse);
+      }
 
       if (result?.ok) {
         setSuccess(true);
