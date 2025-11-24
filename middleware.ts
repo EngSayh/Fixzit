@@ -46,6 +46,19 @@ const LOGIN_RATE_LIMIT_MAX =
   Number(process.env.LOGIN_RATE_LIMIT_MAX_ATTEMPTS) || 5;
 type RateEntry = { count: number; expiresAt: number };
 const loginAttempts = new Map<string, RateEntry>();
+
+// Cleanup expired rate limit entries every minute to prevent memory leak
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of loginAttempts.entries()) {
+      if (entry.expiresAt < now) {
+        loginAttempts.delete(key);
+      }
+    }
+  }, 60_000); // Run cleanup every 60 seconds
+}
+
 // ---------- Route helpers ----------
 function matchesRoute(pathname: string, route: string): boolean {
   if (pathname === route) return true;
