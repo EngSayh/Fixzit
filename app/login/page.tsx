@@ -222,7 +222,8 @@ export default function LoginPage() {
     return Object.keys(next).length === 0;
   };
 
-  // [CODE REVIEW FIX]: Simplified redirect logic - always go to /fm/dashboard
+  // [CODE REVIEW FIX]: Simplified redirect logic - fall back to /dashboard
+  // (FM-specific routing for authenticated users is handled by middleware)
   // The dashboard page will handle role-based redirects (TENANT -> /fm/properties, VENDOR -> /fm/marketplace)
   const postLoginRedirect = (): string => {
     if (redirectTarget && redirectTarget.startsWith('/') && !redirectTarget.startsWith('//')) {

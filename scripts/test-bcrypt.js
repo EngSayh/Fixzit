@@ -6,8 +6,10 @@ const hash = '$2b$10$DEA4.sfOaLxbbQN9YulKUeEEf8c7IinIBy9bEtJSKpXyls.lDY8li';
 bcrypt.compare(password, hash).then(result => {
   console.log('Password matches hash:', result);
   if (!result) {
-    console.log('ISSUE: Password does NOT match the hash!');
+    console.error('ISSUE: Password does NOT match the hash!');
+    process.exit(1);
   }
 }).catch(err => {
   console.error('Error comparing:', err);
+  process.exit(1);
 });
