@@ -1,14 +1,12 @@
 :root {
-  --brand-primary: #0061A8;  /* Blue */
-  --brand-success: #00A859;  /* Green */
-  --brand-accent:  #FFB400;  /* Yellow */
+  --brand-primary: #0061a8; /* Blue */
+  --brand-success: #00a859; /* Green */
+  --brand-accent: #ffb400; /* Yellow */
 
-  --sidebar-bg:    #0061A8;  /* FIXED: was #023047 (banned) */
+  --sidebar-bg: #0061a8; /* FIXED: was #023047 (banned) */
   --sidebar-hover: rgba(0, 97, 168, 0.5);
-  --sidebar-active:#0061A8;
+  --sidebar-active: #0061a8;
 
-  --text-on-dark:  #ffffff;
-  --text-muted:    #94a3b8;
+  --text-on-dark: #ffffff;
+  --text-muted: #94a3b8;
 }
-
-

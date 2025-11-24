@@ -17,7 +17,7 @@ const MOVE_PATTERNS = [
   /\.log$/i,
   /\.tmp$/i,
   /\.bak$/i,
-  /\s(\d+)\./,                    // duplicates like "config (2).zip"
+  /\s(\d+)\./, // duplicates like "config (2).zip"
 ];
 
 const ENV_KEEP = new Set([".env.local", "env.example"]);
@@ -28,12 +28,26 @@ function shouldMove(file: string) {
   if (!stat.isFile()) return false;
 
   // keep key project files
-  if (["package.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "next.config.js", "postcss.config.js", "tailwind.config.js", "README.md"].includes(file)) {
+  if (
+    [
+      "package.json",
+      "package-lock.json",
+      "yarn.lock",
+      "pnpm-lock.yaml",
+      "next.config.js",
+      "postcss.config.js",
+      "tailwind.config.js",
+      "README.md",
+    ].includes(file)
+  ) {
     return false;
   }
 
   // keep main envs
-  if ((file.startsWith(".env") || file.startsWith("env")) && ENV_KEEP.has(file)) {
+  if (
+    (file.startsWith(".env") || file.startsWith("env")) &&
+    ENV_KEEP.has(file)
+  ) {
     return false;
   }
 

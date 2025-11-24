@@ -4,17 +4,16 @@
  * GET /api/finance/payments - List payments
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { Payment } from '@/server/models/finance/Payment';
-import { Invoice } from '@/server/models/Invoice';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { runWithContext } from '@/server/lib/authContext';
-import { requirePermission } from '@/server/lib/rbac.config';
-import { Types } from 'mongoose';
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { Payment } from "@/server/models/finance/Payment";
+import { Invoice } from "@/server/models/Invoice";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/server/lib/rbac.config";
+import { Types } from "mongoose";
 
-
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 const PaymentAllocationSchema = z.object({
   invoiceId: z.string(),
   amount: z.number().positive(),
@@ -35,7 +34,7 @@ const ChequeDetailsSchema = z.object({
 });
 
 const CardDetailsSchema = z.object({
-  cardType: z.enum(['CREDIT', 'DEBIT']).optional(),
+  cardType: z.enum(["CREDIT", "DEBIT"]).optional(),
   last4Digits: z.string().optional(),
   transactionId: z.string().optional(),
 });
@@ -43,11 +42,18 @@ const CardDetailsSchema = z.object({
 const CreatePaymentSchema = z.object({
   paymentNumber: z.string().optional(), // Auto-generated if not provided
   paymentDate: z.coerce.date(),
-  paymentType: z.enum(['RECEIVED', 'MADE']),
-  paymentMethod: z.enum(['CASH', 'CARD', 'BANK_TRANSFER', 'CHEQUE', 'ONLINE', 'OTHER']),
+  paymentType: z.enum(["RECEIVED", "MADE"]),
+  paymentMethod: z.enum([
+    "CASH",
+    "CARD",
+    "BANK_TRANSFER",
+    "CHEQUE",
+    "ONLINE",
+    "OTHER",
+  ]),
   amount: z.number().positive(),
-  currency: z.string().default('SAR'),
-  partyType: z.enum(['TENANT', 'VENDOR', 'OWNER', 'OTHER']),
+  currency: z.string().default("SAR"),
+  partyType: z.enum(["TENANT", "VENDOR", "OWNER", "OTHER"]),
   partyId: z.string(),
   partyName: z.string(),
   description: z.string(),
@@ -67,7 +73,7 @@ const CreatePaymentSchema = z.object({
 async function getUserSession(req: NextRequest) {
   const user = await getSessionUser(req);
   if (!user || !user.id || !user.orgId) {
-    throw new Error('Unauthorized: Invalid session');
+    throw new Error("Unauthorized: Invalid session");
   }
   return {
     userId: user.id,
@@ -85,7 +91,7 @@ export async function POST(req: NextRequest) {
     const user = await getUserSession(req);
 
     // Authorization check
-    requirePermission(user.role, 'finance.payments.create');
+    requirePermission(user.role, "finance.payments.create");
 
     // Parse request body
     const body = await req.json();
@@ -93,33 +99,43 @@ export async function POST(req: NextRequest) {
 
     // Execute with proper context
     return await runWithContext(
-      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
       async () => {
         // Validate all invoice allocations belong to this org
         if (data.invoiceAllocations && data.invoiceAllocations.length > 0) {
-          const invoiceIds = data.invoiceAllocations.map(a => a.invoiceId);
+          const invoiceIds = data.invoiceAllocations.map((a) => a.invoiceId);
           const validInvoices = await Invoice.find({
-            _id: { $in: invoiceIds.map(id => new Types.ObjectId(id)) },
-            orgId: new Types.ObjectId(user.orgId)
-          }).select('_id');
-          
-          const validIds = new Set(validInvoices.map(inv => inv._id.toString()));
-          const invalidIds = invoiceIds.filter(id => !validIds.has(id));
-          
+            _id: { $in: invoiceIds.map((id) => new Types.ObjectId(id)) },
+            orgId: new Types.ObjectId(user.orgId),
+          }).select("_id");
+
+          const validIds = new Set(
+            validInvoices.map((inv) => inv._id.toString()),
+          );
+          const invalidIds = invoiceIds.filter((id) => !validIds.has(id));
+
           if (invalidIds.length > 0) {
             return NextResponse.json(
-              { success: false, error: `Invalid invoice IDs: ${invalidIds.join(', ')}` },
-              { status: 400 }
+              {
+                success: false,
+                error: `Invalid invoice IDs: ${invalidIds.join(", ")}`,
+              },
+              { status: 400 },
             );
           }
         }
-        
+
         // Create payment - always DRAFT (require /reconcile /clear /bounce for status changes)
         const payment = await Payment.create({
           ...data,
           orgId: user.orgId,
           createdBy: user.userId,
-          status: 'DRAFT', // Force DRAFT - require dedicated endpoints for other statuses
+          status: "DRAFT", // Force DRAFT - require dedicated endpoints for other statuses
         });
 
         // Auto-allocate to invoices if provided
@@ -128,7 +144,7 @@ export async function POST(req: NextRequest) {
             await payment.allocateToInvoice(
               new Types.ObjectId(allocation.invoiceId),
               `INV-${Date.now()}`, // Fallback invoice number
-              allocation.amount
+              allocation.amount,
             );
           }
         }
@@ -136,34 +152,38 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           success: true,
           data: payment,
-          message: 'Payment draft created',
+          message: "Payment draft created",
         });
-      }
+      },
     );
   } catch (error) {
-    logger.error('Error creating payment:', error);
+    logger.error("Error creating payment:", error);
 
-    if (error instanceof Error && error.message.includes('Forbidden')) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
     }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Validation failed',
+          error: "Validation failed",
           issues: error.issues,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to create payment',
+        error:
+          error instanceof Error ? error.message : "Failed to create payment",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -177,13 +197,18 @@ export async function GET(req: NextRequest) {
     const user = await getUserSession(req);
 
     // Authorization check
-    requirePermission(user.role, 'finance.payments.read');
+    requirePermission(user.role, "finance.payments.read");
 
     const { searchParams } = new URL(req.url);
 
     // Execute with proper context
     return await runWithContext(
-      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
       async () => {
         // Build query
         const query: Record<string, unknown> = {
@@ -191,32 +216,32 @@ export async function GET(req: NextRequest) {
         };
 
         // Filters
-        const status = searchParams.get('status');
+        const status = searchParams.get("status");
         if (status) query.status = status;
 
-        const paymentType = searchParams.get('paymentType');
+        const paymentType = searchParams.get("paymentType");
         if (paymentType) query.paymentType = paymentType;
 
-        const paymentMethod = searchParams.get('paymentMethod');
+        const paymentMethod = searchParams.get("paymentMethod");
         if (paymentMethod) query.paymentMethod = paymentMethod;
 
-        const partyId = searchParams.get('partyId');
+        const partyId = searchParams.get("partyId");
         if (partyId) query.partyId = partyId;
 
-        const partyType = searchParams.get('partyType');
+        const partyType = searchParams.get("partyType");
         if (partyType) query.partyType = partyType;
 
-        const propertyId = searchParams.get('propertyId');
+        const propertyId = searchParams.get("propertyId");
         if (propertyId) query.propertyId = propertyId;
 
-        const reconciled = searchParams.get('reconciled');
+        const reconciled = searchParams.get("reconciled");
         if (reconciled !== null) {
-          query['reconciliation.isReconciled'] = reconciled === 'true';
+          query["reconciliation.isReconciled"] = reconciled === "true";
         }
 
         // Date range
-        const startDate = searchParams.get('startDate');
-        const endDate = searchParams.get('endDate');
+        const startDate = searchParams.get("startDate");
+        const endDate = searchParams.get("endDate");
         if (startDate || endDate) {
           query.paymentDate = {};
           if (startDate) {
@@ -228,8 +253,11 @@ export async function GET(req: NextRequest) {
         }
 
         // Pagination
-        const page = parseInt(searchParams.get('page') || '1', 10);
-        const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
+        const page = parseInt(searchParams.get("page") || "1", 10);
+        const limit = Math.min(
+          parseInt(searchParams.get("limit") || "50", 10),
+          100,
+        );
         const skip = (page - 1) * limit;
 
         // Execute query
@@ -252,21 +280,25 @@ export async function GET(req: NextRequest) {
             totalPages: Math.ceil(totalCount / limit),
           },
         });
-      }
+      },
     );
   } catch (error) {
-    logger.error('Error fetching payments:', error);
-    
-    if (error instanceof Error && error.message.includes('Forbidden')) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    logger.error("Error fetching payments:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
     }
-    
+
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch payments',
+        error:
+          error instanceof Error ? error.message : "Failed to fetch payments",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { logger } from '@/lib/logger';
-import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import React, { Component, ErrorInfo, ReactNode } from "react";
+import { logger } from "@/lib/logger";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
 interface Props {
   children: ReactNode;
@@ -45,14 +45,10 @@ export class FMErrorBoundary extends Component<Props, State> {
     });
 
     // Log error to monitoring service
-    logger.error(
-      '[FM Error Boundary] Component error caught',
-      error,
-      {
-        component: 'FMErrorBoundary',
-        componentStack: errorInfo.componentStack
-      }
-    );
+    logger.error("[FM Error Boundary] Component error caught", error, {
+      component: "FMErrorBoundary",
+      componentStack: errorInfo.componentStack,
+    });
   }
 
   handleReset = (): void => {
@@ -89,11 +85,12 @@ export class FMErrorBoundary extends Component<Props, State> {
                 Something went wrong
               </h1>
               <p className="text-sm text-muted-foreground">
-                We encountered an unexpected error. Please try refreshing the page or contact support if the problem persists.
+                We encountered an unexpected error. Please try refreshing the
+                page or contact support if the problem persists.
               </p>
             </div>
 
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {process.env.NODE_ENV === "development" && this.state.error && (
               <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
                 <p className="font-mono text-xs text-destructive break-all">
                   {this.state.error.message}

@@ -67,11 +67,11 @@ HOSTNAME=0.0.0.0 PORT=3000 NODE_ENV=production nohup node .next/standalone/serve
 
 Your **5-7 minute** build time for a large enterprise app is **actually very good**:
 
-| Project Size | Expected Build Time | Your Project |
-|--------------|---------------------|--------------|
-| Small (50 pages) | 1-2 min | |
-| Medium (150 pages) | 3-5 min | ✅ **YOU ARE HERE** |
-| Large (500+ pages) | 10-20 min | |
+| Project Size       | Expected Build Time | Your Project        |
+| ------------------ | ------------------- | ------------------- |
+| Small (50 pages)   | 1-2 min             |                     |
+| Medium (150 pages) | 3-5 min             | ✅ **YOU ARE HERE** |
+| Large (500+ pages) | 10-20 min           |                     |
 
 **Your Stats:**
 

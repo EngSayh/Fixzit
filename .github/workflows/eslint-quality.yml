@@ -4,34 +4,34 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - 'app/**'
-      - 'components/**'
-      - 'lib/**'
-      - 'services/**'
-      - 'scripts/**'
-      - 'tools/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'eslint.config.mjs'
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "services/**"
+      - "scripts/**"
+      - "tools/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "eslint.config.mjs"
   pull_request:
     branches: [main, develop]
     paths:
-      - 'app/**'
-      - 'components/**'
-      - 'lib/**'
-      - 'services/**'
-      - 'scripts/**'
-      - 'tools/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'eslint.config.mjs'
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "services/**"
+      - "scripts/**"
+      - "tools/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "eslint.config.mjs"
   workflow_dispatch:
 
 jobs:
   lint-production-code:
     name: Lint Production Code
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -39,7 +39,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
@@ -72,12 +72,12 @@ jobs:
             --report-unused-disable-directives \
             --format json \
             -o _artifacts/eslint-results.json || true
-          
+
           # Also output to console
           pnpm eslint app components lib services --ext .ts,.tsx,.js,.jsx \
             --max-warnings 0 \
             --report-unused-disable-directives
-      
+
       - name: Run hard-coded URI guardrail
         run: |
           echo "🔒 Scanning for hard-coded database URIs with credentials..."
@@ -103,7 +103,7 @@ jobs:
     name: Lint Scripts & Tools (Non-blocking)
     runs-on: ubuntu-latest
     continue-on-error: true
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -111,7 +111,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
@@ -142,7 +142,7 @@ jobs:
           pnpm eslint scripts tools --ext .ts,.tsx,.js,.jsx \
             --format json \
             -o _artifacts/eslint-scripts-tools.json || true
-          
+
           echo "⚠️ This job is informational only and does not block CI"
 
       - name: Upload scripts/tools lint results
@@ -157,7 +157,7 @@ jobs:
     name: Security Scan (Hard-coded URIs)
     runs-on: ubuntu-latest
     schedule:
-      - cron: '0 3 * * *'
+      - cron: "0 3 * * *"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -175,7 +175,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2

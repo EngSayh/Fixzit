@@ -1,6 +1,6 @@
 /**
  * CRUD Route Factory - DRY helper for API routes
- * 
+ *
  * Consolidates duplicate logic across API routes:
  * - Rate limiting
  * - Authentication & tenant context
@@ -9,13 +9,13 @@
  * - Pagination
  * - Error handling
  * - Security headers
- * 
+ *
  * Usage:
  * ```typescript
  * import { createCrudHandlers } from '@/lib/api/crud-factory';
  * import { Vendor } from '@/server/models/Vendor';
  * import { createVendorSchema } from '@/lib/validations/forms';
- * 
+ *
  * export const { GET, POST } = createCrudHandlers({
  *   Model: Vendor,
  *   createSchema: createVendorSchema,
@@ -25,16 +25,16 @@
  * ```
  */
 
-import { logger } from '@/lib/logger';
-import { NextRequest } from 'next/server';
-import { z, ZodSchema } from 'zod';
-import { SortOrder } from 'mongoose';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError } from '@/server/utils/errorResponses';
-import { createSecureResponse, getClientIP } from '@/server/security/headers';
-import type { MModel } from '@/src/types/mongoose-compat';
+import { logger } from "@/lib/logger";
+import { NextRequest } from "next/server";
+import { z, ZodSchema } from "zod";
+import { SortOrder } from "mongoose";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse, getClientIP } from "@/server/security/headers";
+import type { MModel } from "@/src/types/mongoose-compat";
 
 /**
  * Escapes special regex characters to prevent ReDoS (Regular Expression Denial of Service) attacks
@@ -42,7 +42,7 @@ import type { MModel } from '@/src/types/mongoose-compat';
  * @returns Escaped string safe for use in MongoDB $regex
  */
 function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export interface CrudFactoryOptions<T = unknown> {
@@ -63,17 +63,29 @@ export interface CrudFactoryOptions<T = unknown> {
   /** Optional: Rate limit config (requests per window) */
   rateLimit?: { requests: number; windowMs: number };
   /** Optional: Custom filter builder */
-  buildFilter?: (searchParams: URLSearchParams, orgId: string) => Record<string, unknown>;
+  buildFilter?: (
+    searchParams: URLSearchParams,
+    orgId: string,
+  ) => Record<string, unknown>;
   /** Optional: Hook to transform data before creation (e.g., add SLA, init state) */
-  onCreate?: (data: Record<string, unknown>, user: { id: string; orgId: string; role: string }) => Promise<Record<string, unknown>> | Record<string, unknown>;
+  onCreate?: (
+    data: Record<string, unknown>,
+    user: { id: string; orgId: string; role: string },
+  ) => Promise<Record<string, unknown>> | Record<string, unknown>;
   /** Optional: Hook to transform data before update (consumer calls manually) */
-  onUpdate?: (id: string, updates: Record<string, unknown>, user: { id: string; orgId: string; role: string }) => Promise<Record<string, unknown>> | Record<string, unknown>;
+  onUpdate?: (
+    id: string,
+    updates: Record<string, unknown>,
+    user: { id: string; orgId: string; role: string },
+  ) => Promise<Record<string, unknown>> | Record<string, unknown>;
 }
 
 /**
  * Creates GET and POST handlers with standard CRUD logic
  */
-export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) {
+export function createCrudHandlers<T = unknown>(
+  options: CrudFactoryOptions<T>,
+) {
   const {
     Model,
     createSchema,
@@ -95,21 +107,32 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
       user = await getSessionUser(req);
     } catch (_error) {
       const correlationId = crypto.randomUUID();
-      logger.warn('Unauthenticated request to GET endpoint', { path: req.url, correlationId });
+      logger.warn("Unauthenticated request to GET endpoint", {
+        path: req.url,
+        correlationId,
+      });
       return createSecureResponse(
-        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        {
+          error: "Unauthorized",
+          message: "Authentication required",
+          correlationId,
+        },
         401,
-        req
+        req,
       );
     }
-    
+
     // Tenant context check
     if (!user?.orgId) {
       const correlationId = crypto.randomUUID();
       return createSecureResponse(
-        { error: 'Unauthorized', message: 'Missing tenant context', correlationId },
+        {
+          error: "Unauthorized",
+          message: "Missing tenant context",
+          correlationId,
+        },
         401,
-        req
+        req,
       );
     }
 
@@ -118,7 +141,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
     const rl = rateLimit(
       `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
       rateLimitConfig.requests,
-      rateLimitConfig.windowMs
+      rateLimitConfig.windowMs,
     );
     if (!rl.allowed) {
       return rateLimitError();
@@ -129,9 +152,9 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
 
       // Parse query parameters
       const { searchParams } = new URL(req.url);
-      const page = Math.max(1, Number(searchParams.get('page')) || 1);
-      const limit = Math.min(100, Number(searchParams.get('limit')) || 20);
-      const query = searchParams.get('q') || searchParams.get('search') || '';
+      const page = Math.max(1, Number(searchParams.get("page")) || 1);
+      const limit = Math.min(100, Number(searchParams.get("limit")) || 20);
+      const query = searchParams.get("q") || searchParams.get("search") || "";
 
       // Build base filter
       const match: Record<string, unknown> = buildFilter
@@ -139,25 +162,22 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
         : {};
 
       // RBAC: Super Admin can access all tenants, others are scoped to their org_id
-      if (user.role !== 'SUPER_ADMIN') {
+      if (user.role !== "SUPER_ADMIN") {
         match.orgId = user.orgId;
       }
 
       // Implement search functionality
       if (query && options.searchFields && options.searchFields.length > 0) {
         const escapedQuery = escapeRegex(query);
-        const searchOr = options.searchFields.map(field => ({
-          [field]: { $regex: escapedQuery, $options: 'i' }
+        const searchOr = options.searchFields.map((field) => ({
+          [field]: { $regex: escapedQuery, $options: "i" },
         }));
-        
+
         // If buildFilter already set $or, combine with $and to avoid overwriting
         if (match.$or) {
           const existingOr = match.$or;
           delete match.$or;
-          match.$and = [
-            { $or: existingOr },
-            { $or: searchOr }
-          ];
+          match.$and = [{ $or: existingOr }, { $or: searchOr }];
         } else {
           match.$or = searchOr;
         }
@@ -170,7 +190,10 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
         .limit(limit)
         .lean<T>();
 
-      const [items, total] = await Promise.all([itemsQuery, Model.countDocuments(match)]);
+      const [items, total] = await Promise.all([
+        itemsQuery,
+        Model.countDocuments(match),
+      ]);
 
       return createSecureResponse(
         {
@@ -184,12 +207,13 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
         req,
         {
           // Add caching headers for better performance
-          'Cache-Control': 'private, max-age=10, stale-while-revalidate=60',
-          'CDN-Cache-Control': 'max-age=60',
-        }
+          "Cache-Control": "private, max-age=10, stale-while-revalidate=60",
+          "CDN-Cache-Control": "max-age=60",
+        },
       );
     } catch (_error: unknown) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
       const correlationId = crypto.randomUUID();
       logger.error(`[DELETE /api/${entityName}/:id] Error:`, {
@@ -203,7 +227,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
           correlationId,
         },
         500,
-        req
+        req,
       );
     }
   }
@@ -218,21 +242,32 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
       user = await getSessionUser(req);
     } catch (_error) {
       const correlationId = crypto.randomUUID();
-      logger.warn('Unauthenticated request to POST endpoint', { path: req.url, correlationId });
+      logger.warn("Unauthenticated request to POST endpoint", {
+        path: req.url,
+        correlationId,
+      });
       return createSecureResponse(
-        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        {
+          error: "Unauthorized",
+          message: "Authentication required",
+          correlationId,
+        },
         401,
-        req
+        req,
       );
     }
-    
+
     // Tenant context check
     if (!user?.orgId) {
       const correlationId = crypto.randomUUID();
       return createSecureResponse(
-        { error: 'Unauthorized', message: 'Missing tenant context', correlationId },
+        {
+          error: "Unauthorized",
+          message: "Missing tenant context",
+          correlationId,
+        },
         401,
-        req
+        req,
       );
     }
 
@@ -241,7 +276,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
     const rl = rateLimit(
       `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
       rateLimitConfig.requests,
-      rateLimitConfig.windowMs
+      rateLimitConfig.windowMs,
     );
     if (!rl.allowed) {
       return rateLimitError();
@@ -281,11 +316,16 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
             orgId: user.orgId,
             role: user.role,
             timestamp: new Date().toISOString(),
-            error: hookError instanceof Error ? hookError.message : String(hookError),
+            error:
+              hookError instanceof Error
+                ? hookError.message
+                : String(hookError),
             stack: hookError instanceof Error ? hookError.stack : undefined,
           });
-          
-          throw new Error(`onCreate hook failed: ${hookError instanceof Error ? hookError.message : String(hookError)}`);
+
+          throw new Error(
+            `onCreate hook failed: ${hookError instanceof Error ? hookError.message : String(hookError)}`,
+          );
         }
       }
 
@@ -294,7 +334,8 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
 
       return createSecureResponse(entity, 201, req);
     } catch (_error: unknown) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
       const correlationId = crypto.randomUUID();
       logger.error(`[POST /api/${entityName}] Error:`, {
@@ -311,7 +352,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
           ...(error instanceof z.ZodError && { validation: error.issues }),
         },
         status,
-        req
+        req,
       );
     }
   }
@@ -322,7 +363,9 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
 /**
  * Creates GET, PUT, and DELETE handlers for single entity by ID
  */
-export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOptions<T>) {
+export function createSingleEntityHandlers<T = unknown>(
+  options: CrudFactoryOptions<T>,
+) {
   const {
     Model,
     updateSchema,
@@ -340,21 +383,32 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
       user = await getSessionUser(req);
     } catch (_error) {
       const correlationId = crypto.randomUUID();
-      logger.warn('Unauthenticated request to GET by ID endpoint', { path: req.url, correlationId });
+      logger.warn("Unauthenticated request to GET by ID endpoint", {
+        path: req.url,
+        correlationId,
+      });
       return createSecureResponse(
-        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        {
+          error: "Unauthorized",
+          message: "Authentication required",
+          correlationId,
+        },
         401,
-        req
+        req,
       );
     }
-    
+
     // Tenant context check
     if (!user?.orgId) {
       const correlationId = crypto.randomUUID();
       return createSecureResponse(
-        { error: 'Unauthorized', message: 'Missing tenant context', correlationId },
+        {
+          error: "Unauthorized",
+          message: "Missing tenant context",
+          correlationId,
+        },
         401,
-        req
+        req,
       );
     }
 
@@ -363,7 +417,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
     const rl = rateLimit(
       `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
       rateLimitConfig.requests,
-      rateLimitConfig.windowMs
+      rateLimitConfig.windowMs,
     );
     if (!rl.allowed) {
       return rateLimitError();
@@ -374,7 +428,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
 
       // Build query: Super Admin can access all tenants
       const query: Record<string, unknown> = { _id: context.params.id };
-      if (user.role !== 'SUPER_ADMIN') {
+      if (user.role !== "SUPER_ADMIN") {
         query.org_id = user.orgId;
       }
 
@@ -385,13 +439,14 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         return createSecureResponse(
           { error: `${entityName} not found`, correlationId },
           404,
-          req
+          req,
         );
       }
 
       return createSecureResponse(entity, 200, req);
     } catch (_error: unknown) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
       const correlationId = crypto.randomUUID();
       logger.error(`[GET /api/${entityName}/:id] Error:`, {
@@ -405,7 +460,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
           correlationId,
         },
         500,
-        req
+        req,
       );
     }
   }
@@ -420,21 +475,32 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
       user = await getSessionUser(req);
     } catch (_error) {
       const correlationId = crypto.randomUUID();
-      logger.warn('Unauthenticated request to PUT endpoint', { path: req.url, correlationId });
+      logger.warn("Unauthenticated request to PUT endpoint", {
+        path: req.url,
+        correlationId,
+      });
       return createSecureResponse(
-        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        {
+          error: "Unauthorized",
+          message: "Authentication required",
+          correlationId,
+        },
         401,
-        req
+        req,
       );
     }
-    
+
     // Tenant context check
     if (!user?.orgId) {
       const correlationId = crypto.randomUUID();
       return createSecureResponse(
-        { error: 'Unauthorized', message: 'Missing tenant context', correlationId },
+        {
+          error: "Unauthorized",
+          message: "Missing tenant context",
+          correlationId,
+        },
         401,
-        req
+        req,
       );
     }
 
@@ -443,7 +509,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
     const rl = rateLimit(
       `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
       rateLimitConfig.requests,
-      rateLimitConfig.windowMs
+      rateLimitConfig.windowMs,
     );
     if (!rl.allowed) {
       return rateLimitError();
@@ -464,7 +530,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
 
       // Build query: Super Admin can update any tenant's entity
       const query: Record<string, unknown> = { _id: context.params.id };
-      if (user.role !== 'SUPER_ADMIN') {
+      if (user.role !== "SUPER_ADMIN") {
         query.org_id = user.orgId;
       }
 
@@ -477,7 +543,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
             // updatedAt is handled automatically by Mongoose timestamps: true
           },
         },
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       ).lean<T | null>();
 
       if (!entity) {
@@ -485,13 +551,14 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         return createSecureResponse(
           { error: `${entityName} not found`, correlationId },
           404,
-          req
+          req,
         );
       }
 
       return createSecureResponse(entity, 200, req);
     } catch (_error: unknown) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
       const correlationId = crypto.randomUUID();
       logger.error(`[PUT /api/${entityName}/:id] Error:`, {
@@ -508,7 +575,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
           ...(error instanceof z.ZodError && { validation: error.issues }),
         },
         status,
-        req
+        req,
       );
     }
   }
@@ -523,21 +590,32 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
       user = await getSessionUser(req);
     } catch (_error) {
       const correlationId = crypto.randomUUID();
-      logger.warn('Unauthenticated request to DELETE endpoint', { path: req.url, correlationId });
+      logger.warn("Unauthenticated request to DELETE endpoint", {
+        path: req.url,
+        correlationId,
+      });
       return createSecureResponse(
-        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        {
+          error: "Unauthorized",
+          message: "Authentication required",
+          correlationId,
+        },
         401,
-        req
+        req,
       );
     }
-    
+
     // Tenant context check
     if (!user?.orgId) {
       const correlationId = crypto.randomUUID();
       return createSecureResponse(
-        { error: 'Unauthorized', message: 'Missing tenant context', correlationId },
+        {
+          error: "Unauthorized",
+          message: "Missing tenant context",
+          correlationId,
+        },
         401,
-        req
+        req,
       );
     }
 
@@ -546,7 +624,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
     const rl = rateLimit(
       `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
       rateLimitConfig.requests,
-      rateLimitConfig.windowMs
+      rateLimitConfig.windowMs,
     );
     if (!rl.allowed) {
       return rateLimitError();
@@ -557,7 +635,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
 
       // Build query: Super Admin can delete any tenant's entity
       const query: Record<string, unknown> = { _id: context.params.id };
-      if (user.role !== 'SUPER_ADMIN') {
+      if (user.role !== "SUPER_ADMIN") {
         query.org_id = user.orgId;
       }
 
@@ -568,17 +646,18 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         return createSecureResponse(
           { error: `${entityName} not found`, correlationId },
           404,
-          req
+          req,
         );
       }
 
       return createSecureResponse(
         { message: `${entityName} deleted successfully` },
         200,
-        req
+        req,
       );
     } catch (_error: unknown) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
       const correlationId = crypto.randomUUID();
       logger.error(`[DELETE /api/${entityName}/:id] Error:`, {
@@ -592,7 +671,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
           correlationId,
         },
         500,
-        req
+        req,
       );
     }
   }

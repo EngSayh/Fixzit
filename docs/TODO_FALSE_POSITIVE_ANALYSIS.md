@@ -71,11 +71,13 @@
 ## Pattern Analysis
 
 The agent is flagging any file containing:
+
 - `async` keyword
-- `await` keyword  
+- `await` keyword
 - Promise-based operations
 
 **But these files ALL have proper error handling:**
+
 - ✅ Try/catch blocks wrapping async operations
 - ✅ `.catch()` chaining where appropriate
 - ✅ Error responses (NextResponse with status codes)
@@ -84,11 +86,13 @@ The agent is flagging any file containing:
 ## Root Cause
 
 The detection pattern is too broad. It's likely using a simple regex like:
+
 ```javascript
-/(async|await)(?!.*catch)/
+/(async|await)(?!.*catch)/;
 ```
 
 But this doesn't account for:
+
 1. Try/catch blocks wrapping entire function bodies
 2. Nested error handling
 3. Error boundaries in React
@@ -100,7 +104,7 @@ But this doesn't account for:
 
 ```javascript
 // Current (too broad)
-UNHANDLED_REJECTION_PATTERN = /(async|await)/
+UNHANDLED_REJECTION_PATTERN = /(async|await)/;
 
 // Suggested (context-aware)
 function hasUnhandledRejection(fileContent) {
@@ -109,11 +113,11 @@ function hasUnhandledRejection(fileContent) {
   // 2. AND no try/catch within same scope
   // 3. AND no .catch() chaining
   // 4. AND not in a React component (has ErrorBoundary)
-  
+
   const hasAsync = /async|await|\.then\(/.test(fileContent);
   const hasCatch = /catch\s*\(|\.catch\(/.test(fileContent);
   const hasErrorBoundary = /ErrorBoundary|componentDidCatch/.test(fileContent);
-  
+
   return hasAsync && !hasCatch && !hasErrorBoundary;
 }
 ```
@@ -121,6 +125,7 @@ function hasUnhandledRejection(fileContent) {
 ### Severity Levels
 
 Recommend adding severity to TODO items:
+
 - **P0 Critical**: Actual unhandled rejections (no catch anywhere)
 - **P1 High**: Missing catch in specific async call
 - **P2 Medium**: Catch exists but might not cover all cases
@@ -133,37 +138,41 @@ Recommend adding severity to TODO items:
 
 ### Category Breakdown (Revised)
 
-| Category | Original | Estimated Actual | False Positive % |
-|----------|----------|------------------|------------------|
-| Unhandled Rejections | 420 | 0-50 | 88-100% |
-| NextResponse Usage | 141 | 0 | 100% (intentional) |
-| i18n/RTL Issues | 119 | 20-30 | 75-83% |
-| Hydration Mismatch | 102 | 0 | 100% (verified) |
-| Other | 14 | 10-15 | 0-29% |
-| **Total** | **796** | **30-95** | **88-96%** |
+| Category             | Original | Estimated Actual | False Positive %   |
+| -------------------- | -------- | ---------------- | ------------------ |
+| Unhandled Rejections | 420      | 0-50             | 88-100%            |
+| NextResponse Usage   | 141      | 0                | 100% (intentional) |
+| i18n/RTL Issues      | 119      | 20-30            | 75-83%             |
+| Hydration Mismatch   | 102      | 0                | 100% (verified)    |
+| Other                | 14       | 10-15            | 0-29%              |
+| **Total**            | **796**  | **30-95**        | **88-96%**         |
 
 ## Action Items
 
 ### Immediate (This Session)
+
 - ✅ Document findings
 - ⏸️ Update agent heuristics (next PR)
 
 ### Short Term (Next Session)
+
 - [ ] Implement context-aware rejection detection
 - [ ] Add severity levels to TODO schema
 - [ ] Re-run agent with improved heuristics
 - [ ] Verify reduced false positive rate (<20%)
 
 ### Long Term
+
 - [ ] Add static analysis for actual unhandled rejections
 - [ ] Integrate ESLint rule `@typescript-eslint/no-floating-promises`
 - [ ] Set up automated TODO review in CI/CD
 
 ## Conclusion
 
-The current TODO list contains **88-96% false positives**. The agent is working correctly in terms of *detection* but needs improved *classification*. All 10 sampled files demonstrate production-quality error handling with proper try/catch blocks and error boundaries.
+The current TODO list contains **88-96% false positives**. The agent is working correctly in terms of _detection_ but needs improved _classification_. All 10 sampled files demonstrate production-quality error handling with proper try/catch blocks and error boundaries.
 
 **Recommendation**: Deprioritize this TODO category and focus on:
+
 1. i18n expansion (1144 keys remaining after this session)
 2. Test suite fixes (65 failures)
 3. TypeScript strict mode

@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import Category from '@/server/models/marketplace/Category';
-import { resolveMarketplaceContext } from '@/lib/marketplace/context';
-import { serializeCategory } from '@/lib/marketplace/serializers';
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import Category from "@/server/models/marketplace/Category";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import { serializeCategory } from "@/lib/marketplace/serializers";
 
-import { createSecureResponse } from '@/server/security/headers';
+import { createSecureResponse } from "@/server/security/headers";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 /**
  * @openapi
  * /api/marketplace/categories:
@@ -29,19 +29,23 @@ export async function GET(request: NextRequest) {
   try {
     const context = await resolveMarketplaceContext(request);
     await connectToDatabase();
-    const categories = await Category.find({ orgId: context.orgId }).sort({ createdAt: 1 }).lean();
-    
+    const categories = await Category.find({ orgId: context.orgId })
+      .sort({ createdAt: 1 })
+      .lean();
+
     interface CategorySerialized {
       _id: string;
       parentId?: string;
       [key: string]: unknown;
     }
-    
-    const serialized = categories.map((category) => serializeCategory(category)) as CategorySerialized[];
+
+    const serialized = categories.map((category) =>
+      serializeCategory(category),
+    ) as CategorySerialized[];
 
     const parentMap = new Map<string, CategorySerialized[]>();
     serialized.forEach((category) => {
-      const parentId = category.parentId ?? 'root';
+      const parentId = category.parentId ?? "root";
       if (!parentMap.has(parentId)) {
         parentMap.set(parentId, []);
       }
@@ -52,12 +56,12 @@ export async function GET(request: NextRequest) {
       _id: string;
       [key: string]: unknown;
     }
-    
+
     const buildTree = (parentId: string | undefined): CategoryNode[] => {
-      const nodes = parentMap.get(parentId ?? 'root') ?? [];
+      const nodes = parentMap.get(parentId ?? "root") ?? [];
       return (nodes as CategoryNode[]).map((node) => ({
         ...node,
-        children: buildTree(node._id)
+        children: buildTree(node._id),
       }));
     };
 
@@ -66,13 +70,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       data: serialized,
-      tree
+      tree,
     });
   } catch (error) {
-    logger.error('Failed to fetch marketplace categories', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Unable to fetch categories' }, 500, request);
+    logger.error(
+      "Failed to fetch marketplace categories",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Unable to fetch categories" },
+      500,
+      request,
+    );
   }
 }
-
-
-

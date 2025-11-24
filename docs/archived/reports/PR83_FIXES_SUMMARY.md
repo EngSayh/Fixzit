@@ -15,13 +15,15 @@
 **Before**:
 
 ```typescript
-const canConvertApplications = ['ADMIN', 'HR'].includes(user.role);
+const canConvertApplications = ["ADMIN", "HR"].includes(user.role);
 ```
 
 **After**:
 
 ```typescript
-const canConvertApplications = ['corporate_admin', 'hr_manager'].includes(user.role);
+const canConvertApplications = ["corporate_admin", "hr_manager"].includes(
+  user.role,
+);
 ```
 
 ### ✅ Fix 2: Role Casing in Subscribe/Corporate
@@ -73,7 +75,7 @@ the dual #!/bin/bash
 **Required Code**:
 
 ```typescript
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 export async function POST(req: NextRequest) {
   // Add authentication
@@ -82,28 +84,40 @@ export async function POST(req: NextRequest) {
     user = await getSessionUser(req);
   } catch {
     return NextResponse.json(
-      { error: 'UNAUTHORIZED', code: 'AUTH_REQUIRED', userMessage: 'Authentication required' },
-      { status: 401 }
+      {
+        error: "UNAUTHORIZED",
+        code: "AUTH_REQUIRED",
+        userMessage: "Authentication required",
+      },
+      { status: 401 },
     );
   }
-  
+
   // Add role check
-  const allowedRoles = ['super_admin', 'corporate_admin', 'finance_manager'];
+  const allowedRoles = ["super_admin", "corporate_admin", "finance_manager"];
   if (!allowedRoles.includes(user.role)) {
     return NextResponse.json(
-      { error: 'FORBIDDEN', code: 'INSUFFICIENT_PERMISSIONS', userMessage: 'Insufficient permissions' },
-      { status: 403 }
+      {
+        error: "FORBIDDEN",
+        code: "INSUFFICIENT_PERMISSIONS",
+        userMessage: "Insufficient permissions",
+      },
+      { status: 403 },
     );
   }
-  
+
   // Add tenant isolation
   if (body.tenantId && body.tenantId !== user.orgId) {
     return NextResponse.json(
-      { error: 'FORBIDDEN', code: 'CROSS_TENANT_VIOLATION', userMessage: 'Cannot access other organizations' },
-      { status: 403 }
+      {
+        error: "FORBIDDEN",
+        code: "CROSS_TENANT_VIOLATION",
+        userMessage: "Cannot access other organizations",
+      },
+      { status: 403 },
     );
   }
-  
+
   const tenantId = body.tenantId || user.orgId;
   // ... rest of code
 }
@@ -120,7 +134,7 @@ export async function POST(req: NextRequest) {
 **Required Code**:
 
 ```typescript
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 export async function POST(req: NextRequest) {
   let user;
@@ -128,19 +142,19 @@ export async function POST(req: NextRequest) {
     user = await getSessionUser(req);
   } catch {
     return NextResponse.json(
-      { error: 'UNAUTHORIZED', code: 'AUTH_REQUIRED' },
-      { status: 401 }
+      { error: "UNAUTHORIZED", code: "AUTH_REQUIRED" },
+      { status: 401 },
     );
   }
-  
-  const allowedRoles = ['super_admin', 'owner_landlord', 'property_manager'];
+
+  const allowedRoles = ["super_admin", "owner_landlord", "property_manager"];
   if (!allowedRoles.includes(user.role)) {
     return NextResponse.json(
-      { error: 'FORBIDDEN', code: 'INSUFFICIENT_PERMISSIONS' },
-      { status: 403 }
+      { error: "FORBIDDEN", code: "INSUFFICIENT_PERMISSIONS" },
+      { status: 403 },
     );
   }
-  
+
   const ownerUserId = body.ownerUserId || user.id;
   // ... rest of code
 }
@@ -155,13 +169,16 @@ export async function POST(req: NextRequest) {
 **Add**:
 
 ```typescript
-const BenchmarkSchema = new Schema({
-  tenantId: { type: String, required: true, index: true },
-  vendor: { type: String, required: true },
-  region: String,
-  plans: { type: [PlanSchema], default: [] },
-  retrieved_at: { type: Date, default: () => new Date() }
-}, { timestamps: true });
+const BenchmarkSchema = new Schema(
+  {
+    tenantId: { type: String, required: true, index: true },
+    vendor: { type: String, required: true },
+    region: String,
+    plans: { type: [PlanSchema], default: [] },
+    retrieved_at: { type: Date, default: () => new Date() },
+  },
+  { timestamps: true },
+);
 
 BenchmarkSchema.index({ tenantId: 1, vendor: 1, region: 1 }, { unique: true });
 ```
@@ -171,12 +188,15 @@ BenchmarkSchema.index({ tenantId: 1, vendor: 1, region: 1 }, { unique: true });
 **Add**:
 
 ```typescript
-const DiscountRuleSchema = new Schema({
-  tenantId: { type: String, required: true, index: true },
-  key: { type: String, required: true, trim: true },
-  percentage: { type: Number, default: 0.15, min: 0, max: 100 },
-  editableBySuperAdminOnly: { type: Boolean, default: true }
-}, { timestamps: true });
+const DiscountRuleSchema = new Schema(
+  {
+    tenantId: { type: String, required: true, index: true },
+    key: { type: String, required: true, trim: true },
+    percentage: { type: Number, default: 0.15, min: 0, max: 100 },
+    editableBySuperAdminOnly: { type: Boolean, default: true },
+  },
+  { timestamps: true },
+);
 
 DiscountRuleSchema.index({ tenantId: 1, key: 1 }, { unique: true });
 ```
@@ -186,13 +206,16 @@ DiscountRuleSchema.index({ tenantId: 1, key: 1 }, { unique: true });
 **Add**:
 
 ```typescript
-const OwnerGroupSchema = new Schema({
-  orgId: { type: String, required: true, index: true },
-  name: { type: String, required: true },
-  primary_contact_user_id: { type: Types.ObjectId, ref: 'User' },
-  member_user_ids: [{ type: Types.ObjectId, ref: 'User' }],
-  // ... other fields
-}, { timestamps: true });
+const OwnerGroupSchema = new Schema(
+  {
+    orgId: { type: String, required: true, index: true },
+    name: { type: String, required: true },
+    primary_contact_user_id: { type: Types.ObjectId, ref: "User" },
+    member_user_ids: [{ type: Types.ObjectId, ref: "User" }],
+    // ... other fields
+  },
+  { timestamps: true },
+);
 
 OwnerGroupSchema.index({ orgId: 1, name: 1 }, { unique: true });
 ```
@@ -202,23 +225,26 @@ OwnerGroupSchema.index({ orgId: 1, name: 1 }, { unique: true });
 **Add XOR Validation**:
 
 ```typescript
-const PaymentMethodSchema = new Schema({
-  org_id: { type: Types.ObjectId, ref: 'Tenant', required: false },
-  owner_user_id: { type: Types.ObjectId, ref: 'User', required: false },
-  gateway: { type: String, default: 'PAYTABS' },
-  pt_token: { type: String, index: true },
-  pt_masked_card: String,
-  pt_customer_email: String
-}, { timestamps: true });
+const PaymentMethodSchema = new Schema(
+  {
+    org_id: { type: Types.ObjectId, ref: "Tenant", required: false },
+    owner_user_id: { type: Types.ObjectId, ref: "User", required: false },
+    gateway: { type: String, default: "PAYTABS" },
+    pt_token: { type: String, index: true },
+    pt_masked_card: String,
+    pt_customer_email: String,
+  },
+  { timestamps: true },
+);
 
-PaymentMethodSchema.pre('validate', function (next) {
+PaymentMethodSchema.pre("validate", function (next) {
   const hasOrg = !!this.org_id;
   const hasOwner = !!this.owner_user_id;
   if (!hasOrg && !hasOwner) {
-    return next(new Error('Either org_id or owner_user_id must be provided'));
+    return next(new Error("Either org_id or owner_user_id must be provided"));
   }
   if (hasOrg && hasOwner) {
-    return next(new Error('Cannot set both org_id and owner_user_id'));
+    return next(new Error("Cannot set both org_id and owner_user_id"));
   }
   next();
 });
@@ -245,7 +271,7 @@ PaymentMethodSchema.index({ owner_user_id: 1 });
 console.log(`Created user: ${u.email} (Password: ${u.password})`);
 
 // After
-if (process.env.NODE_ENV === 'development' && !process.env.CI) {
+if (process.env.NODE_ENV === "development" && !process.env.CI) {
   console.log(`Created user: ${u.email} (password: ${u.password})`);
 } else {
   console.log(`Created user: ${u.email} (password set securely)`);
@@ -264,11 +290,15 @@ if (process.env.NODE_ENV === 'development' && !process.env.CI) {
 ```typescript
 // Before
 console.log(`✅ JWT_SECRET configured (${jwtSecret.substring(0, 10)}...)`);
-console.log('✓ Atlas URI detected:', uri.substring(0, 60) + '...');
+console.log("✓ Atlas URI detected:", uri.substring(0, 60) + "...");
 
 // After
-console.log('✅ JWT_SECRET configured (********)');
-console.log(MONGODB_URI.includes('mongodb+srv://') ? '✅ Atlas URI detected' : '✅ MongoDB URI configured');
+console.log("✅ JWT_SECRET configured (********)");
+console.log(
+  MONGODB_URI.includes("mongodb+srv://")
+    ? "✅ Atlas URI detected"
+    : "✅ MongoDB URI configured",
+);
 ```
 
 #### 9. Fix CORS Security
@@ -281,8 +311,10 @@ console.log(MONGODB_URI.includes('mongodb+srv://') ? '✅ Atlas URI detected' : 
 
 ```typescript
 // In development, use specific origin instead of '*'
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
-headers['Access-Control-Allow-Origin'] = allowedOrigins[0]; // Use first allowed origin
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [
+  "http://localhost:3000",
+];
+headers["Access-Control-Allow-Origin"] = allowedOrigins[0]; // Use first allowed origin
 ```
 
 ---

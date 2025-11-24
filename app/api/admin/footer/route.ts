@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { FooterContent } from '@/server/models/FooterContent';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { FooterContent } from "@/server/models/FooterContent";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
 
 interface FooterDocument {
   page: string;
@@ -24,10 +24,10 @@ export async function POST(request: NextRequest) {
     const user = await getSessionUser(request);
 
     // SUPER_ADMIN only
-    if (user.role !== 'SUPER_ADMIN') {
+    if (user.role !== "SUPER_ADMIN") {
       return NextResponse.json(
-        { error: 'Forbidden - SUPER_ADMIN access required' },
-        { status: 403 }
+        { error: "Forbidden - SUPER_ADMIN access required" },
+        { status: 403 },
       );
     }
 
@@ -37,17 +37,17 @@ export async function POST(request: NextRequest) {
     const { page, contentEn, contentAr } = body;
 
     // Validation
-    if (!page || !['about', 'privacy', 'terms'].includes(page)) {
+    if (!page || !["about", "privacy", "terms"].includes(page)) {
       return NextResponse.json(
-        { error: 'Invalid page. Must be one of: about, privacy, terms' },
-        { status: 400 }
+        { error: "Invalid page. Must be one of: about, privacy, terms" },
+        { status: 400 },
       );
     }
 
-    if (typeof contentEn !== 'string' || typeof contentAr !== 'string') {
+    if (typeof contentEn !== "string" || typeof contentAr !== "string") {
       return NextResponse.json(
-        { error: 'Both contentEn and contentAr must be strings' },
-        { status: 400 }
+        { error: "Both contentEn and contentAr must be strings" },
+        { status: 400 },
       );
     }
 
@@ -60,14 +60,14 @@ export async function POST(request: NextRequest) {
           contentEn,
           contentAr,
           updatedBy: user.id,
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       },
       {
         upsert: true,
         new: true,
-        runValidators: true
-      }
+        runValidators: true,
+      },
     );
 
     const footerTyped = footerContent as unknown as FooterDocument;
@@ -78,23 +78,22 @@ export async function POST(request: NextRequest) {
         contentEn: footerTyped.contentEn,
         contentAr: footerTyped.contentAr,
         updatedAt: footerTyped.updatedAt,
-        updatedBy: footerTyped.updatedBy ?? null
-      }
+        updatedBy: footerTyped.updatedBy ?? null,
+      },
     });
-
   } catch (error) {
     // Handle authentication errors specifically
-    if (error instanceof Error && error.message.includes('No valid token')) {
+    if (error instanceof Error && error.message.includes("No valid token")) {
       return NextResponse.json(
-        { error: 'Unauthorized - Authentication required' },
-        { status: 401 }
+        { error: "Unauthorized - Authentication required" },
+        { status: 401 },
       );
     }
 
-    logger.error('[POST /api/admin/footer] Error', { error });
+    logger.error("[POST /api/admin/footer] Error", { error });
     return NextResponse.json(
-      { error: 'Failed to update footer content' },
-      { status: 500 }
+      { error: "Failed to update footer content" },
+      { status: 500 },
     );
   }
 }
@@ -110,24 +109,24 @@ export async function GET(request: NextRequest) {
     const user = await getSessionUser(request);
 
     // SUPER_ADMIN only
-    if (user.role !== 'SUPER_ADMIN') {
+    if (user.role !== "SUPER_ADMIN") {
       return NextResponse.json(
-        { error: 'Forbidden - SUPER_ADMIN access required' },
-        { status: 403 }
+        { error: "Forbidden - SUPER_ADMIN access required" },
+        { status: 403 },
       );
     }
 
     await connectToDatabase();
 
     const { searchParams } = new URL(request.url);
-    const page = searchParams.get('page');
+    const page = searchParams.get("page");
 
     if (page) {
       // Get specific page
-      if (!['about', 'privacy', 'terms'].includes(page)) {
+      if (!["about", "privacy", "terms"].includes(page)) {
         return NextResponse.json(
-          { error: 'Invalid page. Must be one of: about, privacy, terms' },
-          { status: 400 }
+          { error: "Invalid page. Must be one of: about, privacy, terms" },
+          { status: 400 },
         );
       }
 
@@ -137,10 +136,10 @@ export async function GET(request: NextRequest) {
         // Return default empty content
         return NextResponse.json({
           page,
-          contentEn: '',
-          contentAr: '',
+          contentEn: "",
+          contentAr: "",
           updatedAt: null,
-          updatedBy: null
+          updatedBy: null,
         });
       }
 
@@ -148,36 +147,39 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all footer pages
-    const allContent = await FooterContent.find({}).lean() as unknown as FooterDocument[];
+    const allContent = (await FooterContent.find(
+      {},
+    ).lean()) as unknown as FooterDocument[];
 
     // Ensure all three pages exist (return defaults if missing)
-    const pages = ['about', 'privacy', 'terms'];
+    const pages = ["about", "privacy", "terms"];
     const result = pages.map((p: string) => {
       const existing = allContent.find((c) => c.page === p);
-      return existing || {
-        page: p,
-        contentEn: '',
-        contentAr: '',
-        updatedAt: null,
-        updatedBy: null
-      };
+      return (
+        existing || {
+          page: p,
+          contentEn: "",
+          contentAr: "",
+          updatedAt: null,
+          updatedBy: null,
+        }
+      );
     });
 
     return NextResponse.json({ data: result });
-
   } catch (error) {
     // Handle authentication errors specifically
-    if (error instanceof Error && error.message.includes('No valid token')) {
+    if (error instanceof Error && error.message.includes("No valid token")) {
       return NextResponse.json(
-        { error: 'Unauthorized - Authentication required' },
-        { status: 401 }
+        { error: "Unauthorized - Authentication required" },
+        { status: 401 },
       );
     }
 
-    logger.error('[GET /api/admin/footer] Error', { error });
+    logger.error("[GET /api/admin/footer] Error", { error });
     return NextResponse.json(
-      { error: 'Failed to fetch footer content' },
-      { status: 500 }
+      { error: "Failed to fetch footer content" },
+      { status: 500 },
     );
   }
 }

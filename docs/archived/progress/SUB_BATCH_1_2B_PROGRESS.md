@@ -10,13 +10,13 @@ Successfully transitioned from mocked SWR to **real SWR testing** with controlle
 
 ### Test Results
 
-| File | Before | After | Status |
-|------|--------|-------|--------|
-| **WorkOrdersView.test.tsx** | 0/13 passing | 5/13 passing | 🟡 Partial |
-| **SupportPopup.test.tsx** | 5/13 passing | 8/13 passing | 🟢 Improved |
-| **CatalogView.test.tsx** | Not tested yet | Pending | ⏳ Next |
+| File                        | Before         | After        | Status      |
+| --------------------------- | -------------- | ------------ | ----------- |
+| **WorkOrdersView.test.tsx** | 0/13 passing   | 5/13 passing | 🟡 Partial  |
+| **SupportPopup.test.tsx**   | 5/13 passing   | 8/13 passing | 🟢 Improved |
+| **CatalogView.test.tsx**    | Not tested yet | Pending      | ⏳ Next     |
 
-**Total Progress:**  
+**Total Progress:**
 
 - Before: 5/26 tests passing (19%)
 - After: 13/26 tests passing (50%)
@@ -48,7 +48,7 @@ Successfully transitioned from mocked SWR to **real SWR testing** with controlle
 
 ```text
 ✅ renders default heading and description
-✅ renders custom heading and description via props  
+✅ renders custom heading and description via props
 ✅ shows loading card when isLoading and no data
 ✅ shows error card when error is present
 ✅ shows empty state when no work orders and no error
@@ -123,10 +123,10 @@ Not SWR-related. Issues are:
 
 ```tsx
 // BEFORE:
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from "react";
 
 // AFTER:
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
 ```
 
 **Why:** Vitest with jsdom requires React in scope for JSX, unlike Next.js 13+ auto-import
@@ -156,10 +156,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 ### Previous Approach (Mocked SWR)
 
 ```typescript
-jest.mock('swr', () => {
+jest.mock("swr", () => {
   let current = { data: undefined, error: undefined };
   const useSWR = () => current;
-  useSWR.__set = (next) => { current = { ...current, ...next }; };
+  useSWR.__set = (next) => {
+    current = { ...current, ...next };
+  };
   return useSWR;
 });
 ```

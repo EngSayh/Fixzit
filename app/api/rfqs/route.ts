@@ -3,10 +3,14 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {zodValidationError, rateLimitError, handleApiError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { rateLimit } from "@/server/security/rateLimit";
+import {
+  zodValidationError,
+  rateLimitError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
 const createRFQSchema = z.object({
   title: z.string().min(1),
@@ -18,63 +22,82 @@ const createRFQSchema = z.object({
     city: z.string(),
     region: z.string().optional(),
     address: z.string().optional(),
-    coordinates: z.object({
-      lat: z.number(),
-      lng: z.number()
-    }).optional(),
+    coordinates: z
+      .object({
+        lat: z.number(),
+        lng: z.number(),
+      })
+      .optional(),
     radius: z.number().optional(),
-    nationalAddress: z.string().optional()
+    nationalAddress: z.string().optional(),
   }),
   projectId: z.string().optional(),
-  specifications: z.array(z.object({
-    item: z.string(),
-    description: z.string(),
-    quantity: z.number(),
-    unit: z.string(),
-    specifications: z.any().optional()
-  })).optional(),
+  specifications: z
+    .array(
+      z.object({
+        item: z.string(),
+        description: z.string(),
+        quantity: z.number(),
+        unit: z.string(),
+        specifications: z.any().optional(),
+      }),
+    )
+    .optional(),
   timeline: z.object({
     bidDeadline: z.string(),
     startDate: z.string(),
-    completionDate: z.string()
+    completionDate: z.string(),
   }),
   budget: z.object({
     estimated: z.number(),
     currency: z.string().default("SAR"),
-    range: z.object({
-      min: z.number().optional(),
-      max: z.number().optional()
-    }).optional()
+    range: z
+      .object({
+        min: z.number().optional(),
+        max: z.number().optional(),
+      })
+      .optional(),
   }),
-  requirements: z.object({
-    qualifications: z.array(z.string()).optional(),
-    experience: z.string().optional(),
-    insurance: z.object({
-      required: z.boolean(),
-      minimum: z.number().optional()
-    }).optional(),
-    licenses: z.array(z.string()).optional(),
-    references: z.number().optional()
-  }).optional(),
-  bidding: z.object({
-    anonymous: z.boolean().default(true),
-    maxBids: z.number().optional(),
-    targetBids: z.number().default(3),
-    bidLeveling: z.boolean().default(true),
-    alternates: z.boolean().optional(),
-    validity: z.number().default(30)
-  }).optional(),
-  compliance: z.object({
-    cityBounded: z.boolean().optional(),
-    insuranceRequired: z.boolean().optional(),
-    licenseRequired: z.boolean().optional(),
-    backgroundCheck: z.boolean().optional()
-  }).optional(),
-  tags: z.array(z.string()).optional()
+  requirements: z
+    .object({
+      qualifications: z.array(z.string()).optional(),
+      experience: z.string().optional(),
+      insurance: z
+        .object({
+          required: z.boolean(),
+          minimum: z.number().optional(),
+        })
+        .optional(),
+      licenses: z.array(z.string()).optional(),
+      references: z.number().optional(),
+    })
+    .optional(),
+  bidding: z
+    .object({
+      anonymous: z.boolean().default(true),
+      maxBids: z.number().optional(),
+      targetBids: z.number().default(3),
+      bidLeveling: z.boolean().default(true),
+      alternates: z.boolean().optional(),
+      validity: z.number().default(30),
+    })
+    .optional(),
+  compliance: z
+    .object({
+      cityBounded: z.boolean().optional(),
+      insuranceRequired: z.boolean().optional(),
+      licenseRequired: z.boolean().optional(),
+      backgroundCheck: z.boolean().optional(),
+    })
+    .optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 function isUnauthenticatedError(error: unknown): boolean {
-  return error instanceof Error && error.message.toLowerCase().includes('unauthenticated');
+  return (
+    error instanceof Error &&
+    error.message.toLowerCase().includes("unauthenticated")
+  );
 }
 
 async function resolveSessionUser(req: NextRequest) {
@@ -122,12 +145,16 @@ export async function POST(req: NextRequest) {
   try {
     const user = await resolveSessionUser(req);
     if (!user) {
-      return createSecureResponse({ error: 'Authentication required' }, 401, req);
+      return createSecureResponse(
+        { error: "Authentication required" },
+        401,
+        req,
+      );
     }
     if (!user?.orgId) {
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'Missing tenant context' },
-        { status: 401 }
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
       );
     }
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
@@ -138,18 +165,18 @@ export async function POST(req: NextRequest) {
 
     const data = createRFQSchema.parse(await req.json());
 
-    const { RFQ } = await import('@/server/models/RFQ');
-    const rfq = (await RFQ.create({
+    const { RFQ } = await import("@/server/models/RFQ");
+    const rfq = await RFQ.create({
       tenantId: user.orgId,
-      code: `RFQ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
+      code: `RFQ-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
       timeline: data.timeline,
       workflow: {
-        createdBy: user.id
+        createdBy: user.id,
       },
-      createdBy: user.id
-    }));
+      createdBy: user.id,
+    });
 
     return createSecureResponse(rfq, 201, req);
   } catch (error: unknown) {
@@ -164,12 +191,16 @@ export async function GET(req: NextRequest) {
   try {
     const user = await resolveSessionUser(req);
     if (!user) {
-      return createSecureResponse({ error: 'Authentication required' }, 401, req);
+      return createSecureResponse(
+        { error: "Authentication required" },
+        401,
+        req,
+      );
     }
     if (!user?.orgId) {
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'Missing tenant context' },
-        { status: 401 }
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
       );
     }
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
@@ -190,18 +221,18 @@ export async function GET(req: NextRequest) {
 
     if (status) match.status = status;
     if (category) match.category = category;
-    if (city) match['location.city'] = city;
+    if (city) match["location.city"] = city;
     if (search) {
       match.$text = { $search: search };
     }
 
-    const { RFQ } = await import('@/server/models/RFQ');
+    const { RFQ } = await import("@/server/models/RFQ");
     const [items, total] = await Promise.all([
       RFQ.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
-      RFQ.countDocuments(match)
+      RFQ.countDocuments(match),
     ]);
 
     return NextResponse.json({
@@ -209,7 +240,7 @@ export async function GET(req: NextRequest) {
       page,
       limit,
       total,
-      pages: Math.ceil(total / limit)
+      pages: Math.ceil(total / limit),
     });
   } catch (error: unknown) {
     return handleApiError(error);

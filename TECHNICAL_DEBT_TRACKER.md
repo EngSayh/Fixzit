@@ -17,6 +17,7 @@
 **Timeline:** **URGENT - Immediate Implementation Required**
 
 #### Affected Files:
+
 1. **`components/seller/kyc/DocumentUploadForm.tsx:98`**
    - **Context:** KYC document uploads for seller verification
    - **Current State:** Mock implementation with setTimeout
@@ -36,6 +37,7 @@
      - Retention policy enforcement
 
 #### Implementation Plan:
+
 ```typescript
 // Proposed API Contract
 POST /api/upload/presigned-url
@@ -59,6 +61,7 @@ Response:
 ```
 
 #### Acceptance Criteria:
+
 - [ ] Pre-signed URL generation with 15-minute expiry
 - [ ] Server-side file type validation
 - [ ] Size limit enforcement (10MB)
@@ -84,12 +87,14 @@ Response:
 #### Affected Pages (All using mock setTimeout):
 
 1. **Reports Generation (`app/fm/reports/new/page.tsx:87`)**
+
    ```typescript
    // TODO: Replace with actual API call
    await new Promise((resolve) => setTimeout(resolve, 2000));
    ```
+
    - **Required API:** `POST /api/fm/reports/generate`
-   - **Payload:** 
+   - **Payload:**
      ```typescript
      {
        reportType: 'maintenance' | 'asset' | 'space' | 'compliance' | 'financial',
@@ -121,6 +126,7 @@ Response:
    - **Payload:** Role name, permissions array
 
 #### Implementation Strategy:
+
 1. **Phase 1 (Week 1):** Define OpenAPI specs for all 6 endpoints
 2. **Phase 2 (Week 2):** Implement database schemas and migrations
 3. **Phase 3 (Week 3):** Build API routes with authentication/authorization
@@ -129,6 +135,7 @@ Response:
 6. **Phase 6 (Week 6):** Production deployment with rollback plan
 
 #### Acceptance Criteria:
+
 - [ ] All 6 API endpoints implemented
 - [ ] OpenAPI documentation complete
 - [ ] Unit tests (>85% coverage)
@@ -150,12 +157,14 @@ Response:
 **Timeline:** Q4 2025 / Q1 2026 (Re-evaluate after FM module completion)
 
 #### Affected File:
+
 - **`components/admin/claims/ClaimReviewPanel.tsx:211`**
   ```typescript
   // TODO: Implement bulk action API call
   ```
 
 #### Required Implementation:
+
 - **API:** `POST /api/admin/claims/bulk`
 - **Actions:** Approve, Reject, Request Info, Assign
 - **Payload:**
@@ -172,6 +181,7 @@ Response:
   ```
 
 #### Acceptance Criteria:
+
 - [ ] Bulk action API endpoint
 - [ ] Optimistic UI updates
 - [ ] Progress indicator for large batches
@@ -183,14 +193,15 @@ Response:
 
 ## 📊 Summary Dashboard
 
-| Category | Total Items | Critical | High | Medium | Low | Status |
-|----------|-------------|----------|------|--------|-----|--------|
-| Security-Critical | 2 | 2 | 0 | 0 | 0 | ⚠️ **294 days overdue** |
-| FM Module APIs | 6 | 0 | 6 | 0 | 0 | ⚠️ **279 days overdue** |
-| Feature Completeness | 1 | 0 | 0 | 1 | 0 | ✅ On track |
-| **TOTAL** | **9** | **2** | **6** | **1** | **0** | **8 overdue, 1 on track** |
+| Category             | Total Items | Critical | High  | Medium | Low   | Status                    |
+| -------------------- | ----------- | -------- | ----- | ------ | ----- | ------------------------- |
+| Security-Critical    | 2           | 2        | 0     | 0      | 0     | ⚠️ **294 days overdue**   |
+| FM Module APIs       | 6           | 0        | 6     | 0      | 0     | ⚠️ **279 days overdue**   |
+| Feature Completeness | 1           | 0        | 0     | 1      | 0     | ✅ On track               |
+| **TOTAL**            | **9**       | **2**    | **6** | **1**  | **0** | **8 overdue, 1 on track** |
 
 ### ⚠️ Critical Alert
+
 **2 security-critical items and 6 high-priority items are significantly overdue.**  
 **Recommended Action:** Immediate sprint planning and resource allocation.
 
@@ -199,6 +210,7 @@ Response:
 ## 🎯 Next Actions - **UPDATED Nov 20, 2025**
 
 ### 🚨 IMMEDIATE (This Week - Nov 20-27)
+
 1. ✅ Document all technical debt items
 2. 🔴 **URGENT:** Emergency sprint planning for S3 uploads
 3. 🔴 **URGENT:** Security audit of current file upload workarounds
@@ -206,6 +218,7 @@ Response:
 5. 🔴 Assess production risk and mitigation strategies
 
 ### Short-term (Next 4 Weeks - Nov-Dec 2025)
+
 1. 🔴 **Week 1-2:** S3 upload implementation (security-first approach)
    - Pre-signed URL generation
    - Virus scanning integration
@@ -216,11 +229,13 @@ Response:
    - Authentication/authorization
 
 ### Medium-term (Q4 2025 - Dec 2025)
+
 1. 🔴 Deploy S3 uploads to production (with security audit)
 2. 🟡 Complete 3-4 FM module APIs
 3. 🟡 Integration testing and UAT
 
 ### Long-term (Q1 2026)
+
 1. 🟡 Complete remaining FM module APIs
 2. 🟢 Evaluate bulk actions feature priority
 3. 📊 Technical debt retrospective
@@ -230,11 +245,13 @@ Response:
 ## 📝 Notes
 
 ### Why These TODOs Exist
+
 - **FM Module:** UI was built ahead of backend to unblock design reviews
 - **S3 Uploads:** Waiting for AWS infrastructure provisioning
 - **Bulk Actions:** Deferred to prioritize core claim workflow
 
 ### Risk Mitigation
+
 - All TODO pages show clear "Demo Mode" indicators to users
 - Production environment variables prevent accidental use
 - Regular technical debt reviews in sprint planning
@@ -244,26 +261,32 @@ Response:
 ## ⚠️ Risk Assessment (Nov 20, 2025)
 
 ### Security Risk Analysis
+
 **S3 Upload Delay Impact:**
+
 - ❌ KYC documents may be stored insecurely (294 days exposure)
 - ❌ Resume/CV uploads lack encryption and virus scanning
 - ❌ Potential compliance violations (GDPR/CCPA)
 - ❌ No audit trail for file operations
 
 **Immediate Mitigation Required:**
+
 1. Disable file upload features until security implementation complete
 2. Manual KYC verification process as workaround
 3. Security audit of current temporary solutions
 4. Incident response plan if breach detected
 
 ### Business Impact Analysis
+
 **FM Module Delay Impact:**
+
 - ❌ FM module non-functional for 9 months
 - ❌ Lost revenue from FM customers
 - ❌ Customer churn risk
 - ❌ Competitive disadvantage
 
 **Recommended Actions:**
+
 1. Executive escalation of FM module priority
 2. Resource reallocation from lower-priority features
 3. Consider temporary third-party integration

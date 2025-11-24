@@ -5,6 +5,7 @@
 Successfully addressed **all 6 action items** from the comprehensive code review, implementing critical improvements to work order management, API validation, caching, observability, and test coverage.
 
 **Total Impact:**
+
 - ✅ 100% of identified gaps resolved
 - ✅ 19 new passing tests added (10 PATCH, 9 scan-status)
 - ✅ 0 regressions introduced
@@ -21,6 +22,7 @@ Successfully addressed **all 6 action items** from the comprehensive code review
 **Root Cause:** UI built against anticipated API contracts that didn't match actual implementations.
 
 **Solution Implemented:**
+
 ```typescript
 // OLD (broken)
 fetch('/api/properties?limit=50')
@@ -38,6 +40,7 @@ fetch('/api/admin/users?role=TECHNICIAN')
 ```
 
 **Defensive Mapping Added:**
+
 - Extract names from `personal.firstName`/`lastName` fields
 - Fallback chain: `username` → `email` → `'Technician'`
 - Filter out entries without valid IDs
@@ -56,36 +59,47 @@ fetch('/api/admin/users?role=TECHNICIAN')
 **Solution Implemented:**
 
 #### Property Validation
+
 ```typescript
 if (updates.propertyId) {
-  const propertyExists = await db.collection('properties').countDocuments({
+  const propertyExists = await db.collection("properties").countDocuments({
     _id: new ObjectId(updates.propertyId),
-    org_id: user.tenantId
+    org_id: user.tenantId,
   });
   if (!propertyExists) {
-    return createSecureResponse({ 
-      error: 'Invalid propertyId: property not found' 
-    }, 422, req);
+    return createSecureResponse(
+      {
+        error: "Invalid propertyId: property not found",
+      },
+      422,
+      req,
+    );
   }
 }
 ```
 
 #### Assignee Validation
+
 ```typescript
 if (updates.assignment?.assignedTo?.userId) {
-  const userExists = await db.collection('users').countDocuments({
+  const userExists = await db.collection("users").countDocuments({
     _id: new ObjectId(updates.assignment.assignedTo.userId),
-    orgId: user.tenantId
+    orgId: user.tenantId,
   });
   if (!userExists) {
-    return createSecureResponse({ 
-      error: 'Invalid assignee: user not found' 
-    }, 422, req);
+    return createSecureResponse(
+      {
+        error: "Invalid assignee: user not found",
+      },
+      422,
+      req,
+    );
   }
 }
 ```
 
 #### SLA Recalculation on Priority Change
+
 ```typescript
 if (updates.priority) {
   const slaConfig = {
@@ -93,17 +107,22 @@ if (updates.priority) {
     HIGH: { response: 60, resolution: 480 },
     MEDIUM: { response: 240, resolution: 1440 },
     LOW: { response: 480, resolution: 2880 },
-    URGENT: { response: 30, resolution: 360 }
+    URGENT: { response: 30, resolution: 360 },
   };
   const config = slaConfig[updates.priority];
-  update['sla.responseTimeMinutes'] = config.response;
-  update['sla.resolutionTimeMinutes'] = config.resolution;
-  update['sla.responseDeadline'] = new Date(now.getTime() + config.response * 60000);
-  update['sla.resolutionDeadline'] = new Date(now.getTime() + config.resolution * 60000);
+  update["sla.responseTimeMinutes"] = config.response;
+  update["sla.resolutionTimeMinutes"] = config.resolution;
+  update["sla.responseDeadline"] = new Date(
+    now.getTime() + config.response * 60000,
+  );
+  update["sla.resolutionDeadline"] = new Date(
+    now.getTime() + config.resolution * 60000,
+  );
 }
 ```
 
-**Risk Reduction:** 
+**Risk Reduction:**
+
 - Prevents orphaned work orders pointing to deleted properties
 - Prevents assignments to non-existent users
 - Ensures SLA deadlines stay consistent with priority levels
@@ -117,6 +136,7 @@ if (updates.priority) {
 **Root Cause:** Endpoint designed for real-time status but treated as always-fresh data.
 
 **Solution Implemented:**
+
 ```typescript
 // Before
 return NextResponse.json(result, { status: 200 });
@@ -125,13 +145,14 @@ return NextResponse.json(result, { status: 200 });
 return NextResponse.json(result, {
   status: 200,
   headers: {
-    'Cache-Control': 'private, max-age=5',      // 5s browser cache
-    'CDN-Cache-Control': 'no-store'             // Prevent CDN caching
-  }
+    "Cache-Control": "private, max-age=5", // 5s browser cache
+    "CDN-Cache-Control": "no-store", // Prevent CDN caching
+  },
 });
 ```
 
 **Impact Analysis:**
+
 - Client polls every 7 seconds
 - Cache duration: 5 seconds
 - **DB query reduction: ~71%** (1 query per 7s instead of continuous)
@@ -139,6 +160,7 @@ return NextResponse.json(result, {
 - CDN bypass prevents stale status across geographies
 
 **Performance Gain:**
+
 ```
 Before: 8.6 DB queries/minute per user
 After:  2.5 DB queries/minute per user
@@ -154,56 +176,61 @@ Savings: 71% reduction in scan_status collection load
 **Root Cause:** Fire-and-forget `Promise.allSettled` with no result inspection.
 
 **Solution Implemented:**
+
 ```typescript
 // Before
 if (removedKeys.length) {
   void Promise.allSettled(
-    removedKeys.map(key => deleteObject(key).catch(() => undefined))
+    removedKeys.map((key) => deleteObject(key).catch(() => undefined)),
   );
 }
 
 // After
 if (removedKeys.length) {
   const deleteResults = await Promise.allSettled(
-    removedKeys.map(key => deleteObject(key))
+    removedKeys.map((key) => deleteObject(key)),
   );
-  
+
   // Log individual failures
   deleteResults.forEach((result, idx) => {
-    if (result.status === 'rejected') {
-      logger.error('[WorkOrder PATCH] S3 cleanup failed', {
+    if (result.status === "rejected") {
+      logger.error("[WorkOrder PATCH] S3 cleanup failed", {
         workOrderId: params.id,
         key: removedKeys[idx],
-        error: result.reason
+        error: result.reason,
       });
     }
   });
-  
+
   // Warn on partial failures
-  const failedCount = deleteResults.filter(r => r.status === 'rejected').length;
+  const failedCount = deleteResults.filter(
+    (r) => r.status === "rejected",
+  ).length;
   if (failedCount > 0) {
-    logger.warn('[WorkOrder PATCH] S3 cleanup partial failure', {
+    logger.warn("[WorkOrder PATCH] S3 cleanup partial failure", {
       workOrderId: params.id,
       total: removedKeys.length,
-      failed: failedCount
+      failed: failedCount,
     });
   }
 }
 ```
 
 **Monitoring Integration Points:**
+
 - Error logs include: `workOrderId`, `key`, `error` for debugging
 - Warning logs include: `total`, `failed` counts for alerting thresholds
 - Structured logging enables dashboards/alerts on `[WorkOrder PATCH] S3 cleanup` events
 
 **Recommended Alerts:**
+
 ```yaml
 alert: S3CleanupFailureRate
 condition: (failed / total) > 0.1
 severity: warning
 description: More than 10% of S3 deletions failing
 
-alert: S3CleanupCritical  
+alert: S3CleanupCritical
 condition: failed > 10 in 5m
 severity: critical
 description: High volume of S3 cleanup failures
@@ -216,10 +243,11 @@ description: High volume of S3 cleanup failures
 **Implementation:**
 
 #### New Test Suite: `tests/unit/api/work-orders/patch.route.test.ts` (10 tests)
+
 ```
 ✓ Property validation (3)
   ✓ validates propertyId exists before updating
-  ✓ allows valid propertyId  
+  ✓ allows valid propertyId
   ✓ combines propertyId and unitNumber into location
 
 ✓ Assignment validation (2)
@@ -239,6 +267,7 @@ description: High volume of S3 cleanup failures
 ```
 
 #### New Test Suite: `tests/unit/api/upload/scan-status.test.ts` (9 tests)
+
 ```
 ✓ GET /api/upload/scan-status (6)
   ✓ enforces rate limiting
@@ -255,17 +284,19 @@ description: High volume of S3 cleanup failures
 ```
 
 **Test Execution Results:**
+
 ```bash
 $ pnpm vitest run tests/unit/api/work-orders/patch.route.test.ts
 ✓ 10 tests passed
 
-$ pnpm vitest run tests/unit/api/upload/scan-status.test.ts  
+$ pnpm vitest run tests/unit/api/upload/scan-status.test.ts
 ✓ 9 tests passed
 
 Total: 19 tests | 19 passed | 0 failed
 ```
 
 **Coverage Improvements:**
+
 - Property/assignee validation: 0% → 100%
 - SLA recalculation logic: 0% → 100%
 - S3 cleanup observability: 0% → 100%
@@ -278,6 +309,7 @@ Total: 19 tests | 19 passed | 0 failed
 **Problem:** Smoke test timeout indicated auth state files might be stale.
 
 **Investigation Results:**
+
 ```bash
 $ pnpm playwright test smoke.spec.ts --grep="Dashboard"
 # Result: Timeout at /dashboard → redirected to /login
@@ -285,11 +317,13 @@ $ pnpm playwright test smoke.spec.ts --grep="Dashboard"
 ```
 
 **Findings:**
+
 - Page snapshot shows login form instead of dashboard
 - Auth state files in `tests/state/*.json` contain session cookies
 - Cookies likely expired or JWT signature validation changed
 
 **Recommendation Documented:**
+
 ```bash
 # To regenerate auth states:
 $ pnpm test:setup-auth
@@ -302,8 +336,9 @@ $ pnpm test:setup-auth
 ```
 
 **Status:** Documented in findings. Auth regeneration should be run when:
+
 - JWT signing secret changes
-- Session format/structure changes  
+- Session format/structure changes
 - Cookie domain/path changes
 - Auth middleware logic changes
 
@@ -314,6 +349,7 @@ $ pnpm test:setup-auth
 ## 📊 Impact Summary
 
 ### Code Quality Metrics
+
 ```
 Files Modified:     5
 Lines Added:        +982
@@ -326,16 +362,18 @@ Coverage Increase:  ~15% on modified files
 ```
 
 ### Risk Mitigation
-| Risk | Before | After | Improvement |
-|------|--------|-------|-------------|
-| Invalid property refs | ❌ Undetected | ✅ 422 error | 100% |
-| Invalid assignee refs | ❌ Undetected | ✅ 422 error | 100% |
-| SLA inconsistency | ⚠️ Manual recalc | ✅ Automatic | 100% |
-| DB overload (scan status) | ⚠️ 8.6 qpm | ✅ 2.5 qpm | 71% reduction |
-| S3 orphans | ❌ Silent failures | ✅ Logged/alerted | 100% |
-| Empty UI dropdowns | ⚠️ Common | ✅ Rare | ~90% |
+
+| Risk                      | Before             | After             | Improvement   |
+| ------------------------- | ------------------ | ----------------- | ------------- |
+| Invalid property refs     | ❌ Undetected      | ✅ 422 error      | 100%          |
+| Invalid assignee refs     | ❌ Undetected      | ✅ 422 error      | 100%          |
+| SLA inconsistency         | ⚠️ Manual recalc   | ✅ Automatic      | 100%          |
+| DB overload (scan status) | ⚠️ 8.6 qpm         | ✅ 2.5 qpm        | 71% reduction |
+| S3 orphans                | ❌ Silent failures | ✅ Logged/alerted | 100%          |
+| Empty UI dropdowns        | ⚠️ Common          | ✅ Rare           | ~90%          |
 
 ### Performance Impact
+
 ```
 Scan Status Endpoint:
 - DB queries: -71% (8.6 → 2.5 queries/min/user)
@@ -353,6 +391,7 @@ Work Order PATCH:
 ## 🚀 Deployment Status
 
 ### Commit Details
+
 ```
 Commit: e35f7d1b4
 Branch: main
@@ -360,6 +399,7 @@ Status: ✅ Pushed to remote
 ```
 
 ### Verification Steps
+
 ```bash
 # 1. Unit tests
 ✅ pnpm vitest run tests/unit/api/work-orders/patch.route.test.ts
@@ -373,6 +413,7 @@ Status: ✅ Pushed to remote
 ```
 
 ### Production Readiness Checklist
+
 - [x] All tests passing
 - [x] No breaking changes
 - [x] Backwards compatible (existing WOs unaffected)
@@ -386,16 +427,19 @@ Status: ✅ Pushed to remote
 ## 📝 Recommendations for Next Steps
 
 ### Immediate (Next Sprint)
+
 1. **Regenerate Playwright auth states:** Run `pnpm test:setup-auth` to fix smoke tests
 2. **Add monitoring alerts:** Configure alerts on S3 cleanup failure logs
 3. **Performance monitoring:** Track scan-status cache hit rate in production
 
 ### Short-term (1-2 Sprints)
+
 1. **Audit other PATCH endpoints:** Apply similar validation patterns to other entity updates
 2. **Implement retry logic:** Add exponential backoff for transient S3 failures
 3. **Cache optimization:** Extend to other frequently-polled endpoints
 
 ### Long-term (Roadmap)
+
 1. **Referential integrity layer:** Consider MongoDB foreign key validation plugin
 2. **SLA configuration UI:** Make SLA timings configurable instead of hardcoded
 3. **S3 orphan cleanup job:** Periodic job to reconcile DB attachments vs S3 objects
@@ -405,17 +449,20 @@ Status: ✅ Pushed to remote
 ## 🔍 Lessons Learned
 
 ### What Went Well
+
 - Systematic approach caught all gaps before production issues
 - Comprehensive test coverage prevented regressions
 - Structured logging enables future monitoring/alerting
 - Defensive API mapping prevents silent failures
 
 ### What Could Be Improved
+
 - Earlier API contract documentation would prevent endpoint mismatches
 - Integration tests for cross-service validation (properties, users, work orders)
 - Load testing to validate cache strategy effectiveness
 
 ### Process Improvements
+
 - Add API contract tests to CI/CD pipeline
 - Require referential validation for all foreign key fields
 - Standard cache header strategy across all endpoints
@@ -426,6 +473,7 @@ Status: ✅ Pushed to remote
 ## 📚 References
 
 ### Modified Files
+
 - `app/fm/work-orders/[id]/edit/page.tsx` - Fixed API endpoints and response mapping
 - `app/api/work-orders/[id]/route.ts` - Added validation, SLA recalc, observability
 - `app/api/upload/scan-status/route.ts` - Added cache headers
@@ -433,6 +481,7 @@ Status: ✅ Pushed to remote
 - `tests/unit/api/upload/scan-status.test.ts` - New test suite (9 tests)
 
 ### Related Documentation
+
 - [WorkOrder Model Schema](/server/models/WorkOrder.ts)
 - [FM Properties API](/app/api/fm/properties/route.ts)
 - [Admin Users API](/app/api/admin/users/route.ts)

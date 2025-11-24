@@ -1,4 +1,5 @@
 # Fixzit Souq Marketplace - Implementation Gap Analysis
+
 **Date**: November 15, 2025  
 **Spec**: Amazon-Parity Fixzit Souq Implementation Pack  
 **Current Branch**: `feat/souq-marketplace-advanced`  
@@ -12,22 +13,22 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
 
 ### High-Level Status
 
-| Component | Status | Completion |
-|-----------|--------|------------|
-| **Foundation (Phase 0)** | ✅ **80% Complete** | FSIN generator, feature flags, core models, Buy Box service |
-| **Catalog & Brands (EPIC A)** | 🟡 **40% Complete** | Models exist, missing Admin UI & brand registry workflow |
-| **Seller Onboarding (EPIC B)** | 🟡 **50% Complete** | Seller model complete, missing KYC UI & health dashboard |
-| **Listings & Buy Box (EPIC C)** | 🟡 **60% Complete** | Buy Box algorithm ready, missing PDP integration & repricer |
-| **Inventory & Fulfillment (EPIC D)** | ⚠️ **10% Complete** | Models exist, no carrier integrations or FBF/FBM logic |
-| **Orders & Returns (EPIC E)** | 🟡 **30% Complete** | Order model exists, missing returns center & A-to-Z claims |
-| **Advertising (EPIC F)** | ❌ **0% Complete** | No CPC auction, no campaigns, no ad placement logic |
-| **Deals & Coupons (EPIC G)** | 🟡 **40% Complete** | Deal model exists, missing coupon engine & UI |
-| **Reviews & Q&A (EPIC H)** | 🟡 **30% Complete** | Review model exists, missing moderation & Q&A system |
-| **Settlement (EPIC I)** | 🟡 **50% Complete** | Settlement model exists, missing payout engine & PDF generation |
-| **Search & Ranking (EPIC J)** | 🟡 **40% Complete** | Basic search API exists, missing facets & recommendations |
-| **Reporting (EPIC K)** | ⚠️ **10% Complete** | No business reports or admin consoles |
+| Component                                             | Status              | Completion                                                                                                            |
+| ----------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Foundation (Phase 0)**                              | ✅ **80% Complete** | FSIN generator, feature flags, core models, Buy Box service                                                           |
+| **Catalog & Brands (EPIC A)**                         | 🟡 **40% Complete** | Models exist, missing Admin UI & brand registry workflow                                                              |
+| **Seller Onboarding (EPIC B)**                        | 🟡 **50% Complete** | Seller model complete, missing KYC UI & health dashboard                                                              |
+| **Listings & Buy Box (EPIC C)**                       | 🟡 **60% Complete** | Buy Box algorithm ready, missing PDP integration & repricer                                                           |
+| **Inventory & Fulfillment (EPIC D)**                  | ⚠️ **10% Complete** | Models exist, no carrier integrations or FBF/FBM logic                                                                |
+| **Orders & Returns (EPIC E)**                         | 🟡 **30% Complete** | Order model exists, missing returns center & A-to-Z claims                                                            |
+| **Advertising (EPIC F)**                              | ❌ **0% Complete**  | No CPC auction, no campaigns, no ad placement logic                                                                   |
+| **Deals & Coupons (EPIC G)**                          | 🟡 **40% Complete** | Deal model exists, missing coupon engine & UI                                                                         |
+| **Reviews & Q&A (EPIC H)**                            | 🟡 **30% Complete** | Review model exists, missing moderation & Q&A system                                                                  |
+| **Settlement (EPIC I)**                               | 🟡 **50% Complete** | Settlement model exists, missing payout engine & PDF generation                                                       |
+| **Search & Ranking (EPIC J)**                         | 🟡 **40% Complete** | Basic search API exists, missing facets & recommendations                                                             |
+| **Reporting (EPIC K)**                                | ⚠️ **10% Complete** | No business reports or admin consoles                                                                                 |
 | **Consumer Experience (Checkout, Payments, Support)** | ⚠️ **15% Complete** | PDP/Catalog UI exists, but checkout, payments, buyer support center, and Super Admin SLA dashboards are unimplemented |
-| **QA / HFV Evidence** | ⚠️ **10% Complete** | Only Buy Box unit tests exist; no HFV screenshots or automation tied to Super Admin acceptance gates |
+| **QA / HFV Evidence**                                 | ⚠️ **10% Complete** | Only Buy Box unit tests exist; no HFV screenshots or automation tied to Super Admin acceptance gates                  |
 
 **Overall System Completion**: ~35%
 
@@ -38,16 +39,18 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
 ### Phase 0: Foundation (80% Complete)
 
 #### ✅ FSIN Generator
+
 - **Location**: `lib/souq/fsin-generator.ts`
 - **Status**: Fully implemented with collision detection
 - **Format**: `FS-{12-char UUID uppercase}`
 - **Features**: Metadata tracking, check digit validation
 
 #### ✅ Feature Flags System
+
 - **Location**: `lib/souq/feature-flags.ts`
 - **Status**: Complete with dependency management
 - **Flags Defined**: 12 flags (ads, deals, buy_box, settlement, returns_center, brand_registry, account_health, fulfillment_by_fixzit, a_to_z_claims, sponsored_products, auto_repricer, reviews_qa)
-- **Features**: 
+- **Features**:
   - Environment variable override support
   - Dependency chain validation
   - Middleware for API route protection
@@ -55,40 +58,42 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
 
 **Feature-Flag Dependency Matrix (Super Admin View)**
 
-| Flag | Implemented Components | Missing for “ON” State |
-|------|------------------------|------------------------|
-| `ads` | Flag definition only | CPC auction service, sponsored placement UI, billing hooks |
-| `deals` | Deal model + CRUD API | Buyer-facing deal carousel, coupon engine, Super Admin approval UI |
-| `buy_box` | Algorithm + API | PDP integration, repricer worker, HFV evidence |
-| `settlement` | Settlement CRUD + model | Payout engine, tax exports, Super Admin approval console |
-| `brand_registry` | Brand schema | Seller submission workflow, admin queue, compliance cron |
-| `account_health` | Seller metrics fields | Health dashboard UI, enforcement service, alerting |
-| `fulfillment_by_fixzit` | Listing flags | Carrier integrations, warehouse UI, SLA monitors |
-| `returns_center` | Returns schema | Buyer portal, inspection workflow, refund automation |
-| `a_to_z_claims` | Claim schema stub | Buyer claim UI, adjudication console, settlement adjustments |
-| `sponsored_products` | Flag only | Ads placement pipeline, reporting, billing |
-| `auto_repricer` | None | Pricing worker, risk guardrails, Super Admin override screen |
-| `reviews_qa` | Review model | PDP UI, moderation queue, helpful votes |
+| Flag                    | Implemented Components  | Missing for “ON” State                                             |
+| ----------------------- | ----------------------- | ------------------------------------------------------------------ |
+| `ads`                   | Flag definition only    | CPC auction service, sponsored placement UI, billing hooks         |
+| `deals`                 | Deal model + CRUD API   | Buyer-facing deal carousel, coupon engine, Super Admin approval UI |
+| `buy_box`               | Algorithm + API         | PDP integration, repricer worker, HFV evidence                     |
+| `settlement`            | Settlement CRUD + model | Payout engine, tax exports, Super Admin approval console           |
+| `brand_registry`        | Brand schema            | Seller submission workflow, admin queue, compliance cron           |
+| `account_health`        | Seller metrics fields   | Health dashboard UI, enforcement service, alerting                 |
+| `fulfillment_by_fixzit` | Listing flags           | Carrier integrations, warehouse UI, SLA monitors                   |
+| `returns_center`        | Returns schema          | Buyer portal, inspection workflow, refund automation               |
+| `a_to_z_claims`         | Claim schema stub       | Buyer claim UI, adjudication console, settlement adjustments       |
+| `sponsored_products`    | Flag only               | Ads placement pipeline, reporting, billing                         |
+| `auto_repricer`         | None                    | Pricing worker, risk guardrails, Super Admin override screen       |
+| `reviews_qa`            | Review model            | PDP UI, moderation queue, helpful votes                            |
 
 > Super Admins should not enable a flag until the “Missing” column ships with HFV/QA evidence.
 
 #### ✅ MongoDB Schemas (Complete)
+
 **Location**: `server/models/souq/`
 
-| Model | Status | Key Features |
-|-------|--------|--------------|
-| **Category.ts** | ✅ Complete | Hierarchical, restricted categories, required approvals |
-| **Brand.ts** | ✅ Complete | Registry status, ownership verification, document tracking |
-| **Product.ts** | ✅ Complete | FSIN integration, compliance flags, specifications |
-| **Variation.ts** | ✅ Complete | Attribute combinations, SKU, inventory link |
-| **Seller.ts** | ✅ Complete | **Excellent** - KYC, account health, violations, tier system |
-| **Listing.ts** | ✅ Complete | Multi-seller, Buy Box fields, pricing guardrails |
-| **Order.ts** | ✅ Complete | Full lifecycle, payment, fulfillment status |
-| **Deal.ts** | ✅ Complete | Lightning/event deals, eligibility, time windows |
-| **Review.ts** | ✅ Complete | Verified purchases, ratings, moderation flags |
-| **Settlement.ts** | ✅ Complete | Period tracking, fees, payout calculations |
+| Model             | Status      | Key Features                                                 |
+| ----------------- | ----------- | ------------------------------------------------------------ |
+| **Category.ts**   | ✅ Complete | Hierarchical, restricted categories, required approvals      |
+| **Brand.ts**      | ✅ Complete | Registry status, ownership verification, document tracking   |
+| **Product.ts**    | ✅ Complete | FSIN integration, compliance flags, specifications           |
+| **Variation.ts**  | ✅ Complete | Attribute combinations, SKU, inventory link                  |
+| **Seller.ts**     | ✅ Complete | **Excellent** - KYC, account health, violations, tier system |
+| **Listing.ts**    | ✅ Complete | Multi-seller, Buy Box fields, pricing guardrails             |
+| **Order.ts**      | ✅ Complete | Full lifecycle, payment, fulfillment status                  |
+| **Deal.ts**       | ✅ Complete | Lightning/event deals, eligibility, time windows             |
+| **Review.ts**     | ✅ Complete | Verified purchases, ratings, moderation flags                |
+| **Settlement.ts** | ✅ Complete | Period tracking, fees, payout calculations                   |
 
 #### ✅ Buy Box Algorithm
+
 - **Location**: `services/souq/buybox-service.ts`
 - **Status**: Fully implemented with scoring logic
 - **Features**:
@@ -100,57 +105,59 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
   - Recalculation triggers
 
 #### ✅ API Routes (Partial)
+
 **Location**: `app/api/souq/`
 
-| Endpoint | Status | Notes |
-|----------|--------|-------|
-| `/souq/buybox/[fsin]` | ✅ Implemented | Buy Box winner retrieval |
-| `/souq/categories` | ✅ Implemented | Category listing |
-| `/souq/products` | ✅ Implemented | Product CRUD |
-| `/souq/catalog/products` | ✅ Implemented | Catalog search |
-| `/souq/listings` | ✅ Implemented | Listing management |
-| `/souq/sellers` | ✅ Implemented | Seller CRUD |
-| `/souq/sellers/[id]/dashboard` | ✅ Implemented | Seller metrics |
-| `/souq/orders` | ✅ Implemented | Order management |
-| `/souq/deals` | ✅ Implemented | Deal CRUD |
-| `/souq/reviews` | ✅ Implemented | Review submission |
-| `/souq/settlements` | ✅ Implemented | Settlement CRUD |
-| `/souq/brands` | ✅ Implemented | Brand management |
-| `/souq/search` | ✅ Implemented | Search API |
+| Endpoint                       | Status         | Notes                    |
+| ------------------------------ | -------------- | ------------------------ |
+| `/souq/buybox/[fsin]`          | ✅ Implemented | Buy Box winner retrieval |
+| `/souq/categories`             | ✅ Implemented | Category listing         |
+| `/souq/products`               | ✅ Implemented | Product CRUD             |
+| `/souq/catalog/products`       | ✅ Implemented | Catalog search           |
+| `/souq/listings`               | ✅ Implemented | Listing management       |
+| `/souq/sellers`                | ✅ Implemented | Seller CRUD              |
+| `/souq/sellers/[id]/dashboard` | ✅ Implemented | Seller metrics           |
+| `/souq/orders`                 | ✅ Implemented | Order management         |
+| `/souq/deals`                  | ✅ Implemented | Deal CRUD                |
+| `/souq/reviews`                | ✅ Implemented | Review submission        |
+| `/souq/settlements`            | ✅ Implemented | Settlement CRUD          |
+| `/souq/brands`                 | ✅ Implemented | Brand management         |
+| `/souq/search`                 | ✅ Implemented | Search API               |
 
 #### ✅ UI Pages (Basic)
+
 **Location**: `app/souq/`, `app/marketplace/`
 
-| Page | Status | Notes |
-|------|--------|-------|
-| `/souq/page.tsx` | ✅ Complete | Landing page with features |
-| `/souq/catalog` | ✅ Complete | Product catalog view |
-| `/souq/vendors` | ✅ Complete | Vendor directory |
-| `/marketplace/vendor/portal` | ✅ Complete | Vendor dashboard |
-| `/marketplace/vendor/products/upload` | ✅ Complete | Product upload |
-| `/marketplace/seller/onboarding` | ✅ Complete | Seller onboarding form |
+| Page                                  | Status      | Notes                      |
+| ------------------------------------- | ----------- | -------------------------- |
+| `/souq/page.tsx`                      | ✅ Complete | Landing page with features |
+| `/souq/catalog`                       | ✅ Complete | Product catalog view       |
+| `/souq/vendors`                       | ✅ Complete | Vendor directory           |
+| `/marketplace/vendor/portal`          | ✅ Complete | Vendor dashboard           |
+| `/marketplace/vendor/products/upload` | ✅ Complete | Product upload             |
+| `/marketplace/seller/onboarding`      | ✅ Complete | Seller onboarding form     |
 
 ### Automation & Ops Coverage (Super Admin Visibility)
 
-| Layer | Status | Notes |
-|-------|--------|-------|
-| **Cron / Schedulers** | ⚠️ **20% Complete** | Only FSIN cleanup cron exists; compliance expiry, account-health recalcs, repricing, and payout batching jobs are missing, leaving Super Admin blind to drift. |
-| **Queues / Workers** | ⚠️ **15% Complete** | Minimal BullMQ wiring for Buy Box recalcs; no dedicated workers for KYC review, settlement batching, document OCR, or proactive SLA escalations. |
-| **Notifications / Escalations** | 🟡 **40% Complete** | Email templates cover seller onboarding, but no buyer support or Super Admin SLA notifications are wired. |
-| **Observability / Audit** | ⚠️ **25% Complete** | Logger events exist yet no structured audit, Grafana/Kibana dashboards, or alerting for failed jobs—violates Super Admin governance requirements. |
+| Layer                           | Status              | Notes                                                                                                                                                          |
+| ------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cron / Schedulers**           | ⚠️ **20% Complete** | Only FSIN cleanup cron exists; compliance expiry, account-health recalcs, repricing, and payout batching jobs are missing, leaving Super Admin blind to drift. |
+| **Queues / Workers**            | ⚠️ **15% Complete** | Minimal BullMQ wiring for Buy Box recalcs; no dedicated workers for KYC review, settlement batching, document OCR, or proactive SLA escalations.               |
+| **Notifications / Escalations** | 🟡 **40% Complete** | Email templates cover seller onboarding, but no buyer support or Super Admin SLA notifications are wired.                                                      |
+| **Observability / Audit**       | ⚠️ **25% Complete** | Logger events exist yet no structured audit, Grafana/Kibana dashboards, or alerting for failed jobs—violates Super Admin governance requirements.              |
 
 **Action**: add an “Automation Matrix” appendix mapping each EPIC to required cron/queue jobs, owners, and acceptance gates so Super Admins can audit operational readiness.
 
 ### QA / HFV Coverage (Blocking Super Admin Sign-off)
 
-| Area | Automated Tests | HFV / Evidence | Notes |
-|------|-----------------|----------------|-------|
-| Foundation (Buy Box, FSIN) | ✅ Unit tests for FSIN + Buy Box | ❌ None | Need HFV screenshots showing Buy Box switching + audit logs |
-| Catalog & Brands | ❌ None | ❌ None | No Cypress flows validating admin category manager |
-| Seller Onboarding & Health | ❌ None | ❌ None | Multi-step onboarding + account health dashboards lack automation and manual evidence |
-| Listings & Buy Box (PDP) | ❌ None | ❌ None | PDP doesn’t render Buy Box, so HFV cannot be recorded |
-| Settlement & Finance | 🟡 Partial model tests | ❌ None | Need payout engine tests + HFV of Super Admin settlement console |
-| Consumer Experience (Checkout) | ❌ None | ❌ None | No checkout implementation yet, so QA is blocked |
+| Area                           | Automated Tests                  | HFV / Evidence | Notes                                                                                 |
+| ------------------------------ | -------------------------------- | -------------- | ------------------------------------------------------------------------------------- |
+| Foundation (Buy Box, FSIN)     | ✅ Unit tests for FSIN + Buy Box | ❌ None        | Need HFV screenshots showing Buy Box switching + audit logs                           |
+| Catalog & Brands               | ❌ None                          | ❌ None        | No Cypress flows validating admin category manager                                    |
+| Seller Onboarding & Health     | ❌ None                          | ❌ None        | Multi-step onboarding + account health dashboards lack automation and manual evidence |
+| Listings & Buy Box (PDP)       | ❌ None                          | ❌ None        | PDP doesn’t render Buy Box, so HFV cannot be recorded                                 |
+| Settlement & Finance           | 🟡 Partial model tests           | ❌ None        | Need payout engine tests + HFV of Super Admin settlement console                      |
+| Consumer Experience (Checkout) | ❌ None                          | ❌ None        | No checkout implementation yet, so QA is blocked                                      |
 
 > Requirement: every EPIC must attach HFV artifacts (screenshots, console/network logs) plus automated tests before Super Admin can mark the feature “production-ready”.
 
@@ -172,7 +179,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Seller submission → Admin review queue → Verification
    - **Current State**: Brand model exists, no UI workflow
    - **Impact**: Cannot enforce gated brands
-   - **Location Needed**: 
+   - **Location Needed**:
      - `app/marketplace/seller-central/brand-registry/page.tsx`
      - `app/admin/souq/brand-verification/page.tsx`
 
@@ -180,7 +187,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: JSON rules, automated checks, expiry reminders
    - **Current State**: Compliance flags in Product model, no engine
    - **Impact**: Manual policy enforcement
-   - **Location Needed**: 
+   - **Location Needed**:
      - `services/souq/compliance-service.ts`
      - Daily cron job
 
@@ -194,6 +201,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
 ### EPIC B: Seller Onboarding & Account Health (50% Missing)
 
 #### ✅ Strengths
+
 - Excellent Seller model with all fields
 - Account health calculation methods in model
 - Violation tracking structure
@@ -216,7 +224,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: 90-day rolling window; ODR, LateShip, Cancel, Tracking
    - **Current State**: Model has calculation methods, no scheduled job
    - **Impact**: Metrics never update
-   - **Location Needed**: 
+   - **Location Needed**:
      - `services/souq/account-health-service.ts`
      - Hourly cron job triggered by order/fulfillment events
 
@@ -230,7 +238,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Seller submits → Admin decides → Restore privileges
    - **Current State**: Not implemented
    - **Impact**: No dispute resolution
-   - **Location Needed**: 
+   - **Location Needed**:
      - `app/marketplace/seller-central/appeals/page.tsx`
      - `app/admin/souq/appeals-queue/page.tsx`
 
@@ -239,6 +247,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
 ### EPIC C: Listings, Pricing & Buy Box (40% Missing)
 
 #### ✅ Strengths
+
 - Buy Box algorithm fully implemented
 - Listing model with price guardrails
 - API endpoints exist
@@ -255,7 +264,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: BullMQ job to track lowest landed price with floor/ceiling
    - **Current State**: Not implemented
    - **Impact**: Sellers cannot compete automatically
-   - **Location Needed**: 
+   - **Location Needed**:
      - `services/souq/repricer-service.ts`
      - BullMQ queue `souq:repricer`
      - Configuration per listing
@@ -282,7 +291,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Receive, reserve, release, health aging
    - **Current State**: Not implemented
    - **Impact**: No stock management, overselling risk
-   - **Location Needed**: 
+   - **Location Needed**:
      - `services/souq/inventory-service.ts`
      - API routes `/api/souq/inventory/*`
 
@@ -290,7 +299,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: FBF/FBM label generation, tracking, SLAs
    - **Current State**: Not implemented
    - **Impact**: Cannot fulfill orders
-   - **Location Needed**: 
+   - **Location Needed**:
      - `services/souq/fulfillment-service.ts`
      - API routes `/api/souq/fulfillment/*`
 
@@ -298,7 +307,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Aramex, SMSA, SPL webhooks & label APIs
    - **Current State**: Not implemented
    - **Impact**: No tracking, no label generation
-   - **Location Needed**: 
+   - **Location Needed**:
      - `lib/carriers/aramex.ts`
      - `lib/carriers/smsa.ts`
      - `lib/carriers/spl.ts`
@@ -325,6 +334,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
 ### EPIC E: Orders, Payments, Returns & Claims (70% Missing)
 
 #### ✅ Strengths
+
 - Order model complete
 - Basic order API exists
 
@@ -334,7 +344,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Self-service returns with auto-approval matrix, RMA, label/pickup
    - **Current State**: Not implemented
    - **Impact**: No returns workflow
-   - **Location Needed**: 
+   - **Location Needed**:
      - `app/marketplace/returns-center/page.tsx`
      - `services/souq/returns-service.ts`
      - API `/api/souq/returns/*`
@@ -349,7 +359,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Buyer submits → Evidence window → Decision → Settlement adjustment
    - **Current State**: Not implemented
    - **Impact**: No buyer protection
-   - **Location Needed**: 
+   - **Location Needed**:
      - `app/marketplace/claims/page.tsx` (buyer)
      - `app/marketplace/seller-central/claims/page.tsx` (seller)
      - `app/admin/souq/disputes/page.tsx` (admin)
@@ -360,7 +370,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Masked in-platform messaging with 24h SLA
    - **Current State**: Not implemented
    - **Impact**: No communication channel
-   - **Location Needed**: 
+   - **Location Needed**:
      - `services/souq/messaging-service.ts`
      - Real-time updates (WebSocket or polling)
 
@@ -386,7 +396,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Campaign manager, ad groups, targets, negatives, CPC auction
    - **Current State**: **Not implemented at all**
    - **Impact**: No advertising revenue stream
-   - **Location Needed**: 
+   - **Location Needed**:
      - `services/souq/ads-service.ts`
      - Models: `server/models/souq/Campaign.ts`, `AdGroup.ts`, `Ad.ts`, `AdTarget.ts`
      - API routes: `/api/souq/ads/*`
@@ -396,10 +406,10 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Current State**: Not implemented
    - **Impact**: Cannot run ads
    - **Location Needed**: `services/souq/ads-auction-service.ts`
-   - **Algorithm**: 
+   - **Algorithm**:
      ```typescript
-     AD_SCORE = QualityScore * Bid
-     cost = next_highest(AD_SCORE) / winner.qualityScore + 0.01
+     AD_SCORE = QualityScore * Bid;
+     cost = next_highest(AD_SCORE) / winner.qualityScore + 0.01;
      ```
 
 3. **Budget Management**
@@ -412,7 +422,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Search/PLP top slots, PDP mid slots with "Sponsored" label
    - **Current State**: Not implemented
    - **Impact**: Nowhere to show ads
-   - **Location Needed**: 
+   - **Location Needed**:
      - Search page component updates
      - PDP component updates
      - Catalog view component updates
@@ -436,6 +446,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
 ### EPIC G: Deals & Coupons (60% Missing)
 
 #### ✅ Strengths
+
 - Deal model exists with lightning/event types
 - Basic deals API exists
 
@@ -445,7 +456,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Percent/amount off, min basket, max redemptions, time windows
    - **Current State**: Not implemented
    - **Impact**: Cannot run promotions
-   - **Location Needed**: 
+   - **Location Needed**:
      - Model: `server/models/souq/Coupon.ts`
      - Service: `services/souq/coupon-service.ts`
      - API: `/api/souq/coupons/*`
@@ -479,6 +490,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
 ### EPIC H: Reviews, Q&A, Moderation (70% Missing)
 
 #### ✅ Strengths
+
 - Review model complete with verified purchase tracking
 - Basic review submission API exists
 
@@ -488,7 +500,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Product Q&A with seller + community answers, moderation
    - **Current State**: Not implemented
    - **Impact**: No pre-purchase questions
-   - **Location Needed**: 
+   - **Location Needed**:
      - Models: `server/models/souq/Question.ts`, `Answer.ts`
      - API: `/api/souq/qa/*`
      - PDP Q&A section
@@ -497,7 +509,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Admin queue for flagged content with NLP filters
    - **Current State**: Review model has `moderationStatus` field, no queue
    - **Impact**: Abuse not filtered
-   - **Location Needed**: 
+   - **Location Needed**:
      - `app/admin/souq/moderation/page.tsx`
      - `services/souq/moderation-service.ts`
      - Simple NLP filter (keyword + sentiment)
@@ -525,6 +537,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
 ### EPIC I: Settlement, Fees & Invoicing (50% Missing)
 
 #### ✅ Strengths
+
 - **Model/API Readiness (≈80%)**: Settlement schema, CRUD API, and pre-save fee calculations exist and align with Super Admin financial controls.
 - **Payout Execution (≈10%)**: No automated payout actions, exports, or financial artifacts are generated; Super Admin currently lacks any dashboard to approve/reject cycles.
 
@@ -534,7 +547,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Scheduled job per seller cycle (7/14/30 days), idempotent
    - **Current State**: Not implemented
    - **Impact**: No automated payouts
-   - **Location Needed**: 
+   - **Location Needed**:
      - `services/souq/settlement-service.ts` (enhanced)
      - Cron job scheduler
      - BullMQ queue for settlement runs
@@ -543,7 +556,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Per-category referral %, FBF fees, closing fees, dispute fees
    - **Current State**: Not implemented
    - **Impact**: Cannot configure pricing
-   - **Location Needed**: 
+   - **Location Needed**:
      - Model: `server/models/souq/FeeSchedule.ts`
      - Admin UI: `app/admin/souq/fee-schedules/page.tsx`
 
@@ -551,7 +564,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: ZATCA-compliant PDF invoices
    - **Current State**: Not implemented
    - **Impact**: Non-compliant
-   - **Location Needed**: 
+   - **Location Needed**:
      - `lib/invoicing/zatca-adapter.ts`
      - PDF generation (pdfkit or similar)
 
@@ -584,6 +597,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
 ### EPIC J: Search, Ranking & Recommendations (60% Missing)
 
 #### ✅ Strengths
+
 - Basic search API exists (`/api/souq/search`)
 - Product catalog view with search bar
 
@@ -593,7 +607,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Full-text index with facets, relevance tuning
    - **Current State**: Likely using MongoDB queries
    - **Impact**: Slow, poor relevance
-   - **Location Needed**: 
+   - **Location Needed**:
      - Service: `services/souq/search-service.ts`
      - Config: OpenSearch or Meilisearch connection
      - Indexing job on product changes
@@ -614,7 +628,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Similar items (attribute-based), frequently bought together (co-occurrence)
    - **Current State**: Not implemented
    - **Impact**: No cross-sell
-   - **Location Needed**: 
+   - **Location Needed**:
      - `services/souq/recommendations-service.ts`
      - PDP component updates
 
@@ -634,7 +648,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Sales, units, ASP, conversion, traffic by date/seller/category
    - **Current State**: Not implemented
    - **Impact**: No business intelligence
-   - **Location Needed**: 
+   - **Location Needed**:
      - `app/marketplace/seller-central/reports/business/page.tsx`
      - `app/admin/souq/reports/business/page.tsx`
      - `services/souq/reporting-service.ts`
@@ -661,7 +675,7 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
    - **Spec Requirement**: Policy Center, Dispute Center, IP/Counterfeit, Performance Thresholds
    - **Current State**: Basic admin page exists, no specialized consoles
    - **Impact**: Cannot administer marketplace
-   - **Location Needed**: 
+   - **Location Needed**:
      - `app/admin/souq/policy-center/page.tsx`
      - `app/admin/souq/disputes/page.tsx`
      - `app/admin/souq/ip-enforcement/page.tsx`
@@ -680,12 +694,14 @@ Based on comprehensive review of the codebase against the full Amazon-parity spe
 Even though the Amazon-parity spec stresses seller tooling, the Super Admin also owns the full buyer journey. Currently that flow is largely absent.
 
 ### Status Snapshot
+
 - **PDP / Media**: ✅ basic product display; ❌ no Buy Box, no review widget, no cross-sell.
 - **Cart & Checkout**: ❌ missing entire flow (cart persistence, address book, payment capture, order confirmation).
 - **Payments**: ❌ no PSP integration, no tokenization, no Super Admin settlement visibility.
 - **Buyer Support**: ❌ no returns center UI, no A-to-Z claim portal, no live chat/help center.
 
 ### Required Work
+
 1. **Consumer Checkout Stack** – Build `/souq/cart`, `/souq/checkout`, payment orchestration, and order confirmation emails with Super Admin monitoring hooks.
 2. **Buyer Support Center** – Implement self-service returns, A-to-Z claims, chat/contact flows plus admin resolution consoles.
 3. **PDP Enhancements** – Surface Buy Box winner, price history, reviews/Q&A, shipping promises.
@@ -698,35 +714,40 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 ## Infrastructure & Integration Gaps
 
 ### Event Bus (NATS/Kafka)
+
 - **Spec Requirement**: Inter-service communication via event bus
 - **Current State**: Not implemented (placeholder mentioned in roadmap)
 - **Impact**: Tight coupling, no async workflows
-- **Location Needed**: 
+- **Location Needed**:
   - Service: `lib/events/event-bus.ts`
   - Publishers/subscribers in all services
   - Example topics: `order.placed`, `listing.price.updated`, etc.
 
 ### Redis & BullMQ
+
 - **Spec Requirement**: Caching + job queues (Buy Box recompute, repricer, settlement)
 - **Current State**: Not configured
 - **Impact**: No background jobs, no cache
-- **Location Needed**: 
+- **Location Needed**:
   - Config: `lib/redis-client.ts`
   - Queues: `lib/queues/*`
 
 ### Payment Gateway Enhancements
+
 - **Spec Requirement**: Partial refunds, chargeback webhooks
 - **Current State**: Basic payment in checkout exists
 - **Impact**: Cannot handle refunds properly
 - **Location**: Enhance existing payment integration
 
 ### Carrier APIs
+
 - **Spec Requirement**: Aramex, SMSA, SPL for label + tracking
 - **Current State**: Not implemented
 - **Impact**: Cannot fulfill orders
 - **Location Needed**: `lib/carriers/*`
 
 ### ZATCA E-Invoicing
+
 - **Spec Requirement**: Compliant VAT invoices for settlement
 - **Current State**: Not implemented
 - **Impact**: Tax compliance risk
@@ -736,13 +757,13 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 
 ## Appendix A – Automation Matrix (Super Admin Audit Template)
 
-| EPIC / Capability | Required Cron / Queue | Owner | Status | HFV / Evidence |
-|-------------------|-----------------------|-------|--------|----------------|
-| Compliance (Brand/KYC) | `compliance-expiry-cron`, `brand-review-queue` | Platform Ops | ❌ Not built | — |
-| Account Health | `account-health-recalc-cron`, `seller-enforcement-worker` | Seller Success | ❌ Not built | — |
-| Buy Box / Pricing | `buybox-recalc-cron`, `repricer-worker` | Marketplace Ops | ⚠️ Recalc only | Need HFV of job dashboards |
-| Settlement | `payout-cycle-cron`, `payout-export-worker` | Finance | ❌ Not built | — |
-| Returns & Claims | `returns-aging-cron`, `a2z-queue` | CX Ops | ❌ Not built | — |
+| EPIC / Capability      | Required Cron / Queue                                     | Owner           | Status         | HFV / Evidence             |
+| ---------------------- | --------------------------------------------------------- | --------------- | -------------- | -------------------------- |
+| Compliance (Brand/KYC) | `compliance-expiry-cron`, `brand-review-queue`            | Platform Ops    | ❌ Not built   | —                          |
+| Account Health         | `account-health-recalc-cron`, `seller-enforcement-worker` | Seller Success  | ❌ Not built   | —                          |
+| Buy Box / Pricing      | `buybox-recalc-cron`, `repricer-worker`                   | Marketplace Ops | ⚠️ Recalc only | Need HFV of job dashboards |
+| Settlement             | `payout-cycle-cron`, `payout-export-worker`               | Finance         | ❌ Not built   | —                          |
+| Returns & Claims       | `returns-aging-cron`, `a2z-queue`                         | CX Ops          | ❌ Not built   | —                          |
 
 > Populate this matrix during each release review so Super Admins can verify automation readiness before enabling feature flags.
 
@@ -751,30 +772,35 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 ## Security & Quality Gaps
 
 ### Authentication & RBAC
+
 - **Spec Requirement**: JWT on all APIs, RBAC (ADMIN, MARKETPLACE_ADMIN, SELLER_OWNER, etc.)
 - **Current State**: Basic auth exists (auth.ts), unclear if roles enforced on Souq APIs
 - **Impact**: Potential unauthorized access
 - **Action**: Audit all `/api/souq/*` routes for role checks
 
 ### Rate Limiting
+
 - **Spec Requirement**: Redis-based, 100 req/min default
 - **Current State**: Not implemented
 - **Impact**: Abuse risk
 - **Location Needed**: Middleware in API routes
 
 ### Input Validation (Zod)
+
 - **Spec Requirement**: All inputs validated with zod schemas
 - **Current State**: Unclear implementation
 - **Action**: Audit API routes for validation
 
 ### Audit Logging
+
 - **Spec Requirement**: DOA-guarded actions (payouts, claims, fee changes)
 - **Current State**: Not implemented
 - **Impact**: No compliance trail
 - **Location Needed**: Model `server/models/souq/AuditLog.ts` + service
 
 ### Testing
-- **Spec Requirement**: 
+
+- **Spec Requirement**:
   - Unit tests (≥80% coverage for Buy Box, Ads, Settlement, Returns)
   - Integration tests (API flows)
   - E2E tests (Playwright: buyer journey, return, claim)
@@ -783,6 +809,7 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 - **Action**: Test suite implementation
 
 ### Monitoring
+
 - **Spec Requirement**: Prometheus + Grafana + alerts (ODR spikes, error rates, job backlog)
 - **Current State**: Not implemented
 - **Impact**: No observability
@@ -793,7 +820,9 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 ## Navigation & UI Gaps
 
 ### Seller Central (Missing Entire Section)
+
 **Spec Requirement**: Complete seller dashboard with 10+ pages
+
 - Dashboard
 - Inventory & Listings
 - Pricing (Repricer)
@@ -810,12 +839,15 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 **Location Needed**: `app/marketplace/seller-central/*`
 
 ### Buyer Section (Partial)
+
 **Spec Requirement**: Deals, Coupons, Q&A, Reviews, Order Tracking, Returns Center
 **Current State**: Order tracking exists, rest missing
 **Location Needed**: `app/marketplace/buyer/*`
 
 ### Admin Souq Consoles (Mostly Missing)
+
 **Spec Requirement**: 8+ specialized admin pages
+
 - Category & Attribute Manager
 - Policy & Restrictions
 - Dispute Center (A-to-Z)
@@ -833,12 +865,14 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 ## Data Migration & Rollout Gaps
 
 ### Migration Scripts
+
 - **Spec Requirement**: FSIN backfill, seller import, inventory reconciliation, search reindex
 - **Current State**: Not implemented
 - **Impact**: Cannot migrate existing data
 - **Location Needed**: `scripts/migrations/souq/*`
 
 ### Feature Flag Rollout Plan
+
 - **Spec Requirement**: Phased rollout (ads → deals → buy_box → etc.)
 - **Current State**: Flags defined but all OFF; no rollout documentation
 - **Impact**: Unclear deployment strategy
@@ -850,47 +884,47 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 
 ### P0 - Critical for MVP (Complete These First)
 
-| Feature | EPIC | Effort | Impact | Notes |
-|---------|------|--------|--------|-------|
-| **Inventory Service** | D | High | Critical | Cannot sell without stock management |
-| **FBF/FBM Fulfillment** | D | High | Critical | Cannot ship orders |
-| **Carrier Integrations** | D | Medium | Critical | Blocking fulfillment |
-| **Returns Center** | E | Medium | Critical | Legal requirement |
-| **Seller Central Dashboard** | B | Medium | High | Core seller experience |
-| **Account Health UI** | B | Low | High | Seller performance visibility |
-| **PDP Buy Box Display** | C | Low | High | Multi-seller value proposition |
-| **Search Facets** | J | Medium | High | Discoverability |
+| Feature                      | EPIC | Effort | Impact   | Notes                                |
+| ---------------------------- | ---- | ------ | -------- | ------------------------------------ |
+| **Inventory Service**        | D    | High   | Critical | Cannot sell without stock management |
+| **FBF/FBM Fulfillment**      | D    | High   | Critical | Cannot ship orders                   |
+| **Carrier Integrations**     | D    | Medium | Critical | Blocking fulfillment                 |
+| **Returns Center**           | E    | Medium | Critical | Legal requirement                    |
+| **Seller Central Dashboard** | B    | Medium | High     | Core seller experience               |
+| **Account Health UI**        | B    | Low    | High     | Seller performance visibility        |
+| **PDP Buy Box Display**      | C    | Low    | High     | Multi-seller value proposition       |
+| **Search Facets**            | J    | Medium | High     | Discoverability                      |
 
 ### P1 - High Value (Complete Next)
 
-| Feature | EPIC | Effort | Impact | Notes |
-|---------|------|--------|--------|-------|
-| **CPC Advertising System** | F | Very High | Very High | Major revenue stream |
-| **Settlement Payout Engine** | I | High | High | Seller trust |
-| **Auto-Repricer** | C | Medium | High | Competitive advantage |
-| **A-to-Z Claims** | E | High | High | Buyer protection |
-| **Coupon Engine** | G | Medium | Medium | Promotions driver |
-| **Reviews & Q&A UI** | H | Medium | High | Social proof |
-| **Brand Registry Workflow** | A | Medium | Medium | IP protection |
+| Feature                      | EPIC | Effort    | Impact    | Notes                 |
+| ---------------------------- | ---- | --------- | --------- | --------------------- |
+| **CPC Advertising System**   | F    | Very High | Very High | Major revenue stream  |
+| **Settlement Payout Engine** | I    | High      | High      | Seller trust          |
+| **Auto-Repricer**            | C    | Medium    | High      | Competitive advantage |
+| **A-to-Z Claims**            | E    | High      | High      | Buyer protection      |
+| **Coupon Engine**            | G    | Medium    | Medium    | Promotions driver     |
+| **Reviews & Q&A UI**         | H    | Medium    | High      | Social proof          |
+| **Brand Registry Workflow**  | A    | Medium    | Medium    | IP protection         |
 
 ### P2 - Quality & Scale (Complete After MVP)
 
-| Feature | EPIC | Effort | Impact | Notes |
-|---------|------|--------|--------|-------|
-| **Business Reports** | K | High | Medium | Analytics |
-| **Compliance Engine** | A | Medium | Medium | Automation |
-| **Moderation Queue** | H | Medium | Medium | Content quality |
-| **Recommendations** | J | Medium | Medium | Cross-sell |
-| **Admin Consoles** | K | High | Medium | Operations |
-| **Buyer-Seller Messaging** | E | Medium | Low | Support channel |
+| Feature                    | EPIC | Effort | Impact | Notes           |
+| -------------------------- | ---- | ------ | ------ | --------------- |
+| **Business Reports**       | K    | High   | Medium | Analytics       |
+| **Compliance Engine**      | A    | Medium | Medium | Automation      |
+| **Moderation Queue**       | H    | Medium | Medium | Content quality |
+| **Recommendations**        | J    | Medium | Medium | Cross-sell      |
+| **Admin Consoles**         | K    | High   | Medium | Operations      |
+| **Buyer-Seller Messaging** | E    | Medium | Low    | Support channel |
 
 ### P3 - Nice-to-Have (Defer)
 
-| Feature | EPIC | Effort | Impact | Notes |
-|---------|------|--------|--------|-------|
-| **Inventory Health Reports** | K | Low | Low | Optimization |
-| **Appeals Workflow** | B | Medium | Low | Edge case |
-| **Lightning Deal Timers** | G | Low | Low | Marketing feature |
+| Feature                      | EPIC | Effort | Impact | Notes             |
+| ---------------------------- | ---- | ------ | ------ | ----------------- |
+| **Inventory Health Reports** | K    | Low    | Low    | Optimization      |
+| **Appeals Workflow**         | B    | Medium | Low    | Edge case         |
+| **Lightning Deal Timers**    | G    | Low    | Low    | Marketing feature |
 
 ---
 
@@ -901,27 +935,32 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 **Goal**: Enable basic multi-seller marketplace transactions
 
 **Week 1-4: Inventory & Fulfillment**
+
 - Inventory service (receive, reserve, release, health)
 - Fulfillment service (FBF/FBM label generation, tracking)
 - Carrier integrations (Aramex, SMSA, SPL)
 - Order tracking UI enhancements
 
 **Week 5-6: Returns**
+
 - Returns service with auto-approval matrix
 - Returns Center UI (buyer)
 - RMA generation + label/pickup
 
 **Week 7-8: Seller Central Core**
+
 - Multi-step KYC onboarding UI
 - Account Health dashboard
 - Inventory & Listings management UI
 
 **Week 9-10: Buy Box & Pricing**
+
 - PDP Buy Box winner display + "Other offers" tab
 - Auto-repricer worker (BullMQ)
 - Seller Central pricing UI
 
 **Week 11-12: Search & Discovery**
+
 - OpenSearch/Meilisearch integration
 - Faceted search implementation
 - Basic recommendations (similar items)
@@ -935,6 +974,7 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 **Goal**: Enable advertising revenue and buyer/seller protection
 
 **Week 1-6: Advertising System (Most Complex)**
+
 - Ads models (Campaign, AdGroup, Ad, AdTarget)
 - CPC auction engine
 - Budget management (Redis + BullMQ)
@@ -943,12 +983,14 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 - Ads reports
 
 **Week 7-8: A-to-Z Claims**
+
 - Claims service (evidence, decisions, funds hold)
 - Buyer claims UI
 - Seller response UI
 - Admin dispute center
 
 **Week 9-10: Settlement Engine**
+
 - Fee schedule configuration
 - Automated payout engine (cron + BullMQ)
 - VAT invoice generation (ZATCA)
@@ -964,24 +1006,28 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 **Goal**: Enhance quality, automation, and operations
 
 **Week 1-2: Reviews & Q&A**
+
 - Q&A system implementation
 - Moderation queue + NLP filters
 - PDP review/Q&A integration
 - Helpful votes
 
 **Week 3-4: Deals & Coupons**
+
 - Coupon engine
 - Checkout coupon application
 - Lightning deal timers
 - Seller Central deal creation UI
 
 **Week 5-6: Brand Registry & Compliance**
+
 - Brand registry workflow (seller submission → admin approval)
 - Compliance engine with JSON rules
 - Document expiry job
 - Admin category/attribute manager
 
 **Week 7-8: Reporting & Admin Tools**
+
 - Business reports (sales, units, conversion, traffic)
 - Inventory health reports
 - Admin consoles (policy, disputes, IP, performance thresholds)
@@ -996,18 +1042,21 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 **Goal**: Production-ready infrastructure and quality gates
 
 **Week 1-2: Event Bus & Background Jobs**
+
 - NATS/Kafka setup
 - Event publishers/subscribers in all services
 - Redis + BullMQ configuration
 - All background jobs (Buy Box, repricer, settlement, inventory health)
 
 **Week 3-4: Security & Compliance**
+
 - RBAC audit on all Souq APIs
 - Rate limiting middleware
 - Zod validation on all inputs
 - Audit logging implementation
 
 **Week 5-6: Testing & Monitoring**
+
 - Unit tests (≥80% coverage for critical services)
 - Integration tests (API flows)
 - E2E tests (Playwright: buyer journey, return, claim)
@@ -1021,13 +1070,13 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 
 ## Estimated Total Effort
 
-| Phase | Duration | Team Size | Story Points |
-|-------|----------|-----------|--------------|
-| Phase 1: MVP Foundation | 12 weeks | 3 devs | ~60 SP |
-| Phase 2: Revenue & Protection | 10 weeks | 3 devs | ~50 SP |
-| Phase 3: Quality & Scale | 8 weeks | 3 devs | ~40 SP |
-| Phase 4: Infrastructure & Polish | 6 weeks | 3 devs | ~30 SP |
-| **Total** | **36 weeks** | **3 devs** | **~180 SP** |
+| Phase                            | Duration     | Team Size  | Story Points |
+| -------------------------------- | ------------ | ---------- | ------------ |
+| Phase 1: MVP Foundation          | 12 weeks     | 3 devs     | ~60 SP       |
+| Phase 2: Revenue & Protection    | 10 weeks     | 3 devs     | ~50 SP       |
+| Phase 3: Quality & Scale         | 8 weeks      | 3 devs     | ~40 SP       |
+| Phase 4: Infrastructure & Polish | 6 weeks      | 3 devs     | ~30 SP       |
+| **Total**                        | **36 weeks** | **3 devs** | **~180 SP**  |
 
 **Note**: Original spec estimated 6-12 months; with foundation already 35% complete, realistic timeline is **8-9 months** with 3-person team working full-time.
 
@@ -1038,6 +1087,7 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 ### Immediate Actions (This Week)
 
 1. **Enable Feature Flags in Development**
+
    ```bash
    # .env.local
    SOUQ_FEATURE_BUY_BOX=true
@@ -1084,6 +1134,7 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 ## Success Metrics (When Complete)
 
 ### Technical KPIs
+
 - [ ] API p95 latency < 600ms
 - [ ] Search p95 < 300ms
 - [ ] Checkout success rate > 95%
@@ -1093,6 +1144,7 @@ Until these pieces exist with QA/HFV evidence, the marketplace cannot be deemed 
 - [ ] Unit test coverage ≥ 80%
 
 ### Business KPIs
+
 - [ ] Multi-seller listings per FSIN > 1.5 avg
 - [ ] Buy Box winner rotation > 20% weekly
 - [ ] Advertising ROAS > 3.0

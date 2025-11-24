@@ -8,15 +8,15 @@
  * - Refund processing
  */
 
-import { SouqRMA as RMA } from '@/server/models/souq/RMA';
-import { SouqOrder as Order } from '@/server/models/souq/Order';
-import type { IOrder } from '@/server/models/souq/Order';
-import { SouqListing as Listing } from '@/server/models/souq/Listing';
-import { inventoryService } from './inventory-service';
-import { fulfillmentService } from './fulfillment-service';
-import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
-import { nanoid } from 'nanoid';
-import mongoose from 'mongoose';
+import { SouqRMA as RMA } from "@/server/models/souq/RMA";
+import { SouqOrder as Order } from "@/server/models/souq/Order";
+import type { IOrder } from "@/server/models/souq/Order";
+import { SouqListing as Listing } from "@/server/models/souq/Listing";
+import { inventoryService } from "./inventory-service";
+import { fulfillmentService } from "./fulfillment-service";
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { nanoid } from "nanoid";
+import mongoose from "mongoose";
 
 // Helper type for accessing order properties safely
 interface OrderWithDates extends IOrder {
@@ -30,7 +30,14 @@ interface InitiateReturnParams {
   items: Array<{
     listingId: string;
     quantity: number;
-    reason: 'defective' | 'damaged' | 'wrong_item' | 'not_as_described' | 'changed_mind' | 'better_price' | 'other';
+    reason:
+      | "defective"
+      | "damaged"
+      | "wrong_item"
+      | "not_as_described"
+      | "changed_mind"
+      | "better_price"
+      | "other";
     comments?: string;
   }>;
   buyerPhotos?: string[];
@@ -45,7 +52,7 @@ interface ApproveReturnParams {
 interface InspectReturnParams {
   rmaId: string;
   inspectorId: string;
-  condition: 'like_new' | 'good' | 'acceptable' | 'damaged' | 'defective';
+  condition: "like_new" | "good" | "acceptable" | "damaged" | "defective";
   restockable: boolean;
   inspectionNotes?: string;
   inspectionPhotos?: string[];
@@ -54,7 +61,7 @@ interface InspectReturnParams {
 interface ProcessRefundParams {
   rmaId: string;
   refundAmount: number;
-  refundMethod: 'original_payment' | 'store_credit' | 'bank_transfer';
+  refundMethod: "original_payment" | "store_credit" | "bank_transfer";
   processorId: string;
 }
 
@@ -62,17 +69,24 @@ class ReturnsService {
   /**
    * Resolve seller for requested return items. Enforces single seller per RMA to avoid cross-seller returns.
    */
-  private resolveSellerForItems(order: IOrder, items: InitiateReturnParams['items']): mongoose.Types.ObjectId {
+  private resolveSellerForItems(
+    order: IOrder,
+    items: InitiateReturnParams["items"],
+  ): mongoose.Types.ObjectId {
     const sellerIds = new Set<string>();
     for (const item of items) {
-      const orderItem = order.items.find((oi) => oi.listingId.toString() === item.listingId);
+      const orderItem = order.items.find(
+        (oi) => oi.listingId.toString() === item.listingId,
+      );
       if (!orderItem?.sellerId) {
         throw new Error(`Seller not found for listing ${item.listingId}`);
       }
       sellerIds.add(orderItem.sellerId.toString());
     }
     if (sellerIds.size !== 1) {
-      throw new Error('Returns cannot span multiple sellers; split the request per seller');
+      throw new Error(
+        "Returns cannot span multiple sellers; split the request per seller",
+      );
     }
     const sellerId = Array.from(sellerIds)[0];
     return new mongoose.Types.ObjectId(sellerId);
@@ -81,47 +95,57 @@ class ReturnsService {
   /**
    * Check if an order item is eligible for return
    */
-  async checkEligibility(orderId: string, listingId: string): Promise<{
+  async checkEligibility(
+    orderId: string,
+    listingId: string,
+  ): Promise<{
     eligible: boolean;
     reason?: string;
     daysRemaining?: number;
   }> {
     const order = await this.findOrder(orderId);
     if (!order) {
-      return { eligible: false, reason: 'Order not found' };
+      return { eligible: false, reason: "Order not found" };
     }
 
-    if (order.status !== 'delivered') {
-      return { eligible: false, reason: 'Order not yet delivered' };
+    if (order.status !== "delivered") {
+      return { eligible: false, reason: "Order not yet delivered" };
     }
 
     // Check return window (30 days from delivery)
     const orderWithDates = order as OrderWithDates;
     const deliveryDate = orderWithDates.deliveredAt || orderWithDates.updatedAt;
     if (!deliveryDate) {
-      return { eligible: false, reason: 'Delivery date unavailable' };
+      return { eligible: false, reason: "Delivery date unavailable" };
     }
-    const daysSinceDelivery = Math.floor((Date.now() - deliveryDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysSinceDelivery = Math.floor(
+      (Date.now() - deliveryDate.getTime()) / (1000 * 60 * 60 * 24),
+    );
     const returnWindow = 30;
 
     if (daysSinceDelivery > returnWindow) {
-      return { eligible: false, reason: 'Return window expired (30 days)' };
+      return { eligible: false, reason: "Return window expired (30 days)" };
     }
 
     // Check if already returned
-    const existingRMA = await RMA.findOne({ 
-      orderId: order._id.toString(), 
-      'items.listingId': listingId,
-      status: { $in: ['initiated', 'approved', 'in_transit', 'received', 'inspected'] }
+    const existingRMA = await RMA.findOne({
+      orderId: order._id.toString(),
+      "items.listingId": listingId,
+      status: {
+        $in: ["initiated", "approved", "in_transit", "received", "inspected"],
+      },
     });
 
     if (existingRMA) {
-      return { eligible: false, reason: 'Return already in progress for this item' };
+      return {
+        eligible: false,
+        reason: "Return already in progress for this item",
+      };
     }
 
-    return { 
-      eligible: true, 
-      daysRemaining: returnWindow - daysSinceDelivery 
+    return {
+      eligible: true,
+      daysRemaining: returnWindow - daysSinceDelivery,
     };
   }
 
@@ -134,11 +158,11 @@ class ReturnsService {
     // Validate order
     const order = await this.findOrder(orderId);
     if (!order) {
-      throw new Error('Order not found');
+      throw new Error("Order not found");
     }
 
     if (order.customerId.toString() !== buyerId) {
-      throw new Error('Unauthorized: Not your order');
+      throw new Error("Unauthorized: Not your order");
     }
 
     const sellerId = this.resolveSellerForItems(order, items);
@@ -147,13 +171,17 @@ class ReturnsService {
     for (const item of items) {
       const eligibility = await this.checkEligibility(orderId, item.listingId);
       if (!eligibility.eligible) {
-        throw new Error(`Item ${item.listingId} not eligible: ${eligibility.reason}`);
+        throw new Error(
+          `Item ${item.listingId} not eligible: ${eligibility.reason}`,
+        );
       }
     }
 
     // Build RMA items using order line data to satisfy schema requirements
     const rmaItems = items.map((item) => {
-      const orderItem = order.items.find((oi) => oi.listingId.toString() === item.listingId);
+      const orderItem = order.items.find(
+        (oi) => oi.listingId.toString() === item.listingId,
+      );
       if (!orderItem) {
         throw new Error(`Item ${item.listingId} not found on order`);
       }
@@ -171,12 +199,13 @@ class ReturnsService {
     });
 
     const refundAmount = rmaItems.reduce(
-      (sum, item) => sum + (item.unitPrice * item.quantity),
-      0
+      (sum, item) => sum + item.unitPrice * item.quantity,
+      0,
     );
 
     const orderWithDates = order as OrderWithDates;
-    const deliveryDate = orderWithDates.deliveredAt || orderWithDates.updatedAt || new Date();
+    const deliveryDate =
+      orderWithDates.deliveredAt || orderWithDates.updatedAt || new Date();
     const returnWindowDays = 30;
     const returnDeadline = new Date(deliveryDate);
     returnDeadline.setDate(returnDeadline.getDate() + returnWindowDays);
@@ -189,41 +218,51 @@ class ReturnsService {
       buyerId,
       sellerId: sellerId.toString(),
       items: rmaItems,
-      status: 'initiated',
+      status: "initiated",
       returnWindowDays,
       returnDeadline,
       refund: {
         amount: refundAmount,
-        method: 'original_payment',
-        status: 'pending'
+        method: "original_payment",
+        status: "pending",
       },
-      shipping: { shippingCost: 0, paidBy: 'seller' },
-      buyerNotes: items
-        .map((item) => item.comments)
-        .filter(Boolean)
-        .join('; ') || undefined,
+      shipping: { shippingCost: 0, paidBy: "seller" },
+      buyerNotes:
+        items
+          .map((item) => item.comments)
+          .filter(Boolean)
+          .join("; ") || undefined,
       buyerPhotos: buyerPhotos || [],
-      timeline: [{
-        status: 'initiated',
-        timestamp: new Date(),
-        note: 'Return request submitted by buyer'
-      }]
+      timeline: [
+        {
+          status: "initiated",
+          timestamp: new Date(),
+          note: "Return request submitted by buyer",
+        },
+      ],
     });
 
     // Auto-approval logic
-    const autoApprovalReasons = ['defective', 'damaged', 'wrong_item', 'not_as_described'];
-    const allAutoApprove = items.every(item => autoApprovalReasons.includes(item.reason));
+    const autoApprovalReasons = [
+      "defective",
+      "damaged",
+      "wrong_item",
+      "not_as_described",
+    ];
+    const allAutoApprove = items.every((item) =>
+      autoApprovalReasons.includes(item.reason),
+    );
 
     if (allAutoApprove) {
       await this.autoApprove(rma._id.toString());
     }
 
     // Notify seller
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
-      type: 'email',
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
+      type: "email",
       to: sellerId.toString(),
-      template: 'return_initiated',
-      data: { rmaId: rma._id.toString(), orderId, items }
+      template: "return_initiated",
+      data: { rmaId: rma._id.toString(), orderId, items },
     });
 
     return rma._id.toString();
@@ -236,8 +275,8 @@ class ReturnsService {
     const rma = await RMA.findById(rmaId);
     if (!rma) return;
 
-    await rma.approve('SYSTEM', 'Auto-approved: Defective or damaged item');
-    
+    await rma.approve("SYSTEM", "Auto-approved: Defective or damaged item");
+
     // Generate return label
     await this.generateReturnLabel(rmaId);
   }
@@ -250,48 +289,52 @@ class ReturnsService {
 
     const rma = await RMA.findById(rmaId);
     if (!rma) {
-      throw new Error('RMA not found');
+      throw new Error("RMA not found");
     }
 
-    if (rma.status !== 'initiated') {
+    if (rma.status !== "initiated") {
       throw new Error(`Cannot approve RMA in status: ${rma.status}`);
     }
 
     await rma.approve(adminId, approvalNotes);
-    
+
     // Generate return label
     await this.generateReturnLabel(rmaId);
 
     // Notify buyer
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
-      type: 'email',
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
+      type: "email",
       to: rma.buyerId.toString(),
-      template: 'return_approved',
-      data: { rmaId, returnLabel: rma.shipping?.labelUrl }
+      template: "return_approved",
+      data: { rmaId, returnLabel: rma.shipping?.labelUrl },
     });
   }
 
   /**
    * Reject return request
    */
-  async rejectReturn(rmaId: string, adminId: string, rejectionReason: string): Promise<void> {
+  async rejectReturn(
+    rmaId: string,
+    adminId: string,
+    rejectionReason: string,
+  ): Promise<void> {
     const rma = await RMA.findById(rmaId);
     if (!rma) {
-      throw new Error('RMA not found');
+      throw new Error("RMA not found");
     }
 
-    if (rma.status !== 'initiated') {
+    if (rma.status !== "initiated") {
       throw new Error(`Cannot reject RMA in status: ${rma.status}`);
     }
 
     await rma.reject(adminId, rejectionReason);
 
     // Notify buyer
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
-      type: 'email',
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
+      type: "email",
       to: rma.buyerId.toString(),
-      template: 'return_rejected',
-      data: { rmaId, reason: rejectionReason }
+      template: "return_rejected",
+      data: { rmaId, reason: rejectionReason },
     });
   }
 
@@ -305,64 +348,80 @@ class ReturnsService {
   }> {
     const rma = await RMA.findById(rmaId);
     if (!rma) {
-      throw new Error('RMA not found');
+      throw new Error("RMA not found");
     }
 
     const order = await this.findOrder(rma.orderId);
     if (!order) {
-      throw new Error('Order not found for RMA');
+      throw new Error("Order not found for RMA");
     }
-    
+
     // Get buyer's address from order
     const _destination = order.shippingAddress;
-    
+
     // Get seller's address (or warehouse for FBF)
     const listing = await Listing.findById(rma.items[0].listingId);
     // warehouseLocation is a string field, not an address object
     const origin = {
-      name: 'Fixzit Returns Center',
-      street: '123 Warehouse St',
-      city: listing?.warehouseLocation || 'Riyadh',
-      state: 'Riyadh Province',
-      postalCode: '11564',
-      country: 'SA'
+      name: "Fixzit Returns Center",
+      street: "123 Warehouse St",
+      city: listing?.warehouseLocation || "Riyadh",
+      state: "Riyadh Province",
+      postalCode: "11564",
+      country: "SA",
     };
 
     // Calculate total weight
-    const totalWeight = rma.items.reduce((sum: number, item: unknown) => sum + ((item as { quantity: number }).quantity * 0.5), 0);
+    const totalWeight = rma.items.reduce(
+      (sum: number, item: unknown) =>
+        sum + (item as { quantity: number }).quantity * 0.5,
+      0,
+    );
 
     // Generate label via carrier (use SPL for returns - most affordable)
-    const shippingAddress = order.shippingAddress as { name?: string; street?: string; city?: string; state?: string; postalCode?: string; country?: string };
+    const shippingAddress = order.shippingAddress as {
+      name?: string;
+      street?: string;
+      city?: string;
+      state?: string;
+      postalCode?: string;
+      country?: string;
+    };
     const labelRequest = {
-      origin: `${shippingAddress.city || 'Riyadh'}, ${shippingAddress.state || 'Riyadh Province'}`,
+      origin: `${shippingAddress.city || "Riyadh"}, ${shippingAddress.state || "Riyadh Province"}`,
       destination: `${origin.city}, ${origin.state}`,
       weight: totalWeight,
-      dimensions: { length: 30, width: 20, height: 15, unit: 'cm' },
-      serviceType: 'standard' as const,
+      dimensions: { length: 30, width: 20, height: 15, unit: "cm" },
+      serviceType: "standard" as const,
       description: `Return for Order ${order._id}`,
-      declaredValue: rma.items.reduce((sum: number, item: unknown) => sum + ((item as { quantity: number }).quantity * 100), 0), // Estimate
-      codAmount: 0
+      declaredValue: rma.items.reduce(
+        (sum: number, item: unknown) =>
+          sum + (item as { quantity: number }).quantity * 100,
+        0,
+      ), // Estimate
+      codAmount: 0,
     };
 
     const rates = await fulfillmentService.getRates(labelRequest);
-    const splRate = rates.find(r => r.carrier === 'SPL') || rates[0];
+    const splRate = rates.find((r) => r.carrier === "SPL") || rates[0];
     if (!splRate) {
-      throw new Error('No return shipping rates available');
+      throw new Error("No return shipping rates available");
     }
-    const shippingCost = typeof (splRate as { cost?: unknown }).cost === 'number'
-      ? (splRate as { cost: number }).cost
-      : 0;
+    const shippingCost =
+      typeof (splRate as { cost?: unknown }).cost === "number"
+        ? (splRate as { cost: number }).cost
+        : 0;
 
     // In production, this would call the actual carrier API
     const label = {
       trackingNumber: `RET-${Date.now()}-${rma._id.toString().slice(-6).toUpperCase()}`,
       labelUrl: `https://returns.fixzit.sa/labels/${rma._id}.pdf`,
-      carrier: splRate.carrier
+      carrier: splRate.carrier,
     };
 
     // Update RMA with label info
     rma.shipping = {
-      ...(rma.shipping || { shippingCost, paidBy: 'seller' }),
+      ...(rma.shipping || { shippingCost, paidBy: "seller" }),
       shippingCost,
       carrier: label.carrier,
       trackingNumber: label.trackingNumber,
@@ -376,49 +435,57 @@ class ReturnsService {
   /**
    * Schedule pickup for return
    */
-  async schedulePickup(rmaId: string, pickupDate: Date, timeSlot: 'morning' | 'afternoon' | 'evening'): Promise<void> {
+  async schedulePickup(
+    rmaId: string,
+    pickupDate: Date,
+    timeSlot: "morning" | "afternoon" | "evening",
+  ): Promise<void> {
     const rma = await RMA.findById(rmaId);
     if (!rma) {
-      throw new Error('RMA not found');
+      throw new Error("RMA not found");
     }
 
     if (!rma.shipping?.labelUrl) {
-      throw new Error('Return label not generated yet');
+      throw new Error("Return label not generated yet");
     }
 
     // In production, schedule via carrier API
     // For now, just update RMA
     rma.timeline.push({
-      status: 'pickup_scheduled',
+      status: "pickup_scheduled",
       timestamp: new Date(),
-      note: `Pickup scheduled for ${pickupDate.toLocaleDateString()} ${timeSlot}`
+      note: `Pickup scheduled for ${pickupDate.toLocaleDateString()} ${timeSlot}`,
     });
     await rma.save();
 
     // Notify buyer
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-sms', {
-      type: 'sms',
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-sms", {
+      type: "sms",
       to: rma.buyerId.toString(),
-      message: `Pickup scheduled for your return (RMA ${rmaId}) on ${pickupDate.toLocaleDateString()} ${timeSlot}`
+      message: `Pickup scheduled for your return (RMA ${rmaId}) on ${pickupDate.toLocaleDateString()} ${timeSlot}`,
     });
   }
 
   /**
    * Update return tracking (called by carrier webhook)
    */
-  async updateTracking(rmaId: string, status: string, location?: string): Promise<void> {
+  async updateTracking(
+    rmaId: string,
+    status: string,
+    location?: string,
+  ): Promise<void> {
     const rma = await RMA.findById(rmaId);
     if (!rma) {
-      throw new Error('RMA not found');
+      throw new Error("RMA not found");
     }
 
     // Map carrier status to RMA status
     const statusMap: Record<string, typeof rma.status> = {
-      'picked_up': 'in_transit',
-      'in_transit': 'in_transit',
-      'out_for_delivery': 'in_transit',
-      'delivered': 'received',
-      'arrived': 'received'
+      picked_up: "in_transit",
+      in_transit: "in_transit",
+      out_for_delivery: "in_transit",
+      delivered: "received",
+      arrived: "received",
     };
 
     const newStatus = statusMap[status] || rma.status;
@@ -428,16 +495,18 @@ class ReturnsService {
       rma.timeline.push({
         status: newStatus,
         timestamp: new Date(),
-        note: location ? `Package ${status} at ${location}` : `Package ${status}`
+        note: location
+          ? `Package ${status} at ${location}`
+          : `Package ${status}`,
       });
       await rma.save();
 
       // If received, queue for inspection
-      if (newStatus === 'received') {
-        await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
-          type: 'internal',
-          to: 'inspection-team',
-          message: `RMA ${rmaId} received and ready for inspection`
+      if (newStatus === "received") {
+        await addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
+          type: "internal",
+          to: "inspection-team",
+          message: `RMA ${rmaId} received and ready for inspection`,
         });
       }
     }
@@ -447,14 +516,21 @@ class ReturnsService {
    * Inspect returned item
    */
   async inspectReturn(params: InspectReturnParams): Promise<void> {
-    const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos } = params;
+    const {
+      rmaId,
+      inspectorId,
+      condition,
+      restockable,
+      inspectionNotes,
+      inspectionPhotos,
+    } = params;
 
     const rma = await RMA.findById(rmaId);
     if (!rma) {
-      throw new Error('RMA not found');
+      throw new Error("RMA not found");
     }
 
-    if (rma.status !== 'received') {
+    if (rma.status !== "received") {
       throw new Error(`Cannot inspect RMA in status: ${rma.status}`);
     }
 
@@ -464,8 +540,8 @@ class ReturnsService {
       condition,
       true,
       restockable,
-      inspectionNotes || '',
-      inspectionPhotos
+      inspectionNotes || "",
+      inspectionPhotos,
     );
     await rma.save();
 
@@ -475,20 +551,24 @@ class ReturnsService {
         listingId: item.listingId.toString(),
         rmaId,
         quantity: item.quantity,
-        condition: restockable ? 'sellable' : 'unsellable',
+        condition: restockable ? "sellable" : "unsellable",
       });
     }
 
     // Calculate refund amount
-    const refundAmount = await this.calculateRefundAmount(rmaId, condition, restockable);
-    
+    const refundAmount = await this.calculateRefundAmount(
+      rmaId,
+      condition,
+      restockable,
+    );
+
     // Auto-process refund for approved returns
     if (refundAmount > 0) {
       await this.processRefund({
         rmaId,
         refundAmount,
-        refundMethod: 'original_payment',
-        processorId: inspectorId
+        refundMethod: "original_payment",
+        processorId: inspectorId,
       });
     }
   }
@@ -496,18 +576,22 @@ class ReturnsService {
   /**
    * Calculate refund amount based on inspection
    */
-  private async calculateRefundAmount(rmaId: string, condition: string, restockable: boolean): Promise<number> {
+  private async calculateRefundAmount(
+    rmaId: string,
+    condition: string,
+    restockable: boolean,
+  ): Promise<number> {
     const rma = await RMA.findById(rmaId);
     if (!rma) return 0;
 
     const order = await this.findOrder(rma.orderId);
     if (!order) return 0;
-    
+
     // Base refund: original item price
     let refundAmount = 0;
     for (const item of rma.items) {
-      const orderItem = order.items.find((oi) =>
-        oi.listingId.toString() === item.listingId.toString()
+      const orderItem = order.items.find(
+        (oi) => oi.listingId.toString() === item.listingId.toString(),
       );
       if (orderItem) {
         refundAmount += orderItem.pricePerUnit * item.quantity;
@@ -521,15 +605,15 @@ class ReturnsService {
 
     // Deduct based on condition
     const conditionDeductions: Record<string, number> = {
-      'like_new': 0,
-      'good': 0.05,
-      'acceptable': 0.15,
-      'damaged': 0.3,
-      'defective': 0
+      like_new: 0,
+      good: 0.05,
+      acceptable: 0.15,
+      damaged: 0.3,
+      defective: 0,
     };
 
     const deduction = conditionDeductions[condition] || 0;
-    refundAmount *= (1 - deduction);
+    refundAmount *= 1 - deduction;
 
     return Math.round(refundAmount * 100) / 100; // Round to 2 decimals
   }
@@ -542,10 +626,10 @@ class ReturnsService {
 
     const rma = await RMA.findById(rmaId);
     if (!rma) {
-      throw new Error('RMA not found');
+      throw new Error("RMA not found");
     }
 
-    if (rma.status !== 'inspected') {
+    if (rma.status !== "inspected") {
       throw new Error(`Cannot refund RMA in status: ${rma.status}`);
     }
 
@@ -557,33 +641,33 @@ class ReturnsService {
       method: refundMethod,
       processedBy: processorId,
       processedAt: new Date(),
-      status: 'completed' as const,
-      transactionId: `REF-${Date.now()}`
+      status: "completed" as const,
+      transactionId: `REF-${Date.now()}`,
     };
 
     await rma.completeRefund(refundData);
     await rma.save();
 
     // Notify buyer
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
-      type: 'email',
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
+      type: "email",
       to: rma.buyerId.toString(),
-      template: 'refund_processed',
-      data: { 
-        rmaId, 
-        amount: refundAmount, 
+      template: "refund_processed",
+      data: {
+        rmaId,
+        amount: refundAmount,
         method: refundMethod,
-        estimatedDays: refundMethod === 'original_payment' ? '3-5' : '1-2'
-      }
+        estimatedDays: refundMethod === "original_payment" ? "3-5" : "1-2",
+      },
     });
 
     // Notify seller (if restocking fee applied)
     if (rma.inspection?.restockable === false) {
-      await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
-        type: 'email',
+      await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
+        type: "email",
         to: rma.sellerId.toString(),
-        template: 'return_completed',
-        data: { rmaId, restockingFee: refundAmount * 0.25 }
+        template: "return_completed",
+        data: { rmaId, restockingFee: refundAmount * 0.25 },
       });
     }
   }
@@ -591,28 +675,31 @@ class ReturnsService {
   /**
    * Get return statistics for a seller
    */
-  async getSellerReturnStats(sellerId: string, period: 'week' | 'month' | 'year' = 'month'): Promise<{
+  async getSellerReturnStats(
+    sellerId: string,
+    period: "week" | "month" | "year" = "month",
+  ): Promise<{
     totalReturns: number;
     returnRate: number;
     topReasons: Array<{ reason: string; count: number }>;
     avgRefundAmount: number;
     restockableRate: number;
   }> {
-    const periodDays = period === 'week' ? 7 : period === 'month' ? 30 : 365;
+    const periodDays = period === "week" ? 7 : period === "month" ? 30 : 365;
     const startDate = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
 
     const returns = await RMA.find({
       sellerId: sellerId.toString(),
-      createdAt: { $gte: startDate }
+      createdAt: { $gte: startDate },
     });
 
     const totalReturns = returns.length;
 
     // Calculate return rate (returns / total orders)
     const totalOrders = await Order.countDocuments({
-      'items.sellerId': new mongoose.Types.ObjectId(sellerId),
-      status: 'delivered',
-      deliveredAt: { $gte: startDate }
+      "items.sellerId": new mongoose.Types.ObjectId(sellerId),
+      status: "delivered",
+      deliveredAt: { $gte: startDate },
     });
 
     const returnRate = totalOrders > 0 ? (totalReturns / totalOrders) * 100 : 0;
@@ -620,11 +707,13 @@ class ReturnsService {
     // Top return reasons
     const reasonCounts = new Map<string, number>();
     returns.forEach((rma: unknown) => {
-      (rma as { items: Array<{ reason: string }> }).items.forEach((item: unknown) => {
-        const reason = (item as { reason: string }).reason;
-        const count = reasonCounts.get(reason) || 0;
-        reasonCounts.set(reason, count + 1);
-      });
+      (rma as { items: Array<{ reason: string }> }).items.forEach(
+        (item: unknown) => {
+          const reason = (item as { reason: string }).reason;
+          const count = reasonCounts.get(reason) || 0;
+          reasonCounts.set(reason, count + 1);
+        },
+      );
     });
 
     const topReasons = Array.from(reasonCounts.entries())
@@ -633,55 +722,81 @@ class ReturnsService {
       .slice(0, 5);
 
     // Average refund amount
-    const completedReturns = returns.filter((r: unknown) => (r as { status: string; refund?: unknown }).status === 'completed' && (r as { refund?: unknown }).refund);
-    const avgRefundAmount = completedReturns.length > 0
-      ? completedReturns.reduce((sum: number, r: unknown) => sum + (((r as { refund?: { amount?: number } }).refund?.amount) || 0), 0) / completedReturns.length
-      : 0;
+    const completedReturns = returns.filter(
+      (r: unknown) =>
+        (r as { status: string; refund?: unknown }).status === "completed" &&
+        (r as { refund?: unknown }).refund,
+    );
+    const avgRefundAmount =
+      completedReturns.length > 0
+        ? completedReturns.reduce(
+            (sum: number, r: unknown) =>
+              sum +
+              ((r as { refund?: { amount?: number } }).refund?.amount || 0),
+            0,
+          ) / completedReturns.length
+        : 0;
 
     // Restockable rate
-    const inspectedReturns = returns.filter((r: unknown) => (r as { inspection?: unknown }).inspection);
-    const restockableCount = inspectedReturns.filter((r: unknown) => (r as { inspection?: { restockable: boolean } }).inspection?.restockable).length;
-    const restockableRate = inspectedReturns.length > 0
-      ? (restockableCount / inspectedReturns.length) * 100
-      : 0;
+    const inspectedReturns = returns.filter(
+      (r: unknown) => (r as { inspection?: unknown }).inspection,
+    );
+    const restockableCount = inspectedReturns.filter(
+      (r: unknown) =>
+        (r as { inspection?: { restockable: boolean } }).inspection
+          ?.restockable,
+    ).length;
+    const restockableRate =
+      inspectedReturns.length > 0
+        ? (restockableCount / inspectedReturns.length) * 100
+        : 0;
 
     return {
       totalReturns,
       returnRate: Math.round(returnRate * 100) / 100,
       topReasons,
       avgRefundAmount: Math.round(avgRefundAmount * 100) / 100,
-      restockableRate: Math.round(restockableRate * 100) / 100
+      restockableRate: Math.round(restockableRate * 100) / 100,
     };
   }
 
   /**
    * Get buyer's return history
    */
-  async getBuyerReturnHistory(buyerId: string): Promise<Array<{
-    rmaId: string;
-    orderId: string;
-    status: string;
-    createdAt: Date;
-    items: number;
-    refundAmount?: number;
-  }>> {
-    const returns = await RMA.find({ 
-      buyerId: new mongoose.Types.ObjectId(buyerId) 
+  async getBuyerReturnHistory(buyerId: string): Promise<
+    Array<{
+      rmaId: string;
+      orderId: string;
+      status: string;
+      createdAt: Date;
+      items: number;
+      refundAmount?: number;
+    }>
+  > {
+    const returns = await RMA.find({
+      buyerId: new mongoose.Types.ObjectId(buyerId),
     })
       .sort({ createdAt: -1 })
       .limit(50);
 
     return returns.map((rma: unknown) => {
-      const r = rma as { _id: { toString(): string }; orderId: { toString(): string }; status: string; createdAt: Date; items: unknown[]; refund?: { amount?: number } };
+      const r = rma as {
+        _id: { toString(): string };
+        orderId: { toString(): string };
+        status: string;
+        createdAt: Date;
+        items: unknown[];
+        refund?: { amount?: number };
+      };
       return {
         rmaId: r._id.toString(),
         orderId: r.orderId.toString(),
         status: r.status,
         createdAt: r.createdAt,
         items: r.items.length,
-      refundAmount: r.refund?.amount
-    };
-  });
+        refundAmount: r.refund?.amount,
+      };
+    });
   }
 
   private async findOrder(orderId: string): Promise<IOrder | null> {
@@ -695,22 +810,28 @@ class ReturnsService {
   }
 
   private mapReturnReason(
-    reason: InitiateReturnParams['items'][number]['reason']
-  ): 'defective' | 'wrong_item' | 'not_as_described' | 'no_longer_needed' | 'damaged_in_shipping' | 'other' {
+    reason: InitiateReturnParams["items"][number]["reason"],
+  ):
+    | "defective"
+    | "wrong_item"
+    | "not_as_described"
+    | "no_longer_needed"
+    | "damaged_in_shipping"
+    | "other" {
     switch (reason) {
-      case 'defective':
-        return 'defective';
-      case 'damaged':
-        return 'damaged_in_shipping';
-      case 'wrong_item':
-        return 'wrong_item';
-      case 'not_as_described':
-        return 'not_as_described';
-      case 'changed_mind':
-      case 'better_price':
-        return 'no_longer_needed';
+      case "defective":
+        return "defective";
+      case "damaged":
+        return "damaged_in_shipping";
+      case "wrong_item":
+        return "wrong_item";
+      case "not_as_described":
+        return "not_as_described";
+      case "changed_mind":
+      case "better_price":
+        return "no_longer_needed";
       default:
-        return 'other';
+        return "other";
     }
   }
 
@@ -720,21 +841,26 @@ class ReturnsService {
    */
   async autoEscalatePendingReturns(): Promise<number> {
     const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-    
+
     const pendingReturns = await RMA.find({
-      status: 'initiated',
-      createdAt: { $lt: twoDaysAgo }
+      status: "initiated",
+      createdAt: { $lt: twoDaysAgo },
     });
 
     let escalated = 0;
     for (const rma of pendingReturns) {
       // Notify admin team
-      await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
-        type: 'internal',
-        to: 'admin-team',
-        priority: 'high',
-        message: `RMA ${rma._id} pending for 48+ hours - requires attention`
-      }, { priority: 2 });
+      await addJob(
+        QUEUE_NAMES.NOTIFICATIONS,
+        "internal-notification",
+        {
+          type: "internal",
+          to: "admin-team",
+          priority: "high",
+          message: `RMA ${rma._id} pending for 48+ hours - requires attention`,
+        },
+        { priority: 2 },
+      );
       escalated++;
     }
 
@@ -747,34 +873,43 @@ class ReturnsService {
    */
   async autoCompleteReceivedReturns(): Promise<number> {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    
+
     const receivedReturns = await RMA.find({
-      status: 'received',
-      updatedAt: { $lt: sevenDaysAgo }
+      status: "received",
+      updatedAt: { $lt: sevenDaysAgo },
     });
 
     let completed = 0;
     for (const rma of receivedReturns) {
-      const hasReceivedScan = Array.isArray((rma as { timeline?: Array<{ status?: string }> }).timeline)
-        ? (rma as { timeline: Array<{ status?: string }> }).timeline.some(t => t.status === 'received')
+      const hasReceivedScan = Array.isArray(
+        (rma as { timeline?: Array<{ status?: string }> }).timeline,
+      )
+        ? (rma as { timeline: Array<{ status?: string }> }).timeline.some(
+            (t) => t.status === "received",
+          )
         : false;
       if (!hasReceivedScan || !rma.shipping?.trackingNumber) {
-        await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
-          type: 'internal',
-          to: 'inspection-team',
-          priority: 'medium',
-          message: `RMA ${rma._id} skipped auto-complete due to missing receipt confirmation`
-        }, { priority: 3 });
+        await addJob(
+          QUEUE_NAMES.NOTIFICATIONS,
+          "internal-notification",
+          {
+            type: "internal",
+            to: "inspection-team",
+            priority: "medium",
+            message: `RMA ${rma._id} skipped auto-complete due to missing receipt confirmation`,
+          },
+          { priority: 3 },
+        );
         continue;
       }
 
       // Auto-inspect as "good" condition, restockable
       await this.inspectReturn({
         rmaId: rma._id.toString(),
-        inspectorId: 'SYSTEM',
-        condition: 'good',
+        inspectorId: "SYSTEM",
+        condition: "good",
         restockable: true,
-        inspectionNotes: 'Auto-inspected after 7 days - assumed good condition'
+        inspectionNotes: "Auto-inspected after 7 days - assumed good condition",
       });
       completed++;
     }

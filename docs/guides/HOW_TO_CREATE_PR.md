@@ -92,6 +92,7 @@ This PR fixes critical tooling issues, provides comprehensive import analysis, a
 ## 📋 Changes Overview
 
 ### 1. ✅ Fixed `replace-string-in-file` Tool (100% Accurate)
+
 - **Issue**: Tool reported success but made no changes ("lying tool" problem)
 - **Fix**: Complete rewrite with proper success reporting
 - **Test Results**: 11/11 tests passing (100% accuracy)
@@ -206,7 +207,7 @@ git log --oneline -5
 **Modified Files (9)**:
 
 - package.json
-- _deprecated/models-old/MarketplaceProduct.ts
+- \_deprecated/models-old/MarketplaceProduct.ts
 - app/api/assistant/query/route.ts
 - app/api/ats/convert-to-employee/route.ts
 - app/api/finance/invoices/route.ts

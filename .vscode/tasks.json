@@ -37,12 +37,42 @@
         "focus": false
       }
     },
-    {"label": "QA: Verify (Fast)", "type": "shell", "command": "pnpm run verify:fast", "problemMatcher": []},
-    {"label": "QA: Verify (Full)", "type": "shell", "command": "pnpm run verify:full", "problemMatcher": []},
-    {"label": "QA: Scan Duplicates", "type": "shell", "command": "pnpm run qa:scan:duplicates", "problemMatcher": []},
-    {"label": "Agent: Run Fixzit", "type": "shell", "command": "node scripts/fixzit-agent.mjs --report", "problemMatcher": []},
-    {"label": "Test: Models", "type": "shell", "command": "pnpm run test:models", "problemMatcher": []},
-    {"label": "Build & Verify", "type": "shell", "command": "pnpm typecheck && pnpm lint && pnpm build", "problemMatcher": []},
+    {
+      "label": "QA: Verify (Fast)",
+      "type": "shell",
+      "command": "pnpm run verify:fast",
+      "problemMatcher": []
+    },
+    {
+      "label": "QA: Verify (Full)",
+      "type": "shell",
+      "command": "pnpm run verify:full",
+      "problemMatcher": []
+    },
+    {
+      "label": "QA: Scan Duplicates",
+      "type": "shell",
+      "command": "pnpm run qa:scan:duplicates",
+      "problemMatcher": []
+    },
+    {
+      "label": "Agent: Run Fixzit",
+      "type": "shell",
+      "command": "node scripts/fixzit-agent.mjs --report",
+      "problemMatcher": []
+    },
+    {
+      "label": "Test: Models",
+      "type": "shell",
+      "command": "pnpm run test:models",
+      "problemMatcher": []
+    },
+    {
+      "label": "Build & Verify",
+      "type": "shell",
+      "command": "pnpm typecheck && pnpm lint && pnpm build",
+      "problemMatcher": []
+    },
     {
       "label": "🚀 E2E: Keep-Alive 3 Hours",
       "type": "shell",

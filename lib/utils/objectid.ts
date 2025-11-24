@@ -1,5 +1,5 @@
-import { ObjectId } from 'mongodb';
-import { Types } from 'mongoose';
+import { ObjectId } from "mongodb";
+import { Types } from "mongoose";
 
 /**
  * Validate if a string is a valid MongoDB ObjectId
@@ -30,7 +30,9 @@ export function toObjectId(id: string | undefined | null): ObjectId | null {
  * @param id - The ID string
  * @returns Filter object with _id as ObjectId or string as fallback (for slug-based queries)
  */
-export function toObjectIdFilter(id: string): { _id: ObjectId } | { slug: string } {
+export function toObjectIdFilter(
+  id: string,
+): { _id: ObjectId } | { slug: string } {
   if (isValidObjectId(id)) {
     return { _id: new ObjectId(id) };
   }

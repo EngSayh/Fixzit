@@ -1,108 +1,113 @@
-import { randomUUID } from 'crypto'; // Use built-in crypto for collision-resistant UUIDs
+import { randomUUID } from "crypto"; // Use built-in crypto for collision-resistant UUIDs
 
-import { dbConnect } from '@/db/mongoose';
-import { logger } from '@/lib/logger';
-import { sendBulkSMS, withTwilioResilience } from '@/lib/sms';
-import { NotificationDeadLetterModel, NotificationLogModel } from '@/server/models/NotificationLog';
+import { dbConnect } from "@/db/mongoose";
+import { logger } from "@/lib/logger";
+import { sendBulkSMS, withTwilioResilience } from "@/lib/sms";
+import {
+  NotificationDeadLetterModel,
+  NotificationLogModel,
+} from "@/server/models/NotificationLog";
 
 /**
  * FM Notification Template Engine
  * Generates notifications with deep links for various FM events
- * 
+ *
  * CODE REVIEW FIXES IMPLEMENTED (November 14, 2025):
- * 
+ *
  * 1. **Performance & Scalability (Critical)**:
  *    - Refactored sendNotification to use Promise.allSettled for concurrent channel execution
  *    - Eliminated sequential await blocking that violated <500ms API response requirement
  *    - Added architectural note for background queue (BullMQ/Redis) for enterprise scale
- * 
+ *
  * 2. **Localization (Critical Gap - Partially Addressed)**:
  *    - Added locale: 'en' | 'ar' to NotificationRecipient interface
  *    - Implemented per-recipient localization in buildNotification
  *    - Added bilingual template support for English/Arabic
  *    - NOTE: Full i18n with i18next should replace fallback implementation
- * 
+ *
  * 3. **Deep Link Strategy (Fixed)**:
  *    - Added webUrl alongside deepLink for desktop/email support
  *    - generateLinks now returns both HTTPS URLs and mobile deep links
  *    - Email/SMS use web URLs, Push uses deep links
- * 
+ *
  * 4. **Logic Fixes**:
  *    - Fixed onClosed to link to work-order (not financial statements)
  *    - Changed ID generation from Date.now() to crypto.randomUUID()
  *    - Added fcmToken to NotificationRecipient interface
- * 
+ *
  * 5. **Type Safety**:
  *    - Implemented TypeScript Discriminated Unions for context
  *    - Each event now has strictly typed required fields
  *    - Eliminated unsafe type assertions
- * 
+ *
  * 6. **Status Tracking**:
  *    - Enhanced status: 'partial_failure' added for resilient error handling
  *    - Defensive checks for missing contact info per channel
  */
 
-import { NOTIFY } from '@/domain/fm/fm.behavior';
+import { NOTIFY } from "@/domain/fm/fm.behavior";
 
 // i18n fallback with bilingual support - replace with actual i18next for production
 const i18n = {
-  changeLanguage: (_lang: string) => { /* stub */ },
-  t: (key: string, locale: 'en' | 'ar', context?: Record<string, unknown>) => {
+  changeLanguage: (_lang: string) => {
+    /* stub */
+  },
+  t: (key: string, locale: "en" | "ar", context?: Record<string, unknown>) => {
     // Bilingual templates (English/Arabic)
-    const templates: Record<string, Record<'en' | 'ar', string>> = {
-      'notifications.onTicketCreated.title': {
-        en: 'New Work Order Created',
-        ar: 'تم إنشاء أمر عمل جديد'
+    const templates: Record<string, Record<"en" | "ar", string>> = {
+      "notifications.onTicketCreated.title": {
+        en: "New Work Order Created",
+        ar: "تم إنشاء أمر عمل جديد",
       },
-      'notifications.onTicketCreated.body': {
-        en: 'Work order #{{workOrderId}} for {{tenantName}} - Priority: {{priority}}',
-        ar: 'أمر عمل #{{workOrderId}} لـ {{tenantName}} - الأولوية: {{priority}}'
+      "notifications.onTicketCreated.body": {
+        en: "Work order #{{workOrderId}} for {{tenantName}} - Priority: {{priority}}",
+        ar: "أمر عمل #{{workOrderId}} لـ {{tenantName}} - الأولوية: {{priority}}",
       },
-      'notifications.onAssign.title': {
-        en: 'Work Order Assigned',
-        ar: 'تم تعيين أمر العمل'
+      "notifications.onAssign.title": {
+        en: "Work Order Assigned",
+        ar: "تم تعيين أمر العمل",
       },
-      'notifications.onAssign.body': {
-        en: 'Assigned to {{technicianName}} - Work Order #{{workOrderId}}',
-        ar: 'تم التعيين إلى {{technicianName}} - أمر عمل #{{workOrderId}}'
+      "notifications.onAssign.body": {
+        en: "Assigned to {{technicianName}} - Work Order #{{workOrderId}}",
+        ar: "تم التعيين إلى {{technicianName}} - أمر عمل #{{workOrderId}}",
       },
-      'notifications.onApprovalRequested.title': {
-        en: 'Approval Required',
-        ar: 'مطلوب موافقة'
+      "notifications.onApprovalRequested.title": {
+        en: "Approval Required",
+        ar: "مطلوب موافقة",
       },
-      'notifications.onApprovalRequested.body': {
-        en: 'Quote #{{quotationId}} requires approval - Amount: {{amount}}',
-        ar: 'عرض السعر #{{quotationId}} يتطلب الموافقة - المبلغ: {{amount}}'
+      "notifications.onApprovalRequested.body": {
+        en: "Quote #{{quotationId}} requires approval - Amount: {{amount}}",
+        ar: "عرض السعر #{{quotationId}} يتطلب الموافقة - المبلغ: {{amount}}",
       },
-      'notifications.onApproved.title': {
-        en: 'Quote Approved',
-        ar: 'تمت الموافقة على العرض'
+      "notifications.onApproved.title": {
+        en: "Quote Approved",
+        ar: "تمت الموافقة على العرض",
       },
-      'notifications.onApproved.body': {
-        en: 'Quote #{{quotationId}} has been approved',
-        ar: 'تمت الموافقة على عرض السعر #{{quotationId}}'
+      "notifications.onApproved.body": {
+        en: "Quote #{{quotationId}} has been approved",
+        ar: "تمت الموافقة على عرض السعر #{{quotationId}}",
       },
-      'notifications.onClosed.title': {
-        en: 'Work Order Closed',
-        ar: 'تم إغلاق أمر العمل'
+      "notifications.onClosed.title": {
+        en: "Work Order Closed",
+        ar: "تم إغلاق أمر العمل",
       },
-      'notifications.onClosed.body': {
-        en: 'Work Order #{{workOrderId}} has been completed and closed',
-        ar: 'تم إكمال وإغلاق أمر العمل #{{workOrderId}}'
+      "notifications.onClosed.body": {
+        en: "Work Order #{{workOrderId}} has been completed and closed",
+        ar: "تم إكمال وإغلاق أمر العمل #{{workOrderId}}",
       },
     };
-    
-    let message = templates[key]?.[locale] || templates[key]?.['en'] || key;
+
+    let message = templates[key]?.[locale] || templates[key]?.["en"] || key;
     if (context) {
       Object.entries(context).forEach(([k, v]) => {
-        message = message.replace(new RegExp(`{{${k}}}`, 'g'), String(v));
+        message = message.replace(new RegExp(`{{${k}}}`, "g"), String(v));
       });
     }
     return message;
-  }
+  },
 };
 
-export type NotificationChannel = 'push' | 'email' | 'sms' | 'whatsapp';
+export type NotificationChannel = "push" | "email" | "sms" | "whatsapp";
 
 export interface NotificationRecipient {
   userId: string;
@@ -110,7 +115,7 @@ export interface NotificationRecipient {
   email?: string;
   phone?: string;
   fcmToken?: string; // For Push Notifications
-  locale: 'en' | 'ar'; // For Localization (Critical Requirement)
+  locale: "en" | "ar"; // For Localization (Critical Requirement)
   preferredChannels: NotificationChannel[];
 }
 
@@ -123,17 +128,17 @@ export interface NotificationPayload {
   deepLink?: string;
   webUrl?: string; // Added for Web support
   data?: Record<string, unknown>;
-  priority: 'high' | 'normal' | 'low';
+  priority: "high" | "normal" | "low";
   createdAt: Date;
   sentAt?: Date;
   deliveredAt?: Date;
-  status: 'pending' | 'sent' | 'delivered' | 'failed' | 'partial_failure';
+  status: "pending" | "sent" | "delivered" | "failed" | "partial_failure";
   failureReason?: string;
 }
 
 interface ChannelDispatchResult {
   channel: NotificationChannel;
-  status: 'sent' | 'failed';
+  status: "sent" | "failed";
   attempts: number;
   lastAttemptAt?: Date;
   error?: string;
@@ -145,39 +150,39 @@ interface BaseContext {
 }
 
 interface TicketCreatedContext extends BaseContext {
-  event: 'onTicketCreated';
+  event: "onTicketCreated";
   workOrderId: string;
   tenantName: string;
   priority: string;
 }
 
 interface AssignContext extends BaseContext {
-  event: 'onAssign';
+  event: "onAssign";
   workOrderId: string;
   technicianName: string;
 }
 
 interface ApprovalRequestedContext extends BaseContext {
-  event: 'onApprovalRequested';
+  event: "onApprovalRequested";
   quotationId: string;
   amount: number;
 }
 
 interface ApprovedContext extends BaseContext {
-  event: 'onApproved';
+  event: "onApproved";
   quotationId: string;
 }
 
 interface ClosedContext extends BaseContext {
-  event: 'onClosed';
+  event: "onClosed";
   workOrderId: string;
   propertyId: string;
 }
 
 // Create the union type
-export type NotificationContext = 
-  | TicketCreatedContext 
-  | AssignContext 
+export type NotificationContext =
+  | TicketCreatedContext
+  | AssignContext
   | ApprovalRequestedContext
   | ApprovedContext
   | ClosedContext;
@@ -185,11 +190,11 @@ export type NotificationContext =
 // Optional DB persistence (hook into MongoDB)
 async function saveNotification(
   notification: NotificationPayload,
-  channelResults: ChannelDispatchResult[] = []
+  channelResults: ChannelDispatchResult[] = [],
 ): Promise<void> {
   try {
     await dbConnect();
-    const recipients = notification.recipients.map(recipient => ({
+    const recipients = notification.recipients.map((recipient) => ({
       userId: recipient.userId,
       preferredChannels: recipient.preferredChannels,
     }));
@@ -210,54 +215,58 @@ async function saveNotification(
         priority: notification.priority,
         status: notification.status,
         failureReason: notification.failureReason,
-        channelResults: channelResults.map(result => ({
+        channelResults: channelResults.map((result) => ({
           channel: result.channel,
-          status: result.status === 'sent' ? 'sent' : 'failed',
+          status: result.status === "sent" ? "sent" : "failed",
           attempts: result.attempts,
           lastAttemptAt: result.lastAttemptAt,
           error: result.error,
         })),
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true },
     );
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[Notifications] Failed to persist notification log', error, {
-      id: notification.id
+    logger.error("[Notifications] Failed to persist notification log", error, {
+      id: notification.id,
     });
   }
 }
 
 async function enqueueDeadLetters(
   notification: NotificationPayload,
-  failedChannels: ChannelDispatchResult[]
+  failedChannels: ChannelDispatchResult[],
 ): Promise<void> {
   if (failedChannels.length === 0) return;
 
   try {
     await dbConnect();
     await NotificationDeadLetterModel.insertMany(
-      failedChannels.map(channel => ({
+      failedChannels.map((channel) => ({
         notificationId: notification.id,
         event: notification.event,
         channel: channel.channel,
         attempts: channel.attempts,
-        error: channel.error || 'Unknown channel failure',
+        error: channel.error || "Unknown channel failure",
         payload: {
           title: notification.title,
           body: notification.body,
           data: notification.data,
         },
       })),
-      { ordered: false }
+      { ordered: false },
     );
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[Notifications] Failed to enqueue notification DLQ entry', error, {
-      id: notification.id
-    });
+    logger.error(
+      "[Notifications] Failed to enqueue notification DLQ entry",
+      error,
+      {
+        id: notification.id,
+      },
+    );
   }
 }
 
@@ -265,21 +274,30 @@ async function enqueueDeadLetters(
  * Generate deep link and web URL for FM entities (Web vs. Mobile support)
  */
 export function generateLinks(
-  type: 'work-order' | 'approval' | 'property' | 'unit' | 'tenant' | 'financial',
+  type:
+    | "work-order"
+    | "approval"
+    | "property"
+    | "unit"
+    | "tenant"
+    | "financial",
   id: string,
-  subPath?: string
+  subPath?: string,
 ): { webUrl: string; deepLink: string } {
-  if (!id) throw new Error('ID required for link generation');
-  
-  const webBase = (process.env.NEXT_PUBLIC_FIXZIT_APP_URL
-    || process.env.NEXT_PUBLIC_APP_URL
-    || 'https://app.fixzit.com').replace(/\/$/, '');
-  const deepLinkSchemeRaw = process.env.NEXT_PUBLIC_FIXZIT_DEEP_LINK_SCHEME || 'fixzit://';
+  if (!id) throw new Error("ID required for link generation");
+
+  const webBase = (
+    process.env.NEXT_PUBLIC_FIXZIT_APP_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://app.fixzit.com"
+  ).replace(/\/$/, "");
+  const deepLinkSchemeRaw =
+    process.env.NEXT_PUBLIC_FIXZIT_DEEP_LINK_SCHEME || "fixzit://";
 
   const normalizeDeepLinkBase = (raw: string): string => {
-    const prepared = raw.includes('://') ? raw : `${raw}://`;
-    const [scheme, restRaw = ''] = prepared.split('://');
-    const rest = restRaw.replace(/\/+$/, '');
+    const prepared = raw.includes("://") ? raw : `${raw}://`;
+    const [scheme, restRaw = ""] = prepared.split("://");
+    const rest = restRaw.replace(/\/+$/, "");
     // When no host/path is provided, keep the trailing double slashes (scheme only).
     return rest ? `${scheme}://${rest}` : `${scheme}://`;
   };
@@ -287,12 +305,12 @@ export function generateLinks(
   const deepLinkBase = normalizeDeepLinkBase(deepLinkSchemeRaw);
 
   const paths: Record<typeof type, string> = {
-    'work-order': `/fm/work-orders/${id}`,
-    'approval': `/approvals/quote/${id}`,
-    'property': `/fm/properties/${id}`,
-    'unit': `/fm/properties/units/${id}`,
-    'tenant': `/fm/tenants/${id}`,
-    'financial': `/financials/statements/property/${id}`
+    "work-order": `/fm/work-orders/${id}`,
+    approval: `/approvals/quote/${id}`,
+    property: `/fm/properties/${id}`,
+    unit: `/fm/properties/units/${id}`,
+    tenant: `/fm/tenants/${id}`,
+    financial: `/financials/statements/property/${id}`,
   };
 
   let path = paths[type];
@@ -300,14 +318,14 @@ export function generateLinks(
     path = `${path}/${subPath}`;
   }
 
-  const deepLinkPath = path.replace(/^\/+/, '');
-  const deepLink = deepLinkBase.endsWith('//')
+  const deepLinkPath = path.replace(/^\/+/, "");
+  const deepLink = deepLinkBase.endsWith("//")
     ? `${deepLinkBase}${deepLinkPath}`
     : `${deepLinkBase}/${deepLinkPath}`;
 
   return {
     webUrl: `${webBase}${path}`,
-    deepLink
+    deepLink,
   };
 }
 
@@ -315,7 +333,9 @@ export function generateLinks(
  * Helper to convert context to i18n params safely
  * Extracts only serializable properties needed for template interpolation
  */
-function contextToI18nParams(context: NotificationContext): Record<string, unknown> {
+function contextToI18nParams(
+  context: NotificationContext,
+): Record<string, unknown> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { event, description, ...params } = context;
   return params;
@@ -325,7 +345,9 @@ function contextToI18nParams(context: NotificationContext): Record<string, unkno
  * Helper to convert context to payload data
  * Preserves all context properties for storage and potential future use
  */
-function contextToPayloadData(context: NotificationContext): Record<string, unknown> {
+function contextToPayloadData(
+  context: NotificationContext,
+): Record<string, unknown> {
   return { ...context };
 }
 
@@ -335,17 +357,18 @@ function contextToPayloadData(context: NotificationContext): Record<string, unkn
  */
 export function buildNotification(
   context: NotificationContext,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): NotificationPayload {
-  if (recipients.length === 0) throw new Error('At least one recipient required');
-  
+  if (recipients.length === 0)
+    throw new Error("At least one recipient required");
+
   // Use first recipient's locale for this payload (in production, group by locale)
-  const locale = recipients[0]?.locale || 'en';
-  
-  let title = '';
-  let body = '';
+  const locale = recipients[0]?.locale || "en";
+
+  let title = "";
+  let body = "";
   let links: { webUrl: string; deepLink: string } | undefined;
-  let priority: 'high' | 'normal' | 'low' = 'normal';
+  let priority: "high" | "normal" | "low" = "normal";
   const event = context.event;
 
   // Extract i18n params once for all cases
@@ -353,47 +376,53 @@ export function buildNotification(
 
   // TypeScript now knows exact context type for each case
   switch (context.event) {
-    case 'onTicketCreated':
-      title = i18n.t('notifications.onTicketCreated.title', locale);
-      body = i18n.t('notifications.onTicketCreated.body', locale, i18nParams);
-      links = generateLinks('work-order', context.workOrderId);
-      priority = 'high';
+    case "onTicketCreated":
+      title = i18n.t("notifications.onTicketCreated.title", locale);
+      body = i18n.t("notifications.onTicketCreated.body", locale, i18nParams);
+      links = generateLinks("work-order", context.workOrderId);
+      priority = "high";
       break;
 
-    case 'onAssign':
-      title = i18n.t('notifications.onAssign.title', locale);
-      body = i18n.t('notifications.onAssign.body', locale, i18nParams);
-      links = generateLinks('work-order', context.workOrderId);
-      priority = 'high';
+    case "onAssign":
+      title = i18n.t("notifications.onAssign.title", locale);
+      body = i18n.t("notifications.onAssign.body", locale, i18nParams);
+      links = generateLinks("work-order", context.workOrderId);
+      priority = "high";
       break;
 
-    case 'onApprovalRequested':
-      title = i18n.t('notifications.onApprovalRequested.title', locale);
-      body = i18n.t('notifications.onApprovalRequested.body', locale, i18nParams);
-      links = generateLinks('approval', context.quotationId);
-      priority = 'high';
+    case "onApprovalRequested":
+      title = i18n.t("notifications.onApprovalRequested.title", locale);
+      body = i18n.t(
+        "notifications.onApprovalRequested.body",
+        locale,
+        i18nParams,
+      );
+      links = generateLinks("approval", context.quotationId);
+      priority = "high";
       break;
 
-    case 'onApproved':
-      title = i18n.t('notifications.onApproved.title', locale);
-      body = i18n.t('notifications.onApproved.body', locale, i18nParams);
-      links = generateLinks('approval', context.quotationId);
-      priority = 'normal';
+    case "onApproved":
+      title = i18n.t("notifications.onApproved.title", locale);
+      body = i18n.t("notifications.onApproved.body", locale, i18nParams);
+      links = generateLinks("approval", context.quotationId);
+      priority = "normal";
       break;
 
-    case 'onClosed': {
+    case "onClosed": {
       // LOGIC FIX: Link to the Work Order, not financials
-      title = i18n.t('notifications.onClosed.title', locale);
-      body = i18n.t('notifications.onClosed.body', locale, i18nParams);
-      links = generateLinks('work-order', context.workOrderId);
-      priority = 'normal';
+      title = i18n.t("notifications.onClosed.title", locale);
+      body = i18n.t("notifications.onClosed.body", locale, i18nParams);
+      links = generateLinks("work-order", context.workOrderId);
+      priority = "normal";
       break;
     }
 
     default: {
       // TypeScript exhaustiveness check - should never reach here
       const _exhaustive: never = context;
-      throw new Error(`Unhandled notification event: ${(_exhaustive as NotificationContext).event}`);
+      throw new Error(
+        `Unhandled notification event: ${(_exhaustive as NotificationContext).event}`,
+      );
     }
   }
 
@@ -408,7 +437,7 @@ export function buildNotification(
     data: contextToPayloadData(context),
     priority,
     createdAt: new Date(),
-    status: 'pending'
+    status: "pending",
   };
 
   void saveNotification(payload); // Persist early (fire-and-forget)
@@ -418,167 +447,212 @@ export function buildNotification(
 /**
  * Send notification with concurrent execution (Performance Fix)
  * Uses Promise.allSettled to prevent blocking and ensure <500ms API response by default
- * 
+ *
  * ARCHITECTURAL NOTE: For enterprise scale, offload to background queue (BullMQ/Redis/SQS)
  * to decouple notification dispatch from API response time
  */
 export async function sendNotification(
   notification: NotificationPayload,
   maxRetries = 3,
-  options?: { background?: boolean }
+  options?: { background?: boolean },
 ): Promise<void> {
   const background = options?.background ?? true;
 
   const dispatch = async (): Promise<void> => {
-    logger.info('[Notifications] Dispatching notification', { 
+    logger.info("[Notifications] Dispatching notification", {
       id: notification.id,
       event: notification.event,
       recipientCount: notification.recipients.length,
-      title: notification.title
+      title: notification.title,
     });
-  
+
     // Group recipients by channel with defensive checks
-    const channelGroups: Record<NotificationChannel, NotificationRecipient[]> = {
-      push: [],
-      email: [],
-      sms: [],
-      whatsapp: []
-    };
-  
-    notification.recipients.forEach(recipient => {
-      recipient.preferredChannels.forEach(channel => {
+    const channelGroups: Record<NotificationChannel, NotificationRecipient[]> =
+      {
+        push: [],
+        email: [],
+        sms: [],
+        whatsapp: [],
+      };
+
+    notification.recipients.forEach((recipient) => {
+      recipient.preferredChannels.forEach((channel) => {
         // Defensive Check: Ensure required contact info exists for the channel
-        if (channel === 'email' && !recipient.email) {
-          logger.warn(`[Notifications] Recipient ${recipient.userId} prefers email but has no address`);
+        if (channel === "email" && !recipient.email) {
+          logger.warn(
+            `[Notifications] Recipient ${recipient.userId} prefers email but has no address`,
+          );
           return;
         }
-        if ((channel === 'sms' || channel === 'whatsapp') && !recipient.phone) {
-          logger.warn(`[Notifications] Recipient ${recipient.userId} prefers ${channel} but has no phone`);
+        if ((channel === "sms" || channel === "whatsapp") && !recipient.phone) {
+          logger.warn(
+            `[Notifications] Recipient ${recipient.userId} prefers ${channel} but has no phone`,
+          );
           return;
         }
-        if (channel === 'push' && !recipient.fcmToken) {
-          logger.warn(`[Notifications] Recipient ${recipient.userId} prefers push but has no FCM token`);
+        if (channel === "push" && !recipient.fcmToken) {
+          logger.warn(
+            `[Notifications] Recipient ${recipient.userId} prefers push but has no FCM token`,
+          );
           return;
         }
-        
+
         channelGroups[channel].push(recipient);
       });
     });
-  
-    const channelAttempts: Partial<Record<NotificationChannel, { attempts: number; lastAttemptAt?: Date }>> = {};
-  
-    const sendWithRetry = async (channel: NotificationChannel, sendFn: () => Promise<void>) => {
+
+    const channelAttempts: Partial<
+      Record<NotificationChannel, { attempts: number; lastAttemptAt?: Date }>
+    > = {};
+
+    const sendWithRetry = async (
+      channel: NotificationChannel,
+      sendFn: () => Promise<void>,
+    ) => {
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        channelAttempts[channel] = { attempts: attempt, lastAttemptAt: new Date() };
+        channelAttempts[channel] = {
+          attempts: attempt,
+          lastAttemptAt: new Date(),
+        };
         try {
           await sendFn();
           return;
         } catch (_error) {
-          const error = _error instanceof Error ? _error : new Error(String(_error));
+          const error =
+            _error instanceof Error ? _error : new Error(String(_error));
           void error;
           logger.error(
             `[Notifications] ${channel} attempt ${attempt}/${maxRetries} failed`,
             error,
-            { notificationId: notification.id }
+            { notificationId: notification.id },
           );
           if (attempt === maxRetries) throw error; // Let Promise.allSettled handle final failure
         }
       }
     };
-  
+
     // Prepare promises for CONCURRENT execution (Performance Fix)
-    const sendOperations: Array<{ channel: NotificationChannel; promise: Promise<void> }> = [];
-  
+    const sendOperations: Array<{
+      channel: NotificationChannel;
+      promise: Promise<void>;
+    }> = [];
+
     if (channelGroups.push.length > 0) {
       sendOperations.push({
-        channel: 'push',
-        promise: sendWithRetry('push', () => sendPushNotifications(notification, channelGroups.push)),
+        channel: "push",
+        promise: sendWithRetry("push", () =>
+          sendPushNotifications(notification, channelGroups.push),
+        ),
       });
     }
     if (channelGroups.email.length > 0) {
       sendOperations.push({
-        channel: 'email',
-        promise: sendWithRetry('email', () => sendEmailNotifications(notification, channelGroups.email)),
+        channel: "email",
+        promise: sendWithRetry("email", () =>
+          sendEmailNotifications(notification, channelGroups.email),
+        ),
       });
     }
     if (channelGroups.sms.length > 0) {
       sendOperations.push({
-        channel: 'sms',
-        promise: sendWithRetry('sms', () => sendSMSNotifications(notification, channelGroups.sms)),
+        channel: "sms",
+        promise: sendWithRetry("sms", () =>
+          sendSMSNotifications(notification, channelGroups.sms),
+        ),
       });
     }
     if (channelGroups.whatsapp.length > 0) {
       sendOperations.push({
-        channel: 'whatsapp',
-        promise: sendWithRetry('whatsapp', () => sendWhatsAppNotifications(notification, channelGroups.whatsapp)),
+        channel: "whatsapp",
+        promise: sendWithRetry("whatsapp", () =>
+          sendWhatsAppNotifications(notification, channelGroups.whatsapp),
+        ),
       });
     }
-  
-    const results = await Promise.allSettled(sendOperations.map(op => op.promise));
-    const channelResults: ChannelDispatchResult[] = sendOperations.map((operation, index) => {
-      const attemptsInfo = channelAttempts[operation.channel];
-      const attempts = attemptsInfo?.attempts ?? 0;
-      const lastAttemptAt = attemptsInfo?.lastAttemptAt;
-      const result = results[index];
-      if (result?.status === 'fulfilled') {
-        return { channel: operation.channel, status: 'sent', attempts, lastAttemptAt };
-      }
-      const error =
-        result && result.status === 'rejected'
-          ? result.reason instanceof Error
-            ? result.reason.message
-            : String(result.reason)
-          : 'Unknown error';
-      return {
-        channel: operation.channel,
-        status: 'failed',
-        attempts,
-        lastAttemptAt,
-        error,
-      };
-    });
-  
-    const failures = channelResults.filter(result => result.status === 'failed');
-  
+
+    const results = await Promise.allSettled(
+      sendOperations.map((op) => op.promise),
+    );
+    const channelResults: ChannelDispatchResult[] = sendOperations.map(
+      (operation, index) => {
+        const attemptsInfo = channelAttempts[operation.channel];
+        const attempts = attemptsInfo?.attempts ?? 0;
+        const lastAttemptAt = attemptsInfo?.lastAttemptAt;
+        const result = results[index];
+        if (result?.status === "fulfilled") {
+          return {
+            channel: operation.channel,
+            status: "sent",
+            attempts,
+            lastAttemptAt,
+          };
+        }
+        const error =
+          result && result.status === "rejected"
+            ? result.reason instanceof Error
+              ? result.reason.message
+              : String(result.reason)
+            : "Unknown error";
+        return {
+          channel: operation.channel,
+          status: "failed",
+          attempts,
+          lastAttemptAt,
+          error,
+        };
+      },
+    );
+
+    const failures = channelResults.filter(
+      (result) => result.status === "failed",
+    );
+
     if (failures.length > 0) {
-      logger.error('[Notifications] Failures during notification dispatch', { 
-        id: notification.id, 
+      logger.error("[Notifications] Failures during notification dispatch", {
+        id: notification.id,
         failureCount: failures.length,
-        failures
+        failures,
       });
-      
+
       // Update status based on outcome
-      if (failures.length === sendOperations.length && sendOperations.length > 0) {
-        notification.status = 'failed';
+      if (
+        failures.length === sendOperations.length &&
+        sendOperations.length > 0
+      ) {
+        notification.status = "failed";
         notification.failureReason = `All ${failures.length} channels failed`;
       } else {
-        notification.status = 'partial_failure';
+        notification.status = "partial_failure";
         notification.failureReason = `${failures.length} of ${sendOperations.length} channels failed`;
       }
     } else if (sendOperations.length > 0) {
-      notification.status = 'sent';
+      notification.status = "sent";
     } else {
-      logger.warn('[Notifications] No channels attempted', { id: notification.id });
-      notification.status = 'failed';
-      notification.failureReason = 'No valid channels or recipients';
+      logger.warn("[Notifications] No channels attempted", {
+        id: notification.id,
+      });
+      notification.status = "failed";
+      notification.failureReason = "No valid channels or recipients";
     }
-  
+
     notification.sentAt = new Date();
     await saveNotification(notification, channelResults); // Persist updated status to database
     await enqueueDeadLetters(notification, failures);
-    
-    logger.info('[Notifications] Notification dispatch complete', {
+
+    logger.info("[Notifications] Notification dispatch complete", {
       id: notification.id,
       status: notification.status,
       attempted: sendOperations.length,
-      failed: failures.length
+      failed: failures.length,
     });
   };
 
   // Default: Fire-and-forget to keep API responses under 500ms.
   if (background) {
-    dispatch().catch(error => {
-      logger.error('[Notifications] Background dispatch failed', error, { id: notification.id });
+    dispatch().catch((error) => {
+      logger.error("[Notifications] Background dispatch failed", error, {
+        id: notification.id,
+      });
     });
     return;
   }
@@ -592,20 +666,22 @@ export async function sendNotification(
 async function sendNotificationByLocale(
   context: NotificationContext,
   recipients: NotificationRecipient[],
-  maxRetries = 3
+  maxRetries = 3,
 ): Promise<void> {
-  const localeGroups = recipients.reduce<Record<string, NotificationRecipient[]>>((acc, recipient) => {
-    const locale = recipient.locale || 'en';
+  const localeGroups = recipients.reduce<
+    Record<string, NotificationRecipient[]>
+  >((acc, recipient) => {
+    const locale = recipient.locale || "en";
     acc[locale] = acc[locale] || [];
     acc[locale].push(recipient);
     return acc;
   }, {});
 
   await Promise.all(
-    Object.values(localeGroups).map(group => {
+    Object.values(localeGroups).map((group) => {
       const notification = buildNotification(context, group);
       return sendNotification(notification, maxRetries);
-    })
+    }),
   );
 }
 
@@ -614,27 +690,29 @@ async function sendNotificationByLocale(
  */
 async function sendPushNotifications(
   notification: NotificationPayload,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): Promise<void> {
-  logger.info('[Notifications] Sending push', { recipientCount: recipients.length });
-  
+  logger.info("[Notifications] Sending push", {
+    recipientCount: recipients.length,
+  });
+
   if (!process.env.FCM_SERVER_KEY || !process.env.FCM_SENDER_ID) {
-    throw new Error('FCM not configured');
+    throw new Error("FCM not configured");
   }
 
-  const admin = await import('firebase-admin');
+  const admin = await import("firebase-admin");
   if (!admin.apps.length) {
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
       }),
     });
   }
 
   const tokens = recipients
-    .map(r => r.fcmToken)
+    .map((r) => r.fcmToken)
     .filter((t): t is string => Boolean(t));
 
   if (tokens.length === 0) return;
@@ -667,16 +745,24 @@ async function sendPushNotifications(
         body: notification.body,
       },
       data: Object.fromEntries(
-        Object.entries(notification.data || {}).map(([k, v]) => [k, String(v)])
+        Object.entries(notification.data || {}).map(([k, v]) => [k, String(v)]),
       ),
-      android: { priority: notification.priority === 'high' ? 'high' : 'normal' },
-      apns: { payload: { aps: { contentAvailable: notification.priority === 'high' } } },
+      android: {
+        priority: notification.priority === "high" ? "high" : "normal",
+      },
+      apns: {
+        payload: {
+          aps: { contentAvailable: notification.priority === "high" },
+        },
+      },
     });
 
     // Handle failures (remove invalid tokens, etc.)
     if (response.failureCount > 0) {
-      logger.warn('[Notifications] FCM failures', { failureCount: response.failureCount });
-      
+      logger.warn("[Notifications] FCM failures", {
+        failureCount: response.failureCount,
+      });
+
       // Extract failed token indices and remove them from users' fcmTokens arrays
       const failedTokens: string[] = [];
       const sendResponses = response.responses as Array<{
@@ -686,37 +772,42 @@ async function sendPushNotifications(
       sendResponses.forEach((resp, idx: number) => {
         if (!resp.success) {
           failedTokens.push(batch[idx]);
-          logger.debug('[Notifications] Failed FCM token', { 
-            token: batch[idx], 
-            error: resp.error?.message 
+          logger.debug("[Notifications] Failed FCM token", {
+            token: batch[idx],
+            error: resp.error?.message,
           });
         }
       });
-      
+
       // Remove invalid tokens from database
       if (failedTokens.length > 0) {
         try {
-          const { User } = await import('@/server/models/User');
+          const { User } = await import("@/server/models/User");
           await User.updateMany(
             { fcmTokens: { $in: failedTokens } },
-            { $pullAll: { fcmTokens: failedTokens } }
+            { $pullAll: { fcmTokens: failedTokens } },
           );
-          logger.info('[Notifications] Removed invalid FCM tokens', { 
-            count: failedTokens.length 
+          logger.info("[Notifications] Removed invalid FCM tokens", {
+            count: failedTokens.length,
           });
         } catch (_error) {
-          const error = _error instanceof Error ? _error : new Error(String(_error));
+          const error =
+            _error instanceof Error ? _error : new Error(String(_error));
           void error;
-          logger.error('[Notifications] Failed to remove invalid tokens', error, {
-            tokenCount: failedTokens.length
-          });
+          logger.error(
+            "[Notifications] Failed to remove invalid tokens",
+            error,
+            {
+              tokenCount: failedTokens.length,
+            },
+          );
         }
       }
     }
   }
 
   notification.deliveredAt = new Date(); // Approximate
-  logger.info('[Notifications] FCM push sent', { tokenCount: tokens.length });
+  logger.info("[Notifications] FCM push sent", { tokenCount: tokens.length });
 }
 
 /**
@@ -724,26 +815,44 @@ async function sendPushNotifications(
  */
 async function sendEmailNotifications(
   notification: NotificationPayload,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): Promise<void> {
-  logger.info('[Notifications] Sending email', { recipientCount: recipients.length });
-  
+  logger.info("[Notifications] Sending email", {
+    recipientCount: recipients.length,
+  });
+
   if (!process.env.SENDGRID_API_KEY) {
-    throw new Error('SendGrid not configured');
+    throw new Error("SendGrid not configured");
   }
 
-  const sgMail = (await import('@sendgrid/mail')).default;
+  const sgMail = (await import("@sendgrid/mail")).default;
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
   const emails = recipients
-    .map(r => r.email)
+    .map((r) => r.email)
     .filter((e): e is string => Boolean(e));
 
   if (emails.length === 0) return;
 
-  const escapeHtml = (str: string): string => str.replace(/[&<>"']/g, match => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[match]!));
+  const escapeHtml = (str: string): string =>
+    str.replace(
+      /[&<>"']/g,
+      (match) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;",
+        })[match]!,
+    );
   const sanitizeUrl = (url?: string): string => {
-    if (!url || url.toLowerCase().startsWith('javascript:') || url.toLowerCase().startsWith('data:')) return '';
+    if (
+      !url ||
+      url.toLowerCase().startsWith("javascript:") ||
+      url.toLowerCase().startsWith("data:")
+    )
+      return "";
     return url;
   };
 
@@ -755,14 +864,17 @@ async function sendEmailNotifications(
 
   await sgMail.send({
     to: emails,
-    from: process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM || 'noreply@fixzit.sa',
+    from:
+      process.env.SENDGRID_FROM_EMAIL ||
+      process.env.EMAIL_FROM ||
+      "noreply@fixzit.sa",
     subject: escapedTitle,
     text: notification.body,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">${escapedTitle}</h2>
         <p style="color: #666; line-height: 1.6;">${escapedBody}</p>
-        ${safeLink ? `<p><a href="${escapedLink}" style="background: #0070f3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">View Details</a></p>` : ''}
+        ${safeLink ? `<p><a href="${escapedLink}" style="background: #0070f3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">View Details</a></p>` : ""}
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
         <p style="color: #999; font-size: 12px;">This is an automated notification from Fixizit. Please do not reply.</p>
       </div>
@@ -771,7 +883,9 @@ async function sendEmailNotifications(
   });
 
   notification.deliveredAt = new Date();
-  logger.info('[Notifications] Email sent via SendGrid', { recipientCount: emails.length });
+  logger.info("[Notifications] Email sent via SendGrid", {
+    recipientCount: emails.length,
+  });
 }
 
 /**
@@ -779,23 +893,29 @@ async function sendEmailNotifications(
  */
 async function sendSMSNotifications(
   notification: NotificationPayload,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): Promise<void> {
-  logger.info('[Notifications] Sending SMS', { recipientCount: recipients.length });
+  logger.info("[Notifications] Sending SMS", {
+    recipientCount: recipients.length,
+  });
 
-  const phones = recipients.map(r => r.phone).filter((p): p is string => Boolean(p));
+  const phones = recipients
+    .map((r) => r.phone)
+    .filter((p): p is string => Boolean(p));
   if (phones.length === 0) return;
 
   let smsBody = `${notification.title}\n\n${notification.body}`;
   // Use webUrl for SMS (desktop support) instead of mobile deep link
   const link = notification.webUrl || notification.deepLink;
   if (link) smsBody += `\n\nView: ${link}`;
-  if (smsBody.length > 1600) smsBody = smsBody.substring(0, 1597) + '...'; // Shorten
+  if (smsBody.length > 1600) smsBody = smsBody.substring(0, 1597) + "..."; // Shorten
 
   await sendBulkSMS(phones, smsBody, { delayMs: 200 });
 
   notification.deliveredAt = new Date();
-  logger.info('[Notifications] SMS sent via Twilio', { recipientCount: phones.length });
+  logger.info("[Notifications] SMS sent via Twilio", {
+    recipientCount: phones.length,
+  });
 }
 
 /**
@@ -803,40 +923,54 @@ async function sendSMSNotifications(
  */
 async function sendWhatsAppNotifications(
   notification: NotificationPayload,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): Promise<void> {
-  logger.info('[Notifications] Sending WhatsApp', { recipientCount: recipients.length });
-  
-  if (!process.env.TWILIO_WHATSAPP_NUMBER || !process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-    throw new Error('WhatsApp/Twilio not configured');
+  logger.info("[Notifications] Sending WhatsApp", {
+    recipientCount: recipients.length,
+  });
+
+  if (
+    !process.env.TWILIO_WHATSAPP_NUMBER ||
+    !process.env.TWILIO_ACCOUNT_SID ||
+    !process.env.TWILIO_AUTH_TOKEN
+  ) {
+    throw new Error("WhatsApp/Twilio not configured");
   }
 
-  const twilio = (await import('twilio')).default;
-  const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  const twilio = (await import("twilio")).default;
+  const client = twilio(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN,
+  );
 
-  const phones = recipients.map(r => r.phone).filter((p): p is string => Boolean(p));
+  const phones = recipients
+    .map((r) => r.phone)
+    .filter((p): p is string => Boolean(p));
   if (phones.length === 0) return;
 
   let whatsappBody = `*${notification.title}*\n\n${notification.body}`;
   // Use webUrl for WhatsApp (desktop support) instead of mobile deep link
   const link = notification.webUrl || notification.deepLink;
   if (link) whatsappBody += `\n\nView Details: ${link}`;
-  if (whatsappBody.length > 1600) whatsappBody = whatsappBody.substring(0, 1597) + '...';
+  if (whatsappBody.length > 1600)
+    whatsappBody = whatsappBody.substring(0, 1597) + "...";
 
   await Promise.all(
-    phones.map(phone =>
-      withTwilioResilience('whatsapp-send', () =>
+    phones.map((phone) =>
+      withTwilioResilience("whatsapp-send", () =>
         client.messages.create({
           to: `whatsapp:${phone}`,
           from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
           body: whatsappBody,
-        })
-      )
-    )
+        }),
+      ),
+    ),
   );
 
   notification.deliveredAt = new Date();
-  logger.info('[Notifications] WhatsApp sent via Twilio', { recipientCount: phones.length });
+  logger.info("[Notifications] WhatsApp sent via Twilio", {
+    recipientCount: phones.length,
+  });
 }
 
 /**
@@ -847,18 +981,18 @@ export async function onTicketCreated(
   tenantName: string,
   priority: string,
   description: string,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): Promise<void> {
-  if (!workOrderId) throw new Error('workOrderId required');
-  
+  if (!workOrderId) throw new Error("workOrderId required");
+
   const context: TicketCreatedContext = {
-    event: 'onTicketCreated',
+    event: "onTicketCreated",
     workOrderId,
     tenantName,
     priority,
-    description
+    description,
   };
-  
+
   await sendNotificationByLocale(context, recipients);
 }
 
@@ -866,17 +1000,17 @@ export async function onAssign(
   workOrderId: string,
   technicianName: string,
   description: string,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): Promise<void> {
-  if (!workOrderId) throw new Error('workOrderId required');
-  
+  if (!workOrderId) throw new Error("workOrderId required");
+
   const context: AssignContext = {
-    event: 'onAssign',
+    event: "onAssign",
     workOrderId,
     technicianName,
-    description
+    description,
   };
-  
+
   await sendNotificationByLocale(context, recipients);
 }
 
@@ -884,46 +1018,47 @@ export async function onApprovalRequested(
   quotationId: string,
   amount: number,
   description: string,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): Promise<void> {
-  if (!quotationId) throw new Error('quotationId required');
-  
+  if (!quotationId) throw new Error("quotationId required");
+
   const context: ApprovalRequestedContext = {
-    event: 'onApprovalRequested',
+    event: "onApprovalRequested",
     quotationId,
     amount,
-    description
+    description,
   };
-  
+
   await sendNotificationByLocale(context, recipients);
 }
 
 export async function onApproved(
   quotationId: string,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): Promise<void> {
-  if (!quotationId) throw new Error('quotationId required');
-  
+  if (!quotationId) throw new Error("quotationId required");
+
   const context: ApprovedContext = {
-    event: 'onApproved',
-    quotationId
+    event: "onApproved",
+    quotationId,
   };
-  
+
   await sendNotificationByLocale(context, recipients);
 }
 
 export async function onClosed(
   workOrderId: string,
   propertyId: string,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): Promise<void> {
-  if (!workOrderId || !propertyId) throw new Error('workOrderId and propertyId required');
-  
+  if (!workOrderId || !propertyId)
+    throw new Error("workOrderId and propertyId required");
+
   const context: ClosedContext = {
-    event: 'onClosed',
+    event: "onClosed",
     workOrderId,
-    propertyId
+    propertyId,
   };
-  
+
   await sendNotificationByLocale(context, recipients);
 }

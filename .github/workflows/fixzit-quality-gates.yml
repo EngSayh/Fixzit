@@ -2,7 +2,7 @@ name: Fixzit Quality Gates
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch: {}
 
 # Prevent concurrent runs for same PR/ref - saves CI resources
@@ -128,7 +128,7 @@ jobs:
             yarn) yarn lint || yarn run eslint . ;;
             *) npm run lint || npm run eslint . ;;
           esac
-          
+
       - name: Typecheck
         shell: bash
         run: |
@@ -146,7 +146,7 @@ jobs:
         run: |
           mkdir -p .artifacts
           status=0
-          
+
           # Run only unit/model tests (E2E tests require environment setup)
           # Full E2E test suite should be run separately with proper test environment
           if node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.['test:models']?0:1)" 2>/dev/null; then
@@ -167,7 +167,7 @@ jobs:
             echo "No test script found in package.json. Skipping unit tests."
             echo "Note: E2E tests with Playwright run separately (qa:e2e script exists)."
           fi
-          
+
           # Collect test artifacts if they exist
           if [ -f junit.xml ]; then
             cp junit.xml .artifacts/junit.xml
@@ -175,7 +175,7 @@ jobs:
           if [ -d coverage ]; then
             cp -r coverage .artifacts/coverage
           fi
-          
+
           exit ${status:-0}
 
       # ---------- Build Web (Next.js) ----------
@@ -229,7 +229,7 @@ jobs:
             yarn) yarn openapi:build || node scripts/openapi/build.mjs || true ;;
             *) npm run openapi:build || node scripts/openapi/build.mjs || true ;;
           esac
-          
+
           # Copy OpenAPI spec to artifacts
           for candidate in openapi.yaml openapi.yml apps/api/openapi.yaml apps/api/openapi.yml; do
             if [ -f "$candidate" ]; then
@@ -248,7 +248,7 @@ jobs:
             yarn) yarn postman:export || true ;;
             *) npm run postman:export || true ;;
           esac
-          
+
           # Copy Postman collection if generated
           if [ -f _artifacts/postman/collection.json ]; then
             cp -f _artifacts/postman/collection.json .artifacts/postman_collection.json
@@ -266,7 +266,7 @@ jobs:
             yarn) yarn rbac:export || node scripts/rbac/export.mjs || true ;;
             *) npm run rbac:export || node scripts/rbac/export.mjs || true ;;
           esac
-          
+
           [ -f rbac-matrix.csv ] && cp -f rbac-matrix.csv .artifacts/rbac-matrix.csv || true
 
       # ---------- Lighthouse CI (static export if available) ----------
@@ -288,7 +288,7 @@ jobs:
             yarn) npx --yes @lhci/cli autorun --collect.staticDistDir="$export_dir" --upload.target=filesystem --upload.outputDir=lhci_reports || true ;;
             *) npx --yes @lhci/cli autorun --collect.staticDistDir="$export_dir" --upload.target=filesystem --upload.outputDir=lhci_reports || true ;;
           esac
-          
+
           # Copy Lighthouse reports
           if [ -d lhci_reports ]; then
             cp -r lhci_reports .artifacts/
@@ -311,7 +311,7 @@ jobs:
               npm audit --json > .artifacts/dep-audit.json || audit_status=$?
               ;;
           esac
-          
+
           # Fail on critical vulnerabilities (audit level 4+)
           if [ "${audit_status}" -ge 16 ]; then
             echo "::error::Critical security vulnerabilities detected. See .artifacts/dep-audit.json"

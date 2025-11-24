@@ -1,6 +1,6 @@
-import { getDatabase } from '@/lib/mongodb-unified';
-import { embedText } from '@/ai/embeddings';
-import { chunkText } from './chunk';
+import { getDatabase } from "@/lib/mongodb-unified";
+import { embedText } from "@/ai/embeddings";
+import { chunkText } from "./chunk";
 
 type UpsertArgs = {
   orgId: string | null;
@@ -15,43 +15,54 @@ type UpsertArgs = {
 
 export async function upsertArticleEmbeddings(args: UpsertArgs) {
   const db = await getDatabase();
-  const coll = db.collection('kb_embeddings');
+  const coll = db.collection("kb_embeddings");
   const { articleId, content, lang, roleScopes, route, orgId, tenantId } = args;
   const chunks = chunkText(content, 1200, 200);
-  const ops: Array<{ updateOne: { filter: Record<string, unknown>; update: Record<string, unknown>; upsert: boolean } }> = [];
+  const ops: Array<{
+    updateOne: {
+      filter: Record<string, unknown>;
+      update: Record<string, unknown>;
+      upsert: boolean;
+    };
+  }> = [];
   let index = 0;
   for (const chunk of chunks) {
     const embedding = await embedText(chunk.text);
     ops.push({
       updateOne: {
-        filter: { articleId, chunkId: index, tenantId: tenantId ?? null, orgId: orgId ?? null },
+        filter: {
+          articleId,
+          chunkId: index,
+          tenantId: tenantId ?? null,
+          orgId: orgId ?? null,
+        },
         update: {
           $set: {
             articleId,
             chunkId: index,
             text: chunk.text,
             embedding,
-            lang: lang || 'en',
-            route: route || '/help',
-            roleScopes: roleScopes && roleScopes.length ? roleScopes : ['USER'],
+            lang: lang || "en",
+            route: route || "/help",
+            roleScopes: roleScopes && roleScopes.length ? roleScopes : ["USER"],
             orgId: orgId ?? null,
             tenantId: tenantId ?? null,
-            updatedAt: new Date()
-          }
+            updatedAt: new Date(),
+          },
         },
-        upsert: true
-      }
+        upsert: true,
+      },
     });
     index += 1;
   }
   if (ops.length) await coll.bulkWrite(ops, { ordered: false });
 }
 
-export async function deleteArticleEmbeddings(articleId: string, tenantId: string | null) {
+export async function deleteArticleEmbeddings(
+  articleId: string,
+  tenantId: string | null,
+) {
   const db = await getDatabase();
-  const coll = db.collection('kb_embeddings');
+  const coll = db.collection("kb_embeddings");
   await coll.deleteMany({ articleId, tenantId });
 }
-
-
-

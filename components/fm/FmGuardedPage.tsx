@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { useFmOrgGuard } from './useFmOrgGuard';
-import type { ModuleId } from '@/config/navigation';
+import React from "react";
+import { useFmOrgGuard } from "./useFmOrgGuard";
+import type { ModuleId } from "@/config/navigation";
 
 type GuardContext = ReturnType<typeof useFmOrgGuard>;
 
@@ -10,7 +10,7 @@ type GuardContext = ReturnType<typeof useFmOrgGuard>;
  * Guaranteed context type passed to children.
  * orgId is guaranteed to be a non-null string when children render.
  */
-export type GuaranteedFmContext = Omit<GuardContext, 'orgId'> & {
+export type GuaranteedFmContext = Omit<GuardContext, "orgId"> & {
   orgId: string;
 };
 

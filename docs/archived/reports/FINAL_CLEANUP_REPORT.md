@@ -8,8 +8,8 @@
 - **TypeScript files**: 154 scattered throughout
 - **Component directories**: Multiple duplicate locations
   - src/components
-  - src/modules/finance/ui/components  
-  - src/modules/*/ui/components
+  - src/modules/finance/ui/components
+  - src/modules/\*/ui/components
 - **Root directory**: 50+ loose files including images, scripts, docs
 
 ### CLEANUP ACTIONS PERFORMED
@@ -34,7 +34,7 @@
 **Actions Taken**:
 
 - ✅ Deleted entire src/modules directory with duplicate components
-- ✅ Kept only src/components as single source of truth  
+- ✅ Kept only src/components as single source of truth
 - ✅ Updated all imports to use src/components
 
 **Result**: ONE components directory (src/components only)
@@ -46,7 +46,7 @@
 
 - ✅ Created organizational directories:
   - assets/images - for all image files
-  - assets/icons - for icon files  
+  - assets/icons - for icon files
   - docs/reports - for documentation
   - docs/archives - for archived docs
   - scripts/ - for shell scripts

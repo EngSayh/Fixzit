@@ -1,50 +1,50 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { connectDb } from '@/lib/mongo';
-import { logger } from '@/lib/logger';
-import { SouqClaim } from '@/server/models/souq/Claim';
-import { SouqOrder, type IOrder } from '@/server/models/souq/Order';
-import { Types } from 'mongoose';
-import { RefundProcessor } from '@/services/souq/claims/refund-processor';
-import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectDb } from "@/lib/mongo";
+import { logger } from "@/lib/logger";
+import { SouqClaim } from "@/server/models/souq/Claim";
+import { SouqOrder, type IOrder } from "@/server/models/souq/Order";
+import { Types } from "mongoose";
+import { RefundProcessor } from "@/services/souq/claims/refund-processor";
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 
 const ELIGIBLE_STATUSES = [
-  'submitted',
-  'under_review',
-  'pending_seller_response',
-  'pending_investigation',
-  'escalated',
+  "submitted",
+  "under_review",
+  "pending_seller_response",
+  "pending_investigation",
+  "escalated",
 ] as const;
 
 /**
  * POST /api/souq/claims/admin/bulk
- * 
+ *
  * Bulk approve or reject multiple claims at once
- * 
+ *
  * Body: {
  *   action: 'approve' | 'reject',
  *   claimIds: string[],
  *   reason: string
  * }
- * 
+ *
  * @security Requires admin role
  */
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if user has admin role
     const userRole = session.user.role;
     const isSuperAdmin = session.user.isSuperAdmin;
-    
-    if (!isSuperAdmin && userRole !== 'ADMIN') {
+
+    if (!isSuperAdmin && userRole !== "ADMIN") {
       return NextResponse.json(
-        { error: 'Forbidden: Admin access required' },
-        { status: 403 }
+        { error: "Forbidden: Admin access required" },
+        { status: 403 },
       );
     }
 
@@ -52,31 +52,31 @@ export async function POST(request: NextRequest) {
     const { action, claimIds, reason } = body;
 
     // Validate input
-    if (!action || !['approve', 'reject'].includes(action)) {
+    if (!action || !["approve", "reject"].includes(action)) {
       return NextResponse.json(
         { error: 'Invalid action. Must be "approve" or "reject"' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!Array.isArray(claimIds) || claimIds.length === 0) {
       return NextResponse.json(
-        { error: 'claimIds must be a non-empty array' },
-        { status: 400 }
+        { error: "claimIds must be a non-empty array" },
+        { status: 400 },
       );
     }
 
     if (claimIds.length > 50) {
       return NextResponse.json(
-        { error: 'Maximum 50 claims can be processed at once' },
-        { status: 400 }
+        { error: "Maximum 50 claims can be processed at once" },
+        { status: 400 },
       );
     }
 
-    if (!reason || typeof reason !== 'string' || reason.trim().length < 20) {
+    if (!reason || typeof reason !== "string" || reason.trim().length < 20) {
       return NextResponse.json(
-        { error: 'Reason must be at least 20 characters' },
-        { status: 400 }
+        { error: "Reason must be at least 20 characters" },
+        { status: 400 },
       );
     }
 
@@ -90,16 +90,13 @@ export async function POST(request: NextRequest) {
     // Fetch all claims to validate they exist and can be bulk processed
     const claims = await SouqClaim.find({
       status: { $in: ELIGIBLE_STATUSES },
-      $or: [
-        { _id: { $in: objectIds } },
-        { claimId: { $in: normalizedIds } },
-      ],
+      $or: [{ _id: { $in: objectIds } }, { claimId: { $in: normalizedIds } }],
     });
 
     if (claims.length === 0) {
       return NextResponse.json(
-        { error: 'No valid claims found for bulk action' },
-        { status: 404 }
+        { error: "No valid claims found for bulk action" },
+        { status: 404 },
       );
     }
 
@@ -118,31 +115,33 @@ export async function POST(request: NextRequest) {
       let refundProcessed = false;
 
       try {
-        const newStatus = action === 'approve' ? 'resolved' : 'closed';
-        const refundAmount = action === 'approve' ? claim.requestedAmount : 0;
+        const newStatus = action === "approve" ? "resolved" : "closed";
+        const refundAmount = action === "approve" ? claim.requestedAmount : 0;
 
         // Validate refund amount
-        if (action === 'approve' && refundAmount <= 0) {
+        if (action === "approve" && refundAmount <= 0) {
           results.failed++;
           results.errors.push({
             claimId: claimIdStr,
-            error: 'Requested refund amount must be greater than 0',
-            stage: 'validation',
+            error: "Requested refund amount must be greater than 0",
+            stage: "validation",
           });
           continue;
         }
 
         // Fetch order for payment details (required for refund)
         let order: IOrder | null = null;
-        if (action === 'approve' && refundAmount > 0) {
-          order = await SouqOrder.findById(claim.orderId).lean() as IOrder | null;
-          
+        if (action === "approve" && refundAmount > 0) {
+          order = (await SouqOrder.findById(
+            claim.orderId,
+          ).lean()) as IOrder | null;
+
           if (!order) {
             results.failed++;
             results.errors.push({
               claimId: claimIdStr,
-              error: 'Order not found - cannot process refund',
-              stage: 'order_lookup',
+              error: "Order not found - cannot process refund",
+              stage: "order_lookup",
             });
             continue;
           }
@@ -151,8 +150,9 @@ export async function POST(request: NextRequest) {
             results.failed++;
             results.errors.push({
               claimId: claimIdStr,
-              error: 'Order payment transaction ID missing - cannot process refund',
-              stage: 'payment_validation',
+              error:
+                "Order payment transaction ID missing - cannot process refund",
+              stage: "payment_validation",
             });
             continue;
           }
@@ -161,8 +161,8 @@ export async function POST(request: NextRequest) {
             results.failed++;
             results.errors.push({
               claimId: claimIdStr,
-              error: 'Order payment method missing - cannot process refund',
-              stage: 'payment_validation',
+              error: "Order payment method missing - cannot process refund",
+              stage: "payment_validation",
             });
             continue;
           }
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
         claim.decision = {
           decidedBy: session.user.id,
           decidedAt: new Date(),
-          outcome: action === 'approve' ? 'approved' : 'denied',
+          outcome: action === "approve" ? "approved" : "denied",
           reasoning: reason.trim(),
           refundAmount,
           evidence: [],
@@ -196,26 +196,31 @@ export async function POST(request: NextRequest) {
 
         // Send notification to buyer and seller
         try {
-          await addJob(QUEUE_NAMES.NOTIFICATIONS, 'souq-claim-decision', {
+          await addJob(QUEUE_NAMES.NOTIFICATIONS, "souq-claim-decision", {
             claimId: claimIdStr,
             buyerId: String(claim.buyerId),
             sellerId: String(claim.sellerId),
-            decision: action === 'approve' ? 'approved' : 'denied',
+            decision: action === "approve" ? "approved" : "denied",
             reasoning: reason.trim(),
             refundAmount,
           });
         } catch (notifError) {
-          logger.error('Failed to queue claim decision notification', notifError as Error, {
-            claimId: claimIdStr,
-          });
+          logger.error(
+            "Failed to queue claim decision notification",
+            notifError as Error,
+            {
+              claimId: claimIdStr,
+            },
+          );
           results.warnings.push({
             claimId: claimIdStr,
-            warning: 'Notification queuing failed - manual notification may be required',
+            warning:
+              "Notification queuing failed - manual notification may be required",
           });
         }
 
         // Process refund if approved
-        if (action === 'approve' && refundAmount > 0 && order) {
+        if (action === "approve" && refundAmount > 0 && order) {
           try {
             await RefundProcessor.processRefund({
               claimId: claimIdStr,
@@ -229,25 +234,32 @@ export async function POST(request: NextRequest) {
             });
             refundProcessed = true;
           } catch (refundError) {
-            logger.error('Refund processing failed for approved claim', refundError as Error, {
-              claimId: claimIdStr,
-              refundAmount,
-              orderId: String(claim.orderId),
-              transactionId: order.payment.transactionId,
-            });
+            logger.error(
+              "Refund processing failed for approved claim",
+              refundError as Error,
+              {
+                claimId: claimIdStr,
+                refundAmount,
+                orderId: String(claim.orderId),
+                transactionId: order.payment.transactionId,
+              },
+            );
             results.warnings.push({
               claimId: claimIdStr,
-              warning: `Refund processing failed: ${refundError instanceof Error ? refundError.message : 'Unknown error'} - manual refund required`,
+              warning: `Refund processing failed: ${refundError instanceof Error ? refundError.message : "Unknown error"} - manual refund required`,
             });
           }
         }
 
         // Determine final status
         if (claimSaved) {
-          if (action === 'reject' || (action === 'approve' && refundAmount === 0)) {
+          if (
+            action === "reject" ||
+            (action === "approve" && refundAmount === 0)
+          ) {
             // No refund needed for rejection or zero amount
             results.success++;
-          } else if (action === 'approve' && refundProcessed) {
+          } else if (action === "approve" && refundProcessed) {
             // Full success: claim saved + refund processed
             results.success++;
           } else {
@@ -255,7 +267,7 @@ export async function POST(request: NextRequest) {
             results.partialSuccess++;
             results.warnings.push({
               claimId: claimIdStr,
-              warning: 'Claim decision saved but refund processing incomplete',
+              warning: "Claim decision saved but refund processing incomplete",
             });
           }
         }
@@ -263,28 +275,29 @@ export async function POST(request: NextRequest) {
         results.failed++;
         results.errors.push({
           claimId: claimIdStr,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          stage: claimSaved ? 'post_save' : 'claim_update',
+          error: error instanceof Error ? error.message : "Unknown error",
+          stage: claimSaved ? "post_save" : "claim_update",
         });
-        logger.error('Bulk action failed for claim', error as Error, {
+        logger.error("Bulk action failed for claim", error as Error, {
           claimId: claimIdStr,
           action,
-          stage: claimSaved ? 'post_save' : 'claim_update',
+          stage: claimSaved ? "post_save" : "claim_update",
         });
       }
     }
 
     // Calculate overall success
     const hasFailures = results.failed > 0;
-    const hasWarnings = results.warnings.length > 0 || results.partialSuccess > 0;
-    
+    const hasWarnings =
+      results.warnings.length > 0 || results.partialSuccess > 0;
+
     return NextResponse.json({
       success: !hasFailures,
       message: hasFailures
         ? `Bulk action completed with ${results.failed} failures`
         : hasWarnings
-        ? `Processed ${results.success} claims with ${results.partialSuccess} partial successes`
-        : `Successfully processed ${results.success} claims`,
+          ? `Processed ${results.success} claims with ${results.partialSuccess} partial successes`
+          : `Successfully processed ${results.success} claims`,
       results: {
         total: claimIds.length,
         processed: claims.length,
@@ -297,10 +310,10 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Bulk claims action error', error as Error);
+    logger.error("Bulk claims action error", error as Error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }

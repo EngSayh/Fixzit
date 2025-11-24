@@ -23,7 +23,7 @@
         // — Agent: Security-conscious configuration for shared devcontainer —
         "chat.agent.enabled": true,
         "chat.agent.maxRequests": 999,
-        
+
         // SECURITY: Auto-approve disabled in shared environment.
         // Developers who want auto-approve should configure it in their personal User Settings.
         // Do not re-enable these in the shared devcontainer configuration.
@@ -36,7 +36,7 @@
 
         // Checkpoints for rollback
         "chat.checkpoints.enabled": true,
-        
+
         // Disable notification balloons
         "chat.notifyWindowOnConfirmation": false,
 

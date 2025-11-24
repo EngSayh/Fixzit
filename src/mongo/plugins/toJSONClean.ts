@@ -1,16 +1,19 @@
-import { Schema, Types } from 'mongoose';
+import { Schema, Types } from "mongoose";
 
 type PlainObject = Record<string, unknown>;
 
 function isPlainObject(value: unknown): value is PlainObject {
-  return Boolean(value) && Object.prototype.toString.call(value) === '[object Object]';
+  return (
+    Boolean(value) &&
+    Object.prototype.toString.call(value) === "[object Object]"
+  );
 }
 
 function coerceIdsDeep(value: unknown): unknown {
   if (value == null) return value;
   if (value instanceof Types.ObjectId) return value.toString();
   if (Array.isArray(value)) {
-    return value.map(item => coerceIdsDeep(item));
+    return value.map((item) => coerceIdsDeep(item));
   }
   if (isPlainObject(value)) {
     const out: PlainObject = {};
@@ -30,16 +33,20 @@ type TransformableDocument = {
 };
 
 export function toJSONClean(schema: Schema) {
-  schema.set('toJSON', {
+  schema.set("toJSON", {
     virtuals: true,
     versionKey: false,
     transform(_doc: unknown, ret: TransformableDocument) {
-      const rawId = ret._id as Types.ObjectId | string | { toString?: () => string } | undefined;
+      const rawId = ret._id as
+        | Types.ObjectId
+        | string
+        | { toString?: () => string }
+        | undefined;
       if (rawId != null) {
         const normalizedId =
-          typeof rawId === 'string'
+          typeof rawId === "string"
             ? rawId
-            : typeof rawId?.toString === 'function'
+            : typeof rawId?.toString === "function"
               ? rawId.toString()
               : undefined;
         if (normalizedId) {

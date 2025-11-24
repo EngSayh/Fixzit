@@ -1,16 +1,16 @@
-import { NextRequest} from "next/server";
+import { NextRequest } from "next/server";
 import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
 const updateNotificationSchema = z.object({
   read: z.boolean().optional(),
-  archived: z.boolean().optional()
+  archived: z.boolean().optional(),
 });
 
 /**
@@ -30,7 +30,10 @@ const updateNotificationSchema = z.object({
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   let orgId: string;
   try {
@@ -41,44 +44,68 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       return rateLimitError();
     }
   } catch {
-    return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
   const { notifications } = await getCollections();
-  const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
-  if (!_id) return createSecureResponse({ error: 'Invalid id' }, 400, req);
+  const _id = (() => {
+    try {
+      return new ObjectId(params.id);
+    } catch {
+      return null;
+    }
+  })();
+  if (!_id) return createSecureResponse({ error: "Invalid id" }, 400, req);
   const doc = await notifications.findOne({ _id, orgId });
-  if (!doc) return createSecureResponse({ error: 'Notification not found' }, 404, req);
+  if (!doc)
+    return createSecureResponse({ error: "Notification not found" }, 404, req);
   const { _id: rawId, ...rest } = doc;
   return createSecureResponse({ id: String(rawId), ...rest });
 }
 
-export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   let orgId: string;
   try {
     const user = await getSessionUser(req);
     orgId = user.orgId;
   } catch {
-    return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
   const body = updateNotificationSchema.parse(await req.json());
   const { read, archived } = body;
   const { notifications } = await getCollections();
-  const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
-  if (!_id) return createSecureResponse({ error: 'Invalid id' }, 400, req);
+  const _id = (() => {
+    try {
+      return new ObjectId(params.id);
+    } catch {
+      return null;
+    }
+  })();
+  if (!_id) return createSecureResponse({ error: "Invalid id" }, 400, req);
 
-  const update: { $set: { updatedAt: Date; read?: boolean; archived?: boolean } } = { $set: { updatedAt: new Date() } };
-  if (typeof read === 'boolean') update.$set.read = read;
-  if (typeof archived === 'boolean') update.$set.archived = archived;
+  const update: {
+    $set: { updatedAt: Date; read?: boolean; archived?: boolean };
+  } = { $set: { updatedAt: new Date() } };
+  if (typeof read === "boolean") update.$set.read = read;
+  if (typeof archived === "boolean") update.$set.archived = archived;
 
-  const updated = await notifications.findOneAndUpdate({ _id, orgId }, update, { returnDocument: 'after' });
+  const updated = await notifications.findOneAndUpdate({ _id, orgId }, update, {
+    returnDocument: "after",
+  });
   const value = updated;
-  if (!value) return createSecureResponse({ error: 'Notification not found' }, 404, req);
+  if (!value)
+    return createSecureResponse({ error: "Notification not found" }, 404, req);
   const normalized = { id: String(value._id), ...value, _id: undefined };
   return createSecureResponse(normalized);
 }
 
-export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   let orgId: string;
   try {
@@ -89,12 +116,19 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       return rateLimitError();
     }
   } catch {
-    return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
   const { notifications } = await getCollections();
-  const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
-  if (!_id) return createSecureResponse({ error: 'Invalid id' }, 400, req);
+  const _id = (() => {
+    try {
+      return new ObjectId(params.id);
+    } catch {
+      return null;
+    }
+  })();
+  if (!_id) return createSecureResponse({ error: "Invalid id" }, 400, req);
   const res = await notifications.deleteOne({ _id, orgId });
-  if (!res.deletedCount) return createSecureResponse({ error: 'Notification not found' }, 404, req);
+  if (!res.deletedCount)
+    return createSecureResponse({ error: "Notification not found" }, 404, req);
   return createSecureResponse({ success: true });
 }

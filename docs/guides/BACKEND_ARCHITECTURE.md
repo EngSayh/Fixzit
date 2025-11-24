@@ -151,17 +151,17 @@ export async function GET(req: NextRequest) {
   // 1. Rate limiting
   const rl = rateLimit(key, 60, 60_000);
   if (!rl.allowed) return rateLimitError();
-  
+
   // 2. Authentication
   const user = await getSessionUser(req);
   if (!user) return unauthorizedError();
-  
+
   // 3. Authorization (RBAC)
-  if (!hasPermission(user, 'READ')) return forbiddenError();
-  
+  if (!hasPermission(user, "READ")) return forbiddenError();
+
   // 4. Tenant isolation
   const data = await WorkOrder.find({ tenantId: user.orgId });
-  
+
   // 5. Response
   return createSecureResponse({ data }, 200, req);
 }
@@ -171,18 +171,18 @@ export async function GET(req: NextRequest) {
 
 ```typescript
 // lib/models/WorkOrder.ts
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const WorkOrderSchema = new mongoose.Schema({
   tenantId: { type: String, required: true, index: true },
   code: { type: String, required: true, unique: true },
   title: { type: String, required: true },
-  status: { type: String, enum: ['OPEN', 'IN_PROGRESS', 'COMPLETED'] },
+  status: { type: String, enum: ["OPEN", "IN_PROGRESS", "COMPLETED"] },
   // ... more fields
 });
 
-export const WorkOrder = mongoose.models.WorkOrder || 
-  mongoose.model('WorkOrder', WorkOrderSchema);
+export const WorkOrder =
+  mongoose.models.WorkOrder || mongoose.model("WorkOrder", WorkOrderSchema);
 ```
 
 ---
@@ -259,12 +259,12 @@ export const WorkOrder = mongoose.models.WorkOrder ||
 
 ```typescript
 // ❌ WRONG - Cross-tenant data leakage
-const workOrders = await WorkOrder.find({ status: 'OPEN' });
+const workOrders = await WorkOrder.find({ status: "OPEN" });
 
 // ✅ CORRECT - Tenant isolation
-const workOrders = await WorkOrder.find({ 
+const workOrders = await WorkOrder.find({
   tenantId: user.orgId,
-  status: 'OPEN' 
+  status: "OPEN",
 });
 ```
 
@@ -282,13 +282,13 @@ export async function connectToDatabase() {
   if (cachedConnection) {
     return cachedConnection;
   }
-  
+
   const conn = await mongoose.connect(MONGODB_URI, {
     maxPoolSize: 10,
     minPoolSize: 2,
     serverSelectionTimeoutMS: 5000,
   });
-  
+
   cachedConnection = conn;
   return conn;
 }
@@ -311,17 +311,17 @@ const rateLimit = (key: string, limit: number, windowMs: number) => {
 // Response caching example (implement with Redis)
 export async function GET(req: NextRequest) {
   const cacheKey = `work-orders:${user.orgId}`;
-  
+
   // Check cache
   const cached = await redis.get(cacheKey);
   if (cached) return JSON.parse(cached);
-  
+
   // Query database
   const data = await WorkOrder.find({ tenantId: user.orgId });
-  
+
   // Cache for 5 minutes
   await redis.setex(cacheKey, 300, JSON.stringify(data));
-  
+
   return createSecureResponse({ data }, 200, req);
 }
 ```

@@ -1,10 +1,16 @@
-import { NextRequest} from 'next/server';
-import { dbConnect } from '@/db/mongoose';
-import { createSubscriptionCheckout } from '@/lib/finance/checkout';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { rateLimit } from '@/server/security/rateLimit';
-import { forbiddenError, validationError, unauthorizedError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+import { NextRequest } from "next/server";
+import { dbConnect } from "@/db/mongoose";
+import { createSubscriptionCheckout } from "@/lib/finance/checkout";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { rateLimit } from "@/server/security/rateLimit";
+import {
+  forbiddenError,
+  validationError,
+  unauthorizedError,
+  rateLimitError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
 
 /**
  * @openapi
@@ -101,57 +107,64 @@ export async function POST(req: NextRequest) {
   try {
     // Authentication and authorization
     const user = await getSessionUser(req);
-    
+
     // Rate limiting: 3 req/5min (300000ms = 5 minutes) for subscription operations (very sensitive)
     const rl = rateLimit(`subscribe-corporate:${user.id}`, 3, 300000);
     if (!rl.allowed) {
       return rateLimitError();
     }
-    
+
     // Only admins can create corporate subscriptions
-    if (!['SUPER_ADMIN', 'ADMIN'].includes(user.role)) {
-      return forbiddenError('Admin role required for corporate subscriptions');
+    if (!["SUPER_ADMIN", "ADMIN"].includes(user.role)) {
+      return forbiddenError("Admin role required for corporate subscriptions");
     }
-    
+
     await dbConnect();
     const body = await req.json();
-    
+
     // Tenant isolation: ensure tenantId matches user's orgId (unless SUPER_ADMIN)
-    if (body.tenantId && body.tenantId !== user.orgId && user.role !== 'SUPER_ADMIN') {
-      return forbiddenError('Tenant mismatch - cannot create subscription for different organization');
+    if (
+      body.tenantId &&
+      body.tenantId !== user.orgId &&
+      user.role !== "SUPER_ADMIN"
+    ) {
+      return forbiddenError(
+        "Tenant mismatch - cannot create subscription for different organization",
+      );
     }
 
     if (!body.tenantId) {
-      return validationError('Tenant ID is required');
+      return validationError("Tenant ID is required");
     }
 
     if (!Array.isArray(body.modules) || body.modules.length === 0) {
-      return validationError('At least one module is required');
+      return validationError("At least one module is required");
     }
 
     if (!body.customer?.email) {
-      return validationError('Customer email is required');
+      return validationError("Customer email is required");
     }
 
     const seats = Number(body.seats);
     if (!Number.isFinite(seats) || seats <= 0) {
-      return validationError('Invalid seat count - must be positive number');
+      return validationError("Invalid seat count - must be positive number");
     }
 
     const result = await createSubscriptionCheckout({
-      subscriberType: 'CORPORATE',
+      subscriberType: "CORPORATE",
       tenantId: body.tenantId,
       modules: body.modules,
       seats,
-      billingCycle: body.billingCycle === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY',
-      currency: body.currency ?? 'USD',
+      billingCycle: body.billingCycle === "ANNUAL" ? "ANNUAL" : "MONTHLY",
+      currency: body.currency ?? "USD",
       customer: body.customer,
       priceBookId: body.priceBookId,
-      metadata: body.metadata});
+      metadata: body.metadata,
+    });
 
     return createSecureResponse(result, 200, req);
   } catch (error: unknown) {
-    if (error instanceof Error && error.message === 'Unauthenticated') {
+    if (error instanceof Error && error.message === "Unauthenticated") {
       return unauthorizedError();
     }
     return handleApiError(error);

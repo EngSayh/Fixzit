@@ -1,22 +1,28 @@
-import { randomUUID } from 'crypto';
-import { logger } from '@/lib/logger';
-import { NOTIFY } from '@/domain/fm/fm.behavior';
+import { randomUUID } from "crypto";
+import { logger } from "@/lib/logger";
+import { NOTIFY } from "@/domain/fm/fm.behavior";
 import {
   sendBulkNotifications,
   createChannelMetricsMap,
   type BulkNotificationResult,
-  type ChannelMetric
-} from '@/lib/integrations/notifications';
-import { emitNotificationTelemetry } from '@/lib/telemetry';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { NotificationDeadLetterModel, NotificationLogModel } from '@/server/models/NotificationLog';
-import { recordNotificationMetrics, setDeadLetterBacklog } from '@/lib/monitoring/notification-metrics';
+  type ChannelMetric,
+} from "@/lib/integrations/notifications";
+import { emitNotificationTelemetry } from "@/lib/telemetry";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import {
+  NotificationDeadLetterModel,
+  NotificationLogModel,
+} from "@/server/models/NotificationLog";
+import {
+  recordNotificationMetrics,
+  setDeadLetterBacklog,
+} from "@/lib/monitoring/notification-metrics";
 /**
  * FM Notification Template Engine
  * Generates notifications with deep links for various FM events
  */
 
-export type NotificationChannel = 'push' | 'email' | 'sms' | 'whatsapp';
+export type NotificationChannel = "push" | "email" | "sms" | "whatsapp";
 
 export interface NotificationRecipient {
   userId: string;
@@ -34,11 +40,11 @@ export interface NotificationPayload {
   body: string;
   deepLink?: string;
   data?: Record<string, unknown>;
-  priority: 'high' | 'normal' | 'low';
+  priority: "high" | "normal" | "low";
   createdAt: Date;
   sentAt?: Date;
   deliveredAt?: Date;
-  status: 'pending' | 'sent' | 'delivered' | 'failed' | 'partial_failure';
+  status: "pending" | "sent" | "delivered" | "failed" | "partial_failure";
   failureReason?: string;
 }
 
@@ -47,10 +53,12 @@ type LoggedRecipient = {
   preferredChannels: NotificationChannel[];
 };
 
-function mapRecipientsForLog(recipients: NotificationRecipient[]): LoggedRecipient[] {
-  return recipients.map(recipient => ({
+function mapRecipientsForLog(
+  recipients: NotificationRecipient[],
+): LoggedRecipient[] {
+  return recipients.map((recipient) => ({
     userId: recipient.userId,
-    preferredChannels: recipient.preferredChannels
+    preferredChannels: recipient.preferredChannels,
   }));
 }
 
@@ -59,21 +67,23 @@ function mapPayloadForLog(notification: NotificationPayload) {
     title: notification.title,
     body: notification.body,
     data: notification.data,
-    deepLink: notification.deepLink
+    deepLink: notification.deepLink,
   };
 }
 
-function resolveChannelStatus(metric: ChannelMetric): 'pending' | 'sent' | 'partial' | 'failed' {
+function resolveChannelStatus(
+  metric: ChannelMetric,
+): "pending" | "sent" | "partial" | "failed" {
   if (metric.failed === 0 && metric.succeeded === 0 && metric.attempted === 0) {
-    return 'pending';
+    return "pending";
   }
   if (metric.failed === 0 && metric.succeeded > 0) {
-    return 'sent';
+    return "sent";
   }
   if (metric.failed > 0 && metric.succeeded > 0) {
-    return 'partial';
+    return "partial";
   }
-  return 'failed';
+  return "failed";
 }
 
 function createEmptyResult(): BulkNotificationResult {
@@ -83,11 +93,13 @@ function createEmptyResult(): BulkNotificationResult {
     failed: 0,
     skipped: 0,
     issues: [],
-    channelMetrics: createChannelMetricsMap()
+    channelMetrics: createChannelMetricsMap(),
   };
 }
 
-async function persistNotificationDraft(notification: NotificationPayload): Promise<void> {
+async function persistNotificationDraft(
+  notification: NotificationPayload,
+): Promise<void> {
   try {
     await connectToDatabase();
     await NotificationLogModel.findOneAndUpdate(
@@ -106,31 +118,34 @@ async function persistNotificationDraft(notification: NotificationPayload): Prom
           attempted: 0,
           succeeded: 0,
           failed: 0,
-          skipped: 0
+          skipped: 0,
         },
         channelResults: [],
-        issues: []
+        issues: [],
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true },
     );
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.warn('[Notifications] Unable to write initial notification log entry', {
-      id: notification.id,
-      error
-    });
+    logger.warn(
+      "[Notifications] Unable to write initial notification log entry",
+      {
+        id: notification.id,
+        error,
+      },
+    );
   }
 }
 
 async function persistNotificationOutcome(
   notification: NotificationPayload,
-  result: BulkNotificationResult
+  result: BulkNotificationResult,
 ): Promise<void> {
   try {
     await connectToDatabase();
     const metrics = result.channelMetrics ?? createChannelMetricsMap();
-    const channelResults = Object.values(metrics).map(metric => ({
+    const channelResults = Object.values(metrics).map((metric) => ({
       channel: metric.channel,
       status: resolveChannelStatus(metric),
       attempts: metric.attempted,
@@ -138,7 +153,7 @@ async function persistNotificationOutcome(
       failedCount: metric.failed,
       skipped: metric.skipped,
       lastAttemptAt: metric.lastAttemptAt,
-      errors: metric.errors
+      errors: metric.errors,
     }));
 
     await NotificationLogModel.findOneAndUpdate(
@@ -157,52 +172,55 @@ async function persistNotificationOutcome(
           attempted: result.attempted,
           succeeded: result.succeeded,
           failed: result.failed,
-          skipped: result.skipped
+          skipped: result.skipped,
         },
         channelResults,
-        issues: result.issues.map(issue => ({
+        issues: result.issues.map((issue) => ({
           userId: issue.userId,
           channel: issue.channel,
           type: issue.type,
           reason: issue.reason,
           attempt: issue.attempt,
           attemptedAt: issue.attemptedAt,
-          metadata: issue.metadata
-        }))
+          metadata: issue.metadata,
+        })),
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true },
     );
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[Notifications] Failed to persist notification audit log', {
+    logger.error("[Notifications] Failed to persist notification audit log", {
       id: notification.id,
-      error
+      error,
     });
   }
 }
 
 async function persistNotificationDeadLetters(
   notification: NotificationPayload,
-  result: BulkNotificationResult
+  result: BulkNotificationResult,
 ): Promise<void> {
-  const failedIssues = result.issues.filter(issue => issue.type === 'failed');
+  const failedIssues = result.issues.filter((issue) => issue.type === "failed");
   if (failedIssues.length === 0) return;
 
   try {
     await connectToDatabase();
-    const recipientMap = new Map(notification.recipients.map(recipient => [recipient.userId, recipient]));
+    const recipientMap = new Map(
+      notification.recipients.map((recipient) => [recipient.userId, recipient]),
+    );
     const metrics = result.channelMetrics ?? createChannelMetricsMap();
 
     await NotificationDeadLetterModel.insertMany(
-      failedIssues.map(issue => {
+      failedIssues.map((issue) => {
         const recipient = recipientMap.get(issue.userId);
         return {
           notificationId: notification.id,
           event: notification.event,
           channel: issue.channel,
           attempts: issue.attempt ?? metrics[issue.channel]?.attempted ?? 1,
-          lastAttemptAt: issue.attemptedAt ?? metrics[issue.channel]?.lastAttemptAt,
+          lastAttemptAt:
+            issue.attemptedAt ?? metrics[issue.channel]?.lastAttemptAt,
           error: issue.reason,
           payload: mapPayloadForLog(notification),
           priority: notification.priority,
@@ -211,20 +229,25 @@ async function persistNotificationDeadLetters(
                 userId: recipient.userId,
                 email: recipient.email,
                 phone: recipient.phone,
-                preferredChannels: recipient.preferredChannels
+                preferredChannels: recipient.preferredChannels,
               }
-            : undefined
+            : undefined,
         };
       }),
-      { ordered: false }
+      { ordered: false },
     );
 
-    const backlog = await NotificationDeadLetterModel.aggregate<{ _id: NotificationChannel; count: number }>([
-      { $match: { status: 'pending' } },
-      { $group: { _id: '$channel', count: { $sum: 1 } } }
+    const backlog = await NotificationDeadLetterModel.aggregate<{
+      _id: NotificationChannel;
+      count: number;
+    }>([
+      { $match: { status: "pending" } },
+      { $group: { _id: "$channel", count: { $sum: 1 } } },
     ]);
 
-    const backlogMap = backlog.reduce<Partial<Record<NotificationChannel, number>>>((acc, entry) => {
+    const backlogMap = backlog.reduce<
+      Partial<Record<NotificationChannel, number>>
+    >((acc, entry) => {
       acc[entry._id] = entry.count;
       return acc;
     }, {});
@@ -232,9 +255,9 @@ async function persistNotificationDeadLetters(
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[Notifications] Failed to enqueue notification DLQ entries', {
+    logger.error("[Notifications] Failed to enqueue notification DLQ entries", {
       id: notification.id,
-      error
+      error,
     });
   }
 }
@@ -243,19 +266,27 @@ async function persistNotificationDeadLetters(
  * Generate deep link for FM entities
  */
 export function generateDeepLink(
-  type: 'work-order' | 'approval' | 'property' | 'unit' | 'tenant' | 'financial',
+  type:
+    | "work-order"
+    | "approval"
+    | "property"
+    | "unit"
+    | "tenant"
+    | "financial",
   id: string,
-  subPath?: string
+  subPath?: string,
 ): string {
-  const scheme = process.env.NEXT_PUBLIC_FIXZIT_DEEP_LINK_SCHEME || 'fixzit://';
-  const normalizedScheme = scheme.endsWith('://') ? scheme : `${scheme.replace(/\/+$/, '')}://`;
+  const scheme = process.env.NEXT_PUBLIC_FIXZIT_DEEP_LINK_SCHEME || "fixzit://";
+  const normalizedScheme = scheme.endsWith("://")
+    ? scheme
+    : `${scheme.replace(/\/+$/, "")}://`;
   const deepLinkMap = {
-    'work-order': `${normalizedScheme}fm/work-orders/${id}`,
-    'approval': `${normalizedScheme}approvals/quote/${id}`,
-    'property': `${normalizedScheme}fm/properties/${id}`,
-    'unit': `${normalizedScheme}fm/units/${id}`,
-    'tenant': `${normalizedScheme}fm/tenants/${id}`,
-    'financial': `${normalizedScheme}financials/statements/property/${id}`
+    "work-order": `${normalizedScheme}fm/work-orders/${id}`,
+    approval: `${normalizedScheme}approvals/quote/${id}`,
+    property: `${normalizedScheme}fm/properties/${id}`,
+    unit: `${normalizedScheme}fm/units/${id}`,
+    tenant: `${normalizedScheme}fm/tenants/${id}`,
+    financial: `${normalizedScheme}financials/statements/property/${id}`,
   };
 
   const baseLink = deepLinkMap[type];
@@ -265,7 +296,7 @@ export function generateDeepLink(
 function requireContextValue(
   value: string | undefined,
   field: string,
-  event: keyof typeof NOTIFY
+  event: keyof typeof NOTIFY,
 ): string {
   if (!value) {
     throw new Error(`[Notifications] Missing ${field} for ${event}`);
@@ -288,65 +319,86 @@ export function buildNotification(
     priority?: string;
     description?: string;
   },
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): NotificationPayload {
   // Build notification title and body
-  let title = 'Fixzit Notification';
-  let body = '';
+  let title = "Fixzit Notification";
+  let body = "";
   let deepLink: string | undefined;
-  let priority: 'high' | 'normal' | 'low' = 'normal';
+  let priority: "high" | "normal" | "low" = "normal";
 
   switch (event) {
-    case 'onTicketCreated': {
-      const workOrderId = requireContextValue(context.workOrderId, 'workOrderId', event);
-      title = 'New Work Order Created';
-      body = `Work Order #${workOrderId} has been created by ${context.tenantName ?? 'customer'}`;
-      deepLink = generateDeepLink('work-order', workOrderId);
-      priority = 'high';
+    case "onTicketCreated": {
+      const workOrderId = requireContextValue(
+        context.workOrderId,
+        "workOrderId",
+        event,
+      );
+      title = "New Work Order Created";
+      body = `Work Order #${workOrderId} has been created by ${context.tenantName ?? "customer"}`;
+      deepLink = generateDeepLink("work-order", workOrderId);
+      priority = "high";
       break;
     }
 
-    case 'onAssign': {
-      const workOrderId = requireContextValue(context.workOrderId, 'workOrderId', event);
-      title = 'Work Order Assigned';
+    case "onAssign": {
+      const workOrderId = requireContextValue(
+        context.workOrderId,
+        "workOrderId",
+        event,
+      );
+      title = "Work Order Assigned";
       body = `You have been assigned to Work Order #${workOrderId}`;
-      deepLink = generateDeepLink('work-order', workOrderId);
-      priority = 'high';
+      deepLink = generateDeepLink("work-order", workOrderId);
+      priority = "high";
       break;
     }
 
-    case 'onApprovalRequested': {
-      const quotationId = requireContextValue(context.quotationId, 'quotationId', event);
-      title = 'Approval Required';
-      const amountText = typeof context.amount === 'number'
-        ? ` (Amount: SAR ${context.amount.toLocaleString()})`
-        : '';
+    case "onApprovalRequested": {
+      const quotationId = requireContextValue(
+        context.quotationId,
+        "quotationId",
+        event,
+      );
+      title = "Approval Required";
+      const amountText =
+        typeof context.amount === "number"
+          ? ` (Amount: SAR ${context.amount.toLocaleString()})`
+          : "";
       body = `Quotation #${quotationId} requires your approval${amountText}`;
-      deepLink = generateDeepLink('approval', quotationId);
-      priority = 'high';
+      deepLink = generateDeepLink("approval", quotationId);
+      priority = "high";
       break;
     }
 
-    case 'onApproved': {
-      const quotationId = requireContextValue(context.quotationId, 'quotationId', event);
-      title = 'Approval Granted';
+    case "onApproved": {
+      const quotationId = requireContextValue(
+        context.quotationId,
+        "quotationId",
+        event,
+      );
+      title = "Approval Granted";
       body = `Quotation #${quotationId} has been approved`;
-      deepLink = generateDeepLink('approval', quotationId);
-      priority = 'normal';
+      deepLink = generateDeepLink("approval", quotationId);
+      priority = "normal";
       break;
     }
 
-    case 'onClosed': {
-      const workOrderId = requireContextValue(context.workOrderId, 'workOrderId', event);
-      title = 'Work Order Closed';
+    case "onClosed": {
+      const workOrderId = requireContextValue(
+        context.workOrderId,
+        "workOrderId",
+        event,
+      );
+      title = "Work Order Closed";
       body = `Work Order #${workOrderId} has been completed and closed`;
-      deepLink = generateDeepLink('work-order', workOrderId);
-      priority = 'normal';
+      deepLink = generateDeepLink("work-order", workOrderId);
+      priority = "normal";
       break;
     }
 
     default:
-      body = 'Notification';
+      body = "Notification";
   }
 
   return {
@@ -359,7 +411,7 @@ export function buildNotification(
     data: context,
     priority,
     createdAt: new Date(),
-    status: 'pending'
+    status: "pending",
   };
 }
 
@@ -367,32 +419,32 @@ export function buildNotification(
  * Send notification to recipients via their preferred channels
  */
 export async function sendNotification(
-  notification: NotificationPayload
+  notification: NotificationPayload,
 ): Promise<BulkNotificationResult> {
-  logger.info('[Notifications] Sending notification', { 
+  logger.info("[Notifications] Sending notification", {
     id: notification.id,
     event: notification.event,
     recipientCount: notification.recipients.length,
     title: notification.title,
-    deepLink: notification.deepLink
+    deepLink: notification.deepLink,
   });
 
   const dispatchStartedAt = Date.now();
   await persistNotificationDraft(notification);
 
   if (notification.recipients.length === 0) {
-    notification.status = 'failed';
-    notification.failureReason = 'No recipients provided';
-    logger.warn('[Notifications] Skipping sendNotification (no recipients)', {
+    notification.status = "failed";
+    notification.failureReason = "No recipients provided";
+    logger.warn("[Notifications] Skipping sendNotification (no recipients)", {
       id: notification.id,
-      event: notification.event
+      event: notification.event,
     });
     const emptyResult = createEmptyResult();
     await persistNotificationOutcome(notification, emptyResult);
     recordNotificationMetrics({
       notification,
       result: emptyResult,
-      durationMs: Date.now() - dispatchStartedAt
+      durationMs: Date.now() - dispatchStartedAt,
     });
     return {
       attempted: 0,
@@ -400,7 +452,7 @@ export async function sendNotification(
       failed: 0,
       skipped: 0,
       issues: [],
-      channelMetrics: emptyResult.channelMetrics
+      channelMetrics: emptyResult.channelMetrics,
     };
   }
 
@@ -411,20 +463,22 @@ export async function sendNotification(
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    notification.status = 'failed';
+    notification.status = "failed";
     notification.failureReason =
-      error instanceof Error ? error.message : 'Bulk notification dispatch failed';
+      error instanceof Error
+        ? error.message
+        : "Bulk notification dispatch failed";
     notification.sentAt = new Date();
-    logger.error('[Notifications] Failed to send notification', {
+    logger.error("[Notifications] Failed to send notification", {
       id: notification.id,
-      error
+      error,
     });
     const failureResult = createEmptyResult();
     await persistNotificationOutcome(notification, failureResult);
     recordNotificationMetrics({
       notification,
       result: failureResult,
-      durationMs: Date.now() - dispatchStartedAt
+      durationMs: Date.now() - dispatchStartedAt,
     });
     throw error;
   }
@@ -432,15 +486,15 @@ export async function sendNotification(
   notification.sentAt = new Date();
 
   if (result.attempted === 0) {
-    notification.status = 'failed';
-    notification.failureReason = 'No valid channels or contact info';
+    notification.status = "failed";
+    notification.failureReason = "No valid channels or contact info";
   } else if (result.failed === 0) {
-    notification.status = 'sent';
+    notification.status = "sent";
   } else if (result.failed === result.attempted) {
-    notification.status = 'failed';
-    notification.failureReason = 'All notification attempts failed';
+    notification.status = "failed";
+    notification.failureReason = "All notification attempts failed";
   } else {
-    notification.status = 'partial_failure';
+    notification.status = "partial_failure";
     notification.failureReason = `${result.failed} of ${result.attempted} channel attempts failed`;
   }
 
@@ -449,22 +503,22 @@ export async function sendNotification(
   recordNotificationMetrics({
     notification,
     result,
-    durationMs: Date.now() - dispatchStartedAt
+    durationMs: Date.now() - dispatchStartedAt,
   });
 
   if (result.issues.length > 0) {
-    logger.warn('[Notifications] Issues encountered while dispatching', {
+    logger.warn("[Notifications] Issues encountered while dispatching", {
       id: notification.id,
-      issues: result.issues
+      issues: result.issues,
     });
   }
 
-  logger.info('[Notifications] Notification dispatch complete', {
+  logger.info("[Notifications] Notification dispatch complete", {
     id: notification.id,
     status: notification.status,
     attempted: result.attempted,
     failed: result.failed,
-    skipped: result.skipped
+    skipped: result.skipped,
   });
 
   emitNotificationTelemetry({
@@ -474,9 +528,12 @@ export async function sendNotification(
     attempted: result.attempted,
     failed: result.failed,
     skipped: result.skipped,
-    issues: result.issues
-  }).catch(error => {
-    logger.warn('[Notifications] Telemetry emission failed', { id: notification.id, error });
+    issues: result.issues,
+  }).catch((error) => {
+    logger.warn("[Notifications] Telemetry emission failed", {
+      id: notification.id,
+      error,
+    });
   });
 
   return result;
@@ -491,14 +548,18 @@ export async function onTicketCreated(
   tenantName: string,
   priority: string,
   description: string,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): Promise<void> {
-  const notification = buildNotification('onTicketCreated', {
-    workOrderId,
-    tenantName,
-    priority,
-    description
-  }, recipients);
+  const notification = buildNotification(
+    "onTicketCreated",
+    {
+      workOrderId,
+      tenantName,
+      priority,
+      description,
+    },
+    recipients,
+  );
 
   await sendNotification(notification);
 }
@@ -507,13 +568,17 @@ export async function onAssign(
   workOrderId: string,
   technicianName: string,
   description: string,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): Promise<void> {
-  const notification = buildNotification('onAssign', {
-    workOrderId,
-    technicianName,
-    description
-  }, recipients);
+  const notification = buildNotification(
+    "onAssign",
+    {
+      workOrderId,
+      technicianName,
+      description,
+    },
+    recipients,
+  );
 
   await sendNotification(notification);
 }
@@ -522,13 +587,17 @@ export async function onApprovalRequested(
   quotationId: string,
   amount: number,
   description: string,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): Promise<void> {
-  const notification = buildNotification('onApprovalRequested', {
-    quotationId,
-    amount,
-    description
-  }, recipients);
+  const notification = buildNotification(
+    "onApprovalRequested",
+    {
+      quotationId,
+      amount,
+      description,
+    },
+    recipients,
+  );
 
   await sendNotification(notification);
 }
@@ -536,12 +605,16 @@ export async function onApprovalRequested(
 export async function onClosed(
   workOrderId: string,
   propertyId: string,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
 ): Promise<void> {
-  const notification = buildNotification('onClosed', {
-    workOrderId,
-    propertyId
-  }, recipients);
+  const notification = buildNotification(
+    "onClosed",
+    {
+      workOrderId,
+      propertyId,
+    },
+    recipients,
+  );
 
   await sendNotification(notification);
 }

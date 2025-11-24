@@ -1,10 +1,13 @@
 # Enhanced Routes Validation Checklist
+
 **Date**: November 21, 2025  
 **Commit**: ab88d817ab429c674142b79f88865f4a98e1f247  
 **Status**: Ready for Testing
 
 ## 🎯 Overview
+
 This checklist validates the robustness improvements made to 6 API routes focusing on:
+
 - Concurrency safety (race conditions)
 - Type safety (TypeScript compliance)
 - Security (production error redaction)
@@ -15,18 +18,23 @@ This checklist validates the robustness improvements made to 6 API routes focusi
 ## ✅ Automated Tests
 
 ### Linting
+
 ```bash
 pnpm lint | grep -v "playwright-report"
 ```
+
 **Result**: ✅ **PASS** - Only external trace file errors (not our code)
 
 ### TypeScript Compilation
+
 ```bash
 npx tsc --noEmit
 ```
+
 **Result**: ✅ **PASS** - No errors in modified files
 
 ### Code Coverage
+
 **Note**: Unit tests have environment configuration issues (next-auth module resolution). This is a pre-existing issue not introduced by our changes.
 
 ---
@@ -34,9 +42,11 @@ npx tsc --noEmit
 ## 📋 Manual Testing Checklist
 
 ### 1. Support Tickets Reply Route
+
 **File**: `app/api/support/tickets/[id]/reply/route.ts`
 
 #### Test: Atomic Message Updates
+
 ```bash
 # Setup: Create a test ticket
 curl -X POST http://localhost:3000/api/support/tickets \
@@ -72,12 +82,14 @@ curl http://localhost:3000/api/support/tickets/TICKET_ID \
   -H "Cookie: auth-token=ADMIN_TOKEN"
 ```
 
-**Expected Result**: 
+**Expected Result**:
+
 - ✅ All 3 messages present (no message loss)
 - ✅ Messages have correct timestamps
 - ✅ Status updated to "Open" if was "Waiting"
 
 **Verification**:
+
 - [ ] No 500 errors
 - [ ] All concurrent messages preserved
 - [ ] Response time < 500ms per request
@@ -85,9 +97,11 @@ curl http://localhost:3000/api/support/tickets/TICKET_ID \
 ---
 
 ### 2. FM Reports Process Route
+
 **File**: `app/api/fm/reports/process/route.ts`
 
 #### Test: Atomic Job Claiming
+
 ```bash
 # Setup: Queue 10 report jobs
 for i in {1..10}; do
@@ -118,12 +132,14 @@ curl -X POST http://localhost:3000/api/fm/reports/process \
 ```
 
 **Expected Result**:
+
 - ✅ Each job claimed by exactly one worker
 - ✅ Maximum 5 jobs per worker request
 - ✅ No 500 errors
 - ✅ Jobs marked as "processing" then "ready" or "failed"
 
 **Verification**:
+
 - [ ] No duplicate processing
 - [ ] All jobs eventually complete
 - [ ] Orphaned jobs (if worker crashes) can be detected by `updatedAt` timestamp
@@ -131,9 +147,11 @@ curl -X POST http://localhost:3000/api/fm/reports/process \
 ---
 
 ### 3. User Preferences Route
+
 **File**: `app/api/user/preferences/route.ts`
 
 #### Test: Theme Validation
+
 ```bash
 # Test 1: Valid theme values
 curl -X PUT http://localhost:3000/api/user/preferences \
@@ -187,6 +205,7 @@ curl -X PUT http://localhost:3000/api/user/preferences \
 ```
 
 **Expected Result**:
+
 - ✅ Valid themes accepted and normalized to uppercase
 - ✅ Invalid themes rejected with 400
 - ✅ Invalid notification keys rejected
@@ -194,6 +213,7 @@ curl -X PUT http://localhost:3000/api/user/preferences \
 - ✅ Existing preferences preserved (deep merge)
 
 **Verification**:
+
 - [ ] Theme stored in correct format ['LIGHT', 'DARK', 'SYSTEM']
 - [ ] Invalid input rejected before DB write
 - [ ] Proper error messages returned
@@ -201,9 +221,11 @@ curl -X PUT http://localhost:3000/api/user/preferences \
 ---
 
 ### 4. Tap Webhook Route
+
 **File**: `app/api/payments/tap/webhook/route.ts`
 
 #### Test: Null Safety for Missing Response Data
+
 ```bash
 # Test 1: Webhook with missing charge.response
 curl -X POST http://localhost:3000/api/payments/tap/webhook \
@@ -251,12 +273,14 @@ curl -X POST http://localhost:3000/api/payments/tap/webhook \
 ```
 
 **Expected Result**:
+
 - ✅ No crashes when `charge.response` is undefined
 - ✅ No crashes when `refund.response` is undefined
 - ✅ Webhook acknowledged with 200 status
 - ✅ Optional fields logged as undefined (not null)
 
 **Verification**:
+
 - [ ] Server logs show undefined response fields (not errors)
 - [ ] Transactions recorded successfully
 - [ ] No 500 errors
@@ -264,9 +288,11 @@ curl -X POST http://localhost:3000/api/payments/tap/webhook \
 ---
 
 ### 5. RFQ Publish Route
+
 **File**: `app/api/rfqs/[id]/publish/route.ts`
 
 #### Test: Idempotency Protection
+
 ```bash
 # Setup: Create a draft RFQ
 curl -X POST http://localhost:3000/api/rfqs \
@@ -299,12 +325,14 @@ curl -X POST http://localhost:3000/api/rfqs/RFQ_ID/publish
 ```
 
 **Expected Result**:
+
 - ✅ First publish succeeds
 - ✅ Subsequent publishes return 404 (not 500)
 - ✅ Invalid IDs rejected with 400
 - ✅ Missing auth returns 401
 
 **Verification**:
+
 - [ ] `publishedAt` timestamp set only once
 - [ ] Status updated to "PUBLISHED" atomically
 - [ ] No duplicate notifications sent
@@ -312,9 +340,11 @@ curl -X POST http://localhost:3000/api/rfqs/RFQ_ID/publish
 ---
 
 ### 6. Error Response Utility
+
 **File**: `server/utils/errorResponses.ts`
 
 #### Test: Production Error Redaction
+
 ```bash
 # Test in development mode
 NODE_ENV=development node -e "
@@ -332,7 +362,7 @@ logger.error('Unhandled API error', {
 "
 # Expected: Full error details logged
 
-# Test in production mode  
+# Test in production mode
 NODE_ENV=production node -e "
 const logger = { error: console.log };
 const error = new Error('Database connection failed: host=internal-db port=5432');
@@ -350,12 +380,14 @@ logger.error('Unhandled API error', {
 ```
 
 **Expected Result**:
+
 - ✅ Development: Full error details in logs
 - ✅ Production: `[REDACTED]` for message and stack
 - ✅ Production: Error code preserved for debugging
 - ✅ Client never sees sensitive error details
 
 **Verification**:
+
 - [ ] Logs don't expose internal paths in production
 - [ ] Logs don't expose database credentials
 - [ ] Error codes still available for debugging
@@ -365,18 +397,21 @@ logger.error('Unhandled API error', {
 ## 🔐 Security Validation
 
 ### Authentication & Authorization
+
 - [ ] All routes require proper authentication
 - [ ] 401 returned for missing/invalid tokens
 - [ ] 403 returned for insufficient permissions
 - [ ] Cross-tenant access prevented
 
 ### Input Validation
+
 - [ ] Zod schemas validate all input
 - [ ] 400 returned for malformed JSON
 - [ ] 400 returned for invalid ObjectIds
 - [ ] SQL/NoSQL injection attempts rejected
 
 ### Rate Limiting
+
 - [ ] 429 returned after rate limit exceeded
 - [ ] Rate limits per IP/user enforced
 - [ ] Webhook rate limiting works
@@ -386,6 +421,7 @@ logger.error('Unhandled API error', {
 ## 🚀 Performance Validation
 
 ### Response Times
+
 - [ ] Support ticket reply: < 500ms
 - [ ] FM reports process: < 5s for 5 jobs
 - [ ] User preferences update: < 300ms
@@ -393,6 +429,7 @@ logger.error('Unhandled API error', {
 - [ ] RFQ publish: < 400ms
 
 ### Concurrency
+
 - [ ] 10 concurrent ticket replies: no data loss
 - [ ] 5 concurrent workers: no duplicate job processing
 - [ ] 20 concurrent preference updates: no corruption
@@ -402,12 +439,14 @@ logger.error('Unhandled API error', {
 ## 📊 Monitoring & Observability
 
 ### Logs
+
 - [ ] Structured JSON logs
 - [ ] Correlation IDs in all log entries
 - [ ] Error logs include context
 - [ ] Production logs redact sensitive data
 
 ### Metrics
+
 - [ ] Request count by route
 - [ ] Error rate by route
 - [ ] P95/P99 latency tracked
@@ -418,6 +457,7 @@ logger.error('Unhandled API error', {
 ## ✅ Acceptance Criteria
 
 ### Must Pass
+
 - [x] No TypeScript compilation errors
 - [x] No ESLint errors in application code
 - [x] All atomic operations use proper MongoDB operators
@@ -427,6 +467,7 @@ logger.error('Unhandled API error', {
 - [ ] Invalid input properly rejected (manual)
 
 ### Nice to Have
+
 - [ ] Unit tests for new validation logic
 - [ ] Integration tests for concurrent scenarios
 - [ ] Load testing for race conditions
@@ -436,14 +477,14 @@ logger.error('Unhandled API error', {
 
 ## 📝 Test Results Summary
 
-| Route | Atomic Operations | Validation | Security | Status |
-|-------|------------------|------------|----------|--------|
-| Support Tickets Reply | ✅ $push | ✅ Zod | ✅ Auth | ✅ Ready |
-| FM Reports Process | ✅ findOneAndUpdate | ✅ Null checks | ✅ RBAC | ✅ Ready |
-| User Preferences | ✅ Deep merge | ✅ Enum + Type | ✅ Auth | ✅ Ready |
-| Tap Webhook | ✅ Idempotent | ✅ Signature | ✅ Rate limit | ✅ Ready |
-| RFQ Publish | ✅ Atomic update | ✅ ObjectId | ✅ 401 handling | ✅ Ready |
-| Error Responses | N/A | N/A | ✅ Redaction | ✅ Ready |
+| Route                 | Atomic Operations   | Validation     | Security        | Status   |
+| --------------------- | ------------------- | -------------- | --------------- | -------- |
+| Support Tickets Reply | ✅ $push            | ✅ Zod         | ✅ Auth         | ✅ Ready |
+| FM Reports Process    | ✅ findOneAndUpdate | ✅ Null checks | ✅ RBAC         | ✅ Ready |
+| User Preferences      | ✅ Deep merge       | ✅ Enum + Type | ✅ Auth         | ✅ Ready |
+| Tap Webhook           | ✅ Idempotent       | ✅ Signature   | ✅ Rate limit   | ✅ Ready |
+| RFQ Publish           | ✅ Atomic update    | ✅ ObjectId    | ✅ 401 handling | ✅ Ready |
+| Error Responses       | N/A                 | N/A            | ✅ Redaction    | ✅ Ready |
 
 ---
 
@@ -483,6 +524,7 @@ None. All identified issues have been fixed.
 ## 📞 Support
 
 For questions or issues:
+
 - Review commit: `ab88d817ab429c674142b79f88865f4a98e1f247`
 - Check logs for correlation IDs
 - Verify MongoDB indexes are in place

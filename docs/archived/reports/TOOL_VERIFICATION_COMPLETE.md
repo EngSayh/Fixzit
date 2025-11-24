@@ -110,27 +110,27 @@ npm run replace:in-file -- --path "HEREDOC_SOLUTION.md" --search "RESOLVED" --re
 
 ### replace_string_in_file
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Literal search | ✅ Working | Case-sensitive by default |
-| Regex search | ✅ Working | Supports capture groups |
-| Glob patterns | ✅ Working | Uses fast-glob library |
-| Word matching | ✅ Working | `--word-match` flag |
-| Dry-run mode | ✅ Working | Preview without changes |
-| Backup creation | ✅ Working | Creates .bak files |
-| JSON output | ✅ Working | Machine-readable results |
-| Multiple paths | ✅ Working | Repeatable --path option |
+| Feature         | Status     | Notes                     |
+| --------------- | ---------- | ------------------------- |
+| Literal search  | ✅ Working | Case-sensitive by default |
+| Regex search    | ✅ Working | Supports capture groups   |
+| Glob patterns   | ✅ Working | Uses fast-glob library    |
+| Word matching   | ✅ Working | `--word-match` flag       |
+| Dry-run mode    | ✅ Working | Preview without changes   |
+| Backup creation | ✅ Working | Creates .bak files        |
+| JSON output     | ✅ Working | Machine-readable results  |
+| Multiple paths  | ✅ Working | Repeatable --path option  |
 
 ### Heredoc (PowerShell Here-Strings)
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Literal strings | ✅ Working | `@'...'@` syntax |
-| Variable expansion | ✅ Working | `@"..."@` syntax |
-| Multi-line content | ✅ Working | Preserves line breaks |
-| Special characters | ✅ Working | No escaping needed in literal mode |
-| Helper scripts | ✅ Available | Write-HereDoc.ps1 |
-| Documentation | ✅ Complete | Full guide available |
+| Feature            | Status       | Notes                              |
+| ------------------ | ------------ | ---------------------------------- |
+| Literal strings    | ✅ Working   | `@'...'@` syntax                   |
+| Variable expansion | ✅ Working   | `@"..."@` syntax                   |
+| Multi-line content | ✅ Working   | Preserves line breaks              |
+| Special characters | ✅ Working   | No escaping needed in literal mode |
+| Helper scripts     | ✅ Available | Write-HereDoc.ps1                  |
+| Documentation      | ✅ Complete  | Full guide available               |
 
 ---
 

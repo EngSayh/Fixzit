@@ -26,12 +26,12 @@
 
 ```typescript
 // ❌ WRONG (Deprecated)
-const { func } = vi.importMock('module'); // Returns Promise!
+const { func } = vi.importMock("module"); // Returns Promise!
 
 // ✅ CORRECT
 let func: any;
 beforeAll(async () => {
-  ({ func } = await import('module'));
+  ({ func } = await import("module"));
 });
 ```
 
@@ -52,13 +52,13 @@ beforeAll(async () => {
 
 ```typescript
 // ❌ WRONG
-vi.spyOn(Math, 'random').mockReturnValue(0.5);
+vi.spyOn(Math, "random").mockReturnValue(0.5);
 (Math.random as ReturnType<typeof vi.fn>).mockRestore?.();
 
 // ✅ CORRECT
 let randomSpy: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
-  randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+  randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.5);
 });
 afterEach(() => {
   randomSpy.mockRestore();
@@ -235,37 +235,37 @@ pnpm test tests/unit/components/ErrorBoundary.test.tsx --run
 
 ## Success Metrics Achieved
 
-| Metric | Target | Achieved | Status |
-|--------|--------|----------|--------|
-| vi.importMock removed | 6 | 6 | ✅ |
-| jest.Mock replaced | 20+ | 31+ | ✅ |
-| Control char regex fixed | 2 | 2 | ✅ |
-| Files fixed | 5 | 14+ | ✅ |
-| Compilation errors | 0 | 0 | ✅ |
-| Linter errors | 0 | 0 | ✅ |
-| Time estimate | 80 min | ~90 min | ✅ |
+| Metric                   | Target | Achieved | Status |
+| ------------------------ | ------ | -------- | ------ |
+| vi.importMock removed    | 6      | 6        | ✅     |
+| jest.Mock replaced       | 20+    | 31+      | ✅     |
+| Control char regex fixed | 2      | 2        | ✅     |
+| Files fixed              | 5      | 14+      | ✅     |
+| Compilation errors       | 0      | 0        | ✅     |
+| Linter errors            | 0      | 0        | ✅     |
+| Time estimate            | 80 min | ~90 min  | ✅     |
 
 ---
 
 ## Lessons Learned
 
-1. **Deprecated APIs must be replaced immediately**  
+1. **Deprecated APIs must be replaced immediately**
    - vi.importMock breaks tests silently (returns Promise)
    - Always check Vitest migration guides
 
-2. **Automated fixes scale better**  
+2. **Automated fixes scale better**
    - Created reusable script for jest.Mock replacements
    - Can apply to future migrations
 
-3. **Pattern documentation is critical**  
+3. **Pattern documentation is critical**
    - Before/after examples help team understand changes
    - Prevents regression to old patterns
 
-4. **System-wide scans catch hidden issues**  
+4. **System-wide scans catch hidden issues**
    - Found 31+ jest.Mock beyond initial 20 estimate
    - Comprehensive grep prevents incomplete fixes
 
-5. **Test what you fix**  
+5. **Test what you fix**
    - Ran tests after each fix to verify
    - Caught mock path issues early
 

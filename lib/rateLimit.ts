@@ -1,12 +1,12 @@
 /**
  * Production-Ready Rate Limiter
- * 
+ *
  * IP-based rate limiting for public endpoints to prevent abuse.
  * Uses in-memory storage with automatic cleanup.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { extractClientIP } from './ip';
+import { NextRequest, NextResponse } from "next/server";
+import { extractClientIP } from "./ip";
 
 interface RateLimitEntry {
   count: number;
@@ -16,14 +16,17 @@ interface RateLimitEntry {
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
 // Cleanup old entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (entry.resetAt < now) {
-      rateLimitStore.delete(key);
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, entry] of rateLimitStore.entries()) {
+      if (entry.resetAt < now) {
+        rateLimitStore.delete(key);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  },
+  5 * 60 * 1000,
+);
 
 export interface RateLimitConfig {
   maxRequests: number;
@@ -33,14 +36,14 @@ export interface RateLimitConfig {
 
 /**
  * Rate limit checker for API endpoints
- * 
+ *
  * @param request - Next.js request object
  * @param config - Rate limit configuration
  * @returns NextResponse with 429 status if rate limit exceeded, null otherwise
  */
 export function checkRateLimit(
   request: NextRequest,
-  config: RateLimitConfig
+  config: RateLimitConfig,
 ): NextResponse | null {
   // Get client IP using hardened extraction method
   const ip = getHardenedClientIp(request);
@@ -61,21 +64,21 @@ export function checkRateLimit(
   if (entry.count >= config.maxRequests) {
     // Rate limit exceeded
     const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
-    
+
     return NextResponse.json(
-      { 
-        error: config.message || 'Too many requests. Please try again later.',
+      {
+        error: config.message || "Too many requests. Please try again later.",
         retryAfter,
       },
-      { 
+      {
         status: 429,
         headers: {
-          'Retry-After': retryAfter.toString(),
-          'X-RateLimit-Limit': config.maxRequests.toString(),
-          'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': new Date(entry.resetAt).toISOString(),
+          "Retry-After": retryAfter.toString(),
+          "X-RateLimit-Limit": config.maxRequests.toString(),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": new Date(entry.resetAt).toISOString(),
         },
-      }
+      },
     );
   }
 
@@ -99,7 +102,7 @@ export function getHardenedClientIp(request: NextRequest): string {
  */
 export function getRateLimitHeaders(
   request: NextRequest,
-  config: RateLimitConfig
+  config: RateLimitConfig,
 ): Record<string, string> {
   const ip = getHardenedClientIp(request);
 
@@ -108,14 +111,17 @@ export function getRateLimitHeaders(
 
   if (!entry || entry.resetAt < Date.now()) {
     return {
-      'X-RateLimit-Limit': config.maxRequests.toString(),
-      'X-RateLimit-Remaining': config.maxRequests.toString(),
+      "X-RateLimit-Limit": config.maxRequests.toString(),
+      "X-RateLimit-Remaining": config.maxRequests.toString(),
     };
   }
 
   return {
-    'X-RateLimit-Limit': config.maxRequests.toString(),
-    'X-RateLimit-Remaining': Math.max(0, config.maxRequests - entry.count).toString(),
-    'X-RateLimit-Reset': new Date(entry.resetAt).toISOString(),
+    "X-RateLimit-Limit": config.maxRequests.toString(),
+    "X-RateLimit-Remaining": Math.max(
+      0,
+      config.maxRequests - entry.count,
+    ).toString(),
+    "X-RateLimit-Reset": new Date(entry.resetAt).toISOString(),
   };
 }

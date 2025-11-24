@@ -20,7 +20,9 @@ describe("generateSlug", () => {
   });
 
   test("replaces consecutive whitespace with a single hyphen", () => {
-    expect(generateSlug("hello    world\tfrom\nslug")).toBe("hello-world-from-slug");
+    expect(generateSlug("hello    world\tfrom\nslug")).toBe(
+      "hello-world-from-slug",
+    );
   });
 
   test("collapses multiple hyphens into a single hyphen", () => {
@@ -36,7 +38,9 @@ describe("generateSlug", () => {
   });
 
   test("handles punctuation and em dashes by removing them", () => {
-    expect(generateSlug("Hello, World!!! Are—you ok?")).toBe("hello-world-areyou-ok");
+    expect(generateSlug("Hello, World!!! Are—you ok?")).toBe(
+      "hello-world-areyou-ok",
+    );
   });
 
   test("drops non-ASCII letters (accents) and normalizes spaces", () => {

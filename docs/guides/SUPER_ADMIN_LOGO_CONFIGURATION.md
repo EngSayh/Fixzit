@@ -1,6 +1,7 @@
 # 🎨 Super Admin: How to Configure Organization Logo
 
 ## Overview
+
 The Fixzit system now supports **dynamic organization branding** where the Super Admin can configure the company logo that appears in the TopBar for all users.
 
 ---
@@ -8,12 +9,14 @@ The Fixzit system now supports **dynamic organization branding** where the Super
 ## 📊 Current Status
 
 ### What's Implemented ✅
+
 - **API Endpoint**: `/api/organization/settings` - Fetches organization branding
 - **TopBar Integration**: Displays logo from database automatically
 - **Fallback Design**: Shows gradient placeholder with org initials if no logo
 - **Database Schema**: Organization model has `logo` field ready
 
 ### What's Needed 🔧
+
 - Super Admin UI for logo upload (Admin Settings page)
 - Image upload to cloud storage (S3, Cloudinary, etc.)
 - Organization management API endpoints
@@ -48,8 +51,8 @@ db.organizations.findOne({ name: "Your Company Name" })
 // Update with logo URL
 db.organizations.updateOne(
   { name: "Your Company Name" },
-  { 
-    $set: { 
+  {
+    $set: {
       logo: "https://your-storage.com/path/to/logo.png",
       name: "Your Organization Name",  // Update if needed
       branding: {
@@ -103,6 +106,7 @@ The Organization model in MongoDB has these fields for branding:
 ## 🎨 Logo Requirements
 
 ### Technical Specs
+
 - **Format**: PNG, JPG, or SVG
 - **Size**: 32x32px minimum (will be scaled to 32x32 in TopBar)
 - **Recommended**: 128x128px or 256x256px for high-DPI displays
@@ -110,6 +114,7 @@ The Organization model in MongoDB has these fields for branding:
 - **File Size**: Under 500KB
 
 ### Design Guidelines
+
 - **Square aspect ratio** (1:1) works best
 - **Simple design** - readable at small sizes
 - **High contrast** - visible on blue/gradient background
@@ -142,6 +147,7 @@ The Organization model in MongoDB has these fields for branding:
 ### Recommended Services
 
 #### Option 1: AWS S3
+
 ```bash
 # Upload to S3
 aws s3 cp logo.png s3://your-bucket/logos/company-logo.png --acl public-read
@@ -151,11 +157,12 @@ https://your-bucket.s3.amazonaws.com/logos/company-logo.png
 ```
 
 #### Option 2: Cloudinary
+
 ```javascript
 // Upload via Cloudinary SDK
 const result = await cloudinary.uploader.upload("logo.png", {
   folder: "fixzit/logos",
-  public_id: "company-logo"
+  public_id: "company-logo",
 });
 
 // Get URL
@@ -164,11 +171,12 @@ console.log(result.secure_url);
 ```
 
 #### Option 3: Vercel Blob Storage
-```javascript
-import { put } from '@vercel/blob';
 
-const blob = await put('company-logo.png', file, {
-  access: 'public',
+```javascript
+import { put } from "@vercel/blob";
+
+const blob = await put("company-logo.png", file, {
+  access: "public",
 });
 
 console.log(blob.url);
@@ -179,12 +187,14 @@ console.log(blob.url);
 ## 🧪 Testing the Logo
 
 ### Test Current Setup
+
 1. Visit: http://localhost:3000
 2. Check TopBar - should see gradient placeholder with "FI" (Fixzit initials)
 3. Check API: http://localhost:3000/api/organization/settings
    - Should return default settings
 
 ### Test After Upload
+
 1. Update Organization in MongoDB with logo URL
 2. Hard refresh browser (Ctrl+Shift+R)
 3. Logo should appear in TopBar
@@ -195,6 +205,7 @@ console.log(blob.url);
 ## 🛠️ Next Steps for Implementation
 
 ### Phase 1: Logo Upload UI ✅ IN PROGRESS
+
 - [ ] Create `/admin/organization` page
 - [ ] Add logo upload component
 - [ ] Integrate with cloud storage (S3/Cloudinary)
@@ -202,6 +213,7 @@ console.log(blob.url);
 - [ ] Add image validation (size, format, dimensions)
 
 ### Phase 2: Advanced Branding
+
 - [ ] Primary/Secondary color pickers
 - [ ] Real-time preview
 - [ ] Multiple logo variants (dark mode, mobile)
@@ -209,6 +221,7 @@ console.log(blob.url);
 - [ ] Email template branding
 
 ### Phase 3: Multi-tenancy
+
 - [ ] Per-organization logo support
 - [ ] Tenant-specific branding
 - [ ] White-label capabilities
@@ -218,11 +231,13 @@ console.log(blob.url);
 ## 📝 Code References
 
 ### Files Created/Modified
+
 - `app/api/organization/settings/route.ts` - API endpoint
 - `components/TopBar.tsx` - Logo display logic
 - `server/models/Organization.ts` - Database schema
 
 ### Key Functions
+
 ```typescript
 // Fetch organization settings
 const fetchOrgSettings = async () => {

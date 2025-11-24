@@ -1,4 +1,5 @@
 # Issues Register - Translation Coverage Sprint
+
 **Date**: 2025-01-11  
 **Session**: Translation Coverage Completion  
 **Scope**: System-wide translation audit and coverage
@@ -7,20 +8,20 @@
 
 ## Summary
 
-| Category | 🟥 Critical | 🟧 Major | 🟨 Moderate | 🟩 Minor | Total |
-|----------|-------------|----------|-------------|----------|-------|
-| Security | 0 | 0 | 0 | 0 | 0 |
-| Correctness | 0 | 1 | 0 | 1 | 2 |
-| Reliability | 0 | 0 | 1 | 0 | 1 |
-| Performance | 0 | 0 | 0 | 0 | 0 |
-| UX | 0 | 0 | 0 | 0 | 0 |
-| i18n | 0 | 1 | 1 | 1 | 3 |
-| Data | 0 | 0 | 0 | 0 | 0 |
-| API | 0 | 0 | 0 | 0 | 0 |
-| Build | 0 | 0 | 0 | 0 | 0 |
-| Tests | 0 | 0 | 1 | 0 | 1 |
-| Docs | 0 | 0 | 0 | 0 | 0 |
-| **TOTAL** | **0** | **2** | **3** | **2** | **7** |
+| Category    | 🟥 Critical | 🟧 Major | 🟨 Moderate | 🟩 Minor | Total |
+| ----------- | ----------- | -------- | ----------- | -------- | ----- |
+| Security    | 0           | 0        | 0           | 0        | 0     |
+| Correctness | 0           | 1        | 0           | 1        | 2     |
+| Reliability | 0           | 0        | 1           | 0        | 1     |
+| Performance | 0           | 0        | 0           | 0        | 0     |
+| UX          | 0           | 0        | 0           | 0        | 0     |
+| i18n        | 0           | 1        | 1           | 1        | 3     |
+| Data        | 0           | 0        | 0           | 0        | 0     |
+| API         | 0           | 0        | 0           | 0        | 0     |
+| Build       | 0           | 0        | 0           | 0        | 0     |
+| Tests       | 0           | 0        | 1           | 0        | 1     |
+| Docs        | 0           | 0        | 0           | 0        | 0     |
+| **TOTAL**   | **0**       | **2**    | **3**       | **2**    | **7** |
 
 ---
 
@@ -33,6 +34,7 @@ _None identified in this session_
 ## Major Issues (🟧)
 
 ### ISSUE-001: Missing Translation Keys in Codebase
+
 **Type**: i18n  
 **Severity**: 🟧 Major  
 **Status**: ✅ Resolved  
@@ -42,6 +44,7 @@ _None identified in this session_
 295 translation keys were used throughout the codebase but missing from the translation catalogs. This meant that users would see untranslated English text or key names in the Arabic interface, breaking the user experience for Arabic users.
 
 **Impact**:
+
 - **User Experience**: Arabic users saw English text or key names instead of proper translations
 - **Scope**: 295 keys across 17 modules (31.6% of codebase keys)
 - **Affected Pages**: About, Privacy, Terms, Careers, System Monitoring, Finance Payment Form, Account Activity, Work Orders SLA, Login Prompt, Upgrade Modal, Navigation, and more
@@ -54,6 +57,7 @@ Enhanced audit script scanned 363 files and detected all `t('key')` usage patter
 
 **Fix Applied**:  
 Systematically added all 295 missing keys across 17 modules with professional Arabic translations:
+
 - About Us: 17 keys
 - Privacy & Terms: 24 keys
 - Careers: 26 keys
@@ -69,6 +73,7 @@ Systematically added all 295 missing keys across 17 modules with professional Ar
 - Misc keys: 8 keys
 
 **Verification Evidence**:
+
 ```bash
 # Before fix
 $ node scripts/audit-translations.mjs
@@ -81,12 +86,14 @@ Code Coverage  : ✅ All used keys present
 ```
 
 **Commits**:
+
 - 7a65a282f: Added 67 keys (About, Privacy, Terms, Careers)
 - 3af1464f2: Added 86 keys (System, Error, Work Orders, Upgrade, Login)
 - bd505befc: Added 131 keys (Navigation, Finance, Account Activity)
 - 82b16ac21: Added final 3 parity keys
 
 **Prevention**:
+
 - Implemented comprehensive audit script with CI exit codes
 - Should add pre-commit hook to run audit before allowing commits
 - Should add CI/CD check to fail builds if translation gaps detected
@@ -94,6 +101,7 @@ Code Coverage  : ✅ All used keys present
 ---
 
 ### ISSUE-002: Inadequate Translation Audit Tooling
+
 **Type**: Correctness, Tools  
 **Severity**: 🟧 Major  
 **Status**: ✅ Resolved  
@@ -101,6 +109,7 @@ Code Coverage  : ✅ All used keys present
 
 **Description**:  
 The original audit script (`comprehensive-translation-audit.mjs`) used simple regex patterns that couldn't handle:
+
 - Nested translation objects with complex structure
 - Namespace patterns like `t('common:save')` or `t('save', { ns: 'common' })`
 - `<Trans i18nKey="key">` component usage
@@ -110,6 +119,7 @@ The original audit script (`comprehensive-translation-audit.mjs`) used simple re
 This resulted in incomplete audits that missed keys or reported false positives.
 
 **Impact**:
+
 - **Accuracy**: Could not reliably detect all missing keys
 - **Development**: Developers couldn't trust audit results
 - **Maintenance**: Manual checking required to verify translations
@@ -117,6 +127,7 @@ This resulted in incomplete audits that missed keys or reported false positives.
 
 **Root Cause**:  
 Original script used basic regex matching without parsing JavaScript structure. Couldn't handle:
+
 - Single vs double quotes interchangeably
 - Multi-line translation objects
 - Comments and trailing commas
@@ -128,6 +139,7 @@ Original audit missed several keys during initial run. Manual verification showe
 
 **Fix Applied**:  
 Complete rewrite of audit script (`audit-translations.mjs`, 322 lines) with:
+
 1. **Robust Parsing**:
    - Brace-matching algorithm for nested objects
    - Comment stripping before parsing
@@ -156,6 +168,7 @@ Complete rewrite of audit script (`audit-translations.mjs`, 322 lines) with:
    - Exit code 2: Fatal error
 
 **Verification Evidence**:
+
 ```bash
 # New audit script successfully detected all issues
 $ node scripts/audit-translations.mjs
@@ -170,6 +183,7 @@ $ node scripts/audit-translations.mjs
 **Commit**: 0b6f00bb2
 
 **Prevention**:
+
 - Enhanced script is now production-ready for CI/CD
 - Should add to GitHub Actions workflow
 - Should run on every PR to catch translation gaps early
@@ -179,6 +193,7 @@ $ node scripts/audit-translations.mjs
 ## Moderate Issues (🟨)
 
 ### ISSUE-003: Unnamespaced Translation Keys in Finance Module
+
 **Type**: i18n, Code Quality  
 **Severity**: 🟨 Moderate  
 **Status**: ⚠️ Partially Resolved (translations added, refactoring pending)  
@@ -188,6 +203,7 @@ $ node scripts/audit-translations.mjs
 Finance payment form (`/app/finance/payments/new/page.tsx`) uses 106 unnamespaced translation keys (e.g., `"Bank Name"`, `"Payment Method"`) instead of following the established namespaced pattern (e.g., `"finance.payment.bankName"`, `"finance.payment.method"`).
 
 **Impact**:
+
 - **Consistency**: Breaks established naming convention used elsewhere
 - **Maintainability**: Harder to organize and search for keys
 - **Collisions**: Risk of key name collisions with other modules
@@ -197,25 +213,28 @@ Finance payment form (`/app/finance/payments/new/page.tsx`) uses 106 unnamespace
 Developer implemented payment form using literal strings as keys instead of following the `module.category.key` pattern established in the rest of the codebase.
 
 **Examples of Unnamespaced Keys**:
+
 ```typescript
 // Current (problematic)
-t('Bank Name')
-t('Payment Method')
-t('Account Number')
+t("Bank Name");
+t("Payment Method");
+t("Account Number");
 
 // Should be (namespaced pattern)
-t('finance.payment.bankName')
-t('finance.payment.method')
-t('finance.payment.accountNumber')
+t("finance.payment.bankName");
+t("finance.payment.method");
+t("finance.payment.accountNumber");
 ```
 
 **Scope**:
+
 - File: `/app/finance/payments/new/page.tsx`
 - Total keys: 69 unnamespaced keys
 - Related: `/components/finance/AccountActivityViewer.tsx` (37 more unnamespaced keys)
 
 **Fix Applied**:  
 Added all 106 unnamespaced keys to translation catalogs with proper translations:
+
 ```typescript
 // Arabic catalog
 'Bank Name': 'اسم البنك',
@@ -231,6 +250,7 @@ Added all 106 unnamespaced keys to translation catalogs with proper translations
 **Status**: ✅ Translations added, ⚠️ Refactoring pending
 
 **Verification Evidence**:
+
 ```bash
 # All unnamespaced keys now have translations
 $ node scripts/audit-translations.mjs
@@ -241,6 +261,7 @@ Code Coverage  : ✅ All used keys present
 
 **Remaining Work**:  
 Refactor components to use namespaced pattern:
+
 1. Update `/app/finance/payments/new/page.tsx` to use namespaced keys
 2. Update `/components/finance/AccountActivityViewer.tsx` to use namespaced keys
 3. Add namespaced keys to translation catalogs
@@ -254,6 +275,7 @@ Schedule refactoring for next sprint. This is not urgent since translations work
 ---
 
 ### ISSUE-004: Inadequate Translation Testing
+
 **Type**: Tests, Quality Assurance  
 **Severity**: 🟨 Moderate  
 **Status**: 🚧 Identified (not yet addressed)  
@@ -261,6 +283,7 @@ Schedule refactoring for next sprint. This is not urgent since translations work
 
 **Description**:  
 The translation system (`TranslationContext.tsx`, 4,223 lines, 1,882 keys) has minimal test coverage:
+
 - Only 2 test keys: `'greet'` and `'missing_key'`
 - No tests for 1,880 remaining keys
 - No tests for fallback behavior
@@ -268,6 +291,7 @@ The translation system (`TranslationContext.tsx`, 4,223 lines, 1,882 keys) has m
 - No tests for locale persistence
 
 **Impact**:
+
 - **Quality**: Can't catch translation regressions automatically
 - **Confidence**: Developers unsure if changes break translations
 - **CI/CD**: No automated validation of translation integrity
@@ -277,22 +301,24 @@ The translation system (`TranslationContext.tsx`, 4,223 lines, 1,882 keys) has m
 Translation system was built without comprehensive test suite. Only basic smoke tests exist in `TranslationContext.test.tsx`.
 
 **Current Test Coverage**:
+
 ```typescript
 // TranslationContext.test.tsx
-describe('TranslationContext', () => {
-  it('translates keys', () => {
+describe("TranslationContext", () => {
+  it("translates keys", () => {
     const { t } = renderHook(() => useTranslation());
-    expect(t('greet')).toBe('Hello'); // EN
+    expect(t("greet")).toBe("Hello"); // EN
   });
-  
-  it('falls back to key if missing', () => {
+
+  it("falls back to key if missing", () => {
     const { t } = renderHook(() => useTranslation());
-    expect(t('missing_key')).toBe('missing_key');
+    expect(t("missing_key")).toBe("missing_key");
   });
 });
 ```
 
 **What's Missing**:
+
 1. **Key Existence Tests**: Verify all 1,882 keys exist in both EN and AR
 2. **Fallback Tests**: Test EN → AR fallback chain
 3. **RTL/LTR Tests**: Verify direction changes correctly
@@ -301,26 +327,27 @@ describe('TranslationContext', () => {
 6. **Edge Cases**: Empty strings, special characters, long text
 
 **Recommended Tests**:
+
 ```typescript
-describe('Translation Catalog', () => {
-  it('has all EN keys', () => {
+describe("Translation Catalog", () => {
+  it("has all EN keys", () => {
     const keys = getAllTranslationKeys();
     expect(keys.en.length).toBe(1882);
   });
-  
-  it('has all AR keys', () => {
+
+  it("has all AR keys", () => {
     const keys = getAllTranslationKeys();
     expect(keys.ar.length).toBe(1882);
   });
-  
-  it('has EN-AR parity', () => {
+
+  it("has EN-AR parity", () => {
     const keys = getAllTranslationKeys();
     expect(keys.en).toEqual(keys.ar);
   });
-  
-  it('translates all finance keys', () => {
-    const financeKeys = getKeysForModule('finance');
-    financeKeys.forEach(key => {
+
+  it("translates all finance keys", () => {
+    const financeKeys = getKeysForModule("finance");
+    financeKeys.forEach((key) => {
       expect(t(key)).not.toBe(key); // Not fallback
     });
   });
@@ -339,6 +366,7 @@ Add to technical debt backlog. Not urgent since translation audit provides stati
 ---
 
 ### ISSUE-005: Basic Translation Audit Script Still Exists
+
 **Type**: Reliability, Code Hygiene  
 **Severity**: 🟨 Moderate  
 **Status**: 🚧 Identified (not yet addressed)  
@@ -348,6 +376,7 @@ Add to technical debt backlog. Not urgent since translation audit provides stati
 The original basic audit script (`comprehensive-translation-audit.mjs`, 193 lines) still exists alongside the new enhanced version (`audit-translations.mjs`, 322 lines). Having both scripts can cause confusion about which one to use.
 
 **Impact**:
+
 - **Confusion**: Developers may use wrong script
 - **Inconsistency**: Different results from two scripts
 - **Maintenance**: Two scripts to maintain
@@ -357,13 +386,15 @@ The original basic audit script (`comprehensive-translation-audit.mjs`, 193 line
 New script was created but old script was not removed or marked as deprecated.
 
 **Current State**:
+
 ```
 /scripts/
   comprehensive-translation-audit.mjs  ← Old, basic version (193 lines)
   audit-translations.mjs               ← New, enhanced version (322 lines)
 ```
 
-**Fix Required**:  
+**Fix Required**:
+
 1. **Option A (Recommended)**: Delete old script entirely
 2. **Option B**: Rename old script to `*.deprecated.mjs` with warning comment
 3. **Option C**: Keep both but add clear documentation about which to use
@@ -380,6 +411,7 @@ Delete old script in next commit. The enhanced version is a complete replacement
 ## Minor Issues (🟩)
 
 ### ISSUE-006: Catalog Parity Gap (3 Keys)
+
 **Type**: i18n  
 **Severity**: 🟩 Minor  
 **Status**: ✅ Resolved  
@@ -389,6 +421,7 @@ Delete old script in next commit. The enhanced version is a complete replacement
 Three standalone keys (`employees`, `accounts`, `Accounts`) existed in the English catalog but were missing from the Arabic catalog, causing a parity mismatch.
 
 **Impact**:
+
 - **User Experience**: Minimal - these are used as literal values, not translation keys
 - **Audit**: Caused parity check to fail
 - **Completeness**: Prevented 100% coverage achievement
@@ -397,16 +430,18 @@ Three standalone keys (`employees`, `accounts`, `Accounts`) existed in the Engli
 These keys were added to English catalog at some point but Arabic equivalents were not added. They're actually used as literal values in route matching (e.g., `/app/hr/layout.tsx` uses `'employees'` as a route identifier), not as translation keys.
 
 **Usage Example**:
+
 ```typescript
 // app/hr/layout.tsx
 const getActiveTab = () => {
-  if (pathname.startsWith('/hr/employees')) return 'employees'; // ← Literal value
+  if (pathname.startsWith("/hr/employees")) return "employees"; // ← Literal value
   // ...
 };
 ```
 
 **Fix Applied**:  
 Added proper Arabic translations for all 3 keys:
+
 ```typescript
 // Arabic catalog
 'employees': 'الموظفين',
@@ -420,6 +455,7 @@ Added proper Arabic translations for all 3 keys:
 ```
 
 **Verification Evidence**:
+
 ```bash
 $ node scripts/audit-translations.mjs
 Catalog Parity : ✅ OK  # Before: ❌ GAP (3 keys)
@@ -432,6 +468,7 @@ Catalog Parity : ✅ OK  # Before: ❌ GAP (3 keys)
 ---
 
 ### ISSUE-007: TypeScript `any` Types in Owner Module
+
 **Type**: Correctness, Type Safety  
 **Severity**: 🟩 Minor  
 **Status**: 🚧 Identified (outside current scope)  
@@ -441,18 +478,21 @@ Catalog Parity : ✅ OK  # Before: ❌ GAP (3 keys)
 13 ESLint warnings for TypeScript `any` types in owner module files. Using `any` bypasses type checking and can lead to runtime errors.
 
 **Impact**:
+
 - **Type Safety**: No compile-time checks for these variables
 - **IDE Support**: No autocomplete or type hints
 - **Refactoring**: Harder to safely refactor code
 - **Runtime**: Potential for type-related bugs
 
 **Scope**:
+
 - `/app/api/owner/statements/route.ts`: 4 warnings
 - `/app/api/owner/units/[unitId]/history/route.ts`: 3 warnings
 - `/server/models/owner/Delegation.ts`: 5 warnings
 - `/server/services/owner/financeIntegration.ts`: 1 warning
 
 **Example Warnings**:
+
 ```typescript
 // Line 125
 const data: any = await fetchData(); // ← Should have proper type
@@ -463,6 +503,7 @@ return someFunction(param: any); // ← Should have proper type
 
 **Fix Required**:  
 Replace `any` types with proper interfaces/types:
+
 ```typescript
 // Instead of
 const data: any = await fetchData();
@@ -488,12 +529,12 @@ Add to technical debt backlog. Low priority since these are isolated to owner mo
 
 ## Resolved Issues Summary
 
-| Issue ID | Title | Severity | Commit | Status |
-|----------|-------|----------|--------|--------|
-| ISSUE-001 | Missing Translation Keys in Codebase | 🟧 Major | 7a65a282f, 3af1464f2, bd505befc, 82b16ac21 | ✅ |
-| ISSUE-002 | Inadequate Translation Audit Tooling | 🟧 Major | 0b6f00bb2 | ✅ |
-| ISSUE-003 | Unnamespaced Keys in Finance Module | 🟨 Moderate | bd505befc | ⚠️ Partial |
-| ISSUE-006 | Catalog Parity Gap (3 Keys) | 🟩 Minor | 82b16ac21 | ✅ |
+| Issue ID  | Title                                | Severity    | Commit                                     | Status     |
+| --------- | ------------------------------------ | ----------- | ------------------------------------------ | ---------- |
+| ISSUE-001 | Missing Translation Keys in Codebase | 🟧 Major    | 7a65a282f, 3af1464f2, bd505befc, 82b16ac21 | ✅         |
+| ISSUE-002 | Inadequate Translation Audit Tooling | 🟧 Major    | 0b6f00bb2                                  | ✅         |
+| ISSUE-003 | Unnamespaced Keys in Finance Module  | 🟨 Moderate | bd505befc                                  | ⚠️ Partial |
+| ISSUE-006 | Catalog Parity Gap (3 Keys)          | 🟩 Minor    | 82b16ac21                                  | ✅         |
 
 **Total Resolved**: 3.5 / 7 (50% - 3 fully resolved, 1 partially resolved)
 
@@ -501,12 +542,12 @@ Add to technical debt backlog. Low priority since these are isolated to owner mo
 
 ## Open Issues Summary
 
-| Issue ID | Title | Severity | Priority | Est. Effort |
-|----------|-------|----------|----------|-------------|
-| ISSUE-003 | Refactor Unnamespaced Keys | 🟨 Moderate | Medium | 2-3 hours |
-| ISSUE-004 | Inadequate Translation Testing | 🟨 Moderate | Medium | 4-6 hours |
-| ISSUE-005 | Duplicate Audit Scripts | 🟨 Moderate | Low | 5 minutes |
-| ISSUE-007 | TypeScript `any` Types | 🟩 Minor | Low | 1-2 hours |
+| Issue ID  | Title                          | Severity    | Priority | Est. Effort |
+| --------- | ------------------------------ | ----------- | -------- | ----------- |
+| ISSUE-003 | Refactor Unnamespaced Keys     | 🟨 Moderate | Medium   | 2-3 hours   |
+| ISSUE-004 | Inadequate Translation Testing | 🟨 Moderate | Medium   | 4-6 hours   |
+| ISSUE-005 | Duplicate Audit Scripts        | 🟨 Moderate | Low      | 5 minutes   |
+| ISSUE-007 | TypeScript `any` Types         | 🟩 Minor    | Low      | 1-2 hours   |
 
 **Total Open**: 3.5 / 7 (50% - 1 partially resolved, 3 fully open)
 
@@ -515,15 +556,18 @@ Add to technical debt backlog. Low priority since these are isolated to owner mo
 ## Recommendations for Next Sprint
 
 ### High Priority
+
 1. **Delete Old Audit Script** (ISSUE-005) - 5 minutes, quick win
 2. **Add Pre-commit Hook** - Run audit before allowing commits (prevents ISSUE-001 recurrence)
 3. **Add CI/CD Check** - Fail builds if translation gaps detected
 
 ### Medium Priority
+
 4. **Create Translation Test Suite** (ISSUE-004) - 4-6 hours, improves quality
 5. **Refactor Finance Module Keys** (ISSUE-003) - 2-3 hours, improves consistency
 
 ### Low Priority
+
 6. **Fix TypeScript `any` Types** (ISSUE-007) - 1-2 hours, improves type safety
 7. **Create Translation Guidelines** - Document best practices for developers
 
@@ -532,17 +576,20 @@ Add to technical debt backlog. Low priority since these are isolated to owner mo
 ## Metrics
 
 ### Issues by Type
+
 - **i18n**: 3 issues (43%)
 - **Correctness**: 2 issues (29%)
 - **Reliability**: 1 issue (14%)
 - **Tests**: 1 issue (14%)
 
 ### Issues by Status
+
 - **✅ Resolved**: 3 issues (43%)
 - **⚠️ Partial**: 1 issue (14%)
 - **🚧 Open**: 3 issues (43%)
 
 ### Resolution Time
+
 - **Immediate** (same session): 4 issues (57%)
 - **Pending** (next sprint): 3 issues (43%)
 

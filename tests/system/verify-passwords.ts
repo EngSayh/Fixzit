@@ -1,39 +1,48 @@
 #!/usr/bin/env node
 // ✅ SECURITY FIX: Requires test environment to prevent production DB access
 // This script checks password field integrity for test accounts only
-import { db } from '../../lib/mongo';
-import { User } from '../../server/models/User';
+import { db } from "../../lib/mongo";
+import { User } from "../../server/models/User";
 
 async function checkPasswords() {
   // ✅ SECURITY GATE: Only allow in test environment
-  if (process.env.NODE_ENV === 'production') {
-    console.error('❌ BLOCKED: Cannot run against production database');
-    console.error('Set NODE_ENV=test and use test database URI');
+  if (process.env.NODE_ENV === "production") {
+    console.error("❌ BLOCKED: Cannot run against production database");
+    console.error("Set NODE_ENV=test and use test database URI");
     process.exit(1);
   }
-  
-  if (!process.env.TEST_MONGODB_URI && !process.env.MONGODB_URI?.includes('test')) {
-    console.error('❌ BLOCKED: Must use test database (TEST_MONGODB_URI or MONGODB_URI with "test" in name)');
+
+  if (
+    !process.env.TEST_MONGODB_URI &&
+    !process.env.MONGODB_URI?.includes("test")
+  ) {
+    console.error(
+      '❌ BLOCKED: Must use test database (TEST_MONGODB_URI or MONGODB_URI with "test" in name)',
+    );
     process.exit(1);
   }
-  
+
   try {
     await db;
-    const users = await (User as any).collection.find({ 
-      email: { $in: ['superadmin@fixzit.co', 'admin@fixzit.co'] } 
-    }).toArray();
-    
+    const users = await (User as any).collection
+      .find({
+        email: { $in: ["superadmin@fixzit.co", "admin@fixzit.co"] },
+      })
+      .toArray();
+
     users.forEach((user: any) => {
       console.log(`\n${user.email}:`);
       console.log(`  password field exists: ${!!user.password}`);
-      console.log(`  password is bcrypt hash: ${user.password?.startsWith('$2b$')}`);
+      console.log(
+        `  password is bcrypt hash: ${user.password?.startsWith("$2b$")}`,
+      );
       console.log(`  password length valid: ${user.password?.length >= 60}`);
       // ✅ REMOVED: No longer log password hash to stdout (security risk)
     });
-    
+
     process.exit(0);
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
     process.exit(1);
   }
 }

@@ -114,20 +114,20 @@
   // Chat Agent Settings - REQUIRE CONFIRMATIONS FOR SAFETY
   "chat.agent.enabled": true,
   "chat.agent.maxRequests": 999,
-  
+
   // SECURITY: Auto-approve disabled - require explicit confirmation for destructive operations
   // Developers who want auto-approve should enable it in their personal User Settings
   "chat.tools.global.autoApprove": false,
   "chat.tools.terminal.autoApprove": false,
   "chat.tools.edits.autoApprove": false,
   "chat.tools.edits.confirmWrites": true,
-  
+
   // Auto-reply and auto-accept (less risky)
   "chat.tools.terminal.autoReplyToPrompts": true,
   "chat.editing.autoAcceptDelay": 20,
   "chat.checkpoints.enabled": true,
   "chat.notifyWindowOnConfirmation": true,
-  
+
   // Disable MCP discovery
   "chat.mcp.discovery.enabled": {
     "claude-desktop": false,
@@ -268,7 +268,7 @@
   "html.autoClosingTags": false,
   "javascript.autoClosingTags": false,
   "typescript.autoClosingTags": false,
-  
+
   // ADDED: Additional critical memory optimizations
   "files.maxMemoryForLargeFilesMB": 1024, // Reduced from default 4096
   "search.maxResults": 500, // Limit search results

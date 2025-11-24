@@ -25,7 +25,9 @@ async function findHelpArticlePageFile(): Promise<string | null> {
   for (const m of matches) {
     try {
       const code = fs.readFileSync(m, "utf8");
-      if (/export\s+default\s+async\s+function\s+HelpArticlePage\b/.test(code)) {
+      if (
+        /export\s+default\s+async\s+function\s+HelpArticlePage\b/.test(code)
+      ) {
         return m;
       }
     } catch {
@@ -43,7 +45,10 @@ test.describe("HelpArticlePage (code validation)", () => {
 
   test.beforeAll(async () => {
     const p = await findHelpArticlePageFile();
-    expect(p, "Could not locate the Help Article page file. Expected it under app/help/[slug]/page.tsx or similar.").not.toBeNull();
+    expect(
+      p,
+      "Could not locate the Help Article page file. Expected it under app/help/[slug]/page.tsx or similar.",
+    ).not.toBeNull();
     pagePath = p as string;
     code = fs.readFileSync(pagePath, "utf8");
   });
@@ -53,11 +58,17 @@ test.describe("HelpArticlePage (code validation)", () => {
   });
 
   test("imports getDatabase and queries PUBLISHED article by slug from 'helparticles'", async () => {
-    expect(code).toMatch(/import\s*\{\s*getDatabase\s*\}\s*from\s*["']@\/lib\/mongodb["']/);
-    expect(code).toMatch(/collection\s*<\s*Article\s*>\s*\(\s*["']helparticles["']\s*\)/);
+    expect(code).toMatch(
+      /import\s*\{\s*getDatabase\s*\}\s*from\s*["']@\/lib\/mongodb["']/,
+    );
+    expect(code).toMatch(
+      /collection\s*<\s*Article\s*>\s*\(\s*["']helparticles["']\s*\)/,
+    );
 
     // findOne includes slug and status: 'PUBLISHED'
-  expect(code).toMatch(/findOne\s*\(\s*\{\s*[\s\S]*?slug\s*:\s*params\.slug[\s\S]*?\}\s*as\s*any\s*\)/);
+    expect(code).toMatch(
+      /findOne\s*\(\s*\{\s*[\s\S]*?slug\s*:\s*params\.slug[\s\S]*?\}\s*as\s*any\s*\)/,
+    );
     expect(code).toMatch(/status\s*:\s*['"]PUBLISHED['"]/);
   });
 
@@ -67,31 +78,46 @@ test.describe("HelpArticlePage (code validation)", () => {
 
   test("breadcrumb and category fallback", async () => {
     // Help Center link
-    expect(code).toMatch(/<Link[^>]*href=["']\/help["'][^>]*>[\s\S]*Help Center[\s\S]*<\/Link>/);
+    expect(code).toMatch(
+      /<Link[^>]*href=["']\/help["'][^>]*>[\s\S]*Help Center[\s\S]*<\/Link>/,
+    );
     // Category fallback to General
     expect(code).toMatch(/\{\s*a\.category\s*\|\|\s*['"]General['"]\s*\}/);
   });
 
   test("renders content via dangerouslySetInnerHTML with await renderMarkdown(a.content)", async () => {
-    expect(code).toMatch(/dangerouslySetInnerHTML\s*=\s*\{\{\s*__html\s*:\s*await\s+renderMarkdown\(\s*a\.content\s*\)\s*\}\}/);
+    expect(code).toMatch(
+      /dangerouslySetInnerHTML\s*=\s*\{\{\s*__html\s*:\s*await\s+renderMarkdown\(\s*a\.content\s*\)\s*\}\}/,
+    );
   });
 
   test("shows 'Last updated' label and has navigation links", async () => {
     expect(code).toContain("Last updated");
     // All articles link back to /help
-    expect(code).toMatch(/<Link[^>]*href=["']\/help["'][^>]*>[\s\S]*All articles[\s\S]*<\/Link>/);
+    expect(code).toMatch(
+      /<Link[^>]*href=["']\/help["'][^>]*>[\s\S]*All articles[\s\S]*<\/Link>/,
+    );
     // Contact Support link
-    expect(code).toMatch(/<Link[^>]*href=["']\/support\/my-tickets["'][^>]*>[\s\S]*Contact Support[\s\S]*<\/Link>/);
+    expect(code).toMatch(
+      /<Link[^>]*href=["']\/support\/my-tickets["'][^>]*>[\s\S]*Contact Support[\s\S]*<\/Link>/,
+    );
   });
 
   test("renderMarkdown function transforms newlines into paragraphs and <br/> as designed", async () => {
     // Extract the return expression inside renderMarkdown to evaluate behavior without importing the module
-    const fnMatch = code.match(/async\s+function\s+renderMarkdown\s*\(\s*md\s*:\s*string\s*\)\s*\{\s*return\s+([\s\S]*?)\s*;\s*\}/);
-    expect(fnMatch, "renderMarkdown function not found in page file.").not.toBeNull();
+    const fnMatch = code.match(
+      /async\s+function\s+renderMarkdown\s*\(\s*md\s*:\s*string\s*\)\s*\{\s*return\s+([\s\S]*?)\s*;\s*\}/,
+    );
+    expect(
+      fnMatch,
+      "renderMarkdown function not found in page file.",
+    ).not.toBeNull();
     const returnExpr = (fnMatch as RegExpMatchArray)[1]; // e.g., md.split(/\n{2,}/).map(...).join("")
 
     // Build an evaluator function: (md) => <returnExpr>
-    const mdToHtml = new Function("md", `return (${returnExpr});`) as (md: string) => string;
+    const mdToHtml = new Function("md", `return (${returnExpr});`) as (
+      md: string,
+    ) => string;
 
     // Happy path: two paragraphs, single newline becomes <br/>
     const input = "Line A\nLine B\n\nNext paragraph.";

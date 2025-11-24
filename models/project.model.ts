@@ -1,26 +1,44 @@
-import {
-  Schema,
-  model,
-  models,
-  Types,
-  HydratedDocument,
-} from 'mongoose';
-import { MModel } from '@/src/types/mongoose-compat';
+import { Schema, model, models, Types, HydratedDocument } from "mongoose";
+import { MModel } from "@/src/types/mongoose-compat";
 
 // ---------- Enums ----------
-const ProjectStatus = ['PLANNING', 'APPROVED', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED', 'CLOSED'] as const;
+const ProjectStatus = [
+  "PLANNING",
+  "APPROVED",
+  "IN_PROGRESS",
+  "ON_HOLD",
+  "COMPLETED",
+  "CANCELLED",
+  "CLOSED",
+] as const;
 type TProjectStatus = (typeof ProjectStatus)[number];
 
-const ProjectType = ['NEW_CONSTRUCTION', 'RENOVATION', 'MAINTENANCE', 'FIT_OUT', 'DEMOLITION'] as const;
+const ProjectType = [
+  "NEW_CONSTRUCTION",
+  "RENOVATION",
+  "MAINTENANCE",
+  "FIT_OUT",
+  "DEMOLITION",
+] as const;
 type TProjectType = (typeof ProjectType)[number];
 
-const MilestoneStatus = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'DELAYED'] as const;
+const MilestoneStatus = [
+  "PENDING",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "DELAYED",
+] as const;
 type TMilestoneStatus = (typeof MilestoneStatus)[number];
 
-const RFQStatus = ['OPEN', 'CLOSED', 'AWARDED', 'CANCELLED'] as const;
+const RFQStatus = ["OPEN", "CLOSED", "AWARDED", "CANCELLED"] as const;
 type TRFQStatus = (typeof RFQStatus)[number];
 
-const BidStatus = ['SUBMITTED', 'UNDER_REVIEW', 'ACCEPTED', 'REJECTED'] as const;
+const BidStatus = [
+  "SUBMITTED",
+  "UNDER_REVIEW",
+  "ACCEPTED",
+  "REJECTED",
+] as const;
 type TBidStatus = (typeof BidStatus)[number];
 
 // ---------- Types ----------
@@ -35,7 +53,7 @@ export interface IProject {
 
   propertyId?: Types.ObjectId; // Property ref
   location?: {
-    point?: { type: 'Point'; coordinates: [number, number] }; // [lng, lat]
+    point?: { type: "Point"; coordinates: [number, number] }; // [lng, lat]
     address?: string;
     city?: string;
   };
@@ -76,7 +94,7 @@ export interface IProject {
     code?: string;
     name?: string;
     description?: string;
-    type?: 'WORK_PACKAGE' | 'DELIVERABLE' | 'MILESTONE';
+    type?: "WORK_PACKAGE" | "DELIVERABLE" | "MILESTONE";
     status?: string;
     progress?: number; // 0..100
     startDate?: Date;
@@ -176,7 +194,12 @@ export interface IProject {
     cost?: number; // 0..100
     lastUpdated?: Date;
     criticalPath?: string[]; // milestone ids
-    delays?: Array<{ description?: string; impact?: number; cause?: string; mitigation?: string }>;
+    delays?: Array<{
+      description?: string;
+      impact?: number;
+      cause?: string;
+      mitigation?: string;
+    }>;
   };
 
   documents?: Array<{
@@ -194,7 +217,7 @@ export interface IProject {
     description?: string;
     type?: string; // SCOPE/SCHEDULE/COST/QUALITY
     impact?: { schedule?: number; cost?: number; quality?: string };
-    status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'IMPLEMENTED';
+    status?: "PENDING" | "APPROVED" | "REJECTED" | "IMPLEMENTED";
     requestedBy?: Types.ObjectId | string;
     reviewedBy?: Types.ObjectId | string;
     approvedBy?: Types.ObjectId | string;
@@ -202,8 +225,19 @@ export interface IProject {
   }>;
 
   compliance?: {
-    permits?: Array<{ type?: string; number?: string; issued?: Date; expires?: Date; status?: string }>;
-    regulations?: Array<{ name?: string; compliance?: string; lastAudit?: Date; nextAudit?: Date }>;
+    permits?: Array<{
+      type?: string;
+      number?: string;
+      issued?: Date;
+      expires?: Date;
+      status?: string;
+    }>;
+    regulations?: Array<{
+      name?: string;
+      compliance?: string;
+      lastAudit?: Date;
+      nextAudit?: Date;
+    }>;
   };
 
   tags?: string[];
@@ -215,7 +249,11 @@ export interface IProject {
 
 type ProjectDoc = HydratedDocument<IProject>;
 type ProjectModel = MModel<IProject> & {
-  setStatus(projectId: Types.ObjectId, next: TProjectStatus, who: Types.ObjectId | string): Promise<ProjectDoc | null>;
+  setStatus(
+    projectId: Types.ObjectId,
+    next: TProjectStatus,
+    who: Types.ObjectId | string,
+  ): Promise<ProjectDoc | null>;
   recomputeBudget(projectId: Types.ObjectId): Promise<ProjectDoc | null>;
 };
 
@@ -228,20 +266,27 @@ const ProjectSchema = new Schema<IProject>(
     name: { type: String, required: true, trim: true },
     description: String,
     type: { type: String, enum: ProjectType, required: true },
-    status: { type: String, enum: ProjectStatus, default: 'PLANNING', index: true },
+    status: {
+      type: String,
+      enum: ProjectStatus,
+      default: "PLANNING",
+      index: true,
+    },
 
-    propertyId: { type: Schema.Types.ObjectId, ref: 'Property' },
+    propertyId: { type: Schema.Types.ObjectId, ref: "Property" },
 
     location: {
       address: String,
       city: String,
       point: {
-        type: { type: String, enum: ['Point'], default: 'Point' },
+        type: { type: String, enum: ["Point"], default: "Point" },
         coordinates: {
           type: [Number], // [lng, lat]
           validate: {
-            validator: (v: number[]) => !v?.length || (v.length === 2 && v.every(n => typeof n === 'number')),
-            message: 'location.point.coordinates must be [lng, lat]',
+            validator: (v: number[]) =>
+              !v?.length ||
+              (v.length === 2 && v.every((n) => typeof n === "number")),
+            message: "location.point.coordinates must be [lng, lat]",
           },
         },
       },
@@ -257,7 +302,7 @@ const ProjectSchema = new Schema<IProject>(
           description: String,
           dueDate: Date,
           completionDate: Date,
-          status: { type: String, enum: MilestoneStatus, default: 'PENDING' },
+          status: { type: String, enum: MilestoneStatus, default: "PENDING" },
           progress: { type: Number, min: 0, max: 100 },
           dependencies: [String],
           deliverables: [String],
@@ -270,7 +315,7 @@ const ProjectSchema = new Schema<IProject>(
       allocated: { type: Number, min: 0 },
       spent: { type: Number, min: 0 },
       remaining: { type: Number, min: 0 }, // kept in sync in hooks
-      currency: { type: String, default: 'SAR' },
+      currency: { type: String, default: "SAR" },
       breakdown: [
         {
           category: String,
@@ -287,7 +332,10 @@ const ProjectSchema = new Schema<IProject>(
         code: String,
         name: String,
         description: String,
-        type: { type: String, enum: ['WORK_PACKAGE', 'DELIVERABLE', 'MILESTONE'] },
+        type: {
+          type: String,
+          enum: ["WORK_PACKAGE", "DELIVERABLE", "MILESTONE"],
+        },
         status: String,
         progress: { type: Number, min: 0, max: 100 },
         startDate: Date,
@@ -308,7 +356,7 @@ const ProjectSchema = new Schema<IProject>(
 
     team: [
       {
-        userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+        userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
         role: String,
         responsibilities: [String],
         startDate: Date,
@@ -319,7 +367,11 @@ const ProjectSchema = new Schema<IProject>(
 
     contractors: [
       {
-        vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor', required: true },
+        vendorId: {
+          type: Schema.Types.ObjectId,
+          ref: "Vendor",
+          required: true,
+        },
         company: String,
         scope: String,
         contractValue: Number,
@@ -381,13 +433,13 @@ const ProjectSchema = new Schema<IProject>(
 
     rfqs: [
       {
-        rfqId: { type: Schema.Types.ObjectId, ref: 'RFQ' },
+        rfqId: { type: Schema.Types.ObjectId, ref: "RFQ" },
         package: String,
         description: String,
         budget: Number,
         bids: [
           {
-            vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor' },
+            vendorId: { type: Schema.Types.ObjectId, ref: "Vendor" },
             company: String,
             amount: Number,
             currency: String,
@@ -397,7 +449,7 @@ const ProjectSchema = new Schema<IProject>(
             commercialScore: Number,
           },
         ],
-        awardedTo: { type: Schema.Types.ObjectId, ref: 'Vendor' },
+        awardedTo: { type: Schema.Types.ObjectId, ref: "Vendor" },
         awardedAmount: Number,
         status: { type: String, enum: RFQStatus },
       },
@@ -410,7 +462,14 @@ const ProjectSchema = new Schema<IProject>(
       cost: { type: Number, min: 0, max: 100 },
       lastUpdated: Date,
       criticalPath: [String],
-      delays: [{ description: String, impact: Number, cause: String, mitigation: String }],
+      delays: [
+        {
+          description: String,
+          impact: Number,
+          cause: String,
+          mitigation: String,
+        },
+      ],
     },
 
     documents: [
@@ -419,7 +478,7 @@ const ProjectSchema = new Schema<IProject>(
         name: String,
         version: String,
         uploaded: Date,
-        uploadedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+        uploadedBy: { type: Schema.Types.ObjectId, ref: "User" },
         url: String,
         status: String,
       },
@@ -431,7 +490,10 @@ const ProjectSchema = new Schema<IProject>(
         description: String,
         type: String,
         impact: { schedule: Number, cost: Number, quality: String },
-        status: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED', 'IMPLEMENTED'] },
+        status: {
+          type: String,
+          enum: ["PENDING", "APPROVED", "REJECTED", "IMPLEMENTED"],
+        },
         requestedBy: { type: Schema.Types.Mixed },
         reviewedBy: { type: Schema.Types.Mixed },
         approvedBy: { type: Schema.Types.Mixed },
@@ -440,35 +502,54 @@ const ProjectSchema = new Schema<IProject>(
     ],
 
     compliance: {
-      permits: [{ type: String, number: String, issued: Date, expires: Date, status: String }],
-      regulations: [{ name: String, compliance: String, lastAudit: Date, nextAudit: Date }],
+      permits: [
+        {
+          type: String,
+          number: String,
+          issued: Date,
+          expires: Date,
+          status: String,
+        },
+      ],
+      regulations: [
+        { name: String, compliance: String, lastAudit: Date, nextAudit: Date },
+      ],
     },
 
     tags: [String],
     customFields: Schema.Types.Mixed,
 
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
   },
-  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
 );
 
 // ---------- Indexes ----------
 ProjectSchema.index({ tenantId: 1, code: 1 }, { unique: true }); // tenant-scoped uniqueness
 ProjectSchema.index({ tenantId: 1, status: 1, type: 1 });
-ProjectSchema.index({ tenantId: 1, 'timeline.startDate': 1, 'timeline.endDate': 1 });
-ProjectSchema.index({ tenantId: 1, 'progress.overall': -1 });
-ProjectSchema.index({ name: 'text', code: 'text', description: 'text' });
-ProjectSchema.index({ 'location.point': '2dsphere' });
+ProjectSchema.index({
+  tenantId: 1,
+  "timeline.startDate": 1,
+  "timeline.endDate": 1,
+});
+ProjectSchema.index({ tenantId: 1, "progress.overall": -1 });
+ProjectSchema.index({ name: "text", code: "text", description: "text" });
+ProjectSchema.index({ "location.point": "2dsphere" });
 
 // ---------- Hooks ----------
-ProjectSchema.pre('save', function (next) {
+ProjectSchema.pre("save", function (next) {
   // compute duration if not provided and dates exist
   if (this.timeline?.startDate && this.timeline?.endDate) {
     const days = Math.max(
       0,
       Math.ceil(
-        (new Date(this.timeline.endDate).getTime() - new Date(this.timeline.startDate).getTime()) /
+        (new Date(this.timeline.endDate).getTime() -
+          new Date(this.timeline.startDate).getTime()) /
           (24 * 60 * 60 * 1000),
       ),
     );
@@ -477,8 +558,8 @@ ProjectSchema.pre('save', function (next) {
 
   // sanitize milestones & clamp progress 0..100
   if (Array.isArray(this.timeline?.milestones)) {
-    this.timeline!.milestones!.forEach(m => {
-      if (typeof m.progress === 'number') {
+    this.timeline!.milestones!.forEach((m) => {
+      if (typeof m.progress === "number") {
         m.progress = Math.min(100, Math.max(0, m.progress));
       }
     });
@@ -491,7 +572,7 @@ ProjectSchema.pre('save', function (next) {
     this.budget.remaining = Math.max(0, total - spent);
 
     if (Array.isArray(this.budget.breakdown)) {
-      this.budget.breakdown.forEach(b => {
+      this.budget.breakdown.forEach((b) => {
         const bTot = b.budgeted ?? 0;
         const bSpent = b.spent ?? 0;
         b.remaining = Math.max(0, bTot - bSpent);
@@ -505,22 +586,27 @@ ProjectSchema.pre('save', function (next) {
 // ---------- Methods ----------
 ProjectSchema.methods.isOverdue = function (this: ProjectDoc): boolean {
   const ms = this.timeline?.milestones || [];
-  return ms.some(m => m.dueDate && !m.completionDate && new Date(m.dueDate).getTime() < Date.now());
+  return ms.some(
+    (m) =>
+      m.dueDate &&
+      !m.completionDate &&
+      new Date(m.dueDate).getTime() < Date.now(),
+  );
 };
 
 // Guarded status transitions
 const ALLOWED: Record<TProjectStatus, TProjectStatus[]> = {
-  PLANNING: ['APPROVED', 'CANCELLED'],
-  APPROVED: ['IN_PROGRESS', 'ON_HOLD', 'CANCELLED'],
-  IN_PROGRESS: ['ON_HOLD', 'COMPLETED', 'CANCELLED'],
-  ON_HOLD: ['IN_PROGRESS', 'CANCELLED'],
-  COMPLETED: ['CLOSED'],
+  PLANNING: ["APPROVED", "CANCELLED"],
+  APPROVED: ["IN_PROGRESS", "ON_HOLD", "CANCELLED"],
+  IN_PROGRESS: ["ON_HOLD", "COMPLETED", "CANCELLED"],
+  ON_HOLD: ["IN_PROGRESS", "CANCELLED"],
+  COMPLETED: ["CLOSED"],
   CANCELLED: [],
   CLOSED: [],
 };
 
 // TODO(type-safety): Resolve ProjectModel static method type compatibility
-ProjectSchema.statics.setStatus = (async function (
+ProjectSchema.statics.setStatus = async function (
   this: ProjectModel,
   projectId: Types.ObjectId,
   next: TProjectStatus,
@@ -537,10 +623,10 @@ ProjectSchema.statics.setStatus = (async function (
     { $set: { status: next, updatedBy: who } },
     { new: true },
   );
-}) as ProjectModel['setStatus'];
+} as ProjectModel["setStatus"];
 
 // TODO(type-safety): Resolve ProjectModel static method type compatibility
-ProjectSchema.statics.recomputeBudget = (async function (
+ProjectSchema.statics.recomputeBudget = async function (
   this: ProjectModel,
   projectId: Types.ObjectId,
 ) {
@@ -550,15 +636,17 @@ ProjectSchema.statics.recomputeBudget = (async function (
   const spent = doc.budget?.spent ?? 0;
   doc.budget = doc.budget || {};
   doc.budget.remaining = Math.max(0, total - spent);
-  doc.budget.breakdown?.forEach(b => {
+  doc.budget.breakdown?.forEach((b) => {
     const t = b.budgeted ?? 0;
     const s = b.spent ?? 0;
     b.remaining = Math.max(0, t - s);
   });
   await doc.save();
   return doc;
-}) as ProjectModel['recomputeBudget'];
+} as ProjectModel["recomputeBudget"];
 
 // ---------- Export ----------
-export const Project = models.Project || (model<IProject, ProjectModel>('Project', ProjectSchema) as ProjectModel);
+export const Project =
+  models.Project ||
+  (model<IProject, ProjectModel>("Project", ProjectSchema) as ProjectModel);
 export type { ProjectDoc };

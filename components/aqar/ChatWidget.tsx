@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { logger } from '@/lib/logger';
+import { useState } from "react";
+import { logger } from "@/lib/logger";
 
 // Helper to generate unique IDs using modern crypto API
 const generateId = (): string => {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
   // Fallback for environments without crypto.randomUUID
@@ -14,13 +14,13 @@ const generateId = (): string => {
 
 interface ChatMessage {
   id: string;
-  from: 'user' | 'bot';
+  from: "user" | "bot";
   text: string;
 }
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState(false);
 
@@ -28,40 +28,59 @@ export default function ChatWidget() {
     const trimmed = input.trim();
     if (!trimmed) return;
     const userMessageId = `user-${generateId()}`;
-    setMessages((prev) => [...prev, { id: userMessageId, from: 'user', text: trimmed }]);
-    setInput('');
+    setMessages((prev) => [
+      ...prev,
+      { id: userMessageId, from: "user", text: trimmed },
+    ]);
+    setInput("");
     setSending(true);
     try {
-      const res = await fetch('/api/aqar/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/aqar/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: trimmed }),
       });
-      
+
       // Check HTTP status before parsing
       if (!res.ok) {
-        logger.error('[ChatWidget] API error', { status: res.status, statusText: res.statusText });
-        let errorMsg = 'حدث خطأ، يرجى المحاولة لاحقًا.';
+        logger.error("[ChatWidget] API error", {
+          status: res.status,
+          statusText: res.statusText,
+        });
+        let errorMsg = "حدث خطأ، يرجى المحاولة لاحقًا.";
         try {
           const errorData = await res.json();
-          logger.error('[ChatWidget] Error details', errorData);
+          logger.error("[ChatWidget] Error details", errorData);
           errorMsg = errorData.error || errorMsg;
         } catch {
           // Failed to parse error JSON, use default message
         }
         const botErrorId = `bot-${generateId()}`;
-        setMessages((prev) => [...prev, { id: botErrorId, from: 'bot', text: errorMsg }]);
+        setMessages((prev) => [
+          ...prev,
+          { id: botErrorId, from: "bot", text: errorMsg },
+        ]);
         return;
       }
 
       const json = await res.json();
-      const reply = json?.reply || 'مرحبًا! كيف أستطيع مساعدتك اليوم؟';
+      const reply = json?.reply || "مرحبًا! كيف أستطيع مساعدتك اليوم؟";
       const botReplyId = `bot-${generateId()}`;
-      setMessages((prev) => [...prev, { id: botReplyId, from: 'bot', text: reply }]);
+      setMessages((prev) => [
+        ...prev,
+        { id: botReplyId, from: "bot", text: reply },
+      ]);
     } catch (error) {
-      logger.error('[ChatWidget] Network error', error);
+      logger.error("[ChatWidget] Network error", error);
       const botNetworkErrorId = `bot-${generateId()}`;
-      setMessages((prev) => [...prev, { id: botNetworkErrorId, from: 'bot', text: 'تعذر إرسال الرسالة، حاول مرة أخرى.' }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: botNetworkErrorId,
+          from: "bot",
+          text: "تعذر إرسال الرسالة، حاول مرة أخرى.",
+        },
+      ]);
     } finally {
       setSending(false);
     }
@@ -100,9 +119,9 @@ export default function ChatWidget() {
               <div
                 key={m.id}
                 className={`max-w-[90%] rounded-md px-2 py-1 ${
-                  m.from === 'user'
-                    ? 'ms-auto bg-[#0061A8] text-white'
-                    : 'me-auto bg-white text-slate-800 shadow'
+                  m.from === "user"
+                    ? "ms-auto bg-[#0061A8] text-white"
+                    : "me-auto bg-white text-slate-800 shadow"
                 }`}
               >
                 {m.text}
@@ -116,7 +135,7 @@ export default function ChatWidget() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="اكتب سؤالك..."
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !sending) send();
+                if (e.key === "Enter" && !sending) send();
               }}
             />
             <button

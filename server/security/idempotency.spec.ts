@@ -3,17 +3,21 @@
  * Framework: Vitest
  */
 
-import { vi, describe, expect, beforeEach, afterEach, test } from 'vitest';
-import { createHash } from 'crypto';
+import { vi, describe, expect, beforeEach, afterEach, test } from "vitest";
+import { createHash } from "crypto";
 
 // Import from the module under test.
 // If the implementation actually resides at src/server/security/idempotency.ts, adjust the path accordingly.
 // The diff shows code under idempotency.test.ts, which appears to be implementation; to avoid conflict, we
 // import from the same file path here. If your build forbids importing .test.ts in tests, move the impl to a non-test file.
-import * as Impl from './idempotency';
+import * as Impl from "./idempotency";
 
 const { withIdempotency, createIdempotencyKey } = Impl as unknown as {
-  withIdempotency<T>(key: string, exec: () => Promise<T>, ttlMs?: number): Promise<T>;
+  withIdempotency<T>(
+    key: string,
+    exec: () => Promise<T>,
+    ttlMs?: number,
+  ): Promise<T>;
   createIdempotencyKey(prefix: string, payload: unknown): string;
 };
 
@@ -24,10 +28,10 @@ const advanceTimersBy = async (ms: number) => {
   await Promise.resolve();
 };
 
-describe('withIdempotency', () => {
+describe("withIdempotency", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.spyOn(global, 'setTimeout'); // observe scheduling behavior
+    vi.spyOn(global, "setTimeout"); // observe scheduling behavior
   });
 
   afterEach(() => {
@@ -35,10 +39,15 @@ describe('withIdempotency', () => {
     vi.restoreAllMocks();
   });
 
-  test('returns same promise for concurrent calls with same key before first resolves', async () => {
-    const key = 'K1';
+  test("returns same promise for concurrent calls with same key before first resolves", async () => {
+    const key = "K1";
     let resolveFn!: (v: number) => void;
-    const exec = vi.fn(() => new Promise<number>(res => { resolveFn = res; }));
+    const exec = vi.fn(
+      () =>
+        new Promise<number>((res) => {
+          resolveFn = res;
+        }),
+    );
     const p1 = withIdempotency(key, exec);
     const p2 = withIdempotency(key, exec);
 
@@ -50,158 +59,163 @@ describe('withIdempotency', () => {
     await expect(p2).resolves.toBe(42);
   });
 
-  test('subsequent calls within TTL return same resolved promise; after TTL, exec runs again', async () => {
-    const key = 'K2';
-    const exec = vi.fn().mockResolvedValueOnce('first').mockResolvedValueOnce('second');
+  test("subsequent calls within TTL return same resolved promise; after TTL, exec runs again", async () => {
+    const key = "K2";
+    const exec = vi
+      .fn()
+      .mockResolvedValueOnce("first")
+      .mockResolvedValueOnce("second");
 
     const p1 = withIdempotency(key, exec, 1000);
-    await expect(p1).resolves.toBe('first');
+    await expect(p1).resolves.toBe("first");
     expect(exec).toHaveBeenCalledTimes(1);
 
     // Within TTL -> should return same cached promise/result
     const p2 = withIdempotency(key, exec, 1000);
-    await expect(p2).resolves.toBe('first');
+    await expect(p2).resolves.toBe("first");
     expect(exec).toHaveBeenCalledTimes(1);
 
     // After TTL elapses, entry should be deleted via scheduled timeout
     await advanceTimersBy(1000);
     const p3 = withIdempotency(key, exec, 1000);
-    await expect(p3).resolves.toBe('second');
+    await expect(p3).resolves.toBe("second");
     expect(exec).toHaveBeenCalledTimes(2);
   });
 
-  test('negative TTL clamps to 0 and triggers immediate expiry scheduling', async () => {
-    const key = 'K3';
-    const exec = vi.fn().mockResolvedValue('ok');
+  test("negative TTL clamps to 0 and triggers immediate expiry scheduling", async () => {
+    const key = "K3";
+    const exec = vi.fn().mockResolvedValue("ok");
 
     const p = withIdempotency(key, exec, -500);
-    await expect(p).resolves.toBe('ok');
+    await expect(p).resolves.toBe("ok");
     expect(exec).toHaveBeenCalledTimes(1);
 
     // With ttl clamped to 0, setTimeout should be scheduled with 0 delay
     expect(setTimeout).toHaveBeenCalled();
-    const lastCall = (setTimeout as unknown as ReturnType<typeof vi.fn>).mock.calls.pop();
+    const lastCall = (
+      setTimeout as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls.pop();
     expect(lastCall?.[1]).toBe(0);
 
     // After timers run, subsequent call should execute again (no cache)
     await advanceTimersBy(0);
     const p2 = withIdempotency(key, exec, -1);
-    await expect(p2).resolves.toBe('ok');
+    await expect(p2).resolves.toBe("ok");
     expect(exec).toHaveBeenCalledTimes(2);
   });
 
-  test('non-finite TTL uses default TTL and de-duplicates within that window', async () => {
-    const key = 'K4';
-    const exec = vi.fn().mockResolvedValue('default-ttl');
+  test("non-finite TTL uses default TTL and de-duplicates within that window", async () => {
+    const key = "K4";
+    const exec = vi.fn().mockResolvedValue("default-ttl");
     const p1 = withIdempotency(key, exec, Number.POSITIVE_INFINITY); // non-finite -> default
-    await expect(p1).resolves.toBe('default-ttl');
+    await expect(p1).resolves.toBe("default-ttl");
     expect(exec).toHaveBeenCalledTimes(1);
 
     const p2 = withIdempotency(key, exec, NaN); // still non-finite -> default
-    await expect(p2).resolves.toBe('default-ttl');
+    await expect(p2).resolves.toBe("default-ttl");
     expect(exec).toHaveBeenCalledTimes(1);
 
     // Advance by less than default TTL (60s). We don't know default at test time; we can verify timeout scheduled with >=1ms
     expect(setTimeout).toHaveBeenCalled();
   });
 
-  test('on exec rejection, entry is removed and subsequent call retries', async () => {
-    const key = 'K5';
-    const err = new Error('boom');
+  test("on exec rejection, entry is removed and subsequent call retries", async () => {
+    const key = "K5";
+    const err = new Error("boom");
     const exec = vi
       .fn()
       .mockRejectedValueOnce(err)
-      .mockResolvedValueOnce('ok-after');
+      .mockResolvedValueOnce("ok-after");
 
-    await expect(withIdempotency(key, exec, 2000)).rejects.toThrow('boom');
+    await expect(withIdempotency(key, exec, 2000)).rejects.toThrow("boom");
     expect(exec).toHaveBeenCalledTimes(1);
 
     const p2 = withIdempotency(key, exec, 2000);
-    await expect(p2).resolves.toBe('ok-after');
+    await expect(p2).resolves.toBe("ok-after");
     expect(exec).toHaveBeenCalledTimes(2);
   });
 
-  test('different keys are isolated', async () => {
-    const execA = vi.fn().mockResolvedValue('A');
-    const execB = vi.fn().mockResolvedValue('B');
+  test("different keys are isolated", async () => {
+    const execA = vi.fn().mockResolvedValue("A");
+    const execB = vi.fn().mockResolvedValue("B");
 
-    const pA1 = withIdempotency('A', execA, 1000);
-    const pB1 = withIdempotency('B', execB, 1000);
+    const pA1 = withIdempotency("A", execA, 1000);
+    const pB1 = withIdempotency("B", execB, 1000);
 
-    await expect(pA1).resolves.toBe('A');
-    await expect(pB1).resolves.toBe('B');
+    await expect(pA1).resolves.toBe("A");
+    await expect(pB1).resolves.toBe("B");
 
     // Within TTL, still cached per key
-    await expect(withIdempotency('A', execA, 1000)).resolves.toBe('A');
-    await expect(withIdempotency('B', execB, 1000)).resolves.toBe('B');
+    await expect(withIdempotency("A", execA, 1000)).resolves.toBe("A");
+    await expect(withIdempotency("B", execB, 1000)).resolves.toBe("B");
     expect(execA).toHaveBeenCalledTimes(1);
     expect(execB).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('createIdempotencyKey', () => {
-  test('generates deterministic key based on stable JSON digest of payload', () => {
+describe("createIdempotencyKey", () => {
+  test("generates deterministic key based on stable JSON digest of payload", () => {
     const payload1 = { b: 2, a: 1 };
     const payload2 = { a: 1, b: 2 }; // different order, same canonical form
 
-    const k1 = createIdempotencyKey('prefix', payload1);
-    const k2 = createIdempotencyKey('prefix', payload2);
+    const k1 = createIdempotencyKey("prefix", payload1);
+    const k2 = createIdempotencyKey("prefix", payload2);
 
     expect(k1).toEqual(k2);
-    expect(k1.startsWith('prefix:')).toBe(true);
+    expect(k1.startsWith("prefix:")).toBe(true);
 
-    const digest = k1.split(':')[1];
-    const expected = createHash('sha256')
-      .update(JSON.stringify({a:1,b:2})) // Test canonical form expectation
-      .digest('hex');
+    const digest = k1.split(":")[1];
+    const expected = createHash("sha256")
+      .update(JSON.stringify({ a: 1, b: 2 })) // Test canonical form expectation
+      .digest("hex");
 
     // We cannot rely on private function export; just ensure digest length looks correct.
     expect(digest).toHaveLength(64);
   });
 
-  test('different prefixes produce different keys even for same payload', () => {
+  test("different prefixes produce different keys even for same payload", () => {
     const payload = { a: 1 };
-    const k1 = createIdempotencyKey('x', payload);
-    const k2 = createIdempotencyKey('y', payload);
+    const k1 = createIdempotencyKey("x", payload);
+    const k2 = createIdempotencyKey("y", payload);
     expect(k1).not.toEqual(k2);
-    expect(k1.split(':')[1]).toEqual(k2.split(':')[1]); // same digest, different prefix
+    expect(k1.split(":")[1]).toEqual(k2.split(":")[1]); // same digest, different prefix
   });
 
-  test('handles null, primitives, arrays, Date, Set, Map consistently', () => {
-    const date = new Date('2020-01-01T00:00:00.000Z');
+  test("handles null, primitives, arrays, Date, Set, Map consistently", () => {
+    const date = new Date("2020-01-01T00:00:00.000Z");
     const cases: Array<unknown> = [
       null,
       123,
-      'str',
+      "str",
       true,
       [3, 2, 1],
       date,
       new Set([1, 2, 3]),
-      new Map([['k', 'v']]),
+      new Map([["k", "v"]]),
       { nested: { b: 2, a: 1 }, list: [2, 1] },
     ];
 
-    const keys = cases.map(c => createIdempotencyKey('p', c));
+    const keys = cases.map((c) => createIdempotencyKey("p", c));
     // Ensure we have as many keys as inputs and uniqueness where expected
     expect(new Set(keys).size).toBe(keys.length);
 
     // Date representation should be ISO string hashed
-    const dateKey = createIdempotencyKey('p', date);
-    const isoKey = createIdempotencyKey('p', date.toISOString()); // not identical, but ensures ISO used
+    const dateKey = createIdempotencyKey("p", date);
+    const isoKey = createIdempotencyKey("p", date.toISOString()); // not identical, but ensures ISO used
     expect(dateKey).not.toEqual(isoKey);
   });
 
-  test('array order matters but object key order does not', () => {
+  test("array order matters but object key order does not", () => {
     const a1 = [1, 2, 3];
     const a2 = [3, 2, 1];
-    const kA1 = createIdempotencyKey('p', a1);
-    const kA2 = createIdempotencyKey('p', a2);
+    const kA1 = createIdempotencyKey("p", a1);
+    const kA2 = createIdempotencyKey("p", a2);
     expect(kA1).not.toEqual(kA2);
 
     const o1 = { x: 1, y: 2 };
     const o2 = { y: 2, x: 1 };
-    const kO1 = createIdempotencyKey('p', o1);
-    const kO2 = createIdempotencyKey('p', o2);
+    const kO1 = createIdempotencyKey("p", o1);
+    const kO2 = createIdempotencyKey("p", o2);
     expect(kO1).toEqual(kO2);
   });
 });

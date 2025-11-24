@@ -1,19 +1,19 @@
-import { NextRequest } from 'next/server';
-import { logger } from '@/lib/logger';
-import { getDatabase, type ConnectionDb } from '@/lib/mongodb-unified';
-import { getClientIP } from '@/server/security/headers';
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { getDatabase, type ConnectionDb } from "@/lib/mongodb-unified";
+import { getClientIP } from "@/server/security/headers";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError } from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
 
 type GetDbFn = () => Promise<ConnectionDb>;
 type QaAlertPayload = { event: string; data: unknown };
 
 async function resolveDatabase() {
   const mock = (globalThis as Record<string, unknown>).__mockGetDatabase;
-  const override = typeof mock === 'function' ? (mock as GetDbFn) : undefined;
-  if (typeof override === 'function') {
+  const override = typeof mock === "function" ? (mock as GetDbFn) : undefined;
+  if (typeof override === "function") {
     return override();
   }
   return getDatabase();
@@ -45,29 +45,35 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json() as QaAlertPayload;
+    const body = (await req.json()) as QaAlertPayload;
     const { event, data } = body;
 
     // Log the alert to database
     const native = await resolveDatabase();
-    await native.collection('qa_alerts').insertOne({
+    await native.collection("qa_alerts").insertOne({
       event,
       data,
       timestamp: new Date(),
       ip: getClientIP(req),
-      userAgent: req.headers.get('user-agent'),
+      userAgent: req.headers.get("user-agent"),
     });
 
-    logger.warn(`🚨 QA Alert: ${event}`, { event, data: typeof data === 'object' ? data : { value: data } });
+    logger.warn(`🚨 QA Alert: ${event}`, {
+      event,
+      data: typeof data === "object" ? data : { value: data },
+    });
 
     const successBody = { success: true };
     return createSecureResponse(successBody, 200, req);
   } catch (error) {
-    if (process.env.NODE_ENV === 'test') {
-      logger.error('[QA alert debug]', error);
+    if (process.env.NODE_ENV === "test") {
+      logger.error("[QA alert debug]", error);
     }
-    logger.error('Failed to process QA alert:', error instanceof Error ? error.message : 'Unknown error');
-    const errorBody = { error: 'Failed to process alert' };
+    logger.error(
+      "Failed to process QA alert:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    const errorBody = { error: "Failed to process alert" };
     return createSecureResponse(errorBody, 500, req);
   }
 }
@@ -82,7 +88,8 @@ export async function GET(req: NextRequest) {
 
   try {
     const native = await resolveDatabase();
-    const alerts = await native.collection('qa_alerts')
+    const alerts = await native
+      .collection("qa_alerts")
       .find({})
       .sort({ timestamp: -1 })
       .limit(50)
@@ -90,7 +97,10 @@ export async function GET(req: NextRequest) {
 
     return createSecureResponse({ alerts }, 200, req);
   } catch (error) {
-    logger.error('Failed to fetch QA alerts:', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Failed to fetch alerts' }, 500, req);
+    logger.error(
+      "Failed to fetch QA alerts:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Failed to fetch alerts" }, 500, req);
   }
 }

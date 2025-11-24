@@ -1,17 +1,17 @@
-import { Schema, model, models, Types, HydratedDocument } from 'mongoose';
-import { MModel } from '@/src/types/mongoose-compat';
-import { tenantIsolationPlugin } from '../server/plugins/tenantIsolation';
-import { auditPlugin } from '../server/plugins/auditPlugin';
+import { Schema, model, models, Types, HydratedDocument } from "mongoose";
+import { MModel } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../server/plugins/tenantIsolation";
+import { auditPlugin } from "../server/plugins/auditPlugin";
 
 const BidStatus = [
-  'DRAFT',
-  'SUBMITTED',
-  'UNDER_REVIEW',
-  'SHORTLISTED',
-  'ACCEPTED',
-  'REJECTED',
-  'WITHDRAWN',
-  'EXPIRED',
+  "DRAFT",
+  "SUBMITTED",
+  "UNDER_REVIEW",
+  "SHORTLISTED",
+  "ACCEPTED",
+  "REJECTED",
+  "WITHDRAWN",
+  "EXPIRED",
 ] as const;
 type TBidStatus = (typeof BidStatus)[number];
 
@@ -59,7 +59,7 @@ export interface IProjectBid {
     approach?: string;
     methodology?: string;
     resources?: Array<{
-      type?: 'LABOR' | 'EQUIPMENT' | 'MATERIAL';
+      type?: "LABOR" | "EQUIPMENT" | "MATERIAL";
       description?: string;
       quantity?: number;
       availability?: string;
@@ -118,7 +118,11 @@ export interface IProjectBid {
 
   paymentTerms?: {
     advancePayment?: number; // %
-    milestonePayments?: Array<{ milestone?: string; percentage?: number; amount?: number }>;
+    milestonePayments?: Array<{
+      milestone?: string;
+      percentage?: number;
+      amount?: number;
+    }>;
     retentionPercentage?: number; // %
     retentionPeriod?: number; // days
     paymentSchedule?: string;
@@ -140,10 +144,15 @@ export interface IProjectBid {
     experienceScore?: number;
     evaluatedBy?: Types.ObjectId[];
     evaluatedAt?: Date;
-    comments?: Array<{ evaluator?: string; comment?: string; score?: number; date?: Date }>;
+    comments?: Array<{
+      evaluator?: string;
+      comment?: string;
+      score?: number;
+      date?: Date;
+    }>;
     strengths?: string[];
     weaknesses?: string[];
-    recommendation?: 'ACCEPT' | 'REJECT' | 'REQUEST_CLARIFICATION';
+    recommendation?: "ACCEPT" | "REJECT" | "REQUEST_CLARIFICATION";
   };
 
   clarifications?: Array<{
@@ -161,7 +170,7 @@ export interface IProjectBid {
     originalValue?: number;
     proposedValue?: number;
     agreedValue?: number;
-    status?: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+    status?: "PENDING" | "ACCEPTED" | "REJECTED";
     notes?: string;
   }>;
 
@@ -203,13 +212,19 @@ export interface IProjectBid {
 
 type ProjectBidDoc = HydratedDocument<IProjectBid>;
 type IProjectBidModel = MModel<IProjectBid> & {
-  submit(id: Types.ObjectId, by: Types.ObjectId | string): Promise<ProjectBidDoc | null>;
+  submit(
+    id: Types.ObjectId,
+    by: Types.ObjectId | string,
+  ): Promise<ProjectBidDoc | null>;
   withdraw(
     id: Types.ObjectId,
     reason: string,
     by?: Types.ObjectId | string,
   ): Promise<ProjectBidDoc | null>;
-  shortlist(id: Types.ObjectId, by: Types.ObjectId | string): Promise<ProjectBidDoc | null>;
+  shortlist(
+    id: Types.ObjectId,
+    by: Types.ObjectId | string,
+  ): Promise<ProjectBidDoc | null>;
   accept(
     id: Types.ObjectId,
     by: Types.ObjectId | string,
@@ -232,9 +247,9 @@ type IProjectBidModel = MModel<IProjectBid> & {
 // ---------- Schema ----------
 const ProjectBidSchema = new Schema<IProjectBid>(
   {
-    projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
-    contractorId: { type: Schema.Types.ObjectId, ref: 'Contractor' },
-    vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor' },
+    projectId: { type: Schema.Types.ObjectId, ref: "Project", required: true },
+    contractorId: { type: Schema.Types.ObjectId, ref: "Contractor" },
+    vendorId: { type: Schema.Types.ObjectId, ref: "Vendor" },
 
     bidder: {
       name: { type: String, trim: true },
@@ -246,7 +261,7 @@ const ProjectBidSchema = new Schema<IProjectBid>(
     },
 
     bidAmount: { type: Number, required: true, min: 0 },
-    currency: { type: String, default: 'SAR', uppercase: true, trim: true },
+    currency: { type: String, default: "SAR", uppercase: true, trim: true },
 
     breakdown: [
       {
@@ -277,7 +292,7 @@ const ProjectBidSchema = new Schema<IProjectBid>(
       methodology: { type: String, trim: true },
       resources: [
         {
-          type: { type: String, enum: ['LABOR', 'EQUIPMENT', 'MATERIAL'] },
+          type: { type: String, enum: ["LABOR", "EQUIPMENT", "MATERIAL"] },
           description: { type: String, trim: true },
           quantity: { type: Number, min: 0 },
           availability: { type: String, trim: true },
@@ -341,7 +356,7 @@ const ProjectBidSchema = new Schema<IProjectBid>(
         url: { type: String, trim: true },
         size: { type: Number, min: 0 },
         uploadedAt: Date,
-        uploadedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+        uploadedBy: { type: Schema.Types.ObjectId, ref: "User" },
       },
     ],
 
@@ -373,7 +388,7 @@ const ProjectBidSchema = new Schema<IProjectBid>(
       technicalScore: { type: Number, min: 0, max: 100 },
       financialScore: { type: Number, min: 0, max: 100 },
       experienceScore: { type: Number, min: 0, max: 100 },
-      evaluatedBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+      evaluatedBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
       evaluatedAt: Date,
       comments: [
         {
@@ -385,7 +400,10 @@ const ProjectBidSchema = new Schema<IProjectBid>(
       ],
       strengths: [String],
       weaknesses: [String],
-      recommendation: { type: String, enum: ['ACCEPT', 'REJECT', 'REQUEST_CLARIFICATION'] },
+      recommendation: {
+        type: String,
+        enum: ["ACCEPT", "REJECT", "REQUEST_CLARIFICATION"],
+      },
     },
 
     clarifications: [
@@ -406,18 +424,18 @@ const ProjectBidSchema = new Schema<IProjectBid>(
         originalValue: { type: Number, min: 0 },
         proposedValue: { type: Number, min: 0 },
         agreedValue: { type: Number, min: 0 },
-        status: { type: String, enum: ['PENDING', 'ACCEPTED', 'REJECTED'] },
+        status: { type: String, enum: ["PENDING", "ACCEPTED", "REJECTED"] },
         notes: String,
       },
     ],
 
-    status: { type: String, enum: BidStatus, default: 'DRAFT', index: true },
+    status: { type: String, enum: BidStatus, default: "DRAFT", index: true },
     submittedAt: Date,
     expiresAt: Date,
 
     award: {
       awardedAt: Date,
-      awardedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+      awardedBy: { type: Schema.Types.ObjectId, ref: "User" },
       contractNumber: { type: String, trim: true },
       contractSignedDate: Date,
       contractUrl: { type: String, trim: true },
@@ -427,7 +445,7 @@ const ProjectBidSchema = new Schema<IProjectBid>(
 
     rejection: {
       rejectedAt: Date,
-      rejectedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+      rejectedBy: { type: Schema.Types.ObjectId, ref: "User" },
       reason: { type: String, trim: true },
       feedback: { type: String, trim: true },
     },
@@ -441,7 +459,11 @@ const ProjectBidSchema = new Schema<IProjectBid>(
     tags: [String],
     isConfidential: { type: Boolean, default: false },
   },
-  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
 );
 
 // ---------- Plugins (ensure orgId exists for tenant indices) ----------
@@ -449,61 +471,78 @@ ProjectBidSchema.plugin(tenantIsolationPlugin);
 ProjectBidSchema.plugin(auditPlugin);
 
 // ---------- Validation: require either contractorId or vendorId ----------
-ProjectBidSchema.path('contractorId').validate(function (this: ProjectBidDoc) {
+ProjectBidSchema.path("contractorId").validate(function (this: ProjectBidDoc) {
   return !!(this.contractorId || this.vendorId);
-}, 'Either contractorId or vendorId is required');
+}, "Either contractorId or vendorId is required");
 
-ProjectBidSchema.path('vendorId').validate(function (this: ProjectBidDoc) {
+ProjectBidSchema.path("vendorId").validate(function (this: ProjectBidDoc) {
   return !!(this.contractorId || this.vendorId);
-}, 'Either contractorId or vendorId is required');
+}, "Either contractorId or vendorId is required");
 
 // ---------- Indexes (tenant-aware) ----------
-ProjectBidSchema.index({ orgId: 1, projectId: 1, contractorId: 1 }, { unique: true, sparse: true });
-ProjectBidSchema.index({ orgId: 1, projectId: 1, vendorId: 1 }, { unique: true, sparse: true });
+ProjectBidSchema.index(
+  { orgId: 1, projectId: 1, contractorId: 1 },
+  { unique: true, sparse: true },
+);
+ProjectBidSchema.index(
+  { orgId: 1, projectId: 1, vendorId: 1 },
+  { unique: true, sparse: true },
+);
 ProjectBidSchema.index({ orgId: 1, projectId: 1, status: 1, submittedAt: -1 });
-ProjectBidSchema.index({ orgId: 1, status: 1, 'evaluation.score': -1 });
+ProjectBidSchema.index({ orgId: 1, status: 1, "evaluation.score": -1 });
 ProjectBidSchema.index({ orgId: 1, bidAmount: 1 });
-ProjectBidSchema.index({ 'bidder.companyName': 'text', 'bidder.name': 'text' });
+ProjectBidSchema.index({ "bidder.companyName": "text", "bidder.name": "text" });
 
 // ---------- Virtuals ----------
-ProjectBidSchema.virtual('ranking').get(function (this: ProjectBidDoc) {
+ProjectBidSchema.virtual("ranking").get(function (this: ProjectBidDoc) {
   return this.evaluation?.score ?? null;
 });
-ProjectBidSchema.virtual('isExpired').get(function (this: ProjectBidDoc) {
+ProjectBidSchema.virtual("isExpired").get(function (this: ProjectBidDoc) {
   return this.expiresAt ? new Date() > this.expiresAt : false;
 });
 
 // ---------- Instance methods ----------
-ProjectBidSchema.methods.calculateScore = function (this: ProjectBidDoc, weights: WeightInput) {
-  const { technicalScore = 0, financialScore = 0, experienceScore = 0 } = this.evaluation || {};
+ProjectBidSchema.methods.calculateScore = function (
+  this: ProjectBidDoc,
+  weights: WeightInput,
+) {
+  const {
+    technicalScore = 0,
+    financialScore = 0,
+    experienceScore = 0,
+  } = this.evaluation || {};
   const { technical, financial, experience } = weights || ({} as WeightInput);
-  if (![technical, financial, experience].every(n => Number.isFinite(n))) {
-    throw new TypeError('All weights must be finite numbers');
+  if (![technical, financial, experience].every((n) => Number.isFinite(n))) {
+    throw new TypeError("All weights must be finite numbers");
   }
   const sum = technical + financial + experience;
-  if (Math.abs(sum - 100) > 0.01) throw new Error('Weights must sum to 100');
+  if (Math.abs(sum - 100) > 0.01) throw new Error("Weights must sum to 100");
   return (
-    (technicalScore * technical + financialScore * financial + experienceScore * experience) / 100
+    (technicalScore * technical +
+      financialScore * financial +
+      experienceScore * experience) /
+    100
   );
 };
 
 // ---------- Pre-save hooks ----------
-ProjectBidSchema.pre('save', function (next) {
+ProjectBidSchema.pre("save", function (next) {
   // normalize email/currency
-  if (this.bidder?.email) this.bidder.email = this.bidder.email.trim().toLowerCase();
+  if (this.bidder?.email)
+    this.bidder.email = this.bidder.email.trim().toLowerCase();
   if (this.currency) this.currency = this.currency.trim().toUpperCase();
 
   // compute breakdown totals & bidAmount if not provided
   if (Array.isArray(this.breakdown) && this.breakdown.length) {
     let sum = 0;
-    this.breakdown.forEach(b => {
+    this.breakdown.forEach((b) => {
       const qty = Math.max(0, b.quantity ?? 0);
       const up = Math.max(0, b.unitPrice ?? 0);
       const tot = b.totalPrice ?? qty * up;
       b.totalPrice = Math.max(0, tot);
       sum += b.totalPrice;
     });
-    if (typeof this.bidAmount !== 'number' || Number.isNaN(this.bidAmount)) {
+    if (typeof this.bidAmount !== "number" || Number.isNaN(this.bidAmount)) {
       this.bidAmount = sum;
     }
   }
@@ -522,8 +561,12 @@ ProjectBidSchema.pre('save', function (next) {
   }
 
   // auto-expire
-  if (this.status !== 'EXPIRED' && this.expiresAt && new Date() > this.expiresAt) {
-    this.status = 'EXPIRED';
+  if (
+    this.status !== "EXPIRED" &&
+    this.expiresAt &&
+    new Date() > this.expiresAt
+  ) {
+    this.status = "EXPIRED";
   }
 
   next();
@@ -532,20 +575,23 @@ ProjectBidSchema.pre('save', function (next) {
 // ---------- Status transitions (statics) ----------
 ProjectBidSchema.statics.submit = function (id, by) {
   return this.findOneAndUpdate(
-    { _id: id, status: 'DRAFT' },
-    { $set: { status: 'SUBMITTED', submittedAt: new Date(), updatedBy: by } },
+    { _id: id, status: "DRAFT" },
+    { $set: { status: "SUBMITTED", submittedAt: new Date(), updatedBy: by } },
     { new: true },
   );
 };
 
 ProjectBidSchema.statics.withdraw = function (id, reason, by) {
   return this.findOneAndUpdate(
-    { _id: id, status: { $in: ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'SHORTLISTED'] } },
+    {
+      _id: id,
+      status: { $in: ["DRAFT", "SUBMITTED", "UNDER_REVIEW", "SHORTLISTED"] },
+    },
     {
       $set: {
-        status: 'WITHDRAWN',
-        'withdrawal.withdrawnAt': new Date(),
-        'withdrawal.reason': reason,
+        status: "WITHDRAWN",
+        "withdrawal.withdrawnAt": new Date(),
+        "withdrawal.reason": reason,
         updatedBy: by,
       },
     },
@@ -555,18 +601,18 @@ ProjectBidSchema.statics.withdraw = function (id, reason, by) {
 
 ProjectBidSchema.statics.shortlist = function (id, by) {
   return this.findOneAndUpdate(
-    { _id: id, status: 'UNDER_REVIEW' },
-    { $set: { status: 'SHORTLISTED', updatedBy: by } },
+    { _id: id, status: "UNDER_REVIEW" },
+    { $set: { status: "SHORTLISTED", updatedBy: by } },
     { new: true },
   );
 };
 
 ProjectBidSchema.statics.accept = function (id, by, contract) {
   return this.findOneAndUpdate(
-    { _id: id, status: { $in: ['SHORTLISTED', 'UNDER_REVIEW'] } },
+    { _id: id, status: { $in: ["SHORTLISTED", "UNDER_REVIEW"] } },
     {
       $set: {
-        status: 'ACCEPTED',
+        status: "ACCEPTED",
         award: {
           awardedAt: new Date(),
           awardedBy: by,
@@ -585,13 +631,13 @@ ProjectBidSchema.statics.accept = function (id, by, contract) {
 
 ProjectBidSchema.statics.reject = function (id, reason, by) {
   return this.findOneAndUpdate(
-    { _id: id, status: { $in: ['UNDER_REVIEW', 'SHORTLISTED', 'SUBMITTED'] } },
+    { _id: id, status: { $in: ["UNDER_REVIEW", "SHORTLISTED", "SUBMITTED"] } },
     {
       $set: {
-        status: 'REJECTED',
-        'rejection.rejectedAt': new Date(),
-        'rejection.reason': reason,
-        'rejection.rejectedBy': by,
+        status: "REJECTED",
+        "rejection.rejectedAt": new Date(),
+        "rejection.reason": reason,
+        "rejection.rejectedBy": by,
         updatedBy: by,
       },
     },
@@ -603,14 +649,17 @@ ProjectBidSchema.statics.reject = function (id, reason, by) {
 ProjectBidSchema.statics.top = function (projectId: Types.ObjectId, limit = 5) {
   return this.find({
     projectId,
-    status: { $in: ['UNDER_REVIEW', 'SHORTLISTED', 'ACCEPTED'] },
+    status: { $in: ["UNDER_REVIEW", "SHORTLISTED", "ACCEPTED"] },
   })
-    .sort({ 'evaluation.score': -1, bidAmount: 1 })
+    .sort({ "evaluation.score": -1, bidAmount: 1 })
     .limit(limit);
 };
 
 // ---------- Export ----------
 export const ProjectBidModel =
   models.ProjectBid ||
-  (model<IProjectBid, IProjectBidModel>('ProjectBid', ProjectBidSchema) as IProjectBidModel);
+  (model<IProjectBid, IProjectBidModel>(
+    "ProjectBid",
+    ProjectBidSchema,
+  ) as IProjectBidModel);
 export type { ProjectBidDoc };

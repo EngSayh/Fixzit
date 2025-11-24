@@ -13,6 +13,7 @@
 Successfully addressed **ALL 9** actionable comments from CodeRabbit and Codex AI reviewers on PR #272 without exceptions.
 
 ### User Requirement
+
 > "review the comments from all the PRs and address them all without exceptions and search for similar or identical issues across the entire system"
 
 **Completion**: ✅ 100% (PR #272)
@@ -45,12 +46,14 @@ Successfully addressed **ALL 9** actionable comments from CodeRabbit and Codex A
 **File**: `lib/finance/decimal.ts:268`
 
 **Root Cause**:
+
 - Code pushed `Money.round(allocated)` to results array
 - But subtracted unrounded `allocated` from `remaining`
 - When multiple invoices round up, published allocations exceed payment total
 - Example: Payment $100, 3 invoices of $33.336 each → allocations total $100.01
 
 **Solution**:
+
 ```typescript
 // BEFORE ❌
 allocations.push({
@@ -78,11 +81,13 @@ remaining = remaining.minus(roundedAllocated);
 **File**: `package.json:13`
 
 **Root Cause**:
+
 - npm scripts in `cmd.exe` keep single quotes in value
 - `cross-env` exports `NODE_OPTIONS` as `'--max-old-space-size=8192'`
 - Node treats entire string as invalid flag: `node: bad option: '--max-old-space-size=8192'`
 
 **Solution**:
+
 ```json
 // BEFORE ❌
 "build": "cross-env NODE_OPTIONS='--max-old-space-size=8192' next build"
@@ -102,11 +107,13 @@ remaining = remaining.minus(roundedAllocated);
 **File**: `scripts/prevent-vscode-crash.sh:25`
 
 **Root Cause**:
+
 - Any `next-server` process existence triggered `pkill -f 'next-server'`
 - Killed intentional dev server user just started
 - Made script dangerous to run during development
 
 **Solution**:
+
 ```bash
 # BEFORE ❌
 if pgrep -f 'next-server' > /dev/null; then
@@ -137,11 +144,13 @@ fi
 **File**: `scripts/prevent-vscode-crash.sh:33`
 
 **Root Cause**:
+
 - `set -euo pipefail` + `pgrep -f 'tsserver' | wc -l`
 - When 0 tsserver processes (common after reboot), `pgrep` exits with 1
 - Pipeline returns 1, entire script aborts immediately
 
 **Solution**:
+
 ```bash
 # BEFORE ❌
 TS_COUNT=$(pgrep -f 'tsserver' | wc -l)
@@ -167,27 +176,23 @@ fi
 **File**: `app/finance/invoices/new/page.tsx:107`
 
 **Root Cause**:
+
 - Mapping each `lineAmount` through `Money.toNumber()` before summing
 - Converts Decimal → double precision → sum
 - Defeats entire purpose of Decimal.js (precision in intermediate calculations)
 
 **Solution**:
+
 ```typescript
 // BEFORE ❌
-const lineAmounts = lineItems.map(item => 
-  Money.subtract(
-    Money.multiply(item.quantity, item.unitPrice),
-    item.discount
-  )
+const lineAmounts = lineItems.map((item) =>
+  Money.subtract(Money.multiply(item.quantity, item.unitPrice), item.discount),
 );
-return Money.sum(lineAmounts.map(d => Money.toNumber(d)));
+return Money.sum(lineAmounts.map((d) => Money.toNumber(d)));
 
 // AFTER ✅
-const lineAmounts = lineItems.map(item => 
-  Money.subtract(
-    Money.multiply(item.quantity, item.unitPrice),
-    item.discount
-  )
+const lineAmounts = lineItems.map((item) =>
+  Money.subtract(Money.multiply(item.quantity, item.unitPrice), item.discount),
 );
 // Keep in Decimal space - don't convert to number before summing
 return Money.sum(lineAmounts);
@@ -202,40 +207,44 @@ return Money.sum(lineAmounts);
 **File**: `lib/finance/schemas.ts:166`
 
 **Root Cause**:
+
 - `parseDecimalInput("abc")` returns `0` (strip everything → NaN → fallback to 0)
 - Bogus user input becomes legitimate zero amount
 - Passes validation, creates $0 invoices/payments
 
 **Solution**:
+
 ```typescript
 // BEFORE ❌
 export function parseDecimalInput(value: string | number): number {
-  if (typeof value === 'number') return value;
-  const parsed = parseFloat(value.replace(/[^0-9.-]/g, ''));
+  if (typeof value === "number") return value;
+  const parsed = parseFloat(value.replace(/[^0-9.-]/g, ""));
   return isNaN(parsed) ? 0 : parsed;
 }
 
 // AFTER ✅
 export function parseDecimalInput(value: string | number): number {
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     if (isNaN(value)) {
-      throw new Error('Invalid number: NaN provided');
+      throw new Error("Invalid number: NaN provided");
     }
     return value;
   }
-  
-  const cleaned = value.replace(/[^0-9.-]/g, '');
-  
-  if (!cleaned || cleaned === '-' || cleaned === '.') {
+
+  const cleaned = value.replace(/[^0-9.-]/g, "");
+
+  if (!cleaned || cleaned === "-" || cleaned === ".") {
     throw new Error(`Invalid monetary input: "${value}"`);
   }
-  
+
   const parsed = parseFloat(cleaned);
-  
+
   if (isNaN(parsed)) {
-    throw new Error(`Invalid monetary input: "${value}" could not be parsed to a number`);
+    throw new Error(
+      `Invalid monetary input: "${value}" could not be parsed to a number`,
+    );
   }
-  
+
   return parsed;
 }
 ```
@@ -249,11 +258,13 @@ export function parseDecimalInput(value: string | number): number {
 **File**: `scripts/monitor-memory.sh:18`
 
 **Root Cause**:
+
 - Uses `free -h` (Linux-only) and `ps aux --sort=-%mem` (--sort flag Linux-only)
 - On macOS: `free` exits with 127, `ps --sort` exits with "illegal option"
 - Under `set -euo pipefail`, script aborts before printing anything
 
 **Solution**:
+
 ```bash
 # BEFORE ❌
 echo "📊 System Memory:"
@@ -293,22 +304,24 @@ fi
 **File**: `app/finance/payments/new/page.tsx:318`
 
 **Root Cause**:
+
 - `totalAllocated > paymentAmountNum` compares object references
 - Decimal.js `valueOf()` returns string representation
 - JavaScript's `>` performs lexicographical string comparison
 - Example: Decimal("100") > Decimal("99") may fail
 
 **Solution**:
+
 ```typescript
 // BEFORE ❌
 if (totalAllocated > paymentAmountNum) {
-  newErrors.allocations = 'Total allocated amount cannot exceed payment amount';
+  newErrors.allocations = "Total allocated amount cannot exceed payment amount";
 }
 
 // AFTER ✅
 // Allocation validation - use Decimal comparison methods
 if (totalAllocated.greaterThan(paymentAmountNum)) {
-  newErrors.allocations = 'Total allocated amount cannot exceed payment amount';
+  newErrors.allocations = "Total allocated amount cannot exceed payment amount";
 }
 ```
 
@@ -323,11 +336,13 @@ if (totalAllocated.greaterThan(paymentAmountNum)) {
 **File**: `app/finance/invoices/new/page.tsx:351`
 
 **Root Cause**:
+
 - Line 351 (draft): Sends `total: totalAmount` (Decimal instance)
 - Line 423 (create): Sends `total: Money.toNumber(totalAmount)` (number)
 - Inconsistent JSON serialization may cause API errors or data corruption
 
 **Solution**:
+
 ```typescript
 // BEFORE ❌
 const payload = {
@@ -349,6 +364,7 @@ const payload = {
 ## System-Wide Search Results
 
 ### Search #1: Decimal > Comparisons
+
 **Query**: `totalAllocated > paymentAmount|paymentAmount < total|amount > balance`
 
 **Results**: 1 match found in `app/finance/payments/new/page.tsx:318`
@@ -358,6 +374,7 @@ const payload = {
 ---
 
 ### Search #2: Money.toNumber Before Sum
+
 **Query**: `Money\.sum\(.*\.map\(.*Money\.toNumber`
 
 **Results**: 0 additional matches (1 fixed in Issue #5)
@@ -367,6 +384,7 @@ const payload = {
 ---
 
 ### Search #3: Missing Decimal Conversions in Payloads
+
 **Manual Review**: Checked all payload constructions in finance pages
 
 **Results**: 1 instance found (`invoices/new/page.tsx:351`)
@@ -376,6 +394,7 @@ const payload = {
 ---
 
 ### Search #4: Silent Coercion Patterns
+
 **Manual Review**: Checked all `parseDecimalInput`, `parseFloat`, `parseInt` usage
 
 **Results**: 1 instance found (`lib/finance/schemas.ts:166`)
@@ -386,15 +405,15 @@ const payload = {
 
 ## Files Modified
 
-| File | Lines Changed | Issues Fixed |
-|------|---------------|--------------|
-| `lib/finance/decimal.ts` | +3, -2 | #1 (Critical) |
-| `package.json` | +4, -4 | #2 (Critical) |
-| `scripts/prevent-vscode-crash.sh` | +20, -8 | #3, #4 (Critical) |
-| `scripts/monitor-memory.sh` | +30, -6 | #7 (Major) |
-| `app/finance/invoices/new/page.tsx` | +2, -2 | #5, #9 (Major) |
-| `app/finance/payments/new/page.tsx` | +1, -1 | #8 (Major) |
-| `lib/finance/schemas.ts` | +21, -4 | #6 (Major) |
+| File                                | Lines Changed | Issues Fixed      |
+| ----------------------------------- | ------------- | ----------------- |
+| `lib/finance/decimal.ts`            | +3, -2        | #1 (Critical)     |
+| `package.json`                      | +4, -4        | #2 (Critical)     |
+| `scripts/prevent-vscode-crash.sh`   | +20, -8       | #3, #4 (Critical) |
+| `scripts/monitor-memory.sh`         | +30, -6       | #7 (Major)        |
+| `app/finance/invoices/new/page.tsx` | +2, -2        | #5, #9 (Major)    |
+| `app/finance/payments/new/page.tsx` | +1, -1        | #8 (Major)        |
+| `lib/finance/schemas.ts`            | +21, -4       | #6 (Major)        |
 
 **Total**: 7 files, +84 insertions, -24 deletions
 
@@ -403,12 +422,14 @@ const payload = {
 ## Verification Results
 
 ### TypeScript Compilation
+
 ```bash
 pnpm typecheck
 # Result: 0 errors ✅
 ```
 
 ### Translation Parity
+
 ```bash
 node scripts/audit-translations.mjs
 # Catalog Parity: ✅ OK
@@ -416,12 +437,14 @@ node scripts/audit-translations.mjs
 ```
 
 ### Decimal.js Usage Patterns
+
 - ✅ All Decimal comparisons use `.greaterThan()`, `.lessThan()`, etc.
 - ✅ All `Money.sum()` calls receive Decimal instances (no premature `toNumber()`)
 - ✅ All API payloads convert Decimal to number consistently
 - ✅ All input parsing throws errors on invalid values (no silent coercion)
 
 ### Cross-Platform Scripts
+
 - ✅ `monitor-memory.sh` works on Linux and macOS
 - ✅ `prevent-vscode-crash.sh` safe during active development
 - ✅ `package.json` scripts work on Windows, Linux, macOS
@@ -431,14 +454,17 @@ node scripts/audit-translations.mjs
 ## AI Reviewer Comments Status
 
 ### CodeRabbit Reviews
+
 1. ✅ **Actionable comments posted: 9** - All addressed
 2. ✅ **CHANGES_REQUESTED status** - Resolved
 
 ### Codex Reviews
+
 1. ✅ **P1 Critical: Decimal comparison** - Fixed (Issue #8)
 2. ✅ **Major: Invoice math drift** - Fixed (Issue #5)
 
 ### Total Comments
+
 - **Actionable**: 9
 - **Addressed**: 9 (100%)
 - **False Positives**: 0
@@ -449,16 +475,19 @@ node scripts/audit-translations.mjs
 ## Impact Assessment
 
 ### Financial Accuracy
+
 - **Rounding errors eliminated**: allocatePayment now precise to the cent
 - **Floating-point drift eliminated**: Invoice subtotals use full Decimal precision
 - **Input validation strengthened**: Bogus input rejected, not silently coerced
 
 ### Cross-Platform Compatibility
+
 - **Windows support**: Build/dev scripts work without modification
 - **macOS support**: Memory monitoring scripts functional
 - **Linux support**: All scripts continue working
 
 ### Developer Experience
+
 - **Crash prevention safe**: Scripts no longer kill active dev servers
 - **Better error messages**: Invalid input shows descriptive errors
 - **Consistent API**: All payloads serialize Decimal the same way
@@ -468,12 +497,14 @@ node scripts/audit-translations.mjs
 ## Lessons Learned
 
 ### What Worked Well ✅
+
 1. **Comprehensive grep searches** found related patterns beyond PR comments
 2. **Cross-platform testing mindset** prevented macOS/Windows issues
 3. **Detailed commit messages** document root cause + solution + impact
 4. **TypeScript verification** caught issues before push
 
 ### Challenges Overcome ✅
+
 1. **Subtle rounding drift** required careful analysis of subtraction logic
 2. **Cross-env quoting** needed research into cmd.exe vs bash behavior
 3. **macOS vm_stat parsing** required perl one-liner for memory calculation
@@ -484,11 +515,13 @@ node scripts/audit-translations.mjs
 ## Next Steps
 
 ### PR #272
+
 - ✅ All comments addressed
 - ⏸️ Awaiting re-review from CodeRabbit/Codex
 - ⏸️ Ready to merge after approval
 
 ### System-Wide Improvements
+
 - [ ] Add ESLint rule to prevent Decimal > comparisons
 - [ ] Add ESLint rule to catch Money.toNumber before sum
 - [ ] Document Decimal.js best practices in CONTRIBUTING.md
@@ -501,12 +534,14 @@ node scripts/audit-translations.mjs
 ✅ **Mission Accomplished**: All 9 AI reviewer comments on PR #272 addressed without exceptions
 
 **Quality Metrics**:
+
 - 0 TypeScript errors ✅
 - 100% translation parity ✅
 - 0 Decimal pattern violations ✅
 - Cross-platform compatibility ✅
 
 **Total Work**:
+
 - 7 files modified
 - 4 Critical + 5 Major issues resolved
 - 1 comprehensive commit

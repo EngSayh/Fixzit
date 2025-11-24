@@ -1,12 +1,12 @@
-import { NextRequest} from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import Benchmark from '@/server/models/Benchmark';
-import { requireSuperAdmin } from '@/lib/authz';
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import Benchmark from "@/server/models/Benchmark";
+import { requireSuperAdmin } from "@/lib/authz";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
 
 /**
  * @openapi
@@ -38,6 +38,3 @@ export async function GET(req: NextRequest) {
   const docs = await Benchmark.find({}).lean();
   return createSecureResponse(docs, 200, req);
 }
-
-
-

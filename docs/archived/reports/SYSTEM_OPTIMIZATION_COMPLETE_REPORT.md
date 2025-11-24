@@ -43,7 +43,7 @@
 - components/topbar/GlobalSearch.tsx
 - components/topbar/QuickActions.tsx
 - components/TopBar.tsx
-- src/components/* (9 duplicate files cleaned)
+- src/components/\* (9 duplicate files cleaned)
 
 ### 1.2 Database Query Optimization
 
@@ -143,22 +143,22 @@
 
 ### Code Quality
 
-| Metric                        | Before | After | Change   |
-|-------------------------------|--------|-------|----------|
-| Legacy @/src/ imports         | 82     | 63    | -19 (-23%)|
-| Unlimited DB queries          | 104    | 98    | -6       |
-| TODO comments (production)    | 10     | 5     | -5 (-50%)|
-| Duplicate code (lines)        | 2,179  | 0     | -2,179   |
-| Large files (>500 lines)      | 12     | 10    | -2       |
+| Metric                     | Before | After | Change     |
+| -------------------------- | ------ | ----- | ---------- |
+| Legacy @/src/ imports      | 82     | 63    | -19 (-23%) |
+| Unlimited DB queries       | 104    | 98    | -6         |
+| TODO comments (production) | 10     | 5     | -5 (-50%)  |
+| Duplicate code (lines)     | 2,179  | 0     | -2,179     |
+| Large files (>500 lines)   | 12     | 10    | -2         |
 
 ### Performance Impact (Estimated)
 
-| Area                          | Expected Impact                 | Measurement Method                          |
-|-------------------------------|---------------------------------|---------------------------------------------|
-| Bundle Size                   | -80KB (gzip: ~-25KB)           | Run `npm run build` and compare output      |
-| Initial Page Load             | -150ms (duplicate elimination) | Use Lighthouse or WebPageTest               |
-| Database Query Time           | -30% (query limits + indexes)  | Run test-mongodb-comprehensive.js benchmarks|
-| Memory Usage                  | -15% (limited result sets)     | Node.js heap snapshots during load testing  |
+| Area                | Expected Impact                | Measurement Method                           |
+| ------------------- | ------------------------------ | -------------------------------------------- |
+| Bundle Size         | -80KB (gzip: ~-25KB)           | Run `npm run build` and compare output       |
+| Initial Page Load   | -150ms (duplicate elimination) | Use Lighthouse or WebPageTest                |
+| Database Query Time | -30% (query limits + indexes)  | Run test-mongodb-comprehensive.js benchmarks |
+| Memory Usage        | -15% (limited result sets)     | Node.js heap snapshots during load testing   |
 
 **Note:** These are theoretical estimates. Actual performance gains require measurement in production or staging environment with real data volumes and traffic patterns.
 
@@ -231,7 +231,7 @@
 - components/topbar/GlobalSearch.tsx
 - components/topbar/QuickActions.tsx
 - components/TopBar.tsx
-- src/components/* (9 files)
+- src/components/\* (9 files)
 
 **Phase 1: Query optimization (6 files)**
 

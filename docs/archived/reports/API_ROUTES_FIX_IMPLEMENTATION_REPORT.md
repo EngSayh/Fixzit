@@ -176,7 +176,7 @@ Priority P0 (Must do first):
    # Should find NO matches:
    grep -r "NextResponse.json({ error:" app/api/ --include="*.ts"
    grep -r "NextResponse.json({ ok: false" app/api/ --include="*.ts"
-   
+
    # Should find MANY matches (good):
    grep -r "createSecureResponse" app/api/ --include="*.ts"
    grep -r "rateLimit(" app/api/ --include="*.ts"

@@ -52,28 +52,30 @@ Owner Portal (New)
 ### 2.1 Row-Level Isolation
 
 Every Owner Portal entity enforces:
+
 ```prisma
 model Property {
   orgId       String  @map("org_id")
   ownerUserId String  @map("owner_user_id")
-  
+
   @@index([orgId, ownerUserId])
 }
 ```
 
 **Middleware Guard (all Owner APIs):**
+
 ```typescript
 // middleware/ownerScope.ts
 export async function assertOwnerScope(ctx: AuthContext, propertyId: string) {
   const property = await prisma.property.findUnique({
     where: { id: propertyId },
-    select: { orgId: true, ownerUserId: true }
+    select: { orgId: true, ownerUserId: true },
   });
-  
-  if (!property) throw new ForbiddenError('Property not found');
-  if (property.orgId !== ctx.orgId) throw new ForbiddenError('Org mismatch');
-  if (property.ownerUserId !== ctx.userId && !ctx.roles.includes('DEPUTY')) {
-    throw new ForbiddenError('Owner mismatch');
+
+  if (!property) throw new ForbiddenError("Property not found");
+  if (property.orgId !== ctx.orgId) throw new ForbiddenError("Org mismatch");
+  if (property.ownerUserId !== ctx.userId && !ctx.roles.includes("DEPUTY")) {
+    throw new ForbiddenError("Owner mismatch");
   }
 }
 ```
@@ -91,6 +93,7 @@ model Subscription {
 ```
 
 **Feature Gates:**
+
 - BASIC: Portfolio, WO, Utilities, Statements
 - PRO: + ROI Dashboard, Ads, Mailbox, Agent Contracts
 - ENTERPRISE: + Budget vs Actual, Predictive Analytics
@@ -112,7 +115,7 @@ model Property {
   advertisementNo     String?
   advertisementCost   Decimal? @db.Decimal(14,2)
   advertisementExpiresAt DateTime?
-  
+
   agentContracts AgentContract[]
   units          Unit[]
   meters         UtilityMeter[]
@@ -288,7 +291,7 @@ model Warranty {
 // Existing WorkOrder - add owner relation
 model WorkOrder {
   // ... existing fields ...
-  
+
   // NEW: Link to property for owner scoping
   propertyId  String?
   property    Property? @relation(fields: [propertyId], references: [id])
@@ -297,11 +300,11 @@ model WorkOrder {
 // Existing FinancialTransaction - ensure idempotency
 model FinancialTransaction {
   // ... existing fields ...
-  
+
   propertyId  String
   unitId      String?
   workOrderId String?
-  
+
   // CRITICAL: Prevent duplicate postings
   @@unique([workOrderId, type])
 }
@@ -315,17 +318,17 @@ model FinancialTransaction {
 
 ```typescript
 // services/owner/workOrderFinance.ts
-import { prisma } from '@/prisma';
-import { TxnType } from '@prisma/client';
+import { prisma } from "@/prisma";
+import { TxnType } from "@prisma/client";
 
 /**
  * Post work order expense to Finance (idempotent & atomic)
- * 
+ *
  * Compliance:
  * - Golden Workflow: requires AFTER photos before close
  * - Idempotency: unique [workOrderId, type] constraint
  * - Atomicity: Prisma transaction (rollback on error)
- * 
+ *
  * @throws {Error} if AFTER photos missing or WO not found
  */
 export async function postFinanceOnClose(workOrderId: string): Promise<void> {
@@ -333,35 +336,37 @@ export async function postFinanceOnClose(workOrderId: string): Promise<void> {
     // 1. Fetch WO with relations
     const wo = await tx.workOrder.findUnique({
       where: { id: workOrderId },
-      include: { 
-        attachments: true, 
+      include: {
+        attachments: true,
         quotation: true,
-        unit: { include: { property: true } }
-      }
+        unit: { include: { property: true } },
+      },
     });
-    
+
     if (!wo) throw new Error(`Work Order ${workOrderId} not found`);
-    
+
     // 2. Idempotency Check: Already posted?
-    if (['FINANCIAL_POSTED', 'CLOSED'].includes(wo.status)) {
+    if (["FINANCIAL_POSTED", "CLOSED"].includes(wo.status)) {
       console.log(`WO ${workOrderId} already posted, skipping`);
       return; // No-op
     }
-    
+
     // 3. Validate AFTER photos (Golden Workflow compliance)
-    const hasAfterPhotos = wo.attachments.some(a => a.role === 'AFTER');
+    const hasAfterPhotos = wo.attachments.some((a) => a.role === "AFTER");
     if (!hasAfterPhotos) {
-      throw new Error(`WO ${workOrderId}: Cannot post finance without AFTER photos`);
+      throw new Error(
+        `WO ${workOrderId}: Cannot post finance without AFTER photos`,
+      );
     }
-    
+
     // 4. Create Financial Transaction (upsert for safety)
     if (wo.quotation?.amount) {
       await tx.financialTransaction.upsert({
         where: {
           workOrderId_type: {
             workOrderId: wo.id,
-            type: TxnType.EXPENSE_MAINTENANCE
-          }
+            type: TxnType.EXPENSE_MAINTENANCE,
+          },
         },
         create: {
           orgId: wo.unit.property.orgId,
@@ -370,21 +375,23 @@ export async function postFinanceOnClose(workOrderId: string): Promise<void> {
           workOrderId: wo.id,
           type: TxnType.EXPENSE_MAINTENANCE,
           amount: wo.quotation.amount,
-          currency: 'SAR',
+          currency: "SAR",
           description: `Maintenance: ${wo.title}`,
-          occurredAt: new Date()
+          occurredAt: new Date(),
         },
-        update: {} // No-op if already exists (idempotency)
+        update: {}, // No-op if already exists (idempotency)
       });
     }
-    
+
     // 5. Update WO status atomically
     await tx.workOrder.update({
       where: { id: wo.id },
-      data: { status: 'FINANCIAL_POSTED' }
+      data: { status: "FINANCIAL_POSTED" },
     });
-    
-    console.log(`✅ WO ${workOrderId} posted to Finance: ${wo.quotation?.amount} SAR`);
+
+    console.log(
+      `✅ WO ${workOrderId} posted to Finance: ${wo.quotation?.amount} SAR`,
+    );
   });
 }
 ```
@@ -393,60 +400,59 @@ export async function postFinanceOnClose(workOrderId: string): Promise<void> {
 
 ```typescript
 // app/api/work-orders/[id]/close/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/prisma';
-import { postFinanceOnClose } from '@/services/owner/workOrderFinance';
-import { assertOwnerScope } from '@/middleware/ownerScope';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/prisma";
+import { postFinanceOnClose } from "@/services/owner/workOrderFinance";
+import { assertOwnerScope } from "@/middleware/ownerScope";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const ctx = await getAuthContext(req); // JWT → { userId, orgId, roles }
     const woId = params.id;
-    
+
     // 1. Verify owner access
     const wo = await prisma.workOrder.findUnique({
       where: { id: woId },
-      include: { unit: { include: { property: true } } }
+      include: { unit: { include: { property: true } } },
     });
-    
-    if (!wo) return NextResponse.json({ error: 'Not Found' }, { status: 404 });
-    
+
+    if (!wo) return NextResponse.json({ error: "Not Found" }, { status: 404 });
+
     await assertOwnerScope(ctx, wo.unit.property.id);
-    
+
     // 2. Validate AFTER photos (before attempting close)
     const hasAfter = await prisma.attachment.count({
-      where: { workOrderId: woId, role: 'AFTER' }
+      where: { workOrderId: woId, role: "AFTER" },
     });
-    
+
     if (hasAfter === 0) {
       return NextResponse.json(
         { error: "Cannot close work order: 'AFTER' photo(s) required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    
+
     // 3. Mark complete
     await prisma.workOrder.update({
       where: { id: woId },
-      data: { status: 'COMPLETE' }
+      data: { status: "COMPLETE" },
     });
-    
+
     // 4. Trigger finance posting (idempotent & atomic)
     await postFinanceOnClose(woId);
-    
-    return NextResponse.json({ 
-      ok: true, 
-      message: 'Work order closed and posted to finance' 
+
+    return NextResponse.json({
+      ok: true,
+      message: "Work order closed and posted to finance",
     });
-    
   } catch (error: any) {
-    console.error('Close WO failed:', error);
+    console.error("Close WO failed:", error);
     return NextResponse.json(
       { error: error.message },
-      { status: error.statusCode || 500 }
+      { status: error.statusCode || 500 },
     );
   }
 }
@@ -460,73 +466,73 @@ export async function POST(
 
 ```typescript
 // services/owner/reports.ts
-import { prisma } from '@/prisma';
-import dayjs from 'dayjs';
+import { prisma } from "@/prisma";
+import dayjs from "dayjs";
 
 /**
  * Calculate Net Operating Income (NOI) and Return on Investment (ROI)
- * 
+ *
  * NOI = Revenue - (Maintenance + Utilities + Ads)
  * ROI = NOI / Total Expenses (handles division by zero)
- * 
+ *
  * Periods: 3, 6, 9, 12 months or custom range
  */
 export async function calculateNOI_ROI(
   unitId: string,
   months: number = 12,
-  customRange?: { from: Date; to: Date }
+  customRange?: { from: Date; to: Date },
 ) {
-  const from = customRange?.from ?? dayjs().subtract(months, 'month').toDate();
+  const from = customRange?.from ?? dayjs().subtract(months, "month").toDate();
   const to = customRange?.to ?? new Date();
-  
+
   // Parallel aggregation for performance
   const [income, maintenance, utilities] = await Promise.all([
     prisma.financialTransaction.aggregate({
       _sum: { amount: true },
       where: {
         unitId,
-        type: { in: ['INCOME_RENT', 'INCOME_OTHER'] },
-        occurredAt: { gte: from, lte: to }
-      }
+        type: { in: ["INCOME_RENT", "INCOME_OTHER"] },
+        occurredAt: { gte: from, lte: to },
+      },
     }),
     prisma.financialTransaction.aggregate({
       _sum: { amount: true },
       where: {
         unitId,
-        type: 'EXPENSE_MAINTENANCE',
-        occurredAt: { gte: from, lte: to }
-      }
+        type: "EXPENSE_MAINTENANCE",
+        occurredAt: { gte: from, lte: to },
+      },
     }),
     prisma.financialTransaction.aggregate({
       _sum: { amount: true },
       where: {
         unitId,
-        type: 'EXPENSE_UTILITIES',
-        occurredAt: { gte: from, lte: to }
-      }
-    })
+        type: "EXPENSE_UTILITIES",
+        occurredAt: { gte: from, lte: to },
+      },
+    }),
   ]);
-  
+
   const revenue = Number(income._sum.amount ?? 0);
   const maintenanceCost = Number(maintenance._sum.amount ?? 0);
   const utilitiesCost = Number(utilities._sum.amount ?? 0);
   const totalExpenses = maintenanceCost + utilitiesCost;
-  
+
   const noi = revenue - totalExpenses;
-  
+
   // ROI = NOI / Expenses (guard division by zero)
   const roi = totalExpenses === 0 ? null : noi / totalExpenses;
-  
+
   return {
     period: { from, to, months },
     revenue,
     expenses: {
       maintenance: maintenanceCost,
       utilities: utilitiesCost,
-      total: totalExpenses
+      total: totalExpenses,
     },
     noi,
-    roi: roi ? parseFloat(roi.toFixed(4)) : null
+    roi: roi ? parseFloat(roi.toFixed(4)) : null,
   };
 }
 ```
@@ -541,11 +547,11 @@ export async function calculateNOI_ROI(
 // app/api/owner/properties/route.ts
 export async function GET(req: NextRequest) {
   const ctx = await getAuthContext(req);
-  
+
   const properties = await prisma.property.findMany({
-    where: { 
+    where: {
       orgId: ctx.orgId,
-      ownerUserId: ctx.userId 
+      ownerUserId: ctx.userId,
     },
     include: {
       units: {
@@ -554,91 +560,97 @@ export async function GET(req: NextRequest) {
           status: true,
           tenancies: {
             where: { endDate: { gte: new Date() } },
-            take: 1
-          }
-        }
+            take: 1,
+          },
+        },
       },
       agentContracts: {
-        where: { status: 'ACTIVE' },
-        take: 1
+        where: { status: "ACTIVE" },
+        take: 1,
       },
       _count: {
         select: {
           units: true,
-          workOrders: { where: { status: { notIn: ['CLOSED', 'FINANCIAL_POSTED'] } } }
-        }
-      }
-    }
+          workOrders: {
+            where: { status: { notIn: ["CLOSED", "FINANCIAL_POSTED"] } },
+          },
+        },
+      },
+    },
   });
-  
+
   return NextResponse.json({ properties });
 }
 
 // app/api/owner/reports/roi/route.ts
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const unitId = searchParams.get('unitId');
-  const months = Number(searchParams.get('months') ?? 12);
-  
+  const unitId = searchParams.get("unitId");
+  const months = Number(searchParams.get("months") ?? 12);
+
   if (!unitId) {
-    return NextResponse.json({ error: 'unitId required' }, { status: 400 });
+    return NextResponse.json({ error: "unitId required" }, { status: 400 });
   }
-  
+
   const ctx = await getAuthContext(req);
-  
+
   // Verify owner access
   const unit = await prisma.unit.findUnique({
     where: { id: unitId },
-    include: { property: true }
+    include: { property: true },
   });
-  
-  if (!unit) return NextResponse.json({ error: 'Unit not found' }, { status: 404 });
-  
+
+  if (!unit)
+    return NextResponse.json({ error: "Unit not found" }, { status: 404 });
+
   await assertOwnerScope(ctx, unit.property.id);
-  
+
   // Calculate ROI
   const result = await calculateNOI_ROI(unitId, months);
-  
+
   return NextResponse.json(result);
 }
 
 // app/api/owner/statements/route.ts
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const period = searchParams.get('period') ?? 'YTD'; // YTD, MTD, QTD, CUSTOM
-  const propertyId = searchParams.get('propertyId');
-  
+  const period = searchParams.get("period") ?? "YTD"; // YTD, MTD, QTD, CUSTOM
+  const propertyId = searchParams.get("propertyId");
+
   const ctx = await getAuthContext(req);
-  
+
   if (propertyId) {
     await assertOwnerScope(ctx, propertyId);
   }
-  
+
   const { from, to } = parsePeriod(period, searchParams);
-  
+
   const txns = await prisma.financialTransaction.findMany({
     where: {
       orgId: ctx.orgId,
       propertyId: propertyId ?? undefined,
-      occurredAt: { gte: from, lte: to }
+      occurredAt: { gte: from, lte: to },
     },
-    orderBy: { occurredAt: 'desc' },
+    orderBy: { occurredAt: "desc" },
     include: {
       workOrder: { select: { id: true, title: true } },
-      unit: { select: { code: true } }
-    }
+      unit: { select: { code: true } },
+    },
   });
-  
-  const totals = txns.reduce((acc, t) => {
-    if (t.type.startsWith('INCOME_')) acc.income += Number(t.amount);
-    if (t.type.startsWith('EXPENSE_')) acc.expense += Number(t.amount);
-    return acc;
-  }, { income: 0, expense: 0 });
-  
+
+  const totals = txns.reduce(
+    (acc, t) => {
+      if (t.type.startsWith("INCOME_")) acc.income += Number(t.amount);
+      if (t.type.startsWith("EXPENSE_")) acc.expense += Number(t.amount);
+      return acc;
+    },
+    { income: 0, expense: 0 },
+  );
+
   return NextResponse.json({
     period: { from, to, type: period },
     totals: { ...totals, net: totals.income - totals.expense },
-    transactions: txns
+    transactions: txns,
   });
 }
 ```
@@ -664,7 +676,7 @@ paths:
       summary: List owner's properties with KPIs
       tags: [Owner, Properties]
       responses:
-        '200':
+        "200":
           description: Portfolio overview
           content:
             application/json:
@@ -674,8 +686,8 @@ paths:
                   properties:
                     type: array
                     items:
-                      $ref: '#/components/schemas/PropertyOverview'
-        '403':
+                      $ref: "#/components/schemas/PropertyOverview"
+        "403":
           description: Forbidden (not owner)
 
   /owner/reports/roi:
@@ -691,12 +703,12 @@ paths:
           in: query
           schema: { type: integer, default: 12, enum: [3, 6, 9, 12] }
       responses:
-        '200':
+        "200":
           description: ROI calculation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ROIResult'
+                $ref: "#/components/schemas/ROIResult"
 
   /owner/statements:
     get:
@@ -710,12 +722,12 @@ paths:
           in: query
           schema: { type: string, format: uuid }
       responses:
-        '200':
+        "200":
           description: Statement data
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OwnerStatement'
+                $ref: "#/components/schemas/OwnerStatement"
 
   /work-orders/{id}/close:
     post:
@@ -727,11 +739,11 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses:
-        '200':
+        "200":
           description: Work order closed successfully
-        '400':
+        "400":
           description: Validation failed (e.g., missing AFTER photos)
-        '403':
+        "403":
           description: Forbidden (not owner)
 
 components:
@@ -779,7 +791,7 @@ components:
             maintenance: { type: number }
             utilities: { type: number }
             total: { type: number }
-        noi: 
+        noi:
           type: number
           description: Net Operating Income (Revenue - Expenses)
         roi:
@@ -850,7 +862,7 @@ type ROIResult {
   revenue: Decimal!
   expenses: Expenses!
   noi: Decimal!
-  roi: Decimal  # nullable
+  roi: Decimal # nullable
 }
 
 type Period {
@@ -891,25 +903,28 @@ type Mutation {
 ## 9. Migration Strategy (Mongo → Prisma)
 
 ### Phase 1: Schema Setup (Week 1)
+
 1. Run `prisma migrate dev --name owner_portal_init`
 2. Create seed data for testing (3 properties, 10 units, sample bills)
 3. Verify foreign key constraints and indexes
 
 ### Phase 2: Dual Write (Week 2)
+
 ```typescript
 // Temporary: write to both Mongo + Postgres
 async function createProperty(data: PropertyInput) {
   // Write to Postgres (source of truth)
   const pgProperty = await prisma.property.create({ data });
-  
+
   // Write to Mongo (legacy; delete after backfill)
   await mongoPropertyModel.create({ ...data, _id: pgProperty.id });
-  
+
   return pgProperty;
 }
 ```
 
 ### Phase 3: Backfill (Week 3)
+
 ```bash
 # Export Mongo → JSON
 mongoexport --db fixzit --collection properties --out properties.json
@@ -919,6 +934,7 @@ node scripts/backfill-properties.js
 ```
 
 ### Phase 4: Cutover (Week 4)
+
 1. Switch reads to Postgres
 2. Remove Mongo write logic
 3. Archive Mongo collections
@@ -930,12 +946,12 @@ node scripts/backfill-properties.js
 
 ### Per-Page Verification
 
-| Page | Role | Console | Network | Build | Hydration | RTL | Evidence |
-|------|------|---------|---------|-------|-----------|-----|----------|
-| /owner/properties | Owner | 0 | 0 4xx | 0 TS | ✅ | ✅ | screenshot + logs |
-| /owner/units/:id | Owner | 0 | 0 4xx | 0 TS | ✅ | ✅ | screenshot + logs |
-| /owner/reports/roi | Owner | 0 | 0 4xx | 0 TS | ✅ | ✅ | screenshot + logs |
-| /work-orders/:id/close | Owner | 0 | 0 4xx | 0 TS | ✅ | ✅ | screenshot + logs |
+| Page                   | Role  | Console | Network | Build | Hydration | RTL | Evidence          |
+| ---------------------- | ----- | ------- | ------- | ----- | --------- | --- | ----------------- |
+| /owner/properties      | Owner | 0       | 0 4xx   | 0 TS  | ✅        | ✅  | screenshot + logs |
+| /owner/units/:id       | Owner | 0       | 0 4xx   | 0 TS  | ✅        | ✅  | screenshot + logs |
+| /owner/reports/roi     | Owner | 0       | 0 4xx   | 0 TS  | ✅        | ✅  | screenshot + logs |
+| /work-orders/:id/close | Owner | 0       | 0 4xx   | 0 TS  | ✅        | ✅  | screenshot + logs |
 
 **Definition of Done:** Zero errors after 10-second wait + commit hash + root cause note.
 
@@ -944,18 +960,21 @@ node scripts/backfill-properties.js
 ## 11. Summary: What Changed
 
 ### ✅ Architectural Compliance
+
 - ❌ MongoDB/Mongoose → ✅ Prisma ORM + PostgreSQL
 - ✅ Central relational DB with proper foreign keys
 - ✅ Atomic transactions for finance posting
 - ✅ Idempotency via unique constraints
 
 ### ✅ Code Quality Fixes
+
 1. **Idempotent Finance Posting:** Transaction-based with `upsert` and status checks
 2. **AFTER Photo Validation:** Enforced before WO closure
 3. **Correct ROI Calculation:** NOI / Expenses (not Revenue - Expenses)
 4. **Active Subscription Check:** Filter by `activeUntil > now()` (not `createdAt` sort)
 
 ### ✅ Integration Points
+
 - Properties → Units → Tenancies → existing models ✅
 - Work Orders → Approvals → Finance (auto-post) ✅
 - Owner Statements → FinancialTransaction ✅
@@ -963,6 +982,7 @@ node scripts/backfill-properties.js
 - Mailbox → Notifications/CRM ✅
 
 ### ✅ Security & Governance
+
 - Multi-tenancy: `orgId + ownerUserId` scoping ✅
 - RBAC: Owner/Deputy roles with delegation ✅
 - Subscription: Feature gates (BASIC/PRO/ENTERPRISE) ✅
@@ -974,6 +994,7 @@ node scripts/backfill-properties.js
 ## Next Steps
 
 1. **Implement Prisma Migration:**
+
    ```bash
    cd /workspaces/Fixzit
    npx prisma migrate dev --name owner_portal_phase1

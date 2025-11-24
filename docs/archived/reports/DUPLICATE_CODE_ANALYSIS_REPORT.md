@@ -14,7 +14,7 @@
 **Severity Distribution**:
 
 - 🔴 HIGH (>25 lines): 3 clones
-- 🟡 MEDIUM (10-25 lines): 18 clones  
+- 🟡 MEDIUM (10-25 lines): 18 clones
 - 🟢 LOW (5-9 lines): 29 clones
 
 **Categories**:
@@ -50,7 +50,7 @@
 
 ---
 
-### 2. PayTabs Transaction Handling - 29 lines (lib/paytabs.ts ↔ lib/paytabs/core.ts)  
+### 2. PayTabs Transaction Handling - 29 lines (lib/paytabs.ts ↔ lib/paytabs/core.ts)
 
 **Lines**: 61-90 (29 lines, 229 tokens)
 
@@ -73,7 +73,7 @@
 
 **Recommendation**:
 
-- Consolidate with PayTabs fix above  
+- Consolidate with PayTabs fix above
 - Remove entire `lib/paytabs.ts` file
 
 **Impact**: HIGH - Payment initialization
@@ -101,11 +101,11 @@
 export function useMarketplaceData(endpoint: string) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     // Common fetch logic here
   }, [endpoint]);
-  
+
   return { data, loading, refetch };
 }
 ```
@@ -133,7 +133,7 @@ export function useMarketplaceData(endpoint: string) {
 async function validateTenantAccess(
   operation: string,
   tenantId: string,
-  userId: string
+  userId: string,
 ): Promise<ValidationResult> {
   // Common validation logic
   return { valid: true, tenant };
@@ -142,11 +142,11 @@ async function validateTenantAccess(
 // Usage
 export const tenantMiddleware = {
   async findOne() {
-    await validateTenantAccess('findOne', tenantId, userId);
+    await validateTenantAccess("findOne", tenantId, userId);
   },
   async updateOne() {
-    await validateTenantAccess('updateOne', tenantId, userId);
-  }
+    await validateTenantAccess("updateOne", tenantId, userId);
+  },
   // ...
 };
 ```
@@ -227,19 +227,22 @@ export const baseSchemaOptions = {
   timestamps: true,
   versionKey: false,
   toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toObject: { virtuals: true },
 };
 
 export const auditFields = {
-  createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
-  updatedBy: { type: Schema.Types.ObjectId, ref: 'User' }
+  createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+  updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
 };
 
 // Usage in models
-const TenantSchema = new Schema({
-  // Tenant-specific fields
-  ...auditFields
-}, baseSchemaOptions);
+const TenantSchema = new Schema(
+  {
+    // Tenant-specific fields
+    ...auditFields,
+  },
+  baseSchemaOptions,
+);
 ```
 
 **Impact**: MEDIUM - Data layer consistency  
@@ -285,16 +288,18 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
+
     // ... route-specific logic
-    
   } catch (error) {
-    console.error('Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 ```
@@ -306,24 +311,23 @@ export async function POST(req: NextRequest) {
 ```typescript
 // lib/api/middleware.ts
 export function withAuth<T>(
-  handler: (req: NextRequest, session: Session) => Promise<NextResponse<T>>
+  handler: (req: NextRequest, session: Session) => Promise<NextResponse<T>>,
 ) {
   return async (req: NextRequest) => {
     try {
       await connectToDatabase();
       const session = await getServerSession(authOptions);
-      
+
       if (!session?.user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      
+
       return await handler(req, session);
-      
     } catch (error) {
-      console.error('API Error:', error);
+      console.error("API Error:", error);
       return NextResponse.json(
-        { error: 'Internal server error' }, 
-        { status: 500 }
+        { error: "Internal server error" },
+        { status: 500 },
       );
     }
   };

@@ -10,27 +10,27 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: --max-old-space-size=8192
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 9
-      
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
+
       - name: Run inventory scan
         run: bash scripts/inventory.sh
-      
+
       - name: TypeScript check
         run: pnpm run typecheck
         # CRITICAL: Removed continue-on-error - typecheck failures must block PRs
@@ -44,7 +44,6 @@ jobs:
       # TODO: Add unit test script with Jest or Vitest when unit tests are implemented
       # - name: Run tests
       #   run: pnpm run test --if-present
-
       - name: Build project
         run: pnpm run build
         env:
@@ -53,14 +52,14 @@ jobs:
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
           NEXT_PUBLIC_APP_URL: http://localhost:3000
         # CRITICAL: Removed continue-on-error - build failures must block PRs
-      
+
       - name: Upload inventory artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: inventory-results
           path: docs/inventory/
-      
+
       - name: Check for duplicates
         run: |
           if [ -s docs/inventory/duplicate-names.txt ]; then

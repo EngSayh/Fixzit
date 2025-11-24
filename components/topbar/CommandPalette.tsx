@@ -1,11 +1,14 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef } from 'react';
-import { X, Search } from 'lucide-react';
-import Portal from '@/components/Portal';
-import { useTranslation } from '@/contexts/TranslationContext';
-import type { GlobalSearchResult } from './types';
-import type { QuickActionConfig, SavedSearchConfig } from '@/config/topbar-modules';
+import React, { useEffect, useRef } from "react";
+import { X, Search } from "lucide-react";
+import Portal from "@/components/Portal";
+import { useTranslation } from "@/contexts/TranslationContext";
+import type { GlobalSearchResult } from "./types";
+import type {
+  QuickActionConfig,
+  SavedSearchConfig,
+} from "@/config/topbar-modules";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -15,8 +18,8 @@ interface CommandPaletteProps {
   results: GlobalSearchResult[];
   savedSearches: SavedSearchConfig[];
   quickActions: QuickActionConfig[];
-  scope: 'module' | 'all';
-  onScopeChange: (_scope: 'module' | 'all') => void;
+  scope: "module" | "all";
+  onScopeChange: (_scope: "module" | "all") => void;
   moduleLabel: string;
   placeholder: string;
   onClose: () => void;
@@ -62,7 +65,10 @@ export function CommandPalette({
           className="mx-auto flex max-w-3xl flex-col rounded-2xl bg-card text-card-foreground shadow-2xl border border-border h-[70vh]"
         >
           <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-            <Search className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <Search
+              className="h-4 w-4 text-muted-foreground"
+              aria-hidden="true"
+            />
             <input
               ref={inputRef}
               value={query}
@@ -73,28 +79,32 @@ export function CommandPalette({
             <div className="flex items-center gap-2 text-xs">
               <button
                 type="button"
-                onClick={() => onScopeChange('module')}
+                onClick={() => onScopeChange("module")}
                 className={`rounded-full px-2 py-1 ${
-                  scope === 'module' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                  scope === "module"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
                 }`}
               >
                 {moduleLabel}
               </button>
               <button
                 type="button"
-                onClick={() => onScopeChange('all')}
+                onClick={() => onScopeChange("all")}
                 className={`rounded-full px-2 py-1 ${
-                  scope === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                  scope === "all"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
                 }`}
               >
-                {t('search.scope.all', 'All')}
+                {t("search.scope.all", "All")}
               </button>
             </div>
             <button
               type="button"
               onClick={onClose}
               className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground hover:bg-muted/80"
-              aria-label={t('common.close', 'Close')}
+              aria-label={t("common.close", "Close")}
             >
               <X className="h-4 w-4" />
             </button>
@@ -104,12 +114,12 @@ export function CommandPalette({
             <div className="space-y-4 overflow-y-auto border border-border rounded-xl p-3">
               <div>
                 <div className="text-xs font-semibold uppercase text-muted-foreground">
-                  {t('search.saved.title', 'Saved searches')}
+                  {t("search.saved.title", "Saved searches")}
                 </div>
                 <div className="mt-2 space-y-2">
                   {savedSearches.length === 0 && (
                     <p className="text-xs text-muted-foreground">
-                      {t('search.saved.empty', 'No saved searches')}
+                      {t("search.saved.empty", "No saved searches")}
                     </p>
                   )}
                   {savedSearches.map((saved) => (
@@ -119,8 +129,12 @@ export function CommandPalette({
                       className="w-full rounded-lg border border-border px-3 py-2 text-start text-sm hover:bg-muted"
                       onClick={() => onSavedSearchSelect(saved)}
                     >
-                      <div className="font-medium">{t(saved.labelKey, saved.fallbackLabel)}</div>
-                      <div className="text-xs text-muted-foreground">{saved.query}</div>
+                      <div className="font-medium">
+                        {t(saved.labelKey, saved.fallbackLabel)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {saved.query}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -128,12 +142,12 @@ export function CommandPalette({
 
               <div>
                 <div className="text-xs font-semibold uppercase text-muted-foreground">
-                  {t('search.quickActions', 'Quick actions')}
+                  {t("search.quickActions", "Quick actions")}
                 </div>
                 <div className="mt-2 space-y-2">
                   {quickActions.length === 0 && (
                     <p className="text-xs text-muted-foreground">
-                      {t('search.quickActions.empty', 'No actions available')}
+                      {t("search.quickActions.empty", "No actions available")}
                     </p>
                   )}
                   {quickActions.map((action) => (
@@ -152,17 +166,21 @@ export function CommandPalette({
 
             <div className="flex flex-col overflow-hidden rounded-xl border border-border">
               <div className="flex items-center justify-between border-b border-border px-3 py-2 text-xs text-muted-foreground">
-                {loading ? t('search.results.loading', 'Searching…') : t('search.results.title', 'Results')}
+                {loading
+                  ? t("search.results.loading", "Searching…")
+                  : t("search.results.title", "Results")}
               </div>
               <div className="flex-1 overflow-y-auto">
                 {loading && (
                   <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                    {t('search.results.loading', 'Searching…')}
+                    {t("search.results.loading", "Searching…")}
                   </div>
                 )}
                 {!loading && results.length === 0 && (
                   <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                    {query ? t('search.results.empty', 'No matches yet') : t('search.results.hint', 'Start typing to search')}
+                    {query
+                      ? t("search.results.empty", "No matches yet")
+                      : t("search.results.hint", "Start typing to search")}
                   </div>
                 )}
                 {!loading && results.length > 0 && (
@@ -174,9 +192,13 @@ export function CommandPalette({
                           onClick={() => onResultClick(result.href)}
                           className="flex w-full flex-col gap-1 px-4 py-3 text-start hover:bg-muted"
                         >
-                          <span className="text-sm font-medium text-foreground">{result.title}</span>
+                          <span className="text-sm font-medium text-foreground">
+                            {result.title}
+                          </span>
                           {result.subtitle && (
-                            <span className="text-xs text-muted-foreground">{result.subtitle}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {result.subtitle}
+                            </span>
                           )}
                           <span className="text-[11px] uppercase text-muted-foreground/80">
                             {result.entity}

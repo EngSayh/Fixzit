@@ -144,17 +144,19 @@ Query MongoDB for insights:
 ```javascript
 // Most clicked buttons by role
 db.qaevents.aggregate([
-  { $match: { type: 'click' } },
-  { $group: { _id: { role: '$role', text: '$meta.text' }, count: { $sum: 1 } } },
-  { $sort: { count: -1 } }
-])
+  { $match: { type: "click" } },
+  {
+    $group: { _id: { role: "$role", text: "$meta.text" }, count: { $sum: 1 } },
+  },
+  { $sort: { count: -1 } },
+]);
 
 // Error frequency by route
 db.qaevents.aggregate([
-  { $match: { type: { $in: ['console', 'runtime-error'] } } },
-  { $group: { _id: '$route', count: { $sum: 1 } } },
-  { $sort: { count: -1 } }
-])
+  { $match: { type: { $in: ["console", "runtime-error"] } } },
+  { $group: { _id: "$route", count: { $sum: 1 } } },
+  { $sort: { count: -1 } },
+]);
 ```
 
 ## Troubleshooting

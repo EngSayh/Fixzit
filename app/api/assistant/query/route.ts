@@ -3,16 +3,20 @@ import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { HelpArticle } from "@/server/models/HelpArticle";
 import { WorkOrder } from "@/server/models/WorkOrder";
-import { getSessionUser, type SessionUser } from "@/server/middleware/withAuthRbac";
+import {
+  getSessionUser,
+  type SessionUser,
+} from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { buildRateLimitKey } from '@/server/security/rateLimitKey';
-import { logger } from '@/lib/logger';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { logger } from "@/lib/logger";
 
 const BodySchema = z.object({
-  question: z.string().min(1)});
+  question: z.string().min(1),
+});
 
 type Citation = { title: string; slug: string };
 
@@ -31,31 +35,33 @@ interface WorkOrderItem {
  * Represents KB articles returned from MongoDB text search
  */
 interface HelpArticleDoc {
-  title: string;     // Article title for display
-  slug: string;      // URL-friendly identifier
-  content?: string;  // Markdown/text content for snippets
+  title: string; // Article title for display
+  slug: string; // URL-friendly identifier
+  content?: string; // Markdown/text content for snippets
 }
 
 /**
  * Parse Natural Language for New Ticket Creation
- * 
+ *
  * Supports two formats:
  * 1. Slash command: /new-ticket title:"Fix AC" desc:"Not working" priority:HIGH
  * 2. Natural language: "Create a work order for broken AC"
- * 
+ *
  * @param question - User's question string
  * @returns Parsed ticket details or null if not a ticket creation request
- * 
+ *
  * @example
- * parseNewTicket('/new-ticket title:"AC Repair"') 
+ * parseNewTicket('/new-ticket title:"AC Repair"')
  * // Returns: { title: "AC Repair", description: undefined, priority: "MEDIUM", ... }
- * 
+ *
  * parseNewTicket('open ticket for broken elevator')
  * // Returns: { title: "open ticket for broken elevator", priority: "MEDIUM", ... }
  */
 function parseNewTicket(question: string) {
   const isSlash = question.trim().toLowerCase().startsWith("/new-ticket");
-  const isNatural = /\b(create|open)\b.*\b(work *order|ticket)\b/i.test(question);
+  const isNatural = /\b(create|open)\b.*\b(work *order|ticket)\b/i.test(
+    question,
+  );
   if (!isSlash && !isNatural) return null;
 
   const get = (key: string) => {
@@ -64,7 +70,10 @@ function parseNewTicket(question: string) {
     return (m[2] || m[3])?.trim();
   };
 
-  const title = get("title") || question.replace(/^ *\/new-ticket */i, "").trim() || "General request";
+  const title =
+    get("title") ||
+    question.replace(/^ *\/new-ticket */i, "").trim() ||
+    "General request";
   const description = get("desc") || get("description");
   const priority = (get("priority") || "MEDIUM").toUpperCase();
   const propertyId = get("propertyId");
@@ -74,17 +83,20 @@ function parseNewTicket(question: string) {
 
 /**
  * Check if Query is Requesting User's Ticket List
- * 
+ *
  * Matches patterns like:
  * - "/my-tickets" (slash command)
  * - "show my tickets"
  * - "list my work orders"
- * 
+ *
  * @param question - User's question string
  * @returns true if user wants to see their ticket list
  */
 function isMyTickets(question: string) {
-  return question.trim().toLowerCase().startsWith("/my-tickets") || /\b(my|list)\b.*\b(tickets|work *orders)\b/i.test(question);
+  return (
+    question.trim().toLowerCase().startsWith("/my-tickets") ||
+    /\b(my|list)\b.*\b(tickets|work *orders)\b/i.test(question)
+  );
 }
 
 /**
@@ -108,7 +120,10 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDatabase(); // ensure DB/init (real or mock)
   } catch (error) {
-    logger.warn('[Assistant] Database connection failed, continuing without DB', { error });
+    logger.warn(
+      "[Assistant] Database connection failed, continuing without DB",
+      { error },
+    );
   }
 
   let user: SessionUser | null = null;
@@ -134,10 +149,10 @@ export async function POST(req: NextRequest) {
 
   /**
    * TOOL 1: Create New Ticket/Work Order
-   * 
+   *
    * When user requests ticket creation (via slash command or natural language),
    * we parse the intent, validate authentication, and create a work order in the database.
-   * 
+   *
    * Flow:
    * 1. Parse ticket details from question
    * 2. Verify user authentication
@@ -148,14 +163,22 @@ export async function POST(req: NextRequest) {
   const createArgs = parseNewTicket(q);
   if (createArgs) {
     if (!user) {
-      return NextResponse.json({ answer: "Please sign in to create a work order.", citations: [] });
+      return NextResponse.json({
+        answer: "Please sign in to create a work order.",
+        citations: [],
+      });
     }
     if (!createArgs.propertyId) {
-      return NextResponse.json({ answer: "Please specify a propertyId when creating a work order.", citations: [] });
+      return NextResponse.json({
+        answer: "Please specify a propertyId when creating a work order.",
+        citations: [],
+      });
     }
     try {
-      const allowedPriorities = ["LOW","MEDIUM","HIGH","URGENT","CRITICAL"];
-      const priority = allowedPriorities.includes(createArgs.priority) ? createArgs.priority : "MEDIUM";
+      const allowedPriorities = ["LOW", "MEDIUM", "HIGH", "URGENT", "CRITICAL"];
+      const priority = allowedPriorities.includes(createArgs.priority)
+        ? createArgs.priority
+        : "MEDIUM";
       const now = new Date();
       const wo = await WorkOrder.create({
         orgId: user.orgId,
@@ -166,97 +189,127 @@ export async function POST(req: NextRequest) {
         type: "MAINTENANCE",
         location: {
           propertyId: createArgs.propertyId,
-          unitNumber: createArgs.unitId
+          unitNumber: createArgs.unitId,
         },
         requester: {
           userId: user.id,
           type: "TENANT",
           name: user.id,
           contactInfo: {
-            email: (user as { email?: string }).email
-          }
+            email: (user as { email?: string }).email,
+          },
         },
         status: "SUBMITTED",
-        statusHistory: [{
-          fromStatus: "DRAFT",
-          toStatus: "SUBMITTED",
-          changedBy: user.id,
-          changedAt: now,
-          notes: "Created via assistant"
-        }],
-        createdBy: user.id
+        statusHistory: [
+          {
+            fromStatus: "DRAFT",
+            toStatus: "SUBMITTED",
+            changedBy: user.id,
+            changedAt: now,
+            notes: "Created via assistant",
+          },
+        ],
+        createdBy: user.id,
       });
       const answer = `Created work order ${(wo as unknown as WorkOrderItem).workOrderNumber} – "${wo.title}" with priority ${wo.priority}.`;
       return NextResponse.json({ answer, citations: [] as Citation[] });
     } catch (_e: unknown) {
       const errorMsg = _e instanceof Error ? _e.message : "unknown error";
-      return NextResponse.json({ answer: `Could not create work order: ${errorMsg}`, citations: [] as Citation[] });
+      return NextResponse.json({
+        answer: `Could not create work order: ${errorMsg}`,
+        citations: [] as Citation[],
+      });
     }
   }
 
   /**
    * TOOL 2: List User's Tickets
-   * 
+   *
    * Retrieves user's recent work orders when requested via:
    * - "/my-tickets" command
    * - Natural language like "show my tickets"
-   * 
+   *
    * Returns up to 5 most recent work orders with code, title, and status.
    * Requires authentication - anonymous users receive a sign-in prompt.
    */
   if (isMyTickets(q)) {
     if (!user) {
-      return NextResponse.json({ answer: "Please sign in to view your tickets.", citations: [] });
+      return NextResponse.json({
+        answer: "Please sign in to view your tickets.",
+        citations: [],
+      });
     }
-    const items = await WorkOrder.find({ orgId: user.orgId, 'requester.userId': user.id })
+    const items = await WorkOrder.find({
+      orgId: user.orgId,
+      "requester.userId": user.id,
+    })
       .sort({ createdAt: -1 })
       .limit(5)
       .select(["workOrderNumber", "title", "status"])
       .lean();
-    const lines = items.map((it) => `• ${(it as WorkOrderItem).workOrderNumber}: ${it.title} – ${it.status}`);
-    const answer = lines.length ? `Your recent work orders:\n${lines.join("\n")}` : "You have no work orders yet.";
+    const lines = items.map(
+      (it) =>
+        `• ${(it as WorkOrderItem).workOrderNumber}: ${it.title} – ${it.status}`,
+    );
+    const answer = lines.length
+      ? `Your recent work orders:\n${lines.join("\n")}`
+      : "You have no work orders yet.";
     return NextResponse.json({ answer, citations: [] as Citation[] });
   }
 
   /**
    * TOOL 3: Knowledge Base Search
-   * 
+   *
    * When question doesn't match specific tools, we search the Help Article KB
    * using MongoDB text search for relevant documentation.
-   * 
+   *
    * Search Strategy:
    * 1. Try MongoDB $text search for indexed content
    * 2. Fallback: Simple title/content substring matching
    * 3. Return top 5 articles with citations
-   * 
+   *
    * This provides general help without requiring authentication.
    */
   let docs: HelpArticleDoc[] = [];
   try {
-    docs = await HelpArticle.find({ status: "PUBLISHED", $text: { $search: q } })
-      .sort?.({ updatedAt: -1 })
-      .limit?.(5) || [];
+    docs =
+      (await HelpArticle.find({ status: "PUBLISHED", $text: { $search: q } })
+        .sort?.({ updatedAt: -1 })
+        .limit?.(5)) || [];
   } catch {
     // Fallback: simple title match in mock mode
     try {
-      docs = await HelpArticle.find({ status: "PUBLISHED" })
-        .sort?.({ updatedAt: -1 })
-        .limit?.(20) || [];
+      docs =
+        (await HelpArticle.find({ status: "PUBLISHED" })
+          .sort?.({ updatedAt: -1 })
+          .limit?.(20)) || [];
       const s = q.toLowerCase();
-      docs = docs.filter(d => (d.title || "").toLowerCase().includes(s) || (d.content || "").toLowerCase().includes(s)).slice(0, 5);
+      docs = docs
+        .filter(
+          (d) =>
+            (d.title || "").toLowerCase().includes(s) ||
+            (d.content || "").toLowerCase().includes(s),
+        )
+        .slice(0, 5);
     } catch (error) {
-      logger.warn('[Assistant] Help article search failed', { error, query: q });
+      logger.warn("[Assistant] Help article search failed", {
+        error,
+        query: q,
+      });
     }
   }
 
-  const citations: Citation[] = (docs || []).map((d: HelpArticleDoc) => ({ title: d.title, slug: d.slug })).slice(0, 5);
+  const citations: Citation[] = (docs || [])
+    .map((d: HelpArticleDoc) => ({ title: d.title, slug: d.slug }))
+    .slice(0, 5);
   let answer = "";
   if (docs?.length) {
     const d0 = docs[0];
     const firstPara = (d0.content || "").split(/\n\n+/)[0]?.trim() || d0.title;
     answer = `${firstPara}\n\nI included related help articles below.`;
   } else {
-    answer = "I could not find a specific article for that yet. Try rephrasing or ask about work orders, properties, invoices, or approvals.";
+    answer =
+      "I could not find a specific article for that yet. Try rephrasing or ask about work orders, properties, invoices, or approvals.";
   }
 
   return NextResponse.json({ answer, citations });

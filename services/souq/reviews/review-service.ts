@@ -3,12 +3,12 @@
  * @module services/souq/reviews/review-service
  */
 
-import { SouqReview, type IReview } from '@/server/models/souq/Review';
-import { SouqOrder } from '@/server/models/souq/Order';
-import { SouqProduct } from '@/server/models/souq/Product';
-import { nanoid } from 'nanoid';
-import type mongoose from 'mongoose';
-import { Types } from 'mongoose';
+import { SouqReview, type IReview } from "@/server/models/souq/Review";
+import { SouqOrder } from "@/server/models/souq/Order";
+import { SouqProduct } from "@/server/models/souq/Product";
+import { nanoid } from "nanoid";
+import type mongoose from "mongoose";
+import { Types } from "mongoose";
 
 export interface CreateReviewDto {
   productId: string;
@@ -34,10 +34,10 @@ export interface UpdateReviewDto {
 export interface ReviewFilters {
   rating?: number;
   verifiedOnly?: boolean;
-  sortBy?: 'recent' | 'helpful' | 'rating';
+  sortBy?: "recent" | "helpful" | "rating";
   page?: number;
   limit?: number;
-  status?: 'pending' | 'published' | 'rejected' | 'flagged';
+  status?: "pending" | "published" | "rejected" | "flagged";
 }
 
 export interface PaginatedReviews {
@@ -71,16 +71,17 @@ class ReviewService {
   async submitReview(orgId: string, data: CreateReviewDto): Promise<IReview> {
     this.assertRatingRange(data.rating);
 
-    const orgObjectId = this.ensureObjectId(orgId, 'orgId');
-    const productObjectId = this.ensureObjectId(data.productId, 'productId');
-    const customerObjectId = this.ensureObjectId(data.customerId, 'customerId');
+    const orgObjectId = this.ensureObjectId(orgId, "orgId");
+    const productObjectId = this.ensureObjectId(data.productId, "productId");
+    const customerObjectId = this.ensureObjectId(data.customerId, "customerId");
 
-    const product = await SouqProduct.findById(productObjectId).select('fsin isActive');
+    const product =
+      await SouqProduct.findById(productObjectId).select("fsin isActive");
     if (!product) {
-      throw new Error('Product not found');
+      throw new Error("Product not found");
     }
     if (product.isActive === false) {
-      throw new Error('Cannot review inactive product');
+      throw new Error("Cannot review inactive product");
     }
 
     // Check for duplicate review
@@ -91,7 +92,7 @@ class ReviewService {
     });
 
     if (existingReview) {
-      throw new Error('You have already reviewed this product');
+      throw new Error("You have already reviewed this product");
     }
 
     // Verify purchase if orderId provided
@@ -103,8 +104,8 @@ class ReviewService {
         orderId: data.orderId,
         customerId: customerObjectId,
         orgId: orgObjectId,
-        'items.productId': productObjectId,
-        status: 'delivered',
+        "items.productId": productObjectId,
+        status: "delivered",
       });
 
       if (order) {
@@ -129,7 +130,7 @@ class ReviewService {
       pros: data.pros || [],
       cons: data.cons || [],
       images: data.images || [],
-      status: 'pending', // Requires moderation
+      status: "pending", // Requires moderation
     });
 
     return review;
@@ -141,16 +142,16 @@ class ReviewService {
   async updateReview(
     reviewId: string,
     customerId: string,
-    data: UpdateReviewDto
+    data: UpdateReviewDto,
   ): Promise<IReview> {
     const review = await SouqReview.findOne({ reviewId, customerId });
 
     if (!review) {
-      throw new Error('Review not found or unauthorized');
+      throw new Error("Review not found or unauthorized");
     }
 
-    if (review.status === 'published') {
-      throw new Error('Cannot edit published reviews');
+    if (review.status === "published") {
+      throw new Error("Cannot edit published reviews");
     }
 
     // Update fields
@@ -159,7 +160,7 @@ class ReviewService {
     if (data.pros) review.pros = data.pros;
     if (data.cons) review.cons = data.cons;
     if (data.images) {
-      review.images = data.images.map(img => ({
+      review.images = data.images.map((img) => ({
         ...img,
         uploadedAt: new Date(),
       }));
@@ -176,11 +177,11 @@ class ReviewService {
     const review = await SouqReview.findOne({ reviewId, customerId });
 
     if (!review) {
-      throw new Error('Review not found or unauthorized');
+      throw new Error("Review not found or unauthorized");
     }
 
-    if (review.status === 'published') {
-      throw new Error('Cannot delete published reviews');
+    if (review.status === "published") {
+      throw new Error("Cannot delete published reviews");
     }
 
     await review.deleteOne();
@@ -193,10 +194,10 @@ class ReviewService {
     const review = await SouqReview.findOne({ reviewId });
 
     if (!review) {
-      throw new Error('Review not found');
+      throw new Error("Review not found");
     }
-    if (review.status !== 'published') {
-      throw new Error('Cannot vote on unpublished reviews');
+    if (review.status !== "published") {
+      throw new Error("Cannot vote on unpublished reviews");
     }
 
     // Increment helpful count (in production, track who voted to prevent duplicates)
@@ -209,14 +210,17 @@ class ReviewService {
   /**
    * Mark review as not helpful
    */
-  async markNotHelpful(reviewId: string, _customerId: string): Promise<IReview> {
+  async markNotHelpful(
+    reviewId: string,
+    _customerId: string,
+  ): Promise<IReview> {
     const review = await SouqReview.findOne({ reviewId });
 
     if (!review) {
-      throw new Error('Review not found');
+      throw new Error("Review not found");
     }
-    if (review.status !== 'published') {
-      throw new Error('Cannot vote on unpublished reviews');
+    if (review.status !== "published") {
+      throw new Error("Cannot vote on unpublished reviews");
     }
 
     // Increment not helpful count
@@ -233,7 +237,7 @@ class ReviewService {
     const review = await SouqReview.findOne({ reviewId });
 
     if (!review) {
-      throw new Error('Review not found');
+      throw new Error("Review not found");
     }
 
     // Increment report count
@@ -242,8 +246,8 @@ class ReviewService {
     review.reportReasons.push(reason);
 
     // Auto-flag if reported multiple times
-    if (review.reportedCount >= 3 && review.status === 'published') {
-      review.status = 'flagged';
+    if (review.reportedCount >= 3 && review.status === "published") {
+      review.status = "flagged";
     }
 
     await review.save();
@@ -256,29 +260,31 @@ class ReviewService {
   async respondToReview(
     reviewId: string,
     sellerId: string,
-    content: string
+    content: string,
   ): Promise<IReview> {
     const review = await SouqReview.findOne({ reviewId });
 
     if (!review) {
-      throw new Error('Review not found');
+      throw new Error("Review not found");
     }
 
-    if (review.status !== 'published') {
-      throw new Error('Can only respond to published reviews');
+    if (review.status !== "published") {
+      throw new Error("Can only respond to published reviews");
     }
 
-    const product = await SouqProduct.findById(review.productId).select('createdBy');
+    const product = await SouqProduct.findById(review.productId).select(
+      "createdBy",
+    );
     if (!Types.ObjectId.isValid(sellerId)) {
-      throw new Error('Invalid seller id');
+      throw new Error("Invalid seller id");
     }
     const ownerId =
-      typeof product?.createdBy === 'string'
+      typeof product?.createdBy === "string"
         ? product.createdBy
         : product?.createdBy?.toString?.();
 
     if (!product || ownerId !== sellerId) {
-      throw new Error('Unauthorized to respond to this review');
+      throw new Error("Unauthorized to respond to this review");
     }
 
     // Set seller response
@@ -297,7 +303,7 @@ class ReviewService {
    */
   async getSellerReviews(
     sellerId: string,
-    filters: ReviewFilters = {}
+    filters: ReviewFilters = {},
   ): Promise<PaginatedReviews> {
     const sellerProductIds = await this.getSellerProductIds(sellerId);
     if (sellerProductIds.length === 0) {
@@ -313,7 +319,7 @@ class ReviewService {
     const {
       rating,
       verifiedOnly,
-      sortBy = 'recent',
+      sortBy = "recent",
       page = 1,
       limit = 20,
       status,
@@ -330,9 +336,9 @@ class ReviewService {
 
     // Sort options
     let sortOptions: Record<string, 1 | -1> = { createdAt: -1 };
-    if (sortBy === 'helpful') {
+    if (sortBy === "helpful") {
       sortOptions = { helpful: -1 };
-    } else if (sortBy === 'rating') {
+    } else if (sortBy === "rating") {
       sortOptions = { rating: -1 };
     }
 
@@ -357,12 +363,12 @@ class ReviewService {
    */
   async getProductReviews(
     productId: string,
-    filters: ReviewFilters = {}
+    filters: ReviewFilters = {},
   ): Promise<PaginatedReviews> {
     const {
       rating,
       verifiedOnly,
-      sortBy = 'recent',
+      sortBy = "recent",
       page = 1,
       limit = 20,
     } = filters;
@@ -370,7 +376,7 @@ class ReviewService {
     // Build query
     const query: Record<string, unknown> = {
       productId,
-      status: 'published', // Only show published reviews
+      status: "published", // Only show published reviews
     };
 
     if (rating) query.rating = rating;
@@ -378,9 +384,9 @@ class ReviewService {
 
     // Sort options
     let sortOptions: Record<string, 1 | -1> = { createdAt: -1 };
-    if (sortBy === 'helpful') {
+    if (sortBy === "helpful") {
       sortOptions = { helpful: -1 };
-    } else if (sortBy === 'rating') {
+    } else if (sortBy === "rating") {
       sortOptions = { rating: -1 };
     }
 
@@ -410,14 +416,17 @@ class ReviewService {
   /**
    * Approve review (moderator)
    */
-  async approveReview(reviewId: string, _moderatorId: string): Promise<IReview> {
+  async approveReview(
+    reviewId: string,
+    _moderatorId: string,
+  ): Promise<IReview> {
     const review = await SouqReview.findOne({ reviewId });
 
     if (!review) {
-      throw new Error('Review not found');
+      throw new Error("Review not found");
     }
 
-    review.status = 'published';
+    review.status = "published";
     review.publishedAt = new Date();
     await review.save();
     await this.updateProductAggregates(review.productId);
@@ -431,15 +440,15 @@ class ReviewService {
   async rejectReview(
     reviewId: string,
     _moderatorId: string,
-    notes: string
+    notes: string,
   ): Promise<IReview> {
     const review = await SouqReview.findOne({ reviewId });
 
     if (!review) {
-      throw new Error('Review not found');
+      throw new Error("Review not found");
     }
 
-    review.status = 'rejected';
+    review.status = "rejected";
     review.moderationNotes = notes;
     await review.save();
     await this.updateProductAggregates(review.productId);
@@ -454,10 +463,10 @@ class ReviewService {
     const review = await SouqReview.findOne({ reviewId });
 
     if (!review) {
-      throw new Error('Review not found');
+      throw new Error("Review not found");
     }
 
-    review.status = 'flagged';
+    review.status = "flagged";
     review.moderationNotes = reason;
     await review.save();
     await this.updateProductAggregates(review.productId);
@@ -469,7 +478,7 @@ class ReviewService {
    * Get review statistics for a product
    */
   async getReviewStats(productId: string): Promise<ReviewStats> {
-    const productObjectId = this.ensureObjectId(productId, 'productId');
+    const productObjectId = this.ensureObjectId(productId, "productId");
     const [stats] = await SouqReview.aggregate<{
       totalReviews: number;
       totalRating: number;
@@ -480,20 +489,20 @@ class ReviewService {
       star4: number;
       star5: number;
     }>([
-      { $match: { productId: productObjectId, status: 'published' } },
+      { $match: { productId: productObjectId, status: "published" } },
       {
         $group: {
-          _id: '$productId',
+          _id: "$productId",
           totalReviews: { $sum: 1 },
-          totalRating: { $sum: '$rating' },
+          totalRating: { $sum: "$rating" },
           verifiedPurchaseCount: {
-            $sum: { $cond: [{ $eq: ['$isVerifiedPurchase', true] }, 1, 0] },
+            $sum: { $cond: [{ $eq: ["$isVerifiedPurchase", true] }, 1, 0] },
           },
-          star1: { $sum: { $cond: [{ $eq: ['$rating', 1] }, 1, 0] } },
-          star2: { $sum: { $cond: [{ $eq: ['$rating', 2] }, 1, 0] } },
-          star3: { $sum: { $cond: [{ $eq: ['$rating', 3] }, 1, 0] } },
-          star4: { $sum: { $cond: [{ $eq: ['$rating', 4] }, 1, 0] } },
-          star5: { $sum: { $cond: [{ $eq: ['$rating', 5] }, 1, 0] } },
+          star1: { $sum: { $cond: [{ $eq: ["$rating", 1] }, 1, 0] } },
+          star2: { $sum: { $cond: [{ $eq: ["$rating", 2] }, 1, 0] } },
+          star3: { $sum: { $cond: [{ $eq: ["$rating", 3] }, 1, 0] } },
+          star4: { $sum: { $cond: [{ $eq: ["$rating", 4] }, 1, 0] } },
+          star5: { $sum: { $cond: [{ $eq: ["$rating", 5] }, 1, 0] } },
         },
       },
     ]);
@@ -507,12 +516,13 @@ class ReviewService {
     };
 
     const totalReviews = stats?.totalReviews ?? 0;
-    const averageRating = totalReviews > 0 ? stats!.totalRating / totalReviews : 0;
+    const averageRating =
+      totalReviews > 0 ? stats!.totalRating / totalReviews : 0;
     const verifiedPurchaseCount = stats?.verifiedPurchaseCount ?? 0;
 
     const recentReviews = await SouqReview.find({
       productId: productObjectId,
-      status: 'published',
+      status: "published",
     })
       .sort({ createdAt: -1 })
       .limit(5);
@@ -542,7 +552,7 @@ class ReviewService {
     }
 
     const reviews = await SouqReview.find({
-      status: 'published',
+      status: "published",
       productId: { $in: sellerProductIds },
     });
 
@@ -554,7 +564,9 @@ class ReviewService {
 
     const pendingResponses = reviews.filter((r) => !r.sellerResponse).length;
     const responseRate =
-      totalReviews > 0 ? ((totalReviews - pendingResponses) / totalReviews) * 100 : 0;
+      totalReviews > 0
+        ? ((totalReviews - pendingResponses) / totalReviews) * 100
+        : 0;
 
     const recentReviews = reviews
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
@@ -570,17 +582,22 @@ class ReviewService {
   }
 
   private async getSellerProductIds(
-    sellerId: string
+    sellerId: string,
   ): Promise<mongoose.Types.ObjectId[]> {
     if (!sellerId || !Types.ObjectId.isValid(sellerId)) {
       return [];
     }
 
-    const products = await SouqProduct.find({ createdBy: sellerId }).select('_id').lean();
+    const products = await SouqProduct.find({ createdBy: sellerId })
+      .select("_id")
+      .lean();
     return products.map((product) => product._id);
   }
 
-  private ensureObjectId(id: string, fieldName: string): mongoose.Types.ObjectId {
+  private ensureObjectId(
+    id: string,
+    fieldName: string,
+  ): mongoose.Types.ObjectId {
     if (!Types.ObjectId.isValid(id)) {
       throw new Error(`Invalid ${fieldName}`);
     }
@@ -589,11 +606,13 @@ class ReviewService {
 
   private assertRatingRange(rating: number): void {
     if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
-      throw new Error('Rating must be between 1 and 5');
+      throw new Error("Rating must be between 1 and 5");
     }
   }
 
-  private async updateProductAggregates(productId: mongoose.Types.ObjectId): Promise<void> {
+  private async updateProductAggregates(
+    productId: mongoose.Types.ObjectId,
+  ): Promise<void> {
     const [stats] = await SouqReview.aggregate<{
       totalReviews: number;
       totalRating: number;
@@ -603,17 +622,17 @@ class ReviewService {
       star4: number;
       star5: number;
     }>([
-      { $match: { productId, status: 'published' } },
+      { $match: { productId, status: "published" } },
       {
         $group: {
-          _id: '$productId',
+          _id: "$productId",
           totalReviews: { $sum: 1 },
-          totalRating: { $sum: '$rating' },
-          star1: { $sum: { $cond: [{ $eq: ['$rating', 1] }, 1, 0] } },
-          star2: { $sum: { $cond: [{ $eq: ['$rating', 2] }, 1, 0] } },
-          star3: { $sum: { $cond: [{ $eq: ['$rating', 3] }, 1, 0] } },
-          star4: { $sum: { $cond: [{ $eq: ['$rating', 4] }, 1, 0] } },
-          star5: { $sum: { $cond: [{ $eq: ['$rating', 5] }, 1, 0] } },
+          totalRating: { $sum: "$rating" },
+          star1: { $sum: { $cond: [{ $eq: ["$rating", 1] }, 1, 0] } },
+          star2: { $sum: { $cond: [{ $eq: ["$rating", 2] }, 1, 0] } },
+          star3: { $sum: { $cond: [{ $eq: ["$rating", 3] }, 1, 0] } },
+          star4: { $sum: { $cond: [{ $eq: ["$rating", 4] }, 1, 0] } },
+          star5: { $sum: { $cond: [{ $eq: ["$rating", 5] }, 1, 0] } },
         },
       },
     ]);
@@ -627,7 +646,8 @@ class ReviewService {
     };
 
     const totalReviews = stats?.totalReviews ?? 0;
-    const averageRating = totalReviews > 0 ? stats!.totalRating / totalReviews : 0;
+    const averageRating =
+      totalReviews > 0 ? stats!.totalRating / totalReviews : 0;
 
     await SouqProduct.updateOne(
       { _id: productId },
@@ -637,7 +657,7 @@ class ReviewService {
           reviewCount: totalReviews,
           ratingDistribution: distribution,
         },
-      }
+      },
     );
   }
 }

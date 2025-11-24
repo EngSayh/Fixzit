@@ -1,12 +1,12 @@
 /**
  * CPC Auction Engine
- * 
+ *
  * Implements second-price auction (Vickrey auction) for sponsored products.
  * Winner pays the second-highest bid + $0.01, up to their max bid.
- * 
+ *
  * Quality Score = CTR (historical) * Relevance Score (0-1)
  * Ad Rank = Bid * Quality Score
- * 
+ *
  * Auction Types:
  * - Sponsored Products (search results)
  * - Sponsored Brands (banner ads)
@@ -16,8 +16,8 @@
 interface AdCampaign {
   campaignId: string;
   sellerId: string;
-  type: 'sponsored_products' | 'sponsored_brands' | 'product_display';
-  status: 'active' | 'paused' | 'ended';
+  type: "sponsored_products" | "sponsored_brands" | "product_display";
+  status: "active" | "paused" | "ended";
   dailyBudget: number;
   spentToday: number;
   bids?: AdBid[];
@@ -26,12 +26,12 @@ interface AdCampaign {
 interface AdBid {
   bidId: string;
   campaignId: string;
-  targetType: 'keyword' | 'category' | 'product' | 'asin';
+  targetType: "keyword" | "category" | "product" | "asin";
   targetValue: string; // keyword text, category ID, or product FSIN
   bidAmount: number; // Max CPC bid
   productId: string; // FSIN of advertised product
-  status: 'active' | 'paused';
-  matchType?: 'exact' | 'phrase' | 'broad';
+  status: "active" | "paused";
+  matchType?: "exact" | "phrase" | "broad";
 }
 
 interface AdCandidate {
@@ -81,11 +81,14 @@ export class AuctionEngine {
    */
   static async runSearchAuction(
     context: AuctionContext,
-    numSlots: number = 3
+    numSlots: number = 3,
   ): Promise<AuctionWinner[]> {
     // Fetch eligible campaigns
-    const campaigns = await this.fetchEligibleCampaigns('sponsored_products', context);
-    
+    const campaigns = await this.fetchEligibleCampaigns(
+      "sponsored_products",
+      context,
+    );
+
     if (campaigns.length === 0) return [];
 
     // Build candidate list
@@ -122,7 +125,7 @@ export class AuctionEngine {
 
     // Select winners and calculate CPC (second-price auction)
     const winners: AuctionWinner[] = [];
-    
+
     for (let i = 0; i < Math.min(numSlots, candidates.length); i++) {
       const winner = candidates[i];
       const nextBid = candidates[i + 1];
@@ -132,7 +135,7 @@ export class AuctionEngine {
       let actualCpc = winner.bid.bidAmount; // Default to max bid
 
       if (nextBid) {
-        const secondPrice = (nextBid.adRank / winner.qualityScore) + 0.01;
+        const secondPrice = nextBid.adRank / winner.qualityScore + 0.01;
         actualCpc = Math.min(secondPrice, winner.bid.bidAmount);
       }
 
@@ -156,10 +159,13 @@ export class AuctionEngine {
    */
   static async runProductDisplayAuction(
     context: AuctionContext,
-    numSlots: number = 2
+    numSlots: number = 2,
   ): Promise<AuctionWinner[]> {
-    const campaigns = await this.fetchEligibleCampaigns('product_display', context);
-    
+    const campaigns = await this.fetchEligibleCampaigns(
+      "product_display",
+      context,
+    );
+
     if (campaigns.length === 0) return [];
 
     const candidates: AdCandidate[] = [];
@@ -191,7 +197,7 @@ export class AuctionEngine {
     candidates.sort((a, b) => b.adRank - a.adRank);
 
     const winners: AuctionWinner[] = [];
-    
+
     for (let i = 0; i < Math.min(numSlots, candidates.length); i++) {
       const winner = candidates[i];
       const nextBid = candidates[i + 1];
@@ -199,7 +205,7 @@ export class AuctionEngine {
       let actualCpc = winner.bid.bidAmount;
 
       if (nextBid) {
-        const secondPrice = (nextBid.adRank / winner.qualityScore) + 0.01;
+        const secondPrice = nextBid.adRank / winner.qualityScore + 0.01;
         actualCpc = Math.min(secondPrice, winner.bid.bidAmount);
       }
 
@@ -221,7 +227,7 @@ export class AuctionEngine {
   /**
    * Calculate Quality Score (0-10)
    * Quality Score = CTR * Relevance * Landing Page Quality
-   * 
+   *
    * Factors:
    * - Historical CTR (click-through rate)
    * - Ad relevance to query
@@ -229,15 +235,14 @@ export class AuctionEngine {
    */
   private static async calculateQualityScore(
     bid: AdBid,
-    context: AuctionContext
+    context: AuctionContext,
   ): Promise<number> {
     // Fetch historical performance
     const stats = await this.fetchBidStats(bid.bidId);
-    
+
     // CTR component (0-1)
-    const ctr = stats.impressions > 100 
-      ? stats.clicks / stats.impressions 
-      : 0.05; // Default CTR for new ads
+    const ctr =
+      stats.impressions > 100 ? stats.clicks / stats.impressions : 0.05; // Default CTR for new ads
 
     // Normalize CTR to 0-1 scale (assume 0.5% = 1.0, 5% = 10.0)
     const ctrScore = Math.min(ctr * 200, 10);
@@ -253,9 +258,8 @@ export class AuctionEngine {
     const normalizedRelevance = relevanceScore * 10;
     const normalizedLpq = lpqScore * 10;
 
-    const qualityScore = (ctrScore * 0.5)
-      + (normalizedRelevance * 0.3)
-      + (normalizedLpq * 0.2);
+    const qualityScore =
+      ctrScore * 0.5 + normalizedRelevance * 0.3 + normalizedLpq * 0.2;
 
     return Math.max(0.1, Math.min(10, qualityScore)); // Clamp to 0.1-10
   }
@@ -266,17 +270,20 @@ export class AuctionEngine {
    */
   private static calculateRelevanceScore(
     bid: AdBid,
-    context: AuctionContext
+    context: AuctionContext,
   ): number {
-    if (bid.targetType === 'keyword' && context.query) {
+    if (bid.targetType === "keyword" && context.query) {
       return this.calculateKeywordRelevance(bid, context.query);
     }
 
-    if (bid.targetType === 'category' && context.category) {
+    if (bid.targetType === "category" && context.category) {
       return bid.targetValue === context.category ? 1.0 : 0.3;
     }
 
-    if ((bid.targetType === 'product' || bid.targetType === 'asin') && context.productId) {
+    if (
+      (bid.targetType === "product" || bid.targetType === "asin") &&
+      context.productId
+    ) {
       return bid.targetValue === context.productId ? 1.0 : 0.5;
     }
 
@@ -288,12 +295,16 @@ export class AuctionEngine {
    * Calculate Landing Page Quality (0-1)
    * Based on product rating, reviews, conversion rate
    */
-  private static async calculateLandingPageQuality(productId: string): Promise<number> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+  private static async calculateLandingPageQuality(
+    productId: string,
+  ): Promise<number> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    const product = await db.collection('souq_products').findOne({ fsin: productId });
-    
+    const product = await db
+      .collection("souq_products")
+      .findOne({ fsin: productId });
+
     if (!product) return 0.5; // Default quality
 
     const rating = product.rating || 0;
@@ -306,7 +317,7 @@ export class AuctionEngine {
     const reviewScore = Math.min(totalReviews / 100, 1);
 
     // Weighted average
-    return (ratingScore * 0.7) + (reviewScore * 0.3);
+    return ratingScore * 0.7 + reviewScore * 0.3;
   }
 
   /**
@@ -314,22 +325,25 @@ export class AuctionEngine {
    */
   private static getMatchingBids(
     bids: AdBid[],
-    context: AuctionContext
+    context: AuctionContext,
   ): AdBid[] {
     const query = context.query?.trim();
 
-    return bids.filter(bid => {
-      if (bid.status !== 'active') return false;
+    return bids.filter((bid) => {
+      if (bid.status !== "active") return false;
 
-      if (bid.targetType === 'keyword' && query) {
+      if (bid.targetType === "keyword" && query) {
         return this.keywordMatches(bid.targetValue, bid.matchType, query);
       }
 
-      if (bid.targetType === 'category' && context.category) {
+      if (bid.targetType === "category" && context.category) {
         return bid.targetValue === context.category;
       }
 
-      if ((bid.targetType === 'product' || bid.targetType === 'asin') && context.productId) {
+      if (
+        (bid.targetType === "product" || bid.targetType === "asin") &&
+        context.productId
+      ) {
         return bid.targetValue === context.productId;
       }
 
@@ -342,18 +356,18 @@ export class AuctionEngine {
    */
   private static keywordMatches(
     keyword: string,
-    matchType: AdBid['matchType'],
-    query: string
+    matchType: AdBid["matchType"],
+    query: string,
   ): boolean {
     const stats = this.getKeywordMatchStats(keyword, query);
-    const type = matchType ?? 'broad';
+    const type = matchType ?? "broad";
 
     switch (type) {
-      case 'exact':
+      case "exact":
         return stats.exact;
-      case 'phrase':
+      case "phrase":
         return stats.exact || stats.includes;
-      case 'broad':
+      case "broad":
       default:
         return stats.exact || stats.includes || stats.overlapRatio > 0;
     }
@@ -364,16 +378,16 @@ export class AuctionEngine {
    */
   private static calculateKeywordRelevance(bid: AdBid, query: string): number {
     const stats = this.getKeywordMatchStats(bid.targetValue, query);
-    const matchType = bid.matchType ?? 'broad';
+    const matchType = bid.matchType ?? "broad";
 
     switch (matchType) {
-      case 'exact':
+      case "exact":
         return stats.exact ? 1 : 0;
-      case 'phrase':
+      case "phrase":
         if (stats.exact) return 1;
         if (stats.includes) return 0.9;
         return Math.min(0.8, stats.overlapRatio * 0.8);
-      case 'broad':
+      case "broad":
       default:
         if (stats.exact) return 1;
         if (stats.includes) {
@@ -385,7 +399,7 @@ export class AuctionEngine {
 
   private static getKeywordMatchStats(
     keyword: string,
-    rawQuery: string
+    rawQuery: string,
   ): {
     exact: boolean;
     includes: boolean;
@@ -396,7 +410,9 @@ export class AuctionEngine {
 
     const queryWords = query.split(/\s+/).filter(Boolean);
     const keywordWords = normalizedKeyword.split(/\s+/).filter(Boolean);
-    const overlap = keywordWords.filter(word => queryWords.includes(word)).length;
+    const overlap = keywordWords.filter((word) =>
+      queryWords.includes(word),
+    ).length;
     const maxWords = Math.max(keywordWords.length, queryWords.length);
 
     return {
@@ -410,11 +426,11 @@ export class AuctionEngine {
    * Fetch the most recent bids for a campaign from the canonical collection
    */
   private static async fetchCampaignBids(campaignId: string): Promise<AdBid[]> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const bids = await db
-      .collection<AdBid>('souq_ad_bids')
+      .collection<AdBid>("souq_ad_bids")
       .find({ campaignId })
       .toArray();
 
@@ -425,18 +441,18 @@ export class AuctionEngine {
    * Fetch eligible campaigns from database
    */
   private static async fetchEligibleCampaigns(
-    type: 'sponsored_products' | 'sponsored_brands' | 'product_display',
-    _context: AuctionContext
+    type: "sponsored_products" | "sponsored_brands" | "product_display",
+    _context: AuctionContext,
   ): Promise<AdCampaign[]> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const campaigns = await db
-      .collection<AdCampaign>('souq_ad_campaigns')
+      .collection<AdCampaign>("souq_ad_campaigns")
       .find({
         type,
-        status: 'active',
-        $expr: { $lt: ['$spentToday', '$dailyBudget'] },
+        status: "active",
+        $expr: { $lt: ["$spentToday", "$dailyBudget"] },
       })
       .toArray();
 
@@ -452,10 +468,10 @@ export class AuctionEngine {
     conversions: number;
     spend: number;
   }> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    const stats = await db.collection('souq_ad_stats').findOne({ bidId });
+    const stats = await db.collection("souq_ad_stats").findOne({ bidId });
 
     return {
       impressions: stats?.impressions || 0,
@@ -471,13 +487,13 @@ export class AuctionEngine {
   static async recordImpression(
     bidId: string,
     campaignId: string,
-    context: AuctionContext
+    context: AuctionContext,
   ): Promise<void> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    await db.collection('souq_ad_events').insertOne({
-      eventType: 'impression',
+    await db.collection("souq_ad_events").insertOne({
+      eventType: "impression",
       bidId,
       campaignId,
       timestamp: new Date(),
@@ -489,13 +505,13 @@ export class AuctionEngine {
     });
 
     // Update aggregated stats
-    await db.collection('souq_ad_stats').updateOne(
+    await db.collection("souq_ad_stats").updateOne(
       { bidId },
       {
         $inc: { impressions: 1 },
         $setOnInsert: { clicks: 0, conversions: 0, spend: 0 },
       },
-      { upsert: true }
+      { upsert: true },
     );
   }
 
@@ -506,13 +522,13 @@ export class AuctionEngine {
     bidId: string,
     campaignId: string,
     actualCpc: number,
-    context: AuctionContext
+    context: AuctionContext,
   ): Promise<void> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    await db.collection('souq_ad_events').insertOne({
-      eventType: 'click',
+    await db.collection("souq_ad_events").insertOne({
+      eventType: "click",
       bidId,
       campaignId,
       cpc: actualCpc,
@@ -525,23 +541,23 @@ export class AuctionEngine {
     });
 
     // Update aggregated stats
-    await db.collection('souq_ad_stats').updateOne(
+    await db.collection("souq_ad_stats").updateOne(
       { bidId },
       {
-        $inc: { 
+        $inc: {
           clicks: 1,
           spend: actualCpc,
         },
       },
-      { upsert: true }
+      { upsert: true },
     );
 
     // Update campaign spend
-    await db.collection('souq_ad_campaigns').updateOne(
+    await db.collection("souq_ad_campaigns").updateOne(
       { campaignId },
       {
         $inc: { spentToday: actualCpc },
-      }
+      },
     );
   }
 
@@ -551,13 +567,13 @@ export class AuctionEngine {
   static async recordConversion(
     bidId: string,
     campaignId: string,
-    orderValue: number
+    orderValue: number,
   ): Promise<void> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    await db.collection('souq_ad_events').insertOne({
-      eventType: 'conversion',
+    await db.collection("souq_ad_events").insertOne({
+      eventType: "conversion",
       bidId,
       campaignId,
       orderValue,
@@ -565,15 +581,15 @@ export class AuctionEngine {
     });
 
     // Update aggregated stats
-    await db.collection('souq_ad_stats').updateOne(
+    await db.collection("souq_ad_stats").updateOne(
       { bidId },
       {
-        $inc: { 
+        $inc: {
           conversions: 1,
           revenue: orderValue,
         },
       },
-      { upsert: true }
+      { upsert: true },
     );
   }
 }

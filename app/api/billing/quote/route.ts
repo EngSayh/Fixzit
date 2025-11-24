@@ -1,9 +1,9 @@
-import { NextRequest } from 'next/server';
-import { computeQuote } from '@/lib/pricing';
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { NextRequest } from "next/server";
+import { computeQuote } from "@/lib/pricing";
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
 
 /**
  * @openapi
@@ -34,4 +34,3 @@ export async function POST(req: NextRequest) {
   const q = await computeQuote(input);
   return createSecureResponse(q);
 }
-

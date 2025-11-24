@@ -1,19 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError } from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
 
-const DEFAULT_PUBLIC_STATUSES = ['PUBLISHED', 'BIDDING'];
+const DEFAULT_PUBLIC_STATUSES = ["PUBLISHED", "BIDDING"];
 
 async function ensureDatabaseConnection() {
-  if (process.env.NODE_ENV === 'test') {
+  if (process.env.NODE_ENV === "test") {
     return;
   }
-  const { connectToDatabase } = await import('@/lib/mongodb-unified');
+  const { connectToDatabase } = await import("@/lib/mongodb-unified");
   await connectToDatabase();
 }
 
@@ -24,7 +24,10 @@ const QuerySchema = z.object({
   city: z.string().optional(),
   search: z.string().optional(),
   page: z.coerce.number().default(1),
-  limit: z.coerce.number().default(12).refine(val => val <= 50, { message: 'Limit must be 50 or less' })
+  limit: z.coerce
+    .number()
+    .default(12)
+    .refine((val) => val <= 50, { message: "Limit must be 50 or less" }),
 });
 
 const toIsoString = (value: unknown) => {
@@ -65,7 +68,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const query = QuerySchema.parse(Object.fromEntries(searchParams));
 
-    const defaultTenant = process.env.NEXT_PUBLIC_MARKETPLACE_TENANT || 'demo-tenant';
+    const defaultTenant =
+      process.env.NEXT_PUBLIC_MARKETPLACE_TENANT || "demo-tenant";
     const tenantId = query.tenantId || defaultTenant;
 
     const page = Math.max(1, query.page);
@@ -74,7 +78,7 @@ export async function GET(req: NextRequest) {
 
     const filter: Record<string, unknown> = {
       tenantId,
-      status: query.status ? query.status : { $in: DEFAULT_PUBLIC_STATUSES }
+      status: query.status ? query.status : { $in: DEFAULT_PUBLIC_STATUSES },
     };
 
     if (query.category) {
@@ -82,21 +86,17 @@ export async function GET(req: NextRequest) {
     }
 
     if (query.city) {
-      filter['location.city'] = query.city;
+      filter["location.city"] = query.city;
     }
 
     if (query.search) {
       filter.$text = { $search: query.search };
     }
 
-    const { RFQ } = await import('@/server/models/RFQ');
+    const { RFQ } = await import("@/server/models/RFQ");
     const [items, total] = await Promise.all([
-      RFQ.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      RFQ.countDocuments(filter)
+      RFQ.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      RFQ.countDocuments(filter),
     ]);
 
     interface RFQItem {
@@ -110,8 +110,18 @@ export async function GET(req: NextRequest) {
       status?: string;
       location?: { city?: string; region?: string; radius?: number };
       budget?: { estimated?: number; currency?: string; range?: string };
-      timeline?: { publishDate?: unknown; bidDeadline?: unknown; startDate?: unknown; completionDate?: unknown };
-      bidding?: { targetBids?: number; maxBids?: number; anonymous?: boolean; bidLeveling?: boolean };
+      timeline?: {
+        publishDate?: unknown;
+        bidDeadline?: unknown;
+        startDate?: unknown;
+        completionDate?: unknown;
+      };
+      bidding?: {
+        targetBids?: number;
+        maxBids?: number;
+        anonymous?: boolean;
+        bidLeveling?: boolean;
+      };
       requirements?: unknown;
       bids?: unknown[];
       contact?: { name?: string; email?: string; phone?: string };
@@ -133,14 +143,14 @@ export async function GET(req: NextRequest) {
         ? {
             city: item.location.city ?? null,
             region: item.location.region ?? null,
-            radius: item.location.radius ?? null
+            radius: item.location.radius ?? null,
           }
         : null,
       budget: item.budget
         ? {
             estimated: item.budget.estimated ?? null,
-            currency: item.budget.currency ?? 'SAR',
-            range: item.budget.range ?? null
+            currency: item.budget.currency ?? "SAR",
+            range: item.budget.range ?? null,
           }
         : null,
       timeline: item.timeline
@@ -148,7 +158,7 @@ export async function GET(req: NextRequest) {
             publishDate: toIsoString(item.timeline.publishDate),
             bidDeadline: toIsoString(item.timeline.bidDeadline),
             startDate: toIsoString(item.timeline.startDate),
-            completionDate: toIsoString(item.timeline.completionDate)
+            completionDate: toIsoString(item.timeline.completionDate),
           }
         : null,
       bidding: item.bidding
@@ -156,13 +166,13 @@ export async function GET(req: NextRequest) {
             targetBids: item.bidding.targetBids ?? 0,
             maxBids: item.bidding.maxBids ?? null,
             anonymous: item.bidding.anonymous ?? true,
-            bidLeveling: item.bidding.bidLeveling ?? false
+            bidLeveling: item.bidding.bidLeveling ?? false,
           }
         : null,
       requirements: item.requirements ?? null,
       bidsCount: Array.isArray(item.bids) ? item.bids.length : 0,
       createdAt: toIsoString(item.createdAt),
-      updatedAt: toIsoString(item.updatedAt)
+      updatedAt: toIsoString(item.updatedAt),
     }));
 
     return NextResponse.json({
@@ -174,19 +184,22 @@ export async function GET(req: NextRequest) {
           limit,
           total,
           pages: Math.ceil(total / limit),
-          tenantId
-        }
-      }
+          tenantId,
+        },
+      },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid query parameters', details: error.issues },
-        { status: 400 }
+        { error: "Invalid query parameters", details: error.issues },
+        { status: 400 },
       );
     }
 
-    logger.error('Public RFQ fetch error:', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Internal server error' }, 500, req);
+    logger.error(
+      "Public RFQ fetch error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Internal server error" }, 500, req);
   }
 }

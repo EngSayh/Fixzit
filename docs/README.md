@@ -52,21 +52,21 @@
 
    ```bash
    # Install MongoDB Community Edition
-   
+
    # Ubuntu/Debian:
    curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
    echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
    sudo apt update && sudo apt install -y mongodb-org
-   
-   # macOS: 
+
+   # macOS:
    brew tap mongodb/brew
    brew install mongodb-community
-   
+
    # Windows: Download from https://www.mongodb.com/try/download/community
-   
+
    # Start MongoDB service
    sudo mongod --fork --logpath /var/log/mongodb/mongod.log --dbpath /var/lib/mongodb
-   
+
    # Verify MongoDB is running
    mongosh --eval "db.runCommand('ping').ok"  # Should return 1
    ```
@@ -77,10 +77,10 @@
    ```bash
    # Install as dev dependency (recommended)
    npm install -D tsx
-   
+
    # Or install globally
    npm install -g tsx
-   
+
    # Alternatively, run scripts via npx without installing
    npx tsx scripts/setup-guardrails.ts
    ```
@@ -184,7 +184,7 @@ Authentication:
 
 Business Modules:
 - /api/properties
-- /api/workorders  
+- /api/workorders
 - /api/finance
 - /api/marketplace
 - /api/vendors
@@ -242,7 +242,7 @@ The system is production-ready with:
    ```bash
    # Check if MongoDB is running
    mongosh --eval "db.runCommand({connectionStatus : 1})"
-   
+
    # If not running, start it:
    mongod --dbpath ./data/db
    ```
@@ -252,7 +252,7 @@ The system is production-ready with:
    ```bash
    # Test the connection
    npm run verify:mongo
-   
+
    # Full system verification
    npm run doctor
    ```
@@ -262,10 +262,10 @@ The system is production-ready with:
    ```bash
    # Connect to MongoDB shell
    mongosh mongodb://localhost:27017/fixzit
-   
+
    # View collections
    show collections
-   
+
    # View documents
    db.users.find().pretty()
    ```

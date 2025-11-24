@@ -1,10 +1,17 @@
-import { Schema, Document } from 'mongoose';
-import { getModel } from '@/src/types/mongoose-compat';
-import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
-import { auditPlugin } from '../plugins/auditPlugin';
+import { Schema, Document } from "mongoose";
+import { getModel } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
 
-const PolicyStatuses = ['DRAFT', 'UNDER_REVIEW', 'ACTIVE', 'RETIRED'] as const;
-const PolicyCategories = ['OPERATIONS', 'FINANCE', 'HR', 'SAFETY', 'COMPLIANCE', 'VENDOR'] as const;
+const PolicyStatuses = ["DRAFT", "UNDER_REVIEW", "ACTIVE", "RETIRED"] as const;
+const PolicyCategories = [
+  "OPERATIONS",
+  "FINANCE",
+  "HR",
+  "SAFETY",
+  "COMPLIANCE",
+  "VENDOR",
+] as const;
 
 export type CompliancePolicyStatus = (typeof PolicyStatuses)[number];
 export type CompliancePolicyCategory = (typeof PolicyCategories)[number];
@@ -36,9 +43,9 @@ const CompliancePolicySchema = new Schema<CompliancePolicyDocument>(
     owner: { type: String, required: true, trim: true },
     summary: { type: String, trim: true },
     body: { type: String },
-    category: { type: String, enum: PolicyCategories, default: 'COMPLIANCE' },
-    status: { type: String, enum: PolicyStatuses, default: 'DRAFT' },
-    version: { type: String, default: '1.0' },
+    category: { type: String, enum: PolicyCategories, default: "COMPLIANCE" },
+    status: { type: String, enum: PolicyStatuses, default: "DRAFT" },
+    version: { type: String, default: "1.0" },
     reviewFrequencyDays: { type: Number, default: 365 },
     effectiveFrom: { type: Date },
     reviewDate: { type: Date },
@@ -55,15 +62,20 @@ const CompliancePolicySchema = new Schema<CompliancePolicyDocument>(
       default: [],
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-CompliancePolicySchema.plugin(tenantIsolationPlugin, { uniqueTenantFields: ['title'] });
+CompliancePolicySchema.plugin(tenantIsolationPlugin, {
+  uniqueTenantFields: ["title"],
+});
 CompliancePolicySchema.plugin(auditPlugin);
 
 CompliancePolicySchema.index({ orgId: 1, status: 1 });
 CompliancePolicySchema.index({ orgId: 1, category: 1 });
 CompliancePolicySchema.index({ orgId: 1, reviewDate: 1 });
 
-const CompliancePolicy = getModel<CompliancePolicyDocument>('CompliancePolicy', CompliancePolicySchema);
+const CompliancePolicy = getModel<CompliancePolicyDocument>(
+  "CompliancePolicy",
+  CompliancePolicySchema,
+);
 export default CompliancePolicy;

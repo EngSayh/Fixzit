@@ -1,7 +1,7 @@
-import crypto from 'crypto';
-import { logger } from '@/lib/logger';
-import { connectDb } from '@/lib/mongo';
-import { AqarListing } from '@/models/aqar';
+import crypto from "crypto";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongo";
+import { AqarListing } from "@/models/aqar";
 import {
   ListingStatus,
   type IListing,
@@ -12,20 +12,20 @@ import {
   ListingIntent,
   PropertyType,
   SmartHomeLevel,
-} from '@/models/aqar/Listing';
-import type { FilterQuery } from 'mongoose';
-import { Types } from 'mongoose';
+} from "@/models/aqar/Listing";
+import type { FilterQuery } from "mongoose";
+import { Types } from "mongoose";
 
 // AqarListing is already typed as Model<IListing> from the import
 const listingModel = AqarListing;
 
 export type RecommendationBadge =
-  | 'smart-home'
-  | 'vr-ready'
-  | 'rnpl-ready'
-  | 'auction'
-  | 'pricing-insight'
-  | 'fm-lifecycle';
+  | "smart-home"
+  | "vr-ready"
+  | "rnpl-ready"
+  | "auction"
+  | "pricing-insight"
+  | "fm-lifecycle";
 
 export interface BudgetPreference {
   min?: number;
@@ -47,7 +47,7 @@ export interface RecommendationContext {
   includeExperimental?: boolean;
   updateAiSnapshot?: boolean;
   correlationId?: string;
-  variant?: 'primary' | 'neighbor' | 'experimental';
+  variant?: "primary" | "neighbor" | "experimental";
 }
 
 export interface RecommendationResultItem {
@@ -97,21 +97,23 @@ type ListingProjection = {
   intent?: ListingIntent;
   amenities?: string[];
   rnplEligible?: boolean;
-  auction?: IListing['auction'];
+  auction?: IListing["auction"];
   proptech?: IListingProptech;
   immersive?: IListingImmersive;
-  ai?: IListing['ai'];
+  ai?: IListing["ai"];
   pricingInsights?: IListingPricingInsights;
   analytics?: IListingAnalytics;
-  fmLifecycle?: IListing['fmLifecycle'];
+  fmLifecycle?: IListing["fmLifecycle"];
   status: ListingStatus;
 };
 
 export class AqarRecommendationEngine {
   private static readonly PROJECTION =
-    '_id title city neighborhood price areaSqm propertyType intent amenities rnplEligible auction proptech immersive ai pricingInsights analytics fmLifecycle status';
+    "_id title city neighborhood price areaSqm propertyType intent amenities rnplEligible auction proptech immersive ai pricingInsights analytics fmLifecycle status";
 
-  static async recommend(context: RecommendationContext = {}): Promise<RecommendationResponse> {
+  static async recommend(
+    context: RecommendationContext = {},
+  ): Promise<RecommendationResponse> {
     const correlationId = context.correlationId ?? crypto.randomUUID();
     await connectDb();
 
@@ -122,7 +124,7 @@ export class AqarRecommendationEngine {
     let listings = await listingModel
       .find(baseFilter)
       .select(this.PROJECTION)
-      .sort({ 'ai.recommendationScore': -1, publishedAt: -1 })
+      .sort({ "ai.recommendationScore": -1, publishedAt: -1 })
       .limit(fetchLimit)
       .lean<ListingProjection[]>();
 
@@ -143,11 +145,18 @@ export class AqarRecommendationEngine {
       .sort((a, b) => b.score - a.score);
 
     const primary = scored.slice(0, limit);
-    const experimental = context.includeExperimental === false ? [] : scored.slice(limit, limit + 6);
+    const experimental =
+      context.includeExperimental === false
+        ? []
+        : scored.slice(limit, limit + 6);
 
     if (context.updateAiSnapshot !== false) {
       await Promise.all(
-        primary.slice(0, 5).map((item) => this.updateListingSnapshot(item, context, correlationId))
+        primary
+          .slice(0, 5)
+          .map((item) =>
+            this.updateListingSnapshot(item, context, correlationId),
+          ),
       );
     }
 
@@ -167,7 +176,10 @@ export class AqarRecommendationEngine {
     };
   }
 
-  static async refreshForListing(listingId: string, input?: RecommendationContext): Promise<void> {
+  static async refreshForListing(
+    listingId: string,
+    input?: RecommendationContext,
+  ): Promise<void> {
     if (!Types.ObjectId.isValid(listingId)) {
       return;
     }
@@ -181,7 +193,9 @@ export class AqarRecommendationEngine {
     await this.recommend(context);
   }
 
-  private static buildFilter(context: RecommendationContext): FilterQuery<IListing> {
+  private static buildFilter(
+    context: RecommendationContext,
+  ): FilterQuery<IListing> {
     const query: FilterQuery<IListing> = {
       status: ListingStatus.ACTIVE,
     };
@@ -198,17 +212,25 @@ export class AqarRecommendationEngine {
     if (context.preferredNeighborhoods?.length) {
       query.neighborhood = { $in: context.preferredNeighborhoods };
     }
-    if (context.budget?.min !== undefined || context.budget?.max !== undefined) {
-      query['price.amount'] = {} as Record<string, number>;
+    if (
+      context.budget?.min !== undefined ||
+      context.budget?.max !== undefined
+    ) {
+      query["price.amount"] = {} as Record<string, number>;
       if (context.budget.min !== undefined) {
-        (query['price.amount'] as Record<string, number>).$gte = context.budget.min * 0.9;
+        (query["price.amount"] as Record<string, number>).$gte =
+          context.budget.min * 0.9;
       }
       if (context.budget.max !== undefined) {
-        (query['price.amount'] as Record<string, number>).$lte = context.budget.max * 1.1;
+        (query["price.amount"] as Record<string, number>).$lte =
+          context.budget.max * 1.1;
       }
     }
     const idFilters: Record<string, unknown> = {};
-    if (context.currentListingId && Types.ObjectId.isValid(context.currentListingId)) {
+    if (
+      context.currentListingId &&
+      Types.ObjectId.isValid(context.currentListingId)
+    ) {
       idFilters.$ne = new Types.ObjectId(context.currentListingId);
     }
     if (context.favorites?.length) {
@@ -232,13 +254,16 @@ export class AqarRecommendationEngine {
     return query;
   }
 
-  private static scoreListing(listing: ListingProjection, context: RecommendationContext): RecommendationResultItem {
+  private static scoreListing(
+    listing: ListingProjection,
+    context: RecommendationContext,
+  ): RecommendationResultItem {
     let score = listing.ai?.recommendationScore ?? 32;
     const reasons: string[] = [];
 
     if (context.intent && listing.intent === context.intent) {
       score += 8;
-      reasons.push('intent');
+      reasons.push("intent");
     }
 
     if (
@@ -247,12 +272,12 @@ export class AqarRecommendationEngine {
       context.propertyTypes.includes(listing.propertyType)
     ) {
       score += 6;
-      reasons.push('property-type');
+      reasons.push("property-type");
     }
 
     if (context.preferredCity && listing.city === context.preferredCity) {
       score += 10;
-      reasons.push('city');
+      reasons.push("city");
     }
 
     if (
@@ -261,70 +286,83 @@ export class AqarRecommendationEngine {
       context.preferredNeighborhoods.includes(listing.neighborhood)
     ) {
       score += 8;
-      reasons.push('neighborhood');
+      reasons.push("neighborhood");
     }
 
-    const priceScore = this.computePriceScore(listing.price?.amount, context.budget);
+    const priceScore = this.computePriceScore(
+      listing.price?.amount,
+      context.budget,
+    );
     score += priceScore.value;
     if (priceScore.reason) {
       reasons.push(priceScore.reason);
     }
 
-    if (listing.proptech?.smartHomeLevel && listing.proptech.smartHomeLevel !== SmartHomeLevel.NONE) {
-      score += listing.proptech.smartHomeLevel === SmartHomeLevel.ADVANCED ? 8 : 4;
-      reasons.push('smart-home');
+    if (
+      listing.proptech?.smartHomeLevel &&
+      listing.proptech.smartHomeLevel !== SmartHomeLevel.NONE
+    ) {
+      score +=
+        listing.proptech.smartHomeLevel === SmartHomeLevel.ADVANCED ? 8 : 4;
+      reasons.push("smart-home");
     }
 
     if (listing.immersive?.vrTour?.ready) {
       score += 4;
-      reasons.push('vr');
+      reasons.push("vr");
     }
 
     if (listing.rnplEligible) {
       score += 3;
-      reasons.push('rnpl');
+      reasons.push("rnpl");
     }
 
     if (listing.auction?.isAuction) {
       score += 2;
-      reasons.push('auction');
+      reasons.push("auction");
     }
 
     if (listing.pricingInsights?.projectedAppreciationPct) {
-      const appreciation = Math.min(listing.pricingInsights.projectedAppreciationPct, 25);
+      const appreciation = Math.min(
+        listing.pricingInsights.projectedAppreciationPct,
+        25,
+      );
       score += appreciation / 2;
-      reasons.push('appreciation');
+      reasons.push("appreciation");
     }
 
     if (listing.pricingInsights?.demandScore) {
       score += Math.min(listing.pricingInsights.demandScore / 10, 6);
-      reasons.push('demand');
+      reasons.push("demand");
     }
 
     if (listing.analytics) {
       const viewBoost = Math.min((listing.analytics.views || 0) / 200, 5);
       if (viewBoost > 0) {
         score += viewBoost;
-        reasons.push('views');
+        reasons.push("views");
       }
       const inquiryBoost = Math.min((listing.analytics.inquiries || 0) / 5, 5);
       if (inquiryBoost > 0) {
         score += inquiryBoost;
-        reasons.push('inquiries');
+        reasons.push("inquiries");
       }
     }
 
     if (listing.fmLifecycle?.autoCreateOn?.length) {
       score += 2;
-      reasons.push('fm-lifecycle');
+      reasons.push("fm-lifecycle");
     }
 
     const pricePerSqm = this.calculatePricePerSqm(listing);
     if (pricePerSqm && listing.pricingInsights?.neighborhoodAvg) {
-      const delta = ((listing.pricingInsights.neighborhoodAvg - pricePerSqm) / listing.pricingInsights.neighborhoodAvg) * 100;
+      const delta =
+        ((listing.pricingInsights.neighborhoodAvg - pricePerSqm) /
+          listing.pricingInsights.neighborhoodAvg) *
+        100;
       if (delta > 3) {
         score += 4;
-        reasons.push('below-neighborhood');
+        reasons.push("below-neighborhood");
       }
     }
 
@@ -353,7 +391,9 @@ export class AqarRecommendationEngine {
     };
   }
 
-  private static calculatePricePerSqm(listing: ListingProjection): number | undefined {
+  private static calculatePricePerSqm(
+    listing: ListingProjection,
+  ): number | undefined {
     if (listing.pricingInsights?.pricePerSqm) {
       return listing.pricingInsights.pricePerSqm;
     }
@@ -363,7 +403,10 @@ export class AqarRecommendationEngine {
     return undefined;
   }
 
-  private static computePriceScore(price?: number, budget?: BudgetPreference): { value: number; reason?: string } {
+  private static computePriceScore(
+    price?: number,
+    budget?: BudgetPreference,
+  ): { value: number; reason?: string } {
     if (!price || !budget) {
       return { value: 0 };
     }
@@ -372,60 +415,74 @@ export class AqarRecommendationEngine {
       return { value: 0 };
     }
     if (budget.max && price > budget.max * 1.15) {
-      return { value: -8, reason: 'above-budget' };
+      return { value: -8, reason: "above-budget" };
     }
     if (budget.min && price < budget.min * 0.85) {
-      return { value: -4, reason: 'below-budget' };
+      return { value: -4, reason: "below-budget" };
     }
     const delta = Math.abs(price - target) / target;
     if (delta <= 0.05) {
-      return { value: 12, reason: 'price-sweet-spot' };
+      return { value: 12, reason: "price-sweet-spot" };
     }
-    return { value: Math.max(2, 10 - delta * 20), reason: 'price-fit' };
+    return { value: Math.max(2, 10 - delta * 20), reason: "price-fit" };
   }
 
-  private static buildHighlights(listing: ListingProjection, pricePerSqm?: number): string[] {
+  private static buildHighlights(
+    listing: ListingProjection,
+    pricePerSqm?: number,
+  ): string[] {
     const highlights: string[] = [];
     if (listing.pricingInsights?.projectedAppreciationPct) {
-      highlights.push(`نمو متوقع ${listing.pricingInsights.projectedAppreciationPct.toFixed(1)}٪`);
+      highlights.push(
+        `نمو متوقع ${listing.pricingInsights.projectedAppreciationPct.toFixed(1)}٪`,
+      );
     }
     if (pricePerSqm) {
       highlights.push(`سعر المتر ${pricePerSqm.toLocaleString()} ﷼`);
     }
     if (listing.immersive?.vrTour?.ready) {
-      highlights.push('جولة VR جاهزة');
+      highlights.push("جولة VR جاهزة");
     }
     if (listing.proptech?.smartHomeLevel === SmartHomeLevel.ADVANCED) {
-      highlights.push('منزل ذكي متكامل');
+      highlights.push("منزل ذكي متكامل");
     }
     if (listing.rnplEligible) {
-      highlights.push('تمويل RNPL متاح');
+      highlights.push("تمويل RNPL متاح");
     }
     if (listing.auction?.isAuction) {
-      highlights.push('مزايدة نشطة');
+      highlights.push("مزايدة نشطة");
     }
     return highlights;
   }
 
-  private static buildBadges(listing: ListingProjection, reasons: string[]): RecommendationBadge[] {
+  private static buildBadges(
+    listing: ListingProjection,
+    reasons: string[],
+  ): RecommendationBadge[] {
     const badges: RecommendationBadge[] = [];
-    if (listing.proptech?.smartHomeLevel && listing.proptech.smartHomeLevel !== SmartHomeLevel.NONE) {
-      badges.push('smart-home');
+    if (
+      listing.proptech?.smartHomeLevel &&
+      listing.proptech.smartHomeLevel !== SmartHomeLevel.NONE
+    ) {
+      badges.push("smart-home");
     }
     if (listing.immersive?.vrTour?.ready) {
-      badges.push('vr-ready');
+      badges.push("vr-ready");
     }
     if (listing.rnplEligible) {
-      badges.push('rnpl-ready');
+      badges.push("rnpl-ready");
     }
     if (listing.auction?.isAuction) {
-      badges.push('auction');
+      badges.push("auction");
     }
-    if (reasons.includes('price-sweet-spot') || reasons.includes('below-neighborhood')) {
-      badges.push('pricing-insight');
+    if (
+      reasons.includes("price-sweet-spot") ||
+      reasons.includes("below-neighborhood")
+    ) {
+      badges.push("pricing-insight");
     }
     if (listing.fmLifecycle?.autoCreateOn?.length) {
-      badges.push('fm-lifecycle');
+      badges.push("fm-lifecycle");
     }
     return Array.from(new Set(badges));
   }
@@ -446,24 +503,27 @@ export class AqarRecommendationEngine {
       budget: context.budget,
       limit: context.limit,
     });
-    return crypto.createHash('sha1').update(raw).digest('hex');
+    return crypto.createHash("sha1").update(raw).digest("hex");
   }
 
   private static async updateListingSnapshot(
     item: RecommendationResultItem,
     context: RecommendationContext,
-    correlationId: string
+    correlationId: string,
   ): Promise<void> {
     try {
       const similar: Types.ObjectId[] = [];
-      if (context.currentListingId && Types.ObjectId.isValid(context.currentListingId)) {
+      if (
+        context.currentListingId &&
+        Types.ObjectId.isValid(context.currentListingId)
+      ) {
         similar.push(new Types.ObjectId(context.currentListingId));
       }
 
       const update: Record<string, unknown> = {
         ai: {
           recommendationScore: item.score,
-          variant: context.variant ?? 'primary',
+          variant: context.variant ?? "primary",
           explanation: item.reasons,
           badges: item.badges,
           similarListingIds: similar,
@@ -478,11 +538,14 @@ export class AqarRecommendationEngine {
         update.pricingInsights = item.listing.pricingInsights;
       }
 
-      await listingModel.findByIdAndUpdate(item.listingId, { $set: update }).lean();
+      await listingModel
+        .findByIdAndUpdate(item.listingId, { $set: update })
+        .lean();
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.warn('AQAR_AI_SNAPSHOT_FAILED', {
+      logger.warn("AQAR_AI_SNAPSHOT_FAILED", {
         correlationId,
         listingId: item.listingId,
         error: (error as Error)?.message ?? String(error),

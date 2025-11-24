@@ -2,113 +2,118 @@
 /**
  * Authentication Integration Test
  * Tests the unified NextAuth.js authentication system
- * 
+ *
  * Tests:
  * 1. Email login (Credentials provider)
- * 2. Employee number login (Credentials provider) 
+ * 2. Employee number login (Credentials provider)
  * 3. Logout flow
  * 4. Middleware protection (no redirect loops)
  */
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-const TEST_PASSWORD = 'password123'; // Default test password
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+const TEST_PASSWORD = "password123"; // Default test password
 
 // ANSI colors for output
 const colors = {
-  reset: '\x1b[0m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  magenta: '\x1b[35m',
-  cyan: '\x1b[36m',
+  reset: "\x1b[0m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  magenta: "\x1b[35m",
+  cyan: "\x1b[36m",
 };
 
-function log(message, color = 'reset') {
+function log(message, color = "reset") {
   console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
 function logStep(step, total, message) {
-  log(`\n[${ step}/${total}] ${message}`, 'cyan');
+  log(`\n[${step}/${total}] ${message}`, "cyan");
 }
 
 function logSuccess(message) {
-  log(`  ✅ ${message}`, 'green');
+  log(`  ✅ ${message}`, "green");
 }
 
 function logError(message) {
-  log(`  ❌ ${message}`, 'red');
+  log(`  ❌ ${message}`, "red");
 }
 
 function logWarning(message) {
-  log(`  ⚠️  ${message}`, 'yellow');
+  log(`  ⚠️  ${message}`, "yellow");
 }
 
 // Test user credentials
 const testUsers = {
   email: {
-    identifier: 'admin@fixzit.co',
+    identifier: "admin@fixzit.co",
     password: TEST_PASSWORD,
-    type: 'email'
+    type: "email",
   },
   manager: {
-    identifier: 'manager@fixzit.co',
+    identifier: "manager@fixzit.co",
     password: TEST_PASSWORD,
-    type: 'email'
+    type: "email",
   },
   employeeNumber: {
-    identifier: 'EMP10001',
+    identifier: "EMP10001",
     password: TEST_PASSWORD,
-    type: 'employee'
-  }
+    type: "employee",
+  },
 };
 
 /**
  * Test email-based login (personal users)
  */
 async function testEmailLogin() {
-  logStep(1, 4, 'Testing Email Login (Personal Users)');
-  
+  logStep(1, 4, "Testing Email Login (Personal Users)");
+
   try {
     // Get CSRF token from login page
     const pageResponse = await fetch(`${BASE_URL}/login`);
     if (!pageResponse.ok) {
       throw new Error(`Failed to load login page: ${pageResponse.status}`);
     }
-    
+
     const pageText = await pageResponse.text();
-    const cookies = pageResponse.headers.get('set-cookie');
-    
-    logSuccess('Loaded login page');
+    const cookies = pageResponse.headers.get("set-cookie");
+
+    logSuccess("Loaded login page");
 
     // Attempt login via NextAuth callback
-    const loginResponse = await fetch(`${BASE_URL}/api/auth/callback/credentials`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Cookie': cookies || ''
+    const loginResponse = await fetch(
+      `${BASE_URL}/api/auth/callback/credentials`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Cookie: cookies || "",
+        },
+        body: new URLSearchParams({
+          identifier: testUsers.email.identifier,
+          password: testUsers.email.password,
+          rememberMe: "false",
+          callbackUrl: `${BASE_URL}/fm/dashboard`,
+          json: "true",
+        }).toString(),
+        redirect: "manual",
       },
-      body: new URLSearchParams({
-        identifier: testUsers.email.identifier,
-        password: testUsers.email.password,
-        rememberMe: 'false',
-        callbackUrl: `${BASE_URL}/fm/dashboard`,
-        json: 'true'
-      }).toString(),
-      redirect: 'manual'
-    });
+    );
 
     if (loginResponse.status === 302 || loginResponse.status === 200) {
-      const sessionCookie = loginResponse.headers.get('set-cookie');
-      if (sessionCookie && sessionCookie.includes('authjs.session-token')) {
+      const sessionCookie = loginResponse.headers.get("set-cookie");
+      if (sessionCookie && sessionCookie.includes("authjs.session-token")) {
         logSuccess(`Email login successful: ${testUsers.email.identifier}`);
-        logSuccess('NextAuth session cookie set');
+        logSuccess("NextAuth session cookie set");
         return { success: true, cookies: sessionCookie };
       } else if (loginResponse.status === 200) {
         const body = await loginResponse.text();
-        if (body.includes('error')) {
+        if (body.includes("error")) {
           logError(`Login failed: ${body}`);
-          logWarning('This might be due to incorrect password. Check test user passwords.');
+          logWarning(
+            "This might be due to incorrect password. Check test user passwords.",
+          );
           return { success: false };
         }
       }
@@ -126,35 +131,40 @@ async function testEmailLogin() {
  * Test employee number login (corporate users)
  */
 async function testEmployeeLogin() {
-  logStep(2, 4, 'Testing Employee Number Login (Corporate Users)');
-  
+  logStep(2, 4, "Testing Employee Number Login (Corporate Users)");
+
   // First check if any users have employee numbers
   try {
-    const checkResponse = await fetch(`${BASE_URL}/api/auth/callback/credentials`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+    const checkResponse = await fetch(
+      `${BASE_URL}/api/auth/callback/credentials`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          identifier: testUsers.employeeNumber.identifier,
+          password: testUsers.employeeNumber.password,
+          rememberMe: "false",
+          callbackUrl: `${BASE_URL}/fm/dashboard`,
+          json: "true",
+        }).toString(),
+        redirect: "manual",
       },
-      body: new URLSearchParams({
-        identifier: testUsers.employeeNumber.identifier,
-        password: testUsers.employeeNumber.password,
-        rememberMe: 'false',
-        callbackUrl: `${BASE_URL}/fm/dashboard`,
-        json: 'true'
-      }).toString(),
-      redirect: 'manual'
-    });
+    );
 
     if (checkResponse.status === 302 || checkResponse.status === 200) {
-      const sessionCookie = checkResponse.headers.get('set-cookie');
-      if (sessionCookie && sessionCookie.includes('authjs.session-token')) {
-        logSuccess(`Employee login successful: ${testUsers.employeeNumber.identifier}`);
+      const sessionCookie = checkResponse.headers.get("set-cookie");
+      if (sessionCookie && sessionCookie.includes("authjs.session-token")) {
+        logSuccess(
+          `Employee login successful: ${testUsers.employeeNumber.identifier}`,
+        );
         return { success: true };
       }
     }
 
-    logWarning('No users with employee numbers found in database');
-    logWarning('This is OK - employee number login is optional');
+    logWarning("No users with employee numbers found in database");
+    logWarning("This is OK - employee number login is optional");
     return { success: true, skipped: true };
   } catch (error) {
     logWarning(`Employee login test skipped: ${error.message}`);
@@ -166,8 +176,8 @@ async function testEmployeeLogin() {
  * Test protected route access (no redirect loops)
  */
 async function testProtectedRoute(sessionCookies) {
-  logStep(3, 4, 'Testing Protected Route Access (No Redirect Loops)');
-  
+  logStep(3, 4, "Testing Protected Route Access (No Redirect Loops)");
+
   try {
     let redirectCount = 0;
     let currentUrl = `${BASE_URL}/fm/dashboard`;
@@ -177,34 +187,38 @@ async function testProtectedRoute(sessionCookies) {
     while (redirectCount < maxRedirects) {
       const response = await fetch(currentUrl, {
         headers: {
-          'Cookie': currentCookies || ''
+          Cookie: currentCookies || "",
         },
-        redirect: 'manual'
+        redirect: "manual",
       });
 
       if (response.status === 200) {
-        logSuccess('Successfully accessed /fm/dashboard');
-        logSuccess('No redirect loops detected ✨');
+        logSuccess("Successfully accessed /fm/dashboard");
+        logSuccess("No redirect loops detected ✨");
         return { success: true };
       }
 
       if (response.status === 302 || response.status === 307) {
-        const location = response.headers.get('location');
+        const location = response.headers.get("location");
         redirectCount++;
-        
-        if (location === '/login' || location?.includes('/login')) {
+
+        if (location === "/login" || location?.includes("/login")) {
           if (sessionCookies) {
-            logError('Redirect loop detected! Authenticated user redirected to login');
-            logError('This means middleware does not recognize the session');
+            logError(
+              "Redirect loop detected! Authenticated user redirected to login",
+            );
+            logError("This means middleware does not recognize the session");
             return { success: false };
           } else {
-            logSuccess('Unauthenticated user correctly redirected to login');
+            logSuccess("Unauthenticated user correctly redirected to login");
             return { success: true };
           }
         }
 
-        currentUrl = location.startsWith('http') ? location : `${BASE_URL}${location}`;
-        const newCookies = response.headers.get('set-cookie');
+        currentUrl = location.startsWith("http")
+          ? location
+          : `${BASE_URL}${location}`;
+        const newCookies = response.headers.get("set-cookie");
         if (newCookies) {
           currentCookies = newCookies;
         }
@@ -226,35 +240,39 @@ async function testProtectedRoute(sessionCookies) {
  * Test logout flow
  */
 async function testLogout(sessionCookies) {
-  logStep(4, 4, 'Testing Logout Flow');
-  
+  logStep(4, 4, "Testing Logout Flow");
+
   if (!sessionCookies) {
-    logWarning('No session to logout - skipping test');
+    logWarning("No session to logout - skipping test");
     return { success: true, skipped: true };
   }
 
   try {
     const response = await fetch(`${BASE_URL}/api/auth/signout`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Cookie': sessionCookies,
-        'Content-Type': 'application/x-www-form-urlencoded'
+        Cookie: sessionCookies,
+        "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        callbackUrl: '/login'
+        callbackUrl: "/login",
       }).toString(),
-      redirect: 'manual'
+      redirect: "manual",
     });
 
     if (response.status === 302 || response.status === 200) {
-      const setCookie = response.headers.get('set-cookie');
-      if (setCookie && (setCookie.includes('Max-Age=0') || setCookie.includes('expires=Thu, 01 Jan 1970'))) {
-        logSuccess('Logout successful - session cookie cleared');
+      const setCookie = response.headers.get("set-cookie");
+      if (
+        setCookie &&
+        (setCookie.includes("Max-Age=0") ||
+          setCookie.includes("expires=Thu, 01 Jan 1970"))
+      ) {
+        logSuccess("Logout successful - session cookie cleared");
         return { success: true };
       }
     }
 
-    logWarning('Logout response received but session cookie status unclear');
+    logWarning("Logout response received but session cookie status unclear");
     return { success: true };
   } catch (error) {
     logError(`Logout test failed: ${error.message}`);
@@ -266,15 +284,15 @@ async function testLogout(sessionCookies) {
  * Main test runner
  */
 async function runTests() {
-  log('\n════════════════════════════════════════════════', 'magenta');
-  log('  🔐 Authentication Integration Test Suite', 'magenta');
-  log('════════════════════════════════════════════════\n', 'magenta');
-  log(`Testing against: ${BASE_URL}`, 'blue');
-  
+  log("\n════════════════════════════════════════════════", "magenta");
+  log("  🔐 Authentication Integration Test Suite", "magenta");
+  log("════════════════════════════════════════════════\n", "magenta");
+  log(`Testing against: ${BASE_URL}`, "blue");
+
   const results = {
     passed: 0,
     failed: 0,
-    skipped: 0
+    skipped: 0,
   };
 
   // Test 1: Email Login
@@ -300,25 +318,31 @@ async function runTests() {
   else results.failed++;
 
   // Summary
-  log('\n════════════════════════════════════════════════', 'magenta');
-  log('  📊 Test Summary', 'magenta');
-  log('════════════════════════════════════════════════\n', 'magenta');
-  log(`  ✅ Passed:  ${results.passed}`, 'green');
-  log(`  ❌ Failed:  ${results.failed}`, 'red');
-  log(`  ⚠️  Skipped: ${results.skipped}`, 'yellow');
-  log(`  📈 Total:   ${results.passed + results.failed + results.skipped}\n`, 'blue');
+  log("\n════════════════════════════════════════════════", "magenta");
+  log("  📊 Test Summary", "magenta");
+  log("════════════════════════════════════════════════\n", "magenta");
+  log(`  ✅ Passed:  ${results.passed}`, "green");
+  log(`  ❌ Failed:  ${results.failed}`, "red");
+  log(`  ⚠️  Skipped: ${results.skipped}`, "yellow");
+  log(
+    `  📈 Total:   ${results.passed + results.failed + results.skipped}\n`,
+    "blue",
+  );
 
   if (results.failed === 0) {
-    log('🎉 All tests passed! Authentication system is working correctly.\n', 'green');
+    log(
+      "🎉 All tests passed! Authentication system is working correctly.\n",
+      "green",
+    );
     process.exit(0);
   } else {
-    log('❌ Some tests failed. Please review the errors above.\n', 'red');
+    log("❌ Some tests failed. Please review the errors above.\n", "red");
     process.exit(1);
   }
 }
 
 // Run tests
-runTests().catch(error => {
-  console.error('Fatal error:', error);
+runTests().catch((error) => {
+  console.error("Fatal error:", error);
   process.exit(1);
 });

@@ -1,71 +1,91 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
-const { promisify } = require('util');
+const fs = require("fs");
+const path = require("path");
+const { promisify } = require("util");
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
 
 // Configuration
 const CONFIG = {
-  projectPath: process.argv[2] || '.', // Pass project path as argument
-  outputFile: 'project-analysis-report.json',
-  htmlReport: 'project-analysis-report.html',
-  
+  projectPath: process.argv[2] || ".", // Pass project path as argument
+  outputFile: "project-analysis-report.json",
+  htmlReport: "project-analysis-report.html",
+
   // Size thresholds
   largeFileThreshold: 10 * 1024 * 1024, // 10MB
   veryLargeFileThreshold: 50 * 1024 * 1024, // 50MB
-  
+
   // Patterns to identify unused files
   ignorePatterns: [
-    '.git',
-    '.DS_Store',
-    'Thumbs.db',
-    '*.log',
-    '.env.local',
-    '.env.*.local'
+    ".git",
+    ".DS_Store",
+    "Thumbs.db",
+    "*.log",
+    ".env.local",
+    ".env.*.local",
   ],
-  
+
   // Known bloat sources
   bloatFolders: [
-    'node_modules',
-    '.next',
-    'build',
-    'dist',
-    '.cache',
-    'coverage',
-    '.npm',
-    '.yarn',
-    '.pnpm',
-    'bower_components',
-    '.nuxt',
-    '.output',
-    'out',
-    '.turbo',
-    '.vercel',
-    '.netlify'
+    "node_modules",
+    ".next",
+    "build",
+    "dist",
+    ".cache",
+    "coverage",
+    ".npm",
+    ".yarn",
+    ".pnpm",
+    "bower_components",
+    ".nuxt",
+    ".output",
+    "out",
+    ".turbo",
+    ".vercel",
+    ".netlify",
   ],
-  
+
   // File extensions to check for usage
-  codeExtensions: ['.js', '.jsx', '.ts', '.tsx', '.css', '.scss', '.sass', '.less'],
-  assetExtensions: ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.mp4', '.webm', '.pdf'],
-  
+  codeExtensions: [
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".css",
+    ".scss",
+    ".sass",
+    ".less",
+  ],
+  assetExtensions: [
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".svg",
+    ".ico",
+    ".webp",
+    ".mp4",
+    ".webm",
+    ".pdf",
+  ],
+
   // FIXZIT SOUQ specific modules
   fixzitModules: [
-    'dashboard',
-    'work-orders',
-    'properties',
-    'finance',
-    'human-resources',
-    'administration',
-    'crm',
-    'marketplace',
-    'support',
-    'compliance-legal',
-    'reports-analytics',
-    'system-management',
-    'preventive-maintenance'
-  ]
+    "dashboard",
+    "work-orders",
+    "properties",
+    "finance",
+    "human-resources",
+    "administration",
+    "crm",
+    "marketplace",
+    "support",
+    "compliance-legal",
+    "reports-analytics",
+    "system-management",
+    "preventive-maintenance",
+  ],
 };
 
 class ProjectAnalyzer {
@@ -85,26 +105,26 @@ class ProjectAnalyzer {
 
   // Format bytes to human readable
   formatBytes(bytes) {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   }
 
   // Calculate folder size recursively
   async getFolderSize(folderPath) {
     let totalSize = 0;
-    
+
     try {
       const files = await readdir(folderPath);
-      
+
       for (const file of files) {
         const filePath = path.join(folderPath, file);
-        
+
         try {
           const stats = await stat(filePath);
-          
+
           if (stats.isDirectory()) {
             // Skip symbolic links to avoid infinite loops
             if (!stats.isSymbolicLink()) {
@@ -121,7 +141,7 @@ class ProjectAnalyzer {
     } catch (_err) {
       this.errors.push(`Cannot read folder: ${folderPath}`);
     }
-    
+
     return totalSize;
   }
 
@@ -130,17 +150,17 @@ class ProjectAnalyzer {
     const relativePath = path.relative(CONFIG.projectPath, filePath);
     const extension = path.extname(filePath).toLowerCase();
     const size = stats.size;
-    
+
     this.fileCount++;
     this.totalSize += size;
-    
+
     // Track extension statistics
     if (!this.extensionStats[extension]) {
       this.extensionStats[extension] = { count: 0, totalSize: 0, files: [] };
     }
     this.extensionStats[extension].count++;
     this.extensionStats[extension].totalSize += size;
-    
+
     // Track large files
     if (size > CONFIG.largeFileThreshold) {
       this.largeFiles.push({
@@ -149,18 +169,18 @@ class ProjectAnalyzer {
         sizeFormatted: this.formatBytes(size),
         extension: extension,
         isVeryLarge: size > CONFIG.veryLargeFileThreshold,
-        lastModified: stats.mtime
+        lastModified: stats.mtime,
       });
-      
+
       // Add to extension files list if it's a very large file
       if (size > CONFIG.veryLargeFileThreshold) {
         this.extensionStats[extension].files.push({
           path: relativePath,
-          size: this.formatBytes(size)
+          size: this.formatBytes(size),
         });
       }
     }
-    
+
     // Check for duplicates (simple size-based check)
     const sizeKey = `${size}-${extension}`;
     if (this.fileHashes.has(sizeKey)) {
@@ -178,10 +198,10 @@ class ProjectAnalyzer {
     try {
       const files = await readdir(dirPath);
       this.folderCount++;
-      
+
       const folderName = path.basename(dirPath);
       const relativePath = path.relative(CONFIG.projectPath, dirPath);
-      
+
       // Check if this is a bloat folder
       if (CONFIG.bloatFolders.includes(folderName) && depth <= 2) {
         const folderSize = await this.getFolderSize(dirPath);
@@ -189,49 +209,52 @@ class ProjectAnalyzer {
           path: relativePath,
           size: folderSize,
           sizeFormatted: this.formatBytes(folderSize),
-          percentage: 0 // Will calculate later
+          percentage: 0, // Will calculate later
         };
-        
+
         // Don't analyze inside node_modules deeply
-        if (folderName === 'node_modules') {
+        if (folderName === "node_modules") {
           return;
         }
       }
-      
+
       // Check if this is a FIXZIT module
       for (const fixzitModule of CONFIG.fixzitModules) {
-        if (relativePath.includes(fixzitModule) || folderName === fixzitModule) {
+        if (
+          relativePath.includes(fixzitModule) ||
+          folderName === fixzitModule
+        ) {
           if (!this.moduleAnalysis[fixzitModule]) {
             this.moduleAnalysis[fixzitModule] = {
               fileCount: 0,
               totalSize: 0,
               components: [],
-              assets: []
+              assets: [],
             };
           }
         }
       }
-      
+
       // Analyze each file in directory
       for (const file of files) {
         const filePath = path.join(dirPath, file);
-        
+
         try {
           const stats = await stat(filePath);
-          
+
           if (stats.isDirectory()) {
             if (!stats.isSymbolicLink()) {
               await this.analyzeDirectory(filePath, depth + 1);
             }
           } else {
             await this.analyzeFile(filePath, stats);
-            
+
             // Update module analysis
             for (const fixzitModule of CONFIG.fixzitModules) {
               if (relativePath.includes(fixzitModule)) {
                 this.moduleAnalysis[fixzitModule].fileCount++;
                 this.moduleAnalysis[fixzitModule].totalSize += stats.size;
-                
+
                 const ext = path.extname(file).toLowerCase();
                 if (CONFIG.codeExtensions.includes(ext)) {
                   this.moduleAnalysis[fixzitModule].components.push(file);
@@ -252,24 +275,26 @@ class ProjectAnalyzer {
 
   // Check for unused dependencies
   async checkUnusedDependencies() {
-    const packageJsonPath = path.join(CONFIG.projectPath, 'package.json');
-    
+    const packageJsonPath = path.join(CONFIG.projectPath, "package.json");
+
     if (fs.existsSync(packageJsonPath)) {
       try {
-        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+        const packageJson = JSON.parse(
+          fs.readFileSync(packageJsonPath, "utf8"),
+        );
         const allDeps = {
           ...packageJson.dependencies,
-          ...packageJson.devDependencies
+          ...packageJson.devDependencies,
         };
-        
-        const nodeModulesPath = path.join(CONFIG.projectPath, 'node_modules');
+
+        const nodeModulesPath = path.join(CONFIG.projectPath, "node_modules");
         if (fs.existsSync(nodeModulesPath)) {
           const installedPackages = await readdir(nodeModulesPath);
-          
+
           // Find packages in node_modules but not in package.json
           const orphanPackages = [];
           for (const pkg of installedPackages) {
-            if (!pkg.startsWith('.') && !pkg.startsWith('@')) {
+            if (!pkg.startsWith(".") && !pkg.startsWith("@")) {
               if (!allDeps[pkg]) {
                 const pkgPath = path.join(nodeModulesPath, pkg);
                 const pkgStats = await stat(pkgPath);
@@ -278,49 +303,51 @@ class ProjectAnalyzer {
                   orphanPackages.push({
                     name: pkg,
                     size: size,
-                    sizeFormatted: this.formatBytes(size)
+                    sizeFormatted: this.formatBytes(size),
                   });
                 }
               }
             }
           }
-          
+
           return orphanPackages.sort((a, b) => b.size - a.size);
         }
       } catch (_err) {
-        this.errors.push('Failed to analyze package.json');
+        this.errors.push("Failed to analyze package.json");
       }
     }
-    
+
     return [];
   }
 
   // Generate analysis report
   async generateReport() {
-    console.log('\n🔍 Analyzing FIXZIT SOUQ Project...\n');
+    console.log("\n🔍 Analyzing FIXZIT SOUQ Project...\n");
     console.log(`📁 Project Path: ${path.resolve(CONFIG.projectPath)}`);
-    console.log('⏳ This may take a few minutes for large projects...\n');
-    
+    console.log("⏳ This may take a few minutes for large projects...\n");
+
     // Start analysis
     await this.analyzeDirectory(CONFIG.projectPath);
-    
+
     // Calculate percentages for bloat analysis
     for (const folder in this.bloatAnalysis) {
-      this.bloatAnalysis[folder].percentage = 
-        ((this.bloatAnalysis[folder].size / this.totalSize) * 100).toFixed(2);
+      this.bloatAnalysis[folder].percentage = (
+        (this.bloatAnalysis[folder].size / this.totalSize) *
+        100
+      ).toFixed(2);
     }
-    
+
     // Check for unused dependencies
     const orphanPackages = await this.checkUnusedDependencies();
-    
+
     // Sort large files by size
     this.largeFiles.sort((a, b) => b.size - a.size);
-    
+
     // Sort extension stats by total size
     const sortedExtensions = Object.entries(this.extensionStats)
       .sort((a, b) => b[1].totalSize - a[1].totalSize)
       .slice(0, 20); // Top 20 extensions
-    
+
     // Prepare report
     const report = {
       summary: {
@@ -328,7 +355,7 @@ class ProjectAnalyzer {
         totalSizeFormatted: this.formatBytes(this.totalSize),
         fileCount: this.fileCount,
         folderCount: this.folderCount,
-        analyzedAt: new Date().toISOString()
+        analyzedAt: new Date().toISOString(),
       },
       bloatAnalysis: this.bloatAnalysis,
       largeFiles: this.largeFiles.slice(0, 50), // Top 50 large files
@@ -341,22 +368,22 @@ class ProjectAnalyzer {
           files,
           count: files.length,
           potentialSavings: this.formatBytes(
-            (files.length - 1) * parseInt(key.split('-')[0], 10)
-          )
+            (files.length - 1) * parseInt(key.split("-")[0], 10),
+          ),
         })),
       orphanPackages,
-      errors: this.errors
+      errors: this.errors,
     };
-    
+
     // Save JSON report
     fs.writeFileSync(CONFIG.outputFile, JSON.stringify(report, null, 2));
-    
+
     // Generate HTML report
     this.generateHTMLReport(report);
-    
+
     // Print summary to console
     this.printSummary(report);
-    
+
     return report;
   }
 
@@ -526,7 +553,9 @@ class ProjectAnalyzer {
 
         <div class="section">
             <h2>🗑️ Bloat Analysis</h2>
-            ${Object.entries(report.bloatAnalysis).map(([folder, data]) => `
+            ${Object.entries(report.bloatAnalysis)
+              .map(
+                ([folder, data]) => `
                 <div class="bloat-item">
                     <div>
                         <strong>${folder}</strong>
@@ -540,13 +569,18 @@ class ProjectAnalyzer {
                 <div class="progress-bar">
                     <div class="progress-fill" style="width: ${Math.min(data.percentage, 100)}%"></div>
                 </div>
-            `).join('')}
+            `,
+              )
+              .join("")}
         </div>
 
         <div class="section">
             <h2>📊 Top Large Files</h2>
-            ${report.largeFiles.slice(0, 20).map(file => `
-                <div class="file-item ${file.isVeryLarge ? 'very-large' : ''}">
+            ${report.largeFiles
+              .slice(0, 20)
+              .map(
+                (file) => `
+                <div class="file-item ${file.isVeryLarge ? "very-large" : ""}">
                     <div>
                         <strong>${file.path}</strong>
                         ${file.isVeryLarge ? '<span class="badge danger">Very Large</span>' : '<span class="badge warning">Large</span>'}
@@ -554,11 +588,13 @@ class ProjectAnalyzer {
                             ${file.extension} • Modified: ${new Date(file.lastModified).toLocaleDateString()}
                         </div>
                     </div>
-                    <div style="font-weight: bold; color: ${file.isVeryLarge ? '#d63384' : '#b45309'};">
+                    <div style="font-weight: bold; color: ${file.isVeryLarge ? "#d63384" : "#b45309"};">
                         ${file.sizeFormatted}
                     </div>
                 </div>
-            `).join('')}
+            `,
+              )
+              .join("")}
         </div>
 
         <div class="section">
@@ -573,19 +609,25 @@ class ProjectAnalyzer {
                     </tr>
                 </thead>
                 <tbody>
-                    ${Object.entries(report.extensionStats).map(([ext, data]) => `
+                    ${Object.entries(report.extensionStats)
+                      .map(
+                        ([ext, data]) => `
                         <tr>
-                            <td><strong>${ext || '(no extension)'}</strong></td>
+                            <td><strong>${ext || "(no extension)"}</strong></td>
                             <td>${data.count.toLocaleString()}</td>
                             <td>${this.formatBytes(data.totalSize)}</td>
                             <td>${((data.totalSize / report.summary.totalSize) * 100).toFixed(2)}%</td>
                         </tr>
-                    `).join('')}
+                    `,
+                      )
+                      .join("")}
                 </tbody>
             </table>
         </div>
 
-        ${Object.keys(report.moduleAnalysis).length > 0 ? `
+        ${
+          Object.keys(report.moduleAnalysis).length > 0
+            ? `
         <div class="section">
             <h2>🏗️ FIXZIT Modules Analysis</h2>
             <table>
@@ -599,7 +641,9 @@ class ProjectAnalyzer {
                     </tr>
                 </thead>
                 <tbody>
-                    ${Object.entries(report.moduleAnalysis).map(([module, data]) => `
+                    ${Object.entries(report.moduleAnalysis)
+                      .map(
+                        ([module, data]) => `
                         <tr>
                             <td><strong>${module}</strong></td>
                             <td>${data.fileCount}</td>
@@ -607,110 +651,158 @@ class ProjectAnalyzer {
                             <td>${data.components.length}</td>
                             <td>${data.assets.length}</td>
                         </tr>
-                    `).join('')}
+                    `,
+                      )
+                      .join("")}
                 </tbody>
             </table>
         </div>
-        ` : ''}
+        `
+            : ""
+        }
 
-        ${report.orphanPackages.length > 0 ? `
+        ${
+          report.orphanPackages.length > 0
+            ? `
         <div class="section">
             <h2>🧹 Orphan Packages</h2>
             <p style="margin-bottom: 20px; color: #666;">Packages in node_modules but not in package.json</p>
-            ${report.orphanPackages.slice(0, 10).map(pkg => `
+            ${report.orphanPackages
+              .slice(0, 10)
+              .map(
+                (pkg) => `
                 <div class="file-item">
                     <div><strong>${pkg.name}</strong></div>
                     <div style="color: #d63384; font-weight: bold;">${pkg.sizeFormatted}</div>
                 </div>
-            `).join('')}
+            `,
+              )
+              .join("")}
         </div>
-        ` : ''}
+        `
+            : ""
+        }
 
-        ${report.duplicates.length > 0 ? `
+        ${
+          report.duplicates.length > 0
+            ? `
         <div class="section">
             <h2>🔄 Potential Duplicates</h2>
-            ${report.duplicates.slice(0, 10).map(dup => `
+            ${report.duplicates
+              .slice(0, 10)
+              .map(
+                (dup) => `
                 <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                     <strong>Potential savings: ${dup.potentialSavings}</strong>
                     <div style="margin-top: 10px;">
-                        ${dup.files.map(file => `<div style="font-size: 0.9em; color: #666; margin: 4px 0;">${file}</div>`).join('')}
+                        ${dup.files.map((file) => `<div style="font-size: 0.9em; color: #666; margin: 4px 0;">${file}</div>`).join("")}
                     </div>
                 </div>
-            `).join('')}
+            `,
+              )
+              .join("")}
         </div>
-        ` : ''}
+        `
+            : ""
+        }
     </div>
 </body>
 </html>`;
-    
+
     fs.writeFileSync(CONFIG.htmlReport, html);
   }
 
   // Print console summary
   printSummary(report) {
-    console.log('\n📊 FIXZIT SOUQ PROJECT ANALYSIS COMPLETE\n');
-    console.log('=' .repeat(60));
+    console.log("\n📊 FIXZIT SOUQ PROJECT ANALYSIS COMPLETE\n");
+    console.log("=".repeat(60));
     console.log(`📁 Total Project Size: ${report.summary.totalSizeFormatted}`);
-    console.log(`📄 Files Analyzed: ${report.summary.fileCount.toLocaleString()}`);
-    console.log(`📂 Folders Scanned: ${report.summary.folderCount.toLocaleString()}`);
-    console.log('=' .repeat(60));
-    
+    console.log(
+      `📄 Files Analyzed: ${report.summary.fileCount.toLocaleString()}`,
+    );
+    console.log(
+      `📂 Folders Scanned: ${report.summary.folderCount.toLocaleString()}`,
+    );
+    console.log("=".repeat(60));
+
     // Bloat Analysis
-    console.log('\n🗑️  BLOAT SOURCES:');
-    const sortedBloat = Object.entries(report.bloatAnalysis)
-      .sort((a, b) => b[1].size - a[1].size);
-    
+    console.log("\n🗑️  BLOAT SOURCES:");
+    const sortedBloat = Object.entries(report.bloatAnalysis).sort(
+      (a, b) => b[1].size - a[1].size,
+    );
+
     for (const [folder, data] of sortedBloat) {
-      console.log(`   ${folder.padEnd(15)} ${data.sizeFormatted.padStart(10)} (${data.percentage}%)`);
+      console.log(
+        `   ${folder.padEnd(15)} ${data.sizeFormatted.padStart(10)} (${data.percentage}%)`,
+      );
     }
-    
+
     // Top large files
-    console.log('\n📊 TOP 10 LARGEST FILES:');
+    console.log("\n📊 TOP 10 LARGEST FILES:");
     for (let i = 0; i < Math.min(10, report.largeFiles.length); i++) {
       const file = report.largeFiles[i];
-      const marker = file.isVeryLarge ? '🔴' : '🟡';
-      console.log(`   ${marker} ${file.sizeFormatted.padStart(10)} ${file.path}`);
+      const marker = file.isVeryLarge ? "🔴" : "🟡";
+      console.log(
+        `   ${marker} ${file.sizeFormatted.padStart(10)} ${file.path}`,
+      );
     }
-    
+
     // Extension stats
-    console.log('\n📦 TOP FILE EXTENSIONS:');
+    console.log("\n📦 TOP FILE EXTENSIONS:");
     const topExts = Object.entries(report.extensionStats).slice(0, 5);
     for (const [ext, data] of topExts) {
-      const percentage = ((data.totalSize / report.summary.totalSize) * 100).toFixed(1);
-      console.log(`   ${(ext || 'none').padEnd(10)} ${this.formatBytes(data.totalSize).padStart(10)} (${percentage}%)`);
+      const percentage = (
+        (data.totalSize / report.summary.totalSize) *
+        100
+      ).toFixed(1);
+      console.log(
+        `   ${(ext || "none").padEnd(10)} ${this.formatBytes(data.totalSize).padStart(10)} (${percentage}%)`,
+      );
     }
-    
+
     // Recommendations
-    console.log('\n💡 QUICK CLEANUP RECOMMENDATIONS:');
-    const totalBloat = Object.values(report.bloatAnalysis).reduce((sum, data) => sum + data.size, 0);
-    const bloatPercentage = ((totalBloat / report.summary.totalSize) * 100).toFixed(1);
-    
+    console.log("\n💡 QUICK CLEANUP RECOMMENDATIONS:");
+    const totalBloat = Object.values(report.bloatAnalysis).reduce(
+      (sum, data) => sum + data.size,
+      0,
+    );
+    const bloatPercentage = (
+      (totalBloat / report.summary.totalSize) *
+      100
+    ).toFixed(1);
+
     if (bloatPercentage > 70) {
-      console.log('   🔴 CRITICAL: Over 70% of project is bloat!');
+      console.log("   🔴 CRITICAL: Over 70% of project is bloat!");
     } else if (bloatPercentage > 50) {
-      console.log('   🟡 WARNING: Over 50% of project is bloat');
+      console.log("   🟡 WARNING: Over 50% of project is bloat");
     } else {
-      console.log('   🟢 GOOD: Reasonable bloat levels');
+      console.log("   🟢 GOOD: Reasonable bloat levels");
     }
-    
+
     // Specific recommendations
     if (report.bloatAnalysis.node_modules) {
-      console.log(`   • Clean node_modules: rm -rf node_modules && npm install`);
+      console.log(
+        `   • Clean node_modules: rm -rf node_modules && npm install`,
+      );
     }
-    if (report.bloatAnalysis['.next']) {
+    if (report.bloatAnalysis[".next"]) {
       console.log(`   • Clean Next.js cache: rm -rf .next`);
     }
-    if (report.largeFiles.filter(f => f.extension === '.log').length > 0) {
+    if (report.largeFiles.filter((f) => f.extension === ".log").length > 0) {
       console.log(`   • Remove log files: find . -name "*.log" -delete`);
     }
     if (report.orphanPackages.length > 0) {
-      console.log(`   • Found ${report.orphanPackages.length} orphan packages to review`);
+      console.log(
+        `   • Found ${report.orphanPackages.length} orphan packages to review`,
+      );
     }
-    
-    console.log('\n📄 REPORTS GENERATED:');
+
+    console.log("\n📄 REPORTS GENERATED:");
     console.log(`   • JSON Report: ${CONFIG.outputFile}`);
     console.log(`   • HTML Report: ${CONFIG.htmlReport}`);
-    console.log('\n🎯 Open the HTML report in your browser for interactive analysis!');
+    console.log(
+      "\n🎯 Open the HTML report in your browser for interactive analysis!",
+    );
   }
 }
 
@@ -720,8 +812,8 @@ class ProjectAnalyzer {
     const analyzer = new ProjectAnalyzer();
     await analyzer.generateReport();
   } catch (error) {
-    console.error('❌ Analysis failed:', error.message);
-    console.error('Stack trace:', error.stack);
+    console.error("❌ Analysis failed:", error.message);
+    console.error("Stack trace:", error.stack);
     process.exit(1);
   }
 })();

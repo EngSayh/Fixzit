@@ -3,53 +3,58 @@
  * @module server/models/souq/Listing
  */
 
-import mongoose, { Schema, type Document } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
 
 export interface IListing extends Document {
   _id: mongoose.Types.ObjectId;
   listingId: string;
-  
+
   productId: mongoose.Types.ObjectId;
   fsin: string;
   variationId?: mongoose.Types.ObjectId;
   sku?: string;
-  
+
   sellerId: mongoose.Types.ObjectId;
-  
+
   price: number;
   compareAtPrice?: number;
   currency: string;
-  
+
   stockQuantity: number;
   reservedQuantity: number;
   availableQuantity: number;
   lowStockThreshold: number;
-  
-  fulfillmentMethod: 'fbf' | 'fbm';
+
+  fulfillmentMethod: "fbf" | "fbm";
   warehouseLocation?: string;
   handlingTime: number;
-  
+
   shippingOptions: {
-    method: 'standard' | 'express' | 'overnight';
+    method: "standard" | "express" | "overnight";
     carrier?: string;
     price: number;
     estimatedDays: number;
   }[];
   freeShipping: boolean;
-  
-  condition: 'new' | 'refurbished' | 'used-like-new' | 'used-good' | 'used-acceptable';
+
+  condition:
+    | "new"
+    | "refurbished"
+    | "used-like-new"
+    | "used-good"
+    | "used-acceptable";
   conditionNotes?: string;
-  
+
   buyBoxEligible: boolean;
   buyBoxScore?: number;
   lastBuyBoxWin?: Date;
   badges: string[];
   lastPriceChange?: Date;
-  
-  status: 'draft' | 'active' | 'inactive' | 'out_of_stock' | 'suppressed';
+
+  status: "draft" | "active" | "inactive" | "out_of_stock" | "suppressed";
   suppressionReasons?: string[];
-  
+
   metrics: {
     orderCount: number;
     cancelRate: number;
@@ -58,16 +63,16 @@ export interface IListing extends Document {
     customerRating: number;
     priceCompetitiveness: number;
   };
-  
+
   isFeatured: boolean;
   isPrime: boolean;
   isSponsored: boolean;
-  
+
   createdAt: Date;
   updatedAt: Date;
   activatedAt?: Date;
   deactivatedAt?: Date;
-  
+
   // Methods
   checkBuyBoxEligibility(): Promise<boolean>;
 }
@@ -82,7 +87,7 @@ const ListingSchema = new Schema<IListing>(
     },
     productId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqProduct',
+      ref: "SouqProduct",
       required: true,
       index: true,
     },
@@ -93,7 +98,7 @@ const ListingSchema = new Schema<IListing>(
     },
     variationId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqVariation',
+      ref: "SouqVariation",
       index: true,
     },
     sku: {
@@ -102,7 +107,7 @@ const ListingSchema = new Schema<IListing>(
     },
     sellerId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqSeller',
+      ref: "SouqSeller",
       required: true,
       index: true,
     },
@@ -118,7 +123,7 @@ const ListingSchema = new Schema<IListing>(
     },
     currency: {
       type: String,
-      default: 'SAR',
+      default: "SAR",
     },
     stockQuantity: {
       type: Number,
@@ -143,9 +148,9 @@ const ListingSchema = new Schema<IListing>(
     },
     fulfillmentMethod: {
       type: String,
-      enum: ['fbf', 'fbm'],
+      enum: ["fbf", "fbm"],
       required: true,
-      default: 'fbm',
+      default: "fbm",
       index: true,
     },
     warehouseLocation: String,
@@ -160,7 +165,7 @@ const ListingSchema = new Schema<IListing>(
       {
         method: {
           type: String,
-          enum: ['standard', 'express', 'overnight'],
+          enum: ["standard", "express", "overnight"],
           required: true,
         },
         carrier: String,
@@ -183,8 +188,14 @@ const ListingSchema = new Schema<IListing>(
     },
     condition: {
       type: String,
-      enum: ['new', 'refurbished', 'used-like-new', 'used-good', 'used-acceptable'],
-      default: 'new',
+      enum: [
+        "new",
+        "refurbished",
+        "used-like-new",
+        "used-good",
+        "used-acceptable",
+      ],
+      default: "new",
       index: true,
     },
     conditionNotes: String,
@@ -206,8 +217,8 @@ const ListingSchema = new Schema<IListing>(
     lastPriceChange: Date,
     status: {
       type: String,
-      enum: ['draft', 'active', 'inactive', 'out_of_stock', 'suppressed'],
-      default: 'draft',
+      enum: ["draft", "active", "inactive", "out_of_stock", "suppressed"],
+      default: "draft",
       index: true,
     },
     suppressionReasons: [String],
@@ -267,8 +278,8 @@ const ListingSchema = new Schema<IListing>(
   },
   {
     timestamps: true,
-    collection: 'souq_listings',
-  }
+    collection: "souq_listings",
+  },
 );
 
 // Compound indexes for Buy Box queries
@@ -278,16 +289,19 @@ ListingSchema.index({ sellerId: 1, status: 1 });
 ListingSchema.index({ price: 1, status: 1 });
 
 // Pre-save: Calculate available quantity
-ListingSchema.pre('save', function (next) {
-  this.availableQuantity = Math.max(0, this.stockQuantity - this.reservedQuantity);
-  
+ListingSchema.pre("save", function (next) {
+  this.availableQuantity = Math.max(
+    0,
+    this.stockQuantity - this.reservedQuantity,
+  );
+
   // Auto-update status based on stock
-  if (this.availableQuantity === 0 && this.status === 'active') {
-    this.status = 'out_of_stock';
-  } else if (this.availableQuantity > 0 && this.status === 'out_of_stock') {
-    this.status = 'active';
+  if (this.availableQuantity === 0 && this.status === "active") {
+    this.status = "out_of_stock";
+  } else if (this.availableQuantity > 0 && this.status === "out_of_stock") {
+    this.status = "active";
   }
-  
+
   next();
 });
 
@@ -312,39 +326,52 @@ ListingSchema.methods.calculateBuyBoxScore = function (): number {
   // Boost for order history (experience factor)
   const experienceBoost = Math.min(orderCount / 100, 1) * 5;
 
-  const score = priceScore + performanceScore + qualityScore + ratingScore + reliabilityScore + experienceBoost;
+  const score =
+    priceScore +
+    performanceScore +
+    qualityScore +
+    ratingScore +
+    reliabilityScore +
+    experienceBoost;
 
   return Math.round(Math.max(0, Math.min(100, score)));
 };
 
 // Method: Check if listing is eligible for Buy Box
-ListingSchema.methods.checkBuyBoxEligibility = async function (): Promise<boolean> {
-  // Must be active with stock
-  if (this.status !== 'active' || this.availableQuantity === 0) {
-    this.buyBoxEligible = false;
-    return false;
-  }
+ListingSchema.methods.checkBuyBoxEligibility =
+  async function (): Promise<boolean> {
+    // Must be active with stock
+    if (this.status !== "active" || this.availableQuantity === 0) {
+      this.buyBoxEligible = false;
+      return false;
+    }
 
-  // Must have acceptable performance
-  if (this.metrics.defectRate > 2 || this.metrics.cancelRate > 2.5 || this.metrics.onTimeShipRate < 95) {
-    this.buyBoxEligible = false;
-    return false;
-  }
+    // Must have acceptable performance
+    if (
+      this.metrics.defectRate > 2 ||
+      this.metrics.cancelRate > 2.5 ||
+      this.metrics.onTimeShipRate < 95
+    ) {
+      this.buyBoxEligible = false;
+      return false;
+    }
 
-  // Check seller account health
-  const seller = await mongoose.model('SouqSeller').findById(this.sellerId);
-  if (!seller || !seller.canCompeteInBuyBox()) {
-    this.buyBoxEligible = false;
-    return false;
-  }
+    // Check seller account health
+    const seller = await mongoose.model("SouqSeller").findById(this.sellerId);
+    if (!seller || !seller.canCompeteInBuyBox()) {
+      this.buyBoxEligible = false;
+      return false;
+    }
 
-  this.buyBoxEligible = true;
-  this.buyBoxScore = this.calculateBuyBoxScore();
-  return true;
-};
+    this.buyBoxEligible = true;
+    this.buyBoxScore = this.calculateBuyBoxScore();
+    return true;
+  };
 
 // Method: Reserve quantity for order
-ListingSchema.methods.reserveStock = async function (quantity: number): Promise<boolean> {
+ListingSchema.methods.reserveStock = async function (
+  quantity: number,
+): Promise<boolean> {
   if (this.availableQuantity < quantity) {
     return false;
   }
@@ -355,13 +382,17 @@ ListingSchema.methods.reserveStock = async function (quantity: number): Promise<
 };
 
 // Method: Release reserved quantity
-ListingSchema.methods.releaseStock = async function (quantity: number): Promise<void> {
+ListingSchema.methods.releaseStock = async function (
+  quantity: number,
+): Promise<void> {
   this.reservedQuantity = Math.max(0, this.reservedQuantity - quantity);
   await this.save();
 };
 
 // Method: Deduct stock after order
-ListingSchema.methods.deductStock = async function (quantity: number): Promise<boolean> {
+ListingSchema.methods.deductStock = async function (
+  quantity: number,
+): Promise<boolean> {
   if (this.reservedQuantity < quantity) {
     return false;
   }
@@ -376,11 +407,11 @@ ListingSchema.methods.deductStock = async function (quantity: number): Promise<b
 ListingSchema.statics.getBuyBoxWinner = async function (fsin: string) {
   const listings = await this.find({
     fsin,
-    status: 'active',
+    status: "active",
     buyBoxEligible: true,
     availableQuantity: { $gt: 0 },
   })
-    .populate('sellerId')
+    .populate("sellerId")
     .sort({ buyBoxScore: -1, price: 1 })
     .limit(1);
 
@@ -388,15 +419,18 @@ ListingSchema.statics.getBuyBoxWinner = async function (fsin: string) {
 };
 
 // Static: Get all offers for a product
-ListingSchema.statics.getProductOffers = async function (fsin: string, options = {}) {
-  const { condition = 'new', sort = 'price' } = options as {
+ListingSchema.statics.getProductOffers = async function (
+  fsin: string,
+  options = {},
+) {
+  const { condition = "new", sort = "price" } = options as {
     condition?: string;
     sort?: string;
   };
 
   const query: Record<string, unknown> = {
     fsin,
-    status: 'active',
+    status: "active",
     availableQuantity: { $gt: 0 },
   };
 
@@ -405,16 +439,15 @@ ListingSchema.statics.getProductOffers = async function (fsin: string, options =
   }
 
   const sortOptions: Record<string, number> = {};
-  if (sort === 'price') {
+  if (sort === "price") {
     sortOptions.price = 1;
-  } else if (sort === 'rating') {
-    sortOptions['metrics.customerRating'] = -1;
+  } else if (sort === "rating") {
+    sortOptions["metrics.customerRating"] = -1;
   }
 
-  return this.find(query).populate('sellerId').sort(sortOptions);
+  return this.find(query).populate("sellerId").sort(sortOptions);
 };
 
-export const SouqListing =
-  getModel<IListing>('SouqListing', ListingSchema);
+export const SouqListing = getModel<IListing>("SouqListing", ListingSchema);
 
 export default SouqListing;

@@ -12,6 +12,7 @@
 Comprehensive right-to-left (RTL) layout testing for Arabic language support across all major features of the Fixzit platform.
 
 ### Why This Matters
+
 - **70% of users** speak Arabic as primary language
 - RTL issues create poor user experience
 - Affects critical transactions (checkout, bookings, claims)
@@ -24,6 +25,7 @@ Comprehensive right-to-left (RTL) layout testing for Arabic language support acr
 ### Phase 1: Core Shell (4 hours) 🔴 HIGH PRIORITY
 
 **Modules:**
+
 - Dashboard (FM/Souq/Aqar views)
 - Authentication pages (login, signup, forgot password)
 - Profile & settings pages
@@ -31,6 +33,7 @@ Comprehensive right-to-left (RTL) layout testing for Arabic language support acr
 - Property listings (Aqar)
 
 **Per-Page Checklist:**
+
 - [ ] Text direction changes to RTL
 - [ ] Icons mirror properly (arrows, chevrons)
 - [ ] Navigation menu reverses order
@@ -43,6 +46,7 @@ Comprehensive right-to-left (RTL) layout testing for Arabic language support acr
 - [ ] Numbers use Arabic numerals (optional, but test)
 
 **Test Process:**
+
 ```bash
 # 1. Start dev server
 pnpm dev
@@ -65,6 +69,7 @@ window.location.reload();
 ### Phase 2: Transactional Flows (4 hours) 🔴 CRITICAL
 
 **Flows to Test:**
+
 1. **Souq Checkout**
    - Add product to cart
    - Review cart page
@@ -99,6 +104,7 @@ window.location.reload();
    - Contact page
 
 **Critical Elements:**
+
 - [ ] Form validation messages
 - [ ] Error states
 - [ ] Loading indicators
@@ -114,6 +120,7 @@ window.location.reload();
 ### Phase 3: Admin Panels (2 hours) 🟡 MEDIUM PRIORITY
 
 **Admin Pages:**
+
 1. **Claims Review Panel**
    - Claims list table
    - Filter/sort controls
@@ -143,6 +150,7 @@ window.location.reload();
    - Export options
 
 **Admin-Specific Checks:**
+
 - [ ] Data tables handle Arabic text
 - [ ] Column headers reverse
 - [ ] Sort indicators mirror
@@ -157,6 +165,7 @@ window.location.reload();
 ### Phase 4: Edge Cases & Mobile (2 hours) 🟡 MEDIUM PRIORITY
 
 **Components to Test:**
+
 1. **Toast Notifications**
    - Position (top-right in LTR = top-left in RTL?)
    - Icon position
@@ -190,6 +199,7 @@ window.location.reload();
    - Touch targets
 
 **Edge Cases:**
+
 - [ ] Mixed LTR/RTL content (English names + Arabic text)
 - [ ] Email addresses in RTL context
 - [ ] URLs in RTL context
@@ -206,18 +216,20 @@ window.location.reload();
 ### Browser Setup
 
 **Recommended Browsers:**
+
 - Chrome/Edge (Chromium) - Best dev tools
 - Safari - iOS testing
 - Firefox - Gecko engine differences
 
 **Dev Tools:**
+
 ```javascript
 // Quick RTL toggle bookmarklet
-javascript:(function(){
-  const isRTL = document.dir === 'rtl';
-  document.dir = isRTL ? 'ltr' : 'rtl';
-  document.documentElement.dir = isRTL ? 'ltr' : 'rtl';
-  localStorage.setItem('fixzit_locale', isRTL ? 'en' : 'ar');
+javascript: (function () {
+  const isRTL = document.dir === "rtl";
+  document.dir = isRTL ? "ltr" : "rtl";
+  document.documentElement.dir = isRTL ? "ltr" : "rtl";
+  localStorage.setItem("fixzit_locale", isRTL ? "en" : "ar");
   location.reload();
 })();
 ```
@@ -225,11 +237,13 @@ javascript:(function(){
 ### Mobile Testing
 
 **Physical Devices (Preferred):**
+
 - iPhone 13+ (iOS Safari)
 - Samsung Galaxy (Chrome Android)
 - iPad (tablet view)
 
 **Emulators:**
+
 ```bash
 # iOS Simulator
 open -a Simulator
@@ -239,6 +253,7 @@ emulator -avd Pixel_5_API_33
 ```
 
 **Browser DevTools:**
+
 - Chrome DevTools Device Mode (F12 → Toggle device toolbar)
 - Responsive Design Mode
 
@@ -248,13 +263,14 @@ emulator -avd Pixel_5_API_33
 
 ### Create Spreadsheet: `RTL_QA_Issues.xlsx`
 
-| ID | Page/Component | Issue Description | Severity | Screenshot | Status | Notes |
-|----|----------------|-------------------|----------|------------|--------|-------|
-| RTL-001 | Dashboard | Sidebar not flipping | High | link | Open | |
-| RTL-002 | Login | Button alignment off | Medium | link | Open | |
-| RTL-003 | Checkout | Payment form labels | High | link | Fixed | |
+| ID      | Page/Component | Issue Description    | Severity | Screenshot | Status | Notes |
+| ------- | -------------- | -------------------- | -------- | ---------- | ------ | ----- |
+| RTL-001 | Dashboard      | Sidebar not flipping | High     | link       | Open   |       |
+| RTL-002 | Login          | Button alignment off | Medium   | link       | Open   |       |
+| RTL-003 | Checkout       | Payment form labels  | High     | link       | Fixed  |       |
 
 **Severity Levels:**
+
 - 🔴 **Critical** - Blocks functionality (wrong data entry, payment fails)
 - 🟠 **High** - Poor UX, major visual issues
 - 🟡 **Medium** - Minor visual issues, inconsistencies
@@ -428,6 +444,7 @@ emulator -avd Pixel_5_API_33
 ### Issue 1: Text Not Reversing
 
 **Problem:**
+
 ```css
 /* Text stays LTR */
 .element {
@@ -436,6 +453,7 @@ emulator -avd Pixel_5_API_33
 ```
 
 **Fix:**
+
 ```css
 /* Use logical properties */
 .element {
@@ -446,20 +464,27 @@ emulator -avd Pixel_5_API_33
 ### Issue 2: Icons Not Mirroring
 
 **Problem:**
+
 ```jsx
-{/* Arrow always points right */}
-<ChevronRight />
+{
+  /* Arrow always points right */
+}
+<ChevronRight />;
 ```
 
 **Fix:**
+
 ```jsx
-{/* Mirror arrow in RTL */}
-<ChevronRight className="rtl:rotate-180" />
+{
+  /* Mirror arrow in RTL */
+}
+<ChevronRight className="rtl:rotate-180" />;
 ```
 
 ### Issue 3: Margins/Padding Wrong Side
 
 **Problem:**
+
 ```css
 .element {
   margin-left: 16px; /* Always left */
@@ -467,6 +492,7 @@ emulator -avd Pixel_5_API_33
 ```
 
 **Fix:**
+
 ```css
 /* Use logical properties */
 .element {
@@ -477,6 +503,7 @@ emulator -avd Pixel_5_API_33
 ### Issue 4: Absolute Positioning
 
 **Problem:**
+
 ```css
 .element {
   left: 0; /* Always left */
@@ -484,6 +511,7 @@ emulator -avd Pixel_5_API_33
 ```
 
 **Fix:**
+
 ```css
 /* Use logical properties */
 .element {
@@ -494,6 +522,7 @@ emulator -avd Pixel_5_API_33
 ### Issue 5: Flexbox Direction
 
 **Problem:**
+
 ```css
 .container {
   display: flex;
@@ -502,6 +531,7 @@ emulator -avd Pixel_5_API_33
 ```
 
 **Fix:**
+
 ```css
 /* Flexbox auto-reverses in RTL if row-reverse isn't forced */
 .container {
@@ -518,6 +548,7 @@ emulator -avd Pixel_5_API_33
 ## 📸 Screenshot Documentation
 
 ### Naming Convention
+
 ```
 RTL-[PAGE]-[ISSUE]-[TIMESTAMP].png
 
@@ -528,6 +559,7 @@ RTL-Claims-TableScroll-20251117-1500.png
 ```
 
 ### What to Capture
+
 - Full page view (before fix)
 - Close-up of issue (problem area)
 - Expected behavior (reference)
@@ -542,23 +574,23 @@ RTL-Claims-TableScroll-20251117-1500.png
 Create `tests/rtl/rtl-smoke.spec.ts`:
 
 ```typescript
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('RTL Layout Smoke Tests', () => {
+test.describe("RTL Layout Smoke Tests", () => {
   test.beforeEach(async ({ page }) => {
     // Set RTL mode
-    await page.goto('http://localhost:3000');
+    await page.goto("http://localhost:3000");
     await page.evaluate(() => {
-      localStorage.setItem('fixzit_locale', 'ar');
-      document.dir = 'rtl';
+      localStorage.setItem("fixzit_locale", "ar");
+      document.dir = "rtl";
     });
   });
 
-  test('Dashboard displays in RTL', async ({ page }) => {
-    await page.goto('/dashboard');
+  test("Dashboard displays in RTL", async ({ page }) => {
+    await page.goto("/dashboard");
     const dir = await page.evaluate(() => document.dir);
-    expect(dir).toBe('rtl');
-    
+    expect(dir).toBe("rtl");
+
     // Check sidebar on right
     const sidebar = page.locator('[data-testid="sidebar"]');
     const box = await sidebar.boundingBox();
@@ -566,17 +598,17 @@ test.describe('RTL Layout Smoke Tests', () => {
     expect(box.x).toBeGreaterThan(viewport.width / 2);
   });
 
-  test('Forms align correctly in RTL', async ({ page }) => {
-    await page.goto('/login');
+  test("Forms align correctly in RTL", async ({ page }) => {
+    await page.goto("/login");
     const dir = await page.evaluate(() => document.dir);
-    expect(dir).toBe('rtl');
-    
+    expect(dir).toBe("rtl");
+
     // Check text alignment
     const input = page.locator('input[type="email"]');
-    const style = await input.evaluate(el => 
-      window.getComputedStyle(el).textAlign
+    const style = await input.evaluate(
+      (el) => window.getComputedStyle(el).textAlign,
     );
-    expect(style).toBe('right');
+    expect(style).toBe("right");
   });
 
   // Add more tests...
@@ -584,6 +616,7 @@ test.describe('RTL Layout Smoke Tests', () => {
 ```
 
 Run with:
+
 ```bash
 pnpm playwright test tests/rtl/
 ```
@@ -595,24 +628,28 @@ pnpm playwright test tests/rtl/
 ### Daily Progress Log
 
 **Day 1 (4 hours):**
+
 - [ ] Phase 1: Core Shell (Dashboard, Auth, Work Orders)
 - [ ] 20 pages tested
-- [ ] Issues found: ___
-- [ ] Critical blockers: ___
+- [ ] Issues found: \_\_\_
+- [ ] Critical blockers: \_\_\_
 
 **Day 2 (4 hours):**
+
 - [ ] Phase 2: Transactional Flows (Souq, Aqar, Payments)
 - [ ] 15 flows tested
-- [ ] Issues found: ___
-- [ ] Critical blockers: ___
+- [ ] Issues found: \_\_\_
+- [ ] Critical blockers: \_\_\_
 
 **Day 3 (2 hours):**
+
 - [ ] Phase 3: Admin Panels (Claims, Users, Analytics)
 - [ ] 10 pages tested
-- [ ] Issues found: ___
-- [ ] Critical blockers: ___
+- [ ] Issues found: \_\_\_
+- [ ] Critical blockers: \_\_\_
 
 **Day 4 (2 hours):**
+
 - [ ] Phase 4: Edge Cases & Mobile
 - [ ] All components tested
 - [ ] Final verification
@@ -680,6 +717,7 @@ location.reload();
 ---
 
 **Next Steps:**
+
 1. ✅ Complete security validation first
 2. 🔴 Start Phase 1 (Core Shell) - 4 hours
 3. 🔴 Start Phase 2 (Transactions) - 4 hours

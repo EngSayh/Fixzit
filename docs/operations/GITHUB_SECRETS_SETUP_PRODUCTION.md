@@ -8,32 +8,32 @@ This guide provides step-by-step instructions for configuring repository secrets
 
 ### 1. Database & Authentication
 
-| Secret Name | Description | Required | Example |
-|-------------|-------------|----------|---------|
-| `MONGODB_URI` | MongoDB connection string (Atlas or self-hosted) | ✅ Required | `mongodb+srv://user:pass@cluster.mongodb.net/fixzit?retryWrites=true&w=majority` |
-| `NEXTAUTH_SECRET` | NextAuth.js session encryption key (32+ chars) | ✅ Required | Generate: `openssl rand -base64 32` |
-| `JWT_SECRET` | JWT signing secret (64 hex chars) | ✅ Required | Generate: `openssl rand -hex 32` |
-| `NEXTAUTH_URL` | Production URL for NextAuth callbacks | ✅ Required | `https://fixzit.yourdomain.com` |
+| Secret Name       | Description                                      | Required    | Example                                                                          |
+| ----------------- | ------------------------------------------------ | ----------- | -------------------------------------------------------------------------------- |
+| `MONGODB_URI`     | MongoDB connection string (Atlas or self-hosted) | ✅ Required | `mongodb+srv://user:pass@cluster.mongodb.net/fixzit?retryWrites=true&w=majority` |
+| `NEXTAUTH_SECRET` | NextAuth.js session encryption key (32+ chars)   | ✅ Required | Generate: `openssl rand -base64 32`                                              |
+| `JWT_SECRET`      | JWT signing secret (64 hex chars)                | ✅ Required | Generate: `openssl rand -hex 32`                                                 |
+| `NEXTAUTH_URL`    | Production URL for NextAuth callbacks            | ✅ Required | `https://fixzit.yourdomain.com`                                                  |
 
 ### 2. External Services
 
-| Secret Name | Description | Required | Example |
-|-------------|-------------|----------|---------|
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps JavaScript API key | 📋 Optional | `AIza...` |
-| `GOOGLE_CLIENT_ID` | Google OAuth 2.0 Client ID | 📋 Optional | `123456-abc.apps.googleusercontent.com` |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 Client Secret | 📋 Optional | `GOCSPX-...` |
+| Secret Name                       | Description                    | Required    | Example                                 |
+| --------------------------------- | ------------------------------ | ----------- | --------------------------------------- |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps JavaScript API key | 📋 Optional | `AIza...`                               |
+| `GOOGLE_CLIENT_ID`                | Google OAuth 2.0 Client ID     | 📋 Optional | `123456-abc.apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_SECRET`            | Google OAuth 2.0 Client Secret | 📋 Optional | `GOCSPX-...`                            |
 
 ### 3. Internal API
 
-| Secret Name | Description | Required | Example |
-|-------------|-------------|----------|---------|
+| Secret Name          | Description                                | Required       | Example                          |
+| -------------------- | ------------------------------------------ | -------------- | -------------------------------- |
 | `INTERNAL_API_TOKEN` | Token for internal service-to-service auth | ⚠️ Recommended | Generate: `openssl rand -hex 32` |
 
 ### 4. CI/CD (GitHub Actions Only)
 
-| Secret Name | Description | Required | Example |
-|-------------|-------------|----------|---------|
-| `GITHUB_TOKEN` | Automatically provided by GitHub Actions | ✅ Auto-provided | N/A |
+| Secret Name    | Description                              | Required         | Example |
+| -------------- | ---------------------------------------- | ---------------- | ------- |
+| `GITHUB_TOKEN` | Automatically provided by GitHub Actions | ✅ Auto-provided | N/A     |
 
 ## Setup Instructions
 
@@ -126,7 +126,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     env:
       # Reference secrets
       MONGODB_URI: ${{ secrets.MONGODB_URI }}
@@ -134,25 +134,25 @@ jobs:
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
       NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
-      
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
-      
+          node-version: "20"
+          cache: "pnpm"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
+
       - name: Run type check
         run: pnpm typecheck
-      
+
       - name: Run linter
         run: pnpm lint
-      
+
       - name: Run tests
         run: pnpm test
 ```
@@ -242,7 +242,7 @@ Create `.github/workflows/test-secrets.yml`:
 name: Test Secrets
 
 on:
-  workflow_dispatch:  # Manual trigger only
+  workflow_dispatch: # Manual trigger only
 
 jobs:
   test-secrets:
@@ -258,7 +258,7 @@ jobs:
           fi
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
-      
+
       - name: Check NEXTAUTH_SECRET exists
         run: |
           if [ -z "$NEXTAUTH_SECRET" ]; then
@@ -269,7 +269,7 @@ jobs:
           fi
         env:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-      
+
       - name: Check JWT_SECRET exists
         run: |
           if [ -z "$JWT_SECRET" ]; then
@@ -317,7 +317,7 @@ gh workflow run test-secrets.yml
 
 # ✅ Good - masks secret
 - name: Debug
-  run: echo "Secret exists" 
+  run: echo "Secret exists"
   env:
     MY_SECRET: ${{ secrets.MY_SECRET }}
 ```

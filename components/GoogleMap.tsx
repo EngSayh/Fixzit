@@ -1,9 +1,9 @@
-'use client';
-import { logger } from '@/lib/logger';
+"use client";
+import { logger } from "@/lib/logger";
 /// <reference types="google.maps" />
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Loader as Spinner } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Loader as Spinner } from "lucide-react";
 
 type LatLng = { lat: number; lng: number };
 type MarkerInput = {
@@ -23,7 +23,7 @@ type GoogleMapProps = {
   language?: string;
   region?: string;
   fitToMarkers?: boolean;
-  gestureHandling?: 'cooperative' | 'greedy' | 'none' | 'auto';
+  gestureHandling?: "cooperative" | "greedy" | "none" | "auto";
   disableDefaultUI?: boolean;
   onReady?: (map: google.maps.Map) => void;
 };
@@ -40,7 +40,7 @@ function loadGoogleMapsOnce(opts: {
   region?: string;
   libraries?: string[];
 }) {
-  if (typeof window === 'undefined') return Promise.resolve();
+  if (typeof window === "undefined") return Promise.resolve();
 
   if (window.google?.maps) return Promise.resolve();
 
@@ -48,34 +48,39 @@ function loadGoogleMapsOnce(opts: {
     const { apiKey, language, region, libraries } = opts;
     const params = new URLSearchParams({
       key: apiKey,
-      v: 'weekly',
+      v: "weekly",
     });
-    if (language) params.set('language', language);
-    if (region) params.set('region', region);
-    if (libraries && libraries.length) params.set('libraries', libraries.join(','));
+    if (language) params.set("language", language);
+    if (region) params.set("region", region);
+    if (libraries && libraries.length)
+      params.set("libraries", libraries.join(","));
 
     window.__gmapsPromise = new Promise<void>((resolve, reject) => {
-      const id = 'gmaps-sdk';
+      const id = "gmaps-sdk";
       const existing = document.getElementById(id) as HTMLScriptElement | null;
       if (existing) {
         // Check if google maps API is already loaded
-        if (typeof window.google !== 'undefined' && window.google.maps) {
+        if (typeof window.google !== "undefined" && window.google.maps) {
           resolve();
           return;
         }
         // Attach listeners for scripts still loading
-        existing.addEventListener('load', () => resolve(), { once: true });
-        existing.addEventListener('error', () => reject(new Error('Google Maps script error')), { once: true });
+        existing.addEventListener("load", () => resolve(), { once: true });
+        existing.addEventListener(
+          "error",
+          () => reject(new Error("Google Maps script error")),
+          { once: true },
+        );
         return;
       }
 
-      const script = document.createElement('script');
+      const script = document.createElement("script");
       script.id = id;
       script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
       script.async = true;
       script.defer = true;
       script.onload = () => resolve();
-      script.onerror = () => reject(new Error('Google Maps script error'));
+      script.onerror = () => reject(new Error("Google Maps script error"));
       document.head.appendChild(script);
     }).catch((e) => {
       window.__gmapsPromise = undefined;
@@ -85,19 +90,22 @@ function loadGoogleMapsOnce(opts: {
   return window.__gmapsPromise;
 }
 
-function createInfoWindowContent(title?: string, info?: string): HTMLDivElement {
-  const contentDiv = document.createElement('div');
-  contentDiv.style.padding = '8px';
-  contentDiv.style.maxWidth = '280px';
+function createInfoWindowContent(
+  title?: string,
+  info?: string,
+): HTMLDivElement {
+  const contentDiv = document.createElement("div");
+  contentDiv.style.padding = "8px";
+  contentDiv.style.maxWidth = "280px";
 
   if (title) {
-    const strong = document.createElement('strong');
+    const strong = document.createElement("strong");
     strong.textContent = title;
     contentDiv.appendChild(strong);
-    contentDiv.appendChild(document.createElement('br'));
+    contentDiv.appendChild(document.createElement("br"));
   }
   if (info) {
-    const span = document.createElement('span');
+    const span = document.createElement("span");
     span.textContent = info;
     contentDiv.appendChild(span);
   }
@@ -113,9 +121,9 @@ export default function GoogleMap({
   mapId,
   libraries = [],
   language,
-  region = 'SA',
+  region = "SA",
   fitToMarkers = true,
-  gestureHandling = 'cooperative',
+  gestureHandling = "cooperative",
   disableDefaultUI = false,
   onReady,
 }: GoogleMapProps) {
@@ -137,11 +145,16 @@ export default function GoogleMap({
   const apiKey = useMemo(() => {
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     // Whitelist of known placeholders - return empty string only for exact matches
-    const placeholders = ['your_api_key_here', 'dev-google-maps-api-key', 'YOUR_API_KEY', 'YOUR_GOOGLE_MAPS_API_KEY'];
-    return key && !placeholders.includes(key) ? key : '';
+    const placeholders = [
+      "your_api_key_here",
+      "dev-google-maps-api-key",
+      "YOUR_API_KEY",
+      "YOUR_GOOGLE_MAPS_API_KEY",
+    ];
+    return key && !placeholders.includes(key) ? key : "";
   }, []);
 
-  // Initialize map - runs once on mount. Props like apiKey, language, region, libraries, mapId, 
+  // Initialize map - runs once on mount. Props like apiKey, language, region, libraries, mapId,
   // gestureHandling, and disableDefaultUI are intentionally initialization-only and not included
   // in dependencies. Changing these at runtime would require full map teardown/recreation which
   // is not supported. center/zoom updates are handled by separate effects below.
@@ -152,7 +165,7 @@ export default function GoogleMap({
       if (!containerRef.current) return;
       if (!apiKey) {
         setError(
-          'Google Maps requires a valid API key. Ask your admin to set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY and enable billing.',
+          "Google Maps requires a valid API key. Ask your admin to set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY and enable billing.",
         );
         setLoading(false);
         return;
@@ -177,19 +190,23 @@ export default function GoogleMap({
         mapRef.current = map;
 
         if (onMapClickRef.current) {
-          clickListenerRef.current = map.addListener('click', (e: google.maps.MapMouseEvent) => {
-            if (e.latLng && onMapClickRef.current) {
-              onMapClickRef.current(e.latLng.lat(), e.latLng.lng());
-            }
-          });
+          clickListenerRef.current = map.addListener(
+            "click",
+            (e: google.maps.MapMouseEvent) => {
+              if (e.latLng && onMapClickRef.current) {
+                onMapClickRef.current(e.latLng.lat(), e.latLng.lng());
+              }
+            },
+          );
         }
 
         setLoading(false);
         onReady?.(map);
       } catch (e) {
-         
-        logger.error('[GoogleMap] init error', { error: e });
-        setError('Failed to load Google Maps. Check API key, referrer restrictions, and billing status.');
+        logger.error("[GoogleMap] init error", { error: e });
+        setError(
+          "Failed to load Google Maps. Check API key, referrer restrictions, and billing status.",
+        );
         setLoading(false);
       }
     };
@@ -226,7 +243,6 @@ export default function GoogleMap({
       }
       mapRef.current = null;
     };
-
   }, []);
 
   useEffect(() => {
@@ -272,8 +288,10 @@ export default function GoogleMap({
       });
 
       if (m.title || m.info) {
-        const iw = new google.maps.InfoWindow({ content: createInfoWindowContent(m.title, m.info) });
-        const l = marker.addListener('click', () => iw.open(map, marker));
+        const iw = new google.maps.InfoWindow({
+          content: createInfoWindowContent(m.title, m.info),
+        });
+        const l = marker.addListener("click", () => iw.open(map, marker));
         infoRefs.current.push(iw);
         listenerRefs.current.push(l);
       }
@@ -290,7 +308,7 @@ export default function GoogleMap({
   }, [markers, fitToMarkers]);
 
   const wrapperStyle: React.CSSProperties = {
-    height: typeof height === 'number' ? `${height}px` : height,
+    height: typeof height === "number" ? `${height}px` : height,
   };
 
   if (error) {
@@ -302,17 +320,30 @@ export default function GoogleMap({
       >
         <div className="text-center p-6 max-w-md">
           <div className="mb-3">
-            <svg className="w-12 h-12 text-muted-foreground mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-12 h-12 text-muted-foreground mx-auto"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
           </div>
           <p className="text-foreground font-semibold mb-2">Map Unavailable</p>
           <p className="text-sm text-muted-foreground mb-3">{error}</p>
           <div className="bg-primary/5 border border-primary/20 rounded-2xl p-3">
             <p className="text-xs text-primary-foreground">
-              <strong>For Developers:</strong> Set{' '}
-              <code className="bg-primary/10 px-1 py-0.5 rounded">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>, restrict by HTTP
-              referrer to your domains, and enable billing + Maps JavaScript API (and Places if used).
+              <strong>For Developers:</strong> Set{" "}
+              <code className="bg-primary/10 px-1 py-0.5 rounded">
+                NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+              </code>
+              , restrict by HTTP referrer to your domains, and enable billing +
+              Maps JavaScript API (and Places if used).
             </p>
           </div>
         </div>
@@ -323,14 +354,21 @@ export default function GoogleMap({
   return (
     <div className="relative" style={wrapperStyle} data-testid="gmaps-wrapper">
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted rounded-2xl z-10" data-testid="gmaps-loading">
+        <div
+          className="absolute inset-0 flex items-center justify-center bg-muted rounded-2xl z-10"
+          data-testid="gmaps-loading"
+        >
           <div className="text-center">
             <Spinner className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">Loading map...</p>
           </div>
         </div>
       )}
-      <div ref={containerRef} className="w-full h-full rounded-2xl" data-testid="gmaps-canvas" />
+      <div
+        ref={containerRef}
+        className="w-full h-full rounded-2xl"
+        data-testid="gmaps-canvas"
+      />
     </div>
   );
 }

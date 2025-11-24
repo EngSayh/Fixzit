@@ -3,12 +3,12 @@
  * Enforces role-based access control for Facility Management endpoints
  */
 
-import { logger } from '@/lib/logger';
-import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromToken } from '@/lib/auth';
-import { can, Role, SubmoduleKey, Action, Plan } from '@/domain/fm/fm.behavior';
-import { connectDb } from '@/lib/mongo';
-import { Organization } from '@/server/models/Organization';
+import { logger } from "@/lib/logger";
+import { NextRequest, NextResponse } from "next/server";
+import { getUserFromToken } from "@/lib/auth";
+import { can, Role, SubmoduleKey, Action, Plan } from "@/domain/fm/fm.behavior";
+import { connectDb } from "@/lib/mongo";
+import { Organization } from "@/server/models/Organization";
 
 export interface FMAuthContext {
   userId: string;
@@ -27,11 +27,15 @@ export interface FMAuthContext {
 /**
  * Extract FM auth context from JWT token
  */
-export async function getFMAuthContext(_req: NextRequest): Promise<FMAuthContext | null> {
+export async function getFMAuthContext(
+  _req: NextRequest,
+): Promise<FMAuthContext | null> {
   try {
     // Get token from cookie or header
-    const cookieToken = _req.cookies.get('fixzit_auth')?.value;
-    const headerToken = _req.headers.get('Authorization')?.replace('Bearer ', '');
+    const cookieToken = _req.cookies.get("fixzit_auth")?.value;
+    const headerToken = _req.headers
+      .get("Authorization")
+      ?.replace("Bearer ", "");
     const token = cookieToken || headerToken;
 
     if (!token) {
@@ -39,47 +43,47 @@ export async function getFMAuthContext(_req: NextRequest): Promise<FMAuthContext
     }
 
     const user = await getUserFromToken(token);
-    
+
     if (!user) {
       return null;
     }
 
     // Map user role to FM Role enum
     const roleMapping: Record<string, Role> = {
-      'SUPER_ADMIN': Role.SUPER_ADMIN,
-      'CORPORATE_ADMIN': Role.CORPORATE_ADMIN,
-      'MANAGEMENT': Role.MANAGEMENT,
-      'FINANCE': Role.FINANCE,
-      'HR': Role.HR,
-      'EMPLOYEE': Role.EMPLOYEE,
-      'PROPERTY_OWNER': Role.PROPERTY_OWNER,
-      'OWNER_DEPUTY': Role.OWNER_DEPUTY,
-      'TECHNICIAN': Role.TECHNICIAN,
-      'TENANT': Role.TENANT,
-      'VENDOR': Role.VENDOR,
-      'GUEST': Role.GUEST,
+      SUPER_ADMIN: Role.SUPER_ADMIN,
+      CORPORATE_ADMIN: Role.CORPORATE_ADMIN,
+      MANAGEMENT: Role.MANAGEMENT,
+      FINANCE: Role.FINANCE,
+      HR: Role.HR,
+      EMPLOYEE: Role.EMPLOYEE,
+      PROPERTY_OWNER: Role.PROPERTY_OWNER,
+      OWNER_DEPUTY: Role.OWNER_DEPUTY,
+      TECHNICIAN: Role.TECHNICIAN,
+      TENANT: Role.TENANT,
+      VENDOR: Role.VENDOR,
+      GUEST: Role.GUEST,
     };
 
-    const userRole = user.role || 'GUEST';
+    const userRole = user.role || "GUEST";
     const role = roleMapping[userRole] || Role.GUEST;
 
     return {
-      userId: user.id || user.email || '',
+      userId: user.id || user.email || "",
       role,
-      orgId: (user as { orgId?: string }).orgId || '',
+      orgId: (user as { orgId?: string }).orgId || "",
       propertyIds: (user as { propertyIds?: string[] }).propertyIds || [],
       user: {
-        id: user.id || '',
-        email: user.email || '',
+        id: user.id || "",
+        email: user.email || "",
         role: user.role,
         orgId: (user as { orgId?: string }).orgId,
-        propertyIds: (user as { propertyIds?: string[] }).propertyIds
-      }
+        propertyIds: (user as { propertyIds?: string[] }).propertyIds,
+      },
     };
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[FM Auth] Context extraction failed:', { error });
+    logger.error("[FM Auth] Context extraction failed:", { error });
     return null;
   }
 }
@@ -102,10 +106,9 @@ export async function requireFMAuth(
     orgId?: string;
     propertyId?: string;
     ownerId?: string;
-  }
+  },
 ): Promise<
-  | { ctx: FMAuthContext; error: null }
-  | { ctx: null; error: NextResponse }
+  { ctx: FMAuthContext; error: null } | { ctx: null; error: NextResponse }
 > {
   // Extract auth context
   const ctx = await getFMAuthContext(req);
@@ -114,66 +117,74 @@ export async function requireFMAuth(
     return {
       ctx: null,
       error: NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
-      )
+        { error: "Unauthorized", message: "Authentication required" },
+        { status: 401 },
+      ),
     };
   }
 
   // ✅ Get actual subscription plan from organization and verify membership
   let plan = Plan.STARTER;
   let isOrgMember = false;
-  
+
   try {
     await connectDb();
     // Always use ctx.orgId - don't allow callers to query other orgs
     const org = await Organization.findOne({ orgId: ctx.orgId });
-    
+
     if (org) {
       // Map organization plan to FM Plan enum (with fallback chain)
       const subscriptionPlan = org.subscription?.plan;
-      const orgPlan = subscriptionPlan || (org as { plan?: string }).plan || 'BASIC';
+      const orgPlan =
+        subscriptionPlan || (org as { plan?: string }).plan || "BASIC";
       const planMap: Record<string, Plan> = {
-        'BASIC': Plan.STARTER,
-        'STARTER': Plan.STARTER,
-        'STANDARD': Plan.STANDARD,
-        'PREMIUM': Plan.PRO,
-        'PRO': Plan.PRO,
-        'ENTERPRISE': Plan.ENTERPRISE,
+        BASIC: Plan.STARTER,
+        STARTER: Plan.STARTER,
+        STANDARD: Plan.STANDARD,
+        PREMIUM: Plan.PRO,
+        PRO: Plan.PRO,
+        ENTERPRISE: Plan.ENTERPRISE,
       };
       plan = planMap[orgPlan.toUpperCase()] || Plan.STARTER;
-      
+
       // Verify org membership: initialize as false and check if user is in member list
       isOrgMember = false;
-      
+
       // Check if user is in org's member list with proper validation
       if (org.members && Array.isArray(org.members)) {
         for (const member of org.members) {
           // Validate member structure before comparing
-          if (member && typeof member === 'object' && typeof member.userId === 'string') {
+          if (
+            member &&
+            typeof member === "object" &&
+            typeof member.userId === "string"
+          ) {
             if (member.userId === ctx.userId) {
               isOrgMember = true;
               break;
             }
           } else {
-            logger.warn('[FM Auth] Invalid member entry in org.members', { orgId: ctx.orgId, member });
+            logger.warn("[FM Auth] Invalid member entry in org.members", {
+              orgId: ctx.orgId,
+              member,
+            });
           }
         }
       }
-      
-      logger.debug('[FM Auth] Org lookup successful', { 
-        orgId: ctx.orgId, 
-        plan, 
+
+      logger.debug("[FM Auth] Org lookup successful", {
+        orgId: ctx.orgId,
+        plan,
         isOrgMember,
-        userId: ctx.userId 
+        userId: ctx.userId,
       });
-      } else {
-      logger.warn('[FM Auth] Organization not found', { orgId: ctx.orgId });
+    } else {
+      logger.warn("[FM Auth] Organization not found", { orgId: ctx.orgId });
     }
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[FM Auth] Subscription lookup failed:', { error });
+    logger.error("[FM Auth] Subscription lookup failed:", { error });
     // Fall back to STARTER plan and no org membership on error
   }
 
@@ -184,7 +195,7 @@ export async function requireFMAuth(
     propertyId: options?.propertyId,
     userId: ctx.userId,
     plan,
-    isOrgMember
+    isOrgMember,
   });
 
   if (!allowed) {
@@ -192,12 +203,12 @@ export async function requireFMAuth(
       ctx: null,
       error: NextResponse.json(
         {
-          error: 'Forbidden',
+          error: "Forbidden",
           message: `Role ${ctx.role} lacks permission for ${action} on ${submodule}`,
-          required: { submodule, action, role: ctx.role }
+          required: { submodule, action, role: ctx.role },
         },
-        { status: 403 }
-      )
+        { status: 403 },
+      ),
     };
   }
 
@@ -217,10 +228,10 @@ export function userCan(
     propertyId?: string;
     plan?: Plan;
     isOrgMember?: boolean;
-  }
+  },
 ): boolean {
   if (!ctx) return false;
-  
+
   // Use restrictive defaults: STARTER plan and no org membership unless explicitly provided
   // Callers MUST provide plan and isOrgMember from DB for accurate permission checks
   return can(submodule, action, {
@@ -229,18 +240,18 @@ export function userCan(
     propertyId: options?.propertyId,
     userId: ctx.userId,
     plan: options?.plan ?? Plan.STARTER,
-    isOrgMember: options?.isOrgMember ?? false
+    isOrgMember: options?.isOrgMember ?? false,
   });
 }
 
 /**
  * Extract property ownership context for ABAC checks
- * 
+ *
  * NOTE: FMProperty model not yet implemented. When created, it should have:
  * - ownerId: string (User ID of property owner)
  * - orgId: string (Organization ID managing the property)
  * - propertyId: string (Unique property identifier)
- * 
+ *
  * Example implementation when model exists:
  * ```typescript
  * import { FMProperty } from '@/server/models/FMProperty';
@@ -256,50 +267,59 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
 } | null> {
   try {
     await connectDb();
-    
+
     // Try to import FMProperty model (may not exist yet)
     // @ts-expect-error FMProperty model may not be created yet
-    const FMPropertyModule = await import('@/server/models/FMProperty').catch(() => null);
-    
+    const FMPropertyModule = await import("@/server/models/FMProperty").catch(
+      () => null,
+    );
+
     if (FMPropertyModule && FMPropertyModule.FMProperty) {
-      const property = await FMPropertyModule.FMProperty.findOne({ 
-        propertyId: _propertyId 
-      }).select('ownerId orgId').lean();
-      
+      const property = await FMPropertyModule.FMProperty.findOne({
+        propertyId: _propertyId,
+      })
+        .select("ownerId orgId")
+        .lean();
+
       if (property) {
-        logger.debug('[FM Auth] Property ownership found', { 
-          propertyId: _propertyId, 
-          ownerId: property.ownerId, 
-          orgId: property.orgId 
+        logger.debug("[FM Auth] Property ownership found", {
+          propertyId: _propertyId,
+          ownerId: property.ownerId,
+          orgId: property.orgId,
         });
-        return { 
-          ownerId: property.ownerId?.toString() || '', 
-          orgId: property.orgId?.toString() || '' 
+        return {
+          ownerId: property.ownerId?.toString() || "",
+          orgId: property.orgId?.toString() || "",
         };
       }
     } else {
       // Fallback: Try WorkOrder model which may have propertyId reference
-      logger.debug('[FM Auth] FMProperty model not found, checking WorkOrders');
+      logger.debug("[FM Auth] FMProperty model not found, checking WorkOrders");
       // @ts-expect-error FMWorkOrder model may not be created yet
-      const { FMWorkOrder } = await import('@/server/models/FMWorkOrder');
+      const { FMWorkOrder } = await import("@/server/models/FMWorkOrder");
       const workOrder = await FMWorkOrder.findOne({ propertyId: _propertyId })
-        .select('propertyOwnerId orgId')
+        .select("propertyOwnerId orgId")
         .lean();
-      
+
       if (workOrder && workOrder.propertyOwnerId) {
         return {
           ownerId: workOrder.propertyOwnerId.toString(),
-          orgId: workOrder.orgId?.toString() || ''
+          orgId: workOrder.orgId?.toString() || "",
         };
       }
     }
-    
-    logger.warn('[FM Auth] Property ownership not found', { propertyId: _propertyId });
+
+    logger.warn("[FM Auth] Property ownership not found", {
+      propertyId: _propertyId,
+    });
     return null;
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[FM Auth] Property ownership query failed:', { error, propertyId: _propertyId });
+    logger.error("[FM Auth] Property ownership query failed:", {
+      error,
+      propertyId: _propertyId,
+    });
     return null;
   }
 }

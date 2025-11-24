@@ -1,9 +1,9 @@
-import type { UpdateFilter } from 'mongodb';
-import { getDatabase } from '@/lib/mongodb-unified';
-import { createRefund } from '@/lib/paytabs';
-import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
-import { logger } from '@/lib/logger';
-import { ClaimService } from './claim-service';
+import type { UpdateFilter } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { createRefund } from "@/lib/paytabs";
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { logger } from "@/lib/logger";
+import { ClaimService } from "./claim-service";
 
 export interface RefundRequest {
   claimId: string;
@@ -15,8 +15,6 @@ export interface RefundRequest {
   originalPaymentMethod: string;
   originalTransactionId?: string;
 }
-
-
 
 type SellerBalanceDocument = {
   sellerId: string;
@@ -33,7 +31,7 @@ type SellerBalanceDocument = {
 
 export interface RefundResult {
   refundId: string;
-  status: 'initiated' | 'processing' | 'completed' | 'failed';
+  status: "initiated" | "processing" | "completed" | "failed";
   amount: number;
   transactionId?: string;
   completedAt?: Date;
@@ -50,20 +48,20 @@ export interface Refund {
   reason: string;
   paymentMethod: string;
   originalTransactionId?: string;
-  
-  status: 'initiated' | 'processing' | 'completed' | 'failed';
+
+  status: "initiated" | "processing" | "completed" | "failed";
   transactionId?: string;
   processedAt?: Date;
   completedAt?: Date;
   failureReason?: string;
   retryCount: number;
-  
+
   createdAt: Date;
   updatedAt: Date;
 }
 
 export class RefundProcessor {
-  private static COLLECTION = 'souq_refunds';
+  private static COLLECTION = "souq_refunds";
   private static MAX_RETRIES = 3;
   private static RETRY_DELAY_MS = 5000; // 5 seconds
   private static async collection() {
@@ -79,7 +77,7 @@ export class RefundProcessor {
 
     // Create refund record
     const refundId = `REF-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    
+
     const refund: Refund = {
       refundId,
       claimId: request.claimId,
@@ -90,7 +88,7 @@ export class RefundProcessor {
       reason: request.reason,
       paymentMethod: request.originalPaymentMethod,
       originalTransactionId: request.originalTransactionId,
-      status: 'initiated',
+      status: "initiated",
       retryCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -101,17 +99,17 @@ export class RefundProcessor {
     // Attempt to process refund
     try {
       const result = await this.executeRefund(refund);
-      
+
       // Update refund status
       await this.updateRefundStatus(refundId, result.status, {
         transactionId: result.transactionId,
-        completedAt: result.status === 'completed' ? new Date() : undefined,
+        completedAt: result.status === "completed" ? new Date() : undefined,
         failureReason: result.failureReason,
       });
 
       // Update order status
-      if (result.status === 'completed') {
-        await this.updateOrderStatus(request.orderId, 'refunded');
+      if (result.status === "completed") {
+        await this.updateOrderStatus(request.orderId, "refunded");
       }
 
       // Notify parties
@@ -119,10 +117,11 @@ export class RefundProcessor {
 
       return result;
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      await this.updateRefundStatus(refundId, 'failed', {
-        failureReason: error instanceof Error ? error.message : 'Unknown error',
+      await this.updateRefundStatus(refundId, "failed", {
+        failureReason: error instanceof Error ? error.message : "Unknown error",
       });
 
       throw error;
@@ -134,7 +133,7 @@ export class RefundProcessor {
    */
   private static async executeRefund(refund: Refund): Promise<RefundResult> {
     // Update to processing
-    await this.updateRefundStatus(refund.refundId, 'processing');
+    await this.updateRefundStatus(refund.refundId, "processing");
 
     try {
       // Call PayTabs refund API
@@ -142,30 +141,32 @@ export class RefundProcessor {
 
       return {
         refundId: refund.refundId,
-        status: 'completed',
+        status: "completed",
         amount: refund.amount,
         transactionId: gatewayResult.transactionId,
         completedAt: new Date(),
       };
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
       // Retry logic
       if (refund.retryCount < this.MAX_RETRIES) {
         await this.scheduleRetry(refund);
-        
+
         return {
           refundId: refund.refundId,
-          status: 'processing',
+          status: "processing",
           amount: refund.amount,
         };
       }
 
       return {
         refundId: refund.refundId,
-        status: 'failed',
+        status: "failed",
         amount: refund.amount,
-        failureReason: error instanceof Error ? error.message : 'Failed after max retries',
+        failureReason:
+          error instanceof Error ? error.message : "Failed after max retries",
       };
     }
   }
@@ -178,11 +179,13 @@ export class RefundProcessor {
     status: string;
   }> {
     if (!refund.originalTransactionId) {
-      throw new Error('Missing original transaction reference for refund');
+      throw new Error("Missing original transaction reference for refund");
     }
 
     if (!process.env.PAYTABS_SERVER_KEY) {
-      throw new Error('PayTabs credentials not configured. Set PAYTABS_SERVER_KEY and PAYTABS_PROFILE_ID.');
+      throw new Error(
+        "PayTabs credentials not configured. Set PAYTABS_SERVER_KEY and PAYTABS_PROFILE_ID.",
+      );
     }
 
     // Use PayTabs refund API
@@ -190,7 +193,7 @@ export class RefundProcessor {
       originalTransactionId: refund.originalTransactionId,
       refundId: refund.refundId,
       amount: refund.amount, // PayTabs uses decimal SAR, not halalas
-      currency: 'SAR',
+      currency: "SAR",
       reason: refund.reason,
       metadata: {
         claimId: refund.claimId,
@@ -201,15 +204,19 @@ export class RefundProcessor {
     });
 
     if (!paytabsRefund.success) {
-      throw new Error(paytabsRefund.error || 'PayTabs refund failed');
+      throw new Error(paytabsRefund.error || "PayTabs refund failed");
     }
 
     // Map PayTabs status codes to internal status
     // A = Approved, P = Pending, D = Declined
-    const status = paytabsRefund.status === 'A' ? 'SUCCEEDED' : 
-                   paytabsRefund.status === 'P' ? 'PENDING' : 'FAILED';
+    const status =
+      paytabsRefund.status === "A"
+        ? "SUCCEEDED"
+        : paytabsRefund.status === "P"
+          ? "PENDING"
+          : "FAILED";
 
-    if (status === 'FAILED') {
+    if (status === "FAILED") {
       throw new Error(`PayTabs refund declined: ${paytabsRefund.message}`);
     }
 
@@ -230,21 +237,26 @@ export class RefundProcessor {
       {
         $inc: { retryCount: 1 },
         $set: {
-          status: 'processing',
+          status: "processing",
           updatedAt: new Date(),
         },
-      }
+      },
     );
 
     // Schedule retry after delay
-    setTimeout(async () => {
-      const latestCollection = await this.collection();
-      const updatedRefund = await latestCollection.findOne({ refundId: refund.refundId });
+    setTimeout(
+      async () => {
+        const latestCollection = await this.collection();
+        const updatedRefund = await latestCollection.findOne({
+          refundId: refund.refundId,
+        });
 
-      if (updatedRefund && updatedRefund.status === 'processing') {
-        await this.executeRefund(updatedRefund);
-      }
-    }, this.RETRY_DELAY_MS * (refund.retryCount + 1)); // Exponential backoff
+        if (updatedRefund && updatedRefund.status === "processing") {
+          await this.executeRefund(updatedRefund);
+        }
+      },
+      this.RETRY_DELAY_MS * (refund.retryCount + 1),
+    ); // Exponential backoff
   }
 
   /**
@@ -252,12 +264,12 @@ export class RefundProcessor {
    */
   private static async updateRefundStatus(
     refundId: string,
-    status: Refund['status'],
+    status: Refund["status"],
     data?: {
       transactionId?: string;
       completedAt?: Date;
       failureReason?: string;
-    }
+    },
   ): Promise<void> {
     const update: Record<string, unknown> = {
       status,
@@ -267,7 +279,7 @@ export class RefundProcessor {
     if (data?.transactionId) update.transactionId = data.transactionId;
     if (data?.completedAt) update.completedAt = data.completedAt;
     if (data?.failureReason) update.failureReason = data.failureReason;
-    if (status === 'processing') update.processedAt = new Date();
+    if (status === "processing") update.processedAt = new Date();
 
     const collection = await this.collection();
     await collection.updateOne({ refundId }, { $set: update });
@@ -278,19 +290,19 @@ export class RefundProcessor {
    */
   private static async updateOrderStatus(
     orderId: string,
-    status: string
+    status: string,
   ): Promise<void> {
     const db = await getDatabase();
-    await db.collection('souq_orders').updateOne(
+    await db.collection("souq_orders").updateOne(
       { orderId },
       {
         $set: {
           status,
           refundedAt: new Date(),
           updatedAt: new Date(),
-          'payment.status': 'refunded',
+          "payment.status": "refunded",
         },
-      }
+      },
     );
   }
 
@@ -300,9 +312,9 @@ export class RefundProcessor {
   private static async notifyRefundStatus(
     buyerId: string,
     sellerId: string,
-    result: RefundResult
+    result: RefundResult,
   ): Promise<void> {
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'souq-claim-refund-status', {
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "souq-claim-refund-status", {
       buyerId,
       sellerId,
       refundId: result.refundId,
@@ -329,7 +341,7 @@ export class RefundProcessor {
     buyerId?: string;
     sellerId?: string;
     claimId?: string;
-    status?: Refund['status'];
+    status?: Refund["status"];
     limit?: number;
     offset?: number;
   }): Promise<{ refunds: Refund[]; total: number }> {
@@ -367,7 +379,7 @@ export class RefundProcessor {
     const collection = await this.collection();
     const failedRefunds = await collection
       .find({
-        status: 'failed',
+        status: "failed",
         retryCount: { $lt: this.MAX_RETRIES },
       })
       .toArray();
@@ -379,9 +391,12 @@ export class RefundProcessor {
         await this.executeRefund(refund);
         retriedCount++;
       } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
         void error;
-        logger.error('Failed to retry refund', error, { refundId: refund.refundId });
+        logger.error("Failed to retry refund", error, {
+          refundId: refund.refundId,
+        });
       }
     }
 
@@ -398,7 +413,7 @@ export class RefundProcessor {
   }): Promise<{
     totalRefunds: number;
     totalAmount: number;
-    byStatus: Record<Refund['status'], number>;
+    byStatus: Record<Refund["status"], number>;
     avgProcessingTime: number;
     successRate: number;
   }> {
@@ -427,12 +442,13 @@ export class RefundProcessor {
       byStatus[refund.status] = (byStatus[refund.status] || 0) + 1;
       totalAmount += refund.amount;
 
-      if (refund.status === 'completed' && refund.completedAt) {
-        const processingTime = refund.completedAt.getTime() - refund.createdAt.getTime();
+      if (refund.status === "completed" && refund.completedAt) {
+        const processingTime =
+          refund.completedAt.getTime() - refund.createdAt.getTime();
         totalProcessingTime += processingTime;
         processedCount++;
         successCount++;
-      } else if (refund.status === 'failed') {
+      } else if (refund.status === "failed") {
         processedCount++;
       }
     });
@@ -440,8 +456,9 @@ export class RefundProcessor {
     return {
       totalRefunds: refunds.length,
       totalAmount,
-      byStatus: byStatus as Record<Refund['status'], number>,
-      avgProcessingTime: processedCount > 0 ? totalProcessingTime / processedCount : 0,
+      byStatus: byStatus as Record<Refund["status"], number>,
+      avgProcessingTime:
+        processedCount > 0 ? totalProcessingTime / processedCount : 0,
       successRate: processedCount > 0 ? successCount / processedCount : 0,
     };
   }
@@ -451,7 +468,7 @@ export class RefundProcessor {
    */
   static async calculateSellerDeduction(
     claimId: string,
-    refundAmount: number
+    refundAmount: number,
   ): Promise<{
     refundAmount: number;
     sellerDeduction: number;
@@ -459,10 +476,10 @@ export class RefundProcessor {
     netSellerDeduction: number;
   }> {
     const claim = await ClaimService.getClaim(claimId);
-    if (!claim) throw new Error('Claim not found');
+    if (!claim) throw new Error("Claim not found");
 
     // Platform takes back its commission (assume 10%)
-    const platformFeeRate = 0.10;
+    const platformFeeRate = 0.1;
     const platformFeeRefund = refundAmount * platformFeeRate;
 
     // Seller pays the full refund amount
@@ -485,12 +502,14 @@ export class RefundProcessor {
   static async deductFromSellerBalance(
     sellerId: string,
     amount: number,
-    reason: string
+    reason: string,
   ): Promise<void> {
-    const balances = (await getDatabase()).collection<SellerBalanceDocument>('souq_seller_balances');
-    const newTransaction: SellerBalanceDocument['transactions'][number] = {
+    const balances = (await getDatabase()).collection<SellerBalanceDocument>(
+      "souq_seller_balances",
+    );
+    const newTransaction: SellerBalanceDocument["transactions"][number] = {
       transactionId: `TXN-${Date.now()}`,
-      type: 'deduction',
+      type: "deduction",
       amount: -amount,
       reason,
       createdAt: new Date(),

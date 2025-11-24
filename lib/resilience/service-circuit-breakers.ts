@@ -1,4 +1,4 @@
-import { CircuitBreaker } from './circuit-breaker';
+import { CircuitBreaker } from "./circuit-breaker";
 
 const createBreaker = (name: string, cooldownMs: number): CircuitBreaker =>
   new CircuitBreaker({
@@ -8,10 +8,10 @@ const createBreaker = (name: string, cooldownMs: number): CircuitBreaker =>
     cooldownMs,
   });
 
-const paytabsBreaker = createBreaker('paytabs', 30_000);
-const twilioBreaker = createBreaker('twilio', 20_000);
-const meilisearchBreaker = createBreaker('meilisearch', 15_000);
-const zatcaBreaker = createBreaker('zatca', 60_000);
+const paytabsBreaker = createBreaker("paytabs", 30_000);
+const twilioBreaker = createBreaker("twilio", 20_000);
+const meilisearchBreaker = createBreaker("meilisearch", 15_000);
+const zatcaBreaker = createBreaker("zatca", 60_000);
 
 export const serviceCircuitBreakers = {
   paytabs: paytabsBreaker,

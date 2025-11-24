@@ -186,13 +186,21 @@ const NAV_BASE: Section[] = [
   {
     title: "Compliance & Legal",
     items: [
-      { label: "Contracts", path: "/dashboard/compliance/contracts", icon: "📜" },
+      {
+        label: "Contracts",
+        path: "/dashboard/compliance/contracts",
+        icon: "📜",
+      },
       {
         label: "Disputes & Claims",
         path: "/dashboard/compliance/disputes",
         icon: "⚖️",
       },
-      { label: "Audit & Risk", path: "/dashboard/compliance/audit", icon: "🛡️" },
+      {
+        label: "Audit & Risk",
+        path: "/dashboard/compliance/audit",
+        icon: "🛡️",
+      },
     ],
   },
   {
@@ -250,61 +258,173 @@ const slugifyKey = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const SECTION_TRANSLATIONS: Record<string, { key: string; fallback: string }> = {
-  "Main": { key: "sidebar.legacy.sections.main", fallback: "Main" },
-  "Finance": { key: "sidebar.legacy.sections.finance", fallback: "Finance" },
-  "Human Resources": { key: "sidebar.legacy.sections.human-resources", fallback: "Human Resources" },
-  "Administration": { key: "sidebar.legacy.sections.administration", fallback: "Administration" },
-  "CRM": { key: "sidebar.legacy.sections.crm", fallback: "CRM" },
-  "Marketplace": { key: "sidebar.legacy.sections.marketplace", fallback: "Marketplace" },
-  "Support & Helpdesk": { key: "sidebar.legacy.sections.support-and-helpdesk", fallback: "Support & Helpdesk" },
-  "Compliance & Legal": { key: "sidebar.legacy.sections.compliance-and-legal", fallback: "Compliance & Legal" },
-  "Reports & Analytics": { key: "sidebar.legacy.sections.reports-and-analytics", fallback: "Reports & Analytics" },
-  "System Management": { key: "sidebar.legacy.sections.system-management", fallback: "System Management" },
-};
+const SECTION_TRANSLATIONS: Record<string, { key: string; fallback: string }> =
+  {
+    Main: { key: "sidebar.legacy.sections.main", fallback: "Main" },
+    Finance: { key: "sidebar.legacy.sections.finance", fallback: "Finance" },
+    "Human Resources": {
+      key: "sidebar.legacy.sections.human-resources",
+      fallback: "Human Resources",
+    },
+    Administration: {
+      key: "sidebar.legacy.sections.administration",
+      fallback: "Administration",
+    },
+    CRM: { key: "sidebar.legacy.sections.crm", fallback: "CRM" },
+    Marketplace: {
+      key: "sidebar.legacy.sections.marketplace",
+      fallback: "Marketplace",
+    },
+    "Support & Helpdesk": {
+      key: "sidebar.legacy.sections.support-and-helpdesk",
+      fallback: "Support & Helpdesk",
+    },
+    "Compliance & Legal": {
+      key: "sidebar.legacy.sections.compliance-and-legal",
+      fallback: "Compliance & Legal",
+    },
+    "Reports & Analytics": {
+      key: "sidebar.legacy.sections.reports-and-analytics",
+      fallback: "Reports & Analytics",
+    },
+    "System Management": {
+      key: "sidebar.legacy.sections.system-management",
+      fallback: "System Management",
+    },
+  };
 
 const ITEM_TRANSLATIONS: Record<string, { key: string; fallback: string }> = {
-  "Dashboard": { key: "sidebar.legacy.items.dashboard", fallback: "Dashboard" },
-  "Work Orders": { key: "sidebar.legacy.items.work-orders", fallback: "Work Orders" },
-  "Properties": { key: "sidebar.legacy.items.properties", fallback: "Properties" },
-  "Invoices": { key: "sidebar.legacy.items.invoices", fallback: "Invoices" },
-  "Payments": { key: "sidebar.legacy.items.payments", fallback: "Payments" },
-  "Expenses": { key: "sidebar.legacy.items.expenses", fallback: "Expenses" },
-  "Budgets": { key: "sidebar.legacy.items.budgets", fallback: "Budgets" },
-  "Reports": { key: "sidebar.legacy.items.reports", fallback: "Reports" },
-  "Employee Directory": { key: "sidebar.legacy.items.employee-directory", fallback: "Employee Directory" },
-  "Attendance & Leave": { key: "sidebar.legacy.items.attendance-and-leave", fallback: "Attendance & Leave" },
-  "Payroll": { key: "sidebar.legacy.items.payroll", fallback: "Payroll" },
-  "Recruitment (ATS)": { key: "sidebar.legacy.items.recruitment-ats", fallback: "Recruitment (ATS)" },
-  "Training": { key: "sidebar.legacy.items.training", fallback: "Training" },
-  "Performance": { key: "sidebar.legacy.items.performance", fallback: "Performance" },
-  "Delegation of Authority": { key: "sidebar.legacy.items.delegation-of-authority", fallback: "Delegation of Authority" },
-  "Policies & Procedures": { key: "sidebar.legacy.items.policies-and-procedures", fallback: "Policies & Procedures" },
-  "Asset Management": { key: "sidebar.legacy.items.asset-management", fallback: "Asset Management" },
-  "Facilities & Fleet": { key: "sidebar.legacy.items.facilities-and-fleet", fallback: "Facilities & Fleet" },
-  "Customer Directory": { key: "sidebar.legacy.items.customer-directory", fallback: "Customer Directory" },
-  "Leads & Opportunities": { key: "sidebar.legacy.items.leads-and-opportunities", fallback: "Leads & Opportunities" },
-  "Contracts & Renewals": { key: "sidebar.legacy.items.contracts-and-renewals", fallback: "Contracts & Renewals" },
-  "Feedback & Complaints": { key: "sidebar.legacy.items.feedback-and-complaints", fallback: "Feedback & Complaints" },
-  "Vendors & Suppliers": { key: "sidebar.legacy.items.vendors-and-suppliers", fallback: "Vendors & Suppliers" },
-  "Service Catalog": { key: "sidebar.legacy.items.service-catalog", fallback: "Service Catalog" },
-  "Procurement Requests": { key: "sidebar.legacy.items.procurement-requests", fallback: "Procurement Requests" },
-  "Bidding & RFQs": { key: "sidebar.legacy.items.bidding-and-rfqs", fallback: "Bidding & RFQs" },
-  "Tickets": { key: "sidebar.legacy.items.tickets", fallback: "Tickets" },
-  "Knowledge Base": { key: "sidebar.legacy.items.knowledge-base", fallback: "Knowledge Base" },
-  "Live Chat / Bot": { key: "sidebar.legacy.items.live-chat-bot", fallback: "Live Chat / Bot" },
-  "SLA Monitoring": { key: "sidebar.legacy.items.sla-monitoring", fallback: "SLA Monitoring" },
-  "Contracts": { key: "sidebar.legacy.items.contracts", fallback: "Contracts" },
-  "Disputes & Claims": { key: "sidebar.legacy.items.disputes-and-claims", fallback: "Disputes & Claims" },
-  "Audit & Risk": { key: "sidebar.legacy.items.audit-and-risk", fallback: "Audit & Risk" },
-  "Standard Reports": { key: "sidebar.legacy.items.standard-reports", fallback: "Standard Reports" },
-  "Custom Reports": { key: "sidebar.legacy.items.custom-reports", fallback: "Custom Reports" },
-  "Dashboards": { key: "sidebar.legacy.items.dashboards", fallback: "Dashboards" },
-  "User Management": { key: "sidebar.legacy.items.user-management", fallback: "User Management" },
-  "Roles & Permissions": { key: "sidebar.legacy.items.roles-and-permissions", fallback: "Roles & Permissions" },
-  "Subscriptions & Billing": { key: "sidebar.legacy.items.subscriptions-and-billing", fallback: "Subscriptions & Billing" },
-  "Integrations": { key: "sidebar.legacy.items.integrations", fallback: "Integrations" },
-  "Settings": { key: "sidebar.legacy.items.settings", fallback: "Settings" },
+  Dashboard: { key: "sidebar.legacy.items.dashboard", fallback: "Dashboard" },
+  "Work Orders": {
+    key: "sidebar.legacy.items.work-orders",
+    fallback: "Work Orders",
+  },
+  Properties: {
+    key: "sidebar.legacy.items.properties",
+    fallback: "Properties",
+  },
+  Invoices: { key: "sidebar.legacy.items.invoices", fallback: "Invoices" },
+  Payments: { key: "sidebar.legacy.items.payments", fallback: "Payments" },
+  Expenses: { key: "sidebar.legacy.items.expenses", fallback: "Expenses" },
+  Budgets: { key: "sidebar.legacy.items.budgets", fallback: "Budgets" },
+  Reports: { key: "sidebar.legacy.items.reports", fallback: "Reports" },
+  "Employee Directory": {
+    key: "sidebar.legacy.items.employee-directory",
+    fallback: "Employee Directory",
+  },
+  "Attendance & Leave": {
+    key: "sidebar.legacy.items.attendance-and-leave",
+    fallback: "Attendance & Leave",
+  },
+  Payroll: { key: "sidebar.legacy.items.payroll", fallback: "Payroll" },
+  "Recruitment (ATS)": {
+    key: "sidebar.legacy.items.recruitment-ats",
+    fallback: "Recruitment (ATS)",
+  },
+  Training: { key: "sidebar.legacy.items.training", fallback: "Training" },
+  Performance: {
+    key: "sidebar.legacy.items.performance",
+    fallback: "Performance",
+  },
+  "Delegation of Authority": {
+    key: "sidebar.legacy.items.delegation-of-authority",
+    fallback: "Delegation of Authority",
+  },
+  "Policies & Procedures": {
+    key: "sidebar.legacy.items.policies-and-procedures",
+    fallback: "Policies & Procedures",
+  },
+  "Asset Management": {
+    key: "sidebar.legacy.items.asset-management",
+    fallback: "Asset Management",
+  },
+  "Facilities & Fleet": {
+    key: "sidebar.legacy.items.facilities-and-fleet",
+    fallback: "Facilities & Fleet",
+  },
+  "Customer Directory": {
+    key: "sidebar.legacy.items.customer-directory",
+    fallback: "Customer Directory",
+  },
+  "Leads & Opportunities": {
+    key: "sidebar.legacy.items.leads-and-opportunities",
+    fallback: "Leads & Opportunities",
+  },
+  "Contracts & Renewals": {
+    key: "sidebar.legacy.items.contracts-and-renewals",
+    fallback: "Contracts & Renewals",
+  },
+  "Feedback & Complaints": {
+    key: "sidebar.legacy.items.feedback-and-complaints",
+    fallback: "Feedback & Complaints",
+  },
+  "Vendors & Suppliers": {
+    key: "sidebar.legacy.items.vendors-and-suppliers",
+    fallback: "Vendors & Suppliers",
+  },
+  "Service Catalog": {
+    key: "sidebar.legacy.items.service-catalog",
+    fallback: "Service Catalog",
+  },
+  "Procurement Requests": {
+    key: "sidebar.legacy.items.procurement-requests",
+    fallback: "Procurement Requests",
+  },
+  "Bidding & RFQs": {
+    key: "sidebar.legacy.items.bidding-and-rfqs",
+    fallback: "Bidding & RFQs",
+  },
+  Tickets: { key: "sidebar.legacy.items.tickets", fallback: "Tickets" },
+  "Knowledge Base": {
+    key: "sidebar.legacy.items.knowledge-base",
+    fallback: "Knowledge Base",
+  },
+  "Live Chat / Bot": {
+    key: "sidebar.legacy.items.live-chat-bot",
+    fallback: "Live Chat / Bot",
+  },
+  "SLA Monitoring": {
+    key: "sidebar.legacy.items.sla-monitoring",
+    fallback: "SLA Monitoring",
+  },
+  Contracts: { key: "sidebar.legacy.items.contracts", fallback: "Contracts" },
+  "Disputes & Claims": {
+    key: "sidebar.legacy.items.disputes-and-claims",
+    fallback: "Disputes & Claims",
+  },
+  "Audit & Risk": {
+    key: "sidebar.legacy.items.audit-and-risk",
+    fallback: "Audit & Risk",
+  },
+  "Standard Reports": {
+    key: "sidebar.legacy.items.standard-reports",
+    fallback: "Standard Reports",
+  },
+  "Custom Reports": {
+    key: "sidebar.legacy.items.custom-reports",
+    fallback: "Custom Reports",
+  },
+  Dashboards: {
+    key: "sidebar.legacy.items.dashboards",
+    fallback: "Dashboards",
+  },
+  "User Management": {
+    key: "sidebar.legacy.items.user-management",
+    fallback: "User Management",
+  },
+  "Roles & Permissions": {
+    key: "sidebar.legacy.items.roles-and-permissions",
+    fallback: "Roles & Permissions",
+  },
+  "Subscriptions & Billing": {
+    key: "sidebar.legacy.items.subscriptions-and-billing",
+    fallback: "Subscriptions & Billing",
+  },
+  Integrations: {
+    key: "sidebar.legacy.items.integrations",
+    fallback: "Integrations",
+  },
+  Settings: { key: "sidebar.legacy.items.settings", fallback: "Settings" },
 };
 
 const getSectionTranslation = (title: string) =>
@@ -352,19 +472,35 @@ function normalizeRoleFromSession(raw?: string): Role {
   const value = raw.trim();
   const lower = value.toLowerCase();
 
-  if (lower === "super admin" || lower === "super_admin" || lower === "superadmin") {
+  if (
+    lower === "super admin" ||
+    lower === "super_admin" ||
+    lower === "superadmin"
+  ) {
     return "Super Admin";
   }
-  if (lower === "admin" || lower === "corporate admin" || lower === "corporate_admin") {
+  if (
+    lower === "admin" ||
+    lower === "corporate admin" ||
+    lower === "corporate_admin"
+  ) {
     return "Corporate Admin";
   }
-  if (lower === "management" || lower === "manager" || lower === "property_manager") {
+  if (
+    lower === "management" ||
+    lower === "manager" ||
+    lower === "property_manager"
+  ) {
     return "Management";
   }
   if (lower === "finance") return "Finance";
   if (lower === "hr") return "HR";
   if (lower === "technician") return "Technician";
-  if (lower === "tenant" || lower === "tenant / end-user" || lower === "tenant/end-user") {
+  if (
+    lower === "tenant" ||
+    lower === "tenant / end-user" ||
+    lower === "tenant/end-user"
+  ) {
     return "Tenant / End-User";
   }
   // Default for employees or any unknown roles
@@ -407,12 +543,17 @@ export default function ClientSidebar() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
     if (typeof window === "undefined") return {};
     try {
-      const stored = JSON.parse(localStorage.getItem("sidebarCollapsed") || "{}");
-      return Object.entries(stored).reduce((acc, [key, value]) => {
-        const normalized = slugifyKey(key);
-        acc[normalized] = Boolean(value);
-        return acc;
-      }, {} as Record<string, boolean>);
+      const stored = JSON.parse(
+        localStorage.getItem("sidebarCollapsed") || "{}",
+      );
+      return Object.entries(stored).reduce(
+        (acc, [key, value]) => {
+          const normalized = slugifyKey(key);
+          acc[normalized] = Boolean(value);
+          return acc;
+        },
+        {} as Record<string, boolean>,
+      );
     } catch {
       return {};
     }
@@ -426,12 +567,18 @@ export default function ClientSidebar() {
 
   useEffect(() => {
     if (!orgId) return;
-    fetchCounters(orgId).then(setCounters).catch((error) => {
-      // Log counter fetch failures for debugging
-      logger.warn('[Sidebar] Failed to fetch notification counters', { component: 'ClientSidebar', action: 'fetchCounters', error });
-      // Set empty counters as fallback
-      setCounters({});
-    });
+    fetchCounters(orgId)
+      .then(setCounters)
+      .catch((error) => {
+        // Log counter fetch failures for debugging
+        logger.warn("[Sidebar] Failed to fetch notification counters", {
+          component: "ClientSidebar",
+          action: "fetchCounters",
+          error,
+        });
+        // Set empty counters as fallback
+        setCounters({});
+      });
 
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
     if (!wsUrl) return;
@@ -475,7 +622,7 @@ export default function ClientSidebar() {
           return {
             ...item,
             label: t(itemTranslation.key, itemTranslation.fallback),
-            badge: item.badgeKey ? counters[item.badgeKey] ?? 0 : 0,
+            badge: item.badgeKey ? (counters[item.badgeKey] ?? 0) : 0,
           };
         });
       return { id: sectionId, title, items };
@@ -505,7 +652,8 @@ export default function ClientSidebar() {
       <nav className="p-2 space-y-2">
         {navSections.map((section) => {
           const isAdminSection =
-            section.id === "administration" || section.id === "system-management";
+            section.id === "administration" ||
+            section.id === "system-management";
 
           return (
             <div

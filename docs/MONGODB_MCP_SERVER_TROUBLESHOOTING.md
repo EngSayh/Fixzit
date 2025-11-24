@@ -18,7 +18,7 @@
 
 - The Fixzit application
 - Database connectivity
-- API functionality  
+- API functionality
 - Any workspace code
 
 ---

@@ -14,33 +14,33 @@
 7 ./lib/paytabs.config.ts
 import 'server-only';
 export const PAYTABS_CONFIG = {
-  profileId: process.env.PAYTABS_PROFILE_ID || '',
-  serverKey: process.env.PAYTABS_SERVER_KEY || '',
-  baseUrl: process.env.PAYTABS_BASE_URL || '<https://secure.paytabs.sa>'
+profileId: process.env.PAYTABS_PROFILE_ID || '',
+serverKey: process.env.PAYTABS_SERVER_KEY || '',
+baseUrl: process.env.PAYTABS_BASE_URL || '<https://secure.paytabs.sa>'
 };
 
 ## ./lib/paytabs.ts
 
 207 ./lib/paytabs.ts
 const REGIONS: Record<string,string> = {
-  KSA: '<https://secure.paytabs.sa>', UAE: '<https://secure.paytabs.com>',
-  EGYPT:'<https://secure-egypt.paytabs.com>', OMAN:'<https://secure-oman.paytabs.com>',
-  JORDAN:'<https://secure-jordan.paytabs.com>', KUWAIT:'<https://secure-kuwait.paytabs.com>',
-  GLOBAL:'<https://secure-global.paytabs.com>'
+KSA: '<https://secure.paytabs.sa>', UAE: '<https://secure.paytabs.com>',
+EGYPT:'<https://secure-egypt.paytabs.com>', OMAN:'<https://secure-oman.paytabs.com>',
+JORDAN:'<https://secure-jordan.paytabs.com>', KUWAIT:'<https://secure-kuwait.paytabs.com>',
+GLOBAL:'<https://secure-global.paytabs.com>'
 };
 
 export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
 
 export async function createHppRequest(region:string, payload:any) {
-  const r = await fetch(`${paytabsBase(region)}/payment/request`, {
-    method:'POST',
-    headers: {
-      'Content-Type':'application/json',
-      'authorization': process.env.PAYTABS_SERVER_KEY!,
-    },
-    body: JSON.stringify(payload)
-  });
-  return r.json();
+const r = await fetch(`${paytabsBase(region)}/payment/request`, {
+method:'POST',
+headers: {
+'Content-Type':'application/json',
+'authorization': process.env.PAYTABS_SERVER_KEY!,
+},
+body: JSON.stringify(payload)
+});
+return r.json();
 }
 
 ## ./qa/tests/README-paytabs-unit-tests.md
@@ -69,7 +69,7 @@ Notes
 ## ./qa/tests/api-paytabs-callback.spec.ts
 
 279 ./qa/tests/api-paytabs-callback.spec.ts
-/**
+/\*\*
 
 - Tests for PayTabs callback API route.
 -
@@ -81,7 +81,7 @@ Notes
 - - Success path with invalid amount (NaN / <= 0) -> 400 with { ok: false, error: 'Invalid amount' }
 - - Failure path (non-'A' status) -> 200 with status 'FAILED', does not call generateZATCAQR
 - - Malformed JSON body -> 500 with { ok: false, error: 'Callback processing failed' }
- */
+    \*/
 
 import type { NextRequest } from 'next/server';
 
@@ -98,8 +98,8 @@ let POST: (req: NextRequest) => Promise<Response>;
 import { test, expect } from '@playwright/test';
 
 test.describe('lib/paytabs - paytabsBase & createHppRequest', () => {
-  test('paytabsBase resolves region URLs and falls back to GLOBAL', async () => {
-    const { paytabsBase } = await import('../../src/lib/paytabs');
+test('paytabsBase resolves region URLs and falls back to GLOBAL', async () => {
+const { paytabsBase } = await import('../../src/lib/paytabs');
 
     expect(paytabsBase('KSA')).toBe('https://secure.paytabs.sa');
     expect(paytabsBase('UAE')).toBe('https://secure.paytabs.com');
@@ -121,10 +121,10 @@ test.describe('lib/paytabs - paytabsBase & createHppRequest', () => {
 import { test, expect } from '@playwright/test';
 
 test.describe('lib/paytabs - custom base URL via env', () => {
-  test('createPaymentPage uses PAYTABS_BASE_URL when provided', async () => {
-    process.env.PAYTABS_BASE_URL = '<https://custom.paytabs.example>';
-    process.env.PAYTABS_PROFILE_ID = 'custom-profile';
-    process.env.PAYTABS_SERVER_KEY = 'custom-key';
+test('createPaymentPage uses PAYTABS_BASE_URL when provided', async () => {
+process.env.PAYTABS_BASE_URL = '<https://custom.paytabs.example>';
+process.env.PAYTABS_PROFILE_ID = 'custom-profile';
+process.env.PAYTABS_SERVER_KEY = 'custom-key';
 
     const { createPaymentPage } = await import('../../src/lib/paytabs');
 
@@ -145,10 +145,10 @@ test.describe('lib/paytabs - custom base URL via env', () => {
 import { test, expect } from '@playwright/test';
 
 test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
-  test('creates payment page successfully and posts correct payload', async () => {
-    delete process.env.PAYTABS_BASE_URL; // force default to GLOBAL
-    process.env.PAYTABS_PROFILE_ID = 'test-profile-id';
-    process.env.PAYTABS_SERVER_KEY = 'test-server-key';
+test('creates payment page successfully and posts correct payload', async () => {
+delete process.env.PAYTABS_BASE_URL; // force default to GLOBAL
+process.env.PAYTABS_PROFILE_ID = 'test-profile-id';
+process.env.PAYTABS_SERVER_KEY = 'test-server-key';
 
     const { createPaymentPage } = await import('../../src/lib/paytabs');
 
@@ -165,22 +165,22 @@ test.describe('lib/paytabs - createPaymentPage (default base URL)', () => {
 ## ./qa/tests/lib-paytabs.spec.ts
 
 403 ./qa/tests/lib-paytabs.spec.ts
-/**
+/\*\*
 
 - Tests for PayTabs integration helpers.
 - Testing framework: Jest (ts-jest or Babel/Jest setup assumed).
 - If your project uses Vitest/Mocha, adapt describe/it/expect/mocking accordingly.
- */
+  \*/
 
- // We will dynamically import the module under test using a relative path guess.
- // Update the import below to match your actual module path if different.
- // Try common locations in order via require.resolve in a try/catch chain.
+// We will dynamically import the module under test using a relative path guess.
+// Update the import below to match your actual module path if different.
+// Try common locations in order via require.resolve in a try/catch chain.
 interface PayTabsHelpers {
-  // Add expected function signatures here, e.g.:
-  // createPayment(params: CreatePaymentParams): Promise<PaymentResult>;
-  // verifyPayment(id: string): Promise<VerificationResult>;
-  // For now, use index signature to allow any property, but avoid `any` type.
-  [key: string]: unknown;
+// Add expected function signatures here, e.g.:
+// createPayment(params: CreatePaymentParams): Promise<PaymentResult>;
+// verifyPayment(id: string): Promise<VerificationResult>;
+// For now, use index signature to allow any property, but avoid `any` type.
+[key: string]: unknown;
 }
 let lib: PayTabsHelpers;
 // Define the exact path to the PayTabs helpers module here.
@@ -194,8 +194,8 @@ function loadModule() {
 import { test, expect } from '@playwright/test';
 
 test.describe('lib/paytabs - validateCallback, constants, and helpers', () => {
-  test('validateCallback: signature equals generated value (placeholder empty string)', async () => {
-    const { validateCallback } = await import('../../src/lib/paytabs');
+test('validateCallback: signature equals generated value (placeholder empty string)', async () => {
+const { validateCallback } = await import('../../src/lib/paytabs');
 
     // Placeholder generateSignature returns ''
     expect(validateCallback({}, '')).toBe(true);
@@ -204,10 +204,11 @@ test.describe('lib/paytabs - validateCallback, constants, and helpers', () => {
     expect(validateCallback({}, 'x')).toBe(false);
     expect(validateCallback(null as any, 'x')).toBe(false);
     expect(validateCallback({ a: 1 }, undefined as any)).toBe(false);
-  });
 
-  test('PAYMENT_METHODS and CURRENCIES have expected mappings', async () => {
-    const { PAYMENT_METHODS, CURRENCIES } = await import('../../src/lib/paytabs');
+});
+
+test('PAYMENT_METHODS and CURRENCIES have expected mappings', async () => {
+const { PAYMENT_METHODS, CURRENCIES } = await import('../../src/lib/paytabs');
 
     expect(PAYMENT_METHODS).toMatchObject({
 
@@ -220,53 +221,53 @@ import OwnerGroup from '../db/models/OwnerGroup';
 import { provisionSubscriber } from './provision';
 
 export interface NormalizedPayTabsPayload {
-  tran_ref?: string;
-  respStatus?: string;
-  token?: string;
-  customer_email?: string;
-  cart_id?: string;
-  amount?: number;
-  currency?: string;
-  maskedCard?: string;
+tran_ref?: string;
+respStatus?: string;
+token?: string;
+customer_email?: string;
+cart_id?: string;
+amount?: number;
+currency?: string;
+maskedCard?: string;
 }
 
 export function normalizePayTabsPayload(data: any): NormalizedPayTabsPayload {
-  const paymentInfo = data?.payment_info || {};
-  return {
-    tran_ref: data?.tran_ref || data?.tranRef,
+const paymentInfo = data?.payment_info || {};
+return {
+tran_ref: data?.tran_ref || data?.tranRef,
 
 ## ./src/lib/paytabs.config.ts
 
 7 ./src/lib/paytabs.config.ts
 import 'server-only';
 export const PAYTABS_CONFIG = {
-  profileId: process.env.PAYTABS_PROFILE_ID || '',
-  serverKey: process.env.PAYTABS_SERVER_KEY || '',
-  baseUrl: process.env.PAYTABS_BASE_URL || '<https://secure.paytabs.sa>'
+profileId: process.env.PAYTABS_PROFILE_ID || '',
+serverKey: process.env.PAYTABS_SERVER_KEY || '',
+baseUrl: process.env.PAYTABS_BASE_URL || '<https://secure.paytabs.sa>'
 };
 
 ## ./src/lib/paytabs.ts
 
 207 ./src/lib/paytabs.ts
 const REGIONS: Record<string,string> = {
-  KSA: '<https://secure.paytabs.sa>', UAE: '<https://secure.paytabs.com>',
-  EGYPT:'<https://secure-egypt.paytabs.com>', OMAN:'<https://secure-oman.paytabs.com>',
-  JORDAN:'<https://secure-jordan.paytabs.com>', KUWAIT:'<https://secure-kuwait.paytabs.com>',
-  GLOBAL:'<https://secure-global.paytabs.com>'
+KSA: '<https://secure.paytabs.sa>', UAE: '<https://secure.paytabs.com>',
+EGYPT:'<https://secure-egypt.paytabs.com>', OMAN:'<https://secure-oman.paytabs.com>',
+JORDAN:'<https://secure-jordan.paytabs.com>', KUWAIT:'<https://secure-kuwait.paytabs.com>',
+GLOBAL:'<https://secure-global.paytabs.com>'
 };
 
 export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
 
 export async function createHppRequest(region:string, payload:any) {
-  const r = await fetch(`${paytabsBase(region)}/payment/request`, {
-    method:'POST',
-    headers: {
-      'Content-Type':'application/json',
-      'authorization': process.env.PAYTABS_SERVER_KEY!,
-    },
-    body: JSON.stringify(payload)
-  });
-  return r.json();
+const r = await fetch(`${paytabsBase(region)}/payment/request`, {
+method:'POST',
+headers: {
+'Content-Type':'application/json',
+'authorization': process.env.PAYTABS_SERVER_KEY!,
+},
+body: JSON.stringify(payload)
+});
+return r.json();
 }
 
 ## ./src/services/paytabs.ts
@@ -278,32 +279,32 @@ import OwnerGroup from '../db/models/OwnerGroup';
 import { provisionSubscriber } from './provision';
 
 export interface NormalizedPayTabsPayload {
-  tran_ref?: string;
-  respStatus?: string;
-  token?: string;
-  customer_email?: string;
-  cart_id?: string;
-  amount?: number;
-  currency?: string;
-  maskedCard?: string;
+tran_ref?: string;
+respStatus?: string;
+token?: string;
+customer_email?: string;
+cart_id?: string;
+amount?: number;
+currency?: string;
+maskedCard?: string;
 }
 
 export function normalizePayTabsPayload(data: any): NormalizedPayTabsPayload {
-  const paymentInfo = data?.payment_info || {};
-  return {
-    tran_ref: data?.tran_ref || data?.tranRef,
+const paymentInfo = data?.payment_info || {};
+return {
+tran_ref: data?.tran_ref || data?.tranRef,
 
 ## ./tests/paytabs.test.ts
 
 379 ./tests/paytabs.test.ts
-/**
+/\*\*
 
 - Comprehensive tests for PayTabs integration helpers.
 - Testing library/framework: Vitest
 -
 - These tests attempt to import the PayTabs module from common paths.
 - If import fails, adjust the candidate paths in importPaytabs() to match your project.
- */
+  \*/
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
@@ -311,16 +312,16 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 const ORIGINAL_ENV = { ...process.env };
 
 beforeEach(() => {
-  vi.resetModules();
-  vi.restoreAllMocks();
-  // Reset environment for each test
-  process.env = { ...ORIGINAL_ENV };
+vi.resetModules();
+vi.restoreAllMocks();
+// Reset environment for each test
+process.env = { ...ORIGINAL_ENV };
 });
 
 ## ./tests/unit/api/api-paytabs-callback.spec.ts
 
 283 ./tests/unit/api/api-paytabs-callback.spec.ts
-/**
+/\*\*
 
 - Tests for PayTabs callback API route.
 -
@@ -332,7 +333,7 @@ beforeEach(() => {
 - - Success path with invalid amount (NaN / <= 0) -> 400 with { ok: false, error: 'Invalid amount' }
 - - Failure path (non-'A' status) -> 200 with status 'FAILED', does not call generateZATCAQR
 - - Malformed JSON body -> 500 with { ok: false, error: 'Callback processing failed' }
- */
+    \*/
 
 import type { NextRequest } from 'next/server';
 
@@ -345,24 +346,24 @@ let POST: (req: NextRequest) => Promise<Response>;
 ## ./tests/unit/api/api-paytabs.spec.ts
 
 223 ./tests/unit/api/api-paytabs.spec.ts
-/**
+/\*\*
 
 - Tests for PayTabs payment page creation route handler (POST).
-- Framework: Jest (TypeScript). If using Vitest, replace jest.*with vi.* equivalents.
- */
-import { describe, test, expect, jest, beforeEach, beforeAll, afterEach } from '@jest/globals';
-import type { NextRequest } from 'next/server'
+- Framework: Jest (TypeScript). If using Vitest, replace jest._with vi._ equivalents.
+  \*/
+  import { describe, test, expect, jest, beforeEach, beforeAll, afterEach } from '@jest/globals';
+  import type { NextRequest } from 'next/server'
 
 // Mock next/server to isolate NextResponse and avoid runtime coupling
 jest.mock('next/server', () => {
-  const actual = jest.requireActual('next/server')
-  // Provide a minimal NextResponse.json that returns a standard Response-like object
-  return {
-    ...actual,
-    NextResponse: {
-      json: (data: any, init?: ResponseInit) => {
-        const status = init?.status ?? 200
-        // Return a Response-like object with status and json() for assertions
-        return {
-          status,
-          async json() {
+const actual = jest.requireActual('next/server')
+// Provide a minimal NextResponse.json that returns a standard Response-like object
+return {
+...actual,
+NextResponse: {
+json: (data: any, init?: ResponseInit) => {
+const status = init?.status ?? 200
+// Return a Response-like object with status and json() for assertions
+return {
+status,
+async json() {

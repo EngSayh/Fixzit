@@ -17,14 +17,14 @@
 
 ### 2. Translation Breakdown by Category
 
-| Category | Count | Priority |
-|----------|-------|----------|
-| **UI Text (jsx_text)** | 1,451 | 🔴 HIGH |
-| **Object Values** | 8,959 | 🟡 MEDIUM |
-| **API Messages** | 957 | 🟠 HIGH |
-| **Error Messages** | 356 | 🔴 HIGH |
-| **Placeholders** | 88 | 🟠 HIGH |
-| **UI Labels** | 37 | 🟠 HIGH |
+| Category               | Count | Priority  |
+| ---------------------- | ----- | --------- |
+| **UI Text (jsx_text)** | 1,451 | 🔴 HIGH   |
+| **Object Values**      | 8,959 | 🟡 MEDIUM |
+| **API Messages**       | 957   | 🟠 HIGH   |
+| **Error Messages**     | 356   | 🔴 HIGH   |
+| **Placeholders**       | 88    | 🟠 HIGH   |
+| **UI Labels**          | 37    | 🟠 HIGH   |
 
 ---
 

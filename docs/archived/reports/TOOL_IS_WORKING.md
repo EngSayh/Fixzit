@@ -105,12 +105,14 @@ Look for these in the JSON output:
 
 ```json
 {
-  "success": true,           // ← Should be true if replacements made
-  "totalReplacements": 1,    // ← Should be > 0
-  "dryRun": false,           // ← Should be false (not dry-run)
-  "details": [{
-    "replaced": 1            // ← Should be > 0
-  }]
+  "success": true, // ← Should be true if replacements made
+  "totalReplacements": 1, // ← Should be > 0
+  "dryRun": false, // ← Should be false (not dry-run)
+  "details": [
+    {
+      "replaced": 1 // ← Should be > 0
+    }
+  ]
 }
 ```
 

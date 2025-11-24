@@ -47,15 +47,15 @@ Models exist in TWO locations with PARTIAL overlap:
 
 ### Models ONLY in src/db/models/ (Finance/Subscription - 9 files)
 
-⚠️  Benchmark.ts
-⚠️  DiscountRule.ts
-⚠️  Module.ts
-⚠️  OwnerGroup.ts
-⚠️  PaymentMethod.ts
-⚠️  PriceBook.ts
-⚠️  ServiceAgreement.ts
-⚠️  Subscription.ts
-⚠️  Candidate.test.ts (test file)
+⚠️ Benchmark.ts
+⚠️ DiscountRule.ts
+⚠️ Module.ts
+⚠️ OwnerGroup.ts
+⚠️ PaymentMethod.ts
+⚠️ PriceBook.ts
+⚠️ ServiceAgreement.ts
+⚠️ Subscription.ts
+⚠️ Candidate.test.ts (test file)
 
 ---
 
@@ -78,9 +78,9 @@ import { User } from "@/server/models/User";
 
 ```typescript
 // Scripts and finance use this
-import Module from '../src/db/models/Module';
-import Subscription from '../src/db/models/Subscription';
-import PaymentMethod from '../src/db/models/PaymentMethod';
+import Module from "../src/db/models/Module";
+import Subscription from "../src/db/models/Subscription";
+import PaymentMethod from "../src/db/models/PaymentMethod";
 ```
 
 **Usage:** 2 files (scripts/seed-subscriptions.ts, lib/paytabs/subscription.ts)
@@ -119,13 +119,13 @@ cp src/db/models/Subscription.ts server/models/
 **Before:**
 
 ```typescript
-import Module from '../src/db/models/Module';
+import Module from "../src/db/models/Module";
 ```
 
 **After:**
 
 ```typescript
-import Module from '@/server/models/Module';
+import Module from "@/server/models/Module";
 ```
 
 ### Phase 3: Verify No Broken Imports
@@ -157,7 +157,7 @@ npm run typecheck
 
 ## Risk Assessment
 
-### ⚠️  HIGH RISK (Don't Do Yet)
+### ⚠️ HIGH RISK (Don't Do Yet)
 
 - Removing `src/db/models/` entirely before imports updated
 - Changing imports without verifying model exists in target
@@ -191,30 +191,30 @@ done
 
 ```typescript
 // Change:
-import PaymentMethod from '../../src/db/models/PaymentMethod';
-import Subscription from '../../src/db/models/Subscription';
-import OwnerGroup from '../../src/db/models/OwnerGroup';
+import PaymentMethod from "../../src/db/models/PaymentMethod";
+import Subscription from "../../src/db/models/Subscription";
+import OwnerGroup from "../../src/db/models/OwnerGroup";
 
 // To:
-import PaymentMethod from '@/server/models/PaymentMethod';
-import Subscription from '@/server/models/Subscription';
-import OwnerGroup from '@/server/models/OwnerGroup';
+import PaymentMethod from "@/server/models/PaymentMethod";
+import Subscription from "@/server/models/Subscription";
+import OwnerGroup from "@/server/models/OwnerGroup";
 ```
 
 ### Step 3: Update Import in scripts/seed-subscriptions.ts ✅
 
 ```typescript
 // Change:
-import Module from '../src/db/models/Module';
-import PriceBook from '../src/db/models/PriceBook';
-import DiscountRule from '../src/db/models/DiscountRule';
-import Benchmark from '../src/db/models/Benchmark';
+import Module from "../src/db/models/Module";
+import PriceBook from "../src/db/models/PriceBook";
+import DiscountRule from "../src/db/models/DiscountRule";
+import Benchmark from "../src/db/models/Benchmark";
 
 // To:
-import Module from '@/server/models/Module';
-import PriceBook from '@/server/models/PriceBook';
-import DiscountRule from '@/server/models/DiscountRule';
-import Benchmark from '@/server/models/Benchmark';
+import Module from "@/server/models/Module";
+import PriceBook from "@/server/models/PriceBook";
+import DiscountRule from "@/server/models/DiscountRule";
+import Benchmark from "@/server/models/Benchmark";
 ```
 
 ### Step 4: Verify TypeScript ✅

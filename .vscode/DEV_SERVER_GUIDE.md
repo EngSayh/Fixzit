@@ -17,11 +17,14 @@ The Next.js development server **must be manually started** and doesn't run auto
 ## ✅ Solutions
 
 ### Option 1: Quick Start (Recommended)
+
 Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac), type "Run Task", and select:
+
 - **"Dev Server: Start"** - Start the server normally
 - **"Dev Server: Keep-Alive"** - Start with auto-restart on crash
 
 ### Option 2: Terminal Command
+
 ```bash
 # Start dev server (Turbopack - fastest)
 pnpm dev
@@ -34,6 +37,7 @@ bash scripts/dev-server-keepalive.sh
 ```
 
 ### Option 3: Check if Running
+
 ```bash
 # Check if server is running
 lsof -i :3000
@@ -87,11 +91,13 @@ NODE_OPTIONS="--max-old-space-size=4096" pnpm dev
 ## 📋 Status Indicators
 
 **Server Running** ✅
+
 - Terminal shows: `✓ Ready in Xs`
 - Browser: http://localhost:3000 loads
 - Command: `lsof -i :3000` shows a process
 
 **Server Stopped** ❌
+
 - Terminal: No "Ready" message
 - Browser: "Connection refused"
 - Command: `lsof -i :3000` shows nothing

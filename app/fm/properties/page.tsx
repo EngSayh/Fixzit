@@ -1,25 +1,43 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import useSWR from 'swr';
-import { useSession } from 'next-auth/react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
-import { CardGridSkeleton } from '@/components/skeletons';
-import { Building2, Plus, Search, MapPin, Eye, Edit, Trash2, Home, Building, Factory, Map } from 'lucide-react';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import useSWR from "swr";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { CardGridSkeleton } from "@/components/skeletons";
+import {
+  Building2,
+  Plus,
+  Search,
+  MapPin,
+  Eye,
+  Edit,
+  Trash2,
+  Home,
+  Building,
+  Factory,
+  Map,
+} from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
 
-import { logger } from '@/lib/logger';
-import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { logger } from "@/lib/logger";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 interface PropertyUnit {
   status?: string;
 }
@@ -47,26 +65,33 @@ interface PropertyItem {
 export default function PropertiesPage() {
   const { t } = useTranslation();
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'properties' });
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "properties",
+  });
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
 
   const fetcher = (url: string) => {
     if (!orgId) {
-      return Promise.reject(new Error('No organization ID'));
+      return Promise.reject(new Error("No organization ID"));
     }
     return fetch(url)
-      .then(r => r.json())
-      .catch(error => {
-        logger.error('FM properties fetch error', error);
+      .then((r) => r.json())
+      .catch((error) => {
+        logger.error("FM properties fetch error", error);
         throw error;
       });
   };
 
   const { data, mutate, isLoading } = useSWR(
-    orgId ? [`/api/properties?search=${encodeURIComponent(search)}&type=${typeFilter}`, orgId] : null,
-    ([url]) => fetcher(url)
+    orgId
+      ? [
+          `/api/properties?search=${encodeURIComponent(search)}&type=${typeFilter}`,
+          orgId,
+        ]
+      : null,
+    ([url]) => fetcher(url),
   );
 
   if (!session) {
@@ -84,27 +109,44 @@ export default function PropertiesPage() {
       <ModuleViewTabs moduleId="properties" />
       {supportOrg && (
         <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-          {t('fm.properties.support.activeOrg', 'Support context: {{name}}', { name: supportOrg.name })}
+          {t("fm.properties.support.activeOrg", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
         </div>
       )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{t('fm.properties.title', 'Property Management')}</h1>
-          <p className="text-muted-foreground">{t('fm.properties.subtitle', 'Real estate portfolio and tenant management')}</p>
+          <h1 className="text-3xl font-bold">
+            {t("fm.properties.title", "Property Management")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              "fm.properties.subtitle",
+              "Real estate portfolio and tenant management",
+            )}
+          </p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-success hover:bg-success/90">
               <Plus className="w-4 h-4 me-2" />
-              {t('fm.properties.newProperty', 'New Property')}
+              {t("fm.properties.newProperty", "New Property")}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>{t('fm.properties.addProperty', 'Add New Property')}</DialogTitle>
+              <DialogTitle>
+                {t("fm.properties.addProperty", "Add New Property")}
+              </DialogTitle>
             </DialogHeader>
-            <CreatePropertyForm orgId={orgId} onCreated={() => { mutate(); setCreateOpen(false); }} />
+            <CreatePropertyForm
+              orgId={orgId}
+              onCreated={() => {
+                mutate();
+                setCreateOpen(false);
+              }}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -117,26 +159,46 @@ export default function PropertiesPage() {
               <div className="relative">
                 <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder={t('fm.properties.searchProperties', 'Search properties...')}
+                  placeholder={t(
+                    "fm.properties.searchProperties",
+                    "Search properties...",
+                  )}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="ps-10"
                 />
               </div>
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t('fm.properties.propertyType', 'Property Type')} className="w-48">
+            <Select
+              value={typeFilter}
+              onValueChange={setTypeFilter}
+              placeholder={t("fm.properties.propertyType", "Property Type")}
+              className="w-48"
+            >
               <SelectContent>
-                <SelectItem value="">{t('fm.properties.allTypes', 'All Types')}</SelectItem>
-                <SelectItem value="RESIDENTIAL">{t('fm.properties.residential', 'Residential')}</SelectItem>
-                <SelectItem value="COMMERCIAL">{t('fm.properties.commercial', 'Commercial')}</SelectItem>
-                <SelectItem value="INDUSTRIAL">{t('fm.properties.industrial', 'Industrial')}</SelectItem>
-                <SelectItem value="MIXED_USE">{t('fm.properties.mixedUse', 'Mixed Use')}</SelectItem>
-                <SelectItem value="LAND">{t('fm.properties.land', 'Land')}</SelectItem>
+                <SelectItem value="">
+                  {t("fm.properties.allTypes", "All Types")}
+                </SelectItem>
+                <SelectItem value="RESIDENTIAL">
+                  {t("fm.properties.residential", "Residential")}
+                </SelectItem>
+                <SelectItem value="COMMERCIAL">
+                  {t("fm.properties.commercial", "Commercial")}
+                </SelectItem>
+                <SelectItem value="INDUSTRIAL">
+                  {t("fm.properties.industrial", "Industrial")}
+                </SelectItem>
+                <SelectItem value="MIXED_USE">
+                  {t("fm.properties.mixedUse", "Mixed Use")}
+                </SelectItem>
+                <SelectItem value="LAND">
+                  {t("fm.properties.land", "Land")}
+                </SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" className="flex items-center gap-2">
               <Map className="w-4 h-4" />
-              {t('fm.properties.viewMap', 'View Map')}
+              {t("fm.properties.viewMap", "View Map")}
             </Button>
           </div>
         </CardContent>
@@ -149,7 +211,12 @@ export default function PropertiesPage() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(properties as PropertyItem[]).map((property) => (
-              <PropertyCard key={property.id} property={property} orgId={orgId} onUpdated={mutate} />
+              <PropertyCard
+                key={property.id}
+                property={property}
+                orgId={orgId}
+                onUpdated={mutate}
+              />
             ))}
           </div>
 
@@ -158,11 +225,21 @@ export default function PropertiesPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Building2 className="w-12 h-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">{t('fm.properties.noProperties', 'No Properties Found')}</h3>
-                <p className="text-muted-foreground mb-4">{t('fm.properties.noPropertiesText', 'Get started by adding your first property to the portfolio.')}</p>
-                <Button onClick={() => setCreateOpen(true)} className="bg-success hover:bg-success/90">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {t("fm.properties.noProperties", "No Properties Found")}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {t(
+                    "fm.properties.noPropertiesText",
+                    "Get started by adding your first property to the portfolio.",
+                  )}
+                </p>
+                <Button
+                  onClick={() => setCreateOpen(true)}
+                  className="bg-success hover:bg-success/90"
+                >
                   <Plus className="w-4 h-4 me-2" />
-                  {t('fm.properties.addProperty', 'Add Property')}
+                  {t("fm.properties.addProperty", "Add Property")}
                 </Button>
               </CardContent>
             </Card>
@@ -173,51 +250,81 @@ export default function PropertiesPage() {
   );
 }
 
-function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; orgId?: string; onUpdated: () => void }) {
+function PropertyCard({
+  property,
+  orgId,
+  onUpdated,
+}: {
+  property: PropertyItem;
+  orgId?: string;
+  onUpdated: () => void;
+}) {
   const router = useRouter();
   const { t } = useTranslation();
-  
+
   const handleDelete = async () => {
     const confirmMessage = t(
-      'fm.properties.confirmDelete',
-      'Delete property "{{name}}"? This cannot be undone.'
-    ).replace('{{name}}', property.name || '');
+      "fm.properties.confirmDelete",
+      'Delete property "{{name}}"? This cannot be undone.',
+    ).replace("{{name}}", property.name || "");
     if (!confirm(confirmMessage)) return;
-    if (!orgId) return toast.error(t('fm.errors.orgIdMissing', 'Organization ID missing from session'));
+    if (!orgId)
+      return toast.error(
+        t("fm.errors.orgIdMissing", "Organization ID missing from session"),
+      );
 
-    const toastId = toast.loading(t('fm.properties.toast.deleting', 'Deleting property...'));
+    const toastId = toast.loading(
+      t("fm.properties.toast.deleting", "Deleting property..."),
+    );
     try {
       const res = await fetch(`/api/properties/${property.id}`, {
-        method: 'DELETE',
-        headers: { 'x-tenant-id': orgId }
+        method: "DELETE",
+        headers: { "x-tenant-id": orgId },
       });
       if (!res.ok) {
         const error = await res.json().catch(() => ({}));
         const message =
-          (error && typeof error === 'object' && 'error' in error && typeof error.error === 'string'
+          error &&
+          typeof error === "object" &&
+          "error" in error &&
+          typeof error.error === "string"
             ? error.error
-            : t('fm.properties.errors.deleteUnknown', 'Failed to delete property'));
+            : t(
+                "fm.properties.errors.deleteUnknown",
+                "Failed to delete property",
+              );
         throw new Error(message);
       }
-      toast.success(t('fm.properties.toast.deleteSuccess', 'Property deleted successfully'), { id: toastId });
+      toast.success(
+        t("fm.properties.toast.deleteSuccess", "Property deleted successfully"),
+        { id: toastId },
+      );
       onUpdated();
     } catch (_error) {
       const message =
-        _error instanceof Error ? _error.message : t('fm.properties.errors.deleteUnknown', 'Failed to delete property');
+        _error instanceof Error
+          ? _error.message
+          : t(
+              "fm.properties.errors.deleteUnknown",
+              "Failed to delete property",
+            );
       toast.error(
-        t('fm.properties.toast.deleteFailed', 'Failed to delete property: {{message}}').replace('{{message}}', message),
-        { id: toastId }
+        t(
+          "fm.properties.toast.deleteFailed",
+          "Failed to delete property: {{message}}",
+        ).replace("{{message}}", message),
+        { id: toastId },
       );
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'RESIDENTIAL':
+      case "RESIDENTIAL":
         return <Home className="w-5 h-5" />;
-      case 'COMMERCIAL':
+      case "COMMERCIAL":
         return <Building className="w-5 h-5" />;
-      case 'INDUSTRIAL':
+      case "INDUSTRIAL":
         return <Factory className="w-5 h-5" />;
       default:
         return <Building2 className="w-5 h-5" />;
@@ -226,80 +333,99 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'RESIDENTIAL':
-        return 'bg-primary/10 text-primary-foreground';
-      case 'COMMERCIAL':
-        return 'bg-success/10 text-success-foreground';
-      case 'INDUSTRIAL':
-        return 'bg-warning/10 text-warning';
-      case 'MIXED_USE':
-        return 'bg-secondary/10 text-secondary';
-      case 'LAND':
-        return 'bg-warning/10 text-warning-foreground';
+      case "RESIDENTIAL":
+        return "bg-primary/10 text-primary-foreground";
+      case "COMMERCIAL":
+        return "bg-success/10 text-success-foreground";
+      case "INDUSTRIAL":
+        return "bg-warning/10 text-warning";
+      case "MIXED_USE":
+        return "bg-secondary/10 text-secondary";
+      case "LAND":
+        return "bg-warning/10 text-warning-foreground";
       default:
-        return 'bg-muted text-foreground';
+        return "bg-muted text-foreground";
     }
   };
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'RESIDENTIAL':
-        return t('fm.properties.residential', 'Residential');
-      case 'COMMERCIAL':
-        return t('fm.properties.commercial', 'Commercial');
-      case 'INDUSTRIAL':
-        return t('fm.properties.industrial', 'Industrial');
-      case 'MIXED_USE':
-        return t('fm.properties.mixedUse', 'Mixed Use');
-      case 'LAND':
-        return t('fm.properties.land', 'Land');
+      case "RESIDENTIAL":
+        return t("fm.properties.residential", "Residential");
+      case "COMMERCIAL":
+        return t("fm.properties.commercial", "Commercial");
+      case "INDUSTRIAL":
+        return t("fm.properties.industrial", "Industrial");
+      case "MIXED_USE":
+        return t("fm.properties.mixedUse", "Mixed Use");
+      case "LAND":
+        return t("fm.properties.land", "Land");
       default:
-        return type?.toLowerCase() || '';
+        return type?.toLowerCase() || "";
     }
   };
 
   const occupancyRate = property.details?.occupancyRate || 0;
   const totalUnits = property.units?.length || 0;
-  const occupiedUnits = property.units?.filter((u) => u.status === 'OCCUPIED').length || 0;
+  const occupiedUnits =
+    property.units?.filter((u) => u.status === "OCCUPIED").length || 0;
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2">
-            {getTypeIcon(property.type || '')}
+            {getTypeIcon(property.type || "")}
             <div className="flex-1">
               <CardTitle className="text-lg">{property.name}</CardTitle>
               <p className="text-sm text-muted-foreground">{property.code}</p>
             </div>
           </div>
-          <Badge className={getTypeColor(property.type || '')}>
-            {getTypeLabel(property.type || '')}
+          <Badge className={getTypeColor(property.type || "")}>
+            {getTypeLabel(property.type || "")}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center text-sm text-muted-foreground">
           <MapPin className="w-4 h-4 me-1" />
-          <span>{property.address?.city}, {property.address?.region}</span>
+          <span>
+            {property.address?.city}, {property.address?.region}
+          </span>
         </div>
 
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">{t('fm.properties.totalArea', 'Total Area')}:</span>
-            <span className="text-sm font-medium">{property.details?.totalArea || t('common.na', 'N/A')} sqm</span>
+            <span className="text-sm text-muted-foreground">
+              {t("fm.properties.totalArea", "Total Area")}:
+            </span>
+            <span className="text-sm font-medium">
+              {property.details?.totalArea || t("common.na", "N/A")} sqm
+            </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">{t('fm.properties.units', 'Units')}:</span>
-            <span className="text-sm font-medium">{totalUnits} {t('fm.properties.units', 'units')}</span>
+            <span className="text-sm text-muted-foreground">
+              {t("fm.properties.units", "Units")}:
+            </span>
+            <span className="text-sm font-medium">
+              {totalUnits} {t("fm.properties.units", "units")}
+            </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">{t('fm.properties.occupancy', 'Occupancy')}:</span>
+            <span className="text-sm text-muted-foreground">
+              {t("fm.properties.occupancy", "Occupancy")}:
+            </span>
             <span className="text-sm font-medium">{occupancyRate}%</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">{t('fm.properties.monthlyRent', 'Monthly Rent')}:</span>
-            <span className="text-sm font-medium">{property.financial?.monthlyRent?.toLocaleString() || t('common.na', 'N/A')} SAR</span>
+            <span className="text-sm text-muted-foreground">
+              {t("fm.properties.monthlyRent", "Monthly Rent")}:
+            </span>
+            <span className="text-sm font-medium">
+              {property.financial?.monthlyRent?.toLocaleString() ||
+                t("common.na", "N/A")}{" "}
+              SAR
+            </span>
           </div>
         </div>
 
@@ -307,36 +433,44 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
 
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">{t('fm.properties.status', 'Status')}:</span>
+            <span className="text-sm text-muted-foreground">
+              {t("fm.properties.status", "Status")}:
+            </span>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-success/20 rounded-full"></div>
-              <span className="text-sm font-medium">{t('fm.properties.active', 'Active')}</span>
+              <span className="text-sm font-medium">
+                {t("fm.properties.active", "Active")}
+              </span>
             </div>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">{t('fm.properties.tenants', 'Tenants')}:</span>
-            <span className="text-sm font-medium">{occupiedUnits}/{totalUnits}</span>
+            <span className="text-sm text-muted-foreground">
+              {t("fm.properties.tenants", "Tenants")}:
+            </span>
+            <span className="text-sm font-medium">
+              {occupiedUnits}/{totalUnits}
+            </span>
           </div>
         </div>
 
         <div className="flex justify-end space-x-2 pt-2">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="sm"
             onClick={() => router.push(`/fm/properties/${property.id}`)}
           >
             <Eye className="w-4 h-4" />
           </Button>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="sm"
             onClick={() => router.push(`/fm/properties/${property.id}/edit`)}
           >
             <Edit className="w-4 h-4" />
           </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className="text-destructive hover:text-destructive/90"
             onClick={handleDelete}
           >
@@ -348,22 +482,28 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
   );
 }
 
-export function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void; orgId: string }) {
+export function CreatePropertyForm({
+  onCreated,
+  orgId,
+}: {
+  onCreated: () => void;
+  orgId: string;
+}) {
   const { t } = useTranslation();
-  
+
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    type: '',
-    subtype: '',
+    name: "",
+    description: "",
+    type: "",
+    subtype: "",
     address: {
-      street: '',
-      city: '',
-      region: '',
-      postalCode: '',
+      street: "",
+      city: "",
+      region: "",
+      postalCode: "",
       coordinates: { lat: 24.7136, lng: 46.6753 }, // Default to Riyadh
-      nationalAddress: '',
-      district: ''
+      nationalAddress: "",
+      district: "",
     },
     details: {
       totalArea: 0,
@@ -373,129 +513,190 @@ export function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void
       floors: 0,
       parkingSpaces: 0,
       yearBuilt: new Date().getFullYear(),
-      occupancyRate: 0
+      occupancyRate: 0,
     },
     ownership: {
-      type: 'OWNED',
+      type: "OWNED",
       owner: {
-        name: '',
-        contact: '',
-        id: ''
+        name: "",
+        contact: "",
+        id: "",
       },
       lease: {
-        startDate: '',
-        endDate: '',
+        startDate: "",
+        endDate: "",
         monthlyRent: 0,
-        landlord: ''
-      }
+        landlord: "",
+      },
     },
     features: {
       amenities: [] as string[],
       utilities: {
-        electricity: '',
-        water: '',
-        gas: '',
-        internet: ''
+        electricity: "",
+        water: "",
+        gas: "",
+        internet: "",
       },
       accessibility: {
         elevator: false,
         ramp: false,
-        parking: false
-      }
+        parking: false,
+      },
     },
-    tags: [] as string[]
+    tags: [] as string[],
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!orgId) {
-      toast.error(t('fm.errors.noOrgSession', 'Error: No organization ID found in session'));
+      toast.error(
+        t(
+          "fm.errors.noOrgSession",
+          "Error: No organization ID found in session",
+        ),
+      );
       return;
     }
 
-    const toastId = toast.loading(t('fm.properties.toast.creating', 'Creating property...'));
+    const toastId = toast.loading(
+      t("fm.properties.toast.creating", "Creating property..."),
+    );
 
     try {
-      const response = await fetch('/api/properties', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'x-tenant-id': orgId 
+      const response = await fetch("/api/properties", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tenant-id": orgId,
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
 
       if (response.ok) {
-        toast.success(t('fm.properties.toast.createSuccess', 'Property created successfully'), { id: toastId });
+        toast.success(
+          t(
+            "fm.properties.toast.createSuccess",
+            "Property created successfully",
+          ),
+          { id: toastId },
+        );
         onCreated();
       } else {
         const error = await response.json().catch(() => ({}));
         const message =
-          (error && typeof error === 'object' && 'error' in error && typeof error.error === 'string'
+          error &&
+          typeof error === "object" &&
+          "error" in error &&
+          typeof error.error === "string"
             ? error.error
-            : t('fm.properties.errors.unknown', 'Unknown error'));
+            : t("fm.properties.errors.unknown", "Unknown error");
         toast.error(
-          t('fm.properties.toast.createFailed', 'Failed to create property: {{message}}').replace(
-            '{{message}}',
-            message
-          ),
-          { id: toastId }
+          t(
+            "fm.properties.toast.createFailed",
+            "Failed to create property: {{message}}",
+          ).replace("{{message}}", message),
+          { id: toastId },
         );
       }
     } catch (_error) {
-      logger.error('Error creating property:', _error);
-      toast.error(t('fm.properties.toast.createUnknown', 'Error creating property. Please try again.'), { id: toastId });
+      logger.error("Error creating property:", _error);
+      toast.error(
+        t(
+          "fm.properties.toast.createUnknown",
+          "Error creating property. Please try again.",
+        ),
+        { id: toastId },
+      );
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-96 overflow-y-auto">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 max-h-96 overflow-y-auto"
+    >
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.propertyName', 'Property Name')} *</label>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.propertyName", "Property Name")} *
+          </label>
           <Input
             value={formData.name}
-            onChange={(e) => setFormData({...formData, name: e.target.value})}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.type', 'Type')} *</label>
-          <Select value={formData.type} onValueChange={(val) => setFormData({ ...formData, type: val })} placeholder={t('fm.properties.selectType', 'Select type')}>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.type", "Type")} *
+          </label>
+          <Select
+            value={formData.type}
+            onValueChange={(val) => setFormData({ ...formData, type: val })}
+            placeholder={t("fm.properties.selectType", "Select type")}
+          >
             <SelectContent>
-              <SelectItem value="RESIDENTIAL">{t('fm.properties.residential', 'Residential')}</SelectItem>
-              <SelectItem value="COMMERCIAL">{t('fm.properties.commercial', 'Commercial')}</SelectItem>
-              <SelectItem value="INDUSTRIAL">{t('fm.properties.industrial', 'Industrial')}</SelectItem>
-              <SelectItem value="MIXED_USE">{t('fm.properties.mixedUse', 'Mixed Use')}</SelectItem>
-              <SelectItem value="LAND">{t('fm.properties.land', 'Land')}</SelectItem>
+              <SelectItem value="RESIDENTIAL">
+                {t("fm.properties.residential", "Residential")}
+              </SelectItem>
+              <SelectItem value="COMMERCIAL">
+                {t("fm.properties.commercial", "Commercial")}
+              </SelectItem>
+              <SelectItem value="INDUSTRIAL">
+                {t("fm.properties.industrial", "Industrial")}
+              </SelectItem>
+              <SelectItem value="MIXED_USE">
+                {t("fm.properties.mixedUse", "Mixed Use")}
+              </SelectItem>
+              <SelectItem value="LAND">
+                {t("fm.properties.land", "Land")}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">{t('fm.properties.description', 'Description')}</label>
+        <label className="block text-sm font-medium mb-1">
+          {t("fm.properties.description", "Description")}
+        </label>
         <Textarea
           value={formData.description}
-          onChange={(e) => setFormData({...formData, description: e.target.value})}
+          onChange={(e) =>
+            setFormData({ ...formData, description: e.target.value })
+          }
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.streetAddress', 'Street Address')} *</label>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.streetAddress", "Street Address")} *
+          </label>
           <Input
             value={formData.address.street}
-            onChange={(e) => setFormData({...formData, address: {...formData.address, street: e.target.value}})}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: { ...formData.address, street: e.target.value },
+              })
+            }
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.city', 'City')} *</label>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.city", "City")} *
+          </label>
           <Input
             value={formData.address.city}
-            onChange={(e) => setFormData({...formData, address: {...formData.address, city: e.target.value}})}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: { ...formData.address, city: e.target.value },
+              })
+            }
             required
           />
         </div>
@@ -503,71 +704,135 @@ export function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.region', 'Region')} *</label>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.region", "Region")} *
+          </label>
           <Input
             value={formData.address.region}
-            onChange={(e) => setFormData({...formData, address: {...formData.address, region: e.target.value}})}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: { ...formData.address, region: e.target.value },
+              })
+            }
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.postalCode', 'Postal Code')}</label>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.postalCode", "Postal Code")}
+          </label>
           <Input
             value={formData.address.postalCode}
-            onChange={(e) => setFormData({...formData, address: {...formData.address, postalCode: e.target.value}})}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                address: { ...formData.address, postalCode: e.target.value },
+              })
+            }
           />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.totalArea', 'Total Area')} (sqm)</label>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.totalArea", "Total Area")} (sqm)
+          </label>
           <Input
             type="number"
             value={formData.details.totalArea}
-            onChange={(e) => setFormData({...formData, details: {...formData.details, totalArea: Number(e.target.value)}})}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                details: {
+                  ...formData.details,
+                  totalArea: Number(e.target.value),
+                },
+              })
+            }
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.builtArea', 'Built Area')} (sqm)</label>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.builtArea", "Built Area")} (sqm)
+          </label>
           <Input
             type="number"
             value={formData.details.builtArea}
-            onChange={(e) => setFormData({...formData, details: {...formData.details, builtArea: Number(e.target.value)}})}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                details: {
+                  ...formData.details,
+                  builtArea: Number(e.target.value),
+                },
+              })
+            }
           />
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.bedrooms', 'Bedrooms')}</label>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.bedrooms", "Bedrooms")}
+          </label>
           <Input
             type="number"
             value={formData.details.bedrooms}
-            onChange={(e) => setFormData({...formData, details: {...formData.details, bedrooms: Number(e.target.value)}})}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                details: {
+                  ...formData.details,
+                  bedrooms: Number(e.target.value),
+                },
+              })
+            }
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.bathrooms', 'Bathrooms')}</label>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.bathrooms", "Bathrooms")}
+          </label>
           <Input
             type="number"
             value={formData.details.bathrooms}
-            onChange={(e) => setFormData({...formData, details: {...formData.details, bathrooms: Number(e.target.value)}})}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                details: {
+                  ...formData.details,
+                  bathrooms: Number(e.target.value),
+                },
+              })
+            }
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.floors', 'Floors')}</label>
+          <label className="block text-sm font-medium mb-1">
+            {t("fm.properties.floors", "Floors")}
+          </label>
           <Input
             type="number"
             value={formData.details.floors}
-            onChange={(e) => setFormData({...formData, details: {...formData.details, floors: Number(e.target.value)}})}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                details: {
+                  ...formData.details,
+                  floors: Number(e.target.value),
+                },
+              })
+            }
           />
         </div>
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="submit" className="bg-success hover:bg-success/90">
-          {t('fm.properties.createProperty', 'Create Property')}
+          {t("fm.properties.createProperty", "Create Property")}
         </Button>
       </div>
     </form>

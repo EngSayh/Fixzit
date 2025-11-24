@@ -19,7 +19,7 @@ The TopBar `handleLogout` function exists and is correctly implemented, BUT the 
   className="block w-full text-left px-3 py-2 hover:bg-gray-50 text-red-600 rounded"
   onClick={handleLogout}
 >
-  {t('common.logout', 'Sign out')}  // ✅ This is CORRECT
+  {t("common.logout", "Sign out")} // ✅ This is CORRECT
 </button>
 ```
 
@@ -35,10 +35,10 @@ The logout button **IS** using translations correctly. The issue might be:
 
 ```tsx
 // Line 221-225 in TopBar.tsx
-localStorage.removeItem('fixzit-role');
-localStorage.removeItem('fxz.lang');  // ❌ THIS REMOVES LANGUAGE PREFERENCE!
-localStorage.removeItem('fixzit-currency');
-localStorage.removeItem('fixzit-theme');
+localStorage.removeItem("fixzit-role");
+localStorage.removeItem("fxz.lang"); // ❌ THIS REMOVES LANGUAGE PREFERENCE!
+localStorage.removeItem("fixzit-currency");
+localStorage.removeItem("fixzit-theme");
 ```
 
 ### Fix Required
@@ -64,27 +64,27 @@ useEffect(() => {
   }
 
   try {
-    window.localStorage.setItem('fxz.locale', currentOption.locale);
-    window.localStorage.setItem('fxz.lang', currentOption.language);
+    window.localStorage.setItem("fxz.locale", currentOption.locale);
+    window.localStorage.setItem("fxz.lang", currentOption.language);
     document.cookie = `fxz.lang=${currentOption.language}; path=/; SameSite=Lax`;
     document.cookie = `fxz.locale=${currentOption.locale}; path=/; SameSite=Lax`;
     document.documentElement.lang = currentOption.locale.toLowerCase();
     document.documentElement.dir = currentOption.dir;
-    document.documentElement.setAttribute('data-locale', currentOption.locale);
+    document.documentElement.setAttribute("data-locale", currentOption.locale);
     if (document.body) {
       document.body.style.direction = currentOption.dir;
     }
     window.dispatchEvent(
-      new CustomEvent('fixzit:language-change', {
+      new CustomEvent("fixzit:language-change", {
         detail: {
           locale: currentOption.locale,
           language: currentOption.language,
-          dir: currentOption.dir
-        }
-      })
+          dir: currentOption.dir,
+        },
+      }),
     );
   } catch (error) {
-    console.warn('Could not update language settings:', error);
+    console.warn("Could not update language settings:", error);
   }
 }, [currentOption, isClient]);
 ```
@@ -97,7 +97,7 @@ useEffect(() => {
 const handleSelect = (option: LanguageOption) => {
   setLanguage(option.language as LanguageCode);
   setOpen(false);
-  setQuery('');
+  setQuery("");
 };
 ```
 
@@ -132,21 +132,21 @@ User reports: "corporate account login requires Corporate number + employee logi
 ```tsx
 const CORPORATE_CREDENTIALS = [
   {
-    role: 'Property Manager (Corporate)',
-    employeeNumber: 'EMP001',
-    password: 'password123',
-    description: 'Corporate account access',
+    role: "Property Manager (Corporate)",
+    employeeNumber: "EMP001",
+    password: "password123",
+    description: "Corporate account access",
     icon: Building2,
-    color: 'bg-green-100 text-green-800'
+    color: "bg-green-100 text-green-800",
   },
   {
-    role: 'Admin (Corporate)',
-    employeeNumber: 'EMP002',
-    password: 'password123',
-    description: 'Corporate administrative access',
+    role: "Admin (Corporate)",
+    employeeNumber: "EMP002",
+    password: "password123",
+    description: "Corporate administrative access",
     icon: User,
-    color: 'bg-blue-100 text-blue-800'
-  }
+    color: "bg-blue-100 text-blue-800",
+  },
 ];
 ```
 
@@ -195,15 +195,21 @@ const CORPORATE_CREDENTIALS = [
 ### API Implementation (app/api/auth/login/route.ts)
 
 ```typescript
-const LoginSchema = z.object({
-  email: z.string().email().optional(),
-  employeeNumber: z.string().optional(),
-  password: z.string().min(1, 'Password is required'),
-  loginType: z.enum(['personal', 'corporate']).default('personal')
-}).refine(
-  (data) => data.loginType === 'personal' ? !!data.email : !!data.employeeNumber,
-  { message: 'Email required for personal login or employee number for corporate login' }
-);
+const LoginSchema = z
+  .object({
+    email: z.string().email().optional(),
+    employeeNumber: z.string().optional(),
+    password: z.string().min(1, "Password is required"),
+    loginType: z.enum(["personal", "corporate"]).default("personal"),
+  })
+  .refine(
+    (data) =>
+      data.loginType === "personal" ? !!data.email : !!data.employeeNumber,
+    {
+      message:
+        "Email required for personal login or employee number for corporate login",
+    },
+  );
 ```
 
 **Analysis**: API schema is correct. No corporate number field exists or is required. ✅

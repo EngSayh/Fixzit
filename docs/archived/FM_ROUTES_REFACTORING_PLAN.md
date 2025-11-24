@@ -2,7 +2,7 @@
 
 **Date:** November 16, 2025  
 **Issue:** 47 identical FM route stub files with re-export pattern  
-**Impact:** Code duplication, maintenance overhead  
+**Impact:** Code duplication, maintenance overhead
 
 ---
 
@@ -13,11 +13,12 @@
 There are **47 route files** in `app/fm/` that consist of only 2 lines:
 
 ```typescript
-export { default } from '@/app/fm/dashboard/page';
-export { metadata } from '@/app/fm/dashboard/page';
+export { default } from "@/app/fm/dashboard/page";
+export { metadata } from "@/app/fm/dashboard/page";
 ```
 
 **Examples:**
+
 - `app/fm/finance/payments/page.tsx`
 - `app/fm/finance/expenses/page.tsx`
 - `app/fm/finance/budgets/page.tsx`
@@ -89,18 +90,19 @@ export const metadata = {
 
 export default function FMRouter({ params }: { params: { slug?: string[] } }) {
   const slug = params.slug?.join('/') || '';
-  
+
   // Check if route is valid
   if (slug && !FM_ROUTES.has(slug)) {
     notFound();
   }
-  
+
   // All valid routes render the same dashboard
   return <FMDashboard />;
 }
 ```
 
 **Benefits:**
+
 - ✅ Reduces 47 files to 1 file
 - ✅ Centralized route validation
 - ✅ Easy to add/remove routes (just edit the Set)
@@ -116,49 +118,55 @@ Use Next.js middleware to alias routes:
 **File:** `middleware.ts` (existing file, add to it)
 
 ```typescript
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   // Redirect FM sub-routes to dashboard
-  if (pathname.startsWith('/fm/') && pathname !== '/fm' && pathname !== '/fm/dashboard') {
+  if (
+    pathname.startsWith("/fm/") &&
+    pathname !== "/fm" &&
+    pathname !== "/fm/dashboard"
+  ) {
     const validFMRoutes = [
-      '/fm/finance/',
-      '/fm/reports/',
-      '/fm/hr/',
-      '/fm/system/',
-      '/fm/administration/',
-      '/fm/marketplace/',
-      '/fm/work-orders/',
-      '/fm/invoices/',
-      '/fm/crm/',
-      '/fm/tenants/',
-      '/fm/compliance/',
-      '/fm/properties/',
+      "/fm/finance/",
+      "/fm/reports/",
+      "/fm/hr/",
+      "/fm/system/",
+      "/fm/administration/",
+      "/fm/marketplace/",
+      "/fm/work-orders/",
+      "/fm/invoices/",
+      "/fm/crm/",
+      "/fm/tenants/",
+      "/fm/compliance/",
+      "/fm/properties/",
     ];
-    
-    if (validFMRoutes.some(route => pathname.startsWith(route))) {
+
+    if (validFMRoutes.some((route) => pathname.startsWith(route))) {
       // Rewrite to dashboard while keeping URL visible
-      return NextResponse.rewrite(new URL('/fm/dashboard', request.url));
+      return NextResponse.rewrite(new URL("/fm/dashboard", request.url));
     }
   }
-  
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: '/fm/:path*',
+  matcher: "/fm/:path*",
 };
 ```
 
 **Benefits:**
+
 - ✅ URL stays the same in browser
 - ✅ No need for catch-all routes
 - ✅ Can delete all 47 stub files
 - ✅ Centralized routing logic
 
 **Trade-offs:**
+
 - ⚠️ Middleware runs on every request (minimal overhead)
 - ⚠️ Harder to debug (rewriting happens transparently)
 
@@ -169,6 +177,7 @@ export const config = {
 Use route groups to organize without affecting URLs:
 
 **Structure:**
+
 ```
 app/
   fm/
@@ -191,11 +200,13 @@ app/
 ## 🎯 Implementation Plan
 
 ### Phase 1: Analysis (30 min)
+
 1. ✅ **DONE**: Identify all 47 stub routes
 2. List which routes are actually used in production
 3. Check if any routes have custom metadata or props
 
 ### Phase 2: Implementation (2-3 hours)
+
 1. **Create catch-all route** (`app/fm/[[...slug]]/page.tsx`)
 2. **Test thoroughly**:
    ```bash
@@ -208,24 +219,27 @@ app/
    - Ensure `nav/` components still work
    - Update any hardcoded links
 4. **Delete stub files**:
+
    ```bash
    # Backup first
    mkdir -p .archive/fm-stubs
    find app/fm -name "page.tsx" -exec grep -l "export { default } from" {} \; \
      | xargs -I {} cp {} .archive/fm-stubs/
-   
+
    # Delete stubs (after verification)
    find app/fm -name "page.tsx" -exec grep -l "export { default } from" {} \; \
      | xargs rm
    ```
 
 ### Phase 3: Verification (1 hour)
+
 1. **E2E Tests**: Verify all FM routes still work
 2. **Performance Check**: Compare bundle sizes before/after
 3. **Navigation Test**: Click through all FM sections
 4. **SEO Check**: Verify metadata is still correct
 
 ### Phase 4: Documentation (30 min)
+
 1. Update README with new routing architecture
 2. Document how to add new FM routes
 3. Add comments in catch-all route explaining pattern
@@ -235,16 +249,19 @@ app/
 ## 📊 Expected Impact
 
 ### Before Refactoring
+
 - **Files**: 47 stub routes + 1 dashboard = 48 files
 - **Lines of Code**: ~94 lines (2 per stub) + dashboard
 - **Maintenance**: Adding a route = create new file + add to nav
 
 ### After Refactoring
+
 - **Files**: 1 catch-all route + 1 dashboard = 2 files
 - **Lines of Code**: ~50 lines (single catch-all) + dashboard
 - **Maintenance**: Adding a route = add to FM_ROUTES Set
 
 ### Savings
+
 - ✅ **46 fewer files** (96% reduction)
 - ✅ **~44 fewer lines** of duplicated code
 - ✅ **Faster builds** (fewer modules to process)
@@ -256,20 +273,23 @@ app/
 ## ⚠️ Risks & Mitigation
 
 ### Risk 1: Breaking Navigation
+
 - **Mitigation**: Comprehensive E2E tests before deployment
 - **Rollback**: Keep stub files in `.archive/` for 1 sprint
 
 ### Risk 2: Custom Metadata Lost
+
 - **Mitigation**: Audit each stub for custom metadata first
 - **Solution**: Pass metadata via FM_ROUTES if needed:
   ```typescript
   const FM_ROUTES = new Map([
-    ['finance/payments', { title: 'Payments', description: '...' }],
-    ['hr/directory', { title: 'Employee Directory', description: '...' }],
+    ["finance/payments", { title: "Payments", description: "..." }],
+    ["hr/directory", { title: "Employee Directory", description: "..." }],
   ]);
   ```
 
 ### Risk 3: SEO Impact
+
 - **Mitigation**: Verify robots.txt and sitemap.xml still work
 - **Monitoring**: Track Google Search Console for 404 errors
 

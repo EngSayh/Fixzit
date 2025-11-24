@@ -1,17 +1,20 @@
 /**
  * Asset model unit tests
  * Testing library/framework: Vitest
- * 
+ *
  * ✅ FIXED: MongoDB Memory Server now provides real database for testing
  * All validation tests, defaults, and indexes now work properly with in-memory MongoDB.
- * 
+ *
  * CRITICAL FIX: Import models AFTER mongoose is connected (in beforeEach),
  * not at module level. This ensures plugins run against a connected instance.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import mongoose from 'mongoose';
-import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import mongoose from "mongoose";
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
 
 // Model will be imported AFTER mongoose connection is ready
 let Asset: mongoose.Model<any>;
@@ -19,39 +22,43 @@ let Asset: mongoose.Model<any>;
 beforeEach(async () => {
   // Clear tenant context first
   clearTenantContext();
-  
+
   // CRITICAL: Mongoose models must be cleared AND reimported for each test
   // to ensure fresh schema compilation with plugins applied to connected instance
-  
+
   // 1. Verify mongoose is connected (from vitest.setup.ts beforeAll)
   if (mongoose.connection.readyState !== 1) {
-    throw new Error('Mongoose not connected - tests/unit/models require active connection');
+    throw new Error(
+      "Mongoose not connected - tests/unit/models require active connection",
+    );
   }
-  
+
   await mongoose.connection.dropDatabase();
-  
+
   // Clear model from mongoose cache using proper API
   if (mongoose.connection.models.Asset) {
-    mongoose.connection.deleteModel('Asset');
+    mongoose.connection.deleteModel("Asset");
   }
-  
+
   // Clear Vitest module cache to force fresh import
   vi.resetModules();
-  
+
   // Import model AFTER connection is ready - ensures plugins apply correctly
-  const assetModule = await import('@/server/models/Asset');
-  Asset = assetModule.Asset as mongoose.Model<any>;  // 5. Set tenant context for tests
-  setTenantContext({ orgId: 'org-test-123' });
-  
+  const assetModule = await import("@/server/models/Asset");
+  Asset = assetModule.Asset as mongoose.Model<any>; // 5. Set tenant context for tests
+  setTenantContext({ orgId: "org-test-123" });
+
   // 6. Verify model is properly initialized
   if (!Asset || !Asset.schema) {
-    throw new Error('Asset model not properly initialized');
+    throw new Error("Asset model not properly initialized");
   }
-  
+
   // 7. Verify orgId field exists (proves tenantIsolationPlugin ran)
   if (!Asset.schema.paths.orgId) {
-    console.error('Schema paths available:', Object.keys(Asset.schema.paths));
-    throw new Error('Asset schema missing orgId - tenantIsolationPlugin did not run');
+    console.error("Schema paths available:", Object.keys(Asset.schema.paths));
+    throw new Error(
+      "Asset schema missing orgId - tenantIsolationPlugin did not run",
+    );
   }
 });
 
@@ -67,7 +74,7 @@ function buildValidAsset(overrides: PartialAsset = {}): AnyObj {
   const orgId = new mongoose.Types.ObjectId();
   const createdById = new mongoose.Types.ObjectId();
   const propertyId = new mongoose.Types.ObjectId();
-  
+
   const condition = {
     score: 50,
     sensors: [],
@@ -75,7 +82,7 @@ function buildValidAsset(overrides: PartialAsset = {}): AnyObj {
   };
 
   const depreciation = {
-    method: 'STRAIGHT_LINE',
+    method: "STRAIGHT_LINE",
     usefulLifeYears: 10,
     salvageValue: 0,
   };
@@ -83,9 +90,9 @@ function buildValidAsset(overrides: PartialAsset = {}): AnyObj {
   return {
     orgId, // ObjectId (required by plugin)
     code: `ASSET-${Math.random().toString(36).slice(2, 8)}`,
-    name: 'Main Asset',
-    type: 'HVAC',
-    category: 'MEP',
+    name: "Main Asset",
+    type: "HVAC",
+    category: "MEP",
     propertyId: propertyId.toString(), // String reference to Property
     createdBy: createdById, // ObjectId reference to User
     condition,
@@ -97,18 +104,26 @@ function buildValidAsset(overrides: PartialAsset = {}): AnyObj {
   };
 }
 
-describe('Asset model schema', () => {
-  it('validates a minimally valid asset and applies default status and criticality', () => {
+describe("Asset model schema", () => {
+  it("validates a minimally valid asset and applies default status and criticality", () => {
     const data = buildValidAsset({ status: undefined, criticality: undefined });
     const doc = new Asset(data);
     const err = doc.validateSync();
     expect(err).toBeUndefined();
-    expect(doc.status).toBe('ACTIVE');
-    expect(doc.criticality).toBe('MEDIUM');
+    expect(doc.status).toBe("ACTIVE");
+    expect(doc.criticality).toBe("MEDIUM");
   });
 
-  it('fails validation when required fields are missing', () => {
-    const required = ['orgId', 'code', 'name', 'type', 'category', 'propertyId', 'createdBy'] as const; // Changed tenantId to orgId
+  it("fails validation when required fields are missing", () => {
+    const required = [
+      "orgId",
+      "code",
+      "name",
+      "type",
+      "category",
+      "propertyId",
+      "createdBy",
+    ] as const; // Changed tenantId to orgId
     for (const field of required) {
       const data = buildValidAsset();
       delete (data as AnyObj)[field];
@@ -120,66 +135,101 @@ describe('Asset model schema', () => {
   });
 
   it('enforces enum for "type"', () => {
-    const ok = new Asset(buildValidAsset({ type: 'ELECTRICAL' }));
+    const ok = new Asset(buildValidAsset({ type: "ELECTRICAL" }));
     expect(ok.validateSync()).toBeUndefined();
 
-    const bad = new Asset(buildValidAsset({ type: 'INVALID_TYPE' as any }));
+    const bad = new Asset(buildValidAsset({ type: "INVALID_TYPE" as any }));
     const err = bad.validateSync();
     expect(err).toBeDefined();
     expect((err as AnyObj).errors?.type).toBeDefined();
   });
 
   it('enforces enum for "status" and "criticality"', () => {
-    const badStatus = new Asset(buildValidAsset({ status: 'BROKEN' as any }));
+    const badStatus = new Asset(buildValidAsset({ status: "BROKEN" as any }));
     const errStatus = badStatus.validateSync();
     expect(errStatus).toBeDefined();
     expect((errStatus as AnyObj).errors?.status).toBeDefined();
 
-    const badCrit = new Asset(buildValidAsset({ criticality: 'ULTRA' as any }));
+    const badCrit = new Asset(buildValidAsset({ criticality: "ULTRA" as any }));
     const errCrit = badCrit.validateSync();
     expect(errCrit).toBeDefined();
     expect((errCrit as AnyObj).errors?.criticality).toBeDefined();
   });
 
-  it('enforces condition.score boundaries (0..100 inclusive)', () => {
-    let doc = new Asset(buildValidAsset({ condition: { ...buildValidAsset().condition, score: -1 } }));
-    expect(doc.validateSync()?.errors?.['condition.score']).toBeDefined();
+  it("enforces condition.score boundaries (0..100 inclusive)", () => {
+    let doc = new Asset(
+      buildValidAsset({
+        condition: { ...buildValidAsset().condition, score: -1 },
+      }),
+    );
+    expect(doc.validateSync()?.errors?.["condition.score"]).toBeDefined();
 
-    doc = new Asset(buildValidAsset({ condition: { ...buildValidAsset().condition, score: 101 } }));
-    expect(doc.validateSync()?.errors?.['condition.score']).toBeDefined();
+    doc = new Asset(
+      buildValidAsset({
+        condition: { ...buildValidAsset().condition, score: 101 },
+      }),
+    );
+    expect(doc.validateSync()?.errors?.["condition.score"]).toBeDefined();
 
-    doc = new Asset(buildValidAsset({ condition: { ...buildValidAsset().condition, score: 0 } }));
+    doc = new Asset(
+      buildValidAsset({
+        condition: { ...buildValidAsset().condition, score: 0 },
+      }),
+    );
     expect(doc.validateSync()).toBeUndefined();
 
-    doc = new Asset(buildValidAsset({ condition: { ...buildValidAsset().condition, score: 100 } }));
+    doc = new Asset(
+      buildValidAsset({
+        condition: { ...buildValidAsset().condition, score: 100 },
+      }),
+    );
     expect(doc.validateSync()).toBeUndefined();
   });
 
-  it('validates maintenanceHistory.type against its enum', () => {
-    const ok = new Asset(buildValidAsset({ maintenanceHistory: [{ type: 'INSPECTION' }] as any }));
+  it("validates maintenanceHistory.type against its enum", () => {
+    const ok = new Asset(
+      buildValidAsset({ maintenanceHistory: [{ type: "INSPECTION" }] as any }),
+    );
     expect(ok.validateSync()).toBeUndefined();
 
-    const bad = new Asset(buildValidAsset({ maintenanceHistory: [{ type: 'RANDOM' }] as any }));
+    const bad = new Asset(
+      buildValidAsset({ maintenanceHistory: [{ type: "RANDOM" }] as any }),
+    );
     const err = bad.validateSync();
     expect(err).toBeDefined();
-    expect((err as AnyObj).errors?.['maintenanceHistory.0.type']).toBeDefined();
+    expect((err as AnyObj).errors?.["maintenanceHistory.0.type"]).toBeDefined();
   });
 
-  it('validates depreciation.method enum', () => {
-    const ok = new Asset(buildValidAsset({ depreciation: { ...buildValidAsset().depreciation, method: 'DECLINING_BALANCE' } }));
+  it("validates depreciation.method enum", () => {
+    const ok = new Asset(
+      buildValidAsset({
+        depreciation: {
+          ...buildValidAsset().depreciation,
+          method: "DECLINING_BALANCE",
+        },
+      }),
+    );
     expect(ok.validateSync()).toBeUndefined();
 
-    const bad = new Asset(buildValidAsset({ depreciation: { ...buildValidAsset().depreciation, method: 'RANDOM' as any } }));
+    const bad = new Asset(
+      buildValidAsset({
+        depreciation: {
+          ...buildValidAsset().depreciation,
+          method: "RANDOM" as any,
+        },
+      }),
+    );
     const err = bad.validateSync();
     expect(err).toBeDefined();
-    expect((err as AnyObj).errors?.['depreciation.method']).toBeDefined();
+    expect((err as AnyObj).errors?.["depreciation.method"]).toBeDefined();
   });
 
-  it('exposes expected indexes on the schema', () => {
-    const indexes: Array<[Record<string, any>, Record<string, any>]> = Asset.schema.indexes();
+  it("exposes expected indexes on the schema", () => {
+    const indexes: Array<[Record<string, any>, Record<string, any>]> =
+      Asset.schema.indexes();
 
     // Debug: log actual indexes to understand structure
-    console.log('Asset indexes:', JSON.stringify(indexes, null, 2));
+    console.log("Asset indexes:", JSON.stringify(indexes, null, 2));
 
     const hasIndex = (fields: Record<string, 1 | -1>) =>
       indexes.some(([idx]) => {
@@ -189,8 +239,8 @@ describe('Asset model schema', () => {
 
     expect(hasIndex({ orgId: 1, type: 1 })).toBe(true);
     expect(hasIndex({ orgId: 1, status: 1 })).toBe(true);
-    expect(hasIndex({ orgId: 1, 'pmSchedule.nextPM': 1 })).toBe(true);
-    expect(hasIndex({ orgId: 1, 'condition.score': 1 })).toBe(true);
+    expect(hasIndex({ orgId: 1, "pmSchedule.nextPM": 1 })).toBe(true);
+    expect(hasIndex({ orgId: 1, "condition.score": 1 })).toBe(true);
   });
 
   it('configures timestamps and compound unique constraint for "code" with orgId', () => {
@@ -198,11 +248,12 @@ describe('Asset model schema', () => {
     expect(schema?.options?.timestamps).toBe(true);
 
     // Code uniqueness is enforced via compound index with orgId, not directly on the field
-    const indexes: Array<[Record<string, any>, Record<string, any>]> = Asset.schema.indexes();
-    
+    const indexes: Array<[Record<string, any>, Record<string, any>]> =
+      Asset.schema.indexes();
+
     // Debug: log to understand structure
     // console.log('Looking for unique code index in:', JSON.stringify(indexes, null, 2));
-    
+
     const hasUniqueCodeIndex = indexes.some(([idx, opts]) => {
       // Check if this index has both orgId and code fields, and unique option
       const hasOrgId = idx.orgId === 1;
@@ -212,7 +263,7 @@ describe('Asset model schema', () => {
     });
     expect(hasUniqueCodeIndex).toBe(true);
 
-    expect(schema.path('createdAt')).toBeDefined();
-    expect(schema.path('updatedAt')).toBeDefined();
+    expect(schema.path("createdAt")).toBeDefined();
+    expect(schema.path("updatedAt")).toBeDefined();
   });
 });

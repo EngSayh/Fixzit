@@ -3,6 +3,7 @@
 ## 🔍 Problem: VS Code Crashes with Exit Code 5
 
 **Symptoms:**
+
 - VS Code unexpectedly closes/crashes
 - Exit code: 5 (OOM - Out of Memory)
 - High memory usage (12GB+ out of 15GB)
@@ -38,6 +39,7 @@
 ### Why Exit Code 5?
 
 Exit code 5 specifically indicates **out of memory (OOM)** condition:
+
 - Linux OOM killer terminates process when system RAM exhausted
 - VS Code's extension host or language servers exceed available memory
 - Codespace has only 15GB total RAM shared across all processes
@@ -45,6 +47,7 @@ Exit code 5 specifically indicates **out of memory (OOM)** condition:
 ## ✅ Fixes Applied
 
 ### 1. Immediate Cleanup (Freed ~5GB)
+
 ```bash
 # Cleared bloated cache
 rm -rf .next/cache  # Freed 3GB
@@ -52,6 +55,7 @@ kill -9 <extension-host-pid>  # Reset leaked extension host
 ```
 
 ### 2. Next.js Configuration (`next.config.js`)
+
 ```javascript
 // Added memory protection
 cacheHandler: undefined,
@@ -60,6 +64,7 @@ cleanDistDir: true, // Clean on each build
 ```
 
 ### 3. VS Code Settings (`.vscode/settings.json`)
+
 ```json
 {
   "typescript.tsserver.maxTsServerMemory": 3072, // Reduced from 4GB
@@ -72,7 +77,9 @@ cleanDistDir: true, // Clean on each build
 ```
 
 ### 4. Cleanup Script (`scripts/cleanup-dev-cache.sh`)
+
 Automated cleanup of:
+
 - .next/cache
 - .turbo cache
 - TypeScript build info
@@ -80,6 +87,7 @@ Automated cleanup of:
 - Temp files
 
 **Usage:**
+
 ```bash
 # Manual cleanup
 pnpm run cleanup:cache
@@ -91,12 +99,14 @@ pnpm run dev:clean
 ## 📊 Results
 
 **Before:**
+
 - Memory: 12GB/15GB (80%)
 - .next/cache: 3.0GB
 - Extension Host: 3.7GB
 - Crashes: Frequent
 
 **After:**
+
 - Memory: 7.2GB/15GB (48%)
 - .next/cache: Cleaned on startup
 - Extension Host: Restarted, ~800MB
@@ -107,12 +117,14 @@ pnpm run dev:clean
 ## 🛡️ Prevention
 
 ### Automated Protection:
+
 1. ✅ Cache size limits in Next.js config
 2. ✅ TypeScript memory limit reduced to 3GB
 3. ✅ Project diagnostics disabled
 4. ✅ Cleanup script available
 
 ### Manual Monitoring:
+
 ```bash
 # Check memory usage
 free -h
@@ -128,6 +140,7 @@ pnpm run cleanup:cache
 ```
 
 ### When to Clean:
+
 - Before starting dev server after long break
 - When memory usage > 80%
 - After major dependency updates
@@ -136,6 +149,7 @@ pnpm run cleanup:cache
 ## 🚀 Best Practices
 
 1. **Regular Cleanup:**
+
    ```bash
    # Add to daily routine
    pnpm run cleanup:cache && pnpm dev
@@ -144,6 +158,7 @@ pnpm run cleanup:cache
    ```
 
 2. **Monitor Memory:**
+
    ```bash
    # Check before starting work
    free -h
@@ -161,6 +176,7 @@ pnpm run cleanup:cache
 ## 📈 Monitoring
 
 ### Quick Health Check:
+
 ```bash
 # Run this if VS Code feels slow
 cd /workspaces/Fixzit
@@ -170,6 +186,7 @@ echo "Processes: $(ps aux | grep -E 'node.*tsserver|node.*extensionHost' | wc -l
 ```
 
 ### Expected Values:
+
 - Memory usage: < 10GB
 - .next/cache: < 500MB
 - TS servers: 2-3 processes
@@ -180,6 +197,7 @@ echo "Processes: $(ps aux | grep -E 'node.*tsserver|node.*extensionHost' | wc -l
 ### If VS Code Still Crashes:
 
 1. **Nuclear option - Full cleanup:**
+
    ```bash
    rm -rf .next node_modules/.cache ~/.vscode-remote/data/User/workspaceStorage
    pnpm install
@@ -188,6 +206,7 @@ echo "Processes: $(ps aux | grep -E 'node.*tsserver|node.*extensionHost' | wc -l
 
 2. **Reduce TypeScript scope:**
    Add to tsconfig.json:
+
    ```json
    {
      "exclude": ["**/node_modules", "**/.next", "**/dist", "**/build"]

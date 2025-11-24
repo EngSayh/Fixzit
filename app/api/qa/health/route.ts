@@ -1,24 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
-import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError } from '@/server/utils/errorResponses';
-import { getClientIP } from '@/server/security/headers';
-import type mongoose from 'mongoose';
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+import type mongoose from "mongoose";
 
 type ConnectFn = () => Promise<typeof mongoose>;
 
 async function getDatabaseConnection() {
   const mock = (globalThis as Record<string, unknown>).__connectToDatabaseMock;
-  const override = typeof mock === 'function' ? (mock as ConnectFn) : undefined;
-  if (typeof override === 'function') {
+  const override = typeof mock === "function" ? (mock as ConnectFn) : undefined;
+  if (typeof override === "function") {
     return override();
   }
-  const { connectToDatabase } = await import('@/lib/mongodb-unified');
+  const { connectToDatabase } = await import("@/lib/mongodb-unified");
   return connectToDatabase();
 }
 
 // Force dynamic rendering for this route
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /**
  * @openapi
@@ -47,35 +47,35 @@ export async function GET(req: NextRequest) {
 
   const healthStatus = {
     timestamp: new Date().toISOString(),
-    status: 'healthy',
-    database: 'unknown',
-    memory: 'unknown',
+    status: "healthy",
+    database: "unknown",
+    memory: "unknown",
     uptime: process.uptime(),
-    version: process.env.npm_package_version || 'unknown',
-    mockDatabase: false
+    version: process.env.npm_package_version || "unknown",
+    mockDatabase: false,
   };
 
   // Check database connectivity
   try {
     const mongoose = await getDatabaseConnection();
-    healthStatus.database = 'connected';
+    healthStatus.database = "connected";
 
     const db = mongoose?.connection?.db;
     if (db?.listCollections) {
       try {
         const collections = await db.listCollections().toArray();
         const count = Array.isArray(collections) ? collections.length : 0;
-        const label = count === 1 ? 'collection' : 'collections';
+        const label = count === 1 ? "collection" : "collections";
         healthStatus.database = `connected (${count} ${label})`;
       } catch {
-        healthStatus.database = 'connected (query failed)';
+        healthStatus.database = "connected (query failed)";
       }
     }
   } catch (error) {
-    healthStatus.status = 'critical';
-    healthStatus.database = 'disconnected';
-    logger.error('Database health check failed', {
-      error: error instanceof Error ? error.message : 'Unknown error'
+    healthStatus.status = "critical";
+    healthStatus.database = "disconnected";
+    logger.error("Database health check failed", {
+      error: error instanceof Error ? error.message : "Unknown error",
     });
   }
 
@@ -84,20 +84,27 @@ export async function GET(req: NextRequest) {
     const memUsage = process.memoryUsage();
     healthStatus.memory = `RSS: ${Math.round(memUsage.rss / 1024 / 1024)}MB, Heap: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`;
   } catch {
-    healthStatus.memory = 'unknown';
+    healthStatus.memory = "unknown";
   }
 
   // Determine overall status
-  if (healthStatus.database === 'disconnected') {
-    healthStatus.status = 'critical';
-  } else if (healthStatus.database.startsWith('connected') || healthStatus.database === 'mock-connected') {
-    healthStatus.status = 'healthy';
+  if (healthStatus.database === "disconnected") {
+    healthStatus.status = "critical";
+  } else if (
+    healthStatus.database.startsWith("connected") ||
+    healthStatus.database === "mock-connected"
+  ) {
+    healthStatus.status = "healthy";
   } else {
-    healthStatus.status = 'degraded';
+    healthStatus.status = "degraded";
   }
 
-  const statusCode = healthStatus.status === 'healthy' ? 200 :
-                    healthStatus.status === 'degraded' ? 206 : 503;
+  const statusCode =
+    healthStatus.status === "healthy"
+      ? 200
+      : healthStatus.status === "degraded"
+        ? 206
+        : 503;
 
   return NextResponse.json(healthStatus, { status: statusCode });
 }
@@ -115,15 +122,18 @@ export async function POST(req: NextRequest) {
     await getDatabaseConnection();
     return NextResponse.json({
       success: true,
-      message: 'Database reconnected',
-      timestamp: new Date().toISOString()
+      message: "Database reconnected",
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to reconnect database',
-      details: (error as Error).message,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to reconnect database",
+        details: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 },
+    );
   }
 }

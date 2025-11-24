@@ -28,7 +28,7 @@
 
 4. **"Check branches - I still see merged branches"**
    - ✅ **CLEANED!** Deleted **59 total branches**:
-     - 58 abandoned branches (cursor/*and codex/*)
+     - 58 abandoned branches (cursor/_and codex/_)
      - 1 merged branch (`fix/code-quality-clean`)
      - **0 remaining merged branches**
 
@@ -53,12 +53,12 @@ Total Workflow Failures in History: 212 (not 1,064)
 
 ### Breakdown by Type
 
-| Workflow Type | Total Failures | Primary Branches |
-|--------------|----------------|------------------|
-| **NodeJS with Webpack** | 97 | fix/comprehensive-fixes-20251011 (88) |
-| **Fixzit Quality Gates** | 91 | (various - historically slow) |
-| **Consolidation Guardrails** | 12 | feat/batch1-file-organization (before merge) |
-| **Agent Governor CI** | 12 | feat/batch1-file-organization (before merge) |
+| Workflow Type                | Total Failures | Primary Branches                             |
+| ---------------------------- | -------------- | -------------------------------------------- |
+| **NodeJS with Webpack**      | 97             | fix/comprehensive-fixes-20251011 (88)        |
+| **Fixzit Quality Gates**     | 91             | (various - historically slow)                |
+| **Consolidation Guardrails** | 12             | feat/batch1-file-organization (before merge) |
+| **Agent Governor CI**        | 12             | feat/batch1-file-organization (before merge) |
 
 ### Key Insight: Most Failures from Deleted Branches
 
@@ -96,7 +96,7 @@ Total Workflow Failures in History: 212 (not 1,064)
 ### 3. Repository Cleanup ✅
 
 - **Deleted 59 branches total**:
-  - 58 abandoned automated branches (cursor/*and codex/*)
+  - 58 abandoned automated branches (cursor/_and codex/_)
   - 1 merged branch still lingering (`fix/code-quality-clean`)
   - **Verification**: 0 merged branches remaining
 
@@ -256,8 +256,8 @@ Oct 16, 2025:  4 failures  ← Only before PR #126 merge (now 0)
 ## Branches Deleted
 
 1. **fix/code-quality-clean** - Merged branch (1)
-2. **cursor/*** - 56 abandoned automated branches
-3. **codex/*** - 2 old CI workflow branches
+2. **cursor/\*** - 56 abandoned automated branches
+3. **codex/\*** - 2 old CI workflow branches
 4. **Total**: 59 branches deleted
 
 ---

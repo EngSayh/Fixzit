@@ -1,56 +1,66 @@
 /**
  * Performance Metrics API Endpoint
- * 
+ *
  * GET /api/performance/metrics
- * 
+ *
  * Returns current performance statistics and recent metrics
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 import {
   getPerformanceStats,
   getRecentMetrics,
-  getExceededMetrics
-} from '@/lib/performance';
+  getExceededMetrics,
+} from "@/lib/performance";
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const type = searchParams.get('type') || 'stats';
-    const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 1000);
+    const type = searchParams.get("type") || "stats";
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "100", 10),
+      1000,
+    );
 
     switch (type) {
-      case 'stats':
+      case "stats":
         return NextResponse.json({
           success: true,
-          data: getPerformanceStats()
+          data: getPerformanceStats(),
         });
 
-      case 'recent':
+      case "recent":
         return NextResponse.json({
           success: true,
-          data: getRecentMetrics(limit)
+          data: getRecentMetrics(limit),
         });
 
-      case 'exceeded':
+      case "exceeded":
         return NextResponse.json({
           success: true,
-          data: getExceededMetrics()
+          data: getExceededMetrics(),
         });
 
       default:
-        return NextResponse.json({
-          success: false,
-          error: 'Invalid type parameter. Use: stats, recent, or exceeded'
-        }, { status: 400 });
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid type parameter. Use: stats, recent, or exceeded",
+          },
+          { status: 400 },
+        );
     }
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({
-      success: false,
-      error: errorMessage
-    }, { status: 500 });
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json(
+      {
+        success: false,
+        error: errorMessage,
+      },
+      { status: 500 },
+    );
   }
 }
 
-export const runtime = 'nodejs';
+export const runtime = "nodejs";

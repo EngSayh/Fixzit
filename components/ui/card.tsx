@@ -1,8 +1,8 @@
-import * as React from 'react';
+import * as React from "react";
 
 // Helper function for class merging
 function cn(...inputs: (string | undefined | null | false)[]): string {
-  return inputs.filter(Boolean).join(' ');
+  return inputs.filter(Boolean).join(" ");
 }
 
 // --- Card ---
@@ -14,13 +14,13 @@ const Card = React.forwardRef<
     ref={ref}
     // FIX: Use rounded-2xl (16px) per Design System, semantic tokens for dark mode
     className={cn(
-      'rounded-2xl border border-border bg-card text-card-foreground shadow-sm',
-      className
+      "rounded-2xl border border-border bg-card text-card-foreground shadow-sm",
+      className,
     )}
     {...props}
   />
 ));
-Card.displayName = 'Card';
+Card.displayName = "Card";
 
 // --- CardHeader ---
 const CardHeader = React.forwardRef<
@@ -29,11 +29,11 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('flex flex-col space-y-1.5 p-6', className)}
+    className={cn("flex flex-col space-y-1.5 p-6", className)}
     {...props}
   />
 ));
-CardHeader.displayName = 'CardHeader';
+CardHeader.displayName = "CardHeader";
 
 // --- CardTitle ---
 const CardTitle = React.forwardRef<
@@ -42,11 +42,14 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn('text-lg font-semibold leading-none tracking-tight', className)}
+    className={cn(
+      "text-lg font-semibold leading-none tracking-tight",
+      className,
+    )}
     {...props}
   />
 ));
-CardTitle.displayName = 'CardTitle';
+CardTitle.displayName = "CardTitle";
 
 // --- CardDescription ---
 const CardDescription = React.forwardRef<
@@ -55,20 +58,20 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-sm text-muted-foreground', className)}
+    className={cn("text-sm text-muted-foreground", className)}
     {...props}
   />
 ));
-CardDescription.displayName = 'CardDescription';
+CardDescription.displayName = "CardDescription";
 
 // --- CardContent ---
 const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />
+  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
 ));
-CardContent.displayName = 'CardContent';
+CardContent.displayName = "CardContent";
 
 // --- CardFooter ---
 const CardFooter = React.forwardRef<
@@ -77,11 +80,17 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('flex items-center p-6 pt-0', className)}
+    className={cn("flex items-center p-6 pt-0", className)}
     {...props}
   />
 ));
-CardFooter.displayName = 'CardFooter';
+CardFooter.displayName = "CardFooter";
 
-export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
-
+export {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+};

@@ -1,18 +1,21 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { getSubscriptionForTenant } from '@/server/services/subscriptionSeatService';
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { getSubscriptionForTenant } from "@/server/services/subscriptionSeatService";
 
 export async function GET() {
   try {
     const session = await auth();
     if (!session?.user?.tenantId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const subscription = await getSubscriptionForTenant(session.user.tenantId);
-    
+
     if (!subscription) {
-      return NextResponse.json({ error: 'No subscription found' }, { status: 404 });
+      return NextResponse.json(
+        { error: "No subscription found" },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json({
@@ -28,8 +31,8 @@ export async function GET() {
     });
   } catch (_error) {
     return NextResponse.json(
-      { error: 'Failed to fetch subscription' },
-      { status: 500 }
+      { error: "Failed to fetch subscription" },
+      { status: 500 },
     );
   }
 }

@@ -1,57 +1,64 @@
 /**
  * API Guard Middleware
- * 
+ *
  * Provides server-side permission checking for API routes.
  * Use requirePermission() to wrap API handlers with permission requirements.
- * 
+ *
  * Usage:
  * ```typescript
  * import { requirePermission } from '@/lib/apiGuard';
- * 
+ *
  * async function handler(req, res) {
  *   // Your API logic here
  * }
- * 
+ *
  * export default requirePermission('finance:invoice.create', handler);
  * ```
  */
 
-import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
-import { logger } from '@/lib/logger';
-import { auth } from '@/auth';
-import { can, createRbacContext } from './rbac';
-import { audit } from './audit';
+import { NextApiHandler, NextApiRequest, NextApiResponse } from "next";
+import { logger } from "@/lib/logger";
+import { auth } from "@/auth";
+import { can, createRbacContext } from "./rbac";
+import { audit } from "./audit";
 
 /**
  * Require a specific permission to access an API route
- * 
+ *
  * @param required Permission key (e.g., "finance:invoice.create")
  * @param handler Next.js API handler function
  * @returns Wrapped handler with permission check
  */
-export function requirePermission(required: string, handler: NextApiHandler): NextApiHandler {
+export function requirePermission(
+  required: string,
+  handler: NextApiHandler,
+): NextApiHandler {
   return async (req: NextApiRequest, res: NextApiResponse) => {
     try {
       // Get session
       const session = await auth();
-      
+
       if (!session?.user) {
         // Audit failed access attempt
         await audit({
-          actorId: 'anonymous',
-          actorEmail: 'anonymous',
-          action: 'api.access.denied',
+          actorId: "anonymous",
+          actorEmail: "anonymous",
+          action: "api.access.denied",
           meta: {
             path: req.url,
             method: req.method,
             required,
-            reason: 'not_authenticated',
+            reason: "not_authenticated",
           },
-          ipAddress: req.headers['x-forwarded-for'] as string || req.socket.remoteAddress,
+          ipAddress:
+            (req.headers["x-forwarded-for"] as string) ||
+            req.socket.remoteAddress,
           success: false,
         });
-        
-        return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+
+        return res
+          .status(401)
+          .json({ error: "Unauthorized", message: "Authentication required" });
       }
 
       // Create RBAC context
@@ -61,41 +68,45 @@ export function requirePermission(required: string, handler: NextApiHandler): Ne
       if (!can(ctx, required)) {
         // Audit failed permission check
         await audit({
-          actorId: session.user.id || 'unknown',
-          actorEmail: session.user.email || 'unknown',
-          action: 'api.access.forbidden',
+          actorId: session.user.id || "unknown",
+          actorEmail: session.user.email || "unknown",
+          action: "api.access.forbidden",
           meta: {
             path: req.url,
             method: req.method,
             required,
-            reason: 'insufficient_permissions',
+            reason: "insufficient_permissions",
             userPermissions: ctx.permissions,
             isSuperAdmin: ctx.isSuperAdmin,
           },
-          ipAddress: req.headers['x-forwarded-for'] as string || req.socket.remoteAddress,
+          ipAddress:
+            (req.headers["x-forwarded-for"] as string) ||
+            req.socket.remoteAddress,
           success: false,
         });
-        
-        return res.status(403).json({ 
-          error: 'Forbidden', 
+
+        return res.status(403).json({
+          error: "Forbidden",
           message: `Permission required: ${required}`,
           required,
         });
       }
 
       // Audit successful access (for sensitive operations)
-      if (required.includes('admin:') || required.includes('super')) {
+      if (required.includes("admin:") || required.includes("super")) {
         await audit({
-          actorId: session.user.id || 'unknown',
-          actorEmail: session.user.email || 'unknown',
-          action: 'api.access.granted',
+          actorId: session.user.id || "unknown",
+          actorEmail: session.user.email || "unknown",
+          action: "api.access.granted",
           meta: {
             path: req.url,
             method: req.method,
             required,
             isSuperAdmin: ctx.isSuperAdmin,
           },
-          ipAddress: req.headers['x-forwarded-for'] as string || req.socket.remoteAddress,
+          ipAddress:
+            (req.headers["x-forwarded-for"] as string) ||
+            req.socket.remoteAddress,
           success: true,
         });
       }
@@ -103,14 +114,15 @@ export function requirePermission(required: string, handler: NextApiHandler): Ne
       // Call original handler
       return handler(req, res);
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('[apiGuard] Error:', { error });
-      
+      logger.error("[apiGuard] Error:", { error });
+
       await audit({
-        actorId: 'system',
-        actorEmail: 'system',
-        action: 'api.access.error',
+        actorId: "system",
+        actorEmail: "system",
+        action: "api.access.error",
         meta: {
           path: req.url,
           method: req.method,
@@ -119,119 +131,131 @@ export function requirePermission(required: string, handler: NextApiHandler): Ne
         },
         success: false,
       });
-      
-      return res.status(500).json({ error: 'Internal Server Error' });
+
+      return res.status(500).json({ error: "Internal Server Error" });
     }
   };
 }
 
 /**
  * Require ANY of the specified permissions
- * 
+ *
  * @param requiredAny Array of permission keys
  * @param handler Next.js API handler function
  * @returns Wrapped handler with permission check
  */
-export function requireAnyPermission(requiredAny: string[], handler: NextApiHandler): NextApiHandler {
+export function requireAnyPermission(
+  requiredAny: string[],
+  handler: NextApiHandler,
+): NextApiHandler {
   return async (req: NextApiRequest, res: NextApiResponse) => {
     try {
       const session = await auth();
-      
+
       if (!session?.user) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ error: "Unauthorized" });
       }
 
       const ctx = createRbacContext(session.user);
 
       // Check if user has any of the required permissions
-      const hasPermission = ctx.isSuperAdmin || requiredAny.some(perm => ctx.permissions.includes(perm));
+      const hasPermission =
+        ctx.isSuperAdmin ||
+        requiredAny.some((perm) => ctx.permissions.includes(perm));
 
       if (!hasPermission) {
         await audit({
-          actorId: session.user.id || 'unknown',
-          actorEmail: session.user.email || 'unknown',
-          action: 'api.access.forbidden',
+          actorId: session.user.id || "unknown",
+          actorEmail: session.user.email || "unknown",
+          action: "api.access.forbidden",
           meta: {
             path: req.url,
             method: req.method,
             requiredAny,
-            reason: 'insufficient_permissions',
+            reason: "insufficient_permissions",
           },
           success: false,
         });
-        
-        return res.status(403).json({ 
-          error: 'Forbidden', 
-          message: `One of these permissions required: ${requiredAny.join(', ')}`,
+
+        return res.status(403).json({
+          error: "Forbidden",
+          message: `One of these permissions required: ${requiredAny.join(", ")}`,
           requiredAny,
         });
       }
 
       return handler(req, res);
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('[apiGuard] Error:', { error });
-      return res.status(500).json({ error: 'Internal Server Error' });
+      logger.error("[apiGuard] Error:", { error });
+      return res.status(500).json({ error: "Internal Server Error" });
     }
   };
 }
 
 /**
  * Require ALL of the specified permissions
- * 
+ *
  * @param requiredAll Array of permission keys
  * @param handler Next.js API handler function
  * @returns Wrapped handler with permission check
  */
-export function requireAllPermissions(requiredAll: string[], handler: NextApiHandler): NextApiHandler {
+export function requireAllPermissions(
+  requiredAll: string[],
+  handler: NextApiHandler,
+): NextApiHandler {
   return async (req: NextApiRequest, res: NextApiResponse) => {
     try {
       const session = await auth();
-      
+
       if (!session?.user) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ error: "Unauthorized" });
       }
 
       const ctx = createRbacContext(session.user);
 
       // Check if user has all required permissions
-      const hasAllPermissions = ctx.isSuperAdmin || requiredAll.every(perm => ctx.permissions.includes(perm));
+      const hasAllPermissions =
+        ctx.isSuperAdmin ||
+        requiredAll.every((perm) => ctx.permissions.includes(perm));
 
       if (!hasAllPermissions) {
         await audit({
-          actorId: session.user.id || 'unknown',
-          actorEmail: session.user.email || 'unknown',
-          action: 'api.access.forbidden',
+          actorId: session.user.id || "unknown",
+          actorEmail: session.user.email || "unknown",
+          action: "api.access.forbidden",
           meta: {
             path: req.url,
             method: req.method,
             requiredAll,
-            reason: 'insufficient_permissions',
+            reason: "insufficient_permissions",
           },
           success: false,
         });
-        
-        return res.status(403).json({ 
-          error: 'Forbidden', 
-          message: `All these permissions required: ${requiredAll.join(', ')}`,
+
+        return res.status(403).json({
+          error: "Forbidden",
+          message: `All these permissions required: ${requiredAll.join(", ")}`,
           requiredAll,
         });
       }
 
       return handler(req, res);
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('[apiGuard] Error:', { error });
-      return res.status(500).json({ error: 'Internal Server Error' });
+      logger.error("[apiGuard] Error:", { error });
+      return res.status(500).json({ error: "Internal Server Error" });
     }
   };
 }
 
 /**
  * Require Super Admin access
- * 
+ *
  * @param handler Next.js API handler function
  * @returns Wrapped handler with Super Admin check
  */
@@ -239,52 +263,55 @@ export function requireSuperAdmin(handler: NextApiHandler): NextApiHandler {
   return async (req: NextApiRequest, res: NextApiResponse) => {
     try {
       const session = await auth();
-      
+
       if (!session?.user) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ error: "Unauthorized" });
       }
 
       const ctx = createRbacContext(session.user);
 
       if (!ctx.isSuperAdmin) {
         await audit({
-          actorId: session.user.id || 'unknown',
-          actorEmail: session.user.email || 'unknown',
-          action: 'api.access.forbidden',
+          actorId: session.user.id || "unknown",
+          actorEmail: session.user.email || "unknown",
+          action: "api.access.forbidden",
           meta: {
             path: req.url,
             method: req.method,
-            required: 'super_admin',
-            reason: 'not_super_admin',
+            required: "super_admin",
+            reason: "not_super_admin",
           },
           success: false,
         });
-        
-        return res.status(403).json({ 
-          error: 'Forbidden', 
-          message: 'Super Admin access required',
+
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "Super Admin access required",
         });
       }
 
       // Audit Super Admin access
       await audit({
-        actorId: session.user.id || 'unknown',
-        actorEmail: session.user.email || 'unknown',
-        action: 'api.super_admin.access',
+        actorId: session.user.id || "unknown",
+        actorEmail: session.user.email || "unknown",
+        action: "api.super_admin.access",
         meta: {
           path: req.url,
           method: req.method,
         },
-        ipAddress: req.headers['x-forwarded-for'] as string || req.socket.remoteAddress,
+        ipAddress:
+          (req.headers["x-forwarded-for"] as string) ||
+          req.socket.remoteAddress,
         success: true,
       });
 
       return handler(req, res);
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('[apiGuard] Error:', { error });
-      return res.status(500).json({ error: 'Internal Server Error' });
+      logger.error("[apiGuard] Error:", { error });
+      return res.status(500).json({ error: "Internal Server Error" });
     }
   };
 }
@@ -292,14 +319,14 @@ export function requireSuperAdmin(handler: NextApiHandler): NextApiHandler {
 /**
  * Helper to get RBAC context from API request
  * Useful when you need to check permissions inside your handler
- * 
+ *
  * @param req Next.js API request
  * @param res Next.js API response
  * @returns RBAC context or null if not authenticated
  */
 export async function getRbacContext(
-  _req: NextApiRequest, 
-  _res: NextApiResponse
+  _req: NextApiRequest,
+  _res: NextApiResponse,
 ): Promise<ReturnType<typeof createRbacContext> | null> {
   const session = await auth();
   if (!session?.user) return null;

@@ -33,18 +33,20 @@ aws secretsmanager create-secret \
 
 ```javascript
 // lib/aws-secrets.js
-const AWS = require('aws-sdk');
+const AWS = require("aws-sdk");
 
 const secretsManager = new AWS.SecretsManager({
-  region: process.env.AWS_REGION || 'me-south-1'
+  region: process.env.AWS_REGION || "me-south-1",
 });
 
 async function getSecret(secretName) {
   try {
-    const result = await secretsManager.getSecretValue({ SecretId: secretName }).promise();
+    const result = await secretsManager
+      .getSecretValue({ SecretId: secretName })
+      .promise();
     return result.SecretString;
   } catch (error) {
-    console.error('Error retrieving secret:', error);
+    console.error("Error retrieving secret:", error);
     throw error;
   }
 }
@@ -56,10 +58,10 @@ module.exports = { getSecret };
 
 ```javascript
 // In your app initialization
-const { getSecret } = require('./lib/aws-secrets');
+const { getSecret } = require("./lib/aws-secrets");
 
 // Load JWT secret from AWS Secrets Manager
-const jwtSecret = await getSecret('fixzit/jwt-secret');
+const jwtSecret = await getSecret("fixzit/jwt-secret");
 process.env.JWT_SECRET = jwtSecret;
 ```
 
@@ -111,7 +113,7 @@ echo "6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267" | docker
 ### Update docker-compose.yml
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   web:
@@ -134,12 +136,12 @@ secrets:
 
 ```javascript
 // In your app
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 function getJWTSecret() {
   if (process.env.JWT_SECRET_FILE) {
-    return fs.readFileSync(process.env.JWT_SECRET_FILE, 'utf8').trim();
+    return fs.readFileSync(process.env.JWT_SECRET_FILE, "utf8").trim();
   }
   return process.env.JWT_SECRET;
 }

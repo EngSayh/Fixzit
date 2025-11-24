@@ -1,38 +1,62 @@
-import { NextRequest} from "next/server";
-import { logger } from '@/lib/logger';
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Project } from "@/server/models/Project";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
 const updateProjectSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
-  type: z.enum(["NEW_CONSTRUCTION", "RENOVATION", "MAINTENANCE", "FIT_OUT", "DEMOLITION"]).optional(),
-  status: z.enum(["PLANNING", "APPROVED", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "CANCELLED", "CLOSED"]).optional(),
-  timeline: z.object({
-    startDate: z.string().optional(),
-    endDate: z.string().optional(),
-    duration: z.number().optional()
-  }).optional(),
-  budget: z.object({
-    total: z.number().optional(),
-    allocated: z.number().optional(),
-    spent: z.number().optional(),
-    remaining: z.number().optional()
-  }).optional(),
-  progress: z.object({
-    overall: z.number().min(0).max(100).optional(),
-    schedule: z.number().min(0).max(100).optional(),
-    quality: z.number().min(0).max(100).optional(),
-    cost: z.number().min(0).max(100).optional()
-  }).optional(),
-  tags: z.array(z.string()).optional()
+  type: z
+    .enum([
+      "NEW_CONSTRUCTION",
+      "RENOVATION",
+      "MAINTENANCE",
+      "FIT_OUT",
+      "DEMOLITION",
+    ])
+    .optional(),
+  status: z
+    .enum([
+      "PLANNING",
+      "APPROVED",
+      "IN_PROGRESS",
+      "ON_HOLD",
+      "COMPLETED",
+      "CANCELLED",
+      "CLOSED",
+    ])
+    .optional(),
+  timeline: z
+    .object({
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+      duration: z.number().optional(),
+    })
+    .optional(),
+  budget: z
+    .object({
+      total: z.number().optional(),
+      allocated: z.number().optional(),
+      spent: z.number().optional(),
+      remaining: z.number().optional(),
+    })
+    .optional(),
+  progress: z
+    .object({
+      overall: z.number().min(0).max(100).optional(),
+      schedule: z.number().min(0).max(100).optional(),
+      quality: z.number().min(0).max(100).optional(),
+      cost: z.number().min(0).max(100).optional(),
+    })
+    .optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 /**
@@ -52,7 +76,10 @@ const updateProjectSchema = z.object({
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -62,10 +89,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     }
     await connectToDatabase();
 
-    const project = (await Project.findOne({
+    const project = await Project.findOne({
       _id: params.id,
-      tenantId: user.tenantId
-    }));
+      tenantId: user.tenantId,
+    });
 
     if (!project) {
       return createSecureResponse({ error: "Project not found" }, 404, req);
@@ -73,12 +100,18 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     return createSecureResponse(project, 200, req);
   } catch (error: unknown) {
-    logger.error('GET /api/projects/[id] error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error(
+      "GET /api/projects/[id] error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return handleApiError(error);
   }
 }
 
-export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -86,17 +119,17 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     const data = updateProjectSchema.parse(await req.json());
 
-    const project = (await Project.findOneAndUpdate(
+    const project = await Project.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },
-      { 
-        $set: { 
-          ...data, 
+      {
+        $set: {
+          ...data,
           updatedBy: user.id,
-          'progress.lastUpdated': new Date()
-        } 
+          "progress.lastUpdated": new Date(),
+        },
       },
-      { new: true }
-    ));
+      { new: true },
+    );
 
     if (!project) {
       return createSecureResponse({ error: "Project not found" }, 404, req);
@@ -108,7 +141,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   }
 }
 
-export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -118,11 +154,11 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     }
     await connectToDatabase();
 
-    const project = (await Project.findOneAndUpdate(
+    const project = await Project.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },
       { $set: { status: "CANCELLED", updatedBy: user.id } },
-      { new: true }
-    ));
+      { new: true },
+    );
 
     if (!project) {
       return createSecureResponse({ error: "Project not found" }, 404, req);

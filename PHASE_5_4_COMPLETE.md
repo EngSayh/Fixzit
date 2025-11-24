@@ -9,6 +9,7 @@
 ### Phase 5: CI/CD Enforcement & Guardrails ✅
 
 #### 1. Pre-commit Hook (.git/hooks/pre-commit)
+
 - **Location:** `.git/hooks/pre-commit` (executable)
 - **Function:** Validates production code before every commit
 - **Scope:** Only runs on staged files in `app/`, `components/`, `lib/`, `services/`
@@ -16,6 +17,7 @@
 - **Override:** Available with `git commit --no-verify` (not recommended)
 
 **Features:**
+
 ```bash
 # Automatically runs on: git commit
 # Checks: ESLint errors, warnings, unused disable directives
@@ -23,26 +25,30 @@
 ```
 
 #### 2. GitHub Actions Workflow (.github/workflows/eslint-quality.yml)
+
 - **Trigger:** Push/PR to main/develop branches
 - **Path Filters:** Only runs when code changes in production directories
 - **Two Jobs:**
 
 **Job 1: Production Code Linting (Blocking)**
+
 - Runs on: `app/`, `components/`, `lib/`, `services/`
 - Max warnings: 0 (strict)
 - Fails build if errors found
 - Uploads JSON results as artifacts (30-day retention)
 
 **Job 2: Scripts/Tools Linting (Non-blocking)**
+
 - Runs on: `scripts/`, `tools/`
 - continue-on-error: true
 - Informational only - doesn't block CI
 - Tracks technical debt separately
 
 #### 3. ESLint Baseline Tracking
+
 - **File:** `_artifacts/eslint-baseline.json`
 - **Purpose:** Source of truth for ESLint metrics
-- **Current Status:** 
+- **Current Status:**
   ```json
   {
     "status": "CLEAN",
@@ -53,6 +59,7 @@
 - **CI Integration:** Uploaded as artifact on every run
 
 #### 4. New NPM Scripts (package.json)
+
 Added scoped lint commands for better DX:
 
 ```json
@@ -68,12 +75,14 @@ Added scoped lint commands for better DX:
 ### Phase 4: Trustworthy Lint Baseline ✅
 
 #### Reality Check Validation
+
 - ✅ Ran `pnpm lint` - passes with 0 errors, 0 warnings
 - ✅ Ran `pnpm typecheck` - passes with 0 TypeScript errors
 - ✅ Ran scoped lint on production code - CLEAN
 - ✅ Verified: Previous "59,345 errors" included ignored paths
 
 #### Key Findings
+
 1. **Production code is CLEAN** (app/components/lib/services)
    - 0 ESLint errors
    - 0 ESLint warnings
@@ -91,7 +100,9 @@ Added scoped lint commands for better DX:
    - Allows reasonable warnings limit (50) for legacy code
 
 #### Baseline Established
+
 Created `_artifacts/eslint-baseline.json` with:
+
 - Metadata (timestamp, command, scope, excluded paths)
 - Summary (file count, error count, warning count)
 - Results array (empty - no issues found)
@@ -100,6 +111,7 @@ Created `_artifacts/eslint-baseline.json` with:
 ## Implementation Details
 
 ### Pre-commit Hook Features
+
 ```bash
 # What it does:
 1. Detects staged .ts/.tsx/.js/.jsx files in production dirs
@@ -115,6 +127,7 @@ Created `_artifacts/eslint-baseline.json` with:
 ```
 
 ### CI Workflow Features
+
 ```yaml
 # Optimizations:
 - Path filters: Only triggers on relevant changes
@@ -125,6 +138,7 @@ Created `_artifacts/eslint-baseline.json` with:
 ```
 
 ### Developer Experience Improvements
+
 ```bash
 # Before committing:
 pnpm lint:prod          # Check if your code will pass
@@ -143,6 +157,7 @@ pnpm lint:scripts       # Check scripts/tools
 ## Verification & Testing
 
 ### Pre-commit Hook Test ✅
+
 ```bash
 $ git commit -m "test"
 🔍 Running ESLint on production code...
@@ -151,6 +166,7 @@ $ git commit -m "test"
 ```
 
 ### Production Code Validation ✅
+
 ```bash
 $ pnpm lint:prod
 > eslint app components lib services --ext .ts,.tsx,.js,.jsx --max-warnings 0
@@ -159,6 +175,7 @@ $ pnpm lint:prod
 ```
 
 ### TypeScript Validation ✅
+
 ```bash
 $ pnpm typecheck
 > tsc -p .
@@ -167,6 +184,7 @@ $ pnpm typecheck
 ```
 
 ### Combined CI Check ✅
+
 ```bash
 $ pnpm lint:ci
 > npm run lint:prod && npm run typecheck
@@ -177,6 +195,7 @@ $ pnpm lint:ci
 ## What This Achieves
 
 ### ✅ Phase 5 Goals (CI/CD Enforcement)
+
 - [x] Pre-commit hook prevents bad code from being committed
 - [x] CI workflow blocks PRs with ESLint errors
 - [x] Separate tracking for scripts/tools debt
@@ -184,6 +203,7 @@ $ pnpm lint:ci
 - [x] Developer-friendly error messages and fix suggestions
 
 ### ✅ Phase 4 Goals (Trustworthy Baseline)
+
 - [x] Accurate baseline established (0 errors on production code)
 - [x] JSON format for programmatic tracking
 - [x] Clear scope (production vs scripts/tools)
@@ -193,19 +213,23 @@ $ pnpm lint:ci
 ## Metrics Tracking
 
 ### Current Baseline (November 22, 2025)
-| Scope | Files Checked | Errors | Warnings | Status |
-|-------|--------------|--------|----------|--------|
-| Production Code | All | 0 | 0 | ✅ CLEAN |
-| TypeScript | All | 0 | N/A | ✅ CLEAN |
-| Scripts/Tools | N/A | TBD | TBD | 📊 Tracked separately |
+
+| Scope           | Files Checked | Errors | Warnings | Status                |
+| --------------- | ------------- | ------ | -------- | --------------------- |
+| Production Code | All           | 0      | 0        | ✅ CLEAN              |
+| TypeScript      | All           | 0      | N/A      | ✅ CLEAN              |
+| Scripts/Tools   | N/A           | TBD    | TBD      | 📊 Tracked separately |
 
 ### CI Artifacts Available
+
 1. **eslint-results.json** - Production code lint results (per run)
 2. **eslint-scripts-tools.json** - Scripts/tools lint results (per run)
 3. **eslint-baseline.json** - Committed baseline for comparison
 
 ### Trend Analysis (Future)
+
 With artifacts stored per run, we can:
+
 - Track error count trends over time
 - Identify regression patterns
 - Measure improvement velocity
@@ -214,6 +238,7 @@ With artifacts stored per run, we can:
 ## Impact Assessment
 
 ### Before Implementation
+
 - ❌ No automated lint checks on commit
 - ❌ No CI enforcement of code quality
 - ❌ Confusing 59k error count (included ignored files)
@@ -221,6 +246,7 @@ With artifacts stored per run, we can:
 - ❌ No tracking of lint metrics over time
 
 ### After Implementation
+
 - ✅ Pre-commit hook blocks bad commits
 - ✅ CI enforces quality on production code
 - ✅ Accurate baseline (0 errors on production code)
@@ -231,10 +257,12 @@ With artifacts stored per run, we can:
 ## Next Steps (Remaining from Report)
 
 ### Completed ✅
+
 - [x] Step 1: Add `_artifacts/eslint-baseline.json` output
 - [x] Step 5: Wire CI and pre-commit to scoped lint command
 
 ### Remaining (Future Phases)
+
 - [ ] Step 2: Re-enable `no-explicit-any` as `warn` for measurement
 - [ ] Step 3: Begin permission-enum fixes (per TypeScript audit)
 - [ ] Step 4: Gradually un-ignore `scripts/tools` and fix surfaced issues
@@ -244,6 +272,7 @@ With artifacts stored per run, we can:
 ### For Developers
 
 **Before committing:**
+
 ```bash
 # Check your changes
 pnpm lint:prod
@@ -256,6 +285,7 @@ git commit -m "fix: improve error handling"
 ```
 
 **Working on scripts/tools:**
+
 ```bash
 # Check scripts (doesn't block commits)
 pnpm lint:scripts
@@ -267,6 +297,7 @@ pnpm eslint scripts tools --ext .ts,.tsx,.js,.jsx --fix
 ### For CI/CD
 
 **GitHub Actions automatically:**
+
 1. Runs on push/PR to main/develop
 2. Checks production code (blocks merge if errors)
 3. Checks scripts/tools (informational only)
@@ -276,12 +307,14 @@ pnpm eslint scripts tools --ext .ts,.tsx,.js,.jsx --fix
 ### For QA/Analysis
 
 **Generate baseline report:**
+
 ```bash
 pnpm lint:prod:baseline
 cat _artifacts/eslint-baseline.json
 ```
 
 **Compare against baseline:**
+
 ```bash
 # In CI, this happens automatically
 # Locally:
@@ -292,12 +325,14 @@ pnpm lint:prod --format json -o _artifacts/current.json
 ## Files Created/Modified
 
 ### Created
+
 - `.git/hooks/pre-commit` - Pre-commit validation hook
 - `.github/workflows/eslint-quality.yml` - CI workflow
 - `_artifacts/eslint-baseline.json` - Baseline metrics
 - `PHASE_5_4_COMPLETE.md` - This document
 
 ### Modified
+
 - `package.json` - Added lint:prod, lint:ci, lint:scripts commands
 - `tests/models/SearchSynonym.test.ts` - Removed unused eslint-disable
 - `COMPLETE_ERROR_REPORT.md` - Updated with reality check
@@ -324,6 +359,7 @@ pnpm lint:prod --format json -o _artifacts/current.json
 Successfully implemented **Phase 5 (CI/CD Enforcement)** and **Phase 4 (Trustworthy Baseline)** from the error analysis report.
 
 ### Key Achievements
+
 1. ✅ **Pre-commit hook** prevents bad code from being committed
 2. ✅ **CI workflow** enforces quality on every PR
 3. ✅ **Accurate baseline** established (0 errors on production code)
@@ -332,13 +368,16 @@ Successfully implemented **Phase 5 (CI/CD Enforcement)** and **Phase 4 (Trustwor
 6. ✅ **Metrics tracking** foundation laid with JSON artifacts
 
 ### Production Code Status
+
 - **ESLint:** 0 errors, 0 warnings ✅
 - **TypeScript:** 0 compilation errors ✅
 - **Pre-commit:** Active and enforcing ✅
 - **CI:** Configured and ready ✅
 
 ### Future Work
+
 The remaining phases (2, 3) can be tackled when ready:
+
 - Phase 2: Re-enable `any` type warnings for measurement
 - Phase 3: Fix permission-enum string literals
 

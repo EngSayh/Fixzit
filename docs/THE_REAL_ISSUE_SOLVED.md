@@ -66,7 +66,7 @@ git push
 **When npm ci hangs or timeouts:**
 
 1. Check `npm ls --depth=0` for extraneous/invalid packages
-2. Check `npm ci --dry-run` for undefined packages  
+2. Check `npm ci --dry-run` for undefined packages
 3. Delete package-lock.json and regenerate from scratch
 4. Clean install to verify
 

@@ -116,16 +116,16 @@ Ensure the following collections have text indexes:
 
 ```javascript
 // Work Orders
-db.work_orders.createIndex({ "title": "text", "description": "text" })
+db.work_orders.createIndex({ title: "text", description: "text" });
 
 // Properties
-db.properties.createIndex({ "name": "text", "address": "text" })
+db.properties.createIndex({ name: "text", address: "text" });
 
 // Products
-db.products.createIndex({ "name": "text", "description": "text" })
+db.products.createIndex({ name: "text", description: "text" });
 
 // Listings
-db.listings.createIndex({ "title": "text", "description": "text" })
+db.listings.createIndex({ title: "text", description: "text" });
 ```
 
 ## STRICT v4 Compliance

@@ -1,13 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { Job } from '@/server/models/Job';
-import { atsRBAC, canAccessResource } from '@/lib/ats/rbac';
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job } from "@/server/models/Job";
+import { atsRBAC, canAccessResource } from "@/lib/ats/rbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import {
+  notFoundError,
+  validationError,
+  rateLimitError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
 
 /**
  * @openapi
@@ -26,7 +30,10 @@ import { getClientIP } from '@/server/security/headers';
  *       429:
  *         description: Rate limit exceeded
  */
-export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   // Rate limiting
   const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
@@ -37,29 +44,35 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   const params = await props.params;
   try {
     await connectToDatabase();
-    
+
     // RBAC: Check permissions
-    const authResult = await atsRBAC(req, ['jobs:publish']);
+    const authResult = await atsRBAC(req, ["jobs:publish"]);
     if (!authResult.authorized) {
       return authResult.response;
     }
     const { orgId, isSuperAdmin } = authResult;
-    
+
     const job = await Job.findById(params.id);
     if (!job) return notFoundError("Job");
-    
+
     // Resource ownership check
     if (!canAccessResource(orgId, job.orgId, isSuperAdmin)) {
       return notFoundError("Job");
-    };
-    if (job.status === 'published') return validationError("Job is already published");
-    
+    }
+    if (job.status === "published")
+      return validationError("Job is already published");
+
     await job.publish();
-    return NextResponse.json({ success: true, data: job, message: 'Job published successfully' });
+    return NextResponse.json({
+      success: true,
+      data: job,
+      message: "Job published successfully",
+    });
   } catch (error) {
-    logger.error('Job publish error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error(
+      "Job publish error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return createSecureResponse({ error: "Failed to publish job" }, 500, req);
   }
 }
-
-

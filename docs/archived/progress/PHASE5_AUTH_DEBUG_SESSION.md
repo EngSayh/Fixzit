@@ -25,18 +25,19 @@ During Phase 5 E2E testing preparation, we discovered and resolved **5 critical 
 
 ```typescript
 // modules/users/schema.ts (OLD)
-export default mongoose.model('User', UserSchema);  // ❌ Default export only
+export default mongoose.model("User", UserSchema); // ❌ Default export only
 
 // lib/auth.ts
-const { User: UserModel } = require('@/modules/users/schema');  // ❌ Looking for named export
+const { User: UserModel } = require("@/modules/users/schema"); // ❌ Looking for named export
 ```
 
 **Fix:**
 
 ```typescript
 // modules/users/schema.ts (NEW)
-const UserModel = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
-export { UserModel as User };  // ✅ Added named export
+const UserModel =
+  mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+export { UserModel as User }; // ✅ Added named export
 export default UserModel;
 ```
 
@@ -57,12 +58,12 @@ export default UserModel;
 ```typescript
 // lib/auth.ts UserDocument interface
 interface UserDocument {
-  passwordHash: string;  // ✅ Changed from 'password'
+  passwordHash: string; // ✅ Changed from 'password'
   // ...
 }
 
 // Auth function
-const isValid = await verifyPassword(password, user.passwordHash);  // ✅ Updated field access
+const isValid = await verifyPassword(password, user.passwordHash); // ✅ Updated field access
 ```
 
 ---
@@ -81,7 +82,9 @@ const isValid = await verifyPassword(password, user.passwordHash);  // ✅ Updat
 
 ```typescript
 // lib/auth.ts - Explicitly select passwordHash field
-user = await User.findOne({ email: emailOrEmployeeNumber }).select('+passwordHash');
+user = await User.findOne({ email: emailOrEmployeeNumber }).select(
+  "+passwordHash",
+);
 ```
 
 **Learning:** Fields marked `select: false` in Mongoose schemas require explicit `.select('+fieldName')` in queries.
@@ -102,9 +105,10 @@ user = await User.findOne({ email: emailOrEmployeeNumber }).select('+passwordHas
 
 ```typescript
 // lib/auth.ts - Support both field formats
-const isUserActive = user.isActive !== undefined ? user.isActive : (user.status === 'ACTIVE');
+const isUserActive =
+  user.isActive !== undefined ? user.isActive : user.status === "ACTIVE";
 if (!isUserActive) {
-  throw new Error('Account is not active');
+  throw new Error("Account is not active");
 }
 ```
 
@@ -118,16 +122,18 @@ if (!isUserActive) {
 
 ```typescript
 // Database stores ObjectId
-orgId: mongoose.Types.ObjectId
+orgId: mongoose.Types.ObjectId;
 
 // Token expects string
-orgId: user.orgId  // ❌ Type error: ObjectId is not assignable to string
+orgId: user.orgId; // ❌ Type error: ObjectId is not assignable to string
 ```
 
 **Fix:**
 
 ```typescript
-orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || '')
+orgId: typeof user.orgId === "string"
+  ? user.orgId
+  : user.orgId?.toString() || "";
 ```
 
 ---
@@ -188,12 +194,12 @@ at bcrypt.compare (bcryptjs/index.js:269)
 
 ## Files Modified
 
-| File | Changes | Impact |
-|------|---------|--------|
-| `modules/users/schema.ts` | Added named `User` export | ✅ Fixed model import |
-| `lib/auth.ts` | 5 fixes (see above) | ✅ Fixed authentication |
-| `docs/E2E_TESTING_BLOCKERS_RESOLVED.md` | Created | 📄 Documentation |
-| `start-dev-server.sh` | Created | 🔧 Development tool |
+| File                                    | Changes                   | Impact                  |
+| --------------------------------------- | ------------------------- | ----------------------- |
+| `modules/users/schema.ts`               | Added named `User` export | ✅ Fixed model import   |
+| `lib/auth.ts`                           | 5 fixes (see above)       | ✅ Fixed authentication |
+| `docs/E2E_TESTING_BLOCKERS_RESOLVED.md` | Created                   | 📄 Documentation        |
+| `start-dev-server.sh`                   | Created                   | 🔧 Development tool     |
 
 ---
 
@@ -223,22 +229,22 @@ at bcrypt.compare (bcryptjs/index.js:269)
 
 All users: Password `Password123`
 
-| Email | Role | Org |
-|-------|------|-----|
-| <superadmin@fixzit.co> | super_admin | platform-org-001 |
-| <corp.admin@fixzit.co> | corporate_admin | acme-corp-001 |
-| <property.manager@fixzit.co> | property_manager | acme-corp-001 |
-| <ops.dispatcher@fixzit.co> | operations_dispatcher | acme-corp-001 |
-| <supervisor@fixzit.co> | supervisor | acme-corp-001 |
-| <tech.internal@fixzit.co> | technician_internal | acme-corp-001 |
-| <vendor.admin@fixzit.co> | vendor_admin | acme-corp-001 |
-| <vendor.tech@fixzit.co> | vendor_technician | acme-corp-001 |
-| <tenant.resident@fixzit.co> | tenant_resident | acme-corp-001 |
-| <owner.landlord@fixzit.co> | owner_landlord | acme-corp-001 |
-| <finance.manager@fixzit.co> | finance_manager | acme-corp-001 |
-| <hr.manager@fixzit.co> | hr_manager | acme-corp-001 |
-| <helpdesk.agent@fixzit.co> | helpdesk_agent | acme-corp-001 |
-| <auditor.compliance@fixzit.co> | auditor_compliance | acme-corp-001 |
+| Email                          | Role                  | Org              |
+| ------------------------------ | --------------------- | ---------------- |
+| <superadmin@fixzit.co>         | super_admin           | platform-org-001 |
+| <corp.admin@fixzit.co>         | corporate_admin       | acme-corp-001    |
+| <property.manager@fixzit.co>   | property_manager      | acme-corp-001    |
+| <ops.dispatcher@fixzit.co>     | operations_dispatcher | acme-corp-001    |
+| <supervisor@fixzit.co>         | supervisor            | acme-corp-001    |
+| <tech.internal@fixzit.co>      | technician_internal   | acme-corp-001    |
+| <vendor.admin@fixzit.co>       | vendor_admin          | acme-corp-001    |
+| <vendor.tech@fixzit.co>        | vendor_technician     | acme-corp-001    |
+| <tenant.resident@fixzit.co>    | tenant_resident       | acme-corp-001    |
+| <owner.landlord@fixzit.co>     | owner_landlord        | acme-corp-001    |
+| <finance.manager@fixzit.co>    | finance_manager       | acme-corp-001    |
+| <hr.manager@fixzit.co>         | hr_manager            | acme-corp-001    |
+| <helpdesk.agent@fixzit.co>     | helpdesk_agent        | acme-corp-001    |
+| <auditor.compliance@fixzit.co> | auditor_compliance    | acme-corp-001    |
 
 ---
 
@@ -251,12 +257,12 @@ All users: Password `Password123`
    ```bash
    # Start server
    pnpm dev
-   
+
    # Test login API
    curl -X POST http://localhost:3000/api/auth/login \
      -H "Content-Type: application/json" \
      -d '{"email":"superadmin@fixzit.co","password":"Password123"}'
-   
+
    # Expected: {"token":"JWT_STRING","user":{...}}
    ```
 

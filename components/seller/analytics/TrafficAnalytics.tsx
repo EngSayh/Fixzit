@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart,
   Bar,
@@ -13,9 +13,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from 'recharts';
-import type { TooltipProps } from 'recharts';
-import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+} from "recharts";
+import type { TooltipProps } from "recharts";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 interface DailyPageView {
   date: string;
@@ -56,10 +56,10 @@ type PageViewDatum = {
   views: number;
 };
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
 export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
-  const auto = useAutoTranslator('seller.analytics.traffic');
+  const auto = useAutoTranslator("seller.analytics.traffic");
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -70,12 +70,12 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{auto('Traffic Analytics', 'title')}</CardTitle>
+          <CardTitle>{auto("Traffic Analytics", "title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
             <div className="text-muted-foreground">
-              {auto('Loading traffic data...', 'state.loading')}
+              {auto("Loading traffic data...", "state.loading")}
             </div>
           </div>
         </CardContent>
@@ -87,12 +87,12 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{auto('Traffic Analytics', 'title')}</CardTitle>
+          <CardTitle>{auto("Traffic Analytics", "title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
             <div className="text-muted-foreground">
-              {auto('No traffic data available', 'state.empty')}
+              {auto("No traffic data available", "state.empty")}
             </div>
           </div>
         </CardContent>
@@ -114,15 +114,18 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
 
   // Prepare daily page views
   const dailyData = data.pageViews.daily.map((item) => ({
-    date: new Date(item.date).toLocaleDateString('en', {
-      month: 'short',
-      day: 'numeric',
+    date: new Date(item.date).toLocaleDateString("en", {
+      month: "short",
+      day: "numeric",
     }),
     views: item.views,
   }));
 
   const renderPageViewsTooltip = (props: TooltipProps<number, string>) => {
-    const { active, payload } = props as { active?: boolean; payload?: Array<{ payload: PageViewDatum }> };
+    const { active, payload } = props as {
+      active?: boolean;
+      payload?: Array<{ payload: PageViewDatum }>;
+    };
     if (!active || !payload?.length) {
       return null;
     }
@@ -140,7 +143,7 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
               {datum.date}
             </span>
             <span className="font-bold">
-              {datum.views.toLocaleString()} {auto('views', 'tooltip.views')}
+              {datum.views.toLocaleString()} {auto("views", "tooltip.views")}
             </span>
           </div>
         </div>
@@ -155,17 +158,19 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
-              {auto('Total Page Views', 'metrics.totalPageViews')}
+              {auto("Total Page Views", "metrics.totalPageViews")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.pageViews.total.toLocaleString()}</div>
+            <div className="text-2xl font-bold">
+              {data.pageViews.total.toLocaleString()}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
-              {auto('Avg Session Duration', 'metrics.avgSessionDuration')}
+              {auto("Avg Session Duration", "metrics.avgSessionDuration")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -177,7 +182,7 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
-              {auto('Pages Per Session', 'metrics.pagesPerSession')}
+              {auto("Pages Per Session", "metrics.pagesPerSession")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -189,7 +194,7 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
-              {auto('Bounce Rate', 'metrics.bounceRate')}
+              {auto("Bounce Rate", "metrics.bounceRate")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -203,16 +208,26 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
       {/* Page Views Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>{auto('Page Views Over Time', 'charts.pageViews')}</CardTitle>
+          <CardTitle>
+            {auto("Page Views Over Time", "charts.pageViews")}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={dailyData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="date" className="text-xs" tick={{ fontSize: 12 }} />
+              <XAxis
+                dataKey="date"
+                className="text-xs"
+                tick={{ fontSize: 12 }}
+              />
               <YAxis className="text-xs" tick={{ fontSize: 12 }} />
               <Tooltip content={renderPageViewsTooltip} />
-              <Bar dataKey="views" fill="#8884d8" name={auto('Page Views', 'charts.pageViews')} />
+              <Bar
+                dataKey="views"
+                fill="#8884d8"
+                name={auto("Page Views", "charts.pageViews")}
+              />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -222,7 +237,7 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>{auto('Traffic Sources', 'charts.sources')}</CardTitle>
+            <CardTitle>{auto("Traffic Sources", "charts.sources")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
@@ -232,13 +247,18 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                  label={({ name, percent }) =>
+                    `${name} ${((percent || 0) * 100).toFixed(0)}%`
+                  }
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
                 >
                   {sourcesData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -250,7 +270,7 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle>{auto('Device Breakdown', 'charts.devices')}</CardTitle>
+            <CardTitle>{auto("Device Breakdown", "charts.devices")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
@@ -260,13 +280,18 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                  label={({ name, percent }) =>
+                    `${name} ${((percent || 0) * 100).toFixed(0)}%`
+                  }
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
                 >
                   {devicesData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />

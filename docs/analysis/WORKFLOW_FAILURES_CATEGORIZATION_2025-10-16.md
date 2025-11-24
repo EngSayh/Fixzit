@@ -31,32 +31,32 @@ GitHub's UI shows "1,064 workflow run results" but only **216 are actual failure
 
 ### 1. By Workflow Type (216 Total Failures)
 
-| Workflow | Failures | % of Total | Status |
-|----------|----------|------------|--------|
-| **NodeJS with Webpack** | 99 | 45.8% | ✅ Now passing |
-| **Fixzit Quality Gates** | 93 | 43.1% | ⏳ Slow but passing |
-| **Consolidation Guardrails** | 12 | 5.6% | ✅ Now passing |
-| **Agent Governor CI** | 12 | 5.6% | ✅ Now passing |
+| Workflow                     | Failures | % of Total | Status              |
+| ---------------------------- | -------- | ---------- | ------------------- |
+| **NodeJS with Webpack**      | 99       | 45.8%      | ✅ Now passing      |
+| **Fixzit Quality Gates**     | 93       | 43.1%      | ⏳ Slow but passing |
+| **Consolidation Guardrails** | 12       | 5.6%       | ✅ Now passing      |
+| **Agent Governor CI**        | 12       | 5.6%       | ✅ Now passing      |
 
 ### 2. By Branch (Top 15 of 216 Failures)
 
-| Branch | Failures | Status | Impact |
-|--------|----------|--------|--------|
-| **fix/comprehensive-fixes-20251011** | 92 (42.6%) | 🔴 STILL EXISTS | NEEDS DELETION |
-| **feat/batch1-file-organization** | 27 (12.5%) | ✅ MERGED & DELETED | Historical only |
-| **cursor/fix-documentation-***-2c9a** | 26 (12.0%) | ✅ DELETED | Historical only |
-| **fix/standardize-test-framework-vitest** | 15 (6.9%) | ✅ MERGED (#119) | Historical only |
-| **fix/deprecated-hook-cleanup** | 15 (6.9%) | 🔴 STILL EXISTS | NEEDS REVIEW |
-| **codex/review-committed-and-merged-files** | 12 (5.6%) | ✅ DELETED | Historical only |
-| **feat/batch2-code-improvements** | 11 (5.1%) | ✅ MERGED (#127) | Historical only |
-| **fix/reduce-any-warnings-issue-100** | 3 (1.4%) | ✅ DELETED | Historical only |
-| **cursor/categorize-***-181f** | 3 (1.4%) | ✅ DELETED | Historical only |
-| **main** | 2 (0.9%) | ✅ NOW PASSING | Historical from Oct 11-14 |
-| **cursor/fix-documentation-***-df01** | 2 (0.9%) | ✅ DELETED | Historical only |
-| **cursor/fix-documentation-***-a399** | 2 (0.9%) | ✅ DELETED | Historical only |
-| **cursor/fix-documentation-***-278c** | 2 (0.9%) | ✅ DELETED | Historical only |
-| **cursor/fix-documentation-***-167c** | 2 (0.9%) | ✅ DELETED | Historical only |
-| **cursor/find-and-list-system-duplicates-0476** | 2 (0.9%) | ✅ DELETED | Historical only |
+| Branch                                          | Failures   | Status              | Impact                    |
+| ----------------------------------------------- | ---------- | ------------------- | ------------------------- |
+| **fix/comprehensive-fixes-20251011**            | 92 (42.6%) | 🔴 STILL EXISTS     | NEEDS DELETION            |
+| **feat/batch1-file-organization**               | 27 (12.5%) | ✅ MERGED & DELETED | Historical only           |
+| **cursor/fix-documentation-\***-2c9a\*\*        | 26 (12.0%) | ✅ DELETED          | Historical only           |
+| **fix/standardize-test-framework-vitest**       | 15 (6.9%)  | ✅ MERGED (#119)    | Historical only           |
+| **fix/deprecated-hook-cleanup**                 | 15 (6.9%)  | 🔴 STILL EXISTS     | NEEDS REVIEW              |
+| **codex/review-committed-and-merged-files**     | 12 (5.6%)  | ✅ DELETED          | Historical only           |
+| **feat/batch2-code-improvements**               | 11 (5.1%)  | ✅ MERGED (#127)    | Historical only           |
+| **fix/reduce-any-warnings-issue-100**           | 3 (1.4%)   | ✅ DELETED          | Historical only           |
+| **cursor/categorize-\***-181f\*\*               | 3 (1.4%)   | ✅ DELETED          | Historical only           |
+| **main**                                        | 2 (0.9%)   | ✅ NOW PASSING      | Historical from Oct 11-14 |
+| **cursor/fix-documentation-\***-df01\*\*        | 2 (0.9%)   | ✅ DELETED          | Historical only           |
+| **cursor/fix-documentation-\***-a399\*\*        | 2 (0.9%)   | ✅ DELETED          | Historical only           |
+| **cursor/fix-documentation-\***-278c\*\*        | 2 (0.9%)   | ✅ DELETED          | Historical only           |
+| **cursor/fix-documentation-\***-167c\*\*        | 2 (0.9%)   | ✅ DELETED          | Historical only           |
+| **cursor/find-and-list-system-duplicates-0476** | 2 (0.9%)   | ✅ DELETED          | Historical only           |
 
 **Summary**:
 
@@ -65,12 +65,12 @@ GitHub's UI shows "1,064 workflow run results" but only **216 are actual failure
 
 ### 3. By Date (216 Total Failures)
 
-| Date | Failures | % of Total | Context |
-|------|----------|------------|---------|
-| **Oct 13, 2025** | 101 (46.8%) | Peak day | fix/comprehensive-fixes branch (92 failures) |
-| **Oct 15, 2025** | 58 (26.9%) | PR work | Fixing PR #126 and #127 |
-| **Oct 14, 2025** | 53 (24.5%) | Pre-fix | Initial debugging attempts |
-| **Oct 16, 2025** | 4 (1.9%) | Today | Before PR #126 merge (now 0 new) |
+| Date             | Failures    | % of Total | Context                                      |
+| ---------------- | ----------- | ---------- | -------------------------------------------- |
+| **Oct 13, 2025** | 101 (46.8%) | Peak day   | fix/comprehensive-fixes branch (92 failures) |
+| **Oct 15, 2025** | 58 (26.9%)  | PR work    | Fixing PR #126 and #127                      |
+| **Oct 14, 2025** | 53 (24.5%)  | Pre-fix    | Initial debugging attempts                   |
+| **Oct 16, 2025** | 4 (1.9%)    | Today      | Before PR #126 merge (now 0 new)             |
 
 **Trend**: Failures decreasing rapidly
 
@@ -87,16 +87,16 @@ GitHub's UI shows "1,064 workflow run results" but only **216 are actual failure
 
 **Impact**: Historical noise only - cannot fix retrospectively
 
-| Branch Pattern | Count | Merged/Deleted | Failures |
-|----------------|-------|----------------|----------|
-| cursor/fix-documentation-* | ~35 | ✅ All deleted | 26 |
-| cursor/find-and-list-* | ~10 | ✅ All deleted | 10 |
-| cursor/categorize-* | ~5 | ✅ All deleted | 3 |
-| cursor/scan-system-* | ~8 | ✅ All deleted | ~5 |
-| codex/* | 2 | ✅ All deleted | 12 |
-| feat/batch1-file-organization | 1 | ✅ Merged #126 | 27 |
-| feat/batch2-code-improvements | 1 | ✅ Merged #127 | 11 |
-| fix/standardize-test-framework-vitest | 1 | ✅ Merged #119 | 15 |
+| Branch Pattern                        | Count | Merged/Deleted | Failures |
+| ------------------------------------- | ----- | -------------- | -------- |
+| cursor/fix-documentation-\*           | ~35   | ✅ All deleted | 26       |
+| cursor/find-and-list-\*               | ~10   | ✅ All deleted | 10       |
+| cursor/categorize-\*                  | ~5    | ✅ All deleted | 3        |
+| cursor/scan-system-\*                 | ~8    | ✅ All deleted | ~5       |
+| codex/\*                              | 2     | ✅ All deleted | 12       |
+| feat/batch1-file-organization         | 1     | ✅ Merged #126 | 27       |
+| feat/batch2-code-improvements         | 1     | ✅ Merged #127 | 11       |
+| fix/standardize-test-framework-vitest | 1     | ✅ Merged #119 | 15       |
 
 **Total Deleted**: ~70 branches = 185 failures
 
@@ -164,11 +164,11 @@ git log origin/main..origin/fix/deprecated-hook-cleanup --oneline
 
 If we delete the 2 remaining problematic branches:
 
-| Action | Failures Removed | % Reduction |
-|--------|------------------|-------------|
-| Delete fix/comprehensive-fixes-20251011 | 92 | 42.6% |
-| Delete fix/deprecated-hook-cleanup | 15 | 6.9% |
-| **Total** | **107** | **49.5%** |
+| Action                                  | Failures Removed | % Reduction |
+| --------------------------------------- | ---------------- | ----------- |
+| Delete fix/comprehensive-fixes-20251011 | 92               | 42.6%       |
+| Delete fix/deprecated-hook-cleanup      | 15               | 6.9%        |
+| **Total**                               | **107**          | **49.5%**   |
 
 **Result**: 216 → 109 historical failures (50% reduction)
 
@@ -236,7 +236,7 @@ comm -13 /tmp/pr-branches.txt /tmp/all-branches.txt | \
 name: Close Stale Branches
 on:
   schedule:
-    - cron: '0 0 * * 0'  # Weekly on Sunday
+    - cron: "0 0 * * 0" # Weekly on Sunday
   workflow_dispatch:
 
 jobs:
@@ -351,8 +351,8 @@ Retention: 30 days for workflow logs
 
 ### Automated Tool Branches (54 failures - 25%)
 
-- cursor/* branches: ~45 failures
-- codex/* branches: 12 failures
+- cursor/\* branches: ~45 failures
+- codex/\* branches: 12 failures
 - **All deleted**: ✅ Historical only
 
 ### Feature Branches (49 failures - 22.7%)

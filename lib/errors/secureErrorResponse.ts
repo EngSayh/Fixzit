@@ -3,8 +3,8 @@
  * Sanitizes error messages to prevent internal details leakage
  */
 
-import { logger } from '@/lib/logger';
-import { createSecureResponse } from '@/lib/marketplace/security';
+import { logger } from "@/lib/logger";
+import { createSecureResponse } from "@/lib/marketplace/security";
 
 export interface SecureErrorOptions {
   /** The raw error that occurred */
@@ -21,23 +21,23 @@ export interface SecureErrorOptions {
  * Known safe error types that can expose their messages
  */
 const SAFE_ERROR_PATTERNS = [
-  'Authentication required',
-  'Invalid token',
-  'Unauthenticated',
-  'Unauthorized',
-  'Not found',
-  'Invalid input',
-  'Validation failed',
-  'Resource already exists',
-  'Operation not allowed',
+  "Authentication required",
+  "Invalid token",
+  "Unauthenticated",
+  "Unauthorized",
+  "Not found",
+  "Invalid input",
+  "Validation failed",
+  "Resource already exists",
+  "Operation not allowed",
 ];
 
 /**
  * Check if an error message is safe to expose to clients
  */
 function isSafeErrorMessage(message: string): boolean {
-  return SAFE_ERROR_PATTERNS.some(pattern =>
-    message.toLowerCase().includes(pattern.toLowerCase())
+  return SAFE_ERROR_PATTERNS.some((pattern) =>
+    message.toLowerCase().includes(pattern.toLowerCase()),
   );
 }
 
@@ -77,17 +77,19 @@ function getSafeErrorMessage(error: unknown, defaultMessage: string): string {
  * }
  * ```
  */
-export function createSecureErrorResponse(options: SecureErrorOptions): Response {
+export function createSecureErrorResponse(
+  options: SecureErrorOptions,
+): Response {
   const {
     error,
-    defaultMessage = 'An unexpected error occurred',
+    defaultMessage = "An unexpected error occurred",
     statusCode = 500,
-    logError = process.env.NODE_ENV === 'development',
+    logError = process.env.NODE_ENV === "development",
   } = options;
 
   // Log error in development for debugging
   if (logError && error instanceof Error) {
-    logger.error('[Secure Error Handler]', error, {
+    logger.error("[Secure Error Handler]", error, {
       name: error.name,
     });
   }
@@ -101,6 +103,6 @@ export function createSecureErrorResponse(options: SecureErrorOptions): Response
       success: false,
       error: safeMessage,
     },
-    { status: statusCode }
+    { status: statusCode },
   );
 }

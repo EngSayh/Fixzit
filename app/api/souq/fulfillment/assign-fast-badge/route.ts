@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from '@/lib/auth/getServerSession';
-import { fulfillmentService } from '@/services/souq/fulfillment-service';
-import { SouqListing } from '@/server/models/souq/Listing';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "@/lib/auth/getServerSession";
+import { fulfillmentService } from "@/services/souq/fulfillment-service";
+import { SouqListing } from "@/server/models/souq/Listing";
+import { logger } from "@/lib/logger";
 
 /**
  * POST /api/souq/fulfillment/assign-fast-badge
@@ -13,12 +13,12 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Admin only
-    if (!['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!["ADMIN", "SUPER_ADMIN"].includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -36,33 +36,40 @@ export async function POST(request: NextRequest) {
       }
     } else if (sellerId) {
       // Assign badge to all seller's listings
-      const listings = await SouqListing.find({ sellerId, status: 'active' });
-      
+      const listings = await SouqListing.find({ sellerId, status: "active" });
+
       for (const listing of listings) {
-        const result = await fulfillmentService.assignFastBadge(listing._id.toString());
+        const result = await fulfillmentService.assignFastBadge(
+          listing._id.toString(),
+        );
         if (result) {
           eligible++;
           updated++;
         }
       }
     } else {
-      return NextResponse.json({ 
-        error: 'Missing required field: listingId or sellerId' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "Missing required field: listingId or sellerId",
+        },
+        { status: 400 },
+      );
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       message: `Fast Badge assignment complete`,
       eligible,
-      updated
+      updated,
     });
-
   } catch (error) {
-    logger.error('Assign Fast Badge error', { error });
-    return NextResponse.json({ 
-      error: 'Failed to assign Fast Badge',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    logger.error("Assign Fast Badge error", { error });
+    return NextResponse.json(
+      {
+        error: "Failed to assign Fast Badge",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }

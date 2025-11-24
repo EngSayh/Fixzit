@@ -1,12 +1,12 @@
-import { NextRequest } from 'next/server';
-import { logger } from '@/lib/logger';
-import { z } from 'zod';
-import { resolveMarketplaceContext } from '@/lib/marketplace/context';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import Product from '@/server/models/marketplace/Product';
-import { serializeProduct } from '@/lib/marketplace/serializers';
-import { objectIdFrom } from '@/lib/marketplace/objectIds';
-import { rateLimit } from '@/server/security/rateLimit';
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import Product from "@/server/models/marketplace/Product";
+import { serializeProduct } from "@/lib/marketplace/serializers";
+import { objectIdFrom } from "@/lib/marketplace/objectIds";
+import { rateLimit } from "@/server/security/rateLimit";
 import {
   unauthorizedError,
   forbiddenError,
@@ -14,26 +14,26 @@ import {
   zodValidationError,
   rateLimitError,
   duplicateKeyError,
-  handleApiError
-} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
 
 const UpsertSchema = z.object({
   id: z.string().optional(),
   categoryId: z.string().min(1),
   sku: z.string().min(1).max(100),
   slug: z.string().min(1).max(200),
-  title: z.object({ 
-    en: z.string().min(1).max(500), 
-    ar: z.string().max(500).optional() 
+  title: z.object({
+    en: z.string().min(1).max(500),
+    ar: z.string().max(500).optional(),
   }),
   summary: z.string().max(2000).optional(),
-  buy: z.object({ 
-    price: z.number().positive(), 
-    currency: z.string().length(3), 
-    uom: z.string().min(1).max(50) 
+  buy: z.object({
+    price: z.number().positive(),
+    currency: z.string().length(3),
+    uom: z.string().min(1).max(50),
   }),
-  status: z.enum(['ACTIVE', 'DRAFT', 'ARCHIVED']).default('ACTIVE')
+  status: z.enum(["ACTIVE", "DRAFT", "ARCHIVED"]).default("ACTIVE"),
 });
 
 /**
@@ -88,18 +88,18 @@ export async function GET(request: NextRequest) {
     if (!context.userId) {
       return unauthorizedError();
     }
-    
+
     // Rate limiting - read operations: 60 req/min
     const key = `marketplace:vendor-products:list:${context.orgId}`;
     const rl = rateLimit(key, 60, 60_000);
     if (!rl.allowed) return rateLimitError();
-    
+
     // Database connection
     await connectToDatabase();
 
     // Build filter with tenant isolation
     const filter: Record<string, unknown> = { orgId: context.orgId };
-    if (context.role === 'VENDOR') {
+    if (context.role === "VENDOR") {
       filter.vendorId = context.userId;
     }
 
@@ -108,14 +108,18 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
-    
+
     // Secure response
     return createSecureResponse(
-      { ok: true, data: products.map((product) => serializeProduct(product as Record<string, unknown>)) },
+      {
+        ok: true,
+        data: products.map((product) =>
+          serializeProduct(product as Record<string, unknown>),
+        ),
+      },
       200,
-      request
+      request,
     );
-    
   } catch (error) {
     return handleApiError(error);
   }
@@ -264,12 +268,12 @@ export async function POST(request: NextRequest) {
     if (!context.userId) {
       return unauthorizedError();
     }
-    
+
     // Authorization - only vendors can manage products
-    if (context.role !== 'VENDOR') {
-      return forbiddenError('Only vendors can create or update products');
+    if (context.role !== "VENDOR") {
+      return forbiddenError("Only vendors can create or update products");
     }
-    
+
     // Rate limiting - write operations: 20 req/min
     const key = `marketplace:vendor-products:upsert:${context.orgId}`;
     const rl = rateLimit(key, 20, 60_000);
@@ -278,7 +282,7 @@ export async function POST(request: NextRequest) {
     // Input validation
     const body = await request.json();
     const payload = UpsertSchema.parse(body);
-    
+
     // Database connection
     await connectToDatabase();
 
@@ -292,26 +296,26 @@ export async function POST(request: NextRequest) {
       title: payload.title,
       summary: payload.summary,
       buy: payload.buy,
-      status: payload.status
+      status: payload.status,
     };
 
     let product;
     let statusCode = 200;
-    
+
     if (payload.id) {
       // Update existing product (with tenant isolation check)
       product = await Product.findOneAndUpdate(
-        { 
-          _id: objectIdFrom(payload.id), 
-          orgId: context.orgId, 
-          vendorId: context.userId 
+        {
+          _id: objectIdFrom(payload.id),
+          orgId: context.orgId,
+          vendorId: context.userId,
         },
         { $set: data },
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       );
-      
+
       if (!product) {
-        return notFoundError('Product');
+        return notFoundError("Product");
       }
     } else {
       // Create new product
@@ -323,20 +327,24 @@ export async function POST(request: NextRequest) {
     return createSecureResponse(
       { ok: true, data: serializeProduct(product) },
       statusCode,
-      request
+      request,
     );
-    
   } catch (error: unknown) {
-    logger.error('Vendor product creation error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error(
+      "Vendor product creation error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }
-    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: number }).code === 11000) {
-      return duplicateKeyError('SKU or slug');
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: number }).code === 11000
+    ) {
+      return duplicateKeyError("SKU or slug");
     }
     return handleApiError(error);
   }
 }
-
-
-

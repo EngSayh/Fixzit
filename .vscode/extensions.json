@@ -1,15 +1,13 @@
 {
-    "recommendations": [
-        "ms-vscode.remote-explorer",
-        "github.codespaces",
-        "ms-vscode.remote-server",
-        "ms-dotnettools.csdevkit",
-        "github.copilot",
-        "github.vscode-github-actions",
-        "christian-kohler.npm-intellisense",
-        "codium.codium"
-    ],
-    "unwantedRecommendations": [
-        "ms-vscode.powershell"
-    ]
+  "recommendations": [
+    "ms-vscode.remote-explorer",
+    "github.codespaces",
+    "ms-vscode.remote-server",
+    "ms-dotnettools.csdevkit",
+    "github.copilot",
+    "github.vscode-github-actions",
+    "christian-kohler.npm-intellisense",
+    "codium.codium"
+  ],
+  "unwantedRecommendations": ["ms-vscode.powershell"]
 }

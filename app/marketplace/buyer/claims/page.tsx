@@ -1,27 +1,27 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import ClaimList from '@/components/souq/claims/ClaimList';
-import ClaimDetails from '@/components/souq/claims/ClaimDetails';
-import ClaimForm from '@/components/souq/claims/ClaimForm';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileText } from 'lucide-react';
-import { useI18n } from '@/i18n/useI18n';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import ClaimList from "@/components/souq/claims/ClaimList";
+import ClaimDetails from "@/components/souq/claims/ClaimDetails";
+import ClaimForm from "@/components/souq/claims/ClaimForm";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, FileText } from "lucide-react";
+import { useI18n } from "@/i18n/useI18n";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 
-type ViewMode = 'list' | 'details' | 'new';
+type ViewMode = "list" | "details" | "new";
 
 export default function BuyerClaimsPage() {
   const { t } = useI18n();
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
   const [showNewClaimDialog, setShowNewClaimDialog] = useState(false);
   const [selectedOrder] = useState<{
@@ -36,11 +36,11 @@ export default function BuyerClaimsPage() {
 
   const handleSelectClaim = (claimId: string) => {
     setSelectedClaimId(claimId);
-    setViewMode('details');
+    setViewMode("details");
   };
 
   const handleBackToList = () => {
-    setViewMode('list');
+    setViewMode("list");
     setSelectedClaimId(null);
   };
 
@@ -52,7 +52,7 @@ export default function BuyerClaimsPage() {
 
   const handleClaimSuccess = () => {
     setShowNewClaimDialog(false);
-    setViewMode('list');
+    setViewMode("list");
     // Refresh the claims list
   };
 
@@ -61,45 +61,35 @@ export default function BuyerClaimsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          {viewMode !== 'list' && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBackToList}
-            >
+          {viewMode !== "list" && (
+            <Button variant="ghost" size="icon" onClick={handleBackToList}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
           )}
           <div>
             <h1 className="text-3xl font-bold">
-              {t('marketplace.claims.buyer.title')}
+              {t("marketplace.claims.buyer.title")}
             </h1>
             <p className="text-muted-foreground">
-              {t('marketplace.claims.buyer.subtitle')}
+              {t("marketplace.claims.buyer.subtitle")}
             </p>
           </div>
         </div>
-        {viewMode === 'list' && (
+        {viewMode === "list" && (
           <Button onClick={handleNewClaim}>
             <FileText className="w-4 h-4 me-2" />
-            {t('marketplace.claims.buyer.newClaim') || 'تقديم مطالبة جديدة'}
+            {t("marketplace.claims.buyer.newClaim") || "تقديم مطالبة جديدة"}
           </Button>
         )}
       </div>
 
       {/* Content */}
-      {viewMode === 'list' && (
-        <ClaimList
-          view="buyer"
-          onSelectClaim={handleSelectClaim}
-        />
+      {viewMode === "list" && (
+        <ClaimList view="buyer" onSelectClaim={handleSelectClaim} />
       )}
 
-      {viewMode === 'details' && selectedClaimId && (
-        <ClaimDetails
-          claimId={selectedClaimId}
-          userRole="buyer"
-        />
+      {viewMode === "details" && selectedClaimId && (
+        <ClaimDetails claimId={selectedClaimId} userRole="buyer" />
       )}
 
       {/* New Claim Dialog */}
@@ -117,7 +107,7 @@ export default function BuyerClaimsPage() {
               <br />
               Please select the order you want to file a claim for
             </p>
-            <Button onClick={() => router.push('/marketplace/orders')}>
+            <Button onClick={() => router.push("/marketplace/orders")}>
               عرض طلباتي (View My Orders)
             </Button>
           </div>

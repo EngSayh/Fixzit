@@ -1,10 +1,10 @@
-import { existsSync, readFileSync, writeFileSync } from 'fs';
-import path from 'path';
+import { existsSync, readFileSync, writeFileSync } from "fs";
+import path from "path";
 
 const projectRoot = process.cwd();
 const WORKFLOW_PATH =
   process.env.ROUTE_ALIAS_WORKFLOW_PATH ||
-  path.join(projectRoot, '_artifacts/alias-workflow.json');
+  path.join(projectRoot, "_artifacts/alias-workflow.json");
 
 export type AliasWorkflowEntry = {
   owner: string;
@@ -17,7 +17,7 @@ export type AliasWorkflowMap = Record<string, AliasWorkflowEntry>;
 function ensureDefaults(entry?: AliasWorkflowEntry): AliasWorkflowEntry {
   return (
     entry ?? {
-      owner: '',
+      owner: "",
       resolved: false,
       updatedAt: new Date().toISOString(),
     }
@@ -30,7 +30,7 @@ export function readAliasWorkflow(): AliasWorkflowMap {
   }
 
   try {
-    const raw = readFileSync(WORKFLOW_PATH, 'utf8');
+    const raw = readFileSync(WORKFLOW_PATH, "utf8");
     const data = JSON.parse(raw) as AliasWorkflowMap;
     return data;
   } catch {
@@ -44,7 +44,7 @@ export function writeAliasWorkflow(map: AliasWorkflowMap) {
 
 export function upsertAliasWorkflow(
   aliasFile: string,
-  updates: Partial<AliasWorkflowEntry>
+  updates: Partial<AliasWorkflowEntry>,
 ): AliasWorkflowEntry {
   const currentMap = readAliasWorkflow();
   const baseline = ensureDefaults(currentMap[aliasFile]);

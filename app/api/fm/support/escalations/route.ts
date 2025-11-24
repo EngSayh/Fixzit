@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
-import { getDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
-import { ModuleKey } from '@/domain/fm/fm.behavior';
-import { FMAction } from '@/types/fm/enums';
-import { requireFmPermission } from '@/app/api/fm/permissions';
-import { resolveTenantId } from '@/app/api/fm/utils/tenant';
-import { FMErrors } from '@/app/api/fm/errors';
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId } from "@/app/api/fm/utils/tenant";
+import { FMErrors } from "@/app/api/fm/errors";
 
 type EscalationDocument = {
   _id: ObjectId;
@@ -26,7 +26,7 @@ type EscalationDocument = {
   requiresDowntime: boolean;
   needsCustomerComms: boolean;
   legalReview: boolean;
-  status: 'submitted' | 'acked';
+  status: "submitted" | "acked";
   createdBy?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -34,7 +34,7 @@ type EscalationDocument = {
 
 type EscalationPayload = Partial<EscalationDocument>;
 
-const COLLECTION = 'fm_support_escalations';
+const COLLECTION = "fm_support_escalations";
 
 const sanitizePayload = (payload: EscalationPayload): EscalationPayload => ({
   incidentId: payload.incidentId?.trim(),
@@ -55,28 +55,39 @@ const sanitizePayload = (payload: EscalationPayload): EscalationPayload => ({
 });
 
 const validatePayload = (payload: EscalationPayload): string | null => {
-  if (!payload.incidentId) return 'Incident ID is required';
-  if (!payload.service) return 'Service is required';
-  if (!payload.summary || payload.summary.length < 20) return 'Summary must be at least 20 characters';
-  if (!payload.symptoms || payload.symptoms.length < 10) return 'Symptoms are required';
-  if (!payload.severity) return 'Severity is required';
-  if (!payload.preferredChannel) return 'Preferred channel is required';
+  if (!payload.incidentId) return "Incident ID is required";
+  if (!payload.service) return "Service is required";
+  if (!payload.summary || payload.summary.length < 20)
+    return "Summary must be at least 20 characters";
+  if (!payload.symptoms || payload.symptoms.length < 10)
+    return "Symptoms are required";
+  if (!payload.severity) return "Severity is required";
+  if (!payload.preferredChannel) return "Preferred channel is required";
   return null;
 };
 
 export async function POST(req: NextRequest) {
   try {
-    const actor = await requireFmPermission(req, { module: ModuleKey.SUPPORT, action: FMAction.CREATE });
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.SUPPORT,
+      action: FMAction.CREATE,
+    });
     if (actor instanceof NextResponse) return actor;
 
-    const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
-    if ('error' in tenantResolution) return tenantResolution.error;
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
 
     const payload = sanitizePayload(await req.json());
     const validationError = validatePayload(payload);
     if (validationError) {
-      return NextResponse.json({ success: false, error: validationError }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: validationError },
+        { status: 400 },
+      );
     }
 
     const now = new Date();
@@ -86,7 +97,7 @@ export async function POST(req: NextRequest) {
       incidentId: payload.incidentId!,
       service: payload.service!,
       areas: payload.areas,
-      severity: payload.severity || 'critical',
+      severity: payload.severity || "critical",
       detectedAt: payload.detectedAt,
       summary: payload.summary!,
       symptoms: payload.symptoms!,
@@ -94,11 +105,11 @@ export async function POST(req: NextRequest) {
       blockers: payload.blockers,
       executiveBrief: payload.executiveBrief,
       stakeholders: payload.stakeholders,
-      preferredChannel: payload.preferredChannel || 'bridge',
+      preferredChannel: payload.preferredChannel || "bridge",
       requiresDowntime: Boolean(payload.requiresDowntime),
       needsCustomerComms: Boolean(payload.needsCustomerComms),
       legalReview: Boolean(payload.legalReview),
-      status: 'submitted',
+      status: "submitted",
       createdBy: actor.userId,
       createdAt: now,
       updatedAt: now,
@@ -108,9 +119,12 @@ export async function POST(req: NextRequest) {
     const collection = db.collection<EscalationDocument>(COLLECTION);
     await collection.insertOne(doc);
 
-    return NextResponse.json({ success: true, data: { id: doc._id.toString() } }, { status: 201 });
+    return NextResponse.json(
+      { success: true, data: { id: doc._id.toString() } },
+      { status: 201 },
+    );
   } catch (error) {
-    logger.error('FM Support Escalations API - POST error', error as Error);
+    logger.error("FM Support Escalations API - POST error", error as Error);
     return FMErrors.internalError();
   }
 }

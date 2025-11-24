@@ -28,7 +28,14 @@
 
 ```typescript
 // Remove unused imports:
-import { unauthorizedError, forbiddenError, notFoundError, validationError, zodValidationError, handleApiError } from '@/server/utils/errorResponses';
+import {
+  unauthorizedError,
+  forbiddenError,
+  notFoundError,
+  validationError,
+  zodValidationError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
 ```
 
 **Files**:
@@ -201,10 +208,11 @@ catch (error: unknown) {
 ```typescript
 // BEFORE (Incorrect):
 export async function POST(req: NextRequest) {
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const clientIp =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) return rateLimitError();
-  
+
   const user = await getSessionUser(req);
   // ...
 }
@@ -212,9 +220,14 @@ export async function POST(req: NextRequest) {
 // AFTER (Correct):
 export async function POST(req: NextRequest) {
   const user = await getSessionUser(req);
-  
-  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-  const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
+
+  const clientIp =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const rl = rateLimit(
+    `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+    60,
+    60_000,
+  );
   if (!rl.allowed) return rateLimitError();
   // ...
 }
@@ -245,10 +258,10 @@ export async function POST(req: NextRequest) {
 
 ```typescript
 // WRONG:
-return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
 // RIGHT:
-return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+return createSecureResponse({ error: "Unauthorized" }, 401, req);
 ```
 
 **Files**:
@@ -319,16 +332,16 @@ No issues found in current codebase.
 
 ## 📊 PROGRESS TRACKING
 
-| Category | Files | Fixed | Remaining | % Complete |
-|----------|-------|-------|-----------|------------|
-| **A: Unused Variables** | 50 | 9 | 41 | 18% |
-| **B: `any` Types** | 235+ | 0 | 235+ | 0% |
-| **C: Auth-Rate-Limit** | 20+ | 0 | 20+ | 0% |
-| **D: Error Responses** | 15+ | 0 | 15+ | 0% |
-| **E: Type Errors** | 10+ | 0 | 10+ | 0% |
-| **F: Empty Catch** | 4 | 4 | 0 | 100% ✅ |
-| **G: Hook Deps** | 0 | 0 | 0 | 100% ✅ |
-| **TOTAL** | **696** | **13** | **683** | **1.9%** |
+| Category                | Files   | Fixed  | Remaining | % Complete |
+| ----------------------- | ------- | ------ | --------- | ---------- |
+| **A: Unused Variables** | 50      | 9      | 41        | 18%        |
+| **B: `any` Types**      | 235+    | 0      | 235+      | 0%         |
+| **C: Auth-Rate-Limit**  | 20+     | 0      | 20+       | 0%         |
+| **D: Error Responses**  | 15+     | 0      | 15+       | 0%         |
+| **E: Type Errors**      | 10+     | 0      | 10+       | 0%         |
+| **F: Empty Catch**      | 4       | 4      | 0         | 100% ✅    |
+| **G: Hook Deps**        | 0       | 0      | 0         | 100% ✅    |
+| **TOTAL**               | **696** | **13** | **683**   | **1.9%**   |
 
 ---
 

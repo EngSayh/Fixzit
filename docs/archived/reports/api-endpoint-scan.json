@@ -20,32 +20,22 @@
     {
       "file": "app/api/contracts/route.ts",
       "routePath": "/api/api/contracts",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/i18n/route.ts",
       "routePath": "/api/api/i18n",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/invoices/route.ts",
       "routePath": "/api/api/invoices",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/notifications/route.ts",
       "routePath": "/api/api/notifications",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/projects/route.ts",
@@ -60,25 +50,17 @@
     {
       "file": "app/api/rfqs/route.ts",
       "routePath": "/api/api/rfqs",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/search/route.ts",
       "routePath": "/api/api/search",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/slas/route.ts",
       "routePath": "/api/api/slas",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/tenants/route.ts",
@@ -88,10 +70,7 @@
     {
       "file": "app/api/vendors/route.ts",
       "routePath": "/api/api/vendors",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/work-orders/route.ts",
@@ -101,123 +80,82 @@
     {
       "file": "app/api/admin/audit-logs/route.ts",
       "routePath": "/api/api/admin/audit-logs",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/admin/price-tiers/route.ts",
       "routePath": "/api/api/admin/price-tiers",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/admin/users/route.ts",
       "routePath": "/api/api/admin/users",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/admin/discounts/route.ts",
       "routePath": "/api/api/admin/discounts",
-      "methods": [
-        "GET",
-        "PUT"
-      ]
+      "methods": ["GET", "PUT"]
     },
     {
       "file": "app/api/aqar/favorites/route.ts",
       "routePath": "/api/api/aqar/favorites",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/aqar/leads/route.ts",
       "routePath": "/api/api/aqar/leads",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/aqar/listings/route.ts",
       "routePath": "/api/api/aqar/listings",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/aqar/map/route.ts",
       "routePath": "/api/api/aqar/map",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/aqar/packages/route.ts",
       "routePath": "/api/api/aqar/packages",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/aqar/properties/route.ts",
       "routePath": "/api/api/aqar/properties",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/assets/[id]/route.ts",
       "routePath": "/api/api/assets/[id]",
-      "methods": [
-        "GET",
-        "DELETE",
-        "PATCH"
-      ]
+      "methods": ["GET", "DELETE", "PATCH"]
     },
     {
       "file": "app/api/assistant/query/route.ts",
       "routePath": "/api/api/assistant/query",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/ats/convert-to-employee/route.ts",
       "routePath": "/api/api/ats/convert-to-employee",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/ats/jobs/route.ts",
       "routePath": "/api/api/ats/jobs",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/ats/moderation/route.ts",
       "routePath": "/api/api/ats/moderation",
-      "methods": [
-        "PUT"
-      ]
+      "methods": ["PUT"]
     },
     {
       "file": "app/api/ats/public-post/route.ts",
       "routePath": "/api/api/ats/public-post",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/auth/[...nextauth]/route.ts",
@@ -227,876 +165,587 @@
     {
       "file": "app/api/auth/signup/route.ts",
       "routePath": "/api/api/auth/signup",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/benchmarks/compare/route.ts",
       "routePath": "/api/api/benchmarks/compare",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/billing/charge-recurring/route.ts",
       "routePath": "/api/api/billing/charge-recurring",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/billing/quote/route.ts",
       "routePath": "/api/api/billing/quote",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/billing/subscribe/route.ts",
       "routePath": "/api/api/billing/subscribe",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/careers/apply/route.ts",
       "routePath": "/api/api/careers/apply",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/checkout/complete/route.ts",
       "routePath": "/api/api/checkout/complete",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/checkout/quote/route.ts",
       "routePath": "/api/api/checkout/quote",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/checkout/session/route.ts",
       "routePath": "/api/api/checkout/session",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/copilot/chat/route.ts",
       "routePath": "/api/api/copilot/chat",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/copilot/knowledge/route.ts",
       "routePath": "/api/api/copilot/knowledge",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/copilot/profile/route.ts",
       "routePath": "/api/api/copilot/profile",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/dev/demo-accounts/route.ts",
       "routePath": "/api/api/dev/demo-accounts",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/dev/demo-login/route.ts",
       "routePath": "/api/api/dev/demo-login",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/feeds/indeed/route.ts",
       "routePath": "/api/api/feeds/indeed",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/feeds/linkedin/route.ts",
       "routePath": "/api/api/feeds/linkedin",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/finance/expenses/route.ts",
       "routePath": "/api/api/finance/expenses",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/finance/accounts/route.ts",
       "routePath": "/api/api/finance/accounts",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/finance/invoices/route.ts",
       "routePath": "/api/api/finance/invoices",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/finance/journals/route.ts",
       "routePath": "/api/api/finance/journals",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/finance/ledger/route.ts",
       "routePath": "/api/api/finance/ledger",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/finance/payments/route.ts",
       "routePath": "/api/api/finance/payments",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/health/database/route.ts",
       "routePath": "/api/api/health/database",
-      "methods": [
-        "GET",
-        "HEAD"
-      ]
+      "methods": ["GET", "HEAD"]
     },
     {
       "file": "app/api/help/articles/route.ts",
       "routePath": "/api/api/help/articles",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/help/ask/route.ts",
       "routePath": "/api/api/help/ask",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/hr/employees/route.ts",
       "routePath": "/api/api/hr/employees",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/invoices/[id]/route.ts",
       "routePath": "/api/api/invoices/[id]",
-      "methods": [
-        "GET",
-        "DELETE",
-        "PATCH"
-      ]
+      "methods": ["GET", "DELETE", "PATCH"]
     },
     {
       "file": "app/api/kb/ingest/route.ts",
       "routePath": "/api/api/kb/ingest",
-      "methods": [
-        "POST",
-        "DELETE"
-      ]
+      "methods": ["POST", "DELETE"]
     },
     {
       "file": "app/api/kb/search/route.ts",
       "routePath": "/api/api/kb/search",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/marketplace/cart/route.ts",
       "routePath": "/api/api/marketplace/cart",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/marketplace/categories/route.ts",
       "routePath": "/api/api/marketplace/categories",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/marketplace/checkout/route.ts",
       "routePath": "/api/api/marketplace/checkout",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/marketplace/products/route.ts",
       "routePath": "/api/api/marketplace/products",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/marketplace/orders/route.ts",
       "routePath": "/api/api/marketplace/orders",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/marketplace/rfq/route.ts",
       "routePath": "/api/api/marketplace/rfq",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/marketplace/search/route.ts",
       "routePath": "/api/api/marketplace/search",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/notifications/[id]/route.ts",
       "routePath": "/api/api/notifications/[id]",
-      "methods": [
-        "GET",
-        "DELETE",
-        "PATCH"
-      ]
+      "methods": ["GET", "DELETE", "PATCH"]
     },
     {
       "file": "app/api/notifications/bulk/route.ts",
       "routePath": "/api/api/notifications/bulk",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/organization/settings/route.ts",
       "routePath": "/api/api/organization/settings",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/payments/callback/route.ts",
       "routePath": "/api/api/payments/callback",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/payments/create/route.ts",
       "routePath": "/api/api/payments/create",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/payments/paytabs/route.ts",
       "routePath": "/api/api/payments/paytabs",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/paytabs/callback/route.ts",
       "routePath": "/api/api/paytabs/callback",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/paytabs/return/route.ts",
       "routePath": "/api/api/paytabs/return",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/performance/metrics/route.ts",
       "routePath": "/api/api/performance/metrics",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/pm/generate-wos/route.ts",
       "routePath": "/api/api/pm/generate-wos",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/pm/plans/route.ts",
       "routePath": "/api/api/pm/plans",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/projects/[id]/route.ts",
       "routePath": "/api/api/projects/[id]",
-      "methods": [
-        "GET",
-        "DELETE",
-        "PATCH"
-      ]
+      "methods": ["GET", "DELETE", "PATCH"]
     },
     {
       "file": "app/api/properties/[id]/route.ts",
       "routePath": "/api/api/properties/[id]",
-      "methods": [
-        "GET",
-        "DELETE",
-        "PATCH"
-      ]
+      "methods": ["GET", "DELETE", "PATCH"]
     },
     {
       "file": "app/api/public/rfqs/route.ts",
       "routePath": "/api/api/public/rfqs",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/qa/alert/route.ts",
       "routePath": "/api/api/qa/alert",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/qa/health/route.ts",
       "routePath": "/api/api/qa/health",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/qa/log/route.ts",
       "routePath": "/api/api/qa/log",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/qa/reconnect/route.ts",
       "routePath": "/api/api/qa/reconnect",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/referrals/generate/route.ts",
       "routePath": "/api/api/referrals/generate",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/referrals/my-code/route.ts",
       "routePath": "/api/api/referrals/my-code",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/subscribe/corporate/route.ts",
       "routePath": "/api/api/subscribe/corporate",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/subscribe/owner/route.ts",
       "routePath": "/api/api/subscribe/owner",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/support/incidents/route.ts",
       "routePath": "/api/api/support/incidents",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/support/tickets/route.ts",
       "routePath": "/api/api/support/tickets",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/support/welcome-email/route.ts",
       "routePath": "/api/api/support/welcome-email",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/tenants/[id]/route.ts",
       "routePath": "/api/api/tenants/[id]",
-      "methods": [
-        "GET",
-        "DELETE",
-        "PATCH"
-      ]
+      "methods": ["GET", "DELETE", "PATCH"]
     },
     {
       "file": "app/api/user/preferences/route.ts",
       "routePath": "/api/api/user/preferences",
-      "methods": [
-        "GET",
-        "PUT",
-        "PATCH"
-      ]
+      "methods": ["GET", "PUT", "PATCH"]
     },
     {
       "file": "app/api/user/profile/route.ts",
       "routePath": "/api/api/user/profile",
-      "methods": [
-        "GET",
-        "PATCH"
-      ]
+      "methods": ["GET", "PATCH"]
     },
     {
       "file": "app/api/vendors/[id]/route.ts",
       "routePath": "/api/api/vendors/[id]",
-      "methods": [
-        "GET",
-        "DELETE",
-        "PATCH"
-      ]
+      "methods": ["GET", "DELETE", "PATCH"]
     },
     {
       "file": "app/api/webhooks/sendgrid/route.ts",
       "routePath": "/api/api/webhooks/sendgrid",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/work-orders/[id]/route.ts",
       "routePath": "/api/api/work-orders/[id]",
-      "methods": [
-        "GET",
-        "PATCH"
-      ]
+      "methods": ["GET", "PATCH"]
     },
     {
       "file": "app/api/work-orders/export/route.ts",
       "routePath": "/api/api/work-orders/export",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/work-orders/import/route.ts",
       "routePath": "/api/api/work-orders/import",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/work-orders/sla-check/route.ts",
       "routePath": "/api/api/work-orders/sla-check",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/admin/billing/annual-discount/route.ts",
       "routePath": "/api/api/admin/billing/annual-discount",
-      "methods": [
-        "PATCH"
-      ]
+      "methods": ["PATCH"]
     },
     {
       "file": "app/api/admin/billing/benchmark/route.ts",
       "routePath": "/api/api/admin/billing/benchmark",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/admin/billing/pricebooks/route.ts",
       "routePath": "/api/api/admin/billing/pricebooks",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/admin/users/[id]/route.ts",
       "routePath": "/api/api/admin/users/[id]",
-      "methods": [
-        "DELETE",
-        "PATCH"
-      ]
+      "methods": ["DELETE", "PATCH"]
     },
     {
       "file": "app/api/aqar/favorites/[id]/route.ts",
       "routePath": "/api/api/aqar/favorites/[id]",
-      "methods": [
-        "DELETE"
-      ]
+      "methods": ["DELETE"]
     },
     {
       "file": "app/api/aqar/listings/[id]/route.ts",
       "routePath": "/api/api/aqar/listings/[id]",
-      "methods": [
-        "GET",
-        "DELETE",
-        "PATCH"
-      ]
+      "methods": ["GET", "DELETE", "PATCH"]
     },
     {
       "file": "app/api/aqar/listings/search/route.ts",
       "routePath": "/api/api/aqar/listings/search",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/ats/applications/[id]/route.ts",
       "routePath": "/api/api/ats/applications/[id]",
-      "methods": [
-        "GET",
-        "PATCH"
-      ]
+      "methods": ["GET", "PATCH"]
     },
     {
       "file": "app/api/billing/callback/paytabs/route.ts",
       "routePath": "/api/api/billing/callback/paytabs",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/cms/pages/[slug]/route.ts",
       "routePath": "/api/api/cms/pages/[slug]",
-      "methods": [
-        "GET",
-        "PATCH"
-      ]
+      "methods": ["GET", "PATCH"]
     },
     {
       "file": "app/api/files/resumes/[file]/route.ts",
       "routePath": "/api/api/files/resumes/[file]",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/files/resumes/presign/route.ts",
       "routePath": "/api/api/files/resumes/presign",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/finance/expenses/[id]/route.ts",
       "routePath": "/api/api/finance/expenses/[id]",
-      "methods": [
-        "GET",
-        "PUT",
-        "DELETE"
-      ]
+      "methods": ["GET", "PUT", "DELETE"]
     },
     {
       "file": "app/api/finance/accounts/[id]/route.ts",
       "routePath": "/api/api/finance/accounts/[id]",
-      "methods": [
-        "GET",
-        "PUT",
-        "DELETE"
-      ]
+      "methods": ["GET", "PUT", "DELETE"]
     },
     {
       "file": "app/api/finance/invoices/[id]/route.ts",
       "routePath": "/api/api/finance/invoices/[id]",
-      "methods": [
-        "PATCH"
-      ]
+      "methods": ["PATCH"]
     },
     {
       "file": "app/api/finance/ledger/trial-balance/route.ts",
       "routePath": "/api/api/finance/ledger/trial-balance",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/help/articles/[id]/route.ts",
       "routePath": "/api/api/help/articles/[id]",
-      "methods": [
-        "PATCH"
-      ]
+      "methods": ["PATCH"]
     },
     {
       "file": "app/api/hr/payroll/runs/route.ts",
       "routePath": "/api/api/hr/payroll/runs",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/integrations/linkedin/apply/route.ts",
       "routePath": "/api/api/integrations/linkedin/apply",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/marketplace/products/[slug]/route.ts",
       "routePath": "/api/api/marketplace/products/[slug]",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/marketplace/vendor/products/route.ts",
       "routePath": "/api/api/marketplace/vendor/products",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/owners/groups/assign-primary/route.ts",
       "routePath": "/api/api/owners/groups/assign-primary",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/payments/paytabs/callback/route.ts",
       "routePath": "/api/api/payments/paytabs/callback",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/pm/plans/[id]/route.ts",
       "routePath": "/api/api/pm/plans/[id]",
-      "methods": [
-        "GET",
-        "DELETE",
-        "PATCH"
-      ]
+      "methods": ["GET", "DELETE", "PATCH"]
     },
     {
       "file": "app/api/rfqs/[id]/bids/route.ts",
       "routePath": "/api/api/rfqs/[id]/bids",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/rfqs/[id]/publish/route.ts",
       "routePath": "/api/api/rfqs/[id]/publish",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/support/tickets/[id]/route.ts",
       "routePath": "/api/api/support/tickets/[id]",
-      "methods": [
-        "GET",
-        "PATCH"
-      ]
+      "methods": ["GET", "PATCH"]
     },
     {
       "file": "app/api/support/tickets/my/route.ts",
       "routePath": "/api/api/support/tickets/my",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/work-orders/[id]/assign/route.ts",
       "routePath": "/api/api/work-orders/[id]/assign",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/work-orders/[id]/checklists/route.ts",
       "routePath": "/api/api/work-orders/[id]/checklists",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/work-orders/[id]/comments/route.ts",
       "routePath": "/api/api/work-orders/[id]/comments",
-      "methods": [
-        "GET",
-        "POST"
-      ]
+      "methods": ["GET", "POST"]
     },
     {
       "file": "app/api/work-orders/[id]/materials/route.ts",
       "routePath": "/api/api/work-orders/[id]/materials",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/work-orders/[id]/status/route.ts",
       "routePath": "/api/api/work-orders/[id]/status",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/admin/billing/benchmark/[id]/route.ts",
       "routePath": "/api/api/admin/billing/benchmark/[id]",
-      "methods": [
-        "PATCH"
-      ]
+      "methods": ["PATCH"]
     },
     {
       "file": "app/api/admin/billing/pricebooks/[id]/route.ts",
       "routePath": "/api/api/admin/billing/pricebooks/[id]",
-      "methods": [
-        "PATCH"
-      ]
+      "methods": ["PATCH"]
     },
     {
       "file": "app/api/ats/jobs/[id]/apply/route.ts",
       "routePath": "/api/api/ats/jobs/[id]/apply",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/ats/jobs/[id]/publish/route.ts",
       "routePath": "/api/api/ats/jobs/[id]/publish",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/finance/expenses/[id]/[action]/route.ts",
       "routePath": "/api/api/finance/expenses/[id]/[action]",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/finance/journals/[id]/post/route.ts",
       "routePath": "/api/api/finance/journals/[id]/post",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/finance/journals/[id]/void/route.ts",
       "routePath": "/api/api/finance/journals/[id]/void",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/finance/ledger/account-activity/[accountId]/route.ts",
       "routePath": "/api/api/finance/ledger/account-activity/[accountId]",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     },
     {
       "file": "app/api/finance/payments/[id]/[action]/route.ts",
       "routePath": "/api/api/finance/payments/[id]/[action]",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/support/tickets/[id]/reply/route.ts",
       "routePath": "/api/api/support/tickets/[id]/reply",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/work-orders/[id]/attachments/presign/route.ts",
       "routePath": "/api/api/work-orders/[id]/attachments/presign",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/work-orders/[id]/checklists/toggle/route.ts",
       "routePath": "/api/api/work-orders/[id]/checklists/toggle",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/hr/payroll/runs/[id]/calculate/route.ts",
       "routePath": "/api/api/hr/payroll/runs/[id]/calculate",
-      "methods": [
-        "POST"
-      ]
+      "methods": ["POST"]
     },
     {
       "file": "app/api/hr/payroll/runs/[id]/export/wps/route.ts",
       "routePath": "/api/api/hr/payroll/runs/[id]/export/wps",
-      "methods": [
-        "GET"
-      ]
+      "methods": ["GET"]
     }
   ]
 }

@@ -3,7 +3,7 @@
  */
 
 // Re-export property types
-export * from './properties';
+export * from "./properties";
 
 // Re-export work order types (excluding conflicts with properties)
 export type {
@@ -20,8 +20,8 @@ export type {
   WorkOrderFormData,
   WorkOrderFilters,
   WorkOrderStats,
-  SortOption
-} from './work-orders';
+  SortOption,
+} from "./work-orders";
 
 // Tenant configuration types
 export interface ITenantCopilotSettings {

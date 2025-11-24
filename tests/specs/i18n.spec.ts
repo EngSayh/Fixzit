@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
 /**
  * INTERNATIONALIZATION (i18n) TESTS
@@ -7,14 +7,14 @@ import { test, expect } from '@playwright/test';
  */
 
 const KEY_PAGES = [
-  { path: '/', name: 'Landing' },
-  { path: '/app', name: 'App Home' },
-  { path: '/dashboard', name: 'Dashboard' },
-  { path: '/work-orders', name: 'Work Orders' },
-  { path: '/properties', name: 'Properties' },
-  { path: '/finance', name: 'Finance' },
-  { path: '/hr', name: 'HR' },
-  { path: '/marketplace', name: 'Marketplace' }
+  { path: "/", name: "Landing" },
+  { path: "/app", name: "App Home" },
+  { path: "/dashboard", name: "Dashboard" },
+  { path: "/work-orders", name: "Work Orders" },
+  { path: "/properties", name: "Properties" },
+  { path: "/finance", name: "Finance" },
+  { path: "/hr", name: "HR" },
+  { path: "/marketplace", name: "Marketplace" },
 ];
 
 // Common patterns that indicate missing translations
@@ -22,18 +22,18 @@ const MISSING_KEY_PATTERNS = [
   /MISSING_TRANSLATION/i,
   /i18n\.t\(['"]/,
   /translate\(['"]/,
-  /\{\{[a-z_]+\}\}/i,  // {{key}} template syntax
-  /\[object Object\]/i
+  /\{\{[a-z_]+\}\}/i, // {{key}} template syntax
+  /\[object Object\]/i,
 ];
 
 const TRANSLATION_CALL_EXCLUSIONS = new Set([
-  'woff',
-  'woff2',
-  'ttf',
-  'otf',
-  'font/woff',
-  'font/woff2',
-  'font/otf',
+  "woff",
+  "woff2",
+  "ttf",
+  "otf",
+  "font/woff",
+  "font/woff2",
+  "font/otf",
 ]);
 
 function isFalsePositiveTranslationCall(call: string): boolean {
@@ -48,22 +48,24 @@ function isFalsePositiveTranslationCall(call: string): boolean {
   return !!key && TRANSLATION_CALL_EXCLUSIONS.has(key);
 }
 
-test.describe('i18n: No Missing Translation Keys', () => {
+test.describe("i18n: No Missing Translation Keys", () => {
   // Set higher timeout for slow pages
   test.setTimeout(60000);
-  
+
   for (const page of KEY_PAGES) {
-    test(`${page.name} (${page.path}): All keys translated`, async ({ page: browser }) => {
-      await browser.goto(page.path, { 
-        waitUntil: 'domcontentloaded', // Changed from networkidle - less strict
-        timeout: 45000 // Increased timeout
+    test(`${page.name} (${page.path}): All keys translated`, async ({
+      page: browser,
+    }) => {
+      await browser.goto(page.path, {
+        waitUntil: "domcontentloaded", // Changed from networkidle - less strict
+        timeout: 45000, // Increased timeout
       });
-      
+
       // Wait for content to stabilize
       await browser.waitForTimeout(2000);
 
       // Get page content
-      const bodyText = await browser.locator('body').innerText();
+      const bodyText = await browser.locator("body").innerText();
       const htmlContent = await browser.content();
 
       // Check for missing key patterns
@@ -78,67 +80,89 @@ test.describe('i18n: No Missing Translation Keys', () => {
 
       // Check for untranslated function calls in rendered HTML
       // Exclude font file extensions (woff, woff2, ttf, etc.)
-      if (htmlContent.includes('t(') || htmlContent.includes('translate(')) {
-        const rawCalls = htmlContent.match(/(?:t|translate)\(['"][^'"]+['"]\)/g);
-        const filteredCalls = rawCalls?.filter(call => !isFalsePositiveTranslationCall(call));
+      if (htmlContent.includes("t(") || htmlContent.includes("translate(")) {
+        const rawCalls = htmlContent.match(
+          /(?:t|translate)\(['"][^'"]+['"]\)/g,
+        );
+        const filteredCalls = rawCalls?.filter(
+          (call) => !isFalsePositiveTranslationCall(call),
+        );
         if (filteredCalls && filteredCalls.length > 0) {
-          foundIssues.push(`Raw translation calls in HTML: ${filteredCalls.slice(0, 3).join(', ')}`);
+          foundIssues.push(
+            `Raw translation calls in HTML: ${filteredCalls.slice(0, 3).join(", ")}`,
+          );
         }
       }
 
       // Assert no issues found
       if (foundIssues.length > 0) {
         console.error(`\n❌ Missing translations on ${page.path}:`);
-        foundIssues.forEach(issue => console.error(`   ${issue}`));
+        foundIssues.forEach((issue) => console.error(`   ${issue}`));
       }
-      
-      expect(foundIssues, `Missing translations detected:\n${foundIssues.join('\n')}`).toHaveLength(0);
+
+      expect(
+        foundIssues,
+        `Missing translations detected:\n${foundIssues.join("\n")}`,
+      ).toHaveLength(0);
     });
   }
 });
 
-test.describe('i18n: Language Switching', () => {
-  test('English to Arabic switch updates content and RTL direction', async ({ page }) => {
+test.describe("i18n: Language Switching", () => {
+  test("English to Arabic switch updates content and RTL direction", async ({
+    page,
+  }) => {
     // Start in English (force locale in URL)
-    await page.goto('/dashboard?locale=en', { waitUntil: 'domcontentloaded' });
-    
+    await page.goto("/dashboard?locale=en", { waitUntil: "domcontentloaded" });
+
     // Wait for page to stabilize with correct direction
     await page.waitForTimeout(1000);
-    
+
     // Verify LTR (or accept RTL if already set)
-    let dir = await page.evaluate(() => document.documentElement.getAttribute('dir'));
+    let dir = await page.evaluate(() =>
+      document.documentElement.getAttribute("dir"),
+    );
     const initialDir = dir;
     console.log(`Initial direction: ${initialDir}`);
 
     // Switch to Arabic
-    const langButton = page.getByRole('button', { name: /language|lang|english|عربي/i }).first();
+    const langButton = page
+      .getByRole("button", { name: /language|lang|english|عربي/i })
+      .first();
     await langButton.click();
-    
-    const arabicOption = page.getByRole('menuitem', { name: /arabic|عربي/i }).or(
-      page.getByText(/arabic|عربي/i).first()
-    );
+
+    const arabicOption = page
+      .getByRole("menuitem", { name: /arabic|عربي/i })
+      .or(page.getByText(/arabic|عربي/i).first());
     await arabicOption.click();
 
     // Wait for language change to apply (check dir attribute)
-    await page.waitForFunction(() => document.documentElement.getAttribute('dir') === 'rtl', {
-      timeout: 5000
-    });
+    await page.waitForFunction(
+      () => document.documentElement.getAttribute("dir") === "rtl",
+      {
+        timeout: 5000,
+      },
+    );
 
     // Verify RTL
-    dir = await page.evaluate(() => document.documentElement.getAttribute('dir'));
-    expect(dir).toBe('rtl');
+    dir = await page.evaluate(() =>
+      document.documentElement.getAttribute("dir"),
+    );
+    expect(dir).toBe("rtl");
 
     // Verify Arabic content is visible
-    const bodyText = await page.locator('body').innerText();
+    const bodyText = await page.locator("body").innerText();
     const hasArabic = /[\u0600-\u06FF]/.test(bodyText); // Arabic Unicode range
     expect(hasArabic).toBe(true);
   });
 
-  test('Currency selector shows SAR and USD options', async ({ page }) => {
-    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  test("Currency selector shows SAR and USD options", async ({ page }) => {
+    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
 
     // Find currency button (may be overlapped on mobile); if clickable, open it
-    const currencyButton = page.getByRole('button', { name: /currency|sar|usd|riyal|dollar|عملة/i }).first();
+    const currencyButton = page
+      .getByRole("button", { name: /currency|sar|usd|riyal|dollar|عملة/i })
+      .first();
     const canClick = await currencyButton.isVisible().catch(() => false);
     if (canClick) {
       await currencyButton.click({ trial: true }).catch(() => {});
@@ -147,34 +171,47 @@ test.describe('i18n: Language Switching', () => {
     }
 
     // Check for currency options (rendered or sr-only helpers)
-    const sarOption = page.locator('[role="menuitem"], [role="option"]').filter({ hasText: /^SAR$|^ريال$/ });
-    const usdOption = page.locator('[role="menuitem"], [role="option"]').filter({ hasText: /^USD$|^دولار$/ });
+    const sarOption = page
+      .locator('[role="menuitem"], [role="option"]')
+      .filter({ hasText: /^SAR$|^ريال$/ });
+    const usdOption = page
+      .locator('[role="menuitem"], [role="option"]')
+      .filter({ hasText: /^USD$|^دولار$/ });
 
-    const sarVisible = await sarOption.count() > 0;
-    const usdVisible = await usdOption.count() > 0;
-    
-    expect(sarVisible || usdVisible, 'Currency selector should show SAR or USD options').toBe(true);
+    const sarVisible = (await sarOption.count()) > 0;
+    const usdVisible = (await usdOption.count()) > 0;
+
+    expect(
+      sarVisible || usdVisible,
+      "Currency selector should show SAR or USD options",
+    ).toBe(true);
   });
 });
 
-test.describe('i18n: RTL Layout Integrity', () => {
-  test('Arabic: Sidebar, header, and content are right-aligned', async ({ page }) => {
+test.describe("i18n: RTL Layout Integrity", () => {
+  test("Arabic: Sidebar, header, and content are right-aligned", async ({
+    page,
+  }) => {
     // Skip if not Arabic project
-    if (!test.info().project.name.startsWith('AR:')) {
+    if (!test.info().project.name.startsWith("AR:")) {
       test.skip();
     }
 
-    await page.goto('/dashboard', { waitUntil: 'networkidle' });
+    await page.goto("/dashboard", { waitUntil: "networkidle" });
 
     // Verify RTL
-    const dir = await page.evaluate(() => document.documentElement.getAttribute('dir'));
-    expect(dir).toBe('rtl');
+    const dir = await page.evaluate(() =>
+      document.documentElement.getAttribute("dir"),
+    );
+    expect(dir).toBe("rtl");
 
     // Check key elements have proper text-align
     const sidebar = page.locator('nav, aside, [role="navigation"]').first();
-    const sidebarAlign = await sidebar.evaluate(el => getComputedStyle(el).textAlign);
-    
+    const sidebarAlign = await sidebar.evaluate(
+      (el) => getComputedStyle(el).textAlign,
+    );
+
     // In RTL, default should be 'right' or 'start' (which resolves to right)
-    expect(['right', 'start']).toContain(sidebarAlign);
+    expect(["right", "start"]).toContain(sidebarAlign);
   });
 });

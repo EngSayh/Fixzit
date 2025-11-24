@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 import { z } from "zod";
 import { resolveCopilotSession } from "@/server/copilot/session";
 import { evaluateMessagePolicy } from "@/server/copilot/policy";
@@ -7,14 +7,14 @@ import { retrieveKnowledge } from "@/server/copilot/retrieval";
 import { generateCopilotStreamResponse } from "@/server/copilot/llm";
 import { recordAudit } from "@/server/copilot/audit";
 import { classifyIntent, detectSentiment } from "@/server/copilot/classifier";
-import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError } from '@/server/utils/errorResponses';
-import { getClientIP } from '@/server/security/headers';
-import { validateSystemGovernors } from '@/server/copilot/governors';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+import { validateSystemGovernors } from "@/server/copilot/governors";
 
 const messageSchema = z.object({
   role: z.enum(["user", "assistant"]),
-  content: z.string()
+  content: z.string(),
 });
 
 type Message = z.infer<typeof messageSchema>;
@@ -22,7 +22,7 @@ type Message = z.infer<typeof messageSchema>;
 const requestSchema = z.object({
   message: z.string().min(1, "Message is required"),
   history: z.array(messageSchema).optional(),
-  locale: z.enum(["en", "ar"]).optional()
+  locale: z.enum(["en", "ar"]).optional(),
 });
 
 export const runtime = "nodejs";
@@ -76,11 +76,11 @@ export async function POST(req: NextRequest) {
 
     // Resolve user session
     const session = await resolveCopilotSession(req);
-    
+
     // Parse and validate request body
     const json = await req.json();
     const body = requestSchema.parse(json);
-    
+
     const locale = body.locale || session.locale;
     const message = body.message.trim();
 
@@ -89,28 +89,28 @@ export async function POST(req: NextRequest) {
       session,
       message,
       locale,
-      endpoint: 'stream'
+      endpoint: "stream",
     });
 
     if (!governorCheck.allowed) {
       await recordAudit({
         session,
-        intent: 'policy_denied',
-        status: 'DENIED',
+        intent: "policy_denied",
+        status: "DENIED",
         message: governorCheck.reason,
         prompt: message,
-        metadata: { governor: governorCheck.governor }
+        metadata: { governor: governorCheck.governor },
       });
 
       return new Response(
         JSON.stringify({
           error: governorCheck.reason,
-          governor: governorCheck.governor
+          governor: governorCheck.governor,
         }),
         {
           status: 403,
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -119,36 +119,34 @@ export async function POST(req: NextRequest) {
     const sentiment = detectSentiment(message);
 
     // Log negative sentiment for monitoring
-    if (sentiment === 'negative') {
-      logger.warn('[copilot:stream] Negative sentiment detected', {
+    if (sentiment === "negative") {
+      logger.warn("[copilot:stream] Negative sentiment detected", {
         userId: session.userId,
-        message: message.slice(0, 100)
+        message: message.slice(0, 100),
       });
     }
 
     // Evaluate message policy
     const policy = evaluateMessagePolicy({ ...session, locale }, message);
     if (!policy.allowed) {
-      const response = locale === "ar"
-        ? `لا يمكنني مشاركة هذه المعلومات بسبب قيود الصلاحيات.`
-        : `I cannot share that information due to permission restrictions.`;
-      
+      const response =
+        locale === "ar"
+          ? `لا يمكنني مشاركة هذه المعلومات بسبب قيود الصلاحيات.`
+          : `I cannot share that information due to permission restrictions.`;
+
       await recordAudit({
         session,
         intent: "policy_denied",
         status: "DENIED",
         message: response,
         prompt: message,
-        metadata: { dataClass: policy.dataClass }
+        metadata: { dataClass: policy.dataClass },
       });
 
-      return new Response(
-        JSON.stringify({ error: response }),
-        {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
+      return new Response(JSON.stringify({ error: response }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // Retrieve relevant knowledge
@@ -159,7 +157,7 @@ export async function POST(req: NextRequest) {
       session: { ...session, locale },
       prompt: message,
       history: body.history as Message[],
-      docs
+      docs,
     });
 
     // Record audit for successful request
@@ -169,29 +167,32 @@ export async function POST(req: NextRequest) {
       status: "SUCCESS",
       message: "Stream initiated",
       prompt: message,
-      metadata: { 
-        docIds: docs.map(doc => doc.id),
-        sentiment
-      }
+      metadata: {
+        docIds: docs.map((doc) => doc.id),
+        sentiment,
+      },
     });
 
     // Return the streaming response
     return result.toTextStreamResponse();
-    
   } catch (error: unknown) {
-    logger.error("Copilot stream error:", error instanceof Error ? error.message : 'Unknown error');
-    
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    
+    logger.error(
+      "Copilot stream error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+
     return new Response(
       JSON.stringify({
         error: errorMessage,
-        fallback: "An error occurred while processing your request."
+        fallback: "An error occurred while processing your request.",
       }),
       {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { "Content-Type": "application/json" },
+      },
     );
   }
 }

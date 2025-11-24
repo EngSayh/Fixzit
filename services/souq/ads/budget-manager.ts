@@ -1,6 +1,6 @@
 /**
  * Budget Manager Service
- * 
+ *
  * Manages advertising budgets with Redis-based real-time tracking:
  * - Daily budget caps
  * - Real-time spend tracking
@@ -9,9 +9,9 @@
  * - Budget reset at midnight (Saudi time)
  */
 
-import Redis from 'ioredis';
-import { logger } from '@/lib/logger';
-import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
+import Redis from "ioredis";
+import { logger } from "@/lib/logger";
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 
 const DAY_SECONDS = 86400;
 const DAY_MS = DAY_SECONDS * 1000;
@@ -19,10 +19,13 @@ const DAY_MS = DAY_SECONDS * 1000;
 function createRedisClient(): Redis | null {
   const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL;
   const redisHost = process.env.BULLMQ_REDIS_HOST;
-  const redisPort = parseInt(process.env.BULLMQ_REDIS_PORT || '6379', 10);
-  const redisPassword = process.env.BULLMQ_REDIS_PASSWORD || process.env.REDIS_PASSWORD;
+  const redisPort = parseInt(process.env.BULLMQ_REDIS_PORT || "6379", 10);
+  const redisPassword =
+    process.env.BULLMQ_REDIS_PASSWORD || process.env.REDIS_PASSWORD;
   if (!redisUrl && !redisHost) {
-    logger.warn('[BudgetManager] Redis not configured. Falling back to in-memory budget tracking.');
+    logger.warn(
+      "[BudgetManager] Redis not configured. Falling back to in-memory budget tracking.",
+    );
     return null;
   }
 
@@ -35,8 +38,8 @@ function createRedisClient(): Redis | null {
         lazyConnect: true,
       });
 
-  client.on('error', (error) => {
-    logger.error('[BudgetManager] Redis connection error', error);
+  client.on("error", (error) => {
+    logger.error("[BudgetManager] Redis connection error", error);
   });
 
   return client;
@@ -90,17 +93,17 @@ interface BudgetStatus {
 }
 
 export class BudgetManager {
-  private static REDIS_PREFIX = 'ad_budget:';
-  private static ALERT_THRESHOLDS = [0.75, 0.90, 1.0]; // 75%, 90%, 100%
+  private static REDIS_PREFIX = "ad_budget:";
+  private static ALERT_THRESHOLDS = [0.75, 0.9, 1.0]; // 75%, 90%, 100%
 
   /**
    * Check if campaign has budget available for a click
    */
   static async canCharge(campaignId: string, amount: number): Promise<boolean> {
     const status = await this.getBudgetStatus(campaignId);
-    
+
     if (!status.isActive) return false;
-    
+
     return status.remainingBudget >= amount;
   }
 
@@ -108,9 +111,12 @@ export class BudgetManager {
    * Charge campaign budget (atomic operation)
    * Returns true if charge succeeded, false if insufficient budget
    */
-  static async chargeBudget(campaignId: string, amount: number): Promise<boolean> {
+  static async chargeBudget(
+    campaignId: string,
+    amount: number,
+  ): Promise<boolean> {
     const key = this.getBudgetKey(campaignId);
-    
+
     // Fetch daily budget from database
     const campaign = await this.fetchCampaign(campaignId);
     if (!campaign) return false;
@@ -136,7 +142,7 @@ export class BudgetManager {
         1,
         key,
         amount.toString(),
-        campaign.dailyBudget.toString()
+        campaign.dailyBudget.toString(),
       );
 
       const success = result === 1;
@@ -164,11 +170,11 @@ export class BudgetManager {
   static async getBudgetStatus(campaignId: string): Promise<BudgetStatus> {
     const key = this.getBudgetKey(campaignId);
     const spentToday = redis
-      ? parseFloat((await redis.get(key)) || '0')
+      ? parseFloat((await redis.get(key)) || "0")
       : getLocalSpend(key);
 
     const campaign = await this.fetchCampaign(campaignId);
-    
+
     if (!campaign) {
       throw new Error(`Campaign not found: ${campaignId}`);
     }
@@ -183,8 +189,8 @@ export class BudgetManager {
       spentToday,
       remainingBudget,
       percentageUsed,
-      isActive: campaign.status === 'active' && remainingBudget > 0,
-      lastReset: new Date().toISOString().split('T')[0], // Today's date
+      isActive: campaign.status === "active" && remainingBudget > 0,
+      lastReset: new Date().toISOString().split("T")[0], // Today's date
     };
   }
 
@@ -192,38 +198,40 @@ export class BudgetManager {
    * Reset all campaign budgets (runs daily at midnight Saudi time)
    */
   static async resetAllBudgets(): Promise<{ reset: number }> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     // Get all active campaigns
     const campaigns = await db
-      .collection('souq_ad_campaigns')
-      .find({ status: 'active' })
+      .collection("souq_ad_campaigns")
+      .find({ status: "active" })
       .toArray();
 
     let resetCount = 0;
 
     for (const campaign of campaigns) {
       const key = this.getBudgetKey(campaign.campaignId);
-      
+
       // Delete Redis key (will start fresh tomorrow)
       if (redis) {
         await redis.del(key);
       } else {
         deleteLocalSpend(key);
       }
-      
+
       // Reset spentToday in MongoDB
-      await db.collection('souq_ad_campaigns').updateOne(
-        { campaignId: campaign.campaignId },
-        { $set: { spentToday: 0, lastBudgetReset: new Date() } }
-      );
+      await db
+        .collection("souq_ad_campaigns")
+        .updateOne(
+          { campaignId: campaign.campaignId },
+          { $set: { spentToday: 0, lastBudgetReset: new Date() } },
+        );
 
       resetCount++;
     }
 
     logger.info(`[BudgetManager] Reset ${resetCount} campaign budgets`);
-    
+
     return { reset: resetCount };
   }
 
@@ -238,13 +246,15 @@ export class BudgetManager {
       deleteLocalSpend(key);
     }
 
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    await db.collection('souq_ad_campaigns').updateOne(
-      { campaignId },
-      { $set: { spentToday: 0, lastBudgetReset: new Date() } }
-    );
+    await db
+      .collection("souq_ad_campaigns")
+      .updateOne(
+        { campaignId },
+        { $set: { spentToday: 0, lastBudgetReset: new Date() } },
+      );
 
     logger.info(`[BudgetManager] Reset budget for campaign: ${campaignId}`);
   }
@@ -252,7 +262,9 @@ export class BudgetManager {
   /**
    * Check budget thresholds and send alerts / pause campaign
    */
-  private static async checkBudgetThresholds(campaignId: string): Promise<void> {
+  private static async checkBudgetThresholds(
+    campaignId: string,
+  ): Promise<void> {
     const status = await this.getBudgetStatus(campaignId);
     const percentage = status.percentageUsed / 100;
 
@@ -262,12 +274,14 @@ export class BudgetManager {
         const alertKey = `${this.REDIS_PREFIX}alert:${campaignId}:${threshold}`;
         const alreadySent = redis
           ? await redis.get(alertKey)
-          : hasLocalAlert(alertKey) ? '1' : null;
+          : hasLocalAlert(alertKey)
+            ? "1"
+            : null;
 
         if (!alreadySent) {
           await this.sendBudgetAlert(campaignId, threshold);
           if (redis) {
-            await redis.set(alertKey, '1', 'EX', DAY_SECONDS); // Don't send again today
+            await redis.set(alertKey, "1", "EX", DAY_SECONDS); // Don't send again today
           } else {
             setLocalAlert(alertKey, DAY_SECONDS);
           }
@@ -277,7 +291,7 @@ export class BudgetManager {
 
     // Auto-pause if budget depleted
     if (percentage >= 1.0) {
-      await this.pauseCampaign(campaignId, 'budget_depleted');
+      await this.pauseCampaign(campaignId, "budget_depleted");
     }
   }
 
@@ -286,21 +300,21 @@ export class BudgetManager {
    */
   private static async sendBudgetAlert(
     campaignId: string,
-    threshold: number
+    threshold: number,
   ): Promise<void> {
     const campaign = await this.fetchCampaign(campaignId);
     if (!campaign) return;
 
     const percentage = Math.round(threshold * 100);
-    
+
     logger.info(
-      `[BudgetManager] ALERT: Campaign ${campaignId} has used ${percentage}% of daily budget`
+      `[BudgetManager] ALERT: Campaign ${campaignId} has used ${percentage}% of daily budget`,
     );
 
     await this.enqueueSellerAlert({
       sellerId: campaign.sellerId,
-      template: 'souq_ad_budget_alert',
-      internalAudience: 'souq-ads-ops',
+      template: "souq_ad_budget_alert",
+      internalAudience: "souq-ads-ops",
       subject: `Campaign ${campaignId} reached ${percentage}% of its budget`,
       data: {
         campaignId,
@@ -316,30 +330,30 @@ export class BudgetManager {
    */
   private static async pauseCampaign(
     campaignId: string,
-    reason: 'budget_depleted' | 'manual'
+    reason: "budget_depleted" | "manual",
   ): Promise<void> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const campaign = await this.fetchCampaign(campaignId);
 
-    await db.collection('souq_ad_campaigns').updateOne(
+    await db.collection("souq_ad_campaigns").updateOne(
       { campaignId },
       {
         $set: {
-          status: 'paused',
+          status: "paused",
           pauseReason: reason,
           pausedAt: new Date(),
         },
-      }
+      },
     );
 
     logger.info(`[BudgetManager] Paused campaign ${campaignId}: ${reason}`);
 
     await this.enqueueSellerAlert({
-      sellerId: campaign?.sellerId || 'unknown',
-      template: 'souq_ad_campaign_paused',
-      internalAudience: 'souq-ads-ops',
+      sellerId: campaign?.sellerId || "unknown",
+      template: "souq_ad_campaign_paused",
+      internalAudience: "souq-ads-ops",
       subject: `Campaign ${campaignId} paused (${reason})`,
       data: {
         campaignId,
@@ -358,14 +372,14 @@ export class BudgetManager {
     const { sellerId, template, internalAudience, subject, data } = params;
 
     await Promise.all([
-      addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
+      addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
         to: sellerId,
         template,
         data,
       }),
-      addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
+      addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
         to: internalAudience,
-        priority: 'normal',
+        priority: "normal",
         message: subject,
         metadata: data,
       }),
@@ -376,7 +390,7 @@ export class BudgetManager {
    * Get budget key for Redis
    */
   private static getBudgetKey(campaignId: string): string {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
     return `${this.REDIS_PREFIX}${campaignId}:${today}`;
   }
 
@@ -389,11 +403,11 @@ export class BudgetManager {
     status: string;
     sellerId: string;
   } | null> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const campaign = await db
-      .collection('souq_ad_campaigns')
+      .collection("souq_ad_campaigns")
       .findOne({ campaignId });
 
     return campaign as {
@@ -414,11 +428,11 @@ export class BudgetManager {
     pausedCampaigns: number;
     campaigns: BudgetStatus[];
   }> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const campaigns = await db
-      .collection('souq_ad_campaigns')
+      .collection("souq_ad_campaigns")
       .find({ sellerId })
       .toArray();
 
@@ -438,7 +452,7 @@ export class BudgetManager {
 
       if (status.isActive) {
         activeCampaigns++;
-      } else if (campaign.status === 'paused') {
+      } else if (campaign.status === "paused") {
         pausedCampaigns++;
       }
     }
@@ -457,46 +471,52 @@ export class BudgetManager {
    */
   static async updateDailyBudget(
     campaignId: string,
-    newBudget: number
+    newBudget: number,
   ): Promise<void> {
     if (newBudget < 10) {
-      throw new Error('Daily budget must be at least 10 SAR');
+      throw new Error("Daily budget must be at least 10 SAR");
     }
 
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    await db.collection('souq_ad_campaigns').updateOne(
-      { campaignId },
-      { $set: { dailyBudget: newBudget } }
-    );
+    await db
+      .collection("souq_ad_campaigns")
+      .updateOne({ campaignId }, { $set: { dailyBudget: newBudget } });
 
-    logger.info(`[BudgetManager] Updated budget for ${campaignId}: ${newBudget} SAR`);
+    logger.info(
+      `[BudgetManager] Updated budget for ${campaignId}: ${newBudget} SAR`,
+    );
   }
 
   /**
    * Get spend history (last 30 days)
    */
-  static async getSpendHistory(campaignId: string, days: number = 30): Promise<{
-    date: string;
-    spend: number;
-  }[]> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+  static async getSpendHistory(
+    campaignId: string,
+    days: number = 30,
+  ): Promise<
+    {
+      date: string;
+      spend: number;
+    }[]
+  > {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
     const history = await db
-      .collection('souq_ad_daily_spend')
+      .collection("souq_ad_daily_spend")
       .find({
         campaignId,
-        date: { $gte: startDate.toISOString().split('T')[0] },
+        date: { $gte: startDate.toISOString().split("T")[0] },
       })
       .sort({ date: 1 })
       .toArray();
 
-    return history.map(record => ({
+    return history.map((record) => ({
       date: record.date,
       spend: record.spend,
     }));

@@ -1,4 +1,5 @@
 # System-Wide Audit: Pending & Incomplete Tasks
+
 **Date**: November 13, 2025, 10:45 PM  
 **Author**: GitHub Copilot (AI Assistant)  
 **Branch**: `fix/date-hydration-complete-system-wide`
@@ -10,6 +11,7 @@
 Comprehensive system-wide audit conducted to identify similar issues to recently resolved authentication crisis. This report consolidates **ALL pending and incomplete tasks** across the Fixzit codebase to ensure no critical issues are missed.
 
 ### Quick Stats
+
 - **🔴 Critical Issues**: 3 (RBAC loading disabled, API routes need testing, logo missing)
 - **🟡 High Priority**: 21 (TODOs in production code)
 - **🟢 Medium Priority**: 38+ (SelectValue warnings, missing translations)
@@ -20,20 +22,23 @@ Comprehensive system-wide audit conducted to identify similar issues to recently
 ## 🚨 CRITICAL ISSUES (Must Fix Immediately)
 
 ### 1. RBAC Loading Temporarily Disabled ⚠️ **CRITICAL**
+
 **File**: `auth.config.ts` (lines 308-401)  
 **Status**: ⏳ Temporary workaround in place  
 **Impact**: ALL users have empty permissions arrays, authorization checks may not work properly
 
 **Current State**:
+
 ```typescript
 // JWT callback (line 365)
-console.log('[NextAuth] RBAC loading temporarily disabled for debugging');
+console.log("[NextAuth] RBAC loading temporarily disabled for debugging");
 token.isSuperAdmin = false;
 token.roles = [];
 token.permissions = [];
 ```
 
 **Issue**: Dynamic import of User model fails with error:
+
 ```
 Cannot read properties of undefined (reading 'User')
 ```
@@ -41,6 +46,7 @@ Cannot read properties of undefined (reading 'User')
 **Why Disabled**: Authentication was completely broken (401 errors). RBAC loading was blocking entire auth flow.
 
 **Solution Options**:
+
 1. Move RBAC loading to session callback (runs in Node.js context, not Edge)
 2. Use static import in separate auth helper file
 3. Load RBAC data in API route middleware after session verified (RECOMMENDED)
@@ -50,16 +56,19 @@ Cannot read properties of undefined (reading 'User')
 ---
 
 ### 2. Missing Logo Image 🖼️ **HIGH**
+
 **File**: `/public/img/fixzit-logo.jpg` or `/img/fixzit-logo.jpg`  
 **Status**: ❌ File not found, returning 400 Bad Request  
 **Impact**: Logo not displayed in TopBar, poor user experience
 
 **Evidence**:
+
 - TopBar component references: `/img/logo.jpg` (line 281-289)
 - Browser console shows: 400 error for logo image
 - Tests expect: `/img/logo.jpg` to exist
 
 **Available Logo Files**:
+
 ```
 ✅ /public/img/logo.jpg (exists)
 ✅ /assets/fixzit_logo.png
@@ -68,7 +77,8 @@ Cannot read properties of undefined (reading 'User')
 ❌ /public/img/fixzit-logo.jpg (MISSING - this is what code expects)
 ```
 
-**Solution**: 
+**Solution**:
+
 - Either copy existing logo to `/public/img/fixzit-logo.jpg`
 - Or update TopBar to use existing `/public/img/logo.jpg`
 
@@ -77,10 +87,12 @@ Cannot read properties of undefined (reading 'User')
 ---
 
 ### 3. API Routes Need Testing 🧪 **CRITICAL**
+
 **Status**: ⚠️ Auth fix just deployed, needs verification  
 **Impact**: Unknown if all API endpoints work after auth fix
 
 **What to Test**:
+
 ```bash
 # Critical endpoints to verify return 200 status:
 GET /api/work-orders?limit=10&page=1     ✅ VERIFIED (200 in 1859ms)
@@ -95,6 +107,7 @@ DELETE /api/work-orders/:id               ⏳ NOT TESTED
 ```
 
 **Test Actions**:
+
 1. Dashboard Notifications button (top right)
 2. Dashboard Quick Action button
 3. Navigate to all major pages (Work Orders, Properties, Assets, etc.)
@@ -108,10 +121,12 @@ DELETE /api/work-orders/:id               ⏳ NOT TESTED
 ## 🟡 HIGH PRIORITY (Production Code TODOs)
 
 ### 4. lib/audit.ts - 3 TODOs ⚠️ **P1**
+
 **File**: `lib/audit.ts`  
 **Status**: ⏳ Core functionality incomplete
 
 **Missing Implementations**:
+
 ```typescript
 // Line ~45
 // TODO: Write to database
@@ -129,6 +144,7 @@ DELETE /api/work-orders/:id               ⏳ NOT TESTED
 **Impact**: No persistent audit trail, no alerts for security events
 
 **Recommended Solution**:
+
 1. **Database**: Write audit logs to MongoDB `audit_logs` collection
 2. **External Service**: Integrate with Datadog/Sentry for audit trail
 3. **Alerts**: Use SendGrid/SNS for critical action notifications
@@ -138,10 +154,12 @@ DELETE /api/work-orders/:id               ⏳ NOT TESTED
 ---
 
 ### 5. lib/fm-auth-middleware.ts - 5 TODOs ⚠️ **P1**
+
 **File**: `lib/fm-auth-middleware.ts`  
 **Status**: ⏳ Hardcoded values, no real checks
 
 **Missing Implementations**:
+
 ```typescript
 // Line ~34
 plan: Plan.PRO, // TODO: Get from user/org subscription (2 occurrences)
@@ -163,10 +181,12 @@ isOrgMember: true // TODO: Verify org membership (2 occurrences)
 ---
 
 ### 6. lib/fm-notifications.ts - 4 TODOs 📧 **P2**
+
 **File**: `lib/fm-notifications.ts`  
 **Status**: ⏳ Notification channels not integrated
 
 **Missing Integrations**:
+
 ```typescript
 // Line ~23
 // TODO: Integrate with FCM or Web Push
@@ -190,10 +210,12 @@ isOrgMember: true // TODO: Verify org membership (2 occurrences)
 ---
 
 ### 7. lib/fm-approval-engine.ts - 4 TODOs 🔄 **P2**
+
 **File**: `lib/fm-approval-engine.ts`  
 **Status**: ⏳ Approval workflow incomplete
 
 **Missing Implementations**:
+
 ```typescript
 // Line ~56
 approvers: [], // TODO: Query users by role in org/property
@@ -215,10 +237,12 @@ approvers: [], // TODO: Query users by role in org/property
 ---
 
 ### 8. lib/logger.ts - 2 TODOs 📊 **P3**
+
 **File**: `lib/logger.ts`  
 **Status**: ⏳ Console logging only, no monitoring
 
 **Missing Integrations**:
+
 ```typescript
 // Line ~67
 // TODO: Integrate with actual monitoring service (Sentry, DataDog, etc.)
@@ -234,6 +258,7 @@ approvers: [], // TODO: Query users by role in org/property
 ---
 
 ### 9. services/hr/wpsService.ts - 1 TODO 📅 **P3**
+
 **File**: `services/hr/wpsService.ts` (line 118)  
 **Status**: ⏳ Hardcoded value
 
@@ -250,13 +275,16 @@ workDays: 30, // TODO: Calculate actual work days from attendance
 ## 🟢 MEDIUM PRIORITY (Translation & UI Issues)
 
 ### 10. Missing Arabic Translations 🌍 **MODERATE**
+
 **Status**: 🟡 Partially complete (sidebar + dashboard only)
 
 **Completed**:
+
 - ✅ Sidebar: 47 sub-menu translations (commit 7d40e2988)
 - ✅ FM Dashboard: 25+ UI translations (commit 6c8f5efa8)
 
 **Missing** (~20+ pages need audit):
+
 ```
 ❌ app/fm/work-orders/page.tsx
 ❌ app/fm/properties/page.tsx
@@ -281,6 +309,7 @@ workDays: 30, // TODO: Calculate actual work days from attendance
 **User Complaint**: "why you did not check all the missing arabic keys from all the sub menus by default"
 
 **Process for Each Page**:
+
 1. Search for hardcoded English strings
 2. Add translation keys to `i18n/dictionaries/ar.ts`
 3. Wrap strings in `t()` function calls
@@ -291,10 +320,12 @@ workDays: 30, // TODO: Calculate actual work days from attendance
 ---
 
 ### 11. SelectValue Deprecation Warnings ⚠️ **LOW PRIORITY**
+
 **Status**: ⏳ 38 occurrences found  
 **Impact**: Functional but noisy console warnings
 
 **Issue**: Radix UI Select component API changed
+
 ```tsx
 // OLD (deprecated):
 <SelectValue placeholder="..." />
@@ -318,7 +349,9 @@ workDays: 30, // TODO: Calculate actual work days from attendance
 ## ⚪ LOW PRIORITY (Cleanup & Documentation)
 
 ### 12. Debug Logging Cleanup 🧹
+
 **Files**:
+
 - `middleware.ts`: ~20 console.log statements (lines 133-244)
 - `auth.config.ts`: Debug logs in callbacks
 
@@ -329,6 +362,7 @@ workDays: 30, // TODO: Calculate actual work days from attendance
 ---
 
 ### 13. Redundant File Cleanup 📁
+
 **File**: `lib/auth/getServerSession.ts`  
 **Status**: ✅ Created but may be redundant
 
@@ -341,9 +375,11 @@ workDays: 30, // TODO: Calculate actual work days from attendance
 ---
 
 ### 14. Documentation TODOs 📝
+
 **Status**: 34 TODO/FIXME comments found in codebase
 
 **Categories**:
+
 - Translation key names in i18n/ (not code TODOs)
 - Feature requests
 - Future enhancements
@@ -359,6 +395,7 @@ workDays: 30, // TODO: Calculate actual work days from attendance
 ## 📊 SIMILAR ISSUES FOUND (Related to Recent Auth Crisis)
 
 ### Pattern 1: Mongoose Schema Issues ✅ **RESOLVED**
+
 **Previously Found**: 16 files using `Types.ObjectId` instead of `Schema.Types.ObjectId`  
 **Status**: ✅ FIXED (commit 634c3b095)  
 **Files Fixed**: All models in server/models/ and server/plugins/
@@ -368,10 +405,12 @@ workDays: 30, // TODO: Calculate actual work days from attendance
 ---
 
 ### Pattern 2: Session/Auth Issues ✅ **RESOLVED**
+
 **Previously Found**: Session callback missing, middleware stripping custom fields  
-**Status**: ✅ FIXED (commits 5ad98c32f, fdf7564c4, 3f83a08eb)  
+**Status**: ✅ FIXED (commits 5ad98c32f, fdf7564c4, 3f83a08eb)
 
 **Remaining Issues**:
+
 - ⚠️ RBAC loading disabled (documented in Critical section above)
 - ✅ Session callback working correctly
 - ✅ API routes getting session data via direct `auth()` call
@@ -379,9 +418,11 @@ workDays: 30, // TODO: Calculate actual work days from attendance
 ---
 
 ### Pattern 3: Temporarily Disabled Features 🔍
+
 **Found via search**: `temporarily.*disabled|workaround|bypass`
 
 **Active Workarounds**:
+
 1. **RBAC Loading Disabled** (auth.config.ts) - CRITICAL
 2. **MongoDB Sanitization Disabled** (middleware compatibility issue)
 3. **Super Admin Bypass** (multiple files) - By design
@@ -393,6 +434,7 @@ workDays: 30, // TODO: Calculate actual work days from attendance
 ## 🎯 PRIORITIZED ACTION PLAN
 
 ### IMMEDIATE (Next 24 Hours)
+
 1. **Test Dashboard Functionality** (30 min) - USER ACTION REQUIRED
    - Hard refresh browser (Cmd+Shift+R)
    - Test all buttons and navigation
@@ -406,6 +448,7 @@ workDays: 30, // TODO: Calculate actual work days from attendance
    - Test with different roles
 
 ### THIS WEEK (High Priority)
+
 4. **Complete lib/fm-auth-middleware.ts** (6-8 hours)
    - Implement subscription plan checks
    - Verify org membership
@@ -422,6 +465,7 @@ workDays: 30, // TODO: Calculate actual work days from attendance
    - Test in Arabic mode
 
 ### THIS MONTH (Medium Priority)
+
 7. **Notification Integrations** (12-16 hours)
    - FCM/Web Push
    - Email (SendGrid)
@@ -439,6 +483,7 @@ workDays: 30, // TODO: Calculate actual work days from attendance
    - Add error tracking
 
 ### BACKLOG (Low Priority)
+
 10. **SelectValue Warnings** (2-3 hours)
 11. **Debug Logging Cleanup** (15 min)
 12. **Documentation TODOs** (2-3 hours)
@@ -448,6 +493,7 @@ workDays: 30, // TODO: Calculate actual work days from attendance
 ## 📈 PROGRESS TRACKING
 
 ### Completed This Session ✅
+
 - ✅ Mongoose schema fixes: 16 files
 - ✅ Session callback implementation
 - ✅ Authentication fix: Direct auth() call
@@ -456,11 +502,13 @@ workDays: 30, // TODO: Calculate actual work days from attendance
 - ✅ System-wide audit completed
 
 ### In Progress 🔄
+
 - 🔄 RBAC loading (temporary workaround)
 - 🔄 Arabic translations (2 of ~22 pages)
 - 🔄 API endpoint testing
 
 ### Not Started ❌
+
 - ❌ Production TODOs (21 items)
 - ❌ Notification integrations
 - ❌ Approval engine completion
@@ -472,36 +520,43 @@ workDays: 30, // TODO: Calculate actual work days from attendance
 ## 🔍 SEARCH QUERIES USED
 
 **Authentication Issues**:
+
 ```regex
 401|Unauthorized|getSessionUser|getAuthSession
 ```
 
 **Code Quality**:
+
 ```regex
 TODO|FIXME|BUG|HACK|XXX
 ```
 
 **Temporary Workarounds**:
+
 ```regex
 auth.*disabled|temporarily.*disabled|workaround|bypass
 ```
 
 **Translation Issues**:
+
 ```regex
 missing.*translation|hardcoded.*text|untranslated
 ```
 
 **UI Warnings**:
+
 ```regex
 SelectValue.*deprecated|SelectTrigger.*deprecated|Select.*warning
 ```
 
 **RBAC Issues**:
+
 ```regex
 RBAC.*disabled|RBAC.*loading.*temporarily|permissions.*empty|roles.*\[\]
 ```
 
 **Image Issues**:
+
 ```regex
 /img/.*logo|logo.*jpg|logo.*png|fixzit-logo
 ```
@@ -511,27 +566,33 @@ RBAC.*disabled|RBAC.*loading.*temporarily|permissions.*empty|roles.*\[\]
 ## 🎓 LESSONS LEARNED
 
 ### 1. Temporary Fixes Need Tracking
+
 **Issue**: RBAC loading was disabled to fix critical 401 errors, but this creates new problems.
 
 **Lesson**: Always document temporary workarounds with:
+
 - Date disabled
 - Reason for workaround
 - Plan to re-enable
 - Tracking ticket/issue
 
 ### 2. TODOs in Production Code Are Technical Debt
+
 **Issue**: 21 TODO comments in critical production files (auth, audit, notifications).
 
 **Lesson**: TODOs should have:
+
 - Priority level (P1/P2/P3)
 - Estimated fix time
 - Impact analysis
 - GitHub issue link
 
 ### 3. Comprehensive Testing After Major Fixes
+
 **Issue**: Auth fix deployed but only 2 of ~15 endpoints verified.
 
 **Lesson**: Create test checklist for major changes:
+
 - Critical user flows
 - All major API endpoints
 - Edge cases
@@ -542,6 +603,7 @@ RBAC.*disabled|RBAC.*loading.*temporarily|permissions.*empty|roles.*\[\]
 ## 📞 NEXT STEPS FOR USER
 
 ### Immediate Actions Required:
+
 1. **Hard Refresh Browser** (Cmd+Shift+R)
 2. **Test ALL Dashboard Features**:
    - Click Notifications button (expect notification panel)

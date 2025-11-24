@@ -1,5 +1,5 @@
-import { Schema, model, models, Model, Document } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import { Schema, model, models, Model, Document } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
 
 interface IPlan {
   name?: string;
@@ -25,7 +25,7 @@ const PlanSchema = new Schema(
     url: String,
     features: { type: [String], default: [] },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const BenchmarkSchema = new Schema<IBenchmark>(
@@ -35,16 +35,15 @@ const BenchmarkSchema = new Schema<IBenchmark>(
     plans: { type: [PlanSchema], default: [] },
     retrieved_at: { type: Date, default: () => new Date() },
     // Tenant isolation
-    tenantId: { 
-      type: Schema.Types.ObjectId, 
-      ref: 'Organization',
+    tenantId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // TypeScript-safe model export
-const Benchmark = getModel<IBenchmark>('Benchmark', BenchmarkSchema);
+const Benchmark = getModel<IBenchmark>("Benchmark", BenchmarkSchema);
 export default Benchmark;
-

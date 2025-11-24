@@ -3,22 +3,22 @@
  * @module lib/queues/setup
  */
 
-import { Queue, Worker, QueueEvents, type Job, type Processor } from 'bullmq';
-import type Redis from 'ioredis';
-import { getRedisClient } from '@/lib/redis';
-import { logger } from '@/lib/logger';
+import { Queue, Worker, QueueEvents, type Job, type Processor } from "bullmq";
+import type Redis from "ioredis";
+import { getRedisClient } from "@/lib/redis";
+import { logger } from "@/lib/logger";
 
 // Queue names
 export const QUEUE_NAMES = {
-  BUY_BOX_RECOMPUTE: 'souq:buybox-recompute',
-  AUTO_REPRICER: 'souq:auto-repricer',
-  SETTLEMENT: 'souq:settlement',
-  INVENTORY_HEALTH: 'souq:inventory-health',
-  ADS_AUCTION: 'souq:ads-auction',
-  POLICY_SWEEP: 'souq:policy-sweep',
-  SEARCH_INDEX: 'souq:search-index',
-  ACCOUNT_HEALTH: 'souq:account-health',
-  NOTIFICATIONS: 'souq:notifications',
+  BUY_BOX_RECOMPUTE: "souq:buybox-recompute",
+  AUTO_REPRICER: "souq:auto-repricer",
+  SETTLEMENT: "souq:settlement",
+  INVENTORY_HEALTH: "souq:inventory-health",
+  ADS_AUCTION: "souq:ads-auction",
+  POLICY_SWEEP: "souq:policy-sweep",
+  SEARCH_INDEX: "souq:search-index",
+  ACCOUNT_HEALTH: "souq:account-health",
+  NOTIFICATIONS: "souq:notifications",
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -31,7 +31,9 @@ const queueEvents = new Map<QueueName, QueueEvents>();
 function requireRedisConnection(context: string): Redis {
   const connection = getRedisClient();
   if (!connection) {
-    throw new Error(`[Queues] Redis not configured (${context}). Set REDIS_URL to enable BullMQ queues.`);
+    throw new Error(
+      `[Queues] Redis not configured (${context}). Set REDIS_URL to enable BullMQ queues.`,
+    );
   }
   return connection;
 }
@@ -42,13 +44,13 @@ function requireRedisConnection(context: string): Redis {
 export function getQueue(name: QueueName): Queue {
   if (!queues.has(name)) {
     const connection = requireRedisConnection(`queue:${name}`);
-    
+
     const queue = new Queue(name, {
       connection,
       defaultJobOptions: {
         attempts: 3,
         backoff: {
-          type: 'exponential',
+          type: "exponential",
           delay: 2000,
         },
         removeOnComplete: {
@@ -62,7 +64,7 @@ export function getQueue(name: QueueName): Queue {
     });
 
     queues.set(name, queue);
-    
+
     logger.info(`📬 Queue created: ${name}`);
   }
 
@@ -75,7 +77,7 @@ export function getQueue(name: QueueName): Queue {
 export function createWorker<T = unknown, R = unknown>(
   name: QueueName,
   processor: Processor<T, R>,
-  concurrency = 1
+  concurrency = 1,
 ): Worker {
   if (workers.has(name)) {
     logger.warn(`Worker for ${name} already exists, returning existing worker`);
@@ -94,7 +96,7 @@ export function createWorker<T = unknown, R = unknown>(
   });
 
   // Worker event handlers
-  worker.on('completed', (job: Job<T, R>) => {
+  worker.on("completed", (job: Job<T, R>) => {
     logger.info(`✅ Job completed`, {
       queue: name,
       jobId: job.id,
@@ -102,7 +104,7 @@ export function createWorker<T = unknown, R = unknown>(
     });
   });
 
-  worker.on('failed', (job: Job<T, R> | undefined, error: Error) => {
+  worker.on("failed", (job: Job<T, R> | undefined, error: Error) => {
     logger.error(`❌ Job failed`, {
       queue: name,
       jobId: job?.id,
@@ -111,16 +113,16 @@ export function createWorker<T = unknown, R = unknown>(
     });
   });
 
-  worker.on('error', (error: Error) => {
+  worker.on("error", (error: Error) => {
     logger.error(`Worker error on ${name}`, { error });
   });
 
-  worker.on('stalled', (jobId: string) => {
+  worker.on("stalled", (jobId: string) => {
     logger.warn(`Job stalled`, { queue: name, jobId });
   });
 
   workers.set(name, worker);
-  
+
   logger.info(`👷 Worker started: ${name} (concurrency: ${concurrency})`);
 
   return worker;
@@ -138,15 +140,15 @@ export function createQueueEvents(name: QueueName): QueueEvents {
 
   const events = new QueueEvents(name, { connection });
 
-  events.on('waiting', ({ jobId }) => {
+  events.on("waiting", ({ jobId }) => {
     logger.debug(`Job waiting`, { queue: name, jobId });
   });
 
-  events.on('active', ({ jobId }) => {
+  events.on("active", ({ jobId }) => {
     logger.debug(`Job active`, { queue: name, jobId });
   });
 
-  events.on('progress', ({ jobId, data }) => {
+  events.on("progress", ({ jobId, data }) => {
     logger.debug(`Job progress`, { queue: name, jobId, progress: data });
   });
 
@@ -170,7 +172,7 @@ export async function addJob<T>(
       pattern?: string; // Cron pattern
       every?: number; // Milliseconds
     };
-  }
+  },
 ): Promise<Job<T>> {
   const queue = getQueue(queueName);
 
@@ -200,14 +202,15 @@ export async function getQueueStats(name: QueueName): Promise<{
 }> {
   const queue = getQueue(name);
 
-  const [waiting, active, completed, failed, delayed, paused] = await Promise.all([
-    queue.getWaitingCount(),
-    queue.getActiveCount(),
-    queue.getCompletedCount(),
-    queue.getFailedCount(),
-    queue.getDelayedCount(),
-    queue.getJobCountByTypes('paused'),
-  ]);
+  const [waiting, active, completed, failed, delayed, paused] =
+    await Promise.all([
+      queue.getWaitingCount(),
+      queue.getActiveCount(),
+      queue.getCompletedCount(),
+      queue.getFailedCount(),
+      queue.getDelayedCount(),
+      queue.getJobCountByTypes("paused"),
+    ]);
 
   return { waiting, active, completed, failed, delayed, paused };
 }
@@ -235,12 +238,12 @@ export async function resumeQueue(name: QueueName): Promise<void> {
  */
 export async function cleanQueue(
   name: QueueName,
-  status: 'completed' | 'failed',
-  ageMs: number
+  status: "completed" | "failed",
+  ageMs: number,
 ): Promise<number> {
   const queue = getQueue(name);
   const jobs = await queue.clean(ageMs, 1000, status);
-  
+
   logger.info(`🧹 Queue cleaned`, {
     queue: name,
     status,
@@ -263,7 +266,7 @@ export async function obliterateQueue(name: QueueName): Promise<void> {
  * Gracefully close all queues and workers
  */
 export async function closeAllQueues(): Promise<void> {
-  logger.info('Closing all queues and workers...');
+  logger.info("Closing all queues and workers...");
 
   // Close workers first
   for (const [name, worker] of workers.entries()) {
@@ -287,14 +290,14 @@ export async function closeAllQueues(): Promise<void> {
   workers.clear();
   queueEvents.clear();
 
-  logger.info('✅ All queues and workers closed');
+  logger.info("✅ All queues and workers closed");
 }
 
 /**
  * Initialize all queues (call on app startup)
  */
 export async function initializeQueues(): Promise<void> {
-  logger.info('🚀 Initializing BullMQ queues...');
+  logger.info("🚀 Initializing BullMQ queues...");
 
   // Create all queues
   Object.values(QUEUE_NAMES).forEach((name) => {

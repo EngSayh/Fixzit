@@ -1,39 +1,48 @@
-import React from 'react';
-import { describe, beforeEach, beforeAll, test, expect, vi, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import React from "react";
+import {
+  describe,
+  beforeEach,
+  beforeAll,
+  test,
+  expect,
+  vi,
+  afterEach,
+} from "vitest";
+import { render, screen, act } from "@testing-library/react";
 
-import InvoiceCreationForOpsPage from '@/app/fm/invoices/new/page';
+import InvoiceCreationForOpsPage from "@/app/fm/invoices/new/page";
 
 const mockUseFmOrgGuard = vi.fn();
 const toastSuccess = vi.fn();
 const toastError = vi.fn();
 
-let capturedSubmit: ((values: any, event?: any) => Promise<void> | void) | undefined;
+let capturedSubmit:
+  | ((values: any, event?: any) => Promise<void> | void)
+  | undefined;
 
-vi.mock('@/components/fm/useFmOrgGuard', () => ({
+vi.mock("@/components/fm/useFmOrgGuard", () => ({
   useFmOrgGuard: () => mockUseFmOrgGuard(),
 }));
 
-vi.mock('@/components/fm/ModuleViewTabs', () => ({
+vi.mock("@/components/fm/ModuleViewTabs", () => ({
   __esModule: true,
-  default: ({ moduleId }: { moduleId: string }) => <div data-testid="module-tabs">{moduleId}</div>,
+  default: ({ moduleId }: { moduleId: string }) => (
+    <div data-testid="module-tabs">{moduleId}</div>
+  ),
 }));
 
-vi.mock('@/i18n/useAutoTranslator', () => ({
-  useAutoTranslator:
-    () =>
-    (fallback: string) =>
-      fallback,
+vi.mock("@/i18n/useAutoTranslator", () => ({
+  useAutoTranslator: () => (fallback: string) => fallback,
 }));
 
-vi.mock('sonner', () => ({
+vi.mock("sonner", () => ({
   toast: {
     success: (...args: unknown[]) => toastSuccess(...args),
     error: (...args: unknown[]) => toastError(...args),
   },
 }));
 
-vi.mock('react-hook-form', () => ({
+vi.mock("react-hook-form", () => ({
   useForm: () => ({
     register: vi.fn(),
     handleSubmit: (cb: (values: any, event?: any) => void) => {
@@ -55,7 +64,7 @@ beforeEach(() => {
     hasOrgContext: true,
     guard: null,
     supportBanner: <div data-testid="support-banner">support</div>,
-    orgId: 'org-test',
+    orgId: "org-test",
   });
   global.fetch = vi.fn().mockResolvedValue({
     ok: true,
@@ -67,8 +76,8 @@ afterEach(() => {
   vi.resetModules();
 });
 
-describe('InvoiceCreationForOpsPage org guard behavior', () => {
-  test('renders guard when organization context missing', () => {
+describe("InvoiceCreationForOpsPage org guard behavior", () => {
+  test("renders guard when organization context missing", () => {
     mockUseFmOrgGuard.mockReturnValue({
       hasOrgContext: false,
       guard: <div data-testid="org-guard" />,
@@ -78,40 +87,43 @@ describe('InvoiceCreationForOpsPage org guard behavior', () => {
 
     render(<InvoiceCreationForOpsPage />);
 
-    expect(screen.getByTestId('org-guard')).toBeInTheDocument();
+    expect(screen.getByTestId("org-guard")).toBeInTheDocument();
   });
 
-  test('renders finance layout and submits using tenant header', async () => {
+  test("renders finance layout and submits using tenant header", async () => {
     render(<InvoiceCreationForOpsPage />);
 
-    expect(screen.getByTestId('module-tabs')).toHaveTextContent('finance');
-    expect(screen.getByTestId('support-banner')).toBeInTheDocument();
+    expect(screen.getByTestId("module-tabs")).toHaveTextContent("finance");
+    expect(screen.getByTestId("support-banner")).toBeInTheDocument();
     expect(capturedSubmit).toBeDefined();
 
     await act(async () => {
       await capturedSubmit?.(
         {
-          customer: 'ACME',
-          project: 'Renewal',
-          amount: '1000',
-          billingContact: 'ops@acme.com',
-          narrative: 'Monthly retainer',
+          customer: "ACME",
+          project: "Renewal",
+          amount: "1000",
+          billingContact: "ops@acme.com",
+          narrative: "Monthly retainer",
         },
         {
           nativeEvent: {
-            submitter: { dataset: { action: 'send' } },
+            submitter: { dataset: { action: "send" } },
           },
         },
       );
     });
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/invoices/send', expect.objectContaining({
-      method: 'POST',
-      headers: expect.objectContaining({
-        'Content-Type': 'application/json',
-        'x-tenant-id': 'org-test',
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/invoices/send",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+          "x-tenant-id": "org-test",
+        }),
       }),
-    }));
+    );
     expect(toastSuccess).toHaveBeenCalled();
     expect(toastError).not.toHaveBeenCalled();
   });

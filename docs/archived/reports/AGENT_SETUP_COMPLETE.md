@@ -33,7 +33,7 @@ npm run agent:verify       # TypeCheck + Lint + Build
 ### Automation Files
 
 - `.github/copilot.yaml` - Auto-approve + run permissions
-- `agent-governor.yaml` - HARD_AUTO mode configuration  
+- `agent-governor.yaml` - HARD_AUTO mode configuration
 - `.github/workflows/agent-governor.yml` - CI pipeline
 - `scripts/inventory.sh` - Duplicate scanner
 - `scripts/cleanup_space.sh` - Disk cleanup
@@ -103,7 +103,7 @@ All governance requirements met:
 
 - ✅ Colors: #0061A8 (Blue), #00A859 (Green), #FFB400 (Yellow)
 - ✅ RTL Support: Arabic (ar) and Hebrew (he) with proper direction
-- ✅ Language Selector: Flags + native names + ISO codes  
+- ✅ Language Selector: Flags + native names + ISO codes
 - ✅ Currency Icons: SAR (﷼), ILS (₪) - Unicode only
 - ✅ TopBar: All required elements present
 - ✅ Sidebar: Monday-style, fixed module order

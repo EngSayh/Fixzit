@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { logger } from '@/lib/logger';
-import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { logger } from "@/lib/logger";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 interface CheckoutFormProps {
   cartId: string;
@@ -13,15 +13,18 @@ interface CheckoutFormProps {
 
 export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
   const router = useRouter();
-  const [address, setAddress] = useState('Riyadh HQ, King Fahd Rd');
-  const [contact, setContact] = useState('Facilities Control Room');
-  const [phone, setPhone] = useState('+966 11 000 0000');
+  const [address, setAddress] = useState("Riyadh HQ, King Fahd Rd");
+  const [contact, setContact] = useState("Facilities Control Room");
+  const [phone, setPhone] = useState("+966 11 000 0000");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const auto = useAutoTranslator('marketplace.checkoutForm');
-  const checkoutError = auto('Checkout failed', 'errors.checkout');
-  const networkError = auto('Network error. Please try again.', 'errors.network');
+  const auto = useAutoTranslator("marketplace.checkoutForm");
+  const checkoutError = auto("Checkout failed", "errors.checkout");
+  const networkError = auto(
+    "Network error. Please try again.",
+    "errors.network",
+  );
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -29,16 +32,16 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
     setError(null);
 
     try {
-      const response = await fetch('/api/marketplace/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/marketplace/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           shipTo: {
             address,
             contact,
-            phone
-          }
-        })
+            phone,
+          },
+        }),
       });
 
       if (!response.ok) {
@@ -48,9 +51,9 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
       }
 
       setSuccess(true);
-      router.push('/marketplace/orders');
+      router.push("/marketplace/orders");
     } catch (fetchError) {
-      logger.error('Checkout failed:', { error: fetchError });
+      logger.error("Checkout failed:", { error: fetchError });
       setError(networkError);
     } finally {
       setLoading(false);
@@ -58,64 +61,70 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl bg-card p-6 shadow">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 rounded-3xl bg-card p-6 shadow"
+    >
       <div>
         <h2 className="text-lg font-semibold text-foreground">
-          {auto('Delivery details', 'header.title')}
+          {auto("Delivery details", "header.title")}
         </h2>
         <p className="text-sm text-muted-foreground">
-          {auto('Ship to your facilities hub with SLA tracking.', 'header.subtitle')}
+          {auto(
+            "Ship to your facilities hub with SLA tracking.",
+            "header.subtitle",
+          )}
         </p>
       </div>
       <div className="space-y-3 text-sm">
         <label className="block">
           <span className="text-muted-foreground">
-            {auto('Address', 'fields.address.label')}
+            {auto("Address", "fields.address.label")}
           </span>
           <input
             value={address}
-            onChange={event => setAddress(event.target.value)}
+            onChange={(event) => setAddress(event.target.value)}
             className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
             required
           />
         </label>
         <label className="block">
           <span className="text-muted-foreground">
-            {auto('Contact', 'fields.contact.label')}
+            {auto("Contact", "fields.contact.label")}
           </span>
           <input
             value={contact}
-            onChange={event => setContact(event.target.value)}
+            onChange={(event) => setContact(event.target.value)}
             className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
             required
           />
         </label>
         <label className="block">
           <span className="text-muted-foreground">
-            {auto('Phone', 'fields.phone.label')}
+            {auto("Phone", "fields.phone.label")}
           </span>
           <input
             value={phone}
-            onChange={event => setPhone(event.target.value)}
+            onChange={(event) => setPhone(event.target.value)}
             className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
           />
         </label>
       </div>
       <div className="rounded-2xl bg-primary/5 p-4 text-sm text-foreground">
         <div className="flex justify-between">
-          <span>{auto('Subtotal', 'summary.subtotal')}</span>
+          <span>{auto("Subtotal", "summary.subtotal")}</span>
           <span>
             {totals.subtotal.toFixed(2)} {currency}
           </span>
         </div>
         <div className="flex justify-between">
-          <span>{auto('VAT', 'summary.vat')}</span>
+          <span>{auto("VAT", "summary.vat")}</span>
           <span>
             {totals.vat.toFixed(2)} {currency}
           </span>
         </div>
         <div className="mt-2 flex justify-between text-base font-semibold text-primary">
-          <span>{auto('Total', 'summary.total')}</span>
+          <span>{auto("Total", "summary.total")}</span>
           <span>
             {totals.grand.toFixed(2)} {currency}
           </span>
@@ -124,7 +133,7 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
       {error && <p className="text-sm text-destructive">{error}</p>}
       {success && (
         <p className="text-sm text-success">
-          {auto('Checkout submitted. Redirecting…', 'state.success')}
+          {auto("Checkout submitted. Redirecting…", "state.success")}
         </p>
       )}
       <button
@@ -132,7 +141,9 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
         disabled={loading}
         className="w-full rounded-full bg-warning px-6 py-3 text-sm font-semibold text-black hover:bg-warning/90 disabled:opacity-60"
       >
-        {loading ? auto('Submitting…', 'actions.submitting') : auto('Submit for approval', 'actions.submit')}
+        {loading
+          ? auto("Submitting…", "actions.submitting")
+          : auto("Submit for approval", "actions.submit")}
       </button>
     </form>
   );

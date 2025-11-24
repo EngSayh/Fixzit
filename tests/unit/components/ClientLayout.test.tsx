@@ -3,27 +3,27 @@
  * Tests authentication handling, route protection, and layout rendering
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import React from 'react';
-import ClientLayout from '@/components/ClientLayout';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+import ClientLayout from "@/components/ClientLayout";
 
 // Use vi.hoisted to declare mocks before the hoisted vi.mock calls
 const { mockUseSession, mockUseTranslation } = vi.hoisted(() => ({
   mockUseSession: vi.fn(() => ({
     data: null,
-    status: 'unauthenticated',
+    status: "unauthenticated",
   })),
   mockUseTranslation: vi.fn(() => ({
-    language: 'en',
+    language: "en",
     isRTL: false,
     t: (key: string) => key,
   })),
 }));
 
 // Mock Next.js navigation
-vi.mock('next/navigation', () => ({
-  usePathname: vi.fn(() => '/'),
+vi.mock("next/navigation", () => ({
+  usePathname: vi.fn(() => "/"),
   useRouter: vi.fn(() => ({
     push: vi.fn(),
     replace: vi.fn(),
@@ -32,41 +32,41 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Mock NextAuth
-vi.mock('next-auth/react', () => ({
+vi.mock("next-auth/react", () => ({
   useSession: mockUseSession,
 }));
 
 // Mock translation context
-vi.mock('@/contexts/TranslationContext', () => ({
+vi.mock("@/contexts/TranslationContext", () => ({
   useTranslation: mockUseTranslation,
 }));
 
 // Mock dynamic imports
-vi.mock('next/dynamic', () => ({
+vi.mock("next/dynamic", () => ({
   default: (fn: () => Promise<unknown>) => {
     const Component = () => null;
-    Component.displayName = 'DynamicComponent';
+    Component.displayName = "DynamicComponent";
     return Component;
   },
 }));
 
 // Mock next/link to avoid act warnings from Link state updates
-vi.mock('next/link', () => ({
+vi.mock("next/link", () => ({
   __esModule: true,
   default: ({ href, children }: { href: string; children: React.ReactNode }) =>
-    React.createElement('a', { href }, children),
+    React.createElement("a", { href }, children),
 }));
 
-describe('ClientLayout', () => {
+describe("ClientLayout", () => {
   beforeEach(() => {
     // Clear all mocks before each test
     vi.clearAllMocks();
     mockUseSession.mockReturnValue({
       data: null,
-      status: 'unauthenticated',
+      status: "unauthenticated",
     });
     mockUseTranslation.mockReturnValue({
-      language: 'en',
+      language: "en",
       isRTL: false,
       t: (key: string) => key,
     });
@@ -76,70 +76,70 @@ describe('ClientLayout', () => {
     vi.clearAllMocks();
   });
 
-  it('should render children', () => {
+  it("should render children", () => {
     render(
       <ClientLayout>
         <div data-testid="test-content">Test Content</div>
-      </ClientLayout>
+      </ClientLayout>,
     );
 
-    expect(screen.getByTestId('test-content')).toBeInTheDocument();
+    expect(screen.getByTestId("test-content")).toBeInTheDocument();
   });
 
-  it('should handle unauthenticated state', async () => {
+  it("should handle unauthenticated state", async () => {
     mockUseSession.mockReturnValue({
       data: null,
-      status: 'unauthenticated',
+      status: "unauthenticated",
     });
 
     render(
       <ClientLayout>
         <div>Content</div>
-      </ClientLayout>
+      </ClientLayout>,
     );
 
     // Should render without crashing
     await waitFor(() => {
-      expect(screen.getByText('Content')).toBeInTheDocument();
+      expect(screen.getByText("Content")).toBeInTheDocument();
     });
   });
 
-  it('should handle authenticated state', async () => {
+  it("should handle authenticated state", async () => {
     mockUseSession.mockReturnValue({
-      data: { user: { id: '123', role: 'ADMIN' } },
-      status: 'authenticated',
+      data: { user: { id: "123", role: "ADMIN" } },
+      status: "authenticated",
     });
 
     render(
       <ClientLayout>
         <div>Protected Content</div>
-      </ClientLayout>
+      </ClientLayout>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Protected Content')).toBeInTheDocument();
+      expect(screen.getByText("Protected Content")).toBeInTheDocument();
     });
   });
 
-  it('should handle loading state', async () => {
+  it("should handle loading state", async () => {
     mockUseSession.mockReturnValue({
       data: null,
-      status: 'loading',
+      status: "loading",
     });
 
     render(
       <ClientLayout>
         <div>Content</div>
-      </ClientLayout>
+      </ClientLayout>,
     );
 
     // Should render without errors during loading
-    expect(screen.getByText('Content')).toBeInTheDocument();
+    expect(screen.getByText("Content")).toBeInTheDocument();
   });
 
-  it('should handle RTL language', async () => {
+  it("should handle RTL language", async () => {
     mockUseTranslation.mockReturnValue({
-      language: 'ar',
+      language: "ar",
       isRTL: true,
       t: (key: string) => key,
     });
@@ -147,16 +147,16 @@ describe('ClientLayout', () => {
     render(
       <ClientLayout>
         <div>محتوى</div>
-      </ClientLayout>
+      </ClientLayout>,
     );
 
     // Should render RTL content
-    expect(screen.getByText('محتوى')).toBeInTheDocument();
+    expect(screen.getByText("محتوى")).toBeInTheDocument();
   });
 
-  it('should not crash when SessionProvider is unavailable', () => {
+  it("should not crash when SessionProvider is unavailable", () => {
     mockUseSession.mockImplementation(() => {
-      throw new Error('SessionProvider not available');
+      throw new Error("SessionProvider not available");
     });
 
     const originalError = console.error;
@@ -166,9 +166,9 @@ describe('ClientLayout', () => {
       render(
         <ClientLayout>
           <div>Content</div>
-        </ClientLayout>
+        </ClientLayout>,
       );
-    }).toThrow('SessionProvider not available');
+    }).toThrow("SessionProvider not available");
     console.error = originalError;
   });
 });

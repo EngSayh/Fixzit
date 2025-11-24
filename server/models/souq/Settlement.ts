@@ -3,8 +3,8 @@
  * @module server/models/souq/Settlement
  */
 
-import mongoose, { Schema, Model, Types } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import mongoose, { Schema, Model, Types } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
 
 export interface ISettlement {
   _id: Types.ObjectId;
@@ -20,7 +20,7 @@ export interface ISettlement {
   platformFeeRate: number;
   adjustments: number;
   payoutAmount: number;
-  status: 'pending' | 'approved' | 'rejected' | 'paid' | 'cancelled';
+  status: "pending" | "approved" | "rejected" | "paid" | "cancelled";
   dueDate: Date;
   paidDate?: Date;
   paymentMethod?: string;
@@ -43,13 +43,13 @@ const SettlementSchema = new Schema<ISettlement>(
     },
     sellerId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqSeller',
+      ref: "SouqSeller",
       required: true,
       index: true,
     },
     escrowAccountId: {
       type: Schema.Types.ObjectId,
-      ref: 'EscrowAccount',
+      ref: "EscrowAccount",
     },
     org_id: {
       type: String,
@@ -94,8 +94,8 @@ const SettlementSchema = new Schema<ISettlement>(
     },
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected', 'paid', 'cancelled'],
-      default: 'pending',
+      enum: ["pending", "approved", "rejected", "paid", "cancelled"],
+      default: "pending",
       index: true,
     },
     dueDate: {
@@ -116,20 +116,22 @@ const SettlementSchema = new Schema<ISettlement>(
     },
     processedBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
     },
     processedAt: {
       type: Date,
     },
-    orderIds: [{
-      type: Schema.Types.ObjectId,
-      ref: 'SouqOrder',
-    }],
+    orderIds: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "SouqOrder",
+      },
+    ],
   },
   {
     timestamps: true,
-    collection: 'souq_settlements',
-  }
+    collection: "souq_settlements",
+  },
 );
 
 // Indexes
@@ -138,12 +140,18 @@ SettlementSchema.index({ org_id: 1, status: 1 });
 SettlementSchema.index({ dueDate: 1 });
 
 // Pre-save hook to calculate payout amount
-SettlementSchema.pre('save', function (next) {
-  if (this.isModified('totalRevenue') || this.isModified('platformFee') || this.isModified('adjustments')) {
+SettlementSchema.pre("save", function (next) {
+  if (
+    this.isModified("totalRevenue") ||
+    this.isModified("platformFee") ||
+    this.isModified("adjustments")
+  ) {
     this.payoutAmount = this.totalRevenue - this.platformFee + this.adjustments;
   }
   next();
 });
 
-export const SouqSettlement =
-  getModel<ISettlement>('SouqSettlement', SettlementSchema);
+export const SouqSettlement = getModel<ISettlement>(
+  "SouqSettlement",
+  SettlementSchema,
+);

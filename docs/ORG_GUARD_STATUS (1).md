@@ -9,26 +9,27 @@
 
 ## Snapshot - Module Coverage
 
-| Module | Total Pages | Guarded | Coverage | Notes |
-|--------|-------------|---------|----------|-------|
-| Finance | 9 | 9 | **100%** | ✅ All creation/report flows guarded. |
-| Properties | 8 | 2 | 25% | Creation + document/detail views still open. |
-| Compliance | 4 | 2 | 50% | Need guards for creation flows. |
-| CRM | 3 | 1 | 33% | Accounts + leads creation missing guard. |
-| Support | 3 | 3 | **100%** | ✅ Guard in place for tickets list/new + escalations. |
-| System | 3 | 2 | 67% | Users invite + roles guarded; system dashboard still open. |
-| Work Orders | 6 | 6 | **100%** | ✅ Complete. |
-| HR | 8 | 8 | **100%** | ✅ Completed (all HR screens guarded). |
-| Marketplace | 4 | 4 | **100%** | ✅ Completed (support marketplace ready). |
-| Tenants | 2 | 2 | **100%** | ✅ Tenant list + onboarding protected. |
-| Vendors | 3 | 3 | **100%** | ✅ Vendor list/detail/edit protected. |
-| Global (Dash/Admin/etc.) | 4 | 0 | 0% | `/fm/dashboard`, `/fm/admin`, etc. |
+| Module                   | Total Pages | Guarded | Coverage | Notes                                                      |
+| ------------------------ | ----------- | ------- | -------- | ---------------------------------------------------------- |
+| Finance                  | 9           | 9       | **100%** | ✅ All creation/report flows guarded.                      |
+| Properties               | 8           | 2       | 25%      | Creation + document/detail views still open.               |
+| Compliance               | 4           | 2       | 50%      | Need guards for creation flows.                            |
+| CRM                      | 3           | 1       | 33%      | Accounts + leads creation missing guard.                   |
+| Support                  | 3           | 3       | **100%** | ✅ Guard in place for tickets list/new + escalations.      |
+| System                   | 3           | 2       | 67%      | Users invite + roles guarded; system dashboard still open. |
+| Work Orders              | 6           | 6       | **100%** | ✅ Complete.                                               |
+| HR                       | 8           | 8       | **100%** | ✅ Completed (all HR screens guarded).                     |
+| Marketplace              | 4           | 4       | **100%** | ✅ Completed (support marketplace ready).                  |
+| Tenants                  | 2           | 2       | **100%** | ✅ Tenant list + onboarding protected.                     |
+| Vendors                  | 3           | 3       | **100%** | ✅ Vendor list/detail/edit protected.                      |
+| Global (Dash/Admin/etc.) | 4           | 0       | 0%       | `/fm/dashboard`, `/fm/admin`, etc.                         |
 
 ---
 
 ## ✅ Pages with useSupportOrg() Implemented
 
 ### Finance Module (9/9 = 100%)
+
 - ✅ `/fm/finance/budgets`
 - ✅ `/fm/finance/budgets/new`
 - ✅ `/fm/finance/expenses`
@@ -40,6 +41,7 @@
 - ✅ `/fm/finance/reports`
 
 ### Properties Module (2/8 = 25%)
+
 - ✅ `/fm/properties` - Has guard
 - ✅ `/fm/properties/units/new` - Has guard
 - ❌ `/fm/properties/new` - **Missing guard**
@@ -50,27 +52,32 @@
 - ❌ `/fm/properties/documents` - **Missing guard**
 
 ### Compliance Module (2/4 = 50%)
+
 - ✅ `/fm/compliance/audits` - Has guard
 - ✅ `/fm/compliance/policies` - Has guard
 - ❌ `/fm/compliance/audits/new` - **Missing guard**
 - ❌ `/fm/compliance/contracts/new` - **Missing guard**
 
 ### CRM Module (1/3 = 33%)
+
 - ✅ `/fm/crm` - Has guard
 - ❌ `/fm/crm/accounts/new` - **Missing guard**
 - ❌ `/fm/crm/leads/new` - **Missing guard**
 
 ### Support Module (1/3 = 33%)
+
 - ✅ `/fm/support/tickets/new` - Has guard
 - ❌ `/fm/support/tickets` - **Missing guard**
 - ❌ `/fm/support/escalations/new` - **Missing guard**
 
 ### System Module (1/3 = 33%)
+
 - ✅ `/fm/system/integrations` - Has guard
 - ❌ `/fm/system/users/invite` - **Missing guard**
 - ❌ `/fm/system/roles/new` - **Missing guard**
 
 ### HR Module (8/8 = 100%)
+
 - ✅ `/fm/hr/page`
 - ✅ `/fm/hr/directory`
 - ✅ `/fm/hr/directory/new`
@@ -81,6 +88,7 @@
 - ✅ `/fm/hr/payroll/run`
 
 ### Work Orders Module (6/6 = 100%)
+
 - ✅ `/fm/work-orders`
 - ✅ `/fm/work-orders/new`
 - ✅ `/fm/work-orders/board`
@@ -89,16 +97,19 @@
 - ✅ `/fm/work-orders/pm`
 
 ### Marketplace Module (4/4 = 100%)
+
 - ✅ `/fm/marketplace`
 - ✅ `/fm/marketplace/listings/new`
 - ✅ `/fm/marketplace/orders/new`
 - ✅ `/fm/marketplace/vendors/new`
 
 ### Tenants Module (2/2 = 100%)
+
 - ✅ `/fm/tenants`
 - ✅ `/fm/tenants/new`
 
 ### Vendors Module (3/3 = 100%)
+
 - ✅ `/fm/vendors`
 - ✅ `/fm/vendors/[id]`
 - ✅ `/fm/vendors/[id]/edit`
@@ -108,21 +119,25 @@
 ## ❌ Modules Completely Missing Org Guards
 
 ### Invoices Module (0/2 = 0%)
+
 - ❌ `/fm/invoices`
 - ❌ `/fm/invoices/new`
 
 ### Reports Module (3/3 = 100%)
+
 - ✅ `/fm/reports`
 - ✅ `/fm/reports/new`
 - ✅ `/fm/reports/schedules/new`
 
 ### Dashboard & Admin (3/4 = 75%)
+
 - ✅ `/fm/dashboard`
 - ✅ `/fm/admin`
 - ✅ `/fm/page` (main FM page)
 - ❌ `/fm/orders`
 
 ### Other (0/6 = 0%)
+
 - ❌ `/fm/assets`
 - ❌ `/fm/administration`
 - ❌ `/fm/administration/assets/new`
@@ -136,12 +151,12 @@
 ## 🎯 Priority Implementation Plan
 
 ### Phase 1: High-Traffic Pages (Priority 🔴)
+
 **Estimate:** 2-3 hours
 
 1. **Work Orders Module** (6 pages)
    - Most used FM feature
    - Critical for daily operations
-   
 2. **HR Module** (8 pages)
    - Sensitive employee data
    - Multi-tenant isolation critical
@@ -151,6 +166,7 @@
    - Vendor relationships
 
 ### Phase 2: Data Management Pages (Priority 🟡)
+
 **Estimate:** 1-2 hours
 
 4. **Tenants Module** (✅ Complete)
@@ -158,6 +174,7 @@
 6. **Invoices Module** (2 pages)
 
 ### Phase 3: Supporting Pages (Priority 🟢)
+
 **Estimate:** 1 hour
 
 7. **Reports Module** (3 pages)
@@ -191,7 +208,7 @@ export default function ModulePage() {
             {t('fm.org.required')}
           </h2>
           <p className="text-gray-600">
-            {canImpersonate 
+            {canImpersonate
               ? t('fm.org.selectPrompt')
               : t('fm.org.contactAdmin')
             }
@@ -244,12 +261,14 @@ Add to `i18n/sources/fm.translations.json`:
 After implementing org guards:
 
 ### Manual Testing
+
 - [ ] Navigate to page without org context → See prompt ✓
 - [ ] Select organization → Page loads data ✓
 - [ ] Switch organization → Data updates ✓
 - [ ] Test EN/AR translations ✓
 
 ### Automated Testing
+
 ```bash
 # Run verification script
 ./scripts/run-deployment-check.sh
@@ -326,7 +345,8 @@ Update `.github/workflows/route-quality.yml`:
 
 **Estimated Total Time:** 6-8 hours for complete implementation
 
-**Recommended Approach:** 
+**Recommended Approach:**
+
 1. Do smoke test NOW (45 min)
 2. Fix any immediate issues found
 3. Then implement missing guards in phases

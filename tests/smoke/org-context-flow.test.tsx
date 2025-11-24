@@ -1,7 +1,10 @@
-import React from 'react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
-import { SupportOrgProvider, useSupportOrg } from '@/contexts/SupportOrgContext';
+import React from "react";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { renderHook, act, waitFor } from "@testing-library/react";
+import {
+  SupportOrgProvider,
+  useSupportOrg,
+} from "@/contexts/SupportOrgContext";
 
 const mockSession = {
   user: {
@@ -12,10 +15,10 @@ const mockSession = {
 
 const sessionResponse = {
   data: mockSession,
-  status: 'authenticated',
+  status: "authenticated",
 };
 
-vi.mock('next-auth/react', () => ({
+vi.mock("next-auth/react", () => ({
   useSession: () => sessionResponse,
 }));
 
@@ -36,59 +39,72 @@ function mockFetchSequence(responses: FetchResponse[]) {
       json: async () => res.body ?? {},
     } as Response);
   });
-  vi.stubGlobal('fetch', fetchMock);
+  vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
 
-describe('SupportOrgProvider smoke test', () => {
+describe("SupportOrgProvider smoke test", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
-  it('hydrates the support organization from the impersonation endpoint', async () => {
+  it("hydrates the support organization from the impersonation endpoint", async () => {
     const fetchMock = mockFetchSequence([
-      { body: { organization: { orgId: 'org_seed', name: 'Seed Org' } } },
+      { body: { organization: { orgId: "org_seed", name: "Seed Org" } } },
     ]);
 
     const { result } = renderHook(() => useSupportOrg(), { wrapper });
 
-    await waitFor(() => expect(result.current.supportOrg?.orgId).toBe('org_seed'));
+    await waitFor(() =>
+      expect(result.current.supportOrg?.orgId).toBe("org_seed"),
+    );
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith('/api/support/impersonation', expect.objectContaining({ credentials: 'include' }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/support/impersonation",
+      expect.objectContaining({ credentials: "include" }),
+    );
   });
 
-  it('selects an organization via selectOrgById', async () => {
+  it("selects an organization via selectOrgById", async () => {
     const fetchMock = mockFetchSequence([
       { body: { organization: null } },
-      { body: { organization: { orgId: 'org_selected', name: 'Selected Org' } } },
+      {
+        body: { organization: { orgId: "org_selected", name: "Selected Org" } },
+      },
     ]);
 
     const { result } = renderHook(() => useSupportOrg(), { wrapper });
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 
     await act(async () => {
-      const ok = await result.current.selectOrgById('org_selected');
+      const ok = await result.current.selectOrgById("org_selected");
       expect(ok).toBe(true);
     });
 
-    await waitFor(() => expect(result.current.supportOrg?.orgId).toBe('org_selected'));
+    await waitFor(() =>
+      expect(result.current.supportOrg?.orgId).toBe("org_selected"),
+    );
     const [, postInit] = fetchMock.mock.calls;
-    expect(postInit?.[0]).toBe('/api/support/impersonation');
+    expect(postInit?.[0]).toBe("/api/support/impersonation");
     expect(postInit?.[1]).toMatchObject({
-      method: 'POST',
-      body: JSON.stringify({ orgId: 'org_selected' }),
+      method: "POST",
+      body: JSON.stringify({ orgId: "org_selected" }),
     });
   });
 
-  it('clears impersonation session via clearSupportOrg', async () => {
+  it("clears impersonation session via clearSupportOrg", async () => {
     const fetchMock = mockFetchSequence([
-      { body: { organization: { orgId: 'org_existing', name: 'Existing Org' } } },
+      {
+        body: { organization: { orgId: "org_existing", name: "Existing Org" } },
+      },
       { body: {} },
     ]);
 
     const { result } = renderHook(() => useSupportOrg(), { wrapper });
-    await waitFor(() => expect(result.current.supportOrg?.orgId).toBe('org_existing'));
+    await waitFor(() =>
+      expect(result.current.supportOrg?.orgId).toBe("org_existing"),
+    );
 
     await act(async () => {
       await result.current.clearSupportOrg();
@@ -96,6 +112,6 @@ describe('SupportOrgProvider smoke test', () => {
 
     expect(result.current.supportOrg).toBeNull();
     const lastCall = fetchMock.mock.calls.at(-1);
-    expect(lastCall?.[1]).toMatchObject({ method: 'DELETE' });
+    expect(lastCall?.[1]).toMatchObject({ method: "DELETE" });
   });
 });

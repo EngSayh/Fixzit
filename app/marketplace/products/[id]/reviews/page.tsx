@@ -3,14 +3,14 @@
  * @route /marketplace/products/[id]/reviews
  */
 
-import React from 'react';
-import { Metadata } from 'next';
-import { reviewService } from '@/services/souq/reviews/review-service';
-import { ProductReviewsClient } from '@/components/marketplace/ProductReviewsClient';
+import React from "react";
+import { Metadata } from "next";
+import { reviewService } from "@/services/souq/reviews/review-service";
+import { ProductReviewsClient } from "@/components/marketplace/ProductReviewsClient";
 
 export const metadata: Metadata = {
-  title: 'Product Reviews',
-  description: 'Customer reviews and ratings',
+  title: "Product Reviews",
+  description: "Customer reviews and ratings",
 };
 
 export default async function ProductReviewsPage({
@@ -33,32 +33,49 @@ export default async function ProductReviewsPage({
   const distribution = {
     5: {
       count: stats.distribution[5],
-      percentage: stats.totalReviews > 0 ? Math.round((stats.distribution[5] / stats.totalReviews) * 100) : 0,
+      percentage:
+        stats.totalReviews > 0
+          ? Math.round((stats.distribution[5] / stats.totalReviews) * 100)
+          : 0,
     },
     4: {
       count: stats.distribution[4],
-      percentage: stats.totalReviews > 0 ? Math.round((stats.distribution[4] / stats.totalReviews) * 100) : 0,
+      percentage:
+        stats.totalReviews > 0
+          ? Math.round((stats.distribution[4] / stats.totalReviews) * 100)
+          : 0,
     },
     3: {
       count: stats.distribution[3],
-      percentage: stats.totalReviews > 0 ? Math.round((stats.distribution[3] / stats.totalReviews) * 100) : 0,
+      percentage:
+        stats.totalReviews > 0
+          ? Math.round((stats.distribution[3] / stats.totalReviews) * 100)
+          : 0,
     },
     2: {
       count: stats.distribution[2],
-      percentage: stats.totalReviews > 0 ? Math.round((stats.distribution[2] / stats.totalReviews) * 100) : 0,
+      percentage:
+        stats.totalReviews > 0
+          ? Math.round((stats.distribution[2] / stats.totalReviews) * 100)
+          : 0,
     },
     1: {
       count: stats.distribution[1],
-      percentage: stats.totalReviews > 0 ? Math.round((stats.distribution[1] / stats.totalReviews) * 100) : 0,
+      percentage:
+        stats.totalReviews > 0
+          ? Math.round((stats.distribution[1] / stats.totalReviews) * 100)
+          : 0,
     },
   };
 
   const normalizedReviews = reviewsData.reviews.map((review) => {
     const rawId =
       review.reviewId ||
-      (typeof review._id === 'string'
+      (typeof review._id === "string"
         ? review._id
-        : (review._id as { toString?: () => string } | undefined)?.toString?.()) ||
+        : (
+            review._id as { toString?: () => string } | undefined
+          )?.toString?.()) ||
       `review-${Math.random().toString(36).slice(2)}`;
 
     return {
@@ -66,7 +83,9 @@ export default async function ProductReviewsPage({
       rating: review.rating,
       title: review.title,
       comment: review.content,
-      createdAt: review.createdAt ? new Date(review.createdAt).toISOString() : undefined,
+      createdAt: review.createdAt
+        ? new Date(review.createdAt).toISOString()
+        : undefined,
       author: {
         name: review.customerName,
         verifiedPurchase: review.isVerifiedPurchase,
@@ -82,7 +101,9 @@ export default async function ProductReviewsPage({
         totalReviews: stats.totalReviews,
         distribution,
         verifiedPurchasePercentage: Math.round(
-          stats.totalReviews > 0 ? (stats.verifiedPurchaseCount / stats.totalReviews) * 100 : 0
+          stats.totalReviews > 0
+            ? (stats.verifiedPurchaseCount / stats.totalReviews) * 100
+            : 0,
         ),
       }}
       initialReviews={normalizedReviews}

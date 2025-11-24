@@ -1,8 +1,8 @@
 // tests/i18n-scan.mjs
-import { glob } from 'glob';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import path from 'path';
-import url from 'url';
+import { glob } from "glob";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import path from "path";
+import url from "url";
 
 /**
  * Fixzit i18n Scanner (namespace + nested keys aware)
@@ -26,35 +26,45 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const ROOT = process.cwd();
 
 const argv = new Set(process.argv.slice(2));
-const FIX_MODE = argv.has('--fix');
+const FIX_MODE = argv.has("--fix");
 
-const LANGS = (process.env.I18N_LANGS ?? 'en,ar').split(',').map(s => s.trim()).filter(Boolean);
-const SRC_GLOB = process.env.I18N_SRC ?? '**/*.{ts,tsx,js,jsx}';
-const STRICT = (process.env.I18N_STRICT ?? 'true').toLowerCase() !== 'false';
-const OUTPUT = process.env.I18N_OUTPUT ?? '_artifacts/i18n-report.json';
-const IGNORE_PATTERNS = (process.env.I18N_IGNORE ?? '')
-  .split(',')
-  .map(s => s.trim())
+const LANGS = (process.env.I18N_LANGS ?? "en,ar")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+const SRC_GLOB = process.env.I18N_SRC ?? "**/*.{ts,tsx,js,jsx}";
+const STRICT = (process.env.I18N_STRICT ?? "true").toLowerCase() !== "false";
+const OUTPUT = process.env.I18N_OUTPUT ?? "_artifacts/i18n-report.json";
+const IGNORE_PATTERNS = (process.env.I18N_IGNORE ?? "")
+  .split(",")
+  .map((s) => s.trim())
   .filter(Boolean)
   .map(toGlobRegex); // precompiled
 
-const LOCALE_DIRS = (process.env.I18N_DIRS ?? 'i18n/locales,i18n/dictionaries').split(',')
-  .map(dir => dir.trim())
+const LOCALE_DIRS = (process.env.I18N_DIRS ?? "i18n/locales,i18n/dictionaries")
+  .split(",")
+  .map((dir) => dir.trim())
   .filter(Boolean);
-const ROOT_LOCALE_FALLBACK = 'i18n';
+const ROOT_LOCALE_FALLBACK = "i18n";
 
 // -------------------------------------------------------------------------------------------------
 // Utils
 // -------------------------------------------------------------------------------------------------
-function log(...args) { console.log(...args); }
-function warn(...args) { console.warn(...args); }
-function err(...args) { console.error(...args); }
+function log(...args) {
+  console.log(...args);
+}
+function warn(...args) {
+  console.warn(...args);
+}
+function err(...args) {
+  console.error(...args);
+}
 
-function flattenObject(obj, prefix = '', out = new Set()) {
-  if (obj && typeof obj === 'object') {
+function flattenObject(obj, prefix = "", out = new Set()) {
+  if (obj && typeof obj === "object") {
     for (const [k, v] of Object.entries(obj)) {
       const key = prefix ? `${prefix}.${k}` : k;
-      if (v && typeof v === 'object') {
+      if (v && typeof v === "object") {
         flattenObject(v, key, out);
       } else {
         out.add(key);
@@ -69,8 +79,8 @@ function toGlobRegex(pat) {
   // foo:*  -> ^foo:.*$
   // foo.*  -> ^foo\..*$
   // plain  -> ^plain$
-  const esc = pat.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
-  return new RegExp(`^${esc}$`, 'i');
+  const esc = pat.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+  return new RegExp(`^${esc}$`, "i");
 }
 
 function keyVariants(key) {
@@ -79,14 +89,14 @@ function keyVariants(key) {
   //  - colon->dot
   //  - if it has ns:key, also 'key' bare (for default ns)
   const variants = new Set([key]);
-  if (key.includes(':')) {
-    const [ns, rest] = key.split(':', 2);
+  if (key.includes(":")) {
+    const [ns, rest] = key.split(":", 2);
     variants.add(`${ns}.${rest}`);
     variants.add(rest);
-  } else if (key.includes('.')) {
+  } else if (key.includes(".")) {
     // also provide a colon version using a simple heuristic: first segment as ns
-    const [first, ...rest] = key.split('.');
-    if (first && rest.length) variants.add(`${first}:${rest.join('.')}`);
+    const [first, ...rest] = key.split(".");
+    if (first && rest.length) variants.add(`${first}:${rest.join(".")}`);
   }
   return [...variants];
 }
@@ -95,13 +105,14 @@ function fromDotToNested(keys) {
   // Convert dot keys into nested object for --fix skeletons
   const out = {};
   for (const k of keys) {
-    const pathParts = k.replace(/^[^:]+:/, '') // drop possible "ns:"
-      .split('.');
+    const pathParts = k
+      .replace(/^[^:]+:/, "") // drop possible "ns:"
+      .split(".");
     let cursor = out;
     while (pathParts.length) {
       const seg = pathParts.shift();
       if (!seg) break;
-      if (!cursor[seg]) cursor[seg] = pathParts.length ? {} : '';
+      if (!cursor[seg]) cursor[seg] = pathParts.length ? {} : "";
       cursor = cursor[seg];
     }
   }
@@ -109,16 +120,16 @@ function fromDotToNested(keys) {
 }
 
 function matchIgnored(key) {
-  return IGNORE_PATTERNS.some(re => re.test(key));
+  return IGNORE_PATTERNS.some((re) => re.test(key));
 }
 
 // -------------------------------------------------------------------------------------------------
 // 1) Load translation dictionaries (all namespaces)
 // -------------------------------------------------------------------------------------------------
-log('🔍 Scanning i18n dictionaries...\n');
+log("🔍 Scanning i18n dictionaries...\n");
 
 const dictionaries = {}; // { en: Set(keys), ar: Set(keys) }
-const byLangNs = {};     // { en: { nsName: Set(keys) }, ... }
+const byLangNs = {}; // { en: { nsName: Set(keys) }, ... }
 
 for (const lang of LANGS) {
   dictionaries[lang] = new Set();
@@ -126,7 +137,7 @@ for (const lang of LANGS) {
 
   const fileSet = new Set();
   for (const dir of LOCALE_DIRS) {
-    const pattern = path.join(dir, lang, '**/*.json');
+    const pattern = path.join(dir, lang, "**/*.json");
     for (const match of glob.sync(pattern, { dot: false, nodir: true })) {
       fileSet.add(match);
     }
@@ -139,15 +150,17 @@ for (const lang of LANGS) {
   const files = [...fileSet];
 
   if (!files.length) {
-    warn(`⚠️  No locale files found for "${lang}" in ${[...LOCALE_DIRS, ROOT_LOCALE_FALLBACK].join(', ')}`);
+    warn(
+      `⚠️  No locale files found for "${lang}" in ${[...LOCALE_DIRS, ROOT_LOCALE_FALLBACK].join(", ")}`,
+    );
   }
 
   for (const f of files) {
     try {
-      const json = JSON.parse(readFileSync(f, 'utf8'));
+      const json = JSON.parse(readFileSync(f, "utf8"));
       // flatten
       const flat = flattenObject(json);
-      const nsName = path.basename(f, '.json'); // common.json -> 'common'
+      const nsName = path.basename(f, ".json"); // common.json -> 'common'
       if (!byLangNs[lang][nsName]) byLangNs[lang][nsName] = new Set();
 
       for (const k of flat) {
@@ -160,40 +173,46 @@ for (const lang of LANGS) {
       warn(`⚠️  Failed to parse ${f}: ${e.message}`);
     }
   }
-  log(`✅ ${lang}: loaded ${dictionaries[lang].size} keys from ${files.length} file(s)`);
+  log(
+    `✅ ${lang}: loaded ${dictionaries[lang].size} keys from ${files.length} file(s)`,
+  );
 }
 
 // 1b) (Optional) Extract keys from TranslationContext.tsx as fallback
-const translationCtxPath = 'contexts/TranslationContext.tsx';
+const translationCtxPath = "contexts/TranslationContext.tsx";
 const extractLocaleBlock = (source, localeKey) => {
-  const baseIndex = source.indexOf('const baseTranslations');
+  const baseIndex = source.indexOf("const baseTranslations");
   const searchSpace = baseIndex >= 0 ? source.slice(baseIndex) : source;
   const keyIndex = searchSpace.indexOf(`${localeKey}:`);
-  if (keyIndex === -1) return '';
-  const braceStart = searchSpace.indexOf('{', keyIndex);
-  if (braceStart === -1) return '';
+  if (keyIndex === -1) return "";
+  const braceStart = searchSpace.indexOf("{", keyIndex);
+  if (braceStart === -1) return "";
   let depth = 0;
   for (let i = braceStart; i < searchSpace.length; i++) {
     const ch = searchSpace[i];
-    if (ch === '{') depth++;
-    else if (ch === '}') {
+    if (ch === "{") depth++;
+    else if (ch === "}") {
       depth--;
       if (depth === 0) {
         return searchSpace.slice(braceStart, i + 1);
       }
     }
   }
-  return '';
+  return "";
 };
 
 if (existsSync(translationCtxPath)) {
   try {
-    const content = readFileSync(translationCtxPath, 'utf8');
-    const arBlock = extractLocaleBlock(content, 'ar');
-    const enBlock = extractLocaleBlock(content, 'en');
+    const content = readFileSync(translationCtxPath, "utf8");
+    const arBlock = extractLocaleBlock(content, "ar");
+    const enBlock = extractLocaleBlock(content, "en");
     const keyRegex = /['"]([^'"]+)['"]\s*:/g;
-    const arKeys = arBlock ? [...arBlock.matchAll(keyRegex)].map(m => m[1]) : [];
-    const enKeys = enBlock ? [...enBlock.matchAll(keyRegex)].map(m => m[1]) : [];
+    const arKeys = arBlock
+      ? [...arBlock.matchAll(keyRegex)].map((m) => m[1])
+      : [];
+    const enKeys = enBlock
+      ? [...enBlock.matchAll(keyRegex)].map((m) => m[1])
+      : [];
 
     for (const k of enKeys) {
       dictionaries.en?.add(k);
@@ -204,57 +223,59 @@ if (existsSync(translationCtxPath)) {
       dictionaries.ar?.add(`common:${k}`);
     }
     if (enKeys.length || arKeys.length) {
-      log(`✅ TranslationContext fallback: EN +${enKeys.length}, AR +${arKeys.length}`);
+      log(
+        `✅ TranslationContext fallback: EN +${enKeys.length}, AR +${arKeys.length}`,
+      );
     }
   } catch (e) {
     warn(`⚠️  Failed to parse ${translationCtxPath}: ${e.message}`);
   }
 }
 
-const generatedTranslationsPath = 'i18n/new-translations.ts';
+const generatedTranslationsPath = "i18n/new-translations.ts";
 if (existsSync(generatedTranslationsPath)) {
   try {
-    const generated = readFileSync(generatedTranslationsPath, 'utf8');
+    const generated = readFileSync(generatedTranslationsPath, "utf8");
     const keyRegex = /'([^']+)'\s*:\s*'[^']*'/g;
     for (const match of generated.matchAll(keyRegex)) {
       const key = match[1];
       dictionaries.en?.add(key);
       dictionaries.ar?.add(key);
     }
-    log('✅ Loaded keys from i18n/new-translations.ts');
+    log("✅ Loaded keys from i18n/new-translations.ts");
   } catch (e) {
     warn(`⚠️  Failed to parse ${generatedTranslationsPath}: ${e.message}`);
   }
 }
 
-log('');
+log("");
 
 // -------------------------------------------------------------------------------------------------
 // 2) Scan source for used keys
 // -------------------------------------------------------------------------------------------------
 const sourceFiles = glob.sync(SRC_GLOB, {
   ignore: [
-    'node_modules/**',
-    '.next/**',
-    'out/**',
-    'build/**',
-    'dist/**',
-    'tests/**',
-    'e2e-test-results/**',
-    'playwright-report/**',
-    '**/*.test.*',
-    '**/*.spec.*'
-  ]
+    "node_modules/**",
+    ".next/**",
+    "out/**",
+    "build/**",
+    "dist/**",
+    "tests/**",
+    "e2e-test-results/**",
+    "playwright-report/**",
+    "**/*.test.*",
+    "**/*.spec.*",
+  ],
 });
 
 log(`📂 Scanning ${sourceFiles.length} source files...\n`);
 
 const usedKeys = new Map(); // key -> Set(files)
-const fileIssues = [];      // suspicious hardcoded text
+const fileIssues = []; // suspicious hardcoded text
 
 // Patterns to catch
-const RE_T_CALL = /\b(?:i18n\.)?t\s*\(\s*(['"`])([^'"`]+)\1/g;           // t('key') / i18n.t('key')
-const RE_TRANS_TAG = /<Trans[^>]*\bi18nKey\s*=\s*(['"`])([^'"`]+)\1/gi;   // <Trans i18nKey="key" />
+const RE_T_CALL = /\b(?:i18n\.)?t\s*\(\s*(['"`])([^'"`]+)\1/g; // t('key') / i18n.t('key')
+const RE_TRANS_TAG = /<Trans[^>]*\bi18nKey\s*=\s*(['"`])([^'"`]+)\1/gi; // <Trans i18nKey="key" />
 // Heuristic for suspicious hardcoded text in JSX
 const suspicious = [
   /<h[1-6][^>]*>\s*[A-Z][A-Za-z][^<]+<\/h[1-6]>/g,
@@ -265,7 +286,7 @@ const suspicious = [
 for (const file of sourceFiles) {
   let content;
   try {
-    content = readFileSync(file, 'utf8');
+    content = readFileSync(file, "utf8");
   } catch (e) {
     warn(`⚠️  Failed to read ${file}: ${e.message}`);
     continue;
@@ -316,10 +337,12 @@ for (const k of usedKeys.keys()) {
   if (matchIgnored(k)) continue;
 
   const variants = keyVariants(k);
-  const enHas = LANGS.includes('en') ? variants.some(v => dictionaries.en?.has(v)) : true;
+  const enHas = LANGS.includes("en")
+    ? variants.some((v) => dictionaries.en?.has(v))
+    : true;
 
   for (const lang of LANGS) {
-    const has = variants.some(v => dictionaries[lang]?.has(v));
+    const has = variants.some((v) => dictionaries[lang]?.has(v));
     if (!has) {
       // If English is missing AND lang is not en, we can choose whether to report.
       // Default: report both (they're missing anyway).
@@ -334,31 +357,34 @@ for (const k of usedKeys.keys()) {
 // -------------------------------------------------------------------------------------------------
 // 4) Report
 // -------------------------------------------------------------------------------------------------
-const divider = (c = '=') => c.repeat(80);
+const divider = (c = "=") => c.repeat(80);
 log(`\n${divider()}`);
-log('📊 SCAN RESULTS');
+log("📊 SCAN RESULTS");
 log(divider());
 
 for (const lang of LANGS) {
   log(`❌ Missing ${lang.toUpperCase()} translations: ${missing[lang].size}`);
 }
 
-if (LANGS.includes('en') && missing.en.size) {
-  log(`\n${divider('─')}\n❌ MISSING ENGLISH KEYS:\n${divider('─')}`);
-  [...missing.en].sort().forEach(k => log(`  - ${k}`));
+if (LANGS.includes("en") && missing.en.size) {
+  log(`\n${divider("─")}\n❌ MISSING ENGLISH KEYS:\n${divider("─")}`);
+  [...missing.en].sort().forEach((k) => log(`  - ${k}`));
 }
 for (const lang of LANGS) {
-  if (lang === 'en') continue;
+  if (lang === "en") continue;
   if (missing[lang].size) {
-    log(`\n${divider('─')}\n❌ MISSING ${lang.toUpperCase()} KEYS:\n${divider('─')}`);
-    [...missing[lang]].sort().forEach(k => log(`  - ${k}`));
+    log(
+      `\n${divider("─")}\n❌ MISSING ${lang.toUpperCase()} KEYS:\n${divider("─")}`,
+    );
+    [...missing[lang]].sort().forEach((k) => log(`  - ${k}`));
   }
 }
 
 if (fileIssues.length) {
-  log(`\n${divider('─')}\n⚠️  POTENTIAL HARDCODED TEXT:\n${divider('─')}`);
-  fileIssues.slice(0, 30).forEach(i => log(i));
-  if (fileIssues.length > 30) log(`  ... and ${fileIssues.length - 30} more files`);
+  log(`\n${divider("─")}\n⚠️  POTENTIAL HARDCODED TEXT:\n${divider("─")}`);
+  fileIssues.slice(0, 30).forEach((i) => log(i));
+  if (fileIssues.length > 30)
+    log(`  ... and ${fileIssues.length - 30} more files`);
 }
 
 log(`\n${divider()}\n`);
@@ -369,11 +395,13 @@ try {
   const artifact = {
     langs: LANGS,
     usedKeys: [...usedKeys.keys()],
-    missing: Object.fromEntries(Object.entries(missing).map(([l, s]) => [l, [...s].sort()])),
+    missing: Object.fromEntries(
+      Object.entries(missing).map(([l, s]) => [l, [...s].sort()]),
+    ),
     fileIssues,
     generatedAt: new Date().toISOString(),
   };
-  writeFileSync(OUTPUT, JSON.stringify(artifact, null, 2), 'utf8');
+  writeFileSync(OUTPUT, JSON.stringify(artifact, null, 2), "utf8");
   log(`📝 Wrote report → ${OUTPUT}`);
 } catch (e) {
   warn(`⚠️  Could not write report ${OUTPUT}: ${e.message}`);
@@ -386,7 +414,7 @@ if (FIX_MODE) {
     const outPath = `_artifacts/i18n-missing.${lang}.json`;
     mkdirSync(path.dirname(outPath), { recursive: true });
     const nested = fromDotToNested(missing[lang]);
-    writeFileSync(outPath, JSON.stringify(nested, null, 2), 'utf8');
+    writeFileSync(outPath, JSON.stringify(nested, null, 2), "utf8");
     log(`🧩 Wrote missing skeleton → ${outPath}`);
   }
 }
@@ -394,11 +422,13 @@ if (FIX_MODE) {
 // -------------------------------------------------------------------------------------------------
 // 5) Exit
 // -------------------------------------------------------------------------------------------------
-const anyMissing = LANGS.some(l => missing[l].size > 0);
+const anyMissing = LANGS.some((l) => missing[l].size > 0);
 if (anyMissing && STRICT) {
-  err('❌ FAILED: Missing translation keys detected.\n   Add these keys to your translation dictionaries or run with --fix to generate skeletons.\n');
+  err(
+    "❌ FAILED: Missing translation keys detected.\n   Add these keys to your translation dictionaries or run with --fix to generate skeletons.\n",
+  );
   process.exit(1);
 }
 
-log('✅ PASSED: All translation keys are defined (or STRICT mode disabled)\n');
+log("✅ PASSED: All translation keys are defined (or STRICT mode disabled)\n");
 process.exit(0);

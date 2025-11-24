@@ -3,14 +3,14 @@
  * @route /api/souq/reviews
  */
 
-import { NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
-import type { NextRequest } from 'next/server';
-import { z } from 'zod';
-import { connectDb } from '@/lib/mongodb-unified';
-import { getServerSession } from '@/lib/auth/getServerSession';
-import { reviewService } from '@/services/souq/reviews/review-service';
-import { SouqReview } from '@/server/models/souq/Review';
+import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import type { NextRequest } from "next/server";
+import { z } from "zod";
+import { connectDb } from "@/lib/mongodb-unified";
+import { getServerSession } from "@/lib/auth/getServerSession";
+import { reviewService } from "@/services/souq/reviews/review-service";
+import { SouqReview } from "@/server/models/souq/Review";
 
 const reviewCreateSchema = z.object({
   productId: z.string().min(1),
@@ -26,18 +26,18 @@ const reviewCreateSchema = z.object({
       z.object({
         url: z.string().url(),
         caption: z.string().max(200).optional(),
-      })
+      }),
     )
     .max(5)
     .optional(),
 });
 
 const reviewListQuerySchema = z.object({
-  status: z.enum(['pending', 'published', 'rejected', 'flagged']).optional(),
+  status: z.enum(["pending", "published", "rejected", "flagged"]).optional(),
   rating: z.coerce.number().int().min(1).max(5).optional(),
   verifiedOnly: z
-    .union([z.literal('true'), z.literal('false')])
-    .transform((val) => val === 'true')
+    .union([z.literal("true"), z.literal("false")])
+    .transform((val) => val === "true")
     .optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession();
     if (!session?.user) {
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
+        { error: "Unauthorized", message: "Authentication required" },
+        { status: 401 },
       );
     }
 
@@ -62,7 +62,8 @@ export async function POST(request: NextRequest) {
     const review = await reviewService.submitReview(orgId, {
       ...payload,
       customerId: session.user.id,
-      customerName: payload.customerName ?? session.user.name ?? 'Marketplace Customer',
+      customerName:
+        payload.customerName ?? session.user.name ?? "Marketplace Customer",
     });
 
     return NextResponse.json(
@@ -70,20 +71,23 @@ export async function POST(request: NextRequest) {
         success: true,
         data: review,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', issues: error.issues },
-        { status: 400 }
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
       );
     }
 
-    logger.error('Review creation error:', error as Error);
+    logger.error("Review creation error:", error as Error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create review' },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to create review",
+      },
+      { status: 500 },
     );
   }
 }
@@ -93,8 +97,8 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession();
     if (!session?.user) {
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 }
+        { error: "Unauthorized", message: "Authentication required" },
+        { status: 401 },
       );
     }
 
@@ -102,11 +106,11 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const parsed = reviewListQuerySchema.parse({
-      status: searchParams.get('status') ?? undefined,
-      rating: searchParams.get('rating') ?? undefined,
-      verifiedOnly: searchParams.get('verifiedOnly') ?? undefined,
-      page: searchParams.get('page') ?? undefined,
-      limit: searchParams.get('limit') ?? undefined,
+      status: searchParams.get("status") ?? undefined,
+      rating: searchParams.get("rating") ?? undefined,
+      verifiedOnly: searchParams.get("verifiedOnly") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
     });
 
     const query: Record<string, unknown> = {
@@ -140,15 +144,15 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', issues: error.issues },
-        { status: 400 }
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
       );
     }
 
-    logger.error('Review fetch error:', error as Error);
+    logger.error("Review fetch error:", error as Error);
     return NextResponse.json(
-      { error: 'Failed to fetch reviews' },
-      { status: 500 }
+      { error: "Failed to fetch reviews" },
+      { status: 500 },
     );
   }
 }

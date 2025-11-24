@@ -1,15 +1,15 @@
-import { Schema, model, models, Types, Model } from 'mongoose';
-import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
-import { auditPlugin } from '../../plugins/auditPlugin';
+import { Schema, model, models, Types, Model } from "mongoose";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
 
 export type MarketplaceOrderStatus =
-  | 'CART'
-  | 'PENDING'
-  | 'APPROVAL'
-  | 'CONFIRMED'
-  | 'FULFILLED'
-  | 'DELIVERED'
-  | 'CANCELLED';
+  | "CART"
+  | "PENDING"
+  | "APPROVAL"
+  | "CONFIRMED"
+  | "FULFILLED"
+  | "DELIVERED"
+  | "CANCELLED";
 
 export interface MarketplaceOrderLine {
   productId: Types.ObjectId;
@@ -49,7 +49,7 @@ export interface MarketplaceOrder {
   source?: MarketplaceOrderSource;
   approvals?: {
     required: boolean;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    status: "PENDING" | "APPROVED" | "REJECTED";
     approverIds?: Types.ObjectId[];
   };
   createdAt: Date;
@@ -59,44 +59,60 @@ export interface MarketplaceOrder {
 const OrderSchema = new Schema<MarketplaceOrder>(
   {
     // orgId will be added by tenantIsolationPlugin
-    buyerUserId: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
-    vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor' },
+    buyerUserId: { type: Schema.Types.ObjectId, required: true, ref: "User" },
+    vendorId: { type: Schema.Types.ObjectId, ref: "Vendor" },
     status: {
       type: String,
-      enum: ['CART', 'PENDING', 'APPROVAL', 'CONFIRMED', 'FULFILLED', 'DELIVERED', 'CANCELLED'],
-      default: 'CART'
+      enum: [
+        "CART",
+        "PENDING",
+        "APPROVAL",
+        "CONFIRMED",
+        "FULFILLED",
+        "DELIVERED",
+        "CANCELLED",
+      ],
+      default: "CART",
     },
     lines: [
       {
-        productId: { type: Schema.Types.ObjectId, required: true, ref: 'MarketplaceProduct' },
+        productId: {
+          type: Schema.Types.ObjectId,
+          required: true,
+          ref: "MarketplaceProduct",
+        },
         qty: { type: Number, required: true },
         price: { type: Number, required: true },
         currency: { type: String, required: true },
         uom: { type: String, required: true },
-        total: { type: Number, required: true }
-      }
+        total: { type: Number, required: true },
+      },
     ],
     totals: {
       subtotal: { type: Number, default: 0 },
       vat: { type: Number, default: 0 },
-      grand: { type: Number, default: 0 }
+      grand: { type: Number, default: 0 },
     },
-    currency: { type: String, default: 'SAR' },
+    currency: { type: String, default: "SAR" },
     shipTo: {
       address: { type: String },
       contact: { type: String },
-      phone: { type: String }
+      phone: { type: String },
     },
     source: {
-      workOrderId: { type: Schema.Types.ObjectId, ref: 'WorkOrder' }
+      workOrderId: { type: Schema.Types.ObjectId, ref: "WorkOrder" },
     },
     approvals: {
       required: { type: Boolean, default: false },
-      status: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED'], default: 'PENDING' },
-      approverIds: [{ type: Schema.Types.ObjectId, ref: 'User' }]
-    }
+      status: {
+        type: String,
+        enum: ["PENDING", "APPROVED", "REJECTED"],
+        default: "PENDING",
+      },
+      approverIds: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Apply plugins BEFORE indexes for proper tenant isolation
@@ -107,11 +123,10 @@ OrderSchema.plugin(auditPlugin);
 OrderSchema.index({ orgId: 1, buyerUserId: 1, status: 1 });
 OrderSchema.index({ orgId: 1, vendorId: 1, status: 1 });
 OrderSchema.index({ orgId: 1, status: 1, createdAt: -1 });
-OrderSchema.index({ orgId: 1, 'source.workOrderId': 1 });
+OrderSchema.index({ orgId: 1, "source.workOrderId": 1 });
 
 const OrderModel =
   (models.MarketplaceOrder as Model<MarketplaceOrder> | undefined) ||
-  model<MarketplaceOrder>('MarketplaceOrder', OrderSchema);
+  model<MarketplaceOrder>("MarketplaceOrder", OrderSchema);
 
 export default OrderModel;
-

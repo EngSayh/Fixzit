@@ -11,6 +11,7 @@
 ### Critical Finding: 96% Render Delay
 
 **LCP (Largest Contentful Paint): 10.7s**
+
 - TTFB (Time to First Byte): 0.5s (4%)
 - **Render Delay: 10.2s (96%)** ← THE PROBLEM
 
@@ -25,14 +26,15 @@ The HTML arrived quickly, but JavaScript execution blocked rendering for 10+ sec
 
 **Impact**: -35 points
 
-| Problem | Size | Impact |
-|---------|------|--------|
-| Next.js DevTools | 267 KB (175 KB unused) | 1,295ms execution |
-| Unminified bundles | All chunks | +3.3s boot time |
-| Source maps | Inline | +500ms parse |
-| React DevTools | Included | +300ms |
+| Problem            | Size                   | Impact            |
+| ------------------ | ---------------------- | ----------------- |
+| Next.js DevTools   | 267 KB (175 KB unused) | 1,295ms execution |
+| Unminified bundles | All chunks             | +3.3s boot time   |
+| Source maps        | Inline                 | +500ms parse      |
+| React DevTools     | Included               | +300ms            |
 
 **Why Development Mode is Slow**:
+
 - All bundles are unminified (5-10x larger)
 - DevTools code is included (175 KB wasted)
 - Source maps are inline (not external)
@@ -58,30 +60,33 @@ lighthouse http://localhost:3000
 
 **Impact**: -10 points
 
-| File | Size | Parse Time | Used? |
-|------|------|-----------|-------|
-| en.ts | ~500 KB | 75ms | Yes (for English pages) |
-| ar.ts | ~500 KB | 101ms | **No** (not used on English pages) |
+| File  | Size    | Parse Time | Used?                              |
+| ----- | ------- | ---------- | ---------------------------------- |
+| en.ts | ~500 KB | 75ms       | Yes (for English pages)            |
+| ar.ts | ~500 KB | 101ms      | **No** (not used on English pages) |
 
 **Problem**:
+
 ```tsx
 // OLD CODE (loads both dictionaries)
-import en from './dictionaries/en';
-import ar from './dictionaries/ar';
+import en from "./dictionaries/en";
+import ar from "./dictionaries/ar";
 
 const DICTIONARIES = { en, ar }; // Both loaded on every page!
 ```
 
 **Solution**: Dynamic imports (implemented)
+
 ```tsx
 // NEW CODE (loads only active locale)
 const DICTIONARIES = {
-  en: () => import('./dictionaries/en'),
-  ar: () => import('./dictionaries/ar'),
+  en: () => import("./dictionaries/en"),
+  ar: () => import("./dictionaries/ar"),
 };
 ```
 
-**Savings**: 
+**Savings**:
+
 - 250 KB less JavaScript
 - 100ms less parse time
 - LCP improvement: -800ms
@@ -98,15 +103,16 @@ const DICTIONARIES = {
 
 ```tsx
 // BEFORE: Loaded upfront (adds to initial bundle)
-import HeavyChart from '@/components/HeavyChart';
+import HeavyChart from "@/components/HeavyChart";
 
 // AFTER: Loaded on-demand (splits into separate chunk)
-const HeavyChart = dynamic(() => import('@/components/HeavyChart'), {
+const HeavyChart = dynamic(() => import("@/components/HeavyChart"), {
   loading: () => <Skeleton />,
 });
 ```
 
 **Apply to**:
+
 - Dashboard charts
 - Rich text editors
 - Complex forms
@@ -119,11 +125,11 @@ const HeavyChart = dynamic(() => import('@/components/HeavyChart'), {
 
 **Impact**: -5 points
 
-| File | Total | Unused | % Waste |
-|------|-------|--------|---------|
-| next-devtools | 267 KB | 175 KB | 66% |
-| node_modules chunks | 149 KB | 72 KB | 48% |
-| components | 54 KB | 27 KB | 50% |
+| File                | Total  | Unused | % Waste |
+| ------------------- | ------ | ------ | ------- |
+| next-devtools       | 267 KB | 175 KB | 66%     |
+| node_modules chunks | 149 KB | 72 KB  | 48%     |
+| components          | 54 KB  | 27 KB  | 50%     |
 
 **Root Cause**: Tree-shaking not working perfectly in dev mode.
 
@@ -139,7 +145,7 @@ const HeavyChart = dynamic(() => import('@/components/HeavyChart'), {
 
 ```html
 <!-- Blocks rendering until loaded -->
-<link rel="stylesheet" href="/app_globals.css">
+<link rel="stylesheet" href="/app_globals.css" />
 ```
 
 **Solution**: Critical CSS inline + defer rest (Next.js handles this in production).
@@ -151,6 +157,7 @@ const HeavyChart = dynamic(() => import('@/components/HeavyChart'), {
 ### 1. ✅ Optimized next.config.js
 
 **Changes**:
+
 ```javascript
 experimental: {
   optimizePackageImports: [
@@ -188,6 +195,7 @@ config.optimization = {
 ### 2. ✅ Lazy Load i18n Dictionaries
 
 **Changes**:
+
 ```tsx
 // i18n/I18nProvider.tsx
 - import en from './dictionaries/en';
@@ -210,12 +218,14 @@ config.optimization = {
 ## 🎯 Expected Results After Fixes
 
 ### Before (Development Mode):
+
 - **Score**: 48/100
 - **LCP**: 10.7s
 - **TBT**: 1,850ms
 - **FCP**: 0.9s
 
 ### After (Production Mode + Fixes):
+
 - **Score**: 85-90/100 (estimated)
 - **LCP**: 2.0-2.5s (-8s improvement!)
 - **TBT**: 200-300ms (-1.5s improvement!)
@@ -234,11 +244,13 @@ config.optimization = {
 ### Next Steps (For Production)
 
 1. **Run Production Build Lighthouse Test**
+
    ```bash
    pnpm build
    pnpm start
    lighthouse http://localhost:3000 --view
    ```
+
    **Expected**: 80-85/100 score
 
 2. **Implement Dynamic Imports** (if score < 85)
@@ -247,20 +259,22 @@ config.optimization = {
    - Rich text editor: `dynamic(() => import('@/components/RichTextEditor'))`
 
 3. **Enable Image Optimization**
+
    ```tsx
    // Use Next.js Image component
-   import Image from 'next/image';
-   
+   import Image from "next/image";
+
    <Image
      src="/property.jpg"
      width={800}
      height={600}
      alt="Property"
      loading="lazy" // Lazy load images below fold
-   />
+   />;
    ```
 
 4. **Add Resource Hints**
+
    ```tsx
    // In layout.tsx
    <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -281,6 +295,7 @@ config.optimization = {
 **It wasn't stuck!** It was correctly waiting for the page to become interactive.
 
 **Timeline**:
+
 - 0.0s: Request sent
 - 0.5s: HTML received (TTFB)
 - 0.5s-10.7s: **JavaScript parsing/execution** (96% of LCP time!)
@@ -293,13 +308,13 @@ config.optimization = {
 
 ## 📈 Performance Budget (Target)
 
-| Metric | Target | Current | Status |
-|--------|--------|---------|--------|
-| LCP | < 2.5s | 10.7s | 🔴 |
-| FCP | < 1.8s | 0.9s | 🟢 |
-| TBT | < 200ms | 1,850ms | 🔴 |
-| CLS | < 0.1 | 0 | 🟢 |
-| TTI | < 3.8s | 11.1s | 🔴 |
+| Metric | Target  | Current | Status |
+| ------ | ------- | ------- | ------ |
+| LCP    | < 2.5s  | 10.7s   | 🔴     |
+| FCP    | < 1.8s  | 0.9s    | 🟢     |
+| TBT    | < 200ms | 1,850ms | 🔴     |
+| CLS    | < 0.1   | 0       | 🟢     |
+| TTI    | < 3.8s  | 11.1s   | 🔴     |
 
 ---
 

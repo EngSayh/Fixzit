@@ -1,6 +1,7 @@
 # Finance Pack Integration - Comprehensive TODO
 
 ## Status: NOT YET STARTED
+
 **Last Updated:** Phase 3 Completion  
 **Priority:** HIGH (Major Feature)  
 **Estimated Time:** 3-4 hours
@@ -12,6 +13,7 @@
 The Finance Pack is a complete double-entry accounting system designed for Saudi market compliance with multi-currency support, escrow management, and integration with Aqar (real estate) and Marketplace modules.
 
 ### Current State
+
 - ✅ Basic invoice service exists: `server/finance/invoice.service.ts`
 - ✅ Basic invoice schema exists: `server/finance/invoice.schema.ts`
 - ✅ Finance UI pages exist: `app/finance/` directory
@@ -27,6 +29,7 @@ The Finance Pack is a complete double-entry accounting system designed for Saudi
 ### Core Accounting Models (NOT YET CREATED)
 
 1. **ChartAccount** (`server/models/finance/ChartAccount.ts`)
+
    ```typescript
    {
      orgId: ObjectId,
@@ -43,6 +46,7 @@ The Finance Pack is a complete double-entry accounting system designed for Saudi
    ```
 
 2. **Journal** (`server/models/finance/Journal.ts`)
+
    ```typescript
    {
      orgId: ObjectId,
@@ -78,6 +82,7 @@ The Finance Pack is a complete double-entry accounting system designed for Saudi
 3. **LedgerEntry** (`server/models/finance/LedgerEntry.ts`)
    - Immutable records created from posted Journals
    - Used for generating Trial Balance, Income Statement, Balance Sheet
+
    ```typescript
    {
      orgId: ObjectId,
@@ -95,6 +100,7 @@ The Finance Pack is a complete double-entry accounting system designed for Saudi
    ```
 
 4. **EscrowAccount** (`server/models/finance/EscrowAccount.ts`)
+
    ```typescript
    {
      orgId: ObjectId,
@@ -118,6 +124,7 @@ The Finance Pack is a complete double-entry accounting system designed for Saudi
    ```
 
 5. **Payment** (`server/models/finance/Payment.ts`)
+
    ```typescript
    {
      orgId: ObjectId,
@@ -210,66 +217,89 @@ The Finance Pack is a complete double-entry accounting system designed for Saudi
 ## Event → Journal Posting Mappings
 
 ### 1. Rent Invoice Generated
+
 ```typescript
 // Dr: Accounts Receivable (propertyId dimension)
 // Cr: Rental Revenue (propertyId dimension)
 Postings: [
   { accountId: AR, debit: rentAmount, dimensions: { propertyId, leaseId } },
-  { accountId: RENTAL_REVENUE, credit: rentAmount, dimensions: { propertyId, leaseId } }
-]
+  {
+    accountId: RENTAL_REVENUE,
+    credit: rentAmount,
+    dimensions: { propertyId, leaseId },
+  },
+];
 ```
 
 ### 2. Rent Payment Received
+
 ```typescript
 // Dr: Bank Account
 // Cr: Accounts Receivable
 Postings: [
   { accountId: BANK_ACCOUNT, debit: amount },
-  { accountId: AR, credit: amount, dimensions: { propertyId, leaseId } }
-]
+  { accountId: AR, credit: amount, dimensions: { propertyId, leaseId } },
+];
 ```
 
 ### 3. Security Deposit Received
+
 ```typescript
 // Dr: Bank Account
 // Cr: Tenant Deposits Liability (escrow)
 Postings: [
   { accountId: BANK_ACCOUNT, debit: depositAmount },
-  { accountId: TENANT_DEPOSITS, credit: depositAmount, dimensions: { leaseId } }
-]
+  {
+    accountId: TENANT_DEPOSITS,
+    credit: depositAmount,
+    dimensions: { leaseId },
+  },
+];
 ```
 
 ### 4. Work Order Expense
+
 ```typescript
 // Dr: Maintenance Expense (propertyId dimension)
 // Cr: Accounts Payable or Cash
 Postings: [
-  { accountId: MAINTENANCE_EXPENSE, debit: expenseAmount, dimensions: { propertyId, workOrderId } },
-  { accountId: AP_OR_CASH, credit: expenseAmount, dimensions: { vendorId } }
-]
+  {
+    accountId: MAINTENANCE_EXPENSE,
+    debit: expenseAmount,
+    dimensions: { propertyId, workOrderId },
+  },
+  { accountId: AP_OR_CASH, credit: expenseAmount, dimensions: { vendorId } },
+];
 ```
 
 ### 5. Owner Payout
+
 ```typescript
 // Dr: Rental Revenue (reduce owner's share)
 // Cr: Owner Payable
 Postings: [
   { accountId: RENTAL_REVENUE, debit: ownerShare, dimensions: { propertyId } },
-  { accountId: OWNER_PAYABLE, credit: ownerShare, dimensions: { propertyId } }
-]
+  { accountId: OWNER_PAYABLE, credit: ownerShare, dimensions: { propertyId } },
+];
 ```
 
 ### 6. Marketplace Order Escrow
+
 ```typescript
 // Dr: Cash (buyer payment)
 // Cr: Marketplace Escrow Liability
 Postings: [
   { accountId: BANK_ACCOUNT, debit: orderTotal },
-  { accountId: MARKETPLACE_ESCROW, credit: orderTotal, dimensions: { orderId } }
-]
+  {
+    accountId: MARKETPLACE_ESCROW,
+    credit: orderTotal,
+    dimensions: { orderId },
+  },
+];
 ```
 
 ### 7. Marketplace Order Settlement
+
 ```typescript
 // Dr: Marketplace Escrow Liability
 // Dr: Commission Expense
@@ -279,8 +309,8 @@ Postings: [
   { accountId: MARKETPLACE_ESCROW, debit: orderTotal, dimensions: { orderId } },
   { accountId: COMMISSION_EXPENSE, debit: commission },
   { accountId: VENDOR_PAYABLE, credit: vendorPayout, dimensions: { vendorId } },
-  { accountId: COMMISSION_REVENUE, credit: commission }
-]
+  { accountId: COMMISSION_REVENUE, credit: commission },
+];
 ```
 
 ---
@@ -288,6 +318,7 @@ Postings: [
 ## Integration Points
 
 ### 1. Aqar Module Integration
+
 - `app/api/v1/aqar/leases/[id]/rent-invoices/generate` → POST
   - Trigger: Lease due date reached
   - Action: Call `aqarService.generateRentInvoices()`
@@ -299,12 +330,14 @@ Postings: [
   - Result: Payment recorded + Journal posted (DR: Cash, CR: AR)
 
 ### 2. Marketplace Module Integration
+
 - `app/api/v1/marketplace/orders/[id]/settle` → POST
   - Trigger: Order fulfilled + quality check passed
   - Action: Call `marketplaceService.settleOrder()`
   - Result: Escrow released + Vendor paid + Commission recorded
 
 ### 3. Work Order Module Integration
+
 - `app/api/v1/work-orders/[id]/expenses` → POST
   - Trigger: Expense submitted by technician
   - Action: Call `expenseService.create()` + link to WO
@@ -356,6 +389,7 @@ Default accounts to create on first setup:
 ## API Routes to Create
 
 ### Core Finance APIs
+
 - `POST /api/v1/finance/chart-accounts` - Create account
 - `GET /api/v1/finance/chart-accounts` - List accounts (with hierarchy)
 - `POST /api/v1/finance/journals` - Create journal entry
@@ -367,15 +401,18 @@ Default accounts to create on first setup:
 - `GET /api/v1/finance/reports/balance-sheet` - Balance sheet
 
 ### Payment APIs
+
 - `POST /api/v1/finance/payments` - Record payment
 - `POST /api/v1/finance/payments/:id/clear` - Clear payment
 
 ### Escrow APIs
+
 - `POST /api/v1/finance/escrow` - Create escrow account
 - `POST /api/v1/finance/escrow/:id/deposit` - Deposit funds
 - `POST /api/v1/finance/escrow/:id/release` - Release funds
 
 ### Integration APIs
+
 - `POST /api/v1/aqar/leases/:id/rent-invoices/generate` - Generate rent invoice
 - `POST /api/v1/aqar/leases/:id/payments` - Record rent payment
 - `POST /api/v1/marketplace/orders/:id/settle` - Settle marketplace order
@@ -386,20 +423,24 @@ Default accounts to create on first setup:
 ## UI Components to Create
 
 ### Finance Dashboard (`app/finance/page.tsx` - ENHANCE)
+
 - Key metrics: Total AR, Total AP, Cash balance, Monthly revenue
 - Charts: Revenue trend, Expense breakdown, AR aging
 
 ### Chart of Accounts (`app/finance/chart-accounts/page.tsx`)
+
 - Tree view of accounts hierarchy
 - Add/Edit/Deactivate accounts
 - Balance display per account
 
 ### Journal Entries (`app/finance/journals/page.tsx`)
+
 - List journals with filters (date, status, type)
 - Create manual journal entry
 - Post/Reverse actions
 
 ### Reports (`app/finance/reports/`)
+
 - Trial Balance
 - Income Statement (P&L)
 - Balance Sheet
@@ -412,24 +453,28 @@ Default accounts to create on first setup:
 ## Migration Strategy
 
 ### Phase 1: Setup (Week 1)
+
 1. Create all models with plugins (tenantIsolation + audit)
 2. Create seed script for Chart of Accounts
 3. Create postingService with balance validation
 4. Run migration on staging environment
 
 ### Phase 2: Core Integration (Week 2)
+
 1. Enhance invoiceService with GL posting
 2. Create paymentService with journal creation
 3. Create escrowService for deposits
 4. Add event listeners for Aqar rent cycle
 
 ### Phase 3: Marketplace Integration (Week 3)
+
 1. Add escrow to order creation
 2. Implement settlement workflow with journal posting
 3. Add commission calculation
 4. Test end-to-end order → payment → settlement
 
 ### Phase 4: Reporting (Week 4)
+
 1. Implement reportingService
 2. Create financial statements
 3. Add owner statement generation
@@ -440,17 +485,20 @@ Default accounts to create on first setup:
 ## Testing Requirements
 
 ### Unit Tests
+
 - Journal balance validation (debits = credits)
 - Currency conversion with fxRate
 - Reversal journal creation
 - Escrow release logic
 
 ### Integration Tests
+
 - Rent invoice → Payment → GL posting
 - Work order expense → GL posting with dimensions
 - Marketplace order → Escrow → Settlement → Vendor payout
 
 ### E2E Tests
+
 - Complete rent cycle (lease → invoice → payment → owner payout)
 - Complete marketplace order (create → pay → fulfill → settle)
 - Financial reports generation with real data
@@ -460,6 +508,7 @@ Default accounts to create on first setup:
 ## Configuration
 
 ### Environment Variables Required
+
 ```bash
 FINANCE_ENABLE_AUTO_POSTING=true        # Auto-post journals on invoice/payment
 FINANCE_BASE_CURRENCY=SAR               # Default currency

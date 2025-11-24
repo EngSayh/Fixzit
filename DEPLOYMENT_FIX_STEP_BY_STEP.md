@@ -2,13 +2,14 @@
 
 **Date**: November 21, 2025  
 **Issue**: Vercel cannot detect Next.js version  
-**Root Cause**: Nested directory structure causing confusion  
+**Root Cause**: Nested directory structure causing confusion
 
 ---
 
 ## 🔍 PROBLEM ANALYSIS
 
 ### Current Structure
+
 ```
 /Users/eng.sultanalhassni/Downloads/Fixzit/          ← Vercel is trying to build here
 ├── package.json                                      ← Has next@15.5.6 but minimal
@@ -25,6 +26,7 @@
 ```
 
 ### Why Vercel Fails
+
 1. Vercel runs at parent level `/Fixzit/`
 2. Installs parent `package.json` (269 packages)
 3. Tries to detect Next.js framework
@@ -38,6 +40,7 @@
 **The cleanest solution is Option 2**: Configure Vercel to treat `Fixzit` as the root directory.
 
 ### Why This Works
+
 - Vercel will work directly in the `/Fixzit/Fixzit/` folder
 - Proper `package.json` with all dependencies
 - Proper `next.config.js` is detected
@@ -156,7 +159,7 @@ These are referenced in your code but may be missing:
 ### **STEP 5: Deploy to Production**
 
 1. **Trigger a new deployment**:
-   
+
    **Option A: Via Vercel Dashboard (Recommended)**
    - Go to: https://vercel.com/fixzit/fixzit
    - Click **"Deployments"** tab
@@ -165,6 +168,7 @@ These are referenced in your code but may be missing:
    - Click **"Deploy"**
 
    **Option B: Via CLI**
+
    ```bash
    cd /Users/eng.sultanalhassni/Downloads/Fixzit
    vercel --cwd Fixzit --prod --yes
@@ -210,9 +214,11 @@ These are referenced in your code but may be missing:
    - Should load data from MongoDB Atlas
 
 5. **Check Vercel logs for errors**:
+
    ```bash
    vercel logs https://fixzit.co --follow
    ```
+
    - Look for MongoDB connection confirmation
    - Should see successful queries, not errors
 
@@ -225,12 +231,14 @@ These are referenced in your code but may be missing:
 ### If Build Still Fails
 
 **Check 1: Verify Root Directory**
+
 ```bash
 # In Vercel Dashboard
 Settings → General → Root Directory = "Fixzit"
 ```
 
 **Check 2: Clear Vercel Cache**
+
 ```bash
 cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
 rm -rf .next .vercel
@@ -238,6 +246,7 @@ vercel --cwd . --prod --yes --force
 ```
 
 **Check 3: Verify package.json location**
+
 ```bash
 ls -la /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/package.json
 # Should show the file exists with next@15.5.6
@@ -248,17 +257,21 @@ ls -la /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/package.json
 ### If MongoDB Connection Fails
 
 **Check 1: Connection String Format**
+
 ```
 mongodb+srv://<user>:<password>@<host>/<db>?retryWrites=true&w=majority&appName=Fixzit
 ```
+
 - Note: Password has `%40` (URL-encoded `@`)
 
 **Check 2: Atlas Network Access**
+
 ```
 MongoDB Atlas → Security → Network Access → Should show 0.0.0.0/0
 ```
 
 **Check 3: Database User Permissions**
+
 ```
 MongoDB Atlas → Security → Database Access
 Username: EngSayh (or fixzitadmin)
@@ -266,6 +279,7 @@ Should have "readWrite" role on "fixzit" database
 ```
 
 **Check 4: Test Connection Locally**
+
 ```bash
 cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
 echo 'MONGODB_URI=mongodb+srv://EngSayh:EngSayh%401985@fixzit.vgfiiff.mongodb.net/fixzit' > .env.local
@@ -280,6 +294,7 @@ pnpm dev
 **Issue**: Commits to GitHub don't trigger deployments
 
 **Fix**:
+
 1. Go to: https://vercel.com/fixzit/fixzit/settings/git
 2. Verify:
    - ✅ **Git Provider**: GitHub
@@ -290,6 +305,7 @@ pnpm dev
 5. Select **EngSayh/Fixzit** repository
 
 **Test Auto-Deploy**:
+
 ```bash
 cd /Users/eng.sultanalhassni/Downloads/Fixzit
 git commit --allow-empty -m "test: verify auto-deploy"
@@ -331,6 +347,7 @@ After completing all steps:
 ## 🚨 CRITICAL FILES AFTER FIX
 
 ### Files Vercel Will Use (in Fixzit/ subdirectory):
+
 - ✅ `Fixzit/package.json` - Full dependencies including next@15.5.6
 - ✅ `Fixzit/pnpm-lock.yaml` - Complete lockfile
 - ✅ `Fixzit/next.config.js` - Next.js configuration
@@ -339,6 +356,7 @@ After completing all steps:
 - ✅ `Fixzit/components/` - React components
 
 ### Files Vercel Will IGNORE (in parent directory):
+
 - ⚠️ `/package.json` - Parent wrapper (not used after setting root dir)
 - ⚠️ `/vercel.json` - Parent config (not used after setting root dir)
 - ⚠️ `/pnpm-lock.yaml` - Parent lockfile (not used after setting root dir)
@@ -367,6 +385,7 @@ After completing all steps:
 ## 🎓 UNDERSTANDING THE FIX
 
 **Why Setting Root Directory Works**:
+
 - Vercel treats `Fixzit/` as the project root
 - All paths are relative to `Fixzit/`
 - `package.json` is found at project root (Fixzit/package.json)
@@ -375,12 +394,14 @@ After completing all steps:
 - No custom commands needed - Vercel uses defaults
 
 **Alternative Approach (Not Recommended)**:
+
 - Keep parent as root, use complex vercel.json with custom commands
 - More error-prone, harder to maintain
 - Requires synchronized package.json files
 - Can cause caching issues
 
 **Our Chosen Approach (Recommended)**:
+
 - Set root directory to where the app actually is
 - Simple, clean, follows Vercel best practices
 - Framework auto-detection works perfectly
