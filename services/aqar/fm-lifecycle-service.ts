@@ -17,9 +17,17 @@ const isDevEnvironment = ["development", "test"].includes(
   process.env.NODE_ENV || "",
 );
 
+// Skip ZATCA validation during build time (when DISABLE_MONGODB_FOR_BUILD is set)
+const isBuildTime = process.env.DISABLE_MONGODB_FOR_BUILD === "true";
+
 type ZatcaConfig = { sellerName: string; vatNumber: string } | null;
 
 const validateZatcaConfig = (): ZatcaConfig => {
+  // Skip validation during build time
+  if (isBuildTime) {
+    return null;
+  }
+
   const sellerName = process.env.ZATCA_SELLER_NAME?.trim();
   const vatNumber = process.env.ZATCA_VAT_NUMBER?.trim();
   const vatPattern = /^\d{15}$/;
