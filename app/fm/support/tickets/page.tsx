@@ -54,8 +54,8 @@ function SupportTicketsContent({ orgId, supportBanner }: SupportTicketsContentPr
       });
 
   const { data, mutate, isLoading } = useSWR(
-    orgId ? `/api/support/tickets?status=${status}&priority=${priority}` : null,
-    fetcher
+    orgId ? [`/api/support/tickets?status=${status}&priority=${priority}`, orgId] : null,
+    ([url]) => fetcher(url)
   );
 
   const updateTicket = async (id: string, updates: { status?: string }) => {

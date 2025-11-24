@@ -65,8 +65,8 @@ export default function PropertiesPage() {
   };
 
   const { data, mutate, isLoading } = useSWR(
-    orgId ? `/api/properties?search=${encodeURIComponent(search)}&type=${typeFilter}` : null,
-    fetcher
+    orgId ? [`/api/properties?search=${encodeURIComponent(search)}&type=${typeFilter}`, orgId] : null,
+    ([url]) => fetcher(url)
   );
 
   if (!session) {

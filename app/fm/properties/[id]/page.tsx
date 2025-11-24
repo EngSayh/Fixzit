@@ -111,8 +111,8 @@ function PropertyDetailsContent({ orgId, supportBanner }: PropertyDetailsContent
   };
 
   const { data: property, error, isLoading } = useSWR(
-    orgId && params?.id ? `/api/properties/${params.id}` : null, 
-    fetcher
+    orgId && params?.id ? [`/api/properties/${params.id}`, orgId] : null, 
+    ([url]) => fetcher(url)
   );
 
   if (!session) return <CardGridSkeleton count={3} />;

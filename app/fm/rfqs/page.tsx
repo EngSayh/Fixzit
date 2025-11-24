@@ -87,8 +87,8 @@ function RFQsContent({ orgId, supportBanner }: RFQsContentProps) {
       });
 
   const { data, mutate, isLoading } = useSWR(
-    orgId ? `/api/rfqs?search=${encodeURIComponent(search)}&status=${statusFilter}&category=${categoryFilter}` : null,
-    fetcher
+    orgId ? [`/api/rfqs?search=${encodeURIComponent(search)}&status=${statusFilter}&category=${categoryFilter}`, orgId] : null,
+    ([url]) => fetcher(url)
   );
 
   if (!session) {

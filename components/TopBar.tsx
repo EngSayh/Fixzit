@@ -135,7 +135,9 @@ function useSafeFormState(): FormStateContextValue {
       throw error;
     }
     if (process.env.NODE_ENV === 'development') {
-      logger.debug('FormStateProvider missing - using no-op fallback for TopBar', { error });
+      logger.debug('FormStateProvider missing - using no-op fallback for TopBar', { 
+        errorMessage: error instanceof Error ? error.message : String(error) 
+      });
     }
     return createFormStateFallback();
   }
@@ -150,7 +152,9 @@ function useSafeTopBar(): TopBarContextValue {
       throw error;
     }
     if (process.env.NODE_ENV === 'development') {
-      logger.debug('TopBarProvider missing - using fallback labels for TopBar', { error });
+      logger.debug('TopBarProvider missing - using fallback labels for TopBar', { 
+        errorMessage: error instanceof Error ? error.message : String(error) 
+      });
     }
     return topBarFallback;
   }
@@ -165,7 +169,9 @@ function useSafeResponsive(): ResponsiveContextValue {
       throw error;
     }
     if (process.env.NODE_ENV === 'development') {
-      logger.debug('ResponsiveProvider missing - using desktop fallback for TopBar', { error });
+      logger.debug('ResponsiveProvider missing - using desktop fallback for TopBar', { 
+        errorMessage: error instanceof Error ? error.message : String(error) 
+      });
     }
     return responsiveFallback;
   }

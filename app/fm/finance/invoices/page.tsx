@@ -105,11 +105,11 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
 
   const { data, mutate, isLoading } = useSWR(
     orgId
-      ? `/api/finance/invoices?q=${encodeURIComponent(search)}&status=${statusFilter}&type=${typeFilter}&page=${currentPage}&limit=${itemsPerPage}&org=${encodeURIComponent(
+      ? [`/api/finance/invoices?q=${encodeURIComponent(search)}&status=${statusFilter}&type=${typeFilter}&page=${currentPage}&limit=${itemsPerPage}&org=${encodeURIComponent(
           orgId
-        )}`
+        )}`, orgId]
       : null,
-    fetcher
+    ([url]) => fetcher(url)
   );
 
   if (!session) {

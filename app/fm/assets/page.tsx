@@ -76,8 +76,8 @@ function AssetsPageContent({ orgId, supportBanner }: AssetsPageContentProps) {
   };
 
   const { data, mutate, isLoading } = useSWR(
-    orgId ? `/api/assets?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}` : null,
-    fetcher
+    orgId ? [`/api/assets?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}`, orgId] : null,
+    ([url]) => fetcher(url)
   );
 
   const assets = data?.items || [];

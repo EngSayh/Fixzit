@@ -79,8 +79,8 @@ function ProjectsContent({ orgId, supportBanner }: ProjectsContentProps) {
       });
 
   const { data, mutate, isLoading } = useSWR(
-    orgId ? `/api/projects?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}` : null,
-    fetcher
+    orgId ? [`/api/projects?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}`, orgId] : null,
+    ([url]) => fetcher(url)
   );
 
   const projects = data?.items || [];

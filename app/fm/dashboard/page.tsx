@@ -115,10 +115,10 @@ function DashboardContent({ orgId, supportBanner }: DashboardContentProps) {
       });
 
   // Fetch dashboard data
-  const { data: workOrders } = useSWR(orgId ? '/api/work-orders?limit=5' : null, fetcher);
-  const { data: properties } = useSWR(orgId ? '/api/properties?limit=5' : null, fetcher);
-  const { data: assets } = useSWR(orgId ? '/api/assets?status=MAINTENANCE&limit=5' : null, fetcher);
-  const { data: invoices } = useSWR(orgId ? '/api/finance/invoices?status=OVERDUE&limit=5' : null, fetcher);
+  const { data: workOrders } = useSWR(orgId ? ['/api/work-orders?limit=5', orgId] : null, ([url]) => fetcher(url));
+  const { data: properties } = useSWR(orgId ? ['/api/properties?limit=5', orgId] : null, ([url]) => fetcher(url));
+  const { data: assets } = useSWR(orgId ? ['/api/assets?status=MAINTENANCE&limit=5', orgId] : null, ([url]) => fetcher(url));
+  const { data: invoices } = useSWR(orgId ? ['/api/finance/invoices?status=OVERDUE&limit=5', orgId] : null, ([url]) => fetcher(url));
 
   // isLoading computed but unused - keep for future loading states
   // const isLoading = woLoading || propsLoading || assetsLoading || invoicesLoading;

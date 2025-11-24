@@ -88,8 +88,8 @@ function TenantsContent({ orgId, supportBanner }: TenantsContentProps) {
       });
 
   const { data, mutate, isLoading, error } = useSWR(
-    orgId ? `/api/tenants?search=${encodeURIComponent(search)}&type=${typeFilter}` : null,
-    fetcher
+    orgId ? [`/api/tenants?search=${encodeURIComponent(search)}&type=${typeFilter}`, orgId] : null,
+    ([url]) => fetcher(url)
   );
 
   if (!session) {
