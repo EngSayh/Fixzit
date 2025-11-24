@@ -208,11 +208,13 @@ const nextConfig = {
       };
     }
 
-    // Silence critical-dependency noise from @opentelemetry instrumentation (third-party issue)
+    // Silence critical-dependency noise from @opentelemetry and @sentry instrumentation (third-party issues)
     config.ignoreWarnings = [
       ...(config.ignoreWarnings || []),
       /@opentelemetry\/instrumentation\/build\/esm\/platform\/node\/instrumentation\.js/,
-      /Critical dependency: the request of a dependency is an expression/,
+      // Suppress expression-based dependency warnings only from known vendor packages
+      /node_modules[\\/]@opentelemetry[\\/].*Critical dependency.*expression/,
+      /node_modules[\\/]@sentry[\\/].*Critical dependency.*expression/,
     ];
     
     config.resolve.fallback = {

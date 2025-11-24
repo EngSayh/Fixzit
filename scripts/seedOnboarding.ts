@@ -56,7 +56,16 @@ async function seedOnboarding() {
       },
     ],
     { ordered: false },
-  ).catch(() => {});
+  ).catch((error: any) => {
+    // Ignore duplicate key errors but surface anything else
+    const isDup =
+      error?.code === 11000 ||
+      (Array.isArray(error?.writeErrors) &&
+        error.writeErrors.every((e: any) => e?.code === 11000));
+    if (!isDup) {
+      throw error;
+    }
+  });
 
   await DocumentProfile.insertMany(
     [
@@ -67,7 +76,16 @@ async function seedOnboarding() {
       { role: 'PROPERTY_OWNER', country: 'SA', required_doc_codes: ['NATIONAL_ID'] },
     ],
     { ordered: false },
-  ).catch(() => {});
+  ).catch((error: any) => {
+    // Ignore duplicate key errors but surface anything else
+    const isDup =
+      error?.code === 11000 ||
+      (Array.isArray(error?.writeErrors) &&
+        error.writeErrors.every((e: any) => e?.code === 11000));
+    if (!isDup) {
+      throw error;
+    }
+  });
 
   await mongoose.disconnect();
 }

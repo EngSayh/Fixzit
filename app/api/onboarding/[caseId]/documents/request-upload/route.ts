@@ -50,7 +50,17 @@ export async function POST(
     }
 
     const docType = await DocumentType.findOne({ code: document_type_code }).lean();
-    const contentType = mime_type || docType?.allowed_mime_types?.[0] || 'application/octet-stream';
+    if (!docType) {
+      return NextResponse.json({ error: 'Unknown document type' }, { status: 400 });
+    }
+
+    // Validate requested mime_type against allowed types
+    const requestedType = mime_type ?? docType.allowed_mime_types?.[0];
+    if (!requestedType || (docType.allowed_mime_types?.length && !docType.allowed_mime_types.includes(requestedType))) {
+      return NextResponse.json({ error: 'Unsupported mime_type for this document type' }, { status: 400 });
+    }
+
+    const contentType = requestedType;
     const safeName = sanitizeFileName(file_name || document_type_code);
     const key = `onboarding/${onboarding._id}/${Date.now()}-${document_type_code}-${safeName}`;
 

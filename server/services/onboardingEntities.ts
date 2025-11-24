@@ -52,7 +52,7 @@ export async function createEntitiesFromCase(onboarding: OnboardingCaseLean): Pr
 
   try {
     const { SupportTicket } = await import('@/server/models/SupportTicket');
-    const code = `ONB-${Date.now()}`;
+    const code = `ONB-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
     const subject = `Onboarding provisioning needed: ${role}`;
     const ticketModule = ['VENDOR', 'AGENT'].includes(role) ? 'Souq' : 'Account';
 

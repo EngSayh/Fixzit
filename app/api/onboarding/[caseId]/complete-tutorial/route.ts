@@ -14,13 +14,16 @@ export async function PUT(
   try {
     await connectMongo();
     const onboarding = await OnboardingCase.findById(params.caseId);
-    if (
-      !onboarding ||
-      (onboarding.subject_user_id?.toString() !== user.id &&
-        onboarding.created_by_id?.toString() !== user.id &&
-        onboarding.org_id?.toString() !== user.orgId)
-    ) {
+    if (!onboarding) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    if (
+      onboarding.subject_user_id?.toString() !== user.id &&
+      onboarding.created_by_id?.toString() !== user.id &&
+      onboarding.org_id?.toString() !== user.orgId
+    ) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     onboarding.tutorial_completed = true;

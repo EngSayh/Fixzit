@@ -30,11 +30,16 @@ export async function PATCH(
     if (!doc) return NextResponse.json({ error: 'Document not found' }, { status: 404 });
 
     const onboarding = await OnboardingCase.findById(doc.onboarding_case_id);
-    if (
-      !onboarding ||
-      (onboarding.org_id && user.orgId && onboarding.org_id.toString() !== user.orgId && onboarding.created_by_id?.toString() !== user.id)
-    ) {
+    if (!onboarding) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    if (
+      onboarding.subject_user_id?.toString() !== user.id &&
+      onboarding.created_by_id?.toString() !== user.id &&
+      onboarding.org_id?.toString() !== user.orgId
+    ) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const previousStatus = doc.status;
@@ -56,20 +61,25 @@ export async function PATCH(
         VerificationDocument.find({ onboarding_case_id: onboarding._id }).lean(),
       ]);
 
-      const requiredCodes = profile?.required_doc_codes || [];
-      const allRequiredVerified =
-        requiredCodes.length > 0
-          ? requiredCodes.every((code) =>
-              docs.some((d) => d.document_type_code === code && d.status === 'VERIFIED'),
-            )
-          : docs.every((d) => d.status === 'VERIFIED');
+      // Guard against auto-approval with missing profile/required_doc_codes
+      if (!profile || !profile.required_doc_codes?.length) {
+        logger.error('[Onboarding] Missing or empty DocumentProfile; skipping auto-approval', {
+          onboardingId: onboarding._id,
+          role: onboarding.role,
+        });
+      } else {
+        const requiredCodes = profile.required_doc_codes;
+        const allRequiredVerified = requiredCodes.every((code) =>
+          docs.some((d) => d.document_type_code === code && d.status === 'VERIFIED'),
+        );
 
-      if (allRequiredVerified) {
-        onboarding.status = 'APPROVED';
-        onboarding.verified_by_id = new Types.ObjectId(user.id);
-        onboarding.current_step = Math.max(onboarding.current_step, 3);
-        await onboarding.save();
-        await createEntitiesFromCase(onboarding);
+        if (allRequiredVerified) {
+          onboarding.status = 'APPROVED';
+          onboarding.verified_by_id = new Types.ObjectId(user.id);
+          onboarding.current_step = Math.max(onboarding.current_step, 3);
+          await onboarding.save();
+          await createEntitiesFromCase(onboarding);
+        }
       }
     }
 

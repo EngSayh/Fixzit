@@ -15,7 +15,10 @@ export interface IVerificationDocument {
   ocr_data?: Record<string, unknown>;
   ocr_confidence?: number;
   expiry_date?: Date;
-  rejection_reason?: string;
+  rejection_reason?: {
+    en?: string;
+    ar?: string;
+  };
   uploaded_by_id: Types.ObjectId;
   verified_by_id?: Types.ObjectId;
   createdAt: Date;
@@ -38,7 +41,10 @@ const VerificationDocumentSchema = new Schema<IVerificationDocument>(
     },
     ocr_confidence: Number,
     expiry_date: Date,
-    rejection_reason: String,
+    rejection_reason: {
+      en: String,
+      ar: String,
+    },
     uploaded_by_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     verified_by_id: { type: Schema.Types.ObjectId, ref: 'User' },
   },

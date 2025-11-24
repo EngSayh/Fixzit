@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
     );
   }
   
-  const code = `HELP-${Date.now()}`;
+  // Generate unique ticket code with timestamp + random suffix to prevent collisions
+  const code = `HELP-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
   const ticket = await SupportTicket.create({
     code,
