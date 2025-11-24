@@ -65,7 +65,7 @@ export default function DashboardPage() {
   return (
     <FmGuardedPage moduleId="dashboard">
       {({ orgId, supportBanner }) => (
-        <DashboardContent orgId={orgId!} supportBanner={supportBanner} />
+        <DashboardContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );

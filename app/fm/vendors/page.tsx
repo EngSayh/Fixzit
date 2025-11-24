@@ -63,8 +63,8 @@ const fetcher = async (url: string, orgId: string) => {
 export default function FMVendorsPage() {
   return (
     <FmGuardedPage moduleId="vendors">
-      {({ orgId, supportBanner }) => (
-        <FMVendorsContent orgId={orgId!} supportBanner={supportBanner} />
+      {({ orgId, supportBanner}) => (
+        <FMVendorsContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );

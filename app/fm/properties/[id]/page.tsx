@@ -43,7 +43,7 @@ export default function PropertyDetailsPage() {
   return (
     <FmGuardedPage moduleId="properties">
       {({ orgId, supportBanner }) => (
-        <PropertyDetailsContent orgId={orgId!} supportBanner={supportBanner} />
+        <PropertyDetailsContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );

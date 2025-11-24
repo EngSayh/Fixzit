@@ -55,9 +55,9 @@ interface RFQItem {
 
 export default function RFQsPage() {
   return (
-    <FmGuardedPage moduleId="administration">
+    <FmGuardedPage moduleId="rfqs">
       {({ orgId, supportBanner }) => (
-        <RFQsContent orgId={orgId!} supportBanner={supportBanner} />
+        <RFQsContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );

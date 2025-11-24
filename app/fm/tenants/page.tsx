@@ -59,7 +59,7 @@ export default function TenantsPage() {
   return (
     <FmGuardedPage moduleId="tenants">
       {({ orgId, supportBanner }) => (
-        <TenantsContent orgId={orgId!} supportBanner={supportBanner} />
+        <TenantsContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );
