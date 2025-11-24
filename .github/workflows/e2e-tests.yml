@@ -123,6 +123,9 @@ jobs:
           ALLOW_OFFLINE_MONGODB: 'true'
         run: |
           echo "Building Next.js app for E2E tests..."
+          if [ "$ALLOW_OFFLINE_MONGODB" = "true" ]; then
+            echo "⏭️  Building in offline mode (MongoDB disabled)..."
+          fi
           pnpm build || {
             echo "❌ Build failed! Checking for common issues..."
             echo "NODE_ENV: $NODE_ENV"
@@ -187,7 +190,6 @@ jobs:
           # Database - use offline mode with mock sessions
           MONGODB_URI: mongodb://localhost:27017/fixzit_test
           ALLOW_OFFLINE_MONGODB: 'true'
-          ALLOW_LOCAL_MONGODB: 'true'
           PLAYWRIGHT_TESTS: 'true'
           
           # Test environment
@@ -366,7 +368,7 @@ jobs:
               { name: 'Desktop:EN:Admin', locale: 'EN', persona: 'Admin' },
               { name: 'Mobile:AR:Tenant', locale: 'AR', persona: 'Tenant' },
               { name: 'Desktop:AR:Tenant', locale: 'AR', persona: 'Tenant' },
-              { name: 'Mobile:EN:Admin', locale: 'EN', persona: 'Admin' }
+              { name: 'Mobile:EN:Technician', locale: 'EN', persona: 'Technician' }
             ];
             
             const statuses = {};
