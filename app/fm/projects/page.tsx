@@ -1,7 +1,6 @@
 'use client';
-/* eslint-disable react-hooks/rules-of-hooks */
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
@@ -21,7 +20,7 @@ import {
   Construction, Hammer, PaintBucket, Building 
 } from 'lucide-react';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 
 interface ProjectItem {
   id: string;
@@ -46,30 +45,38 @@ interface ProjectItem {
 }
 
 export default function ProjectsPage() {
+  return (
+    <FmGuardedPage moduleId="administration">
+      {({ orgId, supportBanner }) => (
+        <ProjectsContent orgId={orgId!} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type ProjectsContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function ProjectsContent({ orgId, supportBanner }: ProjectsContentProps) {
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'administration' });
   const auto = useAutoTranslator('fm.projects');
-  
-  if (!hasOrgContext || !orgId) {
-    return guard;
-  }
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
   // Fetcher with dynamic tenant ID from session
-  const fetcher = (url: string) => {
-    if (!orgId) return Promise.reject(new Error('No organization ID'));
-    return fetch(url, { 
-      headers: { 'x-tenant-id': orgId } 
+  const fetcher = (url: string) =>
+    fetch(url, {
+      headers: { 'x-tenant-id': orgId }
     })
-      .then(r => r.json())
-      .catch(error => {
+      .then((r) => r.json())
+      .catch((error) => {
         logger.error('FM projects fetch error', error);
         throw error;
       });
-  };
 
   const { data, mutate, isLoading } = useSWR(
     orgId ? `/api/projects?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}` : null,
@@ -81,15 +88,6 @@ export default function ProjectsPage() {
   // Show loading state if no session yet
   if (!session) {
     return <CardGridSkeleton count={6} />;
-  }
-
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        {supportBanner}
-        {guard}
-      </div>
-    );
   }
 
   return (

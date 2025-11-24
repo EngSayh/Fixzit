@@ -1,6 +1,6 @@
 'use client';
-/* eslint-disable react-hooks/rules-of-hooks */
 
+import type { ReactNode } from 'react';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { CardGridSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
@@ -9,12 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { useTranslation } from '@/contexts/TranslationContext';
 import { CalendarRange, FileSpreadsheet, Inbox, Send, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 
 const checklist = [
   { title: 'Validate customer master data', detail: 'VAT info + billing contacts' },
@@ -29,14 +28,23 @@ const timeline = [
 ];
 
 export default function FinanceInvoiceCreatePage() {
+  return (
+    <FmGuardedPage moduleId="finance">
+      {({ orgId, supportBanner }) => (
+        <FinanceInvoiceCreateContent orgId={orgId!} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type FinanceInvoiceCreateContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function FinanceInvoiceCreateContent({ orgId, supportBanner }: FinanceInvoiceCreateContentProps) {
   const auto = useAutoTranslator('fm.finance.invoices.new');
-  const { t } = useTranslation();
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'finance' });
-  
-  if (!hasOrgContext || !orgId) {
-    return guard;
-  }
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     customer: '',
@@ -49,10 +57,6 @@ export default function FinanceInvoiceCreatePage() {
     event.preventDefault();
     if (!formData.customer || !formData.amount || !formData.dueDate) {
       toast.error(auto('Please fill in required fields.', 'form.validation'));
-      return;
-    }
-    if (!orgId) {
-      toast.error(t('fm.errors.noOrgSession', 'Error: No organization ID found in session'));
       return;
     }
     setSubmitting(true);
@@ -93,15 +97,6 @@ export default function FinanceInvoiceCreatePage() {
       <div className="space-y-6">
         <ModuleViewTabs moduleId="finance" />
         <CardGridSkeleton count={4} />
-      </div>
-    );
-  }
-
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        <ModuleViewTabs moduleId="finance" />
-        {guard}
       </div>
     );
   }

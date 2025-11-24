@@ -1,5 +1,4 @@
 'use client';
-/* eslint-disable react-hooks/rules-of-hooks */
 import { logger } from '@/lib/logger';
 
 import useSWR from 'swr';
@@ -19,7 +18,8 @@ import {
 import Link from 'next/link';
 import ClientDate from '@/components/ClientDate';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
+import type { ReactNode } from 'react';
 
 interface MaintenanceIssue {
   resolved?: boolean;
@@ -40,16 +40,26 @@ interface PropertyUnit {
 }
 
 export default function PropertyDetailsPage() {
+  return (
+    <FmGuardedPage moduleId="properties">
+      {({ orgId, supportBanner }) => (
+        <PropertyDetailsContent orgId={orgId!} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type PropertyDetailsContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function PropertyDetailsContent({ orgId, supportBanner }: PropertyDetailsContentProps) {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'properties' });
   const { t } = useTranslation();
   const propertyId = Array.isArray(params?.id) ? params.id[0] : params?.id;
-  
-  if (!hasOrgContext || !orgId) {
-    return guard;
-  }
 
   const handleDelete = async () => {
     const confirmMessage = t(
@@ -90,9 +100,6 @@ export default function PropertyDetailsPage() {
   };
 
   const fetcher = (url: string) => {
-    if (!orgId) {
-      return Promise.reject(new Error('No organization ID'));
-    }
     return fetch(url, { 
       headers: { 'x-tenant-id': orgId } 
     })
@@ -109,14 +116,6 @@ export default function PropertyDetailsPage() {
   );
 
   if (!session) return <CardGridSkeleton count={3} />;
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        {supportBanner}
-        {guard}
-      </div>
-    );
-  }
   if (error) return <div>{t('fm.properties.detail.errors.loadFailed', 'Failed to load property')}</div>;
   if (isLoading || !property) return <CardGridSkeleton count={3} />;
 

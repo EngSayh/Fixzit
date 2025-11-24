@@ -18,7 +18,7 @@ vi.mock('next-auth/react', () => ({
 
 // Simplify navigation wrapper to avoid router side‑effects in tests
 vi.mock('@/components/ui/navigation-buttons', () => ({
-  FormWithNavigation: ({ children, onSubmit }: any) => (
+  FormWithNavigation: ({ children, onSubmit }: { children: React.ReactNode; onSubmit: React.FormEventHandler<HTMLFormElement> }) => (
     <form onSubmit={onSubmit}>{children}</form>
   ),
 }));
@@ -32,10 +32,11 @@ import SupportTicketPage from '@/app/help/support-ticket/page';
 const originalFetch = global.fetch;
 const originalAlert = global.alert as unknown as ReturnType<typeof vi.fn> | undefined;
 const originalConsoleError = console.error;
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
 beforeAll(() => {
   // Silence noisy act() warnings while still surfacing real errors
-  vi.spyOn(console, 'error').mockImplementation((...args: any[]) => {
+  consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation((...args: Parameters<typeof console.error>) => {
     const [first] = args;
     if (typeof first === 'string' && first.includes('act(...')) return;
     originalConsoleError(...args);
@@ -43,7 +44,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  (console.error as any).mockRestore?.();
+  consoleErrorSpy.mockRestore();
 });
 
 beforeEach(() => {

@@ -38,7 +38,6 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
           run_install: false
       
       - name: Setup Node.js
@@ -137,6 +136,8 @@ jobs:
       
       - name: TypeScript check
         run: pnpm tsc --noEmit
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
       
       - name: Verify translation coverage baseline
         run: |
@@ -212,7 +213,6 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
           run_install: false
 
       - name: Setup Node.js

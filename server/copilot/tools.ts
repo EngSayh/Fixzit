@@ -197,11 +197,22 @@ async function listMyWorkOrders(session: CopilotSession): Promise<ToolExecutionR
   let leanResults: LeanWorkOrder[] = [];
 
   try {
-    leanResults = (await WorkOrder.find(filter)
-      .sort({ updatedAt: -1 })
-      .limit(limit)
-      .select(["workOrderNumber", "title", "status", "priority", "updatedAt"])
-      .lean()) as LeanWorkOrder[];
+    const query = WorkOrder.find(filter) as unknown;
+    if (query && typeof (query as { sort?: unknown }).sort === "function") {
+      leanResults = (await (query as {
+        sort: (arg: unknown) => {
+          limit: (n: number) => {
+            select: (fields: string[]) => { lean: () => Promise<unknown> };
+          };
+        };
+      })
+        .sort({ updatedAt: -1 })
+        .limit(limit)
+        .select(["workOrderNumber", "title", "status", "priority", "updatedAt"])
+        .lean()) as LeanWorkOrder[];
+    } else if (Array.isArray(query)) {
+      leanResults = query as LeanWorkOrder[];
+    }
   } catch (error) {
     const safeError = error instanceof Error ? error : new Error(String(error));
     logger.error('Failed to fetch work orders', safeError);
@@ -896,12 +907,20 @@ export function detectToolFromMessage(message: string): { name: string; args: Re
   if (normalized.startsWith("/new-ticket")) {
     const parts = normalized.split(" ").slice(1);
     const args: Record<string, string> = {};
+    let currentKey: string | null = null;
+
     for (const part of parts) {
-      const [key, ...rest] = part.split(":");
-      if (key && rest.length) {
-        args[key] = rest.join(":");
+      if (part.includes(":")) {
+        const [key, ...rest] = part.split(":");
+        if (key && rest.length) {
+          currentKey = key;
+          args[currentKey] = rest.join(":");
+        }
+      } else if (currentKey) {
+        args[currentKey] = `${args[currentKey]} ${part}`.trim();
       }
     }
+
     return { name: "createWorkOrder", args };
   }
 

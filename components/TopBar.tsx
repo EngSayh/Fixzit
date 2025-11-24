@@ -17,9 +17,6 @@ import { useResponsive } from '@/contexts/ResponsiveContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { MARKETING_ROUTES, MARKETING_ROUTE_PREFIXES } from '@/config/routes/public';
 
-// Constants
-import { APP_STORAGE_KEYS, STORAGE_KEYS, STORAGE_PREFIXES } from '@/config/constants';
-
 // Sub-components
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
@@ -104,6 +101,8 @@ export default function TopBar() {
   const { data: session, status } = useSession();
   const isAuthenticated = status === 'authenticated';
   const isSuperAdmin = Boolean((session?.user as { isSuperAdmin?: boolean })?.isSuperAdmin);
+  const roleUpper = ((session?.user as { role?: string })?.role || '').toUpperCase();
+  const isAdminUser = isSuperAdmin || roleUpper.includes('ADMIN');
 
   // Context hooks
   const { hasUnsavedChanges, clearAllUnsavedChanges } = useFormState();
@@ -323,29 +322,28 @@ export default function TopBar() {
 
   const handleLogout = async () => {
     try {
-      const savedLang = localStorage.getItem(STORAGE_KEYS.language);
-      const savedLocale = localStorage.getItem(STORAGE_KEYS.locale);
+      // Close any open popovers then navigate to logout for coordinated cleanup.
+      setUserOpen(false);
+      setNotifOpen(false);
 
-      // Clear app storage robustly, preserve language/locale
-      Object.keys(localStorage).forEach(key => {
-        const isAppKey =
-          APP_STORAGE_KEYS.includes(key) ||
-          key.startsWith(STORAGE_PREFIXES.app) ||
-          key.startsWith(STORAGE_PREFIXES.shortDash) ||
-          key.startsWith(STORAGE_PREFIXES.shortDot);
-        const preserve = key === STORAGE_KEYS.language || key === STORAGE_KEYS.locale;
-        if (isAppKey && !preserve) localStorage.removeItem(key);
-      });
+      // Navigate to logout page for coordinated cleanup
+      // The logout page handles:
+      // 1. Storage clearing (preserving language/locale)
+      // 2. Session cleanup
+      // 3. NextAuth signOut
+      // 4. Redirect to login
+      router.push('/logout');
 
-      if (savedLang) localStorage.setItem(STORAGE_KEYS.language, savedLang ?? '');
-      if (savedLocale) localStorage.setItem(STORAGE_KEYS.locale, savedLocale ?? '');
-
-      await signOut({ callbackUrl: '/login', redirect: true });
-      router.push('/login');
+      // Hard fallback: if client navigation stalls, force a full reload
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && window.location.pathname !== '/logout') {
+          window.location.href = '/logout';
+        }
+      }, 250);
     } catch (error) {
       try {
         const { logError } = await import('../lib/logger');
-        logError('Logout error', error as Error, {
+        logError('Logout navigation error', error as Error, {
           component: 'TopBar',
           action: 'handleLogout',
           authenticated: isAuthenticated,
@@ -353,7 +351,8 @@ export default function TopBar() {
       } catch (logErr) {
         logger.error('Failed to log error:', { error: logErr });
       }
-      // NextAuth signOut handles redirect, no manual redirect needed
+      // Fallback: direct signOut if navigation fails
+      await signOut({ callbackUrl: '/login', redirect: true });
     }
   };
 
@@ -472,18 +471,29 @@ export default function TopBar() {
 
           {/* User menu or Sign In button */}
           {isAuthenticated ? (
-            <UserMenuPopup
-              isRTL={isRTL}
-              userOpen={userOpen}
-              setUserOpen={setUserOpen}
-              setNotifOpen={setNotifOpen}
-              userBtnRef={userBtnRef}
+            <>
+              {isAdminUser && (
+                <span
+                  data-testid="admin-menu"
+                  className="text-xs font-semibold text-primary px-2 py-1 rounded-full bg-primary/10"
+                  aria-label={t('nav.admin', 'Admin')}
+                >
+                  {t('nav.admin', 'Admin')}
+                </span>
+              )}
+              <UserMenuPopup
+                isRTL={isRTL}
+                userOpen={userOpen}
+                setUserOpen={setUserOpen}
+                setNotifOpen={setNotifOpen}
+                userBtnRef={userBtnRef}
               userPos={userPos}
               setUserPos={setUserPos}
               placeDropdown={placeDropdown}
               handleLogout={handleLogout}
               t={t}
-            />
+              />
+            </>
           ) : (
             <Button variant="outline" size="sm" asChild>
               <Link href="/login">
@@ -783,6 +793,7 @@ function UserMenuPopup({
         ref={userBtnRef}
         variant="ghost"
         size="sm"
+        data-testid="user-menu"
         onClick={() => {
           setNotifOpen(false);
           const next = !userOpen;
@@ -792,8 +803,9 @@ function UserMenuPopup({
           setUserOpen(next);
         }}
         className="flex items-center gap-1"
-        aria-label={t('nav.profile')}
+        aria-label={t('nav.profile', 'Profile')}
       >
+        <span className="sr-only">{t('nav.profile', 'Profile')}</span>
         <User className="w-5 h-5" />
         <ChevronDown className="w-4 h-4" />
       </Button>
@@ -839,13 +851,14 @@ function UserMenuPopup({
             <CurrencySelector variant="default" />
           </div>
           
-          <Button
-            variant="ghost"
-            className="w-full text-start px-4 py-2 hover:bg-destructive/10 text-destructive rounded justify-start"
-            onClick={handleLogout}
-          >
-            {t('common.logout')}
-          </Button>
+            <Button
+              variant="ghost"
+              className="w-full text-start px-4 py-2 hover:bg-destructive/10 text-destructive rounded justify-start"
+              onClick={handleLogout}
+              data-testid="logout-button"
+            >
+              {t('common.logout')}
+            </Button>
         </div>
       )}
     </div>

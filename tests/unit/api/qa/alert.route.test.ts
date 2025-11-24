@@ -30,14 +30,14 @@ type HeadersLike = {
   get: (key: string) => string | null;
 };
 type NextRequestLike = {
-  json: () => Promise<any>;
+  json: () => Promise<Record<string, unknown>>;
   headers: HeadersLike;
   ip?: string | null;
   url?: string;
   nextUrl?: { protocol: string };
 };
 
-const asNextRequest = (obj: Partial<NextRequestLike>): any => ({
+const asNextRequest = (obj: Partial<NextRequestLike>): NextRequestLike => ({
   url: 'http://localhost:3000/api/qa/alert',
   nextUrl: { protocol: 'http:' },
   ...obj
@@ -109,7 +109,7 @@ describe('QA Alert Route', () => {
       const body = await (res as Response).json();
 
       expect(body).toEqual({ success: true });
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('🚨 QA Alert'), data);
+      expect(logger.warn).toHaveBeenCalledWith(`🚨 QA Alert: ${event}`, { payload: data });
 
       // Verify DB interaction
       expect(mod.getDatabase).toHaveBeenCalled();
@@ -162,7 +162,7 @@ describe('QA Alert Route', () => {
       expect(insertedDoc.timestamp instanceof Date).toBe(true);
 
       // Logs non-mock variant
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('🚨 QA Alert: ' + event), payload);
+      expect(logger.warn).toHaveBeenCalledWith(`🚨 QA Alert: ${event}`, { payload });
     });
 
     it('uses req.ip fallback when x-forwarded-for header is missing', async () => {

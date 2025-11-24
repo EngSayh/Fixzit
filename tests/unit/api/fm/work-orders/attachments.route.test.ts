@@ -28,6 +28,7 @@ import { getDatabase } from '@/lib/mongodb-unified';
 import { resolveTenantId } from '@/app/api/fm/utils/tenant';
 import { requireFmAbility } from '@/app/api/fm/utils/auth';
 import { FMErrors } from '@/app/api/fm/errors';
+import { makeGetRequest, makePostRequest } from '@/tests/helpers/request';
 
 type DbMock = ReturnType<typeof mockDb>;
 
@@ -42,8 +43,8 @@ describe('api/fm/work-orders/[id]/attachments route', () => {
   it('returns guard response when tenant resolution fails', async () => {
     mockAbility();
     (resolveTenantId as vi.Mock).mockReturnValue({ error: FMErrors.forbidden('tenant mismatch') });
-    const req = createRequest('https://fixzit.test/api/fm/work-orders/507f1f77bcf86cd799439011/attachments');
-    const res = await GET(req as any, { params: { id: '507f1f77bcf86cd799439011' } });
+    const req = createGetRequest('https://fixzit.test/api/fm/work-orders/507f1f77bcf86cd799439011/attachments');
+    const res = await GET(req, { params: { id: '507f1f77bcf86cd799439011' } });
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.error).toBe('forbidden');
@@ -57,8 +58,8 @@ describe('api/fm/work-orders/[id]/attachments route', () => {
     ];
     mockDb({ attachments });
 
-    const req = createRequest('https://fixzit.test/api/fm/work-orders/507f1f77bcf86cd799439011/attachments');
-    const res = await GET(req as any, { params: { id: '507f1f77bcf86cd799439011' } });
+    const req = createGetRequest('https://fixzit.test/api/fm/work-orders/507f1f77bcf86cd799439011/attachments');
+    const res = await GET(req, { params: { id: '507f1f77bcf86cd799439011' } });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
@@ -68,8 +69,11 @@ describe('api/fm/work-orders/[id]/attachments route', () => {
 
   it('short-circuits when ability guard denies access', async () => {
     (requireFmAbility as vi.Mock).mockImplementation(() => async () => NextResponse.json({ error: 'forbidden' }, { status: 403 }));
-    const req = createRequest('https://fixzit.test/api/fm/work-orders/507f1f77bcf86cd799439011/attachments');
-    const res = await POST(req as any, { params: { id: '507f1f77bcf86cd799439011' } });
+    const req = createPostRequest('https://fixzit.test/api/fm/work-orders/507f1f77bcf86cd799439011/attachments', {
+      url: 'https://cdn/new.jpg',
+      type: 'attachment',
+    });
+    const res = await POST(req, { params: { id: '507f1f77bcf86cd799439011' } });
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.error).toBe('forbidden');
@@ -107,15 +111,10 @@ function mockDb(options: DbOptions = {}): DbMock {
   return collectionMock;
 }
 
-function createRequest(url: string) {
-  const parsed = new URL(url);
-  return {
-    url: parsed.toString(),
-    headers: new Headers(),
-    nextUrl: parsed,
-    json: async () => ({
-      url: 'https://cdn/new.jpg',
-      type: 'attachment',
-    }),
-  };
+function createGetRequest(url: string) {
+  return makeGetRequest(url);
+}
+
+function createPostRequest(url: string, body: Record<string, unknown>) {
+  return makePostRequest(url, body);
 }

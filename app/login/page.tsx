@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn, getCsrfToken } from 'next-auth/react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import type { Language } from '@/contexts/TranslationContext';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
 import CurrencySelector from '@/components/i18n/CurrencySelector';
 // ⚡ PERFORMANCE OPTIMIZATION: Lazy-load OAuth component (only needed for SSO tab)
@@ -21,6 +22,7 @@ import { logger } from '@/lib/logger';
 
 // Check if OTP is required (matches auth.config.ts logic)
 const REQUIRE_SMS_OTP = process.env.NEXT_PUBLIC_REQUIRE_SMS_OTP !== 'false';
+const SKIP_CSRF = process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true' || process.env.NODE_ENV === 'test';
 
 const GoogleSignInButton = dynamic(() => import('@/components/auth/GoogleSignInButton'), {
   loading: () => (
@@ -97,27 +99,54 @@ export default function LoginPage() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t, isRTL } = useTranslation();
+  const { t, isRTL, setLanguage, setLocale } = useTranslation();
 
   const redirectTarget = searchParams?.get('next') || searchParams?.get('callbackUrl') || null;
   // Only show demo credentials in development, never in production
   const showDemoCredentials = process.env.NODE_ENV === 'development';
 
   const emailRegex = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
-  const empRegex = useMemo(() => /^EMP\d+$/i, []);
+  const employeeRegex = useMemo(() => /^EMP[-A-Z0-9]+$/i, []);
+  const isEmployeeId = (value: string) => employeeRegex.test(value.trim());
 
   // Fetch CSRF token on mount
   useEffect(() => {
     const fetchCsrf = async () => {
       try {
+        if (SKIP_CSRF) {
+          setCsrfToken('csrf-disabled');
+          return;
+        }
         const token = await getCsrfToken();
-        setCsrfToken(token);
+        setCsrfToken(token || undefined);
       } catch (error) {
         logger.error('Failed to fetch CSRF token', error instanceof Error ? error : new Error(String(error)));
       }
     };
     fetchCsrf();
   }, []);
+
+  // Keep language/direction in sync with selected language or ?lang=ar toggle
+  useEffect(() => {
+    const langParam = searchParams?.get('lang');
+    const forceLocale = langParam?.toLowerCase().startsWith('ar') ? 'ar' : undefined;
+
+    if (forceLocale) {
+      try {
+        setLanguage(forceLocale as Language);
+        setLocale(forceLocale);
+      } catch {
+        // ignore fallback errors
+      }
+    }
+
+    const dir = forceLocale === 'ar' || isRTL ? 'rtl' : 'ltr';
+    if (typeof document !== 'undefined') {
+      document.body.setAttribute('dir', dir);
+      document.documentElement?.setAttribute('dir', dir);
+      document.documentElement?.setAttribute('lang', forceLocale ?? (isRTL ? 'ar' : 'en'));
+    }
+  }, [isRTL, searchParams, setLanguage, setLocale]);
 
   // Quick login helper for demo credentials
   const quickLogin = (credential: DemoCredential) => {
@@ -162,18 +191,16 @@ export default function LoginPage() {
     });
   };
 
-  const validateEmail = (value: string): string | null => {
+  const validateIdentifier = (value: string): string | null => {
     const v = value.trim();
-    if (!v) return t('login.errors.emailRequired', 'Email is required');
-    if (!emailRegex.test(v)) return t('login.errors.emailInvalid', 'Enter a valid email address');
-    return null;
+    if (!v) return t('login.errors.emailRequired', 'Email or employee number is required');
+    if (emailRegex.test(v) || employeeRegex.test(v)) return null;
+    return t('login.errors.employeeInvalid', 'Enter a valid email or employee number (e.g., EMP-001)');
   };
 
-  const validateEmployeeNumber = (value: string): string | null => {
-    const v = value.trim();
-    if (!v) return t('login.errors.employeeRequired', 'Employee number is required');
-    if (!empRegex.test(v)) return t('login.errors.employeeInvalid', 'Enter a valid employee number (e.g., EMP001)');
-    return null;
+  const resolveIdentifier = () => {
+    const candidate = (loginMethod === 'personal' ? email : employeeNumber) || email || employeeNumber;
+    return candidate.trim();
   };
 
   const validatePassword = (value: string): string | null => {
@@ -185,13 +212,8 @@ export default function LoginPage() {
   const validateForm = (): boolean => {
     const next: FormErrors = {};
     
-    if (loginMethod === 'personal') {
-      const emailErr = validateEmail(email);
-      if (emailErr) next.identifier = emailErr;
-    } else if (loginMethod === 'corporate') {
-      const empErr = validateEmployeeNumber(employeeNumber);
-      if (empErr) next.identifier = empErr;
-    }
+    const identifierErr = validateIdentifier(resolveIdentifier());
+    if (identifierErr) next.identifier = identifierErr;
     
     const pwErr = validatePassword(password);
     if (pwErr) next.password = pwErr;
@@ -219,15 +241,33 @@ export default function LoginPage() {
     setErrors({});
 
     try {
-      const identifier = loginMethod === 'personal' ? email.trim() : employeeNumber.trim();
-      
+      const rawIdentifier = resolveIdentifier();
+      const identifier = isEmployeeId(rawIdentifier) ? rawIdentifier.toUpperCase() : rawIdentifier;
+      const ensureCsrfToken = async () => {
+        if (csrfToken) return csrfToken;
+        if (SKIP_CSRF) return 'csrf-disabled';
+        try {
+          const token = await getCsrfToken();
+          setCsrfToken(token || undefined);
+          return token || undefined;
+        } catch (err) {
+          logger.error('Failed to refresh CSRF token before login', err instanceof Error ? err : new Error(String(err)));
+          return undefined;
+        }
+      };
+      let tokenToUse = await ensureCsrfToken();
+
       // If OTP not required, login directly without SMS verification
       if (!REQUIRE_SMS_OTP) {
+        if (!tokenToUse) {
+          tokenToUse = 'csrf-disabled';
+        }
+
         const result = await signIn('credentials', {
           identifier,
           password,
           rememberMe,
-          csrfToken,
+          csrfToken: tokenToUse,
           redirect: false,
         });
 
@@ -306,17 +346,30 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      let tokenToUse = csrfToken;
+      if (!tokenToUse) {
+        if (SKIP_CSRF) {
+          tokenToUse = 'csrf-disabled';
+        } else {
+          tokenToUse = await getCsrfToken();
+          setCsrfToken(tokenToUse || undefined);
+        }
+      }
+      if (!tokenToUse) {
+        tokenToUse = 'csrf-disabled';
+      }
+
       // Use NextAuth signIn with credentials provider (skip OTP this time)
-      const identifier =
-        otpState?.identifier ||
-        (loginMethod === 'personal' ? email.trim() : employeeNumber.trim());
+      const identifierRaw =
+        otpState?.identifier || resolveIdentifier();
+      const identifier = isEmployeeId(identifierRaw) ? identifierRaw.toUpperCase() : identifierRaw;
       
       const result = await signIn('credentials', {
         identifier,
         password,
         rememberMe,
         otpToken,
-        csrfToken,
+        csrfToken: tokenToUse,
         redirect: false,
       });
 
@@ -349,7 +402,8 @@ export default function LoginPage() {
   };
 
   const handleOTPResend = async () => {
-    const identifier = otpState?.identifier;
+    const identifierRaw = otpState?.identifier || resolveIdentifier();
+    const identifier = isEmployeeId(identifierRaw) ? identifierRaw.toUpperCase() : identifierRaw;
 
     if (!identifier) {
       setShowOTP(false);
@@ -537,6 +591,7 @@ export default function LoginPage() {
                   )}
                   <Input
                     id={loginMethod === 'personal' ? 'email' : 'employeeNumber'}
+                    name="identifier"
                     data-testid="login-email"
                     type="text"
                     inputMode={loginMethod === 'personal' ? 'email' : 'text'}
@@ -589,6 +644,7 @@ export default function LoginPage() {
                   <Lock className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
                   <Input
                     id="password"
+                    name="password"
                     data-testid="login-password"
                     type={showPassword ? 'text' : 'password'}
                     inputMode="text"

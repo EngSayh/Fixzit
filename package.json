@@ -10,7 +10,7 @@
     "dev:mem": "cross-env NODE_OPTIONS=--max-old-space-size=8192 ./node_modules/.bin/next dev --turbo",
     "dev:webpack": "cross-env NODE_OPTIONS=--max-old-space-size=8192 next dev",
     "dev:clean": "bash scripts/cleanup-dev-cache.sh && cross-env NODE_OPTIONS=--max-old-space-size=8192 next dev --turbo",
-    "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 next build",
+    "build": "bash scripts/prebuild-cache-clean.sh && cross-env NODE_OPTIONS=--max-old-space-size=8192 next build",
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 50 --ignore-pattern '.next/**' --ignore-pattern 'public/**' --ignore-pattern '_artifacts/**' --ignore-pattern 'deployment/**' --ignore-pattern 'playwright-report/**' --ignore-pattern 'e2e-test-results/**' --ignore-pattern 'qa/**' --ignore-pattern 'scripts/**' --ignore-pattern 'tools/**'",
     "lint:prod": "eslint app components lib services --ext .ts,.tsx,.js,.jsx --max-warnings 0 --report-unused-disable-directives",
@@ -39,12 +39,14 @@
     "qa:scan:duplicates": "node qa/scripts/scanDuplicates.mjs",
     "qa:e2e": "bash scripts/run-playwright.sh",
     "notifications:replay-dlq": "tsx scripts/notifications/replay-dlq.ts",
+    "refunds:worker": "tsx jobs/refund-retry-worker.ts",
     "verify:prep": "node -e \"require('fs').mkdirSync('_artifacts',{recursive:true})\"",
     "check:route-refs": "tsx scripts/check-route-references.ts",
     "verify:routes": "tsx scripts/check-route-aliases.ts && tsx scripts/check-route-references.ts && tsx scripts/verify-routes.ts && tsx scripts/check-nav-routes.ts",
     "verify:routes:http": "tsx scripts/run-route-http-check.ts",
     "verify:org-context": "tsx scripts/verify-org-context.ts && SKIP_GLOBAL_MONGO=true vitest run tests/smoke/org-context-flow.test.tsx tests/server/support/support-org-apis.test.ts",
     "guard:static": "bash scripts/check-org-guards.sh",
+    "guard:prod-env": "node scripts/ci/verify-prod-env.js",
     "check:route-aliases": "tsx scripts/check-route-aliases.ts",
     "check:route-aliases:json": "tsx scripts/check-route-aliases.ts --json _artifacts/route-aliases.json",
     "archive:route-metrics": "tsx scripts/archive-route-aliases.ts",
@@ -118,10 +120,14 @@
     "check:mock-flags": "node scripts/check-mock-flags.js",
     "lint:md": "markdownlint \"**/*.md\" \"!node_modules\" \"!.next\"",
     "lint:md:fix": "markdownlint --fix \"**/*.md\" \"!node_modules\" \"!.next\"",
+    "guard:fm-hooks": "node -e \"const {execSync} = require('child_process'); try { execSync('which rg', {stdio: 'ignore'}); execSync('rg -n \\'eslint-disable react-hooks/rules-of-hooks\\' app/fm'); console.log('❌ Found react-hooks/rules-of-hooks disables in app/fm (use FmGuardedPage)'); process.exit(1); } catch(e) { if (e.status === 1) process.exit(0); }\"",
+    "health": "bash scripts/system-health-check.sh",
+    "health:watch": "watch -n 30 'bash scripts/system-health-check.sh'",
     "prepare": "simple-git-hooks"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.71",
+    "@auth/core": "0.41.0",
     "@aws-sdk/client-s3": "^3.933.0",
     "@aws-sdk/client-secrets-manager": "^3.933.0",
     "@aws-sdk/middleware-logger": "^3.930.0",
@@ -254,14 +260,9 @@
     "webpack": "^5.103.0",
     "zx": "^8.8.5"
   },
-  "overrides": {
-    "postcss-selector-parser": "6.0.13",
-    "vite": "^7.1.11",
-    "import-in-the-middle": "1.15.0",
-    "require-in-the-middle": "7.5.2"
-  },
   "pnpm": {
     "overrides": {
+      "postcss-selector-parser": "6.0.13",
       "vite": "^7.1.11",
       "import-in-the-middle": "1.15.0",
       "require-in-the-middle": "7.5.2",
@@ -269,6 +270,6 @@
     }
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm lint:prod && bash scripts/security/check-hardcoded-uris.sh"
+    "pre-commit": "pnpm lint:prod && pnpm guard:fm-hooks && bash scripts/security/check-hardcoded-uris.sh"
   }
 }

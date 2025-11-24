@@ -1,17 +1,18 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 const modulePath = '@/server/models/SearchSynonym';
+type LooseRecord = Record<string, string | number | boolean | symbol | object | null | undefined>;
 
 async function loadWithMocks(
   options: {
-    mongooseMock?: any;
+    mongooseMock?: LooseRecord;
   } = {}
 ) {
   vi.resetModules();
   if (options.mongooseMock) {
     const mocked = options.mongooseMock;
-    const value = { ...(mocked as Record<string, unknown>) };
-    (value as any).default = value;
+    const value = { ...(mocked as LooseRecord) };
+    (value as LooseRecord).default = value;
     if (!value.__esModule) value.__esModule = true;
     vi.doMock('mongoose', () => value);
   }
@@ -57,9 +58,9 @@ describe('SearchSynonym model registration', () => {
     const indexSpy = vi.fn();
     const constructorSpy = vi.fn();
     class FakeSchema {
-      public definition: any;
-      public opts: any;
-      constructor(def: any, opts: any) {
+      public definition: LooseRecord;
+      public opts: LooseRecord;
+      constructor(def: LooseRecord, opts: LooseRecord) {
         constructorSpy(def, opts);
         this.definition = def;
         this.opts = opts;
@@ -95,8 +96,8 @@ describe('SearchSynonym schema defaults (real import)', () => {
     vi.unmock('mongoose');
     await vi.resetModules();
     const candidates = [modulePath, '../server/models/SearchSynonym', '@/server/models/SearchSynonym', 'server/models/SearchSynonym'];
-    let SearchSynonym: any;
-    let schemaExport: any;
+    let SearchSynonym: { schema?: LooseRecord } | LooseRecord | null = null;
+    let schemaExport: LooseRecord | undefined;
     const attempts: string[] = [];
     for (const p of candidates) {
       try {

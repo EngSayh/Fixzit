@@ -1,8 +1,7 @@
 'use client';
-/* eslint-disable react-hooks/rules-of-hooks */
 import { logger } from '@/lib/logger';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -19,7 +18,7 @@ import {
   Search, Download, Eye, Edit, Trash2,
   Star, Phone, Mail, MapPin
 } from 'lucide-react';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 
 interface Vendor {
   id: string;
@@ -48,10 +47,7 @@ interface Vendor {
   responseTime?: string;
 }
 
-const fetcher = async (url: string, orgId?: string) => {
-  if (!orgId) {
-    throw new Error('Organization ID required');
-  }
+const fetcher = async (url: string, orgId: string) => {
   try {
     const res = await fetch(url, {
       headers: { 'x-tenant-id': orgId }
@@ -65,14 +61,24 @@ const fetcher = async (url: string, orgId?: string) => {
 };
 
 export default function FMVendorsPage() {
+  return (
+    <FmGuardedPage moduleId="vendors">
+      {({ orgId, supportBanner }) => (
+        <FMVendorsContent orgId={orgId!} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type FMVendorsContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function FMVendorsContent({ orgId, supportBanner }: FMVendorsContentProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'vendors' });
-  
-  if (!hasOrgContext || !orgId) {
-    return guard;
-  }
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
@@ -85,7 +91,7 @@ export default function FMVendorsPage() {
 
   const { data: vendorsData, error, isLoading, mutate } = useSWR(
     vendorsUrl ? [vendorsUrl, orgId] : null,
-    ([url, id]: [string, string | undefined]) => fetcher(url, id)
+    ([url, id]: [string, string]) => fetcher(url, id)
   );
 
   const vendors = vendorsData?.items || [];
@@ -167,14 +173,6 @@ export default function FMVendorsPage() {
 
   // Loading state
   if (!session) return <CardGridSkeleton count={6} />;
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        <ModuleViewTabs moduleId="vendors" />
-        {guard}
-      </div>
-    );
-  }
   if (isLoading) return <CardGridSkeleton count={6} />;
   if (error) {
     return (

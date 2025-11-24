@@ -362,6 +362,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         <div className="min-h-screen bg-muted/30">
           <a
             href="#main-content"
+            data-testid="skip-to-content"
             className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 bg-primary text-primary-foreground px-3 py-2 rounded shadow"
           >
             Skip to main content
@@ -387,6 +388,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       <div className="min-h-screen bg-muted/30">
         <a
           href="#main-content"
+          data-testid="skip-to-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 bg-primary text-primary-foreground px-3 py-2 rounded shadow"
         >
           Skip to main content

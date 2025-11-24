@@ -66,6 +66,12 @@
     "phone": "Phone Number",
     "phoneLabel": "Your Phone"
   },
+  "careers": {
+    "uploadFailed": "Failed to upload resume",
+    "presignFailed": "Failed to get upload URL",
+    "resumeUploadNote": "Please upload your resume in PDF format (max 5MB)",
+    "resumeScanStatus": "Scanning resume for viruses..."
+  },
   "auth": {
     "login": {
       "title": "Sign In",
@@ -118,7 +124,12 @@
     },
     "logout": {
       "signingOut": "Signing out...",
-      "pleaseWait": "Please wait"
+      "pleaseWait": "Please wait",
+      "redirectingAfterError": "Redirecting after error...",
+      "success": "Successfully logged out",
+      "redirecting": "Redirecting to login...",
+      "error": "Logout failed",
+      "errorMessage": "An error occurred during logout. Please try again."
     },
     "signup": {
       "title": "Create Account",
@@ -374,6 +385,7 @@
   },
   "workOrders": {
     "title": "Work Orders",
+    "attachmentsCount": "{{count}} attachment(s)",
     "create": {
       "button": "New Work Order",
       "title": "Create work order",
@@ -387,6 +399,12 @@
         "cancelButton": "Cancel",
         "submitButton": "Create"
       }
+    },
+    "new": {
+      "requiredFields": "Please fill in all required fields",
+      "success": "Work order created successfully",
+      "woNumber": "Work Order #{{number}}",
+      "uploadHint": "Drag and drop files here, or click to browse"
     },
     "status": {
       "open": "Open",
@@ -409,6 +427,9 @@
       "dueDate": "Due Date",
       "status": "Status",
       "priority": "Priority"
+    },
+    "attachments": {
+      "missingUrl": "Attachment URL is missing"
     }
   },
   "properties": {
@@ -477,7 +498,8 @@
       "liabilities": "Liabilities",
       "equity": "Equity",
       "ok": "Assets = Liabilities + Equity",
-      "notOk": "Equation mismatch detected"
+      "notOk": "Equation mismatch detected",
+      "forbidden": "You don't have permission to view balance sheet"
     },
     "income": {
       "error": "Failed to load income statement",
@@ -485,7 +507,8 @@
       "period": "Period",
       "revenue": "Revenue",
       "expense": "Expenses",
-      "net": "Net Income"
+      "net": "Net Income",
+      "forbidden": "You don't have permission to view income statement"
     },
     "owner": {
       "error": "Failed to load owner statement",
@@ -682,7 +705,89 @@
     "search": "Search help articles",
     "categories": "Categories",
     "popular": "Popular Articles",
-    "getStarted": "Getting Started"
+    "getStarted": "Getting Started",
+    "article": {
+      "comments": {
+        "title": "Comments",
+        "placeholder": "Write your comment...",
+        "submit": "Post Comment",
+        "success": "Comment posted successfully",
+        "error": "Failed to post comment",
+        "auth": "Please sign in to comment"
+      }
+    }
+  },
+  "helpCenterV2": {
+    "title": "Help Center",
+    "subtitle": "Find answers and get support",
+    "askAssistant": "Ask AI Assistant",
+    "createTicket": "Create Support Ticket",
+    "viewTickets": "View My Tickets",
+    "interactiveTutorials": "Interactive Tutorials",
+    "interactiveSubtitle": "Step-by-step guided lessons",
+    "viewAllTutorials": "View All Tutorials",
+    "helpArticles": "Help Articles",
+    "articlesSubtitle": "Browse the knowledge base",
+    "readMore": "Read More",
+    "emptyArticles": "No articles found",
+    "updated": "Updated {{date}}",
+    "loadingArticles": "Loading articles...",
+    "generalCategory": "General",
+    "systemOverview": "System Overview",
+    "overviewSubtitle": "Learn about Fixzit's core features",
+    "propertiesTitle": "Properties",
+    "propertiesCopy": "Manage your property portfolio",
+    "workOrdersTitle": "Work Orders",
+    "workOrdersCopy": "Track and manage maintenance requests",
+    "vendorsTitle": "Vendors",
+    "vendorsCopy": "Coordinate with service providers",
+    "financeTitle": "Finance",
+    "financeCopy": "Manage invoices and expenses",
+    "untitledArticle": "Untitled Article",
+    "tutorials": {
+      "gettingStarted": {
+        "title": "Getting Started with Fixzit FM",
+        "description": "Learn the basics of property management with Fixzit",
+        "duration": "15 min"
+      },
+      "firstWorkOrder": {
+        "title": "Creating Your First Work Order",
+        "description": "Step-by-step guide to creating and managing work orders",
+        "duration": "10 min"
+      },
+      "vendorManagement": {
+        "title": "Vendor Management Best Practices",
+        "description": "Learn how to effectively manage and coordinate with vendors",
+        "duration": "20 min"
+      },
+      "tenantRelations": {
+        "title": "Tenant Relations & Communication",
+        "description": "Best practices for tenant communication and service",
+        "duration": "12 min"
+      },
+      "financialReporting": {
+        "title": "Financial Reporting & Invoicing",
+        "description": "Master financial reports and invoicing workflows",
+        "duration": "25 min"
+      }
+    },
+    "categories": {
+      "facilityManagement": "Facility Management",
+      "workOrders": "Work Orders",
+      "procurement": "Procurement",
+      "customerService": "Customer Service",
+      "finance": "Finance"
+    },
+    "fallbackNotice": "Some content may appear in English until translations are available"
+  },
+  "logout": {
+    "signingOut": "Signing you out...",
+    "pleaseWait": "Please wait while we log you out securely.",
+    "success": "Logged out successfully",
+    "redirecting": "Redirecting to login...",
+    "error": "Logout error",
+    "errorMessage": "An error occurred during logout",
+    "redirectingAfterError": "Redirecting to login..."
   },
   "souq": {
     "search": {
@@ -874,6 +979,7 @@
     "reports": "Reports",
     "system": "System",
     "administration": "Administration",
+    "admin": "Admin",
     "settings": "Settings",
     "help": "Help",
     "logout": "Logout",
@@ -1093,7 +1199,12 @@
       "residential": "Residential",
       "commercial": "Commercial",
       "mixed": "Mixed",
-      "details": "Property Details"
+      "details": "Property Details",
+      "detail": {
+        "errors": {
+          "noPropertyId": "Property ID is required"
+        }
+      }
     },
     "title": "Facility Management",
     "dashboard": "Dashboard",
@@ -1117,6 +1228,16 @@
       "completed": "Completed",
       "closed": "Closed",
       "cancelled": "Cancelled",
+      "attachmentsCount": "{{count}} attachments",
+      "new": {
+        "requiredFields": "Please fill in all required fields",
+        "success": "Work order created successfully",
+        "woNumber": "Work Order #{{number}}",
+        "uploadHint": "Upload photos or documents related to this work order"
+      },
+      "attachments": {
+        "missingUrl": "Attachment URL is missing"
+      },
       "board": {
         "title": "Work Orders Board",
         "description": "Track and assign work orders across all properties"
@@ -1161,7 +1282,12 @@
       "all": "All Vendors",
       "approved": "Approved",
       "pending": "Pending",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "detail": {
+        "errors": {
+          "noVendorId": "Vendor ID is required"
+        }
+      }
     },
     "projects": {
       "title": "Projects",

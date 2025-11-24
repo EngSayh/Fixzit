@@ -3,10 +3,19 @@ import type { NextRequest } from 'next/server';
 
 process.env.SKIP_ENV_VALIDATION = 'true';
 
+type JsonBody = {
+  error?: string;
+  url?: string;
+  key?: string;
+  headers?: Record<string, string>;
+} & Record<string, unknown>;
+type JsonResponse = { status: number; body: JsonBody };
+type PresignRequest = { fileName: string; contentType: string; size: number };
+
 vi.mock('next/server', () => ({
   NextRequest: class {},
   NextResponse: {
-    json: (body: any, init?: ResponseInit) => ({
+    json: (body: JsonBody, init?: ResponseInit): JsonResponse => ({
       status: init?.status ?? 200,
       body,
     }),
@@ -14,15 +23,18 @@ vi.mock('next/server', () => ({
 }));
 
 const getSessionUser = vi.fn();
-const getPresignedPutUrl = vi.fn();
-const validateBucketPolicies = vi.fn();
+const getPresignedPutUrl = vi.fn<
+  Promise<{ url: string; headers: Record<string, string> }>,
+  [string, string, number, string | undefined]
+>();
+const validateBucketPolicies = vi.fn<Promise<boolean>, [string, string]>();
 
 vi.mock('@/server/middleware/withAuthRbac', () => ({
   getSessionUser: () => getSessionUser(),
 }));
 
 vi.mock('@/lib/storage/s3', () => ({
-  getPresignedPutUrl: (...args: any[]) => getPresignedPutUrl(...args),
+  getPresignedPutUrl: (...args: Parameters<typeof getPresignedPutUrl>) => getPresignedPutUrl(...args),
   buildResumeKey: (tenant: string, fileName: string) => `${tenant}/resumes/${fileName}`,
 }));
 
@@ -35,10 +47,10 @@ vi.mock('@/server/utils/errorResponses', () => ({
 }));
 
 vi.mock('@/lib/security/s3-policy', () => ({
-  validateBucketPolicies: (...args: any[]) => validateBucketPolicies(...args),
+  validateBucketPolicies: (...args: Parameters<typeof validateBucketPolicies>) => validateBucketPolicies(...args),
 }));
 
-let POST: (req: NextRequest) => Promise<any>;
+let POST: (req: NextRequest) => Promise<JsonResponse>;
 
 describe('POST /api/files/resumes/presign', () => {
   beforeAll(async () => {
@@ -58,14 +70,14 @@ describe('POST /api/files/resumes/presign', () => {
     validateBucketPolicies.mockResolvedValue(true);
   });
 
-  const buildRequest = (body: Record<string, unknown>): NextRequest =>
+  const buildRequest = (body: PresignRequest): NextRequest =>
     ({
       url: 'https://example.com/api/files/resumes/presign',
       json: async () => body,
     }) as unknown as NextRequest;
 
   it('returns presign details for valid PDF input (anonymous allowed)', async () => {
-    const res: any = await POST(
+    const res = await POST(
       buildRequest({ fileName: 'resume.pdf', contentType: 'application/pdf', size: 1024 })
     );
 
@@ -76,7 +88,7 @@ describe('POST /api/files/resumes/presign', () => {
   });
 
   it('rejects unsupported extension', async () => {
-    const res: any = await POST(
+    const res = await POST(
       buildRequest({ fileName: 'resume.exe', contentType: 'application/pdf', size: 1024 })
     );
 
@@ -85,7 +97,7 @@ describe('POST /api/files/resumes/presign', () => {
   });
 
   it('rejects files over 5MB', async () => {
-    const res: any = await POST(
+    const res = await POST(
       buildRequest({ fileName: 'resume.pdf', contentType: 'application/pdf', size: 6 * 1024 * 1024 })
     );
 

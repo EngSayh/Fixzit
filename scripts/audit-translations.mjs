@@ -113,42 +113,80 @@ function objectLiteralToKeySet(objLiteral) {
   return keys;
 }
 
-// Parse TranslationContext.tsx for ar/en keys
+// Helper to flatten nested JSON keys
+function flattenKeys(obj, prefix = '') {
+  const keys = [];
+  for (const [key, value] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      keys.push(...flattenKeys(value, fullKey));
+    } else {
+      keys.push(fullKey);
+    }
+  }
+  return keys;
+}
+
+// Parse i18n JSON files for ar/en keys
 async function loadCatalogKeys(ctxPath) {
   const arKeys = new Set();
   const enKeys = new Set();
   const errors = [];
   let hasPrimaryCatalog = false;
 
-  const generatedPath = path.join(ROOT, 'i18n', 'new-translations.ts');
-  if (await exists(generatedPath)) {
+  // Check for generated dictionary JSON files first
+  const enJsonPath = path.join(ROOT, 'i18n', 'generated', 'en.dictionary.json');
+  const arJsonPath = path.join(ROOT, 'i18n', 'generated', 'ar.dictionary.json');
+  
+  if (await exists(enJsonPath) && await exists(arJsonPath)) {
     try {
-      const source = await readText(generatedPath);
+      const enContent = await readText(enJsonPath);
+      const arContent = await readText(arJsonPath);
+      const enData = JSON.parse(enContent);
+      const arData = JSON.parse(arContent);
+      
+      // The generated dictionaries are already flat, so just get the keys
+      Object.keys(enData).forEach(key => enKeys.add(key));
+      Object.keys(arData).forEach(key => arKeys.add(key));
+      hasPrimaryCatalog = true;
+    } catch (err) {
+      errors.push(`Failed to parse i18n generated dictionary files: ${err.message}`);
+    }
+  }
+  
+  // Fallback to TS-based approach if JSON files not found
+  if (!hasPrimaryCatalog) {
+    const generatedPath = path.join(ROOT, 'i18n', 'new-translations.ts');
+    if (await exists(generatedPath)) {
+      try {
+        const source = await readText(generatedPath);
+        const arBlock = extractLocaleObject(source, 'ar');
+        const enBlock = extractLocaleObject(source, 'en');
+        if (arBlock && enBlock) {
+          objectLiteralToKeySet(arBlock).forEach(key => arKeys.add(key));
+          objectLiteralToKeySet(enBlock).forEach(key => enKeys.add(key));
+          hasPrimaryCatalog = true;
+        } else {
+          errors.push('Could not parse ar/en blocks in i18n/new-translations.ts');
+        }
+      } catch (err) {
+        errors.push(`Failed to parse i18n/new-translations.ts: ${err.message}`);
+      }
+    } else {
+      errors.push('Translation catalog not found at i18n/new-translations.ts');
+    }
+
+    if (!hasPrimaryCatalog && await exists(ctxPath)) {
+      const source = await readText(ctxPath);
       const arBlock = extractLocaleObject(source, 'ar');
       const enBlock = extractLocaleObject(source, 'en');
-      if (arBlock && enBlock) {
+      if (!arBlock || !enBlock) {
+        errors.push('Could not locate ar/en blocks in TranslationContext.tsx');
+      } else {
         objectLiteralToKeySet(arBlock).forEach(key => arKeys.add(key));
         objectLiteralToKeySet(enBlock).forEach(key => enKeys.add(key));
         hasPrimaryCatalog = true;
-      } else {
-        errors.push('Could not parse ar/en blocks in i18n/new-translations.ts');
       }
-    } catch (err) {
-      errors.push(`Failed to parse i18n/new-translations.ts: ${err.message}`);
-    }
-  } else {
-    errors.push('Translation catalog not found at i18n/new-translations.ts');
-  }
-
-  if (!hasPrimaryCatalog) {
-    const source = await readText(ctxPath);
-    const arBlock = extractLocaleObject(source, 'ar');
-    const enBlock = extractLocaleObject(source, 'en');
-    if (!arBlock || !enBlock) {
-      errors.push('Could not locate ar/en blocks in TranslationContext.tsx');
-    } else {
-      objectLiteralToKeySet(arBlock).forEach(key => arKeys.add(key));
-      objectLiteralToKeySet(enBlock).forEach(key => enKeys.add(key));
     }
   }
 
@@ -334,8 +372,13 @@ async function main() {
   console.log('  - docs/translations/translation-audit.json');
   console.log('  - docs/translations/translation-audit.csv');
 
-  // Optional autofix
-  if (DO_FIX && (missingInAr.length || missingInEn.length || missingDetail.length)) {
+  // Detect JSON catalogs (canonical source) vs TS fallback
+  const hasJsonCatalog =
+    (await exists(path.join(ROOT, 'i18n', 'en.json'))) &&
+    (await exists(path.join(ROOT, 'i18n', 'ar.json')));
+
+  // Optional autofix (only for TS-based catalogs – JSON catalogs must be edited directly)
+  if (DO_FIX && !hasJsonCatalog && (missingInAr.length || missingInEn.length || missingDetail.length)) {
     console.log('\n' + COLOR.b('🛠  --fix enabled: applying missing keys to TranslationContext.tsx ...'));
     let ctx = await readText(ctxPath);
 
@@ -378,6 +421,8 @@ async function main() {
 
     await fs.writeFile(ctxPath, ctx, 'utf8');
     console.log(COLOR.g('✔ Catalog updated with placeholder values for missing keys (EN/AR).'));
+  } else if (DO_FIX && hasJsonCatalog) {
+    console.log('\n' + COLOR.y('⚠️  --fix skipped: JSON catalogs detected. Please edit i18n/en.json and i18n/ar.json directly.'));
   }
 
   // STRICT v4 / Governance: non-zero exit if any gap (dynamic is warning only)

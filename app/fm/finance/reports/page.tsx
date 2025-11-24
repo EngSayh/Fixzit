@@ -1,14 +1,13 @@
 'use client';
-/* eslint-disable react-hooks/rules-of-hooks */
 
+import { useEffect, useState, type ReactNode } from 'react';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 
 type ReportJob = {
   id: string;
@@ -24,20 +23,31 @@ type ReportJob = {
 };
 
 export default function ReportsPage() {
+  return (
+    <FmGuardedPage moduleId="finance">
+      {({ orgId, supportBanner }) => (
+        <ReportsContent orgId={orgId!} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type ReportsContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function ReportsContent({ orgId, supportBanner }: ReportsContentProps) {
   const auto = useAutoTranslator('fm.reports');
-  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'finance' });
   const [jobs, setJobs] = useState<ReportJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-
-  if (!hasOrgContext || !orgId) {
-    return guard;
-  }
-
   const loadJobs = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/fm/reports');
+      const res = await fetch('/api/fm/reports', {
+        headers: { 'x-tenant-id': orgId },
+      });
       const data = await res.json();
       if (res.ok && data?.success) {
         setJobs(data.data || []);
@@ -56,7 +66,9 @@ export default function ReportsPage() {
   const handleDownload = async (id: string) => {
     try {
       setDownloadingId(id);
-      const res = await fetch(`/api/fm/reports/${id}/download`);
+      const res = await fetch(`/api/fm/reports/${id}/download`, {
+        headers: { 'x-tenant-id': orgId },
+      });
       const data = await res.json();
       if (!res.ok || !data?.success || !data.downloadUrl) {
         throw new Error(data?.error || 'Download unavailable');

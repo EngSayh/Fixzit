@@ -1,7 +1,6 @@
 'use client';
-/* eslint-disable react-hooks/rules-of-hooks */
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
@@ -17,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Users, Plus, Search, Mail, Phone, MapPin, Eye, Edit, Trash2, User, Building, Shield } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { CreateTenantForm } from '@/components/fm/tenants/CreateTenantForm';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 import { logger } from '@/lib/logger';
 interface TenantProperty {
   occupancy?: {
@@ -57,30 +56,36 @@ const sarCurrencyFormatter = new Intl.NumberFormat('en-SA', {
 
 
 export default function TenantsPage() {
+  return (
+    <FmGuardedPage moduleId="tenants">
+      {({ orgId, supportBanner }) => (
+        <TenantsContent orgId={orgId!} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type TenantsContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function TenantsContent({ orgId, supportBanner }: TenantsContentProps) {
   const { t } = useTranslation();
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'tenants' });
-  
-  if (!hasOrgContext || !orgId) {
-    return guard;
-  }
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
-  const fetcher = (url: string) => {
-    if (!orgId) {
-      return Promise.reject(new Error('No organization ID'));
-    }
-    return fetch(url, { 
-      headers: { 'x-tenant-id': orgId } 
+  const fetcher = (url: string) =>
+    fetch(url, {
+      headers: { 'x-tenant-id': orgId }
     })
-      .then(r => r.json())
-      .catch(error => {
+      .then((r) => r.json())
+      .catch((error) => {
         logger.error('FM tenants fetch error', error);
         throw error;
       });
-  };
 
   const { data, mutate, isLoading, error } = useSWR(
     orgId ? `/api/tenants?search=${encodeURIComponent(search)}&type=${typeFilter}` : null,
@@ -89,15 +94,6 @@ export default function TenantsPage() {
 
   if (!session) {
     return <CardGridSkeleton count={6} />;
-  }
-
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        <ModuleViewTabs moduleId="tenants" />
-        {guard}
-      </div>
-    );
   }
 
   const tenants = data?.items || [];

@@ -7,11 +7,15 @@ import { useTopBar } from '@/contexts/TopBarContext';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { MODULES } from '@/config/navigation';
 import { cn } from '@/lib/utils';
+import { useSession } from 'next-auth/react';
 
 export function TopMegaMenu() {
   const { navKey, megaMenuCollapsed, setMegaMenuCollapsed } = useTopBar();
   const { t, isRTL } = useTranslation();
   const router = useRouter();
+  const { data: session } = useSession();
+  const rawRole = (session?.user as { role?: string } | undefined)?.role;
+  const canSeeAdmin = (rawRole || '').toUpperCase() === 'SUPER_ADMIN' || (rawRole || '').toUpperCase() === 'ADMIN' || (rawRole || '').toUpperCase() === 'CORPORATE_ADMIN';
 
   if (megaMenuCollapsed) {
     return (
@@ -32,7 +36,10 @@ export function TopMegaMenu() {
         {t('topbar.modules', 'Modules')}
       </span>
       <div className={cn('flex items-center gap-1', isRTL && 'flex-row-reverse')}>
-        {MODULES.map(({ id, name, fallbackLabel, path }) => {
+        {MODULES.filter(({ id }) => {
+          if ((id === 'administration' || id === 'system') && !canSeeAdmin) return false;
+          return true;
+        }).map(({ id, name, fallbackLabel, path }) => {
           const active = navKey === id;
           return (
             <button

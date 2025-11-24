@@ -146,7 +146,7 @@ describe('User model - Role Validation', () => {
   });
 
   it('should reject invalid roles', () => {
-    const data = buildValidUser({ role: 'INVALID_ROLE' as any });
+    const data = buildValidUser({ role: 'INVALID_ROLE' });
     const doc = new User(data);
     const err = doc.validateSync();
     

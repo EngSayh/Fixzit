@@ -3,7 +3,10 @@
 ## Current Status: v5.0.0-beta.29
 
 ### Executive Summary
-✅ **RECOMMENDATION: Keep next-auth v5.0.0-beta.29**
+
+#### ✅ Recommendation
+
+Keep next-auth v5.0.0-beta.29.
 
 The current implementation is stable, passes all checks, and downgrading would introduce significant breaking changes with minimal benefit.
 

@@ -15,12 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Pagination } from '@/components/ui/pagination';
 import { CardGridSkeleton } from '@/components/skeletons';
-import { 
-  FileText, Plus, Search, DollarSign, 
+import {
+  FileText, Plus, Search, DollarSign,
   QrCode, Send, Eye, Download, Mail, CheckCircle,
-  AlertCircle, Clock} from 'lucide-react';
+  AlertCircle, Clock } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 import ClientDate from '@/components/ClientDate';
 import { parseDate } from '@/lib/date-utils';
 
@@ -71,12 +71,23 @@ interface Invoice {
 }
 
 export default function InvoicesPage() {
+  return (
+    <FmGuardedPage moduleId="finance">
+      {({ orgId, supportOrg }) => (
+        <InvoicesContent orgId={orgId!} supportOrg={supportOrg} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type InvoicesContentProps = {
+  orgId: string;
+  supportOrg?: { name?: string } | null;
+};
+
+function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
   const { t } = useTranslation();
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
-  const supportOrgTyped = supportOrg as unknown as { orgId?: string } | undefined;
-  const sessionUserTyped = session?.user as unknown as { orgId?: string } | undefined;
-  const resolvedOrgId = orgId || supportOrgTyped?.orgId || sessionUserTyped?.orgId;
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -84,17 +95,13 @@ export default function InvoicesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
-  const fetcher = (url: string) => {
-    if (!orgId) {
-      return Promise.reject(new Error('No organization ID'));
-    }
-    return fetch(url)
-      .then(r => r.json())
-      .catch(error => {
+  const fetcher = (url: string) =>
+    fetch(url)
+      .then((r) => r.json())
+      .catch((error) => {
         logger.error('FM invoices fetch error', error);
         throw error;
       });
-  };
 
   const { data, mutate, isLoading } = useSWR(
     orgId
@@ -107,10 +114,6 @@ export default function InvoicesPage() {
 
   if (!session) {
     return <CardGridSkeleton count={6} />;
-  }
-
-  if (!hasOrgContext || !orgId) {
-    return guard;
   }
 
   const invoices: Invoice[] = (data?.data || []);
@@ -138,13 +141,13 @@ export default function InvoicesPage() {
             <DialogHeader>
               <DialogTitle>{t('fm.invoices.createInvoice', 'Create Invoice')}</DialogTitle>
             </DialogHeader>
-            <CreateInvoiceForm orgId={resolvedOrgId} onCreated={() => { mutate(); setCreateOpen(false); }} />
+            <CreateInvoiceForm orgId={orgId} onCreated={() => { mutate(); setCreateOpen(false); }} />
           </DialogContent>
         </Dialog>
       </div>
       {supportOrg && (
         <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-          {t('fm.finance.support.activeOrg', 'Support context: {{name}}', { name: supportOrg.name })}
+          {t('fm.finance.support.activeOrg', 'Support context: {{name}}', { name: supportOrg.name ?? 'Support org' })}
         </div>
       )}
 
@@ -448,7 +451,7 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
   );
 }
 
-function CreateInvoiceForm({ onCreated, orgId }: { onCreated: () => void; orgId?: string }) {
+function CreateInvoiceForm({ onCreated, orgId }: { onCreated: () => void; orgId: string }) {
   const { t } = useTranslation();
   
   const [formData, setFormData] = useState({

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import type { Db } from 'mongodb';
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 
 export async function getDb(): Promise<Db> {
   await connectToDatabase();
@@ -15,7 +16,7 @@ export function ensureMongoConnection(): void {
     void connectToDatabase().catch((error) => {
       // Use logger for server-side errors (structured logging with proper levels)
       if (process.env.NODE_ENV !== 'production') {
-        console.error('[Mongo] Failed to establish connection', error);
+        logger.error('[Mongo] Failed to establish connection', { error });
       }
       // In production, this error will be caught by the logger middleware
     });

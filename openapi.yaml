@@ -2,7 +2,16 @@ openapi: 3.0.3
 info:
   title: Fixzit Aqar Real Estate API
   version: 1.0.0
-  description: REST API for Aqar real estate marketplace with listings, leads, favorites, and packages
+  description: |-
+    REST API for Aqar real estate marketplace with listings, leads, favorites, and packages
+    
+    ## Breaking Changes
+    ### v2.0.26 - Souq Refund Methods
+    - **DEPRECATED**: `store_credit` refund method removed
+    - **NEW**: Use `wallet` for refunds to user's digital wallet
+    - **Affected Endpoints**: `/api/souq/returns/refund`
+    - **Migration**: Update API clients to use `wallet` instead of `store_credit`
+    - **Timeline**: `store_credit` was removed in v2.0.26 (November 2025)
 
 servers:
   - url: http://localhost:3000/api
@@ -164,6 +173,61 @@ paths:
           description: Created
         '400':
           $ref: '#/components/responses/BadRequest'
+
+  /souq/returns/refund:
+    post:
+      summary: Process refund for RMA
+      description: |-
+        Process a refund for a return merchandise authorization (RMA).
+        
+        **Breaking Change (v2.0.26)**: The `store_credit` refund method has been removed.
+        Use `wallet` for refunds to user's digital wallet instead.
+      tags: [Refunds]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rmaId, refundMethod, refundAmount]
+              properties:
+                rmaId:
+                  type: string
+                  description: Return merchandise authorization ID
+                refundMethod:
+                  type: string
+                  enum: [original_payment, wallet, bank_transfer]
+                  description: |-
+                    Refund method:
+                    - `original_payment`: Refund to original payment method
+                    - `wallet`: Refund to user's digital wallet (replaces deprecated `store_credit`)
+                    - `bank_transfer`: Direct bank transfer
+                refundAmount:
+                  type: number
+                  minimum: 0.01
+                  description: Refund amount in SAR
+      responses:
+        '200':
+          description: Refund processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Refund processed successfully'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
 components:
   securitySchemes:

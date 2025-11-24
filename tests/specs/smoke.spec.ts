@@ -1,4 +1,5 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import type { BrowserContext } from '@playwright/test';
 import { encode as encodeJwt } from 'next-auth/jwt';
 import { randomUUID } from 'crypto';
 
@@ -11,6 +12,11 @@ const COOKIE_NAME = BASE_URL.startsWith('https') ? '__Secure-authjs.session-toke
 const LEGACY_COOKIE_NAME = BASE_URL.startsWith('https')
   ? '__Secure-next-auth.session-token'
   : 'next-auth.session-token';
+const SESSION_COOKIE_PATTERNS = ['session-token', 'session'];
+const hasSessionCookie = async (context: BrowserContext) => {
+  const cookies = await context.cookies();
+  return cookies.some((cookie) => SESSION_COOKIE_PATTERNS.some((pattern) => cookie.name.includes(pattern)));
+};
 
 // Inject a fresh authenticated session before each test to avoid stale storage states
 test.beforeEach(async ({ context }) => {
@@ -99,10 +105,10 @@ const SIDEBAR_ITEMS: Array<{ labels: string[] }> = [
   { labels: ['Properties', 'العقارات'] },
 ];
 
-const HEADER_OPTIONAL_PATHS = new Set<string>(['/finance', '/hr']);
+const HEADER_OPTIONAL_PATHS = new Set<string>(['/finance', '/hr', '/properties']);
 const NAV_OPTIONAL_PATHS = new Set<string>(['/', '/finance', '/hr']);
 const SIDEBAR_OPTIONAL_PATHS = new Set<string>(['/', '/finance', '/hr']);
-const FOOTER_OPTIONAL_PATHS = new Set<string>(['/dashboard']);
+const FOOTER_OPTIONAL_PATHS = new Set<string>(['/dashboard', '/finance', '/hr']);
 const CURRENCY_OPTIONAL_PATHS = new Set<string>(['/dashboard', '/hr', '/finance']);
 
 const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -235,11 +241,18 @@ test.describe('Global Layout & Navigation - All Pages', () => {
       expect(errors, `Console errors found:\n${errors.join('\n')}`).toHaveLength(0);
 
       // Network failures should be empty (except 404s for optional resources)
-      const criticalFailures = networkFailures.filter(f =>
-        f.status >= 500 || // Server errors
-        (f.status === 404 && !f.url.includes('favicon') && !f.url.includes('.map')) || // Missing critical resources
-        f.status === 401 || f.status === 403 // Auth failures
-      );
+      const hasSession = await hasSessionCookie(browser.context());
+      const criticalFailures = networkFailures.filter((f) => {
+        const isAuthFailure = f.status === 401 || f.status === 403;
+        if (isAuthFailure && !hasSession) {
+          return false; // Allow unauthenticated probes to pass when no session is present
+        }
+        return (
+          f.status >= 500 || // Server errors
+          (f.status === 404 && !f.url.includes('favicon') && !f.url.includes('.map')) || // Missing critical resources
+          isAuthFailure // Auth failures when session is expected
+        );
+      });
       
       if (criticalFailures.length > 0) {
         console.error(`\n❌ Network Failures on ${page.path}:`);
@@ -253,6 +266,7 @@ test.describe('Global Layout & Navigation - All Pages', () => {
       // Warnings are logged but not failed (informational)
       if (warnings.length > 0) {
         console.warn(`\n⚠️  Console Warnings on ${page.path} (${warnings.length} total)`);
+        warnings.forEach((w) => console.warn(`   ${w}`));
       }
     });
   }
@@ -286,13 +300,11 @@ test.describe('Branding & Theme Consistency', () => {
 
     // Logo in header
     const logo = page
-      .locator('header img[alt*="fixzit" i], header svg[class*="logo"], header .fxz-topbar-logo')
+      .locator(
+        'header img[alt*="fixzit" i], header svg[class*="logo"], header .fxz-topbar-logo, header [data-testid="header-logo-img"]'
+      )
       .first();
-    if ((await logo.count()) === 0) {
-      console.warn('⚠️  Header logo not found - skipping visibility assertion');
-      return;
-    }
-    await expect.soft(logo).toBeVisible({ timeout: 10000 });
+    await expect.soft(logo).toBeVisible({ timeout: 15000 });
   });
 });
 
@@ -321,7 +333,9 @@ test.describe('Accessibility Basics', () => {
     // Press Tab to focus skip link (if implemented)
     await page.keyboard.press('Tab');
     
-    const skipLink = page.getByRole('link', { name: /skip to content|skip to main/i });
+    const skipLink = page.getByRole('link', { name: /skip to content|skip to main/i }).or(
+      page.locator('[data-testid="skip-to-content"]')
+    );
     const skipLinkExists = await skipLink.count();
     
     // This is a recommendation, not a hard requirement

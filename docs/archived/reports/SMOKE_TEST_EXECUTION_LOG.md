@@ -198,8 +198,10 @@ GET /api/fm/finance/budgets?organizationId=org_xxx
 **Steps:**
 1. Click "Exit Impersonation" button in TopBar
    OR
-2. Manually delete cookie: `document.cookie = "support_org_id=; path=/; max-age=0"`
+2. Use API: `DELETE /api/support/impersonation`
 3. Verify TopBar shows no org selected
+
+**Note:** Manual cookie deletion is not recommended (requires clearing Secure variants). See `/app/logout/page.tsx` for proper implementation.
 
 **Expected API Call:**
 ```

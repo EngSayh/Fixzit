@@ -1,7 +1,6 @@
 'use client';
-/* eslint-disable react-hooks/rules-of-hooks */
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
 
 const SEVERITIES = ['critical', 'high', 'medium', 'low'] as const;
 const CHANNELS = ['email', 'slack', 'bridge', 'pagerduty'] as const;
@@ -38,12 +37,22 @@ type EscalationForm = {
 };
 
 export default function NewEscalationPage() {
+  return (
+    <FmGuardedPage moduleId="support">
+      {({ orgId, supportBanner }) => (
+        <NewEscalationContent orgId={orgId!} supportBanner={supportBanner} />
+      )}
+    </FmGuardedPage>
+  );
+}
+
+type NewEscalationContentProps = {
+  orgId: string;
+  supportBanner?: ReactNode | null;
+};
+
+function NewEscalationContent({ orgId, supportBanner }: NewEscalationContentProps) {
   const auto = useAutoTranslator('fm.support.escalations');
-  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'support' });
-  
-  if (!hasOrgContext || !orgId) {
-    return guard;
-  }
   const [form, setForm] = useState<EscalationForm>({
     incidentId: '',
     service: '',
@@ -80,7 +89,7 @@ export default function NewEscalationPage() {
       const res = await fetch('/api/fm/support/escalations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, orgId }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body?.success) {
@@ -105,15 +114,6 @@ export default function NewEscalationPage() {
       setSubmitting(false);
     }
   };
-
-  if (!orgId) {
-    return (
-      <div className="space-y-6 p-6">
-        <ModuleViewTabs moduleId="support" />
-        {guard}
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 p-6">

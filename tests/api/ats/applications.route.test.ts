@@ -1,15 +1,19 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { NextRequest } from 'next/server';
 import { Types } from 'mongoose';
+import type { Mock } from 'vitest';
 
 process.env.SKIP_ENV_VALIDATION = 'true';
 process.env.NEXTAUTH_SECRET = 'test-secret';
+
+type JsonBody = { error?: string } | Record<string, string | number | boolean | null | object>;
+type JsonResponse = { status: number; body: JsonBody };
 
 vi.mock('next/server', () => {
   return {
     NextRequest: class {},
     NextResponse: {
-      json: (body: any, init?: ResponseInit) => ({
+      json: (body: JsonBody, init?: ResponseInit): JsonResponse => ({
         status: init?.status ?? 200,
         body
       })
@@ -56,8 +60,8 @@ vi.mock('@/server/models/Application', () => ({
   Application: ApplicationMock
 }));
 
-let GET: any;
-let atsRBAC: any;
+let GET: (req: NextRequest) => Promise<JsonResponse> | JsonResponse;
+let atsRBAC: Mock;
 
 describe('API /api/ats/applications', () => {
   beforeAll(async () => {
@@ -87,7 +91,7 @@ describe('API /api/ats/applications', () => {
   };
 
   it('rejects invalid page parameter', async () => {
-    const res: any = await callGET('?page=abc');
+    const res = await callGET('?page=abc');
 
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('Invalid page');
@@ -96,7 +100,7 @@ describe('API /api/ats/applications', () => {
   it('casts jobId and candidateId filters to ObjectId when valid', async () => {
     const jobId = new Types.ObjectId().toHexString();
     const candidateId = new Types.ObjectId().toHexString();
-    const res: any = await callGET(`?jobId=${jobId}&candidateId=${candidateId}&stage=screening&page=2&limit=75`);
+    const res = await callGET(`?jobId=${jobId}&candidateId=${candidateId}&stage=screening&page=2&limit=75`);
 
     expect(res.status).toBe(200);
     expect(ApplicationMock.find).toHaveBeenCalledTimes(1);

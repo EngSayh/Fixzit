@@ -30,7 +30,31 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const validMethods = ['original_payment', 'store_credit', 'bank_transfer'];
+    // Org boundary enforcement: Verify RMA belongs to admin's organization
+    // SUPER_ADMIN can process refunds across all organizations
+    if (session.user.role !== 'SUPER_ADMIN' && session.user.orgId) {
+      const { SouqRMA } = await import('@/server/models/souq/RMA');
+      const rma = await SouqRMA.findById(rmaId).lean();
+      if (!rma) {
+        return NextResponse.json({ 
+          error: 'RMA not found' 
+        }, { status: 404 });
+      }
+      // Verify organization match - sellerId should match orgId for tenant isolation
+      if (rma.sellerId?.toString() !== session.user.orgId) {
+        logger.warn('Org boundary violation attempt in refund processing', { 
+          userId: session.user.id, 
+          userOrg: session.user.orgId,
+          rmaSeller: rma.sellerId,
+          rmaId 
+        });
+        return NextResponse.json({ 
+          error: 'Access denied: RMA belongs to different organization' 
+        }, { status: 403 });
+      }
+    }
+
+    const validMethods = ['original_payment', 'wallet', 'bank_transfer'];
     if (!validMethods.includes(refundMethod)) {
       return NextResponse.json({ 
         error: `Invalid refundMethod. Must be one of: ${validMethods.join(', ')}` 
