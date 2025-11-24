@@ -68,7 +68,7 @@ export default function VendorDetailsPage() {
   return (
     <FmGuardedPage moduleId="vendors">
       {({ orgId, supportBanner }) => (
-        <VendorDetailsContent orgId={orgId!} supportBanner={supportBanner} />
+        <VendorDetailsContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );

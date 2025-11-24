@@ -41,9 +41,9 @@ interface AssetItem {
 
 export default function AssetsPage() {
   return (
-    <FmGuardedPage moduleId="administration">
+    <FmGuardedPage moduleId="assets">
       {({ orgId, supportBanner }) => (
-        <AssetsPageContent orgId={orgId!} supportBanner={supportBanner} />
+        <AssetsPageContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );

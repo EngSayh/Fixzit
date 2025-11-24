@@ -26,7 +26,7 @@ export default function SupportTicketsPage() {
   return (
     <FmGuardedPage moduleId="support">
       {({ orgId, supportBanner }) => (
-        <SupportTicketsContent orgId={orgId!} supportBanner={supportBanner} />
+        <SupportTicketsContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );

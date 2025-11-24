@@ -1,0 +1,70 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "typescript.tsdk": "./node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "typescript.tsserver.useSeparateSyntaxServer": true,
+    "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+    "typescript.validate.enable": true,
+    "typescript.preferences.preferTypeOnlyAutoImports": true,
+    "typescript.preferences.includePackageJsonAutoImports": "off",
+    "typescript.disableAutomaticTypeAcquisition": true,
+    "typescript.tsserver.log": "off",
+    "typescript.tsserver.trace": "off",
+    "typescript.surveys.enabled": false,
+    "typescript.tsserver.watchOptions": {
+      "excludeDirectories": [
+        "**/node_modules",
+        "**/node_modules/**",
+        "node_modules",
+        "**/.pnpm",
+        "**/.next",
+        "**/dist",
+        "**/build",
+        "**/out",
+        "**/tmp",
+        "**/_artifacts",
+        "**/coverage"
+      ],
+      "excludeFiles": [
+        "**/node_modules/**/*.d.ts",
+        "node_modules/**/*.d.ts"
+      ]
+    },
+    "files.watcherExclude": {
+      "**/node_modules/**": true,
+      "**/node_modules": true,
+      "**/.pnpm/**": true,
+      "**/.next/**": true,
+      "**/dist/**": true,
+      "**/build/**": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/node_modules/**": true,
+      "**/.pnpm": true,
+      "**/.next": true,
+      "**/dist": true,
+      "**/build": true
+    },
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/.git": true,
+      "**/.DS_Store": true
+    },
+    "problems.showCurrentInStatus": true,
+    "problems.decorations.enabled": true,
+    "typescript.reportStyleChecksAsWarnings": false
+  },
+  "extensions": {
+    "recommendations": [
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "bradlc.vscode-tailwindcss"
+    ]
+  }
+}

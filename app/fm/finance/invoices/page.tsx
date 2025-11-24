@@ -74,7 +74,7 @@ export default function InvoicesPage() {
   return (
     <FmGuardedPage moduleId="finance">
       {({ orgId, supportOrg }) => (
-        <InvoicesContent orgId={orgId!} supportOrg={supportOrg} />
+        <InvoicesContent orgId={orgId} supportOrg={supportOrg} />
       )}
     </FmGuardedPage>
   );
