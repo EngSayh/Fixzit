@@ -85,12 +85,10 @@ jobs:
           cache-dependency-path: 'pnpm-lock.yaml'
 
       - name: Install dependencies
-        working-directory: Fixzit
         run: pnpm install --frozen-lockfile
 
       - name: Get Playwright version
         id: playwright-version
-        working-directory: Fixzit
         run: echo "version=$(pnpm list @playwright/test --depth=0 --json | jq -r '.[0].devDependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
 
       - name: Cache Playwright browsers
@@ -104,12 +102,10 @@ jobs:
 
       - name: Install Playwright Browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        working-directory: Fixzit
         run: pnpm exec playwright install --with-deps
       
       - name: Install Playwright system dependencies
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        working-directory: Fixzit
         run: pnpm exec playwright install-deps
 
       - name: Cache Next.js build
@@ -126,7 +122,6 @@ jobs:
           SKIP_ENV_VALIDATION: 'true'
           ALLOW_OFFLINE_MONGODB: 'true'
           DISABLE_MONGODB_FOR_BUILD: 'true'
-        working-directory: Fixzit
         run: |
           echo "Building Next.js app for E2E tests..."
           pnpm build || {
@@ -255,7 +250,6 @@ jobs:
               tail -50 playwright-report/*.log 2>/dev/null || echo "No logs available"
               exit 1
             }
-        working-directory: Fixzit
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
