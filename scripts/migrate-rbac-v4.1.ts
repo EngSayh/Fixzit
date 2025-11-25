@@ -25,7 +25,7 @@
  *   - ISO 27001 change management
  */
 
-import mongoose from "mongoose";
+import mongoose, { ClientSession } from "mongoose";
 import { User } from "@/server/models/User";
 import { normalizeRole } from "@/domain/fm/fm.behavior";
 
@@ -157,7 +157,7 @@ function migrateUser(user: Record<string, unknown> & { professional?: Record<str
 /**
  * Run the migration
  */
-async function runMigration(): Promise<void> {
+async function runMigration(session?: ClientSession): Promise<void> {
   console.log("\n🔄 Starting STRICT v4.1 Migration\n");
   console.log(`Mode: ${DRY_RUN ? "DRY RUN (no changes)" : "LIVE MIGRATION"}`);
   if (ORG_ID) {
@@ -173,7 +173,12 @@ async function runMigration(): Promise<void> {
   }
   
   // Fetch users
-  const users = await User.find(query).lean();
+  const findQuery = User.find(query);
+  if (session) {
+    findQuery.session(session);
+  }
+
+  const users = await findQuery.lean();
   stats.total = users.length;
   
   console.log(`\nFound ${stats.total} users to process\n`);
@@ -199,7 +204,8 @@ async function runMigration(): Promise<void> {
           if (!_id) {
             throw new Error("User record missing _id");
           }
-          await User.updateOne({ _id }, { $set: update });
+          const updateOptions = session ? { session } : {};
+          await User.updateOne({ _id }, { $set: update }, updateOptions);
         } catch (error) {
           console.error(`   ❌ Error updating user: ${error}`);
           stats.errors++;
@@ -211,6 +217,11 @@ async function runMigration(): Promise<void> {
   }
   
   console.log("\n" + "─".repeat(80));
+
+  // If any update failed, trigger rollback in the calling transaction
+  if (!DRY_RUN && session && stats.errors > 0) {
+    throw new Error(`Encountered ${stats.errors} error(s) during migration`);
+  }
 }
 
 /**
@@ -285,14 +296,28 @@ function printSummary(): void {
  * Main execution
  */
 async function main(): Promise<void> {
+  let session: ClientSession | null = null;
   try {
     await connectDatabase();
     
     if (!DRY_RUN) {
       await createBackup();
+      session = await mongoose.startSession();
+      session.startTransaction();
+      try {
+        await runMigration(session);
+        await session.commitTransaction();
+      } catch (error) {
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        await session.endSession();
+        session = null;
+      }
+    } else {
+      await runMigration();
     }
     
-    await runMigration();
     await createIndexes();
     
     printSummary();

@@ -72,7 +72,7 @@ jobs:
     env:
       NODE_OPTIONS: --max-old-space-size=4096
       PLAYWRIGHT_CONFIG: tests/playwright.config.ts
-      PW_WEB_SERVER: pnpm --dir Fixzit dev
+      PW_WEB_SERVER: pnpm dev -- --hostname 0.0.0.0 --port 3000
       PW_WEB_PORT: 3000
       PLAYWRIGHT_BROWSERS_PATH: 0
       
