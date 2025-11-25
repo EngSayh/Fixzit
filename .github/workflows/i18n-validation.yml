@@ -26,6 +26,9 @@ on:
         required: false
         default: 'false'
 
+permissions:
+  contents: read
+
 jobs:
   validate-translations:
     name: Validate Translation Artifacts

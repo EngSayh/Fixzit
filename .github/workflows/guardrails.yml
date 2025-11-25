@@ -6,6 +6,9 @@ on:
   push:
     branches: [fix/consolidation-guardrails]
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
