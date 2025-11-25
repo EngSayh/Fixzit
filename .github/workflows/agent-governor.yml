@@ -47,19 +47,20 @@ jobs:
       # TODO: Add unit test script with Jest or Vitest when unit tests are implemented
       # - name: Run tests
       #   run: pnpm run test --if-present
+      
       - name: Build project
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          DISABLE_MONGODB_FOR_BUILD: "true"
+          SKIP_ENV_VALIDATION: "true"
         run: |
-          # GitHub Repository Secrets (configured in Settings > Secrets and variables > Actions)
-          MONGODB_URI="${{ secrets.MONGODB_URI || '' }}"
-          NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET || '' }}"
-          NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL || '' }}"
-          
+          # Apply safe defaults if secrets are not provided
           export MONGODB_URI="${MONGODB_URI:-mongodb://localhost:27017/fixzit-ci-test}"
           export NEXTAUTH_SECRET="${NEXTAUTH_SECRET:-ci-test-secret-key-min-32-chars-long-for-testing}"
           export NEXTAUTH_URL="${NEXTAUTH_URL:-http://localhost:3000}"
-          export NEXT_PUBLIC_APP_URL="http://localhost:3000"
-          export DISABLE_MONGODB_FOR_BUILD="true"
-          export SKIP_ENV_VALIDATION="true"
           
           pnpm run build
         # CRITICAL: Removed continue-on-error - build failures must block PRs
