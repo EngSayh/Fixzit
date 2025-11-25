@@ -1,0 +1,13 @@
+name: Test Runner Assignment
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Simple Echo
+        run: echo "Testing runner assignment"
