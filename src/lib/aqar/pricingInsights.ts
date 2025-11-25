@@ -1,10 +1,10 @@
-import { type FilterQuery } from 'mongoose';
+import { type FilterQuery } from "mongoose";
 import Listing, {
   ListingStatus,
   type IListing,
   ListingIntent,
   PropertyType,
-} from '@/models/aqar/Listing';
+} from "@/models/aqar/Listing";
 
 export interface PricingInsightParams {
   cityId: string;
@@ -21,16 +21,16 @@ export interface PricingInsight {
 }
 
 export async function computePricingInsight(
-  params: PricingInsightParams
+  params: PricingInsightParams,
 ): Promise<PricingInsight | null> {
   const match: FilterQuery<IListing> = {
     status: ListingStatus.ACTIVE,
     intent: params.intent,
-    'location.cityId': params.cityId,
+    "location.cityId": params.cityId,
   };
 
   if (params.neighborhoodId) {
-    match['location.neighborhoodId'] = params.neighborhoodId;
+    match["location.neighborhoodId"] = params.neighborhoodId;
   }
   if (params.propertyType) {
     match.propertyType = params.propertyType;
@@ -41,9 +41,9 @@ export async function computePricingInsight(
     {
       $group: {
         _id: null,
-        avgPrice: { $avg: '$price.amount' },
-        minPrice: { $min: '$price.amount' },
-        maxPrice: { $max: '$price.amount' },
+        avgPrice: { $avg: "$price.amount" },
+        minPrice: { $min: "$price.amount" },
+        maxPrice: { $max: "$price.amount" },
         count: { $sum: 1 },
       },
     },

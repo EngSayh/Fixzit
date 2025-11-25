@@ -7,35 +7,35 @@ on:
     branches: [main, develop]
   schedule:
     # Run weekly on Monday at 9 AM UTC
-    - cron: '0 9 * * 1'
+    - cron: "0 9 * * 1"
   workflow_dispatch:
 
 jobs:
   detect-duplicates:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      
+          python-version: "3.11"
+
       - name: Run duplicate detection
         id: detect
         run: |
           set -e
           chmod +x scripts/detect-duplicates.sh
-          
+
           set +e
           ./scripts/detect-duplicates.sh --fail-on-duplicates
           scan_exit=$?
           set -e
-          
+
           if [ $scan_exit -eq 0 ]; then
             echo "duplicates_found=false" >> $GITHUB_OUTPUT
           elif [ $scan_exit -eq 1 ]; then
@@ -47,8 +47,8 @@ jobs:
             exit $scan_exit
           fi
         env:
-          THRESHOLD_MB: 5  # Fail if duplicates exceed 5MB
-      
+          THRESHOLD_MB: 5 # Fail if duplicates exceed 5MB
+
       - name: Upload duplicate report
         if: always()
         uses: actions/upload-artifact@v4
@@ -56,7 +56,7 @@ jobs:
           name: duplicate-detection-report
           path: duplicate-detection-report.json
           retention-days: 30
-      
+
       - name: Comment on PR (if duplicates found)
         if: steps.detect.outputs.duplicates_found == 'true' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
@@ -70,12 +70,12 @@ jobs:
               console.log('Could not read report file');
               return;
             }
-            
+
             const wastedMB = report.total_wasted_mb || 0;
             const groups = report.duplicate_groups || 0;
-            
+
             if (groups === 0) return;
-            
+
             let comment = `## ⚠️ Duplicate Files Detected\n\n`;
             comment += `**Summary:**\n`;
             comment += `- Duplicate groups: ${groups}\n`;
@@ -84,16 +84,16 @@ jobs:
             comment += `Please review and remove duplicate files before merging.\n\n`;
             comment += `Run \`./scripts/cleanup-backups.sh\` to clean up backup duplicates.\n\n`;
             comment += `<details><summary>View Details</summary>\n\n`;
-            
+
             report.duplicates.slice(0, 5).forEach(dup => {
               comment += `\n**Group** (${(dup.size / 1024).toFixed(1)} KB each, ${dup.count} copies):\n`;
               dup.files.forEach(file => {
                 comment += `- \`${file}\`\n`;
               });
             });
-            
+
             comment += `\n</details>`;
-            
+
             // Retry logic for network resilience
             const maxRetries = 3;
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -115,7 +115,7 @@ jobs:
                 }
               }
             }
-      
+
       - name: Fail if duplicates exceed threshold
         if: steps.detect.outputs.duplicates_found == 'true'
         run: |

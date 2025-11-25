@@ -13,12 +13,16 @@
  * - Audit trail
  */
 
-import { Schema, Types, type FilterQuery } from 'mongoose';
-import type { HydratedDocument } from 'mongoose';
-import { getModel, MModel, CommonModelStatics } from '@/src/types/mongoose-compat';
-import { ensureMongoConnection } from '@/server/lib/db';
-import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
-import { auditPlugin } from '@/server/plugins/auditPlugin';
+import { Schema, Types, type FilterQuery } from "mongoose";
+import type { HydratedDocument } from "mongoose";
+import {
+  getModel,
+  MModel,
+  CommonModelStatics,
+} from "@/src/types/mongoose-compat";
+import { ensureMongoConnection } from "@/server/lib/db";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { auditPlugin } from "@/server/plugins/auditPlugin";
 
 ensureMongoConnection();
 
@@ -33,7 +37,7 @@ export interface ILedgerEntry {
   accountId: Types.ObjectId;
   accountCode: string;
   accountName: string;
-  accountType: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
+  accountType: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
   description: string;
   debit: number;
   credit: number;
@@ -65,18 +69,21 @@ export interface TrialBalanceEntry {
   accountId: Types.ObjectId;
   accountCode: string;
   accountName: string;
-  accountType: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
+  accountType: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
   debit: number;
   credit: number;
   balance: number;
 }
 
-export interface AccountActivityEntry extends Omit<ILedgerEntry, 'journalId' | 'createdAt' | 'updatedAt'> {
-  journalId?: {
-    journalNumber: string;
-    sourceType: string;
-    sourceNumber: string;
-  } | Types.ObjectId;
+export interface AccountActivityEntry
+  extends Omit<ILedgerEntry, "journalId" | "createdAt" | "updatedAt"> {
+  journalId?:
+    | {
+        journalNumber: string;
+        sourceType: string;
+        sourceNumber: string;
+      }
+    | Types.ObjectId;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -86,18 +93,18 @@ export type ILedgerEntryModel = MModel<ILedgerEntry> &
     getAccountBalance(
       orgId: Types.ObjectId,
       accountId: Types.ObjectId,
-      asOfDate?: Date
+      asOfDate?: Date,
     ): Promise<number>;
     getTrialBalance(
       orgId: Types.ObjectId,
       fiscalYear: number,
-      fiscalPeriod: number
+      fiscalPeriod: number,
     ): Promise<TrialBalanceEntry[]>;
     getAccountActivity(
       orgId: Types.ObjectId,
       accountId: Types.ObjectId,
       startDate: Date,
-      endDate: Date
+      endDate: Date,
     ): Promise<AccountActivityEntry[]>;
   };
 
@@ -106,46 +113,77 @@ const LedgerEntrySchema = new Schema<ILedgerEntry>(
     // Keep orgId explicit so indexes & queries are schema-aware
     orgId: { type: Schema.Types.ObjectId, required: true, index: true },
 
-    journalId: { type: Schema.Types.ObjectId, required: true, ref: 'Journal', index: true },
+    journalId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "Journal",
+      index: true,
+    },
     journalNumber: { type: String, required: true, trim: true },
     journalDate: { type: Date, required: true, index: true },
     date: { type: Date, required: true, index: true },
     postingDate: { type: Date, required: true, index: true },
-    accountId: { type: Schema.Types.ObjectId, required: true, ref: 'ChartAccount', index: true },
+    accountId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "ChartAccount",
+      index: true,
+    },
     accountCode: { type: String, required: true, trim: true, uppercase: true },
     accountName: { type: String, required: true, trim: true },
-    accountType: { 
-      type: String, 
+    accountType: {
+      type: String,
       required: true,
-      enum: ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'],
-      index: true
+      enum: ["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"],
+      index: true,
     },
     description: { type: String, required: true, trim: true },
     debit: { type: Number, required: true, default: 0, min: 0 },
     credit: { type: Number, required: true, default: 0, min: 0 },
-    debitMinor: { type: Schema.Types.Decimal128, default: () => Types.Decimal128.fromString('0') },
-    creditMinor: { type: Schema.Types.Decimal128, default: () => Types.Decimal128.fromString('0') },
-    baseDebitMinor: { type: Schema.Types.Decimal128, default: () => Types.Decimal128.fromString('0') },
-    baseCreditMinor: { type: Schema.Types.Decimal128, default: () => Types.Decimal128.fromString('0') },
-    baseCurrency: { type: String, default: 'SAR' },
-    currency: { type: String, default: 'SAR' },
+    debitMinor: {
+      type: Schema.Types.Decimal128,
+      default: () => Types.Decimal128.fromString("0"),
+    },
+    creditMinor: {
+      type: Schema.Types.Decimal128,
+      default: () => Types.Decimal128.fromString("0"),
+    },
+    baseDebitMinor: {
+      type: Schema.Types.Decimal128,
+      default: () => Types.Decimal128.fromString("0"),
+    },
+    baseCreditMinor: {
+      type: Schema.Types.Decimal128,
+      default: () => Types.Decimal128.fromString("0"),
+    },
+    baseCurrency: { type: String, default: "SAR" },
+    currency: { type: String, default: "SAR" },
     fxRate: { type: Number, default: 1 },
-    balanceMinor: { type: Schema.Types.Decimal128, default: () => Types.Decimal128.fromString('0') },
+    balanceMinor: {
+      type: Schema.Types.Decimal128,
+      default: () => Types.Decimal128.fromString("0"),
+    },
     balance: { type: Number, required: true, default: 0 },
     dimensions: { type: Schema.Types.Mixed },
     isReversal: { type: Boolean, default: false },
-    propertyId: { type: Schema.Types.ObjectId, ref: 'Property', index: true },
-    unitId: { type: Schema.Types.ObjectId, ref: 'Unit' },
-    ownerId: { type: Schema.Types.ObjectId, ref: 'Owner', index: true },
-    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', index: true },
-    vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor', index: true },
+    propertyId: { type: Schema.Types.ObjectId, ref: "Property", index: true },
+    unitId: { type: Schema.Types.ObjectId, ref: "Unit" },
+    ownerId: { type: Schema.Types.ObjectId, ref: "Owner", index: true },
+    tenantId: { type: Schema.Types.ObjectId, ref: "Tenant", index: true },
+    vendorId: { type: Schema.Types.ObjectId, ref: "Vendor", index: true },
     fiscalYear: { type: Number, required: true, index: true },
-    fiscalPeriod: { type: Number, required: true, min: 1, max: 12, index: true }
+    fiscalPeriod: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 12,
+      index: true,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-LedgerEntrySchema.pre('validate', function(next) {
+LedgerEntrySchema.pre("validate", function (next) {
   if (!this.date) {
     this.date = this.journalDate || this.postingDate || new Date();
   }
@@ -158,39 +196,68 @@ LedgerEntrySchema.plugin(auditPlugin);
 
 // All indexes MUST be tenant-scoped
 LedgerEntrySchema.index({ orgId: 1, accountId: 1, postingDate: -1 }); // account history
-LedgerEntrySchema.index({ orgId: 1, accountId: 1, fiscalYear: 1, fiscalPeriod: 1 }); // period balances
+LedgerEntrySchema.index({
+  orgId: 1,
+  accountId: 1,
+  fiscalYear: 1,
+  fiscalPeriod: 1,
+}); // period balances
 LedgerEntrySchema.index({ orgId: 1, journalId: 1 }); // journal lookup
 LedgerEntrySchema.index({ orgId: 1, propertyId: 1, postingDate: -1 }); // property reports
 LedgerEntrySchema.index({ orgId: 1, ownerId: 1, postingDate: -1 }); // owner statements
-LedgerEntrySchema.index({ orgId: 1, fiscalYear: 1, fiscalPeriod: 1, accountType: 1 }); // statements
+LedgerEntrySchema.index({
+  orgId: 1,
+  fiscalYear: 1,
+  fiscalPeriod: 1,
+  accountType: 1,
+}); // statements
 LedgerEntrySchema.index({ orgId: 1, accountId: 1, date: 1 });
-LedgerEntrySchema.index({ orgId: 1, 'dimensions.propertyId': 1, date: -1 });
-LedgerEntrySchema.index({ orgId: 1, 'dimensions.ownerId': 1, date: -1 });
+LedgerEntrySchema.index({ orgId: 1, "dimensions.propertyId": 1, date: -1 });
+LedgerEntrySchema.index({ orgId: 1, "dimensions.ownerId": 1, date: -1 });
 
 // Pre-save: Validate debit/credit exclusivity
-LedgerEntrySchema.pre('save', function (this: HydratedDocument<ILedgerEntry>, next) {
-  if ((this.debit > 0 && this.credit > 0) || (this.debit === 0 && this.credit === 0)) {
-    return next(new Error('Ledger entry must have either debit OR credit (not both or neither)'));
-  }
-  next();
-});
+LedgerEntrySchema.pre(
+  "save",
+  function (this: HydratedDocument<ILedgerEntry>, next) {
+    if (
+      (this.debit > 0 && this.credit > 0) ||
+      (this.debit === 0 && this.credit === 0)
+    ) {
+      return next(
+        new Error(
+          "Ledger entry must have either debit OR credit (not both or neither)",
+        ),
+      );
+    }
+    next();
+  },
+);
 
 // Static: Get account balance at date
 LedgerEntrySchema.statics.getAccountBalance = async function (
   orgId: Types.ObjectId,
   accountId: Types.ObjectId,
-  asOfDate?: Date
+  asOfDate?: Date,
 ): Promise<number> {
-  const filter: FilterQuery<ILedgerEntry> = { orgId, accountId } as FilterQuery<ILedgerEntry>;
-  if (asOfDate) (filter as unknown as { postingDate: { $lte: Date } }).postingDate = { $lte: asOfDate };
+  const filter: FilterQuery<ILedgerEntry> = {
+    orgId,
+    accountId,
+  } as FilterQuery<ILedgerEntry>;
+  if (asOfDate)
+    (filter as unknown as { postingDate: { $lte: Date } }).postingDate = {
+      $lte: asOfDate,
+    };
 
-  const result = await this.aggregate<{ totalDebit: number; totalCredit: number }>([
+  const result = await this.aggregate<{
+    totalDebit: number;
+    totalCredit: number;
+  }>([
     { $match: filter },
     {
       $group: {
         _id: null,
-        totalDebit: { $sum: '$debit' },
-        totalCredit: { $sum: '$credit' },
+        totalDebit: { $sum: "$debit" },
+        totalCredit: { $sum: "$credit" },
       },
     },
   ]);
@@ -203,7 +270,7 @@ LedgerEntrySchema.statics.getAccountBalance = async function (
 LedgerEntrySchema.statics.getTrialBalance = async function (
   orgId: Types.ObjectId,
   fiscalYear: number,
-  fiscalPeriod: number
+  fiscalPeriod: number,
 ): Promise<TrialBalanceEntry[]> {
   return this.aggregate<TrialBalanceEntry>([
     {
@@ -216,25 +283,25 @@ LedgerEntrySchema.statics.getTrialBalance = async function (
     {
       $group: {
         _id: {
-          accountId: '$accountId',
-          accountCode: '$accountCode',
-          accountName: '$accountName',
-          accountType: '$accountType',
+          accountId: "$accountId",
+          accountCode: "$accountCode",
+          accountName: "$accountName",
+          accountType: "$accountType",
         },
-        totalDebit: { $sum: '$debit' },
-        totalCredit: { $sum: '$credit' },
+        totalDebit: { $sum: "$debit" },
+        totalCredit: { $sum: "$credit" },
       },
     },
     {
       $project: {
         _id: 0,
-        accountId: '$_id.accountId',
-        accountCode: '$_id.accountCode',
-        accountName: '$_id.accountName',
-        accountType: '$_id.accountType',
-        debit: '$totalDebit',
-        credit: '$totalCredit',
-        balance: { $subtract: ['$totalDebit', '$totalCredit'] },
+        accountId: "$_id.accountId",
+        accountCode: "$_id.accountCode",
+        accountName: "$_id.accountName",
+        accountType: "$_id.accountType",
+        debit: "$totalDebit",
+        credit: "$totalCredit",
+        balance: { $subtract: ["$totalDebit", "$totalCredit"] },
       },
     },
     { $sort: { accountCode: 1 } },
@@ -246,20 +313,23 @@ LedgerEntrySchema.statics.getAccountActivity = async function (
   orgId: Types.ObjectId,
   accountId: Types.ObjectId,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): Promise<AccountActivityEntry[]> {
   const results = await this.find(
     { orgId, accountId, postingDate: { $gte: startDate, $lte: endDate } },
     null,
-    { sort: { postingDate: -1, createdAt: -1 } }
+    { sort: { postingDate: -1, createdAt: -1 } },
   )
-    .populate('journalId', 'journalNumber sourceType sourceNumber')
+    .populate("journalId", "journalNumber sourceType sourceNumber")
     .lean();
-  
+
   return results as AccountActivityEntry[];
 };
 
-export const LedgerEntryModel = getModel<ILedgerEntry>('LedgerEntry', LedgerEntrySchema) as ILedgerEntryModel;
+export const LedgerEntryModel = getModel<ILedgerEntry>(
+  "LedgerEntry",
+  LedgerEntrySchema,
+) as ILedgerEntryModel;
 export const LedgerEntry = LedgerEntryModel;
 
 export type LedgerEntryDoc = HydratedDocument<ILedgerEntry>;

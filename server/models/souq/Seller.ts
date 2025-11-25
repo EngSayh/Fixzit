@@ -3,30 +3,48 @@
  * @module server/models/souq/Seller
  */
 
-import mongoose, { Schema, type Document } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
 
 export interface ISellerPolicyViolation {
-  type: 'restricted_product' | 'fake_review' | 'price_gouging' | 'counterfeit' | 'late_shipment' | 'high_odr' | 'other';
-  severity: 'warning' | 'minor' | 'major' | 'critical';
+  type:
+    | "restricted_product"
+    | "fake_review"
+    | "price_gouging"
+    | "counterfeit"
+    | "late_shipment"
+    | "high_odr"
+    | "other";
+  severity: "warning" | "minor" | "major" | "critical";
   description: string;
   occurredAt: Date;
   resolved: boolean;
   resolvedAt?: Date;
-  action: 'warning' | 'listing_suppression' | 'account_suspension' | 'permanent_deactivation' | 'none';
+  action:
+    | "warning"
+    | "listing_suppression"
+    | "account_suspension"
+    | "permanent_deactivation"
+    | "none";
 }
 
 export interface IAutoRepricerRule {
   enabled: boolean;
   minPrice: number;
   maxPrice: number;
-  targetPosition: 'win' | 'competitive';
+  targetPosition: "win" | "competitive";
   undercut: number;
   protectMargin: boolean;
 }
 
 export interface IKYCDocumentEntry {
-  type: 'cr' | 'vat_certificate' | 'bank_letter' | 'id' | 'authorization' | 'other';
+  type:
+    | "cr"
+    | "vat_certificate"
+    | "bank_letter"
+    | "id"
+    | "authorization"
+    | "other";
   url: string;
   uploadedAt: Date;
   expiresAt?: Date;
@@ -37,8 +55,14 @@ export interface IKYCDocumentEntry {
 }
 
 export interface IKYCWorkflow {
-  status: 'pending' | 'in_review' | 'under_review' | 'approved' | 'rejected' | 'suspended';
-  step: 'company_info' | 'documents' | 'bank_details' | 'verification';
+  status:
+    | "pending"
+    | "in_review"
+    | "under_review"
+    | "approved"
+    | "rejected"
+    | "suspended";
+  step: "company_info" | "documents" | "bank_details" | "verification";
   companyInfoComplete: boolean;
   documentsComplete: boolean;
   bankDetailsComplete: boolean;
@@ -53,11 +77,11 @@ export interface IKYCWorkflow {
 export interface ISeller extends Document {
   _id: mongoose.Types.ObjectId;
   sellerId: string; // SEL-{UUID}
-  
+
   // Legal Entity
   legalName: string;
   tradeName?: string;
-  registrationType: 'individual' | 'company' | 'partnership';
+  registrationType: "individual" | "company" | "partnership";
   registrationNumber?: string; // CR number
   vatNumber?: string;
   country: string;
@@ -75,21 +99,21 @@ export interface ISeller extends Document {
     postalCode?: string;
     country?: string;
   };
-  
+
   // Contact
   contactEmail: string;
   contactPhone: string;
   contactPerson?: string;
-  
+
   // KYC Status
   kycStatus: IKYCWorkflow;
   kycSubmittedAt?: Date;
   kycApprovedAt?: Date;
   kycRejectionReason?: string;
-  
+
   // KYC Documents
   documents: IKYCDocumentEntry[];
-  
+
   // Bank Details
   bankAccount?: {
     bankName: string;
@@ -98,7 +122,7 @@ export interface ISeller extends Document {
     iban: string;
     swiftCode?: string;
   };
-  
+
   // Account Health Metrics
   accountHealth: {
     orderDefectRate: number; // % (target < 1%)
@@ -107,31 +131,31 @@ export interface ISeller extends Document {
     validTrackingRate: number; // % (target > 95%)
     onTimeDeliveryRate: number; // % (target > 97%)
     score: number; // 0-100
-    status: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
+    status: "excellent" | "good" | "fair" | "poor" | "critical";
     lastCalculated: Date;
   };
-  
+
   // Violations & Suspensions
   violations: {
-    type: 'policy' | 'quality' | 'shipping' | 'communication' | 'ip' | 'other';
+    type: "policy" | "quality" | "shipping" | "communication" | "ip" | "other";
     description: string;
-    severity: 'minor' | 'moderate' | 'major' | 'critical';
+    severity: "minor" | "moderate" | "major" | "critical";
     occurredAt: Date;
     resolvedAt?: Date;
-    action: 'warning' | 'fee' | 'suspension' | 'removal';
+    action: "warning" | "fee" | "suspension" | "removal";
   }[];
   policyViolations?: ISellerPolicyViolation[];
-  
+
   // Seller Tier (for fee schedules)
-  tier: 'individual' | 'professional' | 'enterprise';
+  tier: "individual" | "professional" | "enterprise";
   tierEffectiveFrom: Date;
-  
+
   // Fulfillment Settings
   fulfillmentMethod: {
     fbf: boolean; // Fulfillment by Fixzit
     fbm: boolean; // Fulfillment by Merchant
   };
-  
+
   // Return Settings
   returnPolicy?: {
     acceptsReturns: boolean;
@@ -139,17 +163,17 @@ export interface ISeller extends Document {
     restockingFee?: number; // %
     customPolicy?: string;
   };
-  
+
   // Settlement Settings
   settlementCycle: 7 | 14 | 30; // days
   holdPeriod: number; // days to hold funds for claims
-  
+
   // Status
   isActive: boolean;
   isSuspended: boolean;
   suspensionReason?: string;
   suspendedAt?: Date;
-  
+
   // Feature Access
   features: {
     sponsored_ads: boolean;
@@ -158,16 +182,16 @@ export interface ISeller extends Document {
     api_access: boolean;
     dedicated_support: boolean;
   };
-  
+
   // Methods
   canCompeteInBuyBox(): boolean;
-  
+
   autoRepricerSettings?: {
     enabled: boolean;
     rules: Record<string, IAutoRepricerRule>;
     defaultRule?: IAutoRepricerRule;
   } | null;
-  
+
   // Performance Stats (cached)
   stats?: {
     totalProducts: number;
@@ -177,10 +201,10 @@ export interface ISeller extends Document {
     averageRating: number;
     totalReviews: number;
   };
-  
+
   // Linked User Account
   userId?: mongoose.Types.ObjectId;
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -206,7 +230,7 @@ const SellerSchema = new Schema<ISeller>(
     },
     registrationType: {
       type: String,
-      enum: ['individual', 'company', 'partnership'],
+      enum: ["individual", "company", "partnership"],
       required: true,
     },
     registrationNumber: {
@@ -222,7 +246,7 @@ const SellerSchema = new Schema<ISeller>(
     country: {
       type: String,
       required: true,
-      default: 'SA',
+      default: "SA",
     },
     city: {
       type: String,
@@ -265,14 +289,21 @@ const SellerSchema = new Schema<ISeller>(
     kycStatus: {
       status: {
         type: String,
-        enum: ['pending', 'in_review', 'under_review', 'approved', 'rejected', 'suspended'],
-        default: 'pending',
+        enum: [
+          "pending",
+          "in_review",
+          "under_review",
+          "approved",
+          "rejected",
+          "suspended",
+        ],
+        default: "pending",
         index: true,
       },
       step: {
         type: String,
-        enum: ['company_info', 'documents', 'bank_details', 'verification'],
-        default: 'company_info',
+        enum: ["company_info", "documents", "bank_details", "verification"],
+        default: "company_info",
       },
       companyInfoComplete: { type: Boolean, default: false },
       documentsComplete: { type: Boolean, default: false },
@@ -291,7 +322,14 @@ const SellerSchema = new Schema<ISeller>(
       {
         type: {
           type: String,
-          enum: ['cr', 'vat_certificate', 'bank_letter', 'id', 'authorization', 'other'],
+          enum: [
+            "cr",
+            "vat_certificate",
+            "bank_letter",
+            "id",
+            "authorization",
+            "other",
+          ],
           required: true,
         },
         url: { type: String, required: true },
@@ -349,8 +387,8 @@ const SellerSchema = new Schema<ISeller>(
       },
       status: {
         type: String,
-        enum: ['excellent', 'good', 'fair', 'poor', 'critical'],
-        default: 'excellent',
+        enum: ["excellent", "good", "fair", "poor", "critical"],
+        default: "excellent",
       },
       lastCalculated: {
         type: Date,
@@ -361,7 +399,14 @@ const SellerSchema = new Schema<ISeller>(
       {
         type: {
           type: String,
-          enum: ['policy', 'quality', 'shipping', 'communication', 'ip', 'other'],
+          enum: [
+            "policy",
+            "quality",
+            "shipping",
+            "communication",
+            "ip",
+            "other",
+          ],
           required: true,
         },
         description: {
@@ -370,7 +415,7 @@ const SellerSchema = new Schema<ISeller>(
         },
         severity: {
           type: String,
-          enum: ['minor', 'moderate', 'major', 'critical'],
+          enum: ["minor", "moderate", "major", "critical"],
           required: true,
         },
         occurredAt: {
@@ -380,7 +425,7 @@ const SellerSchema = new Schema<ISeller>(
         resolvedAt: Date,
         action: {
           type: String,
-          enum: ['warning', 'fee', 'suspension', 'removal'],
+          enum: ["warning", "fee", "suspension", "removal"],
           required: true,
         },
       },
@@ -389,13 +434,21 @@ const SellerSchema = new Schema<ISeller>(
       {
         type: {
           type: String,
-          enum: ['restricted_product', 'fake_review', 'price_gouging', 'counterfeit', 'late_shipment', 'high_odr', 'other'],
+          enum: [
+            "restricted_product",
+            "fake_review",
+            "price_gouging",
+            "counterfeit",
+            "late_shipment",
+            "high_odr",
+            "other",
+          ],
           required: true,
         },
         severity: {
           type: String,
-          enum: ['warning', 'minor', 'major', 'critical'],
-          default: 'warning',
+          enum: ["warning", "minor", "major", "critical"],
+          default: "warning",
         },
         description: {
           type: String,
@@ -412,15 +465,21 @@ const SellerSchema = new Schema<ISeller>(
         resolvedAt: Date,
         action: {
           type: String,
-          enum: ['warning', 'listing_suppression', 'account_suspension', 'permanent_deactivation', 'none'],
-          default: 'warning',
+          enum: [
+            "warning",
+            "listing_suppression",
+            "account_suspension",
+            "permanent_deactivation",
+            "none",
+          ],
+          default: "warning",
         },
       },
     ],
     tier: {
       type: String,
-      enum: ['individual', 'professional', 'enterprise'],
-      default: 'individual',
+      enum: ["individual", "professional", "enterprise"],
+      default: "individual",
       index: true,
     },
     tierEffectiveFrom: {
@@ -534,26 +593,31 @@ const SellerSchema = new Schema<ISeller>(
     },
     userId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       index: true,
     },
   },
   {
     timestamps: true,
-    collection: 'souq_sellers',
-  }
+    collection: "souq_sellers",
+  },
 );
 
 // Indexes
-SellerSchema.index({ 'kycStatus.status': 1, isActive: 1 });
-SellerSchema.index({ 'accountHealth.status': 1 });
+SellerSchema.index({ "kycStatus.status": 1, isActive: 1 });
+SellerSchema.index({ "accountHealth.status": 1 });
 SellerSchema.index({ tier: 1, isActive: 1 });
-SellerSchema.index({ legalName: 'text', tradeName: 'text' });
+SellerSchema.index({ legalName: "text", tradeName: "text" });
 
 // Method: Calculate account health score
 SellerSchema.methods.calculateAccountHealth = function (): number {
-  const { orderDefectRate, lateShipmentRate, cancellationRate, validTrackingRate, onTimeDeliveryRate } =
-    this.accountHealth;
+  const {
+    orderDefectRate,
+    lateShipmentRate,
+    cancellationRate,
+    validTrackingRate,
+    onTimeDeliveryRate,
+  } = this.accountHealth;
 
   // Weighted scoring
   const score =
@@ -573,15 +637,15 @@ SellerSchema.methods.updateAccountHealthStatus = function (): void {
   this.accountHealth.score = score;
 
   if (score >= 90) {
-    this.accountHealth.status = 'excellent';
+    this.accountHealth.status = "excellent";
   } else if (score >= 75) {
-    this.accountHealth.status = 'good';
+    this.accountHealth.status = "good";
   } else if (score >= 60) {
-    this.accountHealth.status = 'fair';
+    this.accountHealth.status = "fair";
   } else if (score >= 40) {
-    this.accountHealth.status = 'poor';
+    this.accountHealth.status = "poor";
   } else {
-    this.accountHealth.status = 'critical';
+    this.accountHealth.status = "critical";
   }
 
   this.accountHealth.lastCalculated = new Date();
@@ -592,8 +656,8 @@ SellerSchema.methods.canCreateListings = function (): boolean {
   return (
     this.isActive &&
     !this.isSuspended &&
-    this.kycStatus?.status === 'approved' &&
-    this.accountHealth.status !== 'critical'
+    this.kycStatus?.status === "approved" &&
+    this.accountHealth.status !== "critical"
   );
 };
 
@@ -609,20 +673,19 @@ SellerSchema.methods.canCompeteInBuyBox = function (): boolean {
 // Static: Get pending KYC approvals
 SellerSchema.statics.getPendingKYC = async function () {
   return this.find({
-    'kycStatus.status': 'in_review',
+    "kycStatus.status": "in_review",
     isActive: true,
-  }).sort({ 'kycStatus.submittedAt': 1 });
+  }).sort({ "kycStatus.submittedAt": 1 });
 };
 
 // Static: Get sellers with critical health
 SellerSchema.statics.getCriticalHealthSellers = async function () {
   return this.find({
     isActive: true,
-    'accountHealth.status': 'critical',
+    "accountHealth.status": "critical",
   });
 };
 
-export const SouqSeller =
-  getModel<ISeller>('SouqSeller', SellerSchema);
+export const SouqSeller = getModel<ISeller>("SouqSeller", SellerSchema);
 
 export default SouqSeller;

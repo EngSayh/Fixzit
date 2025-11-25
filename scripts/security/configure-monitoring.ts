@@ -2,34 +2,34 @@
 /**
  * Security Event Monitoring Configuration
  * Adds logging hooks for rate limiting, CORS violations, and auth failures
- * 
+ *
  * Usage: pnpm tsx scripts/security/configure-monitoring.ts
  */
 
-import { writeFileSync } from 'fs';
-import { join } from 'path';
+import { writeFileSync } from "fs";
+import { join } from "path";
 
 const MONITORING_CONFIG = {
   rateLimit: {
-    logLevel: 'warn',
+    logLevel: "warn",
     alertThreshold: 100, // Alert if 100+ rate limit hits in 5 minutes
-    destinations: ['console', 'file', 'webhook']
+    destinations: ["console", "file", "webhook"],
   },
   cors: {
-    logLevel: 'warn',
+    logLevel: "warn",
     alertThreshold: 50, // Alert if 50+ CORS violations in 5 minutes
-    destinations: ['console', 'file']
+    destinations: ["console", "file"],
   },
   auth: {
-    logLevel: 'error',
+    logLevel: "error",
     alertThreshold: 10, // Alert if 10+ auth failures in 5 minutes
-    destinations: ['console', 'file', 'webhook']
+    destinations: ["console", "file", "webhook"],
   },
   mongodb: {
-    logLevel: 'error',
+    logLevel: "error",
     alertThreshold: 5, // Alert if 5+ connection failures in 5 minutes
-    destinations: ['console', 'file', 'webhook']
-  }
+    destinations: ["console", "file", "webhook"],
+  },
 };
 
 const MONITORING_MIDDLEWARE = `
@@ -243,22 +243,25 @@ export function addCorsHeaders(response: NextResponse, origin: string | null): N
 }
 `;
 
-console.log('🔧 Configuring security monitoring...\n');
+console.log("🔧 Configuring security monitoring...\n");
 
 // Create monitoring middleware file
-const monitoringPath = join(process.cwd(), 'lib/security/monitoring.ts');
+const monitoringPath = join(process.cwd(), "lib/security/monitoring.ts");
 writeFileSync(monitoringPath, MONITORING_MIDDLEWARE.trim());
-console.log('✅ Created lib/security/monitoring.ts');
+console.log("✅ Created lib/security/monitoring.ts");
 
 // Create enhanced rate limit middleware
-const enhancedRateLimitPath = join(process.cwd(), 'lib/middleware/enhanced-rate-limit.ts');
+const enhancedRateLimitPath = join(
+  process.cwd(),
+  "lib/middleware/enhanced-rate-limit.ts",
+);
 writeFileSync(enhancedRateLimitPath, ENHANCED_RATE_LIMIT_MIDDLEWARE.trim());
-console.log('✅ Created lib/middleware/enhanced-rate-limit.ts');
+console.log("✅ Created lib/middleware/enhanced-rate-limit.ts");
 
 // Create enhanced CORS middleware
-const enhancedCorsPath = join(process.cwd(), 'lib/middleware/enhanced-cors.ts');
+const enhancedCorsPath = join(process.cwd(), "lib/middleware/enhanced-cors.ts");
 writeFileSync(enhancedCorsPath, ENHANCED_CORS_MIDDLEWARE.trim());
-console.log('✅ Created lib/middleware/enhanced-cors.ts');
+console.log("✅ Created lib/middleware/enhanced-cors.ts");
 
 // Create environment variables template
 const envTemplate = `
@@ -275,9 +278,9 @@ SECURITY_LOG_LEVEL=warn
 ENABLE_SECURITY_MONITORING=true
 `;
 
-const envTemplatePath = join(process.cwd(), '.env.security.template');
+const envTemplatePath = join(process.cwd(), ".env.security.template");
 writeFileSync(envTemplatePath, envTemplate.trim());
-console.log('✅ Created .env.security.template');
+console.log("✅ Created .env.security.template");
 
 // Create monitoring dashboard query examples
 const dashboardQueries = `
@@ -316,9 +319,12 @@ service:fixzit (event:RateLimit OR event:CORS OR event:Auth)
 \`\`\`
 `;
 
-const dashboardPath = join(process.cwd(), 'docs/security/MONITORING_QUERIES.md');
+const dashboardPath = join(
+  process.cwd(),
+  "docs/security/MONITORING_QUERIES.md",
+);
 writeFileSync(dashboardPath, dashboardQueries.trim());
-console.log('✅ Created docs/security/MONITORING_QUERIES.md');
+console.log("✅ Created docs/security/MONITORING_QUERIES.md");
 
 // Create integration instructions
 const integrationInstructions = `
@@ -436,13 +442,16 @@ The following metrics are tracked:
 Adjust these in \`lib/security/monitoring.ts\` as needed.
 `;
 
-const integrationPath = join(process.cwd(), 'docs/security/MONITORING_INTEGRATION.md');
+const integrationPath = join(
+  process.cwd(),
+  "docs/security/MONITORING_INTEGRATION.md",
+);
 writeFileSync(integrationPath, integrationInstructions.trim());
-console.log('✅ Created docs/security/MONITORING_INTEGRATION.md');
+console.log("✅ Created docs/security/MONITORING_INTEGRATION.md");
 
-console.log('\n✅ Security monitoring configuration complete!\n');
-console.log('Next steps:');
-console.log('1. Review .env.security.template and add values to .env.local');
-console.log('2. Follow docs/security/MONITORING_INTEGRATION.md to integrate');
-console.log('3. Run pnpm tsx scripts/security/run-all-security-tests.sh');
-console.log('4. Set up monitoring dashboard with provided queries\n');
+console.log("\n✅ Security monitoring configuration complete!\n");
+console.log("Next steps:");
+console.log("1. Review .env.security.template and add values to .env.local");
+console.log("2. Follow docs/security/MONITORING_INTEGRATION.md to integrate");
+console.log("3. Run pnpm tsx scripts/security/run-all-security-tests.sh");
+console.log("4. Set up monitoring dashboard with provided queries\n");

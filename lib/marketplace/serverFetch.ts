@@ -1,6 +1,6 @@
-import { cookies, headers } from 'next/headers';
-import { logger } from '@/lib/logger';
-import { randomUUID } from 'node:crypto';
+import { cookies, headers } from "next/headers";
+import { logger } from "@/lib/logger";
+import { randomUUID } from "node:crypto";
 
 function getEnvBaseUrl() {
   const envUrl =
@@ -12,7 +12,7 @@ function getEnvBaseUrl() {
     return undefined;
   }
 
-  return envUrl.replace(/\/$/, '');
+  return envUrl.replace(/\/$/, "");
 }
 
 async function getHeaderBaseUrl() {
@@ -26,22 +26,23 @@ async function getHeaderBaseUrl() {
   if (!headerList) {
     return undefined;
   }
-  const host = headerList.get('x-forwarded-host') ?? headerList.get('host');
+  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
   if (!host) {
     return undefined;
   }
 
-  const protocolHeader = headerList.get('x-forwarded-proto');
-  const protocol = protocolHeader ?? (host.includes('localhost') ? 'http' : 'https');
+  const protocolHeader = headerList.get("x-forwarded-proto");
+  const protocol =
+    protocolHeader ?? (host.includes("localhost") ? "http" : "https");
   return `${protocol}://${host}`;
 }
 
 export async function getMarketplaceBaseUrl() {
   const envUrl = getEnvBaseUrl();
   if (envUrl) return envUrl;
-  
+
   const headerUrl = await getHeaderBaseUrl();
-  return headerUrl ?? 'http://localhost:3000';
+  return headerUrl ?? "http://localhost:3000";
 }
 
 export async function serverFetchWithTenant(path: string, init?: RequestInit) {
@@ -51,7 +52,7 @@ export async function serverFetchWithTenant(path: string, init?: RequestInit) {
   let errorCorrelationId: string | undefined;
   try {
     const cookieStore = await cookies();
-    authCookieValue = cookieStore.get('fixzit_auth')?.value;
+    authCookieValue = cookieStore.get("fixzit_auth")?.value;
   } catch {
     // cookies() unavailable
     authCookieValue = undefined;
@@ -59,42 +60,46 @@ export async function serverFetchWithTenant(path: string, init?: RequestInit) {
   const headersInit = new Headers(init?.headers ?? {});
 
   if (authCookieValue) {
-    const existing = headersInit.get('Cookie');
+    const existing = headersInit.get("Cookie");
     const parsedCookies = existing
       ? existing
-          .split(';')
+          .split(";")
           .map((cookie) => cookie.trim())
           .filter(Boolean)
-          .filter((cookie) => !cookie.toLowerCase().startsWith('fixzit_auth='))
+          .filter((cookie) => !cookie.toLowerCase().startsWith("fixzit_auth="))
       : [];
     parsedCookies.push(`fixzit_auth=${authCookieValue}`);
-    headersInit.set('Cookie', parsedCookies.join('; '));
+    headersInit.set("Cookie", parsedCookies.join("; "));
   }
 
   const response = await fetch(url, {
     ...init,
-    cache: init?.cache ?? 'no-store',
-    headers: headersInit
+    cache: init?.cache ?? "no-store",
+    headers: headersInit,
   });
 
   if (!response.ok) {
     const correlationId = errorCorrelationId ?? randomUUID();
     const errorPayload = {
-      name: 'MarketplaceFetchError',
-      code: 'HTTP_ERROR',
-      userMessage: 'Unable to reach marketplace services. Please try again shortly.',
+      name: "MarketplaceFetchError",
+      code: "HTTP_ERROR",
+      userMessage:
+        "Unable to reach marketplace services. Please try again shortly.",
       devMessage: `Request failed: ${response.status} ${response.statusText} for ${url}`,
       correlationId,
     };
-     
-    logger.error('[MarketplaceFetch] request failed', errorPayload);
+
+    logger.error("[MarketplaceFetch] request failed", errorPayload);
     throw new Error(JSON.stringify(errorPayload));
   }
 
   return response;
 }
 
-export async function serverFetchJsonWithTenant<T>(path: string, init?: RequestInit): Promise<T> {
+export async function serverFetchJsonWithTenant<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T> {
   const response = await serverFetchWithTenant(path, init);
   return response.json() as Promise<T>;
 }

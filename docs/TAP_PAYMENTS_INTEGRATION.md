@@ -5,6 +5,7 @@ Complete payment processing integration for Saudi market using [Tap Payments](ht
 ## 📋 Overview
 
 Tap Payments provides a unified API for accepting payments in the Saudi market through:
+
 - **Mada** (Saudi debit cards)
 - **Credit Cards** (Visa, Mastercard)
 - **Apple Pay**
@@ -81,26 +82,30 @@ NEXT_PUBLIC_BASE_URL=https://yourdomain.com
 ### Basic Payment Flow
 
 ```typescript
-import { tapPayments, buildTapCustomer, buildRedirectUrls } from '@/lib/finance/tap-payments';
+import {
+  tapPayments,
+  buildTapCustomer,
+  buildRedirectUrls,
+} from "@/lib/finance/tap-payments";
 
 // 1. Create a payment session
 async function createPayment(orderId: string, amount: number) {
-  const response = await fetch('/api/payments/tap/checkout', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const response = await fetch("/api/payments/tap/checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      amount: 50.00, // Amount in SAR
+      amount: 50.0, // Amount in SAR
       description: `Payment for Order #${orderId}`,
       orderId: orderId,
       metadata: {
-        productName: 'Premium Subscription',
-        duration: '1 month',
+        productName: "Premium Subscription",
+        duration: "1 month",
       },
     }),
   });
 
   const data = await response.json();
-  
+
   // 2. Redirect user to Tap payment page
   window.location.href = data.transactionUrl;
 }
@@ -116,8 +121,8 @@ async function createPayment(orderId: string, amount: number) {
 async function checkPaymentStatus(chargeId: string) {
   const response = await fetch(`/api/payments/tap/checkout/${chargeId}`);
   const data = await response.json();
-  
-  console.log('Payment status:', data.charge.status);
+
+  console.log("Payment status:", data.charge.status);
   // Possible statuses:
   // - INITIATED: Payment pending
   // - CAPTURED: Payment successful
@@ -129,21 +134,21 @@ async function checkPaymentStatus(chargeId: string) {
 ### Create a Refund
 
 ```typescript
-import { tapPayments } from '@/lib/finance/tap-payments';
+import { tapPayments } from "@/lib/finance/tap-payments";
 
 async function refundPayment(chargeId: string, amount: number) {
   const refund = await tapPayments.createRefund({
     charge_id: chargeId,
     amount: tapPayments.sarToHalalas(amount), // Convert SAR to halalas
-    currency: 'SAR',
-    reason: 'Customer requested refund',
+    currency: "SAR",
+    reason: "Customer requested refund",
     metadata: {
-      refundRequestedBy: 'admin@fixzit.sa',
+      refundRequestedBy: "admin@fixzit.sa",
       refundDate: new Date().toISOString(),
     },
   });
-  
-  console.log('Refund created:', refund.id);
+
+  console.log("Refund created:", refund.id);
   // Tap will send webhook when refund completes
 }
 ```
@@ -151,7 +156,7 @@ async function refundPayment(chargeId: string, amount: number) {
 ### Amount Conversion
 
 ```typescript
-import { tapPayments } from '@/lib/finance/tap-payments';
+import { tapPayments } from "@/lib/finance/tap-payments";
 
 // Convert SAR to halalas (smallest currency unit)
 const amountInHalalas = tapPayments.sarToHalalas(50.25); // 5025
@@ -160,7 +165,7 @@ const amountInHalalas = tapPayments.sarToHalalas(50.25); // 5025
 const amountInSAR = tapPayments.halalasToSAR(5025); // 50.25
 
 // Format for display
-const formatted = tapPayments.formatAmount(5025, 'ar-SA');
+const formatted = tapPayments.formatAmount(5025, "ar-SA");
 // Output: "٥٠٫٢٥ ر.س"
 ```
 
@@ -216,15 +221,15 @@ import { useTranslation } from '@/i18n/client';
 
 export default function PaymentPage() {
   const { t } = useTranslation('ar');
-  
+
   return (
     <div>
       <h1>{t('payments.tap.payWithTap')}</h1>
       {/* Output: الدفع عبر تاب */}
-      
+
       <button>{t('payments.tap.payNow')}</button>
       {/* Output: ادفع الآن */}
-      
+
       <p>{t('payments.tap.securePayment')}</p>
       {/* Output: دفع آمن ومشفر */}
     </div>
@@ -238,11 +243,11 @@ export default function PaymentPage() {
 
 Use these test cards in **test mode** (`sk_test_xxx`):
 
-| Card Number | Type | Result |
-|------------|------|--------|
-| 4242424242424242 | Visa | Success |
-| 5200000000000007 | Mastercard | Success |
-| 4000000000000002 | Visa | Declined |
+| Card Number      | Type       | Result             |
+| ---------------- | ---------- | ------------------ |
+| 4242424242424242 | Visa       | Success            |
+| 5200000000000007 | Mastercard | Success            |
+| 4000000000000002 | Visa       | Declined           |
 | 5111111111111118 | Mastercard | Insufficient Funds |
 
 ### Test Mode
@@ -268,7 +273,13 @@ interface Payment {
   tapRefundId?: string; // Tap refund ID if refunded (ref_xxx)
   amount: number; // Amount in halalas
   currency: string; // "SAR"
-  status: 'PENDING' | 'CAPTURED' | 'AUTHORIZED' | 'DECLINED' | 'FAILED' | 'REFUNDED';
+  status:
+    | "PENDING"
+    | "CAPTURED"
+    | "AUTHORIZED"
+    | "DECLINED"
+    | "FAILED"
+    | "REFUNDED";
   userId: string;
   organizationId: string;
   orderId?: string;
@@ -297,18 +308,22 @@ All Tap API calls are logged automatically. Check your server logs for:
 ### Common Issues
 
 **"Invalid webhook signature"**
+
 - Check `TAP_WEBHOOK_SECRET` is correct
 - Ensure you're using raw body (not parsed JSON)
 
 **"Charge not found"**
+
 - Verify you're using correct API keys (test vs live)
 - Check charge ID format (should be `chg_xxx`)
 
 **"Amount validation failed"**
+
 - Amount must be in halalas (multiply SAR by 100)
 - Amount must be positive integer
 
 **Webhook not receiving**
+
 - Check webhook URL is publicly accessible (use ngrok for local testing)
 - Verify HTTPS in production
 - Check Tap Dashboard webhook logs
@@ -323,11 +338,13 @@ All Tap API calls are logged automatically. Check your server logs for:
 ## 🤝 Support
 
 For Tap-specific issues:
+
 - Email: support@tap.company
 - Phone: +965 2227 8888
 - Dashboard: [dashboard.tap.company](https://dashboard.tap.company)
 
 For FixZit integration issues:
+
 - Email: support@fixzit.sa
 - Phone: ٩٢٠٠٠٣٣٣١
 

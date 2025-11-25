@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useState, type FormEvent } from 'react';
-import ClientDate from '@/components/ClientDate';
+import Link from "next/link";
+import { useState, type FormEvent } from "react";
+import ClientDate from "@/components/ClientDate";
 
 type HelpArticleClientProps = {
   article: {
@@ -35,36 +35,45 @@ type HelpArticleClientProps = {
   };
 };
 
-export default function HelpArticleClient({ article, isRTL, strings }: HelpArticleClientProps) {
-  const [comment, setComment] = useState('');
+export default function HelpArticleClient({
+  article,
+  isRTL,
+  strings,
+}: HelpArticleClientProps) {
+  const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [commentStatus, setCommentStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [commentStatus, setCommentStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
 
   const submitComment = async (event: FormEvent) => {
     event.preventDefault();
     if (!comment.trim()) return;
     setIsSubmitting(true);
-    setCommentStatus('idle');
+    setCommentStatus("idle");
     try {
       const res = await fetch(`/api/help/articles/${article.slug}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ comment })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment }),
       });
       if (!res.ok) {
         throw new Error(await res.text());
       }
-      setComment('');
-      setCommentStatus('success');
+      setComment("");
+      setCommentStatus("success");
     } catch (_err) {
-      setCommentStatus('error');
+      setCommentStatus("error");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div
+      className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
       {/* Breadcrumb */}
       <section className="bg-gradient-to-r from-primary to-success text-primary-foreground py-8">
         <div className="mx-auto max-w-4xl px-6">
@@ -78,7 +87,7 @@ export default function HelpArticleClient({ article, isRTL, strings }: HelpArtic
           <h1 className="text-3xl font-bold">{article.title}</h1>
         </div>
       </section>
-      
+
       {/* Content */}
       <div className="mx-auto max-w-4xl px-6 py-10 flex-1">
         <div className="grid md:grid-cols-[1fr_280px] gap-8">
@@ -87,15 +96,19 @@ export default function HelpArticleClient({ article, isRTL, strings }: HelpArtic
               className="prose prose-lg max-w-none prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground"
               dangerouslySetInnerHTML={{ __html: article.contentHtml }}
             />
-            
+
             <div className="mt-8 pt-6 border-t border-border">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <div>
-                  {strings.updated}{' '}
-                  {article.updatedAt ? <ClientDate date={article.updatedAt} format="date-only" /> : ''}
+                  {strings.updated}{" "}
+                  {article.updatedAt ? (
+                    <ClientDate date={article.updatedAt} format="date-only" />
+                  ) : (
+                    ""
+                  )}
                 </div>
-                <Link 
-                  href="/help" 
+                <Link
+                  href="/help"
                   className="text-primary hover:text-primary/80 font-medium"
                 >
                   {strings.back}
@@ -103,7 +116,7 @@ export default function HelpArticleClient({ article, isRTL, strings }: HelpArtic
               </div>
             </div>
           </div>
-          
+
           {/* Sidebar */}
           <aside className="space-y-4">
             <div className="bg-card rounded-2xl shadow-md border border-border p-4">
@@ -125,15 +138,11 @@ export default function HelpArticleClient({ article, isRTL, strings }: HelpArtic
                 </button>
               </div>
             </div>
-            
+
             <div className="bg-primary text-primary-foreground rounded-2xl p-4">
-              <h4 className="font-semibold mb-2">
-                {strings.ctaTitle}
-              </h4>
-              <p className="text-sm mb-3">
-                {strings.ctaSubtitle}
-              </p>
-              <Link 
+              <h4 className="font-semibold mb-2">{strings.ctaTitle}</h4>
+              <p className="text-sm mb-3">{strings.ctaSubtitle}</p>
+              <Link
                 href="/support/my-tickets"
                 className="block w-full bg-card text-primary px-4 py-2 rounded-2xl font-medium hover:bg-muted text-center"
               >
@@ -142,7 +151,9 @@ export default function HelpArticleClient({ article, isRTL, strings }: HelpArtic
             </div>
 
             <div className="bg-card rounded-2xl shadow-md border border-border p-4">
-              <h3 className="font-semibold text-foreground mb-3">{strings.commentsTitle}</h3>
+              <h3 className="font-semibold text-foreground mb-3">
+                {strings.commentsTitle}
+              </h3>
               <form className="space-y-3" onSubmit={submitComment}>
                 <label className="sr-only" htmlFor="comment">
                   {strings.commentsTitle}
@@ -156,20 +167,26 @@ export default function HelpArticleClient({ article, isRTL, strings }: HelpArtic
                   disabled={isSubmitting}
                 />
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{strings.commentsAuth}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {strings.commentsAuth}
+                  </span>
                   <button
                     type="submit"
                     disabled={isSubmitting || !comment.trim()}
                     className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                   >
-                    {isSubmitting ? '...' : strings.commentsSubmit}
+                    {isSubmitting ? "..." : strings.commentsSubmit}
                   </button>
                 </div>
-                {commentStatus === 'success' && (
-                  <p className="text-xs text-success">{strings.commentsSuccess}</p>
+                {commentStatus === "success" && (
+                  <p className="text-xs text-success">
+                    {strings.commentsSuccess}
+                  </p>
                 )}
-                {commentStatus === 'error' && (
-                  <p className="text-xs text-destructive">{strings.commentsError}</p>
+                {commentStatus === "error" && (
+                  <p className="text-xs text-destructive">
+                    {strings.commentsError}
+                  </p>
                 )}
               </form>
             </div>

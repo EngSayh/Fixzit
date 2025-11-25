@@ -62,8 +62,8 @@ with open('file.txt', 'w') as f:
 ### Solution 4: Use Node.js ✅
 
 ```javascript
-const fs = require('fs');
-fs.writeFileSync('file.txt', 'content here');
+const fs = require("fs");
+fs.writeFileSync("file.txt", "content here");
 ```
 
 ---
@@ -110,12 +110,12 @@ echo $SHELL
 
 ### 2. Use Appropriate Syntax
 
-| Shell | Heredoc Syntax |
-|-------|----------------|
-| Bash | `<< EOF` |
-| PowerShell | `@'...'@` |
-| Python | `'''...'''` |
-| Node.js | Template literals |
+| Shell      | Heredoc Syntax    |
+| ---------- | ----------------- |
+| Bash       | `<< EOF`          |
+| PowerShell | `@'...'@`         |
+| Python     | `'''...'''`       |
+| Node.js    | Template literals |
 
 ### 3. Use Cross-Platform Tools
 
@@ -162,9 +162,12 @@ with open('file.txt', 'w') as f:
 #### Node.js
 
 ```javascript
-const fs = require('fs');
-fs.writeFileSync('file.txt', `Line 1
-Line 2`);
+const fs = require("fs");
+fs.writeFileSync(
+  "file.txt",
+  `Line 1
+Line 2`,
+);
 ```
 
 ---

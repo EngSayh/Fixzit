@@ -1,4 +1,5 @@
 # 📋 PENDING TASKS & FILE ORGANIZATION PLAN
+
 **Date**: November 6, 2025  
 **Generated**: Post PR Merge Cleanup Session
 
@@ -9,9 +10,10 @@
 ### 🔴 HIGH PRIORITY - CRITICAL
 
 #### 1. Test Failures (143 failing tests)
+
 - **Status**: ⚠️ INCOMPLETE
 - **Location**: Test suite
-- **Issues**: 
+- **Issues**:
   - RBAC tests failing
   - Secret scan issues
   - Some relocated tests may need path updates
@@ -19,15 +21,17 @@
 - **Estimated Time**: 4-6 hours
 
 #### 2. Category 5 Phase 3 - Console Statements (~50 app pages)
-- **Status**: ⚠️ INCOMPLETE  
+
+- **Status**: ⚠️ INCOMPLETE
 - **Completed**: API routes (47 files) ✅, Components (19 files) ✅
 - **Remaining**: ~50 app page files
 - **Pattern**: Replace console.log/error/warn with logger utility
 - **Estimated Time**: 3-4 hours
 
 #### 3. Category 6 - Navigation Accessibility (17 files)
+
 - **Status**: ⚠️ INCOMPLETE
-- **Files**: nav/*.ts files
+- **Files**: nav/\*.ts files
 - **Requirements**:
   - Keyboard navigation support
   - ARIA attributes
@@ -37,6 +41,7 @@
 ### 🟡 MEDIUM PRIORITY
 
 #### 4. TODO Comments Resolution (27+ instances)
+
 - **Status**: ⚠️ INCOMPLETE
 - **Critical TODOs**:
   - `lib/logger.ts`: Monitoring service integration (Sentry/DataDog)
@@ -47,6 +52,7 @@
 - **Estimated Time**: 6-8 hours
 
 #### 5. Misplaced Test Files (10+ files)
+
 - **Status**: ⚠️ INCOMPLETE
 - **Files**:
   - `app/product/[slug]/__tests__/page.spec.tsx`
@@ -59,12 +65,13 @@
 - **Estimated Time**: 30 minutes
 
 #### 6. Legacy File Cleanup (17+ markdown files in root)
+
 - **Status**: ⚠️ INCOMPLETE
 - **Files to Archive**:
   - COMPREHENSIVE_SYSTEM_AUDIT_REPORT.md
   - CRITICAL_AUTH_FIXES_SUMMARY.md
   - CRITICAL_TECHNICAL_DEBT_AUDIT.md
-  - DUPLICATE_FILES_REPORT*.md (3 files)
+  - DUPLICATE_FILES_REPORT\*.md (3 files)
   - FINAL_DUPLICATE_REPORT.md
   - PROJECT_ORGANIZATION_COMPLETE.md
   - SYSTEM_AUDIT_FINDINGS.md
@@ -82,6 +89,7 @@
 ### 🟢 LOW PRIORITY
 
 #### 7. Tasks 2-15 from Implementation Guide
+
 - **Status**: ⏸️ PAUSED
 - **Completed**: Task 1 (Auto-restart with PM2) ✅
 - **Remaining**: 14 tasks
@@ -93,12 +101,14 @@
   - Task 5-15: Various features and optimizations
 
 #### 8. E2E Test Script Organization
+
 - **Status**: ⚠️ INCOMPLETE
 - **File**: `start-e2e-testing.sh` (loose in root)
 - **Action**: Move to `scripts/` or `tests/e2e/`
 - **Estimated Time**: 2 minutes
 
 #### 9. Legacy Components Cleanup
+
 - **Status**: ⚠️ INCOMPLETE
 - **Files Found**:
   - `components/SupportPopup.OLD.tsx`
@@ -194,6 +204,7 @@ find . -type d -empty -delete 2>/dev/null || true
 ## 📊 PROGRESS TRACKING
 
 ### Completed in Past 5 Days ✅
+
 - ✅ PR #237: Accessibility improvements
 - ✅ PR #238: Theme compliance (20 fixes)
 - ✅ PR #239/263: Critical security fixes (GUEST role, format.ts, ErrorBoundary)
@@ -207,10 +218,12 @@ find . -type d -empty -delete 2>/dev/null || true
 - ✅ 42 new tests added (100% passing)
 
 ### In Progress 🔄
+
 - 🔄 File organization (this session)
 - 🔄 Test file relocation
 
 ### Pending ⏸️
+
 - ⏸️ Test failures fix (143 tests)
 - ⏸️ Category 5 Phase 3 (~50 app pages)
 - ⏸️ Category 6 (17 nav files)
@@ -222,16 +235,19 @@ find . -type d -empty -delete 2>/dev/null || true
 ## 🎯 RECOMMENDED NEXT ACTIONS
 
 ### Immediate (Today)
+
 1. **Execute file organization** (Phases 1-4 above) - 30 min
 2. **Fix test failures** - Priority #1 - 4-6 hours
 3. **Relocate remaining test files** - 30 min
 
 ### This Week
+
 4. **Category 5 Phase 3** - Console statements in app pages - 3-4 hours
 5. **Category 6** - Navigation accessibility - 2-3 hours
 6. **Resolve critical TODOs** - Monitoring, auth queries - 4-6 hours
 
 ### Next Week
+
 7. **Review Tasks 2-15** - Decide continuation
 8. **Production readiness** - Final checks
 9. **Documentation update** - README and guides
@@ -253,6 +269,7 @@ find . -type d -empty -delete 2>/dev/null || true
 ## 🔍 VERIFICATION CHECKLIST
 
 Before marking complete:
+
 - [ ] All markdown files moved from root
 - [ ] All test files in tests/unit/ structure
 - [ ] All scripts in scripts/ directory
@@ -266,5 +283,5 @@ Before marking complete:
 
 ---
 
-*Generated: November 6, 2025*  
-*Next Review: After file organization execution*
+_Generated: November 6, 2025_  
+_Next Review: After file organization execution_

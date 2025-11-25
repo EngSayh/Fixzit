@@ -114,7 +114,7 @@ EOF
 ### Method 3: Node.js Script
 
 ```javascript
-const fs = require('fs');
+const fs = require("fs");
 const content = `
 import { NextRequest, NextResponse } from "next/server";
 
@@ -122,7 +122,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ status: "ok" });
 }
 `;
-fs.writeFileSync('app/api/test/route.ts', content, 'utf8');
+fs.writeFileSync("app/api/test/route.ts", content, "utf8");
 ```
 
 **Pros**: Cross-platform, JavaScript native

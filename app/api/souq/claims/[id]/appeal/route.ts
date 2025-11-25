@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ClaimService } from '@/services/souq/claims/claim-service';
-import { resolveRequestSession } from '@/lib/auth/request-session';
-import { getDatabase } from '@/lib/mongodb-unified';
-import { ObjectId } from 'mongodb';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { ClaimService } from "@/services/souq/claims/claim-service";
+import { resolveRequestSession } from "@/lib/auth/request-session";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { ObjectId } from "mongodb";
+import { logger } from "@/lib/logger";
 
 interface EvidenceItem {
   type: string;
@@ -18,44 +18,46 @@ interface EvidenceItem {
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await resolveRequestSession(request);
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
-    const reasoning = body.reasoning ? String(body.reasoning).trim() : '';
-    const additionalEvidence = Array.isArray(body.additionalEvidence) ? body.additionalEvidence : [];
+    const reasoning = body.reasoning ? String(body.reasoning).trim() : "";
+    const additionalEvidence = Array.isArray(body.additionalEvidence)
+      ? body.additionalEvidence
+      : [];
 
     if (!reasoning) {
       return NextResponse.json(
-        { error: 'Missing required field: reasoning' },
-        { status: 400 }
+        { error: "Missing required field: reasoning" },
+        { status: 400 },
       );
     }
 
     const claim = await ClaimService.getClaim(params.id);
     if (!claim) {
-      return NextResponse.json({ error: 'Claim not found' }, { status: 404 });
+      return NextResponse.json({ error: "Claim not found" }, { status: 404 });
     }
 
     // Determine who is appealing
-    let appealedBy: 'buyer' | 'seller';
+    let appealedBy: "buyer" | "seller";
     if (claim.buyerId && String(claim.buyerId) === session.user.id) {
-      appealedBy = 'buyer';
+      appealedBy = "buyer";
     } else if (claim.sellerId && String(claim.sellerId) === session.user.id) {
-      appealedBy = 'seller';
+      appealedBy = "seller";
     } else {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    if (claim.appeal || claim.status === 'under_appeal') {
+    if (claim.appeal || claim.status === "under_appeal") {
       return NextResponse.json(
-        { error: 'claim already appealed' },
-        { status: 400 }
+        { error: "claim already appealed" },
+        { status: 400 },
       );
     }
 
@@ -66,8 +68,8 @@ export async function POST(
       const appealWindow = 7 * 24 * 60 * 60 * 1000;
       if (Date.now() - decisionDate.getTime() > appealWindow) {
         return NextResponse.json(
-        { error: 'appeal deadline has passed' },
-          { status: 400 }
+          { error: "appeal deadline has passed" },
+          { status: 400 },
         );
       }
     }
@@ -76,13 +78,15 @@ export async function POST(
       appealedBy,
       reasoning,
       submittedAt: new Date(),
-      evidence: (additionalEvidence as EvidenceItem[]).map((item, idx: number) => ({
-        evidenceId: `APPEAL-${params.id}-${idx + 1}`,
-        type: item.type,
-        url: item.url,
-        description: item.description,
-        uploadedAt: new Date(),
-      })),
+      evidence: (additionalEvidence as EvidenceItem[]).map(
+        (item, idx: number) => ({
+          evidenceId: `APPEAL-${params.id}-${idx + 1}`,
+          type: item.type,
+          url: item.url,
+          description: item.description,
+          uploadedAt: new Date(),
+        }),
+      ),
     };
 
     const db = await getDatabase();
@@ -90,26 +94,26 @@ export async function POST(
       ? { _id: new ObjectId(params.id) }
       : { claimId: params.id };
 
-    await db.collection('claims').updateOne(filter, {
+    await db.collection("claims").updateOne(filter, {
       $set: {
-        status: 'under_appeal',
+        status: "under_appeal",
         appeal: appealRecord,
         updatedAt: new Date(),
       },
     });
 
     return NextResponse.json({
-      status: 'under_appeal',
+      status: "under_appeal",
       appeal: appealRecord,
     });
   } catch (error) {
-    logger.error('[Claims API] File appeal failed', { error });
+    logger.error("[Claims API] File appeal failed", { error });
     return NextResponse.json(
       {
-        error: 'Failed to file appeal',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        error: "Failed to file appeal",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

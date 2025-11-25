@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-const QA_FLAG_KEY = 'fxz.qa-tools';
-const ALLOWED_QA_ROLES = ['SUPER_ADMIN', 'QA', 'DEVELOPER', 'ADMIN'];
+const QA_FLAG_KEY = "fxz.qa-tools";
+const ALLOWED_QA_ROLES = ["SUPER_ADMIN", "QA", "DEVELOPER", "ADMIN"];
 
 export default function ErrorTest() {
   const [showTest, setShowTest] = useState(false);
@@ -12,14 +12,16 @@ export default function ErrorTest() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return;
     }
 
     // Check user role authorization
     const checkRoleAuth = async () => {
       try {
-        const response = await fetch('/api/auth/me', { credentials: 'include' });
+        const response = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
         if (response.ok) {
           const data = await response.json();
           const userRole = data.role;
@@ -38,13 +40,13 @@ export default function ErrorTest() {
 
     try {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('qa') === '1') {
-        localStorage.setItem(QA_FLAG_KEY, 'enabled');
+      if (params.get("qa") === "1") {
+        localStorage.setItem(QA_FLAG_KEY, "enabled");
         setQaEnabled(true);
         return;
       }
 
-      if (localStorage.getItem(QA_FLAG_KEY) === 'enabled') {
+      if (localStorage.getItem(QA_FLAG_KEY) === "enabled") {
         setQaEnabled(true);
       }
     } catch {
@@ -56,30 +58,30 @@ export default function ErrorTest() {
   if (isLoading) {
     return null; // Or a loading spinner if you prefer
   }
-  
+
   if (!qaEnabled || !roleAuthorized) {
     return null;
   }
 
   const triggerError = () => {
     // This will trigger the error boundary
-    throw new Error('Test error triggered by user for error boundary testing');
+    throw new Error("Test error triggered by user for error boundary testing");
   };
 
   const triggerAsyncError = async () => {
     // Simulate an async error
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    throw new Error('Async test error triggered by user');
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    throw new Error("Async test error triggered by user");
   };
 
   const triggerJSONError = () => {
     // Simulate JSON parsing error
-    JSON.parse('{invalid json}');
+    JSON.parse("{invalid json}");
   };
 
   const triggerNetworkError = () => {
     // Simulate network error
-    fetch('https://invalid-url-that-does-not-exist.com/api/test');
+    fetch("https://invalid-url-that-does-not-exist.com/api/test");
   };
 
   if (!showTest) {

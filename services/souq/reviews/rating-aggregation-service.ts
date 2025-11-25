@@ -3,8 +3,8 @@
  * @module services/souq/reviews/rating-aggregation-service
  */
 
-import { SouqReview } from '@/server/models/souq/Review';
-import { SouqProduct } from '@/server/models/souq/Product';
+import { SouqReview } from "@/server/models/souq/Review";
+import { SouqProduct } from "@/server/models/souq/Product";
 
 export interface RatingAggregate {
   averageRating: number;
@@ -34,17 +34,23 @@ export interface RatingDistribution {
 
 class RatingAggregationService {
   // In-memory cache (in production, use Redis)
-  private cache = new Map<string, { data: RatingAggregate; timestamp: number }>();
+  private cache = new Map<
+    string,
+    { data: RatingAggregate; timestamp: number }
+  >();
   private cacheTTL = 5 * 60 * 1000; // 5 minutes
 
   private getCacheKey(productId: string, orgId?: string): string {
-    return `${orgId ?? 'global'}:${productId}`;
+    return `${orgId ?? "global"}:${productId}`;
   }
 
   /**
    * Calculate product rating with caching
    */
-  async calculateProductRating(productId: string, orgId?: string): Promise<RatingAggregate> {
+  async calculateProductRating(
+    productId: string,
+    orgId?: string,
+  ): Promise<RatingAggregate> {
     // Check cache first
     const cacheKey = this.getCacheKey(productId, orgId);
     const cached = this.cache.get(cacheKey);
@@ -55,14 +61,14 @@ class RatingAggregationService {
     // Fetch published reviews
     const reviewFilter: Record<string, unknown> = {
       productId,
-      status: 'published',
+      status: "published",
     };
     if (orgId) {
       reviewFilter.org_id = orgId;
     }
 
     const reviews = await SouqReview.find(reviewFilter)
-      .select('rating isVerifiedPurchase')
+      .select("rating isVerifiedPurchase")
       .lean();
 
     const totalReviews = reviews.length;
@@ -116,8 +122,13 @@ class RatingAggregationService {
   /**
    * Calculate seller rating across all products
    */
-  async calculateSellerRating(orgId: string, sellerId: string): Promise<SellerRatingAggregate> {
-    const products = await SouqProduct.find({ createdBy: sellerId }).select('_id').lean();
+  async calculateSellerRating(
+    orgId: string,
+    sellerId: string,
+  ): Promise<SellerRatingAggregate> {
+    const products = await SouqProduct.find({ createdBy: sellerId })
+      .select("_id")
+      .lean();
     if (products.length === 0) {
       return {
         averageRating: 0,
@@ -135,9 +146,9 @@ class RatingAggregationService {
     const reviews = await SouqReview.find({
       org_id: orgId,
       productId: { $in: productIds },
-      status: 'published',
+      status: "published",
     })
-      .select('rating createdAt sellerResponse')
+      .select("rating createdAt sellerResponse")
       .lean();
 
     const totalReviews = reviews.length;
@@ -148,7 +159,8 @@ class RatingAggregationService {
 
     // Calculate response rate
     const reviewsWithResponse = reviews.filter((r) => r.sellerResponse).length;
-    const responseRate = totalReviews > 0 ? (reviewsWithResponse / totalReviews) * 100 : 0;
+    const responseRate =
+      totalReviews > 0 ? (reviewsWithResponse / totalReviews) * 100 : 0;
 
     // Last 30 days stats
     const thirtyDaysAgo = new Date();
@@ -175,7 +187,10 @@ class RatingAggregationService {
   /**
    * Update product rating cache (called after new review)
    */
-  async updateProductRatingCache(productId: string, orgId?: string): Promise<void> {
+  async updateProductRatingCache(
+    productId: string,
+    orgId?: string,
+  ): Promise<void> {
     // Invalidate cache
     this.cache.delete(this.getCacheKey(productId, orgId));
 
@@ -186,30 +201,38 @@ class RatingAggregationService {
   /**
    * Get rating distribution with percentages
    */
-  async getRatingDistribution(productId: string, orgId?: string): Promise<RatingDistribution> {
+  async getRatingDistribution(
+    productId: string,
+    orgId?: string,
+  ): Promise<RatingDistribution> {
     const aggregate = await this.calculateProductRating(productId, orgId);
     const total = aggregate.totalReviews;
 
     const distribution: RatingDistribution = {
       5: {
         count: aggregate.distribution[5],
-        percentage: total > 0 ? Math.round((aggregate.distribution[5] / total) * 100) : 0,
+        percentage:
+          total > 0 ? Math.round((aggregate.distribution[5] / total) * 100) : 0,
       },
       4: {
         count: aggregate.distribution[4],
-        percentage: total > 0 ? Math.round((aggregate.distribution[4] / total) * 100) : 0,
+        percentage:
+          total > 0 ? Math.round((aggregate.distribution[4] / total) * 100) : 0,
       },
       3: {
         count: aggregate.distribution[3],
-        percentage: total > 0 ? Math.round((aggregate.distribution[3] / total) * 100) : 0,
+        percentage:
+          total > 0 ? Math.round((aggregate.distribution[3] / total) * 100) : 0,
       },
       2: {
         count: aggregate.distribution[2],
-        percentage: total > 0 ? Math.round((aggregate.distribution[2] / total) * 100) : 0,
+        percentage:
+          total > 0 ? Math.round((aggregate.distribution[2] / total) * 100) : 0,
       },
       1: {
         count: aggregate.distribution[1],
-        percentage: total > 0 ? Math.round((aggregate.distribution[1] / total) * 100) : 0,
+        percentage:
+          total > 0 ? Math.round((aggregate.distribution[1] / total) * 100) : 0,
       },
     };
 
@@ -223,7 +246,7 @@ class RatingAggregationService {
     return await SouqReview.find({
       org_id: orgId,
       productId,
-      status: 'published',
+      status: "published",
     })
       .sort({ createdAt: -1 })
       .limit(limit);

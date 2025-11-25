@@ -36,6 +36,7 @@ MONGODB_URI=mongodb://username:password@docdb-cluster.region.docdb.amazonaws.com
 #### Why This is Required
 
 The combination of `lib/mongo.ts` and `lib/mongo-uri-validator.ts` enforces cloud database usage in production builds to:
+
 - Prevent accidental deployment with localhost dependencies
 - Ensure data persistence across deployments
 - Enable proper horizontal scaling
@@ -45,14 +46,14 @@ The combination of `lib/mongo.ts` and `lib/mongo-uri-validator.ts` enforces clou
 
 Beyond MongoDB, ensure your `.env.local` contains the critical values below. These mirror the services touched during `pnpm verify:routes:http` and keep the HTTP crawler from returning 500s.
 
-| Category | Variables | Notes |
-| --- | --- | --- |
-| **Database** | `MONGODB_URI` | Cloud URI required for all builds. |
-| **Auth** | `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `NEXTAUTH_REQUIRE_SMS_OTP=false`, `NEXT_PUBLIC_REQUIRE_SMS_OTP=false` *(verification only)* | Temporarily disable OTP so the crawler doesn’t hang on the login page. Re-enable OTP (`=true`) outside verification runs. |
-| **Search** | `MEILI_MASTER_KEY`, `MEILI_URL` *(preferred)* / `MEILI_HOST` *(legacy fallback)* | Required for marketplace/search routes. CI expects `MEILI_URL`; older self-hosted setups can still set `MEILI_HOST`, but only one needs to be defined. |
-| **Notifications (safe defaults)** | `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, `SENDGRID_FROM_NAME`, `SMS_DEV_MODE=true`, `NEXTAUTH_SUPERADMIN_FALLBACK_PHONE`, `NOTIFICATIONS_SMOKE_USER_ID`, `NOTIFICATIONS_SMOKE_NAME`, `NOTIFICATIONS_SMOKE_EMAIL` *(+ `NOTIFICATIONS_SMOKE_PHONE` if SMS is tested)* | Route verification touches notification settings pages. Use low-privilege SendGrid keys and enable SMS dev mode to avoid hitting Twilio. |
-| **Optional SMS/Voice** | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` | Only required if you want the crawler to exercise the live SMS screens. Leave unset with `SMS_DEV_MODE=true` to stub them. |
-| **ZATCA (invoice compliance)** | `ZATCA_API_KEY`, `ZATCA_API_SECRET`, `ZATCA_ENVIRONMENT` | Required for finance routes that generate e-invoicing previews. Sandbox credentials are fine. |
+| Category                          | Variables                                                                                                                                                                                                                                                             | Notes                                                                                                                                                  |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Database**                      | `MONGODB_URI`                                                                                                                                                                                                                                                         | Cloud URI required for all builds.                                                                                                                     |
+| **Auth**                          | `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `NEXTAUTH_REQUIRE_SMS_OTP=false`, `NEXT_PUBLIC_REQUIRE_SMS_OTP=false` _(verification only)_                                                                                                                                        | Temporarily disable OTP so the crawler doesn’t hang on the login page. Re-enable OTP (`=true`) outside verification runs.                              |
+| **Search**                        | `MEILI_MASTER_KEY`, `MEILI_URL` _(preferred)_ / `MEILI_HOST` _(legacy fallback)_                                                                                                                                                                                      | Required for marketplace/search routes. CI expects `MEILI_URL`; older self-hosted setups can still set `MEILI_HOST`, but only one needs to be defined. |
+| **Notifications (safe defaults)** | `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, `SENDGRID_FROM_NAME`, `SMS_DEV_MODE=true`, `NEXTAUTH_SUPERADMIN_FALLBACK_PHONE`, `NOTIFICATIONS_SMOKE_USER_ID`, `NOTIFICATIONS_SMOKE_NAME`, `NOTIFICATIONS_SMOKE_EMAIL` _(+ `NOTIFICATIONS_SMOKE_PHONE` if SMS is tested)_ | Route verification touches notification settings pages. Use low-privilege SendGrid keys and enable SMS dev mode to avoid hitting Twilio.               |
+| **Optional SMS/Voice**            | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`                                                                                                                                                                                                      | Only required if you want the crawler to exercise the live SMS screens. Leave unset with `SMS_DEV_MODE=true` to stub them.                             |
+| **ZATCA (invoice compliance)**    | `ZATCA_API_KEY`, `ZATCA_API_SECRET`, `ZATCA_ENVIRONMENT`                                                                                                                                                                                                              | Required for finance routes that generate e-invoicing previews. Sandbox credentials are fine.                                                          |
 
 Copy placeholders from `.env.example` and replace with your own secrets:
 
@@ -81,6 +82,7 @@ The easiest way to verify deployment readiness is to use the comprehensive verif
 ```
 
 This script automatically runs:
+
 1. Environment variable validation
 2. TypeScript compilation check (`pnpm tsc --noEmit`)
 3. HTTP route verification (`pnpm verify:routes:http`)
@@ -101,6 +103,7 @@ pnpm verify:routes:http
 `pnpm verify:routes` runs the deterministic checks (alias validation, JSON artifact generation, nav + route reference verification). `pnpm verify:routes:http` then builds, starts Next.js on the port encoded in `ROUTE_VERIFY_BASE` (defaults to `http://127.0.0.1:4010`), crawls every discovered route, and reports HTTP status codes.
 
 The HTTP crawl:
+
 1. Runs `pnpm build --no-lint` to create production build (override via `ROUTE_VERIFY_BUILD_FLAGS`)
 2. Starts Next.js server on `http://127.0.0.1:4010` by default (change with `ROUTE_VERIFY_BASE`)
 3. Crawls all discovered routes via `scripts/verify-routes.ts`
@@ -113,11 +116,11 @@ The HTTP crawl:
 
 Verification writes artifacts that you can inspect without rerunning the crawl:
 
-| Artifact | Location | Purpose |
-| --- | --- | --- |
-| `_artifacts/route-aliases.json` | Repository root | Canonical alias → target map. Regenerated by `pnpm check:route-aliases:json`. |
-| `reports/route-metrics/history/*.json` | Version-controlled history | Time-series duplication snapshots generated via `pnpm run archive:route-metrics`. |
-| `app/admin/route-metrics` | Dashboard route | Visualizes totals, duplication rate, workflow state, and historical chart data by querying `_artifacts/route-aliases.json` + `/api/admin/route-metrics?history=1`. |
+| Artifact                               | Location                   | Purpose                                                                                                                                                            |
+| -------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `_artifacts/route-aliases.json`        | Repository root            | Canonical alias → target map. Regenerated by `pnpm check:route-aliases:json`.                                                                                      |
+| `reports/route-metrics/history/*.json` | Version-controlled history | Time-series duplication snapshots generated via `pnpm run archive:route-metrics`.                                                                                  |
+| `app/admin/route-metrics`              | Dashboard route            | Visualizes totals, duplication rate, workflow state, and historical chart data by querying `_artifacts/route-aliases.json` + `/api/admin/route-metrics?history=1`. |
 
 To view the dashboard locally, run `pnpm dev` and open http://localhost:3000/admin/route-metrics. Run the commands below any time you want a fresh snapshot without the full HTTP crawl:
 
@@ -141,11 +144,11 @@ env:
   MEILI_HOST: ${{ secrets.MEILI_HOST }} # or MEILI_URL for older deployments
   MEILI_MASTER_KEY: ${{ secrets.MEILI_MASTER_KEY }}
 
-  # Notifications (safe values) 
+  # Notifications (safe values)
   SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
   SENDGRID_FROM_EMAIL: ${{ secrets.SENDGRID_FROM_EMAIL }}
   SENDGRID_FROM_NAME: ${{ secrets.SENDGRID_FROM_NAME }}
-  SMS_DEV_MODE: 'true'
+  SMS_DEV_MODE: "true"
 
   # ZATCA / finance
   ZATCA_API_KEY: ${{ secrets.ZATCA_API_KEY }}
@@ -179,6 +182,7 @@ cp .env.example .env.local
 **Problem:** Server crashes during route crawl
 
 **Solution:** Check server logs for:
+
 - Database connection errors
 - Missing API keys
 - TypeScript compilation errors
@@ -197,7 +201,8 @@ For HTTP-specific debugging, run `pnpm dev` and hit the failing route manually (
 
 **Problem:** Server starts but doesn't respond
 
-**Solution:** 
+**Solution:**
+
 1. Check the port defined in `ROUTE_VERIFY_BASE` (default `4010`) isn't already in use: `lsof -ti:4010 | xargs kill -9`
 2. Increase the `attempts` or `delay` constants in `scripts/run-route-http-check.ts` if the server simply needs more startup time
 3. Verify firewall, VPN, or loopback filtering isn't blocking the chosen host
@@ -257,6 +262,7 @@ A successful verification run shows:
 ### Adding New Routes
 
 When adding new pages under `app/`:
+
 1. Ensure they don't require authentication for initial render (or handle auth gracefully)
 2. Test locally with `pnpm verify:routes && pnpm verify:routes:http`
 3. Check the route appears in build output
@@ -265,6 +271,7 @@ When adding new pages under `app/`:
 ### Updating Environment Requirements
 
 If new services are added that require environment variables:
+
 1. Update `.env.example` with placeholder
 2. Update this guide's "Required Environment Variables" section
 3. Update GitHub Actions secrets documentation
@@ -273,6 +280,7 @@ If new services are added that require environment variables:
 ## Support
 
 For issues with route verification:
+
 1. Check this guide's [Troubleshooting](#troubleshooting) section
 2. Review build logs for specific errors
 3. Verify all environment variables are set

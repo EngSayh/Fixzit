@@ -1,5 +1,5 @@
 import { CopilotSession } from "./session";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 export interface AuditOptions {
   session: CopilotSession;
@@ -14,7 +14,7 @@ export interface AuditOptions {
 
 export async function recordAudit(options: AuditOptions) {
   try {
-    const { CopilotAudit } = await import('@/server/models/CopilotAudit');
+    const { CopilotAudit } = await import("@/server/models/CopilotAudit");
     await CopilotAudit.create({
       tenantId: options.session.tenantId,
       userId: options.session.userId,
@@ -26,7 +26,7 @@ export async function recordAudit(options: AuditOptions) {
       message: options.message,
       prompt: options.prompt,
       response: options.response,
-      metadata: options.metadata
+      metadata: options.metadata,
     });
   } catch (error) {
     logger.error("Failed to record copilot audit", { error });

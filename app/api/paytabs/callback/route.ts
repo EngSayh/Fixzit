@@ -1,7 +1,10 @@
-import { NextRequest } from 'next/server';
-import { dbConnect } from '@/db/mongoose';
-import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/lib/finance/paytabs';
-import { validateCallback } from '@/lib/paytabs';
+import { NextRequest } from "next/server";
+import { dbConnect } from "@/db/mongoose";
+import {
+  finalizePayTabsTransaction,
+  normalizePayTabsPayload,
+} from "@/lib/finance/paytabs";
+import { validateCallback } from "@/lib/paytabs";
 import {
   buildPaytabsIdempotencyKey,
   enforcePaytabsPayloadSize,
@@ -10,12 +13,12 @@ import {
   PaytabsCallbackValidationError,
   PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS,
   PAYTABS_CALLBACK_RATE_LIMIT,
-} from '@/lib/payments/paytabs-callback.contract';
-import { logger } from '@/lib/logger';
-import { withIdempotency } from '@/server/security/idempotency';
-import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError, handleApiError } from '@/server/utils/errorResponses';
-import { createSecureResponse, getClientIP } from '@/server/security/headers';
+} from "@/lib/payments/paytabs-callback.contract";
+import { logger } from "@/lib/logger";
+import { withIdempotency } from "@/server/security/idempotency";
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
+import { createSecureResponse, getClientIP } from "@/server/security/headers";
 /**
  * @openapi
  * /api/paytabs/callback:
@@ -39,7 +42,7 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(
     `paytabs:subscription:${clientIp}`,
     PAYTABS_CALLBACK_RATE_LIMIT.requests,
-    PAYTABS_CALLBACK_RATE_LIMIT.windowMs
+    PAYTABS_CALLBACK_RATE_LIMIT.windowMs,
   );
   if (!rl.allowed) {
     return rateLimitError();
@@ -60,29 +63,29 @@ export async function POST(req: NextRequest) {
 
     const signature = extractPaytabsSignature(req, payload);
     if (!signature) {
-      logger.error('PayTabs callback rejected: Missing signature');
+      logger.error("PayTabs callback rejected: Missing signature");
       return createSecureResponse(
-        { error: 'Payment verification failed: Missing signature' },
+        { error: "Payment verification failed: Missing signature" },
         400,
-        req
+        req,
       );
     }
 
     // Validate the signature using HMAC-SHA256
     const isValid = validateCallback(payload, signature);
     if (!isValid) {
-      logger.error('PayTabs callback rejected: Invalid signature', {
+      logger.error("PayTabs callback rejected: Invalid signature", {
         cart_id: payload.cart_id,
         tran_ref: payload.tran_ref,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
       return createSecureResponse(
-        { error: 'Payment verification failed: Invalid signature' },
+        { error: "Payment verification failed: Invalid signature" },
         403,
-        req
+        req,
       );
     }
-    
+
     await dbConnect();
 
     let normalized;
@@ -90,7 +93,9 @@ export async function POST(req: NextRequest) {
       normalized = normalizePayTabsPayload(payload);
     } catch (error) {
       if (error instanceof PaytabsCallbackValidationError) {
-        logger.error('PayTabs callback rejected: Invalid payload shape', { message: error.message });
+        logger.error("PayTabs callback rejected: Invalid payload shape", {
+          message: error.message,
+        });
         return createSecureResponse({ error: error.message }, 400, req);
       }
       throw error;
@@ -98,9 +103,9 @@ export async function POST(req: NextRequest) {
 
     try {
       const result = await withIdempotency(
-        buildPaytabsIdempotencyKey(normalized, { route: 'subscription' }),
+        buildPaytabsIdempotencyKey(normalized, { route: "subscription" }),
         () => finalizePayTabsTransaction(normalized),
-        PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS
+        PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS,
       );
       return createSecureResponse(result, 200, req);
     } catch (error: unknown) {
@@ -108,12 +113,12 @@ export async function POST(req: NextRequest) {
     }
   } catch (error) {
     if (error instanceof PaytabsCallbackValidationError) {
-      logger.error('PayTabs callback rejected: Invalid JSON payload');
+      logger.error("PayTabs callback rejected: Invalid JSON payload");
       const errorMessage = `Payment verification failed: ${error.message}`;
       return createSecureResponse(
         { error: errorMessage },
         /exceeds limit/.test(error.message) ? 413 : 400,
-        req
+        req,
       );
     }
     throw error;

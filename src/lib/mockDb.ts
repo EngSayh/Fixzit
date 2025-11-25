@@ -1,6 +1,6 @@
 /**
  * MockDatabase - In-memory database mock for testing
- * 
+ *
  * Provides a simple in-memory store for testing database operations
  * without requiring actual MongoDB connection.
  */
@@ -50,7 +50,10 @@ export class MockDatabase {
    */
   setCollection(name: string, data: Doc[]): void {
     // Store copies to avoid external mutation
-    this.collections.set(name, data.map(d => ({ ...d })));
+    this.collections.set(
+      name,
+      data.map((d) => ({ ...d })),
+    );
   }
 
   /**

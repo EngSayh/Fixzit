@@ -1,5 +1,5 @@
-import { Schema, Types } from 'mongoose';
-import { getClientIP } from '@/server/security/headers';
+import { Schema, Types } from "mongoose";
+import { getClientIP } from "@/server/security/headers";
 
 // Interface for field change
 interface FieldChange {
@@ -57,53 +57,57 @@ export interface AuditPluginOptions {
 // Plugin function
 export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
   const {
-    excludeFields = ['__v', 'updatedAt', 'createdAt'],
+    excludeFields = ["__v", "updatedAt", "createdAt"],
     enableChangeHistory = true,
-    maxHistoryVersions = 50
+    maxHistoryVersions = 50,
   } = options;
 
   // ⚡ FIXED: Add audit fields to schema with ObjectId type (not String)
   schema.add({
-    createdBy: { 
+    createdBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true 
+      ref: "User",
+      required: true,
     },
-    updatedBy: { 
+    updatedBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User'
+      ref: "User",
     },
-    version: { 
-      type: Number, 
-      default: 1 
-    }
+    version: {
+      type: Number,
+      default: 1,
+    },
   });
 
   // Add change history if enabled
   if (enableChangeHistory) {
     schema.add({
-      changeHistory: [{
-        version: Number,
-        changedBy: { type: Schema.Types.ObjectId, ref: 'User' }, // ⚡ FIXED: ObjectId not String
-        changedAt: { type: Date, default: Date.now },
-        changes: [{
-          field: String,
-          oldValue: Schema.Types.Mixed,
-          newValue: Schema.Types.Mixed
-        }],
-        changeReason: String,
-        ipAddress: String,
-        userAgent: String
-      }]
+      changeHistory: [
+        {
+          version: Number,
+          changedBy: { type: Schema.Types.ObjectId, ref: "User" }, // ⚡ FIXED: ObjectId not String
+          changedAt: { type: Date, default: Date.now },
+          changes: [
+            {
+              field: String,
+              oldValue: Schema.Types.Mixed,
+              newValue: Schema.Types.Mixed,
+            },
+          ],
+          changeReason: String,
+          ipAddress: String,
+          userAgent: String,
+        },
+      ],
     });
 
     // Index for change history queries
-    schema.index({ 'changeHistory.changedAt': -1 });
-    schema.index({ 'changeHistory.changedBy': 1 });
+    schema.index({ "changeHistory.changedAt": -1 });
+    schema.index({ "changeHistory.changedBy": 1 });
   }
 
   // Pre-save middleware for audit fields and change tracking
-  schema.pre('save', function(next) {
+  schema.pre("save", function (next) {
     const context = getAuditContext();
     const now = new Date();
 
@@ -113,7 +117,7 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
         this.createdBy = context.userId;
       } else if (!this.createdBy) {
         // If no context and no createdBy set, use system
-        this.createdBy = 'SYSTEM';
+        this.createdBy = "SYSTEM";
       }
       this.version = 1;
     } else {
@@ -121,36 +125,48 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
       if (context.userId) {
         this.updatedBy = context.userId;
       }
-      
+
       // Increment version
       this.version = ((this.version as number) || 0) + 1;
 
       // Track changes if enabled
       if (enableChangeHistory && this.isModified()) {
         this.changeHistory = this.changeHistory || [];
-        
-        const changes: Array<{field: string, oldValue: unknown, newValue: unknown}> = [];
-        
+
+        const changes: Array<{
+          field: string;
+          oldValue: unknown;
+          newValue: unknown;
+        }> = [];
+
         // Get modified paths
         const modifiedPaths = this.modifiedPaths();
-        
+
         for (const path of modifiedPaths) {
           // Skip excluded fields and audit fields
-          if (excludeFields.includes(path) || 
-              ['createdBy', 'updatedBy', 'version', 'changeHistory'].includes(path)) {
+          if (
+            excludeFields.includes(path) ||
+            ["createdBy", "updatedBy", "version", "changeHistory"].includes(
+              path,
+            )
+          ) {
             continue;
           }
 
-          const internalState = this.$__ as { originalDoc?: Record<string, unknown> };
-          const oldValue = this.isNew ? undefined : internalState?.originalDoc?.[path];
+          const internalState = this.$__ as {
+            originalDoc?: Record<string, unknown>;
+          };
+          const oldValue = this.isNew
+            ? undefined
+            : internalState?.originalDoc?.[path];
           const newValue = this.get(path);
-          
+
           // Only track if value actually changed
           if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
             changes.push({
               field: path,
               oldValue,
-              newValue
+              newValue,
             });
           }
         }
@@ -159,12 +175,12 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
         if (changes.length > 0) {
           const changeRecord = {
             version: this.version,
-            changedBy: context.userId || this.updatedBy || 'SYSTEM',
+            changedBy: context.userId || this.updatedBy || "SYSTEM",
             changedAt: now,
             changes,
             changeReason: context.changeReason || undefined,
             ipAddress: context.ipAddress,
-            userAgent: context.userAgent
+            userAgent: context.userAgent,
           };
 
           if (!this.changeHistory) {
@@ -174,7 +190,9 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
 
           // Limit history size
           if ((this.changeHistory as unknown[]).length > maxHistoryVersions) {
-            this.changeHistory = (this.changeHistory as unknown[]).slice(-maxHistoryVersions);
+            this.changeHistory = (this.changeHistory as unknown[]).slice(
+              -maxHistoryVersions,
+            );
           }
         }
       }
@@ -184,86 +202,86 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
   });
 
   // Pre-update middleware for audit fields
-  schema.pre(/^update/, function() {
+  schema.pre(/^update/, function () {
     const context = getAuditContext();
-    
+
     if (context.userId) {
       this.set({ updatedBy: context.userId });
     }
-    
+
     // Increment version
     this.set({ $inc: { version: 1 } });
   });
 
   // Pre-findOneAndUpdate middleware
-  schema.pre('findOneAndUpdate', function() {
+  schema.pre("findOneAndUpdate", function () {
     const context = getAuditContext();
-    
+
     if (context.userId) {
       this.set({ updatedBy: context.userId });
     }
-    
+
     // Increment version
     this.set({ $inc: { version: 1 } });
   });
 
   // Instance method to get change history for a specific field
-  schema.methods.getFieldHistory = function(fieldName: string) {
+  schema.methods.getFieldHistory = function (fieldName: string) {
     if (!this.changeHistory) return [];
-    
+
     return this.changeHistory
-      .filter((change: ChangeRecord) => 
-        change.changes.some((c: FieldChange) => c.field === fieldName)
+      .filter((change: ChangeRecord) =>
+        change.changes.some((c: FieldChange) => c.field === fieldName),
       )
       .map((change: ChangeRecord) => ({
         version: change.version,
         changedBy: change.changedBy,
         changedAt: change.changedAt,
         change: change.changes.find((c: FieldChange) => c.field === fieldName),
-        changeReason: change.changeReason
+        changeReason: change.changeReason,
       }))
       .sort((a: ChangeRecord, b: ChangeRecord) => b.version - a.version);
   };
 
   // Instance method to get changes made by a specific user
-  schema.methods.getChangesByUser = function(userId: string) {
+  schema.methods.getChangesByUser = function (userId: string) {
     if (!this.changeHistory) return [];
-    
+
     return this.changeHistory
       .filter((change: ChangeRecord) => change.changedBy === userId)
       .sort((a: ChangeRecord, b: ChangeRecord) => b.version - a.version);
   };
 
   // Instance method to get version at specific point in time
-  schema.methods.getVersionAtDate = function(date: Date) {
+  schema.methods.getVersionAtDate = function (date: Date) {
     if (!this.changeHistory) return null;
-    
+
     const changes = this.changeHistory
       .filter((change: ChangeRecord) => new Date(change.changedAt) <= date)
       .sort((a: ChangeRecord, b: ChangeRecord) => b.version - a.version);
-    
+
     return changes.length > 0 ? changes[0] : null;
   };
 
   // Static method to find documents modified by user
-  schema.statics.findByModifier = function(userId: string) {
+  schema.statics.findByModifier = function (userId: string) {
     return this.find({
       $or: [
         { createdBy: userId },
         { updatedBy: userId },
-        { 'changeHistory.changedBy': userId }
-      ]
+        { "changeHistory.changedBy": userId },
+      ],
     });
   };
 
   // Static method to find documents modified in date range
-  schema.statics.findByDateRange = function(startDate: Date, endDate: Date) {
+  schema.statics.findByDateRange = function (startDate: Date, endDate: Date) {
     return this.find({
       $or: [
         { createdAt: { $gte: startDate, $lte: endDate } },
         { updatedAt: { $gte: startDate, $lte: endDate } },
-        { 'changeHistory.changedAt': { $gte: startDate, $lte: endDate } }
-      ]
+        { "changeHistory.changedAt": { $gte: startDate, $lte: endDate } },
+      ],
     });
   };
 
@@ -277,10 +295,10 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
 // Utility function to execute operations with audit context
 export async function withAuditContext<T>(
   auditInfo: AuditInfo,
-  operation: () => Promise<T>
+  operation: () => Promise<T>,
 ): Promise<T> {
   const originalContext = getAuditContext();
-  
+
   try {
     setAuditContext({ ...originalContext, ...auditInfo });
     return await operation();
@@ -290,47 +308,67 @@ export async function withAuditContext<T>(
 }
 
 // Utility function to create audit context from request
-export function createAuditContextFromRequest(req: Record<string, unknown>, userId?: string): AuditInfo {
-  const reqUser = req.user as { id?: string; _id?: { toString: () => string }; email?: string } | undefined;
-  
-  const headers = typeof req.headers === 'object' && req.headers !== null ? req.headers as Record<string, unknown> : {};
-  
+export function createAuditContextFromRequest(
+  req: Record<string, unknown>,
+  userId?: string,
+): AuditInfo {
+  const reqUser = req.user as
+    | { id?: string; _id?: { toString: () => string }; email?: string }
+    | undefined;
+
+  const headers =
+    typeof req.headers === "object" && req.headers !== null
+      ? (req.headers as Record<string, unknown>)
+      : {};
+
   // Use secure IP extraction from trusted sources (LAST IP from X-Forwarded-For)
   // Check if this is a NextRequest with get() method
-  let clientIp = 'unknown';
-  if (req && typeof req === 'object' && 'headers' in req) {
+  let clientIp = "unknown";
+  if (req && typeof req === "object" && "headers" in req) {
     const headersObj = req.headers;
-    if (headersObj && typeof headersObj === 'object' && 'get' in headersObj && typeof headersObj.get === 'function') {
+    if (
+      headersObj &&
+      typeof headersObj === "object" &&
+      "get" in headersObj &&
+      typeof headersObj.get === "function"
+    ) {
       // This is a NextRequest or similar - use secure extraction
-      clientIp = getClientIP(req as unknown as Parameters<typeof getClientIP>[0]);
+      clientIp = getClientIP(
+        req as unknown as Parameters<typeof getClientIP>[0],
+      );
     } else {
       // Fallback for generic request objects - extract safely
       const headersMap = headersObj as Record<string, string | undefined>;
-      
+
       // 1) Cloudflare Connecting IP (most trusted)
-      const cfIp = headersMap['cf-connecting-ip'];
+      const cfIp = headersMap["cf-connecting-ip"];
       if (cfIp && cfIp.trim()) {
         clientIp = cfIp.trim();
       } else {
         // 2) X-Forwarded-For: take LAST IP (appended by our trusted proxy)
-        const forwarded = headersMap['x-forwarded-for'];
+        const forwarded = headersMap["x-forwarded-for"];
         if (forwarded && forwarded.trim()) {
-          const ips = forwarded.split(',').map(ip => ip.trim()).filter(ip => ip);
+          const ips = forwarded
+            .split(",")
+            .map((ip) => ip.trim())
+            .filter((ip) => ip);
           if (ips.length) clientIp = ips[ips.length - 1]; // LAST IP is from our proxy
-        } else if (process.env.TRUST_X_REAL_IP === 'true') {
+        } else if (process.env.TRUST_X_REAL_IP === "true") {
           // 3) X-Real-IP only if explicitly trusted
-          const realIP = headersMap['x-real-ip'];
+          const realIP = headersMap["x-real-ip"];
           if (realIP && realIP.trim()) clientIp = realIP.trim();
         }
       }
     }
   }
-  
+
   return {
     userId: userId || reqUser?.id || reqUser?._id?.toString(),
     userEmail: reqUser?.email,
     ipAddress: clientIp,
-    userAgent: headers['user-agent'] ? String(headers['user-agent']) : undefined,
-    timestamp: new Date()
+    userAgent: headers["user-agent"]
+      ? String(headers["user-agent"])
+      : undefined,
+    timestamp: new Date(),
   };
 }

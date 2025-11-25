@@ -1,6 +1,6 @@
-import { logger } from '@/lib/logger';
-import { createTimeoutSignal } from '@/lib/resilience';
-import type { CircuitBreaker } from '@/lib/resilience';
+import { logger } from "@/lib/logger";
+import { createTimeoutSignal } from "@/lib/resilience";
+import type { CircuitBreaker } from "@/lib/resilience";
 
 type FetchTarget = Parameters<typeof fetch>[0];
 type FetchInit = NonNullable<Parameters<typeof fetch>[1]>;
@@ -50,7 +50,7 @@ export async function fetchWithRetry(
   } = options;
 
   if (maxAttempts < 1) {
-    throw new Error('maxAttempts must be at least 1');
+    throw new Error("maxAttempts must be at least 1");
   }
 
   let attempt = 0;
@@ -61,7 +61,7 @@ export async function fetchWithRetry(
   while (attempt < maxAttempts) {
     attempt += 1;
     if (init.signal?.aborted) {
-      throw init.signal.reason ?? new Error('Aborted before fetch started');
+      throw init.signal.reason ?? new Error("Aborted before fetch started");
     }
 
     const timeout = createTimeoutSignal({
@@ -90,7 +90,8 @@ export async function fetchWithRetry(
         return response;
       }
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
       const err = error instanceof Error ? error : new Error(String(error));
       lastError = err;
@@ -101,7 +102,7 @@ export async function fetchWithRetry(
         throw err;
       }
 
-      logger.warn('[fetchWithRetry] transient failure', {
+      logger.warn("[fetchWithRetry] transient failure", {
         label,
         attempt,
         maxAttempts,
@@ -113,7 +114,7 @@ export async function fetchWithRetry(
 
     const jitter = delayMs * jitterRatio * Math.random();
     const waitTime = delayMs + jitter;
-    await new Promise(resolve => setTimeout(resolve, waitTime));
+    await new Promise((resolve) => setTimeout(resolve, waitTime));
     delayMs *= backoffFactor;
   }
 
@@ -121,5 +122,5 @@ export async function fetchWithRetry(
     return lastResponse;
   }
 
-  throw lastError ?? new Error('fetchWithRetry failed without response');
+  throw lastError ?? new Error("fetchWithRetry failed without response");
 }

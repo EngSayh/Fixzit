@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+import { Types } from "mongoose";
 
 export type MongoId = Types.ObjectId | string;
 
@@ -9,5 +9,8 @@ export function toObjectId(id: MongoId): Types.ObjectId {
 }
 
 export function isObjectIdLike(v: unknown): v is MongoId {
-  return v instanceof Types.ObjectId || (typeof v === 'string' && Types.ObjectId.isValid(v));
+  return (
+    v instanceof Types.ObjectId ||
+    (typeof v === "string" && Types.ObjectId.isValid(v))
+  );
 }

@@ -1,40 +1,57 @@
-import { Schema, model, models, HydratedDocument } from 'mongoose';
-import { MModel } from '@/src/types/mongoose-compat';
-import { customAlphabet } from 'nanoid';
-import { auditPlugin } from '../plugins/auditPlugin';
+import { Schema, model, models, HydratedDocument } from "mongoose";
+import { MModel } from "@/src/types/mongoose-compat";
+import { customAlphabet } from "nanoid";
+import { auditPlugin } from "../plugins/auditPlugin";
 
 // ---------- Enums ----------
-const OrganizationType = ['CORPORATE', 'GOVERNMENT', 'INDIVIDUAL', 'NONPROFIT', 'STARTUP'] as const;
+const OrganizationType = [
+  "CORPORATE",
+  "GOVERNMENT",
+  "INDIVIDUAL",
+  "NONPROFIT",
+  "STARTUP",
+] as const;
 type TOrganizationType = (typeof OrganizationType)[number];
 
-const SubscriptionStatus = ['ACTIVE', 'SUSPENDED', 'CANCELLED', 'TRIAL', 'EXPIRED'] as const;
+const SubscriptionStatus = [
+  "ACTIVE",
+  "SUSPENDED",
+  "CANCELLED",
+  "TRIAL",
+  "EXPIRED",
+] as const;
 type TSubscriptionStatus = (typeof SubscriptionStatus)[number];
 
-const ComplianceStatus = ['COMPLIANT', 'NON_COMPLIANT', 'PENDING_REVIEW', 'UNDER_AUDIT'] as const;
+const ComplianceStatus = [
+  "COMPLIANT",
+  "NON_COMPLIANT",
+  "PENDING_REVIEW",
+  "UNDER_AUDIT",
+] as const;
 type TComplianceStatus = (typeof ComplianceStatus)[number];
 
-const BillingCycle = ['MONTHLY', 'QUARTERLY', 'YEARLY'] as const;
+const BillingCycle = ["MONTHLY", "QUARTERLY", "YEARLY"] as const;
 type TBillingCycle = (typeof BillingCycle)[number];
 
-const SupportLevel = ['BASIC', 'PRIORITY', 'DEDICATED'] as const;
+const SupportLevel = ["BASIC", "PRIORITY", "DEDICATED"] as const;
 type TSupportLevel = (typeof SupportLevel)[number];
 
-const Priority = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const;
+const Priority = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
 type TPriority = (typeof Priority)[number];
 
-const Workdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const;
+const Workdays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
 type TWorkday = (typeof Workdays)[number];
 
-const SsoProvider = ['AZURE_AD', 'GOOGLE', 'OKTA'] as const;
+const SsoProvider = ["AZURE_AD", "GOOGLE", "OKTA"] as const;
 type TSsoProvider = (typeof SsoProvider)[number];
 
-const EmailProvider = ['SMTP', 'SENDGRID', 'AWS_SES'] as const;
+const EmailProvider = ["SMTP", "SENDGRID", "AWS_SES"] as const;
 type TEmailProvider = (typeof EmailProvider)[number];
 
-const SmsProvider = ['TWILIO', 'AWS_SNS', 'LOCAL'] as const;
+const SmsProvider = ["TWILIO", "AWS_SNS", "LOCAL"] as const;
 type TSmsProvider = (typeof SmsProvider)[number];
 
-const PaymentGateway = ['PAYTABS', 'STRIPE', 'PAYPAL'] as const;
+const PaymentGateway = ["PAYTABS", "STRIPE", "PAYPAL"] as const;
 type TPaymentGateway = (typeof PaymentGateway)[number];
 
 // ---------- Types ----------
@@ -71,8 +88,14 @@ export type ModulesConfig = {
 
 type OrganizationDoc = HydratedDocument<IOrganization>;
 type OrganizationModel = MModel<IOrganization> & {
-  incrementUsage(orgId: string, patch: Partial<Usage>): Promise<OrganizationDoc | null>;
-  setSubscriptionStatus(orgId: string, status: TSubscriptionStatus): Promise<OrganizationDoc | null>;
+  incrementUsage(
+    orgId: string,
+    patch: Partial<Usage>,
+  ): Promise<OrganizationDoc | null>;
+  setSubscriptionStatus(
+    orgId: string,
+    status: TSubscriptionStatus,
+  ): Promise<OrganizationDoc | null>;
 };
 
 export interface IOrganization {
@@ -146,7 +169,7 @@ export interface IOrganization {
   };
 
   subscription: {
-    plan: 'BASIC' | 'STANDARD' | 'PREMIUM' | 'ENTERPRISE';
+    plan: "BASIC" | "STANDARD" | "PREMIUM" | "ENTERPRISE";
     status: TSubscriptionStatus;
     startDate?: Date;
     endDate?: Date;
@@ -207,10 +230,23 @@ export interface IOrganization {
       auditLogRetention: number;
     };
     integrations: {
-      emailProvider: { provider: TEmailProvider; settings?: Record<string, unknown> };
-      smsProvider: { provider: TSmsProvider; settings?: Record<string, unknown> };
-      paymentGateway: { provider: TPaymentGateway; settings?: Record<string, unknown> };
-      sso: { enabled: boolean; provider?: TSsoProvider; settings?: Record<string, unknown> };
+      emailProvider: {
+        provider: TEmailProvider;
+        settings?: Record<string, unknown>;
+      };
+      smsProvider: {
+        provider: TSmsProvider;
+        settings?: Record<string, unknown>;
+      };
+      paymentGateway: {
+        provider: TPaymentGateway;
+        settings?: Record<string, unknown>;
+      };
+      sso: {
+        enabled: boolean;
+        provider?: TSsoProvider;
+        settings?: Record<string, unknown>;
+      };
     };
   };
 
@@ -259,7 +295,7 @@ export interface IOrganization {
     suspensionReason?: string;
     maintenanceMode: boolean;
     lastHealthCheck?: Date;
-    healthStatus: 'HEALTHY' | 'WARNING' | 'CRITICAL';
+    healthStatus: "HEALTHY" | "WARNING" | "CRITICAL";
     healthDetails?: Record<string, unknown>;
   };
 
@@ -278,7 +314,13 @@ const OrganizationSchema = new Schema<IOrganization>(
     orgId: { type: String, required: true, unique: true },
 
     name: { type: String, required: true, trim: true },
-    code: { type: String, required: true, unique: true, uppercase: true, trim: true },
+    code: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      trim: true,
+    },
     type: { type: String, enum: OrganizationType, required: true },
     description: { type: String, trim: true },
     website: { type: String, trim: true },
@@ -301,7 +343,7 @@ const OrganizationSchema = new Schema<IOrganization>(
           city: { type: String, trim: true },
           region: { type: String, trim: true },
           postalCode: { type: String, trim: true },
-          country: { type: String, default: 'SA', trim: true },
+          country: { type: String, default: "SA", trim: true },
         },
       },
       technical: {
@@ -317,7 +359,7 @@ const OrganizationSchema = new Schema<IOrganization>(
         city: { type: String, required: true, trim: true },
         region: { type: String, trim: true },
         postalCode: { type: String, trim: true },
-        country: { type: String, default: 'SA', required: true, trim: true },
+        country: { type: String, default: "SA", required: true, trim: true },
       },
       branches: [
         {
@@ -353,17 +395,17 @@ const OrganizationSchema = new Schema<IOrganization>(
       plan: {
         type: String,
         required: true,
-        default: 'BASIC',
-        enum: ['BASIC', 'STANDARD', 'PREMIUM', 'ENTERPRISE'],
+        default: "BASIC",
+        enum: ["BASIC", "STANDARD", "PREMIUM", "ENTERPRISE"],
       },
-      status: { type: String, enum: SubscriptionStatus, default: 'TRIAL' },
+      status: { type: String, enum: SubscriptionStatus, default: "TRIAL" },
       startDate: { type: Date, default: Date.now },
       endDate: Date,
       trialEndsAt: Date,
-      billingCycle: { type: String, enum: BillingCycle, default: 'MONTHLY' },
+      billingCycle: { type: String, enum: BillingCycle, default: "MONTHLY" },
       price: {
         amount: { type: Number, min: 0 },
-        currency: { type: String, default: 'SAR', trim: true },
+        currency: { type: String, default: "SAR", trim: true },
       },
       features: {
         maxUsers: { type: Number, default: 10, min: 0 },
@@ -374,7 +416,7 @@ const OrganizationSchema = new Schema<IOrganization>(
         customBranding: { type: Boolean, default: false },
         ssoIntegration: { type: Boolean, default: false },
         mobileApp: { type: Boolean, default: true },
-        supportLevel: { type: String, enum: SupportLevel, default: 'BASIC' },
+        supportLevel: { type: String, enum: SupportLevel, default: "BASIC" },
       },
       usage: {
         currentUsers: { type: Number, default: 0, min: 0 },
@@ -390,25 +432,25 @@ const OrganizationSchema = new Schema<IOrganization>(
     },
 
     settings: {
-      locale: { type: String, default: 'ar', trim: true },
-      timezone: { type: String, default: 'Asia/Riyadh', trim: true },
-      currency: { type: String, default: 'SAR', trim: true },
-      dateFormat: { type: String, default: 'DD/MM/YYYY', trim: true },
-      numberFormat: { type: String, default: '1,234.56', trim: true },
+      locale: { type: String, default: "ar", trim: true },
+      timezone: { type: String, default: "Asia/Riyadh", trim: true },
+      currency: { type: String, default: "SAR", trim: true },
+      dateFormat: { type: String, default: "DD/MM/YYYY", trim: true },
+      numberFormat: { type: String, default: "1,234.56", trim: true },
       businessHours: {
         workdays: [{ type: String, enum: Workdays }],
-        startTime: { type: String, default: '09:00', trim: true },
-        endTime: { type: String, default: '17:00', trim: true },
+        startTime: { type: String, default: "09:00", trim: true },
+        endTime: { type: String, default: "17:00", trim: true },
         breakTime: {
           enabled: { type: Boolean, default: true },
-          start: { type: String, default: '12:00', trim: true },
-          end: { type: String, default: '13:00', trim: true },
+          start: { type: String, default: "12:00", trim: true },
+          end: { type: String, default: "13:00", trim: true },
         },
       },
       workOrders: {
         autoAssignment: { type: Boolean, default: false },
         requireApproval: { type: Boolean, default: true },
-        defaultPriority: { type: String, enum: Priority, default: 'MEDIUM' },
+        defaultPriority: { type: String, enum: Priority, default: "MEDIUM" },
         slaDefaults: {
           low: { hours: { type: Number, default: 72, min: 0 } },
           medium: { hours: { type: Number, default: 48, min: 0 } },
@@ -422,7 +464,11 @@ const OrganizationSchema = new Schema<IOrganization>(
         },
       },
       financial: {
-        invoiceNumberFormat: { type: String, default: 'INV-{YYYY}-{MM}-{####}', trim: true },
+        invoiceNumberFormat: {
+          type: String,
+          default: "INV-{YYYY}-{MM}-{####}",
+          trim: true,
+        },
         paymentTerms: { type: Number, default: 30, min: 0 },
         lateFeePercentage: { type: Number, default: 2.5, min: 0 },
         taxRate: { type: Number, default: 15, min: 0, max: 100 },
@@ -448,15 +494,15 @@ const OrganizationSchema = new Schema<IOrganization>(
       },
       integrations: {
         emailProvider: {
-          provider: { type: String, enum: EmailProvider, default: 'SMTP' },
+          provider: { type: String, enum: EmailProvider, default: "SMTP" },
           settings: Schema.Types.Mixed,
         },
         smsProvider: {
-          provider: { type: String, enum: SmsProvider, default: 'LOCAL' },
+          provider: { type: String, enum: SmsProvider, default: "LOCAL" },
           settings: Schema.Types.Mixed,
         },
         paymentGateway: {
-          provider: { type: String, enum: PaymentGateway, default: 'PAYTABS' },
+          provider: { type: String, enum: PaymentGateway, default: "PAYTABS" },
           settings: Schema.Types.Mixed,
         },
         sso: {
@@ -464,7 +510,7 @@ const OrganizationSchema = new Schema<IOrganization>(
           provider: { type: String, enum: SsoProvider },
           settings: Schema.Types.Mixed,
         },
-    },
+      },
     },
 
     modules: {
@@ -474,12 +520,16 @@ const OrganizationSchema = new Schema<IOrganization>(
         seats: { type: Number, default: 25, min: 0 },
         seatWarningThreshold: { type: Number, default: 0.9, min: 0, max: 1 },
         activatedAt: { type: Date },
-        billingPlan: { type: String, default: 'ATS_STARTER' },
+        billingPlan: { type: String, default: "ATS_STARTER" },
       },
     },
 
     compliance: {
-      status: { type: String, enum: ComplianceStatus, default: 'PENDING_REVIEW' },
+      status: {
+        type: String,
+        enum: ComplianceStatus,
+        default: "PENDING_REVIEW",
+      },
       certifications: [
         {
           name: { type: String, trim: true },
@@ -521,7 +571,11 @@ const OrganizationSchema = new Schema<IOrganization>(
       suspensionReason: { type: String, trim: true },
       maintenanceMode: { type: Boolean, default: false },
       lastHealthCheck: Date,
-      healthStatus: { type: String, enum: ['HEALTHY', 'WARNING', 'CRITICAL'], default: 'HEALTHY' },
+      healthStatus: {
+        type: String,
+        enum: ["HEALTHY", "WARNING", "CRITICAL"],
+        default: "HEALTHY",
+      },
       healthDetails: Schema.Types.Mixed,
     },
 
@@ -531,7 +585,11 @@ const OrganizationSchema = new Schema<IOrganization>(
 
     // NOTE: createdBy, updatedBy, and version are added by auditPlugin
   },
-  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
 );
 
 // ---------- Apply Plugins ----------
@@ -541,36 +599,47 @@ OrganizationSchema.plugin(auditPlugin);
 // ---------- Indexes ----------
 // ⚡ REMOVED: orgId index - already created by unique: true constraint on field (line 260)
 // ⚡ REMOVED: code index - already created by unique: true constraint on field (line 263)
-OrganizationSchema.index({ 'subscription.status': 1 });
-OrganizationSchema.index({ 'subscription.endDate': 1 });
-OrganizationSchema.index({ 'status.isActive': 1 });
+OrganizationSchema.index({ "subscription.status": 1 });
+OrganizationSchema.index({ "subscription.endDate": 1 });
+OrganizationSchema.index({ "status.isActive": 1 });
 // ⚡ REMOVED: createdAt index - already created by timestamps: true option
 
 // ---------- Hooks ----------
-const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 12);
+const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 12);
 
-OrganizationSchema.pre('save', function (next) {
+OrganizationSchema.pre("save", function (next) {
   // Generate orgId if missing
   if (this.isNew && !this.orgId) {
     this.orgId = `org_${nanoid()}`;
   }
 
   // Normalize key strings
-  if (this.isModified('code') && this.code) this.code = String(this.code).toUpperCase().trim();
+  if (this.isModified("code") && this.code)
+    this.code = String(this.code).toUpperCase().trim();
   if (this.website) this.website = this.website.trim().toLowerCase();
   if (this.contact?.primary?.email)
-    this.contact.primary.email = this.contact.primary.email.trim().toLowerCase();
+    this.contact.primary.email = this.contact.primary.email
+      .trim()
+      .toLowerCase();
   if (this.contact?.billing?.email)
-    this.contact.billing.email = this.contact.billing.email.trim().toLowerCase();
+    this.contact.billing.email = this.contact.billing.email
+      .trim()
+      .toLowerCase();
   if (this.contact?.technical?.email)
-    this.contact.technical.email = this.contact.technical.email.trim().toLowerCase();
+    this.contact.technical.email = this.contact.technical.email
+      .trim()
+      .toLowerCase();
 
   next();
 });
 
 // ---------- Virtuals ----------
-OrganizationSchema.virtual('subscriptionDaysRemaining').get(function (this: OrganizationDoc) {
-  const end = this.subscription?.endDate ? new Date(this.subscription.endDate).getTime() : null;
+OrganizationSchema.virtual("subscriptionDaysRemaining").get(function (
+  this: OrganizationDoc,
+) {
+  const end = this.subscription?.endDate
+    ? new Date(this.subscription.endDate).getTime()
+    : null;
   if (!end) return null;
   const today = Date.now();
   const diff = Math.ceil((end - today) / (24 * 60 * 60 * 1000));
@@ -578,7 +647,7 @@ OrganizationSchema.virtual('subscriptionDaysRemaining').get(function (this: Orga
 });
 
 // ---------- Instance methods ----------
- 
+
 OrganizationSchema.methods.hasFeature = function (
   this: OrganizationDoc,
   feature: keyof Features,
@@ -586,19 +655,27 @@ OrganizationSchema.methods.hasFeature = function (
   return Boolean(this.subscription?.features?.[feature]);
 };
 
-OrganizationSchema.methods.checkUsageLimits = function (this: OrganizationDoc): string[] {
+OrganizationSchema.methods.checkUsageLimits = function (
+  this: OrganizationDoc,
+): string[] {
   const usage = this.subscription.usage;
   const features = this.subscription.features;
   const warnings: string[] = [];
 
   if (usage.currentUsers >= features.maxUsers) {
-    warnings.push(`User limit reached (${usage.currentUsers}/${features.maxUsers})`);
+    warnings.push(
+      `User limit reached (${usage.currentUsers}/${features.maxUsers})`,
+    );
   }
   if (usage.currentProperties >= features.maxProperties) {
-    warnings.push(`Property limit reached (${usage.currentProperties}/${features.maxProperties})`);
+    warnings.push(
+      `Property limit reached (${usage.currentProperties}/${features.maxProperties})`,
+    );
   }
   if (usage.currentWorkOrders >= features.maxWorkOrders) {
-    warnings.push(`Work order limit reached (${usage.currentWorkOrders}/${features.maxWorkOrders})`);
+    warnings.push(
+      `Work order limit reached (${usage.currentWorkOrders}/${features.maxWorkOrders})`,
+    );
   }
 
   this.subscription.limits.warnings = warnings;
@@ -614,13 +691,17 @@ OrganizationSchema.statics.incrementUsage = async function (
   // Only increment provided counters; clamp at >= 0
   const inc: Record<string, number> = {};
   for (const [k, v] of Object.entries(patch)) {
-    if (typeof v === 'number' && Number.isFinite(v) && v !== 0) {
+    if (typeof v === "number" && Number.isFinite(v) && v !== 0) {
       inc[`subscription.usage.${k}`] = v;
     }
   }
   if (Object.keys(inc).length === 0) return this.findOne({ orgId });
 
-  const doc = await this.findOneAndUpdate({ orgId }, { $inc: inc }, { new: true });
+  const doc = await this.findOneAndUpdate(
+    { orgId },
+    { $inc: inc },
+    { new: true },
+  );
   return doc;
 };
 
@@ -630,14 +711,17 @@ OrganizationSchema.statics.setSubscriptionStatus = async function (
 ): Promise<OrganizationDoc | null> {
   return this.findOneAndUpdate(
     { orgId },
-    { $set: { 'subscription.status': status } },
+    { $set: { "subscription.status": status } },
     { new: true },
   );
 };
 
 // ---------- Export ----------
 export const Organization =
-  (typeof models !== 'undefined' && models.Organization
+  typeof models !== "undefined" && models.Organization
     ? (models.Organization as OrganizationModel)
-    : (model<IOrganization, OrganizationModel>('Organization', OrganizationSchema) as OrganizationModel));
+    : (model<IOrganization, OrganizationModel>(
+        "Organization",
+        OrganizationSchema,
+      ) as OrganizationModel);
 export type { OrganizationDoc, Features, Usage };

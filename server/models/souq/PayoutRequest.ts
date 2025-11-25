@@ -1,10 +1,10 @@
 /**
  * Souq Payout Request MongoDB Model
- * 
+ *
  * Stores payout requests for seller withdrawals.
  */
 
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 export interface ISouqPayoutRequest extends Document {
   payoutId: string;
@@ -20,8 +20,8 @@ export interface ISouqPayoutRequest extends Document {
     accountHolderName: string;
     swiftCode?: string;
   };
-  method: 'sadad' | 'span' | 'manual';
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  method: "sadad" | "span" | "manual";
+  status: "pending" | "processing" | "completed" | "failed" | "cancelled";
   requestedAt: Date;
   processedAt?: Date;
   completedAt?: Date;
@@ -46,7 +46,7 @@ const SouqPayoutRequestSchema = new Schema<ISouqPayoutRequest>(
     sellerId: {
       type: Schema.Types.ObjectId,
       required: true,
-      ref: 'User',
+      ref: "User",
       index: true,
     },
     statementId: {
@@ -56,7 +56,7 @@ const SouqPayoutRequestSchema = new Schema<ISouqPayoutRequest>(
     },
     escrowAccountId: {
       type: Schema.Types.ObjectId,
-      ref: 'EscrowAccount',
+      ref: "EscrowAccount",
     },
     amount: {
       type: Number,
@@ -65,7 +65,7 @@ const SouqPayoutRequestSchema = new Schema<ISouqPayoutRequest>(
     currency: {
       type: String,
       required: true,
-      default: 'SAR',
+      default: "SAR",
     },
     bankAccount: {
       bankName: { type: String, required: true },
@@ -77,14 +77,14 @@ const SouqPayoutRequestSchema = new Schema<ISouqPayoutRequest>(
     method: {
       type: String,
       required: true,
-      enum: ['sadad', 'span', 'manual'],
-      default: 'sadad',
+      enum: ["sadad", "span", "manual"],
+      default: "sadad",
     },
     status: {
       type: String,
       required: true,
-      enum: ['pending', 'processing', 'completed', 'failed', 'cancelled'],
-      default: 'pending',
+      enum: ["pending", "processing", "completed", "failed", "cancelled"],
+      default: "pending",
       index: true,
     },
     requestedAt: {
@@ -109,8 +109,8 @@ const SouqPayoutRequestSchema = new Schema<ISouqPayoutRequest>(
   },
   {
     timestamps: true,
-    collection: 'souq_payouts',
-  }
+    collection: "souq_payouts",
+  },
 );
 
 // Indexes
@@ -119,4 +119,7 @@ SouqPayoutRequestSchema.index({ status: 1, retryCount: 1 });
 
 export const SouqPayoutRequest =
   (mongoose.models.SouqPayoutRequest as mongoose.Model<ISouqPayoutRequest>) ||
-  mongoose.model<ISouqPayoutRequest>('SouqPayoutRequest', SouqPayoutRequestSchema);
+  mongoose.model<ISouqPayoutRequest>(
+    "SouqPayoutRequest",
+    SouqPayoutRequestSchema,
+  );

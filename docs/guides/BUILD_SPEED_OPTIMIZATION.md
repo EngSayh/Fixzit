@@ -19,10 +19,10 @@ experimental: {
 
 ```javascript
 optimizePackageImports: [
-  'lucide-react',      // Icon library (500+ icons)
-  'date-fns',          // Date utilities
-  'framer-motion',     // Animation library
-]
+  "lucide-react", // Icon library (500+ icons)
+  "date-fns", // Date utilities
+  "framer-motion", // Animation library
+];
 ```
 
 **Impact**: Tree-shakes large libraries, reduces bundle size by 40-60%
@@ -139,7 +139,7 @@ npm run dev  # Instant with Turbopack
 ```javascript
 // Build only changed pages
 experimental: {
-  incrementalCacheHandlerPath: './cache-handler.js'
+  incrementalCacheHandlerPath: "./cache-handler.js";
 }
 ```
 
@@ -201,12 +201,12 @@ npm run build 2>&1 | grep "Compiled successfully"
 webpack: (config) => {
   // Enable webpack profiling
   if (process.env.WEBPACK_PROFILE) {
-    const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+    const SpeedMeasurePlugin = require("speed-measure-webpack-plugin");
     const smp = new SpeedMeasurePlugin();
     return smp.wrap(config);
   }
   return config;
-}
+};
 ```
 
 ## 💡 Pro Tips
@@ -276,7 +276,7 @@ webpack: (config, { dev }) => {
     config.watchOptions = undefined;
   }
   return config;
-}
+};
 ```
 
 ## 📊 Real-World Results

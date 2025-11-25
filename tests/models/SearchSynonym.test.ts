@@ -1,17 +1,31 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 const modulePath = '@/server/models/SearchSynonym';
+type LooseRecord = Record<string, string | number | boolean | symbol | object | null | undefined>;
+
+type MongooseMock = {
+  __esModule?: boolean;
+  Schema?: unknown;
+  model?: unknown;
+  models?: Record<string, unknown>;
+};
+
+type SchemaLike = { obj?: unknown; definition?: unknown };
+type ModelWithSchema = { schema?: SchemaLike };
+
+const hasSchema = (value: unknown): value is ModelWithSchema =>
+  Boolean(value && typeof (value as { schema?: unknown }).schema !== 'undefined');
 
 async function loadWithMocks(
   options: {
-    mongooseMock?: any;
+    mongooseMock?: LooseRecord;
   } = {}
 ) {
   vi.resetModules();
   if (options.mongooseMock) {
     const mocked = options.mongooseMock;
-    const value = { ...(mocked as Record<string, unknown>) };
-    (value as any).default = value;
+    const value = { ...(mocked as LooseRecord) };
+    (value as LooseRecord).default = value;
     if (!value.__esModule) value.__esModule = true;
     vi.doMock('mongoose', () => value);
   }
@@ -43,7 +57,7 @@ describe('SearchSynonym model registration', () => {
     const { SearchSynonym } = await loadWithMocks({
       mongooseMock: {
         __esModule: true,
-        Schema: FakeSchema as any,
+        Schema: FakeSchema,
         model: vi.fn(),
         models: { SearchSynonym: existingModel },
       },
@@ -57,9 +71,9 @@ describe('SearchSynonym model registration', () => {
     const indexSpy = vi.fn();
     const constructorSpy = vi.fn();
     class FakeSchema {
-      public definition: any;
-      public opts: any;
-      constructor(def: any, opts: any) {
+      public definition: LooseRecord;
+      public opts: LooseRecord;
+      constructor(def: LooseRecord, opts: LooseRecord) {
         constructorSpy(def, opts);
         this.definition = def;
         this.opts = opts;
@@ -72,7 +86,7 @@ describe('SearchSynonym model registration', () => {
     const { SearchSynonym } = await loadWithMocks({
       mongooseMock: {
         __esModule: true,
-        Schema: FakeSchema as any,
+        Schema: FakeSchema,
         model: modelSpy,
         models: {},
       },
@@ -95,18 +109,21 @@ describe('SearchSynonym schema defaults (real import)', () => {
     vi.unmock('mongoose');
     await vi.resetModules();
     const candidates = [modulePath, '../server/models/SearchSynonym', '@/server/models/SearchSynonym', 'server/models/SearchSynonym'];
-    let SearchSynonym: any;
-    let schemaExport: any;
+    let SearchSynonym: { schema?: LooseRecord } | LooseRecord | null = null;
+    let schemaExport: LooseRecord | undefined;
     const attempts: string[] = [];
     for (const p of candidates) {
       try {
         const mod = await import(p);
         const candidateKeys = Object.keys(mod).join(',');
-        const candidate = (mod as any).SearchSynonym || (mod as any).default || mod;
-        schemaExport = schemaExport || (mod as any).SearchSynonymSchema;
-        const hasSchema = Boolean((candidate as any)?.schema);
-        attempts.push(`${p}:${candidateKeys}:schema=${hasSchema}`);
-        if (candidate && (candidate as any).schema) {
+        const candidateModule = mod as Record<string, unknown>;
+        const candidate = candidateModule.SearchSynonym || candidateModule.default || mod;
+        if (!schemaExport && candidateModule.SearchSynonymSchema) {
+          schemaExport = candidateModule.SearchSynonymSchema as SchemaLike;
+        }
+        const schemaPresent = hasSchema(candidate);
+        attempts.push(`${p}:${candidateKeys}:schema=${schemaPresent}`);
+        if (schemaPresent) {
           SearchSynonym = candidate;
           break;
         }
@@ -122,11 +139,12 @@ describe('SearchSynonym schema defaults (real import)', () => {
     if (!SearchSynonym) {
       throw new Error(`Could not resolve SearchSynonym model. Attempts: ${attempts.join(' | ')}`);
     }
-    const schema = (SearchSynonym as any)?.schema || schemaExport;
+    const schema = (hasSchema(SearchSynonym) ? SearchSynonym.schema : undefined) || schemaExport;
     expect(schema).toBeDefined();
     if (!schema) return;
 
-    const shape = (schema as any).obj || (schema as any).definition || schema;
+    const shapeSource = schema.obj ?? schema.definition ?? schema;
+    const shape = shapeSource as Record<string, unknown>;
     expect(shape).toMatchObject({
       locale: { type: expect.any(Function), enum: ['en', 'ar'], required: true },
       term: { type: expect.any(Function), required: true },

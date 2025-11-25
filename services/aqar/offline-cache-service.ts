@@ -1,8 +1,8 @@
-import { createHash } from 'crypto';
-import { logger } from '@/lib/logger';
-import { connectDb } from '@/lib/mongo';
-import type { Db, Collection } from 'mongodb';
-import { AqarListing } from '@/models/aqar';
+import { createHash } from "crypto";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongo";
+import type { Db, Collection } from "mongodb";
+import { AqarListing } from "@/models/aqar";
 import {
   ListingStatus,
   type IListing,
@@ -11,9 +11,9 @@ import {
   type IListingProptech,
   ListingIntent,
   PropertyType,
-} from '@/models/aqar/Listing';
-import type { FilterQuery } from 'mongoose';
-import { Types } from 'mongoose';
+} from "@/models/aqar/Listing";
+import type { FilterQuery } from "mongoose";
+import { Types } from "mongoose";
 
 // AqarListing is already typed as Model<IListing> from the import
 const listingModel = AqarListing;
@@ -83,21 +83,27 @@ export interface OfflineBundleRecord extends OfflineBundlePayload {
 }
 
 export class AqarOfflineCacheService {
-  private static readonly COLLECTION = 'aqar_offline_bundles';
+  private static readonly COLLECTION = "aqar_offline_bundles";
   private static readonly TTL_MS = 15 * 60 * 1000;
   private static readonly PROJECTION =
-    '_id title city neighborhood price areaSqm propertyType intent rnplEligible immersive proptech pricingInsights ai updatedAt publishedAt';
+    "_id title city neighborhood price areaSqm propertyType intent rnplEligible immersive proptech pricingInsights ai updatedAt publishedAt";
   private static ttlIndexPromise: Promise<void> | null = null;
 
-  static async getOrBuildBundle(input: OfflineBundleInput): Promise<OfflineBundleRecord> {
+  static async getOrBuildBundle(
+    input: OfflineBundleInput,
+  ): Promise<OfflineBundleRecord> {
     const dbHandle = await connectDb();
     const db = dbHandle as unknown as Db;
     const cacheKey = this.buildCacheKey(input);
     const now = new Date();
 
-    const collection: Collection<OfflineBundleDoc> = db.collection<OfflineBundleDoc>(this.COLLECTION);
+    const collection: Collection<OfflineBundleDoc> =
+      db.collection<OfflineBundleDoc>(this.COLLECTION);
     await this.ensureIndexes(collection);
-    const existing = await collection.findOne({ cacheKey, expiresAt: { $gt: now } }) as OfflineBundleDoc | null;
+    const existing = (await collection.findOne({
+      cacheKey,
+      expiresAt: { $gt: now },
+    })) as OfflineBundleDoc | null;
 
     if (existing) {
       const { _id, ...rest } = existing;
@@ -117,7 +123,7 @@ export class AqarOfflineCacheService {
     await collection.updateOne(
       { cacheKey },
       { $set: record },
-      { upsert: true }
+      { upsert: true },
     );
 
     if (!input.skipListingSync) {
@@ -127,14 +133,16 @@ export class AqarOfflineCacheService {
     return record;
   }
 
-  private static async buildPayload(input: OfflineBundleInput): Promise<OfflineBundlePayload> {
+  private static async buildPayload(
+    input: OfflineBundleInput,
+  ): Promise<OfflineBundlePayload> {
     const filter = this.buildFilter(input);
     const limit = Math.min(input.limit ?? 120, 400);
 
     const listings = await listingModel
       .find(filter)
       .select(this.PROJECTION)
-      .sort({ 'ai.recommendationScore': -1, publishedAt: -1 })
+      .sort({ "ai.recommendationScore": -1, publishedAt: -1 })
       .limit(limit)
       .lean();
     // lean() returns plain objects matching the LeanListing type
@@ -149,7 +157,10 @@ export class AqarOfflineCacheService {
     };
     const snapshots: OfflineListingSnapshot[] = typedListings.map((listing) => {
       const area = listing.areaSqm || 0;
-      const pricePerSqm = area > 0 && listing.price?.amount ? Math.round(listing.price.amount / area) : undefined;
+      const pricePerSqm =
+        area > 0 && listing.price?.amount
+          ? Math.round(listing.price.amount / area)
+          : undefined;
       return {
         id: listing._id.toHexString(),
         title: listing.title,
@@ -169,13 +180,19 @@ export class AqarOfflineCacheService {
     });
 
     const facets = {
-      propertyTypes: this.buildFacet(snapshots, (item) => item.propertyType || 'UNKNOWN'),
-      cities: this.buildFacet(snapshots, (item) => item.city || 'UNKNOWN'),
-      proptech: this.buildFacet(snapshots, (item) => item.proptech?.smartHomeLevel || 'NONE'),
+      propertyTypes: this.buildFacet(
+        snapshots,
+        (item) => item.propertyType || "UNKNOWN",
+      ),
+      cities: this.buildFacet(snapshots, (item) => item.city || "UNKNOWN"),
+      proptech: this.buildFacet(
+        snapshots,
+        (item) => item.proptech?.smartHomeLevel || "NONE",
+      ),
     };
 
     const versionSeed = JSON.stringify({
-      cacheHint: input.cacheHint ?? '',
+      cacheHint: input.cacheHint ?? "",
       listingIds: snapshots.map((snapshot) => snapshot.id),
       facets,
     });
@@ -197,7 +214,7 @@ export class AqarOfflineCacheService {
       filter.intent = input.intent;
     }
     if (!input.includeAuctions) {
-      filter['auction.isAuction'] = { $ne: true };
+      filter["auction.isAuction"] = { $ne: true };
     }
     if (input.orgId && Types.ObjectId.isValid(input.orgId)) {
       filter.orgId = new Types.ObjectId(input.orgId);
@@ -207,7 +224,7 @@ export class AqarOfflineCacheService {
 
   private static buildFacet(
     items: OfflineListingSnapshot[],
-    resolver: (_item: OfflineListingSnapshot) => string
+    resolver: (_item: OfflineListingSnapshot) => string,
   ): Record<string, number> {
     return items.reduce<Record<string, number>>((acc, item) => {
       const key = resolver(item);
@@ -217,27 +234,29 @@ export class AqarOfflineCacheService {
   }
 
   private static computeVersion(seed: string): number {
-    const base = createHash('md5').update(seed).digest('hex');
+    const base = createHash("md5").update(seed).digest("hex");
     return Number.parseInt(base.slice(0, 8), 16) || 1;
   }
 
   private static computeChecksum(payload: OfflineBundlePayload): string {
-    return createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+    return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
   }
 
   private static buildCacheKey(input: OfflineBundleInput): string {
     const raw = JSON.stringify({
-      orgId: input.orgId || 'public',
+      orgId: input.orgId || "public",
       city: input.city,
       intent: input.intent,
       includeAuctions: input.includeAuctions,
       limit: input.limit,
       cacheHint: input.cacheHint,
     });
-    return createHash('sha1').update(raw).digest('hex');
+    return createHash("sha1").update(raw).digest("hex");
   }
 
-  private static async flagListings(bundle: OfflineBundleRecord): Promise<void> {
+  private static async flagListings(
+    bundle: OfflineBundleRecord,
+  ): Promise<void> {
     const listingIds = bundle.listings
       .map((listing) => listing.id)
       .filter((id) => Types.ObjectId.isValid(id))
@@ -259,24 +278,31 @@ export class AqarOfflineCacheService {
               lastSyncedAt: new Date(bundle.generatedAt),
             },
           },
-        }
+        },
       );
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.warn('AQAR_OFFLINE_MARK_FAILED', {
+      logger.warn("AQAR_OFFLINE_MARK_FAILED", {
         cacheKey: bundle.cacheKey,
         error: (error as Error)?.message ?? String(error),
       });
     }
   }
 
-  private static async ensureIndexes(collection: Collection<OfflineBundleDoc>): Promise<void> {
+  private static async ensureIndexes(
+    collection: Collection<OfflineBundleDoc>,
+  ): Promise<void> {
     if (!this.ttlIndexPromise) {
-      this.ttlIndexPromise = collection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
+      this.ttlIndexPromise = collection
+        .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
         .catch((_error) => {
-          const error = _error instanceof Error ? _error : new Error(String(_error));
-          logger.warn('AQAR_OFFLINE_TTL_INDEX_FAILED', { error: error.message });
+          const error =
+            _error instanceof Error ? _error : new Error(String(_error));
+          logger.warn("AQAR_OFFLINE_TTL_INDEX_FAILED", {
+            error: error.message,
+          });
           this.ttlIndexPromise = null;
         }) as Promise<void>;
     }

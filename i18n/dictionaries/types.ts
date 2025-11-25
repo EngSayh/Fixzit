@@ -4,6 +4,9 @@ export type TranslationDictionary = {
 
 export type FlatTranslationMap = Record<string, string>;
 
-export type SupportedTranslationLocale = 'en' | 'ar';
+export type SupportedTranslationLocale = "en" | "ar";
 
-export type TranslationBundle = Record<SupportedTranslationLocale, FlatTranslationMap>;
+export type TranslationBundle = Record<
+  SupportedTranslationLocale,
+  FlatTranslationMap
+>;

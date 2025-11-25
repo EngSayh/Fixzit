@@ -147,19 +147,19 @@ Successfully removed **178 duplicate files** across 5 major phases, representing
 
 ```typescript
 // ✅ CORRECT - Canonical paths
-import { auth } from '@/lib/auth';
-import { User } from '@/server/models/User';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { I18nProvider } from '@/i18n/I18nProvider';
-import { Providers } from '@/providers/Providers';
-import { RuntimeMonitor } from '@/core/RuntimeMonitor';
-import { useScreenSize } from '@/hooks/useScreenSize';
-import { AutoFixAgent } from '@/qa/AutoFixAgent';
+import { auth } from "@/lib/auth";
+import { User } from "@/server/models/User";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { I18nProvider } from "@/i18n/I18nProvider";
+import { Providers } from "@/providers/Providers";
+import { RuntimeMonitor } from "@/core/RuntimeMonitor";
+import { useScreenSize } from "@/hooks/useScreenSize";
+import { AutoFixAgent } from "@/qa/AutoFixAgent";
 
 // ❌ WRONG - Removed paths
-import { auth } from '@/src/lib/auth';           // ❌ Deleted
-import { User } from '@/src/server/models/User'; // ❌ Deleted
-import { useTranslation } from '@/src/contexts/TranslationContext'; // ❌ Deleted
+import { auth } from "@/src/lib/auth"; // ❌ Deleted
+import { User } from "@/src/server/models/User"; // ❌ Deleted
+import { useTranslation } from "@/src/contexts/TranslationContext"; // ❌ Deleted
 ```
 
 ---

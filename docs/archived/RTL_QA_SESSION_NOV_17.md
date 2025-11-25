@@ -10,24 +10,28 @@
 ## 🚀 Quick Start - Enable RTL Mode
 
 ### Step 1: Open Browser Console
+
 Press `F12` or `Cmd+Option+I` (Mac) to open DevTools
 
 ### Step 2: Run RTL Setup Commands
+
 Paste these commands into the console:
 
 ```javascript
 // Enable Arabic locale and RTL direction
-localStorage.setItem('fixzit_locale', 'ar');
-document.documentElement.dir = 'rtl';
-document.documentElement.lang = 'ar';
-document.body.dir = 'rtl';
+localStorage.setItem("fixzit_locale", "ar");
+document.documentElement.dir = "rtl";
+document.documentElement.lang = "ar";
+document.body.dir = "rtl";
 
 // Reload to apply changes
 window.location.reload();
 ```
 
 ### Step 3: Verify RTL Mode Active
+
 After reload, check:
+
 - ✓ Text aligns to the right
 - ✓ Navigation menu on the right side
 - ✓ Scrollbars on the left
@@ -38,64 +42,68 @@ After reload, check:
 ## 📋 Testing Phases
 
 ### Phase 1: Core Shell (4 hours)
+
 **Priority:** Highest - Most frequently used pages
 
-| Page | URL | Status | Issues Found |
-|------|-----|--------|--------------|
-| **Dashboard - FM** | `/fm/dashboard` | ☐ | |
-| **Dashboard - Souq** | `/souq` | ☐ | |
-| **Dashboard - Aqar** | `/aqar` | ☐ | |
-| **Login** | `/login` | ☐ | |
-| **Signup** | `/signup` | ☐ | |
-| **Forgot Password** | `/forgot-password` | ☐ | |
-| **Profile** | `/profile` | ☐ | |
-| **Settings** | `/settings` | ☐ | |
-| **Work Orders List** | `/fm/work-orders` | ☐ | |
-| **Work Order Details** | `/fm/work-orders/[id]` | ☐ | |
-| **Properties List** | `/aqar` | ☐ | |
-| **Property Details** | `/aqar/[id]` | ☐ | |
+| Page                   | URL                    | Status | Issues Found |
+| ---------------------- | ---------------------- | ------ | ------------ |
+| **Dashboard - FM**     | `/fm/dashboard`        | ☐      |              |
+| **Dashboard - Souq**   | `/souq`                | ☐      |              |
+| **Dashboard - Aqar**   | `/aqar`                | ☐      |              |
+| **Login**              | `/login`               | ☐      |              |
+| **Signup**             | `/signup`              | ☐      |              |
+| **Forgot Password**    | `/forgot-password`     | ☐      |              |
+| **Profile**            | `/profile`             | ☐      |              |
+| **Settings**           | `/settings`            | ☐      |              |
+| **Work Orders List**   | `/fm/work-orders`      | ☐      |              |
+| **Work Order Details** | `/fm/work-orders/[id]` | ☐      |              |
+| **Properties List**    | `/aqar`                | ☐      |              |
+| **Property Details**   | `/aqar/[id]`           | ☐      |              |
 
 ### Phase 2: Transactions (4 hours)
+
 **Priority:** High - Revenue-generating flows
 
-| Page | URL | Status | Issues Found |
-|------|-----|--------|--------------|
-| **Souq Marketplace** | `/souq` | ☐ | |
-| **Product Details** | `/souq/product/[id]` | ☐ | |
-| **Shopping Cart** | `/souq/cart` | ☐ | |
-| **Checkout** | `/souq/checkout` | ☐ | |
-| **PayTabs Payment** | `/souq/payment` | ☐ | |
-| **Order Confirmation** | `/souq/orders/[id]` | ☐ | |
-| **Aqar Booking** | `/aqar/booking/[id]` | ☐ | |
-| **Work Order Creation** | `/fm/work-orders/new` | ☐ | |
-| **Invoice Payment** | `/fm/invoices/[id]/pay` | ☐ | |
-| **Support Ticket** | `/support/new` | ☐ | |
+| Page                    | URL                     | Status | Issues Found |
+| ----------------------- | ----------------------- | ------ | ------------ |
+| **Souq Marketplace**    | `/souq`                 | ☐      |              |
+| **Product Details**     | `/souq/product/[id]`    | ☐      |              |
+| **Shopping Cart**       | `/souq/cart`            | ☐      |              |
+| **Checkout**            | `/souq/checkout`        | ☐      |              |
+| **PayTabs Payment**     | `/souq/payment`         | ☐      |              |
+| **Order Confirmation**  | `/souq/orders/[id]`     | ☐      |              |
+| **Aqar Booking**        | `/aqar/booking/[id]`    | ☐      |              |
+| **Work Order Creation** | `/fm/work-orders/new`   | ☐      |              |
+| **Invoice Payment**     | `/fm/invoices/[id]/pay` | ☐      |              |
+| **Support Ticket**      | `/support/new`          | ☐      |              |
 
 ### Phase 3: Admin Panels (2 hours)
+
 **Priority:** Medium - Internal users
 
-| Page | URL | Status | Issues Found |
-|------|-----|--------|--------------|
-| **Claims Review** | `/admin/claims` | ☐ | |
-| **User Management** | `/admin/users` | ☐ | |
-| **Analytics Dashboard** | `/admin/analytics` | ☐ | |
-| **Reports** | `/admin/reports` | ☐ | |
-| **Seller Central** | `/marketplace/seller-central` | ☐ | |
-| **Vendor Management** | `/admin/vendors` | ☐ | |
+| Page                    | URL                           | Status | Issues Found |
+| ----------------------- | ----------------------------- | ------ | ------------ |
+| **Claims Review**       | `/admin/claims`               | ☐      |              |
+| **User Management**     | `/admin/users`                | ☐      |              |
+| **Analytics Dashboard** | `/admin/analytics`            | ☐      |              |
+| **Reports**             | `/admin/reports`              | ☐      |              |
+| **Seller Central**      | `/marketplace/seller-central` | ☐      |              |
+| **Vendor Management**   | `/admin/vendors`              | ☐      |              |
 
 ### Phase 4: Edge Cases & Mobile (2 hours)
+
 **Priority:** Medium - Polish and responsiveness
 
-| Component | Test Scenario | Status | Issues Found |
-|-----------|---------------|--------|--------------|
-| **Toast Notifications** | Trigger success/error toasts | ☐ | |
-| **Modal Dialogs** | Open confirmation modals | ☐ | |
-| **Data Tables** | Scroll wide tables | ☐ | |
-| **Form Validation** | Submit invalid forms | ☐ | |
-| **Date Picker** | Select dates in Arabic | ☐ | |
-| **Number Formatting** | Check Arabic numerals | ☐ | |
-| **Mobile Menu** | Test on mobile viewport | ☐ | |
-| **Long Text** | Test with lengthy Arabic text | ☐ | |
+| Component               | Test Scenario                 | Status | Issues Found |
+| ----------------------- | ----------------------------- | ------ | ------------ |
+| **Toast Notifications** | Trigger success/error toasts  | ☐      |              |
+| **Modal Dialogs**       | Open confirmation modals      | ☐      |              |
+| **Data Tables**         | Scroll wide tables            | ☐      |              |
+| **Form Validation**     | Submit invalid forms          | ☐      |              |
+| **Date Picker**         | Select dates in Arabic        | ☐      |              |
+| **Number Formatting**   | Check Arabic numerals         | ☐      |              |
+| **Mobile Menu**         | Test on mobile viewport       | ☐      |              |
+| **Long Text**           | Test with lengthy Arabic text | ☐      |              |
 
 ---
 
@@ -104,6 +112,7 @@ After reload, check:
 For each page, verify the following:
 
 ### Layout & Alignment
+
 - [ ] Text aligns to the right (not left)
 - [ ] Main navigation appears on the right side
 - [ ] Sidebar/drawer opens from the right
@@ -111,6 +120,7 @@ For each page, verify the following:
 - [ ] Content reads naturally in RTL direction
 
 ### Icons & Visual Elements
+
 - [ ] Arrow icons point in correct direction (← instead of →)
 - [ ] Chevrons are mirrored appropriately
 - [ ] Back buttons point right (to go back)
@@ -119,6 +129,7 @@ For each page, verify the following:
 - [ ] Icons with directional meaning are flipped
 
 ### Forms & Inputs
+
 - [ ] Labels appear on the right of inputs
 - [ ] Radio buttons aligned to the right
 - [ ] Checkboxes aligned to the right
@@ -127,6 +138,7 @@ For each page, verify the following:
 - [ ] Input icons (search, clear) positioned correctly
 
 ### Tables & Lists
+
 - [ ] Table headers read right to left
 - [ ] First column appears on the right
 - [ ] Action buttons in rightmost position
@@ -135,6 +147,7 @@ For each page, verify the following:
 - [ ] Row expansion arrows face correct direction
 
 ### Buttons & Actions
+
 - [ ] Primary actions on the left (modal confirmation)
 - [ ] Secondary actions on the right (modal cancel)
 - [ ] Button groups flow right to left
@@ -142,6 +155,7 @@ For each page, verify the following:
 - [ ] Tooltips appear in correct position
 
 ### Navigation & Menus
+
 - [ ] Top navigation bar flows RTL
 - [ ] Dropdown menus align to right edge
 - [ ] Nested menus expand to the left
@@ -149,6 +163,7 @@ For each page, verify the following:
 - [ ] Pagination controls work intuitively
 
 ### Numbers, Dates & Time
+
 - [ ] Numbers use Arabic-Indic numerals (١٢٣٤) or Western (1234) based on locale
 - [ ] Dates formatted as DD/MM/YYYY (Arabic standard)
 - [ ] Time displayed in 24-hour or 12-hour with AM/PM in Arabic
@@ -156,6 +171,7 @@ For each page, verify the following:
 - [ ] Phone numbers formatted correctly (+966 5X XXX XXXX)
 
 ### Content & Typography
+
 - [ ] Arabic text renders without cuts/wraps
 - [ ] Font weights appropriate for Arabic glyphs
 - [ ] Line height comfortable for Arabic diacritics
@@ -164,6 +180,7 @@ For each page, verify the following:
 - [ ] URLs and emails don't break layout
 
 ### Responsive Behavior
+
 - [ ] Mobile menu opens from right
 - [ ] Mobile navigation stack order correct
 - [ ] Touch targets appropriately sized
@@ -177,9 +194,10 @@ For each page, verify the following:
 When you find an issue, document it in this format:
 
 ### Issue #1: [Brief Description]
+
 **Page:** `/path/to/page`  
 **Severity:** 🔴 Critical / 🟡 Medium / 🟢 Low  
-**Type:** Layout / Icon / Form / Table / Content / Navigation  
+**Type:** Layout / Icon / Form / Table / Content / Navigation
 
 **Expected:**
 [What should happen in RTL]
@@ -191,6 +209,7 @@ When you find an issue, document it in this format:
 [Attach or describe visual issue]
 
 **Steps to Reproduce:**
+
 1. Navigate to X
 2. Click on Y
 3. Observe Z
@@ -200,6 +219,7 @@ When you find an issue, document it in this format:
 ## 🎯 Common RTL Issues to Watch For
 
 ### High Severity (Fix Immediately)
+
 1. **Overlapping content** - Text or elements overlap in RTL
 2. **Wrong scroll direction** - Tables/carousels scroll incorrectly
 3. **Inaccessible actions** - Buttons hidden or outside viewport
@@ -207,6 +227,7 @@ When you find an issue, document it in this format:
 5. **Navigation broken** - Can't access key features
 
 ### Medium Severity (Fix Soon)
+
 1. **Incorrect icon direction** - Arrows point wrong way but functional
 2. **Awkward alignment** - Content works but looks off
 3. **Inconsistent styling** - Some areas RTL, others LTR
@@ -214,6 +235,7 @@ When you find an issue, document it in this format:
 5. **Date/number formatting** - Wrong locale format
 
 ### Low Severity (Polish)
+
 1. **Minor visual glitches** - Subtle alignment issues
 2. **Tooltip positioning** - Slight misalignment
 3. **Hover states** - Animations feel off
@@ -225,25 +247,28 @@ When you find an issue, document it in this format:
 ## 📊 Progress Tracking
 
 ### Overall Progress
+
 - [ ] Phase 1: Core Shell (0/12 pages)
 - [ ] Phase 2: Transactions (0/10 pages)
 - [ ] Phase 3: Admin Panels (0/6 pages)
 - [ ] Phase 4: Edge Cases (0/8 scenarios)
 
 ### Time Tracking
-| Session | Date | Hours | Pages Tested | Issues Found |
-|---------|------|-------|--------------|--------------|
-| 1 | Nov 17 | | | |
-| 2 | | | | |
-| 3 | | | | |
+
+| Session | Date   | Hours | Pages Tested | Issues Found |
+| ------- | ------ | ----- | ------------ | ------------ |
+| 1       | Nov 17 |       |              |              |
+| 2       |        |       |              |              |
+| 3       |        |       |              |              |
 
 ### Issue Summary
-| Severity | Count | Resolved | Remaining |
-|----------|-------|----------|-----------|
-| 🔴 Critical | 0 | 0 | 0 |
-| 🟡 Medium | 0 | 0 | 0 |
-| 🟢 Low | 0 | 0 | 0 |
-| **Total** | **0** | **0** | **0** |
+
+| Severity    | Count | Resolved | Remaining |
+| ----------- | ----- | -------- | --------- |
+| 🔴 Critical | 0     | 0        | 0         |
+| 🟡 Medium   | 0     | 0        | 0         |
+| 🟢 Low      | 0     | 0        | 0         |
+| **Total**   | **0** | **0**    | **0**     |
 
 ---
 
@@ -277,7 +302,7 @@ When you find an issue, document it in this format:
 /* Logical properties (preferred) */
 .container {
   margin-inline-start: 1rem; /* left in LTR, right in RTL */
-  padding-inline-end: 2rem;  /* right in LTR, left in RTL */
+  padding-inline-end: 2rem; /* right in LTR, left in RTL */
 }
 ```
 
@@ -299,11 +324,13 @@ When you find an issue, document it in this format:
 ## 📞 Support & Resources
 
 **Documentation:**
+
 - RTL Testing Plan: `RTL_QA_TESTING_PLAN.md`
 - Theme Guidelines: `THEME_UPGRADE_PLAN.md`
 - API Documentation: `/docs/api/`
 
 **Testing Tools:**
+
 ```bash
 # Run automated RTL tests (after manual QA)
 pnpm playwright test --project rtl-ar
@@ -316,6 +343,7 @@ pnpm test:a11y --rtl
 ```
 
 **Browser Extensions:**
+
 - React DevTools - Inspect component tree
 - Axe DevTools - Accessibility scanning
 - Chrome DevTools - Responsive mode testing
@@ -343,6 +371,7 @@ Before marking RTL QA as complete:
 **Current Status:** ✅ Development server running at http://localhost:3000
 
 **Next Steps:**
+
 1. Open http://localhost:3000 in your browser
 2. Open browser console (F12)
 3. Run the RTL setup commands (from top of this document)

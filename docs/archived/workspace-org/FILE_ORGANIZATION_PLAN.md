@@ -42,19 +42,19 @@ mkdir -p tools/{analyzers,fixers,generators}
 
 ### Step 2: Move Documentation Files (10 min)
 
-- Move all *_REPORT.md → docs/reports/
-- Move all *_PROGRESS*.md, SESSION_*.md, DAILY_*.md → docs/progress/
-- Move all *_ANALYSIS*.md, AUDIT_*.md, COMPREHENSIVE_*.md → docs/analysis/
-- Move all *_GUIDE.md,*_INSTRUCTIONS.md, QUICKSTART.md → docs/guides/
+- Move all \*\_REPORT.md → docs/reports/
+- Move all _\_PROGRESS_.md, SESSION*\*.md, DAILY*\*.md → docs/progress/
+- Move all _\_ANALYSIS_.md, AUDIT*\*.md, COMPREHENSIVE*\*.md → docs/analysis/
+- Move all _\_GUIDE.md,_\_INSTRUCTIONS.md, QUICKSTART.md → docs/guides/
 - Move README files specific to features → their respective directories
 
 ### Step 3: Organize Scripts (10 min)
 
-- Move fix-*.sh, fix-*.ps1, fix-*.py → tools/fixers/
-- Move test-*.js, test-*.mjs, verify-*.sh → scripts/testing/
-- Move analyze-*.js, scan-*.sh → tools/analyzers/
-- Move setup-*.sh, deploy-*.sh → scripts/deployment/
-- Move seed-*.ts, migrate-*.ts → scripts/database/
+- Move fix-_.sh, fix-_.ps1, fix-\*.py → tools/fixers/
+- Move test-_.js, test-_.mjs, verify-\*.sh → scripts/testing/
+- Move analyze-_.js, scan-_.sh → tools/analyzers/
+- Move setup-_.sh, deploy-_.sh → scripts/deployment/
+- Move seed-_.ts, migrate-_.ts → scripts/database/
 
 ### Step 4: Clean Up Root (5 min)
 
@@ -149,7 +149,7 @@ TO DELETE:
 1. ✅ localhost:3000 still runs
 2. ✅ pnpm dev works
 3. ✅ pnpm typecheck passes
-4. ✅ pnpm lint passes  
+4. ✅ pnpm lint passes
 5. ✅ All imports still resolve
 6. ✅ Git tracks moves correctly
 

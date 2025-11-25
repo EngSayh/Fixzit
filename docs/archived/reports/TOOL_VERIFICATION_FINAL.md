@@ -83,7 +83,11 @@ if (!opts.dryRun) {
 ### Replacement Logic (Lines 177-182)
 
 ```typescript
-function replaceInContent(content: string, pattern: RegExp, replacement: string): { result: string; count: number } {
+function replaceInContent(
+  content: string,
+  pattern: RegExp,
+  replacement: string,
+): { result: string; count: number } {
   const matches = content.match(pattern);
   const count = matches ? matches.length : 0;
   const result = count > 0 ? content.replace(pattern, replacement) : content;

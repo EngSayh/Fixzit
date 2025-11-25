@@ -6,6 +6,7 @@
 ## ✅ Completed (Phase 0 + Phase 1A)
 
 ### Models (7/11 Required)
+
 - ✅ **Seller** (`server/models/souq/Seller.ts`) - Seller accounts, KYC, account health, violations, tier management
 - ✅ **Product** (`server/models/souq/Product.ts`) - Products with FSIN, brand, category, attributes
 - ✅ **Category** (`server/models/souq/Category.ts`) - Hierarchical product categories
@@ -17,29 +18,35 @@
 - ✅ **Deal** (`server/models/souq/Deal.ts`) - Lightning deals, coupons, promotions
 
 ### API Routes (4/11 Required)
+
 - ✅ **Sellers API** (`/api/souq/sellers`) - POST (create seller), GET (list sellers with filters)
 - ✅ **Listings API** (`/api/souq/listings`) - POST (create listing), GET (get offers by FSIN/seller)
 - ✅ **Orders API** (`/api/souq/orders`) - POST (create order), GET (list orders with filters)
 - ✅ **Catalog Products API** (`/api/souq/catalog/products`) - POST (create product with FSIN), GET (list products)
 
 ### Services (1/8 Required)
+
 - ✅ **Buy Box Service** (`services/souq/buybox-service.ts`) - Buy Box winner calculation algorithm
 
 ### Utilities
+
 - ✅ **FSIN Generator** (`lib/souq/fsin-generator.ts`) - 14-digit unique product IDs with collision detection
 - ✅ **Feature Flags** (`lib/souq/feature-flags.ts`) - 12 feature flags with dependency checking
 
 ### Documentation
+
 - ✅ **Roadmap** (`SOUQ_MARKETPLACE_ROADMAP.md`) - 48-week implementation plan (180 SP, 11 EPICs)
 - ✅ **Navigation** (`config/souq-navigation.yaml`) - 200+ menu items for marketplace navigation
 
 ## 🔄 In Progress
 
 ### Models (Still Needed)
+
 - ⏳ **Ad Campaign** - CPC advertising campaigns
 - ⏳ **Settlement** - Seller payouts and transactions
 
 ### API Routes (Still Needed)
+
 - ⏳ **Buy Box API** (`/api/souq/buybox/[fsin]`) - Get Buy Box winner and all offers
 - ⏳ **Reviews API** (`/api/souq/reviews`) - Create review, moderate reviews
 - ⏳ **Deals API** (`/api/souq/deals`) - Create deals, apply coupons
@@ -47,6 +54,7 @@
 - ⏳ **Seller Dashboard API** (`/api/souq/sellers/[id]/dashboard`) - Stats, health metrics
 
 ### Services (Still Needed)
+
 - ⏳ **Inventory Service** - Stock management, low stock alerts
 - ⏳ **Fulfillment Service** - FBF/FBM order routing
 - ⏳ **Settlement Service** - Calculate seller payouts
@@ -55,6 +63,7 @@
 - ⏳ **Returns Service** - RMA processing
 
 ### UI Pages (Still Needed)
+
 - ⏳ Enhance `/marketplace/page.tsx` with FSIN display
 - ⏳ Enhance `/marketplace/vendor/portal/page.tsx` with account health widget
 - ⏳ Create `/marketplace/product/[slug]/page.tsx` with Buy Box display
@@ -65,6 +74,7 @@
 ## ❌ Not Started
 
 ### EPIC B: Seller Features (10 User Stories)
+
 - ❌ Seller tier upgrades
 - ❌ KYC document upload (need S3/MinIO)
 - ❌ Bank account verification
@@ -72,24 +82,28 @@
 - ❌ Performance improvement plans
 
 ### EPIC F: Advertising (8 User Stories)
+
 - ❌ CPC campaign creation
 - ❌ Budget management (need external budget service)
 - ❌ Ad performance reporting
 - ❌ Keyword bidding
 
 ### EPIC I: Settlement (6 User Stories)
+
 - ❌ Settlement calculation engine
 - ❌ Hold period management
 - ❌ Payout processing (need payment gateway)
 - ❌ Settlement reports
 
 ### EPIC J: Search & Recommendations (7 User Stories)
+
 - ❌ Faceted search (waiting for Meilisearch)
 - ❌ Search ranking algorithm
 - ❌ Product recommendations
 - ❌ Search autocomplete
 
 ### EPIC K: Admin & Reporting (8 User Stories)
+
 - ❌ Admin console for category management
 - ❌ Seller approval workflow
 - ❌ Fraud detection
@@ -108,6 +122,7 @@ These features cannot be implemented without external services:
 ## 📊 Progress Metrics
 
 ### Overall Progress
+
 - **Models**: 9/11 (82%)
 - **API Routes**: 4/11 (36%)
 - **Services**: 1/8 (12.5%)
@@ -115,6 +130,7 @@ These features cannot be implemented without external services:
 - **Overall**: ~30% complete
 
 ### By EPIC
+
 - **EPIC A (Catalog)**: 60% complete
 - **EPIC B (Sellers)**: 40% complete
 - **EPIC C (Listings)**: 70% complete
@@ -130,18 +146,21 @@ These features cannot be implemented without external services:
 ## 🎯 Next Steps (Immediate Priority)
 
 ### Phase 1B: Essential APIs (2 hours)
+
 1. ✅ Buy Box API endpoint (`/api/souq/buybox/[fsin]`)
 2. ✅ Reviews API (`/api/souq/reviews`)
 3. ✅ Deals/Coupons API (`/api/souq/deals`)
 4. ✅ Seller Dashboard API (`/api/souq/sellers/[id]/dashboard`)
 
 ### Phase 1C: UI Integration (3 hours)
+
 1. Enhance product detail page with Buy Box + "Other Sellers"
 2. Enhance vendor portal with account health metrics
 3. Create seller onboarding flow (KYC submission without file upload)
 4. Create basic search page (MongoDB text search)
 
 ### Phase 1D: Business Logic (2 hours)
+
 1. Inventory reservation/release on cart/checkout
 2. Order confirmation workflow (email notifications)
 3. Account health calculation job

@@ -27,12 +27,12 @@
 
 ```typescript
 // Uses REAL MongoDB Memory Server
-describe('Asset Model', () => {
-  it('should create asset with valid data', async () => {
+describe("Asset Model", () => {
+  it("should create asset with valid data", async () => {
     const asset = await Asset.create({
-      name: 'Test Asset',
-      type: 'equipment',
-      orgId: 'test-org'
+      name: "Test Asset",
+      type: "equipment",
+      orgId: "test-org",
     });
     expect(asset._id).toBeDefined();
   });
@@ -58,12 +58,12 @@ describe('Asset Model', () => {
 **Example**:
 
 ```typescript
-test('user can create work order', async ({ page }) => {
-  await page.goto('/fm/work-orders');
+test("user can create work order", async ({ page }) => {
+  await page.goto("/fm/work-orders");
   await page.click('button:has-text("New Work Order")');
-  await page.fill('[name="title"]', 'Fix AC Unit');
+  await page.fill('[name="title"]', "Fix AC Unit");
   await page.click('button:has-text("Submit")');
-  await expect(page.locator('.success-message')).toBeVisible();
+  await expect(page.locator(".success-message")).toBeVisible();
 });
 ```
 
@@ -85,11 +85,11 @@ test('user can create work order', async ({ page }) => {
 **Example**:
 
 ```typescript
-test('GET /api/health returns 200', async ({ request }) => {
-  const response = await request.get('/api/health');
+test("GET /api/health returns 200", async ({ request }) => {
+  const response = await request.get("/api/health");
   expect(response.status()).toBe(200);
   const body = await response.json();
-  expect(body.status).toBe('healthy');
+  expect(body.status).toBe("healthy");
 });
 ```
 

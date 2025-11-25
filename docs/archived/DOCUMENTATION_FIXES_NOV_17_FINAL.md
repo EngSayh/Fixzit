@@ -21,9 +21,11 @@ Fixed all remaining documentation inconsistencies across 3 major files and creat
 **Impact:** Users following action plan would get "Cannot find module" errors
 
 **Files Fixed:**
+
 - `ACTION_PLAN_NOV_17.md` (5 occurrences)
 
 **Changes:**
+
 ```diff
 - scripts/notifications-smoke.ts
 + qa/notifications/run-smoke.ts --channel email
@@ -44,9 +46,11 @@ Fixed all remaining documentation inconsistencies across 3 major files and creat
 **Impact:** Users could configure notifications without monitoring, leaving ops teams blind
 
 **Files Fixed:**
+
 - `scripts/setup-notification-credentials.sh`
 
 **Changes:**
+
 ```bash
 # BEFORE: Simple prompt, easy to skip
 read -p "Enter NOTIFICATIONS_TELEMETRY_WEBHOOK: " telemetry_webhook
@@ -75,23 +79,25 @@ done
 ### 3. ✅ Security Status Consistency (MEDIUM)
 
 **Problem:** `PENDING_TASKS_NOV_11-17_UPDATED.md` had conflicting security status:
+
 - Summary: "Critical security fixes completed"
 - Active Work: "Security fixes (2-3h)" still listed
 
 **Impact:** Confusing prioritization, unclear what's actually done
 
 **Files Fixed:**
+
 - `PENDING_TASKS_NOV_11-17_UPDATED.md` (12 sections updated)
 
 **Changes:**
 
-| Section | Before | After |
-|---------|--------|-------|
-| Completed Tasks | 7 items | 8 items (added security) |
-| Active Work | Listed security (2-3h) | Changed to "Manual security testing (30-45 min)" |
-| Critical Blockers | "Security vulnerabilities" | "Manual security testing" |
-| Health Metrics | "Critical: 4 issues" | "Critical: 0 issues (manual testing needed)" |
-| Deployment Readiness | "NOT READY - Security blockers" | "STAGING READY - Manual validation needed" |
+| Section              | Before                          | After                                            |
+| -------------------- | ------------------------------- | ------------------------------------------------ |
+| Completed Tasks      | 7 items                         | 8 items (added security)                         |
+| Active Work          | Listed security (2-3h)          | Changed to "Manual security testing (30-45 min)" |
+| Critical Blockers    | "Security vulnerabilities"      | "Manual security testing"                        |
+| Health Metrics       | "Critical: 4 issues"            | "Critical: 0 issues (manual testing needed)"     |
+| Deployment Readiness | "NOT READY - Security blockers" | "STAGING READY - Manual validation needed"       |
 
 **Result:** ✅ Consistent status across all sections, clear next actions
 
@@ -104,10 +110,12 @@ done
 **Impact:** Previous documentation overstated claims (15 files → actually 6 core + 2 utility)
 
 **Files Fixed:**
+
 - `SECURITY_FIXES_COMPLETED.md` (already fixed in previous session)
 - `ACTION_PLAN_NOV_17.md` (updated security summary)
 
 **Enhancements:**
+
 ```diff
 - All 4 critical security vulnerabilities fixed
 + All 5 critical security vulnerabilities fixed:
@@ -135,6 +143,7 @@ done
 **File:** `MANUAL_SECURITY_TESTING_GUIDE.md` (852 lines)
 
 **Contents:**
+
 1. **Rate Limiting Tests** (3 test scenarios)
    - OTP Send endpoint (10 req/min limit)
    - OTP Verify endpoint (10 req/min limit)
@@ -160,6 +169,7 @@ done
    - Compose works with secrets
 
 **Features:**
+
 - ✅ Copy-paste ready curl commands
 - ✅ Expected output examples
 - ✅ Pass/fail criteria for each test
@@ -173,12 +183,12 @@ done
 
 ## 📊 Files Modified Summary
 
-| File | Changes | Lines | Status |
-|------|---------|-------|--------|
-| `ACTION_PLAN_NOV_17.md` | 5 path fixes + security update | 6 replacements | ✅ Fixed |
-| `scripts/setup-notification-credentials.sh` | Telemetry enforcement | 20 lines changed | ✅ Fixed |
-| `PENDING_TASKS_NOV_11-17_UPDATED.md` | 12 consistency fixes | 15 replacements | ✅ Fixed |
-| `MANUAL_SECURITY_TESTING_GUIDE.md` | New comprehensive guide | 852 lines | ✅ Created |
+| File                                        | Changes                        | Lines            | Status     |
+| ------------------------------------------- | ------------------------------ | ---------------- | ---------- |
+| `ACTION_PLAN_NOV_17.md`                     | 5 path fixes + security update | 6 replacements   | ✅ Fixed   |
+| `scripts/setup-notification-credentials.sh` | Telemetry enforcement          | 20 lines changed | ✅ Fixed   |
+| `PENDING_TASKS_NOV_11-17_UPDATED.md`        | 12 consistency fixes           | 15 replacements  | ✅ Fixed   |
+| `MANUAL_SECURITY_TESTING_GUIDE.md`          | New comprehensive guide        | 852 lines        | ✅ Created |
 
 **Total:** 4 files, 21+ changes, 1 new guide
 
@@ -187,6 +197,7 @@ done
 ## ✅ Verification Checklist
 
 ### Documentation Accuracy
+
 - [x] All script paths use `qa/notifications/run-smoke.ts`
 - [x] Validation step (`scripts/validate-notification-env.ts`) mentioned as Step 0
 - [x] Telemetry webhook marked REQUIRED with enforcement
@@ -195,6 +206,7 @@ done
 - [x] Clear caveats about manual testing needed
 
 ### Implementation Coverage
+
 - [x] 12 production files secured (6 core + 2 utility + 2 Docker + 2 infra)
 - [x] 5 API routes rate limited (OTP send/verify, claims x3)
 - [x] 3 CORS entry points unified (middleware + API responders)
@@ -202,6 +214,7 @@ done
 - [x] Docker secrets fail-fast validation
 
 ### Testing Guidance
+
 - [x] Manual security testing guide created (15 tests)
 - [x] Each test has clear pass/fail criteria
 - [x] Troubleshooting section for failures
@@ -213,13 +226,16 @@ done
 ## 🎯 Next Actions
 
 ### Immediate (Today)
+
 1. **Run Manual Security Tests** (30-45 min)
+
    ```bash
    # Follow step-by-step guide
    open MANUAL_SECURITY_TESTING_GUIDE.md
    ```
 
 2. **Populate Notification Credentials** (5-10 min)
+
    ```bash
    bash scripts/setup-notification-credentials.sh
    ```
@@ -230,8 +246,10 @@ done
    ```
 
 ### This Week
+
 4. **RTL QA Testing** (8-12 hours) - BLOCKER for Arabic users
 5. **Automated Security Scan** (30 min)
+
    ```bash
    pnpm audit
    # Also consider: Snyk, OWASP ZAP
@@ -246,6 +264,7 @@ done
 ### For Engineers Following Documentation
 
 ✅ **DO:**
+
 - Use `qa/notifications/run-smoke.ts` (NOT `scripts/notifications-smoke.ts`)
 - Run `scripts/validate-notification-env.ts` BEFORE smoke tests
 - Set `NOTIFICATIONS_TELEMETRY_WEBHOOK` (required for monitoring)
@@ -253,6 +272,7 @@ done
 - Expect manual security score of ~85-90 (not 92/100)
 
 ❌ **DON'T:**
+
 - Skip telemetry webhook (monitoring will be dark)
 - Deploy to production without manual security testing
 - Trust automated test coverage (only 60% of security implemented in tests)
@@ -263,6 +283,7 @@ done
 ## 📈 Documentation Quality Metrics
 
 ### Before This Session
+
 - ❌ 5 script path errors across 3 files
 - ❌ Telemetry marked "optional" vs "REQUIRED" inconsistency
 - ❌ Security status conflicting in 2 documents
@@ -270,6 +291,7 @@ done
 - ⚠️ Overstated security claims (15 files → actually 6 core)
 
 ### After This Session
+
 - ✅ 0 script path errors (all corrected to `qa/notifications/run-smoke.ts`)
 - ✅ Telemetry enforcement consistent (REQUIRED with user confirmation)
 - ✅ Security status aligned across all docs
@@ -282,37 +304,41 @@ done
 
 ## 🔗 Related Documents
 
-| Document | Purpose | Status |
-|----------|---------|--------|
-| `SECURITY_FIXES_COMPLETED.md` | Security implementation report | ✅ Accurate |
-| `ACTION_PLAN_NOV_17.md` | Current action plan | ✅ Fixed |
-| `PENDING_TASKS_NOV_11-17_UPDATED.md` | Task tracking | ✅ Fixed |
-| `MANUAL_SECURITY_TESTING_GUIDE.md` | Validation procedures | ✅ Created |
-| `NOTIFICATION_CREDENTIALS_GUIDE.md` | Credential setup | ✅ Already accurate |
-| `NOTIFICATION_SMOKE_TEST_QUICKSTART.md` | Quick test guide | ✅ Already accurate |
+| Document                                | Purpose                        | Status              |
+| --------------------------------------- | ------------------------------ | ------------------- |
+| `SECURITY_FIXES_COMPLETED.md`           | Security implementation report | ✅ Accurate         |
+| `ACTION_PLAN_NOV_17.md`                 | Current action plan            | ✅ Fixed            |
+| `PENDING_TASKS_NOV_11-17_UPDATED.md`    | Task tracking                  | ✅ Fixed            |
+| `MANUAL_SECURITY_TESTING_GUIDE.md`      | Validation procedures          | ✅ Created          |
+| `NOTIFICATION_CREDENTIALS_GUIDE.md`     | Credential setup               | ✅ Already accurate |
+| `NOTIFICATION_SMOKE_TEST_QUICKSTART.md` | Quick test guide               | ✅ Already accurate |
 
 ---
 
 ## 💬 Summary for Stakeholders
 
 **What Changed:**
+
 - Fixed all remaining documentation inconsistencies (21 corrections)
 - Created comprehensive manual security testing guide (852 lines, 15 tests)
 - Enforced telemetry webhook as required (monitoring critical)
 - Updated security status to be accurate and realistic
 
 **Why It Matters:**
+
 - Engineers now have 100% accurate documentation (no more "Cannot find module" errors)
 - Security validation is clear and actionable (30-45 min guided testing)
 - Monitoring won't be forgotten (telemetry enforcement in setup wizard)
 - Realistic expectations set (staging validation needed, not "production ready")
 
 **Next Steps:**
+
 1. Run manual security tests (30-45 min) → `MANUAL_SECURITY_TESTING_GUIDE.md`
 2. Populate notification credentials (10 min) → `bash scripts/setup-notification-credentials.sh`
 3. RTL QA testing (8-12 hours) → Blocker for 70% of users
 
 **Deployment Status:**
+
 - 🟡 **STAGING READY** (security implemented, manual validation needed)
 - 🔴 **PRODUCTION BLOCKED** (RTL testing + manual security validation required)
 

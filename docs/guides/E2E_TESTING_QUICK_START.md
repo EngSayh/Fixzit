@@ -128,6 +128,7 @@ After each user, update `/docs/E2E_TEST_RESULTS.md`:
 
 ```markdown
 ### [User Role] - [Email]
+
 - **Status:** ✅ Pass / ⚠️ Issues Found / ❌ Failed
 - **Issues:**
   1. [Severity] Brief description
@@ -171,6 +172,7 @@ When you find an issue:
 
 ```markdown
 #### Issue #[N]: [Brief Title]
+
 - **Severity:** Critical / High / Medium / Low
 - **User Role:** [Role that encountered issue]
 - **Location:** [Page/Component]
@@ -218,22 +220,22 @@ pnpm lint
 
 **All users:** Password `Password123`
 
-| # | Email | Role | Organization |
-|---|-------|------|--------------|
-| 1 | <superadmin@fixzit.co> | super_admin | platform-org-001 |
-| 2 | <corp.admin@fixzit.co> | corporate_admin | acme-corp-001 |
-| 3 | <property.manager@fixzit.co> | property_manager | acme-corp-001 |
-| 4 | <ops.dispatcher@fixzit.co> | operations_dispatcher | acme-corp-001 |
-| 5 | <supervisor@fixzit.co> | supervisor | acme-corp-001 |
-| 6 | <tech.internal@fixzit.co> | technician_internal | acme-corp-001 |
-| 7 | <vendor.admin@fixzit.co> | vendor_admin | acme-corp-001 |
-| 8 | <vendor.tech@fixzit.co> | vendor_technician | acme-corp-001 |
-| 9 | <tenant.resident@fixzit.co> | tenant_resident | acme-corp-001 |
-| 10 | <owner.landlord@fixzit.co> | owner_landlord | acme-corp-001 |
-| 11 | <finance.manager@fixzit.co> | finance_manager | acme-corp-001 |
-| 12 | <hr.manager@fixzit.co> | hr_manager | acme-corp-001 |
-| 13 | <helpdesk.agent@fixzit.co> | helpdesk_agent | acme-corp-001 |
-| 14 | <auditor.compliance@fixzit.co> | auditor_compliance | acme-corp-001 |
+| #   | Email                          | Role                  | Organization     |
+| --- | ------------------------------ | --------------------- | ---------------- |
+| 1   | <superadmin@fixzit.co>         | super_admin           | platform-org-001 |
+| 2   | <corp.admin@fixzit.co>         | corporate_admin       | acme-corp-001    |
+| 3   | <property.manager@fixzit.co>   | property_manager      | acme-corp-001    |
+| 4   | <ops.dispatcher@fixzit.co>     | operations_dispatcher | acme-corp-001    |
+| 5   | <supervisor@fixzit.co>         | supervisor            | acme-corp-001    |
+| 6   | <tech.internal@fixzit.co>      | technician_internal   | acme-corp-001    |
+| 7   | <vendor.admin@fixzit.co>       | vendor_admin          | acme-corp-001    |
+| 8   | <vendor.tech@fixzit.co>        | vendor_technician     | acme-corp-001    |
+| 9   | <tenant.resident@fixzit.co>    | tenant_resident       | acme-corp-001    |
+| 10  | <owner.landlord@fixzit.co>     | owner_landlord        | acme-corp-001    |
+| 11  | <finance.manager@fixzit.co>    | finance_manager       | acme-corp-001    |
+| 12  | <hr.manager@fixzit.co>         | hr_manager            | acme-corp-001    |
+| 13  | <helpdesk.agent@fixzit.co>     | helpdesk_agent        | acme-corp-001    |
+| 14  | <auditor.compliance@fixzit.co> | auditor_compliance    | acme-corp-001    |
 
 ---
 

@@ -1,4 +1,4 @@
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 /**
  * Feature Flags for Fixzit Souq Marketplace
  * Controls gradual rollout of advanced marketplace features
@@ -6,18 +6,18 @@ import { logger } from '@/lib/logger';
  */
 
 export type SouqFeatureFlag =
-  | 'ads'
-  | 'deals'
-  | 'buy_box'
-  | 'settlement'
-  | 'returns_center'
-  | 'brand_registry'
-  | 'account_health'
-  | 'fulfillment_by_fixzit'
-  | 'a_to_z_claims'
-  | 'sponsored_products'
-  | 'auto_repricer'
-  | 'reviews_qa';
+  | "ads"
+  | "deals"
+  | "buy_box"
+  | "settlement"
+  | "returns_center"
+  | "brand_registry"
+  | "account_health"
+  | "fulfillment_by_fixzit"
+  | "a_to_z_claims"
+  | "sponsored_products"
+  | "auto_repricer"
+  | "reviews_qa";
 
 export interface SouqFeatureFlags {
   ads: boolean; // Sponsored Products/Brands/Display ads
@@ -61,13 +61,13 @@ function loadFeatureFlagsFromEnv(): Partial<SouqFeatureFlags> {
   const flags: Partial<SouqFeatureFlags> = {};
 
   // Parse environment variables
-  if (typeof process !== 'undefined' && process.env) {
+  if (typeof process !== "undefined" && process.env) {
     Object.keys(DEFAULT_FLAGS).forEach((key) => {
       const envKey = `SOUQ_FEATURE_${key.toUpperCase()}`;
       const envValue = process.env[envKey];
 
       if (envValue !== undefined) {
-        flags[key as SouqFeatureFlag] = envValue === 'true' || envValue === '1';
+        flags[key as SouqFeatureFlag] = envValue === "true" || envValue === "1";
       }
     });
   }
@@ -143,7 +143,7 @@ export function setFeatureFlags(flags: Partial<SouqFeatureFlags>): void {
 export function requireFeature(flag: SouqFeatureFlag): void {
   if (!isFeatureEnabled(flag)) {
     throw new Error(
-      `Feature "${flag}" is not enabled. Contact your administrator to enable this feature.`
+      `Feature "${flag}" is not enabled. Contact your administrator to enable this feature.`,
     );
   }
 }
@@ -151,20 +151,21 @@ export function requireFeature(flag: SouqFeatureFlag): void {
 /**
  * Feature dependencies - some features require others to be enabled
  */
-export const FEATURE_DEPENDENCIES: Record<SouqFeatureFlag, SouqFeatureFlag[]> = {
-  ads: [], // No dependencies
-  deals: [], // No dependencies
-  buy_box: [], // No dependencies
-  settlement: [], // No dependencies
-  returns_center: [], // No dependencies
-  brand_registry: [], // No dependencies
-  account_health: [], // No dependencies
-  fulfillment_by_fixzit: [], // No dependencies
-  a_to_z_claims: ['returns_center'], // Claims require returns
-  sponsored_products: ['ads'], // Sponsored products is a subset of ads
-  auto_repricer: ['buy_box'], // Repricer only useful with Buy Box
-  reviews_qa: [], // No dependencies
-};
+export const FEATURE_DEPENDENCIES: Record<SouqFeatureFlag, SouqFeatureFlag[]> =
+  {
+    ads: [], // No dependencies
+    deals: [], // No dependencies
+    buy_box: [], // No dependencies
+    settlement: [], // No dependencies
+    returns_center: [], // No dependencies
+    brand_registry: [], // No dependencies
+    account_health: [], // No dependencies
+    fulfillment_by_fixzit: [], // No dependencies
+    a_to_z_claims: ["returns_center"], // Claims require returns
+    sponsored_products: ["ads"], // Sponsored products is a subset of ads
+    auto_repricer: ["buy_box"], // Repricer only useful with Buy Box
+    reviews_qa: [], // No dependencies
+  };
 
 /**
  * Check if all dependencies for a feature are enabled
@@ -181,7 +182,9 @@ export function areDependenciesEnabled(flag: SouqFeatureFlag): boolean {
  * @param flag - Feature flag name
  * @returns Array of missing dependency flag names
  */
-export function getMissingDependencies(flag: SouqFeatureFlag): SouqFeatureFlag[] {
+export function getMissingDependencies(
+  flag: SouqFeatureFlag,
+): SouqFeatureFlag[] {
   const dependencies = FEATURE_DEPENDENCIES[flag] || [];
   return dependencies.filter((dep) => !isFeatureEnabled(dep));
 }
@@ -204,15 +207,15 @@ export function createFeatureMiddleware(flag: SouqFeatureFlag) {
     if (!areDependenciesEnabled(flag)) {
       const missing = getMissingDependencies(flag);
       throw new Error(
-        `Feature "${flag}" requires the following features to be enabled: ${missing.join(', ')}`
+        `Feature "${flag}" requires the following features to be enabled: ${missing.join(", ")}`,
       );
     }
   };
 }
 
 // Development helper: Log feature flags on startup
-if (process.env.NODE_ENV === 'development') {
-  logger.info('🎛️  Souq Feature Flags:', { flags: currentFlags });
+if (process.env.NODE_ENV === "development") {
+  logger.info("🎛️  Souq Feature Flags:", { flags: currentFlags });
 }
 
 export default {

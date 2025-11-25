@@ -4,9 +4,9 @@
 
 export function parseIntSafe(
   value: string | null | undefined,
-  fallback: number
+  fallback: number,
 ): number {
-  if (value === null || value === undefined || value === '') {
+  if (value === null || value === undefined || value === "") {
     return fallback;
   }
   const parsed = parseInt(String(value), 10);
@@ -15,16 +15,16 @@ export function parseIntSafe(
 
 export function parseIntFromQuery(
   value: string | null,
-  fallback: number
+  fallback: number,
 ): number {
   return parseIntSafe(value, fallback);
 }
 
 export function parseFloatSafe(
   value: string | null | undefined,
-  fallback: number
+  fallback: number,
 ): number {
-  if (value === null || value === undefined || value === '') {
+  if (value === null || value === undefined || value === "") {
     return fallback;
   }
   const parsed = parseFloat(String(value));

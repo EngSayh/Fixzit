@@ -27,11 +27,13 @@ Line 59 uses `beforeAll()` but it's not imported from Vitest on line 4.
 
 ```typescript
 // Line 4: Current import
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from "vitest";
 
 // Line 59: Uses beforeAll (NOT IMPORTED)
 beforeAll(async () => {
-  ({ GET } = await import('../../../../app/api/marketplace/products/[slug]/route'));
+  ({ GET } = await import(
+    "../../../../app/api/marketplace/products/[slug]/route"
+  ));
   // ...
 });
 ```
@@ -46,7 +48,7 @@ beforeAll(async () => {
 
 ```typescript
 // Add beforeAll to import
-import { vi, describe, it, expect, beforeEach, beforeAll } from 'vitest';
+import { vi, describe, it, expect, beforeEach, beforeAll } from "vitest";
 ```
 
 ## Critical Issue 2: Jest Types Cannot Be Removed Yet
@@ -205,7 +207,7 @@ gh pr merge 119 --squash --delete-branch
 ✅ No ReferenceError for beforeAll  
 ✅ No TypeScript errors from missing Jest types  
 ✅ PR reviewers acknowledge scope limitation  
-✅ Clean merge to main  
+✅ Clean merge to main
 
 ## Notes
 

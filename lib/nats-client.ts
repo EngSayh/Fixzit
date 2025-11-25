@@ -1,6 +1,5 @@
-import { connect, NatsConnection, JSONCodec } from 'nats';
-import { logger } from '@/lib/logger';
-
+import { connect, NatsConnection, JSONCodec } from "nats";
+import { logger } from "@/lib/logger";
 
 let nc: NatsConnection | null = null;
 const jc = JSONCodec();
@@ -21,7 +20,7 @@ export async function getNatsConnection(): Promise<NatsConnection | null> {
         reconnect: true,
         maxReconnectAttempts: -1,
         reconnectTimeWait: 2000,
-        name: 'fixzit-web-app',
+        name: "fixzit-web-app",
       });
 
       // Log connection status
@@ -31,11 +30,12 @@ export async function getNatsConnection(): Promise<NatsConnection | null> {
         }
       })();
 
-      logger.info('[NATS] Connected successfully');
+      logger.info("[NATS] Connected successfully");
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('[NATS] Connection failed:', error);
+      logger.error("[NATS] Connection failed:", error);
       nc = null;
       throw error;
     }
@@ -51,12 +51,12 @@ export async function getNatsConnection(): Promise<NatsConnection | null> {
  */
 export async function publish(
   subject: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
 ): Promise<void> {
   try {
     const connection = await getNatsConnection();
     if (!connection) {
-      logger.warn('[NATS] Not configured, skipping publish', { subject });
+      logger.warn("[NATS] Not configured, skipping publish", { subject });
       return;
     }
 
@@ -76,11 +76,12 @@ export async function closeNatsConnection(): Promise<void> {
   if (nc) {
     try {
       await nc.drain();
-      logger.info('[NATS] Connection closed gracefully');
+      logger.info("[NATS] Connection closed gracefully");
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('[NATS] Error closing connection:', error);
+      logger.error("[NATS] Error closing connection:", error);
     } finally {
       nc = null;
     }
@@ -88,12 +89,12 @@ export async function closeNatsConnection(): Promise<void> {
 }
 
 // Graceful shutdown handlers
-if (typeof process !== 'undefined') {
-  process.on('SIGTERM', async () => {
+if (typeof process !== "undefined") {
+  process.on("SIGTERM", async () => {
     await closeNatsConnection();
   });
 
-  process.on('SIGINT', async () => {
+  process.on("SIGINT", async () => {
     await closeNatsConnection();
   });
 }

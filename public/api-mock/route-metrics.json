@@ -14,39 +14,28 @@
       "aliases": 1,
       "missing": 0,
       "uniqueTargets": 1,
-      "targets": [
-        "app/admin/page.tsx"
-      ]
+      "targets": ["app/admin/page.tsx"]
     },
     {
       "module": "administration",
       "aliases": 2,
       "missing": 0,
       "uniqueTargets": 1,
-      "targets": [
-        "app/administration/page.tsx",
-        "app/administration/page.tsx"
-      ]
+      "targets": ["app/administration/page.tsx", "app/administration/page.tsx"]
     },
     {
       "module": "compliance",
       "aliases": 2,
       "missing": 0,
       "uniqueTargets": 1,
-      "targets": [
-        "app/compliance/page.tsx",
-        "app/compliance/page.tsx"
-      ]
+      "targets": ["app/compliance/page.tsx", "app/compliance/page.tsx"]
     },
     {
       "module": "crm",
       "aliases": 2,
       "missing": 0,
       "uniqueTargets": 1,
-      "targets": [
-        "app/crm/page.tsx",
-        "app/crm/page.tsx"
-      ]
+      "targets": ["app/crm/page.tsx", "app/crm/page.tsx"]
     },
     {
       "module": "finance",
@@ -86,9 +75,7 @@
       "aliases": 1,
       "missing": 0,
       "uniqueTargets": 1,
-      "targets": [
-        "app/finance/invoices/new/page.tsx"
-      ]
+      "targets": ["app/finance/invoices/new/page.tsx"]
     },
     {
       "module": "marketplace",
@@ -121,20 +108,14 @@
       "aliases": 2,
       "missing": 0,
       "uniqueTargets": 1,
-      "targets": [
-        "app/fm/reports/page.tsx",
-        "app/fm/reports/page.tsx"
-      ]
+      "targets": ["app/fm/reports/page.tsx", "app/fm/reports/page.tsx"]
     },
     {
       "module": "support",
       "aliases": 2,
       "missing": 0,
       "uniqueTargets": 2,
-      "targets": [
-        "app/support/page.tsx",
-        "app/support/my-tickets/page.tsx"
-      ]
+      "targets": ["app/support/page.tsx", "app/support/my-tickets/page.tsx"]
     },
     {
       "module": "system",
@@ -152,9 +133,7 @@
       "aliases": 1,
       "missing": 0,
       "uniqueTargets": 1,
-      "targets": [
-        "app/fm/tenants/page.tsx"
-      ]
+      "targets": ["app/fm/tenants/page.tsx"]
     },
     {
       "module": "work-orders",

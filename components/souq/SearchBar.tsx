@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { Search, X, Clock, TrendingUp } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useDebounce } from '@/hooks/useDebounce';
-import { logger } from '@/lib/logger';
+import { useState, useEffect, useRef } from "react";
+import { Search, X, Clock, TrendingUp } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useDebounce } from "@/hooks/useDebounce";
+import { logger } from "@/lib/logger";
 
 interface SearchSuggestion {
-  type: 'product' | 'category' | 'recent';
+  type: "product" | "category" | "recent";
   text: string;
   fsin?: string;
   category?: string;
@@ -21,9 +21,9 @@ interface SearchBarProps {
 }
 
 export default function SearchBar({
-  initialQuery = '',
+  initialQuery = "",
   onSearch,
-  placeholder = 'Search for products, brands, or categories...',
+  placeholder = "Search for products, brands, or categories...",
   showSuggestions = true,
 }: SearchBarProps) {
   const router = useRouter();
@@ -49,32 +49,36 @@ export default function SearchBar({
       setIsLoading(true);
       try {
         const response = await fetch(
-          `/api/souq/search?q=${encodeURIComponent(debouncedQuery)}&limit=5`
+          `/api/souq/search?q=${encodeURIComponent(debouncedQuery)}&limit=5`,
         );
-        
-        if (!response.ok) throw new Error('Failed to fetch suggestions');
-        
+
+        if (!response.ok) throw new Error("Failed to fetch suggestions");
+
         const data = await response.json();
-        
+
         // Transform results into suggestions
-        const productSuggestions: SearchSuggestion[] = data.data.hits.slice(0, 5).map((hit: { title: string; fsin: string }) => ({
-          type: 'product' as const,
-          text: hit.title,
-          fsin: hit.fsin,
-        }));
+        const productSuggestions: SearchSuggestion[] = data.data.hits
+          .slice(0, 5)
+          .map((hit: { title: string; fsin: string }) => ({
+            type: "product" as const,
+            text: hit.title,
+            fsin: hit.fsin,
+          }));
 
         // Add category suggestions from facets
-        const categorySuggestions: SearchSuggestion[] = Object.keys(data.data.facets?.categories || {})
+        const categorySuggestions: SearchSuggestion[] = Object.keys(
+          data.data.facets?.categories || {},
+        )
           .slice(0, 3)
-          .map(cat => ({
-            type: 'category' as const,
+          .map((cat) => ({
+            type: "category" as const,
             text: cat,
             category: cat,
           }));
 
         setSuggestions([...productSuggestions, ...categorySuggestions]);
       } catch (error) {
-        logger.error('Failed to fetch search suggestions', error);
+        logger.error("Failed to fetch search suggestions", error);
         setSuggestions([]);
       } finally {
         setIsLoading(false);
@@ -97,8 +101,8 @@ export default function SearchBar({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Handle keyboard navigation
@@ -106,17 +110,17 @@ export default function SearchBar({
     if (!showDropdown) return;
 
     switch (e.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < suggestions.length - 1 ? prev + 1 : prev
+        setSelectedIndex((prev) =>
+          prev < suggestions.length - 1 ? prev + 1 : prev,
         );
         break;
-      case 'ArrowUp':
+      case "ArrowUp":
         e.preventDefault();
-        setSelectedIndex(prev => (prev > 0 ? prev - 1 : -1));
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
         break;
-      case 'Enter':
+      case "Enter":
         e.preventDefault();
         if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
           handleSelectSuggestion(suggestions[selectedIndex]);
@@ -124,7 +128,7 @@ export default function SearchBar({
           handleSearch();
         }
         break;
-      case 'Escape':
+      case "Escape":
         setShowDropdown(false);
         inputRef.current?.blur();
         break;
@@ -137,7 +141,7 @@ export default function SearchBar({
 
     // Save to recent searches
     saveRecentSearch(query);
-    
+
     // Close dropdown
     setShowDropdown(false);
 
@@ -151,33 +155,35 @@ export default function SearchBar({
 
   // Handle suggestion selection
   const handleSelectSuggestion = (suggestion: SearchSuggestion) => {
-    if (suggestion.type === 'product' && suggestion.fsin) {
+    if (suggestion.type === "product" && suggestion.fsin) {
       router.push(`/souq/products/${suggestion.fsin}`);
-    } else if (suggestion.type === 'category' && suggestion.category) {
-      router.push(`/souq/search?category=${encodeURIComponent(suggestion.category)}`);
+    } else if (suggestion.type === "category" && suggestion.category) {
+      router.push(
+        `/souq/search?category=${encodeURIComponent(suggestion.category)}`,
+      );
     } else {
       setQuery(suggestion.text);
       handleSearch();
     }
-    
+
     setShowDropdown(false);
   };
 
   // Clear search
   const handleClear = () => {
-    setQuery('');
+    setQuery("");
     setSuggestions(getRecentSearches());
     inputRef.current?.focus();
   };
 
   // Get recent searches from localStorage
   const getRecentSearches = (): SearchSuggestion[] => {
-    if (typeof window === 'undefined') return [];
-    
+    if (typeof window === "undefined") return [];
+
     try {
-      const recent = JSON.parse(localStorage.getItem('recentSearches') || '[]');
+      const recent = JSON.parse(localStorage.getItem("recentSearches") || "[]");
       return recent.slice(0, 5).map((text: string) => ({
-        type: 'recent' as const,
+        type: "recent" as const,
         text,
       }));
     } catch {
@@ -187,14 +193,17 @@ export default function SearchBar({
 
   // Save search to recent searches
   const saveRecentSearch = (searchQuery: string) => {
-    if (typeof window === 'undefined') return;
-    
+    if (typeof window === "undefined") return;
+
     try {
-      const recent = JSON.parse(localStorage.getItem('recentSearches') || '[]');
-      const updated = [searchQuery, ...recent.filter((s: string) => s !== searchQuery)].slice(0, 10);
-      localStorage.setItem('recentSearches', JSON.stringify(updated));
+      const recent = JSON.parse(localStorage.getItem("recentSearches") || "[]");
+      const updated = [
+        searchQuery,
+        ...recent.filter((s: string) => s !== searchQuery),
+      ].slice(0, 10);
+      localStorage.setItem("recentSearches", JSON.stringify(updated));
     } catch (error) {
-      logger.error('Failed to save recent search', error);
+      logger.error("Failed to save recent search", error);
     }
   };
 
@@ -205,7 +214,7 @@ export default function SearchBar({
         <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
           <Search className="h-5 w-5 text-gray-400" />
         </div>
-        
+
         <input
           ref={inputRef}
           type="text"
@@ -216,7 +225,7 @@ export default function SearchBar({
           placeholder={placeholder}
           className="block w-full ps-10 pe-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
-        
+
         {query && (
           <button
             onClick={handleClear}
@@ -245,24 +254,24 @@ export default function SearchBar({
                     onClick={() => handleSelectSuggestion(suggestion)}
                     onMouseEnter={() => setSelectedIndex(index)}
                     className={`w-full px-4 py-2 text-start hover:bg-gray-50 flex items-center gap-3 ${
-                      selectedIndex === index ? 'bg-gray-50' : ''
+                      selectedIndex === index ? "bg-gray-50" : ""
                     }`}
                   >
-                    {suggestion.type === 'recent' && (
+                    {suggestion.type === "recent" && (
                       <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
                     )}
-                    {suggestion.type === 'category' && (
+                    {suggestion.type === "category" && (
                       <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
                     )}
-                    {suggestion.type === 'product' && (
+                    {suggestion.type === "product" && (
                       <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
                     )}
-                    
+
                     <span className="text-sm text-gray-700 flex-1">
                       {suggestion.text}
                     </span>
-                    
-                    {suggestion.type === 'category' && (
+
+                    {suggestion.type === "category" && (
                       <span className="text-xs text-gray-500">Category</span>
                     )}
                   </button>

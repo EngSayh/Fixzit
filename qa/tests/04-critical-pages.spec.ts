@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-const paths = ['/properties', '/work-orders', '/marketplace', '/reports'];
+const paths = ["/properties", "/work-orders", "/marketplace", "/reports"];
 
 for (const p of paths) {
   test(`Route ${p} responds`, async ({ request }) => {

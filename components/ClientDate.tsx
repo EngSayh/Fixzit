@@ -1,25 +1,28 @@
-'use client';
-import React from 'react';
-import { useEffect, useState } from 'react';
-import { logger } from '@/lib/logger';
-import { formatDate as formatDateUtil, formatServerDate as formatServerDateUtil } from '@/lib/formatServerDate';
+"use client";
+import React from "react";
+import { useEffect, useState } from "react";
+import { logger } from "@/lib/logger";
+import {
+  formatDate as formatDateUtil,
+  formatServerDate as formatServerDateUtil,
+} from "@/lib/formatServerDate";
 
 /**
  * ClientDate Component - SSR-Safe Date Rendering
- * 
+ *
  * Prevents hydration mismatches by rendering dates only on the client.
  * Server renders a placeholder, client hydrates with actual formatted date.
- * 
+ *
  * @example
  * // Basic usage
  * <ClientDate date={new Date()} />
- * 
+ *
  * // With custom format
  * <ClientDate date={invoice.dueDate} format="short" />
- * 
+ *
  * // With custom locale
  * <ClientDate date={payment.date} locale="ar-SA" />
- * 
+ *
  * // Relative time
  * <ClientDate date={ticket.createdAt} format="relative" />
  */
@@ -27,25 +30,33 @@ import { formatDate as formatDateUtil, formatServerDate as formatServerDateUtil 
 interface ClientDateProps {
   /** The date to format - can be Date object, ISO string, or timestamp */
   date: Date | string | number;
-  
+
   /** Format style */
-  format?: 'full' | 'long' | 'medium' | 'short' | 'date-only' | 'time-only' | 'relative' | 'iso';
-  
+  format?:
+    | "full"
+    | "long"
+    | "medium"
+    | "short"
+    | "date-only"
+    | "time-only"
+    | "relative"
+    | "iso";
+
   /** Locale override (defaults to browser locale) */
   locale?: string;
-  
+
   /** Custom format function */
   formatter?: (_date: Date, _locale?: string) => string;
-  
+
   /** Placeholder text during SSR/before hydration */
   placeholder?: string;
-  
+
   /** Additional CSS classes */
   className?: string;
-  
+
   /** Fallback text if date is invalid */
   fallback?: string;
-  
+
   /** Timezone override (e.g., 'Asia/Riyadh') */
   timeZone?: string;
 }
@@ -58,7 +69,7 @@ function parseDate(date: Date | string | number): Date | null {
     return isNaN(date.getTime()) ? null : date;
   }
 
-  if (typeof date === 'string' || typeof date === 'number') {
+  if (typeof date === "string" || typeof date === "number") {
     const parsed = new Date(date);
     return isNaN(parsed.getTime()) ? null : parsed;
   }
@@ -71,36 +82,37 @@ function parseDate(date: Date | string | number): Date | null {
  */
 function formatDate(
   date: Date,
-  format: ClientDateProps['format'],
+  format: ClientDateProps["format"],
   locale?: string,
   timeZone?: string,
-  formatter?: ClientDateProps['formatter']
+  formatter?: ClientDateProps["formatter"],
 ): string {
   // Custom formatter takes precedence
   if (formatter) {
     return formatter(date, locale);
   }
 
-  const browserLocale = locale || (typeof navigator !== 'undefined' ? navigator.language : 'en-US');
-  return formatDateUtil(date, format || 'medium', browserLocale, timeZone);
+  const browserLocale =
+    locale || (typeof navigator !== "undefined" ? navigator.language : "en-US");
+  return formatDateUtil(date, format || "medium", browserLocale, timeZone);
 }
 
 /**
  * ClientDate Component Implementation
- * 
+ *
  * @note The `formatter` prop should be memoized with useCallback by the caller
  * to prevent unnecessary re-renders. If passed as an inline function, it will
  * cause the component to re-run the formatting effect on every parent render.
  */
 export default function ClientDate({
   date,
-  format = 'medium',
+  format = "medium",
   locale,
   formatter,
-  placeholder = '...',
-  className = '',
-  fallback = 'Invalid Date',
-  timeZone
+  placeholder = "...",
+  className = "",
+  fallback = "Invalid Date",
+  timeZone,
 }: ClientDateProps) {
   const [mounted, setMounted] = useState(false);
   const [formattedDate, setFormattedDate] = useState<string>(placeholder);
@@ -116,10 +128,16 @@ export default function ClientDate({
     }
 
     try {
-      const formatted = formatDate(parsedDate, format, locale, timeZone, formatter);
+      const formatted = formatDate(
+        parsedDate,
+        format,
+        locale,
+        timeZone,
+        formatter,
+      );
       setFormattedDate(formatted);
     } catch (error) {
-      logger.error('ClientDate formatting error', { error });
+      logger.error("ClientDate formatting error", { error });
       setFormattedDate(fallback);
     }
   }, [date, format, locale, timeZone, fallback, formatter]);
@@ -144,9 +162,9 @@ export const formatServerDate = formatServerDateUtil;
  */
 export function useClientDate(
   date: Date | string | number,
-  format: ClientDateProps['format'] = 'medium',
+  format: ClientDateProps["format"] = "medium",
   locale?: string,
-  timeZone?: string
+  timeZone?: string,
 ): string | null {
   const [formatted, setFormatted] = useState<string | null>(null);
 
@@ -154,15 +172,21 @@ export function useClientDate(
     const parsedDate = parseDate(date);
 
     if (!parsedDate) {
-      setFormatted('Invalid Date');
+      setFormatted("Invalid Date");
       return;
     }
 
     try {
       setFormatted(formatDateUtil(parsedDate, format, locale, timeZone));
     } catch (error: unknown) {
-      logger.error('useClientDate formatting error', { error, date, format, locale, timeZone });
-      setFormatted('Invalid Date');
+      logger.error("useClientDate formatting error", {
+        error,
+        date,
+        format,
+        locale,
+        timeZone,
+      });
+      setFormatted("Invalid Date");
     }
   }, [date, format, locale, timeZone]);
 

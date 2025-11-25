@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+import { Types } from "mongoose";
 
 export type MoneyMinor = { minor: bigint; currency: string };
 
@@ -16,6 +16,6 @@ export function applyFxMinor(minor: bigint, rate: number): bigint {
 
 export function minorToMajor(minor: bigint): string {
   const asStr = minor.toString();
-  if (asStr.length <= 2) return `0.${asStr.padStart(2, '0')}`;
-  return asStr.slice(0, -2) + '.' + asStr.slice(-2);
+  if (asStr.length <= 2) return `0.${asStr.padStart(2, "0")}`;
+  return asStr.slice(0, -2) + "." + asStr.slice(-2);
 }

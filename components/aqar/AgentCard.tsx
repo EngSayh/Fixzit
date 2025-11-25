@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { Star, Award, TrendingUp, CheckCircle } from 'lucide-react';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { ContactActions } from './ContactActions';
+import Image from "next/image";
+import Link from "next/link";
+import { Star, Award, TrendingUp, CheckCircle } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { ContactActions } from "./ContactActions";
 
 export interface AgentCardProps {
   id: string;
@@ -39,36 +39,44 @@ export interface AgentCardProps {
     totalReviews: number;
     responseTime: number;
   };
-  tier: 'BASIC' | 'PREMIUM' | 'ELITE';
+  tier: "BASIC" | "PREMIUM" | "ELITE";
   verified: boolean;
   featured: boolean;
 }
 
-export default function AgentCard({ agent, compact = false }: { agent: AgentCardProps; compact?: boolean }) {
+export default function AgentCard({
+  agent,
+  compact = false,
+}: {
+  agent: AgentCardProps;
+  compact?: boolean;
+}) {
   const { t, isRTL } = useTranslation();
 
   const fullName = agent.displayName || `${agent.firstName} ${agent.lastName}`;
-  const bioText = isRTL ? (agent.bio?.ar || agent.bio?.en) : (agent.bio?.en || agent.bio?.ar);
+  const bioText = isRTL
+    ? agent.bio?.ar || agent.bio?.en
+    : agent.bio?.en || agent.bio?.ar;
 
   const getTierColor = (tier: string) => {
     switch (tier) {
-      case 'ELITE':
-        return 'from-purple-600 to-purple-800';
-      case 'PREMIUM':
-        return 'from-blue-600 to-blue-800';
+      case "ELITE":
+        return "from-purple-600 to-purple-800";
+      case "PREMIUM":
+        return "from-blue-600 to-blue-800";
       default:
-        return 'from-gray-600 to-gray-800';
+        return "from-gray-600 to-gray-800";
     }
   };
 
   const getTierBadge = (tier: string) => {
     switch (tier) {
-      case 'ELITE':
-        return '👑 Elite Agent';
-      case 'PREMIUM':
-        return '⭐ Premium Agent';
+      case "ELITE":
+        return "👑 Elite Agent";
+      case "PREMIUM":
+        return "⭐ Premium Agent";
       default:
-        return 'Agent';
+        return "Agent";
     }
   };
 
@@ -88,7 +96,8 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
           ) : (
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-warning to-warning-dark flex items-center justify-center">
               <span className="text-white font-bold text-lg">
-                {agent.firstName?.trim()?.[0] ?? ''}{agent.lastName?.trim()?.[0] ?? ''}
+                {agent.firstName?.trim()?.[0] ?? ""}
+                {agent.lastName?.trim()?.[0] ?? ""}
               </span>
             </div>
           )}
@@ -102,24 +111,34 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
         {/* Agent Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h4 className="font-semibold text-foreground truncate">{fullName}</h4>
-            {agent.tier !== 'BASIC' && (
+            <h4 className="font-semibold text-foreground truncate">
+              {fullName}
+            </h4>
+            {agent.tier !== "BASIC" && (
               <span className="text-xs">
-                {agent.tier === 'ELITE' ? '👑' : '⭐'}
+                {agent.tier === "ELITE" ? "👑" : "⭐"}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Star className="w-3 h-3 fill-warning text-warning" />
-            <span>{typeof agent.statistics?.averageRating === 'number' && !isNaN(agent.statistics.averageRating) ? agent.statistics.averageRating.toFixed(1) : 'N/A'}</span>
+            <span>
+              {typeof agent.statistics?.averageRating === "number" &&
+              !isNaN(agent.statistics.averageRating)
+                ? agent.statistics.averageRating.toFixed(1)
+                : "N/A"}
+            </span>
             <span className="text-muted-foreground">•</span>
-            <span>{agent.statistics.activeListings} {t('aqar.agent.listings', 'listings')}</span>
+            <span>
+              {agent.statistics.activeListings}{" "}
+              {t("aqar.agent.listings", "listings")}
+            </span>
           </div>
         </div>
 
         {/* Contact Buttons */}
         {agent.contact?.phone && (
-          <ContactActions 
+          <ContactActions
             phone={agent.contact.phone}
             whatsapp={agent.contact.whatsapp}
             variant="icon"
@@ -130,12 +149,14 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
   }
 
   return (
-    <Link 
+    <Link
       href={`/aqar/properties?agent=${agent.id}`}
       className="block bg-card rounded-2xl shadow-md hover:shadow-xl transition-shadow overflow-hidden group"
     >
       {/* Header with Tier Badge */}
-      <div className={`bg-gradient-to-r ${getTierColor(agent.tier)} p-4 text-white`}>
+      <div
+        className={`bg-gradient-to-r ${getTierColor(agent.tier)} p-4 text-white`}
+      >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             {/* Agent Photo */}
@@ -151,7 +172,8 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
               ) : (
                 <div className="w-20 h-20 rounded-full bg-white/20 border-4 border-white/20 flex items-center justify-center">
                   <span className="text-white font-bold text-2xl">
-                    {agent.firstName?.trim()?.[0] ?? ''}{agent.lastName?.trim()?.[0] ?? ''}
+                    {agent.firstName?.trim()?.[0] ?? ""}
+                    {agent.lastName?.trim()?.[0] ?? ""}
                   </span>
                 </div>
               )}
@@ -174,7 +196,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
 
           {agent.featured && (
             <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold">
-              {t('aqar.propertyCard.featured', 'Featured')}
+              {t("aqar.propertyCard.featured", "Featured")}
             </span>
           )}
         </div>
@@ -185,13 +207,17 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
         {/* License Info */}
         <div className="mb-4 pb-4 border-b border-border">
           <div className="flex items-start gap-2 text-sm">
-            <CheckCircle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${agent.license.verified ? 'text-success' : 'text-muted-foreground'}`} />
+            <CheckCircle
+              className={`w-4 h-4 mt-0.5 flex-shrink-0 ${agent.license.verified ? "text-success" : "text-muted-foreground"}`}
+            />
             <div>
               <p className="font-medium text-foreground">
-                {t('aqar.agent.license', 'License')}: {agent.license.number}
+                {t("aqar.agent.license", "License")}: {agent.license.number}
               </p>
               <p className="text-muted-foreground text-xs">
-                {agent.license.authority} {agent.license.verified && `• ${t('aqar.agent.verified', 'Verified')}`}
+                {agent.license.authority}{" "}
+                {agent.license.verified &&
+                  `• ${t("aqar.agent.verified", "Verified")}`}
               </p>
             </div>
           </div>
@@ -200,23 +226,43 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
         {/* Statistics Grid */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="text-center p-3 bg-muted rounded-2xl">
-            <p className="text-2xl font-bold text-foreground">{agent.statistics.activeListings}</p>
-            <p className="text-xs text-muted-foreground">{t('aqar.agent.listings', 'Active Listings')}</p>
+            <p className="text-2xl font-bold text-foreground">
+              {agent.statistics.activeListings}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("aqar.agent.listings", "Active Listings")}
+            </p>
           </div>
           <div className="text-center p-3 bg-muted rounded-2xl">
-            <p className="text-2xl font-bold text-foreground">{agent.statistics.soldProperties + agent.statistics.rentedProperties}</p>
-            <p className="text-xs text-muted-foreground">{t('aqar.agent.propertiesClosed', 'Properties Closed')}</p>
+            <p className="text-2xl font-bold text-foreground">
+              {agent.statistics.soldProperties +
+                agent.statistics.rentedProperties}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("aqar.agent.propertiesClosed", "Properties Closed")}
+            </p>
           </div>
           <div className="text-center p-3 bg-muted rounded-2xl">
             <div className="flex items-center justify-center gap-1">
               <Star className="w-4 h-4 fill-warning text-warning" />
-              <p className="text-2xl font-bold text-foreground">{typeof agent.statistics?.averageRating === 'number' && !isNaN(agent.statistics.averageRating) ? agent.statistics.averageRating.toFixed(1) : 'N/A'}</p>
+              <p className="text-2xl font-bold text-foreground">
+                {typeof agent.statistics?.averageRating === "number" &&
+                !isNaN(agent.statistics.averageRating)
+                  ? agent.statistics.averageRating.toFixed(1)
+                  : "N/A"}
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">{agent.statistics.totalReviews} Reviews</p>
+            <p className="text-xs text-muted-foreground">
+              {agent.statistics.totalReviews} Reviews
+            </p>
           </div>
           <div className="text-center p-3 bg-muted rounded-2xl">
-            <p className="text-2xl font-bold text-foreground">{agent.statistics.responseTime}m</p>
-            <p className="text-xs text-muted-foreground">{t('aqar.agent.avgResponse', 'Avg Response')}</p>
+            <p className="text-2xl font-bold text-foreground">
+              {agent.statistics.responseTime}m
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("aqar.agent.avgResponse", "Avg Response")}
+            </p>
           </div>
         </div>
 
@@ -224,9 +270,12 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
         <div className="mb-4 space-y-2">
           <div className="flex items-center gap-2 text-sm text-foreground">
             <TrendingUp className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium">{agent.experience} {t('aqar.agent.yearsExperience', 'years experience')}</span>
+            <span className="font-medium">
+              {agent.experience}{" "}
+              {t("aqar.agent.yearsExperience", "years experience")}
+            </span>
           </div>
-          
+
           {agent.specializations.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {agent.specializations.map((spec, idx) => (
@@ -262,7 +311,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
         )}
 
         {/* Contact Buttons */}
-        <ContactActions 
+        <ContactActions
           phone={agent.contact.phone}
           whatsapp={agent.contact.whatsapp}
           variant="full"

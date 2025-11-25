@@ -21,12 +21,14 @@ Based on all ATS/Careers code snippets in the repo and the Fixzit blueprints (SD
 ## 1) Architecture & Integration
 
 ### ✅ Current State
+
 - Next.js App Router + Mongo/Mongoose for ATS domain
 - Basic job posting and application workflow
 
 ### 🔧 Required Changes
 
 **1.1 Stack Standardization**
+
 - ✅ **Keep:** Next.js App Router + Mongo/Mongoose for the ATS domain only
 - ⚠️ **Clarify:** This is consistent with the "mongos database" decision for ATS
 - ✅ **Note:** Core FM domains remain on main DB as per SDD
@@ -37,37 +39,37 @@ Based on all ATS/Careers code snippets in the repo and the Fixzit blueprints (SD
 // Integrate with existing building blocks:
 
 // A. Notifications Service
-import { sendNotification } from '@/services/notifications/fm-notification-engine';
+import { sendNotification } from "@/services/notifications/fm-notification-engine";
 
 // New application received
 await sendNotification({
-  type: 'ATS_APPLICATION_RECEIVED',
+  type: "ATS_APPLICATION_RECEIVED",
   recipients: [hiringManager, hrTeam],
   data: { candidateName, jobTitle, applicationId },
-  channels: ['email', 'in-app']
+  channels: ["email", "in-app"],
 });
 
 // B. Approvals Engine (DoA)
-import { createApproval } from '@/lib/fm-approval-engine';
+import { createApproval } from "@/lib/fm-approval-engine";
 
 // Job posting approval
 await createApproval({
-  type: 'JOB_POSTING',
+  type: "JOB_POSTING",
   entityId: jobId,
   requestedBy: hrUserId,
   orgId,
-  metadata: { position, salary, department }
+  metadata: { position, salary, department },
 });
 
 // C. Finance Integration (Optional - Phase 2)
-import { createExpense } from '@/server/finance/budget.service';
+import { createExpense } from "@/server/finance/budget.service";
 
 // Track recruitment costs
 await createExpense({
-  category: 'RECRUITMENT',
+  category: "RECRUITMENT",
   amount: jobBoardCost,
-  linkedEntity: { type: 'JOB', id: jobId },
-  orgId
+  linkedEntity: { type: "JOB", id: jobId },
+  orgId,
 });
 ```
 
@@ -89,6 +91,7 @@ export async function GET(req: NextRequest) {
 ```
 
 **1.4 Tooling Standards**
+
 - ✅ **Zod** for API validation
 - ✅ **React Hook Form** for forms
 - ✅ **SWR** for client-side data fetching
@@ -105,8 +108,8 @@ export async function GET(req: NextRequest) {
 
 ```typescript
 // server/models/ats/Job.ts
-import { Schema, model } from 'mongoose';
-import { ObjectId } from 'mongodb';
+import { Schema, model } from "mongoose";
+import { ObjectId } from "mongodb";
 
 interface IJob {
   _id: ObjectId;
@@ -125,72 +128,72 @@ const JobSchema = new Schema<IJob>({
 JobSchema.index({ orgId: 1, status: 1, createdAt: -1 });
 JobSchema.index({ orgId: 1, slug: 1 }, { unique: true });
 
-export const Job = model<IJob>('Job', JobSchema);
+export const Job = model<IJob>("Job", JobSchema);
 ```
 
 **2.2 Org-Scoped Queries**
 
 ```typescript
 // ❌ WRONG - No org scoping
-const jobs = await Job.find({ status: 'open' });
+const jobs = await Job.find({ status: "open" });
 
 // ✅ CORRECT - Always scope by orgId
-const jobs = await Job.find({ 
+const jobs = await Job.find({
   orgId: session.user.orgId,
-  status: 'open' 
+  status: "open",
 });
 ```
 
 **2.3 ATS RBAC Matrix**
 
-| Role | Jobs | Candidates | Applications | Interviews | Offers | Analytics |
-|------|------|-----------|--------------|-----------|--------|-----------|
-| **Super Admin** | Read All (Audit) | Read All | Read All | Read All | Read All | Global View |
-| **Corporate Admin** | Full CRUD | Full CRUD | Full CRUD | Full CRUD | Full CRUD | Org View |
-| **HR Manager** | Full CRUD | Full CRUD | Full CRUD | Full CRUD | Approve | Org View |
-| **Hiring Manager** | Read/Update Assigned | Read Assigned | Read Assigned | Create/Update | Request | Assigned Only |
-| **Interviewer** | Read Assigned | Read Assigned | Read Assigned | Update Assigned | None | None |
-| **Candidate** | Read Applied | None | Read Own | Read Own | Read Own | None |
+| Role                | Jobs                 | Candidates    | Applications  | Interviews      | Offers    | Analytics     |
+| ------------------- | -------------------- | ------------- | ------------- | --------------- | --------- | ------------- |
+| **Super Admin**     | Read All (Audit)     | Read All      | Read All      | Read All        | Read All  | Global View   |
+| **Corporate Admin** | Full CRUD            | Full CRUD     | Full CRUD     | Full CRUD       | Full CRUD | Org View      |
+| **HR Manager**      | Full CRUD            | Full CRUD     | Full CRUD     | Full CRUD       | Approve   | Org View      |
+| **Hiring Manager**  | Read/Update Assigned | Read Assigned | Read Assigned | Create/Update   | Request   | Assigned Only |
+| **Interviewer**     | Read Assigned        | Read Assigned | Read Assigned | Update Assigned | None      | None          |
+| **Candidate**       | Read Applied         | None          | Read Own      | Read Own        | Read Own  | None          |
 
 **2.4 RBAC Middleware**
 
 ```typescript
 // lib/ats-auth-middleware.ts
-import { auth } from '@/auth';
-import { NextRequest } from 'next/server';
+import { auth } from "@/auth";
+import { NextRequest } from "next/server";
 
 export async function atsRBACCheck(
   req: NextRequest,
-  requiredRole: 'super_admin' | 'hr' | 'hiring_manager' | 'interviewer'
+  requiredRole: "super_admin" | "hr" | "hiring_manager" | "interviewer",
 ) {
   const session = await auth();
-  
+
   if (!session?.user) {
-    return { authorized: false, error: 'Unauthorized' };
+    return { authorized: false, error: "Unauthorized" };
   }
 
   const { role, orgId } = session.user;
-  
+
   // Super Admin can impersonate any tenant
-  if (role === 'SUPER_ADMIN') {
-    const impersonateOrgId = req.headers.get('X-Impersonate-Org');
-    return { 
-      authorized: true, 
+  if (role === "SUPER_ADMIN") {
+    const impersonateOrgId = req.headers.get("X-Impersonate-Org");
+    return {
+      authorized: true,
       orgId: impersonateOrgId || orgId,
-      isSuperAdmin: true 
+      isSuperAdmin: true,
     };
   }
 
   // Role-based access
   const roleMap = {
-    super_admin: ['SUPER_ADMIN'],
-    hr: ['SUPER_ADMIN', 'HR_MANAGER', 'CORPORATE_ADMIN'],
-    hiring_manager: ['SUPER_ADMIN', 'HR_MANAGER', 'HIRING_MANAGER'],
-    interviewer: ['SUPER_ADMIN', 'HR_MANAGER', 'HIRING_MANAGER', 'INTERVIEWER']
+    super_admin: ["SUPER_ADMIN"],
+    hr: ["SUPER_ADMIN", "HR_MANAGER", "CORPORATE_ADMIN"],
+    hiring_manager: ["SUPER_ADMIN", "HR_MANAGER", "HIRING_MANAGER"],
+    interviewer: ["SUPER_ADMIN", "HR_MANAGER", "HIRING_MANAGER", "INTERVIEWER"],
   };
 
   if (!roleMap[requiredRole]?.includes(role)) {
-    return { authorized: false, error: 'Forbidden' };
+    return { authorized: false, error: "Forbidden" };
   }
 
   return { authorized: true, orgId, role };
@@ -210,30 +213,42 @@ export async function atsRBACCheck(
 export const sidebarTree = [
   // ... existing modules
   {
-    id: 'hr',
-    label: 'Human Resources',
+    id: "hr",
+    label: "Human Resources",
     icon: Users,
     children: [
-      { id: 'hr-dashboard', label: 'Dashboard', path: '/hr' },
-      { id: 'hr-employees', label: 'Employees', path: '/hr/employees' },
-      { id: 'hr-attendance', label: 'Attendance', path: '/hr/attendance' },
-      { id: 'hr-payroll', label: 'Payroll', path: '/hr/payroll' },
+      { id: "hr-dashboard", label: "Dashboard", path: "/hr" },
+      { id: "hr-employees", label: "Employees", path: "/hr/employees" },
+      { id: "hr-attendance", label: "Attendance", path: "/hr/attendance" },
+      { id: "hr-payroll", label: "Payroll", path: "/hr/payroll" },
       {
-        id: 'hr-recruitment',
-        label: 'Recruitment (ATS)',
+        id: "hr-recruitment",
+        label: "Recruitment (ATS)",
         icon: Briefcase,
-        path: '/hr/ats',
+        path: "/hr/ats",
         children: [
-          { id: 'ats-jobs', label: 'Jobs', path: '/hr/ats/jobs' },
-          { id: 'ats-pipeline', label: 'Pipeline', path: '/hr/ats/pipeline' },
-          { id: 'ats-candidates', label: 'Candidates', path: '/hr/ats/candidates' },
-          { id: 'ats-interviews', label: 'Interviews', path: '/hr/ats/interviews' },
-          { id: 'ats-offers', label: 'Offers', path: '/hr/ats/offers' },
-          { id: 'ats-analytics', label: 'Analytics', path: '/hr/ats/analytics' }
-        ]
-      }
-    ]
-  }
+          { id: "ats-jobs", label: "Jobs", path: "/hr/ats/jobs" },
+          { id: "ats-pipeline", label: "Pipeline", path: "/hr/ats/pipeline" },
+          {
+            id: "ats-candidates",
+            label: "Candidates",
+            path: "/hr/ats/candidates",
+          },
+          {
+            id: "ats-interviews",
+            label: "Interviews",
+            path: "/hr/ats/interviews",
+          },
+          { id: "ats-offers", label: "Offers", path: "/hr/ats/offers" },
+          {
+            id: "ats-analytics",
+            label: "Analytics",
+            path: "/hr/ats/analytics",
+          },
+        ],
+      },
+    ],
+  },
 ];
 ```
 
@@ -299,7 +314,7 @@ export function ATSJobCard({ job }) {
   const isRTL = locale === 'ar';
 
   return (
-    <div 
+    <div
       className={`card ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}
       dir={isRTL ? 'rtl' : 'ltr'}
     >
@@ -343,8 +358,8 @@ export default async function CareersPage() {
 
 ```typescript
 // lib/ats/resume-parser.ts
-import pdfParse from 'pdf-parse';
-import stringSimilarity from 'string-similarity';
+import pdfParse from "pdf-parse";
+import stringSimilarity from "string-similarity";
 
 interface ParsedResume {
   email?: string;
@@ -355,9 +370,7 @@ interface ParsedResume {
   education?: string;
 }
 
-export async function parseResume(
-  buffer: Buffer
-): Promise<ParsedResume> {
+export async function parseResume(buffer: Buffer): Promise<ParsedResume> {
   // Extract text from PDF
   const pdfData = await pdfParse(buffer);
   const text = pdfData.text;
@@ -371,8 +384,8 @@ export async function parseResume(
   const phone = phoneMatch?.[0];
 
   // Extract name (heuristic: first line with 2-4 words)
-  const lines = text.split('\n').filter(l => l.trim());
-  const nameMatch = lines.find(l => {
+  const lines = text.split("\n").filter((l) => l.trim());
+  const nameMatch = lines.find((l) => {
     const words = l.trim().split(/\s+/);
     return words.length >= 2 && words.length <= 4 && /^[A-Za-z\s]+$/.test(l);
   });
@@ -380,13 +393,24 @@ export async function parseResume(
 
   // Extract skills (keywords)
   const skillKeywords = [
-    'javascript', 'typescript', 'react', 'node', 'python',
-    'java', 'sql', 'mongodb', 'aws', 'docker', 'kubernetes',
-    'leadership', 'management', 'communication'
+    "javascript",
+    "typescript",
+    "react",
+    "node",
+    "python",
+    "java",
+    "sql",
+    "mongodb",
+    "aws",
+    "docker",
+    "kubernetes",
+    "leadership",
+    "management",
+    "communication",
   ];
-  
-  const skills = skillKeywords.filter(skill => 
-    text.toLowerCase().includes(skill.toLowerCase())
+
+  const skills = skillKeywords.filter((skill) =>
+    text.toLowerCase().includes(skill.toLowerCase()),
   );
 
   return { email, phone, name, skills, experience: text, education: text };
@@ -395,7 +419,7 @@ export async function parseResume(
 export function scoreCandidate(
   candidateSkills: string[],
   requiredSkills: string[],
-  niceToHaveSkills: string[] = []
+  niceToHaveSkills: string[] = [],
 ): number {
   if (requiredSkills.length === 0) return 0;
 
@@ -406,9 +430,9 @@ export function scoreCandidate(
   for (const required of requiredSkills) {
     const bestMatch = stringSimilarity.findBestMatch(
       required.toLowerCase(),
-      candidateSkills.map(s => s.toLowerCase())
+      candidateSkills.map((s) => s.toLowerCase()),
     );
-    
+
     if (bestMatch.bestMatch.rating > 0.7) {
       score += 10 * bestMatch.bestMatch.rating;
     }
@@ -418,9 +442,9 @@ export function scoreCandidate(
   for (const nice of niceToHaveSkills) {
     const bestMatch = stringSimilarity.findBestMatch(
       nice.toLowerCase(),
-      candidateSkills.map(s => s.toLowerCase())
+      candidateSkills.map((s) => s.toLowerCase()),
     );
-    
+
     if (bestMatch.bestMatch.rating > 0.7) {
       score += 5 * bestMatch.bestMatch.rating;
     }
@@ -446,7 +470,7 @@ export interface ICSEvent {
 
 export function generateICS(event: ICSEvent): string {
   const formatDate = (date: Date): string => {
-    return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
   };
 
   const ics = `BEGIN:VCALENDAR
@@ -460,10 +484,10 @@ DTSTAMP:${formatDate(new Date())}
 DTSTART:${formatDate(event.startTime)}
 DTEND:${formatDate(event.endTime)}
 SUMMARY:${event.title}
-DESCRIPTION:${event.description.replace(/\n/g, '\\n')}
+DESCRIPTION:${event.description.replace(/\n/g, "\\n")}
 LOCATION:${event.location}
 ORGANIZER:CN=Fixzit ATS:MAILTO:${event.organizerEmail}
-${event.attendees.map(email => `ATTENDEE:MAILTO:${email}`).join('\n')}
+${event.attendees.map((email) => `ATTENDEE:MAILTO:${email}`).join("\n")}
 STATUS:CONFIRMED
 SEQUENCE:0
 END:VEVENT
@@ -473,21 +497,21 @@ END:VCALENDAR`;
 }
 
 // Usage in interview scheduling
-import { sendEmail } from '@/lib/email';
+import { sendEmail } from "@/lib/email";
 
 export async function scheduleInterview(
   interview: Interview,
   candidate: Candidate,
-  interviewer: User
+  interviewer: User,
 ) {
   const icsContent = generateICS({
     title: `Interview: ${candidate.name} - ${interview.jobTitle}`,
     description: `Interview for ${interview.jobTitle} position\n\nCandidate: ${candidate.name}\nInterviewer: ${interviewer.name}`,
-    location: interview.location || 'Virtual (Link to be shared)',
+    location: interview.location || "Virtual (Link to be shared)",
     startTime: interview.scheduledAt,
     endTime: new Date(interview.scheduledAt.getTime() + 60 * 60 * 1000), // 1 hour
     attendees: [candidate.email, interviewer.email],
-    organizerEmail: 'ats@fixzit.com'
+    organizerEmail: "ats@fixzit.com",
   });
 
   // Send calendar invite
@@ -495,11 +519,13 @@ export async function scheduleInterview(
     [candidate.email, interviewer.email],
     `Interview Scheduled: ${interview.jobTitle}`,
     `Your interview has been scheduled. Please find the calendar invite attached.`,
-    [{
-      filename: 'interview.ics',
-      content: Buffer.from(icsContent),
-      contentType: 'text/calendar; charset=utf-8; method=REQUEST'
-    }]
+    [
+      {
+        filename: "interview.ics",
+        content: Buffer.from(icsContent),
+        contentType: "text/calendar; charset=utf-8; method=REQUEST",
+      },
+    ],
   );
 }
 ```
@@ -508,20 +534,20 @@ export async function scheduleInterview(
 
 ```typescript
 // lib/ats/offer-pdf.ts
-import PDFDocument from 'pdfkit';
+import PDFDocument from "pdfkit";
 
 export async function generateOfferPDF(offer: Offer): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument();
     const chunks: Buffer[] = [];
 
-    doc.on('data', chunk => chunks.push(chunk));
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-    doc.on('error', reject);
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
 
     // Header
-    doc.fontSize(24).text('Fixzit', { align: 'center' });
-    doc.fontSize(16).text('Employment Offer Letter', { align: 'center' });
+    doc.fontSize(24).text("Fixzit", { align: "center" });
+    doc.fontSize(16).text("Employment Offer Letter", { align: "center" });
     doc.moveDown(2);
 
     // Offer details
@@ -532,27 +558,32 @@ export async function generateOfferPDF(offer: Offer): Promise<Buffer> {
     doc.moveDown();
     doc.text(`We are pleased to offer you the position of ${offer.jobTitle}.`);
     doc.moveDown();
-    
+
     // Terms
-    doc.text('Position Details:', { underline: true });
+    doc.text("Position Details:", { underline: true });
     doc.text(`Title: ${offer.jobTitle}`);
     doc.text(`Department: ${offer.department}`);
     doc.text(`Location: ${offer.location}`);
     doc.text(`Start Date: ${offer.startDate.toLocaleDateString()}`);
     doc.moveDown();
-    
-    doc.text('Compensation:', { underline: true });
-    doc.text(`Base Salary: SAR ${offer.salary.toLocaleString()} per ${offer.salaryPeriod}`);
+
+    doc.text("Compensation:", { underline: true });
+    doc.text(
+      `Base Salary: SAR ${offer.salary.toLocaleString()} per ${offer.salaryPeriod}`,
+    );
     if (offer.benefits?.length) {
-      doc.text(`Benefits: ${offer.benefits.join(', ')}`);
+      doc.text(`Benefits: ${offer.benefits.join(", ")}`);
     }
     doc.moveDown();
 
     // Signature
     doc.moveDown(3);
-    doc.text('Please sign and return this offer by ' + offer.expiresAt.toLocaleDateString());
+    doc.text(
+      "Please sign and return this offer by " +
+        offer.expiresAt.toLocaleDateString(),
+    );
     doc.moveDown(2);
-    doc.text('Accepted by: ________________________  Date: __________');
+    doc.text("Accepted by: ________________________  Date: __________");
 
     doc.end();
   });
@@ -563,17 +594,17 @@ export async function generateOfferPDF(offer: Offer): Promise<Buffer> {
 
 ```typescript
 // app/api/ats/feeds/indeed/route.ts
-import { NextResponse } from 'next/server';
-import { Job } from '@/server/models/ats/Job';
+import { NextResponse } from "next/server";
+import { Job } from "@/server/models/ats/Job";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const orgId = searchParams.get('orgId');
+  const orgId = searchParams.get("orgId");
 
-  const jobs = await Job.find({ 
+  const jobs = await Job.find({
     orgId,
-    status: 'open',
-    publishToIndeed: true 
+    status: "open",
+    publishToIndeed: true,
   }).lean();
 
   // Generate Indeed XML feed
@@ -581,10 +612,12 @@ export async function GET(req: NextRequest) {
 <source>
   <publisher>Fixzit</publisher>
   <publisherurl>https://fixzit.com</publisherurl>
-  ${jobs.map(job => `
+  ${jobs
+    .map(
+      (job) => `
   <job>
     <title><![CDATA[${job.title}]]></title>
-    <date>${job.createdAt.toISOString().split('T')[0]}</date>
+    <date>${job.createdAt.toISOString().split("T")[0]}</date>
     <referencenumber>${job._id}</referencenumber>
     <url><![CDATA[https://fixzit.com/careers/${job.slug}]]></url>
     <company><![CDATA[Fixzit]]></company>
@@ -592,11 +625,13 @@ export async function GET(req: NextRequest) {
     <country>${job.location.country}</country>
     <description><![CDATA[${job.description}]]></description>
   </job>
-  `).join('\n')}
+  `,
+    )
+    .join("\n")}
 </source>`;
 
   return new NextResponse(xml, {
-    headers: { 'Content-Type': 'application/xml' }
+    headers: { "Content-Type": "application/xml" },
   });
 }
 
@@ -605,45 +640,47 @@ export async function generateMetadata({ params }) {
   const job = await Job.findOne({ slug: params.slug });
 
   const jsonLd = {
-    '@context': 'https://schema.org/',
-    '@type': 'JobPosting',
+    "@context": "https://schema.org/",
+    "@type": "JobPosting",
     title: job.title,
     description: job.description,
     datePosted: job.createdAt.toISOString(),
     validThrough: job.applicationDeadline?.toISOString(),
     employmentType: job.employmentType, // FULL_TIME, PART_TIME, etc.
     hiringOrganization: {
-      '@type': 'Organization',
-      name: 'Fixzit',
-      sameAs: 'https://fixzit.com',
-      logo: 'https://fixzit.com/logo.png'
+      "@type": "Organization",
+      name: "Fixzit",
+      sameAs: "https://fixzit.com",
+      logo: "https://fixzit.com/logo.png",
     },
     jobLocation: {
-      '@type': 'Place',
+      "@type": "Place",
       address: {
-        '@type': 'PostalAddress',
+        "@type": "PostalAddress",
         addressLocality: job.location.city,
-        addressCountry: job.location.country
-      }
+        addressCountry: job.location.country,
+      },
     },
-    baseSalary: job.salaryRange ? {
-      '@type': 'MonetaryAmount',
-      currency: 'SAR',
-      value: {
-        '@type': 'QuantitativeValue',
-        minValue: job.salaryRange.min,
-        maxValue: job.salaryRange.max,
-        unitText: 'YEAR'
-      }
-    } : undefined
+    baseSalary: job.salaryRange
+      ? {
+          "@type": "MonetaryAmount",
+          currency: "SAR",
+          value: {
+            "@type": "QuantitativeValue",
+            minValue: job.salaryRange.min,
+            maxValue: job.salaryRange.max,
+            unitText: "YEAR",
+          },
+        }
+      : undefined,
   };
 
   return {
     title: job.title,
     description: job.description.substring(0, 160),
     other: {
-      'application/ld+json': JSON.stringify(jsonLd)
-    }
+      "application/ld+json": JSON.stringify(jsonLd),
+    },
   };
 }
 ```
@@ -652,60 +689,60 @@ export async function generateMetadata({ params }) {
 
 ```typescript
 // app/api/ats/analytics/route.ts
-import { Application } from '@/server/models/ats/Application';
-import { ObjectId } from 'mongodb';
+import { Application } from "@/server/models/ats/Application";
+import { ObjectId } from "mongodb";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const orgId = searchParams.get('orgId');
+  const orgId = searchParams.get("orgId");
 
   // Stage distribution
   const stageDistribution = await Application.aggregate([
     { $match: { orgId: new ObjectId(orgId) } },
-    { $group: { _id: '$stage', count: { $sum: 1 } } },
-    { $sort: { count: -1 } }
+    { $group: { _id: "$stage", count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
   ]);
 
   // Time to hire (Applied → Hired)
   const timeToHire = await Application.aggregate([
-    { 
-      $match: { 
+    {
+      $match: {
         orgId: new ObjectId(orgId),
-        stage: 'hired',
-        hiredAt: { $exists: true }
-      } 
+        stage: "hired",
+        hiredAt: { $exists: true },
+      },
     },
     {
       $project: {
         days: {
           $divide: [
-            { $subtract: ['$hiredAt', '$appliedAt'] },
-            1000 * 60 * 60 * 24
-          ]
-        }
-      }
+            { $subtract: ["$hiredAt", "$appliedAt"] },
+            1000 * 60 * 60 * 24,
+          ],
+        },
+      },
     },
     {
       $group: {
         _id: null,
-        avgDays: { $avg: '$days' },
-        minDays: { $min: '$days' },
-        maxDays: { $max: '$days' }
-      }
-    }
+        avgDays: { $avg: "$days" },
+        minDays: { $min: "$days" },
+        maxDays: { $max: "$days" },
+      },
+    },
   ]);
 
   // Source mix
   const sourceMix = await Application.aggregate([
     { $match: { orgId: new ObjectId(orgId) } },
-    { $group: { _id: '$source', count: { $sum: 1 } } },
-    { $sort: { count: -1 } }
+    { $group: { _id: "$source", count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
   ]);
 
   return NextResponse.json({
     stageDistribution,
     timeToHire: timeToHire[0] || null,
-    sourceMix
+    sourceMix,
   });
 }
 ```
@@ -727,13 +764,13 @@ export async function GET(req: NextRequest) {
 
 ```typescript
 // lib/ats/deduplication.ts
-import stringSimilarity from 'string-similarity';
+import stringSimilarity from "string-similarity";
 
 export async function checkDuplicateCandidate(
   email: string,
   fullName: string,
   phone: string,
-  orgId: ObjectId
+  orgId: ObjectId,
 ): Promise<{ isDuplicate: boolean; matchedId?: ObjectId }> {
   // 1. Exact email match
   const exactMatch = await Candidate.findOne({ orgId, email });
@@ -743,19 +780,20 @@ export async function checkDuplicateCandidate(
 
   // 2. Fuzzy name + phone match
   const candidates = await Candidate.find({ orgId }).lean();
-  
+
   for (const candidate of candidates) {
     const nameSimilarity = stringSimilarity.compareTwoStrings(
       fullName.toLowerCase(),
-      candidate.fullName.toLowerCase()
+      candidate.fullName.toLowerCase(),
     );
-    
-    const phoneSimilarity = phone && candidate.phone
-      ? stringSimilarity.compareTwoStrings(
-          phone.replace(/\D/g, ''),
-          candidate.phone.replace(/\D/g, '')
-        )
-      : 0;
+
+    const phoneSimilarity =
+      phone && candidate.phone
+        ? stringSimilarity.compareTwoStrings(
+            phone.replace(/\D/g, ""),
+            candidate.phone.replace(/\D/g, ""),
+          )
+        : 0;
 
     // If name is very similar (>90%) and phone matches (>90%), it's a duplicate
     if (nameSimilarity > 0.9 && phoneSimilarity > 0.9) {
@@ -771,47 +809,54 @@ export async function checkDuplicateCandidate(
 
 ```typescript
 // lib/ats/stage-machine.ts
-type Stage = 'applied' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected';
+type Stage =
+  | "applied"
+  | "screening"
+  | "interview"
+  | "offer"
+  | "hired"
+  | "rejected";
 
 const allowedTransitions: Record<Stage, Stage[]> = {
-  applied: ['screening', 'rejected'],
-  screening: ['interview', 'rejected'],
-  interview: ['offer', 'rejected'],
-  offer: ['hired', 'rejected'],
+  applied: ["screening", "rejected"],
+  screening: ["interview", "rejected"],
+  interview: ["offer", "rejected"],
+  offer: ["hired", "rejected"],
   hired: [], // Terminal state
-  rejected: [] // Terminal state
+  rejected: [], // Terminal state
 };
 
 export function canTransitionStage(
   currentStage: Stage,
   newStage: Stage,
-  application: Application
+  application: Application,
 ): { allowed: boolean; reason?: string } {
   // Check if transition is allowed by state machine
   if (!allowedTransitions[currentStage]?.includes(newStage)) {
     return {
       allowed: false,
-      reason: `Cannot move from ${currentStage} to ${newStage} directly`
+      reason: `Cannot move from ${currentStage} to ${newStage} directly`,
     };
   }
 
   // Additional guards
-  if (newStage === 'hired') {
+  if (newStage === "hired") {
     // Must have an accepted offer
-    if (!application.offerId || application.offerStatus !== 'accepted') {
+    if (!application.offerId || application.offerStatus !== "accepted") {
       return {
         allowed: false,
-        reason: 'Candidate must have an accepted offer to be hired'
+        reason: "Candidate must have an accepted offer to be hired",
       };
     }
   }
 
-  if (newStage === 'offer') {
+  if (newStage === "offer") {
     // Must have completed at least one interview
     if (!application.interviewIds?.length) {
       return {
         allowed: false,
-        reason: 'Candidate must complete at least one interview before receiving an offer'
+        reason:
+          "Candidate must complete at least one interview before receiving an offer",
       };
     }
   }
@@ -827,14 +872,11 @@ export async function POST(req: NextRequest) {
   const validation = canTransitionStage(
     application.stage,
     newStage,
-    application
+    application,
   );
 
   if (!validation.allowed) {
-    return NextResponse.json(
-      { error: validation.reason },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: validation.reason }, { status: 400 });
   }
 
   // Proceed with update...
@@ -846,12 +888,12 @@ export async function POST(req: NextRequest) {
 ```typescript
 // Feature flag
 // env.local
-LINKEDIN_INTEGRATION_ENABLED=false
+LINKEDIN_INTEGRATION_ENABLED = false;
 
 // app/api/ats/auth/linkedin/callback/route.ts
 export async function GET(req: NextRequest) {
-  if (process.env.LINKEDIN_INTEGRATION_ENABLED !== 'true') {
-    return NextResponse.json({ error: 'Feature not enabled' }, { status: 403 });
+  if (process.env.LINKEDIN_INTEGRATION_ENABLED !== "true") {
+    return NextResponse.json({ error: "Feature not enabled" }, { status: 403 });
   }
 
   // OAuth callback logic
@@ -869,7 +911,7 @@ export async function GET(req: NextRequest) {
 
 ```typescript
 // app/api/ats/applications/apply/route.ts
-import { z } from 'zod';
+import { z } from "zod";
 
 const applySchema = z.object({
   jobId: z.string(),
@@ -883,41 +925,46 @@ const applySchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    
+
     // Parse form fields
     const data = {
-      jobId: formData.get('jobId'),
-      candidateName: formData.get('candidateName'),
-      email: formData.get('email'),
-      phone: formData.get('phone'),
-      coverLetter: formData.get('coverLetter'),
+      jobId: formData.get("jobId"),
+      candidateName: formData.get("candidateName"),
+      email: formData.get("email"),
+      phone: formData.get("phone"),
+      coverLetter: formData.get("coverLetter"),
     };
 
     // Validate with Zod
     const validated = applySchema.parse(data);
 
     // Handle file upload
-    const resumeFile = formData.get('resume') as File;
+    const resumeFile = formData.get("resume") as File;
     if (!resumeFile) {
       return NextResponse.json(
-        { error: 'Resume is required' },
-        { status: 400 }
+        { error: "Resume is required" },
+        { status: 400 },
       );
     }
 
     // File validation
-    if (resumeFile.size > 5 * 1024 * 1024) { // 5MB
+    if (resumeFile.size > 5 * 1024 * 1024) {
+      // 5MB
       return NextResponse.json(
-        { error: 'Resume must be less than 5MB' },
-        { status: 400 }
+        { error: "Resume must be less than 5MB" },
+        { status: 400 },
       );
     }
 
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
     if (!allowedTypes.includes(resumeFile.type)) {
       return NextResponse.json(
-        { error: 'Resume must be PDF or DOC format' },
-        { status: 400 }
+        { error: "Resume must be PDF or DOC format" },
+        { status: 400 },
       );
     }
 
@@ -933,23 +980,22 @@ export async function POST(req: NextRequest) {
       ...validated,
       resumeUrl,
       parsedData,
-      orgId: session.user.orgId
+      orgId: session.user.orgId,
     });
 
     return NextResponse.json({ success: true, applicationId: application._id });
-
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
+        { error: "Validation failed", details: error.errors },
+        { status: 400 },
       );
     }
 
-    logger.error('[ATS Apply] Error', { error });
+    logger.error("[ATS Apply] Error", { error });
     return NextResponse.json(
-      { error: 'Failed to submit application' },
-      { status: 500 }
+      { error: "Failed to submit application" },
+      { status: 500 },
     );
   }
 }
@@ -961,8 +1007,8 @@ export async function POST(req: NextRequest) {
 // app/api/ats/applications/route.ts
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100); // Max 100
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100); // Max 100
   const skip = (page - 1) * limit;
 
   const [applications, total] = await Promise.all([
@@ -971,7 +1017,7 @@ export async function GET(req: NextRequest) {
       .skip(skip)
       .limit(limit)
       .lean(),
-    Application.countDocuments({ orgId })
+    Application.countDocuments({ orgId }),
   ]);
 
   return NextResponse.json({
@@ -981,8 +1027,8 @@ export async function GET(req: NextRequest) {
       limit,
       total,
       pages: Math.ceil(total / limit),
-      hasMore: skip + applications.length < total
-    }
+      hasMore: skip + applications.length < total,
+    },
   });
 }
 ```
@@ -996,12 +1042,12 @@ JobSchema.index({ orgId: 1, slug: 1 }, { unique: true });
 // lib/ats/slug-generator.ts
 export async function generateUniqueSlug(
   title: string,
-  orgId: ObjectId
+  orgId: ObjectId,
 ): Promise<string> {
   let slug = title
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
   let counter = 0;
   let uniqueSlug = slug;
@@ -1019,35 +1065,37 @@ export async function generateUniqueSlug(
 
 ```typescript
 // lib/ats/s3-upload.ts
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import crypto from 'crypto';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import crypto from "crypto";
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
-  }
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
 });
 
 export async function uploadToS3(
   buffer: Buffer,
-  filename: string
+  filename: string,
 ): Promise<string> {
   // Generate unique key
-  const hash = crypto.randomBytes(16).toString('hex');
-  const ext = filename.split('.').pop();
+  const hash = crypto.randomBytes(16).toString("hex");
+  const ext = filename.split(".").pop();
   const key = `ats/resumes/${hash}.${ext}`;
 
   // Upload
-  await s3Client.send(new PutObjectCommand({
-    Bucket: process.env.S3_BUCKET_NAME,
-    Key: key,
-    Body: buffer,
-    ContentType: 'application/pdf', // or detect
-    ServerSideEncryption: 'AES256'
-  }));
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+      Body: buffer,
+      ContentType: "application/pdf", // or detect
+      ServerSideEncryption: "AES256",
+    }),
+  );
 
   // Return URL (or pre-signed URL for private buckets)
   return `https://${process.env.S3_BUCKET_NAME}.s3.amazonaws.com/${key}`;
@@ -1079,7 +1127,7 @@ export function sanitizeHTML(html: string): string {
 export function JobDescription({ html }: { html: string }) {
   const sanitized = sanitizeHTML(html);
   return (
-    <div 
+    <div
       className="prose"
       dangerouslySetInnerHTML={{ __html: sanitized }}
     />
@@ -1091,17 +1139,17 @@ export function JobDescription({ html }: { html: string }) {
 
 ```typescript
 // lib/ats/audit-log.ts
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 export async function logATSAction(
   action: string,
   userId: string,
   orgId: string,
-  resourceType: 'job' | 'application' | 'interview' | 'offer',
+  resourceType: "job" | "application" | "interview" | "offer",
   resourceId: string,
-  details?: Record<string, unknown>
+  details?: Record<string, unknown>,
 ) {
-  await logger.info('[ATS Audit]', {
+  await logger.info("[ATS Audit]", {
     action,
     userId,
     orgId,
@@ -1109,29 +1157,29 @@ export async function logATSAction(
     resourceId,
     details,
     timestamp: new Date(),
-    ip: req.ip
+    ip: req.ip,
   });
 
   // Also store in audit_logs collection for UI display
-  await db.collection('audit_logs').insertOne({
+  await db.collection("audit_logs").insertOne({
     action,
     userId,
     orgId,
     resourceType,
     resourceId,
     details,
-    timestamp: new Date()
+    timestamp: new Date(),
   });
 }
 
 // Usage
 await logATSAction(
-  'JOB_CREATED',
+  "JOB_CREATED",
   session.user.id,
   session.user.orgId,
-  'job',
+  "job",
   job._id.toString(),
-  { title: job.title, department: job.department }
+  { title: job.title, department: job.department },
 );
 ```
 
@@ -1170,36 +1218,36 @@ export async function getATSAnalytics(orgId: ObjectId) {
     {
       $facet: {
         stageDistribution: [
-          { $group: { _id: '$stage', count: { $sum: 1 } } },
-          { $sort: { count: -1 } }
+          { $group: { _id: "$stage", count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
         ],
         sourceDistribution: [
-          { $group: { _id: '$source', count: { $sum: 1 } } },
-          { $sort: { count: -1 } }
+          { $group: { _id: "$source", count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
         ],
         timeToHire: [
-          { $match: { stage: 'hired', hiredAt: { $exists: true } } },
+          { $match: { stage: "hired", hiredAt: { $exists: true } } },
           {
             $project: {
               days: {
                 $divide: [
-                  { $subtract: ['$hiredAt', '$appliedAt'] },
-                  1000 * 60 * 60 * 24
-                ]
-              }
-            }
+                  { $subtract: ["$hiredAt", "$appliedAt"] },
+                  1000 * 60 * 60 * 24,
+                ],
+              },
+            },
           },
           {
             $group: {
               _id: null,
-              avg: { $avg: '$days' },
-              min: { $min: '$days' },
-              max: { $max: '$days' }
-            }
-          }
-        ]
-      }
-    }
+              avg: { $avg: "$days" },
+              min: { $min: "$days" },
+              max: { $max: "$days" },
+            },
+          },
+        ],
+      },
+    },
   ];
 
   const [result] = await Application.aggregate(pipeline);
@@ -1211,41 +1259,42 @@ export async function getATSAnalytics(orgId: ObjectId) {
 
 ```typescript
 // jobs/ats/email-processor.ts
-import { sendEmail } from '@/lib/email';
+import { sendEmail } from "@/lib/email";
 
 export async function processATSEmails() {
   // Get pending email jobs
-  const pendingEmails = await db.collection('ats_email_queue').find({
-    status: 'pending'
-  }).limit(50).toArray();
+  const pendingEmails = await db
+    .collection("ats_email_queue")
+    .find({
+      status: "pending",
+    })
+    .limit(50)
+    .toArray();
 
   for (const email of pendingEmails) {
     try {
-      await sendEmail(
-        email.to,
-        email.subject,
-        email.body,
-        email.attachments
-      );
+      await sendEmail(email.to, email.subject, email.body, email.attachments);
 
-      await db.collection('ats_email_queue').updateOne(
-        { _id: email._id },
-        { $set: { status: 'sent', sentAt: new Date() } }
-      );
+      await db
+        .collection("ats_email_queue")
+        .updateOne(
+          { _id: email._id },
+          { $set: { status: "sent", sentAt: new Date() } },
+        );
     } catch (error) {
-      await db.collection('ats_email_queue').updateOne(
+      await db.collection("ats_email_queue").updateOne(
         { _id: email._id },
-        { 
-          $set: { status: 'failed', error: error.message },
-          $inc: { attempts: 1 }
-        }
+        {
+          $set: { status: "failed", error: error.message },
+          $inc: { attempts: 1 },
+        },
       );
     }
   }
 }
 
 // Run via cron or setImmediate
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === "production") {
   setInterval(processATSEmails, 60000); // Every minute
 }
 ```
@@ -1260,16 +1309,16 @@ if (process.env.NODE_ENV === 'production') {
 
 ```typescript
 // tests/ats/ats-verification.test.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-const roles = ['SUPER_ADMIN', 'HR_MANAGER', 'HIRING_MANAGER', 'INTERVIEWER'];
+const roles = ["SUPER_ADMIN", "HR_MANAGER", "HIRING_MANAGER", "INTERVIEWER"];
 const pages = [
-  '/hr/ats/jobs',
-  '/hr/ats/pipeline',
-  '/hr/ats/candidates',
-  '/hr/ats/interviews',
-  '/hr/ats/offers',
-  '/hr/ats/analytics'
+  "/hr/ats/jobs",
+  "/hr/ats/pipeline",
+  "/hr/ats/candidates",
+  "/hr/ats/interviews",
+  "/hr/ats/offers",
+  "/hr/ats/analytics",
 ];
 
 for (const role of roles) {
@@ -1281,16 +1330,16 @@ for (const role of roles) {
 
       // 1. No console errors
       const consoleErrors: string[] = [];
-      p.on('console', msg => {
-        if (msg.type() === 'error') consoleErrors.push(msg.text());
+      p.on("console", (msg) => {
+        if (msg.type() === "error") consoleErrors.push(msg.text());
       });
 
-      await p.waitForLoadState('networkidle');
+      await p.waitForLoadState("networkidle");
       expect(consoleErrors).toHaveLength(0);
 
       // 2. No network errors
       const failedRequests: string[] = [];
-      p.on('response', response => {
+      p.on("response", (response) => {
         if (response.status() >= 400) {
           failedRequests.push(`${response.status()} ${response.url()}`);
         }
@@ -1298,22 +1347,24 @@ for (const role of roles) {
       expect(failedRequests).toHaveLength(0);
 
       // 3. Header present
-      await expect(p.locator('header')).toBeVisible();
+      await expect(p.locator("header")).toBeVisible();
 
       // 4. Sidebar present
       await expect(p.locator('nav[role="navigation"]')).toBeVisible();
 
       // 5. Language selector present
-      await expect(p.locator('[data-testid="language-selector"]')).toBeVisible();
+      await expect(
+        p.locator('[data-testid="language-selector"]'),
+      ).toBeVisible();
 
       // 6. RTL works
       await p.locator('[data-testid="language-selector"]').click();
       await p.locator('[data-lang="ar"]').click();
-      await expect(p.locator('html')).toHaveAttribute('dir', 'rtl');
+      await expect(p.locator("html")).toHaveAttribute("dir", "rtl");
 
       // 7. Dark mode toggle works
       await p.locator('[data-testid="theme-toggle"]').click();
-      await expect(p.locator('html')).toHaveClass(/dark/);
+      await expect(p.locator("html")).toHaveClass(/dark/);
 
       // 8. Mock data present (no empty states on first load)
       const cards = p.locator('[data-testid="ats-card"]');
@@ -1327,33 +1378,35 @@ for (const role of roles) {
 
 ```typescript
 // tests/ats/apply-flow.test.ts
-test('Candidate can apply to job', async ({ page }) => {
+test("Candidate can apply to job", async ({ page }) => {
   // Go to public careers page
-  await page.goto('/careers');
+  await page.goto("/careers");
 
   // Find and click on a job
   await page.locator('[data-testid="job-card"]').first().click();
 
   // Fill application form
-  await page.fill('[name="candidateName"]', 'Test Candidate');
-  await page.fill('[name="email"]', 'test@example.com');
-  await page.fill('[name="phone"]', '+966501234567');
-  await page.fill('[name="coverLetter"]', 'I am interested in this position');
+  await page.fill('[name="candidateName"]', "Test Candidate");
+  await page.fill('[name="email"]', "test@example.com");
+  await page.fill('[name="phone"]', "+966501234567");
+  await page.fill('[name="coverLetter"]', "I am interested in this position");
 
   // Upload resume
-  await page.setInputFiles('[name="resume"]', './fixtures/sample-resume.pdf');
+  await page.setInputFiles('[name="resume"]', "./fixtures/sample-resume.pdf");
 
   // Submit
   await page.click('[type="submit"]');
 
   // Verify success
-  await expect(page.locator('text=Application submitted successfully')).toBeVisible();
+  await expect(
+    page.locator("text=Application submitted successfully"),
+  ).toBeVisible();
 });
 
 // tests/ats/pipeline.test.ts
-test('HR can move candidate through pipeline', async ({ page }) => {
-  await loginAs(page, 'HR_MANAGER');
-  await page.goto('/hr/ats/pipeline');
+test("HR can move candidate through pipeline", async ({ page }) => {
+  await loginAs(page, "HR_MANAGER");
+  await page.goto("/hr/ats/pipeline");
 
   // Find application in "Applied" column
   const applied = page.locator('[data-stage="applied"]');
@@ -1363,7 +1416,9 @@ test('HR can move candidate through pipeline', async ({ page }) => {
   await firstCard.dragTo(page.locator('[data-stage="screening"]'));
 
   // Verify moved
-  await expect(page.locator('[data-stage="screening"]')).toContainText('Test Candidate');
+  await expect(page.locator('[data-stage="screening"]')).toContainText(
+    "Test Candidate",
+  );
 });
 ```
 
@@ -1372,6 +1427,7 @@ test('HR can move candidate through pipeline', async ({ page }) => {
 ## Implementation Timeline
 
 ### Phase 1: Critical Fixes (Week 1-2)
+
 - [ ] Fix multi-tenancy (orgId consistency)
 - [ ] Implement RBAC middleware
 - [ ] Fix sidebar integration
@@ -1379,6 +1435,7 @@ test('HR can move candidate through pipeline', async ({ page }) => {
 - [ ] Add error handling & validation
 
 ### Phase 2: Core Features (Week 3-4)
+
 - [ ] Resume parsing (Node.js)
 - [ ] ICS generation
 - [ ] Offer PDF generation
@@ -1386,6 +1443,7 @@ test('HR can move candidate through pipeline', async ({ page }) => {
 - [ ] Deduplication logic
 
 ### Phase 3: Performance & Security (Week 5-6)
+
 - [ ] Add database indexes
 - [ ] Implement pagination
 - [ ] Add audit logging
@@ -1393,6 +1451,7 @@ test('HR can move candidate through pipeline', async ({ page }) => {
 - [ ] XSS prevention
 
 ### Phase 4: Testing & Polish (Week 7-8)
+
 - [ ] STRICT v4 verification
 - [ ] E2E test coverage
 - [ ] Analytics dashboard
@@ -1400,6 +1459,7 @@ test('HR can move candidate through pipeline', async ({ page }) => {
 - [ ] Documentation
 
 ### Phase 5: Advanced Features (Future)
+
 - [ ] LinkedIn/Indeed integration
 - [ ] Advanced analytics
 - [ ] WhatsApp notifications
@@ -1411,6 +1471,7 @@ test('HR can move candidate through pipeline', async ({ page }) => {
 ## Acceptance Criteria
 
 ### Must Have (Phase 1-3)
+
 - [x] Multi-tenant with orgId on all records
 - [x] RBAC with 5 roles (Super Admin, Corporate Admin, HR, Hiring Manager, Interviewer)
 - [x] Integrated into HR → Recruitment (ATS) sidebar
@@ -1424,6 +1485,7 @@ test('HR can move candidate through pipeline', async ({ page }) => {
 - [x] STRICT v4 verification
 
 ### Should Have (Phase 4)
+
 - [ ] ICS calendar invites
 - [ ] Offer PDF generation
 - [ ] Basic analytics dashboard
@@ -1431,6 +1493,7 @@ test('HR can move candidate through pipeline', async ({ page }) => {
 - [ ] Job board XML feeds
 
 ### Nice to Have (Phase 5)
+
 - [ ] LinkedIn Apply integration
 - [ ] Advanced analytics with Recharts
 - [ ] AI-powered resume screening

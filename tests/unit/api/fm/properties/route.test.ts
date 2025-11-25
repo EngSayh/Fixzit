@@ -27,6 +27,7 @@ import { getDatabase } from '@/lib/mongodb-unified';
 import { requireFmPermission } from '@/app/api/fm/permissions';
 import { resolveTenantId } from '@/app/api/fm/utils/tenant';
 import { FMErrors } from '@/app/api/fm/errors';
+import { makeGetRequest, makePostRequest } from '@/tests/helpers/request';
 
 type DbMock = ReturnType<typeof mockDb>;
 
@@ -51,7 +52,7 @@ describe('api/fm/properties route', () => {
     });
 
     const req = createGetRequest({ page: '1', limit: '10' });
-    const res = await GET(req as any);
+    const res = await GET(req);
     expect(res.status).toBe(200);
     const body = await res.json();
 
@@ -70,7 +71,7 @@ describe('api/fm/properties route', () => {
   it('validates payload when creating properties', async () => {
     mockPermission();
     const req = createPostRequest({});
-    const res = await POST(req as any);
+    const res = await POST(req);
     const body = await res.json();
     expect(res.status).toBe(400);
     expect(body.error).toBe('validation-error');
@@ -82,7 +83,7 @@ describe('api/fm/properties route', () => {
       findExisting: true,
     });
     const req = createPostRequest({ name: 'HQ', type: 'Office', code: 'PROP-1' });
-    const res = await POST(req as any);
+    const res = await POST(req);
     const body = await res.json();
     expect(res.status).toBe(409);
     expect(body.error).toBe('conflict');
@@ -92,7 +93,7 @@ describe('api/fm/properties route', () => {
     mockPermission();
     const db = mockDb();
     const req = createPostRequest({ name: 'HQ', type: 'Office' });
-    const res = await POST(req as any);
+    const res = await POST(req);
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.data.name).toBe('HQ');
@@ -104,7 +105,7 @@ describe('api/fm/properties route', () => {
     mockPermission();
     (resolveTenantId as vi.Mock).mockReturnValue({ error: FMErrors.forbidden('mismatch') });
     const req = createGetRequest({});
-    const res = await GET(req as any);
+    const res = await GET(req);
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.error).toBe('forbidden');
@@ -114,7 +115,7 @@ describe('api/fm/properties route', () => {
     const updated = buildProperty({ _id: new ObjectId('507f1f77bcf86cd799439013'), name: 'Updated', status: 'Inactive' });
     mockDb({ updateValue: updated });
     const req = createPatchRequest('507f1f77bcf86cd799439013', { name: 'Updated', status: 'Inactive' });
-    const res = await PATCH(req as any);
+    const res = await PATCH(req);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
@@ -127,7 +128,7 @@ describe('api/fm/properties route', () => {
     mockPermission();
     mockDb({ deleteValue: buildProperty({ _id: new ObjectId('507f1f77bcf86cd799439014') }) });
     const req = createDeleteRequest('507f1f77bcf86cd799439014');
-    const res = await DELETE(req as any);
+    const res = await DELETE(req);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.message).toContain('deleted');
@@ -145,7 +146,7 @@ function mockPermission() {
 }
 
 type DbOptions = {
-  findResult?: any[];
+  findResult?: Array<Record<string, unknown>>;
   count?: number;
   findExisting?: boolean;
   updateValue?: Record<string, unknown> | null;
@@ -208,42 +209,29 @@ function createGetRequest(params: Record<string, string>) {
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.set(key, value);
   });
-  return {
-    url: url.toString(),
-    nextUrl: url,
-    headers: new Headers(),
-  };
+  const req = makeGetRequest(url.toString());
+  return req;
 }
 
 function createPostRequest(body: Record<string, unknown>) {
   const url = new URL('https://fixzit.test/api/fm/properties');
-  return {
-    url: url.toString(),
-    nextUrl: url,
-    headers: new Headers(),
-    json: async () => body,
-  };
+  return makePostRequest(url.toString(), body);
 }
 
 function createPatchRequest(id: string, body: Record<string, unknown>) {
   const url = new URL('https://fixzit.test/api/fm/properties');
   url.searchParams.set('id', id);
-  return {
-    url: url.toString(),
-    nextUrl: url,
-    headers: new Headers(),
-    json: async () => body,
-  };
+  return new Request(url.toString(), {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 }
 
 function createDeleteRequest(id: string) {
   const url = new URL('https://fixzit.test/api/fm/properties');
   url.searchParams.set('id', id);
-  return {
-    url: url.toString(),
-    nextUrl: url,
-    headers: new Headers(),
-  };
+  return new Request(url.toString(), { method: 'DELETE' });
 }
 
 function buildProperty(overrides: Partial<PropertyDocument> = {}) {

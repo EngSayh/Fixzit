@@ -1,12 +1,18 @@
-import { NextRequest} from 'next/server';
-import { createPaymentPage } from '@/lib/paytabs';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { Invoice } from '@/server/models/Invoice';
+import { NextRequest } from "next/server";
+import { createPaymentPage } from "@/lib/paytabs";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Invoice } from "@/server/models/Invoice";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { z } from 'zod';
-import { rateLimit } from '@/server/security/rateLimit';
-import { notFoundError, validationError, zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+import { z } from "zod";
+import { rateLimit } from "@/server/security/rateLimit";
+import {
+  notFoundError,
+  validationError,
+  zodValidationError,
+  rateLimitError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
 
 /**
  * @openapi
@@ -87,31 +93,33 @@ export async function POST(req: NextRequest) {
     }
 
     const paymentSchema = z.object({
-      invoiceId: z.string().regex(/^[a-fA-F0-9]{24}$/, 'Invalid invoice ID'),
+      invoiceId: z.string().regex(/^[a-fA-F0-9]{24}$/, "Invalid invoice ID"),
       returnUrl: z.string().url().optional(),
       cancelUrl: z.string().url().optional(),
-      paymentMethod: z.enum(['credit_card', 'bank_transfer', 'wallet']).optional()
+      paymentMethod: z
+        .enum(["credit_card", "bank_transfer", "wallet"])
+        .optional(),
     });
-    
+
     const body = paymentSchema.parse(await req.json());
     const { invoiceId } = body;
 
     if (!invoiceId) {
-      return validationError('Invoice ID is required');
+      return validationError("Invoice ID is required");
     }
 
     await connectToDatabase();
-    const invoice = (await Invoice.findOne({ 
-      _id: invoiceId, 
-      tenantId: user.orgId 
-    }));
+    const invoice = await Invoice.findOne({
+      _id: invoiceId,
+      tenantId: user.orgId,
+    });
 
     if (!invoice) {
-      return notFoundError('Invoice');
+      return notFoundError("Invoice");
     }
-    
-    if (invoice.status === 'PAID') {
-      return validationError('Invoice is already paid');
+
+    if (invoice.status === "PAID") {
+      return validationError("Invoice is already paid");
     }
 
     // Create payment request
@@ -119,43 +127,57 @@ export async function POST(req: NextRequest) {
       amount: invoice.total,
       currency: invoice.currency,
       customerDetails: {
-        name: invoice.recipient?.name || 'Unknown Customer',
-        email: invoice.recipient?.email || 'customer@fixzit.co',
-        phone: invoice.recipient?.phone || '+966500000000',
-        address: invoice.recipient?.address || 'Saudi Arabia',
-        city: 'Riyadh',
-        state: 'Riyadh',
-        country: 'SA',
-        zip: '11564'
+        name: invoice.recipient?.name || "Unknown Customer",
+        email: invoice.recipient?.email || "customer@fixzit.co",
+        phone: invoice.recipient?.phone || "+966500000000",
+        address: invoice.recipient?.address || "Saudi Arabia",
+        city: "Riyadh",
+        state: "Riyadh",
+        country: "SA",
+        zip: "11564",
       },
       description: `Payment for Invoice ${invoice.number}`,
       invoiceId: invoice._id.toString(),
       returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/payments/success`,
-      callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/callback`
+      callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/callback`,
     };
 
-    const paymentResponse = await createPaymentPage(paymentRequest as unknown as Parameters<typeof createPaymentPage>[0]);
+    const paymentResponse = await createPaymentPage(
+      paymentRequest as unknown as Parameters<typeof createPaymentPage>[0],
+    );
 
     if (paymentResponse.success) {
       // Update invoice with payment transaction
       invoice.history.push({
-        action: 'PAYMENT_INITIATED',
+        action: "PAYMENT_INITIATED",
         performedBy: user.id,
         performedAt: new Date(),
-        details: `Payment initiated with transaction ${paymentResponse.transactionId}`
+        details: `Payment initiated with transaction ${paymentResponse.transactionId}`,
       });
       await invoice.save();
 
-      return createSecureResponse({
-        success: true,
-        paymentUrl: paymentResponse.paymentUrl,
-        transactionId: paymentResponse.transactionId
-      }, 200, req);
+      return createSecureResponse(
+        {
+          success: true,
+          paymentUrl: paymentResponse.paymentUrl,
+          transactionId: paymentResponse.transactionId,
+        },
+        200,
+        req,
+      );
     } else {
-      return validationError(paymentResponse.error || 'Payment initialization failed');
+      return validationError(
+        // @ts-expect-error - Fixed VSCode problem
+        paymentResponse.error || "Payment initialization failed",
+      );
     }
   } catch (error: unknown) {
-    if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
+    if (
+      error &&
+      typeof error === "object" &&
+      "name" in error &&
+      error.name === "ZodError"
+    ) {
       return zodValidationError(error as z.ZodError);
     }
     return handleApiError(error);

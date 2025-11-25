@@ -1,17 +1,17 @@
 /**
  * RBAC (Role-Based Access Control) Utilities
- * 
+ *
  * Provides permission checking functions for server and client.
- * 
+ *
  * Permission Format: "module:action" (e.g., "finance:invoice.read")
- * 
+ *
  * Super Admin Bypass: isSuperAdmin=true grants all permissions
  */
 
 export type RbacContext = {
   isSuperAdmin: boolean;
-  permissions: string[];   // "module:action" format
-  roles?: string[];         // role slugs (optional)
+  permissions: string[]; // "module:action" format
+  roles?: string[]; // role slugs (optional)
 };
 
 /**
@@ -36,7 +36,7 @@ export function canAny(ctx: RbacContext, perms: string[]): boolean {
   if (!ctx) return false;
   if (ctx.isSuperAdmin) return true; // Super Admin bypass
   if (!perms || perms.length === 0) return false;
-  return perms.some(p => ctx.permissions?.includes(p));
+  return perms.some((p) => ctx.permissions?.includes(p));
 }
 
 /**
@@ -49,7 +49,7 @@ export function canAll(ctx: RbacContext, perms: string[]): boolean {
   if (!ctx) return false;
   if (ctx.isSuperAdmin) return true; // Super Admin bypass
   if (!perms || perms.length === 0) return true;
-  return perms.every(p => ctx.permissions?.includes(p));
+  return perms.every((p) => ctx.permissions?.includes(p));
 }
 
 /**
@@ -61,7 +61,7 @@ export function canAll(ctx: RbacContext, perms: string[]): boolean {
 export function canModule(ctx: RbacContext, module: string): boolean {
   if (!ctx) return false;
   if (ctx.isSuperAdmin) return true; // Super Admin bypass
-  return ctx.permissions?.some(p => p.startsWith(`${module}:`)) || false;
+  return ctx.permissions?.some((p) => p.startsWith(`${module}:`)) || false;
 }
 
 /**
@@ -70,10 +70,13 @@ export function canModule(ctx: RbacContext, module: string): boolean {
  * @param module Module name
  * @returns Array of permission keys for the module
  */
-export function getModulePermissions(ctx: RbacContext, module: string): string[] {
+export function getModulePermissions(
+  ctx: RbacContext,
+  module: string,
+): string[] {
   if (!ctx) return [];
   if (ctx.isSuperAdmin) return [`${module}:*`]; // Wildcard for Super Admin
-  return ctx.permissions?.filter(p => p.startsWith(`${module}:`)) || [];
+  return ctx.permissions?.filter((p) => p.startsWith(`${module}:`)) || [];
 }
 
 /**
@@ -84,7 +87,7 @@ export function getModulePermissions(ctx: RbacContext, module: string): string[]
  */
 export function hasRole(ctx: RbacContext, roleSlug: string): boolean {
   if (!ctx) return false;
-  if (ctx.isSuperAdmin && roleSlug === 'super_admin') return true;
+  if (ctx.isSuperAdmin && roleSlug === "super_admin") return true;
   return ctx.roles?.includes(roleSlug) || false;
 }
 
@@ -96,9 +99,9 @@ export function hasRole(ctx: RbacContext, roleSlug: string): boolean {
  */
 export function hasAnyRole(ctx: RbacContext, roleSlugs: string[]): boolean {
   if (!ctx) return false;
-  if (ctx.isSuperAdmin && roleSlugs.includes('super_admin')) return true;
+  if (ctx.isSuperAdmin && roleSlugs.includes("super_admin")) return true;
   if (!roleSlugs || roleSlugs.length === 0) return false;
-  return roleSlugs.some(r => ctx.roles?.includes(r));
+  return roleSlugs.some((r) => ctx.roles?.includes(r));
 }
 
 /**
@@ -115,7 +118,12 @@ export function isSuperAdmin(ctx: RbacContext): boolean {
  * @param user User object from session
  * @returns RBAC context
  */
-export function createRbacContext(user: { isSuperAdmin?: boolean; permissions?: string[]; roles?: string[] } | null | undefined): RbacContext {
+export function createRbacContext(
+  user:
+    | { isSuperAdmin?: boolean; permissions?: string[]; roles?: string[] }
+    | null
+    | undefined,
+): RbacContext {
   return {
     isSuperAdmin: user?.isSuperAdmin || false,
     permissions: user?.permissions || [],
@@ -127,14 +135,14 @@ export function createRbacContext(user: { isSuperAdmin?: boolean; permissions?: 
  * Permission categories for common operations
  */
 export const PermissionActions = {
-  READ: 'read',
-  CREATE: 'create',
-  UPDATE: 'update',
-  DELETE: 'delete',
-  APPROVE: 'approve',
-  EXPORT: 'export',
-  IMPORT: 'import',
-  MANAGE: 'manage',
+  READ: "read",
+  CREATE: "create",
+  UPDATE: "update",
+  DELETE: "delete",
+  APPROVE: "approve",
+  EXPORT: "export",
+  IMPORT: "import",
+  MANAGE: "manage",
 } as const;
 
 /**
@@ -142,81 +150,81 @@ export const PermissionActions = {
  */
 export const PermissionPatterns = {
   // Finance
-  FINANCE_INVOICE_READ: 'finance:invoice.read',
-  FINANCE_INVOICE_CREATE: 'finance:invoice.create',
-  FINANCE_INVOICE_UPDATE: 'finance:invoice.update',
-  FINANCE_INVOICE_DELETE: 'finance:invoice.delete',
-  FINANCE_PAYMENT_READ: 'finance:payment.read',
-  FINANCE_PAYMENT_CREATE: 'finance:payment.create',
-  
+  FINANCE_INVOICE_READ: "finance:invoice.read",
+  FINANCE_INVOICE_CREATE: "finance:invoice.create",
+  FINANCE_INVOICE_UPDATE: "finance:invoice.update",
+  FINANCE_INVOICE_DELETE: "finance:invoice.delete",
+  FINANCE_PAYMENT_READ: "finance:payment.read",
+  FINANCE_PAYMENT_CREATE: "finance:payment.create",
+
   // Work Orders
-  WORKORDERS_READ: 'workorders:read',
-  WORKORDERS_CREATE: 'workorders:create',
-  WORKORDERS_UPDATE: 'workorders:update',
-  WORKORDERS_DELETE: 'workorders:delete',
-  WORKORDERS_ASSIGN: 'workorders:assign',
-  WORKORDERS_APPROVE: 'workorders:approve',
-  
+  WORKORDERS_READ: "workorders:read",
+  WORKORDERS_CREATE: "workorders:create",
+  WORKORDERS_UPDATE: "workorders:update",
+  WORKORDERS_DELETE: "workorders:delete",
+  WORKORDERS_ASSIGN: "workorders:assign",
+  WORKORDERS_APPROVE: "workorders:approve",
+
   // Properties
-  PROPERTIES_READ: 'properties:read',
-  PROPERTIES_CREATE: 'properties:create',
-  PROPERTIES_UPDATE: 'properties:update',
-  PROPERTIES_DELETE: 'properties:delete',
-  
+  PROPERTIES_READ: "properties:read",
+  PROPERTIES_CREATE: "properties:create",
+  PROPERTIES_UPDATE: "properties:update",
+  PROPERTIES_DELETE: "properties:delete",
+
   // HR
-  HR_EMPLOYEE_READ: 'hr:employee.read',
-  HR_EMPLOYEE_CREATE: 'hr:employee.create',
-  HR_EMPLOYEE_UPDATE: 'hr:employee.update',
-  HR_EMPLOYEE_DELETE: 'hr:employee.delete',
-  HR_PAYROLL_READ: 'hr:payroll.read',
-  HR_PAYROLL_PROCESS: 'hr:payroll.process',
-  
+  HR_EMPLOYEE_READ: "hr:employee.read",
+  HR_EMPLOYEE_CREATE: "hr:employee.create",
+  HR_EMPLOYEE_UPDATE: "hr:employee.update",
+  HR_EMPLOYEE_DELETE: "hr:employee.delete",
+  HR_PAYROLL_READ: "hr:payroll.read",
+  HR_PAYROLL_PROCESS: "hr:payroll.process",
+
   // Admin
-  ADMIN_SETTINGS_READ: 'admin:settings.read',
-  ADMIN_SETTINGS_WRITE: 'admin:settings.write',
-  ADMIN_USERS_READ: 'admin:users.read',
-  ADMIN_USERS_MANAGE: 'admin:users.manage',
-  ADMIN_ROLES_MANAGE: 'admin:roles.manage',
-  ADMIN_SUPER_GRANT: 'admin:super.grant',
-  ADMIN_SUPER_REVOKE: 'admin:super.revoke',
-  ADMIN_IMPERSONATE: 'admin:impersonate',
-  
+  ADMIN_SETTINGS_READ: "admin:settings.read",
+  ADMIN_SETTINGS_WRITE: "admin:settings.write",
+  ADMIN_USERS_READ: "admin:users.read",
+  ADMIN_USERS_MANAGE: "admin:users.manage",
+  ADMIN_ROLES_MANAGE: "admin:roles.manage",
+  ADMIN_SUPER_GRANT: "admin:super.grant",
+  ADMIN_SUPER_REVOKE: "admin:super.revoke",
+  ADMIN_IMPERSONATE: "admin:impersonate",
+
   // Reports
-  REPORTS_VIEW: 'reports:view',
-  REPORTS_EXPORT: 'reports:export',
-  
+  REPORTS_VIEW: "reports:view",
+  REPORTS_EXPORT: "reports:export",
+
   // CRM
-  CRM_LEAD_READ: 'crm:lead.read',
-  CRM_LEAD_CREATE: 'crm:lead.create',
-  CRM_LEAD_UPDATE: 'crm:lead.update',
-  
+  CRM_LEAD_READ: "crm:lead.read",
+  CRM_LEAD_CREATE: "crm:lead.create",
+  CRM_LEAD_UPDATE: "crm:lead.update",
+
   // Marketplace
-  MARKETPLACE_CATALOG_READ: 'marketplace:catalog.read',
-  MARKETPLACE_CATALOG_MANAGE: 'marketplace:catalog.manage',
-  
+  MARKETPLACE_CATALOG_READ: "marketplace:catalog.read",
+  MARKETPLACE_CATALOG_MANAGE: "marketplace:catalog.manage",
+
   // Support
-  SUPPORT_TICKET_READ: 'support:ticket.read',
-  SUPPORT_TICKET_CREATE: 'support:ticket.create',
-  SUPPORT_TICKET_ASSIGN: 'support:ticket.assign',
-  
+  SUPPORT_TICKET_READ: "support:ticket.read",
+  SUPPORT_TICKET_CREATE: "support:ticket.create",
+  SUPPORT_TICKET_ASSIGN: "support:ticket.assign",
+
   // Compliance
-  COMPLIANCE_VIEW: 'compliance:view',
-  COMPLIANCE_AUDIT: 'compliance:audit',
+  COMPLIANCE_VIEW: "compliance:view",
+  COMPLIANCE_AUDIT: "compliance:audit",
 } as const;
 
 /**
  * Module names
  */
 export const Modules = {
-  FINANCE: 'finance',
-  WORKORDERS: 'workorders',
-  PROPERTIES: 'properties',
-  HR: 'hr',
-  CRM: 'crm',
-  ADMIN: 'admin',
-  REPORTS: 'reports',
-  MARKETPLACE: 'marketplace',
-  SUPPORT: 'support',
-  COMPLIANCE: 'compliance',
-  SYSTEM: 'system',
+  FINANCE: "finance",
+  WORKORDERS: "workorders",
+  PROPERTIES: "properties",
+  HR: "hr",
+  CRM: "crm",
+  ADMIN: "admin",
+  REPORTS: "reports",
+  MARKETPLACE: "marketplace",
+  SUPPORT: "support",
+  COMPLIANCE: "compliance",
+  SYSTEM: "system",
 } as const;

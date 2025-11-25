@@ -1,32 +1,43 @@
-'use client';
-import { logger } from '@/lib/logger';
+"use client";
+import { logger } from "@/lib/logger";
 
-import useSWR from 'swr';
-import type { ReactNode } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { toast } from 'sonner';
-import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { CardGridSkeleton } from '@/components/skeletons';
+import useSWR from "swr";
+import type { ReactNode } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { CardGridSkeleton } from "@/components/skeletons";
 import {
-  Building2, MapPin, Phone, Mail, User, FileText,
-  ChevronLeft, Edit, Trash2, Star, Clock, Shield, Award
-} from 'lucide-react';
-import Link from 'next/link';
-import ClientDate from '@/components/ClientDate';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { FmGuardedPage } from '@/components/fm/FmGuardedPage';
+  Building2,
+  MapPin,
+  Phone,
+  Mail,
+  User,
+  FileText,
+  ChevronLeft,
+  Edit,
+  Trash2,
+  Star,
+  Clock,
+  Shield,
+  Award,
+} from "lucide-react";
+import Link from "next/link";
+import ClientDate from "@/components/ClientDate";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
 
 interface Vendor {
   id: string;
   code: string;
   name: string;
   type: string;
-  status: 'PENDING' | 'APPROVED' | 'SUSPENDED' | 'REJECTED' | 'BLACKLISTED';
+  status: "PENDING" | "APPROVED" | "SUSPENDED" | "REJECTED" | "BLACKLISTED";
   contact?: {
     primary?: {
       name?: string;
@@ -57,18 +68,18 @@ interface Vendor {
 }
 
 const statusColors: Record<string, string> = {
-  APPROVED: 'bg-success/10 text-success-foreground',
-  PENDING: 'bg-warning/10 text-warning-foreground',
-  SUSPENDED: 'bg-destructive/10 text-destructive-foreground',
-  REJECTED: 'bg-muted text-foreground',
-  BLACKLISTED: 'bg-destructive/20 text-destructive',
+  APPROVED: "bg-success/10 text-success-foreground",
+  PENDING: "bg-warning/10 text-warning-foreground",
+  SUSPENDED: "bg-destructive/10 text-destructive-foreground",
+  REJECTED: "bg-muted text-foreground",
+  BLACKLISTED: "bg-destructive/20 text-destructive",
 };
 
 export default function VendorDetailsPage() {
   return (
     <FmGuardedPage moduleId="vendors">
       {({ orgId, supportBanner }) => (
-        <VendorDetailsContent orgId={orgId!} supportBanner={supportBanner} />
+        <VendorDetailsContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );
@@ -79,7 +90,10 @@ type VendorDetailsContentProps = {
   supportBanner?: ReactNode | null;
 };
 
-function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProps) {
+function VendorDetailsContent({
+  orgId,
+  supportBanner,
+}: VendorDetailsContentProps) {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
@@ -87,63 +101,82 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
 
   const handleDelete = async () => {
     const confirmMessage = t(
-      'fm.vendors.detail.actions.confirmDelete',
-      'Delete vendor "{{name}}"? This cannot be undone.'
-    ).replace('{{name}}', vendor?.name ?? '');
+      "fm.vendors.detail.actions.confirmDelete",
+      'Delete vendor "{{name}}"? This cannot be undone.',
+    ).replace("{{name}}", vendor?.name ?? "");
 
     if (!confirm(confirmMessage)) {
       return;
     }
     if (!orgId) {
-      toast.error(t('fm.vendors.detail.errors.noOrgId', 'Organization ID missing'));
+      toast.error(
+        t("fm.vendors.detail.errors.noOrgId", "Organization ID missing"),
+      );
       return;
     }
 
     if (!params?.id) {
-      toast.error(t('fm.vendors.detail.errors.noVendorId', 'Vendor ID missing'));
+      toast.error(
+        t("fm.vendors.detail.errors.noVendorId", "Vendor ID missing"),
+      );
       return;
     }
 
-    const toastId = toast.loading(t('fm.vendors.detail.toasts.deleting', 'Deleting vendor...'));
+    const toastId = toast.loading(
+      t("fm.vendors.detail.toasts.deleting", "Deleting vendor..."),
+    );
     try {
       const res = await fetch(`/api/vendors/${params.id}`, {
-        method: 'DELETE',
-        headers: { 'x-tenant-id': orgId }
+        method: "DELETE",
+        headers: { "x-tenant-id": orgId },
       });
-      if (!res.ok) throw new Error('Failed to delete vendor');
-      toast.success(t('fm.vendors.detail.toasts.success', 'Vendor deleted successfully'), { id: toastId });
-      router.push('/fm/vendors');
+      if (!res.ok) throw new Error("Failed to delete vendor");
+      toast.success(
+        t("fm.vendors.detail.toasts.success", "Vendor deleted successfully"),
+        { id: toastId },
+      );
+      router.push("/fm/vendors");
     } catch (_error) {
-      const message = _error instanceof Error ? _error.message : 'Failed to delete vendor';
+      const message =
+        _error instanceof Error ? _error.message : "Failed to delete vendor";
       const failureMessage = t(
-        'fm.vendors.detail.toasts.failure',
-        'Failed to delete vendor: {{message}}'
-      ).replace('{{message}}', message);
+        "fm.vendors.detail.toasts.failure",
+        "Failed to delete vendor: {{message}}",
+      ).replace("{{message}}", message);
       toast.error(failureMessage, { id: toastId });
     }
   };
 
   const fetcher = (url: string) => {
     if (!orgId) {
-      return Promise.reject(new Error('No organization ID'));
+      return Promise.reject(new Error("No organization ID"));
     }
-    return fetch(url, { 
-      headers: { 'x-tenant-id': orgId } 
+    return fetch(url, {
+      headers: { "x-tenant-id": orgId },
     })
-      .then(r => r.json())
-      .catch(error => {
-        logger.error('FM vendor detail fetch error', error);
+      .then((r) => r.json())
+      .catch((error) => {
+        logger.error("FM vendor detail fetch error", error);
         throw error;
       });
   };
 
-  const { data: vendor, error, isLoading } = useSWR<Vendor>(
+  const {
+    data: vendor,
+    error,
+    isLoading,
+  } = useSWR<Vendor>(
     orgId && params?.id ? `/api/vendors/${params.id}` : null,
-    fetcher
+    fetcher,
   );
 
   if (!session) return <CardGridSkeleton count={3} />;
-  if (error) return <div>{t('fm.vendors.detail.errors.loadFailed', 'Failed to load vendor')}</div>;
+  if (error)
+    return (
+      <div>
+        {t("fm.vendors.detail.errors.loadFailed", "Failed to load vendor")}
+      </div>
+    );
   if (isLoading || !vendor) return <CardGridSkeleton count={3} />;
 
   return (
@@ -162,7 +195,7 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
           <div>
             <div className="flex items-center space-x-3">
               <h1 className="text-3xl font-bold">{vendor.name}</h1>
-              <Badge className={statusColors[vendor.status] || 'bg-muted'}>
+              <Badge className={statusColors[vendor.status] || "bg-muted"}>
                 {vendor.status}
               </Badge>
             </div>
@@ -170,7 +203,7 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button 
+          <Button
             variant="outline"
             onClick={() => {
               if (params?.id) {
@@ -181,8 +214,8 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
             <Edit className="w-4 h-4 me-2" />
             Edit
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="text-destructive hover:text-destructive"
             onClick={handleDelete}
           >
@@ -207,11 +240,11 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Vendor Type</p>
-                  <p className="font-medium">{vendor.type || 'N/A'}</p>
+                  <p className="font-medium">{vendor.type || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge className={statusColors[vendor.status] || 'bg-muted'}>
+                  <Badge className={statusColors[vendor.status] || "bg-muted"}>
                     {vendor.status}
                   </Badge>
                 </div>
@@ -220,13 +253,17 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
                     <p className="text-sm text-muted-foreground">Rating</p>
                     <div className="flex items-center">
                       <Star className="w-4 h-4 text-warning me-1" />
-                      <p className="font-medium">{vendor.rating.toFixed(1)} / 5.0</p>
+                      <p className="font-medium">
+                        {vendor.rating.toFixed(1)} / 5.0
+                      </p>
                     </div>
                   </div>
                 )}
                 {vendor.responseTime && (
                   <div>
-                    <p className="text-sm text-muted-foreground">Response Time</p>
+                    <p className="text-sm text-muted-foreground">
+                      Response Time
+                    </p>
                     <div className="flex items-center">
                       <Clock className="w-4 h-4 text-primary me-1" />
                       <p className="font-medium">{vendor.responseTime}</p>
@@ -234,13 +271,17 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
                   </div>
                 )}
               </div>
-              
+
               {vendor.business?.description && (
                 <>
                   <Separator />
                   <div>
-                    <p className="text-sm text-muted-foreground mb-2">Description</p>
-                    <p className="text-foreground">{vendor.business.description}</p>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Description
+                    </p>
+                    <p className="text-foreground">
+                      {vendor.business.description}
+                    </p>
                   </div>
                 </>
               )}
@@ -266,52 +307,69 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
                   )}
                   {vendor.business.taxNumber && (
                     <div>
-                      <p className="text-sm text-muted-foreground">Tax Number</p>
+                      <p className="text-sm text-muted-foreground">
+                        Tax Number
+                      </p>
                       <p className="font-medium">{vendor.business.taxNumber}</p>
                     </div>
                   )}
                   {vendor.business.licenseNumber && (
                     <div>
-                      <p className="text-sm text-muted-foreground">License Number</p>
-                      <p className="font-medium">{vendor.business.licenseNumber}</p>
+                      <p className="text-sm text-muted-foreground">
+                        License Number
+                      </p>
+                      <p className="font-medium">
+                        {vendor.business.licenseNumber}
+                      </p>
                     </div>
                   )}
                   {vendor.business.licenseExpiry && (
                     <div>
-                      <p className="text-sm text-muted-foreground">License Expiry</p>
+                      <p className="text-sm text-muted-foreground">
+                        License Expiry
+                      </p>
                       <p className="font-medium">
-                        <ClientDate date={vendor.business.licenseExpiry} format="date-only" />
+                        <ClientDate
+                          date={vendor.business.licenseExpiry}
+                          format="date-only"
+                        />
                       </p>
                     </div>
                   )}
                   {vendor.business.insuranceExpiry && (
                     <div>
-                      <p className="text-sm text-muted-foreground">Insurance Expiry</p>
+                      <p className="text-sm text-muted-foreground">
+                        Insurance Expiry
+                      </p>
                       <p className="font-medium">
-                        <ClientDate date={vendor.business.insuranceExpiry} format="date-only" />
+                        <ClientDate
+                          date={vendor.business.insuranceExpiry}
+                          format="date-only"
+                        />
                       </p>
                     </div>
                   )}
                 </div>
 
-                {vendor.business.specializations && vendor.business.specializations.length > 0 && (
-                  <>
-                    <Separator />
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-2 flex items-center">
-                        <Award className="w-4 h-4 me-1" />
-                        Specializations
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {vendor.business.specializations.map((spec) => (
-                          <Badge key={spec} variant="outline">
-                            {spec}
-                          </Badge>
-                        ))}
+                {vendor.business.specializations &&
+                  vendor.business.specializations.length > 0 && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2 flex items-center">
+                          <Award className="w-4 h-4 me-1" />
+                          Specializations
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {vendor.business.specializations.map((spec) => (
+                            <Badge key={spec} variant="outline">
+                              {spec}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  </>
-                )}
+                    </>
+                  )}
               </CardContent>
             </Card>
           )}
@@ -331,8 +389,12 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
                     <div className="flex items-center">
                       <User className="w-4 h-4 text-muted-foreground me-2" />
                       <div>
-                        <p className="text-sm text-muted-foreground">Contact Person</p>
-                        <p className="font-medium">{vendor.contact.primary.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Contact Person
+                        </p>
+                        <p className="font-medium">
+                          {vendor.contact.primary.name}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -341,7 +403,7 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
                       <Mail className="w-4 h-4 text-muted-foreground me-2" />
                       <div>
                         <p className="text-sm text-muted-foreground">Email</p>
-                        <a 
+                        <a
                           href={`mailto:${vendor.contact.primary.email}`}
                           className="font-medium text-primary hover:underline"
                         >
@@ -355,7 +417,7 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
                       <Phone className="w-4 h-4 text-muted-foreground me-2" />
                       <div>
                         <p className="text-sm text-muted-foreground">Phone</p>
-                        <a 
+                        <a
                           href={`tel:${vendor.contact.primary.phone}`}
                           className="font-medium text-primary hover:underline"
                         >
@@ -369,7 +431,7 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
                       <Phone className="w-4 h-4 text-muted-foreground me-2" />
                       <div>
                         <p className="text-sm text-muted-foreground">Mobile</p>
-                        <a 
+                        <a
                           href={`tel:${vendor.contact.primary.mobile}`}
                           className="font-medium text-primary hover:underline"
                         >
@@ -392,8 +454,10 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
                             vendor.contact.address.street,
                             vendor.contact.address.city,
                             vendor.contact.address.region,
-                            vendor.contact.address.postalCode
-                          ].filter(Boolean).join(', ') || 'N/A'}
+                            vendor.contact.address.postalCode,
+                          ]
+                            .filter(Boolean)
+                            .join(", ") || "N/A"}
                         </p>
                       </div>
                     </div>
@@ -417,13 +481,17 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
                   <span className="text-sm text-muted-foreground">Rating</span>
                   <div className="flex items-center">
                     <Star className="w-4 h-4 text-warning me-1" />
-                    <span className="font-medium">{vendor.rating.toFixed(1)}</span>
+                    <span className="font-medium">
+                      {vendor.rating.toFixed(1)}
+                    </span>
                   </div>
                 </div>
               )}
               {vendor.responseTime && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Avg. Response</span>
+                  <span className="text-sm text-muted-foreground">
+                    Avg. Response
+                  </span>
                   <div className="flex items-center">
                     <Clock className="w-4 h-4 text-primary me-1" />
                     <span className="font-medium">{vendor.responseTime}</span>
@@ -433,7 +501,7 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
               <Separator />
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Status</span>
-                <Badge className={statusColors[vendor.status] || 'bg-muted'}>
+                <Badge className={statusColors[vendor.status] || "bg-muted"}>
                   {vendor.status}
                 </Badge>
               </div>
@@ -450,21 +518,37 @@ function VendorDetailsContent({ orgId, supportBanner }: VendorDetailsContentProp
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">CR Verified</span>
-                <Badge variant={vendor.business?.crNumber ? "default" : "outline"}>
-                  {vendor.business?.crNumber ? 'Yes' : 'Pending'}
+                <span className="text-sm text-muted-foreground">
+                  CR Verified
+                </span>
+                <Badge
+                  variant={vendor.business?.crNumber ? "default" : "outline"}
+                >
+                  {vendor.business?.crNumber ? "Yes" : "Pending"}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">License Valid</span>
-                <Badge variant={vendor.business?.licenseNumber ? "default" : "outline"}>
-                  {vendor.business?.licenseNumber ? 'Yes' : 'Pending'}
+                <span className="text-sm text-muted-foreground">
+                  License Valid
+                </span>
+                <Badge
+                  variant={
+                    vendor.business?.licenseNumber ? "default" : "outline"
+                  }
+                >
+                  {vendor.business?.licenseNumber ? "Yes" : "Pending"}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Insurance Active</span>
-                <Badge variant={vendor.business?.insuranceExpiry ? "default" : "outline"}>
-                  {vendor.business?.insuranceExpiry ? 'Yes' : 'No'}
+                <span className="text-sm text-muted-foreground">
+                  Insurance Active
+                </span>
+                <Badge
+                  variant={
+                    vendor.business?.insuranceExpiry ? "default" : "outline"
+                  }
+                >
+                  {vendor.business?.insuranceExpiry ? "Yes" : "No"}
                 </Badge>
               </div>
             </CardContent>

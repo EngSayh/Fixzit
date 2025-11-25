@@ -1,5 +1,5 @@
-import { useContext, useCallback } from 'react';
-import { I18nContext } from './I18nProvider';
+import { useContext, useCallback } from "react";
+import { I18nContext } from "./I18nProvider";
 
 type Dict = Record<string, unknown>;
 
@@ -8,8 +8,8 @@ const drill = (path: string, dict: Dict): unknown => {
     return (dict as Record<string, unknown>)[path];
   }
 
-  return path.split('.').reduce<unknown>((acc, segment) => {
-    if (acc && typeof acc === 'object' && segment in acc) {
+  return path.split(".").reduce<unknown>((acc, segment) => {
+    if (acc && typeof acc === "object" && segment in acc) {
       return (acc as Dict)[segment];
     }
     return undefined;
@@ -19,7 +19,7 @@ const drill = (path: string, dict: Dict): unknown => {
 export function useI18n() {
   const ctx = useContext(I18nContext);
   if (!ctx) {
-    throw new Error('useI18n must be used within <I18nProvider />');
+    throw new Error("useI18n must be used within <I18nProvider />");
   }
 
   // FIX: Use useCallback to memoize translation function based on dict reference
@@ -29,7 +29,7 @@ export function useI18n() {
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>) => {
       const raw = drill(key, dict) ?? key;
-      if (typeof raw !== 'string') {
+      if (typeof raw !== "string") {
         return key;
       }
 
@@ -38,10 +38,10 @@ export function useI18n() {
       }
 
       return Object.keys(vars).reduce((acc, token) => {
-        return acc.replace(new RegExp(`{${token}}`, 'g'), String(vars[token]));
+        return acc.replace(new RegExp(`{${token}}`, "g"), String(vars[token]));
       }, raw);
     },
-    [dict] // Recreate function when dict reference changes
+    [dict], // Recreate function when dict reference changes
   );
 
   return { ...ctx, t };

@@ -519,13 +519,13 @@ const ALLOWED: Record<TProjectStatus, TProjectStatus[]> = {
   CLOSED: [],
 };
 
-// TODO(type-safety): Resolve ProjectModel static method type compatibility
+// ✅ FIXED: Type-safe static method with proper ProjectModel interface typing
 ProjectSchema.statics.setStatus = (async function (
   this: ProjectModel,
   projectId: Types.ObjectId,
   next: TProjectStatus,
   who: Types.ObjectId | string,
-) {
+): Promise<ProjectDoc | null> {
   const doc = await this.findById(projectId).lean();
   if (!doc) return null;
   const allowed = ALLOWED[doc.status as TProjectStatus] || [];
@@ -539,11 +539,11 @@ ProjectSchema.statics.setStatus = (async function (
   );
 }) as ProjectModel['setStatus'];
 
-// TODO(type-safety): Resolve ProjectModel static method type compatibility
+// ✅ FIXED: Type-safe static method with proper ProjectModel interface typing
 ProjectSchema.statics.recomputeBudget = (async function (
   this: ProjectModel,
   projectId: Types.ObjectId,
-) {
+): Promise<ProjectDoc | null> {
   const doc = await this.findById(projectId);
   if (!doc) return null;
   const total = doc.budget?.total ?? 0;

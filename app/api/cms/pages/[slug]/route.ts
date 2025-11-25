@@ -4,8 +4,8 @@ import { CmsPage } from "@/server/models/CmsPage";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import {notFoundError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+import { notFoundError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
 
 /**
  * @openapi
@@ -24,7 +24,10 @@ import { createSecureResponse } from '@/server/security/headers';
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET(_req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+export async function GET(
+  _req: NextRequest,
+  props: { params: Promise<{ slug: string }> },
+) {
   const params = await props.params;
   await connectToDatabase();
   const page = await CmsPage.findOne({ slug: params.slug }).lean();
@@ -35,24 +38,27 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ slug: st
 const patchSchema = z.object({
   title: z.string().min(2).optional(),
   content: z.string().min(1).optional(),
-  status: z.enum(["DRAFT","PUBLISHED"]).optional()
+  status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
 });
 
-export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ slug: string }> },
+) {
   const params = await props.params;
   await connectToDatabase();
-  const user = await getSessionUser(req).catch(()=>null);
-  if (!user || !["SUPER_ADMIN","CORPORATE_ADMIN"].includes(user.role)) {
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user || !["SUPER_ADMIN", "CORPORATE_ADMIN"].includes(user.role)) {
     return createSecureResponse({ error: "Forbidden" }, 403, req);
   }
-  
+
   const body = await req.json();
   const validated = patchSchema.parse(body);
-  const page = (await CmsPage.findOneAndUpdate(
+  const page = await CmsPage.findOneAndUpdate(
     { slug: params.slug },
     { $set: validated },
-    { new: true }
-  ));
+    { new: true },
+  );
   if (!page) return notFoundError("Resource");
   return NextResponse.json(page);
 }

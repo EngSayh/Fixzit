@@ -1,7 +1,7 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef } from "react";
 
 interface SeparatorProps extends React.HTMLAttributes<HTMLDivElement> {
-  orientation?: 'horizontal' | 'vertical';
+  orientation?: "horizontal" | "vertical";
 }
 
 /**
@@ -11,11 +11,10 @@ interface SeparatorProps extends React.HTMLAttributes<HTMLDivElement> {
  * use role="separator" and add aria-orientation.
  */
 export const Separator = forwardRef<HTMLDivElement, SeparatorProps>(
-  ({ className = '', orientation = 'horizontal', ...props }, ref) => {
-    
+  ({ className = "", orientation = "horizontal", ...props }, ref) => {
     const orientationClasses = {
-      horizontal: 'h-[1px] w-full',
-      vertical: 'h-full w-[1px]',
+      horizontal: "h-[1px] w-full",
+      vertical: "h-full w-[1px]",
     };
 
     return (
@@ -32,8 +31,7 @@ export const Separator = forwardRef<HTMLDivElement, SeparatorProps>(
         {...props}
       />
     );
-  }
+  },
 );
 
-Separator.displayName = 'Separator';
-
+Separator.displayName = "Separator";

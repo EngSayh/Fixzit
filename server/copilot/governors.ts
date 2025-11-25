@@ -1,17 +1,17 @@
 /**
  * System Governors - Access Control and Policy Enforcement
- * 
+ *
  * This module implements system-level governance to ensure users follow
  * established policies when accessing AI features.
  */
 
 import { CopilotSession } from "./session";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 export interface GovernorContext {
   session: CopilotSession;
   message: string;
-  locale: 'en' | 'ar';
+  locale: "en" | "ar";
   endpoint: string;
 }
 
@@ -35,36 +35,49 @@ function checkRateLimit(_context: GovernorContext): GovernorResult {
  */
 function checkRoleAccess(context: GovernorContext): GovernorResult {
   const { session } = context;
-  
+
   // Super admin and owner have full access
-  if (session.role === 'SUPER_ADMIN' || session.role === 'OWNER' || session.role === 'ADMIN') {
+  if (
+    session.role === "SUPER_ADMIN" ||
+    session.role === "OWNER" ||
+    session.role === "ADMIN"
+  ) {
     return { allowed: true };
   }
 
   // Corporate admin has access to AI features
-  if (session.role === 'CORPORATE_ADMIN') {
+  if (session.role === "CORPORATE_ADMIN") {
     return { allowed: true };
   }
 
   // Property manager has limited access
-  if (session.role === 'PROPERTY_MANAGER' || session.role === 'FM_MANAGER') {
+  if (session.role === "PROPERTY_MANAGER" || session.role === "FM_MANAGER") {
     // Check if asking for sensitive financial data
     const sensitiveKeywords = [
-      'revenue', 'profit', 'salary', 'cost', 'expense',
-      'إيرادات', 'ربح', 'راتب', 'تكلفة', 'مصروف'
+      "revenue",
+      "profit",
+      "salary",
+      "cost",
+      "expense",
+      "إيرادات",
+      "ربح",
+      "راتب",
+      "تكلفة",
+      "مصروف",
     ];
-    
-    const hasSensitiveKeyword = sensitiveKeywords.some(keyword => 
-      context.message.toLowerCase().includes(keyword.toLowerCase())
+
+    const hasSensitiveKeyword = sensitiveKeywords.some((keyword) =>
+      context.message.toLowerCase().includes(keyword.toLowerCase()),
     );
 
     if (hasSensitiveKeyword) {
       return {
         allowed: false,
-        reason: context.locale === 'ar'
-          ? 'ليست لديك صلاحية الوصول إلى المعلومات المالية الحساسة.'
-          : 'You do not have permission to access sensitive financial information.',
-        governor: 'role_access'
+        reason:
+          context.locale === "ar"
+            ? "ليست لديك صلاحية الوصول إلى المعلومات المالية الحساسة."
+            : "You do not have permission to access sensitive financial information.",
+        governor: "role_access",
       };
     }
 
@@ -72,24 +85,33 @@ function checkRoleAccess(context: GovernorContext): GovernorResult {
   }
 
   // Technician has very limited access
-  if (session.role === 'TECHNICIAN') {
+  if (session.role === "TECHNICIAN") {
     // Only allow work order and maintenance related queries
     const allowedKeywords = [
-      'work order', 'maintenance', 'task', 'repair', 'fix',
-      'أمر عمل', 'صيانة', 'مهمة', 'إصلاح', 'تصليح'
+      "work order",
+      "maintenance",
+      "task",
+      "repair",
+      "fix",
+      "أمر عمل",
+      "صيانة",
+      "مهمة",
+      "إصلاح",
+      "تصليح",
     ];
 
-    const hasAllowedKeyword = allowedKeywords.some(keyword =>
-      context.message.toLowerCase().includes(keyword.toLowerCase())
+    const hasAllowedKeyword = allowedKeywords.some((keyword) =>
+      context.message.toLowerCase().includes(keyword.toLowerCase()),
     );
 
     if (!hasAllowedKeyword) {
       return {
         allowed: false,
-        reason: context.locale === 'ar'
-          ? 'يمكنك فقط الاستفسار عن أوامر العمل والصيانة.'
-          : 'You can only inquire about work orders and maintenance.',
-        governor: 'role_access'
+        reason:
+          context.locale === "ar"
+            ? "يمكنك فقط الاستفسار عن أوامر العمل والصيانة."
+            : "You can only inquire about work orders and maintenance.",
+        governor: "role_access",
       };
     }
 
@@ -97,24 +119,33 @@ function checkRoleAccess(context: GovernorContext): GovernorResult {
   }
 
   // Tenant has read-only access
-  if (session.role === 'TENANT' || session.role === 'CUSTOMER') {
+  if (session.role === "TENANT" || session.role === "CUSTOMER") {
     // Block any attempt to modify data
     const modifyKeywords = [
-      'create', 'update', 'delete', 'modify', 'change',
-      'إنشاء', 'تحديث', 'حذف', 'تعديل', 'تغيير'
+      "create",
+      "update",
+      "delete",
+      "modify",
+      "change",
+      "إنشاء",
+      "تحديث",
+      "حذف",
+      "تعديل",
+      "تغيير",
     ];
 
-    const hasModifyKeyword = modifyKeywords.some(keyword =>
-      context.message.toLowerCase().includes(keyword.toLowerCase())
+    const hasModifyKeyword = modifyKeywords.some((keyword) =>
+      context.message.toLowerCase().includes(keyword.toLowerCase()),
     );
 
     if (hasModifyKeyword) {
       return {
         allowed: false,
-        reason: context.locale === 'ar'
-          ? 'ليست لديك صلاحية تعديل البيانات. يمكنك فقط عرض المعلومات.'
-          : 'You do not have permission to modify data. You can only view information.',
-        governor: 'role_access'
+        reason:
+          context.locale === "ar"
+            ? "ليست لديك صلاحية تعديل البيانات. يمكنك فقط عرض المعلومات."
+            : "You do not have permission to modify data. You can only view information.",
+        governor: "role_access",
       };
     }
 
@@ -124,10 +155,11 @@ function checkRoleAccess(context: GovernorContext): GovernorResult {
   // Default deny for unknown roles
   return {
     allowed: false,
-    reason: context.locale === 'ar'
-      ? 'دورك غير مصرح له باستخدام هذه الميزة.'
-      : 'Your role is not authorized to use this feature.',
-    governor: 'role_access'
+    reason:
+      context.locale === "ar"
+        ? "دورك غير مصرح له باستخدام هذه الميزة."
+        : "Your role is not authorized to use this feature.",
+    governor: "role_access",
   };
 }
 
@@ -144,21 +176,22 @@ function checkContentSafety(context: GovernorContext): GovernorResult {
     /insert\s+into/i,
     /update\s+\w+\s+set/i,
     /union\s+select/i,
-    /;\s*drop/i
+    /;\s*drop/i,
   ];
 
-  if (sqlPatterns.some(pattern => pattern.test(message))) {
-    logger.warn('[governors] SQL injection attempt detected', {
+  if (sqlPatterns.some((pattern) => pattern.test(message))) {
+    logger.warn("[governors] SQL injection attempt detected", {
       userId: context.session.userId,
-      message: message.slice(0, 100)
+      message: message.slice(0, 100),
     });
 
     return {
       allowed: false,
-      reason: context.locale === 'ar'
-        ? 'تم اكتشاف محتوى غير آمن في رسالتك.'
-        : 'Unsafe content detected in your message.',
-      governor: 'content_safety'
+      reason:
+        context.locale === "ar"
+          ? "تم اكتشاف محتوى غير آمن في رسالتك."
+          : "Unsafe content detected in your message.",
+      governor: "content_safety",
     };
   }
 
@@ -169,21 +202,22 @@ function checkContentSafety(context: GovernorContext): GovernorResult {
     /&&/,
     /\|\|/,
     /;\s*rm\s+-rf/i,
-    /exec\s*\(/i
+    /exec\s*\(/i,
   ];
 
-  if (commandPatterns.some(pattern => pattern.test(message))) {
-    logger.warn('[governors] Command injection attempt detected', {
+  if (commandPatterns.some((pattern) => pattern.test(message))) {
+    logger.warn("[governors] Command injection attempt detected", {
       userId: context.session.userId,
-      message: message.slice(0, 100)
+      message: message.slice(0, 100),
     });
 
     return {
       allowed: false,
-      reason: context.locale === 'ar'
-        ? 'تم اكتشاف محتوى غير آمن في رسالتك.'
-        : 'Unsafe content detected in your message.',
-      governor: 'content_safety'
+      reason:
+        context.locale === "ar"
+          ? "تم اكتشاف محتوى غير آمن في رسالتك."
+          : "Unsafe content detected in your message.",
+      governor: "content_safety",
     };
   }
 
@@ -191,10 +225,11 @@ function checkContentSafety(context: GovernorContext): GovernorResult {
   if (message.length > 5000) {
     return {
       allowed: false,
-      reason: context.locale === 'ar'
-        ? 'رسالتك طويلة جداً. الحد الأقصى 5000 حرف.'
-        : 'Your message is too long. Maximum 5000 characters.',
-      governor: 'content_safety'
+      reason:
+        context.locale === "ar"
+          ? "رسالتك طويلة جداً. الحد الأقصى 5000 حرف."
+          : "Your message is too long. Maximum 5000 characters.",
+      governor: "content_safety",
     };
   }
 
@@ -207,8 +242,8 @@ function checkContentSafety(context: GovernorContext): GovernorResult {
 function checkBusinessHours(context: GovernorContext): GovernorResult {
   // Optional: Enforce business hours for certain roles
   // For now, always allow (can be configured via env var)
-  const enforceBusinessHours = process.env.ENFORCE_AI_BUSINESS_HOURS === 'true';
-  
+  const enforceBusinessHours = process.env.ENFORCE_AI_BUSINESS_HOURS === "true";
+
   if (!enforceBusinessHours) {
     return { allowed: true };
   }
@@ -221,10 +256,11 @@ function checkBusinessHours(context: GovernorContext): GovernorResult {
   if (day === 5 || day === 6) {
     return {
       allowed: false,
-      reason: context.locale === 'ar'
-        ? 'خدمة الذكاء الاصطناعي متاحة فقط في أيام العمل.'
-        : 'AI service is only available on business days.',
-      governor: 'business_hours'
+      reason:
+        context.locale === "ar"
+          ? "خدمة الذكاء الاصطناعي متاحة فقط في أيام العمل."
+          : "AI service is only available on business days.",
+      governor: "business_hours",
     };
   }
 
@@ -232,10 +268,11 @@ function checkBusinessHours(context: GovernorContext): GovernorResult {
   if (hour < 9 || hour >= 18) {
     return {
       allowed: false,
-      reason: context.locale === 'ar'
-        ? 'خدمة الذكاء الاصطناعي متاحة من 9 صباحاً حتى 6 مساءً.'
-        : 'AI service is available from 9 AM to 6 PM.',
-      governor: 'business_hours'
+      reason:
+        context.locale === "ar"
+          ? "خدمة الذكاء الاصطناعي متاحة من 9 صباحاً حتى 6 مساءً."
+          : "AI service is available from 9 AM to 6 PM.",
+      governor: "business_hours",
     };
   }
 
@@ -250,17 +287,18 @@ function checkDataIsolation(context: GovernorContext): GovernorResult {
 
   // Ensure tenantId is present
   if (!session.tenantId) {
-    logger.error('[governors] Missing tenantId in session', {
+    logger.error("[governors] Missing tenantId in session", {
       userId: session.userId,
-      role: session.role
+      role: session.role,
     });
 
     return {
       allowed: false,
-      reason: context.locale === 'ar'
-        ? 'خطأ في التحقق من الهوية. يرجى تسجيل الدخول مجدداً.'
-        : 'Authentication error. Please log in again.',
-      governor: 'data_isolation'
+      reason:
+        context.locale === "ar"
+          ? "خطأ في التحقق من الهوية. يرجى تسجيل الدخول مجدداً."
+          : "Authentication error. Please log in again.",
+      governor: "data_isolation",
     };
   }
 
@@ -268,22 +306,23 @@ function checkDataIsolation(context: GovernorContext): GovernorResult {
   const crossTenantPatterns = [
     /tenantId\s*[:=]\s*['"]?(?!\s*$)/i,
     /orgId\s*[:=]\s*['"]?(?!\s*$)/i,
-    /organizationId\s*[:=]\s*['"]?(?!\s*$)/i
+    /organizationId\s*[:=]\s*['"]?(?!\s*$)/i,
   ];
 
-  if (crossTenantPatterns.some(pattern => pattern.test(message))) {
-    logger.warn('[governors] Cross-tenant access attempt detected', {
+  if (crossTenantPatterns.some((pattern) => pattern.test(message))) {
+    logger.warn("[governors] Cross-tenant access attempt detected", {
       userId: context.session.userId,
       tenantId: context.session.tenantId,
-      message: message.slice(0, 100)
+      message: message.slice(0, 100),
     });
 
     return {
       allowed: false,
-      reason: context.locale === 'ar'
-        ? 'لا يمكنك الوصول إلى بيانات منظمات أخرى.'
-        : 'You cannot access data from other organizations.',
-      governor: 'data_isolation'
+      reason:
+        context.locale === "ar"
+          ? "لا يمكنك الوصول إلى بيانات منظمات أخرى."
+          : "You cannot access data from other organizations.",
+      governor: "data_isolation",
     };
   }
 
@@ -294,7 +333,7 @@ function checkDataIsolation(context: GovernorContext): GovernorResult {
  * Main validation function - runs all governors
  */
 export async function validateSystemGovernors(
-  context: GovernorContext
+  context: GovernorContext,
 ): Promise<GovernorResult> {
   // Run all governors in sequence
   const governors = [
@@ -302,17 +341,17 @@ export async function validateSystemGovernors(
     checkRoleAccess,
     checkContentSafety,
     checkBusinessHours,
-    checkDataIsolation
+    checkDataIsolation,
   ];
 
   for (const governor of governors) {
     const result = governor(context);
     if (!result.allowed) {
-      logger.info('[governors] Access denied', {
+      logger.info("[governors] Access denied", {
         governor: result.governor,
         userId: context.session.userId,
         role: context.session.role,
-        endpoint: context.endpoint
+        endpoint: context.endpoint,
       });
       return result;
     }
@@ -326,22 +365,22 @@ export async function validateSystemGovernors(
  */
 export function hasAIPermission(role: string, feature: string): boolean {
   const permissions: Record<string, string[]> = {
-    SUPER_ADMIN: ['chat', 'stream', 'tools', 'analytics', 'admin'],
-    ADMIN: ['chat', 'stream', 'tools', 'analytics', 'admin'],
-    OWNER: ['chat', 'stream', 'tools', 'analytics'],
-    CORPORATE_ADMIN: ['chat', 'stream', 'tools', 'analytics'],
-    FM_MANAGER: ['chat', 'stream', 'tools', 'analytics'],
-    PROPERTY_MANAGER: ['chat', 'stream', 'tools'],
-    FINANCE: ['chat', 'stream', 'analytics'],
-    HR: ['chat', 'stream'],
-    PROCUREMENT: ['chat', 'stream'],
-    TECHNICIAN: ['chat', 'stream'],
-    EMPLOYEE: ['chat'],
-    TENANT: ['chat'],
-    CUSTOMER: ['chat'],
-    VENDOR: ['chat'],
-    AUDITOR: ['chat', 'analytics'],
-    GUEST: []
+    SUPER_ADMIN: ["chat", "stream", "tools", "analytics", "admin"],
+    ADMIN: ["chat", "stream", "tools", "analytics", "admin"],
+    OWNER: ["chat", "stream", "tools", "analytics"],
+    CORPORATE_ADMIN: ["chat", "stream", "tools", "analytics"],
+    FM_MANAGER: ["chat", "stream", "tools", "analytics"],
+    PROPERTY_MANAGER: ["chat", "stream", "tools"],
+    FINANCE: ["chat", "stream", "analytics"],
+    HR: ["chat", "stream"],
+    PROCUREMENT: ["chat", "stream"],
+    TECHNICIAN: ["chat", "stream"],
+    EMPLOYEE: ["chat"],
+    TENANT: ["chat"],
+    CUSTOMER: ["chat"],
+    VENDOR: ["chat"],
+    AUDITOR: ["chat", "analytics"],
+    GUEST: [],
   };
 
   const rolePermissions = permissions[role] || [];

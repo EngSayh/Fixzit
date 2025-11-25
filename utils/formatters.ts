@@ -13,18 +13,20 @@
  * sanitizePhoneNumber('+1 (555) 123-4567') // Returns: '+15551234567'
  * sanitizePhoneNumber('966 55 123 4567') // Returns: '966551234567'
  */
-export const sanitizePhoneNumber = (phone: string | null | undefined): string => {
-  if (!phone) return '';
+export const sanitizePhoneNumber = (
+  phone: string | null | undefined,
+): string => {
+  if (!phone) return "";
   // Preserve leading '+' for international format, remove all other non-digits
-  const hasPlus = phone.trim().startsWith('+');
-  const digitsOnly = phone.replace(/\D/g, '');
+  const hasPlus = phone.trim().startsWith("+");
+  const digitsOnly = phone.replace(/\D/g, "");
   return hasPlus ? `+${digitsOnly}` : digitsOnly;
 };
 
 /**
  * Re-export the comprehensive formatCurrency utility from lib/payments/currencyUtils.ts.
  * Provides robust currency formatting with proper locale support, error handling, and fallback mechanisms.
- * 
+ *
  * @param amount The amount to format
  * @param currency The currency code (default: 'USD')
  * @param options Optional configuration:
@@ -37,12 +39,12 @@ export const sanitizePhoneNumber = (phone: string | null | undefined): string =>
  * formatCurrency(1000, 'USD', { showSymbol: false }) // Returns: '1,000.00'
  * @see lib/payments/currencyUtils.ts for full documentation
  */
-export { formatCurrency } from '../lib/payments/currencyUtils';
+export { formatCurrency } from "../lib/payments/currencyUtils";
 
 /**
  * Formats a number using standard grouping separators with enhanced options.
  * Consolidates formatting logic from MortgageCalculator and arabic-support.js.
- * 
+ *
  * @param num The number to format
  * @param options Optional formatting options:
  *   - locale: string (default: 'en-SA') - The locale for number formatting
@@ -63,17 +65,17 @@ export const formatNumber = (
     minimumFractionDigits?: number;
     maximumFractionDigits?: number;
     round?: boolean;
-  }
+  },
 ): string => {
   const {
-    locale = 'en-SA',
+    locale = "en-SA",
     minimumFractionDigits = 0,
     maximumFractionDigits = 0,
     round = true,
   } = options || {};
-  
+
   const value = round ? Math.round(num) : num;
-  
+
   return new Intl.NumberFormat(locale, {
     minimumFractionDigits,
     maximumFractionDigits,

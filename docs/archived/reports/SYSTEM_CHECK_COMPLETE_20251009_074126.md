@@ -75,7 +75,7 @@ All API routes, models, and production code compile without errors.
 
 ### Workflow Health Check
 
-- ✅ **No duplicate workflow files** (*-fixed.yml)
+- ✅ **No duplicate workflow files** (\*-fixed.yml)
 - ✅ **No workflow name collisions**
 - ⚠️ **Missing concurrency controls** (all 7 workflows)
   - Impact: Old workflow runs may stay queued
@@ -130,9 +130,9 @@ All error helpers now use correct signatures and standardized patterns.
 
 ### Issues in PR #93 (Not Present Here)
 
-1. ❌ **Workflow Duplication**: *-fixed.yml files with same names as originals
+1. ❌ **Workflow Duplication**: \*-fixed.yml files with same names as originals
 2. ❌ **Missing Concurrency Controls**: Workflows lack concurrency blocks
-3. ❌ **Branch Trigger Mismatches**: cursor/* branches not triggering workflows
+3. ❌ **Branch Trigger Mismatches**: cursor/\* branches not triggering workflows
 
 ### Status in Current Branch
 

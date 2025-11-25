@@ -1,8 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { Search, SlidersHorizontal, X, MapPin, Home, Bed, Bath, DollarSign, Grid3x3 } from 'lucide-react';
-import { useTranslation } from '@/contexts/TranslationContext';
+import { useState, useEffect, useRef } from "react";
+import {
+  Search,
+  SlidersHorizontal,
+  X,
+  MapPin,
+  Home,
+  Bed,
+  Bath,
+  DollarSign,
+  Grid3x3,
+} from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 export interface SearchFiltersProps {
   onFilterChange?: (filters: PropertyFilters) => void;
@@ -12,7 +22,7 @@ export interface SearchFiltersProps {
 export interface PropertyFilters {
   search?: string;
   propertyTypes?: string[];
-  listingType?: 'SALE' | 'RENT' | 'LEASE' | 'ALL';
+  listingType?: "SALE" | "RENT" | "LEASE" | "ALL";
   priceMin?: number;
   priceMax?: number;
   bedrooms?: number[];
@@ -25,79 +35,116 @@ export interface PropertyFilters {
   furnished?: boolean | null;
   featured?: boolean;
   verified?: boolean;
-  sortBy?: 'PRICE_ASC' | 'PRICE_DESC' | 'DATE_DESC' | 'AREA_DESC' | 'POPULAR';
+  sortBy?: "PRICE_ASC" | "PRICE_DESC" | "DATE_DESC" | "AREA_DESC" | "POPULAR";
 }
 
-export default function SearchFilters({ onFilterChange, initialFilters }: SearchFiltersProps) {
+export default function SearchFilters({
+  onFilterChange,
+  initialFilters,
+}: SearchFiltersProps) {
   const { t } = useTranslation();
-  
-  const [filters, setFilters] = useState<PropertyFilters>(initialFilters || {
-    listingType: 'ALL',
-    sortBy: 'DATE_DESC',
-  });
+
+  const [filters, setFilters] = useState<PropertyFilters>(
+    initialFilters || {
+      listingType: "ALL",
+      sortBy: "DATE_DESC",
+    },
+  );
   const [showAdvanced, setShowAdvanced] = useState(false);
-  
+
   // Accessibility: Focus management
   const filtersButtonRef = useRef<HTMLButtonElement>(null);
   const advancedFiltersRef = useRef<HTMLDivElement>(null);
-  
+
   // Accessibility: Keyboard navigation - Close advanced filters with Escape
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && showAdvanced) {
+      if (e.key === "Escape" && showAdvanced) {
         setShowAdvanced(false);
         // Restore focus to the filters button
         filtersButtonRef.current?.focus();
       }
     };
-    
+
     if (showAdvanced) {
-      document.addEventListener('keydown', handleEscape);
-      return () => document.removeEventListener('keydown', handleEscape);
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
     }
   }, [showAdvanced]);
-  
+
   const propertyTypes = [
-    { value: 'APARTMENT', label: t('aqar.propertyTypes.apartment', 'Apartment'), icon: '🏢' },
-    { value: 'VILLA', label: t('aqar.propertyTypes.villa', 'Villa'), icon: '🏡' },
-    { value: 'TOWNHOUSE', label: t('aqar.propertyTypes.townhouse', 'Townhouse'), icon: '🏘️' },
-    { value: 'PENTHOUSE', label: t('aqar.propertyTypes.penthouse', 'Penthouse'), icon: '🏙️' },
-    { value: 'STUDIO', label: t('aqar.propertyTypes.studio', 'Studio'), icon: '🏠' },
-    { value: 'LAND', label: t('aqar.propertyTypes.land', 'Land'), icon: '🗺️' },
-    { value: 'COMMERCIAL', label: t('aqar.propertyTypes.commercial', 'Commercial'), icon: '🏪' },
-    { value: 'WAREHOUSE', label: t('aqar.propertyTypes.warehouse', 'Warehouse'), icon: '🏭' },
-    { value: 'OFFICE', label: t('aqar.propertyTypes.office', 'Office'), icon: '🏢' },
+    {
+      value: "APARTMENT",
+      label: t("aqar.propertyTypes.apartment", "Apartment"),
+      icon: "🏢",
+    },
+    {
+      value: "VILLA",
+      label: t("aqar.propertyTypes.villa", "Villa"),
+      icon: "🏡",
+    },
+    {
+      value: "TOWNHOUSE",
+      label: t("aqar.propertyTypes.townhouse", "Townhouse"),
+      icon: "🏘️",
+    },
+    {
+      value: "PENTHOUSE",
+      label: t("aqar.propertyTypes.penthouse", "Penthouse"),
+      icon: "🏙️",
+    },
+    {
+      value: "STUDIO",
+      label: t("aqar.propertyTypes.studio", "Studio"),
+      icon: "🏠",
+    },
+    { value: "LAND", label: t("aqar.propertyTypes.land", "Land"), icon: "🗺️" },
+    {
+      value: "COMMERCIAL",
+      label: t("aqar.propertyTypes.commercial", "Commercial"),
+      icon: "🏪",
+    },
+    {
+      value: "WAREHOUSE",
+      label: t("aqar.propertyTypes.warehouse", "Warehouse"),
+      icon: "🏭",
+    },
+    {
+      value: "OFFICE",
+      label: t("aqar.propertyTypes.office", "Office"),
+      icon: "🏢",
+    },
   ];
 
   const amenitiesList = [
-    t('aqar.amenitiesList.swimmingPool', 'Swimming Pool'),
-    t('aqar.amenitiesList.gym', 'Gym'),
-    t('aqar.amenitiesList.parking', 'Parking'),
-    t('aqar.amenitiesList.security', 'Security'),
-    t('aqar.amenitiesList.garden', 'Garden'),
-    t('aqar.amenitiesList.balcony', 'Balcony'),
-    t('aqar.amenitiesList.elevator', 'Elevator'),
-    t('aqar.amenitiesList.centralAc', 'Central AC'),
-    t('aqar.amenitiesList.maidRoom', 'Maid Room'),
-    t('aqar.amenitiesList.storage', 'Storage'),
-    t('aqar.amenitiesList.kidsArea', 'Kids Area'),
-    t('aqar.amenitiesList.bbqArea', 'BBQ Area'),
+    t("aqar.amenitiesList.swimmingPool", "Swimming Pool"),
+    t("aqar.amenitiesList.gym", "Gym"),
+    t("aqar.amenitiesList.parking", "Parking"),
+    t("aqar.amenitiesList.security", "Security"),
+    t("aqar.amenitiesList.garden", "Garden"),
+    t("aqar.amenitiesList.balcony", "Balcony"),
+    t("aqar.amenitiesList.elevator", "Elevator"),
+    t("aqar.amenitiesList.centralAc", "Central AC"),
+    t("aqar.amenitiesList.maidRoom", "Maid Room"),
+    t("aqar.amenitiesList.storage", "Storage"),
+    t("aqar.amenitiesList.kidsArea", "Kids Area"),
+    t("aqar.amenitiesList.bbqArea", "BBQ Area"),
   ];
 
   const saudiCities = [
-    t('aqar.cities.riyadh', 'Riyadh'),
-    t('aqar.cities.jeddah', 'Jeddah'),
-    t('aqar.cities.mecca', 'Mecca'),
-    t('aqar.cities.medina', 'Medina'),
-    t('aqar.cities.dammam', 'Dammam'),
-    t('aqar.cities.khobar', 'Khobar'),
-    t('aqar.cities.dhahran', 'Dhahran'),
-    t('aqar.cities.jubail', 'Jubail'),
-    t('aqar.cities.tabuk', 'Tabuk'),
-    t('aqar.cities.abha', 'Abha'),
-    t('aqar.cities.khamisMushait', 'Khamis Mushait'),
-    t('aqar.cities.najran', 'Najran'),
-    t('aqar.cities.jazan', 'Jazan'),
+    t("aqar.cities.riyadh", "Riyadh"),
+    t("aqar.cities.jeddah", "Jeddah"),
+    t("aqar.cities.mecca", "Mecca"),
+    t("aqar.cities.medina", "Medina"),
+    t("aqar.cities.dammam", "Dammam"),
+    t("aqar.cities.khobar", "Khobar"),
+    t("aqar.cities.dhahran", "Dhahran"),
+    t("aqar.cities.jubail", "Jubail"),
+    t("aqar.cities.tabuk", "Tabuk"),
+    t("aqar.cities.abha", "Abha"),
+    t("aqar.cities.khamisMushait", "Khamis Mushait"),
+    t("aqar.cities.najran", "Najran"),
+    t("aqar.cities.jazan", "Jazan"),
   ];
 
   const updateFilters = (updates: Partial<PropertyFilters>) => {
@@ -142,8 +189,8 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
   const clearFilters = () => {
     const cleared = {
-      listingType: 'ALL' as const,
-      sortBy: 'DATE_DESC' as const,
+      listingType: "ALL" as const,
+      sortBy: "DATE_DESC" as const,
     };
     setFilters(cleared);
     if (onFilterChange) {
@@ -155,7 +202,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
     let count = 0;
     if (filters.search) count++;
     if (filters.propertyTypes && filters.propertyTypes.length > 0) count++;
-    if (filters.listingType && filters.listingType !== 'ALL') count++;
+    if (filters.listingType && filters.listingType !== "ALL") count++;
     if (filters.priceMin || filters.priceMax) count++;
     if (filters.bedrooms && filters.bedrooms.length > 0) count++;
     if (filters.bathrooms && filters.bathrooms.length > 0) count++;
@@ -175,8 +222,11 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
         <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
         <input
           type="text"
-          placeholder={t('aqar.filters.search', 'Search by location, property name, or keyword...')}
-          value={filters.search || ''}
+          placeholder={t(
+            "aqar.filters.search",
+            "Search by location, property name, or keyword...",
+          )}
+          value={filters.search || ""}
           onChange={(e) => updateFilters({ search: e.target.value })}
           className="w-full ps-10 pe-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
         />
@@ -185,44 +235,44 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
       {/* Quick Filters */}
       <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
         <button
-          onClick={() => updateFilters({ listingType: 'ALL' })}
+          onClick={() => updateFilters({ listingType: "ALL" })}
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-            filters.listingType === 'ALL'
-              ? 'bg-warning text-white'
-              : 'bg-muted text-foreground hover:bg-muted'
+            filters.listingType === "ALL"
+              ? "bg-warning text-white"
+              : "bg-muted text-foreground hover:bg-muted"
           }`}
         >
-          {t('aqar.filters.all', 'All')}
+          {t("aqar.filters.all", "All")}
         </button>
         <button
-          onClick={() => updateFilters({ listingType: 'SALE' })}
+          onClick={() => updateFilters({ listingType: "SALE" })}
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-            filters.listingType === 'SALE'
-              ? 'bg-warning text-white'
-              : 'bg-muted text-foreground hover:bg-muted'
+            filters.listingType === "SALE"
+              ? "bg-warning text-white"
+              : "bg-muted text-foreground hover:bg-muted"
           }`}
         >
-          {t('aqar.filters.forSale', 'For Sale')}
+          {t("aqar.filters.forSale", "For Sale")}
         </button>
         <button
-          onClick={() => updateFilters({ listingType: 'RENT' })}
+          onClick={() => updateFilters({ listingType: "RENT" })}
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-            filters.listingType === 'RENT'
-              ? 'bg-warning text-white'
-              : 'bg-muted text-foreground hover:bg-muted'
+            filters.listingType === "RENT"
+              ? "bg-warning text-white"
+              : "bg-muted text-foreground hover:bg-muted"
           }`}
         >
-          {t('aqar.filters.forRent', 'For Rent')}
+          {t("aqar.filters.forRent", "For Rent")}
         </button>
         <button
-          onClick={() => updateFilters({ listingType: 'LEASE' })}
+          onClick={() => updateFilters({ listingType: "LEASE" })}
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-            filters.listingType === 'LEASE'
-              ? 'bg-warning text-white'
-              : 'bg-muted text-foreground hover:bg-muted'
+            filters.listingType === "LEASE"
+              ? "bg-warning text-white"
+              : "bg-muted text-foreground hover:bg-muted"
           }`}
         >
-          {t('aqar.filters.forLease', 'For Lease')}
+          {t("aqar.filters.forLease", "For Lease")}
         </button>
         <div className="flex-1" />
         <button
@@ -230,13 +280,19 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           onClick={() => setShowAdvanced(!showAdvanced)}
           aria-expanded={showAdvanced}
           aria-controls="advanced-filters"
-          aria-label={t('aqar.filters.toggleFilters', `${showAdvanced ? 'Hide' : 'Show'} advanced filters${activeFilterCount() > 0 ? ` (${activeFilterCount()} active)` : ''}`)}
+          aria-label={t(
+            "aqar.filters.toggleFilters",
+            `${showAdvanced ? "Hide" : "Show"} advanced filters${activeFilterCount() > 0 ? ` (${activeFilterCount()} active)` : ""}`,
+          )}
           className="flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors whitespace-nowrap"
         >
           <SlidersHorizontal className="w-4 h-4" />
-          <span>{t('aqar.filters.filtersButton', 'Filters')}</span>
+          <span>{t("aqar.filters.filtersButton", "Filters")}</span>
           {activeFilterCount() > 0 && (
-            <span className="bg-warning text-white text-xs px-2 py-0.5 rounded-full" aria-live="polite">
+            <span
+              className="bg-warning text-white text-xs px-2 py-0.5 rounded-full"
+              aria-live="polite"
+            >
               {activeFilterCount()}
             </span>
           )}
@@ -245,21 +301,27 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
       {/* Advanced Filters */}
       {showAdvanced && (
-        <div 
+        <div
           id="advanced-filters"
           ref={advancedFiltersRef}
           role="region"
-          aria-label={t('aqar.filters.advancedFiltersRegion', 'Advanced filters')}
+          aria-label={t(
+            "aqar.filters.advancedFiltersRegion",
+            "Advanced filters",
+          )}
           className="border-t border-border pt-4 space-y-6"
         >
           {/* Property Type */}
           <div>
-            <h3 id="property-type-label" className="font-semibold text-foreground mb-3 flex items-center gap-2">
+            <h3
+              id="property-type-label"
+              className="font-semibold text-foreground mb-3 flex items-center gap-2"
+            >
               <Home className="w-4 h-4" aria-hidden="true" />
-              {t('aqar.filters.propertyType', 'Property Type')}
+              {t("aqar.filters.propertyType", "Property Type")}
             </h3>
-            <div 
-              role="group" 
+            <div
+              role="group"
               aria-labelledby="property-type-label"
               className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2"
             >
@@ -269,14 +331,16 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onClick={() => togglePropertyType(type.value)}
                   role="checkbox"
                   aria-checked={filters.propertyTypes?.includes(type.value)}
-                  aria-label={`${type.label} ${t('aqar.filters.propertyTypeOption', 'property type')}`}
+                  aria-label={`${type.label} ${t("aqar.filters.propertyTypeOption", "property type")}`}
                   className={`p-3 rounded-lg border-2 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2 ${
                     filters.propertyTypes?.includes(type.value)
-                      ? 'border-warning bg-warning/10'
-                      : 'border-border hover:border-border'
+                      ? "border-warning bg-warning/10"
+                      : "border-border hover:border-border"
                   }`}
                 >
-                  <div className="text-2xl mb-1" aria-hidden="true">{type.icon}</div>
+                  <div className="text-2xl mb-1" aria-hidden="true">
+                    {type.icon}
+                  </div>
                   <div className="text-xs font-medium">{type.label}</div>
                 </button>
               ))}
@@ -287,22 +351,24 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           <div>
             <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
-              {t('aqar.filters.priceRange', 'Price Range (SAR)')}
+              {t("aqar.filters.priceRange", "Price Range (SAR)")}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.minimum', 'Minimum')}</label>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  {t("aqar.filters.minimum", "Minimum")}
+                </label>
                 <input
                   type="number"
                   inputMode="numeric"
                   min="0"
                   step="1000"
-                  placeholder={t('aqar.filters.min', 'Min')}
-                  aria-label={t('aqar.filters.minPriceInput', 'Minimum price')}
-                  value={filters.priceMin || ''}
+                  placeholder={t("aqar.filters.min", "Min")}
+                  aria-label={t("aqar.filters.minPriceInput", "Minimum price")}
+                  value={filters.priceMin || ""}
                   onChange={(e) => {
                     const value = e.target.value.trim();
-                    if (value === '') {
+                    if (value === "") {
                       updateFilters({ priceMin: undefined });
                     } else {
                       const parsed = Number(value);
@@ -315,18 +381,20 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                 />
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.maximum', 'Maximum')}</label>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  {t("aqar.filters.maximum", "Maximum")}
+                </label>
                 <input
                   type="number"
                   inputMode="numeric"
                   min="0"
                   step="1000"
-                  placeholder={t('aqar.filters.max', 'Max')}
-                  aria-label={t('aqar.filters.maxPriceInput', 'Maximum price')}
-                  value={filters.priceMax || ''}
+                  placeholder={t("aqar.filters.max", "Max")}
+                  aria-label={t("aqar.filters.maxPriceInput", "Maximum price")}
+                  value={filters.priceMax || ""}
                   onChange={(e) => {
                     const value = e.target.value.trim();
-                    if (value === '') {
+                    if (value === "") {
                       updateFilters({ priceMax: undefined });
                     } else {
                       const parsed = Number(value);
@@ -343,25 +411,32 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Bedrooms */}
           <div>
-            <h3 id="bedrooms-label" className="font-semibold text-foreground mb-3 flex items-center gap-2">
+            <h3
+              id="bedrooms-label"
+              className="font-semibold text-foreground mb-3 flex items-center gap-2"
+            >
               <Bed className="w-4 h-4" aria-hidden="true" />
-              {t('aqar.filters.bedrooms', 'Bedrooms')}
+              {t("aqar.filters.bedrooms", "Bedrooms")}
             </h3>
-            <div role="group" aria-labelledby="bedrooms-label" className="flex gap-2">
+            <div
+              role="group"
+              aria-labelledby="bedrooms-label"
+              className="flex gap-2"
+            >
               {[1, 2, 3, 4, 5].map((count) => (
                 <button
                   key={count}
                   onClick={() => toggleBedrooms(count)}
                   role="checkbox"
                   aria-checked={filters.bedrooms?.includes(count)}
-                  aria-label={`${count === 5 ? '5 or more' : count} ${t('aqar.filters.bedroomsLabel', 'bedrooms')}`}
+                  aria-label={`${count === 5 ? "5 or more" : count} ${t("aqar.filters.bedroomsLabel", "bedrooms")}`}
                   className={`px-4 py-2 rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2 ${
                     filters.bedrooms?.includes(count)
-                      ? 'border-warning bg-warning/10 text-foreground'
-                      : 'border-border hover:border-border text-foreground'
+                      ? "border-warning bg-warning/10 text-foreground"
+                      : "border-border hover:border-border text-foreground"
                   }`}
                 >
-                  {count === 5 ? '5+' : count}
+                  {count === 5 ? "5+" : count}
                 </button>
               ))}
             </div>
@@ -369,25 +444,32 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Bathrooms */}
           <div>
-            <h3 id="bathrooms-label" className="font-semibold text-foreground mb-3 flex items-center gap-2">
+            <h3
+              id="bathrooms-label"
+              className="font-semibold text-foreground mb-3 flex items-center gap-2"
+            >
               <Bath className="w-4 h-4" aria-hidden="true" />
-              {t('aqar.filters.bathrooms', 'Bathrooms')}
+              {t("aqar.filters.bathrooms", "Bathrooms")}
             </h3>
-            <div role="group" aria-labelledby="bathrooms-label" className="flex gap-2">
+            <div
+              role="group"
+              aria-labelledby="bathrooms-label"
+              className="flex gap-2"
+            >
               {[1, 2, 3, 4].map((count) => (
                 <button
                   key={count}
                   onClick={() => toggleBathrooms(count)}
                   role="checkbox"
                   aria-checked={filters.bathrooms?.includes(count)}
-                  aria-label={`${count === 4 ? '4 or more' : count} ${t('aqar.filters.bathroomsLabel', 'bathrooms')}`}
+                  aria-label={`${count === 4 ? "4 or more" : count} ${t("aqar.filters.bathroomsLabel", "bathrooms")}`}
                   className={`px-4 py-2 rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2 ${
                     filters.bathrooms?.includes(count)
-                      ? 'border-warning bg-warning/10 text-foreground'
-                      : 'border-border hover:border-border text-foreground'
+                      ? "border-warning bg-warning/10 text-foreground"
+                      : "border-border hover:border-border text-foreground"
                   }`}
                 >
-                  {count === 4 ? '4+' : count}
+                  {count === 4 ? "4+" : count}
                 </button>
               ))}
             </div>
@@ -397,22 +479,27 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           <div>
             <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
               <Grid3x3 className="w-4 h-4" />
-              {t('aqar.filters.area', 'Area (sqm)')}
+              {t("aqar.filters.area", "Area (sqm)")}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.minimum', 'Minimum')}</label>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  {t("aqar.filters.minimum", "Minimum")}
+                </label>
                 <input
                   type="number"
                   inputMode="numeric"
                   min="0"
                   step="10"
-                  placeholder={t('aqar.filters.min', 'Min')}
-                  aria-label={t('aqar.filters.minAreaInput', 'Minimum area in square meters')}
-                  value={filters.areaMin || ''}
+                  placeholder={t("aqar.filters.min", "Min")}
+                  aria-label={t(
+                    "aqar.filters.minAreaInput",
+                    "Minimum area in square meters",
+                  )}
+                  value={filters.areaMin || ""}
                   onChange={(e) => {
                     const value = e.target.value.trim();
-                    if (value === '') {
+                    if (value === "") {
                       updateFilters({ areaMin: undefined });
                     } else {
                       const parsed = Number(value);
@@ -425,18 +512,23 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                 />
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.maximum', 'Maximum')}</label>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  {t("aqar.filters.maximum", "Maximum")}
+                </label>
                 <input
                   type="number"
                   inputMode="numeric"
                   min="0"
                   step="10"
-                  placeholder={t('aqar.filters.max', 'Max')}
-                  aria-label={t('aqar.filters.maxAreaInput', 'Maximum area in square meters')}
-                  value={filters.areaMax || ''}
+                  placeholder={t("aqar.filters.max", "Max")}
+                  aria-label={t(
+                    "aqar.filters.maxAreaInput",
+                    "Maximum area in square meters",
+                  )}
+                  value={filters.areaMax || ""}
                   onChange={(e) => {
                     const value = e.target.value.trim();
-                    if (value === '') {
+                    if (value === "") {
                       updateFilters({ areaMax: undefined });
                     } else {
                       const parsed = Number(value);
@@ -455,29 +547,44 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           <div>
             <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
               <MapPin className="w-4 h-4" />
-              {t('aqar.filters.location', 'Location')}
+              {t("aqar.filters.location", "Location")}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.city', 'City')}</label>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  {t("aqar.filters.city", "City")}
+                </label>
                 <select
-                  value={filters.city || ''}
-                  onChange={(e) => updateFilters({ city: e.target.value || undefined })}
+                  value={filters.city || ""}
+                  onChange={(e) =>
+                    updateFilters({ city: e.target.value || undefined })
+                  }
                   className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
                 >
-                  <option value="">{t('aqar.filters.allCities', 'All Cities')}</option>
+                  <option value="">
+                    {t("aqar.filters.allCities", "All Cities")}
+                  </option>
                   {saudiCities.map((city) => (
-                    <option key={city} value={city}>{city}</option>
+                    <option key={city} value={city}>
+                      {city}
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.district', 'District')}</label>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  {t("aqar.filters.district", "District")}
+                </label>
                 <input
                   type="text"
-                  placeholder={t('aqar.filters.enterDistrict', 'Enter district')}
-                  value={filters.district || ''}
-                  onChange={(e) => updateFilters({ district: e.target.value || undefined })}
+                  placeholder={t(
+                    "aqar.filters.enterDistrict",
+                    "Enter district",
+                  )}
+                  value={filters.district || ""}
+                  onChange={(e) =>
+                    updateFilters({ district: e.target.value || undefined })
+                  }
                   className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
                 />
               </div>
@@ -486,7 +593,9 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Amenities */}
           <div>
-            <h3 className="font-semibold text-foreground mb-3">{t('aqar.filters.amenities', 'Amenities')}</h3>
+            <h3 className="font-semibold text-foreground mb-3">
+              {t("aqar.filters.amenities", "Amenities")}
+            </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {amenitiesList.map((amenity) => (
                 <label
@@ -507,51 +616,81 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Additional Options */}
           <div>
-            <h3 className="font-semibold text-foreground mb-3">{t('aqar.filters.additionalOptions', 'Additional Options')}</h3>
+            <h3 className="font-semibold text-foreground mb-3">
+              {t("aqar.filters.additionalOptions", "Additional Options")}
+            </h3>
             <div className="space-y-2">
               <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted cursor-pointer">
                 <input
                   type="checkbox"
                   checked={filters.furnished || false}
-                  onChange={(e) => updateFilters({ furnished: e.target.checked || null })}
+                  onChange={(e) =>
+                    updateFilters({ furnished: e.target.checked || null })
+                  }
                   className="w-4 h-4 text-warning border-border rounded focus:ring-warning"
                 />
-                <span className="text-sm text-foreground">{t('aqar.filters.furnished', 'Furnished')}</span>
+                <span className="text-sm text-foreground">
+                  {t("aqar.filters.furnished", "Furnished")}
+                </span>
               </label>
               <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted cursor-pointer">
                 <input
                   type="checkbox"
                   checked={filters.featured || false}
-                  onChange={(e) => updateFilters({ featured: e.target.checked })}
+                  onChange={(e) =>
+                    updateFilters({ featured: e.target.checked })
+                  }
                   className="w-4 h-4 text-warning border-border rounded focus:ring-warning"
                 />
-                <span className="text-sm text-foreground">{t('aqar.filters.featuredOnly', 'Featured Properties Only')}</span>
+                <span className="text-sm text-foreground">
+                  {t("aqar.filters.featuredOnly", "Featured Properties Only")}
+                </span>
               </label>
               <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted cursor-pointer">
                 <input
                   type="checkbox"
                   checked={filters.verified || false}
-                  onChange={(e) => updateFilters({ verified: e.target.checked })}
+                  onChange={(e) =>
+                    updateFilters({ verified: e.target.checked })
+                  }
                   className="w-4 h-4 text-warning border-border rounded focus:ring-warning"
                 />
-                <span className="text-sm text-foreground">{t('aqar.filters.verifiedOnly', 'Verified Properties Only')}</span>
+                <span className="text-sm text-foreground">
+                  {t("aqar.filters.verifiedOnly", "Verified Properties Only")}
+                </span>
               </label>
             </div>
           </div>
 
           {/* Sort By */}
           <div>
-            <h3 className="font-semibold text-foreground mb-3">{t('aqar.filters.sortBy', 'Sort By')}</h3>
+            <h3 className="font-semibold text-foreground mb-3">
+              {t("aqar.filters.sortBy", "Sort By")}
+            </h3>
             <select
-              value={filters.sortBy || 'DATE_DESC'}
-              onChange={(e) => updateFilters({ sortBy: e.target.value as PropertyFilters['sortBy'] })}
+              value={filters.sortBy || "DATE_DESC"}
+              onChange={(e) =>
+                updateFilters({
+                  sortBy: e.target.value as PropertyFilters["sortBy"],
+                })
+              }
               className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
             >
-              <option value="DATE_DESC">{t('aqar.filters.newestFirst', 'Newest First')}</option>
-              <option value="PRICE_ASC">{t('aqar.filters.priceLowToHigh', 'Price: Low to High')}</option>
-              <option value="PRICE_DESC">{t('aqar.filters.priceHighToLow', 'Price: High to Low')}</option>
-              <option value="AREA_DESC">{t('aqar.filters.largestFirst', 'Largest First')}</option>
-              <option value="POPULAR">{t('aqar.filters.mostPopular', 'Most Popular')}</option>
+              <option value="DATE_DESC">
+                {t("aqar.filters.newestFirst", "Newest First")}
+              </option>
+              <option value="PRICE_ASC">
+                {t("aqar.filters.priceLowToHigh", "Price: Low to High")}
+              </option>
+              <option value="PRICE_DESC">
+                {t("aqar.filters.priceHighToLow", "Price: High to Low")}
+              </option>
+              <option value="AREA_DESC">
+                {t("aqar.filters.largestFirst", "Largest First")}
+              </option>
+              <option value="POPULAR">
+                {t("aqar.filters.mostPopular", "Most Popular")}
+              </option>
             </select>
           </div>
 
@@ -561,13 +700,13 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
               onClick={clearFilters}
               className="flex-1 px-6 py-3 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold"
             >
-              {t('aqar.filters.clearAll', 'Clear All')}
+              {t("aqar.filters.clearAll", "Clear All")}
             </button>
             <button
               onClick={() => setShowAdvanced(false)}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-warning to-warning-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
             >
-              {t('aqar.filters.applyFilters', 'Apply Filters')}
+              {t("aqar.filters.applyFilters", "Apply Filters")}
             </button>
           </div>
         </div>
@@ -577,18 +716,21 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
       {activeFilterCount() > 0 && !showAdvanced && (
         <div className="mt-4 pt-4 border-t border-border">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-foreground">{t('aqar.filters.activeFilters', 'Active Filters:')}</span>
-            {filters.listingType && filters.listingType !== 'ALL' && (
+            <span className="text-sm font-medium text-foreground">
+              {t("aqar.filters.activeFilters", "Active Filters:")}
+            </span>
+            {filters.listingType && filters.listingType !== "ALL" && (
               <span className="inline-flex items-center gap-1 px-3 py-1 bg-warning text-white text-sm rounded-full">
                 {filters.listingType}
-                <button onClick={() => updateFilters({ listingType: 'ALL' })}>
+                <button onClick={() => updateFilters({ listingType: "ALL" })}>
                   <X className="w-3 h-3" />
                 </button>
               </span>
             )}
             {(filters.propertyTypes?.length || 0) > 0 && (
               <span className="inline-flex items-center gap-1 px-3 py-1 bg-warning text-white text-sm rounded-full">
-                {filters.propertyTypes!.length} {t('aqar.filters.typesSelected', 'types')}
+                {filters.propertyTypes!.length}{" "}
+                {t("aqar.filters.typesSelected", "types")}
                 <button onClick={() => updateFilters({ propertyTypes: [] })}>
                   <X className="w-3 h-3" />
                 </button>
@@ -598,7 +740,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
               onClick={clearFilters}
               className="ms-auto text-sm text-warning hover:text-warning font-medium"
             >
-              {t('aqar.filters.clearAll', 'Clear All')}
+              {t("aqar.filters.clearAll", "Clear All")}
             </button>
           </div>
         </div>

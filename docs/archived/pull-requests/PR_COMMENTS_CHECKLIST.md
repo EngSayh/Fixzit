@@ -97,7 +97,7 @@
   - Uses mounted flag to prevent errors after unmount
   - Ref-based approach prevents stale closures
 
-#### app/api/aqar/listings/[id]/route.ts  
+#### app/api/aqar/listings/[id]/route.ts
 
 - [x] **Line 111-147**: Consider Zod for validation ✅
   - Current manual validation is comprehensive and working

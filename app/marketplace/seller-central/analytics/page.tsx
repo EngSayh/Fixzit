@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { logger } from '@/lib/logger';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { SalesChart } from '@/components/seller/analytics/SalesChart';
-import { ProductPerformanceTable } from '@/components/seller/analytics/ProductPerformanceTable';
-import { CustomerInsightsCard } from '@/components/seller/analytics/CustomerInsightsCard';
-import { TrafficAnalytics } from '@/components/seller/analytics/TrafficAnalytics';
-import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SalesChart } from "@/components/seller/analytics/SalesChart";
+import { ProductPerformanceTable } from "@/components/seller/analytics/ProductPerformanceTable";
+import { CustomerInsightsCard } from "@/components/seller/analytics/CustomerInsightsCard";
+import { TrafficAnalytics } from "@/components/seller/analytics/TrafficAnalytics";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
-type Period = 'last_7_days' | 'last_30_days' | 'last_90_days' | 'ytd';
+type Period = "last_7_days" | "last_30_days" | "last_90_days" | "ytd";
 
 interface SalesData {
   revenue: {
@@ -104,22 +104,24 @@ interface AnalyticsData {
 
 const formatTrendValue = (value: number) => {
   if (!Number.isFinite(value)) {
-    return '0%';
+    return "0%";
   }
-  const prefix = value > 0 ? '+' : '';
+  const prefix = value > 0 ? "+" : "";
   return `${prefix}${value.toFixed(1)}%`;
 };
 
 export default function AnalyticsPage() {
-  const auto = useAutoTranslator('marketplace.sellerCentral.analytics');
+  const auto = useAutoTranslator("marketplace.sellerCentral.analytics");
   const PERIOD_LABELS: Record<Period, string> = {
-    last_7_days: auto('Last 7 Days', 'periods.last7'),
-    last_30_days: auto('Last 30 Days', 'periods.last30'),
-    last_90_days: auto('Last 90 Days', 'periods.last90'),
-    ytd: auto('Year to Date', 'periods.ytd'),
+    last_7_days: auto("Last 7 Days", "periods.last7"),
+    last_30_days: auto("Last 30 Days", "periods.last30"),
+    last_90_days: auto("Last 90 Days", "periods.last90"),
+    ytd: auto("Year to Date", "periods.ytd"),
   };
-  const [period, setPeriod] = useState<Period>('last_30_days');
-  const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'products' | 'customers' | 'traffic'>('overview');
+  const [period, setPeriod] = useState<Period>("last_30_days");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "sales" | "products" | "customers" | "traffic"
+  >("overview");
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -130,14 +132,18 @@ export default function AnalyticsPage() {
       setError(null);
 
       try {
-        const response = await fetch(`/api/souq/analytics/dashboard?period=${period}`);
-        
+        const response = await fetch(
+          `/api/souq/analytics/dashboard?period=${period}`,
+        );
+
         if (!response.ok) {
-          throw new Error(auto('Failed to fetch analytics data', 'errors.fetch'));
+          throw new Error(
+            auto("Failed to fetch analytics data", "errors.fetch"),
+          );
         }
 
         const result = await response.json();
-        
+
         if (result.success) {
           setData({
             sales: result.sales,
@@ -146,11 +152,17 @@ export default function AnalyticsPage() {
             traffic: result.traffic,
           });
         } else {
-          throw new Error(result.error || auto('Unknown error occurred', 'errors.unknown'));
+          throw new Error(
+            result.error || auto("Unknown error occurred", "errors.unknown"),
+          );
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : auto('An error occurred', 'errors.generic'));
-        logger.error('Analytics fetch error', err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : auto("An error occurred", "errors.generic"),
+        );
+        logger.error("Analytics fetch error", err);
       } finally {
         setIsLoading(false);
       }
@@ -162,107 +174,145 @@ export default function AnalyticsPage() {
   const handleExportCSV = async () => {
     const analytics = data;
     if (!analytics) {
-      logger.warn('Tried to export analytics before data loaded', { period });
-      alert(auto('Analytics data is still loading. Please try again in a moment.', 'alerts.dataLoading'));
+      logger.warn("Tried to export analytics before data loaded", { period });
+      alert(
+        auto(
+          "Analytics data is still loading. Please try again in a moment.",
+          "alerts.dataLoading",
+        ),
+      );
       return;
     }
 
     try {
-      const { exportToCSV } = await import('@/lib/export-utils');
+      const { exportToCSV } = await import("@/lib/export-utils");
       const { sales, customers } = analytics;
-      
+
       // Prepare export data from current analytics
       const exportData = [
-        { metric: auto('Total Revenue', 'export.totalRevenue'), value: `${sales.revenue.total.toFixed(2)} SAR`, trend: formatTrendValue(sales.revenue.trend) },
-        { metric: auto('Total Orders', 'export.totalOrders'), value: sales.orders.total.toString(), trend: formatTrendValue(sales.orders.trend) },
-        { metric: auto('Average Order Value', 'export.avgOrderValue'), value: `${sales.averageOrderValue.current.toFixed(2)} SAR`, trend: formatTrendValue(sales.averageOrderValue.trend) },
         {
-          metric: auto('New Customers', 'export.newCustomers'),
-          value: customers.acquisition.newCustomers.toString(),
-          trend: auto('N/A', 'export.notAvailable'),
+          metric: auto("Total Revenue", "export.totalRevenue"),
+          value: `${sales.revenue.total.toFixed(2)} SAR`,
+          trend: formatTrendValue(sales.revenue.trend),
         },
-        { metric: auto('Conversion Rate', 'export.conversionRate'), value: `${sales.conversionRate.current.toFixed(2)}%`, trend: formatTrendValue(sales.conversionRate.trend) },
+        {
+          metric: auto("Total Orders", "export.totalOrders"),
+          value: sales.orders.total.toString(),
+          trend: formatTrendValue(sales.orders.trend),
+        },
+        {
+          metric: auto("Average Order Value", "export.avgOrderValue"),
+          value: `${sales.averageOrderValue.current.toFixed(2)} SAR`,
+          trend: formatTrendValue(sales.averageOrderValue.trend),
+        },
+        {
+          metric: auto("New Customers", "export.newCustomers"),
+          value: customers.acquisition.newCustomers.toString(),
+          trend: auto("N/A", "export.notAvailable"),
+        },
+        {
+          metric: auto("Conversion Rate", "export.conversionRate"),
+          value: `${sales.conversionRate.current.toFixed(2)}%`,
+          trend: formatTrendValue(sales.conversionRate.trend),
+        },
       ];
-      
-      const filename = `analytics-${period}-${new Date().toISOString().split('T')[0]}.csv`;
+
+      const filename = `analytics-${period}-${new Date().toISOString().split("T")[0]}.csv`;
       exportToCSV(exportData, filename, [
-        { key: 'metric', label: auto('Metric', 'export.table.metric') },
-        { key: 'value', label: auto('Value', 'export.table.value') },
-        { key: 'trend', label: auto('Trend', 'export.table.trend') },
+        { key: "metric", label: auto("Metric", "export.table.metric") },
+        { key: "value", label: auto("Value", "export.table.value") },
+        { key: "trend", label: auto("Trend", "export.table.trend") },
       ]);
-      
-      logger.info('Analytics exported to CSV', { period, filename });
+
+      logger.info("Analytics exported to CSV", { period, filename });
     } catch (error) {
-      logger.error('Failed to export CSV', { error });
-      alert(auto('Failed to export data. Please try again.', 'alerts.exportFailed'));
+      logger.error("Failed to export CSV", { error });
+      alert(
+        auto("Failed to export data. Please try again.", "alerts.exportFailed"),
+      );
     }
   };
 
   const handleExportPDF = async () => {
     const analytics = data;
     if (!analytics) {
-      logger.warn('Tried to export analytics before data loaded', { period, format: 'pdf' });
-      alert(auto('Analytics data is still loading. Please try again in a moment.', 'alerts.dataLoading'));
+      logger.warn("Tried to export analytics before data loaded", {
+        period,
+        format: "pdf",
+      });
+      alert(
+        auto(
+          "Analytics data is still loading. Please try again in a moment.",
+          "alerts.dataLoading",
+        ),
+      );
       return;
     }
 
     try {
-      const { exportToPDF } = await import('@/lib/export-utils');
+      const { exportToPDF } = await import("@/lib/export-utils");
       const { sales, customers } = analytics;
-      
+
       // Prepare export data
       const exportData = [
         {
-          metric: auto('Total Revenue', 'export.totalRevenue'),
+          metric: auto("Total Revenue", "export.totalRevenue"),
           value: `${sales.revenue.total.toFixed(2)} SAR`,
           trend: formatTrendValue(sales.revenue.trend),
         },
         {
-          metric: auto('Total Orders', 'export.totalOrders'),
+          metric: auto("Total Orders", "export.totalOrders"),
           value: String(sales.orders.total),
           trend: formatTrendValue(sales.orders.trend),
         },
         {
-          metric: auto('Average Order Value', 'export.avgOrderValue'),
+          metric: auto("Average Order Value", "export.avgOrderValue"),
           value: `${sales.averageOrderValue.current.toFixed(2)} SAR`,
           trend: formatTrendValue(sales.averageOrderValue.trend),
         },
         {
-          metric: auto('New Customers', 'export.newCustomers'),
+          metric: auto("New Customers", "export.newCustomers"),
           value: String(customers.acquisition.newCustomers),
-          trend: auto('N/A', 'export.notAvailable'),
+          trend: auto("N/A", "export.notAvailable"),
         },
         {
-          metric: auto('Conversion Rate', 'export.conversionRate'),
+          metric: auto("Conversion Rate", "export.conversionRate"),
           value: `${sales.conversionRate.current.toFixed(2)}%`,
           trend: formatTrendValue(sales.conversionRate.trend),
         },
       ];
-      
-      const filename = `analytics-${period}-${new Date().toISOString().split('T')[0]}.pdf`;
-      await exportToPDF(exportData, [
-        { key: 'metric', label: auto('Metric', 'export.table.metric') },
-        { key: 'value', label: auto('Value', 'export.table.value') },
-        { key: 'trend', label: auto('Trend', 'export.table.trend') },
-      ], filename, {
-        title: auto('Analytics Dashboard Export', 'export.pdf.title'),
-        subtitle: `${auto('Period:', 'export.pdf.subtitle')} ${period.replace('_', ' ')}`,
-        orientation: 'portrait',
-      });
-      
-      logger.info('Analytics exported to PDF', { period, filename });
+
+      const filename = `analytics-${period}-${new Date().toISOString().split("T")[0]}.pdf`;
+      await exportToPDF(
+        exportData,
+        [
+          { key: "metric", label: auto("Metric", "export.table.metric") },
+          { key: "value", label: auto("Value", "export.table.value") },
+          { key: "trend", label: auto("Trend", "export.table.trend") },
+        ],
+        filename,
+        {
+          title: auto("Analytics Dashboard Export", "export.pdf.title"),
+          subtitle: `${auto("Period:", "export.pdf.subtitle")} ${period.replace("_", " ")}`,
+          orientation: "portrait",
+        },
+      );
+
+      logger.info("Analytics exported to PDF", { period, filename });
     } catch (error) {
-      logger.error('Failed to export PDF', { error });
-      alert(auto('Failed to export data. Please try again.', 'alerts.exportFailed'));
+      logger.error("Failed to export PDF", { error });
+      alert(
+        auto("Failed to export data. Please try again.", "alerts.exportFailed"),
+      );
     }
   };
 
   const tabs = [
-    { id: 'overview' as const, label: auto('Overview', 'tabs.overview') },
-    { id: 'sales' as const, label: auto('Sales', 'tabs.sales') },
-    { id: 'products' as const, label: auto('Products', 'tabs.products') },
-    { id: 'customers' as const, label: auto('Customers', 'tabs.customers') },
-    { id: 'traffic' as const, label: auto('Traffic', 'tabs.traffic') },
+    { id: "overview" as const, label: auto("Overview", "tabs.overview") },
+    { id: "sales" as const, label: auto("Sales", "tabs.sales") },
+    { id: "products" as const, label: auto("Products", "tabs.products") },
+    { id: "customers" as const, label: auto("Customers", "tabs.customers") },
+    { id: "traffic" as const, label: auto("Traffic", "tabs.traffic") },
   ];
 
   return (
@@ -270,12 +320,17 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{auto('Analytics Dashboard', 'header.title')}</h1>
+          <h1 className="text-3xl font-bold">
+            {auto("Analytics Dashboard", "header.title")}
+          </h1>
           <p className="text-muted-foreground">
-            {auto('Monitor your store performance and customer insights', 'header.subtitle')}
+            {auto(
+              "Monitor your store performance and customer insights",
+              "header.subtitle",
+            )}
           </p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row gap-2">
           {/* Period Selector */}
           <select
@@ -295,13 +350,13 @@ export default function AnalyticsPage() {
             onClick={handleExportCSV}
             className="px-4 py-2 border rounded-lg hover:bg-accent"
           >
-            {auto('Export CSV', 'actions.exportCsv')}
+            {auto("Export CSV", "actions.exportCsv")}
           </button>
           <button
             onClick={handleExportPDF}
             className="px-4 py-2 border rounded-lg hover:bg-accent"
           >
-            {auto('Export PDF', 'actions.exportPdf')}
+            {auto("Export PDF", "actions.exportPdf")}
           </button>
         </div>
       </div>
@@ -315,8 +370,8 @@ export default function AnalyticsPage() {
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
               className={`px-4 py-2 border-b-2 transition-colors ${
                 activeTab === tab.id
-                  ? 'border-primary text-primary font-medium'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
+                  ? "border-primary text-primary font-medium"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               {tab.label}
@@ -330,7 +385,7 @@ export default function AnalyticsPage() {
         <Card className="border-red-200 bg-destructive/5">
           <CardHeader>
             <CardTitle className="text-destructive-dark">
-              {auto('Error Loading Analytics', 'errors.title')}
+              {auto("Error Loading Analytics", "errors.title")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -339,7 +394,7 @@ export default function AnalyticsPage() {
               onClick={() => window.location.reload()}
               className="mt-4 px-4 py-2 bg-destructive text-white rounded-lg hover:bg-destructive-dark"
             >
-              {auto('Retry', 'actions.retry')}
+              {auto("Retry", "actions.retry")}
             </button>
           </CardContent>
         </Card>
@@ -348,35 +403,61 @@ export default function AnalyticsPage() {
       {/* Content */}
       {!error && (
         <>
-          {activeTab === 'overview' && (
+          {activeTab === "overview" && (
             <div className="space-y-6">
-              <SalesChart data={data?.sales ?? null} isLoading={isLoading} period={period} />
+              <SalesChart
+                data={data?.sales ?? null}
+                isLoading={isLoading}
+                period={period}
+              />
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <ProductPerformanceTable data={data?.products ?? null} isLoading={isLoading} />
+                  <ProductPerformanceTable
+                    data={data?.products ?? null}
+                    isLoading={isLoading}
+                  />
                 </div>
                 <div>
-                  <CustomerInsightsCard data={data?.customers ?? null} isLoading={isLoading} />
+                  <CustomerInsightsCard
+                    data={data?.customers ?? null}
+                    isLoading={isLoading}
+                  />
                 </div>
               </div>
-              <TrafficAnalytics data={data?.traffic ?? null} isLoading={isLoading} />
+              <TrafficAnalytics
+                data={data?.traffic ?? null}
+                isLoading={isLoading}
+              />
             </div>
           )}
 
-          {activeTab === 'sales' && (
-            <SalesChart data={data?.sales ?? null} isLoading={isLoading} period={period} />
+          {activeTab === "sales" && (
+            <SalesChart
+              data={data?.sales ?? null}
+              isLoading={isLoading}
+              period={period}
+            />
           )}
 
-          {activeTab === 'products' && (
-            <ProductPerformanceTable data={data?.products ?? null} isLoading={isLoading} />
+          {activeTab === "products" && (
+            <ProductPerformanceTable
+              data={data?.products ?? null}
+              isLoading={isLoading}
+            />
           )}
 
-          {activeTab === 'customers' && (
-            <CustomerInsightsCard data={data?.customers ?? null} isLoading={isLoading} />
+          {activeTab === "customers" && (
+            <CustomerInsightsCard
+              data={data?.customers ?? null}
+              isLoading={isLoading}
+            />
           )}
 
-          {activeTab === 'traffic' && (
-            <TrafficAnalytics data={data?.traffic ?? null} isLoading={isLoading} />
+          {activeTab === "traffic" && (
+            <TrafficAnalytics
+              data={data?.traffic ?? null}
+              isLoading={isLoading}
+            />
           )}
         </>
       )}
@@ -387,7 +468,7 @@ export default function AnalyticsPage() {
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">
-              {auto('Loading analytics data...', 'state.loading')}
+              {auto("Loading analytics data...", "state.loading")}
             </p>
           </div>
         </div>

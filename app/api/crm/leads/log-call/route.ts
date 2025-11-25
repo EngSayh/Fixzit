@@ -1,16 +1,25 @@
-'use server';
+"use server";
 
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
-import { getSessionUser, UnauthorizedError } from '@/server/middleware/withAuthRbac';
-import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
-import { setAuditContext, clearAuditContext } from '@/server/plugins/auditPlugin';
-import { getClientIP } from '@/server/security/headers';
-import CrmLead from '@/server/models/CrmLead';
-import CrmActivity from '@/server/models/CrmActivity';
-import { UserRole, type UserRoleType } from '@/types/user';
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import {
+  getSessionUser,
+  UnauthorizedError,
+} from "@/server/middleware/withAuthRbac";
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import {
+  setAuditContext,
+  clearAuditContext,
+} from "@/server/plugins/auditPlugin";
+import { getClientIP } from "@/server/security/headers";
+import CrmLead from "@/server/models/CrmLead";
+import CrmActivity from "@/server/models/CrmActivity";
+import { UserRole, type UserRoleType } from "@/types/user";
 
 const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
   UserRole.SUPER_ADMIN,
@@ -33,7 +42,8 @@ const PayloadSchema = z.object({
 function isUnauthenticatedError(error: unknown): boolean {
   return (
     error instanceof UnauthorizedError ||
-    (error instanceof Error && error.message.toLowerCase().includes('unauthenticated'))
+    (error instanceof Error &&
+      error.message.toLowerCase().includes("unauthenticated"))
   );
 }
 
@@ -55,7 +65,7 @@ async function resolveUser(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await resolveUser(req);
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   let payload: z.infer<typeof PayloadSchema>;
@@ -63,9 +73,12 @@ export async function POST(req: NextRequest) {
     payload = PayloadSchema.parse(await req.json());
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid payload', details: error.flatten() }, { status: 422 });
+      return NextResponse.json(
+        { error: "Invalid payload", details: error.flatten() },
+        { status: 422 },
+      );
     }
-    return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
   await connectToDatabase();
@@ -74,21 +87,23 @@ export async function POST(req: NextRequest) {
     userId: user.id,
     timestamp: new Date(),
     ipAddress: getClientIP(req),
-    userAgent: req.headers.get('user-agent') ?? undefined,
+    userAgent: req.headers.get("user-agent") ?? undefined,
   });
 
   try {
     const lead =
-      (await CrmLead.findOne({ company: payload.company.trim() }).sort({ updatedAt: -1 })) ??
+      (await CrmLead.findOne({ company: payload.company.trim() }).sort({
+        updatedAt: -1,
+      })) ??
       (await CrmLead.create({
-        kind: 'LEAD',
+        kind: "LEAD",
         contactName: payload.contact,
         company: payload.company.trim(),
         email: payload.email?.trim(),
         phone: payload.phone?.trim(),
         notes: payload.notes,
-        stage: 'QUALIFYING',
-        status: 'OPEN',
+        stage: "QUALIFYING",
+        status: "OPEN",
         value: 15000,
         probability: 0.25,
         owner: user.id,
@@ -100,7 +115,7 @@ export async function POST(req: NextRequest) {
 
     await CrmActivity.create({
       leadId: lead._id,
-      type: 'CALL',
+      type: "CALL",
       summary: payload.notes,
       contactName: payload.contact,
       company: payload.company,
@@ -111,8 +126,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    logger.error('[crm/leads/log-call] Failed to log call', { error });
-    return NextResponse.json({ error: 'Failed to log call' }, { status: 500 });
+    logger.error("[crm/leads/log-call] Failed to log call", { error });
+    return NextResponse.json({ error: "Failed to log call" }, { status: 500 });
   } finally {
     clearTenantContext();
     clearAuditContext();

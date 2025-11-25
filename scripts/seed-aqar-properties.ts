@@ -1,45 +1,55 @@
-import { getDatabase } from '@/lib/mongodb-unified';
+import { getDatabase } from "@/lib/mongodb-unified";
 
 async function run() {
   try {
     const db = await getDatabase();
-    if (!db) throw new Error('Database connection not available');
-    const col = db.collection('properties');
+    if (!db) throw new Error("Database connection not available");
+    const col = db.collection("properties");
 
     const now = new Date();
     const docs = [
       {
-        tenantId: 'demo-tenant',
-        code: 'PROP-AQ-001',
-        name: 'Luxury Villa - Al Olaya',
-        type: 'RESIDENTIAL',
-        subtype: 'Villa',
+        tenantId: "demo-tenant",
+        code: "PROP-AQ-001",
+        name: "Luxury Villa - Al Olaya",
+        type: "RESIDENTIAL",
+        subtype: "Villa",
         address: {
-          street: 'Olaya St', city: 'Riyadh', region: 'Riyadh', postalCode: '11564', district: 'Al Olaya',
-          coordinates: { lat: 24.69, lng: 46.685 }
+          street: "Olaya St",
+          city: "Riyadh",
+          region: "Riyadh",
+          postalCode: "11564",
+          district: "Al Olaya",
+          coordinates: { lat: 24.69, lng: 46.685 },
         },
         details: { totalArea: 450, bedrooms: 5, bathrooms: 6 },
         market: { listingPrice: 3500000 },
-        photos: ['/images/sample/villa1.jpg'],
-        createdBy: 'system',
-        createdAt: now, updatedAt: now
+        photos: ["/images/sample/villa1.jpg"],
+        createdBy: "system",
+        createdAt: now,
+        updatedAt: now,
       },
       {
-        tenantId: 'demo-tenant',
-        code: 'PROP-AQ-002',
-        name: 'Modern Apartment - King Fahd Rd',
-        type: 'RESIDENTIAL',
-        subtype: 'Apartment',
+        tenantId: "demo-tenant",
+        code: "PROP-AQ-002",
+        name: "Modern Apartment - King Fahd Rd",
+        type: "RESIDENTIAL",
+        subtype: "Apartment",
         address: {
-          street: 'King Fahd Rd', city: 'Riyadh', region: 'Riyadh', postalCode: '11564', district: 'Al Wurud',
-          coordinates: { lat: 24.73, lng: 46.67 }
+          street: "King Fahd Rd",
+          city: "Riyadh",
+          region: "Riyadh",
+          postalCode: "11564",
+          district: "Al Wurud",
+          coordinates: { lat: 24.73, lng: 46.67 },
         },
         details: { totalArea: 120, bedrooms: 2, bathrooms: 2 },
         market: { listingPrice: 8500 },
-        photos: ['/images/sample/apt1.jpg'],
-        createdBy: 'system',
-        createdAt: now, updatedAt: now
-      }
+        photos: ["/images/sample/apt1.jpg"],
+        createdBy: "system",
+        createdAt: now,
+        updatedAt: now,
+      },
     ];
 
     for (const d of docs) {
@@ -48,13 +58,13 @@ async function run() {
         { code: d.code },
         {
           $set: { ...rest, updatedAt: new Date() },
-          $setOnInsert: { createdAt: createdAt || new Date() }
+          $setOnInsert: { createdAt: createdAt || new Date() },
         },
-        { upsert: true }
+        { upsert: true },
       );
     }
 
-    console.log('Seeded Aqar sample properties');
+    console.log("Seeded Aqar sample properties");
     process.exit(0);
   } catch (e) {
     console.error(e);
@@ -63,4 +73,3 @@ async function run() {
 }
 
 run();
-

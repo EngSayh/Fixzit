@@ -34,9 +34,9 @@ export async function POST(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     if (process.env.MODULE_ENABLED !== 'true') {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Module endpoint not available in this deployment' 
+      return NextResponse.json({
+        success: false,
+        error: 'Module endpoint not available in this deployment'
       }, { status: 501 });
     }
     const { db } = await import('@/src/lib/mongo');
@@ -44,9 +44,9 @@ export async function POST(req: NextRequest) {
     const ModelMod = await import('@/src/server/models/Model').catch(() => null);
     const Model = ModelMod && (ModelMod as any).Model;
     if (!Model) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Module dependencies are not available in this deployment' 
+      return NextResponse.json({
+        success: false,
+        error: 'Module dependencies are not available in this deployment'
       }, { status: 501 });
     }
     const user = await getSessionUser(req);
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
 **Core API Routes (11 files):**
 
 1. `/api/work-orders/route.ts` - WO_ENABLED
-2. `/api/invoices/route.ts` - INVOICE_ENABLED  
+2. `/api/invoices/route.ts` - INVOICE_ENABLED
 3. `/api/properties/route.ts` - PROPERTY_ENABLED
 4. `/api/assets/route.ts` - ASSET_ENABLED
 5. `/api/vendors/route.ts` - VENDOR_ENABLED

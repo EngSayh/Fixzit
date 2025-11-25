@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { logger } from '@/lib/logger';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Wallet, AlertCircle, CheckCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useTranslation } from '@/contexts/TranslationContext';
+import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Wallet, AlertCircle, CheckCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 // ==========================================
 // TYPES
@@ -31,7 +31,7 @@ interface FinanceCounters {
 // ==========================================
 
 export default function FinanceDashboard() {
-  const [activeTab, setActiveTab] = useState('invoices');
+  const [activeTab, setActiveTab] = useState("invoices");
   const [counters, setCounters] = useState<FinanceCounters | null>(null);
   const [loading, setLoading] = useState(true);
   const { t } = useTranslation();
@@ -40,17 +40,22 @@ export default function FinanceDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/counters');
-        if (!response.ok) throw new Error('Failed to fetch counters');
-        
+        const response = await fetch("/api/counters");
+        if (!response.ok) throw new Error("Failed to fetch counters");
+
         const data = await response.json();
         setCounters({
-          invoices: data.invoices || { total: 0, unpaid: 0, overdue: 0, paid: 0 },
+          invoices: data.invoices || {
+            total: 0,
+            unpaid: 0,
+            overdue: 0,
+            paid: 0,
+          },
           revenue: data.revenue || { today: 0, week: 0, month: 0, growth: 0 },
         });
         setLoading(false);
       } catch (error) {
-        logger.error('Failed to load finance data:', error as Error);
+        logger.error("Failed to load finance data:", error as Error);
         setLoading(false);
       }
     };
@@ -60,11 +65,15 @@ export default function FinanceDashboard() {
 
   // Tabs
   const tabs = [
-    { id: 'invoices', label: t('dashboard.finance.tabs.invoices', 'Invoices'), count: counters?.invoices.unpaid },
-    { id: 'payments', label: t('dashboard.finance.tabs.payments', 'Payments') },
-    { id: 'expenses', label: t('dashboard.finance.tabs.expenses', 'Expenses') },
-    { id: 'budgets', label: t('dashboard.finance.tabs.budgets', 'Budgets') },
-    { id: 'reports', label: t('dashboard.finance.tabs.reports', 'Reports') },
+    {
+      id: "invoices",
+      label: t("dashboard.finance.tabs.invoices", "Invoices"),
+      count: counters?.invoices.unpaid,
+    },
+    { id: "payments", label: t("dashboard.finance.tabs.payments", "Payments") },
+    { id: "expenses", label: t("dashboard.finance.tabs.expenses", "Expenses") },
+    { id: "budgets", label: t("dashboard.finance.tabs.budgets", "Budgets") },
+    { id: "reports", label: t("dashboard.finance.tabs.reports", "Reports") },
   ];
 
   return (
@@ -72,10 +81,13 @@ export default function FinanceDashboard() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground">
-          {t('dashboard.finance.header.title', 'Finance')}
+          {t("dashboard.finance.header.title", "Finance")}
         </h1>
         <p className="text-muted-foreground">
-          {t('dashboard.finance.header.subtitle', 'Manage invoices, payments, and financial reports')}
+          {t(
+            "dashboard.finance.header.subtitle",
+            "Manage invoices, payments, and financial reports",
+          )}
         </p>
       </div>
 
@@ -86,10 +98,10 @@ export default function FinanceDashboard() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+              "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
               activeTab === tab.id
-                ? 'border-primary text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
             {tab.label}
@@ -103,20 +115,20 @@ export default function FinanceDashboard() {
       </div>
 
       {/* Stats Cards */}
-      {activeTab === 'invoices' && (
+      {activeTab === "invoices" && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total Invoices */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t('dashboard.finance.cards.totalInvoices', 'Total Invoices')}
+                  {t("dashboard.finance.cards.totalInvoices", "Total Invoices")}
                 </CardTitle>
                 <Wallet className="w-4 h-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {loading ? '...' : counters?.invoices.total || 0}
+                  {loading ? "..." : counters?.invoices.total || 0}
                 </div>
               </CardContent>
             </Card>
@@ -125,13 +137,13 @@ export default function FinanceDashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t('dashboard.finance.cards.unpaid', 'Unpaid')}
+                  {t("dashboard.finance.cards.unpaid", "Unpaid")}
                 </CardTitle>
                 <AlertCircle className="w-4 h-4 text-orange-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-orange-500">
-                  {loading ? '...' : counters?.invoices.unpaid || 0}
+                  {loading ? "..." : counters?.invoices.unpaid || 0}
                 </div>
               </CardContent>
             </Card>
@@ -140,13 +152,13 @@ export default function FinanceDashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t('dashboard.finance.cards.overdue', 'Overdue')}
+                  {t("dashboard.finance.cards.overdue", "Overdue")}
                 </CardTitle>
                 <AlertCircle className="w-4 h-4 text-destructive" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-destructive">
-                  {loading ? '...' : counters?.invoices.overdue || 0}
+                  {loading ? "..." : counters?.invoices.overdue || 0}
                 </div>
               </CardContent>
             </Card>
@@ -155,13 +167,13 @@ export default function FinanceDashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t('dashboard.finance.cards.paid', 'Paid')}
+                  {t("dashboard.finance.cards.paid", "Paid")}
                 </CardTitle>
                 <CheckCircle className="w-4 h-4 text-success" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-success">
-                  {loading ? '...' : counters?.invoices.paid || 0}
+                  {loading ? "..." : counters?.invoices.paid || 0}
                 </div>
               </CardContent>
             </Card>
@@ -171,14 +183,22 @@ export default function FinanceDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>
-                {t('dashboard.finance.cards.recentInvoices', 'Recent Invoices')}
+                {t("dashboard.finance.cards.recentInvoices", "Recent Invoices")}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8 text-muted-foreground">
-                <p>{t('dashboard.finance.cards.recentPlaceholder', 'Invoice list will be displayed here')}</p>
+                <p>
+                  {t(
+                    "dashboard.finance.cards.recentPlaceholder",
+                    "Invoice list will be displayed here",
+                  )}
+                </p>
                 <p className="text-sm mt-2">
-                  {t('dashboard.finance.cards.recentHint', 'Implement data table with filters, sorting, and actions')}
+                  {t(
+                    "dashboard.finance.cards.recentHint",
+                    "Implement data table with filters, sorting, and actions",
+                  )}
                 </p>
               </div>
             </CardContent>
@@ -187,13 +207,18 @@ export default function FinanceDashboard() {
       )}
 
       {/* Other tabs (placeholder) */}
-      {activeTab !== 'invoices' && (
+      {activeTab !== "invoices" && (
         <Card>
           <CardContent className="py-8">
             <div className="text-center text-muted-foreground">
-              <p className="font-medium">{tabs.find(tab => tab.id === activeTab)?.label}</p>
+              <p className="font-medium">
+                {tabs.find((tab) => tab.id === activeTab)?.label}
+              </p>
               <p className="text-sm mt-2">
-                {t('dashboard.finance.tabs.placeholder', 'Content will be implemented here')}
+                {t(
+                  "dashboard.finance.tabs.placeholder",
+                  "Content will be implemented here",
+                )}
               </p>
             </div>
           </CardContent>

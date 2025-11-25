@@ -1,4 +1,5 @@
 # Development Sprint Schedule
+
 ## S3 Uploads + FM Module APIs - Q4 2025
 
 **Status:** 🔴 **CRITICAL PRIORITY** - 294 Days Technical Debt  
@@ -11,16 +12,19 @@
 ## 🎯 Program Overview
 
 ### Critical Path Items
+
 1. **S3 Upload Infrastructure** - 294 days overdue (CRITICAL)
 2. **FM Module APIs** - 279 days overdue (CRITICAL)
 
 ### Business Impact
+
 - **Revenue Risk:** $50K/month (marketplace seller onboarding blocked)
 - **Compliance Risk:** GDPR/CCPA violations (PII handling)
 - **Customer Churn Risk:** ATS + FM modules non-functional
 - **Security Risk:** Insecure file handling
 
 ### Success Criteria
+
 - [ ] KYC document uploads functional in production
 - [ ] Resume uploads functional in production
 - [ ] 6 FM Module API endpoints live
@@ -31,6 +35,7 @@
 ---
 
 ## 📅 Sprint 1: S3 Upload Infrastructure (2 Weeks)
+
 **Dates:** December 2-13, 2025  
 **Team:** 2 Backend Engineers, 1 Security Engineer, 1 QA Engineer  
 **Goal:** Replace mock uploads with production S3 implementation
@@ -38,9 +43,11 @@
 ### Week 1: Infrastructure & API (Dec 2-6)
 
 #### Monday (Dec 2) - Environment Setup
+
 **Owners:** Backend Engineer 1 + Backend Engineer 2
 
 **Tasks:**
+
 - [ ] 🔴 Create AWS S3 bucket (fixzit-uploads-prod)
   - Enable versioning
   - Configure AES-256 encryption
@@ -61,6 +68,7 @@
   - **Acceptance:** Dashboards display real-time data
 
 **Deliverables:**
+
 - S3 bucket operational
 - IAM policies documented
 - CloudWatch monitoring active
@@ -68,9 +76,11 @@
 ---
 
 #### Tuesday (Dec 3) - Virus Scanning Lambda
+
 **Owner:** Security Engineer
 
 **Tasks:**
+
 - [ ] 🔴 Deploy ClamAV Lambda function
   - Runtime: Node.js 18.x
   - Memory: 1024MB
@@ -79,7 +89,7 @@
   - **Acceptance:** Lambda scans test file successfully
 
 - [ ] 🔴 Configure S3 event triggers
-  - Trigger on PUT events (uploads/* prefix)
+  - Trigger on PUT events (uploads/\* prefix)
   - Pass object key to Lambda
   - **Acceptance:** Lambda triggered on file upload
 
@@ -96,6 +106,7 @@
   - **Acceptance:** Infected test file quarantined
 
 **Deliverables:**
+
 - Virus scanning operational
 - Alerts configured
 - Quarantine workflow tested
@@ -103,9 +114,11 @@
 ---
 
 #### Wednesday (Dec 4) - Pre-signed URL API
+
 **Owner:** Backend Engineer 1
 
 **Tasks:**
+
 - [ ] 🔴 Implement `/api/upload/presigned-url` endpoint
   - Request validation (file type, size, category)
   - Generate 15-min expiry URL
@@ -131,6 +144,7 @@
   - **Acceptance:** Rate limit enforced
 
 **Deliverables:**
+
 - API endpoint functional
 - Validation working
 - Rate limiting active
@@ -138,9 +152,11 @@
 ---
 
 #### Thursday (Dec 5) - Audit Logging & Testing
+
 **Owner:** Backend Engineer 2
 
 **Tasks:**
+
 - [ ] 🔴 Implement audit logging
   - Log all upload attempts
   - Capture userId, tenantId, fileKey, IP, user-agent
@@ -166,6 +182,7 @@
   - **Acceptance:** No degradation at 1000 req/min
 
 **Deliverables:**
+
 - Audit logging complete
 - Unit tests passing
 - Integration tests passing
@@ -174,9 +191,11 @@
 ---
 
 #### Friday (Dec 6) - Security Review
+
 **Owner:** Security Engineer + Backend Engineer 1
 
 **Tasks:**
+
 - [ ] 🔴 Security audit
   - IAM policy review (least privilege)
   - Encryption validation (at rest + in transit)
@@ -197,6 +216,7 @@
   - **Acceptance:** Compliance officer sign-off
 
 **Deliverables:**
+
 - Security audit report
 - Penetration test results
 - Compliance documentation
@@ -206,9 +226,11 @@
 ### Week 2: Client Integration & Launch (Dec 9-13)
 
 #### Monday (Dec 9) - KYC Upload Component
+
 **Owner:** Backend Engineer 1 + Frontend Engineer
 
 **Tasks:**
+
 - [ ] 🔴 Update `DocumentUploadForm.tsx`
   - Replace `setTimeout()` mock with S3 upload
   - Add progress indicator (0-100%)
@@ -228,6 +250,7 @@
   - **Acceptance:** UX reviewed by product team
 
 **Deliverables:**
+
 - KYC upload functional
 - Error handling complete
 - UI/UX approved
@@ -235,9 +258,11 @@
 ---
 
 #### Tuesday (Dec 10) - ATS Resume Upload
+
 **Owner:** Backend Engineer 2
 
 **Tasks:**
+
 - [ ] 🔴 Update `application-intake.ts`
   - Replace `setTimeout()` mock with S3 upload
   - Save fileKey to Application model
@@ -256,6 +281,7 @@
   - **Acceptance:** Resume preview works
 
 **Deliverables:**
+
 - Resume upload functional
 - Resume parser integrated
 - Preview feature working
@@ -263,9 +289,11 @@
 ---
 
 #### Wednesday (Dec 11) - E2E Testing
+
 **Owner:** QA Engineer
 
 **Tasks:**
+
 - [ ] 🔴 KYC upload E2E tests
   - Test full seller onboarding flow
   - Upload identity document
@@ -287,15 +315,18 @@
   - **Acceptance:** All errors handled
 
 **Deliverables:**
+
 - E2E test suite passing
 - Error scenarios documented
 
 ---
 
 #### Thursday (Dec 12) - Staging Deployment
+
 **Owner:** Backend Engineer 1 + Backend Engineer 2
 
 **Tasks:**
+
 - [ ] 🔴 Deploy to staging
   - Deploy API changes
   - Deploy client changes
@@ -315,6 +346,7 @@
   - **Acceptance:** No performance degradation
 
 **Deliverables:**
+
 - Staging deployment complete
 - Validation tests passed
 - Performance benchmarks documented
@@ -322,9 +354,11 @@
 ---
 
 #### Friday (Dec 13) - Production Launch
+
 **Owner:** Full Team
 
 **Tasks:**
+
 - [ ] 🔴 Production deployment (blue-green)
   - Deploy to production
   - Gradual rollout: 10% → 50% → 100%
@@ -350,6 +384,7 @@
   - **Acceptance:** Retrospective completed
 
 **Deliverables:**
+
 - S3 uploads live in production
 - Monitoring dashboards active
 - Documentation complete
@@ -358,6 +393,7 @@
 ---
 
 ## 📅 Sprint 2: FM Module APIs - Week 1-2 (4 Weeks)
+
 **Dates:** December 16, 2025 - January 10, 2026  
 **Team:** 2 Backend Engineers, 1 Frontend Engineer, 1 QA Engineer  
 **Goal:** Implement 3 high-priority FM APIs (Reports, Schedules, Users)
@@ -365,9 +401,11 @@
 ### Week 1: Reports API (Dec 16-20)
 
 #### API 1: Asset Reports (`GET /api/fm/reports/assets`)
+
 **Owner:** Backend Engineer 1
 
 **Requirements:**
+
 - [ ] Query parameters: `startDate`, `endDate`, `assetType`, `status`, `organizationId`
 - [ ] Response: Array of asset summaries (totalAssets, byType, byStatus, byLocation)
 - [ ] Aggregation pipeline: MongoDB aggregation with $group, $match, $sort
@@ -376,6 +414,7 @@
 - [ ] **Acceptance:** API returns accurate asset counts, < 500ms response time
 
 **Implementation Steps:**
+
 1. Define OpenAPI spec
 2. Create `/api/fm/reports/assets` endpoint
 3. Implement MongoDB aggregation query
@@ -385,6 +424,7 @@
 7. Load test (100 req/min)
 
 **Deliverables:**
+
 - API endpoint functional
 - Unit tests passing
 - Integration tests passing
@@ -393,9 +433,11 @@
 ---
 
 #### API 2: Maintenance Reports (`GET /api/fm/reports/maintenance`)
+
 **Owner:** Backend Engineer 2
 
 **Requirements:**
+
 - [ ] Query parameters: `startDate`, `endDate`, `maintenanceType`, `status`, `priority`
 - [ ] Response: Maintenance summary (total tasks, completed, pending, overdue)
 - [ ] Metrics: Average completion time, SLA compliance rate
@@ -404,6 +446,7 @@
 - [ ] **Acceptance:** API returns maintenance metrics, < 500ms response time
 
 **Implementation Steps:**
+
 1. Define OpenAPI spec
 2. Create `/api/fm/reports/maintenance` endpoint
 3. Implement aggregation query
@@ -413,6 +456,7 @@
 7. Write integration tests
 
 **Deliverables:**
+
 - API endpoint functional
 - Tests passing
 - Documentation complete
@@ -420,9 +464,11 @@
 ---
 
 #### API 3: Cost Reports (`GET /api/fm/reports/costs`)
+
 **Owner:** Backend Engineer 1
 
 **Requirements:**
+
 - [ ] Query parameters: `startDate`, `endDate`, `costCategory`, `organizationId`
 - [ ] Response: Cost breakdown (labor, materials, vendor, utilities)
 - [ ] Metrics: Total spend, spend by category, variance from budget
@@ -431,6 +477,7 @@
 - [ ] **Acceptance:** API returns financial data, < 500ms response time
 
 **Implementation Steps:**
+
 1. Define OpenAPI spec
 2. Create `/api/fm/reports/costs` endpoint
 3. Implement cost aggregation
@@ -439,6 +486,7 @@
 6. Write tests
 
 **Deliverables:**
+
 - API functional
 - Tests passing
 - Documentation complete
@@ -448,9 +496,11 @@
 ### Week 2: Schedules API (Dec 23-27)
 
 #### API 4: Preventive Maintenance Schedules (`GET /api/fm/schedules/pm`)
+
 **Owner:** Backend Engineer 2
 
 **Requirements:**
+
 - [ ] Query parameters: `assetId`, `frequency`, `status`, `startDate`, `endDate`
 - [ ] Response: Array of scheduled PM tasks (asset, frequency, lastCompleted, nextDue)
 - [ ] Filtering: By asset type, location, frequency (daily/weekly/monthly)
@@ -458,6 +508,7 @@
 - [ ] **Acceptance:** API returns PM schedule, < 300ms response time
 
 **Implementation Steps:**
+
 1. Define OpenAPI spec
 2. Create `/api/fm/schedules/pm` endpoint
 3. Implement query with filters
@@ -465,6 +516,7 @@
 5. Write tests
 
 **Deliverables:**
+
 - API functional
 - Tests passing
 - Documentation complete
@@ -472,9 +524,11 @@
 ---
 
 #### API 5: Work Order Schedules (`POST /api/fm/schedules/work-orders`)
+
 **Owner:** Backend Engineer 1
 
 **Requirements:**
+
 - [ ] Request body: `workOrderId`, `scheduledDate`, `assignedTo`, `priority`
 - [ ] Response: Created schedule object
 - [ ] Validation: Check technician availability, asset availability
@@ -483,6 +537,7 @@
 - [ ] **Acceptance:** API creates schedule, validates conflicts, < 200ms response time
 
 **Implementation Steps:**
+
 1. Define OpenAPI spec
 2. Create `/api/fm/schedules/work-orders` endpoint
 3. Implement conflict detection
@@ -490,6 +545,7 @@
 5. Write tests
 
 **Deliverables:**
+
 - API functional
 - Tests passing
 - Documentation complete
@@ -499,9 +555,11 @@
 ### Week 3: Users API (Dec 30 - Jan 3)
 
 #### API 6: FM Users Management (`GET/POST/PATCH /api/fm/users`)
+
 **Owner:** Backend Engineer 2
 
 **Requirements:**
+
 - [ ] `GET /api/fm/users`: List all FM module users (technicians, managers, admins)
 - [ ] `POST /api/fm/users`: Create new FM user with role assignment
 - [ ] `PATCH /api/fm/users/:id`: Update user details, role, permissions
@@ -511,6 +569,7 @@
 - [ ] **Acceptance:** CRUD operations work, < 200ms response time
 
 **Implementation Steps:**
+
 1. Define OpenAPI spec
 2. Create user management endpoints
 3. Implement role-based access control
@@ -518,6 +577,7 @@
 5. Write tests
 
 **Deliverables:**
+
 - CRUD endpoints functional
 - RBAC working
 - Tests passing
@@ -527,9 +587,11 @@
 ### Week 4: Integration Testing & Launch (Jan 6-10)
 
 #### Monday-Wednesday (Jan 6-8) - E2E Testing
+
 **Owner:** QA Engineer
 
 **Tasks:**
+
 - [ ] 🔴 E2E test suite for all 6 APIs
   - Reports API tests (asset, maintenance, cost)
   - Schedules API tests (PM, work order)
@@ -549,15 +611,18 @@
   - **Acceptance:** All APIs < 500ms p95
 
 **Deliverables:**
+
 - E2E test suite passing
 - Performance benchmarks documented
 
 ---
 
 #### Thursday (Jan 9) - Staging Deployment
+
 **Owner:** Backend Engineer 1 + Backend Engineer 2
 
 **Tasks:**
+
 - [ ] 🔴 Deploy to staging
   - Deploy all 6 API endpoints
   - Run smoke tests
@@ -571,15 +636,18 @@
   - **Acceptance:** All APIs functional
 
 **Deliverables:**
+
 - Staging deployment complete
 - Validation tests passed
 
 ---
 
 #### Friday (Jan 10) - Production Launch
+
 **Owner:** Full Team
 
 **Tasks:**
+
 - [ ] 🔴 Production deployment
   - Deploy to production (blue-green)
   - Gradual rollout: 25% → 100%
@@ -605,6 +673,7 @@
   - **Acceptance:** Retrospective completed
 
 **Deliverables:**
+
 - 6 FM APIs live in production
 - Documentation complete
 - Retrospective notes published
@@ -612,6 +681,7 @@
 ---
 
 ## 📅 Sprint 3: FM Module APIs - Week 2 (2 Weeks)
+
 **Dates:** January 13-24, 2026  
 **Team:** 2 Backend Engineers, 1 Frontend Engineer, 1 QA Engineer  
 **Goal:** Implement 3 remaining FM APIs (Integrations, Roles, Budgets)
@@ -619,9 +689,11 @@
 ### Week 1: Integrations API (Jan 13-17)
 
 #### API 7: External System Integrations (`GET/POST /api/fm/integrations`)
+
 **Owner:** Backend Engineer 1
 
 **Requirements:**
+
 - [ ] `GET /api/fm/integrations`: List all configured integrations (SAP, Oracle, etc.)
 - [ ] `POST /api/fm/integrations`: Configure new integration
 - [ ] Request body: `systemName`, `apiEndpoint`, `authType`, `credentials`
@@ -630,6 +702,7 @@
 - [ ] **Acceptance:** Integration config works, credentials encrypted
 
 **Implementation Steps:**
+
 1. Define OpenAPI spec
 2. Create integration endpoints
 3. Implement credential encryption
@@ -637,6 +710,7 @@
 5. Write tests
 
 **Deliverables:**
+
 - Integration API functional
 - Tests passing
 - Documentation complete
@@ -644,9 +718,11 @@
 ---
 
 #### API 8: Webhook Management (`POST /api/fm/webhooks`)
+
 **Owner:** Backend Engineer 2
 
 **Requirements:**
+
 - [ ] `POST /api/fm/webhooks`: Register webhook endpoint
 - [ ] Request body: `url`, `events`, `secret`
 - [ ] Events: `work_order_created`, `asset_updated`, `maintenance_completed`
@@ -655,6 +731,7 @@
 - [ ] **Acceptance:** Webhooks fire on events
 
 **Implementation Steps:**
+
 1. Define OpenAPI spec
 2. Create webhook registration endpoint
 3. Implement event emitters
@@ -662,6 +739,7 @@
 5. Write tests
 
 **Deliverables:**
+
 - Webhook API functional
 - Tests passing
 
@@ -670,9 +748,11 @@
 ### Week 2: Roles & Budgets APIs (Jan 20-24)
 
 #### API 9: Role Management (`GET/POST/PATCH /api/fm/roles`)
+
 **Owner:** Backend Engineer 1
 
 **Requirements:**
+
 - [ ] `GET /api/fm/roles`: List all FM module roles (admin, manager, technician, viewer)
 - [ ] `POST /api/fm/roles`: Create custom role
 - [ ] Request body: `roleName`, `permissions[]`
@@ -680,21 +760,25 @@
 - [ ] **Acceptance:** RBAC working, custom roles functional
 
 **Implementation Steps:**
+
 1. Define OpenAPI spec
 2. Create role management endpoints
 3. Implement permission checking
 4. Write tests
 
 **Deliverables:**
+
 - Role API functional
 - Tests passing
 
 ---
 
 #### API 10: Budget Management (`GET/POST/PATCH /api/fm/budgets`)
+
 **Owner:** Backend Engineer 2
 
 **Requirements:**
+
 - [ ] `GET /api/fm/budgets`: List all budgets (by category, department, date range)
 - [ ] `POST /api/fm/budgets`: Create new budget
 - [ ] Request body: `category`, `amount`, `startDate`, `endDate`, `organizationId`
@@ -703,6 +787,7 @@
 - [ ] **Acceptance:** Budget tracking works, alerts fire
 
 **Implementation Steps:**
+
 1. Define OpenAPI spec
 2. Create budget endpoints
 3. Implement spend tracking
@@ -710,6 +795,7 @@
 5. Write tests
 
 **Deliverables:**
+
 - Budget API functional
 - Alerts working
 - Tests passing
@@ -717,9 +803,11 @@
 ---
 
 #### Final Testing & Documentation (Jan 23-24)
+
 **Owner:** QA Engineer
 
 **Tasks:**
+
 - [ ] 🔴 E2E tests for APIs 7-10
 - [ ] 🔴 Integration testing
 - [ ] 🔴 Performance testing
@@ -727,6 +815,7 @@
 - [ ] 🟡 Final deployment to production
 
 **Deliverables:**
+
 - All 10 FM APIs live
 - Documentation complete
 - Project closed
@@ -736,7 +825,9 @@
 ## 👥 Team Assignments
 
 ### Backend Engineer 1 (Lead)
+
 **Responsibilities:**
+
 - S3 pre-signed URL API
 - KYC upload integration
 - FM Reports API (Assets, Costs)
@@ -745,6 +836,7 @@
 - FM Roles API
 
 **Skillset Required:**
+
 - Node.js + TypeScript
 - AWS S3 + IAM
 - MongoDB aggregation pipelines
@@ -754,7 +846,9 @@
 ---
 
 ### Backend Engineer 2
+
 **Responsibilities:**
+
 - ATS resume upload integration
 - Audit logging system
 - FM Reports API (Maintenance)
@@ -764,6 +858,7 @@
 - FM Budgets API
 
 **Skillset Required:**
+
 - Node.js + TypeScript
 - MongoDB + Mongoose
 - WebSocket/webhook systems
@@ -773,7 +868,9 @@
 ---
 
 ### Security Engineer
+
 **Responsibilities:**
+
 - S3 bucket security configuration
 - IAM policies (least privilege)
 - Virus scanning Lambda function
@@ -782,6 +879,7 @@
 - GDPR/CCPA compliance review
 
 **Skillset Required:**
+
 - AWS security best practices
 - Lambda + ClamAV
 - Encryption (AES-256, TLS 1.3)
@@ -791,7 +889,9 @@
 ---
 
 ### Frontend Engineer
+
 **Responsibilities:**
+
 - KYC upload UI/UX (progress bar, error handling)
 - Resume preview feature
 - File upload component (reusable)
@@ -799,6 +899,7 @@
 - Accessibility (WCAG 2.1 AA)
 
 **Skillset Required:**
+
 - React + TypeScript
 - Next.js 15
 - TailwindCSS
@@ -808,7 +909,9 @@
 ---
 
 ### QA Engineer
+
 **Responsibilities:**
+
 - E2E test suite (Playwright)
 - Integration testing
 - Performance/load testing
@@ -817,6 +920,7 @@
 - Test documentation
 
 **Skillset Required:**
+
 - Playwright/Cypress
 - API testing (Postman/Newman)
 - Load testing (k6/Artillery)
@@ -829,29 +933,30 @@
 
 ### Development Costs (8 Weeks)
 
-| Role | Weekly Hours | Hourly Rate | Duration | Total |
-|------|--------------|-------------|----------|-------|
-| **Backend Engineer 1** | 40 | $100 | 8 weeks | $32,000 |
-| **Backend Engineer 2** | 40 | $100 | 8 weeks | $32,000 |
-| **Frontend Engineer** | 40 | $90 | 2 weeks | $7,200 |
-| **Security Engineer** | 40 | $150 | 2 weeks | $12,000 |
-| **QA Engineer** | 40 | $80 | 8 weeks | $25,600 |
-| **Engineering Manager** | 10 | $120 | 8 weeks | $9,600 |
-| **TOTAL LABOR** | | | | **$118,400** |
+| Role                    | Weekly Hours | Hourly Rate | Duration | Total        |
+| ----------------------- | ------------ | ----------- | -------- | ------------ |
+| **Backend Engineer 1**  | 40           | $100        | 8 weeks  | $32,000      |
+| **Backend Engineer 2**  | 40           | $100        | 8 weeks  | $32,000      |
+| **Frontend Engineer**   | 40           | $90         | 2 weeks  | $7,200       |
+| **Security Engineer**   | 40           | $150        | 2 weeks  | $12,000      |
+| **QA Engineer**         | 40           | $80         | 8 weeks  | $25,600      |
+| **Engineering Manager** | 10           | $120        | 8 weeks  | $9,600       |
+| **TOTAL LABOR**         |              |             |          | **$118,400** |
 
 ### Infrastructure Costs (First Year)
 
-| Service | Monthly Cost | Annual Cost |
-|---------|--------------|-------------|
-| **AWS S3 Storage** | $85 | $1,020 |
-| **AWS Lambda (Virus Scan)** | $10 | $120 |
-| **Redis Cache (ElastiCache)** | $50 | $600 |
-| **CloudWatch Logs** | $20 | $240 |
-| **AWS KMS (Encryption)** | $10 | $120 |
-| **SNS Alerts** | $5 | $60 |
-| **TOTAL INFRASTRUCTURE** | **$180** | **$2,160** |
+| Service                       | Monthly Cost | Annual Cost |
+| ----------------------------- | ------------ | ----------- |
+| **AWS S3 Storage**            | $85          | $1,020      |
+| **AWS Lambda (Virus Scan)**   | $10          | $120        |
+| **Redis Cache (ElastiCache)** | $50          | $600        |
+| **CloudWatch Logs**           | $20          | $240        |
+| **AWS KMS (Encryption)**      | $10          | $120        |
+| **SNS Alerts**                | $5           | $60         |
+| **TOTAL INFRASTRUCTURE**      | **$180**     | **$2,160**  |
 
 ### Total Project Cost
+
 - **Development:** $118,400 (one-time)
 - **Infrastructure (Year 1):** $2,160
 - **TOTAL:** **$120,560**
@@ -861,6 +966,7 @@
 ## ✅ Success Criteria
 
 ### Sprint 1 (S3 Uploads)
+
 - [ ] KYC uploads working in production
 - [ ] Resume uploads working in production
 - [ ] Virus scanning operational (< 0.01% infected files)
@@ -870,6 +976,7 @@
 - [ ] GDPR/CCPA compliant
 
 ### Sprint 2 (FM APIs 1-6)
+
 - [ ] 6 API endpoints live in production
 - [ ] < 500ms p95 latency
 - [ ] 99.9% uptime
@@ -878,6 +985,7 @@
 - [ ] Zero critical bugs
 
 ### Sprint 3 (FM APIs 7-10)
+
 - [ ] 4 additional API endpoints live
 - [ ] All 10 FM APIs operational
 - [ ] Integration tests passing
@@ -885,6 +993,7 @@
 - [ ] User guides published
 
 ### Overall Program Success
+
 - [ ] 294-day technical debt eliminated
 - [ ] Marketplace seller onboarding functional
 - [ ] ATS module operational
@@ -897,22 +1006,27 @@
 ## 🚨 Risk Management
 
 ### Risk 1: AWS Service Outages
+
 **Probability:** LOW | **Impact:** HIGH  
 **Mitigation:** Multi-region S3 replication + fallback to local storage
 
 ### Risk 2: Scope Creep
+
 **Probability:** MEDIUM | **Impact:** HIGH  
 **Mitigation:** Strict sprint boundaries, defer non-critical features to backlog
 
 ### Risk 3: Team Availability (Holiday Season)
+
 **Probability:** HIGH | **Impact:** MEDIUM  
 **Mitigation:** Front-load critical work to Dec 2-20, minimal work Dec 23-27
 
 ### Risk 4: Integration Complexity (FM APIs)
+
 **Probability:** MEDIUM | **Impact:** MEDIUM  
 **Mitigation:** Allocate 20% buffer time, daily standups to identify blockers early
 
 ### Risk 5: Production Deployment Issues
+
 **Probability:** LOW | **Impact:** HIGH  
 **Mitigation:** Blue-green deployments, gradual rollouts, 24/7 on-call rotation
 
@@ -921,21 +1035,25 @@
 ## 📊 Progress Tracking
 
 ### Weekly Standup (Monday 9am PST)
+
 - Review previous week's deliverables
 - Identify blockers
 - Adjust sprint plan if needed
 
 ### Daily Async Updates (Slack #fm-sprint-2025)
+
 - What did you complete yesterday?
 - What will you work on today?
 - Any blockers?
 
 ### Sprint Reviews (End of Each Sprint)
+
 - Demo to stakeholders
 - Gather feedback
 - Retrospective (what went well, what to improve)
 
 ### Metrics Dashboard (Real-Time)
+
 - Sprint velocity (story points/week)
 - Bug count (P1/P2/P3)
 - Test coverage %
@@ -951,6 +1069,7 @@
 **Level 3:** CTO escalates to CEO (> 24 hours or critical business impact)
 
 **On-Call Rotation (Starting Jan 13):**
+
 - Week 1: Backend Engineer 1
 - Week 2: Backend Engineer 2
 - Week 3: Backend Engineer 1
@@ -964,6 +1083,7 @@
 **Status:** ⏳ **AWAITING EXECUTIVE APPROVAL**
 
 **Next Steps:**
+
 1. ✅ Executive sign-off required
 2. ✅ Team assignment confirmed
 3. ✅ Budget approval ($120K)

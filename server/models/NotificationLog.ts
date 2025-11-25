@@ -1,4 +1,5 @@
 import { Schema, model, models, Document } from 'mongoose';
+import { logger } from '@/lib/logger';
 
 const NotificationRecipientSchema = new Schema(
   {
@@ -51,7 +52,7 @@ const parseValidTtl = (envVar: string | undefined, defaultValue: number, name: s
   const parsed = parseInt(envVar, 10);
   if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed <= 0) {
     if (process.env.NODE_ENV !== 'production') {
-      console.error(`[NotificationLog] Invalid ${name}: "${envVar}" - falling back to ${defaultValue}`);
+      logger.error(`[NotificationLog] Invalid ${name}`, { envVar, defaultValue });
     }
     return defaultValue;
   }

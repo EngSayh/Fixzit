@@ -7,7 +7,7 @@
 ## Executive Summary (UPDATED)
 
 - **Total Tests:** 398
-- **Passing:** 319 (80.2%)  
+- **Passing:** 319 (80.2%)
 - **Failing:** 39 (9.8%) ⬇️ **Improved from 42**
 - **Skipped:** 40 (10.0%) ⬆️ **Increased from 31**
 - **Test Files:** 67 total (27 passing, 39 failing, 1 skipped)
@@ -58,7 +58,7 @@ After thorough analysis, files that initially appeared to be duplicates are actu
 - Added detailed documentation explaining the requirement
 - 2 tests still pass (condition score boundaries work without DB)
 - Added TODO for MongoDB Memory Server integration
-**Tests:** 2 passed | 7 skipped (was 2 passed | 7 failed)
+  **Tests:** 2 passed | 7 skipped (was 2 passed | 7 failed)
 
 ### 2. HelpArticle ESM Cycle (RESOLVED)
 
@@ -72,7 +72,7 @@ After thorough analysis, files that initially appeared to be duplicates are actu
 - Added detailed documentation for future investigation
 - 2 tests still pass (source integrity checks)
 - Added TODO for breaking circular dependency
-**Tests:** 2 passed | 2 skipped (was 2 passed | 2 failed)
+  **Tests:** 2 passed | 2 skipped (was 2 passed | 2 failed)
 
 ### 3. Seed Marketplace Tests (3 failures)
 
@@ -80,7 +80,7 @@ After thorough analysis, files that initially appeared to be duplicates are actu
 **Issue:** Mock DB connection or upsert logic not working
 **Failing Tests:**
 
-- upsert inserts when no match and sets timestamps and _id
+- upsert inserts when no match and sets timestamps and \_id
 - main() seeds the expected synonyms and product
 - idempotency: running main() twice should update existing docs
 
@@ -117,7 +117,7 @@ After thorough analysis, files that initially appeared to be duplicates are actu
 - Missing mocks for dependencies
 - React Testing Library async timing issues
 - Route handlers not properly mocked
-**Examples:**
+  **Examples:**
 - `tests/unit/app/help_ai_chat_page.test.tsx` (10 failures)
 - `tests/unit/components/SupportPopup.test.tsx` (7 failures)
 - `tests/unit/components/ui/__tests__/*.test.tsx` (4 files failing)

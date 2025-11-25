@@ -98,10 +98,10 @@ app/
 - **Text Indexes Required**:
 
   ```javascript
-  db.work_orders.createIndex({ "title": "text", "description": "text" })
-  db.properties.createIndex({ "name": "text", "address": "text" })
-  db.products.createIndex({ "name": "text", "description": "text" })
-  db.listings.createIndex({ "title": "text", "description": "text" })
+  db.work_orders.createIndex({ title: "text", description: "text" });
+  db.properties.createIndex({ name: "text", address: "text" });
+  db.products.createIndex({ name: "text", description: "text" });
+  db.listings.createIndex({ title: "text", description: "text" });
   ```
 
 - **Error Handling**: Graceful fallback to empty results
@@ -196,7 +196,7 @@ app/
 The Dynamic TopBar implementation is **COMPLETE** and **PRODUCTION-READY**. All requirements have been met:
 
 - **No duplicate headers** ✅
-- **No placeholder functionality** ✅  
+- **No placeholder functionality** ✅
 - **Real database connection** ✅
 - **Module-aware search** ✅
 - **STRICT v4 compliance** ✅

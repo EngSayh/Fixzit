@@ -1,281 +1,68 @@
 {
-  // PowerShell Extension - Disabled (macOS uses zsh/bash)
-  "powershell.promptToUpdatePowerShell": false,
-  "powershell.startAutomatically": false,
-  "powershell.integratedConsole.showOnStartup": false,
-  "powershell.sideBar.CommandExplorerVisibility": false,
-  "powershell.powerShellDefaultVersion": "PowerShell (disabled)",
-  "powershell.enableProfileLoading": false,
-  "powershell.codeFormatting.autoCorrectAliases": false,
-  "powershell.scriptAnalysis.enable": false,
-  "powershell.developer.waitForSessionFileTimeoutSeconds": 0,
-
-  // TypeScript/Node Memory Settings for Large Projects (25K+ files)
-  // Root Cause Fix: Exit Code 5 = OOM caused by TS server + extension host + Turbopack cache
-  // 2025-11-18: CRITICAL MEMORY OPTIMIZATION - Reduced from 40GB usage
   "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.tsserver.maxTsServerMemory": 8192, // Reduced from 40GB to a strictly capped 8GB
-  "typescript.tsserver.experimental.enableProjectDiagnostics": false, // Disable project-wide diagnostics
-  "typescript.preferences.includePackageJsonAutoImports": "off",
-  "typescript.disableAutomaticTypeAcquisition": true,
-  "typescript.suggest.includeAutomaticOptionalChainCompletions": false, // Reduce memory overhead
-  "typescript.tsserver.useSyntaxServer": "always", // CHANGED: Always use lightweight syntax server
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.validate.enable": true,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+  "javascript.validate.enable": true,
+  "eslint.enable": true,
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+  "problems.decorations.enabled": true,
+  "problems.showCurrentInStatus": true,
+  "problems.autoReveal": true,
+  "github-actions.workflows.pinned.workflows": [],
+  "github-actions.workflows.pinned.refresh.enabled": false,
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml"
+  },
+  "typescript.tsserver.log": "off",
   "typescript.surveys.enabled": false,
-  "typescript.suggest.enabled": false, // DISABLED: Major memory savings
-  "typescript.updateImportsOnFileMove.enabled": "never", // Expensive operation
-  "typescript.implementationsCodeLens.enabled": false,
-  "typescript.referencesCodeLens.enabled": false,
-  "javascript.suggest.enabled": false, // DISABLED: Memory savings
-  "typescript.tsserver.watchOptions": {
-    "excludeDirectories": [
-      "**/node_modules",
-      "**/.next",
-      "**/.git",
-      "**/dist",
-      "**/tmp",
-      "**/_artifacts",
-      "**/coverage",
-      "**/e2e-test-results",
-      "**/playwright-report",
-      "**/test-results",
-      "**/jscpd-report",
-      "**/tests",
-      "**/qa",
-      "**/scripts",
-      "**/tools",
-      "**/services",
-      "**/server",
-      "**/jobs",
-      "**/models",
-      "**/public",
-      "**/assets",
-      "**/docs",
-      "**/DAILY_PROGRESS_REPORTS",
-      "**/deployment",
-      "**/aws",
-      "**/kb"
-    ],
-    "excludeFiles": [
-      "**/*.test.ts",
-      "**/*.test.tsx",
-      "**/*.spec.ts",
-      "**/*.spec.tsx"
-    ]
+  "typescript.suggest.completeJSDocs": false,
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "[typescript]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "never"
+    }
   },
-  "typescript.tsserver.pluginPaths": [],
-  "typescript.locale": "en",
-
-  "terminal.integrated.env.windows": {
-    "NODE_OPTIONS": "--max-old-space-size=8192"
+  "[typescriptreact]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "never"
+    }
   },
-  "terminal.integrated.env.linux": {
-    "NODE_OPTIONS": "--max-old-space-size=8192"
+  "[javascript]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "never"
+    }
   },
-  "terminal.integrated.env.osx": {
-    "NODE_OPTIONS": "--max-old-space-size=8192"
+  "[javascriptreact]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "never"
+    }
   },
-
-  // Git Branch Protection
-  "git.branchProtection": ["main", "master", "develop"],
-  "git.branchProtectionPrompt": "alwaysPrompt",
-
-  // ============================================================================
-  // AGENT ACTIONS REQUIRE CONFIRMATION — No auto-approval
-  // - Auto-approve disabled for security: destructive operations need consent
-  // - Developers can opt-in via User Settings for their workflow preferences
-  // - Workspace enforces safe defaults to protect all team members
-  // ============================================================================
-
-  // GitHub Copilot Settings - Full tool access enabled, confirmations required
-  "github.copilot.enable": { "*": true },
-  "github.copilot.chat.enable": true,
-  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
-  "github.copilot.chat.agent.runTasks": true,
-  "github.copilot.chat.virtualTools.threshold": 0,
-  "github.copilot.chat.tools.enabled": {
-    "changes": true,
-    "edit": true,
-    "githubRepo": true,
-    "new": true,
-    "problems": true,
-    "runCommands": true,
-    "runNotebooks": true,
-    "runTasks": true,
-    "runTests": true,
-    "search": true,
-    "todos": true,
-    "usages": true,
-    "vscodeAPI": true,
-    "extensions": true,
-    "openSimpleBrowser": true,
-    "testFailure": true
+  "files.exclude": {
+    "**/.git": true,
+    "**/.next": true,
+    "**/node_modules": false,
+    "**/out": true,
+    "**/build": true,
+    "**/dist": true,
+    "**/.turbo": true,
+    "**/coverage": true,
+    "**/*.tsbuildinfo": true
   },
-
-  // Chat Agent Settings - REQUIRE CONFIRMATIONS FOR SAFETY
-  "chat.agent.enabled": true,
-  "chat.agent.maxRequests": 999,
-  
-  // SECURITY: Auto-approve disabled - require explicit confirmation for destructive operations
-  // Developers who want auto-approve should enable it in their personal User Settings
-  "chat.tools.global.autoApprove": false,
-  "chat.tools.terminal.autoApprove": false,
-  "chat.tools.edits.autoApprove": false,
-  "chat.tools.edits.confirmWrites": true,
-  
-  // Auto-reply and auto-accept (less risky)
-  "chat.tools.terminal.autoReplyToPrompts": true,
-  "chat.editing.autoAcceptDelay": 20,
-  "chat.checkpoints.enabled": true,
-  "chat.notifyWindowOnConfirmation": true,
-  
-  // Disable MCP discovery
-  "chat.mcp.discovery.enabled": {
-    "claude-desktop": false,
-    "windsurf": false,
-    "cursor-global": false,
-    "cursor-workspace": false
-  },
-
-  // Limit CodeRabbit's automatic review scope to avoid token/context exhaustion
-  // and reduce extension timeouts on large repositories. These safer defaults
-  // keep the extension useful while preventing large, automatic full-repo
-  // reviews that cause the agent to pause or stop.
-  "coderabbit.autoReviewMode": "prompt",
-  "coderabbit.maxFilesPerReview": 100,
-  "coderabbit.concurrentReviews": 1,
-
-  // Extension Management
-  // NOTE: Auto-update disabled - IMPORTANT: Review extensions monthly for security patches
-  // Run "Extensions: Check for Extension Updates" regularly or schedule via reminders
-  "extensions.autoUpdate": false,
-  "extensions.ignoreRecommendations": true,
-  "extensions.experimental.useUtilityProcess": true,
-  "extensions.experimental.affinity": {
-    "ms-vscode.powershell": 0,
-    "github.copilot": 1,
-    "github.copilot-chat": 1,
-    "ms-vscode.vscode-typescript-next": 1
-  },
-
-  // Window & Startup - Configured for unattended E2E testing
-  "window.restoreWindows": "none",
-  "window.confirmBeforeClose": "never",
-  "update.mode": "manual",
-  "telemetry.telemetryLevel": "off",
-  "extensions.autoCheckUpdates": false,
-  "npm.scriptExplorerAction": "run",
-  "terminal.integrated.enablePersistentSessions": true,
-  "files.autoSave": "afterDelay",
-  "files.autoSaveDelay": 1000,
-  "workbench.enableExperiments": false,
-  "workbench.settings.enableNaturalLanguageSearch": false,
-  // ChatGPT startup disabled by default - enable per-user preference if desired
-  "chatgpt.openOnStartup": false,
-
-  // File Watcher Exclusions - Expanded to reduce memory pressure
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/.git/subtree-cache/**": true,
     "**/node_modules/**": true,
-    "**/.hg/store/**": true,
-    "**/dist/**": true,
-    "**/build/**": true,
     "**/.next/**": true,
-    "**/.turbo/**": true,
-    "**/tmp/**": true,
-    "**/_artifacts/**": true,
-    "**/coverage/**": true,
-    "**/e2e-test-results/**": true,
-    "**/playwright-report/**": true,
-    "**/test-results/**": true,
-    "**/jscpd-report/**": true,
-    "**/out/**": true
+    "**/out/**": true,
+    "**/build/**": true,
+    "**/dist/**": true
   },
-
-  // Search Exclusions - Improve performance by excluding generated/cache directories
   "search.exclude": {
     "**/node_modules": true,
-    "**/bower_components": true,
-    "**/*.code-search": true,
     "**/.next": true,
-    "**/dist": true,
+    "**/out": true,
     "**/build": true,
-    "**/tmp": true,
-    "**/_artifacts": true,
-    "**/coverage": true,
-    "**/e2e-test-results": true,
-    "**/playwright-report": true,
-    "**/test-results": true,
-    "**/jscpd-report": true,
-    "**/tests": true,
-    "**/qa": true,
-    "**/scripts": true,
-    "**/tools": true,
-    "**/*.test.ts": true,
-    "**/*.test.tsx": true,
-    "**/*.spec.ts": true,
-    "**/*.spec.tsx": true,
-    "**/public": true,
-    "**/assets": true,
-    "**/DAILY_PROGRESS_REPORTS": true,
-    "**/docs": true,
-    "**/deployment": true,
-    "**/aws": true,
-    "**/kb": true,
-    "**/*.md": true,
-    "**/*.log": true
-  },
-
-  // Files to hide from explorer to reduce clutter and memory
-  "files.exclude": {
-    "**/.git": true,
-    "**/.DS_Store": true,
-    "**/tmp": true,
-    "**/_artifacts/coverage": true
-  },
-
-  // Limit open editors to prevent memory bloat
-  "workbench.editor.limit.enabled": true,
-  "workbench.editor.limit.value": 3, // REDUCED from 5 to 3
-  "workbench.editor.limit.perEditorGroup": true,
-  "workbench.editor.closeOnFileDelete": true,
-  "workbench.editor.highlightModifiedTabs": false,
-
-  // Additional Memory Optimizations - AGGRESSIVE SETTINGS
-  "editor.suggest.showStatusBar": false,
-  "editor.hover.delay": 1500, // Increased delay
-  "editor.hover.enabled": false, // DISABLED: Major memory savings
-  "editor.quickSuggestions": false, // DISABLED completely
-  "editor.parameterHints.enabled": false,
-  "editor.codeLens": false, // ADDED: Disable code lens
-  "editor.semanticHighlighting.enabled": false, // ADDED: Disable semantic highlighting
-  "editor.bracketPairColorization.enabled": false, // ADDED: Disable bracket colorization
-  "editor.maxTokenizationLineLength": 1000, // ADDED: Reduce tokenization
-  "editor.minimap.enabled": false, // ADDED: Disable minimap
-  "breadcrumbs.enabled": false,
-  "explorer.compactFolders": false,
-  "explorer.incrementalNaming": "disabled",
-  "workbench.tree.indent": 10,
-  "workbench.tree.renderIndentGuides": "none",
-
-  // Disable memory-intensive features - AGGRESSIVE MODE
-  "git.decorations.enabled": false,
-  "git.autorefresh": false,
-  "git.enableSmartCommit": false,
-  "git.untrackedChanges": "hidden", // ADDED: Hide untracked files
-  "git.ignoreLimitWarning": true, // ADDED: Ignore limits
-  "emmet.showExpandedAbbreviation": "never",
-  "html.autoClosingTags": false,
-  "javascript.autoClosingTags": false,
-  "typescript.autoClosingTags": false,
-  
-  // ADDED: Additional critical memory optimizations
-  "files.maxMemoryForLargeFilesMB": 1024, // Reduced from default 4096
-  "search.maxResults": 500, // Limit search results
-  "search.followSymlinks": false, // Don't follow symlinks
-  "diffEditor.ignoreTrimWhitespace": true,
-  "diffEditor.maxComputationTime": 1000,
-  "terminal.integrated.persistentSessionScrollback": 100, // Reduced scrollback
-  "problems.maxCursorTasks": 100, // Limit problem matcher tasks
-  "debug.javascript.codelens.npmScripts": "never" // Disable npm script codelens
+    "**/dist": true
+  }
 }

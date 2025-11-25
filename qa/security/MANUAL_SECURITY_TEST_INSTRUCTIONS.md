@@ -17,12 +17,14 @@ This document provides step-by-step instructions for manually validating the sec
 ### 1. Environment Setup
 
 **Required:**
+
 - Dev server running on `http://localhost:3000`
 - Admin authentication token
 - Test user account credentials
 - MongoDB Atlas URI configured in `.env.local`
 
 **Optional but Recommended:**
+
 - Staging environment URL for production-like testing
 - PostMan or Insomnia for API testing
 - Browser developer tools for CORS testing
@@ -47,6 +49,7 @@ Wait for output: `Ready on http://localhost:3000`
 **Endpoint:** `POST /api/auth/otp/send`
 
 **Steps:**
+
 1. Open terminal
 2. Run test script:
    ```bash
@@ -54,12 +57,14 @@ Wait for output: `Ready on http://localhost:3000`
    ```
 
 **Expected Results:**
+
 - First 10 requests: `200 OK`
 - Request 11+: `429 Too Many Requests`
 - Response includes `Retry-After` header
 - After 1 minute: Rate limit resets
 
 **Manual Testing (if script fails):**
+
 ```bash
 # Send 15 requests rapidly
 for i in {1..15}; do
@@ -72,6 +77,7 @@ done
 ```
 
 **Pass Criteria:**
+
 - ✅ Requests 1-10 succeed
 - ✅ Requests 11+ return 429
 - ✅ Rate limit message clear: "Too many requests, please try again later"
@@ -83,6 +89,7 @@ done
 **Endpoint:** `POST /api/auth/otp/verify`
 
 **Steps:**
+
 ```bash
 # Send 15 verification attempts
 for i in {1..15}; do
@@ -95,6 +102,7 @@ done
 ```
 
 **Pass Criteria:**
+
 - ✅ First 10 attempts processed (may fail auth, but not rate-limited)
 - ✅ Attempts 11+ blocked with 429
 
@@ -107,6 +115,7 @@ done
 **Prerequisites:** Need admin/seller authentication token
 
 **Steps:**
+
 ```bash
 # Get auth token first
 TOKEN="<your-admin-token>"
@@ -123,6 +132,7 @@ done
 ```
 
 **Pass Criteria:**
+
 - ✅ First 20 requests processed
 - ✅ Requests 21+ return 429
 
@@ -133,6 +143,7 @@ done
 **Endpoint:** `POST /api/souq/claims/:claimId/evidence`
 
 **Steps:**
+
 ```bash
 TOKEN="<your-admin-token>"
 CLAIM_ID="<existing-claim-id>"
@@ -149,6 +160,7 @@ done
 ```
 
 **Pass Criteria:**
+
 - ✅ First 30 uploads succeed or properly fail (auth/validation)
 - ✅ Uploads 31+ return 429
 - ✅ Rate limit window: 2 minutes (120 seconds)
@@ -160,6 +172,7 @@ done
 **Endpoint:** `POST /api/souq/claims/:claimId/respond`
 
 **Steps:**
+
 ```bash
 TOKEN="<your-admin-token>"
 CLAIM_ID="<existing-claim-id>"
@@ -175,6 +188,7 @@ done
 ```
 
 **Pass Criteria:**
+
 - ✅ First 30 responses processed
 - ✅ Responses 31+ return 429
 
@@ -187,6 +201,7 @@ done
 ### Test 2.1: Allowed Origin - fixzit.sa
 
 **Steps:**
+
 ```bash
 # Test from allowed origin
 curl -X GET http://localhost:3000/api/health \
@@ -196,6 +211,7 @@ curl -X GET http://localhost:3000/api/health \
 ```
 
 **Pass Criteria:**
+
 - ✅ Response includes: `Access-Control-Allow-Origin: https://fixzit.sa`
 - ✅ Response includes: `Access-Control-Allow-Credentials: true`
 - ✅ No CORS error in response
@@ -205,6 +221,7 @@ curl -X GET http://localhost:3000/api/health \
 ### Test 2.2: Allowed Origin - www.fixzit.sa
 
 **Steps:**
+
 ```bash
 curl -X GET http://localhost:3000/api/health \
   -H "Origin: https://www.fixzit.sa" \
@@ -213,6 +230,7 @@ curl -X GET http://localhost:3000/api/health \
 ```
 
 **Pass Criteria:**
+
 - ✅ `Access-Control-Allow-Origin: https://www.fixzit.sa`
 - ✅ Status: 200 OK
 
@@ -221,6 +239,7 @@ curl -X GET http://localhost:3000/api/health \
 ### Test 2.3: Blocked Origin - evil.com
 
 **Steps:**
+
 ```bash
 curl -X GET http://localhost:3000/api/health \
   -H "Origin: https://evil.com" \
@@ -229,6 +248,7 @@ curl -X GET http://localhost:3000/api/health \
 ```
 
 **Pass Criteria:**
+
 - ❌ NO `Access-Control-Allow-Origin` header with evil.com
 - ✅ Request may succeed but CORS headers not present for evil.com
 - ✅ Browser would block response (server-side allows, client-side blocks)
@@ -238,6 +258,7 @@ curl -X GET http://localhost:3000/api/health \
 ### Test 2.4: Blocked Origin - fixzit.co (typo-squat)
 
 **Steps:**
+
 ```bash
 curl -X GET http://localhost:3000/api/health \
   -H "Origin: https://fixzit.co" \
@@ -245,6 +266,7 @@ curl -X GET http://localhost:3000/api/health \
 ```
 
 **Pass Criteria:**
+
 - ❌ No CORS headers for .co domain
 - ✅ Only .sa domain allowed
 
@@ -253,6 +275,7 @@ curl -X GET http://localhost:3000/api/health \
 ### Test 2.5: Preflight Request Handling
 
 **Steps:**
+
 ```bash
 # OPTIONS request for preflight
 curl -X OPTIONS http://localhost:3000/api/auth/login \
@@ -263,6 +286,7 @@ curl -X OPTIONS http://localhost:3000/api/auth/login \
 ```
 
 **Pass Criteria:**
+
 - ✅ Status: 200 OK
 - ✅ `Access-Control-Allow-Methods` includes POST
 - ✅ `Access-Control-Allow-Headers` includes Content-Type, Authorization
@@ -279,6 +303,7 @@ curl -X OPTIONS http://localhost:3000/api/auth/login \
 **Prerequisites:** Set `NODE_ENV=production` temporarily
 
 **Steps:**
+
 ```bash
 # Backup current .env.local
 cp .env.local .env.local.backup
@@ -294,11 +319,13 @@ pnpm build 2>&1 | grep -i "mongodb\|database\|connection"
 ```
 
 **Pass Criteria:**
+
 - ❌ Build FAILS with clear error message
 - ✅ Error contains: "MongoDB URI must use Atlas (mongodb+srv://) in production"
 - ✅ Build does not proceed
 
 **Cleanup:**
+
 ```bash
 mv .env.local.backup .env.local
 ```
@@ -308,6 +335,7 @@ mv .env.local.backup .env.local
 ### Test 3.2: Atlas URI Acceptance in Production
 
 **Steps:**
+
 ```bash
 # Test with Atlas URI
 cat > .env.test << EOF
@@ -325,6 +353,7 @@ process.exit(isAtlas ? 0 : 1);
 ```
 
 **Pass Criteria:**
+
 - ✅ Output: "Atlas URI: ✅ Valid"
 - ✅ No error thrown
 
@@ -333,6 +362,7 @@ process.exit(isAtlas ? 0 : 1);
 ### Test 3.3: Dev Mode Localhost Allowance
 
 **Steps:**
+
 ```bash
 # Test localhost allowed in development
 NODE_ENV=development MONGODB_URI=mongodb://localhost:27017/fixzit node -e "
@@ -344,6 +374,7 @@ console.log('Dev mode allows localhost:', isDev && isLocalhost ? '✅ Valid' : '
 ```
 
 **Pass Criteria:**
+
 - ✅ Output: "Dev mode allows localhost: ✅ Valid"
 
 ---
@@ -351,6 +382,7 @@ console.log('Dev mode allows localhost:', isDev && isLocalhost ? '✅ Valid' : '
 ### Test 3.4: Environment Variable Enforcement
 
 **Steps:**
+
 ```bash
 # Test missing MONGODB_URI
 unset MONGODB_URI
@@ -366,6 +398,7 @@ try {
 ```
 
 **Pass Criteria:**
+
 - ✅ Error thrown for missing MONGODB_URI
 - ✅ Error message clear and actionable
 
@@ -378,6 +411,7 @@ try {
 ### Test 4.1: Missing JWT_SECRET
 
 **Steps:**
+
 ```bash
 # Test JWT signing without secret
 unset JWT_SECRET
@@ -394,6 +428,7 @@ try {
 ```
 
 **Pass Criteria:**
+
 - ✅ Throws error about missing JWT_SECRET
 - ✅ No silent failures or default secrets
 
@@ -402,6 +437,7 @@ try {
 ### Test 4.2: JWT Token Validation
 
 **Steps:**
+
 ```bash
 # Generate test token (requires valid secret)
 TOKEN=$(node -e "
@@ -418,6 +454,7 @@ curl -X GET http://localhost:3000/api/profile \
 ```
 
 **Pass Criteria:**
+
 - ✅ Valid token: 200 OK (or 401 if not actually valid user)
 - ✅ Invalid token: 401 Unauthorized
 - ✅ Missing token: 401 Unauthorized
@@ -431,6 +468,7 @@ curl -X GET http://localhost:3000/api/profile \
 ### Test 5.1: Rate Limit Event Logging
 
 **Steps:**
+
 1. Trigger rate limit (any endpoint from Test Suite 1)
 2. Check application logs:
    ```bash
@@ -438,6 +476,7 @@ curl -X GET http://localhost:3000/api/profile \
    ```
 
 **Pass Criteria:**
+
 - ✅ Log entry created with timestamp
 - ✅ Log includes: endpoint, IP, user agent
 - ✅ Log level: WARN or ERROR
@@ -447,6 +486,7 @@ curl -X GET http://localhost:3000/api/profile \
 ### Test 5.2: CORS Violation Logging
 
 **Steps:**
+
 1. Send request with blocked origin
 2. Check logs:
    ```bash
@@ -454,6 +494,7 @@ curl -X GET http://localhost:3000/api/profile \
    ```
 
 **Pass Criteria:**
+
 - ✅ CORS violation logged
 - ✅ Includes: blocked origin, attempted endpoint
 - ✅ Log level: WARN
@@ -463,6 +504,7 @@ curl -X GET http://localhost:3000/api/profile \
 ### Test 5.3: Failed Auth Attempt Logging
 
 **Steps:**
+
 ```bash
 # Send invalid login
 curl -X POST http://localhost:3000/api/auth/login \
@@ -475,6 +517,7 @@ tail -20 /tmp/fixzit-dev-server.log | grep -i "auth\|login"
 ```
 
 **Pass Criteria:**
+
 - ✅ Failed auth attempt logged
 - ✅ Includes: phone number (masked), timestamp, IP
 - ✅ Does NOT include password in logs
@@ -486,6 +529,7 @@ tail -20 /tmp/fixzit-dev-server.log | grep -i "auth\|login"
 ### Automated Script Execution
 
 **For comprehensive testing:**
+
 ```bash
 # Run all security tests at once
 ./scripts/security/run-all-security-tests.sh http://localhost:3000
@@ -512,88 +556,90 @@ cat ./qa/security/COMPREHENSIVE_SECURITY_REPORT.md
 
 ## Test Suite 1: Rate Limiting
 
-| Test | Endpoint | Expected | Actual | Status |
-|------|----------|----------|--------|--------|
-| 1.1 OTP Send | POST /api/auth/otp/send | 10 req/min | ___ req/min | ⏸️/✅/❌ |
-| 1.2 OTP Verify | POST /api/auth/otp/verify | 10 req/min | ___ req/min | ⏸️/✅/❌ |
-| 1.3 Claims API | POST /api/souq/claims | 20 req/min | ___ req/min | ⏸️/✅/❌ |
-| 1.4 Evidence Upload | POST /api/souq/claims/:id/evidence | 30 req/2min | ___ | ⏸️/✅/❌ |
-| 1.5 Claim Response | POST /api/souq/claims/:id/respond | 30 req/2min | ___ | ⏸️/✅/❌ |
+| Test                | Endpoint                           | Expected    | Actual         | Status   |
+| ------------------- | ---------------------------------- | ----------- | -------------- | -------- |
+| 1.1 OTP Send        | POST /api/auth/otp/send            | 10 req/min  | \_\_\_ req/min | ⏸️/✅/❌ |
+| 1.2 OTP Verify      | POST /api/auth/otp/verify          | 10 req/min  | \_\_\_ req/min | ⏸️/✅/❌ |
+| 1.3 Claims API      | POST /api/souq/claims              | 20 req/min  | \_\_\_ req/min | ⏸️/✅/❌ |
+| 1.4 Evidence Upload | POST /api/souq/claims/:id/evidence | 30 req/2min | \_\_\_         | ⏸️/✅/❌ |
+| 1.5 Claim Response  | POST /api/souq/claims/:id/respond  | 30 req/2min | \_\_\_         | ⏸️/✅/❌ |
 
-**Notes:** ___
+**Notes:** \_\_\_
 
 ---
 
 ## Test Suite 2: CORS Protection
 
-| Test | Origin | Expected | Actual | Status |
-|------|--------|----------|--------|--------|
-| 2.1 fixzit.sa | https://fixzit.sa | Allowed | ___ | ⏸️/✅/❌ |
-| 2.2 www.fixzit.sa | https://www.fixzit.sa | Allowed | ___ | ⏸️/✅/❌ |
-| 2.3 evil.com | https://evil.com | Blocked | ___ | ⏸️/✅/❌ |
-| 2.4 fixzit.co | https://fixzit.co | Blocked | ___ | ⏸️/✅/❌ |
-| 2.5 Preflight | OPTIONS request | 200 OK | ___ | ⏸️/✅/❌ |
+| Test              | Origin                | Expected | Actual | Status   |
+| ----------------- | --------------------- | -------- | ------ | -------- |
+| 2.1 fixzit.sa     | https://fixzit.sa     | Allowed  | \_\_\_ | ⏸️/✅/❌ |
+| 2.2 www.fixzit.sa | https://www.fixzit.sa | Allowed  | \_\_\_ | ⏸️/✅/❌ |
+| 2.3 evil.com      | https://evil.com      | Blocked  | \_\_\_ | ⏸️/✅/❌ |
+| 2.4 fixzit.co     | https://fixzit.co     | Blocked  | \_\_\_ | ⏸️/✅/❌ |
+| 2.5 Preflight     | OPTIONS request       | 200 OK   | \_\_\_ | ⏸️/✅/❌ |
 
-**Notes:** ___
+**Notes:** \_\_\_
 
 ---
 
 ## Test Suite 3: MongoDB Security
 
-| Test | Scenario | Expected | Actual | Status |
-|------|----------|----------|--------|--------|
-| 3.1 Localhost in Prod | NODE_ENV=production + localhost | Build fails | ___ | ⏸️/✅/❌ |
-| 3.2 Atlas in Prod | NODE_ENV=production + mongodb+srv:// | Build succeeds | ___ | ⏸️/✅/❌ |
-| 3.3 Localhost in Dev | NODE_ENV=development + localhost | Allowed | ___ | ⏸️/✅/❌ |
-| 3.4 Missing URI | No MONGODB_URI | Error thrown | ___ | ⏸️/✅/❌ |
+| Test                  | Scenario                             | Expected       | Actual | Status   |
+| --------------------- | ------------------------------------ | -------------- | ------ | -------- |
+| 3.1 Localhost in Prod | NODE_ENV=production + localhost      | Build fails    | \_\_\_ | ⏸️/✅/❌ |
+| 3.2 Atlas in Prod     | NODE_ENV=production + mongodb+srv:// | Build succeeds | \_\_\_ | ⏸️/✅/❌ |
+| 3.3 Localhost in Dev  | NODE_ENV=development + localhost     | Allowed        | \_\_\_ | ⏸️/✅/❌ |
+| 3.4 Missing URI       | No MONGODB_URI                       | Error thrown   | \_\_\_ | ⏸️/✅/❌ |
 
-**Notes:** ___
+**Notes:** \_\_\_
 
 ---
 
 ## Test Suite 4: JWT Security
 
-| Test | Scenario | Expected | Actual | Status |
-|------|----------|----------|--------|--------|
-| 4.1 Missing Secret | No JWT_SECRET | Error | ___ | ⏸️/✅/❌ |
-| 4.2 Valid Token | Proper JWT token | 200 OK | ___ | ⏸️/✅/❌ |
+| Test               | Scenario         | Expected | Actual | Status   |
+| ------------------ | ---------------- | -------- | ------ | -------- |
+| 4.1 Missing Secret | No JWT_SECRET    | Error    | \_\_\_ | ⏸️/✅/❌ |
+| 4.2 Valid Token    | Proper JWT token | 200 OK   | \_\_\_ | ⏸️/✅/❌ |
 
-**Notes:** ___
+**Notes:** \_\_\_
 
 ---
 
 ## Test Suite 5: Monitoring
 
-| Test | Event | Expected | Actual | Status |
-|------|-------|----------|--------|--------|
-| 5.1 Rate Limit | 429 response | Logged | ___ | ⏸️/✅/❌ |
-| 5.2 CORS Violation | Blocked origin | Logged | ___ | ⏸️/✅/❌ |
-| 5.3 Failed Auth | Wrong password | Logged (no PII) | ___ | ⏸️/✅/❌ |
+| Test               | Event          | Expected        | Actual | Status   |
+| ------------------ | -------------- | --------------- | ------ | -------- |
+| 5.1 Rate Limit     | 429 response   | Logged          | \_\_\_ | ⏸️/✅/❌ |
+| 5.2 CORS Violation | Blocked origin | Logged          | \_\_\_ | ⏸️/✅/❌ |
+| 5.3 Failed Auth    | Wrong password | Logged (no PII) | \_\_\_ | ⏸️/✅/❌ |
 
-**Notes:** ___
+**Notes:** \_\_\_
 
 ---
 
 ## Summary
 
 **Total Tests:** 18  
-**Passed:** ___  
-**Failed:** ___  
-**Blocked/Skipped:** ___
+**Passed:** **\_  
+**Failed:** \_**  
+**Blocked/Skipped:** \_\_\_
 
-**Overall Security Score:** ___% (Passed / Total * 100)
+**Overall Security Score:** \_\_\_% (Passed / Total \* 100)
 
 **Recommendation:**
+
 - [ ] APPROVED for production
 - [ ] REQUIRES FIXES (list below)
 - [ ] BLOCKED (needs re-test)
 
-**Issues Found:** ___
+**Issues Found:** \_\_\_
 
 **Sign-Off:**
-- Tested by: ___
-- Date: ___
-- Next review: ___
+
+- Tested by: \_\_\_
+- Date: \_\_\_
+- Next review: \_\_\_
 ```
 
 ---
@@ -601,6 +647,7 @@ cat ./qa/security/COMPREHENSIVE_SECURITY_REPORT.md
 ## Troubleshooting
 
 ### Server Won't Start
+
 ```bash
 # Check for port conflicts
 lsof -i :3000
@@ -615,11 +662,13 @@ pnpm dev
 ```
 
 ### Rate Limits Not Working
+
 - Verify middleware is imported in affected routes
 - Check `lib/security/enhanced-rate-limit.ts` for correct limits
 - Ensure Redis or in-memory store is configured
 
 ### CORS Not Blocking
+
 - Check `lib/security/cors-allowlist.ts` for origins
 - Verify middleware order (CORS must be early)
 - Test with browser (curl bypasses CORS on server-side)

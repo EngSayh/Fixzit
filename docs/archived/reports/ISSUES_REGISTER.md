@@ -8,20 +8,24 @@
 ## CRITICAL ISSUES (🔴 RED - BLOCKER)
 
 ### Issue #1: Data Leak - API Statements Route Bypassing Security
+
 **File:** `/app/api/owner/statements/route.ts`  
 **Severity:** 🔴 **CATASTROPHIC**  
 **Category:** Security / Multi-Tenancy Violation  
 **Status:** ✅ **FIXED**
 
 **Problem:**
+
 - Used `db.collection('payments')`, `db.collection('workorders')`, `db.collection('utilitybills')`, `db.collection('agentcontracts')`
 - Bypassed `tenantIsolationPlugin` which automatically filters by `orgId`
 - **Impact:** Returns data from ALL organizations (cross-tenant data leak)
 
 **Root Cause:**
+
 - Native MongoDB driver calls do not invoke Mongoose middleware/plugins
 
 **Fix Applied:**
+
 - Replaced all `db.collection()` calls with Mongoose models:
   - `Payment.find()`
   - `WorkOrder.find()`
@@ -31,12 +35,14 @@
 - Imported models correctly with proper exports
 
 **Verification:**
+
 - ✅ Code rewritten to use Mongoose models exclusively
 - ✅ No more `db.collection()` calls in this file
 - ✅ TypeScript compilation passes
 - ⚠️ ESLint warnings for `any` types (non-blocking)
 
 **Evidence:**
+
 ```bash
 # Before: 87 TypeScript errors
 # After: 0 TypeScript errors (pnpm typecheck passes)
@@ -45,16 +51,19 @@
 ---
 
 ### Issue #2: Data Leak - API Unit History Route Bypassing Security
+
 **File:** `/app/api/owner/units/[unitId]/history/route.ts`  
 **Severity:** 🔴 **CATASTROPHIC**  
 **Category:** Security / Multi-Tenancy Violation  
 **Status:** ✅ **FIXED**
 
 **Problem:**
+
 - Used `db.collection('workorders')`, `db.collection('moveinoutinspections')`, `db.collection('payments')`, `db.collection('utilitybills')`
 - Same catastrophic multi-tenancy bypass as Issue #1
 
 **Fix Applied:**
+
 - Replaced all `db.collection()` calls with Mongoose models:
   - `WorkOrder.find()`
   - `MoveInOutInspectionModel.find()`
@@ -64,6 +73,7 @@
 - Removed unused `Types` import
 
 **Verification:**
+
 - ✅ Code rewritten to use Mongoose models exclusively
 - ✅ No more `db.collection()` calls in this file
 - ✅ TypeScript compilation passes
@@ -72,17 +82,20 @@
 ---
 
 ### Issue #3: Missing Security Plugins - OwnerGroup Model
+
 **File:** `/server/models/OwnerGroup.ts`  
 **Severity:** 🔴 **MAJOR**  
 **Category:** Security / Schema Configuration  
 **Status:** ✅ **FIXED**
 
 **Problem:**
+
 - Missing `tenantIsolationPlugin` → No automatic orgId filtering
 - Missing `auditPlugin` → No change tracking/audit trails
 - Manual `orgId` field definition (duplicates plugin functionality)
 
 **Fix Applied:**
+
 ```typescript
 // Added imports
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
@@ -99,6 +112,7 @@ OwnerGroupSchema.index({ orgId: 1, primary_contact_user_id: 1 });
 ```
 
 **Verification:**
+
 - ✅ Plugins applied correctly
 - ✅ Tenant-scoped indexes created
 - ✅ TypeScript compilation passes
@@ -108,66 +122,77 @@ OwnerGroupSchema.index({ orgId: 1, primary_contact_user_id: 1 });
 ## HIGH SEVERITY ISSUES (🟧 ORANGE)
 
 ### Issue #4: TypeScript Null Safety - Delegation Model
+
 **File:** `/server/models/Delegation.ts`  
 **Severity:** 🟧 **HIGH**  
 **Category:** Type Safety / Runtime Errors  
 **Status:** ✅ **FIXED**
 
 **Problem:**
+
 - Pre-save hook accessing nested properties without null checks
 - Type mismatches in `activities` array operations (lines 209-211)
 - Implicit `any` types in filter/reduce callbacks
 
 **Fix Applied:**
+
 - Added null safety checks: `Array.isArray(this.activities)`
 - Added optional chaining: `a?.action?.includes()`, `a?.amount`
 - Wrapped last activity access with null check
 - Fixed type annotations for callbacks
 
 **Verification:**
+
 - ✅ TypeScript compilation passes
 - ⚠️ ESLint warnings for `any` types (non-blocking)
 
 ---
 
 ### Issue #5: Incorrect Model Exports - Import Statements
+
 **Files:** `/app/api/owners/groups/assign-primary/route.ts`, `/services/paytabs.ts`  
 **Severity:** 🟧 **HIGH**  
 **Category:** Module System / Build Errors  
 **Status:** ✅ **FIXED**
 
 **Problem:**
+
 - Using default import for `OwnerGroup`: `import OwnerGroup from '@/server/models/OwnerGroup'`
 - Model exports as named export: `export const OwnerGroupModel`
 
 **Fix Applied:**
+
 ```typescript
 // Changed from:
-import OwnerGroup from '@/server/models/OwnerGroup';
+import OwnerGroup from "@/server/models/OwnerGroup";
 
 // To:
-import { OwnerGroupModel as OwnerGroup } from '@/server/models/OwnerGroup';
+import { OwnerGroupModel as OwnerGroup } from "@/server/models/OwnerGroup";
 ```
 
 **Verification:**
+
 - ✅ TypeScript compilation passes
 - ✅ No module resolution errors
 
 ---
 
 ### Issue #6: Finance Integration Service - Incorrect API Calls
+
 **File:** `/server/services/owner/financeIntegration.ts`  
 **Severity:** 🟧 **HIGH**  
 **Category:** API Misuse / Runtime Errors  
 **Status:** ✅ **FIXED**
 
 **Problem:**
+
 - Calling `createJournal()` and `postJournal()` with wrong signatures
 - Passing `session` parameter (not supported by API)
 - Calling as standalone functions instead of service methods
 - Implicit `any` types in callbacks
 
 **Fix Applied:**
+
 ```typescript
 // Changed from:
 const journal = await createJournal({ ...input }, session);
@@ -179,6 +204,7 @@ await postingService.postJournal(journal._id);
 ```
 
 **Verification:**
+
 - ✅ TypeScript compilation passes
 - ✅ API signatures match interface definitions
 
@@ -187,7 +213,9 @@ await postingService.postJournal(journal._id);
 ## MEDIUM SEVERITY ISSUES (🟨 YELLOW)
 
 ### Issue #7: ESLint Warnings - Explicit `any` Types
+
 **Files:**
+
 - `/app/api/owner/statements/route.ts` (4 warnings)
 - `/app/api/owner/units/[unitId]/history/route.ts` (3 warnings)
 - `/server/models/owner/Delegation.ts` (5 warnings)
@@ -198,16 +226,19 @@ await postingService.postJournal(journal._id);
 **Status:** ⚠️ **ACCEPTED (Technical Debt)**
 
 **Problem:**
+
 - Using `any` types for Mongoose `.lean()` results (lack of proper type definitions)
 - ESLint rule `@typescript-eslint/no-explicit-any` triggered
 
 **Justification:**
+
 - Mongoose `.lean()` returns plain JavaScript objects without full type info
 - Creating comprehensive interfaces would require significant effort
 - TypeScript compilation passes (type safety maintained at compile time)
 - Runtime behavior is correct
 
 **Recommendation:**
+
 - Create proper TypeScript interfaces for lean query results (future enhancement)
 - Document expected shape of objects in comments
 
@@ -216,23 +247,27 @@ await postingService.postJournal(journal._id);
 ## INFORMATIONAL (🟩 GREEN)
 
 ### Finding #1: Search API Route - Potential Security Issue
+
 **File:** `/app/api/search/route.ts`  
 **Severity:** 🔴 **POTENTIAL CRITICAL** (Requires Investigation)  
 **Category:** Security / Multi-Tenancy  
 **Status:** ⏳ **PENDING INVESTIGATION**
 
 **Observation:**
+
 - Uses `db.collection()` for multiple entities (work_orders, properties, etc.)
 - No `orgId` filtering detected in initial grep search
 - May have same security vulnerability as Issues #1 and #2
 
 **Recommendation:**
+
 - Conduct full security audit of `/app/api/search/route.ts`
 - Verify if `setTenantContext()` is used
 - Replace with Mongoose models if vulnerable
 - Add to Critical Issues if confirmed
 
 **Next Steps:**
+
 - Read full file contents
 - Check for `orgId` filtering in query logic
 - Test with multi-tenant data to verify isolation
@@ -241,23 +276,23 @@ await postingService.postJournal(journal._id);
 
 ## SUMMARY STATISTICS
 
-| Severity | Count | Fixed | Pending |
-|----------|-------|-------|---------|
-| 🔴 Critical | 3 | 3 | 0 |
-| 🟧 High | 3 | 3 | 0 |
-| 🟨 Medium | 1 | 0 | 1 (Accepted) |
-| 🟩 Informational | 1 | 0 | 1 (Investigation) |
-| **TOTAL** | **8** | **6** | **2** |
+| Severity         | Count | Fixed | Pending           |
+| ---------------- | ----- | ----- | ----------------- |
+| 🔴 Critical      | 3     | 3     | 0                 |
+| 🟧 High          | 3     | 3     | 0                 |
+| 🟨 Medium        | 1     | 0     | 1 (Accepted)      |
+| 🟩 Informational | 1     | 0     | 1 (Investigation) |
+| **TOTAL**        | **8** | **6** | **2**             |
 
 ---
 
 ## VERIFICATION GATES STATUS
 
-| Gate | Status | Output |
-|------|--------|--------|
-| `pnpm typecheck` | ✅ **PASS** | 0 errors (previously 87 errors) |
-| `pnpm lint` | ⚠️ **PASS (with warnings)** | 0 errors, 13 warnings (all `@typescript-eslint/no-explicit-any`) |
-| `pnpm build` | ⏳ **NOT RUN** | Pending (requires full build test) |
+| Gate             | Status                      | Output                                                           |
+| ---------------- | --------------------------- | ---------------------------------------------------------------- |
+| `pnpm typecheck` | ✅ **PASS**                 | 0 errors (previously 87 errors)                                  |
+| `pnpm lint`      | ⚠️ **PASS (with warnings)** | 0 errors, 13 warnings (all `@typescript-eslint/no-explicit-any`) |
+| `pnpm build`     | ⏳ **NOT RUN**              | Pending (requires full build test)                               |
 
 ---
 
@@ -266,15 +301,18 @@ await postingService.postJournal(journal._id);
 **Pattern:** Using `db.collection()` instead of Mongoose models
 
 **Files Fixed:**
+
 1. `/app/api/owner/statements/route.ts` - Replaced 4 `db.collection()` calls
 2. `/app/api/owner/units/[unitId]/history/route.ts` - Replaced 4 `db.collection()` calls
 
 **Files Requiring Investigation:**
+
 1. `/app/api/search/route.ts` - 20+ `db.collection()` calls (potential violations)
 2. `/app/api/help/articles/route.ts` - Uses `db.collection()` (may be isolated)
 3. `/app/api/aqar/map/route.ts` - Uses `db.collection()` (check tenant filtering)
 
 **Search Command Used:**
+
 ```bash
 grep -r "db.collection(" app/api/ --include="*.ts"
 ```

@@ -1,42 +1,47 @@
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 /**
  * Redis Singleton Connection Pool
- * 
+ *
  * SECURITY & PERFORMANCE FIX:
  * Historical context: app/api/support/incidents/route.ts created new Redis()
  * connection per request, then called quit(), exhausting connection pools
  * and causing performance degradation.
- * 
+ *
  * This singleton pattern:
  * - Reuses single connection across all requests
  * - Prevents connection exhaustion
  * - Automatically reconnects on failure
  * - Gracefully handles Redis unavailability
- * 
+ *
  * @module lib/redis
  */
 
-import Redis from 'ioredis';
+import Redis from "ioredis";
 
 let redis: Redis | null = null;
 let isConnecting = false;
 
 /**
  * Get or create singleton Redis connection
- * 
+ *
  * @returns Redis client instance or null if Redis is unavailable
  */
 export function getRedisClient(): Redis | null {
   // Redis is optional - return null if no URL configured
   if (!process.env.REDIS_URL) {
-    if (process.env.NODE_ENV === 'development') {
-      logger.warn('[Redis] No REDIS_URL configured - Redis features disabled');
+    if (process.env.NODE_ENV === "development") {
+      logger.warn("[Redis] No REDIS_URL configured - Redis features disabled");
     }
     return null;
   }
 
   // Return existing connection if ready, connecting, or reconnecting
-  if (redis && (redis.status === 'ready' || redis.status === 'connecting' || redis.status === 'reconnecting')) {
+  if (
+    redis &&
+    (redis.status === "ready" ||
+      redis.status === "connecting" ||
+      redis.status === "reconnecting")
+  ) {
     return redis;
   }
 
@@ -48,7 +53,7 @@ export function getRedisClient(): Redis | null {
   // Wrap Redis instantiation in try-catch to handle constructor errors
   try {
     isConnecting = true;
-    
+
     redis = new Redis(process.env.REDIS_URL, {
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
@@ -60,42 +65,42 @@ export function getRedisClient(): Redis | null {
       },
       reconnectOnError(err) {
         // Reconnect on specific errors
-        const targetErrors = ['READONLY', 'ECONNRESET', 'ETIMEDOUT'];
-        return targetErrors.some(target => err.message.includes(target));
-      }
+        const targetErrors = ["READONLY", "ECONNRESET", "ETIMEDOUT"];
+        return targetErrors.some((target) => err.message.includes(target));
+      },
     });
 
-    redis.on('error', (err) => {
-      logger.error('[Redis] Connection error:', {
+    redis.on("error", (err) => {
+      logger.error("[Redis] Connection error:", {
         message: err.message,
         code: (err as { code?: string }).code,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
       // Reset isConnecting flag on error to allow retry attempts
       isConnecting = false;
     });
 
-    redis.on('connect', () => {
-      logger.info('[Redis] Connected successfully');
+    redis.on("connect", () => {
+      logger.info("[Redis] Connected successfully");
     });
 
-    redis.on('ready', () => {
-      logger.info('[Redis] Ready to accept commands');
+    redis.on("ready", () => {
+      logger.info("[Redis] Ready to accept commands");
       isConnecting = false;
     });
 
-    redis.on('close', () => {
-      logger.warn('[Redis] Connection closed');
+    redis.on("close", () => {
+      logger.warn("[Redis] Connection closed");
       // Reset isConnecting flag on close to allow reconnection
       isConnecting = false;
     });
 
-    redis.on('reconnecting', () => {
-      logger.info('[Redis] Reconnecting...');
+    redis.on("reconnecting", () => {
+      logger.info("[Redis] Reconnecting...");
     });
 
-    redis.on('end', () => {
-      logger.info('[Redis] Connection ended');
+    redis.on("end", () => {
+      logger.info("[Redis] Connection ended");
       // Reset isConnecting flag when connection ends
       isConnecting = false;
     });
@@ -105,7 +110,7 @@ export function getRedisClient(): Redis | null {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
     isConnecting = false;
-    logger.error('[Redis] Failed to create connection:', { error });
+    logger.error("[Redis] Failed to create connection:", { error });
     return null;
   }
 }
@@ -119,11 +124,12 @@ export async function closeRedis(): Promise<void> {
     try {
       await redis.quit();
       redis = null;
-      logger.info('[Redis] Connection closed gracefully');
+      logger.info("[Redis] Connection closed gracefully");
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('[Redis] Error closing connection:', { error });
+      logger.error("[Redis] Error closing connection:", { error });
       // Force disconnect if graceful close fails
       if (redis) {
         redis.disconnect();
@@ -135,7 +141,7 @@ export async function closeRedis(): Promise<void> {
 
 /**
  * Health check for Redis connection
- * 
+ *
  * @returns true if Redis is connected and responding, false otherwise
  */
 export async function isRedisHealthy(): Promise<boolean> {
@@ -144,7 +150,7 @@ export async function isRedisHealthy(): Promise<boolean> {
 
   try {
     const result = await client.ping();
-    return result === 'PONG';
+    return result === "PONG";
   } catch {
     return false;
   }
@@ -152,11 +158,11 @@ export async function isRedisHealthy(): Promise<boolean> {
 
 /**
  * Safe Redis operation wrapper with automatic fallback
- * 
+ *
  * @param operation - Async function that performs Redis operation
  * @param fallback - Value to return if Redis fails
  * @returns Operation result or fallback value
- * 
+ *
  * @example
  * const value = await safeRedisOp(
  *   async (client) => client.get('key'),
@@ -165,7 +171,7 @@ export async function isRedisHealthy(): Promise<boolean> {
  */
 export async function safeRedisOp<T>(
   operation: (client: Redis) => Promise<T>,
-  fallback: T
+  fallback: T,
 ): Promise<T> {
   const client = getRedisClient();
   if (!client) return fallback;
@@ -175,7 +181,7 @@ export async function safeRedisOp<T>(
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[Redis] Operation failed:', { error });
+    logger.error("[Redis] Operation failed:", { error });
     return fallback;
   }
 }

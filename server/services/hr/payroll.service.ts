@@ -1,10 +1,10 @@
-import { PayrollRun, type PayrollRunDoc } from '@/server/models/hr.models';
-import { logger } from '@/lib/logger';
-import { PayrollFinanceIntegration } from '@/server/services/hr/payroll-finance.integration';
+import { PayrollRun, type PayrollRunDoc } from "@/server/models/hr.models";
+import { logger } from "@/lib/logger";
+import { PayrollFinanceIntegration } from "@/server/services/hr/payroll-finance.integration";
 
 export interface PayrollRunFilters {
   orgId: string;
-  status?: PayrollRunDoc['status'];
+  status?: PayrollRunDoc["status"];
 }
 
 export interface CreatePayrollRunPayload {
@@ -16,11 +16,17 @@ export interface CreatePayrollRunPayload {
 
 export class PayrollService {
   static async list(filters: PayrollRunFilters) {
-    const query: Record<string, unknown> = { orgId: filters.orgId, isDeleted: false };
+    const query: Record<string, unknown> = {
+      orgId: filters.orgId,
+      isDeleted: false,
+    };
     if (filters.status) {
       query.status = filters.status;
     }
-    return PayrollRun.find(query).sort({ periodEnd: -1 }).lean<PayrollRunDoc>().exec();
+    return PayrollRun.find(query)
+      .sort({ periodEnd: -1 })
+      .lean<PayrollRunDoc>()
+      .exec();
   }
 
   static async create(payload: CreatePayrollRunPayload) {
@@ -29,14 +35,25 @@ export class PayrollService {
       name: payload.name,
       periodStart: payload.periodStart,
       periodEnd: payload.periodEnd,
-      status: 'DRAFT',
+      status: "DRAFT",
       lines: [],
-      totals: { baseSalary: 0, allowances: 0, overtime: 0, deductions: 0, gosi: 0, net: 0 },
+      totals: {
+        baseSalary: 0,
+        allowances: 0,
+        overtime: 0,
+        deductions: 0,
+        gosi: 0,
+        net: 0,
+      },
       employeeCount: 0,
     });
   }
 
-  static async existsOverlap(orgId: string, periodStart: Date, periodEnd: Date) {
+  static async existsOverlap(
+    orgId: string,
+    periodStart: Date,
+    periodEnd: Date,
+  ) {
     return PayrollRun.exists({
       orgId,
       isDeleted: false,
@@ -49,7 +66,12 @@ export class PayrollService {
     return PayrollRun.findOne({ orgId, _id: runId, isDeleted: false }).exec();
   }
 
-  static async updateCalculation(orgId: string, runId: string, lines: PayrollRunDoc['lines'], status: PayrollRunDoc['status'] = 'IN_REVIEW') {
+  static async updateCalculation(
+    orgId: string,
+    runId: string,
+    lines: PayrollRunDoc["lines"],
+    status: PayrollRunDoc["status"] = "IN_REVIEW",
+  ) {
     const totals = lines.reduce(
       (acc, line) => {
         acc.baseSalary += line.baseSalary || 0;
@@ -60,7 +82,14 @@ export class PayrollService {
         acc.net += line.netPay || 0;
         return acc;
       },
-      { baseSalary: 0, allowances: 0, overtime: 0, deductions: 0, gosi: 0, net: 0 }
+      {
+        baseSalary: 0,
+        allowances: 0,
+        overtime: 0,
+        deductions: 0,
+        gosi: 0,
+        net: 0,
+      },
     );
 
     return PayrollRun.findOneAndUpdate(
@@ -79,30 +108,38 @@ export class PayrollService {
           net: Math.round(totals.net * 100) / 100,
         },
       },
-      { new: true }
+      { new: true },
     ).exec();
   }
 
-  static async updateExportReference(orgId: string, runId: string, reference: string) {
+  static async updateExportReference(
+    orgId: string,
+    runId: string,
+    reference: string,
+  ) {
     return PayrollRun.findOneAndUpdate(
       { orgId, _id: runId, isDeleted: false },
       { exportReference: reference },
-      { new: true }
+      { new: true },
     ).exec();
   }
 
-  static async updateStatus(orgId: string, runId: string, status: PayrollRunDoc['status']) {
+  static async updateStatus(
+    orgId: string,
+    runId: string,
+    status: PayrollRunDoc["status"],
+  ) {
     const run = await PayrollRun.findOneAndUpdate(
       { orgId, _id: runId, isDeleted: false },
       { status },
-      { new: true }
+      { new: true },
     ).exec();
 
-    if (run && status === 'LOCKED' && !run.financePosted) {
+    if (run && status === "LOCKED" && !run.financePosted) {
       try {
         await PayrollFinanceIntegration.postRun(run);
       } catch (error) {
-        logger.error('Failed to post payroll run to finance', {
+        logger.error("Failed to post payroll run to finance", {
           runId,
           error,
         });

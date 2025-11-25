@@ -1,3 +1,4 @@
+// Import from symbols path to align with NextAuth v5 typings (prevents mismatched symbol versions)
 import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
@@ -30,12 +31,60 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
 
+// Derive NEXTAUTH_URL when missing (helps preview builds)
+const vercelHost =
+  process.env.VERCEL_BRANCH_URL ||
+  process.env.VERCEL_URL ||
+  process.env.VERCEL_PROJECT_PRODUCTION_URL;
+
+const derivedNextAuthUrl =
+  (vercelHost ? `https://${vercelHost}` : undefined) ||
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.BASE_URL;
+
+// Use local constant instead of mutating process.env at runtime
+// This prevents race conditions where NextAuth may initialize before the mutation
+const resolvedNextAuthUrl = process.env.NEXTAUTH_URL || derivedNextAuthUrl;
+
+if (!process.env.NEXTAUTH_URL && resolvedNextAuthUrl) {
+  if (process.env.NODE_ENV === 'production') {
+    logger.warn(`⚠️  NEXTAUTH_URL not provided. Using derived value: ${resolvedNextAuthUrl}`);
+  }
+}
+
 // Validate non-secret variables always (fail-fast at startup), but allow CI builds
 const missingNonSecrets: string[] = [];
-const isCI = process.env.CI === 'true' || process.env.SKIP_ENV_VALIDATION === 'true';
+const isCI =
+  process.env.CI === 'true' ||
+  process.env.CI === '1' ||
+  process.env.SKIP_ENV_VALIDATION === 'true';
+const vercelEnv = process.env.VERCEL_ENV;
+const isBuildPhase =
+  process.env.NEXT_PHASE === 'phase-production-build' ||
+  process.env.npm_lifecycle_event === 'build';
+const isVercelPreview = vercelEnv === 'preview' || (process.env.VERCEL === '1' && process.env.VERCEL_ENV === 'preview');
+const allowMissingNextAuthUrl =
+  isCI ||
+  isBuildPhase ||
+  isVercelPreview ||
+  process.env.ALLOW_MISSING_NEXTAUTH_URL === 'true';
+const suppressEnvWarnings =
+  process.env.SUPPRESS_ENV_WARNINGS === 'true' ||
+  process.env.SKIP_ENV_VALIDATION === 'true' ||
+  process.env.NODE_ENV !== 'production' ||
+  process.env.NEXT_PHASE === 'phase-production-build';
+const shouldEnforceNextAuthUrl =
+  process.env.NODE_ENV === 'production' &&
+  vercelEnv !== 'preview' &&
+  !allowMissingNextAuthUrl;
 
-if (process.env.NODE_ENV === 'production' && !isCI) {
-  if (!process.env.NEXTAUTH_URL) missingNonSecrets.push('NEXTAUTH_URL');
+// Only validate NEXTAUTH_URL in production runtime (not during builds)
+if (shouldEnforceNextAuthUrl) {
+  if (!resolvedNextAuthUrl) {
+    missingNonSecrets.push('NEXTAUTH_URL');
+  }
+} else if (!resolvedNextAuthUrl && !isCI && !isBuildPhase) {
+  logger.warn('⚠️  NEXTAUTH_URL not set; continuing with derived/default value for non-production build.');
 }
 
 if (missingNonSecrets.length > 0) {
@@ -92,8 +141,15 @@ if (!skipSecretValidation) {
   logger.info('ℹ️  CI environment detected: Secret validation skipped for build.');
   logger.info('   Secrets will be validated at runtime from GitHub Secrets.');
 } else {
-  logger.warn('⚠️  SKIP_ENV_VALIDATION=true: Secret validation bypassed.');
-  logger.warn('   Ensure secrets are properly configured before production deployment.');
+  const msg1 = '⚠️  SKIP_ENV_VALIDATION=true: Secret validation bypassed.';
+  const msg2 = '   Ensure secrets are properly configured before production deployment.';
+  if (suppressEnvWarnings) {
+    logger.info(msg1);
+    logger.info(msg2);
+  } else {
+    logger.warn(msg1);
+    logger.warn(msg2);
+  }
 }
 
 // Helper functions for OAuth provisioning (reserved for future use)
@@ -124,6 +180,15 @@ function _sanitizeImage(image?: string | null): string | undefined {
 // NOTE: signIn() from next-auth/react sends checkbox values as 'on' when checked, undefined when unchecked
 const REQUIRE_SMS_OTP = process.env.NEXTAUTH_REQUIRE_SMS_OTP !== 'false';
 
+const EMPLOYEE_ID_REGEX = /^EMP[-A-Z0-9]+$/;
+
+// Secure by default: trustHost requires explicit environment variable opt-in
+// For development, set AUTH_TRUST_HOST=true or NEXTAUTH_TRUST_HOST=true in .env.local
+// Production and staging should NOT set these variables (defaults to false for security)
+const trustHost =
+  process.env.AUTH_TRUST_HOST === 'true' ||
+  process.env.NEXTAUTH_TRUST_HOST === 'true';
+
 const LoginSchema = z
   .object({
     identifier: z.string().trim().min(1, 'Email or employee number is required'),
@@ -149,7 +214,7 @@ const LoginSchema = z
     const idRaw = data.identifier.trim();
     const emailOk = z.string().email().safeParse(idRaw).success;
     const empUpper = idRaw.toUpperCase();
-    const empOk = /^EMP\d+$/.test(empUpper);
+    const empOk = EMPLOYEE_ID_REGEX.test(empUpper);
 
     let loginIdentifier = '';
     let loginType: 'personal' | 'corporate';
@@ -164,7 +229,7 @@ const LoginSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['identifier'],
-        message: 'Enter a valid email address or employee number (e.g., EMP001)',
+        message: 'Enter a valid email address or employee number (e.g., EMP-001)',
       });
       return z.NEVER;
     }
@@ -233,6 +298,7 @@ export const authConfig = {
             subscriptionPlan?: string;
             orgId?: string | { toString(): string };
             roles?: Array<string | { toString(): string }>;
+            role?: string;
           };
           let user: LeanUser | null;
           if (loginType === 'personal') {
@@ -316,6 +382,7 @@ export const authConfig = {
           // 9. Return user object for NextAuth session
           const derivedRole =
             user.professional?.role ||
+            user.role ||
             (Array.isArray(user.roles)
               ? (typeof user.roles[0] === 'string'
                   ? user.roles[0]
@@ -336,6 +403,7 @@ export const authConfig = {
             orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || null),
             sessionId: null, // NextAuth will generate session ID
             rememberMe, // Pass rememberMe to session callbacks
+            isSuperAdmin: Boolean((user as { isSuperAdmin?: boolean }).isSuperAdmin),
           };
           return authUser;
         } catch (error) {
@@ -439,4 +507,5 @@ export const authConfig = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: NEXTAUTH_SECRET,
+  trustHost,
 } satisfies NextAuthConfig;

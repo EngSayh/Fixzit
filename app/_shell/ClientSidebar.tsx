@@ -370,13 +370,46 @@ function hasAccess(role: Role, path: string): boolean {
   return false;
 }
 
+const normalizeRole = (raw?: string | null): Role => {
+  const value = (raw || "").toString().toUpperCase();
+  switch (value) {
+    case "SUPER_ADMIN":
+      return "Super Admin";
+    case "ADMIN":
+    case "CORPORATE_ADMIN":
+      return "Corporate Admin";
+    case "MANAGEMENT":
+    case "MANAGER":
+    case "PROPERTY_MANAGER":
+    case "FACILITY_MANAGER":
+      return "Management";
+    case "FINANCE":
+      return "Finance";
+    case "HR":
+    case "HUMAN_RESOURCES":
+      return "HR";
+    case "EMPLOYEE":
+    case "STAFF":
+      return "Corporate Employee";
+    case "PROPERTY_OWNER":
+    case "OWNER":
+      return "Property Owner";
+    case "TENANT":
+      return "Tenant / End-User";
+    case "TECHNICIAN":
+      return "Technician";
+    default:
+      return "Corporate Employee";
+  }
+};
+
 export default function ClientSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { t } = useTranslation();
 
   const sessionUser = session?.user as SessionUserExtras | undefined;
-  const role: Role = sessionUser?.role ?? "Super Admin";
+  const role: Role = normalizeRole(sessionUser?.role);
   const orgId = sessionUser?.orgId ?? "platform";
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
@@ -479,7 +512,9 @@ export default function ClientSidebar() {
       </div>
       <nav className="p-2 space-y-2">
         {navSections.map((section) => (
-          <div key={section.id}>
+          <div
+            key={section.id}
+          >
             <button
               className="w-full flex items-center justify-between ps-2 pe-2 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wide"
               onClick={() => toggleSection(section.id)}

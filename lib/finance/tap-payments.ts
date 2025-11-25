@@ -1,23 +1,23 @@
 /**
  * Tap Payments API Client for Saudi Market
- * 
+ *
  * Official Docs: https://developers.tap.company/reference
- * 
+ *
  * Features:
  * - Create payment charges
  * - Process card payments
  * - Handle Apple Pay / Mada / STC Pay
  * - Webhook verification
  * - Refunds and partial refunds
- * 
+ *
  * Environment Variables Required:
  * - TAP_SECRET_KEY: Your Tap secret API key
- * - TAP_PUBLIC_KEY: Your Tap publishable key  
+ * - TAP_PUBLIC_KEY: Your Tap publishable key
  * - TAP_WEBHOOK_SECRET: Webhook signing secret
  */
 
-import crypto from 'crypto';
-import { logger } from '@/lib/logger';
+import crypto from "crypto";
+import { logger } from "@/lib/logger";
 
 // ============================================================================
 // Types & Interfaces
@@ -84,7 +84,7 @@ export interface TapChargeRequest {
 
 export interface TapChargeResponse {
   id: string; // Charge ID (chg_xxxx)
-  object: 'charge';
+  object: "charge";
   live_mode: boolean;
   api_version: string;
   amount: number;
@@ -107,7 +107,7 @@ export interface TapChargeResponse {
     payment_type: string;
   };
   redirect: {
-    status: 'PENDING' | 'COMPLETED' | 'FAILED';
+    status: "PENDING" | "COMPLETED" | "FAILED";
     url: string;
   };
   response: {
@@ -124,7 +124,13 @@ export interface TapChargeResponse {
     };
     asynchronous: boolean;
   };
-  status: 'INITIATED' | 'CAPTURED' | 'AUTHORIZED' | 'DECLINED' | 'CANCELLED' | 'FAILED';
+  status:
+    | "INITIATED"
+    | "CAPTURED"
+    | "AUTHORIZED"
+    | "DECLINED"
+    | "CANCELLED"
+    | "FAILED";
   metadata?: TapMetadata;
   reference?: {
     transaction?: string;
@@ -146,13 +152,13 @@ export interface TapRefundRequest {
 
 export interface TapRefundResponse {
   id: string; // Refund ID (ref_xxxx)
-  object: 'refund';
+  object: "refund";
   live_mode: boolean;
   api_version: string;
   amount: number;
   currency: string;
   charge: string; // Original charge ID
-  status: 'PENDING' | 'SUCCEEDED' | 'FAILED';
+  status: "PENDING" | "SUCCEEDED" | "FAILED";
   reason?: string;
   metadata?: TapMetadata;
   response: {
@@ -164,7 +170,7 @@ export interface TapRefundResponse {
 
 export interface TapWebhookEvent {
   id: string; // Event ID
-  object: 'event';
+  object: "event";
   live_mode: boolean;
   created: string;
   type: string; // e.g., "charge.created", "charge.captured", "refund.succeeded"
@@ -186,24 +192,28 @@ export interface TapError {
 // ============================================================================
 
 class TapPaymentsClient {
-  private readonly baseUrl = 'https://api.tap.company/v2';
+  private readonly baseUrl = "https://api.tap.company/v2";
   private readonly secretKey: string;
   private readonly publicKey: string;
   private readonly webhookSecret: string;
 
   constructor() {
-    this.secretKey = process.env.TAP_SECRET_KEY || '';
-    this.publicKey = process.env.TAP_PUBLIC_KEY || '';
-    this.webhookSecret = process.env.TAP_WEBHOOK_SECRET || '';
+    this.secretKey = process.env.TAP_SECRET_KEY || "";
+    this.publicKey = process.env.TAP_PUBLIC_KEY || "";
+    this.webhookSecret = process.env.TAP_WEBHOOK_SECRET || "";
 
     if (!this.secretKey) {
-      logger.error('TAP_SECRET_KEY environment variable not set');
+      logger.error("TAP_SECRET_KEY environment variable not set");
     }
     if (!this.publicKey) {
-      logger.warn('TAP_PUBLIC_KEY environment variable not set (required for frontend)');
+      logger.warn(
+        "TAP_PUBLIC_KEY environment variable not set (required for frontend)",
+      );
     }
     if (!this.webhookSecret) {
-      logger.warn('TAP_WEBHOOK_SECRET environment variable not set (webhook verification disabled)');
+      logger.warn(
+        "TAP_WEBHOOK_SECRET environment variable not set (webhook verification disabled)",
+      );
     }
   }
 
@@ -221,17 +231,17 @@ class TapPaymentsClient {
    */
   async createCharge(request: TapChargeRequest): Promise<TapChargeResponse> {
     try {
-      logger.info('Creating Tap payment charge', {
+      logger.info("Creating Tap payment charge", {
         amount: request.amount,
         currency: request.currency,
         customerEmail: request.customer.email,
       });
 
       const response = await fetch(`${this.baseUrl}/charges`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${this.secretKey}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.secretKey}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(request),
       });
@@ -240,13 +250,17 @@ class TapPaymentsClient {
 
       if (!response.ok) {
         const error = data as TapError;
-        logger.error('Tap API error creating charge', new Error(JSON.stringify(error)));
+        logger.error(
+          "Tap API error creating charge",
+          new Error(JSON.stringify(error)),
+        );
         throw new Error(
-          error.errors?.map((e) => e.description).join(', ') || 'Failed to create charge'
+          error.errors?.map((e) => e.description).join(", ") ||
+            "Failed to create charge",
         );
       }
 
-      logger.info('Tap charge created successfully', {
+      logger.info("Tap charge created successfully", {
         chargeId: data.id,
         status: data.status,
         transactionUrl: data.transaction.url,
@@ -254,9 +268,10 @@ class TapPaymentsClient {
 
       return data as TapChargeResponse;
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('Error creating Tap charge', error as Error);
+      logger.error("Error creating Tap charge", error as Error);
       throw error;
     }
   }
@@ -269,9 +284,9 @@ class TapPaymentsClient {
   async getCharge(chargeId: string): Promise<TapChargeResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/charges/${chargeId}`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${this.secretKey}`,
+          Authorization: `Bearer ${this.secretKey}`,
         },
       });
 
@@ -279,17 +294,23 @@ class TapPaymentsClient {
 
       if (!response.ok) {
         const error = data as TapError;
-        logger.error('Tap API error retrieving charge', new Error(JSON.stringify(error)), { chargeId });
+        logger.error(
+          "Tap API error retrieving charge",
+          new Error(JSON.stringify(error)),
+          { chargeId },
+        );
         throw new Error(
-          error.errors?.map((e) => e.description).join(', ') || 'Failed to retrieve charge'
+          error.errors?.map((e) => e.description).join(", ") ||
+            "Failed to retrieve charge",
         );
       }
 
       return data as TapChargeResponse;
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('Error retrieving Tap charge', error as Error, { chargeId });
+      logger.error("Error retrieving Tap charge", error as Error, { chargeId });
       throw error;
     }
   }
@@ -301,17 +322,17 @@ class TapPaymentsClient {
    */
   async createRefund(request: TapRefundRequest): Promise<TapRefundResponse> {
     try {
-      logger.info('Creating Tap refund', {
+      logger.info("Creating Tap refund", {
         chargeId: request.charge_id,
         amount: request.amount,
         reason: request.reason,
       });
 
       const response = await fetch(`${this.baseUrl}/refunds`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${this.secretKey}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.secretKey}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(request),
       });
@@ -320,22 +341,27 @@ class TapPaymentsClient {
 
       if (!response.ok) {
         const error = data as TapError;
-        logger.error('Tap API error creating refund', new Error(JSON.stringify(error)));
+        logger.error(
+          "Tap API error creating refund",
+          new Error(JSON.stringify(error)),
+        );
         throw new Error(
-          error.errors?.map((e) => e.description).join(', ') || 'Failed to create refund'
+          error.errors?.map((e) => e.description).join(", ") ||
+            "Failed to create refund",
         );
       }
 
-      logger.info('Tap refund created successfully', {
+      logger.info("Tap refund created successfully", {
         refundId: data.id,
         status: data.status,
       });
 
       return data as TapRefundResponse;
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('Error creating Tap refund', error as Error);
+      logger.error("Error creating Tap refund", error as Error);
       throw error;
     }
   }
@@ -348,28 +374,35 @@ class TapPaymentsClient {
    */
   verifyWebhookSignature(payload: string, signature: string): boolean {
     if (!this.webhookSecret) {
-      logger.warn('Webhook signature verification skipped - TAP_WEBHOOK_SECRET not configured');
+      logger.warn(
+        "Webhook signature verification skipped - TAP_WEBHOOK_SECRET not configured",
+      );
       return true; // Allow in dev/test environments
     }
 
     try {
-      const hmac = crypto.createHmac('sha256', this.webhookSecret);
-      const calculatedSignature = hmac.update(payload).digest('hex');
+      const hmac = crypto.createHmac("sha256", this.webhookSecret);
+      const calculatedSignature = hmac.update(payload).digest("hex");
 
       const isValid = calculatedSignature === signature;
 
       if (!isValid) {
-        logger.error('Invalid webhook signature', new Error('Signature mismatch'), {
-          provided: signature,
-          calculated: calculatedSignature,
-        });
+        logger.error(
+          "Invalid webhook signature",
+          new Error("Signature mismatch"),
+          {
+            provided: signature,
+            calculated: calculatedSignature,
+          },
+        );
       }
 
       return isValid;
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('Error verifying webhook signature', error as Error);
+      logger.error("Error verifying webhook signature", error as Error);
       return false;
     }
   }
@@ -383,22 +416,23 @@ class TapPaymentsClient {
    */
   parseWebhookEvent(payload: string, signature: string): TapWebhookEvent {
     if (!this.verifyWebhookSignature(payload, signature)) {
-      throw new Error('Invalid webhook signature');
+      throw new Error("Invalid webhook signature");
     }
 
     try {
       const event = JSON.parse(payload) as TapWebhookEvent;
-      logger.info('Parsed Tap webhook event', {
+      logger.info("Parsed Tap webhook event", {
         eventId: event.id,
         eventType: event.type,
         liveMode: event.live_mode,
       });
       return event;
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('Error parsing webhook payload', { error });
-      throw new Error('Invalid webhook payload');
+      logger.error("Error parsing webhook payload", { error });
+      throw new Error("Invalid webhook payload");
     }
   }
 
@@ -423,11 +457,11 @@ class TapPaymentsClient {
    * @param locale - Locale for formatting (default: 'ar-SA')
    * @returns Formatted amount string (e.g., "١٢٫٥٠ ر.س")
    */
-  formatAmount(amountHalalas: number, locale: string = 'ar-SA'): string {
+  formatAmount(amountHalalas: number, locale: string = "ar-SA"): string {
     const amountSAR = this.halalasToSAR(amountHalalas);
     return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: 'SAR',
+      style: "currency",
+      currency: "SAR",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amountSAR);
@@ -475,8 +509,8 @@ export function buildTapCustomer(user: {
  */
 export function buildRedirectUrls(
   baseUrl: string,
-  successPath: string = '/payments/success',
-  _errorPath: string = '/payments/error'
+  successPath: string = "/payments/success",
+  _errorPath: string = "/payments/error",
 ): TapRedirect {
   // Tap requires a single redirect URL - we'll handle success/error via query params
   return {
@@ -497,43 +531,50 @@ export function buildWebhookConfig(baseUrl: string): TapPost {
  * Check if charge is successful
  */
 export function isChargeSuccessful(charge: TapChargeResponse): boolean {
-  return charge.status === 'CAPTURED' || charge.status === 'AUTHORIZED';
+  return charge.status === "CAPTURED" || charge.status === "AUTHORIZED";
 }
 
 /**
  * Check if charge is pending
  */
 export function isChargePending(charge: TapChargeResponse): boolean {
-  return charge.status === 'INITIATED';
+  return charge.status === "INITIATED";
 }
 
 /**
  * Check if charge failed
  */
 export function isChargeFailed(charge: TapChargeResponse): boolean {
-  return charge.status === 'DECLINED' || charge.status === 'CANCELLED' || charge.status === 'FAILED';
+  return (
+    charge.status === "DECLINED" ||
+    charge.status === "CANCELLED" ||
+    charge.status === "FAILED"
+  );
 }
 
 /**
  * Get user-friendly status message
  */
-export function getChargeStatusMessage(charge: TapChargeResponse, locale: 'ar' | 'en' = 'ar'): string {
+export function getChargeStatusMessage(
+  charge: TapChargeResponse,
+  locale: "ar" | "en" = "ar",
+): string {
   const messages = {
     ar: {
-      CAPTURED: 'تمت العملية بنجاح',
-      AUTHORIZED: 'تم التفويض بنجاح',
-      INITIATED: 'قيد المعالجة',
-      DECLINED: 'تم الرفض',
-      CANCELLED: 'تم الإلغاء',
-      FAILED: 'فشلت العملية',
+      CAPTURED: "تمت العملية بنجاح",
+      AUTHORIZED: "تم التفويض بنجاح",
+      INITIATED: "قيد المعالجة",
+      DECLINED: "تم الرفض",
+      CANCELLED: "تم الإلغاء",
+      FAILED: "فشلت العملية",
     },
     en: {
-      CAPTURED: 'Payment successful',
-      AUTHORIZED: 'Payment authorized',
-      INITIATED: 'Payment pending',
-      DECLINED: 'Payment declined',
-      CANCELLED: 'Payment cancelled',
-      FAILED: 'Payment failed',
+      CAPTURED: "Payment successful",
+      AUTHORIZED: "Payment authorized",
+      INITIATED: "Payment pending",
+      DECLINED: "Payment declined",
+      CANCELLED: "Payment cancelled",
+      FAILED: "Payment failed",
     },
   };
 

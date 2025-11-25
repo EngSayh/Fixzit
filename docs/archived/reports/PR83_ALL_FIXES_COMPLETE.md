@@ -84,18 +84,18 @@
 
 ```typescript
 // XOR validation: Either org_id OR owner_user_id must be provided, but not both
-PaymentMethodSchema.pre('validate', function (next) {
+PaymentMethodSchema.pre("validate", function (next) {
   const hasOrg = !!this.org_id;
   const hasOwner = !!this.owner_user_id;
-  
+
   if (!hasOrg && !hasOwner) {
-    return next(new Error('Either org_id or owner_user_id must be provided'));
+    return next(new Error("Either org_id or owner_user_id must be provided"));
   }
-  
+
   if (hasOrg && hasOwner) {
-    return next(new Error('Cannot set both org_id and owner_user_id'));
+    return next(new Error("Cannot set both org_id and owner_user_id"));
   }
-  
+
   next();
 });
 
@@ -243,13 +243,13 @@ bash fix-pr83-remaining.sh
 
 ```typescript
 // Should fail - neither field
-const pm1 = new PaymentMethod({ gateway: 'PAYTABS' });
+const pm1 = new PaymentMethod({ gateway: "PAYTABS" });
 await pm1.save(); // Error: Either org_id or owner_user_id must be provided
 
 // Should fail - both fields
-const pm2 = new PaymentMethod({ 
-  org_id: orgId, 
-  owner_user_id: userId 
+const pm2 = new PaymentMethod({
+  org_id: orgId,
+  owner_user_id: userId,
 });
 await pm2.save(); // Error: Cannot set both org_id and owner_user_id
 

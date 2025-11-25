@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { Shield, Lock, Eye, FileText, Mail, Phone } from 'lucide-react';
-import { renderMarkdownSanitized } from '@/lib/markdown';
+import { useEffect, useState, useCallback } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Shield, Lock, Eye, FileText, Mail, Phone } from "lucide-react";
+import { renderMarkdownSanitized } from "@/lib/markdown";
 
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 /**
  * Default privacy policy content shown when CMS content is not available or not published.
  * Defined at module level to prevent recreation on each render.
@@ -37,44 +37,44 @@ For privacy inquiries: privacy@fixzit.com | Phone: +971 XX XXX XXXX`;
 
 /**
  * Privacy Policy Page (Public View)
- * 
+ *
  * Displays privacy policy content managed through CMS admin interface.
  * Fetches from /api/cms/pages/privacy and falls back to default content.
  * Supports RTL languages and responsive design.
- * 
+ *
  * @returns Privacy policy page with hero, info cards, content, and contact sections
  */
 export default function PrivacyPage() {
   const { t, isRTL } = useTranslation();
-  const [content, setContent] = useState<string>('');
-  const [renderedContent, setRenderedContent] = useState<string>('');
-  const [title, setTitle] = useState<string>('');
+  const [content, setContent] = useState<string>("");
+  const [renderedContent, setRenderedContent] = useState<string>("");
+  const [title, setTitle] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   const loadPrivacyPolicy = useCallback(async () => {
     try {
-      const response = await fetch('/api/cms/pages/privacy');
-      
+      const response = await fetch("/api/cms/pages/privacy");
+
       if (response.ok) {
         const data = await response.json();
-        if (data.status === 'PUBLISHED') {
+        if (data.status === "PUBLISHED") {
           setTitle(data.title);
           setContent(data.content);
         } else {
-          setTitle(t('privacy.title', 'Privacy Policy'));
+          setTitle(t("privacy.title", "Privacy Policy"));
           setContent(DEFAULT_PRIVACY_CONTENT);
         }
       } else {
-        setTitle(t('privacy.title', 'Privacy Policy'));
+        setTitle(t("privacy.title", "Privacy Policy"));
         setContent(DEFAULT_PRIVACY_CONTENT);
       }
     } catch (err) {
       logger.error(
-        'Error fetching privacy policy',
+        "Error fetching privacy policy",
         err instanceof Error ? err : new Error(String(err)),
-        { route: '/privacy' }
+        { route: "/privacy" },
       );
-      setTitle(t('privacy.title', 'Privacy Policy'));
+      setTitle(t("privacy.title", "Privacy Policy"));
       setContent(DEFAULT_PRIVACY_CONTENT);
     } finally {
       setLoading(false);
@@ -89,17 +89,19 @@ export default function PrivacyPage() {
   useEffect(() => {
     if (content) {
       renderMarkdownSanitized(content)
-        .then(html => {
+        .then((html) => {
           setRenderedContent(html);
         })
-        .catch(err => {
+        .catch((err) => {
           logger.error(
-            'Error rendering markdown',
+            "Error rendering markdown",
             err instanceof Error ? err : new Error(String(err)),
-            { route: '/privacy', action: 'render-markdown' }
+            { route: "/privacy", action: "render-markdown" },
           );
           // Fallback to plain text wrapped in paragraphs
-          setRenderedContent(`<div class="prose max-w-none"><p>${content.replace(/\n/g, '</p><p>')}</p></div>`);
+          setRenderedContent(
+            `<div class="prose max-w-none"><p>${content.replace(/\n/g, "</p><p>")}</p></div>`,
+          );
         });
     }
   }, [content]);
@@ -109,14 +111,18 @@ export default function PrivacyPage() {
       <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">{t('common.loading', 'Loading...')}</p>
+          <p className="text-muted-foreground">
+            {t("common.loading", "Loading...")}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${isRTL ? 'rtl' : 'ltr'}`}>
+    <div
+      className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${isRTL ? "rtl" : "ltr"}`}
+    >
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--primary))] to-[hsl(var(--success))] text-white py-12">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
@@ -125,7 +131,10 @@ export default function PrivacyPage() {
             <h1 className="text-4xl font-bold">{title}</h1>
           </div>
           <p className="text-xl opacity-90">
-            {t('privacy.subtitle', 'Your privacy is our priority. Learn how we protect and manage your data.')}
+            {t(
+              "privacy.subtitle",
+              "Your privacy is our priority. Learn how we protect and manage your data.",
+            )}
           </p>
         </div>
       </section>
@@ -137,32 +146,48 @@ export default function PrivacyPage() {
             <div className="flex items-center gap-3 p-4 bg-primary/10 rounded-2xl">
               <Lock className="w-8 h-8 text-primary flex-shrink-0" />
               <div>
-                <div className="font-semibold text-foreground">{t('privacy.encrypted', 'Encrypted')}</div>
-                <div className="text-sm text-muted-foreground">{t('privacy.encryptedDesc', 'End-to-end encryption')}</div>
+                <div className="font-semibold text-foreground">
+                  {t("privacy.encrypted", "Encrypted")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("privacy.encryptedDesc", "End-to-end encryption")}
+                </div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 p-4 bg-success/10 rounded-2xl">
               <Eye className="w-8 h-8 text-success flex-shrink-0" />
               <div>
-                <div className="font-semibold text-foreground">{t('privacy.transparent', 'Transparent')}</div>
-                <div className="text-sm text-muted-foreground">{t('privacy.transparentDesc', 'Clear data usage')}</div>
+                <div className="font-semibold text-foreground">
+                  {t("privacy.transparent", "Transparent")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("privacy.transparentDesc", "Clear data usage")}
+                </div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 p-4 bg-secondary/10 rounded-2xl">
               <Shield className="w-8 h-8 text-secondary-foreground flex-shrink-0" />
               <div>
-                <div className="font-semibold text-foreground">{t('privacy.compliant', 'Compliant')}</div>
-                <div className="text-sm text-muted-foreground">{t('privacy.compliantDesc', 'GDPR & CCPA certified')}</div>
+                <div className="font-semibold text-foreground">
+                  {t("privacy.compliant", "Compliant")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("privacy.compliantDesc", "GDPR & CCPA certified")}
+                </div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 p-4 bg-accent/10 rounded-2xl">
               <FileText className="w-8 h-8 text-accent-foreground flex-shrink-0" />
               <div>
-                <div className="font-semibold text-foreground">{t('privacy.yourRights', 'Your Rights')}</div>
-                <div className="text-sm text-muted-foreground">{t('privacy.yourRightsDesc', 'Full data control')}</div>
+                <div className="font-semibold text-foreground">
+                  {t("privacy.yourRights", "Your Rights")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("privacy.yourRightsDesc", "Full data control")}
+                </div>
               </div>
             </div>
           </div>
@@ -186,37 +211,51 @@ export default function PrivacyPage() {
           <div className="bg-card rounded-2xl shadow-md border border-border p-8">
             <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
               <Mail className="w-6 h-6 text-primary" />
-              {t('privacy.contactTitle', 'Privacy Questions?')}
+              {t("privacy.contactTitle", "Privacy Questions?")}
             </h2>
             <p className="text-foreground mb-6">
-              {t('privacy.contactDesc', 'Contact our Privacy Officer for questions about privacy practices or to exercise your rights.')}
+              {t(
+                "privacy.contactDesc",
+                "Contact our Privacy Officer for questions about privacy practices or to exercise your rights.",
+              )}
             </p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex items-start gap-3">
                 <Mail className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
                 <div>
-                  <div className="font-semibold text-foreground mb-1">{t('privacy.email', 'Email')}</div>
-                  <a href="mailto:privacy@fixzit.com" className="text-primary hover:text-primary/90">
+                  <div className="font-semibold text-foreground mb-1">
+                    {t("privacy.email", "Email")}
+                  </div>
+                  <a
+                    href="mailto:privacy@fixzit.com"
+                    className="text-primary hover:text-primary/90"
+                  >
                     privacy@fixzit.com
                   </a>
                 </div>
               </div>
-              
+
               <div className="flex items-start gap-3">
                 <Phone className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
                 <div>
-                  <div className="font-semibold text-foreground mb-1">{t('privacy.phone', 'Phone')}</div>
-                  <a href="tel:+971XXXXXXXX" className="text-primary hover:text-primary/90">
+                  <div className="font-semibold text-foreground mb-1">
+                    {t("privacy.phone", "Phone")}
+                  </div>
+                  <a
+                    href="tel:+971XXXXXXXX"
+                    className="text-primary hover:text-primary/90"
+                  >
                     +971 XX XXX XXXX
                   </a>
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-6 pt-6 border-t border-border">
               <p className="text-sm text-muted-foreground">
-                {t('privacy.lastUpdated', 'Last Updated')}: <span className="font-semibold">October 16, 2025</span>
+                {t("privacy.lastUpdated", "Last Updated")}:{" "}
+                <span className="font-semibold">October 16, 2025</span>
               </p>
             </div>
           </div>

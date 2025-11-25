@@ -9,82 +9,89 @@
 ## 🐛 Bug Fixes Applied
 
 ### Bug 1: Invalid `job.orgId.modules` Reference
+
 **Location:** `src/app/api/ats/applications/route.ts` (public apply endpoint)
 
 **❌ BROKEN CODE (would crash):**
+
 ```typescript
 const job = await Job.findById(jobId);
 if (!job || !job.orgId.modules.ats.enabled) {
-  return NextResponse.json({ error: 'Not available' }, { status: 402 });
+  return NextResponse.json({ error: "Not available" }, { status: 402 });
 }
 ```
 
 **Problem:** `job.orgId` is an `ObjectId`, not an `Organization` document. Accessing `.modules` will crash with "Cannot read property 'modules' of undefined".
 
 **✅ FIXED CODE (Option A - Simplest):**
+
 ```typescript
 export async function POST(req: NextRequest) {
   await connectDB();
   const form = await req.formData();
-  const jobId = form.get('jobId') as string;
-  
+  const jobId = form.get("jobId") as string;
+
   const job = await Job.findById(jobId);
-  if (!job || job.status !== 'open' || job.visibility !== 'public') {
-    return NextResponse.json({ error: 'Job not available' }, { status: 404 });
+  if (!job || job.status !== "open" || job.visibility !== "public") {
+    return NextResponse.json({ error: "Job not available" }, { status: 404 });
   }
-  
+
   // Note: Only ATS-enabled orgs can create/publish jobs (enforced at POST /api/ats/jobs)
   // So if a job exists and is open, the org must have ATS enabled
-  
-  const resume = form.get('resume') as File;
+
+  const resume = form.get("resume") as File;
   const buffer = Buffer.from(await resume.arrayBuffer());
   const parsed = await parseResume(buffer, job.screeningRules.requiredSkills);
-  
-  const candidate = await Candidate.create({ 
-    orgId: job.orgId, 
+
+  const candidate = await Candidate.create({
+    orgId: job.orgId,
     fullName: parsed.fullName,
     email: parsed.email,
     phone: parsed.phone,
-    skills: parsed.skills
+    skills: parsed.skills,
   });
 
-  const app = await Application.create({ 
-    orgId: job.orgId, 
-    jobId, 
-    candidateId: candidate._id, 
-    score: parsed.score 
+  const app = await Application.create({
+    orgId: job.orgId,
+    jobId,
+    candidateId: candidate._id,
+    score: parsed.score,
   });
-  
+
   return NextResponse.json(app);
 }
 ```
 
 **✅ FIXED CODE (Option B - Explicit Org Check):**
+
 ```typescript
-import { Organization } from '@/models/Organization';
+import { Organization } from "@/models/Organization";
 
 export async function POST(req: NextRequest) {
   await connectDB();
   const form = await req.formData();
-  const jobId = form.get('jobId') as string;
-  
+  const jobId = form.get("jobId") as string;
+
   const job = await Job.findById(jobId).lean();
   if (!job) {
-    return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
-  
+
   // Explicit org gating check
   const org = await Organization.findById(job.orgId).lean();
   if (!org?.modules?.ats?.enabled) {
-    return NextResponse.json({ 
-      error: 'Recruitment not active for this company' 
-    }, { status: 402 });
+    return NextResponse.json(
+      {
+        error: "Recruitment not active for this company",
+      },
+      { status: 402 },
+    );
   }
-  
-  if (job.status !== 'open' || job.visibility !== 'public') {
-    return NextResponse.json({ error: 'Job not available' }, { status: 404 });
+
+  if (job.status !== "open" || job.visibility !== "public") {
+    return NextResponse.json({ error: "Job not available" }, { status: 404 });
   }
-  
+
   // ... rest of code
 }
 ```
@@ -94,21 +101,24 @@ export async function POST(req: NextRequest) {
 ---
 
 ### Bug 2: SWR Error Handling for 402 Status
+
 **Location:** `src/app/hr/recruitment/page.tsx` (ATS dashboard UI)
 
 **❌ BROKEN CODE (wouldn't catch 402):**
+
 ```typescript
-const fetcher = url => fetch(url).then(r => r.json());
+const fetcher = (url) => fetch(url).then((r) => r.json());
 
 export default function ATSPage() {
   const router = useRouter();
-  const { data, error } = useSWR('/api/ats/jobs', fetcher);
+  const { data, error } = useSWR("/api/ats/jobs", fetcher);
 
-  if (error?.status === 402) {  // This will NEVER be true!
-    router.push('/billing/upgrade?feature=ats');
+  if (error?.status === 402) {
+    // This will NEVER be true!
+    router.push("/billing/upgrade?feature=ats");
     return null;
   }
-  
+
   // ... rest
 }
 ```
@@ -116,6 +126,7 @@ export default function ATSPage() {
 **Problem:** SWR's `error` is only set when `fetcher` throws. Your fetcher returns `r.json()` even when `r.status === 402`, so it never throws. `error?.status` is undefined.
 
 **✅ FIXED CODE:**
+
 ```typescript
 'use client';
 import useSWR from 'swr';
@@ -124,7 +135,7 @@ import { useEffect } from 'react';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
-  
+
   // Handle ATS not enabled (402 Payment Required)
   if (res.status === 402) {
     const err: any = new Error('ATS not enabled');
@@ -132,14 +143,14 @@ const fetcher = async (url: string) => {
     err.data = await res.json();
     throw err;
   }
-  
+
   // Handle other errors
   if (!res.ok) {
     const err: any = new Error(`Request failed: ${res.status}`);
     err.status = res.status;
     throw err;
   }
-  
+
   return res.json();
 };
 
@@ -179,7 +190,7 @@ export default function ATSPage() {
       <h1 className="text-2xl font-bold text-primary mb-4">
         Recruitment (ATS)
       </h1>
-      
+
       {/* Tabs: Jobs, Pipeline, Candidates, Interviews, Offers, Analytics */}
       <div className="space-y-4">
         {data.map((job: any) => (
@@ -195,6 +206,7 @@ export default function ATSPage() {
 ```
 
 **Key Fixes:**
+
 1. ✅ `fetcher` now **throws** on 402 with `err.status = 402`
 2. ✅ `useEffect` handles redirect (avoids React warnings)
 3. ✅ Type cast `(error as any)?.status` for TypeScript
@@ -205,16 +217,17 @@ export default function ATSPage() {
 
 ## 📋 Summary of Fixed Code
 
-| File | Bug | Fix | Lines Changed |
-|------|-----|-----|---------------|
-| `src/app/api/ats/applications/route.ts` | `job.orgId.modules` crash | Check `job.status/visibility` only | ~5 |
-| `src/app/hr/recruitment/page.tsx` | SWR 402 not caught | Throw error in fetcher with status | ~15 |
+| File                                    | Bug                       | Fix                                | Lines Changed |
+| --------------------------------------- | ------------------------- | ---------------------------------- | ------------- |
+| `src/app/api/ats/applications/route.ts` | `job.orgId.modules` crash | Check `job.status/visibility` only | ~5            |
+| `src/app/hr/recruitment/page.tsx`       | SWR 402 not caught        | Throw error in fetcher with status | ~15           |
 
 ---
 
 ## ✅ Verification Checklist
 
 ### Test 1: Public Apply (applications/route.ts)
+
 ```bash
 # Test with valid open job
 curl -X POST http://localhost:3000/api/ats/applications \
@@ -235,6 +248,7 @@ curl -X POST http://localhost:3000/api/ats/applications \
 ```
 
 ### Test 2: ATS Dashboard (page.tsx)
+
 ```bash
 # 1. Login as user with ATS enabled
 # Navigate to /hr/recruitment
@@ -253,6 +267,7 @@ curl -X POST http://localhost:3000/api/ats/applications \
 ## 🚀 Deployment Notes
 
 ### Before Merging
+
 - [ ] Update `src/app/api/ats/applications/route.ts` with fixed code
 - [ ] Update `src/app/hr/recruitment/page.tsx` with fixed fetcher
 - [ ] Run TypeScript compilation: `npm run build`
@@ -260,6 +275,7 @@ curl -X POST http://localhost:3000/api/ats/applications \
 - [ ] Verify no console errors in browser
 
 ### After Merging
+
 - [ ] Deploy to staging
 - [ ] Run manual QA (follow `COMMUNICATION_LOGS_QA_PLAN.md`)
 - [ ] Verify MongoDB logs show correct gating behavior
@@ -281,4 +297,4 @@ curl -X POST http://localhost:3000/api/ats/applications \
 
 ---
 
-*Last Updated: November 16, 2025*
+_Last Updated: November 16, 2025_

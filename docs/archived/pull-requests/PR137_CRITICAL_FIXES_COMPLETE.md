@@ -2,7 +2,7 @@
 
 **Date**: October 23, 2025  
 **Branch**: `fix/pr137-remaining-issues`  
-**Author**: GitHub Copilot Agent  
+**Author**: GitHub Copilot Agent
 
 ---
 
@@ -36,8 +36,9 @@ await session.withTransaction(async () => {
   return listing; // ← Return value ignored!
 });
 
-const listing = await AqarListing.findOne({ // ❌ Race condition!
-  listerId: user.id 
+const listing = await AqarListing.findOne({
+  // ❌ Race condition!
+  listerId: user.id,
 }).sort({ createdAt: -1 });
 ```
 
@@ -80,15 +81,16 @@ async function hashEmail(email: string): Promise<string> {
 // ✅ AFTER: Salted hash with delimiter prevents rainbow tables and length-extension attacks
 async function hashEmail(email: string): Promise<string> {
   const salt = process.env.LOG_HASH_SALT;
-  
+
   // Use delimiter to prevent length-extension attacks
-  const finalSalt = salt || 'dev-only-salt-REPLACE-IN-PROD';
+  const finalSalt = salt || "dev-only-salt-REPLACE-IN-PROD";
   const msgUint8 = new TextEncoder().encode(`${finalSalt}|${email}`);
   // ... hashing ...
 }
 ```
 
 **Security Rationale**:
+
 - Salt is placed **before** email to prevent length-extension attacks
 - Delimiter `|` separates salt from email for unambiguous parsing
 - Matches actual implementation in `auth.config.ts` (line 33)
@@ -111,7 +113,7 @@ async function hashEmail(email: string): Promise<string> {
 
 ```typescript
 // ❌ BEFORE: First IP in x-forwarded-for (client-controlled)
-const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim();
+const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim();
 ```
 
 **Fix**:
@@ -121,25 +123,25 @@ const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim();
 function getClientIp(request: NextRequest): string {
   // Priority: cf-connecting-ip > last x-forwarded-for IP > x-real-ip (if TRUST_X_REAL_IP=true)
   // See lib/security/client-ip.ts for current implementation
-  
+
   // Priority 1: Cloudflare's CF-Connecting-IP (most trustworthy when behind Cloudflare)
-  const cfIp = request.headers.get('cf-connecting-ip');
+  const cfIp = request.headers.get("cf-connecting-ip");
   if (cfIp) return cfIp.trim();
-  
+
   // Priority 2: Last IP in x-forwarded-for (appended by our reverse proxy)
-  const forwardedFor = request.headers.get('x-forwarded-for');
+  const forwardedFor = request.headers.get("x-forwarded-for");
   if (forwardedFor) {
-    const ips = forwardedFor.split(',').map(ip => ip.trim());
+    const ips = forwardedFor.split(",").map((ip) => ip.trim());
     return ips[ips.length - 1]; // ✅ Take last (proxy-added) IP
   }
-  
+
   // Priority 3: x-real-ip (only when TRUST_X_REAL_IP='true')
-  const realIp = request.headers.get('x-real-ip');
-  if (realIp && process.env.TRUST_X_REAL_IP === 'true') {
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp && process.env.TRUST_X_REAL_IP === "true") {
     return realIp.trim();
   }
-  
-  return 'unknown';
+
+  return "unknown";
 }
 ```
 
@@ -230,19 +232,19 @@ $ npm run build
 
 ## 📊 Issues Resolved Summary
 
-| # | Issue | Severity | File(s) | Status |
-|---|-------|----------|---------|--------|
-| 1 | Race condition in package consumption | 🔴 Critical | `app/api/aqar/listings/route.ts` | ✅ Fixed |
-| 2 | Missing salt in email hashing | 🔴 Critical | `auth.config.ts` | ✅ Fixed |
-| 3 | X-Forwarded-For spoofing | 🟠 High | `lib/rateLimit.ts` | ✅ Fixed |
-| 4 | Dangerous `as never` cast | 🟡 Medium | `app/api/aqar/packages/route.ts` | ✅ Fixed |
-| 5 | Missing env docs in README | 🟡 Medium | `README.md` | ✅ Fixed |
-| 6 | Missing env template entry | 🟡 Medium | `env.example` | ✅ Fixed |
+| #   | Issue                                 | Severity    | File(s)                          | Status   |
+| --- | ------------------------------------- | ----------- | -------------------------------- | -------- |
+| 1   | Race condition in package consumption | 🔴 Critical | `app/api/aqar/listings/route.ts` | ✅ Fixed |
+| 2   | Missing salt in email hashing         | 🔴 Critical | `auth.config.ts`                 | ✅ Fixed |
+| 3   | X-Forwarded-For spoofing              | 🟠 High     | `lib/rateLimit.ts`               | ✅ Fixed |
+| 4   | Dangerous `as never` cast             | 🟡 Medium   | `app/api/aqar/packages/route.ts` | ✅ Fixed |
+| 5   | Missing env docs in README            | 🟡 Medium   | `README.md`                      | ✅ Fixed |
+| 6   | Missing env template entry            | 🟡 Medium   | `env.example`                    | ✅ Fixed |
 
 **Total Resolved**: 6 issues (code + configuration)  
 **Critical**: 2  
 **High**: 1  
-**Medium**: 3  
+**Medium**: 3
 
 ---
 
@@ -268,24 +270,20 @@ Before merging to production:
 ### For Code Reviewers
 
 1. **Race Condition Fix** (lines 127-157 in `listings/route.ts`):
-
    - Verify `createdListing` is captured from `withTransaction` return value
    - Confirm no queries happen outside transaction scope
 
 2. **Salt Implementation** (lines 5-12 in `auth.config.ts`):
-
    - Verify salt is applied before hashing
    - Check that `LOG_HASH_SALT` is documented in README and env.example
 
 3. **Rate Limit Security** (lines 27-56 in `lib/rateLimit.ts`):
-
    - **Priority order used**: `cf-connecting-ip` > last `x-forwarded-for` > `x-real-ip` (conditional when `TRUST_X_REAL_IP='true'`)
    - This matches the implementation in lines 113-126 and ensures Cloudflare IPs are most trusted
    - **Security Note**: `x-real-ip` is conditional and lowest priority because it can be easily spoofed by clients. Only trust when you have a validated proxy that sets it. All header-based IPs are inherently spoofable unless validated by a trusted reverse proxy (Cloudflare, nginx, etc.)
    - Confirm client cannot spoof by sending fake IPs in header
 
 4. **Type Safety** (line 91 in `packages/route.ts`):
-
    - Verify `as mongoose.Types.ObjectId` instead of `as never`
    - Check runtime validation is still present before cast
 

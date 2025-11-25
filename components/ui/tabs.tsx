@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useId } from 'react';
+import React, { createContext, useContext, useState, useId } from "react";
 
 // --- Types ---
 
@@ -20,7 +20,8 @@ interface TabsProps extends React.HTMLAttributes<HTMLDivElement> {
 
 type TabsListProps = React.HTMLAttributes<HTMLDivElement>;
 
-interface TabsTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface TabsTriggerProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** A unique value for this tab trigger. */
   value: string;
 }
@@ -38,7 +39,7 @@ const TabsContext = createContext<TabsContextProps | null>(null);
 const useTabsContext = () => {
   const context = useContext(TabsContext);
   if (!context) {
-    throw new Error('Tabs components must be used within a <Tabs> provider.');
+    throw new Error("Tabs components must be used within a <Tabs> provider.");
   }
   return context;
 };
@@ -46,15 +47,15 @@ const useTabsContext = () => {
 // --- Components ---
 
 export const Tabs: React.FC<TabsProps> = ({
-  className = '',
-  defaultValue = '',
+  className = "",
+  defaultValue = "",
   value: controlledValue,
   onValueChange: controlledOnChange,
   children,
   ...props
 }) => {
   const [internalValue, setInternalValue] = useState(defaultValue);
-  
+
   // Generate a unique base ID for ARIA
   const baseId = useId();
 
@@ -70,9 +71,13 @@ export const Tabs: React.FC<TabsProps> = ({
     </TabsContext.Provider>
   );
 };
-Tabs.displayName = 'Tabs';
+Tabs.displayName = "Tabs";
 
-export const TabsList: React.FC<TabsListProps> = ({ className = '', children, ...props }) => {
+export const TabsList: React.FC<TabsListProps> = ({
+  className = "",
+  children,
+  ...props
+}) => {
   return (
     <div
       role="tablist"
@@ -87,10 +92,10 @@ export const TabsList: React.FC<TabsListProps> = ({ className = '', children, ..
     </div>
   );
 };
-TabsList.displayName = 'TabsList';
+TabsList.displayName = "TabsList";
 
 export const TabsTrigger: React.FC<TabsTriggerProps> = ({
-  className = '',
+  className = "",
   value,
   children,
   ...props
@@ -107,36 +112,38 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
 
     // Filter out disabled tabs from navigation
     const triggers = Array.from(
-      tablist.querySelectorAll<HTMLButtonElement>('[role="tab"]:not(:disabled)')
+      tablist.querySelectorAll<HTMLButtonElement>(
+        '[role="tab"]:not(:disabled)',
+      ),
     );
     if (triggers.length === 0) return;
 
     const currentIndex = triggers.findIndex((el) => el === target);
     if (currentIndex === -1) return;
-    
+
     let nextIndex = currentIndex;
 
     switch (e.key) {
-      case 'ArrowRight':
+      case "ArrowRight":
         e.preventDefault();
         nextIndex = (currentIndex + 1) % triggers.length;
         break;
-      case 'ArrowLeft':
+      case "ArrowLeft":
         e.preventDefault();
         nextIndex = (currentIndex - 1 + triggers.length) % triggers.length;
         break;
-      case 'Home':
+      case "Home":
         e.preventDefault();
         nextIndex = 0;
         break;
-      case 'End':
+      case "End":
         e.preventDefault();
         nextIndex = triggers.length - 1;
         break;
       default:
         return;
     }
-    
+
     // Set focus and activate the new tab
     const nextTrigger = triggers[nextIndex];
     if (!nextTrigger) return;
@@ -163,8 +170,8 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
         disabled:pointer-events-none disabled:opacity-50
         ${
           isActive
-            ? 'bg-card text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground'
+            ? "bg-card text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
         } 
         ${className}
       `}
@@ -176,10 +183,10 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
     </button>
   );
 };
-TabsTrigger.displayName = 'TabsTrigger';
+TabsTrigger.displayName = "TabsTrigger";
 
 export const TabsContent: React.FC<TabsContentProps> = ({
-  className = '',
+  className = "",
   value,
   children,
   ...props
@@ -204,4 +211,4 @@ export const TabsContent: React.FC<TabsContentProps> = ({
     </div>
   );
 };
-TabsContent.displayName = 'TabsContent';
+TabsContent.displayName = "TabsContent";

@@ -45,14 +45,14 @@ Options:
 
 ### Core Files
 
-| File | Purpose | Status |
-|------|---------|--------|
-| `scripts/fixzit-agent.mjs` | Main orchestration script (13 steps) | ✅ Implemented |
+| File                                  | Purpose                                        | Status         |
+| ------------------------------------- | ---------------------------------------------- | -------------- |
+| `scripts/fixzit-agent.mjs`            | Main orchestration script (13 steps)           | ✅ Implemented |
 | `scripts/codemods/import-rewrite.cjs` | jscodeshift transform for import normalization | ✅ Implemented |
-| `scripts/i18n-scan.mjs` | i18n key parity checker (EN/AR) | ✅ Implemented |
-| `scripts/api-scan.mjs` | API endpoint documentation scanner | ✅ Implemented |
-| `scripts/stop-dev.js` | Dev server stop utility | ✅ Implemented |
-| `tests/hfv.e2e.spec.ts` | Halt-Fix-Verify E2E smoke tests (9×13) | ✅ Implemented |
+| `scripts/i18n-scan.mjs`               | i18n key parity checker (EN/AR)                | ✅ Implemented |
+| `scripts/api-scan.mjs`                | API endpoint documentation scanner             | ✅ Implemented |
+| `scripts/stop-dev.js`                 | Dev server stop utility                        | ✅ Implemented |
+| `tests/hfv.e2e.spec.ts`               | Halt-Fix-Verify E2E smoke tests (9×13)         | ✅ Implemented |
 
 ### Package.json Scripts
 
@@ -73,12 +73,15 @@ Options:
 ### Phase 1: Setup & Baseline
 
 #### Step 0: Initialization
+
 - Creates required directories: `reports/`, `tasks/`, `tmp/`, `.agent-cache/`
 - Detects package manager (pnpm/yarn/npm)
 - Generates timestamp-based branch name
 
 #### Step 1: Install Tooling
+
 Installs dev dependencies:
+
 - `globby` - File pattern matching
 - `chalk` - Terminal colors
 - `ora` - Loading spinners
@@ -88,12 +91,14 @@ Installs dev dependencies:
 - `zx` - Shell scripting utilities
 
 #### Step 2: Capture Baseline
+
 - Captures git status
 - Records Node.js and package manager versions
 - Runs initial build (logs output)
 - All baselines saved to `reports/`
 
 #### Step 3: Git Safety
+
 - Creates new branch: `fixzit-agent/YYYY-MM-DDTHH-mm-ss`
 - Ensures clean isolation from main/develop
 - Prevents accidental modifications to protected branches
@@ -103,7 +108,9 @@ Installs dev dependencies:
 ### Phase 2: Analysis & Discovery
 
 #### Step 4: Fix Mining (5-Day History)
+
 Analyzes recent commits to identify patterns:
+
 - Extracts commit hashes, dates, subjects, affected files
 - Generates full diff patches
 - Outputs:
@@ -112,6 +119,7 @@ Analyzes recent commits to identify patterns:
   - `reports/fixes_5d.json` - Parsed commit data
 
 **Heuristics Applied:**
+
 - Hydration errors (`/hydration/i`)
 - Undefined property access (`/cannot read propert(y|ies)/i`)
 - Import alias misuse (`/@\/src\//g`)
@@ -120,13 +128,17 @@ Analyzes recent commits to identify patterns:
 - Unhandled rejections (`/unhandled.*rejection/i`)
 
 #### Step 5: Similarity Sweep
+
 Scans entire codebase for similar issue patterns:
+
 - Uses regex-based heuristics from Step 4
 - Identifies repeated anti-patterns
 - Outputs: `reports/similar_hits.json`
 
 #### Step 6: Static Analysis
+
 Runs comprehensive quality checks:
+
 - **ESLint:** Full codebase lint with all rules
 - **TypeScript:** Type checking with `--noEmit`
 - Outputs:
@@ -134,15 +146,19 @@ Runs comprehensive quality checks:
   - `reports/tsc_all.log`
 
 #### Step 7: Duplicate Audit
+
 Identifies duplicate and similar files:
+
 - **Hash-based:** SHA1 content hashing for exact duplicates
 - **Name-based:** Filename collision detection
 - Outputs: `reports/duplicates.json`
 
 #### Step 8: Canonical Move Plan (Governance V5)
+
 Generates file reorganization plan based on module buckets:
 
 **Gov V5 Buckets:**
+
 - `app/dashboard` - Overview and dashboards
 - `app/work-orders` - Work order management
 - `app/properties` - Property & asset management
@@ -163,7 +179,9 @@ Outputs: `reports/move-plan.json`
 ### Phase 3: Execution & Validation
 
 #### Step 9: Apply Changes (--apply mode only)
+
 When `--apply` flag is used:
+
 1. Executes `git mv` for all planned file moves
 2. Runs `import-rewrite.cjs` codemod:
    - Fixes `@/src/` imports → `@/`
@@ -171,19 +189,24 @@ When `--apply` flag is used:
 3. Stages and commits changes
 
 Commit message:
+
 ```
 fixzit-agent: canonicalize structure + import rewrites (STRICT v4, Gov V5)
 ```
 
 #### Step 10: Post-Move Analysis (--apply mode only)
+
 Re-runs static analysis after modifications:
+
 - ESLint → `reports/eslint_after.log`
 - TypeScript → `reports/tsc_after.log`
 
 Allows comparison of before/after states.
 
 #### Step 11: Generate Reports
+
 Creates comprehensive markdown summary:
+
 - Commit analysis
 - Similarity findings
 - Static analysis results
@@ -193,14 +216,18 @@ Creates comprehensive markdown summary:
 Outputs: `reports/5d_similarity_report.md`
 
 #### Step 12: Run Analysis Hooks
+
 Executes specialized scanners:
+
 - **i18n Scanner:** Checks EN/AR locale parity
 - **API Scanner:** Documents all API endpoints
 
 Non-blocking (continues on failure).
 
 #### Step 13: Dev Server Keep-Alive (optional)
+
 When `--keep-alive` flag is used:
+
 - Starts detached dev server
 - Runs on specified port (default: 3000)
 - Saves PID to `.agent-cache/dev.pid`
@@ -215,6 +242,7 @@ When `--keep-alive` flag is used:
 **Coverage:** 9 roles × 13 critical pages = **117 test scenarios**
 
 **Roles Tested:**
+
 1. Super Admin
 2. Corporate Admin
 3. Property Manager
@@ -226,6 +254,7 @@ When `--keep-alive` flag is used:
 9. Guest
 
 **Critical Pages:**
+
 1. `/dashboard` - Dashboard
 2. `/work-orders` - Work Orders
 3. `/properties` - Properties
@@ -243,6 +272,7 @@ When `--keep-alive` flag is used:
 ### Test Behavior
 
 **For Each Role + Page Combination:**
+
 1. Mock authentication for the role
 2. Navigate to page
 3. Verify RBAC:
@@ -253,6 +283,7 @@ When `--keep-alive` flag is used:
 6. Save evidence to `reports/evidence/{role}_{page}.png`
 
 **Assertion Types:**
+
 - Header/footer visibility (layout integrity)
 - Console error count === 0 (HFV policy)
 - RBAC enforcement (authorized vs unauthorized)
@@ -284,28 +315,30 @@ npx playwright test tests/hfv.e2e.spec.ts --debug
 ### Rules Applied
 
 1. **Normalize `@/src/` to `@/`**
+
    ```typescript
    // BEFORE
-   import { Button } from '@/src/components/ui/Button';
-   
+   import { Button } from "@/src/components/ui/Button";
+
    // AFTER
-   import { Button } from '@/components/ui/Button';
+   import { Button } from "@/components/ui/Button";
    ```
 
 2. **Convert deep relative imports to aliases**
+
    ```typescript
    // BEFORE (in app/finance/invoices/page.tsx)
-   import { formatCurrency } from '../../../lib/utils/currency';
-   
+   import { formatCurrency } from "../../../lib/utils/currency";
+
    // AFTER
-   import { formatCurrency } from '@/lib/utils/currency';
+   import { formatCurrency } from "@/lib/utils/currency";
    ```
 
 3. **Preserve external imports**
    ```typescript
    // NOT MODIFIED
-   import React from 'react';
-   import { useSession } from 'next-auth/react';
+   import React from "react";
+   import { useSession } from "next-auth/react";
    ```
 
 ### Usage
@@ -332,6 +365,7 @@ npx jscodeshift -t scripts/codemods/import-rewrite.cjs app/finance --extensions=
 **Purpose:** Detects i18n key mismatches between English and Arabic locales.
 
 **Checks:**
+
 1. Keys in EN but missing in AR
 2. Keys in AR but missing in EN
 3. Keys used in code but missing from both locales
@@ -339,6 +373,7 @@ npx jscodeshift -t scripts/codemods/import-rewrite.cjs app/finance --extensions=
 **Output:** `reports/i18n-missing.json`
 
 **Example Output:**
+
 ```json
 {
   "enOnly": ["dashboard.newFeature"],
@@ -356,6 +391,7 @@ npx jscodeshift -t scripts/codemods/import-rewrite.cjs app/finance --extensions=
 ```
 
 **Usage:**
+
 ```bash
 node scripts/i18n-scan.mjs
 ```
@@ -369,6 +405,7 @@ node scripts/i18n-scan.mjs
 **Purpose:** Documents all Next.js API route handlers.
 
 **Scans For:**
+
 - Route files: `app/**/route.{ts,js}`
 - HTTP methods: GET, POST, PUT, PATCH, DELETE
 - NextResponse usage
@@ -377,6 +414,7 @@ node scripts/i18n-scan.mjs
 **Output:** `reports/api-endpoint-scan.json`
 
 **Example Output:**
+
 ```json
 [
   {
@@ -395,6 +433,7 @@ node scripts/i18n-scan.mjs
 ```
 
 **Usage:**
+
 ```bash
 node scripts/api-scan.mjs
 ```
@@ -413,6 +452,7 @@ pnpm run fixzit:agent -- --keep-alive --port 3000
 ```
 
 **Behavior:**
+
 - Server runs detached (background)
 - PID saved to `.agent-cache/dev.pid`
 - Logs to `tmp/dev-server.log` (if enabled)
@@ -426,6 +466,7 @@ pnpm run fixzit:agent:stop
 ```
 
 **Behavior:**
+
 - Reads PID from `.agent-cache/dev.pid`
 - Sends SIGTERM to process
 - Cleans up PID file
@@ -439,35 +480,35 @@ pnpm run fixzit:agent:stop
 
 ### Reports Directory (`reports/`)
 
-| File | Purpose | Generated By |
-|------|---------|--------------|
-| `git-status-initial.log` | Initial git state | Step 2 |
-| `versions.txt` | Node & PM versions | Step 2 |
-| `build-initial.log` | Initial build output | Step 2 |
-| `fixes_5d.json` | Parsed commit data | Step 4 |
-| `similar_hits.json` | Similarity scan results | Step 5 |
-| `eslint_all.log` | Pre-move ESLint output | Step 6 |
-| `tsc_all.log` | Pre-move TypeScript output | Step 6 |
-| `duplicates.json` | Duplicate file audit | Step 7 |
-| `move-plan.json` | Canonical file moves | Step 8 |
-| `eslint_after.log` | Post-move ESLint | Step 10 |
-| `tsc_after.log` | Post-move TypeScript | Step 10 |
-| `5d_similarity_report.md` | Comprehensive summary | Step 11 |
-| `i18n-missing.json` | i18n key parity report | Step 12 |
-| `api-endpoint-scan.json` | API endpoint documentation | Step 12 |
-| `evidence/{role}_{page}.png` | HFV test screenshots | E2E tests |
+| File                         | Purpose                    | Generated By |
+| ---------------------------- | -------------------------- | ------------ |
+| `git-status-initial.log`     | Initial git state          | Step 2       |
+| `versions.txt`               | Node & PM versions         | Step 2       |
+| `build-initial.log`          | Initial build output       | Step 2       |
+| `fixes_5d.json`              | Parsed commit data         | Step 4       |
+| `similar_hits.json`          | Similarity scan results    | Step 5       |
+| `eslint_all.log`             | Pre-move ESLint output     | Step 6       |
+| `tsc_all.log`                | Pre-move TypeScript output | Step 6       |
+| `duplicates.json`            | Duplicate file audit       | Step 7       |
+| `move-plan.json`             | Canonical file moves       | Step 8       |
+| `eslint_after.log`           | Post-move ESLint           | Step 10      |
+| `tsc_after.log`              | Post-move TypeScript       | Step 10      |
+| `5d_similarity_report.md`    | Comprehensive summary      | Step 11      |
+| `i18n-missing.json`          | i18n key parity report     | Step 12      |
+| `api-endpoint-scan.json`     | API endpoint documentation | Step 12      |
+| `evidence/{role}_{page}.png` | HFV test screenshots       | E2E tests    |
 
 ### Temporary Files (`tmp/`)
 
-| File | Purpose |
-|------|---------|
-| `fixes_5d_raw.log` | Raw git log output |
+| File                  | Purpose                         |
+| --------------------- | ------------------------------- |
+| `fixes_5d_raw.log`    | Raw git log output              |
 | `fixes_5d_diff.patch` | Complete diff of recent commits |
 
 ### Tasks Directory (`tasks/`)
 
-| File | Purpose |
-|------|---------|
+| File             | Purpose                      |
+| ---------------- | ---------------------------- |
 | `TODO_flat.json` | Flat list of detected issues |
 
 ---
@@ -481,10 +522,10 @@ Modify `CONFIG.GOV_V5_BUCKETS` in `fixzit-agent.mjs`:
 ```javascript
 const CONFIG = {
   GOV_V5_BUCKETS: [
-    { bucket: 'app/dashboard', regex: /dashboard|overview/i },
-    { bucket: 'app/work-orders', regex: /work-?order|wo|ticket/i },
+    { bucket: "app/dashboard", regex: /dashboard|overview/i },
+    { bucket: "app/work-orders", regex: /work-?order|wo|ticket/i },
     // Add custom rules here
-  ]
+  ],
 };
 ```
 
@@ -494,9 +535,9 @@ Add custom pattern detection in `CONFIG.SIMILARITY_HEURISTICS`:
 
 ```javascript
 SIMILARITY_HEURISTICS: [
-  { name: 'Custom Pattern', regex: /your-pattern/i },
+  { name: "Custom Pattern", regex: /your-pattern/i },
   // More heuristics
-]
+];
 ```
 
 ---
@@ -506,12 +547,14 @@ SIMILARITY_HEURISTICS: [
 ### When to Run Dry-Run Mode
 
 **Always safe:**
+
 - Daily/weekly code health checks
 - Before major refactors
 - After merging feature branches
 - During onboarding new developers
 
 **Command:**
+
 ```bash
 pnpm run fixzit:agent
 ```
@@ -519,11 +562,13 @@ pnpm run fixzit:agent
 ### When to Run Apply Mode
 
 **Use with caution:**
+
 - After reviewing move plan (`reports/move-plan.json`)
 - On a feature branch (agent creates one automatically)
 - When ready to commit structural changes
 
 **Command:**
+
 ```bash
 pnpm run fixzit:agent:apply
 ```
@@ -531,6 +576,7 @@ pnpm run fixzit:agent:apply
 ### Workflow Integration
 
 **Recommended Git workflow:**
+
 ```bash
 # 1. Ensure main is up-to-date
 git checkout main
@@ -563,6 +609,7 @@ git branch -d fixzit-agent/YYYY-MM-DDTHH-mm-ss
 **Symptom:** `Error: Cannot find module 'globby'`
 
 **Solution:**
+
 ```bash
 # Install missing dependencies
 pnpm install
@@ -576,6 +623,7 @@ pnpm run fixzit:agent
 **Symptom:** `pnpm run fixzit:agent:stop` reports "Process not found"
 
 **Solution:**
+
 ```bash
 # Find dev server process manually
 ps aux | grep "next dev"
@@ -592,6 +640,7 @@ rm .agent-cache/dev.pid
 **Symptom:** HFV tests timeout waiting for pages
 
 **Solution:**
+
 ```bash
 # 1. Ensure dev server is running
 pnpm run dev
@@ -611,6 +660,7 @@ lsof -i :3000
 **Symptom:** Imports like `@/app/dashboard` instead of `@/components/Button`
 
 **Solution:**
+
 1. Review codemod logic in `scripts/codemods/import-rewrite.cjs`
 2. Test on single file first:
    ```bash
@@ -665,7 +715,7 @@ name: Weekly Agent Health Check
 
 on:
   schedule:
-    - cron: '0 9 * * 1' # Every Monday at 9 AM
+    - cron: "0 9 * * 1" # Every Monday at 9 AM
 
 jobs:
   health-check:
@@ -674,7 +724,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v2
       - run: pnpm run fixzit:agent
-      
+
       - name: Upload Reports
         uses: actions/upload-artifact@v4
         with:

@@ -2,8 +2,8 @@
 /**
  * create-file.ts - Reliable file creation utility
  */
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
 interface Options {
   filePath: string;
@@ -16,28 +16,29 @@ interface Options {
 
 function parseArgs(argv: string[]): Options {
   const opts: Options = {
-    filePath: '',
-    content: '',
-    encoding: 'utf8',
+    filePath: "",
+    content: "",
+    encoding: "utf8",
     overwrite: false,
     backup: false,
     dryRun: false,
   };
-  
+
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
     const next = () => argv[++i];
-    
-    if (arg === '--path' || arg === '--file') opts.filePath = String(next());
-    else if (arg === '--content') opts.content = String(next());
-    else if (arg === '--encoding') opts.encoding = String(next()) as BufferEncoding;
-    else if (arg === '--overwrite') opts.overwrite = true;
-    else if (arg === '--backup') opts.backup = true;
-    else if (arg === '--dry-run') opts.dryRun = true;
-    else if (!arg.startsWith('--') && !opts.filePath) opts.filePath = arg;
+
+    if (arg === "--path" || arg === "--file") opts.filePath = String(next());
+    else if (arg === "--content") opts.content = String(next());
+    else if (arg === "--encoding")
+      opts.encoding = String(next()) as BufferEncoding;
+    else if (arg === "--overwrite") opts.overwrite = true;
+    else if (arg === "--backup") opts.backup = true;
+    else if (arg === "--dry-run") opts.dryRun = true;
+    else if (!arg.startsWith("--") && !opts.filePath) opts.filePath = arg;
   }
-  
-  if (!opts.filePath) throw new Error('--path required');
+
+  if (!opts.filePath) throw new Error("--path required");
   return opts;
 }
 
@@ -52,35 +53,35 @@ async function run() {
   }
 
   const result: RunResult = { success: false, filePath: opts.filePath };
-  
+
   try {
     const exists = fs.existsSync(opts.filePath);
-    
+
     if (exists && !opts.overwrite) {
-      result.message = 'File exists. Use --overwrite';
+      result.message = "File exists. Use --overwrite";
       console.log(JSON.stringify(result));
       process.exitCode = 1;
       return;
     }
-    
+
     if (opts.dryRun) {
-      result.message = 'Dry-run: would create file';
+      result.message = "Dry-run: would create file";
       result.success = true;
       console.log(JSON.stringify(result));
       return;
     }
-    
+
     if (exists && opts.backup) {
-      fs.copyFileSync(opts.filePath, opts.filePath + '.bak');
-      result.backupPath = opts.filePath + '.bak';
+      fs.copyFileSync(opts.filePath, opts.filePath + ".bak");
+      result.backupPath = opts.filePath + ".bak";
     }
-    
+
     fs.mkdirSync(path.dirname(opts.filePath), { recursive: true });
     fs.writeFileSync(opts.filePath, opts.content, { encoding: opts.encoding });
-    
+
     result.success = true;
     result.bytesWritten = opts.content.length;
-    result.message = exists ? 'File overwritten' : 'File created';
+    result.message = exists ? "File overwritten" : "File created";
     console.log(JSON.stringify(result, null, 2));
   } catch (err: unknown) {
     const error = err as { message?: string };

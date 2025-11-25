@@ -16,10 +16,12 @@
 
 ```typescript
 // ❌ WRONG
-const canConvertApplications = ['ADMIN', 'HR'].includes(user.role);
+const canConvertApplications = ["ADMIN", "HR"].includes(user.role);
 
 // ✅ CORRECT
-const canConvertApplications = ['corporate_admin', 'hr_manager'].includes(user.role);
+const canConvertApplications = ["corporate_admin", "hr_manager"].includes(
+  user.role,
+);
 ```
 
 #### Issue 2: `app/api/subscribe/corporate/route.ts`
@@ -195,7 +197,7 @@ sed -i '1s/the dual #!/#!/' diagnose-replace-issue.sh
 Both `app/api/subscribe/corporate/route.ts` and `app/api/subscribe/owner/route.ts` need:
 
 ```typescript
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 export async function POST(req: NextRequest) {
   // Add authentication
@@ -204,28 +206,28 @@ export async function POST(req: NextRequest) {
     user = await getSessionUser(req);
   } catch {
     return NextResponse.json(
-      { error: 'UNAUTHORIZED', code: 'AUTH_REQUIRED' },
-      { status: 401 }
+      { error: "UNAUTHORIZED", code: "AUTH_REQUIRED" },
+      { status: 401 },
     );
   }
-  
+
   // Add role check
-  const allowedRoles = ['super_admin', 'corporate_admin', 'finance_manager'];
+  const allowedRoles = ["super_admin", "corporate_admin", "finance_manager"];
   if (!allowedRoles.includes(user.role)) {
     return NextResponse.json(
-      { error: 'FORBIDDEN', code: 'INSUFFICIENT_PERMISSIONS' },
-      { status: 403 }
+      { error: "FORBIDDEN", code: "INSUFFICIENT_PERMISSIONS" },
+      { status: 403 },
     );
   }
-  
+
   // Add tenant isolation
   if (body.tenantId && body.tenantId !== user.orgId) {
     return NextResponse.json(
-      { error: 'FORBIDDEN', code: 'CROSS_TENANT_VIOLATION' },
-      { status: 403 }
+      { error: "FORBIDDEN", code: "CROSS_TENANT_VIOLATION" },
+      { status: 403 },
     );
   }
-  
+
   // ... rest of code
 }
 ```
@@ -265,14 +267,14 @@ OwnerGroupSchema.index({ orgId: 1, name: 1 }, { unique: true });
 #### PaymentMethod.ts
 
 ```typescript
-PaymentMethodSchema.pre('validate', function (next) {
+PaymentMethodSchema.pre("validate", function (next) {
   const hasOrg = !!this.org_id;
   const hasOwner = !!this.owner_user_id;
   if (!hasOrg && !hasOwner) {
-    return next(new Error('Either org_id or owner_user_id must be provided'));
+    return next(new Error("Either org_id or owner_user_id must be provided"));
   }
   if (hasOrg && hasOwner) {
-    return next(new Error('Cannot set both org_id and owner_user_id'));
+    return next(new Error("Cannot set both org_id and owner_user_id"));
   }
   next();
 });
@@ -282,10 +284,10 @@ PaymentMethodSchema.pre('validate', function (next) {
 
 ```typescript
 // In seed scripts
-if (process.env.NODE_ENV === 'development' && !process.env.CI) {
+if (process.env.NODE_ENV === "development" && !process.env.CI) {
   console.log(`Password: ${password}`);
 } else {
-  console.log('Password set securely');
+  console.log("Password set securely");
 }
 ```
 
@@ -293,7 +295,7 @@ if (process.env.NODE_ENV === 'development' && !process.env.CI) {
 
 ```typescript
 // In test scripts
-console.log('✅ JWT_SECRET configured (********)');
+console.log("✅ JWT_SECRET configured (********)");
 // Instead of showing substring
 ```
 

@@ -1,53 +1,59 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { logger } from '@/lib/logger';
+import { useState } from "react";
+import { toast } from "sonner";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 
 const createInitialTenantForm = () => ({
-  name: '',
-  type: '',
+  name: "",
+  type: "",
   contact: {
     primary: {
-      name: '',
-      title: '',
-      email: '',
-      phone: '',
-      mobile: '',
+      name: "",
+      title: "",
+      email: "",
+      phone: "",
+      mobile: "",
     },
     secondary: {
-      name: '',
-      email: '',
-      phone: '',
+      name: "",
+      email: "",
+      phone: "",
     },
     emergency: {
-      name: '',
-      relationship: '',
-      phone: '',
+      name: "",
+      relationship: "",
+      phone: "",
     },
   },
   identification: {
-    nationalId: '',
-    companyRegistration: '',
-    taxId: '',
-    licenseNumber: '',
+    nationalId: "",
+    companyRegistration: "",
+    taxId: "",
+    licenseNumber: "",
   },
   address: {
     current: {
-      street: '',
-      city: '',
-      region: '',
-      postalCode: '',
+      street: "",
+      city: "",
+      region: "",
+      postalCode: "",
     },
     permanent: {
-      street: '',
-      city: '',
-      region: '',
-      postalCode: '',
+      street: "",
+      city: "",
+      region: "",
+      postalCode: "",
     },
   },
   preferences: {
@@ -63,8 +69,8 @@ const createInitialTenantForm = () => ({
       events: false,
       announcements: false,
     },
-    language: 'ar',
-    timezone: 'Asia/Riyadh',
+    language: "ar",
+    timezone: "Asia/Riyadh",
   },
   tags: [] as string[],
 });
@@ -78,31 +84,42 @@ type CreateTenantFormProps = {
 
 export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
   const { t } = useTranslation();
-  const [formData, setFormData] = useState<TenantFormState>(() => createInitialTenantForm());
+  const [formData, setFormData] = useState<TenantFormState>(() =>
+    createInitialTenantForm(),
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!orgId) {
-      toast.error(t('fm.errors.noOrgSession', 'Error: No organization ID found in session'));
+      toast.error(
+        t(
+          "fm.errors.noOrgSession",
+          "Error: No organization ID found in session",
+        ),
+      );
       return;
     }
 
     if (!formData.type) {
-      toast.error(t('fm.tenants.errors.typeRequired', 'Please select a tenant type.'));
+      toast.error(
+        t("fm.tenants.errors.typeRequired", "Please select a tenant type."),
+      );
       return;
     }
 
     setIsSubmitting(true);
-    const toastId = toast.loading(t('fm.tenants.toast.creating', 'Creating tenant...'));
+    const toastId = toast.loading(
+      t("fm.tenants.toast.creating", "Creating tenant..."),
+    );
 
     try {
-      const response = await fetch('/api/tenants', {
-        method: 'POST',
+      const response = await fetch("/api/tenants", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'x-tenant-id': orgId,
+          "Content-Type": "application/json",
+          "x-tenant-id": orgId,
         },
         body: JSON.stringify(formData),
       });
@@ -110,33 +127,51 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         const message =
-          error && typeof error === 'object' && 'error' in error && typeof error.error === 'string'
+          error &&
+          typeof error === "object" &&
+          "error" in error &&
+          typeof error.error === "string"
             ? error.error
-            : t('fm.tenants.errors.unknown', 'Unknown error');
+            : t("fm.tenants.errors.unknown", "Unknown error");
         toast.error(
-          t('fm.tenants.toast.createFailed', 'Failed to create tenant: {{message}}').replace('{{message}}', message),
+          t(
+            "fm.tenants.toast.createFailed",
+            "Failed to create tenant: {{message}}",
+          ).replace("{{message}}", message),
           { id: toastId },
         );
         return;
       }
 
-      toast.success(t('fm.tenants.toast.createSuccess', 'Tenant created successfully'), { id: toastId });
+      toast.success(
+        t("fm.tenants.toast.createSuccess", "Tenant created successfully"),
+        { id: toastId },
+      );
       setFormData(createInitialTenantForm());
       onCreated();
     } catch (error) {
-      logger.error('Error creating tenant:', error);
-      toast.error(t('fm.tenants.toast.createUnknown', 'Error creating tenant. Please try again.'), { id: toastId });
+      logger.error("Error creating tenant:", error);
+      toast.error(
+        t(
+          "fm.tenants.toast.createUnknown",
+          "Error creating tenant. Please try again.",
+        ),
+        { id: toastId },
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-96 overflow-y-auto">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 max-h-96 overflow-y-auto"
+    >
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="mb-1 block text-sm font-medium">
-            {t('fm.tenants.tenantName', 'Tenant Name')} *
+            {t("fm.tenants.tenantName", "Tenant Name")} *
           </label>
           <Input
             value={formData.name}
@@ -146,16 +181,27 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">
-            {t('fm.properties.type', 'Type')} *
+            {t("fm.properties.type", "Type")} *
           </label>
-          <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+          <Select
+            value={formData.type}
+            onValueChange={(value) => setFormData({ ...formData, type: value })}
+          >
             <SelectTrigger>
-              <SelectValue placeholder={t('fm.properties.selectType', 'Select type')} />
+              <SelectValue
+                placeholder={t("fm.properties.selectType", "Select type")}
+              />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="INDIVIDUAL">{t('fm.tenants.individual', 'Individual')}</SelectItem>
-              <SelectItem value="COMPANY">{t('fm.tenants.company', 'Company')}</SelectItem>
-              <SelectItem value="GOVERNMENT">{t('fm.tenants.government', 'Government')}</SelectItem>
+              <SelectItem value="INDIVIDUAL">
+                {t("fm.tenants.individual", "Individual")}
+              </SelectItem>
+              <SelectItem value="COMPANY">
+                {t("fm.tenants.company", "Company")}
+              </SelectItem>
+              <SelectItem value="GOVERNMENT">
+                {t("fm.tenants.government", "Government")}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -164,7 +210,7 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="mb-1 block text-sm font-medium">
-            {t('fm.tenants.primaryContactName', 'Primary Contact Name')} *
+            {t("fm.tenants.primaryContactName", "Primary Contact Name")} *
           </label>
           <Input
             value={formData.contact.primary.name}
@@ -173,7 +219,10 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
                 ...formData,
                 contact: {
                   ...formData.contact,
-                  primary: { ...formData.contact.primary, name: e.target.value },
+                  primary: {
+                    ...formData.contact.primary,
+                    name: e.target.value,
+                  },
                 },
               })
             }
@@ -181,7 +230,9 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">{t('fm.tenants.email', 'Email')} *</label>
+          <label className="mb-1 block text-sm font-medium">
+            {t("fm.tenants.email", "Email")} *
+          </label>
           <Input
             type="email"
             value={formData.contact.primary.email}
@@ -190,7 +241,10 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
                 ...formData,
                 contact: {
                   ...formData.contact,
-                  primary: { ...formData.contact.primary, email: e.target.value },
+                  primary: {
+                    ...formData.contact.primary,
+                    email: e.target.value,
+                  },
                 },
               })
             }
@@ -201,7 +255,9 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="mb-1 block text-sm font-medium">{t('fm.tenants.phone', 'Phone')}</label>
+          <label className="mb-1 block text-sm font-medium">
+            {t("fm.tenants.phone", "Phone")}
+          </label>
           <Input
             value={formData.contact.primary.phone}
             onChange={(e) =>
@@ -209,14 +265,19 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
                 ...formData,
                 contact: {
                   ...formData.contact,
-                  primary: { ...formData.contact.primary, phone: e.target.value },
+                  primary: {
+                    ...formData.contact.primary,
+                    phone: e.target.value,
+                  },
                 },
               })
             }
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">{t('fm.tenants.mobile', 'Mobile')}</label>
+          <label className="mb-1 block text-sm font-medium">
+            {t("fm.tenants.mobile", "Mobile")}
+          </label>
           <Input
             value={formData.contact.primary.mobile}
             onChange={(e) =>
@@ -224,7 +285,10 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
                 ...formData,
                 contact: {
                   ...formData.contact,
-                  primary: { ...formData.contact.primary, mobile: e.target.value },
+                  primary: {
+                    ...formData.contact.primary,
+                    mobile: e.target.value,
+                  },
                 },
               })
             }
@@ -234,7 +298,9 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="mb-1 block text-sm font-medium">{t('fm.properties.city', 'City')} *</label>
+          <label className="mb-1 block text-sm font-medium">
+            {t("fm.properties.city", "City")} *
+          </label>
           <Input
             value={formData.address.current.city}
             onChange={(e) =>
@@ -242,7 +308,10 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
                 ...formData,
                 address: {
                   ...formData.address,
-                  current: { ...formData.address.current, city: e.target.value },
+                  current: {
+                    ...formData.address.current,
+                    city: e.target.value,
+                  },
                 },
               })
             }
@@ -250,7 +319,9 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">{t('fm.properties.region', 'Region')} *</label>
+          <label className="mb-1 block text-sm font-medium">
+            {t("fm.properties.region", "Region")} *
+          </label>
           <Input
             value={formData.address.current.region}
             onChange={(e) =>
@@ -258,7 +329,10 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
                 ...formData,
                 address: {
                   ...formData.address,
-                  current: { ...formData.address.current, region: e.target.value },
+                  current: {
+                    ...formData.address.current,
+                    region: e.target.value,
+                  },
                 },
               })
             }
@@ -269,7 +343,7 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
 
       <div>
         <label className="mb-1 block text-sm font-medium">
-          {t('fm.properties.streetAddress', 'Street Address')} *
+          {t("fm.properties.streetAddress", "Street Address")} *
         </label>
         <Input
           value={formData.address.current.street}
@@ -278,7 +352,10 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
               ...formData,
               address: {
                 ...formData.address,
-                current: { ...formData.address.current, street: e.target.value },
+                current: {
+                  ...formData.address.current,
+                  street: e.target.value,
+                },
               },
             })
           }
@@ -287,8 +364,15 @@ export function CreateTenantForm({ orgId, onCreated }: CreateTenantFormProps) {
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-secondary hover:bg-secondary/90" disabled={isSubmitting} aria-busy={isSubmitting}>
-          {isSubmitting ? t('common.saving', 'Saving...') : t('fm.tenants.createTenant', 'Create Tenant')}
+        <Button
+          type="submit"
+          className="bg-secondary hover:bg-secondary/90"
+          disabled={isSubmitting}
+          aria-busy={isSubmitting}
+        >
+          {isSubmitting
+            ? t("common.saving", "Saving...")
+            : t("fm.tenants.createTenant", "Create Tenant")}
         </Button>
       </div>
     </form>

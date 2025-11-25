@@ -9,11 +9,13 @@
 ## Current Issue
 
 The notification smoke test is failing because SendGrid API credentials are either:
+
 1. Missing from `.env.local`
 2. Invalid/expired
 3. Not configured with correct permissions
 
 **Previous Error:**
+
 ```
 Notification Channel: email
 Status: ❌ FAILED
@@ -78,6 +80,7 @@ pnpm tsx qa/notifications/run-smoke.ts --all
 ### Step 4: Verify Results
 
 **Expected Success Output:**
+
 ```
 🔔 Notification Smoke Test
 ============================
@@ -86,7 +89,7 @@ Status: ✅ PASSED
 
 Test Results:
 - OTP Email: Sent successfully
-- Welcome Email: Sent successfully  
+- Welcome Email: Sent successfully
 - Password Reset: Sent successfully
 - Order Confirmation: Sent successfully
 - Claim Update: Sent successfully
@@ -96,6 +99,7 @@ Duration: 2.3s
 ```
 
 **If Still Failing:**
+
 - Check SendGrid dashboard for send activity
 - Verify API key permissions (Mail Send required)
 - Check sender authentication status
@@ -107,15 +111,15 @@ Duration: 2.3s
 
 The smoke test validates the following email notifications:
 
-| Notification Type | Template | Recipient | Status |
-|-------------------|----------|-----------|--------|
-| OTP Verification | otp-email | User phone/email | ⏸️ Pending |
-| Welcome Email | welcome | New user | ⏸️ Pending |
-| Password Reset | password-reset | User email | ⏸️ Pending |
-| Order Confirmation | order-confirm | Buyer email | ⏸️ Pending |
-| Claim Update | claim-update | Seller email | ⏸️ Pending |
-| Work Order Assigned | wo-assigned | Technician email | ⏸️ Pending |
-| Payment Receipt | payment-receipt | User email | ⏸️ Pending |
+| Notification Type   | Template        | Recipient        | Status     |
+| ------------------- | --------------- | ---------------- | ---------- |
+| OTP Verification    | otp-email       | User phone/email | ⏸️ Pending |
+| Welcome Email       | welcome         | New user         | ⏸️ Pending |
+| Password Reset      | password-reset  | User email       | ⏸️ Pending |
+| Order Confirmation  | order-confirm   | Buyer email      | ⏸️ Pending |
+| Claim Update        | claim-update    | Seller email     | ⏸️ Pending |
+| Work Order Assigned | wo-assigned     | Technician email | ⏸️ Pending |
+| Payment Receipt     | payment-receipt | User email       | ⏸️ Pending |
 
 ---
 
@@ -130,19 +134,20 @@ Update `services/notification-service.ts`:
 ```typescript
 // Temporary: Log emails instead of sending
 const sendEmail = async (to: string, subject: string, body: string) => {
-  if (process.env.EMAIL_TEST_MODE === 'true') {
-    console.log('📧 [TEST MODE] Email:');
-    console.log('  To:', to);
-    console.log('  Subject:', subject);
-    console.log('  Body:', body.substring(0, 200) + '...');
-    return { success: true, messageId: 'test-' + Date.now() };
+  if (process.env.EMAIL_TEST_MODE === "true") {
+    console.log("📧 [TEST MODE] Email:");
+    console.log("  To:", to);
+    console.log("  Subject:", subject);
+    console.log("  Body:", body.substring(0, 200) + "...");
+    return { success: true, messageId: "test-" + Date.now() };
   }
-  
+
   // ... actual SendGrid code
 };
 ```
 
 Then run:
+
 ```bash
 EMAIL_TEST_MODE=true pnpm tsx qa/notifications/run-smoke.ts --channel email
 ```
@@ -162,6 +167,7 @@ EMAIL_PROVIDER=ethereal pnpm tsx qa/notifications/run-smoke.ts --channel email
 ```
 
 Benefits:
+
 - No real emails sent
 - Preview emails in Ethereal inbox
 - Test email formatting without spamming real addresses
@@ -180,6 +186,7 @@ pnpm tsx qa/notifications/run-smoke.ts --channel whatsapp
 ```
 
 **Update deployment report:**
+
 ```markdown
 ## Notification Testing Status
 
@@ -189,6 +196,7 @@ pnpm tsx qa/notifications/run-smoke.ts --channel whatsapp
 ⏸️ Email Notifications: Pending SendGrid credentials
 
 **Risk Assessment:** LOW
+
 - Email is backup channel (SMS is primary for OTP)
 - Can be validated post-deployment
 - Not a deployment blocker
@@ -224,6 +232,7 @@ Once SendGrid is configured, set up monitoring:
 ```
 
 **Alert Thresholds:**
+
 - Delivery rate drops below 90% → WARN
 - Delivery rate drops below 80% → CRITICAL
 - API errors > 10 per hour → WARN
@@ -242,12 +251,14 @@ Once SendGrid is configured, set up monitoring:
 
 ## Decision for Current Deployment
 
-**Recommendation:** 
+**Recommendation:**
+
 - If SendGrid credentials available within 1 hour: ✅ WAIT and test
 - If credentials delayed: ⏸️ DEPLOY without email, validate post-deployment
 - Email is not critical path (SMS handles OTP, primary notification channel)
 
 **Risk Level:** LOW
+
 - SMS notifications working (primary channel)
 - Email is backup/enhancement
 - Can be hot-fixed post-deployment without downtime

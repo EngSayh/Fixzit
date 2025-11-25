@@ -1,29 +1,48 @@
-import { NextRequest} from "next/server";
-import { logger } from '@/lib/logger';
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Invoice } from "@/server/models/Invoice";
 import { z, ZodError } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { generateZATCATLV, generateZATCAQR } from "@/lib/zatca";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError, handleApiError, zodValidationError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { rateLimit } from "@/server/security/rateLimit";
+import {
+  rateLimitError,
+  handleApiError,
+  zodValidationError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
 const updateInvoiceSchema = z.object({
-  status: z.enum(["DRAFT", "SENT", "VIEWED", "APPROVED", "REJECTED", "PAID", "OVERDUE", "CANCELLED"]).optional(),
-  payment: z.object({
-    date: z.string(),
-    amount: z.number(),
-    method: z.string(),
-    reference: z.string().optional(),
-    notes: z.string().optional()
-  }).optional(),
-  approval: z.object({
-    approved: z.boolean(),
-    comments: z.string().optional()
-  }).optional()
+  status: z
+    .enum([
+      "DRAFT",
+      "SENT",
+      "VIEWED",
+      "APPROVED",
+      "REJECTED",
+      "PAID",
+      "OVERDUE",
+      "CANCELLED",
+    ])
+    .optional(),
+  payment: z
+    .object({
+      date: z.string(),
+      amount: z.number(),
+      method: z.string(),
+      reference: z.string().optional(),
+      notes: z.string().optional(),
+    })
+    .optional(),
+  approval: z
+    .object({
+      approved: z.boolean(),
+      comments: z.string().optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -43,7 +62,10 @@ const updateInvoiceSchema = z.object({
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -53,23 +75,27 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     }
     await connectToDatabase();
 
-    const invoice = (await Invoice.findOne({
+    const invoice = await Invoice.findOne({
       _id: params.id,
-      tenantId: user.tenantId
-    }));
+      tenantId: user.tenantId,
+    });
 
     if (!invoice) {
       return createSecureResponse({ error: "Invoice not found" }, 404, req);
     }
 
     // Add to history if viewed for first time by recipient
-    if (invoice.status === "SENT" && invoice.recipient?.customerId && user.id === invoice.recipient.customerId) {
+    if (
+      invoice.status === "SENT" &&
+      invoice.recipient?.customerId &&
+      user.id === invoice.recipient.customerId
+    ) {
       invoice.status = "VIEWED";
       invoice.history.push({
         action: "VIEWED",
         performedBy: user.id,
         performedAt: new Date(),
-        details: "Invoice viewed by recipient"
+        details: "Invoice viewed by recipient",
       });
       await invoice.save();
     }
@@ -80,7 +106,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   }
 }
 
-export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -90,7 +119,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     const invoice = await Invoice.findOne({
       _id: params.id,
-      tenantId: user.tenantId
+      tenantId: user.tenantId,
     });
 
     if (!invoice) {
@@ -104,7 +133,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         action: data.status,
         performedBy: user.id,
         performedAt: new Date(),
-        details: `Invoice status changed to ${data.status}`
+        details: `Invoice status changed to ${data.status}`,
       });
 
       // If sending invoice, generate ZATCA XML and sign
@@ -116,7 +145,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
             vatNumber: invoice.issuer?.taxId || "000000000000000",
             timestamp: (invoice.issueDate || new Date()).toISOString(),
             total: invoice.total || 0,
-            vatAmount: invoice.tax || 0
+            vatAmount: invoice.tax || 0,
           };
 
           // Generate TLV and QR code (both async)
@@ -132,13 +161,17 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
           invoice.zatca.generatedAt = new Date();
           invoice.zatca.status = "GENERATED";
         } catch (error) {
-          logger.error("ZATCA generation failed:", error instanceof Error ? error.message : 'Unknown error');
+          logger.error(
+            "ZATCA generation failed:",
+            error instanceof Error ? error.message : "Unknown error",
+          );
           if (!invoice.zatca) {
             invoice.zatca = { status: "FAILED" };
           } else {
             invoice.zatca.status = "FAILED";
           }
-          invoice.zatca.error = error instanceof Error ? error.message : String(error);
+          invoice.zatca.error =
+            error instanceof Error ? error.message : String(error);
         }
       }
     }
@@ -148,13 +181,15 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       invoice.payments.push({
         ...data.payment,
         status: "COMPLETED",
-        transactionId: `TXN-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`
+        transactionId: `TXN-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
       });
 
       // Update invoice status if fully paid
       const totalPaid = invoice.payments.reduce((sum: number, p: unknown) => {
         const payment = p as { status?: string; amount?: number };
-        return payment.status === "COMPLETED" && payment.amount ? sum + payment.amount : sum;
+        return payment.status === "COMPLETED" && payment.amount
+          ? sum + payment.amount
+          : sum;
       }, 0);
 
       if (invoice.total && totalPaid >= invoice.total) {
@@ -163,16 +198,21 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
           action: "PAID",
           performedBy: user.id,
           performedAt: new Date(),
-          details: "Invoice fully paid"
+          details: "Invoice fully paid",
         });
       }
     }
 
     // Handle approval
     if (data.approval && invoice.approval) {
-      const level = (invoice.approval.levels as unknown as Array<{ approver: string; status: string; approvedAt?: Date; comments?: string }>).find((l) => 
-        l.approver === user.id && l.status === "PENDING"
-      );
+      const level = (
+        invoice.approval.levels as unknown as Array<{
+          approver: string;
+          status: string;
+          approvedAt?: Date;
+          comments?: string;
+        }>
+      ).find((l) => l.approver === user.id && l.status === "PENDING");
 
       if (level) {
         level.status = data.approval.approved ? "APPROVED" : "REJECTED";
@@ -180,9 +220,9 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         level.comments = data.approval.comments;
 
         // Check if all levels approved
-        const allApproved = (invoice.approval.levels as unknown as Array<{ status: string }>).every((l) => 
-          l.status === "APPROVED"
-        );
+        const allApproved = (
+          invoice.approval.levels as unknown as Array<{ status: string }>
+        ).every((l) => l.status === "APPROVED");
 
         if (allApproved) {
           invoice.status = "APPROVED";
@@ -197,7 +237,9 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
           action: data.approval.approved ? "APPROVED" : "REJECTED",
           performedBy: user.id,
           performedAt: new Date(),
-          details: data.approval.comments || `Invoice ${data.approval.approved ? 'approved' : 'rejected'}`
+          details:
+            data.approval.comments ||
+            `Invoice ${data.approval.approved ? "approved" : "rejected"}`,
         });
       }
     }
@@ -215,7 +257,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   }
 }
 
-export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -225,14 +270,18 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     }
     await connectToDatabase();
 
-    const invoice = (await Invoice.findOne({
+    const invoice = await Invoice.findOne({
       _id: params.id,
       tenantId: user.tenantId,
-      status: "DRAFT"
-    }));
+      status: "DRAFT",
+    });
 
     if (!invoice) {
-      return createSecureResponse({ error: "Invoice not found or cannot be deleted" }, 404, req);
+      return createSecureResponse(
+        { error: "Invoice not found or cannot be deleted" },
+        404,
+        req,
+      );
     }
 
     invoice.status = "CANCELLED";
@@ -240,14 +289,17 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       action: "CANCELLED",
       performedBy: user.id,
       performedAt: new Date(),
-      details: "Invoice cancelled"
+      details: "Invoice cancelled",
     });
     invoice.updatedBy = user.id;
     await invoice.save();
 
     return createSecureResponse({ success: true }, 200, req);
   } catch (error: unknown) {
-    logger.error('Invoice DELETE error:', error instanceof Error ? (error as Error).message : 'Unknown error');
+    logger.error(
+      "Invoice DELETE error:",
+      error instanceof Error ? (error as Error).message : "Unknown error",
+    );
     return handleApiError(error);
   }
 }

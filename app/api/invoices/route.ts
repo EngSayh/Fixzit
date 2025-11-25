@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Invoice } from "@/server/models/Invoice";
 import { z } from "zod";
@@ -7,10 +7,10 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { generateZATCAQR } from "@/lib/zatca";
 import { nanoid } from "nanoid";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
 
 const createInvoiceSchema = z.object({
   type: z.enum(["SALES", "PURCHASE", "RENTAL", "SERVICE", "MAINTENANCE"]),
@@ -21,7 +21,7 @@ const createInvoiceSchema = z.object({
     phone: z.string().optional(),
     email: z.string().optional(),
     registration: z.string().optional(),
-    license: z.string().optional()
+    license: z.string().optional(),
   }),
   recipient: z.object({
     name: z.string(),
@@ -30,42 +30,52 @@ const createInvoiceSchema = z.object({
     phone: z.string().optional(),
     email: z.string().optional(),
     nationalId: z.string().optional(),
-    customerId: z.string().optional()
+    customerId: z.string().optional(),
   }),
   issueDate: z.string(),
   dueDate: z.string(),
   description: z.string().optional(),
-  items: z.array(z.object({
-    description: z.string(),
-    quantity: z.number(),
-    unitPrice: z.number(),
-    discount: z.number().default(0),
-    tax: z.object({
-      type: z.string().default("VAT"),
-      rate: z.number().default(15),
-      amount: z.number()
-    }).optional(),
-    total: z.number(),
-    category: z.string().optional()
-  })),
+  items: z.array(
+    z.object({
+      description: z.string(),
+      quantity: z.number(),
+      unitPrice: z.number(),
+      discount: z.number().default(0),
+      tax: z
+        .object({
+          type: z.string().default("VAT"),
+          rate: z.number().default(15),
+          amount: z.number(),
+        })
+        .optional(),
+      total: z.number(),
+      category: z.string().optional(),
+    }),
+  ),
   currency: z.string().default("SAR"),
-  payment: z.object({
-    method: z.string().optional(),
-    terms: z.string().optional(),
-    instructions: z.string().optional(),
-    account: z.object({
-      bank: z.string().optional(),
-      accountNumber: z.string().optional(),
-      iban: z.string().optional(),
-      swift: z.string().optional()
-    }).optional()
-  }).optional(),
-  related: z.object({
-    workOrderId: z.string().optional(),
-    projectId: z.string().optional(),
-    contractId: z.string().optional(),
-    purchaseOrderId: z.string().optional()
-  }).optional()
+  payment: z
+    .object({
+      method: z.string().optional(),
+      terms: z.string().optional(),
+      instructions: z.string().optional(),
+      account: z
+        .object({
+          bank: z.string().optional(),
+          accountNumber: z.string().optional(),
+          iban: z.string().optional(),
+          swift: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  related: z
+    .object({
+      workOrderId: z.string().optional(),
+      projectId: z.string().optional(),
+      contractId: z.string().optional(),
+      purchaseOrderId: z.string().optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -89,17 +99,21 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
     const user = await getSessionUser(req);
-    
+
     // Rate limiting AFTER authentication
     const clientIp = getClientIP(req);
-    const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
+    const rl = rateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      60,
+      60_000,
+    );
     if (!rl.allowed) {
       return rateLimitError();
     }
     if (!user?.orgId) {
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'Missing tenant context' },
-        { status: 401 }
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
       );
     }
 
@@ -116,15 +130,17 @@ export async function POST(req: NextRequest) {
     }
     const taxes: TaxSummary[] = [];
 
-    data.items.forEach(item => {
+    data.items.forEach((item) => {
       const itemSubtotal = item.quantity * item.unitPrice - item.discount;
       subtotal += itemSubtotal;
-      
+
       if (item.tax) {
         const taxAmount = itemSubtotal * (item.tax.rate / 100);
         totalTax += taxAmount;
-        
-        const existingTax = taxes.find(t => t.type === item.tax!.type && t.rate === item.tax!.rate);
+
+        const existingTax = taxes.find(
+          (t) => t.type === item.tax!.type && t.rate === item.tax!.rate,
+        );
         if (existingTax) {
           existingTax.amount += taxAmount;
         } else {
@@ -132,7 +148,7 @@ export async function POST(req: NextRequest) {
             type: item.tax.type,
             rate: item.tax.rate,
             amount: taxAmount,
-            category: item.category
+            category: item.category,
           });
         }
       }
@@ -142,13 +158,15 @@ export async function POST(req: NextRequest) {
 
     // Generate atomic invoice number per tenant/year
     const year = new Date().getFullYear();
-    const result = await Invoice.db.collection("invoice_counters").findOneAndUpdate(
-      { tenantId: user.orgId, year },
-      { $inc: { sequence: 1 } },
-      { upsert: true, returnDocument: "after" }
-    );
+    const result = await Invoice.db
+      .collection("invoice_counters")
+      .findOneAndUpdate(
+        { tenantId: user.orgId, year },
+        { $inc: { sequence: 1 } },
+        { upsert: true, returnDocument: "after" },
+      );
     const sequence = (result as { sequence?: number } | null)?.sequence ?? 1;
-    const number = `INV-${year}-${String(sequence).padStart(5, '0')}`;
+    const number = `INV-${year}-${String(sequence).padStart(5, "0")}`;
 
     // Generate ZATCA QR code
     const qrCode = await generateZATCAQR({
@@ -156,10 +174,10 @@ export async function POST(req: NextRequest) {
       vatNumber: data.issuer.taxId,
       timestamp: new Date(data.issueDate).toISOString(),
       total: total.toString(),
-      vatAmount: totalTax.toString()
+      vatAmount: totalTax.toString(),
     });
 
-    const invoice = (await Invoice.create({
+    const invoice = await Invoice.create({
       tenantId: user.orgId,
       number,
       ...data,
@@ -171,38 +189,48 @@ export async function POST(req: NextRequest) {
         uuid: nanoid(),
         qrCode,
         status: "PENDING",
-        phase: 2
+        phase: 2,
       },
-      history: [{
-        action: "CREATED",
-        performedBy: user.id,
-        performedAt: new Date(),
-        details: "Invoice created"
-      }],
-      createdBy: user.id
-    }));
+      history: [
+        {
+          action: "CREATED",
+          performedBy: user.id,
+          performedAt: new Date(),
+          details: "Invoice created",
+        },
+      ],
+      createdBy: user.id,
+    });
 
     return createSecureResponse(invoice, 201, req);
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    logger.error('[POST /api/invoices] Error creating invoice:', {
+    logger.error("[POST /api/invoices] Error creating invoice:", {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
     });
-    
+
     if (error instanceof z.ZodError) {
-      return createSecureResponse({ 
-        error: 'Validation failed',
-        details: error.issues,
-        correlationId
-      }, 422, req);
+      return createSecureResponse(
+        {
+          error: "Validation failed",
+          details: error.issues,
+          correlationId,
+        },
+        422,
+        req,
+      );
     }
-    
-    return createSecureResponse({ 
-      error: 'Failed to create invoice',
-      correlationId
-    }, 500, req);
+
+    return createSecureResponse(
+      {
+        error: "Failed to create invoice",
+        correlationId,
+      },
+      500,
+      req,
+    );
   }
 }
 
@@ -210,17 +238,21 @@ export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
     const user = await getSessionUser(req);
-    
+
     // Rate limiting AFTER authentication
     const clientIp = getClientIP(req);
-    const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
+    const rl = rateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      60,
+      60_000,
+    );
     if (!rl.allowed) {
       return rateLimitError();
     }
     if (!user?.orgId) {
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'Missing tenant context' },
-        { status: 401 }
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
       );
     }
 
@@ -236,10 +268,10 @@ export async function GET(req: NextRequest) {
     if (status) match.status = status;
     if (type) match.type = type;
     if (search) {
-      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       match.$or = [
-        { number: { $regex: escapedSearch, $options: 'i' } },
-        { 'recipient.name': { $regex: escapedSearch, $options: 'i' } }
+        { number: { $regex: escapedSearch, $options: "i" } },
+        { "recipient.name": { $regex: escapedSearch, $options: "i" } },
       ];
     }
 
@@ -248,7 +280,7 @@ export async function GET(req: NextRequest) {
         .sort({ issueDate: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
-      Invoice.countDocuments(match)
+      Invoice.countDocuments(match),
     ]);
 
     return NextResponse.json({
@@ -256,20 +288,22 @@ export async function GET(req: NextRequest) {
       page,
       limit,
       total,
-      pages: Math.ceil(total / limit)
+      pages: Math.ceil(total / limit),
     });
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    logger.error('[GET /api/invoices] Error fetching invoices:', {
+    logger.error("[GET /api/invoices] Error fetching invoices:", {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
     });
-    return createSecureResponse({ 
-      error: 'Failed to fetch invoices',
-      correlationId
-    }, 500, req);
+    return createSecureResponse(
+      {
+        error: "Failed to fetch invoices",
+        correlationId,
+      },
+      500,
+      req,
+    );
   }
 }
-
-

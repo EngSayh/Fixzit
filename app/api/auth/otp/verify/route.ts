@@ -1,30 +1,30 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { randomBytes } from 'crypto';
-import { logger } from '@/lib/logger';
-import { enforceRateLimit } from '@/lib/middleware/rate-limit';
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { randomBytes } from "crypto";
+import { logger } from "@/lib/logger";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   otpStore,
   MAX_ATTEMPTS,
   otpSessionStore,
   OTP_SESSION_EXPIRY_MS,
-} from '@/lib/otp-store';
+} from "@/lib/otp-store";
 
 // Validation schema
 const VerifyOTPSchema = z.object({
-  identifier: z.string().trim().min(1, 'Email or employee number is required'),
-  otp: z.string().length(6, 'OTP must be 6 digits'),
+  identifier: z.string().trim().min(1, "Email or employee number is required"),
+  otp: z.string().length(6, "OTP must be 6 digits"),
 });
 
 /**
  * POST /api/auth/otp/verify
- * 
+ *
  * Verify OTP code entered by user
- * 
+ *
  * Request Body:
  * - identifier: Email or employee number
  * - otp: 6-digit OTP code
- * 
+ *
  * Response:
  * - 200: OTP verified successfully (includes temporary auth token)
  * - 400: Invalid OTP or expired
@@ -33,7 +33,7 @@ const VerifyOTPSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   const limited = enforceRateLimit(request, {
-    keyPrefix: 'auth:otp-verify',
+    keyPrefix: "auth:otp-verify",
     requests: 10,
     windowMs: 60_000,
   });
@@ -48,10 +48,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Validation failed',
+          error: "Validation failed",
           details: parsed.error.flatten(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const empUpper = identifierRaw.toUpperCase();
     const empOk = /^EMP\d+$/.test(empUpper);
 
-    let loginIdentifier = '';
+    let loginIdentifier = "";
 
     if (emailOk) {
       loginIdentifier = identifierRaw.toLowerCase();
@@ -72,9 +72,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid identifier format',
+          error: "Invalid identifier format",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -82,39 +82,41 @@ export async function POST(request: NextRequest) {
     const otpData = otpStore.get(loginIdentifier);
 
     if (!otpData) {
-      logger.warn('[OTP] No OTP found for identifier', { identifier: loginIdentifier });
+      logger.warn("[OTP] No OTP found for identifier", {
+        identifier: loginIdentifier,
+      });
       return NextResponse.json(
         {
           success: false,
-          error: 'OTP not found or expired. Please request a new code.',
+          error: "OTP not found or expired. Please request a new code.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 4. Check if OTP expired
     if (Date.now() > otpData.expiresAt) {
       otpStore.delete(loginIdentifier);
-      logger.warn('[OTP] OTP expired', { identifier: loginIdentifier });
+      logger.warn("[OTP] OTP expired", { identifier: loginIdentifier });
       return NextResponse.json(
         {
           success: false,
-          error: 'OTP expired. Please request a new code.',
+          error: "OTP expired. Please request a new code.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 5. Check attempts limit
     if (otpData.attempts >= MAX_ATTEMPTS) {
       otpStore.delete(loginIdentifier);
-      logger.warn('[OTP] Too many attempts', { identifier: loginIdentifier });
+      logger.warn("[OTP] Too many attempts", { identifier: loginIdentifier });
       return NextResponse.json(
         {
           success: false,
-          error: 'Too many incorrect attempts. Please request a new code.',
+          error: "Too many incorrect attempts. Please request a new code.",
         },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -123,7 +125,7 @@ export async function POST(request: NextRequest) {
       otpData.attempts += 1;
       const remainingAttempts = MAX_ATTEMPTS - otpData.attempts;
 
-      logger.warn('[OTP] Incorrect OTP', {
+      logger.warn("[OTP] Incorrect OTP", {
         identifier: loginIdentifier,
         attempts: otpData.attempts,
         remaining: remainingAttempts,
@@ -135,12 +137,12 @@ export async function POST(request: NextRequest) {
           error: `Incorrect OTP. ${remainingAttempts} attempt(s) remaining.`,
           attemptsRemaining: remainingAttempts,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // 7. OTP verified successfully
-    logger.info('[OTP] OTP verified successfully', {
+    logger.info("[OTP] OTP verified successfully", {
       userId: otpData.userId,
       identifier: loginIdentifier,
     });
@@ -149,7 +151,7 @@ export async function POST(request: NextRequest) {
     otpStore.delete(loginIdentifier);
 
     // 9. Generate temporary OTP login session token (server-side store, not user-modifiable)
-    const sessionToken = randomBytes(32).toString('hex');
+    const sessionToken = randomBytes(32).toString("hex");
     otpSessionStore.set(sessionToken, {
       userId: otpData.userId,
       identifier: loginIdentifier,
@@ -158,20 +160,20 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'OTP verified successfully',
+      message: "OTP verified successfully",
       data: {
         otpToken: sessionToken,
         userId: otpData.userId,
       },
     });
   } catch (error) {
-    logger.error('[OTP] Verify OTP error', error as Error);
+    logger.error("[OTP] Verify OTP error", error as Error);
     return NextResponse.json(
       {
         success: false,
-        error: 'Internal server error',
+        error: "Internal server error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,13 +1,13 @@
-import { UserRole, type UserRoleType } from '@/types/user';
+import { UserRole, type UserRoleType } from "@/types/user";
 
 type RoleChecker = (_role?: string | null) => boolean;
 
 const normalizeRole = (role?: string | null): string | null =>
-  typeof role === 'string' ? role.trim().toUpperCase() : null;
+  typeof role === "string" ? role.trim().toUpperCase() : null;
 
 const buildRoleChecker = (
   allowed: readonly UserRoleType[],
-  legacy: readonly string[] = []
+  legacy: readonly string[] = [],
 ): RoleChecker => {
   const allowedSet = new Set(allowed.map((role) => role.toUpperCase()));
   const legacySet = new Set(legacy.map((role) => role.toUpperCase()));
@@ -22,8 +22,13 @@ const buildRoleChecker = (
 };
 
 export const canManageSubscriptions = buildRoleChecker(
-  [UserRole.SUPER_ADMIN, UserRole.CORPORATE_ADMIN, UserRole.ADMIN, UserRole.FINANCE],
-  ['BILLING_ADMIN', 'FINANCE_ADMIN']
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.FINANCE,
+  ],
+  ["BILLING_ADMIN", "FINANCE_ADMIN"],
 );
 
 export const canViewInvoices = buildRoleChecker(
@@ -35,12 +40,17 @@ export const canViewInvoices = buildRoleChecker(
     UserRole.FM_MANAGER,
     UserRole.FINANCE,
   ],
-  ['BILLING_ADMIN', 'FINANCE_ADMIN']
+  ["BILLING_ADMIN", "FINANCE_ADMIN"],
 );
 
 export const canEditInvoices = buildRoleChecker(
-  [UserRole.SUPER_ADMIN, UserRole.CORPORATE_ADMIN, UserRole.ADMIN, UserRole.FINANCE],
-  ['BILLING_ADMIN', 'FINANCE_ADMIN']
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.FINANCE,
+  ],
+  ["BILLING_ADMIN", "FINANCE_ADMIN"],
 );
 
 export const canManageOwnerGroups = buildRoleChecker(
@@ -52,5 +62,5 @@ export const canManageOwnerGroups = buildRoleChecker(
     UserRole.FM_MANAGER,
     UserRole.PROPERTY_MANAGER,
   ],
-  ['PROPERTY_ADMIN']
+  ["PROPERTY_ADMIN"],
 );

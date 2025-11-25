@@ -4,13 +4,13 @@
 
 ## Quick Status Snapshot
 
-| Area | Status | Owner | Notes |
-|------|--------|-------|-------|
-| Form/API Payload Validation | ⚠️ Blocked (needs backend spec) | Payments Pod | Waiting on final API contracts + example payloads before promoting checklist to \"Ready\". |
-| Timeout & Retry Patterns | 🚧 In Discovery | Platform Enablement | Fetch call inventory not yet documented; need idempotency policy & SLA inputs. |
-| Notification Logging Durability | ✅ Base Layer Ready | Notifications Team | Mongo TTL collections + DLQ wired; only monitoring hooks outstanding. |
-| Monitoring & Alerting | 🔴 Not Defined | SRE / Observability | Dashboards + alert rules undefined; must coordinate with infra before rollout. |
-| Test Harness | 🟡 Partially Ready | QA Automation | Signing script exists, but chaos + retry simulations still TBD. |
+| Area                            | Status                          | Owner               | Notes                                                                                      |
+| ------------------------------- | ------------------------------- | ------------------- | ------------------------------------------------------------------------------------------ |
+| Form/API Payload Validation     | ⚠️ Blocked (needs backend spec) | Payments Pod        | Waiting on final API contracts + example payloads before promoting checklist to \"Ready\". |
+| Timeout & Retry Patterns        | 🚧 In Discovery                 | Platform Enablement | Fetch call inventory not yet documented; need idempotency policy & SLA inputs.             |
+| Notification Logging Durability | ✅ Base Layer Ready             | Notifications Team  | Mongo TTL collections + DLQ wired; only monitoring hooks outstanding.                      |
+| Monitoring & Alerting           | 🔴 Not Defined                  | SRE / Observability | Dashboards + alert rules undefined; must coordinate with infra before rollout.             |
+| Test Harness                    | 🟡 Partially Ready              | QA Automation       | Signing script exists, but chaos + retry simulations still TBD.                            |
 
 _Tracked in `CODE_QUALITY_IMPROVEMENTS_REPORT.md` under “Outstanding Backlog & Action Plan” row #1._
 
@@ -23,6 +23,7 @@ This checklist documents what needs verification before implementing payment flo
 ## 1. Form/API Payload Validation
 
 ### Current State
+
 - PayTabs callback handlers live in:
   - `app/api/paytabs/callback/route.ts` → subscription activation
   - `app/api/payments/paytabs/callback/route.ts` → marketplace/ZATCA compliance
@@ -55,6 +56,7 @@ This checklist documents what needs verification before implementing payment flo
   - TTL controlled via `PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS` (default 5 minutes).
 
 ### Tap Webhook Guard Status
+
 - Tap Payments webhook (`app/api/payments/tap/webhook/route.ts`) now mirrors the same perimeter controls:
   - Rate limit: `TAP_WEBHOOK_RATE_LIMIT` per `TAP_WEBHOOK_RATE_WINDOW_MS` (defaults 60 requests / 60s).
   - Payload cap: `TAP_WEBHOOK_MAX_BYTES` (default 64 KB) enforced before signature validation.
@@ -62,16 +64,18 @@ This checklist documents what needs verification before implementing payment flo
   - Idempotency: each Tap event is wrapped in `withIdempotency('tap:webhook:${event.id}')` with TTL controlled by `TAP_WEBHOOK_IDEMPOTENCY_TTL_MS` (default 5 minutes).
 
 ### Status Summary (Updated: 2025-11-18)
-| Requirement | Owner | Status | Notes |
-|-------------|-------|--------|-------|
-| Backend API documentation / OpenAPI | Payments Pod | ✅ Available (`openapi.yaml` section `payments-paytabs` & `payments-tap`) |
-| Sample successful payloads | DocOps | ✅ Added in _Sample Payload Library_ below |
-| Sample error responses / taxonomy | DocOps + Backend | ✅ Added in _Error Response Matrix_ below |
-| Field validation rules | Backend | ✅ Documented below (required/optional per gateway) |
-| Payload size limits | Platform | ✅ Enforced via `PAYTABS_CALLBACK_MAX_BYTES` (32KB) / `TAP_CALLBACK_MAX_BYTES` (32KB) |
-| Content-Type requirements | Platform | ✅ Both callbacks expect `application/json`; rejects others with `415 Unsupported Media Type` |
+
+| Requirement                         | Owner            | Status                                                                                        | Notes |
+| ----------------------------------- | ---------------- | --------------------------------------------------------------------------------------------- | ----- |
+| Backend API documentation / OpenAPI | Payments Pod     | ✅ Available (`openapi.yaml` section `payments-paytabs` & `payments-tap`)                     |
+| Sample successful payloads          | DocOps           | ✅ Added in _Sample Payload Library_ below                                                    |
+| Sample error responses / taxonomy   | DocOps + Backend | ✅ Added in _Error Response Matrix_ below                                                     |
+| Field validation rules              | Backend          | ✅ Documented below (required/optional per gateway)                                           |
+| Payload size limits                 | Platform         | ✅ Enforced via `PAYTABS_CALLBACK_MAX_BYTES` (32KB) / `TAP_CALLBACK_MAX_BYTES` (32KB)         |
+| Content-Type requirements           | Platform         | ✅ Both callbacks expect `application/json`; rejects others with `415 Unsupported Media Type` |
 
 ### Required Before Changes
+
 - [x] Backend API documentation or OpenAPI spec for payment endpoints
 - [x] Sample successful request/response payloads
 - [x] Sample error responses with status codes
@@ -82,6 +86,7 @@ This checklist documents what needs verification before implementing payment flo
 ### Sample Payload Library
 
 #### PayTabs — Success (Subscription Invoice Paid)
+
 ```json
 {
   "tran_ref": "TST0001234567",
@@ -107,6 +112,7 @@ This checklist documents what needs verification before implementing payment flo
 ```
 
 #### PayTabs — Failure (Signature / Fraud)
+
 ```json
 {
   "tran_ref": "TST0009999999",
@@ -128,6 +134,7 @@ This checklist documents what needs verification before implementing payment flo
 ```
 
 #### Tap — Success (Charge Captured)
+
 ```json
 {
   "id": "chg_TS01234567890",
@@ -144,6 +151,7 @@ This checklist documents what needs verification before implementing payment flo
 ```
 
 #### Tap — Failure (Insufficient Funds / Retry)
+
 ```json
 {
   "id": "chg_FAIL001",
@@ -164,35 +172,37 @@ This checklist documents what needs verification before implementing payment flo
 
 ### Field Validation Rules
 
-| Field | Gateway | Required? | Notes |
-|-------|---------|-----------|-------|
-| `tran_ref` | PayTabs | ✅ | Used as idempotency key (`paytabsTranRef`) |
-| `cart_id` | PayTabs | ✅ | Maps to internal invoice/order id |
-| `resp_status` | PayTabs | ✅ | `A` (approved) or `D` (declined); any other → 400 |
-| `amount` | PayTabs/Tap | ✅ | Number; rejects strings |
-| `currency` | PayTabs/Tap | ✅ | Must match tenant currency; SAR for Saudi deployments |
-| `metadata.invoiceId` / `metadata.order_id` | Both | 🟡 Optional | When present, used to enrich audit logs |
-| `payment_result.status` | PayTabs | 🟡 Optional | If missing, fallback derived from `resp_status` |
-| `response.code/message` | Tap | 🟡 Optional | Required for failed charges |
+| Field                                      | Gateway     | Required?   | Notes                                                 |
+| ------------------------------------------ | ----------- | ----------- | ----------------------------------------------------- |
+| `tran_ref`                                 | PayTabs     | ✅          | Used as idempotency key (`paytabsTranRef`)            |
+| `cart_id`                                  | PayTabs     | ✅          | Maps to internal invoice/order id                     |
+| `resp_status`                              | PayTabs     | ✅          | `A` (approved) or `D` (declined); any other → 400     |
+| `amount`                                   | PayTabs/Tap | ✅          | Number; rejects strings                               |
+| `currency`                                 | PayTabs/Tap | ✅          | Must match tenant currency; SAR for Saudi deployments |
+| `metadata.invoiceId` / `metadata.order_id` | Both        | 🟡 Optional | When present, used to enrich audit logs               |
+| `payment_result.status`                    | PayTabs     | 🟡 Optional | If missing, fallback derived from `resp_status`       |
+| `response.code/message`                    | Tap         | 🟡 Optional | Required for failed charges                           |
 
 ### Error Response Matrix
 
-| Scenario | Status | Response Body |
-|----------|--------|---------------|
-| Invalid signature | `401 Unauthorized` | `{"error":"invalid_signature","message":"PayTabs callback rejected: Invalid signature"}` |
-| Payload exceeds limit (>32KB) | `413 Payload Too Large` | `{"error":"payload_too_large","limit":32768}` |
-| Unsupported media type | `415 Unsupported Media Type` | `{"error":"unsupported_media_type","expected":"application/json"}` |
-| Rate limit exceeded (>60/min) | `429 Too Many Requests` | `{"error":"rate_limited","retryAfterMs":60000}` |
-| Duplicate idempotency key | `200 OK` | `{"status":"duplicate","message":"Event replay ignored"}` |
-| Server error | `500 Internal Server Error` | `{"error":"internal_error","referenceId":"<sentryId>"}` |
+| Scenario                      | Status                       | Response Body                                                                            |
+| ----------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------- |
+| Invalid signature             | `401 Unauthorized`           | `{"error":"invalid_signature","message":"PayTabs callback rejected: Invalid signature"}` |
+| Payload exceeds limit (>32KB) | `413 Payload Too Large`      | `{"error":"payload_too_large","limit":32768}`                                            |
+| Unsupported media type        | `415 Unsupported Media Type` | `{"error":"unsupported_media_type","expected":"application/json"}`                       |
+| Rate limit exceeded (>60/min) | `429 Too Many Requests`      | `{"error":"rate_limited","retryAfterMs":60000}`                                          |
+| Duplicate idempotency key     | `200 OK`                     | `{"status":"duplicate","message":"Event replay ignored"}`                                |
+| Server error                  | `500 Internal Server Error`  | `{"error":"internal_error","referenceId":"<sentryId>"}`                                  |
 
 **Monitoring & SLA Notes**
+
 - **Idempotency TTL**: 5 minutes (`PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS` / `TAP_WEBHOOK_IDEMPOTENCY_TTL_MS`)
 - **Rate limit**: 60 requests / minute per gateway.
 - **Payload ceiling**: 32KB enforced at Fastify middleware level.
 - **Observability**: `pnpm tsx tools/log-tail.ts payments` plus Sentry project `payments-webhooks`.
 
 ### Verification Steps
+
 ```bash
 # 1) Generate a valid signature for a local payload
 pnpm tsx scripts/sign-paytabs-payload.ts --json '{
@@ -214,28 +224,32 @@ tail -f /tmp/route-verify.log | grep "PayTabs"
 ```
 
 ### Questions to Answer
+
 1. Does backend accept enriched metadata fields?
 2. Are there rate limits on payment endpoints?
 3. What's the retry policy for failed webhooks?
 4. How are duplicate transactions handled (idempotency)?
 
 ### Open Issues / Action Items
-| ID | Owner | Description | Status |
-|----|-------|-------------|--------|
-| PI-01 | Backend | Provide signed sample payloads for subscriptions + invoices | ✅ Completed (see _Sample Payload Library_) |
-| PI-02 | Backend | Share error taxonomy + status codes for PayTabs + Twilio hooks | ✅ Completed (see _Error Response Matrix_) |
-| PI-03 | QA | Build MSW/prism mock that exercises signature validation + retries | 🚧 Planned |
+
+| ID    | Owner   | Description                                                        | Status                                      |
+| ----- | ------- | ------------------------------------------------------------------ | ------------------------------------------- |
+| PI-01 | Backend | Provide signed sample payloads for subscriptions + invoices        | ✅ Completed (see _Sample Payload Library_) |
+| PI-02 | Backend | Share error taxonomy + status codes for PayTabs + Twilio hooks     | ✅ Completed (see _Error Response Matrix_)  |
+| PI-03 | QA      | Build MSW/prism mock that exercises signature validation + retries | 🚧 Planned                                  |
 
 ---
 
 ## 2. Timeout & Retry Patterns
 
 ### Current State
+
 - No shared retry utility exists
 - Only one test mentions timeout: `tests/unit/api/api-paytabs.spec.ts`
 - `AbortSignal` pattern used but not extracted
 
 ### Required Before Refactoring
+
 - [ ] Inventory all payment-related `fetch()` calls
 - [ ] Current timeout values (if any)
 - [ ] Identify which APIs are:
@@ -247,6 +261,7 @@ tail -f /tmp/route-verify.log | grep "PayTabs"
   - Meilisearch query timeouts
 
 ### Files to Audit
+
 ```typescript
 // Search for payment fetch calls
 grep -r "fetch.*payment" app/api/
@@ -259,6 +274,7 @@ grep -r "meilisearch" lib/
 ```
 
 ### Design Decisions Needed
+
 1. **Timeout Strategy:**
    - Should all APIs use same timeout (15s)?
    - Different timeouts for sync vs async operations?
@@ -279,12 +295,14 @@ grep -r "meilisearch" lib/
 ## 3. Notification Logging Durability
 
 ### Current State
+
 - FM notification engine exists: `services/notifications/fm-notification-engine.ts`
 - NotificationLog collection (`server/models/NotificationLog.ts`) persists each notification with channel results (TTL: `NOTIFICATION_LOG_TTL_DAYS`, default 90 days)
 - NotificationDeadLetter collection captures failed channel attempts for replay (TTL: `NOTIFICATION_DLQ_TTL_DAYS`, default 30 days)
 - Metrics/observability for these collections still missing
 
 ### Required Infrastructure
+
 - [ ] **Monitoring Stack:**
   - Is Prometheus/Grafana available?
   - CloudWatch/DataDog/New Relic?
@@ -299,6 +317,7 @@ grep -r "meilisearch" lib/
   - Records failed channel deliveries with attempt counts for replay jobs
 
 ### Questions to Answer
+
 1. **Retention Policy:**
    - How long to keep notification logs? (30 days? 1 year?)
    - Compliance requirements (GDPR, SOC2)?
@@ -314,14 +333,15 @@ grep -r "meilisearch" lib/
    - Dashboard for real-time monitoring?
 
 ### Example Schema (Pending Approval)
+
 ```typescript
 // MongoDB NotificationLog collection (DRAFT)
 interface NotificationLog {
   id: string;
   userId: string;
-  type: 'email' | 'sms' | 'push';
-  provider: 'twilio' | 'sendgrid' | 'expo';
-  status: 'pending' | 'sent' | 'delivered' | 'failed' | 'dlq';
+  type: "email" | "sms" | "push";
+  provider: "twilio" | "sendgrid" | "expo";
+  status: "pending" | "sent" | "delivered" | "failed" | "dlq";
   payload: Record<string, any>;
   attempts: number;
   lastAttemptAt: Date;
@@ -336,11 +356,13 @@ interface NotificationLog {
 ## Testing Requirements
 
 ### Local Development
+
 1. **Mock Backend Setup:**
+
    ```bash
    # Option 1: Prism mock server from OpenAPI spec
    npx @stoplight/prism-cli mock openapi.yaml
-   
+
    # Option 2: MSW (Mock Service Worker)
    # See: tests/mocks/payment-handlers.ts
    ```
@@ -355,6 +377,8 @@ interface NotificationLog {
    NOTIFICATION_LOG_ENABLED=true
    NOTIFICATION_LOG_TTL_DAYS=90
    NOTIFICATION_DLQ_TTL_DAYS=30
+   ```
+
 ```
 
 ### Integration Testing Checklist
@@ -425,6 +449,7 @@ interface NotificationLog {
 
 ---
 
-**Last Updated:** November 18, 2025  
-**Owner:** Engineering Team  
+**Last Updated:** November 18, 2025
+**Owner:** Engineering Team
 **Status:** Draft - Awaiting Backend Access
+```

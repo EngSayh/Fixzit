@@ -11,34 +11,34 @@
 export function getRTLClasses(isRTL: boolean) {
   return {
     // Text alignment
-    textStart: isRTL ? 'text-right' : 'text-left',
-    textEnd: isRTL ? 'text-left' : 'text-right',
-    
+    textStart: isRTL ? "text-right" : "text-left",
+    textEnd: isRTL ? "text-left" : "text-right",
+
     // Margins
-    ms: (size: string) => isRTL ? `mr-${size}` : `ml-${size}`, // margin-start
-    me: (size: string) => isRTL ? `ml-${size}` : `mr-${size}`, // margin-end
-    
+    ms: (size: string) => (isRTL ? `mr-${size}` : `ml-${size}`), // margin-start
+    me: (size: string) => (isRTL ? `ml-${size}` : `mr-${size}`), // margin-end
+
     // Padding
-    ps: (size: string) => isRTL ? `pr-${size}` : `pl-${size}`, // padding-start
-    pe: (size: string) => isRTL ? `pl-${size}` : `pr-${size}`, // padding-end
-    
+    ps: (size: string) => (isRTL ? `pr-${size}` : `pl-${size}`), // padding-start
+    pe: (size: string) => (isRTL ? `pl-${size}` : `pr-${size}`), // padding-end
+
     // Positioning
-    start: (value: string) => isRTL ? `right-${value}` : `left-${value}`,
-    end: (value: string) => isRTL ? `left-${value}` : `right-${value}`,
-    
+    start: (value: string) => (isRTL ? `right-${value}` : `left-${value}`),
+    end: (value: string) => (isRTL ? `left-${value}` : `right-${value}`),
+
     // Flex direction
-    flexRow: isRTL ? 'flex-row-reverse' : 'flex-row',
-    
+    flexRow: isRTL ? "flex-row-reverse" : "flex-row",
+
     // Float
-    floatStart: isRTL ? 'float-right' : 'float-left',
-    floatEnd: isRTL ? 'float-left' : 'float-right',
-    
+    floatStart: isRTL ? "float-right" : "float-left",
+    floatEnd: isRTL ? "float-left" : "float-right",
+
     // Border radius
-    roundedStart: isRTL ? 'rounded-r' : 'rounded-l',
-    roundedEnd: isRTL ? 'rounded-l' : 'rounded-r',
-    
+    roundedStart: isRTL ? "rounded-r" : "rounded-l",
+    roundedEnd: isRTL ? "rounded-l" : "rounded-r",
+
     // Direction attribute
-    dir: isRTL ? 'rtl' : 'ltr',
+    dir: isRTL ? "rtl" : "ltr",
   };
 }
 
@@ -48,7 +48,11 @@ export function getRTLClasses(isRTL: boolean) {
  * @param rtlClass - Class to apply when RTL
  * @param ltrClass - Class to apply when LTR (optional, defaults to empty)
  */
-export function rtlClass(isRTL: boolean, rtlClass: string, ltrClass: string = '') {
+export function rtlClass(
+  isRTL: boolean,
+  rtlClass: string,
+  ltrClass: string = "",
+) {
   return isRTL ? rtlClass : ltrClass;
 }
 
@@ -59,30 +63,32 @@ export function rtlClass(isRTL: boolean, rtlClass: string, ltrClass: string = ''
  */
 export function makeRTL(className: string, isRTL: boolean): string {
   if (!isRTL) return className;
-  
-  return className
-    // Margins
-    .replace(/\bml-(\d+|auto|px)\b/g, 'mr-$1')
-    .replace(/\bmr-(\d+|auto|px)\b/g, 'ml-$1')
-    // Padding
-    .replace(/\bpl-(\d+|auto|px)\b/g, 'pr-$1')
-    .replace(/\bpr-(\d+|auto|px)\b/g, 'pl-$1')
-    // Text alignment
-    .replace(/\btext-left\b/g, 'text-right')
-    .replace(/\btext-right\b/g, 'text-left')
-    // Float
-    .replace(/\bfloat-left\b/g, 'float-right')
-    .replace(/\bfloat-right\b/g, 'float-left')
-    // Positioning
-    .replace(/\bleft-(\d+|auto)\b/g, 'right-$1')
-    .replace(/\bright-(\d+|auto)\b/g, 'left-$1')
-    // Border radius
-    .replace(/\brounded-l\b/g, 'rounded-r')
-    .replace(/\brounded-r\b/g, 'rounded-l')
-    .replace(/\brounded-tl\b/g, 'rounded-tr')
-    .replace(/\brounded-tr\b/g, 'rounded-tl')
-    .replace(/\brounded-bl\b/g, 'rounded-br')
-    .replace(/\brounded-br\b/g, 'rounded-bl');
+
+  return (
+    className
+      // Margins
+      .replace(/\bml-(\d+|auto|px)\b/g, "mr-$1")
+      .replace(/\bmr-(\d+|auto|px)\b/g, "ml-$1")
+      // Padding
+      .replace(/\bpl-(\d+|auto|px)\b/g, "pr-$1")
+      .replace(/\bpr-(\d+|auto|px)\b/g, "pl-$1")
+      // Text alignment
+      .replace(/\btext-left\b/g, "text-right")
+      .replace(/\btext-right\b/g, "text-left")
+      // Float
+      .replace(/\bfloat-left\b/g, "float-right")
+      .replace(/\bfloat-right\b/g, "float-left")
+      // Positioning
+      .replace(/\bleft-(\d+|auto)\b/g, "right-$1")
+      .replace(/\bright-(\d+|auto)\b/g, "left-$1")
+      // Border radius
+      .replace(/\brounded-l\b/g, "rounded-r")
+      .replace(/\brounded-r\b/g, "rounded-l")
+      .replace(/\brounded-tl\b/g, "rounded-tr")
+      .replace(/\brounded-tr\b/g, "rounded-tl")
+      .replace(/\brounded-bl\b/g, "rounded-br")
+      .replace(/\brounded-br\b/g, "rounded-bl")
+  );
 }
 
 /**
@@ -98,15 +104,18 @@ export function useRTLClass(className: string, isRTL: boolean): string {
  * Icons with directional meaning (arrows, chevrons) should flip in RTL
  */
 export function flipIconRTL(isRTL: boolean): string {
-  return isRTL ? 'scale-x-[-1]' : '';
+  return isRTL ? "scale-x-[-1]" : "";
 }
 
 /**
  * Returns appropriate flex direction for RTL
  */
-export function flexDirectionRTL(isRTL: boolean, reverse: boolean = false): string {
+export function flexDirectionRTL(
+  isRTL: boolean,
+  reverse: boolean = false,
+): string {
   if (reverse) {
-    return isRTL ? 'flex-row' : 'flex-row-reverse';
+    return isRTL ? "flex-row" : "flex-row-reverse";
   }
-  return isRTL ? 'flex-row-reverse' : 'flex-row';
+  return isRTL ? "flex-row-reverse" : "flex-row";
 }

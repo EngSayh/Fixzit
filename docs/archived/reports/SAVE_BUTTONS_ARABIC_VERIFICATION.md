@@ -34,7 +34,7 @@ This document provides a comprehensive verification plan for:
 
 ```typescript
 'settings.profile.save': 'حفظ التغييرات'      // Save Changes
-'settings.notifications.save': 'حفظ التفضيلات' // Save Preferences  
+'settings.notifications.save': 'حفظ التفضيلات' // Save Preferences
 'settings.preferences.save': 'حفظ التفضيلات'   // Save Preferences
 ```
 
@@ -465,11 +465,11 @@ open http://localhost:3000
 **Required Fix:**
 
 ```tsx
-import { useTranslation } from '@/contexts/TranslationContext';
+import { useTranslation } from "@/contexts/TranslationContext";
 
 const { t } = useTranslation();
 
-<button className="btn-secondary">{t('common.save', 'Save')}</button>
+<button className="btn-secondary">{t("common.save", "Save")}</button>;
 ```
 
 **Priority:** HIGH - These buttons won't be translated to Arabic
@@ -619,6 +619,6 @@ RTL Layout:
 
 ---
 
-*Last Updated: October 11, 2025*  
-*Status: Manual Testing Required* 🧪  
-*Deployment: Running on localhost:3000* ✅
+_Last Updated: October 11, 2025_  
+_Status: Manual Testing Required_ 🧪  
+_Deployment: Running on localhost:3000_ ✅

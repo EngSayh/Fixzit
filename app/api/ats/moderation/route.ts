@@ -1,13 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { Job } from '@/server/models/Job';
-import { getUserFromToken } from '@/lib/auth';
+import { Job } from "@/server/models/Job";
+import { getUserFromToken } from "@/lib/auth";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {notFoundError, validationError, rateLimitError, unauthorizedError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import {
+  notFoundError,
+  validationError,
+  rateLimitError,
+  unauthorizedError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
 
 /**
  * @openapi
@@ -37,37 +42,39 @@ export async function PUT(req: NextRequest) {
   try {
     await connectToDatabase();
     const body = await req.json();
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : authHeader;
     const user = token ? await getUserFromToken(token) : null;
-    
+
     // Enforce authentication for moderation actions
     if (!user?.id) {
-      return unauthorizedError('Authentication required for moderation');
+      return unauthorizedError("Authentication required for moderation");
     }
 
     const { jobId, action } = body;
-    if (!jobId || !['approve', 'reject'].includes(action)) return validationError("Invalid request");
+    if (!jobId || !["approve", "reject"].includes(action))
+      return validationError("Invalid request");
 
     const job = await Job.findById(jobId);
     if (!job) return notFoundError("Job");
 
-    if (action === 'approve') {
-      job.status = 'published';
+    if (action === "approve") {
+      job.status = "published";
       job.publishedAt = new Date();
       await job.save();
     } else {
-      job.status = 'closed';
+      job.status = "closed";
       await job.save();
     }
 
     return NextResponse.json({ success: true, data: job });
   } catch (error) {
-    logger.error('Moderation error:', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Failed to moderate job' }, 500, req);
+    logger.error(
+      "Moderation error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Failed to moderate job" }, 500, req);
   }
 }
-
-
-
-

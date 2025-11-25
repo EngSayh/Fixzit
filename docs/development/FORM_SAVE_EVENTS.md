@@ -22,9 +22,11 @@ The Fixzit application uses a custom event-based system to handle form saving wh
 Dispatched by TopBar when user clicks "Save & Continue".
 
 ```typescript
-window.dispatchEvent(new CustomEvent('fixzit:save-forms', { 
-  detail: { timestamp: Date.now() } 
-}));
+window.dispatchEvent(
+  new CustomEvent("fixzit:save-forms", {
+    detail: { timestamp: Date.now() },
+  }),
+);
 ```
 
 ### 2. Save Success Event: `fixzit:forms-saved`
@@ -32,7 +34,7 @@ window.dispatchEvent(new CustomEvent('fixzit:save-forms', {
 Your form should dispatch this after successfully saving.
 
 ```typescript
-window.dispatchEvent(new CustomEvent('fixzit:forms-saved'));
+window.dispatchEvent(new CustomEvent("fixzit:forms-saved"));
 ```
 
 ### 3. Save Error Event: `fixzit:forms-save-error`
@@ -40,9 +42,11 @@ window.dispatchEvent(new CustomEvent('fixzit:forms-saved'));
 Your form should dispatch this if save fails.
 
 ```typescript
-window.dispatchEvent(new CustomEvent('fixzit:forms-save-error', {
-  detail: { error: 'Failed to save work order: Network error' }
-}));
+window.dispatchEvent(
+  new CustomEvent("fixzit:forms-save-error", {
+    detail: { error: "Failed to save work order: Network error" },
+  }),
+);
 ```
 
 ## Implementation Example
@@ -94,10 +98,10 @@ export default function WorkOrderForm() {
       } catch (error) {
         // Notify TopBar of error
         window.dispatchEvent(new CustomEvent('fixzit:forms-save-error', {
-          detail: { 
-            error: error instanceof Error 
-              ? error.message 
-              : 'Failed to save work order' 
+          detail: {
+            error: error instanceof Error
+              ? error.message
+              : 'Failed to save work order'
           }
         }));
       }
@@ -177,9 +181,11 @@ Use the cleanup function in `useEffect` to prevent memory leaks:
 
 ```typescript
 useEffect(() => {
-  const handler = async () => { /* ... */ };
-  window.addEventListener('fixzit:save-forms', handler);
-  return () => window.removeEventListener('fixzit:save-forms', handler);
+  const handler = async () => {
+    /* ... */
+  };
+  window.addEventListener("fixzit:save-forms", handler);
+  return () => window.removeEventListener("fixzit:save-forms", handler);
 }, [dependencies]);
 ```
 
@@ -190,11 +196,13 @@ Always dispatch either success or error event - never leave TopBar waiting:
 ```typescript
 try {
   await saveData();
-  window.dispatchEvent(new CustomEvent('fixzit:forms-saved'));
+  window.dispatchEvent(new CustomEvent("fixzit:forms-saved"));
 } catch (error) {
-  window.dispatchEvent(new CustomEvent('fixzit:forms-save-error', {
-    detail: { error: 'Descriptive error message' }
-  }));
+  window.dispatchEvent(
+    new CustomEvent("fixzit:forms-save-error", {
+      detail: { error: "Descriptive error message" },
+    }),
+  );
 }
 ```
 
@@ -203,8 +211,8 @@ try {
 Include context in error messages to help users understand what failed:
 
 ```typescript
-detail: { 
-  error: `Failed to save ${formType}: ${error.message}` 
+detail: {
+  error: `Failed to save ${formType}: ${error.message}`;
 }
 ```
 
@@ -216,8 +224,8 @@ Always clear unsaved changes after successful save:
 const { clearUnsavedChanges } = useFormState();
 
 // After successful save:
-clearUnsavedChanges('your-form-id');
-window.dispatchEvent(new CustomEvent('fixzit:forms-saved'));
+clearUnsavedChanges("your-form-id");
+window.dispatchEvent(new CustomEvent("fixzit:forms-saved"));
 ```
 
 ### 5. Consider Multiple Forms on One Page
@@ -228,22 +236,20 @@ If you have multiple forms on a page, coordinate their saves:
 const handleSaveRequest = async () => {
   try {
     // Save all forms
-    await Promise.all([
-      saveForm1(),
-      saveForm2(),
-      saveForm3()
-    ]);
-    
+    await Promise.all([saveForm1(), saveForm2(), saveForm3()]);
+
     // Clear all unsaved changes
-    clearUnsavedChanges('form-1');
-    clearUnsavedChanges('form-2');
-    clearUnsavedChanges('form-3');
-    
-    window.dispatchEvent(new CustomEvent('fixzit:forms-saved'));
+    clearUnsavedChanges("form-1");
+    clearUnsavedChanges("form-2");
+    clearUnsavedChanges("form-3");
+
+    window.dispatchEvent(new CustomEvent("fixzit:forms-saved"));
   } catch (error) {
-    window.dispatchEvent(new CustomEvent('fixzit:forms-save-error', {
-      detail: { error: 'Failed to save one or more forms' }
-    }));
+    window.dispatchEvent(
+      new CustomEvent("fixzit:forms-save-error", {
+        detail: { error: "Failed to save one or more forms" },
+      }),
+    );
   }
 };
 ```
@@ -251,6 +257,7 @@ const handleSaveRequest = async () => {
 ## Timeout Behavior
 
 The TopBar will wait **5 seconds** for a response event. If no event is received:
+
 - An error is displayed: "Save operation timed out after 5 seconds"
 - The dialog remains open
 - User can retry or choose to discard changes
@@ -275,28 +282,38 @@ Test your implementation by:
 If you have existing forms using the old pattern, update them:
 
 **Before:**
+
 ```typescript
 // Forms didn't respond to save events
 // TopBar just waited 300ms
 ```
 
 **After:**
-```typescript
-useEffect(() => {
-  const handleSaveRequest = async () => {
-    try {
-      await saveYourForm();
-      window.dispatchEvent(new CustomEvent('fixzit:forms-saved'));
-    } catch (error) {
-      window.dispatchEvent(new CustomEvent('fixzit:forms-save-error', {
-        detail: { error: error.message }
-      }));
-    }
-  };
 
-  window.addEventListener('fixzit:save-forms', handleSaveRequest);
-  return () => window.removeEventListener('fixzit:save-forms', handleSaveRequest);
-}, [/* dependencies */]);
+```typescript
+useEffect(
+  () => {
+    const handleSaveRequest = async () => {
+      try {
+        await saveYourForm();
+        window.dispatchEvent(new CustomEvent("fixzit:forms-saved"));
+      } catch (error) {
+        window.dispatchEvent(
+          new CustomEvent("fixzit:forms-save-error", {
+            detail: { error: error.message },
+          }),
+        );
+      }
+    };
+
+    window.addEventListener("fixzit:save-forms", handleSaveRequest);
+    return () =>
+      window.removeEventListener("fixzit:save-forms", handleSaveRequest);
+  },
+  [
+    /* dependencies */
+  ],
+);
 ```
 
 ## Related Documentation
