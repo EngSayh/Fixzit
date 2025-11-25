@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Schema, model, models, Types, HydratedDocument } from "mongoose";
 import { getModel, MModel } from "@/src/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
@@ -268,7 +267,13 @@ ReferralCodeSchema.virtual("conversionRateComputed").get(function (
 ReferralCodeSchema.methods.isValid = function (this: ReferralCodeDoc) {
   if (this.status !== "ACTIVE") return false;
   const now = new Date();
-  const lim = this.limits || {};
+  const lim: ILimits = this.limits || { 
+    currentUses: 0, 
+    maxUsesPerUser: 0,
+    maxUses: null,
+    validFrom: undefined,
+    validUntil: undefined
+  };
   const maxU = typeof lim.maxUses === "number" ? lim.maxUses : Infinity;
   const cur = typeof lim.currentUses === "number" ? lim.currentUses : 0;
   if (lim.validFrom && now < lim.validFrom) return false;

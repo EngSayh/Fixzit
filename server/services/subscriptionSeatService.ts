@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Subscription Seat Management Service
  * Handles user activation/deactivation, seat allocation, and usage tracking
@@ -36,7 +35,6 @@ export interface SeatUsageReport {
 }
 
 type SubscriptionDocument = Awaited<ReturnType<typeof Subscription.findById>>;
-type SubscriptionInstance = NonNullable<SubscriptionDocument>;
 
 type SubscriptionMetadata = {
   seat_allocations?: SeatAllocation[];
@@ -45,11 +43,17 @@ type SubscriptionMetadata = {
   [key: string]: unknown;
 };
 
+// Extended type that includes metadata and seats properties
+type SubscriptionInstance = NonNullable<SubscriptionDocument> & {
+  metadata?: Record<string, unknown>;
+  seats?: number;
+};
+
 function ensureSeatMetadata(sub: SubscriptionInstance): SubscriptionMetadata {
   if (!sub.metadata || typeof sub.metadata !== "object") {
-    sub.metadata = {};
+    sub.metadata = {} as Record<string, unknown>;
   }
-  const metadata = sub.metadata as SubscriptionMetadata;
+  const metadata = sub.metadata as unknown as SubscriptionMetadata;
   if (!Array.isArray(metadata.seat_allocations)) {
     metadata.seat_allocations = [];
   }
@@ -91,9 +95,10 @@ export function ensureSeatsAvailable(
   sub: SubscriptionInstance,
   requiredSeats: number,
 ): void {
-  if (sub.seats < requiredSeats) {
+  const seats = sub.seats || 0;
+  if (seats < requiredSeats) {
     throw new Error(
-      `Not enough seats. Required: ${requiredSeats}, Available: ${sub.seats}`,
+      `Not enough seats. Required: ${requiredSeats}, Available: ${seats}`,
     );
   }
 }
@@ -145,9 +150,10 @@ export async function allocateSeat(
 
   // Check if we have available seats
   const allocatedCount = allocations.length;
-  if (allocatedCount >= subscription.seats) {
+  const totalSeats = (subscription as SubscriptionInstance).seats || 0;
+  if (allocatedCount >= totalSeats) {
     throw new Error(
-      `No available seats. Total: ${subscription.seats}, Allocated: ${allocatedCount}`,
+      `No available seats. Total: ${totalSeats}, Allocated: ${allocatedCount}`,
     );
   }
 
@@ -233,7 +239,8 @@ export async function getAvailableSeats(
   const metadata = subscription.metadata as SubscriptionMetadata | undefined;
   const allocations = metadata?.seat_allocations;
   const allocatedCount = Array.isArray(allocations) ? allocations.length : 0;
-  return subscription.seats - allocatedCount;
+  const totalSeats = (subscription as SubscriptionInstance).seats || 0;
+  return totalSeats - allocatedCount;
 }
 
 /**
@@ -252,13 +259,14 @@ export async function getSeatUsageReport(
   const metadata = subscription.metadata as SubscriptionMetadata | undefined;
   const allocations = metadata?.seat_allocations ?? [];
   const allocatedSeats = Array.isArray(allocations) ? allocations.length : 0;
-  const availableSeats = subscription.seats - allocatedSeats;
+  const totalSeats = (subscription as SubscriptionInstance).seats || 0;
+  const availableSeats = totalSeats - allocatedSeats;
   const utilization =
-    subscription.seats > 0 ? (allocatedSeats / subscription.seats) * 100 : 0;
+    totalSeats > 0 ? (allocatedSeats / totalSeats) * 100 : 0;
 
   return {
     subscriptionId: subscription._id as mongoose.Types.ObjectId,
-    totalSeats: subscription.seats,
+    totalSeats,
     allocatedSeats,
     availableSeats,
     utilization: Math.round(utilization * 100) / 100,
@@ -354,10 +362,11 @@ export async function updateUsageSnapshot(
   if (!sub) return null;
 
   // Store usage snapshot in metadata
-  if (!sub.metadata || typeof sub.metadata !== "object") {
-    sub.metadata = {};
+  const subWithMetadata = sub as SubscriptionInstance;
+  if (!subWithMetadata.metadata || typeof subWithMetadata.metadata !== "object") {
+    subWithMetadata.metadata = {};
   }
-  const metadata = sub.metadata as SubscriptionMetadata;
+  const metadata = subWithMetadata.metadata as SubscriptionMetadata;
   metadata.usage_snapshot = {
     timestamp: new Date(),
     users: snapshot.users || 0,
@@ -366,7 +375,7 @@ export async function updateUsageSnapshot(
     work_orders: snapshot.work_orders || 0,
     active_users_by_module: {},
   };
-  sub.metadata.last_usage_sync = new Date();
+  metadata.last_usage_sync = new Date();
 
   await sub.save();
   logger.info("[Subscription] Usage snapshot updated", {
