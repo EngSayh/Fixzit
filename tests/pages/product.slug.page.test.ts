@@ -9,7 +9,6 @@
  *  - Validate edge cases and error states.
  */
 
-// @ts-nocheck - tests focus on runtime rendering/mocking server component without full Next typings
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 
@@ -107,7 +106,12 @@ async function renderServerComponent(
 
 describe('ProductPage (server component) and fetchPdp', () => {
   const originalEnv = process.env;
-  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  let fetchSpy: vi.SpiedFunction<typeof fetch>;
+
+  const mockJsonResponse = <T>(payload: T): Response =>
+    ({
+      json: async () => payload,
+    } as unknown as Response);
 
   beforeEach(() => {
     vi.resetModules();
@@ -141,12 +145,12 @@ describe('ProductPage (server component) and fetchPdp', () => {
     const attributes = Array.from({ length: 8 }).map((_, i) => ({ key: `k${i + 1}`, value: `v${i + 1}` }));
     const buyBox = { price: 12345.67, currency: 'USD', inStock: true, leadDays: 3 };
 
-    fetchSpy.mockResolvedValueOnce({
-      json: async () => ({
+    fetchSpy.mockResolvedValueOnce(
+      mockJsonResponse({
         product: { title: 'Widget Pro', attributes },
         buyBox,
-      }),
-    } as unknown as Response);
+      })
+    );
 
     await renderServerComponent(InlineModule.default, { params: { slug: 'widget-pro' } });
 
@@ -176,12 +180,12 @@ describe('ProductPage (server component) and fetchPdp', () => {
   });
 
   test('renders Backorder state and lead days from buyBox', async () => {
-    fetchSpy.mockResolvedValueOnce({
-      json: async () => ({
+    fetchSpy.mockResolvedValueOnce(
+      mockJsonResponse({
         product: { title: 'Gadget' },
         buyBox: { price: 99.5, currency: 'EUR', inStock: false, leadDays: 14 },
-      }),
-    } as any);
+      })
+    );
 
     // No NEXT_PUBLIC_FRONTEND_URL => fallback to localhost
     delete process.env.NEXT_PUBLIC_FRONTEND_URL;
@@ -198,12 +202,12 @@ describe('ProductPage (server component) and fetchPdp', () => {
   });
 
   test('handles missing buyBox gracefully (renders empty price/currency and default text state)', async () => {
-    fetchSpy.mockResolvedValueOnce({
-      json: async () => ({
+    fetchSpy.mockResolvedValueOnce(
+      mockJsonResponse({
         product: { title: 'NoBuyBox' },
         buyBox: undefined,
-      }),
-    } as any);
+      })
+    );
 
     await renderServerComponent(InlineModule.default, { params: { slug: 'nobb' } });
 
@@ -217,9 +221,7 @@ describe('ProductPage (server component) and fetchPdp', () => {
     process.env.NEXT_PUBLIC_FRONTEND_URL = 'https://frontend.example';
     const payload = { ok: true, product: { title: 'Check' } };
 
-    fetchSpy.mockResolvedValueOnce({
-      json: async () => payload,
-    } as any);
+    fetchSpy.mockResolvedValueOnce(mockJsonResponse(payload));
 
     const data = await InlineModule.fetchPdp('check-slug');
 
@@ -234,9 +236,7 @@ describe('ProductPage (server component) and fetchPdp', () => {
     process.env.NEXT_PUBLIC_FRONTEND_URL = 'http://x.test';
     const payload = { ok: true };
 
-    fetchSpy.mockResolvedValueOnce({
-      json: async () => payload,
-    } as any);
+    fetchSpy.mockResolvedValueOnce(mockJsonResponse(payload));
 
     // @ts-expect-error - testing unexpected input path
     const data = await InlineModule.fetchPdp(12345);

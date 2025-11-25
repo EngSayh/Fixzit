@@ -383,11 +383,11 @@ describe("Finance Pack E2E Tests", () => {
       ).toHaveLength(3);
       expect(payment.unallocatedAmount).toBe(0); // Fully allocated
 
-      // TYPESCRIPT FIX: Explicit types for reduce callback parameters
+      // TYPESCRIPT FIX: Explicit types for reduce callback parameters + null safety
       const invoiceAllocations =
-        (payment as any).invoiceAllocations ?? (payment as any).allocations;
-      const totalAllocated = invoiceAllocations.reduce(
-        (sum: number, alloc: { amount: number }) => sum + alloc.amount,
+        (payment as Record<string, unknown>).invoiceAllocations ?? (payment as Record<string, unknown>).allocations;
+      const totalAllocated = (invoiceAllocations as Array<{ amount?: number }>).reduce(
+        (sum: number, alloc: { amount?: number }) => sum + (alloc.amount ?? 0),
         0,
       );
       expect(totalAllocated).toBe(paymentAmount);

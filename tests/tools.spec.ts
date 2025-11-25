@@ -1,4 +1,21 @@
+// @vitest-environment node
+
 import { vi } from "vitest";
+import { makeFindOneSelectLean, makeFindSortLimitSelectLean } from "./helpers/mongooseMocks";
+
+type ToolSession = {
+  tenantId: string;
+  userId: string;
+  role: string;
+  name: string;
+  email: string;
+  locale: string;
+};
+
+type ToolModule = {
+  executeTool: (name: string, args: Record<string, unknown>, session: ToolSession) => Promise<unknown>;
+  detectToolFromMessage: (message: string) => { name: string; args: Record<string, string> } | null;
+};
 
 type DetectResult = { name: string; args: Record<string, unknown> } | null;
 type ExecuteTool = (name: string, args: Record<string, unknown>, session: Session) => Promise<unknown>;
@@ -13,6 +30,8 @@ let detectToolFromMessage: (msg: string) => DetectResult;
 const tryImportCandidates = async (): Promise<ToolsModule> => {
   const candidates = [
     "@/server/copilot/tools",
+    "../server/copilot/tools",
+    "./server/copilot/tools",
     "@/src/tools",
     "@/server/tools",
     "@/lib/tools",
@@ -23,7 +42,7 @@ const tryImportCandidates = async (): Promise<ToolsModule> => {
     try {
       const m = await import(p);
       if (m.executeTool && m.detectToolFromMessage) {
-        return m;
+        return m as ToolModule;
       }
     } catch (_) {
       // continue
@@ -79,6 +98,7 @@ const workOrderCreate = vi.fn();
 const workOrderFind = vi.fn();
 const workOrderFindOne = vi.fn();
 const workOrderFindOneAndUpdate = vi.fn();
+const workOrderFindByIdAndUpdate = vi.fn();
 
 const ownerStatementFind = vi.fn();
 
@@ -88,6 +108,7 @@ vi.mock("@/server/models/WorkOrder", () => ({
     find: workOrderFind,
     findOne: workOrderFindOne,
     findOneAndUpdate: workOrderFindOneAndUpdate,
+    findByIdAndUpdate: workOrderFindByIdAndUpdate,
   },
 }));
 
@@ -99,7 +120,7 @@ vi.mock("@/server/models/OwnerStatement", () => ({
 
 // Policy
 const getPermittedTools = vi.fn();
-vi.mock("./policy", () => ({
+vi.mock("@/server/copilot/policy", () => ({
   getPermittedTools,
 }));
 
@@ -222,6 +243,7 @@ describe("createWorkOrder", () => {
     workOrderCreate.mockResolvedValue({
       _id: { toString: () => "wo-id-1" },
       code: "WO-2025-34567",
+      workOrderNumber: "WO-2025-34567",
       priority: "MEDIUM",
       status: "SUBMITTED",
     });
@@ -233,7 +255,7 @@ describe("createWorkOrder", () => {
     );
     expect(workOrderCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: session.tenantId,
+        orgId: session.tenantId,
         title: "Leaky sink",
         requester: expect.objectContaining({
           id: session.userId,
@@ -290,14 +312,21 @@ describe("listMyWorkOrders", () => {
       priority: "LOW",
       updatedAt: new Date(now.getTime() + i * 1000).toISOString(),
     }));
-    workOrderFind.mockResolvedValue(items);
+    const { chain, mocks } = makeFindSortLimitSelectLean([...items].reverse());
+    workOrderFind.mockReturnValue(chain);
 
-    const res = await executeTool("listMyWorkOrders", {}, session);
+    const res = await executeTool("listMyWorkOrders", {}, session) as { data: Array<{ updatedAt: string }>; success: boolean; message?: string };
+    if (!res.success) {
+      throw new Error(res.message || 'listMyWorkOrders failed');
+    }
     expect(workOrderFind).toHaveBeenCalledWith({
       orgId: session.tenantId,
       isDeleted: { $ne: true },
       "assignment.assignedTo.userId": session.userId,
     });
+    expect(mocks.sort).toHaveBeenCalledWith({ updatedAt: -1 });
+    expect(mocks.limit).toHaveBeenCalledWith(20);
+    expect(mocks.select).toHaveBeenCalledWith(["workOrderNumber", "title", "status", "priority", "updatedAt"]);
     expect(res.success).toBe(true);
     expect(res.data).toHaveLength(5);
     const times = (res.data as any[]).map((x) => x.updatedAt);
@@ -336,7 +365,7 @@ describe("dispatchWorkOrder", () => {
       orgId: session.tenantId,
       status: "SUBMITTED",
     });
-    workOrderFindOneAndUpdate.mockResolvedValue({
+    workOrderFindByIdAndUpdate.mockResolvedValue({
       workOrderNumber: "WO-42",
       status: "ASSIGNED",
       assignment: { assignedTo: { userId: "tech-9" } },
@@ -447,7 +476,7 @@ describe("scheduleVisit", () => {
 
   test("not found throws error", async () => {
     const session = makeSession();
-    workOrderFindOneAndUpdate.mockResolvedValue(undefined);
+    workOrderFindByIdAndUpdate.mockResolvedValue(undefined);
     await expect(
       executeTool(
         "scheduleVisit",
@@ -485,7 +514,9 @@ describe("uploadWorkOrderPhoto", () => {
       mimeType: "image/png",
       buffer: Buffer.from("filedata"),
     };
-    workOrderFindOneAndUpdate.mockResolvedValue({ code: "WO-55" });
+    const { chain, mocks } = makeFindOneSelectLean({ workOrderNumber: "WO-55", attachments: [] });
+    workOrderFindOne.mockReturnValue(chain);
+    workOrderFindOneAndUpdate.mockResolvedValue({ workOrderNumber: "WO-55" });
 
     const res = await executeTool(
       "uploadWorkOrderPhoto",
@@ -498,7 +529,7 @@ describe("uploadWorkOrderPhoto", () => {
     expect(writeFileMock).toHaveBeenCalled();
     // Ensure attachment pushed
     expect(workOrderFindOneAndUpdate).toHaveBeenCalledWith(
-      { _id: "WOID", tenantId: session.tenantId },
+      { _id: "WOID", orgId: session.tenantId },
       expect.objectContaining({
         $push: {
           attachments: expect.objectContaining({
@@ -518,6 +549,8 @@ describe("uploadWorkOrderPhoto", () => {
 
   test("not found throws error", async () => {
     const session = makeSession();
+    const { chain } = makeFindOneSelectLean(null);
+    workOrderFindOne.mockReturnValue(chain);
     workOrderFindOneAndUpdate.mockResolvedValue(null);
     const payload = {
       workOrderId: "X",

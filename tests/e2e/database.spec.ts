@@ -85,7 +85,7 @@ test.describe('Database E2E Tests', () => {
     const response = await request.get(`/api/aqar/properties?city=Riyadh`);
     expect(response.status()).toBe(200);
     
-    const data = await response.json();
+    const data = (await response.json()) as { items?: Array<{ code?: string; name?: string; tenantId?: string }> };
     expect(data).toHaveProperty('items');
     expect(Array.isArray(data.items)).toBe(true);
     

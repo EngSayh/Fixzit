@@ -98,11 +98,11 @@ function mockSWRModule() {
   }
 }
 
-if ((global as any).vi) {
+if ((global as { vi?: typeof import('vitest') }).vi) {
   // vitest exposes `vi`
   vi.mock('@/components/LoginPrompt', mockLoginPromptModule)
   vi.mock('swr', mockSWRModule)
-} else if ((global as any).jest) {
+} else if ((global as { jest?: typeof import('@jest/globals') }).jest) {
   // jest fallback if these tests are run there
   jest.mock('@/components/LoginPrompt', mockLoginPromptModule)
   jest.mock('swr', mockSWRModule)
@@ -194,7 +194,7 @@ beforeEach(() => {
   localStorage.clear()
 
   // Reset fetch mock
-  ;(global as any).fetch = undefined
+vi.stubGlobal('fetch', undefined as unknown as typeof fetch);
 })
 
 describe('CatalogView - basic rendering', () => {
@@ -301,7 +301,7 @@ describe('CatalogView - interactions', () => {
     render(<CatalogView />)
 
     const fetchSpy = jestLike.fn()
-    ;(global as any).fetch = fetchSpy
+    vi.stubGlobal('fetch', fetchSpy as unknown as typeof fetch);
 
     await userEvent.click(screen.getByRole('button', { name: /Add to cart/i }))
     expect(screen.getByLabelText('login-prompt')).toHaveAttribute('data-open', 'true')
@@ -317,7 +317,7 @@ describe('CatalogView - interactions', () => {
     document.cookie = 'fixzit_auth=1'
 
     const fetchSpy = jestLike.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
-    ;(global as any).fetch = fetchSpy
+    vi.stubGlobal('fetch', fetchSpy as unknown as typeof fetch);
 
     render(<CatalogView />)
 
@@ -341,7 +341,7 @@ describe('CatalogView - interactions', () => {
     document.cookie = 'fixzit_auth=1'
 
     const fetchSpy = jestLike.fn().mockResolvedValue({ ok: false, json: async () => ({}) })
-    ;(global as any).fetch = fetchSpy
+    vi.stubGlobal('fetch', fetchSpy as unknown as typeof fetch);
 
     render(<CatalogView />)
     await userEvent.click(screen.getByRole('button', { name: /Add to cart/i }))

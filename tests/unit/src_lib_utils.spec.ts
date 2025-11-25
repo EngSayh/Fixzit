@@ -52,8 +52,10 @@ describe("generateSlug", () => {
   });
 
   test("handles undefined/null at runtime defensively", () => {
-    expect(generateSlug(undefined as any)).toBe("");
-    expect(generateSlug(null as any)).toBe("");
+    // @ts-expect-error - Testing runtime behavior with invalid types
+    expect(generateSlug(undefined)).toBe("");
+    // @ts-expect-error - Testing runtime behavior with invalid types
+    expect(generateSlug(null)).toBe("");
   });
 
   test("collapses hyphen runs including leading/trailing ones created by normalization", () => {

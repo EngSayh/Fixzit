@@ -19,6 +19,26 @@
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
+    },
+    {
+      "name": "fxz.currency",
+      "value": "SAR",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1795386729.232877,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..8Arnvezo113ZpY16LKz5Ig.iQVgDbO7REmVH0CP0jM9MrpRFdYqnPa15qXMYSh5Ui4ua6p18nNW5gU1NCMz9pu66XqzrcFwn4VnyWSJ6Pg9yB0mC4bPxjV6mcgsLfhjsoE_mjGWKzkLVQ9x4ACUTwgZXfBtgfCqsWpXaFE2qMa-CLunVXjooR6q28JE4SMqjoa0JRtxQMnpM2s0DpgIE-4ig7uppSA4ycrpFkm6xQVqv8rBFF7a0EdZbNHyddxaZnOgz5HJWr8CG1quXUiHljIecn_J80oRY-q_yCvaAWxPpZM_FB3lQU-cg_an2689Msb-MXbgKTNSfLF0YJMMX0lZeYNN2Xd0oE5DBFpourKK5Pl2h9rMhaX5J1PdUROTSunJJQtI08voUZ93Nbd-gMTnlMQIzskUC9MXJb_sdjKInc3Il6vbNbZvViQ0-cX72e4BeEUTh1YkfeGtKkOvmthVuhQSdnHWEciM1jT-8lHwvA.JndInA3CRuk3R45LOmdDKwR4TT-ntNBBmui-oRru74I",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1766442730.568355,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
     }
   ],
   "origins": [
@@ -26,8 +46,24 @@
       "origin": "http://localhost:3000",
       "localStorage": [
         {
+          "name": "theme",
+          "value": "light"
+        },
+        {
+          "name": "fxz.theme",
+          "value": "light"
+        },
+        {
+          "name": "fixzit-currency",
+          "value": "SAR"
+        },
+        {
           "name": "fixzit-role",
-          "value": "manager"
+          "value": "MANAGER"
+        },
+        {
+          "name": "sidebarCollapsed",
+          "value": "{}"
         }
       ]
     }

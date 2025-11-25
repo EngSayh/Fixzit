@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { NextResponse } from 'next/server';
 
 // Mockable Mongoose-like models exposed via globals for tests

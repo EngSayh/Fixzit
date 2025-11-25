@@ -240,7 +240,7 @@ test.describe("Projects API - GET /api/projects", () => {
       const body = await res.json();
       expect(
         body.items.some(
-          (p: any) =>
+          (p: { name?: string; description?: string }) =>
             String(p.name || "").includes(unique) ||
             String(p.description || "").includes(unique),
         ),

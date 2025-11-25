@@ -58,11 +58,10 @@ test.describe("Authentication Flow", () => {
     await page.goto("/login");
 
     // Find and click signup link
-    const signupLink = page.locator('a[href*="/signup"]');
-    if (await signupLink.isVisible()) {
-      await signupLink.click();
-      await expect(page).toHaveURL(/.*signup/);
-    }
+    const signupLink = page.locator('a[href*="/signup"], [data-testid="go-to-signup"]');
+    await expect(signupLink.first()).toBeVisible();
+    await signupLink.first().click();
+    await expect(page).toHaveURL(/\/signup/);
   });
 
   test("should display signup page correctly", async ({ page }) => {
@@ -158,5 +157,77 @@ test.describe("Authentication - Guest User", () => {
         url.includes("/") ||
         url.includes("access-denied"),
     ).toBeTruthy();
+  });
+
+  test("login page should pass accessibility checks", async ({ page }) => {
+    await page.goto("/login");
+    await page.waitForLoadState("networkidle");
+
+    // Note: Install axe-playwright with: npm install -D @axe-core/playwright
+    // Then import: import { injectAxe, checkA11y } from 'axe-playwright';
+    // await injectAxe(page);
+    // await checkA11y(page, null, {
+    //   detailedReport: true,
+    //   detailedReportOptions: { html: true },
+    // });
+
+    // Temporary manual checks until axe-playwright is installed
+    // Check for skip link
+    const skipLink = page.locator('a[href="#main-content"]');
+    await expect(skipLink).toBeAttached();
+
+    // Check for proper heading hierarchy
+    const h1Count = await page.locator("h1").count();
+    expect(h1Count).toBeGreaterThan(0);
+
+    // Check all images have alt text
+    const images = await page.locator("img").all();
+    for (const img of images) {
+      const alt = await img.getAttribute("alt");
+      expect(alt).toBeDefined();
+    }
+
+    // Check form inputs have labels or aria-labels
+    const inputs = await page.locator("input").all();
+    for (const input of inputs) {
+      const id = await input.getAttribute("id");
+      const ariaLabel = await input.getAttribute("aria-label");
+      const hasLabel = id ? await page.locator(`label[for="${id}"]`).count() > 0 : false;
+      expect(ariaLabel || hasLabel).toBeTruthy();
+    }
+  });
+
+  test("dashboard page should pass accessibility checks", async ({ page }) => {
+    await page.goto("/login");
+    
+    // Login first (use actual credentials if available in CI)
+    const emailInput = page.locator('input[type="email"]');
+    const passwordInput = page.locator('input[type="password"]');
+    
+    if (await emailInput.isVisible() && await passwordInput.isVisible()) {
+      await emailInput.fill("test@example.com");
+      await passwordInput.fill("password123");
+      await page.locator('button[type="submit"]').click();
+      
+      // Wait for potential redirect
+      await page.waitForTimeout(2000);
+    }
+
+    // If we're on dashboard, check accessibility
+    if (page.url().includes("/dashboard")) {
+      await page.waitForLoadState("networkidle");
+
+      // Manual accessibility checks (replace with axe-playwright when installed)
+      const skipLink = page.locator('a[href="#main-content"]');
+      await expect(skipLink).toBeAttached();
+
+      // Check main landmark exists
+      const main = page.locator("main#main-content");
+      await expect(main).toBeAttached();
+
+      // Check heading hierarchy
+      const h1Count = await page.locator("h1").count();
+      expect(h1Count).toBeGreaterThan(0);
+    }
   });
 });

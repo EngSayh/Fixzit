@@ -20,6 +20,9 @@ vi.mock('mongoose', async (importOriginal) => {
 
   type AnyDoc = Record<string, unknown>;
   type IdLike = { toString(): string } | string | number | undefined;
+  type QueryValue = string | number | boolean | Date | IdLike | { $in?: unknown[]; $gte?: unknown; $lte?: unknown; _bsontype?: string };
+  type QueryFilter = Record<string, QueryValue>;
+  
   type ModelInstance = AnyDoc & {
     _id?: IdLike;
     isNew?: boolean;
@@ -43,7 +46,7 @@ vi.mock('mongoose', async (importOriginal) => {
   const storeByModel = new Map<string, Map<string, AnyDoc>>();
   const mkId = () => (original.Types?.ObjectId ? new original.Types.ObjectId() : { toString: () => `${Date.now()}${Math.random()}` });
 
-  const matchQuery = (doc: AnyDoc, query: Record<string, unknown>) => {
+  const matchQuery = (doc: AnyDoc, query: QueryFilter) => {
     if (!query || Object.keys(query).length === 0) return true;
     return Object.entries(query).every(([k, v]) => {
       if (v && v._bsontype === 'ObjectID') return doc[k]?.toString() === v.toString();

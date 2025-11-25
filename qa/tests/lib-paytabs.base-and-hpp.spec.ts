@@ -33,11 +33,11 @@ test.describe("lib/paytabs - paytabsBase & createHppRequest", () => {
     };
 
     const originalFetch = globalThis.fetch;
-    const calls: any[] = [];
-    globalThis.fetch = ((...args: any[]) => {
+    const calls: FetchArgs[] = [];
+    globalThis.fetch = ((...args: FetchArgs) => {
       calls.push(args);
-      return Promise.resolve({ json: async () => mockResponse } as any);
-    }) as any;
+      return Promise.resolve({ json: async () => mockResponse } as unknown as Response);
+    }) as typeof fetch;
 
     try {
       const res = await createHppRequest("KSA", payload);
@@ -54,7 +54,7 @@ test.describe("lib/paytabs - paytabsBase & createHppRequest", () => {
         body: JSON.stringify(payload),
       });
     } finally {
-      globalThis.fetch = originalFetch as any;
+      globalThis.fetch = originalFetch as typeof fetch;
     }
   });
 
@@ -62,11 +62,11 @@ test.describe("lib/paytabs - paytabsBase & createHppRequest", () => {
     process.env.PAYTABS_SERVER_KEY = "key";
 
     const originalFetch = globalThis.fetch;
-    const calls: any[] = [];
-    globalThis.fetch = ((...args: any[]) => {
+    const calls: FetchArgs[] = [];
+    globalThis.fetch = ((...args: FetchArgs) => {
       calls.push(args);
-      return Promise.resolve({ json: async () => ({ ok: true }) } as any);
-    }) as any;
+      return Promise.resolve({ json: async () => ({ ok: true }) } as unknown as Response);
+    }) as typeof fetch;
 
     try {
       await createHppRequest(undefined as any, { any: "thing" });
@@ -75,7 +75,7 @@ test.describe("lib/paytabs - paytabsBase & createHppRequest", () => {
         "https://secure-global.paytabs.com/payment/request",
       );
     } finally {
-      globalThis.fetch = originalFetch as any;
+      globalThis.fetch = originalFetch as typeof fetch;
     }
   });
 
@@ -92,7 +92,7 @@ test.describe("lib/paytabs - paytabsBase & createHppRequest", () => {
         "Network error",
       );
     } finally {
-      globalThis.fetch = originalFetch as any;
+      globalThis.fetch = originalFetch as typeof fetch;
     }
   });
 
@@ -100,18 +100,18 @@ test.describe("lib/paytabs - paytabsBase & createHppRequest", () => {
     delete process.env.PAYTABS_SERVER_KEY;
 
     const originalFetch = globalThis.fetch;
-    const calls: any[] = [];
-    globalThis.fetch = ((...args: any[]) => {
+    const calls: FetchArgs[] = [];
+    globalThis.fetch = ((...args: FetchArgs) => {
       calls.push(args);
-      return Promise.resolve({ json: async () => ({}) } as any);
-    }) as any;
+      return Promise.resolve({ json: async () => ({}) } as unknown as Response);
+    }) as typeof fetch;
 
     try {
       await createHppRequest("KSA", { amount: 100 });
 
       expect(calls[0][1].headers.authorization).toBeUndefined();
     } finally {
-      globalThis.fetch = originalFetch as any;
+      globalThis.fetch = originalFetch as typeof fetch;
     }
   });
 });

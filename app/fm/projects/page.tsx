@@ -69,7 +69,7 @@ interface ProjectItem {
 
 export default function ProjectsPage() {
   return (
-    <FmGuardedPage moduleId="administration">
+    <FmGuardedPage moduleId="projects">
       {({ orgId, supportBanner }) => (
         <ProjectsContent orgId={orgId} supportBanner={supportBanner} />
       )}

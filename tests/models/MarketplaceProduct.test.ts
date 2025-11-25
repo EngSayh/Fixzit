@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import mongoose from "mongoose";
 
-type MarketplaceProductModel = mongoose.Model<any>;
+type MarketplaceProductModel = mongoose.Model<unknown> & { schema: mongoose.Schema };
+
+const isMarketplaceProductModel = (candidate: unknown): candidate is MarketplaceProductModel =>
+  Boolean(candidate && typeof (candidate as { schema?: unknown }).schema === 'object');
 
 const candidateImports = [
   "@/server/models/MarketplaceProduct",

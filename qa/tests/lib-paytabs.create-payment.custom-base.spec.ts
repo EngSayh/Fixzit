@@ -9,8 +9,8 @@ test.describe("lib/paytabs - custom base URL via env", () => {
     process.env.PAYTABS_SERVER_KEY = "custom-key";
 
     const originalFetch = globalThis.fetch;
-    const calls: any[] = [];
-    globalThis.fetch = ((...args: any[]) => {
+    const calls: FetchArgs[] = [];
+    globalThis.fetch = ((...args: FetchArgs) => {
       calls.push(args);
       return Promise.resolve({
         json: async () => ({ redirect_url: "url", tran_ref: "ref" }),
@@ -41,7 +41,7 @@ test.describe("lib/paytabs - custom base URL via env", () => {
       );
       expect(calls[0][1].headers.Authorization).toBe("custom-key");
     } finally {
-      globalThis.fetch = originalFetch as any;
+      globalThis.fetch = originalFetch as typeof fetch;
     }
   });
 
@@ -51,11 +51,11 @@ test.describe("lib/paytabs - custom base URL via env", () => {
     process.env.PAYTABS_SERVER_KEY = "server-123";
 
     const originalFetch = globalThis.fetch;
-    const calls: any[] = [];
-    globalThis.fetch = ((...args: any[]) => {
+    const calls: FetchArgs[] = [];
+    globalThis.fetch = ((...args: FetchArgs) => {
       calls.push(args);
-      return Promise.resolve({ json: async () => ({ ok: true }) } as any);
-    }) as any;
+      return Promise.resolve({ json: async () => ({ ok: true }) } as unknown as Response);
+    }) as typeof fetch;
 
     try {
       await verifyPayment("REF-999");
@@ -68,7 +68,7 @@ test.describe("lib/paytabs - custom base URL via env", () => {
       expect(body.profile_id).toBe("profile-123");
       expect(body.tran_ref).toBe("REF-999");
     } finally {
-      globalThis.fetch = originalFetch as any;
+      globalThis.fetch = originalFetch as typeof fetch;
     }
   });
 
@@ -79,7 +79,7 @@ test.describe("lib/paytabs - custom base URL via env", () => {
 
     // Stub console.error
     const originalConsoleError = console.error;
-    console.error = (() => {}) as any;
+    console.error = ((..._args: unknown[]) => {}) as typeof console.error;
 
     // Network error
     const originalFetch = globalThis.fetch;
@@ -102,8 +102,8 @@ test.describe("lib/paytabs - custom base URL via env", () => {
     await verifyPayment("");
     // ensure it sent empty
     // (We can't inspect here since fetch was replaced; quick re-wrap with capture)
-    const calls: any[] = [];
-    globalThis.fetch = ((...args: any[]) => {
+    const calls: FetchArgs[] = [];
+    globalThis.fetch = ((...args: FetchArgs) => {
       calls.push(args);
       return Promise.resolve({ json: async () => ({}) } as any);
     }) as any;
@@ -112,7 +112,7 @@ test.describe("lib/paytabs - custom base URL via env", () => {
     expect(sent.tran_ref).toBe("");
 
     // Restore
-    globalThis.fetch = originalFetch as any;
+    globalThis.fetch = originalFetch as typeof fetch;
     console.error = originalConsoleError;
   });
 });

@@ -362,3 +362,208 @@ components:
         targetType:
           type: string
           enum: [LISTING, PROJECT]
+
+  # ATS Analytics Endpoint
+  /ats/analytics:
+    get:
+      summary: Get ATS analytics and metrics
+      tags: [ATS]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Start date for analytics period
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End date for analytics period
+        - name: orgId
+          in: query
+          schema:
+            type: string
+          description: Organization ID filter
+      responses:
+        "200":
+          description: Analytics data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  applications:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      byStage:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                      byStatus:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                  jobs:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      active:
+                        type: integer
+                      filled:
+                        type: integer
+                  candidates:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      hired:
+                        type: integer
+                  correlationId:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # Marketplace Search Endpoint
+  /marketplace/search:
+    get:
+      summary: Search marketplace products and vendors
+      tags: [Marketplace]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query term
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by product category
+        - name: vendor
+          in: query
+          schema:
+            type: string
+          description: Filter by vendor ID
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+          description: Minimum price filter
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+          description: Maximum price filter
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
+      responses:
+        "200":
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        description:
+                          type: string
+                        price:
+                          type: number
+                        category:
+                          type: string
+                        vendor:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  total:
+                    type: integer
+                  correlationId:
+                    type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  # PayTabs Callback Webhook
+  /paytabs/callback:
+    post:
+      summary: PayTabs payment callback webhook
+      tags: [Payments]
+      description: Webhook endpoint for PayTabs payment status notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tran_ref:
+                  type: string
+                  description: PayTabs transaction reference
+                cart_id:
+                  type: string
+                  description: Original cart/invoice ID
+                payment_result:
+                  type: object
+                  properties:
+                    response_status:
+                      type: string
+                      enum: [A, H, P, V, E]
+                      description: Payment status (A=Approved, H=Hold, P=Pending, V=Voided, E=Error)
+                    response_code:
+                      type: string
+                    response_message:
+                      type: string
+                    transaction_time:
+                      type: string
+                      format: date-time
+      responses:
+        "200":
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  correlationId:
+                    type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"

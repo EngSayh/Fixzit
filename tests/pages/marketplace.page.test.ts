@@ -67,7 +67,7 @@ type Product = {
 };
 
 const originalEnv = { ...process.env };
-const mockServerFetch = serverFetchJsonWithTenant as unknown as ReturnType<typeof vi.fn>;
+const mockServerFetch = serverFetchJsonWithTenant as unknown as vi.MockedFunction<typeof serverFetchJsonWithTenant>;
 
 beforeEach(() => {
   vi.resetAllMocks();

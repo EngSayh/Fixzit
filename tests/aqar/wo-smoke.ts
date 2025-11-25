@@ -4,7 +4,7 @@ const BASE = "http://localhost:3000";
 const user = {
   id: "u-admin-1",
   role: "FM_MANAGER",
-  orgId: "org-001"
+  orgId: "org_1"
 };
 
 type ParsedBody = string | Record<string, string | number | boolean | null | object>;

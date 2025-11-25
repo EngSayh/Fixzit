@@ -40,6 +40,8 @@ type NextRequestLike = {
 const asNextRequest = (obj: Partial<NextRequestLike>): NextRequestLike => ({
   url: 'http://localhost:3000/api/qa/alert',
   nextUrl: { protocol: 'http:' },
+  json: async () => ({}),
+  headers: { get: () => null },
   ...obj
 });
 
