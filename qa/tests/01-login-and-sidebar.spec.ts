@@ -1,7 +1,7 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { cfg } from "../config";
 
-async function login(page: any) {
+async function login(page: Page) {
   await page.goto("/login");
   await page
     .getByLabelText(/email or employee number/i)
