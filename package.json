@@ -37,6 +37,8 @@
     "qa:db": "node qa/scripts/dbConnectivity.mjs",
     "qa:scan:placeholders": "node qa/scripts/scanPlaceholders.mjs",
     "qa:scan:duplicates": "node qa/scripts/scanDuplicates.mjs",
+    "db:clear": "tsx scripts/clear-test-data.ts",
+    "db:clear:force": "SKIP_CONFIRMATION=true tsx scripts/clear-test-data.ts",
     "qa:e2e": "bash scripts/run-playwright.sh",
     "notifications:replay-dlq": "tsx scripts/notifications/replay-dlq.ts",
     "refunds:worker": "tsx jobs/refund-retry-worker.ts",

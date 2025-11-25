@@ -20,9 +20,9 @@ jobs:
       CI: "true"
       NODE_OPTIONS: --max-old-space-size=8192
       NEXT_TELEMETRY_DISABLED: "1"
-      # Sentry envs (required by the action)
+      # Sentry envs (optional - workflow continues without them)
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN || '' }}
-      SENTRY_ORG: ${{ secrets.SENTRY_ORG || vars.SENTRY_ORG }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG || '' }}
       # expose release to build/runtime; SDKs read SENTRY_RELEASE
       SENTRY_RELEASE: ${{ github.sha }}
 
@@ -57,7 +57,7 @@ jobs:
           environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
           # v3 uses 'version' for the release name
           version: ${{ github.sha }}
-          projects: ${{ vars.SENTRY_PROJECT || 'fixzit' }}
+          projects: ${{ secrets.SENTRY_PROJECT || 'fixzit' }}
           # Upload all Next.js client/server maps; v3 injects Debug IDs by default
           sourcemaps: .next
           url_prefix: "~/_next"
