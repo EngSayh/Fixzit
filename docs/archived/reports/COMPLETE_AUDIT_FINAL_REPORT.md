@@ -95,30 +95,30 @@ After **three exhaustive system-wide security audits**, all critical vulnerabili
    - Fix: Changed to nullish + empty string check
 
 4. **Unused Imports** (`lib/rateLimit.ts`, `app/api/assets/route.ts`)
-    - Issue: Imported `getClientIp` but never used
-    - Fix: Removed unused imports
+   - Issue: Imported `getClientIp` but never used
+   - Fix: Removed unused imports
 
 5. **Markdown Formatting** (`PR137_CRITICAL_FIXES_COMPLETE.md`)
-    - Issue: Additional formatting violations found
-    - Fix: Complete markdown compliance
+   - Issue: Additional formatting violations found
+   - Fix: Complete markdown compliance
 
 ### COMMIT 3: System-Wide Security Hardening (2 issues)
 
 1. **INTERNAL_API_SECRET Fallback** (`auth.config.ts`)
-    - Issue: `process.env.INTERNAL_API_SECRET || ''` empty fallback
-    - Fix: Production enforcement with 32+ character requirement
+   - Issue: `process.env.INTERNAL_API_SECRET || ''` empty fallback
+   - Fix: Production enforcement with 32+ character requirement
 
 2. **MONGODB_URI Fallback** (`lib/mongodb-unified.ts`)
-    - Issue: Fallback chain with hardcoded default
-    - Fix: Production enforcement with URI format validation
+   - Issue: Fallback chain with hardcoded default
+   - Fix: Production enforcement with URI format validation
 
 ### COMMIT 4: IP Header Spoofing (1 critical issue - THIS ITERATION)
 
 1. **IP Header Spoofing Vulnerability** (`server/security/headers.ts`)
-    - Issue: `getClientIP()` used FIRST IP from X-Forwarded-For (client-controlled)
-    - Scope: Affected 20+ API endpoints
-    - Impact: Rate limiting bypass, audit log poisoning, security control evasion
-    - Fix: Changed to use LAST IP (trusted proxy), exported hardened function
+   - Issue: `getClientIP()` used FIRST IP from X-Forwarded-For (client-controlled)
+   - Scope: Affected 20+ API endpoints
+   - Impact: Rate limiting bypass, audit log poisoning, security control evasion
+   - Fix: Changed to use LAST IP (trusted proxy), exported hardened function
 
 ---
 
@@ -128,32 +128,32 @@ After **three exhaustive system-wide security audits**, all critical vulnerabili
 
 All security-critical environment variables now enforce production requirements:
 
-| Variable | Requirement | Enforcement Location |
-|----------|-------------|---------------------|
-| `NEXTAUTH_SECRET` | 32+ chars | `auth.config.ts` |
-| `INTERNAL_API_SECRET` | 32+ chars | `auth.config.ts` |
-| `JWT_SECRET` | 32+ chars | `lib/edge-auth-middleware.ts` |
-| `LOG_HASH_SALT` | 32+ chars | `auth.config.ts` |
-| `MONGODB_URI` | Valid URI format | `lib/mongo.ts`, `lib/mongodb-unified.ts` |
+| Variable              | Requirement      | Enforcement Location                     |
+| --------------------- | ---------------- | ---------------------------------------- |
+| `NEXTAUTH_SECRET`     | 32+ chars        | `auth.config.ts`                         |
+| `INTERNAL_API_SECRET` | 32+ chars        | `auth.config.ts`                         |
+| `JWT_SECRET`          | 32+ chars        | `lib/edge-auth-middleware.ts`            |
+| `LOG_HASH_SALT`       | 32+ chars        | `auth.config.ts`                         |
+| `MONGODB_URI`         | Valid URI format | `lib/mongo.ts`, `lib/mongodb-unified.ts` |
 
 ### Session Management
 
 All MongoDB transactions now have proper cleanup:
 
-| File | Pattern | Status |
-|------|---------|--------|
-| `app/api/auth/provision/route.ts` | `finally { session.endSession() }` | ✅ Fixed |
-| `app/api/aqar/listings/route.ts` | `finally { session.endSession() }` | ✅ Fixed |
-| `app/api/aqar/packages/route.ts` | `finally { session.endSession() }` | ✅ Verified |
+| File                              | Pattern                            | Status      |
+| --------------------------------- | ---------------------------------- | ----------- |
+| `app/api/auth/provision/route.ts` | `finally { session.endSession() }` | ✅ Fixed    |
+| `app/api/aqar/listings/route.ts`  | `finally { session.endSession() }` | ✅ Fixed    |
+| `app/api/aqar/packages/route.ts`  | `finally { session.endSession() }` | ✅ Verified |
 
 ### IP Extraction Security
 
 All IP extraction now uses hardened pattern:
 
-| File | Function | Priority Order |
-|------|----------|---------------|
-| `lib/rateLimit.ts` | `getHardenedClientIp()` | CF-Connecting-IP → LAST IP → X-Real-IP (gated) |
-| `server/security/headers.ts` | `getClientIP()` | CF-Connecting-IP → LAST IP → X-Real-IP (gated) |
+| File                         | Function                | Priority Order                                 |
+| ---------------------------- | ----------------------- | ---------------------------------------------- |
+| `lib/rateLimit.ts`           | `getHardenedClientIp()` | CF-Connecting-IP → LAST IP → X-Real-IP (gated) |
+| `server/security/headers.ts` | `getClientIP()`         | CF-Connecting-IP → LAST IP → X-Real-IP (gated) |
 
 **Affected Endpoints**: 20+ API routes now protected from IP spoofing
 
@@ -163,49 +163,49 @@ All IP extraction now uses hardened pattern:
 
 ### Hardcoded Fallbacks (100+ analyzed)
 
-| Pattern | Total Found | Critical | Fixed | Acceptable |
-|---------|-------------|----------|-------|------------|
-| `process.env.X_SECRET \|\| ...` | 15 | 3 | 3 | 12 (tests) |
-| `process.env.X_URI \|\| ...` | 8 | 2 | 2 | 6 (optional) |
-| `process.env.X_KEY \|\| ...` | 20 | 0 | 0 | 20 (optional services) |
-| `process.env.X_URL \|\| ...` | 30 | 0 | 0 | 30 (public URLs) |
-| Other fallbacks | 27+ | 0 | 0 | 27+ (config/defaults) |
+| Pattern                         | Total Found | Critical | Fixed | Acceptable             |
+| ------------------------------- | ----------- | -------- | ----- | ---------------------- |
+| `process.env.X_SECRET \|\| ...` | 15          | 3        | 3     | 12 (tests)             |
+| `process.env.X_URI \|\| ...`    | 8           | 2        | 2     | 6 (optional)           |
+| `process.env.X_KEY \|\| ...`    | 20          | 0        | 0     | 20 (optional services) |
+| `process.env.X_URL \|\| ...`    | 30          | 0        | 0     | 30 (public URLs)       |
+| Other fallbacks                 | 27+         | 0        | 0     | 27+ (config/defaults)  |
 
 **Result**: All critical patterns fixed, acceptable patterns documented
 
 ### Session Management (12 transactions analyzed)
 
-| Pattern | Total Found | Missing Finally | Fixed |
-|---------|-------------|----------------|-------|
-| `.withTransaction()` | 3 | 2 | 2 |
-| `.startSession()` | 3 | 0 (verified) | N/A |
+| Pattern              | Total Found | Missing Finally | Fixed |
+| -------------------- | ----------- | --------------- | ----- |
+| `.withTransaction()` | 3           | 2               | 2     |
+| `.startSession()`    | 3           | 0 (verified)    | N/A   |
 
 **Result**: All transactions have proper cleanup
 
 ### Validation Logic (30+ checks analyzed)
 
-| Pattern | Total Found | Falsy Traps | Fixed |
-|---------|-------------|-------------|-------|
-| `if (!value)` | 30+ | 1 | 1 |
-| `filter(x => !x)` | 0 | 0 | N/A |
+| Pattern           | Total Found | Falsy Traps | Fixed |
+| ----------------- | ----------- | ----------- | ----- |
+| `if (!value)`     | 30+         | 1           | 1     |
+| `filter(x => !x)` | 0           | 0           | N/A   |
 
 **Result**: All validation properly handles falsy values
 
 ### Type Safety (Production code only)
 
-| Pattern | Total Found | Dangerous | Fixed |
-|---------|-------------|-----------|-------|
-| `as never` | 0 | 0 | N/A |
-| `as any` | 0 | 0 | N/A |
+| Pattern    | Total Found | Dangerous | Fixed |
+| ---------- | ----------- | --------- | ----- |
+| `as never` | 0           | 0         | N/A   |
+| `as any`   | 0           | 0         | N/A   |
 
 **Result**: No dangerous type casts in production code
 
 ### IP Extraction (Security-critical)
 
-| Pattern | Total Found | Unsafe | Fixed |
-|---------|-------------|--------|-------|
-| `split(',')[0]` | 20+ | 1 (centralized) | 1 |
-| Hardened pattern | 2 | 0 | N/A |
+| Pattern          | Total Found | Unsafe          | Fixed |
+| ---------------- | ----------- | --------------- | ----- |
+| `split(',')[0]`  | 20+         | 1 (centralized) | 1     |
+| Hardened pattern | 2           | 0               | N/A   |
 
 **Result**: All IP extraction uses trusted proxy IP
 
@@ -260,22 +260,22 @@ All IP extraction now uses hardened pattern:
 ### Documentation
 
 1. **PR137_CRITICAL_FIXES_COMPLETE.md**
-    - Fixed all markdown formatting violations
-    - MD031, MD022 compliance
+   - Fixed all markdown formatting violations
+   - MD031, MD022 compliance
 
 2. **FINAL_SYSTEM_AUDIT_COMPLETE.md**
-    - Comprehensive audit methodology
-    - All 100+ patterns documented
-    - Deployment checklist
+   - Comprehensive audit methodology
+   - All 100+ patterns documented
+   - Deployment checklist
 
 3. **CRITICAL_IP_SPOOFING_FIX.md**
-    - Detailed vulnerability analysis
-    - Attack vectors and mitigation
-    - Affected endpoints list
+   - Detailed vulnerability analysis
+   - Attack vectors and mitigation
+   - Affected endpoints list
 
 4. **README.md**
-    - Updated environment variable documentation
-    - Added security requirements
+   - Updated environment variable documentation
+   - Added security requirements
 
 ---
 
@@ -357,13 +357,13 @@ Monitor for:
 
 ## 📊 Commit Summary
 
-| Commit | Issues Fixed | Files Changed | Lines Changed |
-|--------|--------------|---------------|---------------|
-| 1. Initial PR #137 fixes | 6 | 8 | ~200 |
-| 2. CodeRabbit + Sessions | 5 | 5 | ~150 |
-| 3. System-wide hardening | 2 | 3 | ~50 |
-| 4. IP spoofing fix | 1 | 3 | ~100 |
-| **TOTAL** | **14** | **19** | **~500** |
+| Commit                   | Issues Fixed | Files Changed | Lines Changed |
+| ------------------------ | ------------ | ------------- | ------------- |
+| 1. Initial PR #137 fixes | 6            | 8             | ~200          |
+| 2. CodeRabbit + Sessions | 5            | 5             | ~150          |
+| 3. System-wide hardening | 2            | 3             | ~50           |
+| 4. IP spoofing fix       | 1            | 3             | ~100          |
+| **TOTAL**                | **14**       | **19**        | **~500**      |
 
 ### Git References
 

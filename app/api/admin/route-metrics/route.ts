@@ -1,19 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
-import { existsSync, readdirSync } from 'fs';
+import { NextRequest, NextResponse } from "next/server";
+import path from "path";
+import { existsSync, readdirSync } from "fs";
 
-import { auth } from '@/auth';
-import { logger } from '@/lib/logger';
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import {
   generateRouteAliasMetrics,
   readRouteAliasMetrics,
   saveRouteAliasMetrics,
   enrichRouteAliasMetrics,
-} from '@/lib/routes/aliasMetrics';
-import { loadRouteHealthData } from '@/lib/routes/routeHealth';
-import { postRouteMetricsWebhook } from '@/lib/routes/webhooks';
+} from "@/lib/routes/aliasMetrics";
+import { loadRouteHealthData } from "@/lib/routes/routeHealth";
+import { postRouteMetricsWebhook } from "@/lib/routes/webhooks";
 
-const HISTORY_DIR = path.join(process.cwd(), 'reports/route-metrics/history');
+const HISTORY_DIR = path.join(process.cwd(), "reports/route-metrics/history");
 const HISTORY_LIMIT = 60;
 
 function readHistorySnapshots(limit = HISTORY_LIMIT) {
@@ -22,7 +22,7 @@ function readHistorySnapshots(limit = HISTORY_LIMIT) {
   }
 
   const files = readdirSync(HISTORY_DIR)
-    .filter((file) => file.endsWith('.json'))
+    .filter((file) => file.endsWith(".json"))
     .sort()
     .slice(-limit);
 
@@ -42,30 +42,30 @@ function readHistorySnapshots(limit = HISTORY_LIMIT) {
       };
     })
     .filter(Boolean) as Array<{
-      generatedAt: string;
-      aliasFiles: number;
-      duplicateAliases: number;
-      duplicateRate: number;
-      artifact: string;
-    }>;
+    generatedAt: string;
+    aliasFiles: number;
+    duplicateAliases: number;
+    duplicateRate: number;
+    artifact: string;
+  }>;
 }
 
 export async function GET(request: NextRequest) {
-  const jsonPath = path.join(process.cwd(), '_artifacts/route-aliases.json');
-  const refresh = request.nextUrl.searchParams.get('refresh') === '1';
-  const historyRequested = request.nextUrl.searchParams.get('history') === '1';
+  const jsonPath = path.join(process.cwd(), "_artifacts/route-aliases.json");
+  const refresh = request.nextUrl.searchParams.get("refresh") === "1";
+  const historyRequested = request.nextUrl.searchParams.get("history") === "1";
 
   try {
     const session = await auth();
     const role = session?.user?.role;
 
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (role !== 'SUPER_ADMIN') {
-      logger.warn('Route metrics access denied', { role });
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (role !== "SUPER_ADMIN") {
+      logger.warn("Route metrics access denied", { role });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     if (historyRequested) {
@@ -78,9 +78,9 @@ export async function GET(request: NextRequest) {
       if (cached) {
         return NextResponse.json(cached);
       }
-      logger.info('Route metrics cache missing, regenerating', { jsonPath });
+      logger.info("Route metrics cache missing, regenerating", { jsonPath });
     } else {
-      logger.info('Route metrics refresh requested', { jsonPath });
+      logger.info("Route metrics refresh requested", { jsonPath });
     }
 
     const routeHealth = await loadRouteHealthData();
@@ -90,7 +90,9 @@ export async function GET(request: NextRequest) {
     try {
       saveRouteAliasMetrics(jsonPath, metrics);
     } catch (saveError) {
-      logger.warn('Unable to persist route metrics artifact', { error: saveError });
+      logger.warn("Unable to persist route metrics artifact", {
+        error: saveError,
+      });
     }
 
     const duplicationRate =
@@ -107,10 +109,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(metrics);
   } catch (error) {
-    logger.error('Error generating route metrics', { error });
+    logger.error("Error generating route metrics", { error });
     return NextResponse.json(
-      { error: 'Failed to load route metrics' },
-      { status: 500 }
+      { error: "Failed to load route metrics" },
+      { status: 500 },
     );
   }
 }

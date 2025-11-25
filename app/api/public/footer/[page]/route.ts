@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/public/footer/:page
@@ -9,7 +9,7 @@ import { logger } from '@/lib/logger';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { page: string } }
+  { params }: { params: { page: string } },
 ) {
   try {
     await connectToDatabase();
@@ -17,16 +17,18 @@ export async function GET(
     const { page } = params;
 
     // Validate page parameter
-    if (!['about', 'privacy', 'terms'].includes(page)) {
+    if (!["about", "privacy", "terms"].includes(page)) {
       return NextResponse.json(
-        { error: 'Invalid page. Must be one of: about, privacy, terms' },
-        { status: 400 }
+        { error: "Invalid page. Must be one of: about, privacy, terms" },
+        { status: 400 },
       );
     }
 
     // Find footer content for this page
-    const { FooterContent } = await import('@/server/models/FooterContent');
-    const footerContent = (await FooterContent.findOne({ page }).lean().exec()) as {
+    const { FooterContent } = await import("@/server/models/FooterContent");
+    const footerContent = (await FooterContent.findOne({ page })
+      .lean()
+      .exec()) as {
       page: string;
       contentEn: string;
       contentAr: string;
@@ -37,9 +39,9 @@ export async function GET(
       // Return default empty content if not found
       return NextResponse.json({
         page,
-        contentEn: '',
-        contentAr: '',
-        updatedAt: null
+        contentEn: "",
+        contentAr: "",
+        updatedAt: null,
       });
     }
 
@@ -48,14 +50,13 @@ export async function GET(
       page: footerContent.page,
       contentEn: footerContent.contentEn,
       contentAr: footerContent.contentAr,
-      updatedAt: footerContent.updatedAt
+      updatedAt: footerContent.updatedAt,
     });
-
   } catch (error) {
     logger.error(`[GET /api/public/footer/${params.page}] Error`, { error });
     return NextResponse.json(
-      { error: 'Failed to fetch footer content' },
-      { status: 500 }
+      { error: "Failed to fetch footer content" },
+      { status: 500 },
     );
   }
 }

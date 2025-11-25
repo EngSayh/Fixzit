@@ -1,14 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
-import Benchmark from '@/server/models/Benchmark';
-import { computeQuote } from '@/lib/pricing';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import Benchmark from "@/server/models/Benchmark";
+import { computeQuote } from "@/lib/pricing";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { z } from "zod";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import {
+  zodValidationError,
+  rateLimitError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
 
 interface BenchmarkDocument {
   pricingModel?: string;
@@ -18,10 +21,12 @@ interface BenchmarkDocument {
 
 const compareSchema = z.object({
   seatTotal: z.number().positive(),
-  billingCycle: z.enum(['monthly', 'annual']),
-  items: z.array(z.object({
-    moduleCode: z.string().min(1)
-  }))
+  billingCycle: z.enum(["monthly", "annual"]),
+  items: z.array(
+    z.object({
+      moduleCode: z.string().min(1),
+    }),
+  ),
 });
 
 /**
@@ -52,33 +57,46 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
     const body = compareSchema.parse(await req.json());
-    
+
     const ours = computeQuote({
       items: body.items,
       seatTotal: body.seatTotal,
-      billingCycle: body.billingCycle
+      billingCycle: body.billingCycle,
     });
     if (ours.contactSales) return createSecureResponse(ours, 200, req);
 
-    const rows = await Benchmark.find({}) as unknown as BenchmarkDocument[];
-    const perUserRows = rows.filter((r) => r.pricingModel==='per_user_month' && r.priceMonthly);
-    const monthlyMedian = perUserRows.sort((a, b)=>(a.priceMonthly || 0) - (b.priceMonthly || 0))[Math.floor(perUserRows.length/2)]?.priceMonthly || 0;
+    const rows = (await Benchmark.find({})) as unknown as BenchmarkDocument[];
+    const perUserRows = rows.filter(
+      (r) => r.pricingModel === "per_user_month" && r.priceMonthly,
+    );
+    const monthlyMedian =
+      perUserRows.sort((a, b) => (a.priceMonthly || 0) - (b.priceMonthly || 0))[
+        Math.floor(perUserRows.length / 2)
+      ]?.priceMonthly || 0;
 
     const compMonthly = monthlyMedian * body.seatTotal; // FM core-like proxy
     const diff = ours.monthly - compMonthly;
     return NextResponse.json({
-      ours: { monthly: ours.monthly, annualTotal: ours.annualTotal, items: ours.items },
+      ours: {
+        monthly: ours.monthly,
+        annualTotal: ours.annualTotal,
+        items: ours.items,
+      },
       market: { perUserMedianMonthly: monthlyMedian, teamMonthly: compMonthly },
-      position: diff === 0 ? 'PAR' : diff < 0 ? 'BELOW_MARKET' : 'ABOVE_MARKET'
+      position: diff === 0 ? "PAR" : diff < 0 ? "BELOW_MARKET" : "ABOVE_MARKET",
     });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    logger.error('Benchmark comparison failed:', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Failed to compare benchmarks' }, 500, req);
+    logger.error(
+      "Benchmark comparison failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Failed to compare benchmarks" },
+      500,
+      req,
+    );
   }
 }
-
-
-

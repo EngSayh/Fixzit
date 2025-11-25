@@ -9,36 +9,36 @@ This guide shows how to integrate the `useFormTracking` hook with your forms to 
 ### 1. Basic Form Integration
 
 ```tsx
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useFormTracking } from '@/hooks/useFormTracking';
+import { useState } from "react";
+import { useFormTracking } from "@/hooks/useFormTracking";
 
 function MyForm() {
-  const [formData, setFormData] = useState({ name: '', email: '' });
-  const [originalData] = useState({ name: '', email: '' });
-  
+  const [formData, setFormData] = useState({ name: "", email: "" });
+  const [originalData] = useState({ name: "", email: "" });
+
   // Track if form has unsaved changes
   const isDirty = JSON.stringify(formData) !== JSON.stringify(originalData);
-  
+
   // Register with FormStateContext
   const { handleSubmit } = useFormTracking({
-    formId: 'my-form',
+    formId: "my-form",
     isDirty,
     onBeforeSave: async () => {
-      const response = await fetch('/api/save', {
-        method: 'POST',
+      const response = await fetch("/api/save", {
+        method: "POST",
         body: JSON.stringify(formData),
       });
-      if (!response.ok) throw new Error('Save failed');
+      if (!response.ok) throw new Error("Save failed");
     },
   });
-  
+
   return (
     <form onSubmit={handleSubmit}>
-      <input 
+      <input
         value={formData.name}
-        onChange={(e) => setFormData({...formData, name: e.target.value})}
+        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
       />
       <button type="submit">Save</button>
     </form>
@@ -49,11 +49,11 @@ function MyForm() {
 ### 2. Real-World Example: Aqar Listing Form
 
 ```tsx
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useFormTracking } from '@/hooks/useFormTracking';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { useFormTracking } from "@/hooks/useFormTracking";
+import { useRouter } from "next/navigation";
 
 interface ListingFormData {
   title: string;
@@ -66,48 +66,50 @@ interface ListingFormData {
 function CreateListingForm() {
   const router = useRouter();
   const [formData, setFormData] = useState<ListingFormData>({
-    title: '',
-    description: '',
+    title: "",
+    description: "",
     price: 0,
-    propertyType: 'APARTMENT',
+    propertyType: "APARTMENT",
   });
-  
+
   const [originalData] = useState(formData);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+
   // Calculate dirty state
   const isDirty = JSON.stringify(formData) !== JSON.stringify(originalData);
-  
+
   // Integrate with FormStateContext
   const { handleSubmit } = useFormTracking({
-    formId: 'create-listing-form',
+    formId: "create-listing-form",
     isDirty,
     onBeforeSave: async () => {
-      setSaveStatus('saving');
-      
+      setSaveStatus("saving");
+
       try {
-        const response = await fetch('/api/aqar/listings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/aqar/listings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
         });
-        
+
         if (!response.ok) {
-          throw new Error('Failed to create listing');
+          throw new Error("Failed to create listing");
         }
-        
+
         const { listing } = await response.json();
-        setSaveStatus('saved');
-        
+        setSaveStatus("saved");
+
         // Navigate after successful save
         router.push(`/aqar/listings/${listing._id}`);
       } catch (error) {
-        setSaveStatus('error');
+        setSaveStatus("error");
         throw error;
       }
     },
   });
-  
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Form fields */}
@@ -118,33 +120,37 @@ function CreateListingForm() {
         placeholder="Property Title"
         required
       />
-      
+
       <textarea
         value={formData.description}
-        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+        onChange={(e) =>
+          setFormData({ ...formData, description: e.target.value })
+        }
         placeholder="Description"
         required
       />
-      
+
       <input
         type="number"
         value={formData.price}
-        onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+        onChange={(e) =>
+          setFormData({ ...formData, price: Number(e.target.value) })
+        }
         placeholder="Price"
         required
         min="0"
       />
-      
+
       {/* Save button with loading state */}
-      <button 
-        type="submit" 
-        disabled={saveStatus === 'saving'}
+      <button
+        type="submit"
+        disabled={saveStatus === "saving"}
         className="bg-blue-600 text-white px-4 py-2 rounded"
       >
-        {saveStatus === 'saving' ? 'Saving...' : 'Create Listing'}
+        {saveStatus === "saving" ? "Saving..." : "Create Listing"}
       </button>
-      
-      {saveStatus === 'error' && (
+
+      {saveStatus === "error" && (
         <div className="text-red-600">Failed to save. Please try again.</div>
       )}
     </form>
@@ -159,7 +165,7 @@ export default CreateListingForm;
 ### High Priority (Aqar Module)
 
 1. ✅ **`app/aqar/listings/create/page.tsx`** - Create Listing Form
-2. ✅ **`app/aqar/listings/[id]/edit/page.tsx`** - Edit Listing Form  
+2. ✅ **`app/aqar/listings/[id]/edit/page.tsx`** - Edit Listing Form
 3. ✅ **`app/aqar/leads/create/page.tsx`** - Lead Form
 4. ✅ **`app/aqar/projects/create/page.tsx`** - Project Form
 
@@ -185,7 +191,7 @@ After integration, test the following scenarios:
 2. Click browser back button
 3. **Expected**: Confirmation dialog appears
 
-### 2. Link Navigation  
+### 2. Link Navigation
 
 1. Fill out form with changes
 2. Click navigation link (e.g., TopBar menu item)
@@ -209,16 +215,16 @@ After integration, test the following scenarios:
 
 ```tsx
 // ❌ Bad - generic ID
-formId: 'form'
+formId: "form";
 
 // ✅ Good - specific ID
-formId: 'aqar-listing-create-form'
+formId: "aqar-listing-create-form";
 ```
 
 ### 2. Deep Comparison for Complex Objects
 
 ```tsx
-import isEqual from 'lodash/isEqual';
+import isEqual from "lodash/isEqual";
 
 const isDirty = !isEqual(formData, originalData);
 ```
@@ -231,10 +237,10 @@ onBeforeSave: async () => {
     await saveData();
   } catch (error) {
     // Log error and re-throw to prevent form from being marked clean
-    console.error('Save failed:', error);
+    console.error("Save failed:", error);
     throw error;
   }
-}
+};
 ```
 
 ### 4. Reset originalData After Save
@@ -246,7 +252,7 @@ onBeforeSave: async () => {
   await saveData();
   // Update original data so form is no longer dirty
   setOriginalData(formData);
-}
+};
 ```
 
 ## Migration Checklist

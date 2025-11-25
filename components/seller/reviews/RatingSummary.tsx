@@ -1,11 +1,11 @@
 /**
  * RatingSummary Component - Overall rating statistics
  */
-'use client';
+"use client";
 
-import React from 'react';
-import { Star } from 'lucide-react';
-import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import React from "react";
+import { Star } from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 export interface RatingStats {
   averageRating: number;
@@ -25,11 +25,21 @@ interface RatingSummaryProps {
   showVerified?: boolean;
 }
 
-export function RatingSummary({ stats, showVerified = true }: RatingSummaryProps) {
-  const { averageRating, totalReviews, distribution, verifiedPurchasePercentage } = stats;
-  const auto = useAutoTranslator('seller.ratingSummary');
+export function RatingSummary({
+  stats,
+  showVerified = true,
+}: RatingSummaryProps) {
+  const {
+    averageRating,
+    totalReviews,
+    distribution,
+    verifiedPurchasePercentage,
+  } = stats;
+  const auto = useAutoTranslator("seller.ratingSummary");
   const reviewLabel =
-    totalReviews === 1 ? auto('review', 'reviews.single') : auto('reviews', 'reviews.plural');
+    totalReviews === 1
+      ? auto("review", "reviews.single")
+      : auto("reviews", "reviews.plural");
 
   return (
     <div className="bg-white border rounded-lg p-6">
@@ -45,16 +55,16 @@ export function RatingSummary({ stats, showVerified = true }: RatingSummaryProps
                 key={star}
                 className={`w-5 h-5 ${
                   star <= Math.round(averageRating)
-                    ? 'fill-yellow-400 text-yellow-400'
-                    : 'text-gray-300'
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "text-gray-300"
                 }`}
               />
             ))}
           </div>
           <div className="text-sm text-muted-foreground">
-            {auto('{{count}} {{label}}', 'reviews.summary')
-              .replace('{{count}}', totalReviews.toLocaleString())
-              .replace('{{label}}', reviewLabel)}
+            {auto("{{count}} {{label}}", "reviews.summary")
+              .replace("{{count}}", totalReviews.toLocaleString())
+              .replace("{{label}}", reviewLabel)}
           </div>
         </div>
 
@@ -68,9 +78,9 @@ export function RatingSummary({ stats, showVerified = true }: RatingSummaryProps
             return (
               <div key={rating} className="flex items-center gap-3">
                 <span className="text-sm font-medium w-12">
-                  {auto('{{rating}} star', 'distribution.label').replace(
-                    '{{rating}}',
-                    String(rating)
+                  {auto("{{rating}} star", "distribution.label").replace(
+                    "{{rating}}",
+                    String(rating),
                   )}
                 </span>
                 <div className="flex-1 bg-gray-200 rounded-full h-2.5">
@@ -95,13 +105,13 @@ export function RatingSummary({ stats, showVerified = true }: RatingSummaryProps
       {showVerified && verifiedPurchasePercentage !== undefined && (
         <div className="flex items-center gap-2 text-sm">
           <div className="bg-success/10 text-success-dark px-3 py-1 rounded-full font-medium">
-            {auto('{{percentage}}% Verified Purchases', 'verified.badge').replace(
-              '{{percentage}}',
-              String(verifiedPurchasePercentage)
-            )}
+            {auto(
+              "{{percentage}}% Verified Purchases",
+              "verified.badge",
+            ).replace("{{percentage}}", String(verifiedPurchasePercentage))}
           </div>
           <span className="text-muted-foreground">
-            {auto('Reviews from confirmed buyers', 'verified.caption')}
+            {auto("Reviews from confirmed buyers", "verified.caption")}
           </span>
         </div>
       )}

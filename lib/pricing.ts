@@ -1,6 +1,6 @@
 /**
  * Pricing Utilities
- * 
+ *
  * Common pricing calculations and utilities used across the application
  */
 
@@ -27,18 +27,18 @@ export interface PricingTier {
  */
 export function calculateDiscountedPrice(
   basePrice: number,
-  discountPercentage: number
+  discountPercentage: number,
 ): PriceCalculation {
   const discount = Math.max(0, Math.min(100, discountPercentage));
   const discountAmount = (basePrice * discount) / 100;
   const finalPrice = basePrice - discountAmount;
-  
+
   return {
     basePrice,
     discount,
     discountAmount,
     finalPrice,
-    savings: discountAmount
+    savings: discountAmount,
   };
 }
 
@@ -47,15 +47,15 @@ export function calculateDiscountedPrice(
  */
 export function calculatePriceWithTax(
   price: number,
-  taxPercentage: number = 15 // VAT in Saudi Arabia
+  taxPercentage: number = 15, // VAT in Saudi Arabia
 ): { price: number; taxAmount: number; totalWithTax: number } {
   const taxAmount = (price * taxPercentage) / 100;
   const totalWithTax = price + taxAmount;
-  
+
   return {
     price,
     taxAmount,
-    totalWithTax
+    totalWithTax,
   };
 }
 
@@ -64,12 +64,14 @@ export function calculatePriceWithTax(
  */
 export function getApplicableTier(
   orderValue: number,
-  availableTiers: PricingTier[]
+  availableTiers: PricingTier[],
 ): PricingTier | null {
   const applicableTiers = availableTiers
-    .filter(tier => !tier.minimumOrderValue || orderValue >= tier.minimumOrderValue)
+    .filter(
+      (tier) => !tier.minimumOrderValue || orderValue >= tier.minimumOrderValue,
+    )
     .sort((a, b) => b.discountPercentage - a.discountPercentage);
-    
+
   return applicableTiers[0] || null;
 }
 
@@ -79,15 +81,15 @@ export function getApplicableTier(
 export function calculateBulkPricing(
   unitPrice: number,
   quantity: number,
-  bulkTiers: Array<{ minQuantity: number; discountPercentage: number }>
+  bulkTiers: Array<{ minQuantity: number; discountPercentage: number }>,
 ): PriceCalculation {
   const applicableTier = bulkTiers
-    .filter(tier => quantity >= tier.minQuantity)
+    .filter((tier) => quantity >= tier.minQuantity)
     .sort((a, b) => b.discountPercentage - a.discountPercentage)[0];
-    
+
   const discountPercentage = applicableTier?.discountPercentage || 0;
   const basePrice = unitPrice * quantity;
-  
+
   return calculateDiscountedPrice(basePrice, discountPercentage);
 }
 
@@ -96,14 +98,14 @@ export function calculateBulkPricing(
  */
 export function formatPrice(
   amount: number,
-  currency: string = 'SAR',
-  locale: string = 'ar-SA'
+  currency: string = "SAR",
+  locale: string = "ar-SA",
 ): string {
   return new Intl.NumberFormat(locale, {
-    style: 'currency',
+    style: "currency",
     currency,
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 
@@ -112,7 +114,7 @@ export function formatPrice(
  */
 export function comparePrices(
   currentPrice: number,
-  comparePrice: number
+  comparePrice: number,
 ): {
   difference: number;
   percentageDifference: number;
@@ -120,13 +122,14 @@ export function comparePrices(
   isLower: boolean;
 } {
   const difference = currentPrice - comparePrice;
-  const percentageDifference = comparePrice > 0 ? (difference / comparePrice) * 100 : 0;
-  
+  const percentageDifference =
+    comparePrice > 0 ? (difference / comparePrice) * 100 : 0;
+
   return {
     difference,
     percentageDifference,
     isHigher: difference > 0,
-    isLower: difference < 0
+    isLower: difference < 0,
   };
 }
 
@@ -135,15 +138,15 @@ export function comparePrices(
  */
 export function calculatePaymentTermsDiscount(
   amount: number,
-  paymentTerms: 'immediate' | 'net30' | 'net60' | 'net90'
+  paymentTerms: "immediate" | "net30" | "net60" | "net90",
 ): PriceCalculation {
   const discountRates = {
     immediate: 2, // 2% discount for immediate payment
-    net30: 1,     // 1% discount for 30-day terms
-    net60: 0,     // No discount for 60-day terms
-    net90: -1     // 1% penalty for 90-day terms
+    net30: 1, // 1% discount for 30-day terms
+    net60: 0, // No discount for 60-day terms
+    net90: -1, // 1% penalty for 90-day terms
   };
-  
+
   const discountPercentage = discountRates[paymentTerms];
   return calculateDiscountedPrice(amount, discountPercentage);
 }
@@ -178,34 +181,34 @@ interface QuoteItem {
 export function computeQuote(params: {
   items: QuoteItem[];
   seatTotal: number;
-  billingCycle: 'monthly' | 'annual';
+  billingCycle: "monthly" | "annual";
 }): SubscriptionQuote {
   const { items, seatTotal } = params;
-  
+
   // Process items with seat-based pricing
-  const processedItems = items.map(item => {
+  const processedItems = items.map((item) => {
     const unitPriceMonthly = item.unitPriceMonthly || 50; // Default $50/seat/month
     const seatCount = item.seatCount || seatTotal;
     const total = seatCount * unitPriceMonthly;
-    
+
     return {
-      module: item.moduleCode || item.module || 'UNKNOWN',
+      module: item.moduleCode || item.module || "UNKNOWN",
       seatCount,
       unitPriceMonthly,
-      billingCategory: item.billingCategory || 'CORE',
-      total
+      billingCategory: item.billingCategory || "CORE",
+      total,
     };
   });
-  
+
   const subtotal = processedItems.reduce((sum, item) => sum + item.total, 0);
   const tax = subtotal * 0.15; // 15% VAT
   const total = subtotal + tax;
   const monthly = total;
-  
+
   // Annual discount: 15% off
   const annualDiscountPct = 15;
   const annualTotal = monthly * 12 * (1 - annualDiscountPct / 100);
-  
+
   return {
     items: processedItems,
     subtotal,
@@ -214,7 +217,7 @@ export function computeQuote(params: {
     monthly,
     annualTotal,
     annualDiscountPct,
-    currency: 'SAR'
+    currency: "SAR",
   };
 }
 
@@ -226,7 +229,7 @@ const pricingUtils = {
   formatPrice,
   comparePrices,
   calculatePaymentTermsDiscount,
-  computeQuote
+  computeQuote,
 };
 
 export default pricingUtils;

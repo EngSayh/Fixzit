@@ -1,14 +1,21 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectItem } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, X, FileText, Image as ImageIcon, Video } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectItem } from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Upload, X, FileText, Image as ImageIcon, Video } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ClaimFormProps {
   orderId: string;
@@ -18,7 +25,7 @@ interface ClaimFormProps {
     orderDate: string;
     sellerId: string;
     sellerName: string;
-    productId: string;  // Added: Required for API payload
+    productId: string; // Added: Required for API payload
   };
   onSuccess?: (_claimId: string) => void;
   onCancel?: () => void;
@@ -27,34 +34,65 @@ interface ClaimFormProps {
 interface EvidenceFile {
   file: File;
   preview?: string;
-  type: 'photo' | 'video' | 'document';
+  type: "photo" | "video" | "document";
 }
 
 const CLAIM_TYPES = [
-  { value: 'item_not_received', label: 'لم أستلم السلعة (Item Not Received)', reason: 'Item never arrived' },
-  { value: 'defective_item', label: 'السلعة معيبة (Defective Item)', reason: 'Item is damaged or defective' },
-  { value: 'not_as_described', label: 'لا تطابق الوصف (Not as Described)', reason: 'Item does not match listing description' },
-  { value: 'wrong_item', label: 'سلعة خاطئة (Wrong Item Sent)', reason: 'Received incorrect product' },
-  { value: 'missing_parts', label: 'أجزاء ناقصة (Missing Parts)', reason: 'Item is incomplete or missing components' },
-  { value: 'counterfeit', label: 'سلعة مزيفة (Counterfeit Item)', reason: 'Suspected counterfeit or fake product' },
+  {
+    value: "item_not_received",
+    label: "لم أستلم السلعة (Item Not Received)",
+    reason: "Item never arrived",
+  },
+  {
+    value: "defective_item",
+    label: "السلعة معيبة (Defective Item)",
+    reason: "Item is damaged or defective",
+  },
+  {
+    value: "not_as_described",
+    label: "لا تطابق الوصف (Not as Described)",
+    reason: "Item does not match listing description",
+  },
+  {
+    value: "wrong_item",
+    label: "سلعة خاطئة (Wrong Item Sent)",
+    reason: "Received incorrect product",
+  },
+  {
+    value: "missing_parts",
+    label: "أجزاء ناقصة (Missing Parts)",
+    reason: "Item is incomplete or missing components",
+  },
+  {
+    value: "counterfeit",
+    label: "سلعة مزيفة (Counterfeit Item)",
+    reason: "Suspected counterfeit or fake product",
+  },
 ];
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_FILES = 10;
 
-export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }: ClaimFormProps) {
+export default function ClaimForm({
+  orderId,
+  orderDetails,
+  onSuccess,
+  onCancel,
+}: ClaimFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [claimType, setClaimType] = useState('');
-  const [description, setDescription] = useState('');
+  const [claimType, setClaimType] = useState("");
+  const [description, setDescription] = useState("");
   const [evidenceFiles, setEvidenceFiles] = useState<EvidenceFile[]>([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    
+
     if (evidenceFiles.length + files.length > MAX_FILES) {
-      setError(`يمكنك رفع ${MAX_FILES} ملفات كحد أقصى (Maximum ${MAX_FILES} files)`);
+      setError(
+        `يمكنك رفع ${MAX_FILES} ملفات كحد أقصى (Maximum ${MAX_FILES} files)`,
+      );
       return;
     }
 
@@ -67,17 +105,17 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
         return;
       }
 
-      let fileType: 'photo' | 'video' | 'document' = 'document';
-      if (file.type.startsWith('image/')) {
-        fileType = 'photo';
-      } else if (file.type.startsWith('video/')) {
-        fileType = 'video';
+      let fileType: "photo" | "video" | "document" = "document";
+      if (file.type.startsWith("image/")) {
+        fileType = "photo";
+      } else if (file.type.startsWith("video/")) {
+        fileType = "video";
       }
 
       const evidenceFile: EvidenceFile = { file, type: fileType };
 
       // Generate preview for images
-      if (fileType === 'photo') {
+      if (fileType === "photo") {
         const reader = new FileReader();
         reader.onload = (e) => {
           evidenceFile.preview = e.target?.result as string;
@@ -90,9 +128,9 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
     });
 
     if (errors.length > 0) {
-      setError(errors.join(', '));
+      setError(errors.join(", "));
     } else {
-      setError('');
+      setError("");
     }
 
     setEvidenceFiles((prev) => [...prev, ...validFiles]);
@@ -104,20 +142,24 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (!claimType) {
-      setError('الرجاء اختيار نوع المشكلة (Please select claim type)');
+      setError("الرجاء اختيار نوع المشكلة (Please select claim type)");
       return;
     }
 
     if (description.trim().length < 20) {
-      setError('الرجاء تقديم وصف تفصيلي (20 حرف على الأقل) - Please provide detailed description (minimum 20 characters)');
+      setError(
+        "الرجاء تقديم وصف تفصيلي (20 حرف على الأقل) - Please provide detailed description (minimum 20 characters)",
+      );
       return;
     }
 
     if (evidenceFiles.length === 0) {
-      setError('الرجاء رفع دليل واحد على الأقل (Please upload at least one evidence file)');
+      setError(
+        "الرجاء رفع دليل واحد على الأقل (Please upload at least one evidence file)",
+      );
       return;
     }
 
@@ -125,60 +167,66 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
 
     try {
       // Upload evidence files first
-      const evidenceUrls: Array<{ url: string; type: string; uploadedBy: string }> = [];
-      
+      const evidenceUrls: Array<{
+        url: string;
+        type: string;
+        uploadedBy: string;
+      }> = [];
+
       for (const evidenceFile of evidenceFiles) {
         const formData = new FormData();
-        formData.append('file', evidenceFile.file);
-        
+        formData.append("file", evidenceFile.file);
+
         // Upload to your file storage service
-        const uploadResponse = await fetch('/api/upload', {
-          method: 'POST',
+        const uploadResponse = await fetch("/api/upload", {
+          method: "POST",
           body: formData,
         });
 
         if (!uploadResponse.ok) {
-          throw new Error('فشل رفع الملفات (File upload failed)');
+          throw new Error("فشل رفع الملفات (File upload failed)");
         }
 
         const uploadData = await uploadResponse.json();
         evidenceUrls.push({
           url: uploadData.url,
           type: evidenceFile.type,
-          uploadedBy: 'buyer',
+          uploadedBy: "buyer",
         });
       }
 
       // Create claim with all required fields matching API contract
-      const selectedClaimType = CLAIM_TYPES.find(t => t.value === claimType);
+      const selectedClaimType = CLAIM_TYPES.find((t) => t.value === claimType);
       if (!selectedClaimType) {
-        throw new Error('Invalid claim type selected');
+        throw new Error("Invalid claim type selected");
       }
 
-      const response = await fetch('/api/souq/claims', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/souq/claims", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           orderId,
           sellerId: orderDetails.sellerId,
           productId: orderDetails.productId,
           type: selectedClaimType.value,
-          reason: selectedClaimType.reason,   // Auto-fill reason based on type
+          reason: selectedClaimType.reason, // Auto-fill reason based on type
           description,
           evidence: evidenceUrls,
-          orderAmount: orderDetails.orderAmount,  // Required number field
+          orderAmount: orderDetails.orderAmount, // Required number field
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'فشل تقديم المطالبة (Failed to submit claim)');
+        throw new Error(
+          errorData.error || "فشل تقديم المطالبة (Failed to submit claim)",
+        );
       }
 
       const data = await response.json();
 
       toast({
-        title: 'تم تقديم المطالبة بنجاح',
+        title: "تم تقديم المطالبة بنجاح",
         description: `رقم المطالبة: ${data.claimNumber}`,
       });
 
@@ -186,11 +234,11 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
         onSuccess(data.claimId);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setError(errorMessage);
       toast({
-        variant: 'destructive',
-        title: 'خطأ (Error)',
+        variant: "destructive",
+        title: "خطأ (Error)",
         description: errorMessage,
       });
     } finally {
@@ -200,9 +248,9 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
 
   const getFileIcon = (type: string) => {
     switch (type) {
-      case 'photo':
+      case "photo":
         return <ImageIcon className="w-4 h-4" />;
-      case 'video':
+      case "video":
         return <Video className="w-4 h-4" />;
       default:
         return <FileText className="w-4 h-4" />;
@@ -231,8 +279,12 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
               <span className="text-sm">{orderDetails.orderAmount} SAR</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm font-medium">تاريخ الطلب (Order Date):</span>
-              <span className="text-sm">{new Date(orderDetails.orderDate).toLocaleDateString('ar-SA')}</span>
+              <span className="text-sm font-medium">
+                تاريخ الطلب (Order Date):
+              </span>
+              <span className="text-sm">
+                {new Date(orderDetails.orderDate).toLocaleDateString("ar-SA")}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm font-medium">البائع (Seller):</span>
@@ -259,7 +311,9 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">وصف المشكلة التفصيلي (Detailed Description) *</Label>
+            <Label htmlFor="description">
+              وصف المشكلة التفصيلي (Detailed Description) *
+            </Label>
             <Textarea
               id="description"
               placeholder="الرجاء وصف المشكلة بالتفصيل... (Please describe the problem in detail...)"
@@ -269,7 +323,8 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
               className="resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              {description.length}/500 - الحد الأدنى 20 حرف (Minimum 20 characters)
+              {description.length}/500 - الحد الأدنى 20 حرف (Minimum 20
+              characters)
             </p>
           </div>
 
@@ -293,7 +348,10 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
                 <Upload className="w-10 h-10 text-muted-foreground" />
                 <div className="text-sm">
                   <span className="font-medium text-primary">انقر للرفع</span>
-                  <span className="text-muted-foreground"> أو اسحب الملفات هنا</span>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    أو اسحب الملفات هنا
+                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   صور، فيديو، أو مستندات (حتى 10MB لكل ملف)
@@ -320,7 +378,9 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
                           {getFileIcon(evidence.type)}
                         </div>
                       )}
-                      <p className="text-xs mt-2 truncate">{evidence.file.name}</p>
+                      <p className="text-xs mt-2 truncate">
+                        {evidence.file.name}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {(evidence.file.size / 1024).toFixed(1)} KB
                       </p>
@@ -343,12 +403,26 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
           {/* Important Information */}
           <Alert>
             <AlertDescription className="text-sm space-y-2">
-              <p className="font-medium">معلومات هامة (Important Information):</p>
+              <p className="font-medium">
+                معلومات هامة (Important Information):
+              </p>
               <ul className="list-disc list-inside space-y-1 text-xs">
-                <li>سيتم إشعار البائع وسيكون لديه 48 ساعة للرد (Seller will be notified and has 48 hours to respond)</li>
-                <li>سيتم مراجعة المطالبة خلال 3-5 أيام عمل (Claim will be reviewed within 3-5 business days)</li>
-                <li>قد نطلب معلومات إضافية أثناء التحقيق (Additional information may be requested during investigation)</li>
-                <li>سيتم إشعارك بالقرار عبر البريد الإلكتروني والإشعارات (Decision will be communicated via email and notifications)</li>
+                <li>
+                  سيتم إشعار البائع وسيكون لديه 48 ساعة للرد (Seller will be
+                  notified and has 48 hours to respond)
+                </li>
+                <li>
+                  سيتم مراجعة المطالبة خلال 3-5 أيام عمل (Claim will be reviewed
+                  within 3-5 business days)
+                </li>
+                <li>
+                  قد نطلب معلومات إضافية أثناء التحقيق (Additional information
+                  may be requested during investigation)
+                </li>
+                <li>
+                  سيتم إشعارك بالقرار عبر البريد الإلكتروني والإشعارات (Decision
+                  will be communicated via email and notifications)
+                </li>
               </ul>
             </AlertDescription>
           </Alert>
@@ -361,11 +435,16 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
         </CardContent>
 
         <CardFooter className="flex justify-between">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
             إلغاء (Cancel)
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'جاري التقديم...' : 'تقديم المطالبة (Submit Claim)'}
+            {isSubmitting ? "جاري التقديم..." : "تقديم المطالبة (Submit Claim)"}
           </Button>
         </CardFooter>
       </form>

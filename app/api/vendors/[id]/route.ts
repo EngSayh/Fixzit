@@ -1,55 +1,73 @@
-import { NextRequest} from "next/server";
+import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Vendor } from "@/server/models/Vendor";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
 const updateVendorSchema = z.object({
   name: z.string().min(1).optional(),
-  type: z.enum(["SUPPLIER", "CONTRACTOR", "SERVICE_PROVIDER", "CONSULTANT"]).optional(),
-  contact: z.object({
-    primary: z.object({
-      name: z.string().optional(),
-      title: z.string().optional(),
-      email: z.string().email().optional(),
-      phone: z.string().optional(),
-      mobile: z.string().optional()
-    }).optional(),
-    secondary: z.object({
-      name: z.string().optional(),
-      email: z.string().email().optional(),
-      phone: z.string().optional()
-    }).optional(),
-    address: z.object({
-      street: z.string().optional(),
-      city: z.string().optional(),
-      region: z.string().optional(),
-      postalCode: z.string().optional()
-    }).optional()
-  }).optional(),
-  business: z.object({
-    registrationNumber: z.string().optional(),
-    taxId: z.string().optional(),
-    licenseNumber: z.string().optional(),
-    establishedDate: z.string().optional(),
-    employees: z.number().optional(),
-    annualRevenue: z.number().optional(),
-    specializations: z.array(z.string()).optional(),
-    certifications: z.array(z.object({
-      name: z.string(),
-      issuer: z.string(),
-      issued: z.string().optional(),
-      expires: z.string().optional(),
-      status: z.string().optional()
-    })).optional()
-  }).optional(),
-  status: z.enum(["PENDING", "APPROVED", "SUSPENDED", "REJECTED", "BLACKLISTED"]).optional(),
-  tags: z.array(z.string()).optional()
+  type: z
+    .enum(["SUPPLIER", "CONTRACTOR", "SERVICE_PROVIDER", "CONSULTANT"])
+    .optional(),
+  contact: z
+    .object({
+      primary: z
+        .object({
+          name: z.string().optional(),
+          title: z.string().optional(),
+          email: z.string().email().optional(),
+          phone: z.string().optional(),
+          mobile: z.string().optional(),
+        })
+        .optional(),
+      secondary: z
+        .object({
+          name: z.string().optional(),
+          email: z.string().email().optional(),
+          phone: z.string().optional(),
+        })
+        .optional(),
+      address: z
+        .object({
+          street: z.string().optional(),
+          city: z.string().optional(),
+          region: z.string().optional(),
+          postalCode: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  business: z
+    .object({
+      registrationNumber: z.string().optional(),
+      taxId: z.string().optional(),
+      licenseNumber: z.string().optional(),
+      establishedDate: z.string().optional(),
+      employees: z.number().optional(),
+      annualRevenue: z.number().optional(),
+      specializations: z.array(z.string()).optional(),
+      certifications: z
+        .array(
+          z.object({
+            name: z.string(),
+            issuer: z.string(),
+            issued: z.string().optional(),
+            expires: z.string().optional(),
+            status: z.string().optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+  status: z
+    .enum(["PENDING", "APPROVED", "SUSPENDED", "REJECTED", "BLACKLISTED"])
+    .optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 /**
@@ -69,7 +87,10 @@ const updateVendorSchema = z.object({
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -79,10 +100,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     }
     await connectToDatabase();
 
-    const vendor = (await Vendor.findOne({
+    const vendor = await Vendor.findOne({
       _id: params.id,
-      tenantId: user.tenantId
-    }));
+      tenantId: user.tenantId,
+    });
 
     if (!vendor) {
       return createSecureResponse({ error: "Vendor not found" }, 404, req);
@@ -94,7 +115,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   }
 }
 
-export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -102,11 +126,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     const data = updateVendorSchema.parse(await req.json());
 
-    const vendor = (await Vendor.findOneAndUpdate(
+    const vendor = await Vendor.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },
       { $set: { ...data, updatedBy: user.id } },
-      { new: true }
-    ));
+      { new: true },
+    );
 
     if (!vendor) {
       return createSecureResponse({ error: "Vendor not found" }, 404, req);
@@ -118,7 +142,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   }
 }
 
-export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -128,11 +155,11 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     }
     await connectToDatabase();
 
-    const vendor = (await Vendor.findOneAndUpdate(
+    const vendor = await Vendor.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },
       { $set: { status: "BLACKLISTED", updatedBy: user.id } },
-      { new: true }
-    ));
+      { new: true },
+    );
 
     if (!vendor) {
       return createSecureResponse({ error: "Vendor not found" }, 404, req);

@@ -84,14 +84,14 @@ npm run verify:imports
 
 ## Comparison
 
-| Feature | PowerShell | Python | Node.js |
-|---------|-----------|--------|---------|
-| Cross-platform | ✅ | ✅ | ✅ |
-| No bracket issues | ⚠️ | ✅ | ✅ |
-| Color output | ✅ | ✅ | ✅ |
-| Progress display | ⚠️ | ✅ | ✅ |
-| Error handling | ✅ | ✅ | ✅ |
-| Easy to read | ✅ | ✅ | ✅ |
+| Feature           | PowerShell | Python | Node.js |
+| ----------------- | ---------- | ------ | ------- |
+| Cross-platform    | ✅         | ✅     | ✅      |
+| No bracket issues | ⚠️         | ✅     | ✅      |
+| Color output      | ✅         | ✅     | ✅      |
+| Progress display  | ⚠️         | ✅     | ✅      |
+| Error handling    | ✅         | ✅     | ✅      |
+| Easy to read      | ✅         | ✅     | ✅      |
 
 ---
 

@@ -213,13 +213,13 @@ bash verify-final.sh
 
 ## Quick Command Reference
 
-| Task | Command | Status |
-|------|---------|--------|
-| Replace strings | `npm run replace:in-file -- --path "file" --search "old" --replace "new"` | ✅ Working |
-| Verify imports | `npm run verify:imports` | ✅ Working |
-| Install missing packages | `npm run install:missing` | ✅ Working |
-| Run E2E tests | `npm run test:tool` | ✅ Working |
-| Analyze imports | `node analyze-imports.js` | ✅ Working |
+| Task                     | Command                                                                   | Status     |
+| ------------------------ | ------------------------------------------------------------------------- | ---------- |
+| Replace strings          | `npm run replace:in-file -- --path "file" --search "old" --replace "new"` | ✅ Working |
+| Verify imports           | `npm run verify:imports`                                                  | ✅ Working |
+| Install missing packages | `npm run install:missing`                                                 | ✅ Working |
+| Run E2E tests            | `npm run test:tool`                                                       | ✅ Working |
+| Analyze imports          | `node analyze-imports.js`                                                 | ✅ Working |
 
 ---
 

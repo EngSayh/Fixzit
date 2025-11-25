@@ -4,11 +4,11 @@
  * filtering out NaN/undefined inputs.
  */
 export function toFiniteNumber(value: unknown, fallback = 0): number {
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     return Number.isFinite(value) ? value : fallback;
   }
 
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const normalized = value.trim();
     if (normalized.length === 0) {
       return fallback;
@@ -26,12 +26,12 @@ export function toFiniteNumber(value: unknown, fallback = 0): number {
  */
 export function fromInputValue(
   value: string | number | null | undefined,
-  fallback = 0
+  fallback = 0,
 ): number {
   if (value === null || value === undefined) {
     return fallback;
   }
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     return Number.isFinite(value) ? value : fallback;
   }
   return toFiniteNumber(value, fallback);

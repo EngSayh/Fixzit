@@ -1,18 +1,21 @@
 import { Schema, InferSchemaType } from "mongoose";
 import { auditPlugin } from "../plugins/auditPlugin";
-import { getModel } from '@/src/types/mongoose-compat';
+import { getModel } from "@/src/types/mongoose-compat";
 
 const SearchSynonymSchemaDef = {
-  locale: { type: String, enum: ['en','ar'], required: true },
+  locale: { type: String, enum: ["en", "ar"], required: true },
   term: { type: String, required: true },
-  synonyms: [String]
+  synonyms: [String],
 } as const;
 
-export const SearchSynonymSchema = new Schema(SearchSynonymSchemaDef, { timestamps: true });
+export const SearchSynonymSchema = new Schema(SearchSynonymSchemaDef, {
+  timestamps: true,
+});
 // Expose raw definition for environments that mock mongoose schema internals
-const synonymSchemaWithObj = SearchSynonymSchema as typeof SearchSynonymSchema & {
-  obj?: typeof SearchSynonymSchemaDef;
-};
+const synonymSchemaWithObj =
+  SearchSynonymSchema as typeof SearchSynonymSchema & {
+    obj?: typeof SearchSynonymSchemaDef;
+  };
 if (!synonymSchemaWithObj.obj) {
   synonymSchemaWithObj.obj = SearchSynonymSchemaDef;
 }
@@ -25,6 +28,9 @@ SearchSynonymSchema.index({ locale: 1, term: 1 }, { unique: true });
 
 export type SearchSynonymDoc = InferSchemaType<typeof SearchSynonymSchema>;
 
-export const SearchSynonym = getModel<SearchSynonymDoc>('SearchSynonym', SearchSynonymSchema);
+export const SearchSynonym = getModel<SearchSynonymDoc>(
+  "SearchSynonym",
+  SearchSynonymSchema,
+);
 
 export default SearchSynonym;

@@ -1,6 +1,13 @@
 import { CopilotRole, CopilotSession } from "./session";
 
-export type DataClass = "PUBLIC" | "TENANT_SCOPED" | "OWNER_SCOPED" | "FINANCE" | "HR" | "INTERNAL" | "SENSITIVE";
+export type DataClass =
+  | "PUBLIC"
+  | "TENANT_SCOPED"
+  | "OWNER_SCOPED"
+  | "FINANCE"
+  | "HR"
+  | "INTERNAL"
+  | "SENSITIVE";
 
 export interface PolicyDecision {
   allowed: boolean;
@@ -9,46 +16,85 @@ export interface PolicyDecision {
 }
 
 const ROLE_DATA_CLASS: Record<CopilotRole, DataClass[]> = {
-  SUPER_ADMIN: ["PUBLIC","TENANT_SCOPED","OWNER_SCOPED","FINANCE","HR","INTERNAL"],
-  ADMIN: ["PUBLIC","TENANT_SCOPED","OWNER_SCOPED","FINANCE","INTERNAL"],
-  CORPORATE_ADMIN: ["PUBLIC","TENANT_SCOPED","OWNER_SCOPED","FINANCE","INTERNAL"],
-  FM_MANAGER: ["PUBLIC","TENANT_SCOPED","OWNER_SCOPED"],
-  FINANCE: ["PUBLIC","TENANT_SCOPED","FINANCE"],
-  HR: ["PUBLIC","TENANT_SCOPED","HR"],
-  PROCUREMENT: ["PUBLIC","TENANT_SCOPED"],
-  PROPERTY_MANAGER: ["PUBLIC","TENANT_SCOPED","OWNER_SCOPED"],
-  EMPLOYEE: ["PUBLIC","TENANT_SCOPED"],
-  TECHNICIAN: ["PUBLIC","TENANT_SCOPED"],
-  VENDOR: ["PUBLIC","TENANT_SCOPED"],
+  SUPER_ADMIN: [
+    "PUBLIC",
+    "TENANT_SCOPED",
+    "OWNER_SCOPED",
+    "FINANCE",
+    "HR",
+    "INTERNAL",
+  ],
+  ADMIN: ["PUBLIC", "TENANT_SCOPED", "OWNER_SCOPED", "FINANCE", "INTERNAL"],
+  CORPORATE_ADMIN: [
+    "PUBLIC",
+    "TENANT_SCOPED",
+    "OWNER_SCOPED",
+    "FINANCE",
+    "INTERNAL",
+  ],
+  FM_MANAGER: ["PUBLIC", "TENANT_SCOPED", "OWNER_SCOPED"],
+  FINANCE: ["PUBLIC", "TENANT_SCOPED", "FINANCE"],
+  HR: ["PUBLIC", "TENANT_SCOPED", "HR"],
+  PROCUREMENT: ["PUBLIC", "TENANT_SCOPED"],
+  PROPERTY_MANAGER: ["PUBLIC", "TENANT_SCOPED", "OWNER_SCOPED"],
+  EMPLOYEE: ["PUBLIC", "TENANT_SCOPED"],
+  TECHNICIAN: ["PUBLIC", "TENANT_SCOPED"],
+  VENDOR: ["PUBLIC", "TENANT_SCOPED"],
   CUSTOMER: ["PUBLIC"],
-  OWNER: ["PUBLIC","OWNER_SCOPED"],
-  AUDITOR: ["PUBLIC","INTERNAL"],
-  TENANT: ["PUBLIC","TENANT_SCOPED"],
-  GUEST: ["PUBLIC"]
+  OWNER: ["PUBLIC", "OWNER_SCOPED"],
+  AUDITOR: ["PUBLIC", "INTERNAL"],
+  TENANT: ["PUBLIC", "TENANT_SCOPED"],
+  GUEST: ["PUBLIC"],
 };
 
-const RESTRICTED_PATTERNS: { pattern: RegExp; dataClass: DataClass; }[] = [
-  { pattern: /(financial statement|income statement|owner statement|balance sheet|revenue|expense|invoice|financials?)/i, dataClass: "FINANCE" },
-  { pattern: /(payroll|salary|employee compensation|hr record|leave balance)/i, dataClass: "HR" },
-  { pattern: /(other tenant|another tenant|other company|different company|competitor)/i, dataClass: "SENSITIVE" },
-  { pattern: /(internal document|confidential|secret|token|password|api key)/i, dataClass: "SENSITIVE" },
+const RESTRICTED_PATTERNS: { pattern: RegExp; dataClass: DataClass }[] = [
+  {
+    pattern:
+      /(financial statement|income statement|owner statement|balance sheet|revenue|expense|invoice|financials?)/i,
+    dataClass: "FINANCE",
+  },
+  {
+    pattern: /(payroll|salary|employee compensation|hr record|leave balance)/i,
+    dataClass: "HR",
+  },
+  {
+    pattern:
+      /(other tenant|another tenant|other company|different company|competitor)/i,
+    dataClass: "SENSITIVE",
+  },
+  {
+    pattern: /(internal document|confidential|secret|token|password|api key)/i,
+    dataClass: "SENSITIVE",
+  },
   { pattern: /(owner statement|owner report)/i, dataClass: "OWNER_SCOPED" },
   // Enhanced Arabic patterns for Saudi market
-  { pattern: /(iqama|residence permit|national id|passport|civil id)/i, dataClass: "SENSITIVE" },
-  { pattern: /(apartment|flat|unit|studio|property for rent)/i, dataClass: "PUBLIC" }, // Apartment search keywords
+  {
+    pattern: /(iqama|residence permit|national id|passport|civil id)/i,
+    dataClass: "SENSITIVE",
+  },
+  {
+    pattern: /(apartment|flat|unit|studio|property for rent)/i,
+    dataClass: "PUBLIC",
+  }, // Apartment search keywords
 ];
 
-export function evaluateMessagePolicy(session: CopilotSession, text: string): PolicyDecision {
+export function evaluateMessagePolicy(
+  session: CopilotSession,
+  text: string,
+): PolicyDecision {
   const normalized = text.toLowerCase();
 
   for (const restricted of RESTRICTED_PATTERNS) {
     if (restricted.pattern.test(normalized)) {
-      const permitted = ROLE_DATA_CLASS[session.role]?.includes(restricted.dataClass);
+      const permitted = ROLE_DATA_CLASS[session.role]?.includes(
+        restricted.dataClass,
+      );
       return {
         allowed: Boolean(permitted),
-        reason: permitted ? undefined :
-          `This request touches ${restricted.dataClass.replace("_", " ").toLowerCase()} data that your role cannot access.`,
-        dataClass: restricted.dataClass
+        reason: permitted
+          ? undefined
+          : `This request touches ${restricted.dataClass.replace("_", " ").toLowerCase()} data that your role cannot access.`,
+        dataClass: restricted.dataClass,
       };
     }
   }
@@ -57,22 +103,66 @@ export function evaluateMessagePolicy(session: CopilotSession, text: string): Po
 }
 
 const ROLE_TOOLS: Record<CopilotRole, string[]> = {
-  SUPER_ADMIN: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto","approveQuotation","ownerStatements"],
-  ADMIN: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto","approveQuotation","ownerStatements"],
-  CORPORATE_ADMIN: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto","approveQuotation","ownerStatements"],
-  FM_MANAGER: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto","approveQuotation"],
-  FINANCE: ["listMyWorkOrders","approveQuotation","ownerStatements"],
+  SUPER_ADMIN: [
+    "createWorkOrder",
+    "listMyWorkOrders",
+    "dispatchWorkOrder",
+    "scheduleVisit",
+    "uploadWorkOrderPhoto",
+    "approveQuotation",
+    "ownerStatements",
+  ],
+  ADMIN: [
+    "createWorkOrder",
+    "listMyWorkOrders",
+    "dispatchWorkOrder",
+    "scheduleVisit",
+    "uploadWorkOrderPhoto",
+    "approveQuotation",
+    "ownerStatements",
+  ],
+  CORPORATE_ADMIN: [
+    "createWorkOrder",
+    "listMyWorkOrders",
+    "dispatchWorkOrder",
+    "scheduleVisit",
+    "uploadWorkOrderPhoto",
+    "approveQuotation",
+    "ownerStatements",
+  ],
+  FM_MANAGER: [
+    "createWorkOrder",
+    "listMyWorkOrders",
+    "dispatchWorkOrder",
+    "scheduleVisit",
+    "uploadWorkOrderPhoto",
+    "approveQuotation",
+  ],
+  FINANCE: ["listMyWorkOrders", "approveQuotation", "ownerStatements"],
   HR: ["listMyWorkOrders"],
-  PROCUREMENT: ["listMyWorkOrders","approveQuotation"],
-  PROPERTY_MANAGER: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto","approveQuotation","ownerStatements"],
-  EMPLOYEE: ["createWorkOrder","listMyWorkOrders","scheduleVisit"],
-  TECHNICIAN: ["listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto"],
-  VENDOR: ["listMyWorkOrders","uploadWorkOrderPhoto"],
-  CUSTOMER: ["createWorkOrder","listMyWorkOrders"],
-  OWNER: ["listMyWorkOrders","approveQuotation","ownerStatements"],
+  PROCUREMENT: ["listMyWorkOrders", "approveQuotation"],
+  PROPERTY_MANAGER: [
+    "createWorkOrder",
+    "listMyWorkOrders",
+    "dispatchWorkOrder",
+    "scheduleVisit",
+    "uploadWorkOrderPhoto",
+    "approveQuotation",
+    "ownerStatements",
+  ],
+  EMPLOYEE: ["createWorkOrder", "listMyWorkOrders", "scheduleVisit"],
+  TECHNICIAN: [
+    "listMyWorkOrders",
+    "dispatchWorkOrder",
+    "scheduleVisit",
+    "uploadWorkOrderPhoto",
+  ],
+  VENDOR: ["listMyWorkOrders", "uploadWorkOrderPhoto"],
+  CUSTOMER: ["createWorkOrder", "listMyWorkOrders"],
+  OWNER: ["listMyWorkOrders", "approveQuotation", "ownerStatements"],
   AUDITOR: ["listMyWorkOrders"],
-  TENANT: ["createWorkOrder","listMyWorkOrders","uploadWorkOrderPhoto"],
-  GUEST: []
+  TENANT: ["createWorkOrder", "listMyWorkOrders", "uploadWorkOrderPhoto"],
+  GUEST: [],
 };
 
 export function getPermittedTools(role: CopilotRole): string[] {

@@ -17,15 +17,15 @@
 
 ## Breakdown by Type
 
-| Type | Count | Percentage |
-|------|-------|------------|
-| Documentation (Other) | 6,022 | 99.67% |
-| NOTE | 18 | 0.30% |
-| TODO | 2 | 0.03% |
-| FIXME | 0 | 0% |
-| HACK | 0 | 0% |
-| XXX | 0 | 0% |
-| BUG | 0 | 0% |
+| Type                  | Count | Percentage |
+| --------------------- | ----- | ---------- |
+| Documentation (Other) | 6,022 | 99.67%     |
+| NOTE                  | 18    | 0.30%      |
+| TODO                  | 2     | 0.03%      |
+| FIXME                 | 0     | 0%         |
+| HACK                  | 0     | 0%         |
+| XXX                   | 0     | 0%         |
+| BUG                   | 0     | 0%         |
 
 ---
 
@@ -207,12 +207,12 @@ cat comment-analysis.json
 
 ## Comparison with Industry Standards
 
-| Metric | This Project | Industry Average | Status |
-|--------|--------------|------------------|--------|
-| TODO comments | 0 | 50-200 | ✅ Better |
-| FIXME comments | 0 | 20-50 | ✅ Better |
-| HACK comments | 0 | 10-30 | ✅ Better |
-| Documentation ratio | 99.67% | 60-80% | ✅ Better |
+| Metric              | This Project | Industry Average | Status    |
+| ------------------- | ------------ | ---------------- | --------- |
+| TODO comments       | 0            | 50-200           | ✅ Better |
+| FIXME comments      | 0            | 20-50            | ✅ Better |
+| HACK comments       | 0            | 10-30            | ✅ Better |
+| Documentation ratio | 99.67%       | 60-80%           | ✅ Better |
 
 ---
 

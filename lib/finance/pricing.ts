@@ -1,8 +1,8 @@
-import PriceBook from '@/server/models/PriceBook';
-import DiscountRule from '@/server/models/DiscountRule';
-import { z, type ZodIssue } from 'zod';
+import PriceBook from "@/server/models/PriceBook";
+import DiscountRule from "@/server/models/DiscountRule";
+import { z, type ZodIssue } from "zod";
 
-export type BillingCycle = 'MONTHLY' | 'ANNUAL';
+export type BillingCycle = "MONTHLY" | "ANNUAL";
 
 export type QuoteLine = {
   module: string;
@@ -46,23 +46,23 @@ export class PricingError extends Error {
   constructor(
     message: string,
     public readonly code: string,
-    public readonly details?: Record<string, unknown>
+    public readonly details?: Record<string, unknown>,
   ) {
     super(message);
-    this.name = 'PricingError';
+    this.name = "PricingError";
   }
 }
 
 // Input validation schema
 const quotePriceSchema = z.object({
-  priceBookCurrency: z.enum(['USD', 'SAR']),
+  priceBookCurrency: z.enum(["USD", "SAR"]),
   seats: z.number().positive().int().min(1).max(10000),
   modules: z.array(z.string()).min(1),
-  billingCycle: z.enum(['MONTHLY', 'ANNUAL']),
+  billingCycle: z.enum(["MONTHLY", "ANNUAL"]),
 });
 
 export async function quotePrice(opts: {
-  priceBookCurrency: 'USD' | 'SAR';
+  priceBookCurrency: "USD" | "SAR";
   seats: number;
   modules: string[];
   billingCycle: BillingCycle;
@@ -72,11 +72,11 @@ export async function quotePrice(opts: {
   if (!validation.success) {
     const issueMessages = validation.error.issues
       .map((issue: ZodIssue) => issue.message)
-      .join(', ');
+      .join(", ");
     throw new PricingError(
       `Invalid pricing parameters: ${issueMessages}`,
-      'INVALID_INPUT',
-      { errors: validation.error.issues }
+      "INVALID_INPUT",
+      { errors: validation.error.issues },
     );
   }
 
@@ -89,39 +89,52 @@ export async function quotePrice(opts: {
 
   // Parallel query optimization: fetch price book and discount rule simultaneously
   const [pb, rule] = await Promise.all([
-    PriceBook.findOne({ currency: priceBookCurrency, active: true }).lean<PriceBookDoc>(),
-    billingCycle === 'ANNUAL' 
-      ? DiscountRule.findOne({ key: 'ANNUAL_PREPAY' }).lean<DiscountRuleDoc>()
+    PriceBook.findOne({
+      currency: priceBookCurrency,
+      active: true,
+    }).lean<PriceBookDoc>(),
+    billingCycle === "ANNUAL"
+      ? DiscountRule.findOne({ key: "ANNUAL_PREPAY" }).lean<DiscountRuleDoc>()
       : Promise.resolve(null),
   ]);
 
   if (!pb) {
     throw new PricingError(
       `No active price book found for currency ${priceBookCurrency}`,
-      'PRICEBOOK_NOT_FOUND',
-      { currency: priceBookCurrency }
+      "PRICEBOOK_NOT_FOUND",
+      { currency: priceBookCurrency },
     );
   }
 
-  const tier = pb.tiers.find((t: TierType) => seats >= t.min_seats && seats <= t.max_seats);
-  
+  const tier = pb.tiers.find(
+    (t: TierType) => seats >= t.min_seats && seats <= t.max_seats,
+  );
+
   if (!tier) {
     throw new PricingError(
       `No pricing tier found for ${seats} seats`,
-      'TIER_NOT_FOUND',
-      { seats, availableTiers: pb.tiers.map((t: TierType) => ({ min: t.min_seats, max: t.max_seats })) }
+      "TIER_NOT_FOUND",
+      {
+        seats,
+        availableTiers: pb.tiers.map((t: TierType) => ({
+          min: t.min_seats,
+          max: t.max_seats,
+        })),
+      },
     );
   }
 
-const FALLBACK_PRICES: Record<string, { usd: number; sar: number }> = {
-  AQAR: { usd: 50, sar: 187.5 },
-  FM: { usd: 40, sar: 150 },
-  HR: { usd: 30, sar: 112.5 },
-};
+  const FALLBACK_PRICES: Record<string, { usd: number; sar: number }> = {
+    AQAR: { usd: 50, sar: 187.5 },
+    FM: { usd: 40, sar: 150 },
+    HR: { usd: 30, sar: 112.5 },
+  };
 
   // Build quote lines with proper type safety
   const lines = modules.map((moduleKey: string) => {
-    let priceRow = tier.prices.find((row: PriceRowType) => row.module_key === moduleKey);
+    let priceRow = tier.prices.find(
+      (row: PriceRowType) => row.module_key === moduleKey,
+    );
     if (!priceRow) {
       const fallback = FALLBACK_PRICES[moduleKey];
       if (fallback) {
@@ -132,28 +145,36 @@ const FALLBACK_PRICES: Record<string, { usd: number; sar: number }> = {
         } as PriceRowType;
       }
     }
-    
+
     if (!priceRow) {
       throw new PricingError(
         `No price found for module '${moduleKey}'`,
-        'MODULE_NOT_FOUND',
-        { module: moduleKey, availableModules: tier.prices.map((p: PriceRowType) => p.module_key) }
+        "MODULE_NOT_FOUND",
+        {
+          module: moduleKey,
+          availableModules: tier.prices.map((p: PriceRowType) => p.module_key),
+        },
       );
     }
-    
-    const perSeatMonthly = priceBookCurrency === 'USD' ? priceRow.monthly_usd : priceRow.monthly_sar;
+
+    const perSeatMonthly =
+      priceBookCurrency === "USD" ? priceRow.monthly_usd : priceRow.monthly_sar;
     const discountedPerSeatMonthly = perSeatMonthly * (1 - tier.discount_pct);
 
     return { module: moduleKey, perSeatMonthly, discountedPerSeatMonthly };
   });
 
   const subtotalMonthly =
-    lines.reduce((total: number, line) => total + line.discountedPerSeatMonthly, 0) * seats;
+    lines.reduce(
+      (total: number, line) => total + line.discountedPerSeatMonthly,
+      0,
+    ) * seats;
 
   // Calculate annual pricing with discount
-  if (billingCycle === 'ANNUAL') {
+  if (billingCycle === "ANNUAL") {
     const annualDisc = rule?.percentage ?? 0;
-    const total = Math.round(subtotalMonthly * 12 * (1 - annualDisc) * 100) / 100;
+    const total =
+      Math.round(subtotalMonthly * 12 * (1 - annualDisc) * 100) / 100;
 
     return { requiresQuote: false, total, lines, annualDiscount: annualDisc };
   }

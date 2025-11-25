@@ -3,22 +3,22 @@
  * @module server/models/souq/Coupon
  */
 
-import mongoose, { Schema, type Document } from 'mongoose';
-import { getModel } from '@/src/types/mongoose-compat';
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel } from "@/src/types/mongoose-compat";
 
 export interface ICoupon extends Document {
   _id: mongoose.Types.ObjectId;
   couponId: string; // CPN-{UUID}
-  
+
   // Ownership
   sellerId?: mongoose.Types.ObjectId; // If seller-specific, null for admin coupons
-  
+
   // Coupon Details
   code: string; // Unique code (e.g., SAVE20, WELCOME10)
-  type: 'percent' | 'amount';
+  type: "percent" | "amount";
   value: number; // Percentage (1-100) or fixed amount
   currency: string;
-  
+
   // Eligibility
   minBasketAmount?: number; // Minimum purchase required
   maxDiscountAmount?: number; // Cap on discount for percent coupons
@@ -26,27 +26,27 @@ export interface ICoupon extends Document {
   applicableProducts?: mongoose.Types.ObjectId[]; // Restrict to products
   excludeCategories?: mongoose.Types.ObjectId[];
   excludeProducts?: mongoose.Types.ObjectId[];
-  
+
   // Usage Limits
   maxRedemptions?: number; // Total times can be used
   redemptionsUsed: number;
   maxRedemptionsPerUser?: number; // Per-user limit
-  
+
   // Time Window
   startAt: Date;
   endAt: Date;
-  
+
   // Conditions
   firstPurchaseOnly?: boolean;
   requiresPrime?: boolean; // Future feature
-  
+
   // Status
   isActive: boolean;
-  
+
   // Metadata
   description?: string;
   internalNotes?: string;
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -62,7 +62,7 @@ const CouponSchema = new Schema<ICoupon>(
     },
     sellerId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqSeller',
+      ref: "SouqSeller",
       index: true,
     },
     code: {
@@ -75,7 +75,7 @@ const CouponSchema = new Schema<ICoupon>(
     },
     type: {
       type: String,
-      enum: ['percent', 'amount'],
+      enum: ["percent", "amount"],
       required: true,
     },
     value: {
@@ -85,7 +85,7 @@ const CouponSchema = new Schema<ICoupon>(
     },
     currency: {
       type: String,
-      default: 'SAR',
+      default: "SAR",
     },
     minBasketAmount: {
       type: Number,
@@ -98,25 +98,25 @@ const CouponSchema = new Schema<ICoupon>(
     applicableCategories: [
       {
         type: Schema.Types.ObjectId,
-        ref: 'SouqCategory',
+        ref: "SouqCategory",
       },
     ],
     applicableProducts: [
       {
         type: Schema.Types.ObjectId,
-        ref: 'SouqProduct',
+        ref: "SouqProduct",
       },
     ],
     excludeCategories: [
       {
         type: Schema.Types.ObjectId,
-        ref: 'SouqCategory',
+        ref: "SouqCategory",
       },
     ],
     excludeProducts: [
       {
         type: Schema.Types.ObjectId,
-        ref: 'SouqProduct',
+        ref: "SouqProduct",
       },
     ],
     maxRedemptions: {
@@ -160,8 +160,8 @@ const CouponSchema = new Schema<ICoupon>(
   },
   {
     timestamps: true,
-    collection: 'souq_coupons',
-  }
+    collection: "souq_coupons",
+  },
 );
 
 // Indexes
@@ -176,23 +176,27 @@ CouponSchema.methods.isValid = function (): boolean {
     this.isActive &&
     this.startAt <= now &&
     this.endAt >= now &&
-    (this.maxRedemptions === undefined || this.redemptionsUsed < this.maxRedemptions)
+    (this.maxRedemptions === undefined ||
+      this.redemptionsUsed < this.maxRedemptions)
   );
 };
 
 CouponSchema.methods.canRedeem = function (): boolean {
   if (!this.isValid()) return false;
-  if (this.maxRedemptions && this.redemptionsUsed >= this.maxRedemptions) return false;
+  if (this.maxRedemptions && this.redemptionsUsed >= this.maxRedemptions)
+    return false;
   return true;
 };
 
-CouponSchema.methods.calculateDiscount = function (basketAmount: number): number {
+CouponSchema.methods.calculateDiscount = function (
+  basketAmount: number,
+): number {
   if (!this.canRedeem()) return 0;
   if (this.minBasketAmount && basketAmount < this.minBasketAmount) return 0;
 
   let discount = 0;
 
-  if (this.type === 'percent') {
+  if (this.type === "percent") {
     discount = (basketAmount * this.value) / 100;
     if (this.maxDiscountAmount) {
       discount = Math.min(discount, this.maxDiscountAmount);
@@ -204,6 +208,6 @@ CouponSchema.methods.calculateDiscount = function (basketAmount: number): number
   return Math.min(discount, basketAmount);
 };
 
-export const SouqCoupon = getModel<ICoupon>('SouqCoupon', CouponSchema);
+export const SouqCoupon = getModel<ICoupon>("SouqCoupon", CouponSchema);
 
 export default SouqCoupon;

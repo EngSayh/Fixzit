@@ -13,7 +13,7 @@
 ```
 Total Failures: 216
 ├── Historical (deleted branches): 185 (85.6%) ✅ Cannot fix
-├── Historical (merged branches): 27 (12.5%) ✅ Cannot fix  
+├── Historical (merged branches): 27 (12.5%) ✅ Cannot fix
 └── Active (needs review): 4 (1.9%) 🟡 Can fix
 
 Main Branch: 0 new failures ✅
@@ -30,24 +30,24 @@ GitHub shows historical data - we can't remove these failures retrospectively.
 
 ### Category 1: Already Fixed ✅ (208 failures - 96.3%)
 
-| Branch | Failures | Status |
-|--------|----------|--------|
-| fix/comprehensive-fixes-20251011 | 92 | ✅ Already deleted (yesterday) |
-| feat/batch1-file-organization | 27 | ✅ Merged as PR #126 (1 hour ago) |
-| cursor/* branches (~60) | ~60 | ✅ All deleted (yesterday) |
-| codex/* branches (2) | 12 | ✅ All deleted (yesterday) |
-| feat/batch2-code-improvements | 11 | ✅ Merged as PR #127 (yesterday) |
-| fix/standardize-test-framework-vitest | 15 | ✅ Merged as PR #119 |
-| main (historical) | 2 | ✅ Now passing |
+| Branch                                | Failures | Status                            |
+| ------------------------------------- | -------- | --------------------------------- |
+| fix/comprehensive-fixes-20251011      | 92       | ✅ Already deleted (yesterday)    |
+| feat/batch1-file-organization         | 27       | ✅ Merged as PR #126 (1 hour ago) |
+| cursor/\* branches (~60)              | ~60      | ✅ All deleted (yesterday)        |
+| codex/\* branches (2)                 | 12       | ✅ All deleted (yesterday)        |
+| feat/batch2-code-improvements         | 11       | ✅ Merged as PR #127 (yesterday)  |
+| fix/standardize-test-framework-vitest | 15       | ✅ Merged as PR #119              |
+| main (historical)                     | 2        | ✅ Now passing                    |
 
 **Total Already Fixed**: 208 failures (96.3%)
 
 ### Category 2: Needs Review 🟡 (8 failures - 3.7%)
 
-| Branch | Failures | Action Required |
-|--------|----------|-----------------|
-| fix/deprecated-hook-cleanup | 15 | Check for unique work |
-| Recent PR #126 failures | 4 | Historical (before merge) |
+| Branch                      | Failures | Action Required           |
+| --------------------------- | -------- | ------------------------- |
+| fix/deprecated-hook-cleanup | 15       | Check for unique work     |
+| Recent PR #126 failures     | 4        | Historical (before merge) |
 
 **Total Actionable**: 8 failures (but 4 are historical)
 
@@ -276,7 +276,7 @@ gh run list --branch main --limit 10 --json status,conclusion,name
 name: Stale Branch Cleanup
 on:
   schedule:
-    - cron: '0 0 * * 0'  # Weekly
+    - cron: "0 0 * * 0" # Weekly
   workflow_dispatch:
 
 jobs:

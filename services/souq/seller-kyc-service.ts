@@ -1,6 +1,6 @@
 export interface IKYCDocumentFile {
   fileUrl: string;
-  fileType: 'pdf' | 'jpg' | 'png';
+  fileType: "pdf" | "jpg" | "png";
   uploadedAt: Date;
   verified: boolean;
   verifiedAt?: Date;
@@ -19,15 +19,18 @@ export interface IKYCDocumentFile {
  * - Admin review queue
  */
 
-import { SouqSeller, type IKYCDocumentEntry } from '@/server/models/souq/Seller';
-import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
+import {
+  SouqSeller,
+  type IKYCDocumentEntry,
+} from "@/server/models/souq/Seller";
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
 
 export interface IKYCCompanyInfo {
   businessName: string;
   businessNameArabic?: string;
   crNumber: string; // Commercial Registration
   vatNumber?: string;
-  businessType: 'individual' | 'company' | 'establishment';
+  businessType: "individual" | "company" | "establishment";
   industry: string;
   description: string;
   website?: string;
@@ -45,7 +48,7 @@ export interface IKYCCompanyInfo {
 export interface IKYCDocuments {
   commercialRegistration: {
     fileUrl: string;
-    fileType: 'pdf' | 'jpg' | 'png';
+    fileType: "pdf" | "jpg" | "png";
     uploadedAt: Date;
     verified: boolean;
     verifiedAt?: Date;
@@ -55,7 +58,7 @@ export interface IKYCDocuments {
   };
   vatCertificate?: {
     fileUrl: string;
-    fileType: 'pdf' | 'jpg' | 'png';
+    fileType: "pdf" | "jpg" | "png";
     uploadedAt: Date;
     verified: boolean;
     verifiedAt?: Date;
@@ -65,7 +68,7 @@ export interface IKYCDocuments {
   };
   nationalId: {
     fileUrl: string;
-    fileType: 'pdf' | 'jpg' | 'png';
+    fileType: "pdf" | "jpg" | "png";
     uploadedAt: Date;
     verified: boolean;
     verifiedAt?: Date;
@@ -75,7 +78,7 @@ export interface IKYCDocuments {
   };
   bankLetter?: {
     fileUrl: string;
-    fileType: 'pdf' | 'jpg' | 'png';
+    fileType: "pdf" | "jpg" | "png";
     uploadedAt: Date;
     verified: boolean;
     verifiedAt?: Date;
@@ -90,67 +93,77 @@ export interface IKYCBankDetails {
   accountHolderName: string;
   iban: string;
   swiftCode?: string;
-  currency: 'SAR' | 'USD' | 'EUR';
+  currency: "SAR" | "USD" | "EUR";
   verified: boolean;
   verifiedAt?: Date;
-  verificationMethod?: 'micro_deposit' | 'bank_api' | 'manual';
+  verificationMethod?: "micro_deposit" | "bank_api" | "manual";
 }
 
 export interface ISubmitKYCParams {
   sellerId: string;
-  step: 'company_info' | 'documents' | 'bank_details';
+  step: "company_info" | "documents" | "bank_details";
   data: IKYCCompanyInfo | IKYCDocuments | IKYCBankDetails;
 }
 
 export interface IVerifyDocumentParams {
   sellerId: string;
-  documentType: 'commercialRegistration' | 'vatCertificate' | 'nationalId' | 'bankLetter';
+  documentType:
+    | "commercialRegistration"
+    | "vatCertificate"
+    | "nationalId"
+    | "bankLetter";
   approved: boolean;
   verifiedBy: string;
   rejectionReason?: string;
 }
 
 const DOCUMENT_TYPE_MAP = {
-  commercialRegistration: 'cr',
-  vatCertificate: 'vat_certificate',
-  nationalId: 'id',
-  bankLetter: 'bank_letter',
+  commercialRegistration: "cr",
+  vatCertificate: "vat_certificate",
+  nationalId: "id",
+  bankLetter: "bank_letter",
 } as const;
 
 type DocumentKey = keyof typeof DOCUMENT_TYPE_MAP;
 type StoredDocumentType = (typeof DOCUMENT_TYPE_MAP)[DocumentKey];
 
-const mapBusinessTypeToRegistration = (type: IKYCCompanyInfo['businessType']): 'individual' | 'company' | 'partnership' => {
-  if (type === 'individual') return 'individual';
-  if (type === 'company') return 'company';
+const mapBusinessTypeToRegistration = (
+  type: IKYCCompanyInfo["businessType"],
+): "individual" | "company" | "partnership" => {
+  if (type === "individual") return "individual";
+  if (type === "company") return "company";
   // Treat establishment as company for now
-  return 'company';
+  return "company";
 };
 
 const convertDocumentEntry = <K extends DocumentKey>(
   doc: NonNullable<IKYCDocuments[K]>,
-  type: StoredDocumentType
+  type: StoredDocumentType,
 ): IKYCDocumentEntry => ({
   type,
   url: doc.fileUrl,
   uploadedAt: doc.uploadedAt ?? new Date(),
   verified: doc.verified ?? false,
-  expiresAt: 'expiresAt' in doc ? doc.expiresAt : undefined,
-  verifiedAt: 'verifiedAt' in doc ? doc.verifiedAt : undefined,
-  verifiedBy: 'verifiedBy' in doc ? doc.verifiedBy : undefined,
-  rejectionReason: 'rejectionReason' in doc ? doc.rejectionReason : undefined,
+  expiresAt: "expiresAt" in doc ? doc.expiresAt : undefined,
+  verifiedAt: "verifiedAt" in doc ? doc.verifiedAt : undefined,
+  verifiedBy: "verifiedBy" in doc ? doc.verifiedBy : undefined,
+  rejectionReason: "rejectionReason" in doc ? doc.rejectionReason : undefined,
 });
 
 const findDocument = (
   documents: IKYCDocumentEntry[] | undefined,
-  key: DocumentKey
+  key: DocumentKey,
 ) => documents?.find((entry) => entry.type === DOCUMENT_TYPE_MAP[key]);
 
-const buildVerificationSnapshot = (documents: IKYCDocumentEntry[] | undefined) => ({
-  commercialRegistration: Boolean(findDocument(documents, 'commercialRegistration')?.verified),
-  vatCertificate: Boolean(findDocument(documents, 'vatCertificate')?.verified),
-  nationalId: Boolean(findDocument(documents, 'nationalId')?.verified),
-  bankLetter: Boolean(findDocument(documents, 'bankLetter')?.verified),
+const buildVerificationSnapshot = (
+  documents: IKYCDocumentEntry[] | undefined,
+) => ({
+  commercialRegistration: Boolean(
+    findDocument(documents, "commercialRegistration")?.verified,
+  ),
+  vatCertificate: Boolean(findDocument(documents, "vatCertificate")?.verified),
+  nationalId: Boolean(findDocument(documents, "nationalId")?.verified),
+  bankLetter: Boolean(findDocument(documents, "bankLetter")?.verified),
 });
 
 class SellerKYCService {
@@ -162,17 +175,17 @@ class SellerKYCService {
 
     const seller = await SouqSeller.findById(sellerId);
     if (!seller) {
-      throw new Error('Seller not found');
+      throw new Error("Seller not found");
     }
 
     switch (step) {
-      case 'company_info':
+      case "company_info":
         await this.submitCompanyInfo(sellerId, data as IKYCCompanyInfo);
         break;
-      case 'documents':
+      case "documents":
         await this.submitDocuments(sellerId, data as IKYCDocuments);
         break;
-      case 'bank_details':
+      case "bank_details":
         await this.submitBankDetails(sellerId, data as IKYCBankDetails);
         break;
       default:
@@ -183,10 +196,13 @@ class SellerKYCService {
   /**
    * Submit company information (Step 1)
    */
-  private async submitCompanyInfo(sellerId: string, data: IKYCCompanyInfo): Promise<void> {
+  private async submitCompanyInfo(
+    sellerId: string,
+    data: IKYCCompanyInfo,
+  ): Promise<void> {
     const seller = await SouqSeller.findById(sellerId);
     if (!seller) {
-      throw new Error('Seller not found');
+      throw new Error("Seller not found");
     }
 
     // Update seller with company info
@@ -211,18 +227,18 @@ class SellerKYCService {
     // Update KYC status
     if (!seller.kycStatus) {
       seller.kycStatus = {
-        status: 'pending',
+        status: "pending",
         submittedAt: new Date(),
-        step: 'company_info',
+        step: "company_info",
         companyInfoComplete: true,
         documentsComplete: false,
         bankDetailsComplete: false,
         approvedAt: undefined,
         rejectedAt: undefined,
-        rejectionReason: undefined
+        rejectionReason: undefined,
       };
     } else {
-      seller.kycStatus.step = 'documents';
+      seller.kycStatus.step = "documents";
       seller.kycStatus.companyInfoComplete = true;
     }
 
@@ -232,78 +248,94 @@ class SellerKYCService {
     await this.validateCRNumber(data.crNumber);
 
     // Notify seller
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
-      template: 'kyc_company_info_received',
-      data: { businessName: data.businessName }
+      template: "kyc_company_info_received",
+      data: { businessName: data.businessName },
     });
   }
 
   /**
    * Submit documents (Step 2)
    */
-  private async submitDocuments(sellerId: string, data: IKYCDocuments): Promise<void> {
+  private async submitDocuments(
+    sellerId: string,
+    data: IKYCDocuments,
+  ): Promise<void> {
     const seller = await SouqSeller.findById(sellerId);
     if (!seller) {
-      throw new Error('Seller not found');
+      throw new Error("Seller not found");
     }
 
     if (!seller.kycStatus?.companyInfoComplete) {
-      throw new Error('Complete company information first');
+      throw new Error("Complete company information first");
     }
 
     // Store documents
     const documents: IKYCDocumentEntry[] = [
-      convertDocumentEntry(data.commercialRegistration, DOCUMENT_TYPE_MAP.commercialRegistration),
+      convertDocumentEntry(
+        data.commercialRegistration,
+        DOCUMENT_TYPE_MAP.commercialRegistration,
+      ),
       convertDocumentEntry(data.nationalId, DOCUMENT_TYPE_MAP.nationalId),
     ];
 
     if (data.vatCertificate) {
-      documents.push(convertDocumentEntry(data.vatCertificate, DOCUMENT_TYPE_MAP.vatCertificate));
+      documents.push(
+        convertDocumentEntry(
+          data.vatCertificate,
+          DOCUMENT_TYPE_MAP.vatCertificate,
+        ),
+      );
     }
     if (data.bankLetter) {
-      documents.push(convertDocumentEntry(data.bankLetter, DOCUMENT_TYPE_MAP.bankLetter));
+      documents.push(
+        convertDocumentEntry(data.bankLetter, DOCUMENT_TYPE_MAP.bankLetter),
+      );
     }
 
     seller.documents = documents;
 
     // Update KYC status
-    seller.kycStatus.step = 'bank_details';
+    seller.kycStatus.step = "bank_details";
     seller.kycStatus.documentsComplete = true;
 
     await seller.save();
 
     // Queue for admin review
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
-      to: 'kyc-review-team',
-      priority: 'normal',
-      message: `New KYC documents submitted by ${seller.businessName} (${sellerId})`
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
+      to: "kyc-review-team",
+      priority: "normal",
+      message: `New KYC documents submitted by ${seller.businessName} (${sellerId})`,
     });
 
     // Notify seller
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
-      template: 'kyc_documents_received',
-      data: { businessName: seller.businessName }
+      template: "kyc_documents_received",
+      data: { businessName: seller.businessName },
     });
   }
 
   /**
    * Submit bank details (Step 3)
    */
-  private async submitBankDetails(sellerId: string, data: IKYCBankDetails): Promise<void> {
+  private async submitBankDetails(
+    sellerId: string,
+    data: IKYCBankDetails,
+  ): Promise<void> {
     const seller = await SouqSeller.findById(sellerId);
     if (!seller) {
-      throw new Error('Seller not found');
+      throw new Error("Seller not found");
     }
 
     if (!seller.kycStatus?.documentsComplete) {
-      throw new Error('Complete documents upload first');
+      throw new Error("Complete documents upload first");
     }
 
     // Validate IBAN format
     if (!this.validateIBAN(data.iban)) {
-      throw new Error('Invalid IBAN format');
+      throw new Error("Invalid IBAN format");
     }
 
     // Store bank details
@@ -316,27 +348,27 @@ class SellerKYCService {
     };
 
     // Update KYC status
-    seller.kycStatus.step = 'verification';
+    seller.kycStatus.step = "verification";
     seller.kycStatus.bankDetailsComplete = true;
-    seller.kycStatus.status = 'in_review';
+    seller.kycStatus.status = "in_review";
 
     await seller.save();
 
     // Queue for final review
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
-      to: 'kyc-review-team',
-      priority: 'high',
-      message: `KYC submission complete for ${seller.businessName} (${sellerId}) - Ready for review`
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "internal-notification", {
+      to: "kyc-review-team",
+      priority: "high",
+      message: `KYC submission complete for ${seller.businessName} (${sellerId}) - Ready for review`,
     });
 
     // Notify seller
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
-      template: 'kyc_under_review',
-      data: { 
+      template: "kyc_under_review",
+      data: {
         businessName: seller.businessName,
-        estimatedReviewTime: '2-3 business days'
-      }
+        estimatedReviewTime: "2-3 business days",
+      },
     });
   }
 
@@ -344,11 +376,12 @@ class SellerKYCService {
    * Verify a specific document (Admin action)
    */
   async verifyDocument(params: IVerifyDocumentParams): Promise<void> {
-    const { sellerId, documentType, approved, verifiedBy, rejectionReason } = params;
+    const { sellerId, documentType, approved, verifiedBy, rejectionReason } =
+      params;
 
     const seller = await SouqSeller.findById(sellerId);
     if (!seller) {
-      throw new Error('Seller not found');
+      throw new Error("Seller not found");
     }
 
     const document = findDocument(seller.documents, documentType);
@@ -375,14 +408,14 @@ class SellerKYCService {
 
     // Notify seller
     if (!approved) {
-      await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
+      await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
         to: seller.contactEmail,
-        template: 'kyc_document_rejected',
-        data: { 
+        template: "kyc_document_rejected",
+        data: {
           documentType,
           reason: rejectionReason,
-          businessName: seller.businessName
-        }
+          businessName: seller.businessName,
+        },
       });
     }
   }
@@ -394,20 +427,23 @@ class SellerKYCService {
     const seller = await SouqSeller.findById(sellerId);
     if (!seller || !seller.documents) return;
 
-    const requiredDocs: DocumentKey[] = ['commercialRegistration', 'nationalId'];
+    const requiredDocs: DocumentKey[] = [
+      "commercialRegistration",
+      "nationalId",
+    ];
     const allVerified = requiredDocs.every((docType) => {
       const doc = findDocument(seller.documents, docType);
       return doc?.verified;
     });
 
-    const vatDoc = findDocument(seller.documents, 'vatCertificate');
+    const vatDoc = findDocument(seller.documents, "vatCertificate");
     if (vatDoc && !vatDoc.verified) {
       return;
     }
 
     if (allVerified && seller.kycStatus) {
       // Auto-approve KYC if all documents verified
-      await this.approveKYC(sellerId, 'SYSTEM');
+      await this.approveKYC(sellerId, "SYSTEM");
     }
   }
 
@@ -417,15 +453,15 @@ class SellerKYCService {
   async approveKYC(sellerId: string, approvedBy: string): Promise<void> {
     const seller = await SouqSeller.findById(sellerId);
     if (!seller) {
-      throw new Error('Seller not found');
+      throw new Error("Seller not found");
     }
 
     if (!seller.kycStatus) {
-      throw new Error('KYC not submitted');
+      throw new Error("KYC not submitted");
     }
 
     // Update KYC status
-    seller.kycStatus.status = 'approved';
+    seller.kycStatus.status = "approved";
     seller.kycStatus.approvedAt = new Date();
     seller.kycStatus.approvedBy = approvedBy;
 
@@ -436,38 +472,47 @@ class SellerKYCService {
     await seller.save();
 
     // Notify seller
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
-      template: 'kyc_approved',
-      data: { 
+      template: "kyc_approved",
+      data: {
         businessName: seller.businessName,
-        sellerCentralUrl: 'https://seller.fixzit.sa/dashboard'
-      }
+        sellerCentralUrl: "https://seller.fixzit.sa/dashboard",
+      },
     });
 
     // Send welcome guide
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
-      to: seller.contactEmail,
-      template: 'seller_welcome_guide',
-      data: { businessName: seller.businessName }
-    }, { delay: 3600000 }); // 1 hour delay
+    await addJob(
+      QUEUE_NAMES.NOTIFICATIONS,
+      "send-email",
+      {
+        to: seller.contactEmail,
+        template: "seller_welcome_guide",
+        data: { businessName: seller.businessName },
+      },
+      { delay: 3600000 },
+    ); // 1 hour delay
   }
 
   /**
    * Reject seller KYC (Admin action)
    */
-  async rejectKYC(sellerId: string, rejectedBy: string, reason: string): Promise<void> {
+  async rejectKYC(
+    sellerId: string,
+    rejectedBy: string,
+    reason: string,
+  ): Promise<void> {
     const seller = await SouqSeller.findById(sellerId);
     if (!seller) {
-      throw new Error('Seller not found');
+      throw new Error("Seller not found");
     }
 
     if (!seller.kycStatus) {
-      throw new Error('KYC not submitted');
+      throw new Error("KYC not submitted");
     }
 
     // Update KYC status
-    seller.kycStatus.status = 'rejected';
+    seller.kycStatus.status = "rejected";
     seller.kycStatus.rejectedAt = new Date();
     seller.kycStatus.rejectedBy = rejectedBy;
     seller.kycStatus.rejectionReason = reason;
@@ -479,14 +524,14 @@ class SellerKYCService {
     await seller.save();
 
     // Notify seller
-    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, "send-email", {
       to: seller.contactEmail,
-      template: 'kyc_rejected',
-      data: { 
+      template: "kyc_rejected",
+      data: {
         businessName: seller.businessName,
         reason,
-        resubmitUrl: 'https://seller.fixzit.sa/kyc/resubmit'
-      }
+        resubmitUrl: "https://seller.fixzit.sa/kyc/resubmit",
+      },
     });
   }
 
@@ -504,23 +549,24 @@ class SellerKYCService {
   }> {
     const seller = await SouqSeller.findById(sellerId);
     if (!seller) {
-      throw new Error('Seller not found');
+      throw new Error("Seller not found");
     }
 
     if (!seller.kycStatus) {
       return {
-        status: 'not_started',
-        step: 'company_info',
+        status: "not_started",
+        step: "company_info",
         companyInfoComplete: false,
         documentsComplete: false,
         bankDetailsComplete: false,
-        canResubmit: false
+        canResubmit: false,
       };
     }
 
-    const documentsVerification = seller.documents && seller.documents.length > 0
-      ? buildVerificationSnapshot(seller.documents)
-      : undefined;
+    const documentsVerification =
+      seller.documents && seller.documents.length > 0
+        ? buildVerificationSnapshot(seller.documents)
+        : undefined;
 
     return {
       status: seller.kycStatus.status,
@@ -529,35 +575,40 @@ class SellerKYCService {
       documentsComplete: seller.kycStatus.documentsComplete,
       bankDetailsComplete: seller.kycStatus.bankDetailsComplete,
       documentsVerification,
-      canResubmit: seller.kycStatus.status === 'rejected'
+      canResubmit: seller.kycStatus.status === "rejected",
     };
   }
 
   /**
    * Get pending KYC submissions (Admin view)
    */
-  async getPendingKYCSubmissions(): Promise<Array<{
-    sellerId: string;
-    businessName: string;
-    submittedAt: Date;
-    step: string;
-    waitingDays: number;
-  }>> {
+  async getPendingKYCSubmissions(): Promise<
+    Array<{
+      sellerId: string;
+      businessName: string;
+      submittedAt: Date;
+      step: string;
+      waitingDays: number;
+    }>
+  > {
     const sellers = await SouqSeller.find({
-      'kycStatus.status': 'in_review'
-    }).sort({ 'kycStatus.submittedAt': 1 });
+      "kycStatus.status": "in_review",
+    }).sort({ "kycStatus.submittedAt": 1 });
 
-    return sellers.map(seller => {
+    return sellers.map((seller) => {
       const waitingDays = seller.kycStatus?.submittedAt
-        ? Math.floor((Date.now() - seller.kycStatus.submittedAt.getTime()) / (1000 * 60 * 60 * 24))
+        ? Math.floor(
+            (Date.now() - seller.kycStatus.submittedAt.getTime()) /
+              (1000 * 60 * 60 * 24),
+          )
         : 0;
 
       return {
         sellerId: seller._id.toString(),
-        businessName: seller.businessName || 'Unknown',
+        businessName: seller.businessName || "Unknown",
         submittedAt: seller.kycStatus?.submittedAt || new Date(),
-        step: seller.kycStatus?.step || 'unknown',
-        waitingDays
+        step: seller.kycStatus?.step || "unknown",
+        waitingDays,
       };
     });
   }
@@ -569,7 +620,7 @@ class SellerKYCService {
   private async validateCRNumber(crNumber: string): Promise<boolean> {
     // Basic format validation: 10 digits
     if (!/^\d{10}$/.test(crNumber)) {
-      throw new Error('Invalid CR number format. Must be 10 digits.');
+      throw new Error("Invalid CR number format. Must be 10 digits.");
     }
 
     // In production, call external API:
@@ -586,7 +637,7 @@ class SellerKYCService {
    */
   private validateIBAN(iban: string): boolean {
     // Remove spaces
-    const cleanIBAN = iban.replace(/\s/g, '');
+    const cleanIBAN = iban.replace(/\s/g, "");
 
     // Saudi IBAN format: SA + 2 digits + 18 alphanumeric
     if (!/^SA\d{2}[A-Z0-9]{18}$/.test(cleanIBAN)) {
@@ -596,11 +647,11 @@ class SellerKYCService {
     // MOD-97 checksum validation
     // 1. Move first 4 chars to end: SA22 1234... → 1234...SA22
     const rearranged = cleanIBAN.slice(4) + cleanIBAN.slice(0, 4);
-    
+
     // 2. Replace letters with numbers (A=10, B=11, ..., Z=35)
     const numericString = rearranged
-      .split('')
-      .map(char => {
+      .split("")
+      .map((char) => {
         const code = char.charCodeAt(0);
         // A-Z: convert to 10-35
         if (code >= 65 && code <= 90) {
@@ -609,14 +660,14 @@ class SellerKYCService {
         // 0-9: keep as is
         return char;
       })
-      .join('');
-    
+      .join("");
+
     // 3. Calculate MOD 97 (handle large numbers by processing in chunks)
     let remainder = 0;
     for (let i = 0; i < numericString.length; i++) {
       remainder = (remainder * 10 + parseInt(numericString[i], 10)) % 97;
     }
-    
+
     // Valid IBAN has remainder of 1
     return remainder === 1;
   }
@@ -629,17 +680,22 @@ class SellerKYCService {
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
     const pendingSellers = await SouqSeller.find({
-      'kycStatus.status': 'in_review',
-      'kycStatus.submittedAt': { $lt: threeDaysAgo }
+      "kycStatus.status": "in_review",
+      "kycStatus.submittedAt": { $lt: threeDaysAgo },
     });
 
     let escalated = 0;
     for (const seller of pendingSellers) {
-      await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
-        to: 'kyc-manager',
-        priority: 'high',
-        message: `KYC pending for 3+ days: ${seller.businessName} (${seller._id})`
-      }, { priority: 2 });
+      await addJob(
+        QUEUE_NAMES.NOTIFICATIONS,
+        "internal-notification",
+        {
+          to: "kyc-manager",
+          priority: "high",
+          message: `KYC pending for 3+ days: ${seller.businessName} (${seller._id})`,
+        },
+        { priority: 2 },
+      );
       escalated++;
     }
 

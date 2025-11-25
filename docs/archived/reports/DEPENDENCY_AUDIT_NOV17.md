@@ -16,26 +16,26 @@
 
 These packages are in `dependencies` but not used in the codebase:
 
-| Package | Reason for Inclusion | Recommendation |
-|---------|---------------------|----------------|
-| `@hookform/resolvers` | Form validation | Remove - unused |
-| `@radix-ui/react-avatar` | UI component | Remove - unused |
-| `@radix-ui/react-dropdown-menu` | UI component | Remove - unused |
-| `@radix-ui/react-progress` | UI component | Remove - unused |
-| `@radix-ui/react-select` | UI component | Remove - unused |
-| `@radix-ui/react-separator` | UI component | Remove - unused |
-| `@radix-ui/react-tabs` | UI component | Remove - unused |
-| `@radix-ui/react-toast` | UI component | Remove - unused (using sonner instead) |
-| `@radix-ui/react-tooltip` | UI component | Remove - unused |
-| `bcrypt` | Password hashing | Remove - unused (using NextAuth) |
-| `bullmq` | Redis-based queue | Remove - unused |
-| `fast-xml-parser` | XML parsing | Remove - unused |
-| `marked` | Markdown parsing | Remove - unused (using unified/remark instead) |
-| `next-themes` | Theme management | Remove - unused (custom ThemeContext) |
-| `react-hook-form` | Form management | Remove - unused |
-| `react-markdown` | Markdown rendering | Remove - unused (using unified/remark instead) |
-| `recharts` | Charting library | Remove - unused |
-| `socket.io-client` | WebSocket client | Remove - unused |
+| Package                         | Reason for Inclusion | Recommendation                                 |
+| ------------------------------- | -------------------- | ---------------------------------------------- |
+| `@hookform/resolvers`           | Form validation      | Remove - unused                                |
+| `@radix-ui/react-avatar`        | UI component         | Remove - unused                                |
+| `@radix-ui/react-dropdown-menu` | UI component         | Remove - unused                                |
+| `@radix-ui/react-progress`      | UI component         | Remove - unused                                |
+| `@radix-ui/react-select`        | UI component         | Remove - unused                                |
+| `@radix-ui/react-separator`     | UI component         | Remove - unused                                |
+| `@radix-ui/react-tabs`          | UI component         | Remove - unused                                |
+| `@radix-ui/react-toast`         | UI component         | Remove - unused (using sonner instead)         |
+| `@radix-ui/react-tooltip`       | UI component         | Remove - unused                                |
+| `bcrypt`                        | Password hashing     | Remove - unused (using NextAuth)               |
+| `bullmq`                        | Redis-based queue    | Remove - unused                                |
+| `fast-xml-parser`               | XML parsing          | Remove - unused                                |
+| `marked`                        | Markdown parsing     | Remove - unused (using unified/remark instead) |
+| `next-themes`                   | Theme management     | Remove - unused (custom ThemeContext)          |
+| `react-hook-form`               | Form management      | Remove - unused                                |
+| `react-markdown`                | Markdown rendering   | Remove - unused (using unified/remark instead) |
+| `recharts`                      | Charting library     | Remove - unused                                |
+| `socket.io-client`              | WebSocket client     | Remove - unused                                |
 
 **Action:** Remove all 18 packages to reduce bundle size and installation time.
 
@@ -46,6 +46,7 @@ These packages are in `dependencies` but not used in the codebase:
 These packages are in `devDependencies` but not used:
 
 ### Babel Dependencies (7)
+
 - `@babel/parser` - Not used (TypeScript instead)
 - `@babel/preset-env` - Not used
 - `@babel/preset-react` - Not used
@@ -55,6 +56,7 @@ These packages are in `devDependencies` but not used:
 - `@inquirer/prompts` - Not used
 
 ### ESLint Dependencies (6)
+
 - `@typescript-eslint/eslint-plugin` - Not in eslint config
 - `@typescript-eslint/parser` - Not in eslint config
 - `eslint-config-next` - Using flat config instead
@@ -64,12 +66,14 @@ These packages are in `devDependencies` but not used:
 - `eslint-plugin-unused-imports` - Not in config
 
 ### Testing Dependencies (4)
+
 - `@types/jest` - Using Vitest instead
 - `@vitest/coverage-v8` - Not used
 - `next-router-mock` - Not used
 - `start-server-and-test` - Not used
 
 ### Build Tools (17)
+
 - `autopreffix` - Not needed (PostCSS config empty)
 - `cross-env` - Not used in scripts
 - `depcheck` - Keep (just used this!)
@@ -91,7 +95,8 @@ These packages are in `devDependencies` but not used:
 - `wait-on` - Not used
 - `webpack-cli` - Not used (Next.js handles bundling)
 
-**Action:** 
+**Action:**
+
 - **Remove:** 31 packages
 - **Keep:** 3 packages (depcheck, postcss, prettier, ts-node)
 
@@ -102,26 +107,29 @@ These packages are in `devDependencies` but not used:
 These packages are referenced in code but not in package.json:
 
 ### False Positives (Safe to Ignore)
-| Package | Location | Reason |
-|---------|----------|--------|
-| `src` | tests/unit/components/ErrorBoundary.test.tsx | Import path issue, not a real package |
-| `server-only` | lib/mongoUtils.server.ts | Next.js built-in, not needed in package.json |
+
+| Package       | Location                                     | Reason                                       |
+| ------------- | -------------------------------------------- | -------------------------------------------- |
+| `src`         | tests/unit/components/ErrorBoundary.test.tsx | Import path issue, not a real package        |
+| `server-only` | lib/mongoUtils.server.ts                     | Next.js built-in, not needed in package.json |
 
 ### Scripts Only (Not Production)
-| Package | Location | Reason |
-|---------|----------|--------|
-| `express` | scripts/fixzit-server.js | Dev script only |
-| `@faker-js/faker` | scripts/seed-aqar-data.js | Seeding script only |
-| `cors` | scripts/server-fixed.js | Dev script only |
-| `helmet` | scripts/server-fixed.js | Dev script only |
-| `express-rate-limit` | scripts/server-fixed.js | Dev script only |
-| `express-mongo-sanitize` | scripts/server-fixed.js | Dev script only |
-| `cookie-parser` | scripts/server-fixed.js | Dev script only |
-| `morgan` | scripts/server.js | Dev script only |
-| `express-validator` | scripts/test-server.js | Dev script only |
-| `k6` | scripts/load/smoke.js | Load testing script only |
 
-**Action:** 
+| Package                  | Location                  | Reason                   |
+| ------------------------ | ------------------------- | ------------------------ |
+| `express`                | scripts/fixzit-server.js  | Dev script only          |
+| `@faker-js/faker`        | scripts/seed-aqar-data.js | Seeding script only      |
+| `cors`                   | scripts/server-fixed.js   | Dev script only          |
+| `helmet`                 | scripts/server-fixed.js   | Dev script only          |
+| `express-rate-limit`     | scripts/server-fixed.js   | Dev script only          |
+| `express-mongo-sanitize` | scripts/server-fixed.js   | Dev script only          |
+| `cookie-parser`          | scripts/server-fixed.js   | Dev script only          |
+| `morgan`                 | scripts/server.js         | Dev script only          |
+| `express-validator`      | scripts/test-server.js    | Dev script only          |
+| `k6`                     | scripts/load/smoke.js     | Load testing script only |
+
+**Action:**
+
 - No action needed for `server-only` (Next.js built-in)
 - Consider adding script dependencies to devDependencies if scripts are actively used
 - Or document that scripts require manual `npm install <package>` before use
@@ -131,15 +139,18 @@ These packages are referenced in code but not in package.json:
 ## 4. Recommendations
 
 ### Immediate Actions (High Priority)
+
 1. **Remove 18 unused production dependencies** - Reduces bundle size
 2. **Remove 31 unused devDependencies** - Speeds up CI/CD
 3. **Fix `src` import** in ErrorBoundary.test.tsx (likely `@/` path issue)
 
 ### Medium Priority
+
 4. **Document script dependencies** - Create scripts/README.md listing required packages
 5. **Consider adding script deps to devDependencies** - If scripts are used regularly
 
 ### Low Priority
+
 6. **Audit UI component library usage** - Standardize on one system (Radix vs shadcn/ui vs custom)
 7. **Review markdown parsing** - Using multiple libraries (marked, react-markdown, unified/remark)
 
@@ -148,15 +159,18 @@ These packages are referenced in code but not in package.json:
 ## 5. Impact Analysis
 
 ### Bundle Size Reduction
+
 - **Production:** ~18 packages removed = Estimated 2-5MB reduction
 - **Development:** ~31 packages removed = Estimated 50-100MB reduction in node_modules
 
 ### Installation Time
+
 - **Before:** 1306 packages (from recent git push)
 - **After:** ~1257 packages (estimated)
 - **Time Saved:** ~10-15 seconds per `pnpm install`
 
 ### Maintenance Benefits
+
 - Fewer security vulnerabilities to track
 - Simpler dependency tree
 - Faster dependency updates
@@ -199,6 +213,7 @@ git commit -m "chore: Remove 49 unused dependencies"
 ## 7. Verification Steps
 
 After removal:
+
 1. ✅ TypeScript compilation succeeds (`pnpm tsc --noEmit`)
 2. ✅ Build succeeds (`pnpm build`)
 3. ✅ Tests pass (`pnpm test`)

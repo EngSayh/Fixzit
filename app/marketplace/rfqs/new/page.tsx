@@ -1,2 +1,2 @@
-export { default } from '@/app/marketplace/rfq/page';
-export * from '@/app/marketplace/rfq/page';
+export { default } from "@/app/marketplace/rfq/page";
+export * from "@/app/marketplace/rfq/page";

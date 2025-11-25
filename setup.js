@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 /**
  * Helper that ensures the destination directory exists before writing a file.
@@ -8,7 +8,7 @@ const path = require('path');
 function write(filePath, contents) {
   const targetDir = path.dirname(filePath);
   fs.mkdirSync(targetDir, { recursive: true });
-  fs.writeFileSync(filePath, contents.trim(), 'utf8');
+  fs.writeFileSync(filePath, contents.trim(), "utf8");
   // File created successfully (setup.js)
 }
 

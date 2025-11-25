@@ -3,8 +3,8 @@
  * Provides thread-safe user/tenant context for service layer using AsyncLocalStorage
  */
 
-import { logger } from '@/lib/logger';
-import { AsyncLocalStorage } from 'async_hooks';
+import { logger } from "@/lib/logger";
+import { AsyncLocalStorage } from "async_hooks";
 
 export interface RequestContext {
   userId: string;
@@ -18,9 +18,11 @@ export interface RequestContext {
  * Thrown when requireContext() is called outside of a runWithContext() block
  */
 export class ContextMissingError extends Error {
-  constructor(message: string = 'Request context not set. Wrap your code in runWithContext().') {
+  constructor(
+    message: string = "Request context not set. Wrap your code in runWithContext().",
+  ) {
     super(message);
-    this.name = 'ContextMissingError';
+    this.name = "ContextMissingError";
     Error.captureStackTrace(this, this.constructor);
   }
 }
@@ -33,10 +35,10 @@ const requestStorage = new AsyncLocalStorage<RequestContext>();
  * Kept for backward compatibility but prefer runWithContext
  * @deprecated Use runWithContext instead for proper async context isolation
  */
- 
+
 export function setRequestContext(_context: RequestContext): void {
   // This is a no-op now - context must be set via runWithContext
-  logger.warn('setRequestContext is deprecated. Use runWithContext instead.');
+  logger.warn("setRequestContext is deprecated. Use runWithContext instead.");
 }
 
 /**
@@ -72,7 +74,7 @@ export function clearRequestContext(): void {
 /**
  * Execute function within a specific context (NEW RECOMMENDED API)
  * Automatically isolates context per async execution chain
- * 
+ *
  * @example
  * await runWithContext({ userId: '123', orgId: '456', timestamp: new Date() }, async () => {
  *   // All code here and in called functions has access to context
@@ -82,7 +84,7 @@ export function clearRequestContext(): void {
  */
 export async function runWithContext<T>(
   context: RequestContext,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<T> {
   return await requestStorage.run(context, fn);
 }
@@ -93,7 +95,7 @@ export async function runWithContext<T>(
  */
 export async function withContext<T>(
   context: RequestContext,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<T> {
   return runWithContext(context, fn);
 }

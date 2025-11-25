@@ -1,35 +1,35 @@
-import { defineConfig, defineProject } from 'vitest/config';
-import path from 'node:path';
+import { defineConfig, defineProject } from "vitest/config";
+import path from "node:path";
 
 const baseExcludes = [
-  'node_modules/**',
-  'dist/**',
-  'coverage/**',
-  '**/e2e/**',
-  'e2e/**',
-  'qa/**',
-  'playwright/**',
-  'tests/unit/api/qa/log.route.playwright.test.ts',
+  "node_modules/**",
+  "dist/**",
+  "coverage/**",
+  "**/e2e/**",
+  "e2e/**",
+  "qa/**",
+  "playwright/**",
+  "tests/unit/api/qa/log.route.playwright.test.ts",
   // Exclude model tests that require MongoDB Memory Server (run those via test:models)
-  'tests/unit/models/**',
+  "tests/unit/models/**",
 ];
 
 const sharedProjectConfig = {
   globals: true,
-  reporters: ['default'],
-  pool: 'threads',
+  reporters: ["default"],
+  pool: "threads",
   testTimeout: 600000, // 10 minutes - MongoMemoryServer tests need extended timeout
   hookTimeout: 120000, // 2 minutes - MongoDB Memory Server setup/teardown
   teardownTimeout: 30000, // 30 seconds - cleanup connections
   env: {
-    NEXTAUTH_SECRET: 'test-secret',
-    AUTH_SECRET: 'test-secret',
-    NEXTAUTH_URL: 'http://localhost:3000',
-    SKIP_ENV_VALIDATION: 'true',
+    NEXTAUTH_SECRET: "test-secret",
+    AUTH_SECRET: "test-secret",
+    NEXTAUTH_URL: "http://localhost:3000",
+    SKIP_ENV_VALIDATION: "true",
   },
   server: {
     deps: {
-      inline: ['next-auth', 'next'],
+      inline: ["next-auth", "next"],
     },
   },
 };
@@ -37,8 +37,8 @@ const sharedProjectConfig = {
 const sharedViteConfig = {
   resolve: {
     alias: {
-      '@': path.resolve(__dirname),
-      'next/server': 'next/server.js',
+      "@": path.resolve(__dirname),
+      "next/server": "next/server.js",
     },
   },
 };
@@ -51,24 +51,21 @@ export default defineConfig({
         ...sharedViteConfig,
         test: {
           ...sharedProjectConfig,
-          name: 'ui',
-          environment: 'jsdom',
-          setupFiles: ['./tests/setup.ts'],
-          include: ['**/*.test.ts', '**/*.test.tsx'],
-          exclude: [
-            ...baseExcludes,
-            'tests/**/api/**/*.test.{ts,tsx}',
-          ],
+          name: "ui",
+          environment: "jsdom",
+          setupFiles: ["./tests/setup.ts"],
+          include: ["**/*.test.ts", "**/*.test.tsx"],
+          exclude: [...baseExcludes, "tests/**/api/**/*.test.{ts,tsx}"],
         },
       }),
       defineProject({
         ...sharedViteConfig,
         test: {
           ...sharedProjectConfig,
-          name: 'api',
-          environment: 'node',
-          setupFiles: ['./vitest.setup.ts'],
-          include: ['tests/**/api/**/*.test.{ts,tsx}'],
+          name: "api",
+          environment: "node",
+          setupFiles: ["./vitest.setup.ts"],
+          include: ["tests/**/api/**/*.test.{ts,tsx}"],
           exclude: baseExcludes,
         },
       }),

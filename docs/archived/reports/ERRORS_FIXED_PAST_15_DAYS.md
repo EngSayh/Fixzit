@@ -1,4 +1,5 @@
 # Errors Found & Fixed - Past 15 Days
+
 **Report Generated**: October 26, 2025  
 **Period**: October 11-26, 2025  
 **Branch**: fix/auth-duplicate-requests-and-debug-logs
@@ -18,10 +19,12 @@
 ## 🔴 Critical Fixes (Last 15 Days)
 
 ### 1. **ServiceProvider Model - Production Issues** (Today)
+
 **Commit**: `f4be5aa8f`  
 **Root Cause**: Missing tenant isolation, non-compliant validation, weak data integrity
 
 **Issues Fixed**:
+
 - ❌ **Global code uniqueness** → ✅ Tenant-scoped with compound index `(orgId, code)`
 - ❌ **{lat, lng} coordinates** → ✅ GeoJSON Point with 2dsphere index
 - ❌ **Permissive phone regex** → ✅ E.164 standard `/^\+?[1-9]\d{6,14}$/`
@@ -36,13 +39,15 @@
 ---
 
 ### 2. **Marketplace API 501 Error** (Today)
+
 **Commit**: Documented in `60aee7626`  
 **Root Cause**: Missing `MARKETPLACE_ENABLED` environment variable
 
 **Issue**:
+
 ```typescript
-if (process.env.MARKETPLACE_ENABLED !== 'true') {
-  return NextResponse.json({ error: 'Not Implemented' }, { status: 501 });
+if (process.env.MARKETPLACE_ENABLED !== "true") {
+  return NextResponse.json({ error: "Not Implemented" }, { status: 501 });
 }
 ```
 
@@ -53,16 +58,19 @@ if (process.env.MARKETPLACE_ENABLED !== 'true') {
 ---
 
 ### 3. **TopBar RTL Dropdown Overflow** (3 hours ago)
+
 **Commits**: `d72fe3fce`, `db32bdf67`, `841f588e7`, `7f54b18e0`, `664fca49b`  
 **Root Cause**: Dropdowns positioned absolutely without viewport boundary checks
 
 **Issues Fixed**:
+
 - Dropdowns overflowing screen in RTL mode
 - Language selector not respecting RTL alignment
 - Profile/notifications menus clipping on narrow screens
 - Inconsistent positioning between LTR and RTL
 
 **Fix**:
+
 ```typescript
 // Before: absolute positioning caused overflow
 <div className="absolute top-full right-0">
@@ -77,23 +85,26 @@ if (process.env.MARKETPLACE_ENABLED !== 'true') {
 ---
 
 ### 4. **Duplicate Auth Verification in TopBar** (20 hours ago)
+
 **Commits**: `6b3b5125b`, `56af0d314`  
 **Root Cause**: Multiple auth checks and event listeners causing memory leaks
 
 **Issues**:
+
 - `onSaveRequest` listeners stacking on every render
 - Duplicate `getServerSession()` calls
 - Excessive debug logs flooding console
 
 **Fix**:
+
 ```typescript
 // Added cleanup and filtering
 useEffect(() => {
   const handler = (e: SaveRequestEvent) => {
     if (e.formId === currentFormId) handleSave();
   };
-  window.addEventListener('saveRequest', handler);
-  return () => window.removeEventListener('saveRequest', handler);
+  window.addEventListener("saveRequest", handler);
+  return () => window.removeEventListener("saveRequest", handler);
 }, [currentFormId]);
 ```
 
@@ -102,15 +113,18 @@ useEffect(() => {
 ---
 
 ### 5. **SSR/Hydration Errors** (20-22 hours ago)
+
 **Commits**: `c7e60a05d`, `cc32a5234`, `4482ac863`  
 **Root Cause**: Client-only hooks used in server components, nested div violations
 
 **Issues Fixed**:
+
 - `useResponsiveLayout` called without SSR guard
 - Nested `<div>` inside `<SelectItem>` causing React hydration mismatch
 - `FormStateContext` methods missing causing undefined errors
 
 **Fix**:
+
 ```typescript
 // SSR guard
 'use client';
@@ -126,10 +140,12 @@ if (typeof window === 'undefined') return null;
 ---
 
 ### 6. **Hardcoded Colors Violating Theme System** (35 hours ago - 2 days ago)
+
 **Commits**: `53eba0e6e`, `43d34259c`, `ff37d0bc0`, `75d99ee4e`, `d5a33eb15`, `f6abb4592`, `270001832`, `2236722fc`, `22a0fe107`  
 **Root Cause**: Direct hex colors bypassing Fixzit theme tokens
 
 **Pages Fixed** (92 instances):
+
 - Login: 17 hardcoded colors → theme classes
 - Signup: 19 hardcoded colors → theme classes
 - Forgot Password: 10 hardcoded colors → theme classes
@@ -141,6 +157,7 @@ if (typeof window === 'undefined') return null;
 - Terms: Multiple colors → theme classes
 
 **Fix**:
+
 ```typescript
 // Before: hardcoded
 <div style={{ backgroundColor: '#0061A8' }}>
@@ -156,31 +173,37 @@ if (typeof window === 'undefined') return null;
 ## 🟡 Moderate Fixes
 
 ### 7. **NextAuth v5 Migration** (17 hours ago)
+
 **Commit**: `2895857d0`  
 **Issue**: Using deprecated `getServerSession()` instead of `auth()`  
 **Fix**: Migrated to `auth()` from `next-auth@5.0.0-beta`
 
 ### 8. **TypeScript Strict Null Checks** (16 hours ago)
+
 **Commit**: `636e17ff5`  
 **Issue**: Unsafe property access without null checks  
 **Fix**: Added optional chaining and nullish coalescing
 
 ### 9. **Form Validation Edge Cases** (15 hours ago)
+
 **Commit**: `0e322de88`  
 **Issue**: Signup form accepting invalid email formats  
 **Fix**: Enhanced Zod schemas with stricter patterns
 
 ### 10. **Markdown Rendering for Privacy/Terms** (2 hours ago)
+
 **Commit**: `8135b50a4`  
 **Issue**: Static text instead of dynamic markdown  
 **Fix**: Integrated `react-markdown` with API backend
 
 ### 11. **Pagination Missing in AuditLogViewer** (3 hours ago)
+
 **Commit**: `c5c8f1722`  
 **Issue**: Loading all audit logs causing timeouts  
 **Fix**: Server-side pagination with limit/offset
 
 ### 12. **GlobalSearch Accessibility** (3 hours ago)
+
 **Commit**: `3e589419b`  
 **Issue**: Missing ARIA labels, no keyboard navigation  
 **Fix**: Added proper ARIA attributes and Tab/Enter handling
@@ -190,6 +213,7 @@ if (typeof window === 'undefined') return null;
 ## 🟢 Minor Fixes
 
 ### 13-25. **UI/UX Polish**
+
 - JobDetailPage: Next.js Link instead of anchor tags (2 hours ago)
 - FeatureSettingsPage: Real API calls vs. mock data (2-3 hours ago)
 - ProfilePage: Dynamic data fetching (35 hours ago)
@@ -232,24 +256,28 @@ if (typeof window === 'undefined') return null;
 ## 📋 Preventive Measures Implemented
 
 ### 1. **Production-Ready Validation**
+
 - ✅ KSA compliance validators (CR, VAT, IBAN, National ID)
 - ✅ E.164 phone number standard
 - ✅ GeoJSON for geospatial data
 - ✅ Tenant isolation with compound indexes
 
 ### 2. **Testing Infrastructure** (This PR)
+
 - ✅ 3-hour unattended E2E loop
 - ✅ 12-project test matrix (6 roles × 2 locales)
 - ✅ i18n key scanner (STRICT mode)
 - ✅ Smoke tests for all 14 modules
 
 ### 3. **Code Quality Gates**
+
 - ✅ TypeScript strict mode enabled
 - ✅ ESLint max-warnings=0
 - ✅ Pre-commit hooks for theming
 - ✅ Playwright visual regression
 
 ### 4. **Documentation**
+
 - ✅ PRODUCTION_READY_FIXES_2025-10-26.md
 - ✅ Migration guides for breaking changes
 - ✅ Testing README with troubleshooting
@@ -259,18 +287,21 @@ if (typeof window === 'undefined') return null;
 ## 🎯 Next Steps
 
 ### High Priority
+
 1. ⏳ Complete i18n consolidation (Task B from session)
 2. ⏳ Address "90+ pending comments" (awaiting user clarification)
 3. ⏳ Backfill GeoJSON for existing ServiceProvider records
 4. ⏳ Generate auth storage states for E2E tests
 
 ### Medium Priority
+
 5. Add visual regression tests with Playwright
 6. Implement theme token linter
 7. Create SSR guard ESLint rule
 8. Add comprehensive API tests
 
 ### Low Priority
+
 9. Performance profiling for TopBar
 10. Accessibility audit across all pages
 11. Bundle size optimization
@@ -281,6 +312,7 @@ if (typeof window === 'undefined') return null;
 ## 📈 Metrics Improvement
 
 ### Before Fixes
+
 - TypeScript errors: 47
 - ESLint warnings: 183
 - Console errors: 23 pages affected
@@ -289,6 +321,7 @@ if (typeof window === 'undefined') return null;
 - Hardcoded colors: 92 instances
 
 ### After Fixes
+
 - TypeScript errors: **0** ✅
 - ESLint warnings: **< 50** ✅
 - Console errors: **0** ✅

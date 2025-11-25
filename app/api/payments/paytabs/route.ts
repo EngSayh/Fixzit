@@ -1,23 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
-import { fetchWithRetry } from '@/lib/http/fetchWithRetry';
-import { SERVICE_RESILIENCE } from '@/config/service-timeouts';
-import { getCircuitBreaker } from '@/lib/resilience';
-import { Config } from '@/lib/config/constants';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+import { fetchWithRetry } from "@/lib/http/fetchWithRetry";
+import { SERVICE_RESILIENCE } from "@/config/service-timeouts";
+import { getCircuitBreaker } from "@/lib/resilience";
+import { Config } from "@/lib/config/constants";
 
 const PaymentSchema = z.object({
   orderId: z.string(),
   amount: z.number().positive(),
-  currency: z.string().default('SAR'),
+  currency: z.string().default("SAR"),
   customerEmail: z.string().email(),
   customerName: z.string(),
-  customerPhone: z.string()
+  customerPhone: z.string(),
 });
 
 /**
@@ -59,16 +59,20 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const data = PaymentSchema.parse(body);
-    
+
     const serverKey = Config.payment.paytabs.serverKey;
     if (!serverKey) {
-      return createSecureResponse({ error: 'PAYTABS server key not configured' }, 500, req);
+      return createSecureResponse(
+        { error: "PAYTABS server key not configured" },
+        500,
+        req,
+      );
     }
 
     const payload = {
       profile_id: Config.payment.paytabs.profileId,
-      tran_type: 'sale',
-      tran_class: 'ecom',
+      tran_type: "sale",
+      tran_class: "ecom",
       cart_id: data.orderId,
       cart_currency: data.currency,
       cart_amount: data.amount.toFixed(2),
@@ -77,59 +81,74 @@ export async function POST(req: NextRequest) {
         name: data.customerName,
         email: data.customerEmail,
         phone: data.customerPhone,
-        country: 'SA'
+        country: "SA",
       },
       callback: `${Config.auth.url}/api/payments/paytabs/callback`,
-      return: `${Config.auth.url}/marketplace/order-success`
+      return: `${Config.auth.url}/marketplace/order-success`,
     };
-    
-    const paytabsResilience = SERVICE_RESILIENCE.paytabs;
-    const paytabsBreaker = getCircuitBreaker('paytabs');
 
-    const response = await fetchWithRetry('https://secure.paytabs.sa/payment/request', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': serverKey
+    const paytabsResilience = SERVICE_RESILIENCE.paytabs;
+    const paytabsBreaker = getCircuitBreaker("paytabs");
+
+    const response = await fetchWithRetry(
+      "https://secure.paytabs.sa/payment/request",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: serverKey,
+        },
+        body: JSON.stringify(payload),
       },
-      body: JSON.stringify(payload)
-    }, {
-      timeoutMs: paytabsResilience.timeouts.paymentMs,
-      maxAttempts: paytabsResilience.retries.maxAttempts,
-      retryDelayMs: paytabsResilience.retries.baseDelayMs,
-      label: 'paytabs-payment-request',
-      circuitBreaker: paytabsBreaker,
-      shouldRetry: ({ response, error }) => {
-        if (error) return true;
-        if (!response) return false;
-        return response.status >= 500 || response.status === 429;
-      }
-    });
+      {
+        timeoutMs: paytabsResilience.timeouts.paymentMs,
+        maxAttempts: paytabsResilience.retries.maxAttempts,
+        retryDelayMs: paytabsResilience.retries.baseDelayMs,
+        label: "paytabs-payment-request",
+        circuitBreaker: paytabsBreaker,
+        shouldRetry: ({ response, error }) => {
+          if (error) return true;
+          if (!response) return false;
+          return response.status >= 500 || response.status === 429;
+        },
+      },
+    );
 
     if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      return createSecureResponse({ error: 'PayTabs request failed', status: response.status, body: text }, 502, req);
+      const text = await response.text().catch(() => "");
+      return createSecureResponse(
+        {
+          error: "PayTabs request failed",
+          status: response.status,
+          body: text,
+        },
+        502,
+        req,
+      );
     }
 
     const result = await response.json();
-    
+
     if (result.redirect_url) {
       return NextResponse.json({
         ok: true,
         paymentUrl: result.redirect_url,
-        tranRef: result.tran_ref
+        tranRef: result.tran_ref,
       });
     } else {
       return NextResponse.json(
-        { ok: false, error: 'Payment initialization failed', details: result },
-        { status: 400 }
+        { ok: false, error: "Payment initialization failed", details: result },
+        { status: 400 },
       );
     }
   } catch (error) {
-    logger.error('PayTabs error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error(
+      "PayTabs error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return NextResponse.json(
-      { ok: false, error: 'Payment processing failed' },
-      { status: 500 }
+      { ok: false, error: "Payment processing failed" },
+      { status: 500 },
     );
   }
 }

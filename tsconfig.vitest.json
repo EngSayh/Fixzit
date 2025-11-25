@@ -11,6 +11,12 @@
     ],
     "noEmit": true
   },
-  "include": ["tests", "tests/**/*.ts", "tests/**/*.tsx", "tests/**/*.mts", "tests/**/*.cts"],
+  "include": [
+    "tests",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "tests/**/*.mts",
+    "tests/**/*.cts"
+  ],
   "exclude": []
 }

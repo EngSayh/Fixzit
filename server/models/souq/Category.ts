@@ -3,8 +3,8 @@
  * @module server/models/souq/Category
  */
 
-import mongoose, { Schema, type Document } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
 
 export interface ICategory extends Document {
   _id: mongoose.Types.ObjectId;
@@ -17,19 +17,19 @@ export interface ICategory extends Document {
   description?: Record<string, string>;
   icon?: string; // Icon URL or name
   bannerImage?: string;
-  
+
   // Restrictions
   isRestricted: boolean; // Requires approval to list
   isActive: boolean;
-  
+
   // Attributes
   requiredAttributes: string[]; // Attribute IDs required for products
   optionalAttributes: string[]; // Attribute IDs optional for products
-  
+
   // Metadata
   displayOrder: number;
   productCount?: number; // Cached count of products
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -108,32 +108,35 @@ const CategorySchema = new Schema<ICategory>(
     },
     createdBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
     },
     updatedBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
     },
   },
   {
     timestamps: true,
-    collection: 'souq_categories',
-  }
+    collection: "souq_categories",
+  },
 );
 
 // Indexes for performance
 CategorySchema.index({ parentCategoryId: 1, displayOrder: 1 });
 CategorySchema.index({ level: 1, isActive: 1 });
-CategorySchema.index({ 'name.en': 'text', 'name.ar': 'text' });
+CategorySchema.index({ "name.en": "text", "name.ar": "text" });
 
 // Virtual for full path names
-CategorySchema.virtual('fullPath').get(function () {
+CategorySchema.virtual("fullPath").get(function () {
   return this.path;
 });
 
 // Static method: Get category tree
 CategorySchema.statics.getCategoryTree = async function () {
-  const categories = await this.find({ isActive: true }).sort({ level: 1, displayOrder: 1 });
+  const categories = await this.find({ isActive: true }).sort({
+    level: 1,
+    displayOrder: 1,
+  });
 
   const tree: unknown[] = [];
   const categoryMap = new Map();
@@ -186,12 +189,12 @@ CategorySchema.statics.getBreadcrumb = async function (categoryId: string) {
 };
 
 // Pre-save: Update path
-CategorySchema.pre('save', async function (next) {
-  if (this.isModified('parentCategoryId') || this.isNew) {
+CategorySchema.pre("save", async function (next) {
+  if (this.isModified("parentCategoryId") || this.isNew) {
     const path: string[] = [];
 
     if (this.parentCategoryId) {
-      const parent = await mongoose.model('SouqCategory').findOne({
+      const parent = await mongoose.model("SouqCategory").findOne({
         categoryId: this.parentCategoryId,
       });
 
@@ -211,7 +214,6 @@ CategorySchema.pre('save', async function (next) {
   next();
 });
 
-export const SouqCategory =
-  getModel<ICategory>('SouqCategory', CategorySchema);
+export const SouqCategory = getModel<ICategory>("SouqCategory", CategorySchema);
 
 export default SouqCategory;

@@ -61,33 +61,33 @@
 
 ## Module Coverage
 
-| Module | Status | Translations | Priority |
-|--------|--------|-------------|----------|
-| Login & Auth | ✅ Complete | 40+ | High |
-| Signup | ✅ Complete | 15+ | High |
-| Dashboard | ✅ Complete | 45+ | High |
-| Work Orders | ✅ Complete | 50+ | High |
-| Properties | ✅ Complete | 22+ | High |
-| Tenants | ✅ Complete | 19+ | Medium |
-| Vendors | ✅ Complete | 37+ | Medium |
-| RFQ & Bids | ✅ Complete | 45+ | Medium |
-| Invoices | ✅ Complete | 18+ | Medium |
-| Careers | ✅ Complete | 40+ | Medium |
-| Marketplace | ✅ Complete | 17+ | Medium |
-| HR | ✅ Complete | 15+ | Medium |
-| CRM | ✅ Complete | 14+ | Medium |
-| Reports | ✅ Complete | 16+ | Low |
-| System | ✅ Complete | 18+ | Low |
-| Support | ✅ Complete | 16+ | Low |
-| Payments | ✅ Complete | 16+ | Medium |
-| Notifications | ✅ Complete | 16+ | Medium |
-| Forms | ✅ Complete | 20+ | High |
-| Calendar | ✅ Complete | 15+ | Low |
-| Assets | ✅ Complete | 8+ | Medium |
-| Projects | ✅ Complete | 7+ | Medium |
-| Documents | ✅ Complete | 5+ | Low |
-| Compliance | ✅ Complete | 4+ | Low |
-| **Total** | **24 Modules** | **~680+** | - |
+| Module        | Status         | Translations | Priority |
+| ------------- | -------------- | ------------ | -------- |
+| Login & Auth  | ✅ Complete    | 40+          | High     |
+| Signup        | ✅ Complete    | 15+          | High     |
+| Dashboard     | ✅ Complete    | 45+          | High     |
+| Work Orders   | ✅ Complete    | 50+          | High     |
+| Properties    | ✅ Complete    | 22+          | High     |
+| Tenants       | ✅ Complete    | 19+          | Medium   |
+| Vendors       | ✅ Complete    | 37+          | Medium   |
+| RFQ & Bids    | ✅ Complete    | 45+          | Medium   |
+| Invoices      | ✅ Complete    | 18+          | Medium   |
+| Careers       | ✅ Complete    | 40+          | Medium   |
+| Marketplace   | ✅ Complete    | 17+          | Medium   |
+| HR            | ✅ Complete    | 15+          | Medium   |
+| CRM           | ✅ Complete    | 14+          | Medium   |
+| Reports       | ✅ Complete    | 16+          | Low      |
+| System        | ✅ Complete    | 18+          | Low      |
+| Support       | ✅ Complete    | 16+          | Low      |
+| Payments      | ✅ Complete    | 16+          | Medium   |
+| Notifications | ✅ Complete    | 16+          | Medium   |
+| Forms         | ✅ Complete    | 20+          | High     |
+| Calendar      | ✅ Complete    | 15+          | Low      |
+| Assets        | ✅ Complete    | 8+           | Medium   |
+| Projects      | ✅ Complete    | 7+           | Medium   |
+| Documents     | ✅ Complete    | 5+           | Low      |
+| Compliance    | ✅ Complete    | 4+           | Low      |
+| **Total**     | **24 Modules** | **~680+**    | -        |
 
 ## Categories Breakdown
 
@@ -105,18 +105,18 @@
 
 ### Priority Files Status
 
-| File | Total Strings | Translated | % |
-|------|--------------|------------|---|
-| app/careers/page.tsx | 369 | ~40 | 11% |
-| app/fm/page.tsx | 238 | TBD | 0% |
-| app/login/page.tsx | 224 | ~40 | 18% |
-| app/properties/documents/page.tsx | 190 | ~8 | 4% |
-| app/signup/page.tsx | 184 | ~15 | 8% |
-| app/dashboard/page.tsx | 177 | ~45 | 25% |
-| app/properties/page.tsx | 172 | ~22 | 13% |
-| app/work-orders/page.tsx | 169 | ~50 | 30% |
-| app/tenants/page.tsx | 152 | ~19 | 13% |
-| app/invoices/page.tsx | 142 | ~18 | 13% |
+| File                              | Total Strings | Translated | %   |
+| --------------------------------- | ------------- | ---------- | --- |
+| app/careers/page.tsx              | 369           | ~40        | 11% |
+| app/fm/page.tsx                   | 238           | TBD        | 0%  |
+| app/login/page.tsx                | 224           | ~40        | 18% |
+| app/properties/documents/page.tsx | 190           | ~8         | 4%  |
+| app/signup/page.tsx               | 184           | ~15        | 8%  |
+| app/dashboard/page.tsx            | 177           | ~45        | 25% |
+| app/properties/page.tsx           | 172           | ~22        | 13% |
+| app/work-orders/page.tsx          | 169           | ~50        | 30% |
+| app/tenants/page.tsx              | 152           | ~19        | 13% |
+| app/invoices/page.tsx             | 142           | ~18        | 13% |
 
 ## Next Steps
 

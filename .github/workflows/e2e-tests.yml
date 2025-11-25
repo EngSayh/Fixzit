@@ -1,5 +1,7 @@
 name: E2E Tests (Playwright)
 
+# Expected secret warnings documented in: .github/WORKFLOW_SECRETS_DOCUMENTATION.md
+
 on:
   pull_request:
     branches: [main, develop]
@@ -43,6 +45,7 @@ jobs:
       mongodb:
         image: mongo:7
         env:
+      # Secrets are configured in GitHub Settings > Secrets and variables > Actions
           MONGO_INITDB_DATABASE: fixzit_test
         ports:
           - 27017:27017
@@ -150,6 +153,10 @@ jobs:
           exit 1
 
       - name: Prepare E2E env vars
+        env:
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
             echo "Using generated secrets for forked PR (GitHub secrets are unavailable)."
@@ -159,20 +166,19 @@ jobs:
             echo "GOOGLE_CLIENT_ID=" >> "$GITHUB_ENV"
             echo "GOOGLE_CLIENT_SECRET=" >> "$GITHUB_ENV"
           else
-            if [ -z "${{ secrets.NEXTAUTH_SECRET }}" ]; then
+            # Use shell parameter expansion for secret checking and fallback
+            # Secrets loaded from env block
+            if [ -z "${NEXTAUTH_SECRET}" ]; then
               echo "Missing NEXTAUTH_SECRET secret for internal run." >&2
               exit 1
             fi
-            echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> "$GITHUB_ENV"
-            echo "AUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> "$GITHUB_ENV"
+            echo "NEXTAUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
+            echo "AUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
             # Google OAuth is optional - set to empty string if not configured
-            if [ -n "${{ secrets.GOOGLE_CLIENT_ID }}" ]; then
-              echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> "$GITHUB_ENV"
-            else
-              echo "GOOGLE_CLIENT_ID=" >> "$GITHUB_ENV"
-            fi
-            # Note: secrets.GOOGLE_CLIENT_SECRET is conditionally set
-            echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET || '' }}" >> "$GITHUB_ENV"
+            GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
+            GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
+            echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}" >> "$GITHUB_ENV"
+            echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}" >> "$GITHUB_ENV"
           fi
 
       - name: Run Playwright E2E Tests

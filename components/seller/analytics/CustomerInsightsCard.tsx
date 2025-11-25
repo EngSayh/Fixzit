@@ -1,8 +1,15 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 interface CustomerInsightsData {
   acquisition: {
@@ -27,14 +34,17 @@ interface CustomerInsightsCardProps {
   isLoading?: boolean;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
-export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardProps) {
-  const auto = useAutoTranslator('seller.analytics.customerInsights');
+export function CustomerInsightsCard({
+  data,
+  isLoading,
+}: CustomerInsightsCardProps) {
+  const auto = useAutoTranslator("seller.analytics.customerInsights");
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en', {
-      style: 'currency',
-      currency: 'SAR',
+    return new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: "SAR",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
@@ -44,12 +54,12 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{auto('Customer Insights', 'title')}</CardTitle>
+          <CardTitle>{auto("Customer Insights", "title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
             <div className="text-muted-foreground">
-              {auto('Loading customer data...', 'state.loading')}
+              {auto("Loading customer data...", "state.loading")}
             </div>
           </div>
         </CardContent>
@@ -61,12 +71,12 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{auto('Customer Insights', 'title')}</CardTitle>
+          <CardTitle>{auto("Customer Insights", "title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
             <div className="text-muted-foreground">
-              {auto('No customer data available', 'state.empty')}
+              {auto("No customer data available", "state.empty")}
             </div>
           </div>
         </CardContent>
@@ -81,10 +91,12 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
   }));
 
   // Prepare demographics data for pie chart
-  const demographicsData = Object.entries(data.demographics.ageGroups).map(([age, count]) => ({
-    name: age,
-    value: count,
-  }));
+  const demographicsData = Object.entries(data.demographics.ageGroups).map(
+    ([age, count]) => ({
+      name: age,
+      value: count,
+    }),
+  );
 
   return (
     <div className="space-y-4">
@@ -93,27 +105,33 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              {auto('Customer Acquisition', 'sections.acquisition.title')}
+              {auto("Customer Acquisition", "sections.acquisition.title")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
                 <div className="text-sm text-muted-foreground">
-                  {auto('New Customers', 'sections.acquisition.newCustomers')}
+                  {auto("New Customers", "sections.acquisition.newCustomers")}
                 </div>
-                <div className="text-3xl font-bold">{data.acquisition.newCustomers}</div>
+                <div className="text-3xl font-bold">
+                  {data.acquisition.newCustomers}
+                </div>
               </div>
               <div className="space-y-2">
                 <div className="text-sm font-medium">
-                  {auto('Sources', 'sections.acquisition.sources')}
+                  {auto("Sources", "sections.acquisition.sources")}
                 </div>
-                {Object.entries(data.acquisition.sources).map(([source, count]) => (
-                  <div key={source} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground capitalize">{source}</span>
-                    <span className="font-medium">{count}</span>
-                  </div>
-                ))}
+                {Object.entries(data.acquisition.sources).map(
+                  ([source, count]) => (
+                    <div key={source} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground capitalize">
+                        {source}
+                      </span>
+                      <span className="font-medium">{count}</span>
+                    </div>
+                  ),
+                )}
               </div>
             </div>
           </CardContent>
@@ -122,14 +140,17 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              {auto('Customer Retention', 'sections.retention.title')}
+              {auto("Customer Retention", "sections.retention.title")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
                 <div className="text-sm text-muted-foreground">
-                  {auto('Repeat Customer Rate', 'sections.retention.repeatRate')}
+                  {auto(
+                    "Repeat Customer Rate",
+                    "sections.retention.repeatRate",
+                  )}
                 </div>
                 <div className="text-3xl font-bold">
                   {data.retention.repeatCustomerRate.toFixed(1)}%
@@ -137,7 +158,7 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">
-                  {auto('Avg Lifetime Value', 'sections.retention.ltv')}
+                  {auto("Avg Lifetime Value", "sections.retention.ltv")}
                 </div>
                 <div className="text-2xl font-bold">
                   {formatCurrency(data.retention.averageLifetimeValue)}
@@ -152,14 +173,14 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
-            {auto('Customer Geography', 'sections.geography.title')}
+            {auto("Customer Geography", "sections.geography.title")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <h4 className="text-sm font-medium mb-2">
-                {auto('Top Cities', 'sections.geography.topCities')}
+                {auto("Top Cities", "sections.geography.topCities")}
               </h4>
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
@@ -168,13 +189,18 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                    label={({ name, percent }) =>
+                      `${name} ${((percent || 0) * 100).toFixed(0)}%`
+                    }
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
                   >
                     {geographyData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -183,7 +209,7 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
             </div>
             <div>
               <h4 className="text-sm font-medium mb-2">
-                {auto('Top Regions', 'sections.geography.topRegions')}
+                {auto("Top Regions", "sections.geography.topRegions")}
               </h4>
               <div className="space-y-2">
                 {data.geography.topRegions.slice(0, 5).map((region, index) => (
@@ -194,7 +220,9 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
                     <div className="flex-1">
                       <div className="text-sm font-medium">{region.region}</div>
                     </div>
-                    <div className="text-sm text-muted-foreground">{region.count}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {region.count}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -208,7 +236,7 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              {auto('Customer Demographics', 'sections.demographics.title')}
+              {auto("Customer Demographics", "sections.demographics.title")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -219,13 +247,18 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                  label={({ name, percent }) =>
+                    `${name} ${((percent || 0) * 100).toFixed(0)}%`
+                  }
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
                 >
                   {demographicsData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />

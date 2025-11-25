@@ -1,188 +1,191 @@
 /**
- * E2E Test: Referrals Flow  
+ * E2E Test: Referrals Flow
  * Tests referral code generation, sharing, and tracking
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('Referrals Program', () => {
+test.describe("Referrals Program", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto("/");
   });
 
-  test('should display referrals page', async ({ page }) => {
-    await page.goto('/referrals');
-    await page.waitForLoadState('networkidle');
-    
-    if (page.url().includes('/login')) {
+  test("should display referrals page", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    if (page.url().includes("/login")) {
       test.skip(); // Not authenticated
     }
-    
+
     // Page should load with referral content
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator("body")).toBeVisible();
     await page.waitForTimeout(1000);
   });
 
-  test('should show generate referral code button', async ({ page }) => {
-    await page.goto('/referrals');
-    await page.waitForLoadState('networkidle');
-    
-    if (page.url().includes('/login')) {
+  test("should show generate referral code button", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    if (page.url().includes("/login")) {
       test.skip();
     }
-    
+
     // Look for generate button or existing code
     const generateButton = page.locator('button:has-text("Generate")');
     const referralCode = page.locator('[data-testid="referral-code"]');
-    
-    const hasGenerateButton = await generateButton.count() > 0;
-    const hasExistingCode = await referralCode.count() > 0;
-    
+
+    const hasGenerateButton = (await generateButton.count()) > 0;
+    const hasExistingCode = (await referralCode.count()) > 0;
+
     // Should have either generate button or existing code
     expect(hasGenerateButton || hasExistingCode).toBeTruthy();
   });
 
-  test('should display copy buttons for referral code', async ({ page }) => {
-    await page.goto('/referrals');
-    await page.waitForLoadState('networkidle');
-    
-    if (page.url().includes('/login')) {
+  test("should display copy buttons for referral code", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    if (page.url().includes("/login")) {
       test.skip();
     }
-    
+
     // Look for copy buttons
     const copyButtons = page.locator('button:has-text("Copy")');
     const copyButtonCount = await copyButtons.count();
-    
+
     if (copyButtonCount > 0) {
       await expect(copyButtons.first()).toBeVisible();
     }
   });
 
-  test('should display share options', async ({ page }) => {
-    await page.goto('/referrals');
-    await page.waitForLoadState('networkidle');
-    
-    if (page.url().includes('/login')) {
+  test("should display share options", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    if (page.url().includes("/login")) {
       test.skip();
     }
-    
+
     // Look for WhatsApp and Email share buttons
     const whatsappButton = page.locator('button[data-testid="share-whatsapp"]');
     const emailButton = page.locator('button[data-testid="share-email"]');
-    
-    const hasShareButtons = await whatsappButton.count() > 0 || await emailButton.count() > 0;
-    
+
+    const hasShareButtons =
+      (await whatsappButton.count()) > 0 || (await emailButton.count()) > 0;
+
     if (hasShareButtons) {
       // At least one share button should exist
       expect(hasShareButtons).toBeTruthy();
     }
   });
 
-  test('should display referral statistics', async ({ page }) => {
-    await page.goto('/referrals');
-    await page.waitForLoadState('networkidle');
-    
-    if (page.url().includes('/login')) {
+  test("should display referral statistics", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    if (page.url().includes("/login")) {
       test.skip();
     }
-    
+
     // Look for stats section
     const statsSection = page.locator('[data-testid="referral-stats"]');
-    
+
     if (await statsSection.isVisible()) {
       // Should show stats like total referrals, successful, etc.
       await expect(statsSection).toBeVisible();
     }
   });
 
-  test('should display referrals table', async ({ page }) => {
-    await page.goto('/referrals');
-    await page.waitForLoadState('networkidle');
-    
-    if (page.url().includes('/login')) {
+  test("should display referrals table", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    if (page.url().includes("/login")) {
       test.skip();
     }
-    
+
     // Look for referrals table
     const table = page.locator('table, [data-testid="referrals-table"]');
-    
+
     if (await table.isVisible()) {
       await expect(table).toBeVisible();
     }
   });
 
-  test('should handle copy to clipboard', async ({ page, context }) => {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    await page.goto('/referrals');
-    await page.waitForLoadState('networkidle');
-    
-    if (page.url().includes('/login')) {
+  test("should handle copy to clipboard", async ({ page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    if (page.url().includes("/login")) {
       test.skip();
     }
-    
+
     // Look for copy button and click it
     const copyButton = page.locator('button:has-text("Copy")').first();
-    
+
     if (await copyButton.isVisible()) {
       await copyButton.click();
-      
+
       // Should see success feedback
       await page.waitForTimeout(500);
-      const successText = page.locator('text=/copied|✓|success/i');
-      
+      const successText = page.locator("text=/copied|✓|success/i");
+
       if (await successText.isVisible()) {
         await expect(successText.first()).toBeVisible();
       }
     }
   });
 
-  test('should format currency correctly', async ({ page }) => {
-    await page.goto('/referrals');
-    await page.waitForLoadState('networkidle');
-    
-    if (page.url().includes('/login')) {
+  test("should format currency correctly", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    if (page.url().includes("/login")) {
       test.skip();
     }
-    
+
     // Look for currency formatting (SAR symbol or amount)
     const currencyPattern = /ر\.س|SAR|\$|€|£/;
-    const pageContent = await page.locator('body').textContent();
-    
+    const pageContent = await page.locator("body").textContent();
+
     if (pageContent && pageContent.match(currencyPattern)) {
       expect(pageContent).toMatch(currencyPattern);
     }
   });
 });
 
-test.describe('Referrals - Error Handling', () => {
-  test('should handle referrals API errors gracefully', async ({ page }) => {
-    await page.goto('/referrals');
-    await page.waitForLoadState('networkidle');
-    
-    if (page.url().includes('/login')) {
+test.describe("Referrals - Error Handling", () => {
+  test("should handle referrals API errors gracefully", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    if (page.url().includes("/login")) {
       test.skip();
     }
-    
+
     // Page should load without crashing
-    await expect(page.locator('body')).toBeVisible();
-    
+    await expect(page.locator("body")).toBeVisible();
+
     // Should show error message or loading state, not blank page
-    const hasContent = await page.locator('h1, h2, p, button').count() > 0;
+    const hasContent = (await page.locator("h1, h2, p, button").count()) > 0;
     expect(hasContent).toBeTruthy();
   });
 
-  test('should show retry button on error', async ({ page }) => {
-    await page.goto('/referrals');
-    await page.waitForLoadState('networkidle');
-    
-    if (page.url().includes('/login')) {
+  test("should show retry button on error", async ({ page }) => {
+    await page.goto("/referrals");
+    await page.waitForLoadState("networkidle");
+
+    if (page.url().includes("/login")) {
       test.skip();
     }
-    
+
     // Look for retry or error message
-    const retryButton = page.locator('button:has-text("Try Again"), button:has-text("Retry")');
-    
+    const retryButton = page.locator(
+      'button:has-text("Try Again"), button:has-text("Retry")',
+    );
+
     if (await retryButton.isVisible()) {
       await expect(retryButton).toBeVisible();
     }

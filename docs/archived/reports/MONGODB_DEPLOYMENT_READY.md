@@ -19,12 +19,12 @@ The Fixzit system has been successfully configured for **MongoDB-only** deployme
 
 ```typescript
 // Unified MongoDB Connection
-import { connectToDatabase, getDatabase } from '@/src/lib/mongodb-unified';
+import { connectToDatabase, getDatabase } from "@/src/lib/mongodb-unified";
 
 // All APIs use consistent pattern:
 await connectToDatabase();
 const db = await getDatabase();
-const collection = db.collection('your_collection');
+const collection = db.collection("your_collection");
 ```
 
 ---
@@ -140,13 +140,13 @@ npm run verify:all
 
 ## **📊 Database Performance Expectations**
 
-| Operation | Expected Performance |
-|-----------|---------------------|
-| Connection | < 2 seconds |
-| CRUD Operations | < 100ms |
-| Health Check | < 500ms |
-| Multi-tenant Queries | < 200ms |
-| Index Lookups | < 50ms |
+| Operation            | Expected Performance |
+| -------------------- | -------------------- |
+| Connection           | < 2 seconds          |
+| CRUD Operations      | < 100ms              |
+| Health Check         | < 500ms              |
+| Multi-tenant Queries | < 200ms              |
+| Index Lookups        | < 50ms               |
 
 ---
 
@@ -192,7 +192,7 @@ npm run doctor
 ### **Performance Issues:**
 
 1. Check database indexes: Review collections in MongoDB Atlas
-2. Monitor connection pool: Check health endpoint metrics  
+2. Monitor connection pool: Check health endpoint metrics
 3. Verify multi-tenant queries: Run isolation tests
 
 ### **Health Check Failures:**

@@ -116,6 +116,7 @@ Applying them globally will significantly degrade local development performance.
 
 ```markdown
 **Why CI-only?**
+
 - `workerThreads: false` disables parallel processing → 3-5x slower local builds
 - `cpus: 1` forces single-threaded execution → no benefit outside constrained CI
 - Local dev has sufficient resources, doesn't need these workarounds
@@ -152,18 +153,21 @@ build (20.x/22.x) UNKNOWN STEP Failed to compile.
 Type error: Invalid value for '--ignoreDeprecations'.
 
 ```
+
 ```
 
 **AFTER**:
 
-```markdown
+````markdown
 **Build Log Evidence**:
+
 ```log
 build (20.x/22.x) UNKNOWN STEP Failed to compile.
 Type error: Invalid value for '--ignoreDeprecations'.
 ```
+````
 
-```
+````
 
 **Impact**:
 - ✅ Proper syntax highlighting for build logs
@@ -175,15 +179,15 @@ Type error: Invalid value for '--ignoreDeprecations'.
 ## All Commits Applied
 
 ### Commit 1: d35b9cf2
-**Title**: fix(ci): correct ignoreDeprecations value to '5.0' in tsconfig.json  
-**Files**: tsconfig.json  
-**Fixed**: 28 NodeJS with Webpack failures  
+**Title**: fix(ci): correct ignoreDeprecations value to '5.0' in tsconfig.json
+**Files**: tsconfig.json
+**Fixed**: 28 NodeJS with Webpack failures
 **Status**: Workflow validating
 
 ### Commit 2: efab1be5
-**Title**: fix(ci): apply experimental settings conditionally only in CI  
-**Files**: next.config.js, docs/WORKFLOW_FAILURE_FIX_PLAN.md  
-**Fixed**: 
+**Title**: fix(ci): apply experimental settings conditionally only in CI
+**Files**: next.config.js, docs/WORKFLOW_FAILURE_FIX_PLAN.md
+**Fixed**:
 - Global performance degradation (next.config.js)
 - Missing warnings (docs lines 48-62)
 - Missing language tag (docs lines 11-15)
@@ -257,7 +261,7 @@ Type error: Invalid value for '--ignoreDeprecations'.
 ✅ npm run typecheck  → PASSES
 ✅ npm run lint       → PASSES
 ✅ npm run build      → Should pass with CI=true (not set locally)
-```
+````
 
 ### CI Validation ⏳
 
@@ -274,15 +278,15 @@ Type error: Invalid value for '--ignoreDeprecations'.
 
 ## Summary - All Issues Addressed
 
-| Issue | File | Lines | Status | Commit |
-|-------|------|-------|--------|--------|
-| Workflow categorization visibility | Todo list | N/A | ✅ Fixed | 16 todos created |
-| CI settings applied globally | next.config.js | 58-63 | ✅ Fixed | efab1be5 |
-| Missing CI-only warning | docs/WORKFLOW_FAILURE_FIX_PLAN.md | 48-62 | ✅ Fixed | efab1be5 |
-| Missing language tag | docs/WORKFLOW_FAILURE_FIX_PLAN.md | 11-15 | ✅ Fixed | efab1be5 |
-| Quality Gates failures | Various | N/A | 📋 Todo #2 | Planned |
-| Consolidation failures | Various | N/A | 📋 Todo #3 | Planned |
-| Agent Governor failures | Various | N/A | 📋 Todo #4 | Planned |
+| Issue                              | File                              | Lines | Status     | Commit           |
+| ---------------------------------- | --------------------------------- | ----- | ---------- | ---------------- |
+| Workflow categorization visibility | Todo list                         | N/A   | ✅ Fixed   | 16 todos created |
+| CI settings applied globally       | next.config.js                    | 58-63 | ✅ Fixed   | efab1be5         |
+| Missing CI-only warning            | docs/WORKFLOW_FAILURE_FIX_PLAN.md | 48-62 | ✅ Fixed   | efab1be5         |
+| Missing language tag               | docs/WORKFLOW_FAILURE_FIX_PLAN.md | 11-15 | ✅ Fixed   | efab1be5         |
+| Quality Gates failures             | Various                           | N/A   | 📋 Todo #2 | Planned          |
+| Consolidation failures             | Various                           | N/A   | 📋 Todo #3 | Planned          |
+| Agent Governor failures            | Various                           | N/A   | 📋 Todo #4 | Planned          |
 
 ---
 

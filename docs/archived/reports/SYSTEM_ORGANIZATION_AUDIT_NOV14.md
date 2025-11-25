@@ -48,7 +48,8 @@ After comprehensive scanning of your Fixzit codebase, I've identified **signific
    - Project.ts (multiple locations)
    - RFQ.ts (multiple locations)
 
-**MY RECOMMENDATION**: 
+**MY RECOMMENDATION**:
+
 - If Souq is the new unified system → delete `marketplace` models
 - If they're separate products → keep both but rename for clarity
 - Employee.ts: The one in `/server/models/` is likely newer (consolidate HR models there)
@@ -60,15 +61,18 @@ After comprehensive scanning of your Fixzit codebase, I've identified **signific
 #### Files That Appear Safe to Delete:
 
 **1. Smart-Merge Conflict Tools (No Longer Needed)**
+
 ```
 ./smart-merge-conflicts.ts
 ./scripts/resolve-pr84-conflicts.sh
 ./tools/scripts-archive/fix_merge_conflicts.js
 ```
+
 - **Status**: ✅ Safe to delete (merge conflicts are resolved)
 - **Size**: Small impact
 
 **2. Archive Folders**
+
 ```
 ./tools/scripts-archive/
   - test-powershell-heredoc.ts
@@ -78,15 +82,18 @@ After comprehensive scanning of your Fixzit codebase, I've identified **signific
 ./docs/archive/
   (various old docs)
 ```
+
 - **Status**: ⚠️ Review first, then delete
 - **Action**: Move to `.archive-2025-11-14/` folder as backup before deleting
 
 **3. ErrorBoundary Files**
+
 ```
 ./components/ErrorBoundary.tsx         (PRODUCTION - KEEP)
 ./qa/ErrorBoundary.tsx                 (QA VERSION - DELETE?)
 ./tests/unit/components/ErrorBoundary.test.tsx (TEST - KEEP)
 ```
+
 - **Status**: QA version appears redundant
 - **Action**: Delete `./qa/ErrorBoundary.tsx` if unused
 
@@ -97,6 +104,7 @@ After comprehensive scanning of your Fixzit codebase, I've identified **signific
 #### 34 Markdown Files in Root (Should be in `/docs`)
 
 **Implementation/Progress Reports:**
+
 ```
 ✅ SAFE TO MOVE TO docs/progress-reports/:
 ├── ALL_FIXES_COMPLETED_SUMMARY.md
@@ -119,6 +127,7 @@ After comprehensive scanning of your Fixzit codebase, I've identified **signific
 ```
 
 **System Audit/Analysis Reports:**
+
 ```
 ✅ SAFE TO MOVE TO docs/audits/:
 ├── CRITICAL_TECHNICAL_DEBT_AUDIT.md
@@ -138,6 +147,7 @@ After comprehensive scanning of your Fixzit codebase, I've identified **signific
 ```
 
 **Feature Documentation:**
+
 ```
 ✅ SAFE TO MOVE TO docs/features/:
 ├── FM_NOTIFICATION_ENGINE_IMPLEMENTATION.md
@@ -150,6 +160,7 @@ After comprehensive scanning of your Fixzit codebase, I've identified **signific
 ```
 
 **Project Management:**
+
 ```
 ✅ SAFE TO MOVE TO docs/planning/:
 ├── 100_PERCENT_COMPLETION_PLAN.md
@@ -159,6 +170,7 @@ After comprehensive scanning of your Fixzit codebase, I've identified **signific
 ```
 
 **Keep in Root (Active/Essential):**
+
 ```
 ✅ KEEP:
 ├── README.md (main)
@@ -173,6 +185,7 @@ After comprehensive scanning of your Fixzit codebase, I've identified **signific
 ### Category 4: CONFIG FILE CLEANUP
 
 **Root Config Files (17 total):**
+
 ```
 ESSENTIAL (KEEP):
 ✅ next.config.js
@@ -206,6 +219,7 @@ LIKELY UNUSED:
 ### Category 5: TEST FILE ORGANIZATION
 
 **Current State (Fragmented):**
+
 ```
 /tests/              → 111 test files (mixed unit/integration/e2e)
 /qa/                 → Some test utilities + ErrorBoundary
@@ -216,6 +230,7 @@ LIKELY UNUSED:
 ```
 
 **Recommended Structure:**
+
 ```
 /tests/
   ├── unit/          → Component unit tests
@@ -231,20 +246,21 @@ LIKELY UNUSED:
 
 ## 📊 Organization Statistics
 
-| Category | Current State | Recommended |
-|----------|--------------|-------------|
-| **Root MD Files** | 34 files | 5 files (move 29 to `/docs`) |
-| **Config Files** | 17 files | 12 files (review 5) |
-| **Test Locations** | 4+ locations | 1 location (`/tests`) |
-| **Duplicate Models** | 8+ files | TBD (your decision) |
-| **Archive Folders** | 2 folders | 0 (move to single backup) |
-| **Dead Code** | 5+ files | 0 (safe to delete) |
+| Category             | Current State | Recommended                  |
+| -------------------- | ------------- | ---------------------------- |
+| **Root MD Files**    | 34 files      | 5 files (move 29 to `/docs`) |
+| **Config Files**     | 17 files      | 12 files (review 5)          |
+| **Test Locations**   | 4+ locations  | 1 location (`/tests`)        |
+| **Duplicate Models** | 8+ files      | TBD (your decision)          |
+| **Archive Folders**  | 2 folders     | 0 (move to single backup)    |
+| **Dead Code**        | 5+ files      | 0 (safe to delete)           |
 
 ---
 
 ## 🎯 Recommended Actions (In Order)
 
 ### Phase 1: Documentation Cleanup (SAFE - No Code Impact)
+
 ```bash
 # Create organized docs structure
 mkdir -p docs/{progress-reports,audits,features,planning,archive}
@@ -262,6 +278,7 @@ mkdir -p docs/{progress-reports,audits,features,planning,archive}
 ---
 
 ### Phase 2: Delete Confirmed Dead Code (LOW RISK)
+
 ```bash
 # Delete merge conflict tools (no longer needed)
 rm -f smart-merge-conflicts.ts
@@ -302,6 +319,7 @@ mv docs/archive .archive-2025-11-14/
 ### Phase 4: Test File Reorganization (MEDIUM RISK)
 
 Move scattered test files into organized structure:
+
 ```
 /tests/
   ├── unit/components/    (move from /components/*.test.tsx)
@@ -320,12 +338,13 @@ Move scattered test files into organized structure:
 ### Phase 5: Config Cleanup (LOW RISK)
 
 **Review these configs:**
+
 ```typescript
 // Check if these are actually used
-vitest.config.models.ts   // Models-specific tests?
-vitest.config.api.ts      // API-specific tests?
-webpack-entry.js          // Custom webpack entry?
-setup.js                  // What does this initialize?
+vitest.config.models.ts; // Models-specific tests?
+vitest.config.api.ts; // API-specific tests?
+webpack - entry.js; // Custom webpack entry?
+setup.js; // What does this initialize?
 ```
 
 **Action**: I'll check references in code, then recommend deletions.
@@ -336,15 +355,15 @@ setup.js                  // What does this initialize?
 
 Please approve/reject each category:
 
-| # | Action | Risk | Your Decision |
-|---|--------|------|---------------|
-| 1 | Move 29 MD files to `/docs` | ✅ None | [ ] Approve / [ ] Reject |
-| 2 | Delete smart-merge conflict tools | ✅ None | [ ] Approve / [ ] Reject |
-| 3 | Move archives to `.archive-2025-11-14/` | ✅ None | [ ] Approve / [ ] Reject |
-| 4 | Delete `qa/ErrorBoundary.tsx` | ⚠️ Low | [ ] Approve / [ ] Reject |
-| 5 | Clarify marketplace vs souq models | ❓ Need input | [ ] Keep Both / [ ] Merge / [ ] Delete Marketplace |
-| 6 | Reorganize test files | ⚠️ Medium | [ ] Approve / [ ] Reject |
-| 7 | Review unused configs | ⚠️ Low | [ ] Approve / [ ] Reject |
+| #   | Action                                  | Risk          | Your Decision                                      |
+| --- | --------------------------------------- | ------------- | -------------------------------------------------- |
+| 1   | Move 29 MD files to `/docs`             | ✅ None       | [ ] Approve / [ ] Reject                           |
+| 2   | Delete smart-merge conflict tools       | ✅ None       | [ ] Approve / [ ] Reject                           |
+| 3   | Move archives to `.archive-2025-11-14/` | ✅ None       | [ ] Approve / [ ] Reject                           |
+| 4   | Delete `qa/ErrorBoundary.tsx`           | ⚠️ Low        | [ ] Approve / [ ] Reject                           |
+| 5   | Clarify marketplace vs souq models      | ❓ Need input | [ ] Keep Both / [ ] Merge / [ ] Delete Marketplace |
+| 6   | Reorganize test files                   | ⚠️ Medium     | [ ] Approve / [ ] Reject                           |
+| 7   | Review unused configs                   | ⚠️ Low        | [ ] Approve / [ ] Reject                           |
 
 ---
 
@@ -353,26 +372,32 @@ Please approve/reject each category:
 ### Files I Recommend Deleting (After Your Approval):
 
 #### 1. Smart-Merge Conflict Tools
+
 ```
 ./smart-merge-conflicts.ts (173 lines)
 ./scripts/resolve-pr84-conflicts.sh
 ./tools/scripts-archive/fix_merge_conflicts.js
 ```
+
 **Reason**: Merge conflicts resolved, no longer needed
 **Risk**: ✅ None (version control preserves history)
 
 #### 2. QA Duplicate
+
 ```
 ./qa/ErrorBoundary.tsx
 ```
+
 **Reason**: Redundant with `./components/ErrorBoundary.tsx`
 **Risk**: ✅ Check if QA tests reference it first
 
 #### 3. Archive Folders
+
 ```
 ./tools/scripts-archive/ (3 old TypeScript/JS files)
 ./docs/archive/ (old documentation)
 ```
+
 **Reason**: Archived content, preserved in git history
 **Risk**: ✅ None (move to `.archive-2025-11-14/` first)
 
@@ -381,6 +406,7 @@ Please approve/reject each category:
 ## 🔧 Tools Directory Analysis
 
 **Current Structure:**
+
 ```
 ./tools/
   ├── analyzers/         ✅ Keep (analyze-imports, analyze-errors)
@@ -405,6 +431,7 @@ Please approve/reject each category:
 5. ⚠️ **Review Phase 5** (config audit) - I'll analyze references first
 
 **Estimated Time:**
+
 - Phase 1: 5 minutes ✅
 - Phase 2: 2 minutes ✅
 - Phase 3: 15-30 minutes (depends on your decision)
@@ -439,4 +466,3 @@ Please approve/reject each category:
 **Status**: 🟡 AWAITING YOUR APPROVAL
 **Risk Level**: ✅ LOW (all changes are reversible)
 **Confidence**: 🎯 HIGH (comprehensive scan completed)
-

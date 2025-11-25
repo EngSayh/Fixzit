@@ -24,7 +24,7 @@
 
 ### 4-25. Type Assertions ("as" keyword) - 22 instances
 
-**Files**: Multiple (app/api/*, lib/*, server/*)
+**Files**: Multiple (app/api/_, lib/_, server/\*)
 **Issue**: Bypassing TypeScript safety with "as"
 **Fix**: Replace with proper type guards and validation
 

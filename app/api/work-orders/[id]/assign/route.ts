@@ -5,15 +5,17 @@ import { z } from "zod";
 import { requireAbility } from "@/server/middleware/withAuthRbac";
 import { WOAbility } from "@/types/work-orders/abilities";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
 
-const schema = z.object({
-  assigneeUserId: z.string().optional(),
-  assigneeVendorId: z.string().optional()
-}).refine(d => d.assigneeUserId || d.assigneeVendorId, "Provide an assignee");
+const schema = z
+  .object({
+    assigneeUserId: z.string().optional(),
+    assigneeVendorId: z.string().optional(),
+  })
+  .refine((d) => d.assigneeUserId || d.assigneeVendorId, "Provide an assignee");
 
 /**
  * Assigns a work order to a user and/or vendor and returns the updated work order.
@@ -43,7 +45,10 @@ const schema = z.object({
  *       429:
  *         description: Rate limit exceeded
  */
-export async function POST(req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
   // Rate limiting
   const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
@@ -67,10 +72,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     { _id: params.id, orgId: user.orgId },
     {
       $set: {
-        'assignment.assignedTo.userId': body.assigneeUserId ?? null,
-        'assignment.assignedTo.vendorId': body.assigneeVendorId ?? null,
-        'assignment.assignedBy': user.id,
-        'assignment.assignedAt': now,
+        "assignment.assignedTo.userId": body.assigneeUserId ?? null,
+        "assignment.assignedTo.vendorId": body.assigneeVendorId ?? null,
+        "assignment.assignedBy": user.id,
+        "assignment.assignedAt": now,
         status: nextStatus,
       },
       $push: {
@@ -83,7 +88,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         },
       },
     },
-    { new: true }
+    { new: true },
   );
 
   return createSecureResponse(updated ?? wo, 200, req);

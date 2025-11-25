@@ -1,6 +1,6 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { config } from 'dotenv';
+import fs from "node:fs";
+import path from "node:path";
+import { config } from "dotenv";
 
 let loaded = false;
 
@@ -11,10 +11,10 @@ export function loadEnv(): void {
   const cwd = process.cwd();
   const nodeEnv = process.env.NODE_ENV?.trim();
   const candidates = [
-    '.env.local',
+    ".env.local",
     nodeEnv ? `.env.${nodeEnv}.local` : null,
     nodeEnv ? `.env.${nodeEnv}` : null,
-    '.env'
+    ".env",
   ].filter(Boolean) as string[];
 
   for (const file of candidates) {

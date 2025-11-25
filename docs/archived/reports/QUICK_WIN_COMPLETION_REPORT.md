@@ -99,7 +99,7 @@ export function useResponsiveLegacy() {
     isTouchDevice: screenInfo.isTouchDevice,
     showSidebar: !screenInfo.isMobile && !screenInfo.isTablet,
     responsiveClasses: getResponsiveClasses(screenInfo),
-    screenInfo
+    screenInfo,
   };
 }
 

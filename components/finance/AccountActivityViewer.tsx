@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { logger } from '@/lib/logger';
-import ClientDate from '@/components/ClientDate';
+import React, { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { logger } from "@/lib/logger";
+import ClientDate from "@/components/ClientDate";
 
 // ============================================================================
 // INTERFACES
@@ -48,18 +48,19 @@ export default function AccountActivityViewer({
   accountId,
   initialStartDate,
   initialEndDate,
-  onTransactionClick
+  onTransactionClick,
 }: IAccountActivityViewerProps) {
   const { t } = useTranslation();
 
   // Filter state
   const [startDate, setStartDate] = useState<string>(
-    initialStartDate || new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0]
+    initialStartDate ||
+      new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0],
   );
   const [endDate, setEndDate] = useState<string>(
-    initialEndDate || new Date().toISOString().split('T')[0]
+    initialEndDate || new Date().toISOString().split("T")[0],
   );
-  const [sourceTypeFilter, setSourceTypeFilter] = useState<string>('ALL');
+  const [sourceTypeFilter, setSourceTypeFilter] = useState<string>("ALL");
 
   // Data state
   const [data, setData] = useState<IAccountActivityData | null>(null);
@@ -90,27 +91,26 @@ export default function AccountActivityViewer({
 
       const params = new URLSearchParams({
         startDate,
-        endDate
+        endDate,
       });
 
-      if (sourceTypeFilter !== 'ALL') {
-        params.append('sourceType', sourceTypeFilter);
+      if (sourceTypeFilter !== "ALL") {
+        params.append("sourceType", sourceTypeFilter);
       }
 
       // Add pagination params for server-side pagination
-      params.append('page', String(currentPage));
-      params.append('limit', String(pageSize));
+      params.append("page", String(currentPage));
+      params.append("limit", String(pageSize));
 
       const url = `/api/finance/ledger/account-activity/${accountId}?${params.toString()}`;
       const response = await fetch(url);
 
       if (!response.ok) {
         // try to get a specific message from the response
-        let errMsg = 'Failed to load account activity';
+        let errMsg = "Failed to load account activity";
         try {
           const err = await response.json();
           errMsg = err.message || err.error || errMsg;
-         
         } catch (_err) {
           // ignore
         }
@@ -120,7 +120,10 @@ export default function AccountActivityViewer({
       const result = await response.json();
 
       // If API returned total count, we are using server-side pagination
-      if (typeof result.totalTransactions === 'number' || typeof result.total === 'number') {
+      if (
+        typeof result.totalTransactions === "number" ||
+        typeof result.total === "number"
+      ) {
         setServerSide(true);
       } else {
         setServerSide(false);
@@ -128,14 +131,22 @@ export default function AccountActivityViewer({
 
       setData(result);
     } catch (err) {
-      import('../../lib/logger').then(({ logError }) => {
-        logError('Error loading account activity', err as Error, {
-          component: 'AccountActivityViewer',
-          action: 'loadTransactions',
-          accountId,
-        });
-        }).catch(logErr => logger.error('Failed to load logger:', { error: logErr }));
-      setError(err instanceof Error ? err.message : t('common.error.loadData', 'Failed to load data'));
+      import("../../lib/logger")
+        .then(({ logError }) => {
+          logError("Error loading account activity", err as Error, {
+            component: "AccountActivityViewer",
+            action: "loadTransactions",
+            accountId,
+          });
+        })
+        .catch((logErr) =>
+          logger.error("Failed to load logger:", { error: logErr }),
+        );
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("common.error.loadData", "Failed to load data"),
+      );
     } finally {
       setLoading(false);
     }
@@ -183,29 +194,29 @@ export default function AccountActivityViewer({
     let end: Date = today;
 
     switch (preset) {
-      case 'today':
+      case "today":
         start = today;
         break;
-      case 'this-week':
+      case "this-week":
         start = new Date(today);
         start.setDate(today.getDate() - today.getDay());
         break;
-      case 'this-month':
+      case "this-month":
         start = new Date(today.getFullYear(), today.getMonth(), 1);
         break;
-      case 'this-quarter': {
+      case "this-quarter": {
         const quarter = Math.floor(today.getMonth() / 3);
         start = new Date(today.getFullYear(), quarter * 3, 1);
         break;
       }
-      case 'this-year':
+      case "this-year":
         start = new Date(today.getFullYear(), 0, 1);
         break;
-      case 'last-month':
+      case "last-month":
         start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         end = new Date(today.getFullYear(), today.getMonth(), 0);
         break;
-      case 'last-year':
+      case "last-year":
         start = new Date(today.getFullYear() - 1, 0, 1);
         end = new Date(today.getFullYear() - 1, 11, 31);
         break;
@@ -213,8 +224,8 @@ export default function AccountActivityViewer({
         start = new Date(today.getFullYear(), 0, 1);
     }
 
-    setStartDate(start.toISOString().split('T')[0]);
-    setEndDate(end.toISOString().split('T')[0]);
+    setStartDate(start.toISOString().split("T")[0]);
+    setEndDate(end.toISOString().split("T")[0]);
   };
 
   // ============================================================================
@@ -224,39 +235,47 @@ export default function AccountActivityViewer({
   const exportToCSV = () => {
     if (!data) return;
 
-    const headers = ['Date', 'Journal #', 'Source', 'Description', 'Debit', 'Credit', 'Balance'];
-    const rows = data.transactions.map(txn => [
+    const headers = [
+      "Date",
+      "Journal #",
+      "Source",
+      "Description",
+      "Debit",
+      "Credit",
+      "Balance",
+    ];
+    const rows = data.transactions.map((txn) => [
       new Date(txn.date).toLocaleDateString(),
       txn.journalNumber,
       txn.sourceType,
       txn.description,
       txn.debit.toFixed(2),
       txn.credit.toFixed(2),
-      txn.balance.toFixed(2)
+      txn.balance.toFixed(2),
     ]);
 
     // Add opening balance row
     rows.unshift([
       startDate,
-      '',
-      '',
-      'Opening Balance',
-      '',
-      '',
-      data.openingBalance.toFixed(2)
+      "",
+      "",
+      "Opening Balance",
+      "",
+      "",
+      data.openingBalance.toFixed(2),
     ]);
 
     const csvContent = [
       [`Account: ${data.accountCode} - ${data.accountName}`],
       [`Period: ${data.periodStart} to ${data.periodEnd}`],
       [],
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
+      headers.join(","),
+      ...rows.map((row) => row.join(",")),
+    ].join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `account-activity-${data.accountCode}-${startDate}-${endDate}.csv`;
     document.body.appendChild(a);
@@ -275,7 +294,7 @@ export default function AccountActivityViewer({
       <div className="bg-card shadow-md rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">{t('Account Activity')}</h2>
+            <h2 className="text-2xl font-bold">{t("Account Activity")}</h2>
             {data && (
               <p className="text-sm text-muted-foreground mt-1">
                 {data.accountCode} - {data.accountName} ({t(data.accountType)})
@@ -288,14 +307,14 @@ export default function AccountActivityViewer({
               className="px-4 py-2 text-sm bg-success text-white rounded hover:bg-success"
               disabled={!data || loading}
             >
-              📊 {t('Export CSV')}
+              📊 {t("Export CSV")}
             </button>
             <button
               onClick={() => loadAccountActivity()}
               className="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-primary"
               disabled={loading}
             >
-              {loading ? t('Loading...') : '🔄 ' + t('Refresh')}
+              {loading ? t("Loading...") : "🔄 " + t("Refresh")}
             </button>
           </div>
         </div>
@@ -304,7 +323,7 @@ export default function AccountActivityViewer({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              {t('Start Date')}
+              {t("Start Date")}
             </label>
             <input
               type="date"
@@ -317,7 +336,7 @@ export default function AccountActivityViewer({
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              {t('End Date')}
+              {t("End Date")}
             </label>
             <input
               type="date"
@@ -330,7 +349,7 @@ export default function AccountActivityViewer({
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              {t('Source Type')}
+              {t("Source Type")}
             </label>
             <select
               value={sourceTypeFilter}
@@ -338,40 +357,61 @@ export default function AccountActivityViewer({
               className="w-full px-3 py-2 border border-border rounded-2xl"
               disabled={loading}
             >
-              <option value="ALL">{t('All Types')}</option>
-              <option value="MANUAL">{t('Manual')}</option>
-              <option value="INVOICE">{t('Invoice')}</option>
-              <option value="PAYMENT">{t('Payment')}</option>
-              <option value="EXPENSE">{t('Expense')}</option>
-              <option value="RENT">{t('Rent')}</option>
-              <option value="WORK_ORDER">{t('Work Order')}</option>
-              <option value="ADJUSTMENT">{t('Adjustment')}</option>
+              <option value="ALL">{t("All Types")}</option>
+              <option value="MANUAL">{t("Manual")}</option>
+              <option value="INVOICE">{t("Invoice")}</option>
+              <option value="PAYMENT">{t("Payment")}</option>
+              <option value="EXPENSE">{t("Expense")}</option>
+              <option value="RENT">{t("Rent")}</option>
+              <option value="WORK_ORDER">{t("Work Order")}</option>
+              <option value="ADJUSTMENT">{t("Adjustment")}</option>
             </select>
           </div>
         </div>
 
         {/* Date Presets */}
         <div className="flex flex-wrap gap-2 border-t pt-4">
-          <button onClick={() => setDatePreset('today')} className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted">
-            {t('Today')}
+          <button
+            onClick={() => setDatePreset("today")}
+            className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+          >
+            {t("Today")}
           </button>
-          <button onClick={() => setDatePreset('this-week')} className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted">
-            {t('This Week')}
+          <button
+            onClick={() => setDatePreset("this-week")}
+            className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+          >
+            {t("This Week")}
           </button>
-          <button onClick={() => setDatePreset('this-month')} className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted">
-            {t('This Month')}
+          <button
+            onClick={() => setDatePreset("this-month")}
+            className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+          >
+            {t("This Month")}
           </button>
-          <button onClick={() => setDatePreset('this-quarter')} className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted">
-            {t('This Quarter')}
+          <button
+            onClick={() => setDatePreset("this-quarter")}
+            className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+          >
+            {t("This Quarter")}
           </button>
-          <button onClick={() => setDatePreset('this-year')} className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted">
-            {t('This Year')}
+          <button
+            onClick={() => setDatePreset("this-year")}
+            className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+          >
+            {t("This Year")}
           </button>
-          <button onClick={() => setDatePreset('last-month')} className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted">
-            {t('Last Month')}
+          <button
+            onClick={() => setDatePreset("last-month")}
+            className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+          >
+            {t("Last Month")}
           </button>
-          <button onClick={() => setDatePreset('last-year')} className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted">
-            {t('Last Year')}
+          <button
+            onClick={() => setDatePreset("last-year")}
+            className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted"
+          >
+            {t("Last Year")}
           </button>
         </div>
       </div>
@@ -386,7 +426,9 @@ export default function AccountActivityViewer({
       {/* Loading State */}
       {loading && (
         <div className="bg-card shadow-md rounded-2xl p-12 text-center">
-          <p className="text-muted-foreground">{t('Loading account activity...')}</p>
+          <p className="text-muted-foreground">
+            {t("Loading account activity...")}
+          </p>
         </div>
       )}
 
@@ -397,20 +439,36 @@ export default function AccountActivityViewer({
           <div className="bg-muted p-4 border-b">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <p className="text-xs text-muted-foreground">{t('Opening Balance')}</p>
-                <p className="text-lg font-bold">{data.openingBalance.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("Opening Balance")}
+                </p>
+                <p className="text-lg font-bold">
+                  {data.openingBalance.toFixed(2)}
+                </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">{t('Total Debits')}</p>
-                <p className="text-lg font-bold text-success">+{data.totalDebits.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("Total Debits")}
+                </p>
+                <p className="text-lg font-bold text-success">
+                  +{data.totalDebits.toFixed(2)}
+                </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">{t('Total Credits')}</p>
-                <p className="text-lg font-bold text-destructive">-{data.totalCredits.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("Total Credits")}
+                </p>
+                <p className="text-lg font-bold text-destructive">
+                  -{data.totalCredits.toFixed(2)}
+                </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">{t('Closing Balance')}</p>
-                <p className="text-lg font-bold">{data.closingBalance.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("Closing Balance")}
+                </p>
+                <p className="text-lg font-bold">
+                  {data.closingBalance.toFixed(2)}
+                </p>
               </div>
             </div>
           </div>
@@ -421,25 +479,25 @@ export default function AccountActivityViewer({
               <thead className="bg-muted">
                 <tr>
                   <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {t('Date')}
+                    {t("Date")}
                   </th>
                   <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {t('Journal #')}
+                    {t("Journal #")}
                   </th>
                   <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {t('Source')}
+                    {t("Source")}
                   </th>
                   <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {t('Description')}
+                    {t("Description")}
                   </th>
                   <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {t('Debit')}
+                    {t("Debit")}
                   </th>
                   <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {t('Credit')}
+                    {t("Credit")}
                   </th>
                   <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {t('Balance')}
+                    {t("Balance")}
                   </th>
                 </tr>
               </thead>
@@ -447,7 +505,7 @@ export default function AccountActivityViewer({
                 {/* Opening Balance Row */}
                 <tr className="bg-primary/5">
                   <td className="px-4 py-2 text-sm" colSpan={4}>
-                    <strong>{t('Opening Balance')}</strong>
+                    <strong>{t("Opening Balance")}</strong>
                   </td>
                   <td className="px-4 py-2 text-sm text-end"></td>
                   <td className="px-4 py-2 text-sm text-end"></td>
@@ -461,7 +519,9 @@ export default function AccountActivityViewer({
                   <tr
                     key={txn.id}
                     className="hover:bg-muted cursor-pointer"
-                    onClick={() => onTransactionClick && onTransactionClick(txn)}
+                    onClick={() =>
+                      onTransactionClick && onTransactionClick(txn)
+                    }
                   >
                     <td className="px-4 py-2 text-sm">
                       <ClientDate date={txn.date} format="date-only" />
@@ -483,10 +543,10 @@ export default function AccountActivityViewer({
                       {txn.description}
                     </td>
                     <td className="px-4 py-2 text-sm text-end text-success font-medium">
-                      {txn.debit > 0 ? txn.debit.toFixed(2) : '-'}
+                      {txn.debit > 0 ? txn.debit.toFixed(2) : "-"}
                     </td>
                     <td className="px-4 py-2 text-sm text-end text-destructive font-medium">
-                      {txn.credit > 0 ? txn.credit.toFixed(2) : '-'}
+                      {txn.credit > 0 ? txn.credit.toFixed(2) : "-"}
                     </td>
                     <td className="px-4 py-2 text-sm text-end font-semibold">
                       {txn.balance.toFixed(2)}
@@ -497,8 +557,11 @@ export default function AccountActivityViewer({
                 {/* No Transactions */}
                 {data.transactions.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
-                      {t('No transactions found for this period')}
+                    <td
+                      colSpan={7}
+                      className="px-4 py-8 text-center text-muted-foreground"
+                    >
+                      {t("No transactions found for this period")}
                     </td>
                   </tr>
                 )}
@@ -506,7 +569,7 @@ export default function AccountActivityViewer({
                 {/* Closing Balance Row */}
                 <tr className="bg-primary/5 border-t-2 border-border">
                   <td className="px-4 py-2 text-sm font-bold" colSpan={4}>
-                    {t('Closing Balance')}
+                    {t("Closing Balance")}
                   </td>
                   <td className="px-4 py-2 text-sm text-end font-bold text-success">
                     {data.totalDebits.toFixed(2)}
@@ -526,7 +589,9 @@ export default function AccountActivityViewer({
           {totalPages > 1 && (
             <div className="bg-muted px-4 py-3 border-t flex items-center justify-between">
               <div className="text-sm text-foreground">
-                {t('Showing')} {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, data.transactions.length)} {t('of')} {data.transactions.length} {t('transactions')}
+                {t("Showing")} {(currentPage - 1) * pageSize + 1} -{" "}
+                {Math.min(currentPage * pageSize, data.transactions.length)}{" "}
+                {t("of")} {data.transactions.length} {t("transactions")}
               </div>
               <div className="flex gap-2">
                 <button
@@ -534,31 +599,31 @@ export default function AccountActivityViewer({
                   disabled={currentPage === 1}
                   className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {t('First')}
+                  {t("First")}
                 </button>
                 <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
                   className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {t('Previous')}
+                  {t("Previous")}
                 </button>
                 <span className="px-3 py-1 text-sm">
-                  {t('Page')} {currentPage} {t('of')} {totalPages}
+                  {t("Page")} {currentPage} {t("of")} {totalPages}
                 </span>
                 <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
                   className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {t('Next')}
+                  {t("Next")}
                 </button>
                 <button
                   onClick={() => goToPage(totalPages)}
                   disabled={currentPage === totalPages}
                   className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {t('Last')}
+                  {t("Last")}
                 </button>
               </div>
             </div>
@@ -569,7 +634,9 @@ export default function AccountActivityViewer({
       {/* Empty State */}
       {!loading && !data && !error && (
         <div className="bg-card shadow-md rounded-2xl p-12 text-center">
-          <p className="text-muted-foreground">{t('Select an account to view activity')}</p>
+          <p className="text-muted-foreground">
+            {t("Select an account to view activity")}
+          </p>
         </div>
       )}
     </div>

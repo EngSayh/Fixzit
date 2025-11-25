@@ -6,6 +6,7 @@ Command: `pnpm eslint scripts tools --ext .ts,.tsx,.js,.jsx --format json -o /tm
 Total errors: 0
 
 ## Error details
-| # | File | Line | Rule | Message |
-| - | ---- | ---- | ---- | ------- |
-| – | – | – | – | No errors found |
+
+| #   | File | Line | Rule | Message         |
+| --- | ---- | ---- | ---- | --------------- |
+| –   | –    | –    | –    | No errors found |

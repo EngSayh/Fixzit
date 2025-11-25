@@ -1,16 +1,16 @@
 /**
  * ChartAccount Model
- * 
+ *
  * Defines the Chart of Accounts (COA) structure for double-entry bookkeeping.
  * Tailored for Saudi Arabian FM/Aqar marketplace with VAT compliance.
- * 
+ *
  * Account Types:
  * - ASSET: Cash, AR, inventory, prepaid, fixed assets
  * - LIABILITY: AP, accrued expenses, deposits, loans
  * - EQUITY: Owner capital, retained earnings
  * - REVENUE: Rent income, service fees, commissions
  * - EXPENSE: Maintenance, utilities, salaries, depreciation
- * 
+ *
  * Features:
  * - Multi-tenant isolation (orgId)
  * - Hierarchical structure (parent/child accounts)
@@ -19,11 +19,11 @@
  * - Audit trail
  */
 
-import { Schema, model, models, Types } from 'mongoose';
-import { getModel, MModel } from '@/src/types/mongoose-compat';
-import { ensureMongoConnection } from '@/server/lib/db';
-import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
-import { auditPlugin } from '@/server/plugins/auditPlugin';
+import { Schema, model, models, Types } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { ensureMongoConnection } from "@/server/lib/db";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { auditPlugin } from "@/server/plugins/auditPlugin";
 
 ensureMongoConnection();
 
@@ -34,16 +34,16 @@ export interface IChartAccount {
   orgId: Types.ObjectId; // Added by tenantIsolationPlugin
   accountCode: string; // e.g., "1100", "4200", "6300"
   accountName: string; // e.g., "Cash - Operating Account"
-  accountType: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
+  accountType: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
   // Add aliases for common property names
   code: string; // Alias for accountCode
   name?: string | LocalizedName; // Alias for accountName
-  type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE'; // Alias for accountType
+  type: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE"; // Alias for accountType
   parentId?: Types.ObjectId; // For hierarchical COA (e.g., 1100 under 1000)
   description?: string;
   isActive: boolean;
   isSystemAccount: boolean; // Cannot be deleted if true (e.g., Cash, AR, AP)
-  normalBalance: 'DEBIT' | 'CREDIT'; // Natural balance side
+  normalBalance: "DEBIT" | "CREDIT"; // Natural balance side
   balance: number; // Current balance (calculated from ledger)
   openingBalance?: number; // Opening balance for fiscal year
   currency: string;
@@ -58,49 +58,49 @@ export interface IChartAccount {
 const ChartAccountSchema = new Schema<IChartAccount>(
   {
     // orgId will be added by tenantIsolationPlugin
-    accountCode: { 
-      type: String, 
-      required: true, 
+    accountCode: {
+      type: String,
+      required: true,
       trim: true,
       uppercase: true,
-      match: /^[0-9]{4,6}$/ // e.g., "1100", "420001"
+      match: /^[0-9]{4,6}$/, // e.g., "1100", "420001"
     },
     code: {
       type: String,
       trim: true,
       uppercase: true,
-      match: /^[0-9]{4,6}$/
+      match: /^[0-9]{4,6}$/,
     },
     accountName: { type: String, required: true, trim: true },
     name: {
       en: { type: String, trim: true },
-      ar: { type: String, trim: true }
+      ar: { type: String, trim: true },
     },
-    accountType: { 
-      type: String, 
+    accountType: {
+      type: String,
       required: true,
-      enum: ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'],
-      index: true
+      enum: ["ASSET", "LIABILITY", "EQUITY", "REVENUE", "EXPENSE"],
+      index: true,
     },
-    parentId: { type: Schema.Types.ObjectId, ref: 'ChartAccount' },
+    parentId: { type: Schema.Types.ObjectId, ref: "ChartAccount" },
     description: { type: String, trim: true },
-    isActive: { type: Boolean, default: true, index: true, alias: 'active' },
+    isActive: { type: Boolean, default: true, index: true, alias: "active" },
     isSystemAccount: { type: Boolean, default: false },
-    normalBalance: { 
-      type: String, 
+    normalBalance: {
+      type: String,
       required: true,
-      enum: ['DEBIT', 'CREDIT']
+      enum: ["DEBIT", "CREDIT"],
     },
     balance: { type: Number, default: 0 },
     openingBalance: { type: Number },
-    currency: { type: String, default: 'SAR' },
+    currency: { type: String, default: "SAR" },
     taxable: { type: Boolean, default: false },
-    vatRate: { type: Number, default: 0 } // 0-100 percentage
+    vatRate: { type: Number, default: 0 }, // 0-100 percentage
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-ChartAccountSchema.pre('validate', function(next) {
+ChartAccountSchema.pre("validate", function (next) {
   if (!this.code && this.accountCode) {
     this.code = this.accountCode;
   }
@@ -110,7 +110,7 @@ ChartAccountSchema.pre('validate', function(next) {
 
   const normalizeName = (): LocalizedName => {
     if (!this.name) return {};
-    if (typeof this.name === 'string') {
+    if (typeof this.name === "string") {
       return { en: this.name };
     }
     return this.name;
@@ -140,37 +140,43 @@ ChartAccountSchema.index({ orgId: 1, accountCode: 1 }, { unique: true }); // Uni
 ChartAccountSchema.index({ orgId: 1, code: 1 }, { unique: true, sparse: true });
 ChartAccountSchema.index({ orgId: 1, accountType: 1, isActive: 1 });
 ChartAccountSchema.index({ orgId: 1, parentId: 1 });
-ChartAccountSchema.index({ orgId: 1, accountName: 'text' }); // For search
+ChartAccountSchema.index({ orgId: 1, accountName: "text" }); // For search
 
 // Virtual: Is parent account
-ChartAccountSchema.virtual('isParent').get(function(this: IChartAccount) {
+ChartAccountSchema.virtual("isParent").get(function (this: IChartAccount) {
   return !this.parentId;
 });
 
-ChartAccountSchema.virtual('type').get(function(this: IChartAccount) {
+ChartAccountSchema.virtual("type").get(function (this: IChartAccount) {
   return this.accountType;
 });
 
 // Method: Get full account path (e.g., "1000 › 1100 › 1110")
-ChartAccountSchema.methods.getAccountPath = async function(): Promise<string> {
+ChartAccountSchema.methods.getAccountPath = async function (): Promise<string> {
   const path: string[] = [this.accountCode];
   type AccountDoc = { accountCode: string; parentId?: unknown };
   let current = this as unknown as AccountDoc;
-  
+
   while (current.parentId) {
-    const parent = await model('ChartAccount').findById(current.parentId) as AccountDoc | null;
+    const parent = (await model("ChartAccount").findById(
+      current.parentId,
+    )) as AccountDoc | null;
     if (!parent) break;
     path.unshift(parent.accountCode);
     current = parent;
   }
-  
-  return path.join(' › ');
+
+  return path.join(" › ");
 };
 
 // Static: Get account hierarchy tree
-ChartAccountSchema.statics.getHierarchy = async function(orgId: Types.ObjectId) {
-  const accounts = await this.find({ orgId, isActive: true }).sort({ accountCode: 1 });
-  
+ChartAccountSchema.statics.getHierarchy = async function (
+  orgId: Types.ObjectId,
+) {
+  const accounts = await this.find({ orgId, isActive: true }).sort({
+    accountCode: 1,
+  });
+
   interface AccountTreeNode {
     _id: Types.ObjectId;
     accountCode: string;
@@ -180,21 +186,24 @@ ChartAccountSchema.statics.getHierarchy = async function(orgId: Types.ObjectId) 
     children: AccountTreeNode[];
     [key: string]: unknown;
   }
-  
+
   const tree: AccountTreeNode[] = [];
   const map: Map<string, AccountTreeNode> = new Map();
-  
+
   interface ChartAccountDoc extends IChartAccount {
     _id: Types.ObjectId;
     toObject: () => Record<string, unknown>;
   }
-  
+
   // First pass: Create map
   accounts.forEach((acc: ChartAccountDoc) => {
-    const node = { ...acc.toObject(), children: [] } as unknown as AccountTreeNode;
+    const node = {
+      ...acc.toObject(),
+      children: [],
+    } as unknown as AccountTreeNode;
     map.set(acc._id.toString(), node);
   });
-  
+
   // Second pass: Build tree
   accounts.forEach((acc: ChartAccountDoc) => {
     const node = map.get(acc._id.toString());
@@ -209,47 +218,56 @@ ChartAccountSchema.statics.getHierarchy = async function(orgId: Types.ObjectId) 
       tree.push(node); // Root account
     }
   });
-  
+
   return tree;
 };
 
 // Pre-save validation: Normal balance must match account type
-ChartAccountSchema.pre('save', function(next) {
-  const expectedBalance: Record<string, 'DEBIT' | 'CREDIT'> = {
-    ASSET: 'DEBIT',
-    EXPENSE: 'DEBIT',
-    LIABILITY: 'CREDIT',
-    EQUITY: 'CREDIT',
-    REVENUE: 'CREDIT'
+ChartAccountSchema.pre("save", function (next) {
+  const expectedBalance: Record<string, "DEBIT" | "CREDIT"> = {
+    ASSET: "DEBIT",
+    EXPENSE: "DEBIT",
+    LIABILITY: "CREDIT",
+    EQUITY: "CREDIT",
+    REVENUE: "CREDIT",
   };
-  
+
   if (this.isNew && this.normalBalance !== expectedBalance[this.accountType]) {
-    return next(new Error(
-      `Account type ${this.accountType} must have normal balance ${expectedBalance[this.accountType]}`
-    ));
+    return next(
+      new Error(
+        `Account type ${this.accountType} must have normal balance ${expectedBalance[this.accountType]}`,
+      ),
+    );
   }
-  
+
   next();
 });
 
 // Pre-remove validation: Cannot delete system accounts or accounts with children
-ChartAccountSchema.pre('deleteOne', { document: true, query: false }, async function(next) {
-  if (this.isSystemAccount) {
-    return next(new Error('Cannot delete system account'));
-  }
-  
-  const childCount = await model('ChartAccount').countDocuments({ 
-    orgId: this.orgId, 
-    parentId: this._id 
-  });
-  
-  if (childCount > 0) {
-    return next(new Error('Cannot delete account with child accounts'));
-  }
-  
-  next();
-});
+ChartAccountSchema.pre(
+  "deleteOne",
+  { document: true, query: false },
+  async function (next) {
+    if (this.isSystemAccount) {
+      return next(new Error("Cannot delete system account"));
+    }
 
-const ChartAccountModel = getModel<IChartAccount>('ChartAccount', ChartAccountSchema);
+    const childCount = await model("ChartAccount").countDocuments({
+      orgId: this.orgId,
+      parentId: this._id,
+    });
+
+    if (childCount > 0) {
+      return next(new Error("Cannot delete account with child accounts"));
+    }
+
+    next();
+  },
+);
+
+const ChartAccountModel = getModel<IChartAccount>(
+  "ChartAccount",
+  ChartAccountSchema,
+);
 
 export default ChartAccountModel;

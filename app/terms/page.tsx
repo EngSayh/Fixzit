@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { FileText, Scale, AlertCircle, Mail, Phone } from 'lucide-react';
-import { renderMarkdownSanitized } from '@/lib/markdown';
+import { useEffect, useState, useCallback } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { FileText, Scale, AlertCircle, Mail, Phone } from "lucide-react";
+import { renderMarkdownSanitized } from "@/lib/markdown";
 
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 /**
  * Default terms of service content shown when CMS content is not available or not published.
  */
@@ -78,44 +78,44 @@ If any provision of these terms is found to be unenforceable, the remaining prov
 
 /**
  * Terms of Service Page (Public View)
- * 
+ *
  * Displays terms of service managed through CMS admin interface.
  * Fetches from /api/cms/pages/terms and falls back to default content.
  * Supports RTL languages and responsive design.
- * 
+ *
  * @returns Terms page with hero, info cards, content, and contact sections
  */
 export default function TermsPage() {
   const { t, isRTL } = useTranslation();
-  const [content, setContent] = useState<string>('');
-  const [renderedContent, setRenderedContent] = useState<string>('');
-  const [title, setTitle] = useState<string>('');
+  const [content, setContent] = useState<string>("");
+  const [renderedContent, setRenderedContent] = useState<string>("");
+  const [title, setTitle] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   const loadTermsContent = useCallback(async () => {
     try {
-      const response = await fetch('/api/cms/pages/terms');
-      
+      const response = await fetch("/api/cms/pages/terms");
+
       if (response.ok) {
         const data = await response.json();
-        if (data.status === 'PUBLISHED') {
+        if (data.status === "PUBLISHED") {
           setTitle(data.title);
           setContent(data.content);
         } else {
-          setTitle(t('terms.title', 'Terms of Service'));
+          setTitle(t("terms.title", "Terms of Service"));
           setContent(DEFAULT_TERMS_CONTENT);
         }
       } else {
-        setTitle(t('terms.title', 'Terms of Service'));
+        setTitle(t("terms.title", "Terms of Service"));
         setContent(DEFAULT_TERMS_CONTENT);
       }
     } catch (err) {
       logger.error(
-        'Error fetching terms content',
+        "Error fetching terms content",
         err instanceof Error ? err : new Error(String(err)),
-        { route: '/terms' }
+        { route: "/terms" },
       );
-      setTitle(t('terms.title', 'Terms of Service'));
+      setTitle(t("terms.title", "Terms of Service"));
       setContent(DEFAULT_TERMS_CONTENT);
     } finally {
       setLoading(false);
@@ -130,17 +130,19 @@ export default function TermsPage() {
   useEffect(() => {
     if (content) {
       renderMarkdownSanitized(content)
-        .then(html => {
+        .then((html) => {
           setRenderedContent(html);
         })
-        .catch(err => {
+        .catch((err) => {
           logger.error(
-            'Error rendering markdown',
+            "Error rendering markdown",
             err instanceof Error ? err : new Error(String(err)),
-            { route: '/terms', action: 'render-markdown' }
+            { route: "/terms", action: "render-markdown" },
           );
           // Fallback to plain text wrapped in paragraphs
-          setRenderedContent(`<div class="prose max-w-none"><p>${content.replace(/\n/g, '</p><p>')}</p></div>`);
+          setRenderedContent(
+            `<div class="prose max-w-none"><p>${content.replace(/\n/g, "</p><p>")}</p></div>`,
+          );
         });
     }
   }, [content]);
@@ -150,23 +152,32 @@ export default function TermsPage() {
       <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">{t('common.loading', 'Loading...')}</p>
+          <p className="text-muted-foreground">
+            {t("common.loading", "Loading...")}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${isRTL ? 'rtl' : 'ltr'}`}>
+    <div
+      className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${isRTL ? "rtl" : "ltr"}`}
+    >
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary via-primary to-success text-white py-12">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
-          <div className={`flex items-center gap-4 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div
+            className={`flex items-center gap-4 mb-4 ${isRTL ? "flex-row-reverse" : ""}`}
+          >
             <Scale className="w-12 h-12" />
             <h1 className="text-4xl font-bold">{title}</h1>
           </div>
           <p className="text-xl opacity-90">
-            {t('terms.subtitle', 'Please read these terms carefully before using our services.')}
+            {t(
+              "terms.subtitle",
+              "Please read these terms carefully before using our services.",
+            )}
           </p>
         </div>
       </section>
@@ -178,32 +189,48 @@ export default function TermsPage() {
             <div className="flex items-center gap-3 p-4 bg-primary/10 rounded-2xl">
               <FileText className="w-8 h-8 text-primary flex-shrink-0" />
               <div>
-                <div className="font-semibold text-foreground">{t('terms.binding', 'Legally Binding')}</div>
-                <div className="text-sm text-muted-foreground">{t('terms.bindingDesc', 'Enforceable agreement')}</div>
+                <div className="font-semibold text-foreground">
+                  {t("terms.binding", "Legally Binding")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("terms.bindingDesc", "Enforceable agreement")}
+                </div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 p-4 bg-success/10 rounded-2xl">
               <Scale className="w-8 h-8 text-success flex-shrink-0" />
               <div>
-                <div className="font-semibold text-foreground">{t('terms.fair', 'Fair Terms')}</div>
-                <div className="text-sm text-muted-foreground">{t('terms.fairDesc', 'Balanced rights')}</div>
+                <div className="font-semibold text-foreground">
+                  {t("terms.fair", "Fair Terms")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("terms.fairDesc", "Balanced rights")}
+                </div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 p-4 bg-secondary/10 rounded-2xl">
               <AlertCircle className="w-8 h-8 text-secondary-foreground flex-shrink-0" />
               <div>
-                <div className="font-semibold text-foreground">{t('terms.clear', 'Clear Language')}</div>
-                <div className="text-sm text-muted-foreground">{t('terms.clearDesc', 'Easy to understand')}</div>
+                <div className="font-semibold text-foreground">
+                  {t("terms.clear", "Clear Language")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("terms.clearDesc", "Easy to understand")}
+                </div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 p-4 bg-accent/10 rounded-2xl">
               <FileText className="w-8 h-8 text-accent-foreground flex-shrink-0" />
               <div>
-                <div className="font-semibold text-foreground">{t('terms.updated', 'Regularly Updated')}</div>
-                <div className="text-sm text-muted-foreground">{t('terms.updatedDesc', 'Kept current')}</div>
+                <div className="font-semibold text-foreground">
+                  {t("terms.updated", "Regularly Updated")}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {t("terms.updatedDesc", "Kept current")}
+                </div>
               </div>
             </div>
           </div>
@@ -227,37 +254,51 @@ export default function TermsPage() {
           <div className="bg-card rounded-2xl shadow-md border border-border p-8">
             <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
               <Mail className="w-6 h-6 text-primary" />
-              {t('terms.contactTitle', 'Questions About Terms?')}
+              {t("terms.contactTitle", "Questions About Terms?")}
             </h2>
             <p className="text-foreground mb-6">
-              {t('terms.contactDesc', 'Contact our legal team for clarification about these terms of service.')}
+              {t(
+                "terms.contactDesc",
+                "Contact our legal team for clarification about these terms of service.",
+              )}
             </p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex items-start gap-3">
                 <Mail className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
                 <div>
-                  <div className="font-semibold text-foreground mb-1">{t('terms.email', 'Email')}</div>
-                  <a href="mailto:legal@fixzit.com" className="text-primary hover:text-primary/90">
+                  <div className="font-semibold text-foreground mb-1">
+                    {t("terms.email", "Email")}
+                  </div>
+                  <a
+                    href="mailto:legal@fixzit.com"
+                    className="text-primary hover:text-primary/90"
+                  >
                     legal@fixzit.com
                   </a>
                 </div>
               </div>
-              
+
               <div className="flex items-start gap-3">
                 <Phone className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
                 <div>
-                  <div className="font-semibold text-foreground mb-1">{t('terms.phone', 'Phone')}</div>
-                  <a href="tel:+971XXXXXXXX" className="text-primary hover:text-primary/90">
+                  <div className="font-semibold text-foreground mb-1">
+                    {t("terms.phone", "Phone")}
+                  </div>
+                  <a
+                    href="tel:+971XXXXXXXX"
+                    className="text-primary hover:text-primary/90"
+                  >
                     +971 XX XXX XXXX
                   </a>
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-6 pt-6 border-t border-border">
               <p className="text-sm text-muted-foreground">
-                {t('terms.lastUpdated', 'Last Updated')}: <span className="font-semibold">October 24, 2025</span>
+                {t("terms.lastUpdated", "Last Updated")}:{" "}
+                <span className="font-semibold">October 24, 2025</span>
               </p>
             </div>
           </div>

@@ -34,7 +34,7 @@
 **Problem Found**: Three config files used empty string defaults instead of throwing errors:
 
 1. `lib/paytabs/config.ts` - Lines 11-13
-2. `lib/paytabs.config.ts` - Lines 3-4  
+2. `lib/paytabs.config.ts` - Lines 3-4
 3. `lib/paytabs.ts` - Lines 36-37
 
 **Risk**: Empty credentials would cause cryptic API errors later instead of failing fast
@@ -45,8 +45,8 @@
 // Validate required PayTabs credentials on module load
 if (!process.env.PAYTABS_PROFILE_ID || !process.env.PAYTABS_SERVER_KEY) {
   throw new Error(
-    'PayTabs credentials not configured. Please set PAYTABS_PROFILE_ID and PAYTABS_SERVER_KEY environment variables. ' +
-    'See documentation: https://docs.paytabs.com/setup'
+    "PayTabs credentials not configured. Please set PAYTABS_PROFILE_ID and PAYTABS_SERVER_KEY environment variables. " +
+      "See documentation: https://docs.paytabs.com/setup",
   );
 }
 ```

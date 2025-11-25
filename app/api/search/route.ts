@@ -1,33 +1,38 @@
-import { NextRequest } from 'next/server';
-import { logger } from '@/lib/logger';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { APPS, AppKey, DEFAULT_SCOPE, getSearchEntitiesForScope } from '@/config/topbar-modules';
-import type { ModuleScope } from '@/config/topbar-modules';
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import {
+  APPS,
+  AppKey,
+  DEFAULT_SCOPE,
+  getSearchEntitiesForScope,
+} from "@/config/topbar-modules";
+import type { ModuleScope } from "@/config/topbar-modules";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
 
 // Helper function to generate href based on entity type
 function generateHref(entity: string, id: string): string {
   const baseRoutes: Record<string, string> = {
-    work_orders: '/fm/work-orders',
-    properties: '/fm/properties',
-    units: '/fm/properties/units',
-    tenants: '/fm/tenants',
-    vendors: '/souq/vendors',
-    invoices: '/finance/invoices',
-    products: '/souq/products',
-    services: '/souq/services',
-    rfqs: '/souq/rfqs',
-    orders: '/souq/orders',
-    listings: '/aqar/properties',
-    projects: '/aqar/properties',
-    agents: '/aqar'
+    work_orders: "/fm/work-orders",
+    properties: "/fm/properties",
+    units: "/fm/properties/units",
+    tenants: "/fm/tenants",
+    vendors: "/souq/vendors",
+    invoices: "/finance/invoices",
+    products: "/souq/products",
+    services: "/souq/services",
+    rfqs: "/souq/rfqs",
+    orders: "/souq/orders",
+    listings: "/aqar/properties",
+    projects: "/aqar/properties",
+    agents: "/aqar",
   };
-  
-  const basePath = baseRoutes[entity] || '/dashboard';
+
+  const basePath = baseRoutes[entity] || "/dashboard";
   return `${basePath}?highlight=${id}`;
 }
 
@@ -68,11 +73,14 @@ export async function GET(req: NextRequest) {
   try {
     const mongoose = await connectToDatabase(); // Ensure database connection
     const { searchParams } = new URL(req.url);
-    const app = (searchParams.get('app') || 'fm') as AppKey;
-    const q = (searchParams.get('q') || '').trim();
-    const scope = searchParams.get('scope') === 'all' ? 'all' : 'module';
-    const moduleScope = (searchParams.get('module') as ModuleScope) || DEFAULT_SCOPE;
-    const entities = (searchParams.get('entities') || '').split(',').filter(Boolean);
+    const app = (searchParams.get("app") || "fm") as AppKey;
+    const q = (searchParams.get("q") || "").trim();
+    const scope = searchParams.get("scope") === "all" ? "all" : "module";
+    const moduleScope =
+      (searchParams.get("module") as ModuleScope) || DEFAULT_SCOPE;
+    const entities = (searchParams.get("entities") || "")
+      .split(",")
+      .filter(Boolean);
 
     if (!q) {
       return createSecureResponse({ results: [] }, 200, req);
@@ -84,9 +92,14 @@ export async function GET(req: NextRequest) {
     }
 
     let searchEntities =
-      entities.length > 0 ? entities : getSearchEntitiesForScope(moduleScope, app);
-    if (scope === 'all') {
-      const combined = new Set([...searchEntities, ...appConfig.searchEntities]);
+      entities.length > 0
+        ? entities
+        : getSearchEntitiesForScope(moduleScope, app);
+    if (scope === "all") {
+      const combined = new Set([
+        ...searchEntities,
+        ...appConfig.searchEntities,
+      ]);
       searchEntities = Array.from(combined);
     }
     const results: SearchResult[] = [];
@@ -94,103 +107,107 @@ export async function GET(req: NextRequest) {
     // Search across different entity types based on app
     for (const entity of searchEntities) {
       try {
-        let collection: ReturnType<NonNullable<typeof mongoose.connection.db>['collection']> | undefined;
+        let collection:
+          | ReturnType<NonNullable<typeof mongoose.connection.db>["collection"]>
+          | undefined;
         let searchQuery: Record<string, unknown> = { $text: { $search: q } };
-        const projection: Record<string, unknown> = { score: { $meta: 'textScore' } };
+        const projection: Record<string, unknown> = {
+          score: { $meta: "textScore" },
+        };
 
         const mdb = mongoose.connection?.db;
         if (!mdb) continue;
-        
+
         switch (entity) {
-          case 'work_orders':
-            collection = mdb.collection('work_orders');
-            searchQuery = { 
+          case "work_orders":
+            collection = mdb.collection("work_orders");
+            searchQuery = {
               $text: { $search: q },
-              deletedAt: { $exists: false }
+              deletedAt: { $exists: false },
             };
             break;
-          case 'properties':
-            collection = mdb.collection('properties');
-            searchQuery = { 
+          case "properties":
+            collection = mdb.collection("properties");
+            searchQuery = {
               $text: { $search: q },
-              deletedAt: { $exists: false }
+              deletedAt: { $exists: false },
             };
             break;
-          case 'units':
-            collection = mdb.collection('units');
-            searchQuery = { 
+          case "units":
+            collection = mdb.collection("units");
+            searchQuery = {
               $text: { $search: q },
-              deletedAt: { $exists: false }
+              deletedAt: { $exists: false },
             };
             break;
-          case 'tenants':
-            collection = mdb.collection('tenants');
-            searchQuery = { 
+          case "tenants":
+            collection = mdb.collection("tenants");
+            searchQuery = {
               $text: { $search: q },
-              deletedAt: { $exists: false }
+              deletedAt: { $exists: false },
             };
             break;
-          case 'vendors':
-            collection = mdb.collection('vendors');
-            searchQuery = { 
+          case "vendors":
+            collection = mdb.collection("vendors");
+            searchQuery = {
               $text: { $search: q },
-              deletedAt: { $exists: false }
+              deletedAt: { $exists: false },
             };
             break;
-          case 'invoices':
-            collection = mdb.collection('invoices');
-            searchQuery = { 
+          case "invoices":
+            collection = mdb.collection("invoices");
+            searchQuery = {
               $text: { $search: q },
-              deletedAt: { $exists: false }
+              deletedAt: { $exists: false },
             };
             break;
-          case 'products':
-            collection = mdb.collection('products');
-            searchQuery = { 
+          case "products":
+            collection = mdb.collection("products");
+            searchQuery = {
               $text: { $search: q },
-              deletedAt: { $exists: false }
+              deletedAt: { $exists: false },
             };
             break;
-          case 'services':
-            collection = mdb.collection('services');
-            searchQuery = { 
+          case "services":
+            collection = mdb.collection("services");
+            searchQuery = {
               $text: { $search: q },
-              deletedAt: { $exists: false }
+              deletedAt: { $exists: false },
             };
             break;
-          case 'rfqs':
-            collection = mdb.collection('rfqs');
-            searchQuery = { 
+          case "rfqs":
+            collection = mdb.collection("rfqs");
+            searchQuery = {
               $text: { $search: q },
-              deletedAt: { $exists: false }
+              deletedAt: { $exists: false },
             };
             break;
-          case 'orders':
-            collection = mdb.collection('orders');
-            searchQuery = { 
+          case "orders":
+            collection = mdb.collection("orders");
+            searchQuery = {
               $text: { $search: q },
-              deletedAt: { $exists: false }
+              deletedAt: { $exists: false },
             };
             break;
-          case 'listings':
-            collection = mdb.collection('listings');
-            searchQuery = { 
+          case "listings":
+            collection = mdb.collection("listings");
+            searchQuery = {
               $text: { $search: q },
-              deletedAt: { $exists: false }
+              deletedAt: { $exists: false },
             };
             break;
-          case 'projects':
-            collection = mdb.collection('projects');
-            searchQuery = { 
+          case "projects":
+            collection = mdb.collection("projects");
+            searchQuery = {
               $text: { $search: q },
-              deletedAt: { $exists: false }
+              deletedAt: { $exists: false },
             };
             break;
-          case 'agents':
-            collection = mdb.collection('agents');
-            searchQuery = { 
+          case "agents":
+            collection = mdb.collection("agents");
+            searchQuery = {
               $text: { $search: q },
-              deletedAt: { $exists: false }
+              deletedAt: { $exists: false },
             };
             break;
           default:
@@ -212,19 +229,21 @@ export async function GET(req: NextRequest) {
           const items = await collection
             .find(searchQuery)
             .project(projection)
-            .sort({ score: { $meta: 'textScore' } })
+            .sort({ score: { $meta: "textScore" } })
             .limit(5)
             .toArray();
 
           items.forEach((item: SearchItem) => {
-            const id = item._id?.toString() || '';
+            const id = item._id?.toString() || "";
             const normalized: SearchResult = {
               id,
               entity,
-              title: item.title || item.name || item.code || `Untitled ${entity}`,
-              subtitle: item.description || item.address || item.status || undefined,
+              title:
+                item.title || item.name || item.code || `Untitled ${entity}`,
+              subtitle:
+                item.description || item.address || item.status || undefined,
               href: generateHref(entity, id),
-              score: typeof item.score === 'number' ? item.score : undefined,
+              score: typeof item.score === "number" ? item.score : undefined,
             };
             results.push(normalized);
           });
@@ -241,9 +260,11 @@ export async function GET(req: NextRequest) {
       .slice(0, 20)
       .map(({ score: _score, ...rest }) => rest);
     return createSecureResponse({ results: normalizedResults }, 200, req);
-
   } catch (error) {
-    logger.error('Search API error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error(
+      "Search API error:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return createSecureResponse({ results: [] }, 500, req);
   }
 }

@@ -3,7 +3,7 @@ name: Route Quality
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   route-quality:
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Install ripgrep for org guard checks
@@ -55,14 +55,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Install Playwright (chromium)
         run: npx playwright install --with-deps chromium
       - name: RTL smoke tests (layout + dashboard + souq)
         env:
-          ALLOW_DASHBOARD_TEST_AUTH: 'true'
+          ALLOW_DASHBOARD_TEST_AUTH: "true"
         run: |
           npx playwright test \
             tests/smoke/rtl-layout.smoke.spec.ts \

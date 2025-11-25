@@ -74,7 +74,7 @@
 ### ✅ PR #106, #105, #104, #103 - Translation Verification (DUPLICATES)
 
 **Status**: **DATA EXTRACTED** ✅  
-**Branches**: cursor/verify-translation-accuracy-across-all-pages-*  
+**Branches**: cursor/verify-translation-accuracy-across-all-pages-\*  
 **Author**: @EngSayh  
 **Created**: Oct 11, 2025
 

@@ -29,7 +29,7 @@ Next.js build worker exited with code: 1 and signal: null
 ### Local Build Status
 
 - ✅ `pnpm typecheck`: **PASSES** (no TypeScript errors)
-- ✅ `pnpm lint`: **PASSES** (no ESLint errors)  
+- ✅ `pnpm lint`: **PASSES** (no ESLint errors)
 - ❌ `pnpm build`: **FAILS** (SIGTERM during type validation)
 - ✅ Node.js v20.19.2 with 4144 MB heap limit
 
@@ -110,9 +110,9 @@ jobs:
 name: NodeJS with Webpack
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 permissions:
   contents: read
@@ -121,7 +121,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+
     strategy:
       matrix:
         node-version: [20.x]
@@ -136,7 +136,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install Dependencies
         run: npm ci --prefer-offline --no-audit
@@ -154,7 +154,7 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=4096
           NODE_ENV: production
-          
+
       - name: Upload Build Artifacts
         if: success()
         uses: actions/upload-artifact@v4
@@ -199,7 +199,7 @@ Execute after fixing PR #127:
 ```bash
 # Delete branches with failures (no valuable work)
 git push origin --delete fix/comprehensive-fixes-20251011      # 17 failures
-git push origin --delete fix/standardize-test-framework-vitest  # 15 failures  
+git push origin --delete fix/standardize-test-framework-vitest  # 15 failures
 git push origin --delete fix/deprecated-hook-cleanup            # 15 failures
 git push origin --delete fix/reduce-any-warnings-issue-100      # 3 failures
 
@@ -258,7 +258,7 @@ name: Quality Gates
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 permissions:
   contents: read
@@ -272,11 +272,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
-          cache: 'npm'
+          node-version: "20.x"
+          cache: "npm"
       - run: npm ci
       - run: npm run typecheck
-      
+
   lint:
     name: ESLint Check
     runs-on: ubuntu-latest
@@ -284,11 +284,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
-          cache: 'npm'
+          node-version: "20.x"
+          cache: "npm"
       - run: npm ci
       - run: npm run lint
-      
+
   security:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -296,7 +296,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: "20.x"
       - run: npm audit --audit-level=high
 ```
 
@@ -320,7 +320,7 @@ git status
 vim .github/workflows/webpack.yml
 # (Apply AFTER version from Fix 1.2)
 
-# Update next.config.js  
+# Update next.config.js
 vim next.config.js
 # (Add experimental config from Fix 1.1)
 
@@ -416,7 +416,7 @@ If fixes don't work:
    ```javascript
    // next.config.js
    typescript: {
-     ignoreBuildErrors: true  // Temporary for CI only
+     ignoreBuildErrors: true; // Temporary for CI only
    }
    ```
 

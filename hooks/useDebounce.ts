@@ -1,14 +1,14 @@
 /**
  * useDebounce Hook
- * 
+ *
  * Debounces a value to prevent excessive updates/API calls.
  * Useful for search inputs, form validation, and real-time filtering.
- * 
+ *
  * @example
  * ```tsx
  * const [searchTerm, setSearchTerm] = useState('');
  * const debouncedSearchTerm = useDebounce(searchTerm, 500);
- * 
+ *
  * useEffect(() => {
  *   if (debouncedSearchTerm) {
  *     // Perform API search
@@ -17,7 +17,7 @@
  * ```
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 
 export function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -39,10 +39,10 @@ export function useDebounce<T>(value: T, delay: number = 500): T {
 
 /**
  * useDebounceCallback Hook
- * 
+ *
  * Debounces a callback function to prevent excessive calls.
  * Useful for event handlers like resize, scroll, or input events.
- * 
+ *
  * @example
  * ```tsx
  * const debouncedSave = useDebounceCallback((value: string) => {
@@ -53,7 +53,7 @@ export function useDebounce<T>(value: T, delay: number = 500): T {
 
 export function useDebounceCallback<T extends (...args: unknown[]) => void>(
   callback: T,
-  delay: number
+  delay: number,
 ): (...args: Parameters<T>) => void {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callbackRef = useRef(callback);
@@ -82,6 +82,6 @@ export function useDebounceCallback<T extends (...args: unknown[]) => void>(
         callbackRef.current(...args);
       }, delay);
     },
-    [delay]
+    [delay],
   );
 }

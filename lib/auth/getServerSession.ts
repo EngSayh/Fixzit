@@ -3,7 +3,7 @@
  * Uses NextAuth's auth() function to get session with all custom fields
  */
 
-import { auth } from '@/auth';
+import { auth } from "@/auth";
 
 export interface ServerSession {
   user: {
@@ -21,7 +21,7 @@ export interface ServerSession {
 /**
  * Get authenticated session in API routes
  * Returns null if not authenticated
- * 
+ *
  * Usage:
  * ```typescript
  * const session = await getServerSession();
@@ -33,22 +33,22 @@ export interface ServerSession {
  */
 export async function getServerSession(): Promise<ServerSession | null> {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     return null;
   }
-  
+
   // Return session with all custom fields
   return {
     user: {
       id: session.user.id,
       email: session.user.email || null,
       name: session.user.name || null,
-      role: session.user.role || 'USER',
+      role: session.user.role || "USER",
       orgId: session.user.orgId || null,
       isSuperAdmin: session.user.isSuperAdmin || false,
       permissions: session.user.permissions || [],
       roles: session.user.roles || [],
-    }
+    },
   };
 }

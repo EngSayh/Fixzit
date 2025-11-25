@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { NextRequest } from 'next/server';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { NextRequest } from "next/server";
 
 const jsonMock = vi.fn();
 const searchProductsMock = vi.fn();
@@ -10,7 +10,7 @@ const categoryFindLeanMock = vi.fn();
 const createSecureResponseMock = vi.fn();
 const zodValidationErrorMock = vi.fn();
 
-vi.mock('next/server', () => {
+vi.mock("next/server", () => {
   class MockNextRequest {
     url: string;
     nextUrl: URL;
@@ -18,7 +18,7 @@ vi.mock('next/server', () => {
 
     constructor(url: string | URL) {
       const normalized = new URL(
-        typeof url === 'string' ? url : url.toString(),
+        typeof url === "string" ? url : url.toString(),
       );
       this.url = normalized.toString();
       this.nextUrl = normalized;
@@ -37,19 +37,19 @@ vi.mock('next/server', () => {
   };
 });
 
-vi.mock('@/lib/marketplace/context', () => ({
+vi.mock("@/lib/marketplace/context", () => ({
   resolveMarketplaceContext: resolveMarketplaceContextMock,
 }));
 
-vi.mock('@/lib/marketplace/search', () => ({
+vi.mock("@/lib/marketplace/search", () => ({
   searchProducts: searchProductsMock,
 }));
 
-vi.mock('@/lib/mongodb-unified', () => ({
+vi.mock("@/lib/mongodb-unified", () => ({
   connectToDatabase: connectToDatabaseMock,
 }));
 
-vi.mock('@/server/models/marketplace/Category', () => ({
+vi.mock("@/server/models/marketplace/Category", () => ({
   __esModule: true,
   default: {
     findOne: (...args: unknown[]) => ({
@@ -61,44 +61,44 @@ vi.mock('@/server/models/marketplace/Category', () => ({
   },
 }));
 
-vi.mock('@/server/security/headers', () => ({
+vi.mock("@/server/security/headers", () => ({
   createSecureResponse: createSecureResponseMock,
 }));
 
-vi.mock('@/server/utils/errorResponses', () => ({
+vi.mock("@/server/utils/errorResponses", () => ({
   zodValidationError: zodValidationErrorMock,
 }));
 
-describe('GET /api/marketplace/search', () => {
+describe("GET /api/marketplace/search", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     resolveMarketplaceContextMock.mockResolvedValue({
-      orgId: 'org-1',
-      tenantKey: 'tenant-1',
+      orgId: "org-1",
+      tenantKey: "tenant-1",
     });
     connectToDatabaseMock.mockResolvedValue(undefined);
     searchProductsMock.mockResolvedValue({
-      items: [{ id: 'product-1' }],
+      items: [{ id: "product-1" }],
       pagination: { total: 1 },
-      facets: { brands: [], standards: [], categories: ['cat-1'] },
+      facets: { brands: [], standards: [], categories: ["cat-1"] },
     });
     categoryFindOneLeanMock.mockResolvedValue(null);
     categoryFindLeanMock.mockResolvedValue([
-      { _id: 'cat-1', slug: 'electronics', name: { en: 'Electronics' } },
+      { _id: "cat-1", slug: "electronics", name: { en: "Electronics" } },
     ]);
     createSecureResponseMock.mockReturnValue({ status: 500 });
   });
 
   async function makeRequest(url: string): Promise<NextRequest> {
-    const mod = await import('next/server');
+    const mod = await import("next/server");
     const RequestCtor = mod.NextRequest as new (url: string) => NextRequest;
     return new RequestCtor(url) as NextRequest;
   }
 
-  it('returns search results with pagination and facets', async () => {
-    const { GET } = await import('@/app/api/marketplace/search/route');
+  it("returns search results with pagination and facets", async () => {
+    const { GET } = await import("@/app/api/marketplace/search/route");
     const req = await makeRequest(
-      'https://example.com/api/marketplace/search?q=phone&page=2&limit=12',
+      "https://example.com/api/marketplace/search?q=phone&page=2&limit=12",
     );
 
     await GET(req);
@@ -106,30 +106,35 @@ describe('GET /api/marketplace/search', () => {
     expect(connectToDatabaseMock).toHaveBeenCalled();
     expect(searchProductsMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        orgId: 'org-1',
-        q: 'phone',
+        orgId: "org-1",
+        q: "phone",
         limit: 12,
         skip: 12,
       }),
     );
     expect(categoryFindLeanMock).toHaveBeenCalledWith({
-      _id: { $in: ['cat-1'] },
-      orgId: 'org-1',
+      _id: { $in: ["cat-1"] },
+      orgId: "org-1",
     });
 
     expect(jsonMock).toHaveBeenCalledWith(
       expect.objectContaining({
         ok: true,
         data: {
-          items: [{ id: 'product-1' }],
-          pagination: { limit: 12, page: 2, total: 1, pages: expect.any(Number) },
+          items: [{ id: "product-1" }],
+          pagination: {
+            limit: 12,
+            page: 2,
+            total: 1,
+            pages: expect.any(Number),
+          },
           facets: {
             brands: [],
             standards: [],
             categories: [
               {
-                slug: 'electronics',
-                name: 'Electronics',
+                slug: "electronics",
+                name: "Electronics",
               },
             ],
           },
@@ -139,55 +144,55 @@ describe('GET /api/marketplace/search', () => {
     );
   });
 
-  it('resolves category slug and passes ObjectId to searchProducts', async () => {
-    const { GET } = await import('@/app/api/marketplace/search/route');
-    categoryFindOneLeanMock.mockResolvedValue({ _id: 'mongo-id' });
+  it("resolves category slug and passes ObjectId to searchProducts", async () => {
+    const { GET } = await import("@/app/api/marketplace/search/route");
+    categoryFindOneLeanMock.mockResolvedValue({ _id: "mongo-id" });
 
     const req = await makeRequest(
-      'https://example.com/api/marketplace/search?q=watch&cat=smart-watches',
+      "https://example.com/api/marketplace/search?q=watch&cat=smart-watches",
     );
 
     await GET(req);
 
     expect(categoryFindOneLeanMock).toHaveBeenCalledWith({
-      orgId: 'org-1',
-      slug: 'smart-watches',
+      orgId: "org-1",
+      slug: "smart-watches",
     });
     expect(searchProductsMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        categoryId: 'mongo-id',
+        categoryId: "mongo-id",
       }),
     );
   });
 
-  it('returns zod validation error when params invalid', async () => {
-    const { GET } = await import('@/app/api/marketplace/search/route');
-    zodValidationErrorMock.mockReturnValue('validation-error');
+  it("returns zod validation error when params invalid", async () => {
+    const { GET } = await import("@/app/api/marketplace/search/route");
+    zodValidationErrorMock.mockReturnValue("validation-error");
 
     const req = await makeRequest(
-      'https://example.com/api/marketplace/search?limit=0',
+      "https://example.com/api/marketplace/search?limit=0",
     );
 
     const res = await GET(req);
 
     expect(zodValidationErrorMock).toHaveBeenCalled();
-    expect(res).toBe('validation-error');
+    expect(res).toBe("validation-error");
     expect(jsonMock).not.toHaveBeenCalled();
   });
 
-  it('handles unexpected failures with secure response', async () => {
-    const { GET } = await import('@/app/api/marketplace/search/route');
-    searchProductsMock.mockRejectedValue(new Error('boom'));
+  it("handles unexpected failures with secure response", async () => {
+    const { GET } = await import("@/app/api/marketplace/search/route");
+    searchProductsMock.mockRejectedValue(new Error("boom"));
     createSecureResponseMock.mockReturnValue({ status: 500 });
 
     const req = await makeRequest(
-      'https://example.com/api/marketplace/search?q=boom',
+      "https://example.com/api/marketplace/search?q=boom",
     );
 
     const res = await GET(req);
 
     expect(createSecureResponseMock).toHaveBeenCalledWith(
-      { error: 'Search failed' },
+      { error: "Search failed" },
       500,
       req,
     );

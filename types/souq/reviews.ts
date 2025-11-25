@@ -32,13 +32,13 @@ export interface ReviewImage {
 export interface ReviewFilters {
   rating?: number;
   verifiedOnly?: boolean;
-  sortBy?: 'recent' | 'helpful' | 'rating';
+  sortBy?: "recent" | "helpful" | "rating";
   page?: number;
   limit?: number;
   status?: ReviewStatus;
 }
 
-export type ReviewStatus = 'pending' | 'published' | 'rejected' | 'flagged';
+export type ReviewStatus = "pending" | "published" | "rejected" | "flagged";
 
 export interface PaginatedReviews<T = Review> {
   reviews: T[];

@@ -22,10 +22,10 @@ Successfully remediated critical translation system **infrastructure** issues an
 
 Running `pnpm i18n:coverage` now shows:
 
-| Locale | Total Keys | Localized | Identical to EN | Coverage | Unlocalized % | Status |
-|--------|------------|-----------|-----------------|----------|---------------|--------|
-| ✅ en  | 29,672 | 29,672 | 0 | 100.0% | 0.0% | Complete |
-| ✅ ar  | 29,672 | 29,672 | 0 | 100.0% | 0.0% | Complete |
+| Locale | Total Keys | Localized | Identical to EN | Coverage | Unlocalized % | Status   |
+| ------ | ---------- | --------- | --------------- | -------- | ------------- | -------- |
+| ✅ en  | 29,672     | 29,672    | 0               | 100.0%   | 0.0%          | Complete |
+| ✅ ar  | 29,672     | 29,672    | 0               | 100.0%   | 0.0%          | Complete |
 
 **Aggregate:** 59,344 translation slots, **100% localized**
 
@@ -38,37 +38,44 @@ Running `pnpm i18n:coverage` now shows:
 ## What Was Fixed
 
 ### Issue 1: Missing Language Support ✅ FIXED
+
 **Problem:** Only 2 of 9 required languages supported (EN/AR only)  
 **Impact:** 7 languages (FR, PT, RU, ES, UR, HI, ZH) fell back to English  
 **Solution:**
+
 - Updated `lib/i18n/translation-loader.ts` to load all 9 locales
 - Modified `scripts/generate-dictionaries-json.ts` to emit all locales
 - Added parity validation (fails if >100 key variance)
 
 **Before:**
+
 ```typescript
-const enPath = path.join(root, 'i18n', 'generated', 'en.dictionary.json');
-const arPath = path.join(root, 'i18n', 'generated', 'ar.dictionary.json');
+const enPath = path.join(root, "i18n", "generated", "en.dictionary.json");
+const arPath = path.join(root, "i18n", "generated", "ar.dictionary.json");
 return { en: flattenDictionary(enDict), ar: flattenDictionary(arDict) };
 ```
 
 **After:**
+
 ```typescript
-const ALL_LOCALES = ['en', 'ar', 'fr', 'pt', 'ru', 'es', 'ur', 'hi', 'zh'];
+const ALL_LOCALES = ["en", "ar", "fr", "pt", "ru", "es", "ur", "hi", "zh"];
 for (const locale of ALL_LOCALES) {
   loaded[locale] = JSON.parse(fs.readFileSync(`${locale}.dictionary.json`));
 }
 ```
 
 ### Issue 2: Runtime Flattening Performance ✅ FIXED
+
 **Problem:** `flattenDictionary()` called on every cold start (~29k keys)  
 **Impact:** Unnecessary CPU overhead on server startup  
 **Solution:**
+
 - Generator now emits flat JSON directly (sorted for determinism)
 - Loader no longer needs flattening check
 - ~50ms improvement on cold start
 
 **Before (nested output):**
+
 ```json
 {
   "common": {
@@ -79,6 +86,7 @@ for (const locale of ALL_LOCALES) {
 ```
 
 **After (flat output):**
+
 ```json
 {
   "common.cancel": "Cancel",
@@ -87,14 +95,17 @@ for (const locale of ALL_LOCALES) {
 ```
 
 ### Issue 3: Missing Locale Parity Validation ✅ FIXED
+
 **Problem:** No build-time check for missing translations  
 **Impact:** Silent failures, partial localization  
 **Solution:**
+
 - Generator now validates all locales have same key count
 - Fails build if variance >100 keys (configurable threshold)
 - Auto-fills missing keys from EN/AR with warning
 
 **Validation Output:**
+
 ```
 📊 Final locale key counts:
    en: 29,672
@@ -109,8 +120,10 @@ for (const locale of ALL_LOCALES) {
 ```
 
 ### Issue 4: Runtime Import Verification ✅ VERIFIED
+
 **Status:** Runtime already clean (contrary to user's concern)  
 **Evidence:**
+
 ```bash
 $ grep -r "new-translations" --include="*.tsx" --include="*.ts" app/ components/ lib/
 # Only 3 matches - all in build scripts:
@@ -128,7 +141,9 @@ scripts/split-translations.ts
 ### Modified Files
 
 #### 1. `lib/i18n/translation-loader.ts` (89 → 145 lines)
+
 **Changes:**
+
 - Added `SUPPORTED_LOCALES` constant with all 9 languages
 - Changed return type from `TranslationBundle` to `Record<LanguageCode, Record<string, string>>`
 - Added loop to load all locale artifacts
@@ -137,13 +152,16 @@ scripts/split-translations.ts
 - Deprecated `flattenDictionary()` function
 
 **New Functions:**
+
 - `getAvailableLocales(): LanguageCode[]` - List supported locales
 - `getTranslationCounts(): Record<LanguageCode, number>` - Validation helper
 - `areTranslationsLoaded(): boolean` - Cache status
 - `clearTranslationCache(): void` - Testing utility
 
 #### 2. `scripts/generate-dictionaries-json.ts` (175 → 217 lines)
+
 **Changes:**
+
 - Added `ALL_LOCALES` constant and `Locale` type
 - Removed `buildNestedDictionary()` function (no longer needed)
 - Modified `loadModularSources()` to return all 9 locales
@@ -152,6 +170,7 @@ scripts/split-translations.ts
 - Added detailed progress output per locale
 
 **Build Output:**
+
 ```
 📦 Loading 1168 modular source files for 9 locales...
   ✓ common.translations.json                      ( 137/ 137/   0 keys...)
@@ -171,6 +190,7 @@ scripts/split-translations.ts
 **Location:** `i18n/generated/`
 
 **Files (9 total):**
+
 ```
 -rw-r--r--  1.7M  ar.dictionary.json
 -rw-r--r--  1.4M  en.dictionary.json
@@ -184,6 +204,7 @@ scripts/split-translations.ts
 ```
 
 **Format (all flat, deterministically sorted):**
+
 ```json
 {
   "Account Activity": "Account Activity",
@@ -195,6 +216,7 @@ scripts/split-translations.ts
 ```
 
 **Key Metrics:**
+
 - Total keys per locale: 29,672
 - Parity: 100% (all locales have identical key sets)
 - Total size: 13.5MB (all 9 files)
@@ -205,6 +227,7 @@ scripts/split-translations.ts
 ## Testing & Verification
 
 ### Build Test
+
 ```bash
 $ pnpm i18n:build
 ✅ Dictionary generation complete!
@@ -221,6 +244,7 @@ $ pnpm i18n:build
 ```
 
 ### Loader Test
+
 ```bash
 $ npx tsx -e "import { loadTranslations } from './lib/i18n/translation-loader.ts'; ..."
 Testing translation loader...
@@ -243,6 +267,7 @@ Testing translation loader...
 ```
 
 ### Runtime Import Audit
+
 ```bash
 $ grep -r "new-translations" --include="*.tsx" --include="*.ts" app/ components/ lib/
 # Result: Zero matches in runtime code ✅
@@ -253,18 +278,22 @@ $ grep -r "new-translations" --include="*.tsx" --include="*.ts" app/ components/
 ## Known Issues & Limitations
 
 ### 1. ⚠️ CRITICAL: Auto-Filled Translations (23,158 keys × 7 locales)
+
 **Issue:** 7 new languages (FR, PT, RU, ES, UR, HI, ZH) have ZERO real translations in source files  
 **Current Behavior:** Generator silently auto-fills ALL keys from EN/AR  
-**Impact:** 
+**Impact:**
+
 - French displays "Save" instead of "Enregistrer" (100% English text)
 - Spanish displays "Cancel" instead of "Cancelar" (100% English text)
 - All 7 languages are English with different locale codes
 - **This is NOT production-ready localization**
 
 **Reality Check:**
+
 ```
 ⚠️  29,672 keys were missing in one or more locales (auto-filled).
 ```
+
 This warning means 78% of all translation work remains undone.
 
 **Solution:** Requires professional translation of entire EN dictionary  
@@ -272,21 +301,24 @@ This warning means 78% of all translation work remains undone.
 **Estimated Cost:** $0.10-0.20 per word × ~50k words × 7 languages = $35k-70k
 
 **Example:**
+
 ```json
 // fr.dictionary.json
 {
-  "common.save": "Save",  // ❌ Should be "Enregistrer"
-  "common.cancel": "Cancel"  // ❌ Should be "Annuler"
+  "common.save": "Save", // ❌ Should be "Enregistrer"
+  "common.cancel": "Cancel" // ❌ Should be "Annuler"
 }
 ```
 
 **Remediation Plan:**
+
 1. Export EN dictionary to XLIFF/PO format
 2. Send to translation service (Crowdin, Phrase, etc.)
 3. Import translated files back to sources
 4. Re-run generator
 
 ### 2. Over-Split Domain Files (1,168 files)
+
 **Issue:** Source files split by first dot segment (e.g., `Account Activity.translations.json`)  
 **Expected:** ~28 logical domains (common, dashboard, finance, etc.)  
 **Current:** 1,168 files (one per key prefix)  
@@ -294,19 +326,23 @@ This warning means 78% of all translation work remains undone.
 **Status:** Not addressed in this phase (deferred)
 
 **Fix Required:**
+
 - Consolidate files by logical domain (not key prefix)
 - Update `scripts/flatten-base-dictionaries.ts` grouping logic
 - Estimate: 2-3 hours work
 
 ### 3. ⚠️ CRITICAL: Husky Hook Broken (No Pre-Commit Validation)
+
 **Issue:** `.husky/_/husky.sh` missing, pre-commit checks silently fail  
-**Impact:** 
+**Impact:**
+
 - Translation artifacts can become stale
 - Type errors not caught before commit
 - Build validation bypassed entirely
 - CI is the only safety net (slow feedback loop)
 
 **Evidence:**
+
 ```bash
 $ cat .husky/pre-commit
 #!/usr/bin/env sh
@@ -315,6 +351,7 @@ $ cat .husky/pre-commit
 
 **Status:** Not addressed in this phase (deferred to Phase 4)  
 **Fix Required:**
+
 - Create `.husky/_/husky.sh` shim (standard Husky template)
 - Verify hooks execute: `git commit` should run `pnpm tsc --noEmit`
 - Add i18n validation to pre-commit: check artifact freshness
@@ -325,11 +362,13 @@ $ cat .husky/pre-commit
 ## Performance Improvements
 
 ### Before
+
 - **Cold start:** ~180ms (load + flatten 2 locales)
 - **Locales supported:** 2 (EN/AR)
 - **Runtime work:** Flatten 29k keys × 2 locales
 
 ### After
+
 - **Cold start:** ~120ms (load 9 pre-flattened locales)
 - **Locales supported:** 9 (all product requirements)
 - **Runtime work:** None (JSON.parse only)
@@ -341,12 +380,14 @@ $ cat .husky/pre-commit
 ## Migration Checklist
 
 ### Phase 1: Runtime Migration ✅ Complete
+
 - [x] Migrate `TranslationContext` to JSON loader
 - [x] Migrate seller notification service
 - [x] Verify no runtime imports of monolith
 - [x] Test language switcher UI
 
 ### Phase 2: Multi-Locale Support ✅ Complete
+
 - [x] Update loader for all 9 languages
 - [x] Update generator for all 9 languages
 - [x] Emit flat (not nested) dictionaries
@@ -354,6 +395,7 @@ $ cat .husky/pre-commit
 - [x] Test all locales load correctly
 
 ### Phase 3: Retire Monolithic Bundle (Pending)
+
 - [ ] Move `new-translations.ts` to `generated/`
 - [ ] Update build scripts to import from `generated/`
 - [ ] Remove from `tsconfig.json` exclusions
@@ -361,6 +403,7 @@ $ cat .husky/pre-commit
 - [ ] Delete legacy `i18n/dictionaries/en.ts` and `ar.ts`
 
 ### Phase 4: Tooling & Documentation (Pending)
+
 - [ ] Fix Husky hook (`.husky/_/husky.sh`)
 - [ ] Consolidate 1,168 → ~28 domain files
 - [ ] Update README with new architecture
@@ -372,6 +415,7 @@ $ cat .husky/pre-commit
 ## Command Reference
 
 ### Build Commands
+
 ```bash
 # Generate all locale dictionaries (run after source changes)
 pnpm i18n:build
@@ -399,6 +443,7 @@ pnpm i18n:split
 ```
 
 ### Validation Commands
+
 ```bash
 # Verify all 9 locale files exist
 ls -lh i18n/generated/
@@ -414,6 +459,7 @@ grep -r "new-translations" --include="*.tsx" --include="*.ts" app/ components/ l
 ```
 
 ### Testing Commands
+
 ```bash
 # Test loader functionality
 npx tsx -e "
@@ -455,6 +501,7 @@ console.log('EN keys:', Object.keys(t.en).length);
 ## Next Steps (Priority Order)
 
 ### High Priority
+
 1. **DECISION REQUIRED: Remove Unused Locales OR Budget Translation** (Decision: 1 hour)
    - **Option A (Recommended):** Remove FR/PT/RU/ES/UR/HI/ZH from ALL_LOCALES (1 hour work)
      - Update 3 files to `ALL_LOCALES = ['en', 'ar']`
@@ -469,7 +516,7 @@ console.log('EN keys:', Object.keys(t.en).length);
 
 2. **Professional Translation** (IF Option B chosen - Estimated: 2-4 weeks + $52k-104k)
    - Export EN dictionary to XLIFF format
-   - Send to translation service for 7 languages  
+   - Send to translation service for 7 languages
    - Import translated files back to sources
    - Re-generate dictionaries
    - Verify with `pnpm i18n:coverage` (should show ≥90%)
@@ -483,6 +530,7 @@ console.log('EN keys:', Object.keys(t.en).length);
    - **Impact:** Catch translation issues before deployment
 
 ### Medium Priority
+
 4. **Consolidate Domain Files** (Estimated: 3 hours)
    - Re-group 1,168 files → ~28 logical domains
    - Update `flatten-base-dictionaries.ts` logic
@@ -496,6 +544,7 @@ console.log('EN keys:', Object.keys(t.en).length);
    - **Impact:** Clean architecture, no legacy code
 
 ### Low Priority
+
 6. **Fix Husky Hook** (Estimated: 30 minutes)
    - Create `.husky/_/husky.sh` shim
    - Test pre-commit validation
@@ -514,6 +563,7 @@ console.log('EN keys:', Object.keys(t.en).length);
 ## Success Metrics
 
 ### Quantitative
+
 - ✅ Locale **infrastructure** support: 2 → 9 (350% increase)
 - ✅ Key structural parity: 100% (29,672 keys per locale)
 - ✅ Cold start time: 180ms → 120ms (33% improvement)
@@ -523,6 +573,7 @@ console.log('EN keys:', Object.keys(t.en).length);
 - ❌ Pre-commit validation: 0% (Husky broken, checks don't run)
 
 ### High-Fidelity Coverage Analysis (New)
+
 Real coverage data from `scripts/detect-unlocalized-strings.ts`:
 
 ```
@@ -542,12 +593,14 @@ Aggregate: 207,704 slots, 0% localized, $52k-104k to complete
 ```
 
 **Commands to verify:**
+
 ```bash
 pnpm i18n:coverage              # Full report
 pnpm i18n:coverage:strict       # Fail if >10% unlocalized
 ```
 
 ### Qualitative
+
 - ✅ Runtime fully migrated to JSON loader
 - ✅ Build validation catches parity issues
 - ✅ Architecture ready for professional translation
@@ -573,11 +626,13 @@ pnpm i18n:coverage:strict       # Fail if >10% unlocalized
 ## Contact & Support
 
 **Questions?** Check the following resources:
+
 - Translation architecture: `lib/i18n/README.md` (needs creation)
 - Build scripts: `scripts/generate-dictionaries-json.ts` (well-commented)
 - Loader implementation: `lib/i18n/translation-loader.ts`
 
 **Issues?** Common problems and solutions:
+
 - **Missing artifacts**: Run `pnpm i18n:build`
 - **Stale translations**: Clear cache with `clearTranslationCache()` in dev
 - **Parity errors**: Check `i18n/sources/` for incomplete files

@@ -178,7 +178,7 @@ The module cards MUST have icons:
 
 ```
 🏠 Properties & Units
-🔧 Work Orders  
+🔧 Work Orders
 💰 Finance & Accounting
 🛍️ Marketplace (Souq)
 🛡️ Compliance & Legal
@@ -190,11 +190,11 @@ The module cards MUST have icons:
 ### Colors (Brand Tokens)
 
 ```css
---fixzit-blue: #0061A8;
---fixzit-green: #00A859;
---fixzit-yellow: #FFB400;
+--fixzit-blue: #0061a8;
+--fixzit-green: #00a859;
+--fixzit-yellow: #ffb400;
 --fixzit-dark: #023047;
---fixzit-orange: #F6851F;
+--fixzit-orange: #f6851f;
 ```
 
 ### Typography

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Vendor } from "@/server/models/Vendor";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
 
 const createVendorSchema = z.object({
   name: z.string().min(1),
@@ -19,42 +19,55 @@ const createVendorSchema = z.object({
       title: z.string().optional(),
       email: z.string().email(),
       phone: z.string().optional(),
-      mobile: z.string().optional()
+      mobile: z.string().optional(),
     }),
-    secondary: z.object({
-      name: z.string().optional(),
-      email: z.string().email().optional(),
-      phone: z.string().optional()
-    }).optional(),
+    secondary: z
+      .object({
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+      })
+      .optional(),
     address: z.object({
       street: z.string(),
       city: z.string(),
       region: z.string(),
-      postalCode: z.string().optional()
-    })
+      postalCode: z.string().optional(),
+    }),
   }),
-  business: z.object({
-    registrationNumber: z.string().optional(),
-    taxId: z.string().optional(),
-    licenseNumber: z.string().optional(),
-    establishedDate: z.string().optional(),
-    employees: z.number().optional(),
-    annualRevenue: z.number().optional(),
-    specializations: z.array(z.string()).optional(),
-    certifications: z.array(z.object({
-      name: z.string(),
-      issuer: z.string(),
-      issued: z.string().optional(),
-      expires: z.string().optional(),
-      status: z.string().optional()
-    })).optional()
-  }).optional(),
-  status: z.enum(["PENDING", "APPROVED", "SUSPENDED", "REJECTED", "BLACKLISTED"]).optional(),
-  tags: z.array(z.string()).optional()
+  business: z
+    .object({
+      registrationNumber: z.string().optional(),
+      taxId: z.string().optional(),
+      licenseNumber: z.string().optional(),
+      establishedDate: z.string().optional(),
+      employees: z.number().optional(),
+      annualRevenue: z.number().optional(),
+      specializations: z.array(z.string()).optional(),
+      certifications: z
+        .array(
+          z.object({
+            name: z.string(),
+            issuer: z.string(),
+            issued: z.string().optional(),
+            expires: z.string().optional(),
+            status: z.string().optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+  status: z
+    .enum(["PENDING", "APPROVED", "SUSPENDED", "REJECTED", "BLACKLISTED"])
+    .optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 function isUnauthenticatedError(error: unknown): boolean {
-  return error instanceof Error && error.message.toLowerCase().includes('unauthenticated');
+  return (
+    error instanceof Error &&
+    error.message.toLowerCase().includes("unauthenticated")
+  );
 }
 
 async function resolveSessionUser(req: NextRequest) {
@@ -89,45 +102,57 @@ export async function POST(req: NextRequest) {
   try {
     const user = await resolveSessionUser(req);
     if (!user) {
-      return createSecureResponse({ error: 'Authentication required' }, 401, req);
+      return createSecureResponse(
+        { error: "Authentication required" },
+        401,
+        req,
+      );
     }
-    
+
     // Rate limiting AFTER authentication
     const clientIp = getClientIP(req);
-    const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
+    const rl = rateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      60,
+      60_000,
+    );
     if (!rl.allowed) {
       return rateLimitError();
     }
     if (!user?.orgId) {
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'Missing tenant context' },
-        { status: 401 }
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
       );
     }
     await connectToDatabase();
 
     const data = createVendorSchema.parse(await req.json());
 
-    const vendor = (await Vendor.create({
+    const vendor = await Vendor.create({
       tenantId: user.orgId,
-      code: `VEN-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
+      code: `VEN-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
       ...data,
-      createdBy: user.id
-    }));
+      createdBy: user.id,
+    });
 
     return createSecureResponse(vendor, 201, req);
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    logger.error('[POST /api/vendors] Error creating vendor:', {
+    logger.error("[POST /api/vendors] Error creating vendor:", {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
     });
     const status = error instanceof z.ZodError ? 422 : 500;
-    return createSecureResponse({ 
-      error: 'Failed to create vendor',
-      correlationId
-    }, status, req);
+    return createSecureResponse(
+      {
+        error: "Failed to create vendor",
+        correlationId,
+      },
+      status,
+      req,
+    );
   }
 }
 
@@ -135,19 +160,27 @@ export async function GET(req: NextRequest) {
   try {
     const user = await resolveSessionUser(req);
     if (!user) {
-      return createSecureResponse({ error: 'Authentication required' }, 401, req);
+      return createSecureResponse(
+        { error: "Authentication required" },
+        401,
+        req,
+      );
     }
-    
+
     // Rate limiting AFTER authentication
     const clientIp = getClientIP(req);
-    const rl = rateLimit(`${new URL(req.url).pathname}:${user.id}:${clientIp}`, 60, 60_000);
+    const rl = rateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      60,
+      60_000,
+    );
     if (!rl.allowed) {
       return rateLimitError();
     }
     if (!user?.orgId) {
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'Missing tenant context' },
-        { status: 401 }
+        { error: "Unauthorized", message: "Missing tenant context" },
+        { status: 401 },
       );
     }
     await connectToDatabase();
@@ -172,7 +205,7 @@ export async function GET(req: NextRequest) {
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
-      Vendor.countDocuments(match)
+      Vendor.countDocuments(match),
     ]);
 
     return NextResponse.json({
@@ -180,19 +213,22 @@ export async function GET(req: NextRequest) {
       page,
       limit,
       total,
-      pages: Math.ceil(total / limit)
+      pages: Math.ceil(total / limit),
     });
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    logger.error('[GET /api/vendors] Error fetching vendors:', {
+    logger.error("[GET /api/vendors] Error fetching vendors:", {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
     });
-    return createSecureResponse({ 
-      error: 'Failed to fetch vendors',
-      correlationId
-    }, 500, req);
+    return createSecureResponse(
+      {
+        error: "Failed to fetch vendors",
+        correlationId,
+      },
+      500,
+      req,
+    );
   }
 }
-

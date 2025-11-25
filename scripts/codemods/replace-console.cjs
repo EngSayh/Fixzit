@@ -1,12 +1,12 @@
 /**
  * Console → Logger Replacement Codemod
- * 
+ *
  * Transforms console.* calls to logger.* with automatic import injection:
  * - console.log → logger.info
  * - console.warn → logger.warn
  * - console.error → logger.error
  * - Adds "import { logger } from '@/lib/logger'" if not present
- * 
+ *
  * Usage:
  *   npx jscodeshift -t scripts/codemods/replace-console.cjs app/ --parser=tsx
  */
@@ -16,29 +16,29 @@ module.exports = function transformer(file, api) {
   const root = j(file.source);
   let modified = false;
 
-  const LOGGER_IMPORT = '@/lib/logger';
+  const LOGGER_IMPORT = "@/lib/logger";
   const CONSOLE_MAP = {
-    log: 'info',
-    warn: 'warn',
-    error: 'error',
-    info: 'info',
-    debug: 'debug',
+    log: "info",
+    warn: "warn",
+    error: "error",
+    info: "info",
+    debug: "debug",
   };
 
   // Transform console.* calls to logger.*
   root
     .find(j.CallExpression, {
       callee: {
-        type: 'MemberExpression',
-        object: { name: 'console' },
+        type: "MemberExpression",
+        object: { name: "console" },
       },
     })
-    .forEach(path => {
+    .forEach((path) => {
       const method = path.node.callee.property.name;
-      const loggerMethod = CONSOLE_MAP[method] || 'info';
+      const loggerMethod = CONSOLE_MAP[method] || "info";
 
       // Replace console.method with logger.method
-      path.node.callee.object.name = 'logger';
+      path.node.callee.object.name = "logger";
       path.node.callee.property.name = loggerMethod;
       modified = true;
     });
@@ -49,11 +49,11 @@ module.exports = function transformer(file, api) {
       .find(j.ImportDeclaration, {
         source: { value: LOGGER_IMPORT },
       })
-      .some(path => {
+      .some((path) => {
         return path.node.specifiers.some(
-          specifier =>
-            specifier.type === 'ImportSpecifier' &&
-            specifier.imported.name === 'logger'
+          (specifier) =>
+            specifier.type === "ImportSpecifier" &&
+            specifier.imported.name === "logger",
         );
       });
 
@@ -65,21 +65,21 @@ module.exports = function transformer(file, api) {
 
       if (existingLibImport.length > 0) {
         // Add logger to existing import
-        existingLibImport.forEach(path => {
+        existingLibImport.forEach((path) => {
           const hasLogger = path.node.specifiers.some(
-            spec => spec.imported && spec.imported.name === 'logger'
+            (spec) => spec.imported && spec.imported.name === "logger",
           );
           if (!hasLogger) {
             path.node.specifiers.push(
-              j.importSpecifier(j.identifier('logger'))
+              j.importSpecifier(j.identifier("logger")),
             );
           }
         });
       } else {
         // Create new import statement
         const newImport = j.importDeclaration(
-          [j.importSpecifier(j.identifier('logger'))],
-          j.literal(LOGGER_IMPORT)
+          [j.importSpecifier(j.identifier("logger"))],
+          j.literal(LOGGER_IMPORT),
         );
 
         // Insert at the top (after existing imports or at the beginning)

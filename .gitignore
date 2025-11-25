@@ -51,8 +51,9 @@ Thumbs.db
 *.emergency-bak
 duplicate-detection-report.json
 
-# Temp directory (prevent tracking large patch files)
+# Temp directories (prevent tracking temporary files)
 /tmp/
+/.tmp/
 
 # Local artifacts we'll keep but not commit
 /_archive/

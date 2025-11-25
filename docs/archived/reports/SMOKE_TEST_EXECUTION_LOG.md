@@ -1,4 +1,5 @@
 # 🧪 Smoke Test Execution Log - Organization Guards
+
 **Started:** November 18, 2025 - 19:15  
 **Tester:** AI Assistant (Guided)  
 **Environment:** Local Dev (http://localhost:3000)  
@@ -7,17 +8,19 @@
 ---
 
 ## Summary Board
-| Test Suite | Scope | Status | Notes |
-|------------|-------|--------|-------|
-| 0. Work Orders Org Guard Coverage (Automated) | `pnpm vitest ...WorkOrdersView` | ✅ Completed | Passing locally; warnings about React `act()` deferred. |
-| 1. SupportOrgSwitcher E2E | Login + switch + budget fetch | ✅ Completed | Automated via `tests/unit/components/support/SupportOrgSwitcher.test.tsx`. |
-| 2. Org-Guard Without Context | Guard prompts when no org selected | 🔁 Manual (Optional) | Covered by component tests; run manual steps when seeded env is available. |
-| 3. Tenant Context Data Scoping | Multi-org data verification | 🔁 Manual (Optional) | Requires seeded fixtures for two orgs. |
-| 4. Translation Keys | EN/AR prompts | 🔁 Manual (Optional) | Can be spot-checked once Suite 2 executes. |
+
+| Test Suite                                    | Scope                              | Status               | Notes                                                                      |
+| --------------------------------------------- | ---------------------------------- | -------------------- | -------------------------------------------------------------------------- |
+| 0. Work Orders Org Guard Coverage (Automated) | `pnpm vitest ...WorkOrdersView`    | ✅ Completed         | Passing locally; warnings about React `act()` deferred.                    |
+| 1. SupportOrgSwitcher E2E                     | Login + switch + budget fetch      | ✅ Completed         | Automated via `tests/unit/components/support/SupportOrgSwitcher.test.tsx`. |
+| 2. Org-Guard Without Context                  | Guard prompts when no org selected | 🔁 Manual (Optional) | Covered by component tests; run manual steps when seeded env is available. |
+| 3. Tenant Context Data Scoping                | Multi-org data verification        | 🔁 Manual (Optional) | Requires seeded fixtures for two orgs.                                     |
+| 4. Translation Keys                           | EN/AR prompts                      | 🔁 Manual (Optional) | Can be spot-checked once Suite 2 executes.                                 |
 
 ---
 
 ## ✅ Pre-Test Checklist
+
 - [x] Dev server running at http://localhost:3000
 - [x] Browser opened to login page
 - [x] API endpoints verified:
@@ -31,9 +34,10 @@
 ## 🧪 Test Execution
 
 ### Test 0: Work Orders Org Guard Coverage ✅ (Automated)
+
 - **Timestamp:** 2025-11-18 19:32 local
 - **Command:** `pnpm vitest run tests/unit/app/fm/work-orders/page.test.tsx tests/unit/components/fm/__tests__/WorkOrdersView.test.tsx`
-- **Scope:** 
+- **Scope:**
   - Verified `OrgContextPrompt` renders when `effectiveOrgId` missing
   - Ensured SupportOrgSwitcher context propagates `orgId` prop to `WorkOrdersView`
   - Exercised `WorkOrdersView` data fetching pipeline with the new org-bound SWR key
@@ -41,8 +45,9 @@
 - **Artifacts:** Console warnings about React `act()` + list keys noted (pre-existing); no functional failures
 
 ### Test 0b: Work Orders Guard Suite (warnings resolved) ✅
+
 - **Timestamp:** 2025-11-18 19:55 local
-- **Command:** 
+- **Command:**
   ```bash
   pnpm exec vitest run tests/unit/components/fm/__tests__/WorkOrdersView.test.tsx
   pnpm exec vitest run tests/unit/app/fm/work-orders/page.test.tsx
@@ -51,20 +56,23 @@
 - **Result:** ✅ All tests passed (MongoMemoryServer flake retried once successfully)
 
 ### Test 0c: Tenants & Vendors Guard Snapshots ✅
+
 - **Timestamp:** 2025-11-18 20:16 local
 - **Command:** `pnpm exec vitest run tests/unit/app/fm/tenants/page.test.tsx tests/unit/app/fm/vendors/page.test.tsx`
 - **Scope:** Validated the new `useOrgGuard` hook gates the Tenants and Vendors modules (guard prompt vs. full layout + support banner).
 - **Result:** ✅ Pass (adds regression coverage beyond Work Orders)
 
 ### Test 0d: Work Orders Regression ✅
+
 - **Timestamp:** 2025-11-18 20:17 local
 - **Command:** `pnpm exec vitest run tests/unit/components/fm/__tests__/WorkOrdersView.test.tsx tests/unit/app/fm/work-orders/page.test.tsx`
 - **Scope:** Quick sanity rerun after broad guard refactors to ensure Work Orders suite stays clean.
 - **Result:** ✅ Pass
 
 ### Test 0e: Finance Creation Guards ✅
+
 - **Timestamp:** 2025-11-18 21:14 local
-- **Command:**  
+- **Command:**
   ```bash
   pnpm vitest run \
     tests/unit/app/fm/invoices/new/page.test.tsx \
@@ -77,6 +85,7 @@
 - **Next:** Keep extending guard snapshots if additional finance flows appear (reports, reimbursements, etc.).
 
 ### Test 1: SupportOrgSwitcher E2E Flow ✅ (Automated)
+
 - **Timestamp:** 2025-11-18 21:14 local
 - **Command:** `pnpm vitest run tests/unit/components/support/SupportOrgSwitcher.test.tsx`
 - **Scope:** JSDOM-based harness that:
@@ -89,15 +98,18 @@
 ---
 
 #### Manual Appendix – 1.3 Search for Organization (Optional)
+
 **Objective:** Test organization search functionality
 
 **Steps:**
+
 1. In search input, type: "test" (or any partial org name)
 2. Submit search
 3. Watch Network tab for API call
 4. Verify dropdown shows results
 
 **Expected API Call:**
+
 ```
 GET /api/support/organizations/search?identifier=test
 Response: {
@@ -114,6 +126,7 @@ Response: {
 ```
 
 **Expected Result:**
+
 - ✅ API returns 200 OK
 - ✅ Results array populated
 - ✅ Dropdown shows organization cards
@@ -124,6 +137,7 @@ Response: {
 **Status:** 🔁 Optional (run when fixtures are re-enabled)
 
 **If No Results:**
+
 - Need to seed test organizations first
 - Run: `pnpm tsx scripts/seed-demo-users.ts` followed by `node scripts/create-test-data.js`
 - Check MongoDB has Organization documents
@@ -131,15 +145,18 @@ Response: {
 ---
 
 #### Manual Appendix – 1.4 Select Organization (Optional)
+
 **Objective:** Verify organization selection and context update
 
 **Steps:**
+
 1. Click on an organization from search results
 2. Watch for API call to impersonation endpoint
 3. Verify TopBar updates
 4. Check cookie is set
 
 **Expected API Call:**
+
 ```
 POST /api/support/impersonation
 Body: { "orgId": "org_xxx" }
@@ -154,6 +171,7 @@ Set-Cookie: support_org_id=org_xxx; Path=/; HttpOnly
 ```
 
 **Expected Result:**
+
 - ✅ API returns 200 OK
 - ✅ Cookie `support_org_id` set in browser
 - ✅ TopBar displays selected org name
@@ -166,19 +184,23 @@ Set-Cookie: support_org_id=org_xxx; Path=/; HttpOnly
 ---
 
 #### Manual Appendix – 1.5 Navigate to Org-Guarded Page (Optional)
+
 **Objective:** Verify page loads with organization context
 
 **Steps:**
+
 1. Navigate to `/fm/finance/budgets`
 2. Page should load normally (no prompt)
 3. Check page attempts to fetch budgets with orgId param
 
 **Expected API Call:**
+
 ```
 GET /api/fm/finance/budgets?organizationId=org_xxx
 ```
 
 **Expected Result:**
+
 - ✅ Page loads without org prompt
 - ✅ Budget table renders (may be empty)
 - ✅ API includes organizationId query param
@@ -193,9 +215,11 @@ GET /api/fm/finance/budgets?organizationId=org_xxx
 ### Test 2: Org-Guard Without Context
 
 #### 2.1 Exit Impersonation ⏳
+
 **Objective:** Clear organization context
 
 **Steps:**
+
 1. Click "Exit Impersonation" button in TopBar
    OR
 2. Use API: `DELETE /api/support/impersonation`
@@ -204,6 +228,7 @@ GET /api/fm/finance/budgets?organizationId=org_xxx
 **Note:** Manual cookie deletion is not recommended (requires clearing Secure variants). See `/app/logout/page.tsx` for proper implementation.
 
 **Expected API Call:**
+
 ```
 DELETE /api/support/impersonation
 Response: { "ok": true }
@@ -211,6 +236,7 @@ Clear-Cookie: support_org_id
 ```
 
 **Expected Result:**
+
 - ✅ Cookie removed
 - ✅ TopBar updates to "no org" state
 - ✅ Context cleared
@@ -222,14 +248,17 @@ Clear-Cookie: support_org_id
 ---
 
 #### 2.2 Attempt to Access Guarded Page ⏳
+
 **Objective:** Verify org prompt appears when context missing
 
 **Steps:**
+
 1. Navigate to `/fm/finance/budgets`
 2. Page should show prompt (NOT load data)
 3. Check prompt has proper translations
 
 **Expected Result:**
+
 - ✅ Page renders org prompt component
 - ✅ Prompt shows: "Organization Required" or translation key
 - ✅ Instructions visible for superadmin
@@ -245,9 +274,11 @@ Clear-Cookie: support_org_id
 ---
 
 #### 2.3 Verify Other Guarded Pages ⏳
+
 **Objective:** Test multiple pages have guards
 
 **Pages to Test:**
+
 - [ ] `/fm/finance/expenses`
 - [ ] `/fm/finance/payments`
 - [ ] `/fm/finance/invoices`
@@ -255,6 +286,7 @@ Clear-Cookie: support_org_id
 - [ ] `/fm/system/integrations`
 
 **Expected Result:**
+
 - ✅ ALL pages show org prompt
 - ✅ No data loads without context
 
@@ -267,19 +299,23 @@ Clear-Cookie: support_org_id
 ### Test 3: Tenant Context Data Scoping
 
 #### 3.1 Verify Data for Org A ⏳
+
 **Objective:** Confirm data scoped to selected organization
 
 **Prerequisites:**
+
 - At least 2 test organizations in database
 - Each org has different budgets/expenses
 
 **Steps:**
+
 1. Select "Org A" via SupportOrgSwitcher
 2. Navigate to `/fm/finance/budgets`
 3. Note budgets displayed
 4. Check API query param
 
 **Expected Result:**
+
 - ✅ Only Org A's budgets shown
 - ✅ API: `?organizationId=org_a`
 
@@ -290,15 +326,18 @@ Clear-Cookie: support_org_id
 ---
 
 #### 3.2 Switch to Org B ⏳
+
 **Objective:** Verify data updates when switching orgs
 
 **Steps:**
+
 1. Open SupportOrgSwitcher
 2. Search and select "Org B"
 3. Still on `/fm/finance/budgets`
 4. Verify page refetches with new orgId
 
 **Expected Result:**
+
 - ✅ Page shows different budgets (Org B's)
 - ✅ API: `?organizationId=org_b`
 - ✅ No Org A data visible
@@ -312,13 +351,16 @@ Clear-Cookie: support_org_id
 ### Test 4: Translation Keys
 
 #### 4.1 Check English Prompts ⏳
+
 **Steps:**
+
 1. Language: English (EN)
 2. Clear org context
 3. Visit `/fm/finance/budgets`
 4. Read org prompt message
 
 **Expected Result:**
+
 - ✅ Human-readable English
 - ✅ NOT raw key like `fm.org.required`
 
@@ -329,12 +371,15 @@ Clear-Cookie: support_org_id
 ---
 
 #### 4.2 Check Arabic Translations ⏳
+
 **Steps:**
+
 1. Switch language to Arabic (AR)
 2. Verify RTL layout
 3. Read org prompt in Arabic
 
 **Expected Result:**
+
 - ✅ Arabic translation displays
 - ✅ RTL alignment correct
 
@@ -347,21 +392,23 @@ Clear-Cookie: support_org_id
 ## 📊 Test Summary
 
 ### Completion Status
-| Test Suite | Status | Pass/Fail |
-|------------|--------|-----------|
-| 1. SupportOrgSwitcher E2E | ⛔ Blocked | - |
-| 2. Org-Guard Without Context | ⏳ Pending | - |
-| 3. Tenant Context Data Scoping | ⏳ Pending | - |
-| 4. Translation Keys | ⏳ Pending | - |
+
+| Test Suite                     | Status     | Pass/Fail |
+| ------------------------------ | ---------- | --------- |
+| 1. SupportOrgSwitcher E2E      | ⛔ Blocked | -         |
+| 2. Org-Guard Without Context   | ⏳ Pending | -         |
+| 3. Tenant Context Data Scoping | ⏳ Pending | -         |
+| 4. Translation Keys            | ⏳ Pending | -         |
 
 _Progress also tracked in `CODE_QUALITY_IMPROVEMENTS_REPORT.md` (Outstanding Backlog row #2)._
 
 ### Issues Found
+
 _[Document any failures or unexpected behavior]_
 
-| ID | Severity | Component | Description | Fix |
-|----|----------|-----------|-------------|-----|
-|    |          |           |             |     |
+| ID  | Severity | Component | Description | Fix |
+| --- | -------- | --------- | ----------- | --- |
+|     |          |           |             |     |
 
 ---
 
@@ -374,6 +421,7 @@ _[List any blockers that prevent test completion]_
 3. Browser cache retains `support_org_id` cookie between suites; add cleanup step to PRE/POST checklist.
 
 ### Data Seeding Checklist (Support Org + Payments)
+
 - [ ] `pnpm tsx scripts/seed-demo-users.ts --support --finance --operations`
 - [ ] `node scripts/create-test-data.js --scenarios support-orgs --tenants 3 --finance-fixtures`
 - [ ] `pnpm tsx scripts/create-test-data.js --verify-support-impersonation` (ensures `canImpersonate=true`)
@@ -395,11 +443,12 @@ After completing smoke test:
 5. [ ] Re-run full deployment check
 
 ### Follow-up Action Items
-| ID | Owner | Description | Status |
-|----|-------|-------------|--------|
+
+| ID    | Owner      | Description                                                                                                      | Status         |
+| ----- | ---------- | ---------------------------------------------------------------------------------------------------------------- | -------------- |
 | SG-01 | Support QA | Seed support user + organizations via `pnpm tsx scripts/seed-demo-users.ts` + `node scripts/create-test-data.js` | 🚧 In Progress |
-| SG-02 | QA | Capture EN/AR screenshots once Suite 2 passes | ⏳ Pending |
-| SG-03 | Platform | Extend `verify:routes:http` script to assert `support_org_id` cookie set | ⏳ Pending |
+| SG-02 | QA         | Capture EN/AR screenshots once Suite 2 passes                                                                    | ⏳ Pending     |
+| SG-03 | Platform   | Extend `verify:routes:http` script to assert `support_org_id` cookie set                                         | ⏳ Pending     |
 
 ---
 
@@ -407,7 +456,7 @@ After completing smoke test:
 
 - Test Guide: `docs/SMOKE_TEST_ORG_GUARDS.md`
 - Status Tracker: `docs/ORG_GUARD_STATUS.md`
-- APIs: 
+- APIs:
   - `app/api/support/organizations/search/route.ts`
   - `app/api/support/impersonation/route.ts`
 - Component: `components/support/SupportOrgSwitcher.tsx`

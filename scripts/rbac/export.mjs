@@ -15,9 +15,20 @@ const ROOTS = ["app", "src", "pages", "api"].filter((p) => {
 });
 
 const SKIP_DIRS = new Set([
-  ".git", ".next", ".artifacts", "node_modules", "dist", "build",
-  "coverage", ".turbo", ".vercel", "lhci_reports", "test-results",
-  "playwright-report", ".vscode", ".idea"
+  ".git",
+  ".next",
+  ".artifacts",
+  "node_modules",
+  "dist",
+  "build",
+  "coverage",
+  ".turbo",
+  ".vercel",
+  "lhci_reports",
+  "test-results",
+  "playwright-report",
+  ".vscode",
+  ".idea",
 ]);
 
 // Enhanced patterns for Fixzit authorization
@@ -28,23 +39,25 @@ const ROLE_PATTERNS = [
   /checkPermission\(["`'](.+?)["`']\)/g,
   /role\s*===?\s*["`'](.+?)["`']/g,
   /roles\.includes\(["`'](.+?)["`']\)/g,
-  /\.role\s*===?\s*["`'](.+?)["`']/g
+  /\.role\s*===?\s*["`'](.+?)["`']/g,
 ];
 
 const ROUTE_PATTERNS = [
   /(?:GET|POST|PUT|PATCH|DELETE)\s+["`']([^"`']+)["`']/gi,
   /route:\s*["`']([^"`']+)["`']/gi,
   /path:\s*["`']([^"`']+)["`']/gi,
-  /\/api\/([^"`'\s]+)/gi
+  /\/api\/([^"`'\s]+)/gi,
 ];
 
 const ACTION_PATTERNS = [
   /action:\s*["`'](.+?)["`']/gi,
   /permission:\s*["`'](.+?)["`']/gi,
-  /can\(["`'](.+?)["`']\)/gi
+  /can\(["`'](.+?)["`']\)/gi,
 ];
 
-const rows = [["role", "file", "route_or_context", "action", "line_number", "pattern_type"]];
+const rows = [
+  ["role", "file", "route_or_context", "action", "line_number", "pattern_type"],
+];
 
 function scanFile(filePath) {
   try {
@@ -54,17 +67,17 @@ function scanFile(filePath) {
     ROLE_PATTERNS.forEach((regex) => {
       let match;
       while ((match = regex.exec(content)) !== null) {
-        const lineNumber = content.substring(0, match.index).split('\n').length;
+        const lineNumber = content.substring(0, match.index).split("\n").length;
         roleMatches.push({
           role: match[1],
           lineNumber,
-          type: 'role'
+          type: "role",
         });
       }
     });
-    
+
     if (roleMatches.length === 0) return;
-    
+
     // Extract routes
     let route = "";
     ROUTE_PATTERNS.forEach((regex) => {
@@ -73,7 +86,7 @@ function scanFile(filePath) {
         route = match[1];
       }
     });
-    
+
     // Extract actions
     const actions = [];
     ACTION_PATTERNS.forEach((regex) => {
@@ -82,33 +95,34 @@ function scanFile(filePath) {
         actions.push(match[1]);
       }
     });
-    
+
     // If no route found, try to infer from file path
     if (!route) {
-      if (filePath.includes('/api/')) {
-        route = filePath.substring(filePath.indexOf('/api/'));
-      } else if (filePath.includes('/pages/')) {
-        route = filePath.substring(filePath.indexOf('/pages/'));
+      if (filePath.includes("/api/")) {
+        route = filePath.substring(filePath.indexOf("/api/"));
+      } else if (filePath.includes("/pages/")) {
+        route = filePath.substring(filePath.indexOf("/pages/"));
       } else {
         route = path.dirname(filePath);
       }
     }
-    
+
     // Add entries for each role match
     roleMatches.forEach((match) => {
-      const action = actions.length > 0 ? actions.join(',') : 'access';
+      const action = actions.length > 0 ? actions.join(",") : "access";
       rows.push([
         match.role,
         filePath,
         route,
         action,
         match.lineNumber.toString(),
-        match.type
+        match.type,
       ]);
     });
-    
   } catch (err) {
-    console.warn(`[rbac] Warning: Could not scan file ${filePath}: ${err.message}`);
+    console.warn(
+      `[rbac] Warning: Could not scan file ${filePath}: ${err.message}`,
+    );
   }
 }
 
@@ -116,7 +130,7 @@ function walkDirectory(dir) {
   try {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const fullPath = path.join(dir, entry.name);
-      
+
       if (entry.isDirectory()) {
         if (SKIP_DIRS.has(entry.name) || entry.name.startsWith(".")) {
           continue;
@@ -127,7 +141,9 @@ function walkDirectory(dir) {
       }
     }
   } catch (err) {
-    console.warn(`[rbac] Warning: Could not scan directory ${dir}: ${err.message}`);
+    console.warn(
+      `[rbac] Warning: Could not scan directory ${dir}: ${err.message}`,
+    );
   }
 }
 
@@ -135,7 +151,8 @@ function walkDirectory(dir) {
 ROOTS.forEach(walkDirectory);
 
 // Generate CSV with proper escaping
-const escapeCsvField = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+const escapeCsvField = (value) =>
+  `"${String(value ?? "").replace(/"/g, '""')}"`;
 const toCsvRow = (row) => row.map(escapeCsvField).join(",");
 const csv = rows.map(toCsvRow).join("\n");
 
@@ -143,8 +160,8 @@ fs.writeFileSync("rbac-matrix.csv", csv);
 
 // Generate summary
 const totalEntries = rows.length - 1; // Subtract header
-const uniqueRoles = new Set(rows.slice(1).map(row => row[0])).size;
-const uniqueFiles = new Set(rows.slice(1).map(row => row[1])).size;
+const uniqueRoles = new Set(rows.slice(1).map((row) => row[0])).size;
+const uniqueFiles = new Set(rows.slice(1).map((row) => row[1])).size;
 
 console.log(`[rbac] RBAC Matrix Generation Complete:`);
 console.log(`  • Total entries: ${totalEntries}`);
@@ -158,11 +175,18 @@ const insights = {
     totalEntries,
     uniqueRoles,
     uniqueFiles,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   },
-  roles: [...new Set(rows.slice(1).map(row => row[0]))].sort(),
-  files: [...new Set(rows.slice(1).map(row => row[1]))].sort(),
-  routes: [...new Set(rows.slice(1).map(row => row[2]).filter(r => r))].sort()
+  roles: [...new Set(rows.slice(1).map((row) => row[0]))].sort(),
+  files: [...new Set(rows.slice(1).map((row) => row[1]))].sort(),
+  routes: [
+    ...new Set(
+      rows
+        .slice(1)
+        .map((row) => row[2])
+        .filter((r) => r),
+    ),
+  ].sort(),
 };
 
 fs.writeFileSync("rbac-insights.json", JSON.stringify(insights, null, 2));

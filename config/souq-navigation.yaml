@@ -15,34 +15,34 @@ buyer:
           ar: "الصفحة الرئيسية"
         path: "/marketplace"
         icon: "home"
-      
+
       - label:
           en: "Search & Browse"
           ar: "البحث والتصفح"
         path: "/marketplace/search"
         icon: "search"
-      
+
       - label:
           en: "Categories"
           ar: "الفئات"
         path: "/marketplace/categories"
         icon: "grid"
         badge: "new"
-      
+
       - label:
           en: "Deals & Offers"
           ar: "العروض والخصومات"
         path: "/marketplace/deals"
         icon: "tag"
         featureFlag: "deals"
-      
+
       - label:
           en: "Shopping Cart"
           ar: "عربة التسوق"
         path: "/marketplace/cart"
         icon: "shopping-cart"
         badge: "count"
-  
+
   - section: "Account"
     icon: "user"
     items:
@@ -51,20 +51,20 @@ buyer:
           ar: "طلباتي"
         path: "/marketplace/orders"
         icon: "package"
-      
+
       - label:
           en: "Returns & Refunds"
           ar: "المرتجعات والمبالغ المستردة"
         path: "/marketplace/returns"
         icon: "rotate-ccw"
         featureFlag: "returns_center"
-      
+
       - label:
           en: "Wishlist"
           ar: "قائمة الأمنيات"
         path: "/marketplace/wishlist"
         icon: "heart"
-      
+
       - label:
           en: "Reviews & Questions"
           ar: "التقييمات والأسئلة"
@@ -82,7 +82,7 @@ seller:
           ar: "الرئيسية"
         path: "/marketplace/seller-central"
         icon: "home"
-      
+
       - label:
           en: "Account Health"
           ar: "صحة الحساب"
@@ -90,7 +90,7 @@ seller:
         icon: "activity"
         featureFlag: "account_health"
         badge: "status"
-  
+
   - section: "Catalog"
     icon: "box"
     items:
@@ -99,26 +99,26 @@ seller:
           ar: "المنتجات"
         path: "/marketplace/seller-central/products"
         icon: "package"
-      
+
       - label:
           en: "Add Product"
           ar: "إضافة منتج"
         path: "/marketplace/seller-central/products/add"
         icon: "plus-circle"
-      
+
       - label:
           en: "Bulk Upload"
           ar: "رفع مجمع"
         path: "/marketplace/seller-central/products/upload"
         icon: "upload"
-      
+
       - label:
           en: "Brand Registry"
           ar: "تسجيل العلامات التجارية"
         path: "/marketplace/seller-central/brands"
         icon: "shield"
         featureFlag: "brand_registry"
-  
+
   - section: "Pricing & Inventory"
     icon: "dollar-sign"
     items:
@@ -127,20 +127,20 @@ seller:
           ar: "إدارة المخزون"
         path: "/marketplace/seller-central/inventory"
         icon: "archive"
-      
+
       - label:
           en: "Manage Pricing"
           ar: "إدارة الأسعار"
         path: "/marketplace/seller-central/pricing"
         icon: "trending-up"
-      
+
       - label:
           en: "Auto-Repricer"
           ar: "التسعير التلقائي"
         path: "/marketplace/seller-central/repricer"
         icon: "zap"
         featureFlag: "auto_repricer"
-  
+
   - section: "Orders & Fulfillment"
     icon: "truck"
     items:
@@ -149,27 +149,27 @@ seller:
           ar: "الطلبات"
         path: "/marketplace/seller-central/orders"
         icon: "shopping-bag"
-      
+
       - label:
           en: "Shipments"
           ar: "الشحنات"
         path: "/marketplace/seller-central/shipments"
         icon: "package-open"
-      
+
       - label:
           en: "Fulfillment by Fixzit"
           ar: "التنفيذ بواسطة فكس زت"
         path: "/marketplace/seller-central/fbf"
         icon: "warehouse"
         featureFlag: "fulfillment_by_fixzit"
-      
+
       - label:
           en: "Returns Management"
           ar: "إدارة المرتجعات"
         path: "/marketplace/seller-central/returns"
         icon: "rotate-ccw"
         featureFlag: "returns_center"
-  
+
   - section: "Advertising"
     icon: "megaphone"
     featureFlag: "ads"
@@ -179,19 +179,19 @@ seller:
           ar: "الحملات"
         path: "/marketplace/seller-central/ads/campaigns"
         icon: "target"
-      
+
       - label:
           en: "Create Campaign"
           ar: "إنشاء حملة"
         path: "/marketplace/seller-central/ads/create"
         icon: "plus-circle"
-      
+
       - label:
           en: "Reports"
           ar: "التقارير"
         path: "/marketplace/seller-central/ads/reports"
         icon: "bar-chart"
-  
+
   - section: "Promotions"
     icon: "percent"
     featureFlag: "deals"
@@ -201,13 +201,13 @@ seller:
           ar: "العروض والقسائم"
         path: "/marketplace/seller-central/promotions"
         icon: "tag"
-      
+
       - label:
           en: "Create Deal"
           ar: "إنشاء عرض"
         path: "/marketplace/seller-central/promotions/create"
         icon: "plus-circle"
-  
+
   - section: "Analytics & Reports"
     icon: "trending-up"
     items:
@@ -216,19 +216,19 @@ seller:
           ar: "لوحة المبيعات"
         path: "/marketplace/seller-central/reports/sales"
         icon: "dollar-sign"
-      
+
       - label:
           en: "Traffic Reports"
           ar: "تقارير الزيارات"
         path: "/marketplace/seller-central/reports/traffic"
         icon: "users"
-      
+
       - label:
           en: "Inventory Reports"
           ar: "تقارير المخزون"
         path: "/marketplace/seller-central/reports/inventory"
         icon: "archive"
-  
+
   - section: "Finance"
     icon: "credit-card"
     featureFlag: "settlement"
@@ -238,19 +238,19 @@ seller:
           ar: "المدفوعات والتسويات"
         path: "/marketplace/seller-central/finance/settlements"
         icon: "dollar-sign"
-      
+
       - label:
           en: "Fee Schedule"
           ar: "جدول الرسوم"
         path: "/marketplace/seller-central/finance/fees"
         icon: "file-text"
-      
+
       - label:
           en: "Tax Invoices"
           ar: "الفواتير الضريبية"
         path: "/marketplace/seller-central/finance/invoices"
         icon: "receipt"
-  
+
   - section: "Customer Service"
     icon: "headphones"
     items:
@@ -260,14 +260,14 @@ seller:
         path: "/marketplace/seller-central/messages"
         icon: "mail"
         badge: "count"
-      
+
       - label:
           en: "Claims & Disputes"
           ar: "المطالبات والنزاعات"
         path: "/marketplace/seller-central/claims"
         icon: "alert-circle"
         featureFlag: "a_to_z_claims"
-  
+
   - section: "Settings"
     icon: "settings"
     items:
@@ -276,13 +276,13 @@ seller:
           ar: "إعدادات الحساب"
         path: "/marketplace/seller-central/settings"
         icon: "user-cog"
-      
+
       - label:
           en: "Shipping Settings"
           ar: "إعدادات الشحن"
         path: "/marketplace/seller-central/settings/shipping"
         icon: "truck"
-      
+
       - label:
           en: "Notification Preferences"
           ar: "تفضيلات الإشعارات"
@@ -300,13 +300,13 @@ admin:
           ar: "لوحة التحكم"
         path: "/marketplace/admin"
         icon: "layout-dashboard"
-      
+
       - label:
           en: "Overview & Metrics"
           ar: "النظرة العامة والمقاييس"
         path: "/marketplace/admin/overview"
         icon: "trending-up"
-  
+
   - section: "Catalog Management"
     icon: "package"
     roles: ["ADMIN", "MARKETPLACE_ADMIN"]
@@ -316,7 +316,7 @@ admin:
           ar: "الفئات والسمات"
         path: "/marketplace/admin/categories"
         icon: "folder"
-      
+
       - label:
           en: "Brand Registry"
           ar: "تسجيل العلامات التجارية"
@@ -324,13 +324,13 @@ admin:
         icon: "shield"
         badge: "pending"
         featureFlag: "brand_registry"
-      
+
       - label:
           en: "Product Compliance"
           ar: "توافق المنتجات"
         path: "/marketplace/admin/compliance"
         icon: "alert-triangle"
-  
+
   - section: "Seller Management"
     icon: "users"
     roles: ["ADMIN", "MARKETPLACE_ADMIN"]
@@ -340,28 +340,28 @@ admin:
           ar: "البائعون"
         path: "/marketplace/admin/sellers"
         icon: "briefcase"
-      
+
       - label:
           en: "KYC Verification"
           ar: "التحقق من الهوية"
         path: "/marketplace/admin/kyc"
         icon: "user-check"
         badge: "pending"
-      
+
       - label:
           en: "Account Health"
           ar: "صحة الحسابات"
         path: "/marketplace/admin/health"
         icon: "activity"
         featureFlag: "account_health"
-      
+
       - label:
           en: "Violations & Appeals"
           ar: "المخالفات والاستئنافات"
         path: "/marketplace/admin/violations"
         icon: "alert-octagon"
         badge: "pending"
-  
+
   - section: "Advertising"
     icon: "megaphone"
     roles: ["ADMIN", "MARKETPLACE_ADMIN"]
@@ -372,20 +372,20 @@ admin:
           ar: "نظرة عامة على الحملات"
         path: "/marketplace/admin/ads/campaigns"
         icon: "target"
-      
+
       - label:
           en: "Ad Review Queue"
           ar: "قائمة مراجعة الإعلانات"
         path: "/marketplace/admin/ads/review"
         icon: "eye"
         badge: "pending"
-      
+
       - label:
           en: "Performance Analytics"
           ar: "تحليل الأداء"
         path: "/marketplace/admin/ads/analytics"
         icon: "bar-chart"
-  
+
   - section: "Orders & Fulfillment"
     icon: "shopping-bag"
     roles: ["ADMIN", "MARKETPLACE_ADMIN"]
@@ -395,21 +395,21 @@ admin:
           ar: "الطلبات"
         path: "/marketplace/admin/orders"
         icon: "package"
-      
+
       - label:
           en: "FBF Inventory"
           ar: "مخزون FBF"
         path: "/marketplace/admin/fbf/inventory"
         icon: "warehouse"
         featureFlag: "fulfillment_by_fixzit"
-      
+
       - label:
           en: "Returns Center"
           ar: "مركز المرتجعات"
         path: "/marketplace/admin/returns"
         icon: "rotate-ccw"
         featureFlag: "returns_center"
-  
+
   - section: "Customer Support"
     icon: "headphones"
     roles: ["ADMIN", "MARKETPLACE_ADMIN", "DISPUTE_AGENT"]
@@ -421,20 +421,20 @@ admin:
         icon: "alert-circle"
         badge: "pending"
         featureFlag: "a_to_z_claims"
-      
+
       - label:
           en: "Disputes"
           ar: "النزاعات"
         path: "/marketplace/admin/disputes"
         icon: "gavel"
         badge: "pending"
-      
+
       - label:
           en: "IP Protection"
           ar: "حماية الملكية الفكرية"
         path: "/marketplace/admin/ip"
         icon: "copyright"
-  
+
   - section: "Finance"
     icon: "dollar-sign"
     roles: ["ADMIN", "FINANCE_OPS"]
@@ -445,25 +445,25 @@ admin:
           ar: "وحدة التسوية"
         path: "/marketplace/admin/settlements"
         icon: "credit-card"
-      
+
       - label:
           en: "Fee Management"
           ar: "إدارة الرسوم"
         path: "/marketplace/admin/fees"
         icon: "percent"
-      
+
       - label:
           en: "Payout Processing"
           ar: "معالجة المدفوعات"
         path: "/marketplace/admin/payouts"
         icon: "send"
-      
+
       - label:
           en: "VAT & Invoicing"
           ar: "ضريبة القيمة المضافة والفواتير"
         path: "/marketplace/admin/vat"
         icon: "receipt"
-  
+
   - section: "Reports & Analytics"
     icon: "bar-chart-2"
     roles: ["ADMIN", "MARKETPLACE_ADMIN"]
@@ -473,25 +473,25 @@ admin:
           ar: "ذكاء الأعمال"
         path: "/marketplace/admin/reports"
         icon: "pie-chart"
-      
+
       - label:
           en: "Sales Analytics"
           ar: "تحليل المبيعات"
         path: "/marketplace/admin/reports/sales"
         icon: "trending-up"
-      
+
       - label:
           en: "Seller Performance"
           ar: "أداء البائعين"
         path: "/marketplace/admin/reports/sellers"
         icon: "users"
-      
+
       - label:
           en: "Search Analytics"
           ar: "تحليل البحث"
         path: "/marketplace/admin/reports/search"
         icon: "search"
-  
+
   - section: "Configuration"
     icon: "sliders"
     roles: ["ADMIN"]
@@ -501,19 +501,19 @@ admin:
           ar: "إعدادات السوق"
         path: "/marketplace/admin/settings"
         icon: "settings"
-      
+
       - label:
           en: "Feature Flags"
           ar: "أعلام الميزات"
         path: "/marketplace/admin/feature-flags"
         icon: "flag"
-      
+
       - label:
           en: "Policy Manager"
           ar: "مدير السياسات"
         path: "/marketplace/admin/policies"
         icon: "file-text"
-      
+
       - label:
           en: "Audit Logs"
           ar: "سجلات التدقيق"
@@ -530,13 +530,13 @@ rfq:
           ar: "طلبات عروض الأسعار"
         path: "/marketplace/rfq"
         icon: "clipboard-list"
-      
+
       - label:
           en: "Create RFQ"
           ar: "إنشاء طلب عرض سعر"
         path: "/marketplace/rfq/create"
         icon: "plus-circle"
-      
+
       - label:
           en: "Browse Requests"
           ar: "تصفح الطلبات"
@@ -551,13 +551,13 @@ public:
       ar: "تصفح السوق"
     path: "/marketplace"
     icon: "store"
-  
+
   - label:
       en: "Become a Seller"
       ar: "كن بائعًا"
     path: "/marketplace/seller-central/register"
     icon: "briefcase"
-  
+
   - label:
       en: "Help Center"
       ar: "مركز المساعدة"

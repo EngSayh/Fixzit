@@ -121,7 +121,7 @@ paths:
             enum: [en, ar]
             default: en
       responses:
-        '200':
+        "200":
           description: Search results retrieved successfully
           content:
             application/json:
@@ -135,11 +135,11 @@ paths:
                   results:
                     type: array
                     items:
-                      $ref: '#/components/schemas/MarketplaceSearchResult'
+                      $ref: "#/components/schemas/MarketplaceSearchResult"
                   pagination:
-                    $ref: '#/components/schemas/PaginationInfo'
+                    $ref: "#/components/schemas/PaginationInfo"
                   facets:
-                    $ref: '#/components/schemas/SearchFacets'
+                    $ref: "#/components/schemas/SearchFacets"
                   searchMetadata:
                     type: object
                     properties:
@@ -150,12 +150,12 @@ paths:
                         description: Search execution time in milliseconds
                       totalResults:
                         type: integer
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/ServerError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
 
   /marketplace/products/{slug}:
     get:
@@ -185,22 +185,22 @@ paths:
             enum: [en, ar]
             default: en
       responses:
-        '200':
+        "200":
           description: Product details retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MarketplaceProduct'
-        '404':
+                $ref: "#/components/schemas/MarketplaceProduct"
+        "404":
           description: Product not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/ServerError'
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
 
   /marketplace/products:
     get:
@@ -232,7 +232,7 @@ paths:
             default: 20
             maximum: 100
       responses:
-        '200':
+        "200":
           description: Products retrieved successfully
           content:
             application/json:
@@ -242,9 +242,9 @@ paths:
                   products:
                     type: array
                     items:
-                      $ref: '#/components/schemas/MarketplaceProduct'
+                      $ref: "#/components/schemas/MarketplaceProduct"
                   pagination:
-                    $ref: '#/components/schemas/PaginationInfo'
+                    $ref: "#/components/schemas/PaginationInfo"
 
   /marketplace/vendors/{vendorId}:
     get:
@@ -264,12 +264,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Vendor profile retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VendorProfile'
+                $ref: "#/components/schemas/VendorProfile"
 
   /marketplace/rfq:
     post:
@@ -285,20 +285,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateRFQRequest'
+              $ref: "#/components/schemas/CreateRFQRequest"
       responses:
-        '201':
+        "201":
           description: RFQ created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RFQResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/ServerError'
+                $ref: "#/components/schemas/RFQResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/ServerError"
 
 components:
   securitySchemes:
@@ -494,7 +494,7 @@ components:
           items:
             type: string
         vendor:
-          $ref: '#/components/schemas/VendorInfo'
+          $ref: "#/components/schemas/VendorInfo"
         createdAt:
           type: string
           format: date-time
@@ -705,21 +705,21 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     Unauthorized:
       description: Unauthorized - invalid or missing authentication
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
     ServerError:
       description: Internal server error
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
 
 tags:
   - name: Marketplace Search

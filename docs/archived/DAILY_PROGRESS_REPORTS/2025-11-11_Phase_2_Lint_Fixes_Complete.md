@@ -22,6 +22,7 @@ Successfully achieved **ZERO WARNINGS** policy compliance by fixing all 14 ESLin
 **Problem**: Using `any` type defeats TypeScript's type safety
 
 **Files Fixed**:
+
 1. `app/api/owner/statements/route.ts` (4 warnings)
 2. `app/api/owner/units/[unitId]/history/route.ts` (3 warnings)
 3. `server/models/owner/Delegation.ts` (5 warnings)
@@ -33,7 +34,7 @@ Successfully achieved **ZERO WARNINGS** policy compliance by fixing all 14 ESLin
 
 ```typescript
 payments.forEach((payment: any) => {
-  const property = propertyMap.get(payment.propertyId?.toString() || '');
+  const property = propertyMap.get(payment.propertyId?.toString() || "");
   // ...
 });
 ```
@@ -42,21 +43,22 @@ payments.forEach((payment: any) => {
 
 ```typescript
 payments.forEach((payment: unknown) => {
-  const p = payment as { 
-    propertyId?: { toString(): string }, 
-    paymentDate: Date, 
-    tenantName?: string, 
-    amount: number, 
-    reference?: string, 
-    _id?: { toString(): string }, 
-    unitNumber?: string 
+  const p = payment as {
+    propertyId?: { toString(): string };
+    paymentDate: Date;
+    tenantName?: string;
+    amount: number;
+    reference?: string;
+    _id?: { toString(): string };
+    unitNumber?: string;
   };
-  const property = propertyMap.get(p.propertyId?.toString() || '');
+  const property = propertyMap.get(p.propertyId?.toString() || "");
   // ...
 });
 ```
 
 **Impact**:
+
 - ✅ Full type safety restored
 - ✅ No runtime behavior changes
 - ✅ Better IDE autocomplete
@@ -74,7 +76,7 @@ payments.forEach((payment: unknown) => {
 // Before
 function hasPermission(user, permission) { ... }
 
-// After  
+// After
 function _hasPermission(user, permission) { ... }
 ```
 
@@ -185,19 +187,19 @@ function _hasPermission(user: SessionUser | null, permission: string): boolean {
 // Activity filtering (Lines 207-208)
 this.statistics.approvals = this.activities.filter((a: unknown) => {
   const activity = a as { action?: string };
-  return activity?.action?.includes('APPROVED');
+  return activity?.action?.includes("APPROVED");
 }).length;
 
 this.statistics.rejections = this.activities.filter((a: unknown) => {
   const activity = a as { action?: string };
-  return activity?.action?.includes('REJECTED');
+  return activity?.action?.includes("REJECTED");
 }).length;
 
 // Amount aggregation (Lines 210-211)
 this.statistics.totalAmountApproved = this.activities
   .filter((a: unknown) => {
-    const activity = a as { action?: string, amount?: number };
-    return activity?.action?.includes('APPROVED') && activity?.amount;
+    const activity = a as { action?: string; amount?: number };
+    return activity?.action?.includes("APPROVED") && activity?.amount;
   })
   .reduce((sum: number, a: unknown) => {
     const activity = a as { amount?: number };
@@ -205,7 +207,9 @@ this.statistics.totalAmountApproved = this.activities
   }, 0);
 
 // Last activity access (Line 214)
-const lastActivity = this.activities[this.activities.length - 1] as { performedAt?: Date };
+const lastActivity = this.activities[this.activities.length - 1] as {
+  performedAt?: Date;
+};
 if (lastActivity?.performedAt) {
   this.statistics.lastActivityDate = lastActivity.performedAt;
 }
@@ -223,7 +227,7 @@ if (lastActivity?.performedAt) {
 // Photo filtering
 const afterPhotos = (issue.photos || []).filter((p: unknown) => {
   const photo = p as { timestamp?: string };
-  return photo.timestamp === 'AFTER';
+  return photo.timestamp === "AFTER";
 });
 ```
 
@@ -306,7 +310,7 @@ Author: Eng. Sultan Al Hassni
 Date:   Mon Nov 11 06:14:45 2025 +0000
 
     fix(lint): Remove all `any` types and unused variables - zero warnings
-    
+
     Fixed 14 ESLint warnings across 5 files
     Result: pnpm lint --max-warnings=0 now passes ✅
     Addresses: CodeRabbit PR #273 Section E (Code Health - Zero Warnings)
@@ -321,6 +325,7 @@ Date:   Mon Nov 11 06:14:45 2025 +0000
 **Requirement**: "Zero warnings (warnings = errors in this PR)"
 
 **Delivered**:
+
 - ✅ All 14 ESLint warnings fixed
 - ✅ `pnpm lint --max-warnings=0` passes
 - ✅ `pnpm typecheck` passes (0 errors)

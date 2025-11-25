@@ -1,16 +1,26 @@
 /**
  * Souq Transaction MongoDB Model
- * 
+ *
  * Stores seller transaction history for balance tracking.
  */
 
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 export interface ISouqTransaction extends Document {
   transactionId: string;
   sellerId: mongoose.Types.ObjectId;
   orderId?: string;
-  type: 'sale' | 'refund' | 'commission' | 'gateway_fee' | 'vat' | 'reserve_hold' | 'reserve_release' | 'withdrawal' | 'adjustment' | 'chargeback';
+  type:
+    | "sale"
+    | "refund"
+    | "commission"
+    | "gateway_fee"
+    | "vat"
+    | "reserve_hold"
+    | "reserve_release"
+    | "withdrawal"
+    | "adjustment"
+    | "chargeback";
   amount: number;
   balanceBefore: number;
   balanceAfter: number;
@@ -32,7 +42,7 @@ const SouqTransactionSchema = new Schema<ISouqTransaction>(
     sellerId: {
       type: Schema.Types.ObjectId,
       required: true,
-      ref: 'User',
+      ref: "User",
       index: true,
     },
     orderId: {
@@ -43,16 +53,16 @@ const SouqTransactionSchema = new Schema<ISouqTransaction>(
       type: String,
       required: true,
       enum: [
-        'sale',
-        'refund',
-        'commission',
-        'gateway_fee',
-        'vat',
-        'reserve_hold',
-        'reserve_release',
-        'withdrawal',
-        'adjustment',
-        'chargeback',
+        "sale",
+        "refund",
+        "commission",
+        "gateway_fee",
+        "vat",
+        "reserve_hold",
+        "reserve_release",
+        "withdrawal",
+        "adjustment",
+        "chargeback",
       ],
       index: true,
     },
@@ -77,13 +87,13 @@ const SouqTransactionSchema = new Schema<ISouqTransaction>(
     },
     createdBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
     },
   },
   {
     timestamps: true,
-    collection: 'souq_transactions',
-  }
+    collection: "souq_transactions",
+  },
 );
 
 // Indexes
@@ -92,4 +102,4 @@ SouqTransactionSchema.index({ sellerId: 1, type: 1, createdAt: -1 });
 
 export const SouqTransaction =
   (mongoose.models.SouqTransaction as mongoose.Model<ISouqTransaction>) ||
-  mongoose.model<ISouqTransaction>('SouqTransaction', SouqTransactionSchema);
+  mongoose.model<ISouqTransaction>("SouqTransaction", SouqTransactionSchema);

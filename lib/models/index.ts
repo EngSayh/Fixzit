@@ -1,5 +1,5 @@
 // MongoDB Models with TypeScript interfaces
-import type { ObjectId } from 'mongodb';
+import type { ObjectId } from "mongodb";
 
 export interface Tenant {
   _id?: string;
@@ -24,20 +24,20 @@ export interface User {
 }
 
 export enum Role {
-  SUPER_ADMIN = 'SUPER_ADMIN',
-  CORPORATE_ADMIN = 'CORPORATE_ADMIN',
-  FINANCE = 'FINANCE',
-  HR = 'HR',
-  ADMIN = 'ADMIN',
-  CRM = 'CRM',
-  FM_MANAGER = 'FM_MANAGER',
-  TECHNICIAN = 'TECHNICIAN',
-  VENDOR = 'VENDOR',
-  TENANT = 'TENANT',
-  OWNER = 'OWNER',
-  SUPPORT = 'SUPPORT',
-  PROCUREMENT = 'PROCUREMENT',
-  AUDITOR = 'AUDITOR'
+  SUPER_ADMIN = "SUPER_ADMIN",
+  CORPORATE_ADMIN = "CORPORATE_ADMIN",
+  FINANCE = "FINANCE",
+  HR = "HR",
+  ADMIN = "ADMIN",
+  CRM = "CRM",
+  FM_MANAGER = "FM_MANAGER",
+  TECHNICIAN = "TECHNICIAN",
+  VENDOR = "VENDOR",
+  TENANT = "TENANT",
+  OWNER = "OWNER",
+  SUPPORT = "SUPPORT",
+  PROCUREMENT = "PROCUREMENT",
+  AUDITOR = "AUDITOR",
 }
 
 export interface Property {
@@ -72,19 +72,19 @@ export interface WorkOrder {
 }
 
 export enum WOStatus {
-  NEW = 'NEW',
-  ASSIGNED = 'ASSIGNED',
-  IN_PROGRESS = 'IN_PROGRESS',
-  ON_HOLD = 'ON_HOLD',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED'
+  NEW = "NEW",
+  ASSIGNED = "ASSIGNED",
+  IN_PROGRESS = "IN_PROGRESS",
+  ON_HOLD = "ON_HOLD",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
 }
 
 export enum WOPriority {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM',
-  HIGH = 'HIGH',
-  CRITICAL = 'CRITICAL'
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
+  CRITICAL = "CRITICAL",
 }
 
 // Marketplace Models
@@ -189,13 +189,13 @@ export interface Address {
 }
 
 export enum OrderStatus {
-  PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
-  PROCESSING = 'PROCESSING',
-  SHIPPED = 'SHIPPED',
-  DELIVERED = 'DELIVERED',
-  CANCELLED = 'CANCELLED',
-  REFUNDED = 'REFUNDED'
+  PENDING = "PENDING",
+  CONFIRMED = "CONFIRMED",
+  PROCESSING = "PROCESSING",
+  SHIPPED = "SHIPPED",
+  DELIVERED = "DELIVERED",
+  CANCELLED = "CANCELLED",
+  REFUNDED = "REFUNDED",
 }
 
 export interface Invoice {
@@ -227,11 +227,11 @@ export interface InvoiceLine {
 }
 
 export enum InvoiceStatus {
-  DRAFT = 'DRAFT',
-  ISSUED = 'ISSUED',
-  PAID = 'PAID',
-  OVERDUE = 'OVERDUE',
-  CANCELLED = 'CANCELLED'
+  DRAFT = "DRAFT",
+  ISSUED = "ISSUED",
+  PAID = "PAID",
+  OVERDUE = "OVERDUE",
+  CANCELLED = "CANCELLED",
 }
 
 // Marketplace - RFQ
@@ -264,10 +264,10 @@ export interface Bid {
 }
 
 export enum RFQStatus {
-  OPEN = 'OPEN',
-  CLOSED = 'CLOSED',
-  AWARDED = 'AWARDED',
-  CANCELLED = 'CANCELLED'
+  OPEN = "OPEN",
+  CLOSED = "CLOSED",
+  AWARDED = "AWARDED",
+  CANCELLED = "CANCELLED",
 }
 
 export interface Review {
@@ -286,13 +286,13 @@ export interface Review {
 export interface NotificationDoc {
   id?: ObjectId | string;
   tenantId: string;
-  type: 'work-order' | 'vendor' | 'payment' | 'maintenance' | 'system' | string;
+  type: "work-order" | "vendor" | "payment" | "maintenance" | "system" | string;
   title: string;
   message: string;
   timestamp: string;
   read: boolean;
-  priority: 'low' | 'medium' | 'high';
-  category: 'maintenance' | 'vendor' | 'finance' | 'system' | string;
+  priority: "low" | "medium" | "high";
+  category: "maintenance" | "vendor" | "finance" | "system" | string;
   archived?: boolean;
   targetUrl?: string; // Optional deep link for notification
 }

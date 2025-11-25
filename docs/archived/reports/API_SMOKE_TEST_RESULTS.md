@@ -13,6 +13,7 @@
 📊 **Overall Status**: **Needs Error Handling Fixes**
 
 ### Key Findings
+
 - **No TypeScript runtime crashes** - all endpoints compiled and responded
 - **Authentication working correctly** on 5 endpoints (401 responses)
 - **Error handling inconsistent** - some routes throw 500 instead of 401
@@ -25,13 +26,13 @@
 
 ### ✅ Passing (Auth Required - Expected Behavior)
 
-| Endpoint | Status | Response Time | Notes |
-|----------|--------|---------------|-------|
-| `/api/properties` | 🔐 401 | 1408ms | Correct auth check |
-| `/api/work-orders` | 🔐 401 | 804ms | Correct auth check |
-| `/api/souq/listings` | 🔐 401 | 944ms | Correct auth check |
-| `/api/hr/employees` | 🔐 401 | 615ms | Correct auth check (import path fixed ✅) |
-| `/api/projects` | 🔐 401 | 724ms | Correct auth check |
+| Endpoint             | Status | Response Time | Notes                                     |
+| -------------------- | ------ | ------------- | ----------------------------------------- |
+| `/api/properties`    | 🔐 401 | 1408ms        | Correct auth check                        |
+| `/api/work-orders`   | 🔐 401 | 804ms         | Correct auth check                        |
+| `/api/souq/listings` | 🔐 401 | 944ms         | Correct auth check                        |
+| `/api/hr/employees`  | 🔐 401 | 615ms         | Correct auth check (import path fixed ✅) |
+| `/api/projects`      | 🔐 401 | 724ms         | Correct auth check                        |
 
 **Analysis**: These routes properly handle unauthenticated requests by returning 401 status. This is expected behavior and indicates no runtime errors from TypeScript casts.
 
@@ -41,16 +42,17 @@
 
 #### 1. Error Handling Issues (500 Errors - Should be 401)
 
-| Endpoint | Status | Issue | Error Type |
-|----------|--------|-------|------------|
+| Endpoint                | Status | Issue                                                   | Error Type     |
+| ----------------------- | ------ | ------------------------------------------------------- | -------------- |
 | `/api/finance/invoices` | ❌ 500 | Throws "Unauthenticated" error instead of returning 401 | Error handling |
 | `/api/finance/expenses` | ❌ 500 | Throws "Unauthenticated" error instead of returning 401 | Error handling |
-| `/api/rfqs` | ❌ 500 | Throws "Unauthenticated" error instead of returning 401 | Error handling |
-| `/api/vendors` | ❌ 500 | Throws "Unauthenticated" error instead of returning 401 | Error handling |
+| `/api/rfqs`             | ❌ 500 | Throws "Unauthenticated" error instead of returning 401 | Error handling |
+| `/api/vendors`          | ❌ 500 | Throws "Unauthenticated" error instead of returning 401 | Error handling |
 
 **Root Cause**: These endpoints call `getSessionUser()` which throws an error instead of returning 401 status. The error is not caught by a try-catch block.
 
 **Example Stack Trace**:
+
 ```
 Error: Unauthenticated
     at getSessionUser (/.next/server/chunks/[root-of-the-server]__721a340e._.js:3824:11)
@@ -58,6 +60,7 @@ Error: Unauthenticated
 ```
 
 **Recommended Fix**:
+
 ```typescript
 // In each affected route.ts:
 export async function GET(req: Request) {
@@ -65,8 +68,8 @@ export async function GET(req: Request) {
     const session = await getSessionUser();
     // ... rest of logic
   } catch (error) {
-    if (error.message === 'Unauthenticated') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (error.message === "Unauthenticated") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     throw error;
   }
@@ -77,13 +80,14 @@ export async function GET(req: Request) {
 
 #### 2. Missing Route (404 Error)
 
-| Endpoint | Status | Issue |
-|----------|--------|-------|
+| Endpoint             | Status | Issue                    |
+| -------------------- | ------ | ------------------------ |
 | `/api/souq/products` | ❌ 404 | Route file doesn't exist |
 
 **Root Cause**: The file `app/api/souq/products/route.ts` may not exist, or Next.js failed to pick it up during compilation.
 
-**Recommended Action**: 
+**Recommended Action**:
+
 1. Check if file exists: `app/api/souq/products/route.ts`
 2. If exists, verify it exports GET handler
 3. If missing, check if route should be `/api/souq/catalog/products` instead
@@ -92,13 +96,14 @@ export async function GET(req: Request) {
 
 #### 3. Access Control Issue (403 Error)
 
-| Endpoint | Status | Issue |
-|----------|--------|-------|
+| Endpoint            | Status | Issue                           |
+| ------------------- | ------ | ------------------------------- |
 | `/api/crm/contacts` | ❌ 403 | Forbidden - possible RBAC issue |
 
 **Root Cause**: Endpoint may have role-based access control that rejects requests without proper role/permissions.
 
 **Recommended Action**:
+
 1. Check if endpoint requires specific role (e.g., CRM_ADMIN)
 2. Verify RBAC middleware configuration
 3. Confirm if 403 is intended behavior for unauthenticated requests (typically should be 401)
@@ -107,12 +112,12 @@ export async function GET(req: Request) {
 
 ## Performance Metrics
 
-| Metric | Value |
-|--------|-------|
-| **Average Response Time** | 1743ms |
-| **Fastest Endpoint** | `/api/crm/contacts` (75ms) |
-| **Slowest Endpoint** | `/api/souq/products` (10267ms - 404 rendered not-found page) |
-| **Median Response Time (excl. 404)** | ~800ms |
+| Metric                               | Value                                                        |
+| ------------------------------------ | ------------------------------------------------------------ |
+| **Average Response Time**            | 1743ms                                                       |
+| **Fastest Endpoint**                 | `/api/crm/contacts` (75ms)                                   |
+| **Slowest Endpoint**                 | `/api/souq/products` (10267ms - 404 rendered not-found page) |
+| **Median Response Time (excl. 404)** | ~800ms                                                       |
 
 **Note**: Response times are higher than typical production because dev server compiles routes on first request.
 
@@ -125,6 +130,7 @@ export async function GET(req: Request) {
 ✅ **PASSED**: Batch 3 fixes (finance tests, modules, services) working correctly
 
 **Files Tested & Verified**:
+
 - `app/api/properties/route.ts` - ✅ Working
 - `app/api/work-orders/route.ts` - ✅ Working
 - `app/api/finance/invoices/route.ts` - ⚠️ Works but needs error handling
@@ -141,9 +147,11 @@ export async function GET(req: Request) {
 ## Next Steps
 
 ### Priority 1: Error Handling Consistency
+
 **Estimated Time**: 1-2 hours
 
 Fix the 4 routes returning 500 errors:
+
 1. Add try-catch blocks around `getSessionUser()` calls
 2. Return 401 responses instead of throwing errors
 3. Pattern to apply:
@@ -151,17 +159,19 @@ Fix the 4 routes returning 500 errors:
    try {
      const session = await getSessionUser();
    } catch (error) {
-     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
    }
    ```
 
 **Affected Files**:
+
 - `app/api/finance/invoices/route.ts`
 - `app/api/finance/expenses/route.ts`
 - `app/api/rfqs/route.ts`
 - `app/api/vendors/route.ts`
 
 ### Priority 2: Missing Route Investigation
+
 **Estimated Time**: 30 minutes
 
 1. Verify `/api/souq/products` route exists
@@ -169,6 +179,7 @@ Fix the 4 routes returning 500 errors:
 3. Add route if missing, or update test script
 
 ### Priority 3: RBAC Review
+
 **Estimated Time**: 30 minutes
 
 1. Review `/api/crm/contacts` RBAC configuration
@@ -179,12 +190,14 @@ Fix the 4 routes returning 500 errors:
 
 ## Conclusion
 
-**TypeScript Cleanup**: ✅ **100% SUCCESS**  
+**TypeScript Cleanup**: ✅ **100% SUCCESS**
+
 - Zero compilation errors achieved (283→0)
 - No runtime crashes from type casts
 - All endpoints compile and respond
 
-**Error Handling**: ⚠️ **NEEDS IMPROVEMENT**  
+**Error Handling**: ⚠️ **NEEDS IMPROVEMENT**
+
 - 4 routes need try-catch blocks for auth errors
 - 1 route missing (404)
 - 1 route needs RBAC review (403)

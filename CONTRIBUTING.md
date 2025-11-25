@@ -11,12 +11,14 @@ Run the setup script to install pre-commit hooks:
 ```
 
 This installs a pre-commit hook that:
+
 - ✅ Runs translation audit before every commit
 - ✅ Ensures 100% EN-AR parity
 - ✅ Validates all translation keys in code are present in catalogs
 - ✅ Blocks commits if gaps are detected
 
 **To bypass the hook** (emergency only):
+
 ```bash
 git commit --no-verify
 ```
@@ -26,35 +28,39 @@ git commit --no-verify
 #### Adding New Translation Keys
 
 1. **Add to both catalogs** (`contexts/TranslationContext.tsx`):
+
    ```typescript
    // English catalog
    const catalogEN = {
-     'module.category.key': 'English Text',
+     "module.category.key": "English Text",
      // ...
    };
-   
+
    // Arabic catalog
    const catalogAR = {
-     'module.category.key': 'النص العربي',
+     "module.category.key": "النص العربي",
      // ...
    };
    ```
 
 2. **Use namespaced keys** (not direct strings):
+
    ```typescript
    // ✅ Correct
-   t('finance.payment.bankName')
-   
+   t("finance.payment.bankName");
+
    // ❌ Wrong
-   t('Bank Name')
+   t("Bank Name");
    ```
 
 3. **Run audit before committing**:
+
    ```bash
    node scripts/audit-translations.mjs
    ```
 
 4. **Fix any gaps detected**:
+
    ```bash
    node scripts/audit-translations.mjs --fix
    ```
@@ -77,16 +83,19 @@ git commit --no-verify
 ### 3. Development Workflow
 
 #### Create Feature Branch
+
 ```bash
 git checkout -b feat/<task-name>
 ```
 
 #### Make Changes
+
 - Write code following TypeScript strict mode
 - Add tests for new features
 - Update translations if adding UI text
 
 #### Verify Changes
+
 ```bash
 # Type checking
 pnpm typecheck
@@ -102,17 +111,20 @@ pnpm build
 ```
 
 #### Commit Changes
+
 ```bash
 git add -A
 git commit -m "feat(module): Description"
 ```
 
 Pre-commit hook will automatically:
+
 - Run translation audit
 - Block commit if gaps detected
 - Show helpful error messages
 
 #### Push and Create PR
+
 ```bash
 git push -u origin HEAD
 gh pr create --fill --draft
@@ -129,6 +141,7 @@ gh pr create --fill --draft
 ```
 
 **Types**:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation only
@@ -141,6 +154,7 @@ gh pr create --fill --draft
 - `revert`: Revert previous commit
 
 **Examples**:
+
 ```
 feat(i18n): Add complete translation coverage for finance module
 
@@ -164,6 +178,7 @@ Resolves ISSUE-SEC-003
 ### 5. Code Quality Standards
 
 #### TypeScript
+
 - ✅ Strict mode enabled
 - ✅ No implicit `any`
 - ✅ Proper types for all variables
@@ -172,6 +187,7 @@ Resolves ISSUE-SEC-003
 - ✅ Null safety with optional chaining (`?.`)
 
 #### React
+
 - ✅ Functional components only
 - ✅ Hooks for state management
 - ✅ Error boundaries for route components
@@ -179,6 +195,7 @@ Resolves ISSUE-SEC-003
 - ✅ Keyboard navigation support
 
 #### Performance
+
 - ✅ Lazy loading with `React.lazy()` and `Suspense`
 - ✅ Memoization with `useMemo`, `useCallback`
 - ✅ Pagination for large datasets
@@ -187,22 +204,26 @@ Resolves ISSUE-SEC-003
 ### 6. Module-Specific Rules
 
 #### Finance Module
+
 - Use `Decimal` type for monetary values (not `number`)
 - Include currency code with amounts: `{ amount: 100, currency: 'OMR' }`
 - Log all transactions with audit trail
 - Double-entry accounting for transactions
 
 #### HR Module
+
 - Encrypt PII (SSN, salary, bank accounts)
 - Verify role-based permissions
 - Audit log for all HR actions
 
 #### Property Management (Aqar)
+
 - Include coordinates for all properties
 - Maintain unit hierarchy (Property > Building > Floor > Unit)
 - Track occupancy status accurately
 
 #### Work Orders
+
 - Calculate SLA on every status change
 - Priority inheritance from property criticality
 - Auto-assignment based on category and vendor availability
@@ -210,16 +231,19 @@ Resolves ISSUE-SEC-003
 ### 7. Security Guidelines
 
 #### Authentication
+
 - Never expose tokens in logs or commits
 - Store session tokens in HTTP-only cookies
 - Implement CSRF protection
 
 #### Authorization
+
 - Check permissions server-side
 - Principle of least privilege
 - Role hierarchy: SUPER_ADMIN > ADMIN > MANAGER > USER
 
 #### Data Protection
+
 - Encrypt PII at rest
 - Validate and sanitize all inputs
 - Implement rate limiting
@@ -227,6 +251,7 @@ Resolves ISSUE-SEC-003
 ### 8. Testing
 
 #### Running Tests
+
 ```bash
 # All tests
 pnpm test
@@ -242,6 +267,7 @@ pnpm test:coverage
 ```
 
 #### Writing Tests
+
 - Test filename: `<component>.test.tsx`
 - Location: `tests/unit/` or `tests/e2e/`
 - Coverage target: >80%
@@ -249,6 +275,7 @@ pnpm test:coverage
 ### 9. Pre-commit Checklist
 
 Before committing, ensure:
+
 - [ ] `pnpm typecheck` passes (0 errors)
 - [ ] `pnpm lint` passes (0 errors)
 - [ ] `pnpm test` passes (all tests)
@@ -260,6 +287,7 @@ Before committing, ensure:
 ### 10. PR Checklist
 
 Before requesting review:
+
 - [ ] All tests pass (unit + E2E)
 - [ ] Code coverage >80%
 - [ ] No critical/major security issues
@@ -271,6 +299,7 @@ Before requesting review:
 ### 11. Emergency Procedures
 
 #### Production Incident
+
 1. Rollback immediately: `git revert` or redeploy previous version
 2. Create incident report
 3. Fix forward with hotfix branch
@@ -278,6 +307,7 @@ Before requesting review:
 5. Post-mortem documentation
 
 #### Data Loss Prevention
+
 - Never run `DELETE` without `WHERE` clause
 - Always backup before migrations
 - Test migrations on staging first

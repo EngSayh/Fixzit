@@ -1,6 +1,6 @@
 /**
  * NATS Event Type Definitions
- * 
+ *
  * This file defines the structure of all events published to NATS.
  * Type-safe event schemas help maintain consistency across services.
  */
@@ -9,7 +9,7 @@
  * Product lifecycle events
  */
 export type ProductCreatedEvent = {
-  type: 'product.created';
+  type: "product.created";
   productId: string;
   fsin: string;
   orgId: string;
@@ -21,7 +21,7 @@ export type ProductCreatedEvent = {
 };
 
 export type ProductUpdatedEvent = {
-  type: 'product.updated';
+  type: "product.updated";
   productId: string;
   fsin: string;
   orgId: string;
@@ -30,7 +30,7 @@ export type ProductUpdatedEvent = {
 };
 
 export type ProductDeletedEvent = {
-  type: 'product.deleted';
+  type: "product.deleted";
   productId: string;
   fsin: string;
   orgId: string;
@@ -41,7 +41,7 @@ export type ProductDeletedEvent = {
  * Order lifecycle events
  */
 export type OrderPlacedEvent = {
-  type: 'order.placed';
+  type: "order.placed";
   orderId: string;
   customerId: string;
   orgId: string;
@@ -56,7 +56,7 @@ export type OrderPlacedEvent = {
 };
 
 export type OrderShippedEvent = {
-  type: 'order.shipped';
+  type: "order.shipped";
   orderId: string;
   customerId: string;
   orgId: string;
@@ -65,7 +65,7 @@ export type OrderShippedEvent = {
 };
 
 export type OrderDeliveredEvent = {
-  type: 'order.delivered';
+  type: "order.delivered";
   orderId: string;
   customerId: string;
   orgId: string;
@@ -73,7 +73,7 @@ export type OrderDeliveredEvent = {
 };
 
 export type OrderCancelledEvent = {
-  type: 'order.cancelled';
+  type: "order.cancelled";
   orderId: string;
   customerId: string;
   orgId: string;
@@ -85,7 +85,7 @@ export type OrderCancelledEvent = {
  * Invoice lifecycle events
  */
 export type InvoicePaidEvent = {
-  type: 'invoice.paid';
+  type: "invoice.paid";
   invoiceId: string;
   invoiceNumber: string;
   orgId: string;
@@ -96,7 +96,7 @@ export type InvoicePaidEvent = {
 };
 
 export type InvoiceOverdueEvent = {
-  type: 'invoice.overdue';
+  type: "invoice.overdue";
   invoiceId: string;
   invoiceNumber: string;
   orgId: string;
@@ -111,17 +111,17 @@ export type InvoiceOverdueEvent = {
  * Work order events
  */
 export type WorkOrderCreatedEvent = {
-  type: 'workorder.created';
+  type: "workorder.created";
   workOrderId: string;
   workOrderNumber: string;
   orgId: string;
   propertyId?: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  priority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   createdAt: string;
 };
 
 export type WorkOrderAssignedEvent = {
-  type: 'workorder.assigned';
+  type: "workorder.assigned";
   workOrderId: string;
   workOrderNumber: string;
   orgId: string;
@@ -131,7 +131,7 @@ export type WorkOrderAssignedEvent = {
 };
 
 export type WorkOrderCompletedEvent = {
-  type: 'workorder.completed';
+  type: "workorder.completed";
   workOrderId: string;
   workOrderNumber: string;
   orgId: string;
@@ -143,19 +143,19 @@ export type WorkOrderCompletedEvent = {
  * Payment events
  */
 export type PaymentProcessedEvent = {
-  type: 'payment.processed';
+  type: "payment.processed";
   paymentId: string;
   invoiceId?: string;
   orgId: string;
   amount: number;
   currency: string;
   method: string;
-  status: 'SUCCESS' | 'FAILED' | 'PENDING';
+  status: "SUCCESS" | "FAILED" | "PENDING";
   processedAt: string;
 };
 
 export type PaymentRefundedEvent = {
-  type: 'payment.refunded';
+  type: "payment.refunded";
   paymentId: string;
   invoiceId?: string;
   orgId: string;
@@ -189,32 +189,32 @@ export type NatsEvent =
  */
 export const EventSubjects = {
   PRODUCT: {
-    ALL: 'product.*',
-    CREATED: 'product.created',
-    UPDATED: 'product.updated',
-    DELETED: 'product.deleted',
+    ALL: "product.*",
+    CREATED: "product.created",
+    UPDATED: "product.updated",
+    DELETED: "product.deleted",
   },
   ORDER: {
-    ALL: 'order.*',
-    PLACED: 'order.placed',
-    SHIPPED: 'order.shipped',
-    DELIVERED: 'order.delivered',
-    CANCELLED: 'order.cancelled',
+    ALL: "order.*",
+    PLACED: "order.placed",
+    SHIPPED: "order.shipped",
+    DELIVERED: "order.delivered",
+    CANCELLED: "order.cancelled",
   },
   INVOICE: {
-    ALL: 'invoice.*',
-    PAID: 'invoice.paid',
-    OVERDUE: 'invoice.overdue',
+    ALL: "invoice.*",
+    PAID: "invoice.paid",
+    OVERDUE: "invoice.overdue",
   },
   WORKORDER: {
-    ALL: 'workorder.*',
-    CREATED: 'workorder.created',
-    ASSIGNED: 'workorder.assigned',
-    COMPLETED: 'workorder.completed',
+    ALL: "workorder.*",
+    CREATED: "workorder.created",
+    ASSIGNED: "workorder.assigned",
+    COMPLETED: "workorder.completed",
   },
   PAYMENT: {
-    ALL: 'payment.*',
-    PROCESSED: 'payment.processed',
-    REFUNDED: 'payment.refunded',
+    ALL: "payment.*",
+    PROCESSED: "payment.processed",
+    REFUNDED: "payment.refunded",
   },
 } as const;

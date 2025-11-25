@@ -1,11 +1,11 @@
 /**
  * ReviewForm Component - Submit/edit product reviews
  */
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Star } from 'lucide-react';
-import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import React, { useState } from "react";
+import { Star } from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 export interface ReviewFormData {
   rating: number;
@@ -35,35 +35,41 @@ export function ReviewForm({
 }: ReviewFormProps) {
   const [rating, setRating] = useState(initialData?.rating || 0);
   const [hoveredRating, setHoveredRating] = useState(0);
-  const [title, setTitle] = useState(initialData?.title || '');
-  const [content, setContent] = useState(initialData?.content || '');
-  const [pros, setPros] = useState<string[]>(initialData?.pros || ['']);
-  const [cons, setCons] = useState<string[]>(initialData?.cons || ['']);
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [content, setContent] = useState(initialData?.content || "");
+  const [pros, setPros] = useState<string[]>(initialData?.pros || [""]);
+  const [cons, setCons] = useState<string[]>(initialData?.cons || [""]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const auto = useAutoTranslator('seller.reviewForm');
-  const defaultSubmitError = auto('Failed to submit review', 'errors.submitFailed');
+  const [error, setError] = useState("");
+  const auto = useAutoTranslator("seller.reviewForm");
+  const defaultSubmitError = auto(
+    "Failed to submit review",
+    "errors.submitFailed",
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     // Validation
     if (rating === 0) {
-      setError(auto('Please select a rating', 'validation.ratingRequired'));
+      setError(auto("Please select a rating", "validation.ratingRequired"));
       return;
     }
 
     if (title.length < 5) {
       setError(
-        auto('Title must be at least 5 characters', 'validation.titleLength')
+        auto("Title must be at least 5 characters", "validation.titleLength"),
       );
       return;
     }
 
     if (content.length < 20) {
       setError(
-        auto('Review must be at least 20 characters', 'validation.contentLength')
+        auto(
+          "Review must be at least 20 characters",
+          "validation.contentLength",
+        ),
       );
       return;
     }
@@ -75,8 +81,8 @@ export function ReviewForm({
         rating,
         title,
         content,
-        pros: pros.filter((p) => p.trim() !== ''),
-        cons: cons.filter((c) => c.trim() !== ''),
+        pros: pros.filter((p) => p.trim() !== ""),
+        cons: cons.filter((c) => c.trim() !== ""),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : defaultSubmitError);
@@ -85,8 +91,8 @@ export function ReviewForm({
     }
   };
 
-  const addPro = () => setPros([...pros, '']);
-  const addCon = () => setCons([...cons, '']);
+  const addPro = () => setPros([...pros, ""]);
+  const addCon = () => setCons([...cons, ""]);
 
   const updatePro = (index: number, value: string) => {
     const newPros = [...pros];
@@ -113,17 +119,17 @@ export function ReviewForm({
       {/* Product Info */}
       <div className="border-b pb-4">
         <h2 className="text-2xl font-bold">
-          {auto('Review {{productName}}', 'header.title').replace(
-            '{{productName}}',
-            productName
+          {auto("Review {{productName}}", "header.title").replace(
+            "{{productName}}",
+            productName,
           )}
         </h2>
         {orderId && (
           <p className="text-sm text-muted-foreground mt-1">
-            {auto('Verified Purchase - Order #{{orderId}}', 'header.verifiedOrder').replace(
-              '{{orderId}}',
-              orderId
-            )}
+            {auto(
+              "Verified Purchase - Order #{{orderId}}",
+              "header.verifiedOrder",
+            ).replace("{{orderId}}", orderId)}
           </p>
         )}
       </div>
@@ -131,7 +137,7 @@ export function ReviewForm({
       {/* Rating */}
       <div>
         <label className="block text-sm font-medium mb-2">
-          {auto('Rating', 'rating.label')}{' '}
+          {auto("Rating", "rating.label")}{" "}
           <span className="text-destructive">*</span>
         </label>
         <div className="flex gap-2">
@@ -147,17 +153,17 @@ export function ReviewForm({
               <Star
                 className={`w-8 h-8 ${
                   star <= (hoveredRating || rating)
-                    ? 'fill-yellow-400 text-yellow-400'
-                    : 'text-gray-300'
+                    ? "fill-yellow-400 text-yellow-400"
+                    : "text-gray-300"
                 }`}
               />
             </button>
           ))}
           {rating > 0 && (
             <span className="ms-2 text-sm text-muted-foreground self-center">
-              {auto('{{rating}} out of 5 stars', 'rating.caption').replace(
-                '{{rating}}',
-                String(rating)
+              {auto("{{rating}} out of 5 stars", "rating.caption").replace(
+                "{{rating}}",
+                String(rating),
               )}
             </span>
           )}
@@ -167,7 +173,7 @@ export function ReviewForm({
       {/* Title */}
       <div>
         <label htmlFor="title" className="block text-sm font-medium mb-2">
-          {auto('Review Title', 'fields.title.label')}{' '}
+          {auto("Review Title", "fields.title.label")}{" "}
           <span className="text-destructive">*</span>
         </label>
         <input
@@ -175,14 +181,17 @@ export function ReviewForm({
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={auto('Summarize your experience', 'fields.title.placeholder')}
+          placeholder={auto(
+            "Summarize your experience",
+            "fields.title.placeholder",
+          )}
           maxLength={200}
           className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <p className="text-xs text-muted-foreground mt-1">
-          {auto('{{count}}/200 characters', 'fields.title.counter').replace(
-            '{{count}}',
-            String(title.length)
+          {auto("{{count}}/200 characters", "fields.title.counter").replace(
+            "{{count}}",
+            String(title.length),
           )}
         </p>
       </div>
@@ -190,7 +199,7 @@ export function ReviewForm({
       {/* Content */}
       <div>
         <label htmlFor="content" className="block text-sm font-medium mb-2">
-          {auto('Detailed Review', 'fields.content.label')}{' '}
+          {auto("Detailed Review", "fields.content.label")}{" "}
           <span className="text-destructive">*</span>
         </label>
         <textarea
@@ -198,25 +207,25 @@ export function ReviewForm({
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder={auto(
-            'Share your experience with this product...',
-            'fields.content.placeholder'
+            "Share your experience with this product...",
+            "fields.content.placeholder",
           )}
           maxLength={5000}
           rows={6}
           className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <p className="text-xs text-muted-foreground mt-1">
-          {auto('{{count}}/5000 characters (minimum 20)', 'fields.content.counter').replace(
-            '{{count}}',
-            String(content.length)
-          )}
+          {auto(
+            "{{count}}/5000 characters (minimum 20)",
+            "fields.content.counter",
+          ).replace("{{count}}", String(content.length))}
         </p>
       </div>
 
       {/* Pros */}
       <div>
         <label className="block text-sm font-medium mb-2">
-          {auto('Pros (Optional)', 'fields.pros.label')}
+          {auto("Pros (Optional)", "fields.pros.label")}
         </label>
         {pros.map((pro, index) => (
           <div key={index} className="flex gap-2 mb-2">
@@ -224,7 +233,10 @@ export function ReviewForm({
               type="text"
               value={pro}
               onChange={(e) => updatePro(index, e.target.value)}
-              placeholder={auto('What did you like?', 'fields.pros.placeholder')}
+              placeholder={auto(
+                "What did you like?",
+                "fields.pros.placeholder",
+              )}
               className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <button
@@ -232,7 +244,7 @@ export function ReviewForm({
               onClick={() => removePro(index)}
               className="px-3 py-2 text-destructive hover:bg-destructive/5 rounded-lg"
             >
-              {auto('Remove', 'actions.remove')}
+              {auto("Remove", "actions.remove")}
             </button>
           </div>
         ))}
@@ -241,14 +253,14 @@ export function ReviewForm({
           onClick={addPro}
           className="text-sm text-primary hover:underline"
         >
-          {auto('+ Add Pro', 'actions.addPro')}
+          {auto("+ Add Pro", "actions.addPro")}
         </button>
       </div>
 
       {/* Cons */}
       <div>
         <label className="block text-sm font-medium mb-2">
-          {auto('Cons (Optional)', 'fields.cons.label')}
+          {auto("Cons (Optional)", "fields.cons.label")}
         </label>
         {cons.map((con, index) => (
           <div key={index} className="flex gap-2 mb-2">
@@ -256,7 +268,10 @@ export function ReviewForm({
               type="text"
               value={con}
               onChange={(e) => updateCon(index, e.target.value)}
-              placeholder={auto('What could be improved?', 'fields.cons.placeholder')}
+              placeholder={auto(
+                "What could be improved?",
+                "fields.cons.placeholder",
+              )}
               className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <button
@@ -264,7 +279,7 @@ export function ReviewForm({
               onClick={() => removeCon(index)}
               className="px-3 py-2 text-destructive hover:bg-destructive/5 rounded-lg"
             >
-              {auto('Remove', 'actions.remove')}
+              {auto("Remove", "actions.remove")}
             </button>
           </div>
         ))}
@@ -273,7 +288,7 @@ export function ReviewForm({
           onClick={addCon}
           className="text-sm text-primary hover:underline"
         >
-          {auto('+ Add Con', 'actions.addCon')}
+          {auto("+ Add Con", "actions.addCon")}
         </button>
       </div>
 
@@ -293,7 +308,7 @@ export function ReviewForm({
             disabled={isSubmitting}
             className="px-6 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
           >
-            {auto('Cancel', 'actions.cancel')}
+            {auto("Cancel", "actions.cancel")}
           </button>
         )}
         <button
@@ -302,8 +317,8 @@ export function ReviewForm({
           className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
         >
           {isSubmitting
-            ? auto('Submitting...', 'actions.submitting')
-            : auto('Submit Review', 'actions.submit')}
+            ? auto("Submitting...", "actions.submitting")
+            : auto("Submit Review", "actions.submit")}
         </button>
       </div>
     </form>

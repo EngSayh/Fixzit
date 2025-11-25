@@ -1,31 +1,45 @@
-import { NextRequest } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { User } from '@/server/models/User';
-import { getNextAtomicUserCode } from '@/lib/mongoUtils.server';
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
+import { getNextAtomicUserCode } from "@/lib/mongoUtils.server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { rateLimit } from '@/server/security/rateLimit';
-import { zodValidationError, rateLimitError, duplicateKeyError, handleApiError } from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
-import { Types } from 'mongoose';
+import { rateLimit } from "@/server/security/rateLimit";
+import {
+  zodValidationError,
+  rateLimitError,
+  duplicateKeyError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
+import { Types } from "mongoose";
 
-const signupSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  fullName: z.string().optional(), // ✅ FIX: Mark fullName as optional
-  email: z.string().email("Invalid email address"),
-  phone: z.string().min(1, "Phone number is required"),
-  companyName: z.string().optional(),
-  userType: z.enum(["personal", "corporate", "vendor"]),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string(),
-  termsAccepted: z.boolean().refine(val => val === true, "You must accept the terms and conditions"),
-  newsletter: z.boolean().optional(),
-  preferredLanguage: z.string().default("en"),
-  preferredCurrency: z.string().default("SAR")}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"]});
+const signupSchema = z
+  .object({
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    fullName: z.string().optional(), // ✅ FIX: Mark fullName as optional
+    email: z.string().email("Invalid email address"),
+    phone: z.string().min(1, "Phone number is required"),
+    companyName: z.string().optional(),
+    userType: z.enum(["personal", "corporate", "vendor"]),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+    termsAccepted: z
+      .boolean()
+      .refine(
+        (val) => val === true,
+        "You must accept the terms and conditions",
+      ),
+    newsletter: z.boolean().optional(),
+    preferredLanguage: z.string().default("en"),
+    preferredCurrency: z.string().default("SAR"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 /**
  * @openapi
@@ -78,32 +92,35 @@ export async function POST(req: NextRequest) {
     }
 
     await connectToDatabase();
-    
+
     // Parse and validate JSON body
     let requestBody;
     try {
       requestBody = await req.json();
     } catch (_jsonError) {
       return zodValidationError({
-        issues: [{ path: ['body'], message: 'Invalid JSON in request body' }]
+        issues: [{ path: ["body"], message: "Invalid JSON in request body" }],
       } as z.ZodError);
     }
-    
+
     const body = signupSchema.parse(requestBody);
 
     // Resolve default organization - must be explicitly configured
     // SECURITY: Never fallback to arbitrary user's orgId (breaks tenant isolation)
-    const resolvedOrgId = process.env.PUBLIC_ORG_ID || process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID;
-    
+    const resolvedOrgId =
+      process.env.PUBLIC_ORG_ID ||
+      process.env.TEST_ORG_ID ||
+      process.env.DEFAULT_ORG_ID;
+
     if (!resolvedOrgId) {
       throw new Error(
-        'Default organization not configured. Set PUBLIC_ORG_ID, TEST_ORG_ID, or DEFAULT_ORG_ID environment variable with a valid ObjectId.'
+        "Default organization not configured. Set PUBLIC_ORG_ID, TEST_ORG_ID, or DEFAULT_ORG_ID environment variable with a valid ObjectId.",
       );
     }
-    
+
     if (!Types.ObjectId.isValid(resolvedOrgId)) {
       throw new Error(
-        `Invalid default organization ID: ${resolvedOrgId}. Must be a valid MongoDB ObjectId.`
+        `Invalid default organization ID: ${resolvedOrgId}. Must be a valid MongoDB ObjectId.`,
       );
     }
 
@@ -114,9 +131,10 @@ export async function POST(req: NextRequest) {
     const role = "TENANT";
 
     // Only store companyName if the user self-identifies as corporate/vendor
-    const companyName = (body.userType === 'corporate' || body.userType === 'vendor')
-      ? body.companyName
-      : undefined;
+    const companyName =
+      body.userType === "corporate" || body.userType === "vendor"
+        ? body.companyName
+        : undefined;
 
     const normalizedEmail = body.email.toLowerCase();
     const hashedPassword = await bcrypt.hash(body.password, 12);
@@ -130,7 +148,7 @@ export async function POST(req: NextRequest) {
     // Generate unique user code atomically (race-condition safe)
     const code = await getNextAtomicUserCode();
     const fullName = body.fullName || `${body.firstName} ${body.lastName}`;
-    
+
     // Get or create organization for new user
     // For public signups, use default PUBLIC org or create personal org
     const defaultOrgId = resolvedOrgId; // Default public org
@@ -158,46 +176,55 @@ export async function POST(req: NextRequest) {
         },
         security: {
           lastLogin: new Date(),
-          accessLevel: 'READ',
+          accessLevel: "READ",
           permissions: [],
         },
         preferences: {
-          language: body.preferredLanguage || 'ar',
-          timezone: 'Asia/Riyadh',
+          language: body.preferredLanguage || "ar",
+          timezone: "Asia/Riyadh",
           notifications: {
             email: true,
             sms: false,
             app: true,
           },
         },
-        status: 'ACTIVE',
+        status: "ACTIVE",
         customFields: {
           companyName,
           termsAccepted: body.termsAccepted,
           newsletter: body.newsletter || false,
-          preferredCurrency: body.preferredCurrency || 'SAR',
-          authProvider: 'credentials',
+          preferredCurrency: body.preferredCurrency || "SAR",
+          authProvider: "credentials",
         },
         createdBy: newUserId,
       });
     } catch (dbError: unknown) {
       // 🔒 TYPE SAFETY: Handle MongoDB duplicate key error with type guard
-      if (dbError && typeof dbError === 'object' && 'code' in dbError && (dbError as { code: number }).code === 11000) { 
+      if (
+        dbError &&
+        typeof dbError === "object" &&
+        "code" in dbError &&
+        (dbError as { code: number }).code === 11000
+      ) {
         return duplicateKeyError("An account with this email already exists.");
       }
       // Re-throw other unexpected database errors
       throw dbError;
     }
 
-    return createSecureResponse({
-      ok: true,
-      message: "User created successfully",
-      user: {
-        id: newUser._id,
-        email: newUser.email,
-        role: newUser.professional?.role || 'VIEWER',
-      }
-    }, 201, req);
+    return createSecureResponse(
+      {
+        ok: true,
+        message: "User created successfully",
+        user: {
+          id: newUser._id,
+          email: newUser.email,
+          role: newUser.professional?.role || "VIEWER",
+        },
+      },
+      201,
+      req,
+    );
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error);
@@ -207,5 +234,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  return createSecureResponse({ ok: true, message: "Signup endpoint is active" }, 200, req);
+  return createSecureResponse(
+    { ok: true, message: "Signup endpoint is active" },
+    200,
+    req,
+  );
 }

@@ -21,7 +21,6 @@ const tryImportCandidates = async (): Promise<ToolsModule> => {
   ];
   for (const p of candidates) {
     try {
-       
       const m = await import(p);
       if (m.executeTool && m.detectToolFromMessage) {
         return m;
@@ -30,7 +29,9 @@ const tryImportCandidates = async (): Promise<ToolsModule> => {
       // continue
     }
   }
-  throw new Error("Could not resolve tools module. Please update import candidates to actual file path exporting executeTool and detectToolFromMessage.");
+  throw new Error(
+    "Could not resolve tools module. Please update import candidates to actual file path exporting executeTool and detectToolFromMessage.",
+  );
 };
 
 beforeAll(async () => {
@@ -66,7 +67,7 @@ const dbThen = vi.fn();
 const dbPromise = Promise.resolve()
   .then(dbThen)
   .catch((error) => {
-    console.error('DB promise error:', error);
+    console.error("DB promise error:", error);
     throw error;
   });
 vi.mock("@/lib/mongo", () => ({
@@ -141,8 +142,14 @@ describe("detectToolFromMessage", () => {
   });
 
   test("parses /my-tickets and /myticket aliases case-insensitively", () => {
-    expect(detectToolFromMessage("/my-tickets")).toEqual({ name: "listMyWorkOrders", args: {} });
-    expect(detectToolFromMessage("/MYTICKET")).toEqual({ name: "listMyWorkOrders", args: {} });
+    expect(detectToolFromMessage("/my-tickets")).toEqual({
+      name: "listMyWorkOrders",
+      args: {},
+    });
+    expect(detectToolFromMessage("/MYTICKET")).toEqual({
+      name: "listMyWorkOrders",
+      args: {},
+    });
   });
 
   test("parses /dispatch with work order id", () => {
@@ -175,13 +182,17 @@ describe("executeTool routing and permission checks", () => {
 
   test("rejects unsupported tools", async () => {
     const session = makeSession();
-    await expect(executeTool("nope", {}, session)).rejects.toThrow("Unsupported tool: nope");
+    await expect(executeTool("nope", {}, session)).rejects.toThrow(
+      "Unsupported tool: nope",
+    );
   });
 
   test("permission denied throws FORBIDDEN error", async () => {
     const session = makeSession();
     getPermittedTools.mockReturnValue(["listMyWorkOrders"]); // createWorkOrder not allowed
-    await expect(executeTool("createWorkOrder", { title: "abc" }, session)).rejects.toMatchObject({
+    await expect(
+      executeTool("createWorkOrder", { title: "abc" }, session),
+    ).rejects.toMatchObject({
       message: "Tool not permitted for this role",
       code: "FORBIDDEN",
     });
@@ -200,9 +211,9 @@ describe("createWorkOrder", () => {
   test("validates title length", async () => {
     getPermittedTools.mockReturnValue(["createWorkOrder"]);
     const session = makeSession();
-    await expect(executeTool("createWorkOrder", { title: "  " }, session)).rejects.toThrow(
-      "Title must be at least 3 characters long"
-    );
+    await expect(
+      executeTool("createWorkOrder", { title: "  " }, session),
+    ).rejects.toThrow("Title must be at least 3 characters long");
   });
 
   test("creates work order and returns success message and data (en)", async () => {
@@ -215,20 +226,32 @@ describe("createWorkOrder", () => {
       status: "SUBMITTED",
     });
 
-    const res = await executeTool("createWorkOrder", { title: "Leaky sink", description: "desc" }, session);
+    const res = await executeTool(
+      "createWorkOrder",
+      { title: "Leaky sink", description: "desc" },
+      session,
+    );
     expect(workOrderCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         tenantId: session.tenantId,
         title: "Leaky sink",
-        requester: expect.objectContaining({ id: session.userId, email: session.email }),
+        requester: expect.objectContaining({
+          id: session.userId,
+          email: session.email,
+        }),
         status: "SUBMITTED",
-      })
+      }),
     );
     expect(res.success).toBe(true);
     expect(res.intent).toBe("createWorkOrder");
     expect(res.message).toMatch(/^Work order WO-/);
     expect(res.data).toEqual(
-      expect.objectContaining({ id: "wo-id-1", code: expect.any(String), priority: "MEDIUM", status: "SUBMITTED" })
+      expect.objectContaining({
+        id: "wo-id-1",
+        code: expect.any(String),
+        priority: "MEDIUM",
+        status: "SUBMITTED",
+      }),
     );
   });
 
@@ -241,7 +264,11 @@ describe("createWorkOrder", () => {
       priority: "HIGH",
       status: "SUBMITTED",
     });
-    const res = await executeTool("createWorkOrder", { title: "عنوان" }, session);
+    const res = await executeTool(
+      "createWorkOrder",
+      { title: "عنوان" },
+      session,
+    );
     expect(res.message).toContain("تم إنشاء أمر العمل");
   });
 });
@@ -269,13 +296,15 @@ describe("listMyWorkOrders", () => {
     expect(workOrderFind).toHaveBeenCalledWith({
       orgId: session.tenantId,
       isDeleted: { $ne: true },
-      'assignment.assignedTo.userId': session.userId,
+      "assignment.assignedTo.userId": session.userId,
     });
     expect(res.success).toBe(true);
     expect(res.data).toHaveLength(5);
-    const times = (res.data as any[]).map(x => x.updatedAt);
+    const times = (res.data as any[]).map((x) => x.updatedAt);
     // Ensure descending
-    expect(new Date(times[0]).getTime()).toBeGreaterThan(new Date(times[4]).getTime());
+    expect(new Date(times[0]).getTime()).toBeGreaterThan(
+      new Date(times[4]).getTime(),
+    );
   });
 
   test("no items returns localized empty message", async () => {
@@ -295,7 +324,9 @@ describe("dispatchWorkOrder", () => {
 
   test("requires workOrderId", async () => {
     const session = makeSession();
-    await expect(executeTool("dispatchWorkOrder", {}, session)).rejects.toThrow("workOrderId is required");
+    await expect(executeTool("dispatchWorkOrder", {}, session)).rejects.toThrow(
+      "workOrderId is required",
+    );
   });
 
   test("updates work order and returns assignee data", async () => {
@@ -311,32 +342,50 @@ describe("dispatchWorkOrder", () => {
       assignment: { assignedTo: { userId: "tech-9" } },
     });
 
-    const res = await executeTool("dispatchWorkOrder", { workOrderId: "WOID", assigneeUserId: "tech-9" }, session);
+    const res = await executeTool(
+      "dispatchWorkOrder",
+      { workOrderId: "WOID", assigneeUserId: "tech-9" },
+      session,
+    );
     expect(workOrderFindOneAndUpdate).toHaveBeenCalledWith(
       { _id: "WOID", orgId: session.tenantId },
       expect.objectContaining({
-        $set: expect.objectContaining({ status: "ASSIGNED", 'assignment.assignedTo.userId': "tech-9" }),
+        $set: expect.objectContaining({
+          status: "ASSIGNED",
+          "assignment.assignedTo.userId": "tech-9",
+        }),
         $push: expect.any(Object),
       }),
-      { new: true }
+      { new: true },
     );
     expect(res.data).toEqual(
-      expect.objectContaining({ code: "WO-42", status: "ASSIGNED", assigneeUserId: "tech-9" })
+      expect.objectContaining({
+        code: "WO-42",
+        status: "ASSIGNED",
+        assigneeUserId: "tech-9",
+      }),
     );
   });
 
   test("not found throws error", async () => {
     const session = makeSession();
     workOrderFindOneAndUpdate.mockResolvedValue(null);
-    await expect(executeTool("dispatchWorkOrder", { workOrderId: "X" }, session)).rejects.toThrow(
-      "Work order not found"
-    );
+    await expect(
+      executeTool("dispatchWorkOrder", { workOrderId: "X" }, session),
+    ).rejects.toThrow("Work order not found");
   });
 
   test("localizes message (ar)", async () => {
     const session = makeSession({ locale: "ar" });
-    workOrderFindOneAndUpdate.mockResolvedValue({ code: "WO-7", status: "DISPATCHED" });
-    const res = await executeTool("dispatchWorkOrder", { workOrderId: "X" }, session);
+    workOrderFindOneAndUpdate.mockResolvedValue({
+      code: "WO-7",
+      status: "DISPATCHED",
+    });
+    const res = await executeTool(
+      "dispatchWorkOrder",
+      { workOrderId: "X" },
+      session,
+    );
     expect(res.message).toContain("تم إسناد أمر العمل");
   });
 });
@@ -349,25 +398,50 @@ describe("scheduleVisit", () => {
 
   test("validates workOrderId and scheduledFor", async () => {
     const session = makeSession();
-    await expect(executeTool("scheduleVisit", { workOrderId: "", scheduledFor: "" }, session)).rejects.toThrow(
-      "Valid workOrderId and scheduledFor timestamp are required"
+    await expect(
+      executeTool(
+        "scheduleVisit",
+        { workOrderId: "", scheduledFor: "" },
+        session,
+      ),
+    ).rejects.toThrow(
+      "Valid workOrderId and scheduledFor timestamp are required",
     );
   });
 
   test("updates SLA deadline and returns localized message", async () => {
     const session = makeSession({ locale: "en" });
     const when = "2025-07-01T10:00:00Z";
-    workOrderFindOne.mockResolvedValue({ _id: "A1", orgId: session.tenantId, status: "IN_PROGRESS" });
-    const updated = { workOrderNumber: "WO-9", sla: { resolutionDeadline: new Date(when).toISOString() } };
+    workOrderFindOne.mockResolvedValue({
+      _id: "A1",
+      orgId: session.tenantId,
+      status: "IN_PROGRESS",
+    });
+    const updated = {
+      workOrderNumber: "WO-9",
+      sla: { resolutionDeadline: new Date(when).toISOString() },
+    };
     workOrderFindOneAndUpdate.mockResolvedValue(updated);
 
-    const res = await executeTool("scheduleVisit", { workOrderId: "A1", scheduledFor: when }, session);
+    const res = await executeTool(
+      "scheduleVisit",
+      { workOrderId: "A1", scheduledFor: when },
+      session,
+    );
     expect(workOrderFindOneAndUpdate).toHaveBeenCalledWith(
       { _id: "A1", orgId: session.tenantId },
-      expect.objectContaining({ $set: { "assignment.scheduledDate": new Date(when), "sla.resolutionDeadline": new Date(when) } }),
-      { new: true }
+      expect.objectContaining({
+        $set: {
+          "assignment.scheduledDate": new Date(when),
+          "sla.resolutionDeadline": new Date(when),
+        },
+      }),
+      { new: true },
     );
-    expect(res.data).toEqual({ code: "WO-9", dueAt: updated.sla?.resolutionDeadline });
+    expect(res.data).toEqual({
+      code: "WO-9",
+      dueAt: updated.sla?.resolutionDeadline,
+    });
     expect(res.message).toContain("Visit scheduled for");
   });
 
@@ -375,7 +449,11 @@ describe("scheduleVisit", () => {
     const session = makeSession();
     workOrderFindOneAndUpdate.mockResolvedValue(undefined);
     await expect(
-      executeTool("scheduleVisit", { workOrderId: "Z", scheduledFor: "2025-01-01T00:00:00Z" }, session)
+      executeTool(
+        "scheduleVisit",
+        { workOrderId: "Z", scheduledFor: "2025-01-01T00:00:00Z" },
+        session,
+      ),
     ).rejects.toThrow("Work order not found");
   });
 });
@@ -388,8 +466,15 @@ describe("uploadWorkOrderPhoto", () => {
 
   test("requires workOrderId", async () => {
     const session = makeSession();
-    const payload = { workOrderId: "", fileName: "a.png", mimeType: "image/png", buffer: Buffer.from("x") } as any;
-    await expect(executeTool("uploadWorkOrderPhoto", payload, session)).rejects.toThrow("workOrderId is required");
+    const payload = {
+      workOrderId: "",
+      fileName: "a.png",
+      mimeType: "image/png",
+      buffer: Buffer.from("x"),
+    } as any;
+    await expect(
+      executeTool("uploadWorkOrderPhoto", payload, session),
+    ).rejects.toThrow("workOrderId is required");
   });
 
   test("writes file to disk and updates attachments", async () => {
@@ -402,7 +487,11 @@ describe("uploadWorkOrderPhoto", () => {
     };
     workOrderFindOneAndUpdate.mockResolvedValue({ code: "WO-55" });
 
-    const res = await executeTool("uploadWorkOrderPhoto", payload as any, session);
+    const res = await executeTool(
+      "uploadWorkOrderPhoto",
+      payload as any,
+      session,
+    );
 
     // mkdir called with uploads directory
     expect(mkdirMock).toHaveBeenCalled();
@@ -420,7 +509,7 @@ describe("uploadWorkOrderPhoto", () => {
           }),
         },
       }),
-      { new: true }
+      { new: true },
     );
     expect(res.intent).toBe("uploadWorkOrderPhoto");
     expect(res.message).toBe("Photo uploaded and linked to the work order.");
@@ -436,7 +525,9 @@ describe("uploadWorkOrderPhoto", () => {
       mimeType: "image/jpeg",
       buffer: Buffer.from("y"),
     };
-    await expect(executeTool("uploadWorkOrderPhoto", payload as any, session)).rejects.toThrow("Work order not found");
+    await expect(
+      executeTool("uploadWorkOrderPhoto", payload as any, session),
+    ).rejects.toThrow("Work order not found");
   });
 });
 
@@ -466,8 +557,20 @@ describe("ownerStatements", () => {
         year: 2025,
         totals: { income: 1000, expenses: 300, net: 700 },
         lineItems: [
-          { date: "2025-01-05", description: "Rent", type: "INCOME", amount: 1000, reference: "INV-1" },
-          { date: "2025-01-10", description: "Repair", type: "EXPENSE", amount: 300, reference: "BILL-1" },
+          {
+            date: "2025-01-05",
+            description: "Rent",
+            type: "INCOME",
+            amount: 1000,
+            reference: "INV-1",
+          },
+          {
+            date: "2025-01-10",
+            description: "Repair",
+            type: "EXPENSE",
+            amount: 300,
+            reference: "BILL-1",
+          },
         ],
       },
       {
@@ -477,18 +580,34 @@ describe("ownerStatements", () => {
         period: "Q2",
         year: 2025,
         totals: { income: 500, expenses: 200, net: 300 },
-        lineItems: [{ date: "2025-04-02", description: "Rent", type: "INCOME", amount: 500, reference: "INV-2" }],
+        lineItems: [
+          {
+            date: "2025-04-02",
+            description: "Rent",
+            type: "INCOME",
+            amount: 500,
+            reference: "INV-2",
+          },
+        ],
       },
     ]);
 
-    const res = await executeTool("ownerStatements", { period: "Q1", year: 2025 }, session);
+    const res = await executeTool(
+      "ownerStatements",
+      { period: "Q1", year: 2025 },
+      session,
+    );
     expect(res.success).toBe(true);
     expect(res.intent).toBe("ownerStatements");
     expect(res.data.currency).toBe("USD");
     expect(res.data.totals).toEqual({ income: 1500, expenses: 500, net: 1000 });
     expect(res.data.statements).toHaveLength(2);
     expect(res.data.statements[0].lineItems[0]).toEqual(
-      expect.objectContaining({ description: "Rent", type: "INCOME", amount: 1000 })
+      expect.objectContaining({
+        description: "Rent",
+        type: "INCOME",
+        amount: 1000,
+      }),
     );
   });
 });

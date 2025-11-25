@@ -1,4 +1,5 @@
 # System-Wide Issue Resolution Report
+
 **Date:** December 2025  
 **Session:** Comprehensive Codebase Audit & Fix  
 **Issues Resolved:** 8 of 13 (62% complete)
@@ -12,6 +13,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 ### Issues Fixed
 
 ✅ **1. Test Mock Imports (P0 - COMPLETE)**
+
 - **Problem:** 3 test files mocking deprecated `@/hooks/fm/useOrgGuard` path
 - **Solution:** Updated to `@/components/fm/useFmOrgGuard`
 - **Files Fixed:**
@@ -21,6 +23,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 - **Impact:** Tests now use correct imports, preventing false failures
 
 ✅ **3. Notification System Integration (P1 - COMPLETE)**
+
 - **Problem:** TODO comments indicated missing notification triggers
 - **Solution:** Integrated existing `lib/fm-notifications.ts` system
 - **Implementation:**
@@ -32,6 +35,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 - **Impact:** Stakeholders now receive real-time notifications via email/push/SMS/WhatsApp
 
 ✅ **4. Timeline Tracking (P1 - COMPLETE)**
+
 - **Problem:** Work order operations lacked audit trail
 - **Solution:** Added timeline entries to `workorder_timeline` collection
 - **Events Tracked:**
@@ -45,6 +49,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 - **Impact:** Complete audit trail for compliance and debugging
 
 ✅ **5. SLA Compliance Checking (P1 - COMPLETE)**
+
 - **Problem:** No enforcement of SLA deadlines
 - **Solution:** Implemented SLA breach detection in transition endpoint
 - **Logic:**
@@ -61,6 +66,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 - **Future:** TODO comment for manager breach notifications
 
 ✅ **9. Duplicate Type Usage (P1 - COMPLETE)**
+
 - **Problem:** `app/fm/dashboard/page.tsx` importing from old `@/lib/models`
 - **Solution:** Updated to use unified types from `@/types/fm`
 - **Changes:**
@@ -69,6 +75,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 - **Impact:** Single source of truth for types, prevents drift
 
 ✅ **10. Error Handling Standardization (P1 - COMPLETE)**
+
 - **Problem:** Inconsistent error response formats across FM APIs
 - **Solution:** Created standardized error helper with typed codes
 - **Implementation:**
@@ -82,6 +89,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 - **Impact:** Consistent API contract, easier client error handling
 
 ✅ **11. Authentication Verification (P0 - COMPLETE)**
+
 - **Finding:** All 8 FM API endpoints already have proper authentication
 - **Verification:** Searched for `await auth()` calls across all FM APIs
 - **Endpoints Verified:**
@@ -100,6 +108,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 - **Impact:** Security verified, no action needed
 
 ✅ **13. FM Permission Middleware (P0 - COMPLETE)**
+
 - **Problem:** FM APIs outside the work-order FSM lacked reusable RBAC/plan gating
 - **Solution:** Added `app/api/fm/permissions.ts` that maps platform roles/plans to FM `ModuleKey` + `SubmoduleKey` privileges
 - **Implementation:**
@@ -113,10 +122,12 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 ## Pending Issues (5 remaining)
 
 ### 🔴 **2. API Endpoint Completion (P0)**
+
 **Status:** 10 of 30 endpoints complete (33%)  
 **Progress This Session:** Implemented `GET`/`POST /api/fm/properties` with tenant isolation, pagination, and standardized RBAC  
 **Remaining:** 20 endpoints across 6 resource types  
 **Needed:**
+
 - Properties (PATCH, DELETE)
 - Tenants CRUD (4 endpoints)
 - Leases CRUD (4 endpoints)
@@ -127,9 +138,11 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 **Blocker:** High development effort, requires business logic implementation
 
 ### 🟡 **6. Mongoose Model Export (P1)**
+
 **Status:** Domain models exist but not exported  
 **Issue:** `domain/fm/fm.behavior.ts` defines schemas but not connected to MongoDB  
 **Required:**
+
 - Create `lib/models/fm/` directory
 - Export Mongoose models from domain schemas
 - Connect to MongoDB collections
@@ -138,10 +151,12 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 **Blocker:** Requires database schema migration planning
 
 ### 🟡 **8. Functional Verification (P1)**
+
 **Status:** Not started  
 **Type:** Manual smoke testing  
 **Scope:** All 75 FM pages  
 **Checklist:**
+
 - Organization context guards work
 - Navigation flows correctly
 - Data loading succeeds
@@ -151,24 +166,28 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 **Blocker:** Requires deployment or local test environment
 
 ### 🟢 **12. Documentation Update (P2)**
+
 **Status:** Partially complete  
 **File:** `FM_MODULE_COMPREHENSIVE_AUDIT.md`  
 **Updates Made:**
+
 - ✅ Key metrics updated
 - ✅ Phase 1.1-1.3 status documented
 - ✅ API endpoint inventory added
 - ✅ December 2025 update section added
-**Remaining:** Update Phase 1.4-1.6 sections when complete
+  **Remaining:** Update Phase 1.4-1.6 sections when complete
 
 ---
 
 ## Files Created/Modified
 
 ### Created (2 files)
+
 1. **app/api/fm/errors.ts** - Standardized error response helper
 2. **SYSTEM_ISSUE_RESOLUTION_REPORT.md** - This document
 
 ### Modified (6 files)
+
 1. **app/api/fm/work-orders/route.ts**
    - Added notification triggers
    - Added timeline tracking
@@ -203,6 +222,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 ## Code Quality Metrics
 
 ### Before Fixes
+
 - Test files with incorrect imports: 3
 - Pages using duplicate types: 1
 - APIs with TODO comments: 2
@@ -212,6 +232,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 - SLA enforcement: Missing
 
 ### After Fixes
+
 - Test files with incorrect imports: 0 ✅
 - Pages using duplicate types: 0 ✅
 - APIs with TODO comments: 0 ✅
@@ -221,6 +242,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 - SLA enforcement: Implemented ✅
 
 ### TypeScript Status
+
 - **Errors:** 0
 - **Compilation:** Clean
 - **Type Safety:** Improved
@@ -230,6 +252,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 ## Technical Debt Reduced
 
 ### High Priority Debt Cleared
+
 1. ✅ Test infrastructure aligned with current codebase
 2. ✅ Type system unified (no duplicate definitions)
 3. ✅ Notification system integrated (removed TODOs)
@@ -237,6 +260,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 5. ✅ Error handling standardized (consistent API contract)
 
 ### Remaining Debt
+
 1. 🔴 22 API endpoints not implemented
 2. 🟡 Mongoose models not exported
 3. 🟡 Permission middleware not generalized
@@ -247,16 +271,19 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 ## Recommendations
 
 ### Immediate Actions (P0)
+
 1. **Complete API Endpoints** - Blocks frontend development
 2. **Export Mongoose Models** - Enables database operations
 3. **Add Permission Middleware** - Critical security gap
 
 ### Short-term Actions (P1)
+
 1. **Conduct Smoke Testing** - Verify Phase 1.1-1.3 work
 2. **Add Manager SLA Notifications** - Complete Issue #5
 3. **Create E2E Tests** - Prevent regressions
 
 ### Long-term Actions (P2)
+
 1. **Performance Optimization** - Add database indexes
 2. **API Rate Limiting** - Prevent abuse
 3. **Monitoring & Alerting** - Production observability
@@ -267,6 +294,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 ## Success Criteria
 
 ### Achieved ✅
+
 - [x] All test files pass with correct imports
 - [x] Type system has single source of truth
 - [x] Notifications sent on work order events
@@ -276,10 +304,12 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 - [x] Authentication verified on all endpoints
 
 ### In Progress 🚧
+
 - [ ] 30 API endpoints implemented (27% complete)
 - [ ] Documentation fully updated (80% complete)
 
 ### Not Started ⏳
+
 - [ ] Mongoose models exported
 - [ ] Permission middleware created
 - [ ] 75 FM pages smoke tested
@@ -289,11 +319,13 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 ## Appendix: Issue Classification
 
 ### By Priority
+
 - **P0 (Critical):** 4 issues (2 complete, 2 pending)
 - **P1 (High):** 6 issues (5 complete, 1 pending)
 - **P2 (Medium):** 2 issues (0 complete, 2 pending)
 
 ### By Category
+
 - **Testing:** 1 issue (100% complete)
 - **Type System:** 1 issue (100% complete)
 - **API Development:** 1 issue (27% complete)
@@ -304,6 +336,7 @@ Conducted comprehensive analysis of entire chat history and codebase to identify
 - **Documentation:** 1 issue (80% complete)
 
 ### By Impact
+
 - **Security:** 3 issues (2 complete, 1 pending)
 - **Functionality:** 4 issues (3 complete, 1 pending)
 - **Code Quality:** 3 issues (2 complete, 1 pending)

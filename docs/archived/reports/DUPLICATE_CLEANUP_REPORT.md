@@ -139,13 +139,13 @@ Systematic cleanup following "search duplicates → merge → delete → fix imp
 
 ### Error Count Progression
 
-| Stage | Errors | Delta | % Reduced |
-|-------|--------|-------|-----------|
-| Initial | 122+ | - | - |
-| After @/db/models/ fixes | 101 | -21 | 17% |
-| After src/db/ deletion | 101 | 0 | - |
-| After @/src/ fixes | 84 | -17 | 17% |
-| **Current** | **84** | **-38** | **31%** |
+| Stage                    | Errors | Delta   | % Reduced |
+| ------------------------ | ------ | ------- | --------- |
+| Initial                  | 122+   | -       | -         |
+| After @/db/models/ fixes | 101    | -21     | 17%       |
+| After src/db/ deletion   | 101    | 0       | -         |
+| After @/src/ fixes       | 84     | -17     | 17%       |
+| **Current**              | **84** | **-38** | **31%**   |
 
 ### Errors Fixed by Type
 
@@ -179,14 +179,14 @@ Systematic cleanup following "search duplicates → merge → delete → fix imp
 
 ```typescript
 // ✅ CORRECT
-import { Model } from '@/server/models/Model';
-import { utility } from '@/lib/utility';
-import { Component } from '@/components/Component';
+import { Model } from "@/server/models/Model";
+import { utility } from "@/lib/utility";
+import { Component } from "@/components/Component";
 
 // ❌ WRONG (all eliminated)
-import { Model } from '@/db/models/Model';
-import { Model } from '@/src/server/models/Model';
-import { Component } from '@/src/components/Component';
+import { Model } from "@/db/models/Model";
+import { Model } from "@/src/server/models/Model";
+import { Component } from "@/src/components/Component";
 ```
 
 ---
@@ -223,7 +223,7 @@ grep -r "@/db/models/" . --include="*.ts" --include="*.tsx" \
 
 # Verify no @/src/ imports remain
 grep -r "@/src/" . --include="*.ts" --include="*.tsx" \
-  --exclude-dir=node_modules --exclude-dir=.next | wc -l  
+  --exclude-dir=node_modules --exclude-dir=.next | wc -l
 # Result: 0 ✅
 
 # Verify no ../db/models/ imports remain

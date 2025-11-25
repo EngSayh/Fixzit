@@ -1,14 +1,14 @@
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 /**
  * Performance Monitoring Middleware for Fixzit
- * 
+ *
  * Tracks page load times and ensures < 30 seconds target
  * Integrates with Next.js middleware for automatic monitoring
- * 
+ *
  * Usage: Import in middleware.ts or individual pages
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 export interface PerformanceMetrics {
   url: string;
@@ -34,29 +34,29 @@ const MAX_METRICS_STORE = 1000;
 function logMetrics(metrics: PerformanceMetrics) {
   // Add to store
   metricsStore.push(metrics);
-  
+
   // Keep only last MAX_METRICS_STORE entries
   if (metricsStore.length > MAX_METRICS_STORE) {
     metricsStore.shift();
   }
 
   // Log to console
-  const emoji = metrics.exceeded ? '⚠️' : '✅';
+  const emoji = metrics.exceeded ? "⚠️" : "✅";
   const durationSec = (metrics.duration / 1000).toFixed(2);
-  
+
   logger.info(
     `${emoji} [Performance] ${metrics.method} ${metrics.url} - ` +
-    `${durationSec}s (${metrics.status}) ${metrics.exceeded ? '⚠️ EXCEEDED THRESHOLD' : ''}`
+      `${durationSec}s (${metrics.status}) ${metrics.exceeded ? "⚠️ EXCEEDED THRESHOLD" : ""}`,
   );
 
   // Alert if threshold exceeded
   if (metrics.exceeded) {
     logger.warn(
       `⚠️ PERFORMANCE WARNING: Request exceeded ${PERFORMANCE_THRESHOLD_MS / 1000}s threshold\n` +
-      `   URL: ${metrics.url}\n` +
-      `   Duration: ${durationSec}s\n` +
-      `   Status: ${metrics.status}\n` +
-      `   Timestamp: ${metrics.timestamp.toISOString()}`
+        `   URL: ${metrics.url}\n` +
+        `   Duration: ${durationSec}s\n` +
+        `   Status: ${metrics.status}\n` +
+        `   Timestamp: ${metrics.timestamp.toISOString()}`,
     );
   }
 }
@@ -65,15 +65,15 @@ function logMetrics(metrics: PerformanceMetrics) {
  * Performance monitoring middleware
  */
 export function withPerformanceMonitoring(
-  handler: (req: NextRequest) => Promise<NextResponse> | NextResponse
+  handler: (req: NextRequest) => Promise<NextResponse> | NextResponse,
 ) {
   return async (req: NextRequest): Promise<NextResponse> => {
     const startTime = Date.now();
-    
+
     try {
       // Execute the actual handler
       const response = await handler(req);
-      
+
       const duration = Date.now() - startTime;
       const metrics: PerformanceMetrics = {
         url: req.url,
@@ -81,24 +81,28 @@ export function withPerformanceMonitoring(
         status: response.status,
         duration,
         timestamp: new Date(),
-        userAgent: req.headers.get('user-agent') || undefined,
+        userAgent: req.headers.get("user-agent") || undefined,
         threshold: PERFORMANCE_THRESHOLD_MS,
-        exceeded: duration > PERFORMANCE_THRESHOLD_MS
+        exceeded: duration > PERFORMANCE_THRESHOLD_MS,
       };
-      
+
       logMetrics(metrics);
-      
+
       // Add performance headers to response
-      response.headers.set('X-Response-Time', `${duration}ms`);
-      response.headers.set('X-Performance-Threshold', `${PERFORMANCE_THRESHOLD_MS}ms`);
-      
+      response.headers.set("X-Response-Time", `${duration}ms`);
+      response.headers.set(
+        "X-Performance-Threshold",
+        `${PERFORMANCE_THRESHOLD_MS}ms`,
+      );
+
       if (metrics.exceeded) {
-        response.headers.set('X-Performance-Warning', 'threshold-exceeded');
+        response.headers.set("X-Performance-Warning", "threshold-exceeded");
       }
-      
+
       return response;
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
       const duration = Date.now() - startTime;
       const metrics: PerformanceMetrics = {
@@ -107,11 +111,11 @@ export function withPerformanceMonitoring(
         status: 500,
         duration,
         timestamp: new Date(),
-        userAgent: req.headers.get('user-agent') || undefined,
+        userAgent: req.headers.get("user-agent") || undefined,
         threshold: PERFORMANCE_THRESHOLD_MS,
-        exceeded: duration > PERFORMANCE_THRESHOLD_MS
+        exceeded: duration > PERFORMANCE_THRESHOLD_MS,
       };
-      
+
       logMetrics(metrics);
       throw error;
     }
@@ -132,13 +136,13 @@ export function getPerformanceStats() {
       exceededPercentage: 0,
       p50: 0,
       p95: 0,
-      p99: 0
+      p99: 0,
     };
   }
 
-  const durations = metricsStore.map(m => m.duration).sort((a, b) => a - b);
-  const exceededCount = metricsStore.filter(m => m.exceeded).length;
-  
+  const durations = metricsStore.map((m) => m.duration).sort((a, b) => a - b);
+  const exceededCount = metricsStore.filter((m) => m.exceeded).length;
+
   const p50Index = Math.floor(durations.length * 0.5);
   const p95Index = Math.floor(durations.length * 0.95);
   const p99Index = Math.floor(durations.length * 0.99);
@@ -153,7 +157,7 @@ export function getPerformanceStats() {
     p50: durations[p50Index],
     p95: durations[p95Index],
     p99: durations[p99Index],
-    threshold: PERFORMANCE_THRESHOLD_MS
+    threshold: PERFORMANCE_THRESHOLD_MS,
   };
 }
 
@@ -168,7 +172,7 @@ export function getRecentMetrics(limit: number = 100): PerformanceMetrics[] {
  * Get metrics that exceeded threshold
  */
 export function getExceededMetrics(): PerformanceMetrics[] {
-  return metricsStore.filter(m => m.exceeded);
+  return metricsStore.filter((m) => m.exceeded);
 }
 
 /**
@@ -184,7 +188,7 @@ interface WebVitalsMetric {
   value: number;
   id: string;
   delta?: number;
-  rating?: 'good' | 'needs-improvement' | 'poor';
+  rating?: "good" | "needs-improvement" | "poor";
 }
 
 // Extend Window interface for gtag
@@ -193,18 +197,18 @@ declare global {
     gtag?: (
       command: string,
       name: string,
-      params: Record<string, string | number | boolean>
+      params: Record<string, string | number | boolean>,
     ) => void;
   }
 }
 
 /**
  * Client-side performance monitoring
- * 
+ *
  * Usage in pages:
  * ```tsx
  * import { reportWebVitals } from '@/lib/performance'
- * 
+ *
  * export function reportWebVitals(metric: WebVitalsMetric) {
  *   reportWebVitals(metric)
  * }
@@ -212,31 +216,31 @@ declare global {
  */
 export function reportWebVitals(metric: WebVitalsMetric) {
   const { name, value, id } = metric;
-  
+
   // Log Web Vitals
   logger.info(`[Web Vitals] ${name}: ${value.toFixed(2)}ms (id: ${id})`);
-  
+
   // Check against thresholds
   const thresholds: Record<string, number> = {
     FCP: 1800, // First Contentful Paint
     LCP: 2500, // Largest Contentful Paint
-    FID: 100,  // First Input Delay
-    CLS: 0.1,  // Cumulative Layout Shift
-    TTFB: 800  // Time to First Byte
+    FID: 100, // First Input Delay
+    CLS: 0.1, // Cumulative Layout Shift
+    TTFB: 800, // Time to First Byte
   };
-  
+
   const threshold = thresholds[name];
   if (threshold && value > threshold) {
     logger.warn(
-      `⚠️ [Web Vitals] ${name} exceeded threshold: ${value.toFixed(2)} > ${threshold}`
+      `⚠️ [Web Vitals] ${name} exceeded threshold: ${value.toFixed(2)} > ${threshold}`,
     );
   }
-  
+
   // Send to analytics (optional)
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('event', name, {
-      value: Math.round(name === 'CLS' ? value * 1000 : value),
-      event_category: 'Web Vitals',
+  if (typeof window !== "undefined" && window.gtag) {
+    window.gtag("event", name, {
+      value: Math.round(name === "CLS" ? value * 1000 : value),
+      event_category: "Web Vitals",
       event_label: id,
       non_interaction: true,
     });

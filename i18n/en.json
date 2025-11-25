@@ -949,6 +949,9 @@
       "unexpected": "An unexpected error occurred"
     }
   },
+  "accessibility": {
+    "skipToContent": "Skip to main content"
+  },
   "app": {
     "fm": "Facility Management",
     "souq": "Marketplace",
@@ -1038,6 +1041,10 @@
       "arabic": "Arabic"
     }
   },
+  "topbar": {
+    "modules": "Modules",
+    "collapseMenu": "Hide module menu"
+  },
   "navigation": {
     "home": "Home",
     "dashboard": "Dashboard",
@@ -1049,7 +1056,15 @@
     "reports": "Reports",
     "settings": "Settings",
     "help": "Help",
-    "logout": "Logout"
+    "logout": "Logout",
+    "back": "Back",
+    "saving": "Saving..."
+  },
+  "pagination": {
+    "showing": "Showing",
+    "to": "to",
+    "of": "of",
+    "results": "results"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",

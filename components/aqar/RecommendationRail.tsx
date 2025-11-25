@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Sparkles } from 'lucide-react';
-import { useTranslation } from '@/contexts/TranslationContext';
+import { useEffect, useState } from "react";
+import { Sparkles } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 interface RecommendationItem {
   _id: string;
@@ -26,7 +26,12 @@ interface RecommendationRailProps {
   propertyType?: string;
 }
 
-export function RecommendationRail({ listingId, city, intent, propertyType }: RecommendationRailProps) {
+export function RecommendationRail({
+  listingId,
+  city,
+  intent,
+  propertyType,
+}: RecommendationRailProps) {
   const { t } = useTranslation();
   const [items, setItems] = useState<RecommendationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,13 +42,15 @@ export function RecommendationRail({ listingId, city, intent, propertyType }: Re
       try {
         setLoading(true);
         const params = new URLSearchParams();
-        if (listingId) params.set('listingId', listingId);
-        if (!listingId && city) params.set('city', city);
-        if (!listingId && intent) params.set('intent', intent);
-        if (propertyType) params.set('propertyType', propertyType);
-        params.set('limit', '6');
-        const res = await fetch(`/api/aqar/recommendations?${params.toString()}`);
-        if (!res.ok) throw new Error('Failed to load recommendations');
+        if (listingId) params.set("listingId", listingId);
+        if (!listingId && city) params.set("city", city);
+        if (!listingId && intent) params.set("intent", intent);
+        if (propertyType) params.set("propertyType", propertyType);
+        params.set("limit", "6");
+        const res = await fetch(
+          `/api/aqar/recommendations?${params.toString()}`,
+        );
+        if (!res.ok) throw new Error("Failed to load recommendations");
         const data = await res.json();
         if (!cancelled) {
           setItems(Array.isArray(data?.items) ? data.items : []);
@@ -62,7 +69,7 @@ export function RecommendationRail({ listingId, city, intent, propertyType }: Re
   if (loading && items.length === 0) {
     return (
       <div className="border border-border rounded-2xl p-4 text-sm text-muted-foreground">
-        {t('aqar.recommendations.loading', 'جارٍ تحميل التوصيات الذكية...')}
+        {t("aqar.recommendations.loading", "جارٍ تحميل التوصيات الذكية...")}
       </div>
     );
   }
@@ -79,22 +86,30 @@ export function RecommendationRail({ listingId, city, intent, propertyType }: Re
         </div>
         <div>
           <p className="text-sm font-semibold text-foreground">
-            {t('aqar.recommendations.title', 'اقتراحات Fixzit الذكية')}
+            {t("aqar.recommendations.title", "اقتراحات Fixzit الذكية")}
           </p>
           <p className="text-xs text-muted-foreground">
-            {t('aqar.recommendations.subtitle', 'يعتمد على الذكاء الاصطناعي، المشاهدات، وبيانات السوق الحية')}
+            {t(
+              "aqar.recommendations.subtitle",
+              "يعتمد على الذكاء الاصطناعي، المشاهدات، وبيانات السوق الحية",
+            )}
           </p>
         </div>
       </div>
       <div className="flex gap-4 overflow-x-auto pb-2">
         {items.map((item) => {
           const score = item.ai?.recommendationScore ?? 0;
-          const price = item.price?.amount ? `${item.price.amount.toLocaleString()} ﷼` : '—';
+          const price = item.price?.amount
+            ? `${item.price.amount.toLocaleString()} ﷼`
+            : "—";
           const pricePerSqm = item.pricingInsights?.pricePerSqm
             ? `${item.pricingInsights.pricePerSqm.toLocaleString()} ﷼/م²`
             : null;
           const smartCount = item.iotFeatures?.length ?? 0;
-          const smartLabel = t('aqar.recommendations.smart', `مزايا ذكية (${smartCount})`);
+          const smartLabel = t(
+            "aqar.recommendations.smart",
+            `مزايا ذكية (${smartCount})`,
+          );
           return (
             <article
               key={item._id}
@@ -102,13 +117,16 @@ export function RecommendationRail({ listingId, city, intent, propertyType }: Re
             >
               <div className="flex items-center justify-between text-sm">
                 <span className="font-semibold text-foreground line-clamp-2">
-                  {item.title || t('aqar.recommendations.untitled', 'عقار بدون عنوان')}
+                  {item.title ||
+                    t("aqar.recommendations.untitled", "عقار بدون عنوان")}
                 </span>
-                <span className="text-xs text-muted-foreground">{score.toFixed(0)}%</span>
+                <span className="text-xs text-muted-foreground">
+                  {score.toFixed(0)}%
+                </span>
               </div>
               <p className="text-xs text-muted-foreground">
                 {item.city}
-                {item.neighborhood ? ` • ${item.neighborhood}` : ''}
+                {item.neighborhood ? ` • ${item.neighborhood}` : ""}
               </p>
               <p className="text-lg font-bold text-foreground">{price}</p>
               <div className="flex flex-wrap gap-1 text-[10px]">
@@ -119,7 +137,7 @@ export function RecommendationRail({ listingId, city, intent, propertyType }: Re
                 )}
                 {item.rnplEligible && (
                   <span className="px-2 py-0.5 rounded-full bg-success/10 text-success">
-                    {t('aqar.recommendations.rnpl', 'جاهز للتمويل')}
+                    {t("aqar.recommendations.rnpl", "جاهز للتمويل")}
                   </span>
                 )}
                 {smartCount > 0 && (
@@ -132,7 +150,7 @@ export function RecommendationRail({ listingId, city, intent, propertyType }: Re
                 {pricePerSqm && <li>{pricePerSqm}</li>}
                 {item.pricing?.suggestedPrice && (
                   <li>
-                    {t('aqar.recommendations.suggested', 'سعر مقترح')} {' '}
+                    {t("aqar.recommendations.suggested", "سعر مقترح")}{" "}
                     {item.pricing.suggestedPrice.toLocaleString()} ﷼
                   </li>
                 )}

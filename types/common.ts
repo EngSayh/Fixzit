@@ -5,7 +5,7 @@
 // across the codebase, achieving 100% type safety
 // ============================================================================
 
-import { Types } from 'mongoose';
+import { Types } from "mongoose";
 
 // ============================================================================
 // API REQUEST/RESPONSE TYPES
@@ -198,10 +198,18 @@ export interface FileUploadResult {
 export type UnknownObject = Record<string, unknown>;
 
 /** Use for JSON-serializable data */
-export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
 
 /** Use for error handling */
-export type ErrorLike = Error | { message: string; name?: string; stack?: string };
+export type ErrorLike =
+  | Error
+  | { message: string; name?: string; stack?: string };
 
 /** Use for callback functions when signature is truly unknown */
 export type UnknownFunction = (...args: Array<unknown>) => unknown;
@@ -210,7 +218,10 @@ export type UnknownFunction = (...args: Array<unknown>) => unknown;
 export type UnknownProps = Record<string, unknown>;
 
 /** Use for form data */
-export type FormData = Record<string, string | number | boolean | File | null | undefined>;
+export type FormData = Record<
+  string,
+  string | number | boolean | File | null | undefined
+>;
 
 /** Use for query string parameters */
 export type QueryParams = Record<string, string | string[] | undefined>;
@@ -228,19 +239,21 @@ export function isError(error: unknown): error is Error {
 
 export function isErrorLike(error: unknown): error is ErrorLike {
   return (
-    typeof error === 'object' &&
+    typeof error === "object" &&
     error !== null &&
-    'message' in error &&
-    typeof (error as Record<string, unknown>).message === 'string'
+    "message" in error &&
+    typeof (error as Record<string, unknown>).message === "string"
   );
 }
 
 export function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === "string")
+  );
 }
 
 // ============================================================================

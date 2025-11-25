@@ -1,4 +1,9 @@
-import { S3Client, GetBucketEncryptionCommand, GetBucketLifecycleConfigurationCommand, GetBucketPolicyStatusCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  GetBucketEncryptionCommand,
+  GetBucketLifecycleConfigurationCommand,
+  GetBucketPolicyStatusCommand,
+} from "@aws-sdk/client-s3";
 
 /**
  * Minimal S3 bucket policy/retention validation.
@@ -17,10 +22,14 @@ export async function validateBucketPolicies(): Promise<boolean> {
     await client.send(new GetBucketEncryptionCommand({ Bucket: bucket }));
 
     // Lifecycle (retention) check
-    await client.send(new GetBucketLifecycleConfigurationCommand({ Bucket: bucket }));
+    await client.send(
+      new GetBucketLifecycleConfigurationCommand({ Bucket: bucket }),
+    );
 
     // Policy status (public access)
-    const policyStatus = await client.send(new GetBucketPolicyStatusCommand({ Bucket: bucket }));
+    const policyStatus = await client.send(
+      new GetBucketPolicyStatusCommand({ Bucket: bucket }),
+    );
     if (policyStatus.PolicyStatus?.IsPublic) return false;
 
     return true;

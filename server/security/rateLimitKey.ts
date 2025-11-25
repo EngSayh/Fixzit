@@ -1,5 +1,5 @@
-import { NextRequest } from 'next/server';
-import { getClientIP } from '@/server/security/headers';
+import { NextRequest } from "next/server";
+import { getClientIP } from "@/server/security/headers";
 
 /**
  * Builds a consistent rate limit key that incorporates the request path,
@@ -8,19 +8,19 @@ import { getClientIP } from '@/server/security/headers';
 export function buildRateLimitKey(
   req: NextRequest,
   userId?: string | null,
-  overridePath?: string
+  overridePath?: string,
 ): string {
   const path = overridePath ?? new URL(req.url).pathname;
   const keyParts = [path];
   if (userId) {
     keyParts.push(userId);
   }
-  let ip = 'unknown';
+  let ip = "unknown";
   try {
     ip = getClientIP(req);
   } catch {
-    ip = 'unknown';
+    ip = "unknown";
   }
   keyParts.push(ip);
-  return keyParts.join(':');
+  return keyParts.join(":");
 }

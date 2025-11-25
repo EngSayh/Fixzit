@@ -1,32 +1,43 @@
-import { getDatabase } from '@/lib/mongodb-unified';
-import type { 
-  Tenant, User, Property, WorkOrder, Category, Vendor, 
-  Product, Cart, Order, Invoice, RFQ, Review, NotificationDoc 
-} from '@/lib/models';
-import { validateCollection, sanitizeTimestamps } from '@/lib/utils/timestamp';
+import { getDatabase } from "@/lib/mongodb-unified";
+import type {
+  Tenant,
+  User,
+  Property,
+  WorkOrder,
+  Category,
+  Vendor,
+  Product,
+  Cart,
+  Order,
+  Invoice,
+  RFQ,
+  Review,
+  NotificationDoc,
+} from "@/lib/models";
+import { validateCollection, sanitizeTimestamps } from "@/lib/utils/timestamp";
 
 // Collection names
 export const COLLECTIONS = {
-  TENANTS: 'tenants',
-  USERS: 'users',
-  PROPERTIES: 'properties',
-  WORK_ORDERS: 'workOrders',
-  CATEGORIES: 'categories',
-  VENDORS: 'vendors',
-  PRODUCTS: 'products',
-  CARTS: 'carts',
-  ORDERS: 'orders',
-  INVOICES: 'invoices',
-  RFQS: 'rfqs',
-  REVIEWS: 'reviews',
-  NOTIFICATIONS: 'notifications',
-  AUDIT_LOGS: 'auditLogs'
+  TENANTS: "tenants",
+  USERS: "users",
+  PROPERTIES: "properties",
+  WORK_ORDERS: "workOrders",
+  CATEGORIES: "categories",
+  VENDORS: "vendors",
+  PRODUCTS: "products",
+  CARTS: "carts",
+  ORDERS: "orders",
+  INVOICES: "invoices",
+  RFQS: "rfqs",
+  REVIEWS: "reviews",
+  NOTIFICATIONS: "notifications",
+  AUDIT_LOGS: "auditLogs",
 } as const;
 
 // Get typed collections
 export async function getCollections() {
   const db = await getDatabase();
-  
+
   return {
     tenants: db.collection<Tenant>(COLLECTIONS.TENANTS),
     users: db.collection<User>(COLLECTIONS.USERS),
@@ -40,37 +51,57 @@ export async function getCollections() {
     invoices: db.collection<Invoice>(COLLECTIONS.INVOICES),
     rfqs: db.collection<RFQ>(COLLECTIONS.RFQS),
     reviews: db.collection<Review>(COLLECTIONS.REVIEWS),
-    notifications: db.collection<NotificationDoc>(COLLECTIONS.NOTIFICATIONS)
+    notifications: db.collection<NotificationDoc>(COLLECTIONS.NOTIFICATIONS),
   };
 }
 
 // Create indexes
 export async function createIndexes() {
   const db = await getDatabase();
-  
+
   // Users
-  await db.collection(COLLECTIONS.USERS).createIndex({ email: 1 }, { unique: true });
+  await db
+    .collection(COLLECTIONS.USERS)
+    .createIndex({ email: 1 }, { unique: true });
   await db.collection(COLLECTIONS.USERS).createIndex({ tenantId: 1 });
-  
+
   // Properties
-  await db.collection(COLLECTIONS.PROPERTIES).createIndex({ code: 1 }, { unique: true });
+  await db
+    .collection(COLLECTIONS.PROPERTIES)
+    .createIndex({ code: 1 }, { unique: true });
   await db.collection(COLLECTIONS.PROPERTIES).createIndex({ tenantId: 1 });
-  
+
   // Work Orders
-  await db.collection(COLLECTIONS.WORK_ORDERS).createIndex({ code: 1 }, { unique: true });
-  await db.collection(COLLECTIONS.WORK_ORDERS).createIndex({ tenantId: 1, status: 1 });
-  
+  await db
+    .collection(COLLECTIONS.WORK_ORDERS)
+    .createIndex({ code: 1 }, { unique: true });
+  await db
+    .collection(COLLECTIONS.WORK_ORDERS)
+    .createIndex({ tenantId: 1, status: 1 });
+
   // Products
-  await db.collection(COLLECTIONS.PRODUCTS).createIndex({ sku: 1 }, { unique: true });
-  await db.collection(COLLECTIONS.PRODUCTS).createIndex({ tenantId: 1, categoryId: 1 });
-  await db.collection(COLLECTIONS.PRODUCTS).createIndex({ title: 'text', description: 'text' });
-  
+  await db
+    .collection(COLLECTIONS.PRODUCTS)
+    .createIndex({ sku: 1 }, { unique: true });
+  await db
+    .collection(COLLECTIONS.PRODUCTS)
+    .createIndex({ tenantId: 1, categoryId: 1 });
+  await db
+    .collection(COLLECTIONS.PRODUCTS)
+    .createIndex({ title: "text", description: "text" });
+
   // Orders
-  await db.collection(COLLECTIONS.ORDERS).createIndex({ orderNumber: 1 }, { unique: true });
-  await db.collection(COLLECTIONS.ORDERS).createIndex({ tenantId: 1, userId: 1 });
-  
+  await db
+    .collection(COLLECTIONS.ORDERS)
+    .createIndex({ orderNumber: 1 }, { unique: true });
+  await db
+    .collection(COLLECTIONS.ORDERS)
+    .createIndex({ tenantId: 1, userId: 1 });
+
   // Invoices
-  await db.collection(COLLECTIONS.INVOICES).createIndex({ invoiceNumber: 1 }, { unique: true });
+  await db
+    .collection(COLLECTIONS.INVOICES)
+    .createIndex({ invoiceNumber: 1 }, { unique: true });
   await db.collection(COLLECTIONS.INVOICES).createIndex({ tenantId: 1 });
 }
 
@@ -78,12 +109,12 @@ export async function createIndexes() {
  * Safe insert operation with timestamp validation
  */
 export async function safeInsertOne<T extends Record<string, unknown>>(
-  collectionName: string, 
-  document: T
+  collectionName: string,
+  document: T,
 ): Promise<{ acknowledged: boolean; insertedId: unknown }> {
   const db = await getDatabase();
   const collection = db.collection(collectionName);
-  
+
   const sanitizedDoc = sanitizeTimestamps(document);
   return await collection.insertOne(sanitizedDoc);
 }
@@ -92,12 +123,16 @@ export async function safeInsertOne<T extends Record<string, unknown>>(
  * Safe bulk insert operation with timestamp validation
  */
 export async function safeInsertMany<T extends Record<string, unknown>>(
-  collectionName: string, 
-  documents: T[]
-): Promise<{ acknowledged: boolean; insertedCount: number; insertedIds: Record<number, unknown> }> {
+  collectionName: string,
+  documents: T[],
+): Promise<{
+  acknowledged: boolean;
+  insertedCount: number;
+  insertedIds: Record<number, unknown>;
+}> {
   const db = await getDatabase();
   const collection = db.collection(collectionName);
-  
+
   const sanitizedDocs = validateCollection(documents);
   return await collection.insertMany(sanitizedDocs);
 }
@@ -108,11 +143,15 @@ export async function safeInsertMany<T extends Record<string, unknown>>(
 export async function safeUpdateOne<T extends Record<string, unknown>>(
   collectionName: string,
   filter: Record<string, unknown>,
-  update: T
-): Promise<{ acknowledged: boolean; matchedCount: number; modifiedCount: number }> {
+  update: T,
+): Promise<{
+  acknowledged: boolean;
+  matchedCount: number;
+  modifiedCount: number;
+}> {
   const db = await getDatabase();
   const collection = db.collection(collectionName);
-  
-  const sanitizedUpdate = sanitizeTimestamps(update, ['updatedAt']);
+
+  const sanitizedUpdate = sanitizeTimestamps(update, ["updatedAt"]);
   return await collection.updateOne(filter, { $set: sanitizedUpdate });
 }

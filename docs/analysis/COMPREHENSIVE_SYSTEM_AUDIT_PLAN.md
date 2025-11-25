@@ -221,11 +221,11 @@ node scripts/detect-duplicate-code.ts
 
 ```typescript
 enum UserRole {
-  ADMIN = "admin",           // Full system access
-  MANAGER = "manager",       // Department management
+  ADMIN = "admin", // Full system access
+  MANAGER = "manager", // Department management
   TECHNICIAN = "technician", // Service execution
-  CUSTOMER = "customer",     // Service requests
-  GUEST = "guest"           // Public access
+  CUSTOMER = "customer", // Service requests
+  GUEST = "guest", // Public access
 }
 ```
 
@@ -270,70 +270,70 @@ Example:
 #### Guest User Tests
 
 ```typescript
-describe('Guest User E2E', () => {
-  test('Can view landing page')
-  test('Can navigate to marketplace')
-  test('Can access login page')
-  test('Cannot access protected routes')
-  test('Can switch language')
-  test('Can view public content')
-})
+describe("Guest User E2E", () => {
+  test("Can view landing page");
+  test("Can navigate to marketplace");
+  test("Can access login page");
+  test("Cannot access protected routes");
+  test("Can switch language");
+  test("Can view public content");
+});
 ```
 
 #### Customer User Tests
 
 ```typescript
-describe('Customer User E2E', () => {
-  test('Can login successfully')
-  test('Can view dashboard')
-  test('Can create support ticket')
-  test('Can view own tickets')
-  test('Can view services')
-  test('Cannot access admin routes')
-  test('Cannot access finance')
-})
+describe("Customer User E2E", () => {
+  test("Can login successfully");
+  test("Can view dashboard");
+  test("Can create support ticket");
+  test("Can view own tickets");
+  test("Can view services");
+  test("Cannot access admin routes");
+  test("Cannot access finance");
+});
 ```
 
 #### Technician User Tests
 
 ```typescript
-describe('Technician User E2E', () => {
-  test('Can login successfully')
-  test('Can view assigned tickets')
-  test('Can update ticket status')
-  test('Can access asset management')
-  test('Can view inventory')
-  test('Cannot access admin panel')
-  test('Cannot access finance reports')
-})
+describe("Technician User E2E", () => {
+  test("Can login successfully");
+  test("Can view assigned tickets");
+  test("Can update ticket status");
+  test("Can access asset management");
+  test("Can view inventory");
+  test("Cannot access admin panel");
+  test("Cannot access finance reports");
+});
 ```
 
 #### Manager User Tests
 
 ```typescript
-describe('Manager User E2E', () => {
-  test('Can login successfully')
-  test('Can view all tickets')
-  test('Can assign technicians')
-  test('Can access finance reports')
-  test('Can view analytics')
-  test('Cannot access admin users')
-  test('Cannot modify system settings')
-})
+describe("Manager User E2E", () => {
+  test("Can login successfully");
+  test("Can view all tickets");
+  test("Can assign technicians");
+  test("Can access finance reports");
+  test("Can view analytics");
+  test("Cannot access admin users");
+  test("Cannot modify system settings");
+});
 ```
 
 #### Admin User Tests
 
 ```typescript
-describe('Admin User E2E', () => {
-  test('Can login successfully')
-  test('Can access admin panel')
-  test('Can manage users')
-  test('Can modify settings')
-  test('Can view all reports')
-  test('Can access all features')
-  test('Can manage roles')
-})
+describe("Admin User E2E", () => {
+  test("Can login successfully");
+  test("Can access admin panel");
+  test("Can manage users");
+  test("Can modify settings");
+  test("Can view all reports");
+  test("Can access all features");
+  test("Can manage roles");
+});
 ```
 
 ### 3.5 E2E Test File Structure
@@ -395,25 +395,25 @@ npm run test:db:seed
 export const testUsers = {
   guest: null,
   customer: {
-    email: 'customer@test.com',
-    password: 'Test123!',
-    role: 'customer'
+    email: "customer@test.com",
+    password: "Test123!",
+    role: "customer",
   },
   technician: {
-    email: 'tech@test.com',
-    password: 'Test123!',
-    role: 'technician'
+    email: "tech@test.com",
+    password: "Test123!",
+    role: "technician",
   },
   manager: {
-    email: 'manager@test.com',
-    password: 'Test123!',
-    role: 'manager'
+    email: "manager@test.com",
+    password: "Test123!",
+    role: "manager",
   },
   admin: {
-    email: 'admin@test.com',
-    password: 'Test123!',
-    role: 'admin'
-  }
+    email: "admin@test.com",
+    password: "Test123!",
+    role: "admin",
+  },
 };
 ```
 
@@ -540,39 +540,47 @@ npm run test:e2e -- --reporter=html
 **Category:** Error | Warning | Security | Performance  
 **Priority:** P0 | P1 | P2 | P3  
 **Severity:** Critical | High | Medium | Low  
-**Status:** Found | In Progress | Fixed | Verified  
+**Status:** Found | In Progress | Fixed | Verified
 
 **Date Found:** YYYY-MM-DD HH:MM UTC  
 **Date Fixed:** YYYY-MM-DD HH:MM UTC  
 **Fixed By:** [Name]  
-**Verified By:** [Name]  
+**Verified By:** [Name]
 
 ### Description
+
 [Clear description of the issue]
 
 ### Location
+
 - File: `/path/to/file.ts`
 - Line: 123
 - Function: `functionName()`
 
 ### Steps to Reproduce
+
 1. Step 1
 2. Step 2
 3. Step 3
 
 ### Expected Behavior
+
 [What should happen]
 
 ### Actual Behavior
+
 [What actually happens]
 
 ### Root Cause
+
 [Analysis of why this happened]
 
 ### Fix Applied
+
 [Description of the fix]
 
 ### Verification
+
 - [ ] Unit tests pass
 - [ ] E2E tests pass
 - [ ] Manual testing completed
@@ -580,6 +588,7 @@ npm run test:e2e -- --reporter=html
 - [ ] Security review (if applicable)
 
 ### Related Issues
+
 - #123
 - #456
 ```
@@ -650,12 +659,14 @@ npm run test:e2e -- --reporter=html
 
 **Date:** YYYY-MM-DD HH:MM UTC  
 **Branch:** [branch-name]  
-**Verified By:** [Name]  
+**Verified By:** [Name]
 
 ## Summary
+
 [Overall assessment]
 
 ## Metrics
+
 - Total Issues Found: X
 - Issues Fixed: Y
 - Issues Remaining: Z
@@ -663,22 +674,31 @@ npm run test:e2e -- --reporter=html
 - E2E Tests: X passing, Y failing
 
 ## Issues by Category
+
 ### Errors: X found, Y fixed
+
 ### Warnings: X found, Y fixed
+
 ### Security: X found, Y fixed
+
 ### Performance: X found, Y fixed
 
 ## Test Results
+
 ### Unit Tests: X/Y passing (Z%)
+
 ### Integration Tests: X/Y passing (Z%)
+
 ### E2E Tests: X/Y passing (Z%)
 
 ## Recommendations
+
 1. [Recommendation 1]
 2. [Recommendation 2]
 3. [Recommendation 3]
 
 ## Next Steps
+
 1. [Next step 1]
 2. [Next step 2]
 3. [Next step 3]

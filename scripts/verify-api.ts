@@ -19,7 +19,11 @@ function crawl(dir: string, trail: string[] = []) {
   }
 }
 
-try { crawl(API_DIR, []); } catch { /* no api dir */ }
+try {
+  crawl(API_DIR, []);
+} catch {
+  /* no api dir */
+}
 
 (async () => {
   if (!endpoints.length) {

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { logger } from '@/lib/logger';
-import { returnsService } from '@/services/souq/returns-service';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { returnsService } from "@/services/souq/returns-service";
 
 /**
  * POST /api/souq/returns/approve
@@ -12,54 +12,66 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Admin only
-    if (!['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!["ADMIN", "SUPER_ADMIN"].includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
     const { rmaId, approve, approvalNotes, rejectionReason } = body;
 
     if (!rmaId) {
-      return NextResponse.json({ 
-        error: 'Missing required field: rmaId' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "Missing required field: rmaId",
+        },
+        { status: 400 },
+      );
     }
 
     if (approve) {
       await returnsService.approveReturn({
         rmaId,
         adminId: session.user.id,
-        approvalNotes
+        approvalNotes,
       });
 
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: true,
-        message: 'Return approved successfully'
+        message: "Return approved successfully",
       });
     } else {
       if (!rejectionReason) {
-        return NextResponse.json({ 
-          error: 'Missing required field: rejectionReason' 
-        }, { status: 400 });
+        return NextResponse.json(
+          {
+            error: "Missing required field: rejectionReason",
+          },
+          { status: 400 },
+        );
       }
 
-      await returnsService.rejectReturn(rmaId, session.user.id, rejectionReason);
+      await returnsService.rejectReturn(
+        rmaId,
+        session.user.id,
+        rejectionReason,
+      );
 
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: true,
-        message: 'Return rejected successfully'
+        message: "Return rejected successfully",
       });
     }
-
   } catch (error) {
-    logger.error('Approve/reject return error', { error });
-    return NextResponse.json({ 
-      error: 'Failed to process return approval',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    logger.error("Approve/reject return error", { error });
+    return NextResponse.json(
+      {
+        error: "Failed to process return approval",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }

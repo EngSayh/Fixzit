@@ -14,24 +14,24 @@
 
 ### Workflow Failure Distribution
 
-| Workflow | Failures | Impact | Status |
-|----------|----------|--------|--------|
-| NodeJS with Webpack | 28 | 🔴 CRITICAL | Active failures on current branch |
-| Fixzit Quality Gates | 26 | 🔴 CRITICAL | Blocking merges |
-| Consolidation Guardrails | 6 | 🟡 MEDIUM | Old branches |
-| Agent Governor CI | 6 | 🟡 MEDIUM | Old branches |
+| Workflow                 | Failures | Impact      | Status                            |
+| ------------------------ | -------- | ----------- | --------------------------------- |
+| NodeJS with Webpack      | 28       | 🔴 CRITICAL | Active failures on current branch |
+| Fixzit Quality Gates     | 26       | 🔴 CRITICAL | Blocking merges                   |
+| Consolidation Guardrails | 6        | 🟡 MEDIUM   | Old branches                      |
+| Agent Governor CI        | 6        | 🟡 MEDIUM   | Old branches                      |
 
 ### Branch Failure Distribution
 
-| Branch | Failures | Status | Action Required |
-|--------|----------|--------|-----------------|
-| fix/comprehensive-fixes-20251011 | 17 | ❌ ABANDONED | DELETE |
-| fix/standardize-test-framework-vitest | 15 | ❌ ABANDONED | DELETE |
-| fix/deprecated-hook-cleanup | 15 | ❌ ABANDONED | DELETE |
-| **feat/batch2-code-improvements** | **10** | 🔴 **ACTIVE** | **FIX NOW** |
-| feat/batch1-file-organization | 3 | ⚠️ PENDING | Fix after #127 |
-| fix/reduce-any-warnings-issue-100 | 3 | ❌ ABANDONED | DELETE |
-| cursor/* (various) | 1-3 each | ❌ ABANDONED | DELETE |
+| Branch                                | Failures | Status        | Action Required |
+| ------------------------------------- | -------- | ------------- | --------------- |
+| fix/comprehensive-fixes-20251011      | 17       | ❌ ABANDONED  | DELETE          |
+| fix/standardize-test-framework-vitest | 15       | ❌ ABANDONED  | DELETE          |
+| fix/deprecated-hook-cleanup           | 15       | ❌ ABANDONED  | DELETE          |
+| **feat/batch2-code-improvements**     | **10**   | 🔴 **ACTIVE** | **FIX NOW**     |
+| feat/batch1-file-organization         | 3        | ⚠️ PENDING    | Fix after #127  |
+| fix/reduce-any-warnings-issue-100     | 3        | ❌ ABANDONED  | DELETE          |
+| cursor/\* (various)                   | 1-3 each | ❌ ABANDONED  | DELETE          |
 
 ## Root Cause Analysis
 
@@ -69,7 +69,7 @@ webpack.yml
 **Evidence from Run ID 18527805338**:
 
 - Checkout: ✅ SUCCESS
-- Setup Node: ✅ SUCCESS  
+- Setup Node: ✅ SUCCESS
 - Build: ❌ FAILURE (logs truncated at setup, actual failure not shown)
 
 **Suspected Causes**:
@@ -238,7 +238,7 @@ on:
   workflow_run:
     workflows: ["NodeJS with Webpack", "Fixzit Quality Gates"]
     types: [completed]
-    
+
 jobs:
   notify:
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}

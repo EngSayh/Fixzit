@@ -1,6 +1,7 @@
 # Critical Fixes Applied - October 26, 2025
 
 ## Summary
+
 Applied 30+ critical fixes addressing security, accessibility, and functionality issues across the Fixzit codebase.
 
 ## Fixes Applied
@@ -25,7 +26,7 @@ Applied 30+ critical fixes addressing security, accessibility, and functionality
    - Impact: No credentials committed to VCS, developer-friendly onboarding
 
 4. **LoginForm Role Storage (components/auth/LoginForm.tsx)**
-   - ✅ Removed `localStorage.setItem('fixzit-role', ...)` 
+   - ✅ Removed `localStorage.setItem('fixzit-role', ...)`
    - ✅ Added comment: "Role is managed server-side via secure HTTP-only cookies"
    - Impact: Client-side tampering no longer possible, server-validated auth only
 
@@ -81,6 +82,7 @@ Applied 30+ critical fixes addressing security, accessibility, and functionality
 ## Remaining Issues (To Be Addressed)
 
 ### High Priority
+
 - 🟡 Owner model bank account encryption (server/models/Owner.ts)
 - 🟡 FeatureFlag lifecycle.changeLog initialization (server/models/FeatureFlag.ts)
 - 🟡 ReferralCode generateCode retry limit (server/models/ReferralCode.ts)
@@ -88,6 +90,7 @@ Applied 30+ critical fixes addressing security, accessibility, and functionality
 - 🟡 Test credentials in setup-auth.ts (tests/setup-auth.ts)
 
 ### Medium Priority
+
 - 🔵 UpgradeModal alert() replacement (components/admin/UpgradeModal.tsx)
 - 🔵 LoginFooter hardcoded Arabic string (components/auth/LoginFooter.tsx)
 - 🔵 JobApplicationForm auto-redirect timing (components/careers/JobApplicationForm.tsx)
@@ -95,6 +98,7 @@ Applied 30+ critical fixes addressing security, accessibility, and functionality
 - 🔵 LanguageSelector arrow alignment (components/i18n/LanguageSelector.tsx)
 
 ### Low Priority (UX/Polish)
+
 - 🟢 feature-toggle.tsx unused import (components/ui/feature-toggle.tsx)
 - 🟢 language-selector keyboard navigation (components/ui/language-selector.tsx)
 - 🟢 language-selector RTL spacing/alignment (components/ui/language-selector.tsx)

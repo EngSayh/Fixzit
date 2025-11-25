@@ -28,8 +28,8 @@ This branch addresses critical UI/UX issues, translation gaps, mock code removal
 - Added guest check in fetchNotifications
 - Wrapped fetchNotifications in useCallback
 - Only show bell when isAuthenticated === true
-**Files**: `components/TopBar.tsx` (lines 133-154)  
-**Commit**: 83d9b69ba, ccc47b286
+  **Files**: `components/TopBar.tsx` (lines 133-154)  
+  **Commit**: 83d9b69ba, ccc47b286
 
 ### 3. AppSwitcher Arabic Translations ✅
 
@@ -41,16 +41,16 @@ This branch addresses critical UI/UX issues, translation gaps, mock code removal
 - Fixed getAppName function to use correct fallback
 - Imported AppKey type properly
 - Added RTL support with flex-row-reverse classes
-**Keys Added**:
+  **Keys Added**:
 - `app.switchApplication`: "تبديل التطبيق" / "Switch Application"
 - `app.fm`: "إدارة المنشآت" / "Facility Management"
-- `app.souq`: "السوق" / "Marketplace"  
+- `app.souq`: "السوق" / "Marketplace"
 - `app.aqar`: "العقار" / "Real Estate"
 - `app.searchableEntities`: "كيانات قابلة للبحث" / "searchable entities"
-**Files**:
+  **Files**:
 - `contexts/TranslationContext.tsx` (lines 70-76, 315-321)
 - `components/topbar/AppSwitcher.tsx`  
-**Commit**: 83d9b69ba
+  **Commit**: 83d9b69ba
 
 ### 4. Logout Session Clearing ✅
 
@@ -61,8 +61,8 @@ This branch addresses critical UI/UX issues, translation gaps, mock code removal
 - Changed `router.push('/login')` to `window.location.href = '/login'`
 - Forces hard reload to completely clear all state
 - Ensures cookies, localStorage, and component state all reset
-**Files**: `components/TopBar.tsx` (lines 208-214)  
-**Commit**: ccc47b286
+  **Files**: `components/TopBar.tsx` (lines 208-214)  
+  **Commit**: ccc47b286
 
 ### 5. Sidebar RTL/LTR Adaptation ✅
 
@@ -74,8 +74,8 @@ This branch addresses critical UI/UX issues, translation gaps, mock code removal
 - Added `flex-row-reverse` and `text-right` to all Account links
 - Fixed active indicator position with `mr-auto` vs `ml-auto`
 - Added RTL support to Help section
-**Files**: `components/Sidebar.tsx` (lines 201-248)  
-**Commit**: c99fcf16c
+  **Files**: `components/Sidebar.tsx` (lines 201-248)  
+  **Commit**: c99fcf16c
 
 ### 6. Remove Automatic Guest Login ✅
 
@@ -93,8 +93,8 @@ This branch addresses critical UI/UX issues, translation gaps, mock code removal
 - Changed empty return to throw error with documentation link
 - Added TODO comment with PayTabs API documentation URL
 - Forces implementation before production use
-**Files**: `lib/paytabs.ts` (lines 136-141)  
-**Commit**: c99fcf16c
+  **Files**: `lib/paytabs.ts` (lines 136-141)  
+  **Commit**: c99fcf16c
 
 ---
 
@@ -109,7 +109,7 @@ This branch addresses critical UI/UX issues, translation gaps, mock code removal
 - Browser console inspection needed
 - Test with authenticated user
 - Check network tab for actual error
-**Files**: `components/CopilotWidget.tsx`, `app/api/copilot/profile/route.ts`
+  **Files**: `components/CopilotWidget.tsx`, `app/api/copilot/profile/route.ts`
 
 ### 9. Login for All Roles ⏳
 
@@ -118,10 +118,10 @@ This branch addresses critical UI/UX issues, translation gaps, mock code removal
 **Next Steps**:
 
 - Test superadmin login
-- Test admin login  
+- Test admin login
 - Test manager/tenant/vendor login
 - Test corporate account login
-**Files**: `app/login/page.tsx`, `app/api/auth/login/route.ts`, `middleware.ts`
+  **Files**: `app/login/page.tsx`, `app/api/auth/login/route.ts`, `middleware.ts`
 
 ### 10. Corporate ID Number Display ⏳
 
@@ -131,7 +131,7 @@ This branch addresses critical UI/UX issues, translation gaps, mock code removal
 
 - Browser inspection to verify actual display issue
 - Check if this is referring to the demo credentials cards
-**Files**: `app/login/page.tsx` (lines 57-73)
+  **Files**: `app/login/page.tsx` (lines 57-73)
 
 ### 11. Marketplace Server Components Error ⏳
 
@@ -142,7 +142,7 @@ This branch addresses critical UI/UX issues, translation gaps, mock code removal
 - Verify API endpoints exist
 - Check server logs for actual error
 - May be intermittent or data-dependent
-**Files**: `app/marketplace/page.tsx`, `lib/marketplace/serverFetch.ts`
+  **Files**: `app/marketplace/page.tsx`, `lib/marketplace/serverFetch.ts`
 
 ---
 

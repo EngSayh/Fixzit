@@ -64,6 +64,7 @@
 **Issue:** `TranslationContext.test.tsx` normalization tests simplified, losing business logic validation
 
 **Gemini Review Comment:**
+
 > "The tests for setLocale normalization have been simplified to only check if the function exists. The previous implementation verified the normalization logic (e.g., converting 'ar-sa' to 'ar', and non-supported locales to 'en'). This is a regression in test coverage for important business logic."
 
 **Fix Applied:**
@@ -71,31 +72,31 @@
 ```typescript
 // RESTORED:
 it('normalizes arabic variants to "ar"', () => {
-  captured!.setLocale('ar');
-  captured!.setLocale('AR');
-  captured!.setLocale('ar-sa');
-  captured!.setLocale('ar_SA');
+  captured!.setLocale("ar");
+  captured!.setLocale("AR");
+  captured!.setLocale("ar-sa");
+  captured!.setLocale("ar_SA");
   // Verify mockSetLocale was called with 'ar' for all 4 Arabic variants
-  expect(mockSetLocale).toHaveBeenNthCalledWith(1, 'ar');
-  expect(mockSetLocale).toHaveBeenNthCalledWith(2, 'ar');
-  expect(mockSetLocale).toHaveBeenNthCalledWith(3, 'ar');
-  expect(mockSetLocale).toHaveBeenNthCalledWith(4, 'ar');
+  expect(mockSetLocale).toHaveBeenNthCalledWith(1, "ar");
+  expect(mockSetLocale).toHaveBeenNthCalledWith(2, "ar");
+  expect(mockSetLocale).toHaveBeenNthCalledWith(3, "ar");
+  expect(mockSetLocale).toHaveBeenNthCalledWith(4, "ar");
 });
 
 it('normalizes non-arabic or unknown to "en"', () => {
-  captured!.setLocale('en');
-  captured!.setLocale('EN');
-  captured!.setLocale('en-gb');
-  captured!.setLocale('fr');
-  captured!.setLocale('pt-BR');
-  captured!.setLocale(''); // empty string edge case
+  captured!.setLocale("en");
+  captured!.setLocale("EN");
+  captured!.setLocale("en-gb");
+  captured!.setLocale("fr");
+  captured!.setLocale("pt-BR");
+  captured!.setLocale(""); // empty string edge case
   // Verify mockSetLocale was called with 'en' for all 6 locale variants
-  expect(mockSetLocale).toHaveBeenNthCalledWith(1, 'en');
-  expect(mockSetLocale).toHaveBeenNthCalledWith(2, 'en');
-  expect(mockSetLocale).toHaveBeenNthCalledWith(3, 'en');
-  expect(mockSetLocale).toHaveBeenNthCalledWith(4, 'en');
-  expect(mockSetLocale).toHaveBeenNthCalledWith(5, 'en');
-  expect(mockSetLocale).toHaveBeenNthCalledWith(6, 'en');
+  expect(mockSetLocale).toHaveBeenNthCalledWith(1, "en");
+  expect(mockSetLocale).toHaveBeenNthCalledWith(2, "en");
+  expect(mockSetLocale).toHaveBeenNthCalledWith(3, "en");
+  expect(mockSetLocale).toHaveBeenNthCalledWith(4, "en");
+  expect(mockSetLocale).toHaveBeenNthCalledWith(5, "en");
+  expect(mockSetLocale).toHaveBeenNthCalledWith(6, "en");
 });
 ```
 
@@ -112,14 +113,15 @@ it('normalizes non-arabic or unknown to "en"', () => {
 **Issue:** `const actual = vi.importActual('mongoose')` used synchronously
 
 **ChatGPT Review Comment:**
+
 > "Unlike jest.requireActual, vi.importActual returns a promise, so this spreads a promise instead of the real module and the mock never exposes mongoose's exports."
 
 **Recommended Fix:**
 
 ```typescript
-vi.doMock('mongoose', async () => {
-  const actual = await vi.importActual('mongoose');
-  return { ...actual, /* overrides */ };
+vi.doMock("mongoose", async () => {
+  const actual = await vi.importActual("mongoose");
+  return { ...actual /* overrides */ };
 });
 ```
 
@@ -134,20 +136,21 @@ vi.doMock('mongoose', async () => {
 **Issue:** Missing test case for query failure after successful DB connection
 
 **Gemini Review Comment:**
+
 > "The refactoring of this test file has removed the test case that verifies the API's behavior when the database connection is successful but a subsequent query (like listCollections) fails."
 
 **Suggested Test:**
 
 ```typescript
-it('returns healthy but notes query failure when listing collections throws', async () => {
+it("returns healthy but notes query failure when listing collections throws", async () => {
   mockMongoose.connection.db.listCollections.mockReturnValue({
-    toArray: vi.fn().mockRejectedValue(new Error('Query failed')),
+    toArray: vi.fn().mockRejectedValue(new Error("Query failed")),
   });
-  
+
   const res = await GET(createMockRequest());
   expect(res.status).toBe(200);
   const body = await res.json();
-  expect(body.database).toBe('connected (query failed)');
+  expect(body.database).toBe("connected (query failed)");
 });
 ```
 
@@ -159,6 +162,7 @@ it('returns healthy but notes query failure when listing collections throws', as
 ### 6. **Duplicate MongoDB Mocks** 📌
 
 **Copilot Review Comment:**
+
 > "The inline mock definition in vitest.setup.ts duplicates the centralized mock in tests/mocks/mongodb-unified.ts. Consider importing and using the centralized mock to maintain DRY principle."
 
 **Status:** 📌 NOTED  
@@ -170,6 +174,7 @@ it('returns healthy but notes query failure when listing collections throws', as
 ### 7. **Deprecated `vi.importMock`** 📌
 
 **Copilot Review Comment:**
+
 > "Using vi.importMock for accessing mocked modules is deprecated in favor of vi.mocked(). Replace with standard imports followed by vi.mocked()."
 
 **Files Affected:**
@@ -214,12 +219,12 @@ These are from UNCONVERTED tests, not our fixes:
 
 ## Review Feedback Summary
 
-| Reviewer | Comments | Critical | Addressed |
-|----------|----------|----------|-----------|
-| **Copilot AI** | 5 comments | 1 | 1/1 ✅ |
-| **Gemini Code Assist** | 2 comments | 1 | 1/1 ✅ |
-| **ChatGPT Codex** | 2 comments | 2 | 1/2 (1 deferred) |
-| **Qodo Merge Pro** | CI analysis | N/A | Monitoring |
+| Reviewer               | Comments    | Critical | Addressed        |
+| ---------------------- | ----------- | -------- | ---------------- |
+| **Copilot AI**         | 5 comments  | 1        | 1/1 ✅           |
+| **Gemini Code Assist** | 2 comments  | 1        | 1/1 ✅           |
+| **ChatGPT Codex**      | 2 comments  | 2        | 1/2 (1 deferred) |
+| **Qodo Merge Pro**     | CI analysis | N/A      | Monitoring       |
 
 ---
 
@@ -228,7 +233,7 @@ These are from UNCONVERTED tests, not our fixes:
 ### Immediate (Current Session)
 
 1. ✅ **Fix tsconfig.json** - DONE
-2. ✅ **Restore Jest types** - DONE  
+2. ✅ **Restore Jest types** - DONE
 3. ✅ **Restore TranslationContext tests** - DONE
 4. ⏳ **Wait for CI results** - IN PROGRESS
 

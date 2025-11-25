@@ -1,34 +1,34 @@
-import React from 'react';
-import { vi, describe, beforeEach, test, expect, beforeAll } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import React from "react";
+import { vi, describe, beforeEach, test, expect, beforeAll } from "vitest";
+import { render, screen } from "@testing-library/react";
 
-import TenantsPage from '@/app/fm/tenants/page';
+import TenantsPage from "@/app/fm/tenants/page";
 
 const mockUseSession = vi.fn();
 const mockUseOrgGuard = vi.fn();
 const mockUseSWR = vi.fn();
 
-vi.mock('next-auth/react', () => ({
+vi.mock("next-auth/react", () => ({
   useSession: () => mockUseSession(),
 }));
 
-vi.mock('swr', () => ({
+vi.mock("swr", () => ({
   __esModule: true,
   default: (...args: Parameters<typeof mockUseSWR>) => mockUseSWR(...args),
 }));
 
-vi.mock('@/components/fm/useFmOrgGuard', () => ({
+vi.mock("@/components/fm/useFmOrgGuard", () => ({
   useFmOrgGuard: () => mockUseOrgGuard(),
 }));
 
-vi.mock('@/components/fm/ModuleViewTabs', () => ({
+vi.mock("@/components/fm/ModuleViewTabs", () => ({
   __esModule: true,
   default: ({ moduleId }: { moduleId: string }) => (
     <div data-testid="module-tabs">{moduleId}</div>
   ),
 }));
 
-vi.mock('@/components/fm/tenants/CreateTenantForm', () => ({
+vi.mock("@/components/fm/tenants/CreateTenantForm", () => ({
   CreateTenantForm: ({ orgId }: { orgId: string }) => (
     <div data-testid="create-tenant-form">{orgId}</div>
   ),
@@ -39,7 +39,7 @@ beforeEach(() => {
   mockUseSession.mockReturnValue({ data: { user: {} } });
   mockUseOrgGuard.mockReturnValue({
     hasOrgContext: true,
-    orgId: 'org-test',
+    orgId: "org-test",
     guard: null,
     supportBanner: null,
   });
@@ -51,8 +51,8 @@ beforeEach(() => {
   });
 });
 
-describe('TenantsPage org guard behavior', () => {
-  test('renders guard when no organization selected', () => {
+describe("TenantsPage org guard behavior", () => {
+  test("renders guard when no organization selected", () => {
     mockUseOrgGuard.mockReturnValue({
       hasOrgContext: false,
       orgId: null,
@@ -62,14 +62,14 @@ describe('TenantsPage org guard behavior', () => {
 
     render(<TenantsPage />);
 
-    expect(screen.getByTestId('org-guard')).toBeInTheDocument();
-    expect(screen.queryByTestId('module-tabs')).not.toBeInTheDocument();
+    expect(screen.getByTestId("org-guard")).toBeInTheDocument();
+    expect(screen.queryByTestId("module-tabs")).not.toBeInTheDocument();
   });
 
-  test('renders tenant layout when organization context exists', () => {
+  test("renders tenant layout when organization context exists", () => {
     mockUseOrgGuard.mockReturnValue({
       hasOrgContext: true,
-      orgId: 'org-123',
+      orgId: "org-123",
       guard: null,
       supportBanner: <div data-testid="support-banner">banner</div>,
     });
@@ -83,8 +83,8 @@ describe('TenantsPage org guard behavior', () => {
 
     render(<TenantsPage />);
 
-    expect(screen.getByTestId('module-tabs')).toHaveTextContent('tenants');
-    expect(screen.getByTestId('support-banner')).toBeInTheDocument();
+    expect(screen.getByTestId("module-tabs")).toHaveTextContent("tenants");
+    expect(screen.getByTestId("support-banner")).toBeInTheDocument();
     expect(screen.getByText(/Tenant Management/i)).toBeInTheDocument();
   });
 });

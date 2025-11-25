@@ -9,6 +9,7 @@
 ## Overview
 
 This guide details testing procedures for PayTabs and Tap payment callback webhooks to ensure:
+
 1. **Idempotent execution** prevents duplicate processing
 2. **Rate limiting** blocks malicious flood attacks
 3. **Payload size limits** prevent memory exhaustion
@@ -88,6 +89,7 @@ export PAYTABS_SERVER_KEY="your-paytabs-server-key"
 ### Test Cases
 
 #### TC1: Normal Payment Flow
+
 ```bash
 # Expected: 200 OK, payment processed
 # Signature: use scripts/sign-paytabs-payload.ts so payload+signature always match
@@ -105,6 +107,7 @@ curl -X POST https://staging.fixzit.app/api/payments/paytabs/callback \
 ```
 
 #### TC2: Idempotency Check (Replay Attack)
+
 ```bash
 # Send same payload twice within 5 minutes
 # Expected: First request: 200 OK, Second request: 200 OK (but no duplicate processing)
@@ -126,6 +129,7 @@ curl -X POST https://staging.fixzit.app/api/payments/paytabs/callback \
 ```
 
 #### TC3: Rate Limit Exhaustion
+
 ```bash
 # Send 61 requests within 60 seconds
 # Expected: First 60 succeed, 61st returns 429 Too Many Requests
@@ -143,6 +147,7 @@ wait
 ```
 
 #### TC4: Payload Size Limit
+
 ```bash
 # Send 33KB payload (exceeds 32KB limit)
 # Expected: 413 Payload Too Large (log line: "PayTabs payload rejected: exceeds limit")
@@ -157,6 +162,7 @@ curl -X POST https://staging.fixzit.app/api/payments/paytabs/callback \
 ```
 
 #### TC5: Invalid Signature
+
 ```bash
 # Send valid payload with wrong signature
 # Expected: 401 Unauthorized (log line: "PayTabs callback rejected: Invalid signature")
@@ -204,6 +210,7 @@ After **every** test case:
 Document every discrepancy in the test sheet before moving to the next scenario.
 
 ### Evidence to Attach Per Scenario
+
 - ✅ `curl` command + response (HTTP status + body)
 - ✅ Log snippet showing `payments.webhook` outcome (success or explicit failure reason)
 - ✅ Mongo query output proving insert/update counts
@@ -215,7 +222,7 @@ Document every discrepancy in the test sheet before moving to the next scenario.
 1. **Execution Log** – append each scenario’s outcome to [`SMOKE_TEST_EXECUTION_LOG.md`](../SMOKE_TEST_EXECUTION_LOG.md) (same numbering as this guide) and include the artifact folder link.
 2. **Artifacts Folder Structure**
    ```
-   _artifacts/payments/<YYYY-MM-DD>/<suite>/ 
+   _artifacts/payments/<YYYY-MM-DD>/<suite>/
      ├── curl.log
      ├── mongo.json
      ├── redis.txt
@@ -243,6 +250,7 @@ export TAP_WEBHOOK_SECRET="your-tap-webhook-hmac-secret"
 ### Test Cases
 
 #### TC1: Normal Charge Success
+
 ```bash
 curl -X POST https://staging.fixzit.app/api/payments/tap/webhook \
   -H "Content-Type: application/json" \
@@ -260,6 +268,7 @@ curl -X POST https://staging.fixzit.app/api/payments/tap/webhook \
 ```
 
 #### TC2: Idempotency Check
+
 ```bash
 # Replay same charge ID twice
 # Expected: Second call should be skipped (logged but not processed)
@@ -279,6 +288,7 @@ curl -X POST https://staging.fixzit.app/api/payments/tap/webhook \
 ```
 
 #### TC3: Rate Limit Test
+
 ```bash
 # Same as PayTabs - flood with 61 requests
 for i in {1..61}; do
@@ -293,6 +303,7 @@ wait
 ```
 
 #### TC4: Payload Size Limit
+
 ```bash
 # Reuse PayTabs oversized payload strategy
 LARGE_TAP_PAYLOAD=$(python3 -c "import json; print(json.dumps({'id': 'chg_BIG', 'object': 'charge', 'status': 'CAPTURED', 'amount': 100, 'currency': 'SAR', 'metadata': {'blob': 'x'*33000}}))")
@@ -306,6 +317,7 @@ curl -X POST https://staging.fixzit.app/api/payments/tap/webhook \
 ```
 
 #### TC5: Invalid Signature
+
 ```bash
 curl -X POST https://staging.fixzit.app/api/payments/tap/webhook \
   -H "Content-Type: application/json" \
@@ -326,6 +338,7 @@ Before marking the suite complete:
 3. ✅ Mongo/Redis verification notes recorded for TC2/TC3 counterparts.
 4. ✅ Issues filed (with log snippets + payload) for any deviations from expected behavior.
 5. ✅ `.env` overrides reverted or documented for rollback.
+
 ## Reference Payload Library & Monitoring SLA
 
 - Use the **Sample Payload Library** + **Error Response Matrix** in [`payment-integration-checklist.md`](payment-integration-checklist.md) for signed PayTabs/Tap examples. Each payload now includes required metadata fields plus failure variants for signature and fraud cases.
@@ -349,7 +362,7 @@ Before marking the suite complete:
      - EN + AR screenshots for each prompt
      - Mongo queries proving `organizationId` swap
      - Curl output snippets for webhook runs
-4. **Log results**  
+4. **Log results**
    - Update the log table per suite.
    - Drop artifacts (screens + `curl` transcripts) into `_artifacts/payments/<date>/`.
 
@@ -365,29 +378,32 @@ Before marking the suite complete:
 
 ## Next Steps & Cross-Team Dependencies
 
-| # | Owner | Action | Source | Status |
-|---|-------|--------|--------|--------|
-| 1 | Backend / Payments | Deliver PayTabs sample payloads (success/error) plus timeout + monitoring SLAs so checklist items PI-01/PI-02 unblock. | [`payment-integration-checklist.md`](payment-integration-checklist.md) (PI table around line 87) | ✅ Completed – payload/error library published Nov 18 |
-| 2 | QA | Seed support users + multi-org data using `pnpm tsx scripts/seed-demo-users.ts` and `node scripts/create-test-data.js`, then rerun SupportOrg smoke suites and capture EN/AR evidence for doc sign-off. | [`SMOKE_TEST_EXECUTION_LOG.md`](../SMOKE_TEST_EXECUTION_LOG.md) lines 372 & 391 | 🟡 Ready for execution – follow _QA Data Seeding & Evidence Capture_ |
-| 3 | Platform | Finish org-guard verification script + CI wiring, updating both the tracker and this action plan as phases complete. | `docs/ORG_GUARD_STATUS.md` line 335 and `docs/operations/DOCUMENTATION_ORG_ACTION_PLAN.md` line 28 | ✅ Automated – `pnpm verify:org-context` wired into Route Quality CI |
+| #   | Owner              | Action                                                                                                                                                                                                  | Source                                                                                             | Status                                                               |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 1   | Backend / Payments | Deliver PayTabs sample payloads (success/error) plus timeout + monitoring SLAs so checklist items PI-01/PI-02 unblock.                                                                                  | [`payment-integration-checklist.md`](payment-integration-checklist.md) (PI table around line 87)   | ✅ Completed – payload/error library published Nov 18                |
+| 2   | QA                 | Seed support users + multi-org data using `pnpm tsx scripts/seed-demo-users.ts` and `node scripts/create-test-data.js`, then rerun SupportOrg smoke suites and capture EN/AR evidence for doc sign-off. | [`SMOKE_TEST_EXECUTION_LOG.md`](../SMOKE_TEST_EXECUTION_LOG.md) lines 372 & 391                    | 🟡 Ready for execution – follow _QA Data Seeding & Evidence Capture_ |
+| 3   | Platform           | Finish org-guard verification script + CI wiring, updating both the tracker and this action plan as phases complete.                                                                                    | `docs/ORG_GUARD_STATUS.md` line 335 and `docs/operations/DOCUMENTATION_ORG_ACTION_PLAN.md` line 28 | ✅ Automated – `pnpm verify:org-context` wired into Route Quality CI |
 
 Document the outcome of each action above before running full staging webhooks to ensure all upstream blockers are resolved.
 
 ## Validation Checklist
 
 ### Pre-Test Setup
+
 - [ ] Staging environment variables configured (see Environment Configuration tables)
 - [ ] Test payment gateway accounts active
 - [ ] Database access for verification queries
 - [ ] Monitoring dashboards ready (Sentry, logs)
 
 ### During Testing
+
 - [ ] Monitor server CPU/memory usage
 - [ ] Check Redis for idempotency keys
 - [ ] Verify rate limit counters
 - [ ] Watch application logs for errors
 
 ### Post-Test Verification
+
 - [ ] Query database: `db.payments.find({cartId: /order-/}).count()`
 - [ ] Verify no duplicate payment records
 - [ ] Check DLQ for failed webhooks
@@ -398,22 +414,23 @@ Document the outcome of each action above before running full staging webhooks t
 
 ## Expected Results
 
-| Test Case | Expected Status | Verification Command |
-|-----------|-----------------|----------------------|
-| PayTabs TC1 | `200 OK`, invoice status becomes `PAID` | `db.subscriptioninvoices.findOne({cartId:"order-12345"},{status:1,paytabsTranRef:1})` |
-| PayTabs TC2 | second call returns cached response, no duplicate invoice | `db.subscriptioninvoices.find({"paytabsTranRef":"TST0001234567"}).count()` |
-| PayTabs TC3 | Request 61 returns `429` | Inspect `/tmp/paytabs-callback.log` or Sentry rate-limit counter |
-| PayTabs TC4 | `413 Payload Too Large` and log entry | `pnpm tsx tools/log-tail.ts payments | grep "payload rejected"` |
-| PayTabs TC5 | `401 Unauthorized`, no DB writes | `db.subscriptioninvoices.find({"cartId":"order-sig-test"})` |
-| Tap TC1 | `200 OK`, `tapTransactions` entry created | `db.tapTransactions.find({"tapChargeId":"chg_TS01234567890"})` |
-| Tap TC2 | Replay skipped | `db.tapTransactions.find({"tapChargeId":"chg_REPLAY001"}).count()` |
-| Tap TC3 | 61st request `429` | Tap webhook logs contain "Rate limit exceeded" |
-| Tap TC4 | `413 Payload Too Large`, log entry | `pnpm tsx tools/log-tail.ts payments | grep "Tap payload rejected"` |
-| Tap TC5 | `401 Unauthorized`, no DB writes | `db.tapTransactions.find({"tapChargeId":"chg_SIG_FAIL"})` |
+| Test Case   | Expected Status                                           | Verification Command                                                                  |
+| ----------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------- |
+| PayTabs TC1 | `200 OK`, invoice status becomes `PAID`                   | `db.subscriptioninvoices.findOne({cartId:"order-12345"},{status:1,paytabsTranRef:1})` |
+| PayTabs TC2 | second call returns cached response, no duplicate invoice | `db.subscriptioninvoices.find({"paytabsTranRef":"TST0001234567"}).count()`            |
+| PayTabs TC3 | Request 61 returns `429`                                  | Inspect `/tmp/paytabs-callback.log` or Sentry rate-limit counter                      |
+| PayTabs TC4 | `413 Payload Too Large` and log entry                     | `pnpm tsx tools/log-tail.ts payments                                                  | grep "payload rejected"`     |
+| PayTabs TC5 | `401 Unauthorized`, no DB writes                          | `db.subscriptioninvoices.find({"cartId":"order-sig-test"})`                           |
+| Tap TC1     | `200 OK`, `tapTransactions` entry created                 | `db.tapTransactions.find({"tapChargeId":"chg_TS01234567890"})`                        |
+| Tap TC2     | Replay skipped                                            | `db.tapTransactions.find({"tapChargeId":"chg_REPLAY001"}).count()`                    |
+| Tap TC3     | 61st request `429`                                        | Tap webhook logs contain "Rate limit exceeded"                                        |
+| Tap TC4     | `413 Payload Too Large`, log entry                        | `pnpm tsx tools/log-tail.ts payments                                                  | grep "Tap payload rejected"` |
+| Tap TC5     | `401 Unauthorized`, no DB writes                          | `db.tapTransactions.find({"tapChargeId":"chg_SIG_FAIL"})`                             |
 
 Document every run in [`SMOKE_TEST_EXECUTION_LOG.md`](../SMOKE_TEST_EXECUTION_LOG.md) and attach curl output + relevant log excerpts so the QA lead can sign off the deployment gate.
 
 ### Success Criteria
+
 ✅ **Idempotency:** Replayed webhooks return 200 but don't duplicate database records  
 ✅ **Rate Limiting:** 61st request within 60s returns HTTP 429  
 ✅ **Size Limits:** >32KB payloads rejected with HTTP 413  
@@ -421,6 +438,7 @@ Document every run in [`SMOKE_TEST_EXECUTION_LOG.md`](../SMOKE_TEST_EXECUTION_LO
 ✅ **ZATCA Integration:** Saudi payments generate valid QR codes
 
 ### Failure Indicators
+
 ❌ Duplicate payment records in database  
 ❌ Rate limits not enforced (>60 req/min accepted)  
 ❌ Large payloads crash server or consume excessive memory  
@@ -432,6 +450,7 @@ Document every run in [`SMOKE_TEST_EXECUTION_LOG.md`](../SMOKE_TEST_EXECUTION_LO
 ## Rollback Plan
 
 If critical issues found:
+
 1. **Immediate:** Disable webhooks via feature flag `PAYMENT_WEBHOOKS_ENABLED=false`
 2. **Short-term:** Roll back to previous version
 3. **Investigation:** Review logs, identify root cause
@@ -441,12 +460,12 @@ If critical issues found:
 
 ## Sign-Off
 
-| Role | Name | Date | Status |
-|------|------|------|--------|
-| Developer | - | 2025-11-18 | ✅ Tests Ready |
-| QA Lead | - | - | ⏳ Pending Execution |
-| DevOps | - | - | ⏳ Staging Setup |
-| Product Owner | - | - | ⏳ Final Approval |
+| Role          | Name | Date       | Status               |
+| ------------- | ---- | ---------- | -------------------- |
+| Developer     | -    | 2025-11-18 | ✅ Tests Ready       |
+| QA Lead       | -    | -          | ⏳ Pending Execution |
+| DevOps        | -    | -          | ⏳ Staging Setup     |
+| Product Owner | -    | -          | ⏳ Final Approval    |
 
 ---
 

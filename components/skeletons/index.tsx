@@ -34,10 +34,10 @@ export function CardGridSkeleton({ count = 6 }: { count?: number }) {
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
   // ✅ FIXED: Define columns array for consistent header/row structure
   const columns = [
-    { width: 'w-32' },  // Column 1
-    { width: 'w-24' },  // Column 2
-    { width: 'w-20' },  // Column 3
-    { width: 'w-28' },  // Column 4
+    { width: "w-32" }, // Column 1
+    { width: "w-24" }, // Column 2
+    { width: "w-20" }, // Column 3
+    { width: "w-28" }, // Column 4
   ];
 
   return (
@@ -50,9 +50,15 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
       </div>
       {/* Data rows */}
       {Array.from({ length: rows }).map((_, rowIndex) => (
-        <div key={rowIndex} className="border-b border-border px-6 py-4 flex gap-4 items-center">
+        <div
+          key={rowIndex}
+          className="border-b border-border px-6 py-4 flex gap-4 items-center"
+        >
           {columns.map((col, colIndex) => (
-            <Skeleton key={`row-${rowIndex}-col-${colIndex}`} className={`h-4 ${col.width}`} />
+            <Skeleton
+              key={`row-${rowIndex}-col-${colIndex}`}
+              className={`h-4 ${col.width}`}
+            />
           ))}
         </div>
       ))}
@@ -133,7 +139,7 @@ export function DetailPageSkeleton() {
   return (
     <div className="space-y-6">
       <PageHeaderSkeleton />
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Card>
@@ -152,7 +158,7 @@ export function DetailPageSkeleton() {
             </CardContent>
           </Card>
         </div>
-        
+
         <div className="lg:col-span-1">
           <Card>
             <CardContent className="p-6 space-y-4">

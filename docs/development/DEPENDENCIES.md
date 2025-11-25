@@ -41,12 +41,12 @@ This document provides justification, risk assessment, and mitigation strategies
 
 #### Alternatives Considered
 
-| Alternative | Pros | Cons | Decision |
-|------------|------|------|----------|
-| **Remain on v4** | Stable, proven | Blocks Next.js 15, no OAuth 2.1 | ❌ Rejected |
-| **Custom OAuth** | Full control | High dev cost, security risks | ❌ Rejected |
-| **Clerk/Auth0** | Managed service | High cost ($$$), vendor lock-in | ❌ Rejected |
-| **NextAuth v5 beta** | Modern, compatible | Beta status | ✅ **Selected** |
+| Alternative          | Pros               | Cons                            | Decision        |
+| -------------------- | ------------------ | ------------------------------- | --------------- |
+| **Remain on v4**     | Stable, proven     | Blocks Next.js 15, no OAuth 2.1 | ❌ Rejected     |
+| **Custom OAuth**     | Full control       | High dev cost, security risks   | ❌ Rejected     |
+| **Clerk/Auth0**      | Managed service    | High cost ($$$), vendor lock-in | ❌ Rejected     |
+| **NextAuth v5 beta** | Modern, compatible | Beta status                     | ✅ **Selected** |
 
 ### Known Issues & Mitigations
 
@@ -58,12 +58,12 @@ This document provides justification, risk assessment, and mitigation strategies
 
 #### Mitigation Strategies
 
-| Risk | Probability | Impact | Mitigation | Status |
-|------|------------|--------|------------|--------|
-| API breaking changes | Medium | High | Pin exact version, monitor release notes | ✅ Implemented |
-| Undocumented edge cases | Low | Medium | Comprehensive test coverage, monitoring | ✅ Implemented |
-| Security vulnerabilities | Low | High | Dependabot alerts, security scanning | ✅ Implemented |
-| Migration to v5 stable | Low | Low | API mostly stable, migration path clear | ✅ Ready |
+| Risk                     | Probability | Impact | Mitigation                               | Status         |
+| ------------------------ | ----------- | ------ | ---------------------------------------- | -------------- |
+| API breaking changes     | Medium      | High   | Pin exact version, monitor release notes | ✅ Implemented |
+| Undocumented edge cases  | Low         | Medium | Comprehensive test coverage, monitoring  | ✅ Implemented |
+| Security vulnerabilities | Low         | High   | Dependabot alerts, security scanning     | ✅ Implemented |
+| Migration to v5 stable   | Low         | Low    | API mostly stable, migration path clear  | ✅ Ready       |
 
 ### Implementation Safeguards
 
@@ -72,7 +72,7 @@ This document provides justification, risk assessment, and mitigation strategies
 ```json
 {
   "dependencies": {
-    "next-auth": "5.0.0-beta.29"  // Exact version, no ^ or ~
+    "next-auth": "5.0.0-beta.29" // Exact version, no ^ or ~
   }
 }
 ```
@@ -179,7 +179,7 @@ This document provides justification, risk assessment, and mitigation strategies
 
 **Approved By**: Eng. Sultan Al Hassni  
 **Role**: Lead Engineer & Project Owner  
-**Date**: October 19, 2025  
+**Date**: October 19, 2025
 
 **Signature**: This decision is documented, reviewed, and approved for production deployment with all documented mitigations in place.
 

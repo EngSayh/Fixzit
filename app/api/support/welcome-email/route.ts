@@ -1,25 +1,25 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import sgMail from '@sendgrid/mail';
+import sgMail from "@sendgrid/mail";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getDatabase } from '@/lib/mongodb-unified';
-import { getClientIP } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
-import { 
-  getSendGridConfig, 
-  getBaseEmailOptions, 
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { getClientIP } from "@/server/security/headers";
+import { logger } from "@/lib/logger";
+import {
+  getSendGridConfig,
+  getBaseEmailOptions,
   isSendGridConfigured,
-  getTemplateId 
-} from '@/lib/sendgrid-config';
+  getTemplateId,
+} from "@/lib/sendgrid-config";
 
 const welcomeEmailSchema = z.object({
   email: z.string().email(),
   errorId: z.string(),
   subject: z.string(),
-  registrationLink: z.string().url()
+  registrationLink: z.string().url(),
 });
 
 /**
@@ -53,10 +53,15 @@ export async function POST(req: NextRequest) {
 
     // Check if email service is configured
     if (!isSendGridConfigured()) {
-      return createSecureResponse({
-        error: 'Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.',
-        status: 'not_configured'
-      }, 501, req); // 501 Not Implemented
+      return createSecureResponse(
+        {
+          error:
+            "Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.",
+          status: "not_configured",
+        },
+        501,
+        req,
+      ); // 501 Not Implemented
     }
 
     // Create a mock email record in the database (optional)
@@ -103,7 +108,7 @@ The Fixzit Enterprise Team
 
     /**
      * SendGrid Email Service Integration
-     * 
+     *
      * ✅ Production-Ready with:
      * - @sendgrid/mail SDK (installed)
      * - Centralized SendGrid configuration
@@ -113,25 +118,25 @@ The Fixzit Enterprise Team
      * - Unsubscribe groups
      * - IP pools for better deliverability
      * - MongoDB tracking for email delivery status
-     * 
+     *
      * @see https://docs.sendgrid.com/for-developers/sending-email/quickstart-nodejs
      * @see /lib/sendgrid-config.ts
      */
-    
+
     // Initialize SendGrid with API key
     const config = getSendGridConfig();
     sgMail.setApiKey(config.apiKey);
 
-    const emailId = `WEL-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`;
+    const emailId = `WEL-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`;
     const timestamp = new Date();
-    
+
     // Check if a dynamic template is configured
-    const templateId = getTemplateId('welcome');
-    
+    const templateId = getTemplateId("welcome");
+
     try {
       // Get base email options with configured sender and advanced features
       const baseOptions = getBaseEmailOptions();
-      
+
       if (templateId) {
         // Use SendGrid Dynamic Template
         await sgMail.send({
@@ -143,13 +148,13 @@ The Fixzit Enterprise Team
             registrationLink: body.registrationLink,
             subject: body.subject,
             currentYear: new Date().getFullYear(),
-            supportEmail: config.replyTo?.email || config.from.email
+            supportEmail: config.replyTo?.email || config.from.email,
           },
           customArgs: {
             emailId,
             errorId: body.errorId,
-            type: 'welcome_email'
-          }
+            type: "welcome_email",
+          },
         });
       } else {
         // Use HTML template (legacy/fallback)
@@ -158,91 +163,106 @@ The Fixzit Enterprise Team
           to: body.email,
           subject: body.subject,
           html: _emailTemplate,
-          text: _emailTemplate.replace(/<[^>]*>/g, ''), // Plain text fallback
+          text: _emailTemplate.replace(/<[^>]*>/g, ""), // Plain text fallback
           customArgs: {
             emailId,
             errorId: body.errorId,
-            type: 'welcome_email'
-          }
+            type: "welcome_email",
+          },
         });
       }
 
       // Track email in MongoDB
       try {
         const db = await getDatabase();
-        const emailsCollection = db.collection('email_logs');
-        
+        const emailsCollection = db.collection("email_logs");
+
         await emailsCollection.insertOne({
           emailId,
-          type: 'welcome_email',
+          type: "welcome_email",
           recipient: body.email,
           subject: body.subject,
           errorId: body.errorId,
           registrationLink: body.registrationLink,
-          status: 'sent',
+          status: "sent",
           sentAt: timestamp,
-          provider: 'sendgrid',
+          provider: "sendgrid",
           metadata: {
             clientIp,
-            correlationId: req.headers.get('x-correlation-id') || crypto.randomUUID()
-          }
+            correlationId:
+              req.headers.get("x-correlation-id") || crypto.randomUUID(),
+          },
         });
-        
-        logger.info('✅ Email sent and logged', {
+
+        logger.info("✅ Email sent and logged", {
           emailId,
           recipient: body.email,
-          timestamp: timestamp.toISOString()
+          timestamp: timestamp.toISOString(),
         });
       } catch (dbError) {
         // Email sent but logging failed - don't fail the request
-        logger.warn('⚠️ Email sent but database logging failed:', { dbError });
+        logger.warn("⚠️ Email sent but database logging failed:", { dbError });
       }
 
-      return createSecureResponse({
-        success: true,
-        message: 'Welcome email sent successfully',
-        emailId,
-        recipient: body.email,
-        subject: body.subject,
-        sentAt: timestamp.toISOString()
-      }, 200, req);
-
+      return createSecureResponse(
+        {
+          success: true,
+          message: "Welcome email sent successfully",
+          emailId,
+          recipient: body.email,
+          subject: body.subject,
+          sentAt: timestamp.toISOString(),
+        },
+        200,
+        req,
+      );
     } catch (sendGridError: unknown) {
       // SendGrid failed - log error and track failure
       const error = sendGridError as Error;
-      logger.error('❌ SendGrid error:', error instanceof Error ? error.message : 'Unknown error');
-      
+      logger.error(
+        "❌ SendGrid error:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+
       try {
         const db = await getDatabase();
-        await db.collection('email_logs').insertOne({
+        await db.collection("email_logs").insertOne({
           emailId,
-          type: 'welcome_email',
+          type: "welcome_email",
           recipient: body.email,
           subject: body.subject,
           errorId: body.errorId,
-          status: 'failed',
+          status: "failed",
           error: error.message,
           failedAt: timestamp,
-          provider: 'sendgrid'
+          provider: "sendgrid",
         });
       } catch {
         // Ignore DB errors during failure logging
       }
 
-      return createSecureResponse({
-        error: 'Failed to send email',
-        message: 'Email service temporarily unavailable. Please try again later.',
-        emailId
-      }, 500, req);
+      return createSecureResponse(
+        {
+          error: "Failed to send email",
+          message:
+            "Email service temporarily unavailable. Please try again later.",
+          emailId,
+        },
+        500,
+        req,
+      );
     }
-
   } catch (error) {
-    const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
-    logger.error(`[${correlationId}] Welcome email error:`, error instanceof Error ? error.message : 'Unknown error');
+    const correlationId =
+      req.headers.get("x-correlation-id") || crypto.randomUUID();
+    logger.error(
+      `[${correlationId}] Welcome email error:`,
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return createSecureResponse(
-      { error: 'Failed to send welcome email', correlationId },
+      { error: "Failed to send welcome email", correlationId },
       500,
-      req
+      req,
     );
   }
 }
@@ -257,59 +277,82 @@ export async function GET(req: NextRequest) {
   }
 
   const sp = new URL(req.url).searchParams;
-  const email = sp.get('email');
+  const email = sp.get("email");
 
   if (!email) {
-    return createSecureResponse({ error: 'Email parameter required' }, 400, req);
+    return createSecureResponse(
+      { error: "Email parameter required" },
+      400,
+      req,
+    );
   }
 
   // Check if email service is configured
   if (!isSendGridConfigured()) {
-    return createSecureResponse({
-      error: 'Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.',
-      email,
-      status: 'not_configured'
-    }, 501, req); // 501 Not Implemented
+    return createSecureResponse(
+      {
+        error:
+          "Email service not yet configured. Please integrate SendGrid, AWS SES, or similar service.",
+        email,
+        status: "not_configured",
+      },
+      501,
+      req,
+    ); // 501 Not Implemented
   }
 
   try {
     // Query MongoDB for email delivery status
     const db = await getDatabase();
-    const emailsCollection = db.collection('email_logs');
-    
+    const emailsCollection = db.collection("email_logs");
+
     const emailRecords = await emailsCollection
-      .find({ recipient: email, type: 'welcome_email' })
+      .find({ recipient: email, type: "welcome_email" })
       .sort({ sentAt: -1, failedAt: -1 })
       .limit(10)
       .toArray();
 
     if (emailRecords.length === 0) {
-      return createSecureResponse({
-        email,
-        status: 'no_records_found',
-        message: 'No welcome emails found for this recipient'
-      }, 404, req);
+      return createSecureResponse(
+        {
+          email,
+          status: "no_records_found",
+          message: "No welcome emails found for this recipient",
+        },
+        404,
+        req,
+      );
     }
 
-    return createSecureResponse({
-      email,
-      totalEmails: emailRecords.length,
-      emails: emailRecords.map((record: Record<string, unknown>) => ({
-        emailId: record.emailId,
-        subject: record.subject,
-        status: record.status,
-        sentAt: record.sentAt,
-        failedAt: record.failedAt,
-        errorId: record.errorId,
-        error: record.error
-      }))
-    }, 200, req);
-
+    return createSecureResponse(
+      {
+        email,
+        totalEmails: emailRecords.length,
+        emails: emailRecords.map((record: Record<string, unknown>) => ({
+          emailId: record.emailId,
+          subject: record.subject,
+          status: record.status,
+          sentAt: record.sentAt,
+          failedAt: record.failedAt,
+          errorId: record.errorId,
+          error: record.error,
+        })),
+      },
+      200,
+      req,
+    );
   } catch (error) {
-    logger.error('Error querying email status:', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({
-      error: 'Failed to query email status',
-      email
-    }, 500, req);
+    logger.error(
+      "Error querying email status:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      {
+        error: "Failed to query email status",
+        email,
+      },
+      500,
+      req,
+    );
   }
 }

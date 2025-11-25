@@ -21,59 +21,59 @@ This guide provides step-by-step instructions to configure all required GitHub r
 
 ### 1. Core Database & Authentication
 
-| Secret Name | Description | Required | Example Value |
-|------------|-------------|----------|---------------|
-| `MONGODB_URI` | MongoDB Atlas connection string | ✅ Yes | `mongodb+srv://user:pass@cluster.mongodb.net/fixzit` |
-| `MONGODB_DB` | Database name | ✅ Yes | `fixzit` |
-| `JWT_SECRET` | JWT token signing secret (32+ chars) | ✅ Yes | Generate: `openssl rand -hex 32` |
+| Secret Name   | Description                          | Required | Example Value                                        |
+| ------------- | ------------------------------------ | -------- | ---------------------------------------------------- |
+| `MONGODB_URI` | MongoDB Atlas connection string      | ✅ Yes   | `mongodb+srv://user:pass@cluster.mongodb.net/fixzit` |
+| `MONGODB_DB`  | Database name                        | ✅ Yes   | `fixzit`                                             |
+| `JWT_SECRET`  | JWT token signing secret (32+ chars) | ✅ Yes   | Generate: `openssl rand -hex 32`                     |
 
 ### 2. Payment Gateway (PayTabs - Saudi Arabia)
 
-| Secret Name | Description | Required | Example Value |
-|------------|-------------|----------|---------------|
-| `PAYTABS_PROFILE_ID` | PayTabs merchant profile ID | ✅ Yes | `your_profile_id_here` |
-| `PAYTABS_SERVER_KEY` | PayTabs server API key | ✅ Yes | `your_server_key_here` |
-| `PAYTABS_CLIENT_KEY` | PayTabs client-side key | 📋 Optional | `your_client_key_here` |
+| Secret Name          | Description                 | Required    | Example Value          |
+| -------------------- | --------------------------- | ----------- | ---------------------- |
+| `PAYTABS_PROFILE_ID` | PayTabs merchant profile ID | ✅ Yes      | `your_profile_id_here` |
+| `PAYTABS_SERVER_KEY` | PayTabs server API key      | ✅ Yes      | `your_server_key_here` |
+| `PAYTABS_CLIENT_KEY` | PayTabs client-side key     | 📋 Optional | `your_client_key_here` |
 
 ### 3. AWS Services
 
-| Secret Name | Description | Required | Example Value |
-|------------|-------------|----------|---------------|
-| `AWS_ACCESS_KEY_ID` | AWS access key for S3/SES | 📋 Optional | `AKIA...` |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret access key | 📋 Optional | `wJalrXUtn...` |
-| `AWS_REGION` | AWS region | 📋 Optional | `me-south-1` (Bahrain) |
-| `AWS_S3_BUCKET` | S3 bucket for file uploads | 📋 Optional | `fixzit-uploads` |
+| Secret Name             | Description                | Required    | Example Value          |
+| ----------------------- | -------------------------- | ----------- | ---------------------- |
+| `AWS_ACCESS_KEY_ID`     | AWS access key for S3/SES  | 📋 Optional | `AKIA...`              |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret access key      | 📋 Optional | `wJalrXUtn...`         |
+| `AWS_REGION`            | AWS region                 | 📋 Optional | `me-south-1` (Bahrain) |
+| `AWS_S3_BUCKET`         | S3 bucket for file uploads | 📋 Optional | `fixzit-uploads`       |
 
 ### 4. Email Services
 
-| Secret Name | Description | Required | Example Value |
-|------------|-------------|----------|---------------|
-| `SENDGRID_API_KEY` | SendGrid API key | 📋 Optional | `SG.xxx...` |
-| `EMAIL_HOST` | SMTP host (if not using SendGrid) | 📋 Optional | `smtp.gmail.com` |
-| `EMAIL_USER` | SMTP username | 📋 Optional | `your_email@domain.com` |
-| `EMAIL_PASS` | SMTP password | 📋 Optional | `app_specific_password` |
+| Secret Name        | Description                       | Required    | Example Value           |
+| ------------------ | --------------------------------- | ----------- | ----------------------- |
+| `SENDGRID_API_KEY` | SendGrid API key                  | 📋 Optional | `SG.xxx...`             |
+| `EMAIL_HOST`       | SMTP host (if not using SendGrid) | 📋 Optional | `smtp.gmail.com`        |
+| `EMAIL_USER`       | SMTP username                     | 📋 Optional | `your_email@domain.com` |
+| `EMAIL_PASS`       | SMTP password                     | 📋 Optional | `app_specific_password` |
 
 ### 5. SMS Services (Twilio)
 
-| Secret Name | Description | Required | Example Value |
-|------------|-------------|----------|---------------|
-| `TWILIO_ACCOUNT_SID` | Twilio account SID | 📋 Optional | `AC...` |
-| `TWILIO_AUTH_TOKEN` | Twilio auth token | 📋 Optional | `auth_token_here` |
-| `TWILIO_PHONE_NUMBER` | Twilio phone number | 📋 Optional | `+966xxxxxxxxx` |
+| Secret Name           | Description         | Required    | Example Value     |
+| --------------------- | ------------------- | ----------- | ----------------- |
+| `TWILIO_ACCOUNT_SID`  | Twilio account SID  | 📋 Optional | `AC...`           |
+| `TWILIO_AUTH_TOKEN`   | Twilio auth token   | 📋 Optional | `auth_token_here` |
+| `TWILIO_PHONE_NUMBER` | Twilio phone number | 📋 Optional | `+966xxxxxxxxx`   |
 
 ### 6. Monitoring & Error Tracking
 
-| Secret Name | Description | Required | Example Value |
-|------------|-------------|----------|---------------|
-| `SENTRY_DSN` | Sentry error tracking DSN | 📋 Optional | `https://xxx@sentry.io/xxx` |
-| `DATADOG_API_KEY` | Datadog API key | 📋 Optional | `api_key_here` |
+| Secret Name       | Description               | Required    | Example Value               |
+| ----------------- | ------------------------- | ----------- | --------------------------- |
+| `SENTRY_DSN`      | Sentry error tracking DSN | 📋 Optional | `https://xxx@sentry.io/xxx` |
+| `DATADOG_API_KEY` | Datadog API key           | 📋 Optional | `api_key_here`              |
 
 ### 7. Public Environment Variables
 
-| Secret Name | Description | Required | Example Value |
-|------------|-------------|----------|---------------|
-| `NEXT_PUBLIC_APP_URL` | Application public URL | ✅ Yes | `https://fixzit.sa` |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps API key (client-side) | 📋 Optional | `AIza...` |
+| Secret Name                       | Description                       | Required    | Example Value       |
+| --------------------------------- | --------------------------------- | ----------- | ------------------- |
+| `NEXT_PUBLIC_APP_URL`             | Application public URL            | ✅ Yes      | `https://fixzit.sa` |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps API key (client-side) | 📋 Optional | `AIza...`           |
 
 ---
 
@@ -184,13 +184,13 @@ jobs:
             exit 1
           fi
           echo "✅ MONGODB_URI is configured"
-          
+
           if [ -z "${{ secrets.JWT_SECRET }}" ]; then
             echo "❌ JWT_SECRET not set"
             exit 1
           fi
           echo "✅ JWT_SECRET is configured"
-          
+
           echo "✅ All required secrets are configured"
 ```
 
@@ -238,15 +238,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      
+          node-version: "20"
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build application
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
@@ -254,7 +254,7 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
         run: npm run build
-      
+
       - name: Deploy to GoDaddy
         env:
           DEPLOY_KEY: ${{ secrets.GODADDY_DEPLOY_KEY }}
@@ -277,25 +277,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      
+          node-version: "20"
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Install Playwright
         run: npx playwright install --with-deps
-      
+
       - name: Run E2E tests
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           MONGODB_DB: ${{ secrets.MONGODB_DB }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: npm run test:e2e
-      
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useTranslation } from '@/contexts/TranslationContext';
-import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
+import { useTranslation } from "@/contexts/TranslationContext";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 
 export default function SSOButtons() {
   const { t } = useTranslation();
@@ -15,7 +15,7 @@ export default function SSOButtons() {
         </div>
         <div className="relative flex justify-center text-sm">
           <span className="px-2 bg-card text-muted-foreground">
-            {t('login.orContinueWith', 'Or continue with')}
+            {t("login.orContinueWith", "Or continue with")}
           </span>
         </div>
       </div>

@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
-import { resolveMarketplaceContext } from '@/lib/marketplace/context';
-import { findProductBySlug } from '@/lib/marketplace/search';
-import { db } from '@/lib/mongo';
-import Category from '@/server/models/marketplace/Category';
-import { serializeCategory } from '@/lib/marketplace/serializers';
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import { findProductBySlug } from "@/lib/marketplace/search";
+import { db } from "@/lib/mongo";
+import Category from "@/server/models/marketplace/Category";
+import { serializeCategory } from "@/lib/marketplace/serializers";
 
-import {notFoundError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+import { notFoundError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -39,20 +39,30 @@ export async function GET(request: NextRequest, props: RouteParams) {
     const product = await findProductBySlug(context.orgId, slug);
 
     if (!product) {
-      return notFoundError('Product');
+      return notFoundError("Product");
     }
 
-    const category = await Category.findOne({ _id: product.categoryId, orgId: context.orgId }).lean();
+    const category = await Category.findOne({
+      _id: product.categoryId,
+      orgId: context.orgId,
+    }).lean();
 
     return NextResponse.json({
       ok: true,
       data: {
         product,
-        category: category ? serializeCategory(category) : null
-      }
+        category: category ? serializeCategory(category) : null,
+      },
     });
   } catch (error) {
-    logger.error('Failed to load product details', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Unable to fetch product' }, 500, request);
+    logger.error(
+      "Failed to load product details",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Unable to fetch product" },
+      500,
+      request,
+    );
   }
 }

@@ -44,12 +44,14 @@ done
 ```
 
 **Expected Output:**
+
 ```
 Request 1-10: HTTP Status: 200 (OTP sent successfully)
 Request 11-15: HTTP Status: 429 (Rate limit exceeded)
 ```
 
 **Pass Criteria:**
+
 - ✅ First 10 requests succeed
 - ✅ Requests 11-15 return 429
 - ✅ Error message: "Too many requests. Please try again later."
@@ -76,12 +78,14 @@ done
 ```
 
 **Expected Output:**
+
 ```
 Request 1-10: HTTP Status: 400 or 401 (Invalid OTP - expected)
 Request 11-15: HTTP Status: 429 (Rate limit exceeded)
 ```
 
 **Pass Criteria:**
+
 - ✅ Requests 11-15 return 429 (rate limit works)
 - ✅ Rate limiting happens BEFORE OTP validation (security best practice)
 
@@ -114,6 +118,7 @@ done
 ```
 
 **Pass Criteria:**
+
 - ✅ First 10 requests succeed or fail with business logic errors (not rate limit)
 - ✅ Requests 11-12 return 429
 - ✅ Error message includes rate limit text
@@ -146,6 +151,7 @@ curl -X GET http://localhost:3000/api/health \
 ```
 
 **Expected Output:**
+
 ```
 HTTP/1.1 200 OK
 Access-Control-Allow-Origin: https://fixzit.sa
@@ -153,6 +159,7 @@ Access-Control-Allow-Credentials: true
 ```
 
 **Pass Criteria:**
+
 - ✅ All valid origins return 200
 - ✅ `Access-Control-Allow-Origin` header matches request origin
 - ✅ `Access-Control-Allow-Credentials: true` present
@@ -182,12 +189,14 @@ curl -X POST http://localhost:3000/api/auth/otp/send \
 ```
 
 **Expected Output:**
+
 ```
 HTTP/1.1 403 Forbidden
 (No Access-Control-Allow-Origin header)
 ```
 
 **Pass Criteria:**
+
 - ✅ Request returns 403 or 500 (origin rejected)
 - ✅ NO `Access-Control-Allow-Origin` header in response
 - ✅ Error logged in server console: "CORS policy blocked origin: https://evil.com"
@@ -210,6 +219,7 @@ curl -X OPTIONS http://localhost:3000/api/auth/otp/send \
 ```
 
 **Expected Output:**
+
 ```
 HTTP/1.1 204 No Content
 Access-Control-Allow-Origin: https://fixzit.sa
@@ -219,6 +229,7 @@ Access-Control-Max-Age: 86400
 ```
 
 **Pass Criteria:**
+
 - ✅ Returns 204 No Content
 - ✅ All CORS headers present
 - ✅ Allowed methods include POST
@@ -249,6 +260,7 @@ mv .env.local.backup .env.local
 ```
 
 **Expected Output:**
+
 ```
 Error: Environment variable JWT_SECRET is required but not set
     at requireEnv (/lib/env.ts:15:11)
@@ -256,6 +268,7 @@ Error: Environment variable JWT_SECRET is required but not set
 ```
 
 **Pass Criteria:**
+
 - ✅ App exits immediately (doesn't start)
 - ✅ Clear error message about missing JWT_SECRET
 - ✅ No "Server listening on port 3000" message
@@ -280,12 +293,14 @@ mv .env.local.backup .env.local
 ```
 
 **Expected Output:**
+
 ```
 ⚠️  JWT_SECRET not set, using test fallback (development only)
 ✅ JWT_SECRET resolved: dev-secret-... (32 chars)
 ```
 
 **Pass Criteria:**
+
 - ✅ App starts successfully in dev mode
 - ✅ Warning logged about test fallback
 - ✅ No crashes
@@ -304,6 +319,7 @@ pnpm tsx scripts/validate-notification-env.ts
 ```
 
 **Expected Output:**
+
 ```
 ✅ Checking environment variables...
 
@@ -321,6 +337,7 @@ All required secrets present!
 ```
 
 **Pass Criteria:**
+
 - ✅ All core secrets marked as ✅
 - ✅ Script exits with code 0
 - ✅ Optional secrets can be missing
@@ -350,6 +367,7 @@ sed -i.tmp "s|^MONGODB_URI=.*|MONGODB_URI=$ORIGINAL_URI|" .env.local
 ```
 
 **Expected Output:**
+
 ```
 Error: FATAL: Production requires MongoDB Atlas (mongodb+srv:// protocol).
 Local or self-hosted MongoDB is not allowed in production.
@@ -357,6 +375,7 @@ Local or self-hosted MongoDB is not allowed in production.
 ```
 
 **Pass Criteria:**
+
 - ✅ Connection fails immediately
 - ✅ Error mentions "Atlas-only" or "mongodb+srv://"
 - ✅ No database connection established
@@ -383,11 +402,13 @@ NODE_ENV=production node -e "
 ```
 
 **Expected Output:**
+
 ```
 ✅ Connected to MongoDB Atlas
 ```
 
 **Pass Criteria:**
+
 - ✅ Connection succeeds
 - ✅ No warnings about localhost
 - ✅ TLS/SSL enabled automatically
@@ -411,12 +432,14 @@ MONGODB_URI=mongodb://localhost:27017/fixzit_dev node -e "
 ```
 
 **Expected Output:**
+
 ```
 ⚠️  Using localhost MongoDB URI (development only)
 ✅ Connected to local MongoDB
 ```
 
 **Pass Criteria:**
+
 - ✅ Connection succeeds
 - ✅ Warning logged about localhost
 - ✅ No production enforcement triggered
@@ -440,6 +463,7 @@ docker-compose up -d 2>&1 | grep -E "(JWT_SECRET|MONGO_INITDB_ROOT_PASSWORD|MEIL
 ```
 
 **Expected Output:**
+
 ```
 ERROR: The variable JWT_SECRET is not set. Set JWT_SECRET before running.
 ERROR: The variable MONGO_INITDB_ROOT_PASSWORD is not set. Set MONGO_INITDB_ROOT_PASSWORD before running.
@@ -447,6 +471,7 @@ ERROR: The variable MEILI_MASTER_KEY is not set. Set MEILI_MASTER_KEY before run
 ```
 
 **Pass Criteria:**
+
 - ✅ `docker-compose up` fails immediately
 - ✅ Clear error messages for each missing secret
 - ✅ No containers started
@@ -476,6 +501,7 @@ docker-compose down
 ```
 
 **Expected Output:**
+
 ```
 Creating network "fixzit_default" ... done
 Creating fixzit_mongodb_1      ... done
@@ -489,6 +515,7 @@ fixzit_app_1           Up 3 seconds
 ```
 
 **Pass Criteria:**
+
 - ✅ All services start successfully
 - ✅ No error messages
 - ✅ Containers show "Up" status
@@ -501,27 +528,27 @@ fixzit_app_1           Up 3 seconds
 
 Copy this table to track your test progress:
 
-| Test | Status | Notes |
-|------|--------|-------|
-| **Rate Limiting** | | |
-| └─ OTP Send (10 req/min) | ☐ | |
-| └─ OTP Verify (10 req/min) | ☐ | |
-| └─ Claims API (10 req/min) | ☐ | |
-| **CORS Policy** | | |
-| └─ Valid origins allowed | ☐ | |
-| └─ Invalid origins blocked | ☐ | |
-| └─ Preflight requests work | ☐ | |
-| **Environment Secrets** | | |
-| └─ Prod fails without secrets | ☐ | |
-| └─ Dev allows test fallbacks | ☐ | |
-| └─ Validation script passes | ☐ | |
-| **MongoDB Security** | | |
-| └─ Prod rejects localhost | ☐ | |
-| └─ Atlas URI works in prod | ☐ | |
-| └─ Dev allows localhost | ☐ | |
-| **Docker Secrets** | | |
-| └─ Compose fails without secrets | ☐ | |
-| └─ Compose works with secrets | ☐ | |
+| Test                             | Status | Notes |
+| -------------------------------- | ------ | ----- |
+| **Rate Limiting**                |        |       |
+| └─ OTP Send (10 req/min)         | ☐      |       |
+| └─ OTP Verify (10 req/min)       | ☐      |       |
+| └─ Claims API (10 req/min)       | ☐      |       |
+| **CORS Policy**                  |        |       |
+| └─ Valid origins allowed         | ☐      |       |
+| └─ Invalid origins blocked       | ☐      |       |
+| └─ Preflight requests work       | ☐      |       |
+| **Environment Secrets**          |        |       |
+| └─ Prod fails without secrets    | ☐      |       |
+| └─ Dev allows test fallbacks     | ☐      |       |
+| └─ Validation script passes      | ☐      |       |
+| **MongoDB Security**             |        |       |
+| └─ Prod rejects localhost        | ☐      |       |
+| └─ Atlas URI works in prod       | ☐      |       |
+| └─ Dev allows localhost          | ☐      |       |
+| **Docker Secrets**               |        |       |
+| └─ Compose fails without secrets | ☐      |       |
+| └─ Compose works with secrets    | ☐      |       |
 
 ---
 
@@ -530,6 +557,7 @@ Copy this table to track your test progress:
 ### What to Do If Tests Fail
 
 #### Rate Limiting Tests Fail
+
 ```bash
 # Check rate limit middleware is imported
 grep -r "enforceRateLimit" app/api/
@@ -542,6 +570,7 @@ redis-cli ping
 ```
 
 #### CORS Tests Fail
+
 ```bash
 # Check CORS allowlist
 cat lib/security/cors-allowlist.ts
@@ -554,6 +583,7 @@ grep "cors" next.config.js
 ```
 
 #### Environment Secrets Tests Fail
+
 ```bash
 # Check requireEnv implementation
 cat lib/env.ts
@@ -566,6 +596,7 @@ pnpm tsx scripts/validate-notification-env.ts --verbose
 ```
 
 #### MongoDB Tests Fail
+
 ```bash
 # Check MongoDB connection logic
 cat lib/mongo.ts | grep -A 20 "enforceAtlasInProduction"
@@ -578,6 +609,7 @@ mongosh "$MONGODB_URI" --eval "db.version()"
 ```
 
 #### Docker Tests Fail
+
 ```bash
 # Check docker-compose.yml syntax
 docker-compose config
@@ -604,6 +636,7 @@ Security Score = (____ / 15) × 100 = _____%
 ```
 
 **Grading:**
+
 - 🟢 **90-100%** (14-15 tests): Excellent - Production ready
 - 🟡 **80-89%** (12-13 tests): Good - Minor fixes needed
 - 🟠 **70-79%** (11 tests): Fair - Security review required
@@ -640,6 +673,7 @@ Before deploying to production, ensure:
 ### Common Issues
 
 **Issue:** Rate limiting not working
+
 ```bash
 # Solution: Restart dev server (rate limit state resets)
 pkill -f "next dev"
@@ -647,12 +681,14 @@ pnpm dev
 ```
 
 **Issue:** CORS headers missing
+
 ```bash
 # Solution: Check middleware is running
 grep "middleware.ts" next.config.js
 ```
 
 **Issue:** Docker secrets not interpolating
+
 ```bash
 # Solution: Use docker-compose config to debug
 export JWT_SECRET="test123"

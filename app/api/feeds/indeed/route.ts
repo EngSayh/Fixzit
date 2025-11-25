@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { Job } from '@/server/models/Job';
+import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job } from "@/server/models/Job";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /**
  * @openapi
@@ -24,19 +24,19 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   // Check if ATS feeds are enabled
-  if (process.env.ATS_ENABLED !== 'true') {
+  if (process.env.ATS_ENABLED !== "true") {
     const errorXml = `<?xml version="1.0" encoding="UTF-8"?>
     <source>
       <publisher>Fixzit</publisher>
-      <publisherurl>${process.env.PUBLIC_BASE_URL || 'https://fixzit.co'}/careers</publisherurl>
+      <publisherurl>${process.env.PUBLIC_BASE_URL || "https://fixzit.co"}/careers</publisherurl>
       <error>ATS feeds not available in this deployment</error>
     </source>`;
-    return new NextResponse(errorXml, { 
+    return new NextResponse(errorXml, {
       status: 501,
-      headers: { 'Content-Type': 'application/xml; charset=utf-8' } 
+      headers: { "Content-Type": "application/xml; charset=utf-8" },
     });
   }
-  
+
   // Define type for job fields needed in XML
   interface JobFeedDoc {
     title?: string;
@@ -59,50 +59,53 @@ export async function GET() {
 
   try {
     await connectToDatabase();
-    const jobs = await Job.find({ status: 'published', visibility: 'public' })
+    const jobs = (await Job.find({ status: "published", visibility: "public" })
       .sort({ publishedAt: -1 })
-      .lean() as JobFeedDoc[];
+      .lean()) as JobFeedDoc[];
 
-    const items = (jobs as JobFeedDoc[]).map((j) => `
+    const items = (jobs as JobFeedDoc[])
+      .map(
+        (j) => `
     <job>
       <title><![CDATA[${j.title}]]></title>
       <date>${new Date(j.publishedAt || j.createdAt || Date.now()).toUTCString()}</date>
       <referencenumber>${j.slug}</referencenumber>
-      <url>${process.env.PUBLIC_BASE_URL || 'https://fixzit.co'}/careers/${j.slug}</url>
+      <url>${process.env.PUBLIC_BASE_URL || "https://fixzit.co"}/careers/${j.slug}</url>
       <company><![CDATA[Fixzit]]></company>
-      <city><![CDATA[${j.location?.city || ''}]]></city>
-      <country><![CDATA[${j.location?.country || ''}]]></country>
-      <description><![CDATA[${j.description || ''}]]></description>
-      <salary><![CDATA[${j.salaryRange?.min || ''}-${j.salaryRange?.max || ''} ${j.salaryRange?.currency || 'SAR'}]]></salary>
+      <city><![CDATA[${j.location?.city || ""}]]></city>
+      <country><![CDATA[${j.location?.country || ""}]]></country>
+      <description><![CDATA[${j.description || ""}]]></description>
+      <salary><![CDATA[${j.salaryRange?.min || ""}-${j.salaryRange?.max || ""} ${j.salaryRange?.currency || "SAR"}]]></salary>
       <jobtype>${j.jobType}</jobtype>
-      <category><![CDATA[${j.department || 'General'}]]></category>
-    </job>`).join('');
+      <category><![CDATA[${j.department || "General"}]]></category>
+    </job>`,
+      )
+      .join("");
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
     <source>
       <publisher>Fixzit</publisher>
-      <publisherurl>${process.env.PUBLIC_BASE_URL || 'https://fixzit.co'}/careers</publisherurl>
+      <publisherurl>${process.env.PUBLIC_BASE_URL || "https://fixzit.co"}/careers</publisherurl>
       ${items}
     </source>`;
 
-    return new NextResponse(xml, { 
-      headers: { 'Content-Type': 'application/xml; charset=utf-8' } 
+    return new NextResponse(xml, {
+      headers: { "Content-Type": "application/xml; charset=utf-8" },
     });
   } catch (error) {
-    logger.error('Failed to fetch jobs:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error(
+      "Failed to fetch jobs:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     const errorXml = `<?xml version="1.0" encoding="UTF-8"?>
     <source>
       <publisher>Fixzit</publisher>
-      <publisherurl>${process.env.PUBLIC_BASE_URL || 'https://fixzit.co'}/careers</publisherurl>
+      <publisherurl>${process.env.PUBLIC_BASE_URL || "https://fixzit.co"}/careers</publisherurl>
       <error>Failed to fetch jobs</error>
     </source>`;
-    return new NextResponse(errorXml, { 
+    return new NextResponse(errorXml, {
       status: 500,
-      headers: { 'Content-Type': 'application/xml; charset=utf-8' } 
+      headers: { "Content-Type": "application/xml; charset=utf-8" },
     });
   }
 }
-
-
-
-

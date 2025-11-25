@@ -4,9 +4,9 @@
  * Now uses AsyncLocalStorage from authContext for thread safety
  */
 
-import { logger } from '@/lib/logger';
-import { Schema, type Query } from 'mongoose';
-import { getRequestContext } from '../../lib/authContext';
+import { logger } from "@/lib/logger";
+import { Schema, type Query } from "mongoose";
+import { getRequestContext } from "../../lib/authContext";
 
 export interface TenantAuditFields {
   orgId: string;
@@ -24,18 +24,25 @@ let isSystemContext: boolean = false;
  * Set tenant context (DEPRECATED - use runWithContext from authContext)
  * @deprecated Context should be set via authContext.runWithContext()
  */
- 
+
 export function setTenantContext(_context: { orgId: string }): void {
-  logger.warn('setTenantContext is deprecated. Use authContext.runWithContext() instead.');
+  logger.warn(
+    "setTenantContext is deprecated. Use authContext.runWithContext() instead.",
+  );
 }
 
 /**
  * Set audit context (DEPRECATED - use runWithContext from authContext)
  * @deprecated Context should be set via authContext.runWithContext()
  */
- 
-export function setAuditContext(_context: { userId: string; userEmail?: string }): void {
-  logger.warn('setAuditContext is deprecated. Use authContext.runWithContext() instead.');
+
+export function setAuditContext(_context: {
+  userId: string;
+  userEmail?: string;
+}): void {
+  logger.warn(
+    "setAuditContext is deprecated. Use authContext.runWithContext() instead.",
+  );
 }
 
 /**
@@ -77,9 +84,9 @@ export function tenantAuditPlugin(schema: Schema): void {
   });
 
   // Auto-set orgId from context on save
-  schema.pre('save', function (next) {
+  schema.pre("save", function (next) {
     const context = getRequestContext();
-    
+
     if (this.isNew) {
       if (!this.orgId && context?.orgId) {
         this.orgId = context.orgId;

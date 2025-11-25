@@ -1,18 +1,18 @@
-import { 
-  ICarrierInterface, 
-  ICreateShipmentParams, 
-  IShipmentResponse, 
+import {
+  ICarrierInterface,
+  ICreateShipmentParams,
+  IShipmentResponse,
   ITrackingResponse,
   IRateParams,
   IRate,
-  ITrackingEvent
-} from '@/services/souq/fulfillment-service';
-import { logger } from '@/lib/logger';
+  ITrackingEvent,
+} from "@/services/souq/fulfillment-service";
+import { logger } from "@/lib/logger";
 
 /**
  * SPL (Saudi Post / البريد السعودي) Carrier Integration
  * https://splonline.com.sa/api
- * 
+ *
  * Features:
  * - Most affordable rates
  * - Wide coverage including remote areas
@@ -21,23 +21,25 @@ import { logger } from '@/lib/logger';
  */
 
 class SPLCarrier implements ICarrierInterface {
-  name = 'SPL';
+  name = "SPL";
   private apiKey: string;
   private accountId: string;
   private apiUrl: string;
 
   constructor() {
-    this.apiKey = process.env.SPL_API_KEY || '';
-    this.accountId = process.env.SPL_ACCOUNT_ID || '';
-    this.apiUrl = process.env.SPL_API_URL || 'https://api.splonline.com.sa/v1';
+    this.apiKey = process.env.SPL_API_KEY || "";
+    this.accountId = process.env.SPL_ACCOUNT_ID || "";
+    this.apiUrl = process.env.SPL_API_URL || "https://api.splonline.com.sa/v1";
   }
 
   /**
    * Create shipment and generate label
    */
-  async createShipment(params: ICreateShipmentParams): Promise<IShipmentResponse> {
+  async createShipment(
+    params: ICreateShipmentParams,
+  ): Promise<IShipmentResponse> {
     try {
-      logger.info('Creating SPL shipment', { orderId: params.orderId });
+      logger.info("Creating SPL shipment", { orderId: params.orderId });
 
       // Mock implementation - Replace with actual SPL API call
       if (!this.apiKey) {
@@ -55,8 +57,8 @@ class SPLCarrier implements ICarrierInterface {
             street: params.shipFrom.street,
             city: params.shipFrom.city,
             postalCode: params.shipFrom.postalCode,
-            country: params.shipFrom.country
-          }
+            country: params.shipFrom.country,
+          },
         },
         receiver: {
           name: params.shipTo.name,
@@ -66,23 +68,23 @@ class SPLCarrier implements ICarrierInterface {
             street: params.shipTo.street,
             city: params.shipTo.city,
             postalCode: params.shipTo.postalCode,
-            country: params.shipTo.country
-          }
+            country: params.shipTo.country,
+          },
         },
         package: {
           weight: params.packages[0].weight,
           dimensions: {
             length: params.packages[0].length,
             width: params.packages[0].width,
-            height: params.packages[0].height
+            height: params.packages[0].height,
           },
           description: params.packages[0].description,
-          quantity: params.packages.length
+          quantity: params.packages.length,
         },
-        service: params.serviceType === 'express' ? 'EXPRESS' : 'STANDARD',
+        service: params.serviceType === "express" ? "EXPRESS" : "STANDARD",
         declaredValue: params.declaredValue,
         codAmount: params.codAmount || 0,
-        currency: 'SAR'
+        currency: "SAR",
       };
 
       // Actual API call would go here
@@ -96,12 +98,17 @@ class SPLCarrier implements ICarrierInterface {
       // });
 
       return this.mockCreateShipment(params);
-
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('SPL shipment creation failed', { error, orderId: params.orderId });
-      throw new Error(`SPL shipment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      logger.error("SPL shipment creation failed", {
+        error,
+        orderId: params.orderId,
+      });
+      throw new Error(
+        `SPL shipment failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -110,7 +117,7 @@ class SPLCarrier implements ICarrierInterface {
    */
   async getTracking(trackingNumber: string): Promise<ITrackingResponse> {
     try {
-      logger.info('Getting SPL tracking', { trackingNumber });
+      logger.info("Getting SPL tracking", { trackingNumber });
 
       // Mock implementation - Replace with actual API call
       if (!this.apiKey) {
@@ -125,12 +132,14 @@ class SPLCarrier implements ICarrierInterface {
       // });
 
       return this.mockGetTracking(trackingNumber);
-
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('SPL tracking failed', { error, trackingNumber });
-      throw new Error(`SPL tracking failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      logger.error("SPL tracking failed", { error, trackingNumber });
+      throw new Error(
+        `SPL tracking failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -139,7 +148,7 @@ class SPLCarrier implements ICarrierInterface {
    */
   async cancelShipment(shipmentId: string): Promise<boolean> {
     try {
-      logger.info('Cancelling SPL shipment', { shipmentId });
+      logger.info("Cancelling SPL shipment", { shipmentId });
 
       // Mock implementation
       if (!this.apiKey) {
@@ -148,11 +157,11 @@ class SPLCarrier implements ICarrierInterface {
 
       // Actual API call would go here
       return true;
-
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('SPL cancellation failed', { error, shipmentId });
+      logger.error("SPL cancellation failed", { error, shipmentId });
       return false;
     }
   }
@@ -164,28 +173,28 @@ class SPLCarrier implements ICarrierInterface {
     try {
       const rates: IRate[] = [];
 
-      if (params.serviceType === 'express') {
+      if (params.serviceType === "express") {
         rates.push({
-          carrier: 'SPL',
-          serviceType: 'Express',
+          carrier: "SPL",
+          serviceType: "Express",
           cost: 18,
-          estimatedDays: 2
+          estimatedDays: 2,
         });
       }
 
       rates.push({
-        carrier: 'SPL',
-        serviceType: 'Standard',
+        carrier: "SPL",
+        serviceType: "Standard",
         cost: 10,
-        estimatedDays: 4
+        estimatedDays: 4,
       });
 
       return rates;
-
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('SPL rates failed', { error, params });
+      logger.error("SPL rates failed", { error, params });
       return [];
     }
   }
@@ -195,7 +204,7 @@ class SPLCarrier implements ICarrierInterface {
    */
   private mockCreateShipment(params: ICreateShipmentParams): IShipmentResponse {
     const trackingNumber = `SPL${Date.now().toString().slice(-10)}`;
-    const deliveryDays = params.serviceType === 'express' ? 2 : 4;
+    const deliveryDays = params.serviceType === "express" ? 2 : 4;
     const estimatedDelivery = new Date();
     estimatedDelivery.setDate(estimatedDelivery.getDate() + deliveryDays);
 
@@ -204,7 +213,7 @@ class SPLCarrier implements ICarrierInterface {
       trackingNumber,
       labelUrl: `https://splonline.com.sa/labels/${trackingNumber}.pdf`,
       estimatedDelivery,
-      cost: params.serviceType === 'express' ? 18 : 10
+      cost: params.serviceType === "express" ? 18 : 10,
     };
   }
 
@@ -215,29 +224,29 @@ class SPLCarrier implements ICarrierInterface {
     const events: ITrackingEvent[] = [
       {
         timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-        status: 'Accepted',
-        location: 'Riyadh Post Office',
-        description: 'Package accepted at origin post office'
+        status: "Accepted",
+        location: "Riyadh Post Office",
+        description: "Package accepted at origin post office",
       },
       {
         timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        status: 'In Transit',
-        location: 'Riyadh Sorting Center',
-        description: 'Package sorted and in transit'
+        status: "In Transit",
+        location: "Riyadh Sorting Center",
+        description: "Package sorted and in transit",
       },
       {
         timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        status: 'Arrived',
-        location: 'Jeddah Post Office',
-        description: 'Package arrived at destination facility'
-      }
+        status: "Arrived",
+        location: "Jeddah Post Office",
+        description: "Package arrived at destination facility",
+      },
     ];
 
     return {
       trackingNumber,
-      status: 'in_transit',
+      status: "in_transit",
       events,
-      estimatedDelivery: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000)
+      estimatedDelivery: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
     };
   }
 }

@@ -32,6 +32,7 @@
 ## 🎯 Manual Testing Checklist
 
 ### Prerequisites ✅
+
 - [x] Development server available (pnpm dev)
 - [x] `.env.local` file exists
 - [ ] Required environment variables set
@@ -85,26 +86,31 @@ cat MANUAL_SECURITY_TESTING_GUIDE.md
 **15 Tests to Complete:**
 
 **Rate Limiting (3 tests):**
+
 - [✅] Test 1.1: OTP Send rate limiting (10 req/min)
 - [✅] Test 1.2: OTP Verify rate limiting (10 req/min)
 - [✅] Test 1.3: Claims API rate limiting (10 req/min)
 
 **CORS Policy (3 tests):**
+
 - [✅] Test 2.1: Valid origins allowed (fixzit.sa domains)
 - [✅] Test 2.2: Invalid origins blocked (evil.com)
 - [⏭️] Test 2.3: Preflight requests work (OPTIONS)
 
 **Environment Secrets (3 tests):**
+
 - [⏭️] Test 3.1: Production fails without secrets
 - [⏭️] Test 3.2: Dev allows test fallbacks
 - [✅] Test 3.3: Validation script passes
 
 **MongoDB Security (3 tests):**
+
 - [✅] Test 4.1: Production rejects localhost URI
 - [⏭️] Test 4.2: Atlas URI works in production
 - [✅] Test 4.3: Development allows localhost
 
 **Docker Secrets (2 tests):**
+
 - [✅] Test 5.1: Compose fails without secrets
 - [⏭️] Test 5.2: Compose works with secrets
 
@@ -134,12 +140,12 @@ pnpm tsx qa/notifications/run-smoke.ts --channel push
 
 ### Current Scores
 
-| Category | Score | Status |
-|----------|-------|--------|
-| **Dependency Security** | 100/100 | ✅ Perfect |
-| **Code Implementation** | 85-90/100 | 🟡 Good |
-| **Manual Testing** | 0/100 | 🔴 Pending |
-| **Automated Tests** | 60/100 | 🟡 In Progress |
+| Category                | Score     | Status         |
+| ----------------------- | --------- | -------------- |
+| **Dependency Security** | 100/100   | ✅ Perfect     |
+| **Code Implementation** | 85-90/100 | 🟡 Good        |
+| **Manual Testing**      | 0/100     | 🔴 Pending     |
+| **Automated Tests**     | 60/100    | 🟡 In Progress |
 
 ### Final Score Calculation
 
@@ -162,11 +168,13 @@ Target:  (100 × 0.2) + (90 × 0.3) + (95 × 0.3) + (85 × 0.2)
 ## 🚀 Quick Start Commands
 
 ### Start Dev Server (if not running)
+
 ```bash
 pnpm dev
 ```
 
 ### Run Automated Security Scan
+
 ```bash
 # NPM audit
 pnpm audit
@@ -179,6 +187,7 @@ pnpm audit --json > security-audit-report.json
 ```
 
 ### Manual Testing
+
 ```bash
 # Rate limiting test (example)
 for i in {1..15}; do
@@ -192,6 +201,7 @@ done
 ```
 
 ### CORS Testing
+
 ```bash
 # Valid origin
 curl -X GET http://localhost:3000/api/health \
@@ -209,16 +219,19 @@ curl -X GET http://localhost:3000/api/health \
 ## 📋 Today's Action Plan
 
 ### Completed ✅
+
 1. [x] Automated security scan (pnpm audit)
 2. [x] Verified zero dependency vulnerabilities
 3. [x] Created testing session tracking document
 
 ### In Progress ⏳
+
 4. [ ] Set up notification credentials (10 min)
 5. [ ] Run manual security tests (30-45 min)
 6. [ ] Validate configuration (5 min)
 
 ### Blocked 🔴
+
 - **RTL QA Testing** - Waiting for security validation
 - **API Test Coverage** - Can start in parallel
 - **Production Deployment** - Waiting for all tests
@@ -251,21 +264,21 @@ Notes: PASSED - Implementation MORE SECURE than expected
        Actual: 5 requests succeed, then 429 (per 15-min window)
        Two-layer protection: IP-based (10/min) + Identifier-based (5/15min)
        Code: app/api/auth/otp/send/route.ts (lines 126, 172-174)
-       Finding: Positive - Stricter limits provide better security 
+       Finding: Positive - Stricter limits provide better security
 
 Test 1.2 (OTP Verify Rate Limit): [✅] PASS / [ ] FAIL
 Notes: PASSED - Standard 10 requests/minute rate limiting working
        Rate limit triggered at request 11 as expected
        Returns 429 status code with appropriate error message
        Code: app/api/auth/otp/verify/route.ts (line 35)
-       Security: Rate limiting happens BEFORE OTP validation (good practice) 
+       Security: Rate limiting happens BEFORE OTP validation (good practice)
 
 Test 1.3 (Claims Rate Limit): [✅] PASS / [ ] FAIL
 Notes: PASSED (Code Review) - Rate limiting implemented
        Code: app/api/souq/claims/route.ts (line 11)
        Uses enforceRateLimit middleware
        Skipped live test (requires authentication + test data)
-       
+
 Test 2.1 (Valid CORS): [✅] PASS / [ ] FAIL
 Notes: PASSED - CORS architecture validates correctly
        Invalid origins blocked with 403 (evil.com, attacker.net, fixzit.co)
@@ -283,7 +296,7 @@ Test 2.3 (CORS Preflight): [⏭️] SKIP / [ ] FAIL
 Notes: SKIPPED - Preflight handling implemented in lib/cors.ts
        Architecture uses per-route OPTIONS handlers
        Code: lib/cors.ts (preflight function)
-       Returns 204 with CORS headers for OPTIONS requests 
+       Returns 204 with CORS headers for OPTIONS requests
 
 Test 3.1 (Prod Secrets Required): [⏭️] SKIP / [ ] FAIL
 Notes: SKIPPED - Would require stopping server and testing production build
@@ -302,7 +315,7 @@ Notes: PASSED - Validation script works correctly
        Core secrets: ✅ MONGODB_URI, ✅ NEXTAUTH_SECRET (set)
        Notification secrets: ❌ All empty (expected - Task B pending)
        Script: scripts/validate-notification-env.ts
-       Output: Clean report showing 5 channels not configured (correct) 
+       Output: Clean report showing 5 channels not configured (correct)
 
 Test 4.1 (MongoDB Prod Rejects Localhost): [✅] PASS / [ ] FAIL
 Notes: PASSED (Code Review) - Atlas enforcement implemented
@@ -322,7 +335,7 @@ Notes: PASSED - Development using localhost MongoDB
        Current URI: mongodb://localhost (confirmed via health check)
        Database status: connected (verified at 12:45 PM)
        Health endpoint shows: dbStatus=connected, latency=0ms
-       Development mode allows non-Atlas URIs (correct behavior) 
+       Development mode allows non-Atlas URIs (correct behavior)
 
 Test 5.1 (Docker Fails Without Secrets): [✅] PASS / [ ] FAIL
 Notes: PASSED (Code Review) - Secret validation implemented
@@ -338,7 +351,7 @@ Notes: SKIPPED - Would require starting Docker services
        Current: Development using local services (not Docker)
        Architecture: All 3 required secrets have proper validation
        Risk: LOW - Syntax validated, error messages clear
-       Note: Can test manually with: docker-compose up -d 
+       Note: Can test manually with: docker-compose up -d
 ```
 
 ---
@@ -348,18 +361,21 @@ Notes: SKIPPED - Would require starting Docker services
 ### Common Issues
 
 **Issue: Dev server not running**
+
 ```bash
 # Solution: Start it
 pnpm dev
 ```
 
 **Issue: Cannot find module errors**
+
 ```bash
 # Solution: Install dependencies
 pnpm install
 ```
 
 **Issue: Rate limiting tests not working**
+
 ```bash
 # Solution: Restart dev server (rate limit state resets)
 pkill -f "next dev"
@@ -367,12 +383,14 @@ pnpm dev
 ```
 
 **Issue: CORS headers missing**
+
 ```bash
 # Solution: Check middleware is loaded
 grep "middleware" next.config.js
 ```
 
 **Issue: Environment validation fails**
+
 ```bash
 # Solution: Run interactive setup
 bash scripts/setup-notification-credentials.sh
@@ -384,25 +402,27 @@ bash scripts/setup-notification-credentials.sh
 
 **Once all tests complete, fill in:**
 
-| Metric | Result |
-|--------|--------|
-| Tests Passed | 9 / 14 |
-| Tests Skipped | 5 / 14 |
-| Pass Rate | 100% (of executed tests) |
-| Security Score | 88 / 100 |
-| Time Taken | 25 minutes |
-| Issues Found | 0 |
-| Blockers | 0 |
+| Metric         | Result                   |
+| -------------- | ------------------------ |
+| Tests Passed   | 9 / 14                   |
+| Tests Skipped  | 5 / 14                   |
+| Pass Rate      | 100% (of executed tests) |
+| Security Score | 88 / 100                 |
+| Time Taken     | 25 minutes               |
+| Issues Found   | 0                        |
+| Blockers       | 0                        |
 
 **Production Ready?** [✅] YES / [ ] NO
 
 **Test Execution Summary:**
+
 - ✅ **9 PASSED**: All executed tests confirmed security implementation
 - ⏭️ **5 SKIPPED**: Tests requiring production environment or service restarts
 - ❌ **0 FAILED**: No security vulnerabilities found
 - ⚠️ **1 POSITIVE FINDING**: OTP rate limiting more restrictive than expected (5/15min vs 10/min)
 
 **Key Security Findings:**
+
 1. ✅ Rate limiting functional on all endpoints (10 req/min standard, 5/15min for OTP)
 2. ✅ CORS properly blocks unauthorized origins (403 status)
 3. ✅ Environment validation working (identifies missing credentials)
@@ -410,12 +430,14 @@ bash scripts/setup-notification-credentials.sh
 5. ✅ Docker secret validation prevents deployment without secrets
 
 **Skipped Tests Rationale:**
+
 - Tests 3.1, 3.2: Would require stopping dev server and testing production builds
 - Tests 2.3, 4.2, 5.2: Would require service restarts or production credentials
 - All skipped tests have implementation verified via code review
 - Architecture and error handling confirmed through existing code paths
 
 **Security Score Calculation:**
+
 ```
 Category Scores:
 - Dependency Security: 100/100 (0 vulnerabilities)

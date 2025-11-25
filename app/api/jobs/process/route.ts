@@ -1,34 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { logger } from '@/lib/logger';
-import { JobQueue, Job } from '@/lib/jobs/queue';
-import sgMail from '@sendgrid/mail';
-import { getSendGridConfig } from '@/lib/sendgrid-config';
-import { deleteObject } from '@/lib/storage/s3';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { JobQueue, Job } from "@/lib/jobs/queue";
+import sgMail from "@sendgrid/mail";
+import { getSendGridConfig } from "@/lib/sendgrid-config";
+import { deleteObject } from "@/lib/storage/s3";
 
 /**
  * POST /api/jobs/process
- * 
+ *
  * Background job processor endpoint
  * Processes queued jobs: email invitations, S3 cleanup, etc.
- * 
+ *
  * Can be triggered manually or by a cron job
  */
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    
+
     // Allow both authenticated admins and cron jobs (with secret)
-    const cronSecret = request.headers.get('x-cron-secret');
-    const isAuthorized = 
-      (session?.user?.isSuperAdmin) ||
+    const cronSecret = request.headers.get("x-cron-secret");
+    const isAuthorized =
+      session?.user?.isSuperAdmin ||
       (cronSecret && cronSecret === process.env.CRON_SECRET);
 
     if (!isAuthorized) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json().catch(() => ({}));
@@ -50,7 +47,8 @@ export async function POST(request: NextRequest) {
         await JobQueue.completeJob(job._id.toString());
         processed.success.push(job._id.toString());
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
         await JobQueue.failJob(job._id.toString(), errorMessage);
         processed.failed.push(job._id.toString());
       }
@@ -73,10 +71,10 @@ export async function POST(request: NextRequest) {
       stats,
     });
   } catch (error) {
-    logger.error('Job processor error', error as Error);
+    logger.error("Job processor error", error as Error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }
@@ -85,23 +83,26 @@ export async function POST(request: NextRequest) {
  * Process a single job based on its type
  */
 async function processJob(job: Job): Promise<void> {
-  logger.info('Processing job', { jobId: job._id.toString(), type: job.type });
+  logger.info("Processing job", { jobId: job._id.toString(), type: job.type });
 
   switch (job.type) {
-    case 'email-invitation':
+    case "email-invitation":
       await processEmailInvitation(job);
       break;
-    
-    case 'email-notification':
+
+    case "email-notification":
       await processEmailNotification(job);
       break;
-    
-    case 's3-cleanup':
+
+    case "s3-cleanup":
       await processS3Cleanup(job);
       break;
-    
+
     default:
-      logger.warn('Unknown job type', { jobId: job._id.toString(), type: job.type });
+      logger.warn("Unknown job type", {
+        jobId: job._id.toString(),
+        type: job.type,
+      });
       throw new Error(`Unknown job type: ${job.type}`);
   }
 }
@@ -113,19 +114,21 @@ async function processEmailInvitation(job: Job): Promise<void> {
   const { email, firstName, lastName, role, inviteId } = job.payload;
 
   if (!email || !firstName || !lastName || !role) {
-    throw new Error('Missing required email invitation fields');
+    throw new Error("Missing required email invitation fields");
   }
 
   // Check if SendGrid is configured
   const config = getSendGridConfig();
   if (!config.apiKey) {
-    logger.warn('SendGrid not configured, skipping email invitation', { inviteId });
+    logger.warn("SendGrid not configured, skipping email invitation", {
+      inviteId,
+    });
     return; // Don't fail the job if email service is not set up
   }
 
   sgMail.setApiKey(config.apiKey);
 
-  const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://fixzit.com'}/signup?invite=${inviteId}`;
+  const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://fixzit.com"}/signup?invite=${inviteId}`;
 
   const emailContent = {
     to: email as string,
@@ -160,7 +163,7 @@ async function processEmailInvitation(job: Job): Promise<void> {
   };
 
   await sgMail.send(emailContent);
-  logger.info('Invitation email sent', { email, inviteId });
+  logger.info("Invitation email sent", { email, inviteId });
 }
 
 /**
@@ -170,12 +173,12 @@ async function processEmailNotification(job: Job): Promise<void> {
   const { to, subject, html } = job.payload;
 
   if (!to || !subject || !html) {
-    throw new Error('Missing required email notification fields');
+    throw new Error("Missing required email notification fields");
   }
 
   const config = getSendGridConfig();
   if (!config.apiKey) {
-    logger.warn('SendGrid not configured, skipping email notification');
+    logger.warn("SendGrid not configured, skipping email notification");
     return;
   }
 
@@ -188,7 +191,7 @@ async function processEmailNotification(job: Job): Promise<void> {
     html: html as string,
   });
 
-  logger.info('Notification email sent', { to, subject });
+  logger.info("Notification email sent", { to, subject });
 }
 
 /**
@@ -198,7 +201,7 @@ async function processS3Cleanup(job: Job): Promise<void> {
   const { keys } = job.payload;
 
   if (!Array.isArray(keys) || keys.length === 0) {
-    throw new Error('Missing S3 keys for cleanup');
+    throw new Error("Missing S3 keys for cleanup");
   }
 
   const results = {
@@ -211,33 +214,32 @@ async function processS3Cleanup(job: Job): Promise<void> {
       await deleteObject(key as string);
       results.success++;
     } catch (error) {
-      logger.error('Failed to delete S3 object', error as Error, { key });
+      logger.error("Failed to delete S3 object", error as Error, { key });
       results.failed++;
     }
   }
 
-  logger.info('S3 cleanup completed', results);
+  logger.info("S3 cleanup completed", results);
 
   // If any deletions failed, throw error to retry the job (idempotent deletes are safe)
   if (results.failed > 0) {
-    throw new Error(`Failed to delete ${results.failed} of ${keys.length} S3 objects`);
+    throw new Error(
+      `Failed to delete ${results.failed} of ${keys.length} S3 objects`,
+    );
   }
 }
 
 /**
  * GET /api/jobs/process
- * 
+ *
  * Get job queue statistics
  */
 export async function GET(_request: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session?.user?.isSuperAdmin) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const stats = await JobQueue.getStats();
@@ -247,10 +249,10 @@ export async function GET(_request: NextRequest) {
       stats,
     });
   } catch (error) {
-    logger.error('Job stats error', error as Error);
+    logger.error("Job stats error", error as Error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }

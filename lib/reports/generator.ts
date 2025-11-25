@@ -1,10 +1,10 @@
-import { Readable } from 'stream';
+import { Readable } from "stream";
 
 export type ReportJobInput = {
   id: string;
   name: string;
   type: string;
-  format: 'csv' | 'pdf';
+  format: "csv" | "pdf";
   dateRange?: string;
   startDate?: string;
   endDate?: string;
@@ -22,33 +22,35 @@ export type GeneratedReport = {
  * Minimal report generator.
  * Currently outputs CSV; easily extended with PDF later.
  */
-export async function generateReport(job: ReportJobInput): Promise<GeneratedReport> {
+export async function generateReport(
+  job: ReportJobInput,
+): Promise<GeneratedReport> {
   const rows = [
-    ['Report ID', job.id],
-    ['Name', job.name],
-    ['Type', job.type],
-    ['Format', job.format],
-    ['DateRange', job.dateRange || '', job.startDate || '', job.endDate || ''],
-    ['Notes', job.notes || ''],
-    ['GeneratedAt', new Date().toISOString()],
+    ["Report ID", job.id],
+    ["Name", job.name],
+    ["Type", job.type],
+    ["Format", job.format],
+    ["DateRange", job.dateRange || "", job.startDate || "", job.endDate || ""],
+    ["Notes", job.notes || ""],
+    ["GeneratedAt", new Date().toISOString()],
     [],
-    ['Section', 'Metric', 'Value'],
-    ['Summary', 'Total Records', '0'],
-    ['Summary', 'Total Amount', '0'],
+    ["Section", "Metric", "Value"],
+    ["Summary", "Total Records", "0"],
+    ["Summary", "Total Amount", "0"],
   ];
 
-  const csv = rows.map((r) => r.map(escapeCsv).join(',')).join('\n');
-  const buffer = Buffer.from(csv, 'utf-8');
+  const csv = rows.map((r) => r.map(escapeCsv).join(",")).join("\n");
+  const buffer = Buffer.from(csv, "utf-8");
   return {
     buffer,
-    mime: 'text/csv',
-    filename: `${job.name || 'report'}-${job.id}.csv`,
+    mime: "text/csv",
+    filename: `${job.name || "report"}-${job.id}.csv`,
     size: buffer.length,
   };
 }
 
 function escapeCsv(value: unknown): string {
-  const str = value === undefined || value === null ? '' : String(value);
+  const str = value === undefined || value === null ? "" : String(value);
   if (/[",\n]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }

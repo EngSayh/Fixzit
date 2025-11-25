@@ -1,7 +1,7 @@
 # PayTabs Withdrawal Strategy & Manual Process
 
 **Last Updated:** November 18, 2025  
-**Owners:** Payments Engineering + Finance Operations  
+**Owners:** Payments Engineering + Finance Operations
 
 ---
 
@@ -14,11 +14,11 @@ Fixzit now supports two payout paths for Souq seller withdrawals:
 
 The service layer chooses the path automatically:
 
-| Mode | How to Enable | Code Path |
-|------|---------------|-----------|
-| Automated PayTabs payout | Set `PAYTABS_PAYOUT_ENABLED=true` plus `PAYTABS_PROFILE_ID` & `PAYTABS_SERVER_KEY` | `WithdrawalService.processWithdrawal` → `createPayout()` |
-| Manual transfer fallback | Leave `PAYTABS_PAYOUT_ENABLED` unset/false or handle PayTabs errors | `WithdrawalService.processWithdrawal` → manual completion |
-| SADAD / SPAN bank integration | (Deferred) `ENABLE_SADAD_PAYOUTS=true` once banking partnership is ready | `PayoutProcessorService.executeBankTransfer` |
+| Mode                          | How to Enable                                                                      | Code Path                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Automated PayTabs payout      | Set `PAYTABS_PAYOUT_ENABLED=true` plus `PAYTABS_PROFILE_ID` & `PAYTABS_SERVER_KEY` | `WithdrawalService.processWithdrawal` → `createPayout()`  |
+| Manual transfer fallback      | Leave `PAYTABS_PAYOUT_ENABLED` unset/false or handle PayTabs errors                | `WithdrawalService.processWithdrawal` → manual completion |
+| SADAD / SPAN bank integration | (Deferred) `ENABLE_SADAD_PAYOUTS=true` once banking partnership is ready           | `PayoutProcessorService.executeBankTransfer`              |
 
 ---
 
@@ -34,6 +34,7 @@ The service layer chooses the path automatically:
 4. Use the PayTabs back office to verify settlement completion if the status remains `PROCESSING` longer than 24 hours.
 
 **Monitoring**
+
 - Logs are tagged with `[Withdrawal]` and include the withdrawal id, seller id, and PayTabs payout id.
 - Any API error triggers a fallback to manual processing and is visible in Sentry/Datadog.
 
@@ -42,11 +43,13 @@ The service layer chooses the path automatically:
 ## 3. Manual Bank Transfer Process
 
 Manual processing is still required when:
+
 - PayTabs payouts are disabled (`PAYTABS_PAYOUT_ENABLED=false`).
 - PayTabs responds with a validation or banking error (invalid IBAN, payout limitation, etc.).
 - The seller requests a payout lower than PayTabs’ minimum.
 
 **Runbook**
+
 1. Finance downloads the approved settlement statement from Fixzit.
 2. Verify the withdrawal record in Mongo (`souq_withdrawals`) is marked `processing` and contains the seller bank details.
 3. Execute the transfer through the company banking portal (SARIE/SWIFT).

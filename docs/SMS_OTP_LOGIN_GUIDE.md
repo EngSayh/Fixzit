@@ -80,27 +80,30 @@ Enhanced the login flow with SMS OTP (One-Time Password) verification using Twil
 **Endpoint:** `POST /api/auth/otp/send`
 
 **Request Body:**
+
 ```json
 {
-  "identifier": "user@example.com",  // Email or employee number
+  "identifier": "user@example.com", // Email or employee number
   "password": "user_password"
 }
 ```
 
 **Success Response (200):**
+
 ```json
 {
   "success": true,
   "message": "OTP sent successfully",
   "data": {
-    "phone": "+966 50****4567",      // Masked phone
-    "expiresIn": 300,                 // Seconds (5 minutes)
+    "phone": "+966 50****4567", // Masked phone
+    "expiresIn": 300, // Seconds (5 minutes)
     "attemptsRemaining": 3
   }
 }
 ```
 
 **Error Responses:**
+
 - `400`: Validation error, invalid credentials, no phone number
 - `401`: Invalid credentials
 - `403`: Account not active
@@ -108,6 +111,7 @@ Enhanced the login flow with SMS OTP (One-Time Password) verification using Twil
 - `500`: Server error (Twilio failure, database error)
 
 **Rate Limiting:**
+
 - Max 5 OTP sends per 15 minutes per identifier
 - Resets after 15 minutes
 
@@ -116,6 +120,7 @@ Enhanced the login flow with SMS OTP (One-Time Password) verification using Twil
 **Endpoint:** `POST /api/auth/otp/verify`
 
 **Request Body:**
+
 ```json
 {
   "identifier": "user@example.com",
@@ -124,6 +129,7 @@ Enhanced the login flow with SMS OTP (One-Time Password) verification using Twil
 ```
 
 **Success Response (200):**
+
 ```json
 {
   "success": true,
@@ -136,11 +142,13 @@ Enhanced the login flow with SMS OTP (One-Time Password) verification using Twil
 ```
 
 **Error Responses:**
+
 - `400`: Invalid OTP, expired OTP, OTP not found
 - `429`: Too many incorrect attempts (max 3)
 - `500`: Server error
 
 **Attempt Limiting:**
+
 - Max 3 incorrect attempts
 - OTP deleted after 3 failed attempts
 - User must request new OTP
@@ -148,35 +156,42 @@ Enhanced the login flow with SMS OTP (One-Time Password) verification using Twil
 ## Security Features
 
 ### 1. Rate Limiting
+
 - **Send OTP:** 5 sends per 15 minutes per identifier
 - Prevents SMS spam and abuse
 - Uses in-memory store (migrate to Redis for production)
 
 ### 2. OTP Expiration
+
 - OTPs expire after 5 minutes
 - Expired OTPs automatically deleted from store
 - Clear error message when OTP expires
 
 ### 3. Attempt Limiting
+
 - Max 3 incorrect verification attempts
 - OTP invalidated after 3 failed attempts
 - Forces user to request new OTP
 
 ### 4. Phone Number Masking
+
 - Only last 4 digits shown to user
 - Format: `+966 50****4567`
 - Prevents phone number exposure in UI
 
 ### 5. Credential Validation
+
 - Password verified before sending OTP
 - Prevents OTP spam to random phone numbers
 - User account status checked (must be active)
 
 ### 5.1 Super Admin Fallback (optional)
+
 - Set `NEXTAUTH_SUPERADMIN_FALLBACK_PHONE` (or legacy `SUPER_ADMIN_FALLBACK_PHONE`) if your seeded SUPER_ADMIN account lacks a phone.
 - The fallback is only used for SUPER_ADMINs with no stored phone; a warning is logged whenever it is used.
 
 ### 6. SMS Content
+
 ```
 Your Fixzit verification code is: 123456
 
@@ -184,6 +199,7 @@ This code expires in 5 minutes. Do not share this code with anyone.
 ```
 
 ### 7. OTP Session Tokens
+
 - `otpToken` values never embed the OTP code itself.
 - Tokens are stored server-side in `otpSessionStore` and expire after 5 minutes.
 - Each token can be used exactly once. After NextAuth consumes it, it is deleted immediately.
@@ -194,6 +210,7 @@ This code expires in 5 minutes. Do not share this code with anyone.
 ### OTP Verification Screen
 
 **Features:**
+
 - Large numeric input field (6 digits)
 - Auto-focus on mount
 - Numeric keyboard on mobile (`inputMode="numeric"`)
@@ -205,12 +222,14 @@ This code expires in 5 minutes. Do not share this code with anyone.
 - Loading states for verify/resend actions
 
 **Accessibility:**
+
 - ARIA labels for screen readers
 - Role="alert" for error messages
 - High contrast colors for visibility
 - Clear focus indicators
 
 **Internationalization:**
+
 - Full RTL support for Arabic
 - All text translatable via `t()` function
 - Date/time formatting respects locale
@@ -241,6 +260,7 @@ This code expires in 5 minutes. Do not share this code with anyone.
 ```
 
 **Phone Number Requirements:**
+
 - Must be in Saudi format: `+966501234567` or `0501234567`
 - Validated by `isValidSaudiPhone()` function
 - Automatically formatted to E.164 format by `formatSaudiPhoneNumber()`
@@ -250,15 +270,16 @@ This code expires in 5 minutes. Do not share this code with anyone.
 ```typescript
 // Map<identifier, OTPData>
 interface OTPData {
-  otp: string;           // 6-digit code
-  expiresAt: number;     // Unix timestamp (ms)
-  attempts: number;      // Failed verification attempts (max 3)
-  userId: string;        // MongoDB ObjectId
-  phone: string;         // E.164 format phone number
+  otp: string; // 6-digit code
+  expiresAt: number; // Unix timestamp (ms)
+  attempts: number; // Failed verification attempts (max 3)
+  userId: string; // MongoDB ObjectId
+  phone: string; // E.164 format phone number
 }
 ```
 
 **Storage Notes:**
+
 - Currently in-memory (not persistent)
 - ⚠️ For production: Migrate to Redis for distributed systems
 - Periodic cleanup every 10 minutes
@@ -269,8 +290,8 @@ interface OTPData {
 ```typescript
 // Map<identifier, RateLimitData>
 interface RateLimitData {
-  count: number;         // Number of OTP sends
-  resetAt: number;       // Unix timestamp (ms) when limit resets
+  count: number; // Number of OTP sends
+  resetAt: number; // Unix timestamp (ms) when limit resets
 }
 ```
 
@@ -281,11 +302,12 @@ interface RateLimitData {
 interface OTPLoginSession {
   userId: string;
   identifier: string;
-  expiresAt: number;     // Unix timestamp (ms)
+  expiresAt: number; // Unix timestamp (ms)
 }
 ```
 
 **Usage Notes:**
+
 - Tokens are random 32-byte hex strings generated after successful OTP verification.
 - Stored only in memory/Redis on the server (never exposed as JWTs or cookies).
 - NextAuth credentials provider requires a valid `otpToken` to complete sign-in.
@@ -308,6 +330,7 @@ NEXTAUTH_URL=http://localhost:3000
 ```
 
 **Testing:**
+
 1. Go to [Twilio Console](https://console.twilio.com/)
 2. Use verified phone numbers for testing
 3. Check SMS logs in Twilio dashboard
@@ -317,6 +340,7 @@ NEXTAUTH_URL=http://localhost:3000
 ### Manual Testing
 
 #### Test Case 1: Successful Login with OTP
+
 1. Navigate to `/login`
 2. Enter valid credentials (email + password)
 3. Click "Sign In"
@@ -326,12 +350,14 @@ NEXTAUTH_URL=http://localhost:3000
 7. ✅ Successfully redirected to dashboard
 
 #### Test Case 2: Expired OTP
+
 1. Complete Test Case 1 steps 1-4
 2. Wait 5+ minutes (or modify OTP_EXPIRY_MS for faster testing)
 3. Enter OTP code
 4. ✅ Error: "Code expired. Please request a new one."
 
 #### Test Case 3: Incorrect OTP
+
 1. Complete Test Case 1 steps 1-4
 2. Enter wrong OTP (e.g., "111111")
 3. ✅ Error: "Incorrect OTP. 2 attempt(s) remaining."
@@ -341,6 +367,7 @@ NEXTAUTH_URL=http://localhost:3000
 7. ✅ Error: "Too many incorrect attempts. Please request a new code."
 
 #### Test Case 4: Resend OTP
+
 1. Complete Test Case 1 steps 1-4
 2. Click "Resend Code"
 3. ✅ New SMS sent, timer reset to 5:00
@@ -349,15 +376,18 @@ NEXTAUTH_URL=http://localhost:3000
 6. ✅ Successfully verified
 
 #### Test Case 5: Rate Limiting
+
 1. Attempt to send OTP 5 times within 15 minutes
 2. ✅ 6th attempt: Error "Too many OTP requests. Please try again later."
 
 #### Test Case 6: No Phone Number
+
 1. Remove phone number from user profile in database
 2. Attempt login
 3. ✅ Error: "No phone number registered. Please contact support."
 
 #### Test Case 7: Invalid Credentials
+
 1. Enter wrong password
 2. ✅ Error: "Invalid credentials" (OTP not sent)
 
@@ -365,16 +395,16 @@ NEXTAUTH_URL=http://localhost:3000
 
 ```typescript
 // TODO: Add Playwright tests
-describe('OTP Login Flow', () => {
-  test('should send OTP after valid credentials', async ({ page }) => {
+describe("OTP Login Flow", () => {
+  test("should send OTP after valid credentials", async ({ page }) => {
     // Test implementation
   });
-  
-  test('should verify OTP and complete login', async ({ page }) => {
+
+  test("should verify OTP and complete login", async ({ page }) => {
     // Test implementation
   });
-  
-  test('should show error for expired OTP', async ({ page }) => {
+
+  test("should show error for expired OTP", async ({ page }) => {
     // Test implementation
   });
 });
@@ -387,29 +417,24 @@ describe('OTP Login Flow', () => {
   - Configure Redis connection
   - Update `lib/otp-store.ts` to use Redis
   - Set TTL for OTP keys (5 minutes)
-  
 - [ ] **Monitor SMS costs**
   - Set up Twilio usage alerts
   - Implement SMS cost tracking
   - Consider SMS budget limits per user
-  
 - [ ] **Implement OTP backup methods**
   - Email fallback for failed SMS
   - TOTP authenticator app support
   - Recovery codes
-  
 - [ ] **Add logging and monitoring**
   - Log all OTP send/verify attempts
   - Track success/failure rates
   - Monitor Twilio delivery status
   - Set up alerts for high failure rates
-  
 - [ ] **Security enhancements**
   - Implement CAPTCHA before sending OTP
   - Add IP-based rate limiting
   - Detect and block suspicious patterns
   - Add device fingerprinting
-  
 - [ ] **User experience improvements**
   - Add "Trust this device" option (skip OTP for 30 days)
   - SMS delivery status tracking
@@ -423,12 +448,14 @@ describe('OTP Login Flow', () => {
 #### 1. OTP Not Received
 
 **Possible Causes:**
+
 - Invalid phone number format
 - Phone number not verified in Twilio (development mode)
 - Twilio account suspended or out of credits
 - SMS blocked by carrier
 
 **Debug Steps:**
+
 ```bash
 # Check Twilio logs
 # Visit: https://console.twilio.com/us1/monitor/logs/sms
@@ -445,35 +472,39 @@ db.users.findOne({ email: "user@example.com" }, { "contact.phone": 1 })
 #### 2. OTP Verification Fails
 
 **Possible Causes:**
+
 - OTP expired (>5 minutes)
 - Incorrect OTP entered
 - Too many attempts (>3)
 - OTP store cleared (server restart)
 
 **Debug Steps:**
+
 ```typescript
 // Check OTP store (add logging in verify endpoint)
-console.log('OTP Data:', otpStore.get(identifier));
+console.log("OTP Data:", otpStore.get(identifier));
 
 // Check expiration
 const now = Date.now();
 const otpData = otpStore.get(identifier);
 if (otpData && now > otpData.expiresAt) {
-  console.log('OTP expired:', new Date(otpData.expiresAt));
+  console.log("OTP expired:", new Date(otpData.expiresAt));
 }
 ```
 
 #### 3. Rate Limit Errors
 
 **Possible Causes:**
+
 - User requesting OTP too frequently
 - Multiple users sharing same IP (rare)
 - Testing with same account repeatedly
 
 **Debug Steps:**
+
 ```typescript
 // Check rate limit data
-console.log('Rate Limit:', rateLimitStore.get(identifier));
+console.log("Rate Limit:", rateLimitStore.get(identifier));
 
 // Reset rate limit for testing
 rateLimitStore.delete(identifier);
@@ -482,18 +513,21 @@ rateLimitStore.delete(identifier);
 ## Future Enhancements
 
 ### Phase 2 Features (Priority: High)
+
 1. **Redis Integration** - Replace in-memory store
 2. **WhatsApp OTP** - Alternative to SMS
 3. **Backup Codes** - Recovery mechanism
 4. **Trust Device** - Skip OTP for known devices
 
 ### Phase 3 Features (Priority: Medium)
+
 5. **TOTP Support** - Authenticator app integration
 6. **Biometric Auth** - Face ID / Touch ID on mobile
 7. **Risk-Based Auth** - Skip OTP for low-risk logins
 8. **SMS Templates** - Multi-language SMS content
 
 ### Phase 4 Features (Priority: Low)
+
 9. **Voice Call OTP** - Accessibility feature
 10. **Email OTP** - Fallback for SMS failures
 11. **Passwordless Login** - OTP-only authentication
@@ -502,12 +536,14 @@ rateLimitStore.delete(identifier);
 ## Performance Metrics
 
 ### Target Metrics
+
 - **OTP Send Time:** <3 seconds (credential validation + Twilio API)
 - **OTP Delivery Time:** <10 seconds (Twilio → User's phone)
 - **Verification Time:** <1 second (in-memory lookup + validation)
 - **Success Rate:** >95% (OTP delivery + verification)
 
 ### Monitoring
+
 - Track average OTP send time
 - Monitor Twilio delivery rates
 - Log failed verification attempts
@@ -516,12 +552,14 @@ rateLimitStore.delete(identifier);
 ## Cost Analysis
 
 ### Twilio SMS Pricing (Saudi Arabia)
+
 - **Outbound SMS:** ~$0.05 - $0.10 per message
 - **Estimated Monthly Cost (1000 users):**
   - 1 login/day: $1,500 - $3,000
   - Rate limit (5 OTP/15min): Max $25,000 per day (unlikely)
 
 ### Cost Optimization
+
 - Implement "Trust Device" to reduce OTP frequency
 - Use WhatsApp (cheaper alternative) when available
 - Monitor and block SMS abuse
@@ -530,11 +568,13 @@ rateLimitStore.delete(identifier);
 ## Support
 
 ### User Support
+
 - **Help Center:** Add FAQ for OTP login
 - **Contact Support:** support@fixzit.com
 - **Phone:** +966 11 234 5678
 
 ### Developer Support
+
 - **Internal Documentation:** This file
 - **API Documentation:** OpenAPI spec at `/docs/api`
 - **Slack Channel:** #auth-team
@@ -542,6 +582,7 @@ rateLimitStore.delete(identifier);
 ## Changelog
 
 ### v1.0.0 (Current)
+
 - ✅ Initial SMS OTP implementation
 - ✅ Twilio integration
 - ✅ Rate limiting (5 sends / 15 min)
@@ -551,6 +592,7 @@ rateLimitStore.delete(identifier);
 - ✅ Phone number masking
 
 ### Upcoming
+
 - 🔄 Redis integration (v1.1.0)
 - 🔄 WhatsApp OTP (v1.2.0)
 - 🔄 Trust device feature (v1.3.0)

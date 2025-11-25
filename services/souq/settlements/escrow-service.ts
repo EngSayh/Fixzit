@@ -1,24 +1,35 @@
-import { Types } from 'mongoose';
-import { EscrowAccount, EscrowSource, EscrowState } from '@/server/models/finance/EscrowAccount';
-import { EscrowTransaction, EscrowTransactionStatus, EscrowTransactionType } from '@/server/models/finance/EscrowTransaction';
-import { EscrowRelease, EscrowReleaseStatus } from '@/server/models/finance/EscrowRelease';
-import { connectDb, getDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
-import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
-import { metricsRegistry } from '@/lib/monitoring/metrics-registry';
-import { Counter, Histogram } from 'prom-client';
-import { validateEscrowEventPayload } from './escrow-events.contract';
+import { Types } from "mongoose";
+import {
+  EscrowAccount,
+  EscrowSource,
+  EscrowState,
+} from "@/server/models/finance/EscrowAccount";
+import {
+  EscrowTransaction,
+  EscrowTransactionStatus,
+  EscrowTransactionType,
+} from "@/server/models/finance/EscrowTransaction";
+import {
+  EscrowRelease,
+  EscrowReleaseStatus,
+} from "@/server/models/finance/EscrowRelease";
+import { connectDb, getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { metricsRegistry } from "@/lib/monitoring/metrics-registry";
+import { Counter, Histogram } from "prom-client";
+import { validateEscrowEventPayload } from "./escrow-events.contract";
 
 export type EscrowEventName =
-  | 'escrow.created'
-  | 'escrow.funded'
-  | 'escrow.release.requested'
-  | 'escrow.released'
-  | 'escrow.refunded'
-  | 'escrow.failed';
+  | "escrow.created"
+  | "escrow.funded"
+  | "escrow.release.requested"
+  | "escrow.released"
+  | "escrow.refunded"
+  | "escrow.failed";
 
 type EscrowSourceContext = {
-  source: typeof EscrowSource[keyof typeof EscrowSource];
+  source: (typeof EscrowSource)[keyof typeof EscrowSource];
   sourceId: Types.ObjectId;
   orgId: Types.ObjectId;
   buyerId?: Types.ObjectId;
@@ -38,58 +49,66 @@ type EscrowMoneyMovement = {
   amount: number;
   currency?: string;
   idempotencyKey?: string;
-  provider?: 'PAYTABS' | 'SADAD' | 'SPAN' | 'MANUAL' | 'UNKNOWN';
+  provider?: "PAYTABS" | "SADAD" | "SPAN" | "MANUAL" | "UNKNOWN";
   actorId?: Types.ObjectId;
   reason?: string;
   force?: boolean;
 };
 
 const escrowEventCounter = new Counter({
-  name: 'fixzit_escrow_events_total',
-  help: 'Escrow lifecycle events',
-  labelNames: ['event'],
+  name: "fixzit_escrow_events_total",
+  help: "Escrow lifecycle events",
+  labelNames: ["event"],
   registers: [metricsRegistry],
 });
 
 const escrowLatency = new Histogram({
-  name: 'fixzit_escrow_operation_seconds',
-  help: 'Latency for escrow operations',
+  name: "fixzit_escrow_operation_seconds",
+  help: "Latency for escrow operations",
   buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5],
   registers: [metricsRegistry],
 });
 
-const FEATURE_FLAG = process.env.FEATURE_ESCROW_ENABLED ?? 'true';
+const FEATURE_FLAG = process.env.FEATURE_ESCROW_ENABLED ?? "true";
 
 function assertEscrowEnabled() {
-  if (FEATURE_FLAG === 'false') {
-    throw new Error('Escrow feature flag disabled (FEATURE_ESCROW_ENABLED=false)');
+  if (FEATURE_FLAG === "false") {
+    throw new Error(
+      "Escrow feature flag disabled (FEATURE_ESCROW_ENABLED=false)",
+    );
   }
 }
 
-async function emitEscrowEvent(event: EscrowEventName, payload: Record<string, unknown>): Promise<void> {
+async function emitEscrowEvent(
+  event: EscrowEventName,
+  payload: Record<string, unknown>,
+): Promise<void> {
   const validatedPayload = validateEscrowEventPayload(event, payload);
   escrowEventCounter.inc({ event });
   const idempotencyKey =
     (validatedPayload.idempotencyKey as string | undefined) ??
-    `${event}-${validatedPayload.escrowAccountId ?? ''}-${validatedPayload.transactionId ?? ''}`;
+    `${event}-${validatedPayload.escrowAccountId ?? ""}-${validatedPayload.transactionId ?? ""}`;
 
   try {
     const db = await getDatabase();
-    await db.collection('finance_escrow_events').updateOne(
+    await db.collection("finance_escrow_events").updateOne(
       { event, idempotencyKey },
       {
         $setOnInsert: { createdAt: new Date() },
         $set: {
           payload: validatedPayload,
-          status: 'queued',
+          status: "queued",
           updatedAt: new Date(),
         },
       },
-      { upsert: true }
+      { upsert: true },
     );
   } catch (_storeError) {
-    const storeError = _storeError instanceof Error ? _storeError : new Error(String(_storeError));
-    logger.warn('[Escrow] Failed to persist event outbox', {
+    const storeError =
+      _storeError instanceof Error
+        ? _storeError
+        : new Error(String(_storeError));
+    logger.warn("[Escrow] Failed to persist event outbox", {
       event,
       error: storeError.message,
       payload: validatedPayload,
@@ -102,13 +121,13 @@ async function emitEscrowEvent(event: EscrowEventName, payload: Record<string, u
     });
     await addJob(
       QUEUE_NAMES.NOTIFICATIONS,
-      'escrow.notification',
+      "escrow.notification",
       { event, payload: validatedPayload, idempotencyKey },
-      { jobId: `notify-${idempotencyKey}` }
+      { jobId: `notify-${idempotencyKey}` },
     );
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
-    logger.warn('[Escrow] Failed to enqueue event, falling back to log-only', {
+    logger.warn("[Escrow] Failed to enqueue event, falling back to log-only", {
       event,
       error: error.message,
       payload: validatedPayload,
@@ -120,7 +139,7 @@ async function emitEscrowEvent(event: EscrowEventName, payload: Record<string, u
 export class EscrowService {
   async createEscrowAccount(context: EscrowSourceContext) {
     assertEscrowEnabled();
-    const endTimer = escrowLatency.startTimer({ operation: 'create_account' });
+    const endTimer = escrowLatency.startTimer({ operation: "create_account" });
     await connectDb();
 
     const existing = await EscrowAccount.findOne({
@@ -146,7 +165,7 @@ export class EscrowService {
       bookingId: context.bookingId,
       orderId: context.orderId,
       expectedAmount: context.expectedAmount,
-      currency: context.currency ?? 'SAR',
+      currency: context.currency ?? "SAR",
       holdAmount: 0,
       releasePolicy: {
         autoReleaseAt: context.releaseAfter,
@@ -156,15 +175,15 @@ export class EscrowService {
       auditTrail: [
         {
           at: new Date(),
-          action: 'created',
-          actorType: 'SYSTEM',
+          action: "created",
+          actorType: "SYSTEM",
           metadata: { source: context.source },
         },
       ],
       idempotencyKeys: context.idempotencyKey ? [context.idempotencyKey] : [],
     });
 
-    await emitEscrowEvent('escrow.created', {
+    await emitEscrowEvent("escrow.created", {
       escrowAccountId: account._id.toString(),
       source: context.source,
       sourceId: context.sourceId.toString(),
@@ -178,13 +197,16 @@ export class EscrowService {
 
   async recordFunding(input: EscrowMoneyMovement) {
     assertEscrowEnabled();
-    const endTimer = escrowLatency.startTimer({ operation: 'fund' });
+    const endTimer = escrowLatency.startTimer({ operation: "fund" });
     await connectDb();
 
-    const account = await EscrowAccount.findOne({ _id: input.escrowAccountId, orgId: input.orgId });
+    const account = await EscrowAccount.findOne({
+      _id: input.escrowAccountId,
+      orgId: input.orgId,
+    });
     if (!account) {
       endTimer();
-      throw new Error('Escrow account not found');
+      throw new Error("Escrow account not found");
     }
 
     if (input.idempotencyKey) {
@@ -205,8 +227,8 @@ export class EscrowService {
       type: EscrowTransactionType.FUND,
       status: EscrowTransactionStatus.SUCCEEDED,
       amount: input.amount,
-      currency: input.currency ?? 'SAR',
-      provider: input.provider ?? 'UNKNOWN',
+      currency: input.currency ?? "SAR",
+      provider: input.provider ?? "UNKNOWN",
       idempotencyKey: input.idempotencyKey,
       initiatedBy: input.actorId,
       executedAt: new Date(),
@@ -217,21 +239,27 @@ export class EscrowService {
     account.status = EscrowState.FUNDED;
     account.auditTrail.push({
       at: new Date(),
-      action: 'funded',
+      action: "funded",
       actorId: input.actorId,
-      actorType: 'USER',
+      actorType: "USER",
       metadata: { transactionId: transaction._id },
     });
-    if (input.idempotencyKey && !account.idempotencyKeys?.includes(input.idempotencyKey)) {
-      account.idempotencyKeys = [...(account.idempotencyKeys ?? []), input.idempotencyKey];
+    if (
+      input.idempotencyKey &&
+      !account.idempotencyKeys?.includes(input.idempotencyKey)
+    ) {
+      account.idempotencyKeys = [
+        ...(account.idempotencyKeys ?? []),
+        input.idempotencyKey,
+      ];
     }
     await account.save();
 
-    await emitEscrowEvent('escrow.funded', {
+    await emitEscrowEvent("escrow.funded", {
       escrowAccountId: account._id.toString(),
       orgId: input.orgId.toString(),
       amount: input.amount,
-      currency: input.currency ?? 'SAR',
+      currency: input.currency ?? "SAR",
       idempotencyKey: input.idempotencyKey,
       transactionId: transaction._id.toString(),
     });
@@ -240,29 +268,41 @@ export class EscrowService {
     return { account, transaction };
   }
 
-  async requestRelease(input: EscrowMoneyMovement & { scheduleFor?: Date; riskFlags?: string[] }) {
+  async requestRelease(
+    input: EscrowMoneyMovement & { scheduleFor?: Date; riskFlags?: string[] },
+  ) {
     assertEscrowEnabled();
-    const endTimer = escrowLatency.startTimer({ operation: 'request_release' });
+    const endTimer = escrowLatency.startTimer({ operation: "request_release" });
     await connectDb();
 
-    const account = await EscrowAccount.findOne({ _id: input.escrowAccountId, orgId: input.orgId });
+    const account = await EscrowAccount.findOne({
+      _id: input.escrowAccountId,
+      orgId: input.orgId,
+    });
     if (!account) {
       endTimer();
-      throw new Error('Escrow account not found');
+      throw new Error("Escrow account not found");
     }
 
     // Guard rails
-    if (account.status === EscrowState.REFUNDED || account.status === EscrowState.RELEASED) {
+    if (
+      account.status === EscrowState.REFUNDED ||
+      account.status === EscrowState.RELEASED
+    ) {
       endTimer();
-      throw new Error('Escrow already closed');
+      throw new Error("Escrow already closed");
     }
     if (account.releasePolicy?.riskHold && !input.force) {
       endTimer();
-      throw new Error('Escrow is on risk hold; manual review required');
+      throw new Error("Escrow is on risk hold; manual review required");
     }
-    if (account.releasePolicy?.autoReleaseAt && account.releasePolicy.autoReleaseAt > new Date() && !input.force) {
+    if (
+      account.releasePolicy?.autoReleaseAt &&
+      account.releasePolicy.autoReleaseAt > new Date() &&
+      !input.force
+    ) {
       endTimer();
-      throw new Error('Release blocked until autoReleaseAt threshold');
+      throw new Error("Release blocked until autoReleaseAt threshold");
     }
 
     const release = await EscrowRelease.create({
@@ -270,25 +310,27 @@ export class EscrowService {
       escrowAccountId: input.escrowAccountId,
       requestedBy: input.actorId,
       amount: input.amount,
-      currency: input.currency ?? 'SAR',
+      currency: input.currency ?? "SAR",
       status: EscrowReleaseStatus.REQUESTED,
       scheduledFor: input.scheduleFor,
       notes: input.reason,
       riskFlags: input.riskFlags ?? [],
-      autoRelease: Boolean(account.releasePolicy?.autoReleaseAt && !input.scheduleFor),
+      autoRelease: Boolean(
+        account.releasePolicy?.autoReleaseAt && !input.scheduleFor,
+      ),
     });
 
     account.status = EscrowState.RELEASE_REQUESTED;
     account.auditTrail.push({
       at: new Date(),
-      action: 'release_requested',
+      action: "release_requested",
       actorId: input.actorId,
-      actorType: 'USER',
+      actorType: "USER",
       reason: input.reason,
     });
     await account.save();
 
-    await emitEscrowEvent('escrow.release.requested', {
+    await emitEscrowEvent("escrow.release.requested", {
       escrowAccountId: account._id.toString(),
       releaseId: release._id.toString(),
       amount: input.amount,
@@ -300,20 +342,25 @@ export class EscrowService {
     return { account, release };
   }
 
-  async releaseFunds(input: EscrowMoneyMovement & { releaseId?: Types.ObjectId }) {
+  async releaseFunds(
+    input: EscrowMoneyMovement & { releaseId?: Types.ObjectId },
+  ) {
     assertEscrowEnabled();
-    const endTimer = escrowLatency.startTimer({ operation: 'release' });
+    const endTimer = escrowLatency.startTimer({ operation: "release" });
     await connectDb();
 
-    const account = await EscrowAccount.findOne({ _id: input.escrowAccountId, orgId: input.orgId });
+    const account = await EscrowAccount.findOne({
+      _id: input.escrowAccountId,
+      orgId: input.orgId,
+    });
     if (!account) {
       endTimer();
-      throw new Error('Escrow account not found');
+      throw new Error("Escrow account not found");
     }
 
     if (input.amount > account.holdAmount && !input.force) {
       endTimer();
-      throw new Error('Release amount exceeds held funds');
+      throw new Error("Release amount exceeds held funds");
     }
 
     const transaction = await EscrowTransaction.create({
@@ -322,8 +369,8 @@ export class EscrowService {
       type: EscrowTransactionType.RELEASE,
       status: EscrowTransactionStatus.SUCCEEDED,
       amount: input.amount,
-      currency: input.currency ?? 'SAR',
-      provider: input.provider ?? 'UNKNOWN',
+      currency: input.currency ?? "SAR",
+      provider: input.provider ?? "UNKNOWN",
       idempotencyKey: input.idempotencyKey,
       initiatedBy: input.actorId,
       executedAt: new Date(),
@@ -334,9 +381,9 @@ export class EscrowService {
     account.status = EscrowState.RELEASED;
     account.auditTrail.push({
       at: new Date(),
-      action: 'released',
+      action: "released",
       actorId: input.actorId,
-      actorType: 'USER',
+      actorType: "USER",
       metadata: { transactionId: transaction._id },
     });
     await account.save();
@@ -349,7 +396,7 @@ export class EscrowService {
       });
     }
 
-    await emitEscrowEvent('escrow.released', {
+    await emitEscrowEvent("escrow.released", {
       escrowAccountId: account._id.toString(),
       releaseId: input.releaseId?.toString(),
       amount: input.amount,
@@ -364,18 +411,21 @@ export class EscrowService {
 
   async refund(input: EscrowMoneyMovement) {
     assertEscrowEnabled();
-    const endTimer = escrowLatency.startTimer({ operation: 'refund' });
+    const endTimer = escrowLatency.startTimer({ operation: "refund" });
     await connectDb();
 
-    const account = await EscrowAccount.findOne({ _id: input.escrowAccountId, orgId: input.orgId });
+    const account = await EscrowAccount.findOne({
+      _id: input.escrowAccountId,
+      orgId: input.orgId,
+    });
     if (!account) {
       endTimer();
-      throw new Error('Escrow account not found');
+      throw new Error("Escrow account not found");
     }
 
     if (input.amount > account.holdAmount && !input.force) {
       endTimer();
-      throw new Error('Refund exceeds held funds');
+      throw new Error("Refund exceeds held funds");
     }
 
     const transaction = await EscrowTransaction.create({
@@ -384,8 +434,8 @@ export class EscrowService {
       type: EscrowTransactionType.REFUND,
       status: EscrowTransactionStatus.SUCCEEDED,
       amount: input.amount,
-      currency: input.currency ?? 'SAR',
-      provider: input.provider ?? 'UNKNOWN',
+      currency: input.currency ?? "SAR",
+      provider: input.provider ?? "UNKNOWN",
       idempotencyKey: input.idempotencyKey,
       initiatedBy: input.actorId,
       executedAt: new Date(),
@@ -396,14 +446,14 @@ export class EscrowService {
     account.status = EscrowState.REFUNDED;
     account.auditTrail.push({
       at: new Date(),
-      action: 'refunded',
+      action: "refunded",
       actorId: input.actorId,
-      actorType: 'USER',
+      actorType: "USER",
       metadata: { transactionId: transaction._id },
     });
     await account.save();
 
-    await emitEscrowEvent('escrow.refunded', {
+    await emitEscrowEvent("escrow.refunded", {
       escrowAccountId: account._id.toString(),
       amount: input.amount,
       orgId: input.orgId.toString(),
@@ -415,24 +465,31 @@ export class EscrowService {
     return { account, transaction };
   }
 
-  async failEscrow(orgId: Types.ObjectId, escrowAccountId: Types.ObjectId, reason: string) {
+  async failEscrow(
+    orgId: Types.ObjectId,
+    escrowAccountId: Types.ObjectId,
+    reason: string,
+  ) {
     assertEscrowEnabled();
     await connectDb();
-    const account = await EscrowAccount.findOne({ _id: escrowAccountId, orgId });
+    const account = await EscrowAccount.findOne({
+      _id: escrowAccountId,
+      orgId,
+    });
     if (!account) {
-      throw new Error('Escrow account not found');
+      throw new Error("Escrow account not found");
     }
 
     account.status = EscrowState.FAILED;
     account.auditTrail.push({
       at: new Date(),
-      action: 'failed',
-      actorType: 'SYSTEM',
+      action: "failed",
+      actorType: "SYSTEM",
       reason,
     });
     await account.save();
 
-    await emitEscrowEvent('escrow.failed', {
+    await emitEscrowEvent("escrow.failed", {
       escrowAccountId: escrowAccountId.toString(),
       orgId: orgId.toString(),
       reason,

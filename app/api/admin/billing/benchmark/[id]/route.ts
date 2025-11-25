@@ -1,9 +1,9 @@
-import { NextRequest} from 'next/server';
-import { dbConnect } from '@/db/mongoose';
-import Benchmark from '@/server/models/Benchmark';
-import { requireSuperAdmin } from '@/lib/authz';
+import { NextRequest } from "next/server";
+import { dbConnect } from "@/db/mongoose";
+import Benchmark from "@/server/models/Benchmark";
+import { requireSuperAdmin } from "@/lib/authz";
 
-import { createSecureResponse } from '@/server/security/headers';
+import { createSecureResponse } from "@/server/security/headers";
 
 /**
  * @openapi
@@ -28,7 +28,10 @@ import { createSecureResponse } from '@/server/security/headers';
  *       404:
  *         description: Benchmark not found
  */
-export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   await dbConnect();
   await requireSuperAdmin(req);
@@ -36,7 +39,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
   const doc = await Benchmark.findByIdAndUpdate(params.id, body, { new: true });
   if (!doc) {
-    return createSecureResponse({ error: 'NOT_FOUND' }, 404, req);
+    return createSecureResponse({ error: "NOT_FOUND" }, 404, req);
   }
 
   return createSecureResponse(doc, 200, req);

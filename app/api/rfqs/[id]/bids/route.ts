@@ -1,14 +1,14 @@
-import { NextRequest} from "next/server";
+import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { RFQ } from "@/server/models/RFQ";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { nanoid } from "nanoid";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
 // Comprehensive Bid interface matching all properties a bid can have
 interface Bid {
@@ -50,11 +50,15 @@ const submitBidSchema = z.object({
   paymentTerms: z.string(),
   technicalProposal: z.string().optional(),
   commercialProposal: z.string().optional(),
-  alternates: z.array(z.object({
-    description: z.string(),
-    priceAdjustment: z.number()
-  })).optional(),
-  exceptions: z.array(z.string()).optional()
+  alternates: z
+    .array(
+      z.object({
+        description: z.string(),
+        priceAdjustment: z.number(),
+      }),
+    )
+    .optional(),
+  exceptions: z.array(z.string()).optional(),
 });
 
 /**
@@ -74,7 +78,10 @@ const submitBidSchema = z.object({
  *       429:
  *         description: Rate limit exceeded
  */
-export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -87,27 +94,44 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     const data = submitBidSchema.parse(await req.json());
 
     const rfq = await RFQ.findOne({ _id: params.id, tenantId: user.tenantId });
-    
+
     if (!rfq) {
       return createSecureResponse({ error: "RFQ not found" }, 404, req);
     }
 
     const rfqDoc = rfq as unknown as RFQWithBids;
 
-    if (rfqDoc.status !== 'PUBLISHED' && rfqDoc.status !== 'BIDDING') {
-      return createSecureResponse({ error: "RFQ is not accepting bids" }, 400, req);
+    if (rfqDoc.status !== "PUBLISHED" && rfqDoc.status !== "BIDDING") {
+      return createSecureResponse(
+        { error: "RFQ is not accepting bids" },
+        400,
+        req,
+      );
     }
 
     // Check if vendor already submitted a bid
-    const bidsArray = Array.isArray(rfqDoc.bids) ? rfqDoc.bids : (rfqDoc.bids = []);
+    const bidsArray = Array.isArray(rfqDoc.bids)
+      ? rfqDoc.bids
+      : (rfqDoc.bids = []);
     const existingBid = bidsArray.find((b) => b.vendorId === data.vendorId);
     if (existingBid) {
-      return createSecureResponse({ error: "Vendor has already submitted a bid" }, 400, req);
+      return createSecureResponse(
+        { error: "Vendor has already submitted a bid" },
+        400,
+        req,
+      );
     }
 
     // Check bid deadline
-    if (rfqDoc.timeline?.bidDeadline && new Date() > new Date(rfqDoc.timeline.bidDeadline)) {
-      return createSecureResponse({ error: "Bid deadline has passed" }, 400, req);
+    if (
+      rfqDoc.timeline?.bidDeadline &&
+      new Date() > new Date(rfqDoc.timeline.bidDeadline)
+    ) {
+      return createSecureResponse(
+        { error: "Bid deadline has passed" },
+        400,
+        req,
+      );
     }
 
     // Add bid
@@ -115,19 +139,22 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       bidId: nanoid(),
       ...data,
       submitted: new Date(),
-      status: "SUBMITTED"
+      status: "SUBMITTED",
     };
 
     bidsArray.push(bid);
 
     // Update status to BIDDING if first bid
-    if (bidsArray.length === 1 && rfqDoc.status === 'PUBLISHED') {
-      rfqDoc.status = 'BIDDING';
+    if (bidsArray.length === 1 && rfqDoc.status === "PUBLISHED") {
+      rfqDoc.status = "BIDDING";
     }
 
     // Check if target bids reached
-    if (rfqDoc.bidding?.targetBids && bidsArray.length >= rfqDoc.bidding.targetBids) {
-      rfqDoc.status = 'CLOSED';
+    if (
+      rfqDoc.bidding?.targetBids &&
+      bidsArray.length >= rfqDoc.bidding.targetBids
+    ) {
+      rfqDoc.status = "CLOSED";
       if (rfqDoc.workflow) {
         rfqDoc.workflow.closedBy = user.id;
         rfqDoc.workflow.closedAt = new Date();
@@ -142,7 +169,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   }
 }
 
-export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -153,7 +183,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     await connectToDatabase();
 
     const rfq = await RFQ.findOne({ _id: params.id, tenantId: user.tenantId });
-    
+
     if (!rfq) {
       return createSecureResponse({ error: "RFQ not found" }, 404, req);
     }
@@ -161,11 +191,11 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const rfqDoc = rfq as unknown as RFQWithBids;
 
     // If anonymous bidding is enabled, hide vendor details
-    if (rfqDoc.bidding?.anonymous && rfqDoc.status !== 'AWARDED') {
+    if (rfqDoc.bidding?.anonymous && rfqDoc.status !== "AWARDED") {
       const anonymizedBids = (rfqDoc.bids || []).map((bid, index: number) => ({
         ...bid,
         vendorId: `VENDOR-${index + 1}`,
-        vendorName: `Anonymous Vendor ${index + 1}`
+        vendorName: `Anonymous Vendor ${index + 1}`,
       }));
       return createSecureResponse(anonymizedBids, 200, req);
     }

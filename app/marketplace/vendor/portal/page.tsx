@@ -1,10 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Package, Upload, BarChart3, Settings, AlertCircle, CheckCircle } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import { useTranslation } from '@/contexts/TranslationContext';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import {
+  Package,
+  Upload,
+  BarChart3,
+  Settings,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 interface VendorStats {
   totalProducts: number;
@@ -26,19 +33,22 @@ export default function VendorPortalPage() {
       try {
         const orgId = session?.user?.orgId;
         if (!orgId) {
-          throw new Error('Organization ID not found');
+          throw new Error("Organization ID not found");
         }
-        const response = await fetch(`/api/org/${orgId}/marketplace/vendor/stats`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-tenant-id': orgId
-          }
-        });
-        if (!response.ok) throw new Error('Failed to fetch stats');
+        const response = await fetch(
+          `/api/org/${orgId}/marketplace/vendor/stats`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "x-tenant-id": orgId,
+            },
+          },
+        );
+        if (!response.ok) throw new Error("Failed to fetch stats");
         const data = await response.json();
         setStats(data.stats);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
         setLoading(false);
       }
@@ -53,7 +63,9 @@ export default function VendorPortalPage() {
       <div className="min-h-screen flex items-center justify-center bg-muted">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">{t('common.loading', 'Loading...')}</p>
+          <p className="mt-4 text-muted-foreground">
+            {t("common.loading", "Loading...")}
+          </p>
         </div>
       </div>
     );
@@ -65,7 +77,7 @@ export default function VendorPortalPage() {
         {/* Header */}
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
-            {t('marketplace.vendor.profile', 'Vendor Portal')}
+            {t("marketplace.vendor.profile", "Vendor Portal")}
           </h1>
           <p className="text-muted-foreground mt-2">
             Manage your products, track performance, and grow your business
@@ -85,34 +97,50 @@ export default function VendorPortalPage() {
           <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
             <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-muted-foreground">Total Products</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Products
+                </p>
                 <Package className="h-5 w-5 text-primary" />
               </div>
-              <p className="text-3xl font-bold text-foreground">{stats.totalProducts}</p>
+              <p className="text-3xl font-bold text-foreground">
+                {stats.totalProducts}
+              </p>
             </div>
 
             <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-muted-foreground">Active Products</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Active Products
+                </p>
                 <CheckCircle className="h-5 w-5 text-success" />
               </div>
-              <p className="text-3xl font-bold text-success">{stats.activeProducts}</p>
+              <p className="text-3xl font-bold text-success">
+                {stats.activeProducts}
+              </p>
             </div>
 
             <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-muted-foreground">Pending Approval</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Pending Approval
+                </p>
                 <AlertCircle className="h-5 w-5 text-warning" />
               </div>
-              <p className="text-3xl font-bold text-warning">{stats.pendingApproval}</p>
+              <p className="text-3xl font-bold text-warning">
+                {stats.pendingApproval}
+              </p>
             </div>
 
             <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-muted-foreground">Monthly Orders</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Monthly Orders
+                </p>
                 <BarChart3 className="h-5 w-5 text-primary" />
               </div>
-              <p className="text-3xl font-bold text-foreground">{stats.monthlyOrders}</p>
+              <p className="text-3xl font-bold text-foreground">
+                {stats.monthlyOrders}
+              </p>
             </div>
           </section>
         )}
@@ -120,7 +148,7 @@ export default function VendorPortalPage() {
         {/* Quick Actions */}
         <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* Upload Product */}
-          <Link 
+          <Link
             href="/marketplace/vendor/products/upload"
             className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
           >
@@ -130,17 +158,18 @@ export default function VendorPortalPage() {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-foreground mb-1">
-                  {t('marketplace.vendor.uploadProduct', 'Upload Product')}
+                  {t("marketplace.vendor.uploadProduct", "Upload Product")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Add new products to your catalogue with images and specifications
+                  Add new products to your catalogue with images and
+                  specifications
                 </p>
               </div>
             </div>
           </Link>
 
           {/* Manage Products */}
-          <Link 
+          <Link
             href="/marketplace/vendor"
             className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
           >
@@ -150,7 +179,7 @@ export default function VendorPortalPage() {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-foreground mb-1">
-                  {t('marketplace.vendor.manageProducts', 'Manage Products')}
+                  {t("marketplace.vendor.manageProducts", "Manage Products")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   Edit existing products, update prices, and manage inventory
@@ -160,7 +189,7 @@ export default function VendorPortalPage() {
           </Link>
 
           {/* Bulk Upload */}
-          <Link 
+          <Link
             href="/marketplace/vendor/products/upload?mode=bulk"
             className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
           >
@@ -170,7 +199,7 @@ export default function VendorPortalPage() {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-foreground mb-1">
-                  {t('marketplace.vendor.bulkUpload', 'Bulk Upload')}
+                  {t("marketplace.vendor.bulkUpload", "Bulk Upload")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   Upload multiple products at once using CSV template
@@ -180,7 +209,7 @@ export default function VendorPortalPage() {
           </Link>
 
           {/* Seller Central */}
-          <Link 
+          <Link
             href="/marketplace/seller-central"
             className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
           >
@@ -190,10 +219,13 @@ export default function VendorPortalPage() {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-foreground mb-1">
-                  {t('marketplace.vendor.sellerCentral', 'Seller Central Apps')}
+                  {t("marketplace.vendor.sellerCentral", "Seller Central Apps")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {t('marketplace.vendor.sellerCentral.desc', 'Jump into analytics, advertising, pricing, and compliance tools.')}
+                  {t(
+                    "marketplace.vendor.sellerCentral.desc",
+                    "Jump into analytics, advertising, pricing, and compliance tools.",
+                  )}
                 </p>
               </div>
             </div>
@@ -202,17 +234,30 @@ export default function VendorPortalPage() {
 
         {/* Help Section */}
         <section className="mt-8 rounded-2xl bg-gradient-to-r from-primary to-success p-6 text-white">
-          <h3 className="text-xl font-semibold mb-2">Need Help Getting Started?</h3>
+          <h3 className="text-xl font-semibold mb-2">
+            Need Help Getting Started?
+          </h3>
           <p className="text-white/90 mb-4">
-            Check out our vendor guide to learn how to optimize your product listings and increase sales.
+            Check out our vendor guide to learn how to optimize your product
+            listings and increase sales.
           </p>
-          <Link 
+          <Link
             href="/support"
             className="inline-flex items-center gap-2 rounded-2xl bg-card px-4 py-2 text-sm font-semibold text-primary hover:bg-muted transition-colors"
           >
             View Vendor Guide
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
             </svg>
           </Link>
         </section>

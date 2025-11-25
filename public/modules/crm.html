@@ -1,1023 +1,1102 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" dir="ltr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CRM - Fixzit Facility Management</title>
-    
+
     <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
     <style>
-        :root {
-            --primary-blue: #0078D4;
-            --secondary-blue: #00BCF2;
-            --success-green: #6E4D2C;
-            --warning-yellow: #C98036;
-            --danger-red: #E74C3C;
-            --dark: #1A1A1A;
-            --white: #FFFFFF;
-            --gray-light: #F4F4F4;
-            --gray-medium: #8E8E8E;
-            --text-dark: #3A2A1F;
-            --border: #E0E0E0;
-            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);
+      :root {
+        --primary-blue: #0078d4;
+        --secondary-blue: #00bcf2;
+        --success-green: #6e4d2c;
+        --warning-yellow: #c98036;
+        --danger-red: #e74c3c;
+        --dark: #1a1a1a;
+        --white: #ffffff;
+        --gray-light: #f4f4f4;
+        --gray-medium: #8e8e8e;
+        --text-dark: #3a2a1f;
+        --border: #e0e0e0;
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", "Segoe UI", sans-serif;
+        background: #f8f9fa;
+        color: var(--text-dark);
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      /* Page Header */
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: var(--white);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+      }
+
+      .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--text-dark);
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 15px;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background: var(--primary-blue);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: var(--secondary-blue);
+        transform: translateY(-2px);
+      }
+
+      .btn-secondary {
+        background: var(--gray-light);
+        color: var(--text-dark);
+      }
+
+      .btn-success {
+        background: var(--success-green);
+        color: white;
+      }
+
+      /* Tabs */
+      .tabs-container {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .tabs {
+        display: flex;
+        gap: 20px;
+        border-bottom: 2px solid var(--border);
+        overflow-x: auto;
+      }
+
+      .tab {
+        padding: 12px 20px;
+        background: none;
+        border: none;
+        color: var(--gray-medium);
+        font-weight: 500;
+        cursor: pointer;
+        position: relative;
+        white-space: nowrap;
+        transition: all 0.3s;
+      }
+
+      .tab:hover {
+        color: var(--text-dark);
+      }
+
+      .tab.active {
+        color: var(--primary-blue);
+      }
+
+      .tab.active::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--primary-blue);
+      }
+
+      /* CRM Stats */
+      .crm-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 15px;
+      }
+
+      .stat-title {
+        font-size: 14px;
+        color: var(--gray-medium);
+        font-weight: 500;
+      }
+
+      .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
+
+      .stat-icon.blue {
+        background: rgba(0, 120, 212, 0.1);
+        color: var(--primary-blue);
+      }
+      .stat-icon.green {
+        background: rgba(0, 168, 89, 0.1);
+        color: var(--success-green);
+      }
+      .stat-icon.yellow {
+        background: rgba(255, 180, 0, 0.1);
+        color: var(--warning-yellow);
+      }
+      .stat-icon.red {
+        background: rgba(231, 76, 60, 0.1);
+        color: var(--danger-red);
+      }
+
+      .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text-dark);
+      }
+
+      .stat-change {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 13px;
+        margin-top: 10px;
+      }
+
+      .stat-change.positive {
+        color: var(--success-green);
+      }
+      .stat-change.negative {
+        color: var(--danger-red);
+      }
+
+      /* Pipeline Funnel */
+      .pipeline-container {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+        margin-bottom: 30px;
+      }
+
+      .pipeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-dark);
+      }
+
+      .pipeline-stages {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+      }
+
+      .pipeline-stage {
+        text-align: center;
+        padding: 20px;
+        background: var(--gray-light);
+        border-radius: 8px;
+        position: relative;
+        transition: all 0.3s;
+      }
+
+      .pipeline-stage:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
+
+      .stage-count {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 5px;
+      }
+
+      .stage-name {
+        font-size: 14px;
+        color: var(--gray-medium);
+        margin-bottom: 10px;
+      }
+
+      .stage-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--primary-blue);
+      }
+
+      .stage-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--primary-blue);
+        border-radius: 0 0 8px 8px;
+      }
+
+      /* Customer Grid */
+      .customers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .customer-card {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .customer-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .customer-header {
+        display: flex;
+        align-items: start;
+        gap: 15px;
+        margin-bottom: 15px;
+      }
+
+      .customer-avatar {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 18px;
+      }
+
+      .customer-info {
+        flex: 1;
+      }
+
+      .customer-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 5px;
+      }
+
+      .customer-company {
+        font-size: 14px;
+        color: var(--gray-medium);
+      }
+
+      .customer-type {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 500;
+      }
+
+      .type-enterprise {
+        background: #f3e5f5;
+        color: #7b1fa2;
+      }
+      .type-business {
+        background: #e3f2fd;
+        color: #1976d2;
+      }
+      .type-individual {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+
+      .customer-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        padding: 15px 0;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 15px;
+      }
+
+      .customer-stat {
+        text-align: center;
+      }
+
+      .customer-stat-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-dark);
+      }
+
+      .customer-stat-label {
+        font-size: 11px;
+        color: var(--gray-medium);
+      }
+
+      .customer-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .customer-btn {
+        flex: 1;
+        padding: 8px;
+        background: var(--gray-light);
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 13px;
+      }
+
+      .customer-btn:hover {
+        background: var(--primary-blue);
+        color: white;
+      }
+
+      /* Contracts Table */
+      .contracts-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .contracts-table th {
+        background: var(--gray-light);
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 13px;
+        text-transform: uppercase;
+        color: var(--gray-medium);
+      }
+
+      .contracts-table td {
+        padding: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .contracts-table tr:hover {
+        background: rgba(0, 120, 212, 0.05);
+      }
+
+      .contract-status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .status-active {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+      .status-expiring {
+        background: #fff3e0;
+        color: #f57c00;
+      }
+      .status-expired {
+        background: #ffebee;
+        color: #c62828;
+      }
+      .status-draft {
+        background: #e0e0e0;
+        color: #666;
+      }
+
+      /* Opportunities Board */
+      .opportunities-board {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .opportunity-column {
+        background: var(--gray-light);
+        border-radius: 12px;
+        padding: 15px;
+      }
+
+      .column-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: var(--white);
+        border-radius: 8px;
+      }
+
+      .column-title {
+        font-weight: 600;
+        color: var(--text-dark);
+      }
+
+      .column-count {
+        background: var(--primary-blue);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+      }
+
+      .opportunity-card {
+        background: var(--white);
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        cursor: move;
+        transition: all 0.3s;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      .opportunity-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
+
+      .opportunity-title {
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 10px;
+      }
+
+      .opportunity-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--success-green);
+        margin-bottom: 10px;
+      }
+
+      .opportunity-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: var(--gray-medium);
+      }
+
+      /* Feedback Section */
+      .feedback-container {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .feedback-item {
+        display: flex;
+        gap: 15px;
+        padding: 15px 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .feedback-item:last-child {
+        border-bottom: none;
+      }
+
+      .feedback-avatar {
+        width: 40px;
+        height: 40px;
+        background: var(--primary-blue);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .feedback-content {
+        flex: 1;
+      }
+
+      .feedback-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 10px;
+      }
+
+      .feedback-customer {
+        font-weight: 600;
+        color: var(--text-dark);
+      }
+
+      .feedback-rating {
+        display: flex;
+        gap: 2px;
+      }
+
+      .star {
+        color: var(--warning-yellow);
+        font-size: 14px;
+      }
+
+      .feedback-text {
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 10px;
+      }
+
+      .feedback-meta {
+        display: flex;
+        gap: 20px;
+        font-size: 12px;
+        color: var(--gray-medium);
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .customers-grid {
+          grid-template-columns: 1fr;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            background: #F8F9FA;
-            color: var(--text-dark);
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        /* Page Header */
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: var(--white);
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-        }
-
-        .page-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--text-dark);
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 15px;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: var(--primary-blue);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--secondary-blue);
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: var(--gray-light);
-            color: var(--text-dark);
-        }
-
-        .btn-success {
-            background: var(--success-green);
-            color: white;
-        }
-
-        /* Tabs */
-        .tabs-container {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
-        }
-
-        .tabs {
-            display: flex;
-            gap: 20px;
-            border-bottom: 2px solid var(--border);
-            overflow-x: auto;
-        }
-
-        .tab {
-            padding: 12px 20px;
-            background: none;
-            border: none;
-            color: var(--gray-medium);
-            font-weight: 500;
-            cursor: pointer;
-            position: relative;
-            white-space: nowrap;
-            transition: all 0.3s;
-        }
-
-        .tab:hover {
-            color: var(--text-dark);
-        }
-
-        .tab.active {
-            color: var(--primary-blue);
-        }
-
-        .tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--primary-blue);
-        }
-
-        /* CRM Stats */
-        .crm-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: var(--shadow);
-        }
-
-        .stat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 15px;
-        }
-
-        .stat-title {
-            font-size: 14px;
-            color: var(--gray-medium);
-            font-weight: 500;
-        }
-
-        .stat-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-
-        .stat-icon.blue { background: rgba(0, 120, 212, 0.1); color: var(--primary-blue); }
-        .stat-icon.green { background: rgba(0, 168, 89, 0.1); color: var(--success-green); }
-        .stat-icon.yellow { background: rgba(255, 180, 0, 0.1); color: var(--warning-yellow); }
-        .stat-icon.red { background: rgba(231, 76, 60, 0.1); color: var(--danger-red); }
-
-        .stat-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--text-dark);
-        }
-
-        .stat-change {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 13px;
-            margin-top: 10px;
-        }
-
-        .stat-change.positive { color: var(--success-green); }
-        .stat-change.negative { color: var(--danger-red); }
-
-        /* Pipeline Funnel */
-        .pipeline-container {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: var(--shadow);
-            margin-bottom: 30px;
-        }
-
-        .pipeline-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-dark);
+        .opportunities-board {
+          grid-template-columns: 1fr;
         }
 
         .pipeline-stages {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
+          grid-template-columns: 1fr;
         }
-
-        .pipeline-stage {
-            text-align: center;
-            padding: 20px;
-            background: var(--gray-light);
-            border-radius: 8px;
-            position: relative;
-            transition: all 0.3s;
-        }
-
-        .pipeline-stage:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow);
-        }
-
-        .stage-count {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 5px;
-        }
-
-        .stage-name {
-            font-size: 14px;
-            color: var(--gray-medium);
-            margin-bottom: 10px;
-        }
-
-        .stage-value {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--primary-blue);
-        }
-
-        .stage-bar {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--primary-blue);
-            border-radius: 0 0 8px 8px;
-        }
-
-        /* Customer Grid */
-        .customers-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .customer-card {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: var(--shadow);
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .customer-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .customer-header {
-            display: flex;
-            align-items: start;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .customer-avatar {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 18px;
-        }
-
-        .customer-info {
-            flex: 1;
-        }
-
-        .customer-name {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 5px;
-        }
-
-        .customer-company {
-            font-size: 14px;
-            color: var(--gray-medium);
-        }
-
-        .customer-type {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 500;
-        }
-
-        .type-enterprise { background: #F3E5F5; color: #7B1FA2; }
-        .type-business { background: #E3F2FD; color: #1976D2; }
-        .type-individual { background: #E8F5E9; color: #2E7D32; }
-
-        .customer-stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            padding: 15px 0;
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 15px;
-        }
-
-        .customer-stat {
-            text-align: center;
-        }
-
-        .customer-stat-value {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-dark);
-        }
-
-        .customer-stat-label {
-            font-size: 11px;
-            color: var(--gray-medium);
-        }
-
-        .customer-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .customer-btn {
-            flex: 1;
-            padding: 8px;
-            background: var(--gray-light);
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 13px;
-        }
-
-        .customer-btn:hover {
-            background: var(--primary-blue);
-            color: white;
-        }
-
-        /* Contracts Table */
-        .contracts-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .contracts-table th {
-            background: var(--gray-light);
-            padding: 12px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 13px;
-            text-transform: uppercase;
-            color: var(--gray-medium);
-        }
-
-        .contracts-table td {
-            padding: 12px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .contracts-table tr:hover {
-            background: rgba(0, 120, 212, 0.05);
-        }
-
-        .contract-status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .status-active { background: #E8F5E9; color: #2E7D32; }
-        .status-expiring { background: #FFF3E0; color: #F57C00; }
-        .status-expired { background: #FFEBEE; color: #C62828; }
-        .status-draft { background: #E0E0E0; color: #666; }
-
-        /* Opportunities Board */
-        .opportunities-board {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .opportunity-column {
-            background: var(--gray-light);
-            border-radius: 12px;
-            padding: 15px;
-        }
-
-        .column-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding: 10px;
-            background: var(--white);
-            border-radius: 8px;
-        }
-
-        .column-title {
-            font-weight: 600;
-            color: var(--text-dark);
-        }
-
-        .column-count {
-            background: var(--primary-blue);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-        }
-
-        .opportunity-card {
-            background: var(--white);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            cursor: move;
-            transition: all 0.3s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        .opportunity-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow);
-        }
-
-        .opportunity-title {
-            font-weight: 600;
-            color: var(--text-dark);
-            margin-bottom: 10px;
-        }
-
-        .opportunity-value {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--success-green);
-            margin-bottom: 10px;
-        }
-
-        .opportunity-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-            color: var(--gray-medium);
-        }
-
-        /* Feedback Section */
-        .feedback-container {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: var(--shadow);
-        }
-
-        .feedback-item {
-            display: flex;
-            gap: 15px;
-            padding: 15px 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .feedback-item:last-child {
-            border-bottom: none;
-        }
-
-        .feedback-avatar {
-            width: 40px;
-            height: 40px;
-            background: var(--primary-blue);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .feedback-content {
-            flex: 1;
-        }
-
-        .feedback-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 10px;
-        }
-
-        .feedback-customer {
-            font-weight: 600;
-            color: var(--text-dark);
-        }
-
-        .feedback-rating {
-            display: flex;
-            gap: 2px;
-        }
-
-        .star {
-            color: var(--warning-yellow);
-            font-size: 14px;
-        }
-
-        .feedback-text {
-            font-size: 14px;
-            line-height: 1.5;
-            margin-bottom: 10px;
-        }
-
-        .feedback-meta {
-            display: flex;
-            gap: 20px;
-            font-size: 12px;
-            color: var(--gray-medium);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .customers-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .opportunities-board {
-                grid-template-columns: 1fr;
-            }
-
-            .pipeline-stages {
-                grid-template-columns: 1fr;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <!-- Page Header -->
-        <div class="page-header">
-            <h1 class="page-title">Customer Relationship Management</h1>
-            <div class="header-actions">
-                <button class="btn btn-secondary">
-                    <i class="fas fa-download"></i>
-                    Export
-                </button>
-                <button class="btn btn-primary">
-                    <i class="fas fa-user-plus"></i>
-                    Add Customer
-                </button>
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 class="page-title">Customer Relationship Management</h1>
+        <div class="header-actions">
+          <button class="btn btn-secondary">
+            <i class="fas fa-download"></i>
+            Export
+          </button>
+          <button class="btn btn-primary">
+            <i class="fas fa-user-plus"></i>
+            Add Customer
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-container">
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('customers')">
+            <i class="fas fa-users"></i>
+            Customers
+          </button>
+          <button class="tab" onclick="switchTab('leads')">
+            <i class="fas fa-funnel-dollar"></i>
+            Leads & Opportunities
+          </button>
+          <button class="tab" onclick="switchTab('contracts')">
+            <i class="fas fa-file-contract"></i>
+            Contracts & Renewals
+          </button>
+          <button class="tab" onclick="switchTab('feedback')">
+            <i class="fas fa-comment-dots"></i>
+            Feedback & Complaints
+          </button>
+        </div>
+      </div>
+
+      <!-- CRM Stats -->
+      <div class="crm-stats">
+        <div class="stat-card">
+          <div class="stat-header">
+            <div>
+              <div class="stat-title">Total Customers</div>
+              <div class="stat-value">342</div>
+              <div class="stat-change positive">
+                <i class="fas fa-arrow-up"></i>
+                <span>+12 this month</span>
+              </div>
             </div>
+            <div class="stat-icon blue">
+              <i class="fas fa-users"></i>
+            </div>
+          </div>
         </div>
 
-        <!-- Tabs -->
-        <div class="tabs-container">
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab('customers')">
-                    <i class="fas fa-users"></i>
-                    Customers
-                </button>
-                <button class="tab" onclick="switchTab('leads')">
-                    <i class="fas fa-funnel-dollar"></i>
-                    Leads & Opportunities
-                </button>
-                <button class="tab" onclick="switchTab('contracts')">
-                    <i class="fas fa-file-contract"></i>
-                    Contracts & Renewals
-                </button>
-                <button class="tab" onclick="switchTab('feedback')">
-                    <i class="fas fa-comment-dots"></i>
-                    Feedback & Complaints
-                </button>
+        <div class="stat-card">
+          <div class="stat-header">
+            <div>
+              <div class="stat-title">Active Contracts</div>
+              <div class="stat-value">156</div>
+              <div class="stat-change positive">
+                <i class="fas fa-arrow-up"></i>
+                <span>+8 renewals</span>
+              </div>
             </div>
+            <div class="stat-icon green">
+              <i class="fas fa-file-signature"></i>
+            </div>
+          </div>
         </div>
 
-        <!-- CRM Stats -->
-        <div class="crm-stats">
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div>
-                        <div class="stat-title">Total Customers</div>
-                        <div class="stat-value">342</div>
-                        <div class="stat-change positive">
-                            <i class="fas fa-arrow-up"></i>
-                            <span>+12 this month</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon blue">
-                        <i class="fas fa-users"></i>
-                    </div>
-                </div>
+        <div class="stat-card">
+          <div class="stat-header">
+            <div>
+              <div class="stat-title">Open Opportunities</div>
+              <div class="stat-value">47</div>
+              <div class="stat-change positive">
+                <i class="fas fa-arrow-up"></i>
+                <span>SAR 2.4M value</span>
+              </div>
             </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div>
-                        <div class="stat-title">Active Contracts</div>
-                        <div class="stat-value">156</div>
-                        <div class="stat-change positive">
-                            <i class="fas fa-arrow-up"></i>
-                            <span>+8 renewals</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon green">
-                        <i class="fas fa-file-signature"></i>
-                    </div>
-                </div>
+            <div class="stat-icon yellow">
+              <i class="fas fa-handshake"></i>
             </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div>
-                        <div class="stat-title">Open Opportunities</div>
-                        <div class="stat-value">47</div>
-                        <div class="stat-change positive">
-                            <i class="fas fa-arrow-up"></i>
-                            <span>SAR 2.4M value</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon yellow">
-                        <i class="fas fa-handshake"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div>
-                        <div class="stat-title">Customer Satisfaction</div>
-                        <div class="stat-value">4.7/5</div>
-                        <div class="stat-change positive">
-                            <i class="fas fa-arrow-up"></i>
-                            <span>+0.3 improvement</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon red">
-                        <i class="fas fa-star"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div>
-                        <div class="stat-title">Retention Rate</div>
-                        <div class="stat-value">92%</div>
-                        <div class="stat-change positive">
-                            <i class="fas fa-arrow-up"></i>
-                            <span>+5% YoY</span>
-                        </div>
-                    </div>
-                    <div class="stat-icon blue">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                </div>
-            </div>
+          </div>
         </div>
 
-        <!-- Sales Pipeline -->
-        <div class="pipeline-container">
-            <div class="pipeline-header">
-                <h2 class="section-title">Sales Pipeline</h2>
-                <select class="btn btn-secondary">
-                    <option>This Quarter</option>
-                    <option>Last Quarter</option>
-                    <option>This Year</option>
-                </select>
+        <div class="stat-card">
+          <div class="stat-header">
+            <div>
+              <div class="stat-title">Customer Satisfaction</div>
+              <div class="stat-value">4.7/5</div>
+              <div class="stat-change positive">
+                <i class="fas fa-arrow-up"></i>
+                <span>+0.3 improvement</span>
+              </div>
             </div>
-            <div class="pipeline-stages">
-                <div class="pipeline-stage">
-                    <div class="stage-count">87</div>
-                    <div class="stage-name">Prospects</div>
-                    <div class="stage-value">SAR 4.2M</div>
-                    <div class="stage-bar" style="width: 100%;"></div>
-                </div>
-                <div class="pipeline-stage">
-                    <div class="stage-count">52</div>
-                    <div class="stage-name">Qualified</div>
-                    <div class="stage-value">SAR 3.1M</div>
-                    <div class="stage-bar" style="width: 75%;"></div>
-                </div>
-                <div class="pipeline-stage">
-                    <div class="stage-count">31</div>
-                    <div class="stage-name">Proposal</div>
-                    <div class="stage-value">SAR 2.4M</div>
-                    <div class="stage-bar" style="width: 60%;"></div>
-                </div>
-                <div class="pipeline-stage">
-                    <div class="stage-count">18</div>
-                    <div class="stage-name">Negotiation</div>
-                    <div class="stage-value">SAR 1.8M</div>
-                    <div class="stage-bar" style="width: 45%;"></div>
-                </div>
-                <div class="pipeline-stage">
-                    <div class="stage-count">12</div>
-                    <div class="stage-name">Won</div>
-                    <div class="stage-value">SAR 1.2M</div>
-                    <div class="stage-bar" style="width: 30%; background: var(--success-green);"></div>
-                </div>
+            <div class="stat-icon red">
+              <i class="fas fa-star"></i>
             </div>
+          </div>
         </div>
 
-        <!-- Top Customers -->
-        <h2 style="font-size: 20px; font-weight: 600; margin: 30px 0 20px;">Top Customers</h2>
-        <div class="customers-grid">
-            <div class="customer-card">
-                <div class="customer-header">
-                    <div class="customer-avatar">AC</div>
-                    <div class="customer-info">
-                        <div class="customer-name">ABC Corporation</div>
-                        <div class="customer-company">Technology Solutions</div>
-                    </div>
-                    <span class="customer-type type-enterprise">Enterprise</span>
-                </div>
-                <div class="customer-stats">
-                    <div class="customer-stat">
-                        <div class="customer-stat-value">SAR 485K</div>
-                        <div class="customer-stat-label">Annual Value</div>
-                    </div>
-                    <div class="customer-stat">
-                        <div class="customer-stat-value">12</div>
-                        <div class="customer-stat-label">Properties</div>
-                    </div>
-                    <div class="customer-stat">
-                        <div class="customer-stat-value">4.8</div>
-                        <div class="customer-stat-label">Rating</div>
-                    </div>
-                </div>
-                <div class="customer-actions">
-                    <button class="customer-btn">
-                        <i class="fas fa-eye"></i> View
-                    </button>
-                    <button class="customer-btn">
-                        <i class="fas fa-phone"></i> Contact
-                    </button>
-                    <button class="customer-btn">
-                        <i class="fas fa-file"></i> Contract
-                    </button>
-                </div>
+        <div class="stat-card">
+          <div class="stat-header">
+            <div>
+              <div class="stat-title">Retention Rate</div>
+              <div class="stat-value">92%</div>
+              <div class="stat-change positive">
+                <i class="fas fa-arrow-up"></i>
+                <span>+5% YoY</span>
+              </div>
             </div>
+            <div class="stat-icon blue">
+              <i class="fas fa-chart-line"></i>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <div class="customer-card">
-                <div class="customer-header">
-                    <div class="customer-avatar" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">TC</div>
-                    <div class="customer-info">
-                        <div class="customer-name">Tech Corp LLC</div>
-                        <div class="customer-company">Software Development</div>
-                    </div>
-                    <span class="customer-type type-business">Business</span>
-                </div>
-                <div class="customer-stats">
-                    <div class="customer-stat">
-                        <div class="customer-stat-value">SAR 245K</div>
-                        <div class="customer-stat-label">Annual Value</div>
-                    </div>
-                    <div class="customer-stat">
-                        <div class="customer-stat-value">5</div>
-                        <div class="customer-stat-label">Properties</div>
-                    </div>
-                    <div class="customer-stat">
-                        <div class="customer-stat-value">4.5</div>
-                        <div class="customer-stat-label">Rating</div>
-                    </div>
-                </div>
-                <div class="customer-actions">
-                    <button class="customer-btn">
-                        <i class="fas fa-eye"></i> View
-                    </button>
-                    <button class="customer-btn">
-                        <i class="fas fa-phone"></i> Contact
-                    </button>
-                    <button class="customer-btn">
-                        <i class="fas fa-file"></i> Contract
-                    </button>
-                </div>
-            </div>
+      <!-- Sales Pipeline -->
+      <div class="pipeline-container">
+        <div class="pipeline-header">
+          <h2 class="section-title">Sales Pipeline</h2>
+          <select class="btn btn-secondary">
+            <option>This Quarter</option>
+            <option>Last Quarter</option>
+            <option>This Year</option>
+          </select>
+        </div>
+        <div class="pipeline-stages">
+          <div class="pipeline-stage">
+            <div class="stage-count">87</div>
+            <div class="stage-name">Prospects</div>
+            <div class="stage-value">SAR 4.2M</div>
+            <div class="stage-bar" style="width: 100%"></div>
+          </div>
+          <div class="pipeline-stage">
+            <div class="stage-count">52</div>
+            <div class="stage-name">Qualified</div>
+            <div class="stage-value">SAR 3.1M</div>
+            <div class="stage-bar" style="width: 75%"></div>
+          </div>
+          <div class="pipeline-stage">
+            <div class="stage-count">31</div>
+            <div class="stage-name">Proposal</div>
+            <div class="stage-value">SAR 2.4M</div>
+            <div class="stage-bar" style="width: 60%"></div>
+          </div>
+          <div class="pipeline-stage">
+            <div class="stage-count">18</div>
+            <div class="stage-name">Negotiation</div>
+            <div class="stage-value">SAR 1.8M</div>
+            <div class="stage-bar" style="width: 45%"></div>
+          </div>
+          <div class="pipeline-stage">
+            <div class="stage-count">12</div>
+            <div class="stage-name">Won</div>
+            <div class="stage-value">SAR 1.2M</div>
+            <div
+              class="stage-bar"
+              style="width: 30%; background: var(--success-green)"
+            ></div>
+          </div>
+        </div>
+      </div>
 
-            <div class="customer-card">
-                <div class="customer-header">
-                    <div class="customer-avatar" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">GH</div>
-                    <div class="customer-info">
-                        <div class="customer-name">Global Holdings</div>
-                        <div class="customer-company">Real Estate Investment</div>
-                    </div>
-                    <span class="customer-type type-enterprise">Enterprise</span>
-                </div>
-                <div class="customer-stats">
-                    <div class="customer-stat">
-                        <div class="customer-stat-value">SAR 780K</div>
-                        <div class="customer-stat-label">Annual Value</div>
-                    </div>
-                    <div class="customer-stat">
-                        <div class="customer-stat-value">18</div>
-                        <div class="customer-stat-label">Properties</div>
-                    </div>
-                    <div class="customer-stat">
-                        <div class="customer-stat-value">4.9</div>
-                        <div class="customer-stat-label">Rating</div>
-                    </div>
-                </div>
-                <div class="customer-actions">
-                    <button class="customer-btn">
-                        <i class="fas fa-eye"></i> View
-                    </button>
-                    <button class="customer-btn">
-                        <i class="fas fa-phone"></i> Contact
-                    </button>
-                    <button class="customer-btn">
-                        <i class="fas fa-file"></i> Contract
-                    </button>
-                </div>
+      <!-- Top Customers -->
+      <h2 style="font-size: 20px; font-weight: 600; margin: 30px 0 20px">
+        Top Customers
+      </h2>
+      <div class="customers-grid">
+        <div class="customer-card">
+          <div class="customer-header">
+            <div class="customer-avatar">AC</div>
+            <div class="customer-info">
+              <div class="customer-name">ABC Corporation</div>
+              <div class="customer-company">Technology Solutions</div>
             </div>
+            <span class="customer-type type-enterprise">Enterprise</span>
+          </div>
+          <div class="customer-stats">
+            <div class="customer-stat">
+              <div class="customer-stat-value">SAR 485K</div>
+              <div class="customer-stat-label">Annual Value</div>
+            </div>
+            <div class="customer-stat">
+              <div class="customer-stat-value">12</div>
+              <div class="customer-stat-label">Properties</div>
+            </div>
+            <div class="customer-stat">
+              <div class="customer-stat-value">4.8</div>
+              <div class="customer-stat-label">Rating</div>
+            </div>
+          </div>
+          <div class="customer-actions">
+            <button class="customer-btn">
+              <i class="fas fa-eye"></i> View
+            </button>
+            <button class="customer-btn">
+              <i class="fas fa-phone"></i> Contact
+            </button>
+            <button class="customer-btn">
+              <i class="fas fa-file"></i> Contract
+            </button>
+          </div>
         </div>
 
-        <!-- Active Opportunities -->
-        <h2 style="font-size: 20px; font-weight: 600; margin: 30px 0 20px;">Active Opportunities</h2>
-        <div class="opportunities-board">
-            <div class="opportunity-column">
-                <div class="column-header">
-                    <span class="column-title">Qualified</span>
-                    <span class="column-count">5</span>
-                </div>
-                <div class="opportunity-card">
-                    <div class="opportunity-title">Metro Tower Expansion</div>
-                    <div class="opportunity-value">SAR 450,000</div>
-                    <div class="opportunity-info">
-                        <span>ABC Corporation</span>
-                        <span>85% probability</span>
-                    </div>
-                </div>
-                <div class="opportunity-card">
-                    <div class="opportunity-title">Annual Maintenance Contract</div>
-                    <div class="opportunity-value">SAR 180,000</div>
-                    <div class="opportunity-info">
-                        <span>Tech Corp LLC</span>
-                        <span>70% probability</span>
-                    </div>
-                </div>
+        <div class="customer-card">
+          <div class="customer-header">
+            <div
+              class="customer-avatar"
+              style="
+                background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+              "
+            >
+              TC
             </div>
-
-            <div class="opportunity-column">
-                <div class="column-header">
-                    <span class="column-title">Proposal</span>
-                    <span class="column-count">3</span>
-                </div>
-                <div class="opportunity-card">
-                    <div class="opportunity-title">Security System Upgrade</div>
-                    <div class="opportunity-value">SAR 225,000</div>
-                    <div class="opportunity-info">
-                        <span>Global Holdings</span>
-                        <span>60% probability</span>
-                    </div>
-                </div>
+            <div class="customer-info">
+              <div class="customer-name">Tech Corp LLC</div>
+              <div class="customer-company">Software Development</div>
             </div>
-
-            <div class="opportunity-column">
-                <div class="column-header">
-                    <span class="column-title">Negotiation</span>
-                    <span class="column-count">2</span>
-                </div>
-                <div class="opportunity-card">
-                    <div class="opportunity-title">Facility Management</div>
-                    <div class="opportunity-value">SAR 890,000</div>
-                    <div class="opportunity-info">
-                        <span>Saudi Retail Group</span>
-                        <span>90% probability</span>
-                    </div>
-                </div>
+            <span class="customer-type type-business">Business</span>
+          </div>
+          <div class="customer-stats">
+            <div class="customer-stat">
+              <div class="customer-stat-value">SAR 245K</div>
+              <div class="customer-stat-label">Annual Value</div>
             </div>
+            <div class="customer-stat">
+              <div class="customer-stat-value">5</div>
+              <div class="customer-stat-label">Properties</div>
+            </div>
+            <div class="customer-stat">
+              <div class="customer-stat-value">4.5</div>
+              <div class="customer-stat-label">Rating</div>
+            </div>
+          </div>
+          <div class="customer-actions">
+            <button class="customer-btn">
+              <i class="fas fa-eye"></i> View
+            </button>
+            <button class="customer-btn">
+              <i class="fas fa-phone"></i> Contact
+            </button>
+            <button class="customer-btn">
+              <i class="fas fa-file"></i> Contract
+            </button>
+          </div>
         </div>
 
-        <!-- Recent Feedback -->
-        <h2 style="font-size: 20px; font-weight: 600; margin: 30px 0 20px;">Recent Feedback</h2>
-        <div class="feedback-container">
-            <div class="feedback-item">
-                <div class="feedback-avatar">JD</div>
-                <div class="feedback-content">
-                    <div class="feedback-header">
-                        <div>
-                            <div class="feedback-customer">John Doe - ABC Corporation</div>
-                        </div>
-                        <div class="feedback-rating">
-                            <i class="fas fa-star star"></i>
-                            <i class="fas fa-star star"></i>
-                            <i class="fas fa-star star"></i>
-                            <i class="fas fa-star star"></i>
-                            <i class="fas fa-star star"></i>
-                        </div>
-                    </div>
-                    <div class="feedback-text">
-                        Excellent service! The maintenance team responded quickly to our HVAC issue and resolved it within hours. Very professional and efficient.
-                    </div>
-                    <div class="feedback-meta">
-                        <span><i class="fas fa-calendar"></i> Sep 10, 2025</span>
-                        <span><i class="fas fa-tag"></i> Maintenance</span>
-                        <span><i class="fas fa-building"></i> Metro Tower</span>
-                    </div>
-                </div>
+        <div class="customer-card">
+          <div class="customer-header">
+            <div
+              class="customer-avatar"
+              style="
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+              "
+            >
+              GH
             </div>
-
-            <div class="feedback-item">
-                <div class="feedback-avatar" style="background: var(--warning-yellow);">ST</div>
-                <div class="feedback-content">
-                    <div class="feedback-header">
-                        <div>
-                            <div class="feedback-customer">Sarah Thompson - Tech Corp LLC</div>
-                        </div>
-                        <div class="feedback-rating">
-                            <i class="fas fa-star star"></i>
-                            <i class="fas fa-star star"></i>
-                            <i class="fas fa-star star"></i>
-                            <i class="fas fa-star star"></i>
-                            <i class="far fa-star" style="color: var(--gray-medium);"></i>
-                        </div>
-                    </div>
-                    <div class="feedback-text">
-                        Good overall experience. The cleaning services are consistent and reliable. Would appreciate more flexibility in scheduling.
-                    </div>
-                    <div class="feedback-meta">
-                        <span><i class="fas fa-calendar"></i> Sep 8, 2025</span>
-                        <span><i class="fas fa-tag"></i> Cleaning</span>
-                        <span><i class="fas fa-building"></i> Office Complex</span>
-                    </div>
-                </div>
+            <div class="customer-info">
+              <div class="customer-name">Global Holdings</div>
+              <div class="customer-company">Real Estate Investment</div>
             </div>
+            <span class="customer-type type-enterprise">Enterprise</span>
+          </div>
+          <div class="customer-stats">
+            <div class="customer-stat">
+              <div class="customer-stat-value">SAR 780K</div>
+              <div class="customer-stat-label">Annual Value</div>
+            </div>
+            <div class="customer-stat">
+              <div class="customer-stat-value">18</div>
+              <div class="customer-stat-label">Properties</div>
+            </div>
+            <div class="customer-stat">
+              <div class="customer-stat-value">4.9</div>
+              <div class="customer-stat-label">Rating</div>
+            </div>
+          </div>
+          <div class="customer-actions">
+            <button class="customer-btn">
+              <i class="fas fa-eye"></i> View
+            </button>
+            <button class="customer-btn">
+              <i class="fas fa-phone"></i> Contact
+            </button>
+            <button class="customer-btn">
+              <i class="fas fa-file"></i> Contract
+            </button>
+          </div>
         </div>
+      </div>
+
+      <!-- Active Opportunities -->
+      <h2 style="font-size: 20px; font-weight: 600; margin: 30px 0 20px">
+        Active Opportunities
+      </h2>
+      <div class="opportunities-board">
+        <div class="opportunity-column">
+          <div class="column-header">
+            <span class="column-title">Qualified</span>
+            <span class="column-count">5</span>
+          </div>
+          <div class="opportunity-card">
+            <div class="opportunity-title">Metro Tower Expansion</div>
+            <div class="opportunity-value">SAR 450,000</div>
+            <div class="opportunity-info">
+              <span>ABC Corporation</span>
+              <span>85% probability</span>
+            </div>
+          </div>
+          <div class="opportunity-card">
+            <div class="opportunity-title">Annual Maintenance Contract</div>
+            <div class="opportunity-value">SAR 180,000</div>
+            <div class="opportunity-info">
+              <span>Tech Corp LLC</span>
+              <span>70% probability</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="opportunity-column">
+          <div class="column-header">
+            <span class="column-title">Proposal</span>
+            <span class="column-count">3</span>
+          </div>
+          <div class="opportunity-card">
+            <div class="opportunity-title">Security System Upgrade</div>
+            <div class="opportunity-value">SAR 225,000</div>
+            <div class="opportunity-info">
+              <span>Global Holdings</span>
+              <span>60% probability</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="opportunity-column">
+          <div class="column-header">
+            <span class="column-title">Negotiation</span>
+            <span class="column-count">2</span>
+          </div>
+          <div class="opportunity-card">
+            <div class="opportunity-title">Facility Management</div>
+            <div class="opportunity-value">SAR 890,000</div>
+            <div class="opportunity-info">
+              <span>Saudi Retail Group</span>
+              <span>90% probability</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Feedback -->
+      <h2 style="font-size: 20px; font-weight: 600; margin: 30px 0 20px">
+        Recent Feedback
+      </h2>
+      <div class="feedback-container">
+        <div class="feedback-item">
+          <div class="feedback-avatar">JD</div>
+          <div class="feedback-content">
+            <div class="feedback-header">
+              <div>
+                <div class="feedback-customer">John Doe - ABC Corporation</div>
+              </div>
+              <div class="feedback-rating">
+                <i class="fas fa-star star"></i>
+                <i class="fas fa-star star"></i>
+                <i class="fas fa-star star"></i>
+                <i class="fas fa-star star"></i>
+                <i class="fas fa-star star"></i>
+              </div>
+            </div>
+            <div class="feedback-text">
+              Excellent service! The maintenance team responded quickly to our
+              HVAC issue and resolved it within hours. Very professional and
+              efficient.
+            </div>
+            <div class="feedback-meta">
+              <span><i class="fas fa-calendar"></i> Sep 10, 2025</span>
+              <span><i class="fas fa-tag"></i> Maintenance</span>
+              <span><i class="fas fa-building"></i> Metro Tower</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="feedback-item">
+          <div
+            class="feedback-avatar"
+            style="background: var(--warning-yellow)"
+          >
+            ST
+          </div>
+          <div class="feedback-content">
+            <div class="feedback-header">
+              <div>
+                <div class="feedback-customer">
+                  Sarah Thompson - Tech Corp LLC
+                </div>
+              </div>
+              <div class="feedback-rating">
+                <i class="fas fa-star star"></i>
+                <i class="fas fa-star star"></i>
+                <i class="fas fa-star star"></i>
+                <i class="fas fa-star star"></i>
+                <i class="far fa-star" style="color: var(--gray-medium)"></i>
+              </div>
+            </div>
+            <div class="feedback-text">
+              Good overall experience. The cleaning services are consistent and
+              reliable. Would appreciate more flexibility in scheduling.
+            </div>
+            <div class="feedback-meta">
+              <span><i class="fas fa-calendar"></i> Sep 8, 2025</span>
+              <span><i class="fas fa-tag"></i> Cleaning</span>
+              <span><i class="fas fa-building"></i> Office Complex</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
-        // Switch between tabs
-        function switchTab(tab) {
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            console.log('Switching to tab:', tab);
-            // In production, this would load different content
-        }
+      // Switch between tabs
+      function switchTab(tab) {
+        const tabs = document.querySelectorAll(".tab");
+        tabs.forEach((t) => t.classList.remove("active"));
+        event.target.classList.add("active");
 
-        // Customer cards
-        document.querySelectorAll('.customer-card').forEach(card => {
-            card.addEventListener('click', function() {
-                console.log('Viewing customer:', this.querySelector('.customer-name').textContent);
-            });
+        console.log("Switching to tab:", tab);
+        // In production, this would load different content
+      }
+
+      // Customer cards
+      document.querySelectorAll(".customer-card").forEach((card) => {
+        card.addEventListener("click", function () {
+          console.log(
+            "Viewing customer:",
+            this.querySelector(".customer-name").textContent,
+          );
+        });
+      });
+
+      // Opportunity cards - drag and drop
+      document.querySelectorAll(".opportunity-card").forEach((card) => {
+        card.draggable = true;
+
+        card.addEventListener("dragstart", function (e) {
+          e.dataTransfer.effectAllowed = "move";
+          e.target.style.opacity = "0.5";
         });
 
-        // Opportunity cards - drag and drop
-        document.querySelectorAll('.opportunity-card').forEach(card => {
-            card.draggable = true;
-            
-            card.addEventListener('dragstart', function(e) {
-                e.dataTransfer.effectAllowed = 'move';
-                e.target.style.opacity = '0.5';
-            });
-            
-            card.addEventListener('dragend', function(e) {
-                e.target.style.opacity = '';
-            });
+        card.addEventListener("dragend", function (e) {
+          e.target.style.opacity = "";
         });
+      });
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('CRM module loaded');
-        });
+      // Initialize
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("CRM module loaded");
+      });
     </script>
-</body>
+  </body>
 </html>

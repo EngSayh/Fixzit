@@ -1,35 +1,35 @@
 # Agent Governor Configuration
 # Enforces HARD_AUTO mode with STRICT verification gates
 
-mode: HARD_AUTO             # no prompts; agent self-approves
-stall_timer_seconds: 30     # if any tool/cmd stalls ≥ 30s -> HALT->RCA->FIX
+mode: HARD_AUTO # no prompts; agent self-approves
+stall_timer_seconds: 30 # if any tool/cmd stalls ≥ 30s -> HALT->RCA->FIX
 live_progress_heartbeat: 20 # seconds; agent posts PROGRESS ticks
-search_before_create: true  # scan entire repo + PR history before adding files
-deny_workarounds: true      # root cause only; no band-aids
-merge_then_delete: true     # duplicates merged 100% then originals removed
+search_before_create: true # scan entire repo + PR history before adding files
+deny_workarounds: true # root cause only; no band-aids
+merge_then_delete: true # duplicates merged 100% then originals removed
 
 security:
-  secrets_from: github      # never hardcode; use GitHub Secrets only
-  block_env_commit: true    # forbid committing .env values
+  secrets_from: github # never hardcode; use GitHub Secrets only
+  block_env_commit: true # forbid committing .env values
 
 disk_budget:
-  min_free_percent: 60      # enforce ≥60% free before heavy ops/tests
+  min_free_percent: 60 # enforce ≥60% free before heavy ops/tests
 
 verification_gate: STRICT_V4 # use Fixzit STRICT v4 + V6 governance
 
 # Absolute Global Rules (Layout Freeze)
 layout_freeze:
-  landing_page: true        # 3 buttons, hero section, verified baseline
-  login_auth: true          # Clean login form, no layout mutations
-  header_topbar: true       # Brand + Search + Lang + QuickActions + Notifications + UserMenu
-  sidebar: true             # Monday-style layout, fixed module order
+  landing_page: true # 3 buttons, hero section, verified baseline
+  login_auth: true # Clean login form, no layout mutations
+  header_topbar: true # Brand + Search + Lang + QuickActions + Notifications + UserMenu
+  sidebar: true # Monday-style layout, fixed module order
 
 # Branding Tokens (STRICT)
 branding:
-  primary: "#0061A8"        # Blue
-  success: "#00A859"        # Green
-  warning: "#FFB400"        # Yellow
-  no_custom_colors: true    # NO custom colors without explicit approval
+  primary: "#0061A8" # Blue
+  success: "#00A859" # Green
+  warning: "#FFB400" # Yellow
+  no_custom_colors: true # NO custom colors without explicit approval
 
 # Language & Currency Standards
 localization:
@@ -43,35 +43,35 @@ localization:
       name: "עברית"
       rtl: true
   currency_icons:
-    SAR: "﷼"  # U+FDFC
-    ILS: "₪"  # U+20AA
-  use_unicode_glyphs: true  # NO font-based icons
+    SAR: "﷼" # U+FDFC
+    ILS: "₪" # U+20AA
+  use_unicode_glyphs: true # NO font-based icons
 
 # Definition of Done (DoD) Gates
 definition_of_done:
-  typescript: zero_errors   # tsc --noEmit
-  eslint: zero_warnings     # eslint . --max-warnings=0
-  build: success            # next build
-  ssr_check: true           # No window/document in server components
-  hydration: clean          # No mismatch errors in console
-  mongodb: use_lib_db       # No direct MongoClient.connect()
-  no_duplicates: true       # De-dupe scan shows 0 new duplicates
-  artifacts_required: true  # .fixzit/artifacts/ logs attached to PR
+  typescript: zero_errors # tsc --noEmit
+  eslint: zero_warnings # eslint . --max-warnings=0
+  build: success # next build
+  ssr_check: true # No window/document in server components
+  hydration: clean # No mismatch errors in console
+  mongodb: use_lib_db # No direct MongoClient.connect()
+  no_duplicates: true # De-dupe scan shows 0 new duplicates
+  artifacts_required: true # .fixzit/artifacts/ logs attached to PR
 
 # Halt-Fix-Verify Protocol
 verification_protocol:
-  halt: true                # Stop at first error
-  fix_root_cause: true      # Root cause only, no workarounds
-  verify_all_gates: true    # Re-run ALL gates, attach proof
-  repeat_on_failure: true   # If any gate fails, go back to step 1
-  no_bypassing_gates: true  # NO BYPASSING GATES
+  halt: true # Stop at first error
+  fix_root_cause: true # Root cause only, no workarounds
+  verify_all_gates: true # Re-run ALL gates, attach proof
+  repeat_on_failure: true # If any gate fails, go back to step 1
+  no_bypassing_gates: true # NO BYPASSING GATES
 
 # Performance KPIs
 performance:
-  page_load: 1.5            # seconds
-  list_api: 200             # ms
-  item_api: 100             # ms
-  create_update: 300        # ms
+  page_load: 1.5 # seconds
+  list_api: 200 # ms
+  item_api: 100 # ms
+  create_update: 300 # ms
 
 # Modules (Must Remain Intact)
 modules:

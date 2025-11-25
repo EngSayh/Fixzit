@@ -12,7 +12,7 @@ Successfully fixed all broken imports after duplicate file consolidation. All mo
 
 - **Issue**: `"@/server/*": ["src/server/*"]` was pointing to wrong directory
 - **Fix**: Changed to `"@/server/*": ["server/*"]`
-- **Impact**: Fixed all @/server/models/* imports
+- **Impact**: Fixed all @/server/models/\* imports
 
 ### 2. Config Imports (Bulk Fix)
 
@@ -39,7 +39,7 @@ Successfully fixed all broken imports after duplicate file consolidation. All mo
 
 **Pattern 1**: `@/db/models/*` → `@/server/models/*`
 
-- Method: Bulk sed replacement (excluding src/db/models/* itself)
+- Method: Bulk sed replacement (excluding src/db/models/\* itself)
 - Files: All API routes and services
 - Status: ✅ Working
 
@@ -121,43 +121,43 @@ Created `server/models/marketplace/` directory with:
 
 ```typescript
 // ✅ Config imports
-import { APPS } from '@/config/topbar-modules';
+import { APPS } from "@/config/topbar-modules";
 
 // ✅ Component imports
-import PDPBuyBox from '@/components/marketplace/PDPBuyBox';
+import PDPBuyBox from "@/components/marketplace/PDPBuyBox";
 
 // ✅ Database utility imports
-import { dbConnect } from '@/db/mongoose';
+import { dbConnect } from "@/db/mongoose";
 
 // ✅ Model imports - Core
-import PriceBook from '@/server/models/PriceBook';
-import Subscription from '@/server/models/Subscription';
+import PriceBook from "@/server/models/PriceBook";
+import Subscription from "@/server/models/Subscription";
 
 // ✅ Model imports - Marketplace
-import Product from '@/server/models/marketplace/Product';
-import Category from '@/server/models/marketplace/Category';
+import Product from "@/server/models/marketplace/Product";
+import Category from "@/server/models/marketplace/Category";
 
 // ✅ Library imports
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency } from "@/lib/format";
 ```
 
 ### Incorrect Patterns (All Fixed)
 
 ```typescript
 // ❌ REMOVED - These all caused errors
-import { APPS } from '@/src/config/topbar-modules';
-import PDPBuyBox from '@/src/components/marketplace/PDPBuyBox';
-import { dbConnect } from '@/src/db/mongoose';
-import PriceBook from '@/db/models/PriceBook';
-import Product from '@/models/marketplace/Product';
-import Subscription from '../db/models/Subscription';
+import { APPS } from "@/src/config/topbar-modules";
+import PDPBuyBox from "@/src/components/marketplace/PDPBuyBox";
+import { dbConnect } from "@/src/db/mongoose";
+import PriceBook from "@/db/models/PriceBook";
+import Product from "@/models/marketplace/Product";
+import Subscription from "../db/models/Subscription";
 ```
 
 ## Files Modified (Key Changes)
 
 ### Configuration
 
-- `tsconfig.json` - Fixed @/server/* path mapping
+- `tsconfig.json` - Fixed @/server/\* path mapping
 
 ### API Routes (58 total)
 

@@ -16,7 +16,7 @@ All active work on FM properties and Souq orders is complete. Both modules now e
 ✅ **Souq Orders Route** - Org-level checks via auth() + 181-line mocked Vitest suite  
 ✅ **FM RBAC Guards** - All 6 existing FM routes use `requireFmPermission` + `resolveTenantId`  
 ✅ **Test Coverage** - 5 test suites passing (properties, orders, transition, attachments, stats)  
-✅ **TypeScript** - Zero compilation errors across all changes  
+✅ **TypeScript** - Zero compilation errors across all changes
 
 ---
 
@@ -25,6 +25,7 @@ All active work on FM properties and Souq orders is complete. Both modules now e
 ### ✅ Completed Work
 
 #### FM Properties Route (`app/api/fm/properties/route.ts`)
+
 - **Implementation**: GET/POST handlers with full RBAC enforcement
 - **Guards**: `requireFmPermission` for authorization, `resolveTenantId` for tenant context
 - **Test Coverage**: 224 lines in `tests/unit/api/fm/properties/route.test.ts`
@@ -36,6 +37,7 @@ All active work on FM properties and Souq orders is complete. Both modules now e
   - Pagination and sorting support
 
 #### FM Work Orders Routes (Already Complete)
+
 All existing FM work-order routes properly implement guards:
 
 1. **`app/api/fm/work-orders/[id]/route.ts`**
@@ -95,22 +97,25 @@ The following FM CRUD endpoints are not yet implemented:
 All new FM endpoints MUST follow this pattern:
 
 ```typescript
-import { NextRequest, NextResponse } from 'next/server';
-import { requireFmPermission } from '@/app/api/fm/permissions';
-import { resolveTenantId } from '../utils/tenant'; // Use relative path
-import { FMErrors } from '@/app/api/fm/errors';
-import { getDatabase } from '@/lib/mongodb-unified';
+import { NextRequest, NextResponse } from "next/server";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId } from "../utils/tenant"; // Use relative path
+import { FMErrors } from "@/app/api/fm/errors";
+import { getDatabase } from "@/lib/mongodb-unified";
 
 export async function GET(req: NextRequest) {
   try {
     // 1. Enforce RBAC
     const actor = await requireFmPermission(req, {
-      resource: 'tenants',
-      action: 'read',
+      resource: "tenants",
+      action: "read",
     });
 
     // 2. Resolve tenant context
-    const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+    );
     if (!tenantResolution.tenantId) {
       return FMErrors.noTenantContext();
     }
@@ -118,7 +123,7 @@ export async function GET(req: NextRequest) {
     // 3. Business logic with tenant scoping
     const db = await getDatabase();
     const tenants = await db
-      .collection('fm_tenants')
+      .collection("fm_tenants")
       .find({ tenantId: tenantResolution.tenantId })
       .toArray();
 
@@ -134,55 +139,59 @@ export async function GET(req: NextRequest) {
 Follow the `tests/unit/api/fm/properties/route.test.ts` pattern:
 
 ```typescript
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ObjectId } from 'mongodb';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { ObjectId } from "mongodb";
 
 // Mock dependencies
-vi.mock('@/lib/mongodb-unified', () => ({ getDatabase: vi.fn() }));
-vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn() } }));
-vi.mock('@/app/api/fm/permissions', () => ({ requireFmPermission: vi.fn() }));
-vi.mock('@/app/api/fm/utils/tenant', () => ({
-  resolveTenantId: vi.fn(() => ({ tenantId: 'tenant-1', source: 'session' })),
+vi.mock("@/lib/mongodb-unified", () => ({ getDatabase: vi.fn() }));
+vi.mock("@/lib/logger", () => ({ logger: { error: vi.fn() } }));
+vi.mock("@/app/api/fm/permissions", () => ({ requireFmPermission: vi.fn() }));
+vi.mock("@/app/api/fm/utils/tenant", () => ({
+  resolveTenantId: vi.fn(() => ({ tenantId: "tenant-1", source: "session" })),
 }));
 
-import { GET, POST } from '@/app/api/fm/tenants/route';
-import { getDatabase } from '@/lib/mongodb-unified';
-import { requireFmPermission } from '@/app/api/fm/permissions';
+import { GET, POST } from "@/app/api/fm/tenants/route";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { requireFmPermission } from "@/app/api/fm/permissions";
 
-describe('FM Tenants API', () => {
+describe("FM Tenants API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should list tenants with tenant scoping', async () => {
+  it("should list tenants with tenant scoping", async () => {
     // Setup mocks
     const mockFind = vi.fn().mockReturnValue({
       sort: vi.fn().mockReturnThis(),
       skip: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
-      toArray: vi.fn().mockResolvedValue([{ _id: new ObjectId(), name: 'Tenant A' }]),
+      toArray: vi
+        .fn()
+        .mockResolvedValue([{ _id: new ObjectId(), name: "Tenant A" }]),
     });
-    
+
     (getDatabase as any).mockResolvedValue({
       collection: vi.fn().mockReturnValue({ find: mockFind }),
     });
-    
+
     (requireFmPermission as any).mockResolvedValue({
-      userId: 'user-1',
-      orgId: 'org-1',
+      userId: "user-1",
+      orgId: "org-1",
     });
 
     // Execute
-    const req = new Request('http://localhost/api/fm/tenants');
+    const req = new Request("http://localhost/api/fm/tenants");
     const response = await GET(req as any);
     const data = await response.json();
 
     // Assert
     expect(response.status).toBe(200);
     expect(data.tenants).toHaveLength(1);
-    expect(mockFind).toHaveBeenCalledWith(expect.objectContaining({
-      tenantId: 'tenant-1',
-    }));
+    expect(mockFind).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: "tenant-1",
+      }),
+    );
   });
 });
 ```
@@ -194,6 +203,7 @@ describe('FM Tenants API', () => {
 ### ✅ Completed Work
 
 #### Souq Orders Route (`app/api/souq/orders/route.ts`)
+
 - **Implementation**: Organization-level access control via `auth()`
 - **Validation**: Enforces `session.user.orgId` on all operations
 - **Test Coverage**: 181 lines in `tests/unit/api/souq/orders/route.test.ts`
@@ -209,20 +219,20 @@ describe('FM Tenants API', () => {
 ```typescript
 // Mock auth() with configurable session
 let currentSession: Record<string, unknown> | null = null;
-vi.mock('@/auth', () => ({
+vi.mock("@/auth", () => ({
   auth: vi.fn(async () => currentSession),
 }));
 
-describe('Souq Orders API', () => {
-  it('should create order with org scoping', async () => {
+describe("Souq Orders API", () => {
+  it("should create order with org scoping", async () => {
     currentSession = {
-      user: { id: 'user-1', orgId: 'org-abc', role: 'buyer' },
+      user: { id: "user-1", orgId: "org-abc", role: "buyer" },
     };
 
-    const req = new NextRequest('http://localhost/api/souq/orders', {
-      method: 'POST',
+    const req = new NextRequest("http://localhost/api/souq/orders", {
+      method: "POST",
       body: JSON.stringify({
-        listingId: 'listing-1',
+        listingId: "listing-1",
         quantity: 5,
       }),
     });
@@ -231,13 +241,13 @@ describe('Souq Orders API', () => {
     const data = await response.json();
 
     expect(response.status).toBe(201);
-    expect(data.order.buyerOrgId).toBe('org-abc');
+    expect(data.order.buyerOrgId).toBe("org-abc");
   });
 
-  it('should reject requests without orgId', async () => {
-    currentSession = { user: { id: 'user-1' } }; // No orgId
+  it("should reject requests without orgId", async () => {
+    currentSession = { user: { id: "user-1" } }; // No orgId
 
-    const req = new NextRequest('http://localhost/api/souq/orders');
+    const req = new NextRequest("http://localhost/api/souq/orders");
     const response = await GET(req);
 
     expect(response.status).toBe(403);
@@ -277,6 +287,7 @@ All the following tests pass when run individually:
 **Root Cause**: MongoMemoryServer initialization across 100+ test files exceeds default timeout
 
 **Evidence**:
+
 - Individual test files complete in 2-10 seconds
 - Batch runs (5-10 files) complete successfully
 - Full suite hangs at ~5 minute mark
@@ -286,12 +297,14 @@ All the following tests pass when run individually:
 **Recommended Solutions**:
 
 1. **Run in CI Environment** (Preferred)
+
    ```bash
    # GitHub Actions / CI with extended timeout
    pnpm test:api --testTimeout=600000  # 10 minutes
    ```
 
 2. **Update Vitest Config** (Local development)
+
    ```typescript
    // vitest.config.ts
    export default defineConfig({
@@ -316,6 +329,7 @@ All the following tests pass when run individually:
 #### 1. Implement Missing FM CRUD Endpoints (4-6 hours)
 
 **Endpoints to Create:**
+
 - [ ] `app/api/fm/properties/[id]/route.ts` - PATCH/DELETE
 - [ ] `app/api/fm/tenants/route.ts` - Full CRUD
 - [ ] `app/api/fm/leases/route.ts` - Full CRUD
@@ -324,6 +338,7 @@ All the following tests pass when run individually:
 - [ ] `app/api/fm/budgets/route.ts` - Full CRUD
 
 **Implementation Checklist for Each Endpoint:**
+
 1. Use `requireFmPermission` with appropriate resource/action
 2. Call `resolveTenantId` before business logic
 3. Scope all DB queries to `tenantId`
@@ -334,6 +349,7 @@ All the following tests pass when run individually:
 #### 2. Resolve Test Suite Timeout (1-2 hours)
 
 **Options:**
+
 - [ ] Run `pnpm test:api` in CI with `--testTimeout=600000`
 - [ ] Update `vitest.config.ts` with higher timeout locally
 - [ ] Investigate shared MongoMemoryServer optimization
@@ -345,6 +361,7 @@ All the following tests pass when run individually:
 #### 3. Add Missing Test Coverage (2-3 hours)
 
 **Test Files to Create:**
+
 - [ ] `tests/unit/api/fm/work-orders/assign.route.test.ts`
 - [ ] `tests/unit/api/fm/work-orders/comments.route.test.ts`
 - [ ] Add smoke tests for new FM CRUD endpoints
@@ -352,6 +369,7 @@ All the following tests pass when run individually:
 #### 4. Documentation Updates
 
 **Documents to Update:**
+
 - [ ] Add FM guard/tenant conventions to contributor docs
 - [ ] Document test timeout workarounds in `README.md`
 - [ ] Update `TECHNICAL_DEBT_BACKLOG.md` after each endpoint implementation
@@ -373,21 +391,21 @@ All the following tests pass when run individually:
 ✅ **FM Module**: All routes enforce `requireFmPermission` + `resolveTenantId`  
 ✅ **Souq Module**: All routes enforce `session.user.orgId` validation  
 ✅ **Tenant Isolation**: Multi-tenant data isolation properly implemented  
-✅ **Error Handling**: Structured error responses with FMErrors/SouqErrors helpers  
+✅ **Error Handling**: Structured error responses with FMErrors/SouqErrors helpers
 
 ### Code Quality
 
 ✅ **Type Safety**: Zero TypeScript compilation errors  
 ✅ **Logging**: Structured logging with context objects  
 ✅ **Testing**: Comprehensive unit test coverage for active routes  
-✅ **Consistency**: Uniform patterns across FM and Souq modules  
+✅ **Consistency**: Uniform patterns across FM and Souq modules
 
 ### Testing Infrastructure
 
 ✅ **Unit Tests**: All individual tests pass reliably  
 ✅ **Mocking**: Proper mocking patterns for MongoDB, auth, permissions  
 ⚠️ **Full Suite**: Timeout issues with MongoMemoryServer-heavy suite  
-✅ **CI-Ready**: Tests can run in CI with extended timeout  
+✅ **CI-Ready**: Tests can run in CI with extended timeout
 
 ---
 
@@ -409,6 +427,7 @@ All the following tests pass when run individually:
 ### For Test Suite
 
 1. **Run Full Suite in CI:**
+
    ```bash
    # In CI environment (GitHub Actions, etc.)
    pnpm test:api --testTimeout=600000
@@ -437,17 +456,17 @@ All the following tests pass when run individually:
 
 ### Completed (80%)
 
-| Category | Items | Completed | Remaining | Progress |
-|----------|-------|-----------|-----------|----------|
-| **Security Issues** | 11 | 11 | 0 | 100% ✅ |
-| **Sprint 1: Logging** | 72 | 72 | 0 | 100% ✅ |
-| **Sprint 2: Type Safety** | 68 | 62 | 6 | 91% ✅ |
-| **Sprint 3: ObjectId** | 50 | 50 | 0 | 100% ✅ |
-| **FM RBAC Guards** | 6 | 6 | 0 | 100% ✅ |
-| **FM CRUD Endpoints** | 6 | 0 | 6 | 0% ⏳ |
-| **Test Coverage** | 8 | 5 | 3 | 63% 🟡 |
-| **Test Suite Issues** | 1 | 0 | 1 | 0% ⚠️ |
-| **Total** | 222 | 206 | 16 | 93% |
+| Category                  | Items | Completed | Remaining | Progress |
+| ------------------------- | ----- | --------- | --------- | -------- |
+| **Security Issues**       | 11    | 11        | 0         | 100% ✅  |
+| **Sprint 1: Logging**     | 72    | 72        | 0         | 100% ✅  |
+| **Sprint 2: Type Safety** | 68    | 62        | 6         | 91% ✅   |
+| **Sprint 3: ObjectId**    | 50    | 50        | 0         | 100% ✅  |
+| **FM RBAC Guards**        | 6     | 6         | 0         | 100% ✅  |
+| **FM CRUD Endpoints**     | 6     | 0         | 6         | 0% ⏳    |
+| **Test Coverage**         | 8     | 5         | 3         | 63% 🟡   |
+| **Test Suite Issues**     | 1     | 0         | 1         | 0% ⚠️    |
+| **Total**                 | 222   | 206       | 16        | 93%      |
 
 ### Velocity
 
@@ -474,4 +493,3 @@ The system is in excellent shape with 93% completion rate and zero TypeScript er
 **Report Generated:** November 19, 2025  
 **Next Review:** After implementing next FM endpoint or resolving test suite timeout  
 **Status:** ✅ PRODUCTION READY for implemented routes
-

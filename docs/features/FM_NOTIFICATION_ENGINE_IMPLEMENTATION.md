@@ -1,4 +1,5 @@
 # FM Notification Engine - Implementation Guide
+
 **Date**: November 14, 2025  
 **File**: `services/notifications/fm-notification-engine.ts`
 
@@ -9,12 +10,14 @@
 A comprehensive, production-ready notification engine for the FM (Facilities Management) module with the following features:
 
 ### 1. **Multi-Channel Support**
+
 - **Push Notifications**: Firebase Cloud Messaging (FCM) with batching (500 tokens/batch)
 - **Email**: SendGrid with HTML templates and XSS protection
 - **SMS**: Twilio integration with intelligent message shortening
 - **WhatsApp**: Twilio WhatsApp Business API integration
 
 ### 2. **Advanced Features**
+
 - ✅ **Retry Mechanism**: Up to 3 attempts per channel with exponential backoff
 - ✅ **Batch Processing**: Handles large recipient lists (respects FCM 500 token limit)
 - ✅ **Priority Handling**: High/normal/low priorities integrated into FCM and email
@@ -25,12 +28,14 @@ A comprehensive, production-ready notification engine for the FM (Facilities Man
 - ✅ **Error Propagation**: Detailed logging and partial failure handling
 
 ### 3. **Security Enhancements**
+
 - URL validation (prevents `javascript:` and `data:` schemes)
 - HTML escaping for email templates (XSS protection)
 - Input validation for all event handlers
 - Safe deep link generation with type checking
 
 ### 4. **Event Handlers Implemented**
+
 - `onTicketCreated` - New work order notifications
 - `onAssign` - Technician assignment alerts
 - `onApprovalRequested` - Quote approval requests
@@ -57,6 +62,7 @@ pnpm add -D @types/uuid
 ```
 
 ### Optional (for full i18n support):
+
 ```bash
 pnpm add i18next react-i18next
 ```
@@ -91,6 +97,7 @@ TWILIO_WHATSAPP_NUMBER=+1234567890
 ## 🔄 Integration Steps
 
 ### 1. Install Dependencies
+
 ```bash
 pnpm add uuid firebase-admin @sendgrid/mail twilio
 pnpm add -D @types/uuid
@@ -102,8 +109,8 @@ Replace the stub `saveNotification` function in the file with real MongoDB stora
 
 ```typescript
 // Example implementation
-import { connectDb } from '@/lib/mongodb-unified';
-import mongoose from 'mongoose';
+import { connectDb } from "@/lib/mongodb-unified";
+import mongoose from "mongoose";
 
 const NotificationSchema = new mongoose.Schema({
   id: String,
@@ -121,17 +128,20 @@ const NotificationSchema = new mongoose.Schema({
   failureReason: String,
 });
 
-const NotificationModel = mongoose.models.Notification || 
-  mongoose.model('Notification', NotificationSchema);
+const NotificationModel =
+  mongoose.models.Notification ||
+  mongoose.model("Notification", NotificationSchema);
 
-async function saveNotification(notification: NotificationPayload): Promise<void> {
+async function saveNotification(
+  notification: NotificationPayload,
+): Promise<void> {
   await connectDb();
   await NotificationModel.findOneAndUpdate(
     { id: notification.id },
     notification,
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
-  logger.debug('[Notifications] Saved to DB', { id: notification.id });
+  logger.debug("[Notifications] Saved to DB", { id: notification.id });
 }
 ```
 
@@ -140,38 +150,38 @@ async function saveNotification(notification: NotificationPayload): Promise<void
 Create `/lib/i18n.ts`:
 
 ```typescript
-import i18next from 'i18next';
+import i18next from "i18next";
 
 i18next.init({
-  lng: 'en',
+  lng: "en",
   resources: {
     en: {
       translation: {
         notifications: {
           onTicketCreated: {
-            title: 'New Work Order Created',
-            body: 'Work order for {{tenantName}} - Priority: {{priority}}. {{description}}'
+            title: "New Work Order Created",
+            body: "Work order for {{tenantName}} - Priority: {{priority}}. {{description}}",
           },
           onAssign: {
-            title: 'Work Order Assigned',
-            body: 'Assigned to {{technicianName}}. {{description}}'
+            title: "Work Order Assigned",
+            body: "Assigned to {{technicianName}}. {{description}}",
           },
           // ... add more translations
-        }
-      }
+        },
+      },
     },
     ar: {
       translation: {
         notifications: {
           onTicketCreated: {
-            title: 'تم إنشاء أمر عمل جديد',
-            body: 'أمر عمل لـ {{tenantName}} - الأولوية: {{priority}}. {{description}}'
+            title: "تم إنشاء أمر عمل جديد",
+            body: "أمر عمل لـ {{tenantName}} - الأولوية: {{priority}}. {{description}}",
           },
           // ... add Arabic translations
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 });
 
 export default i18next;
@@ -180,33 +190,36 @@ export default i18next;
 Then replace the i18n stub in `fm-notification-engine.ts`:
 
 ```typescript
-import i18n from '@/lib/i18n'; // Remove stub implementation
+import i18n from "@/lib/i18n"; // Remove stub implementation
 ```
 
 ### 4. Usage Example
 
 ```typescript
-import { onTicketCreated, NotificationRecipient } from '@/services/notifications/fm-notification-engine';
+import {
+  onTicketCreated,
+  NotificationRecipient,
+} from "@/services/notifications/fm-notification-engine";
 
 // In your work order creation handler
 const recipients: NotificationRecipient[] = [
   {
-    userId: 'user-123',
-    name: 'John Doe',
-    email: 'john@example.com',
-    phone: '+1234567890',
-    fcmToken: 'firebase-token-here',
-    preferredChannels: ['push', 'email'],
-    language: 'en'
-  }
+    userId: "user-123",
+    name: "John Doe",
+    email: "john@example.com",
+    phone: "+1234567890",
+    fcmToken: "firebase-token-here",
+    preferredChannels: ["push", "email"],
+    language: "en",
+  },
 ];
 
 await onTicketCreated(
   workOrder.id,
-  'Tenant Name',
-  'high',
-  'Broken AC unit in apartment 5B',
-  recipients
+  "Tenant Name",
+  "high",
+  "Broken AC unit in apartment 5B",
+  recipients,
 );
 ```
 
@@ -232,35 +245,41 @@ curl -X POST http://localhost:3000/api/test/notifications \
 ### Unit Tests Template
 
 ```typescript
-import { generateDeepLink, buildNotification } from './fm-notification-engine';
+import { generateDeepLink, buildNotification } from "./fm-notification-engine";
 
-describe('FM Notification Engine', () => {
-  it('generates valid deep links', () => {
-    const link = generateDeepLink('work-order', 'WO-123');
-    expect(link).toBe('fixizit://fm/work-orders/WO-123');
+describe("FM Notification Engine", () => {
+  it("generates valid deep links", () => {
+    const link = generateDeepLink("work-order", "WO-123");
+    expect(link).toBe("fixizit://fm/work-orders/WO-123");
   });
 
-  it('throws on invalid deep link type', () => {
-    expect(() => generateDeepLink('invalid' as any, 'ID-123')).toThrow();
+  it("throws on invalid deep link type", () => {
+    expect(() => generateDeepLink("invalid" as any, "ID-123")).toThrow();
   });
 
-  it('builds notification with correct structure', () => {
-    const recipients = [{ 
-      userId: 'U1', 
-      name: 'Test',
-      preferredChannels: ['push']
-    }];
-    
-    const notification = buildNotification('onTicketCreated', {
-      workOrderId: 'WO-123',
-      tenantName: 'John',
-      priority: 'high',
-      description: 'Test'
-    }, recipients);
+  it("builds notification with correct structure", () => {
+    const recipients = [
+      {
+        userId: "U1",
+        name: "Test",
+        preferredChannels: ["push"],
+      },
+    ];
+
+    const notification = buildNotification(
+      "onTicketCreated",
+      {
+        workOrderId: "WO-123",
+        tenantName: "John",
+        priority: "high",
+        description: "Test",
+      },
+      recipients,
+    );
 
     expect(notification.id).toBeDefined();
-    expect(notification.event).toBe('onTicketCreated');
-    expect(notification.deepLink).toContain('fixizit://');
+    expect(notification.event).toBe("onTicketCreated");
+    expect(notification.deepLink).toContain("fixizit://");
   });
 });
 ```
@@ -270,6 +289,7 @@ describe('FM Notification Engine', () => {
 ## ⚠️ Known Issues & TODOs
 
 ### Current Limitations:
+
 1. **i18n**: Using fallback stub - needs actual i18next integration
 2. **DB Persistence**: `saveNotification` is a stub - needs MongoDB implementation
 3. **FCM Token Management**: Invalid token removal not implemented (marked as TODO)
@@ -277,12 +297,14 @@ describe('FM Notification Engine', () => {
 5. **Delivery Confirmation**: `deliveredAt` is approximate, needs webhook integration
 
 ### TypeScript Errors (Expected):
+
 - `uuid` module: Install `@types/uuid`
 - `firebase-admin`: Install package
 - `twilio`: Install package
 - `@sendgrid/mail`: Already installed
 
 ### Future Enhancements:
+
 - [ ] Add delivery webhooks (FCM, SendGrid, Twilio)
 - [ ] Implement notification preferences per user
 - [ ] Add notification history API endpoint
@@ -298,14 +320,14 @@ describe('FM Notification Engine', () => {
 
 All deep links follow the `fixizit://` scheme:
 
-| Type | Format | Example |
-|------|--------|---------|
-| Work Order | `fixizit://fm/work-orders/{id}` | `fixizit://fm/work-orders/WO-123` |
-| Approval | `fixizit://approvals/quote/{id}` | `fixizit://approvals/quote/QT-456` |
-| Property | `fixizit://fm/properties/{id}` | `fixizit://fm/properties/PROP-789` |
-| Unit | `fixizit://fm/units/{id}` | `fixizit://fm/units/UNIT-012` |
-| Tenant | `fixizit://fm/tenants/{id}` | `fixizit://fm/tenants/TNT-345` |
-| Financial | `fixizit://financials/statements/property/{id}` | `fixizit://financials/statements/property/PROP-789` |
+| Type       | Format                                          | Example                                             |
+| ---------- | ----------------------------------------------- | --------------------------------------------------- |
+| Work Order | `fixizit://fm/work-orders/{id}`                 | `fixizit://fm/work-orders/WO-123`                   |
+| Approval   | `fixizit://approvals/quote/{id}`                | `fixizit://approvals/quote/QT-456`                  |
+| Property   | `fixizit://fm/properties/{id}`                  | `fixizit://fm/properties/PROP-789`                  |
+| Unit       | `fixizit://fm/units/{id}`                       | `fixizit://fm/units/UNIT-012`                       |
+| Tenant     | `fixizit://fm/tenants/{id}`                     | `fixizit://fm/tenants/TNT-345`                      |
+| Financial  | `fixizit://financials/statements/property/{id}` | `fixizit://financials/statements/property/PROP-789` |
 
 ---
 

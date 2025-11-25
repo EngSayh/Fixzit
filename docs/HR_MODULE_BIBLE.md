@@ -1,10 +1,11 @@
 # Fixzit HR Module - Comprehensive Technical & Business Documentation
+
 ## Enterprise-Grade Workforce Management for Saudi Facility Management Sector
 
 **Document Version:** 1.0  
 **Date:** October 31, 2025  
 **Author:** Fixzit Development Team  
-**Status:** Production-Ready Foundation  
+**Status:** Production-Ready Foundation
 
 ---
 
@@ -40,6 +41,7 @@ The Fixzit HR Module is an enterprise-grade, Saudi Arabia-compliant workforce ma
 ### Business Value
 
 For **Corporate Clients** (e.g., large FM companies managing 500+ field technicians):
+
 - Automated payroll processing with GOSI/SANED calculations
 - One-click WPS file generation for bank uploads (Mudad compliance)
 - Document expiry alerts (Iqama, Passport) to prevent visa violations
@@ -47,6 +49,7 @@ For **Corporate Clients** (e.g., large FM companies managing 500+ field technici
 - ESB (End of Service Benefits) calculator for terminations
 
 For **Fixzit Platform**:
+
 - Recurring revenue stream (SAR 10-40 per employee/month)
 - Upsell opportunity (Basic → Payroll → Full Suite)
 - Reduced support burden (automated compliance calculations)
@@ -59,6 +62,7 @@ For **Fixzit Platform**:
 ### Included Features
 
 #### 1. Employee Directory (All Tiers)
+
 - Complete employee master data with KSA-specific fields
 - Document tracking: Iqama, Passport, Visas, Contracts (with expiry dates)
 - Employment details: Job title, department, manager, site assignment
@@ -69,6 +73,7 @@ For **Fixzit Platform**:
 - Status lifecycle: ONBOARDING → ACTIVE → ON_LEAVE → SUSPENDED → TERMINATED
 
 #### 2. Attendance & Timesheets (Small+)
+
 - Clock-in/out logs with GPS geo-fencing
 - Multi-source capture: Mobile app, kiosk, manual entry
 - Shift templates & rostering
@@ -77,6 +82,7 @@ For **Fixzit Platform**:
 - Exception management: Missing punch, late arrival, early departure
 
 #### 3. Leave Management (Small+)
+
 - Configurable leave types: Annual, Sick, Hajj, Maternity, Paternity, Unpaid
 - Accrual rules: 21 days (standard) → 30 days (after 5 years)
 - Balance tracking: Opening + Accrued - Taken = Balance
@@ -85,6 +91,7 @@ For **Fixzit Platform**:
 - Leave liability reporting
 
 #### 4. Payroll Processing (Mid+)
+
 - **DRAFT**: Admin creates run for period (e.g., "October 2025")
 - **CALCULATE**: System fetches active employees, approved timesheets
   - Calculates overtime (150% of hourly basic per HRSD)
@@ -99,6 +106,7 @@ For **Fixzit Platform**:
 - **EXPORT**: WPS CSV file generation for Mudad upload
 
 #### 5. WPS/Mudad Compliance (Mid+)
+
 - Bank-format CSV generation (Employee ID, Name, IBAN, Basic, Allowances, Deductions, Net)
 - IBAN validation (SA + 22 digits format)
 - Bank code extraction from IBAN
@@ -110,6 +118,7 @@ For **Fixzit Platform**:
 - Downloadable file with metadata headers (checksum, record count, total net)
 
 #### 6. Recruitment/ATS (Enterprise)
+
 - Job posting management
 - Candidate pipeline (Kanban: Applied → Screening → Interview → Offer → Hired)
 - Interview scheduling
@@ -117,6 +126,7 @@ For **Fixzit Platform**:
 - Hire → Employee conversion (seamless onboarding)
 
 #### 7. Performance Management (Enterprise)
+
 - Goal setting & KPI tracking
 - Review cycles (annual, semi-annual, quarterly)
 - Multi-rater feedback (360° reviews)
@@ -124,6 +134,7 @@ For **Fixzit Platform**:
 - Performance Improvement Plans (PIPs)
 
 #### 8. Training & Certifications (Enterprise)
+
 - Course catalog (internal/external)
 - Enrollment tracking
 - Completion certificates
@@ -138,28 +149,32 @@ For **Fixzit Platform**:
 
 **Per-Employee/Month Pricing** (SAR, excluding 15% VAT):
 
-| Tier | Monthly Rate | Minimum | Target Market | Key Features |
-|------|-------------|---------|---------------|--------------|
-| **Small** | SAR 10 | 5 employees | Startups, small FM companies | Directory, Attendance, Leave |
-| **Mid** | SAR 25 | 20 employees | Growing FM companies | + Payroll, WPS Export, Timesheets |
-| **Enterprise** | SAR 40 | 100 employees | Large corporates, multi-site | + ATS, Performance, Training, API access |
+| Tier           | Monthly Rate | Minimum       | Target Market                | Key Features                             |
+| -------------- | ------------ | ------------- | ---------------------------- | ---------------------------------------- |
+| **Small**      | SAR 10       | 5 employees   | Startups, small FM companies | Directory, Attendance, Leave             |
+| **Mid**        | SAR 25       | 20 employees  | Growing FM companies         | + Payroll, WPS Export, Timesheets        |
+| **Enterprise** | SAR 40       | 100 employees | Large corporates, multi-site | + ATS, Performance, Training, API access |
 
 **Annual Commitment Discounts:**
+
 - 10% discount for annual pre-payment
 - 15% discount for 3-year commitment
 
 **Example Pricing:**
+
 - 50 employees (Mid tier): SAR 25 × 50 = **SAR 1,250/month** (SAR 15,000/year)
 - 500 employees (Enterprise): SAR 40 × 500 = **SAR 20,000/month** (SAR 240,000/year with volume discount)
 
 ### Competitive Positioning
 
 **Benchmarked Against:**
+
 - **Zoho People (KSA)**: ~SAR 5-20/user/month (generic HRIS, no WPS/FM features)
 - **Jisr/Bayzat (Local)**: Quote-based, ~SAR 15-30/user/month (strong WPS, weak FM integration)
 - **BambooHR (Global)**: ~SAR 40-50/user/month (USD pricing, no KSA localization)
 
 **Fixzit Advantage:**
+
 - **Only solution** with FM-specific features (technician dispatch, shift rostering, site assignment)
 - **Competitive pricing** at mid-tier (SAR 25 vs. SAR 30-40 for local players)
 - **Bundled platform** (HR + Work Orders + Finance + Marketplace in one subscription)
@@ -207,6 +222,7 @@ For **Fixzit Platform**:
 ### Database Isolation
 
 Every MongoDB document includes `orgId` field:
+
 - Prevents cross-tenant data leakage
 - Queries automatically scoped: `{ orgId: session.user.orgId, ... }`
 - Compound indexes for performance: `{ orgId: 1, employeeCode: 1 }` (unique)
@@ -230,19 +246,19 @@ interface IEmployee {
   email: string;
   phone: string;
   nationality: string;
-  status: 'ONBOARDING' | 'ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED';
-  
+  status: "ONBOARDING" | "ACTIVE" | "ON_LEAVE" | "SUSPENDED" | "TERMINATED";
+
   employment: {
     jobTitle: string;
     department: string;
     managerId: ObjectId;
     site: string; // For FM: property assignment
     joinDate: Date;
-    contractType: 'PERMANENT' | 'FIXED_TERM' | 'CONTRACT';
+    contractType: "PERMANENT" | "FIXED_TERM" | "CONTRACT";
     contractEndDate: Date;
     qiwaContractId: string; // Qiwa digital contract reference
   };
-  
+
   compensation: {
     baseSalary: number; // Monthly SAR
     housingAllowance: number;
@@ -252,37 +268,42 @@ interface IEmployee {
     gosiApplicable: boolean; // True for Saudi nationals
     sanedApplicable: boolean;
   };
-  
+
   bank: {
     bankName: string;
     iban: string; // SA + 22 digits
     accountNumber: string;
   };
-  
-  documents: [{
-    type: 'IQAMA' | 'PASSPORT' | 'CONTRACT' | 'VISA';
-    number: string;
-    issueDate: Date;
-    expiryDate: Date; // Indexed for compliance alerts
-    fileUrl: string; // S3 URL
-  }];
-  
-  assets: [{
-    assetTag: string;
-    name: string; // "Laptop", "Phone"
-    assignedAt: Date;
-    returnedAt: Date;
-  }];
-  
+
+  documents: [
+    {
+      type: "IQAMA" | "PASSPORT" | "CONTRACT" | "VISA";
+      number: string;
+      issueDate: Date;
+      expiryDate: Date; // Indexed for compliance alerts
+      fileUrl: string; // S3 URL
+    },
+  ];
+
+  assets: [
+    {
+      assetTag: string;
+      name: string; // "Laptop", "Phone"
+      assignedAt: Date;
+      returnedAt: Date;
+    },
+  ];
+
   skills: string[]; // For FM dispatch: ["HVAC", "Plumbing", "Electrical"]
   certifications: [{ name: string; issueDate: Date; expiryDate: Date }];
-  
+
   createdAt: Date;
   updatedAt: Date;
 }
 ```
 
 **Indexes:**
+
 - `{ orgId: 1, employeeCode: 1 }` - Unique within org
 - `{ orgId: 1, email: 1 }`
 - `{ orgId: 1, status: 1 }`
@@ -298,7 +319,7 @@ interface IPayrollRun {
   periodStart: Date; // e.g., 2025-10-01
   periodEnd: Date; // e.g., 2025-10-31
   cutOffDate: Date; // Last date to include attendance (e.g., 2025-10-25)
-  status: 'DRAFT' | 'CALCULATED' | 'APPROVED' | 'LOCKED';
+  status: "DRAFT" | "CALCULATED" | "APPROVED" | "LOCKED";
   totalGross: number;
   totalNet: number;
   totalGOSI: number; // Employee + Employer
@@ -321,20 +342,20 @@ interface IPayslip {
   iban: string; // Denormalized for WPS
   periodStart: Date;
   periodEnd: Date;
-  
+
   earnings: [{ code: string; name: string; amount: number }];
   // Example: [
   //   { code: 'BASIC', name: 'Basic Salary', amount: 10000 },
   //   { code: 'HOUSING', name: 'Housing Allowance', amount: 2500 },
   //   { code: 'OVERTIME', name: 'Overtime (150%)', amount: 937.5 }
   // ]
-  
+
   deductions: [{ code: string; name: string; amount: number }];
   // Example: [
   //   { code: 'GOSI_ANNUITIES', name: 'GOSI (Annuities)', amount: 1125 },
   //   { code: 'SANED', name: 'SANED (Unemployment)', amount: 93.75 }
   // ]
-  
+
   grossPay: number; // Sum of earnings
   netPay: number; // Gross - deductions
   gosiEmployee: number; // Deducted from employee
@@ -347,6 +368,7 @@ interface IPayslip {
 ```
 
 **Indexes:**
+
 - `{ orgId: 1, periodStart: 1, periodEnd: 1 }` - For period queries
 - `{ orgId: 1, status: 1 }`
 - `{ orgId: 1, employeeId: 1, periodStart: 1 }` - For payslip queries
@@ -389,15 +411,17 @@ interface ILeaveRequest {
   totalDays: number;
   reason: string;
   attachments: [{ name: string; url: string }];
-  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  status: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
   submittedAt: Date;
-  approvalChain: [{
-    approverId: ObjectId;
-    level: number; // 1 = Manager, 2 = HR
-    decidedAt: Date;
-    decision: 'APPROVED' | 'REJECTED';
-    comments: string;
-  }];
+  approvalChain: [
+    {
+      approverId: ObjectId;
+      level: number; // 1 = Manager, 2 = HR
+      decidedAt: Date;
+      decision: "APPROVED" | "REJECTED";
+      comments: string;
+    },
+  ];
 }
 ```
 
@@ -410,8 +434,8 @@ interface IAttendanceLog {
   orgId: ObjectId;
   employeeId: ObjectId;
   timestamp: Date;
-  type: 'IN' | 'OUT';
-  source: 'MOBILE_APP' | 'KIOSK' | 'MANUAL' | 'GPS';
+  type: "IN" | "OUT";
+  source: "MOBILE_APP" | "KIOSK" | "MANUAL" | "GPS";
   location: { lat: number; lng: number; address: string };
   deviceId: string;
   notes: string;
@@ -427,7 +451,7 @@ interface ITimesheet {
   overtimeHours: number; // Feeds into payroll
   nightDiffHours: number;
   holidayHours: number;
-  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
   approvedBy: ObjectId;
   approvedAt: Date;
 }
@@ -459,20 +483,24 @@ interface IRoster {
 ### Base URL: `/api/hr`
 
 ### Authentication
+
 All endpoints require NextAuth session:
+
 ```typescript
 const session = await getServerSession(authOptions);
 if (!session?.user?.orgId) {
-  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 ```
 
 ### Employee Management
 
 #### `GET /api/hr/employees`
+
 **Description**: List all employees for the organization
 
 **Query Parameters:**
+
 - `page` (number, default: 1): Page number
 - `limit` (number, default: 50): Records per page
 - `status` (string): Filter by status (ACTIVE, ON_LEAVE, etc.)
@@ -480,6 +508,7 @@ if (!session?.user?.orgId) {
 - `search` (string): Search firstName, lastName, email, employeeCode
 
 **Response:**
+
 ```json
 {
   "employees": [
@@ -512,9 +541,11 @@ if (!session?.user?.orgId) {
 ```
 
 #### `POST /api/hr/employees`
+
 **Description**: Create a new employee
 
 **Request Body:**
+
 ```json
 {
   "employeeCode": "EMP-128",
@@ -545,6 +576,7 @@ if (!session?.user?.orgId) {
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "_id": "67234def...",
@@ -558,12 +590,15 @@ if (!session?.user?.orgId) {
 ### Payroll Processing
 
 #### `GET /api/hr/payroll/runs`
+
 **Description**: List all payroll runs
 
 **Query Parameters:**
+
 - `status` (string): Filter by status (DRAFT, CALCULATED, APPROVED, LOCKED)
 
 **Response:**
+
 ```json
 {
   "runs": [
@@ -583,9 +618,11 @@ if (!session?.user?.orgId) {
 ```
 
 #### `POST /api/hr/payroll/runs`
+
 **Description**: Create a new DRAFT payroll run
 
 **Request Body:**
+
 ```json
 {
   "periodStart": "2025-11-01",
@@ -595,6 +632,7 @@ if (!session?.user?.orgId) {
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "_id": "67236abc...",
@@ -608,11 +646,13 @@ if (!session?.user?.orgId) {
 ```
 
 #### `POST /api/hr/payroll/runs/[id]/calculate`
+
 **Description**: Calculate payroll for all active employees
 
 **Request Body:** None (idempotent operation)
 
 **Process:**
+
 1. Fetches all ACTIVE employees
 2. For each employee:
    - Fetches approved timesheets for the period
@@ -623,6 +663,7 @@ if (!session?.user?.orgId) {
 3. Updates `PayrollRun` totals and status → CALCULATED
 
 **Response:**
+
 ```json
 {
   "run": {
@@ -631,7 +672,7 @@ if (!session?.user?.orgId) {
     "totalGross": 1275000,
     "totalNet": 1147500,
     "totalGOSI": 114750,
-    "totalSANED": 9562.50,
+    "totalSANED": 9562.5,
     "employeeCount": 127
   },
   "summary": {
@@ -639,15 +680,17 @@ if (!session?.user?.orgId) {
     "totalGross": 1275000,
     "totalNet": 1147500,
     "totalGOSI": 114750,
-    "totalSANED": 9562.50
+    "totalSANED": 9562.5
   }
 }
 ```
 
 #### `GET /api/hr/payroll/runs/[id]/export/wps`
+
 **Description**: Generate WPS/Mudad compliant CSV file
 
 **Response Headers:**
+
 - `Content-Type: text/csv; charset=utf-8`
 - `Content-Disposition: attachment; filename="WPS_ORG123_202511.csv"`
 - `X-File-Checksum: a3f2b9c...` (SHA-256)
@@ -655,6 +698,7 @@ if (!session?.user?.orgId) {
 - `X-Total-Net-Salary: 1147500.00`
 
 **CSV Content:**
+
 ```csv
 Employee ID,Employee Name,Bank Code,IBAN,Basic Salary,Housing Allowance,Other Allowances,Total Deductions,Net Salary,Salary Month,Work Days
 EMP-001,Ahmed Al-Saud,80,SA4480000000123456789012,8000.00,2000.00,500.00,902.50,9597.50,2025-11,30
@@ -663,6 +707,7 @@ EMP-002,Mohammed Al-Qahtani,20,SA4420000000987654321098,7000.00,1800.00,500.00,7
 ```
 
 **Validation Errors:**
+
 ```json
 {
   "error": "WPS file validation failed",
@@ -670,9 +715,7 @@ EMP-002,Mohammed Al-Qahtani,20,SA4420000000987654321098,7000.00,1800.00,500.00,7
     "Row 5: Invalid IBAN format: SA4480 (expected 24 characters)",
     "Row 12: Net salary is zero or negative"
   ],
-  "warnings": [
-    "Row 8: Salary month format should be YYYY-MM"
-  ]
+  "warnings": ["Row 8: Salary month format should be YYYY-MM"]
 }
 ```
 
@@ -686,14 +729,15 @@ EMP-002,Mohammed Al-Qahtani,20,SA4420000000987654321098,7000.00,1800.00,500.00,7
 
 **Contribution Rates (2025):**
 
-| Component | Employee Rate | Employer Rate | Base |
-|-----------|--------------|---------------|------|
-| **Annuities (Pension)** | 9.0% | 9.0% | Basic + Housing |
-| **Annuities (New Entrants)** | 9.5% | 9.5% | Basic + Housing |
-| **SANED (Unemployment)** | 0.75% | 0.75% | Basic + Housing |
-| **Occupational Hazards** | 0% | 2.0% | Basic + Housing |
+| Component                    | Employee Rate | Employer Rate | Base            |
+| ---------------------------- | ------------- | ------------- | --------------- |
+| **Annuities (Pension)**      | 9.0%          | 9.0%          | Basic + Housing |
+| **Annuities (New Entrants)** | 9.5%          | 9.5%          | Basic + Housing |
+| **SANED (Unemployment)**     | 0.75%         | 0.75%         | Basic + Housing |
+| **Occupational Hazards**     | 0%            | 2.0%          | Basic + Housing |
 
 **New Entrant Rates:**
+
 - Employees who joined **after January 1, 2024** are subject to gradual increases
 - 2025: 9.5% each side
 - 2026: 10.0% each side
@@ -701,10 +745,12 @@ EMP-002,Mohammed Al-Qahtani,20,SA4420000000987654321098,7000.00,1800.00,500.00,7
 - 2028: 11.0% each side (final rate)
 
 **Non-Saudi Nationals:**
+
 - Only Occupational Hazards apply: 2% (employer pays)
 - No Annuities or SANED
 
 **Implementation:**
+
 ```typescript
 // In ksaPayrollService.ts
 export function calculateGOSI(
@@ -714,7 +760,7 @@ export function calculateGOSI(
   isNewEntrant: boolean = false // Joined 2024+
 ): GOSICalculation {
   const gosiBase = baseSalary + housingAllowance;
-  
+
   if (!isSaudiNational) {
     // Non-Saudi: Only OH (employer pays)
     return {
@@ -723,18 +769,18 @@ export function calculateGOSI(
       breakdown: { occupationalHazards: gosiBase * 0.02, ... }
     };
   }
-  
+
   // Saudi National
-  const annuitiesRate = isNewEntrant 
+  const annuitiesRate = isNewEntrant
     ? { employee: 0.095, employer: 0.095 }
     : { employee: 0.09, employer: 0.09 };
-  
+
   const annuitiesEmployee = gosiBase * annuitiesRate.employee;
   const annuitiesEmployer = gosiBase * annuitiesRate.employer;
   const sanedEmployee = gosiBase * 0.0075;
   const sanedEmployer = gosiBase * 0.0075;
   const occHazards = gosiBase * 0.02;
-  
+
   return {
     employeeDeduction: annuitiesEmployee + sanedEmployee,
     employerContribution: annuitiesEmployer + sanedEmployer + occHazards,
@@ -748,37 +794,44 @@ export function calculateGOSI(
 **HRSD Regulation:** Overtime pay = Hourly wage + 50% of basic salary (= 150% of hourly)
 
 **Hourly Rate Formula:**
+
 ```
 Hourly Rate = Monthly Basic Salary / 30 days / 8 hours
 ```
 
 **Example:**
+
 - Monthly Basic: SAR 10,000
 - Hourly Rate: 10,000 / 30 / 8 = SAR 41.67
 - Overtime Rate: 41.67 × 1.5 = **SAR 62.50 per hour**
 - 10 hours OT: 62.50 × 10 = **SAR 625**
 
 **Implementation:**
+
 ```typescript
 // In ksaPayrollService.ts
 export const OVERTIME_MULTIPLIER = 1.5;
 
 export function calculateOvertimePay(
   monthlyBasic: number,
-  overtimeHours: number
+  overtimeHours: number,
 ): number {
   const hourlyRate = monthlyBasic / 30 / 8;
-  return Math.round(hourlyRate * OVERTIME_MULTIPLIER * overtimeHours * 100) / 100;
+  return (
+    Math.round(hourlyRate * OVERTIME_MULTIPLIER * overtimeHours * 100) / 100
+  );
 }
 ```
 
 ### End of Service Benefits (ESB)
 
 **Formula:**
+
 - **First 5 years**: 0.5 months of salary per year
 - **After 5 years**: 1 month of salary per year
 
 **Adjustments for Resignation:**
+
 - **< 2 years**: No ESB
 - **2-5 years**: 1/3 of calculated ESB
 - **5-10 years**: 2/3 of calculated ESB
@@ -787,6 +840,7 @@ export function calculateOvertimePay(
 **Termination (by employer):** Full ESB regardless of tenure
 
 **Example:**
+
 - Employee with 7 years service, last monthly salary SAR 12,000
 - Calculation:
   - First 5 years: 5 × 0.5 = 2.5 months
@@ -795,6 +849,7 @@ export function calculateOvertimePay(
 - If resignation (7 years): 2/3 × 54,000 = **SAR 36,000**
 
 **Implementation:**
+
 ```typescript
 // In ksaPayrollService.ts
 export function calculateESB(
@@ -808,19 +863,19 @@ export function calculateESB(
   const first5Years = Math.min(5, totalYears);
   const after5Years = Math.max(0, totalYears - 5);
   const baseMonths = (first5Years * 0.5) + (after5Years * 1.0);
-  
+
   let adjustmentFactor = 1.0; // Termination = full
-  
+
   if (reason === 'RESIGNATION') {
     if (totalYears < 2) adjustmentFactor = 0;
     else if (totalYears < 5) adjustmentFactor = 1/3;
     else if (totalYears < 10) adjustmentFactor = 2/3;
     else adjustmentFactor = 1.0;
   }
-  
+
   const finalMonths = baseMonths * adjustmentFactor;
   const amount = lastMonthlySalary * finalMonths;
-  
+
   return { totalMonths: finalMonths, amount, breakdown: { ... } };
 }
 ```
@@ -832,15 +887,18 @@ export function calculateESB(
 **File Format:** CSV with specific columns (bank-dependent)
 
 **Standard Format:**
+
 ```
 Employee ID, Employee Name, Bank Code, IBAN, Basic Salary, Housing Allowance, Other Allowances, Total Deductions, Net Salary, Salary Month, Work Days
 ```
 
 **IBAN Validation:**
+
 - Format: `SA` + 2 check digits + 2 bank code + 18 account number = **24 characters**
 - Example: `SA4480000000123456789012`
 
 **Bank Codes (Major Banks):**
+
 - Al Rajhi: `80`
 - NCB/SNB: `10`
 - Riyad Bank: `20`
@@ -848,37 +906,41 @@ Employee ID, Employee Name, Bank Code, IBAN, Basic Salary, Housing Allowance, Ot
 - SABB: `55`
 
 **Implementation:**
+
 ```typescript
 // In wpsService.ts
 export function generateWPSFile(
   payslips: IPayslip[],
   organizationId: string,
-  periodMonth: string // "2025-11"
+  periodMonth: string, // "2025-11"
 ): WPSFile {
-  const records = payslips.map(slip => ({
+  const records = payslips.map((slip) => ({
     employeeId: slip.employeeCode,
     employeeName: slip.employeeName,
     bankCode: extractBankCode(slip.iban), // From IBAN
     iban: slip.iban,
-    basicSalary: slip.earnings.find(e => e.code === 'BASIC')?.amount || 0,
-    housingAllowance: slip.earnings.find(e => e.code === 'HOUSING')?.amount || 0,
-    otherAllowances: slip.earnings.filter(e => !['BASIC','HOUSING'].includes(e.code)).reduce((sum,e)=>sum+e.amount, 0),
-    totalDeductions: slip.deductions.reduce((sum,d)=>sum+d.amount, 0),
+    basicSalary: slip.earnings.find((e) => e.code === "BASIC")?.amount || 0,
+    housingAllowance:
+      slip.earnings.find((e) => e.code === "HOUSING")?.amount || 0,
+    otherAllowances: slip.earnings
+      .filter((e) => !["BASIC", "HOUSING"].includes(e.code))
+      .reduce((sum, e) => sum + e.amount, 0),
+    totalDeductions: slip.deductions.reduce((sum, d) => sum + d.amount, 0),
     netSalary: slip.netPay,
     salaryMonth: periodMonth,
-    workDays: 30 // Or calculate from attendance
+    workDays: 30, // Or calculate from attendance
   }));
-  
+
   const csvContent = generateCsvFromRecords(records);
   const checksum = generateChecksum(csvContent);
-  
+
   return {
-    filename: `WPS_${organizationId}_${periodMonth.replace('-','')}.csv`,
+    filename: `WPS_${organizationId}_${periodMonth.replace("-", "")}.csv`,
     content: csvContent,
     checksum,
     recordCount: records.length,
-    totalNetSalary: records.reduce((sum,r)=>sum+r.netSalary, 0),
-    generatedAt: new Date()
+    totalNetSalary: records.reduce((sum, r) => sum + r.netSalary, 0),
+    generatedAt: new Date(),
   };
 }
 ```
@@ -886,51 +948,58 @@ export function generateWPSFile(
 ### Document Expiry Compliance
 
 **Critical Documents:**
+
 - **Iqama (Residence Permit):** Expiry triggers visa violation fines (SAR 10,000+)
 - **Passport:** Required for Iqama renewal
 - **Work Visa:** Required for legal employment
 - **Contracts:** Qiwa digital contracts (attestation required)
 
 **Alert System:**
+
 - **90 days before expiry**: Yellow warning
 - **30 days before expiry**: Orange alert + email to HR
 - **7 days before expiry**: Red alert + email to Admin
 - **Expired**: Block employee from scheduling/payroll
 
 **Implementation:**
+
 ```typescript
 // In Employee model
-documents: [{
-  type: 'IQAMA' | 'PASSPORT' | 'CONTRACT' | 'VISA',
-  number: string,
-  issueDate: Date,
-  expiryDate: Date, // INDEXED for fast queries
-  fileUrl: string
-}]
+documents: [
+  {
+    type: "IQAMA" | "PASSPORT" | "CONTRACT" | "VISA",
+    number: string,
+    issueDate: Date,
+    expiryDate: Date, // INDEXED for fast queries
+    fileUrl: string,
+  },
+];
 
 // Cron job (daily at 2 AM)
 async function checkDocumentExpiry() {
   const now = new Date();
-  const warn90 = new Date(now.getTime() + 90*24*60*60*1000);
-  const warn30 = new Date(now.getTime() + 30*24*60*60*1000);
-  const warn7 = new Date(now.getTime() + 7*24*60*60*1000);
-  
+  const warn90 = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+  const warn30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const warn7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
   // Find employees with expiring documents
   const expiring = await Employee.find({
-    'documents.expiryDate': { $lte: warn90, $gte: now }
+    "documents.expiryDate": { $lte: warn90, $gte: now },
   });
-  
+
   for (const employee of expiring) {
     for (const doc of employee.documents) {
-      const daysUntilExpiry = Math.ceil((doc.expiryDate.getTime() - now.getTime()) / (24*60*60*1000));
-      
+      const daysUntilExpiry = Math.ceil(
+        (doc.expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+      );
+
       if (daysUntilExpiry <= 7) {
         // Create urgent ticket in Support module
-        await createComplianceTicket(employee, doc, 'URGENT');
+        await createComplianceTicket(employee, doc, "URGENT");
       } else if (daysUntilExpiry <= 30) {
-        await createComplianceTicket(employee, doc, 'HIGH');
+        await createComplianceTicket(employee, doc, "HIGH");
       } else if (daysUntilExpiry <= 90) {
-        await createComplianceTicket(employee, doc, 'NORMAL');
+        await createComplianceTicket(employee, doc, "NORMAL");
       }
     }
   }
@@ -1022,7 +1091,7 @@ DRAFT ──(Calculate)──> CALCULATED ──(Approve)──> APPROVED ──
 
 **Status Effects:**
 
-- **ONBOARDING**: 
+- **ONBOARDING**:
   - Excluded from payroll
   - Cannot clock in/out
   - Can upload documents
@@ -1068,29 +1137,31 @@ Employee submits ──> Manager reviews ──> HR reviews ──> Approved
 
 ```typescript
 interface ApprovalChain {
-  levels: [{
-    level: number;
-    approverRole: 'MANAGER' | 'HR' | 'ADMIN';
-    autoApproveIfBelow: number; // Days (e.g., 1-day leave auto-approved by manager)
-  }];
+  levels: [
+    {
+      level: number;
+      approverRole: "MANAGER" | "HR" | "ADMIN";
+      autoApproveIfBelow: number; // Days (e.g., 1-day leave auto-approved by manager)
+    },
+  ];
 }
 
 // Example: Small org (simple)
 {
   levels: [
-    { level: 1, approverRole: 'MANAGER', autoApproveIfBelow: 2 },
-    { level: 2, approverRole: 'HR', autoApproveIfBelow: 0 }
-  ]
+    { level: 1, approverRole: "MANAGER", autoApproveIfBelow: 2 },
+    { level: 2, approverRole: "HR", autoApproveIfBelow: 0 },
+  ];
 }
 
 // Example: Enterprise (complex DoA)
 {
   levels: [
-    { level: 1, approverRole: 'MANAGER', autoApproveIfBelow: 3 },
-    { level: 2, approverRole: 'DEPARTMENT_HEAD', autoApproveIfBelow: 7 },
-    { level: 3, approverRole: 'HR', autoApproveIfBelow: 0 },
-    { level: 4, approverRole: 'CFO', autoApproveIfBelow: 0 } // For >14 days
-  ]
+    { level: 1, approverRole: "MANAGER", autoApproveIfBelow: 3 },
+    { level: 2, approverRole: "DEPARTMENT_HEAD", autoApproveIfBelow: 7 },
+    { level: 3, approverRole: "HR", autoApproveIfBelow: 0 },
+    { level: 4, approverRole: "CFO", autoApproveIfBelow: 0 }, // For >14 days
+  ];
 }
 ```
 
@@ -1099,14 +1170,17 @@ interface ApprovalChain {
 ## Integration Points
 
 ### 1. Work Orders Module
+
 **Use Case**: Technician dispatch based on skills and availability
 
 **Integration:**
+
 - HR provides: `Employee.skills[]`, `Employee.status`, `Roster` (scheduled shifts)
 - Work Orders queries: Available technicians with required skills for a site
 - Example: "Find HVAC technicians available on 2025-11-05 at Site PROP-042"
 
 **API:**
+
 ```typescript
 GET /api/hr/employees/available
 Query: ?skills=HVAC,Plumbing&date=2025-11-05&site=PROP-042
@@ -1114,14 +1188,17 @@ Response: [{ employeeId, name, skills, currentLocation }]
 ```
 
 ### 2. Finance Module
+
 **Use Case**: Payroll GL posting
 
 **Integration:**
+
 - After payroll LOCK, HR posts journal entries to Finance
 - Debit: Salaries Expense
 - Credit: GOSI Payable (Employer), Bank/Cash
 
 **Example Journal Entry:**
+
 ```
 Debit:  Salaries Expense                 SAR 1,275,000
 Credit: GOSI Payable (Employee)                        SAR 90,562
@@ -1130,6 +1207,7 @@ Credit: Bank - Payroll Account                       SAR 1,069,688
 ```
 
 **API:**
+
 ```typescript
 POST /api/finance/journal-entries
 Body: {
@@ -1147,11 +1225,13 @@ Body: {
 ### 4. Automation Hooks (Phase 3)
 
 **Leave & Attendance Notifications**
+
 - Every leave status transition (`APPROVED`, `REJECTED`, `CANCELLED`) queues a job on the shared notifications worker (`souq:notifications`) via `HrNotificationService`.
 - Attendance entries flagged as `ABSENT` or `LATE` automatically emit alerts so FM/HR supervisors see exceptions without polling the grid.
 - Consumers (push/email/SMS) enrich the payload (employee, approver, dates, shift info) using the same translation keys referenced in `contexts/TranslationContext.tsx`.
 
 **Payroll → Finance Posting**
+
 - When a payroll run moves to `LOCKED`, `PayrollFinanceIntegration` builds a balanced journal entry and posts it through `postingService`.
 - Default Chart of Accounts mapping (configurable per org):
   - Debit `5200` Salaries Expense (base + allowances + employer GOSI)
@@ -1161,14 +1241,17 @@ Body: {
 - Once the journal is posted, the run is stamped with `financePosted`, `financeJournalId`, and `financeReference` to prevent duplicates and aid audits.
 
 ### 3. Compliance Module
+
 **Use Case**: Document expiry alerts
 
 **Integration:**
+
 - HR creates "Compliance Ticket" when document expires in < 30 days
 - Ticket assigned to HR group
 - SLA: 7 days to resolve (renew document)
 
 **Example Ticket:**
+
 ```
 Title: "Iqama Expiry Alert - Ahmed Al-Saud (EMP-001)"
 Description: "Iqama #2345678901 expires on 2025-11-15 (14 days)"
@@ -1178,9 +1261,11 @@ Due Date: 2025-11-08 (7 days SLA)
 ```
 
 ### 5. Marketplace Module
+
 **Use Case**: Third-party payroll services (e.g., payroll outsourcing)
 
 **Integration:**
+
 - Marketplace lists "Payroll Service Providers"
 - Corporate can subscribe to provider
 - HR exports payroll data to provider via API
@@ -1195,44 +1280,57 @@ Due Date: 2025-11-08 (7 days SLA)
 ### Authentication & Authorization
 
 **Session Validation:**
+
 ```typescript
 const session = await getServerSession(authOptions);
 if (!session?.user?.orgId) {
-  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
 ```
 
 **Role-Based Access Control (RBAC):**
 
-| Role | Permissions |
-|------|-------------|
-| **SUPER_ADMIN** | Full system access (all orgs) |
-| **ADMIN** | Full org access (own org only) |
-| **HR_MANAGER** | Employee CRUD, Payroll, Leave approval |
-| **MANAGER** | View team, Approve leave (Level 1) |
-| **EMPLOYEE** | Self-service: View payslip, Submit leave |
+| Role            | Permissions                              |
+| --------------- | ---------------------------------------- |
+| **SUPER_ADMIN** | Full system access (all orgs)            |
+| **ADMIN**       | Full org access (own org only)           |
+| **HR_MANAGER**  | Employee CRUD, Payroll, Leave approval   |
+| **MANAGER**     | View team, Approve leave (Level 1)       |
+| **EMPLOYEE**    | Self-service: View payslip, Submit leave |
 
 **Subscription-Based Feature Gating:**
+
 ```typescript
 // Example: Payroll endpoint (Mid+ tier only)
-if (!session.user.subscription.includes('PAYROLL')) {
-  return NextResponse.json({ 
-    error: 'Payroll feature not available in your subscription tier',
-    upgradeUrl: '/settings/subscription'
-  }, { status: 402 }); // Payment Required
+if (!session.user.subscription.includes("PAYROLL")) {
+  return NextResponse.json(
+    {
+      error: "Payroll feature not available in your subscription tier",
+      upgradeUrl: "/settings/subscription",
+    },
+    { status: 402 },
+  ); // Payment Required
 }
 ```
 
 ### Data Isolation
 
 **Org-Scoping (All Queries):**
+
 ```typescript
 // Always filter by orgId
-const employees = await Employee.find({ orgId: session.user.orgId, status: 'ACTIVE' });
-const runs = await PayrollRun.find({ orgId: session.user.orgId, status: 'DRAFT' });
+const employees = await Employee.find({
+  orgId: session.user.orgId,
+  status: "ACTIVE",
+});
+const runs = await PayrollRun.find({
+  orgId: session.user.orgId,
+  status: "DRAFT",
+});
 ```
 
 **Compound Indexes:**
+
 ```typescript
 // Enforce uniqueness within org (not globally)
 { orgId: 1, employeeCode: 1 } // unique
@@ -1243,6 +1341,7 @@ const runs = await PayrollRun.find({ orgId: session.user.orgId, status: 'DRAFT' 
 ### Sensitive Data Protection
 
 **IBAN Masking:**
+
 ```typescript
 // Store full IBAN in DB
 bank: { iban: 'SA4480000000123456789012' }
@@ -1252,6 +1351,7 @@ bank: { iban: 'SA44****5012', bankName: 'Al Rajhi' }
 ```
 
 **Document Access Control:**
+
 ```typescript
 // Documents (Iqama, Passport) stored in S3 with signed URLs
 // Only accessible by:
@@ -1263,17 +1363,19 @@ bank: { iban: 'SA44****5012', bankName: 'Al Rajhi' }
 ### Audit Trail
 
 **Immutable Records:**
+
 - Payslips: Cannot be edited after creation
 - PayrollRun (LOCKED): No changes allowed
 - LeaveRequest: Status changes logged in `approvalChain`
 
 **Change Log (Future):**
+
 ```typescript
 interface AuditLog {
   orgId: ObjectId;
   userId: ObjectId;
-  action: 'CREATE' | 'UPDATE' | 'DELETE';
-  resource: 'Employee' | 'PayrollRun' | 'LeaveRequest';
+  action: "CREATE" | "UPDATE" | "DELETE";
+  resource: "Employee" | "PayrollRun" | "LeaveRequest";
   resourceId: ObjectId;
   changes: { field: string; oldValue: any; newValue: any }[];
   timestamp: Date;
@@ -1322,7 +1424,7 @@ Run these commands in MongoDB shell after deployment:
 db.hr_employees.createIndex({ orgId: 1, employeeCode: 1 }, { unique: true });
 db.hr_employees.createIndex({ orgId: 1, email: 1 });
 db.hr_employees.createIndex({ orgId: 1, status: 1 });
-db.hr_employees.createIndex({ 'documents.expiryDate': 1 });
+db.hr_employees.createIndex({ "documents.expiryDate": 1 });
 
 // Payroll indexes
 db.hr_payroll_runs.createIndex({ orgId: 1, periodStart: 1, periodEnd: 1 });
@@ -1333,27 +1435,39 @@ db.hr_payslips.createIndex({ orgId: 1, employeeId: 1, periodStart: 1 });
 // Leave indexes
 db.hr_leave_requests.createIndex({ orgId: 1, employeeId: 1, status: 1 });
 db.hr_leave_requests.createIndex({ orgId: 1, startDate: 1, endDate: 1 });
-db.hr_leave_entitlements.createIndex({ orgId: 1, employeeId: 1, leaveTypeCode: 1, periodStart: 1 }, { unique: true });
+db.hr_leave_entitlements.createIndex(
+  { orgId: 1, employeeId: 1, leaveTypeCode: 1, periodStart: 1 },
+  { unique: true },
+);
 
 // Attendance indexes
 db.hr_attendance_logs.createIndex({ orgId: 1, employeeId: 1, timestamp: 1 });
-db.hr_timesheets.createIndex({ orgId: 1, employeeId: 1, weekStart: 1 }, { unique: true });
-db.hr_roster.createIndex({ orgId: 1, date: 1, employeeId: 1 }, { unique: true });
+db.hr_timesheets.createIndex(
+  { orgId: 1, employeeId: 1, weekStart: 1 },
+  { unique: true },
+);
+db.hr_roster.createIndex(
+  { orgId: 1, date: 1, employeeId: 1 },
+  { unique: true },
+);
 ```
 
 ### Cron Jobs
 
 **Document Expiry Check (Daily at 2 AM Asia/Riyadh):**
+
 ```bash
 0 2 * * * /app/scripts/check-document-expiry.sh
 ```
 
 **Leave Accrual (Monthly on 1st at 1 AM):**
+
 ```bash
 0 1 1 * * /app/scripts/accrue-leave.sh
 ```
 
 **WPS Reminder (Monthly on 25th at 9 AM):**
+
 ```bash
 0 9 25 * * /app/scripts/wps-reminder.sh
 ```
@@ -1361,6 +1475,7 @@ db.hr_roster.createIndex({ orgId: 1, date: 1, employeeId: 1 }, { unique: true })
 ### Performance Optimization
 
 **Database Sharding (for 10,000+ employees):**
+
 ```javascript
 // Shard key: orgId (distribute by organization)
 sh.shardCollection("fixzit.hr_employees", { orgId: 1 });
@@ -1368,6 +1483,7 @@ sh.shardCollection("fixzit.hr_payslips", { orgId: 1, periodStart: 1 });
 ```
 
 **Redis Caching (for frequent queries):**
+
 ```typescript
 // Cache employee list for 5 minutes
 const cacheKey = `hr:employees:${orgId}:${status}`;
@@ -1415,9 +1531,9 @@ return employees;
 
 ## Document Control
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | 2025-10-31 | Fixzit Dev Team | Initial release |
+| Version | Date       | Author          | Changes         |
+| ------- | ---------- | --------------- | --------------- |
+| 1.0     | 2025-10-31 | Fixzit Dev Team | Initial release |
 
 **Confidentiality Notice:** This document contains proprietary information of Fixzit and is intended solely for the use of authorized personnel. Unauthorized distribution or reproduction is prohibited.
 

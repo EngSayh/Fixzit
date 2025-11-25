@@ -134,9 +134,9 @@ async function loadCatalogKeys(ctxPath) {
   const errors = [];
   let hasPrimaryCatalog = false;
 
-  // Check for generated dictionary JSON files first
-  const enJsonPath = path.join(ROOT, 'i18n', 'generated', 'en.dictionary.json');
-  const arJsonPath = path.join(ROOT, 'i18n', 'generated', 'ar.dictionary.json');
+  // Check for main i18n JSON files first (current structure)
+  const enJsonPath = path.join(ROOT, 'i18n', 'en.json');
+  const arJsonPath = path.join(ROOT, 'i18n', 'ar.json');
   
   if (await exists(enJsonPath) && await exists(arJsonPath)) {
     try {
@@ -145,12 +145,36 @@ async function loadCatalogKeys(ctxPath) {
       const enData = JSON.parse(enContent);
       const arData = JSON.parse(arContent);
       
-      // The generated dictionaries are already flat, so just get the keys
-      Object.keys(enData).forEach(key => enKeys.add(key));
-      Object.keys(arData).forEach(key => arKeys.add(key));
+      // Flatten nested JSON to dot notation keys
+      const enFlat = flattenKeys(enData);
+      const arFlat = flattenKeys(arData);
+      enFlat.forEach(key => enKeys.add(key));
+      arFlat.forEach(key => arKeys.add(key));
       hasPrimaryCatalog = true;
     } catch (err) {
-      errors.push(`Failed to parse i18n generated dictionary files: ${err.message}`);
+      errors.push(`Failed to parse i18n/*.json files: ${err.message}`);
+    }
+  }
+
+  // Check for generated dictionary JSON files as fallback
+  if (!hasPrimaryCatalog) {
+    const enGenPath = path.join(ROOT, 'i18n', 'generated', 'en.dictionary.json');
+    const arGenPath = path.join(ROOT, 'i18n', 'generated', 'ar.dictionary.json');
+    
+    if (await exists(enGenPath) && await exists(arGenPath)) {
+      try {
+        const enContent = await readText(enGenPath);
+        const arContent = await readText(arGenPath);
+        const enData = JSON.parse(enContent);
+        const arData = JSON.parse(arContent);
+        
+        // The generated dictionaries are already flat, so just get the keys
+        Object.keys(enData).forEach(key => enKeys.add(key));
+        Object.keys(arData).forEach(key => arKeys.add(key));
+        hasPrimaryCatalog = true;
+      } catch (err) {
+        errors.push(`Failed to parse i18n generated dictionary files: ${err.message}`);
+      }
     }
   }
   

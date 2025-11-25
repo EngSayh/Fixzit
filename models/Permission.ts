@@ -1,12 +1,12 @@
-import { Schema, InferSchemaType, model, models } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import { Schema, InferSchemaType, model, models } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
 
 /**
  * Permission Model
- * 
+ *
  * Represents an atomic permission in the system.
  * Format: "module:action" (e.g., "finance:invoice.read")
- * 
+ *
  * Examples:
  * - workorders:create
  * - finance:invoice.read
@@ -26,7 +26,7 @@ const PermissionSchema = new Schema(
     },
     description: {
       type: String,
-      default: '',
+      default: "",
       trim: true,
     },
     module: {
@@ -47,8 +47,8 @@ const PermissionSchema = new Schema(
   },
   {
     timestamps: true,
-    collection: 'permissions',
-  }
+    collection: "permissions",
+  },
 );
 
 // Indexes for efficient querying
@@ -56,9 +56,9 @@ PermissionSchema.index({ module: 1, action: 1 });
 PermissionSchema.index({ key: 1 }, { unique: true });
 
 // Pre-save hook to extract module and action from key
-PermissionSchema.pre('save', function (next) {
-  if (this.isModified('key')) {
-    const [module, action] = this.key.split(':');
+PermissionSchema.pre("save", function (next) {
+  if (this.isModified("key")) {
+    const [module, action] = this.key.split(":");
     if (module && action) {
       this.module = module;
       this.action = action;
@@ -82,5 +82,5 @@ PermissionSchema.methods.toSafeObject = function () {
 
 export type Permission = InferSchemaType<typeof PermissionSchema>;
 
-const PermissionModel = getModel<Permission>('Permission', PermissionSchema);
+const PermissionModel = getModel<Permission>("Permission", PermissionSchema);
 export default PermissionModel;

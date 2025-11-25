@@ -4,8 +4,12 @@ export type TextChunk = {
   index: number;
 };
 
-export function chunkText(input: string, chunkSize = 1000, overlap = 200): TextChunk[] {
-  const text = (input || '').replace(/\r\n?/g, '\n');
+export function chunkText(
+  input: string,
+  chunkSize = 1000,
+  overlap = 200,
+): TextChunk[] {
+  const text = (input || "").replace(/\r\n?/g, "\n");
   const chunks: TextChunk[] = [];
   if (!text.trim()) return chunks;
   let start = 0;
@@ -21,4 +25,3 @@ export function chunkText(input: string, chunkSize = 1000, overlap = 200): TextC
   }
   return chunks;
 }
-

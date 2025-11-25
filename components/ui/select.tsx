@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { ChevronDown } from 'lucide-react';
-import { logger } from '@/lib/logger';
-import type { ReactNode } from 'react';
+import React from "react";
+import { ChevronDown } from "lucide-react";
+import { logger } from "@/lib/logger";
+import type { ReactNode } from "react";
 
 // Helper: detect placeholder passed via legacy <SelectValue placeholder="..."> usage
-const SELECT_VALUE_DISPLAY_NAME = 'SelectValue';
+const SELECT_VALUE_DISPLAY_NAME = "SelectValue";
 
 type SelectValuePlaceholderProps = {
   placeholder?: string;
@@ -40,7 +40,7 @@ function extractPlaceholderFromNode(node: ReactNode): string | undefined {
   }
   if (isSelectValueElement(node)) {
     const maybe = node.props.placeholder;
-    if (typeof maybe === 'string' && maybe.trim().length > 0) {
+    if (typeof maybe === "string" && maybe.trim().length > 0) {
       return maybe;
     }
   }
@@ -75,19 +75,22 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
  * use a dedicated Combobox component built with Radix UI.
  */
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ 
-    className = '', 
-    wrapperClassName = '', 
-    children, 
-    placeholder, 
-    onValueChange, 
-    onChange,
-    value,
-    defaultValue,
-    ...props 
-  }, ref) => {
-    
-    const derivedPlaceholder = placeholder ?? extractPlaceholderFromNode(children);
+  (
+    {
+      className = "",
+      wrapperClassName = "",
+      children,
+      placeholder,
+      onValueChange,
+      onChange,
+      value,
+      defaultValue,
+      ...props
+    },
+    ref,
+  ) => {
+    const derivedPlaceholder =
+      placeholder ?? extractPlaceholderFromNode(children);
 
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
       // Propagate the original event
@@ -108,7 +111,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     if (value !== undefined) {
       selectProps.value = value;
     } else {
-      selectProps.defaultValue = defaultValue ?? (derivedPlaceholder ? '' : undefined);
+      selectProps.defaultValue =
+        defaultValue ?? (derivedPlaceholder ? "" : undefined);
     }
 
     return (
@@ -136,7 +140,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               {derivedPlaceholder}
             </option>
           )}
-          
+
           {children}
         </select>
         <ChevronDown
@@ -145,14 +149,14 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         />
       </div>
     );
-  }
+  },
 );
-Select.displayName = 'Select';
-
+Select.displayName = "Select";
 
 // --- Select Item Component ---
 
-interface SelectItemProps extends React.OptionHTMLAttributes<HTMLOptionElement> {
+interface SelectItemProps
+  extends React.OptionHTMLAttributes<HTMLOptionElement> {
   children: React.ReactNode;
 }
 
@@ -161,7 +165,11 @@ interface SelectItemProps extends React.OptionHTMLAttributes<HTMLOptionElement> 
  * It MUST only be used as a child of <Select> or <SelectGroup>.
  * It does NOT support rich HTML children (divs, paragraphs, etc.).
  */
-export const SelectItem: React.FC<SelectItemProps> = ({ className = '', children, ...props }) => {
+export const SelectItem: React.FC<SelectItemProps> = ({
+  className = "",
+  children,
+  ...props
+}) => {
   // We no longer need complex text extraction.
   // The native <option> element will render React children (like strings, numbers, or simple spans).
   // If a developer passes invalid HTML (like a <div>), React will correctly warn them.
@@ -179,12 +187,12 @@ export const SelectItem: React.FC<SelectItemProps> = ({ className = '', children
     </option>
   );
 };
-SelectItem.displayName = 'SelectItem';
-
+SelectItem.displayName = "SelectItem";
 
 // --- Select Group Component ---
 
-interface SelectGroupProps extends React.OptgroupHTMLAttributes<HTMLOptGroupElement> {
+interface SelectGroupProps
+  extends React.OptgroupHTMLAttributes<HTMLOptGroupElement> {
   children: React.ReactNode;
   label: string;
 }
@@ -192,7 +200,12 @@ interface SelectGroupProps extends React.OptgroupHTMLAttributes<HTMLOptGroupElem
 /**
  * A native HTML <optgroup> component for grouping <SelectItem>s.
  */
-export const SelectGroup: React.FC<SelectGroupProps> = ({ className = '', children, label, ...props }) => {
+export const SelectGroup: React.FC<SelectGroupProps> = ({
+  className = "",
+  children,
+  label,
+  ...props
+}) => {
   return (
     <optgroup
       className={`font-semibold py-1.5 ${className}`}
@@ -203,7 +216,7 @@ export const SelectGroup: React.FC<SelectGroupProps> = ({ className = '', childr
     </optgroup>
   );
 };
-SelectGroup.displayName = 'SelectGroup';
+SelectGroup.displayName = "SelectGroup";
 
 // --- BACKWARD COMPATIBILITY EXPORTS ---
 // These components are provided for backward compatibility with the old API.
@@ -223,7 +236,7 @@ export const SelectTrigger: React.FC<SelectTriggerProps> = ({ children }) => {
   // This component does nothing - it's just a passthrough for compatibility
   return <>{children}</>;
 };
-SelectTrigger.displayName = 'SelectTrigger';
+SelectTrigger.displayName = "SelectTrigger";
 
 interface SelectContentProps extends React.HTMLAttributes<HTMLDivElement> {
   children?: React.ReactNode;
@@ -238,7 +251,7 @@ export const SelectContent: React.FC<SelectContentProps> = ({ children }) => {
   // This component does nothing - it's just a passthrough for compatibility
   return <>{children}</>;
 };
-SelectContent.displayName = 'SelectContent';
+SelectContent.displayName = "SelectContent";
 
 interface SelectValueProps
   extends React.HTMLAttributes<HTMLSpanElement>,
@@ -253,22 +266,26 @@ let hasLoggedSelectValueWarning = false;
  */
 export const SelectValue: React.FC<SelectValueProps> = () => {
   // Warn developers during development
-  if (process.env.NODE_ENV !== 'production' && !hasLoggedSelectValueWarning) {
+  if (process.env.NODE_ENV !== "production" && !hasLoggedSelectValueWarning) {
     hasLoggedSelectValueWarning = true;
-    import('../../lib/logger').then(({ logWarn }) => {
-      logWarn(
-        'SelectValue is deprecated and non-functional with the new native Select. ' +
-        'Use the placeholder prop on <Select> instead: <Select placeholder="...">. ' +
-        'See migration guide for details.',
-        {
-          component: 'SelectValue',
-          action: 'deprecationWarning',
-          context: 'Use Select placeholder prop instead',
-        }
+    import("../../lib/logger")
+      .then(({ logWarn }) => {
+        logWarn(
+          "SelectValue is deprecated and non-functional with the new native Select. " +
+            'Use the placeholder prop on <Select> instead: <Select placeholder="...">. ' +
+            "See migration guide for details.",
+          {
+            component: "SelectValue",
+            action: "deprecationWarning",
+            context: "Use Select placeholder prop instead",
+          },
+        );
+      })
+      .catch((logErr) =>
+        logger.error("Failed to load logger:", { error: logErr }),
       );
-    }).catch(logErr => logger.error('Failed to load logger:', { error: logErr }));
   }
   // This component does nothing - the native select handles its own value display
   return null;
 };
-SelectValue.displayName = 'SelectValue';
+SelectValue.displayName = "SelectValue";

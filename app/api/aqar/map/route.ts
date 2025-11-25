@@ -1,12 +1,12 @@
-import { NextRequest} from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { buildRateLimitKey } from '@/server/security/rateLimitKey';
-import { AqarListing } from '@/models/aqar';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { AqarListing } from "@/models/aqar";
 
 // Constants for clustering grid cell calculation
 const MIN_CELL_SIZE_DEGREES = 0.01; // avoid excessive granularity
@@ -36,7 +36,12 @@ export async function GET(req: NextRequest) {
     try {
       user = await getSessionUser(req);
     } catch {
-      user = { id: 'guest', role: 'SUPER_ADMIN' as unknown, orgId: 'demo-tenant', tenantId: 'demo-tenant' };
+      user = {
+        id: "guest",
+        role: "SUPER_ADMIN" as unknown,
+        orgId: "demo-tenant",
+        tenantId: "demo-tenant",
+      };
     }
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
@@ -44,27 +49,27 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const n = Number(searchParams.get('n'));
-    const s = Number(searchParams.get('s'));
-    const e = Number(searchParams.get('e'));
-    const w = Number(searchParams.get('w'));
-    const z = Math.max(1, Math.min(20, Number(searchParams.get('z') || '10')));
+    const n = Number(searchParams.get("n"));
+    const s = Number(searchParams.get("s"));
+    const e = Number(searchParams.get("e"));
+    const w = Number(searchParams.get("w"));
+    const z = Math.max(1, Math.min(20, Number(searchParams.get("z") || "10")));
 
-    if ([n, s, e, w].some(v => Number.isNaN(v))) {
-      return createSecureResponse({ error: 'Invalid bbox' }, 400, req);
+    if ([n, s, e, w].some((v) => Number.isNaN(v))) {
+      return createSecureResponse({ error: "Invalid bbox" }, 400, req);
     }
 
     const cell = Math.max(
       MIN_CELL_SIZE_DEGREES,
-      LATITUDE_RANGE_DEGREES / Math.pow(ZOOM_EXPONENT_BASE, z + 2)
+      LATITUDE_RANGE_DEGREES / Math.pow(ZOOM_EXPONENT_BASE, z + 2),
     );
 
     await connectToDatabase();
 
     const match: Record<string, unknown> = {
-      status: 'ACTIVE',
-      'location.geo.coordinates.1': { $gte: s, $lte: n },
-      'location.geo.coordinates.0': { $gte: w, $lte: e },
+      status: "ACTIVE",
+      "location.geo.coordinates.1": { $gte: s, $lte: n },
+      "location.geo.coordinates.0": { $gte: w, $lte: e },
     };
 
     if (user?.orgId) {
@@ -73,25 +78,30 @@ export async function GET(req: NextRequest) {
 
     const pipeline = [
       { $match: match },
-      { $project: {
-        lat: { $arrayElemAt: ['$location.geo.coordinates', 1] },
-        lng: { $arrayElemAt: ['$location.geo.coordinates', 0] },
-        price: '$price.amount',
-        isAuction: '$auction.isAuction',
-        rnplEligible: '$rnplEligible',
-      }},
-      { $addFields: {
-        gx: { $multiply: [ { $floor: { $divide: ['$lat', cell] } }, cell ] },
-        gy: { $multiply: [ { $floor: { $divide: ['$lng', cell] } }, cell ] }}},
+      {
+        $project: {
+          lat: { $arrayElemAt: ["$location.geo.coordinates", 1] },
+          lng: { $arrayElemAt: ["$location.geo.coordinates", 0] },
+          price: "$price.amount",
+          isAuction: "$auction.isAuction",
+          rnplEligible: "$rnplEligible",
+        },
+      },
+      {
+        $addFields: {
+          gx: { $multiply: [{ $floor: { $divide: ["$lat", cell] } }, cell] },
+          gy: { $multiply: [{ $floor: { $divide: ["$lng", cell] } }, cell] },
+        },
+      },
       {
         $group: {
-          _id: { gx: '$gx', gy: '$gy' },
+          _id: { gx: "$gx", gy: "$gy" },
           count: { $sum: 1 },
-          avgPrice: { $avg: '$price' },
-          lat: { $avg: '$lat' },
-          lng: { $avg: '$lng' },
-          auctions: { $sum: { $cond: ['$isAuction', 1, 0] } },
-          rnpl: { $sum: { $cond: ['$rnplEligible', 1, 0] } },
+          avgPrice: { $avg: "$price" },
+          lat: { $avg: "$lat" },
+          lng: { $avg: "$lng" },
+          auctions: { $sum: { $cond: ["$isAuction", 1, 0] } },
+          rnpl: { $sum: { $cond: ["$rnplEligible", 1, 0] } },
         },
       },
       { $limit: 5000 },
@@ -120,6 +130,6 @@ export async function GET(req: NextRequest) {
 
     return createSecureResponse({ clusters }, 200, req);
   } catch {
-    return createSecureResponse({ error: 'Internal server error' }, 500, req);
+    return createSecureResponse({ error: "Internal server error" }, 500, req);
   }
 }

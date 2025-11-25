@@ -5,6 +5,7 @@ This document outlines the immediate steps to complete before deployment.
 ## Status Overview
 
 ✅ **COMPLETED:**
+
 - MongoDB URI configured with cloud database (Atlas format)
 - Environment variables added (ZATCA, MEILI_MASTER_KEY)
 - TypeScript errors fixed (icon imports, type casting)
@@ -14,6 +15,7 @@ This document outlines the immediate steps to complete before deployment.
 - Automated verification script created
 
 ⚠️ **PENDING MANUAL VERIFICATION:**
+
 - HTTP route crawl completion
 - FM workflow UI testing
 - Unit test execution
@@ -43,6 +45,7 @@ pnpm verify:routes
 > **Tip:** Run these commands from the repository root so `pnpm verify:routes` / `pnpm verify:routes:http` resolve correctly. The HTTP crawl inside the script boots Next.js on `http://127.0.0.1:4010` by default; set `ROUTE_VERIFY_BASE` if you need a different port/host.
 
 **What this does:**
+
 - ✅ Validates environment variables
 - ✅ Checks TypeScript compilation (`pnpm tsc --noEmit`)
 - ✅ Runs HTTP route verification via `pnpm verify:routes:http`
@@ -63,28 +66,32 @@ pnpm dev
 
 Then navigate to and test:
 
-| Workflow | URL | Actions to Test |
-|----------|-----|----------------|
-| **Assets** | http://localhost:3000/fm/assets | Create new asset, verify API accepts payload |
-| **Audits** | http://localhost:3000/fm/compliance | Create audit plan, check submission |
-| **CRM Account** | http://localhost:3000/fm/crm | Add account/lead, verify persistence |
-| **Payments** | http://localhost:3000/fm/finance/payments | Record payment, check validation |
-| **Invoices** | http://localhost:3000/fm/finance/invoices | Generate invoice, verify ZATCA compliance |
-| **Reports** | http://localhost:3000/fm/reports | Build custom report, export data |
+| Workflow        | URL                                       | Actions to Test                              |
+| --------------- | ----------------------------------------- | -------------------------------------------- |
+| **Assets**      | http://localhost:3000/fm/assets           | Create new asset, verify API accepts payload |
+| **Audits**      | http://localhost:3000/fm/compliance       | Create audit plan, check submission          |
+| **CRM Account** | http://localhost:3000/fm/crm              | Add account/lead, verify persistence         |
+| **Payments**    | http://localhost:3000/fm/finance/payments | Record payment, check validation             |
+| **Invoices**    | http://localhost:3000/fm/finance/invoices | Generate invoice, verify ZATCA compliance    |
+| **Reports**     | http://localhost:3000/fm/reports          | Build custom report, export data             |
 
 **For each workflow:**
+
 1. Fill out the form with test data
 2. Submit and verify no console errors
 3. Check network tab shows 200/201 response
 4. Confirm data appears in list view
 
 **Known issues to watch for:**
+
 - Type mismatches in Select components (should be fixed)
 - Missing environment variables causing API failures
 - Icon rendering issues (FileShield, ClipboardPlus replacements)
 
 #### 🔁 Superadmin Support Context Smoke Test
+
 Super admins now rely on the SupportOrgSwitcher (`TopBar → Select customer`). Before signing off:
+
 1. Log in as a superadmin user.
 2. Open the SupportOrgSwitcher, search by corporate ID, and pick a tenant.
 3. Visit `/fm/finance/invoices`, `/fm/finance/payments`, `/fm/properties`, `/fm/system/integrations`, and `/fm/support/tickets/new`.
@@ -100,6 +107,7 @@ Document any failures (e.g., cookies not applied, APIs still reading the old org
 Verify the sidebar navigation with different roles and subscription plans:
 
 #### Test Case 1: Manager + Standard Plan
+
 ```bash
 # In MongoDB or your admin panel:
 # 1. Set user role to 'MANAGER' or 'FM_MANAGER'
@@ -108,20 +116,23 @@ Verify the sidebar navigation with different roles and subscription plans:
 ```
 
 **Expected modules for Manager + Standard:**
+
 - ✅ Dashboard
 - ✅ Work Orders
-- ✅ Properties  
+- ✅ Properties
 - ✅ Support
 - ❌ Finance (not in Standard plan)
 - ❌ HR (not in Standard plan)
 
 #### Test Case 2: Manager + Premium Plan
+
 ```bash
 # Change org subscriptionPlan to 'PREMIUM'
 # Re-login and check sidebar
 ```
 
 **Expected modules for Manager + Premium:**
+
 - ✅ All modules from Standard
 - ✅ Finance
 - ✅ HR
@@ -130,6 +141,7 @@ Verify the sidebar navigation with different roles and subscription plans:
 - ✅ Reports
 
 **Verify:**
+
 - Badges show correct counts (pending work orders, invoices)
 - Sub-menu items are accessible
 - No console errors when navigating
@@ -152,7 +164,8 @@ pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms
 ./scripts/verify-deployment-readiness.sh --full
 ```
 
-**Expected outcome:** 
+**Expected outcome:**
+
 - ✅ Notification sent successfully
 - ✅ No integration errors
 - ✅ Telemetry webhook called (if configured)
@@ -194,12 +207,14 @@ git push origin your-branch
 ```
 
 **Expected outcome:**
+
 - ✅ Build completes successfully
 - ✅ Route verification passes
 - ✅ No TypeScript errors
 - ✅ All tests pass
 
 **If CI fails:**
+
 1. Check workflow logs for specific error
 2. Compare with local verification results
 3. Ensure all secrets are set correctly
@@ -221,12 +236,15 @@ Review and update if needed:
 ## Production Deployment Requirements
 
 ### Database
+
 - **MongoDB Atlas** (or compatible cloud database)
 - Local MongoDB URIs (`mongodb://localhost`) are rejected in production builds
 - See `/docs/ROUTE_VERIFICATION_GUIDE.md` for setup instructions
 
 ### Environment Variables
+
 All production deployments require:
+
 - `MONGODB_URI` - Cloud MongoDB connection string
 - `NEXTAUTH_SECRET` - Authentication secret (generate with `openssl rand -base64 32`)
 - `MEILI_MASTER_KEY` - Meilisearch API key
@@ -265,6 +283,7 @@ Before proceeding to staging/production deployment:
 **Issue:** Pre-existing type errors in unrelated files
 
 **Solution:**
+
 ```bash
 # Identify specific errors
 pnpm tsc --noEmit | grep "error TS" | head -20
@@ -277,6 +296,7 @@ pnpm tsc --noEmit | grep "error TS" | head -20
 **Issue:** Server doesn't start or routes are slow
 
 **Solution:**
+
 ```bash
 # Check for port conflicts (verify:routes:http defaults to 4010)
 lsof -ti:4010 | xargs kill -9
@@ -294,6 +314,7 @@ curl http://localhost:3000/fm/dashboard
 **Issue:** API endpoints failing due to missing dependencies
 
 **Solution:**
+
 1. Check browser console for specific error
 2. Verify MongoDB connection in server logs
 3. Ensure all required env vars are set:
@@ -307,6 +328,7 @@ curl http://localhost:3000/fm/dashboard
 **Issue:** GitHub secrets not set or incorrect
 
 **Solution:**
+
 1. Compare local `.env.local` with GitHub secrets
 2. Check secret names match exactly (case-sensitive)
 3. Verify no trailing spaces or quotes in secret values
@@ -339,6 +361,7 @@ For issues during verification:
    - `/tmp/test-output.log` - Unit test results
 
 2. **Run individual checks:**
+
    ```bash
    pnpm tsc --noEmit           # TypeScript only
    pnpm verify:routes:http     # Routes only
@@ -359,14 +382,14 @@ For issues during verification:
 
 ## Timeline Estimate
 
-| Step | Duration | Can Run in Parallel |
-|------|----------|---------------------|
-| Automated Verification | 3-7 min | No |
-| FM Workflow Testing | 15-30 min | After build |
-| Navigation Testing | 10-15 min | With workflow testing |
-| Notification Tests | 2-5 min | Optional |
-| CI Pipeline | 5-10 min | After push |
-| Documentation | 5 min | Any time |
+| Step                   | Duration  | Can Run in Parallel   |
+| ---------------------- | --------- | --------------------- |
+| Automated Verification | 3-7 min   | No                    |
+| FM Workflow Testing    | 15-30 min | After build           |
+| Navigation Testing     | 10-15 min | With workflow testing |
+| Notification Tests     | 2-5 min   | Optional              |
+| CI Pipeline            | 5-10 min  | After push            |
+| Documentation          | 5 min     | Any time              |
 
 **Total:** 40-72 minutes for complete verification
 

@@ -1,5 +1,5 @@
 const isTestEnv =
-  process.env.NODE_ENV === 'test' ||
+  process.env.NODE_ENV === "test" ||
   process.env.VITEST_WORKER_ID !== undefined ||
   process.env.JEST_WORKER_ID !== undefined;
 
@@ -14,11 +14,16 @@ type RequireEnvOptions = {
   testFallback?: string;
 };
 
-export const TEST_JWT_SECRET = 'test-secret-key-for-jest-tests-minimum-32-characters-long';
+export const TEST_JWT_SECRET =
+  "test-secret-key-for-jest-tests-minimum-32-characters-long";
 
-export function requireEnv(name: string, options: RequireEnvOptions = {}): string {
+export function requireEnv(
+  name: string,
+  options: RequireEnvOptions = {},
+): string {
   const value = process.env[name];
-  const hasValue = value !== undefined && (options.allowEmpty || value.trim() !== '');
+  const hasValue =
+    value !== undefined && (options.allowEmpty || value.trim() !== "");
 
   if (hasValue) {
     return value as string;
@@ -30,13 +35,13 @@ export function requireEnv(name: string, options: RequireEnvOptions = {}): strin
   }
 
   throw new Error(
-    `Missing required environment variable "${name}". Set it in your environment or secrets manager.`
+    `Missing required environment variable "${name}". Set it in your environment or secrets manager.`,
   );
 }
 
 export function getEnv(name: string, fallback?: string): string | undefined {
   const value = process.env[name];
-  if (value === undefined || value === '') {
+  if (value === undefined || value === "") {
     return fallback;
   }
   return value;

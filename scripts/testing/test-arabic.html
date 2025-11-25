@@ -1,215 +1,272 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Arabic Translation Verification Test</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .header {
-            background: linear-gradient(135deg, #0061A8 0%, #00A859 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-        }
-        .test-section {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .status-pass { color: #00A859; font-weight: bold; }
-        .status-fail { color: #dc3545; font-weight: bold; }
-        .status-pending { color: #ffc107; font-weight: bold; }
-        .test-item {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .test-item:last-child { border-bottom: none; }
-        .arabic-text {
-            font-size: 16px;
-            direction: rtl;
-            text-align: right;
-        }
-        button {
-            background: #0061A8;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 5px;
-        }
-        button:hover { background: #004d86; }
-        .iframe-container {
-            width: 100%;
-            height: 600px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .header {
+        background: linear-gradient(135deg, #0061a8 0%, #00a859 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+      }
+      .test-section {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .status-pass {
+        color: #00a859;
+        font-weight: bold;
+      }
+      .status-fail {
+        color: #dc3545;
+        font-weight: bold;
+      }
+      .status-pending {
+        color: #ffc107;
+        font-weight: bold;
+      }
+      .test-item {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .test-item:last-child {
+        border-bottom: none;
+      }
+      .arabic-text {
+        font-size: 16px;
+        direction: rtl;
+        text-align: right;
+      }
+      button {
+        background: #0061a8;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background: #004d86;
+      }
+      .iframe-container {
+        width: 100%;
+        height: 600px;
+        border: 2px solid #ddd;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="header">
-        <h1>🔍 Arabic Translation Verification Test</h1>
-        <p>Testing all Arabic translations on Fixzit @ localhost:3000</p>
-        <p><strong>Date:</strong> October 14, 2025 | <strong>Status:</strong> <span class="status-pending">TESTING</span></p>
+      <h1>🔍 Arabic Translation Verification Test</h1>
+      <p>Testing all Arabic translations on Fixzit @ localhost:3000</p>
+      <p>
+        <strong>Date:</strong> October 14, 2025 | <strong>Status:</strong>
+        <span class="status-pending">TESTING</span>
+      </p>
     </div>
 
     <div class="test-section">
-        <h2>📋 Quick Actions</h2>
-        <button onclick="openPage('/login')">🔐 Test Login Page</button>
-        <button onclick="openPage('/dashboard')">🏠 Test Dashboard</button>
-        <button onclick="openPage('/finance')">💰 Test Finance</button>
-        <button onclick="openPage('/properties')" aria-label="Test Properties">🏘️ Test Properties</button>
-        <button onclick="openPage('/work-orders')">🔧 Test Work Orders</button>
-        <button onclick="testLogout()">🚪 Test Logout</button>
-        <button onclick="checkLocalStorage()">💾 Check localStorage</button>
+      <h2>📋 Quick Actions</h2>
+      <button onclick="openPage('/login')">🔐 Test Login Page</button>
+      <button onclick="openPage('/dashboard')">🏠 Test Dashboard</button>
+      <button onclick="openPage('/finance')">💰 Test Finance</button>
+      <button onclick="openPage('/properties')" aria-label="Test Properties">
+        🏘️ Test Properties
+      </button>
+      <button onclick="openPage('/work-orders')">🔧 Test Work Orders</button>
+      <button onclick="testLogout()">🚪 Test Logout</button>
+      <button onclick="checkLocalStorage()">💾 Check localStorage</button>
     </div>
 
     <div class="test-section">
-        <h2>✅ Translation Keys Verified</h2>
-        <div class="test-item">
-            <span><strong>Navigation Keys:</strong> nav.dashboard, nav.properties, etc.</span>
-            <span class="status-pass">✅ 23 keys</span>
-        </div>
-        <div class="test-item">
-            <span><strong>Common Action Keys:</strong> common.save, common.edit, etc.</span>
-            <span class="status-pass">✅ 30+ keys</span>
-        </div>
-        <div class="test-item">
-            <span><strong>Login Page Keys:</strong> login.title, login.personalEmail, etc.</span>
-            <span class="status-pass">✅ 29 keys</span>
-        </div>
-        <div class="test-item">
-            <span><strong>Arabic Characters:</strong> All text uses proper Arabic Unicode</span>
-            <span class="status-pass">✅ Verified</span>
-        </div>
-        <div class="test-item">
-            <span><strong>RTL Support:</strong> isRTL flag implementation</span>
-            <span class="status-pass">✅ Implemented</span>
-        </div>
+      <h2>✅ Translation Keys Verified</h2>
+      <div class="test-item">
+        <span
+          ><strong>Navigation Keys:</strong> nav.dashboard, nav.properties,
+          etc.</span
+        >
+        <span class="status-pass">✅ 23 keys</span>
+      </div>
+      <div class="test-item">
+        <span
+          ><strong>Common Action Keys:</strong> common.save, common.edit,
+          etc.</span
+        >
+        <span class="status-pass">✅ 30+ keys</span>
+      </div>
+      <div class="test-item">
+        <span
+          ><strong>Login Page Keys:</strong> login.title, login.personalEmail,
+          etc.</span
+        >
+        <span class="status-pass">✅ 29 keys</span>
+      </div>
+      <div class="test-item">
+        <span
+          ><strong>Arabic Characters:</strong> All text uses proper Arabic
+          Unicode</span
+        >
+        <span class="status-pass">✅ Verified</span>
+      </div>
+      <div class="test-item">
+        <span><strong>RTL Support:</strong> isRTL flag implementation</span>
+        <span class="status-pass">✅ Implemented</span>
+      </div>
     </div>
 
     <div class="test-section">
-        <h2>🔐 Logout Function Verification</h2>
-        <div class="test-item">
-            <span><strong>Language Preservation:</strong> savedLang stored before logout</span>
-            <span class="status-pass">✅ Verified in TopBar logout handler</span>
-        </div>
-        <div class="test-item">
-            <span><strong>Locale Preservation:</strong> savedLocale stored before logout</span>
-            <span class="status-pass">✅ Verified in TopBar logout handler</span>
-        </div>
-        <div class="test-item">
-            <span><strong>Restore Language:</strong> fxz.lang restored after storage clear</span>
-            <span class="status-pass">✅ Verified in TopBar logout handler</span>
-        </div>
-        <div class="test-item">
-            <span><strong>Restore Locale:</strong> fxz.locale restored after storage clear</span>
-            <span class="status-pass">✅ Verified in TopBar logout handler</span>
-        </div>
-        <div class="test-item">
-            <span><strong>Implementation Location:</strong> components/TopBar.tsx handleLogout function</span>
-            <span class="status-pass">✅ Verified</span>
-        </div>
+      <h2>🔐 Logout Function Verification</h2>
+      <div class="test-item">
+        <span
+          ><strong>Language Preservation:</strong> savedLang stored before
+          logout</span
+        >
+        <span class="status-pass">✅ Verified in TopBar logout handler</span>
+      </div>
+      <div class="test-item">
+        <span
+          ><strong>Locale Preservation:</strong> savedLocale stored before
+          logout</span
+        >
+        <span class="status-pass">✅ Verified in TopBar logout handler</span>
+      </div>
+      <div class="test-item">
+        <span
+          ><strong>Restore Language:</strong> fxz.lang restored after storage
+          clear</span
+        >
+        <span class="status-pass">✅ Verified in TopBar logout handler</span>
+      </div>
+      <div class="test-item">
+        <span
+          ><strong>Restore Locale:</strong> fxz.locale restored after storage
+          clear</span
+        >
+        <span class="status-pass">✅ Verified in TopBar logout handler</span>
+      </div>
+      <div class="test-item">
+        <span
+          ><strong>Implementation Location:</strong> components/TopBar.tsx
+          handleLogout function</span
+        >
+        <span class="status-pass">✅ Verified</span>
+      </div>
     </div>
 
     <div class="test-section">
-        <h2>🌐 Sample Arabic Translations</h2>
-        <div class="test-item">
-            <span><strong>common.save:</strong></span>
-            <span class="arabic-text">حفظ</span>
-        </div>
-        <div class="test-item">
-            <span><strong>common.edit:</strong></span>
-            <span class="arabic-text">تعديل</span>
-        </div>
-        <div class="test-item">
-            <span><strong>common.create:</strong></span>
-            <span class="arabic-text">إنشاء</span>
-        </div>
-        <div class="test-item">
-            <span><strong>common.delete:</strong></span>
-            <span class="arabic-text">حذف</span>
-        </div>
-        <div class="test-item">
-            <span><strong>common.cancel:</strong></span>
-            <span class="arabic-text">إلغاء</span>
-        </div>
-        <div class="test-item">
-            <span><strong>login.title:</strong></span>
-            <span class="arabic-text">تسجيل الدخول إلى فيكزيت</span>
-        </div>
-        <div class="test-item">
-            <span><strong>nav.dashboard:</strong></span>
-            <span class="arabic-text">لوحة التحكم</span>
-        </div>
-        <div class="test-item">
-            <span><strong>nav.properties:</strong></span>
-            <span class="arabic-text">العقارات</span>
-        </div>
+      <h2>🌐 Sample Arabic Translations</h2>
+      <div class="test-item">
+        <span><strong>common.save:</strong></span>
+        <span class="arabic-text">حفظ</span>
+      </div>
+      <div class="test-item">
+        <span><strong>common.edit:</strong></span>
+        <span class="arabic-text">تعديل</span>
+      </div>
+      <div class="test-item">
+        <span><strong>common.create:</strong></span>
+        <span class="arabic-text">إنشاء</span>
+      </div>
+      <div class="test-item">
+        <span><strong>common.delete:</strong></span>
+        <span class="arabic-text">حذف</span>
+      </div>
+      <div class="test-item">
+        <span><strong>common.cancel:</strong></span>
+        <span class="arabic-text">إلغاء</span>
+      </div>
+      <div class="test-item">
+        <span><strong>login.title:</strong></span>
+        <span class="arabic-text">تسجيل الدخول إلى فيكزيت</span>
+      </div>
+      <div class="test-item">
+        <span><strong>nav.dashboard:</strong></span>
+        <span class="arabic-text">لوحة التحكم</span>
+      </div>
+      <div class="test-item">
+        <span><strong>nav.properties:</strong></span>
+        <span class="arabic-text">العقارات</span>
+      </div>
     </div>
 
     <div class="test-section">
-        <h2>🖥️ Live Application Test</h2>
-        <p><strong>Instructions:</strong></p>
-        <ol>
-            <li>Click any button above to load a page in the iframe below</li>
-            <li>Use the language selector to switch to Arabic (العربية)</li>
-            <li>Verify all buttons and text appear in Arabic</li>
-            <li>Check that layout is right-to-left (RTL)</li>
-            <li>Test logout and verify language persists</li>
-        </ol>
-        <div class="iframe-container" id="iframeContainer">
-            <iframe id="testFrame" src="http://localhost:3000/login"></iframe>
-        </div>
+      <h2>🖥️ Live Application Test</h2>
+      <p><strong>Instructions:</strong></p>
+      <ol>
+        <li>Click any button above to load a page in the iframe below</li>
+        <li>Use the language selector to switch to Arabic (العربية)</li>
+        <li>Verify all buttons and text appear in Arabic</li>
+        <li>Check that layout is right-to-left (RTL)</li>
+        <li>Test logout and verify language persists</li>
+      </ol>
+      <div class="iframe-container" id="iframeContainer">
+        <iframe id="testFrame" src="http://localhost:3000/login"></iframe>
+      </div>
     </div>
 
     <script>
-        function openPage(path) {
-            document.getElementById('testFrame').src = `http://localhost:3000${path}`;
-        }
+      function openPage(path) {
+        document.getElementById("testFrame").src =
+          `http://localhost:3000${path}`;
+      }
 
-        function testLogout() {
-            alert('Testing Logout:\n\n1. Switch to Arabic in the app above\n2. Login to the system\n3. Click the logout button in TopBar\n4. Verify you return to login page\n5. Check that language is still Arabic\n\nLogout function preserves fxz.lang and fxz.locale in localStorage');
-        }
+      function testLogout() {
+        alert(
+          "Testing Logout:\n\n1. Switch to Arabic in the app above\n2. Login to the system\n3. Click the logout button in TopBar\n4. Verify you return to login page\n5. Check that language is still Arabic\n\nLogout function preserves fxz.lang and fxz.locale in localStorage",
+        );
+      }
 
-        function checkLocalStorage() {
-            try {
-                const frame = document.getElementById('testFrame');
-                const lang = localStorage.getItem('fxz.lang') || 'Not set (check iframe storage)';
-                const locale = localStorage.getItem('fxz.locale') || 'Not set (check iframe storage)';
-                
-                alert(`localStorage Check:\n\nfxz.lang: ${lang}\nfxz.locale: ${locale}\n\nNote: Iframe may have separate localStorage.\nCheck browser DevTools → Application → localStorage → http://localhost:3000`);
-            } catch (e) {
-                alert('Cannot access iframe localStorage due to same-origin policy.\n\nPlease open the app directly and check:\nDevTools → Application → Local Storage → http://localhost:3000\n\nLook for:\n- fxz.lang (should be "ar" or "en")\n- fxz.locale (should be "ar-SA" or "en-US")');
-            }
-        }
+      function checkLocalStorage() {
+        try {
+          const frame = document.getElementById("testFrame");
+          const lang =
+            localStorage.getItem("fxz.lang") ||
+            "Not set (check iframe storage)";
+          const locale =
+            localStorage.getItem("fxz.locale") ||
+            "Not set (check iframe storage)";
 
-        // Auto-load login page
-        window.onload = function() {
-            console.log('✅ Arabic Translation Test Page Loaded');
-            console.log('✅ Application running on http://localhost:3000');
-            console.log('✅ Use buttons above to test different pages');
-        };
+          alert(
+            `localStorage Check:\n\nfxz.lang: ${lang}\nfxz.locale: ${locale}\n\nNote: Iframe may have separate localStorage.\nCheck browser DevTools → Application → localStorage → http://localhost:3000`,
+          );
+        } catch (e) {
+          alert(
+            'Cannot access iframe localStorage due to same-origin policy.\n\nPlease open the app directly and check:\nDevTools → Application → Local Storage → http://localhost:3000\n\nLook for:\n- fxz.lang (should be "ar" or "en")\n- fxz.locale (should be "ar-SA" or "en-US")',
+          );
+        }
+      }
+
+      // Auto-load login page
+      window.onload = function () {
+        console.log("✅ Arabic Translation Test Page Loaded");
+        console.log("✅ Application running on http://localhost:3000");
+        console.log("✅ Use buttons above to test different pages");
+      };
     </script>
-</body>
+  </body>
 </html>

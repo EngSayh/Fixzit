@@ -31,9 +31,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ListingCreate'
+              $ref: "#/components/schemas/ListingCreate"
       responses:
-        '201':
+        "201":
           description: Listing created
           content:
             application/json:
@@ -41,13 +41,13 @@ paths:
                 type: object
                 properties:
                   listing:
-                    $ref: '#/components/schemas/Listing'
+                    $ref: "#/components/schemas/Listing"
                   correlationId:
                     type: string
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /aqar/listings/{id}:
     get:
@@ -59,9 +59,9 @@ paths:
           required: true
           schema:
             type: string
-            pattern: '^[a-fA-F0-9]{24}$'
+            pattern: "^[a-fA-F0-9]{24}$"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
@@ -69,13 +69,13 @@ paths:
                 type: object
                 properties:
                   listing:
-                    $ref: '#/components/schemas/Listing'
+                    $ref: "#/components/schemas/Listing"
                   correlationId:
                     type: string
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /aqar/listings/search:
     get:
@@ -102,7 +102,7 @@ paths:
             type: number
             minimum: 0.1
             maximum: 20
-          description: 'Capped to 20km for performance'
+          description: "Capped to 20km for performance"
         - name: page
           in: query
           schema:
@@ -115,7 +115,7 @@ paths:
             minimum: 1
             maximum: 100
       responses:
-        '200':
+        "200":
           description: OK
 
   /aqar/leads:
@@ -126,13 +126,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LeadCreate'
+              $ref: "#/components/schemas/LeadCreate"
       responses:
-        '201':
+        "201":
           description: Created
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '429':
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
           description: Too Many Requests
 
   /aqar/favorites:
@@ -145,11 +145,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FavoriteCreate'
+              $ref: "#/components/schemas/FavoriteCreate"
       responses:
-        '201':
+        "201":
           description: Created
-        '409':
+        "409":
           description: Conflict (already favorited)
 
   /aqar/packages:
@@ -169,10 +169,10 @@ paths:
                   type: string
                   enum: [STARTER, STANDARD, PREMIUM]
       responses:
-        '201':
+        "201":
           description: Created
-        '400':
-          $ref: '#/components/responses/BadRequest'
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
   /souq/returns/refund:
     post:
@@ -242,7 +242,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
     Forbidden:
       description: Forbidden
     NotFound:
@@ -272,7 +272,18 @@ components:
 
     ListingCreate:
       type: object
-      required: [intent, propertyType, title, description, city, price, areaSqm, geo, source]
+      required:
+        [
+          intent,
+          propertyType,
+          title,
+          description,
+          city,
+          price,
+          areaSqm,
+          geo,
+          source,
+        ]
       properties:
         intent:
           type: string

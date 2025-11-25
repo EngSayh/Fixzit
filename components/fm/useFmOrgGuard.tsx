@@ -1,15 +1,22 @@
-'use client';
+"use client";
 
-import React, { useMemo } from 'react';
-import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
-import { OrgContextPrompt, type OrgContextPromptProps } from '@/components/fm/OrgContextPrompt';
-import type { ModuleId } from '@/config/navigation';
-import { useSupportOrg } from '@/contexts/SupportOrgContext';
-import { useTranslation } from '@/contexts/TranslationContext';
+import React, { useMemo } from "react";
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import {
+  OrgContextPrompt,
+  type OrgContextPromptProps,
+} from "@/components/fm/OrgContextPrompt";
+import type { ModuleId } from "@/config/navigation";
+import { useSupportOrg } from "@/contexts/SupportOrgContext";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 type PromptOverrides = Pick<
   OrgContextPromptProps,
-  'title' | 'impersonationMessage' | 'fallbackMessage' | 'children' | 'className'
+  | "title"
+  | "impersonationMessage"
+  | "fallbackMessage"
+  | "children"
+  | "className"
 >;
 
 interface UseFmOrgGuardOptions {
@@ -21,7 +28,8 @@ interface UseFmOrgGuardOptions {
 export function useFmOrgGuard(options: UseFmOrgGuardOptions = {}) {
   const { moduleId, promptOverrides, includeTabsInFallback } = options;
   const showTabs = includeTabsInFallback ?? Boolean(moduleId);
-  const { effectiveOrgId, canImpersonate, supportOrg, loading } = useSupportOrg();
+  const { effectiveOrgId, canImpersonate, supportOrg, loading } =
+    useSupportOrg();
   const { t } = useTranslation();
   const hasOrgContext = Boolean(effectiveOrgId);
 
@@ -49,7 +57,14 @@ export function useFmOrgGuard(options: UseFmOrgGuardOptions = {}) {
         {fallbackContent}
       </div>
     );
-  }, [hasOrgContext, loading, canImpersonate, promptOverrides, moduleId, showTabs]);
+  }, [
+    hasOrgContext,
+    loading,
+    canImpersonate,
+    promptOverrides,
+    moduleId,
+    showTabs,
+  ]);
 
   const supportBanner = useMemo(() => {
     if (!supportOrg) {
@@ -58,7 +73,9 @@ export function useFmOrgGuard(options: UseFmOrgGuardOptions = {}) {
 
     return (
       <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-        {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        {t("fm.org.supportContext", "Support context: {{name}}", {
+          name: supportOrg.name,
+        })}
       </div>
     );
   }, [supportOrg, t]);

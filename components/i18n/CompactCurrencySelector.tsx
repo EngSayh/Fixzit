@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { DollarSign } from 'lucide-react';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { DollarSign } from "lucide-react";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 // Simplified currency options for auth pages
 const AUTH_CURRENCIES = [
-  { code: 'SAR', symbol: '﷼', name: 'Saudi Riyal' },
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: "SAR", symbol: "﷼", name: "Saudi Riyal" },
+  { code: "USD", symbol: "$", name: "US Dollar" },
+  { code: "EUR", symbol: "€", name: "Euro" },
 ];
 
 interface CompactCurrencySelectorProps {
@@ -18,7 +18,9 @@ interface CompactCurrencySelectorProps {
  * Simplified currency selector for authentication pages.
  * Shows only 2-3 common currencies in a simple dropdown.
  */
-export default function CompactCurrencySelector({ className = '' }: CompactCurrencySelectorProps) {
+export default function CompactCurrencySelector({
+  className = "",
+}: CompactCurrencySelectorProps) {
   const { currency, setCurrency } = useCurrency();
 
   const handleChange = (newCurrency: string) => {

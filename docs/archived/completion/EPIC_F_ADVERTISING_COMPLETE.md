@@ -19,8 +19,8 @@ The advertising system enables sellers to create CPC (cost-per-click) advertisin
    - **Ad Rank**: Bid Amount × Quality Score
    - **CPC Calculation**: (Next Highest Ad Rank / Winner's Quality Score) + $0.01
    - **Auction Types**:
-     * Search Auction: 3 slots for sponsored products in search results
-     * Product Display Auction: 2 slots for PDP sidebar ads
+     - Search Auction: 3 slots for sponsored products in search results
+     - Product Display Auction: 2 slots for PDP sidebar ads
    - **Event Tracking**: Impressions, clicks, conversions with MongoDB persistence
 
 2. **Budget Manager** (`services/souq/ads/budget-manager.ts` - 340 lines)
@@ -34,10 +34,10 @@ The advertising system enables sellers to create CPC (cost-per-click) advertisin
 3. **Campaign Service** (`services/souq/ads/campaign-service.ts` - 470 lines)
    - **Campaign Types**: Sponsored Products, Sponsored Brands, Product Display
    - **Targeting Options**:
-     * Keyword (exact/phrase/broad match)
-     * Category targeting
-     * Product (ASIN) targeting
-     * Automatic (AI-driven)
+     - Keyword (exact/phrase/broad match)
+     - Category targeting
+     - Product (ASIN) targeting
+     - Automatic (AI-driven)
    - **Bidding Strategies**: Manual, Automatic
    - **Performance Metrics**: CTR, CPC, ACOS, ROAS calculation
    - **Auto-Bid Generation**: Creates optimized bids based on targeting strategy
@@ -86,32 +86,32 @@ The advertising system enables sellers to create CPC (cost-per-click) advertisin
 
 4. **Advertising Dashboard** (`app/marketplace/seller-central/advertising/page.tsx` - 650 lines)
    - **Overview Tab**:
-     * 5 metric cards: Total Spend, Impressions, Clicks, ACOS, ROAS
-     * Active campaigns summary with budget usage bars
-     * Quick actions (Create Campaign, View Reports)
+     - 5 metric cards: Total Spend, Impressions, Clicks, ACOS, ROAS
+     - Active campaigns summary with budget usage bars
+     - Quick actions (Create Campaign, View Reports)
    - **Campaigns Tab**:
-     * Campaign list table with sortable columns
-     * Filters: Status (active/paused/ended), Type (sponsored_products/brands/display)
-     * Search by campaign name
-     * Actions: Pause/Resume, Edit, Delete, View Details
-     * Budget progress bars (green/yellow/red based on usage)
+     - Campaign list table with sortable columns
+     - Filters: Status (active/paused/ended), Type (sponsored_products/brands/display)
+     - Search by campaign name
+     - Actions: Pause/Resume, Edit, Delete, View Details
+     - Budget progress bars (green/yellow/red based on usage)
    - **Real-time Data**: Loads campaign stats on page load
    - **Responsive**: Mobile-friendly grid and table layouts
 
 5. **Performance Report** (`components/seller/advertising/PerformanceReport.tsx` - 550 lines)
    - **Date Range Selector**: Today, Yesterday, Last 7/30 days, Custom
    - **Performance Charts**:
-     * Impressions & Clicks over time (dual visualization)
-     * Daily spend bar chart
-     * 7-day mini charts with visual bars
+     - Impressions & Clicks over time (dual visualization)
+     - Daily spend bar chart
+     - 7-day mini charts with visual bars
    - **Keyword Performance Table**:
-     * Columns: Keyword, Campaign, Impressions, Clicks, CTR, Avg CPC, Spend, Conversions, ACOS, ROAS
-     * Sortable by all columns (asc/desc)
-     * CTR trend indicators (up/down icons)
-     * ACOS color coding (green <20%, yellow <30%, red >30%)
+     - Columns: Keyword, Campaign, Impressions, Clicks, CTR, Avg CPC, Spend, Conversions, ACOS, ROAS
+     - Sortable by all columns (asc/desc)
+     - CTR trend indicators (up/down icons)
+     - ACOS color coding (green <20%, yellow <30%, red >30%)
    - **Product Performance Table**:
-     * Columns: Product ID, Name, Campaign, Impressions, Clicks, CTR, Conversions, Revenue, ACOS
-     * Same sorting and color coding as keywords
+     - Columns: Product ID, Name, Campaign, Impressions, Clicks, CTR, Conversions, Revenue, ACOS
+     - Same sorting and color coding as keywords
    - **Export to CSV**: Downloads complete dataset (all rows, not just visible)
    - **Pagination**: 50 rows per page with prev/next navigation
 
@@ -135,22 +135,26 @@ The advertising system enables sellers to create CPC (cost-per-click) advertisin
 ### Quality Score Components
 
 **CTR Score (0-10)**:
+
 - Formula: `min(CTR × 200, 10)`
 - 0.5% CTR = 1.0 score
 - 5% CTR = 10.0 score
 - Default for new ads: 5% (0.05)
 
 **Relevance Score (0-1)**:
+
 - Exact match: 1.0
 - Partial match: 0.8
 - Word overlap: overlap_count / max_words
 - Category exact: 1.0, broad: 0.3
 
 **Landing Page Quality (0-1)**:
+
 - Formula: `(rating/5 × 0.7) + (min(reviews/100, 1) × 0.3)`
 - Considers product rating and review count
 
 **Final Quality Score**:
+
 ```typescript
 qualityScore = (ctrScore × 0.5) + (relevanceScore × 0.3) + (lpqScore × 0.2)
 qualityScore = Math.max(0.1, Math.min(10, qualityScore)) // Clamp to 0.1-10
@@ -161,6 +165,7 @@ qualityScore = Math.max(0.1, Math.min(10, qualityScore)) // Clamp to 0.1-10
 **Redis Key Format**: `ad_budget:{campaignId}:{YYYY-MM-DD}`
 
 **Atomic Charging (Lua Script)**:
+
 ```lua
 local spent = redis.call('GET', KEYS[1]) or '0'
 local spentNum = tonumber(spent)
@@ -181,24 +186,26 @@ end
 ### Impression Tracking
 
 **Client-side Implementation**:
+
 ```typescript
 const observer = new IntersectionObserver(
   (entries) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting && !impressionTracked) {
         // Track impression via API
-        fetch('/api/souq/ads/impressions', {
-          method: 'POST',
+        fetch("/api/souq/ads/impressions", {
+          method: "POST",
           body: JSON.stringify({ bidId, campaignId, context }),
         });
       }
     });
   },
-  { threshold: 0.5 } // 50% visibility required
+  { threshold: 0.5 }, // 50% visibility required
 );
 ```
 
 **Server-side**:
+
 - Inserts event to `souq_ad_events` collection
 - Increments `impressions` in `souq_ad_stats` (upsert)
 - Updates campaign-level aggregates
@@ -206,6 +213,7 @@ const observer = new IntersectionObserver(
 ### Click Tracking
 
 **Client-side Flow**:
+
 ```typescript
 1. User clicks ad
 2. Prevent default navigation
@@ -215,6 +223,7 @@ const observer = new IntersectionObserver(
 ```
 
 **Server-side Flow**:
+
 ```typescript
 1. Validate budget availability (canCharge)
 2. Charge budget atomically (chargeBudget)
@@ -230,30 +239,36 @@ const observer = new IntersectionObserver(
 ### Calculated Metrics
 
 **CTR (Click-Through Rate)**:
+
 ```typescript
 CTR = (clicks / impressions) × 100
 ```
 
 **Average CPC**:
+
 ```typescript
-avgCpc = spend / clicks
+avgCpc = spend / clicks;
 ```
 
 **ACOS (Advertising Cost of Sales)**:
+
 ```typescript
 ACOS = (spend / revenue) × 100
 ```
+
 - Lower is better
 - <20% = Excellent (green)
 - 20-30% = Good (yellow)
-- >30% = Needs optimization (red)
+- > 30% = Needs optimization (red)
 
 **ROAS (Return on Ad Spend)**:
+
 ```typescript
-ROAS = revenue / spend
+ROAS = revenue / spend;
 ```
+
 - Higher is better
-- >4.0 = Excellent
+- > 4.0 = Excellent
 - 2.0-4.0 = Good
 - <2.0 = Needs optimization
 
@@ -262,6 +277,7 @@ ROAS = revenue / spend
 ### MongoDB Collections
 
 1. **souq_ad_campaigns**
+
 ```typescript
 {
   campaignId: string,
@@ -288,6 +304,7 @@ ROAS = revenue / spend
 ```
 
 2. **souq_ad_bids**
+
 ```typescript
 {
   bidId: string,
@@ -302,6 +319,7 @@ ROAS = revenue / spend
 ```
 
 3. **souq_ad_stats**
+
 ```typescript
 {
   bidId: string,
@@ -316,6 +334,7 @@ ROAS = revenue / spend
 ```
 
 4. **souq_ad_events**
+
 ```typescript
 {
   eventId: string,
@@ -350,17 +369,20 @@ ROAS = revenue / spend
 ### Revenue Projections
 
 **Assumptions**:
+
 - 1,000 active sellers
 - Average daily budget: $100 SAR
 - Average campaign: 3 days/week active
 - Platform take: 100% of ad spend (pure revenue)
 
 **Monthly Revenue**:
+
 ```
 1,000 sellers × $100/day × 12 days/month = $1.2M SAR/month
 ```
 
 **Annual Revenue**:
+
 ```
 $1.2M × 12 months = $14.4M SAR/year
 ```
@@ -375,6 +397,7 @@ $1.2M × 12 months = $14.4M SAR/year
 ## Integration Points
 
 ### Search Results Page
+
 ```typescript
 // app/souq/search/page.tsx
 import { AuctionEngine } from '@/services/souq/ads/auction-engine';
@@ -394,6 +417,7 @@ const searchAds = await AuctionEngine.runSearchAuction({
 ```
 
 ### Product Detail Page
+
 ```typescript
 // app/souq/products/[fsin]/page.tsx
 import { AuctionEngine } from '@/services/souq/ads/auction-engine';
@@ -412,6 +436,7 @@ const displayAds = await AuctionEngine.runProductDisplayAuction({
 ## Testing Checklist
 
 ### Unit Tests (TODO)
+
 - [ ] Auction engine quality score calculation
 - [ ] Budget manager atomic charging
 - [ ] Campaign service CRUD operations
@@ -419,12 +444,14 @@ const displayAds = await AuctionEngine.runProductDisplayAuction({
 - [ ] Performance metrics calculation
 
 ### Integration Tests (TODO)
+
 - [ ] End-to-end auction flow
 - [ ] Budget tracking and alerts
 - [ ] Impression and click tracking
 - [ ] Campaign lifecycle (create → active → pause → resume → delete)
 
 ### Manual Testing
+
 - [x] Create campaign via UI
 - [x] Ad rendering in search results
 - [x] Impression tracking (Intersection Observer)
@@ -445,6 +472,7 @@ const displayAds = await AuctionEngine.runProductDisplayAuction({
 ## Future Enhancements
 
 ### Phase 2.1 (Next Sprint)
+
 1. **Conversion Tracking**: Integrate with order system to track post-click conversions
 2. **Campaign Creation Wizard**: Multi-step wizard UI for campaign setup
 3. **Bid Automation**: Auto-adjust bids based on performance goals (target ACOS)
@@ -452,6 +480,7 @@ const displayAds = await AuctionEngine.runProductDisplayAuction({
 5. **Ad Scheduling**: Dayparting and date-based scheduling
 
 ### Phase 2.2 (Future)
+
 1. **A/B Testing**: Test multiple ad creatives and bids
 2. **Geographic Targeting**: Target specific cities or regions
 3. **Audience Targeting**: Retargeting based on browsing/purchase history
@@ -464,12 +493,14 @@ const displayAds = await AuctionEngine.runProductDisplayAuction({
 ## Success Metrics
 
 ### Technical KPIs
+
 - [x] Auction latency: <50ms (target achieved)
 - [x] Budget accuracy: 100% (no over-spending)
 - [x] API p95 latency: <200ms (target achieved)
 - [x] Impression tracking: <2s delay (Intersection Observer)
 
 ### Business KPIs (To Track)
+
 - [ ] Active campaigns: Target 100+ in first month
 - [ ] Average CTR: Target 1-2% (industry standard)
 - [ ] Average CPC: Target $0.50 SAR
@@ -479,11 +510,13 @@ const displayAds = await AuctionEngine.runProductDisplayAuction({
 ## Deployment Requirements
 
 ### Infrastructure
+
 - **Redis**: Required for budget tracking (single instance OK for MVP)
 - **MongoDB**: Already deployed (reuse existing)
 - **Node.js**: v18+ with TypeScript
 
 ### Environment Variables
+
 ```bash
 # Already configured in existing .env
 REDIS_URL=redis://localhost:6379
@@ -491,6 +524,7 @@ MONGODB_URI=mongodb://localhost:27017/fixzit
 ```
 
 ### Monitoring
+
 - Monitor Redis memory usage (budget keys)
 - Track auction latency (CloudWatch/Datadog)
 - Alert on high error rates (clicks API, budget exhaustion)
@@ -498,12 +532,14 @@ MONGODB_URI=mongodb://localhost:27017/fixzit
 ## Documentation
 
 ### For Sellers
+
 - [ ] Campaign creation guide
 - [ ] Bidding strategies explained
 - [ ] Performance metrics glossary
 - [ ] Best practices for ACOS optimization
 
 ### For Developers
+
 - [x] Auction algorithm documentation (this file)
 - [x] API reference (inline JSDoc comments)
 - [ ] Integration guide for new ad placements
@@ -512,6 +548,7 @@ MONGODB_URI=mongodb://localhost:27017/fixzit
 ## Conclusion
 
 The advertising system is production-ready with all core features implemented:
+
 - ✅ Sophisticated auction engine with quality scoring
 - ✅ Real-time budget tracking with atomic operations
 - ✅ Complete campaign management UI
@@ -519,6 +556,7 @@ The advertising system is production-ready with all core features implemented:
 - ✅ Performance analytics and reporting
 
 **Next Steps**:
+
 1. Deploy to staging environment
 2. Run load tests (100+ concurrent auctions)
 3. Train sellers on campaign creation

@@ -13,6 +13,7 @@
 **Decision Made:** Option A - Remove unused locales
 
 **Implementation Complete (November 18, 2024):**
+
 - ✅ Removed 7 unused locales (FR/PT/RU/ES/UR/HI/ZH) from codebase
 - ✅ Updated `ALL_LOCALES` to `['en', 'ar']` in generator and loader
 - ✅ Deleted 7 unused dictionary files (saved ~10.5MB)
@@ -20,6 +21,7 @@
 - ✅ System now honestly represents capabilities
 
 **Current State:**
+
 - Supported languages: 2 (English, Arabic)
 - Total keys: 29,672 per locale
 - Coverage: 100% for both locales ✅
@@ -35,17 +37,17 @@
 
 Running `pnpm i18n:coverage` shows:
 
-| Locale | Total Keys | Localized | Identical to EN | Coverage | Status |
-|--------|------------|-----------|-----------------|----------|--------|
-| ✅ en  | 29,672 | 29,672 | 0 | 100.0% | Real English translations |
-| ✅ ar  | 29,672 | 29,672 | 0 | 100.0% | Real Arabic translations |
-| ❌ fr  | 29,672 | 0 | 29,672 | 0.0% | English text (auto-filled) |
-| ❌ pt  | 29,672 | 0 | 29,672 | 0.0% | English text (auto-filled) |
-| ❌ ru  | 29,672 | 0 | 29,672 | 0.0% | English text (auto-filled) |
-| ❌ es  | 29,672 | 0 | 29,672 | 0.0% | English text (auto-filled) |
-| ❌ ur  | 29,672 | 0 | 29,672 | 0.0% | English text (auto-filled) |
-| ❌ hi  | 29,672 | 0 | 29,672 | 0.0% | English text (auto-filled) |
-| ❌ zh  | 29,672 | 0 | 29,672 | 0.0% | English text (auto-filled) |
+| Locale | Total Keys | Localized | Identical to EN | Coverage | Status                     |
+| ------ | ---------- | --------- | --------------- | -------- | -------------------------- |
+| ✅ en  | 29,672     | 29,672    | 0               | 100.0%   | Real English translations  |
+| ✅ ar  | 29,672     | 29,672    | 0               | 100.0%   | Real Arabic translations   |
+| ❌ fr  | 29,672     | 0         | 29,672          | 0.0%     | English text (auto-filled) |
+| ❌ pt  | 29,672     | 0         | 29,672          | 0.0%     | English text (auto-filled) |
+| ❌ ru  | 29,672     | 0         | 29,672          | 0.0%     | English text (auto-filled) |
+| ❌ es  | 29,672     | 0         | 29,672          | 0.0%     | English text (auto-filled) |
+| ❌ ur  | 29,672     | 0         | 29,672          | 0.0%     | English text (auto-filled) |
+| ❌ hi  | 29,672     | 0         | 29,672          | 0.0%     | English text (auto-filled) |
+| ❌ zh  | 29,672     | 0         | 29,672          | 0.0%     | English text (auto-filled) |
 
 **Aggregate:** 207,704 target-locale translation slots, **0 localized** (100% English text)
 
@@ -54,6 +56,7 @@ Running `pnpm i18n:coverage` shows:
 ### What "0% Coverage" Means
 
 Users selecting French will see:
+
 ```
 Button label: "Save" (should be "Enregistrer")
 Cancel button: "Cancel" (should be "Annuler")
@@ -67,9 +70,11 @@ This is **not** a localization bug. The infrastructure works perfectly. The cont
 ## Issues Found (and Fixed)
 
 ### 1. ✅ Hard-Coded Locale List
+
 **Problem:** `detect-unlocalized-strings.ts` always audited all 9 locales, even when product should only ship EN/AR  
 **Fix:** Added `--locales=<comma-separated>` flag  
 **Usage:**
+
 ```bash
 # Audit only EN/AR (recommended for now)
 pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
@@ -79,16 +84,19 @@ pnpm i18n:coverage
 ```
 
 ### 2. ✅ Misleading Overall Coverage Math
+
 **Problem:** Coverage calculation only counted exact EN matches, ignoring case-insensitive/whitespace matches and AR fallbacks  
 **Fix:** Updated aggregate math to sum all unlocalized categories  
 **Impact:** "Overall coverage" now accurately reflects 0% for auto-filled locales
 
 ### 3. ✅ AR Fallback Misattribution
+
 **Problem:** Identical-to-AR strings treated as "localized" for every locale, masking copy-paste errors  
 **Fix:** AR fallback now counts as unlocalized unless `--allow-ar-fallback` explicitly set  
 **Example:** French showing Arabic text was counted as "translated" before
 
 ### 4. ✅ Source Locale Assumptions
+
 **Problem:** Recommendations always assumed EN/AR as sources, even when user filtered to fewer locales  
 **Fix:** Source/target lists now derive from `--locales` parameter  
 **Impact:** `--locales=en,ar` no longer produces "7 locales unlocalized" warnings
@@ -105,16 +113,19 @@ pnpm i18n:coverage
 **Benefit:** Honest representation of capabilities
 
 **What Changes:**
+
 1. Update `ALL_LOCALES` in 3 files to `['en', 'ar']`:
    - `scripts/generate-dictionaries-json.ts` (line 15)
    - `lib/i18n/translation-loader.ts` (line 12)
 
 2. Delete unused artifacts:
+
    ```bash
    rm i18n/generated/{fr,pt,ru,es,ur,hi,zh}.dictionary.json
    ```
 
 3. Regenerate and verify:
+
    ```bash
    pnpm i18n:build
    pnpm i18n:coverage --locales=en,ar  # Should show 100% for both
@@ -127,12 +138,14 @@ pnpm i18n:coverage
    - User-facing language selector: Hide FR/PT/RU/ES/UR/HI/ZH
 
 **Pros:**
+
 - ✅ Honest about capabilities
 - ✅ Faster builds (smaller artifacts)
 - ✅ No misleading user experience
 - ✅ Reversible (can add back when translations arrive)
 
 **Cons:**
+
 - ❌ Limited market reach (EN/AR regions only)
 - ❌ Can't claim "9 language support" in marketing
 
@@ -146,6 +159,7 @@ pnpm i18n:coverage
 **Benefit:** Real 9-language product
 
 **Cost Breakdown:**
+
 - Target locales: FR, PT, RU, ES, UR, HI, ZH (7 languages)
 - Source keys: 29,672 keys
 - Estimated words: ~74,180 words (2.5 avg words/key)
@@ -154,11 +168,13 @@ pnpm i18n:coverage
 - **Total cost:** $51,926 - $103,852
 
 **Timeline:**
+
 1. **Week 1:** RFP & contract
 2. **Week 2-3:** Translation work
 3. **Week 4:** Import & validation
 
 **Implementation:**
+
 ```bash
 # 1. Export EN dictionary (TODO: create this script)
 npx tsx scripts/export-to-xliff.ts
@@ -186,17 +202,20 @@ git commit -m "feat(i18n): add professional translations for 7 languages"
 ## Recommended Path: Option A → Option B
 
 **Phase 1 (Now):** Implement Option A
+
 - Remove unused locales
 - Update documentation ("EN/AR only")
 - Ship honest product
 
 **Phase 2 (When Budget Approved):** Execute Option B
+
 - RFP to translation vendors
 - Continue development in EN/AR
 - Import translations when ready
 - Add locales back to codebase
 
 **Why This Works:**
+
 - ✅ Honest representation today
 - ✅ Infrastructure ready for future
 - ✅ Incremental language support
@@ -224,6 +243,7 @@ git commit -m "feat(i18n): add professional translations for 7 languages"
 ```
 
 **To enable strict checks for all locales:**
+
 ```yaml
 # Remove --locales=en,ar to audit all 9
 npx tsx scripts/detect-unlocalized-strings.ts --fail-threshold=0.1
@@ -241,6 +261,7 @@ pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar --silent || {
 ```
 
 **To make it blocking:**
+
 ```bash
 # Remove || {...} to exit 1 on failure
 pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar
@@ -293,24 +314,29 @@ pnpm tsx scripts/detect-unlocalized-strings.ts --silent
 ## Next Steps by Role
 
 ### Product Manager / Stakeholder
+
 1. Review this document
 2. Decide: Option A (remove) OR Option B (budget $52k-104k)
 3. Communicate decision to engineering
 4. If Option B: Approve budget and 2-4 week timeline
 
 ### Engineering Lead
+
 **If Option A:**
+
 - Assign developer (1 hour task)
 - Update documentation
 - Deploy to staging
 
 **If Option B:**
+
 - Create RFP for vendors
 - Create export/import scripts
 - Set up vendor account
 - Review translated files
 
 ### Developer (If Option A)
+
 ```bash
 # 1. Update ALL_LOCALES to ['en', 'ar'] in 2 files
 # 2. Delete unused artifacts
@@ -330,6 +356,7 @@ git commit -m "chore(i18n): remove unsupported locales"
 ```
 
 ### QA Engineer (If Option B)
+
 1. Test UI in all 9 languages
 2. Verify language selector works
 3. Check for text overflow
@@ -337,6 +364,7 @@ git commit -m "chore(i18n): remove unsupported locales"
 5. Spot-check 50-100 keys per locale
 
 **Sign-off criteria:**
+
 - ✅ `pnpm i18n:coverage` shows ≥90% for all
 - ✅ No English in non-English locales
 - ✅ No formatting breaks
@@ -357,6 +385,7 @@ A: Not recommended. Users see inconsistent experience. Better: 100% or stick to 
 
 **Q: How to maintain translations for new features?**  
 A: Two approaches:
+
 1. Vendor retainer for ongoing work
 2. Quarterly translation batches
 
@@ -404,6 +433,7 @@ git commit -m "chore(i18n): update coverage baseline"
 - **Decision Framework:** `HIGH_FIDELITY_LOCALE_PLAN.md`
 
 **Commands:**
+
 ```bash
 pnpm i18n:build              # Regenerate dictionaries
 pnpm i18n:coverage           # High-fidelity analysis

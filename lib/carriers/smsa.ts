@@ -1,18 +1,18 @@
-import { 
-  ICarrierInterface, 
-  ICreateShipmentParams, 
-  IShipmentResponse, 
+import {
+  ICarrierInterface,
+  ICreateShipmentParams,
+  IShipmentResponse,
   ITrackingResponse,
   IRateParams,
   IRate,
-  ITrackingEvent
-} from '@/services/souq/fulfillment-service';
-import { logger } from '@/lib/logger';
+  ITrackingEvent,
+} from "@/services/souq/fulfillment-service";
+import { logger } from "@/lib/logger";
 
 /**
  * SMSA Express Carrier Integration
  * https://www.smsaexpress.com/api
- * 
+ *
  * Features:
  * - Express delivery across Saudi Arabia
  * - COD support
@@ -21,23 +21,25 @@ import { logger } from '@/lib/logger';
  */
 
 class SMSACarrier implements ICarrierInterface {
-  name = 'SMSA';
+  name = "SMSA";
   private apiKey: string;
   private passKey: string;
   private apiUrl: string;
 
   constructor() {
-    this.apiKey = process.env.SMSA_API_KEY || '';
-    this.passKey = process.env.SMSA_PASS_KEY || '';
-    this.apiUrl = process.env.SMSA_API_URL || 'https://api.smsaexpress.com/v1';
+    this.apiKey = process.env.SMSA_API_KEY || "";
+    this.passKey = process.env.SMSA_PASS_KEY || "";
+    this.apiUrl = process.env.SMSA_API_URL || "https://api.smsaexpress.com/v1";
   }
 
   /**
    * Create shipment and generate label
    */
-  async createShipment(params: ICreateShipmentParams): Promise<IShipmentResponse> {
+  async createShipment(
+    params: ICreateShipmentParams,
+  ): Promise<IShipmentResponse> {
     try {
-      logger.info('Creating SMSA shipment', { orderId: params.orderId });
+      logger.info("Creating SMSA shipment", { orderId: params.orderId });
 
       // Mock implementation - Replace with actual SMSA API call
       if (!this.apiKey) {
@@ -47,28 +49,28 @@ class SMSACarrier implements ICarrierInterface {
       const _shipmentData = {
         passKey: this.passKey,
         refNo: params.reference || params.orderNumber,
-        sentDate: new Date().toISOString().split('T')[0],
+        sentDate: new Date().toISOString().split("T")[0],
         idNo: params.orderId,
         cName: params.shipTo.name,
         cntry: params.shipTo.country,
         cCity: params.shipTo.city,
-        cZipCode: params.shipTo.postalCode || '',
-        cPOBox: '',
+        cZipCode: params.shipTo.postalCode || "",
+        cPOBox: "",
         cMobile: params.shipTo.phone,
         cTel1: params.shipTo.phone,
         cAddr1: params.shipTo.street,
-        shipType: params.serviceType === 'express' ? 'EXP' : 'DLV',
+        shipType: params.serviceType === "express" ? "EXP" : "DLV",
         PCs: params.packages.length.toString(),
-        cEmail: params.shipTo.email || '',
+        cEmail: params.shipTo.email || "",
         carrValue: params.declaredValue.toString(),
-        carrCurr: 'SAR',
-        codAmt: params.codAmount?.toString() || '0',
+        carrCurr: "SAR",
+        codAmt: params.codAmount?.toString() || "0",
         weight: params.packages[0].weight.toString(),
         custVal: params.declaredValue.toString(),
-        custCurr: 'SAR',
-        insrAmt: '0',
-        insrCurr: 'SAR',
-        itemDesc: params.packages[0].description
+        custCurr: "SAR",
+        insrAmt: "0",
+        insrCurr: "SAR",
+        itemDesc: params.packages[0].description,
       };
 
       // Actual API call would go here
@@ -82,12 +84,17 @@ class SMSACarrier implements ICarrierInterface {
       // });
 
       return this.mockCreateShipment(params);
-
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('SMSA shipment creation failed', { error, orderId: params.orderId });
-      throw new Error(`SMSA shipment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      logger.error("SMSA shipment creation failed", {
+        error,
+        orderId: params.orderId,
+      });
+      throw new Error(
+        `SMSA shipment failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -96,7 +103,7 @@ class SMSACarrier implements ICarrierInterface {
    */
   async getTracking(trackingNumber: string): Promise<ITrackingResponse> {
     try {
-      logger.info('Getting SMSA tracking', { trackingNumber });
+      logger.info("Getting SMSA tracking", { trackingNumber });
 
       // Mock implementation - Replace with actual API call
       if (!this.apiKey) {
@@ -111,12 +118,14 @@ class SMSACarrier implements ICarrierInterface {
       // });
 
       return this.mockGetTracking(trackingNumber);
-
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('SMSA tracking failed', { error, trackingNumber });
-      throw new Error(`SMSA tracking failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      logger.error("SMSA tracking failed", { error, trackingNumber });
+      throw new Error(
+        `SMSA tracking failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 
@@ -125,7 +134,7 @@ class SMSACarrier implements ICarrierInterface {
    */
   async cancelShipment(shipmentId: string): Promise<boolean> {
     try {
-      logger.info('Cancelling SMSA shipment', { shipmentId });
+      logger.info("Cancelling SMSA shipment", { shipmentId });
 
       // Mock implementation
       if (!this.apiKey) {
@@ -134,11 +143,11 @@ class SMSACarrier implements ICarrierInterface {
 
       // Actual API call would go here
       return true;
-
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('SMSA cancellation failed', { error, shipmentId });
+      logger.error("SMSA cancellation failed", { error, shipmentId });
       return false;
     }
   }
@@ -150,28 +159,28 @@ class SMSACarrier implements ICarrierInterface {
     try {
       const rates: IRate[] = [];
 
-      if (params.serviceType === 'express') {
+      if (params.serviceType === "express") {
         rates.push({
-          carrier: 'SMSA',
-          serviceType: 'Express',
+          carrier: "SMSA",
+          serviceType: "Express",
           cost: 22,
-          estimatedDays: 1
+          estimatedDays: 1,
         });
       }
 
       rates.push({
-        carrier: 'SMSA',
-        serviceType: 'Standard',
+        carrier: "SMSA",
+        serviceType: "Standard",
         cost: 12,
-        estimatedDays: 3
+        estimatedDays: 3,
       });
 
       return rates;
-
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('SMSA rates failed', { error, params });
+      logger.error("SMSA rates failed", { error, params });
       return [];
     }
   }
@@ -181,7 +190,7 @@ class SMSACarrier implements ICarrierInterface {
    */
   private mockCreateShipment(params: ICreateShipmentParams): IShipmentResponse {
     const trackingNumber = `SMSA${Date.now().toString().slice(-10)}`;
-    const deliveryDays = params.serviceType === 'express' ? 1 : 3;
+    const deliveryDays = params.serviceType === "express" ? 1 : 3;
     const estimatedDelivery = new Date();
     estimatedDelivery.setDate(estimatedDelivery.getDate() + deliveryDays);
 
@@ -190,7 +199,7 @@ class SMSACarrier implements ICarrierInterface {
       trackingNumber,
       labelUrl: `https://smsaexpress.com/labels/${trackingNumber}.pdf`,
       estimatedDelivery,
-      cost: params.serviceType === 'express' ? 22 : 12
+      cost: params.serviceType === "express" ? 22 : 12,
     };
   }
 
@@ -201,29 +210,29 @@ class SMSACarrier implements ICarrierInterface {
     const events: ITrackingEvent[] = [
       {
         timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        status: 'Shipment Created',
-        location: 'Riyadh',
-        description: 'Shipment received at origin'
+        status: "Shipment Created",
+        location: "Riyadh",
+        description: "Shipment received at origin",
       },
       {
         timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        status: 'In Transit',
-        location: 'Riyadh Hub',
-        description: 'Package in transit to destination'
+        status: "In Transit",
+        location: "Riyadh Hub",
+        description: "Package in transit to destination",
       },
       {
         timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-        status: 'Out for Delivery',
-        location: 'Jeddah',
-        description: 'Package out for delivery'
-      }
+        status: "Out for Delivery",
+        location: "Jeddah",
+        description: "Package out for delivery",
+      },
     ];
 
     return {
       trackingNumber,
-      status: 'out_for_delivery',
+      status: "out_for_delivery",
       events,
-      estimatedDelivery: new Date()
+      estimatedDelivery: new Date(),
     };
   }
 }

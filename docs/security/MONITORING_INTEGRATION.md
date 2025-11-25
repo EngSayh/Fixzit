@@ -6,10 +6,10 @@ For each rate-limited route, replace the import:
 
 ```typescript
 // OLD:
-import { enforceRateLimit } from '@/lib/middleware/rate-limit';
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 
 // NEW:
-import { enforceRateLimit } from '@/lib/middleware/enhanced-rate-limit';
+import { enforceRateLimit } from "@/lib/middleware/enhanced-rate-limit";
 ```
 
 The enhanced version includes automatic monitoring hooks.
@@ -19,18 +19,21 @@ The enhanced version includes automatic monitoring hooks.
 Update your `middleware.ts` file to use enhanced CORS:
 
 ```typescript
-import { handleCorsRequest, addCorsHeaders } from '@/lib/middleware/enhanced-cors';
+import {
+  handleCorsRequest,
+  addCorsHeaders,
+} from "@/lib/middleware/enhanced-cors";
 
 export async function middleware(request: NextRequest) {
   // Handle CORS with monitoring
   const corsResponse = handleCorsRequest(request);
   if (corsResponse) return corsResponse;
-  
+
   // ... rest of middleware logic
-  
+
   // Add CORS headers to response
   const response = NextResponse.next();
-  return addCorsHeaders(response, request.headers.get('origin'));
+  return addCorsHeaders(response, request.headers.get("origin"));
 }
 ```
 
@@ -50,14 +53,17 @@ cat .env.local.security >> .env.local
 Configure a webhook URL to receive security alerts:
 
 ### Option A: Slack
+
 1. Create a Slack webhook: https://api.slack.com/messaging/webhooks
 2. Set SECURITY_ALERT_WEBHOOK to your Slack webhook URL
 
 ### Option B: Discord
+
 1. Create a Discord webhook in your server settings
 2. Set SECURITY_ALERT_WEBHOOK to your Discord webhook URL
 
 ### Option C: Custom Service
+
 1. Deploy a webhook receiver (see examples/webhook-receiver.ts)
 2. Set SECURITY_ALERT_WEBHOOK to your service URL
 
@@ -80,16 +86,19 @@ grep "RateLimit|CORS|Auth" logs/*.log
 Use the queries in `docs/security/MONITORING_QUERIES.md` with your monitoring service.
 
 ### DataDog
+
 1. Create a new dashboard
 2. Add widgets using the provided queries
 3. Set up monitors for alert thresholds
 
 ### New Relic
+
 1. Create a new dashboard
 2. Add NRQL queries based on the templates
 3. Set up alert policies
 
 ### Grafana
+
 1. Create a new dashboard
 2. Add panels with LogQL/PromQL queries
 3. Configure alerting rules

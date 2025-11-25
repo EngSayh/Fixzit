@@ -34,14 +34,14 @@ All critical security vulnerabilities identified in the background agent audit h
 
 ```typescript
 // BEFORE (INSECURE):
-if (process.env.NODE_ENV === 'production') {
-  return '6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267';
+if (process.env.NODE_ENV === "production") {
+  return "6c042711c6357e833e41b9e439337fe58476d801f63b60761c72f3629506c267";
 }
 
 // AFTER (SECURE):
-if (process.env.NODE_ENV === 'production') {
-  console.error('🚨 CRITICAL: JWT_SECRET environment variable is required');
-  throw new Error('JWT_SECRET is required in production environment');
+if (process.env.NODE_ENV === "production") {
+  console.error("🚨 CRITICAL: JWT_SECRET environment variable is required");
+  throw new Error("JWT_SECRET is required in production environment");
 }
 ```
 
@@ -143,11 +143,11 @@ if (!rl.allowed) {
 
 export function handleApiError(error: any): NextResponse {
   if (error instanceof Error) {
-    console.error('Unhandled API error:', {
+    console.error("Unhandled API error:", {
       name: error.name,
       message: error.message,
-      stack: process.env.NODE_ENV === 'production' ? '[REDACTED]' : error.stack,
-      timestamp: new Date().toISOString()
+      stack: process.env.NODE_ENV === "production" ? "[REDACTED]" : error.stack,
+      timestamp: new Date().toISOString(),
     });
     return internalServerError(); // Generic message to client
   }
@@ -308,23 +308,23 @@ npm start
 
 ### Before Remediation
 
-| Issue | Severity | Status |
-|-------|----------|--------|
-| Hardcoded JWT Secret | 🔴 CRITICAL | Exposed |
-| .env.local in Git | 🔴 CRITICAL | Suspected |
-| No Rate Limiting | 🟠 HIGH | Missing |
-| Error Leakage | 🟠 HIGH | Possible |
-| **Overall Status** | **❌ NOT SAFE** | **BLOCKED** |
+| Issue                | Severity        | Status      |
+| -------------------- | --------------- | ----------- |
+| Hardcoded JWT Secret | 🔴 CRITICAL     | Exposed     |
+| .env.local in Git    | 🔴 CRITICAL     | Suspected   |
+| No Rate Limiting     | 🟠 HIGH         | Missing     |
+| Error Leakage        | 🟠 HIGH         | Possible    |
+| **Overall Status**   | **❌ NOT SAFE** | **BLOCKED** |
 
 ### After Remediation
 
-| Issue | Severity | Status |
-|-------|----------|--------|
-| Hardcoded JWT Secret | 🔴 CRITICAL | ✅ FIXED |
-| .env.local in Git | 🔴 CRITICAL | ✅ VERIFIED SAFE |
-| No Rate Limiting | 🟠 HIGH | ✅ IMPLEMENTED |
-| Error Leakage | 🟠 HIGH | ✅ SECURED |
-| **Overall Status** | **✅ PRODUCTION READY** | **APPROVED** |
+| Issue                | Severity                | Status           |
+| -------------------- | ----------------------- | ---------------- |
+| Hardcoded JWT Secret | 🔴 CRITICAL             | ✅ FIXED         |
+| .env.local in Git    | 🔴 CRITICAL             | ✅ VERIFIED SAFE |
+| No Rate Limiting     | 🟠 HIGH                 | ✅ IMPLEMENTED   |
+| Error Leakage        | 🟠 HIGH                 | ✅ SECURED       |
+| **Overall Status**   | **✅ PRODUCTION READY** | **APPROVED**     |
 
 ---
 

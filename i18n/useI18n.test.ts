@@ -13,18 +13,18 @@
  * - Unknown placeholders remain intact
  * - t function identity stability with same dict reference and change on new dict reference
  */
-import React, { PropsWithChildren, useMemo, useState } from 'react';
-import { renderHook, act } from '@testing-library/react';
-import { useI18n } from './useI18n';
-import { I18nContext } from './I18nProvider';
+import React, { PropsWithChildren, useMemo, useState } from "react";
+import { renderHook, act } from "@testing-library/react";
+import { useI18n } from "./useI18n";
+import { I18nContext } from "./I18nProvider";
 
-import { vi } from 'vitest';
+import { vi } from "vitest";
 type Dict = Record<string, unknown>;
 
 function TestI18nProvider({
   children,
   initialDict,
-  initialLocale = 'en',
+  initialLocale = "en",
 }: PropsWithChildren<{ initialDict: Dict; initialLocale?: string }>) {
   const [dict, setDict] = useState<Dict>(initialDict);
   const [locale, setLocale] = useState<string>(initialLocale);
@@ -37,7 +37,7 @@ function TestI18nProvider({
       // Expose a testing-only setter via context cast if needed by consumers in future
       // but keep it out of the public shape used in production.
     }),
-    [dict, locale]
+    [dict, locale],
   );
 
   // For tests that need to update dict, expose a portal on window (scoped) to update it.
@@ -45,63 +45,65 @@ function TestI18nProvider({
   return React.createElement(
     I18nContext.Provider,
     { value: value as any },
-    children
+    children,
   );
 }
 
-describe('useI18n', () => {
-  it('throws if used without I18nProvider', () => {
+describe("useI18n", () => {
+  it("throws if used without I18nProvider", () => {
     // Suppress console error from React error boundary
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => renderHook(() => useI18n())).toThrow('useI18n must be used within <I18nProvider />');
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => renderHook(() => useI18n())).toThrow(
+      "useI18n must be used within <I18nProvider />",
+    );
     spy.mockRestore();
   });
 
-  it('returns provided dict via context and a t function', () => {
-    const dict = { greeting: 'Hello' };
+  it("returns provided dict via context and a t function", () => {
+    const dict = { greeting: "Hello" };
     const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
       React.createElement(
         I18nContext.Provider,
-        { value: { dict, locale: 'en', setLocale: () => {} } as any },
-        children
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
       );
     const { result } = renderHook(() => useI18n(), { wrapper });
     expect(result.current.t).toBeInstanceOf(Function);
     expect(result.current.dict).toBe(dict);
-    expect(result.current.locale).toBe('en');
+    expect(result.current.locale).toBe("en");
   });
 
-  it('resolves simple keys and nested dot-path keys', () => {
+  it("resolves simple keys and nested dot-path keys", () => {
     const dict = {
-      hello: 'Hello',
-      nested: { deep: { value: 'Deep Value' } },
+      hello: "Hello",
+      nested: { deep: { value: "Deep Value" } },
     };
     const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
       React.createElement(
         I18nContext.Provider,
-        { value: { dict, locale: 'en', setLocale: () => {} } as any },
-        children
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
       );
     const { result } = renderHook(() => useI18n(), { wrapper });
 
-    expect(result.current.t('hello')).toBe('Hello');
-    expect(result.current.t('nested.deep.value')).toBe('Deep Value');
+    expect(result.current.t("hello")).toBe("Hello");
+    expect(result.current.t("nested.deep.value")).toBe("Deep Value");
   });
 
-  it('falls back to key when missing in dict', () => {
-    const dict = { hello: 'Hello' };
+  it("falls back to key when missing in dict", () => {
+    const dict = { hello: "Hello" };
     const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
       React.createElement(
         I18nContext.Provider,
-        { value: { dict, locale: 'en', setLocale: () => {} } as any },
-        children
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
       );
     const { result } = renderHook(() => useI18n(), { wrapper });
 
-    expect(result.current.t('missing.key')).toBe('missing.key');
+    expect(result.current.t("missing.key")).toBe("missing.key");
   });
 
-  it('falls back to key when the resolved value is not a string (e.g., object, number, boolean)', () => {
+  it("falls back to key when the resolved value is not a string (e.g., object, number, boolean)", () => {
     const dict = {
       obj: { nested: { a: 1 } },
       num: 42,
@@ -110,104 +112,112 @@ describe('useI18n', () => {
     const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
       React.createElement(
         I18nContext.Provider,
-        { value: { dict, locale: 'en', setLocale: () => {} } as any },
-        children
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
       );
     const { result } = renderHook(() => useI18n(), { wrapper });
 
-    expect(result.current.t('obj')).toBe('obj');
-    expect(result.current.t('num')).toBe('num');
-    expect(result.current.t('bool')).toBe('bool');
+    expect(result.current.t("obj")).toBe("obj");
+    expect(result.current.t("num")).toBe("num");
+    expect(result.current.t("bool")).toBe("bool");
   });
 
-  it('returns the raw string when no interpolation vars are provided', () => {
-    const dict = { welcome: 'Welcome, {name}!' };
+  it("returns the raw string when no interpolation vars are provided", () => {
+    const dict = { welcome: "Welcome, {name}!" };
     const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
       React.createElement(
         I18nContext.Provider,
-        { value: { dict, locale: 'en', setLocale: () => {} } as any },
-        children
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
       );
     const { result } = renderHook(() => useI18n(), { wrapper });
 
-    expect(result.current.t('welcome')).toBe('Welcome, {name}!');
+    expect(result.current.t("welcome")).toBe("Welcome, {name}!");
   });
 
-  it('interpolates provided variables (strings and numbers), including repeated tokens', () => {
+  it("interpolates provided variables (strings and numbers), including repeated tokens", () => {
     const dict = {
-      greet: 'Hello, {name}! You have {count} message(s). Bye, {name}.',
+      greet: "Hello, {name}! You have {count} message(s). Bye, {name}.",
     };
     const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
       React.createElement(
         I18nContext.Provider,
-        { value: { dict, locale: 'en', setLocale: () => {} } as any },
-        children
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
       );
     const { result } = renderHook(() => useI18n(), { wrapper });
 
-    expect(result.current.t('greet', { name: 'Alice', count: 3 })).toBe(
-      'Hello, Alice! You have 3 message(s). Bye, Alice.'
+    expect(result.current.t("greet", { name: "Alice", count: 3 })).toBe(
+      "Hello, Alice! You have 3 message(s). Bye, Alice.",
     );
   });
 
-  it('leaves unknown placeholders intact when vars do not provide a value', () => {
-    const dict = { msg: 'Hi {name}, your {thing} is ready.' };
+  it("leaves unknown placeholders intact when vars do not provide a value", () => {
+    const dict = { msg: "Hi {name}, your {thing} is ready." };
     const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
       React.createElement(
         I18nContext.Provider,
-        { value: { dict, locale: 'en', setLocale: () => {} } as any },
-        children
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
       );
     const { result } = renderHook(() => useI18n(), { wrapper });
 
-    expect(result.current.t('msg', { name: 'Bob' })).toBe('Hi Bob, your {thing} is ready.');
+    expect(result.current.t("msg", { name: "Bob" })).toBe(
+      "Hi Bob, your {thing} is ready.",
+    );
   });
 
-  it('coerces non-string interpolation values using String()', () => {
-    const dict = { msg: 'Value: {val}' };
+  it("coerces non-string interpolation values using String()", () => {
+    const dict = { msg: "Value: {val}" };
     const wrapper: React.FC<PropsWithChildren> = ({ children }) =>
       React.createElement(
         I18nContext.Provider,
-        { value: { dict, locale: 'en', setLocale: () => {} } as any },
-        children
+        { value: { dict, locale: "en", setLocale: () => {} } as any },
+        children,
       );
     const { result } = renderHook(() => useI18n(), { wrapper });
 
-    expect(result.current.t('msg', { val: 0 })).toBe('Value: 0');
-    expect(result.current.t('msg', { val: null as unknown as number })).toBe('Value: null');
-    expect(result.current.t('msg', { val: undefined as unknown as number })).toBe('Value: undefined');
-    expect(result.current.t('msg', { val: { a: 1 } as unknown as number })).toBe('Value: [object Object]');
+    expect(result.current.t("msg", { val: 0 })).toBe("Value: 0");
+    expect(result.current.t("msg", { val: null as unknown as number })).toBe(
+      "Value: null",
+    );
+    expect(
+      result.current.t("msg", { val: undefined as unknown as number }),
+    ).toBe("Value: undefined");
+    expect(
+      result.current.t("msg", { val: { a: 1 } as unknown as number }),
+    ).toBe("Value: [object Object]");
   });
 
   // This test validates the critical useCallback memoization fix
   // The useCallback with [dict] dependency ensures t function stability
-  it('t function identity is stable when dict reference is unchanged, and changes when dict reference updates', () => {
-    const initialDict = { a: 'A' };
+  it("t function identity is stable when dict reference is unchanged, and changes when dict reference updates", () => {
+    const initialDict = { a: "A" };
     let dictRef = initialDict;
 
     // Wrapper that reads from dictRef closure
     const Wrapper: React.FC<PropsWithChildren> = ({ children }) => {
       const [, forceUpdate] = useState(0);
-      
+
       // Expose forceUpdate on wrapper for test control
       React.useEffect(() => {
-        (Wrapper as any)._forceUpdate = () => forceUpdate(n => n + 1);
+        (Wrapper as any)._forceUpdate = () => forceUpdate((n) => n + 1);
       }, []);
 
       const value = useMemo(
         () => ({
           dict: dictRef,
-          locale: 'en' as const,
-          dir: 'ltr' as const,
+          locale: "en" as const,
+          dir: "ltr" as const,
           setLocale: () => {},
         }),
-        [dictRef]
+        [dictRef],
       );
 
       return React.createElement(
         I18nContext.Provider,
         { value: value as any },
-        children
+        children,
       );
     };
 
@@ -229,9 +239,9 @@ describe('useI18n', () => {
     expect(t3).toBe(t1);
 
     // Change to a new dict reference
-    const newDict = { a: 'Alpha' };
+    const newDict = { a: "Alpha" };
     dictRef = newDict;
-    
+
     // Force wrapper to re-render with new dict
     if ((Wrapper as any)._forceUpdate) {
       act(() => {
@@ -241,12 +251,12 @@ describe('useI18n', () => {
     rerender();
 
     const t4 = result.current.t;
-    
+
     // New dict reference should create new t function
     expect(t4).not.toBe(t1);
-    
+
     // Validate new dict is used
-    expect(result.current.t('a')).toBe('Alpha');
+    expect(result.current.t("a")).toBe("Alpha");
 
     // But subsequent rerenders with same new dict should be stable
     rerender();

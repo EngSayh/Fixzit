@@ -1,159 +1,224 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" dir="ltr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fixzit — FM / Marketplace</title>
-  <link rel="icon" href="assets/img/logo.jpg" />
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Tailwind CDN (Day-1 only) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter','Noto Sans Arabic','system-ui','sans-serif'] },
-          colors: {
-            primary:'#b46b2f',
-            accent:'#d68b4a',
-            success:'#6e4d2c',
-            warning:'#c98036'
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fixzit — FM / Marketplace</title>
+    <link rel="icon" href="assets/img/logo.jpg" />
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Tailwind CDN (Day-1 only) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "Noto Sans Arabic", "system-ui", "sans-serif"],
+            },
+            colors: {
+              primary: "#b46b2f",
+              accent: "#d68b4a",
+              success: "#6e4d2c",
+              warning: "#c98036",
+            },
+            boxShadow: { glass: "0 10px 30px rgba(2,48,71,0.15)" },
           },
-          boxShadow:{ glass:'0 10px 30px rgba(2,48,71,0.15)' }
-        }
-      }
-    }
-  </script>
-  <link rel="stylesheet" href="assets/css/theme.css" />
-</head>
-<body class="bg-slate-50 text-slate-900">
-  <!-- Dynamic Header -->
-  <div id="site-header"></div>
+        },
+      };
+    </script>
+    <link rel="stylesheet" href="assets/css/theme.css" />
+  </head>
+  <body class="bg-slate-50 text-slate-900">
+    <!-- Dynamic Header -->
+    <div id="site-header"></div>
 
-  <div class="flex">
-    <!-- Sidebar -->
-    <aside id="site-sidebar" class="hidden lg:block w-64 shrink-0 border-r border-slate-200 bg-white"></aside>
+    <div class="flex">
+      <!-- Sidebar -->
+      <aside
+        id="site-sidebar"
+        class="hidden lg:block w-64 shrink-0 border-r border-slate-200 bg-white"
+      ></aside>
 
-    <!-- Main -->
-    <main class="min-h-[calc(100vh-64px)] flex-1">
-      <!-- Topbar (search + actions) -->
-      <div class="bg-white border-b border-slate-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
-          <div class="relative flex-1 max-w-xl">
-            <input id="search" type="search" placeholder="Search vendors, items, RFQs…"
-                   class="w-full h-10 rounded-xl border border-slate-300 pl-10 pr-3 outline-none focus:ring-2 focus:ring-primary/30">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none">
-              <path d="M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </div>
+      <!-- Main -->
+      <main class="min-h-[calc(100vh-64px)] flex-1">
+        <!-- Topbar (search + actions) -->
+        <div class="bg-white border-b border-slate-200">
+          <div
+            class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3"
+          >
+            <div class="relative flex-1 max-w-xl">
+              <input
+                id="search"
+                type="search"
+                placeholder="Search vendors, items, RFQs…"
+                class="w-full h-10 rounded-xl border border-slate-300 pl-10 pr-3 outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <svg
+                class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  d="M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
 
-          <!-- Primary actions -->
-          <button id="btn-add" class="btn-primary">+ Add</button>
-          <button id="btn-import" class="btn-ghost">Import</button>
-          <button id="btn-export" class="btn-ghost">Export</button>
-          <button id="btn-filter" class="btn-ghost">Filter</button>
+            <!-- Primary actions -->
+            <button id="btn-add" class="btn-primary">+ Add</button>
+            <button id="btn-import" class="btn-ghost">Import</button>
+            <button id="btn-export" class="btn-ghost">Export</button>
+            <button id="btn-filter" class="btn-ghost">Filter</button>
 
-          <!-- Profile menu (avatar) -->
-          <div class="relative">
-            <button id="profile-btn" class="h-10 w-10 rounded-full bg-slate-200 overflow-hidden border border-slate-300">
-              <img src="assets/img/avatar.png" onerror="this.style.display='none'" alt="">
-            </button>
-            <div id="profile-menu" class="hidden absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 bg-white shadow-lg z-20">
-              <div class="px-4 py-3">
-                <p class="font-semibold">Eng. Sultan</p>
-                <p class="text-sm text-slate-500">sultan@fixzit.com</p>
+            <!-- Profile menu (avatar) -->
+            <div class="relative">
+              <button
+                id="profile-btn"
+                class="h-10 w-10 rounded-full bg-slate-200 overflow-hidden border border-slate-300"
+              >
+                <img
+                  src="assets/img/avatar.png"
+                  onerror="this.style.display='none'"
+                  alt=""
+                />
+              </button>
+              <div
+                id="profile-menu"
+                class="hidden absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 bg-white shadow-lg z-20"
+              >
+                <div class="px-4 py-3">
+                  <p class="font-semibold">Eng. Sultan</p>
+                  <p class="text-sm text-slate-500">sultan@fixzit.com</p>
+                </div>
+                <div class="h-px bg-slate-200"></div>
+                <a href="#profile" class="menu-item">Profile</a>
+                <a href="#company" class="menu-item">Company Settings</a>
+                <a href="#billing" class="menu-item">Billing</a>
+                <div class="h-px bg-slate-200"></div>
+                <a href="#logout" class="menu-item text-red-600">Logout</a>
               </div>
-              <div class="h-px bg-slate-200"></div>
-              <a href="#profile" class="menu-item">Profile</a>
-              <a href="#company" class="menu-item">Company Settings</a>
-              <a href="#billing" class="menu-item">Billing</a>
-              <div class="h-px bg-slate-200"></div>
-              <a href="#logout" class="menu-item text-red-600">Logout</a>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Tabs -->
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div class="flex flex-wrap gap-2">
-          <button data-tab="catalog" class="tab active" data-i18n="fm.tabs.catalog">Catalog</button>
-          <button data-tab="vendors" class="tab" data-i18n="fm.tabs.vendors">Vendors</button>
-          <button data-tab="rfqs" class="tab" data-i18n="fm.tabs.rfqs">RFQs & Bids</button>
-          <button data-tab="orders" class="tab" data-i18n="fm.tabs.orders">Orders & POs</button>
-        </div>
-
-        <!-- Content panes -->
-        <section id="pane-catalog" class="pane mt-6">
-          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <button class="pill">AC Repair</button>
-            <button class="pill">Plumbing</button>
-            <button class="pill">Cleaning</button>
-            <button class="pill">Electrical</button>
-            <button class="pill">Painting</button>
-            <button class="pill">Elevators</button>
+        <!-- Tabs -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div class="flex flex-wrap gap-2">
+            <button
+              data-tab="catalog"
+              class="tab active"
+              data-i18n="fm.tabs.catalog"
+            >
+              Catalog
+            </button>
+            <button data-tab="vendors" class="tab" data-i18n="fm.tabs.vendors">
+              Vendors
+            </button>
+            <button data-tab="rfqs" class="tab" data-i18n="fm.tabs.rfqs">
+              RFQs & Bids
+            </button>
+            <button data-tab="orders" class="tab" data-i18n="fm.tabs.orders">
+              Orders & POs
+            </button>
           </div>
-        </section>
 
-        <section id="pane-vendors" class="pane mt-6 hidden">
-          <div class="table-wrap">
-            <table class="fxz-table">
-              <thead>
-                <tr>
-                  <th>Vendor</th><th>Category</th><th>Rating</th><th>Status</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="vendors-tbody"></tbody>
-            </table>
-            <div class="table-empty hidden" id="vendors-empty">No vendors yet. Click "Add".</div>
-            <div class="table-pager">
-              <button class="pager-btn" data-page="prev">Prev</button>
-              <span id="vendors-page" class="pager-page">1</span>
-              <button class="pager-btn" data-page="next">Next</button>
+          <!-- Content panes -->
+          <section id="pane-catalog" class="pane mt-6">
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <button class="pill">AC Repair</button>
+              <button class="pill">Plumbing</button>
+              <button class="pill">Cleaning</button>
+              <button class="pill">Electrical</button>
+              <button class="pill">Painting</button>
+              <button class="pill">Elevators</button>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section id="pane-rfqs" class="pane mt-6 hidden">
-          <div class="table-wrap">
-            <table class="fxz-table">
-              <thead>
-                <tr>
-                  <th>RFQ #</th><th>Title</th><th>Category</th><th>Due</th><th>Status</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="rfqs-tbody"></tbody>
-            </table>
-            <div class="table-empty hidden" id="rfqs-empty">No RFQs yet. Click "Add".</div>
-          </div>
-        </section>
+          <section id="pane-vendors" class="pane mt-6 hidden">
+            <div class="table-wrap">
+              <table class="fxz-table">
+                <thead>
+                  <tr>
+                    <th>Vendor</th>
+                    <th>Category</th>
+                    <th>Rating</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="vendors-tbody"></tbody>
+              </table>
+              <div class="table-empty hidden" id="vendors-empty">
+                No vendors yet. Click "Add".
+              </div>
+              <div class="table-pager">
+                <button class="pager-btn" data-page="prev">Prev</button>
+                <span id="vendors-page" class="pager-page">1</span>
+                <button class="pager-btn" data-page="next">Next</button>
+              </div>
+            </div>
+          </section>
 
-        <section id="pane-orders" class="pane mt-6 hidden">
-          <div class="table-wrap">
-            <table class="fxz-table">
-              <thead>
-                <tr>
-                  <th>PO #</th><th>Vendor</th><th>Total (SAR)</th><th>Date</th><th>Status</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="orders-tbody"></tbody>
-            </table>
-            <div class="table-empty hidden" id="orders-empty">No orders yet.</div>
-          </div>
-        </section>
-      </div>
-    </main>
-  </div>
+          <section id="pane-rfqs" class="pane mt-6 hidden">
+            <div class="table-wrap">
+              <table class="fxz-table">
+                <thead>
+                  <tr>
+                    <th>RFQ #</th>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="rfqs-tbody"></tbody>
+              </table>
+              <div class="table-empty hidden" id="rfqs-empty">
+                No RFQs yet. Click "Add".
+              </div>
+            </div>
+          </section>
 
-  <!-- Dynamic Footer -->
-  <div id="site-footer"></div>
+          <section id="pane-orders" class="pane mt-6 hidden">
+            <div class="table-wrap">
+              <table class="fxz-table">
+                <thead>
+                  <tr>
+                    <th>PO #</th>
+                    <th>Vendor</th>
+                    <th>Total (SAR)</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="orders-tbody"></tbody>
+              </table>
+              <div class="table-empty hidden" id="orders-empty">
+                No orders yet.
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
 
-  <script src="assets/js/i18n.js"></script>
-  <script src="assets/js/header-footer.js"></script>
-  <script src="assets/js/app.js"></script>
-  <script src="assets/js/fm.js"></script>
-</body>
+    <!-- Dynamic Footer -->
+    <div id="site-footer"></div>
+
+    <script src="assets/js/i18n.js"></script>
+    <script src="assets/js/header-footer.js"></script>
+    <script src="assets/js/app.js"></script>
+    <script src="assets/js/fm.js"></script>
+  </body>
 </html>
