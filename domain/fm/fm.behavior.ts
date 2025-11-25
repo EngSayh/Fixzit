@@ -1,8 +1,30 @@
 /* domain/fm/fm.behavior.ts
  * Fixzit Facility Management: unified behaviors for Cursor + Mongo (Mongoose)
- * Covers: enums/types, plan gates, role→module→action matrix, ABAC guards,
- * WO state machine, approvals DSL, SLAs, notifications/deep links,
- * Mongoose schemas, seeds, and smoke tests.
+ * 
+ * STRICT v4 COMPLIANT - Governance V5/V6 Aligned
+ * 
+ * This file implements the canonical RBAC matrix from STRICT v4 specification,
+ * fully aligned with Master System Governance V5 and Sidebar Specs V6.
+ * 
+ * Key Components:
+ * - 9 Canonical Roles (Super Admin, Admin, Corporate Owner, Team Member, 
+ *   Technician, Property Manager, Tenant, Vendor, Guest)
+ * - 12 Modules (Dashboard, Work Orders, Properties, Finance, HR, Administration,
+ *   CRM, Marketplace, Support, Compliance & Legal, Reports & Analytics, System Management)
+ * - Complete Role→Module→Action access matrix
+ * - ABAC guards with org-scoping and ownership checks
+ * - Work Order state machine with FSM transitions
+ * - Approvals DSL with delegation and escalation
+ * - SLA policies and notification rules
+ * - Mongoose schemas for MongoDB persistence
+ * 
+ * Role Scope Distinction:
+ * - SUPER_ADMIN: Cross-org access (isSuperAdmin: true in database)
+ * - ADMIN: Org-scoped full access (isSuperAdmin: false, filtered by orgId)
+ * - All others: Org-scoped with module/action restrictions
+ * 
+ * Legacy aliases maintained for backward compatibility but deprecated.
+ * Use canonical role names in new code.
  */
 
 import mongoose, { Schema, Types } from "mongoose";
@@ -12,18 +34,32 @@ import mongoose, { Schema, Types } from "mongoose";
  * ========================= */
 
 export enum Role {
-  SUPER_ADMIN = "SUPER_ADMIN",
-  CORPORATE_ADMIN = "CORPORATE_ADMIN",
-  MANAGEMENT = "MANAGEMENT",
-  FINANCE = "FINANCE",
-  HR = "HR",
-  EMPLOYEE = "EMPLOYEE", // corporate employee (dispatcher/coordinator)
-  PROPERTY_OWNER = "PROPERTY_OWNER",
-  OWNER_DEPUTY = "OWNER_DEPUTY",
-  TECHNICIAN = "TECHNICIAN",
-  TENANT = "TENANT",
-  VENDOR = "VENDOR",
-  GUEST = "GUEST",
+  // STRICT v4 Canonical Roles
+  SUPER_ADMIN = "SUPER_ADMIN", // Platform operator, cross-org access
+  ADMIN = "ADMIN", // Tenant admin, org-scoped full access
+  CORPORATE_OWNER = "CORPORATE_OWNER", // Portfolio owner, org-scoped
+  TEAM_MEMBER = "TEAM_MEMBER", // Corporate staff/employee, operational role
+  TECHNICIAN = "TECHNICIAN", // Field worker, assigned WOs only
+  PROPERTY_MANAGER = "PROPERTY_MANAGER", // Manages subset of properties
+  TENANT = "TENANT", // End-user, own units only
+  VENDOR = "VENDOR", // External service provider
+  GUEST = "GUEST", // Public visitor, no auth
+  
+  // Legacy aliases for backward compatibility (deprecated, use canonical names above)
+  /** @deprecated Use ADMIN instead */
+  CORPORATE_ADMIN = "ADMIN",
+  /** @deprecated Use TEAM_MEMBER with module restrictions instead */
+  MANAGEMENT = "TEAM_MEMBER",
+  /** @deprecated Use TEAM_MEMBER with Finance module access instead */
+  FINANCE = "TEAM_MEMBER",
+  /** @deprecated Use TEAM_MEMBER with HR module access instead */
+  HR = "TEAM_MEMBER",
+  /** @deprecated Use TEAM_MEMBER instead */
+  EMPLOYEE = "TEAM_MEMBER",
+  /** @deprecated Use CORPORATE_OWNER instead */
+  PROPERTY_OWNER = "CORPORATE_OWNER",
+  /** @deprecated Role removed in STRICT v4 */
+  OWNER_DEPUTY = "PROPERTY_MANAGER",
 }
 
 export enum Plan {
@@ -33,14 +69,20 @@ export enum Plan {
   ENTERPRISE = "ENTERPRISE",
 }
 
-/** FM modules + submodules (matches Governance V5/V6 tabs) */
+/** FM modules (STRICT v4 - matches Governance V5/V6 tabs) */
 export enum ModuleKey {
+  DASHBOARD = "DASHBOARD",
   WORK_ORDERS = "WORK_ORDERS",
   PROPERTIES = "PROPERTIES",
-  HR = "HR",
   FINANCE = "FINANCE",
+  HR = "HR",
+  ADMINISTRATION = "ADMINISTRATION",
+  CRM = "CRM",
   MARKETPLACE = "MARKETPLACE",
   SUPPORT = "SUPPORT",
+  COMPLIANCE = "COMPLIANCE", // Compliance & Legal
+  REPORTS = "REPORTS", // Reports & Analytics
+  SYSTEM_MANAGEMENT = "SYSTEM_MANAGEMENT",
 }
 
 export enum SubmoduleKey {
@@ -144,76 +186,157 @@ export const PLAN_GATES: Record<
 };
 
 /* =========================
- * 2) Role → Module access
+ * 2) Role → Module access (STRICT v4 Matrix)
  * ========================= */
 
 export const ROLE_MODULE_ACCESS: Record<
   Role,
   Partial<Record<ModuleKey, boolean>>
 > = {
+  // Super Admin: Full access to ALL modules, cross-org (isSuperAdmin: true)
   [Role.SUPER_ADMIN]: {
+    DASHBOARD: true,
     WORK_ORDERS: true,
     PROPERTIES: true,
-    HR: true,
     FINANCE: true,
+    HR: true,
+    ADMINISTRATION: true,
+    CRM: true,
     MARKETPLACE: true,
     SUPPORT: true,
+    COMPLIANCE: true,
+    REPORTS: true,
+    SYSTEM_MANAGEMENT: true,
   },
-  [Role.CORPORATE_ADMIN]: {
+  
+  // Admin (Tenant Admin / Corporate Admin): Full access within their org (isSuperAdmin: false)
+  [Role.ADMIN]: {
+    DASHBOARD: true,
     WORK_ORDERS: true,
     PROPERTIES: true,
-    HR: true,
     FINANCE: true,
+    HR: true,
+    ADMINISTRATION: true,
+    CRM: true,
     MARKETPLACE: true,
     SUPPORT: true,
+    COMPLIANCE: true,
+    REPORTS: true,
+    SYSTEM_MANAGEMENT: true,
   },
-  [Role.MANAGEMENT]: {
+  
+  // Corporate Owner: Full module access but may have DoA restrictions on dangerous actions
+  [Role.CORPORATE_OWNER]: {
+    DASHBOARD: true,
     WORK_ORDERS: true,
     PROPERTIES: true,
     FINANCE: true,
-    SUPPORT: true,
-  },
-  [Role.FINANCE]: {
-    WORK_ORDERS: true,
-    PROPERTIES: true,
-    FINANCE: true,
-  },
-  [Role.HR]: {
-    WORK_ORDERS: true,
     HR: true,
-  },
-  [Role.EMPLOYEE]: {
-    WORK_ORDERS: true,
-    PROPERTIES: true,
+    ADMINISTRATION: true,
+    CRM: true,
+    MARKETPLACE: true,
     SUPPORT: true,
+    COMPLIANCE: true,
+    REPORTS: true,
+    SYSTEM_MANAGEMENT: true, // Can be restricted via DoA for risky config
   },
-  [Role.PROPERTY_OWNER]: {
+  
+  // Team Member: Operational staff (Dashboard, Work Orders, CRM, Support, Reports only)
+  // Finance Officer / HR Officer are Team Members with module-specific access
+  [Role.TEAM_MEMBER]: {
+    DASHBOARD: true,
     WORK_ORDERS: true,
-    PROPERTIES: true,
-    FINANCE: true,
+    PROPERTIES: false,
+    FINANCE: false, // Finance Officer gets this via specific permission
+    HR: false, // HR Officer gets this via specific permission
+    ADMINISTRATION: false,
+    CRM: true,
+    MARKETPLACE: false,
     SUPPORT: true,
+    COMPLIANCE: false,
+    REPORTS: true,
+    SYSTEM_MANAGEMENT: false,
   },
-  [Role.OWNER_DEPUTY]: {
-    WORK_ORDERS: true,
-    PROPERTIES: true,
-    SUPPORT: true,
-  },
+  
+  // Technician: Field worker (Dashboard, Work Orders, Support, Reports - personal stats)
   [Role.TECHNICIAN]: {
+    DASHBOARD: true,
     WORK_ORDERS: true,
+    PROPERTIES: false,
+    FINANCE: false,
+    HR: false,
+    ADMINISTRATION: false,
+    CRM: false,
+    MARKETPLACE: false,
     SUPPORT: true,
+    COMPLIANCE: false,
+    REPORTS: true, // Personal performance stats only
+    SYSTEM_MANAGEMENT: false,
   },
-  [Role.TENANT]: {
+  
+  // Property Manager: Manages property portfolio (Dashboard, Work Orders, Properties, Support, Reports)
+  [Role.PROPERTY_MANAGER]: {
+    DASHBOARD: true,
     WORK_ORDERS: true,
     PROPERTIES: true,
-    MARKETPLACE: true,
+    FINANCE: false,
+    HR: false,
+    ADMINISTRATION: false,
+    CRM: false,
+    MARKETPLACE: false,
     SUPPORT: true,
+    COMPLIANCE: false,
+    REPORTS: true,
+    SYSTEM_MANAGEMENT: false,
   },
-  [Role.VENDOR]: {
+  
+  // Tenant: End-user (Dashboard, Work Orders, Properties - own units, Marketplace, Support, Reports)
+  [Role.TENANT]: {
+    DASHBOARD: true,
     WORK_ORDERS: true,
+    PROPERTIES: true, // Own unit/property only
+    FINANCE: false,
+    HR: false,
+    ADMINISTRATION: false,
+    CRM: false,
     MARKETPLACE: true,
     SUPPORT: true,
+    COMPLIANCE: false,
+    REPORTS: true, // Own history/statements only
+    SYSTEM_MANAGEMENT: false,
   },
-  [Role.GUEST]: { SUPPORT: true },
+  
+  // Vendor: External service provider (Dashboard, Work Orders - assigned only, Marketplace, Support, Reports)
+  [Role.VENDOR]: {
+    DASHBOARD: true,
+    WORK_ORDERS: true, // Only WOs tied to their vendor account
+    PROPERTIES: false,
+    FINANCE: false,
+    HR: false,
+    ADMINISTRATION: false,
+    CRM: false,
+    MARKETPLACE: true,
+    SUPPORT: true,
+    COMPLIANCE: false,
+    REPORTS: true, // Vendor performance only
+    SYSTEM_MANAGEMENT: false,
+  },
+  
+  // Guest: Public visitor (Dashboard - public landing only)
+  [Role.GUEST]: {
+    DASHBOARD: true, // Public landing/dashboard only
+    WORK_ORDERS: false,
+    PROPERTIES: false,
+    FINANCE: false,
+    HR: false,
+    ADMINISTRATION: false,
+    CRM: false,
+    MARKETPLACE: false,
+    SUPPORT: false,
+    COMPLIANCE: false,
+    REPORTS: false,
+    SYSTEM_MANAGEMENT: false,
+  },
 };
 
 /* =========================
@@ -230,26 +353,8 @@ export const TECHNICIAN_ASSIGNED_ACTIONS: Action[] = [
 
 type ActionsBySubmodule = Partial<Record<SubmoduleKey, Action[]>>;
 export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
+  // Super Admin: Full actions on all submodules (cross-org access via isSuperAdmin: true)
   [Role.SUPER_ADMIN]: {
-    WO_CREATE: ["view", "create", "upload_media", "comment"],
-    WO_TRACK_ASSIGN: [
-      "view",
-      "assign",
-      "schedule",
-      "dispatch",
-      "update",
-      "export",
-      "share",
-    ],
-    WO_PM: ["view", "create", "update", "export"],
-    WO_SERVICE_HISTORY: ["view", "export"],
-    PROP_LIST: ["view", "create", "update", "delete", "export"],
-    PROP_UNITS_TENANTS: ["view", "update", "export"],
-    PROP_LEASES: ["view", "create", "update", "export"],
-    PROP_INSPECTIONS: ["view", "create", "update", "export"],
-    PROP_DOCUMENTS: ["view", "create", "update", "export"],
-  },
-  [Role.CORPORATE_ADMIN]: {
     WO_CREATE: ["view", "create", "upload_media", "comment"],
     WO_TRACK_ASSIGN: [
       "view",
@@ -269,48 +374,31 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
     PROP_INSPECTIONS: ["view", "create", "update", "export"],
     PROP_DOCUMENTS: ["view", "create", "update", "export"],
   },
-  [Role.MANAGEMENT]: {
-    WO_CREATE: ["view", "comment"],
+  
+  // Admin: Full actions within their org (org-scoped via isSuperAdmin: false)
+  [Role.ADMIN]: {
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
     WO_TRACK_ASSIGN: [
       "view",
+      "assign",
+      "schedule",
+      "dispatch",
       "update",
       "export",
       "share",
-      "approve",
-      "reject",
-      "request_changes",
+      "post_finance",
     ],
-    WO_PM: ["view", "export"],
-    WO_SERVICE_HISTORY: ["view", "export"],
-    PROP_LIST: ["view", "export"],
-    PROP_UNITS_TENANTS: ["view", "export"],
-    PROP_LEASES: ["view", "export"],
-    PROP_INSPECTIONS: ["view", "export"],
-    PROP_DOCUMENTS: ["view", "export"],
-  },
-  [Role.FINANCE]: {
-    WO_CREATE: ["view", "comment"],
-    WO_TRACK_ASSIGN: ["view", "approve", "reject", "request_changes", "export"],
-    WO_PM: ["view"],
-    WO_SERVICE_HISTORY: ["view", "export"],
-    PROP_LIST: ["view", "export"],
-    PROP_UNITS_TENANTS: ["view", "export"],
-    PROP_LEASES: ["view", "export"],
-    PROP_INSPECTIONS: ["view"],
-    PROP_DOCUMENTS: ["view", "export"],
-  },
-  [Role.HR]: {
-    WO_CREATE: ["view", "comment"],
-    WO_TRACK_ASSIGN: ["view", "schedule", "dispatch", "update", "export"],
-    WO_PM: ["view"],
-    WO_SERVICE_HISTORY: ["view"],
-  },
-  [Role.EMPLOYEE]: {
-    WO_CREATE: ["view", "create", "upload_media", "comment"],
-    WO_TRACK_ASSIGN: ["view", "assign", "update", "export", "post_finance"],
     WO_PM: ["view", "create", "update", "export"],
+    WO_SERVICE_HISTORY: ["view", "export"],
+    PROP_LIST: ["view", "create", "update", "delete", "export"],
+    PROP_UNITS_TENANTS: ["view", "update", "export"],
+    PROP_LEASES: ["view", "create", "update", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "export"],
+    PROP_DOCUMENTS: ["view", "create", "update", "export"],
   },
-  [Role.PROPERTY_OWNER]: {
+  
+  // Corporate Owner: Portfolio management with approval authority
+  [Role.CORPORATE_OWNER]: {
     WO_CREATE: ["view", "create", "upload_media", "comment"],
     WO_TRACK_ASSIGN: ["view", "approve", "reject", "request_changes", "export"],
     WO_PM: ["view"],
@@ -321,16 +409,15 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
     PROP_INSPECTIONS: ["view", "create", "update", "export"],
     PROP_DOCUMENTS: ["view", "create", "update", "export"],
   },
-  [Role.OWNER_DEPUTY]: {
+  
+  // Team Member: Operational staff, create and manage WOs
+  [Role.TEAM_MEMBER]: {
     WO_CREATE: ["view", "create", "upload_media", "comment"],
-    WO_TRACK_ASSIGN: ["view", "approve", "reject", "request_changes", "export"],
-    WO_PM: ["view"],
-    WO_SERVICE_HISTORY: ["view"],
-    PROP_LIST: ["view", "update"],
-    PROP_UNITS_TENANTS: ["view", "update"],
-    PROP_INSPECTIONS: ["view", "create", "update"],
-    PROP_DOCUMENTS: ["view", "create", "update"],
+    WO_TRACK_ASSIGN: ["view", "assign", "update", "export", "post_finance"],
+    WO_PM: ["view", "create", "update", "export"],
   },
+  
+  // Technician: Field worker, assigned WOs only
   [Role.TECHNICIAN]: {
     WO_CREATE: ["view", "comment"],
     WO_TRACK_ASSIGN: [
@@ -342,6 +429,29 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
     WO_PM: ["view", "update"],
     WO_SERVICE_HISTORY: ["view"],
   },
+  
+  // Property Manager: Manages properties and related WOs
+  [Role.PROPERTY_MANAGER]: {
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: [
+      "view",
+      "assign",
+      "schedule",
+      "dispatch",
+      "update",
+      "export",
+      "share",
+    ],
+    WO_PM: ["view", "export"],
+    WO_SERVICE_HISTORY: ["view", "export"],
+    PROP_LIST: ["view", "update", "export"],
+    PROP_UNITS_TENANTS: ["view", "update", "export"],
+    PROP_LEASES: ["view", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "export"],
+    PROP_DOCUMENTS: ["view", "create", "update", "export"],
+  },
+  
+  // Tenant: End-user, own units only
   [Role.TENANT]: {
     WO_CREATE: ["view", "create", "upload_media", "comment"],
     WO_TRACK_ASSIGN: ["view", "comment"],
@@ -350,6 +460,8 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
     PROP_LIST: ["view"],
     PROP_UNITS_TENANTS: ["view"],
   },
+  
+  // Vendor: External service provider
   [Role.VENDOR]: {
     WO_CREATE: ["view", "comment"],
     WO_TRACK_ASSIGN: [
@@ -362,6 +474,8 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
     WO_PM: ["view"],
     WO_SERVICE_HISTORY: ["view"],
   },
+  
+  // Guest: No actions
   [Role.GUEST]: {},
 };
 
@@ -400,20 +514,25 @@ export function can(
   if (!allowed?.includes(action)) return false;
 
   // 3) Ownership / scope checks (row-level security)
+  // Super Admin bypasses org checks (cross-org access)
   if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
 
+  // Tenant: strict ownership - can only access own units/WOs
   if (ctx.role === Role.TENANT && action !== "create") {
-    // Tenants can only access their own work orders - enforce strict ownership
     return ctx.requesterUserId === ctx.userId;
   }
 
-  // Property owners/deputies must own the property being accessed
-  if (ctx.role === Role.PROPERTY_OWNER || ctx.role === Role.OWNER_DEPUTY) {
+  // Corporate Owner / Property Manager: must own/manage the property
+  if (
+    ctx.role === Role.CORPORATE_OWNER ||
+    ctx.role === Role.PROPERTY_MANAGER
+  ) {
     if (ctx.propertyId && !(ctx.isOwnerOfProperty || ctx.isSuperAdmin)) {
       return false;
     }
   }
 
+  // Technician: certain actions require assignment
   if (
     ctx.role === Role.TECHNICIAN &&
     TECHNICIAN_ASSIGNED_ACTIONS.includes(action)
