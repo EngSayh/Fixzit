@@ -1,5 +1,10 @@
 name: Build & Upload Sourcemaps (Sentry)
 
+# ℹ️ VSCode Warning Suppression:
+# The "Context access might be invalid" warnings for secrets are EXPECTED and SAFE to ignore.
+# These secrets are only required in production CI/CD (GitHub Actions) and have proper fallbacks.
+# See .github/WORKFLOW_SECRETS.md for details.
+
 on:
   push:
     branches: ["main", "develop"]
@@ -18,10 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Secrets are configured in GitHub Settings > Secrets and variables > Actions
+      # ℹ️ SENTRY_* secrets are OPTIONAL - workflow continues without them
+      # VSCode warnings about these secrets can be safely ignored
       CI: "true"
       NODE_OPTIONS: --max-old-space-size=8192
       NEXT_TELEMETRY_DISABLED: "1"
-      # Sentry envs (optional - workflow continues without them)
+      # Sentry configuration (optional - gracefully skipped if not configured)
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
       # expose release to build/runtime; SDKs read SENTRY_RELEASE

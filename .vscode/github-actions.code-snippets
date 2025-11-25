@@ -1,0 +1,22 @@
+{
+  "GitHub Actions Secret Access (Production Only)": {
+    "prefix": "gha-secret",
+    "scope": "yaml",
+    "body": [
+      "# ℹ️ This secret is configured in GitHub Settings > Secrets (production CI only)",
+      "# VSCode warning can be safely ignored - only needed when workflow runs",
+      "${{ secrets.${1:SECRET_NAME} }}"
+    ],
+    "description": "GitHub Actions secret with VSCode warning suppression notice"
+  },
+  "GitHub Actions Variable Access (Production Only)": {
+    "prefix": "gha-var",
+    "scope": "yaml",
+    "body": [
+      "# ℹ️ This variable is configured in GitHub Settings > Variables (production CI only)",
+      "# VSCode warning can be safely ignored - fallback provided",
+      "${{ vars.${1:VAR_NAME} || '${2:default-value}' }}"
+    ],
+    "description": "GitHub Actions variable with fallback and VSCode warning suppression notice"
+  }
+}

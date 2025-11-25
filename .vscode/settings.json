@@ -14,6 +14,12 @@
   "yaml.schemas": {
     "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml"
   },
+  "yaml.customTags": [
+    "!reference sequence"
+  ],
+  "yaml.validate": true,
+  "yaml.completion": true,
+  "problems.showCurrentInStatus": false,
   "typescript.tsserver.log": "off",
   "typescript.surveys.enabled": false,
   "typescript.suggest.completeJSDocs": false,

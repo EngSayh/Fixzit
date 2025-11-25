@@ -1,6 +1,9 @@
 name: Agent Governor CI
 
-# Expected secret warnings documented in: .github/WORKFLOW_SECRETS_DOCUMENTATION.md
+# ℹ️ VSCode Warning Suppression:
+# The "Context access might be invalid" warnings for secrets are EXPECTED and SAFE to ignore.
+# These secrets have fallback values and are only required in production CI/CD.
+# See .github/WORKFLOW_SECRETS.md for details.
 
 on:
   pull_request:
