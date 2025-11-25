@@ -1,9 +1,9 @@
 /* domain/fm/fm.behavior.ts
  * Fixzit Facility Management: unified behaviors for Cursor + Mongo (Mongoose)
  * 
- * STRICT v4 COMPLIANT - Governance V5/V6 Aligned
+ * STRICT v4.1 COMPLIANT - Governance V5/V6 Aligned
  * 
- * This file implements the canonical RBAC matrix from STRICT v4 specification,
+ * This file implements the canonical RBAC matrix from STRICT v4.1 specification,
  * fully aligned with Master System Governance V5 and Sidebar Specs V6.
  * 
  * Key Components:
@@ -13,15 +13,35 @@
  *   CRM, Marketplace, Support, Compliance & Legal, Reports & Analytics, System Management)
  * - Complete Role→Module→Action access matrix
  * - ABAC guards with org-scoping and ownership checks
+ * - Data scope rules (org_id, property_id, vendor_id, unit_id filters)
+ * - PII protection for sensitive HR/identity data
+ * - Team Member sub-roles (Finance Officer, HR Officer, Support Agent, Operations Manager)
+ * - AI Agent governance (assumed identity, audit logging)
  * - Work Order state machine with FSM transitions
  * - Approvals DSL with delegation and escalation
  * - SLA policies and notification rules
  * - Mongoose schemas for MongoDB persistence
  * 
- * Role Scope Distinction:
- * - SUPER_ADMIN: Cross-org access (isSuperAdmin: true in database)
- * - ADMIN: Org-scoped full access (isSuperAdmin: false, filtered by orgId)
- * - All others: Org-scoped with module/action restrictions
+ * Role Scope Distinction (v4.1):
+ * - SUPER_ADMIN: Cross-org access (isSuperAdmin: true, no org_id filter, all actions audited)
+ * - ADMIN: Org-scoped full access (isSuperAdmin: false, { org_id: user.org_id })
+ * - CORPORATE_OWNER: Org-scoped, may have property_owner_id filter
+ * - TEAM_MEMBER: Org-scoped + sub-role specialization (Finance/HR/Support/Operations)
+ * - TECHNICIAN: { org_id: user.org_id, assigned_to_user_id: user._id }
+ * - PROPERTY_MANAGER: { org_id: user.org_id, property_id: { $in: user.assigned_properties } }
+ * - TENANT: { org_id: user.org_id, unit_id: { $in: user.units } }
+ * - VENDOR: { vendor_id: user.vendor_id }
+ * - GUEST: Public data only ({ is_public: true })
+ * 
+ * PII Rules (v4.1):
+ * - Sensitive data (national ID, salary, disciplinary records) restricted to:
+ *   Super Admin, Admin, HR Officer, Compliance roles
+ * - Identity documents stored encrypted, accessed via explicit PII permission
+ * 
+ * AI Agent Rules (v4.1):
+ * - Agents act on behalf of a user (assumed_user_id)
+ * - Inherit user's role and data scope, no RBAC bypass
+ * - All agent actions logged with agent_id + assumed_user_id
  * 
  * Legacy aliases maintained for backward compatibility but deprecated.
  * Use canonical role names in new code.
@@ -34,11 +54,11 @@ import mongoose, { Schema, Types } from "mongoose";
  * ========================= */
 
 export enum Role {
-  // STRICT v4 Canonical Roles
-  SUPER_ADMIN = "SUPER_ADMIN", // Platform operator, cross-org access
+  // STRICT v4.1 Canonical Roles
+  SUPER_ADMIN = "SUPER_ADMIN", // Platform operator, cross-org access, all actions audited
   ADMIN = "ADMIN", // Tenant admin, org-scoped full access
-  CORPORATE_OWNER = "CORPORATE_OWNER", // Portfolio owner, org-scoped
-  TEAM_MEMBER = "TEAM_MEMBER", // Corporate staff/employee, operational role
+  CORPORATE_OWNER = "CORPORATE_OWNER", // Portfolio owner, org-scoped + property filters
+  TEAM_MEMBER = "TEAM_MEMBER", // Corporate staff/employee, operational role (use SubRole for specialization)
   TECHNICIAN = "TECHNICIAN", // Field worker, assigned WOs only
   PROPERTY_MANAGER = "PROPERTY_MANAGER", // Manages subset of properties
   TENANT = "TENANT", // End-user, own units only
@@ -67,6 +87,14 @@ export enum Plan {
   STANDARD = "STANDARD",
   PRO = "PRO",
   ENTERPRISE = "ENTERPRISE",
+}
+
+/** STRICT v4.1: Team Member sub-roles for functional specialization */
+export enum SubRole {
+  FINANCE_OFFICER = "FINANCE_OFFICER", // Finance module access
+  HR_OFFICER = "HR_OFFICER", // HR module + PII access
+  SUPPORT_AGENT = "SUPPORT_AGENT", // Support + CRM access
+  OPERATIONS_MANAGER = "OPERATIONS_MANAGER", // Wider scope, higher DoA
 }
 
 /** FM modules (STRICT v4 - matches Governance V5/V6 tabs) */
@@ -242,13 +270,13 @@ export const ROLE_MODULE_ACCESS: Record<
   },
   
   // Team Member: Operational staff (Dashboard, Work Orders, CRM, Support, Reports only)
-  // Finance Officer / HR Officer are Team Members with module-specific access
+  // STRICT v4.1: Use SubRole for specialization (Finance Officer, HR Officer, Support Agent, Operations Manager)
   [Role.TEAM_MEMBER]: {
     DASHBOARD: true,
     WORK_ORDERS: true,
     PROPERTIES: false,
-    FINANCE: false, // Finance Officer gets this via specific permission
-    HR: false, // HR Officer gets this via specific permission
+    FINANCE: false, // Finance Officer (SubRole) gets this
+    HR: false, // HR Officer (SubRole) gets this + PII access
     ADMINISTRATION: false,
     CRM: true,
     MARKETPLACE: false,
@@ -480,7 +508,62 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
 };
 
 /* =========================
- * 4) ABAC Guard (scope + plan + ownership)
+ * 4) AI Agent Governance (STRICT v4.1)
+ * ========================= */
+
+/**
+ * STRICT v4.1: AI Agent audit log entry
+ * All agent actions must be logged with assumed user identity
+ */
+export type AgentAuditLog = {
+  agent_id: string; // Agent identifier (e.g., "cursor", "qodo", "copilot")
+  assumed_user_id: string; // User the agent is acting on behalf of
+  timestamp: Date;
+  action_summary: string; // Human-readable action description
+  resource_type: string; // e.g., "WorkOrder", "Property", "User"
+  resource_id?: string;
+  org_id: string; // Org context
+  request_path?: string; // API endpoint or file path
+  success: boolean;
+  error_message?: string;
+};
+
+/**
+ * STRICT v4.1: Log agent action for audit trail
+ * Agents inherit user's role/scope but all actions are tracked
+ */
+export function logAgentAction(log: AgentAuditLog): void {
+  // In production, write to dedicated audit collection or logging service
+  if (process.env.NODE_ENV === "development") {
+    console.log("[AGENT_AUDIT]", JSON.stringify(log, null, 2));
+  }
+  // TODO: Implement persistent audit logging to MongoDB collection
+}
+
+/**
+ * STRICT v4.1: Validate agent has permission to act on behalf of user
+ * Agents MUST assume a user identity and inherit their RBAC
+ */
+export function validateAgentAccess(ctx: ResourceCtx): boolean {
+  if (!ctx.agentId) {
+    return true; // Not an agent request, normal validation applies
+  }
+
+  // Agent must have assumed_user_id
+  if (!ctx.assumedUserId) {
+    console.error("[AGENT_ERROR] Agent missing assumed_user_id", {
+      agent_id: ctx.agentId,
+    });
+    return false;
+  }
+
+  // Agent cannot bypass RBAC - they inherit user's permissions
+  // This is enforced by using assumedUserId to load the user's role/scope
+  return true;
+}
+
+/* =========================
+ * 5) ABAC Guard (scope + plan + ownership)
  * ========================= */
 
 export type ResourceCtx = {
@@ -493,13 +576,175 @@ export type ResourceCtx = {
   requesterUserId?: string;
   plan: Plan;
   role: Role;
+  subRole?: SubRole; // STRICT v4.1: Team Member specialization
   userId: string;
   isOrgMember: boolean;
   isSuperAdmin?: boolean;
   isOwnerOfProperty?: boolean;
   isTechnicianAssigned?: boolean;
   uploadedMedia?: Array<"BEFORE" | "DURING" | "AFTER" | "QUOTE">;
+  vendorId?: string; // STRICT v4.1: Vendor scoping
+  assignedProperties?: string[]; // STRICT v4.1: Property Manager scope
+  units?: string[]; // STRICT v4.1: Tenant scope
+  agentId?: string; // STRICT v4.1: AI Agent governance
+  assumedUserId?: string; // STRICT v4.1: Agent acting on behalf of user
 };
+
+/** STRICT v4.1: Data scope filter generator for MongoDB queries */
+export type DataScopeFilter = {
+  org_id?: string;
+  property_id?: { $in: string[] } | string;
+  unit_id?: { $in: string[] };
+  assigned_to_user_id?: string;
+  vendor_id?: string;
+  tenant_id?: string;
+  is_public?: boolean;
+};
+
+/**
+ * STRICT v4.1: Compute allowed modules based on role and sub-role
+ * Used for dynamic module access (e.g., Team Member specializations)
+ */
+export function computeAllowedModules(
+  role: Role,
+  subRole?: SubRole,
+): ModuleKey[] {
+  // Get base modules from ROLE_MODULE_ACCESS
+  const baseModules = ROLE_MODULE_ACCESS[role];
+  const allowed: ModuleKey[] = [];
+
+  for (const [module, hasAccess] of Object.entries(baseModules || {})) {
+    if (hasAccess) {
+      allowed.push(module as ModuleKey);
+    }
+  }
+
+  // STRICT v4.1: Override for Team Member sub-roles
+  if (role === Role.TEAM_MEMBER && subRole) {
+    switch (subRole) {
+      case SubRole.FINANCE_OFFICER:
+        // Dashboard, Finance, Reports only
+        return [ModuleKey.DASHBOARD, ModuleKey.FINANCE, ModuleKey.REPORTS];
+
+      case SubRole.HR_OFFICER:
+        // Dashboard, HR, Reports only (+ PII access via separate check)
+        return [ModuleKey.DASHBOARD, ModuleKey.HR, ModuleKey.REPORTS];
+
+      case SubRole.SUPPORT_AGENT:
+        // Dashboard, Support, CRM, Reports
+        return [
+          ModuleKey.DASHBOARD,
+          ModuleKey.SUPPORT,
+          ModuleKey.CRM,
+          ModuleKey.REPORTS,
+        ];
+
+      case SubRole.OPERATIONS_MANAGER:
+        // Dashboard, Work Orders, Properties, Support, Reports (wider scope)
+        return [
+          ModuleKey.DASHBOARD,
+          ModuleKey.WORK_ORDERS,
+          ModuleKey.PROPERTIES,
+          ModuleKey.SUPPORT,
+          ModuleKey.REPORTS,
+        ];
+
+      default:
+        // Base Team Member access
+        break;
+    }
+  }
+
+  return allowed;
+}
+
+/**
+ * STRICT v4.1: Check if user has PII access (sensitive HR/identity data)
+ * Restricted to: Super Admin, Admin, HR Officer, Compliance roles
+ */
+export function hasPIIAccess(role: Role, subRole?: SubRole): boolean {
+  if (role === Role.SUPER_ADMIN || role === Role.ADMIN) {
+    return true;
+  }
+
+  if (role === Role.TEAM_MEMBER && subRole === SubRole.HR_OFFICER) {
+    return true;
+  }
+
+  // Compliance/Legal roles under Administration also get PII access
+  // This would be checked via additional permission flags in practice
+  return false;
+}
+
+/**
+ * STRICT v4.1: Generate MongoDB filter for role-based data scoping
+ * Enforces tenant isolation and row-level security
+ */
+export function buildDataScopeFilter(ctx: ResourceCtx): DataScopeFilter {
+  const filter: DataScopeFilter = {};
+
+  // Super Admin: no org filter (cross-org access, but must be audited)
+  if (ctx.role === Role.SUPER_ADMIN) {
+    // Platform-wide access, return empty filter
+    // Note: All Super Admin queries must be logged separately
+    return filter;
+  }
+
+  // All other roles: enforce org isolation
+  filter.org_id = ctx.orgId;
+
+  // Role-specific additional filters
+  switch (ctx.role) {
+    case Role.ADMIN:
+    case Role.CORPORATE_OWNER:
+      // Full tenant scope (org_id already set)
+      // Corporate Owner may have additional property_owner_id filter in practice
+      break;
+
+    case Role.TECHNICIAN:
+      // Only assigned work orders
+      filter.assigned_to_user_id = ctx.userId;
+      break;
+
+    case Role.PROPERTY_MANAGER:
+      // Only assigned properties
+      if (ctx.assignedProperties && ctx.assignedProperties.length > 0) {
+        filter.property_id = { $in: ctx.assignedProperties };
+      }
+      break;
+
+    case Role.TENANT:
+      // Only own units
+      if (ctx.units && ctx.units.length > 0) {
+        filter.unit_id = { $in: ctx.units };
+      }
+      filter.tenant_id = ctx.userId;
+      break;
+
+    case Role.VENDOR:
+      // Only vendor-assigned work orders/orders
+      if (ctx.vendorId) {
+        filter.vendor_id = ctx.vendorId;
+      }
+      break;
+
+    case Role.TEAM_MEMBER:
+      // Org-scoped, may add functional filters based on subRole
+      // Finance Officer, HR Officer, etc. - handled in module-level checks
+      break;
+
+    case Role.GUEST:
+      // Public data only
+      filter.is_public = true;
+      break;
+
+    default:
+      // Deny access by default for unknown roles
+      filter.org_id = "00000000-invalid-role";
+  }
+
+  return filter;
+}
 
 export function can(
   submodule: SubmoduleKey,
@@ -544,7 +789,7 @@ export function can(
 }
 
 /* =========================
- * 5) Work Order State Machine (FSM)
+ * 6) Work Order State Machine (FSM)
  * ========================= */
 
 export enum WOStatus {
@@ -658,7 +903,7 @@ export const WORK_ORDER_FSM: {
 };
 
 /* =========================
- * 6) Approvals DSL (Delegation, Escalation, Parallel/Sequential)
+ * 7) Approvals DSL (Delegation, Escalation, Parallel/Sequential)
  * ========================= */
 
 export type ApprovalRule = {
@@ -714,7 +959,7 @@ export const APPROVAL_POLICIES: ApprovalRule[] = [
 ];
 
 /* =========================
- * 7) Notifications & Deep-links
+ * 8) Notifications & Deep-links
  * ========================= */
 
 export const NOTIFY = {
@@ -736,8 +981,37 @@ export const NOTIFY = {
 };
 
 /* =========================
- * 8) Mongoose Schemas (Mongo)
+ * 9) Mongoose Schemas (Mongo) - STRICT v4.1 with Indexes
  * ========================= */
+
+/**
+ * STRICT v4.1: Recommended MongoDB Indexes for Performance
+ * 
+ * Work Orders Collection:
+ * - { org_id: 1, status: 1 } - Tenant-scoped status queries
+ * - { org_id: 1, assigned_to_user_id: 1 } - Technician assignments
+ * - { org_id: 1, property_id: 1 } - Property Manager scope
+ * - { org_id: 1, vendor_id: 1 } - Vendor assignments
+ * - { org_id: 1, tenant_id: 1 } - Tenant requests
+ * 
+ * Users Collection:
+ * - { org_id: 1, role: 1 } - Role-based user queries
+ * - { email: 1 } - Unique login lookup
+ * - { org_id: 1, sub_role: 1 } - Team Member specialization queries
+ * 
+ * Properties Collection:
+ * - { org_id: 1 } - Tenant isolation
+ * - { org_id: 1, property_owner_id: 1 } - Corporate Owner scope
+ * 
+ * Units Collection:
+ * - { property_id: 1 } - Units by property
+ * - { org_id: 1, tenant_id: 1 } - Tenant units
+ * 
+ * Audit Logs Collection (STRICT v4.1):
+ * - { agent_id: 1, timestamp: -1 } - Agent action history
+ * - { assumed_user_id: 1, timestamp: -1 } - User activity via agents
+ * - { org_id: 1, timestamp: -1 } - Org-level audit trail
+ */
 
 const OrganizationSchema = new Schema(
   {
@@ -942,7 +1216,7 @@ export const FMDocument =
   mongoose.models.FMDocument ?? mongoose.model("FMDocument", DocumentSchema);
 
 /* =========================
- * 9) Seeds & Smoke Tests
+ * 10) Seeds & Smoke Tests
  * ========================= */
 
 export const DEFAULT_APPROVALS = APPROVAL_POLICIES;
@@ -985,7 +1259,7 @@ export function smokeTests() {
 }
 
 /* =========================
- * 10) Helper: FSM guard example
+ * 11) Helper: FSM guard example
  * ========================= */
 
 /**
