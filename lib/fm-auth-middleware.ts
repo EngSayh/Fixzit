@@ -254,7 +254,7 @@ export function userCan(
  *
  * Example implementation when model exists:
  * ```typescript
- * import { FMProperty } from '@/server/models/FMProperty';
+ * import { FMProperty } from '@/domain/fm/fm.behavior';
  * const property = await FMProperty.findOne({ propertyId });
  * if (property) {
  *   return { ownerId: property.ownerId, orgId: property.orgId };
@@ -269,7 +269,7 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
     await connectDb();
 
     // Try to import FMProperty model (may not exist yet)
-    const FMPropertyModule = await import("@/server/models/FMProperty").catch(
+    const FMPropertyModule = await import("@/domain/fm/fm.behavior").catch(
       () => null,
     );
 
@@ -294,8 +294,9 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
     } else {
       // Fallback: Try WorkOrder model which may have propertyId reference
       logger.debug("[FM Auth] FMProperty model not found, checking WorkOrders");
-      const { FMWorkOrder } = await import("@/server/models/FMWorkOrder");
-      const workOrder = await FMWorkOrder.findOne({ propertyId: _propertyId })
+      const FMWorkOrderModule = await import("@/domain/fm/fm.behavior");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const workOrder = await (FMWorkOrderModule.FMWorkOrder as any).findOne({ propertyId: _propertyId })
         .select("propertyOwnerId orgId")
         .lean();
 

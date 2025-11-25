@@ -77,7 +77,7 @@ const statusColors: Record<string, string> = {
 
 export default function VendorDetailsPage() {
   return (
-    <FmGuardedPage moduleId="vendor-management">
+    <FmGuardedPage moduleId="vendors">
       {({ orgId, supportBanner }) => (
         <VendorDetailsContent orgId={orgId} supportBanner={supportBanner} />
       )}

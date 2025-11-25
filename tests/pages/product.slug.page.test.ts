@@ -149,8 +149,8 @@ describe('ProductPage (server component) and fetchPdp', () => {
       mockJsonResponse({
         product: { title: 'Widget Pro', attributes },
         buyBox,
-      }),
-    } as unknown as Response);
+      })
+    );
 
     await renderServerComponent(InlineModule.default, { params: { slug: 'widget-pro' } });
 

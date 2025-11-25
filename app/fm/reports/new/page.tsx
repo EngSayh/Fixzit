@@ -48,7 +48,7 @@ const FORMATS = [
 
 export default function NewReportPage() {
   return (
-    <FmGuardedPage moduleId="reporting">
+    <FmGuardedPage moduleId="reports">
       {({ orgId, supportBanner }) => (
         <NewReportContent orgId={orgId} supportBanner={supportBanner} />
       )}
