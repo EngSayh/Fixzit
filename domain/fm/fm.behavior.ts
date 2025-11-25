@@ -214,7 +214,74 @@ export const PLAN_GATES: Record<
 };
 
 /* =========================
- * 2) Role → Module access (STRICT v4 Matrix)
+ * 2) Role Normalization (Legacy Aliases)
+ * ========================= */
+
+/** Mapping of legacy role names to STRICT v4.1 canonical roles */
+export const ROLE_ALIAS_MAP: Record<string, Role> = {
+  // STRICT v4.1 Canonical Roles (identity mapping)
+  SUPER_ADMIN: Role.SUPER_ADMIN,
+  ADMIN: Role.ADMIN,
+  CORPORATE_OWNER: Role.CORPORATE_OWNER,
+  TEAM_MEMBER: Role.TEAM_MEMBER,
+  TECHNICIAN: Role.TECHNICIAN,
+  PROPERTY_MANAGER: Role.PROPERTY_MANAGER,
+  TENANT: Role.TENANT,
+  VENDOR: Role.VENDOR,
+  GUEST: Role.GUEST,
+  
+  // Legacy aliases (backward compatibility)
+  CORPORATE_ADMIN: Role.ADMIN,
+  TENANT_ADMIN: Role.ADMIN,
+  CLIENT_ADMIN: Role.ADMIN,
+  MANAGEMENT: Role.TEAM_MEMBER,
+  MANAGER: Role.TEAM_MEMBER,
+  FM_MANAGER: Role.PROPERTY_MANAGER,
+  FINANCE: Role.TEAM_MEMBER,
+  HR: Role.TEAM_MEMBER,
+  PROCUREMENT: Role.TEAM_MEMBER,
+  EMPLOYEE: Role.TEAM_MEMBER,
+  DISPATCHER: Role.TEAM_MEMBER,
+  CORPORATE_STAFF: Role.TEAM_MEMBER,
+  FIXZIT_EMPLOYEE: Role.TEAM_MEMBER,
+  OWNER: Role.CORPORATE_OWNER,
+  PROPERTY_OWNER: Role.CORPORATE_OWNER,
+  INDIVIDUAL_PROPERTY_OWNER: Role.CORPORATE_OWNER,
+  OWNER_DEPUTY: Role.PROPERTY_MANAGER,
+  DEPUTY: Role.PROPERTY_MANAGER,
+  CUSTOMER: Role.TENANT,
+  RESIDENT: Role.TENANT,
+  OCCUPANT: Role.TENANT,
+  END_USER: Role.TENANT,
+  SUPPORT: Role.TEAM_MEMBER,
+  AUDITOR: Role.TEAM_MEMBER,
+  VIEWER: Role.GUEST,
+  FIELD_ENGINEER: Role.TECHNICIAN,
+  INTERNAL_TECHNICIAN: Role.TECHNICIAN,
+  CONTRACTOR_TECHNICIAN: Role.TECHNICIAN,
+  MARKETPLACE_PARTNER: Role.VENDOR,
+  SERVICE_PROVIDER: Role.VENDOR,
+  SUPPLIER: Role.VENDOR,
+};
+
+/**
+ * Normalizes a role string (legacy or canonical) to a STRICT v4.1 canonical Role enum value.
+ * Returns null if the role is not recognized.
+ * 
+ * @example
+ * normalizeRole("CORPORATE_ADMIN") // Role.ADMIN
+ * normalizeRole("EMPLOYEE") // Role.TEAM_MEMBER
+ * normalizeRole("ADMIN") // Role.ADMIN
+ */
+export function normalizeRole(role?: string | Role | null): Role | null {
+  if (!role) return null;
+  if (typeof role !== 'string') return role; // Already a Role enum
+  const key = role.toUpperCase();
+  return ROLE_ALIAS_MAP[key] ?? (Role as any)[key] ?? null;
+}
+
+/* =========================
+ * 3) Role → Module access (STRICT v4 Matrix)
  * ========================= */
 
 export const ROLE_MODULE_ACCESS: Record<
@@ -368,7 +435,7 @@ export const ROLE_MODULE_ACCESS: Record<
 };
 
 /* =========================
- * 3) Role × Submodule → Actions (RBAC core)
+ * 4) Role × Submodule → Actions (RBAC core)
  * ========================= */
 /** Actions that only assigned technicians can perform */
 export const TECHNICIAN_ASSIGNED_ACTIONS: Action[] = [
@@ -508,7 +575,7 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
 };
 
 /* =========================
- * 4) AI Agent Governance (STRICT v4.1)
+ * 5) AI Agent Governance (STRICT v4.1)
  * ========================= */
 
 /**
@@ -532,12 +599,33 @@ export type AgentAuditLog = {
  * STRICT v4.1: Log agent action for audit trail
  * Agents inherit user's role/scope but all actions are tracked
  */
-export function logAgentAction(log: AgentAuditLog): void {
-  // In production, write to dedicated audit collection or logging service
+export async function logAgentAction(log: AgentAuditLog): Promise<void> {
+  // Log to console in development
   if (process.env.NODE_ENV === "development") {
     console.log("[AGENT_AUDIT]", JSON.stringify(log, null, 2));
   }
-  // TODO: Implement persistent audit logging to MongoDB collection
+  
+  // Persistent MongoDB audit logging (STRICT v4.1)
+  try {
+    // Dynamic import to avoid circular dependencies
+    const { AgentAuditLog: AgentAuditLogModel } = await import("@/server/models/AgentAuditLog");
+    
+    await AgentAuditLogModel.create({
+      agent_id: log.agent_id,
+      assumed_user_id: log.assumed_user_id,
+      timestamp: log.timestamp,
+      action_summary: log.action_summary,
+      resource_type: log.resource_type,
+      resource_id: log.resource_id,
+      org_id: log.org_id,
+      request_path: log.request_path,
+      success: log.success,
+      error_message: log.error_message,
+    });
+  } catch (error) {
+    // Don't throw - audit logging failure shouldn't break the operation
+    console.error("[AGENT_AUDIT_ERROR] Failed to persist agent action:", error);
+  }
 }
 
 /**
@@ -563,7 +651,38 @@ export function validateAgentAccess(ctx: ResourceCtx): boolean {
 }
 
 /* =========================
- * 5) ABAC Guard (scope + plan + ownership)
+ * 6) Module-Level Access Check
+ * ========================= */
+
+/**
+ * Check if a role has access to a specific module (module-level permission check).
+ * This is simpler than the full ABAC `can()` which checks submodule + action + context.
+ * 
+ * @param module - The module to check
+ * @param action - The action being attempted (view, create, etc.)
+ * @param ctx - Resource context with role, plan, org membership
+ * @returns true if the role can access the module
+ */
+export function canAccessModule(
+  module: ModuleKey,
+  action: string,
+  ctx: ResourceCtx,
+): boolean {
+  // Super Admin bypasses all checks
+  if (ctx.role === Role.SUPER_ADMIN) return true;
+  
+  // Check if role has module access
+  const hasModuleAccess = ROLE_MODULE_ACCESS[ctx.role]?.[module] ?? false;
+  if (!hasModuleAccess) return false;
+  
+  // Org membership required (except SUPER_ADMIN)
+  if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
+  
+  return true;
+}
+
+/* =========================
+ * 7) ABAC Guard (scope + plan + ownership)
  * ========================= */
 
 export type ResourceCtx = {
@@ -747,15 +866,20 @@ export function buildDataScopeFilter(ctx: ResourceCtx): DataScopeFilter {
 }
 
 export function can(
-  submodule: SubmoduleKey,
+  submodule: SubmoduleKey | ModuleKey,
   action: Action,
   ctx: ResourceCtx,
 ): boolean {
+  // If checking module-level access (not a submodule), use canAccessModule
+  if (Object.values(ModuleKey).includes(submodule as ModuleKey)) {
+    return canAccessModule(submodule as ModuleKey, action, ctx);
+  }
+  
   // 1) Plan gate
-  if (!PLAN_GATES[ctx.plan]?.[submodule]) return false;
+  if (!PLAN_GATES[ctx.plan]?.[submodule as SubmoduleKey]) return false;
 
   // 2) Role action allow-list
-  const allowed = ROLE_ACTIONS[ctx.role]?.[submodule];
+  const allowed = ROLE_ACTIONS[ctx.role]?.[submodule as SubmoduleKey];
   if (!allowed?.includes(action)) return false;
 
   // 3) Ownership / scope checks (row-level security)
@@ -789,7 +913,7 @@ export function can(
 }
 
 /* =========================
- * 6) Work Order State Machine (FSM)
+ * 8) Work Order State Machine (FSM)
  * ========================= */
 
 export enum WOStatus {
@@ -903,7 +1027,7 @@ export const WORK_ORDER_FSM: {
 };
 
 /* =========================
- * 7) Approvals DSL (Delegation, Escalation, Parallel/Sequential)
+ * 9) Approvals DSL (Delegation, Escalation, Parallel/Sequential)
  * ========================= */
 
 export type ApprovalRule = {
@@ -959,7 +1083,7 @@ export const APPROVAL_POLICIES: ApprovalRule[] = [
 ];
 
 /* =========================
- * 8) Notifications & Deep-links
+ * 10) Notifications & Deep-links
  * ========================= */
 
 export const NOTIFY = {
@@ -981,7 +1105,7 @@ export const NOTIFY = {
 };
 
 /* =========================
- * 9) Mongoose Schemas (Mongo) - STRICT v4.1 with Indexes
+ * 11) Mongoose Schemas (Mongo) - STRICT v4.1 with Indexes
  * ========================= */
 
 /**
@@ -1216,7 +1340,7 @@ export const FMDocument =
   mongoose.models.FMDocument ?? mongoose.model("FMDocument", DocumentSchema);
 
 /* =========================
- * 10) Seeds & Smoke Tests
+ * 12) Seeds & Smoke Tests
  * ========================= */
 
 export const DEFAULT_APPROVALS = APPROVAL_POLICIES;
@@ -1259,7 +1383,7 @@ export function smokeTests() {
 }
 
 /* =========================
- * 11) Helper: FSM guard example
+ * 13) Helper: FSM guard example
  * ========================= */
 
 /**

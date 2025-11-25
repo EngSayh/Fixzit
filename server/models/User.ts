@@ -44,6 +44,11 @@ const UserSchema = new Schema(
     // Professional Information
     professional: {
       role: { type: String, enum: UserRole, required: true },
+      subRole: { 
+        type: String, 
+        enum: ["FINANCE_OFFICER", "HR_OFFICER", "SUPPORT_AGENT", "OPERATIONS_MANAGER"],
+        description: "STRICT v4.1 Team Member specialization (Finance/HR/Support/Operations)",
+      },
       title: String,
       department: String,
       manager: String, // user ID of manager
@@ -80,6 +85,8 @@ const UserSchema = new Schema(
           status: String,
         },
       ],
+      // STRICT v4.1: Assigned properties for Property Managers (data scope)
+      assignedProperties: [{ type: Schema.Types.ObjectId, ref: "Property" }],
     },
 
     // Workload & Capacity
@@ -230,6 +237,7 @@ UserSchema.index({ orgId: 1, code: 1 }, { unique: true });
 
 // FIXED: Tenant-scoped query indexes
 UserSchema.index({ orgId: 1, "professional.role": 1 });
+UserSchema.index({ orgId: 1, "professional.subRole": 1 }); // STRICT v4.1: Sub-role index
 UserSchema.index({ orgId: 1, "professional.skills.category": 1 });
 UserSchema.index({ orgId: 1, "workload.available": 1 });
 UserSchema.index({ orgId: 1, "performance.rating": -1 });
