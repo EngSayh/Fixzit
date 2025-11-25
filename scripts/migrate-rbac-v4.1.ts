@@ -194,7 +194,12 @@ async function runMigration(): Promise<void> {
       
       if (!DRY_RUN) {
         try {
-          await User.updateOne({ _id: user._id }, { $set: user });
+          // Avoid attempting to update immutable _id field
+          const { _id, ...update } = user;
+          if (!_id) {
+            throw new Error("User record missing _id");
+          }
+          await User.updateOne({ _id }, { $set: update });
         } catch (error) {
           console.error(`   ❌ Error updating user: ${error}`);
           stats.errors++;

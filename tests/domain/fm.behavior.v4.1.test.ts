@@ -142,6 +142,40 @@ describe("STRICT v4.1 - Sub-Roles", () => {
   });
 });
 
+describe("STRICT v4.1 - Module Access via can()", () => {
+  const baseCtx = {
+    orgId: "org-123",
+    plan: Plan.PRO,
+    role: Role.TEAM_MEMBER,
+    isOrgMember: true,
+    userId: "tm-1",
+  } as const;
+
+  it("allows Finance Officer to access Finance module", () => {
+    const allowed = can(ModuleKey.FINANCE, "view", {
+      ...baseCtx,
+      subRole: SubRole.FINANCE_OFFICER,
+    });
+    expect(allowed).toBe(true);
+  });
+
+  it("allows HR Officer to access HR module", () => {
+    const allowed = can(ModuleKey.HR, "view", {
+      ...baseCtx,
+      subRole: SubRole.HR_OFFICER,
+    });
+    expect(allowed).toBe(true);
+  });
+
+  it("denies Support Agent access to Finance module", () => {
+    const allowed = can(ModuleKey.FINANCE, "view", {
+      ...baseCtx,
+      subRole: SubRole.SUPPORT_AGENT,
+    });
+    expect(allowed).toBe(false);
+  });
+});
+
 describe("STRICT v4.1 - Data Scope Filters", () => {
   describe("SUPER_ADMIN", () => {
     it("has no filter (cross-org access)", () => {

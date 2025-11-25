@@ -66,20 +66,20 @@ export enum Role {
   GUEST = "GUEST", // Public visitor, no auth
   
   // Legacy aliases for backward compatibility (deprecated, use canonical names above)
-  /** @deprecated Use ADMIN instead */
-  CORPORATE_ADMIN = "ADMIN",
-  /** @deprecated Use TEAM_MEMBER with module restrictions instead */
-  MANAGEMENT = "TEAM_MEMBER",
-  /** @deprecated Use TEAM_MEMBER with Finance module access instead */
-  FINANCE = "TEAM_MEMBER",
-  /** @deprecated Use TEAM_MEMBER with HR module access instead */
-  HR = "TEAM_MEMBER",
-  /** @deprecated Use TEAM_MEMBER instead */
-  EMPLOYEE = "TEAM_MEMBER",
-  /** @deprecated Use CORPORATE_OWNER instead */
-  PROPERTY_OWNER = "CORPORATE_OWNER",
-  /** @deprecated Role removed in STRICT v4 */
-  OWNER_DEPUTY = "PROPERTY_MANAGER",
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values -- Intentional: backward compatibility alias
+  CORPORATE_ADMIN = "ADMIN", /** @deprecated Use ADMIN instead */
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values -- Intentional: backward compatibility alias
+  MANAGEMENT = "TEAM_MEMBER", /** @deprecated Use TEAM_MEMBER with module restrictions instead */
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values -- Intentional: backward compatibility alias
+  FINANCE = "TEAM_MEMBER", /** @deprecated Use TEAM_MEMBER with Finance module access instead */
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values -- Intentional: backward compatibility alias
+  HR = "TEAM_MEMBER", /** @deprecated Use TEAM_MEMBER with HR module access instead */
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values -- Intentional: backward compatibility alias
+  EMPLOYEE = "TEAM_MEMBER", /** @deprecated Use TEAM_MEMBER instead */
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values -- Intentional: backward compatibility alias
+  PROPERTY_OWNER = "CORPORATE_OWNER", /** @deprecated Use CORPORATE_OWNER instead */
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values -- Intentional: backward compatibility alias
+  OWNER_DEPUTY = "PROPERTY_MANAGER", /** @deprecated Role removed in STRICT v4 */
 }
 
 export enum Plan {
@@ -277,7 +277,7 @@ export function normalizeRole(role?: string | Role | null): Role | null {
   if (!role) return null;
   if (typeof role !== 'string') return role; // Already a Role enum
   const key = role.toUpperCase();
-  return ROLE_ALIAS_MAP[key] ?? (Role as any)[key] ?? null;
+  return ROLE_ALIAS_MAP[key] ?? (Role as Record<string, string>)[key] as Role ?? null;
 }
 
 /* =========================
@@ -585,7 +585,7 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
 export type AgentAuditLog = {
   agent_id: string; // Agent identifier (e.g., "cursor", "qodo", "copilot")
   assumed_user_id: string; // User the agent is acting on behalf of
-  timestamp: Date;
+  timestamp?: Date;
   action_summary: string; // Human-readable action description
   resource_type: string; // e.g., "WorkOrder", "Property", "User"
   resource_id?: string;
@@ -593,6 +593,9 @@ export type AgentAuditLog = {
   request_path?: string; // API endpoint or file path
   success: boolean;
   error_message?: string;
+  ip_address?: string;
+  user_agent?: string;
+  session_id?: string;
 };
 
 /**
@@ -600,9 +603,23 @@ export type AgentAuditLog = {
  * Agents inherit user's role/scope but all actions are tracked
  */
 export async function logAgentAction(log: AgentAuditLog): Promise<void> {
+  if (!log.agent_id || !log.assumed_user_id || !log.org_id) {
+    console.error("[AGENT_AUDIT_ERROR] Missing required audit fields", {
+      agent_id: log.agent_id,
+      assumed_user_id: log.assumed_user_id,
+      org_id: log.org_id,
+    });
+    return;
+  }
+
+  const timestamp = log.timestamp ?? new Date();
+
   // Log to console in development
   if (process.env.NODE_ENV === "development") {
-    console.log("[AGENT_AUDIT]", JSON.stringify(log, null, 2));
+    console.log(
+      "[AGENT_AUDIT]",
+      JSON.stringify({ ...log, timestamp }, null, 2),
+    );
   }
   
   // Persistent MongoDB audit logging (STRICT v4.1)
@@ -613,7 +630,7 @@ export async function logAgentAction(log: AgentAuditLog): Promise<void> {
     await AgentAuditLogModel.create({
       agent_id: log.agent_id,
       assumed_user_id: log.assumed_user_id,
-      timestamp: log.timestamp,
+      timestamp,
       action_summary: log.action_summary,
       resource_type: log.resource_type,
       resource_id: log.resource_id,
@@ -621,6 +638,9 @@ export async function logAgentAction(log: AgentAuditLog): Promise<void> {
       request_path: log.request_path,
       success: log.success,
       error_message: log.error_message,
+      ip_address: log.ip_address,
+      user_agent: log.user_agent,
+      session_id: log.session_id,
     });
   } catch (error) {
     // Don't throw - audit logging failure shouldn't break the operation
@@ -671,12 +691,13 @@ export function canAccessModule(
   // Super Admin bypasses all checks
   if (ctx.role === Role.SUPER_ADMIN) return true;
   
-  // Check if role has module access
-  const hasModuleAccess = ROLE_MODULE_ACCESS[ctx.role]?.[module] ?? false;
+  // Use computed modules so Team Member sub-roles are honored
+  const allowedModules = computeAllowedModules(ctx.role, ctx.subRole);
+  const hasModuleAccess = allowedModules.includes(module);
   if (!hasModuleAccess) return false;
   
-  // Org membership required (except SUPER_ADMIN)
-  if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
+  // Org membership required for non-Super Admin roles
+  if (!ctx.isOrgMember) return false;
   
   return true;
 }

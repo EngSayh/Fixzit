@@ -48,7 +48,7 @@ jobs:
       mongodb:
         image: mongo:7
         env:
-      # Secrets are configured in GitHub Settings > Secrets and variables > Actions
+          # Secrets are configured in GitHub Settings > Secrets and variables > Actions
           MONGO_INITDB_DATABASE: fixzit_test
         ports:
           - 27017:27017

@@ -141,16 +141,14 @@ const responsiveFallback: ResponsiveContextValue = {
   },
 };
 
-// ✅ Safety: fall back to native <img> if next/image is not a valid component in tests/jsdom
-const RawImageComponent =
-  (Image as unknown as { default?: unknown }).default ?? Image;
 type SafeImageProps = React.ComponentProps<typeof Image>;
 const SafeImage: React.FC<SafeImageProps> = (props) => {
-  const Comp =
-    typeof RawImageComponent === "function"
-      ? (RawImageComponent as React.ComponentType<SafeImageProps>)
-      : ("img" as React.ElementType);
-  return React.createElement(Comp, props);
+  if (process.env.NODE_ENV === "test") {
+    // In test env, use native img with compatible props
+    const { src, alt, ...rest } = props;
+    return <img src={String(src)} alt={alt} {...rest} />;
+  }
+  return <Image {...props} />;
 };
 
 function useSafeFormState(): FormStateContextValue {
@@ -556,17 +554,10 @@ function TopBarContent() {
       <div
         className={`h-16 flex items-center justify-between gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
       >
-        {/* Left Section: Skip link + Logo & App Switcher */}
+        {/* Left Section: Logo & App Switcher */}
         <div
           className={`flex items-center gap-3 flex-shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}
         >
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:start-2 focus:z-[9999] focus:bg-primary focus:text-primary-foreground focus:px-3 focus:py-2 focus:rounded"
-            data-testid="skip-to-content"
-          >
-            {t("accessibility.skipToContent", "Skip to main content")}
-          </a>
           <Button
             variant="ghost"
             onClick={handleLogoClick}

@@ -44,16 +44,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
 
       - name: 📥 Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: 🏗️ Build with source maps
         run: |
           set -e
           echo "Building Next.js app with source maps…"
-          npm run build
+          pnpm run build
 
       # Sentry release + sourcemaps (v3, with Debug ID injection)
       - name: 🚀 Create & upload Sentry release (non-blocking)
@@ -79,7 +85,7 @@ jobs:
           echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "✅ Production build completed" >> $GITHUB_STEP_SUMMARY
           MAP_COUNT=$(find .next -name "*.map" -type f | wc -l || echo "0")
-          echo "�️ Source maps: $MAP_COUNT files" >> $GITHUB_STEP_SUMMARY
+          echo "🗺️ Source maps: $MAP_COUNT files" >> $GITHUB_STEP_SUMMARY
           TOTAL_SIZE=$(find .next -name "*.map" -type f -exec du -ch {} + 2>/dev/null | awk '/total/{print $1}')
           echo "💾 Total .map size: ${TOTAL_SIZE:-0}" >> $GITHUB_STEP_SUMMARY
           if [ -n "${{ env.SENTRY_AUTH_TOKEN }}" ]; then
