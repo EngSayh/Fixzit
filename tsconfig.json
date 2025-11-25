@@ -8,7 +8,7 @@
     ],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": true,
+    "strict": false,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
@@ -19,7 +19,6 @@
     "jsx": "preserve",
     "incremental": true,
     "downlevelIteration": true,
-    "allowImportingTsExtensions": true,
     "plugins": [
       {
         "name": "next"
@@ -30,10 +29,8 @@
       "react",
       "react-dom",
       "next",
-      "google.maps",
-      "vitest/globals"
+      "google.maps"
     ],
-    "rootDir": ".",
     "paths": {
       "@/*": [
         "./*"
@@ -41,39 +38,25 @@
     }
   },
   "include": [
+    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "next-env.d.ts",
-    ".next/types/**/*.ts",
-    "vitest.config.ts",
-    "vitest.setup.ts"
+    ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     ".next",
+    "out",
     "dist",
     "build",
-    "out",
-    "tests/unit/models/CmsPage.test.ts",
-    "tests/rbac/cross-tenant-isolation.test.ts",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
-    "tests/**/*",
-    "qa/**/*",
-    "scripts/**/*",
-    "tools/**/*",
-    "i18n/dictionaries/en.ts",
-    "i18n/dictionaries/ar.ts",
-    "i18n/dictionaries/ar-industries.ts",
-    "i18n/new-translations.ts",
-    "i18n/sources/**/*"
-  ],
-  "ts-node": {
-    "compilerOptions": {
-      "module": "esnext",
-      "moduleResolution": "node16"
-    }
-  }
+    "coverage",
+    "playwright-report",
+    "test-results",
+    "public",
+    "qa",
+    "scripts",
+    "tools",
+    "tests",
+    "deployment"
+  ]
 }

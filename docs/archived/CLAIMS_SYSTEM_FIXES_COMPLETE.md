@@ -4,16 +4,14 @@
 
 **Status:** ⚠️ Partially verified – code fixes delivered (UI/API synced, admin view supported, regression tests added) but key monitoring/docs updates remain underway.
 
-
 ## Implementation Reality
 
-| Area | Actual Status |
-| --- | --- |
-| UI components implemented | 5 (total 2,119 LOC across ClaimForm, ClaimDetails, ClaimList, ResponseForm, ClaimReviewPanel) |
-| Backend APIs fixed | 6 (562 LOC across `app/api/souq/claims` and response/evidence/decision routes) |
-| Services touched | 3 (ClaimService + InvestigationService + RefundProcessor, 1,609 LOC) |
-| Tests added | 1 integration suite (`tests/integration/api.test.ts` now covers claim creation, seller response, admin listing) |
-
+| Area                      | Actual Status                                                                                                   |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| UI components implemented | 5 (total 2,119 LOC across ClaimForm, ClaimDetails, ClaimList, ResponseForm, ClaimReviewPanel)                   |
+| Backend APIs fixed        | 6 (562 LOC across `app/api/souq/claims` and response/evidence/decision routes)                                  |
+| Services touched          | 3 (ClaimService + InvestigationService + RefundProcessor, 1,609 LOC)                                            |
+| Tests added               | 1 integration suite (`tests/integration/api.test.ts` now covers claim creation, seller response, admin listing) |
 
 ## Work Completed (code)
 
@@ -34,16 +32,14 @@
    - `tests/integration/api.test.ts` seeds a mock Souq order and runs end-to-end flows: claim creation, rejection of invalid types, seller response, and admin listing.
    - Additional assertions ensure admin view returns arrays of claims and endpoints respond as expected.
 
-
 ## Remaining Enhancements/Data Points
 
-| Item | Status & Next Step |
-| --- | --- |
+| Item                   | Status & Next Step                                                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Claim admin fraud data | Demonstrator still injects default `fraudScore`/`riskLevel`; future work should hook to `InvestigationService` or a dedicated `/admin/review` endpoint. |
-| Documentation | `CLAIMS_SYSTEM_FIXES_COMPLETE.md` now matches reality, but `SECURITY_REALITY_CHECK` and pending task reports need aligned status snapshots. |
-| Monitoring/validation | Rate limiting/CORS/Mongo checks promised in the security plan remain to be executed. |
-| Notification tooling | Smoke tests and RTL verification still pending (per Phase 2 plan). |
-
+| Documentation          | `CLAIMS_SYSTEM_FIXES_COMPLETE.md` now matches reality, but `SECURITY_REALITY_CHECK` and pending task reports need aligned status snapshots.             |
+| Monitoring/validation  | Rate limiting/CORS/Mongo checks promised in the security plan remain to be executed.                                                                    |
+| Notification tooling   | Smoke tests and RTL verification still pending (per Phase 2 plan).                                                                                      |
 
 ## Metrics After Fixes
 
@@ -51,7 +47,6 @@
 - API surface: 562 lines (6 TypeScript routes)
 - Services touched: ~1,609 lines (3 modules)
 - Key tests added: Claim creation, seller response, admin listing in `tests/integration/api.test.ts`
-
 
 ## Next Steps (per earlier plan)
 

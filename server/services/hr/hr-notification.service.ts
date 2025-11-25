@@ -1,6 +1,6 @@
-import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
-import { logger } from '@/lib/logger';
-import type { AttendanceStatus } from '@/server/models/hr.models';
+import { addJob, QUEUE_NAMES } from "@/lib/queues/setup";
+import { logger } from "@/lib/logger";
+import type { AttendanceStatus } from "@/server/models/hr.models";
 
 interface LeaveStatusPayload {
   orgId: string;
@@ -28,23 +28,25 @@ export class HrNotificationService {
     try {
       await addJob(
         QUEUE_NAMES.NOTIFICATIONS,
-        'hr.leave.status_changed',
-        payload
+        "hr.leave.status_changed",
+        payload,
       );
     } catch (error) {
-      logger.error('Failed to queue leave status notification', { error, payload });
+      logger.error("Failed to queue leave status notification", {
+        error,
+        payload,
+      });
     }
   }
 
   static async queueAttendanceAlert(payload: AttendanceAlertPayload) {
     try {
-      await addJob(
-        QUEUE_NAMES.NOTIFICATIONS,
-        'hr.attendance.alert',
-        payload
-      );
+      await addJob(QUEUE_NAMES.NOTIFICATIONS, "hr.attendance.alert", payload);
     } catch (error) {
-      logger.error('Failed to queue attendance alert notification', { error, payload });
+      logger.error("Failed to queue attendance alert notification", {
+        error,
+        payload,
+      });
     }
   }
 }

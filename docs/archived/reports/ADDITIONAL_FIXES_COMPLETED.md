@@ -136,12 +136,12 @@ function Card({ item }: { item: Item }) {
 ```typescript
 catch (error: unknown) {
   if (error instanceof ZodError) {
-    return createSecureResponse({ 
+    return createSecureResponse({
       error: 'Invalid request payload',
       fields: error.errors.map(e => e.path.join('.'))
     }, 400, req);
   }
-  
+
   console.error('Operation failed:', error);
   return createSecureResponse({ error: 'Internal server error' }, 500, req);
 }
@@ -151,7 +151,7 @@ catch (error: unknown) {
 
 ```typescript
 // Instead of: (data?.items as TicketItem[] || [])
-const items = Array.isArray(data?.items) ? data.items as TicketItem[] : [];
+const items = Array.isArray(data?.items) ? (data.items as TicketItem[]) : [];
 ```
 
 ---
@@ -164,15 +164,10 @@ const items = Array.isArray(data?.items) ? data.items as TicketItem[] : [];
 2. server/plugins/auditPlugin.ts - Safe header access
 3. app/api/support/welcome-email/route.ts - Fix ReferenceError
 
-**Medium Priority** (Type Safety):
-4. components/SupportPopup.tsx - Fix memory calculation
-5. app/fm/support/tickets/page.tsx - Runtime array validation
-6. nav/registry.ts - Fix icon type
-7. server/models/Application.ts - Fix hook signature
+**Medium Priority** (Type Safety): 4. components/SupportPopup.tsx - Fix memory calculation 5. app/fm/support/tickets/page.tsx - Runtime array validation 6. nav/registry.ts - Fix icon type 7. server/models/Application.ts - Fix hook signature
 
 **Low Priority** (Code Quality):
-8-11. Frontend component unused props (can be batch-fixed)
-12. app/properties/[id]/page.tsx - Remove local google declaration
+8-11. Frontend component unused props (can be batch-fixed) 12. app/properties/[id]/page.tsx - Remove local google declaration
 
 ---
 

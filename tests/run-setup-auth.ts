@@ -19,7 +19,7 @@ const mockConfig: Pick<FullConfig, 'projects'> = {
       baseURL: process.env.BASE_URL || 'http://localhost:3000'
     }
   }]
-};
+} as { projects: Array<{ use: { baseURL: string } }> };
 
 globalSetup(mockConfig)
   .then(() => {

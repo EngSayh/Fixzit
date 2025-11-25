@@ -1,15 +1,17 @@
-import PaymentMethod from '@/server/models/PaymentMethod';
-import Subscription from '@/server/models/Subscription';
+import PaymentMethod from "@/server/models/PaymentMethod";
+import Subscription from "@/server/models/Subscription";
 
 import {
   normalizePaytabsCallbackPayload,
   type PaytabsCallbackPayload,
-} from '@/lib/payments/paytabs-callback.contract';
-import { provisionSubscriber } from './provision';
+} from "@/lib/payments/paytabs-callback.contract";
+import { provisionSubscriber } from "./provision";
 
 export type NormalizedPayTabsPayload = PaytabsCallbackPayload;
 
-export function normalizePayTabsPayload(data: unknown): NormalizedPayTabsPayload {
+export function normalizePayTabsPayload(
+  data: unknown,
+): NormalizedPayTabsPayload {
   return normalizePaytabsCallbackPayload(data);
 }
 
@@ -17,15 +19,15 @@ export function normalizePayTabsPayload(data: unknown): NormalizedPayTabsPayload
  * Calculate the next billing date based on billing cycle
  * Handles month-end edge cases by capping to last day of month
  */
-function calculateNextBillingDate(billingCycle: 'MONTHLY' | 'ANNUAL'): Date {
+function calculateNextBillingDate(billingCycle: "MONTHLY" | "ANNUAL"): Date {
   const nextDate = new Date();
   nextDate.setUTCHours(0, 0, 0, 0);
-  
-  if (billingCycle === 'MONTHLY') {
+
+  if (billingCycle === "MONTHLY") {
     // Get current day to preserve billing day-of-month
     const currentDay = nextDate.getUTCDate();
     nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
-    
+
     // Handle month-end edge cases (e.g., Jan 31 -> Feb 28/29)
     // If the day changed after setMonth, it overflowed to next month
     if (nextDate.getUTCDate() < currentDay) {
@@ -35,22 +37,26 @@ function calculateNextBillingDate(billingCycle: 'MONTHLY' | 'ANNUAL'): Date {
   } else {
     nextDate.setUTCFullYear(nextDate.getUTCFullYear() + 1);
   }
-  
+
   return nextDate;
 }
 
-export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPayload) {
+export async function finalizePayTabsTransaction(
+  payload: NormalizedPayTabsPayload,
+) {
   if (!payload.cartId) {
-    throw new Error('Missing cart identifier');
+    throw new Error("Missing cart identifier");
   }
 
-  const subscription = await Subscription.findOne({ 'paytabs.cart_id': payload.cartId });
+  const subscription = await Subscription.findOne({
+    "paytabs.cart_id": payload.cartId,
+  });
   if (!subscription) {
-    throw new Error('Subscription not found for cart');
+    throw new Error("Subscription not found for cart");
   }
 
-  if (payload.respStatus !== 'A') {
-    subscription.status = 'PAST_DUE';
+  if (payload.respStatus !== "A") {
+    subscription.status = "PAST_DUE";
     await subscription.save();
     return { ok: false, subscription };
   }
@@ -62,71 +68,82 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
         pt_token: payload.token,
         pt_customer_email: payload.customerEmail,
         pt_masked_card: payload.maskedCard,
-        org_id: subscription.subscriber_type === 'CORPORATE' ? subscription.tenant_id : undefined,
-        owner_user_id: subscription.subscriber_type === 'OWNER' ? subscription.owner_user_id : undefined,
+        org_id:
+          subscription.subscriber_type === "CORPORATE"
+            ? subscription.tenant_id
+            : undefined,
+        owner_user_id:
+          subscription.subscriber_type === "OWNER"
+            ? subscription.owner_user_id
+            : undefined,
       },
-      { upsert: true }
+      { upsert: true },
     );
   }
 
-  subscription.status = 'ACTIVE';
+  subscription.status = "ACTIVE";
   subscription.amount = payload.amount ?? subscription.amount;
   const incomingCurrency =
-    typeof payload.currency === 'string'
+    typeof payload.currency === "string"
       ? payload.currency.toUpperCase()
       : undefined;
-  if (incomingCurrency === 'USD' || incomingCurrency === 'SAR') {
+  if (incomingCurrency === "USD" || incomingCurrency === "SAR") {
     subscription.currency = incomingCurrency;
   }
-  
+
   // Set next_billing_date for recurring subscriptions
   if (!subscription.next_billing_date) {
-    subscription.next_billing_date = calculateNextBillingDate(subscription.billing_cycle);
+    subscription.next_billing_date = calculateNextBillingDate(
+      subscription.billing_cycle,
+    );
   }
-  
+
   subscription.paytabs = {
     ...(subscription.paytabs || {}),
     token: payload.token ?? subscription.paytabs?.token,
     last_tran_ref: payload.tranRef,
-    customer_email: payload.customerEmail ?? subscription.paytabs?.customer_email,
+    customer_email:
+      payload.customerEmail ?? subscription.paytabs?.customer_email,
     cart_id: subscription.paytabs?.cart_id,
     profile_id: subscription.paytabs?.profile_id,
   };
-  
+
   // Record successful payment in billing history
   subscription.billing_history.push({
     date: new Date(),
     amount: subscription.amount,
     currency: subscription.currency,
     tran_ref: payload.tranRef,
-    status: 'SUCCESS'
+    status: "SUCCESS",
   });
-  
+
   await subscription.save();
 
   if (
-    subscription.subscriber_type === 'OWNER' &&
+    subscription.subscriber_type === "OWNER" &&
     subscription.metadata &&
-    typeof subscription.metadata === 'object' &&
-    'ownerGroup' in subscription.metadata
+    typeof subscription.metadata === "object" &&
+    "ownerGroup" in subscription.metadata
   ) {
-  const meta = subscription.metadata.ownerGroup as Record<string, unknown>;
+    const meta = subscription.metadata.ownerGroup as Record<string, unknown>;
     if (meta?.name) {
-      const { OwnerGroupModel } = await import('@/server/models/OwnerGroup');
+      const { OwnerGroupModel } = await import("@/server/models/OwnerGroup");
       await OwnerGroupModel.findOneAndUpdate(
         {
           name: meta.name,
-          primary_contact_user_id: meta.primary_contact_user_id || subscription.owner_user_id,
+          primary_contact_user_id:
+            meta.primary_contact_user_id || subscription.owner_user_id,
         },
         {
           name: meta.name,
-          primary_contact_user_id: meta.primary_contact_user_id || subscription.owner_user_id,
+          primary_contact_user_id:
+            meta.primary_contact_user_id || subscription.owner_user_id,
           member_user_ids: meta.member_user_ids || [],
           fm_provider_org_id: meta.fm_provider_org_id,
           agent_org_id: meta.agent_org_id,
           property_ids: meta.property_ids || [],
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true },
       );
     }
   }

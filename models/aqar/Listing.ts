@@ -5,83 +5,83 @@
  * boost forecasting, analytics, and geospatial search.
  */
 
-import mongoose, { Schema, Document } from 'mongoose';
-import { getModel } from '@/src/types/mongoose-compat';
+import mongoose, { Schema, Document } from "mongoose";
+import { getModel } from "@/src/types/mongoose-compat";
 
 // Enums
 export enum ListingIntent {
-  BUY = 'BUY',
-  RENT = 'RENT',
-  DAILY = 'DAILY',
-  AUCTION = 'AUCTION',
+  BUY = "BUY",
+  RENT = "RENT",
+  DAILY = "DAILY",
+  AUCTION = "AUCTION",
 }
 
 export enum PropertyType {
-  APARTMENT = 'APARTMENT',
-  VILLA = 'VILLA',
-  LAND = 'LAND',
-  COMMERCIAL = 'COMMERCIAL',
-  BUILDING = 'BUILDING',
-  FLOOR = 'FLOOR',
-  ROOM = 'ROOM',
-  SHOP = 'SHOP',
-  OFFICE = 'OFFICE',
-  WAREHOUSE = 'WAREHOUSE',
-  REST_HOUSE = 'REST_HOUSE',
-  CHALET = 'CHALET',
-  FARM = 'FARM',
-  OTHER = 'OTHER',
+  APARTMENT = "APARTMENT",
+  VILLA = "VILLA",
+  LAND = "LAND",
+  COMMERCIAL = "COMMERCIAL",
+  BUILDING = "BUILDING",
+  FLOOR = "FLOOR",
+  ROOM = "ROOM",
+  SHOP = "SHOP",
+  OFFICE = "OFFICE",
+  WAREHOUSE = "WAREHOUSE",
+  REST_HOUSE = "REST_HOUSE",
+  CHALET = "CHALET",
+  FARM = "FARM",
+  OTHER = "OTHER",
 }
 
 export enum FurnishingStatus {
-  FURNISHED = 'FURNISHED',
-  UNFURNISHED = 'UNFURNISHED',
-  PARTLY = 'PARTLY',
+  FURNISHED = "FURNISHED",
+  UNFURNISHED = "UNFURNISHED",
+  PARTLY = "PARTLY",
 }
 
 export enum ListerType {
-  OWNER = 'OWNER',
-  AGENT = 'AGENT',
-  DEVELOPER = 'DEVELOPER',
+  OWNER = "OWNER",
+  AGENT = "AGENT",
+  DEVELOPER = "DEVELOPER",
 }
 
 export enum ListingStatus {
-  DRAFT = 'DRAFT',
-  PENDING = 'PENDING',
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  REJECTED = 'REJECTED',
-  SOLD = 'SOLD',
-  RENTED = 'RENTED',
+  DRAFT = "DRAFT",
+  PENDING = "PENDING",
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  REJECTED = "REJECTED",
+  SOLD = "SOLD",
+  RENTED = "RENTED",
 }
 
 export enum RentFrequency {
-  DAILY = 'DAILY',
-  WEEKLY = 'WEEKLY',
-  MONTHLY = 'MONTHLY',
-  YEARLY = 'YEARLY',
+  DAILY = "DAILY",
+  WEEKLY = "WEEKLY",
+  MONTHLY = "MONTHLY",
+  YEARLY = "YEARLY",
 }
 
 export enum SmartHomeLevel {
-  NONE = 'NONE',
-  BASIC = 'BASIC',
-  ADVANCED = 'ADVANCED',
+  NONE = "NONE",
+  BASIC = "BASIC",
+  ADVANCED = "ADVANCED",
 }
 
 export enum ProptechFeature {
-  SMART_LOCKS = 'SMART_LOCKS',
-  ENERGY_MONITORING = 'ENERGY_MONITORING',
-  WATER_LEAK_SENSORS = 'WATER_LEAK_SENSORS',
-  AIR_QUALITY = 'AIR_QUALITY',
-  SOLAR = 'SOLAR',
-  EV_CHARGER = 'EV_CHARGER',
-  SECURITY_AI = 'SECURITY_AI',
+  SMART_LOCKS = "SMART_LOCKS",
+  ENERGY_MONITORING = "ENERGY_MONITORING",
+  WATER_LEAK_SENSORS = "WATER_LEAK_SENSORS",
+  AIR_QUALITY = "AIR_QUALITY",
+  SOLAR = "SOLAR",
+  EV_CHARGER = "EV_CHARGER",
+  SECURITY_AI = "SECURITY_AI",
 }
 
 // Interfaces
 export interface IListingMedia {
   url: string;
-  kind: 'IMAGE' | 'VIDEO' | 'TOUR' | 'VR';
+  kind: "IMAGE" | "VIDEO" | "TOUR" | "VR";
   order: number;
 }
 
@@ -132,7 +132,7 @@ export interface IListingImmersive {
 
 export interface IListingAI {
   recommendationScore: number;
-  variant?: 'primary' | 'neighbor' | 'experimental';
+  variant?: "primary" | "neighbor" | "experimental";
   explanation: string[];
   badges: string[];
   similarListingIds: mongoose.Types.ObjectId[];
@@ -216,7 +216,7 @@ export interface IListing extends Document {
     cityId?: string;
     neighborhoodId?: string;
     geo: {
-      type: 'Point';
+      type: "Point";
       coordinates: [number, number];
     };
   };
@@ -228,7 +228,7 @@ export interface IListing extends Document {
   furnishing?: FurnishingStatus;
   amenities: string[];
   streetWidthM?: number;
-  facing?: 'N' | 'S' | 'E' | 'W';
+  facing?: "N" | "S" | "E" | "W";
   media: IListingMedia[];
   price: {
     amount: number;
@@ -277,26 +277,31 @@ export interface IListing extends Document {
 
 const GeoPointSchema = new Schema(
   {
-    type: { type: String, enum: ['Point'], default: 'Point' },
+    type: { type: String, enum: ["Point"], default: "Point" },
     coordinates: {
       type: [Number],
       required: true,
       validate: {
-        validator: (coords: number[]) => Array.isArray(coords) && coords.length === 2,
-        message: 'Geo coordinates must be [lng, lat]',
+        validator: (coords: number[]) =>
+          Array.isArray(coords) && coords.length === 2,
+        message: "Geo coordinates must be [lng, lat]",
       },
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const MediaSchema = new Schema(
   {
     url: { type: String, required: true },
-    kind: { type: String, enum: ['IMAGE', 'VIDEO', 'TOUR', 'VR'], required: true },
+    kind: {
+      type: String,
+      enum: ["IMAGE", "VIDEO", "TOUR", "VR"],
+      required: true,
+    },
     order: { type: Number, required: true },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const ImmersiveSchema = new Schema(
@@ -319,20 +324,24 @@ const ImmersiveSchema = new Schema(
     },
     highlights: { type: [String], default: [] },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const AiSchema = new Schema(
   {
     recommendationScore: { type: Number, default: 0, min: 0, max: 100 },
-    variant: { type: String, enum: ['primary', 'neighbor', 'experimental'], default: 'primary' },
+    variant: {
+      type: String,
+      enum: ["primary", "neighbor", "experimental"],
+      default: "primary",
+    },
     explanation: { type: [String], default: [] },
     badges: { type: [String], default: [] },
-    similarListingIds: [{ type: Schema.Types.ObjectId, ref: 'AqarListing' }],
+    similarListingIds: [{ type: Schema.Types.ObjectId, ref: "AqarListing" }],
     demandSignal: { type: Number, min: 0, max: 1 },
     lastRunAt: { type: Date },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const PricingInsightsSchema = new Schema(
@@ -351,7 +360,7 @@ const PricingInsightsSchema = new Schema(
     confidence: { type: Number, min: 0, max: 1 },
     lastComputedAt: { type: Date },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const ProptechSchema = new Schema(
@@ -372,7 +381,7 @@ const ProptechSchema = new Schema(
     evCharging: { type: Boolean, default: false },
     solarReady: { type: Boolean, default: false },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const IotFeaturesSchema = new Schema(
@@ -380,7 +389,7 @@ const IotFeaturesSchema = new Schema(
     key: { type: String },
     label: { type: String },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const PricingSchema = new Schema(
@@ -393,7 +402,7 @@ const PricingSchema = new Schema(
     yoyChangePct: { type: Number },
     suggestedPrice: { type: Number },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const OfflineSchema = new Schema(
@@ -403,34 +412,57 @@ const OfflineSchema = new Schema(
     version: { type: Number, default: 1 },
     lastSyncedAt: { type: Date },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const FmLifecycleSchema = new Schema(
   {
-    propertyId: { type: Schema.Types.ObjectId, ref: 'Property' },
-    workOrderTemplateId: { type: Schema.Types.ObjectId, ref: 'WorkOrderTemplate' },
+    propertyId: { type: Schema.Types.ObjectId, ref: "Property" },
+    workOrderTemplateId: {
+      type: Schema.Types.ObjectId,
+      ref: "WorkOrderTemplate",
+    },
     autoCreateOn: {
       type: [{ type: String, enum: Object.values(ListingStatus) }],
       default: [ListingStatus.RENTED],
     },
-    lastWorkOrderId: { type: Schema.Types.ObjectId, ref: 'WorkOrder' },
+    lastWorkOrderId: { type: Schema.Types.ObjectId, ref: "WorkOrder" },
     lastWorkOrderCreatedAt: { type: Date },
     lastTransactionValue: { type: Number },
     lastVatAmount: { type: Number },
     zatcaQrBase64: { type: String },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // Schema
 const ListingSchema = new Schema<IListing>(
   {
-    orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
-    listerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    propertyRef: { type: Schema.Types.ObjectId, ref: 'Property' },
-    intent: { type: String, enum: Object.values(ListingIntent), required: true, index: true },
-    propertyType: { type: String, enum: Object.values(PropertyType), required: true, index: true },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+    listerId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    propertyRef: { type: Schema.Types.ObjectId, ref: "Property" },
+    intent: {
+      type: String,
+      enum: Object.values(ListingIntent),
+      required: true,
+      index: true,
+    },
+    propertyType: {
+      type: String,
+      enum: Object.values(PropertyType),
+      required: true,
+      index: true,
+    },
     title: { type: String, maxlength: 200 },
     description: { type: String, maxlength: 5000 },
     address: { type: String, required: true },
@@ -450,15 +482,24 @@ const ListingSchema = new Schema<IListing>(
     furnishing: { type: String, enum: Object.values(FurnishingStatus) },
     amenities: { type: [String], default: [] },
     streetWidthM: { type: Number, min: 0 },
-    facing: { type: String, enum: ['N', 'S', 'E', 'W'] },
+    facing: { type: String, enum: ["N", "S", "E", "W"] },
     media: { type: [MediaSchema], default: [] },
     price: {
       amount: { type: Number, required: true, min: 0 },
-      currency: { type: String, default: 'SAR' },
-      frequency: { type: String, enum: [...Object.values(RentFrequency), null], default: null },
+      currency: { type: String, default: "SAR" },
+      frequency: {
+        type: String,
+        enum: [...Object.values(RentFrequency), null],
+        default: null,
+      },
     },
     vatRate: { type: Number, default: 15 },
-    source: { type: String, enum: Object.values(ListerType), required: true, index: true },
+    source: {
+      type: String,
+      enum: Object.values(ListerType),
+      required: true,
+      index: true,
+    },
     compliance: {
       falLicenseNo: { type: String },
       adPermitNo: { type: String },
@@ -487,7 +528,7 @@ const ListingSchema = new Schema<IListing>(
     moderation: {
       riskFlags: { type: [String], default: [] },
       lastReviewAt: { type: Date },
-      reviewerId: { type: Schema.Types.ObjectId, ref: 'User' },
+      reviewerId: { type: Schema.Types.ObjectId, ref: "User" },
       notes: { type: String },
     },
     boost: {
@@ -521,37 +562,41 @@ const ListingSchema = new Schema<IListing>(
   },
   {
     timestamps: true,
-    collection: 'aqar_listings',
-  }
+    collection: "aqar_listings",
+  },
 );
 
 // Indexes
-ListingSchema.index({ 'location.geo': '2dsphere' });
+ListingSchema.index({ "location.geo": "2dsphere" });
 ListingSchema.index({
   city: 1,
   neighborhood: 1,
   intent: 1,
   propertyType: 1,
-  'price.amount': 1,
+  "price.amount": 1,
   status: 1,
 });
-ListingSchema.index({ 'compliance.adPermitNo': 1 }, { sparse: true });
-ListingSchema.index({ 'compliance.nafathVerified': 1 }, { sparse: true });
-ListingSchema.index({ 'auction.isAuction': 1, status: 1 });
+ListingSchema.index({ "compliance.adPermitNo": 1 }, { sparse: true });
+ListingSchema.index({ "compliance.nafathVerified": 1 }, { sparse: true });
+ListingSchema.index({ "auction.isAuction": 1, status: 1 });
 ListingSchema.index({ rnplEligible: 1, status: 1 });
 ListingSchema.index({ createdAt: -1 });
 ListingSchema.index({ publishedAt: -1 });
 ListingSchema.index({ featuredLevel: -1, publishedAt: -1 });
-ListingSchema.index({ 'ai.recommendationScore': -1, status: 1 });
-ListingSchema.index({ 'pricingInsights.pricePerSqm': 1, city: 1 });
-ListingSchema.index({ 'proptech.smartHomeLevel': 1, status: 1 });
-ListingSchema.index({ 'offline.cacheKey': 1 }, { sparse: true });
+ListingSchema.index({ "ai.recommendationScore": -1, status: 1 });
+ListingSchema.index({ "pricingInsights.pricePerSqm": 1, city: 1 });
+ListingSchema.index({ "proptech.smartHomeLevel": 1, status: 1 });
+ListingSchema.index({ "offline.cacheKey": 1 }, { sparse: true });
 
 // Virtual text for Atlas Search
-ListingSchema.virtual('searchText').get(function (this: IListing) {
-  const amenitiesText = Array.isArray(this.amenities) ? this.amenities.join(' ') : '';
-  const proptechText = Array.isArray(this.proptech?.features) ? this.proptech.features.join(' ') : '';
-  return `${this.title || ''} ${this.description || ''} ${amenitiesText} ${proptechText}`;
+ListingSchema.virtual("searchText").get(function (this: IListing) {
+  const amenitiesText = Array.isArray(this.amenities)
+    ? this.amenities.join(" ")
+    : "";
+  const proptechText = Array.isArray(this.proptech?.features)
+    ? this.proptech.features.join(" ")
+    : "";
+  return `${this.title || ""} ${this.description || ""} ${amenitiesText} ${proptechText}`;
 });
 
 // Methods
@@ -559,42 +604,46 @@ ListingSchema.methods.incrementViews = async function (this: IListing) {
   await (this.constructor as typeof mongoose.Model).updateOne(
     { _id: this._id },
     {
-      $inc: { 'analytics.views': 1 },
-      $set: { 'analytics.lastViewedAt': new Date() },
-    }
+      $inc: { "analytics.views": 1 },
+      $set: { "analytics.lastViewedAt": new Date() },
+    },
   );
 };
 
 ListingSchema.methods.incrementFavorites = async function (this: IListing) {
   await (this.constructor as typeof mongoose.Model).updateOne(
     { _id: this._id },
-    { $inc: { 'analytics.favorites': 1 } }
+    { $inc: { "analytics.favorites": 1 } },
   );
 };
 
 ListingSchema.methods.incrementInquiries = async function (this: IListing) {
   await (this.constructor as typeof mongoose.Model).updateOne(
     { _id: this._id },
-    { $inc: { 'analytics.inquiries': 1 } }
+    { $inc: { "analytics.inquiries": 1 } },
   );
 };
 
 // Compliance guard for agents
-ListingSchema.pre('save', function (this: IListing, next) {
+ListingSchema.pre("save", function (this: IListing, next) {
   if (this.source === ListerType.AGENT) {
-    const hasFal = typeof this.compliance?.falLicenseNo === 'string' && this.compliance.falLicenseNo.trim().length > 0;
+    const hasFal =
+      typeof this.compliance?.falLicenseNo === "string" &&
+      this.compliance.falLicenseNo.trim().length > 0;
     const hasAdPermit =
-      typeof this.compliance?.adPermitNo === 'string' && this.compliance.adPermitNo.trim().length > 0;
+      typeof this.compliance?.adPermitNo === "string" &&
+      this.compliance.adPermitNo.trim().length > 0;
     if (!hasFal || !hasAdPermit || !this.compliance?.nafathVerified) {
-      const err = new Error('Broker ads require valid FAL license, ad permit, and Nafath verification');
-      err.name = 'ValidationError';
+      const err = new Error(
+        "Broker ads require valid FAL license, ad permit, and Nafath verification",
+      );
+      err.name = "ValidationError";
       return next(err);
     }
   }
   next();
 });
 
-export const Listing =
-  getModel<IListing>('AqarListing', ListingSchema);
+export const Listing = getModel<IListing>("AqarListing", ListingSchema);
 
 export default Listing;

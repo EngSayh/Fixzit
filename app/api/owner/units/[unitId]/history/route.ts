@@ -1,6 +1,6 @@
 /**
  * Owner Portal API - Unit History
- * 
+ *
  * GET /api/owner/units/[unitId]/history
  * Returns historical data for a specific unit including:
  * - Tenant history
@@ -8,23 +8,23 @@
  * - Inspection records (move-in/move-out)
  * - Revenue history
  * - Utility consumption
- * 
+ *
  * Query Parameters:
  * - include: comma-separated list of data to include
  *   Options: tenants, maintenance, inspections, revenue, utilities
  *   Default: all
  * - startDate: ISO date string (optional) - filter from date
  * - endDate: ISO date string (optional) - filter to date
- * 
+ *
  * Requires: BASIC subscription
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { requireSubscription } from '@/server/middleware/subscriptionCheck';
-import { Property } from '@/server/models/Property';
-import { setTenantContext } from '@/server/plugins/tenantIsolation';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { requireSubscription } from "@/server/middleware/subscriptionCheck";
+import { Property } from "@/server/models/Property";
+import { setTenantContext } from "@/server/plugins/tenantIsolation";
+import { logger } from "@/lib/logger";
 
 interface PropertyUnit {
   unitNumber: string;
@@ -79,68 +79,72 @@ interface PaymentDocument {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { unitId: string } }
+  { params }: { params: { unitId: string } },
 ) {
   try {
     // Check subscription
     const subCheck = await requireSubscription(req, {
-      requirePlan: 'BASIC'
+      requirePlan: "BASIC",
     });
-    
+
     if (subCheck.error) {
       return subCheck.error;
     }
-    
+
     const { ownerId, orgId } = subCheck;
-    
+
     // Parse parameters
     const { searchParams } = new URL(req.url);
-    const includeParam = searchParams.get('include') || 'all';
-    const startDateParam = searchParams.get('startDate');
-    const endDateParam = searchParams.get('endDate');
-    
-    const includeOptions = includeParam === 'all' 
-      ? ['tenants', 'maintenance', 'inspections', 'revenue', 'utilities']
-      : includeParam.split(',');
-    
+    const includeParam = searchParams.get("include") || "all";
+    const startDateParam = searchParams.get("startDate");
+    const endDateParam = searchParams.get("endDate");
+
+    const includeOptions =
+      includeParam === "all"
+        ? ["tenants", "maintenance", "inspections", "revenue", "utilities"]
+        : includeParam.split(",");
+
     // Date filters
     const dateFilter: { $gte?: Date; $lte?: Date } = {};
     if (startDateParam) dateFilter.$gte = new Date(startDateParam);
     if (endDateParam) dateFilter.$lte = new Date(endDateParam);
-    
+
     // Connect to database and set tenant context
     await connectToDatabase();
     setTenantContext({ orgId });
-    
+
     // Import Mongoose models
-    const { WorkOrder } = await import('@/server/models/WorkOrder');
-    const { MoveInOutInspectionModel: MoveInOutInspection } = await import('@/server/models/owner/MoveInOutInspection');
-    const { Payment } = await import('@/server/models/finance/Payment');
-    const { UtilityBillModel: UtilityBill } = await import('@/server/models/owner/UtilityBill');
-    
+    const { WorkOrder } = await import("@/server/models/WorkOrder");
+    const { MoveInOutInspectionModel: MoveInOutInspection } = await import(
+      "@/server/models/owner/MoveInOutInspection"
+    );
+    const { Payment } = await import("@/server/models/finance/Payment");
+    const { UtilityBillModel: UtilityBill } = await import(
+      "@/server/models/owner/UtilityBill"
+    );
+
     // Find property and unit using Mongoose
-    const property = (await Property.findOne({
-      'ownerPortal.ownerId': ownerId,
-      'units.unitNumber': params.unitId
-    }).lean());
-    
+    const property = await Property.findOne({
+      "ownerPortal.ownerId": ownerId,
+      "units.unitNumber": params.unitId,
+    }).lean();
+
     if (!property || Array.isArray(property)) {
       return NextResponse.json(
-        { error: 'Unit not found or access denied' },
-        { status: 404 }
+        { error: "Unit not found or access denied" },
+        { status: 404 },
       );
     }
-    
+
     const propertyTyped = property as unknown as PropertyDocument;
-    const unit = propertyTyped.units?.find((u) => u.unitNumber === params.unitId);
-    
+    const unit = propertyTyped.units?.find(
+      (u) => u.unitNumber === params.unitId,
+    );
+
     if (!unit) {
-      return NextResponse.json(
-        { error: 'Unit not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Unit not found" }, { status: 404 });
     }
-    
+
     // Build response data
     const historyData: Record<string, unknown> = {
       unit: {
@@ -149,42 +153,54 @@ export async function GET(
         area: unit.area,
         bedrooms: unit.bedrooms,
         bathrooms: unit.bathrooms,
-        status: unit.status
-      }
+        status: unit.status,
+      },
     };
-    
+
     // Tenant History
-    if (includeOptions.includes('tenants')) {
+    if (includeOptions.includes("tenants")) {
       // In production, this would query a Tenant/Lease collection
       // For now, using data from property model
-      const tenant = unit.tenant as { name?: string; contact?: string; leaseStart?: Date; leaseEnd?: Date; monthlyRent?: number } | undefined;
-      historyData.tenants = tenant ? [{
-        name: tenant.name,
-        contact: tenant.contact,
-        leaseStart: tenant.leaseStart,
-        leaseEnd: tenant.leaseEnd,
-        monthlyRent: tenant.monthlyRent,
-        status: unit.status === 'OCCUPIED' ? 'CURRENT' : 'PAST'
-      }] : [];
+      const tenant = unit.tenant as
+        | {
+            name?: string;
+            contact?: string;
+            leaseStart?: Date;
+            leaseEnd?: Date;
+            monthlyRent?: number;
+          }
+        | undefined;
+      historyData.tenants = tenant
+        ? [
+            {
+              name: tenant.name,
+              contact: tenant.contact,
+              leaseStart: tenant.leaseStart,
+              leaseEnd: tenant.leaseEnd,
+              monthlyRent: tenant.monthlyRent,
+              status: unit.status === "OCCUPIED" ? "CURRENT" : "PAST",
+            },
+          ]
+        : [];
     }
-    
+
     // Maintenance History (using Mongoose model)
-    if (includeOptions.includes('maintenance')) {
+    if (includeOptions.includes("maintenance")) {
       const maintenanceMatch: Record<string, unknown> = {
-        'location.propertyId': property._id,
-        'location.unitNumber': params.unitId,
-        status: 'COMPLETED'
+        "location.propertyId": property._id,
+        "location.unitNumber": params.unitId,
+        status: "COMPLETED",
       };
-      
+
       if (dateFilter.$gte || dateFilter.$lte) {
-        maintenanceMatch['work.actualEndTime'] = dateFilter;
+        maintenanceMatch["work.actualEndTime"] = dateFilter;
       }
-      
+
       const workOrders = await WorkOrder.find(maintenanceMatch)
-        .sort({ 'work.actualEndTime': -1 })
+        .sort({ "work.actualEndTime": -1 })
         .limit(50)
         .lean();
-      
+
       const workOrdersTyped = workOrders as unknown as WorkOrderDocument[];
       historyData.maintenance = workOrdersTyped.map((wo) => ({
         workOrderNumber: wo.workOrderNumber,
@@ -193,29 +209,40 @@ export async function GET(
         priority: wo.priority,
         cost: wo.financial?.costBreakdown?.total ?? wo.financial?.actualCost,
         completedDate: wo.work?.actualEndTime ?? wo.updatedAt,
-        vendor: wo.assignment?.assignedTo?.name
+        vendor: wo.assignment?.assignedTo?.name,
       }));
     }
-    
+
     // Inspection History (using Mongoose model)
-    if (includeOptions.includes('inspections')) {
+    if (includeOptions.includes("inspections")) {
       const inspectionMatch: Record<string, unknown> = {
         propertyId: property._id,
         unitNumber: params.unitId,
-        status: { $in: ['COMPLETED', 'APPROVED'] }
+        status: { $in: ["COMPLETED", "APPROVED"] },
       };
-      
+
       if (dateFilter.$gte || dateFilter.$lte) {
         inspectionMatch.actualDate = dateFilter;
-      };
-      
+      }
+
       const inspections = await MoveInOutInspection.find(inspectionMatch)
         .sort({ actualDate: -1 })
         .limit(20)
         .lean();
-      
+
       historyData.inspections = inspections.map((insp: unknown) => {
-        const i = insp as { inspectionNumber?: string, type?: string, actualDate?: Date, overallCondition?: string, issues?: unknown[], signatures?: { owner?: { signed?: boolean }, tenant?: { signed?: boolean }, inspector?: { signed?: boolean } } };
+        const i = insp as {
+          inspectionNumber?: string;
+          type?: string;
+          actualDate?: Date;
+          overallCondition?: string;
+          issues?: unknown[];
+          signatures?: {
+            owner?: { signed?: boolean };
+            tenant?: { signed?: boolean };
+            inspector?: { signed?: boolean };
+          };
+        };
         return {
           inspectionNumber: i.inspectionNumber,
           type: i.type,
@@ -225,32 +252,35 @@ export async function GET(
           signatures: {
             owner: i.signatures?.owner?.signed || false,
             tenant: i.signatures?.tenant?.signed || false,
-            inspector: i.signatures?.inspector?.signed || false
-          }
+            inspector: i.signatures?.inspector?.signed || false,
+          },
         };
       });
     }
-    
+
     // Revenue History (using Mongoose model)
-    if (includeOptions.includes('revenue')) {
+    if (includeOptions.includes("revenue")) {
       const paymentMatch: Record<string, unknown> = {
         propertyId: property._id,
         unitNumber: params.unitId,
-        status: 'PAID'
+        status: "PAID",
       };
-      
+
       if (dateFilter.$gte || dateFilter.$lte) {
         paymentMatch.paymentDate = dateFilter;
-      };
-      
+      }
+
       const payments = await Payment.find(paymentMatch)
         .sort({ paymentDate: -1 })
         .limit(50)
         .lean();
-      
+
       const paymentsTyped = payments as unknown as PaymentDocument[];
-      const totalRevenue = paymentsTyped.reduce((sum: number, p) => sum + (p.amount || 0), 0);
-      
+      const totalRevenue = paymentsTyped.reduce(
+        (sum: number, p) => sum + (p.amount || 0),
+        0,
+      );
+
       historyData.revenue = {
         total: totalRevenue,
         payments: paymentsTyped.map((p) => ({
@@ -258,66 +288,75 @@ export async function GET(
           date: p.paymentDate,
           method: p.method,
           reference: p.reference,
-          tenant: p.tenantName
-        }))
+          tenant: p.tenantName,
+        })),
       };
     }
-    
+
     // Utility Consumption (using Mongoose model)
-    if (includeOptions.includes('utilities')) {
+    if (includeOptions.includes("utilities")) {
       const billMatch: Record<string, unknown> = {
         propertyId: property._id,
-        unitNumber: params.unitId
+        unitNumber: params.unitId,
       };
-      
+
       if (dateFilter.$gte || dateFilter.$lte) {
-        billMatch['period.endDate'] = dateFilter;
-      };
-      
+        billMatch["period.endDate"] = dateFilter;
+      }
+
       const utilityBills = await UtilityBill.find(billMatch)
-        .sort({ 'period.endDate': -1 })
+        .sort({ "period.endDate": -1 })
         .limit(24) // Last 2 years of monthly bills
         .lean();
-      
-      const totalUtilityCost = utilityBills.reduce((sum: number, b: unknown) => {
-        const bill = b as { charges?: { totalAmount?: number } };
-        return sum + (bill.charges?.totalAmount || 0);
-      }, 0);
-      
+
+      const totalUtilityCost = utilityBills.reduce(
+        (sum: number, b: unknown) => {
+          const bill = b as { charges?: { totalAmount?: number } };
+          return sum + (bill.charges?.totalAmount || 0);
+        },
+        0,
+      );
+
       historyData.utilities = {
         totalCost: totalUtilityCost,
         bills: utilityBills.map((b: unknown) => {
-          const bill = b as { billNumber?: string, meterId?: string, period?: { startDate?: Date, endDate?: Date }, readings?: { consumption?: number }, charges?: { totalAmount?: number }, payment?: { status?: string } };
+          const bill = b as {
+            billNumber?: string;
+            meterId?: string;
+            period?: { startDate?: Date; endDate?: Date };
+            readings?: { consumption?: number };
+            charges?: { totalAmount?: number };
+            payment?: { status?: string };
+          };
           return {
             billNumber: bill.billNumber,
             utilityType: bill.meterId, // Would need to lookup meter details
             period: {
               start: bill.period?.startDate,
-              end: bill.period?.endDate
+              end: bill.period?.endDate,
             },
             consumption: bill.readings?.consumption,
             amount: bill.charges?.totalAmount,
-            status: bill.payment?.status
+            status: bill.payment?.status,
           };
-        })
+        }),
       };
     }
-    
+
     return NextResponse.json({
       success: true,
       data: historyData,
-      subscription: subCheck.status
+      subscription: subCheck.status,
     });
-    
   } catch (error) {
-    logger.error('Error fetching unit history', { error });
+    logger.error("Error fetching unit history", { error });
     return NextResponse.json(
-      { 
+      {
         success: false,
-        error: 'Failed to fetch unit history',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: "Failed to fetch unit history",
+        message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

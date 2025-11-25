@@ -26,7 +26,9 @@ interface FeatureToggleGroupSkeletonProps {
 /**
  * Skeleton loader for FeatureToggleGroup
  */
-export function FeatureToggleGroupSkeleton({ count = 3 }: FeatureToggleGroupSkeletonProps = {}) {
+export function FeatureToggleGroupSkeleton({
+  count = 3,
+}: FeatureToggleGroupSkeletonProps = {}) {
   return (
     <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
       <div className="p-4 border-b border-border animate-pulse">

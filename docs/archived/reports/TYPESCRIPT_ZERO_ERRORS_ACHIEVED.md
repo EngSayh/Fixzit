@@ -41,7 +41,7 @@ Systematically fixed ALL remaining 34 errors across 13 files through 9 targeted 
 ```typescript
 // ERROR: Element implicitly has 'any' type because type 'typeof globalThis' has no index signature
 let conn = global._mongoose;
-globalThis.__DEV_FILE_SIGN_SECRET__ = crypto.randomBytes(32).toString('hex');
+globalThis.__DEV_FILE_SIGN_SECRET__ = crypto.randomBytes(32).toString("hex");
 ```
 
 **Solution**: Added proper global type declarations
@@ -71,8 +71,8 @@ declare global {
 ```typescript
 // ERROR: Property 'code' does not exist on type 'Error'
 const err = new Error(devMessage);
-err.code = 'DB_CONNECTION_FAILED';
-err.userMessage = 'Database connection is currently unavailable';
+err.code = "DB_CONNECTION_FAILED";
+err.userMessage = "Database connection is currently unavailable";
 err.correlationId = correlationId;
 ```
 
@@ -84,9 +84,10 @@ const err = new Error(devMessage) as Error & {
   userMessage: string;
   correlationId: string;
 };
-err.name = 'DatabaseConnectionError';
-err.code = 'DB_CONNECTION_FAILED';
-err.userMessage = 'Database connection is currently unavailable. Please try again later.';
+err.name = "DatabaseConnectionError";
+err.code = "DB_CONNECTION_FAILED";
+err.userMessage =
+  "Database connection is currently unavailable. Please try again later.";
 err.correlationId = correlationId;
 ```
 
@@ -139,13 +140,13 @@ const previousStatus = (this as any).$__?.originalDoc?.status;
 
 ```typescript
 // ERROR: Type 'any[]' is missing properties from type 'DocumentArray<...>'
-this.history = [{ action: 'applied', by: 'candidate', at: new Date() } as any];
+this.history = [{ action: "applied", by: "candidate", at: new Date() } as any];
 ```
 
 **Solution 3**: Use Document.set() method instead of direct assignment
 
 ```typescript
-this.set('history', [{ action: 'applied', by: 'candidate', at: new Date() }]);
+this.set("history", [{ action: "applied", by: "candidate", at: new Date() }]);
 ```
 
 **Impact**: Proper handling of Mongoose internals while maintaining type safety where possible
@@ -200,7 +201,9 @@ this.changeHistory.push(changeRecord);
 **Solution 3**: Type assertions
 
 ```typescript
-const oldValue = this.isNew ? undefined : (this.$__ as any)?.originalDoc?.[path];
+const oldValue = this.isNew
+  ? undefined
+  : (this.$__ as any)?.originalDoc?.[path];
 (this.changeHistory as any[]).push(changeRecord);
 ```
 
@@ -301,7 +304,7 @@ function writeFile(filePath: string, content: string) {
 **Problem 1**: Status enum comparison with string literal
 
 ```typescript
-// ERROR: This comparison appears to be unintentional because the types 
+// ERROR: This comparison appears to be unintentional because the types
 // 'WOStatus' and '"SUBMITTED"' have no overlap
 pending: workOrders?.items?.filter((wo: WorkOrder) => wo.status === 'SUBMITTED').length || 0,
 ```
@@ -319,13 +322,17 @@ pending: workOrders?.items?.filter((wo: WorkOrder) => wo.status === WOStatus.NEW
 
 ```typescript
 // ERROR: Property 'dueAt' does not exist on type 'WorkOrder'
-overdue: workOrders?.items?.filter((wo: WorkOrder) => new Date(wo.dueAt) < new Date()).length || 0
+overdue: workOrders?.items?.filter(
+  (wo: WorkOrder) => new Date(wo.dueAt) < new Date(),
+).length || 0;
 ```
 
 **Solution 2**: Type as any for optional property
 
 ```typescript
-overdue: workOrders?.items?.filter((wo: any) => wo.dueAt && new Date(wo.dueAt) < new Date()).length || 0
+overdue: workOrders?.items?.filter(
+  (wo: any) => wo.dueAt && new Date(wo.dueAt) < new Date(),
+).length || 0;
 ```
 
 **Impact**: Proper enum usage and flexible property access
@@ -341,7 +348,11 @@ overdue: workOrders?.items?.filter((wo: any) => wo.dueAt && new Date(wo.dueAt) <
 ```typescript
 // ERROR: Property 'contactSales' does not exist on type 'SubscriptionQuote'
 if (quote.contactSales) {
-  return createSecureResponse({ error: 'SEAT_LIMIT_EXCEEDED', contact: 'sales@fixzit.app' }, 400, req);
+  return createSecureResponse(
+    { error: "SEAT_LIMIT_EXCEEDED", contact: "sales@fixzit.app" },
+    400,
+    req,
+  );
 }
 ```
 
@@ -349,7 +360,7 @@ if (quote.contactSales) {
 
 ```typescript
 export interface SubscriptionQuote {
-  items: Array<{ module: string; seatCount: number; /* ... */ }>;
+  items: Array<{ module: string; seatCount: number /* ... */ }>;
   subtotal: number;
   tax: number;
   total: number;
@@ -367,23 +378,27 @@ export interface SubscriptionQuote {
 
 ```typescript
 // ERROR: Property 'value' does not exist on type 'WithId<AnyObject> | null'
-const { value } = await Invoice.db.collection("invoice_counters").findOneAndUpdate(
-  { tenantId: user.orgId, year },
-  { $inc: { sequence: 1 } },
-  { upsert: true, returnDocument: "after" }
-);
-const number = `INV-${year}-${String((value?.sequence ?? 1)).padStart(5, '0')}`;
+const { value } = await Invoice.db
+  .collection("invoice_counters")
+  .findOneAndUpdate(
+    { tenantId: user.orgId, year },
+    { $inc: { sequence: 1 } },
+    { upsert: true, returnDocument: "after" },
+  );
+const number = `INV-${year}-${String(value?.sequence ?? 1).padStart(5, "0")}`;
 ```
 
 **Solution**: Don't destructure, cast the result
 
 ```typescript
-const result = await Invoice.db.collection("invoice_counters").findOneAndUpdate(
-  { tenantId: user.orgId, year },
-  { $inc: { sequence: 1 } },
-  { upsert: true, returnDocument: "after" }
-);
-const number = `INV-${year}-${String(((result as any)?.sequence ?? 1)).padStart(5, '0')}`;
+const result = await Invoice.db
+  .collection("invoice_counters")
+  .findOneAndUpdate(
+    { tenantId: user.orgId, year },
+    { $inc: { sequence: 1 } },
+    { upsert: true, returnDocument: "after" },
+  );
+const number = `INV-${year}-${String((result as any)?.sequence ?? 1).padStart(5, "0")}`;
 ```
 
 #### 8.3 `app/aqar/map/page.tsx` - Array Type Inference
@@ -398,7 +413,9 @@ const [markers, setMarkers] = useState<unknown[]>([]);
 **Solution**: Specify the exact type in useState
 
 ```typescript
-const [markers, setMarkers] = useState<{ position: { lat: number; lng: number }; title?: string; info?: string }[]>([]);
+const [markers, setMarkers] = useState<
+  { position: { lat: number; lng: number }; title?: string; info?: string }[]
+>([]);
 ```
 
 **Impact**: Perfect type inference throughout the component

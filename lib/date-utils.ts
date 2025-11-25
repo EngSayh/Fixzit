@@ -4,11 +4,11 @@ function normalizeDate(value: DateInput): Date | null {
   if (value instanceof Date) {
     return Number.isNaN(value.getTime()) ? null : value;
   }
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : date;
   }
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const trimmed = value.trim();
     if (!trimmed) {
       return null;
@@ -26,14 +26,15 @@ function normalizeDate(value: DateInput): Date | null {
  */
 export function parseDate(
   value: DateInput,
-  fallback: Date | (() => Date) = () => new Date()
+  fallback: Date | (() => Date) = () => new Date(),
 ): Date {
   const resolved = normalizeDate(value);
   if (resolved) {
     return resolved;
   }
 
-  const fallbackValue = typeof fallback === 'function' ? (fallback as () => Date)() : fallback;
+  const fallbackValue =
+    typeof fallback === "function" ? (fallback as () => Date)() : fallback;
   const normalizedFallback = normalizeDate(fallbackValue);
   return normalizedFallback ?? new Date();
 }

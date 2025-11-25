@@ -5,7 +5,7 @@
 ### ✅ Completed Optimizations
 
 1. **Lazy i18n Loading** - LCP -7.5s, Bundle -250KB ✅
-2. **Webpack Module Concatenation** - Bundle -20% ✅  
+2. **Webpack Module Concatenation** - Bundle -20% ✅
 3. **Lib Chunk Splitting** - Better caching ✅
 4. **Package Optimizations** - -50KB, -50ms ✅
 5. **DevTools Disabled** - -267KB prod ✅
@@ -30,6 +30,7 @@
 ### What `next/font` Actually Improved
 
 While fonts weren't blocking LCP, `next/font` still provides benefits:
+
 - ✅ **Self-hosting**: Fonts now served from your domain (privacy + reliability)
 - ✅ **Automatic optimization**: Size-adjusted fallback fonts prevent layout shift
 - ✅ **Preload optimization**: Critical fonts loaded with proper priority
@@ -46,8 +47,10 @@ While fonts weren't blocking LCP, `next/font` still provides benefits:
 Since font-display score is perfect (1.0), the 3.2s LCP is caused by one of:
 
 #### 1. **Server-Side Rendering (SSR) Time**
+
 **Hypothesis:** The server takes time to generate HTML  
 **Test:**
+
 ```bash
 # Measure server response time
 curl -w "\nTime: %{time_total}s\n" -o /dev/null -s http://localhost:3000
@@ -57,21 +60,25 @@ grep "compiled successfully" /tmp/prod-server-final.log
 ```
 
 **If SSR is slow:**
+
 - Optimize database queries (add indexes)
 - Implement Redis caching for getServerSideProps
 - Consider ISR (Incremental Static Regeneration) for semi-static pages
 - Profile with Next.js built-in instrumentation
 
 #### 2. **JavaScript Execution Time (TBT 460ms)**
+
 **Hypothesis:** Main thread blocked by JavaScript parsing/execution  
 **Current TBT:** 460ms (Target: <200ms)
 
 **Long Tasks Found:**
+
 - i18n dictionary parsing
 - React hydration
 - Context provider initialization
 
 **Solutions:**
+
 ```tsx
 // A. Defer non-critical JavaScript
 <Script src="/analytics.js" strategy="lazyOnload" />
@@ -88,15 +95,18 @@ pnpm exec next build --analyze
 ```
 
 #### 3. **Render-Blocking Resources**
+
 **Hypothesis:** CSS or critical resources blocking initial render
 
 **Check:**
+
 ```bash
 # Analyze render-blocking resources from Lighthouse
 jq '.audits["render-blocking-resources"].details.items' lighthouse-report-production.json
 ```
 
 **Solutions:**
+
 - Inline critical CSS
 - Defer non-critical CSS
 - Use `priority` prop on Next.js `<Script>` components
@@ -108,6 +118,7 @@ jq '.audits["render-blocking-resources"].details.items' lighthouse-report-produc
 ### Phase 3: Identify LCP Root Cause (This Week)
 
 #### Step 1: Chrome DevTools Performance Profiling
+
 ```bash
 # Run in Chrome (not headless)
 1. Open http://localhost:3000 in Chrome
@@ -126,41 +137,43 @@ Look for:
 ```
 
 #### Step 2: Next.js Built-in Instrumentation
+
 ```typescript
 // instrumentation.ts (create in root)
 export async function register() {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    await import('./instrumentation.node');
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    await import("./instrumentation.node");
   }
 }
 
 // instrumentation.node.ts
 export async function register() {
-  const { trace } = await import('@opentelemetry/api');
-  const { NodeSDK } = await import('@opentelemetry/sdk-node');
-  
+  const { trace } = await import("@opentelemetry/api");
+  const { NodeSDK } = await import("@opentelemetry/sdk-node");
+
   const sdk = new NodeSDK({
     // ... setup OpenTelemetry for SSR profiling
   });
-  
+
   sdk.start();
 }
 ```
 
 #### Step 3: Lighthouse User Timing API
+
 ```typescript
 // In app/layout.tsx or page.tsx
-'use client';
+"use client";
 
 useEffect(() => {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     // Measure critical events
-    performance.mark('app-initialized');
-    performance.measure('app-init', 'navigationStart', 'app-initialized');
-    
+    performance.mark("app-initialized");
+    performance.measure("app-init", "navigationStart", "app-initialized");
+
     // Report to analytics
-    const measure = performance.getEntriesByName('app-init')[0];
-    console.log('App init time:', measure.duration);
+    const measure = performance.getEntriesByName("app-init")[0];
+    console.log("App init time:", measure.duration);
   }
 }, []);
 ```
@@ -168,6 +181,7 @@ useEffect(() => {
 ### Phase 4: TBT Optimization (460ms → <200ms)
 
 #### A. Bundle Analysis
+
 ```bash
 # Install analyzer
 pnpm add -D @next/bundle-analyzer
@@ -186,11 +200,13 @@ ANALYZE=true pnpm build
 ```
 
 **Look for:**
+
 - Duplicate dependencies (e.g., multiple lodash versions)
 - Heavy libraries (moment.js → date-fns, 69KB saved)
 - Unused code (check tree-shaking effectiveness)
 
 #### B. Code Splitting Strategy
+
 ```tsx
 // 1. Route-based splitting (automatic with App Router)
 // Already working ✅
@@ -199,28 +215,29 @@ ANALYZE=true pnpm build
 // Apply to components >50KB
 
 // Heavy: Chart libraries
-const RevenueChart = dynamic(() => import('@/components/charts/RevenueChart'), {
+const RevenueChart = dynamic(() => import("@/components/charts/RevenueChart"), {
   loading: () => <ChartSkeleton />,
-  ssr: false // Don't render on server (no user data yet)
+  ssr: false, // Don't render on server (no user data yet)
 });
 
 // Heavy: Data tables with sorting/filtering
-const DataTable = dynamic(() => import('@/components/tables/DataTable'), {
-  loading: () => <TableSkeleton />
+const DataTable = dynamic(() => import("@/components/tables/DataTable"), {
+  loading: () => <TableSkeleton />,
 });
 
 // Heavy: Rich text editors
-const RichEditor = dynamic(() => import('@/components/editors/RichEditor'), {
-  ssr: false
+const RichEditor = dynamic(() => import("@/components/editors/RichEditor"), {
+  ssr: false,
 });
 
 // Heavy: PDF viewers, video players
-const PDFViewer = dynamic(() => import('@/components/PDFViewer'), {
-  ssr: false
+const PDFViewer = dynamic(() => import("@/components/PDFViewer"), {
+  ssr: false,
 });
 ```
 
 #### C. Third-Party Script Optimization
+
 ```tsx
 // app/layout.tsx
 
@@ -246,7 +263,7 @@ Even though no images in LCP currently, optimize for future:
 
 ```tsx
 // app/page.tsx (landing page)
-import Image from 'next/image';
+import Image from "next/image";
 
 export default function HomePage() {
   return (
@@ -261,7 +278,7 @@ export default function HomePage() {
         quality={85} // Good balance of size/quality
         sizes="100vw" // Responsive sizing
       />
-      
+
       {/* Below-fold images - lazy load */}
       <Image
         src="/feature1.jpg"
@@ -282,6 +299,7 @@ export default function HomePage() {
 ### Phase 6: SSR Optimization
 
 #### A. Database Query Optimization
+
 ```typescript
 // Before: N+1 query problem
 const properties = await Property.find({ orgId });
@@ -290,26 +308,25 @@ for (const property of properties) {
 }
 
 // After: Use populate/aggregation
-const properties = await Property.find({ orgId })
-  .populate('tenants')
-  .lean(); // Returns plain objects (faster)
+const properties = await Property.find({ orgId }).populate("tenants").lean(); // Returns plain objects (faster)
 ```
 
 #### B. Redis Caching Layer
+
 ```typescript
 // lib/cache.ts
-import Redis from 'ioredis';
+import Redis from "ioredis";
 
 const redis = new Redis(process.env.REDIS_URL);
 
 export async function getCached<T>(
   key: string,
   fetcher: () => Promise<T>,
-  ttl: number = 300 // 5 minutes
+  ttl: number = 300, // 5 minutes
 ): Promise<T> {
   const cached = await redis.get(key);
   if (cached) return JSON.parse(cached);
-  
+
   const data = await fetcher();
   await redis.setex(key, ttl, JSON.stringify(data));
   return data;
@@ -319,11 +336,12 @@ export async function getCached<T>(
 const properties = await getCached(
   `properties:${orgId}`,
   () => Property.find({ orgId }).lean(),
-  300
+  300,
 );
 ```
 
 #### C. Incremental Static Regeneration (ISR)
+
 ```typescript
 // For pages that don't change frequently
 export const revalidate = 60; // Regenerate every 60 seconds
@@ -341,6 +359,7 @@ export default async function PropertiesPage() {
 ## 🎯 Realistic Score Targets
 
 ### Conservative Estimate (90-92/100)
+
 - ✅ Phase 1 Complete: 82/100
 - Phase 3 (LCP Analysis): +0 (diagnostic)
 - Phase 4 (TBT Reduction): +3-5 (460ms → 200ms)
@@ -350,7 +369,9 @@ export default async function PropertiesPage() {
 **Expected:** 88-92/100
 
 ### Aggressive Estimate (95-100/100)
+
 All above + advanced optimizations:
+
 - Service Worker with precaching
 - HTTP/2 Server Push
 - Edge caching (Vercel Edge Functions)
@@ -361,6 +382,7 @@ All above + advanced optimizations:
 **Expected:** 95-98/100
 
 **100/100 is rare** - requires perfect conditions:
+
 - Static content only
 - No third-party scripts
 - No user data fetching
@@ -425,6 +447,7 @@ All above + advanced optimizations:
 ```
 
 Add to CI/CD:
+
 ```yaml
 # .github/workflows/performance.yml
 name: Performance Budget
@@ -446,6 +469,7 @@ jobs:
 ## 🔧 Tools & Commands Reference
 
 ### 1. Lighthouse CLI
+
 ```bash
 # Basic audit
 lighthouse http://localhost:3000 --only-categories=performance
@@ -460,6 +484,7 @@ lighthouse http://localhost:3000 \
 ```
 
 ### 2. Next.js Build Analysis
+
 ```bash
 # Bundle analyzer
 ANALYZE=true pnpm build
@@ -472,17 +497,19 @@ du -sh .next/static
 ```
 
 ### 3. Chrome DevTools Performance API
+
 ```javascript
 // In browser console
-performance.getEntriesByType('navigation')[0]
-performance.getEntriesByType('paint')
-performance.getEntriesByType('measure')
+performance.getEntriesByType("navigation")[0];
+performance.getEntriesByType("paint");
+performance.getEntriesByType("measure");
 
 // Export trace
 // DevTools → Performance → Save Profile
 ```
 
 ### 4. Web Vitals Measurement
+
 ```bash
 pnpm add web-vitals
 
@@ -501,18 +528,21 @@ getTTFB(console.log);
 ## 📋 Immediate Action Items
 
 ### This Week
+
 - [ ] Run Chrome DevTools Performance profile on production build
 - [ ] Analyze server response time with curl timing
 - [ ] Install and run bundle analyzer
 - [ ] Document findings in new ticket
 
 ### Next Sprint
+
 - [ ] Implement top 3 TBT optimization opportunities from bundle analysis
 - [ ] Add Redis caching for frequently accessed data
 - [ ] Convert 5 heaviest components to dynamic imports
 - [ ] Set up Real User Monitoring (RUM)
 
 ### This Month
+
 - [ ] Achieve 90/100 Lighthouse score
 - [ ] Implement performance budget CI checks
 - [ ] Create performance dashboard (Grafana + Prometheus)
@@ -524,19 +554,21 @@ getTTFB(console.log);
 
 ### What We Thought vs Reality
 
-| Assumption | Reality | Lesson |
-|------------|---------|--------|
-| Font rendering blocking LCP | Font-display score = 1.0 (perfect) | Always measure before optimizing |
-| next/font will give +10 pts | Already optimized, gave +2-3 pts | Lighthouse audits tell the truth |
-| LCP easy to fix | Complex interaction of SSR + JS + render | Need detailed profiling |
+| Assumption                  | Reality                                  | Lesson                           |
+| --------------------------- | ---------------------------------------- | -------------------------------- |
+| Font rendering blocking LCP | Font-display score = 1.0 (perfect)       | Always measure before optimizing |
+| next/font will give +10 pts | Already optimized, gave +2-3 pts         | Lighthouse audits tell the truth |
+| LCP easy to fix             | Complex interaction of SSR + JS + render | Need detailed profiling          |
 
 ### Validated Optimizations
+
 1. ✅ Lazy loading i18n: Massive impact (-7.5s LCP)
 2. ✅ Webpack optimization: Real gains (-20% bundle)
 3. ✅ Lib chunk splitting: Better caching
 4. ✅ Development mode != production: 48 vs 82 score
 
 ### Next Optimizations Prioritized by Impact
+
 1. **🔴 High Impact:** TBT reduction (460→200ms) via code splitting
 2. **🟡 Medium Impact:** SSR optimization (caching, query optimization)
 3. **🟢 Low Impact:** Image optimization (currently no images in LCP)
@@ -546,16 +578,19 @@ getTTFB(console.log);
 ## 📚 Additional Resources
 
 ### Documentation
+
 - [Web.dev Performance Guide](https://web.dev/performance/)
 - [Next.js Performance Docs](https://nextjs.org/docs/app/building-your-application/optimizing)
 - [Lighthouse Scoring Guide](https://web.dev/performance-scoring/)
 
 ### Tools
+
 - [WebPageTest](https://www.webpagetest.org/) - Detailed waterfall analysis
 - [Bundle Analyzer](https://www.npmjs.com/package/@next/bundle-analyzer)
 - [Perfume.js](https://github.com/Zizzamia/perfume.js) - RUM library
 
 ### Monitoring Services
+
 - [Vercel Analytics](https://vercel.com/analytics) - Built-in for Vercel
 - [Sentry Performance](https://sentry.io/for/performance/) - Error + perf tracking
 - [New Relic](https://newrelic.com/) - APM for Node.js

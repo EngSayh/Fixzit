@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError } from '@/server/utils/errorResponses';
-import { getClientIP } from '@/server/security/headers';
-import { logSecurityEvent } from '@/lib/monitoring/security-events';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
+import { logSecurityEvent } from "@/lib/monitoring/security-events";
+import { logger } from "@/lib/logger";
 
 type RateLimitOptions = {
   /**
@@ -31,7 +31,7 @@ type RateLimitOptions = {
  */
 export function enforceRateLimit(
   request: NextRequest,
-  options: RateLimitOptions = {}
+  options: RateLimitOptions = {},
 ): NextResponse | null {
   const identifier = options.identifier ?? getClientIP(request);
   const prefix = options.keyPrefix ?? new URL(request.url).pathname;
@@ -43,7 +43,7 @@ export function enforceRateLimit(
   if (!result.allowed) {
     // Log security event for monitoring
     logSecurityEvent({
-      type: 'rate_limit',
+      type: "rate_limit",
       ip: identifier,
       path: new URL(request.url).pathname,
       timestamp: new Date().toISOString(),
@@ -53,17 +53,17 @@ export function enforceRateLimit(
         keyPrefix: prefix,
         remaining: result.remaining,
       },
-    }).catch(err => {
+    }).catch((err) => {
       // Silently fail logging to avoid blocking rate limit enforcement
       // Error is already handled by logSecurityEvent internal logging
-      logger.error('[RateLimit] Failed to log security event', err);
+      logger.error("[RateLimit] Failed to log security event", err);
     });
 
     const response = rateLimitError();
-    response.headers.set('Retry-After', String(Math.ceil(windowMs / 1000)));
-    response.headers.set('X-RateLimit-Limit', String(limit));
-    response.headers.set('X-RateLimit-Remaining', '0');
-    response.headers.set('X-RateLimit-Reset', String(Date.now() + windowMs));
+    response.headers.set("Retry-After", String(Math.ceil(windowMs / 1000)));
+    response.headers.set("X-RateLimit-Limit", String(limit));
+    response.headers.set("X-RateLimit-Remaining", "0");
+    response.headers.set("X-RateLimit-Reset", String(Date.now() + windowMs));
 
     return response;
   }

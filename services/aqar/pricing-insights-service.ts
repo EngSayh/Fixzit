@@ -1,17 +1,19 @@
-import crypto from 'crypto';
-import { connectDb } from '@/lib/mongo';
-import { AqarListing } from '@/models/aqar';
+import crypto from "crypto";
+import { connectDb } from "@/lib/mongo";
+import { AqarListing } from "@/models/aqar";
 import {
   ListingStatus,
   type IListing,
   type IListingPricingInsights,
   ListingIntent,
   PropertyType,
-} from '@/models/aqar/Listing';
-import type { FilterQuery, PipelineStage } from 'mongoose';
-import { Types } from 'mongoose';
+} from "@/models/aqar/Listing";
+import type { FilterQuery, PipelineStage } from "mongoose";
+import { Types } from "mongoose";
 
-const PRICE_BUCKETS = [0, 250_000, 500_000, 1_000_000, 2_000_000, 4_000_000, 8_000_000];
+const PRICE_BUCKETS = [
+  0, 250_000, 500_000, 1_000_000, 2_000_000, 4_000_000, 8_000_000,
+];
 // AqarListing is already typed as Model<IListing> from the import
 const listingModel = AqarListing;
 
@@ -56,7 +58,9 @@ interface BucketRow {
 }
 
 export class PricingInsightsService {
-  static async getInsights(request: PricingInsightRequest): Promise<PricingInsightResponse> {
+  static async getInsights(
+    request: PricingInsightRequest,
+  ): Promise<PricingInsightResponse> {
     const correlationId = request.correlationId ?? crypto.randomUUID();
     await connectDb();
 
@@ -67,25 +71,30 @@ export class PricingInsightsService {
     const stats = Array.isArray(result?.stats) ? result.stats[0] || {} : {};
     const sampleSize = Number(stats?.sampleSize || 0);
     const avgPrice: number = Number(stats?.avgPrice || 0);
-    const avgPricePerSqm: number | undefined = stats?.avgPricePerSqm || undefined;
+    const avgPricePerSqm: number | undefined =
+      stats?.avgPricePerSqm || undefined;
     const neighborhoodAverage = Number(stats?.avgPrice || 0) || undefined;
     const stdDev: number = Number(stats?.stdDevPrice || 0);
     const avgViews: number = Number(stats?.avgViews || 0);
     const avgInquiries: number = Number(stats?.avgInquiries || 0);
 
     const timeline = Array.isArray(result?.timeline)
-      ? result.timeline.map((row: { _id: string; avgPricePerSqm: number; listings: number }) => ({
-          period: row._id,
-          pricePerSqm: Number(row.avgPricePerSqm || 0),
-          listings: row.listings,
-        }))
+      ? result.timeline.map(
+          (row: { _id: string; avgPricePerSqm: number; listings: number }) => ({
+            period: row._id,
+            pricePerSqm: Number(row.avgPricePerSqm || 0),
+            listings: row.listings,
+          }),
+        )
       : [];
     const yoyChange = this.computeYoyChange(timeline);
 
     const bucketRows = this.buildBucketRows(result?.buckets || []);
     const demandScore = this.computeDemandScore(avgViews, avgInquiries);
     const confidence = this.computeConfidence(sampleSize);
-    const projectedAppreciation = yoyChange ? yoyChange * Math.min(1, (confidence + demandScore / 100) / 2) : undefined;
+    const projectedAppreciation = yoyChange
+      ? yoyChange * Math.min(1, (confidence + demandScore / 100) / 2)
+      : undefined;
     const dynamicRange = this.buildDynamicRange(avgPrice, stdDev);
     const marketSignals = this.buildSignals({
       yoyChange,
@@ -103,27 +112,41 @@ export class PricingInsightsService {
       sampleSize,
       confidence,
       currentAveragePrice: Number(avgPrice.toFixed(0)),
-      currentPricePerSqm: avgPricePerSqm ? Number(avgPricePerSqm.toFixed(0)) : undefined,
+      currentPricePerSqm: avgPricePerSqm
+        ? Number(avgPricePerSqm.toFixed(0))
+        : undefined,
       neighborhoodAverage,
       yoyChangePct: yoyChange,
       projectedAppreciationPct: projectedAppreciation,
       demandScore,
       dynamicRange,
       marketSignals,
-      priceBuckets: bucketRows.map((row) => ({ label: row.label, count: row.count })),
+      priceBuckets: bucketRows.map((row) => ({
+        label: row.label,
+        count: row.count,
+      })),
       timeline,
     };
   }
 
-  static async updateListingInsights(listingId: string): Promise<IListingPricingInsights | null> {
+  static async updateListingInsights(
+    listingId: string,
+  ): Promise<IListingPricingInsights | null> {
     if (!Types.ObjectId.isValid(listingId)) {
       return null;
     }
     await connectDb();
     const listing = await listingModel
       .findById(listingId)
-      .select('city neighborhood propertyType intent areaSqm price')
-      .lean<{ city?: string; neighborhood?: string; propertyType?: PropertyType; intent?: ListingIntent; areaSqm?: number; price?: { amount: number } } | null>();
+      .select("city neighborhood propertyType intent areaSqm price")
+      .lean<{
+        city?: string;
+        neighborhood?: string;
+        propertyType?: PropertyType;
+        intent?: ListingIntent;
+        areaSqm?: number;
+        price?: { amount: number };
+      } | null>();
 
     if (!listing) {
       return null;
@@ -154,7 +177,9 @@ export class PricingInsightsService {
     return insights;
   }
 
-  private static buildMatch(request: PricingInsightRequest): FilterQuery<IListing> {
+  private static buildMatch(
+    request: PricingInsightRequest,
+  ): FilterQuery<IListing> {
     const match: FilterQuery<IListing> = { status: ListingStatus.ACTIVE };
     if (request.city) {
       match.city = request.city;
@@ -181,15 +206,15 @@ export class PricingInsightsService {
         $addFields: {
           pricePerSqm: {
             $cond: [
-              { $gt: ['$areaSqm', 0] },
-              { $divide: ['$price.amount', '$areaSqm'] },
+              { $gt: ["$areaSqm", 0] },
+              { $divide: ["$price.amount", "$areaSqm"] },
               null,
             ],
           },
           publishedMonth: {
             $dateToString: {
-              format: '%Y-%m',
-              date: { $ifNull: ['$publishedAt', '$createdAt'] },
+              format: "%Y-%m",
+              date: { $ifNull: ["$publishedAt", "$createdAt"] },
             },
           },
         },
@@ -200,11 +225,11 @@ export class PricingInsightsService {
             {
               $group: {
                 _id: null,
-                avgPrice: { $avg: '$price.amount' },
-                avgPricePerSqm: { $avg: '$pricePerSqm' },
-                stdDevPrice: { $stdDevPop: '$price.amount' },
-                avgViews: { $avg: '$analytics.views' },
-                avgInquiries: { $avg: '$analytics.inquiries' },
+                avgPrice: { $avg: "$price.amount" },
+                avgPricePerSqm: { $avg: "$pricePerSqm" },
+                stdDevPrice: { $stdDevPop: "$price.amount" },
+                avgViews: { $avg: "$analytics.views" },
+                avgInquiries: { $avg: "$analytics.inquiries" },
                 sampleSize: { $sum: 1 },
               },
             },
@@ -212,8 +237,8 @@ export class PricingInsightsService {
           timeline: [
             {
               $group: {
-                _id: '$publishedMonth',
-                avgPricePerSqm: { $avg: '$pricePerSqm' },
+                _id: "$publishedMonth",
+                avgPricePerSqm: { $avg: "$pricePerSqm" },
                 listings: { $sum: 1 },
               },
             },
@@ -223,9 +248,9 @@ export class PricingInsightsService {
           buckets: [
             {
               $bucket: {
-                groupBy: '$price.amount',
+                groupBy: "$price.amount",
                 boundaries: PRICE_BUCKETS,
-                default: '10M+',
+                default: "10M+",
                 output: { count: { $sum: 1 } },
               },
             },
@@ -235,9 +260,14 @@ export class PricingInsightsService {
     ];
   }
 
-  private static buildBucketRows(rows: Array<{ _id: number | string; count: number }>): BucketRow[] {
+  private static buildBucketRows(
+    rows: Array<{ _id: number | string; count: number }>,
+  ): BucketRow[] {
     return rows.map((row, idx) => {
-      const min = typeof row._id === 'number' ? row._id : PRICE_BUCKETS[Math.min(idx, PRICE_BUCKETS.length - 1)];
+      const min =
+        typeof row._id === "number"
+          ? row._id
+          : PRICE_BUCKETS[Math.min(idx, PRICE_BUCKETS.length - 1)];
       const max = PRICE_BUCKETS[idx + 1] ?? Number.POSITIVE_INFINITY;
       const label = Number.isFinite(max)
         ? `${min.toLocaleString()} - ${max.toLocaleString()} SAR`
@@ -254,7 +284,7 @@ export class PricingInsightsService {
   private static estimatePercentile(
     buckets: BucketRow[],
     value: number,
-    total: number
+    total: number,
   ): number | undefined {
     if (!value || !total) {
       return undefined;
@@ -266,14 +296,20 @@ export class PricingInsightsService {
         continue;
       }
       const range = bucket.max - bucket.min || 1;
-      const intraBucket = Math.max(0, Math.min(1, (value - bucket.min) / range));
-      const percentile = ((cumulative + bucket.count * intraBucket) / total) * 100;
+      const intraBucket = Math.max(
+        0,
+        Math.min(1, (value - bucket.min) / range),
+      );
+      const percentile =
+        ((cumulative + bucket.count * intraBucket) / total) * 100;
       return Number(Math.min(99, Math.max(1, percentile)).toFixed(1));
     }
     return undefined;
   }
 
-  private static estimatePercentileFromAverage(response: PricingInsightResponse): number | undefined {
+  private static estimatePercentileFromAverage(
+    response: PricingInsightResponse,
+  ): number | undefined {
     return this.estimatePercentile(
       response.priceBuckets.map((bucket, idx) => ({
         label: bucket.label,
@@ -282,14 +318,16 @@ export class PricingInsightsService {
         max: PRICE_BUCKETS[idx + 1] ?? Number.POSITIVE_INFINITY,
       })),
       response.currentAveragePrice,
-      response.sampleSize
+      response.sampleSize,
     );
   }
 
   private static computeDemandScore(views: number, inquiries: number): number {
     const normalizedViews = Math.min(views / 300, 1);
     const normalizedInquiries = Math.min(inquiries / 8, 1);
-    return Number(((normalizedViews * 0.6 + normalizedInquiries * 0.4) * 100).toFixed(0));
+    return Number(
+      ((normalizedViews * 0.6 + normalizedInquiries * 0.4) * 100).toFixed(0),
+    );
   }
 
   private static computeConfidence(sampleSize: number): number {
@@ -299,7 +337,9 @@ export class PricingInsightsService {
     return Math.min(1, sampleSize / 50);
   }
 
-  private static computeYoyChange(timeline: Array<{ period: string; pricePerSqm: number }>): number | undefined {
+  private static computeYoyChange(
+    timeline: Array<{ period: string; pricePerSqm: number }>,
+  ): number | undefined {
     if (timeline.length < 2) {
       return undefined;
     }
@@ -308,11 +348,15 @@ export class PricingInsightsService {
     if (!first?.pricePerSqm || !last?.pricePerSqm) {
       return undefined;
     }
-    const change = ((last.pricePerSqm - first.pricePerSqm) / first.pricePerSqm) * 100;
+    const change =
+      ((last.pricePerSqm - first.pricePerSqm) / first.pricePerSqm) * 100;
     return Number(change.toFixed(1));
   }
 
-  private static buildDynamicRange(avgPrice: number, stdDev: number): {
+  private static buildDynamicRange(
+    avgPrice: number,
+    stdDev: number,
+  ): {
     conservative: number;
     base: number;
     bullish: number;
@@ -341,13 +385,13 @@ export class PricingInsightsService {
       signals.push(`📉 تصحيح -${Math.abs(params.yoyChange).toFixed(1)}٪`);
     }
     if (params.demandScore > 70) {
-      signals.push('🔥 طلب مرتفع من المشترين');
+      signals.push("🔥 طلب مرتفع من المشترين");
     }
     if (params.confidence < 0.4) {
-      signals.push('⚠️ عينة محدودة، يوصى بجمع بيانات إضافية');
+      signals.push("⚠️ عينة محدودة، يوصى بجمع بيانات إضافية");
     }
     if (params.sampleSize > 200) {
-      signals.push('✅ بيانات قوية على مستوى الحي');
+      signals.push("✅ بيانات قوية على مستوى الحي");
     }
     return signals;
   }

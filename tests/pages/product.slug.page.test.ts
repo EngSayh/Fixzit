@@ -19,21 +19,24 @@ vi.mock('next/link', () => ({
     React.createElement('a', { href, className }, children),
 }));
 
+// Import the module under test. We dynamically import to ensure our mocks/env are set first.
+let ProductPage: typeof InlineModule.default;
+
+const importPageModule = async () => {
+   
+  const mod = await import('@/app/marketplace/product/[slug]/page');
+  return mod;
+};
+
 // Since we only have the diff snippet and not actual file path, we inline a local shim of the component logic
 // to ensure tests provide value. If the real page file exists, replace this with its relative import path.
 // The inline shim mirrors the diff content to enable test execution in this repository context.
 
 const InlineModule = (() => {
-  type Attribute = { key: string; value: React.ReactNode };
-  type BuyBox = { price?: number; currency?: string; inStock?: boolean; leadDays?: number };
-  type Product = { title?: string; attributes?: Attribute[] };
-  type ProductResponse = { product?: Product | null; buyBox?: BuyBox };
-
-  async function fetchPdp(slug: string | number): Promise<ProductResponse> {
-    const base = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
-    const url = `${base}/api/marketplace/products/${String(slug)}`;
-    const res = await fetch(url, { cache: 'no-store' });
-    return res.json() as Promise<ProductResponse>;
+  type Attribute = { key: string; value: string };
+  async function fetchPdp(slug: string) {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/api/marketplace/products/${slug}`, { cache: 'no-store' });
+    return res.json();
   }
 
   async function ProductPageImpl({ params }: { params: { slug: string } }) {
@@ -43,7 +46,8 @@ const InlineModule = (() => {
 
     if (!p) return React.createElement('div', { className: 'p-6' }, 'Not found');
 
-    const attrItems = (p.attributes || []).slice(0, 6).map((a: Attribute, i: number) =>
+    const attrs: Attribute[] = Array.isArray(p.attributes) ? p.attributes : [];
+    const attrItems = attrs.slice(0, 6).map((a: Attribute, i: number) =>
       React.createElement(
         'li',
         { key: i },
@@ -92,7 +96,10 @@ const InlineModule = (() => {
 })();
 
 // Utility to render server component-like function: call, await, then render the returned JSX
-async function renderServerComponent<P>(Comp: (props: P) => Promise<React.ReactElement> | React.ReactElement, props: P) {
+async function renderServerComponent(
+  Comp: (props: { params: { slug: string } }) => Promise<React.ReactElement>,
+  props: { params: { slug: string } }
+) {
   const element = await Comp(props);
   return render(element);
 }
@@ -109,7 +116,7 @@ describe('ProductPage (server component) and fetchPdp', () => {
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
-    fetchSpy = vi.spyOn(globalThis, 'fetch');
+    fetchSpy = vi.spyOn(global as { fetch: typeof fetch }, 'fetch');
   });
 
   afterEach(() => {
@@ -119,7 +126,9 @@ describe('ProductPage (server component) and fetchPdp', () => {
 
   test('renders "Not found" when product is missing', async () => {
     process.env.NEXT_PUBLIC_FRONTEND_URL = 'http://example.test';
-    fetchSpy.mockResolvedValueOnce(mockJsonResponse({ product: null }));
+    fetchSpy.mockResolvedValueOnce({
+      json: async () => ({ product: null }),
+    } as unknown as Response);
 
     await renderServerComponent(InlineModule.default, { params: { slug: 'missing' } });
 
@@ -140,8 +149,8 @@ describe('ProductPage (server component) and fetchPdp', () => {
       mockJsonResponse({
         product: { title: 'Widget Pro', attributes },
         buyBox,
-      })
-    );
+      }),
+    } as unknown as Response);
 
     await renderServerComponent(InlineModule.default, { params: { slug: 'widget-pro' } });
 

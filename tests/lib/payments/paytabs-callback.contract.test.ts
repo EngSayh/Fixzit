@@ -8,6 +8,8 @@ import {
   PaytabsCallbackValidationError,
 } from '@/lib/payments/paytabs-callback.contract';
 
+type CallbackPayload = Parameters<typeof extractPaytabsSignature>[1];
+
 describe('normalizePaytabsCallbackPayload', () => {
   it('normalizes required fields and metadata sources', () => {
     const normalized = normalizePaytabsCallbackPayload({
@@ -59,7 +61,7 @@ describe('extractPaytabsSignature', () => {
     };
     const signature = extractPaytabsSignature(req, {
       signature: 'body-sig',
-    } as Partial<PaytabsCallback>);
+    } as CallbackPayload);
     expect(signature).toBe('header-sig');
   });
 
@@ -67,7 +69,7 @@ describe('extractPaytabsSignature', () => {
     const req = { headers: new Headers() };
     const signature = extractPaytabsSignature(req, {
       payment_signature: 'payload-sig',
-    } as Partial<PaytabsCallback>);
+    } as CallbackPayload);
     expect(signature).toBe('payload-sig');
   });
 });

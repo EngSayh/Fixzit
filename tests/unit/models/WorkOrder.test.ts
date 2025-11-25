@@ -122,7 +122,7 @@ describe('WorkOrder model - Schema Validation', () => {
       expect(doc.validateSync()).toBeUndefined();
     }
 
-    const badDoc = new WorkOrder(buildValidWorkOrder({ type: 'INVALID_TYPE' as any }));
+    const badDoc = new WorkOrder(buildValidWorkOrder({ type: 'INVALID_TYPE' }));
     const err = badDoc.validateSync();
     expect(err).toBeDefined();
     expect(err?.errors?.type).toBeDefined();
@@ -136,7 +136,7 @@ describe('WorkOrder model - Schema Validation', () => {
       expect(doc.validateSync()).toBeUndefined();
     }
 
-    const badDoc = new WorkOrder(buildValidWorkOrder({ priority: 'INVALID' as any }));
+    const badDoc = new WorkOrder(buildValidWorkOrder({ priority: 'INVALID' }));
     const err = badDoc.validateSync();
     expect(err).toBeDefined();
     expect(err?.errors?.priority).toBeDefined();
@@ -156,7 +156,7 @@ describe('WorkOrder model - Schema Validation', () => {
       expect(doc.validateSync()).toBeUndefined();
     }
 
-    const badDoc = new WorkOrder(buildValidWorkOrder({ status: 'INVALID_STATUS' as any }));
+    const badDoc = new WorkOrder(buildValidWorkOrder({ status: 'INVALID_STATUS' }));
     const err = badDoc.validateSync();
     expect(err).toBeDefined();
     expect(err?.errors?.status).toBeDefined();

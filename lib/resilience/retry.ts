@@ -1,4 +1,4 @@
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 export interface RetryOptions {
   maxAttempts?: number;
@@ -18,7 +18,7 @@ export interface RetryContext {
 }
 
 const wait = (ms: number): Promise<void> =>
-  new Promise(resolve => setTimeout(resolve, ms));
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function executeWithRetry<T>(
   operation: (context: RetryContext) => Promise<T>,
@@ -30,13 +30,13 @@ export async function executeWithRetry<T>(
     maxDelayMs = 15_000,
     backoffFactor = 2,
     jitterRatio = 0.2,
-    label = 'resilient-operation',
+    label = "resilient-operation",
     shouldRetry,
     onAttempt,
   } = options;
 
   if (maxAttempts < 1) {
-    throw new Error('maxAttempts must be at least 1');
+    throw new Error("maxAttempts must be at least 1");
   }
 
   let attempt = 0;
@@ -51,15 +51,15 @@ export async function executeWithRetry<T>(
       onAttempt?.(context);
       return result;
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
       lastError = error;
       context.lastError = error;
       onAttempt?.(context);
 
       const shouldRetryThisAttempt =
-        attempt < maxAttempts &&
-        (shouldRetry ? shouldRetry(context) : true);
+        attempt < maxAttempts && (shouldRetry ? shouldRetry(context) : true);
 
       if (!shouldRetryThisAttempt) {
         throw error;
@@ -71,8 +71,8 @@ export async function executeWithRetry<T>(
       logger.warn(
         `[Retry] ${label} failed (attempt ${attempt}/${maxAttempts})`,
         {
-          component: 'resilience.retry',
-          action: 'retry',
+          component: "resilience.retry",
+          action: "retry",
           error: error instanceof Error ? error.message : String(error),
         },
       );
@@ -84,5 +84,5 @@ export async function executeWithRetry<T>(
 
   throw lastError instanceof Error
     ? lastError
-    : new Error('Retry attempts exhausted');
+    : new Error("Retry attempts exhausted");
 }

@@ -7,10 +7,12 @@ The existing file structure follows **Next.js 15 App Router conventions** and **
 ### Why the Move Plan Was Wrong
 
 **Issue 1: Misunderstood Next.js Conventions**
+
 - ❌ Tried to move `app/*/layout.tsx` to `components/`
 - ✅ These MUST stay in app directories (Next.js routing requirement)
 
 **Issue 2: Ignored Module Boundaries**
+
 - ❌ Tried to consolidate `app/fm/*`, `app/aqar/*`, `app/souq/*` into single directories
 - ✅ These are separate modules with distinct purposes:
   - `app/fm/*` = Facilities Management module
@@ -19,18 +21,21 @@ The existing file structure follows **Next.js 15 App Router conventions** and **
   - `app/admin/*` = Administration pages
 
 **Issue 3: Breaking API Routes**
+
 - ❌ Tried to move `app/api/**/route.ts` files
 - ✅ API routes MUST stay under `app/api/*` (Next.js convention)
 
 ### ✅ What We Actually Fixed
 
 **Category D Cleanup (Completed):**
+
 1. ✅ Removed `components/SupportPopup.OLD.tsx`
 2. ✅ Removed `components/ErrorBoundary.OLD.tsx`
 3. ✅ Moved `smart-merge-conflicts.ts` → `scripts/`
 4. ✅ Verified no other misplaced files
 
 **Memory Safety:**
+
 - Before: 6.4GB
 - During: 6.8GB
 - Status: Safe ✅
@@ -69,6 +74,7 @@ tests/                    # Test files
 ### 🎯 Conclusion
 
 **The file organization is already correct.** The only changes needed were:
+
 - Removing 2 backup files
 - Moving 1 utility script to scripts/
 

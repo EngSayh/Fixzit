@@ -1,37 +1,45 @@
-'use client';
-import { logger } from '@/lib/logger';
+"use client";
+import { logger } from "@/lib/logger";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, CheckCircle, Circle, Play, BookOpen, Clock } from 'lucide-react';
-import { renderMarkdownSanitized } from '@/lib/markdown';
-import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  CheckCircle,
+  Circle,
+  Play,
+  BookOpen,
+  Clock,
+} from "lucide-react";
+import { renderMarkdownSanitized } from "@/lib/markdown";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 // HTML escape utility for fallback rendering
-const escapeHtml = (str: string) => str
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#39;');
+const escapeHtml = (str: string) =>
+  str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
 export default function GettingStartedTutorial() {
-  const auto = useAutoTranslator('help.gettingStarted');
+  const auto = useAutoTranslator("help.gettingStarted");
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
-  const [renderedContent, setRenderedContent] = useState<string>('');
+  const [renderedContent, setRenderedContent] = useState<string>("");
 
   const tutorial = {
-    id: 'getting-started',
-    title: 'Getting Started with Fixzit FM',
-    description: 'Learn the basics of facility management in Fixzit',
-    duration: '15 min',
-    difficulty: 'Beginner' as const,
+    id: "getting-started",
+    title: "Getting Started with Fixzit FM",
+    description: "Learn the basics of facility management in Fixzit",
+    duration: "15 min",
+    difficulty: "Beginner" as const,
     steps: [
       {
-        id: '1',
-        title: 'Welcome to Fixzit Enterprise',
-        description: 'Overview of the platform and its capabilities',
+        id: "1",
+        title: "Welcome to Fixzit Enterprise",
+        description: "Overview of the platform and its capabilities",
         completed: false,
         content: `
 # Welcome to Fixzit Enterprise
@@ -67,15 +75,15 @@ Fixzit Enterprise is a comprehensive facility management platform that combines 
 Ready to get started? Click "Next" to begin your journey!
         `,
         tips: [
-          'Take your time to explore each section',
-          'Use the help widget for quick assistance',
-          'Bookmark important pages for easy access'
-        ]
+          "Take your time to explore each section",
+          "Use the help widget for quick assistance",
+          "Bookmark important pages for easy access",
+        ],
       },
       {
-        id: '2',
-        title: 'Understanding the Dashboard',
-        description: 'Learn about the main dashboard and navigation',
+        id: "2",
+        title: "Understanding the Dashboard",
+        description: "Learn about the main dashboard and navigation",
         completed: false,
         content: `
 # Understanding the Dashboard
@@ -134,15 +142,15 @@ From the dashboard, you can:
 Continue to the next step to learn about properties!
         `,
         tips: [
-          'Pin frequently used sections to your favorites',
-          'Use keyboard shortcuts for faster navigation',
-          'Check notifications regularly for important updates'
-        ]
+          "Pin frequently used sections to your favorites",
+          "Use keyboard shortcuts for faster navigation",
+          "Check notifications regularly for important updates",
+        ],
       },
       {
-        id: '3',
-        title: 'Managing Properties',
-        description: 'Learn how to add and manage properties',
+        id: "3",
+        title: "Managing Properties",
+        description: "Learn how to add and manage properties",
         completed: false,
         content: `
 # Managing Properties
@@ -219,16 +227,16 @@ After adding your properties, you'll be ready to:
 Ready to learn about work orders? Click "Next"!
         `,
         tips: [
-          'Take photos of your properties for documentation',
-          'Keep emergency contact information current',
-          'Regularly review and update property details',
-          'Use the property code for easy identification'
-        ]
+          "Take photos of your properties for documentation",
+          "Keep emergency contact information current",
+          "Regularly review and update property details",
+          "Use the property code for easy identification",
+        ],
       },
       {
-        id: '4',
-        title: 'Creating Work Orders',
-        description: 'Learn how to create and manage work orders',
+        id: "4",
+        title: "Creating Work Orders",
+        description: "Learn how to create and manage work orders",
         completed: false,
         content: `
 # Creating Work Orders
@@ -321,16 +329,16 @@ Work orders are the backbone of facility maintenance management in Fixzit.
 Continue to learn about vendor management!
         `,
         tips: [
-          'Include photos when creating work orders',
-          'Set realistic priorities based on impact',
-          'Provide clear instructions to avoid confusion',
-          'Follow up on important work orders regularly'
-        ]
+          "Include photos when creating work orders",
+          "Set realistic priorities based on impact",
+          "Provide clear instructions to avoid confusion",
+          "Follow up on important work orders regularly",
+        ],
       },
       {
-        id: '5',
-        title: 'Vendor Management',
-        description: 'Learn how to work with vendors and suppliers',
+        id: "5",
+        title: "Vendor Management",
+        description: "Learn how to work with vendors and suppliers",
         completed: false,
         content: `
 # Vendor Management
@@ -438,32 +446,35 @@ Effective vendor management is crucial for successful facility operations.
 Continue to learn about tenant relations!
         `,
         tips: [
-          'Keep vendor contact information current',
-          'Document all vendor interactions',
-          'Rate vendors after each job completion',
-          'Maintain emergency vendor contacts',
-          'Regularly review vendor performance'
-        ]
-      }
-    ]
+          "Keep vendor contact information current",
+          "Document all vendor interactions",
+          "Rate vendors after each job completion",
+          "Maintain emergency vendor contacts",
+          "Regularly review vendor performance",
+        ],
+      },
+    ],
   };
 
   const markStepComplete = (stepIndex: number) => {
-    setCompletedSteps(prev => new Set([...prev, stepIndex]));
+    setCompletedSteps((prev) => new Set([...prev, stepIndex]));
   };
 
   const localizedTutorial = {
     ...tutorial,
-    title: auto(tutorial.title, 'tutorial.title'),
-    description: auto(tutorial.description, 'tutorial.description'),
-    duration: auto(tutorial.duration, 'tutorial.duration'),
-    difficulty: auto(tutorial.difficulty, 'tutorial.difficulty'),
+    title: auto(tutorial.title, "tutorial.title"),
+    description: auto(tutorial.description, "tutorial.description"),
+    duration: auto(tutorial.duration, "tutorial.duration"),
+    difficulty: auto(tutorial.difficulty, "tutorial.difficulty"),
     steps: tutorial.steps.map((step) => ({
       ...step,
       title: auto(step.title, `steps.${step.id}.title`),
       description: auto(step.description, `steps.${step.id}.description`),
       content: auto(step.content, `steps.${step.id}.content`),
-      tips: step.tips?.map((tip, index) => auto(tip, `steps.${step.id}.tips.${index}`)) ?? [],
+      tips:
+        step.tips?.map((tip, index) =>
+          auto(tip, `steps.${step.id}.tips.${index}`),
+        ) ?? [],
     })),
   };
 
@@ -473,13 +484,17 @@ Continue to learn about tenant relations!
   // Render markdown content when step changes
   useEffect(() => {
     if (currentStepData?.content) {
-      renderMarkdownSanitized(currentStepData.content).then(html => {
-        setRenderedContent(html);
-      }).catch(err => {
-        logger.error('Failed to render markdown:', { error: err });
-        // Safe fallback: escape HTML and preserve whitespace
-        setRenderedContent(`<div class="whitespace-pre-wrap">${escapeHtml(currentStepData.content)}</div>`);
-      });
+      renderMarkdownSanitized(currentStepData.content)
+        .then((html) => {
+          setRenderedContent(html);
+        })
+        .catch((err) => {
+          logger.error("Failed to render markdown:", { error: err });
+          // Safe fallback: escape HTML and preserve whitespace
+          setRenderedContent(
+            `<div class="whitespace-pre-wrap">${escapeHtml(currentStepData.content)}</div>`,
+          );
+        });
     }
   }, [currentStep, currentStepData]);
 
@@ -493,33 +508,40 @@ Continue to learn about tenant relations!
             className="inline-flex items-center gap-2 text-primary hover:text-primary mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            {auto('Back to Help Center', 'header.backLink')}
+            {auto("Back to Help Center", "header.backLink")}
           </Link>
 
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">{localizedTutorial.title}</h1>
+              <h1 className="text-3xl font-bold text-foreground mb-2">
+                {localizedTutorial.title}
+              </h1>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
                   {localizedTutorial.duration}
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  tutorial.difficulty === 'Beginner' ? 'bg-success/10 text-success' :
-                  tutorial.difficulty === 'Intermediate' ? 'bg-warning/10 text-warning' :
-                  'bg-destructive/10 text-destructive'
-                }`}>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    tutorial.difficulty === "Beginner"
+                      ? "bg-success/10 text-success"
+                      : tutorial.difficulty === "Intermediate"
+                        ? "bg-warning/10 text-warning"
+                        : "bg-destructive/10 text-destructive"
+                  }`}
+                >
                   {localizedTutorial.difficulty}
                 </span>
                 <div className="flex items-center gap-1">
                   <BookOpen className="w-4 h-4" />
-                  {localizedTutorial.steps.length} {auto('steps', 'header.stepsLabel')}
+                  {localizedTutorial.steps.length}{" "}
+                  {auto("steps", "header.stepsLabel")}
                 </div>
               </div>
             </div>
             <div className="text-end">
               <div className="text-sm text-muted-foreground">
-                {auto('Progress', 'progress.label')}
+                {auto("Progress", "progress.label")}
               </div>
               <div className="w-32 bg-muted rounded-full h-2 mt-1">
                 <div
@@ -528,7 +550,8 @@ Continue to learn about tenant relations!
                 ></div>
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                {currentStep + 1} {auto('of', 'progress.of')} {localizedTutorial.steps.length}
+                {currentStep + 1} {auto("of", "progress.of")}{" "}
+                {localizedTutorial.steps.length}
               </div>
             </div>
           </div>
@@ -539,7 +562,7 @@ Continue to learn about tenant relations!
           <div className="lg:col-span-1">
             <div className="bg-card rounded-2xl shadow-sm border border-border p-4 sticky top-6">
               <h3 className="font-semibold text-foreground mb-4">
-                {auto('Tutorial Steps', 'sidebar.title')}
+                {auto("Tutorial Steps", "sidebar.title")}
               </h3>
               <div className="space-y-2">
                 {localizedTutorial.steps.map((step, index) => (
@@ -548,10 +571,10 @@ Continue to learn about tenant relations!
                     onClick={() => setCurrentStep(index)}
                     className={`w-full text-start p-3 rounded-2xl border transition-colors ${
                       currentStep === index
-                        ? 'border-primary bg-primary/10 text-primary'
+                        ? "border-primary bg-primary/10 text-primary"
                         : completedSteps.has(index)
-                        ? 'border-success bg-success/10 text-success'
-                        : 'border-border hover:border-border'
+                          ? "border-success bg-success/10 text-success"
+                          : "border-border hover:border-border"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -563,8 +586,10 @@ Continue to learn about tenant relations!
                         <Circle className="w-4 h-4 text-muted-foreground" />
                       )}
                       <div>
-                       <div className="font-medium text-sm">{step.title}</div>
-                        <div className="text-xs text-muted-foreground">{step.description}</div>
+                        <div className="font-medium text-sm">{step.title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {step.description}
+                        </div>
                       </div>
                     </div>
                   </button>
@@ -581,11 +606,18 @@ Continue to learn about tenant relations!
                 <div className="flex items-center gap-2 mb-2">
                   <Play className="w-5 h-5 text-primary" />
                   <span className="text-sm font-medium text-primary">
-                    {auto('Step {{number}}', 'content.stepLabel').replace('{{number}}', String(currentStep + 1))}
+                    {auto("Step {{number}}", "content.stepLabel").replace(
+                      "{{number}}",
+                      String(currentStep + 1),
+                    )}
                   </span>
                 </div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">{currentStepData.title}</h2>
-                <p className="text-muted-foreground">{currentStepData.description}</p>
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  {currentStepData.title}
+                </h2>
+                <p className="text-muted-foreground">
+                  {currentStepData.description}
+                </p>
               </div>
 
               {/* Step Content */}
@@ -597,11 +629,14 @@ Continue to learn about tenant relations!
               {currentStepData.tips && (
                 <div className="mt-8 p-4 bg-primary/10 rounded-2xl">
                   <h4 className="font-semibold text-primary mb-2">
-                    💡 {auto('Tips', 'content.tipsTitle')}
+                    💡 {auto("Tips", "content.tipsTitle")}
                   </h4>
                   <ul className="space-y-1">
                     {currentStepData.tips.map((tip, i) => (
-                      <li key={i} className="text-primary text-sm flex items-start gap-2">
+                      <li
+                        key={i}
+                        className="text-primary text-sm flex items-start gap-2"
+                      >
                         <span className="text-primary mt-1">•</span>
                         {tip}
                       </li>
@@ -617,7 +652,7 @@ Continue to learn about tenant relations!
                   disabled={currentStep === 0}
                   className="flex items-center gap-2 px-4 py-2 text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  ← {auto('Previous', 'actions.previous')}
+                  ← {auto("Previous", "actions.previous")}
                 </button>
 
                 <button
@@ -625,15 +660,22 @@ Continue to learn about tenant relations!
                   className="flex items-center gap-2 px-4 py-2 bg-success text-white rounded-2xl hover:bg-success transition-colors"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  {auto('Mark Complete', 'actions.markComplete')}
+                  {auto("Mark Complete", "actions.markComplete")}
                 </button>
 
                 <button
-                  onClick={() => setCurrentStep(Math.min(localizedTutorial.steps.length - 1, currentStep + 1))}
+                  onClick={() =>
+                    setCurrentStep(
+                      Math.min(
+                        localizedTutorial.steps.length - 1,
+                        currentStep + 1,
+                      ),
+                    )
+                  }
                   disabled={currentStep === localizedTutorial.steps.length - 1}
                   className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {auto('Next', 'actions.next')} →
+                  {auto("Next", "actions.next")} →
                 </button>
               </div>
             </div>

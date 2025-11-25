@@ -12,14 +12,21 @@ const API_PATH = "/api/projects";
 
 const rand = () => Math.random().toString(36).slice(2, 10);
 const newTenantId = () => `tenant-${Date.now()}-${rand()}`;
-const newUser = (tenantId = newTenantId()) => ({ id: `u-${rand()}`, tenantId, orgId: tenantId, role: 'admin' });
+const newUser = (tenantId = newTenantId()) => ({
+  id: `u-${rand()}`,
+  tenantId,
+  orgId: tenantId,
+  role: "admin",
+});
 
-import type { Playwright } from '@playwright/test';
-
-async function newAuthedRequest(playwright: Playwright, baseURL: string | undefined, user = newUser()) {
+async function newAuthedRequest(
+  playwright: any,
+  baseURL: string | undefined,
+  user = newUser(),
+) {
   const ctx = await playwright.request.newContext({
     baseURL,
-    extraHTTPHeaders: { "x-user": JSON.stringify(user) }
+    extraHTTPHeaders: { "x-user": JSON.stringify(user) },
   });
   return { ctx, user };
 }
@@ -59,10 +66,14 @@ test.describe("Projects API - POST /api/projects", () => {
     await anon.dispose();
   });
 
-  test("returns 422 with Zod details when name is empty", async ({ playwright }, testInfo) => {
+  test("returns 422 with Zod details when name is empty", async ({
+    playwright,
+  }, testInfo) => {
     const baseURL = testInfo.project.use.baseURL as string | undefined;
     const { ctx } = await newAuthedRequest(playwright, baseURL);
-    const res = await ctx.post(API_PATH, { data: validProjectPayload({ name: "" }) });
+    const res = await ctx.post(API_PATH, {
+      data: validProjectPayload({ name: "" }),
+    });
     expect(res.status()).toBe(422);
     const body = await res.json();
     expect(body).toHaveProperty("error");
@@ -73,7 +84,9 @@ test.describe("Projects API - POST /api/projects", () => {
     await ctx.dispose();
   });
 
-  test("creates project successfully with defaults and server fields", async ({ playwright }, testInfo) => {
+  test("creates project successfully with defaults and server fields", async ({
+    playwright,
+  }, testInfo) => {
     const baseURL = testInfo.project.use.baseURL as string | undefined;
     const { ctx } = await newAuthedRequest(playwright, baseURL);
     const payload = validProjectPayload({ budget: { total: 1000 } }); // omit currency -> default "SAR"
@@ -91,7 +104,10 @@ test.describe("Projects API - POST /api/projects", () => {
       tags: payload.tags,
       status: "PLANNING",
       progress: expect.objectContaining({
-        overall: 0, schedule: 0, quality: 0, cost: 0,
+        overall: 0,
+        schedule: 0,
+        quality: 0,
+        cost: 0,
       }),
     });
     expect(project).toHaveProperty("_id");
@@ -103,21 +119,29 @@ test.describe("Projects API - POST /api/projects", () => {
     await ctx.dispose();
   });
 
-  test("returns 422 for invalid type enum", async ({ playwright }, testInfo) => {
+  test("returns 422 for invalid type enum", async ({
+    playwright,
+  }, testInfo) => {
     const baseURL = testInfo.project.use.baseURL as string | undefined;
     const { ctx } = await newAuthedRequest(playwright, baseURL);
-    const res = await ctx.post(API_PATH, { data: validProjectPayload({ type: "INVALID_TYPE" }) });
+    const res = await ctx.post(API_PATH, {
+      data: validProjectPayload({ type: "INVALID_TYPE" }),
+    });
     expect(res.status()).toBe(422);
     const body = await res.json();
     expect(body).toHaveProperty("error");
     await ctx.dispose();
   });
 
-  test("returns 422 for invalid coordinates types", async ({ playwright }, testInfo) => {
+  test("returns 422 for invalid coordinates types", async ({
+    playwright,
+  }, testInfo) => {
     const baseURL = testInfo.project.use.baseURL as string | undefined;
     const { ctx } = await newAuthedRequest(playwright, baseURL);
     const res = await ctx.post(API_PATH, {
-      data: validProjectPayload({ location: { coordinates: { lat: "24.7", lng: "46.6" } } }),
+      data: validProjectPayload({
+        location: { coordinates: { lat: "24.7", lng: "46.6" } },
+      }),
     });
     expect(res.status()).toBe(422);
     await ctx.dispose();
@@ -135,7 +159,9 @@ test.describe("Projects API - GET /api/projects", () => {
     await anon.dispose();
   });
 
-  test("lists projects with defaults (page=1, limit=20)", async ({ playwright }, testInfo) => {
+  test("lists projects with defaults (page=1, limit=20)", async ({
+    playwright,
+  }, testInfo) => {
     const baseURL = testInfo.project.use.baseURL as string | undefined;
     const { ctx } = await newAuthedRequest(playwright, baseURL);
     const res = await ctx.get(API_PATH);
@@ -149,7 +175,9 @@ test.describe("Projects API - GET /api/projects", () => {
     await ctx.dispose();
   });
 
-  test("respects page min=1 and limit max=100", async ({ playwright }, testInfo) => {
+  test("respects page min=1 and limit max=100", async ({
+    playwright,
+  }, testInfo) => {
     const baseURL = testInfo.project.use.baseURL as string | undefined;
     const { ctx } = await newAuthedRequest(playwright, baseURL);
     const res = await ctx.get(`${API_PATH}?page=0&limit=200`);
@@ -160,16 +188,26 @@ test.describe("Projects API - GET /api/projects", () => {
     await ctx.dispose();
   });
 
-  test("filters by type and status (NEW_CONSTRUCTION, PLANNING)", async ({ playwright }, testInfo) => {
+  test("filters by type and status (NEW_CONSTRUCTION, PLANNING)", async ({
+    playwright,
+  }, testInfo) => {
     const baseURL = testInfo.project.use.baseURL as string | undefined;
     // Reuse one tenant to ensure isolation
     const tenantId = newTenantId();
-    const { ctx } = await newAuthedRequest(playwright, baseURL, newUser(tenantId));
+    const { ctx } = await newAuthedRequest(
+      playwright,
+      baseURL,
+      newUser(tenantId),
+    );
 
-    const create = await ctx.post(API_PATH, { data: validProjectPayload({ type: "NEW_CONSTRUCTION" }) });
+    const create = await ctx.post(API_PATH, {
+      data: validProjectPayload({ type: "NEW_CONSTRUCTION" }),
+    });
     expect(create.status()).toBe(201);
 
-    const res = await ctx.get(`${API_PATH}?type=NEW_CONSTRUCTION&status=PLANNING`);
+    const res = await ctx.get(
+      `${API_PATH}?type=NEW_CONSTRUCTION&status=PLANNING`,
+    );
     expect(res.status()).toBe(200);
     const body = await res.json();
     for (const item of body.items) {
@@ -179,17 +217,24 @@ test.describe("Projects API - GET /api/projects", () => {
     await ctx.dispose();
   });
 
-  test("supports search parameter (returns 200 with matching item or 500 if text index missing)", async ({ playwright }, testInfo) => {
+  test("supports search parameter (returns 200 with matching item or 500 if text index missing)", async ({
+    playwright,
+  }, testInfo) => {
     const baseURL = testInfo.project.use.baseURL as string | undefined;
     const { ctx } = await newAuthedRequest(playwright, baseURL);
     const unique = `uniq-${Date.now()}-${rand()}`;
 
     const created = await ctx.post(API_PATH, {
-      data: validProjectPayload({ name: `Proj ${unique}`, description: `Desc ${unique}` }),
+      data: validProjectPayload({
+        name: `Proj ${unique}`,
+        description: `Desc ${unique}`,
+      }),
     });
     expect(created.status()).toBe(201);
 
-    const res = await ctx.get(`${API_PATH}?search=${encodeURIComponent(unique)}`);
+    const res = await ctx.get(
+      `${API_PATH}?search=${encodeURIComponent(unique)}`,
+    );
     expect([200, 500]).toContain(res.status());
     if (res.status() === 200) {
       const body = await res.json();
@@ -197,8 +242,8 @@ test.describe("Projects API - GET /api/projects", () => {
         body.items.some(
           (p: { name?: string; description?: string }) =>
             String(p.name || "").includes(unique) ||
-            String(p.description || "").includes(unique)
-        )
+            String(p.description || "").includes(unique),
+        ),
       ).toBe(true);
     }
     await ctx.dispose();

@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { can } from "../rbac/workOrdersPolicy";
-import type { Role as WorkOrderRole, Ability as WorkOrderAbility } from "../rbac/workOrdersPolicy";
+import type {
+  Role as WorkOrderRole,
+  Ability as WorkOrderAbility,
+} from "../rbac/workOrdersPolicy";
 import { auth } from "@/auth";
-import { logger } from '@/lib/logger';
-import { verifyToken } from '@/lib/auth';
-import { ALL_ROLES, type UserRoleType } from '@/types/user';
+import { logger } from "@/lib/logger";
+import { verifyToken } from "@/lib/auth";
+import { ALL_ROLES, type UserRoleType } from "@/types/user";
 
 export class UnauthorizedError extends Error {
-  constructor(message: string = 'Unauthenticated') {
+  constructor(message: string = "Unauthenticated") {
     super(message);
-    this.name = 'UnauthorizedError';
+    this.name = "UnauthorizedError";
   }
 }
 
@@ -71,12 +74,15 @@ const assertValidAbility = (ability: WorkOrderAbility) => {
  * Load RBAC data (roles and permissions) from database for a user
  * This runs in Node.js runtime (API routes) where Mongoose is available
  */
-async function loadRBACData(userId: string, orgId: string): Promise<{
+async function loadRBACData(
+  userId: string,
+  orgId: string,
+): Promise<{
   isSuperAdmin: boolean;
   permissions: string[];
   roles: string[];
 }> {
-  if (process.env.ALLOW_OFFLINE_MONGODB === 'true') {
+  if (process.env.ALLOW_OFFLINE_MONGODB === "true") {
     return {
       isSuperAdmin: false,
       permissions: [],
@@ -85,81 +91,84 @@ async function loadRBACData(userId: string, orgId: string): Promise<{
   }
   try {
     // Dynamic imports to avoid issues in Edge Runtime
-    const { User } = await import('@/server/models/User');
-    const RoleModel = (await import('@/models/Role')).default;
-    const PermissionModel = (await import('@/models/Permission')).default;
-    const { default: mongoose } = await import('mongoose');
-    
+    const { User } = await import("@/server/models/User");
+    const RoleModel = (await import("@/models/Role")).default;
+    const PermissionModel = (await import("@/models/Permission")).default;
+    const { default: mongoose } = await import("mongoose");
+
     // Query user with populated roles
     const user = await User.findOne({
       _id: new mongoose.Types.ObjectId(userId),
       orgId: orgId,
     })
-      .select('isSuperAdmin roles')
+      .select("isSuperAdmin roles")
       .populate({
-        path: 'roles',
+        path: "roles",
         model: RoleModel,
-        select: 'slug wildcard permissions',
+        select: "slug wildcard permissions",
         populate: {
-          path: 'permissions',
+          path: "permissions",
           model: PermissionModel,
-          select: 'key',
+          select: "key",
         },
       })
       .lean();
-    
+
     if (!user) {
-      logger.warn('[RBAC] User not found for RBAC loading', { userId, orgId });
+      logger.warn("[RBAC] User not found for RBAC loading", { userId, orgId });
       return {
         isSuperAdmin: false,
         permissions: [],
         roles: [],
       };
     }
-    
+
     // Super admin check
     const isSuperAdmin = user.isSuperAdmin || false;
-    
+
     // If super admin, grant all permissions
     if (isSuperAdmin) {
       return {
         isSuperAdmin: true,
-        permissions: ['*'], // Wildcard permission
-        roles: ['super_admin'],
+        permissions: ["*"], // Wildcard permission
+        roles: ["super_admin"],
       };
     }
-    
+
     // Extract role slugs and permissions
     const roles: string[] = [];
     const permissionsSet = new Set<string>();
-    
+
     // Type for populated role object
     type PopulatedRole = {
       slug?: string;
       wildcard?: boolean;
       permissions?: Array<{ key?: string }>;
     };
-    
+
     if (user.roles && Array.isArray(user.roles)) {
       for (const role of user.roles) {
-        if (role && typeof role === 'object') {
+        if (role && typeof role === "object") {
           const populatedRole = role as unknown as PopulatedRole;
-          
+
           // Add role slug
           if (populatedRole.slug) {
             roles.push(populatedRole.slug);
           }
-          
+
           // Check if role has wildcard
           if (populatedRole.wildcard) {
-            permissionsSet.add('*');
+            permissionsSet.add("*");
             continue; // Wildcard role grants all permissions
           }
-          
+
           // Add permissions from role
-          if (populatedRole.permissions && Array.isArray(populatedRole.permissions)) {
+          if (
+            populatedRole.permissions &&
+            Array.isArray(populatedRole.permissions)
+          ) {
             for (const perm of populatedRole.permissions) {
-              if (perm && typeof perm === 'object' && perm.key) {
+              if (perm && typeof perm === "object" && perm.key) {
                 permissionsSet.add(perm.key);
               }
             }
@@ -167,14 +176,14 @@ async function loadRBACData(userId: string, orgId: string): Promise<{
         }
       }
     }
-    
+
     return {
       isSuperAdmin,
       permissions: Array.from(permissionsSet),
       roles,
     };
   } catch (error) {
-    logger.error('[RBAC] Failed to load RBAC data', { error, userId, orgId });
+    logger.error("[RBAC] Failed to load RBAC data", { error, userId, orgId });
     // Return empty RBAC data on error (safe fallback)
     return {
       isSuperAdmin: false,
@@ -194,47 +203,56 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
   let email: string | undefined;
   let name: string | undefined;
   let subscriptionPlan: string | null | undefined;
-  
+
   // Try NextAuth session first (proper way)
   try {
     const session = await auth();
-    
+
     if (session?.user?.id) {
       userId = session.user.id;
-      const sessionOrgId = session.user.orgId || '';
+      const sessionOrgId = session.user.orgId || "";
       realOrgId = sessionOrgId || undefined;
-      sessionIsSuperAdmin = Boolean((session.user as { isSuperAdmin?: boolean }).isSuperAdmin);
-      const sessionEmail = typeof session.user.email === 'string' ? session.user.email : undefined;
-      const sessionName = typeof session.user.name === 'string' ? session.user.name : undefined;
-      const sessionPlan = (session.user as { subscriptionPlan?: string | null }).subscriptionPlan;
+      sessionIsSuperAdmin = Boolean(
+        (session.user as { isSuperAdmin?: boolean }).isSuperAdmin,
+      );
+      const sessionEmail =
+        typeof session.user.email === "string" ? session.user.email : undefined;
+      const sessionName =
+        typeof session.user.name === "string" ? session.user.name : undefined;
+      const sessionPlan = (session.user as { subscriptionPlan?: string | null })
+        .subscriptionPlan;
       email = sessionEmail ?? email;
       name = sessionName ?? name;
       if (sessionPlan !== undefined) {
         subscriptionPlan = sessionPlan;
       }
-      const supportOrgOverride =
-        sessionIsSuperAdmin ? req.cookies.get('support_org_id')?.value ?? undefined : undefined;
+      const supportOrgOverride = sessionIsSuperAdmin
+        ? (req.cookies.get("support_org_id")?.value ?? undefined)
+        : undefined;
       if (supportOrgOverride) {
         orgId = supportOrgOverride;
         impersonatedOrgId = supportOrgOverride;
       } else {
-        orgId = sessionOrgId || '';
+        orgId = sessionOrgId || "";
       }
-      
+
       // Validate role before casting
       const roleValue = session.user.role;
-      
+
       if (!roleValue || !ALL_ROLES.includes(roleValue as UserRoleType)) {
-        logger.error('Invalid role in NextAuth session', { role: roleValue, userId: session.user.id });
-        throw new UnauthorizedError('Unauthenticated');
+        logger.error("Invalid role in NextAuth session", {
+          role: roleValue,
+          userId: session.user.id,
+        });
+        throw new UnauthorizedError("Unauthenticated");
       }
-      
+
       role = roleValue as UserRoleType;
     }
   } catch (e) {
-    logger.error('Failed to get NextAuth session', { error: e });
+    logger.error("Failed to get NextAuth session", { error: e });
   }
-  
+
   // Inspect middleware-provided x-user header to capture impersonation context
   const xUserHeader = req.headers.get("x-user");
   if (xUserHeader) {
@@ -251,7 +269,7 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
       if (roleValue && ALL_ROLES.includes(roleValue as UserRoleType) && !role) {
         role = roleValue as UserRoleType;
       } else if (roleValue && !ALL_ROLES.includes(roleValue as UserRoleType)) {
-        logger.warn('Invalid role in x-user header', { role: roleValue });
+        logger.warn("Invalid role in x-user header", { role: roleValue });
       }
       if (!realOrgId && (parsed.realOrgId || tenantValue)) {
         realOrgId = parsed.realOrgId || tenantValue;
@@ -262,83 +280,96 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
       if (parsed.isSuperAdmin) {
         sessionIsSuperAdmin = true;
       }
-      if (!email && typeof parsed.email === 'string') {
+      if (!email && typeof parsed.email === "string") {
         email = parsed.email;
       }
-      if (!name && typeof parsed.name === 'string') {
+      if (!name && typeof parsed.name === "string") {
         name = parsed.name;
       }
-      if (subscriptionPlan === undefined && typeof parsed.subscriptionPlan === 'string') {
+      if (
+        subscriptionPlan === undefined &&
+        typeof parsed.subscriptionPlan === "string"
+      ) {
         subscriptionPlan = parsed.subscriptionPlan;
       }
     } catch (e) {
-      logger.error('Failed to parse x-user header', { error: e });
+      logger.error("Failed to parse x-user header", { error: e });
     }
   }
-  
+
   // Legacy: Check for old fixzit_auth cookie or Authorization header
   if (!userId) {
-    const cookieToken = req.cookies.get('fixzit_auth')?.value;
-    const headerToken = req.headers.get('Authorization')?.replace('Bearer ', '');
+    const cookieToken = req.cookies.get("fixzit_auth")?.value;
+    const headerToken = req.headers
+      .get("Authorization")
+      ?.replace("Bearer ", "");
     const token = cookieToken || headerToken;
-    
+
     if (token) {
       try {
         const payload = await verifyToken(token);
-        
+
         if (payload?.id) {
           const tenantValue = payload.orgId || payload.tenantId;
-          
+
           // Validate role before casting
           const roleValue = payload.role;
-          
-          if (!roleValue || !ALL_ROLES.includes(String(roleValue) as UserRoleType)) {
-            logger.warn('Invalid role in legacy token', { role: roleValue, userId: payload.id });
-            throw new Error('Invalid role in token');
+
+          if (
+            !roleValue ||
+            !ALL_ROLES.includes(String(roleValue) as UserRoleType)
+          ) {
+            logger.warn("Invalid role in legacy token", {
+              role: roleValue,
+              userId: payload.id,
+            });
+            throw new Error("Invalid role in token");
           }
-          
+
           if (tenantValue) {
             userId = payload.id;
             orgId = tenantValue;
             role = roleValue as UserRoleType;
           }
-          if (!email && typeof payload.email === 'string') {
+          if (!email && typeof payload.email === "string") {
             email = payload.email;
           }
-          if (!name && typeof payload.name === 'string') {
+          if (!name && typeof payload.name === "string") {
             name = payload.name;
           }
-          const payloadWithPlan = payload as { subscriptionPlan?: string | null };
+          const payloadWithPlan = payload as {
+            subscriptionPlan?: string | null;
+          };
           if (
             subscriptionPlan === undefined &&
-            typeof payloadWithPlan.subscriptionPlan === 'string'
+            typeof payloadWithPlan.subscriptionPlan === "string"
           ) {
             subscriptionPlan = payloadWithPlan.subscriptionPlan;
           }
         }
       } catch (error) {
-        logger.error('Legacy token verification failed', { error });
+        logger.error("Legacy token verification failed", { error });
         // Continue to unauthenticated response
       }
     }
   }
-  
+
   // If no auth found, throw error
   if (!userId || !orgId || !role) {
-    throw new UnauthorizedError('Unauthenticated');
+    throw new UnauthorizedError("Unauthenticated");
   }
-  
+
   const rbacOrgId = realOrgId || orgId;
   const effectiveRealOrgId = realOrgId ?? orgId;
-  
+
   // Load RBAC data from database
   const rbacData = await loadRBACData(userId, rbacOrgId);
   const isSuperAdmin = rbacData.isSuperAdmin || sessionIsSuperAdmin;
-  const permissions = isSuperAdmin ? ['*'] : rbacData.permissions;
+  const permissions = isSuperAdmin ? ["*"] : rbacData.permissions;
   const roles = isSuperAdmin
-    ? Array.from(new Set([...(rbacData.roles || []), 'super_admin']))
+    ? Array.from(new Set([...(rbacData.roles || []), "super_admin"]))
     : rbacData.roles;
-  
+
   return {
     id: userId,
     role: role,
@@ -369,11 +400,15 @@ export function requireAbility(ability: WorkOrderAbility) {
       if (error instanceof UnauthorizedError) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       if (errorMessage === "Invalid or expired token") {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      return NextResponse.json({ error: "Authentication error" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Authentication error" },
+        { status: 500 },
+      );
     }
   };
 }

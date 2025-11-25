@@ -19,11 +19,17 @@ async function checkPasswords() {
   
   try {
     await db;
-    const users = await User.collection.find({ 
-      email: { $in: ['superadmin@fixzit.co', 'admin@fixzit.co'] } 
+    const userCollection = (User as {
+      collection: {
+        find: (filter: { email: { $in: string[] } }) => { toArray: () => Promise<Array<{ email?: string; password?: string }>> };
+      };
+    }).collection;
+
+    const users = await userCollection.find({
+      email: { $in: ['superadmin@fixzit.co', 'admin@fixzit.co'] }
     }).toArray();
     
-    users.forEach((user: { email?: string; password?: string }) => {
+    users.forEach((user) => {
       console.log(`\n${user.email}:`);
       console.log(`  password field exists: ${!!user.password}`);
       console.log(`  password is bcrypt hash: ${user.password?.startsWith('$2b$')}`);

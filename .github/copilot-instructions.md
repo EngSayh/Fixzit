@@ -1,6 +1,7 @@
 # Copilot Agent Instructions for Fixzit
 
 ## Core Rules
+
 - Always work in a new feature branch named `feat/<task>` or `fix/<issue>` or `agent/<timestamp>`
 - **NEVER push to `main` or `master` directly**
 - After changes compile and tests pass, open a PR with clear title and summary
@@ -8,6 +9,7 @@
 - All changes must go through Pull Request review
 
 ## Workflow
+
 1. Create branch: `git checkout -b feat/<task-name>`
 2. Make changes
 3. Verify: `pnpm typecheck && pnpm lint && pnpm test`
@@ -16,12 +18,14 @@
 6. Open PR: `gh pr create --fill --draft`
 
 ## Never Do
+
 - Direct commits to main/master
 - Force pushes to protected branches
 - Modify `.env*` files without explicit instruction
 - Change layout/TopBar/Sidebar without approval
 
 ## Auto-Approve Policy
+
 - This workspace has auto-approve enabled for agent actions
 - All terminal commands and file edits are pre-approved
 - Focus on delivering working code through PRs
@@ -31,42 +35,49 @@
 ## Comprehensive Execution Rules Framework
 
 ### A. Scope Completeness
+
 - **Complete all pending tasks** - Don't stop at partial implementation
 - **Find similar issues system-wide** - If you fix one bug, search for the same pattern elsewhere
 - **Work on ALL, no exceptions** - When asked to add features/translations/fixes, complete 100%
 - **No prioritization without permission** - Let user decide priority, don't create "Priority 1/2/3" lists
 
 ### B. Crash-Proofing
+
 - **Check memory before large operations** - Prevent VS Code error code 5 (out of memory)
 - **Use pagination for large datasets** - Don't load 1000+ records at once
 - **Implement graceful degradation** - Handle failures without crashing
 - **Add error boundaries** - Wrap components in ErrorBoundary for React
 
 ### C. Production-Only Standards
+
 - **No mockups or placeholders** - All code must be production-ready
 - **No TODOs or FIXMEs** - Complete implementation or don't commit
 - **Fix root causes, not symptoms** - Don't apply band-aids
 - **Real data, real integrations** - No fake data or mocked APIs (unless specifically for testing)
 
 ### D. File Organization & Hygiene
+
 - **Organize by domain** - Group related files (e.g., `/finance/*`, `/hr/*`)
 - **Eliminate duplicates** - Search for similar code before creating new files
 - **Follow naming conventions** - Use established patterns (e.g., `kebab-case` for files)
 - **Clean up after yourself** - Remove dead code, unused imports, deprecated files
 
 ### E. Issue Discovery & Registration
+
 - **Search entire repo** - Use grep, semantic search to find similar issues
 - **Catalog in Issues Register** - Document all issues found (`ISSUES_REGISTER.md`)
 - **Categorize by type** - Security, Correctness, Reliability, Performance, UX, i18n, Data, API, Build, Tests, Docs
 - **Assign severity** - 🟥 Critical, 🟧 Major, 🟨 Moderate, 🟩 Minor
 
 ### F. Pattern Generalization
+
 - **Fix everywhere, not just one place** - If issue exists in multiple files, fix all
 - **Create reusable utilities** - Extract common patterns into shared functions
 - **Document patterns** - Add comments explaining why code is structured a certain way
 - **Establish conventions** - Create templates for common tasks (e.g., translation keys: `module.category.key`)
 
 ### G. Verification Gates (ALWAYS RUN)
+
 - **Build/Compile**: `pnpm build` or `pnpm typecheck` - Must pass with 0 errors
 - **Linting**: `pnpm lint` - Must pass with 0 errors (warnings acceptable if documented)
 - **Type Checking**: `pnpm typecheck` - Must pass with 0 TypeScript errors
@@ -76,6 +87,7 @@
 - **Stability Check**: No crashes during normal operation
 
 ### H. Reporting Requirements
+
 - **Daily Report**: Create timestamped report in `docs/archived/DAILY_PROGRESS_REPORTS/`
   - What changed (with line numbers and file paths)
   - Why changes were made (root cause, user request)
@@ -88,6 +100,7 @@
 - **Similar Issues Resolved**: Document pattern fixes applied system-wide
 
 ### I. Final Delivery Standards
+
 - **One polished output** - Not multiple iterations or drafts
 - **Production-ready code** - Can be deployed immediately
 - **Complete documentation** - README, inline comments, API docs
@@ -99,11 +112,13 @@
 ## Translation System Guidelines
 
 ### Key Naming Conventions
+
 - **Use namespaced keys**: `module.category.key` (e.g., `finance.payment.bankName`)
 - **Avoid unnamespaced keys**: Don't use `"Bank Name"` directly as a key
 - **Consistent prefixes**: All keys in a module should start with same prefix (e.g., `finance.*`)
 
 ### Adding New Translations
+
 1. **Add to both EN and AR catalogs** - Maintain 100% parity
 2. **Professional translations** - No machine translation, culturally appropriate
 3. **Run audit before commit**: `node scripts/audit-translations.mjs`
@@ -111,12 +126,14 @@
 5. **Update artifacts**: Regenerate `translation-audit.json` and `translation-audit.csv`
 
 ### Translation Audit
+
 - **Run audit script**: `node scripts/audit-translations.mjs`
 - **Check for gaps**: Ensure "Catalog Parity: ✅ OK" and "Code Coverage: ✅ All used keys present"
 - **Review dynamic keys**: Template literals `t(\`${expr}\`)` flagged as UNSAFE_DYNAMIC need manual review
 - **Generate reports**: JSON/CSV artifacts for analysis
 
 ### Pre-commit Hook (Required)
+
 ```bash
 # .husky/pre-commit or .git/hooks/pre-commit
 # Shell script to validate translations before commit
@@ -132,22 +149,26 @@ fi
 ## Module-Specific Rules
 
 ### Finance Module
+
 - **All monetary values** - Use `Decimal` type, not `number`
 - **Currency handling** - Always include currency code (e.g., `{ amount: 100, currency: 'OMR' }`)
 - **Audit trail** - Log all financial transactions with timestamp, user, amount
 - **Double-entry accounting** - Every transaction must have balancing debit/credit entries
 
 ### HR Module
+
 - **PII protection** - Encrypt sensitive employee data
 - **Role-based access** - Verify permissions before showing employee details
 - **Audit logging** - Track all HR actions (hire, terminate, salary change)
 
 ### Property Management (Aqar)
+
 - **Location data** - Always include coordinates for properties
 - **Unit hierarchy** - Maintain parent-child relationships (Property > Building > Floor > Unit)
 - **Occupancy tracking** - Keep accurate vacancy/occupancy status
 
 ### Work Orders
+
 - **SLA tracking** - Calculate and update SLA status on every status change
 - **Priority inheritance** - Critical properties get critical work orders by default
 - **Auto-assignment** - Assign to vendor based on category and availability
@@ -157,18 +178,21 @@ fi
 ## Code Quality Standards
 
 ### TypeScript
+
 - **Strict mode enabled** - No implicit any, proper types for all variables
 - **Interface over type** - Use `interface` for object shapes, `type` for unions/intersections
 - **Avoid `any`** - Use `unknown` or proper types
 - **Null safety** - Use optional chaining (`?.`) and nullish coalescing (`??`)
 
 ### React
+
 - **Functional components only** - No class components
 - **Hooks for state** - Use `useState`, `useEffect`, custom hooks
 - **Error boundaries** - Wrap route components in ErrorBoundary
 - **Accessibility** - Add ARIA labels, keyboard navigation, screen reader support
 
 ### Performance
+
 - **Lazy loading** - Use `React.lazy()` and `Suspense` for large components
 - **Memoization** - Use `useMemo`, `useCallback` for expensive operations
 - **Pagination** - Never fetch all records, implement cursor/offset pagination
@@ -179,16 +203,19 @@ fi
 ## Security Rules
 
 ### Authentication
+
 - **Never expose tokens** - Don't log tokens, don't commit tokens
 - **HTTP-only cookies** - Store session tokens in secure, HTTP-only cookies
 - **CSRF protection** - Use CSRF tokens for state-changing operations
 
 ### Authorization
+
 - **Check permissions server-side** - Never trust client-side role checks
 - **Principle of least privilege** - Grant minimum permissions needed
 - **Role hierarchy** - SUPER_ADMIN > ADMIN > MANAGER > USER
 
 ### Data Protection
+
 - **Encrypt PII** - Encrypt employee SSN, salary, bank accounts
 - **Sanitize inputs** - Validate and sanitize all user inputs
 - **Rate limiting** - Prevent brute force attacks with rate limits
@@ -208,6 +235,7 @@ fi
 **Types**: feat, fix, docs, chore, refactor, test, perf, ci, build, revert
 
 **Examples**:
+
 ```
 feat(i18n): Add complete translation coverage for finance module
 
@@ -235,17 +263,20 @@ Resolves ISSUE-SEC-003
 ## CI/CD Integration
 
 ### Pre-commit Checks
+
 - Translation audit (must pass)
 - ESLint (0 errors)
 - TypeScript typecheck (0 errors)
 - Prettier formatting
 
 ### Pre-push Checks
+
 - All unit tests pass
 - Build succeeds
 - No console.log statements (except in designated error handling)
 
 ### PR Checks
+
 - All tests pass (unit + E2E)
 - Code coverage >80%
 - No critical/major issues in security scan
@@ -256,12 +287,14 @@ Resolves ISSUE-SEC-003
 ## Emergency Procedures
 
 ### Production Incident
+
 1. **Rollback immediately** - `git revert` or redeploy previous version
 2. **Create incident report** - Document what happened, when, impact
 3. **Fix forward** - Create hotfix branch, apply fix, fast-track PR
 4. **Post-mortem** - Document root cause, prevention measures
 
 ### Data Loss Prevention
+
 - **Never run DELETE queries without WHERE clause**
 - **Always backup before migrations**
 - **Test migrations on staging first**

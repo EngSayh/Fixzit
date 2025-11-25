@@ -59,9 +59,7 @@ const makeRequest = (params: Record<string, string | number | undefined> = {}) =
 };
 
 // Helper to extract JSON from NextResponse
-// 🔒 TYPE SAFETY: Test helper uses any for flexibility in test assertions
- 
-const readJson = async (res: any) => {
+const readJson = async (res: { json: () => Promise<unknown> }) => {
   // next/server NextResponse.json returns a NextResponse-like object with a json() method
   // In Jest environment, the body can be read via res.json()
   return await res.json();
@@ -333,4 +331,3 @@ describe('GET /api/public/rfqs', () => {
     expect(json.error).toBe('Internal server error');
   });
 });
-

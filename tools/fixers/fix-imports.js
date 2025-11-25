@@ -8,14 +8,14 @@ const filePath = "./app/api/invoices/route.ts";
 if (fs.existsSync(filePath)) {
   let content = fs.readFileSync(filePath, "utf8");
   let modified = false;
-  
+
   // Fix the main problematic imports
   const fixes = [
     ["@/lib/mongo", "@/lib/mongo"],
     ["@/server/", "@/server/"],
-    ["@/lib/zatca", "@/lib/zatca"]
+    ["@/lib/zatca", "@/lib/zatca"],
   ];
-  
+
   fixes.forEach(([oldPath, newPath]) => {
     if (content.includes(oldPath)) {
       content = content.replace(new RegExp(oldPath, "g"), newPath);
@@ -23,7 +23,7 @@ if (fs.existsSync(filePath)) {
       console.log(`✅ Fixed ${oldPath} → ${newPath}`);
     }
   });
-  
+
   if (modified) {
     fs.writeFileSync(filePath, content, "utf8");
     console.log("✅ File updated successfully!");
@@ -33,4 +33,3 @@ if (fs.existsSync(filePath)) {
 } else {
   console.log("File not found for testing");
 }
-

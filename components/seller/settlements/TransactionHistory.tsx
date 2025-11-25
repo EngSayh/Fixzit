@@ -1,22 +1,22 @@
 /**
  * Transaction History Component
- * 
+ *
  * Displays seller's transaction history with filters and pagination.
  */
 
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { logger } from '@/lib/logger';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { 
-  ArrowUpCircle, 
-  ArrowDownCircle, 
+import React, { useState } from "react";
+import { logger } from "@/lib/logger";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  ArrowUpCircle,
+  ArrowDownCircle,
   Filter,
   Download,
-  Calendar
-} from 'lucide-react';
+  Calendar,
+} from "lucide-react";
 
 interface Transaction {
   transactionId: string;
@@ -34,25 +34,25 @@ interface TransactionHistoryProps {
 }
 
 const TRANSACTION_TYPES = [
-  { value: 'all', label: 'الكل (All)' },
-  { value: 'sale', label: 'مبيعات (Sales)' },
-  { value: 'refund', label: 'استرداد (Refunds)' },
-  { value: 'commission', label: 'عمولة (Commission)' },
-  { value: 'gateway_fee', label: 'رسوم الدفع (Gateway Fees)' },
-  { value: 'vat', label: 'ضريبة القيمة المضافة (VAT)' },
-  { value: 'reserve_hold', label: 'حجز (Reserve Hold)' },
-  { value: 'reserve_release', label: 'إطلاق الحجز (Reserve Release)' },
-  { value: 'withdrawal', label: 'سحب (Withdrawal)' },
-  { value: 'adjustment', label: 'تعديل (Adjustment)' },
+  { value: "all", label: "الكل (All)" },
+  { value: "sale", label: "مبيعات (Sales)" },
+  { value: "refund", label: "استرداد (Refunds)" },
+  { value: "commission", label: "عمولة (Commission)" },
+  { value: "gateway_fee", label: "رسوم الدفع (Gateway Fees)" },
+  { value: "vat", label: "ضريبة القيمة المضافة (VAT)" },
+  { value: "reserve_hold", label: "حجز (Reserve Hold)" },
+  { value: "reserve_release", label: "إطلاق الحجز (Reserve Release)" },
+  { value: "withdrawal", label: "سحب (Withdrawal)" },
+  { value: "adjustment", label: "تعديل (Adjustment)" },
 ];
 
 export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
-    type: 'all',
-    startDate: '',
-    endDate: '',
+    type: "all",
+    startDate: "",
+    endDate: "",
     page: 1,
     limit: 50,
   });
@@ -71,17 +71,19 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
         limit: filters.limit.toString(),
       });
 
-      if (filters.type !== 'all') {
-        params.append('type', filters.type);
+      if (filters.type !== "all") {
+        params.append("type", filters.type);
       }
       if (filters.startDate) {
-        params.append('startDate', filters.startDate);
+        params.append("startDate", filters.startDate);
       }
       if (filters.endDate) {
-        params.append('endDate', filters.endDate);
+        params.append("endDate", filters.endDate);
       }
 
-      const response = await fetch(`/api/souq/settlements/transactions?${params}`);
+      const response = await fetch(
+        `/api/souq/settlements/transactions?${params}`,
+      );
       const data = await response.json();
 
       if (response.ok) {
@@ -89,7 +91,7 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
         setPagination(data.pagination);
       }
     } catch (error) {
-      logger.error('Error fetching transactions', error);
+      logger.error("Error fetching transactions", error);
     } finally {
       setLoading(false);
     }
@@ -100,17 +102,17 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
   }, [filters]);
 
   const formatCurrency = (amount: number) => {
-    const sign = amount >= 0 ? '+' : '';
-    return `${sign}${amount.toLocaleString('ar-SA')} ر.س`;
+    const sign = amount >= 0 ? "+" : "";
+    return `${sign}${amount.toLocaleString("ar-SA")} ر.س`;
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('ar-SA', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Intl.DateTimeFormat("ar-SA", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     }).format(new Date(date));
   };
 
@@ -128,48 +130,55 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
 
   const exportToCSV = async () => {
     try {
-      const { exportToCSV: doExport } = await import('@/lib/export-utils');
-      
+      const { exportToCSV: doExport } = await import("@/lib/export-utils");
+
       // Filter transactions based on current filters
       let filtered = transactions;
-      if (filters.type !== 'all') {
+      if (filters.type !== "all") {
         filtered = filtered.filter((t) => t.type === filters.type);
       }
       if (filters.startDate) {
         const start = new Date(filters.startDate).getTime();
-        filtered = filtered.filter((t) => new Date(t.createdAt).getTime() >= start);
+        filtered = filtered.filter(
+          (t) => new Date(t.createdAt).getTime() >= start,
+        );
       }
       if (filters.endDate) {
         const end = new Date(filters.endDate).getTime();
-        filtered = filtered.filter((t) => new Date(t.createdAt).getTime() <= end);
+        filtered = filtered.filter(
+          (t) => new Date(t.createdAt).getTime() <= end,
+        );
       }
-      
+
       // Prepare export data
       const exportData = filtered.map((txn) => ({
         date: new Date(txn.createdAt).toLocaleDateString(),
         type: getTypeLabel(txn.type),
         description: txn.description,
-        amount: `${txn.amount >= 0 ? '+' : ''}${txn.amount.toFixed(2)} SAR`,
-        orderId: txn.orderId || 'N/A',
+        amount: `${txn.amount >= 0 ? "+" : ""}${txn.amount.toFixed(2)} SAR`,
+        orderId: txn.orderId || "N/A",
         balanceBefore: txn.balanceBefore.toFixed(2),
         balanceAfter: txn.balanceAfter.toFixed(2),
       }));
-      
-      const filename = `transactions-${new Date().toISOString().split('T')[0]}.csv`;
+
+      const filename = `transactions-${new Date().toISOString().split("T")[0]}.csv`;
       doExport(exportData, filename, [
-        { key: 'date', label: 'Date' },
-        { key: 'type', label: 'Type' },
-        { key: 'description', label: 'Description' },
-        { key: 'amount', label: 'Amount' },
-        { key: 'orderId', label: 'Order ID' },
-        { key: 'balanceBefore', label: 'Balance Before' },
-        { key: 'balanceAfter', label: 'Balance After' },
+        { key: "date", label: "Date" },
+        { key: "type", label: "Type" },
+        { key: "description", label: "Description" },
+        { key: "amount", label: "Amount" },
+        { key: "orderId", label: "Order ID" },
+        { key: "balanceBefore", label: "Balance Before" },
+        { key: "balanceAfter", label: "Balance After" },
       ]);
-      
-      logger.info('Transactions exported to CSV', { count: exportData.length, filename });
+
+      logger.info("Transactions exported to CSV", {
+        count: exportData.length,
+        filename,
+      });
     } catch (error) {
-      logger.error('Failed to export transactions', { error });
-      alert('Failed to export data. Please try again.');
+      logger.error("Failed to export transactions", { error });
+      alert("Failed to export data. Please try again.");
     }
   };
 
@@ -194,7 +203,9 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
           </label>
           <select
             value={filters.type}
-            onChange={(e) => setFilters({ ...filters, type: e.target.value, page: 1 })}
+            onChange={(e) =>
+              setFilters({ ...filters, type: e.target.value, page: 1 })
+            }
             className="w-full border rounded-lg px-3 py-2"
           >
             {TRANSACTION_TYPES.map((type) => (
@@ -212,7 +223,9 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
           <input
             type="date"
             value={filters.startDate}
-            onChange={(e) => setFilters({ ...filters, startDate: e.target.value, page: 1 })}
+            onChange={(e) =>
+              setFilters({ ...filters, startDate: e.target.value, page: 1 })
+            }
             className="w-full border rounded-lg px-3 py-2"
           />
         </div>
@@ -224,14 +237,24 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
           <input
             type="date"
             value={filters.endDate}
-            onChange={(e) => setFilters({ ...filters, endDate: e.target.value, page: 1 })}
+            onChange={(e) =>
+              setFilters({ ...filters, endDate: e.target.value, page: 1 })
+            }
             className="w-full border rounded-lg px-3 py-2"
           />
         </div>
 
         <div className="flex items-end">
           <Button
-            onClick={() => setFilters({ type: 'all', startDate: '', endDate: '', page: 1, limit: 50 })}
+            onClick={() =>
+              setFilters({
+                type: "all",
+                startDate: "",
+                endDate: "",
+                page: 1,
+                limit: 50,
+              })
+            }
             variant="outline"
             className="w-full"
           >
@@ -249,7 +272,9 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
       ) : transactions.length === 0 ? (
         <div className="text-center py-12">
           <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">لا توجد معاملات (No transactions found)</p>
+          <p className="text-gray-500">
+            لا توجد معاملات (No transactions found)
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -262,20 +287,26 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
                 {getTransactionIcon(txn.type, txn.amount)}
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{getTypeLabel(txn.type)}</span>
+                    <span className="font-medium">
+                      {getTypeLabel(txn.type)}
+                    </span>
                     {txn.orderId && (
-                      <span className="text-xs text-gray-500">#{txn.orderId}</span>
+                      <span className="text-xs text-gray-500">
+                        #{txn.orderId}
+                      </span>
                     )}
                   </div>
                   <p className="text-sm text-gray-600">{txn.description}</p>
-                  <p className="text-xs text-gray-400">{formatDate(txn.createdAt)}</p>
+                  <p className="text-xs text-gray-400">
+                    {formatDate(txn.createdAt)}
+                  </p>
                 </div>
               </div>
 
               <div className="text-end">
                 <p
                   className={`text-lg font-bold ${
-                    txn.amount >= 0 ? 'text-green-600' : 'text-red-600'
+                    txn.amount >= 0 ? "text-green-600" : "text-red-600"
                   }`}
                 >
                   {formatCurrency(txn.amount)}
@@ -301,7 +332,8 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
             السابق (Previous)
           </Button>
           <span className="text-sm text-gray-600">
-            صفحة {pagination.page} من {pagination.pages} (Page {pagination.page} of {pagination.pages})
+            صفحة {pagination.page} من {pagination.pages} (Page {pagination.page}{" "}
+            of {pagination.pages})
           </span>
           <Button
             onClick={() => setFilters({ ...filters, page: filters.page + 1 })}

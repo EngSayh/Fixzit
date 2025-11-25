@@ -1,4 +1,5 @@
 # FM Module Org Guard Coverage Report
+
 **Generated:** November 18, 2025  
 **Purpose:** Track org guard implementation across all FM pages  
 **Priority:** P0 - Security Critical
@@ -17,6 +18,7 @@
 ## ✅ Pages WITH Org Guards (User Added)
 
 ### Finance Module
+
 ```
 ✅ app/fm/finance/payments/page.tsx
 ✅ app/fm/finance/invoices/page.tsx
@@ -25,6 +27,7 @@
 ```
 
 ### Properties Module
+
 ```
 ✅ app/fm/properties/page.tsx
 ✅ app/fm/properties/[id]/page.tsx
@@ -33,24 +36,28 @@
 ```
 
 ### System Module
+
 ```
 ✅ app/fm/system/integrations/page.tsx
 ✅ app/fm/system/*/page.tsx (multiple)
 ```
 
 ### Support Module
+
 ```
 ✅ app/fm/support/tickets/page.tsx
 ✅ app/fm/support/tickets/new/page.tsx
 ```
 
 ### Marketplace Module (Partial)
+
 ```
 ✅ app/fm/marketplace/listings/page.tsx
 ✅ app/fm/marketplace/orders/page.tsx
 ```
 
 ### HR Module
+
 ```
 ✅ app/fm/hr/directory/page.tsx
 ```
@@ -60,6 +67,7 @@
 ## ❌ Pages MISSING Org Guards (Require Implementation)
 
 ### Work Orders Module (6 pages) - CRITICAL
+
 **ModuleId to use:** `'work_orders'`
 
 ```
@@ -72,16 +80,17 @@
 ```
 
 **Implementation Pattern:**
+
 ```typescript
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
 
 export default function WorkOrdersPage() {
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ 
-    moduleId: 'work_orders' 
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "work_orders",
   });
-  
+
   if (guard) return guard;
-  
+
   // Existing page code...
 }
 ```
@@ -89,6 +98,7 @@ export default function WorkOrdersPage() {
 ---
 
 ### Vendors Module (3 pages) - CRITICAL
+
 **ModuleId to use:** `'vendors'`
 
 ```
@@ -98,16 +108,17 @@ export default function WorkOrdersPage() {
 ```
 
 **Implementation Pattern:**
+
 ```typescript
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
 
 export default function VendorsPage() {
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ 
-    moduleId: 'vendors' 
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "vendors",
   });
-  
+
   if (guard) return guard;
-  
+
   // Existing page code...
 }
 ```
@@ -115,6 +126,7 @@ export default function VendorsPage() {
 ---
 
 ### Invoices Module (2 pages) - HIGH PRIORITY
+
 **ModuleId to use:** `'finance'` (invoices are part of finance)
 
 ```
@@ -123,16 +135,17 @@ export default function VendorsPage() {
 ```
 
 **Implementation Pattern:**
+
 ```typescript
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
 
 export default function InvoicesPage() {
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ 
-    moduleId: 'finance' 
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "finance",
   });
-  
+
   if (guard) return guard;
-  
+
   // Existing page code...
 }
 ```
@@ -140,6 +153,7 @@ export default function InvoicesPage() {
 ---
 
 ### CRM Module (3 pages) - HIGH PRIORITY
+
 **ModuleId to use:** `'crm'`
 
 ```
@@ -149,16 +163,17 @@ export default function InvoicesPage() {
 ```
 
 **Implementation Pattern:**
+
 ```typescript
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
 
 export default function CRMPage() {
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ 
-    moduleId: 'crm' 
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "crm",
   });
-  
+
   if (guard) return guard;
-  
+
   // Existing page code...
 }
 ```
@@ -166,6 +181,7 @@ export default function CRMPage() {
 ---
 
 ### Marketplace Module - Additional Pages (4 pages) - MEDIUM PRIORITY
+
 **ModuleId to use:** `'marketplace'`
 
 ```
@@ -178,16 +194,17 @@ export default function CRMPage() {
 **Note:** Some marketplace pages already have guards (listings, orders). These are the remaining ones.
 
 **Implementation Pattern:**
+
 ```typescript
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
 
 export default function MarketplacePage() {
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ 
-    moduleId: 'marketplace' 
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "marketplace",
   });
-  
+
   if (guard) return guard;
-  
+
   // Existing page code...
 }
 ```
@@ -195,6 +212,7 @@ export default function MarketplacePage() {
 ---
 
 ### Tenants Module (2 pages) - MEDIUM PRIORITY
+
 **ModuleId to use:** `'tenants'`
 
 ```
@@ -203,16 +221,17 @@ export default function MarketplacePage() {
 ```
 
 **Implementation Pattern:**
+
 ```typescript
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
 
 export default function TenantsPage() {
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ 
-    moduleId: 'tenants' 
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({
+    moduleId: "tenants",
   });
-  
+
   if (guard) return guard;
-  
+
   // Existing page code...
 }
 ```
@@ -222,6 +241,7 @@ export default function TenantsPage() {
 ### Single-Page Modules (3+ pages) - VARIOUS PRIORITIES
 
 #### Projects Page - HIGH PRIORITY
+
 **ModuleId to use:** `'administration'` (or add 'projects' to ModuleId if needed)
 
 ```
@@ -229,6 +249,7 @@ export default function TenantsPage() {
 ```
 
 #### RFQs Page - MEDIUM PRIORITY
+
 **ModuleId to use:** `'administration'` (or add 'rfqs' to ModuleId if needed)
 
 ```
@@ -236,6 +257,7 @@ export default function TenantsPage() {
 ```
 
 #### Admin Page - MEDIUM PRIORITY
+
 **ModuleId to use:** `'administration'`
 
 ```
@@ -243,6 +265,7 @@ export default function TenantsPage() {
 ```
 
 #### Compliance Page - MEDIUM PRIORITY
+
 **ModuleId to use:** `'compliance'`
 
 ```
@@ -250,6 +273,7 @@ export default function TenantsPage() {
 ```
 
 #### Dashboard Page - LOW PRIORITY (if applicable)
+
 **ModuleId to use:** `'dashboard'`
 
 ```
@@ -263,22 +287,23 @@ export default function TenantsPage() {
 **Location:** `config/navigation.ts` line 272
 
 **Current Definition (Confirmed):**
+
 ```typescript
 export type ModuleId =
-  | 'dashboard'
-  | 'work_orders'        // ✅ Available
-  | 'properties'         // ✅ Available
-  | 'tenants'            // ✅ Available
-  | 'finance'            // ✅ Available (use for invoices)
-  | 'hr'                 // ✅ Available
-  | 'administration'     // ✅ Available (use for admin/projects/rfqs)
-  | 'crm'                // ✅ Available
-  | 'marketplace'        // ✅ Available
-  | 'vendors'            // ✅ Available
-  | 'support'            // ✅ Available
-  | 'compliance'         // ✅ Available
-  | 'reports'            // ✅ Available
-  | 'system';            // ✅ Available
+  | "dashboard"
+  | "work_orders" // ✅ Available
+  | "properties" // ✅ Available
+  | "tenants" // ✅ Available
+  | "finance" // ✅ Available (use for invoices)
+  | "hr" // ✅ Available
+  | "administration" // ✅ Available (use for admin/projects/rfqs)
+  | "crm" // ✅ Available
+  | "marketplace" // ✅ Available
+  | "vendors" // ✅ Available
+  | "support" // ✅ Available
+  | "compliance" // ✅ Available
+  | "reports" // ✅ Available
+  | "system"; // ✅ Available
 ```
 
 **Good News:** All needed ModuleId values already exist! No type extensions required.
@@ -288,6 +313,7 @@ export type ModuleId =
 ## Implementation Priority Matrix
 
 ### Priority 0: CRITICAL (Security Risk)
+
 **Estimated Time:** 1.5 hours  
 **Pages:** 12 pages
 
@@ -300,6 +326,7 @@ export type ModuleId =
 ---
 
 ### Priority 1: HIGH (Important Data)
+
 **Estimated Time:** 30 min  
 **Pages:** 4 pages
 
@@ -312,6 +339,7 @@ export type ModuleId =
 ---
 
 ### Priority 2: MEDIUM (Less Sensitive)
+
 **Estimated Time:** 30 min  
 **Pages:** 5+ pages
 
@@ -327,24 +355,28 @@ export type ModuleId =
 ## Verification Commands
 
 ### Find All Missing Guards
+
 ```bash
-find app/fm -name "page.tsx" -type f | while read file; do 
+find app/fm -name "page.tsx" -type f | while read file; do
   grep -L "useFmOrgGuard\|useSupportOrg" "$file" && echo "$file"
 done
 ```
 
 ### Check Specific Module
+
 ```bash
 grep -r "useFmOrgGuard" app/fm/work-orders/
 # Should show imports and usage in all work-orders pages
 ```
 
 ### Verify ModuleId Type
+
 ```bash
 grep -A 15 "^export type ModuleId" config/navigation.ts
 ```
 
 ### Run Official Verification Script (if exists)
+
 ```bash
 ./scripts/check-org-guards.sh
 ```
@@ -356,12 +388,14 @@ grep -A 15 "^export type ModuleId" config/navigation.ts
 After implementing guards on each page, test:
 
 ### Automated Testing
+
 - [ ] Run TypeScript compilation: `pnpm exec tsc --noEmit`
 - [ ] No new errors introduced
 - [ ] Verify guard script: `./scripts/check-org-guards.sh`
 - [ ] Confirm 0 missing guards reported
 
 ### Manual Testing (Per Module)
+
 - [ ] Start dev server: `pnpm dev`
 - [ ] Login as superadmin@fixzit.com
 - [ ] Navigate to guarded page (e.g., `/fm/work-orders`)
@@ -380,16 +414,19 @@ After implementing guards on each page, test:
 ## Known Issues & Considerations
 
 ### Issue 1: Org Context Clearing
+
 **Description:** Need to verify clearing behavior works across all pages  
 **Test:** Clear org → navigate to guarded page → verify prompt appears  
 **Status:** Pending manual testing
 
 ### Issue 2: Non-Superadmin Users
+
 **Description:** Regular FM users should not see org switcher  
 **Test:** Login as non-superadmin → verify auto-assignment or "contact admin" message  
 **Status:** Pending manual testing
 
 ### Issue 3: API Request Headers
+
 **Description:** Verify `x-org-id` header sent with API calls  
 **Test:** DevTools Network tab → select org → make API call → check headers  
 **Status:** Pending manual testing
@@ -399,6 +436,7 @@ After implementing guards on each page, test:
 ## Implementation Workflow
 
 ### Step 1: Work Orders Module (45 min)
+
 1. Open `app/fm/work-orders/page.tsx`
 2. Add useFmOrgGuard import
 3. Add guard logic at component start
@@ -407,6 +445,7 @@ After implementing guards on each page, test:
 6. Verify: `grep -r "useFmOrgGuard" app/fm/work-orders/`
 
 ### Step 2: Vendors Module (20 min)
+
 1. Open `app/fm/vendors/page.tsx`
 2. Add useFmOrgGuard import
 3. Add guard logic at component start
@@ -415,6 +454,7 @@ After implementing guards on each page, test:
 6. Verify: `grep -r "useFmOrgGuard" app/fm/vendors/`
 
 ### Step 3: CRM Module (25 min)
+
 1. Open `app/fm/crm/page.tsx`
 2. Add useFmOrgGuard import
 3. Add guard logic at component start
@@ -423,14 +463,16 @@ After implementing guards on each page, test:
 6. Verify: `grep -r "useFmOrgGuard" app/fm/crm/`
 
 ### Step 4: Remaining Pages (1 hour)
+
 1. Follow same pattern for invoices, marketplace, tenants, projects, rfqs, admin, compliance
 2. Test each module after implementation
 3. Run full verification at end
 
 ### Step 5: Final Validation (15 min)
+
 ```bash
 # Check for missing guards:
-find app/fm -name "page.tsx" -type f | while read file; do 
+find app/fm -name "page.tsx" -type f | while read file; do
   grep -L "useFmOrgGuard\|useSupportOrg" "$file" && echo "$file"
 done
 
@@ -447,23 +489,27 @@ done
 ## Rollout Plan
 
 ### Phase 1: Critical Pages (Day 1 - 1.5 hours)
+
 - Work Orders (6 pages)
 - Vendors (3 pages)
 - CRM (3 pages)
 - **Coverage:** 12/20 pages (60% → 90%)
 
 ### Phase 2: High Priority Pages (Day 1 - 30 min)
+
 - Invoices (2 pages)
 - Projects (1 page)
 - Tenants (2 pages)
 - **Coverage:** 17/20 pages (85% → 95%)
 
 ### Phase 3: Remaining Pages (Day 2 - 30 min)
+
 - Marketplace additional (4 pages)
 - RFQs, Admin, Compliance (3 pages)
 - **Coverage:** 20/20 pages (100%)
 
 ### Phase 4: Testing & Validation (Day 2 - 1 hour)
+
 - Manual smoke tests
 - Verification scripts
 - Documentation updates
@@ -474,16 +520,19 @@ done
 ## Success Metrics
 
 ### Code Coverage
+
 - **Current:** 33% (10/30 pages)
 - **Target:** 100% (30/30 pages)
 - **Critical Path:** 90% (27/30 pages)
 
 ### Security Posture
+
 - **Current:** VULNERABLE (20 pages unprotected)
 - **After Phase 1:** IMPROVED (12 pages protected)
 - **After Phase 3:** SECURE (all pages protected)
 
 ### Deployment Readiness
+
 - **Current:** NOT READY (missing guards block deployment)
 - **After Implementation:** READY (with TypeScript fixes)
 

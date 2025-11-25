@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 const modulePath = '@/server/models/SearchSynonym';
+type LooseRecord = Record<string, string | number | boolean | symbol | object | null | undefined>;
 
 type MongooseMock = {
   __esModule?: boolean;
@@ -17,14 +18,14 @@ const hasSchema = (value: unknown): value is ModelWithSchema =>
 
 async function loadWithMocks(
   options: {
-    mongooseMock?: MongooseMock;
+    mongooseMock?: LooseRecord;
   } = {}
 ) {
   vi.resetModules();
   if (options.mongooseMock) {
-    const mocked = options.mongooseMock as Record<string, unknown>;
-    const value = { ...mocked };
-    (value as Record<string, unknown>).default = value;
+    const mocked = options.mongooseMock;
+    const value = { ...(mocked as LooseRecord) };
+    (value as LooseRecord).default = value;
     if (!value.__esModule) value.__esModule = true;
     vi.doMock('mongoose', () => value);
   }
@@ -70,9 +71,9 @@ describe('SearchSynonym model registration', () => {
     const indexSpy = vi.fn();
     const constructorSpy = vi.fn();
     class FakeSchema {
-      public definition: Record<string, unknown>;
-      public opts: Record<string, unknown>;
-      constructor(def: Record<string, unknown>, opts: Record<string, unknown>) {
+      public definition: LooseRecord;
+      public opts: LooseRecord;
+      constructor(def: LooseRecord, opts: LooseRecord) {
         constructorSpy(def, opts);
         this.definition = def;
         this.opts = opts;
@@ -108,8 +109,8 @@ describe('SearchSynonym schema defaults (real import)', () => {
     vi.unmock('mongoose');
     await vi.resetModules();
     const candidates = [modulePath, '../server/models/SearchSynonym', '@/server/models/SearchSynonym', 'server/models/SearchSynonym'];
-    let SearchSynonym: unknown;
-    let schemaExport: SchemaLike | undefined;
+    let SearchSynonym: { schema?: LooseRecord } | LooseRecord | null = null;
+    let schemaExport: LooseRecord | undefined;
     const attempts: string[] = [];
     for (const p of candidates) {
       try {

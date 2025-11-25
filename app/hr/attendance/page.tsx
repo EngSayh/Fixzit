@@ -1,15 +1,21 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { Loader2 } from 'lucide-react';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { Card, CardContent } from '@/components/ui/card';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import ClientDate from '@/components/ClientDate';
-import { logger } from '@/lib/logger';
-import { Button } from '@/components/ui/button';
-import { buildAttendanceCsv } from '@/lib/hr/attendance-export';
+import { useEffect, useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import ClientDate from "@/components/ClientDate";
+import { logger } from "@/lib/logger";
+import { Button } from "@/components/ui/button";
+import { buildAttendanceCsv } from "@/lib/hr/attendance-export";
 
 interface EmployeeOption {
   _id: string;
@@ -29,7 +35,7 @@ interface EmployeesResponse {
   employees?: EmployeeApiItem[];
 }
 
-type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'ON_LEAVE' | 'OFF';
+type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "ON_LEAVE" | "OFF";
 
 interface AttendanceEntry {
   _id: string;
@@ -38,17 +44,21 @@ interface AttendanceEntry {
   clockIn?: string;
   clockOut?: string;
   overtimeMinutes?: number;
-  source?: 'MANUAL' | 'IMPORT' | 'BIOMETRIC';
+  source?: "MANUAL" | "IMPORT" | "BIOMETRIC";
   notes?: string;
 }
 
 export default function AttendancePage() {
   const { t } = useTranslation();
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("");
   const [entries, setEntries] = useState<AttendanceEntry[]>([]);
-  const [statusFilter, setStatusFilter] = useState<AttendanceStatus | 'ALL'>('ALL');
-  const [sourceFilter, setSourceFilter] = useState<'ALL' | 'MANUAL' | 'IMPORT' | 'BIOMETRIC'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<AttendanceStatus | "ALL">(
+    "ALL",
+  );
+  const [sourceFilter, setSourceFilter] = useState<
+    "ALL" | "MANUAL" | "IMPORT" | "BIOMETRIC"
+  >("ALL");
   const [dateRange, setDateRange] = useState(() => {
     const end = new Date();
     const start = new Date();
@@ -73,14 +83,14 @@ export default function AttendancePage() {
 
   const loadEmployees = async () => {
     try {
-      const response = await fetch('/api/hr/employees?limit=200');
+      const response = await fetch("/api/hr/employees?limit=200");
       if (response.ok) {
         const data: EmployeesResponse = await response.json();
         const mapped = (data.employees || []).map((employee) => ({
           _id: employee._id,
-          employeeCode: employee.employeeCode ?? '',
-          firstName: employee.firstName ?? '',
-          lastName: employee.lastName ?? '',
+          employeeCode: employee.employeeCode ?? "",
+          firstName: employee.firstName ?? "",
+          lastName: employee.lastName ?? "",
         }));
         setEmployees(mapped);
         if (mapped.length > 0) {
@@ -88,7 +98,7 @@ export default function AttendancePage() {
         }
       }
     } catch (error) {
-      logger.error('Error fetching employee options:', error);
+      logger.error("Error fetching employee options:", error);
     }
   };
 
@@ -107,20 +117,25 @@ export default function AttendancePage() {
         setEntries(data.entries || []);
       }
     } catch (error) {
-      logger.error('Error loading attendance entries:', error);
+      logger.error("Error loading attendance entries:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const selectedEmployeeObj = employees.find((emp) => emp._id === selectedEmployee);
+  const selectedEmployeeObj = employees.find(
+    (emp) => emp._id === selectedEmployee,
+  );
 
-  const attendanceStatusLabels: Record<AttendanceStatus, { key: string; fallback: string }> = {
-    PRESENT: { key: 'hr.attendance.status.present', fallback: 'Present' },
-    ABSENT: { key: 'hr.attendance.status.absent', fallback: 'Absent' },
-    LATE: { key: 'hr.attendance.status.late', fallback: 'Late' },
-    ON_LEAVE: { key: 'hr.attendance.status.on_leave', fallback: 'On Leave' },
-    OFF: { key: 'hr.attendance.status.off', fallback: 'Off' },
+  const attendanceStatusLabels: Record<
+    AttendanceStatus,
+    { key: string; fallback: string }
+  > = {
+    PRESENT: { key: "hr.attendance.status.present", fallback: "Present" },
+    ABSENT: { key: "hr.attendance.status.absent", fallback: "Absent" },
+    LATE: { key: "hr.attendance.status.late", fallback: "Late" },
+    ON_LEAVE: { key: "hr.attendance.status.on_leave", fallback: "On Leave" },
+    OFF: { key: "hr.attendance.status.off", fallback: "Off" },
   };
 
   const formatStatus = (status: AttendanceStatus) => {
@@ -130,31 +145,60 @@ export default function AttendancePage() {
 
   const filteredEntries = useMemo(() => {
     return entries.filter((entry) => {
-      const statusMatch = statusFilter === 'ALL' || entry.status === statusFilter;
-      const sourceMatch = sourceFilter === 'ALL' || entry.source === sourceFilter;
+      const statusMatch =
+        statusFilter === "ALL" || entry.status === statusFilter;
+      const sourceMatch =
+        sourceFilter === "ALL" || entry.source === sourceFilter;
       return statusMatch && sourceMatch;
     });
   }, [entries, sourceFilter, statusFilter]);
 
-  const statusOptions: { value: AttendanceStatus | 'ALL'; label: string }[] = [
-    { value: 'ALL', label: t('hr.attendance.filters.all', 'All statuses') },
-    { value: 'PRESENT', label: t('hr.attendance.status.present', 'Present') },
-    { value: 'ABSENT', label: t('hr.attendance.status.absent', 'Absent') },
-    { value: 'LATE', label: t('hr.attendance.status.late', 'Late') },
-    { value: 'ON_LEAVE', label: t('hr.attendance.status.on_leave', 'On Leave') },
-    { value: 'OFF', label: t('hr.attendance.status.off', 'Off') },
+  const statusOptions: { value: AttendanceStatus | "ALL"; label: string }[] = [
+    { value: "ALL", label: t("hr.attendance.filters.all", "All statuses") },
+    { value: "PRESENT", label: t("hr.attendance.status.present", "Present") },
+    { value: "ABSENT", label: t("hr.attendance.status.absent", "Absent") },
+    { value: "LATE", label: t("hr.attendance.status.late", "Late") },
+    {
+      value: "ON_LEAVE",
+      label: t("hr.attendance.status.on_leave", "On Leave"),
+    },
+    { value: "OFF", label: t("hr.attendance.status.off", "Off") },
   ];
 
-  const sourceOptions: { value: 'ALL' | 'MANUAL' | 'IMPORT' | 'BIOMETRIC'; label: string }[] = [
-    { value: 'ALL', label: t('hr.attendance.filters.sourceAll', 'All sources') },
-    { value: 'MANUAL', label: t('hr.attendance.filters.sourceManual', 'Manual') },
-    { value: 'IMPORT', label: t('hr.attendance.filters.sourceImport', 'Bulk import') },
-    { value: 'BIOMETRIC', label: t('hr.attendance.filters.sourceBiometric', 'Biometric device') },
+  const sourceOptions: {
+    value: "ALL" | "MANUAL" | "IMPORT" | "BIOMETRIC";
+    label: string;
+  }[] = [
+    {
+      value: "ALL",
+      label: t("hr.attendance.filters.sourceAll", "All sources"),
+    },
+    {
+      value: "MANUAL",
+      label: t("hr.attendance.filters.sourceManual", "Manual"),
+    },
+    {
+      value: "IMPORT",
+      label: t("hr.attendance.filters.sourceImport", "Bulk import"),
+    },
+    {
+      value: "BIOMETRIC",
+      label: t("hr.attendance.filters.sourceBiometric", "Biometric device"),
+    },
   ];
-  const attendanceSourceLabels: Record<'MANUAL' | 'IMPORT' | 'BIOMETRIC', { key: string; fallback: string }> = {
-    MANUAL: { key: 'hr.attendance.filters.sourceManual', fallback: 'Manual' },
-    IMPORT: { key: 'hr.attendance.filters.sourceImport', fallback: 'Bulk import' },
-    BIOMETRIC: { key: 'hr.attendance.filters.sourceBiometric', fallback: 'Biometric device' },
+  const attendanceSourceLabels: Record<
+    "MANUAL" | "IMPORT" | "BIOMETRIC",
+    { key: string; fallback: string }
+  > = {
+    MANUAL: { key: "hr.attendance.filters.sourceManual", fallback: "Manual" },
+    IMPORT: {
+      key: "hr.attendance.filters.sourceImport",
+      fallback: "Bulk import",
+    },
+    BIOMETRIC: {
+      key: "hr.attendance.filters.sourceBiometric",
+      fallback: "Biometric device",
+    },
   };
 
   const handleExportCsv = () => {
@@ -166,11 +210,11 @@ export default function AttendancePage() {
         dateFrom: dateRange.from,
         dateTo: dateRange.to,
       });
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `attendance-${selectedEmployeeObj?.employeeCode || 'employee'}-${dateRange.from}-${dateRange.to}.csv`;
+      link.download = `attendance-${selectedEmployeeObj?.employeeCode || "employee"}-${dateRange.from}-${dateRange.to}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -185,10 +229,13 @@ export default function AttendancePage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground">
-            {t('hr.attendance.title', 'Attendance & Time Tracking')}
+            {t("hr.attendance.title", "Attendance & Time Tracking")}
           </h2>
           <p className="text-muted-foreground mt-1">
-            {t('hr.attendance.subtitle', 'Review daily attendance and overtime records')}
+            {t(
+              "hr.attendance.subtitle",
+              "Review daily attendance and overtime records",
+            )}
           </p>
         </div>
         <Button
@@ -197,7 +244,7 @@ export default function AttendancePage() {
           onClick={handleExportCsv}
         >
           {exporting && <Loader2 className="h-4 w-4 animate-spin me-2" />}
-          {t('hr.attendance.actions.exportCsv', 'Export CSV')}
+          {t("hr.attendance.actions.exportCsv", "Export CSV")}
         </Button>
       </div>
 
@@ -205,20 +252,28 @@ export default function AttendancePage() {
         <CardContent className="p-4 flex flex-col gap-4 md:flex-row md:items-center">
           <div className="flex-1">
             <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-              {t('hr.attendance.selectEmployee', 'Select Employee')}
+              {t("hr.attendance.selectEmployee", "Select Employee")}
             </p>
-            <Select value={selectedEmployee} onValueChange={(value) => setSelectedEmployee(value)}>
+            <Select
+              value={selectedEmployee}
+              onValueChange={(value) => setSelectedEmployee(value)}
+            >
               <SelectTrigger>
                 <SelectValue>
-                  {selectedEmployee 
-                    ? employees.find(e => e._id === selectedEmployee)?.firstName + ' ' + employees.find(e => e._id === selectedEmployee)?.lastName
-                    : t('hr.attendance.selectPlaceholder', 'Choose employee')}
+                  {selectedEmployee
+                    ? employees.find((e) => e._id === selectedEmployee)
+                        ?.firstName +
+                      " " +
+                      employees.find((e) => e._id === selectedEmployee)
+                        ?.lastName
+                    : t("hr.attendance.selectPlaceholder", "Choose employee")}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {employees.map((employee) => (
                   <SelectItem key={employee._id} value={employee._id}>
-                    {employee.employeeCode} — {employee.firstName} {employee.lastName}
+                    {employee.employeeCode} — {employee.firstName}{" "}
+                    {employee.lastName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -227,32 +282,42 @@ export default function AttendancePage() {
           <div className="flex gap-4 flex-1 flex-wrap md:flex-nowrap">
             <div className="flex-1">
               <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                {t('hr.attendance.from', 'From')}
+                {t("hr.attendance.from", "From")}
               </p>
               <Input
                 type="date"
                 value={dateRange.from}
-                onChange={(e) => setDateRange((prev) => ({ ...prev, from: e.target.value }))}
+                onChange={(e) =>
+                  setDateRange((prev) => ({ ...prev, from: e.target.value }))
+                }
               />
             </div>
             <div className="flex-1">
               <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                {t('hr.attendance.to', 'To')}
+                {t("hr.attendance.to", "To")}
               </p>
               <Input
                 type="date"
                 value={dateRange.to}
-                onChange={(e) => setDateRange((prev) => ({ ...prev, to: e.target.value }))}
+                onChange={(e) =>
+                  setDateRange((prev) => ({ ...prev, to: e.target.value }))
+                }
               />
             </div>
             <div className="flex-1 min-w-[180px]">
               <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                {t('hr.attendance.filters.status', 'Status')}
+                {t("hr.attendance.filters.status", "Status")}
               </p>
-              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as AttendanceStatus | 'ALL')}>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) =>
+                  setStatusFilter(value as AttendanceStatus | "ALL")
+                }
+              >
                 <SelectTrigger>
                   <SelectValue>
-                    {statusOptions.find(o => o.value === statusFilter)?.label || t('hr.attendance.filters.status', 'Status')}
+                    {statusOptions.find((o) => o.value === statusFilter)
+                      ?.label || t("hr.attendance.filters.status", "Status")}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -266,12 +331,20 @@ export default function AttendancePage() {
             </div>
             <div className="flex-1 min-w-[180px]">
               <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                {t('hr.attendance.filters.source', 'Source')}
+                {t("hr.attendance.filters.source", "Source")}
               </p>
-              <Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as 'ALL' | 'MANUAL' | 'IMPORT' | 'BIOMETRIC')}>
+              <Select
+                value={sourceFilter}
+                onValueChange={(value) =>
+                  setSourceFilter(
+                    value as "ALL" | "MANUAL" | "IMPORT" | "BIOMETRIC",
+                  )
+                }
+              >
                 <SelectTrigger>
                   <SelectValue>
-                    {sourceOptions.find(o => o.value === sourceFilter)?.label || t('hr.attendance.filters.source', 'Source')}
+                    {sourceOptions.find((o) => o.value === sourceFilter)
+                      ?.label || t("hr.attendance.filters.source", "Source")}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -293,26 +366,49 @@ export default function AttendancePage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="px-4 py-3 text-start">{t('hr.attendance.table.date', 'Date')}</th>
-                  <th className="px-4 py-3 text-start">{t('hr.attendance.table.status', 'Status')}</th>
-                  <th className="px-4 py-3 text-start">{t('hr.attendance.table.clockIn', 'Clock-in')}</th>
-                  <th className="px-4 py-3 text-start">{t('hr.attendance.table.clockOut', 'Clock-out')}</th>
-                  <th className="px-4 py-3 text-start">{t('hr.attendance.table.overtime', 'Overtime')}</th>
-                  <th className="px-4 py-3 text-start">{t('hr.attendance.table.source', 'Source')}</th>
-                  <th className="px-4 py-3 text-start">{t('hr.attendance.table.notes', 'Notes')}</th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.attendance.table.date", "Date")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.attendance.table.status", "Status")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.attendance.table.clockIn", "Clock-in")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.attendance.table.clockOut", "Clock-out")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.attendance.table.overtime", "Overtime")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.attendance.table.source", "Source")}
+                  </th>
+                  <th className="px-4 py-3 text-start">
+                    {t("hr.attendance.table.notes", "Notes")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="py-6 text-center text-muted-foreground">
-                      {t('common.loading', 'Loading...')}
+                    <td
+                      colSpan={7}
+                      className="py-6 text-center text-muted-foreground"
+                    >
+                      {t("common.loading", "Loading...")}
                     </td>
                   </tr>
                 ) : filteredEntries.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-6 text-center text-muted-foreground">
-                      {t('hr.attendance.empty', 'No attendance records for this range')}
+                    <td
+                      colSpan={7}
+                      className="py-6 text-center text-muted-foreground"
+                    >
+                      {t(
+                        "hr.attendance.empty",
+                        "No attendance records for this range",
+                      )}
                     </td>
                   </tr>
                 ) : (
@@ -321,26 +417,43 @@ export default function AttendancePage() {
                       <td className="px-4 py-3 font-medium">
                         <ClientDate date={entry.date} format="date-only" />
                       </td>
-                      <td className="px-4 py-3 capitalize">{formatStatus(entry.status)}</td>
-                      <td className="px-4 py-3">
-                        {entry.clockIn ? <ClientDate date={entry.clockIn} format="time-only" /> : '—'}
+                      <td className="px-4 py-3 capitalize">
+                        {formatStatus(entry.status)}
                       </td>
                       <td className="px-4 py-3">
-                        {entry.clockOut ? <ClientDate date={entry.clockOut} format="time-only" /> : '—'}
+                        {entry.clockIn ? (
+                          <ClientDate date={entry.clockIn} format="time-only" />
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td className="px-4 py-3">
-                        {entry.overtimeMinutes ? `${entry.overtimeMinutes} ${t('hr.attendance.minutes', 'min')}` : '—'}
+                        {entry.clockOut ? (
+                          <ClientDate
+                            date={entry.clockOut}
+                            format="time-only"
+                          />
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {entry.overtimeMinutes
+                          ? `${entry.overtimeMinutes} ${t("hr.attendance.minutes", "min")}`
+                          : "—"}
                       </td>
                       <td className="px-4 py-3">
                         {entry.source
                           ? t(
-                              attendanceSourceLabels[entry.source]?.key ?? 'hr.attendance.filters.sourceAll',
-                              attendanceSourceLabels[entry.source]?.fallback ?? entry.source.toLowerCase()
+                              attendanceSourceLabels[entry.source]?.key ??
+                                "hr.attendance.filters.sourceAll",
+                              attendanceSourceLabels[entry.source]?.fallback ??
+                                entry.source.toLowerCase(),
                             )
-                          : '—'}
+                          : "—"}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {entry.notes?.trim() || '—'}
+                        {entry.notes?.trim() || "—"}
                       </td>
                     </tr>
                   ))

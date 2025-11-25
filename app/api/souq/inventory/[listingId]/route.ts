@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { inventoryService } from '@/services/souq/inventory-service';
-import { auth } from '@/auth';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { inventoryService } from "@/services/souq/inventory-service";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/souq/inventory/[listingId]
@@ -9,38 +9,46 @@ import { logger } from '@/lib/logger';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { listingId: string } }
+  { params }: { params: { listingId: string } },
 ) {
   try {
     const session = await auth();
-    
+
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
+
     const inventory = await inventoryService.getInventory(params.listingId);
-    
+
     if (!inventory) {
-      return NextResponse.json({ 
-        error: 'Inventory not found' 
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          error: "Inventory not found",
+        },
+        { status: 404 },
+      );
     }
-    
+
     // Authorization: Can only view own inventory unless admin
-    if (inventory.sellerId !== session.user.id && !['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (
+      inventory.sellerId !== session.user.id &&
+      !["ADMIN", "SUPER_ADMIN"].includes(session.user.role)
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    
-    return NextResponse.json({ 
-      success: true, 
-      inventory 
+
+    return NextResponse.json({
+      success: true,
+      inventory,
     });
-    
   } catch (error) {
-    logger.error('GET /api/souq/inventory/[listingId] error', { error });
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    logger.error("GET /api/souq/inventory/[listingId] error", { error });
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }

@@ -1,4 +1,4 @@
-import { Schema, Query, Types } from 'mongoose';
+import { Schema, Query, Types } from "mongoose";
 
 // Context interface for tenant isolation
 export interface TenantContext {
@@ -30,34 +30,38 @@ interface TenantIsolationOptions {
 }
 
 // Plugin function
-export function tenantIsolationPlugin(schema: Schema, options: TenantIsolationOptions = {}) {
-  const excludeModels = options.excludeModels || ['Organization'];
+export function tenantIsolationPlugin(
+  schema: Schema,
+  options: TenantIsolationOptions = {},
+) {
+  const excludeModels = options.excludeModels || ["Organization"];
   const uniqueTenantFields = options.uniqueTenantFields ?? [];
 
-  const orgFieldName = schema.path('orgId')
-    ? 'orgId'
-    : schema.path('org_id')
-    ? 'org_id'
-    : 'orgId';
+  const orgFieldName = schema.path("orgId")
+    ? "orgId"
+    : schema.path("org_id")
+      ? "org_id"
+      : "orgId";
 
   if (!schema.path(orgFieldName)) {
     schema.add({
       [orgFieldName]: {
         type: Schema.Types.ObjectId,
-        ref: 'Organization',
+        ref: "Organization",
         required: true,
       },
     });
   }
 
   // Pre-save middleware to ensure orgId is set
-  schema.pre('save', function(next) {
+  schema.pre("save", function (next) {
     if (this.isNew && !(this as Record<string, unknown>)[orgFieldName]) {
       const context = getTenantContext();
       if (context.orgId) {
         (this as Record<string, unknown>)[orgFieldName] = context.orgId;
       } else {
-        const modelName = (this.constructor as { modelName?: string }).modelName;
+        const modelName = (this.constructor as { modelName?: string })
+          .modelName;
         if (modelName && !excludeModels.includes(modelName)) {
           return next(new Error(`orgId is required for ${modelName}`));
         }
@@ -67,7 +71,7 @@ export function tenantIsolationPlugin(schema: Schema, options: TenantIsolationOp
   });
 
   if (uniqueTenantFields.length > 0) {
-    schema.pre('save', async function(next) {
+    schema.pre("save", async function (next) {
       if (!this.isNew) {
         return next();
       }
@@ -82,12 +86,14 @@ export function tenantIsolationPlugin(schema: Schema, options: TenantIsolationOp
 
       try {
         const ModelCtor = this.constructor as unknown as {
-          exists(filter: Record<string, unknown>): Promise<{ _id: unknown } | null>;
+          exists(
+            filter: Record<string, unknown>,
+          ): Promise<{ _id: unknown } | null>;
         };
 
         for (const field of uniqueTenantFields) {
           const value = (this as Record<string, unknown>)[field];
-          if (value === undefined || value === null || value === '') {
+          if (value === undefined || value === null || value === "") {
             continue;
           }
 
@@ -99,9 +105,11 @@ export function tenantIsolationPlugin(schema: Schema, options: TenantIsolationOp
           if (existing) {
             return next(
               Object.assign(
-                new Error(`E11000 duplicate key error: ${String(field)} already exists for this organization`),
-                { code: 11000 }
-              )
+                new Error(
+                  `E11000 duplicate key error: ${String(field)} already exists for this organization`,
+                ),
+                { code: 11000 },
+              ),
             );
           }
         }
@@ -114,7 +122,7 @@ export function tenantIsolationPlugin(schema: Schema, options: TenantIsolationOp
   }
 
   // Pre-validate middleware to ensure orgId is set
-  schema.pre('validate', function(next) {
+  schema.pre("validate", function (next) {
     if (this.isNew && !(this as Record<string, unknown>)[orgFieldName]) {
       const context = getTenantContext();
       if (context.orgId) {
@@ -124,9 +132,9 @@ export function tenantIsolationPlugin(schema: Schema, options: TenantIsolationOp
     next();
   });
 
-  schema.pre(/^find/, function(this: Query<unknown, unknown>) {
+  schema.pre(/^find/, function (this: Query<unknown, unknown>) {
     const context = getTenantContext();
-    
+
     // Skip filtering when explicitly requested
     if (context.skipTenantFilter) {
       return;
@@ -138,9 +146,9 @@ export function tenantIsolationPlugin(schema: Schema, options: TenantIsolationOp
     }
   });
 
-  schema.pre(/^count/, function(this: Query<unknown, unknown>) {
+  schema.pre(/^count/, function (this: Query<unknown, unknown>) {
     const context = getTenantContext();
-    
+
     if (context.skipTenantFilter) {
       return;
     }
@@ -150,9 +158,9 @@ export function tenantIsolationPlugin(schema: Schema, options: TenantIsolationOp
     }
   });
 
-  schema.pre('distinct', function(this: Query<unknown, unknown>) {
+  schema.pre("distinct", function (this: Query<unknown, unknown>) {
     const context = getTenantContext();
-    
+
     if (context.skipTenantFilter) {
       return;
     }
@@ -162,9 +170,9 @@ export function tenantIsolationPlugin(schema: Schema, options: TenantIsolationOp
     }
   });
 
-  schema.pre(/^update/, function(this: Query<unknown, unknown>) {
+  schema.pre(/^update/, function (this: Query<unknown, unknown>) {
     const context = getTenantContext();
-    
+
     if (context.skipTenantFilter) {
       return;
     }
@@ -174,9 +182,9 @@ export function tenantIsolationPlugin(schema: Schema, options: TenantIsolationOp
     }
   });
 
-  schema.pre(/^delete/, function(this: Query<unknown, unknown>) {
+  schema.pre(/^delete/, function (this: Query<unknown, unknown>) {
     const context = getTenantContext();
-    
+
     if (context.skipTenantFilter) {
       return;
     }
@@ -190,19 +198,21 @@ export function tenantIsolationPlugin(schema: Schema, options: TenantIsolationOp
   // No need for schema.index({ orgId: 1 }) here
 
   // Instance method to check if document belongs to current tenant
-  schema.methods.belongsToCurrentTenant = function() {
+  schema.methods.belongsToCurrentTenant = function () {
     const context = getTenantContext();
-    return context.orgId ? (this as Record<string, unknown>)[orgFieldName] === context.orgId : true;
+    return context.orgId
+      ? (this as Record<string, unknown>)[orgFieldName] === context.orgId
+      : true;
   };
 }
 
 // Utility function to execute operations within tenant context
 export async function withTenantContext<T>(
-  orgId: string | Types.ObjectId, 
-  operation: () => Promise<T>
+  orgId: string | Types.ObjectId,
+  operation: () => Promise<T>,
 ): Promise<T> {
   const originalContext = getTenantContext();
-  
+
   try {
     setTenantContext({ ...originalContext, orgId });
     return await operation();
@@ -213,10 +223,10 @@ export async function withTenantContext<T>(
 
 // Utility function to execute operations without tenant filtering
 export async function withoutTenantFilter<T>(
-  operation: () => Promise<T>
+  operation: () => Promise<T>,
 ): Promise<T> {
   const originalContext = getTenantContext();
-  
+
   try {
     setTenantContext({ ...originalContext, skipTenantFilter: true });
     return await operation();

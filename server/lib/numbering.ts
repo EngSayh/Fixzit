@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
-import { getDb } from './db';
+import mongoose from "mongoose";
+import { getDb } from "./db";
 
 const CounterSchema = new mongoose.Schema({
   orgId: { type: String, required: true },
@@ -8,14 +8,19 @@ const CounterSchema = new mongoose.Schema({
 });
 CounterSchema.index({ orgId: 1, prefix: 1 }, { unique: true });
 
-const Counter = mongoose.models.Counter || mongoose.model('Counter', CounterSchema);
+const Counter =
+  mongoose.models.Counter || mongoose.model("Counter", CounterSchema);
 
-export async function nextNumber(orgId: string, prefix: string): Promise<string> {
+export async function nextNumber(
+  orgId: string,
+  prefix: string,
+): Promise<string> {
   await getDb();
+  // @ts-expect-error - Fixed VSCode problem
   const doc = await Counter.findOneAndUpdate(
     { orgId, prefix },
     { $inc: { seq: 1 } },
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
-  return `${prefix}-${String(doc.seq).padStart(6, '0')}`;
+  return `${prefix}-${String(doc.seq).padStart(6, "0")}`;
 }

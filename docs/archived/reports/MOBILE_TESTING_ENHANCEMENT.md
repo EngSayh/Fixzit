@@ -7,24 +7,29 @@ Based on your excellent code review, I've enhanced the Playwright configuration 
 ## What's New
 
 ### Mobile Device Projects (4 new)
+
 Added targeted mobile testing for the two most mobile-critical user roles:
 
 #### **Technician Role** (Field Operations)
+
 - **Pixel 5** (Android) - English & Arabic
 - Use case: Field technicians accessing work orders on-site
 - Critical flows: Work order updates, photo uploads, GPS check-ins, status changes
 
 #### **Tenant Role** (Property Owners)
-- **iPhone 13** (iOS) - English & Arabic  
+
+- **iPhone 13** (iOS) - English & Arabic
 - Use case: Residents submitting service requests via mobile
 - Critical flows: Service requests, viewing status, communication, payments
 
 ### Updated Test Matrix
 
 **Before**: 12 projects (Desktop only)
+
 - 6 roles × 2 locales = 12 desktop scenarios
 
 **After**: 16 projects (Desktop + Mobile)
+
 - **Desktop**: 6 roles × 2 locales = 12 scenarios
 - **Mobile**: 2 roles × 2 locales × 2 devices = 4 scenarios
 - **Total**: 16 device/role/locale combinations
@@ -45,6 +50,7 @@ Added targeted mobile testing for the two most mobile-critical user roles:
 ## Test Scenarios Now Covered
 
 ### Mobile-Specific Validations
+
 - ✅ Touch interactions (tap, swipe, pinch)
 - ✅ Mobile viewport layouts
 - ✅ Responsive design breakpoints
@@ -57,18 +63,21 @@ Added targeted mobile testing for the two most mobile-critical user roles:
 ## Why These Roles?
 
 ### Technician (High Priority)
+
 - Primary mobile user persona
 - Field-based workflow requires mobile access
 - Heavy use of camera, GPS, real-time updates
 - Foundation for future native mobile app
 
 ### Tenant (High Priority)
+
 - Frequent mobile usage for service requests
 - Self-service portal accessed on-the-go
 - Mobile-first convenience expected
 - High volume user segment
 
 ### Other Roles (Desktop-Primary)
+
 - **SuperAdmin/Admin/Manager**: Desktop-heavy workflows (dashboards, reports, configuration)
 - **Vendor**: Mix of desktop (proposals) and mobile (field service)
 - Can add mobile projects later if usage patterns show mobile preference
@@ -84,15 +93,17 @@ Added targeted mobile testing for the two most mobile-critical user roles:
 If you want even broader coverage in the future:
 
 1. **Cross-browser Mobile**:
+
    ```typescript
    // Safari on iPhone
    ...devices['iPhone 13']
-   
+
    // Chrome on Pixel
    ...devices['Pixel 5']
    ```
 
 2. **Tablet Testing**:
+
    ```typescript
    ...devices['iPad Pro']  // iPadOS
    ...devices['Galaxy Tab S7']  // Android Tablet

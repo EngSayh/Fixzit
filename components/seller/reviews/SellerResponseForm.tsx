@@ -1,11 +1,11 @@
 /**
  * SellerResponseForm Component - Seller response to reviews
  */
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { MessageSquare } from 'lucide-react';
-import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import React, { useState } from "react";
+import { MessageSquare } from "lucide-react";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 interface SellerResponseFormProps {
   reviewId: string;
@@ -17,21 +17,24 @@ interface SellerResponseFormProps {
 async function postSellerResponse(
   reviewId: string,
   content: string,
-  defaultErrorMessage: string
+  defaultErrorMessage: string,
 ): Promise<void> {
-  const response = await fetch(`/api/souq/seller-central/reviews/${reviewId}/respond`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const response = await fetch(
+    `/api/souq/seller-central/reviews/${reviewId}/respond`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content }),
     },
-    body: JSON.stringify({ content }),
-  });
+  );
 
   if (!response.ok) {
     let message = defaultErrorMessage;
     try {
       const data = await response.json();
-      if (typeof data?.error === 'string') {
+      if (typeof data?.error === "string") {
         message = data.error;
       }
     } catch {
@@ -47,19 +50,28 @@ export function SellerResponseForm({
   onSubmit,
   onCancel,
 }: SellerResponseFormProps) {
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const auto = useAutoTranslator('seller.reviewResponse');
-  const minLengthError = auto('Response must be at least 10 characters', 'validation.minLength');
-  const defaultSubmitError = auto('Failed to submit response', 'errors.submitFailed');
-  const successMessage = auto('Response submitted successfully', 'success.submitted');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const auto = useAutoTranslator("seller.reviewResponse");
+  const minLengthError = auto(
+    "Response must be at least 10 characters",
+    "validation.minLength",
+  );
+  const defaultSubmitError = auto(
+    "Failed to submit response",
+    "errors.submitFailed",
+  );
+  const successMessage = auto(
+    "Response submitted successfully",
+    "success.submitted",
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     if (content.length < 10) {
       setError(minLengthError);
@@ -74,7 +86,7 @@ export function SellerResponseForm({
       } else {
         await postSellerResponse(reviewId, content, defaultSubmitError);
       }
-      setContent('');
+      setContent("");
       setSuccess(successMessage);
     } catch (err) {
       setError(err instanceof Error ? err.message : defaultSubmitError);
@@ -87,13 +99,15 @@ export function SellerResponseForm({
     <form onSubmit={handleSubmit} className="bg-gray-50 border rounded-lg p-4">
       <div className="flex items-center gap-2 mb-3">
         <MessageSquare className="w-5 h-5 text-primary" />
-        <h3 className="font-semibold">{auto('Respond to Review', 'header.title')}</h3>
+        <h3 className="font-semibold">
+          {auto("Respond to Review", "header.title")}
+        </h3>
       </div>
 
       <p className="text-sm text-muted-foreground mb-3">
-        {auto('Responding to: "{{title}}"', 'header.subtitle').replace(
-          '{{title}}',
-          reviewTitle
+        {auto('Responding to: "{{title}}"', "header.subtitle").replace(
+          "{{title}}",
+          reviewTitle,
         )}
       </p>
 
@@ -101,18 +115,18 @@ export function SellerResponseForm({
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder={auto(
-          'Thank the customer and address their feedback...',
-          'fields.content.placeholder'
+          "Thank the customer and address their feedback...",
+          "fields.content.placeholder",
         )}
         maxLength={1000}
         rows={4}
         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
       />
       <p className="text-xs text-muted-foreground mt-1">
-        {auto('{{count}}/1000 characters (minimum 10)', 'fields.content.counter').replace(
-          '{{count}}',
-          String(content.length)
-        )}
+        {auto(
+          "{{count}}/1000 characters (minimum 10)",
+          "fields.content.counter",
+        ).replace("{{count}}", String(content.length))}
       </p>
 
       {error && (
@@ -134,7 +148,7 @@ export function SellerResponseForm({
             disabled={isSubmitting}
             className="px-4 py-2 border rounded-lg hover:bg-white disabled:opacity-50"
           >
-            {auto('Cancel', 'actions.cancel')}
+            {auto("Cancel", "actions.cancel")}
           </button>
         )}
         <button
@@ -143,8 +157,8 @@ export function SellerResponseForm({
           className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
         >
           {isSubmitting
-            ? auto('Submitting...', 'actions.submitting')
-            : auto('Post Response', 'actions.submit')}
+            ? auto("Submitting...", "actions.submitting")
+            : auto("Post Response", "actions.submit")}
         </button>
       </div>
     </form>

@@ -12,7 +12,7 @@
 **Branding Tokens (STRICT)**:
 
 - Primary: `#0061A8` (Blue)
-- Success: `#00A859` (Green)  
+- Success: `#00A859` (Green)
 - Warning: `#FFB400` (Yellow)
 - NO custom colors without explicit approval
 

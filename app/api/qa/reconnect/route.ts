@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError } from '@/server/utils/errorResponses';
-import { getClientIP } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 /**
  * @openapi
  * /api/qa/reconnect:
@@ -34,22 +34,27 @@ export async function POST(req: NextRequest) {
   try {
     // Force database reconnection by accessing it
     await connectToDatabase();
-    logger.info('🔄 Database reconnected successfully');
+    logger.info("🔄 Database reconnected successfully");
 
     return NextResponse.json({
       success: true,
-      message: 'Database reconnected successfully',
-      timestamp: new Date().toISOString()
+      message: "Database reconnected successfully",
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    logger.error('❌ Database reconnection failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error(
+      "❌ Database reconnection failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
 
-    return NextResponse.json({
-      success: false,
-      error: 'Database reconnection failed',
-      details: (error as Error).message,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Database reconnection failed",
+        details: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 },
+    );
   }
 }
-

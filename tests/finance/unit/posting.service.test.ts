@@ -3,27 +3,31 @@
  * Tests: createJournal, postJournal, voidJournal, balance validation, currency FX
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import mongoose from 'mongoose';
-import postingService from '../../../server/services/finance/postingService';
-import Journal from '../../../server/models/finance/Journal';
-import LedgerEntry from '../../../server/models/finance/LedgerEntry';
-import ChartAccount from '../../../server/models/finance/ChartAccount';
-import { setAuditContext, clearContext } from '../../../server/models/plugins/tenantAudit';
-import { setTenantContext as setTenantIsolationContext } from '../../../server/plugins/tenantIsolation';
-import { toMinor, applyFx } from '../../../server/lib/currency';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import mongoose from "mongoose";
+import postingService from "../../../server/services/finance/postingService";
+import Journal from "../../../server/models/finance/Journal";
+import LedgerEntry from "../../../server/models/finance/LedgerEntry";
+import ChartAccount from "../../../server/models/finance/ChartAccount";
+import {
+  setAuditContext,
+  clearContext,
+} from "../../../server/models/plugins/tenantAudit";
+import { setTenantContext as setTenantIsolationContext } from "../../../server/plugins/tenantIsolation";
+import { toMinor, applyFx } from "../../../server/lib/currency";
 
 // TYPESCRIPT FIX: Use ObjectIds instead of strings for type safety
 const TEST_ORG_ID = new mongoose.Types.ObjectId();
 const TEST_USER_ID = new mongoose.Types.ObjectId();
 
-describe('postingService Unit Tests', () => {
+describe("postingService Unit Tests", () => {
   let cashAccountId: mongoose.Types.ObjectId;
   let revenueAccountId: mongoose.Types.ObjectId;
 
   beforeAll(async () => {
     // Connect to test database
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit-test';
+    const MONGODB_URI =
+      process.env.MONGODB_URI || "mongodb://localhost:27017/fixzit-test";
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
     }
@@ -36,13 +40,13 @@ describe('postingService Unit Tests', () => {
     // Create test accounts
     const cashAccount = await ChartAccount.create({
       orgId: TEST_ORG_ID,
-      accountCode: '1110',
-      accountName: 'Test Cash Account',
-      accountType: 'ASSET',
-      normalBalance: 'DEBIT',
+      accountCode: "1110",
+      accountName: "Test Cash Account",
+      accountType: "ASSET",
+      normalBalance: "DEBIT",
       balance: 0,
       isActive: true,
-      currency: 'SAR',
+      currency: "SAR",
       createdBy: TEST_USER_ID,
       updatedBy: TEST_USER_ID,
     });
@@ -50,13 +54,13 @@ describe('postingService Unit Tests', () => {
 
     const revenueAccount = await ChartAccount.create({
       orgId: TEST_ORG_ID,
-      accountCode: '4100',
-      accountName: 'Test Revenue Account',
-      accountType: 'REVENUE',
-      normalBalance: 'CREDIT',
+      accountCode: "4100",
+      accountName: "Test Revenue Account",
+      accountType: "REVENUE",
+      normalBalance: "CREDIT",
       balance: 0,
       isActive: true,
-      currency: 'SAR',
+      currency: "SAR",
       createdBy: TEST_USER_ID,
       updatedBy: TEST_USER_ID,
     });
@@ -77,19 +81,19 @@ describe('postingService Unit Tests', () => {
     // Clear journals and ledger entries before each test
     await Journal.deleteMany({ orgId: TEST_ORG_ID });
     await LedgerEntry.deleteMany({ orgId: TEST_ORG_ID });
-    
+
     // Reset account balances to zero
     let cashAcc = await ChartAccount.findById(cashAccountId);
     if (!cashAcc) {
       cashAcc = await ChartAccount.create({
         orgId: TEST_ORG_ID,
-        accountCode: '1110',
-        accountName: 'Test Cash Account',
-        accountType: 'ASSET',
-        normalBalance: 'DEBIT',
+        accountCode: "1110",
+        accountName: "Test Cash Account",
+        accountType: "ASSET",
+        normalBalance: "DEBIT",
         balance: 0,
         isActive: true,
-        currency: 'SAR',
+        currency: "SAR",
         createdBy: TEST_USER_ID,
         updatedBy: TEST_USER_ID,
       });
@@ -103,13 +107,13 @@ describe('postingService Unit Tests', () => {
     if (!revAcc) {
       revAcc = await ChartAccount.create({
         orgId: TEST_ORG_ID,
-        accountCode: '4100',
-        accountName: 'Test Revenue Account',
-        accountType: 'REVENUE',
-        normalBalance: 'CREDIT',
+        accountCode: "4100",
+        accountName: "Test Revenue Account",
+        accountType: "REVENUE",
+        normalBalance: "CREDIT",
         balance: 0,
         isActive: true,
-        currency: 'SAR',
+        currency: "SAR",
         createdBy: TEST_USER_ID,
         updatedBy: TEST_USER_ID,
       });
@@ -120,34 +124,34 @@ describe('postingService Unit Tests', () => {
     }
   });
 
-  describe('createJournal', () => {
-    it('should create a draft journal with balanced entries', async () => {
-      const amount = toMinor(100, 'SAR'); // 100.00 SAR = 10,000 halalas
+  describe("createJournal", () => {
+    it("should create a draft journal with balanced entries", async () => {
+      const amount = toMinor(100, "SAR"); // 100.00 SAR = 10,000 halalas
 
       const journal = await postingService.createJournal({
         orgId: TEST_ORG_ID,
         journalDate: new Date(),
-        description: 'Test revenue entry',
-        sourceType: 'MANUAL',
+        description: "Test revenue entry",
+        sourceType: "MANUAL",
         userId: TEST_USER_ID,
         lines: [
           {
             accountId: cashAccountId,
             debit: amount,
             credit: 0,
-            description: 'Cash received',
+            description: "Cash received",
           },
           {
             accountId: revenueAccountId,
             debit: 0,
             credit: amount,
-            description: 'Revenue earned',
+            description: "Revenue earned",
           },
         ],
       });
 
       expect(journal).toBeDefined();
-      expect(journal.status).toBe('DRAFT');
+      expect(journal.status).toBe("DRAFT");
       expect(journal.lines).toHaveLength(2);
       // TYPESCRIPT FIX: Correct property names from IJournal interface
       expect(journal.totalDebit).toBe(amount);
@@ -155,86 +159,88 @@ describe('postingService Unit Tests', () => {
       expect(journal.isBalanced).toBe(true);
     });
 
-    it('should throw error for unbalanced journal entries', async () => {
-      const amount = toMinor(100, 'SAR');
+    it("should throw error for unbalanced journal entries", async () => {
+      const amount = toMinor(100, "SAR");
 
       await expect(async () => {
         await postingService.createJournal({
           orgId: TEST_ORG_ID,
           journalDate: new Date(),
-          description: 'Unbalanced entry',
-          sourceType: 'MANUAL',
+          description: "Unbalanced entry",
+          sourceType: "MANUAL",
           userId: TEST_USER_ID,
           lines: [
             {
               accountId: cashAccountId,
               debit: amount,
               credit: 0,
-              description: 'Cash debit',
+              description: "Cash debit",
             },
             {
               accountId: revenueAccountId,
               debit: 0,
               credit: amount + 100, // Intentionally unbalanced
-              description: 'Revenue credit',
+              description: "Revenue credit",
             },
           ],
         });
-      }).rejects.toThrow('Journal entries must balance');
+      }).rejects.toThrow("Journal entries must balance");
     });
 
-    it('should require at least 2 lines', async () => {
+    it("should require at least 2 lines", async () => {
       await expect(async () => {
         await postingService.createJournal({
           orgId: TEST_ORG_ID,
           journalDate: new Date(),
-          description: 'Single line entry',
-          sourceType: 'MANUAL',
+          description: "Single line entry",
+          sourceType: "MANUAL",
           userId: TEST_USER_ID,
           lines: [
             {
               accountId: cashAccountId,
-              debit: toMinor(100, 'SAR'),
+              debit: toMinor(100, "SAR"),
               credit: 0,
-              description: 'Single line',
+              description: "Single line",
             },
           ],
         });
-      }).rejects.toThrow('At least 2 journal lines required');
+      }).rejects.toThrow("At least 2 journal lines required");
     });
   });
 
-  describe('postJournal', () => {
-    it('should post draft journal to ledger and update account balances', async () => {
-      const amount = toMinor(250, 'SAR');
+  describe("postJournal", () => {
+    it("should post draft journal to ledger and update account balances", async () => {
+      const amount = toMinor(250, "SAR");
 
       // Create draft journal
       const journal = await postingService.createJournal({
         orgId: TEST_ORG_ID,
         journalDate: new Date(),
-        description: 'Test posting',
-        sourceType: 'MANUAL',
+        description: "Test posting",
+        sourceType: "MANUAL",
         userId: TEST_USER_ID,
         lines: [
           {
             accountId: cashAccountId,
             debit: amount,
             credit: 0,
-            description: 'Debit cash',
+            description: "Debit cash",
           },
           {
             accountId: revenueAccountId,
             debit: 0,
             credit: amount,
-            description: 'Credit revenue',
+            description: "Credit revenue",
           },
         ],
       });
 
       // Post to ledger
-      const result = await postingService.postJournal(journal._id as mongoose.Types.ObjectId);
+      const result = await postingService.postJournal(
+        journal._id as mongoose.Types.ObjectId,
+      );
 
-      expect(result.journal.status).toBe('POSTED');
+      expect(result.journal.status).toBe("POSTED");
       // TYPESCRIPT FIX: IJournal uses 'postingDate' not 'postedAt', and doesn't have 'postedBy'
       expect(result.journal.postingDate).toBeDefined();
       // postedBy tracking is done via updatedBy field in audit trail
@@ -243,38 +249,40 @@ describe('postingService Unit Tests', () => {
       expect(result.ledgerEntries).toHaveLength(2);
 
       // Verify ledger entries created
-      const ledgerEntries = await LedgerEntry.find({ journalId: journal._id }).sort({ lineNumber: 1 });
+      const ledgerEntries = await LedgerEntry.find({
+        journalId: journal._id,
+      }).sort({ lineNumber: 1 });
       expect(ledgerEntries).toHaveLength(2);
 
       // Verify account balances updated
       const cashAccount = await ChartAccount.findById(cashAccountId);
       const revenueAccount = await ChartAccount.findById(revenueAccountId);
-      
+
       expect(cashAccount?.balance).toBe(amount); // Asset increases with debit
       expect(revenueAccount?.balance).toBe(amount); // Revenue increases with credit
     });
 
-    it('should throw error when posting already-posted journal', async () => {
-      const amount = toMinor(100, 'SAR');
+    it("should throw error when posting already-posted journal", async () => {
+      const amount = toMinor(100, "SAR");
 
       const journal = await postingService.createJournal({
         orgId: TEST_ORG_ID,
         journalDate: new Date(),
-        description: 'Already posted',
-        sourceType: 'MANUAL',
+        description: "Already posted",
+        sourceType: "MANUAL",
         userId: TEST_USER_ID,
         lines: [
           {
             accountId: cashAccountId,
             debit: amount,
             credit: 0,
-            description: 'Cash',
+            description: "Cash",
           },
           {
             accountId: revenueAccountId,
             debit: 0,
             credit: amount,
-            description: 'Revenue',
+            description: "Revenue",
           },
         ],
       });
@@ -284,31 +292,33 @@ describe('postingService Unit Tests', () => {
 
       // Second post - should fail
       await expect(async () => {
-        await postingService.postJournal(journal._id as mongoose.Types.ObjectId);
-      }).rejects.toThrow('Only DRAFT journals can be posted');
+        await postingService.postJournal(
+          journal._id as mongoose.Types.ObjectId,
+        );
+      }).rejects.toThrow("Only DRAFT journals can be posted");
     });
 
-    it('should maintain ledger immutability after posting', async () => {
-      const amount = toMinor(100, 'SAR');
+    it("should maintain ledger immutability after posting", async () => {
+      const amount = toMinor(100, "SAR");
 
       const journal = await postingService.createJournal({
         orgId: TEST_ORG_ID,
         journalDate: new Date(),
-        description: 'Immutability test',
-        sourceType: 'MANUAL',
+        description: "Immutability test",
+        sourceType: "MANUAL",
         userId: TEST_USER_ID,
         lines: [
           {
             accountId: cashAccountId,
             debit: amount,
             credit: 0,
-            description: 'Cash',
+            description: "Cash",
           },
           {
             accountId: revenueAccountId,
             debit: 0,
             credit: amount,
-            description: 'Revenue',
+            description: "Revenue",
           },
         ],
       });
@@ -317,67 +327,71 @@ describe('postingService Unit Tests', () => {
 
       // Attempt to modify posted journal - should be rejected
       const postedJournal = await Journal.findById(journal._id);
-      postedJournal!.description = 'Modified description';
-      
+      postedJournal!.description = "Modified description";
+
       await expect(async () => {
         await postedJournal!.save();
-      }).rejects.toThrow('Posted journals cannot be modified');
+      }).rejects.toThrow("Posted journals cannot be modified");
     });
   });
 
-  describe('voidJournal', () => {
-    it('should create reversal journal for posted entry', async () => {
-      const amount = toMinor(300, 'SAR');
+  describe("voidJournal", () => {
+    it("should create reversal journal for posted entry", async () => {
+      const amount = toMinor(300, "SAR");
 
       // Create and post original journal
       const originalJournal = await postingService.createJournal({
         orgId: TEST_ORG_ID,
         journalDate: new Date(),
-        description: 'Original entry',
-        sourceType: 'MANUAL',
+        description: "Original entry",
+        sourceType: "MANUAL",
         userId: TEST_USER_ID,
         lines: [
           {
             accountId: cashAccountId,
             debit: amount,
             credit: 0,
-            description: 'Cash in',
+            description: "Cash in",
           },
           {
             accountId: revenueAccountId,
             debit: 0,
             credit: amount,
-            description: 'Revenue',
+            description: "Revenue",
           },
         ],
       });
 
-      await postingService.postJournal(originalJournal._id as mongoose.Types.ObjectId);
+      await postingService.postJournal(
+        originalJournal._id as mongoose.Types.ObjectId,
+      );
 
       // Void the journal
       const result = await postingService.voidJournal(
         originalJournal._id as mongoose.Types.ObjectId,
         TEST_USER_ID,
-        'Test reversal'
+        "Test reversal",
       );
 
-      expect(result.originalJournal.status).toBe('VOID');
+      expect(result.originalJournal.status).toBe("VOID");
       expect(result.originalJournal.voidedAt).toBeDefined();
       expect(result.originalJournal.voidedBy).toBe(TEST_USER_ID);
-      expect(result.originalJournal.voidReason).toBe('Test reversal');
+      expect(result.originalJournal.voidReason).toBe("Test reversal");
 
-      expect(result.reversingJournal.status).toBe('POSTED');
-      expect(result.reversingJournal.description).toContain('REVERSAL');
+      expect(result.reversingJournal.status).toBe("POSTED");
+      expect(result.reversingJournal.description).toContain("REVERSAL");
       // TYPESCRIPT FIX: reversalOf doesn't exist in IJournal - relationship tracked via description
-      expect(result.reversingJournal.description).toContain(originalJournal.journalNumber);
+      expect(result.reversingJournal.description).toContain(
+        originalJournal.journalNumber,
+      );
 
       // Verify reversal entries swap debits/credits
       expect(result.reversingJournal.lines).toHaveLength(2);
       const reversalCashLine = result.reversingJournal.lines.find(
-        (l) => l.accountId.toString() === cashAccountId.toString()
+        (l) => l.accountId.toString() === cashAccountId.toString(),
       );
       const reversalRevenueLine = result.reversingJournal.lines.find(
-        (l) => l.accountId.toString() === revenueAccountId.toString()
+        (l) => l.accountId.toString() === revenueAccountId.toString(),
       );
 
       expect(reversalCashLine?.debit).toBe(0);
@@ -386,32 +400,35 @@ describe('postingService Unit Tests', () => {
       expect(reversalRevenueLine?.credit).toBe(0);
     });
 
-    it('should restore account balances after void', async () => {
-      const amount = toMinor(400, 'SAR');
+    it("should restore account balances after void", async () => {
+      const amount = toMinor(400, "SAR");
 
       // Get initial balances
-      const initialCashBalance = (await ChartAccount.findById(cashAccountId))!.balance;
-      const initialRevenueBalance = (await ChartAccount.findById(revenueAccountId))!.balance;
+      const initialCashBalance = (await ChartAccount.findById(cashAccountId))!
+        .balance;
+      const initialRevenueBalance = (await ChartAccount.findById(
+        revenueAccountId,
+      ))!.balance;
 
       // Create and post journal
       const journal = await postingService.createJournal({
         orgId: TEST_ORG_ID,
         journalDate: new Date(),
-        description: 'Balance restoration test',
-        sourceType: 'MANUAL',
+        description: "Balance restoration test",
+        sourceType: "MANUAL",
         userId: TEST_USER_ID,
         lines: [
           {
             accountId: cashAccountId,
             debit: amount,
             credit: 0,
-            description: 'Cash',
+            description: "Cash",
           },
           {
             accountId: revenueAccountId,
             debit: 0,
             credit: amount,
-            description: 'Revenue',
+            description: "Revenue",
           },
         ],
       });
@@ -419,35 +436,45 @@ describe('postingService Unit Tests', () => {
       await postingService.postJournal(journal._id as mongoose.Types.ObjectId);
 
       // Verify balances changed
-      const afterPostCashBalance = (await ChartAccount.findById(cashAccountId))!.balance;
-      const afterPostRevenueBalance = (await ChartAccount.findById(revenueAccountId))!.balance;
-      
+      const afterPostCashBalance = (await ChartAccount.findById(cashAccountId))!
+        .balance;
+      const afterPostRevenueBalance = (await ChartAccount.findById(
+        revenueAccountId,
+      ))!.balance;
+
       expect(afterPostCashBalance).toBe(initialCashBalance + amount);
       expect(afterPostRevenueBalance).toBe(initialRevenueBalance + amount);
 
       // Void the journal
-      await postingService.voidJournal(journal._id as mongoose.Types.ObjectId, TEST_USER_ID, 'Test');
+      await postingService.voidJournal(
+        journal._id as mongoose.Types.ObjectId,
+        TEST_USER_ID,
+        "Test",
+      );
 
       // Verify balances restored
-      const afterVoidCashBalance = (await ChartAccount.findById(cashAccountId))!.balance;
-      const afterVoidRevenueBalance = (await ChartAccount.findById(revenueAccountId))!.balance;
+      const afterVoidCashBalance = (await ChartAccount.findById(cashAccountId))!
+        .balance;
+      const afterVoidRevenueBalance = (await ChartAccount.findById(
+        revenueAccountId,
+      ))!.balance;
 
       expect(afterVoidCashBalance).toBe(initialCashBalance);
       expect(afterVoidRevenueBalance).toBe(initialRevenueBalance);
     });
   });
 
-  describe('Currency Conversion', () => {
-    it('should handle multi-currency journals with FX rates', async () => {
-      const amountSAR = toMinor(100, 'SAR'); // 100 SAR = 10,000 halalas
+  describe("Currency Conversion", () => {
+    it("should handle multi-currency journals with FX rates", async () => {
+      const amountSAR = toMinor(100, "SAR"); // 100 SAR = 10,000 halalas
       const fxRate = 0.2667; // 1 SAR = 0.2667 USD
-      const amountUSD = applyFx(amountSAR, fxRate, 'SAR', 'USD'); // ~26.67 USD = 2,667 cents
+      const amountUSD = applyFx(amountSAR, fxRate, "SAR", "USD"); // ~26.67 USD = 2,667 cents
 
       const journal = await postingService.createJournal({
         orgId: TEST_ORG_ID,
         journalDate: new Date(),
-        description: 'Multi-currency entry',
-        sourceType: 'MANUAL',
+        description: "Multi-currency entry",
+        sourceType: "MANUAL",
         userId: TEST_USER_ID,
         // TYPESCRIPT FIX: currency doesn't exist at journal level - tracked per line item
         lines: [
@@ -455,14 +482,14 @@ describe('postingService Unit Tests', () => {
             accountId: cashAccountId,
             debit: amountSAR,
             credit: 0,
-            description: 'SAR cash',
+            description: "SAR cash",
             // TYPESCRIPT FIX: currency doesn't exist on IJournalLine interface
           },
           {
             accountId: revenueAccountId,
             debit: 0,
             credit: amountSAR,
-            description: 'SAR revenue',
+            description: "SAR revenue",
             // TYPESCRIPT FIX: currency doesn't exist on IJournalLine interface
           },
         ],
@@ -478,38 +505,40 @@ describe('postingService Unit Tests', () => {
     });
   });
 
-  describe('Helper Methods', () => {
-    it('should calculate running balance correctly', async () => {
+  describe("Helper Methods", () => {
+    it("should calculate running balance correctly", async () => {
       const amounts = [
-        toMinor(100, 'SAR'),
-        toMinor(50, 'SAR'),
-        toMinor(200, 'SAR'),
+        toMinor(100, "SAR"),
+        toMinor(50, "SAR"),
+        toMinor(200, "SAR"),
       ];
 
       for (const amount of amounts) {
         const journal = await postingService.createJournal({
           orgId: TEST_ORG_ID,
           journalDate: new Date(),
-          description: 'Running balance test',
-          sourceType: 'MANUAL',
+          description: "Running balance test",
+          sourceType: "MANUAL",
           userId: TEST_USER_ID,
           lines: [
             {
               accountId: cashAccountId,
               debit: amount,
               credit: 0,
-              description: 'Cash',
+              description: "Cash",
             },
             {
               accountId: revenueAccountId,
               debit: 0,
               credit: amount,
-              description: 'Revenue',
+              description: "Revenue",
             },
           ],
         });
 
-        await postingService.postJournal(journal._id as mongoose.Types.ObjectId);
+        await postingService.postJournal(
+          journal._id as mongoose.Types.ObjectId,
+        );
       }
 
       // Verify final balance
@@ -518,28 +547,28 @@ describe('postingService Unit Tests', () => {
       expect(cashAccount?.balance).toBe(expectedBalance);
     });
 
-    it('should validate account existence before posting', async () => {
+    it("should validate account existence before posting", async () => {
       const fakeAccountId = new mongoose.Types.ObjectId();
 
       await expect(async () => {
         await postingService.createJournal({
           orgId: TEST_ORG_ID,
           journalDate: new Date(),
-          description: 'Invalid account',
-          sourceType: 'MANUAL',
+          description: "Invalid account",
+          sourceType: "MANUAL",
           userId: TEST_USER_ID,
           lines: [
             {
               accountId: fakeAccountId,
-              debit: toMinor(100, 'SAR'),
+              debit: toMinor(100, "SAR"),
               credit: 0,
-              description: 'Fake account',
+              description: "Fake account",
             },
             {
               accountId: revenueAccountId,
               debit: 0,
-              credit: toMinor(100, 'SAR'),
-              description: 'Revenue',
+              credit: toMinor(100, "SAR"),
+              description: "Revenue",
             },
           ],
         });

@@ -1,18 +1,18 @@
-import { NextRequest } from 'next/server';
-import { z } from 'zod';
-import { resolveMarketplaceContext } from '@/lib/marketplace/context';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import RFQ from '@/server/models/marketplace/RFQ';
-import { serializeRFQ } from '@/lib/marketplace/serializers';
-import { objectIdFrom } from '@/lib/marketplace/objectIds';
-import { rateLimit } from '@/server/security/rateLimit';
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import RFQ from "@/server/models/marketplace/RFQ";
+import { serializeRFQ } from "@/lib/marketplace/serializers";
+import { objectIdFrom } from "@/lib/marketplace/objectIds";
+import { rateLimit } from "@/server/security/rateLimit";
 import {
   unauthorizedError,
   zodValidationError,
   rateLimitError,
-  handleApiError
-} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
 
 const CreateRFQSchema = z.object({
   title: z.string().min(1).max(200),
@@ -20,8 +20,8 @@ const CreateRFQSchema = z.object({
   categoryId: z.string().optional(),
   quantity: z.number().int().positive().optional(),
   budget: z.number().positive().optional(),
-  currency: z.string().default('SAR'),
-  deadline: z.string().datetime().optional()
+  currency: z.string().default("SAR"),
+  deadline: z.string().datetime().optional(),
 });
 
 /**
@@ -76,27 +76,26 @@ export async function GET(request: NextRequest) {
     if (!context.userId) {
       return unauthorizedError();
     }
-    
+
     // Rate limiting - read operations: 60 req/min
     const key = `marketplace:rfq:list:${context.orgId}`;
     const rl = rateLimit(key, 60, 60_000);
     if (!rl.allowed) return rateLimitError();
-    
+
     // Database connection
     await connectToDatabase();
-    
+
     // Query with tenant isolation
     const rfqs = await RFQ.find({ orgId: context.orgId })
       .sort({ createdAt: -1 })
       .limit(50);
-    
+
     // Secure response
     return createSecureResponse(
       { ok: true, data: rfqs.map((rfq) => serializeRFQ(rfq)) },
       200,
-      request
+      request,
     );
-    
   } catch (error) {
     return handleApiError(error);
   }
@@ -192,7 +191,7 @@ export async function POST(request: NextRequest) {
     // Input validation
     const body = await request.json();
     const payload = CreateRFQSchema.parse(body);
-    
+
     // Database connection
     await connectToDatabase();
 
@@ -202,21 +201,22 @@ export async function POST(request: NextRequest) {
       requesterId: context.userId,
       title: payload.title,
       description: payload.description,
-      categoryId: payload.categoryId ? objectIdFrom(payload.categoryId) : undefined,
+      categoryId: payload.categoryId
+        ? objectIdFrom(payload.categoryId)
+        : undefined,
       quantity: payload.quantity,
       budget: payload.budget,
       currency: payload.currency,
       deadline: payload.deadline ? new Date(payload.deadline) : undefined,
-      status: 'OPEN'
+      status: "OPEN",
     });
 
     // Secure response
     return createSecureResponse(
       { ok: true, data: serializeRFQ(rfq) },
       201,
-      request
+      request,
     );
-    
   } catch (error) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);

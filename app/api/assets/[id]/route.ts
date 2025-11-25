@@ -1,44 +1,68 @@
-import { NextRequest} from "next/server";
+import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Asset } from "@/server/models/Asset";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { rateLimit } from "@/server/security/rateLimit";
+import {
+  zodValidationError,
+  rateLimitError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
 const updateAssetSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
-  type: z.enum(["HVAC", "ELECTRICAL", "PLUMBING", "SECURITY", "ELEVATOR", "GENERATOR", "FIRE_SYSTEM", "IT_EQUIPMENT", "VEHICLE", "OTHER"]).optional(),
+  type: z
+    .enum([
+      "HVAC",
+      "ELECTRICAL",
+      "PLUMBING",
+      "SECURITY",
+      "ELEVATOR",
+      "GENERATOR",
+      "FIRE_SYSTEM",
+      "IT_EQUIPMENT",
+      "VEHICLE",
+      "OTHER",
+    ])
+    .optional(),
   category: z.string().min(1).optional(),
   manufacturer: z.string().optional(),
   model: z.string().optional(),
   serialNumber: z.string().optional(),
   propertyId: z.string().min(1).optional(),
-  location: z.object({
-    building: z.string().optional(),
-    floor: z.string().optional(),
-    room: z.string().optional(),
-    coordinates: z.object({
-      lat: z.number(),
-      lng: z.number()
-    }).optional()
-  }).optional(),
-  specs: z.object({
-    capacity: z.string().optional(),
-    powerRating: z.string().optional(),
-    voltage: z.string().optional(),
-    current: z.string().optional(),
-    frequency: z.string().optional(),
-    dimensions: z.string().optional(),
-    weight: z.string().optional()
-  }).optional(),
-  status: z.enum(["ACTIVE", "MAINTENANCE", "OUT_OF_SERVICE", "DECOMMISSIONED"]).optional(),
+  location: z
+    .object({
+      building: z.string().optional(),
+      floor: z.string().optional(),
+      room: z.string().optional(),
+      coordinates: z
+        .object({
+          lat: z.number(),
+          lng: z.number(),
+        })
+        .optional(),
+    })
+    .optional(),
+  specs: z
+    .object({
+      capacity: z.string().optional(),
+      powerRating: z.string().optional(),
+      voltage: z.string().optional(),
+      current: z.string().optional(),
+      frequency: z.string().optional(),
+      dimensions: z.string().optional(),
+      weight: z.string().optional(),
+    })
+    .optional(),
+  status: z
+    .enum(["ACTIVE", "MAINTENANCE", "OUT_OF_SERVICE", "DECOMMISSIONED"])
+    .optional(),
   criticality: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]).optional(),
-  tags: z.array(z.string()).optional()
+  tags: z.array(z.string()).optional(),
 });
 
 /**
@@ -70,7 +94,10 @@ const updateAssetSchema = z.object({
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -82,7 +109,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     const asset = await Asset.findOne({
       _id: params.id,
-      tenantId: user.tenantId
+      tenantId: user.tenantId,
     });
 
     if (!asset) {
@@ -91,7 +118,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     return createSecureResponse(asset, 200, req);
   } catch (error: unknown) {
-    const name = error && typeof error === 'object' && 'name' in error ? error.name : '';
+    const name =
+      error && typeof error === "object" && "name" in error ? error.name : "";
     if (name === "CastError") {
       return createSecureResponse({ error: "Invalid asset id" }, 400, req);
     }
@@ -116,7 +144,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
  * @param params.id - The asset id to update
  * @returns The HTTP response containing the updated asset or an error payload with an appropriate status code.
  */
-export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -127,7 +158,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const asset = await Asset.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },
       { $set: { ...data, updatedBy: user.id } },
-      { new: true }
+      { new: true },
     );
 
     if (!asset) {
@@ -139,7 +170,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    const name = error && typeof error === 'object' && 'name' in error ? error.name : '';
+    const name =
+      error && typeof error === "object" && "name" in error ? error.name : "";
     if (name === "CastError") {
       return createSecureResponse({ error: "Invalid asset id" }, 400, req);
     }
@@ -160,7 +192,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
  * - 404 when no matching asset is found for the tenant
  * - 500 with an error message for other failures
  */
-export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -173,7 +208,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     const asset = await Asset.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },
       { $set: { status: "DECOMMISSIONED", updatedBy: user.id } },
-      { new: true }
+      { new: true },
     );
 
     if (!asset) {
@@ -182,7 +217,8 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
 
     return createSecureResponse({ success: true }, 200, req);
   } catch (error: unknown) {
-    const name = error && typeof error === 'object' && 'name' in error ? error.name : '';
+    const name =
+      error && typeof error === "object" && "name" in error ? error.name : "";
     if (name === "CastError") {
       return createSecureResponse({ error: "Invalid asset id" }, 400, req);
     }

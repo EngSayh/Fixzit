@@ -38,11 +38,9 @@
   - Malformed query handling
   - Performance requirements (<5s)
   - Connection recovery
-  
 - `tests/marketplace.smoke.spec.ts` - Critical user journey
   - Search → Product Detail → Add to Cart flow
   - Real browser interactions
-  
 - `tests/specs/smoke.spec.ts` - Core functionality
 - `tests/specs/i18n.spec.ts` - Internationalization
 
@@ -186,16 +184,18 @@ A test is **production-ready** if:
 
 ```typescript
 // tests/unit/models/YourModel.test.ts
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { connectDB, disconnectDB } from './testSetup';
-import { YourModel } from '@/models/YourModel';
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { connectDB, disconnectDB } from "./testSetup";
+import { YourModel } from "@/models/YourModel";
 
-describe('YourModel', () => {
+describe("YourModel", () => {
   beforeAll(async () => await connectDB());
   afterAll(async () => await disconnectDB());
 
-  it('should create model with valid data', async () => {
-    const doc = await YourModel.create({ /* real data */ });
+  it("should create model with valid data", async () => {
+    const doc = await YourModel.create({
+      /* real data */
+    });
     expect(doc._id).toBeDefined();
   });
 });
@@ -205,16 +205,16 @@ describe('YourModel', () => {
 
 ```typescript
 // tests/e2e/your-feature.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test('user can complete workflow', async ({ page }) => {
-  await page.goto('/your-page');
-  
+test("user can complete workflow", async ({ page }) => {
+  await page.goto("/your-page");
+
   // Use test-ids for reliable selectors
-  await page.getByTestId('action-button').click();
-  
+  await page.getByTestId("action-button").click();
+
   // Assert on observable behavior
-  await expect(page.getByTestId('success-message')).toBeVisible();
+  await expect(page.getByTestId("success-message")).toBeVisible();
 });
 ```
 

@@ -54,7 +54,7 @@ vi.mock('@sendgrid/mail', () => ({
 const buildRequest = (body: Record<string, unknown>) =>
   new Request('http://localhost/api/jobs/process', {
     method: 'POST',
-    headers: new Headers({ 'content-type': 'application/json' }),
+    headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   });
 
@@ -85,7 +85,7 @@ describe('/api/jobs/process POST', () => {
     const { POST } = await import('@/app/api/jobs/process/route');
 
     const res = await POST(buildRequest({ type: 's3-cleanup', maxJobs: 1 }));
-    const json = await (res as NextResponse).json();
+    const json = await res.json();
 
     expect(res.status).toBe(200);
     expect(mockClaimJob).toHaveBeenCalled();
@@ -109,7 +109,7 @@ describe('/api/jobs/process POST', () => {
     const { POST } = await import('@/app/api/jobs/process/route');
 
     const res = await POST(buildRequest({ type: 's3-cleanup', maxJobs: 1 }));
-    const json = await (res as NextResponse).json();
+    const json = await res.json();
 
     expect(res.status).toBe(200);
     expect(mockClaimJob).toHaveBeenCalled();
@@ -139,7 +139,7 @@ describe('/api/jobs/process POST', () => {
     const { POST } = await import('@/app/api/jobs/process/route');
 
     const res = await POST(buildRequest({ type: 'email-invitation', maxJobs: 1 }));
-    const json = await (res as NextResponse).json();
+    const json = await res.json();
 
     expect(res.status).toBe(200);
     expect(mockClaimJob).toHaveBeenCalled();

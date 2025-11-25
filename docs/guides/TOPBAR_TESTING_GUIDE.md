@@ -43,7 +43,7 @@
 1. Open your browser at normal desktop width
 2. Open each popup:
    - Notifications
-   - User menu  
+   - User menu
    - Language selector
    - Currency selector
    - App switcher

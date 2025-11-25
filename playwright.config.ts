@@ -43,16 +43,17 @@ export default defineConfig({
     'tests/tools.spec.ts',
   ],
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html', { outputFolder: './playwright-report' }],
+    // Keep HTML artifacts but never launch the preview server (it was keeping CLI runs alive)
+    ['html', { outputFolder: './playwright-report', open: 'never' }],
     ['json', { outputFile: './test-results/results.json' }],
     ['list']
   ],
@@ -95,17 +96,18 @@ export default defineConfig({
       use: { ...devices['iPhone 12'] },
     },
 
-    // Branded browsers disabled for local runs (Edge/Chrome channels often missing)
-    // To re-enable, install the channels and add projects back.
+    // Branded channels disabled for local runs (avoid missing msedge/chrome channel)
   ],
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    // Use webpack dev server for stability in CI/local runs
-    command: 'npm run dev:webpack',
+    // Use webpack dev server to avoid Turbopack/OTel instability during Playwright
+    command: 'npm run dev:webpack -- --hostname 0.0.0.0 --port 3000',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    timeout: 180 * 1000, // Increased to 3 minutes for slower builds
+    stdout: 'pipe',
+    stderr: 'pipe',
     env: {
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'playwright-secret',
       AUTH_SECRET: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'playwright-secret',
@@ -117,7 +119,15 @@ export default defineConfig({
       SKIP_ENV_VALIDATION: process.env.CI ? 'false' : 'true',
       // Allow MongoDB offline mode for tests
       ALLOW_OFFLINE_MONGODB: 'true',
+      AUTH_TRUST_HOST: 'true',
+      NEXTAUTH_TRUST_HOST: 'true',
       NODE_ENV: 'test',
+      LOGIN_RATE_LIMIT_MAX_ATTEMPTS: '100',
+      LOGIN_RATE_LIMIT_WINDOW_MS: '120000',
+      // Reduce noise from telemetry/instrumentation in E2E
+      NEXT_TELEMETRY_DISABLED: '1',
+      SENTRY_SKIP_INIT: '1',
+      OTEL_SDK_DISABLED: '1',
     },
   },
 });

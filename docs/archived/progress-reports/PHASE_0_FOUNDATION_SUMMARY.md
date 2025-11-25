@@ -10,6 +10,7 @@
 ## Executive Summary
 
 Phase 0 foundation is complete. The Fixzit Souq Marketplace now has:
+
 - ✅ **Comprehensive roadmap** (11 phases, 6-12 months, 180+ SP)
 - ✅ **Feature flags infrastructure** (12 flags with dependency checking)
 - ✅ **FSIN generator** (14-digit unique product identifiers with Luhn check digit)
@@ -24,9 +25,11 @@ This provides the **technical foundation** to begin implementation of the 11 EPI
 ## Deliverables
 
 ### 1. Project Roadmap Document
+
 **File**: `SOUQ_MARKETPLACE_ROADMAP.md`  
 **Size**: ~15,000 lines  
 **Contents**:
+
 - 11 phased implementations (Phase 1-11)
 - 180+ story points mapped to EPICs A-K
 - Technical architecture (13 services)
@@ -37,6 +40,7 @@ This provides the **technical foundation** to begin implementation of the 11 EPI
 - Success metrics (business & technical KPIs)
 
 **Key Phases**:
+
 ```
 Phase 1: Catalog & Brand Registry (4 weeks, 20 SP)
 Phase 2: Seller Onboarding & Health (3 weeks, 15 SP)
@@ -56,12 +60,14 @@ Phase 11: Reporting & Admin (4 weeks, 14 SP)
 ---
 
 ### 2. Feature Flags System
+
 **File**: `lib/souq/feature-flags.ts`  
 **Lines**: 277  
 **Type Safety**: Full TypeScript with strict mode  
 **Errors**: 0
 
 **Features**:
+
 - 12 feature flags (ads, deals, buy_box, settlement, returns_center, etc.)
 - Environment variable overrides (`SOUQ_FEATURE_*`)
 - Dependency checking (e.g., `a_to_z_claims` requires `returns_center`)
@@ -70,12 +76,13 @@ Phase 11: Reporting & Admin (4 weeks, 14 SP)
 - Middleware factory for Next.js routes
 
 **Usage Example**:
+
 ```typescript
 import { isFeatureEnabled, requireFeature } from '@/lib/souq/feature-flags';
 
 export async function GET(req: Request) {
   requireFeature('ads'); // Throws if disabled
-  
+
   // ... rest of handler
 }
 
@@ -86,6 +93,7 @@ if (isFeatureEnabled('buy_box')) {
 ```
 
 **Environment Variables** (added to `.env.example`):
+
 ```bash
 SOUQ_FEATURE_ADS=false
 SOUQ_FEATURE_DEALS=false
@@ -96,6 +104,7 @@ SOUQ_FEATURE_BUY_BOX=false
 ---
 
 ### 3. FSIN Generator
+
 **File**: `lib/souq/fsin-generator.ts`  
 **Lines**: 278  
 **Type Safety**: Full TypeScript with strict mode  
@@ -106,6 +115,7 @@ SOUQ_FEATURE_BUY_BOX=false
 **Validation**: Check digit algorithm (Luhn mod 10)
 
 **Functions**:
+
 - `generateFSIN()` - Single FSIN generation
 - `generateFSINBatch(count)` - Multiple FSINs with collision detection
 - `validateFSIN(fsin)` - Format and check digit validation
@@ -114,8 +124,13 @@ SOUQ_FEATURE_BUY_BOX=false
 - `generateUniqueFSIN()` - Database-aware generation (async)
 
 **Usage Example**:
+
 ```typescript
-import { generateFSIN, validateFSIN, formatFSIN } from '@/lib/souq/fsin-generator';
+import {
+  generateFSIN,
+  validateFSIN,
+  formatFSIN,
+} from "@/lib/souq/fsin-generator";
 
 // Generate FSIN
 const { fsin } = generateFSIN();
@@ -138,12 +153,14 @@ console.log(formatted); // "FX-12345-67890-1"
 ### 4. MongoDB Schemas (4 Models)
 
 #### 4.1 Category Model
+
 **File**: `server/models/souq/Category.ts`  
 **Lines**: 200  
 **Collection**: `souq_categories`  
 **Errors**: 0
 
 **Schema**:
+
 ```typescript
 {
   categoryId: string;     // CAT-{UUID}
@@ -160,6 +177,7 @@ console.log(formatted); // "FX-12345-67890-1"
 ```
 
 **Indexes**:
+
 - `categoryId` (unique)
 - `slug` (unique)
 - `parentCategoryId`
@@ -168,6 +186,7 @@ console.log(formatted); // "FX-12345-67890-1"
 - Full-text search on `name.en` and `name.ar`
 
 **Methods**:
+
 - `getCategoryTree()` - Hierarchical tree structure
 - `getBreadcrumb(categoryId)` - Full path names
 - Auto-update `path` on parent change (pre-save hook)
@@ -175,12 +194,14 @@ console.log(formatted); // "FX-12345-67890-1"
 ---
 
 #### 4.2 Brand Model
+
 **File**: `server/models/souq/Brand.ts`  
 **Lines**: 180  
 **Collection**: `souq_brands`  
 **Errors**: 0
 
 **Schema**:
+
 ```typescript
 {
   brandId: string;        // BRD-{UUID}
@@ -201,6 +222,7 @@ console.log(formatted); // "FX-12345-67890-1"
 ```
 
 **Indexes**:
+
 - `brandId` (unique)
 - `name` (full-text search)
 - `slug` (unique)
@@ -208,6 +230,7 @@ console.log(formatted); // "FX-12345-67890-1"
 - `verificationStatus`
 
 **Methods**:
+
 - `isSellerAuthorized(sellerId)` - Check if seller can list
 - `getPendingVerifications()` - Admin queue
 - Auto-generate slug from name (pre-save hook)
@@ -215,12 +238,14 @@ console.log(formatted); // "FX-12345-67890-1"
 ---
 
 #### 4.3 Product Model
+
 **File**: `server/models/souq/Product.ts`  
 **Lines**: 195  
 **Collection**: `souq_products`  
 **Errors**: 0
 
 **Schema**:
+
 ```typescript
 {
   fsin: string;           // Unique identifier (FX12345678901234)
@@ -244,12 +269,14 @@ console.log(formatted); // "FX-12345-67890-1"
 ```
 
 **Indexes**:
+
 - `fsin` (unique)
 - `categoryId + brandId`
 - `createdBy + isActive`
 - Full-text search on `title.en`, `title.ar`, `searchKeywords`
 
 **Methods**:
+
 - `hasUnresolvedComplianceIssues()` - Check error flags
 - `getPrimaryImage()` - First image URL
 - `searchProducts(query, filters)` - Text search with filters
@@ -257,12 +284,14 @@ console.log(formatted); // "FX-12345-67890-1"
 ---
 
 #### 4.4 Variation Model
+
 **File**: `server/models/souq/Variation.ts`  
 **Lines**: 145  
 **Collection**: `souq_variations`  
 **Errors**: 0
 
 **Schema**:
+
 ```typescript
 {
   variationId: string;    // VAR-{UUID}
@@ -284,12 +313,14 @@ console.log(formatted); // "FX-12345-67890-1"
 ```
 
 **Indexes**:
+
 - `variationId` (unique)
 - `sku` (unique)
 - `fsin + isActive`
 - `upc`, `ean`, `gtin` (sparse indexes)
 
 **Methods**:
+
 - `getDisplayName()` - Human-readable attributes string
 - `getVolumetricWeight()` - (L × W × H) / 5000 for shipping
 - `findByFSIN(fsin)` - All variations for product
@@ -298,11 +329,13 @@ console.log(formatted); // "FX-12345-67890-1"
 ---
 
 ### 5. Navigation Configuration
+
 **File**: `config/souq-navigation.yaml`  
 **Lines**: 450  
 **Format**: YAML (structured, localizable)
 
 **Sections**:
+
 1. **Buyer Navigation** (10 items)
    - Shop: Home, Search, Categories, Deals, Cart
    - Account: Orders, Returns, Wishlist, Reviews
@@ -337,6 +370,7 @@ console.log(formatted); // "FX-12345-67890-1"
    - Browse Marketplace, Become a Seller, Help Center
 
 **Features**:
+
 - Bilingual labels (English/Arabic)
 - Feature flag guards (hide items if flag disabled)
 - RBAC roles (show/hide by user permission)
@@ -346,6 +380,7 @@ console.log(formatted); // "FX-12345-67890-1"
 
 **Usage**:
 Frontend components will parse this YAML to render:
+
 - Sidebar navigation (with RTL support)
 - Breadcrumbs
 - Quick access menus
@@ -354,9 +389,11 @@ Frontend components will parse this YAML to render:
 ---
 
 ### 6. Environment Variables
+
 **File**: `env.example` (updated)  
 **Lines Added**: 120+  
 **Sections**:
+
 1. **Feature Flags** (12 variables)
 2. **Redis** (caching + BullMQ)
 3. **Search Engine** (OpenSearch/Meilisearch)
@@ -375,12 +412,14 @@ Frontend components will parse this YAML to render:
 ## Technical Quality
 
 ### TypeScript Compliance
+
 - ✅ **0 compile errors** across all files
 - ✅ **Strict mode** enabled (no `any`, proper types)
 - ✅ **0 ESLint warnings**
 - ✅ **Full type safety** with interfaces and schemas
 
 ### Code Quality Metrics
+
 ```
 Total Files Created:    7
 Total Lines of Code:    2,500+
@@ -391,6 +430,7 @@ Documentation:          100% (all functions documented)
 ```
 
 ### Files Created
+
 1. ✅ `SOUQ_MARKETPLACE_ROADMAP.md` (15,000 lines)
 2. ✅ `lib/souq/feature-flags.ts` (277 lines)
 3. ✅ `lib/souq/fsin-generator.ts` (278 lines)
@@ -412,6 +452,7 @@ Documentation:          100% (all functions documented)
 ### Stories
 
 **A1: FSIN Generator & Product Creation** (8 SP)
+
 - [ ] Create API endpoints (catalog-svc)
   - `POST /api/souq/catalog/products` - Create product with FSIN
   - `POST /api/souq/catalog/products/:fsin/variations` - Add variations
@@ -438,6 +479,7 @@ Documentation:          100% (all functions documented)
   - Image format/size validation
 
 **A2: Category & Attribute Manager** (4 SP)
+
 - [ ] Admin API endpoints
   - `POST /api/souq/admin/categories` - Create category
   - `PUT /api/souq/admin/categories/:id` - Update category
@@ -458,6 +500,7 @@ Documentation:          100% (all functions documented)
   - Breadcrumb navigation
 
 **A3: Brand Registry** (5 SP)
+
 - [ ] Brand registration workflow
   - `POST /api/souq/brands` - Submit brand
   - `POST /api/souq/brands/:id/documents` - Upload verification docs
@@ -482,6 +525,7 @@ Documentation:          100% (all functions documented)
   - Takedown workflow
 
 **A4: Compliance Engine** (3 SP)
+
 - [ ] Policy rules engine
   - JSON-based compliance rules
   - Hazmat detection (keywords, attributes)
@@ -509,6 +553,7 @@ Documentation:          100% (all functions documented)
 ## Infrastructure Requirements (Before Phase 1)
 
 ### 1. Redis Setup
+
 ```bash
 # Docker (development)
 docker run -d \
@@ -521,17 +566,21 @@ REDIS_URL=redis://localhost:6379
 ```
 
 ### 2. BullMQ Setup
+
 ```bash
 npm install bullmq ioredis
 ```
 
 Create queue infrastructure:
+
 - `/server/queues/souq/` directory
 - Base queue configuration
 - Job processors for compliance checks
 
 ### 3. S3 Storage Setup
+
 **Option A**: AWS S3
+
 ```bash
 # Create bucket: fixzit-marketplace
 # Configure CORS for uploads
@@ -539,6 +588,7 @@ Create queue infrastructure:
 ```
 
 **Option B**: MinIO (local development)
+
 ```bash
 docker run -d \
   --name fixzit-minio \
@@ -556,6 +606,7 @@ S3_BUCKET_NAME=fixzit-marketplace
 ```
 
 ### 4. Search Engine Setup (Meilisearch - Recommended for Development)
+
 ```bash
 docker run -d \
   --name fixzit-meilisearch \
@@ -569,6 +620,7 @@ MEILISEARCH_API_KEY=master_key_dev
 ```
 
 ### 5. Event Bus Setup (NATS - Simpler than Kafka)
+
 ```bash
 docker run -d \
   --name fixzit-nats \
@@ -585,6 +637,7 @@ NATS_URL=nats://localhost:4222
 ## Git Strategy
 
 ### Branch Creation
+
 ```bash
 git checkout -b feat/souq-marketplace-advanced
 git add .
@@ -603,9 +656,11 @@ git push origin feat/souq-marketplace-advanced
 ```
 
 ### Pull Request
+
 **Title**: `[SOUQ] Phase 0: Marketplace Foundation`
 
 **Description**:
+
 ```
 ## Summary
 Phase 0 foundation for Fixzit Souq Marketplace advanced features.
@@ -639,12 +694,14 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 ## Documentation
 
 ### Generated Files
+
 1. ✅ `SOUQ_MARKETPLACE_ROADMAP.md` - Complete project plan
 2. ✅ `PHASE_0_FOUNDATION_SUMMARY.md` - This summary document
 3. 📄 API documentation (to be generated in Phase 1)
 4. 📄 Database schema diagrams (to be generated in Phase 1)
 
 ### Code Documentation
+
 - ✅ **100% function documentation** (JSDoc comments)
 - ✅ **Usage examples** in file headers
 - ✅ **Type definitions** for all interfaces
@@ -654,6 +711,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 ## Success Criteria
 
 ### Phase 0 Goals ✅
+
 - [x] Create comprehensive implementation roadmap
 - [x] Set up feature flags infrastructure
 - [x] Implement FSIN generator
@@ -664,6 +722,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 - [x] Production-ready code quality
 
 ### Phase 1 Readiness
+
 - [ ] Infrastructure setup (Redis, S3, Meilisearch, NATS)
 - [ ] Create branch and open PR for Phase 0
 - [ ] Team alignment on Phase 1 priorities
@@ -675,6 +734,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 ## Risks & Mitigation
 
 ### Identified Risks
+
 1. **Infrastructure Complexity**
    - Risk: Setting up 5+ new services (Redis, S3, search, NATS, BullMQ)
    - Mitigation: Use Docker Compose for local development; document step-by-step
@@ -696,6 +756,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 ## Cost Estimate (Infrastructure)
 
 ### Development Environment (Monthly)
+
 - Redis (local Docker): $0
 - Meilisearch (local Docker): $0
 - S3 (MinIO local): $0
@@ -704,6 +765,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 - **Total**: $0/month
 
 ### Production Environment (Monthly)
+
 - Redis (AWS ElastiCache r6g.large): ~$150
 - Meilisearch Cloud (Standard plan): ~$50
 - S3 (100 GB, 1M requests): ~$25
@@ -713,6 +775,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 - **Total**: ~$505/month
 
 ### Scaling Costs (At 10K sellers, 1M products)
+
 - Redis (r6g.xlarge): ~$300
 - Meilisearch (Pro plan): ~$200
 - S3 (1 TB, 10M requests): ~$240
@@ -726,6 +789,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 ## Team Requirements
 
 ### Phase 1 Team (4 weeks)
+
 - **2x Backend Engineers**: API development, MongoDB schemas, BullMQ jobs
 - **1x Frontend Engineer**: Seller Central UI, product forms, file uploads
 - **1x QA Engineer**: Test plans, automation, acceptance testing
@@ -733,6 +797,7 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 - **1x Product Owner** (part-time): Requirements, acceptance criteria, UAT
 
 ### Phase 2-11 Team
+
 - Same team + 1 additional backend engineer (for parallel EPIC work)
 - Total: 3 backend, 1 frontend, 1 QA, 1 DevOps, 1 PO
 
@@ -741,8 +806,10 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 ## Key Decisions
 
 ### 1. MongoDB vs PostgreSQL
+
 **Decision**: Keep MongoDB for marketplace  
 **Rationale**:
+
 - Existing Fixzit infrastructure is MongoDB
 - Document model fits product attributes well (flexible schemas)
 - Horizontal scaling easier with sharding
@@ -752,8 +819,10 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 **Mitigation**: Use MongoDB transactions where needed; event sourcing for audit
 
 ### 2. NATS vs Kafka
+
 **Decision**: Use NATS for event bus  
 **Rationale**:
+
 - Simpler setup (single binary, no ZooKeeper)
 - Sufficient for <100K msgs/sec (marketplace scale)
 - Built-in JetStream for persistence
@@ -763,8 +832,10 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 **Mitigation**: Can migrate to Kafka later if scale demands
 
 ### 3. Meilisearch vs OpenSearch
+
 **Decision**: Use Meilisearch for Phase 1-5, evaluate OpenSearch for Phase 6+  
 **Rationale**:
+
 - Meilisearch: Easier setup, better DX, faster for <1M documents
 - OpenSearch: Better for complex analytics, larger scale
 
@@ -772,8 +843,10 @@ Phase 0 foundation for Fixzit Souq Marketplace advanced features.
 **Mitigation**: Abstract search interface; plan migration after 500K products
 
 ### 4. Monolith vs Microservices
+
 **Decision**: Monolith with logical service boundaries  
 **Rationale**:
+
 - Next.js API routes (all in `/app/api/souq/`)
 - Logical separation (catalog-svc, seller-svc, etc.) as code modules
 - Avoids microservices overhead (networking, deployment, monitoring)
@@ -845,6 +918,7 @@ Fixzit/
 **Documentation**: See `SOUQ_MARKETPLACE_ROADMAP.md` for detailed implementation plans
 
 **Slack Channels**:
+
 - `#marketplace-dev` - Development discussions
 - `#marketplace-ops` - Infrastructure & deployments
 - `#marketplace-product` - Product requirements & UX

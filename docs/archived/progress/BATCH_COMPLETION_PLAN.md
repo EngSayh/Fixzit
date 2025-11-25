@@ -2,7 +2,7 @@
 
 **Status:** ✅ Rebase Complete | ✅ en.ts Restored  
 **Current Date:** October 13, 2025  
-**Priority:** Complete translations to 100% FIRST, then fixes  
+**Priority:** Complete translations to 100% FIRST, then fixes
 
 ---
 
@@ -10,11 +10,11 @@
 
 ### **Dictionary Files (After Restoration)**
 
-| File | Lines | Keys (approx) | % of Target |
-|------|-------|---------------|-------------|
-| **en.ts** | 20,557 | ~19,150 | **71.5%** |
-| **ar.ts** | 20,595 | ~19,204 | **71.7%** |
-| **Target** | - | 26,784 | 100% |
+| File       | Lines  | Keys (approx) | % of Target |
+| ---------- | ------ | ------------- | ----------- |
+| **en.ts**  | 20,557 | ~19,150       | **71.5%**   |
+| **ar.ts**  | 20,595 | ~19,204       | **71.7%**   |
+| **Target** | -      | 26,784        | 100%        |
 
 ### **Batches Completed**
 
@@ -62,7 +62,7 @@ Batch range: 811-850 (40 batches to be safe)
 - Executive management
 - Corporate strategy
 
-### **Group 2: Batches 821-830**  
+### **Group 2: Batches 821-830**
 
 **Focus:** Industry-Specific Solutions
 
@@ -210,13 +210,13 @@ feat: add 220 AI/ML operations translations (Batch 841-850) - 96.8%
 
 ## 🎯 SUCCESS METRICS
 
-| Metric | Target | Current | Remaining |
-|--------|--------|---------|-----------|
-| **Total Keys** | 26,784 | ~19,200 | ~7,584 |
-| **Batches** | ~122 | 87 | ~35-40 |
-| **Completion %** | 100% | 71.7% | 28.3% |
-| **en.ts Lines** | ~27,000 | 20,557 | ~6,443 |
-| **ar.ts Lines** | ~27,000 | 20,595 | ~6,405 |
+| Metric           | Target  | Current | Remaining |
+| ---------------- | ------- | ------- | --------- |
+| **Total Keys**   | 26,784  | ~19,200 | ~7,584    |
+| **Batches**      | ~122    | 87      | ~35-40    |
+| **Completion %** | 100%    | 71.7%   | 28.3%     |
+| **en.ts Lines**  | ~27,000 | 20,557  | ~6,443    |
+| **ar.ts Lines**  | ~27,000 | 20,595  | ~6,405    |
 
 ---
 

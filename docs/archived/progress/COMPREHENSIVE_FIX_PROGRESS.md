@@ -165,5 +165,6 @@ None currently - all issues are actionable.
 - All changes must go through Pull Request review per governance
 
 ---
+
 **Last Updated**: October 11, 2025  
 **Next Review**: After completing high-priority fixes

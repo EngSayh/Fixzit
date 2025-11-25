@@ -28,18 +28,25 @@ However, **5 critical implementation issues** prevent production deployment:
 **Problem**: Plain CSS does not support SCSS-style nested selectors.
 
 **Current Code** (Lines ~140-145):
+
 ```css
 .dark {
   background-color: var(--dark-bg);
   color: var(--dark-text-primary);
-  .card { background-color: var(--dark-surface); border-color: var(--dark-border); }
-  .kanban-open { background-color: #004085; }
+  .card {
+    background-color: var(--dark-surface);
+    border-color: var(--dark-border);
+  }
+  .kanban-open {
+    background-color: #004085;
+  }
 }
 ```
 
 **Issue**: `.card` inside `.dark` block is SCSS syntax. This will **break CSS compilation**.
 
 **Fix Required**:
+
 ```css
 .dark {
   background-color: var(--dark-bg);
@@ -67,10 +74,11 @@ However, **5 critical implementation issues** prevent production deployment:
 **Problem**: `app/dashboard/layout.tsx` imports `ClientSidebar` (client component) and `ErrorBoundary` (client component) but is a **server component**.
 
 **Current Code** (`app/dashboard/layout.tsx`):
+
 ```tsx
 // This is a SERVER COMPONENT (no "use client")
-import ClientSidebar from '@/app/_shell/ClientSidebar'; // ❌ Client component
-import ErrorBoundary from '@/components/ErrorBoundary'; // ❌ Client component
+import ClientSidebar from "@/app/_shell/ClientSidebar"; // ❌ Client component
+import ErrorBoundary from "@/components/ErrorBoundary"; // ❌ Client component
 ```
 
 **Issue**: In Next.js 13+ App Router, you **cannot import client components directly into server components** as if they're server components. The layout needs to be a client component wrapper.
@@ -105,6 +113,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 ```
 
 Then update `app/dashboard/layout.tsx`:
+
 ```tsx
 // app/dashboard/layout.tsx
 import type { ReactNode } from "react";
@@ -126,18 +135,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 **Problem**: `ClientSidebar.tsx` uses `localStorage` in `useState` initializer, which runs **during server pre-render** where `localStorage` is `undefined`.
 
 **Current Code** (`app/_shell/ClientSidebar.tsx` - hypothetical based on pattern):
+
 ```tsx
 const [collapsed, setCollapsed] = useState(
-  JSON.parse(localStorage.getItem("collapsed") || "{}")
+  JSON.parse(localStorage.getItem("collapsed") || "{}"),
 );
-const [isDark, setIsDark] = useState(
-  localStorage.getItem("theme") === "dark"
-);
+const [isDark, setIsDark] = useState(localStorage.getItem("theme") === "dark");
 ```
 
 **Issue**: Even "use client" components run on the server during SSR/SSG. This causes **runtime error**.
 
 **Fix Required**:
+
 ```tsx
 const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
   if (typeof window === "undefined") return {};
@@ -174,9 +183,11 @@ No action required.
 **Problem**: Current `ClientSidebar` uses `useSession()` to get role/orgId internally (correct), but documentation shows prop-based usage in some places.
 
 **Current Code**: Already implemented correctly using `useSession()`:
+
 ```tsx
 const { data: session } = useSession();
-const userRole: UserRole = (session?.user as { role?: string })?.role as UserRole || 'guest';
+const userRole: UserRole =
+  ((session?.user as { role?: string })?.role as UserRole) || "guest";
 ```
 
 **Status**: **Already Fixed**  
@@ -256,6 +267,7 @@ The system is **conceptually production-ready** with excellent architecture. The
 ## Recommended Next Steps
 
 ### Phase 1: Critical Fixes (Today)
+
 1. Apply Fix 1: CSS nesting → 5 min
 2. Apply Fix 2: AppShell wrapper → 15 min
 3. Apply Fix 3: localStorage guards → 10 min
@@ -263,12 +275,14 @@ The system is **conceptually production-ready** with excellent architecture. The
 5. Deploy: Push to production
 
 ### Phase 2: Polish (This Week)
+
 1. Switch to Node.js v20 LTS
 2. Remove duplicate lockfiles
 3. Run lighthouse audit
 4. Add basic unit tests for queries
 
 ### Phase 3: Enhancement (Next Sprint)
+
 1. Add Redis for WebSocket live updates
 2. Implement Meilisearch for advanced search
 3. Add S3/MinIO for real file uploads
@@ -279,6 +293,7 @@ The system is **conceptually production-ready** with excellent architecture. The
 ## Conclusion
 
 The Fixzit FM system is **exceptionally well-designed** with proper:
+
 - Multi-tenancy
 - RBAC
 - Error handling

@@ -131,7 +131,7 @@ Status: Reviewed and mitigated
    ✅ Expired session redirects to login
    ✅ Multiple concurrent sessions handled
    ✅ Session revocation works (logout clears session)
-   
+
    ⚠️ Token refresh mechanism: NOT YET IMPLEMENTED
    Current: Sessions rely on maxAge expiry (30 days)
    Backlog: Implement automatic token refresh with provider refresh tokens
@@ -194,7 +194,7 @@ Status: Reviewed and mitigated
 4. **Unauthorized Access Attempts**:
    - Try signing in with non-whitelisted domain
    - Verify rejection with error message
-   - Try accessing /fm/* without auth
+   - Try accessing /fm/\* without auth
    - Verify redirect to login
    - Try forging JWT token
    - Verify signature verification rejects it
@@ -292,18 +292,18 @@ async signIn({ user, account }) {
   if (account?.provider === 'google') {
     try {
       const dbUser = await getUserByEmail(user.email);
-      
+
       // Deny access if user not in database or inactive
       if (!dbUser) {
         console.warn('OAuth login denied: User not found in database');
         return false;
       }
-      
+
       if (!dbUser.isActive) {
         console.warn('OAuth login denied: User account is inactive');
         return false;
       }
-      
+
       return true;
     } catch (error) {
       // Sanitized error logging - no PII (email), no connection strings, no stack traces
@@ -325,13 +325,13 @@ async signIn({ user, account }) {
 
 ### Risk Matrix
 
-| Risk | Severity | Likelihood | Impact | Mitigation |
-|------|----------|------------|--------|------------|
-| Beta instability | Medium | Low | High | 29 releases, extensive testing, zero current issues |
-| Breaking changes in stable | Low | Medium | Medium | Monitor releases, test in staging first |
-| Security vulnerability | High | Low | Critical | Applied all security hardening, regular updates |
-| Performance degradation | Medium | Low | Medium | Load testing, monitoring, rollback plan |
-| OAuth provider issues | Medium | Low | High | Error handling, fallback to email login |
+| Risk                       | Severity | Likelihood | Impact   | Mitigation                                          |
+| -------------------------- | -------- | ---------- | -------- | --------------------------------------------------- |
+| Beta instability           | Medium   | Low        | High     | 29 releases, extensive testing, zero current issues |
+| Breaking changes in stable | Low      | Medium     | Medium   | Monitor releases, test in staging first             |
+| Security vulnerability     | High     | Low        | Critical | Applied all security hardening, regular updates     |
+| Performance degradation    | Medium   | Low        | Medium   | Load testing, monitoring, rollback plan             |
+| OAuth provider issues      | Medium   | Low        | High     | Error handling, fallback to email login             |
 
 ### Mitigation Strategies
 
@@ -343,7 +343,7 @@ async signIn({ user, account }) {
    - JWT verification failures
    - Session creation errors
    - Middleware protection bypasses
-   
+
    # Set up alerts for:
    - Error rate > 1% of auth requests
    - Response time > 2s for OAuth callback
@@ -354,17 +354,17 @@ async signIn({ user, account }) {
 
    ```bash
    # If critical issues arise:
-   
+
    # Step 1: Immediate hotfix
    - Revert to previous commit
    - Deploy emergency patch
    - Notify users of temporary maintenance
-   
+
    # Step 2: Downgrade path (if needed)
    - See NEXTAUTH_VERSION_ANALYSIS.md for v4 migration
    - Estimated time: 5-7 hours
    - Requires code changes to 7 files
-   
+
    # Step 3: Post-mortem
    - Document issue and root cause
    - Implement additional safeguards
@@ -379,13 +379,13 @@ async signIn({ user, account }) {
    - Run full E2E test suite
    - Monitor for 7 days
    - Collect metrics and feedback
-   
+
    # Week 2: Canary deployment (10% traffic)
    - Deploy to 10% of production users
    - Monitor error rates and performance
    - Collect user feedback
    - Expand to 50% if stable
-   
+
    # Week 3: Full production rollout
    - Deploy to 100% of users
    - Monitor closely for 48 hours
@@ -407,12 +407,12 @@ async signIn({ user, account }) {
 ```typescript
 // Suppress ONLY NextAuth beta warnings in production
 // IMPORTANT: This preserves all other console.warn calls
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === "production") {
   const originalWarn = console.warn;
   console.warn = (...args) => {
     // Only suppress warnings that mention 'next-auth' AND 'beta'
-    const message = args[0]?.toString() || '';
-    if (message.includes('next-auth') && message.includes('beta')) {
+    const message = args[0]?.toString() || "";
+    if (message.includes("next-auth") && message.includes("beta")) {
       // Suppress NextAuth beta warnings
       return;
     }
@@ -445,7 +445,7 @@ if (process.env.NODE_ENV === 'production') {
    - Update user role: `db.users.updateOne({email: "user@example.com"}, {$set: {role: "ADMIN"}})`
    - User will receive updated role on next login/token refresh
 
-3. **What permissions does USER role grant?**  
+3. **What permissions does USER role grant?**
    - Read-only access to dashboard and profile
    - View work orders (own organization only)
    - View marketplace products
@@ -467,22 +467,24 @@ if (process.env.NODE_ENV === 'production') {
 
 ```typescript
 // If needed, add Credentials provider:
-import Credentials from 'next-auth/providers/credentials';
+import Credentials from "next-auth/providers/credentials";
 
 providers: [
-  Google({ /* ... */ }),
+  Google({
+    /* ... */
+  }),
   Credentials({
     credentials: {
       email: { label: "Email", type: "email" },
-      password: { label: "Password", type: "password" }
+      password: { label: "Password", type: "password" },
     },
     async authorize(credentials) {
       // Implement password verification
       const user = await validateCredentials(credentials);
       return user;
-    }
-  })
-]
+    },
+  }),
+];
 ```
 
 ---
@@ -743,13 +745,13 @@ The comprehensive testing plan, security hardening, risk mitigation, and monitor
 
 **Note**: These conditions gate production deployment. Items marked TBD must be completed before final approval.
 
-- [ ] Completion of integration tests - *Evidence: TBD (In Progress - see Phase 3, lines 59-93)*
-- [ ] Successful E2E test results - *Evidence: TBD (Planned - see Phase 4, lines 94-126)*
-- [ ] Load test passing (1000+ users) - *Evidence: TBD (evidence will be added when Phase 5 load tests are completed)*
-- [ ] OAuth redirect URIs configured - *Evidence: TBD (see checklist line 403 - pending completion)*
-- [x] Production secrets secured - *Evidence: All secrets in GitHub Secrets and .env.production*
-- [x] Monitoring and alerting active - *Evidence: Sentry error tracking + CloudWatch alarms configured*
-- [x] Rollback plan tested - *Evidence: Rollback tested in staging, documented in DEPLOYMENT.md*
+- [ ] Completion of integration tests - _Evidence: TBD (In Progress - see Phase 3, lines 59-93)_
+- [ ] Successful E2E test results - _Evidence: TBD (Planned - see Phase 4, lines 94-126)_
+- [ ] Load test passing (1000+ users) - _Evidence: TBD (evidence will be added when Phase 5 load tests are completed)_
+- [ ] OAuth redirect URIs configured - _Evidence: TBD (see checklist line 403 - pending completion)_
+- [x] Production secrets secured - _Evidence: All secrets in GitHub Secrets and .env.production_
+- [x] Monitoring and alerting active - _Evidence: Sentry error tracking + CloudWatch alarms configured_
+- [x] Rollback plan tested - _Evidence: Rollback tested in staging, documented in DEPLOYMENT.md_
 
 **Deployment Status**: ⚠️ CONDITIONAL APPROVAL - 4 gating criteria pending completion (integration tests, E2E tests, load tests, OAuth URIs)
 

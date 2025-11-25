@@ -189,18 +189,23 @@ CodeRabbit PR #273 comment identified critical bug in `app/finance/budgets/new/p
 ```tsx
 // ❌ WRONG: Closes over stale totalBudget from previous render
 const handleCategoryChange = (id, field, value) => {
-  setCategories(categories.map(cat => {
-    if (cat.id === id) {
-      const updated = { ...cat, [field]: value };
-      if (field === 'amount' && !totalBudget.isZero()) {
-        // totalBudget is stale!
-        const percentageDec = percentageFromAmount(updated.amount, totalBudget);
-        updated.percentage = Math.round(toNumber(percentageDec));
+  setCategories(
+    categories.map((cat) => {
+      if (cat.id === id) {
+        const updated = { ...cat, [field]: value };
+        if (field === "amount" && !totalBudget.isZero()) {
+          // totalBudget is stale!
+          const percentageDec = percentageFromAmount(
+            updated.amount,
+            totalBudget,
+          );
+          updated.percentage = Math.round(toNumber(percentageDec));
+        }
+        return updated;
       }
-      return updated;
-    }
-    return cat;
-  }));
+      return cat;
+    }),
+  );
 };
 ```
 
@@ -214,13 +219,13 @@ const handleCategoryChange = (id, field, value) => {
   setCategories((prevCategories) => {
     // Step 1: Compute updated categories
     const nextCategories = prevCategories.map((cat) =>
-      cat.id === id ? { ...cat, [field]: value } : cat
+      cat.id === id ? { ...cat, [field]: value } : cat,
     );
 
     // Step 2: Recompute total from updated categories
     const nextTotal = nextCategories.reduce(
-      (sum, cat) => sum + (cat.amount || 0), 
-      0
+      (sum, cat) => sum + (cat.amount || 0),
+      0,
     );
 
     // Step 3: Recalculate dependent field with fresh total
@@ -229,13 +234,13 @@ const handleCategoryChange = (id, field, value) => {
 
       const updated = { ...cat };
 
-      if (field === 'amount' && nextTotal !== 0) {
+      if (field === "amount" && nextTotal !== 0) {
         const amt = updated.amount as number;
         // Round to 2 decimals, not whole number
         updated.percentage = Math.round((amt / nextTotal) * 100 * 100) / 100;
       }
 
-      if (field === 'percentage' && nextTotal !== 0) {
+      if (field === "percentage" && nextTotal !== 0) {
         const pct = updated.percentage as number;
         // Round to 2 decimals, not whole number
         updated.amount = Math.round(nextTotal * (pct / 100) * 100) / 100;
@@ -304,13 +309,13 @@ Author: Eng. Sultan Al Hassni <215296846+EngSayh@users.noreply.github.com>
 Date:   Mon Nov 11 06:06:17 2025 +0000
 
     fix(finance): Fix stale totalBudget closure in handleCategoryChange
-    
+
     - Use functional state updates (prevCategories) instead of closure over categories
     - Recompute nextTotal from updated categories before calculating dependent fields
     - Fixes CodeRabbit PR #273 comment: stale memoized totalBudget causes incorrect percentage/amount calculations
     - Round to 2 decimals to prevent floating point drift
     - Prevents first edit from using stale total (was 0)
-    
+
     Addresses: PR #273 CodeRabbit outside-diff-range comment
 ```
 

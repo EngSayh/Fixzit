@@ -12,15 +12,16 @@
 **Issue:** `redis` package missing while both `redis` and `ioredis` are used in production code.
 
 **Analysis:**
+
 - `ioredis` (✅ already installed) - Used in 3 production files:
   - `lib/redis-client.ts` - Main Redis client configuration
   - `services/souq/ads/budget-manager.ts` - Ad budget tracking
   - `jobs/search-index-jobs.ts` - Background job queues
-  
 - `redis` (❌ missing) - Used in 1 production file:
   - `services/souq/settlements/balance-service.ts` - Real-time seller balance tracking
 
 **Resolution:**
+
 ```bash
 pnpm add redis
 ```
@@ -35,11 +36,13 @@ The settlements balance service requires the `redis` package for real-time balan
 **Issue:** `@faker-js/faker` missing for seed scripts.
 
 **Analysis:**
+
 - Used in: `scripts/seed-aqar-data.js`
 - Purpose: Generate realistic test data for Aqar property listings
 - Impact: Non-critical but useful for development/testing
 
 **Resolution:**
+
 ```bash
 pnpm add @faker-js/faker -D
 ```
@@ -54,6 +57,7 @@ While this is a dev tool, it's used for generating comprehensive test data for p
 ### 3. Express (8 Script Files)
 
 **Files Using Express:**
+
 ```
 scripts/serve-frontend.js
 scripts/server-broken.js
@@ -68,12 +72,14 @@ scripts/FINAL_FIX_EVERYTHING.sh
 **Decision:** ❌ NOT INSTALLED
 
 **Reasoning:**
+
 1. **Next.js Architecture**: This is a Next.js 15 app with built-in server (`next dev`, `next start`)
 2. **Script Type**: All these are legacy/test/migration scripts, NOT used in production
 3. **Already Running**: Dev server runs on `http://localhost:3000` using Next.js, not Express
 4. **Technical Debt**: These scripts should be archived or removed in future cleanup
 
 **Express-Related Packages (Not Needed):**
+
 - `express`
 - `express-validator`
 - `express-rate-limit`
@@ -88,6 +94,7 @@ scripts/FINAL_FIX_EVERYTHING.sh
 **Issue:** `tests/integration/api.test.ts` imports `supertest`, but the package was not listed in devDependencies, causing `depcheck` to flag a missing dependency.
 
 **Resolution:**
+
 ```bash
 pnpm add -D supertest
 ```
@@ -99,6 +106,7 @@ pnpm add -D supertest
 **Issue:** `@types/bcrypt` was installed even though the codebase exclusively uses `bcryptjs` (with `@types/bcryptjs`). No files import `bcrypt`.
 
 **Resolution:**
+
 ```bash
 pnpm remove @types/bcrypt
 ```
@@ -107,12 +115,12 @@ pnpm remove @types/bcrypt
 
 ### 6. False Positives (Remain Installed)
 
-| Package        | Reason depcheck flags it | Why it stays |
-|----------------|--------------------------|--------------|
-| `autoprefixer` | Only referenced from `postcss.config.js` | Required by PostCSS to add vendor prefixes during builds |
-| `postcss`      | Loaded via Next/Tailwind build tooling   | Needed for Tailwind/PostCSS pipeline |
+| Package        | Reason depcheck flags it                 | Why it stays                                                            |
+| -------------- | ---------------------------------------- | ----------------------------------------------------------------------- |
+| `autoprefixer` | Only referenced from `postcss.config.js` | Required by PostCSS to add vendor prefixes during builds                |
+| `postcss`      | Loaded via Next/Tailwind build tooling   | Needed for Tailwind/PostCSS pipeline                                    |
 | `cross-env`    | Only used inside `package.json` scripts  | Required to set env vars across shells (dozens of scripts depend on it) |
-| `prettier`     | Invoked manually / via tooling           | Kept as the project formatter and referenced in tooling configs |
+| `prettier`     | Invoked manually / via tooling           | Kept as the project formatter and referenced in tooling configs         |
 
 These packages should be added to the depcheck ignore list (or left documented here) to avoid future false positives.
 
@@ -127,6 +135,7 @@ These packages should be added to the depcheck ignore list (or left documented h
 **Decision:** ❌ NOT INSTALLED
 
 **Reasoning:**
+
 1. **System Tool**: k6 is a standalone CLI tool, not a Node.js package
 2. **Installation**: Should be installed via Homebrew (`brew install k6`)
 3. **Usage**: For performance testing only, not required for development
@@ -134,6 +143,7 @@ These packages should be added to the depcheck ignore list (or left documented h
 
 **Future Action:**  
 If load testing is needed:
+
 ```bash
 brew install k6
 # Create tests in scripts/load/
@@ -143,14 +153,14 @@ brew install k6
 
 ## 📊 Final Status
 
-| Package | Status | Installed Version | Reason |
-|---------|--------|-------------------|--------|
-| `ioredis` | ✅ Already Present | 5.8.2 | Production (Budget Manager, Redis Client, Job Queues) |
-| `redis` | ✅ **ADDED** | 5.9.0 | Production (Settlements Balance Service) |
-| `@faker-js/faker` | ✅ **ADDED** | 10.1.0 | Development (Seed Scripts) |
-| `express` | ❌ Not Needed | - | Next.js handles routing |
-| `express-*` packages | ❌ Not Needed | - | Next.js middleware sufficient |
-| `k6` | ❌ Not Needed | - | System tool, install via Homebrew if needed |
+| Package              | Status             | Installed Version | Reason                                                |
+| -------------------- | ------------------ | ----------------- | ----------------------------------------------------- |
+| `ioredis`            | ✅ Already Present | 5.8.2             | Production (Budget Manager, Redis Client, Job Queues) |
+| `redis`              | ✅ **ADDED**       | 5.9.0             | Production (Settlements Balance Service)              |
+| `@faker-js/faker`    | ✅ **ADDED**       | 10.1.0            | Development (Seed Scripts)                            |
+| `express`            | ❌ Not Needed      | -                 | Next.js handles routing                               |
+| `express-*` packages | ❌ Not Needed      | -                 | Next.js middleware sufficient                         |
+| `k6`                 | ❌ Not Needed      | -                 | System tool, install via Homebrew if needed           |
 
 ---
 
@@ -193,11 +203,14 @@ These warnings are **non-critical** and can be safely ignored:
 ## 🎯 Recommendations
 
 ### Immediate (Already Done)
+
 - ✅ Installed `redis` for production settlements service
 - ✅ Installed `@faker-js/faker` for seed scripts
 
 ### Short-Term (Next Sprint)
+
 1. **Archive Legacy Scripts**: Move unused Express server scripts to `.archive/`
+
    ```bash
    mkdir -p .archive/legacy-servers
    mv scripts/server*.js .archive/legacy-servers/
@@ -212,6 +225,7 @@ These warnings are **non-critical** and can be safely ignored:
 3. **Clean Up Test Scripts**: Remove or consolidate duplicate test servers
 
 ### Long-Term (Future)
+
 1. Consider load testing with k6 (install via Homebrew)
 2. Upgrade `yaml` to v2 if peer warnings become problematic
 3. Review GCP metadata version if deploying to Google Cloud

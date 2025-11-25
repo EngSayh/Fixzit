@@ -1,112 +1,170 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" dir="ltr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Fixzit — Facility Management + Marketplace</title>
-  <meta name="description" content="Fixzit: World-class Facility Management platform with integrated marketplaces (Aqar Souq & Fixzit Souq).">
-  <link rel="icon" href="assets/img/logo.jpg" />
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Tailwind CDN (Day-1 only) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter','Noto Sans Arabic','system-ui','sans-serif']
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Fixzit — Facility Management + Marketplace</title>
+    <meta
+      name="description"
+      content="Fixzit: World-class Facility Management platform with integrated marketplaces (Aqar Souq & Fixzit Souq)."
+    />
+    <link rel="icon" href="assets/img/logo.jpg" />
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Tailwind CDN (Day-1 only) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "Noto Sans Arabic", "system-ui", "sans-serif"],
+            },
+            colors: {
+              primary: "#b46b2f",
+              accent: "#d68b4a",
+              success: "#6e4d2c",
+              warning: "#c98036",
+              ink: "#2a2017",
+            },
+            boxShadow: { glass: "0 10px 30px rgba(0,0,0,0.08)" },
+            backgroundImage: {
+              "hero-gradient":
+                "linear-gradient(135deg, rgba(180,107,47,0.92), rgba(214,139,74,0.92))",
+            },
           },
-          colors: {
-            primary: '#b46b2f',
-            accent: '#d68b4a',
-            success: '#6e4d2c',
-            warning: '#c98036',
-            ink: '#2a2017'
-          },
-          boxShadow: { glass: '0 10px 30px rgba(0,0,0,0.08)' },
-          backgroundImage: {
-            'hero-gradient': 'linear-gradient(135deg, rgba(180,107,47,0.92), rgba(214,139,74,0.92))'
-          }
-        }
-      }
-    }
-  </script>
-  <link rel="stylesheet" href="assets/css/theme.css" />
-</head>
-<body class="text-slate-900">
-  <!-- Dynamic Header -->
-  <div id="site-header"></div>
+        },
+      };
+    </script>
+    <link rel="stylesheet" href="assets/css/theme.css" />
+  </head>
+  <body class="text-slate-900">
+    <!-- Dynamic Header -->
+    <div id="site-header"></div>
 
-  <!-- Hero -->
-  <section class="relative overflow-hidden">
-    <img src="assets/img/hero.jpg" onerror="this.style.display='none'" alt="" class="absolute inset-0 w-full h-full object-cover opacity-70">
-    <div class="absolute inset-0 bg-hero-gradient"></div>
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
-      <div class="max-w-3xl text-white">
-        <h1 class="text-4xl md:text-6xl font-extrabold leading-tight drop-shadow-sm" data-i18n="hero.title">
-          Operate properties flawlessly. Monetize services smartly.
-        </h1>
-        <p class="mt-6 text-lg md:text-xl opacity-95" data-i18n="hero.subtitle">
-          Fixzit unifies Facility Management, Work Orders, Finance, CRM, and two marketplaces (Aqar Souq & Fixzit Souq) in one modern platform.
-        </p>
-        <div class="mt-8 flex flex-wrap gap-3">
-          <a href="#fm" class="btn-primary" data-i18n="cta.getStarted">Get Started</a>
-          <a href="#souq" class="btn-secondary" data-i18n="cta.viewMarket">View Marketplaces</a>
+    <!-- Hero -->
+    <section class="relative overflow-hidden">
+      <img
+        src="assets/img/hero.jpg"
+        onerror="this.style.display='none'"
+        alt=""
+        class="absolute inset-0 w-full h-full object-cover opacity-70"
+      />
+      <div class="absolute inset-0 bg-hero-gradient"></div>
+      <div
+        class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28"
+      >
+        <div class="max-w-3xl text-white">
+          <h1
+            class="text-4xl md:text-6xl font-extrabold leading-tight drop-shadow-sm"
+            data-i18n="hero.title"
+          >
+            Operate properties flawlessly. Monetize services smartly.
+          </h1>
+          <p
+            class="mt-6 text-lg md:text-xl opacity-95"
+            data-i18n="hero.subtitle"
+          >
+            Fixzit unifies Facility Management, Work Orders, Finance, CRM, and
+            two marketplaces (Aqar Souq & Fixzit Souq) in one modern platform.
+          </p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a href="#fm" class="btn-primary" data-i18n="cta.getStarted"
+              >Get Started</a
+            >
+            <a href="#souq" class="btn-secondary" data-i18n="cta.viewMarket"
+              >View Marketplaces</a
+            >
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Modules Grid -->
-  <section id="modules" class="py-16 md:py-20">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h2 class="text-2xl md:text-3xl font-bold text-brand" data-i18n="modules.title">Everything your FM operation needs — connected</h2>
-      <p class="mt-3 text-slate-600" data-i18n="modules.subtitle">Modular, role-based, Arabic/English, and mobile-ready from day one.</p>
-      <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <article class="card">
-          <h3 class="card-title" data-i18n="modules.workOrders.title">Work Orders</h3>
-          <p class="card-body" data-i18n="modules.workOrders.desc">Dispatch, SLAs, photos, chat, and technician app.</p>
-        </article>
-        <article class="card">
-          <h3 class="card-title" data-i18n="modules.properties.title">Properties</h3>
-          <p class="card-body" data-i18n="modules.properties.desc">Units, assets, leases, owners and statements.</p>
-        </article>
-        <article class="card">
-          <h3 class="card-title" data-i18n="modules.finance.title">Finance</h3>
-          <p class="card-body" data-i18n="modules.finance.desc">Invoices, ZATCA QR, receipts, vendor payables.</p>
-        </article>
-        <article class="card">
-          <h3 class="card-title" data-i18n="modules.crm.title">CRM</h3>
-          <p class="card-body" data-i18n="modules.crm.desc">Tickets, CSAT, campaigns, WhatsApp and email.</p>
-        </article>
-        <article class="card">
-          <h3 class="card-title" data-i18n="modules.aqarSouq.title">Aqar Souq</h3>
-          <p class="card-body" data-i18n="modules.aqarSouq.desc">Real estate catalog; viewable public pins, login to act.</p>
-        </article>
-        <article class="card">
-          <h3 class="card-title" data-i18n="modules.fixzitSouq.title">Fixzit Souq</h3>
-          <p class="card-body" data-i18n="modules.fixzitSouq.desc">Materials & services marketplace with 5% margin logic.</p>
-        </article>
+    <!-- Modules Grid -->
+    <section id="modules" class="py-16 md:py-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2
+          class="text-2xl md:text-3xl font-bold text-brand"
+          data-i18n="modules.title"
+        >
+          Everything your FM operation needs — connected
+        </h2>
+        <p class="mt-3 text-slate-600" data-i18n="modules.subtitle">
+          Modular, role-based, Arabic/English, and mobile-ready from day one.
+        </p>
+        <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <article class="card">
+            <h3 class="card-title" data-i18n="modules.workOrders.title">
+              Work Orders
+            </h3>
+            <p class="card-body" data-i18n="modules.workOrders.desc">
+              Dispatch, SLAs, photos, chat, and technician app.
+            </p>
+          </article>
+          <article class="card">
+            <h3 class="card-title" data-i18n="modules.properties.title">
+              Properties
+            </h3>
+            <p class="card-body" data-i18n="modules.properties.desc">
+              Units, assets, leases, owners and statements.
+            </p>
+          </article>
+          <article class="card">
+            <h3 class="card-title" data-i18n="modules.finance.title">
+              Finance
+            </h3>
+            <p class="card-body" data-i18n="modules.finance.desc">
+              Invoices, ZATCA QR, receipts, vendor payables.
+            </p>
+          </article>
+          <article class="card">
+            <h3 class="card-title" data-i18n="modules.crm.title">CRM</h3>
+            <p class="card-body" data-i18n="modules.crm.desc">
+              Tickets, CSAT, campaigns, WhatsApp and email.
+            </p>
+          </article>
+          <article class="card">
+            <h3 class="card-title" data-i18n="modules.aqarSouq.title">
+              Aqar Souq
+            </h3>
+            <p class="card-body" data-i18n="modules.aqarSouq.desc">
+              Real estate catalog; viewable public pins, login to act.
+            </p>
+          </article>
+          <article class="card">
+            <h3 class="card-title" data-i18n="modules.fixzitSouq.title">
+              Fixzit Souq
+            </h3>
+            <p class="card-body" data-i18n="modules.fixzitSouq.desc">
+              Materials & services marketplace with 5% margin logic.
+            </p>
+          </article>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- CTA banner -->
-  <section class="py-12 bg-white/70 backdrop-blur">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
-      <p class="text-lg font-medium text-brand" data-i18n="cta.banner">Ready to modernize your FM operations with Arabic/English by default?</p>
-      <a href="#login" class="btn-primary" data-i18n="cta.signIn">Sign in</a>
-    </div>
-  </section>
+    <!-- CTA banner -->
+    <section class="py-12 bg-white/70 backdrop-blur">
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4"
+      >
+        <p class="text-lg font-medium text-brand" data-i18n="cta.banner">
+          Ready to modernize your FM operations with Arabic/English by default?
+        </p>
+        <a href="#login" class="btn-primary" data-i18n="cta.signIn">Sign in</a>
+      </div>
+    </section>
 
-  <!-- Dynamic Footer -->
-  <div id="site-footer"></div>
+    <!-- Dynamic Footer -->
+    <div id="site-footer"></div>
 
-  <script src="assets/js/i18n.js"></script>
-  <script src="assets/js/header-footer.js"></script>
-  <script src="assets/js/app.js"></script>
-</body>
+    <script src="assets/js/i18n.js"></script>
+    <script src="assets/js/header-footer.js"></script>
+    <script src="assets/js/app.js"></script>
+  </body>
 </html>

@@ -1,9 +1,16 @@
-'use client';
-import { logger } from '@/lib/logger';
+"use client";
+import { logger } from "@/lib/logger";
 
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
-export type CurrencyCode = 'SAR' | 'USD' | 'EUR' | 'GBP' | 'AED';
+export type CurrencyCode = "SAR" | "USD" | "EUR" | "GBP" | "AED";
 
 export type CurrencyOption = {
   code: CurrencyCode;
@@ -13,14 +20,14 @@ export type CurrencyOption = {
 };
 
 export const CURRENCY_OPTIONS = [
-  { code: 'SAR', name: 'Saudi Riyal', symbol: '﷼', flag: '🇸🇦' },
-  { code: 'USD', name: 'US Dollar', symbol: '$', flag: '🇺🇸' },
-  { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺' },
-  { code: 'GBP', name: 'Pound Sterling', symbol: '£', flag: '🇬🇧' },
-  { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', flag: '🇦🇪' }
+  { code: "SAR", name: "Saudi Riyal", symbol: "﷼", flag: "🇸🇦" },
+  { code: "USD", name: "US Dollar", symbol: "$", flag: "🇺🇸" },
+  { code: "EUR", name: "Euro", symbol: "€", flag: "🇪🇺" },
+  { code: "GBP", name: "Pound Sterling", symbol: "£", flag: "🇬🇧" },
+  { code: "AED", name: "UAE Dirham", symbol: "د.إ", flag: "🇦🇪" },
 ] as const satisfies readonly CurrencyOption[];
 
-const DEFAULT_CURRENCY: CurrencyCode = 'SAR';
+const DEFAULT_CURRENCY: CurrencyCode = "SAR";
 
 interface CurrencyContextType {
   currency: CurrencyCode;
@@ -28,7 +35,9 @@ interface CurrencyContextType {
   options: readonly CurrencyOption[];
 }
 
-const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
+const CurrencyContext = createContext<CurrencyContextType | undefined>(
+  undefined,
+);
 
 /**
  * Provides application-wide currency state and persistence to descendants.
@@ -47,26 +56,37 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   // Hydrate from DOM attribute -> localStorage -> cookie once on mount
   useEffect(() => {
     try {
-      const fromAttr = document.documentElement.getAttribute('data-currency') as CurrencyCode | null;
-      if (fromAttr && CURRENCY_OPTIONS.some(o => o.code === fromAttr)) {
+      const fromAttr = document.documentElement.getAttribute(
+        "data-currency",
+      ) as CurrencyCode | null;
+      if (fromAttr && CURRENCY_OPTIONS.some((o) => o.code === fromAttr)) {
         skipNextPersistRef.current = true;
-        setCurrencyState(prev => (prev !== fromAttr ? fromAttr : prev));
+        setCurrencyState((prev) => (prev !== fromAttr ? fromAttr : prev));
       } else {
-        const fromLS = window.localStorage.getItem('fixzit-currency') as CurrencyCode | null;
-        if (fromLS && CURRENCY_OPTIONS.some(o => o.code === fromLS)) {
+        const fromLS = window.localStorage.getItem(
+          "fixzit-currency",
+        ) as CurrencyCode | null;
+        if (fromLS && CURRENCY_OPTIONS.some((o) => o.code === fromLS)) {
           skipNextPersistRef.current = true;
-          setCurrencyState(prev => (prev !== fromLS ? fromLS : prev));
+          setCurrencyState((prev) => (prev !== fromLS ? fromLS : prev));
         } else {
-          const match = document.cookie.match(/(?:^|;\s*)fxz\.currency=([^;]+)/);
+          const match = document.cookie.match(
+            /(?:^|;\s*)fxz\.currency=([^;]+)/,
+          );
           const fromCookie = (match && match[1]) as CurrencyCode | undefined;
-          if (fromCookie && CURRENCY_OPTIONS.some(o => o.code === fromCookie)) {
+          if (
+            fromCookie &&
+            CURRENCY_OPTIONS.some((o) => o.code === fromCookie)
+          ) {
             skipNextPersistRef.current = true;
-            setCurrencyState(prev => (prev !== fromCookie ? fromCookie : prev));
+            setCurrencyState((prev) =>
+              prev !== fromCookie ? fromCookie : prev,
+            );
           }
         }
       }
     } catch (error) {
-      logger.warn('Could not hydrate currency preference', { error });
+      logger.warn("Could not hydrate currency preference", { error });
     } finally {
       hydratedRef.current = true;
     }
@@ -75,15 +95,15 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   // Cross-tab sync for currency updates written to localStorage
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'fixzit-currency' && typeof e.newValue === 'string') {
+      if (e.key === "fixzit-currency" && typeof e.newValue === "string") {
         const next = e.newValue as CurrencyCode;
-        if (CURRENCY_OPTIONS.some(o => o.code === next)) {
-          setCurrencyState(prev => (prev !== next ? next : prev));
+        if (CURRENCY_OPTIONS.some((o) => o.code === next)) {
+          setCurrencyState((prev) => (prev !== next ? next : prev));
         }
       }
     };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   // Persist only after hydration
@@ -94,24 +114,29 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     try {
-      window.localStorage.setItem('fixzit-currency', currency);
-      document.documentElement.setAttribute('data-currency', currency);
-      const secureAttr = (typeof window !== 'undefined' && typeof window.location !== 'undefined' && window.location.protocol === 'https:') ? '; Secure' : '';
+      window.localStorage.setItem("fixzit-currency", currency);
+      document.documentElement.setAttribute("data-currency", currency);
+      const secureAttr =
+        typeof window !== "undefined" &&
+        typeof window.location !== "undefined" &&
+        window.location.protocol === "https:"
+          ? "; Secure"
+          : "";
       const maxAge = 31536000; // 1 year
       const expires = new Date(Date.now() + maxAge * 1000).toUTCString();
       document.cookie = `fxz.currency=${encodeURIComponent(currency)}; Path=/; SameSite=Strict; Max-Age=${maxAge}; Expires=${expires}${secureAttr}`;
       window.dispatchEvent(
-        new CustomEvent('fixzit:currency-change', {
-          detail: { currency }
-        })
+        new CustomEvent("fixzit:currency-change", {
+          detail: { currency },
+        }),
       );
     } catch (error) {
-      logger.warn('Could not persist currency preference', { error });
+      logger.warn("Could not persist currency preference", { error });
     }
   }, [currency]);
 
   const setCurrency = (next: CurrencyCode) => {
-    if (!CURRENCY_OPTIONS.some(item => item.code === next)) return;
+    if (!CURRENCY_OPTIONS.some((item) => item.code === next)) return;
     setCurrencyState(next);
   };
 
@@ -119,12 +144,16 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     () => ({
       currency,
       setCurrency,
-      options: CURRENCY_OPTIONS
+      options: CURRENCY_OPTIONS,
     }),
-    [currency]
+    [currency],
   );
 
-  return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
+  return (
+    <CurrencyContext.Provider value={value}>
+      {children}
+    </CurrencyContext.Provider>
+  );
 }
 
 /**
@@ -140,17 +169,19 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 export function useCurrency() {
   const context = useContext(CurrencyContext);
   if (!context) {
-    if (process.env.NODE_ENV === 'development') {
-      logger.warn('useCurrency called outside CurrencyProvider. Using fallback values.');
+    if (process.env.NODE_ENV === "development") {
+      logger.warn(
+        "useCurrency called outside CurrencyProvider. Using fallback values.",
+      );
     }
     return {
       currency: DEFAULT_CURRENCY,
       setCurrency: () => {
-        if (process.env.NODE_ENV === 'development') {
-          logger.warn('setCurrency called outside CurrencyProvider. No-op.');
+        if (process.env.NODE_ENV === "development") {
+          logger.warn("setCurrency called outside CurrencyProvider. No-op.");
         }
       },
-      options: CURRENCY_OPTIONS
+      options: CURRENCY_OPTIONS,
     } as CurrencyContextType;
   }
   return context;

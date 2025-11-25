@@ -1,14 +1,14 @@
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 /**
  * IP utility functions for secure client IP extraction
  */
 
 /**
  * Check if an IP address is in a private/reserved range
- * 
+ *
  * Private ranges:
  * - 10.0.0.0/8 (Class A private)
- * - 172.16.0.0/12 (Class B private) 
+ * - 172.16.0.0/12 (Class B private)
  * - 192.168.0.0/16 (Class C private)
  * - 127.0.0.0/8 (Loopback)
  * - 169.254.0.0/16 (Link-local)
@@ -20,42 +20,45 @@ import { logger } from '@/lib/logger';
  * - ::ffff:0:0/96 (IPv4-mapped IPv6)
  */
 export function isPrivateIP(ip: string): boolean {
-  if (!ip || ip === 'unknown') return true;
-  
+  if (!ip || ip === "unknown") return true;
+
   // IPv6 ranges with proper CIDR-aware matching
-  if (ip.includes(':')) {
+  if (ip.includes(":")) {
     const normalized = ip.toLowerCase();
-    
+
     // ::1/128 - IPv6 loopback
-    if (normalized === '::1') return true;
-    
+    if (normalized === "::1") return true;
+
     // fe80::/10 - Link-local (fe80 to febf)
     // Extract first 4 hex characters after any leading colons and check range 0xfe80-0xfebf
-    const stripped = normalized.replace(/^:+/, '');
+    const stripped = normalized.replace(/^:+/, "");
     const firstFourHex = stripped.slice(0, 4);
-    
+
     if (/^fe[89ab][0-9a-f]$/i.test(firstFourHex)) {
       // Valid fe8x, fe9x, feax, or febx prefix (fe80::/10 range)
       return true;
     }
-    
+
     // fc00::/7 - Unique Local Address (fc00 to fdff)
-    if (normalized.startsWith('fc') || normalized.startsWith('fd')) {
+    if (normalized.startsWith("fc") || normalized.startsWith("fd")) {
       return true;
     }
-    
+
     // ff00::/8 - Multicast
-    if (normalized.startsWith('ff')) {
+    if (normalized.startsWith("ff")) {
       return true;
     }
-    
+
     // 2001:db8::/32 - Documentation
-    if (normalized.startsWith('2001:db8:') || normalized.startsWith('2001:0db8:')) {
+    if (
+      normalized.startsWith("2001:db8:") ||
+      normalized.startsWith("2001:0db8:")
+    ) {
       return true;
     }
-    
+
     // ::ffff:0:0/96 - IPv4-mapped IPv6 addresses
-    if (normalized.startsWith('::ffff:')) {
+    if (normalized.startsWith("::ffff:")) {
       // Extract the IPv4 part and check it
       const ipv4Match = normalized.match(/::ffff:(\d+\.\d+\.\d+\.\d+)/);
       if (ipv4Match) {
@@ -63,73 +66,73 @@ export function isPrivateIP(ip: string): boolean {
       }
       return true;
     }
-    
+
     // All other IPv6 addresses are public (2000::/3 global unicast, etc.)
     // Valid IPv6 format check: must have at least one colon and valid hex chars
     if (/^[0-9a-f:]+$/i.test(normalized)) {
       return false; // Public IPv6 address
     }
-    
+
     // SECURITY: Fail-safe - treat malformed/unparsable IPs as private
     return true;
   }
-  
+
   // IPv4 private and reserved ranges
-  const parts = ip.split('.').map(Number);
-  if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) {
+  const parts = ip.split(".").map(Number);
+  if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) {
     return true; // Invalid IP is considered private
   }
-  
+
   const [a, b] = parts;
-  
+
   // ✅ RFC 1918 Private ranges
   // 10.0.0.0/8
   if (a === 10) return true;
-  
+
   // 172.16.0.0/12
   if (a === 172 && b >= 16 && b <= 31) return true;
-  
+
   // 192.168.0.0/16
   if (a === 192 && b === 168) return true;
-  
+
   // ✅ RFC 6890 Special-Purpose Address Registries
   // 0.0.0.0/8 - "This network"
   if (a === 0) return true;
-  
+
   // 127.0.0.0/8 - Loopback
   if (a === 127) return true;
-  
+
   // 169.254.0.0/16 - Link-local
   if (a === 169 && b === 254) return true;
-  
+
   // ✅ RFC 6598 - CGNAT (Carrier-Grade NAT)
   // 100.64.0.0/10
   if (a === 100 && b >= 64 && b <= 127) return true;
-  
+
   // ✅ RFC 2544 - Benchmarking
   // 198.18.0.0/15
   if (a === 198 && (b === 18 || b === 19)) return true;
-  
+
   // ✅ RFC 1112 - Multicast
   // 224.0.0.0/4 (224-239)
   if (a >= 224 && a <= 239) return true;
-  
+
   // ✅ RFC 1112 - Reserved for future use
   // 240.0.0.0/4 (240-255)
   if (a >= 240) return true;
-  
+
   return false;
 }
 
 /**
  * Validate and parse TRUSTED_PROXY_COUNT environment variable
- * 
+ *
  * @returns {number} Number of trusted proxy hops (default: 1)
  * @throws {Error} If TRUSTED_PROXY_COUNT is invalid
  */
 export function validateTrustedProxyCount(): number {
   const envValue = process.env.TRUSTED_PROXY_COUNT;
-  
+
   if (!envValue) {
     // ✅ FIXED: Default to 0 (no proxy stripping) to require explicit configuration
     // This prevents misidentifying Cloudflare/Vercel IPs as clients when env var is unset
@@ -139,21 +142,21 @@ export function validateTrustedProxyCount(): number {
     // - Direct connection: leave at 0
     return 0;
   }
-  
+
   const count = parseInt(envValue, 10);
-  
+
   if (isNaN(count) || count < 0) {
     throw new Error(
-      `Invalid TRUSTED_PROXY_COUNT: "${envValue}". Must be a non-negative integer.`
+      `Invalid TRUSTED_PROXY_COUNT: "${envValue}". Must be a non-negative integer.`,
     );
   }
-  
+
   if (count > 10) {
     logger.warn(
-      `⚠️  High TRUSTED_PROXY_COUNT (${count}). Verify your proxy chain configuration.`
+      `⚠️  High TRUSTED_PROXY_COUNT (${count}). Verify your proxy chain configuration.`,
     );
   }
-  
+
   return count;
 }
 
@@ -164,24 +167,33 @@ export function validateTrustedProxyCount(): number {
 export function validateProxyConfiguration(): void {
   try {
     const trustedProxyCount = validateTrustedProxyCount();
-    
+
     logger.info(`✅ Proxy configuration validated:`);
     logger.info(`   - TRUSTED_PROXY_COUNT: ${trustedProxyCount}`);
-    logger.info(`   - TRUST_X_REAL_IP: ${process.env.TRUST_X_REAL_IP || 'false'}`);
-    
+    logger.info(
+      `   - TRUST_X_REAL_IP: ${process.env.TRUST_X_REAL_IP || "false"}`,
+    );
+
     if (trustedProxyCount === 0) {
-      logger.warn(`⚠️  TRUSTED_PROXY_COUNT=0 means direct client connections (no proxy)`);
+      logger.warn(
+        `⚠️  TRUSTED_PROXY_COUNT=0 means direct client connections (no proxy)`,
+      );
     }
-    
-    if (process.env.TRUST_X_REAL_IP === 'true' && trustedProxyCount > 0) {
-      logger.warn(`⚠️  Both TRUST_X_REAL_IP and TRUSTED_PROXY_COUNT set. X-Real-IP takes lower priority.`);
+
+    if (process.env.TRUST_X_REAL_IP === "true" && trustedProxyCount > 0) {
+      logger.warn(
+        `⚠️  Both TRUST_X_REAL_IP and TRUSTED_PROXY_COUNT set. X-Real-IP takes lower priority.`,
+      );
     }
-    
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error(`🔴 Proxy configuration error: ${errorMessage}`);
-    logger.error(`   Set TRUSTED_PROXY_COUNT to the number of trusted proxy hops in your infrastructure.`);
-    logger.error(`   Examples: 0 (direct), 1 (edge proxy), 2 (load balancer + edge proxy)`);
+    logger.error(
+      `   Set TRUSTED_PROXY_COUNT to the number of trusted proxy hops in your infrastructure.`,
+    );
+    logger.error(
+      `   Examples: 0 (direct), 1 (edge proxy), 2 (load balancer + edge proxy)`,
+    );
     throw error; // Fail-fast on invalid configuration
   }
 }

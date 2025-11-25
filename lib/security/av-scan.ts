@@ -4,7 +4,10 @@
  *   POST { bucket: string, key: string }
  * and returns { clean: boolean }.
  */
-export async function scanS3Object(key: string, bucket = process.env.AWS_S3_BUCKET || ''): Promise<boolean> {
+export async function scanS3Object(
+  key: string,
+  bucket = process.env.AWS_S3_BUCKET || "",
+): Promise<boolean> {
   const endpoint = process.env.AV_SCAN_ENDPOINT;
   if (!endpoint) {
     // No scanner configured; treat as clean.
@@ -12,8 +15,8 @@ export async function scanS3Object(key: string, bucket = process.env.AWS_S3_BUCK
   }
   try {
     const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ bucket, key }),
     });
     if (!res.ok) return false;

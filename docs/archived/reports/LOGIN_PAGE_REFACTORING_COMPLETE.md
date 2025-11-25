@@ -48,8 +48,8 @@ const CURRENCIES = [ ... ]; // 4 currencies
 **After**:
 
 ```tsx
-import LanguageSelector from '@/components/i18n/LanguageSelector';
-import CurrencySelector from '@/components/i18n/CurrencySelector';
+import LanguageSelector from "@/components/i18n/LanguageSelector";
+import CurrencySelector from "@/components/i18n/CurrencySelector";
 ```
 
 **Benefits**:
@@ -96,9 +96,9 @@ const { t, isRTL } = useTranslation();
 **After**:
 
 ```tsx
-<div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-  <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'}`} />
-  <Input className={`${isRTL ? 'pr-10 text-right' : 'pl-10'}`} />
+<div className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}>
+  <Mail className={`absolute ${isRTL ? "right-3" : "left-3"}`} />
+  <Input className={`${isRTL ? "pr-10 text-right" : "pl-10"}`} />
 </div>
 ```
 
@@ -118,7 +118,10 @@ const { t, isRTL } = useTranslation();
 
 ```tsx
 <p className="mt-2 text-xs text-gray-500">
-  {t('login.corporateHelp', 'Use your employee number and password. No separate corporate ID needed.')}
+  {t(
+    "login.corporateHelp",
+    "Use your employee number and password. No separate corporate ID needed.",
+  )}
 </p>
 ```
 
@@ -223,22 +226,22 @@ const { t, isRTL } = useTranslation();
 
 ### Code Quality
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Duplicate code | 2 language systems | 1 system | ✅ -50% |
-| Translation coverage | 0% | 100% | ✅ +100% |
-| RTL support | No | Yes | ✅ NEW |
-| Maintainability | Medium | High | ✅ Better |
-| Code complexity | High | Medium | ✅ Simpler |
+| Metric               | Before             | After    | Change     |
+| -------------------- | ------------------ | -------- | ---------- |
+| Duplicate code       | 2 language systems | 1 system | ✅ -50%    |
+| Translation coverage | 0%                 | 100%     | ✅ +100%   |
+| RTL support          | No                 | Yes      | ✅ NEW     |
+| Maintainability      | Medium             | High     | ✅ Better  |
+| Code complexity      | High               | Medium   | ✅ Simpler |
 
 ### User Experience
 
-| Feature | Before | After | Improvement |
-|---------|--------|-------|-------------|
-| Language switching | Page-specific | Global | ✅ Consistent |
-| Arabic support | No | Full | ✅ Accessible |
-| Corporate login clarity | Confusing | Clear help text | ✅ User-friendly |
-| Visual feedback | Basic | Proper RTL | ✅ Professional |
+| Feature                 | Before        | After           | Improvement      |
+| ----------------------- | ------------- | --------------- | ---------------- |
+| Language switching      | Page-specific | Global          | ✅ Consistent    |
+| Arabic support          | No            | Full            | ✅ Accessible    |
+| Corporate login clarity | Confusing     | Clear help text | ✅ User-friendly |
+| Visual feedback         | Basic         | Proper RTL      | ✅ Professional  |
 
 ---
 

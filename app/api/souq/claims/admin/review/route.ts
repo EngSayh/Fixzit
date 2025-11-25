@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { connectDb } from '@/lib/mongo';
-import { logger } from '@/lib/logger';
-import { SouqClaim } from '@/server/models/souq/Claim';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectDb } from "@/lib/mongo";
+import { logger } from "@/lib/logger";
+import { SouqClaim } from "@/server/models/souq/Claim";
 
 type ClaimLean = {
   buyerEvidence?: unknown[];
@@ -35,20 +35,28 @@ type ClaimLean = {
 
 const STATUS_MAP: Record<string, string[]> = {
   // UI-friendly filters mapped to persisted statuses
-  'pending-decision': ['pending_investigation', 'pending_seller_response', 'under_review'],
-  'under-investigation': ['pending_investigation', 'under_review'],
-  'under-appeal': ['escalated'],
+  "pending-decision": [
+    "pending_investigation",
+    "pending_seller_response",
+    "under_review",
+  ],
+  "under-investigation": ["pending_investigation", "under_review"],
+  "under-appeal": ["escalated"],
 };
 
 const normalizeAmount = (amount: unknown): number => {
-  if (typeof amount === 'number' && Number.isFinite(amount)) return amount;
+  if (typeof amount === "number" && Number.isFinite(amount)) return amount;
   const parsed = Number(amount);
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
 const extractEvidenceCounts = (claim: ClaimLean) => {
-  const buyerEvidenceCount = Array.isArray(claim.buyerEvidence) ? claim.buyerEvidence.length : 0;
-  const sellerEvidenceCount = Array.isArray(claim.sellerEvidence) ? claim.sellerEvidence.length : 0;
+  const buyerEvidenceCount = Array.isArray(claim.buyerEvidence)
+    ? claim.buyerEvidence.length
+    : 0;
+  const sellerEvidenceCount = Array.isArray(claim.sellerEvidence)
+    ? claim.sellerEvidence.length
+    : 0;
   const totalEvidence = buyerEvidenceCount + sellerEvidenceCount;
   return { buyerEvidenceCount, sellerEvidenceCount, totalEvidence };
 };
@@ -58,9 +66,11 @@ const extractEvidenceCounts = (claim: ClaimLean) => {
  *
  * Analyzes claim patterns and calculates fraud risk score (0-100)
  */
-function calculateFraudScore(
-  claim: ClaimLean
-): { score: number; riskLevel: 'low' | 'medium' | 'high'; flags: string[] } {
+function calculateFraudScore(claim: ClaimLean): {
+  score: number;
+  riskLevel: "low" | "medium" | "high";
+  flags: string[];
+} {
   let score = 0;
   const flags: string[] = [];
 
@@ -68,29 +78,34 @@ function calculateFraudScore(
   const buyerClaimCount = claim.buyerMetadata?.totalClaims || 0;
   if (buyerClaimCount > 5) {
     score += 20;
-    flags.push('high-claim-frequency');
+    flags.push("high-claim-frequency");
   } else if (buyerClaimCount > 2) {
     score += 10;
-    flags.push('moderate-claim-frequency');
+    flags.push("moderate-claim-frequency");
   }
 
   // 2. Check claim amount relative to order (fallback to requested amount when order total is unknown)
-  const claimAmount = normalizeAmount(claim.requestedAmount ?? claim.claimAmount);
-  const orderAmount = normalizeAmount(claim.orderAmount ?? claim.requestedAmount ?? claimAmount);
+  const claimAmount = normalizeAmount(
+    claim.requestedAmount ?? claim.claimAmount,
+  );
+  const orderAmount = normalizeAmount(
+    claim.orderAmount ?? claim.requestedAmount ?? claimAmount,
+  );
   const claimToOrderRatio = orderAmount > 0 ? claimAmount / orderAmount : 1;
   if (claimToOrderRatio > 0.9) {
     score += 15;
-    flags.push('high-claim-amount');
+    flags.push("high-claim-amount");
   }
 
   // 3. Check evidence quality (use buyer + seller evidence arrays from the schema)
-  const { buyerEvidenceCount, sellerEvidenceCount, totalEvidence } = extractEvidenceCounts(claim);
+  const { buyerEvidenceCount, sellerEvidenceCount, totalEvidence } =
+    extractEvidenceCounts(claim);
   if (totalEvidence === 0) {
     score += 25;
-    flags.push('no-evidence');
+    flags.push("no-evidence");
   } else if (totalEvidence < 2) {
     score += 10;
-    flags.push('insufficient-evidence');
+    flags.push("insufficient-evidence");
   }
 
   // 4. Check time since order (only when order date is available)
@@ -98,34 +113,48 @@ function calculateFraudScore(
   const orderDate = claim.orderDate ? new Date(claim.orderDate) : null;
   const daysSinceOrder =
     filedAt && orderDate
-      ? Math.floor((filedAt.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24))
+      ? Math.floor(
+          (filedAt.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24),
+        )
       : 0;
   if (daysSinceOrder > 60) {
     score += 15;
-    flags.push('late-filing');
+    flags.push("late-filing");
   }
 
   // 5. Check seller defense strength (e.g., more seller evidence than buyer evidence)
   if (sellerEvidenceCount > buyerEvidenceCount) {
     score += 10;
-    flags.push('strong-seller-defense');
+    flags.push("strong-seller-defense");
   }
 
   // 6. Pattern matching for common fraud indicators
-  const description = (claim.buyerDescription || claim.description || '').toLowerCase();
-  const fraudKeywords = ['never received', 'never arrived', 'empty box', 'wrong item', 'damaged'];
-  const matchedKeywords = fraudKeywords.filter((keyword) => description.includes(keyword));
+  const description = (
+    claim.buyerDescription ||
+    claim.description ||
+    ""
+  ).toLowerCase();
+  const fraudKeywords = [
+    "never received",
+    "never arrived",
+    "empty box",
+    "wrong item",
+    "damaged",
+  ];
+  const matchedKeywords = fraudKeywords.filter((keyword) =>
+    description.includes(keyword),
+  );
   if (matchedKeywords.length > 2) {
     score += 10;
-    flags.push('generic-description');
+    flags.push("generic-description");
   }
 
   // Determine risk level
-  let riskLevel: 'low' | 'medium' | 'high' = 'low';
+  let riskLevel: "low" | "medium" | "high" = "low";
   if (score >= 70) {
-    riskLevel = 'high';
+    riskLevel = "high";
   } else if (score >= 40) {
-    riskLevel = 'medium';
+    riskLevel = "medium";
   }
 
   return { score: Math.min(100, score), riskLevel, flags };
@@ -133,11 +162,14 @@ function calculateFraudScore(
 
 /**
  * AI-based Recommendation Engine
- * 
+ *
  * Provides recommended action based on claim analysis
  */
-function generateRecommendation(claim: ClaimLean, fraudAnalysis: ReturnType<typeof calculateFraudScore>): {
-  action: 'approve-full' | 'approve-partial' | 'reject' | 'pending-review';
+function generateRecommendation(
+  claim: ClaimLean,
+  fraudAnalysis: ReturnType<typeof calculateFraudScore>,
+): {
+  action: "approve-full" | "approve-partial" | "reject" | "pending-review";
   confidence: number;
   reasoning: string;
 } {
@@ -146,64 +178,65 @@ function generateRecommendation(claim: ClaimLean, fraudAnalysis: ReturnType<type
   // High fraud risk - recommend rejection
   if (score >= 70) {
     return {
-      action: 'reject',
+      action: "reject",
       confidence: 85,
-      reasoning: 'High fraud risk detected. Multiple red flags identified.',
+      reasoning: "High fraud risk detected. Multiple red flags identified.",
     };
   }
 
   // Medium fraud risk - require manual review
   if (score >= 40) {
     return {
-      action: 'pending-review',
+      action: "pending-review",
       confidence: 60,
-      reasoning: 'Medium risk. Manual review recommended before decision.',
+      reasoning: "Medium risk. Manual review recommended before decision.",
     };
   }
 
   // Low fraud risk - check evidence quality
   const { totalEvidence, sellerEvidenceCount } = extractEvidenceCounts(claim);
   const hasSellerResponse =
-    Boolean(claim.sellerRespondedAt || claim.sellerResponse) || sellerEvidenceCount > 0;
+    Boolean(claim.sellerRespondedAt || claim.sellerResponse) ||
+    sellerEvidenceCount > 0;
   const evidenceCount = totalEvidence;
 
   if (evidenceCount >= 3 && !hasSellerResponse) {
     return {
-      action: 'approve-full',
+      action: "approve-full",
       confidence: 90,
-      reasoning: 'Strong evidence provided and no seller defense.',
+      reasoning: "Strong evidence provided and no seller defense.",
     };
   }
 
   if (evidenceCount >= 2 && !hasSellerResponse) {
     return {
-      action: 'approve-partial',
+      action: "approve-partial",
       confidence: 75,
-      reasoning: 'Good evidence but consider partial refund.',
+      reasoning: "Good evidence but consider partial refund.",
     };
   }
 
   if (hasSellerResponse && evidenceCount < 2) {
     return {
-      action: 'reject',
+      action: "reject",
       confidence: 70,
-      reasoning: 'Insufficient buyer evidence vs strong seller defense.',
+      reasoning: "Insufficient buyer evidence vs strong seller defense.",
     };
   }
 
   // Default to manual review
   return {
-    action: 'pending-review',
+    action: "pending-review",
     confidence: 50,
-    reasoning: 'Requires manual assessment of evidence quality.',
+    reasoning: "Requires manual assessment of evidence quality.",
   };
 }
 
 /**
  * GET /api/souq/claims/admin/review
- * 
+ *
  * Enhanced admin endpoint with fraud detection and AI recommendations
- * 
+ *
  * Query params:
  * - status: filter by status
  * - priority: filter by priority (high/medium/low)
@@ -211,55 +244,55 @@ function generateRecommendation(claim: ClaimLean, fraudAnalysis: ReturnType<type
  * - search: search by claim number or order ID
  * - page: page number
  * - limit: items per page
- * 
+ *
  * @security Requires admin role
  */
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if user has admin role
     const userRole = session.user.role;
     const isSuperAdmin = session.user.isSuperAdmin;
-    
-    if (!isSuperAdmin && userRole !== 'ADMIN') {
+
+    if (!isSuperAdmin && userRole !== "ADMIN") {
       return NextResponse.json(
-        { error: 'Forbidden: Admin access required' },
-        { status: 403 }
+        { error: "Forbidden: Admin access required" },
+        { status: 403 },
       );
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const statusParam = searchParams.get('status') || 'pending-decision';
-    const priority = searchParams.get('priority');
-    const riskLevel = searchParams.get('riskLevel');
-    const search = searchParams.get('search');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const statusParam = searchParams.get("status") || "pending-decision";
+    const priority = searchParams.get("priority");
+    const riskLevel = searchParams.get("riskLevel");
+    const search = searchParams.get("search");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
 
     await connectDb();
 
     // Build query
     const query: Record<string, unknown> = {};
 
-    if (statusParam && statusParam !== 'all') {
+    if (statusParam && statusParam !== "all") {
       const mapped = STATUS_MAP[statusParam];
       query.status = mapped ? { $in: mapped } : statusParam;
     }
 
-    if (priority && priority !== 'all') {
+    if (priority && priority !== "all") {
       query.priority = priority;
     }
 
     if (search) {
       query.$or = [
-        { claimId: { $regex: search, $options: 'i' } },
-        { orderNumber: { $regex: search, $options: 'i' } },
-        { orderId: { $regex: search, $options: 'i' } },
+        { claimId: { $regex: search, $options: "i" } },
+        { orderNumber: { $regex: search, $options: "i" } },
+        { orderId: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -269,8 +302,8 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('buyerId', 'name email')
-      .populate('sellerId', 'name email')
+      .populate("buyerId", "name email")
+      .populate("sellerId", "name email")
       .lean();
 
     const totalClaims = await SouqClaim.countDocuments(query);
@@ -278,25 +311,26 @@ export async function GET(request: NextRequest) {
     // Enrich claims with fraud detection and recommendations
     const enrichedClaims = claims.map((claim: ClaimLean) => {
       const claimAmount = normalizeAmount(
-        claim.requestedAmount ?? claim.orderAmount ?? claim.claimAmount ?? 0
+        claim.requestedAmount ?? claim.orderAmount ?? claim.claimAmount ?? 0,
       );
       // Calculate fraud score
       const fraudAnalysis = calculateFraudScore(claim);
-      
+
       // Generate recommendation
       const recommendation = generateRecommendation(claim, fraudAnalysis);
 
       // Determine priority based on fraud score and claim amount
       const evidenceCounts = extractEvidenceCounts(claim);
 
-      let priority: 'high' | 'medium' | 'low' = 'medium';
+      let priority: "high" | "medium" | "low" = "medium";
       if (fraudAnalysis.score >= 70 || claimAmount > 5000) {
-        priority = 'high';
+        priority = "high";
       } else if (fraudAnalysis.score < 40 && claimAmount < 500) {
-        priority = 'low';
+        priority = "low";
       }
 
-      const claimNumber = claim.claimNumber || claim.claimId || claim.orderNumber;
+      const claimNumber =
+        claim.claimNumber || claim.claimId || claim.orderNumber;
 
       const claimType = claim.claimType || claim.type;
 
@@ -307,19 +341,25 @@ export async function GET(request: NextRequest) {
         claimType,
         status: claim.status,
         claimAmount,
-        buyerName: (typeof claim.buyerId === 'object' && claim.buyerId?.name) || claim.buyerName || 'Unknown',
-        sellerName: (typeof claim.sellerId === 'object' && claim.sellerId?.name) || claim.sellerName || 'Unknown',
-        
+        buyerName:
+          (typeof claim.buyerId === "object" && claim.buyerId?.name) ||
+          claim.buyerName ||
+          "Unknown",
+        sellerName:
+          (typeof claim.sellerId === "object" && claim.sellerId?.name) ||
+          claim.sellerName ||
+          "Unknown",
+
         // Fraud detection data
         fraudScore: fraudAnalysis.score,
         riskLevel: fraudAnalysis.riskLevel,
         fraudFlags: fraudAnalysis.flags,
-        
+
         // AI recommendation
         recommendedAction: recommendation.action,
         confidence: recommendation.confidence,
         reasoning: recommendation.reasoning,
-        
+
         // Metadata
         evidenceCount: evidenceCounts.totalEvidence,
         priority,
@@ -330,25 +370,29 @@ export async function GET(request: NextRequest) {
 
     // Apply risk level filter after enrichment if specified
     let filteredClaims = enrichedClaims;
-    if (riskLevel && riskLevel !== 'all') {
-      filteredClaims = enrichedClaims.filter(c => c.riskLevel === riskLevel);
+    if (riskLevel && riskLevel !== "all") {
+      filteredClaims = enrichedClaims.filter((c) => c.riskLevel === riskLevel);
     }
 
     // Calculate statistics
-    const pendingStatuses = STATUS_MAP['pending-decision'];
+    const pendingStatuses = STATUS_MAP["pending-decision"];
     const stats = {
       total: totalClaims,
       pendingReview: await SouqClaim.countDocuments(
-        pendingStatuses ? { status: { $in: pendingStatuses } } : {}
+        pendingStatuses ? { status: { $in: pendingStatuses } } : {},
       ),
-      highPriority: filteredClaims.filter(c => c.priority === 'high').length,
-      highRisk: filteredClaims.filter(c => c.fraudScore >= 70).length,
-      totalAmount: filteredClaims.reduce((sum, c) => sum + (c.claimAmount || 0), 0),
+      highPriority: filteredClaims.filter((c) => c.priority === "high").length,
+      highRisk: filteredClaims.filter((c) => c.fraudScore >= 70).length,
+      totalAmount: filteredClaims.reduce(
+        (sum, c) => sum + (c.claimAmount || 0),
+        0,
+      ),
     };
 
     const totalForPagination =
-      riskLevel && riskLevel !== 'all' ? filteredClaims.length : totalClaims;
-    const totalPages = totalForPagination > 0 ? Math.ceil(totalForPagination / limit) : 1;
+      riskLevel && riskLevel !== "all" ? filteredClaims.length : totalClaims;
+    const totalPages =
+      totalForPagination > 0 ? Math.ceil(totalForPagination / limit) : 1;
 
     return NextResponse.json({
       success: true,
@@ -362,10 +406,10 @@ export async function GET(request: NextRequest) {
       stats,
     });
   } catch (error) {
-    logger.error('Admin claims review endpoint error', error as Error);
+    logger.error("Admin claims review endpoint error", error as Error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }

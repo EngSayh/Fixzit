@@ -30,7 +30,7 @@ type HeadersLike = {
   get: (key: string) => string | null;
 };
 type NextRequestLike = {
-  json: () => Promise<unknown>;
+  json: () => Promise<Record<string, unknown>>;
   headers: HeadersLike;
   ip?: string | null;
   url?: string;

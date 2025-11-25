@@ -3,9 +3,9 @@
  * @module services/souq/buybox-service
  */
 
-import { SouqListing } from '@/server/models/souq/Listing';
-import { SouqSeller } from '@/server/models/souq/Seller';
-import type { ISeller } from '@/server/models/souq/Seller';
+import { SouqListing } from "@/server/models/souq/Listing";
+import { SouqSeller } from "@/server/models/souq/Seller";
+import type { ISeller } from "@/server/models/souq/Seller";
 
 // Type for listing with populated sellerId (lean query result)
 interface IListingPopulated {
@@ -14,7 +14,7 @@ interface IListingPopulated {
   sellerId: ISeller;
   fsin: string;
   price: number;
-  fulfillmentMethod: 'fbf' | 'fbm';
+  fulfillmentMethod: "fbf" | "fbm";
   status: string;
   buyBoxEligible: boolean;
   availableQuantity: number;
@@ -36,14 +36,16 @@ export class BuyBoxService {
   /**
    * Calculate Buy Box winner for a given FSIN
    */
-  static async calculateBuyBoxWinner(fsin: string): Promise<IListingPopulated | null> {
+  static async calculateBuyBoxWinner(
+    fsin: string,
+  ): Promise<IListingPopulated | null> {
     const listings = await SouqListing.find({
       fsin,
-      status: 'active',
+      status: "active",
       buyBoxEligible: true,
       availableQuantity: { $gt: 0 },
     })
-      .populate('sellerId')
+      .populate("sellerId")
       .lean();
 
     // lean() with populate returns the proper structure; cast via unknown to satisfy TS
@@ -61,7 +63,7 @@ export class BuyBoxService {
       typedListings.map(async (listing) => {
         const score = await this.calculateBuyBoxScore(listing);
         return { listing, score };
-      })
+      }),
     );
 
     scoredListings.sort((a, b) => {
@@ -78,14 +80,17 @@ export class BuyBoxService {
   /**
    * Calculate Buy Box score for a listing
    */
-  private static async calculateBuyBoxScore(candidate: BuyBoxCandidate): Promise<number> {
+  private static async calculateBuyBoxScore(
+    candidate: BuyBoxCandidate,
+  ): Promise<number> {
     const { metrics, price, fulfillmentMethod, sellerId } = candidate;
 
     let score = 0;
 
     // 1. Price (35% weight)
     const avgPrice = await this.getAveragePrice(candidate.fsin);
-    const priceScore = avgPrice > 0 ? ((avgPrice - price) / avgPrice) * 100 : 50;
+    const priceScore =
+      avgPrice > 0 ? ((avgPrice - price) / avgPrice) * 100 : 50;
     score += Math.max(0, Math.min(100, priceScore)) * 0.35;
 
     // 2. On-Time Ship Rate (25% weight)
@@ -101,7 +106,7 @@ export class BuyBoxService {
     score += (100 - metrics.cancelRate) * 0.1;
 
     // Bonuses
-    if (fulfillmentMethod === 'fbf') {
+    if (fulfillmentMethod === "fbf") {
       score += 5;
     }
 
@@ -109,7 +114,7 @@ export class BuyBoxService {
       score += 3;
     }
 
-    if (sellerId.accountHealth.status === 'excellent') {
+    if (sellerId.accountHealth.status === "excellent") {
       score += 2;
     }
 
@@ -124,14 +129,14 @@ export class BuyBoxService {
       {
         $match: {
           fsin,
-          status: 'active',
+          status: "active",
           availableQuantity: { $gt: 0 },
         },
       },
       {
         $group: {
           _id: null,
-          avgPrice: { $avg: '$price' },
+          avgPrice: { $avg: "$price" },
         },
       },
     ]);
@@ -142,7 +147,9 @@ export class BuyBoxService {
   /**
    * Update Buy Box eligibility for all listings of a seller
    */
-  static async updateSellerListingsEligibility(sellerId: string): Promise<void> {
+  static async updateSellerListingsEligibility(
+    sellerId: string,
+  ): Promise<void> {
     const seller = await SouqSeller.findById(sellerId);
     if (!seller) {
       return;
@@ -153,7 +160,7 @@ export class BuyBoxService {
 
     const listings = await SouqListing.find({
       sellerId,
-      status: 'active',
+      status: "active",
     });
 
     for (const listing of listings) {
@@ -174,9 +181,9 @@ export class BuyBoxService {
   static async recalculateBuyBoxForProduct(fsin: string): Promise<void> {
     const listings = await SouqListing.find({
       fsin,
-      status: 'active',
+      status: "active",
       availableQuantity: { $gt: 0 },
-    }).populate('sellerId');
+    }).populate("sellerId");
 
     for (const listing of listings) {
       // Check listing eligibility (uses type-safe method)
@@ -190,13 +197,13 @@ export class BuyBoxService {
    */
   static async getProductOffers(
     fsin: string,
-    options: { condition?: string; sort?: string } = {}
+    options: { condition?: string; sort?: string } = {},
   ) {
-    const { condition = 'new', sort = 'price' } = options;
+    const { condition = "new", sort = "price" } = options;
 
     const query: Record<string, unknown> = {
       fsin,
-      status: 'active',
+      status: "active",
       availableQuantity: { $gt: 0 },
     };
 
@@ -205,14 +212,14 @@ export class BuyBoxService {
     }
 
     let sortQuery = {};
-    if (sort === 'price') {
+    if (sort === "price") {
       sortQuery = { price: 1 };
-    } else if (sort === 'rating') {
-      sortQuery = { 'metrics.customerRating': -1 };
+    } else if (sort === "rating") {
+      sortQuery = { "metrics.customerRating": -1 };
     }
 
     return SouqListing.find(query)
-      .populate('sellerId', 'legalName tradeName accountHealth')
+      .populate("sellerId", "legalName tradeName accountHealth")
       .sort(sortQuery);
   }
 }

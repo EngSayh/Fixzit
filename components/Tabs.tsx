@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Accessible Tabs Component
- * 
+ *
  * Features:
  * - Keyboard navigation (Cmd/Ctrl + 1-9 for quick tab switching)
  * - ARIA roles and states
@@ -66,7 +66,10 @@ export function Tabs({ tabs, defaultTab, onChange, className }: TabsProps) {
   return (
     <div className={cn("tabs-container", className)} aria-label="Tabs">
       {/* Tab List */}
-      <div className="flex gap-2 border-b border-border bg-card/50" role="tablist">
+      <div
+        className="flex gap-2 border-b border-border bg-card/50"
+        role="tablist"
+      >
         {tabs.map((tab, i) => {
           const isActive = active === tab.id;
           return (
@@ -83,7 +86,7 @@ export function Tabs({ tabs, defaultTab, onChange, className }: TabsProps) {
                 isActive
                   ? "bg-card text-foreground border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                tab.disabled && "opacity-50 cursor-not-allowed"
+                tab.disabled && "opacity-50 cursor-not-allowed",
               )}
               role="tab"
               aria-selected={isActive}
@@ -99,7 +102,7 @@ export function Tabs({ tabs, defaultTab, onChange, className }: TabsProps) {
                       "px-1.5 py-0.5 text-xs font-semibold rounded-full",
                       isActive
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
+                        : "bg-muted text-muted-foreground",
                     )}
                   >
                     {tab.badge > 99 ? "99+" : tab.badge}
@@ -157,7 +160,7 @@ export function SimpleTabs({ tabs, defaultTab, onChange }: TabsProps) {
                 isActive
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                tab.disabled && "opacity-50 cursor-not-allowed"
+                tab.disabled && "opacity-50 cursor-not-allowed",
               )}
               role="tab"
               aria-selected={isActive}

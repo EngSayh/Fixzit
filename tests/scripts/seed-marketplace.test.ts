@@ -14,15 +14,14 @@ const repoRoot = path.resolve(process.cwd())
 const candidateModulePaths = [
   path.join(repoRoot, 'scripts', 'seed-marketplace.ts'),
 ]
+type SeedModule = {
+  upsert: (collection: string, predicate: (doc: Doc) => boolean, payload: Doc) => Doc;
+  main?: () => Promise<void>;
+};
 
 // Lightweight mock in lieu of the actual MockDatabase implementation.
 // use jest.mock with a virtual module to intercept that import.
 type Doc = Record<string, unknown>;
-
-type SeedModule = {
-  upsert: (collection: string, predicate: (doc: Doc) => boolean, payload: Partial<Doc>) => Doc;
-  main?: () => Promise<void> | void;
-};
 
 class InMemoryMockDatabase {
   private static instance: InMemoryMockDatabase;

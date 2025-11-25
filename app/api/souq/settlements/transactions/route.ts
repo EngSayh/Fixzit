@@ -3,34 +3,38 @@
  * GET /api/souq/settlements/transactions - Get transaction history for seller
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { logger } from '@/lib/logger';
-import { SellerBalanceService } from '@/services/souq/settlements/balance-service';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { SellerBalanceService } from "@/services/souq/settlements/balance-service";
 
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
-    const sellerId = searchParams.get('sellerId') || (session.user.id as string);
-    const type = searchParams.get('type');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
+    const sellerId =
+      searchParams.get("sellerId") || (session.user.id as string);
+    const type = searchParams.get("type");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "50", 10),
+      100,
+    );
 
     // Authorization: Seller can only view own transactions, admin can view all
     const userRole = (session.user as { role?: string }).role;
     if (
-      userRole !== 'ADMIN' &&
-      userRole !== 'SUPER_ADMIN' &&
+      userRole !== "ADMIN" &&
+      userRole !== "SUPER_ADMIN" &&
       sellerId !== session.user.id
     ) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Build filters
@@ -54,7 +58,7 @@ export async function GET(request: NextRequest) {
     // Get transactions
     const result = await SellerBalanceService.getTransactionHistory(
       sellerId,
-      filters
+      filters,
     );
 
     return NextResponse.json({
@@ -67,10 +71,10 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error fetching transactions', { error });
+    logger.error("Error fetching transactions", { error });
     return NextResponse.json(
-      { error: 'Failed to fetch transactions' },
-      { status: 500 }
+      { error: "Failed to fetch transactions" },
+      { status: 500 },
     );
   }
 }

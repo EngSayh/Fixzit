@@ -1,14 +1,14 @@
-import { SouqOrder } from '@/server/models/souq/Order';
-import { SouqListing } from '@/server/models/souq/Listing';
-import { SouqInventory } from '@/server/models/souq/Inventory';
-import { aramexCarrier } from '@/lib/carriers/aramex';
-import { smsaCarrier } from '@/lib/carriers/smsa';
-import { splCarrier } from '@/lib/carriers/spl';
-import { addJob } from '@/lib/queues/setup';
-import { logger } from '@/lib/logger';
-import type { IOrder } from '@/server/models/souq/Order';
+import { SouqOrder } from "@/server/models/souq/Order";
+import { SouqListing } from "@/server/models/souq/Listing";
+import { SouqInventory } from "@/server/models/souq/Inventory";
+import { aramexCarrier } from "@/lib/carriers/aramex";
+import { smsaCarrier } from "@/lib/carriers/smsa";
+import { splCarrier } from "@/lib/carriers/spl";
+import { addJob } from "@/lib/queues/setup";
+import { logger } from "@/lib/logger";
+import type { IOrder } from "@/server/models/souq/Order";
 
-type OrderItem = IOrder['items'][number];
+type OrderItem = IOrder["items"][number];
 type FbfShipmentItem = OrderItem & { warehouseId?: string };
 
 /**
@@ -31,7 +31,7 @@ export interface ICreateShipmentParams {
   shipFrom: IAddress;
   shipTo: IAddress;
   packages: IPackage[];
-  serviceType: 'standard' | 'express' | 'same_day';
+  serviceType: "standard" | "express" | "same_day";
   declaredValue: number;
   codAmount?: number;
   reference?: string;
@@ -64,10 +64,16 @@ export interface IShipmentResponse {
   cost: number;
 }
 
-
 export interface ITrackingResponse {
   trackingNumber: string;
-  status: 'pending' | 'picked_up' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'failed' | 'returned';
+  status:
+    | "pending"
+    | "picked_up"
+    | "in_transit"
+    | "out_for_delivery"
+    | "delivered"
+    | "failed"
+    | "returned";
   events: ITrackingEvent[];
   estimatedDelivery?: Date;
   actualDelivery?: Date;
@@ -84,7 +90,7 @@ export interface IRateParams {
   origin: string; // City
   destination: string; // City
   weight: number;
-  serviceType: 'standard' | 'express' | 'same_day';
+  serviceType: "standard" | "express" | "same_day";
   dimensions?: {
     length: number;
     width: number;
@@ -120,18 +126,17 @@ export interface ISLAMetrics {
   currentStatus: string;
   isOnTime: boolean;
   daysRemaining: number;
-  urgency: 'normal' | 'warning' | 'critical';
+  urgency: "normal" | "warning" | "critical";
 }
-
 
 class FulfillmentService {
   private carriers: Map<string, ICarrierInterface>;
 
   constructor() {
     this.carriers = new Map();
-    this.carriers.set('aramex', aramexCarrier);
-    this.carriers.set('smsa', smsaCarrier);
-    this.carriers.set('spl', splCarrier);
+    this.carriers.set("aramex", aramexCarrier);
+    this.carriers.set("smsa", smsaCarrier);
+    this.carriers.set("spl", splCarrier);
   }
 
   /**
@@ -140,7 +145,7 @@ class FulfillmentService {
   async fulfillOrder(request: IFulfillmentRequest): Promise<void> {
     try {
       const order = await SouqOrder.findOne({ orderId: request.orderId });
-      
+
       if (!order) {
         throw new Error(`Order not found: ${request.orderId}`);
       }
@@ -150,8 +155,10 @@ class FulfillmentService {
       const fbmItems: OrderItem[] = [];
 
       for (const item of request.orderItems) {
-        const inventory = await SouqInventory.findOne({ listingId: item.listingId });
-        
+        const inventory = await SouqInventory.findOne({
+          listingId: item.listingId,
+        });
+
         if (!inventory) {
           throw new Error(`Inventory not found for listing: ${item.listingId}`);
         }
@@ -162,10 +169,12 @@ class FulfillmentService {
         });
 
         if (!orderItem) {
-          throw new Error(`Order item ${item.orderItemId} not found on order ${order.orderId}`);
+          throw new Error(
+            `Order item ${item.orderItemId} not found on order ${order.orderId}`,
+          );
         }
 
-        if (inventory.fulfillmentType === 'FBF') {
+        if (inventory.fulfillmentType === "FBF") {
           fbfItems.push({
             ...orderItem,
             warehouseId: inventory.warehouseId?.toString(),
@@ -185,11 +194,18 @@ class FulfillmentService {
         await this.processFBMShipment(order, fbmItems, request.shippingAddress);
       }
 
-      logger.info('Order fulfillment initiated', { orderId: request.orderId, fbfItems: fbfItems.length, fbmItems: fbmItems.length });
+      logger.info("Order fulfillment initiated", {
+        orderId: request.orderId,
+        fbfItems: fbfItems.length,
+        fbmItems: fbmItems.length,
+      });
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('Failed to fulfill order', error, { orderId: request.orderId });
+      logger.error("Failed to fulfill order", error, {
+        orderId: request.orderId,
+      });
       throw error;
     }
   }
@@ -197,30 +213,36 @@ class FulfillmentService {
   /**
    * Process FBF (Fulfillment by Fixzit) shipment
    */
-  private async processFBFShipment(order: IOrder, items: FbfShipmentItem[], shippingAddress: IAddress): Promise<void> {
+  private async processFBFShipment(
+    order: IOrder,
+    items: FbfShipmentItem[],
+    shippingAddress: IAddress,
+  ): Promise<void> {
     try {
       // Get warehouse address (mock for now)
       const warehouseAddress: IAddress = {
-        name: 'Fixzit Fulfillment Center',
-        phone: '+966123456789',
-        email: 'fulfillment@fixzit.sa',
-        street: 'King Fahd Road',
-        city: 'Riyadh',
-        postalCode: '11564',
-        country: 'SA'
+        name: "Fixzit Fulfillment Center",
+        phone: "+966123456789",
+        email: "fulfillment@fixzit.sa",
+        street: "King Fahd Road",
+        city: "Riyadh",
+        postalCode: "11564",
+        country: "SA",
       };
 
       // Calculate package dimensions
-      const packages: IPackage[] = [{
-        weight: items.reduce((sum, item) => sum + (item.quantity * 0.5), 0), // Mock weight
-        length: 30,
-        width: 20,
-        height: 15,
-        description: `Order ${order.orderId} - ${items.length} items`
-      }];
+      const packages: IPackage[] = [
+        {
+          weight: items.reduce((sum, item) => sum + item.quantity * 0.5, 0), // Mock weight
+          length: 30,
+          width: 20,
+          height: 15,
+          description: `Order ${order.orderId} - ${items.length} items`,
+        },
+      ];
 
       // Select carrier based on delivery speed preference
-      const carrier = this.selectCarrier(order.shippingSpeed || 'standard');
+      const carrier = this.selectCarrier(order.shippingSpeed || "standard");
 
       // Create shipment
       const shipmentParams: ICreateShipmentParams = {
@@ -229,10 +251,11 @@ class FulfillmentService {
         shipFrom: warehouseAddress,
         shipTo: shippingAddress,
         packages,
-        serviceType: order.shippingSpeed || 'standard',
+        serviceType: order.shippingSpeed || "standard",
         declaredValue: order.pricing.total,
-        codAmount: order.payment.method === 'cod' ? order.pricing.total : undefined,
-        reference: order.orderId
+        codAmount:
+          order.payment.method === "cod" ? order.pricing.total : undefined,
+        reference: order.orderId,
       };
 
       const shipment = await carrier.createShipment(shipmentParams);
@@ -242,22 +265,28 @@ class FulfillmentService {
       order.trackingNumber = shipment.trackingNumber;
       order.shippingLabelUrl = shipment.labelUrl;
       order.estimatedDeliveryDate = shipment.estimatedDelivery;
-      order.fulfillmentStatus = 'in_transit';
+      order.fulfillmentStatus = "in_transit";
       await order.save();
 
       // Queue notification
-      await addJob('souq:notifications', 'order_shipped', {
+      await addJob("souq:notifications", "order_shipped", {
         orderId: order.orderId,
         buyerId: order.customerId,
         trackingNumber: shipment.trackingNumber,
-        carrier: carrier.name
+        carrier: carrier.name,
       });
 
-      logger.info('FBF shipment created', { orderId: order.orderId, trackingNumber: shipment.trackingNumber });
+      logger.info("FBF shipment created", {
+        orderId: order.orderId,
+        trackingNumber: shipment.trackingNumber,
+      });
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('Failed to process FBF shipment', error, { orderId: order.orderId });
+      logger.error("Failed to process FBF shipment", error, {
+        orderId: order.orderId,
+      });
       throw error;
     }
   }
@@ -265,37 +294,50 @@ class FulfillmentService {
   /**
    * Process FBM (Fulfilled by Merchant) shipment
    */
-  private async processFBMShipment(order: IOrder, items: OrderItem[], shippingAddress: IAddress): Promise<void> {
+  private async processFBMShipment(
+    order: IOrder,
+    items: OrderItem[],
+    shippingAddress: IAddress,
+  ): Promise<void> {
     try {
       // Group items by seller
-      const itemsBySeller = items.reduce<Record<string, OrderItem[]>>((acc, item) => {
-        const sellerKey = item.sellerId.toString();
-        if (!acc[sellerKey]) {
-          acc[sellerKey] = [];
-        }
-        acc[sellerKey].push(item);
-        return acc;
-      }, {});
+      const itemsBySeller = items.reduce<Record<string, OrderItem[]>>(
+        (acc, item) => {
+          const sellerKey = item.sellerId.toString();
+          if (!acc[sellerKey]) {
+            acc[sellerKey] = [];
+          }
+          acc[sellerKey].push(item);
+          return acc;
+        },
+        {},
+      );
 
       // Notify each seller to fulfill their items
       for (const [sellerId, sellerItems] of Object.entries(itemsBySeller)) {
-        await addJob('souq:notifications', 'fbm_fulfillment_required', {
+        await addJob("souq:notifications", "fbm_fulfillment_required", {
           orderId: order.orderId,
           sellerId,
           items: sellerItems,
           shippingAddress,
-          deadline: this.calculateHandlingDeadline(order.createdAt, 'standard')
+          deadline: this.calculateHandlingDeadline(order.createdAt, "standard"),
         });
       }
 
-      order.fulfillmentStatus = 'pending_seller';
+      order.fulfillmentStatus = "pending_seller";
       await order.save();
 
-      logger.info('FBM fulfillment notifications sent', { orderId: order.orderId, sellerCount: Object.keys(itemsBySeller).length });
+      logger.info("FBM fulfillment notifications sent", {
+        orderId: order.orderId,
+        sellerCount: Object.keys(itemsBySeller).length,
+      });
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('Failed to process FBM shipment', error, { orderId: order.orderId });
+      logger.error("Failed to process FBM shipment", error, {
+        orderId: order.orderId,
+      });
       throw error;
     }
   }
@@ -312,13 +354,13 @@ class FulfillmentService {
     const { orderId, sellerId, sellerAddress, carrierName } = params;
     try {
       const order = await SouqOrder.findOne({ orderId });
-      
+
       if (!order) {
         throw new Error(`Order not found: ${orderId}`);
       }
 
       const carrier = this.carriers.get(carrierName.toLowerCase());
-      
+
       if (!carrier) {
         throw new Error(`Carrier not supported: ${carrierName}`);
       }
@@ -328,21 +370,29 @@ class FulfillmentService {
         name: order.shippingAddress.name,
         phone: order.shippingAddress.phone,
         email: order.customerEmail,
-        street: [order.shippingAddress.addressLine1, order.shippingAddress.addressLine2].filter(Boolean).join(' ').trim(),
+        street: [
+          order.shippingAddress.addressLine1,
+          order.shippingAddress.addressLine2,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .trim(),
         city: order.shippingAddress.city,
         state: order.shippingAddress.state,
         postalCode: order.shippingAddress.postalCode,
-        country: order.shippingAddress.country
+        country: order.shippingAddress.country,
       };
 
       // Mock package dimensions
-      const packages: IPackage[] = [{
-        weight: 1.0,
-        length: 30,
-        width: 20,
-        height: 15,
-        description: `Order ${order.orderId}`
-      }];
+      const packages: IPackage[] = [
+        {
+          weight: 1.0,
+          length: 30,
+          width: 20,
+          height: 15,
+          description: `Order ${order.orderId}`,
+        },
+      ];
 
       const shipmentParams: ICreateShipmentParams = {
         orderId: order.orderId,
@@ -350,10 +400,11 @@ class FulfillmentService {
         shipFrom: sellerAddress,
         shipTo: shippingAddress,
         packages,
-        serviceType: order.shippingSpeed || 'standard',
+        serviceType: order.shippingSpeed || "standard",
         declaredValue: order.pricing.total,
-        codAmount: order.payment.method === 'cod' ? order.pricing.total : undefined,
-        reference: `${order.orderId}-${sellerId}`
+        codAmount:
+          order.payment.method === "cod" ? order.pricing.total : undefined,
+        reference: `${order.orderId}-${sellerId}`,
       };
 
       const shipment = await carrier.createShipment(shipmentParams);
@@ -363,16 +414,24 @@ class FulfillmentService {
       order.trackingNumber = shipment.trackingNumber;
       order.shippingLabelUrl = shipment.labelUrl;
       order.estimatedDeliveryDate = shipment.estimatedDelivery;
-      order.fulfillmentStatus = 'shipped';
+      order.fulfillmentStatus = "shipped";
       await order.save();
 
-      logger.info('FBM label generated', { orderId, sellerId, trackingNumber: shipment.trackingNumber });
+      logger.info("FBM label generated", {
+        orderId,
+        sellerId,
+        trackingNumber: shipment.trackingNumber,
+      });
 
       return shipment;
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('Failed to generate FBM label', error, { orderId, sellerId });
+      logger.error("Failed to generate FBM label", error, {
+        orderId,
+        sellerId,
+      });
       throw error;
     }
   }
@@ -380,44 +439,50 @@ class FulfillmentService {
   /**
    * Update tracking status (called by webhook)
    */
-  async updateTracking(trackingNumber: string, carrierName: string): Promise<void> {
+  async updateTracking(
+    trackingNumber: string,
+    carrierName: string,
+  ): Promise<void> {
     try {
       const carrier = this.carriers.get(carrierName.toLowerCase());
-      
+
       if (!carrier) {
-        logger.warn('Unknown carrier for tracking update', { carrierName, trackingNumber });
+        logger.warn("Unknown carrier for tracking update", {
+          carrierName,
+          trackingNumber,
+        });
         return;
       }
 
       const tracking = await carrier.getTracking(trackingNumber);
-      
+
       const order = await SouqOrder.findOne({ trackingNumber });
-      
+
       if (!order) {
-        logger.warn('Order not found for tracking number', { trackingNumber });
+        logger.warn("Order not found for tracking number", { trackingNumber });
         return;
       }
 
       // Update order status based on tracking
       const oldStatus = order.fulfillmentStatus;
-      
+
       switch (tracking.status) {
-        case 'picked_up':
-          order.fulfillmentStatus = 'shipped';
+        case "picked_up":
+          order.fulfillmentStatus = "shipped";
           break;
-        case 'in_transit':
-          order.fulfillmentStatus = 'in_transit';
+        case "in_transit":
+          order.fulfillmentStatus = "in_transit";
           break;
-        case 'out_for_delivery':
-          order.fulfillmentStatus = 'out_for_delivery';
+        case "out_for_delivery":
+          order.fulfillmentStatus = "out_for_delivery";
           break;
-        case 'delivered':
-          order.fulfillmentStatus = 'delivered';
+        case "delivered":
+          order.fulfillmentStatus = "delivered";
           order.deliveredAt = tracking.actualDelivery || new Date();
           break;
-        case 'failed':
-        case 'returned':
-          order.fulfillmentStatus = 'delivery_failed';
+        case "failed":
+        case "returned":
+          order.fulfillmentStatus = "delivery_failed";
           break;
       }
 
@@ -425,20 +490,25 @@ class FulfillmentService {
 
       // Notify buyer if status changed
       if (oldStatus !== order.fulfillmentStatus) {
-        await addJob('souq:notifications', 'order_status_update', {
+        await addJob("souq:notifications", "order_status_update", {
           orderId: order.orderId,
           buyerId: order.customerId,
           oldStatus,
           newStatus: order.fulfillmentStatus,
-          trackingNumber
+          trackingNumber,
         });
       }
 
-      logger.info('Tracking updated', { orderId: order.orderId, trackingNumber, status: tracking.status });
+      logger.info("Tracking updated", {
+        orderId: order.orderId,
+        trackingNumber,
+        status: tracking.status,
+      });
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('Failed to update tracking', error, { trackingNumber });
+      logger.error("Failed to update tracking", error, { trackingNumber });
       throw error;
     }
   }
@@ -448,43 +518,50 @@ class FulfillmentService {
    */
   async calculateSLA(orderId: string): Promise<ISLAMetrics> {
     const order = await SouqOrder.findOne({ orderId });
-    
+
     if (!order) {
       throw new Error(`Order not found: ${orderId}`);
     }
 
     const orderDate = order.createdAt;
-    const shippingSpeed = order.shippingSpeed || 'standard';
-    
+    const shippingSpeed = order.shippingSpeed || "standard";
+
     // Calculate deadlines based on shipping speed
-    const handlingTime = shippingSpeed === 'express' ? 1 : shippingSpeed === 'same_day' ? 0 : 2;
-    const transitTime = shippingSpeed === 'express' ? 1 : shippingSpeed === 'same_day' ? 0 : 3;
-    
+    const handlingTime =
+      shippingSpeed === "express" ? 1 : shippingSpeed === "same_day" ? 0 : 2;
+    const transitTime =
+      shippingSpeed === "express" ? 1 : shippingSpeed === "same_day" ? 0 : 3;
+
     const handlingDeadline = new Date(orderDate);
     handlingDeadline.setDate(handlingDeadline.getDate() + handlingTime);
-    
+
     const deliveryPromise = new Date(handlingDeadline);
     deliveryPromise.setDate(deliveryPromise.getDate() + transitTime);
-    
+
     const now = new Date();
-    const daysRemaining = Math.ceil((deliveryPromise.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    
-    let urgency: 'normal' | 'warning' | 'critical' = 'normal';
+    const daysRemaining = Math.ceil(
+      (deliveryPromise.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    let urgency: "normal" | "warning" | "critical" = "normal";
     let isOnTime = true;
-    
-    if (order.fulfillmentStatus === 'pending' || order.fulfillmentStatus === 'pending_seller') {
+
+    if (
+      order.fulfillmentStatus === "pending" ||
+      order.fulfillmentStatus === "pending_seller"
+    ) {
       if (now > handlingDeadline) {
-        urgency = 'critical';
+        urgency = "critical";
         isOnTime = false;
       } else if (daysRemaining <= 1) {
-        urgency = 'warning';
+        urgency = "warning";
       }
-    } else if (order.fulfillmentStatus !== 'delivered') {
+    } else if (order.fulfillmentStatus !== "delivered") {
       if (now > deliveryPromise) {
-        urgency = 'critical';
+        urgency = "critical";
         isOnTime = false;
       } else if (daysRemaining <= 1) {
-        urgency = 'warning';
+        urgency = "warning";
       }
     }
 
@@ -492,10 +569,10 @@ class FulfillmentService {
       orderDate,
       handlingDeadline,
       deliveryPromise,
-      currentStatus: order.fulfillmentStatus ?? 'pending',
+      currentStatus: order.fulfillmentStatus ?? "pending",
       isOnTime,
       daysRemaining,
-      urgency
+      urgency,
     };
   }
 
@@ -505,13 +582,13 @@ class FulfillmentService {
   async assignFastBadge(listingId: string): Promise<boolean> {
     try {
       const listing = await SouqListing.findOne({ listingId });
-      
+
       if (!listing) {
         return false;
       }
 
       const inventory = await SouqInventory.findOne({ listingId });
-      
+
       if (!inventory) {
         return false;
       }
@@ -520,33 +597,35 @@ class FulfillmentService {
       // 1. FBF fulfillment OR seller has 95%+ on-time delivery rate
       // 2. In stock with at least 5 units
       // 3. Located in major city for same-day delivery
-      
+
       let qualifies = false;
-      
-      if (inventory.fulfillmentType === 'FBF') {
+
+      if (inventory.fulfillmentType === "FBF") {
         qualifies = inventory.availableQuantity >= 5;
       } else {
         // Check seller's delivery performance (mock for now)
         const sellerOnTimeRate = 0.96; // Would query from seller metrics
-        qualifies = sellerOnTimeRate >= 0.95 && inventory.availableQuantity >= 5;
+        qualifies =
+          sellerOnTimeRate >= 0.95 && inventory.availableQuantity >= 5;
       }
 
       listing.badges = listing.badges || [];
 
-      if (listing.badges.includes('fast') !== qualifies) {
+      if (listing.badges.includes("fast") !== qualifies) {
         if (qualifies) {
-          listing.badges.push('fast');
+          listing.badges.push("fast");
         } else {
-          listing.badges = listing.badges.filter(b => b !== 'fast');
+          listing.badges = listing.badges.filter((b) => b !== "fast");
         }
         await listing.save();
       }
 
       return qualifies;
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('Failed to assign fast badge', error, { listingId });
+      logger.error("Failed to assign fast badge", error, { listingId });
       return false;
     }
   }
@@ -562,9 +641,13 @@ class FulfillmentService {
         const carrierRates = await carrier.getRates(params);
         rates.push(...carrierRates);
       } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
         void error;
-        logger.warn('Failed to get rates from carrier', { carrier: name, error });
+        logger.warn("Failed to get rates from carrier", {
+          carrier: name,
+          error,
+        });
       }
     }
 
@@ -575,22 +658,28 @@ class FulfillmentService {
   /**
    * Select best carrier based on service type and cost
    */
-  private selectCarrier(serviceType: 'standard' | 'express' | 'same_day'): ICarrierInterface {
+  private selectCarrier(
+    serviceType: "standard" | "express" | "same_day",
+  ): ICarrierInterface {
     // Default carrier selection logic
-    if (serviceType === 'same_day') {
-      return this.carriers.get('aramex')!; // Aramex for same-day
-    } else if (serviceType === 'express') {
-      return this.carriers.get('smsa')!; // SMSA for express
+    if (serviceType === "same_day") {
+      return this.carriers.get("aramex")!; // Aramex for same-day
+    } else if (serviceType === "express") {
+      return this.carriers.get("smsa")!; // SMSA for express
     }
-    return this.carriers.get('spl')!; // SPL for standard
+    return this.carriers.get("spl")!; // SPL for standard
   }
 
   /**
    * Calculate handling deadline based on order date and shipping speed
    */
-  private calculateHandlingDeadline(orderDate: Date, shippingSpeed: string): Date {
+  private calculateHandlingDeadline(
+    orderDate: Date,
+    shippingSpeed: string,
+  ): Date {
     const deadline = new Date(orderDate);
-    const handlingDays = shippingSpeed === 'express' ? 1 : shippingSpeed === 'same_day' ? 0 : 2;
+    const handlingDays =
+      shippingSpeed === "express" ? 1 : shippingSpeed === "same_day" ? 0 : 2;
     deadline.setDate(deadline.getDate() + handlingDays);
     return deadline;
   }

@@ -46,15 +46,28 @@ async function walk(dir: string) {
         const lname = ent.name.toLowerCase();
         if (!/\.(ts|tsx|js|jsx|json|md|yml|yaml)$/.test(lname)) continue;
         const rel = full.replace(process.cwd() + path.sep, "");
-        if (CANDIDATE_PATTERNS.some(p => rel.toLowerCase().includes(p))) {
+        if (CANDIDATE_PATTERNS.some((p) => rel.toLowerCase().includes(p))) {
           const relLower = rel.toLowerCase();
-          if (relLower.includes("/api/") || relLower.endsWith("/route.ts") || relLower.includes("api-")) {
+          if (
+            relLower.includes("/api/") ||
+            relLower.endsWith("/route.ts") ||
+            relLower.includes("api-")
+          ) {
             HITS.apis.push(rel);
-          } else if (relLower.includes("schema") || relLower.includes("model")) {
+          } else if (
+            relLower.includes("schema") ||
+            relLower.includes("model")
+          ) {
             HITS.schemas.push(rel);
-          } else if (relLower.includes("test") || relLower.includes("__tests__")) {
+          } else if (
+            relLower.includes("test") ||
+            relLower.includes("__tests__")
+          ) {
             HITS.tests.push(rel);
-          } else if (relLower.includes("components") || relLower.includes("component")) {
+          } else if (
+            relLower.includes("components") ||
+            relLower.includes("component")
+          ) {
             HITS.components.push(rel);
           }
           if (relLower.includes("/app/") || relLower.includes("/pages/")) {
@@ -65,7 +78,7 @@ async function walk(dir: string) {
     }
   } catch (e) {
     // Silently skip directories that can't be read (permissions, deleted, etc.)
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       console.warn(`Failed to scan directory ${dir}:`, e);
     }
   }
@@ -87,4 +100,3 @@ async function walk(dir: string) {
   const out = { found: HITS, action };
   console.log(JSON.stringify(out, null, 2));
 })();
-

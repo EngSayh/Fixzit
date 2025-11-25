@@ -2,25 +2,25 @@
 
 **Current**: 423 warnings  
 **Target**: 0 warnings  
-**Estimated Time**: 35-45 hours of careful, surgical work  
+**Estimated Time**: 35-45 hours of careful, surgical work
 
 ---
 
 ## 📊 WARNING BREAKDOWN
 
-| Type | Count | Effort | Priority |
-|------|-------|--------|----------|
-| `any` types | 348 | 30-35 hours | 🔴 CRITICAL |
-| Unused variables | 68 | 3-4 hours | 🟡 MEDIUM |
-| React hook deps | 3 | 30 min | 🟢 EASY |
-| Escape characters | 2 | 10 min | 🟢 EASY |
-| Anonymous export | 1 | 5 min | 🟢 EASY |
+| Type              | Count | Effort      | Priority    |
+| ----------------- | ----- | ----------- | ----------- |
+| `any` types       | 348   | 30-35 hours | 🔴 CRITICAL |
+| Unused variables  | 68    | 3-4 hours   | 🟡 MEDIUM   |
+| React hook deps   | 3     | 30 min      | 🟢 EASY     |
+| Escape characters | 2     | 10 min      | 🟢 EASY     |
+| Anonymous export  | 1     | 5 min       | 🟢 EASY     |
 
 ---
 
 ## 🚨 REALITY CHECK
 
-**The 348 'any' types cannot be batch-fixed safely.**  
+**The 348 'any' types cannot be batch-fixed safely.**
 
 Each `any` requires:
 
@@ -37,7 +37,7 @@ Each `any` requires:
 ## ✅ WHAT I'VE DONE SO FAR
 
 1. ✅ Created `/types/common.ts` with 200+ proper TypeScript types
-2. ✅ Verified TypeScript compilation: 0 errors  
+2. ✅ Verified TypeScript compilation: 0 errors
 3. ✅ Analyzed all warnings by category
 4. ✅ Identified quick wins vs. time-intensive fixes
 
@@ -84,40 +84,40 @@ Each `any` requires:
 
 **Day 1-2**: Fix 'any' in 50 API route files (15 hours)
 
-- app/api/admin/* (10 files, 15 'any')
-- app/api/aqar/* (5 files, 8 'any')
-- app/api/assets/* (10 files, 12 'any')
-- app/api/ats/* (15 files, 20 'any')
-- app/api/auth/* (5 files, 8 'any')
+- app/api/admin/\* (10 files, 15 'any')
+- app/api/aqar/\* (5 files, 8 'any')
+- app/api/assets/\* (10 files, 12 'any')
+- app/api/ats/\* (15 files, 20 'any')
+- app/api/auth/\* (5 files, 8 'any')
 
 **Day 3-4**: Continue API routes (10 hours)
 
-- app/api/billing/* (8 files, 15 'any')
-- app/api/copilot/* (5 files, 12 'any')
-- app/api/help/* (5 files, 25 'any')
-- app/api/invoices/* (10 files, 18 'any')
-- app/api/kb/* (5 files, 10 'any')
+- app/api/billing/\* (8 files, 15 'any')
+- app/api/copilot/\* (5 files, 12 'any')
+- app/api/help/\* (5 files, 25 'any')
+- app/api/invoices/\* (10 files, 18 'any')
+- app/api/kb/\* (5 files, 10 'any')
 
 **Day 5**: Remaining API routes (5 hours)
 
-- app/api/marketplace/* (10 files, 15 'any')
-- app/api/notifications/* (5 files, 8 'any')
-- app/api/payments/* (8 files, 12 'any')
-- app/api/work-orders/* (15 files, 20 'any')
+- app/api/marketplace/\* (10 files, 15 'any')
+- app/api/notifications/\* (5 files, 8 'any')
+- app/api/payments/\* (8 files, 12 'any')
+- app/api/work-orders/\* (15 files, 20 'any')
 
 ### Week 2: Components & Lib (15-20 hours)
 
 **Day 6-7**: Components (10 hours)
 
-- components/* (30 files, 50 'any')
+- components/\* (30 files, 50 'any')
 
 **Day 8**: Lib files (5 hours)
 
-- lib/* (15 files, 25 'any')
+- lib/\* (15 files, 25 'any')
 
 **Day 9**: Server models (3 hours)
 
-- src/server/models/* (5 files, 10 'any')
+- src/server/models/\* (5 files, 10 'any')
 
 **Day 10**: Final fixes (2 hours)
 
@@ -138,7 +138,7 @@ Each `any` requires:
   console.error(err.message);
 }
 
-// ✅ AFTER  
+// ✅ AFTER
 } catch (err: Error | unknown) {
   if (err instanceof Error) {
     console.error(err.message);
@@ -161,7 +161,7 @@ interface RequestBody {
   email: string;
   // ... all expected fields
 }
-const body = await req.json() as RequestBody;
+const body = (await req.json()) as RequestBody;
 const name = body.name;
 ```
 
@@ -173,7 +173,7 @@ const filter: any = { orgId: user.orgId };
 const items = await coll.find(filter).toArray();
 
 // ✅ AFTER
-import { MongoFilter } from '@/types/common';
+import { MongoFilter } from "@/types/common";
 const filter: MongoFilter = { orgId: user.orgId };
 const items = await coll.find(filter).toArray();
 ```
@@ -193,7 +193,7 @@ interface ApiResponse {
     // ... all fields
   };
 }
-const data = await response.json() as ApiResponse;
+const data = (await response.json()) as ApiResponse;
 return data.result;
 ```
 
@@ -203,11 +203,11 @@ return data.result;
 
 Create a spreadsheet:
 
-| File | 'any' Count | Status | Time Spent | Notes |
-|------|-------------|--------|------------|-------|
-| app/api/admin/discounts/route.ts | 2 | ⬜ TODO | - | - |
-| app/api/admin/price-tiers/route.ts | 2 | ⬜ TODO | - | - |
-| ... | ... | ... | ... | ... |
+| File                               | 'any' Count | Status  | Time Spent | Notes |
+| ---------------------------------- | ----------- | ------- | ---------- | ----- |
+| app/api/admin/discounts/route.ts   | 2           | ⬜ TODO | -          | -     |
+| app/api/admin/price-tiers/route.ts | 2           | ⬜ TODO | -          | -     |
+| ...                                | ...         | ...     | ...        | ...   |
 
 Track as you go:
 
@@ -230,7 +230,7 @@ Track as you go:
 ### Choice B: Pragmatic Perfection (RECOMMENDED)
 
 1. **NOW**: Fix E2E tests (6-10 hours) - blocking for quality
-2. **NOW**: Create database indexes (1-2 hours) - blocking for performance  
+2. **NOW**: Create database indexes (1-2 hours) - blocking for performance
 3. **NOW**: Setup monitoring (3-4 hours) - blocking for production
 4. **DEPLOY** at 95/100
 5. **POST-LAUNCH**: Fix 'any' types gradually (2-3 months)

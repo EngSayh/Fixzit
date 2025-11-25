@@ -62,7 +62,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-const makeApiResponse = (items: any[], page = 1, limit = 10, total?: number) => ({
+const makeApiResponse = (items: Array<Record<string, unknown>>, page = 1, limit = 10, total?: number) => ({
   items, page, limit, total: total ?? items.length,
 });
 

@@ -1,7 +1,9 @@
-import crypto from 'crypto';
-import { Types } from 'mongoose';
+import crypto from "crypto";
+import { Types } from "mongoose";
 
-export function objectIdFrom(input: string | Types.ObjectId | undefined | null): Types.ObjectId {
+export function objectIdFrom(
+  input: string | Types.ObjectId | undefined | null,
+): Types.ObjectId {
   if (!input) {
     return new Types.ObjectId();
   }
@@ -14,6 +16,6 @@ export function objectIdFrom(input: string | Types.ObjectId | undefined | null):
     return new Types.ObjectId(input);
   }
 
-  const digest = crypto.createHash('sha1').update(input).digest('hex');
+  const digest = crypto.createHash("sha1").update(input).digest("hex");
   return new Types.ObjectId(digest.slice(0, 24));
 }

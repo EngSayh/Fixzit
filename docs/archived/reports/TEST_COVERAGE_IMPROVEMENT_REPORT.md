@@ -37,16 +37,16 @@ Fixed incorrect import paths in multiple test files:
 
 ```typescript
 // BEFORE
-import { computeSlaMinutes } from '../src/sla';
-import { generateSlug } from '../../src/lib/utils';
-import { parseCartAmount } from '../../src/lib/payments/parseCartAmount';
-import { Asset } from '../../../src/models/Asset';
+import { computeSlaMinutes } from "../src/sla";
+import { generateSlug } from "../../src/lib/utils";
+import { parseCartAmount } from "../../src/lib/payments/parseCartAmount";
+import { Asset } from "../../../src/models/Asset";
 
 // AFTER
-import { computeSlaMinutes } from '../sla';
-import { generateSlug } from '@/lib/utils';
-import { parseCartAmount } from '@/lib/payments/parseCartAmount';
-import { Asset } from '@/server/models/Asset';
+import { computeSlaMinutes } from "../sla";
+import { generateSlug } from "@/lib/utils";
+import { parseCartAmount } from "@/lib/payments/parseCartAmount";
+import { Asset } from "@/server/models/Asset";
 ```
 
 **Files Fixed:**
@@ -64,18 +64,18 @@ Converted tests from Playwright/Jest to Vitest:
 
 ```typescript
 // BEFORE (Playwright)
-import { test, expect } from '@playwright/test';
-test.describe('generateSlug', () => {
-  test('returns empty string', () => {
-    expect(generateSlug('')).toBe('');
+import { test, expect } from "@playwright/test";
+test.describe("generateSlug", () => {
+  test("returns empty string", () => {
+    expect(generateSlug("")).toBe("");
   });
 });
 
 // AFTER (Vitest)
-import { describe, test, expect } from 'vitest';
-describe('generateSlug', () => {
-  test('returns empty string', () => {
-    expect(generateSlug('')).toBe('');
+import { describe, test, expect } from "vitest";
+describe("generateSlug", () => {
+  test("returns empty string", () => {
+    expect(generateSlug("")).toBe("");
   });
 });
 ```
@@ -95,12 +95,12 @@ Changed from Node.js assert API to Vitest expect API:
 
 ```typescript
 // BEFORE
-import assert from 'node:assert/strict';
-assert.equal(parseCartAmount('1,234.56'), 1234.56);
+import assert from "node:assert/strict";
+assert.equal(parseCartAmount("1,234.56"), 1234.56);
 
 // AFTER
-import { expect } from 'vitest';
-expect(parseCartAmount('1,234.56')).toBe(1234.56);
+import { expect } from "vitest";
+expect(parseCartAmount("1,234.56")).toBe(1234.56);
 ```
 
 **File:** tests/unit/parseCartAmount.test.ts
@@ -226,9 +226,9 @@ test("uses mock DB when NODE_ENV=development and MONGODB_URI is undefined", () =
 
 **Cannot be fixed without deployment:**
 
-- qa/tests/*.spec.ts (Playwright E2E - need localhost:3000)
+- qa/tests/\*.spec.ts (Playwright E2E - need localhost:3000)
 - tests/copilot.spec.ts (API E2E - need server)
-- tests/unit/api/qa/*.route.test.ts (API tests - need server)
+- tests/unit/api/qa/\*.route.test.ts (API tests - need server)
 
 **Reason:** These tests use `request.post('/api/...')` and `page.goto('/')` which require a running Next.js server.
 
@@ -316,8 +316,8 @@ test("uses mock DB when NODE_ENV=development and MONGODB_URI is undefined", () =
 6. ✅ Fix tests/models/SearchSynonym.test.ts mock issues
 7. ✅ Convert remaining Playwright tests to Vitest (where applicable)
 8. ✅ Fix tests/ats.scoring.test.ts logic issues
-9. ✅ Review tests/scripts/*.test.ts files
-10. ✅ Fix tests/unit/components/*.test.tsx React tests
+9. ✅ Review tests/scripts/\*.test.ts files
+10. ✅ Fix tests/unit/components/\*.test.tsx React tests
 
 ### Medium-term (Next 20 Test Files)
 
@@ -389,4 +389,4 @@ Tests are located in:
 
 **Report Generated:** During continuous test improvement work  
 **Status:** IN PROGRESS - Never stopping!  
-**Next Commit:** #29+  
+**Next Commit:** #29+

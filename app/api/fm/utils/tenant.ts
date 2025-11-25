@@ -1,10 +1,10 @@
-import type { NextRequest } from 'next/server';
-import type { NextResponse } from 'next/server';
-import { FMErrors, fmErrorContext } from '../errors';
+import type { NextRequest } from "next/server";
+import type { NextResponse } from "next/server";
+import { FMErrors, fmErrorContext } from "../errors";
 
 type TenantResolutionSuccess = {
   tenantId: string;
-  source: 'header' | 'query' | 'session';
+  source: "header" | "query" | "session";
 };
 
 export type TenantResolutionResult =
@@ -12,14 +12,16 @@ export type TenantResolutionResult =
   | { error: NextResponse };
 
 const TENANT_HEADER_CANDIDATES = [
-  'x-tenant-id',
-  'x-org-id',
-  'x-organization-id',
-  'x-customer-id',
-  'x-support-org-id',
+  "x-tenant-id",
+  "x-org-id",
+  "x-organization-id",
+  "x-customer-id",
+  "x-support-org-id",
 ] as const;
 
-const normalizeTenantValue = (value: string | null | undefined): string | null => {
+const normalizeTenantValue = (
+  value: string | null | undefined,
+): string | null => {
   if (!value) return null;
   const trimmed = value.trim();
   return trimmed.length ? trimmed : null;
@@ -31,14 +33,19 @@ const normalizeTenantValue = (value: string | null | undefined): string | null =
  */
 export function resolveTenantId(
   req: NextRequest,
-  fallbackTenantId?: string | null
+  fallbackTenantId?: string | null,
 ): TenantResolutionResult {
   const headerTenant =
-    TENANT_HEADER_CANDIDATES.map((header) => normalizeTenantValue(req.headers.get(header))).find(Boolean) ??
-    null;
-  const queryTenant = normalizeTenantValue(req.nextUrl?.searchParams?.get('tenantId'));
+    TENANT_HEADER_CANDIDATES.map((header) =>
+      normalizeTenantValue(req.headers.get(header)),
+    ).find(Boolean) ?? null;
+  const queryTenant = normalizeTenantValue(
+    req.nextUrl?.searchParams?.get("tenantId"),
+  );
   const sessionTenant = normalizeTenantValue(
-    typeof fallbackTenantId === 'string' ? fallbackTenantId : fallbackTenantId ?? null
+    typeof fallbackTenantId === "string"
+      ? fallbackTenantId
+      : (fallbackTenantId ?? null),
   );
 
   const conflictPairs: Array<[string | null, string | null]> = [
@@ -49,7 +56,12 @@ export function resolveTenantId(
 
   for (const [first, second] of conflictPairs) {
     if (first && second && first !== second) {
-      return { error: FMErrors.forbidden('Tenant context mismatch detected', fmErrorContext(req)) };
+      return {
+        error: FMErrors.forbidden(
+          "Tenant context mismatch detected",
+          fmErrorContext(req),
+        ),
+      };
     }
   }
 
@@ -60,6 +72,6 @@ export function resolveTenantId(
 
   return {
     tenantId,
-    source: headerTenant ? 'header' : queryTenant ? 'query' : 'session',
+    source: headerTenant ? "header" : queryTenant ? "query" : "session",
   };
 }

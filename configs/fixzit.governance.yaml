@@ -6,8 +6,8 @@ branding:
     accent: "#FFB400"
 i18n:
   languages:
-    - {code: "ar", name_native: "العربية", iso: "AR", flag: "sa", rtl: true}
-    - {code: "en", name_native: "English", iso: "EN", flag: "gb", rtl: false}
+    - { code: "ar", name_native: "العربية", iso: "AR", flag: "sa", rtl: true }
+    - { code: "en", name_native: "English", iso: "EN", flag: "gb", rtl: false }
 layout:
   freeze: true
   singleHeader: true

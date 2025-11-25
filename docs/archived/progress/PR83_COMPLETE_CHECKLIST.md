@@ -170,13 +170,13 @@
 **Expected**: Replace with brand token class
 **Status**: Checking...
 
-### Comment 27: app/api/subscribe/*
+### Comment 27: app/api/subscribe/\*
 
 **Issue**: Missing OpenAPI 3.0
 **Expected**: Provide OpenAPI YAML for both endpoints
 **Status**: Checking...
 
-### Comment 28: app/api/subscribe/*
+### Comment 28: app/api/subscribe/\*
 
 **Issue**: No normalized error shape
 **Expected**: {error, code, userMessage, devMessage, correlationId}

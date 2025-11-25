@@ -92,8 +92,8 @@ describe('PATCH /api/work-orders/[id]', () => {
         propertyId: '507f1f77bcf86cd799439012',
       });
 
-      const res = await PATCH(req as any, {
-        params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
+      const res = await PATCH(req, {
+        params: { id: '' },
       });
 
       expect(res.status).toBe(422);
@@ -115,8 +115,8 @@ describe('PATCH /api/work-orders/[id]', () => {
         propertyId: '507f1f77bcf86cd799439012',
       });
 
-      const res = await PATCH(req as any, {
-        params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
+      const res = await PATCH(req, {
+        params: { id: '' },
       });
 
       expect(res.status).toBe(200);
@@ -140,8 +140,8 @@ describe('PATCH /api/work-orders/[id]', () => {
         unitNumber: '3B',
       });
 
-      const res = await PATCH(req as any, {
-        params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
+      const res = await PATCH(req, {
+        params: { id: '' },
       });
 
       expect(res.status).toBe(200);
@@ -168,8 +168,8 @@ describe('PATCH /api/work-orders/[id]', () => {
         },
       });
 
-      const res = await PATCH(req as any, {
-        params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
+      const res = await PATCH(req, {
+        params: { id: '' },
       });
 
       expect(res.status).toBe(422);
@@ -192,8 +192,8 @@ describe('PATCH /api/work-orders/[id]', () => {
         },
       });
 
-      const res = await PATCH(req as any, {
-        params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
+      const res = await PATCH(req, {
+        params: { id: '' },
       });
 
       expect(res.status).toBe(200);
@@ -211,8 +211,8 @@ describe('PATCH /api/work-orders/[id]', () => {
         priority: 'CRITICAL',
       });
 
-      const res = await PATCH(req as any, {
-        params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
+      const res = await PATCH(req, {
+        params: { id: '' },
       });
 
       expect(res.status).toBe(200);
@@ -228,8 +228,8 @@ describe('PATCH /api/work-orders/[id]', () => {
         dueAt: customDue.toISOString(),
       });
 
-      const res = await PATCH(req as any, {
-        params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
+      const res = await PATCH(req, {
+        params: { id: '' },
       });
 
       expect(res.status).toBe(200);
@@ -257,8 +257,8 @@ describe('PATCH /api/work-orders/[id]', () => {
         attachments: [{ key: 'new-1.jpg', url: 'https://s3/new-1.jpg' }],
       });
 
-      const res = await PATCH(req as any, {
-        params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
+      const res = await PATCH(req, {
+        params: { id: '' },
       });
 
       expect(res.status).toBe(200);
@@ -299,8 +299,8 @@ describe('PATCH /api/work-orders/[id]', () => {
         attachments: [{ key: 'keep-me.jpg', url: 'https://s3/keep.jpg' }],
       });
 
-      const res = await PATCH(req as any, {
-        params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
+      const res = await PATCH(req, {
+        params: { id: '' },
       });
 
       expect(res.status).toBe(200);
@@ -331,8 +331,8 @@ describe('PATCH /api/work-orders/[id]', () => {
         },
       });
 
-      const res = await PATCH(req as any, {
-        params: Promise.resolve({ id: '507f1f77bcf86cd799439011' }),
+      const res = await PATCH(req, {
+        params: { id: '' },
       });
 
       expect(res.status).toBe(200);
@@ -356,8 +356,9 @@ describe('PATCH /api/work-orders/[id]', () => {
 
 // Helper to create mock request
 function createRequest(body: Record<string, unknown>) {
-  return {
-    json: async () => body,
-    url: 'https://test.com/api/work-orders/507f1f77bcf86cd799439011',
-  };
+  return new Request('https://test.com/api/work-orders/507f1f77bcf86cd799439011', {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 }

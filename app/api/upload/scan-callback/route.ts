@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
-import { getDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
-import { Config } from '@/lib/config/constants';
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { Config } from "@/lib/config/constants";
 
-type ScanStatus = 'pending' | 'clean' | 'infected' | 'error';
+type ScanStatus = "pending" | "clean" | "infected" | "error";
 
 type ScanDocument = {
   _id: ObjectId;
@@ -18,39 +18,46 @@ type ScanDocument = {
   raw?: unknown;
 };
 
-const COLLECTION = 'upload_scans';
+const COLLECTION = "upload_scans";
 
 const mapStatus = (value: unknown): ScanStatus => {
-  if (value === 'clean') return 'clean';
-  if (value === 'infected') return 'infected';
-  if (value === 'pending') return 'pending';
-  return 'error';
+  if (value === "clean") return "clean";
+  if (value === "infected") return "infected";
+  if (value === "pending") return "pending";
+  return "error";
 };
 
 export async function POST(req: NextRequest) {
-  const token = req.headers.get('x-scan-token');
+  const token = req.headers.get("x-scan-token");
   const expected = Config.aws.scan.webhookToken;
   if (!expected || token !== expected) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
   }
 
   try {
     const payload = await req.json();
-    const key = typeof payload?.key === 'string' ? payload.key : '';
+    const key = typeof payload?.key === "string" ? payload.key : "";
     const status = mapStatus(payload?.status);
     if (!key) {
-      return NextResponse.json({ success: false, error: 'Missing key' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Missing key" },
+        { status: 400 },
+      );
     }
 
     const doc: ScanDocument = {
       _id: new ObjectId(),
       key,
       status,
-      engine: typeof payload?.engine === 'string' ? payload.engine : undefined,
+      engine: typeof payload?.engine === "string" ? payload.engine : undefined,
       findings: Array.isArray(payload?.findings)
-        ? payload.findings.filter((x: unknown) => typeof x === 'string')
+        ? payload.findings.filter((x: unknown) => typeof x === "string")
         : undefined,
-      sizeBytes: typeof payload?.sizeBytes === 'number' ? payload.sizeBytes : undefined,
+      sizeBytes:
+        typeof payload?.sizeBytes === "number" ? payload.sizeBytes : undefined,
       scannedAt: payload?.scannedAt ? new Date(payload.scannedAt) : new Date(),
       receivedAt: new Date(),
       raw: payload,
@@ -62,7 +69,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('[ScanCallback] Failed to record scan result', error as Error);
-    return NextResponse.json({ success: false, error: 'Internal error' }, { status: 500 });
+    logger.error("[ScanCallback] Failed to record scan result", error as Error);
+    return NextResponse.json(
+      { success: false, error: "Internal error" },
+      { status: 500 },
+    );
   }
 }

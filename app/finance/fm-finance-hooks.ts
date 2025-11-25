@@ -3,10 +3,10 @@
  * Automatically creates financial transactions when work orders are closed
  */
 
-import type { HydratedDocument, Types } from 'mongoose';
-import { FMFinancialTransaction } from '@/server/models/FMFinancialTransaction';
-import type { FMFinancialTransactionDoc } from '@/server/models/FMFinancialTransaction';
-import { logger } from '@/lib/logger';
+import type { HydratedDocument, Types } from "mongoose";
+import { FMFinancialTransaction } from "@/server/models/FMFinancialTransaction";
+import type { FMFinancialTransactionDoc } from "@/server/models/FMFinancialTransaction";
+import { logger } from "@/lib/logger";
 
 type PaymentDetailsInput = {
   paymentMethod: string;
@@ -17,13 +17,17 @@ type PaymentDetailsInput = {
 };
 
 type FMTransactionDocument = HydratedDocument<FMFinancialTransactionDoc> & {
-  markAsPaid(_details: PaymentDetailsInput): Promise<HydratedDocument<FMFinancialTransactionDoc>>;
+  markAsPaid(
+    _details: PaymentDetailsInput,
+  ): Promise<HydratedDocument<FMFinancialTransactionDoc>>;
 };
 
 type LeanFMTransaction = FMFinancialTransactionDoc & { _id: Types.ObjectId };
 
-function hasMarkAsPaid(doc: HydratedDocument<FMFinancialTransactionDoc>): doc is FMTransactionDocument {
-  return typeof (doc as FMTransactionDocument).markAsPaid === 'function';
+function hasMarkAsPaid(
+  doc: HydratedDocument<FMFinancialTransactionDoc>,
+): doc is FMTransactionDocument {
+  return typeof (doc as FMTransactionDocument).markAsPaid === "function";
 }
 
 export interface WorkOrderFinancialData {
@@ -47,7 +51,7 @@ export interface WorkOrderFinancialData {
 
 export interface FinancialTransaction {
   id: string;
-  type: 'EXPENSE' | 'INVOICE' | 'PAYMENT' | 'ADJUSTMENT';
+  type: "EXPENSE" | "INVOICE" | "PAYMENT" | "ADJUSTMENT";
   workOrderId: string;
   propertyId: string;
   ownerId: string;
@@ -58,7 +62,7 @@ export interface FinancialTransaction {
   description: string;
   date: Date;
   dueDate?: Date;
-  status: 'PENDING' | 'POSTED' | 'PAID' | 'CANCELLED' | 'REFUNDED';
+  status: "PENDING" | "POSTED" | "PAID" | "CANCELLED" | "REFUNDED";
   postingRef?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -83,7 +87,7 @@ export interface OwnerStatement {
  */
 export async function onWorkOrderClosed(
   workOrderId: string,
-  financialData: WorkOrderFinancialData
+  financialData: WorkOrderFinancialData,
 ): Promise<{
   expenseTransaction?: FinancialTransaction;
   invoiceTransaction?: FinancialTransaction;
@@ -94,29 +98,29 @@ export async function onWorkOrderClosed(
     invoiceTransaction?: FinancialTransaction;
     statementUpdated: boolean;
   } = {
-    statementUpdated: false
+    statementUpdated: false,
   };
 
   // 1. Create expense transaction (always)
   const expenseTransaction: FinancialTransaction = {
     id: `TXN-EXP-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-    type: 'EXPENSE',
+    type: "EXPENSE",
     workOrderId,
     propertyId: financialData.propertyId,
     ownerId: financialData.ownerId,
     amount: financialData.totalCost,
-    currency: 'SAR',
+    currency: "SAR",
     category: financialData.category,
     description: `Work Order #${workOrderId}: ${financialData.description}`,
     date: financialData.completedAt,
-    status: 'POSTED',
+    status: "POSTED",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
 
   // Save expense to database
-  const savedExpense = (await FMFinancialTransaction.create({
-    type: 'EXPENSE',
+  const savedExpense = await FMFinancialTransaction.create({
+    type: "EXPENSE",
     workOrderId: expenseTransaction.workOrderId,
     propertyId: expenseTransaction.propertyId,
     ownerId: expenseTransaction.ownerId,
@@ -125,37 +129,41 @@ export async function onWorkOrderClosed(
     category: expenseTransaction.category,
     description: expenseTransaction.description,
     transactionDate: expenseTransaction.date,
-    status: 'POSTED'
-  }));
-  logger.info(`[Finance] Created expense transaction: ${savedExpense.transactionNumber}`);
+    status: "POSTED",
+  });
+  logger.info(
+    `[Finance] Created expense transaction: ${savedExpense.transactionNumber}`,
+  );
   results.expenseTransaction = {
     ...expenseTransaction,
-    id: savedExpense._id.toString()
+    id: savedExpense._id.toString(),
   };
 
   // 2. Create invoice if chargeable
   if (financialData.chargeable) {
     const invoiceTransaction: FinancialTransaction = {
       id: `TXN-INV-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-      type: 'INVOICE',
+      type: "INVOICE",
       workOrderId,
       propertyId: financialData.propertyId,
       ownerId: financialData.ownerId,
-      tenantId: financialData.chargeToTenant ? financialData.tenantId : undefined,
+      tenantId: financialData.chargeToTenant
+        ? financialData.tenantId
+        : undefined,
       amount: financialData.totalCost,
-      currency: 'SAR',
+      currency: "SAR",
       category: financialData.category,
       description: `Invoice for Work Order #${workOrderId}`,
       date: new Date(),
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-      status: 'PENDING',
+      status: "PENDING",
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     // Save invoice to database
     const savedInvoice = await FMFinancialTransaction.create({
-      type: 'INVOICE',
+      type: "INVOICE",
       workOrderId: invoiceTransaction.workOrderId,
       propertyId: invoiceTransaction.propertyId,
       ownerId: invoiceTransaction.ownerId,
@@ -166,31 +174,35 @@ export async function onWorkOrderClosed(
       description: invoiceTransaction.description,
       transactionDate: invoiceTransaction.date,
       dueDate: invoiceTransaction.dueDate,
-      status: 'PENDING'
+      status: "PENDING",
     });
     logger.info(`[Finance] Created invoice: ${savedInvoice.transactionNumber}`);
     results.invoiceTransaction = {
       ...invoiceTransaction,
-      id: savedInvoice._id.toString()
+      id: savedInvoice._id.toString(),
     };
   }
 
   // 3. Update owner statement with SAVED transactions (not pre-save objects)
   try {
     const savedTransactions: FinancialTransaction[] = [];
-    
+
     if (results.expenseTransaction) {
       savedTransactions.push(results.expenseTransaction);
     }
-    
+
     if (results.invoiceTransaction) {
       savedTransactions.push(results.invoiceTransaction);
     }
-    
-    await updateOwnerStatement(financialData.ownerId, financialData.propertyId, savedTransactions);
+
+    await updateOwnerStatement(
+      financialData.ownerId,
+      financialData.propertyId,
+      savedTransactions,
+    );
     results.statementUpdated = true;
   } catch (error) {
-    logger.error('[Finance] Failed to update owner statement:', error);
+    logger.error("[Finance] Failed to update owner statement:", error);
   }
 
   return results;
@@ -202,31 +214,35 @@ export async function onWorkOrderClosed(
 export async function updateOwnerStatement(
   ownerId: string,
   propertyId: string,
-  transactions: FinancialTransaction[]
+  transactions: FinancialTransaction[],
 ): Promise<void> {
   // Query existing transactions from database to calculate totals
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
-  
+
   const existingTransactions = await FMFinancialTransaction.find({
     ownerId,
     propertyId,
-    'statementPeriod.month': currentMonth,
-    'statementPeriod.year': currentYear
+    "statementPeriod.month": currentMonth,
+    "statementPeriod.year": currentYear,
   }).lean<LeanFMTransaction[]>();
 
-  logger.info(`[Finance] Updating statement for owner ${ownerId} property ${propertyId}`);
+  logger.info(
+    `[Finance] Updating statement for owner ${ownerId} property ${propertyId}`,
+  );
   logger.info(`[Finance] Adding ${transactions.length} new transactions`);
-  logger.info(`[Finance] Total transactions in period: ${existingTransactions.length + transactions.length}`);
-  
+  logger.info(
+    `[Finance] Total transactions in period: ${existingTransactions.length + transactions.length}`,
+  );
+
   // Calculate totals from database records
   const expenses = existingTransactions
-    .filter(t => t.type === 'EXPENSE')
+    .filter((t) => t.type === "EXPENSE")
     .reduce((sum, t) => sum + t.amount, 0);
-  
+
   const revenue = existingTransactions
-    .filter(t => t.type === 'INVOICE' && t.status === 'PAID')
+    .filter((t) => t.type === "INVOICE" && t.status === "PAID")
     .reduce((sum, t) => sum + t.amount, 0);
 
   logger.info(`[Finance] Total expenses: ${expenses} SAR`);
@@ -240,7 +256,7 @@ export async function updateOwnerStatement(
 export async function generateOwnerStatement(
   ownerId: string,
   propertyId: string,
-  period: { from: Date; to: Date }
+  period: { from: Date; to: Date },
 ): Promise<OwnerStatement> {
   // Query FMFinancialTransaction collection for transactions in period
   const dbTransactions = await FMFinancialTransaction.find({
@@ -248,35 +264,39 @@ export async function generateOwnerStatement(
     propertyId,
     transactionDate: {
       $gte: period.from,
-      $lte: period.to
-    }
-  }).sort({ transactionDate: 1 }).lean<LeanFMTransaction[]>();
+      $lte: period.to,
+    },
+  })
+    .sort({ transactionDate: 1 })
+    .lean<LeanFMTransaction[]>();
 
   // Convert to interface format
-  const transactions: FinancialTransaction[] = dbTransactions.map(transaction => ({
-    id: transaction._id.toString(),
-    type: transaction.type,
-    workOrderId: transaction.workOrderId?.toString() ?? '',
-    propertyId: transaction.propertyId,
-    ownerId: transaction.ownerId,
-    tenantId: transaction.tenantId || undefined,
-    amount: transaction.amount,
-    currency: transaction.currency,
-    category: transaction.category,
-    description: transaction.description,
-    date: transaction.transactionDate,
-    dueDate: transaction.dueDate ?? undefined,
-    status: transaction.status,
-    createdAt: transaction.createdAt,
-    updatedAt: transaction.updatedAt
-  }));
+  const transactions: FinancialTransaction[] = dbTransactions.map(
+    (transaction) => ({
+      id: transaction._id.toString(),
+      type: transaction.type,
+      workOrderId: transaction.workOrderId?.toString() ?? "",
+      propertyId: transaction.propertyId,
+      ownerId: transaction.ownerId,
+      tenantId: transaction.tenantId || undefined,
+      amount: transaction.amount,
+      currency: transaction.currency,
+      category: transaction.category,
+      description: transaction.description,
+      date: transaction.transactionDate,
+      dueDate: transaction.dueDate ?? undefined,
+      status: transaction.status,
+      createdAt: transaction.createdAt,
+      updatedAt: transaction.updatedAt,
+    }),
+  );
 
   const totalExpenses = transactions
-    .filter(t => t.type === 'EXPENSE')
+    .filter((t) => t.type === "EXPENSE")
     .reduce((sum, t) => sum + t.amount, 0);
 
   const totalRevenue = transactions
-    .filter(t => t.type === 'INVOICE' && t.status === 'PAID')
+    .filter((t) => t.type === "INVOICE" && t.status === "PAID")
     .reduce((sum, t) => sum + t.amount, 0);
 
   return {
@@ -287,7 +307,7 @@ export async function generateOwnerStatement(
     totalExpenses,
     totalRevenue,
     netBalance: totalRevenue - totalExpenses,
-    generatedAt: new Date()
+    generatedAt: new Date(),
   };
 }
 
@@ -295,20 +315,22 @@ export async function generateOwnerStatement(
  * Get pending invoices for tenant
  */
 export async function getTenantPendingInvoices(
-  tenantId: string
+  tenantId: string,
 ): Promise<FinancialTransaction[]> {
   // Query FMFinancialTransaction collection for pending invoices
   const dbInvoices = await FMFinancialTransaction.find({
     tenantId,
-    type: 'INVOICE',
-    status: 'PENDING'
-  }).sort({ dueDate: 1 }).lean<LeanFMTransaction[]>();
+    type: "INVOICE",
+    status: "PENDING",
+  })
+    .sort({ dueDate: 1 })
+    .lean<LeanFMTransaction[]>();
 
   // Convert to interface format
-  return dbInvoices.map(transaction => ({
+  return dbInvoices.map((transaction) => ({
     id: transaction._id.toString(),
-    type: 'INVOICE' as const,
-    workOrderId: transaction.workOrderId?.toString() ?? '',
+    type: "INVOICE" as const,
+    workOrderId: transaction.workOrderId?.toString() ?? "",
     propertyId: transaction.propertyId,
     ownerId: transaction.ownerId,
     tenantId: transaction.tenantId || undefined,
@@ -318,9 +340,9 @@ export async function getTenantPendingInvoices(
     description: transaction.description,
     date: transaction.transactionDate,
     dueDate: transaction.dueDate ?? undefined,
-    status: 'PENDING' as const,
+    status: "PENDING" as const,
     createdAt: transaction.createdAt,
-    updatedAt: transaction.updatedAt
+    updatedAt: transaction.updatedAt,
   }));
 }
 
@@ -331,7 +353,7 @@ export async function recordPayment(
   invoiceId: string,
   amount: number,
   paymentMethod: string,
-  reference: string
+  reference: string,
 ): Promise<FinancialTransaction> {
   // Find and update the invoice
   const invoice = await FMFinancialTransaction.findById(invoiceId);
@@ -341,42 +363,42 @@ export async function recordPayment(
 
   // Mark invoice as paid
   if (!hasMarkAsPaid(invoice)) {
-    throw new Error('Invoice document missing markAsPaid handler');
+    throw new Error("Invoice document missing markAsPaid handler");
   }
   await invoice.markAsPaid({
     paymentMethod,
     paymentRef: reference,
-    receivedFrom: invoice.tenantId || 'Unknown',
-    receivedBy: 'System'
+    receivedFrom: invoice.tenantId || "Unknown",
+    receivedBy: "System",
   });
 
   // Create payment transaction
-  const savedPayment = (await FMFinancialTransaction.create({
-    type: 'PAYMENT',
+  const savedPayment = await FMFinancialTransaction.create({
+    type: "PAYMENT",
     workOrderId: invoice.workOrderId,
     propertyId: invoice.propertyId,
     ownerId: invoice.ownerId,
     tenantId: invoice.tenantId,
     amount,
-    currency: 'SAR',
-    category: 'PAYMENT',
+    currency: "SAR",
+    category: "PAYMENT",
     description: `Payment for invoice #${invoice.transactionNumber} via ${paymentMethod}`,
     transactionDate: new Date(),
-    status: 'POSTED',
+    status: "POSTED",
     paymentDetails: {
       paymentMethod,
       paymentRef: reference,
-      receivedFrom: invoice.tenantId || 'Unknown',
-      receivedBy: 'System',
-      receivedDate: new Date()
-    }
-  }));
+      receivedFrom: invoice.tenantId || "Unknown",
+      receivedBy: "System",
+      receivedDate: new Date(),
+    },
+  });
 
   // Convert to interface format
   const payment: FinancialTransaction = {
     id: savedPayment._id.toString(),
-    type: 'PAYMENT',
-    workOrderId: savedPayment.workOrderId?.toString() || '',
+    type: "PAYMENT",
+    workOrderId: savedPayment.workOrderId?.toString() || "",
     propertyId: savedPayment.propertyId,
     ownerId: savedPayment.ownerId,
     tenantId: savedPayment.tenantId || undefined,
@@ -385,10 +407,10 @@ export async function recordPayment(
     category: savedPayment.category,
     description: savedPayment.description,
     date: savedPayment.transactionDate,
-    status: 'POSTED',
+    status: "POSTED",
     postingRef: reference,
     createdAt: savedPayment.createdAt,
-    updatedAt: savedPayment.updatedAt
+    updatedAt: savedPayment.updatedAt,
   };
 
   logger.info(`[Finance] Recorded payment: ${payment.id}`);

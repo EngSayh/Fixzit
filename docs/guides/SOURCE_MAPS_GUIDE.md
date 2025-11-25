@@ -13,8 +13,8 @@ This project is configured to generate **hidden source maps** in production buil
 config.devtool = false;
 
 // Production (CI only): Generate hidden source maps
-if (!dev && process.env.CI === 'true') {
-  config.devtool = 'hidden-source-map';
+if (!dev && process.env.CI === "true") {
+  config.devtool = "hidden-source-map";
   // This generates .map files but doesn't reference them in the bundles
   // Users won't see or download source maps, but error tracking can use them
 }
@@ -22,12 +22,12 @@ if (!dev && process.env.CI === 'true') {
 
 ### Source Map Types
 
-| Type | Description | Exposed to Users? | Use Case |
-|------|-------------|-------------------|----------|
-| `false` | No source maps | N/A | Development (memory savings) |
-| `hidden-source-map` | Full maps, no bundle reference | ❌ No | **Production (recommended)** |
-| `nosources-source-map` | Maps without source content | ❌ No | Production (smaller maps) |
-| `source-map` | Full maps with bundle reference | ✅ Yes | Not recommended for production |
+| Type                   | Description                     | Exposed to Users? | Use Case                       |
+| ---------------------- | ------------------------------- | ----------------- | ------------------------------ |
+| `false`                | No source maps                  | N/A               | Development (memory savings)   |
+| `hidden-source-map`    | Full maps, no bundle reference  | ❌ No             | **Production (recommended)**   |
+| `nosources-source-map` | Maps without source content     | ❌ No             | Production (smaller maps)      |
+| `source-map`           | Full maps with bundle reference | ✅ Yes            | Not recommended for production |
 
 ## How It Works
 
@@ -157,10 +157,10 @@ If you need source maps for manual debugging:
 
 ### Build Time
 
-| Configuration | Build Time (4-core/16GB) | Source Map Size |
-|---------------|-------------------------|-----------------|
-| No source maps | 30-35 seconds | 0 MB |
-| Hidden source maps | 35-45 seconds | ~10-20 MB |
+| Configuration      | Build Time (4-core/16GB) | Source Map Size |
+| ------------------ | ------------------------ | --------------- |
+| No source maps     | 30-35 seconds            | 0 MB            |
+| Hidden source maps | 35-45 seconds            | ~10-20 MB       |
 
 **Trade-off**: Slightly longer builds for much better error debugging.
 
@@ -260,6 +260,6 @@ find .next -name "*.map"
 ✅ **Current configuration**: Hidden source maps enabled in CI production builds  
 ✅ **User impact**: Zero (maps not exposed or downloaded)  
 ✅ **Developer benefit**: Full source code visibility in error tracking  
-✅ **Automation**: GitHub Actions uploads maps automatically  
+✅ **Automation**: GitHub Actions uploads maps automatically
 
 Your production errors will now show original source code instead of minified code! 🎉

@@ -5,7 +5,7 @@
 
 export const UserRole = {
   SUPER_ADMIN: "SUPER_ADMIN",
-  CORPORATE_ADMIN: "CORPORATE_ADMIN", 
+  CORPORATE_ADMIN: "CORPORATE_ADMIN",
   ADMIN: "ADMIN",
   MANAGER: "MANAGER",
   FM_MANAGER: "FM_MANAGER",
@@ -22,18 +22,32 @@ export const UserRole = {
   AUDITOR: "AUDITOR",
   VIEWER: "VIEWER",
   DISPATCHER: "DISPATCHER", // For FM dispatch operations
-  SUPPORT: "SUPPORT" // For support ticket management
+  SUPPORT: "SUPPORT", // For support ticket management
 } as const;
 
-export type UserRoleType = typeof UserRole[keyof typeof UserRole];
+export type UserRoleType = (typeof UserRole)[keyof typeof UserRole];
 
 // Array of all valid roles for validation
 export const ALL_ROLES = Object.values(UserRole);
 
 // Role categories for grouping
-export const ADMIN_ROLES = [UserRole.SUPER_ADMIN, UserRole.CORPORATE_ADMIN, UserRole.ADMIN] as const;
-export const FM_ROLES = [UserRole.MANAGER, UserRole.FM_MANAGER, UserRole.PROPERTY_MANAGER, UserRole.DISPATCHER, UserRole.TECHNICIAN] as const;
-export const BUSINESS_ROLES = [UserRole.FINANCE, UserRole.HR, UserRole.PROCUREMENT] as const;
+export const ADMIN_ROLES = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.ADMIN,
+] as const;
+export const FM_ROLES = [
+  UserRole.MANAGER,
+  UserRole.FM_MANAGER,
+  UserRole.PROPERTY_MANAGER,
+  UserRole.DISPATCHER,
+  UserRole.TECHNICIAN,
+] as const;
+export const BUSINESS_ROLES = [
+  UserRole.FINANCE,
+  UserRole.HR,
+  UserRole.PROCUREMENT,
+] as const;
 export const EXTERNAL_ROLES = [UserRole.VENDOR, UserRole.CUSTOMER] as const;
 export const PROPERTY_ROLES = [UserRole.OWNER, UserRole.TENANT] as const;
 
@@ -42,9 +56,9 @@ export const PROPERTY_ROLES = [UserRole.OWNER, UserRole.TENANT] as const;
  */
 export const UserStatus = {
   ACTIVE: "ACTIVE",
-  INACTIVE: "INACTIVE", 
+  INACTIVE: "INACTIVE",
   SUSPENDED: "SUSPENDED",
-  PENDING: "PENDING"
+  PENDING: "PENDING",
 } as const;
 
-export type UserStatusType = typeof UserStatus[keyof typeof UserStatus];
+export type UserStatusType = (typeof UserStatus)[keyof typeof UserStatus];

@@ -1,13 +1,21 @@
 /**
  * Server-Safe Date Formatting Utilities
- * 
+ *
  * These utilities can be imported by Server Components and API routes.
  * They do NOT use 'use client' directive.
  */
 
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
-export type DateFormatType = 'full' | 'long' | 'medium' | 'short' | 'date-only' | 'time-only' | 'relative' | 'iso';
+export type DateFormatType =
+  | "full"
+  | "long"
+  | "medium"
+  | "short"
+  | "date-only"
+  | "time-only"
+  | "relative"
+  | "iso";
 
 /**
  * Converts input to Date object safely
@@ -17,7 +25,7 @@ function parseDate(date: Date | string | number): Date | null {
     return isNaN(date.getTime()) ? null : date;
   }
 
-  if (typeof date === 'string' || typeof date === 'number') {
+  if (typeof date === "string" || typeof date === "number") {
     const parsed = new Date(date);
     return isNaN(parsed.getTime()) ? null : parsed;
   }
@@ -36,14 +44,15 @@ function formatRelative(date: Date, locale?: string): string {
   const diffHour = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHour / 24);
 
-  const rtf = new Intl.RelativeTimeFormat(locale || 'en', { numeric: 'auto' });
+  const rtf = new Intl.RelativeTimeFormat(locale || "en", { numeric: "auto" });
 
-  if (Math.abs(diffSec) < 60) return rtf.format(diffSec, 'second');
-  if (Math.abs(diffMin) < 60) return rtf.format(diffMin, 'minute');
-  if (Math.abs(diffHour) < 24) return rtf.format(diffHour, 'hour');
-  if (Math.abs(diffDay) < 30) return rtf.format(diffDay, 'day');
-  if (Math.abs(diffDay) < 365) return rtf.format(Math.floor(diffDay / 30), 'month');
-  return rtf.format(Math.floor(diffDay / 365), 'year');
+  if (Math.abs(diffSec) < 60) return rtf.format(diffSec, "second");
+  if (Math.abs(diffMin) < 60) return rtf.format(diffMin, "minute");
+  if (Math.abs(diffHour) < 24) return rtf.format(diffHour, "hour");
+  if (Math.abs(diffDay) < 30) return rtf.format(diffDay, "day");
+  if (Math.abs(diffDay) < 365)
+    return rtf.format(Math.floor(diffDay / 30), "month");
+  return rtf.format(Math.floor(diffDay / 365), "year");
 }
 
 /**
@@ -53,71 +62,71 @@ export function formatDate(
   date: Date,
   format: DateFormatType,
   locale?: string,
-  timeZone?: string
+  timeZone?: string,
 ): string {
-  const browserLocale = locale || 'en-US';
+  const browserLocale = locale || "en-US";
   const options: Intl.DateTimeFormatOptions = timeZone ? { timeZone } : {};
 
   switch (format) {
-    case 'full':
+    case "full":
       return date.toLocaleString(browserLocale, {
         ...options,
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
       });
 
-    case 'long':
+    case "long":
       return date.toLocaleString(browserLocale, {
         ...options,
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       });
 
-    case 'medium':
+    case "medium":
       return date.toLocaleString(browserLocale, {
         ...options,
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       });
 
-    case 'short':
+    case "short":
       return date.toLocaleString(browserLocale, {
         ...options,
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric'
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
       });
 
-    case 'date-only':
+    case "date-only":
       return date.toLocaleDateString(browserLocale, {
         ...options,
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric'
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
       });
 
-    case 'time-only':
+    case "time-only":
       return date.toLocaleTimeString(browserLocale, {
         ...options,
-        hour: '2-digit',
-        minute: '2-digit'
+        hour: "2-digit",
+        minute: "2-digit",
       });
 
-    case 'relative':
+    case "relative":
       return formatRelative(date, browserLocale);
 
-    case 'iso':
+    case "iso":
       return date.toISOString();
 
     default:
@@ -132,14 +141,14 @@ export function formatDate(
  */
 export function formatServerDate(
   date: Date | string | number,
-  format: DateFormatType = 'medium',
+  format: DateFormatType = "medium",
   locale?: string,
-  timeZone?: string
+  timeZone?: string,
 ): string {
   const parsedDate = parseDate(date);
 
   if (!parsedDate) {
-    return 'Invalid Date';
+    return "Invalid Date";
   }
 
   try {
@@ -148,7 +157,13 @@ export function formatServerDate(
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
     // Use logger.error for server-side logging
-    logger.error('formatServerDate formatting error', { error, date, format, locale, timeZone });
-    return 'Invalid Date';
+    logger.error("formatServerDate formatting error", {
+      error,
+      date,
+      format,
+      locale,
+      timeZone,
+    });
+    return "Invalid Date";
   }
 }

@@ -1,15 +1,15 @@
 // TypeScript module augmentation for NextAuth
 // Extends the built-in session and JWT types with custom fields
 
-import 'next-auth';
-import 'next-auth/jwt';
-import type { UserRoleType } from '@/types/user';
-import type { SubscriptionPlan } from '@/config/navigation';
+import "next-auth";
+import "next-auth/jwt";
+import type { UserRoleType } from "@/types/user";
+import type { SubscriptionPlan } from "@/config/navigation";
 
-type SessionRole = UserRoleType | 'GUEST';
-type SessionPlan = SubscriptionPlan | 'STARTER' | 'PROFESSIONAL';
+type SessionRole = UserRoleType | "GUEST";
+type SessionPlan = SubscriptionPlan | "STARTER" | "PROFESSIONAL";
 
-declare module 'next-auth' {
+declare module "next-auth" {
   interface Session {
     user: {
       id: string;
@@ -43,7 +43,7 @@ declare module 'next-auth' {
   }
 }
 
-declare module 'next-auth/jwt' {
+declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     role: SessionRole;

@@ -20,12 +20,14 @@
 **URL:** http://localhost:3000/marketplace/seller-central/health
 
 ### Before Fix (Expected Failures):
+
 - ❌ Page rendered empty/blank
 - ❌ `summary.current` was undefined
 - ❌ Console error: "Cannot read property 'current' of undefined"
 - ❌ Balance cards showed no data
 
 ### After Fix (Expected Results):
+
 - [ ] Page loads without errors
 - [ ] Health summary cards display:
   - [ ] Order Defect Rate (ODR) with percentage
@@ -42,6 +44,7 @@
 - [ ] Page is responsive (test on mobile viewport)
 
 ### Browser Console Check:
+
 ```javascript
 // Open DevTools Console and check for:
 // ✅ No red errors
@@ -50,6 +53,7 @@
 ```
 
 ### Screenshots Needed:
+
 - [ ] Full page view
 - [ ] Period selector expanded
 - [ ] Browser console (showing no errors)
@@ -61,11 +65,13 @@
 **URL:** http://localhost:3000/marketplace/seller-central/health
 
 ### Before Fix (Expected Failures):
+
 - ❌ Clicking period selector did nothing
 - ❌ All periods showed identical data
 - ❌ UI appeared broken/non-functional
 
 ### After Fix (Expected Results):
+
 - [ ] Click "Last 7 days" → metrics update
 - [ ] Click "Last 30 days" → metrics update (different from 7 days)
 - [ ] Click "Last 90 days" → metrics update (different from 30 days)
@@ -78,6 +84,7 @@
 - [ ] No console errors when switching periods
 
 ### Browser DevTools Network Check:
+
 ```
 1. Open DevTools → Network tab
 2. Filter by "summary"
@@ -89,6 +96,7 @@
 ```
 
 ### Expected API Response Structure:
+
 ```json
 {
   "success": true,
@@ -108,6 +116,7 @@
 ```
 
 ### Test Steps:
+
 1. Load page (default 30 days)
 2. Note ODR value
 3. Click "Last 7 days"
@@ -123,12 +132,14 @@
 **URL:** http://localhost:3000/marketplace/seller-central/kyc
 
 ### Before Fix (Expected Failures):
+
 - ❌ Page rendered empty/broken
 - ❌ `kycStatus.status` was undefined
 - ❌ Wizard steps didn't render
 - ❌ Console error: "Cannot read property 'status' of undefined"
 
 ### After Fix (Expected Results):
+
 - [ ] Page loads without errors
 - [ ] KYC wizard renders with:
   - [ ] Current step indicator (1-4)
@@ -150,6 +161,7 @@
 - [ ] No console errors in browser DevTools
 
 ### Browser Console Check:
+
 ```javascript
 // Open DevTools Console and check for:
 // ✅ No red errors
@@ -158,6 +170,7 @@
 ```
 
 ### Test Steps:
+
 1. Load KYC page
 2. Verify current step displays
 3. Click "Next" button
@@ -175,6 +188,7 @@
 **Endpoint:** `GET /api/souq/seller-central/health/summary?period=last_7_days`
 
 ### Using cURL:
+
 ```bash
 # Test 7-day period
 curl -s "http://localhost:3000/api/souq/seller-central/health/summary?period=last_7_days" | jq
@@ -190,6 +204,7 @@ curl -s "http://localhost:3000/api/souq/seller-central/health/summary" | jq
 ```
 
 ### Expected Results:
+
 - [ ] Each request returns 200 OK
 - [ ] Response includes `success: true`
 - [ ] Response includes `current` object with metrics
@@ -200,6 +215,7 @@ curl -s "http://localhost:3000/api/souq/seller-central/health/summary" | jq
 - [ ] Response includes `recommendations` array
 
 ### Verify Different Periods Return Different Data:
+
 ```bash
 # Compare 7 vs 90 day metrics (should be different if data exists)
 diff \
@@ -214,12 +230,14 @@ diff \
 **File:** `tests/api/seller-central/health-summary-period-filter.test.ts`
 
 ### Run Test:
+
 ```bash
 cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
 pnpm test tests/api/seller-central/health-summary-period-filter.test.ts
 ```
 
 ### Expected Results:
+
 - [ ] All 6 test cases pass
 - [ ] Test 1: 7-day period filters correctly
 - [ ] Test 2: 30-day period filters correctly
@@ -231,6 +249,7 @@ pnpm test tests/api/seller-central/health-summary-period-filter.test.ts
 - [ ] No test errors
 
 ### If Tests Fail:
+
 1. Check MongoDB connection (test database needed)
 2. Verify test data creation (3 orders at different dates)
 3. Check auth mocking (test user ID needed)
@@ -242,12 +261,14 @@ pnpm test tests/api/seller-central/health-summary-period-filter.test.ts
 ## Test 6: TypeScript Compilation ✅
 
 ### Run Type Check:
+
 ```bash
 cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
 npx tsc --noEmit
 ```
 
 ### Expected Results:
+
 - [ ] 0 TypeScript errors
 - [ ] No type mismatches in:
   - [ ] app/marketplace/seller-central/health/page.tsx
@@ -260,24 +281,28 @@ npx tsc --noEmit
 ## Test 7: CI Pipeline Verification ✅
 
 ### Nav Routes Check:
+
 ```bash
 pnpm check:nav-routes
 ```
 
 ### Expected Results:
+
 - [ ] ✅ Verified 70 navigation routes have matching page.tsx files
 - [ ] Exit code 0 (success)
 
 ### Full Route Verification:
+
 ```bash
 pnpm verify:routes            # deterministic alias/nav check
 pnpm verify:routes:http     # HTTP crawl (build + Next.js)
 ```
 
 ### Expected Results:
+
 - [ ] Both commands exit 0
-- [ ] \`_artifacts/route-aliases.json\` updated
-- [ ] \`_artifacts/route-http.log\` shows only 200 responses
+- [ ] \`\_artifacts/route-aliases.json\` updated
+- [ ] \`\_artifacts/route-http.log\` shows only 200 responses
 - [ ] Nav/route-reference checks included automatically
 
 ---
@@ -285,11 +310,14 @@ pnpm verify:routes:http     # HTTP crawl (build + Next.js)
 ## Common Issues & Troubleshooting
 
 ### Issue 1: Page Shows Empty
+
 **Symptoms:**
+
 - Blank page or only header visible
 - No error in console
 
 **Solutions:**
+
 - Check if user is authenticated (may need to login)
 - Verify API endpoint is returning data
 - Check browser DevTools Network tab for 401/403 errors
@@ -297,11 +325,14 @@ pnpm verify:routes:http     # HTTP crawl (build + Next.js)
 - Verify test data exists in database
 
 ### Issue 2: Period Selector Not Working
+
 **Symptoms:**
+
 - Clicking period options doesn't change data
 - All periods show same numbers
 
 **Solutions:**
+
 - Check browser Network tab for correct query parameter
 - Verify API endpoint receives period parameter
 - Check service method signature accepts period
@@ -309,22 +340,28 @@ pnpm verify:routes:http     # HTTP crawl (build + Next.js)
 - Add test data with different dates
 
 ### Issue 3: Console Errors
+
 **Symptoms:**
+
 - Red errors in browser console
 - "Cannot read property 'X' of undefined"
 
 **Solutions:**
+
 - Verify API response structure matches client expectations
 - Check destructuring is correct: `const { success, ...payload } = await response.json()`
 - Ensure state is initialized properly
 - Verify TypeScript types match runtime data
 
 ### Issue 4: Test Failures
+
 **Symptoms:**
+
 - Jest/Vitest tests fail
 - Timeout errors
 
 **Solutions:**
+
 - Ensure MongoDB test database is running
 - Check test data setup (orders at different dates)
 - Verify auth mocking is working
@@ -336,6 +373,7 @@ pnpm verify:routes:http     # HTTP crawl (build + Next.js)
 ## Success Criteria
 
 ### All Tests Must Pass:
+
 - ✅ Health page renders without errors
 - ✅ Period selector changes data
 - ✅ KYC page renders wizard correctly
@@ -346,6 +384,7 @@ pnpm verify:routes:http     # HTTP crawl (build + Next.js)
 - ✅ CI nav routes check passes
 
 ### Quality Checks:
+
 - ✅ Responsive design works on mobile
 - ✅ Loading states display correctly
 - ✅ Error handling works (test with network offline)
@@ -357,26 +396,31 @@ pnpm verify:routes:http     # HTTP crawl (build + Next.js)
 ## Final Checklist Summary
 
 ### Phase 1: Initial Load Tests
+
 - [ ] Health page loads
 - [ ] KYC page loads
 - [ ] No console errors on either page
 
 ### Phase 2: Functionality Tests
+
 - [ ] Period selector changes health metrics
 - [ ] KYC wizard navigation works
 - [ ] Data displays correctly on both pages
 
 ### Phase 3: API Tests
+
 - [ ] Direct API calls return correct data
 - [ ] Period parameter filters correctly
 - [ ] Response structure matches expectations
 
 ### Phase 4: Automated Tests
+
 - [ ] Regression test passes (6/6)
 - [ ] TypeScript compiles (0 errors)
 - [ ] CI checks pass
 
 ### Phase 5: Documentation
+
 - [ ] Screenshots captured
 - [ ] Test results documented
 - [ ] Issues logged (if any)
@@ -385,36 +429,43 @@ pnpm verify:routes:http     # HTTP crawl (build + Next.js)
 
 ## Test Results Log
 
-**Tester:** _________________  
+**Tester:** **\*\*\*\***\_**\*\*\*\***  
 **Date:** November 16, 2025  
-**Time Started:** _________________  
-**Time Completed:** _________________  
+**Time Started:** **\*\*\*\***\_**\*\*\*\***  
+**Time Completed:** **\*\*\*\***\_**\*\*\*\***
 
 ### Test 1: Health Page
+
 - Status: [ ] PASS [ ] FAIL
-- Notes: _________________
+- Notes: **\*\*\*\***\_**\*\*\*\***
 
 ### Test 2: Period Filter
+
 - Status: [ ] PASS [ ] FAIL
-- Notes: _________________
+- Notes: **\*\*\*\***\_**\*\*\*\***
 
 ### Test 3: KYC Page
+
 - Status: [ ] PASS [ ] FAIL
-- Notes: _________________
+- Notes: **\*\*\*\***\_**\*\*\*\***
 
 ### Test 4: API Direct
+
 - Status: [ ] PASS [ ] FAIL
-- Notes: _________________
+- Notes: **\*\*\*\***\_**\*\*\*\***
 
 ### Test 5: Regression Test
+
 - Status: [ ] PASS [ ] FAIL
-- Notes: _________________
+- Notes: **\*\*\*\***\_**\*\*\*\***
 
 ### Test 6: TypeScript
+
 - Status: [ ] PASS [ ] FAIL
-- Notes: _________________
+- Notes: **\*\*\*\***\_**\*\*\*\***
 
 ### Overall Result:
+
 - [ ] ALL TESTS PASSED - Ready for merge
 - [ ] SOME TESTS FAILED - See notes above
 - [ ] BLOCKED - See issues section
@@ -424,6 +475,7 @@ pnpm verify:routes:http     # HTTP crawl (build + Next.js)
 ## Next Steps After Testing
 
 ### If All Tests Pass:
+
 1. Document test results
 2. Capture screenshots
 3. Update SELLER_CENTRAL_BUG_FIXES.md with test results
@@ -431,6 +483,7 @@ pnpm verify:routes:http     # HTTP crawl (build + Next.js)
 5. Consider additional integration tests
 
 ### If Tests Fail:
+
 1. Document specific failures
 2. Debug issues systematically
 3. Apply fixes
@@ -438,6 +491,7 @@ pnpm verify:routes:http     # HTTP crawl (build + Next.js)
 5. Repeat until all pass
 
 ### Phase 2 Continuation (After All Tests Pass):
+
 - EPIC G: Analytics & Reporting
 - EPIC H: Reviews & Ratings
 - Complete remaining Phase 2 features

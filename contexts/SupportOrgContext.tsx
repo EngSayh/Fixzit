@@ -1,8 +1,15 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import React from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { useSession } from "next-auth/react";
 
 type SupportOrgSummary = {
   orgId: string;
@@ -22,17 +29,26 @@ type SupportOrgContextValue = {
   refreshSupportOrg: () => Promise<void>;
 };
 
-const SupportOrgContext = createContext<SupportOrgContextValue | undefined>(undefined);
+const SupportOrgContext = createContext<SupportOrgContextValue | undefined>(
+  undefined,
+);
 
-const IMPERSONATION_ENDPOINT = '/api/support/impersonation';
+const IMPERSONATION_ENDPOINT = "/api/support/impersonation";
 
-export function SupportOrgProvider({ children }: { children: React.ReactNode }) {
+export function SupportOrgProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { data: session } = useSession();
   const [supportOrg, setSupportOrg] = useState<SupportOrgSummary | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const isSuperAdmin = Boolean((session?.user as { isSuperAdmin?: boolean })?.isSuperAdmin);
-  const sessionOrgId = (session?.user as { orgId?: string | null })?.orgId ?? null;
+  const isSuperAdmin = Boolean(
+    (session?.user as { isSuperAdmin?: boolean })?.isSuperAdmin,
+  );
+  const sessionOrgId =
+    (session?.user as { orgId?: string | null })?.orgId ?? null;
 
   const refreshSupportOrg = useCallback(async () => {
     if (!isSuperAdmin) {
@@ -41,12 +57,16 @@ export function SupportOrgProvider({ children }: { children: React.ReactNode }) 
     }
     setLoading(true);
     try {
-      const res = await fetch(IMPERSONATION_ENDPOINT, { credentials: 'include' });
+      const res = await fetch(IMPERSONATION_ENDPOINT, {
+        credentials: "include",
+      });
       if (!res.ok) {
         setSupportOrg(null);
         return;
       }
-      const data = (await res.json()) as { organization?: SupportOrgSummary | null };
+      const data = (await res.json()) as {
+        organization?: SupportOrgSummary | null;
+      };
       setSupportOrg(data.organization ?? null);
     } catch {
       setSupportOrg(null);
@@ -64,11 +84,15 @@ export function SupportOrgProvider({ children }: { children: React.ReactNode }) 
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch(IMPERSONATION_ENDPOINT, { credentials: 'include' });
+        const res = await fetch(IMPERSONATION_ENDPOINT, {
+          credentials: "include",
+        });
         if (!res.ok || cancelled) {
           return;
         }
-        const data = (await res.json()) as { organization?: SupportOrgSummary | null };
+        const data = (await res.json()) as {
+          organization?: SupportOrgSummary | null;
+        };
         if (!cancelled) {
           setSupportOrg(data.organization ?? null);
         }
@@ -95,17 +119,19 @@ export function SupportOrgProvider({ children }: { children: React.ReactNode }) 
       setLoading(true);
       try {
         const res = await fetch(IMPERSONATION_ENDPOINT, {
-          method: 'POST',
-          credentials: 'include',
+          method: "POST",
+          credentials: "include",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({ orgId }),
         });
         if (!res.ok) {
           return false;
         }
-        const data = (await res.json()) as { organization?: SupportOrgSummary | null };
+        const data = (await res.json()) as {
+          organization?: SupportOrgSummary | null;
+        };
         setSupportOrg(data.organization ?? null);
         return Boolean(data.organization);
       } catch {
@@ -114,7 +140,7 @@ export function SupportOrgProvider({ children }: { children: React.ReactNode }) 
         setLoading(false);
       }
     },
-    [isSuperAdmin]
+    [isSuperAdmin],
   );
 
   const clearSupportOrg = useCallback(async () => {
@@ -124,8 +150,8 @@ export function SupportOrgProvider({ children }: { children: React.ReactNode }) 
     setLoading(true);
     try {
       await fetch(IMPERSONATION_ENDPOINT, {
-        method: 'DELETE',
-        credentials: 'include',
+        method: "DELETE",
+        credentials: "include",
       });
       setSupportOrg(null);
     } finally {
@@ -145,16 +171,28 @@ export function SupportOrgProvider({ children }: { children: React.ReactNode }) 
       clearSupportOrg,
       refreshSupportOrg,
     }),
-    [effectiveOrgId, supportOrg, loading, isSuperAdmin, selectOrgById, clearSupportOrg, refreshSupportOrg]
+    [
+      effectiveOrgId,
+      supportOrg,
+      loading,
+      isSuperAdmin,
+      selectOrgById,
+      clearSupportOrg,
+      refreshSupportOrg,
+    ],
   );
 
-  return <SupportOrgContext.Provider value={value}>{children}</SupportOrgContext.Provider>;
+  return (
+    <SupportOrgContext.Provider value={value}>
+      {children}
+    </SupportOrgContext.Provider>
+  );
 }
 
 export function useSupportOrg() {
   const ctx = useContext(SupportOrgContext);
   if (!ctx) {
-    throw new Error('useSupportOrg must be used within SupportOrgProvider');
+    throw new Error("useSupportOrg must be used within SupportOrgProvider");
   }
   return ctx;
 }

@@ -1,28 +1,32 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef, useId, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { Search, Command } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import { useTopBar } from '@/contexts/TopBarContext';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { CommandPalette } from './CommandPalette';
-import type { GlobalSearchResult } from './types';
-import { usePermittedQuickActions } from './usePermittedQuickActions';
-import { logger } from '@/lib/logger';
-import type { SavedSearchConfig } from '@/config/topbar-modules';
+import React, { useState, useEffect, useRef, useId, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Search, Command } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useTopBar } from "@/contexts/TopBarContext";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { CommandPalette } from "./CommandPalette";
+import type { GlobalSearchResult } from "./types";
+import { usePermittedQuickActions } from "./usePermittedQuickActions";
+import { logger } from "@/lib/logger";
+import type { SavedSearchConfig } from "@/config/topbar-modules";
 
 interface GlobalSearchProps {
   onResultClick?: () => void;
 }
 
-const SEARCH_SCOPE_KEY = 'fixzit:searchScope';
+const SEARCH_SCOPE_KEY = "fixzit:searchScope";
 
-export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) {
+export default function GlobalSearch({
+  onResultClick,
+}: GlobalSearchProps = {}) {
   const router = useRouter();
   const { data: session } = useSession();
-  const sessionUser = session?.user as { id?: string; orgId?: string } | undefined;
-  const scopeStorageKey = `${SEARCH_SCOPE_KEY}:${sessionUser?.orgId ?? 'global'}:${sessionUser?.id ?? 'anonymous'}`;
+  const sessionUser = session?.user as
+    | { id?: string; orgId?: string }
+    | undefined;
+  const scopeStorageKey = `${SEARCH_SCOPE_KEY}:${sessionUser?.orgId ?? "global"}:${sessionUser?.id ?? "anonymous"}`;
   const {
     app,
     module,
@@ -38,17 +42,17 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
   const permittedActions = usePermittedQuickActions(quickActions);
   const { t, isRTL } = useTranslation();
 
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<GlobalSearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [commandOpen, setCommandOpen] = useState(false);
-  const [scope, setScopeState] = useState<'module' | 'all'>(() => {
-    if (typeof window === 'undefined') return 'module';
+  const [scope, setScopeState] = useState<"module" | "all">(() => {
+    if (typeof window === "undefined") return "module";
     const stored = window.localStorage.getItem(scopeStorageKey);
-    return stored === 'all' ? 'all' : 'module';
+    return stored === "all" ? "all" : "module";
   });
 
   const searchRef = useRef<HTMLDivElement>(null);
@@ -58,20 +62,23 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
 
   const placeholder = t(searchPlaceholderKey, searchPlaceholderFallback);
   const moduleLabel = t(moduleLabelKey, moduleFallbackLabel);
-  const scopeEntities = scope === 'module' ? searchEntities : appSearchEntities;
+  const scopeEntities = scope === "module" ? searchEntities : appSearchEntities;
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem(scopeStorageKey);
-    setScopeState(stored === 'all' ? 'all' : 'module');
+    setScopeState(stored === "all" ? "all" : "module");
   }, [scopeStorageKey]);
 
-  const persistScope = useCallback((next: 'module' | 'all') => {
-    setScopeState(next);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(scopeStorageKey, next);
-    }
-  }, [scopeStorageKey]);
+  const persistScope = useCallback(
+    (next: "module" | "all") => {
+      setScopeState(next);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(scopeStorageKey, next);
+      }
+    },
+    [scopeStorageKey],
+  );
 
   useEffect(() => {
     setActiveIndex(0);
@@ -97,26 +104,26 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
           module,
           scope,
           q: trimmed,
-          entities: scopeEntities.join(','),
+          entities: scopeEntities.join(","),
         });
         const response = await fetch(`/api/search?${params.toString()}`);
-        if (!response.ok) throw new Error('Search request failed');
+        if (!response.ok) throw new Error("Search request failed");
         const data = await response.json();
         setResults(data.results || []);
         setOpen(true);
       } catch (err: unknown) {
-        import('../../lib/logger')
+        import("../../lib/logger")
           .then(({ logError }) => {
-            logError('Search failed', err as Error, {
-              component: 'GlobalSearch',
-              action: 'handleSearch',
+            logError("Search failed", err as Error, {
+              component: "GlobalSearch",
+              action: "handleSearch",
               query,
             });
           })
           .catch((logErr) => {
-            logger.error('Failed to import logger:', logErr);
+            logger.error("Failed to import logger:", logErr);
           });
-        setError(t('search.error.generic', 'Search failed. Please try again.'));
+        setError(t("search.error.generic", "Search failed. Please try again."));
         setResults([]);
       } finally {
         setLoading(false);
@@ -130,31 +137,34 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
         setOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setCommandOpen(true);
         return;
       }
-      if (event.key === 'Escape' && commandOpen) {
+      if (event.key === "Escape" && commandOpen) {
         setCommandOpen(false);
         return;
       }
-      if (event.key === 'Escape' && open) {
+      if (event.key === "Escape" && open) {
         setOpen(false);
       }
     };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [commandOpen, open]);
 
   const handleResultNavigate = (href: string) => {
@@ -162,20 +172,20 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
     setCommandOpen(false);
     setResults([]);
     setError(null);
-    setQuery('');
+    setQuery("");
     onResultClick?.();
     router.push(href);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!open || results.length === 0) return;
-    if (e.key === 'ArrowDown') {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
       setActiveIndex((prev) => (prev + 1) % results.length);
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIndex((prev) => (prev - 1 + results.length) % results.length);
-    } else if (e.key === 'Enter') {
+    } else if (e.key === "Enter") {
       e.preventDefault();
       if (results[activeIndex]) {
         handleResultNavigate(results[activeIndex].href);
@@ -195,7 +205,9 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
   return (
     <div ref={searchRef} className="relative flex-1 max-w-xl">
       <div className="relative">
-        <Search className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground`} />
+        <Search
+          className={`absolute ${isRTL ? "end-3" : "start-3"} top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground`}
+        />
         <input
           ref={inputRef}
           type="text"
@@ -205,15 +217,21 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           role="combobox"
-          aria-label={t('search.global', 'Global search')}
+          aria-label={t("search.global", "Global search")}
           aria-expanded={open}
           aria-controls={open ? listboxId : undefined}
-          aria-activedescendant={open && results[activeIndex] ? `${listboxId}-${activeIndex}` : undefined}
+          aria-activedescendant={
+            open && results[activeIndex]
+              ? `${listboxId}-${activeIndex}`
+              : undefined
+          }
           aria-autocomplete="list"
           aria-haspopup="listbox"
-          className={`w-full ${isRTL ? 'pe-10 ps-20' : 'ps-10 pe-20'} rounded-md border border-input bg-background py-2 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-primary`}
+          className={`w-full ${isRTL ? "pe-10 ps-20" : "ps-10 pe-20"} rounded-md border border-input bg-background py-2 text-sm text-foreground focus:border-transparent focus:ring-2 focus:ring-primary`}
         />
-        <div className={`absolute ${isRTL ? 'start-3' : 'end-3'} top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground`}>
+        <div
+          className={`absolute ${isRTL ? "start-3" : "end-3"} top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground`}
+        >
           <Command className="h-3 w-3" />
           <span>K</span>
         </div>
@@ -221,17 +239,17 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
       <div className="mt-1 flex justify-end gap-2 text-[11px] text-muted-foreground">
         <button
           type="button"
-          onClick={() => persistScope('module')}
-          className={`rounded-full px-2 py-0.5 ${scope === 'module' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+          onClick={() => persistScope("module")}
+          className={`rounded-full px-2 py-0.5 ${scope === "module" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
         >
           {moduleLabel}
         </button>
         <button
           type="button"
-          onClick={() => persistScope('all')}
-          className={`rounded-full px-2 py-0.5 ${scope === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+          onClick={() => persistScope("all")}
+          className={`rounded-full px-2 py-0.5 ${scope === "all" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
         >
-          {t('search.scope.all', 'All')}
+          {t("search.scope.all", "All")}
         </button>
       </div>
 
@@ -239,19 +257,21 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
         <div
           id={listboxId}
           role="listbox"
-          className={`absolute top-full ${isRTL ? 'end-0' : 'start-0'} z-50 mt-1 max-h-80 min-w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg`}
+          className={`absolute top-full ${isRTL ? "end-0" : "start-0"} z-50 mt-1 max-h-80 min-w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg`}
         >
           {loading && (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              {t('search.results.loading', 'Searching…')}
+              {t("search.results.loading", "Searching…")}
             </div>
           )}
           {!loading && error && (
-            <div className="p-4 text-center text-sm text-destructive">{error}</div>
+            <div className="p-4 text-center text-sm text-destructive">
+              {error}
+            </div>
           )}
           {!loading && !error && results.length === 0 && (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              {t('search.results.empty', 'No results found')}
+              {t("search.results.empty", "No results found")}
             </div>
           )}
           {!loading && !error && results.length > 0 && (
@@ -264,14 +284,20 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
                   aria-selected={index === activeIndex}
                   onClick={() => handleResultNavigate(result.href)}
                   className={`cursor-pointer px-4 py-3 text-sm hover:bg-accent ${
-                    index === activeIndex ? 'bg-accent' : ''
+                    index === activeIndex ? "bg-accent" : ""
                   }`}
                 >
-                  <div className={`flex items-start gap-3 text-start ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div
+                    className={`flex items-start gap-3 text-start ${isRTL ? "flex-row-reverse" : ""}`}
+                  >
                     <div className="flex-1">
-                      <div className="font-medium text-foreground">{result.title}</div>
+                      <div className="font-medium text-foreground">
+                        {result.title}
+                      </div>
                       {result.subtitle && (
-                        <div className="text-xs text-muted-foreground">{result.subtitle}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {result.subtitle}
+                        </div>
                       )}
                     </div>
                     <div className="text-[11px] uppercase text-muted-foreground/80">

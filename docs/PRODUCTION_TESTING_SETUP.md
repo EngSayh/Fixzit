@@ -45,6 +45,7 @@ TEST_ADMIN_PASSWORD=Test@1234
 ### 2. Start MongoDB
 
 **Local MongoDB:**
+
 ```bash
 # macOS (Homebrew)
 brew services start mongodb-community
@@ -57,23 +58,27 @@ docker run -d -p 27017:27017 --name mongodb mongo:latest
 ```
 
 **MongoDB Atlas:**
+
 - Ensure your IP is whitelisted
 - Connection string includes credentials
 
 ### 3. Create Test Users
 
 **Option A: Admin Panel**
+
 1. Start your app: `pnpm dev`
 2. Login as superadmin
 3. Navigate to User Management
 4. Create 6 test users with correct roles
 
 **Option B: Seed Script (if available)**
+
 ```bash
 pnpm db:seed:test-users
 ```
 
 **Option C: Manual MongoDB Insert**
+
 ```javascript
 // Connect to MongoDB
 use fixzit_test;
@@ -113,6 +118,7 @@ pnpm dev
 ```
 
 **Expected Output:**
+
 ```
 🔐 Regenerating Playwright authentication states (Production-Ready)...
 
@@ -180,6 +186,7 @@ pnpm playwright test --ui
 **Cause:** NEXTAUTH_SECRET mismatch between `.env.test` and dev server
 
 **Fix:**
+
 1. Check `NEXTAUTH_SECRET` in both files
 2. Ensure they match exactly (case-sensitive)
 3. Restart dev server after changing
@@ -190,6 +197,7 @@ pnpm playwright test --ui
 **Cause:** Test user doesn't exist in database or wrong credentials
 
 **Fix:**
+
 1. Verify user exists: `db.users.findOne({email: "admin@test.fixzit.co"})`
 2. Check credentials in `.env.test` match database
 3. Ensure password is correct (try logging in via UI)
@@ -199,6 +207,7 @@ pnpm playwright test --ui
 **Cause:** Development server not started
 
 **Fix:**
+
 ```bash
 MONGODB_URI=mongodb://localhost:27017/fixzit_test pnpm dev
 ```
@@ -208,6 +217,7 @@ MONGODB_URI=mongodb://localhost:27017/fixzit_test pnpm dev
 **Cause:** MongoDB not running or connection string incorrect
 
 **Fix:**
+
 1. Start MongoDB: `brew services start mongodb-community`
 2. Check connection: `mongosh mongodb://localhost:27017`
 3. Verify MONGODB_URI in `.env.test`
@@ -217,6 +227,7 @@ MONGODB_URI=mongodb://localhost:27017/fixzit_test pnpm dev
 **Cause:** Auth tokens expired or regenerated with wrong secret
 
 **Fix:**
+
 1. Check server logs for exact error
 2. Compare NEXTAUTH_SECRET between `.env.test` and dev server
 3. Regenerate states: `./scripts/regenerate-test-auth.sh`
@@ -226,6 +237,7 @@ MONGODB_URI=mongodb://localhost:27017/fixzit_test pnpm dev
 **Cause:** Authentication failed during setup
 
 **Fix:**
+
 1. Check `tests/setup-auth.ts` output for specific errors
 2. Enable detailed logging: `NODE_ENV=development`
 3. Verify OTP dev mode is enabled
@@ -241,11 +253,13 @@ ALLOW_OFFLINE_MONGODB=true
 ```
 
 **Warning:** Offline mode creates mock JWT sessions that:
+
 - Bypass real authentication
 - Grant all permissions
 - Should NOT be used for production validation
 
 Use offline mode only for:
+
 - UI smoke tests in CI pipelines
 - Visual regression testing
 - Component rendering tests
@@ -258,7 +272,7 @@ Use offline mode only for:
 ✅ Auth states regenerated within last 30 days  
 ✅ Tests pass without 401 errors  
 ✅ OTP flow works for all 6 roles  
-✅ Session cookies properly set  
+✅ Session cookies properly set
 
 ## Advanced Configuration
 
@@ -315,6 +329,7 @@ pnpm playwright test --workers=4
 ## Support
 
 For issues or questions:
+
 - Check app logs: `pnpm dev` output
 - Review Playwright traces: `pnpm exec playwright show-trace path/to/trace.zip`
 - Consult main README: `tests/README.md`

@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { SUPPORTED_LOCALES, type Locale } from '@/i18n/config';
+import { NextRequest, NextResponse } from "next/server";
+import { SUPPORTED_LOCALES, type Locale } from "@/i18n/config";
 
 /**
  * @openapi
@@ -33,18 +33,17 @@ export async function POST(request: NextRequest) {
 
   // Persist the locale choice in a cookie so the middleware and layout can read it
   const response = NextResponse.json({ ok: true });
-  response.cookies.set('locale', locale, {
-    path: '/',
-    sameSite: 'lax',
+  response.cookies.set("locale", locale, {
+    path: "/",
+    sameSite: "lax",
   });
-  response.cookies.set('fxz.lang', locale, {
-    path: '/',
-    sameSite: 'lax',
+  response.cookies.set("fxz.lang", locale, {
+    path: "/",
+    sameSite: "lax",
   });
-  response.cookies.set('fxz.locale', locale === 'ar' ? 'ar-SA' : 'en-GB', {
-    path: '/',
-    sameSite: 'lax',
+  response.cookies.set("fxz.locale", locale === "ar" ? "ar-SA" : "en-GB", {
+    path: "/",
+    sameSite: "lax",
   });
   return response;
 }
-

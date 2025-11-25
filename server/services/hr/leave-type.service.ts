@@ -1,4 +1,4 @@
-import { LeaveType, type LeaveTypeDoc } from '@/server/models/hr.models';
+import { LeaveType, type LeaveTypeDoc } from "@/server/models/hr.models";
 
 interface ListOptions {
   limit?: number;
@@ -9,8 +9,8 @@ export class LeaveTypeService {
     const query: Record<string, unknown> = { orgId, isDeleted: false };
     if (search) {
       query.$or = [
-        { name: new RegExp(search, 'i') },
-        { code: new RegExp(search, 'i') },
+        { name: new RegExp(search, "i") },
+        { code: new RegExp(search, "i") },
       ];
     }
 
@@ -21,7 +21,13 @@ export class LeaveTypeService {
     return cursor.lean<LeaveTypeDoc>().exec();
   }
 
-  static async create(orgId: string, payload: Pick<LeaveTypeDoc, 'code' | 'name' | 'description' | 'isPaid' | 'annualEntitlementDays'>) {
+  static async create(
+    orgId: string,
+    payload: Pick<
+      LeaveTypeDoc,
+      "code" | "name" | "description" | "isPaid" | "annualEntitlementDays"
+    >,
+  ) {
     return LeaveType.create({
       ...payload,
       orgId,

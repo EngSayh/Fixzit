@@ -348,13 +348,13 @@ _deprecated/scripts/
 
 ## 📊 Summary Statistics
 
-| Category | Count | Status | Action Needed |
-|----------|-------|--------|---------------|
-| Translation Scripts | 3 | ✅ Active | Keep, document |
-| Removal Scripts | 3 | ⚠️ Redundant | Consolidate to 1 |
-| Scanner Scripts | 2 | ⚠️ Unclear | Review overlap |
-| Specialized Tools | 3 | ✅ Unique | Keep |
-| Missing Files | 0 | ✅ None | No action |
+| Category            | Count | Status       | Action Needed    |
+| ------------------- | ----- | ------------ | ---------------- |
+| Translation Scripts | 3     | ✅ Active    | Keep, document   |
+| Removal Scripts     | 3     | ⚠️ Redundant | Consolidate to 1 |
+| Scanner Scripts     | 2     | ⚠️ Unclear   | Review overlap   |
+| Specialized Tools   | 3     | ✅ Unique    | Keep             |
+| Missing Files       | 0     | ✅ None      | No action        |
 
 ### Total Scripts Found: 11
 

@@ -3,12 +3,14 @@ import { NextResponse } from 'next/server';
 // Mockable Mongoose-like models exposed via globals for tests
 // In real app they'd be imported from '@/server/models/...'
 type SynonymDoc = { synonyms?: string[] } | null;
+type FindCall = Record<string, unknown>;
+type SortCall = Record<string, unknown>;
 
 declare global {
   // Tracking and configuration hooks for tests
-  var __mp_find_calls__: unknown[];
-  var __mp_sort_calls__: unknown[];
-  var __mp_limit_calls__: unknown[];
+  var __mp_find_calls__: FindCall[];
+  var __mp_sort_calls__: SortCall[];
+  var __mp_limit_calls__: number[];
   var __mp_throw_on_lean__: boolean;
   var __syn_findOne_queue__: { locale: string; term: string; result: SynonymDoc; throwError: boolean }[];
 }

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -8,8 +8,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+} from "@/components/ui/table";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 interface TopProduct {
   productId: string;
@@ -38,12 +38,15 @@ interface ProductPerformanceTableProps {
   isLoading?: boolean;
 }
 
-export function ProductPerformanceTable({ data, isLoading }: ProductPerformanceTableProps) {
-  const auto = useAutoTranslator('seller.analytics.productPerformance');
+export function ProductPerformanceTable({
+  data,
+  isLoading,
+}: ProductPerformanceTableProps) {
+  const auto = useAutoTranslator("seller.analytics.productPerformance");
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en', {
-      style: 'currency',
-      currency: 'SAR',
+    return new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: "SAR",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
@@ -53,12 +56,12 @@ export function ProductPerformanceTable({ data, isLoading }: ProductPerformanceT
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{auto('Product Performance', 'title')}</CardTitle>
+          <CardTitle>{auto("Product Performance", "title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
             <div className="text-muted-foreground">
-              {auto('Loading product data...', 'state.loading')}
+              {auto("Loading product data...", "state.loading")}
             </div>
           </div>
         </CardContent>
@@ -70,12 +73,12 @@ export function ProductPerformanceTable({ data, isLoading }: ProductPerformanceT
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{auto('Product Performance', 'title')}</CardTitle>
+          <CardTitle>{auto("Product Performance", "title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
             <div className="text-muted-foreground">
-              {auto('No product data available', 'state.empty')}
+              {auto("No product data available", "state.empty")}
             </div>
           </div>
         </CardContent>
@@ -88,24 +91,34 @@ export function ProductPerformanceTable({ data, isLoading }: ProductPerformanceT
       {/* Top Products */}
       <Card>
         <CardHeader>
-          <CardTitle>{auto('Top Selling Products', 'sections.topProducts.title')}</CardTitle>
+          <CardTitle>
+            {auto("Top Selling Products", "sections.topProducts.title")}
+          </CardTitle>
           <p className="text-sm text-muted-foreground">
-            {auto('Your best performing products by revenue', 'sections.topProducts.subtitle')}
+            {auto(
+              "Your best performing products by revenue",
+              "sections.topProducts.subtitle",
+            )}
           </p>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{auto('Product', 'sections.topProducts.columns.product')}</TableHead>
-                <TableHead className="text-end">
-                  {auto('Units Sold', 'sections.topProducts.columns.unitsSold')}
+                <TableHead>
+                  {auto("Product", "sections.topProducts.columns.product")}
                 </TableHead>
                 <TableHead className="text-end">
-                  {auto('Revenue', 'sections.topProducts.columns.revenue')}
+                  {auto("Units Sold", "sections.topProducts.columns.unitsSold")}
                 </TableHead>
                 <TableHead className="text-end">
-                  {auto('Conversion', 'sections.topProducts.columns.conversion')}
+                  {auto("Revenue", "sections.topProducts.columns.revenue")}
+                </TableHead>
+                <TableHead className="text-end">
+                  {auto(
+                    "Conversion",
+                    "sections.topProducts.columns.conversion",
+                  )}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -120,7 +133,9 @@ export function ProductPerformanceTable({ data, isLoading }: ProductPerformanceT
                       <div className="font-medium">{product.title}</div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-end">{product.unitsSold}</TableCell>
+                  <TableCell className="text-end">
+                    {product.unitsSold}
+                  </TableCell>
                   <TableCell className="text-end font-medium">
                     {formatCurrency(product.revenue)}
                   </TableCell>
@@ -138,29 +153,52 @@ export function ProductPerformanceTable({ data, isLoading }: ProductPerformanceT
       {data.underperformingProducts.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>{auto('Products Needing Attention', 'sections.underperforming.title')}</CardTitle>
+            <CardTitle>
+              {auto(
+                "Products Needing Attention",
+                "sections.underperforming.title",
+              )}
+            </CardTitle>
             <p className="text-sm text-muted-foreground">
-              {auto('Products with low conversion rates and recommendations', 'sections.underperforming.subtitle')}
+              {auto(
+                "Products with low conversion rates and recommendations",
+                "sections.underperforming.subtitle",
+              )}
             </p>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{auto('Product', 'sections.underperforming.columns.product')}</TableHead>
-                  <TableHead className="text-end">
-                    {auto('Views', 'sections.underperforming.columns.views')}
+                  <TableHead>
+                    {auto(
+                      "Product",
+                      "sections.underperforming.columns.product",
+                    )}
                   </TableHead>
                   <TableHead className="text-end">
-                    {auto('Conversion', 'sections.underperforming.columns.conversion')}
+                    {auto("Views", "sections.underperforming.columns.views")}
                   </TableHead>
-                  <TableHead>{auto('Recommendation', 'sections.underperforming.columns.recommendation')}</TableHead>
+                  <TableHead className="text-end">
+                    {auto(
+                      "Conversion",
+                      "sections.underperforming.columns.conversion",
+                    )}
+                  </TableHead>
+                  <TableHead>
+                    {auto(
+                      "Recommendation",
+                      "sections.underperforming.columns.recommendation",
+                    )}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.underperformingProducts.slice(0, 5).map((product) => (
                   <TableRow key={product.productId}>
-                    <TableCell className="font-medium">{product.title}</TableCell>
+                    <TableCell className="font-medium">
+                      {product.title}
+                    </TableCell>
                     <TableCell className="text-end">{product.views}</TableCell>
                     <TableCell className="text-end text-orange-600">
                       {product.conversionRate.toFixed(2)}%
@@ -181,14 +219,18 @@ export function ProductPerformanceTable({ data, isLoading }: ProductPerformanceT
         <Card className="border-orange-200 bg-orange-50">
           <CardHeader>
             <CardTitle className="text-orange-900">
-              {auto('Low Stock Alert', 'lowStock.title')}
+              {auto("Low Stock Alert", "lowStock.title")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-orange-800">
-              {auto('{{count}} products are running low on stock. Review your inventory to avoid missed sales.', 'lowStock.message', {
-                count: data.lowStockCount,
-              })}
+              {auto(
+                "{{count}} products are running low on stock. Review your inventory to avoid missed sales.",
+                "lowStock.message",
+                {
+                  count: data.lowStockCount,
+                },
+              )}
             </p>
           </CardContent>
         </Card>

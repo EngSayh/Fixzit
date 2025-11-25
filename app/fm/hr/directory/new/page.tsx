@@ -1,31 +1,31 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
-import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
-import { Button } from '@/components/ui/button';
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 type EmployeeDraft = {
   firstName: string;
@@ -44,39 +44,41 @@ type EmployeeDraft = {
 };
 
 const departments = [
-  'Operations',
-  'Facilities',
-  'Finance',
-  'Human Resources',
-  'Procurement',
-  'Technology',
-  'Legal',
+  "Operations",
+  "Facilities",
+  "Finance",
+  "Human Resources",
+  "Procurement",
+  "Technology",
+  "Legal",
 ];
 
-const employmentTypes = ['Full-time', 'Part-time', 'Contract', 'Internship'];
-const workModels = ['On-site', 'Hybrid', 'Remote'];
-const compensationTypes = ['Salary', 'Hourly', 'Contract'];
+const employmentTypes = ["Full-time", "Part-time", "Contract", "Internship"];
+const workModels = ["On-site", "Hybrid", "Remote"];
+const compensationTypes = ["Salary", "Hourly", "Contract"];
 
 const defaultDraft: EmployeeDraft = {
-  firstName: '',
-  lastName: '',
-  workEmail: '',
-  jobTitle: '',
-  department: '',
-  employmentType: '',
-  workModel: 'On-site',
-  reportsTo: '',
-  startDate: '',
-  phone: '',
-  compensationType: 'Salary',
-  salary: '',
-  notes: '',
+  firstName: "",
+  lastName: "",
+  workEmail: "",
+  jobTitle: "",
+  department: "",
+  employmentType: "",
+  workModel: "On-site",
+  reportsTo: "",
+  startDate: "",
+  phone: "",
+  compensationType: "Salary",
+  salary: "",
+  notes: "",
 };
 
 export default function HRDirectoryCreatePage() {
-  const auto = useAutoTranslator('fm.hr.directory.new');
+  const auto = useAutoTranslator("fm.hr.directory.new");
   const { t } = useTranslation();
-  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'hr' });
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
+    moduleId: "hr",
+  });
   const router = useRouter();
   const [draft, setDraft] = useState<EmployeeDraft>(defaultDraft);
   const [submitting, setSubmitting] = useState(false);
@@ -91,23 +93,25 @@ export default function HRDirectoryCreatePage() {
     event.preventDefault();
     setSubmitting(true);
     try {
-      const response = await fetch('/api/hr/employees', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/hr/employees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(draft),
       });
 
       if (!response.ok) {
         const message = await response.text();
-        throw new Error(message || 'Failed to create employee');
+        throw new Error(message || "Failed to create employee");
       }
 
-      toast.success(auto('Employee added to directory', 'toast.success'));
+      toast.success(auto("Employee added to directory", "toast.success"));
       resetForm();
-      router.push('/fm/hr/directory');
+      router.push("/fm/hr/directory");
     } catch (_error) {
       const description = _error instanceof Error ? _error.message : undefined;
-      toast.error(auto('Unable to create employee', 'toast.error'), { description });
+      toast.error(auto("Unable to create employee", "toast.error"), {
+        description,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -122,22 +126,24 @@ export default function HRDirectoryCreatePage() {
       <ModuleViewTabs moduleId="hr" />
       {supportOrg && (
         <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+          {t("fm.org.supportContext", "Support context: {{name}}", {
+            name: supportOrg.name,
+          })}
         </div>
       )}
 
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground uppercase tracking-wide">
-          {auto('HR / Directory', 'breadcrumbs')}
+          {auto("HR / Directory", "breadcrumbs")}
         </p>
         <div>
           <h1 className="text-2xl font-semibold text-foreground">
-            {auto('Add employee to directory', 'header.title')}
+            {auto("Add employee to directory", "header.title")}
           </h1>
           <p className="text-muted-foreground">
             {auto(
-              'Capture onboarding details, reporting lines, and compensation visibility in one flow.',
-              'header.subtitle'
+              "Capture onboarding details, reporting lines, and compensation visibility in one flow.",
+              "header.subtitle",
             )}
           </p>
         </div>
@@ -147,73 +153,98 @@ export default function HRDirectoryCreatePage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>{auto('Profile basics', 'sections.profile.title')}</CardTitle>
+              <CardTitle>
+                {auto("Profile basics", "sections.profile.title")}
+              </CardTitle>
               <CardDescription>
                 {auto(
-                  'Used for the employee directory, approvals, and payroll integrations.',
-                  'sections.profile.description'
+                  "Used for the employee directory, approvals, and payroll integrations.",
+                  "sections.profile.description",
                 )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">{auto('First name', 'form.firstName.label')}</Label>
+                  <Label htmlFor="firstName">
+                    {auto("First name", "form.firstName.label")}
+                  </Label>
                   <Input
                     id="firstName"
                     name="firstName"
-                    placeholder={auto('Nora', 'form.firstName.placeholder')}
+                    placeholder={auto("Nora", "form.firstName.placeholder")}
                     value={draft.firstName}
-                    onChange={(event) => handleChange('firstName', event.target.value)}
+                    onChange={(event) =>
+                      handleChange("firstName", event.target.value)
+                    }
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">{auto('Last name', 'form.lastName.label')}</Label>
+                  <Label htmlFor="lastName">
+                    {auto("Last name", "form.lastName.label")}
+                  </Label>
                   <Input
                     id="lastName"
                     name="lastName"
-                    placeholder={auto('Al Hashmi', 'form.lastName.placeholder')}
+                    placeholder={auto("Al Hashmi", "form.lastName.placeholder")}
                     value={draft.lastName}
-                    onChange={(event) => handleChange('lastName', event.target.value)}
+                    onChange={(event) =>
+                      handleChange("lastName", event.target.value)
+                    }
                     required
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="workEmail">{auto('Work email', 'form.workEmail.label')}</Label>
+                <Label htmlFor="workEmail">
+                  {auto("Work email", "form.workEmail.label")}
+                </Label>
                 <Input
                   id="workEmail"
                   name="workEmail"
                   type="email"
                   placeholder="nora.alhashmi@example.com"
                   value={draft.workEmail}
-                  onChange={(event) => handleChange('workEmail', event.target.value)}
+                  onChange={(event) =>
+                    handleChange("workEmail", event.target.value)
+                  }
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">{auto('Phone number', 'form.phone.label')}</Label>
+                <Label htmlFor="phone">
+                  {auto("Phone number", "form.phone.label")}
+                </Label>
                 <Input
                   id="phone"
                   name="phone"
                   type="tel"
                   placeholder="+971 50 555 0102"
                   value={draft.phone}
-                  onChange={(event) => handleChange('phone', event.target.value)}
+                  onChange={(event) =>
+                    handleChange("phone", event.target.value)
+                  }
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reportsTo">{auto('Manager / Reports to', 'form.reportsTo.label')}</Label>
+                <Label htmlFor="reportsTo">
+                  {auto("Manager / Reports to", "form.reportsTo.label")}
+                </Label>
                 <Input
                   id="reportsTo"
                   name="reportsTo"
-                  placeholder={auto('e.g. Mariam Al Nuaimi', 'form.reportsTo.placeholder')}
+                  placeholder={auto(
+                    "e.g. Mariam Al Nuaimi",
+                    "form.reportsTo.placeholder",
+                  )}
                   value={draft.reportsTo}
-                  onChange={(event) => handleChange('reportsTo', event.target.value)}
+                  onChange={(event) =>
+                    handleChange("reportsTo", event.target.value)
+                  }
                 />
               </div>
             </CardContent>
@@ -221,29 +252,49 @@ export default function HRDirectoryCreatePage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>{auto('Role details', 'sections.role.title')}</CardTitle>
+              <CardTitle>
+                {auto("Role details", "sections.role.title")}
+              </CardTitle>
               <CardDescription>
-                {auto('Appears in dashboards, workflows, and approval routing.', 'sections.role.description')}
+                {auto(
+                  "Appears in dashboards, workflows, and approval routing.",
+                  "sections.role.description",
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="jobTitle">{auto('Job title', 'form.jobTitle.label')}</Label>
+                <Label htmlFor="jobTitle">
+                  {auto("Job title", "form.jobTitle.label")}
+                </Label>
                 <Input
                   id="jobTitle"
                   name="jobTitle"
-                  placeholder={auto('Facilities Coordinator', 'form.jobTitle.placeholder')}
+                  placeholder={auto(
+                    "Facilities Coordinator",
+                    "form.jobTitle.placeholder",
+                  )}
                   value={draft.jobTitle}
-                  onChange={(event) => handleChange('jobTitle', event.target.value)}
+                  onChange={(event) =>
+                    handleChange("jobTitle", event.target.value)
+                  }
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>{auto('Department', 'form.department.label')}</Label>
-                <Select value={draft.department} onValueChange={(value) => handleChange('department', value)}>
+                <Label>{auto("Department", "form.department.label")}</Label>
+                <Select
+                  value={draft.department}
+                  onValueChange={(value) => handleChange("department", value)}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder={auto('Select department', 'form.department.placeholder')} />
+                    <SelectValue
+                      placeholder={auto(
+                        "Select department",
+                        "form.department.placeholder",
+                      )}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {departments.map((department) => (
@@ -257,13 +308,22 @@ export default function HRDirectoryCreatePage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>{auto('Employment type', 'form.employmentType.label')}</Label>
+                  <Label>
+                    {auto("Employment type", "form.employmentType.label")}
+                  </Label>
                   <Select
                     value={draft.employmentType}
-                    onValueChange={(value) => handleChange('employmentType', value)}
+                    onValueChange={(value) =>
+                      handleChange("employmentType", value)
+                    }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={auto('Select type', 'form.employmentType.placeholder')} />
+                      <SelectValue
+                        placeholder={auto(
+                          "Select type",
+                          "form.employmentType.placeholder",
+                        )}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {employmentTypes.map((employmentType) => (
@@ -275,10 +335,18 @@ export default function HRDirectoryCreatePage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>{auto('Work model', 'form.workModel.label')}</Label>
-                  <Select value={draft.workModel} onValueChange={(value) => handleChange('workModel', value)}>
+                  <Label>{auto("Work model", "form.workModel.label")}</Label>
+                  <Select
+                    value={draft.workModel}
+                    onValueChange={(value) => handleChange("workModel", value)}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder={auto('Select model', 'form.workModel.placeholder')} />
+                      <SelectValue
+                        placeholder={auto(
+                          "Select model",
+                          "form.workModel.placeholder",
+                        )}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {workModels.map((workModel) => (
@@ -292,13 +360,17 @@ export default function HRDirectoryCreatePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="startDate">{auto('Start date', 'form.startDate.label')}</Label>
+                <Label htmlFor="startDate">
+                  {auto("Start date", "form.startDate.label")}
+                </Label>
                 <Input
                   id="startDate"
                   name="startDate"
                   type="date"
                   value={draft.startDate}
-                  onChange={(event) => handleChange('startDate', event.target.value)}
+                  onChange={(event) =>
+                    handleChange("startDate", event.target.value)
+                  }
                   required
                 />
               </div>
@@ -308,25 +380,34 @@ export default function HRDirectoryCreatePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{auto('Compensation & notes', 'sections.compensation.title')}</CardTitle>
+            <CardTitle>
+              {auto("Compensation & notes", "sections.compensation.title")}
+            </CardTitle>
             <CardDescription>
               {auto(
-                'This data helps payroll and finance teams forecast expenses and approvals.',
-                'sections.compensation.description'
+                "This data helps payroll and finance teams forecast expenses and approvals.",
+                "sections.compensation.description",
               )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>{auto('Compensation type', 'form.compensationType.label')}</Label>
+                <Label>
+                  {auto("Compensation type", "form.compensationType.label")}
+                </Label>
                 <Select
                   value={draft.compensationType}
-                  onValueChange={(value) => handleChange('compensationType', value)}
+                  onValueChange={(value) =>
+                    handleChange("compensationType", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue
-                      placeholder={auto('Select compensation type', 'form.compensationType.placeholder')}
+                      placeholder={auto(
+                        "Select compensation type",
+                        "form.compensationType.placeholder",
+                      )}
                     />
                   </SelectTrigger>
                   <SelectContent>
@@ -339,7 +420,9 @@ export default function HRDirectoryCreatePage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="salary">{auto('Base pay', 'form.salary.label')}</Label>
+                <Label htmlFor="salary">
+                  {auto("Base pay", "form.salary.label")}
+                </Label>
                 <Input
                   id="salary"
                   name="salary"
@@ -348,23 +431,27 @@ export default function HRDirectoryCreatePage() {
                   step="100"
                   placeholder="18000"
                   value={draft.salary}
-                  onChange={(event) => handleChange('salary', event.target.value)}
+                  onChange={(event) =>
+                    handleChange("salary", event.target.value)
+                  }
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">{auto('Notes & onboarding checklist', 'form.notes.label')}</Label>
+              <Label htmlFor="notes">
+                {auto("Notes & onboarding checklist", "form.notes.label")}
+              </Label>
               <Textarea
                 id="notes"
                 name="notes"
                 rows={4}
                 placeholder={auto(
-                  'Entry permit ready, IT ticket submitted, add to payroll before 1 Dec.',
-                  'form.notes.placeholder'
+                  "Entry permit ready, IT ticket submitted, add to payroll before 1 Dec.",
+                  "form.notes.placeholder",
                 )}
                 value={draft.notes}
-                onChange={(event) => handleChange('notes', event.target.value)}
+                onChange={(event) => handleChange("notes", event.target.value)}
               />
             </div>
           </CardContent>
@@ -374,13 +461,15 @@ export default function HRDirectoryCreatePage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push('/fm/hr/directory')}
+            onClick={() => router.push("/fm/hr/directory")}
             disabled={submitting}
           >
-            {auto('Cancel', 'actions.cancel')}
+            {auto("Cancel", "actions.cancel")}
           </Button>
           <Button type="submit" disabled={submitting}>
-            {submitting ? auto('Saving...', 'actions.saving') : auto('Create employee', 'actions.submit')}
+            {submitting
+              ? auto("Saving...", "actions.saving")
+              : auto("Create employee", "actions.submit")}
           </Button>
         </div>
       </form>

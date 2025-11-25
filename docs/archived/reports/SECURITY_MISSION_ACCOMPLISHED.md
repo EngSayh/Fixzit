@@ -50,7 +50,7 @@ docker-compose -f deployment/docker-compose.yml --env-file deployment/.env.produ
 🔐 Testing JWT with new secret...
 Secret length: 64 characters
 ✅ Token generated successfully
-✅ Token verified successfully  
+✅ Token verified successfully
 ✅ Invalid token correctly rejected
 🎉 All JWT tests passed with new secret!
 

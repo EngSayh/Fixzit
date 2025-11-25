@@ -1,610 +1,766 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FIXZIT SOUQ - Search Tool</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #B46B2F 0%, #3A2A1F 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
-        .header {
-            background: #B46B2F;
-            color: white;
-            padding: 20px;
-            border-radius: 10px 10px 0 0;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .logo {
-            width: 40px;
-            height: 40px;
-            background: #C98036;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-        
-        .search-panel {
-            background: white;
-            padding: 30px;
-            border-radius: 0 0 10px 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-        
-        .search-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-        
-        .search-input {
-            flex: 1;
-            min-width: 300px;
-            padding: 12px 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-        
-        .search-input:focus {
-            outline: none;
-            border-color: #B46B2F;
-            box-shadow: 0 0 0 3px rgba(0,97,168,0.1);
-        }
-        
-        .btn {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .btn-primary {
-            background: #B46B2F;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #3A2A1F;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,97,168,0.3);
-        }
-        
-        .btn-secondary {
-            background: #C98036;
-            color: white;
-        }
-        
-        .btn-success {
-            background: #6E4D2C;
-            color: white;
-        }
-        
-        .quick-search {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .chip {
-            padding: 8px 16px;
-            background: #f5f5f5;
-            border: 2px solid transparent;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 14px;
-        }
-        
-        .chip:hover {
-            border-color: #B46B2F;
-            background: #e8f4ff;
-        }
-        
-        .chip.active {
-            background: #B46B2F;
-            color: white;
-            border-color: #B46B2F;
-        }
-        
-        .results {
-            margin-top: 30px;
-        }
-        
-        .result-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e0e0e0;
-        }
-        
-        .result-count {
-            font-size: 18px;
-            font-weight: 600;
-            color: #3A2A1F;
-        }
-        
-        .result-item {
-            background: #f9f9f9;
-            border-left: 4px solid #B46B2F;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-        
-        .result-item:hover {
-            transform: translateX(5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .result-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #3A2A1F;
-            margin-bottom: 10px;
-        }
-        
-        .result-location {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-        
-        .result-match {
-            background: #C98036;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-weight: 500;
-        }
-        
-        .result-context {
-            color: #444;
-            line-height: 1.6;
-            font-size: 14px;
-        }
-        
-        .module-tag {
-            display: inline-block;
-            padding: 4px 12px;
-            background: #6E4D2C;
-            color: white;
-            border-radius: 15px;
-            font-size: 12px;
-            margin-right: 5px;
-        }
-        
-        .no-results {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #B46B2F 0%, #3A2A1F 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-        }
-        
-        .stat-value {
-            font-size: 32px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .stat-label {
-            font-size: 14px;
-            opacity: 0.9;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #b46b2f 0%, #3a2a1f 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .header {
+        background: #b46b2f;
+        color: white;
+        padding: 20px;
+        border-radius: 10px 10px 0 0;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .logo {
+        width: 40px;
+        height: 40px;
+        background: #c98036;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+      }
+
+      .search-panel {
+        background: white;
+        padding: 30px;
+        border-radius: 0 0 10px 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      }
+
+      .search-controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+      }
+
+      .search-input {
+        flex: 1;
+        min-width: 300px;
+        padding: 12px 20px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s;
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: #b46b2f;
+        box-shadow: 0 0 0 3px rgba(0, 97, 168, 0.1);
+      }
+
+      .btn {
+        padding: 12px 30px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .btn-primary {
+        background: #b46b2f;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #3a2a1f;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 97, 168, 0.3);
+      }
+
+      .btn-secondary {
+        background: #c98036;
+        color: white;
+      }
+
+      .btn-success {
+        background: #6e4d2c;
+        color: white;
+      }
+
+      .quick-search {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      .chip {
+        padding: 8px 16px;
+        background: #f5f5f5;
+        border: 2px solid transparent;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 14px;
+      }
+
+      .chip:hover {
+        border-color: #b46b2f;
+        background: #e8f4ff;
+      }
+
+      .chip.active {
+        background: #b46b2f;
+        color: white;
+        border-color: #b46b2f;
+      }
+
+      .results {
+        margin-top: 30px;
+      }
+
+      .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e0e0e0;
+      }
+
+      .result-count {
+        font-size: 18px;
+        font-weight: 600;
+        color: #3a2a1f;
+      }
+
+      .result-item {
+        background: #f9f9f9;
+        border-left: 4px solid #b46b2f;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        transition: all 0.3s;
+      }
+
+      .result-item:hover {
+        transform: translateX(5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .result-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #3a2a1f;
+        margin-bottom: 10px;
+      }
+
+      .result-location {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 10px;
+      }
+
+      .result-match {
+        background: #c98036;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-weight: 500;
+      }
+
+      .result-context {
+        color: #444;
+        line-height: 1.6;
+        font-size: 14px;
+      }
+
+      .module-tag {
+        display: inline-block;
+        padding: 4px 12px;
+        background: #6e4d2c;
+        color: white;
+        border-radius: 15px;
+        font-size: 12px;
+        margin-right: 5px;
+      }
+
+      .no-results {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: linear-gradient(135deg, #b46b2f 0%, #3a2a1f 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 32px;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .stat-label {
+        font-size: 14px;
+        opacity: 0.9;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <div class="header">
-            <div class="logo">FS</div>
-            <h1>FIXZIT SOUQ Search Tool</h1>
+      <div class="header">
+        <div class="logo">FS</div>
+        <h1>FIXZIT SOUQ Search Tool</h1>
+      </div>
+
+      <div class="search-panel">
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-value">13</div>
+            <div class="stat-label">Modules</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">14</div>
+            <div class="stat-label">User Roles</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">97%</div>
+            <div class="stat-label">Phase 1 Complete</div>
+          </div>
         </div>
-        
-        <div class="search-panel">
-            <div class="stats">
-                <div class="stat-card">
-                    <div class="stat-value">13</div>
-                    <div class="stat-label">Modules</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">14</div>
-                    <div class="stat-label">User Roles</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">97%</div>
-                    <div class="stat-label">Phase 1 Complete</div>
-                </div>
-            </div>
-            
-            <div class="quick-search">
-                <div class="chip" onclick="searchFor('layout audit')">Layout Audit</div>
-                <div class="chip active" onclick="searchFor('workflow')">Workflow</div>
-                <div class="chip" onclick="searchFor('module')">Module</div>
-                <div class="chip" onclick="searchFor('dashboard')">Dashboard</div>
-                <div class="chip" onclick="searchFor('compliance')">Compliance</div>
-                <div class="chip" onclick="searchFor('tenant')">Tenant</div>
-                <div class="chip" onclick="searchFor('maintenance')">Maintenance</div>
-            </div>
-            
-            <div class="search-controls">
-                <input type="text" 
-                       id="searchInput" 
-                       class="search-input" 
-                       placeholder="Search for layout audit, workflow, or any term..."
-                       value="workflow"
-                       onkeypress="if(event.key === 'Enter') performSearch()">
-                <button class="btn btn-primary" onclick="performSearch()">Search</button>
-                <button class="btn btn-secondary" onclick="clearSearch()">Clear</button>
-            </div>
-            
-            <div id="results" class="results"></div>
+
+        <div class="quick-search">
+          <div class="chip" onclick="searchFor('layout audit')">
+            Layout Audit
+          </div>
+          <div class="chip active" onclick="searchFor('workflow')">
+            Workflow
+          </div>
+          <div class="chip" onclick="searchFor('module')">Module</div>
+          <div class="chip" onclick="searchFor('dashboard')">Dashboard</div>
+          <div class="chip" onclick="searchFor('compliance')">Compliance</div>
+          <div class="chip" onclick="searchFor('tenant')">Tenant</div>
+          <div class="chip" onclick="searchFor('maintenance')">Maintenance</div>
         </div>
+
+        <div class="search-controls">
+          <input
+            type="text"
+            id="searchInput"
+            class="search-input"
+            placeholder="Search for layout audit, workflow, or any term..."
+            value="workflow"
+            onkeypress="if(event.key === 'Enter') performSearch()"
+          />
+          <button class="btn btn-primary" onclick="performSearch()">
+            Search
+          </button>
+          <button class="btn btn-secondary" onclick="clearSearch()">
+            Clear
+          </button>
+        </div>
+
+        <div id="results" class="results"></div>
+      </div>
     </div>
 
     <script>
-        // FIXZIT SOUQ Implementation Data
-        const fixzitData = {
-            modules: [
-                {
-                    name: "Dashboard Module",
-                    features: ["KPI cards with real-time metrics", "Activity feed and calendar widget", "Role-based dashboards", "My Work, Alerts, Calendar tabs"],
-                    workflow: "Dashboard initialization workflow with role-based content loading"
-                },
-                {
-                    name: "Work Orders Module",
-                    features: ["Complete workflow states (Draft → Closed)", "Board view (Kanban)", "Calendar/Gantt view", "Preventive Maintenance", "Service History", "Dispatch with map view", "Auto-assignment logic", "SLA tracking"],
-                    workflow: "Work order lifecycle workflow: Draft → Scheduled → In Progress → Completed → Closed"
-                },
-                {
-                    name: "Properties Module",
-                    features: ["Properties grid/list view", "Units & Tenants management", "Lease tracking", "Asset Register", "Inspections with templates", "Documents storage", "Maps integration"],
-                    workflow: "Property onboarding workflow with tenant assignment"
-                },
-                {
-                    name: "Finance Module",
-                    features: ["Invoices with ZATCA compliance", "QR code generation", "Payment management", "Expense tracking", "Budget vs Actual", "Price Books", "Property statements"],
-                    workflow: "Invoice generation and payment workflow with ZATCA integration"
-                },
-                {
-                    name: "Human Resources Module",
-                    features: ["Employee directory", "Attendance & Leave tracking", "Payroll processing", "Recruitment (ATS)", "Training management", "Performance reviews"],
-                    workflow: "Employee onboarding workflow with document verification"
-                },
-                {
-                    name: "Administration Module",
-                    features: ["Delegation of Authority (DoA)", "Policies & Procedures", "Asset & Inventory management", "Facilities & Fleet", "Vendor management"],
-                    workflow: "Approval workflow based on delegation matrix"
-                },
-                {
-                    name: "CRM Module",
-                    features: ["Customer management", "Leads & Opportunities", "Contracts & Renewals", "Feedback & Complaints", "NPS/CSAT tracking"],
-                    workflow: "Lead to customer conversion workflow"
-                },
-                {
-                    name: "Marketplace Module",
-                    features: ["Vendor & Supplier management", "Service Catalog", "Procurement Requests", "RFQ & Bidding system", "Purchase Orders", "Amazon-style grid layout"],
-                    workflow: "RFQ to Purchase Order workflow with multi-vendor bidding"
-                },
-                {
-                    name: "Support Module",
-                    features: ["Ticket management", "Knowledge Base", "SLA management", "Survey system"],
-                    workflow: "Ticket resolution workflow with escalation paths"
-                },
-                {
-                    name: "Compliance & Legal Module",
-                    features: ["Permit registers", "Inspection tracking", "Fines management", "Contract management", "Audit trails", "DocuSign integration setup"],
-                    workflow: "Compliance audit workflow with document tracking"
-                },
-                {
-                    name: "Reports & Analytics Module",
-                    features: ["Operational reports", "Financial reports", "Workforce analytics", "Custom report builder", "Real-time dashboards"],
-                    workflow: "Report generation workflow with scheduled distribution"
-                },
-                {
-                    name: "System Management Module",
-                    features: ["User & Role management (14 roles)", "Multi-tenant configuration", "Integration management", "Data import/export", "Webhooks", "Branding customization", "Audit logging"],
-                    workflow: "User provisioning workflow with role assignment"
-                },
-                {
-                    name: "Preventive Maintenance Module",
-                    features: ["Recurring work order generation", "Asset maintenance schedules", "Predictive maintenance alerts", "Service history tracking"],
-                    workflow: "Preventive maintenance scheduling workflow with asset tracking"
-                }
+      // FIXZIT SOUQ Implementation Data
+      const fixzitData = {
+        modules: [
+          {
+            name: "Dashboard Module",
+            features: [
+              "KPI cards with real-time metrics",
+              "Activity feed and calendar widget",
+              "Role-based dashboards",
+              "My Work, Alerts, Calendar tabs",
             ],
-            workflows: [
-                {
-                    id: 'WF001',
-                    name: 'Tenant Maintenance Request Flow',
-                    module: 'Work Orders',
-                    steps: ['Request Submission', 'Auto-Assignment', 'Work Order Creation', 'Dispatch', 'Completion', 'Feedback'],
-                    roles: ['Tenant', 'Technician', 'Dispatcher', 'Supervisor']
-                },
-                {
-                    id: 'WF002',
-                    name: 'RFQ to Purchase Order Flow',
-                    module: 'Marketplace',
-                    steps: ['RFQ Creation', 'Vendor Invitation', 'Bid Collection', 'Evaluation', 'Award', 'PO Generation'],
-                    roles: ['Procurement Manager', 'Vendor', 'Finance', 'Approver']
-                },
-                {
-                    id: 'WF003',
-                    name: 'Owner Approval Flow',
-                    module: 'Administration',
-                    steps: ['Request Initiation', 'DoA Check', 'Owner Notification', 'Review', 'Approval/Rejection'],
-                    roles: ['Requester', 'Owner', 'Admin']
-                },
-                {
-                    id: 'WF004',
-                    name: 'Work Order Lifecycle Workflow',
-                    module: 'Work Orders',
-                    steps: ['Draft', 'Scheduled', 'In Progress', 'Completed', 'Closed'],
-                    roles: ['Technician', 'Supervisor', 'Manager'],
-                    sla: '24 hours'
-                },
-                {
-                    id: 'WF005',
-                    name: 'Invoice Generation Workflow',
-                    module: 'Finance',
-                    steps: ['Create Invoice', 'ZATCA Validation', 'QR Generation', 'Send to Customer', 'Payment Tracking'],
-                    roles: ['Accountant', 'Finance Manager', 'Customer']
-                },
-                {
-                    id: 'WF006',
-                    name: 'Employee Onboarding Workflow',
-                    module: 'Human Resources',
-                    steps: ['Application', 'Document Verification', 'Contract Generation', 'System Access', 'Training Assignment'],
-                    roles: ['HR Manager', 'IT Admin', 'Department Head']
-                },
-                {
-                    id: 'WF007',
-                    name: 'Compliance Audit Workflow',
-                    module: 'Compliance & Legal',
-                    steps: ['Audit Planning', 'Document Collection', 'Review', 'Finding Report', 'Corrective Actions'],
-                    roles: ['Compliance Officer', 'Auditor', 'Department Heads']
-                },
-                {
-                    id: 'WF008',
-                    name: 'Preventive Maintenance Workflow',
-                    module: 'Preventive Maintenance',
-                    steps: ['Schedule Generation', 'Work Order Creation', 'Assignment', 'Execution', 'Verification'],
-                    roles: ['System', 'Technician', 'Supervisor']
-                }
+            workflow:
+              "Dashboard initialization workflow with role-based content loading",
+          },
+          {
+            name: "Work Orders Module",
+            features: [
+              "Complete workflow states (Draft → Closed)",
+              "Board view (Kanban)",
+              "Calendar/Gantt view",
+              "Preventive Maintenance",
+              "Service History",
+              "Dispatch with map view",
+              "Auto-assignment logic",
+              "SLA tracking",
             ],
-            layoutAudits: [
-                {
-                    component: 'Landing Page',
-                    specification: 'Three buttons (Yellow Arabic, White Souq, Blue Access System)',
-                    implemented: true,
-                    location: '/src/pages/landing.tsx'
-                },
-                {
-                    component: 'Header',
-                    specification: 'Solid blue (#B46B2F), 60px height',
-                    implemented: true,
-                    location: '/src/components/layout/Header.tsx'
-                },
-                {
-                    component: 'Sidebar',
-                    specification: 'Monday.com style collapsible sidebar',
-                    implemented: true,
-                    location: '/src/components/layout/Sidebar.tsx'
-                },
-                {
-                    component: 'Marketplace',
-                    specification: 'Amazon-style grid (NOT dashboard)',
-                    implemented: true,
-                    location: '/src/modules/marketplace/MarketplaceGrid.tsx'
-                },
-                {
-                    component: 'Color Scheme',
-                    specification: 'Fixzit colors (#B46B2F, #3A2A1F, #C98036, #6E4D2C, #C98036)',
-                    implemented: true,
-                    location: '/src/styles/theme.ts'
-                },
-                {
-                    component: 'Dashboard',
-                    specification: 'Role-based with KPI cards',
-                    implemented: true,
-                    location: '/src/modules/dashboard/Dashboard.tsx'
-                },
-                {
-                    component: 'Work Orders Board',
-                    specification: 'Kanban view with drag-drop',
-                    implemented: true,
-                    location: '/src/modules/workorders/BoardView.tsx'
-                },
-                {
-                    component: 'Mobile Responsive',
-                    specification: 'Mobile-first approach',
-                    implemented: true,
-                    location: '/src/styles/responsive.css'
-                }
-            ]
-        };
+            workflow:
+              "Work order lifecycle workflow: Draft → Scheduled → In Progress → Completed → Closed",
+          },
+          {
+            name: "Properties Module",
+            features: [
+              "Properties grid/list view",
+              "Units & Tenants management",
+              "Lease tracking",
+              "Asset Register",
+              "Inspections with templates",
+              "Documents storage",
+              "Maps integration",
+            ],
+            workflow: "Property onboarding workflow with tenant assignment",
+          },
+          {
+            name: "Finance Module",
+            features: [
+              "Invoices with ZATCA compliance",
+              "QR code generation",
+              "Payment management",
+              "Expense tracking",
+              "Budget vs Actual",
+              "Price Books",
+              "Property statements",
+            ],
+            workflow:
+              "Invoice generation and payment workflow with ZATCA integration",
+          },
+          {
+            name: "Human Resources Module",
+            features: [
+              "Employee directory",
+              "Attendance & Leave tracking",
+              "Payroll processing",
+              "Recruitment (ATS)",
+              "Training management",
+              "Performance reviews",
+            ],
+            workflow: "Employee onboarding workflow with document verification",
+          },
+          {
+            name: "Administration Module",
+            features: [
+              "Delegation of Authority (DoA)",
+              "Policies & Procedures",
+              "Asset & Inventory management",
+              "Facilities & Fleet",
+              "Vendor management",
+            ],
+            workflow: "Approval workflow based on delegation matrix",
+          },
+          {
+            name: "CRM Module",
+            features: [
+              "Customer management",
+              "Leads & Opportunities",
+              "Contracts & Renewals",
+              "Feedback & Complaints",
+              "NPS/CSAT tracking",
+            ],
+            workflow: "Lead to customer conversion workflow",
+          },
+          {
+            name: "Marketplace Module",
+            features: [
+              "Vendor & Supplier management",
+              "Service Catalog",
+              "Procurement Requests",
+              "RFQ & Bidding system",
+              "Purchase Orders",
+              "Amazon-style grid layout",
+            ],
+            workflow:
+              "RFQ to Purchase Order workflow with multi-vendor bidding",
+          },
+          {
+            name: "Support Module",
+            features: [
+              "Ticket management",
+              "Knowledge Base",
+              "SLA management",
+              "Survey system",
+            ],
+            workflow: "Ticket resolution workflow with escalation paths",
+          },
+          {
+            name: "Compliance & Legal Module",
+            features: [
+              "Permit registers",
+              "Inspection tracking",
+              "Fines management",
+              "Contract management",
+              "Audit trails",
+              "DocuSign integration setup",
+            ],
+            workflow: "Compliance audit workflow with document tracking",
+          },
+          {
+            name: "Reports & Analytics Module",
+            features: [
+              "Operational reports",
+              "Financial reports",
+              "Workforce analytics",
+              "Custom report builder",
+              "Real-time dashboards",
+            ],
+            workflow: "Report generation workflow with scheduled distribution",
+          },
+          {
+            name: "System Management Module",
+            features: [
+              "User & Role management (14 roles)",
+              "Multi-tenant configuration",
+              "Integration management",
+              "Data import/export",
+              "Webhooks",
+              "Branding customization",
+              "Audit logging",
+            ],
+            workflow: "User provisioning workflow with role assignment",
+          },
+          {
+            name: "Preventive Maintenance Module",
+            features: [
+              "Recurring work order generation",
+              "Asset maintenance schedules",
+              "Predictive maintenance alerts",
+              "Service history tracking",
+            ],
+            workflow:
+              "Preventive maintenance scheduling workflow with asset tracking",
+          },
+        ],
+        workflows: [
+          {
+            id: "WF001",
+            name: "Tenant Maintenance Request Flow",
+            module: "Work Orders",
+            steps: [
+              "Request Submission",
+              "Auto-Assignment",
+              "Work Order Creation",
+              "Dispatch",
+              "Completion",
+              "Feedback",
+            ],
+            roles: ["Tenant", "Technician", "Dispatcher", "Supervisor"],
+          },
+          {
+            id: "WF002",
+            name: "RFQ to Purchase Order Flow",
+            module: "Marketplace",
+            steps: [
+              "RFQ Creation",
+              "Vendor Invitation",
+              "Bid Collection",
+              "Evaluation",
+              "Award",
+              "PO Generation",
+            ],
+            roles: ["Procurement Manager", "Vendor", "Finance", "Approver"],
+          },
+          {
+            id: "WF003",
+            name: "Owner Approval Flow",
+            module: "Administration",
+            steps: [
+              "Request Initiation",
+              "DoA Check",
+              "Owner Notification",
+              "Review",
+              "Approval/Rejection",
+            ],
+            roles: ["Requester", "Owner", "Admin"],
+          },
+          {
+            id: "WF004",
+            name: "Work Order Lifecycle Workflow",
+            module: "Work Orders",
+            steps: ["Draft", "Scheduled", "In Progress", "Completed", "Closed"],
+            roles: ["Technician", "Supervisor", "Manager"],
+            sla: "24 hours",
+          },
+          {
+            id: "WF005",
+            name: "Invoice Generation Workflow",
+            module: "Finance",
+            steps: [
+              "Create Invoice",
+              "ZATCA Validation",
+              "QR Generation",
+              "Send to Customer",
+              "Payment Tracking",
+            ],
+            roles: ["Accountant", "Finance Manager", "Customer"],
+          },
+          {
+            id: "WF006",
+            name: "Employee Onboarding Workflow",
+            module: "Human Resources",
+            steps: [
+              "Application",
+              "Document Verification",
+              "Contract Generation",
+              "System Access",
+              "Training Assignment",
+            ],
+            roles: ["HR Manager", "IT Admin", "Department Head"],
+          },
+          {
+            id: "WF007",
+            name: "Compliance Audit Workflow",
+            module: "Compliance & Legal",
+            steps: [
+              "Audit Planning",
+              "Document Collection",
+              "Review",
+              "Finding Report",
+              "Corrective Actions",
+            ],
+            roles: ["Compliance Officer", "Auditor", "Department Heads"],
+          },
+          {
+            id: "WF008",
+            name: "Preventive Maintenance Workflow",
+            module: "Preventive Maintenance",
+            steps: [
+              "Schedule Generation",
+              "Work Order Creation",
+              "Assignment",
+              "Execution",
+              "Verification",
+            ],
+            roles: ["System", "Technician", "Supervisor"],
+          },
+        ],
+        layoutAudits: [
+          {
+            component: "Landing Page",
+            specification:
+              "Three buttons (Yellow Arabic, White Souq, Blue Access System)",
+            implemented: true,
+            location: "/src/pages/landing.tsx",
+          },
+          {
+            component: "Header",
+            specification: "Solid blue (#B46B2F), 60px height",
+            implemented: true,
+            location: "/src/components/layout/Header.tsx",
+          },
+          {
+            component: "Sidebar",
+            specification: "Monday.com style collapsible sidebar",
+            implemented: true,
+            location: "/src/components/layout/Sidebar.tsx",
+          },
+          {
+            component: "Marketplace",
+            specification: "Amazon-style grid (NOT dashboard)",
+            implemented: true,
+            location: "/src/modules/marketplace/MarketplaceGrid.tsx",
+          },
+          {
+            component: "Color Scheme",
+            specification:
+              "Fixzit colors (#B46B2F, #3A2A1F, #C98036, #6E4D2C, #C98036)",
+            implemented: true,
+            location: "/src/styles/theme.ts",
+          },
+          {
+            component: "Dashboard",
+            specification: "Role-based with KPI cards",
+            implemented: true,
+            location: "/src/modules/dashboard/Dashboard.tsx",
+          },
+          {
+            component: "Work Orders Board",
+            specification: "Kanban view with drag-drop",
+            implemented: true,
+            location: "/src/modules/workorders/BoardView.tsx",
+          },
+          {
+            component: "Mobile Responsive",
+            specification: "Mobile-first approach",
+            implemented: true,
+            location: "/src/styles/responsive.css",
+          },
+        ],
+      };
 
-        function searchFor(term) {
-            document.getElementById('searchInput').value = term;
-            updateActiveChip(term);
-            performSearch();
-        }
+      function searchFor(term) {
+        document.getElementById("searchInput").value = term;
+        updateActiveChip(term);
+        performSearch();
+      }
 
-        function updateActiveChip(activeTerm) {
-            document.querySelectorAll('.chip').forEach(chip => {
-                chip.classList.remove('active');
-                if (chip.textContent.toLowerCase() === activeTerm.toLowerCase()) {
-                    chip.classList.add('active');
-                }
+      function updateActiveChip(activeTerm) {
+        document.querySelectorAll(".chip").forEach((chip) => {
+          chip.classList.remove("active");
+          if (chip.textContent.toLowerCase() === activeTerm.toLowerCase()) {
+            chip.classList.add("active");
+          }
+        });
+      }
+
+      function performSearch() {
+        const searchTerm = document
+          .getElementById("searchInput")
+          .value.toLowerCase()
+          .trim();
+        if (!searchTerm) return;
+
+        const results = search(searchTerm);
+        displayResults(searchTerm, results);
+      }
+
+      function clearSearch() {
+        document.getElementById("searchInput").value = "";
+        document.getElementById("results").innerHTML = "";
+        document.querySelectorAll(".chip").forEach((chip) => {
+          chip.classList.remove("active");
+        });
+      }
+
+      function search(searchTerm) {
+        const results = [];
+
+        // Search workflows
+        fixzitData.workflows.forEach((workflow) => {
+          if (workflow.name.toLowerCase().includes(searchTerm)) {
+            results.push({
+              type: "workflow",
+              module: workflow.module,
+              title: workflow.name,
+              context: `Steps: ${workflow.steps.join(" → ")}`,
+              relevance: workflow.name.toLowerCase() === searchTerm ? 100 : 80,
             });
-        }
+          }
 
-        function performSearch() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-            if (!searchTerm) return;
-
-            const results = search(searchTerm);
-            displayResults(searchTerm, results);
-        }
-
-        function clearSearch() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('results').innerHTML = '';
-            document.querySelectorAll('.chip').forEach(chip => {
-                chip.classList.remove('active');
-            });
-        }
-
-        function search(searchTerm) {
-            const results = [];
-            
-            // Search workflows
-            fixzitData.workflows.forEach(workflow => {
-                if (workflow.name.toLowerCase().includes(searchTerm)) {
-                    results.push({
-                        type: 'workflow',
-                        module: workflow.module,
-                        title: workflow.name,
-                        context: `Steps: ${workflow.steps.join(' → ')}`,
-                        relevance: workflow.name.toLowerCase() === searchTerm ? 100 : 80
-                    });
-                }
-                
-                workflow.steps.forEach(step => {
-                    if (step.toLowerCase().includes(searchTerm)) {
-                        results.push({
-                            type: 'workflow-step',
-                            module: workflow.module,
-                            title: `${workflow.name} - ${step}`,
-                            context: `Part of ${workflow.name} workflow`,
-                            relevance: 60
-                        });
-                    }
-                });
-            });
-
-            // Search modules
-            fixzitData.modules.forEach(module => {
-                if (module.name.toLowerCase().includes(searchTerm) || 
-                    module.workflow.toLowerCase().includes(searchTerm)) {
-                    results.push({
-                        type: 'module',
-                        module: module.name,
-                        title: module.name,
-                        context: module.workflow,
-                        relevance: 70
-                    });
-                }
-                
-                module.features.forEach(feature => {
-                    if (feature.toLowerCase().includes(searchTerm)) {
-                        results.push({
-                            type: 'feature',
-                            module: module.name,
-                            title: feature,
-                            context: `Feature of ${module.name}`,
-                            relevance: 50
-                        });
-                    }
-                });
-            });
-
-            // Search layout audits
-            if (searchTerm === 'layout audit' || searchTerm.includes('audit')) {
-                fixzitData.layoutAudits.forEach(audit => {
-                    results.push({
-                        type: 'layout-audit',
-                        module: 'UI/UX Layout',
-                        title: audit.component,
-                        context: `${audit.specification} (${audit.implemented ? '✅ Implemented' : '❌ Pending'})`,
-                        relevance: 90
-                    });
-                });
-            } else {
-                fixzitData.layoutAudits.forEach(audit => {
-                    if (audit.component.toLowerCase().includes(searchTerm) ||
-                        audit.specification.toLowerCase().includes(searchTerm)) {
-                        results.push({
-                            type: 'layout-audit',
-                            module: 'UI/UX Layout',
-                            title: audit.component,
-                            context: `${audit.specification} (${audit.implemented ? '✅' : '❌'})`,
-                            relevance: 80
-                        });
-                    }
-                });
+          workflow.steps.forEach((step) => {
+            if (step.toLowerCase().includes(searchTerm)) {
+              results.push({
+                type: "workflow-step",
+                module: workflow.module,
+                title: `${workflow.name} - ${step}`,
+                context: `Part of ${workflow.name} workflow`,
+                relevance: 60,
+              });
             }
+          });
+        });
 
-            return results.sort((a, b) => b.relevance - a.relevance);
+        // Search modules
+        fixzitData.modules.forEach((module) => {
+          if (
+            module.name.toLowerCase().includes(searchTerm) ||
+            module.workflow.toLowerCase().includes(searchTerm)
+          ) {
+            results.push({
+              type: "module",
+              module: module.name,
+              title: module.name,
+              context: module.workflow,
+              relevance: 70,
+            });
+          }
+
+          module.features.forEach((feature) => {
+            if (feature.toLowerCase().includes(searchTerm)) {
+              results.push({
+                type: "feature",
+                module: module.name,
+                title: feature,
+                context: `Feature of ${module.name}`,
+                relevance: 50,
+              });
+            }
+          });
+        });
+
+        // Search layout audits
+        if (searchTerm === "layout audit" || searchTerm.includes("audit")) {
+          fixzitData.layoutAudits.forEach((audit) => {
+            results.push({
+              type: "layout-audit",
+              module: "UI/UX Layout",
+              title: audit.component,
+              context: `${audit.specification} (${audit.implemented ? "✅ Implemented" : "❌ Pending"})`,
+              relevance: 90,
+            });
+          });
+        } else {
+          fixzitData.layoutAudits.forEach((audit) => {
+            if (
+              audit.component.toLowerCase().includes(searchTerm) ||
+              audit.specification.toLowerCase().includes(searchTerm)
+            ) {
+              results.push({
+                type: "layout-audit",
+                module: "UI/UX Layout",
+                title: audit.component,
+                context: `${audit.specification} (${audit.implemented ? "✅" : "❌"})`,
+                relevance: 80,
+              });
+            }
+          });
         }
 
-        function highlightMatch(text, searchTerm) {
-            const regex = new RegExp(`(${searchTerm})`, 'gi');
-            return text.replace(regex, '<span class="result-match">$1</span>');
-        }
+        return results.sort((a, b) => b.relevance - a.relevance);
+      }
 
-        function displayResults(searchTerm, results) {
-            const resultsDiv = document.getElementById('results');
-            
-            if (results.length === 0) {
-                resultsDiv.innerHTML = `
+      function highlightMatch(text, searchTerm) {
+        const regex = new RegExp(`(${searchTerm})`, "gi");
+        return text.replace(regex, '<span class="result-match">$1</span>');
+      }
+
+      function displayResults(searchTerm, results) {
+        const resultsDiv = document.getElementById("results");
+
+        if (results.length === 0) {
+          resultsDiv.innerHTML = `
                     <div class="no-results">
                         <h3>No results found for "${searchTerm}"</h3>
                         <p>Try searching for: workflow, layout audit, module, dashboard, or maintenance</p>
                     </div>
                 `;
-                return;
-            }
+          return;
+        }
 
-            let html = `
+        let html = `
                 <div class="result-header">
                     <div class="result-count">${results.length} results found for "${searchTerm}"</div>
                 </div>
             `;
 
-            results.forEach(result => {
-                const moduleColor = getModuleColor(result.type);
-                html += `
+        results.forEach((result) => {
+          const moduleColor = getModuleColor(result.type);
+          html += `
                     <div class="result-item" style="border-left-color: ${moduleColor}">
                         <div class="result-title">
                             <span class="module-tag" style="background-color: ${moduleColor}">${result.module}</span>
@@ -615,26 +771,26 @@
                         </div>
                     </div>
                 `;
-            });
+        });
 
-            resultsDiv.innerHTML = html;
-        }
+        resultsDiv.innerHTML = html;
+      }
 
-        function getModuleColor(type) {
-            const colors = {
-                'workflow': '#B46B2F',
-                'workflow-step': '#3A2A1F',
-                'module': '#6E4D2C',
-                'feature': '#C98036',
-                'layout-audit': '#C98036'
-            };
-            return colors[type] || '#B46B2F';
-        }
-
-        // Auto-search for "workflow" on page load
-        window.onload = function() {
-            performSearch();
+      function getModuleColor(type) {
+        const colors = {
+          workflow: "#B46B2F",
+          "workflow-step": "#3A2A1F",
+          module: "#6E4D2C",
+          feature: "#C98036",
+          "layout-audit": "#C98036",
         };
+        return colors[type] || "#B46B2F";
+      }
+
+      // Auto-search for "workflow" on page load
+      window.onload = function () {
+        performSearch();
+      };
     </script>
-</body>
+  </body>
 </html>

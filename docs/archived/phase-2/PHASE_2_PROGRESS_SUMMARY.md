@@ -80,12 +80,14 @@
 ### Business Model
 
 **Pricing**:
+
 - CPC range: $0.05 - $5.00 SAR
 - Average CPC: ~$0.50 SAR
 - Min daily budget: 10 SAR
 - Min bid: 0.05 SAR
 
 **Revenue Projection**:
+
 - 1,000 sellers × $100/day × 12 days/month = $1.2M SAR/month
 - Annual: $14.4M SAR
 - GMV lift: +15-25% ($18-30M SAR/year)
@@ -118,11 +120,11 @@
 2. **Investigation Service** (`services/souq/claims/investigation-service.ts` - 470 lines)
    - Fraud detection engine (0-100 score)
    - Fraud indicators:
-     * Multiple claims in 30 days
-     * High-value claims (>500 SAR)
-     * Inconsistent evidence
-     * Tracking shows delivered (for INR)
-     * Late reporting (>14 days)
+     - Multiple claims in 30 days
+     - High-value claims (>500 SAR)
+     - Inconsistent evidence
+     - Tracking shows delivered (for INR)
+     - Late reporting (>14 days)
    - Evidence quality assessment: Poor/Fair/Good/Excellent
    - Decision recommendation engine
    - Auto-resolution for eligible claims
@@ -175,13 +177,15 @@
    - Legal/compliance team involved
 
 **Fraud Detection**:
+
 - Score calculation based on 6 indicators
-- >70 score → Manual review required
+- > 70 score → Manual review required
 - Buyer claim rate >20% → Flag
 - Seller claim rate <5% → Good history
 - Evidence consistency checks
 
 **Auto-Resolution Criteria**:
+
 - Claim value <50 SAR
 - High confidence recommendation
 - Fraud score <50
@@ -197,6 +201,7 @@
 ### Refund Processing
 
 **Flow**:
+
 1. Admin approves claim → Refund initiated
 2. Call payment gateway API
 3. Retry up to 3 times if failed
@@ -205,6 +210,7 @@
 6. Notify buyer and seller
 
 **Platform Commission**:
+
 - Refund amount: Buyer receives full amount
 - Seller deduction: Full refund amount
 - Platform refunds: 10% commission returned to seller
@@ -213,12 +219,14 @@
 ### Pending (25% remaining)
 
 **UI Components** (not started):
+
 - ClaimForm.tsx - File claim interface
 - ClaimDetails.tsx - Timeline & evidence viewer
 - ClaimList.tsx - Buyer/seller claim history
 - ResponseForm.tsx - Seller response UI
 
 **Management Pages** (not started):
+
 - Buyer claims page - View history, file claims
 - Seller claims page - Respond to claims
 - Admin review panel - Decision making, evidence review
@@ -262,18 +270,21 @@
 ## 🚧 Additional Phase 2 Features - NOT STARTED
 
 ### Account Health Dashboard
+
 - Performance score (0-100)
 - Metrics: ODR, LSR, Return Rate, Response Time
 - Warning thresholds
 - Improvement suggestions
 
 ### Advanced Analytics
+
 - Sales trends
 - Top products
 - Customer demographics
 - Competitive benchmarks
 
 ### Seller Verification
+
 - KYC/AML checks
 - Business license validation
 - Bank account verification
@@ -284,6 +295,7 @@
 ## Overall Progress Metrics
 
 ### Phase 1: Marketplace Core (100% Complete)
+
 - **Phase 1.1**: Inventory System ✅
 - **Phase 1.2**: Fulfillment & Carriers ✅
 - **Phase 1.3**: Returns Center ✅
@@ -292,6 +304,7 @@
 - **Phase 1.6**: Search Enhancement ✅
 
 ### Phase 2: Revenue & Trust (50% Complete)
+
 - **EPIC F**: Advertising System ✅ (100%)
 - **EPIC E**: A-to-Z Claims ✅ (75% - backend complete)
 - **EPIC I**: Settlement Automation ⏳ (0%)
@@ -300,16 +313,19 @@
 ### Cumulative Statistics
 
 **Total Files Created**:
+
 - Phase 1: 67 files
 - Phase 2 (so far): 21 files
 - **Total**: 88 files
 
 **Total Lines of Code**:
+
 - Phase 1: 12,045 LOC
 - Phase 2 (so far): 7,140 LOC
 - **Total**: 19,185 LOC
 
 **Development Time**:
+
 - Phase 1: ~24 hours
 - Phase 2 (so far): ~14 hours
 - **Total**: ~38 hours
@@ -321,6 +337,7 @@
 ## Technical Debt & Improvements
 
 ### High Priority
+
 1. **Payment Gateway Integration**
    - Complete PayTabs integration for refunds
    - Test webhook handlers
@@ -338,6 +355,7 @@
    - 10MB file size limit enforcement
 
 ### Medium Priority
+
 4. **Testing**
    - Unit tests for decision engine
    - Integration tests for API endpoints
@@ -355,6 +373,7 @@
    - Admin runbooks (decision making)
 
 ### Low Priority
+
 7. **Performance Optimization**
    - Cache claim statistics
    - Batch notification sending
@@ -371,12 +390,14 @@
 ## Next Steps
 
 ### Immediate (This Session)
+
 1. ✅ Complete EPIC F (Advertising) - DONE
 2. ✅ Complete EPIC E (Claims) backend - DONE
 3. ⏳ Complete EPIC E UI components
 4. ⏳ Test integration between advertising and claims
 
 ### Short-term (Next Week)
+
 1. EPIC I: Settlement Automation
    - Settlement calculation service
    - Payout processor
@@ -389,12 +410,14 @@
    - Historical tracking
 
 ### Medium-term (This Month)
+
 1. Complete Phase 2 features
 2. Integration testing
 3. Performance optimization
 4. Production deployment preparation
 
 ### Long-term (Next Quarter)
+
 1. Machine learning models
 2. Advanced analytics
 3. International expansion
@@ -405,6 +428,7 @@
 ## Success Criteria
 
 ### EPIC F: Advertising ✅
+
 - [x] Auction completes in <50ms
 - [x] Zero over-spending (atomic budget)
 - [x] API p95 <200ms
@@ -412,13 +436,15 @@
 - [ ] 1-2% average CTR (production metric)
 
 ### EPIC E: Claims ✅
+
 - [x] Auto-resolve <50 SAR claims
 - [x] Fraud detection <50% false positives
 - [x] 48-hour seller response deadline enforced
 - [ ] <72 hours average resolution time (production metric)
-- [ ] >90% auto-resolution rate (production metric)
+- [ ] > 90% auto-resolution rate (production metric)
 
 ### EPIC I: Settlement ⏳
+
 - [ ] Daily settlement runs at 2 AM
 - [ ] 99.9% payout accuracy
 - [ ] <24 hours payout processing
@@ -429,24 +455,28 @@
 ## Deployment Checklist
 
 ### Infrastructure
+
 - [ ] Redis cluster for budget tracking
 - [ ] MongoDB indexes for claims collection
 - [ ] S3 bucket for evidence uploads
 - [ ] CloudFront CDN for media delivery
 
 ### Configuration
+
 - [ ] PayTabs production keys
 - [ ] SADAD/SPAN credentials
 - [ ] Email service (SendGrid)
 - [ ] SMS service (Twilio)
 
 ### Monitoring
+
 - [ ] Sentry error tracking
 - [ ] Datadog APM
 - [ ] CloudWatch alarms
 - [ ] PagerDuty integration
 
 ### Security
+
 - [ ] Rate limiting on APIs
 - [ ] File upload validation
 - [ ] SQL injection prevention

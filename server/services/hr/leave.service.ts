@@ -1,12 +1,24 @@
-import { LeaveRequest, LeaveBalance, type LeaveRequestDoc } from '@/server/models/hr.models';
-import { HrNotificationService } from '@/server/services/hr/hr-notification.service';
+import {
+  LeaveRequest,
+  LeaveBalance,
+  type LeaveRequestDoc,
+} from "@/server/models/hr.models";
+import { HrNotificationService } from "@/server/services/hr/hr-notification.service";
 
 export class LeaveService {
-  static async request(payload: Omit<LeaveRequestDoc, 'createdAt' | 'updatedAt' | 'isDeleted'>) {
+  static async request(
+    payload: Omit<LeaveRequestDoc, "createdAt" | "updatedAt" | "isDeleted">,
+  ) {
     return LeaveRequest.create(payload);
   }
 
-  static async updateStatus(orgId: string, leaveRequestId: string, status: LeaveRequestDoc['status'], approverId: string, comment?: string) {
+  static async updateStatus(
+    orgId: string,
+    leaveRequestId: string,
+    status: LeaveRequestDoc["status"],
+    approverId: string,
+    comment?: string,
+  ) {
     const updated = await LeaveRequest.findOneAndUpdate(
       { orgId, _id: leaveRequestId },
       {
@@ -15,13 +27,13 @@ export class LeaveService {
         $push: {
           approvalHistory: {
             approverId,
-            action: status === 'APPROVED' ? 'APPROVED' : 'REJECTED',
+            action: status === "APPROVED" ? "APPROVED" : "REJECTED",
             comment,
             at: new Date(),
           },
         },
       },
-      { new: true }
+      { new: true },
     ).exec();
 
     if (updated) {
@@ -40,7 +52,13 @@ export class LeaveService {
     return updated;
   }
 
-  static async adjustBalance(orgId: string, employeeId: string, leaveTypeId: string, year: number, diff: { accrued?: number; taken?: number }) {
+  static async adjustBalance(
+    orgId: string,
+    employeeId: string,
+    leaveTypeId: string,
+    year: number,
+    diff: { accrued?: number; taken?: number },
+  ) {
     return LeaveBalance.findOneAndUpdate(
       { orgId, employeeId, leaveTypeId, year },
       {
@@ -49,19 +67,28 @@ export class LeaveService {
           taken: diff.taken ?? 0,
         },
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true },
     ).exec();
   }
 
-  static async list(orgId: string, status?: LeaveRequestDoc['status']) {
+  static async list(orgId: string, status?: LeaveRequestDoc["status"]) {
     const query: Record<string, unknown> = { orgId, isDeleted: false };
     if (status) {
       query.status = status;
     }
     return LeaveRequest.find(query)
       .sort({ startDate: -1 })
-      .populate('employeeId', 'firstName lastName employeeCode')
-      .lean<LeaveRequestDoc & { employeeId: { _id: string; firstName: string; lastName: string; employeeCode: string } }>()
+      .populate("employeeId", "firstName lastName employeeCode")
+      .lean<
+        LeaveRequestDoc & {
+          employeeId: {
+            _id: string;
+            firstName: string;
+            lastName: string;
+            employeeCode: string;
+          };
+        }
+      >()
       .exec();
   }
 }

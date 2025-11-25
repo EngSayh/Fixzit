@@ -36,7 +36,7 @@
 ```javascript
 // Backend now connects to MongoDB
 const database = await connectDB();
-const usersCollection = database.collection('users');
+const usersCollection = database.collection("users");
 const user = await usersCollection.findOne({ email });
 ```
 
@@ -45,9 +45,9 @@ const user = await usersCollection.findOne({ email });
 ```javascript
 // Now generates real QR codes
 const qrDataUrl = await QRCode.toDataURL(base64, {
-  errorCorrectionLevel: 'M',
+  errorCorrectionLevel: "M",
   margin: 2,
-  width: 300
+  width: 300,
 });
 ```
 
@@ -61,12 +61,12 @@ JWT_REFRESH_SECRET=dev-refresh-secret
 
 ## 🎯 **Current Status:**
 
-| Component | Status | Details |
-|-----------|--------|---------|
-| MongoDB Connection | ✅ Working | Connected to local MongoDB |
-| Authentication | ✅ Working | Real database integration |
+| Component          | Status     | Details                      |
+| ------------------ | ---------- | ---------------------------- |
+| MongoDB Connection | ✅ Working | Connected to local MongoDB   |
+| Authentication     | ✅ Working | Real database integration    |
 | QR Code Generation | ✅ Working | Visual QR codes for invoices |
-| Backend Server | ✅ Working | MongoDB driver installed |
+| Backend Server     | ✅ Working | MongoDB driver installed     |
 
 ## 🚀 **Ready to Test:**
 

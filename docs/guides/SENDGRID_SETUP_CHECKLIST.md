@@ -16,11 +16,12 @@
 Go to: https://github.com/EngSayh/Fixzit/settings/secrets/actions
 
 **Required Secrets** (Add these first):
+
 ```
 Name: SENDGRID_API_KEY
 Value: [Your new SendGrid API key]
 
-Name: SENDGRID_FROM_EMAIL  
+Name: SENDGRID_FROM_EMAIL
 Value: noreply@fixzit.co
 
 Name: SENDGRID_FROM_NAME
@@ -28,6 +29,7 @@ Value: Fixzit
 ```
 
 **Recommended Secrets** (Add these for better functionality):
+
 ```
 Name: SENDGRID_REPLY_TO_EMAIL
 Value: support@fixzit.co
@@ -40,6 +42,7 @@ Value: [Get from SendGrid webhook settings]
 ```
 
 **Optional Secrets** (Add if you have these configured in SendGrid):
+
 ```
 Name: SENDGRID_UNSUBSCRIBE_GROUP_ID
 Value: [Your unsubscribe group ID]
@@ -54,12 +57,14 @@ Value: [d-abc123... - if using dynamic templates]
 ### 2. SendGrid Dashboard Configuration (15 minutes)
 
 **A. Verify Sender Identity** (Required)
+
 1. Go to: https://app.sendgrid.com/settings/sender_auth
 2. Choose: **Domain Authentication** (recommended) or **Single Sender**
 3. Follow the wizard to add DNS records
 4. Wait for verification
 
 **B. Setup Event Webhook** (Recommended)
+
 1. Go to: https://app.sendgrid.com/settings/mail_settings
 2. Find **Event Webhook**
 3. Set URL: `https://your-production-domain.com/api/webhooks/sendgrid`
@@ -69,6 +74,7 @@ Value: [d-abc123... - if using dynamic templates]
 7. Test the integration
 
 **C. Create Unsubscribe Group** (Optional but recommended)
+
 1. Go to: https://app.sendgrid.com/suppressions/unsubscribe_groups
 2. Create group: "Transactional Emails" or "System Notifications"
 3. Copy Group ID → Add as `SENDGRID_UNSUBSCRIBE_GROUP_ID` secret
@@ -98,22 +104,24 @@ curl "https://your-domain.com/api/webhooks/sendgrid"
 ### 4. Monitor Delivery (Ongoing)
 
 **SendGrid Activity Feed**:
+
 - https://app.sendgrid.com/email_activity
 
 **MongoDB Email Logs**:
+
 ```javascript
 // Query recent emails
-db.email_logs.find().sort({ sentAt: -1 }).limit(10)
+db.email_logs.find().sort({ sentAt: -1 }).limit(10);
 
 // Check delivery stats
 db.email_logs.aggregate([
   {
     $group: {
       _id: "$status",
-      count: { $sum: 1 }
-    }
-  }
-])
+      count: { $sum: 1 },
+    },
+  },
+]);
 ```
 
 ## 📚 Documentation
@@ -121,6 +129,7 @@ db.email_logs.aggregate([
 **Full Guide**: `/docs/SENDGRID_PRODUCTION_GUIDE.md`
 
 **Key Files**:
+
 - `/lib/sendgrid-config.ts` - Configuration system
 - `/app/api/support/welcome-email/route.ts` - Email sending
 - `/app/api/webhooks/sendgrid/route.ts` - Event tracking
@@ -128,6 +137,7 @@ db.email_logs.aggregate([
 ## 🎯 What Changed
 
 ### New Features
+
 ✅ Multiple sender identities (from + reply-to)
 ✅ Dynamic template support
 ✅ Webhook event tracking
@@ -137,13 +147,16 @@ db.email_logs.aggregate([
 ✅ Real-time delivery tracking
 
 ### Environment Variables
+
 **Old** (still works):
+
 ```
 SENDGRID_API_KEY=xxx
 FROM_EMAIL=noreply@fixzit.co
 ```
 
 **New** (recommended):
+
 ```
 SENDGRID_API_KEY=xxx
 SENDGRID_FROM_EMAIL=noreply@fixzit.co
@@ -154,6 +167,7 @@ SENDGRID_WEBHOOK_VERIFICATION_KEY=xxx
 ```
 
 ### Backward Compatibility
+
 ✅ All existing code still works
 ✅ No breaking changes
 ✅ Graceful fallbacks for missing config
@@ -168,7 +182,7 @@ SENDGRID_WEBHOOK_VERIFICATION_KEY=xxx
    - Production: Always verify signatures
    - Development: Can be disabled for testing
 
-3. **Rate Limits**: 
+3. **Rate Limits**:
    - Trial: 100 emails/day
    - Pro: Unlimited (with rate limits per second)
    - Monitor your usage in SendGrid dashboard

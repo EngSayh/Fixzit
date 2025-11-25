@@ -3,8 +3,8 @@
  * Analyze all comments in the codebase
  */
 
-const fs = require('fs');
-const { execSync } = require('child_process');
+const fs = require("fs");
+const { execSync } = require("child_process");
 
 // Get all TS/JS files
 const files = execSync(
@@ -13,8 +13,11 @@ const files = execSync(
    -not -path "*/.next/*" \
    -not -path "*/dist/*" \
    -not -path "*/build/*"`,
-  { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 }
-).trim().split('\n').filter(Boolean);
+  { encoding: "utf8", maxBuffer: 50 * 1024 * 1024 },
+)
+  .trim()
+  .split("\n")
+  .filter(Boolean);
 
 console.log(`Analyzing ${files.length} files...`);
 
@@ -25,23 +28,23 @@ const comments = {
   XXX: [],
   BUG: [],
   NOTE: [],
-  other: []
+  other: [],
 };
 
 let totalComments = 0;
 
-files.forEach(file => {
+files.forEach((file) => {
   try {
-    const content = fs.readFileSync(file, 'utf8');
-    const lines = content.split('\n');
-    
+    const content = fs.readFileSync(file, "utf8");
+    const lines = content.split("\n");
+
     lines.forEach((line, index) => {
       // Match single-line comments
       const singleMatch = line.match(/\/\/\s*(.+)/);
       if (singleMatch) {
         totalComments++;
         const comment = singleMatch[1].trim();
-        
+
         // Categorize
         if (comment.match(/^TODO/i)) {
           comments.TODO.push({ file, line: index + 1, text: comment });
@@ -67,14 +70,14 @@ files.forEach(file => {
 });
 
 // Report
-console.log('\n========================================');
-console.log('COMMENT ANALYSIS REPORT');
-console.log('========================================\n');
+console.log("\n========================================");
+console.log("COMMENT ANALYSIS REPORT");
+console.log("========================================\n");
 
 console.log(`Total Comments: ${totalComments}`);
 console.log(`Files Analyzed: ${files.length}\n`);
 
-console.log('Breakdown by Type:');
+console.log("Breakdown by Type:");
 console.log(`  TODO:   ${comments.TODO.length}`);
 console.log(`  FIXME:  ${comments.FIXME.length}`);
 console.log(`  HACK:   ${comments.HACK.length}`);
@@ -84,9 +87,16 @@ console.log(`  NOTE:   ${comments.NOTE.length}`);
 console.log(`  Other:  ${comments.other.length}\n`);
 
 // Show samples
-const actionable = comments.TODO.length + comments.FIXME.length + comments.HACK.length + comments.XXX.length + comments.BUG.length;
+const actionable =
+  comments.TODO.length +
+  comments.FIXME.length +
+  comments.HACK.length +
+  comments.XXX.length +
+  comments.BUG.length;
 console.log(`Actionable Comments: ${actionable}`);
-console.log(`Documentation Comments: ${comments.NOTE.length + comments.other.length}\n`);
+console.log(
+  `Documentation Comments: ${comments.NOTE.length + comments.other.length}\n`,
+);
 
 // Save detailed report
 const report = {
@@ -94,7 +104,7 @@ const report = {
     totalComments,
     filesAnalyzed: files.length,
     actionable,
-    documentation: comments.NOTE.length + comments.other.length
+    documentation: comments.NOTE.length + comments.other.length,
   },
   breakdown: {
     TODO: comments.TODO.length,
@@ -103,29 +113,31 @@ const report = {
     XXX: comments.XXX.length,
     BUG: comments.BUG.length,
     NOTE: comments.NOTE.length,
-    other: comments.other.length
+    other: comments.other.length,
   },
-  details: comments
+  details: comments,
 };
 
-fs.writeFileSync('comment-analysis.json', JSON.stringify(report, null, 2));
-console.log('✅ Detailed report saved to: comment-analysis.json\n');
+fs.writeFileSync("comment-analysis.json", JSON.stringify(report, null, 2));
+console.log("✅ Detailed report saved to: comment-analysis.json\n");
 
 // Show top actionable items
 if (actionable > 0) {
-  console.log('Top 10 Actionable Items:');
-  console.log('------------------------');
-  
+  console.log("Top 10 Actionable Items:");
+  console.log("------------------------");
+
   const actionableItems = [
     ...comments.TODO,
     ...comments.FIXME,
     ...comments.HACK,
     ...comments.XXX,
-    ...comments.BUG
+    ...comments.BUG,
   ].slice(0, 10);
-  
+
   actionableItems.forEach((item, i) => {
     console.log(`${i + 1}. ${item.file}:${item.line}`);
-    console.log(`   ${item.text.substring(0, 80)}${item.text.length > 80 ? '...' : ''}`);
+    console.log(
+      `   ${item.text.substring(0, 80)}${item.text.length > 80 ? "..." : ""}`,
+    );
   });
 }

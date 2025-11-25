@@ -23,7 +23,7 @@ openssl rand -hex 32
 #### Update Production/Deployment
 
 - [ ] **AWS Secrets Manager**: Update JWT_SECRET with new value
-- [ ] **GitHub Actions Secrets**: Update repository secret JWT_SECRET  
+- [ ] **GitHub Actions Secrets**: Update repository secret JWT_SECRET
 - [ ] **Environment Variables**: Update all deployment environments
 - [ ] **Docker/K8s**: Update secret mounts and environment configs
 - [ ] **CI/CD Pipeline**: Update secret injection mechanisms
@@ -74,7 +74,7 @@ git push origin --force --tags
 
 #### Immediate
 
-- [x] **Gitignore Updated**: .env.* already in .gitignore
+- [x] **Gitignore Updated**: .env.\* already in .gitignore
 - [ ] **Pre-commit Hooks**: Install detect-secrets or similar
 - [ ] **Secret Scanning**: Enable GitHub secret scanning alerts
 
@@ -87,7 +87,7 @@ repos:
     rev: v1.4.0
     hooks:
       - id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
+        args: ["--baseline", ".secrets.baseline"]
 ```
 
 ### 🔍 6. INCIDENT TIMELINE
@@ -100,7 +100,7 @@ repos:
 ### ⚡ 7. EMERGENCY CONTACTS
 
 - [ ] **Security Team**: Notify of credential rotation
-- [ ] **Operations Team**: Coordinate deployment updates  
+- [ ] **Operations Team**: Coordinate deployment updates
 - [ ] **DevOps Team**: Update CI/CD secret management
 - [ ] **Compliance**: If applicable, notify compliance team
 

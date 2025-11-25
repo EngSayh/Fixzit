@@ -1,4 +1,5 @@
 # PENDING TASKS - 100% COMPLETION MISSION
+
 **Date**: 2025-11-12  
 **Mission**: Fix ALL issues, NO EXCEPTIONS  
 **User Requirement**: 100% perfect system
@@ -8,29 +9,30 @@
 ## 📊 EXACT ISSUE COUNTS
 
 ### ✅ COMPLETED CATEGORIES
-| Category | Count | Status | Notes |
-|----------|-------|--------|-------|
-| Implicit 'any' types | 0 | ✅ 100% | TypeScript compiler reports 0 errors |
-| Unhandled promises | 1 | ⚠️ 1 remaining | Need to fix last file |
-| parseInt without radix | 34 | ⚠️ 25 remaining | Fixed 9/34 so far |
+
+| Category               | Count | Status          | Notes                                |
+| ---------------------- | ----- | --------------- | ------------------------------------ |
+| Implicit 'any' types   | 0     | ✅ 100%         | TypeScript compiler reports 0 errors |
+| Unhandled promises     | 1     | ⚠️ 1 remaining  | Need to fix last file                |
+| parseInt without radix | 34    | ⚠️ 25 remaining | Fixed 9/34 so far                    |
 
 ### 🔴 PENDING CATEGORIES (EXACT COUNTS)
 
-| # | Category | Exact Count | Priority | Estimated Time |
-|---|----------|-------------|----------|----------------|
-| 1 | **Explicit 'any' types** | **10** | 🔥 HIGH | 30 min |
-| 2 | **console.log statements** | **36** | 🔥 HIGH | 1 hour |
-| 3 | **console.error statements** | **156** | 🟧 MEDIUM | 3 hours |
-| 4 | **console.warn statements** | **33** | 🟧 MEDIUM | 1 hour |
-| 5 | **TODO comments** | **34** | 🔥 HIGH | 2 hours |
-| 6 | **FIXME comments** | **0** | ✅ DONE | - |
-| 7 | **parseInt without radix** | **25** | 🔥 HIGH | 45 min |
-| 8 | **new Date() in JSX** | **47** | 🟧 MEDIUM | 2 hours |
-| 9 | **Date.now() in JSX** | **20** | 🟧 MEDIUM | 1 hour |
-| 10 | **Dynamic i18n keys** | **112** | 🟨 LOW | 4 hours |
-| 11 | **Duplicate files** | **11** | 🔥 HIGH | 1 hour |
-| 12 | **ESLint errors** | **1** | 🔥 HIGH | 10 min |
-| 13 | **Missing docstrings** | **669** | 🟩 LOW | 10+ hours |
+| #   | Category                     | Exact Count | Priority  | Estimated Time |
+| --- | ---------------------------- | ----------- | --------- | -------------- |
+| 1   | **Explicit 'any' types**     | **10**      | 🔥 HIGH   | 30 min         |
+| 2   | **console.log statements**   | **36**      | 🔥 HIGH   | 1 hour         |
+| 3   | **console.error statements** | **156**     | 🟧 MEDIUM | 3 hours        |
+| 4   | **console.warn statements**  | **33**      | 🟧 MEDIUM | 1 hour         |
+| 5   | **TODO comments**            | **34**      | 🔥 HIGH   | 2 hours        |
+| 6   | **FIXME comments**           | **0**       | ✅ DONE   | -              |
+| 7   | **parseInt without radix**   | **25**      | 🔥 HIGH   | 45 min         |
+| 8   | **new Date() in JSX**        | **47**      | 🟧 MEDIUM | 2 hours        |
+| 9   | **Date.now() in JSX**        | **20**      | 🟧 MEDIUM | 1 hour         |
+| 10  | **Dynamic i18n keys**        | **112**     | 🟨 LOW    | 4 hours        |
+| 11  | **Duplicate files**          | **11**      | 🔥 HIGH   | 1 hour         |
+| 12  | **ESLint errors**            | **1**       | 🔥 HIGH   | 10 min         |
+| 13  | **Missing docstrings**       | **669**     | 🟩 LOW    | 10+ hours      |
 
 ---
 
@@ -74,55 +76,70 @@ GRAND TOTAL: 1,155 ISSUES
 ### 🔥 PHASE 1: CRITICAL ISSUES (118 issues - 3 hours)
 
 #### Task 1.1: Fix Explicit 'any' Types (10 files) ⏱️ 30 min
+
 ```bash
 grep -rn ": any" app/ lib/ server/ components/ --include="*.ts" --include="*.tsx" | grep -v node_modules
 ```
+
 **Action**: Replace all `: any` with proper interfaces/types
 **Verification**: `pnpm typecheck` must pass with 0 errors
 
 #### Task 1.2: Replace console.log (36 files) ⏱️ 1 hour
+
 ```bash
 grep -r "console\.log" app/ server/ lib/ hooks/ components/ --include="*.ts" --include="*.tsx" | grep -v node_modules
 ```
+
 **Action**: Replace with `logger.debug()` from `@/lib/logger`
 **Verification**: `grep -r "console\.log" should return 0 results
 
 #### Task 1.3: Resolve TODO Comments (34 instances) ⏱️ 2 hours
+
 ```bash
 grep -r "TODO" app/ server/ lib/ hooks/ components/ --include="*.ts" --include="*.tsx" | grep -v node_modules
 ```
+
 **Action**: For each TODO:
+
 - Fix immediately if trivial
 - Create GitHub issue if needs discussion
 - Remove if obsolete
-**Verification**: `grep -r "TODO"` should return 0 results
+  **Verification**: `grep -r "TODO"` should return 0 results
 
 #### Task 1.4: Fix parseInt Without Radix (25 remaining) ⏱️ 45 min
+
 ```bash
 grep -r "parseInt([^,)]*)" app/ lib/ server/ components/ --include="*.ts" --include="*.tsx" | grep -v "parseInt([^,)]*, 10)" | grep -v node_modules
 ```
+
 **Action**: Add `, 10` to all `parseInt()` calls
 **Verification**: Pattern search returns 0 results
 
 #### Task 1.5: Remove Duplicate Files (11 files) ⏱️ 1 hour
+
 ```bash
 find app/ lib/ server/ components/ -type f \( -name "*.ts" -o -name "*.tsx" \) | xargs -I {} basename {} | sort | uniq -d
 ```
-**Action**: 
+
+**Action**:
+
 1. Identify canonical location for each duplicate
 2. Update all imports
 3. Delete duplicate
 4. Test
-**Verification**: No duplicate filenames exist
+   **Verification**: No duplicate filenames exist
 
 #### Task 1.6: Fix ESLint Error (1 error) ⏱️ 10 min
+
 ```bash
 pnpm lint
 ```
+
 **Action**: Fix the specific ESLint error
 **Verification**: `pnpm lint` returns 0 errors
 
 #### Task 1.7: Fix Unhandled Promise (1 file) ⏱️ 10 min
+
 **Action**: Add `.catch()` handler to remaining file
 **Verification**: Script returns 0 unhandled promises
 
@@ -131,30 +148,38 @@ pnpm lint
 ### 🟧 PHASE 2: MEDIUM ISSUES (256 issues - 7 hours)
 
 #### Task 2.1: Replace console.error (156 files) ⏱️ 3 hours
+
 ```bash
 grep -r "console\.error" app/ server/ lib/ hooks/ components/ --include="*.ts" --include="*.tsx" | grep -v node_modules
 ```
+
 **Action**: Replace with `logger.error()` from `@/lib/logger`
 **Verification**: Pattern search returns 0 results
 
 #### Task 2.2: Replace console.warn (33 files) ⏱️ 1 hour
+
 ```bash
 grep -r "console\.warn" app/ server/ lib/ hooks/ components/ --include="*.ts" --include="*.tsx" | grep -v node_modules
 ```
+
 **Action**: Replace with `logger.warn()` from `@/lib/logger`
 **Verification**: Pattern search returns 0 results
 
 #### Task 2.3: Fix new Date() in JSX (47 files) ⏱️ 2 hours
+
 ```bash
 grep -r "new Date()" app/ components/ --include="*.tsx" | grep -v node_modules
 ```
+
 **Action**: Wrap in `useEffect` or use `useSafeDate` hook
 **Verification**: Pattern search returns 0 results
 
 #### Task 2.4: Fix Date.now() in JSX (20 files) ⏱️ 1 hour
+
 ```bash
 grep -r "Date\.now()" app/ components/ --include="*.tsx" | grep -v node_modules
 ```
+
 **Action**: Wrap in `useEffect` or use `useSafeDate` hook
 **Verification**: Pattern search returns 0 results
 
@@ -163,16 +188,20 @@ grep -r "Date\.now()" app/ components/ --include="*.tsx" | grep -v node_modules
 ### 🟨 PHASE 3: LOW PRIORITY (893 issues - 14+ hours)
 
 #### Task 3.1: Fix Dynamic i18n Keys (112 files) ⏱️ 4 hours
+
 ```bash
 grep -r "t(\`" app/ components/ --include="*.ts" --include="*.tsx" | grep -v node_modules
 ```
+
 **Action**: Convert template literals to static keys or add fallback pattern
 **Verification**: Translation audit passes with 0 UNSAFE_DYNAMIC warnings
 
 #### Task 3.2: Add Docstrings (669 functions) ⏱️ 10+ hours
+
 ```bash
 grep -r "^export function\|^export async function" app/ lib/ server/ --include="*.ts" --include="*.tsx"
 ```
+
 **Action**: Add JSDoc comments to all public functions
 **Target**: 80% docstring coverage minimum
 **Verification**: CodeRabbit docstring coverage check passes
@@ -182,15 +211,19 @@ grep -r "^export function\|^export async function" app/ lib/ server/ --include="
 ## 🗂️ FILE ORGANIZATION TASKS
 
 ### Task: Organize Files Into Correct Folders
+
 **Before starting fixes, organize codebase structure**
 
 #### 1. Verify Current Structure
+
 ```bash
 tree -L 2 -d app/ lib/ server/ components/
 ```
 
 #### 2. Move Files to Canonical Locations
+
 Based on Governance V5 standards:
+
 - `app/` → Pages and route handlers
 - `lib/` → Shared utilities and helpers
 - `server/` → Server-only code (models, middleware, services)
@@ -200,6 +233,7 @@ Based on Governance V5 standards:
 - `utils/` → Pure utility functions
 
 #### 3. Update All Imports After Moving Files
+
 ```bash
 # Find all import statements that need updating
 grep -r "from '@/" app/ lib/ server/ components/ --include="*.ts" --include="*.tsx"
@@ -210,6 +244,7 @@ grep -r "from '@/" app/ lib/ server/ components/ --include="*.ts" --include="*.t
 ## 🧠 MEMORY OPTIMIZATION TASKS
 
 ### Before Each Phase:
+
 ```bash
 # 1. Stop dev server
 pkill -f "pnpm dev"
@@ -228,6 +263,7 @@ ps aux | grep "node\|typescript" | awk '{print $2, $11, $6/1024 "MB"}'
 ```
 
 ### After Each Phase:
+
 ```bash
 # 1. Run garbage collection
 node --expose-gc -e "global.gc()"
@@ -253,6 +289,7 @@ df -h
 ### 2025-11-12 - Session 1 (Current)
 
 **Completed** ✅:
+
 - [x] Comprehensive scan completed (exact counts obtained)
 - [x] Fixed implicit 'any' types in 9 files (Finance + API routes)
 - [x] Fixed 1 unhandled promise in server/copilot/tools.ts
@@ -261,10 +298,12 @@ df -h
 - [x] Created 100% completion plan
 
 **In Progress** 🔄:
+
 - [ ] Task 1.1: Fix 10 explicit 'any' types
 - [ ] Task 1.2: Replace 36 console.log statements
 
 **Commits Made**: 6
+
 - `c4545a9f2` - fix(types): Fix implicit 'any' in 4 finance module files
 - `a9b3703a9` - fix(types): Add type annotations to 5 API route files
 - `ee14fd158` - fix(promises): Add error handling to WorkOrder.find()
@@ -292,6 +331,7 @@ df -h
 ## ✅ VERIFICATION GATES
 
 After completing each phase, run:
+
 ```bash
 # 1. TypeScript
 pnpm typecheck

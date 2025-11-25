@@ -72,13 +72,13 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const result = schema.safeParse(body);
-  
+
   if (!result.success) {
-    return NextResponse.json({ 
-      error: result.error 
+    return NextResponse.json({
+      error: result.error
     }, { status: 400 });
   }
-  
+
   return NextResponse.json({ data: result.data });
 }
 '@

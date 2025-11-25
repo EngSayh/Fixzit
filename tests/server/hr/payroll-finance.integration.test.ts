@@ -1,16 +1,16 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Types } from 'mongoose';
-import { PayrollRun } from '@/server/models/hr.models';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { Types } from "mongoose";
+import { PayrollRun } from "@/server/models/hr.models";
 
 const findOneMock = vi.hoisted(() => vi.fn());
-vi.mock('@/server/models/finance/ChartAccount', () => ({
+vi.mock("@/server/models/finance/ChartAccount", () => ({
   __esModule: true,
   default: { findOne: findOneMock },
 }));
 
 const createJournalMock = vi.hoisted(() => vi.fn());
 const postJournalMock = vi.hoisted(() => vi.fn());
-vi.mock('@/server/services/finance/postingService', () => ({
+vi.mock("@/server/services/finance/postingService", () => ({
   __esModule: true,
   default: {
     createJournal: createJournalMock,
@@ -18,9 +18,9 @@ vi.mock('@/server/services/finance/postingService', () => ({
   },
 }));
 
-import { PayrollFinanceIntegration } from '@/server/services/hr/payroll-finance.integration';
+import { PayrollFinanceIntegration } from "@/server/services/hr/payroll-finance.integration";
 
-describe('PayrollFinanceIntegration', () => {
+describe("PayrollFinanceIntegration", () => {
   const orgId = new Types.ObjectId();
 
   beforeEach(() => {
@@ -30,40 +30,65 @@ describe('PayrollFinanceIntegration', () => {
     postJournalMock.mockReset();
   });
 
-  it('creates a balanced journal entry and marks the payroll run as posted', async () => {
+  it("creates a balanced journal entry and marks the payroll run as posted", async () => {
     const accounts = {
-      '5200': { _id: new Types.ObjectId(), accountCode: '5200', accountType: 'EXPENSE' },
-      '2100': { _id: new Types.ObjectId(), accountCode: '2100', accountType: 'LIABILITY' },
-      '2101': { _id: new Types.ObjectId(), accountCode: '2101', accountType: 'LIABILITY' },
-      '2105': { _id: new Types.ObjectId(), accountCode: '2105', accountType: 'LIABILITY' },
-      '1010': { _id: new Types.ObjectId(), accountCode: '1010', accountType: 'ASSET' },
+      "5200": {
+        _id: new Types.ObjectId(),
+        accountCode: "5200",
+        accountType: "EXPENSE",
+      },
+      "2100": {
+        _id: new Types.ObjectId(),
+        accountCode: "2100",
+        accountType: "LIABILITY",
+      },
+      "2101": {
+        _id: new Types.ObjectId(),
+        accountCode: "2101",
+        accountType: "LIABILITY",
+      },
+      "2105": {
+        _id: new Types.ObjectId(),
+        accountCode: "2105",
+        accountType: "LIABILITY",
+      },
+      "1010": {
+        _id: new Types.ObjectId(),
+        accountCode: "1010",
+        accountType: "ASSET",
+      },
     };
 
-    findOneMock.mockImplementation(async ({ accountCode }: { accountCode: keyof typeof accounts }) => accounts[accountCode]);
+    findOneMock.mockImplementation(
+      async ({ accountCode }: { accountCode: keyof typeof accounts }) =>
+        accounts[accountCode],
+    );
 
     const journalId = new Types.ObjectId();
     createJournalMock.mockResolvedValue({
       _id: journalId,
-      journalNumber: 'JE-2025-001',
+      journalNumber: "JE-2025-001",
     });
     postJournalMock.mockResolvedValue(undefined);
 
     const updateExecMock = vi.fn().mockResolvedValue({});
-    const updateOneSpy = vi.spyOn(PayrollRun, 'updateOne').mockReturnValue({ exec: updateExecMock } as any);
+    const updateOneSpy = vi
+      .spyOn(PayrollRun, "updateOne")
+      .mockReturnValue({ exec: updateExecMock } as any);
 
     const run = {
       _id: new Types.ObjectId(),
       orgId,
-      name: 'Payroll Oct-2025',
-      periodStart: new Date('2025-10-01'),
-      periodEnd: new Date('2025-10-31'),
-      status: 'LOCKED',
+      name: "Payroll Oct-2025",
+      periodStart: new Date("2025-10-01"),
+      periodEnd: new Date("2025-10-31"),
+      status: "LOCKED",
       financePosted: false,
       lines: [
         {
           employeeId: new Types.ObjectId(),
-          employeeCode: 'EMP-1',
-          employeeName: 'Alice',
+          employeeCode: "EMP-1",
+          employeeName: "Alice",
           baseSalary: 1000,
           allowances: 200,
           overtimeAmount: 100,
@@ -94,11 +119,31 @@ describe('PayrollFinanceIntegration', () => {
     expect(createJournalMock).toHaveBeenCalledTimes(1);
     const journalInput = createJournalMock.mock.calls[0][0];
     expect(journalInput.lines).toEqual([
-      expect.objectContaining({ accountId: accounts['5200']._id, debit: 1335, credit: 0 }),
-      expect.objectContaining({ accountId: accounts['2100']._id, debit: 0, credit: 30 }),
-      expect.objectContaining({ accountId: accounts['2101']._id, debit: 0, credit: 35 }),
-      expect.objectContaining({ accountId: accounts['2105']._id, debit: 0, credit: 70 }),
-      expect.objectContaining({ accountId: accounts['1010']._id, debit: 0, credit: 1200 }),
+      expect.objectContaining({
+        accountId: accounts["5200"]._id,
+        debit: 1335,
+        credit: 0,
+      }),
+      expect.objectContaining({
+        accountId: accounts["2100"]._id,
+        debit: 0,
+        credit: 30,
+      }),
+      expect.objectContaining({
+        accountId: accounts["2101"]._id,
+        debit: 0,
+        credit: 35,
+      }),
+      expect.objectContaining({
+        accountId: accounts["2105"]._id,
+        debit: 0,
+        credit: 70,
+      }),
+      expect.objectContaining({
+        accountId: accounts["1010"]._id,
+        debit: 0,
+        credit: 1200,
+      }),
     ]);
 
     expect(postJournalMock).toHaveBeenCalledWith(journalId);
@@ -107,13 +152,13 @@ describe('PayrollFinanceIntegration', () => {
       expect.objectContaining({
         financePosted: true,
         financeJournalId: journalId,
-        financeReference: 'JE-2025-001',
+        financeReference: "JE-2025-001",
       }),
     );
     expect(updateExecMock).toHaveBeenCalled();
   });
 
-  it('skips posting when payroll run is already marked as posted', async () => {
+  it("skips posting when payroll run is already marked as posted", async () => {
     const run = {
       _id: new Types.ObjectId(),
       orgId,

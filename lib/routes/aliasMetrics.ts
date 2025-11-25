@@ -1,6 +1,6 @@
-import fg from 'fast-glob';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
-import path from 'path';
+import fg from "fast-glob";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import path from "path";
 
 export type AliasRecord = {
   module: string;
@@ -62,7 +62,7 @@ export type RouteAliasMetrics = {
 };
 
 const aliasPattern = /export\s+\{\s*default\s*\}\s+from\s+['"]([^'"]+)['"]/;
-const suffixes = ['.tsx', '.ts', '.jsx', '.js', '.mdx'];
+const suffixes = [".tsx", ".ts", ".jsx", ".js", ".mdx"];
 
 const projectRoot = process.cwd();
 const DUP_HISTORY_ENV = process.env.ROUTE_DUP_HISTORY_PATH;
@@ -72,7 +72,9 @@ const DUP_HISTORY_ENV = process.env.ROUTE_DUP_HISTORY_PATH;
  * to a physical file path (relative to the project root).
  */
 function resolveImportTarget(target: string): string | null {
-  const withoutAlias = target.startsWith('@/') ? target.slice(2) : target.replace(/^~\//, '');
+  const withoutAlias = target.startsWith("@/")
+    ? target.slice(2)
+    : target.replace(/^~\//, "");
 
   const hasExtension = /\.[a-z]+$/i.test(withoutAlias);
   if (hasExtension) {
@@ -94,16 +96,16 @@ function resolveImportTarget(target: string): string | null {
  * Collect every alias file that follows the `export { default } from '...';` pattern
  * within the `/app/fm` subtree (configurable via baseDir).
  */
-export function collectAliasRecords(baseDir = 'app/fm'): AliasRecord[] {
+export function collectAliasRecords(baseDir = "app/fm"): AliasRecord[] {
   const files = fg.sync(`${baseDir}/**/page.tsx`, { cwd: projectRoot });
   const records: AliasRecord[] = [];
 
   for (const filePath of files) {
-    const contents = readFileSync(path.join(projectRoot, filePath), 'utf8');
+    const contents = readFileSync(path.join(projectRoot, filePath), "utf8");
     const match = aliasPattern.exec(contents);
     if (!match) continue;
 
-    const moduleName = filePath.split(/[/\\]/)[2] ?? 'unknown';
+    const moduleName = filePath.split(/[/\\]/)[2] ?? "unknown";
     const resolvedPath = resolveImportTarget(match[1]);
 
     records.push({
@@ -202,7 +204,9 @@ function countUnresolved(records: AliasRecord[]): number {
   return records.filter((record) => !record.targetExists).length;
 }
 
-export function generateRouteAliasMetrics(baseDir = 'app/fm'): RouteAliasMetrics {
+export function generateRouteAliasMetrics(
+  baseDir = "app/fm",
+): RouteAliasMetrics {
   const records = collectAliasRecords(baseDir);
   const modules = summarizeModules(records);
   const reuse = summarizeReuse(records);
@@ -226,20 +230,25 @@ export function generateRouteAliasMetrics(baseDir = 'app/fm'): RouteAliasMetrics
   };
 }
 
-export function readRouteAliasMetrics(jsonPath: string): RouteAliasMetrics | null {
+export function readRouteAliasMetrics(
+  jsonPath: string,
+): RouteAliasMetrics | null {
   if (!existsSync(jsonPath)) {
     return null;
   }
 
   try {
-    const contents = readFileSync(jsonPath, 'utf8');
+    const contents = readFileSync(jsonPath, "utf8");
     return JSON.parse(contents) as RouteAliasMetrics;
   } catch {
     return null;
   }
 }
 
-export function saveRouteAliasMetrics(jsonPath: string, metrics: RouteAliasMetrics) {
+export function saveRouteAliasMetrics(
+  jsonPath: string,
+  metrics: RouteAliasMetrics,
+) {
   mkdirSync(path.dirname(jsonPath), { recursive: true });
   writeFileSync(jsonPath, JSON.stringify(metrics, null, 2));
 }
@@ -248,13 +257,14 @@ type DuplicateHistoryMap = Record<string, DuplicateHistoryEntry>;
 
 function readDuplicateHistory(): DuplicateHistoryMap {
   const historyPath =
-    DUP_HISTORY_ENV || path.join(projectRoot, '_artifacts/route-dup-history.json');
+    DUP_HISTORY_ENV ||
+    path.join(projectRoot, "_artifacts/route-dup-history.json");
   if (!existsSync(historyPath)) {
     return {};
   }
 
   try {
-    const raw = readFileSync(historyPath, 'utf8');
+    const raw = readFileSync(historyPath, "utf8");
     return JSON.parse(raw) as DuplicateHistoryMap;
   } catch {
     return {};
@@ -263,11 +273,14 @@ function readDuplicateHistory(): DuplicateHistoryMap {
 
 function saveDuplicateHistory(history: DuplicateHistoryMap) {
   const historyPath =
-    DUP_HISTORY_ENV || path.join(projectRoot, '_artifacts/route-dup-history.json');
+    DUP_HISTORY_ENV ||
+    path.join(projectRoot, "_artifacts/route-dup-history.json");
   writeFileSync(historyPath, JSON.stringify(history, null, 2));
 }
 
-function calculateAverageResolutionDays(history: DuplicateHistoryEntry[]): number | null {
+function calculateAverageResolutionDays(
+  history: DuplicateHistoryEntry[],
+): number | null {
   const resolved = history.filter((entry) => !entry.active && entry.resolvedAt);
   if (resolved.length === 0) return null;
 
@@ -288,7 +301,7 @@ type EnrichOptions = {
 
 export function enrichRouteAliasMetrics(
   metrics: RouteAliasMetrics,
-  options: EnrichOptions = {}
+  options: EnrichOptions = {},
 ): RouteAliasMetrics {
   const existingHistory = readDuplicateHistory();
   const updatedHistory: DuplicateHistoryMap = { ...existingHistory };
@@ -326,8 +339,8 @@ export function enrichRouteAliasMetrics(
     }
   }
 
-  const historyEntries = Object.values(updatedHistory).sort((a, b) =>
-    new Date(a.firstSeen).getTime() - new Date(b.firstSeen).getTime()
+  const historyEntries = Object.values(updatedHistory).sort(
+    (a, b) => new Date(a.firstSeen).getTime() - new Date(b.firstSeen).getTime(),
   );
   const averageResolutionDays = calculateAverageResolutionDays(historyEntries);
 

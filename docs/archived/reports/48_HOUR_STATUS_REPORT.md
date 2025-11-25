@@ -64,7 +64,7 @@
 7. `server/security/idempotency.spec.ts` - 10 conversions + 1 inline
 8. `tests/unit/components/ErrorBoundary.test.tsx` - 12 conversions + 4 inline
 
-**Total Conversions:** 83+ jest.*→ vi.*  
+**Total Conversions:** 83+ jest._→ vi._  
 **Inline Fixes:** 17 jest.fn() → vi.fn()  
 **Documentation:**
 
@@ -135,34 +135,34 @@
 
 ### Code Changes
 
-| Metric | Count |
-|--------|-------|
-| Commits | 105 |
-| Files Changed | 200+ |
-| Insertions | 5,000+ |
-| Deletions | 1,500+ |
-| Net Change | +3,500 lines |
+| Metric        | Count        |
+| ------------- | ------------ |
+| Commits       | 105          |
+| Files Changed | 200+         |
+| Insertions    | 5,000+       |
+| Deletions     | 1,500+       |
+| Net Change    | +3,500 lines |
 
 ### Test Framework Migration
 
-| Category | Before | After | Status |
-|----------|--------|-------|--------|
-| jest.Mock type assertions | 31+ | 0 | ✅ Complete |
-| vi.importMock deprecated | 6 | 0 | ✅ Complete |
-| Hybrid jest/vitest files | 8 | 0 | ✅ Complete |
-| jest.* runtime calls | 83+ | 0 | ✅ Complete |
-| Missing vitest imports | 18 | 0 | ✅ Complete |
-| Import/usage mismatches | 3 | 0 | ✅ Complete |
+| Category                  | Before | After | Status      |
+| ------------------------- | ------ | ----- | ----------- |
+| jest.Mock type assertions | 31+    | 0     | ✅ Complete |
+| vi.importMock deprecated  | 6      | 0     | ✅ Complete |
+| Hybrid jest/vitest files  | 8      | 0     | ✅ Complete |
+| jest.\* runtime calls     | 83+    | 0     | ✅ Complete |
+| Missing vitest imports    | 18     | 0     | ✅ Complete |
+| Import/usage mismatches   | 3      | 0     | ✅ Complete |
 
 ### Code Quality
 
-| Issue | Before | After | Status |
-|-------|--------|-------|--------|
-| Compile errors | 66+ | 0 | ✅ Fixed |
-| Hardcoded tenant defaults | 1 | 0 | ✅ Fixed |
-| Non-portable scripts | 1 | 0 | ✅ Fixed |
-| Documentation inaccuracies | 3 | 0 | ✅ Fixed |
-| Deprecated API usage | 8 | 0 | ✅ Fixed |
+| Issue                      | Before | After | Status   |
+| -------------------------- | ------ | ----- | -------- |
+| Compile errors             | 66+    | 0     | ✅ Fixed |
+| Hardcoded tenant defaults  | 1      | 0     | ✅ Fixed |
+| Non-portable scripts       | 1      | 0     | ✅ Fixed |
+| Documentation inaccuracies | 3      | 0     | ✅ Fixed |
+| Deprecated API usage       | 8      | 0     | ✅ Fixed |
 
 ---
 

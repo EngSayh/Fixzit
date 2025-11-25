@@ -90,7 +90,7 @@ test.describe('Database E2E Tests', () => {
     expect(Array.isArray(data.items)).toBe(true);
     
     // Should find our test property (or at least not error)
-    const foundProperty = data.items?.find((p) => p.code === 'E2E-TEST-001');
+    const foundProperty = data.items.find((p: { code?: string; name?: string; tenantId?: string }) => p.code === 'E2E-TEST-001');
     if (foundProperty) {
       expect(foundProperty.name).toBe('E2E Test Property');
       expect(foundProperty.tenantId).toBe(testOrgId);
@@ -159,8 +159,8 @@ test.describe('Database E2E Tests', () => {
     // Note: This test may need to be adapted based on your auth implementation
     expect(response.status()).toBe(200);
     
-    const data = (await response.json()) as { items: Array<{ code?: string }> };
-    const codes = data.items.map((item) => item.code);
+    const data = await response.json();
+    const codes = data.items.map((item: { code?: string }) => item.code);
     
     // In a proper multi-tenant setup, we shouldn't see both properties in one response
     const hasOrg1 = codes.includes('ORG1-PROP');

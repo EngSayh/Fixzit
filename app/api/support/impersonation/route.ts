@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { Organization } from '@/server/models/Organization';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Organization } from "@/server/models/Organization";
+import { logger } from "@/lib/logger";
 
-const COOKIE_NAME = 'support_org_id';
+const COOKIE_NAME = "support_org_id";
 
 function serializeOrganization(org: {
   orgId: string;
@@ -33,7 +33,7 @@ async function ensureSuperAdmin() {
 export async function GET(req: NextRequest) {
   const session = await ensureSuperAdmin();
   if (!session) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const cookieOrgId = req.cookies.get(COOKIE_NAME)?.value;
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 
   await connectToDatabase();
   const org = await Organization.findOne({ orgId: cookieOrgId })
-    .select('orgId name code legal.registrationNumber subscription.plan')
+    .select("orgId name code legal.registrationNumber subscription.plan")
     .lean();
 
   if (!org) {
@@ -58,19 +58,22 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await ensureSuperAdmin();
   if (!session) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   let body: { orgId?: string; corporateId?: string; identifier?: string } = {};
   try {
     body = await req.json();
   } catch (error) {
-    logger.warn('[support/impersonation] Failed to parse body', { error });
+    logger.warn("[support/impersonation] Failed to parse body", { error });
   }
 
   const identifier = body.orgId || body.corporateId || body.identifier;
   if (!identifier) {
-    return NextResponse.json({ error: 'orgId or corporateId is required' }, { status: 400 });
+    return NextResponse.json(
+      { error: "orgId or corporateId is required" },
+      { status: 400 },
+    );
   }
 
   await connectToDatabase();
@@ -79,14 +82,17 @@ export async function POST(req: NextRequest) {
     $or: [
       { orgId: identifier },
       { code: identifier },
-      { 'legal.registrationNumber': identifier },
+      { "legal.registrationNumber": identifier },
     ],
   })
-    .select('orgId name code legal.registrationNumber subscription.plan')
+    .select("orgId name code legal.registrationNumber subscription.plan")
     .lean();
 
   if (!org) {
-    return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 },
+    );
   }
 
   const res = NextResponse.json({ organization: serializeOrganization(org) });
@@ -94,9 +100,9 @@ export async function POST(req: NextRequest) {
     name: COOKIE_NAME,
     value: org.orgId,
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
     maxAge: 60 * 60, // 1 hour
   });
 
@@ -106,13 +112,13 @@ export async function POST(req: NextRequest) {
 export async function DELETE() {
   const session = await ensureSuperAdmin();
   if (!session) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const res = NextResponse.json({ ok: true });
   res.cookies.set({
     name: COOKIE_NAME,
-    value: '',
-    path: '/',
+    value: "",
+    path: "/",
     maxAge: 0,
   });
   return res;

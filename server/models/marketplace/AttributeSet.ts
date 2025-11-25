@@ -1,6 +1,6 @@
-import { Schema, model, models, Types, Model } from 'mongoose';
-import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
-import { auditPlugin } from '../../plugins/auditPlugin';
+import { Schema, model, models, Types, Model } from "mongoose";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
 
 export interface MarketplaceAttributeDefinition {
   key: string;
@@ -30,14 +30,14 @@ const AttributeSetSchema = new Schema<MarketplaceAttributeSet>(
         key: { type: String, required: true, trim: true },
         label: {
           en: { type: String, required: true, trim: true },
-          ar: { type: String, trim: true }
+          ar: { type: String, trim: true },
         },
         unit: { type: String, trim: true },
-        required: { type: Boolean, default: false }
-      }
-    ]
+        required: { type: Boolean, default: false },
+      },
+    ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Apply plugins BEFORE indexes for proper tenant isolation
@@ -49,8 +49,9 @@ AttributeSetSchema.index({ orgId: 1 });
 AttributeSetSchema.index({ orgId: 1, title: 1 });
 
 const AttributeSetModel =
-  (models.MarketplaceAttributeSet as Model<MarketplaceAttributeSet> | undefined) ||
-  model<MarketplaceAttributeSet>('MarketplaceAttributeSet', AttributeSetSchema);
+  (models.MarketplaceAttributeSet as
+    | Model<MarketplaceAttributeSet>
+    | undefined) ||
+  model<MarketplaceAttributeSet>("MarketplaceAttributeSet", AttributeSetSchema);
 
 export default AttributeSetModel;
-

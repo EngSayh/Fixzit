@@ -2,16 +2,20 @@
 // Usage: node scripts/seed-cms.js
 
 const seedPages = async () => {
-  const baseUrl = 'http://localhost:3000';
+  const baseUrl = "http://localhost:3000";
   const headers = {
-    'content-type': 'application/json',
-    'x-user': JSON.stringify({ id: 'system', role: 'SUPER_ADMIN', tenantId: 't0' })
+    "content-type": "application/json",
+    "x-user": JSON.stringify({
+      id: "system",
+      role: "SUPER_ADMIN",
+      tenantId: "t0",
+    }),
   };
 
   const pages = [
     {
-      slug: 'privacy',
-      title: 'Privacy Policy',
+      slug: "privacy",
+      title: "Privacy Policy",
       content: `# Privacy Policy
 
 Last updated: ${new Date().toLocaleDateString()}
@@ -38,11 +42,11 @@ We implement appropriate technical and organizational measures to protect your p
 ## Contact Us
 
 If you have any questions about this Privacy Policy, please contact us at privacy@fixzit.co`,
-      status: 'PUBLISHED'
+      status: "PUBLISHED",
     },
     {
-      slug: 'terms',
-      title: 'Terms of Service',
+      slug: "terms",
+      title: "Terms of Service",
       content: `# Terms of Service
 
 Last updated: ${new Date().toLocaleDateString()}
@@ -77,11 +81,11 @@ In no event shall Fixzit be liable for any indirect, incidental, special, conseq
 ## Contact Information
 
 For questions about these Terms, contact us at legal@fixzit.co`,
-      status: 'PUBLISHED'
+      status: "PUBLISHED",
     },
     {
-      slug: 'about',
-      title: 'About Fixzit',
+      slug: "about",
+      title: "About Fixzit",
       content: `# About Fixzit
 
 ## Our Mission
@@ -111,18 +115,18 @@ Access a curated marketplace of vendors, materials, and services directly within
 Email: info@fixzit.co
 Phone: +966 XX XXX XXXX
 Address: Riyadh, Saudi Arabia`,
-      status: 'PUBLISHED'
-    }
+      status: "PUBLISHED",
+    },
   ];
 
   for (const page of pages) {
     try {
       const response = await fetch(`${baseUrl}/api/cms/pages/${page.slug}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers,
-        body: JSON.stringify(page)
+        body: JSON.stringify(page),
       });
-      
+
       if (response.ok) {
         console.log(`✅ Seeded page: ${page.slug}`);
       } else {
@@ -136,51 +140,60 @@ Address: Riyadh, Saudi Arabia`,
 
 // Seed help articles
 const seedHelpArticles = async () => {
-  const baseUrl = 'http://localhost:3000';
+  const baseUrl = "http://localhost:3000";
   const headers = {
-    'content-type': 'application/json',
-    'x-user': JSON.stringify({ id: 'system', role: 'SUPER_ADMIN', tenantId: 't0' })
+    "content-type": "application/json",
+    "x-user": JSON.stringify({
+      id: "system",
+      role: "SUPER_ADMIN",
+      tenantId: "t0",
+    }),
   };
 
   const articles = [
     {
-      slug: 'getting-started',
-      title: 'Getting Started with Fixzit',
-      content: 'Learn how to set up your account and start managing properties...',
-      category: 'Getting Started',
-      tags: ['basics', 'tutorial'],
-      status: 'PUBLISHED'
+      slug: "getting-started",
+      title: "Getting Started with Fixzit",
+      content:
+        "Learn how to set up your account and start managing properties...",
+      category: "Getting Started",
+      tags: ["basics", "tutorial"],
+      status: "PUBLISHED",
     },
     {
-      slug: 'create-work-order',
-      title: 'How to Create a Work Order',
-      content: 'Step by step guide to creating and managing work orders...',
-      category: 'Work Orders',
-      tags: ['work-orders', 'maintenance'],
-      status: 'PUBLISHED'
+      slug: "create-work-order",
+      title: "How to Create a Work Order",
+      content: "Step by step guide to creating and managing work orders...",
+      category: "Work Orders",
+      tags: ["work-orders", "maintenance"],
+      status: "PUBLISHED",
     },
     {
-      slug: 'manage-tenants',
-      title: 'Managing Tenants',
-      content: 'Learn how to add tenants, manage leases, and handle communications...',
-      category: 'Property Management',
-      tags: ['tenants', 'properties'],
-      status: 'PUBLISHED'
-    }
+      slug: "manage-tenants",
+      title: "Managing Tenants",
+      content:
+        "Learn how to add tenants, manage leases, and handle communications...",
+      category: "Property Management",
+      tags: ["tenants", "properties"],
+      status: "PUBLISHED",
+    },
   ];
 
   for (const article of articles) {
     try {
       const response = await fetch(`${baseUrl}/api/help/articles`, {
-        method: 'POST',
+        method: "POST",
         headers,
-        body: JSON.stringify(article)
+        body: JSON.stringify(article),
       });
-      
+
       if (response.ok) {
         console.log(`✅ Seeded help article: ${article.slug}`);
       } else {
-        console.error(`❌ Failed to seed ${article.slug}:`, await response.text());
+        console.error(
+          `❌ Failed to seed ${article.slug}:`,
+          await response.text(),
+        );
       }
     } catch (error) {
       console.error(`❌ Error seeding ${article.slug}:`, error);
@@ -189,15 +202,17 @@ const seedHelpArticles = async () => {
 };
 
 // Run the seeding
-console.log('🌱 Starting CMS seeding...');
-seedPages().then(() => {
-  console.log('🌱 Seeding help articles...');
-  return seedHelpArticles();
-}).then(() => {
-  console.log('✅ Seeding complete!');
-  process.exit(0);
-}).catch(error => {
-  console.error('❌ Seeding failed:', error);
-  process.exit(1);
-});
-
+console.log("🌱 Starting CMS seeding...");
+seedPages()
+  .then(() => {
+    console.log("🌱 Seeding help articles...");
+    return seedHelpArticles();
+  })
+  .then(() => {
+    console.log("✅ Seeding complete!");
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("❌ Seeding failed:", error);
+    process.exit(1);
+  });

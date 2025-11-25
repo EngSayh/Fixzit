@@ -2,7 +2,7 @@
 
 **Date**: October 23, 2025  
 **Branch**: `fix/pr137-remaining-issues`  
-**Scan Type**: Comprehensive codebase analysis  
+**Scan Type**: Comprehensive codebase analysis
 
 ---
 
@@ -10,12 +10,12 @@
 
 ### Issues Discovered
 
-| Category | Count | Severity | Status |
-|----------|-------|----------|--------|
-| Race conditions (withTransaction) | 2 | 🔴 Critical | ✅ Fixed (2/2) |
-| IP spoofing vulnerabilities | 60+ | 🟠 High | ⚠️ Utility created |
-| Dangerous type casts | 100+ | 🟡 Medium | 📋 Documented |
-| Unsalted hashing | 1 | 🔴 Critical | ✅ Fixed |
+| Category                          | Count | Severity    | Status             |
+| --------------------------------- | ----- | ----------- | ------------------ |
+| Race conditions (withTransaction) | 2     | 🔴 Critical | ✅ Fixed (2/2)     |
+| IP spoofing vulnerabilities       | 60+   | 🟠 High     | ⚠️ Utility created |
+| Dangerous type casts              | 100+  | 🟡 Medium   | 📋 Documented      |
+| Unsalted hashing                  | 1     | 🔴 Critical | ✅ Fixed           |
 
 ---
 
@@ -34,8 +34,8 @@ createdUser = await session.withTransaction(async () => {
   return newUser; // Captured
 });
 
-return NextResponse.json({ 
-  userId: createdUser._id // Use captured value
+return NextResponse.json({
+  userId: createdUser._id, // Use captured value
 });
 ```
 
@@ -55,7 +55,7 @@ return NextResponse.json({
 **Usage**:
 
 ```typescript
-import { getClientIp } from '@/lib/security/client-ip';
+import { getClientIp } from "@/lib/security/client-ip";
 
 const clientIp = getClientIp(request); // Secure extraction
 ```
@@ -87,12 +87,14 @@ These files use the vulnerable pattern: `req.headers.get('x-forwarded-for')?.spl
 **Should be replaced with**: `import { getClientIp } from '@/lib/security/client-ip';` then call `getClientIp(req)`
 
 **Example fix**:
+
 ```typescript
 // Before (VULNERABLE):
-const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+const clientIp =
+  req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
 // After (SECURE):
-import { getClientIp } from '@/lib/security/client-ip';
+import { getClientIp } from "@/lib/security/client-ip";
 const clientIp = getClientIp(req);
 ```
 
@@ -188,13 +190,14 @@ const dbUser = await User.findOne(...).lean() as any;
 **Old Pattern** (vulnerable):
 
 ```typescript
-const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+const ip =
+  req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 ```
 
 **New Pattern** (secure):
 
 ```typescript
-import { getClientIP } from '@/server/security/headers';
+import { getClientIP } from "@/server/security/headers";
 
 const ip = getClientIP(req);
 ```

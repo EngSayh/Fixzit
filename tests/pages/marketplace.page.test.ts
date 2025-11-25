@@ -18,8 +18,7 @@ vi.mock('@/lib/marketplace/serverFetch', () => ({
 
 // Mock next/link to avoid Next.js runtime during tests
 vi.mock('next/link', () => {
-  type LinkProps = { href: string; className?: string; children: React.ReactNode };
-  const MockLink = ({ href, className, children }: LinkProps) =>
+  const MockLink = ({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) =>
     React.createElement(
       'a',
       { href, className, 'data-testid': 'next-link-mock' },
@@ -31,7 +30,7 @@ vi.mock('next/link', () => {
 
 vi.mock('@/components/marketplace/ProductCard', () => ({
   __esModule: true,
-  default: ({ product }: { product: Product }) =>
+  default: ({ product }: { product: { slug?: string; id?: string; title?: { en?: string } | string; rating?: { avg?: number; count?: number }; inventories?: Array<{ leadDays?: number }> } }) =>
     React.createElement(
       'a',
       {
@@ -111,16 +110,16 @@ describe('MarketplacePage', () => {
       _id: '1',
       slug: 'cool-cement',
       title: 'Cool Cement',
-      rating: { avg: 4.5, count: 12 },
-      inventories: [{ leadDays: 5 }],
-    },
-    {
-      // missing _id to force key fallback to slug
-      slug: 'fast-cement',
-      title: 'Fast Cement',
-      rating: { avg: 3.8, count: 3 },
-      inventories: [{ leadDays: 2 }],
-    },
+        rating: { avg: 4.5, count: 12 },
+        inventories: [{ leadDays: 5 }],
+      },
+      {
+        // missing _id to force key fallback to slug
+        slug: 'fast-cement',
+        title: 'Fast Cement',
+        rating: { avg: 3.8, count: 3 },
+        inventories: [{ leadDays: 2 }],
+      },
     ];
     setupMarketplaceFetchMock(items);
 

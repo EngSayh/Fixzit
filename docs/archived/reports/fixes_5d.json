@@ -35,9 +35,7 @@
     "hash": "fa7684e5c60191cb880efbe325af553090c2094f",
     "date": "2025-11-08 15:46:06 +0000",
     "subject": "docs: add comprehensive system audit report for 2025-11-08",
-    "files": [
-      "DAILY_PROGRESS_REPORTS/2025-11-08_system_audit_complete.md"
-    ]
+    "files": ["DAILY_PROGRESS_REPORTS/2025-11-08_system_audit_complete.md"]
   },
   {
     "hash": "1754d2237964d43dbb18c963e36c051313601103",
@@ -66,10 +64,7 @@
     "hash": "9667d32c7908d8e5a2b6ae0e5db6903608fc1029",
     "date": "2025-11-08 18:08:16 +0300",
     "subject": "fix(auth): avoid persisting jwt verify mock; restore verify implementation and remove debug logs (#266)",
-    "files": [
-      "lib/auth.test.ts",
-      "lib/auth.ts"
-    ]
+    "files": ["lib/auth.test.ts", "lib/auth.ts"]
   },
   {
     "hash": "135f35b228ebd28ef9764b032754a1706af8e9ac",
@@ -199,9 +194,7 @@
     "hash": "2c3ca2042824e3a03fe034408be271510a257aba",
     "date": "2025-11-07 11:36:38 +0000",
     "subject": "fix(tests): middleware redirect tests with proper NextAuth mocking",
-    "files": [
-      "tests/unit/middleware.test.ts"
-    ]
+    "files": ["tests/unit/middleware.test.ts"]
   },
   {
     "hash": "456245b7ce06da42eaf428b9d92938b386630e08",
@@ -219,17 +212,13 @@
     "hash": "66421549db2fee47c473cc0ff6bcaeb70a2494a0",
     "date": "2025-11-07 11:23:26 +0000",
     "subject": "fix(tests): I18nProvider async dictionary loading",
-    "files": [
-      "i18n/I18nProvider.test.tsx"
-    ]
+    "files": ["i18n/I18nProvider.test.tsx"]
   },
   {
     "hash": "b367a56c0a9837bb6f17143b53185df913c1dc69",
     "date": "2025-11-07 11:17:59 +0000",
     "subject": "fix(tests): skip contradictory generateSlug tests in duplicate file",
-    "files": [
-      "tests/utils.test.ts"
-    ]
+    "files": ["tests/utils.test.ts"]
   },
   {
     "hash": "740f31f199f91dd855c3e2b646ca9c0ec264c7fa",
@@ -244,52 +233,37 @@
     "hash": "ceb15ba7a0be13faeec8bdff9692f50ae5f0bcfd",
     "date": "2025-11-07 11:05:33 +0000",
     "subject": "fix(tests): align generateSlug with authoritative lib/utils.test.ts",
-    "files": [
-      "lib/ats/scoring.test.ts",
-      "lib/utils.ts"
-    ]
+    "files": ["lib/ats/scoring.test.ts", "lib/utils.ts"]
   },
   {
     "hash": "2086d511cc6e73b6f2a41b2e3ee7211273d9c833",
     "date": "2025-11-07 11:01:08 +0000",
     "subject": "fix(tests): ATS scoring test using real implementation",
-    "files": [
-      "lib/ats/scoring.ts",
-      "tests/ats.scoring.test.ts"
-    ]
+    "files": ["lib/ats/scoring.ts", "tests/ats.scoring.test.ts"]
   },
   {
     "hash": "6cfdec1e3ea0c51b3014819dba9198982db1e85c",
     "date": "2025-11-07 10:49:02 +0000",
     "subject": "fix(utils): generateSlug now strips non-ASCII characters",
-    "files": [
-      "lib/utils.ts"
-    ]
+    "files": ["lib/utils.ts"]
   },
   {
     "hash": "0205578bf5622001bbe9725f4bcbb37244d5b467",
     "date": "2025-11-07 10:39:21 +0000",
     "subject": "fix(tests): update Provider test for new ErrorBoundary position",
-    "files": [
-      "providers/Providers.test.tsx"
-    ]
+    "files": ["providers/Providers.test.tsx"]
   },
   {
     "hash": "1382b8eb2a0ae8a59ca8d98cb2a16cfaceb8b962",
     "date": "2025-11-07 10:28:43 +0000",
     "subject": "docs: Test fixing session report - 25% reduction achieved",
-    "files": [
-      "docs/TEST_FIXING_SESSION_2025-01-07.md"
-    ]
+    "files": ["docs/TEST_FIXING_SESSION_2025-01-07.md"]
   },
   {
     "hash": "4e821fc1ede896fab34583d805a79805f9945a5c",
     "date": "2025-11-07 10:23:33 +0000",
     "subject": "fix(tests): middleware test import + mockDb implementation",
-    "files": [
-      "src/lib/mockDb.ts",
-      "tests/unit/middleware.test.ts"
-    ]
+    "files": ["src/lib/mockDb.ts", "tests/unit/middleware.test.ts"]
   },
   {
     "hash": "44219c5ebcaad7ba7cd8c1b96bd4cf6d3aee70de",
@@ -405,17 +379,13 @@
     "hash": "809599b06ff9087990ee0899988c093c29cbd913",
     "date": "2025-11-07 09:52:21 +0000",
     "subject": "docs: Console.log Phase 3 progress report - 39% complete",
-    "files": [
-      "docs/CONSOLE_LOG_PHASE_3_PROGRESS.md"
-    ]
+    "files": ["docs/CONSOLE_LOG_PHASE_3_PROGRESS.md"]
   },
   {
     "hash": "a6eb6400d10912fd683178e9d80139e66b97f464",
     "date": "2025-11-07 09:51:07 +0000",
     "subject": "refactor(finance): replace console.log with logger in fm-finance-hooks",
-    "files": [
-      "app/finance/fm-finance-hooks.ts"
-    ]
+    "files": ["app/finance/fm-finance-hooks.ts"]
   },
   {
     "hash": "c8bf38d22d058dac5659a717ae5de3d5e76e1613",
@@ -486,25 +456,19 @@
     "hash": "feec5fa5c1a164ef17b24d7353cc7936da76768e",
     "date": "2025-11-07 09:48:32 +0000",
     "subject": "refactor(finance): replace console.error with logger in budgets - Phase 3.1",
-    "files": [
-      "app/finance/budgets/new/page.tsx"
-    ]
+    "files": ["app/finance/budgets/new/page.tsx"]
   },
   {
     "hash": "e5b34fa0d0ddbd0fd1275a7bc43ca27929a44f3b",
     "date": "2025-11-07 09:29:13 +0000",
     "subject": "docs: comprehensive session report - systematic optimization complete",
-    "files": [
-      "docs/SESSION_2025-11-07_SYSTEMATIC_OPTIMIZATION.md"
-    ]
+    "files": ["docs/SESSION_2025-11-07_SYSTEMATIC_OPTIMIZATION.md"]
   },
   {
     "hash": "657ea1ed30ad5e1d738a8d107dc9532d47c4bd3c",
     "date": "2025-11-07 09:26:58 +0000",
     "subject": "perf: dynamic imports for TopBar, Sidebar, Footer in ClientLayout",
-    "files": [
-      "components/ClientLayout.tsx"
-    ]
+    "files": ["components/ClientLayout.tsx"]
   },
   {
     "hash": "b0e4337eb34950ad7a97d075ca9d0f0267836f0f",
@@ -571,9 +535,7 @@
     "hash": "7100e58a13c787f0e5cce1cb7396006a783d5a29",
     "date": "2025-11-07 07:04:23 +0000",
     "subject": "docs: comprehensive performance optimization summary",
-    "files": [
-      "PERFORMANCE_FINAL_SUMMARY.md"
-    ]
+    "files": ["PERFORMANCE_FINAL_SUMMARY.md"]
   },
   {
     "hash": "8f5381820a22a8a4fbdb2afe6cf517e454d6c3d1",
@@ -613,43 +575,31 @@
     "hash": "994caf255208f6cced5aba08a2306996512ed364",
     "date": "2025-11-07 05:19:24 +0000",
     "subject": "perf: lighthouse audit complete - 48/100 score, LCP 10.7s (root cause identified)",
-    "files": [
-      "lighthouse-report.json"
-    ]
+    "files": ["lighthouse-report.json"]
   },
   {
     "hash": "5e1aaf040d8556b4e6e2ca8e31587e04e02d653d",
     "date": "2025-11-07 03:54:11 +0000",
     "subject": "feat(agent): implement context-aware unhandled rejection detection - reduces false positives",
-    "files": [
-      "scripts/fixzit-agent.mjs"
-    ]
+    "files": ["scripts/fixzit-agent.mjs"]
   },
   {
     "hash": "b3bc97d5fc23d1b01a23889e70743317df04545d",
     "date": "2025-11-07 03:51:32 +0000",
     "subject": "fix(tests): wrap top-level await in async IIFE for HelpArticle test, await generateToken in auth test",
-    "files": [
-      "lib/auth.test.ts",
-      "tests/unit/models/HelpArticle.test.ts"
-    ]
+    "files": ["lib/auth.test.ts", "tests/unit/models/HelpArticle.test.ts"]
   },
   {
     "hash": "5b7e039440e5ddf707efafd1da20b66d6a8a088a",
     "date": "2025-11-07 03:47:03 +0000",
     "subject": "feat(i18n): Phase 3 - expand to 366 keys (+94) - add HR, CRM, Marketplace, extended Login",
-    "files": [
-      "i18n/ar.json",
-      "i18n/en.json"
-    ]
+    "files": ["i18n/ar.json", "i18n/en.json"]
   },
   {
     "hash": "e84024d75935852f23f03bd3014c966245937462",
     "date": "2025-11-07 03:39:10 +0000",
     "subject": "docs: comprehensive PR summary for E2E stabilization session",
-    "files": [
-      "PR_SUMMARY.md"
-    ]
+    "files": ["PR_SUMMARY.md"]
   },
   {
     "hash": "1eae179d20eadf9c7efdbb2c14258322603052b8",
@@ -661,26 +611,19 @@
     "hash": "3d0efc8805d14854727929d79a1aff24449313de",
     "date": "2025-11-07 03:36:52 +0000",
     "subject": "docs: comprehensive TODO false positive analysis (88-96% FP rate)",
-    "files": [
-      "TODO_FALSE_POSITIVE_ANALYSIS.md"
-    ]
+    "files": ["TODO_FALSE_POSITIVE_ANALYSIS.md"]
   },
   {
     "hash": "0ac7399376c7f5b1ec79af192580fb88a724a4de",
     "date": "2025-11-07 03:35:00 +0000",
     "subject": "feat(i18n): expand translations from 127 to 272 keys - add admin, validation, notifications, forms",
-    "files": [
-      "i18n/ar.json",
-      "i18n/en.json"
-    ]
+    "files": ["i18n/ar.json", "i18n/en.json"]
   },
   {
     "hash": "bd8104f01793721224a0f702a01414894b2c5bd4",
     "date": "2025-11-07 03:28:49 +0000",
     "subject": "chore: remove duplicate logo - keep assets/logos/fixzit_official_logo.jpg",
-    "files": [
-      "assets/fixzit_logo.jpg"
-    ]
+    "files": ["assets/fixzit_logo.jpg"]
   },
   {
     "hash": "e4cd278e00ce5a65afcbb49478853d44da097df3",
@@ -696,10 +639,7 @@
     "hash": "866b94d70d3ccfaf1dcd9f9dd279541047f10fc6",
     "date": "2025-11-07 03:25:09 +0000",
     "subject": "chore: update agent-generated reports and diffs",
-    "files": [
-      "tasks/TODO_flat.json",
-      "tmp/fixes_5d_diff.patch"
-    ]
+    "files": ["tasks/TODO_flat.json", "tmp/fixes_5d_diff.patch"]
   },
   {
     "hash": "d1ea18540f7d9839af37a1f87af685fa672b126e",
@@ -717,9 +657,7 @@
     "hash": "d4efd6419f0f956c4f7754dc210abfd3dc05ec06",
     "date": "2025-11-06 20:23:24 +0000",
     "subject": "docs: agent fresh run report with improved heuristics",
-    "files": [
-      "AGENT_FRESH_RUN_REPORT.md"
-    ]
+    "files": ["AGENT_FRESH_RUN_REPORT.md"]
   },
   {
     "hash": "25883c46e04e2e6be8372222261af8cfcbb70a49",
@@ -736,28 +674,19 @@
     "hash": "9294d6c6e4e01bbd259abd5d8faf3e09f890706e",
     "date": "2025-11-06 20:13:20 +0000",
     "subject": "chore: update agent-generated reports",
-    "files": [
-      "tasks/TODO_flat.json",
-      "tmp/fixes_5d_diff.patch"
-    ]
+    "files": ["tasks/TODO_flat.json", "tmp/fixes_5d_diff.patch"]
   },
   {
     "hash": "c6cc979dcce9f72d39beb84b62da74ba874dfc58",
     "date": "2025-11-06 20:06:59 +0000",
     "subject": "docs: task completion summary",
-    "files": [
-      "TASK_COMPLETION_SUMMARY.md"
-    ]
+    "files": ["TASK_COMPLETION_SUMMARY.md"]
   },
   {
     "hash": "5d94a958b04f13f859065c76c3401591a827335f",
     "date": "2025-11-06 20:05:39 +0000",
     "subject": "feat: i18n foundation + agent heuristic improvements",
-    "files": [
-      "i18n/ar.json",
-      "i18n/en.json",
-      "scripts/fixzit-agent.mjs"
-    ]
+    "files": ["i18n/ar.json", "i18n/en.json", "scripts/fixzit-agent.mjs"]
   },
   {
     "hash": "7beba7c29d1a120f1435a8927e1a280e4e3dad19",
@@ -871,9 +800,7 @@
     "hash": "1824f04984611998f57b0da01ac23b69e7b1ef27",
     "date": "2025-11-06 18:02:59 +0000",
     "subject": "docs: add pending tasks and file organization plan",
-    "files": [
-      "PENDING_TASKS_AND_FILE_ORGANIZATION.md"
-    ]
+    "files": ["PENDING_TASKS_AND_FILE_ORGANIZATION.md"]
   },
   {
     "hash": "6eee90803a1d8aa6745a0aa16ebc7236097ebd83",
@@ -1085,9 +1012,7 @@
     "hash": "b211a3c7279f71710178dbcd1b831267d09c1e67",
     "date": "2025-11-05 11:18:01 +0300",
     "subject": "feat: migrate FM page to useFormTracking hook (#222)",
-    "files": [
-      "app/fm/page.tsx"
-    ]
+    "files": ["app/fm/page.tsx"]
   },
   {
     "hash": "e876b2b4f6ea1043206cdce9cd95db06839d998d",
@@ -1115,26 +1040,19 @@
     "hash": "01f13a86be6336c9ddbf7b73c98bda37a2c19bec",
     "date": "2025-11-05 03:34:51 +0000",
     "subject": "refactor(qa): improve placeholder scanner to focus on critical issues",
-    "files": [
-      "qa/scripts/scanPlaceholders.mjs"
-    ]
+    "files": ["qa/scripts/scanPlaceholders.mjs"]
   },
   {
     "hash": "223f9add8da1bea3e359b2020650f1a8a47ceb7c",
     "date": "2025-11-05 03:29:58 +0000",
     "subject": "fix: handle undefined dev process in verify script",
-    "files": [
-      "qa/scripts/verify.mjs"
-    ]
+    "files": ["qa/scripts/verify.mjs"]
   },
   {
     "hash": "018636165056b82e1d79ecf661b714c92bb9a8a3",
     "date": "2025-11-05 06:20:27 +0300",
     "subject": "fix(critical): Multi-tenancy data isolation bug in CRUD factory (#204)",
-    "files": [
-      "lib/api/crud-factory.ts",
-      "server/middleware/withAuthRbac.ts"
-    ]
+    "files": ["lib/api/crud-factory.ts", "server/middleware/withAuthRbac.ts"]
   },
   {
     "hash": "016c6b06aae0d169a5f8243d2a5adc2c9c6f0206",
@@ -1174,10 +1092,7 @@
     "hash": "87518bdfd9540c26c81ef74c444142f1fb544f10",
     "date": "2025-11-04 21:35:12 +0300",
     "subject": "fix(critical): SendGrid webhook timing attack and security hardening (#207)",
-    "files": [
-      "app/api/webhooks/sendgrid/route.ts",
-      "lib/sendgrid-config.ts"
-    ]
+    "files": ["app/api/webhooks/sendgrid/route.ts", "lib/sendgrid-config.ts"]
   },
   {
     "hash": "74eb4e2db77796f0139f1b1b36d778d0e05d0acf",
@@ -1199,9 +1114,7 @@
     "hash": "dd13c363fa44643ff7a6bbf3f0a5f6945712ee64",
     "date": "2025-11-04 21:17:23 +0300",
     "subject": "fix(critical): Approval engine data loss and tenant isolation bugs (#205)",
-    "files": [
-      "lib/fm-approval-engine.ts"
-    ]
+    "files": ["lib/fm-approval-engine.ts"]
   },
   {
     "hash": "c2666245e4db693e955ec951fc589956182d51d4",

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { connectToDatabase, getDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
-import { ObjectId } from 'mongodb';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { connectToDatabase, getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { ObjectId } from "mongodb";
 
 interface MatchStage {
   userId?: ObjectId;
@@ -26,9 +26,9 @@ type PipelineStage =
 
 /**
  * GET /api/admin/communications
- * 
+ *
  * Fetch communication history with filtering and pagination
- * 
+ *
  * Query Parameters:
  * - userId: Filter by user ID
  * - channel: Filter by channel (sms, email, whatsapp, otp, all)
@@ -38,7 +38,7 @@ type PipelineStage =
  * - limit: Number of records per page (default: 50)
  * - skip: Number of records to skip (default: 0)
  * - search: Search in recipient, subject, or message
- * 
+ *
  * Response:
  * - 200: Communication logs with metadata
  * - 401: Unauthorized
@@ -49,35 +49,38 @@ export async function GET(request: NextRequest) {
   try {
     // 1. Check authentication and authorization
     const session = await auth();
-    
+
     if (!session?.user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
       );
     }
 
     // Check if user is super admin
-    const isSuperAdmin = session.user.role === 'SUPER_ADMIN';
+    const isSuperAdmin = session.user.role === "SUPER_ADMIN";
     if (!isSuperAdmin) {
       return NextResponse.json(
-        { success: false, error: 'Forbidden: Super admin access required' },
-        { status: 403 }
+        { success: false, error: "Forbidden: Super admin access required" },
+        { status: 403 },
       );
     }
 
     // 2. Parse query parameters
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const channel = searchParams.get('channel') || 'all';
-    const status = searchParams.get('status');
-    const startDateParam = searchParams.get('startDate');
-    const endDateParam = searchParams.get('endDate');
-    const searchValue = searchParams.get('search')?.trim();
-    const limitParam = Number.parseInt(searchParams.get('limit') || '', 10);
-    const skipParam = Number.parseInt(searchParams.get('skip') || '', 10);
+    const userId = searchParams.get("userId");
+    const channel = searchParams.get("channel") || "all";
+    const status = searchParams.get("status");
+    const startDateParam = searchParams.get("startDate");
+    const endDateParam = searchParams.get("endDate");
+    const searchValue = searchParams.get("search")?.trim();
+    const limitParam = Number.parseInt(searchParams.get("limit") || "", 10);
+    const skipParam = Number.parseInt(searchParams.get("skip") || "", 10);
 
-    const limit = Math.min(Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 50, 100);
+    const limit = Math.min(
+      Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 50,
+      100,
+    );
     const skip = Number.isFinite(skipParam) && skipParam >= 0 ? skipParam : 0;
 
     let startDate: Date | undefined;
@@ -87,8 +90,8 @@ export async function GET(request: NextRequest) {
       const parsed = Date.parse(startDateParam);
       if (Number.isNaN(parsed)) {
         return NextResponse.json(
-          { success: false, error: 'Invalid startDate parameter' },
-          { status: 400 }
+          { success: false, error: "Invalid startDate parameter" },
+          { status: 400 },
         );
       }
       startDate = new Date(parsed);
@@ -98,8 +101,8 @@ export async function GET(request: NextRequest) {
       const parsed = Date.parse(endDateParam);
       if (Number.isNaN(parsed)) {
         return NextResponse.json(
-          { success: false, error: 'Invalid endDate parameter' },
-          { status: 400 }
+          { success: false, error: "Invalid endDate parameter" },
+          { status: 400 },
         );
       }
       endDate = new Date(parsed);
@@ -107,8 +110,11 @@ export async function GET(request: NextRequest) {
 
     if (startDate && endDate && endDate < startDate) {
       return NextResponse.json(
-        { success: false, error: 'endDate must be greater than or equal to startDate' },
-        { status: 400 }
+        {
+          success: false,
+          error: "endDate must be greater than or equal to startDate",
+        },
+        { status: 400 },
       );
     }
 
@@ -125,14 +131,14 @@ export async function GET(request: NextRequest) {
     if (userId) {
       if (!ObjectId.isValid(userId)) {
         return NextResponse.json(
-          { success: false, error: 'Invalid userId parameter' },
-          { status: 400 }
+          { success: false, error: "Invalid userId parameter" },
+          { status: 400 },
         );
       }
       matchStage.userId = new ObjectId(userId);
     }
 
-    if (channel && channel !== 'all') {
+    if (channel && channel !== "all") {
       matchStage.channel = channel;
     }
 
@@ -151,13 +157,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (searchValue) {
-      const escapedSearch = searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedSearch = searchValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       matchStage.$or = [
-        { recipient: { $regex: escapedSearch, $options: 'i' } },
-        { subject: { $regex: escapedSearch, $options: 'i' } },
-        { message: { $regex: escapedSearch, $options: 'i' } },
-        { 'metadata.email': { $regex: escapedSearch, $options: 'i' } },
-        { 'metadata.phone': { $regex: escapedSearch, $options: 'i' } },
+        { recipient: { $regex: escapedSearch, $options: "i" } },
+        { subject: { $regex: escapedSearch, $options: "i" } },
+        { message: { $regex: escapedSearch, $options: "i" } },
+        { "metadata.email": { $regex: escapedSearch, $options: "i" } },
+        { "metadata.phone": { $regex: escapedSearch, $options: "i" } },
       ];
     }
 
@@ -168,16 +174,16 @@ export async function GET(request: NextRequest) {
     // Lookup user details
     pipeline.push({
       $lookup: {
-        from: 'users',
-        localField: 'userId',
-        foreignField: '_id',
-        as: 'user',
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "user",
       },
     });
 
     pipeline.push({
       $unwind: {
-        path: '$user',
+        path: "$user",
         preserveNullAndEmptyArrays: true,
       },
     });
@@ -187,14 +193,14 @@ export async function GET(request: NextRequest) {
       $addFields: {
         userName: {
           $concat: [
-            { $ifNull: ['$user.personal.firstName', ''] },
-            ' ',
-            { $ifNull: ['$user.personal.lastName', ''] },
+            { $ifNull: ["$user.personal.firstName", ""] },
+            " ",
+            { $ifNull: ["$user.personal.lastName", ""] },
           ],
         },
-        userEmail: '$user.email',
+        userEmail: "$user.email",
         userPhone: {
-          $ifNull: ['$user.contact.phone', '$user.personal.phone'],
+          $ifNull: ["$user.contact.phone", "$user.personal.phone"],
         },
       },
     });
@@ -203,9 +209,9 @@ export async function GET(request: NextRequest) {
     pipeline.push({ $sort: { createdAt: -1 } });
 
     // Count total matching documents
-    const countPipeline = [...pipeline, { $count: 'total' }];
+    const countPipeline = [...pipeline, { $count: "total" }];
     const countResult = await db
-      .collection('communication_logs')
+      .collection("communication_logs")
       .aggregate(countPipeline)
       .toArray();
     const total = countResult[0]?.total || 0;
@@ -239,13 +245,13 @@ export async function GET(request: NextRequest) {
 
     // Execute aggregation
     const communications = await db
-      .collection('communication_logs')
+      .collection("communication_logs")
       .aggregate(pipeline)
       .toArray();
 
     // 5. Get statistics
     const statsResult = await db
-      .collection('communication_logs')
+      .collection("communication_logs")
       .aggregate([
         { $match: matchStage },
         {
@@ -253,25 +259,25 @@ export async function GET(request: NextRequest) {
             _id: null,
             totalSent: { $sum: 1 },
             totalDelivered: {
-              $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] },
+              $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] },
             },
             totalFailed: {
-              $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] },
+              $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] },
             },
             totalPending: {
-              $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] },
+              $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
             },
             smsCount: {
-              $sum: { $cond: [{ $eq: ['$channel', 'sms'] }, 1, 0] },
+              $sum: { $cond: [{ $eq: ["$channel", "sms"] }, 1, 0] },
             },
             emailCount: {
-              $sum: { $cond: [{ $eq: ['$channel', 'email'] }, 1, 0] },
+              $sum: { $cond: [{ $eq: ["$channel", "email"] }, 1, 0] },
             },
             whatsappCount: {
-              $sum: { $cond: [{ $eq: ['$channel', 'whatsapp'] }, 1, 0] },
+              $sum: { $cond: [{ $eq: ["$channel", "whatsapp"] }, 1, 0] },
             },
             otpCount: {
-              $sum: { $cond: [{ $eq: ['$channel', 'otp'] }, 1, 0] },
+              $sum: { $cond: [{ $eq: ["$channel", "otp"] }, 1, 0] },
             },
           },
         },
@@ -303,20 +309,23 @@ export async function GET(request: NextRequest) {
         },
         statistics: {
           ...stats,
-          deliveryRate: stats.totalSent > 0 
-            ? ((stats.totalDelivered / stats.totalSent) * 100).toFixed(2) + '%'
-            : '0%',
-          failureRate: stats.totalSent > 0
-            ? ((stats.totalFailed / stats.totalSent) * 100).toFixed(2) + '%'
-            : '0%',
+          deliveryRate:
+            stats.totalSent > 0
+              ? ((stats.totalDelivered / stats.totalSent) * 100).toFixed(2) +
+                "%"
+              : "0%",
+          failureRate:
+            stats.totalSent > 0
+              ? ((stats.totalFailed / stats.totalSent) * 100).toFixed(2) + "%"
+              : "0%",
         },
       },
     });
   } catch (error) {
-    logger.error('[Admin] Get communications error', error as Error);
+    logger.error("[Admin] Get communications error", error as Error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
+      { success: false, error: "Internal server error" },
+      { status: 500 },
     );
   }
 }

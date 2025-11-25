@@ -78,7 +78,7 @@ Test Files:
 
 - tests/marketplace.smoke.spec.ts
   ✓ Search → Product → Cart flow
-  
+
 - tests/specs/smoke.spec.ts
 - tests/specs/i18n.spec.ts
 ```

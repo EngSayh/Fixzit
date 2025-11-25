@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
-import { getMetricsRegistry } from '@/lib/monitoring/metrics-registry';
-import { logger } from '@/lib/logger';
+import { NextResponse } from "next/server";
+import { getMetricsRegistry } from "@/lib/monitoring/metrics-registry";
+import { logger } from "@/lib/logger";
 
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 
 export async function GET() {
   try {
@@ -11,12 +11,12 @@ export async function GET() {
     return new NextResponse(body, {
       status: 200,
       headers: {
-        'Content-Type': registry.contentType,
-        'Cache-Control': 'no-store'
-      }
+        "Content-Type": registry.contentType,
+        "Cache-Control": "no-store",
+      },
     });
   } catch (error) {
-    logger.error('[Metrics] Failed to render /api/metrics payload', { error });
-    return new NextResponse('metrics_unavailable', { status: 500 });
+    logger.error("[Metrics] Failed to render /api/metrics payload", { error });
+    return new NextResponse("metrics_unavailable", { status: 500 });
   }
 }

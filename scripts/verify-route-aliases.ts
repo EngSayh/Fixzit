@@ -7,12 +7,18 @@
  * Emits a JSON + human summary so CI can fail fast when an alias target is missing.
  */
 
-import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
+import {
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import path from "node:path";
 
 const ROOT = process.cwd();
-const FM_DIR = path.join(ROOT, 'app', 'fm');
-const VALID_EXTENSIONS = ['.tsx', '.ts', '.jsx', '.js'];
+const FM_DIR = path.join(ROOT, "app", "fm");
+const VALID_EXTENSIONS = [".tsx", ".ts", ".jsx", ".js"];
 
 interface AliasResult {
   alias: string;
@@ -24,11 +30,11 @@ function walkPages(dir: string): string[] {
   const entries = readdirSync(dir, { withFileTypes: true });
   const pages: string[] = [];
   for (const entry of entries) {
-    if (entry.name.startsWith('.')) continue;
+    if (entry.name.startsWith(".")) continue;
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       pages.push(...walkPages(fullPath));
-    } else if (entry.isFile() && entry.name === 'page.tsx') {
+    } else if (entry.isFile() && entry.name === "page.tsx") {
       pages.push(fullPath);
     }
   }
@@ -36,18 +42,18 @@ function walkPages(dir: string): string[] {
 }
 
 function normalizeTarget(importPath: string, fileDir: string): string[] {
-  if (importPath.startsWith('@/')) {
-    const withoutAlias = importPath.replace(/^@\//, '');
+  if (importPath.startsWith("@/")) {
+    const withoutAlias = importPath.replace(/^@\//, "");
     return VALID_EXTENSIONS.map((ext) => path.join(ROOT, withoutAlias + ext));
   }
-  if (importPath.startsWith('./') || importPath.startsWith('../')) {
+  if (importPath.startsWith("./") || importPath.startsWith("../")) {
     return VALID_EXTENSIONS.map((ext) => path.join(fileDir, importPath + ext));
   }
   return [];
 }
 
 function analyzeAlias(file: string): AliasResult | null {
-  const content = readFileSync(file, 'utf8');
+  const content = readFileSync(file, "utf8");
   const match = content.match(/export \{ default \} from '([^']+)'/);
   if (!match) return null;
   const importPath = match[1];
@@ -61,7 +67,9 @@ function analyzeAlias(file: string): AliasResult | null {
   });
   return {
     alias: path.relative(ROOT, file),
-    target: existing ? path.relative(ROOT, existing) : candidates[0] ?? importPath,
+    target: existing
+      ? path.relative(ROOT, existing)
+      : (candidates[0] ?? importPath),
     exists: Boolean(existing),
   };
 }
@@ -76,23 +84,29 @@ for (const file of aliasFiles) {
 const missing = results.filter((result) => !result.exists);
 
 if (missing.length === 0) {
-  console.log(`✅ Route alias verification passed. Checked ${results.length} aliases.`);
+  console.log(
+    `✅ Route alias verification passed. Checked ${results.length} aliases.`,
+  );
 } else {
-  console.error(`❌ Route alias verification failed. ${missing.length} alias(es) reference missing targets:`);
+  console.error(
+    `❌ Route alias verification failed. ${missing.length} alias(es) reference missing targets:`,
+  );
   for (const miss of missing) {
     console.error(` - ${miss.alias} -> ${miss.target}`);
   }
   process.exitCode = 1;
 }
 
-const reportPath = path.join(ROOT, '_artifacts', 'route-alias-report.json');
+const reportPath = path.join(ROOT, "_artifacts", "route-alias-report.json");
 try {
   mkdirSync(path.dirname(reportPath), { recursive: true });
   writeFileSync(
     reportPath,
-    JSON.stringify({ timestamp: new Date().toISOString(), results }, null, 2)
+    JSON.stringify({ timestamp: new Date().toISOString(), results }, null, 2),
   );
-  console.log(`📝 Detailed report written to ${path.relative(ROOT, reportPath)}`);
+  console.log(
+    `📝 Detailed report written to ${path.relative(ROOT, reportPath)}`,
+  );
 } catch (err) {
-  console.warn('⚠️  Unable to write route alias report:', err);
+  console.warn("⚠️  Unable to write route alias report:", err);
 }

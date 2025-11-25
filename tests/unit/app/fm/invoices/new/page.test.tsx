@@ -8,7 +8,10 @@ const mockUseFmOrgGuard = vi.fn();
 const toastSuccess = vi.fn();
 const toastError = vi.fn();
 
-let capturedSubmit: ((values: any, event?: any) => Promise<void> | void) | undefined;
+type InvoiceFormValues = Record<string, string | number | boolean | null | object | undefined>;
+type SubmitHandler = (values: InvoiceFormValues, event?: Event) => Promise<void> | void;
+
+let capturedSubmit: SubmitHandler | undefined;
 
 vi.mock('@/components/fm/useFmOrgGuard', () => ({
   useFmOrgGuard: () => mockUseFmOrgGuard(),
@@ -36,7 +39,7 @@ vi.mock('sonner', () => ({
 vi.mock('react-hook-form', () => ({
   useForm: () => ({
     register: vi.fn(),
-    handleSubmit: (cb: (values: any, event?: any) => void) => {
+    handleSubmit: (cb: SubmitHandler) => {
       capturedSubmit = cb;
       return vi.fn();
     },

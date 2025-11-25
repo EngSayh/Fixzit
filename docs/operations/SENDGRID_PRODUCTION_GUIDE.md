@@ -44,6 +44,7 @@ SENDGRID_WEBHOOK_VERIFICATION_KEY=your_verification_key
 ### 3. Dynamic Templates (Optional but Recommended)
 
 SendGrid dynamic templates provide:
+
 - Professional, consistent branding
 - Easy A/B testing
 - No code deployments for email changes
@@ -66,11 +67,13 @@ SENDGRID_TEMPLATE_INVOICE=d-jkl012...
 4. Wait for verification (~24-48 hours)
 
 **Domain Authentication (Recommended)**:
+
 - Better deliverability
 - Can send from any `@fixzit.co` address
 - Professional appearance
 
 **Single Sender (Quick Start)**:
+
 - Verify single email address
 - Faster setup (~5 minutes)
 - Limited to one sender
@@ -86,6 +89,7 @@ SENDGRID_TEMPLATE_INVOICE=d-jkl012...
 7. Add to environment: `SENDGRID_TEMPLATE_WELCOME=d-abc123...`
 
 **Template Variables Available**:
+
 ```javascript
 {
   errorId: "ERR-ABC123",
@@ -142,20 +146,20 @@ If you have dedicated IPs:
 2. Click **New repository secret**
 3. Add each secret:
 
-| Secret Name | Value | Required |
-|-------------|-------|----------|
-| `SENDGRID_API_KEY` | Your API key | ✅ Required |
-| `SENDGRID_FROM_EMAIL` | noreply@fixzit.co | ✅ Required |
-| `SENDGRID_FROM_NAME` | Fixzit | ⚠️ Recommended |
-| `SENDGRID_REPLY_TO_EMAIL` | support@fixzit.co | ⚠️ Recommended |
-| `SENDGRID_REPLY_TO_NAME` | Fixzit Support | ⚠️ Recommended |
-| `SENDGRID_UNSUBSCRIBE_GROUP_ID` | Your group ID | 📋 Optional |
-| `SENDGRID_IP_POOL_NAME` | Your pool name | 📋 Optional (Enterprise) |
-| `SENDGRID_WEBHOOK_VERIFICATION_KEY` | Your key | ⚠️ Recommended |
-| `SENDGRID_TEMPLATE_WELCOME` | d-abc123... | 📋 Optional |
-| `SENDGRID_TEMPLATE_PASSWORD_RESET` | d-def456... | 📋 Optional |
-| `SENDGRID_TEMPLATE_NOTIFICATION` | d-ghi789... | 📋 Optional |
-| `SENDGRID_TEMPLATE_INVOICE` | d-jkl012... | 📋 Optional |
+| Secret Name                         | Value             | Required                 |
+| ----------------------------------- | ----------------- | ------------------------ |
+| `SENDGRID_API_KEY`                  | Your API key      | ✅ Required              |
+| `SENDGRID_FROM_EMAIL`               | noreply@fixzit.co | ✅ Required              |
+| `SENDGRID_FROM_NAME`                | Fixzit            | ⚠️ Recommended           |
+| `SENDGRID_REPLY_TO_EMAIL`           | support@fixzit.co | ⚠️ Recommended           |
+| `SENDGRID_REPLY_TO_NAME`            | Fixzit Support    | ⚠️ Recommended           |
+| `SENDGRID_UNSUBSCRIBE_GROUP_ID`     | Your group ID     | 📋 Optional              |
+| `SENDGRID_IP_POOL_NAME`             | Your pool name    | 📋 Optional (Enterprise) |
+| `SENDGRID_WEBHOOK_VERIFICATION_KEY` | Your key          | ⚠️ Recommended           |
+| `SENDGRID_TEMPLATE_WELCOME`         | d-abc123...       | 📋 Optional              |
+| `SENDGRID_TEMPLATE_PASSWORD_RESET`  | d-def456...       | 📋 Optional              |
+| `SENDGRID_TEMPLATE_NOTIFICATION`    | d-ghi789...       | 📋 Optional              |
+| `SENDGRID_TEMPLATE_INVOICE`         | d-jkl012...       | 📋 Optional              |
 
 ### Via GitHub CLI
 
@@ -180,8 +184,8 @@ gh secret set SENDGRID_TEMPLATE_WELCOME --body "d-abc123..."
 ### Sending Basic Email
 
 ```typescript
-import sgMail from '@sendgrid/mail';
-import { getSendGridConfig, getBaseEmailOptions } from '@/lib/sendgrid-config';
+import sgMail from "@sendgrid/mail";
+import { getSendGridConfig, getBaseEmailOptions } from "@/lib/sendgrid-config";
 
 const config = getSendGridConfig();
 sgMail.setApiKey(config.apiKey);
@@ -190,34 +194,34 @@ const baseOptions = getBaseEmailOptions();
 
 await sgMail.send({
   ...baseOptions,
-  to: 'user@example.com',
-  subject: 'Welcome to Fixzit',
-  html: '<h1>Welcome!</h1>',
-  text: 'Welcome!',
+  to: "user@example.com",
+  subject: "Welcome to Fixzit",
+  html: "<h1>Welcome!</h1>",
+  text: "Welcome!",
   customArgs: {
-    emailId: 'unique-id',
-    type: 'welcome'
-  }
+    emailId: "unique-id",
+    type: "welcome",
+  },
 });
 ```
 
 ### Using Dynamic Template
 
 ```typescript
-import { getTemplateId } from '@/lib/sendgrid-config';
+import { getTemplateId } from "@/lib/sendgrid-config";
 
-const templateId = getTemplateId('welcome');
+const templateId = getTemplateId("welcome");
 
 if (templateId) {
   await sgMail.send({
     ...baseOptions,
-    to: 'user@example.com',
+    to: "user@example.com",
     templateId,
     dynamicTemplateData: {
-      errorId: 'ERR-123',
-      registrationLink: 'https://...',
-      currentYear: 2025
-    }
+      errorId: "ERR-123",
+      registrationLink: "https://...",
+      currentYear: 2025,
+    },
   });
 }
 ```
@@ -311,6 +315,7 @@ ngrok http 3000
 ### Issue: "Email service not configured"
 
 **Solution**: Ensure `SENDGRID_API_KEY` is set:
+
 ```bash
 echo $SENDGRID_API_KEY
 # Should output: SG.xxx...
@@ -318,7 +323,8 @@ echo $SENDGRID_API_KEY
 
 ### Issue: "Invalid signature" on webhook
 
-**Solution**: 
+**Solution**:
+
 1. Verify `SENDGRID_WEBHOOK_VERIFICATION_KEY` is correct
 2. Check webhook is enabled in SendGrid dashboard
 3. Ensure raw body is used for signature verification
@@ -326,6 +332,7 @@ echo $SENDGRID_API_KEY
 ### Issue: Emails going to spam
 
 **Solution**:
+
 1. Complete domain authentication (SPF, DKIM, DMARC)
 2. Warm up IP addresses gradually
 3. Monitor sender reputation
@@ -335,6 +342,7 @@ echo $SENDGRID_API_KEY
 ### Issue: Template not found
 
 **Solution**:
+
 1. Verify template ID is correct: `d-abc123...`
 2. Check template is active in SendGrid dashboard
 3. Ensure environment variable is set correctly
@@ -384,11 +392,13 @@ echo $SENDGRID_API_KEY
 ## Upgrade Path
 
 ### Trial Account Limitations
+
 - 100 emails/day
 - Expires: Check your account
 - No dedicated IPs
 
 ### Production Account
+
 1. Upgrade to Pro or Premier plan
 2. Benefits:
    - Unlimited emails

@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
+import {
+  getSessionUser,
+  UnauthorizedError,
+} from "@/server/middleware/withAuthRbac";
 import { Types } from "mongoose";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
 interface RFQDocument {
   _id: unknown;
@@ -48,7 +51,10 @@ interface RFQDocument {
  *       429:
  *         description: Rate limit exceeded
  */
-export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
@@ -63,20 +69,26 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
     await connectToDatabase();
 
-    const { RFQ } = await import('@/server/models/RFQ');
-    const rfq = (await RFQ.findOneAndUpdate(
+    const { RFQ } = await import("@/server/models/RFQ");
+    const rfq = await RFQ.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId, status: "DRAFT" },
       {
         $set: {
           status: "PUBLISHED",
           "workflow.publishedBy": user.id,
           "workflow.publishedAt": new Date(),
-          "timeline.publishDate": new Date()}},
-      { new: true }
-    ));
+          "timeline.publishDate": new Date(),
+        },
+      },
+      { new: true },
+    );
 
     if (!rfq) {
-      return createSecureResponse({ error: "RFQ not found or already published" }, 404, req);
+      return createSecureResponse(
+        { error: "RFQ not found or already published" },
+        404,
+        req,
+      );
     }
 
     // Vendor notifications sent via background job
@@ -88,8 +100,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         id: rfqTyped._id,
         code: rfqTyped.code,
         status: rfqTyped.status,
-        publishedAt: rfqTyped.workflow?.publishedAt || null
-      }
+        publishedAt: rfqTyped.workflow?.publishedAt || null,
+      },
     });
   } catch (error: unknown) {
     if (error instanceof UnauthorizedError) {

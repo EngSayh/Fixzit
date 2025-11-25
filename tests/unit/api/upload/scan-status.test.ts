@@ -30,6 +30,7 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 import { GET, POST } from '@/app/api/upload/scan-status/route';
+import { makeGetRequest, makePostRequest } from '@/tests/helpers/request';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { rateLimit } from '@/server/security/rateLimit';
@@ -86,7 +87,7 @@ describe('GET /api/upload/scan-status', () => {
     const req = createRequest('https://test.com/api/upload/scan-status?key=token-file', {
       'x-scan-token': 'secret',
     });
-    const res = await GET(req as any);
+    const res = await GET(req);
 
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -260,17 +261,7 @@ describe('POST /api/upload/scan-status', () => {
 });
 
 // Helper functions
-function createRequest(url: string, headers: Record<string, string> = {}) {
-  return new Request(url, { headers });
-}
+const createRequest = (url: string, headers: Record<string, string> = {}) => makeGetRequest(url, headers);
 
-function createPostRequest(body: Record<string, unknown>, headers: Record<string, string> = {}) {
-  return new Request('https://test.com/api/upload/scan-status', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      ...headers,
-    },
-    body: JSON.stringify(body),
-  });
-}
+const createPostRequest = (body: Record<string, unknown>, headers: Record<string, string> = {}) =>
+  makePostRequest('https://test.com/api/upload/scan-status', body, headers);

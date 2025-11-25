@@ -1,30 +1,30 @@
-import type { WorkOrderPriority, WorkOrderStatus } from './work-orders';
+import type { WorkOrderPriority, WorkOrderStatus } from "./work-orders";
 
 export type PropertyType =
-  | 'residential'
-  | 'commercial'
-  | 'mixed'
-  | 'industrial'
-  | 'hospitality'
-  | 'retail';
+  | "residential"
+  | "commercial"
+  | "mixed"
+  | "industrial"
+  | "hospitality"
+  | "retail";
 
 export type PropertyStatus =
-  | 'active'
-  | 'maintenance'
-  | 'vacant'
-  | 'archived'
-  | 'under_construction'
-  | 'planned';
+  | "active"
+  | "maintenance"
+  | "vacant"
+  | "archived"
+  | "under_construction"
+  | "planned";
 
 export type UnitStatus =
-  | 'occupied'
-  | 'vacant'
-  | 'reserved'
-  | 'maintenance'
-  | 'under_renovation'
-  | 'offline';
+  | "occupied"
+  | "vacant"
+  | "reserved"
+  | "maintenance"
+  | "under_renovation"
+  | "offline";
 
-export type TenantStatus = 'active' | 'inactive' | 'delinquent' | 'prospect';
+export type TenantStatus = "active" | "inactive" | "delinquent" | "prospect";
 
 export interface PropertyWorkOrderSummary {
   id: string;
@@ -86,16 +86,16 @@ export interface Tenant {
 }
 
 export type DocumentCategory =
-  | 'lease'
-  | 'insurance'
-  | 'maintenance'
-  | 'compliance'
-  | 'financial'
-  | 'inspection'
-  | 'floorplan'
-  | 'photo'
-  | 'legal'
-  | 'other';
+  | "lease"
+  | "insurance"
+  | "maintenance"
+  | "compliance"
+  | "financial"
+  | "inspection"
+  | "floorplan"
+  | "photo"
+  | "legal"
+  | "other";
 
 export interface PropertyDocument {
   id: string;
@@ -125,9 +125,9 @@ export interface Lease {
   startDate: string;
   endDate: string;
   rentAmount: number;
-  rentFrequency?: 'monthly' | 'quarterly' | 'yearly';
+  rentFrequency?: "monthly" | "quarterly" | "yearly";
   depositAmount?: number;
-  status: 'draft' | 'active' | 'pending' | 'terminated' | 'expired';
+  status: "draft" | "active" | "pending" | "terminated" | "expired";
   noticePeriodDays?: number;
   isAutoRenew?: boolean;
   createdAt?: string;
@@ -211,144 +211,169 @@ export interface PropertyFilters {
   tags?: string[];
 }
 
-export const PROPERTY_TYPE_CONFIG: Record<PropertyType, { label: string; icon: string; color: string; description: string }> = {
+export const PROPERTY_TYPE_CONFIG: Record<
+  PropertyType,
+  { label: string; icon: string; color: string; description: string }
+> = {
   residential: {
-    label: 'Residential',
-    icon: '🏠',
-    color: 'bg-blue-100 text-blue-800',
-    description: 'Apartments, villas, and multi-family properties'
+    label: "Residential",
+    icon: "🏠",
+    color: "bg-blue-100 text-blue-800",
+    description: "Apartments, villas, and multi-family properties",
   },
   commercial: {
-    label: 'Commercial',
-    icon: '🏢',
-    color: 'bg-purple-100 text-purple-800',
-    description: 'Office towers, retail centers, and business parks'
+    label: "Commercial",
+    icon: "🏢",
+    color: "bg-purple-100 text-purple-800",
+    description: "Office towers, retail centers, and business parks",
   },
   mixed: {
-    label: 'Mixed Use',
-    icon: '🏙️',
-    color: 'bg-indigo-100 text-indigo-800',
-    description: 'Properties with combined residential and commercial units'
+    label: "Mixed Use",
+    icon: "🏙️",
+    color: "bg-indigo-100 text-indigo-800",
+    description: "Properties with combined residential and commercial units",
   },
   industrial: {
-    label: 'Industrial',
-    icon: '🏭',
-    color: 'bg-orange-100 text-orange-800',
-    description: 'Warehouses, logistics hubs, and manufacturing facilities'
+    label: "Industrial",
+    icon: "🏭",
+    color: "bg-orange-100 text-orange-800",
+    description: "Warehouses, logistics hubs, and manufacturing facilities",
   },
   hospitality: {
-    label: 'Hospitality',
-    icon: '🏨',
-    color: 'bg-emerald-100 text-emerald-800',
-    description: 'Hotels, serviced apartments, and resorts'
+    label: "Hospitality",
+    icon: "🏨",
+    color: "bg-emerald-100 text-emerald-800",
+    description: "Hotels, serviced apartments, and resorts",
   },
   retail: {
-    label: 'Retail',
-    icon: '🛍️',
-    color: 'bg-pink-100 text-pink-800',
-    description: 'Shopping malls, souqs, and standalone retail stores'
-  }
+    label: "Retail",
+    icon: "🛍️",
+    color: "bg-pink-100 text-pink-800",
+    description: "Shopping malls, souqs, and standalone retail stores",
+  },
 };
 
-export const UNIT_STATUS_CONFIG: Record<UnitStatus, { label: string; icon: string; color: string; bgColor: string; description: string }> = {
+export const UNIT_STATUS_CONFIG: Record<
+  UnitStatus,
+  {
+    label: string;
+    icon: string;
+    color: string;
+    bgColor: string;
+    description: string;
+  }
+> = {
   occupied: {
-    label: 'Occupied',
-    icon: '✅',
-    color: 'text-green-800',
-    bgColor: 'bg-green-100',
-    description: 'Currently leased and occupied'
+    label: "Occupied",
+    icon: "✅",
+    color: "text-green-800",
+    bgColor: "bg-green-100",
+    description: "Currently leased and occupied",
   },
   vacant: {
-    label: 'Vacant',
-    icon: '🟦',
-    color: 'text-blue-800',
-    bgColor: 'bg-blue-100',
-    description: 'Available and ready for leasing'
+    label: "Vacant",
+    icon: "🟦",
+    color: "text-blue-800",
+    bgColor: "bg-blue-100",
+    description: "Available and ready for leasing",
   },
   reserved: {
-    label: 'Reserved',
-    icon: '📌',
-    color: 'text-amber-800',
-    bgColor: 'bg-amber-100',
-    description: 'On hold for an incoming tenant'
+    label: "Reserved",
+    icon: "📌",
+    color: "text-amber-800",
+    bgColor: "bg-amber-100",
+    description: "On hold for an incoming tenant",
   },
   maintenance: {
-    label: 'Maintenance',
-    icon: '🛠️',
-    color: 'text-red-800',
-    bgColor: 'bg-red-100',
-    description: 'Temporarily unavailable due to maintenance'
+    label: "Maintenance",
+    icon: "🛠️",
+    color: "text-red-800",
+    bgColor: "bg-red-100",
+    description: "Temporarily unavailable due to maintenance",
   },
   under_renovation: {
-    label: 'Renovation',
-    icon: '🚧',
-    color: 'text-yellow-800',
-    bgColor: 'bg-yellow-100',
-    description: 'Undergoing upgrades or refurbishment'
+    label: "Renovation",
+    icon: "🚧",
+    color: "text-yellow-800",
+    bgColor: "bg-yellow-100",
+    description: "Undergoing upgrades or refurbishment",
   },
   offline: {
-    label: 'Offline',
-    icon: '⏸️',
-    color: 'text-gray-700',
-    bgColor: 'bg-gray-100',
-    description: 'Temporarily offline or not rentable'
-  }
+    label: "Offline",
+    icon: "⏸️",
+    color: "text-gray-700",
+    bgColor: "bg-gray-100",
+    description: "Temporarily offline or not rentable",
+  },
 };
 
-export const TENANT_STATUS_CONFIG: Record<TenantStatus, { label: string; icon: string; color: string; bgColor: string; description: string }> = {
+export const TENANT_STATUS_CONFIG: Record<
+  TenantStatus,
+  {
+    label: string;
+    icon: string;
+    color: string;
+    bgColor: string;
+    description: string;
+  }
+> = {
   active: {
-    label: 'Active',
-    icon: '🟢',
-    color: 'text-emerald-800',
-    bgColor: 'bg-emerald-100',
-    description: 'Currently occupying a unit and in good standing'
+    label: "Active",
+    icon: "🟢",
+    color: "text-emerald-800",
+    bgColor: "bg-emerald-100",
+    description: "Currently occupying a unit and in good standing",
   },
   inactive: {
-    label: 'Inactive',
-    icon: '⚪',
-    color: 'text-gray-700',
-    bgColor: 'bg-gray-100',
-    description: 'No longer occupying a unit'
+    label: "Inactive",
+    icon: "⚪",
+    color: "text-gray-700",
+    bgColor: "bg-gray-100",
+    description: "No longer occupying a unit",
   },
   delinquent: {
-    label: 'Delinquent',
-    icon: '⚠️',
-    color: 'text-red-800',
-    bgColor: 'bg-red-100',
-    description: 'Outstanding balance requires attention'
+    label: "Delinquent",
+    icon: "⚠️",
+    color: "text-red-800",
+    bgColor: "bg-red-100",
+    description: "Outstanding balance requires attention",
   },
   prospect: {
-    label: 'Prospect',
-    icon: '📝',
-    color: 'text-blue-800',
-    bgColor: 'bg-blue-100',
-    description: 'Lead or application in progress'
-  }
+    label: "Prospect",
+    icon: "📝",
+    color: "text-blue-800",
+    bgColor: "bg-blue-100",
+    description: "Lead or application in progress",
+  },
 };
 
-export const DOCUMENT_CATEGORY_CONFIG: Record<DocumentCategory, { label: string; icon: string }> = {
-  lease: { label: 'Lease Agreements', icon: '📄' },
-  insurance: { label: 'Insurance Policies', icon: '🛡️' },
-  maintenance: { label: 'Maintenance Reports', icon: '🛠️' },
-  compliance: { label: 'Compliance Certificates', icon: '✅' },
-  financial: { label: 'Financial Records', icon: '💰' },
-  inspection: { label: 'Inspection Reports', icon: '📋' },
-  floorplan: { label: 'Floor Plans', icon: '📐' },
-  photo: { label: 'Photos & Media', icon: '📸' },
-  legal: { label: 'Legal Documents', icon: '⚖️' },
-  other: { label: 'Other Documents', icon: '🗂️' }
+export const DOCUMENT_CATEGORY_CONFIG: Record<
+  DocumentCategory,
+  { label: string; icon: string }
+> = {
+  lease: { label: "Lease Agreements", icon: "📄" },
+  insurance: { label: "Insurance Policies", icon: "🛡️" },
+  maintenance: { label: "Maintenance Reports", icon: "🛠️" },
+  compliance: { label: "Compliance Certificates", icon: "✅" },
+  financial: { label: "Financial Records", icon: "💰" },
+  inspection: { label: "Inspection Reports", icon: "📋" },
+  floorplan: { label: "Floor Plans", icon: "📐" },
+  photo: { label: "Photos & Media", icon: "📸" },
+  legal: { label: "Legal Documents", icon: "⚖️" },
+  other: { label: "Other Documents", icon: "🗂️" },
 };
 
-export const VIEW_MODES = ['grid', 'table', 'map'] as const;
+export const VIEW_MODES = ["grid", "table", "map"] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];
 
 export const PROPERTY_SORT_OPTIONS = [
-  { value: 'created_at', label: 'Recently Added' },
-  { value: 'name', label: 'Name (A-Z)' },
-  { value: 'occupancy', label: 'Occupancy Rate' },
-  { value: 'revenue', label: 'Monthly Revenue' },
-  { value: 'units', label: 'Number of Units' },
-  { value: 'status', label: 'Status' }
+  { value: "created_at", label: "Recently Added" },
+  { value: "name", label: "Name (A-Z)" },
+  { value: "occupancy", label: "Occupancy Rate" },
+  { value: "revenue", label: "Monthly Revenue" },
+  { value: "units", label: "Number of Units" },
+  { value: "status", label: "Status" },
 ] as const;
 
-export type PropertySortOption = (typeof PROPERTY_SORT_OPTIONS)[number]['value'];
+export type PropertySortOption =
+  (typeof PROPERTY_SORT_OPTIONS)[number]["value"];

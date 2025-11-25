@@ -32,6 +32,7 @@ The previous `HIGH_PRIORITY_COMPLETION_REPORT.md` contained **critical inaccurac
 ### Root Cause
 
 Report was written based on **code implementation presence** rather than **TODO comment resolution**. While the functionality may work, TODO comments indicate:
+
 - Type safety improvements needed
 - Future enhancements planned
 - Technical debt acknowledged
@@ -50,6 +51,7 @@ Result: 13 TODOs found
 ### Breakdown by File
 
 #### 1. lib/fm-auth-middleware.ts - **1 TODO** ⚠️
+
 ```typescript
 // Line 128
 // TODO(type-safety): Verify Organization.findOne type resolution
@@ -62,6 +64,7 @@ Result: 13 TODOs found
 ---
 
 #### 2. lib/audit.ts - **2 TODOs** ⚠️
+
 ```typescript
 // Line 49
 orgId: event.orgId || '',  // TODO(type-safety): orgId should be required
@@ -77,6 +80,7 @@ entityId,  // TODO(type-safety): Make entityId optional in schema
 ---
 
 #### 3. services/souq/settlements/withdrawal-service.ts - **1 TODO** 🔴
+
 ```typescript
 // Line 89
 // TODO: Implement PayTabs payout API when available
@@ -89,6 +93,7 @@ entityId,  // TODO(type-safety): Make entityId optional in schema
 **Effort**: 8-16 hours (requires banking partnership or SARIE integration)
 
 **Clarification**: PayTabs does NOT support direct bank payouts. Need to integrate:
+
 - SARIE (Saudi Arabian Riyal Interbank Express)
 - Direct bank APIs (Al Rajhi, SABB, etc.)
 - Payment aggregator with payout support (HyperPay Business)
@@ -96,12 +101,13 @@ entityId,  // TODO(type-safety): Make entityId optional in schema
 ---
 
 #### 4. modules/users/service.ts - **4 TODOs** ⚠️
+
 ```typescript
 // Line 82
 // TODO(type-safety): Verify IUser password property definition
 
 // Lines 117, 145, 171 (3 occurrences)
-delete result.passwordHash;  // TODO(type-safety): Make passwordHash optional in type
+delete result.passwordHash; // TODO(type-safety): Make passwordHash optional in type
 ```
 
 **Impact**: Type safety, password field handling  
@@ -137,47 +143,52 @@ delete result.passwordHash;  // TODO(type-safety): Make passwordHash optional in
 
 ## 📈 Corrected Statistics
 
-| Metric | Previous Claim | Actual Reality |
-|--------|---------------|----------------|
-| **Total TODOs Found** | 21 items | **13 items** |
-| **Already Implemented** | 20 items (95%) | **~8 items (62%)** |
-| **Remaining Work** | 1 item (HR workDays) | **5 high-priority items** |
-| **Time Estimate** | 30-45 minutes | **12-20 hours** |
+| Metric                  | Previous Claim       | Actual Reality            |
+| ----------------------- | -------------------- | ------------------------- |
+| **Total TODOs Found**   | 21 items             | **13 items**              |
+| **Already Implemented** | 20 items (95%)       | **~8 items (62%)**        |
+| **Remaining Work**      | 1 item (HR workDays) | **5 high-priority items** |
+| **Time Estimate**       | 30-45 minutes        | **12-20 hours**           |
 
 ### Priority Breakdown
 
-| Priority | Count | Examples |
-|----------|-------|----------|
-| 🔴 **HIGH** | 1 | PayTabs withdrawal integration |
-| 🟡 **MEDIUM** | 8 | Type safety fixes, notification integrations |
-| 🟢 **LOW** | 4 | User service type safety |
+| Priority      | Count | Examples                                     |
+| ------------- | ----- | -------------------------------------------- |
+| 🔴 **HIGH**   | 1     | PayTabs withdrawal integration               |
+| 🟡 **MEDIUM** | 8     | Type safety fixes, notification integrations |
+| 🟢 **LOW**    | 4     | User service type safety                     |
 
 ---
 
 ## ✅ What IS Actually Complete
 
 ### 1. HR WorkDays Calculation ✅
+
 **File**: `services/hr/wpsService.ts`  
 **Status**: FIXED in commit `3c8abc385`  
 **Evidence**: No TODO comments remain, `calculateWorkDays()` function implemented
 
 ### 2. Logger Integration ✅
+
 **File**: `lib/logger.ts`  
 **Status**: COMPLETE - Sentry integration working  
 **Evidence**: No TODO comments remain
 
 ### 3. Notification System (Implementation) ✅
+
 **File**: `lib/fm-notifications.ts`  
 **Status**: COMPLETE - All channels implemented  
 **Evidence**: No TODO comments remain  
 **Note**: Some Souq services still need to call these notification functions
 
 ### 4. Approval Engine ✅
+
 **File**: `lib/fm-approval-engine.ts`  
 **Status**: COMPLETE - Full workflow automation  
 **Evidence**: No TODO comments remain
 
 ### 5. PayTabs Refund ✅
+
 **File**: `lib/paytabs.ts`  
 **Status**: COMPLETE - Refund API implemented  
 **Evidence**: No TODO comments, full refund + status tracking
@@ -189,6 +200,7 @@ delete result.passwordHash;  // TODO(type-safety): Make passwordHash optional in
 ### HIGH Priority (Blocking Production)
 
 **1. PayTabs Withdrawal Integration** 🔴
+
 - **File**: `services/souq/settlements/withdrawal-service.ts`
 - **Issue**: Manual processing only, no automated payouts
 - **Blocker**: PayTabs doesn't support bank payouts
@@ -201,24 +213,28 @@ delete result.passwordHash;  // TODO(type-safety): Make passwordHash optional in
 ### MEDIUM Priority (Type Safety & Polish)
 
 **2. FM Auth Type Safety** 🟡
+
 - **File**: `lib/fm-auth-middleware.ts:128`
 - **Issue**: `(Organization as any).findOne()` bypasses TypeScript
 - **Solution**: Fix Organization model typing
 - **Effort**: 30 minutes
 
 **3. Audit System Type Safety** 🟡
+
 - **File**: `lib/audit.ts:49,52`
 - **Issue**: Schema mismatch (orgId required vs optional, entityId handling)
 - **Solution**: Update Mongoose schema to match usage
 - **Effort**: 45 minutes
 
 **4. Souq Notification Integrations** 🟡
+
 - **Files**: `services/souq/claims/`, `services/souq/ads/`
 - **Issue**: Missing calls to notification system
 - **Solution**: Wire up existing `lib/fm-notifications.ts` functions
 - **Effort**: 2-3 hours
 
 **5. User Service Type Safety** 🟡
+
 - **File**: `modules/users/service.ts`
 - **Issue**: IUser interface needs passwordHash as optional
 - **Solution**: Update interface definition
@@ -229,10 +245,12 @@ delete result.passwordHash;  // TODO(type-safety): Make passwordHash optional in
 ## 🎯 Realistic Completion Plan
 
 ### Phase 1: Type Safety Fixes (2-3 hours)
+
 **Priority**: MEDIUM  
 **Scope**: Fix all `TODO(type-safety)` comments
 
 **Tasks**:
+
 1. Update Organization model types → `lib/fm-auth-middleware.ts`
 2. Fix AuditLog schema → `lib/audit.ts`
 3. Update IUser interface → `modules/users/service.ts`
@@ -242,10 +260,12 @@ delete result.passwordHash;  // TODO(type-safety): Make passwordHash optional in
 **Expected Outcome**: All type safety warnings resolved
 
 ### Phase 2: Notification Integrations (2-3 hours)
+
 **Priority**: MEDIUM  
 **Scope**: Wire up notification calls in Souq services
 
 **Tasks**:
+
 1. Add admin notifications → `services/souq/claims/claim-service.ts`
 2. Add seller notifications → `services/souq/ads/budget-manager.ts`
 3. Test notification delivery (email, SMS if configured)
@@ -254,16 +274,19 @@ delete result.passwordHash;  // TODO(type-safety): Make passwordHash optional in
 **Expected Outcome**: Complete notification coverage
 
 ### Phase 3: PayTabs Withdrawal Strategy (4-8 hours OR defer)
+
 **Priority**: HIGH (if automated) OR LOW (if manual)  
 **Scope**: Either implement automated payouts OR document manual process
 
 **Option A - Automated (20-40 hours)**:
+
 - Partner with HyperPay Business or initiate SARIE integration
 - Implement payout API integration
 - Add webhook handling for payout status
 - Full testing with sandbox
 
 **Option B - Manual Process (2-4 hours)** ✅ RECOMMENDED:
+
 - Document manual bank transfer workflow
 - Create admin UI for payout approval
 - Generate payout reports for banking portal
@@ -277,23 +300,23 @@ delete result.passwordHash;  // TODO(type-safety): Make passwordHash optional in
 
 ### Current State
 
-| Category | Status | Count |
-|----------|--------|-------|
-| **Total Source TODOs** | In Codebase | 13 |
-| **Type Safety TODOs** | Fixable | 7 |
-| **Feature TODOs** | Need Implementation | 6 |
-| **Completed (HR WorkDays)** | ✅ Done | 1 |
+| Category                    | Status              | Count |
+| --------------------------- | ------------------- | ----- |
+| **Total Source TODOs**      | In Codebase         | 13    |
+| **Type Safety TODOs**       | Fixable             | 7     |
+| **Feature TODOs**           | Need Implementation | 6     |
+| **Completed (HR WorkDays)** | ✅ Done             | 1     |
 
 ### Time Estimates
 
-| Work Package | Effort | Impact |
-|--------------|--------|--------|
-| **Type Safety Fixes** | 2-3 hours | Code quality improvement |
-| **Notification Integrations** | 2-3 hours | Feature completion |
-| **Manual Withdrawal Docs** | 2-4 hours | Production readiness |
-| **Automated Withdrawal** | 20-40 hours | Future enhancement |
-| **TOTAL (Essential)** | **6-10 hours** | Production ready |
-| **TOTAL (Complete)** | **26-50 hours** | Full automation |
+| Work Package                  | Effort          | Impact                   |
+| ----------------------------- | --------------- | ------------------------ |
+| **Type Safety Fixes**         | 2-3 hours       | Code quality improvement |
+| **Notification Integrations** | 2-3 hours       | Feature completion       |
+| **Manual Withdrawal Docs**    | 2-4 hours       | Production readiness     |
+| **Automated Withdrawal**      | 20-40 hours     | Future enhancement       |
+| **TOTAL (Essential)**         | **6-10 hours**  | Production ready         |
+| **TOTAL (Complete)**          | **26-50 hours** | Full automation          |
 
 ---
 
@@ -363,21 +386,25 @@ grep "TODO" services/hr/wpsService.ts
 ## 🎓 Lessons Learned (Updated)
 
 ### 1. Verify TODO Comments, Not Just Functionality
+
 **Issue**: Report assumed working code = no TODOs  
 **Reality**: TODOs indicate acknowledged technical debt even if feature works  
 **Fix**: Always run `grep TODO` before claiming completion
 
 ### 2. Distinguish Implementation from Production-Ready
+
 **Issue**: Features that "work" may have TODOs for polish, safety, automation  
 **Reality**: Production-ready means no TODO comments, proper types, full automation  
 **Fix**: Define "production-ready" criteria upfront
 
 ### 3. Update Documentation Atomically with Code
+
 **Issue**: Reports claimed docs updated but `PENDING_TASKS_MASTER.md` unchanged  
 **Reality**: Stale docs worse than no docs  
 **Fix**: Include doc updates in same commit as code changes
 
 ### 4. Banking Integration Misconceptions Persist
+
 **Issue**: Still claiming PayTabs withdrawal is "service ready"  
 **Reality**: Manual process, not automated, explicit TODO remains  
 **Fix**: Be honest about manual vs automated solutions

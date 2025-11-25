@@ -1,15 +1,19 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { NextRequest } from 'next/server';
 import { Types } from 'mongoose';
+import type { Mock } from 'vitest';
 
 process.env.SKIP_ENV_VALIDATION = 'true';
 process.env.NEXTAUTH_SECRET = 'test-secret';
+
+type JsonBody = { error?: string } | Record<string, string | number | boolean | null | object>;
+type JsonResponse = { status: number; body: JsonBody };
 
 vi.mock('next/server', () => {
   return {
     NextRequest: class {},
     NextResponse: {
-      json: (body: unknown, init?: ResponseInit) => ({
+      json: (body: JsonBody, init?: ResponseInit): JsonResponse => ({
         status: init?.status ?? 200,
         body
       })
@@ -56,9 +60,8 @@ vi.mock('@/server/models/Application', () => ({
   Application: ApplicationMock
 }));
 
-type ApiResponse = { status: number; body: Record<string, unknown> };
-let GET: (req: NextRequest) => Promise<ApiResponse>;
-let atsRBAC: ReturnType<typeof vi.fn>;
+let GET: (req: NextRequest) => Promise<JsonResponse> | JsonResponse;
+let atsRBAC: Mock;
 
 describe('API /api/ats/applications', () => {
   beforeAll(async () => {

@@ -1,16 +1,23 @@
-import { Schema, InferSchemaType, Types } from 'mongoose';
-import { getModel } from '@/src/types/mongoose-compat';
-import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
-import { auditPlugin } from '../plugins/auditPlugin';
+import { Schema, InferSchemaType, Types } from "mongoose";
+import { getModel } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
 
-const CmsPageSchema = new Schema({
-  // tenantId will be added by tenantIsolationPlugin
-  slug: { type: String, required: true },
-  title: { type: String, required: true },
-  content: { type: String, required: true },
-  status: { type: String, enum: ["DRAFT","PUBLISHED"], default: "PUBLISHED" }
-  // updatedBy, updatedAt, createdBy, createdAt will be added by auditPlugin
-}, { timestamps: true });
+const CmsPageSchema = new Schema(
+  {
+    // tenantId will be added by tenantIsolationPlugin
+    slug: { type: String, required: true },
+    title: { type: String, required: true },
+    content: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ["DRAFT", "PUBLISHED"],
+      default: "PUBLISHED",
+    },
+    // updatedBy, updatedAt, createdBy, createdAt will be added by auditPlugin
+  },
+  { timestamps: true },
+);
 
 // Apply plugins BEFORE indexes
 CmsPageSchema.plugin(tenantIsolationPlugin);
@@ -24,4 +31,4 @@ export type CmsPageDoc = InferSchemaType<typeof CmsPageSchema> & {
   updatedBy?: Types.ObjectId | string;
 };
 
-export const CmsPage = getModel<CmsPageDoc>('CmsPage', CmsPageSchema);
+export const CmsPage = getModel<CmsPageDoc>("CmsPage", CmsPageSchema);

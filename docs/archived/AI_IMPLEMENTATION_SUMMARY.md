@@ -9,6 +9,7 @@
 ## 🎯 Executive Summary
 
 Successfully implemented comprehensive AI assistant enhancements for Fixzit platform, including:
+
 - **Voice Input** (Web Speech API with EN/AR support)
 - **Sentiment Detection** (auto-escalation for frustrated users)
 - **Apartment Search** (Aqar marketplace integration with guest-safe filtering)
@@ -22,14 +23,17 @@ All enhancements maintain backward compatibility with existing 687-line CopilotW
 ## 📦 New Files Created
 
 ### 1. **server/copilot/classifier.ts** (219 lines)
+
 **Purpose**: Intent classification and sentiment detection  
 **Features**:
+
 - 10 intent types: GENERAL, PERSONAL, APARTMENT_SEARCH, DISPATCH, UPLOAD_PHOTO, APPROVE_QUOTATION, OWNER_STATEMENTS, SCHEDULE_VISIT, CREATE_WORK_ORDER, LIST_MY_TICKETS
 - Multilingual pattern matching (EN/AR)
 - Sentiment scoring (negative/neutral/positive)
 - Apartment search parameter extraction (bedrooms, city, price, furnished)
 
 **Key Functions**:
+
 ```typescript
 export function classifyIntent(text: string, locale: 'en' | 'ar'): Intent
 export function detectSentiment(text: string): 'negative' | 'neutral' | 'positive'
@@ -37,6 +41,7 @@ export function extractApartmentSearchParams(text: string, locale: 'en' | 'ar'):
 ```
 
 **Intent Detection Examples**:
+
 - "Search 2BR in Riyadh" → APARTMENT_SEARCH
 - "Show my work orders" → LIST_MY_TICKETS
 - "Dispatch to technician" → DISPATCH
@@ -45,8 +50,10 @@ export function extractApartmentSearchParams(text: string, locale: 'en' | 'ar'):
 ---
 
 ### 2. **server/copilot/apartmentSearch.ts** (310 lines)
+
 **Purpose**: Guest-safe property/unit search with RBAC  
 **Features**:
+
 - MongoDB queries for Properties collection
 - Multi-tenancy: orgId isolation + public advertisements
 - Guest filtering: Only shows listings with active advertisementId
@@ -56,35 +63,47 @@ export function extractApartmentSearchParams(text: string, locale: 'en' | 'ar'):
 - Localized results formatting (EN/AR)
 
 **Key Functions**:
+
 ```typescript
-export async function searchAvailableUnits(query: string, context: SessionContext): Promise<ApartmentSearchResult[]>
-export function formatApartmentResults(results: ApartmentSearchResult[], locale: 'en' | 'ar'): string
+export async function searchAvailableUnits(
+  query: string,
+  context: SessionContext,
+): Promise<ApartmentSearchResult[]>;
+export function formatApartmentResults(
+  results: ApartmentSearchResult[],
+  locale: "en" | "ar",
+): string;
 ```
 
 **MongoDB Filter Logic**:
+
 ```typescript
 // Guest: public listings only
 filter = {
   isDeleted: { $ne: true },
   status: { $in: ["VACANT", "ACTIVE"] },
   "ownerPortal.currentAdvertisementId": { $exists: true, $ne: null },
-  "ownerPortal.advertisementExpiry": { $gte: new Date() }
-}
+  "ownerPortal.advertisementExpiry": { $gte: new Date() },
+};
 
 // Authenticated: org properties + public
 filter = {
   $or: [
     { orgId: context.orgId },
-    { /* public filter */ }
-  ]
-}
+    {
+      /* public filter */
+    },
+  ],
+};
 ```
 
 ---
 
 ### 3. **scripts/ai/systemScan.ts** (165 lines)
+
 **Purpose**: Automated PDF ingestion for ai_kb  
 **Features**:
+
 - PDF parsing with pdf-parse
 - Text chunking: 1000 chars per chunk, 200 char overlap
 - MD5 hash change detection (incremental updates)
@@ -93,14 +112,16 @@ filter = {
 - Populates ai_kb MongoDB collection
 
 **Supported Documents**:
+
 1. Monday options and workflow and system structure.pdf
 2. Fixizit Blue Print.pdf
 3. Targeted software layout for FM moduel.pdf
 4. Fixizit Blueprint Bible – vFinal.pdf
-5. Fixizit Facility Management Platform_ Complete Implementation Guide.pdf
+5. Fixizit Facility Management Platform\_ Complete Implementation Guide.pdf
 6. Fixzit_Master_Design_System.pdf
 
 **Usage**:
+
 ```bash
 # One-time scan
 pnpm tsx scripts/ai/systemScan.ts
@@ -112,8 +133,10 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
 ---
 
 ### 4. **tests/copilot/copilot.spec.ts** (368 lines)
+
 **Purpose**: STRICT v4 compliance test suite  
 **Coverage**:
+
 - 6 roles × 6 intents = 36 test scenarios
 - Cross-tenant isolation (RBAC)
 - Layout preservation (overlay-only)
@@ -124,12 +147,14 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
 - Error handling (offline/network)
 
 **HFV Evidence**:
+
 - Screenshots (before/after)
 - Console logs (JSON format)
 - Network traces
 - Saved to `_artifacts/copilot-tests/{test-name}/`
 
 **Test Matrix**:
+
 ```
 Roles:     GUEST, TENANT, TECHNICIAN, PROPERTY_OWNER, FINANCE, SUPER_ADMIN
 Intents:   GENERAL, PERSONAL, APARTMENT_SEARCH, DISPATCH, APPROVE_QUOTATION, OWNER_STATEMENTS
@@ -141,7 +166,9 @@ Tests:     Layout, RBAC, Intent, Apartment, Voice, Sentiment, RTL, Design, Error
 ## 🔧 Enhanced Files
 
 ### 1. **components/CopilotWidget.tsx** (+43 lines)
+
 **Changes**:
+
 - ✅ Added Web Speech API integration
 - ✅ Voice button with pulsing animation when listening
 - ✅ Multilingual voice recognition (ar-SA, en-US)
@@ -150,19 +177,26 @@ Tests:     Layout, RBAC, Intent, Apartment, Voice, Sentiment, RTL, Design, Error
 - ✅ SpeechRecognition type declarations
 
 **New State Variables**:
+
 ```typescript
 const [isListening, setIsListening] = useState(false);
-const recognitionRef = useRef<{ start: () => void; stop: () => void; lang: string } | null>(null);
+const recognitionRef = useRef<{
+  start: () => void;
+  stop: () => void;
+  lang: string;
+} | null>(null);
 ```
 
 **Voice Input Setup**:
+
 ```typescript
 useEffect(() => {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) return;
-  
+
   const recognition = new SpeechRecognition();
-  recognition.lang = locale === 'ar' ? 'ar-SA' : 'en-US';
+  recognition.lang = locale === "ar" ? "ar-SA" : "en-US";
   recognition.onresult = (event) => {
     setInput(event.results[0][0].transcript);
     setIsListening(false);
@@ -172,12 +206,15 @@ useEffect(() => {
 ```
 
 **Sentiment Detection**:
+
 ```typescript
-const negativePhrases = /(frustrated|angry|problem|issue|bad|worst|not working|broken|terrible)/i;
+const negativePhrases =
+  /(frustrated|angry|problem|issue|bad|worst|not working|broken|terrible)/i;
 if (negativePhrases.test(input)) {
-  const escalationHint = locale === 'ar' 
-    ? 'يبدو أنك تواجه مشكلة. يمكنني مساعدتك...'
-    : 'You seem frustrated. I can help create a priority support ticket...';
+  const escalationHint =
+    locale === "ar"
+      ? "يبدو أنك تواجه مشكلة. يمكنني مساعدتك..."
+      : "You seem frustrated. I can help create a priority support ticket...";
   setTimeout(() => appendAssistantMessage(escalationHint), 500);
 }
 ```
@@ -185,7 +222,9 @@ if (negativePhrases.test(input)) {
 ---
 
 ### 2. **app/api/copilot/chat/route.ts** (+22 lines)
+
 **Changes**:
+
 - ✅ Imported classifier and apartmentSearch modules
 - ✅ Added intent classification before tool detection
 - ✅ Added sentiment detection with logging
@@ -193,18 +232,22 @@ if (negativePhrases.test(input)) {
 - ✅ Analytics tracking for negative sentiment
 
 **New Flow**:
+
 ```typescript
 // 1. Classify intent
 const intent = classifyIntent(message, locale);
 const sentiment = detectSentiment(message);
 
 // 2. Log negative sentiment for analytics
-if (sentiment === 'negative') {
-  logger.warn('[copilot] Negative sentiment detected', { userId, message: message.slice(0, 100) });
+if (sentiment === "negative") {
+  logger.warn("[copilot] Negative sentiment detected", {
+    userId,
+    message: message.slice(0, 100),
+  });
 }
 
 // 3. Handle apartment search
-if (intent === 'APARTMENT_SEARCH') {
+if (intent === "APARTMENT_SEARCH") {
   const units = await searchAvailableUnits(message, context);
   const reply = formatApartmentResults(units, locale);
   return NextResponse.json({ reply, intent, data: { units } });
@@ -216,21 +259,31 @@ if (intent === 'APARTMENT_SEARCH') {
 ---
 
 ### 3. **server/copilot/policy.ts** (+6 patterns, +2 redaction rules)
+
 **Changes**:
+
 - ✅ Enhanced RESTRICTED_PATTERNS with Arabic keywords
 - ✅ Added Saudi PII redaction (national ID, iqama)
 - ✅ Added apartment search public classification
 
 **New Patterns**:
+
 ```typescript
 RESTRICTED_PATTERNS = [
   // Existing patterns...
-  { pattern: /(iqama|residence permit|national id|passport|civil id)/i, dataClass: "SENSITIVE" },
-  { pattern: /(apartment|flat|unit|studio|property for rent)/i, dataClass: "PUBLIC" },
+  {
+    pattern: /(iqama|residence permit|national id|passport|civil id)/i,
+    dataClass: "SENSITIVE",
+  },
+  {
+    pattern: /(apartment|flat|unit|studio|property for rent)/i,
+    dataClass: "PUBLIC",
+  },
 ];
 ```
 
 **Enhanced Redaction**:
+
 ```typescript
 const SAUDI_ID_REGEX = /\b[12]\d{9}\b/g; // 10 digits starting with 1 or 2
 const IQAMA_REGEX = /\b\d{10}\b/g;
@@ -248,8 +301,10 @@ export function redactSensitiveText(input: string): string {
 ---
 
 ### 4. **src/types/copilot.ts** (consolidated)
+
 **Purpose**: Centralized type definitions  
 **Types Added**:
+
 - `Intent` (10 types)
 - `ApartmentSearchResult` (guest-safe fields)
 - `AIAssistantEnhancement` (status tracking)
@@ -260,23 +315,26 @@ export function redactSensitiveText(input: string): string {
 ## 📊 Statistics
 
 ### Lines of Code
-| File | Lines | Purpose |
-|------|-------|---------|
-| server/copilot/classifier.ts | 219 | Intent & sentiment |
-| server/copilot/apartmentSearch.ts | 310 | Property search |
-| scripts/ai/systemScan.ts | 165 | PDF ingestion |
-| tests/copilot/copilot.spec.ts | 368 | STRICT v4 tests |
-| components/CopilotWidget.tsx | +43 | Voice & sentiment |
-| app/api/copilot/chat/route.ts | +22 | Intent routing |
-| server/copilot/policy.ts | +18 | Arabic patterns |
-| **Total New** | **1,145** | |
+
+| File                              | Lines     | Purpose            |
+| --------------------------------- | --------- | ------------------ |
+| server/copilot/classifier.ts      | 219       | Intent & sentiment |
+| server/copilot/apartmentSearch.ts | 310       | Property search    |
+| scripts/ai/systemScan.ts          | 165       | PDF ingestion      |
+| tests/copilot/copilot.spec.ts     | 368       | STRICT v4 tests    |
+| components/CopilotWidget.tsx      | +43       | Voice & sentiment  |
+| app/api/copilot/chat/route.ts     | +22       | Intent routing     |
+| server/copilot/policy.ts          | +18       | Arabic patterns    |
+| **Total New**                     | **1,145** |                    |
 
 ### Test Coverage
+
 - **Test Scenarios**: 36 (6 roles × 6 intents)
 - **Test Categories**: 9 (Layout, RBAC, Intent, Apartment, Voice, Sentiment, RTL, Design, Error)
 - **HFV Evidence Files**: ~72 (screenshots, logs per test)
 
 ### Dependencies
+
 - **Added**: pdf-parse@2.4.5, node-cron (via package.json)
 - **Peer Warnings**: gcp-metadata, yaml (non-critical, documented)
 
@@ -285,17 +343,20 @@ export function redactSensitiveText(input: string): string {
 ## 🎨 Design System Compliance
 
 ### Colors
-| Token | Hex | Usage |
-|-------|-----|-------|
-| Primary (FM Blue) | #0061A8 | FAB button, focus rings |
-| Secondary (Marketplace Green) | #00A859 | Send button |
-| Accent (Warning Yellow) | #FFB400 | Voice button (listening) |
+
+| Token                         | Hex     | Usage                    |
+| ----------------------------- | ------- | ------------------------ |
+| Primary (FM Blue)             | #0061A8 | FAB button, focus rings  |
+| Secondary (Marketplace Green) | #00A859 | Send button              |
+| Accent (Warning Yellow)       | #FFB400 | Voice button (listening) |
 
 ### Typography
+
 - **Font Stack**: Inter, Nunito Sans (via existing CSS)
 - **RTL Support**: `dir="rtl"` for Arabic, text-align: right
 
 ### Spacing
+
 - **Padding**: 24-32px (Design System p2)
 - **Button Size**: h-10 w-10 (40px square)
 - **Border Radius**: rounded-full (50%), rounded-2xl (16px)
@@ -305,16 +366,19 @@ export function redactSensitiveText(input: string): string {
 ## 🔒 Security & Privacy
 
 ### Multi-Tenancy
+
 - ✅ **orgId isolation**: All queries filtered by orgId
 - ✅ **Cross-tenant rejection**: Queries for other tenants blocked
 - ✅ **Public/private separation**: Guests see only public listings
 
 ### RBAC Enforcement
+
 - ✅ **16 roles**: From SUPER_ADMIN to GUEST
 - ✅ **8 data classes**: PUBLIC, TENANT_SCOPED, OWNER_SCOPED, ORG_FINANCIALS, FINANCE, HR, INTERNAL, SENSITIVE
 - ✅ **Tool permissions**: 6 tools with role-based access
 
 ### PII Redaction
+
 - ✅ **Email**: [redacted-email]
 - ✅ **Phone**: [redacted-phone]
 - ✅ **IBAN**: [redacted-iban] (SA\d{2}...)
@@ -322,6 +386,7 @@ export function redactSensitiveText(input: string): string {
 - ✅ **Iqama**: [redacted-id] (\d{10})
 
 ### Guest-Safe Filtering
+
 ```typescript
 // Apartment search results
 {
@@ -337,22 +402,26 @@ export function redactSensitiveText(input: string): string {
 ## 🌍 Internationalization
 
 ### Supported Locales
+
 - **English (en)**: Default, en-US voice
 - **Arabic (ar)**: RTL support, ar-SA voice
 
 ### Voice Recognition
+
 ```typescript
-recognition.lang = locale === 'ar' ? 'ar-SA' : 'en-US';
+recognition.lang = locale === "ar" ? "ar-SA" : "en-US";
 ```
 
 ### Sentiment Phrases
-| English | Arabic |
-|---------|--------|
+
+| English           | Arabic     |
+| ----------------- | ---------- |
 | frustrated, angry | غاضب, محبط |
-| problem, issue | مشكلة, عطل |
-| terrible, worst | سيء, فظيع |
+| problem, issue    | مشكلة, عطل |
+| terrible, worst   | سيء, فظيع  |
 
 ### Escalation Hints
+
 - **EN**: "You seem frustrated. I can help create a priority support ticket or direct you to customer care."
 - **AR**: "يبدو أنك تواجه مشكلة. يمكنني مساعدتك بإنشاء تذكرة دعم عاجلة أو توجيهك إلى خدمة العملاء."
 
@@ -361,6 +430,7 @@ recognition.lang = locale === 'ar' ? 'ar-SA' : 'en-US';
 ## 🧪 Testing Strategy
 
 ### STRICT v4 Compliance
+
 1. **Layout Preservation**: Overlay-only, no base changes
 2. **HFV Evidence**: Screenshots, logs, network traces
 3. **RBAC Enforcement**: Cross-tenant isolation tests
@@ -368,6 +438,7 @@ recognition.lang = locale === 'ar' ? 'ar-SA' : 'en-US';
 5. **Design System**: Color compliance checks
 
 ### Test Execution
+
 ```bash
 # Run all copilot tests
 pnpm playwright test tests/copilot/copilot.spec.ts
@@ -380,6 +451,7 @@ pnpm playwright test tests/copilot/copilot.spec.ts -g "Layout Preservation"
 ```
 
 ### Evidence Structure
+
 ```
 _artifacts/
   copilot-tests/
@@ -398,7 +470,9 @@ _artifacts/
 ## 🚀 Usage Guide
 
 ### 1. Voice Input
+
 **Desktop/Mobile**:
+
 1. Click microphone button in chat input
 2. Speak query (English or Arabic)
 3. Text appears in input field automatically
@@ -407,7 +481,9 @@ _artifacts/
 **Fallback**: If voice unavailable (unsupported browser), button won't show
 
 ### 2. Apartment Search
+
 **Guest Query**:
+
 ```
 "Search 2BR apartments in Riyadh"
 "Find studio for rent in Jeddah"
@@ -415,6 +491,7 @@ _artifacts/
 ```
 
 **Response Format**:
+
 ```
 Found 3 available units:
 
@@ -429,23 +506,29 @@ Found 3 available units:
 ```
 
 ### 3. Sentiment Detection
+
 **Frustrated Query**:
+
 ```
 "This is terrible, the system doesn't work and I'm very frustrated"
 ```
 
 **Auto-Escalation**:
+
 ```
 Assistant: "You seem frustrated. I can help create a priority support ticket or direct you to customer care."
 ```
 
 ### 4. System Scan
+
 **One-Time Scan**:
+
 ```bash
 pnpm tsx scripts/ai/systemScan.ts
 ```
 
 **Daemon Mode (Cron)**:
+
 ```bash
 pnpm tsx scripts/ai/systemScan.ts --daemon
 # Runs nightly at 2 AM, processes new/changed PDFs
@@ -456,6 +539,7 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
 ## 📋 Implementation Checklist
 
 ### Phase 1: Core Modules ✅
+
 - [x] Install dependencies (pdf-parse, node-cron)
 - [x] Create classifier.ts (intent & sentiment)
 - [x] Create apartmentSearch.ts (MongoDB queries)
@@ -463,6 +547,7 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
 - [x] Enhance policy.ts (Arabic patterns, PII redaction)
 
 ### Phase 2: UI Integration ✅
+
 - [x] Add Web Speech API to CopilotWidget
 - [x] Add voice button with listening state
 - [x] Add sentiment detection to sendMessage
@@ -470,6 +555,7 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
 - [x] Test RTL voice button placement
 
 ### Phase 3: API Enhancement ✅
+
 - [x] Integrate classifier into chat route
 - [x] Add apartment search handler
 - [x] Add sentiment logging/analytics
@@ -477,6 +563,7 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
 - [x] Test intent routing
 
 ### Phase 4: Testing ✅
+
 - [x] Create STRICT v4 test suite
 - [x] Implement HFV evidence capture
 - [x] Add role × intent matrix tests
@@ -484,6 +571,7 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
 - [x] Add RTL/design compliance tests
 
 ### Phase 5: Documentation ✅
+
 - [x] Update AI_ASSISTANT_ENHANCEMENT_GUIDE.md
 - [x] Create AI_IMPLEMENTATION_SUMMARY.md (this file)
 - [x] Document usage guide
@@ -523,21 +611,25 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
 ## 🐛 Known Issues & Limitations
 
 ### Voice Input
+
 - **Browser Support**: Chrome/Edge (WebKit), Safari (partial), Firefox (WebSpeech API flag)
 - **Mobile**: iOS Safari requires user gesture, Android Chrome fully supported
 - **Fallback**: Button hidden in unsupported browsers
 
 ### Apartment Search
+
 - **Unit Schema**: Assumes Properties have embedded `units` array
 - **Map Links**: Internal route `/properties/{id}/map` (frontend implementation pending)
 - **Agent Data**: Placeholder (requires population from User collection)
 
 ### System Scan
+
 - **PDF-Only**: .docx files skipped (requires additional library)
 - **Memory**: Large PDFs (>100MB) may OOM (chunking helps)
 - **Cron**: Daemon mode requires process manager (PM2/systemd)
 
 ### Tests
+
 - **Authentication**: Role-specific tests skip in CI (no auth setup)
 - **Headless**: Voice input doesn't work in headless mode (UI tested only)
 - **Artifacts**: Large evidence directory (auto-cleanup recommended)
@@ -547,19 +639,23 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
 ## 📈 Performance Metrics
 
 ### Voice Input
+
 - **Latency**: 1-2s (speech recognition + transcript)
 - **Accuracy**: Varies by accent/noise (Web Speech API limitation)
 
 ### Apartment Search
+
 - **Query Time**: 200-500ms (MongoDB indexed queries)
 - **Result Limit**: 10 units (prevents UI overflow)
 
 ### System Scan
+
 - **PDF Parsing**: 1-5s per PDF (depends on size)
 - **Chunking**: 10-50 chunks per PDF (1000 chars/chunk)
 - **Cron**: 5-30 min nightly (depends on changed PDFs)
 
 ### Tests
+
 - **Suite Runtime**: 3-5 min (full matrix)
 - **HFV Evidence**: 500KB-2MB per test (screenshots, logs)
 
@@ -568,7 +664,9 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
 ## 🎯 Next Steps & Recommendations
 
 ### Immediate (Week 1)
+
 1. **Run System Scan**: Populate ai_kb with Blueprint PDFs
+
    ```bash
    pnpm tsx scripts/ai/systemScan.ts
    ```
@@ -587,6 +685,7 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
    ```
 
 ### Short-Term (Month 1)
+
 1. **Extend Tools**: Add remaining handlers
    - dispatch_work_order (technician assignment)
    - schedule_visit (appointment booking)
@@ -608,6 +707,7 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
    - Nearby amenities
 
 ### Long-Term (Quarter 1)
+
 1. **LLM Integration**: Replace rule-based with GPT-4
    - Centralized LLM service (server/copilot/llm.ts)
    - Streaming responses
@@ -633,28 +733,34 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
 ## 📞 Support & Troubleshooting
 
 ### Voice Input Not Working
+
 **Check**:
+
 1. Browser supports Web Speech API (Chrome/Edge recommended)
 2. Microphone permissions granted
 3. HTTPS (required for security)
 
 **Fix**:
+
 ```javascript
 // Check support
 if (window.SpeechRecognition || window.webkitSpeechRecognition) {
-  console.log('Voice supported');
+  console.log("Voice supported");
 } else {
-  console.log('Voice not supported, button hidden');
+  console.log("Voice not supported, button hidden");
 }
 ```
 
 ### Apartment Search Returns Empty
+
 **Check**:
+
 1. MongoDB has properties with status=VACANT/ACTIVE
 2. Guest users: Properties have `ownerPortal.currentAdvertisementId`
 3. Authenticated users: Properties match orgId
 
 **Fix**:
+
 ```bash
 # Check MongoDB
 mongosh
@@ -663,24 +769,30 @@ db.properties.find({ status: "VACANT" }).limit(5)
 ```
 
 ### System Scan Fails
+
 **Check**:
+
 1. PDFs exist in `docs/` directory
 2. pdf-parse installed (`node_modules/pdf-parse`)
 3. MongoDB connection established
 
 **Fix**:
+
 ```bash
 # Test single PDF
 node -e "const pdf = require('pdf-parse'); const fs = require('fs'); pdf(fs.readFileSync('docs/Fixizit Blue Print.pdf')).then(d => console.log(d.text.slice(0, 100)))"
 ```
 
 ### Tests Fail in CI
+
 **Check**:
+
 1. Playwright installed (`pnpm playwright install`)
 2. Headless mode (voice tests skip automatically)
 3. Authentication mocked (role tests skip if no auth)
 
 **Fix**:
+
 ```bash
 # Install browsers
 pnpm playwright install chromium
@@ -694,6 +806,7 @@ pnpm playwright test --debug tests/copilot/copilot.spec.ts
 ## 🏁 Conclusion
 
 All AI assistant enhancements successfully implemented and tested. The system now includes:
+
 - ✅ **Voice input** for hands-free operation
 - ✅ **Sentiment detection** for auto-escalation
 - ✅ **Apartment search** with RBAC enforcement
@@ -701,6 +814,7 @@ All AI assistant enhancements successfully implemented and tested. The system no
 - ✅ **STRICT v4 tests** with comprehensive HFV evidence
 
 **Production Readiness**: 95%
+
 - Core features: 100% ✅
 - Testing: 90% ✅ (authentication mocking pending)
 - Documentation: 100% ✅

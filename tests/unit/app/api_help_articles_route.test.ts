@@ -8,16 +8,31 @@
 import { vi, describe, test, expect, beforeAll, afterEach } from 'vitest';
 import type { NextRequest } from 'next/server'
 
-let fallbackItems: Array<Record<string, unknown>> = []
+type ArticleDoc = {
+  slug?: string;
+  title?: string;
+  category?: string;
+  status?: string;
+  updatedAt?: string | number | Date | null;
+  [key: string]: string | number | boolean | null | object | undefined;
+};
+
+type ResponseData =
+  | { error: string }
+  | { items: ArticleDoc[]; page: number; limit: number; total: number; hasMore: boolean };
+
+type MockResponse = { __mockResponse: true; status: number; data: ResponseData; headers?: { set: ReturnType<typeof vi.fn> } };
+
+let fallbackItems: ArticleDoc[] = []
 let fallbackTotal = 0
 let activeColl: MockColl | undefined
 
 vi.mock('@/app/api/help/articles/route', () => {
   return {
-    GET: async (req: NextRequest) => {
+    GET: async (req: Pick<NextRequest, 'url'>) => {
       const { getDatabase } = await import('@/lib/mongodb-unified')
       const { NextResponse } = await import('next/server')
-      const url = new URL((req as any).url)
+      const url = new URL(req.url)
       const sp = url.searchParams
       const category = sp.get('category') || undefined
       const rawStatus = sp.get('status')
@@ -51,10 +66,10 @@ vi.mock('@/app/api/help/articles/route', () => {
         await coll.createIndex({ status: 1, updatedAt: -1 })
         await coll.createIndex({ title: 'text', content: 'text', tags: 'text' })
 
-        const baseFilter: Record<string, unknown> = { status }
+        const baseFilter: Record<string, string | object> = { status }
         if (category) baseFilter.category = category
 
-        let items: Array<Record<string, unknown>> = []
+        let items: ArticleDoc[] = []
         let total = 0
 
         if (q) {
@@ -106,7 +121,7 @@ vi.mock('next/server', () => {
     // We only need the type for NextRequest; at runtime, GET only uses req.url, so we pass a minimal object.
     NextRequest: class {},
     NextResponse: {
-      json: vi.fn((data: unknown, init?: ResponseInit) => {
+      json: vi.fn((data: ResponseData, init?: ResponseInit): MockResponse => {
         // Return a plain object that resembles a minimal Response for ease of assertions
         return {
           __mockResponse: true,
@@ -142,7 +157,7 @@ vi.mock('@/server/security/rateLimitKey', () => ({
 }))
 
 vi.mock('@/server/security/headers', () => ({
-  createSecureResponse: (body: unknown, status = 200) => ({
+  createSecureResponse: (body: ResponseData, status = 200): MockResponse => ({
     __mockResponse: true,
     status,
     data: body,
@@ -151,7 +166,7 @@ vi.mock('@/server/security/headers', () => ({
 }))
 
 vi.mock('@/server/utils/errorResponses', () => ({
-  rateLimitError: vi.fn(() => ({
+  rateLimitError: vi.fn((): MockResponse => ({
     __mockResponse: true,
     status: 429,
     data: { error: 'Rate limit exceeded' },
@@ -170,7 +185,7 @@ import * as HelpArticlesRoute from '@/app/api/help/articles/route'
 // Import the route handler under test.
 // Try common Next.js route locations; adjust if your project structure differs.
 
-let GET: (req: NextRequest) => Promise<unknown>
+let GET: (req: NextRequest) => Promise<MockResponse>
 
 // We'll attempt dynamic import paths that are commonly used in Next.js app router.
 // In CI, you likely know the exact path; if different, update this accordingly.
@@ -188,28 +203,30 @@ type MockColl = {
   countDocuments: ReturnType<typeof vi.fn>
 }
 
-function buildMockCursor(items: Array<Record<string, unknown>> = []) {
-  const chain: Record<string, unknown> & {
-    _sortArg?: unknown;
-    _skipArg?: unknown;
-    _limitArg?: unknown;
-    sort: ReturnType<typeof vi.fn>;
-    skip: ReturnType<typeof vi.fn>;
-    limit: ReturnType<typeof vi.fn>;
-    toArray: ReturnType<typeof vi.fn>;
-  } = {
+type CursorChain = {
+  _sortArg?: Record<string, unknown>;
+  _skipArg?: number;
+  _limitArg?: number;
+  sort: ReturnType<typeof vi.fn>;
+  skip: ReturnType<typeof vi.fn>;
+  limit: ReturnType<typeof vi.fn>;
+  toArray: ReturnType<typeof vi.fn>;
+};
+
+function buildMockCursor(items: ArticleDoc[] = []): CursorChain {
+  const chain: CursorChain = {
     _sortArg: undefined,
     _skipArg: undefined,
     _limitArg: undefined,
-    sort: vi.fn(function (this: any, arg: any) {
+    sort: vi.fn(function (this: CursorChain, arg: Record<string, unknown>) {
       chain._sortArg = arg
       return chain
     }),
-    skip: vi.fn(function (this: any, n: number) {
+    skip: vi.fn(function (this: CursorChain, n: number) {
       chain._skipArg = n
       return chain
     }),
-    limit: vi.fn(function (this: any, n: number) {
+    limit: vi.fn(function (this: CursorChain, n: number) {
       chain._limitArg = n
       return chain
     }),
@@ -222,7 +239,7 @@ function setupDbMocks({
   items = [],
   total = 0
 }: {
-  items?: Array<Record<string, unknown>>
+  items?: ArticleDoc[]
   total?: number
 }) {
   const coll: MockColl = {
@@ -243,9 +260,11 @@ function setupDbMocks({
   return { coll, cursor }
 }
 
-function makeReq(url: string): NextRequest {
+type UrlOnlyRequest = Pick<NextRequest, 'url'>
+
+function makeReq(url: string): UrlOnlyRequest {
   // Minimal object satisfying what GET uses (only req.url is accessed)
-  return { url } as Pick<NextRequest, 'url'>
+  return { url }
 }
 
 describe('GET /api/help-articles', () => {
@@ -327,7 +346,7 @@ describe('GET /api/help-articles', () => {
     const q = 'search words'
     const res = await GET(makeReq(`http://localhost/api/help-articles?q=${encodeURIComponent(q)}`))
 
-    const expectedFilter: any = { status: 'PUBLISHED', $text: { $search: q } }
+    const expectedFilter: Record<string, string | object> = { status: 'PUBLISHED', $text: { $search: q } }
     expect(coll.find).toHaveBeenCalledWith(expectedFilter, {
       projection: { score: { $meta: 'textScore' }, slug: 1, title: 1, category: 1, updatedAt: 1 }
     })
