@@ -44,10 +44,13 @@ export async function GET(req: NextRequest) {
     }
     // ... rest of handler with search fallback
   } catch (error: any) {
-    if (error.message?.includes('session') || error.message?.includes('auth')) {
+    if (error.message?.includes("session") || error.message?.includes("auth")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 ```
@@ -113,8 +116,8 @@ Most failures are in **code validation tests** that check:
 
 ```typescript
 // Test checks that page imports getDatabase
-test('imports getDatabase and queries PUBLISHED article', async () => {
-  const pageSource = await readFile('app/help/[slug]/page.tsx');
+test("imports getDatabase and queries PUBLISHED article", async () => {
+  const pageSource = await readFile("app/help/[slug]/page.tsx");
   expect(pageSource).toContain("import { getDatabase }");
   expect(pageSource).toContain("status: 'PUBLISHED'");
 });
@@ -135,17 +138,17 @@ If the actual code uses different patterns, these tests fail even if the app wor
 
 ### Test Categories Breakdown
 
-| Category | Pass | Fail | Total | Notes |
-|----------|------|------|-------|-------|
-| Critical Pages | 4 | 0 | 4 | ✅ All responding |
-| API Health | 0 | 7 | 7 | Checking specific endpoints |
-| Projects API | 7 | 2 | 9 | Auth & search need tweaks |
-| PayTabs Lib | 20 | 0 | 20 | ✅ All fixed |
-| Help Page | 0 | 56 | 56 | Code structure checks |
-| Marketplace | 0 | 49 | 49 | Code structure checks |
-| Guest Browse | 0 | 14 | 14 | Smoke tests |
-| Landing/Login | 0 | 28 | 28 | Smoke tests |
-| Other | 60 | 208 | 268 | Mixed |
+| Category       | Pass | Fail | Total | Notes                       |
+| -------------- | ---- | ---- | ----- | --------------------------- |
+| Critical Pages | 4    | 0    | 4     | ✅ All responding           |
+| API Health     | 0    | 7    | 7     | Checking specific endpoints |
+| Projects API   | 7    | 2    | 9     | Auth & search need tweaks   |
+| PayTabs Lib    | 20   | 0    | 20    | ✅ All fixed                |
+| Help Page      | 0    | 56   | 56    | Code structure checks       |
+| Marketplace    | 0    | 49   | 49    | Code structure checks       |
+| Guest Browse   | 0    | 14   | 14    | Smoke tests                 |
+| Landing/Login  | 0    | 28   | 28    | Smoke tests                 |
+| Other          | 60   | 208  | 268   | Mixed                       |
 
 ## Commits Made
 

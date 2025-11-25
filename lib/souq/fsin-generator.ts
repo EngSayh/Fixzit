@@ -5,8 +5,8 @@
  * @module lib/souq/fsin-generator
  */
 
-import { randomBytes } from 'crypto';
-import { logger } from '@/lib/logger';
+import { randomBytes } from "crypto";
+import { logger } from "@/lib/logger";
 
 export interface FSINMetadata {
   fsin: string;
@@ -20,7 +20,7 @@ export interface FSINMetadata {
  * FSIN Configuration
  */
 const _FSIN_CONFIG = {
-  PREFIX: 'FX', // Fixzit prefix (2 chars)
+  PREFIX: "FX", // Fixzit prefix (2 chars)
   LENGTH: 14, // Total length including check digit
   SEQUENCE_LENGTH: 11, // 11 digits for sequence
   CHECK_DIGIT_LENGTH: 1, // 1 check digit
@@ -39,7 +39,7 @@ function generateSequence(): string {
   // Convert to 11-digit string with leading zeros
   const sequence = (randomNumber % BigInt(10 ** _FSIN_CONFIG.SEQUENCE_LENGTH))
     .toString()
-    .padStart(_FSIN_CONFIG.SEQUENCE_LENGTH, '0');
+    .padStart(_FSIN_CONFIG.SEQUENCE_LENGTH, "0");
 
   return sequence;
 }
@@ -82,7 +82,7 @@ function calculateCheckDigit(digits: string): number {
  */
 export function validateFSIN(fsin: string): boolean {
   // Remove any whitespace or dashes
-  const cleaned = fsin.replace(/[\s-]/g, '');
+  const cleaned = fsin.replace(/[\s-]/g, "");
 
   // Check length
   if (cleaned.length !== _FSIN_CONFIG.LENGTH) {
@@ -153,7 +153,9 @@ export function generateFSINBatch(count: number): FSINMetadata[] {
   }
 
   if (attempts >= maxAttempts) {
-    throw new Error(`Failed to generate ${count} unique FSINs after ${maxAttempts} attempts`);
+    throw new Error(
+      `Failed to generate ${count} unique FSINs after ${maxAttempts} attempts`,
+    );
   }
 
   return results;
@@ -166,7 +168,7 @@ export function generateFSINBatch(count: number): FSINMetadata[] {
  * @returns Formatted FSIN
  */
 export function formatFSIN(fsin: string): string {
-  const cleaned = fsin.replace(/[\s-]/g, '');
+  const cleaned = fsin.replace(/[\s-]/g, "");
 
   if (cleaned.length !== _FSIN_CONFIG.LENGTH) {
     throw new Error(`Invalid FSIN length: ${cleaned.length}`);
@@ -186,7 +188,7 @@ export function parseFSIN(fsin: string): FSINMetadata | null {
     return null;
   }
 
-  const cleaned = fsin.replace(/[\s-]/g, '');
+  const cleaned = fsin.replace(/[\s-]/g, "");
   const prefix = cleaned.substring(0, _FSIN_CONFIG.PREFIX.length);
   const digitsOnly = cleaned.substring(_FSIN_CONFIG.PREFIX.length);
   const sequence = digitsOnly.substring(0, digitsOnly.length - 1);
@@ -209,7 +211,7 @@ export function parseFSIN(fsin: string): FSINMetadata | null {
  */
 export function generateFSINWithPrefix(customPrefix: string): FSINMetadata {
   if (customPrefix.length !== 2) {
-    throw new Error('Custom prefix must be exactly 2 characters');
+    throw new Error("Custom prefix must be exactly 2 characters");
   }
 
   const sequence = generateSequence();
@@ -234,41 +236,51 @@ export function generateFSINWithPrefix(customPrefix: string): FSINMetadata {
  */
 export async function fsinExists(_fsin: string): Promise<boolean> {
   try {
-    const { SouqProduct } = await import('@/server/models/souq/Product');
-    const { connectDb } = await import('@/lib/mongodb-unified');
-    
+    const { SouqProduct } = await import("@/server/models/souq/Product");
+    const { connectDb } = await import("@/lib/mongodb-unified");
+
     await connectDb();
-    
-    const product = await SouqProduct.findOne({ fsin: _fsin }).select('_id').lean();
+
+    const product = await SouqProduct.findOne({ fsin: _fsin })
+      .select("_id")
+      .lean();
     return !!product;
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
     // ✅ SECURITY FIX: Throw on DB errors to prevent duplicate FSINs during outages
     // If we can't query the DB, we can't guarantee uniqueness - fail hard
-    logger.error('[FSIN] Database lookup failed - cannot verify uniqueness', error as Error, { fsin: _fsin });
-    throw new Error(`FSIN uniqueness check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    logger.error(
+      "[FSIN] Database lookup failed - cannot verify uniqueness",
+      error as Error,
+      { fsin: _fsin },
+    );
+    throw new Error(
+      `FSIN uniqueness check failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
 
 /**
  * Generate unique FSIN with collision detection
  * Retries if FSIN already exists in database
- * 
+ *
  * ⚠️ RACE CONDITION: This check-then-insert pattern is NOT atomic.
  * Two concurrent requests can both pass fsinExists() and insert the same FSIN.
- * 
+ *
  * ✅ REQUIRED FIX: Add unique index on SouqProduct.fsin field:
  *    souqProductSchema.index({ fsin: 1 }, { unique: true });
- * 
+ *
  * Then handle duplicate key errors (code 11000) in product creation:
  *    try { await SouqProduct.create({ fsin, ... }) }
  *    catch (err) { if (err.code === 11000) retry with new FSIN }
- * 
+ *
  * @param maxRetries - Maximum retry attempts (default: 5)
  * @returns Promise<FSINMetadata>
  */
-export async function generateUniqueFSIN(maxRetries = 5): Promise<FSINMetadata> {
+export async function generateUniqueFSIN(
+  maxRetries = 5,
+): Promise<FSINMetadata> {
   let attempts = 0;
 
   while (attempts < maxRetries) {
@@ -284,7 +296,9 @@ export async function generateUniqueFSIN(maxRetries = 5): Promise<FSINMetadata> 
     attempts++;
   }
 
-  throw new Error(`Failed to generate unique FSIN after ${maxRetries} attempts`);
+  throw new Error(
+    `Failed to generate unique FSIN after ${maxRetries} attempts`,
+  );
 }
 
 // Export for testing

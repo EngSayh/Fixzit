@@ -1,11 +1,11 @@
-import { NextRequest} from 'next/server';
-import { dbConnect } from '@/db/mongoose';
-import { quotePrice } from '@/lib/finance/pricing';
+import { NextRequest } from "next/server";
+import { dbConnect } from "@/db/mongoose";
+import { quotePrice } from "@/lib/finance/pricing";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
 
 /**
  * @openapi
@@ -39,19 +39,19 @@ export async function POST(req: NextRequest) {
 
   const seatCount = Number(seats);
   if (!Number.isFinite(seatCount) || seatCount <= 0) {
-    return createSecureResponse({ error: 'INVALID_SEAT_COUNT' }, 400, req);
+    return createSecureResponse({ error: "INVALID_SEAT_COUNT" }, 400, req);
   }
 
   if (!Array.isArray(modules) || modules.length === 0) {
-    return createSecureResponse({ error: 'MODULES_REQUIRED' }, 400, req);
+    return createSecureResponse({ error: "MODULES_REQUIRED" }, 400, req);
   }
 
   const quote = await quotePrice({
-    priceBookCurrency: currency ?? 'USD',
+    priceBookCurrency: currency ?? "USD",
     seats: seatCount,
     modules,
-    billingCycle: billingCycle === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY'});
+    billingCycle: billingCycle === "ANNUAL" ? "ANNUAL" : "MONTHLY",
+  });
 
   return createSecureResponse(quote, 200, req);
 }
-

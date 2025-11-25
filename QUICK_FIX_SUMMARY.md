@@ -5,6 +5,7 @@
 **Error**: "No Next.js version detected"
 
 **Root Cause**: Your project has a **nested structure**:
+
 - Vercel is building at: `/Fixzit/` (parent folder)
 - Your Next.js app is in: `/Fixzit/Fixzit/` (subfolder)
 
@@ -35,8 +36,9 @@
 **Find**: "Build & Development Settings"
 
 **Set**:
+
 - Build Command: (leave empty or `pnpm build`)
-- Install Command: (leave empty or `pnpm install`)  
+- Install Command: (leave empty or `pnpm install`)
 - Output Directory: (leave empty)
 
 **Why**: Let Vercel auto-detect everything. It's smarter than custom commands.
@@ -50,6 +52,7 @@
 **Navigate**: Fixzit Project → Security → Network Access
 
 **Add IP Address**:
+
 - IP: `0.0.0.0/0`
 - Description: `Vercel Deployment Access`
 
@@ -62,6 +65,7 @@
 ### 4️⃣ Deploy!
 
 **Option A - Dashboard (Easiest)**:
+
 - Go to: https://vercel.com/fixzit/fixzit
 - Click: **"Deployments"** tab
 - Click: **"Deploy"** button
@@ -69,6 +73,7 @@
 - Watch it build! ✅
 
 **Option B - CLI**:
+
 ```bash
 cd /Users/eng.sultanalhassni/Downloads/Fixzit
 vercel --cwd Fixzit --prod --yes
@@ -79,6 +84,7 @@ vercel --cwd Fixzit --prod --yes
 ## 🎉 EXPECTED RESULTS
 
 **During Build** (2-4 minutes):
+
 ```
 ✅ Installing dependencies...
 ✅ Detected Next.js 15.5.6  ← This is the key!
@@ -88,6 +94,7 @@ vercel --cwd Fixzit --prod --yes
 ```
 
 **After Deployment**:
+
 - ✅ https://fixzit.co loads successfully
 - ✅ No "Loading..." stuck screen
 - ✅ No MongoDB connection errors
@@ -108,6 +115,7 @@ vercel --cwd Fixzit --prod --yes
 **Scenario 3**: Build succeeds but site doesn't load
 
 → **Fix**: Check Vercel logs:
+
 ```bash
 vercel logs https://fixzit.co --follow
 ```
@@ -120,7 +128,7 @@ vercel logs https://fixzit.co --follow
 ✅ **Git Integration**: Connected to EngSayh/Fixzit  
 ✅ **Package.json**: Has next@15.5.6  
 ❌ **Root Directory**: Currently set to parent (needs fix)  
-❓ **Atlas IP Allowlist**: Needs verification  
+❓ **Atlas IP Allowlist**: Needs verification
 
 ---
 

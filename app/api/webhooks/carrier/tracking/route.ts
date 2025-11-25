@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { fulfillmentService } from '@/services/souq/fulfillment-service';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { fulfillmentService } from "@/services/souq/fulfillment-service";
+import { logger } from "@/lib/logger";
 
 /**
  * POST /api/webhooks/carrier/tracking
@@ -10,13 +10,23 @@ import { logger } from '@/lib/logger';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { carrier, trackingNumber, status: _status, location: _location, timestamp: _timestamp, signature: _signature } = body;
-    
+    const {
+      carrier,
+      trackingNumber,
+      status: _status,
+      location: _location,
+      timestamp: _timestamp,
+      signature: _signature,
+    } = body;
+
     // Validation
     if (!carrier || !trackingNumber) {
-      return NextResponse.json({ 
-        error: 'Missing required fields: carrier, trackingNumber' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "Missing required fields: carrier, trackingNumber",
+        },
+        { status: 400 },
+      );
     }
 
     // Verify webhook signature (in production)
@@ -28,18 +38,20 @@ export async function POST(request: NextRequest) {
     // Update tracking
     await fulfillmentService.updateTracking(trackingNumber, carrier);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      message: 'Tracking updated successfully',
-      trackingNumber
+      message: "Tracking updated successfully",
+      trackingNumber,
     });
-
   } catch (error) {
-    logger.error('Webhook tracking update error', { error });
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    logger.error("Webhook tracking update error", { error });
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }
 
@@ -48,9 +60,9 @@ export async function POST(request: NextRequest) {
  * Health check endpoint
  */
 export async function GET() {
-  return NextResponse.json({ 
-    status: 'ok',
-    service: 'carrier-tracking-webhook',
-    timestamp: new Date().toISOString()
+  return NextResponse.json({
+    status: "ok",
+    service: "carrier-tracking-webhook",
+    timestamp: new Date().toISOString(),
   });
 }

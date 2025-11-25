@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 type BankDetailsFormData = {
   bankName: string;
@@ -26,24 +26,29 @@ interface Props {
 export default function BankDetailsForm({ onSubmit, onBack }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const auto = useAutoTranslator('seller.kyc.bankDetails');
+  const auto = useAutoTranslator("seller.kyc.bankDetails");
   const bankDetailsSchema = useMemo(
     () =>
       z.object({
-        bankName: z.string().min(2, auto('Bank name required', 'validation.bankName')),
+        bankName: z
+          .string()
+          .min(2, auto("Bank name required", "validation.bankName")),
         iban: z
           .string()
           .regex(
             /^SA\d{2}[A-Z0-9]{18}$/,
-            auto('Invalid Saudi IBAN format', 'validation.iban')
+            auto("Invalid Saudi IBAN format", "validation.iban"),
           ),
         accountHolderName: z
           .string()
-          .min(2, auto('Account holder name required', 'validation.accountHolder')),
-        currency: z.string().default('SAR'),
+          .min(
+            2,
+            auto("Account holder name required", "validation.accountHolder"),
+          ),
+        currency: z.string().default("SAR"),
         swiftCode: z.string().optional(),
       }),
-    [auto]
+    [auto],
   );
 
   const {
@@ -53,7 +58,7 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
   } = useForm<BankDetailsFormData>({
     resolver: zodResolver(bankDetailsSchema),
     defaultValues: {
-      currency: 'SAR',
+      currency: "SAR",
     },
   });
 
@@ -64,7 +69,9 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
       await onSubmit(data);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : auto('Failed to submit', 'errors.submit')
+        err instanceof Error
+          ? err.message
+          : auto("Failed to submit", "errors.submit"),
       );
     } finally {
       setSubmitting(false);
@@ -75,12 +82,12 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-4">
-          {auto('Bank Account Details', 'header.title')}
+          {auto("Bank Account Details", "header.title")}
         </h2>
         <p className="text-gray-600 mb-6">
           {auto(
-            'Enter your bank account details for receiving payments. This must match the business name on your CR.',
-            'header.description'
+            "Enter your bank account details for receiving payments. This must match the business name on your CR.",
+            "header.description",
           )}
         </p>
       </div>
@@ -93,16 +100,20 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
 
       <div>
         <Label htmlFor="bankName">
-          {auto('Bank Name *', 'fields.bankName.label')}
+          {auto("Bank Name *", "fields.bankName.label")}
         </Label>
-        <select 
+        <select
           id="bankName"
-          {...register('bankName')}
+          {...register("bankName")}
           className="w-full px-3 py-2 border border-gray-300 rounded-md"
         >
-          <option value="">{auto('Select Bank', 'fields.bankName.placeholder')}</option>
+          <option value="">
+            {auto("Select Bank", "fields.bankName.placeholder")}
+          </option>
           <option value="Al Rajhi Bank">Al Rajhi Bank</option>
-          <option value="National Commercial Bank">National Commercial Bank (NCB)</option>
+          <option value="National Commercial Bank">
+            National Commercial Bank (NCB)
+          </option>
           <option value="Riyad Bank">Riyad Bank</option>
           <option value="Samba Financial Group">Samba Financial Group</option>
           <option value="Saudi British Bank">Saudi British Bank (SABB)</option>
@@ -113,84 +124,105 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
           <option value="Arab National Bank">Arab National Bank</option>
         </select>
         {errors.bankName && (
-          <p className="text-sm text-destructive mt-1">{errors.bankName.message}</p>
+          <p className="text-sm text-destructive mt-1">
+            {errors.bankName.message}
+          </p>
         )}
       </div>
 
       <div>
-        <Label htmlFor="iban">{auto('IBAN *', 'fields.iban.label')}</Label>
-        <Input 
+        <Label htmlFor="iban">{auto("IBAN *", "fields.iban.label")}</Label>
+        <Input
           id="iban"
-          {...register('iban')}
-          placeholder={auto('SA0000000000000000000000', 'fields.iban.placeholder')}
+          {...register("iban")}
+          placeholder={auto(
+            "SA0000000000000000000000",
+            "fields.iban.placeholder",
+          )}
           maxLength={24}
         />
         {errors.iban && (
           <p className="text-sm text-destructive mt-1">{errors.iban.message}</p>
         )}
         <p className="text-xs text-gray-500 mt-1">
-          {auto('Format: SA followed by 2 digits and 18 alphanumeric characters', 'fields.iban.helper')}
+          {auto(
+            "Format: SA followed by 2 digits and 18 alphanumeric characters",
+            "fields.iban.helper",
+          )}
         </p>
       </div>
 
       <div>
         <Label htmlFor="accountHolderName">
-          {auto('Account Holder Name *', 'fields.accountHolder.label')}
+          {auto("Account Holder Name *", "fields.accountHolder.label")}
         </Label>
-        <Input 
+        <Input
           id="accountHolderName"
-          {...register('accountHolderName')}
-          placeholder={auto('Must match business name on CR', 'fields.accountHolder.placeholder')}
+          {...register("accountHolderName")}
+          placeholder={auto(
+            "Must match business name on CR",
+            "fields.accountHolder.placeholder",
+          )}
         />
         {errors.accountHolderName && (
-          <p className="text-sm text-destructive mt-1">{errors.accountHolderName.message}</p>
+          <p className="text-sm text-destructive mt-1">
+            {errors.accountHolderName.message}
+          </p>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="currency">{auto('Currency *', 'fields.currency.label')}</Label>
-          <select 
+          <Label htmlFor="currency">
+            {auto("Currency *", "fields.currency.label")}
+          </Label>
+          <select
             id="currency"
-            {...register('currency')}
+            {...register("currency")}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           >
-            <option value="SAR">{auto('SAR - Saudi Riyal', 'fields.currency.sar')}</option>
-            <option value="USD">{auto('USD - US Dollar', 'fields.currency.usd')}</option>
-            <option value="EUR">{auto('EUR - Euro', 'fields.currency.eur')}</option>
+            <option value="SAR">
+              {auto("SAR - Saudi Riyal", "fields.currency.sar")}
+            </option>
+            <option value="USD">
+              {auto("USD - US Dollar", "fields.currency.usd")}
+            </option>
+            <option value="EUR">
+              {auto("EUR - Euro", "fields.currency.eur")}
+            </option>
           </select>
         </div>
 
         <div>
           <Label htmlFor="swiftCode">
-            {auto('SWIFT Code (Optional)', 'fields.swift.label')}
+            {auto("SWIFT Code (Optional)", "fields.swift.label")}
           </Label>
-          <Input 
+          <Input
             id="swiftCode"
-            {...register('swiftCode')}
-            placeholder={auto('ABCDSARI', 'fields.swift.placeholder')}
+            {...register("swiftCode")}
+            placeholder={auto("ABCDSARI", "fields.swift.placeholder")}
           />
         </div>
       </div>
 
       <Alert>
         <AlertDescription>
-          <strong>{auto('Important:', 'alert.title')} </strong>
+          <strong>{auto("Important:", "alert.title")} </strong>
           {auto(
-            'Please ensure your bank account details are accurate. Incorrect information may delay payments.',
-            'alert.message'
+            "Please ensure your bank account details are accurate. Incorrect information may delay payments.",
+            "alert.message",
           )}
         </AlertDescription>
       </Alert>
 
       <div className="flex justify-between pt-4">
         <Button type="button" variant="outline" onClick={onBack}>
-          {auto('Back', 'actions.back')}
+          {auto("Back", "actions.back")}
         </Button>
         <Button type="submit" disabled={submitting}>
           {submitting
-            ? auto('Submitting...', 'actions.submitting')
-            : auto('Submit KYC', 'actions.submit')}
+            ? auto("Submitting...", "actions.submitting")
+            : auto("Submit KYC", "actions.submit")}
         </Button>
       </div>
     </form>

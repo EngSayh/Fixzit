@@ -3,32 +3,32 @@
  * @module server/models/souq/Advertising
  */
 
-import mongoose, { Schema, type Document } from 'mongoose';
-import { getModel } from '@/src/types/mongoose-compat';
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel } from "@/src/types/mongoose-compat";
 
 // Campaign Model
 export interface ICampaign extends Document {
   _id: mongoose.Types.ObjectId;
   campaignId: string;
-  
+
   // Ownership
   sellerId: mongoose.Types.ObjectId;
-  
+
   // Campaign Details
   name: string;
-  type: 'sponsored_products' | 'sponsored_brands' | 'sponsored_display';
-  status: 'draft' | 'active' | 'paused' | 'completed' | 'archived';
-  
+  type: "sponsored_products" | "sponsored_brands" | "sponsored_display";
+  status: "draft" | "active" | "paused" | "completed" | "archived";
+
   // Budget
-  budgetType: 'daily' | 'lifetime';
+  budgetType: "daily" | "lifetime";
   budgetAmount: number;
   budgetSpent: number;
   currency: string;
-  
+
   // Schedule
   startAt: Date;
   endAt?: Date;
-  
+
   // Performance (cached)
   stats: {
     impressions: number;
@@ -37,7 +37,7 @@ export interface ICampaign extends Document {
     conversions: number;
     revenue: number;
   };
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -47,19 +47,19 @@ export interface ICampaign extends Document {
 export interface IAdGroup extends Document {
   _id: mongoose.Types.ObjectId;
   adGroupId: string;
-  
+
   // Campaign reference
   campaignId: mongoose.Types.ObjectId;
   sellerId: mongoose.Types.ObjectId;
-  
+
   // Details
   name: string;
-  status: 'active' | 'paused' | 'archived';
-  
+  status: "active" | "paused" | "archived";
+
   // Bidding
   defaultBid: number; // CPC bid in currency
   maxBid?: number;
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -69,27 +69,27 @@ export interface IAdGroup extends Document {
 export interface IAd extends Document {
   _id: mongoose.Types.ObjectId;
   adId: string;
-  
+
   // References
   adGroupId: mongoose.Types.ObjectId;
   campaignId: mongoose.Types.ObjectId;
   sellerId: mongoose.Types.ObjectId;
-  
+
   // Product reference
   productId: mongoose.Types.ObjectId;
   fsin: string;
-  
+
   // Creative
   headline?: string;
   image?: string;
-  
+
   // Status
-  status: 'active' | 'paused' | 'rejected' | 'archived';
+  status: "active" | "paused" | "rejected" | "archived";
   rejectionReason?: string;
-  
+
   // Quality Score (0-10, higher is better)
   qualityScore: number;
-  
+
   // Performance (cached)
   stats: {
     impressions: number;
@@ -98,7 +98,7 @@ export interface IAd extends Document {
     conversions: number;
     revenue: number;
   };
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -108,31 +108,31 @@ export interface IAd extends Document {
 export interface IAdTarget extends Document {
   _id: mongoose.Types.ObjectId;
   targetId: string;
-  
+
   // References
   adGroupId: mongoose.Types.ObjectId;
   campaignId: mongoose.Types.ObjectId;
   sellerId: mongoose.Types.ObjectId;
-  
+
   // Target Type
-  targetType: 'keyword' | 'category' | 'product' | 'audience';
-  
+  targetType: "keyword" | "category" | "product" | "audience";
+
   // Target Value
   keyword?: string;
-  matchType?: 'exact' | 'phrase' | 'broad'; // For keywords
+  matchType?: "exact" | "phrase" | "broad"; // For keywords
   categoryId?: mongoose.Types.ObjectId;
   productId?: mongoose.Types.ObjectId;
   audienceSegment?: string;
-  
+
   // Bid Override (if different from ad group default)
   bid?: number;
-  
+
   // Negative targeting
   isNegative: boolean;
-  
+
   // Status
-  status: 'active' | 'paused' | 'archived';
-  
+  status: "active" | "paused" | "archived";
+
   // Performance (cached)
   stats: {
     impressions: number;
@@ -140,7 +140,7 @@ export interface IAdTarget extends Document {
     spend: number;
     conversions: number;
   };
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -157,7 +157,7 @@ const CampaignSchema = new Schema<ICampaign>(
     },
     sellerId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqSeller',
+      ref: "SouqSeller",
       required: true,
       index: true,
     },
@@ -169,19 +169,19 @@ const CampaignSchema = new Schema<ICampaign>(
     },
     type: {
       type: String,
-      enum: ['sponsored_products', 'sponsored_brands', 'sponsored_display'],
+      enum: ["sponsored_products", "sponsored_brands", "sponsored_display"],
       required: true,
       index: true,
     },
     status: {
       type: String,
-      enum: ['draft', 'active', 'paused', 'completed', 'archived'],
-      default: 'draft',
+      enum: ["draft", "active", "paused", "completed", "archived"],
+      default: "draft",
       index: true,
     },
     budgetType: {
       type: String,
-      enum: ['daily', 'lifetime'],
+      enum: ["daily", "lifetime"],
       required: true,
     },
     budgetAmount: {
@@ -196,7 +196,7 @@ const CampaignSchema = new Schema<ICampaign>(
     },
     currency: {
       type: String,
-      default: 'SAR',
+      default: "SAR",
     },
     startAt: {
       type: Date,
@@ -217,8 +217,8 @@ const CampaignSchema = new Schema<ICampaign>(
   },
   {
     timestamps: true,
-    collection: 'souq_campaigns',
-  }
+    collection: "souq_campaigns",
+  },
 );
 
 // Ad Group Schema
@@ -232,13 +232,13 @@ const AdGroupSchema = new Schema<IAdGroup>(
     },
     campaignId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqCampaign',
+      ref: "SouqCampaign",
       required: true,
       index: true,
     },
     sellerId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqSeller',
+      ref: "SouqSeller",
       required: true,
       index: true,
     },
@@ -250,8 +250,8 @@ const AdGroupSchema = new Schema<IAdGroup>(
     },
     status: {
       type: String,
-      enum: ['active', 'paused', 'archived'],
-      default: 'active',
+      enum: ["active", "paused", "archived"],
+      default: "active",
       index: true,
     },
     defaultBid: {
@@ -266,8 +266,8 @@ const AdGroupSchema = new Schema<IAdGroup>(
   },
   {
     timestamps: true,
-    collection: 'souq_ad_groups',
-  }
+    collection: "souq_ad_groups",
+  },
 );
 
 // Ad Schema
@@ -281,25 +281,25 @@ const AdSchema = new Schema<IAd>(
     },
     adGroupId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqAdGroup',
+      ref: "SouqAdGroup",
       required: true,
       index: true,
     },
     campaignId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqCampaign',
+      ref: "SouqCampaign",
       required: true,
       index: true,
     },
     sellerId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqSeller',
+      ref: "SouqSeller",
       required: true,
       index: true,
     },
     productId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqProduct',
+      ref: "SouqProduct",
       required: true,
       index: true,
     },
@@ -315,8 +315,8 @@ const AdSchema = new Schema<IAd>(
     image: String,
     status: {
       type: String,
-      enum: ['active', 'paused', 'rejected', 'archived'],
-      default: 'active',
+      enum: ["active", "paused", "rejected", "archived"],
+      default: "active",
       index: true,
     },
     rejectionReason: String,
@@ -336,8 +336,8 @@ const AdSchema = new Schema<IAd>(
   },
   {
     timestamps: true,
-    collection: 'souq_ads',
-  }
+    collection: "souq_ads",
+  },
 );
 
 // Ad Target Schema
@@ -351,25 +351,25 @@ const AdTargetSchema = new Schema<IAdTarget>(
     },
     adGroupId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqAdGroup',
+      ref: "SouqAdGroup",
       required: true,
       index: true,
     },
     campaignId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqCampaign',
+      ref: "SouqCampaign",
       required: true,
       index: true,
     },
     sellerId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqSeller',
+      ref: "SouqSeller",
       required: true,
       index: true,
     },
     targetType: {
       type: String,
-      enum: ['keyword', 'category', 'product', 'audience'],
+      enum: ["keyword", "category", "product", "audience"],
       required: true,
       index: true,
     },
@@ -380,15 +380,15 @@ const AdTargetSchema = new Schema<IAdTarget>(
     },
     matchType: {
       type: String,
-      enum: ['exact', 'phrase', 'broad'],
+      enum: ["exact", "phrase", "broad"],
     },
     categoryId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqCategory',
+      ref: "SouqCategory",
     },
     productId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqProduct',
+      ref: "SouqProduct",
     },
     audienceSegment: String,
     bid: {
@@ -402,8 +402,8 @@ const AdTargetSchema = new Schema<IAdTarget>(
     },
     status: {
       type: String,
-      enum: ['active', 'paused', 'archived'],
-      default: 'active',
+      enum: ["active", "paused", "archived"],
+      default: "active",
       index: true,
     },
     stats: {
@@ -415,14 +415,14 @@ const AdTargetSchema = new Schema<IAdTarget>(
   },
   {
     timestamps: true,
-    collection: 'souq_ad_targets',
-  }
+    collection: "souq_ad_targets",
+  },
 );
 
 // Indexes
 CampaignSchema.index({ sellerId: 1, status: 1 });
 CampaignSchema.index({ startAt: 1, endAt: 1 });
-CampaignSchema.index({ 'stats.spend': -1 });
+CampaignSchema.index({ "stats.spend": -1 });
 
 AdGroupSchema.index({ campaignId: 1, status: 1 });
 
@@ -436,7 +436,7 @@ AdTargetSchema.index({ keyword: 1, matchType: 1 }, { sparse: true });
 
 // Methods
 CampaignSchema.methods.getRemainingBudget = function (): number {
-  if (this.budgetType === 'daily') {
+  if (this.budgetType === "daily") {
     // Reset daily budget tracking would be handled separately
     return Math.max(0, this.budgetAmount - this.budgetSpent);
   }
@@ -446,7 +446,7 @@ CampaignSchema.methods.getRemainingBudget = function (): number {
 CampaignSchema.methods.canServeAds = function (): boolean {
   const now = new Date();
   return (
-    this.status === 'active' &&
+    this.status === "active" &&
     this.startAt <= now &&
     (!this.endAt || this.endAt >= now) &&
     this.getRemainingBudget() > 0
@@ -454,7 +454,9 @@ CampaignSchema.methods.canServeAds = function (): boolean {
 };
 
 AdSchema.methods.getCTR = function (): number {
-  return this.stats.impressions > 0 ? (this.stats.clicks / this.stats.impressions) * 100 : 0;
+  return this.stats.impressions > 0
+    ? (this.stats.clicks / this.stats.impressions) * 100
+    : 0;
 };
 
 AdSchema.methods.getCPC = function (): number {
@@ -462,16 +464,18 @@ AdSchema.methods.getCPC = function (): number {
 };
 
 AdSchema.methods.getACOS = function (): number {
-  return this.stats.revenue > 0 ? (this.stats.spend / this.stats.revenue) * 100 : 0;
+  return this.stats.revenue > 0
+    ? (this.stats.spend / this.stats.revenue) * 100
+    : 0;
 };
 
 AdSchema.methods.getROAS = function (): number {
   return this.stats.spend > 0 ? this.stats.revenue / this.stats.spend : 0;
 };
 
-export const SouqCampaign = getModel<ICampaign>('SouqCampaign', CampaignSchema);
-export const SouqAdGroup = getModel<IAdGroup>('SouqAdGroup', AdGroupSchema);
-export const SouqAd = getModel<IAd>('SouqAd', AdSchema);
-export const SouqAdTarget = getModel<IAdTarget>('SouqAdTarget', AdTargetSchema);
+export const SouqCampaign = getModel<ICampaign>("SouqCampaign", CampaignSchema);
+export const SouqAdGroup = getModel<IAdGroup>("SouqAdGroup", AdGroupSchema);
+export const SouqAd = getModel<IAd>("SouqAd", AdSchema);
+export const SouqAdTarget = getModel<IAdTarget>("SouqAdTarget", AdTargetSchema);
 
 export default { SouqCampaign, SouqAdGroup, SouqAd, SouqAdTarget };

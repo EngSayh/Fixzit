@@ -1,7 +1,13 @@
-import { Schema, type InferSchemaType, type Model, type Document, Types } from 'mongoose';
-import { getModel } from '@/src/types/mongoose-compat';
-import { ensureMongoConnection } from '@/server/lib/db';
-import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+import {
+  Schema,
+  type InferSchemaType,
+  type Model,
+  type Document,
+  Types,
+} from "mongoose";
+import { getModel } from "@/src/types/mongoose-compat";
+import { ensureMongoConnection } from "@/server/lib/db";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 
 ensureMongoConnection();
 
@@ -9,18 +15,18 @@ const TapTransactionSchema = new Schema(
   {
     orgId: {
       type: Schema.Types.ObjectId,
-      ref: 'Organization',
+      ref: "Organization",
       required: true,
       index: true,
     },
     userId: { type: String, index: true },
     chargeId: { type: String, required: true, unique: true },
     orderId: { type: String },
-    invoiceId: { type: Schema.Types.ObjectId, ref: 'Invoice' },
-    paymentId: { type: Schema.Types.ObjectId, ref: 'Payment' },
+    invoiceId: { type: Schema.Types.ObjectId, ref: "Invoice" },
+    paymentId: { type: Schema.Types.ObjectId, ref: "Payment" },
     correlationId: { type: String, index: true },
     status: { type: String, index: true },
-    currency: { type: String, default: 'SAR' },
+    currency: { type: String, default: "SAR" },
     amountHalalas: { type: Number },
     amountSAR: { type: Number },
     redirectUrl: { type: String },
@@ -65,8 +71,8 @@ const TapTransactionSchema = new Schema(
   },
   {
     timestamps: true,
-    collection: 'finance_tap_transactions',
-  }
+    collection: "finance_tap_transactions",
+  },
 );
 
 TapTransactionSchema.plugin(tenantIsolationPlugin);
@@ -74,11 +80,10 @@ TapTransactionSchema.plugin(tenantIsolationPlugin);
 TapTransactionSchema.index({ orgId: 1, createdAt: -1 });
 TapTransactionSchema.index({ status: 1, updatedAt: -1 });
 
-export type TapTransactionDoc = InferSchemaType<typeof TapTransactionSchema> & Document & {
-  orgId: Types.ObjectId;
-};
+export type TapTransactionDoc = InferSchemaType<typeof TapTransactionSchema> &
+  Document & {
+    orgId: Types.ObjectId;
+  };
 
-export const TapTransaction: Model<TapTransactionDoc> = getModel<TapTransactionDoc>(
-  'TapTransaction',
-  TapTransactionSchema
-);
+export const TapTransaction: Model<TapTransactionDoc> =
+  getModel<TapTransactionDoc>("TapTransaction", TapTransactionSchema);

@@ -1,11 +1,11 @@
-import { NextRequest } from 'next/server';
-import { logger } from '@/lib/logger';
-import { getDatabase } from '@/lib/mongodb-unified';
-import { getClientIP } from '@/server/security/headers';
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { getClientIP } from "@/server/security/headers";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError } from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
 
 /**
  * @openapi
@@ -38,21 +38,24 @@ export async function POST(req: NextRequest) {
 
     // Log the event to database
     const native = await getDatabase();
-    await native.collection('qa_logs').insertOne({
+    await native.collection("qa_logs").insertOne({
       event,
       data,
       timestamp: new Date(),
       ip: getClientIP(req),
-      userAgent: req.headers.get('user-agent'),
-      sessionId: req.cookies.get('sessionId')?.value || 'unknown'
+      userAgent: req.headers.get("user-agent"),
+      sessionId: req.cookies.get("sessionId")?.value || "unknown",
     });
 
     logger.info(`📝 QA Log: ${event}`, data);
 
     return createSecureResponse({ success: true }, 200, req);
   } catch (error) {
-    logger.error('Failed to log QA event:', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Failed to log event' }, 500, req);
+    logger.error(
+      "Failed to log QA event:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Failed to log event" }, 500, req);
   }
 }
 
@@ -66,9 +69,12 @@ export async function GET(req: NextRequest) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const parsed = Number(searchParams.get('limit'));
-    const limit = Math.min(Number.isFinite(parsed) && parsed > 0 ? parsed : 100, 1000);
-    const eventType = searchParams.get('event');
+    const parsed = Number(searchParams.get("limit"));
+    const limit = Math.min(
+      Number.isFinite(parsed) && parsed > 0 ? parsed : 100,
+      1000,
+    );
+    const eventType = searchParams.get("event");
 
     // Query database
 
@@ -78,7 +84,8 @@ export async function GET(req: NextRequest) {
     }
 
     const native = await getDatabase();
-    const logs = await native.collection('qa_logs')
+    const logs = await native
+      .collection("qa_logs")
       .find(query)
       .sort({ timestamp: -1 })
       .limit(limit)
@@ -86,7 +93,10 @@ export async function GET(req: NextRequest) {
 
     return createSecureResponse({ logs }, 200, req);
   } catch (error) {
-    logger.error('Failed to fetch QA logs:', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Failed to fetch logs' }, 500, req);
+    logger.error(
+      "Failed to fetch QA logs:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse({ error: "Failed to fetch logs" }, 500, req);
   }
 }

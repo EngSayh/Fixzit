@@ -1,122 +1,139 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Fixzit Enterprise Login</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Nunito Sans", sans-serif;
-            background: linear-gradient(135deg, #0078D4 0%, #00BCF2 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            width: 400px;
-            text-align: center;
-        }
-        .logo {
-            color: #0078D4;
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-        }
-        h2 { color: #3A2A1F; margin-bottom: 30px; }
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-sizing: border-box;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background: #0078D4;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            margin: 10px 0;
-        }
-        button:hover { background: #0066B8; }
-        .message { margin-top: 15px; color: #d32f2f; }
-        .demo-creds {
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 15px 0;
-            font-size: 14px;
-            color: #666;
-        }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Nunito Sans",
+          sans-serif;
+        background: linear-gradient(135deg, #0078d4 0%, #00bcf2 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+      .login-box {
+        background: white;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        width: 400px;
+        text-align: center;
+      }
+      .logo {
+        color: #0078d4;
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .subtitle {
+        color: #666;
+        margin-bottom: 30px;
+      }
+      h2 {
+        color: #3a2a1f;
+        margin-bottom: 30px;
+      }
+      input {
+        width: 100%;
+        padding: 12px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-sizing: border-box;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        background: #0078d4;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 10px 0;
+      }
+      button:hover {
+        background: #0066b8;
+      }
+      .message {
+        margin-top: 15px;
+        color: #d32f2f;
+      }
+      .demo-creds {
+        background: #f5f5f5;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 15px 0;
+        font-size: 14px;
+        color: #666;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="login-box">
-        <div class="logo">Fixzit Enterprise</div>
-        <div class="subtitle">Facility Management Platform</div>
-        
-        <div class="demo-creds">
-            <strong>Demo Credentials:</strong><br>
-            Email: admin@test.com<br>
-            Password: (Contact admin for credentials)
-        </div>
-        
-        <input type="email" id="email" placeholder="Email" value="admin@test.com">
-        <input type="password" id="password" placeholder="Password" value="">
-        <button onclick="login()">Access Fixzit</button>
-        <button onclick="goToMain()" style="background: #C98036;">View Demo (No Login)</button>
-        <div id="message" class="message"></div>
+      <div class="logo">Fixzit Enterprise</div>
+      <div class="subtitle">Facility Management Platform</div>
+
+      <div class="demo-creds">
+        <strong>Demo Credentials:</strong><br />
+        Email: admin@test.com<br />
+        Password: (Contact admin for credentials)
+      </div>
+
+      <input
+        type="email"
+        id="email"
+        placeholder="Email"
+        value="admin@test.com"
+      />
+      <input type="password" id="password" placeholder="Password" value="" />
+      <button onclick="login()">Access Fixzit</button>
+      <button onclick="goToMain()" style="background: #c98036">
+        View Demo (No Login)
+      </button>
+      <div id="message" class="message"></div>
     </div>
     <script>
-        async function login() {
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
-            const messageEl = document.getElementById("message");
-            
-            messageEl.textContent = "Logging in...";
-            
-            try {
-                const response = await fetch("/api/auth/login", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email, password })
-                });
-                
-                const data = await response.json();
-                if (data.token) {
-                    localStorage.setItem("token", data.token);
-                    messageEl.textContent = "Login successful! Redirecting...";
-                    setTimeout(() => window.location.href = "/", 1000);
-                } else {
-                    messageEl.textContent = data.message || "Login failed";
-                }
-            } catch (error) {
-                messageEl.textContent = "Connection error - using demo mode";
-                setTimeout(() => window.location.href = "/", 2000);
-            }
+      async function login() {
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const messageEl = document.getElementById("message");
+
+        messageEl.textContent = "Logging in...";
+
+        try {
+          const response = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await response.json();
+          if (data.token) {
+            localStorage.setItem("token", data.token);
+            messageEl.textContent = "Login successful! Redirecting...";
+            setTimeout(() => (window.location.href = "/"), 1000);
+          } else {
+            messageEl.textContent = data.message || "Login failed";
+          }
+        } catch (error) {
+          messageEl.textContent = "Connection error - using demo mode";
+          setTimeout(() => (window.location.href = "/"), 2000);
         }
-        
-        function goToMain() {
-            window.location.href = "/";
-        }
-        
-        // Auto-login on Enter
-        document.addEventListener("keypress", function(e) {
-            if (e.key === "Enter") login();
-        });
+      }
+
+      function goToMain() {
+        window.location.href = "/";
+      }
+
+      // Auto-login on Enter
+      document.addEventListener("keypress", function (e) {
+        if (e.key === "Enter") login();
+      });
     </script>
-</body>
+  </body>
 </html>

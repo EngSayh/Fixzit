@@ -23,11 +23,13 @@ Addressed **4 critical security vulnerabilities** identified in security review:
 ## Issue #1: OAuth Access Control Bypass
 
 ### Problem Statement
+
 **File**: `auth.config.ts` lines 40-64  
 **Severity**: CRITICAL  
 **Risk**: Unauthorized access via any Google account
 
 **Before**:
+
 ```typescript
 async signIn({ user, account, profile }) {
   // Access control logic commented out
@@ -36,6 +38,7 @@ async signIn({ user, account, profile }) {
 ```
 
 **Vulnerability**:
+
 - Development bypass left in production code
 - No email domain validation
 - Any Google user could authenticate
@@ -44,6 +47,7 @@ async signIn({ user, account, profile }) {
 ### Solution Implemented
 
 **After**:
+
 ```typescript
 import { createHash } from 'crypto';
 
@@ -55,7 +59,7 @@ function hashEmail(email: string): string {
 async signIn({ user: _user, account: _account, profile: _profile }) {
   // OAuth Access Control - Email Domain Whitelist
   const allowedDomains = ['fixzit.com', 'fixzit.co'];
-  
+
   // Safely check email and extract domain
   if (!_user?.email) {
     console.warn('OAuth sign-in rejected: No email provided');
@@ -72,10 +76,10 @@ async signIn({ user: _user, account: _account, profile: _profile }) {
   const emailDomain = emailParts[1].toLowerCase();
   if (!allowedDomains.includes(emailDomain)) {
     const emailHash = hashEmail(_user.email);
-    console.warn('OAuth sign-in rejected: Domain not whitelisted', { 
+    console.warn('OAuth sign-in rejected: Domain not whitelisted', {
       emailHash,
       domain: emailDomain,
-      provider: _account?.provider 
+      provider: _account?.provider
     });
     return false;
   }
@@ -89,6 +93,7 @@ async signIn({ user: _user, account: _account, profile: _profile }) {
 **Note**: `emailHash` is derived from SHA-256 hashing of the lowercased email address, truncated to 16 hex characters for privacy-preserving logging.
 
 ### Security Improvements
+
 - ✅ Email domain whitelist enforced (@fixzit.com, @fixzit.co)
 - ✅ Privacy-preserving logging using `emailHash` instead of raw email addresses
 - ✅ No PII (personally identifiable information) leaked in logs
@@ -99,6 +104,7 @@ async signIn({ user: _user, account: _account, profile: _profile }) {
 - ✅ Database verification ready (commented with TODO for future)
 
 ### Breaking Change
+
 **Impact**: Users with non-whitelisted email domains will be rejected
 
 **Migration**: Update `allowedDomains` array to include authorized domains
@@ -108,18 +114,21 @@ async signIn({ user: _user, account: _account, profile: _profile }) {
 ## Issue #2: Hardcoded JWT Secret Fallback
 
 ### Problem Statement
+
 **File**: `middleware.ts` lines 6-7  
 **Severity**: CRITICAL  
 **Risk**: JWT forgery with predictable secret
 
 **Before**:
+
 ```typescript
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'fallback-secret-change-in-production'
+  process.env.JWT_SECRET || "fallback-secret-change-in-production",
 );
 ```
 
 **Vulnerability**:
+
 - Hardcoded fallback secret if JWT_SECRET missing
 - Predictable secret enables token forgery
 - Application runs in insecure state silently
@@ -128,12 +137,14 @@ const JWT_SECRET = new TextEncoder().encode(
 ### Solution Implemented
 
 **After**:
+
 ```typescript
 // Validate JWT secret at module load - fail fast if missing
 // Supports both legacy JWT_SECRET and NextAuth's NEXTAUTH_SECRET
 const jwtSecretValue = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
 if (!jwtSecretValue) {
-  const errorMessage = 'FATAL: Neither JWT_SECRET nor NEXTAUTH_SECRET environment variable is set. Application cannot start without a secure JWT secret. Please add JWT_SECRET or NEXTAUTH_SECRET to your .env.local file or environment configuration.';
+  const errorMessage =
+    "FATAL: Neither JWT_SECRET nor NEXTAUTH_SECRET environment variable is set. Application cannot start without a secure JWT secret. Please add JWT_SECRET or NEXTAUTH_SECRET to your .env.local file or environment configuration.";
   console.error(errorMessage);
   throw new Error(errorMessage);
 }
@@ -143,6 +154,7 @@ const JWT_SECRET = new TextEncoder().encode(jwtSecretValue);
 ```
 
 ### Security Improvements
+
 - ✅ Startup validation at module load (before any requests)
 - ✅ Fails fast by throwing Error if neither JWT_SECRET nor NEXTAUTH_SECRET is set
 - ✅ Clear error messages for operators
@@ -152,9 +164,11 @@ const JWT_SECRET = new TextEncoder().encode(jwtSecretValue);
 - ✅ Supports both legacy JWT_SECRET and NextAuth's NEXTAUTH_SECRET for flexibility
 
 ### Breaking Change
+
 **Impact**: Application will not start if neither JWT_SECRET nor NEXTAUTH_SECRET is set (throws Error during module initialization)
 
 **Migration**: Ensure JWT_SECRET or NEXTAUTH_SECRET is set in all environments:
+
 ```bash
 # .env.local
 JWT_SECRET=<your-secure-secret-256-bits>
@@ -170,11 +184,13 @@ openssl rand -base64 32
 ## Issue #3: Insecure JWT Decoding
 
 ### Problem Statement
+
 **File**: `middleware.ts` lines 220-236  
 **Severity**: CRITICAL  
 **Risk**: JWT forgery attacks
 
 **Before**:
+
 ```typescript
 } else if (authToken) {
   try {
@@ -196,6 +212,7 @@ openssl rand -base64 32
 ```
 
 **Vulnerability**:
+
 - Uses `atob()` to decode JWT without signature verification
 - Trusts payload claims without cryptographic validation
 - Attackers could forge tokens with arbitrary claims (role escalation)
@@ -205,6 +222,7 @@ openssl rand -base64 32
 ### Solution Implemented
 
 **After**:
+
 ```typescript
 } else if (authToken) {
   try {
@@ -229,6 +247,7 @@ openssl rand -base64 32
 ```
 
 ### Security Improvements
+
 - ✅ JWT signature verified using `jwtVerify()` from `jose` library
 - ✅ Cryptographic validation prevents token forgery
 - ✅ Consistent with API route verification (lines 164-180)
@@ -238,9 +257,11 @@ openssl rand -base64 32
 - ✅ Type-safe payload extraction
 
 ### Breaking Change
+
 **Impact**: Invalid/tampered tokens will be rejected
 
-**Migration**: 
+**Migration**:
+
 - Ensure all tokens are properly signed with JWT_SECRET
 - Users with forged tokens will be logged out
 - Expired tokens will trigger re-authentication
@@ -250,16 +271,19 @@ openssl rand -base64 32
 ## Issue #4: next-auth v5 Beta Production Risk
 
 ### Problem Statement
+
 **File**: `package.json` line 104  
 **Severity**: MEDIUM  
 **Risk**: Beta software in production without documented testing plan
 
 **Before**:
+
 ```json
 "next-auth": "5.0.0-beta.29"
 ```
 
 **Concern**:
+
 - Using prerelease (beta) software in production
 - No documented testing plan
 - No risk assessment
@@ -317,6 +341,7 @@ openssl rand -base64 32
 ### Key Findings
 
 **Why Keep v5 Beta**:
+
 1. ✅ Next.js 15.5.4 requires next-auth v5
 2. ✅ 29 beta releases indicate feature-complete, production-tested
 3. ✅ Zero TypeScript errors, zero ESLint warnings
@@ -324,6 +349,7 @@ openssl rand -base64 32
 5. ✅ Downgrade introduces more risk than keeping beta
 
 **Approval Conditions**:
+
 - [ ] Complete integration tests (OAuth end-to-end)
 - [ ] Successful E2E test results
 - [ ] Load test passing (1000+ users)
@@ -333,6 +359,7 @@ openssl rand -base64 32
 - [ ] Rollback plan tested
 
 ### No Version Change
+
 **Decision**: Keep `"next-auth": "5.0.0-beta.29"`
 
 **Justification**: Documented in NEXTAUTH_V5_PRODUCTION_READINESS.md
@@ -343,20 +370,22 @@ openssl rand -base64 32
 
 ### Vulnerability Matrix
 
-| Issue | Severity | CVSS | Before | After |
-|-------|----------|------|--------|-------|
-| OAuth Bypass | CRITICAL | 9.8 | Any Google account | Whitelisted domains only |
-| Hardcoded Secret | CRITICAL | 9.1 | Predictable fallback | Fail-fast validation |
-| JWT Forgery | CRITICAL | 9.8 | No signature check | Full verification |
-| Beta Risk | MEDIUM | 5.5 | Undocumented | Comprehensive plan |
+| Issue            | Severity | CVSS | Before               | After                    |
+| ---------------- | -------- | ---- | -------------------- | ------------------------ |
+| OAuth Bypass     | CRITICAL | 9.8  | Any Google account   | Whitelisted domains only |
+| Hardcoded Secret | CRITICAL | 9.1  | Predictable fallback | Fail-fast validation     |
+| JWT Forgery      | CRITICAL | 9.8  | No signature check   | Full verification        |
+| Beta Risk        | MEDIUM   | 5.5  | Undocumented         | Comprehensive plan       |
 
 ### Risk Reduction
 
 **Before Security Fixes**:
+
 - 🔴 **CRITICAL**: 3 vulnerabilities with high exploit probability
 - 🟡 **MEDIUM**: 1 risk with undocumented mitigation
 
 **After Security Fixes**:
+
 - ✅ **RESOLVED**: All critical vulnerabilities eliminated
 - ✅ **MITIGATED**: Beta risk documented with comprehensive testing plan
 - ✅ **IMPROVED**: Authentication security posture significantly enhanced
@@ -372,7 +401,7 @@ openssl rand -base64 32
 $ pnpm typecheck
 ✅ PASS - 0 errors
 
-# ESLint Verification  
+# ESLint Verification
 $ pnpm lint
 ✅ PASS - 0 warnings, 0 errors
 
@@ -393,10 +422,12 @@ Status: Reviewed and addressed
 ## Files Modified
 
 ### 1. auth.config.ts
+
 **Changes**: 28 lines modified  
 **Impact**: OAuth access control enforced
 
 **Key Changes**:
+
 - Removed development bypass (`return true`)
 - Enabled email domain whitelist
 - Added safe email validation
@@ -404,10 +435,12 @@ Status: Reviewed and addressed
 - Database verification ready
 
 ### 2. middleware.ts
+
 **Changes**: 11 lines modified  
 **Impact**: JWT security hardened
 
 **Key Changes**:
+
 - Removed hardcoded fallback secret
 - Added startup validation that throws Error if neither JWT_SECRET nor NEXTAUTH_SECRET is set
 - Replaced `atob()` with `jwtVerify()`
@@ -415,10 +448,12 @@ Status: Reviewed and addressed
 - Consistent verification across API and page routes
 
 ### 3. NEXTAUTH_V5_PRODUCTION_READINESS.md
+
 **Changes**: 621 lines added  
 **Impact**: Comprehensive testing and risk documentation
 
 **Sections**:
+
 - Executive decision and rationale
 - 5-phase testing plan
 - Security hardening summary
@@ -453,6 +488,7 @@ JWT_SECRET=<strong-random-secret-256-bits>
 ### Google Console Configuration
 
 **Action Required**: Add OAuth redirect URIs
+
 ```
 http://localhost:3000/api/auth/callback/google
 http://localhost:3001/api/auth/callback/google
@@ -462,8 +498,9 @@ https://fixzit.co/api/auth/callback/google
 ### Email Domain Whitelist
 
 **Current Configuration** (`auth.config.ts`):
+
 ```typescript
-const allowedDomains = ['fixzit.com', 'fixzit.co'];
+const allowedDomains = ["fixzit.com", "fixzit.co"];
 ```
 
 **To Add Domains**: Update array and redeploy
@@ -473,16 +510,19 @@ const allowedDomains = ['fixzit.com', 'fixzit.co'];
 ## Breaking Changes Summary
 
 ### 1. OAuth Access Restricted
+
 **Before**: Any Google account  
 **After**: Only @fixzit.com and @fixzit.co  
 **Impact**: Unauthorized users will be rejected
 
 ### 2. JWT_SECRET Required
+
 **Before**: Fallback to insecure default  
 **After**: Application refuses to start  
 **Impact**: Must set JWT_SECRET in all environments
 
 ### 3. JWT Verification Enforced
+
 **Before**: Base64 decode without verification  
 **After**: Cryptographic signature validation  
 **Impact**: Invalid tokens rejected, users logged out
@@ -545,15 +585,18 @@ const allowedDomains = ['fixzit.com', 'fixzit.co'];
 ### Key Metrics to Track
 
 **Authentication Success Rate**:
+
 - Target: > 99.5%
 - Alert: < 98%
 
 **Performance**:
+
 - OAuth callback: < 500ms (p95)
 - JWT verification: < 10ms (p95)
 - Session lookup: < 50ms (p95)
 
 **Security Events**:
+
 - Failed sign-in attempts
 - JWT verification failures
 - Unauthorized domain attempts
@@ -562,11 +605,13 @@ const allowedDomains = ['fixzit.com', 'fixzit.co'];
 ### Alert Thresholds
 
 **Critical** (immediate response):
+
 - Auth success rate < 95%
 - JWT verification failures > 10/min
 - OAuth provider errors (500s)
 
 **Warning** (investigate within 1 hour):
+
 - Auth success rate < 98%
 - Response time > 2s
 - Error rate > 1%
@@ -578,6 +623,7 @@ const allowedDomains = ['fixzit.com', 'fixzit.co'];
 ### If Critical Issues Arise
 
 **Step 1: Immediate Hotfix**
+
 ```bash
 # Revert security fixes
 git revert 5e043392
@@ -587,11 +633,13 @@ git push origin feat/topbar-enhancements
 ```
 
 **Step 2: Downgrade to v4 (if needed)**
+
 - See NEXTAUTH_VERSION_ANALYSIS.md
 - Estimated time: 5-7 hours
 - Requires changes to 7 files
 
 **Step 3: Post-Mortem**
+
 - Document issue and root cause
 - Implement additional safeguards
 - Update testing procedures

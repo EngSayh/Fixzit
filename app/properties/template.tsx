@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
-import { OrgContextGate } from '@/components/fm/OrgContextGate';
+import { ReactNode } from "react";
+import { OrgContextGate } from "@/components/fm/OrgContextGate";
 
 interface PropertiesTemplateProps {
   children: ReactNode;
@@ -8,6 +8,8 @@ interface PropertiesTemplateProps {
 /**
  * Extends the org guard to legacy /properties entry points.
  */
-export default function PropertiesTemplate({ children }: PropertiesTemplateProps) {
+export default function PropertiesTemplate({
+  children,
+}: PropertiesTemplateProps) {
   return <OrgContextGate>{children}</OrgContextGate>;
 }

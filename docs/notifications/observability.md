@@ -4,10 +4,10 @@ This document captures the operational contract for the FM notification engine i
 
 ## Persistence & Retention
 
-| Store | Collection | Purpose | Retention |
-|-------|------------|---------|-----------|
-| Primary audit log | `NotificationLog` | One document per notification (payload, recipients, channel results, metrics, telemetry issues). | `NOTIFICATION_LOG_TTL_DAYS` (default **90** days). TTL index is applied on `createdAt`. |
-| Dead letter queue | `NotificationDeadLetter` | One document per failed channel attempt + recipient metadata. | `NOTIFICATION_DLQ_TTL_DAYS` (default **30** days). TTL index ensures the backlog can never grow unbounded. |
+| Store             | Collection               | Purpose                                                                                          | Retention                                                                                                  |
+| ----------------- | ------------------------ | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Primary audit log | `NotificationLog`        | One document per notification (payload, recipients, channel results, metrics, telemetry issues). | `NOTIFICATION_LOG_TTL_DAYS` (default **90** days). TTL index is applied on `createdAt`.                    |
+| Dead letter queue | `NotificationDeadLetter` | One document per failed channel attempt + recipient metadata.                                    | `NOTIFICATION_DLQ_TTL_DAYS` (default **30** days). TTL index ensures the backlog can never grow unbounded. |
 
 > Both TTLs are configurable via `.env` / infra secret managers so compliance teams can tighten/relax retention per region.
 
@@ -36,13 +36,13 @@ This document captures the operational contract for the FM notification engine i
 
 Metrics are registered under a shared registry (`lib/monitoring/metrics-registry.ts`) and are exposed via **`GET /api/metrics`** (Node runtime only).
 
-| Metric | Type | Labels | Description |
-|--------|------|--------|-------------|
-| `fixzit_notifications_dispatched_total` | Counter | `event`, `status`, `priority` | Number of notifications finalized (sent, failed, partial). |
-| `fixzit_notification_channel_attempts_total` | Counter | `event`, `channel`, `outcome` | Per-channel successes/failures/skips. |
-| `fixzit_notification_dispatch_duration_seconds` | Histogram | `event` | End-to-end dispatch latency buckets. |
-| `fixzit_notification_issues_total` | Counter | `channel`, `type` | Structured issue log (failed/skipped). |
-| `fixzit_notification_dlq_backlog` | Gauge | `channel` | Pending DLQ entries (auto-refreshed after each failure batch). |
+| Metric                                          | Type      | Labels                        | Description                                                    |
+| ----------------------------------------------- | --------- | ----------------------------- | -------------------------------------------------------------- |
+| `fixzit_notifications_dispatched_total`         | Counter   | `event`, `status`, `priority` | Number of notifications finalized (sent, failed, partial).     |
+| `fixzit_notification_channel_attempts_total`    | Counter   | `event`, `channel`, `outcome` | Per-channel successes/failures/skips.                          |
+| `fixzit_notification_dispatch_duration_seconds` | Histogram | `event`                       | End-to-end dispatch latency buckets.                           |
+| `fixzit_notification_issues_total`              | Counter   | `channel`, `type`             | Structured issue log (failed/skipped).                         |
+| `fixzit_notification_dlq_backlog`               | Gauge     | `channel`                     | Pending DLQ entries (auto-refreshed after each failure batch). |
 
 ### Grafana/Alerting Playbook
 

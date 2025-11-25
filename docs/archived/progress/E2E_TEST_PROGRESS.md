@@ -45,8 +45,8 @@ docker run -d --name mongodb -p 27017:27017 mongo:latest
 **Affected Files**:
 
 - `lib/marketplace/context.ts` - headers() and cookies() calls
-**Issue**: Next.js 15 requires await for headers() and cookies()
-**Error Messages**:
+  **Issue**: Next.js 15 requires await for headers() and cookies()
+  **Error Messages**:
 
 ```
 headers().get('x-org-id') should be awaited
@@ -136,7 +136,7 @@ MongoDB connection failed: connect ECONNREFUSED ::1:27017
 ### Next.js 15 Async API Errors
 
 ```
-Error: Route "/api/marketplace/categories" used `headers().get('x-org-id')`. 
+Error: Route "/api/marketplace/categories" used `headers().get('x-org-id')`.
 `headers()` should be awaited before using its value.
 ```
 
@@ -169,16 +169,16 @@ docker start mongodb || docker run -d --name mongodb -p 27017:27017 mongo:latest
 
 ```typescript
 // BEFORE (causing errors):
-const orgId = headers().get('x-org-id');
-const tenantId = headers().get('x-tenant-id');
-const org = cookies().get('fixzit_org');
+const orgId = headers().get("x-org-id");
+const tenantId = headers().get("x-tenant-id");
+const org = cookies().get("fixzit_org");
 
 // AFTER (correct for Next.js 15):
 const headersList = await headers();
 const cookieStore = await cookies();
-const orgId = headersList.get('x-org-id');
-const tenantId = headersList.get('x-tenant-id');
-const org = cookieStore.get('fixzit_org');
+const orgId = headersList.get("x-org-id");
+const tenantId = headersList.get("x-tenant-id");
+const org = cookieStore.get("fixzit_org");
 ```
 
 #### Fix 3: Run tests again
@@ -202,8 +202,8 @@ baseURL: 'http://localhost:3000'
 ### Jest Config (Separate)
 
 ```javascript
-testMatch: ['**/tests/**/*.test.ts', '**/tests/**/*.test.tsx']
-testPathIgnorePatterns: ['<rootDir>/qa/']
+testMatch: ["**/tests/**/*.test.ts", "**/tests/**/*.test.tsx"];
+testPathIgnorePatterns: ["<rootDir>/qa/"];
 ```
 
 ## Performance Notes

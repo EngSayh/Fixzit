@@ -16,9 +16,11 @@ This QA plan verifies that all communication events (OTP sends, admin broadcasts
 ## 🧪 Test 1: SMS OTP Login Journey (Full Flow)
 
 ### Objective
+
 Verify that OTP send, resend, and verification events are logged with correct status transitions.
 
 ### Prerequisites
+
 - Valid user account with phone number in staging
 - Phone number in Twilio verified list (or production Twilio account)
 - Access to MongoDB staging database
@@ -26,28 +28,35 @@ Verify that OTP send, resend, and verification events are logged with correct st
 ### Test Steps
 
 #### Step 1.1: Initial OTP Send
+
 1. Navigate to staging login page: `https://staging.fixzit.com/login`
 2. Enter valid credentials:
    - **Email or Employee Number:** `test.user@fixzit.com` (or `EMP001`)
    - **Password:** `[your test password]`
 3. Click **"Sign in with SMS OTP"**
 4. **Expected Result:**
-   - Success message: "OTP sent to ****1234"
+   - Success message: "OTP sent to \*\*\*\*1234"
    - No console errors
    - SMS received on phone
 
 #### Step 1.2: Verify Initial OTP Log Entry
+
 Run this MongoDB query:
 
 ```javascript
-db.communication_logs.find({
-  recipient: "+966501234567", // Replace with actual phone
-  channel: "otp",
-  type: "otp"
-}).sort({ createdAt: -1 }).limit(1).pretty()
+db.communication_logs
+  .find({
+    recipient: "+966501234567", // Replace with actual phone
+    channel: "otp",
+    type: "otp",
+  })
+  .sort({ createdAt: -1 })
+  .limit(1)
+  .pretty();
 ```
 
 **Expected Fields:**
+
 ```json
 {
   "_id": ObjectId("..."),
@@ -71,6 +80,7 @@ db.communication_logs.find({
 ```
 
 ✅ **Pass Criteria:**
+
 - Log entry exists
 - `status: "sent"`
 - `sentAt` timestamp present
@@ -80,27 +90,35 @@ db.communication_logs.find({
 ---
 
 #### Step 1.3: Resend OTP
+
 1. On OTP input screen, click **"Resend code"**
 2. **Expected Result:**
    - Success message: "New OTP sent"
    - New SMS received
 
 #### Step 1.4: Verify Resend Log Entry
+
 Run this query:
 
 ```javascript
-db.communication_logs.find({
-  recipient: "+966501234567",
-  channel: "otp"
-}).sort({ createdAt: -1 }).limit(2).pretty()
+db.communication_logs
+  .find({
+    recipient: "+966501234567",
+    channel: "otp",
+  })
+  .sort({ createdAt: -1 })
+  .limit(2)
+  .pretty();
 ```
 
 **Expected Result:**
+
 - **2 log entries** (original + resend)
 - Newest entry has `metadata.rateLimitRemaining: 3` (5 max - 2 sends)
 - Different `createdAt` timestamps (≥5 seconds apart)
 
 ✅ **Pass Criteria:**
+
 - 2 distinct log entries
 - Both `status: "sent"`
 - Rate limit decremented correctly
@@ -108,6 +126,7 @@ db.communication_logs.find({
 ---
 
 #### Step 1.5: Enter OTP and Complete Login
+
 1. Enter the **latest OTP code** (from resend SMS)
 2. Click **"Verify"**
 3. **Expected Result:**
@@ -115,20 +134,25 @@ db.communication_logs.find({
    - Redirected to `/dashboard`
 
 #### Step 1.6: Verify No Additional Logs for Verification
+
 Run this query:
 
 ```javascript
-db.communication_logs.find({
-  recipient: "+966501234567",
-  channel: "otp"
-}).count()
+db.communication_logs
+  .find({
+    recipient: "+966501234567",
+    channel: "otp",
+  })
+  .count();
 ```
 
 **Expected Result:**
+
 - **Count: 2** (send + resend only)
 - Verification does NOT create a new log entry (it only validates the existing OTP)
 
 ✅ **Pass Criteria:**
+
 - Total 2 OTP logs (not 3)
 - No "verification" log entry
 
@@ -136,20 +160,22 @@ db.communication_logs.find({
 
 ### Test 1 Summary Table
 
-| Test Case | Expected Logs | Status Field | Metadata Keys |
-|-----------|---------------|--------------|---------------|
-| Initial OTP Send | 1 | `sent` | `rateLimitRemaining: 4` |
-| Resend OTP | 2 total | `sent` | `rateLimitRemaining: 3` |
-| Verify OTP | 2 total (no new) | N/A | N/A |
+| Test Case        | Expected Logs    | Status Field | Metadata Keys           |
+| ---------------- | ---------------- | ------------ | ----------------------- |
+| Initial OTP Send | 1                | `sent`       | `rateLimitRemaining: 4` |
+| Resend OTP       | 2 total          | `sent`       | `rateLimitRemaining: 3` |
+| Verify OTP       | 2 total (no new) | N/A          | N/A                     |
 
 ---
 
 ## 🧪 Test 2: Admin Broadcast via Dashboard
 
 ### Objective
+
 Verify that admin broadcast creates individual log entries for each recipient × channel combination, and that the dashboard displays them correctly.
 
 ### Prerequisites
+
 - Super Admin account credentials
 - Access to Admin panel in staging
 - At least 3 test users with email + phone
@@ -157,6 +183,7 @@ Verify that admin broadcast creates individual log entries for each recipient ×
 ### Test Steps
 
 #### Step 2.1: Send Admin Broadcast
+
 1. Sign in as **Super Admin**: `admin@fixzit.com`
 2. Navigate to **Dashboard → Administration → Notifications**
 3. Click **"Send Broadcast"**
@@ -177,6 +204,7 @@ Verify that admin broadcast creates individual log entries for each recipient ×
      ```
 
 #### Step 2.2: Verify Broadcast in Notification History Tab
+
 1. Open **"Notification History"** tab in admin panel
 2. **Expected Result:**
    - Latest entry shows:
@@ -187,6 +215,7 @@ Verify that admin broadcast creates individual log entries for each recipient ×
      - Timestamp: [current time]
 
 ✅ **Pass Criteria:**
+
 - Broadcast appears in history
 - Correct recipient count
 - Both channels shown
@@ -194,21 +223,28 @@ Verify that admin broadcast creates individual log entries for each recipient ×
 ---
 
 #### Step 2.3: Verify Individual Logs in MongoDB
+
 Run this query to find all logs for this broadcast:
 
 ```javascript
-db.communication_logs.find({
-  "metadata.broadcastId": { $exists: true }
-}).sort({ createdAt: -1 }).limit(10).pretty()
+db.communication_logs
+  .find({
+    "metadata.broadcastId": { $exists: true },
+  })
+  .sort({ createdAt: -1 })
+  .limit(10)
+  .pretty();
 ```
 
 **Expected Result:**
+
 - **6 log entries** (3 users × 2 channels = 6)
 - All have same `metadata.broadcastId` (ObjectId)
 - 3 entries with `channel: "email"`
 - 3 entries with `channel: "sms"`
 
 **Sample Entry (Email):**
+
 ```json
 {
   "_id": ObjectId("..."),
@@ -234,6 +270,7 @@ db.communication_logs.find({
 ```
 
 **Sample Entry (SMS):**
+
 ```json
 {
   "_id": ObjectId("..."),
@@ -258,6 +295,7 @@ db.communication_logs.find({
 ```
 
 ✅ **Pass Criteria:**
+
 - 6 total logs (3 users × 2 channels)
 - All share same `broadcastId`
 - `triggeredBy` and `triggeredByEmail` correctly set
@@ -267,6 +305,7 @@ db.communication_logs.find({
 ---
 
 #### Step 2.4: Verify Communication Dashboard Display
+
 1. Navigate to **Administration → Communication Dashboard**
 2. Apply filters:
    - **Type:** Broadcast
@@ -281,6 +320,7 @@ db.communication_logs.find({
      - Sent At (timestamp)
 
 #### Step 2.5: Test Dashboard Filtering
+
 1. Filter by **Channel: Email**
    - **Expected:** 3 entries (email only)
 2. Filter by **Channel: SMS**
@@ -289,6 +329,7 @@ db.communication_logs.find({
    - **Expected:** 1 entry (email to that user)
 
 ✅ **Pass Criteria:**
+
 - Filters work correctly
 - Search returns correct results
 - All 6 entries visible when no filters applied
@@ -296,12 +337,14 @@ db.communication_logs.find({
 ---
 
 #### Step 2.6: Verify Export Functionality (Optional)
+
 1. Click **"Export CSV"** button
 2. **Expected Result:**
    - CSV downloaded with 6 rows
    - Columns: Channel, Recipient, Subject, Status, Sent At, Type
 
 ✅ **Pass Criteria:**
+
 - CSV contains all 6 broadcast entries
 - Data matches dashboard table
 
@@ -309,34 +352,39 @@ db.communication_logs.find({
 
 ### Test 2 Summary Table
 
-| Test Case | Expected Logs | Unique `broadcastId` | Metadata Keys |
-|-----------|---------------|----------------------|---------------|
-| Email to 3 users | 3 | Same for all | `email`, `sendgridId`, `triggeredByEmail` |
-| SMS to 3 users | 3 | Same for all | `phone`, `segments` |
-| **Total** | **6** | **1 unique** | `broadcastId`, `triggeredBy`, `priority` |
+| Test Case        | Expected Logs | Unique `broadcastId` | Metadata Keys                             |
+| ---------------- | ------------- | -------------------- | ----------------------------------------- |
+| Email to 3 users | 3             | Same for all         | `email`, `sendgridId`, `triggeredByEmail` |
+| SMS to 3 users   | 3             | Same for all         | `phone`, `segments`                       |
+| **Total**        | **6**         | **1 unique**         | `broadcastId`, `triggeredBy`, `priority`  |
 
 ---
 
 ## 📊 MongoDB Verification Queries
 
 ### Query 1: Count All Communication Logs
+
 ```javascript
-db.communication_logs.countDocuments()
+db.communication_logs.countDocuments();
 ```
+
 **Expected:** At least 8 (2 OTP + 6 broadcast)
 
 ### Query 2: Group by Channel
+
 ```javascript
 db.communication_logs.aggregate([
   {
     $group: {
       _id: "$channel",
-      count: { $sum: 1 }
-    }
-  }
-])
+      count: { $sum: 1 },
+    },
+  },
+]);
 ```
+
 **Expected Result:**
+
 ```json
 [
   { "_id": "otp", "count": 2 },
@@ -346,21 +394,24 @@ db.communication_logs.aggregate([
 ```
 
 ### Query 3: Check Broadcast ID Consistency
+
 ```javascript
 db.communication_logs.aggregate([
   {
-    $match: { type: "broadcast" }
+    $match: { type: "broadcast" },
   },
   {
     $group: {
       _id: "$metadata.broadcastId",
       count: { $sum: 1 },
-      channels: { $addToSet: "$channel" }
-    }
-  }
-])
+      channels: { $addToSet: "$channel" },
+    },
+  },
+]);
 ```
+
 **Expected Result:**
+
 ```json
 [
   {
@@ -372,29 +423,32 @@ db.communication_logs.aggregate([
 ```
 
 ### Query 4: Verify Status Distribution
+
 ```javascript
 db.communication_logs.aggregate([
   {
     $group: {
       _id: "$status",
-      count: { $sum: 1 }
-    }
-  }
-])
+      count: { $sum: 1 },
+    },
+  },
+]);
 ```
+
 **Expected Result:**
+
 ```json
-[
-  { "_id": "sent", "count": 8 }
-]
+[{ "_id": "sent", "count": 8 }]
 ```
-*All should be "sent" in successful test run*
+
+_All should be "sent" in successful test run_
 
 ---
 
 ## ✅ Final Checklist
 
 ### OTP Flow
+
 - [ ] Initial OTP logged with `status: "sent"`
 - [ ] Rate limit metadata decrements correctly
 - [ ] Resend creates separate log entry
@@ -402,6 +456,7 @@ db.communication_logs.aggregate([
 - [ ] All logs have correct `userId`, `recipient`, `metadata`
 
 ### Admin Broadcast
+
 - [ ] Broadcast creates 6 logs (3 users × 2 channels)
 - [ ] All logs share same `broadcastId`
 - [ ] Email logs have `sendgridId`
@@ -412,6 +467,7 @@ db.communication_logs.aggregate([
 - [ ] Filters and search work correctly
 
 ### Data Integrity
+
 - [ ] All `createdAt` timestamps are valid
 - [ ] `sentAt` timestamps present for successful sends
 - [ ] No duplicate log entries (unique `_id`)
@@ -424,38 +480,47 @@ db.communication_logs.aggregate([
 ## 🐛 Common Issues & Troubleshooting
 
 ### Issue 1: OTP Log Not Created
+
 **Symptoms:** Query returns 0 results  
 **Causes:**
+
 - `logCommunication()` failed silently
 - MongoDB connection issue
 - Wrong database/collection name
 
 **Fix:**
+
 - Check application logs for `[Communication] Log error`
 - Verify MongoDB connection string
 - Confirm collection name is `communication_logs` (not `communicationLogs`)
 
 ### Issue 2: Broadcast Creates Fewer Than 6 Logs
+
 **Symptoms:** Only 3 logs instead of 6  
 **Causes:**
+
 - One channel (email or SMS) failed for all users
 - Users missing phone numbers
 - Twilio balance depleted
 
 **Fix:**
+
 - Check results summary in API response
 - Verify `results.email.failed` and `results.sms.failed` counts
 - Check Twilio console for send failures
 - Verify users have valid phone numbers
 
 ### Issue 3: Dashboard Shows Wrong Count
+
 **Symptoms:** Dashboard shows 4 entries, MongoDB has 6  
 **Causes:**
+
 - Dashboard query has filter bug
 - Pagination limit too low
 - Missing index on `communication_logs`
 
 **Fix:**
+
 - Check browser console for API errors
 - Verify `/api/admin/communications` response
 - Add index: `db.communication_logs.createIndex({ createdAt: -1 })`

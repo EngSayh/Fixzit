@@ -1,16 +1,16 @@
 /**
  * FM Work Orders API - FSM State Transitions
  * POST /api/fm/work-orders/[id]/transition
- * 
+ *
  * Handles work order state transitions according to FSM rules
  * Enforces RBAC permissions and validates transitions
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { ModifyResult, ObjectId } from 'mongodb';
-import { logger } from '@/lib/logger';
-import { getDatabase } from '@/lib/mongodb-unified';
-import { FMErrors } from '@/app/api/fm/errors';
+import { NextRequest, NextResponse } from "next/server";
+import { ModifyResult, ObjectId } from "mongodb";
+import { logger } from "@/lib/logger";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { FMErrors } from "@/app/api/fm/errors";
 import {
   WORK_ORDER_FSM,
   canTransition,
@@ -20,16 +20,20 @@ import {
   SubmoduleKey,
   WOStatus,
   type ResourceCtx,
-} from '@/domain/fm/fm.behavior';
+} from "@/domain/fm/fm.behavior";
 import {
   getCanonicalUserId,
   mapWorkOrderDocument,
   recordTimelineEntry,
   type WorkOrderDocument,
-} from '../../utils';
-import { resolveTenantId } from '../../../utils/tenant';
-import { getSessionUser, UnauthorizedError, type SessionUser } from '@/server/middleware/withAuthRbac';
-import type { WorkOrderUser } from '@/types/fm/work-order';
+} from "../../utils";
+import { resolveTenantId } from "../../../utils/tenant";
+import {
+  getSessionUser,
+  UnauthorizedError,
+  type SessionUser,
+} from "@/server/middleware/withAuthRbac";
+import type { WorkOrderUser } from "@/types/fm/work-order";
 
 interface AttachmentWithCategory {
   category?: string;
@@ -54,62 +58,68 @@ interface WorkOrderForTransition {
   attachments?: Array<AttachmentWithCategory | string>;
   [key: string]: unknown;
 }
-import { requireFmAbility } from '../../../utils/auth';
-import type { NotificationChannel, NotificationRecipient } from '@/lib/fm-notifications';
+import { requireFmAbility } from "../../../utils/auth";
+import type {
+  NotificationChannel,
+  NotificationRecipient,
+} from "@/lib/fm-notifications";
 
 /**
  * POST - Transition work order to new status
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
-    const abilityCheck = await requireFmAbility('STATUS')(req);
+    const abilityCheck = await requireFmAbility("STATUS")(req);
     if (abilityCheck instanceof NextResponse) return abilityCheck;
 
     const user = await getSessionUser(req);
     const tenantResult = resolveTenantId(req, user.orgId || user.tenantId);
-    if ('error' in tenantResult) return tenantResult.error;
+    if ("error" in tenantResult) return tenantResult.error;
     const { tenantId } = tenantResult;
 
     const { id } = params;
     if (!ObjectId.isValid(id)) {
-      return FMErrors.invalidId('work order');
+      return FMErrors.invalidId("work order");
     }
 
     const body = await req.json();
     const { toStatus, comment, metadata } = body;
 
     if (!isWOStatus(toStatus)) {
-      return FMErrors.validationError('Invalid target status');
+      return FMErrors.validationError("Invalid target status");
     }
 
     const actorRole = mapSessionRole(user.role);
     if (!actorRole) {
-      return FMErrors.forbidden('Role not allowed to transition work orders');
+      return FMErrors.forbidden("Role not allowed to transition work orders");
     }
 
     const db = await getDatabase();
-    const collection = db.collection<WorkOrderDocument>('workorders');
+    const collection = db.collection<WorkOrderDocument>("workorders");
     const workOrder = await collection.findOne({
       _id: new ObjectId(id),
       tenantId,
     });
 
     if (!workOrder) {
-      return FMErrors.notFound('Work order');
+      return FMErrors.notFound("Work order");
     }
 
     const currentStatus = toWorkOrderStatus(workOrder.status);
     if (!currentStatus) {
-      return FMErrors.validationError('Unsupported work order status', {
-        currentStatus: workOrder.status
+      return FMErrors.validationError("Unsupported work order status", {
+        currentStatus: workOrder.status,
       });
     }
 
     const transition = WORK_ORDER_FSM.transitions.find(
-      (t) => t.from === currentStatus && t.to === toStatus && t.by.includes(actorRole)
+      (t) =>
+        t.from === currentStatus &&
+        t.to === toStatus &&
+        t.by.includes(actorRole),
     );
 
     if (!transition) {
@@ -118,28 +128,43 @@ export async function POST(
         .map((t) => t.to);
       return FMErrors.invalidTransition(
         `Cannot transition from ${currentStatus} to ${toStatus}`,
-        allowedTransitions
+        allowedTransitions,
       );
     }
 
-    const actorContext = buildResourceContext(workOrder, user, tenantId, actorRole);
+    const actorContext = buildResourceContext(
+      workOrder,
+      user,
+      tenantId,
+      actorRole,
+    );
 
     const guardFailure = getTransitionGuardFailure(transition, actorContext);
     if (guardFailure) {
       return FMErrors.validationError(guardFailure, {
-        required: transition.requireMedia
+        required: transition.requireMedia,
       });
     }
 
     if (!canTransition(currentStatus, toStatus, actorRole, actorContext)) {
-      if (transition.action && !can(SubmoduleKey.WO_TRACK_ASSIGN, transition.action, actorContext)) {
-        return FMErrors.forbidden(`Role ${actorRole} cannot perform action ${transition.action}`);
+      if (
+        transition.action &&
+        !can(SubmoduleKey.WO_TRACK_ASSIGN, transition.action, actorContext)
+      ) {
+        return FMErrors.forbidden(
+          `Role ${actorRole} cannot perform action ${transition.action}`,
+        );
       }
-      return FMErrors.validationError('Transition not permitted - guard validation failed');
+      return FMErrors.validationError(
+        "Transition not permitted - guard validation failed",
+      );
     }
 
     // Build update object
-    const update: Record<string, unknown> & { status: WOStatus; updatedAt: Date } = {
+    const update: Record<string, unknown> & {
+      status: WOStatus;
+      updatedAt: Date;
+    } = {
       status: toStatus,
       updatedAt: new Date(),
     };
@@ -156,24 +181,24 @@ export async function POST(
     const result = (await collection.findOneAndUpdate(
       { _id: new ObjectId(id), tenantId },
       { $set: update },
-      { returnDocument: 'after' }
+      { returnDocument: "after" },
     )) as unknown as ModifyResult<WorkOrderDocument>;
     const updated = result?.value;
 
     if (!updated) {
-      return FMErrors.notFound('Work order');
+      return FMErrors.notFound("Work order");
     }
 
     // Add timeline entry
     const actorId = getCanonicalUserId(user);
     if (!actorId) {
-      return FMErrors.validationError('User identifier is required');
+      return FMErrors.validationError("User identifier is required");
     }
 
     await recordTimelineEntry(db, {
       workOrderId: workOrder._id?.toString?.() ?? id,
       tenantId,
-      action: 'status_changed',
+      action: "status_changed",
       description: `Status changed from ${currentStatus} to ${toStatus}`,
       metadata: {
         fromStatus: currentStatus,
@@ -187,16 +212,19 @@ export async function POST(
 
     // Trigger notifications for important status changes
     try {
-      const { onAssign } = await import('@/lib/fm-notifications');
+      const { onAssign } = await import("@/lib/fm-notifications");
       const recipients: NotificationRecipient[] = [];
 
       // Notify requester on completion
-      if ((toStatus === WOStatus.WORK_COMPLETE || toStatus === WOStatus.CLOSED) && workOrder.requesterId) {
-        const requester = await db.collection('users').findOne({ 
+      if (
+        (toStatus === WOStatus.WORK_COMPLETE || toStatus === WOStatus.CLOSED) &&
+        workOrder.requesterId
+      ) {
+        const requester = await db.collection("users").findOne({
           $or: [
             { _id: new ObjectId(workOrder.requesterId) },
-            { email: workOrder.requesterId }
-          ]
+            { email: workOrder.requesterId },
+          ],
         });
         if (requester?.email) {
           recipients.push({
@@ -204,21 +232,23 @@ export async function POST(
             name: requester.name || requester.email,
             email: requester.email,
             phone: requester.phone,
-            preferredChannels: ['email', 'push'] as NotificationChannel[],
+            preferredChannels: ["email", "push"] as NotificationChannel[],
           });
         }
       }
 
       // Notify assignee on new assignment
       if (toStatus === WOStatus.IN_PROGRESS && workOrder.assigneeId) {
-        const assignee = await db.collection('users').findOne({ _id: new ObjectId(workOrder.assigneeId) });
+        const assignee = await db
+          .collection("users")
+          .findOne({ _id: new ObjectId(workOrder.assigneeId) });
         if (assignee?.email) {
           recipients.push({
             userId: workOrder.assigneeId,
             name: assignee.name || assignee.email,
             email: assignee.email,
             phone: assignee.phone,
-            preferredChannels: ['email', 'push'] as NotificationChannel[],
+            preferredChannels: ["email", "push"] as NotificationChannel[],
           });
         }
       }
@@ -226,57 +256,71 @@ export async function POST(
       if (recipients.length > 0) {
         await onAssign(
           workOrder.workOrderNumber || id,
-          user.name || user.email || 'Manager',
+          user.name || user.email || "Manager",
           `Status changed to ${toStatus}`,
-          recipients
+          recipients,
         );
       }
     } catch (notifError) {
-      logger.error('Failed to send transition notification', notifError as Error);
+      logger.error(
+        "Failed to send transition notification",
+        notifError as Error,
+      );
     }
 
     // Check SLA compliance
     if (updated.slaHours && updated.createdAt) {
-      const elapsedHours = (new Date().getTime() - new Date(updated.createdAt).getTime()) / (1000 * 60 * 60);
+      const elapsedHours =
+        (new Date().getTime() - new Date(updated.createdAt).getTime()) /
+        (1000 * 60 * 60);
       if (elapsedHours > updated.slaHours && toStatus !== WOStatus.CLOSED) {
         const breachHours = Math.floor(elapsedHours - updated.slaHours);
-        logger.warn('Work order SLA breach detected', {
+        logger.warn("Work order SLA breach detected", {
           workOrderId: id,
           workOrderNumber: updated.workOrderNumber,
           slaHours: updated.slaHours,
           elapsedHours: Math.floor(elapsedHours),
           breachHours,
-          currentStatus: toStatus
+          currentStatus: toStatus,
         });
 
         // Notify managers about SLA breach
         try {
-          const managers = await db.collection('users').find({
-            tenantId,
-            role: { $in: ['ADMIN', 'MANAGER', 'FM_MANAGER', 'PROPERTY_MANAGER'] }
-          }).limit(50).toArray(); // Limit to prevent memory issues with large orgs
+          const managers = await db
+            .collection("users")
+            .find({
+              tenantId,
+              role: {
+                $in: ["ADMIN", "MANAGER", "FM_MANAGER", "PROPERTY_MANAGER"],
+              },
+            })
+            .limit(50)
+            .toArray(); // Limit to prevent memory issues with large orgs
 
           if (managers.length > 0) {
-            const { onAssign } = await import('@/lib/fm-notifications');
+            const { onAssign } = await import("@/lib/fm-notifications");
             const managerRecipients = managers
-              .filter(m => m.email)
-              .map(m => ({
+              .filter((m) => m.email)
+              .map((m) => ({
                 userId: m._id.toString(),
                 name: m.name || m.email,
                 email: m.email,
                 phone: m.phone,
-                preferredChannels: ['email', 'push'] as NotificationChannel[],
+                preferredChannels: ["email", "push"] as NotificationChannel[],
               }));
 
             await onAssign(
               updated.workOrderNumber || id,
-              'SLA Manager',
+              "SLA Manager",
               `⚠️ SLA BREACH: Work order ${updated.workOrderNumber || id} has exceeded SLA by ${breachHours} hours (${updated.slaHours}h limit). Current status: ${toStatus}`,
-              managerRecipients
+              managerRecipients,
             );
           }
         } catch (slaNotifError) {
-          logger.error('Failed to send SLA breach notification', slaNotifError as Error);
+          logger.error(
+            "Failed to send SLA breach notification",
+            slaNotifError as Error,
+          );
         }
       }
     }
@@ -290,7 +334,7 @@ export async function POST(
     if (error instanceof UnauthorizedError) {
       return FMErrors.unauthorized();
     }
-    logger.error('FM Work Order Transition API error', error as Error);
+    logger.error("FM Work Order Transition API error", error as Error);
     return FMErrors.internalError();
   }
 }
@@ -341,13 +385,13 @@ const LEGACY_STATUS_MAP: Record<string, WOStatus> = {
 };
 
 function isWOStatus(value: unknown): value is WOStatus {
-  if (typeof value !== 'string') return false;
+  if (typeof value !== "string") return false;
   return (Object.values(WOStatus) as string[]).includes(value);
 }
 
 function toWorkOrderStatus(input: unknown): WOStatus | null {
   if (isWOStatus(input)) return input;
-  if (typeof input !== 'string') return null;
+  if (typeof input !== "string") return null;
   const normalized = input.toUpperCase();
   return LEGACY_STATUS_MAP[normalized] ?? null;
 }
@@ -371,22 +415,31 @@ function buildResourceContext(
   workOrder: WorkOrderForTransition,
   user: SessionUser,
   tenantId: string,
-  role: FMRole
+  role: FMRole,
 ): ResourceCtx {
-  const userId = (user?.id ?? user?.email ?? 'unknown').toString();
+  const userId = (user?.id ?? user?.email ?? "unknown").toString();
   const orgId = workOrder.orgId?.toString?.() ?? tenantId;
   const propertyId =
     workOrder.propertyId ??
-    (typeof workOrder.location === 'object' ? workOrder.location?.propertyId : undefined);
-  const requesterUser = workOrder.requester as WorkOrderUser | { userId?: string } | undefined;
+    (typeof workOrder.location === "object"
+      ? workOrder.location?.propertyId
+      : undefined);
+  const requesterUser = workOrder.requester as
+    | WorkOrderUser
+    | { userId?: string }
+    | undefined;
   const requesterId =
     workOrder.requesterId ??
-    (requesterUser && 'userId' in requesterUser ? requesterUser.userId : undefined) ??
-    (requesterUser && 'id' in requesterUser ? requesterUser.id : undefined);
+    (requesterUser && "userId" in requesterUser
+      ? requesterUser.userId
+      : undefined) ??
+    (requesterUser && "id" in requesterUser ? requesterUser.id : undefined);
   const ownerId =
     workOrder.ownerUserId ??
-    (requesterUser && 'userId' in requesterUser ? requesterUser.userId : undefined) ??
-    (requesterUser && 'id' in requesterUser ? requesterUser.id : undefined) ??
+    (requesterUser && "userId" in requesterUser
+      ? requesterUser.userId
+      : undefined) ??
+    (requesterUser && "id" in requesterUser ? requesterUser.id : undefined) ??
     requesterId;
 
   const isOwnerOfProperty = ownerId ? String(ownerId) === userId : false;
@@ -413,20 +466,27 @@ function buildResourceContext(
 }
 
 function collectUploadedMedia(
-  attachments: Array<AttachmentWithCategory | string> | undefined
-): ResourceCtx['uploadedMedia'] {
+  attachments: Array<AttachmentWithCategory | string> | undefined,
+): ResourceCtx["uploadedMedia"] {
   if (!attachments?.length) return [];
-  const allowed = new Set(['BEFORE', 'AFTER', 'DURING', 'QUOTE']);
+  const allowed = new Set(["BEFORE", "AFTER", "DURING", "QUOTE"]);
   const collected = attachments
     .map((attachment) =>
-      typeof attachment === 'string' ? undefined : attachment?.category ?? attachment?.type
+      typeof attachment === "string"
+        ? undefined
+        : (attachment?.category ?? attachment?.type),
     )
     .filter((cat): cat is string => Boolean(cat))
     .map((category) => category.toString().toUpperCase());
-  return Array.from(new Set(collected.filter((value) => allowed.has(value)))) as ResourceCtx['uploadedMedia'];
+  return Array.from(
+    new Set(collected.filter((value) => allowed.has(value))),
+  ) as ResourceCtx["uploadedMedia"];
 }
 
-function isActorAssignedToWorkOrder(workOrder: WorkOrderForTransition, user: SessionUser): boolean {
+function isActorAssignedToWorkOrder(
+  workOrder: WorkOrderForTransition,
+  user: SessionUser,
+): boolean {
   const actorId = (user?.id ?? user?.email)?.toString();
   if (!actorId) return false;
 
@@ -445,19 +505,19 @@ function isActorAssignedToWorkOrder(workOrder: WorkOrderForTransition, user: Ses
 
 function getTransitionGuardFailure(
   transition: (typeof WORK_ORDER_FSM.transitions)[number],
-  ctx: ResourceCtx
+  ctx: ResourceCtx,
 ): string | null {
   if (transition.requireMedia?.length) {
     const missing = transition.requireMedia.filter(
-      (media) => !ctx.uploadedMedia?.includes(media)
+      (media) => !ctx.uploadedMedia?.includes(media),
     );
     if (missing.length) {
-      return `${missing.join(' & ')} media required before continuing`;
+      return `${missing.join(" & ")} media required before continuing`;
     }
   }
 
-  if (transition.guard === 'technicianAssigned' && !ctx.isTechnicianAssigned) {
-    return 'Assign a technician before performing this transition';
+  if (transition.guard === "technicianAssigned" && !ctx.isTechnicianAssigned) {
+    return "Assign a technician before performing this transition";
   }
 
   return null;

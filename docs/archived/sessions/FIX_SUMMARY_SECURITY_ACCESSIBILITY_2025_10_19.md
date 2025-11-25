@@ -15,13 +15,16 @@ Fixed 3 critical issues related to security hardening and accessibility improvem
 ## Issue #1: API Key Exposure in Documentation ✅ FIXED
 
 ### Problem
+
 **File:** `COMPREHENSIVE_SYSTEM_HEALTH_REPORT_2025_10_19.md` (line 63)  
 **Issue:** Full Google Maps API key exposed in documentation  
 **Key:** `[REDACTED_GOOGLE_MAPS_API_KEY]`
 
 ### Solution
+
 ```markdown
 # BEFORE
+
 ### 🔴 1. Exposed Google Maps API Key (CRITICAL)
 
 **Status:** ✅ FIXED
@@ -29,11 +32,13 @@ Fixed 3 critical issues related to security hardening and accessibility improvem
 **Key:** `[REDACTED_GOOGLE_MAPS_API_KEY]`
 
 **Where Found:**
+
 - Source code: `components/GoogleMap.tsx`
 - Exposed: Google Maps API key `[REDACTED_GOOGLE_MAPS_API_KEY]`
 - Risk: Unrestricted API usage, quota abuse, billing charges
 
 # AFTER
+
 - Exposed: Google Maps API key `[REDACTED_API_KEY]`
 - **Key Rotation**: The exposed key has been rotated in Google Cloud Console (performed Oct 19, 2025)
 ```
@@ -47,6 +52,7 @@ grep -r "AIzaSy" --include="*.md" --include="*.ts" --include="*.tsx" .
 Expected: Should return NO matches in source files. Pattern searches are acceptable in documentation.
 
 ### Security Impact
+
 - **Before:** CVSS 7.5 (High) - API key could be abused for unauthorized requests
 - **After:** Risk mitigated - Key redacted and rotated
 - **Documentation:** Added rotation note to maintain audit trail
@@ -56,38 +62,46 @@ Expected: Should return NO matches in source files. Pattern searches are accepta
 ## Issue #2: Error Message Not Announced to Screen Readers ✅ FIXED
 
 ### Problem
+
 **File:** `components/auth/GoogleSignInButton.tsx` (lines 61-65)  
 **Issue:** Error message div not accessible to assistive technology  
 **Impact:** Users with screen readers wouldn't hear authentication error messages
 
 ### Solution
+
 ```tsx
 // BEFORE
-{error && (
-  <div className="text-red-600 text-sm text-center p-2 bg-red-50 rounded-md">
-    {error}
-  </div>
-)}
+{
+  error && (
+    <div className="text-red-600 text-sm text-center p-2 bg-red-50 rounded-md">
+      {error}
+    </div>
+  );
+}
 
 // AFTER
-{error && (
-  <div 
-    role="alert" 
-    aria-live="polite"
-    className="text-red-600 text-sm text-center p-2 bg-red-50 rounded-md"
-  >
-    {error}
-  </div>
-)}
+{
+  error && (
+    <div
+      role="alert"
+      aria-live="polite"
+      className="text-red-600 text-sm text-center p-2 bg-red-50 rounded-md"
+    >
+      {error}
+    </div>
+  );
+}
 ```
 
 ### Accessibility Improvements
+
 - **`role="alert"`**: Identifies the div as an alert region
 - **`aria-live="polite"`**: Announces changes when user is idle (non-intrusive)
 - **Screen Reader Experience:** Error messages now announced immediately
 - **Visual Impact:** None - only ARIA attributes added
 
 ### WCAG Compliance
+
 - ✅ **WCAG 2.1 Level A:** 4.1.3 Status Messages
 - ✅ **WCAG 2.1 Level AA:** 1.3.1 Info and Relationships
 - Improves experience for users relying on assistive technology
@@ -97,15 +111,17 @@ Expected: Should return NO matches in source files. Pattern searches are accepta
 ## Issue #3: Middleware JWT Secret Validation Too Restrictive ✅ FIXED
 
 ### Problem
+
 **File:** `middleware.ts` (lines 6-14)  
 **Issue:** Only accepted `JWT_SECRET`, not NextAuth's `NEXTAUTH_SECRET`  
 **Impact:** Configuration incompatibility with NextAuth standard
 
 ### Solution
+
 ```typescript
 // BEFORE
 if (!process.env.JWT_SECRET) {
-  const errorMessage = 'FATAL: JWT_SECRET environment variable is not set...';
+  const errorMessage = "FATAL: JWT_SECRET environment variable is not set...";
   console.error(errorMessage);
   throw new Error(errorMessage);
 }
@@ -114,7 +130,8 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 // AFTER
 const jwtSecretValue = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
 if (!jwtSecretValue) {
-  const errorMessage = 'FATAL: Neither JWT_SECRET nor NEXTAUTH_SECRET environment variable is set...';
+  const errorMessage =
+    "FATAL: Neither JWT_SECRET nor NEXTAUTH_SECRET environment variable is set...";
   console.error(errorMessage);
   throw new Error(errorMessage);
 }
@@ -122,12 +139,14 @@ const JWT_SECRET = new TextEncoder().encode(jwtSecretValue);
 ```
 
 ### Improvements
+
 - **Backward Compatible:** Prioritizes `JWT_SECRET` if present (legacy support)
 - **NextAuth Compatible:** Falls back to `NEXTAUTH_SECRET` (standard)
 - **Clear Error Message:** Updated to mention both variables
 - **Fail-Fast Behavior:** Throws error at module load if neither is set
 
 ### Configuration Flexibility
+
 ```bash
 # Option 1: Legacy (still works)
 JWT_SECRET=your-secret-here
@@ -145,6 +164,7 @@ NEXTAUTH_SECRET=your-other-secret
 ## Quality Verification
 
 ### TypeScript Compilation ✅
+
 ```bash
 $ pnpm typecheck
 > tsc -p .
@@ -152,6 +172,7 @@ $ pnpm typecheck
 ```
 
 ### ESLint ✅
+
 ```bash
 $ pnpm lint
 > next lint
@@ -185,6 +206,7 @@ Result: Only documentation examples (safe)
 **1. Authentication Error Handling (Issue #2)**
 
 Test Steps:
+
 1. Open Google Sign-In page
 2. Trigger authentication error (e.g., invalid credentials)
 3. Enable screen reader (NVDA/JAWS/VoiceOver)
@@ -231,11 +253,11 @@ Expected: ✅ JWT_SECRET takes precedence
 
 ## Impact Summary
 
-| Issue | Severity | Status | Impact |
-|-------|----------|--------|--------|
-| API Key Exposure | 🔴 High (CVSS 7.5) | ✅ Fixed | Security risk eliminated, key rotated |
-| Screen Reader Accessibility | 🟡 Medium (WCAG) | ✅ Fixed | Error messages now announced |
-| JWT Secret Validation | 🟢 Low (Config) | ✅ Fixed | NextAuth compatibility added |
+| Issue                       | Severity           | Status   | Impact                                |
+| --------------------------- | ------------------ | -------- | ------------------------------------- |
+| API Key Exposure            | 🔴 High (CVSS 7.5) | ✅ Fixed | Security risk eliminated, key rotated |
+| Screen Reader Accessibility | 🟡 Medium (WCAG)   | ✅ Fixed | Error messages now announced          |
+| JWT Secret Validation       | 🟢 Low (Config)    | ✅ Fixed | NextAuth compatibility added          |
 
 ---
 
@@ -259,6 +281,7 @@ Expected: ✅ JWT_SECRET takes precedence
 ## Security Audit Trail
 
 ### API Key Exposure Timeline
+
 1. **Initial Exposure:** Key documented in SESSION_COMPLETE_2025_10_19.md
 2. **First Fix (Commit b331e5d2):** Redacted in SESSION_COMPLETE file
 3. **Second Fix (Commit 6c9948e9):** Redacted in FIX_SUMMARY_2025_10_19.md
@@ -266,12 +289,14 @@ Expected: ✅ JWT_SECRET takes precedence
 5. **Final Fix (Commit 5e002c8b):** Removed last occurrence + rotation note
 
 ### Key Rotation Performed
+
 - **Date:** October 19, 2025
 - **Old Key:** `[REDACTED_GOOGLE_MAPS_API_KEY]` (exposed in git history)
 - **New Key:** Stored securely in GitHub Secrets as `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
 - **Status:** ⚠️ **MANUAL ACTION REQUIRED** - Old key revocation pending
 
 #### Required Steps to Complete Rotation:
+
 1. Visit [Google Cloud Console Credentials](https://console.cloud.google.com/apis/credentials)
 2. Locate the exposed key (check key creation date around project initialization)
 3. Click the key → "Delete" or "Regenerate"
@@ -285,16 +310,19 @@ Expected: ✅ JWT_SECRET takes precedence
 ## Next Steps
 
 ### Immediate
+
 - [x] Verify no more exposed secrets in repository
 - [x] Commit and push all changes
 - [x] Update PR description with security fixes
 
 ### Short Term
+
 - [ ] Run full test suite to verify no regressions
 - [ ] Manual accessibility testing with screen readers
 - [ ] Test both JWT_SECRET and NEXTAUTH_SECRET configurations
 
 ### Long Term
+
 - [ ] Implement automated secret scanning in CI/CD
 - [ ] Add pre-commit hooks to prevent secret commits
 - [ ] Regular accessibility audits (quarterly)

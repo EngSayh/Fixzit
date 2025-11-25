@@ -1,5 +1,5 @@
-import { ObjectId } from 'mongodb';
-import { logger } from '@/lib/logger';
+import { ObjectId } from "mongodb";
+import { logger } from "@/lib/logger";
 
 /**
  * Communication Log Entry Interface
@@ -7,12 +7,18 @@ import { logger } from '@/lib/logger';
 export interface CommunicationLog {
   _id?: ObjectId;
   userId: string | ObjectId; // User who received the communication
-  channel: 'sms' | 'email' | 'whatsapp' | 'otp';
-  type: 'notification' | 'otp' | 'marketing' | 'transactional' | 'alert' | 'broadcast';
+  channel: "sms" | "email" | "whatsapp" | "otp";
+  type:
+    | "notification"
+    | "otp"
+    | "marketing"
+    | "transactional"
+    | "alert"
+    | "broadcast";
   recipient: string; // Phone number or email
   subject?: string; // For email
   message: string;
-  status: 'pending' | 'sent' | 'delivered' | 'failed' | 'read';
+  status: "pending" | "sent" | "delivered" | "failed" | "read";
   metadata?: {
     twilioSid?: string;
     sendgridId?: string;
@@ -46,28 +52,36 @@ export interface CommunicationLog {
 
 /**
  * Log communication to database
- * 
+ *
  * @param log - Communication log data
  * @returns Success boolean and log ID
  */
-export async function logCommunication(log: Omit<CommunicationLog, '_id' | 'createdAt' | 'updatedAt'>): Promise<{ success: boolean; logId?: string; error?: string }> {
+export async function logCommunication(
+  log: Omit<CommunicationLog, "_id" | "createdAt" | "updatedAt">,
+): Promise<{ success: boolean; logId?: string; error?: string }> {
   try {
-    const { connectToDatabase, getDatabase } = await import('@/lib/mongodb-unified');
+    const { connectToDatabase, getDatabase } = await import(
+      "@/lib/mongodb-unified"
+    );
     await connectToDatabase();
     const db = await getDatabase();
 
     const communicationLog: CommunicationLog = {
       ...log,
-      userId: typeof log.userId === 'string' ? new ObjectId(log.userId) : log.userId,
+      userId:
+        typeof log.userId === "string" ? new ObjectId(log.userId) : log.userId,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
-    const result = await db.collection('communication_logs').insertOne(communicationLog);
+    const result = await db
+      .collection("communication_logs")
+      .insertOne(communicationLog);
 
-    logger.info('[Communication] Logged', {
+    logger.info("[Communication] Logged", {
       logId: result.insertedId.toString(),
-      userId: typeof log.userId === 'string' ? log.userId : log.userId.toString(),
+      userId:
+        typeof log.userId === "string" ? log.userId : log.userId.toString(),
       channel: log.channel,
       type: log.type,
       status: log.status,
@@ -80,20 +94,21 @@ export async function logCommunication(log: Omit<CommunicationLog, '_id' | 'crea
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[Communication] Log error', error as Error, {
-      userId: typeof log.userId === 'string' ? log.userId : log.userId.toString(),
+    logger.error("[Communication] Log error", error as Error, {
+      userId:
+        typeof log.userId === "string" ? log.userId : log.userId.toString(),
       channel: log.channel,
     });
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
 
 /**
  * Update communication log status
- * 
+ *
  * @param logId - Communication log ID
  * @param status - New status
  * @param metadata - Additional metadata to merge
@@ -101,11 +116,13 @@ export async function logCommunication(log: Omit<CommunicationLog, '_id' | 'crea
  */
 export async function updateCommunicationStatus(
   logId: string,
-  status: CommunicationLog['status'],
-  metadata?: Partial<CommunicationLog['metadata']>
+  status: CommunicationLog["status"],
+  metadata?: Partial<CommunicationLog["metadata"]>,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { connectToDatabase, getDatabase } = await import('@/lib/mongodb-unified');
+    const { connectToDatabase, getDatabase } = await import(
+      "@/lib/mongodb-unified"
+    );
     await connectToDatabase();
     const db = await getDatabase();
 
@@ -115,13 +132,13 @@ export async function updateCommunicationStatus(
     };
 
     // Set timestamp based on status
-    if (status === 'sent') {
+    if (status === "sent") {
       (update as Record<string, unknown>).sentAt = new Date();
-    } else if (status === 'delivered') {
+    } else if (status === "delivered") {
       (update as Record<string, unknown>).deliveredAt = new Date();
-    } else if (status === 'failed') {
+    } else if (status === "failed") {
       (update as Record<string, unknown>).failedAt = new Date();
-    } else if (status === 'read') {
+    } else if (status === "read") {
       (update as Record<string, unknown>).readAt = new Date();
     }
 
@@ -131,26 +148,28 @@ export async function updateCommunicationStatus(
         status,
         updatedAt: new Date(),
       };
-      
+
       const baseUpdate = update as Record<string, unknown>;
       if (baseUpdate.sentAt) $set.sentAt = baseUpdate.sentAt;
       if (baseUpdate.deliveredAt) $set.deliveredAt = baseUpdate.deliveredAt;
       if (baseUpdate.failedAt) $set.failedAt = baseUpdate.failedAt;
       if (baseUpdate.readAt) $set.readAt = baseUpdate.readAt;
-      
+
       Object.keys(metadata).forEach((key) => {
         $set[`metadata.${key}`] = (metadata as Record<string, unknown>)[key];
       });
-      
+
       update = { $set };
     }
 
-    await db.collection('communication_logs').updateOne(
-      { _id: new ObjectId(logId) },
-      metadata ? update : { $set: update }
-    );
+    await db
+      .collection("communication_logs")
+      .updateOne(
+        { _id: new ObjectId(logId) },
+        metadata ? update : { $set: update },
+      );
 
-    logger.info('[Communication] Status updated', {
+    logger.info("[Communication] Status updated", {
       logId,
       status,
     });
@@ -159,20 +178,20 @@ export async function updateCommunicationStatus(
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[Communication] Update status error', error as Error, {
+    logger.error("[Communication] Update status error", error as Error, {
       logId,
       status,
     });
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
 
 /**
  * Get communication history for a user
- * 
+ *
  * @param userId - User ID
  * @param options - Query options
  * @returns Communication logs
@@ -180,14 +199,16 @@ export async function updateCommunicationStatus(
 export async function getUserCommunications(
   userId: string,
   options?: {
-    channel?: CommunicationLog['channel'];
-    type?: CommunicationLog['type'];
+    channel?: CommunicationLog["channel"];
+    type?: CommunicationLog["type"];
     limit?: number;
     skip?: number;
-  }
+  },
 ): Promise<CommunicationLog[]> {
   try {
-    const { connectToDatabase, getDatabase } = await import('@/lib/mongodb-unified');
+    const { connectToDatabase, getDatabase } = await import(
+      "@/lib/mongodb-unified"
+    );
     await connectToDatabase();
     const db = await getDatabase();
 
@@ -202,7 +223,7 @@ export async function getUserCommunications(
     }
 
     const logs = await db
-      .collection('communication_logs')
+      .collection("communication_logs")
       .find(query)
       .sort({ createdAt: -1 })
       .skip(options?.skip || 0)
@@ -216,22 +237,26 @@ export async function getUserCommunications(
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[Communication] Get user communications error', error as Error, {
-      userId,
-    });
+    logger.error(
+      "[Communication] Get user communications error",
+      error as Error,
+      {
+        userId,
+      },
+    );
     return [];
   }
 }
 
 /**
  * Get communication statistics
- * 
+ *
  * @param filters - Optional filters
  * @returns Statistics object
  */
 export async function getCommunicationStats(filters?: {
   userId?: string;
-  channel?: CommunicationLog['channel'];
+  channel?: CommunicationLog["channel"];
   startDate?: Date;
   endDate?: Date;
 }): Promise<{
@@ -244,7 +269,9 @@ export async function getCommunicationStats(filters?: {
   failureRate: number;
 }> {
   try {
-    const { connectToDatabase, getDatabase } = await import('@/lib/mongodb-unified');
+    const { connectToDatabase, getDatabase } = await import(
+      "@/lib/mongodb-unified"
+    );
     await connectToDatabase();
     const db = await getDatabase();
 
@@ -270,7 +297,7 @@ export async function getCommunicationStats(filters?: {
     }
 
     const result = await db
-      .collection('communication_logs')
+      .collection("communication_logs")
       .aggregate([
         { $match: matchStage },
         {
@@ -278,16 +305,16 @@ export async function getCommunicationStats(filters?: {
             _id: null,
             total: { $sum: 1 },
             sent: {
-              $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] },
+              $sum: { $cond: [{ $eq: ["$status", "sent"] }, 1, 0] },
             },
             delivered: {
-              $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] },
+              $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] },
             },
             failed: {
-              $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] },
+              $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] },
             },
             pending: {
-              $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] },
+              $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
             },
           },
         },
@@ -302,8 +329,10 @@ export async function getCommunicationStats(filters?: {
       pending: 0,
     };
 
-    const deliveryRate = stats.total > 0 ? (stats.delivered / stats.total) * 100 : 0;
-    const failureRate = stats.total > 0 ? (stats.failed / stats.total) * 100 : 0;
+    const deliveryRate =
+      stats.total > 0 ? (stats.delivered / stats.total) * 100 : 0;
+    const failureRate =
+      stats.total > 0 ? (stats.failed / stats.total) * 100 : 0;
 
     return {
       total: stats.total,
@@ -317,7 +346,7 @@ export async function getCommunicationStats(filters?: {
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[Communication] Get stats error', error as Error);
+    logger.error("[Communication] Get stats error", error as Error);
     return {
       total: 0,
       sent: 0,

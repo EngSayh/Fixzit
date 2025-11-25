@@ -136,24 +136,21 @@ test.describe('i18n: Language Switching', () => {
 
   test('Currency selector shows SAR and USD options', async ({ page }) => {
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-
-    // Find currency button (may be overlapped on mobile); if clickable, open it
-    const currencyButton = page.getByRole('button', { name: /currency|sar|usd|riyal|dollar|عملة/i }).first();
-    const canClick = await currencyButton.isVisible().catch(() => false);
-    if (canClick) {
-      await currencyButton.click({ trial: true }).catch(() => {});
-      await currencyButton.click().catch(() => {});
-      await page.waitForTimeout(200);
-    }
-
-    // Check for currency options (rendered or sr-only helpers)
-    const sarOption = page.locator('[role="menuitem"], [role="option"]').filter({ hasText: /^SAR$|^ريال$/ });
-    const usdOption = page.locator('[role="menuitem"], [role="option"]').filter({ hasText: /^USD$|^دولار$/ });
-
-    const sarVisible = await sarOption.count() > 0;
-    const usdVisible = await usdOption.count() > 0;
     
-    expect(sarVisible || usdVisible, 'Currency selector should show SAR or USD options').toBe(true);
+    // Wait for currency selector to be rendered
+    await page.waitForSelector('[data-testid="currency-selector"]', { timeout: 5000 });
+
+    // Currency selector always includes sr-only accessibility helpers with SAR and USD options
+    // These are present even if the dropdown fails to render (defensive accessibility pattern)
+    const sarOption = page.locator('[role="option"]').filter({ hasText: /^SAR$/i });
+    const usdOption = page.locator('[role="option"]').filter({ hasText: /^USD$/i });
+
+    // Verify both currency options exist (either in dropdown or sr-only helpers)
+    const sarCount = await sarOption.count();
+    const usdCount = await usdOption.count();
+    
+    expect(sarCount, 'Currency selector should have SAR option').toBeGreaterThan(0);
+    expect(usdCount, 'Currency selector should have USD option').toBeGreaterThan(0);
   });
 });
 

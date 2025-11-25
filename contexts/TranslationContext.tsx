@@ -1,16 +1,23 @@
-'use client';
-import { logger } from '@/lib/logger';
-import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+"use client";
+import { logger } from "@/lib/logger";
+import React, {
+  createContext,
+  useContext,
+  ReactNode,
+  useMemo,
+  useState,
+  useEffect,
+} from "react";
 import {
   LANGUAGE_OPTIONS,
   findLanguageByCode,
   findLanguageByLocale,
   type LanguageCode,
   type LanguageOption,
-} from '@/config/language-options';
-import { STORAGE_KEYS, APP_DEFAULTS } from '@/config/constants';
-import { useI18n } from '@/i18n/useI18n';
-import type { Locale } from '@/i18n/config';
+} from "@/config/language-options";
+import { STORAGE_KEYS, APP_DEFAULTS } from "@/config/constants";
+import { useI18n } from "@/i18n/useI18n";
+import type { Locale } from "@/i18n/config";
 
 export type Language = LanguageCode;
 
@@ -20,7 +27,7 @@ const interpolatePlaceholders = (text: string, values?: TranslationValues) => {
   if (!values) return text;
   return text.replace(/{{\s*(\w+)\s*}}/g, (_match, token: string) => {
     const value = values[token.trim()];
-    return value === undefined ? '' : String(value);
+    return value === undefined ? "" : String(value);
   });
 };
 
@@ -33,11 +40,14 @@ interface TranslationContextType {
   isRTL: boolean;
 }
 
-const TranslationContext = createContext<TranslationContextType | undefined>(undefined);
+const TranslationContext = createContext<TranslationContextType | undefined>(
+  undefined,
+);
 
 // ✅ FIX: Use centralized APP_DEFAULTS instead of hardcoded 'ar'
 const DEFAULT_LANGUAGE_OPTION =
-  LANGUAGE_OPTIONS.find((opt) => opt.language === APP_DEFAULTS.language) || LANGUAGE_OPTIONS[0];
+  LANGUAGE_OPTIONS.find((opt) => opt.language === APP_DEFAULTS.language) ||
+  LANGUAGE_OPTIONS[0];
 
 function createFallbackContext(option: LanguageOption): TranslationContextType {
   return {
@@ -45,27 +55,31 @@ function createFallbackContext(option: LanguageOption): TranslationContextType {
     locale: option.locale,
     setLanguage: (lang: Language) => {
       try {
-        if (typeof window !== 'undefined') {
+        if (typeof window !== "undefined") {
           localStorage.setItem(STORAGE_KEYS.language, lang);
-          logger.warn('Language preference saved. Please refresh the page for changes to take effect.');
+          logger.warn(
+            "Language preference saved. Please refresh the page for changes to take effect.",
+          );
         }
       } catch (error) {
-        logger.warn('Could not save language preference', { error });
+        logger.warn("Could not save language preference", { error });
       }
     },
     setLocale: (locale: string) => {
       try {
-        if (typeof window !== 'undefined') {
+        if (typeof window !== "undefined") {
           localStorage.setItem(STORAGE_KEYS.locale, locale);
-          logger.warn('Locale preference saved. Please refresh the page for changes to take effect.');
+          logger.warn(
+            "Locale preference saved. Please refresh the page for changes to take effect.",
+          );
         }
       } catch (error) {
-        logger.warn('Could not save locale preference', { error });
+        logger.warn("Could not save locale preference", { error });
       }
     },
     t: (key: string, fallback: string = key, values?: TranslationValues) =>
       interpolatePlaceholders(fallback, values),
-    isRTL: option.dir === 'rtl',
+    isRTL: option.dir === "rtl",
   };
 }
 
@@ -74,7 +88,10 @@ type TranslationProviderProps = {
   initialLanguage?: LanguageCode;
 };
 
-export function TranslationProvider({ children, initialLanguage }: TranslationProviderProps) {
+export function TranslationProvider({
+  children,
+  initialLanguage,
+}: TranslationProviderProps) {
   const fallbackOption = useMemo(() => {
     if (initialLanguage) {
       return findLanguageByCode(initialLanguage) ?? DEFAULT_LANGUAGE_OPTION;
@@ -84,14 +101,15 @@ export function TranslationProvider({ children, initialLanguage }: TranslationPr
 
   // ✅ FIX: Always call useI18n at top level (React Hooks rules) - no try-catch allowed
   const i18nHookResult = useI18n();
-  const [activeOption, setActiveOption] = useState<LanguageOption>(fallbackOption);
+  const [activeOption, setActiveOption] =
+    useState<LanguageOption>(fallbackOption);
 
   useEffect(() => {
     const next =
       i18nHookResult && i18nHookResult.locale
-        ? findLanguageByLocale(i18nHookResult.locale) ??
+        ? (findLanguageByLocale(i18nHookResult.locale) ??
           findLanguageByCode(i18nHookResult.locale) ??
-          fallbackOption
+          fallbackOption)
         : fallbackOption;
     setActiveOption(next);
   }, [i18nHookResult?.locale, fallbackOption]);
@@ -99,7 +117,7 @@ export function TranslationProvider({ children, initialLanguage }: TranslationPr
   const contextValue = useMemo(() => {
     // If i18n hook returns invalid data, use fallback
     if (!i18nHookResult || !i18nHookResult.locale) {
-      logger.warn('i18n hook returned invalid data, using fallback');
+      logger.warn("i18n hook returned invalid data, using fallback");
       return createFallbackContext(fallbackOption);
     }
 
@@ -114,7 +132,8 @@ export function TranslationProvider({ children, initialLanguage }: TranslationPr
     };
 
     const setLocale = (locale: string) => {
-      const nextOption = findLanguageByLocale(locale) ?? findLanguageByCode(locale);
+      const nextOption =
+        findLanguageByLocale(locale) ?? findLanguageByCode(locale);
       if (nextOption) {
         setActiveOption(nextOption);
         i18nSetLocale(nextOption.language as Locale);
@@ -124,9 +143,16 @@ export function TranslationProvider({ children, initialLanguage }: TranslationPr
       }
     };
 
-    const translate = (key: string, fallback: string = key, values?: TranslationValues) => {
+    const translate = (
+      key: string,
+      fallback: string = key,
+      values?: TranslationValues,
+    ) => {
       try {
-        const result = i18nTranslate(key, values as Record<string, string | number> | undefined);
+        const result = i18nTranslate(
+          key,
+          values as Record<string, string | number> | undefined,
+        );
         if (result === key && fallback) {
           return interpolatePlaceholders(fallback, values);
         }
@@ -143,11 +169,15 @@ export function TranslationProvider({ children, initialLanguage }: TranslationPr
       setLanguage,
       setLocale,
       t: translate,
-      isRTL: dir === 'rtl',
+      isRTL: dir === "rtl",
     };
   }, [i18nHookResult, fallbackOption]);
 
-  return <TranslationContext.Provider value={contextValue}>{children}</TranslationContext.Provider>;
+  return (
+    <TranslationContext.Provider value={contextValue}>
+      {children}
+    </TranslationContext.Provider>
+  );
 }
 
 export function useTranslation() {
@@ -162,27 +192,34 @@ export function useTranslation() {
         locale: APP_DEFAULTS.locale,
         setLanguage: (lang: Language) => {
           try {
-            if (typeof window !== 'undefined') {
+            if (typeof window !== "undefined") {
               localStorage.setItem(STORAGE_KEYS.language, lang);
-              logger.warn('Language preference saved. Please refresh the page for changes to take effect.');
+              logger.warn(
+                "Language preference saved. Please refresh the page for changes to take effect.",
+              );
             }
           } catch (error) {
-            logger.warn('Could not save language preference', { error });
+            logger.warn("Could not save language preference", { error });
           }
         },
         setLocale: (locale: string) => {
           try {
-            if (typeof window !== 'undefined') {
+            if (typeof window !== "undefined") {
               localStorage.setItem(STORAGE_KEYS.locale, locale);
-              logger.warn('Locale preference saved. Please refresh the page for changes to take effect.');
+              logger.warn(
+                "Locale preference saved. Please refresh the page for changes to take effect.",
+              );
             }
           } catch (error) {
-            logger.warn('Could not save locale preference', { error });
+            logger.warn("Could not save locale preference", { error });
           }
         },
-        t: (key: string, fallback: string = key, values?: TranslationValues): string =>
-          interpolatePlaceholders(fallback, values),
-        isRTL: true
+        t: (
+          key: string,
+          fallback: string = key,
+          values?: TranslationValues,
+        ): string => interpolatePlaceholders(fallback, values),
+        isRTL: true,
       };
       return fallbackContext;
     }
@@ -190,15 +227,18 @@ export function useTranslation() {
     return context;
   } catch (error) {
     // Ultimate fallback in case of any error
-    logger.warn('useTranslation error', { error });
+    logger.warn("useTranslation error", { error });
     return {
       language: APP_DEFAULTS.language as Language,
       locale: APP_DEFAULTS.locale,
       setLanguage: (_lang: Language) => {},
       setLocale: () => {},
-      t: (key: string, fallback: string = key, values?: TranslationValues): string =>
-        interpolatePlaceholders(fallback, values),
-      isRTL: true
+      t: (
+        key: string,
+        fallback: string = key,
+        values?: TranslationValues,
+      ): string => interpolatePlaceholders(fallback, values),
+      isRTL: true,
     };
   }
 }

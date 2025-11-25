@@ -1,12 +1,16 @@
 export type AccountType =
-  | 'ASSET'
-  | 'LIABILITY'
-  | 'EQUITY'
-  | 'INCOME'
-  | 'REVENUE'
-  | 'EXPENSE';
+  | "ASSET"
+  | "LIABILITY"
+  | "EQUITY"
+  | "INCOME"
+  | "REVENUE"
+  | "EXPENSE";
 
-export function normalizeBalance(type: AccountType, debit: bigint, credit: bigint): bigint {
-  if (type === 'ASSET' || type === 'EXPENSE') return debit - credit;
+export function normalizeBalance(
+  type: AccountType,
+  debit: bigint,
+  credit: bigint,
+): bigint {
+  if (type === "ASSET" || type === "EXPENSE") return debit - credit;
   return credit - debit;
 }

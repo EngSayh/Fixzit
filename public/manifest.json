@@ -14,8 +14,17 @@
   "lang": "en",
   "dir": "auto",
   "categories": ["business", "productivity", "utilities", "finance"],
-  "keywords": ["facility management", "property management", "maintenance", "Saudi Arabia", "إدارة المرافق", "إدارة العقارات", "صيانة", "السعودية"],
-  
+  "keywords": [
+    "facility management",
+    "property management",
+    "maintenance",
+    "Saudi Arabia",
+    "إدارة المرافق",
+    "إدارة العقارات",
+    "صيانة",
+    "السعودية"
+  ],
+
   "icons": [
     {
       "src": "/assets/icons/icon-72x72.png",
@@ -24,14 +33,14 @@
       "purpose": "maskable"
     },
     {
-      "src": "/assets/icons/icon-96x96.png", 
+      "src": "/assets/icons/icon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
       "src": "/assets/icons/icon-128x128.png",
-      "sizes": "128x128", 
+      "sizes": "128x128",
       "type": "image/png",
       "purpose": "maskable"
     },
@@ -88,7 +97,7 @@
       "name": "Work Orders",
       "name_ar": "أوامر العمل",
       "short_name": "Orders",
-      "short_name_ar": "الأوامر", 
+      "short_name_ar": "الأوامر",
       "description": "View and manage work orders",
       "description_ar": "عرض وإدارة أوامر العمل",
       "url": "/work-orders",
@@ -145,7 +154,14 @@
       "files": [
         {
           "name": "documents",
-          "accept": ["image/*", "application/pdf", ".doc", ".docx", ".xls", ".xlsx"]
+          "accept": [
+            "image/*",
+            "application/pdf",
+            ".doc",
+            ".docx",
+            ".xls",
+            ".xlsx"
+          ]
         }
       ]
     }
@@ -156,8 +172,12 @@
       "action": "/file-handler",
       "accept": {
         "application/pdf": [".pdf"],
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
+          ".docx"
+        ],
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+          ".xlsx"
+        ],
         "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"]
       }
     }
@@ -191,7 +211,7 @@
       "id": "com.fixzitsouq.enterprise"
     },
     {
-      "platform": "itunes", 
+      "platform": "itunes",
       "url": "https://apps.apple.com/sa/app/fixzit-souq-enterprise/id123456789",
       "id": "123456789"
     }
@@ -206,7 +226,7 @@
       "label": "Dashboard - Properties and Work Orders"
     },
     {
-      "src": "/assets/screenshots/mobile-dashboard-ar.png", 
+      "src": "/assets/screenshots/mobile-dashboard-ar.png",
       "sizes": "320x640",
       "type": "image/png",
       "platform": "narrow",
@@ -216,13 +236,13 @@
     {
       "src": "/assets/screenshots/desktop-analytics.png",
       "sizes": "1280x800",
-      "type": "image/png", 
+      "type": "image/png",
       "platform": "wide",
       "label": "Analytics Dashboard - Financial Reports"
     },
     {
       "src": "/assets/screenshots/mobile-marketplace.png",
-      "sizes": "320x640", 
+      "sizes": "320x640",
       "type": "image/png",
       "platform": "narrow",
       "label": "Marketplace - Service Providers"
@@ -240,7 +260,7 @@
       "rtl_primary": true,
       "cultural_colors": {
         "primary": "#B46B2F",
-        "saudi_green": "#006C35", 
+        "saudi_green": "#006C35",
         "gold_accent": "#C98036",
         "heritage_brown": "#8B4513"
       }

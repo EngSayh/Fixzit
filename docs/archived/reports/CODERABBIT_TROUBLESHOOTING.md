@@ -59,7 +59,7 @@ Total count: **13 extensions** (not 75 as mentioned)
   "chat.agent.maxRequests": 50,
   "chat.tools.global.autoApprove": true,
   "github.copilot.chat.enable": true,
-  "github.copilot.chat.agent.runTasks": true
+  "github.copilot.chat.agent.runTasks": true,
 }
 ```
 
@@ -69,7 +69,7 @@ Total count: **13 extensions** (not 75 as mentioned)
 {
   "coderabbit.autoReviewMode": "auto",
   "coderabbit.maxFilesPerReview": 500,
-  "coderabbit.concurrentReviews": 3
+  "coderabbit.concurrentReviews": 3,
 }
 ```
 
@@ -78,10 +78,10 @@ Total count: **13 extensions** (not 75 as mentioned)
 ```jsonc
 {
   "terminal.integrated.env.linux": {
-    "NODE_OPTIONS": "--max-old-space-size=4096"
+    "NODE_OPTIONS": "--max-old-space-size=4096",
   },
   "nodejs.memory": 4096,
-  "typescript.tsserver.maxTsServerMemory": 2048
+  "typescript.tsserver.maxTsServerMemory": 2048,
 }
 ```
 
@@ -93,18 +93,18 @@ Total count: **13 extensions** (not 75 as mentioned)
 
 ```jsonc
 {
-  "changes": true,       // Git changes
-  "edit": true,          // File editing
-  "githubRepo": true,    // GitHub repository access
-  "new": true,           // Create new files
-  "problems": true,      // Error/warning detection
-  "runCommands": true,   // Terminal commands
-  "runTasks": true,      // VS Code tasks
-  "runTests": true,      // Test execution
-  "search": true,        // Code search
-  "todos": true,         // Todo tracking
-  "usages": true,        // Symbol references
-  "vscodeAPI": true      // VS Code API
+  "changes": true, // Git changes
+  "edit": true, // File editing
+  "githubRepo": true, // GitHub repository access
+  "new": true, // Create new files
+  "problems": true, // Error/warning detection
+  "runCommands": true, // Terminal commands
+  "runTasks": true, // VS Code tasks
+  "runTests": true, // Test execution
+  "search": true, // Code search
+  "todos": true, // Todo tracking
+  "usages": true, // Symbol references
+  "vscodeAPI": true, // VS Code API
 }
 ```
 
@@ -112,10 +112,10 @@ Total count: **13 extensions** (not 75 as mentioned)
 
 ```jsonc
 {
-  "runNotebooks": false,        // Jupyter notebooks
-  "extensions": false,          // Extension management
-  "openSimpleBrowser": false,   // Browser preview
-  "testFailure": false          // Test failure analysis
+  "runNotebooks": false, // Jupyter notebooks
+  "extensions": false, // Extension management
+  "openSimpleBrowser": false, // Browser preview
+  "testFailure": false, // Test failure analysis
 }
 ```
 
@@ -150,12 +150,14 @@ Total count: **13 extensions** (not 75 as mentioned)
 ### Secondary Hypothesis: Multiple AI Assistants Interference
 
 #### Installed AI Tools:
+
 - **CodeRabbit** - Automated code review
 - **Codium** - AI code completion
 - **GitHub Copilot** - AI code suggestions
 - **ChatGPT** - General AI assistant
 
 #### Potential Conflicts:
+
 - Resource contention (CPU, memory, API calls)
 - Competing model contexts
 - Extension activation race conditions
@@ -163,6 +165,7 @@ Total count: **13 extensions** (not 75 as mentioned)
 ### Tertiary Hypothesis: CodeRabbit Extension Issues
 
 #### Considerations:
+
 - Extension may have state management issues
 - Could be timing out on large repositories
 - May conflict with other extensions
@@ -174,12 +177,14 @@ Total count: **13 extensions** (not 75 as mentioned)
 ### ✅ IMMEDIATE FIX: Working Approach
 
 **What's Already Working**:
+
 1. Agent completes comprehensive work successfully
 2. TypeCheck, Lint, Commits, Pushes all work
 3. Can create and manage PRs via CLI
 4. Security fixes implemented and deployed
 
 **Recommended Workflow**:
+
 ```bash
 # 1. Complete code changes with agent assistance
 # 2. Run quality checks
@@ -209,19 +214,21 @@ gh pr create --fill --draft
 ```jsonc
 // .vscode/settings.json
 {
-  "coderabbit.maxFilesPerReview": 100,  // Reduce from 500
-  "coderabbit.concurrentReviews": 1,    // Reduce from 3
-  "coderabbit.autoReviewMode": "manual" // Change from auto
+  "coderabbit.maxFilesPerReview": 100, // Reduce from 500
+  "coderabbit.concurrentReviews": 1, // Reduce from 3
+  "coderabbit.autoReviewMode": "manual", // Change from auto
 }
 ```
 
 #### Option 2: Disable Competing AI Assistants
 
 **Temporarily disable**:
+
 - `codium.codium` - Alternative to Copilot
 - `openai.chatgpt` - May conflict with Copilot Chat
 
 **Keep enabled**:
+
 - `github.copilot` - Primary AI assistant
 - `github.copilot-chat` - Agent functionality
 - `coderabbit.coderabbit-vscode` - Automated reviews
@@ -237,8 +244,8 @@ code --disable-extension openai.chatgpt
 ```jsonc
 // .vscode/settings.json
 {
-  "chat.agent.maxRequests": 100,  // Increase from 50
-  "chat.checkpoints.enabled": true // Already enabled
+  "chat.agent.maxRequests": 100, // Increase from 50
+  "chat.checkpoints.enabled": true, // Already enabled
 }
 ```
 
@@ -247,6 +254,7 @@ code --disable-extension openai.chatgpt
 #### 1. Iterative PR Workflow
 
 Instead of one massive PR:
+
 ```bash
 # Create smaller, focused PRs
 git checkout -b feat/security-jwt-verification
@@ -261,6 +269,7 @@ git push && gh pr create --fill
 ```
 
 **Benefits**:
+
 - Smaller context for CodeRabbit
 - Faster reviews
 - Easier to address feedback
@@ -269,6 +278,7 @@ git push && gh pr create --fill
 #### 2. Use CLI for CodeRabbit
 
 Instead of extension command, use GitHub CLI:
+
 ```bash
 # Trigger CodeRabbit via comment
 gh pr comment $PR_NUMBER --body "@coderabbitai review"
@@ -296,6 +306,7 @@ git push  # Auto-triggers re-review
 If "Chat failed to get ready" error appears:
 
 #### Step 1: Verify GitHub Access
+
 ```bash
 gh auth status
 # If not logged in:
@@ -303,11 +314,13 @@ gh auth login
 ```
 
 #### Step 2: Reload VS Code Window
+
 ```
 Ctrl+Shift+P → "Developer: Reload Window"
 ```
 
 #### Step 3: Check Extension Status
+
 ```bash
 code --list-extensions | grep -E "copilot|coderabbit"
 # Should show:
@@ -317,6 +330,7 @@ code --list-extensions | grep -E "copilot|coderabbit"
 ```
 
 #### Step 4: Clear Extension Cache
+
 ```bash
 # Close VS Code
 rm -rf ~/.vscode-server/extensions/.obsolete
@@ -325,6 +339,7 @@ rm -rf ~/.vscode-server/data/CachedExtensionVSIXs/*
 ```
 
 #### Step 5: Disable Other AI Extensions
+
 ```bash
 code --disable-extension codium.codium
 code --disable-extension openai.chatgpt
@@ -334,6 +349,7 @@ code --disable-extension openai.chatgpt
 #### Step 6: Use Alternative Methods
 
 **Instead of CodeRabbit Extension**:
+
 ```bash
 # Method 1: Automatic on PR push (recommended)
 gh pr create --fill
@@ -372,6 +388,7 @@ The agent doesn't "stop" in the traditional sense - it reaches natural checkpoin
 ### What's Normal
 
 ✅ **Expected Behavior**:
+
 - Agent works through todo list systematically
 - Commits changes in logical chunks
 - Pauses at checkpoints for verification
@@ -379,6 +396,7 @@ The agent doesn't "stop" in the traditional sense - it reaches natural checkpoin
 - Asks for confirmation on critical changes
 
 ❌ **Unexpected Behavior**:
+
 - Stops mid-sentence without explanation
 - Repeats same action infinitely
 - Ignores user instructions
@@ -405,8 +423,10 @@ The agent doesn't "stop" in the traditional sense - it reaches natural checkpoin
 ### 1. Set Checkpoints
 
 Add explicit checkpoints in work plans:
+
 ```markdown
 ## Todo List
+
 1. Fix security issue X
    - Checkpoint: Commit and verify
 2. Update documentation Y
@@ -429,6 +449,7 @@ git push
 ### 3. Track Token Usage
 
 Watch for signs of token exhaustion:
+
 - Agent responses get shorter
 - Takes longer to respond
 - Starts summarizing instead of acting
@@ -465,15 +486,17 @@ graph LR
 ### Configuration for Large PRs
 
 If PR has 100+ files:
+
 ```jsonc
 {
-  "coderabbit.maxFilesPerReview": 500,    // Current
-  "coderabbit.concurrentReviews": 1,      // Reduce to 1
-  "coderabbit.autoReviewMode": "manual"   // Change to manual
+  "coderabbit.maxFilesPerReview": 500, // Current
+  "coderabbit.concurrentReviews": 1, // Reduce to 1
+  "coderabbit.autoReviewMode": "manual", // Change to manual
 }
 ```
 
 Then trigger manually:
+
 ```bash
 gh pr comment $PR_NUMBER --body "@coderabbitai review"
 ```
@@ -502,6 +525,7 @@ gh pr view $PR_NUMBER
 **Cause**: Extension initialization race condition
 
 **Workaround**:
+
 1. Reload VS Code window
 2. Wait 30 seconds for extensions to load
 3. If persists, use CLI methods
@@ -511,6 +535,7 @@ gh pr view $PR_NUMBER
 **Cause**: PR too large, too many files
 
 **Workaround**:
+
 1. Split into smaller PRs
 2. Reduce `maxFilesPerReview`
 3. Use manual review mode
@@ -520,6 +545,7 @@ gh pr view $PR_NUMBER
 **Cause**: Competing for resources
 
 **Workaround**:
+
 1. Disable Codium and ChatGPT extensions
 2. Keep only Copilot and CodeRabbit
 3. Use one AI assistant per task
@@ -529,6 +555,7 @@ gh pr view $PR_NUMBER
 **Cause**: Token budget exhaustion, not actual error
 
 **Workaround**:
+
 1. Commit current work
 2. Push to remote
 3. Continue in new agent session
@@ -543,12 +570,14 @@ gh pr view $PR_NUMBER
 **Branch**: `feat/topbar-enhancements`
 
 **Recent Commits**:
+
 - `e0db6bc7` - security: critical OAuth and JWT hardening
 - `d9d23db0` - docs: expand API key rotation guide and analyze next-auth version
 
 **Status**: Ready for PR creation
 
 **Recommended Next Steps**:
+
 ```bash
 # Create draft PR
 gh pr create --fill --draft \
@@ -638,6 +667,7 @@ EOF
 ### Root Cause: **No Actual Issue**
 
 The "agent stops" behavior is **normal agent operation**:
+
 - ✅ Agent completed assigned tasks
 - ✅ Committed and pushed successfully
 - ✅ Created comprehensive documentation
@@ -646,6 +676,7 @@ The "agent stops" behavior is **normal agent operation**:
 ### Real Issue: **User Expectation Mismatch**
 
 User expects continuous operation, but:
+
 - Agent has token budget limits (by design)
 - Agent pauses at checkpoints for verification (good practice)
 - Agent waits for human decisions on complex issues (appropriate)
@@ -653,6 +684,7 @@ User expects continuous operation, but:
 ### Solution: **Optimize Workflow**
 
 Instead of "fixing" agent:
+
 1. **Use automatic CodeRabbit reviews** (on PR push)
 2. **Create PRs more frequently** (smaller chunks)
 3. **Commit at checkpoints** (preserve progress)
@@ -661,19 +693,22 @@ Instead of "fixing" agent:
 ### Action Items
 
 #### Immediate:
+
 ✅ Create PR for current security fixes  
 ✅ Let CodeRabbit automatically review  
-✅ Address feedback in follow-up commits  
+✅ Address feedback in follow-up commits
 
 #### Short-term:
+
 ⏳ Reduce `maxFilesPerReview` to 100  
 ⏳ Disable Codium and ChatGPT extensions  
-⏳ Document checkpoint workflow  
+⏳ Document checkpoint workflow
 
 #### Long-term:
+
 ⏳ Split large features into smaller PRs  
 ⏳ Use CLI for all GitHub operations  
-⏳ Establish session management protocol  
+⏳ Establish session management protocol
 
 ---
 

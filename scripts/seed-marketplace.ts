@@ -1,6 +1,6 @@
-import { createRequire } from 'node:module';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { createRequire } from "node:module";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 
@@ -11,10 +11,10 @@ const logInfo = (message: string) => {
 const logError = (message: string, error?: unknown) => {
   const detail =
     error instanceof Error
-      ? ` ${error.message}${error.stack ? `\n${error.stack}` : ''}`
+      ? ` ${error.message}${error.stack ? `\n${error.stack}` : ""}`
       : error
-      ? ` ${String(error)}`
-      : '';
+        ? ` ${String(error)}`
+        : "";
   process.stderr.write(`${message}${detail}\n`);
 };
 
@@ -30,7 +30,7 @@ type MockDbModule = { MockDatabase: { getInstance: () => MockDbInstance } };
 type UpsertFn = (
   _collection: string,
   _predicate: (_entry: MockDocument) => boolean,
-  _doc: MockDocument
+  _doc: MockDocument,
 ) => MockDocument;
 
 const {
@@ -39,7 +39,7 @@ const {
   createUpsert,
   getSeedData,
   resolveMockDatabase,
-} = require('./seed-marketplace-shared.js') as {
+} = require("./seed-marketplace-shared.js") as {
   DEFAULT_TENANT_ID: string;
   COLLECTIONS: { SYNONYMS: string; PRODUCTS: string };
   createUpsert: (_db: MockDbInstance) => UpsertFn;
@@ -50,8 +50,11 @@ const {
   resolveMockDatabase: () => MockDbModule["MockDatabase"];
 };
 
-const MockDatabase = (globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__
-  ? ((globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__ as { getInstance: () => MockDbInstance })
+const MockDatabase = (globalThis as Record<string, unknown>)
+  .__FIXZIT_MARKETPLACE_DB_MOCK__
+  ? ((globalThis as Record<string, unknown>).__FIXZIT_MARKETPLACE_DB_MOCK__ as {
+      getInstance: () => MockDbInstance;
+    })
   : resolveMockDatabase();
 
 // Idempotent seed for demo-tenant marketplace data when using MockDB
@@ -67,22 +70,26 @@ export async function main() {
 
   synonyms.forEach((synonym) => {
     upsert(
-      COLLECTIONS.SEARCH_SYNONYMS ?? COLLECTIONS.SYNONYMS ?? COLLECTIONS.SEARCH_SYNONYMS,
-      (entry: Record<string, unknown>) => entry.locale === synonym.locale && entry.term === synonym.term,
+      COLLECTIONS.SEARCH_SYNONYMS ??
+        COLLECTIONS.SYNONYMS ??
+        COLLECTIONS.SEARCH_SYNONYMS,
+      (entry: Record<string, unknown>) =>
+        entry.locale === synonym.locale && entry.term === synonym.term,
       synonym,
     );
   });
 
   products.forEach((product) => {
-    const productCollection = 'marketplaceproducts';
+    const productCollection = "marketplaceproducts";
     upsert(
       productCollection,
-      (entry: Record<string, unknown>) => entry.tenantId === tenantId && entry.slug === product.slug,
+      (entry: Record<string, unknown>) =>
+        entry.tenantId === tenantId && entry.slug === product.slug,
       product,
     );
   });
 
-  logInfo('✔ Marketplace seed complete (MockDB)');
+  logInfo("✔ Marketplace seed complete (MockDB)");
 }
 
 export default main;
@@ -102,8 +109,8 @@ const isDirectExecution = (() => {
 })();
 
 if (isDirectExecution) {
-  main().catch(error => {
-    logError('Failed to seed marketplace (MockDB)', error);
+  main().catch((error) => {
+    logError("Failed to seed marketplace (MockDB)", error);
     process.exitCode = 1;
   });
 }

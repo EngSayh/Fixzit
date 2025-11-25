@@ -23,22 +23,22 @@
 
 **All 14 user roles successfully seeded:**
 
-| # | Email | Role | Employee ID | Password |
-|---|-------|------|-------------|----------|
-| 1 | <superadmin@fixzit.co> | super_admin | SA001 | Password123 |
-| 2 | <corp.admin@fixzit.co> | corporate_admin | CA001 | Password123 |
-| 3 | <property.manager@fixzit.co> | property_manager | PM001 | Password123 |
-| 4 | <dispatcher@fixzit.co> | operations_dispatcher | DISP001 | Password123 |
-| 5 | <supervisor@fixzit.co> | supervisor | SUP001 | Password123 |
-| 6 | <technician@fixzit.co> | technician_internal | TECH001 | Password123 |
-| 7 | <vendor.admin@fixzit.co> | vendor_admin | VEND001 | Password123 |
-| 8 | <vendor.tech@fixzit.co> | vendor_technician | VTECH001 | Password123 |
-| 9 | <tenant@fixzit.co> | tenant_resident | None | Password123 |
-| 10 | <owner@fixzit.co> | owner_landlord | OWN001 | Password123 |
-| 11 | <finance@fixzit.co> | finance_manager | FIN001 | Password123 |
-| 12 | <hr@fixzit.co> | hr_manager | HR001 | Password123 |
-| 13 | <helpdesk@fixzit.co> | helpdesk_agent | HELP001 | Password123 |
-| 14 | <auditor@fixzit.co> | auditor_compliance | AUD001 | Password123 |
+| #   | Email                        | Role                  | Employee ID | Password    |
+| --- | ---------------------------- | --------------------- | ----------- | ----------- |
+| 1   | <superadmin@fixzit.co>       | super_admin           | SA001       | Password123 |
+| 2   | <corp.admin@fixzit.co>       | corporate_admin       | CA001       | Password123 |
+| 3   | <property.manager@fixzit.co> | property_manager      | PM001       | Password123 |
+| 4   | <dispatcher@fixzit.co>       | operations_dispatcher | DISP001     | Password123 |
+| 5   | <supervisor@fixzit.co>       | supervisor            | SUP001      | Password123 |
+| 6   | <technician@fixzit.co>       | technician_internal   | TECH001     | Password123 |
+| 7   | <vendor.admin@fixzit.co>     | vendor_admin          | VEND001     | Password123 |
+| 8   | <vendor.tech@fixzit.co>      | vendor_technician     | VTECH001    | Password123 |
+| 9   | <tenant@fixzit.co>           | tenant_resident       | None        | Password123 |
+| 10  | <owner@fixzit.co>            | owner_landlord        | OWN001      | Password123 |
+| 11  | <finance@fixzit.co>          | finance_manager       | FIN001      | Password123 |
+| 12  | <hr@fixzit.co>               | hr_manager            | HR001       | Password123 |
+| 13  | <helpdesk@fixzit.co>         | helpdesk_agent        | HELP001     | Password123 |
+| 14  | <auditor@fixzit.co>          | auditor_compliance    | AUD001      | Password123 |
 
 **Seeding Script**: `/scripts/seed-auth-14users.mjs`  
 **Organizations Created**:

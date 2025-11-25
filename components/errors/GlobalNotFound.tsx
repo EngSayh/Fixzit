@@ -1,32 +1,57 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { Home, ArrowLeft, Search } from 'lucide-react';
-import { useTranslation } from '@/contexts/TranslationContext';
+import Link from "next/link";
+import { Home, ArrowLeft, Search } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 export function GlobalNotFound() {
   const { t } = useTranslation();
 
   const commonPages = [
-    { name: t('common.pages.dashboard', 'Dashboard'), href: '/dashboard', icon: '🏠' },
-    { name: t('common.pages.properties', 'Properties'), href: '/properties', icon: '🏢' },
-    { name: t('common.pages.workOrders', 'Work Orders'), href: '/work-orders', icon: '🧰' },
-    { name: t('common.pages.marketplace', 'Marketplace'), href: '/marketplace', icon: '🛍️' },
-    { name: t('common.pages.finance', 'Finance'), href: '/finance', icon: '💳' },
-    { name: t('common.pages.hr', 'HR'), href: '/hr', icon: '👥' },
-    { name: t('common.pages.login', 'Login'), href: '/login', icon: '🔐' },
+    {
+      name: t("common.pages.dashboard", "Dashboard"),
+      href: "/dashboard",
+      icon: "🏠",
+    },
+    {
+      name: t("common.pages.properties", "Properties"),
+      href: "/properties",
+      icon: "🏢",
+    },
+    {
+      name: t("common.pages.workOrders", "Work Orders"),
+      href: "/work-orders",
+      icon: "🧰",
+    },
+    {
+      name: t("common.pages.marketplace", "Marketplace"),
+      href: "/marketplace",
+      icon: "🛍️",
+    },
+    {
+      name: t("common.pages.finance", "Finance"),
+      href: "/finance",
+      icon: "💳",
+    },
+    { name: t("common.pages.hr", "HR"), href: "/hr", icon: "👥" },
+    { name: t("common.pages.login", "Login"), href: "/login", icon: "🔐" },
   ];
 
   return (
     <div className="min-h-screen bg-muted flex flex-col items-center justify-center px-4">
       <div className="max-w-md w-full text-center">
         <div className="mb-8">
-          <h1 className="text-6xl font-bold text-primary mb-4">{t('errors.404.code', '404')}</h1>
+          <h1 className="text-6xl font-bold text-primary mb-4">
+            {t("errors.404.code", "404")}
+          </h1>
           <h2 className="text-2xl font-semibold text-foreground mb-2">
-            {t('errors.404.title', 'Page Not Found')}
+            {t("errors.404.title", "Page Not Found")}
           </h2>
           <p className="text-muted-foreground">
-            {t("errors.404.message", "The page you're looking for doesn't exist or has been moved.")}
+            {t(
+              "errors.404.message",
+              "The page you're looking for doesn't exist or has been moved.",
+            )}
           </p>
         </div>
 
@@ -36,7 +61,7 @@ export function GlobalNotFound() {
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors"
           >
             <Home size={20} />
-            {t('common.actions.goToHomepage', 'Go to Homepage')}
+            {t("common.actions.goToHomepage", "Go to Homepage")}
           </Link>
 
           <button
@@ -44,14 +69,14 @@ export function GlobalNotFound() {
             className="block w-full px-6 py-3 border border-border text-foreground rounded-2xl hover:bg-muted transition-colors"
           >
             <ArrowLeft size={20} className="inline me-2" />
-            {t('common.actions.goBack', 'Go Back')}
+            {t("common.actions.goBack", "Go Back")}
           </button>
         </div>
 
         <div className="bg-card rounded-2xl shadow-md p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Search size={20} className="text-primary" />
-            {t('common.popularPages', 'Popular Pages')}
+            {t("common.popularPages", "Popular Pages")}
           </h3>
 
           <div className="grid grid-cols-2 gap-3">
@@ -62,7 +87,9 @@ export function GlobalNotFound() {
                 className="flex items-center gap-2 p-3 bg-muted rounded-2xl hover:bg-primary/10 transition-colors text-start"
               >
                 <span className="text-lg">{page.icon}</span>
-                <span className="text-sm font-medium text-foreground">{page.name}</span>
+                <span className="text-sm font-medium text-foreground">
+                  {page.name}
+                </span>
               </Link>
             ))}
           </div>
@@ -70,8 +97,14 @@ export function GlobalNotFound() {
 
         <div className="mt-6 text-sm text-muted-foreground">
           <p>
-            {t('errors.404.helpText', 'If you believe this is an error, please contact')}{' '}
-            <a href="mailto:support@fixzit.co" className="text-primary hover:text-primary transition-colors">
+            {t(
+              "errors.404.helpText",
+              "If you believe this is an error, please contact",
+            )}{" "}
+            <a
+              href="mailto:support@fixzit.co"
+              className="text-primary hover:text-primary transition-colors"
+            >
               support@fixzit.co
             </a>
           </p>

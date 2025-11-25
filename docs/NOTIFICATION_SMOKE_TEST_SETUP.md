@@ -108,6 +108,7 @@ Your test user **must** have FCM tokens in MongoDB:
 ```
 
 **How to get FCM tokens:**
+
 - Use Firebase SDK in your mobile/web app
 - Call `messaging.getToken()` to get device token
 - Store in user document via your app's token registration endpoint
@@ -178,6 +179,7 @@ TWILIO_PHONE_NUMBER=+15551234567
 #### Trial Account Limitations
 
 If using Twilio trial account:
+
 - Can only send to **verified phone numbers**
 - Add `NOTIFICATIONS_SMOKE_PHONE` to **Verified Caller IDs** in console
 - Messages will have "Sent from your Twilio trial account" prefix
@@ -218,6 +220,7 @@ WHATSAPP_PHONE_NUMBER_ID=whatsapp:+14155238886
 #### WhatsApp Template Messages
 
 WhatsApp requires **pre-approved templates** for business messages. For testing:
+
 - Use Twilio Sandbox (allows freeform messages to joined users)
 - Or create/approve templates in Meta Business Manager
 
@@ -240,11 +243,13 @@ pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel w
 ### Channel-Specific Tests
 
 #### Email Only
+
 ```bash
 pnpm tsx qa/notifications/run-smoke.ts --channel email
 ```
 
 **Expected Output:**
+
 ```
 Running Fixzit notification smoke test
 Channels: email
@@ -259,11 +264,13 @@ Notification smoke test complete: {
 ```
 
 #### SMS + WhatsApp
+
 ```bash
 pnpm tsx qa/notifications/run-smoke.ts --channel sms --channel whatsapp
 ```
 
 #### Push Notifications Only
+
 ```bash
 pnpm tsx qa/notifications/run-smoke.ts --channel push
 ```
@@ -287,11 +294,11 @@ Successful smoke test output structure:
 
 ```json
 {
-  "attempted": 3,    // Channels attempted
-  "succeeded": 3,    // Successful sends
-  "failed": 0,       // Failed sends
-  "skipped": 0,      // Skipped (missing config)
-  "issues": []       // Error details (if any)
+  "attempted": 3, // Channels attempted
+  "succeeded": 3, // Successful sends
+  "failed": 0, // Failed sends
+  "skipped": 0, // Skipped (missing config)
+  "issues": [] // Error details (if any)
 }
 ```
 
@@ -306,12 +313,14 @@ Successful smoke test output structure:
 **Problem:** `succeeded: 1` but no email in inbox
 
 **Solutions:**
+
 - ✅ Check spam/junk folder
 - ✅ Verify sender identity in SendGrid
 - ✅ Check SendGrid Activity Feed for delivery status
 - ✅ Verify `SENDGRID_FROM_EMAIL` matches verified sender
 
 **Verify in SendGrid:**
+
 ```
 Dashboard > Activity Feed > Search for NOTIFICATIONS_SMOKE_EMAIL
 ```
@@ -321,6 +330,7 @@ Dashboard > Activity Feed > Search for NOTIFICATIONS_SMOKE_EMAIL
 **Problem:** `failed: 1` with "unverified number" error
 
 **Solutions:**
+
 - ✅ Add `NOTIFICATIONS_SMOKE_PHONE` to Twilio Verified Caller IDs
 - ✅ Upgrade to paid Twilio account
 - ✅ Ensure phone number is E.164 format (`+966...` not `05...`)
@@ -330,15 +340,17 @@ Dashboard > Activity Feed > Search for NOTIFICATIONS_SMOKE_EMAIL
 **Problem:** `skipped: 1` or `failed: 1` for push channel
 
 **Solutions:**
+
 - ✅ Ensure user document has `fcmTokens` array in MongoDB
 - ✅ Verify Firebase credentials are correct
 - ✅ Check `FIREBASE_ADMIN_PRIVATE_KEY` has `\n` preserved
 - ✅ Ensure FCM token is valid (tokens expire after ~60 days)
 
 **Verify MongoDB:**
+
 ```javascript
 // In MongoDB shell or Compass
-db.users.findOne({ _id: ObjectId("507f1f77bcf86cd799439011") })
+db.users.findOne({ _id: ObjectId("507f1f77bcf86cd799439011") });
 // Should have: fcmTokens: ["dXYZ...", ...]
 ```
 
@@ -347,6 +359,7 @@ db.users.findOne({ _id: ObjectId("507f1f77bcf86cd799439011") })
 **Problem:** WhatsApp messages not delivered
 
 **Solutions:**
+
 - ✅ Join Twilio WhatsApp sandbox (send code to `+1 415 523 8886`)
 - ✅ Wait 1-2 minutes after joining before testing
 - ✅ Use `whatsapp:+14155238886` format for sandbox number
@@ -357,12 +370,14 @@ db.users.findOne({ _id: ObjectId("507f1f77bcf86cd799439011") })
 **Problem:** "Missing required env vars" even though `.env.local` is populated
 
 **Solutions:**
+
 - ✅ Ensure `.env.local` is in project root (next to `package.json`)
 - ✅ Restart terminal/IDE after editing `.env.local`
 - ✅ Check for syntax errors (no spaces around `=`)
 - ✅ Use `dotenv/config` at top of script (already included)
 
 **Verify environment loading:**
+
 ```bash
 # Print loaded env vars (without sensitive values)
 node -e "require('dotenv/config'); console.log(Object.keys(process.env).filter(k => k.includes('SENDGRID')))"
@@ -381,23 +396,23 @@ on:
   push:
     branches: [main, develop]
   schedule:
-    - cron: '0 8 * * *'  # Daily at 8 AM UTC
+    - cron: "0 8 * * *" # Daily at 8 AM UTC
 
 jobs:
   smoke-tests:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-      
+          node-version: "18"
+
       - name: Install dependencies
         run: pnpm install
-      
+
       - name: Run notification smoke tests
         env:
           # Common
@@ -405,28 +420,28 @@ jobs:
           NOTIFICATIONS_SMOKE_NAME: "CI Smoke Test"
           NOTIFICATIONS_SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
           NOTIFICATIONS_SMOKE_PHONE: ${{ secrets.SMOKE_PHONE }}
-          
+
           # Firebase
           FIREBASE_ADMIN_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
           FIREBASE_ADMIN_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
           FIREBASE_ADMIN_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
-          
+
           # SendGrid
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           SENDGRID_FROM_EMAIL: ${{ secrets.SENDGRID_FROM_EMAIL }}
           SENDGRID_FROM_NAME: "Fixzit CI"
-          
+
           # Twilio
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_PHONE_NUMBER: ${{ secrets.TWILIO_PHONE_NUMBER }}
-          
+
           # WhatsApp
           WHATSAPP_BUSINESS_API_KEY: ${{ secrets.WHATSAPP_API_KEY }}
           WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.WHATSAPP_PHONE_ID }}
         run: |
           pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel whatsapp --channel push
-      
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v3

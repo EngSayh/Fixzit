@@ -21,6 +21,7 @@
 ## 📋 Deployment Prerequisites
 
 ### ✅ Completed
+
 - [x] Vercel CLI installed (`/opt/homebrew/bin/vercel`)
 - [x] vercel.json configuration exists
 - [x] Lint + typecheck passing (this session)
@@ -35,6 +36,7 @@
 **You need to answer:** Do you have a MongoDB Atlas account?
 
 **If NO - Create One:**
+
 1. Visit https://www.mongodb.com/cloud/atlas/register
 2. Create free cluster (M0 Sandbox - 512MB)
 3. Configure security:
@@ -47,6 +49,7 @@
    ```
 
 **If YES - Get Connection String:**
+
 1. Log in to https://cloud.mongodb.com
 2. Click "Connect" on your cluster
 3. Choose "Connect your application"
@@ -57,6 +60,7 @@
 #### 2. Environment Variables Needed
 
 **Critical (App won't work without these):**
+
 ```env
 MONGODB_URI=mongodb+srv://...
 NEXTAUTH_SECRET=$(openssl rand -base64 32)
@@ -64,6 +68,7 @@ NEXTAUTH_URL=https://fixzit.co
 ```
 
 **Important (Features won't work):**
+
 ```env
 # Email (SendGrid) - You already have this key in .env.local
 SENDGRID_API_KEY=SG.<your_sendgrid_api_key>
@@ -80,9 +85,11 @@ AWS_SECRET_ACCESS_KEY=your_secret
 AWS_S3_BUCKET=fixzit-uploads-prod
 AWS_REGION=us-east-1
 ```
+
 > Security hygiene: regenerate any SendGrid or Twilio credentials that were previously stored in docs and keep new values only in secret managers.
 
 **Optional (Can add later):**
+
 ```env
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
@@ -95,6 +102,7 @@ SENTRY_DSN=...
 ## 🎯 Quick Deployment Path (3 Steps)
 
 ### Step 1: MongoDB Atlas (10 minutes)
+
 ```bash
 # After creating Atlas cluster, test locally:
 nano .env.local
@@ -105,6 +113,7 @@ pnpm dev    # Test at localhost:3000
 ```
 
 ### Step 2: Configure Vercel (5 minutes)
+
 ```bash
 cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
 
@@ -129,6 +138,7 @@ vercel env add TWILIO_AUTH_TOKEN production
 ```
 
 ### Step 3: Deploy & Configure Domain (15 minutes)
+
 ```bash
 # Deploy
 vercel --prod
@@ -146,7 +156,7 @@ vercel --prod
 #    - Log in to GoDaddy
 #    - Domains → fixzit.co → DNS Management
 #    - Change nameservers to Vercel's nameservers
-#    
+#
 # 6. Wait 5-30 minutes for DNS propagation
 # 7. Visit https://fixzit.co
 ```
@@ -156,6 +166,7 @@ vercel --prod
 ## 🔍 Current Environment Status
 
 ### Local Development (.env.local)
+
 - **MongoDB:** `localhost:27017` (needs Atlas)
 - **NextAuth:** Dev secret (needs production secret)
 - **SendGrid:** ✅ Configured (API key present)
@@ -164,6 +175,7 @@ vercel --prod
 - **Google OAuth:** ❌ Not configured (optional)
 
 ### What's Working Locally
+
 - ✅ App builds and runs
 - ✅ Email sending (SendGrid)
 - ✅ SMS sending (Twilio)
@@ -171,6 +183,7 @@ vercel --prod
 - ✅ Database (local MongoDB)
 
 ### What Needs Production Setup
+
 - 🔴 MongoDB Atlas cluster
 - 🔴 Production NextAuth secret
 - 🔴 Production NextAuth URL
@@ -182,18 +195,21 @@ vercel --prod
 ## 📊 Risk Assessment
 
 ### Zero Risk (Can deploy now)
+
 - Lint and typecheck are green
 - Targeted unit test green (approveQuotation)
 - No TypeScript/ESLint errors in this run
 - Build not re-run this session (run `pnpm build` before next prod deploy)
 
 ### Low Risk (Easy to fix)
+
 - Missing MongoDB Atlas → 10 minutes to create
 - Missing env vars → 5 minutes to add
 - DNS propagation → Automatic, just wait
 - Full Playwright/E2E coverage not executed in this session → run `pnpm test:e2e` when specs are available
 
 ### No Risk Items
+
 - SSL certificate → Vercel handles automatically
 - CDN/Edge → Vercel provides globally
 - Monitoring → Vercel dashboard included
@@ -210,9 +226,11 @@ vercel --prod
    - If NO: Create account at mongodb.com/cloud/atlas
 
 2. **Generate NextAuth secret:**
+
    ```bash
    openssl rand -base64 32
    ```
+
    Save this output!
 
 3. **Prepare AWS credentials (if you have them):**
@@ -235,21 +253,22 @@ vercel --prod
 
 ## ⏱️ Time Estimates
 
-| Task | Time | Status |
-|------|------|--------|
-| Code fixes | 2 hours | ✅ DONE |
-| MongoDB Atlas setup | 10 min | ⏳ PENDING |
-| Vercel env config | 5 min | ⏳ PENDING |
-| Deploy to Vercel | 5 min | ⏳ PENDING |
-| Domain configuration | 5 min | ⏳ PENDING |
-| DNS propagation | 5-30 min | ⏳ PENDING |
-| **TOTAL** | **30-60 min** | **66% READY** |
+| Task                 | Time          | Status        |
+| -------------------- | ------------- | ------------- |
+| Code fixes           | 2 hours       | ✅ DONE       |
+| MongoDB Atlas setup  | 10 min        | ⏳ PENDING    |
+| Vercel env config    | 5 min         | ⏳ PENDING    |
+| Deploy to Vercel     | 5 min         | ⏳ PENDING    |
+| Domain configuration | 5 min         | ⏳ PENDING    |
+| DNS propagation      | 5-30 min      | ⏳ PENDING    |
+| **TOTAL**            | **30-60 min** | **66% READY** |
 
 ---
 
 ## 📞 Ready to Deploy!
 
 **Current Status:** All code is production-ready. Just need to:
+
 1. Set up MongoDB Atlas
 2. Configure environment variables
 3. Run deployment commands
@@ -265,18 +284,21 @@ vercel --prod
 **Choose one:**
 
 **Option A: Full Production Deployment (Recommended)**
+
 - Set up MongoDB Atlas (permanent, scalable)
 - Add all environment variables
 - Deploy to fixzit.co
 - **Time:** 30-60 minutes
 
 **Option B: Quick Test Deployment**
+
 - Deploy with minimal env vars
 - Use Vercel's temporary URL
 - Skip domain configuration
 - **Time:** 10 minutes
 
 **Option C: Local Testing First**
+
 - Set up Atlas for local testing
 - Verify everything works locally
 - Then deploy to production
@@ -287,6 +309,7 @@ vercel --prod
 ---
 
 **Files Created for You:**
+
 - `DEPLOYMENT_CHECKLIST.md` - Full step-by-step guide
 - `PRODUCTION_READINESS_SUMMARY.md` - This file
 

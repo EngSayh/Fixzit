@@ -28,7 +28,7 @@
 
 - Line 23: Changed to `['corporate_admin', 'hr_manager']`
 - Line 36: Changed `'ADMIN' as any` to `'super_admin'`
-**Verification**: ✅ PASS - No 'ADMIN' references remain
+  **Verification**: ✅ PASS - No 'ADMIN' references remain
 
 #### ✅ Comment 2: app/api/subscribe/corporate/route.ts
 
@@ -47,7 +47,7 @@
 
 - GET method: Removed `dbConnect()`, kept `connectToDatabase()`
 - POST method: Removed `dbConnect()`, kept `connectToDatabase()`
-**Verification**: ✅ PASS - Single connection pattern
+  **Verification**: ✅ PASS - Single connection pattern
 
 #### ✅ Comment 4: server/security/headers.ts (line 51)
 
@@ -179,13 +179,13 @@
 **Status**: Marked for separate PR (P2 - Medium priority)
 **Verification**: ✅ PASS - Deferred to separate PR
 
-#### ✅ Comment 27: app/api/subscribe/*
+#### ✅ Comment 27: app/api/subscribe/\*
 
 **Issue**: Missing OpenAPI 3.0
 **Status**: Marked for separate PR (P2 - Medium priority)
 **Verification**: ✅ PASS - Deferred to separate PR
 
-#### ✅ Comment 28: app/api/subscribe/*
+#### ✅ Comment 28: app/api/subscribe/\*
 
 **Issue**: No normalized error shape
 **Status**: Marked for separate PR (P2 - Medium priority)
@@ -317,7 +317,7 @@ curl -X POST -H "Authorization: Bearer <other_role_token>" \
 
 ```typescript
 // Should fail - neither field
-await PaymentMethod.create({ gateway: 'PAYTABS' });
+await PaymentMethod.create({ gateway: "PAYTABS" });
 // Error: Either org_id or owner_user_id must be provided
 
 // Should fail - both fields
@@ -325,11 +325,11 @@ await PaymentMethod.create({ org_id: orgId, owner_user_id: userId });
 // Error: Cannot set both org_id and owner_user_id
 
 // Should pass - org_id only
-await PaymentMethod.create({ org_id: orgId, gateway: 'PAYTABS' });
+await PaymentMethod.create({ org_id: orgId, gateway: "PAYTABS" });
 // ✅ Success
 
 // Should pass - owner_user_id only
-await PaymentMethod.create({ owner_user_id: userId, gateway: 'PAYTABS' });
+await PaymentMethod.create({ owner_user_id: userId, gateway: "PAYTABS" });
 // ✅ Success
 ```
 
@@ -374,17 +374,17 @@ curl -H "Origin: http://localhost:3000" \
 
 ## Summary Statistics
 
-| Category | Count | Status |
-|----------|-------|--------|
-| Total Comments | 28 | ✅ 100% |
-| P0 Critical | 11 | ✅ Fixed |
-| P1 High | 9 | ✅ Fixed |
-| P2 Medium | 4 | ⏭️ Deferred |
-| P3 Low | 4 | ✅ Noted |
-| Files Modified | 5 | ✅ Complete |
-| Files Verified | 9 | ✅ Complete |
-| Commits | 4 | ✅ Pushed |
-| Verification | 13/13 | ✅ Pass |
+| Category       | Count | Status      |
+| -------------- | ----- | ----------- |
+| Total Comments | 28    | ✅ 100%     |
+| P0 Critical    | 11    | ✅ Fixed    |
+| P1 High        | 9     | ✅ Fixed    |
+| P2 Medium      | 4     | ⏭️ Deferred |
+| P3 Low         | 4     | ✅ Noted    |
+| Files Modified | 5     | ✅ Complete |
+| Files Verified | 9     | ✅ Complete |
+| Commits        | 4     | ✅ Pushed   |
+| Verification   | 13/13 | ✅ Pass     |
 
 ---
 

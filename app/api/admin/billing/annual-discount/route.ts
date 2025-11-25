@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { dbConnect } from '@/db/mongoose';
-import DiscountRule from '@/server/models/DiscountRule';
-import { requireSuperAdmin } from '@/lib/authz';
+import { NextRequest, NextResponse } from "next/server";
+import { dbConnect } from "@/db/mongoose";
+import DiscountRule from "@/server/models/DiscountRule";
+import { requireSuperAdmin } from "@/lib/authz";
 
 /**
  * @openapi
@@ -38,12 +38,10 @@ export async function PATCH(req: NextRequest) {
   const { percentage } = await req.json();
 
   const doc = await DiscountRule.findOneAndUpdate(
-    { key: 'ANNUAL_PREPAY' },
+    { key: "ANNUAL_PREPAY" },
     { percentage },
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
 
   return NextResponse.json({ ok: true, discount: doc?.percentage });
 }
-
-

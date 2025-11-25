@@ -1,23 +1,23 @@
-import { renderHook, act } from '@testing-library/react';
-import { useFormTracking } from '@/hooks/useFormTracking';
-import { FormStateProvider, useFormState } from '@/contexts/FormStateContext';
-import React from 'react';
-import { vi, describe, it, expect } from 'vitest';
+import { renderHook, act } from "@testing-library/react";
+import { useFormTracking } from "@/hooks/useFormTracking";
+import { FormStateProvider, useFormState } from "@/contexts/FormStateContext";
+import React from "react";
+import { vi, describe, it, expect } from "vitest";
 
 // Create a wrapper component that includes the Provider
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <FormStateProvider>{children}</FormStateProvider>
 );
 
-describe('useFormTracking', () => {
-  it('should register and unregister the form on mount/unmount', () => {
+describe("useFormTracking", () => {
+  it("should register and unregister the form on mount/unmount", () => {
     const onSave = vi.fn(() => Promise.resolve());
 
     const { result, unmount, rerender } = renderHook(
       ({ isDirty }) => {
         const ctx = useFormState();
         useFormTracking({
-          formId: 'test-form',
+          formId: "test-form",
           isDirty,
           onSave,
         });
@@ -26,24 +26,24 @@ describe('useFormTracking', () => {
       { wrapper, initialProps: { isDirty: false } },
     );
 
-    expect(result.current.isFormDirty('test-form')).toBe(false);
+    expect(result.current.isFormDirty("test-form")).toBe(false);
 
     act(() => {
       rerender({ isDirty: true });
     });
-    expect(result.current.isFormDirty('test-form')).toBe(true);
+    expect(result.current.isFormDirty("test-form")).toBe(true);
 
     act(() => unmount());
   });
 
-  it('should mark form as dirty in context when isDirty prop becomes true', () => {
+  it("should mark form as dirty in context when isDirty prop becomes true", () => {
     const onSave = vi.fn(() => Promise.resolve());
 
     const { result, rerender } = renderHook(
       ({ isDirty }) => {
         const ctx = useFormState();
         useFormTracking({
-          formId: 'dirty-form',
+          formId: "dirty-form",
           isDirty,
           onSave,
         });
@@ -57,23 +57,25 @@ describe('useFormTracking', () => {
       },
     );
 
-    expect(result.current.isFormDirty('dirty-form')).toBe(false);
+    expect(result.current.isFormDirty("dirty-form")).toBe(false);
 
     act(() => {
       rerender({ isDirty: true });
     });
 
-    expect(result.current.isFormDirty('dirty-form')).toBe(true);
+    expect(result.current.isFormDirty("dirty-form")).toBe(true);
   });
 
-  it('should call onSave when global save is triggered', async () => {
-    const { result: contextResult } = renderHook(() => useFormState(), { wrapper });
+  it("should call onSave when global save is triggered", async () => {
+    const { result: contextResult } = renderHook(() => useFormState(), {
+      wrapper,
+    });
     const onSave = vi.fn(() => Promise.resolve());
 
     renderHook(
       () =>
         useFormTracking({
-          formId: 'save-form',
+          formId: "save-form",
           isDirty: true,
           onSave,
         }),
@@ -88,13 +90,13 @@ describe('useFormTracking', () => {
     expect(onSave).toHaveBeenCalledTimes(1);
   });
 
-  it('should call onSave and not mark clean when local handleSubmit is called', async () => {
+  it("should call onSave and not mark clean when local handleSubmit is called", async () => {
     const onSave = vi.fn(() => Promise.resolve());
 
     const { result } = renderHook(
       () =>
         useFormTracking({
-          formId: 'submit-form',
+          formId: "submit-form",
           isDirty: true,
           onSave,
         }),
@@ -112,13 +114,13 @@ describe('useFormTracking', () => {
     // The parent should call setIsDirty(false) after successful save, which will trigger the effect
   });
 
-  it('should not mark clean if save fails', async () => {
-    const onSave = vi.fn(() => Promise.reject(new Error('Save failed')));
+  it("should not mark clean if save fails", async () => {
+    const onSave = vi.fn(() => Promise.reject(new Error("Save failed")));
 
     const { result } = renderHook(
       () =>
         useFormTracking({
-          formId: 'fail-form',
+          formId: "fail-form",
           isDirty: true,
           onSave,
         }),
@@ -140,59 +142,62 @@ describe('useFormTracking', () => {
     expect(result.current.isDirty).toBe(true);
   });
 
-  it('should add beforeunload listener when form is dirty', () => {
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
+  it("should add beforeunload listener when form is dirty", () => {
+    const addEventListenerSpy = vi.spyOn(window, "addEventListener");
     const onSave = vi.fn(() => Promise.resolve());
 
-    const { rerender } = renderHook(
-      (props) => useFormTracking(props),
-      {
-        wrapper,
-        initialProps: {
-          formId: 'beforeunload-form',
-          isDirty: false,
-          onSave,
-        },
+    const { rerender } = renderHook((props) => useFormTracking(props), {
+      wrapper,
+      initialProps: {
+        formId: "beforeunload-form",
+        isDirty: false,
+        onSave,
       },
-    );
+    });
 
     // Initially not dirty, no beforeunload listener
-    expect(addEventListenerSpy).not.toHaveBeenCalledWith('beforeunload', expect.any(Function));
+    expect(addEventListenerSpy).not.toHaveBeenCalledWith(
+      "beforeunload",
+      expect.any(Function),
+    );
 
     // Mark as dirty
     act(() => {
-      rerender({ formId: 'beforeunload-form', isDirty: true, onSave });
+      rerender({ formId: "beforeunload-form", isDirty: true, onSave });
     });
 
     // Now beforeunload listener should be added
-    expect(addEventListenerSpy).toHaveBeenCalledWith('beforeunload', expect.any(Function));
+    expect(addEventListenerSpy).toHaveBeenCalledWith(
+      "beforeunload",
+      expect.any(Function),
+    );
 
     addEventListenerSpy.mockRestore();
   });
 
-  it('should remove beforeunload listener when form becomes clean', () => {
-    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
+  it("should remove beforeunload listener when form becomes clean", () => {
+    const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
     const onSave = vi.fn(() => Promise.resolve());
 
-    const { rerender } = renderHook(
-      (props) => useFormTracking(props),
-      {
-        wrapper,
-        initialProps: {
-          formId: 'cleanup-form',
-          isDirty: true,
-          onSave,
-        },
+    const { rerender } = renderHook((props) => useFormTracking(props), {
+      wrapper,
+      initialProps: {
+        formId: "cleanup-form",
+        isDirty: true,
+        onSave,
       },
-    );
+    });
 
     // Mark as clean
     act(() => {
-      rerender({ formId: 'cleanup-form', isDirty: false, onSave });
+      rerender({ formId: "cleanup-form", isDirty: false, onSave });
     });
 
     // Listener should be removed
-    expect(removeEventListenerSpy).toHaveBeenCalledWith('beforeunload', expect.any(Function));
+    expect(removeEventListenerSpy).toHaveBeenCalledWith(
+      "beforeunload",
+      expect.any(Function),
+    );
 
     removeEventListenerSpy.mockRestore();
   });

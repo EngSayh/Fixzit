@@ -1,7 +1,7 @@
 'use client';
 import { logger } from '@/lib/logger';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 // ✅ FIXED: Use standard components
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ interface UpgradeModalProps {
  * 6. ✅ SuccessView helper component for state management
  * 7. ✅ Internal success state (NO fragile window.toast)
  * 8. ✅ State reset on close (prevents stale data on reopen)
+ * 9. ✅ FIXED: Timer cleanup to prevent memory leaks (closeTimer, successTimer)
  */
 export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps) {
   const { t } = useTranslation();
@@ -39,12 +40,25 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const closeTimerRef = useRef<NodeJS.Timeout>();
+  const successTimerRef = useRef<NodeJS.Timeout>();
+
+  // ✅ FIXED: Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
 
   // ✅ FIXED: Reset state when modal closes to prevent stale data
   const handleClose = () => {
     onClose();
+    // Clear any pending timers
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
     // Reset state after animation completes (300ms)
-    setTimeout(() => {
+    closeTimerRef.current = setTimeout(() => {
       setEmail('');
       setError('');
       setShowSuccess(false);
@@ -80,8 +94,9 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
       setError('');
       setShowSuccess(true);
       
-      // Auto-close after 3 seconds
-      setTimeout(() => {
+      // Auto-close after 3 seconds (with cleanup)
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      successTimerRef.current = setTimeout(() => {
         setShowSuccess(false);
         handleClose();
       }, 3000);

@@ -1,12 +1,12 @@
-import { NextRequest} from "next/server";
+import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { createSecureResponse } from '@/server/security/headers';
+import { createSecureResponse } from "@/server/security/headers";
 
-const schema = z.object({ text:z.string().min(1) });
+const schema = z.object({ text: z.string().min(1) });
 
 /**
  * @openapi
@@ -25,21 +25,30 @@ const schema = z.object({ text:z.string().min(1) });
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET(req:NextRequest, props:{params: Promise<{id:string}>}) {
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
   const user = await getSessionUser(req);
   await connectToDatabase();
   const wo = await WorkOrder.findOne({ _id: params.id, orgId: user.orgId });
-  const communication = (wo as { communication?: { comments?: unknown[] } } | null)?.communication;
+  const communication = (
+    wo as { communication?: { comments?: unknown[] } } | null
+  )?.communication;
   return createSecureResponse(communication?.comments ?? [], 200, req);
 }
 
-export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}) {
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+) {
   const params = await props.params;
-  const user = await getSessionUser(req);await connectToDatabase();
+  const user = await getSessionUser(req);
+  await connectToDatabase();
   const { text } = schema.parse(await req.json());
   const wo = await WorkOrder.findOne({ _id: params.id, orgId: user.orgId });
-  if (!wo) return createSecureResponse({error:"Not found"}, 404, req);
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
   type Comment = {
     commentId?: string;
     userId: string;
@@ -57,5 +66,5 @@ export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}
     timestamp: new Date(),
   });
   await wo.save();
-  return createSecureResponse({ok:true}, 200, req);
+  return createSecureResponse({ ok: true }, 200, req);
 }

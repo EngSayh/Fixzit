@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
-import { getDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
-import { ModuleKey, SubmoduleKey } from '@/domain/fm/fm.behavior';
-import { FMAction } from '@/types/fm/enums';
-import { FMErrors } from '@/app/api/fm/errors';
-import { requireFmPermission } from '@/app/api/fm/permissions';
-import { resolveTenantId } from '../utils/tenant';
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { ModuleKey, SubmoduleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { FMErrors } from "@/app/api/fm/errors";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId } from "../utils/tenant";
 
 interface MongoFindAndModifyResult<T> {
   value?: T;
@@ -41,10 +41,13 @@ type PropertyPayload = {
   floors?: number;
 };
 
-const COLLECTION_NAME = 'properties';
+const COLLECTION_NAME = "properties";
 
 const normalizeListParam = (value: string | null) =>
-  value?.split(',').map((item) => item.trim()).filter(Boolean);
+  value
+    ?.split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 
 const mapProperty = (doc: PropertyDocument) => ({
   id: doc._id.toString(),
@@ -69,20 +72,23 @@ export async function GET(req: NextRequest) {
       action: FMAction.VIEW,
     });
     if (actor instanceof NextResponse) return actor;
-    const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
-    if ('error' in tenantResolution) return tenantResolution.error;
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
 
     const { searchParams } = new URL(req.url);
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const limit = Math.min(
       100,
-      Math.max(1, parseInt(searchParams.get('limit') || '20', 10)),
+      Math.max(1, parseInt(searchParams.get("limit") || "20", 10)),
     );
-    const statuses = normalizeListParam(searchParams.get('status'));
-    const leaseStatuses = normalizeListParam(searchParams.get('leaseStatus'));
-    const types = normalizeListParam(searchParams.get('type'));
-    const q = searchParams.get('q');
+    const statuses = normalizeListParam(searchParams.get("status"));
+    const leaseStatuses = normalizeListParam(searchParams.get("leaseStatus"));
+    const types = normalizeListParam(searchParams.get("type"));
+    const q = searchParams.get("q");
 
     const query: Record<string, unknown> = { org_id: tenantId };
 
@@ -100,13 +106,16 @@ export async function GET(req: NextRequest) {
 
     if (q) {
       // Escape special regex characters to prevent injection
-      const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const expression = { $regex: escapedQ, $options: 'i' } as Record<string, unknown>;
+      const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const expression = { $regex: escapedQ, $options: "i" } as Record<
+        string,
+        unknown
+      >;
       query.$or = [
         { name: expression },
         { code: expression },
-        { 'address.city': expression },
-        { 'address.state': expression },
+        { "address.city": expression },
+        { "address.state": expression },
       ];
     }
 
@@ -135,14 +144,14 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('FM Properties API - GET error', error as Error);
+    logger.error("FM Properties API - GET error", error as Error);
     return FMErrors.internalError();
   }
 }
 
 const generatePropertyCode = () => {
   const now = new Date();
-  const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
   const random = String(Math.floor(Math.random() * 9000) + 1000);
   return `PROP-${stamp}-${random}`;
 };
@@ -164,16 +173,16 @@ const sanitizePayload = (payload: PropertyPayload) => {
   if (payload.leaseStatus) {
     sanitized.leaseStatus = payload.leaseStatus.trim();
   }
-  if (payload.address && typeof payload.address === 'object') {
+  if (payload.address && typeof payload.address === "object") {
     sanitized.address = payload.address;
   }
-  if (payload.metadata && typeof payload.metadata === 'object') {
+  if (payload.metadata && typeof payload.metadata === "object") {
     sanitized.metadata = payload.metadata;
   }
-  if (typeof payload.area === 'number') {
+  if (typeof payload.area === "number") {
     sanitized.area = payload.area;
   }
-  if (typeof payload.floors === 'number') {
+  if (typeof payload.floors === "number") {
     sanitized.floors = payload.floors;
   }
   return sanitized;
@@ -187,16 +196,19 @@ export async function POST(req: NextRequest) {
       action: FMAction.CREATE,
     });
     if (actor instanceof NextResponse) return actor;
-    const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
-    if ('error' in tenantResolution) return tenantResolution.error;
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
 
     const body = sanitizePayload(await req.json().catch(() => ({})));
     if (!body.name) {
-      return FMErrors.validationError('Property name is required');
+      return FMErrors.validationError("Property name is required");
     }
     if (!body.type) {
-      return FMErrors.validationError('Property type is required');
+      return FMErrors.validationError("Property type is required");
     }
 
     const db = await getDatabase();
@@ -210,7 +222,7 @@ export async function POST(req: NextRequest) {
       code: propertyCode,
     });
     if (existingCode) {
-      return FMErrors.conflict('Property code already exists');
+      return FMErrors.conflict("Property code already exists");
     }
 
     const document: PropertyDocument = {
@@ -219,8 +231,8 @@ export async function POST(req: NextRequest) {
       name: body.name,
       code: propertyCode,
       type: body.type,
-      status: body.status ?? 'Active',
-      lease_status: body.leaseStatus ?? 'Vacant',
+      status: body.status ?? "Active",
+      lease_status: body.leaseStatus ?? "Vacant",
       address: body.address ?? null,
       metadata: body.metadata ?? {},
       area: body.area,
@@ -235,12 +247,12 @@ export async function POST(req: NextRequest) {
       {
         success: true,
         data: mapProperty(document),
-        message: 'Property created successfully',
+        message: "Property created successfully",
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
-    logger.error('FM Properties API - POST error', error as Error);
+    logger.error("FM Properties API - POST error", error as Error);
     return FMErrors.internalError();
   }
 }
@@ -253,22 +265,25 @@ export async function PATCH(req: NextRequest) {
       action: FMAction.UPDATE,
     });
     if (actor instanceof NextResponse) return actor;
-    const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
-    if ('error' in tenantResolution) return tenantResolution.error;
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
 
     const { searchParams } = new URL(req.url);
-    const propertyId = searchParams.get('id');
+    const propertyId = searchParams.get("id");
     if (!propertyId) {
-      return FMErrors.validationError('Property id is required');
+      return FMErrors.validationError("Property id is required");
     }
     if (!ObjectId.isValid(propertyId)) {
-      return FMErrors.invalidId('property');
+      return FMErrors.invalidId("property");
     }
 
     const payload = sanitizePayload(await req.json().catch(() => ({})));
     if (!Object.keys(payload).length) {
-      return FMErrors.validationError('At least one field is required');
+      return FMErrors.validationError("At least one field is required");
     }
 
     const db = await getDatabase();
@@ -281,7 +296,7 @@ export async function PATCH(req: NextRequest) {
         _id: { $ne: new ObjectId(propertyId) },
       });
       if (duplicate) {
-        return FMErrors.conflict('Property code already exists');
+        return FMErrors.conflict("Property code already exists");
       }
     }
 
@@ -297,28 +312,30 @@ export async function PATCH(req: NextRequest) {
     if (payload.leaseStatus) update.lease_status = payload.leaseStatus;
     if (payload.address) update.address = payload.address;
     if (payload.metadata) update.metadata = payload.metadata;
-    if (typeof payload.area === 'number') update.area = payload.area;
-    if (typeof payload.floors === 'number') update.floors = payload.floors;
+    if (typeof payload.area === "number") update.area = payload.area;
+    if (typeof payload.floors === "number") update.floors = payload.floors;
 
     const result = await collection.findOneAndUpdate(
       { _id: new ObjectId(propertyId), org_id: tenantId },
       { $set: update },
-      { returnDocument: 'after' }
+      { returnDocument: "after" },
     );
 
-    const mongoResult = result as MongoFindAndModifyResult<PropertyDocument> | PropertyDocument;
-    const doc = 'value' in mongoResult ? mongoResult.value : mongoResult;
+    const mongoResult = result as
+      | MongoFindAndModifyResult<PropertyDocument>
+      | PropertyDocument;
+    const doc = "value" in mongoResult ? mongoResult.value : mongoResult;
     if (!doc) {
-      return FMErrors.notFound('Property');
+      return FMErrors.notFound("Property");
     }
 
     return NextResponse.json({
       success: true,
       data: mapProperty(doc as PropertyDocument),
-      message: 'Property updated successfully',
+      message: "Property updated successfully",
     });
   } catch (error) {
-    logger.error('FM Properties API - PATCH error', error as Error);
+    logger.error("FM Properties API - PATCH error", error as Error);
     return FMErrors.internalError();
   }
 }
@@ -331,17 +348,20 @@ export async function DELETE(req: NextRequest) {
       action: FMAction.DELETE,
     });
     if (actor instanceof NextResponse) return actor;
-    const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
-    if ('error' in tenantResolution) return tenantResolution.error;
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
 
     const { searchParams } = new URL(req.url);
-    const propertyId = searchParams.get('id');
+    const propertyId = searchParams.get("id");
     if (!propertyId) {
-      return FMErrors.validationError('Property id is required');
+      return FMErrors.validationError("Property id is required");
     }
     if (!ObjectId.isValid(propertyId)) {
-      return FMErrors.invalidId('property');
+      return FMErrors.invalidId("property");
     }
 
     const db = await getDatabase();
@@ -351,18 +371,20 @@ export async function DELETE(req: NextRequest) {
       org_id: tenantId,
     });
 
-    const mongoResult = result as MongoFindAndModifyResult<PropertyDocument> | PropertyDocument;
-    const deleted = 'value' in mongoResult ? mongoResult.value : mongoResult;
+    const mongoResult = result as
+      | MongoFindAndModifyResult<PropertyDocument>
+      | PropertyDocument;
+    const deleted = "value" in mongoResult ? mongoResult.value : mongoResult;
     if (!deleted) {
-      return FMErrors.notFound('Property');
+      return FMErrors.notFound("Property");
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Property deleted successfully',
+      message: "Property deleted successfully",
     });
   } catch (error) {
-    logger.error('FM Properties API - DELETE error', error as Error);
+    logger.error("FM Properties API - DELETE error", error as Error);
     return FMErrors.internalError();
   }
 }

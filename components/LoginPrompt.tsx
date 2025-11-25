@@ -1,16 +1,23 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { LogIn, UserPlus } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import React from "react";
+import { LogIn, UserPlus } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // ✅ FIXED: Use standard components
-import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
+import { Button } from "./ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "./ui/dialog";
 
 // ✅ FIXED: Add i18n support
-import { useTranslation } from '@/contexts/TranslationContext';
+import { useTranslation } from "@/contexts/TranslationContext";
 
 interface LoginPromptProps {
   isOpen: boolean;
@@ -23,7 +30,7 @@ interface LoginPromptProps {
 
 /**
  * ✅ REFACTORED LoginPrompt Component
- * 
+ *
  * ARCHITECTURE IMPROVEMENTS:
  * 1. ✅ Standard Dialog/Button components (no hardcoded modal/buttons)
  * 2. ✅ Full i18n support (all strings translatable)
@@ -38,7 +45,7 @@ export default function LoginPrompt({
   title,
   description,
   action,
-  redirectTo = "/"
+  redirectTo = "/",
 }: LoginPromptProps) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -48,15 +55,15 @@ export default function LoginPrompt({
   // ✅ FIXED: Use useRouter for navigation (no window.location.href)
   const handleSignIn = () => {
     const params = new URLSearchParams();
-    if (redirectTo) params.set('redirect', redirectTo);
-    if (action) params.set('action', action);
+    if (redirectTo) params.set("redirect", redirectTo);
+    if (action) params.set("action", action);
     router.push(`/login?${params.toString()}`);
   };
 
   const handleSignUp = () => {
     const params = new URLSearchParams();
-    if (redirectTo) params.set('redirect', redirectTo);
-    if (action) params.set('action', action);
+    if (redirectTo) params.set("redirect", redirectTo);
+    if (action) params.set("action", action);
     router.push(`/signup?${params.toString()}`);
   };
 
@@ -70,9 +77,15 @@ export default function LoginPrompt({
               <LogIn className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1">
-              <DialogTitle>{title || t('loginPrompt.title', 'Sign In Required')}</DialogTitle>
+              <DialogTitle>
+                {title || t("loginPrompt.title", "Sign In Required")}
+              </DialogTitle>
               <DialogDescription>
-                {description || t('loginPrompt.description', 'Please sign in to continue with this action.')}
+                {description ||
+                  t(
+                    "loginPrompt.description",
+                    "Please sign in to continue with this action.",
+                  )}
               </DialogDescription>
             </div>
           </div>
@@ -86,22 +99,21 @@ export default function LoginPrompt({
               <LogIn className="w-8 h-8 text-white" />
             </div>
             <h4 className="text-lg font-semibold text-foreground mb-2">
-              {t('loginPrompt.welcomeBack', 'Welcome Back')}
+              {t("loginPrompt.welcomeBack", "Welcome Back")}
             </h4>
             <p className="text-muted-foreground text-sm">
-              {t('loginPrompt.welcomeMessage', 'Sign in to your Fixzit account to continue.')}
+              {t(
+                "loginPrompt.welcomeMessage",
+                "Sign in to your Fixzit account to continue.",
+              )}
             </p>
           </div>
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            <Button
-              onClick={handleSignIn}
-              className="w-full"
-              size="lg"
-            >
+            <Button onClick={handleSignIn} className="w-full" size="lg">
               <LogIn className="w-5 h-5 me-2" />
-              {t('loginPrompt.signInButton', 'Sign In with Email')}
+              {t("loginPrompt.signInButton", "Sign In with Email")}
             </Button>
 
             <Button
@@ -111,21 +123,37 @@ export default function LoginPrompt({
               size="lg"
             >
               <UserPlus className="w-5 h-5 me-2" />
-              {t('loginPrompt.signUpButton', 'Create New Account')}
+              {t("loginPrompt.signUpButton", "Create New Account")}
             </Button>
           </div>
 
           {/* Benefits */}
           <div className="p-4 bg-muted rounded-2xl">
             <h5 className="font-medium text-foreground mb-2">
-              {t('loginPrompt.benefitsTitle', 'Why Sign In?')}
+              {t("loginPrompt.benefitsTitle", "Why Sign In?")}
             </h5>
             <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• {t('loginPrompt.benefit1', 'Save items to your wishlist')}</li>
-              <li>• {t('loginPrompt.benefit2', 'Track your orders and purchases')}</li>
-              <li>• {t('loginPrompt.benefit3', 'Access exclusive deals and offers')}</li>
-              <li>• {t('loginPrompt.benefit4', 'Get personalized recommendations')}</li>
-              <li>• {t('loginPrompt.benefit5', 'Manage your account and preferences')}</li>
+              <li>
+                • {t("loginPrompt.benefit1", "Save items to your wishlist")}
+              </li>
+              <li>
+                • {t("loginPrompt.benefit2", "Track your orders and purchases")}
+              </li>
+              <li>
+                •{" "}
+                {t("loginPrompt.benefit3", "Access exclusive deals and offers")}
+              </li>
+              <li>
+                •{" "}
+                {t("loginPrompt.benefit4", "Get personalized recommendations")}
+              </li>
+              <li>
+                •{" "}
+                {t(
+                  "loginPrompt.benefit5",
+                  "Manage your account and preferences",
+                )}
+              </li>
             </ul>
           </div>
         </div>
@@ -133,10 +161,10 @@ export default function LoginPrompt({
         {/* Footer */}
         <DialogFooter className="flex-row items-center justify-between sm:justify-between">
           <span className="text-sm text-muted-foreground">
-            {t('loginPrompt.needHelp', 'Need help?')}
+            {t("loginPrompt.needHelp", "Need help?")}
           </span>
           <Link href="/help" className="text-sm text-primary hover:underline">
-            {t('loginPrompt.contactSupport', 'Contact Support')}
+            {t("loginPrompt.contactSupport", "Contact Support")}
           </Link>
         </DialogFooter>
       </DialogContent>

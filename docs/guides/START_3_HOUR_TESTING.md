@@ -21,6 +21,7 @@ Type or select:
 ### Step 3: Walk Away
 
 That's it! VS Code will now:
+
 - ✅ Keep your system awake for 3 hours
 - ✅ Start the dev server (Next.js)
 - ✅ Run continuous verification loops
@@ -72,10 +73,13 @@ Each cycle automatically runs:
 ## 📊 WHERE TO FIND RESULTS (When You Return)
 
 ### 1. **HTML Report** (Primary)
+
 ```
 playwright-report/index.html
 ```
+
 Open in browser for interactive pass/fail details with:
+
 - Test duration
 - Screenshots of failures
 - Video recordings
@@ -83,16 +87,20 @@ Open in browser for interactive pass/fail details with:
 - Console outputs
 
 ### 2. **Execution Log**
+
 ```
 tests/loop-runner.log
 ```
+
 Timestamped record of every verification cycle:
+
 - Start/end times
 - Exit codes
 - Error summaries
 - Cycle count
 
 ### 3. **Test Artifacts**
+
 ```
 test-results/
 ├── videos/         # Videos of failed tests
@@ -101,7 +109,9 @@ test-results/
 ```
 
 ### 4. **Terminal Output**
+
 VS Code terminals will show:
+
 - **Terminal 1**: Keep-alive countdown (1/180 min, 2/180 min, ...)
 - **Terminal 2**: Dev server logs (Next.js)
 - **Terminal 3**: Loop runner progress (Cycle #1, #2, ...)
@@ -111,6 +121,7 @@ VS Code terminals will show:
 ## 🛑 IMPORTANT: NO INTERACTION NEEDED
 
 ### The System Will NOT Stop For:
+
 - ❌ Confirmation dialogs
 - ❌ Update prompts
 - ❌ Extension recommendations
@@ -119,6 +130,7 @@ VS Code terminals will show:
 - ❌ Build warnings
 
 ### The System WILL Stop For:
+
 - ❌ **Critical build errors** (syntax errors, missing imports)
 - ❌ **Port conflicts** (if 3000 already in use)
 - ❌ **Out of memory** (unlikely, but possible on large runs)
@@ -196,6 +208,7 @@ When you return, the system succeeded if:
 Press `Ctrl+C` in any terminal to gracefully stop the loop.
 
 Or close all VS Code terminals:
+
 ```
 Terminal → Kill All Terminals
 ```
@@ -205,21 +218,25 @@ Terminal → Kill All Terminals
 ## 📞 WHAT TO DO IF YOU FIND ISSUES WHEN YOU RETURN
 
 ### 1. Check Loop Log First
+
 ```bash
 cat tests/loop-runner.log | grep "❌"
 ```
 
 ### 2. Open HTML Report
+
 ```bash
 npx playwright show-report playwright-report
 ```
 
 ### 3. Replay Failed Tests
+
 ```bash
 pnpm exec playwright test --grep "<test-name>" --debug
 ```
 
 ### 4. View Trace Files
+
 ```bash
 npx playwright show-trace test-results/<path-to-trace.zip>
 ```
@@ -247,6 +264,7 @@ pnpm test:e2e:loop
 ## ✅ SYSTEM IS READY
 
 All configuration files created:
+
 - ✅ `.vscode/tasks.json` - VS Code task automation
 - ✅ `.vscode/settings.json` - Prevents prompts/updates
 - ✅ `tests/playwright.config.ts` - 12-project test matrix

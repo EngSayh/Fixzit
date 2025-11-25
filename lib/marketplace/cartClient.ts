@@ -1,7 +1,10 @@
-export const CART_UPDATED_EVENT = 'fixzit-marketplace-cart-updated';
+export const CART_UPDATED_EVENT = "fixzit-marketplace-cart-updated";
 
 export type MarketplaceCartLine = { qty?: number };
-export type MarketplaceCartLike = { lines?: MarketplaceCartLine[] } | null | undefined;
+export type MarketplaceCartLike =
+  | { lines?: MarketplaceCartLine[] }
+  | null
+  | undefined;
 
 export function computeCartCount(cart: MarketplaceCartLike) {
   if (!cart?.lines) {
@@ -12,19 +15,21 @@ export function computeCartCount(cart: MarketplaceCartLike) {
 
 export function broadcastCartUpdate(cart: MarketplaceCartLike) {
   const count = computeCartCount(cart);
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent(CART_UPDATED_EVENT, { detail: { count } }));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent(CART_UPDATED_EVENT, { detail: { count } }),
+    );
   }
   return count;
 }
 
 function parseCartError(payload: unknown, fallback: string) {
-  if (typeof payload === 'object' && payload !== null) {
+  if (typeof payload === "object" && payload !== null) {
     const obj = payload as Record<string, unknown>;
-    if (obj.error && typeof obj.error === 'string') {
+    if (obj.error && typeof obj.error === "string") {
       return obj.error;
     }
-    if (obj.message && typeof obj.message === 'string') {
+    if (obj.message && typeof obj.message === "string") {
       return obj.message;
     }
   }
@@ -32,12 +37,12 @@ function parseCartError(payload: unknown, fallback: string) {
 }
 
 export async function addProductToCart(productId: string, quantity: number) {
-  const response = await fetch('/api/marketplace/cart', {
-    method: 'POST',
-    credentials: 'include',
-    cache: 'no-store',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ productId, quantity })
+  const response = await fetch("/api/marketplace/cart", {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ productId, quantity }),
   });
 
   let payload: unknown;
@@ -48,7 +53,7 @@ export async function addProductToCart(productId: string, quantity: number) {
   }
 
   if (!response.ok) {
-    throw new Error(parseCartError(payload, 'Unable to update cart'));
+    throw new Error(parseCartError(payload, "Unable to update cart"));
   }
 
   const order = (payload as Record<string, unknown> | undefined)?.data;

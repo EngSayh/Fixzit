@@ -4,8 +4,8 @@
  * Usage: node scripts/replace.js <path> <search> <replace> [options]
  */
 
-const { execSync } = require('child_process');
-const path = require('path');
+const { execSync } = require("child_process");
+const path = require("path");
 
 function showHelp() {
   console.log(`
@@ -43,14 +43,14 @@ Examples:
 
 function main() {
   const args = process.argv.slice(2);
-  
-  if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
+
+  if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
     showHelp();
     process.exit(0);
   }
 
   if (args.length < 3) {
-    console.error('Error: Missing required arguments');
+    console.error("Error: Missing required arguments");
     showHelp();
     process.exit(1);
   }
@@ -58,24 +58,24 @@ function main() {
   const [pathPattern, search, replace, ...options] = args;
 
   // Build the command with proper escaping
-  const tsxPath = path.join(__dirname, 'replace-string-in-file.ts');
-  
+  const tsxPath = path.join(__dirname, "replace-string-in-file.ts");
+
   // Use JSON.stringify to properly escape the arguments
   const cmd = [
-    'npx',
-    'tsx',
+    "npx",
+    "tsx",
     JSON.stringify(tsxPath),
-    '--path',
+    "--path",
     JSON.stringify(pathPattern),
-    '--search',
+    "--search",
     JSON.stringify(search),
-    '--replace',
+    "--replace",
     JSON.stringify(replace),
-    ...options
-  ].join(' ');
+    ...options,
+  ].join(" ");
 
   try {
-    execSync(cmd, { stdio: 'inherit', shell: true });
+    execSync(cmd, { stdio: "inherit", shell: true });
   } catch (err) {
     process.exit(err.status || 1);
   }

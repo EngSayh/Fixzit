@@ -123,19 +123,19 @@ describe('Asset model schema', () => {
     const ok = new Asset(buildValidAsset({ type: 'ELECTRICAL' }));
     expect(ok.validateSync()).toBeUndefined();
 
-    const bad = new Asset(buildValidAsset({ type: 'INVALID_TYPE' as any }));
+    const bad = new Asset(buildValidAsset({ type: 'INVALID_TYPE' }));
     const err = bad.validateSync();
     expect(err).toBeDefined();
     expect((err as AnyObj).errors?.type).toBeDefined();
   });
 
   it('enforces enum for "status" and "criticality"', () => {
-    const badStatus = new Asset(buildValidAsset({ status: 'BROKEN' as any }));
+    const badStatus = new Asset(buildValidAsset({ status: 'BROKEN' }));
     const errStatus = badStatus.validateSync();
     expect(errStatus).toBeDefined();
     expect((errStatus as AnyObj).errors?.status).toBeDefined();
 
-    const badCrit = new Asset(buildValidAsset({ criticality: 'ULTRA' as any }));
+    const badCrit = new Asset(buildValidAsset({ criticality: 'ULTRA' }));
     const errCrit = badCrit.validateSync();
     expect(errCrit).toBeDefined();
     expect((errCrit as AnyObj).errors?.criticality).toBeDefined();
@@ -156,10 +156,10 @@ describe('Asset model schema', () => {
   });
 
   it('validates maintenanceHistory.type against its enum', () => {
-    const ok = new Asset(buildValidAsset({ maintenanceHistory: [{ type: 'INSPECTION' }] as any }));
+    const ok = new Asset(buildValidAsset({ maintenanceHistory: [{ type: 'INSPECTION' }] }));
     expect(ok.validateSync()).toBeUndefined();
 
-    const bad = new Asset(buildValidAsset({ maintenanceHistory: [{ type: 'RANDOM' }] as any }));
+    const bad = new Asset(buildValidAsset({ maintenanceHistory: [{ type: 'RANDOM' }] }));
     const err = bad.validateSync();
     expect(err).toBeDefined();
     expect((err as AnyObj).errors?.['maintenanceHistory.0.type']).toBeDefined();
@@ -169,7 +169,7 @@ describe('Asset model schema', () => {
     const ok = new Asset(buildValidAsset({ depreciation: { ...buildValidAsset().depreciation, method: 'DECLINING_BALANCE' } }));
     expect(ok.validateSync()).toBeUndefined();
 
-    const bad = new Asset(buildValidAsset({ depreciation: { ...buildValidAsset().depreciation, method: 'RANDOM' as any } }));
+    const bad = new Asset(buildValidAsset({ depreciation: { ...buildValidAsset().depreciation, method: 'RANDOM' } }));
     const err = bad.validateSync();
     expect(err).toBeDefined();
     expect((err as AnyObj).errors?.['depreciation.method']).toBeDefined();

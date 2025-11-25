@@ -4,6 +4,7 @@
 **Status:** ⚠️ **CODE COMPLETE, VALIDATION PENDING**
 
 **🆕 Recent Updates (November 18, 2025 - ACTUAL IMPLEMENTATION):**
+
 - ✅ Wired security monitoring into rate-limit middleware (lib/middleware/rate-limit.ts)
 - ✅ Wired security monitoring into CORS middleware (middleware.ts)
 - ✅ CORS tests passing (9/9 tests, verified null-origin rejection in prod)
@@ -19,19 +20,19 @@
 
 ### What the Documentation Claimed vs. Reality
 
-| Claim | Reality | Evidence |
-|-------|---------|----------|
-| "15 files updated with requireEnv()" | **6 files** actually use `requireEnv('JWT_SECRET')` | `lib/marketplace/context.ts`, `lib/startup-checks.ts` (2x), `tests/setup.ts`, `scripts/server.js`, `scripts/test-auth-fix.js` |
-| "12 production files secured" | **3 runtime files** + 3 test/dev files + 3 infra configs | See detailed breakdown below |
-| "All files updated" | **Dev scripts still use `process.env.JWT_SECRET`** | 8+ scripts in `scripts/` directory (acceptable for dev) |
-| "3 files enforce MongoDB security" | **1 file** enforces MongoDB security | Only `lib/mongo.ts` has validation |
-| Claim | Reality | Evidence |
-|-------|---------|----------|
-| "15 files with security improvements" | **6 files + 3 config files + 2 monitoring files = 11 total** | Enumerated in findings below |
-| "Rate limiting fully tested" | **CORS tests pass (9/9), rate-limit tests created but need running server** | tests/security/cors.test.ts ✅, rate-limiting.test.ts needs integration env |
-| "Security score 92/100" | **87/100 with 1 HIGH unpatched vulnerability** | glob@10.4.5 via tailwindcss (GHSA-5j98-mcp5-4vw2) |
-| "Monitoring framework complete" | **✅ COMPLETE + WIRED: logs rate_limit and cors_block events** | lib/monitoring/security-events.ts imported in rate-limit.ts + middleware.ts |
-| "Production ready" | **Ready for STAGING validation only** | Multiple blockers remain (see below) |
+| Claim                                 | Reality                                                                     | Evidence                                                                                                                      |
+| ------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| "15 files updated with requireEnv()"  | **6 files** actually use `requireEnv('JWT_SECRET')`                         | `lib/marketplace/context.ts`, `lib/startup-checks.ts` (2x), `tests/setup.ts`, `scripts/server.js`, `scripts/test-auth-fix.js` |
+| "12 production files secured"         | **3 runtime files** + 3 test/dev files + 3 infra configs                    | See detailed breakdown below                                                                                                  |
+| "All files updated"                   | **Dev scripts still use `process.env.JWT_SECRET`**                          | 8+ scripts in `scripts/` directory (acceptable for dev)                                                                       |
+| "3 files enforce MongoDB security"    | **1 file** enforces MongoDB security                                        | Only `lib/mongo.ts` has validation                                                                                            |
+| Claim                                 | Reality                                                                     | Evidence                                                                                                                      |
+| -------                               | ---------                                                                   | ----------                                                                                                                    |
+| "15 files with security improvements" | **6 files + 3 config files + 2 monitoring files = 11 total**                | Enumerated in findings below                                                                                                  |
+| "Rate limiting fully tested"          | **CORS tests pass (9/9), rate-limit tests created but need running server** | tests/security/cors.test.ts ✅, rate-limiting.test.ts needs integration env                                                   |
+| "Security score 92/100"               | **87/100 with 1 HIGH unpatched vulnerability**                              | glob@10.4.5 via tailwindcss (GHSA-5j98-mcp5-4vw2)                                                                             |
+| "Monitoring framework complete"       | **✅ COMPLETE + WIRED: logs rate_limit and cors_block events**              | lib/monitoring/security-events.ts imported in rate-limit.ts + middleware.ts                                                   |
+| "Production ready"                    | **Ready for STAGING validation only**                                       | Multiple blockers remain (see below)                                                                                          |
 
 ---
 
@@ -40,11 +41,11 @@
 ### 1. JWT Secret Management ✅ (Code Complete)
 
 **✅ What's Actually Done:**
+
 - 3 production runtime files use `requireEnv('JWT_SECRET')`:
   - `lib/marketplace/context.ts` (line 20)
   - `lib/startup-checks.ts` (lines 16, 67)
   - `lib/meilisearch.ts` (uses `requireEnv('MEILI_MASTER_KEY')`)
-  
 - 3 test/development files use `requireEnv('JWT_SECRET')`:
   - `tests/setup.ts` (line 636)
   - `scripts/server.js` (line 92)
@@ -56,6 +57,7 @@
   - `lib/security/cors-allowlist.ts` (new unified CORS validation)
 
 **⚠️ What's NOT Done:**
+
 - `lib/mongo.ts` still uses `getEnv('MONGODB_URI')` (NOT `requireEnv`)
   - Has localhost fallback in development
   - BUT enforces Atlas-only in production via `assertNotLocalhostInProd()` (line 81-89)
@@ -72,6 +74,7 @@
   - **Note:** This is acceptable for dev/setup scripts but should be documented
 
 **Evidence:**
+
 ```bash
 grep -r "requireEnv('JWT_SECRET')" lib/ scripts/ tests/ --include="*.ts" --include="*.js"
 # Output: 6 matches (confirmed above)
@@ -85,6 +88,7 @@ grep -r "process.env.JWT_SECRET" scripts/ --include="*.js" --include="*.sh"
 ### 2. Rate Limiting ✅ (Code Complete + Monitoring WIRED)
 
 **✅ What's Actually Done:**
+
 - 8 API routes protected with rate limiting:
   1. `app/api/auth/otp/send/route.ts` (lines 34-40) - 10 req/min
   2. `app/api/auth/otp/verify/route.ts` (lines 34-40) - 10 req/min
@@ -102,18 +106,21 @@ grep -r "process.env.JWT_SECRET" scripts/ --include="*.js" --include="*.sh"
 - **FIXED:** Support tickets reply now authenticates BEFORE rate limiting (no shared null key)
 
 **❌ What's NOT Done:**
+
 - **Integration testing:** Rate-limiting tests need running server for full validation
 - **Automated CI/CD tests:** Not yet integrated into pipeline
 - **Monitoring dashboards:** No Datadog/CloudWatch dashboards configured yet
-- **Rate limit headers:** Implementation doesn't expose X-RateLimit-* headers to clients
+- **Rate limit headers:** Implementation doesn't expose X-RateLimit-\* headers to clients
 
 **✅ Tests Created:**
+
 - `tests/security/rate-limiting.test.ts` - 8 endpoint tests (need server for integration)
 - Tests verify 429 responses and concurrent request handling
 
 **Status:** Code ✅ | Monitoring ✅ | Testing ⚠️ (created, needs server) | Dashboards ❌
 
 **Required Manual Test:**
+
 ```bash
 # Test OTP send rate limiting
 for i in {1..15}; do
@@ -144,20 +151,22 @@ curl -i http://localhost:3000/api/auth/otp/send \
 ### 3. CORS Security ✅ (Implemented) ⚠️ (Permissive)
 
 **✅ What's Actually Done:**
+
 - Unified CORS validation in `lib/security/cors-allowlist.ts`
 - Middleware uses shared allowlist helper
 - Production static whitelist:
   ```typescript
   [
-    'https://fixzit.sa',
-    'https://www.fixzit.sa',
-    'https://app.fixzit.sa',
-    'https://dashboard.fixzit.sa',
-    'https://staging.fixzit.sa',
-  ]
+    "https://fixzit.sa",
+    "https://www.fixzit.sa",
+    "https://app.fixzit.sa",
+    "https://dashboard.fixzit.sa",
+    "https://staging.fixzit.sa",
+  ];
   ```
 
 **⚠️ Concerns:**
+
 1. **Development mode is permissive:**
    - Auto-allows `http://localhost:3000` and `http://localhost:3001`
    - ✅ **FIXED:** Null origins now rejected in production
@@ -170,19 +179,23 @@ curl -i http://localhost:3000/api/auth/otp/send \
    function parseOrigins(value?: string | null): string[] {
      if (!value) return [];
      return value
-       .split(',')
+       .split(",")
        .map((origin) => origin.trim())
        .filter(Boolean)
        .filter((origin) => {
          try {
            const url = new URL(origin);
-           if (!['http:', 'https:'].includes(url.protocol)) {
+           if (!["http:", "https:"].includes(url.protocol)) {
              console.warn(`[CORS] Invalid protocol in origin: ${origin}`);
              return false;
            }
-           if (process.env.NODE_ENV === 'production' && 
-               (url.hostname === 'localhost' || url.hostname === '127.0.0.1')) {
-             console.warn(`[CORS] Localhost not allowed in production CORS_ORIGINS: ${origin}`);
+           if (
+             process.env.NODE_ENV === "production" &&
+             (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+           ) {
+             console.warn(
+               `[CORS] Localhost not allowed in production CORS_ORIGINS: ${origin}`,
+             );
              return false;
            }
            return true;
@@ -193,6 +206,7 @@ curl -i http://localhost:3000/api/auth/otp/send \
        });
    }
    ```
+
    - ✅ **FIXED:** URL validation implemented
    - ✅ **FIXED:** Protocol validation (http/https only)
    - ✅ **FIXED:** Localhost rejected in production CORS_ORIGINS
@@ -202,9 +216,10 @@ curl -i http://localhost:3000/api/auth/otp/send \
    ```typescript
    // lib/security/cors-allowlist.ts (line 47)
    if (!origin) {
-     return process.env.NODE_ENV !== 'production';
+     return process.env.NODE_ENV !== "production";
    }
    ```
+
    - ✅ **FIXED:** Null origins rejected in production
    - ✅ **FIXED:** Null origins allowed in development (same-origin requests)
    - ✅ **DOCUMENTED:** Behavior is intentional and secure
@@ -216,14 +231,14 @@ curl -i http://localhost:3000/api/auth/otp/send \
 function parseOrigins(value?: string | null): string[] {
   if (!value) return [];
   return value
-    .split(',')
+    .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean)
     .filter((origin) => {
       // Validate protocol and structure
       try {
         const url = new URL(origin);
-        return ['http:', 'https:'].includes(url.protocol);
+        return ["http:", "https:"].includes(url.protocol);
       } catch {
         logger.warn(`Invalid CORS origin: ${origin}`);
         return false;
@@ -239,40 +254,47 @@ function parseOrigins(value?: string | null): string[] {
 ### 4. MongoDB Security ✅ (Implemented Correctly)
 
 **✅ What's Actually Done:**
+
 - **1 file** enforces MongoDB security: `lib/mongo.ts`
 - Uses `getEnv('MONGODB_URI')` (NOT `requireEnv`) with validation:
 
   ```typescript
   // lib/mongo.ts (lines 58-89)
-  const rawMongoUri = getEnv('MONGODB_URI');
-  
+  const rawMongoUri = getEnv("MONGODB_URI");
+
   function resolveMongoUri(): string {
     if (rawMongoUri && rawMongoUri.trim().length > 0) {
       return rawMongoUri;
     }
     if (!isProd) {
-      logger.warn('[Mongo] MONGODB_URI not set, using localhost fallback');
-      return 'mongodb://127.0.0.1:27017';
+      logger.warn("[Mongo] MONGODB_URI not set, using localhost fallback");
+      return "mongodb://127.0.0.1:27017";
     }
-    throw new Error('FATAL: MONGODB_URI is required in production');
+    throw new Error("FATAL: MONGODB_URI is required in production");
   }
-  
+
   function assertNotLocalhostInProd(uri: string): void {
     if (!isProd) return;
-    const localPatterns = ['mongodb://localhost', 'mongodb://127.0.0.1', 'mongodb://0.0.0.0'];
-    if (localPatterns.some(pattern => uri.startsWith(pattern))) {
-      throw new Error('FATAL: Local MongoDB URIs not allowed in production');
+    const localPatterns = [
+      "mongodb://localhost",
+      "mongodb://127.0.0.1",
+      "mongodb://0.0.0.0",
+    ];
+    if (localPatterns.some((pattern) => uri.startsWith(pattern))) {
+      throw new Error("FATAL: Local MongoDB URIs not allowed in production");
     }
   }
   ```
 
 **✅ Security Properties:**
+
 - Development: Allows localhost fallback (safe for dev)
 - Production: Requires `MONGODB_URI` env var
 - Production: Rejects localhost URIs (Atlas-only enforcement)
 - URI validation: Ensures `mongodb://` or `mongodb+srv://` protocol
 
 **⚠️ Documentation Inaccuracy:**
+
 - Docs claimed "3 files enforce MongoDB security"
 - Reality: Only `lib/mongo.ts` has validation logic
 - Other files may reference MongoDB but don't validate
@@ -284,19 +306,21 @@ function parseOrigins(value?: string | null): string[] {
 ### 5. Docker Secrets ✅ (Fully Implemented)
 
 **✅ What's Actually Done:**
+
 - `docker-compose.yml` uses fail-fast variable syntax:
+
   ```yaml
   services:
     app:
       environment:
         JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in environment}
         MONGODB_URI: ${compose_mongodb_uri:?MongoDB connection required}
-    
+
     mongodb:
       environment:
         MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-fixzit_admin}
         MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:?Set MONGO_INITDB_ROOT_PASSWORD}
-    
+
     meilisearch:
       environment:
         MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in environment}
@@ -307,6 +331,7 @@ function parseOrigins(value?: string | null): string[] {
 - **Shared MongoDB URI:** Uses `compose_mongodb_uri` to avoid duplication
 
 **✅ Verified:**
+
 ```bash
 # Test fail-fast behavior
 docker-compose up
@@ -396,27 +421,29 @@ docker-compose up
 
 **Scoring Breakdown:**
 
-| Category | Score | Rationale |
-|----------|-------|-----------|
-| **Authentication** | 92/100 | ✅ JWT secrets secured in prod code<br>✅ Test fallbacks only in test env<br>✅ Aqar recommendations now requires auth<br>⚠️ Dev scripts still use direct access |
-| **Authorization** | N/A | Not audited in this review |
-| **API Security** | 88/100 | ✅ Rate limiting implemented on 8 routes<br>✅ Auth-before-rate-limit pattern fixed<br>❌ Not manually tested<br>❌ No automated tests<br>❌ No monitoring |
-| **CORS** | 80/100 | ✅ Whitelist configured<br>⚠️ Dev mode permissive<br>⚠️ No URL validation for env vars<br>✅ Production strict |
-| **Data Security** | 90/100 | ✅ MongoDB Atlas-only in prod<br>✅ URI validation<br>✅ Docker secrets fail-fast |
-| **Secrets Management** | 95/100 | ✅ requireEnv() pattern<br>✅ Docker fail-fast<br>✅ No hardcoded secrets<br>⚠️ Dev scripts acceptable |
-| **Monitoring** | 0/100 | ❌ No security event monitoring<br>❌ No alerting<br>❌ No dashboards |
-| **Testing** | 45/100 | ✅ Unit tests 78% coverage<br>✅ Better error handling added<br>❌ No security-specific tests<br>❌ No manual testing done |
-| **Documentation** | 75/100 | ✅ Comprehensive<br>✅ Reality check complete<br>⚠️ Some claims still overstated |
+| Category               | Score  | Rationale                                                                                                                                                        |
+| ---------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Authentication**     | 92/100 | ✅ JWT secrets secured in prod code<br>✅ Test fallbacks only in test env<br>✅ Aqar recommendations now requires auth<br>⚠️ Dev scripts still use direct access |
+| **Authorization**      | N/A    | Not audited in this review                                                                                                                                       |
+| **API Security**       | 88/100 | ✅ Rate limiting implemented on 8 routes<br>✅ Auth-before-rate-limit pattern fixed<br>❌ Not manually tested<br>❌ No automated tests<br>❌ No monitoring       |
+| **CORS**               | 80/100 | ✅ Whitelist configured<br>⚠️ Dev mode permissive<br>⚠️ No URL validation for env vars<br>✅ Production strict                                                   |
+| **Data Security**      | 90/100 | ✅ MongoDB Atlas-only in prod<br>✅ URI validation<br>✅ Docker secrets fail-fast                                                                                |
+| **Secrets Management** | 95/100 | ✅ requireEnv() pattern<br>✅ Docker fail-fast<br>✅ No hardcoded secrets<br>⚠️ Dev scripts acceptable                                                           |
+| **Monitoring**         | 0/100  | ❌ No security event monitoring<br>❌ No alerting<br>❌ No dashboards                                                                                            |
+| **Testing**            | 45/100 | ✅ Unit tests 78% coverage<br>✅ Better error handling added<br>❌ No security-specific tests<br>❌ No manual testing done                                       |
+| **Documentation**      | 75/100 | ✅ Comprehensive<br>✅ Reality check complete<br>⚠️ Some claims still overstated                                                                                 |
 
 **Overall: ~87-92/100** (manual estimate, improved from ~85-90)
 
 **Improvements from previous assessment:**
+
 - Rate limiting coverage expanded (+3 routes)
 - Authentication gaps closed (aqar/recommendations now protected)
 - Auth-before-rate-limit pattern fixed (support tickets)
 - Code quality improvements (React keys, error handling, i18n)
 
 **Why NOT 95/100:**
+
 - No monitoring/alerting (-5)
 - Rate limiting not manually verified (-3)
 - No automated security tests (-3)
@@ -488,6 +515,7 @@ docker-compose up
 **Goal:** Verify all security controls work as designed
 
 #### 2.1 Rate Limiting Tests (0%)
+
 ```bash
 # Test OTP send (10 req/min limit)
 for i in {1..15}; do
@@ -550,6 +578,7 @@ done
 ```
 
 **Checklist:**
+
 - [ ] OTP send rate limiting verified (10/min)
 - [ ] OTP verify rate limiting verified (10/min)
 - [ ] Claims creation rate limiting verified (20/min)
@@ -564,6 +593,7 @@ done
 **Progress:** 0% (0/10 complete)
 
 #### 2.2 CORS Tests (0%)
+
 ```bash
 # Test production origin (should succeed)
 curl -X POST http://localhost:3000/api/auth/otp/send \
@@ -599,6 +629,7 @@ NODE_ENV=production curl -X POST http://localhost:3000/api/auth/otp/send \
 ```
 
 **Checklist:**
+
 - [ ] Production origins allowed (fixzit.sa, app.fixzit.sa, etc.)
 - [ ] Unauthorized origins blocked (evil.com)
 - [ ] Localhost allowed in dev mode
@@ -609,6 +640,7 @@ NODE_ENV=production curl -X POST http://localhost:3000/api/auth/otp/send \
 **Progress:** 0% (0/6 complete)
 
 #### 2.3 MongoDB Security Tests (0%)
+
 ```bash
 # Test localhost rejection in production
 NODE_ENV=production MONGODB_URI=mongodb://localhost:27017/fixzit npm start
@@ -628,6 +660,7 @@ NODE_ENV=development npm start
 ```
 
 **Checklist:**
+
 - [ ] Localhost rejected in production
 - [ ] Atlas accepted in production
 - [ ] Missing URI errors in production
@@ -645,6 +678,7 @@ NODE_ENV=development npm start
 **Goal:** Add CI/CD coverage for security controls
 
 #### 3.1 Dependency Scanning (0%)
+
 ```bash
 # Run npm audit
 pnpm audit --production > security-audit-npm.txt
@@ -661,6 +695,7 @@ dependency-check --project Fixzit --scan . --out security-audit-owasp.html
 ```
 
 **Checklist:**
+
 - [ ] pnpm audit run and results documented
 - [ ] Snyk scan run and results documented
 - [ ] OWASP Dependency Check run and results documented
@@ -672,18 +707,23 @@ dependency-check --project Fixzit --scan . --out security-audit-owasp.html
 #### 3.2 Integration Tests (0%)
 
 **Create:** `tests/security/rate-limiting.test.ts`
+
 ```typescript
-describe('Rate Limiting', () => {
-  it('should limit OTP send to 10 requests per minute', async () => {
-    const requests = Array(15).fill(null).map(() => 
-      fetch('/api/auth/otp/send', {
-        method: 'POST',
-        body: JSON.stringify({ phoneNumber: '+966501234567' })
-      })
-    );
+describe("Rate Limiting", () => {
+  it("should limit OTP send to 10 requests per minute", async () => {
+    const requests = Array(15)
+      .fill(null)
+      .map(() =>
+        fetch("/api/auth/otp/send", {
+          method: "POST",
+          body: JSON.stringify({ phoneNumber: "+966501234567" }),
+        }),
+      );
     const responses = await Promise.all(requests);
-    const successCount = responses.filter(r => r.status === 200 || r.status === 201).length;
-    const limitedCount = responses.filter(r => r.status === 429).length;
+    const successCount = responses.filter(
+      (r) => r.status === 200 || r.status === 201,
+    ).length;
+    const limitedCount = responses.filter((r) => r.status === 429).length;
     expect(successCount).toBe(10);
     expect(limitedCount).toBe(5);
   });
@@ -693,22 +733,25 @@ describe('Rate Limiting', () => {
 ```
 
 **Create:** `tests/security/cors.test.ts`
+
 ```typescript
-describe('CORS', () => {
-  it('should allow production origins', async () => {
-    const response = await fetch('/api/auth/otp/send', {
-      method: 'POST',
-      headers: { 'Origin': 'https://fixzit.sa' },
-      body: JSON.stringify({ phoneNumber: '+966501234567' })
+describe("CORS", () => {
+  it("should allow production origins", async () => {
+    const response = await fetch("/api/auth/otp/send", {
+      method: "POST",
+      headers: { Origin: "https://fixzit.sa" },
+      body: JSON.stringify({ phoneNumber: "+966501234567" }),
     });
-    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://fixzit.sa');
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://fixzit.sa",
+    );
   });
 
-  it('should block unauthorized origins', async () => {
-    const response = await fetch('/api/auth/otp/send', {
-      method: 'POST',
-      headers: { 'Origin': 'https://evil.com' },
-      body: JSON.stringify({ phoneNumber: '+966501234567' })
+  it("should block unauthorized origins", async () => {
+    const response = await fetch("/api/auth/otp/send", {
+      method: "POST",
+      headers: { Origin: "https://evil.com" },
+      body: JSON.stringify({ phoneNumber: "+966501234567" }),
     });
     expect(response.status).toBe(403);
   });
@@ -716,6 +759,7 @@ describe('CORS', () => {
 ```
 
 **Checklist:**
+
 - [ ] Rate limiting tests created
 - [ ] CORS tests created
 - [ ] MongoDB security tests created
@@ -735,11 +779,12 @@ describe('CORS', () => {
 #### 4.1 CORS URL Validation (0%)
 
 **Update:** `lib/security/cors-allowlist.ts`
+
 ```typescript
 function parseOrigins(value?: string | null): string[] {
   if (!value) return [];
   return value
-    .split(',')
+    .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean)
     .filter((origin) => {
@@ -747,14 +792,18 @@ function parseOrigins(value?: string | null): string[] {
       try {
         const url = new URL(origin);
         // Only allow http/https protocols
-        if (!['http:', 'https:'].includes(url.protocol)) {
+        if (!["http:", "https:"].includes(url.protocol)) {
           logger.warn(`[CORS] Invalid protocol in origin: ${origin}`);
           return false;
         }
         // Disallow localhost in production CORS_ORIGINS
-        if (process.env.NODE_ENV === 'production' && 
-            (url.hostname === 'localhost' || url.hostname === '127.0.0.1')) {
-          logger.warn(`[CORS] Localhost not allowed in production CORS_ORIGINS: ${origin}`);
+        if (
+          process.env.NODE_ENV === "production" &&
+          (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+        ) {
+          logger.warn(
+            `[CORS] Localhost not allowed in production CORS_ORIGINS: ${origin}`,
+          );
           return false;
         }
         return true;
@@ -767,6 +816,7 @@ function parseOrigins(value?: string | null): string[] {
 ```
 
 **Checklist:**
+
 - [ ] URL validation added to parseOrigins()
 - [ ] Protocol validation (http/https only)
 - [ ] Localhost rejected in production CORS_ORIGINS
@@ -779,9 +829,10 @@ function parseOrigins(value?: string | null): string[] {
 #### 4.2 Security Monitoring (0%)
 
 **Create:** `lib/monitoring/security-events.ts`
+
 ```typescript
 export async function logSecurityEvent(event: {
-  type: 'rate_limit' | 'cors_block' | 'auth_failure' | 'invalid_token';
+  type: "rate_limit" | "cors_block" | "auth_failure" | "invalid_token";
   ip: string;
   path: string;
   metadata?: Record<string, unknown>;
@@ -791,30 +842,32 @@ export async function logSecurityEvent(event: {
     ...event,
     timestamp: new Date().toISOString(),
   });
-  
+
   // Increment metric counter
   // metrics.increment(`security.${event.type}`, { path: event.path });
 }
 ```
 
 **Update:** Rate limiting middleware to log events
+
 ```typescript
 const limited = enforceRateLimit(request, {
-  keyPrefix: 'otp-send',
+  keyPrefix: "otp-send",
   requests: 10,
   windowMs: 60_000,
   onLimitReached: async (ip: string) => {
     await logSecurityEvent({
-      type: 'rate_limit',
+      type: "rate_limit",
       ip,
-      path: '/api/auth/otp/send',
-      metadata: { limit: 10, window: '1 minute' }
+      path: "/api/auth/otp/send",
+      metadata: { limit: 10, window: "1 minute" },
     });
-  }
+  },
 });
 ```
 
 **Checklist:**
+
 - [ ] Security event logging created
 - [ ] Rate limit events logged
 - [ ] CORS block events logged
@@ -833,6 +886,7 @@ const limited = enforceRateLimit(request, {
 **Goal:** Populate credentials and verify OTP functionality
 
 **Checklist:**
+
 - [ ] SMS provider credentials populated (Twilio/AWS SNS)
 - [ ] Email provider credentials populated (SendGrid/AWS SES)
 - [ ] WhatsApp credentials populated (if applicable)
@@ -847,13 +901,13 @@ const limited = enforceRateLimit(request, {
 
 ## 📊 Overall Progress Summary
 
-| Phase | Status | Progress | Blockers |
-|-------|--------|----------|----------|
-| **Phase 1: Documentation** | 🟡 In Progress | 20% (1/5) | None |
-| **Phase 2: Manual Testing** | 🔴 Not Started | 0% (0/20) | Need staging environment |
-| **Phase 3: Automated Tests** | 🔴 Not Started | 0% (0/10) | Need test implementation |
-| **Phase 4: Production Hardening** | 🔴 Not Started | 0% (0/12) | Need code changes |
-| **Phase 5: Notification Setup** | 🔴 Not Started | 0% (0/7) | Need credentials |
+| Phase                             | Status         | Progress  | Blockers                 |
+| --------------------------------- | -------------- | --------- | ------------------------ |
+| **Phase 1: Documentation**        | 🟡 In Progress | 20% (1/5) | None                     |
+| **Phase 2: Manual Testing**       | 🔴 Not Started | 0% (0/20) | Need staging environment |
+| **Phase 3: Automated Tests**      | 🔴 Not Started | 0% (0/10) | Need test implementation |
+| **Phase 4: Production Hardening** | 🔴 Not Started | 0% (0/12) | Need code changes        |
+| **Phase 5: Notification Setup**   | 🔴 Not Started | 0% (0/7)  | Need credentials         |
 
 **Total Progress:** 4% (1/54 tasks complete)
 
@@ -939,6 +993,7 @@ const limited = enforceRateLimit(request, {
 ### Current Status: 🟡 STAGING READY (NOT Production Ready)
 
 **Why NOT Production Ready:**
+
 - ❌ Rate limiting not manually tested (0/20 tests)
 - ❌ No automated security tests (0/10 tests)
 - ❌ No security scanner results (0/3 scans)
@@ -948,6 +1003,7 @@ const limited = enforceRateLimit(request, {
 - ❌ No security review documented (0/1 review)
 
 **What's Actually Ready:**
+
 - ✅ Code changes committed and verified
 - ✅ Docker secrets fail-fast implemented
 - ✅ JWT secrets secured in production runtime code
@@ -958,6 +1014,7 @@ const limited = enforceRateLimit(request, {
 - ✅ MongoDB Atlas-only enforcement
 
 **Estimated Time to Production Ready:** 1-2 weeks
+
 - Week 1: Manual testing, automated tests, monitoring setup
 - Week 2: Security review, final scans, team approval
 
@@ -968,6 +1025,7 @@ const limited = enforceRateLimit(request, {
 ### Summary of Reality Check
 
 **Positive Findings:**
+
 - Core security code changes ARE implemented and committed
 - Docker secrets ARE properly secured with fail-fast validation
 - JWT secrets ARE secured in production runtime code (3 files)
@@ -979,6 +1037,7 @@ const limited = enforceRateLimit(request, {
 - Code quality improvements (React keys, error handling, i18n)
 
 **Areas of Concern:**
+
 - Documentation overstated implementation status (claimed 15 files, actual 6)
 - Rate limiting NOT manually tested (no 429 verification)
 - CORS permissive in development mode (acceptable but undocumented)
@@ -988,6 +1047,7 @@ const limited = enforceRateLimit(request, {
 - Security score claimed (92/100) has no scanner evidence
 
 **Honest Assessment:**
+
 - **Code Status:** ✅ Complete and committed
 - **Testing Status:** ❌ Not done (manual or automated)
 - **Monitoring Status:** ❌ Not configured
@@ -995,6 +1055,7 @@ const limited = enforceRateLimit(request, {
 - **Production Readiness:** 🟡 Staging only, 1-2 weeks to production
 
 **Path Forward:**
+
 1. Complete Phase 1 documentation updates (2 hours)
 2. Run dependency scans and fix critical issues (1 hour)
 3. Perform manual security testing (4 hours)

@@ -1,6 +1,7 @@
 # Page Consolidation Strategy
 
 ## Executive Summary
+
 The Fixzit codebase has **14 high-priority duplicate page structures** that need consolidation. This document provides a detailed migration strategy for merging duplicate pages while preserving functionality and improving maintainability.
 
 ---
@@ -8,12 +9,14 @@ The Fixzit codebase has **14 high-priority duplicate page structures** that need
 ## Problem Statement
 
 ### Current Issues
+
 1. **FM Duplication**: 11 feature areas duplicated between `/app/*` and `/app/fm/*`
 2. **Marketplace Split**: Two separate e-commerce implementations (`/app/marketplace` vs `/app/souq`)
 3. **Vendor Fragmentation**: Three different vendor management interfaces
 4. **Dashboard Confusion**: Multiple dashboard implementations
 
 ### Impact
+
 - ❌ **Code Duplication**: ~50% code redundancy across FM pages
 - ❌ **Maintenance Burden**: Bug fixes need to be applied twice
 - ❌ **Inconsistent UX**: Different behavior for same features
@@ -24,37 +27,40 @@ The Fixzit codebase has **14 high-priority duplicate page structures** that need
 ## Consolidation Priority Matrix
 
 ### Priority 1: FM vs Main Pages (Week 2-3)
+
 **Impact**: High | **Effort**: Medium | **Risk**: Medium
 
-| Current Structure | Consolidated Target | Pages Affected |
-|-------------------|---------------------|----------------|
-| `/app/properties/*` + `/app/fm/properties/*` | `/app/(dashboard)/properties/*` | 13 pages |
-| `/app/finance/*` + `/app/fm/finance/*` | `/app/(dashboard)/finance/*` | 9 pages |
-| `/app/work-orders/*` + `/app/fm/maintenance/*` + `/app/fm/work-orders/*` | `/app/(dashboard)/maintenance/*` | 15 pages |
-| `/app/dashboard/*` + `/app/fm/dashboard/*` | `/app/(dashboard)/page.tsx` | 2 pages |
-| `/app/reports/*` + `/app/fm/reports/*` | `/app/(dashboard)/reports/*` | 2 pages |
-| `/app/system/*` + `/app/fm/system/*` | `/app/admin/system/*` | 2 pages |
-| `/app/compliance/*` + `/app/fm/compliance/*` | `/app/(dashboard)/compliance/*` | 2 pages |
-| `/app/support/*` + `/app/fm/support/*` | `/app/(dashboard)/support/*` | 4 pages |
-| `/app/vendors/*` + `/app/fm/vendors/*` | `/app/(dashboard)/vendors/*` | 2 pages |
-| `/app/crm/*` + `/app/fm/crm/*` | `/app/(dashboard)/crm/*` | 2 pages |
-| `/app/hr/*` + `/app/fm/hr/*` | `/app/(dashboard)/hr/*` | 3 pages |
+| Current Structure                                                        | Consolidated Target              | Pages Affected |
+| ------------------------------------------------------------------------ | -------------------------------- | -------------- |
+| `/app/properties/*` + `/app/fm/properties/*`                             | `/app/(dashboard)/properties/*`  | 13 pages       |
+| `/app/finance/*` + `/app/fm/finance/*`                                   | `/app/(dashboard)/finance/*`     | 9 pages        |
+| `/app/work-orders/*` + `/app/fm/maintenance/*` + `/app/fm/work-orders/*` | `/app/(dashboard)/maintenance/*` | 15 pages       |
+| `/app/dashboard/*` + `/app/fm/dashboard/*`                               | `/app/(dashboard)/page.tsx`      | 2 pages        |
+| `/app/reports/*` + `/app/fm/reports/*`                                   | `/app/(dashboard)/reports/*`     | 2 pages        |
+| `/app/system/*` + `/app/fm/system/*`                                     | `/app/admin/system/*`            | 2 pages        |
+| `/app/compliance/*` + `/app/fm/compliance/*`                             | `/app/(dashboard)/compliance/*`  | 2 pages        |
+| `/app/support/*` + `/app/fm/support/*`                                   | `/app/(dashboard)/support/*`     | 4 pages        |
+| `/app/vendors/*` + `/app/fm/vendors/*`                                   | `/app/(dashboard)/vendors/*`     | 2 pages        |
+| `/app/crm/*` + `/app/fm/crm/*`                                           | `/app/(dashboard)/crm/*`         | 2 pages        |
+| `/app/hr/*` + `/app/fm/hr/*`                                             | `/app/(dashboard)/hr/*`          | 3 pages        |
 
 **Total**: 56 pages → 28 consolidated pages
 
 ### Priority 2: Marketplace Consolidation (Week 3)
+
 **Impact**: High | **Effort**: Low | **Risk**: Low
 
-| Current Structure | Consolidated Target | Pages Affected |
-|-------------------|---------------------|----------------|
-| `/app/marketplace/*` + `/app/souq/*` | `/app/(dashboard)/marketplace/*` | 23 pages |
+| Current Structure                    | Consolidated Target              | Pages Affected |
+| ------------------------------------ | -------------------------------- | -------------- |
+| `/app/marketplace/*` + `/app/souq/*` | `/app/(dashboard)/marketplace/*` | 23 pages       |
 
 ### Priority 3: Vendor Interface Unification (Week 4)
+
 **Impact**: Medium | **Effort**: Low | **Risk**: Low
 
-| Current Structure | Consolidated Target | Pages Affected |
-|-------------------|---------------------|----------------|
-| `/app/vendors/*` + `/app/marketplace/vendor/*` + `/app/vendor/dashboard/*` | `/app/vendor/*` | 6 pages |
+| Current Structure                                                          | Consolidated Target | Pages Affected |
+| -------------------------------------------------------------------------- | ------------------- | -------------- |
+| `/app/vendors/*` + `/app/marketplace/vendor/*` + `/app/vendor/dashboard/*` | `/app/vendor/*`     | 6 pages        |
 
 ---
 
@@ -67,6 +73,7 @@ Instead of duplicating pages, use a **context-based approach** to render differe
 ### Implementation Pattern
 
 #### Step 1: Create Unified Context
+
 ```typescript
 // contexts/ModuleContext.tsx
 'use client';
@@ -87,12 +94,12 @@ const ModuleContext = createContext<ModuleContextValue | undefined>(undefined);
 
 export function ModuleProvider({ children }: { children: ReactNode }) {
   const { data: session } = useSession();
-  
+
   // Determine mode from user role
-  const mode: ModuleMode = session?.user?.role === 'FM_MANAGER' 
-    ? 'fm' 
-    : session?.user?.role === 'ADMIN' 
-      ? 'admin' 
+  const mode: ModuleMode = session?.user?.role === 'FM_MANAGER'
+    ? 'fm'
+    : session?.user?.role === 'ADMIN'
+      ? 'admin'
       : 'standard';
 
   const value = {
@@ -122,12 +129,14 @@ export function useModule() {
 #### Step 2: Consolidate Properties Pages
 
 **Before** (Duplicate):
+
 ```
 /app/properties/page.tsx (Standard)
 /app/fm/properties/page.tsx (FM)
 ```
 
 **After** (Consolidated):
+
 ```typescript
 // app/(dashboard)/properties/page.tsx
 
@@ -137,11 +146,11 @@ import { useModule } from '@/contexts/ModuleContext';
 
 export default function PropertiesPage() {
   const { mode } = useModule();
-  
+
   if (mode === 'fm') {
     return <PropertiesFMView />;
   }
-  
+
   return <PropertiesStandardView />;
 }
 ```
@@ -155,22 +164,20 @@ Extract shared logic into hooks:
 
 export function useProperties() {
   const { mode } = useModule();
-  
+
   const fetchProperties = async () => {
-    const endpoint = mode === 'fm' 
-      ? '/api/fm/properties' 
-      : '/api/properties';
-    
-    return fetch(endpoint).then(r => r.json());
+    const endpoint = mode === "fm" ? "/api/fm/properties" : "/api/properties";
+
+    return fetch(endpoint).then((r) => r.json());
   };
-  
+
   // Shared logic here
-  
+
   return {
     properties: data?.properties || [],
     loading,
     error,
-    refetch
+    refetch,
   };
 }
 ```
@@ -181,7 +188,7 @@ Use in both views:
 // components/properties/StandardView.tsx
 export function PropertiesStandardView() {
   const { properties, loading } = useProperties();
-  
+
   return (
     <div>
       {/* Standard UI */}
@@ -192,7 +199,7 @@ export function PropertiesStandardView() {
 // components/properties/FMView.tsx
 export function PropertiesFMView() {
   const { properties, loading } = useProperties();
-  
+
   return (
     <div>
       {/* FM-specific UI with asset focus */}
@@ -219,18 +226,20 @@ export function PropertiesFMView() {
 ### Implementation Pattern
 
 #### Step 1: Rename Public Store
+
 ```bash
 # Migration commands
 mv app/souq app/store
 ```
 
 #### Step 2: Update Routes
+
 ```typescript
 // app/store/page.tsx (Public Store)
 export default async function PublicStorePage() {
   // No authentication required
   const products = await getPublicProducts();
-  
+
   return <PublicStoreLayout products={products} />;
 }
 
@@ -239,14 +248,15 @@ import { requireAuth } from '@/lib/auth-utils';
 
 export default async function MarketplacePage() {
   await requireAuth(); // Require authentication
-  
+
   const products = await getInternalCatalog();
-  
+
   return <InternalMarketplaceLayout products={products} />;
 }
 ```
 
 #### Step 3: Share Product Components
+
 ```typescript
 // components/marketplace/ProductCard.tsx
 interface ProductCardProps {
@@ -257,7 +267,7 @@ interface ProductCardProps {
 export function ProductCard({ product, variant }: ProductCardProps) {
   const showInternalPricing = variant === 'internal';
   const showPublicReviews = variant === 'public';
-  
+
   return (
     <div className="product-card">
       {/* Shared UI with conditional features */}
@@ -271,7 +281,9 @@ export function ProductCard({ product, variant }: ProductCardProps) {
 ## Consolidation Strategy: Vendor Management
 
 ### Current Problem
+
 Three separate vendor interfaces:
+
 1. `/app/vendors/*` - Vendor list/management
 2. `/app/marketplace/vendor/*` - Vendor portal/products
 3. `/app/vendor/dashboard/*` - Individual vendor dashboard
@@ -286,6 +298,7 @@ Three separate vendor interfaces:
 ### Implementation Pattern
 
 #### Step 1: Consolidate Admin Vendor Management
+
 ```typescript
 // app/(dashboard)/vendors/page.tsx
 import { VendorList } from '@/components/vendors/VendorList';
@@ -293,7 +306,7 @@ import { requireRole } from '@/lib/auth-utils';
 
 export default async function VendorsManagementPage() {
   await requireRole(['ADMIN', 'PROCUREMENT_MANAGER']);
-  
+
   return (
     <div>
       <h1>Vendor Management</h1>
@@ -304,6 +317,7 @@ export default async function VendorsManagementPage() {
 ```
 
 #### Step 2: Unified Vendor Portal
+
 ```typescript
 // app/vendor/page.tsx (Dashboard for logged-in vendors)
 import { requireRole } from '@/lib/auth-utils';
@@ -311,7 +325,7 @@ import { requireRole } from '@/lib/auth-utils';
 export default async function VendorDashboardPage() {
   await requireRole(['VENDOR']);
   const vendor = await getCurrentVendor();
-  
+
   return (
     <VendorLayout>
       <VendorDashboard vendor={vendor} />
@@ -326,12 +340,14 @@ export default async function VendorDashboardPage() {
 ## Migration Checklist
 
 ### Pre-Migration (Week 1)
+
 - [ ] Create `ModuleContext` provider
 - [ ] Update `app/layout.tsx` with `<ModuleProvider>`
 - [ ] Create shared hooks (`useProperties`, `useFinance`, etc.)
 - [ ] Set up parallel API routes (`/api/properties` vs `/api/fm/properties`)
 
 ### Phase 1: Properties Module (Week 2)
+
 - [ ] Create `/app/(dashboard)/properties/page.tsx`
 - [ ] Extract `PropertiesStandardView` component
 - [ ] Extract `PropertiesFMView` component
@@ -341,6 +357,7 @@ export default async function VendorDashboardPage() {
 - [ ] Test role-based switching
 
 ### Phase 2: Finance Module (Week 2)
+
 - [ ] Create `/app/(dashboard)/finance/page.tsx`
 - [ ] Consolidate payment pages
 - [ ] Consolidate invoice pages
@@ -349,6 +366,7 @@ export default async function VendorDashboardPage() {
 - [ ] Update navigation
 
 ### Phase 3: Maintenance Module (Week 3)
+
 - [ ] Create `/app/(dashboard)/maintenance/page.tsx`
 - [ ] Merge work orders + FM maintenance
 - [ ] Consolidate support tickets
@@ -356,6 +374,7 @@ export default async function VendorDashboardPage() {
 - [ ] Delete duplicates
 
 ### Phase 4: Marketplace (Week 3)
+
 - [ ] Rename `/app/souq` → `/app/store`
 - [ ] Keep `/app/(dashboard)/marketplace` separate
 - [ ] Update all product links
@@ -363,6 +382,7 @@ export default async function VendorDashboardPage() {
 - [ ] Update navigation
 
 ### Phase 5: Vendors (Week 4)
+
 - [ ] Create `/app/vendor/page.tsx` (unified portal)
 - [ ] Create `/app/(dashboard)/vendors/page.tsx` (admin)
 - [ ] Merge vendor product management
@@ -370,6 +390,7 @@ export default async function VendorDashboardPage() {
 - [ ] Update vendor onboarding flow
 
 ### Phase 6: Remaining Modules (Week 4)
+
 - [ ] Consolidate dashboards
 - [ ] Merge reports pages
 - [ ] Merge system settings
@@ -382,31 +403,32 @@ export default async function VendorDashboardPage() {
 ## Code Migration Scripts
 
 ### Script 1: Update Import Paths
+
 ```typescript
 // scripts/update-imports.ts
 
-import { promises as fs } from 'fs';
-import { glob } from 'glob';
+import { promises as fs } from "fs";
+import { glob } from "glob";
 
 const oldPaths = [
-  { from: '@/app/fm/properties', to: '@/app/(dashboard)/properties' },
-  { from: '@/app/fm/finance', to: '@/app/(dashboard)/finance' },
+  { from: "@/app/fm/properties", to: "@/app/(dashboard)/properties" },
+  { from: "@/app/fm/finance", to: "@/app/(dashboard)/finance" },
   // ... add all mappings
 ];
 
 async function updateImports() {
-  const files = await glob('**/*.{ts,tsx}', { ignore: 'node_modules/**' });
-  
+  const files = await glob("**/*.{ts,tsx}", { ignore: "node_modules/**" });
+
   for (const file of files) {
-    let content = await fs.readFile(file, 'utf-8');
-    
+    let content = await fs.readFile(file, "utf-8");
+
     for (const { from, to } of oldPaths) {
-      content = content.replace(new RegExp(from, 'g'), to);
+      content = content.replace(new RegExp(from, "g"), to);
     }
-    
+
     await fs.writeFile(file, content);
   }
-  
+
   console.log(`✅ Updated ${files.length} files`);
 }
 
@@ -414,26 +436,27 @@ updateImports();
 ```
 
 ### Script 2: Update Navigation Links
+
 ```typescript
 // scripts/update-nav.ts
 
-import { updateNavigationLinks } from '@/lib/migration-utils';
+import { updateNavigationLinks } from "@/lib/migration-utils";
 
 const linkMappings = {
-  '/fm/properties': '/properties',
-  '/fm/finance': '/finance',
-  '/fm/maintenance': '/maintenance',
+  "/fm/properties": "/properties",
+  "/fm/finance": "/finance",
+  "/fm/maintenance": "/maintenance",
   // ... add all mappings
 };
 
 async function updateNavigation() {
   // Update sidebar navigation
-  await updateNavigationLinks('nav/sidebar-links.ts', linkMappings);
-  
+  await updateNavigationLinks("nav/sidebar-links.ts", linkMappings);
+
   // Update breadcrumbs
-  await updateNavigationLinks('components/Breadcrumbs.tsx', linkMappings);
-  
-  console.log('✅ Navigation links updated');
+  await updateNavigationLinks("components/Breadcrumbs.tsx", linkMappings);
+
+  console.log("✅ Navigation links updated");
 }
 
 updateNavigation();
@@ -444,59 +467,62 @@ updateNavigation();
 ## Testing Strategy
 
 ### 1. Role-Based Testing
+
 ```typescript
 // tests/consolidation.test.ts
 
-describe('Page Consolidation', () => {
-  test('Standard user sees standard view', async () => {
-    const user = await loginAs('standard-user');
-    const page = await navigateTo('/properties');
-    
+describe("Page Consolidation", () => {
+  test("Standard user sees standard view", async () => {
+    const user = await loginAs("standard-user");
+    const page = await navigateTo("/properties");
+
     expect(page).toShowStandardView();
     expect(page).not.toShowFMFeatures();
   });
-  
-  test('FM Manager sees FM view', async () => {
-    const user = await loginAs('fm-manager');
-    const page = await navigateTo('/properties');
-    
+
+  test("FM Manager sees FM view", async () => {
+    const user = await loginAs("fm-manager");
+    const page = await navigateTo("/properties");
+
     expect(page).toShowFMView();
     expect(page).toShowAssetManagementFeatures();
   });
-  
-  test('Admin can switch between views', async () => {
-    const user = await loginAs('admin');
-    const page = await navigateTo('/properties');
-    
-    await page.switchMode('fm');
+
+  test("Admin can switch between views", async () => {
+    const user = await loginAs("admin");
+    const page = await navigateTo("/properties");
+
+    await page.switchMode("fm");
     expect(page).toShowFMView();
-    
-    await page.switchMode('standard');
+
+    await page.switchMode("standard");
     expect(page).toShowStandardView();
   });
 });
 ```
 
 ### 2. Navigation Testing
+
 ```typescript
-describe('Navigation After Consolidation', () => {
-  test('Old FM URLs redirect to new paths', async () => {
-    const response = await fetch('/fm/properties');
-    
-    expect(response).toRedirect('/properties');
-    expect(response.headers.get('x-view-mode')).toBe('fm');
+describe("Navigation After Consolidation", () => {
+  test("Old FM URLs redirect to new paths", async () => {
+    const response = await fetch("/fm/properties");
+
+    expect(response).toRedirect("/properties");
+    expect(response.headers.get("x-view-mode")).toBe("fm");
   });
 });
 ```
 
 ### 3. Data Integrity Testing
+
 ```typescript
-describe('Data Migration', () => {
-  test('FM data accessible from consolidated page', async () => {
+describe("Data Migration", () => {
+  test("FM data accessible from consolidated page", async () => {
     const fmProperty = await createFMProperty();
-    
-    const page = await navigateTo('/properties', { mode: 'fm' });
-    
+
+    const page = await navigateTo("/properties", { mode: "fm" });
+
     expect(page).toDisplayProperty(fmProperty);
   });
 });
@@ -509,6 +535,7 @@ describe('Data Migration', () => {
 ### If Issues Occur
 
 #### Step 1: Feature Flag Rollback
+
 ```typescript
 // lib/feature-flags.ts
 
@@ -524,13 +551,14 @@ export default function PropertiesPage() {
     // Show old interface
     return <OldPropertiesPage />;
   }
-  
+
   // Show new consolidated interface
   return <ConsolidatedPropertiesPage />;
 }
 ```
 
 #### Step 2: Git Revert Strategy
+
 ```bash
 # Revert specific module consolidation
 git revert <commit-hash>  # Revert properties consolidation
@@ -545,12 +573,14 @@ git revert <range-of-commits>
 ## Success Metrics
 
 ### Quantitative Metrics
+
 - **Code Reduction**: Target 50% reduction in duplicate code
 - **Build Time**: Expect 20-30% faster builds (fewer files)
 - **Bundle Size**: Target 15-20% smaller production bundle
 - **Test Coverage**: Maintain >80% coverage during migration
 
 ### Qualitative Metrics
+
 - **Developer Experience**: Single source of truth for features
 - **User Experience**: Consistent behavior across features
 - **Maintainability**: Bug fixes applied once, not twice
@@ -559,12 +589,12 @@ git revert <range-of-commits>
 
 ## Timeline Summary
 
-| Week | Task | Pages Affected | Status |
-|------|------|----------------|--------|
-| **Week 1** | Setup infrastructure (Context, Hooks) | 0 | Not Started |
-| **Week 2** | Properties + Finance consolidation | 22 | Not Started |
-| **Week 3** | Maintenance + Marketplace | 38 | Not Started |
-| **Week 4** | Vendors + Remaining modules | 12 | Not Started |
+| Week       | Task                                  | Pages Affected | Status      |
+| ---------- | ------------------------------------- | -------------- | ----------- |
+| **Week 1** | Setup infrastructure (Context, Hooks) | 0              | Not Started |
+| **Week 2** | Properties + Finance consolidation    | 22             | Not Started |
+| **Week 3** | Maintenance + Marketplace             | 38             | Not Started |
+| **Week 4** | Vendors + Remaining modules           | 12             | Not Started |
 
 **Total Duration**: 4 weeks  
 **Total Pages Consolidated**: 72 pages → 36 pages

@@ -7,14 +7,15 @@
 ---
 
 ## Quick Status Dashboard
-| Suite | Status | Last Run | Owner | Notes |
-|-------|--------|----------|-------|-------|
-| FM Workflow Navigation | 🚧 Pending | _TBD_ | QA Team | Requires seeded demo data for dashboards + KPIs. |
-| Navigation & Sidebar (RBAC) | 🚧 Pending | _TBD_ | QA Team | Needs four role fixtures (Superadmin + three manager variants). |
-| Support Organization Switcher | 🔴 Blocked | _TBD_ | Support QA | Blocked until support user + org records exist in DB. |
-| Translation & i18n | 🟡 Partial | _TBD_ | Localization QA | Keys available; still validating finance + toast flows. |
-| New Features Smoke Tests | 🟡 Partial | _TBD_ | Feature QA | Compliance + CRM forms ready; PM to confirm required data seeds. |
-| Performance & Memory | 🟢 Ready | _Not Run_ | Platform QA | Scripts ready; safe to execute after suites 1-5 pass. |
+
+| Suite                         | Status     | Last Run  | Owner           | Notes                                                            |
+| ----------------------------- | ---------- | --------- | --------------- | ---------------------------------------------------------------- |
+| FM Workflow Navigation        | 🚧 Pending | _TBD_     | QA Team         | Requires seeded demo data for dashboards + KPIs.                 |
+| Navigation & Sidebar (RBAC)   | 🚧 Pending | _TBD_     | QA Team         | Needs four role fixtures (Superadmin + three manager variants).  |
+| Support Organization Switcher | 🔴 Blocked | _TBD_     | Support QA      | Blocked until support user + org records exist in DB.            |
+| Translation & i18n            | 🟡 Partial | _TBD_     | Localization QA | Keys available; still validating finance + toast flows.          |
+| New Features Smoke Tests      | 🟡 Partial | _TBD_     | Feature QA      | Compliance + CRM forms ready; PM to confirm required data seeds. |
+| Performance & Memory          | 🟢 Ready   | _Not Run_ | Platform QA     | Scripts ready; safe to execute after suites 1-5 pass.            |
 
 ---
 
@@ -39,23 +40,26 @@ curl -I http://localhost:3000/login
 ---
 
 ## Test Data & Safety Notes
+
 - **Superadmin login:** `admin@fixzit.com` / `<admin-password>` stored in 1Password → \"Fixzit Superadmin (Dev)\".
 - **Manager - Standard plan:** `manager.standard@fixzit.com` / password per vault.
 - **Manager - Premium plan:** `manager.premium@fixzit.com` / password per vault.
 - **Support user:** `support@fixzit.com` – ensure `canImpersonate=true` and at least two organizations exist for switcher tests.
 - **Org fixtures:** Run `pnpm tsx scripts/seed-demo-users.ts` followed by `node scripts/create-test-data.js` to ensure org, property, and work-order data exist before suites 3 & 4.
-- **Cleanup:** After impersonation, run `document.cookie = \"support_org_id=; path=/; max-age=0\"` or hit `/api/support/impersonation` `DELETE` to avoid polluting other suites.
+- **Cleanup:** After impersonation, hit `/api/support/impersonation` `DELETE` to avoid polluting other suites. **Note:** For manual cookie clearing, see `/app/logout/page.tsx` for proper implementation (requires clearing Secure variants: `__Secure-*`, `__Host-*`).
 
 ---
 
 ## Test Suite 1: FM Workflow Navigation
 
 ### Objective
+
 Verify all FM (Facilities Management) module pages load correctly with proper translations and navigation.
 
 ### Test Cases
 
 #### TC-1.1: FM Dashboard Access
+
 - [ ] Navigate to `/fm/dashboard`
 - [ ] Verify dashboard loads without errors
 - [ ] Check that KPI cards display (work orders, properties, tenants)
@@ -66,6 +70,7 @@ Verify all FM (Facilities Management) module pages load correctly with proper tr
 **Expected:** Dashboard loads with proper data structure, translations work
 
 #### TC-1.2: FM Finance Module
+
 - [ ] Navigate to `/fm/finance/budgets`
 - [ ] Verify budget list page loads
 - [ ] Check table headers display in current language
@@ -80,6 +85,7 @@ Verify all FM (Facilities Management) module pages load correctly with proper tr
 **Expected:** All finance pages load, translations display correctly
 
 #### TC-1.3: FM Properties Module
+
 - [ ] Navigate to `/fm/properties`
 - [ ] Verify property list loads
 - [ ] Click "Add Property" → navigate to `/fm/properties/new`
@@ -92,6 +98,7 @@ Verify all FM (Facilities Management) module pages load correctly with proper tr
 **Expected:** Property management flows work end-to-end
 
 #### TC-1.4: FM Work Orders
+
 - [ ] Navigate to `/fm/work-orders/board`
 - [ ] Verify Kanban board displays
 - [ ] Check work order cards render
@@ -104,6 +111,7 @@ Verify all FM (Facilities Management) module pages load correctly with proper tr
 **Expected:** Work order management system functional
 
 #### TC-1.5: FM HR Module
+
 - [ ] Navigate to `/fm/hr/directory`
 - [ ] Verify employee directory loads
 - [ ] Navigate to `/fm/hr/employees`
@@ -116,6 +124,7 @@ Verify all FM (Facilities Management) module pages load correctly with proper tr
 **Expected:** HR module pages accessible and functional
 
 #### TC-1.6: FM Compliance Module
+
 - [ ] Navigate to `/fm/compliance`
 - [ ] Verify compliance dashboard loads
 - [ ] Navigate to `/fm/compliance/audits` (NEW PAGE)
@@ -126,6 +135,7 @@ Verify all FM (Facilities Management) module pages load correctly with proper tr
 **Expected:** New compliance pages load correctly
 
 #### TC-1.7: FM CRM Module
+
 - [ ] Navigate to `/fm/crm`
 - [ ] Verify CRM dashboard loads with overview metrics
 - [ ] Navigate to `/fm/crm/accounts/new`
@@ -140,9 +150,11 @@ Verify all FM (Facilities Management) module pages load correctly with proper tr
 ## Test Suite 2: Navigation & Sidebar (RBAC)
 
 ### Objective
+
 Verify sidebar navigation adapts correctly based on user role and subscription plan.
 
 ### Setup
+
 ```typescript
 // Test with different user roles:
 // 1. Superadmin (can see everything)
@@ -152,6 +164,7 @@ Verify sidebar navigation adapts correctly based on user role and subscription p
 ```
 
 #### TC-2.1: Superadmin Navigation
+
 - [ ] Login as Superadmin
 - [ ] Verify sidebar shows all modules:
   - Dashboard
@@ -168,6 +181,7 @@ Verify sidebar navigation adapts correctly based on user role and subscription p
 **Expected:** Superadmin sees complete navigation tree
 
 #### TC-2.2: Manager (Standard Plan) Navigation
+
 - [ ] Login as Manager with Standard plan
 - [ ] Verify sidebar shows limited modules:
   - Dashboard
@@ -185,6 +199,7 @@ Verify sidebar navigation adapts correctly based on user role and subscription p
 **Expected:** Navigation restricted to Standard plan features
 
 #### TC-2.3: Manager (Premium Plan) Navigation
+
 - [ ] Login as Manager with Premium plan
 - [ ] Verify sidebar shows extended modules:
   - Dashboard
@@ -200,6 +215,7 @@ Verify sidebar navigation adapts correctly based on user role and subscription p
 **Expected:** Premium features accessible, navigation complete
 
 #### TC-2.4: TopBar Module Switching
+
 - [ ] Verify TopBar shows available modules
 - [ ] Click "Facilities" → should stay in FM context
 - [ ] Click "Marketplace" → should navigate to `/marketplace`
@@ -214,15 +230,18 @@ Verify sidebar navigation adapts correctly based on user role and subscription p
 ## Test Suite 3: Support Organization Switcher
 
 ### Objective
+
 Verify the new SupportOrgSwitcher component allows support staff to impersonate organizations.
 
 ### Setup
+
 ```bash
 # Must have support role user in database
 # Test organization IDs should exist
 ```
 
 #### TC-3.1: Organization Search
+
 - [ ] Login as Support user
 - [ ] Locate SupportOrgSwitcher in TopBar or Settings
 - [ ] Click "Switch Organization"
@@ -232,6 +251,7 @@ Verify the new SupportOrgSwitcher component allows support staff to impersonate 
 **Expected:** Organization search API returns results
 
 #### TC-3.2: Organization Impersonation
+
 - [ ] Select an organization from search results
 - [ ] Click "Impersonate"
 - [ ] Verify session switches to selected organization
@@ -242,6 +262,7 @@ Verify the new SupportOrgSwitcher component allows support staff to impersonate 
 **Expected:** Impersonation works, data scoped correctly
 
 #### TC-3.3: Exit Impersonation
+
 - [ ] While impersonating, locate "Exit Impersonation" button
 - [ ] Click to exit
 - [ ] Verify session returns to support user's context
@@ -254,9 +275,11 @@ Verify the new SupportOrgSwitcher component allows support staff to impersonate 
 ## Test Suite 4: Translation & i18n
 
 ### Objective
+
 Verify translation system works across all new pages, especially FM finance module.
 
 #### TC-4.1: Language Toggle
+
 - [ ] Navigate to `/fm/finance/budgets`
 - [ ] Current language: English
 - [ ] Verify page title: "Budgets"
@@ -269,6 +292,7 @@ Verify translation system works across all new pages, especially FM finance modu
 **Expected:** Complete translation coverage in finance module
 
 #### TC-4.2: Form Validation Messages
+
 - [ ] Navigate to `/fm/finance/expenses/new`
 - [ ] Submit form without filling required fields
 - [ ] Verify validation errors display in current language
@@ -279,6 +303,7 @@ Verify translation system works across all new pages, especially FM finance modu
 **Expected:** Validation messages are translated
 
 #### TC-4.3: Toast Notifications
+
 - [ ] Create a new budget (success scenario)
 - [ ] Verify success toast displays in current language
 - [ ] Switch to Arabic
@@ -292,6 +317,7 @@ Verify translation system works across all new pages, especially FM finance modu
 ## Test Suite 5: New Features Smoke Tests
 
 ### TC-5.1: Route Metrics Dashboard
+
 - [ ] Navigate to `/admin/route-metrics`
 - [ ] Verify dashboard loads
 - [ ] Check that route statistics display
@@ -301,6 +327,7 @@ Verify translation system works across all new pages, especially FM finance modu
 **Expected:** New admin dashboard functional
 
 #### TC-5.2: Compliance Audit APIs
+
 - [ ] Navigate to `/fm/compliance/audits`
 - [ ] Click "Create Audit"
 - [ ] Fill audit form
@@ -311,6 +338,7 @@ Verify translation system works across all new pages, especially FM finance modu
 **Expected:** Compliance audit CRUD works
 
 #### TC-5.3: CRM Lead Management
+
 - [ ] Navigate to `/fm/crm/leads/new`
 - [ ] Fill lead form with test data
 - [ ] Submit
@@ -324,21 +352,25 @@ Verify translation system works across all new pages, especially FM finance modu
 ## Test Suite 6: Performance & Memory
 
 ### Objective
+
 Verify system stability after VS Code memory optimization.
 
 #### TC-6.1: Memory Baseline
+
 ```bash
 # Before testing
 ps aux | grep -E "Code|node" | awk '{sum+=$6} END {print "Memory: " sum/1024 " MB"}'
 ```
 
 #### TC-6.2: Heavy Navigation Test
+
 - [ ] Rapidly navigate between 10 different pages
 - [ ] `/fm/dashboard` → `/fm/finance` → `/fm/properties` → `/fm/work-orders` → `/fm/hr` → `/fm/crm` → `/fm/compliance` → `/marketplace` → `/admin` → `/dashboard`
 - [ ] Check for memory leaks in browser DevTools
 - [ ] Monitor VS Code memory usage
 
 #### TC-6.3: Memory After Testing
+
 ```bash
 # After testing
 ps aux | grep -E "Code|node" | awk '{sum+=$6} END {print "Memory: " sum/1024 " MB"}'
@@ -351,34 +383,36 @@ ps aux | grep -E "Code|node" | awk '{sum+=$6} END {print "Memory: " sum/1024 " M
 ## Test Execution Log
 
 ### Session Information
-- **Date:** _____________
-- **Tester:** _____________
+
+- **Date:** **\*\***\_**\*\***
+- **Tester:** **\*\***\_**\*\***
 - **Environment:** Local Dev (`pnpm dev`)
-- **Browser:** _____________
-- **Node Version:** `node --version` → _____________
+- **Browser:** **\*\***\_**\*\***
+- **Node Version:** `node --version` → **\*\***\_**\*\***
 
 ### Test Results Summary
 
-| Test Suite | Pass | Fail | Skip | Notes |
-|------------|------|------|------|-------|
-| FM Workflow Navigation | ☐ | ☐ | ☐ | |
-| Navigation & Sidebar (RBAC) | ☐ | ☐ | ☐ | |
-| Support Org Switcher | ☐ | ☐ | ☐ | |
-| Translation & i18n | ☐ | ☐ | ☐ | |
-| New Features Smoke Tests | ☐ | ☐ | ☐ | |
-| Performance & Memory | ☐ | ☐ | ☐ | |
+| Test Suite                  | Pass | Fail | Skip | Notes |
+| --------------------------- | ---- | ---- | ---- | ----- |
+| FM Workflow Navigation      | ☐    | ☐    | ☐    |       |
+| Navigation & Sidebar (RBAC) | ☐    | ☐    | ☐    |       |
+| Support Org Switcher        | ☐    | ☐    | ☐    |       |
+| Translation & i18n          | ☐    | ☐    | ☐    |       |
+| New Features Smoke Tests    | ☐    | ☐    | ☐    |       |
+| Performance & Memory        | ☐    | ☐    | ☐    |       |
 
 ### Issues Found
 
-| ID | Severity | Page/Component | Description | Status |
-|----|----------|----------------|-------------|--------|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
+| ID  | Severity | Page/Component | Description | Status |
+| --- | -------- | -------------- | ----------- | ------ |
+| 1   |          |                |             |        |
+| 2   |          |                |             |        |
+| 3   |          |                |             |        |
 
 ### Screenshots
 
 Attach screenshots for:
+
 - [ ] FM Finance module (EN & AR)
 - [ ] Sidebar with different roles
 - [ ] Support org switcher
@@ -411,12 +445,13 @@ pnpm test:coverage
 - [ ] No blocking issues found
 - [ ] Ready for deployment
 
-**Tester Signature:** _____________  
-**Date:** _____________
+**Tester Signature:** **\*\***\_**\*\***  
+**Date:** **\*\***\_**\*\***
 
 ---
 
 **Next Steps After Testing:**
+
 1. Push changes to trigger `.github/workflows/route-quality.yml`
 2. Update status table in `DEPLOYMENT_NEXT_STEPS.md`
 3. Document any issues in GitHub Issues

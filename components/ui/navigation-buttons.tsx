@@ -1,67 +1,67 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { useRouter } from 'next/navigation';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Home, Save, Loader2 } from 'lucide-react';
+import React from "react";
+import { useRouter } from "next/navigation";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, ArrowRight, Home, Save, Loader2 } from "lucide-react";
 
 interface NavigationButtonsProps {
   /**
    * Show Save button
    */
   showSave?: boolean;
-  
+
   /**
    * Show Back button
    */
   showBack?: boolean;
-  
+
   /**
    * Show Home button
    */
   showHome?: boolean;
-  
+
   /**
    * Save button callback. May optionally accept the submit event.
    */
   onSave?: (e?: React.FormEvent) => void | Promise<void>;
-  
+
   /**
    * Save button type: 'button' (default) or 'submit' (for forms)
    */
-  saveType?: 'button' | 'submit';
-  
+  saveType?: "button" | "submit";
+
   /**
    * Custom back URL (defaults to browser back)
    */
   backUrl?: string;
-  
+
   /**
    * Custom home URL (defaults to /dashboard)
    */
   homeUrl?: string;
-  
+
   /**
    * Save button loading state
    */
   saving?: boolean;
-  
+
   /**
    * Save button disabled state
    */
   saveDisabled?: boolean;
-  
+
   /**
    * Save button i18n key (defaults to 'common.save')
    */
   saveLabelKey?: string;
-  
+
   /**
    * Position of the buttons
    */
-  position?: 'top' | 'bottom' | 'both';
-  
+  position?: "top" | "bottom" | "both";
+
   /**
    * Additional CSS classes
    */
@@ -70,10 +70,10 @@ interface NavigationButtonsProps {
 
 /**
  * Standardized Navigation Buttons Component
- * 
+ *
  * Provides consistent Save/Back/Home buttons across all pages.
  * Follows the global UI/UX enhancement requirements.
- * 
+ *
  * @example
  * ```tsx
  * <NavigationButtons
@@ -90,18 +90,18 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   showBack = true,
   showHome = true,
   onSave,
-  saveType = 'button',
+  saveType = "button",
   backUrl,
-  homeUrl = '/dashboard',
+  homeUrl = "/dashboard",
   saving = false,
   saveDisabled = false,
-  saveLabelKey = 'common.save',
-  position = 'bottom',
-  className = ''
+  saveLabelKey = "common.save",
+  position = "bottom",
+  className = "",
 }) => {
   const router = useRouter();
   const { t, isRTL } = useTranslation();
-  
+
   // FIX: RTL-aware icons
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
 
@@ -119,7 +119,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
 
   const handleSave = async (e?: React.FormEvent) => {
     // Only preventDefault if type="button" and we have a click handler
-    if (saveType === 'button' && e) {
+    if (saveType === "button" && e) {
       e.preventDefault();
     }
     if (onSave && !saving && !saveDisabled) {
@@ -132,24 +132,16 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
       {/* Left side: Back & Home */}
       <div className="flex items-center gap-2">
         {showBack && (
-          <Button
-            onClick={handleBack}
-            variant="outline"
-            type="button"
-          >
+          <Button onClick={handleBack} variant="outline" type="button">
             <BackIcon className="h-4 w-4 me-2" />
-            {t('navigation.back', 'Back')}
+            {t("navigation.back", "Back")}
           </Button>
         )}
-        
+
         {showHome && (
-          <Button
-            onClick={handleHome}
-            variant="outline"
-            type="button"
-          >
+          <Button onClick={handleHome} variant="outline" type="button">
             <Home className="h-4 w-4 me-2" />
-            {t('navigation.home', 'Home')}
+            {t("navigation.home", "Home")}
           </Button>
         )}
       </div>
@@ -157,7 +149,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
       {/* Right side: Save */}
       {showSave && (
         <Button
-          onClick={saveType === 'button' ? handleSave : undefined}
+          onClick={saveType === "button" ? handleSave : undefined}
           disabled={saving || saveDisabled}
           variant="default"
           type={saveType}
@@ -165,12 +157,12 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
           {saving ? (
             <>
               <Loader2 className="h-4 w-4 me-2 animate-spin" />
-              {t('navigation.saving', 'Saving...')}
+              {t("navigation.saving", "Saving...")}
             </>
           ) : (
             <>
               <Save className="h-4 w-4 me-2" />
-              {t(saveLabelKey, 'Save')}
+              {t(saveLabelKey, "Save")}
             </>
           )}
         </Button>
@@ -178,31 +170,25 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
     </div>
   );
 
-  if (position === 'both') {
+  if (position === "both") {
     return (
       <>
         <div className="mb-6">{buttons}</div>
-        <div className="mt-6 pt-6 border-t border-border">
-          {buttons}
-        </div>
+        <div className="mt-6 pt-6 border-t border-border">{buttons}</div>
       </>
     );
   }
 
-  if (position === 'top') {
+  if (position === "top") {
     return <div className="mb-6">{buttons}</div>;
   }
 
-  return (
-    <div className="mt-6 pt-6 border-t border-border">
-      {buttons}
-    </div>
-  );
+  return <div className="mt-6 pt-6 border-t border-border">{buttons}</div>;
 };
 
 /**
  * Form Wrapper with Navigation Buttons
- * 
+ *
  * Wraps a form with automatic navigation buttons
  */
 interface FormWithNavigationProps {
@@ -218,7 +204,7 @@ interface FormWithNavigationProps {
   /**
    * Position of navigation buttons: 'top', 'bottom', or 'both'
    */
-  position?: 'top' | 'bottom' | 'both';
+  position?: "top" | "bottom" | "both";
 }
 
 export const FormWithNavigation: React.FC<FormWithNavigationProps> = ({
@@ -229,9 +215,9 @@ export const FormWithNavigation: React.FC<FormWithNavigationProps> = ({
   showHome = true,
   saving = false,
   saveDisabled = false,
-  saveLabelKey = 'common.save',
-  className = '',
-  position = 'both'
+  saveLabelKey = "common.save",
+  className = "",
+  position = "both",
 }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,7 +229,7 @@ export const FormWithNavigation: React.FC<FormWithNavigationProps> = ({
   };
 
   // Define navigation buttons once to avoid duplication
-  const navButtons = (pos: 'top' | 'bottom') => (
+  const navButtons = (pos: "top" | "bottom") => (
     <NavigationButtons
       position={pos}
       showSave={showSave}
@@ -258,9 +244,9 @@ export const FormWithNavigation: React.FC<FormWithNavigationProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className={`space-y-6 ${className}`}>
-      {(position === 'top' || position === 'both') && navButtons('top')}
+      {(position === "top" || position === "both") && navButtons("top")}
       {children}
-      {(position === 'bottom' || position === 'both') && navButtons('bottom')}
+      {(position === "bottom" || position === "both") && navButtons("bottom")}
     </form>
   );
 };

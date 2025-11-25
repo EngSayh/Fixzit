@@ -1,44 +1,44 @@
 /**
  * System Scan Script for Fixzit AI Knowledge Base
  * Automatically scans Blueprint PDFs and populates ai_kb MongoDB collection
- * 
+ *
  * Features:
  * - PDF parsing with pdf-parse
  * - Text chunking for RAG optimization
  * - Scheduled via node-cron (nightly at 2 AM)
  * - Incremental updates (detects file changes via hash)
- * 
+ *
  * Usage:
  *   pnpm tsx scripts/ai/systemScan.ts           # One-time scan
  *   pnpm tsx scripts/ai/systemScan.ts --daemon  # Run as daemon with cron
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as crypto from 'crypto';
-import * as cron from 'node-cron';
-import { db } from '@/lib/mongo';
-import { logger } from '@/lib/logger';
+import * as fs from "fs";
+import * as path from "path";
+import * as crypto from "crypto";
+import * as cron from "node-cron";
+import { db } from "@/lib/mongo";
+import { logger } from "@/lib/logger";
 
 // Documents to scan (from your Blueprint/Design System PDFs)
 // Note: Only .pdf files are supported. .docx files will be skipped.
 const DOCUMENTS = [
-  'Monday options and workflow and system structure.pdf',
-  'Fixizit Blue Print.pdf',
-  'Targeted software layout for FM moduel.pdf',
-  'Fixizit Blueprint Bible – vFinal.pdf',
-  'Fixizit Facility Management Platform_ Complete Implementation Guide.pdf',
-  'Fixzit_Master_Design_System.pdf',
+  "Monday options and workflow and system structure.pdf",
+  "Fixizit Blue Print.pdf",
+  "Targeted software layout for FM moduel.pdf",
+  "Fixizit Blueprint Bible – vFinal.pdf",
+  "Fixizit Facility Management Platform_ Complete Implementation Guide.pdf",
+  "Fixzit_Master_Design_System.pdf",
   // Fallback: Use existing PDFs if Blueprints not available
-  'public/docs/msds/nitrile-gloves.pdf',
-  'public/docs/msds/merv13.pdf',
+  "public/docs/msds/nitrile-gloves.pdf",
+  "public/docs/msds/merv13.pdf",
 ];
 
 // Try multiple possible document locations
 const DOCS_DIRS = [
-  path.resolve(process.cwd(), 'docs'),
-  path.resolve(process.cwd(), '.'),
-  path.resolve(process.cwd(), 'public/docs'),
+  path.resolve(process.cwd(), "docs"),
+  path.resolve(process.cwd(), "."),
+  path.resolve(process.cwd(), "public/docs"),
 ];
 
 const CHUNK_SIZE = 1000; // Characters per chunk for RAG
@@ -62,7 +62,7 @@ interface KnowledgeBaseEntry {
  */
 function calculateFileHash(filePath: string): string {
   const content = fs.readFileSync(filePath);
-  return crypto.createHash('md5').update(content).digest('hex');
+  return crypto.createHash("md5").update(content).digest("hex");
 }
 
 /**
@@ -87,15 +87,15 @@ function chunkText(text: string): string[] {
 async function scanDocument(filename: string): Promise<number> {
   // Try multiple locations for the file
   let fullPath: string | null = null;
-  
+
   // Check if filename already includes path (e.g., public/docs/msds/...)
-  if (filename.includes('/')) {
+  if (filename.includes("/")) {
     const candidatePath = path.resolve(process.cwd(), filename);
     if (fs.existsSync(candidatePath)) {
       fullPath = candidatePath;
     }
   }
-  
+
   // Otherwise try each docs directory
   if (!fullPath) {
     for (const dir of DOCS_DIRS) {
@@ -114,19 +114,24 @@ async function scanDocument(filename: string): Promise<number> {
   }
 
   // Skip non-PDF files (pdf-parse only handles PDFs)
-  if (!filename.toLowerCase().endsWith('.pdf')) {
+  if (!filename.toLowerCase().endsWith(".pdf")) {
     logger.info(`[systemScan] Skipped non-PDF file: ${filename}`);
     return 0;
   }
 
   try {
-    const pdfParse = (await import('pdf-parse')).default as (_data: Buffer) => Promise<{ text: string }>;
+    const pdfParse = (await import("pdf-parse")).default as (
+      _data: Buffer,
+    ) => Promise<{ text: string }>;
     const fileHash = calculateFileHash(fullPath);
     const database = await db;
-    const collection = database.collection('ai_kb');
+    const collection = database.collection("ai_kb");
 
     // Check if document already processed with same hash
-    const existing = await collection.findOne({ source: filename, hash: fileHash });
+    const existing = await collection.findOne({
+      source: filename,
+      hash: fileHash,
+    });
     if (existing) {
       logger.info(`[systemScan] Skipped unchanged file: ${filename}`);
       return 0;
@@ -150,7 +155,7 @@ async function scanDocument(filename: string): Promise<number> {
 
     // Insert chunks
     const entries: KnowledgeBaseEntry[] = chunks.map((chunk, idx) => ({
-      title: filename.replace('.pdf', ''),
+      title: filename.replace(".pdf", ""),
       source: filename,
       text: chunk,
       hash: fileHash,
@@ -162,9 +167,13 @@ async function scanDocument(filename: string): Promise<number> {
       updatedAt: new Date(),
     }));
 
-    await collection.insertMany(entries as unknown as Record<string, unknown>[]);
+    await collection.insertMany(
+      entries as unknown as Record<string, unknown>[],
+    );
 
-    logger.info(`[systemScan] Processed ${filename}: ${chunks.length} chunks, ${text.length} chars`);
+    logger.info(
+      `[systemScan] Processed ${filename}: ${chunks.length} chunks, ${text.length} chars`,
+    );
     return chunks.length;
   } catch (error) {
     logger.error(`[systemScan] Error processing ${filename}:`, error);
@@ -176,7 +185,7 @@ async function scanDocument(filename: string): Promise<number> {
  * Scans all documents in DOCUMENTS array
  */
 async function scanAll(): Promise<void> {
-  logger.info('[systemScan] Starting document scan...');
+  logger.info("[systemScan] Starting document scan...");
 
   let totalChunks = 0;
   for (const doc of DOCUMENTS) {
@@ -184,21 +193,25 @@ async function scanAll(): Promise<void> {
     totalChunks += count;
   }
 
-  logger.info(`[systemScan] Scan complete: ${totalChunks} chunks across ${DOCUMENTS.length} documents`);
+  logger.info(
+    `[systemScan] Scan complete: ${totalChunks} chunks across ${DOCUMENTS.length} documents`,
+  );
 }
 
 /**
  * Main entry point
  */
 async function main() {
-  const isDaemon = process.argv.includes('--daemon');
+  const isDaemon = process.argv.includes("--daemon");
 
   if (isDaemon) {
-    logger.info('[systemScan] Running in daemon mode with cron schedule: 0 2 * * * (2 AM daily)');
+    logger.info(
+      "[systemScan] Running in daemon mode with cron schedule: 0 2 * * * (2 AM daily)",
+    );
 
     // Schedule nightly scan at 2 AM
-    cron.schedule('0 2 * * *', async () => {
-      logger.info('[systemScan] Cron triggered scan');
+    cron.schedule("0 2 * * *", async () => {
+      logger.info("[systemScan] Cron triggered scan");
       await scanAll();
     });
 
@@ -206,7 +219,7 @@ async function main() {
     await scanAll();
 
     // Keep process alive
-    logger.info('[systemScan] Daemon started, waiting for scheduled tasks...');
+    logger.info("[systemScan] Daemon started, waiting for scheduled tasks...");
   } else {
     // One-time scan
     await scanAll();
@@ -217,7 +230,7 @@ async function main() {
 // Run if executed directly
 if (require.main === module) {
   main().catch((error) => {
-    logger.error('[systemScan] Fatal error:', error);
+    logger.error("[systemScan] Fatal error:", error);
     process.exit(1);
   });
 }

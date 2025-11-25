@@ -11,28 +11,30 @@ A comprehensive communication tracking dashboard has been created for super admi
 ### 1. Communication Logging System (`lib/communication-logger.ts`)
 
 **Core Functions:**
+
 - ✅ `logCommunication()` - Log any communication (SMS/Email/WhatsApp/OTP)
 - ✅ `updateCommunicationStatus()` - Update delivery status
 - ✅ `getUserCommunications()` - Get history for specific user
 - ✅ `getCommunicationStats()` - Calculate delivery/failure rates
 
 **Data Structure:**
+
 ```typescript
 interface CommunicationLog {
-  userId: string;              // Customer ID
-  channel: 'sms' | 'email' | 'whatsapp' | 'otp';
-  type: 'notification' | 'otp' | 'marketing' | 'transactional' | 'alert';
-  recipient: string;           // Phone or email
-  subject?: string;            // For email
+  userId: string; // Customer ID
+  channel: "sms" | "email" | "whatsapp" | "otp";
+  type: "notification" | "otp" | "marketing" | "transactional" | "alert";
+  recipient: string; // Phone or email
+  subject?: string; // For email
   message: string;
-  status: 'pending' | 'sent' | 'delivered' | 'failed' | 'read';
+  status: "pending" | "sent" | "delivered" | "failed" | "read";
   metadata: {
-    twilioSid?: string;        // For tracking
+    twilioSid?: string; // For tracking
     sendgridId?: string;
-    cost?: number;             // Cost tracking
-    segments?: number;         // SMS segments
-    otpCode?: string;          // For OTP audit
-    triggeredBy?: string;      // Admin ID or 'system'
+    cost?: number; // Cost tracking
+    segments?: number; // SMS segments
+    otpCode?: string; // For OTP audit
+    triggeredBy?: string; // Admin ID or 'system'
   };
   createdAt: Date;
   deliveredAt?: Date;
@@ -46,6 +48,7 @@ interface CommunicationLog {
 **GET /api/admin/communications**
 
 **Query Parameters:**
+
 - `userId` - Filter by specific user
 - `channel` - Filter by channel (sms/email/whatsapp/otp/all)
 - `status` - Filter by status (sent/delivered/failed/pending)
@@ -54,6 +57,7 @@ interface CommunicationLog {
 - `limit` / `skip` - Pagination (default: 50 per page, max: 100)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -83,6 +87,7 @@ interface CommunicationLog {
 ```
 
 **Security:**
+
 - ✅ Super admin authentication required
 - ✅ Session validation with NextAuth
 - ✅ User data joined from users collection
@@ -90,6 +95,7 @@ interface CommunicationLog {
 ### 3. Dashboard UI Component (`components/admin/CommunicationDashboard.tsx`)
 
 **Features:**
+
 - 📊 **Statistics Cards**:
   - Total Sent
   - Delivery Rate (with delivered count)
@@ -125,6 +131,7 @@ interface CommunicationLog {
   - Metadata (Twilio SID, cost, etc.)
 
 **Internationalization:**
+
 - ✅ Full bilingual support (English/Arabic)
 - ✅ RTL layout support
 - ✅ All text translatable
@@ -156,6 +163,7 @@ interface CommunicationLog {
 ### Collection: `communication_logs`
 
 **Indexes (Recommended):**
+
 ```javascript
 db.communication_logs.createIndex({ userId: 1, createdAt: -1 });
 db.communication_logs.createIndex({ channel: 1, status: 1 });
@@ -166,6 +174,7 @@ db.communication_logs.createIndex({ "metadata.sendgridId": 1 });
 ```
 
 **Aggregation Pipeline:**
+
 - Lookup user details from `users` collection
 - Filter by multiple criteria
 - Sort by creation date (newest first)
@@ -180,15 +189,17 @@ db.communication_logs.createIndex({ "metadata.sendgridId": 1 });
 ### 1. Integrate with SMS Service (`lib/sms.ts`)
 
 **Current:**
+
 ```typescript
-export async function sendSMS(to: string, message: string): Promise<SMSResult>
+export async function sendSMS(to: string, message: string): Promise<SMSResult>;
 ```
 
 **Enhanced (add userId parameter):**
+
 ```typescript
 export async function sendSMS(to: string, message: string, userId?: string): Promise<SMSResult> {
   let logId: string | undefined;
-  
+
   // Log as pending
   if (userId) {
     const { logCommunication } = await import('./communication-logger');
@@ -220,20 +231,21 @@ export async function sendSMS(to: string, message: string, userId?: string): Pro
 ```
 
 **Update OTP Send Endpoint:**
+
 ```typescript
 // app/api/auth/otp/send/route.ts
 
 // After user validation, before sending OTP:
-const { logCommunication } = await import('@/lib/communication-logger');
+const { logCommunication } = await import("@/lib/communication-logger");
 const logResult = await logCommunication({
   userId: user._id.toString(),
-  channel: 'otp',
-  type: 'otp',
+  channel: "otp",
+  type: "otp",
   recipient: userPhone,
   message: `Your Fixzit verification code is: ${otp}`,
-  status: 'pending',
+  status: "pending",
   metadata: {
-    otpCode: otp,  // For audit
+    otpCode: otp, // For audit
     otpExpiresAt: new Date(expiresAt),
   },
 });
@@ -242,8 +254,10 @@ const smsResult = await sendOTP(userPhone, otp);
 
 // Update status
 if (smsResult.success && logResult.logId) {
-  const { updateCommunicationStatus } = await import('@/lib/communication-logger');
-  await updateCommunicationStatus(logResult.logId, 'sent', {
+  const { updateCommunicationStatus } = await import(
+    "@/lib/communication-logger"
+  );
+  await updateCommunicationStatus(logResult.logId, "sent", {
     twilioSid: smsResult.messageSid,
   });
 }
@@ -252,6 +266,7 @@ if (smsResult.success && logResult.logId) {
 ### 2. Integrate with Email Service (`lib/email.ts`)
 
 **Enhanced:**
+
 ```typescript
 export async function sendEmail(
   to: string,
@@ -295,10 +310,12 @@ export async function sendEmail(
 ### 3. Integrate WhatsApp Channel (`lib/whatsapp.ts`)
 
 **Configuration:**
+
 - `WHATSAPP_BUSINESS_API_KEY`, `WHATSAPP_PHONE_NUMBER_ID`
 - `WHATSAPP_TEMPLATE_NAMESPACE` (Meta/Cloud API) or Twilio sandbox credentials
 
 **Sending Helper:**
+
 ```typescript
 export async function sendWhatsAppMessage(
   to: string,
@@ -309,29 +326,35 @@ export async function sendWhatsAppMessage(
   let logId: string | undefined;
 
   if (userId) {
-    const { logCommunication } = await import('./communication-logger');
+    const { logCommunication } = await import("./communication-logger");
     const result = await logCommunication({
       userId,
-      channel: 'whatsapp',
-      type: 'notification',
+      channel: "whatsapp",
+      type: "notification",
       recipient: to,
-      message: `${template} ${variables.join(' ')}`.trim(),
-      status: 'pending',
+      message: `${template} ${variables.join(" ")}`.trim(),
+      status: "pending",
     });
     logId = result.logId;
   }
 
   const payload = buildWhatsAppPayload({ to, template, variables });
   const response = await fetch(WHATSAPP_API_URL, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.WHATSAPP_BUSINESS_API_KEY}` },
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.WHATSAPP_BUSINESS_API_KEY}`,
+    },
     body: JSON.stringify(payload),
   });
 
   if (logId) {
-    const { updateCommunicationStatus } = await import('./communication-logger');
-    await updateCommunicationStatus(logId, response.ok ? 'sent' : 'failed', {
-      whatsappMessageId: response.ok ? (await response.json()).messages?.[0]?.id : undefined,
+    const { updateCommunicationStatus } = await import(
+      "./communication-logger"
+    );
+    await updateCommunicationStatus(logId, response.ok ? "sent" : "failed", {
+      whatsappMessageId: response.ok
+        ? (await response.json()).messages?.[0]?.id
+        : undefined,
       errorMessage: response.ok ? undefined : await response.text(),
     });
   }
@@ -341,51 +364,53 @@ export async function sendWhatsAppMessage(
 ```
 
 **Delivery Receipts:**
+
 - Register a webhook (`/api/webhooks/whatsapp`) to update message status.
 - Map incoming `statuses` events to `updateCommunicationStatus(logId, 'delivered' | 'failed', metadata)`.
 
 ### 4. Integrate with Admin Notifications
 
 **Update `app/api/admin/notifications/send/route.ts`:**
+
 ```typescript
 // For each recipient, log the communication:
-const { logCommunication } = await import('@/lib/communication-logger');
+const { logCommunication } = await import("@/lib/communication-logger");
 
 for (const recipient of allRecipients) {
   // Send SMS
-  if (channels.includes('sms') && recipient.phone) {
+  if (channels.includes("sms") && recipient.phone) {
     await logCommunication({
       userId: recipient.id,
-      channel: 'sms',
-      type: 'broadcast',
+      channel: "sms",
+      type: "broadcast",
       recipient: recipient.phone,
       message: body.message,
-      status: 'pending',
+      status: "pending",
       metadata: {
-        broadcastId: notificationId,  // Link to broadcast campaign
-        triggeredBy: session.user.id,  // Admin who sent it
+        broadcastId: notificationId, // Link to broadcast campaign
+        triggeredBy: session.user.id, // Admin who sent it
       },
     });
-    
+
     await sendSMS(recipient.phone, body.message, recipient.id);
   }
 
   // Send Email
-  if (channels.includes('email') && recipient.email) {
+  if (channels.includes("email") && recipient.email) {
     await logCommunication({
       userId: recipient.id,
-      channel: 'email',
-      type: 'broadcast',
+      channel: "email",
+      type: "broadcast",
       recipient: recipient.email,
       subject: body.subject,
       message: body.message,
-      status: 'pending',
+      status: "pending",
       metadata: {
         broadcastId: notificationId,
         triggeredBy: session.user.id,
       },
     });
-    
+
     await sendEmail(recipient.email, body.subject, body.message, recipient.id);
   }
 }
@@ -398,20 +423,28 @@ for (const recipient of allRecipients) {
 ### Update `app/administration/page.tsx`
 
 **1. Add Import:**
+
 ```typescript
-import CommunicationDashboard from '@/components/admin/CommunicationDashboard';
-import { MessageSquare } from 'lucide-react';
+import CommunicationDashboard from "@/components/admin/CommunicationDashboard";
+import { MessageSquare } from "lucide-react";
 ```
 
 **2. Add Tab:**
+
 ```typescript
 const tabs = [
   // ... existing tabs
-  { id: 'communications', label: t('admin.tabs.communications', 'Communications'), icon: MessageSquare, superAdminOnly: true },
+  {
+    id: "communications",
+    label: t("admin.tabs.communications", "Communications"),
+    icon: MessageSquare,
+    superAdminOnly: true,
+  },
 ];
 ```
 
 **3. Add Content:**
+
 ```typescript
 {activeTab === 'communications' && isSuperAdmin && (
   <CommunicationDashboard t={t} isRTL={isRTL} />
@@ -423,6 +456,7 @@ const tabs = [
 ## 🌍 Translation Keys
 
 ### English (`i18n/dictionaries/en.ts`)
+
 ```typescript
 communications: {
   title: 'Communication Dashboard',
@@ -473,6 +507,7 @@ communications: {
 ```
 
 ### Arabic (`i18n/dictionaries/ar.ts`)
+
 ```typescript
 communications: {
   title: 'لوحة الاتصالات',
@@ -497,26 +532,31 @@ communications: {
 ## 📊 Usage Examples
 
 ### Example 1: View All Communications
+
 ```http
 GET /api/admin/communications?limit=50&skip=0
 ```
 
 ### Example 2: Filter by User
+
 ```http
 GET /api/admin/communications?userId=507f1f77bcf86cd799439011
 ```
 
 ### Example 3: Filter by Channel & Status
+
 ```http
 GET /api/admin/communications?channel=sms&status=failed
 ```
 
 ### Example 4: Search + Date Range
+
 ```http
 GET /api/admin/communications?search=+966501234567&startDate=2024-12-01&endDate=2024-12-31
 ```
 
 ### Example 5: Export Failed SMS
+
 1. Filter: channel=sms, status=failed
 2. Click "Export" button
 3. Downloads CSV with all failed SMS
@@ -528,22 +568,26 @@ GET /api/admin/communications?search=+966501234567&startDate=2024-12-01&endDate=
 ### Key Metrics to Track
 
 **Delivery Performance:**
+
 - Delivery Rate (target: >95%)
 - Failure Rate (target: <5%)
 - Average delivery time
 
 **By Channel:**
+
 - SMS: Count, cost, segments, delivery rate
 - Email: Count, open rate (if tracked), bounce rate
 - WhatsApp: Count, read status
 - OTP: Count, verification success rate
 
 **By User:**
+
 - Total communications per user
 - Most communicated users
 - Users with failed deliveries
 
 **Cost Tracking:**
+
 - Total SMS cost (segments × price)
 - Email cost (SendGrid usage)
 - Cost per user
@@ -552,15 +596,16 @@ GET /api/admin/communications?search=+966501234567&startDate=2024-12-01&endDate=
 ### Recommended Queries
 
 **1. Daily Communication Summary:**
+
 ```javascript
 db.communication_logs.aggregate([
   {
     $match: {
       createdAt: {
         $gte: ISODate("2024-12-01"),
-        $lte: ISODate("2024-12-31")
-      }
-    }
+        $lte: ISODate("2024-12-31"),
+      },
+    },
   },
   {
     $group: {
@@ -569,14 +614,15 @@ db.communication_logs.aggregate([
       sms: { $sum: { $cond: [{ $eq: ["$channel", "sms"] }, 1, 0] } },
       email: { $sum: { $cond: [{ $eq: ["$channel", "email"] }, 1, 0] } },
       delivered: { $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } },
-      failed: { $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] } }
-    }
+      failed: { $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] } },
+    },
   },
-  { $sort: { _id: 1 } }
+  { $sort: { _id: 1 } },
 ]);
 ```
 
 **2. Top 10 Users by Communication:**
+
 ```javascript
 db.communication_logs.aggregate([
   {
@@ -584,8 +630,8 @@ db.communication_logs.aggregate([
       _id: "$userId",
       total: { $sum: 1 },
       sms: { $sum: { $cond: [{ $eq: ["$channel", "sms"] }, 1, 0] } },
-      email: { $sum: { $cond: [{ $eq: ["$channel", "email"] }, 1, 0] } }
-    }
+      email: { $sum: { $cond: [{ $eq: ["$channel", "email"] }, 1, 0] } },
+    },
   },
   { $sort: { total: -1 } },
   { $limit: 10 },
@@ -594,18 +640,21 @@ db.communication_logs.aggregate([
       from: "users",
       localField: "_id",
       foreignField: "_id",
-      as: "user"
-    }
-  }
+      as: "user",
+    },
+  },
 ]);
 ```
 
 **3. Failed Communications Report:**
+
 ```javascript
-db.communication_logs.find({
-  status: "failed",
-  createdAt: { $gte: ISODate("2024-12-01") }
-}).sort({ createdAt: -1 });
+db.communication_logs
+  .find({
+    status: "failed",
+    createdAt: { $gte: ISODate("2024-12-01") },
+  })
+  .sort({ createdAt: -1 });
 ```
 
 ---
@@ -613,6 +662,7 @@ db.communication_logs.find({
 ## 🚀 Next Steps
 
 ### Phase 1: Integration (Immediate)
+
 - [ ] Add `userId` parameter to `sendSMS()` and `sendEmail()`
 - [ ] Update OTP send endpoint to log communications
 - [ ] Update admin notification broadcast to log communications
@@ -620,12 +670,14 @@ db.communication_logs.find({
 - [ ] Add translation keys to dictionaries
 
 ### Phase 2: Delivery Tracking (Short-term)
+
 - [ ] Twilio webhook for delivery status (`/api/webhooks/twilio`)
 - [ ] SendGrid webhook for email events (`/api/webhooks/sendgrid`)
 - [ ] Auto-update communication status on webhook events
 - [ ] Email open tracking (SendGrid pixel)
 
 ### Phase 3: Advanced Features (Medium-term)
+
 - [ ] Real-time dashboard updates (WebSocket/SSE)
 - [ ] Advanced analytics charts (Chart.js/Recharts)
 - [ ] Cost calculator per communication
@@ -634,6 +686,7 @@ db.communication_logs.find({
 - [ ] Communication templates library
 
 ### Phase 4: Compliance (Long-term)
+
 - [ ] GDPR compliance (data retention policies)
 - [ ] Audit trail for all communications
 - [ ] User consent tracking

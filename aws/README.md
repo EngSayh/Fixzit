@@ -7,11 +7,11 @@ This bundle contains a built executable of the AWS CLI v2.
 To install the AWS CLI v2, run the `install` script:
 
 ```
-$ sudo ./install 
+$ sudo ./install
 You can now run: /usr/local/bin/aws --version
 ```
 
-This will install the AWS CLI v2 at `/usr/local/bin/aws`.  Assuming
+This will install the AWS CLI v2 at `/usr/local/bin/aws`. Assuming
 `/usr/local/bin` is on your `PATH`, you can now run:
 
 ```
@@ -20,7 +20,7 @@ aws --version
 
 ### Installing without sudo
 
-If you don't have ``sudo`` permissions or want to install the AWS
+If you don't have `sudo` permissions or want to install the AWS
 CLI v2 only for the current user, run the `install` script with the `-b`
 and `-i` options:
 

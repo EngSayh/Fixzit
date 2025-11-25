@@ -1,15 +1,15 @@
-import { Schema, InferSchemaType, model, models, Types } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import { Schema, InferSchemaType, model, models, Types } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
 
 /**
  * Role Model
- * 
+ *
  * Represents a set of permissions that can be assigned to users.
- * 
+ *
  * Special Properties:
  * - wildcard: If true, grants ALL permissions (used for Super Admin)
  * - systemReserved: If true, prevents deletion/modification via UI
- * 
+ *
  * Examples:
  * - Super Admin: wildcard=true, systemReserved=true
  * - Property Owner: specific permissions for property management
@@ -38,7 +38,7 @@ const RoleSchema = new Schema(
     },
     description: {
       type: String,
-      default: '',
+      default: "",
       trim: true,
     },
     // Wildcard means ALL permissions (Super Admin only)
@@ -52,7 +52,7 @@ const RoleSchema = new Schema(
     permissions: [
       {
         type: Types.ObjectId,
-        ref: 'Permission',
+        ref: "Permission",
       },
     ],
     // Protects role from deletion/rename via UI
@@ -70,8 +70,8 @@ const RoleSchema = new Schema(
   },
   {
     timestamps: true,
-    collection: 'roles',
-  }
+    collection: "roles",
+  },
 );
 
 // Indexes
@@ -81,12 +81,12 @@ RoleSchema.index({ systemReserved: 1 });
 RoleSchema.index({ level: -1 });
 
 // Pre-save hook to generate slug from name if not provided
-RoleSchema.pre('save', function (next) {
-  if (this.isModified('name') && !this.slug) {
+RoleSchema.pre("save", function (next) {
+  if (this.isModified("name") && !this.slug) {
     this.slug = this.name
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_+|_+$/g, '');
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
   }
   next();
 });
@@ -113,15 +113,15 @@ RoleSchema.statics.findBySlug = function (slug: string) {
 };
 
 RoleSchema.statics.findSuperAdminRole = function () {
-  return this.findOne({ slug: 'super_admin', wildcard: true });
+  return this.findOne({ slug: "super_admin", wildcard: true });
 };
 
 // Virtual to check if role is Super Admin
-RoleSchema.virtual('isSuperAdmin').get(function () {
-  return this.slug === 'super_admin' || this.wildcard === true;
+RoleSchema.virtual("isSuperAdmin").get(function () {
+  return this.slug === "super_admin" || this.wildcard === true;
 });
 
 export type Role = InferSchemaType<typeof RoleSchema>;
 
-const RoleModel = getModel<Role>('Role', RoleSchema);
+const RoleModel = getModel<Role>("Role", RoleSchema);
 export default RoleModel;

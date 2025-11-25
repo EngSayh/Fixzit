@@ -2,8 +2,8 @@
 // All queries MUST include org_id for multi-tenant isolation
 // Use these in Server Components, Server Actions, or API Routes only
 
-import { getDatabase } from './mongodb-unified';
-import { logger } from './logger';
+import { getDatabase } from "./mongodb-unified";
+import { logger } from "./logger";
 
 // Alias for consistency
 const getDb = getDatabase;
@@ -19,19 +19,19 @@ type MongoDb = Awaited<ReturnType<typeof getDb>>;
 export async function getSLAWatchlist(orgId: string, limit = 50) {
   const db = await getDb();
   return db
-    .collection('work_orders')
+    .collection("work_orders")
     .aggregate([
       {
         $match: {
           org_id: orgId,
-          status: { $in: ['Open', 'In Progress', 'Pending Approval'] },
+          status: { $in: ["Open", "In Progress", "Pending Approval"] },
           sla_due: { $exists: true },
         },
       },
       {
         $addFields: {
           hours_remaining: {
-            $divide: [{ $subtract: ['$sla_due', new Date()] }, 3600000],
+            $divide: [{ $subtract: ["$sla_due", new Date()] }, 3600000],
           },
         },
       },
@@ -61,18 +61,18 @@ export async function getSLAWatchlist(orgId: string, limit = 50) {
  */
 export async function getWorkOrderStats(orgId: string) {
   const db = await getDb();
-  const collection = db.collection('work_orders');
+  const collection = db.collection("work_orders");
 
   const [total, open, inProgress, overdue, completed] = await Promise.all([
     collection.countDocuments({ org_id: orgId }),
-    collection.countDocuments({ org_id: orgId, status: 'Open' }),
-    collection.countDocuments({ org_id: orgId, status: 'In Progress' }),
+    collection.countDocuments({ org_id: orgId, status: "Open" }),
+    collection.countDocuments({ org_id: orgId, status: "In Progress" }),
     collection.countDocuments({
       org_id: orgId,
-      status: { $in: ['Open', 'In Progress'] },
+      status: { $in: ["Open", "In Progress"] },
       sla_due: { $lt: new Date() },
     }),
-    collection.countDocuments({ org_id: orgId, status: 'Completed' }),
+    collection.countDocuments({ org_id: orgId, status: "Completed" }),
   ]);
 
   return {
@@ -81,7 +81,7 @@ export async function getWorkOrderStats(orgId: string) {
     inProgress,
     overdue,
     completed,
-    completionRate: total > 0 ? ((completed / total) * 100).toFixed(1) : '0',
+    completionRate: total > 0 ? ((completed / total) * 100).toFixed(1) : "0",
   };
 }
 
@@ -94,16 +94,16 @@ export async function getWorkOrderStats(orgId: string) {
  */
 export async function getInvoiceCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection('invoices');
+  const collection = db.collection("invoices");
 
   const [unpaid, overdue, paid, total] = await Promise.all([
-    collection.countDocuments({ org_id: orgId, status: 'Unpaid' }),
+    collection.countDocuments({ org_id: orgId, status: "Unpaid" }),
     collection.countDocuments({
       org_id: orgId,
-      status: 'Unpaid',
+      status: "Unpaid",
       due_date: { $lt: new Date() },
     }),
-    collection.countDocuments({ org_id: orgId, status: 'Paid' }),
+    collection.countDocuments({ org_id: orgId, status: "Paid" }),
     collection.countDocuments({ org_id: orgId }),
   ]);
 
@@ -119,19 +119,19 @@ export async function getRevenueStats(orgId: string, days = 30) {
   startDate.setDate(startDate.getDate() - days);
 
   const result = await db
-    .collection('invoices')
+    .collection("invoices")
     .aggregate([
       {
         $match: {
           org_id: orgId,
-          status: 'Paid',
+          status: "Paid",
           paid_date: { $gte: startDate },
         },
       },
       {
         $group: {
           _id: null,
-          total: { $sum: '$total_amount' },
+          total: { $sum: "$total_amount" },
           count: { $sum: 1 },
         },
       },
@@ -141,7 +141,7 @@ export async function getRevenueStats(orgId: string, days = 30) {
   return {
     total: result[0]?.total || 0,
     count: result[0]?.count || 0,
-    currency: 'SAR',
+    currency: "SAR",
   };
 }
 
@@ -154,13 +154,13 @@ export async function getRevenueStats(orgId: string, days = 30) {
  */
 export async function getEmployeeCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection('employees');
+  const collection = db.collection("employees");
 
   const [total, active, onLeave, probation] = await Promise.all([
     collection.countDocuments({ org_id: orgId }),
-    collection.countDocuments({ org_id: orgId, status: 'Active' }),
-    collection.countDocuments({ org_id: orgId, status: 'On Leave' }),
-    collection.countDocuments({ org_id: orgId, status: 'Probation' }),
+    collection.countDocuments({ org_id: orgId, status: "Active" }),
+    collection.countDocuments({ org_id: orgId, status: "On Leave" }),
+    collection.countDocuments({ org_id: orgId, status: "Probation" }),
   ]);
 
   return { total, active, onLeave, probation };
@@ -175,7 +175,7 @@ export async function getAttendanceSummary(orgId: string) {
   today.setHours(0, 0, 0, 0);
 
   const result = await db
-    .collection('attendance')
+    .collection("attendance")
     .aggregate([
       {
         $match: {
@@ -185,7 +185,7 @@ export async function getAttendanceSummary(orgId: string) {
       },
       {
         $group: {
-          _id: '$status',
+          _id: "$status",
           count: { $sum: 1 },
         },
       },
@@ -198,9 +198,11 @@ export async function getAttendanceSummary(orgId: string) {
   }
 
   const summary: Record<string, number> = {};
-  (result as unknown as AttendanceSummaryResult[]).forEach((item: AttendanceSummaryResult) => {
-    summary[item._id] = item.count;
-  });
+  (result as unknown as AttendanceSummaryResult[]).forEach(
+    (item: AttendanceSummaryResult) => {
+      summary[item._id] = item.count;
+    },
+  );
 
   return {
     present: summary.present || 0,
@@ -219,16 +221,16 @@ export async function getAttendanceSummary(orgId: string) {
  */
 export async function getPropertyCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection('properties');
+  const collection = db.collection("properties");
 
   const [total, active, maintenance, leased] = await Promise.all([
     collection.countDocuments({ org_id: orgId }),
-    collection.countDocuments({ org_id: orgId, status: 'Active' }),
-    collection.countDocuments({ org_id: orgId, status: 'Under Maintenance' }),
-    collection.countDocuments({ org_id: orgId, lease_status: 'Leased' }),
+    collection.countDocuments({ org_id: orgId, status: "Active" }),
+    collection.countDocuments({ org_id: orgId, status: "Under Maintenance" }),
+    collection.countDocuments({ org_id: orgId, lease_status: "Leased" }),
   ]);
 
-  const occupancyRate = total > 0 ? ((leased / total) * 100).toFixed(1) : '0';
+  const occupancyRate = total > 0 ? ((leased / total) * 100).toFixed(1) : "0";
 
   return { total, active, maintenance, leased, occupancyRate };
 }
@@ -242,13 +244,15 @@ export async function getPropertyCounters(orgId: string) {
  */
 export async function getCustomerCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection('customers');
+  const collection = db.collection("customers");
 
   const [total, active, leads, contracts] = await Promise.all([
     collection.countDocuments({ org_id: orgId }),
-    collection.countDocuments({ org_id: orgId, status: 'Active' }),
-    collection.countDocuments({ org_id: orgId, type: 'Lead' }),
-    db.collection('contracts').countDocuments({ org_id: orgId, status: 'Active' }),
+    collection.countDocuments({ org_id: orgId, status: "Active" }),
+    collection.countDocuments({ org_id: orgId, type: "Lead" }),
+    db
+      .collection("contracts")
+      .countDocuments({ org_id: orgId, status: "Active" }),
   ]);
 
   return { total, active, leads, contracts };
@@ -263,13 +267,13 @@ export async function getCustomerCounters(orgId: string) {
  */
 export async function getSupportCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection('support_tickets');
+  const collection = db.collection("support_tickets");
 
   const [total, open, pending, resolved] = await Promise.all([
     collection.countDocuments({ org_id: orgId }),
-    collection.countDocuments({ org_id: orgId, status: 'Open' }),
-    collection.countDocuments({ org_id: orgId, status: 'Pending' }),
-    collection.countDocuments({ org_id: orgId, status: 'Resolved' }),
+    collection.countDocuments({ org_id: orgId, status: "Open" }),
+    collection.countDocuments({ org_id: orgId, status: "Pending" }),
+    collection.countDocuments({ org_id: orgId, status: "Resolved" }),
   ]);
 
   return { total, open, pending, resolved };
@@ -286,12 +290,14 @@ export async function getMarketplaceCounters(sellerId: string) {
   const db = await getDb();
 
   const [listings, orders, reviews, activeListings] = await Promise.all([
-    db.collection('souq_listings').countDocuments({ sellerId }),
-    db.collection('souq_orders').countDocuments({ 'items.sellerId': sellerId }),
+    db.collection("souq_listings").countDocuments({ sellerId }),
+    db.collection("souq_orders").countDocuments({ "items.sellerId": sellerId }),
+    db.collection("souq_reviews").countDocuments({
+      productId: { $in: await getSellerProductIds(sellerId, db) },
+    }),
     db
-      .collection('souq_reviews')
-      .countDocuments({ productId: { $in: await getSellerProductIds(sellerId, db) } }),
-    db.collection('souq_listings').countDocuments({ sellerId, status: 'active' }),
+      .collection("souq_listings")
+      .countDocuments({ sellerId, status: "active" }),
   ]);
 
   return { listings, activeListings, orders, reviews };
@@ -305,17 +311,20 @@ export async function getMarketplaceCountersForOrg(orgId: string) {
   const db = await getDb();
 
   const [listings, orders, reviews] = await Promise.all([
-    db.collection('souq_listings').countDocuments({ orgId }), // ✅ Tenant-scoped
-    db.collection('souq_orders').countDocuments({ orgId }), // ✅ Tenant-scoped
-    db.collection('souq_reviews').countDocuments({ orgId }), // ✅ Tenant-scoped
+    db.collection("souq_listings").countDocuments({ orgId }), // ✅ Tenant-scoped
+    db.collection("souq_orders").countDocuments({ orgId }), // ✅ Tenant-scoped
+    db.collection("souq_reviews").countDocuments({ orgId }), // ✅ Tenant-scoped
   ]);
 
   return { listings, orders, reviews };
 }
 
-async function getSellerProductIds(sellerId: string, db: MongoDb): Promise<string[]> {
+async function getSellerProductIds(
+  sellerId: string,
+  db: MongoDb,
+): Promise<string[]> {
   const listings = await db
-    .collection('souq_listings')
+    .collection("souq_listings")
     .find({ sellerId })
     .project({ productId: 1 })
     .toArray();
@@ -333,10 +342,10 @@ export async function getSystemCounters(orgId: string) {
   const db = await getDb();
 
   const [users, roles, tenants, apiKeys] = await Promise.all([
-    db.collection('users').countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
-    db.collection('roles').countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
-    db.collection('tenants').countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
-    db.collection('api_keys').countDocuments({ orgId, status: 'Active' }), // ✅ Fixed: use orgId not org_id
+    db.collection("users").countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
+    db.collection("roles").countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
+    db.collection("tenants").countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
+    db.collection("api_keys").countDocuments({ orgId, status: "Active" }), // ✅ Fixed: use orgId not org_id
   ]);
 
   return { users, roles, tenants, apiKeys };
@@ -350,7 +359,16 @@ export async function getSystemCounters(orgId: string) {
  * Get all counters for dashboard (optimized single call)
  */
 export async function getAllCounters(orgId: string) {
-  const [workOrders, invoices, employees, properties, customers, support, marketplace, system] = await Promise.all([
+  const [
+    workOrders,
+    invoices,
+    employees,
+    properties,
+    customers,
+    support,
+    marketplace,
+    system,
+  ] = await Promise.all([
     getWorkOrderStats(orgId),
     getInvoiceCounters(orgId),
     getEmployeeCounters(orgId),
@@ -387,34 +405,49 @@ export async function getAllCounters(orgId: string) {
 export async function createPerformanceIndexes() {
   const db = await getDb();
 
-  const indexes: Array<{ collection: string; index: Record<string, 1 | -1> }> = [
-    // Work Orders
-    { collection: 'work_orders', index: { org_id: 1, status: 1, sla_due: 1 } },
-    { collection: 'work_orders', index: { org_id: 1, created_at: -1 } },
+  const indexes: Array<{ collection: string; index: Record<string, 1 | -1> }> =
+    [
+      // Work Orders
+      {
+        collection: "work_orders",
+        index: { org_id: 1, status: 1, sla_due: 1 },
+      },
+      { collection: "work_orders", index: { org_id: 1, created_at: -1 } },
 
-    // Invoices
-    { collection: 'invoices', index: { org_id: 1, status: 1, due_date: 1 } },
-    { collection: 'invoices', index: { org_id: 1, paid_date: -1 } },
+      // Invoices
+      { collection: "invoices", index: { org_id: 1, status: 1, due_date: 1 } },
+      { collection: "invoices", index: { org_id: 1, paid_date: -1 } },
 
-    // Employees
-    { collection: 'employees', index: { org_id: 1, status: 1 } },
+      // Employees
+      { collection: "employees", index: { org_id: 1, status: 1 } },
 
-    // Properties
-    { collection: 'properties', index: { org_id: 1, status: 1, lease_status: 1 } },
+      // Properties
+      {
+        collection: "properties",
+        index: { org_id: 1, status: 1, lease_status: 1 },
+      },
 
-    // Souq
-    { collection: 'souq_listings', index: { sellerId: 1, status: 1 } },
-    { collection: 'souq_orders', index: { 'items.sellerId': 1, createdAt: -1 } },
-  ];
+      // Souq
+      { collection: "souq_listings", index: { sellerId: 1, status: 1 } },
+      {
+        collection: "souq_orders",
+        index: { "items.sellerId": 1, createdAt: -1 },
+      },
+    ];
 
   for (const { collection, index } of indexes) {
     try {
       await db.collection(collection).createIndex(index);
       logger.info(`✅ Created index on ${collection}`, { collection, index });
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error(`❌ Failed to create index on ${collection}`, error as Error, { collection, index });
+      logger.error(
+        `❌ Failed to create index on ${collection}`,
+        error as Error,
+        { collection, index },
+      );
     }
   }
 }

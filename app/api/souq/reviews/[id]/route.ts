@@ -3,12 +3,12 @@
  * PUT /api/souq/reviews/[id] - Update review
  * DELETE /api/souq/reviews/[id] - Delete review
  */
-import { NextRequest, NextResponse } from 'next/server';
-import { reviewService } from '@/services/souq/reviews/review-service';
-import { auth } from '@/auth';
-import { connectDb } from '@/lib/mongodb-unified';
-import { z } from 'zod';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { reviewService } from "@/services/souq/reviews/review-service";
+import { auth } from "@/auth";
+import { connectDb } from "@/lib/mongodb-unified";
+import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 type RouteContext = {
   params: Promise<{
@@ -27,19 +27,15 @@ const reviewUpdateSchema = z
         z.object({
           url: z.string().url(),
           caption: z.string().max(200).optional(),
-        })
+        }),
       )
       .max(5)
       .optional(),
   })
   .refine(
     (data) =>
-      data.title ||
-      data.content ||
-      data.pros ||
-      data.cons ||
-      data.images,
-    { message: 'No updates provided' }
+      data.title || data.content || data.pros || data.cons || data.images,
+    { message: "No updates provided" },
   );
 
 export async function GET(req: NextRequest, context: RouteContext) {
@@ -50,24 +46,24 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const review = await reviewService.getReviewById(reviewId);
 
     if (!review) {
-      return NextResponse.json({ error: 'Review not found' }, { status: 404 });
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
     }
 
     const ownerId =
-      typeof review.customerId === 'string'
+      typeof review.customerId === "string"
         ? review.customerId
-        : review.customerId?.toString?.() ?? '';
+        : (review.customerId?.toString?.() ?? "");
 
-    if (review.status !== 'published' && session?.user?.id !== ownerId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (review.status !== "published" && session?.user?.id !== ownerId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     return NextResponse.json(review);
   } catch (error) {
-    logger.error('[GET /api/souq/reviews/[id]]', { error });
+    logger.error("[GET /api/souq/reviews/[id]]", { error });
     return NextResponse.json(
-      { error: 'Failed to fetch review' },
-      { status: 500 }
+      { error: "Failed to fetch review" },
+      { status: 500 },
     );
   }
 }
@@ -76,7 +72,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
   try {
     const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDb();
@@ -88,22 +84,25 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     const review = await reviewService.updateReview(
       reviewId,
       session.user.id,
-      payload
+      payload,
     );
 
     return NextResponse.json(review);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', issues: error.issues },
-        { status: 400 }
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
       );
     }
 
-    logger.error('[PUT /api/souq/reviews/[id]]', { error });
+    logger.error("[PUT /api/souq/reviews/[id]]", { error });
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update review' },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to update review",
+      },
+      { status: 500 },
     );
   }
 }
@@ -112,7 +111,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
     const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDb();
@@ -122,10 +121,13 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error('[DELETE /api/souq/reviews/[id]]', { error });
+    logger.error("[DELETE /api/souq/reviews/[id]]", { error });
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to delete review' },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to delete review",
+      },
+      { status: 500 },
     );
   }
 }

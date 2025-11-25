@@ -104,14 +104,14 @@ Cycle repeats on next commit
 
 Implemented sensitivity-based rate limiting across all 109 routes:
 
-| Route Type | Limit | Window | Rationale |
-|------------|-------|--------|-----------|
-| **Authentication** | 5 requests | 15 min | Critical security - prevent brute force |
-| **Payments** | 10 requests | 5 min | Financial sensitive - prevent fraud |
-| **Subscriptions** | 3 requests | 5 min | Prevent subscription abuse |
-| **Writes** | 20 requests | 1 min | Moderate protection for mutations |
-| **Reads** | 60 requests | 1 min | Standard protection for queries |
-| **Webhooks** | 30 requests | 1 min | External integrations |
+| Route Type         | Limit       | Window | Rationale                               |
+| ------------------ | ----------- | ------ | --------------------------------------- |
+| **Authentication** | 5 requests  | 15 min | Critical security - prevent brute force |
+| **Payments**       | 10 requests | 5 min  | Financial sensitive - prevent fraud     |
+| **Subscriptions**  | 3 requests  | 5 min  | Prevent subscription abuse              |
+| **Writes**         | 20 requests | 1 min  | Moderate protection for mutations       |
+| **Reads**          | 60 requests | 1 min  | Standard protection for queries         |
+| **Webhooks**       | 30 requests | 1 min  | External integrations                   |
 
 **Implementation**:
 
@@ -175,14 +175,14 @@ Permissions-Policy: geolocation=(), microphone=(), camera=()
             type: object
             required: [password]
             properties:
-              email: {type: string, format: email}
-              employeeNumber: {type: string}
-              password: {type: string, format: password}
-              loginType: {type: string, enum: [personal, corporate]}
+              email: { type: string, format: email }
+              employeeNumber: { type: string }
+              password: { type: string, format: password }
+              loginType: { type: string, enum: [personal, corporate] }
     responses:
-      200: {description: Success, sets JWT cookie}
-      401: {description: Invalid credentials}
-      429: {description: Rate limit exceeded}
+      200: { description: Success, sets JWT cookie }
+      401: { description: Invalid credentials }
+      429: { description: Rate limit exceeded }
     security:
       - cookieAuth: []
 ```
@@ -205,14 +205,14 @@ Permissions-Policy: geolocation=(), microphone=(), camera=()
 
 ```typescript
 // Available error handlers
-unauthorizedError()           // 401 - Auth required
-forbiddenError(msg)           // 403 - Permission denied
-notFoundError(resource)       // 404 - Resource not found
-validationError(msg, field)   // 400 - Validation failed
-zodValidationError(zodErr)    // 400 - Zod schema validation
-rateLimitError()              // 429 - Rate limit exceeded
-handleApiError(err, context)  // 500 - Generic error handler
-duplicateKeyError(resource)   // 409 - Duplicate entry
+unauthorizedError(); // 401 - Auth required
+forbiddenError(msg); // 403 - Permission denied
+notFoundError(resource); // 404 - Resource not found
+validationError(msg, field); // 400 - Validation failed
+zodValidationError(zodErr); // 400 - Zod schema validation
+rateLimitError(); // 429 - Rate limit exceeded
+handleApiError(err, context); // 500 - Generic error handler
+duplicateKeyError(resource); // 409 - Duplicate entry
 ```
 
 ### Error Response Format
@@ -276,13 +276,17 @@ export async function POST(req: NextRequest) {
 **After** (enhanced route):
 
 ```typescript
-import { rateLimit } from '@/server/security/rateLimit';
-import { createSecureResponse } from '@/server/security/headers';
-import { zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
-import { z } from 'zod';
+import { rateLimit } from "@/server/security/rateLimit";
+import { createSecureResponse } from "@/server/security/headers";
+import {
+  zodValidationError,
+  rateLimitError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { z } from "zod";
 
 const RequestSchema = z.object({
-  field: z.string().min(1)
+  field: z.string().min(1),
 });
 
 /**
@@ -296,7 +300,7 @@ const RequestSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   // Rate limiting
-  const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+  const clientIp = req.headers.get("x-forwarded-for") || "unknown";
   const rl = rateLimit(`${req.url}:${clientIp}`, 20, 60_000);
   if (!rl.allowed) return rateLimitError();
 
@@ -308,11 +312,11 @@ export async function POST(req: NextRequest) {
   try {
     // Business logic (unchanged)
     const result = await doSomething(parsed.data);
-    
+
     // Secure response
     return createSecureResponse({ data: result }, 200, req);
   } catch (error) {
-    return handleApiError(error, 'Operation failed');
+    return handleApiError(error, "Operation failed");
   }
 }
 ```
@@ -332,14 +336,14 @@ export async function POST(req: NextRequest) {
 
 **Method**: Direct codebase analysis (faster than CI/CD)
 
-| Check | Result | Details |
-|-------|--------|---------|
-| **Code Quality** | ✅ PASS | No critical issues |
-| **Type Safety** | ✅ PASS | TypeScript patterns verified |
-| **Security** | ✅ PASS | All enhancements confirmed |
-| **API Routes** | ✅ PASS | 109/109 enhanced |
-| **Build Ready** | ✅ PASS | No blocking errors |
-| **Documentation** | ✅ PASS | OpenAPI complete |
+| Check             | Result  | Details                      |
+| ----------------- | ------- | ---------------------------- |
+| **Code Quality**  | ✅ PASS | No critical issues           |
+| **Type Safety**   | ✅ PASS | TypeScript patterns verified |
+| **Security**      | ✅ PASS | All enhancements confirmed   |
+| **API Routes**    | ✅ PASS | 109/109 enhanced             |
+| **Build Ready**   | ✅ PASS | No blocking errors           |
+| **Documentation** | ✅ PASS | OpenAPI complete             |
 
 **Sample Routes Verified**:
 

@@ -1,10 +1,10 @@
 /**
  * Souq Settlement MongoDB Model
- * 
+ *
  * Stores settlement statements for seller payouts.
  */
 
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 export interface ISouqSettlement extends Document {
   settlementId: string;
@@ -28,12 +28,21 @@ export interface ISouqSettlement extends Document {
   transactions: Array<{
     transactionId: string;
     orderId: string;
-    type: 'sale' | 'refund' | 'commission' | 'gateway_fee' | 'vat' | 'reserve_hold' | 'reserve_release' | 'adjustment' | 'chargeback';
+    type:
+      | "sale"
+      | "refund"
+      | "commission"
+      | "gateway_fee"
+      | "vat"
+      | "reserve_hold"
+      | "reserve_release"
+      | "adjustment"
+      | "chargeback";
     amount: number;
     timestamp: Date;
     description: string;
   }>;
-  status: 'draft' | 'pending' | 'approved' | 'paid' | 'failed' | 'rejected';
+  status: "draft" | "pending" | "approved" | "paid" | "failed" | "rejected";
   generatedAt: Date;
   paidAt?: Date;
   paidDate?: Date; // Backward compatibility
@@ -56,12 +65,12 @@ const SouqSettlementSchema = new Schema<ISouqSettlement>(
     sellerId: {
       type: Schema.Types.ObjectId,
       required: true,
-      ref: 'User',
+      ref: "User",
       index: true,
     },
     escrowAccountId: {
       type: Schema.Types.ObjectId,
-      ref: 'EscrowAccount',
+      ref: "EscrowAccount",
     },
     period: {
       start: { type: Date, required: true },
@@ -85,7 +94,17 @@ const SouqSettlementSchema = new Schema<ISouqSettlement>(
         type: {
           type: String,
           required: true,
-          enum: ['sale', 'refund', 'commission', 'gateway_fee', 'vat', 'reserve_hold', 'reserve_release', 'adjustment', 'chargeback'],
+          enum: [
+            "sale",
+            "refund",
+            "commission",
+            "gateway_fee",
+            "vat",
+            "reserve_hold",
+            "reserve_release",
+            "adjustment",
+            "chargeback",
+          ],
         },
         amount: { type: Number, required: true },
         timestamp: { type: Date, required: true },
@@ -95,8 +114,8 @@ const SouqSettlementSchema = new Schema<ISouqSettlement>(
     status: {
       type: String,
       required: true,
-      enum: ['draft', 'pending', 'approved', 'paid', 'failed', 'rejected'],
-      default: 'draft',
+      enum: ["draft", "pending", "approved", "paid", "failed", "rejected"],
+      default: "draft",
       index: true,
     },
     generatedAt: {
@@ -109,21 +128,21 @@ const SouqSettlementSchema = new Schema<ISouqSettlement>(
     notes: String,
     processedBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
     },
     processedAt: Date,
     payoutId: String,
   },
   {
     timestamps: true,
-    collection: 'souq_settlements',
-  }
+    collection: "souq_settlements",
+  },
 );
 
 // Indexes
-SouqSettlementSchema.index({ sellerId: 1, 'period.start': -1 });
+SouqSettlementSchema.index({ sellerId: 1, "period.start": -1 });
 SouqSettlementSchema.index({ status: 1, generatedAt: -1 });
 
 export const SouqSettlement =
   (mongoose.models.SouqSettlement as mongoose.Model<ISouqSettlement>) ||
-  mongoose.model<ISouqSettlement>('SouqSettlement', SouqSettlementSchema);
+  mongoose.model<ISouqSettlement>("SouqSettlement", SouqSettlementSchema);

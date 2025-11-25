@@ -1,32 +1,32 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { useAuthRbac, useCan, useIsSuperAdmin } from '@/hooks/useAuthRbac';
+import React from "react";
+import { useAuthRbac, useCan, useIsSuperAdmin } from "@/hooks/useAuthRbac";
 
 /**
  * Guard Component - Conditional rendering based on RBAC permissions
- * 
+ *
  * Usage:
  *   <Guard can="finance:invoice.create">
  *     <CreateInvoiceButton />
  *   </Guard>
- * 
+ *
  *   <Guard canAny={["hr:employee.read", "hr:employee.write"]}>
  *     <EmployeeSection />
  *   </Guard>
- * 
+ *
  *   <Guard canAll={["finance:budget.read", "finance:report.read"]}>
  *     <BudgetReportSection />
  *   </Guard>
- * 
+ *
  *   <Guard role="admin">
  *     <AdminPanel />
  *   </Guard>
- * 
+ *
  *   <Guard superAdmin>
  *     <SuperAdminDashboard />
  *   </Guard>
- * 
+ *
  *   <Guard can="aqar:property.delete" fallback={<AccessDenied />}>
  *     <DeletePropertyButton />
  *   </Guard>
@@ -35,19 +35,19 @@ import { useAuthRbac, useCan, useIsSuperAdmin } from '@/hooks/useAuthRbac';
 interface GuardProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
-  
+
   // Permission-based guards
   can?: string;
   canAny?: string[];
   canAll?: string[];
-  
+
   // Role-based guards
   role?: string;
   anyRole?: string[];
-  
+
   // Super Admin guard
   superAdmin?: boolean;
-  
+
   // Loading state fallback
   loading?: React.ReactNode;
 }
@@ -66,7 +66,14 @@ export function Guard({
   superAdmin,
   loading = null,
 }: GuardProps) {
-  const { can: checkCan, canAny: checkCanAny, canAll: checkCanAll, hasRole, hasAnyRole, isLoading } = useAuthRbac();
+  const {
+    can: checkCan,
+    canAny: checkCanAny,
+    canAll: checkCanAll,
+    hasRole,
+    hasAnyRole,
+    isLoading,
+  } = useAuthRbac();
 
   // Show loading state if still loading session
   if (isLoading) {
@@ -96,7 +103,7 @@ export function Guard({
   }
 
   // Check super admin
-  if (superAdmin && !checkCan('*')) {
+  if (superAdmin && !checkCan("*")) {
     return <>{fallback}</>;
   }
 
@@ -106,7 +113,7 @@ export function Guard({
 
 /**
  * ProtectedSection - Shows different content based on permission
- * 
+ *
  * Usage:
  *   <ProtectedSection
  *     can="finance:invoice.create"
@@ -141,11 +148,11 @@ interface CanViewProps {
 
 export function CanView({ permission, children, fallback }: CanViewProps) {
   const canAccess = useCan(permission);
-  
+
   if (!canAccess) {
     return <>{fallback || null}</>;
   }
-  
+
   return <>{children}</>;
 }
 
@@ -159,11 +166,11 @@ interface SuperAdminOnlyProps {
 
 export function SuperAdminOnly({ children, fallback }: SuperAdminOnlyProps) {
   const isSuperAdmin = useIsSuperAdmin();
-  
+
   if (!isSuperAdmin) {
     return <>{fallback || null}</>;
   }
-  
+
   return <>{children}</>;
 }
 
@@ -178,20 +185,24 @@ interface RoleGuardProps {
 
 export function RoleGuard({ role, children, fallback }: RoleGuardProps) {
   const { hasRole, hasAnyRole } = useAuthRbac();
-  
+
   const hasAccess = Array.isArray(role) ? hasAnyRole(role) : hasRole(role);
-  
+
   if (!hasAccess) {
     return <>{fallback || null}</>;
   }
-  
+
   return <>{children}</>;
 }
 
 /**
  * AccessDenied - Default fallback component for unauthorized access
  */
-export function AccessDenied({ message = 'Access Denied' }: { message?: string }) {
+export function AccessDenied({
+  message = "Access Denied",
+}: {
+  message?: string;
+}) {
   return (
     <div className="flex items-center justify-center p-8 text-gray-500">
       <div className="text-center">

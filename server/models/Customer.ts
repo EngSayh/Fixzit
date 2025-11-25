@@ -1,7 +1,7 @@
-import { Schema, model, models, Document } from 'mongoose';
-import { getModel, MModel } from '@/src/types/mongoose-compat';
-import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
-import { auditPlugin } from '../plugins/auditPlugin';
+import { Schema, model, models, Document } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
 
 export interface ICustomer extends Document {
   // NOTE: orgId, createdBy, updatedBy added by plugins
@@ -29,32 +29,35 @@ export interface ICustomer extends Document {
   updatedAt: Date;
 }
 
-const CustomerSchema = new Schema<ICustomer>({
-  // REMOVED: Manual organizationId and tenantId (conflicting fields)
-  // Plugin will add orgId
-  name: { type: String, required: true },
-  email: { type: String },
-  phone: { type: String },
-  address: {
-    street: String,
-    city: String,
-    state: String,
-    country: String,
-    postalCode: String
+const CustomerSchema = new Schema<ICustomer>(
+  {
+    // REMOVED: Manual organizationId and tenantId (conflicting fields)
+    // Plugin will add orgId
+    name: { type: String, required: true },
+    email: { type: String },
+    phone: { type: String },
+    address: {
+      street: String,
+      city: String,
+      state: String,
+      country: String,
+      postalCode: String,
+    },
+    vatNumber: { type: String },
+    billingContact: {
+      name: String,
+      email: String,
+      phone: String,
+    },
+    paymentTerms: { type: Number, default: 30 },
+    creditLimit: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+    notes: { type: String },
   },
-  vatNumber: { type: String },
-  billingContact: {
-    name: String,
-    email: String,
-    phone: String
+  {
+    timestamps: true,
   },
-  paymentTerms: { type: Number, default: 30 },
-  creditLimit: { type: Number, default: 0 },
-  isActive: { type: Boolean, default: true },
-  notes: { type: String }
-}, {
-  timestamps: true
-});
+);
 
 // APPLY PLUGINS (BEFORE INDEXES)
 CustomerSchema.plugin(tenantIsolationPlugin);
@@ -66,6 +69,6 @@ CustomerSchema.index({ orgId: 1, name: 1 });
 CustomerSchema.index({ orgId: 1, isActive: 1 });
 CustomerSchema.index({ orgId: 1, vatNumber: 1 }, { sparse: true });
 
-const Customer = getModel<ICustomer>('Customer', CustomerSchema);
+const Customer = getModel<ICustomer>("Customer", CustomerSchema);
 
 export default Customer;

@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
-import { getDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
-import { ModuleKey } from '@/domain/fm/fm.behavior';
-import { FMAction } from '@/types/fm/enums';
-import { FMErrors } from '@/app/api/fm/errors';
-import { requireFmPermission } from '@/app/api/fm/permissions';
-import { resolveTenantId } from '@/app/api/fm/utils/tenant';
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId } from "mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { ModuleKey } from "@/domain/fm/fm.behavior";
+import { FMAction } from "@/types/fm/enums";
+import { FMErrors } from "@/app/api/fm/errors";
+import { requireFmPermission } from "@/app/api/fm/permissions";
+import { resolveTenantId } from "@/app/api/fm/utils/tenant";
 
 type BudgetDocument = {
   _id: ObjectId;
@@ -26,24 +26,29 @@ type BudgetPayload = {
   currency?: string;
 };
 
-const COLLECTION = 'fm_budgets';
+const COLLECTION = "fm_budgets";
 
 const sanitizePayload = (payload: BudgetPayload) => {
   const sanitized: BudgetPayload = {};
   if (payload.name) sanitized.name = payload.name.trim();
   if (payload.department) sanitized.department = payload.department.trim();
-  if (typeof payload.allocated === 'number' && Number.isFinite(payload.allocated)) {
+  if (
+    typeof payload.allocated === "number" &&
+    Number.isFinite(payload.allocated)
+  ) {
     sanitized.allocated = payload.allocated;
   }
-  if (payload.currency) sanitized.currency = payload.currency.trim().toUpperCase();
+  if (payload.currency)
+    sanitized.currency = payload.currency.trim().toUpperCase();
   return sanitized;
 };
 
 const validatePayload = (payload: BudgetPayload): string | null => {
-  if (!payload.name) return 'Name is required';
-  if (!payload.department) return 'Department is required';
-  if (typeof payload.allocated !== 'number' || payload.allocated <= 0) return 'Allocated amount must be > 0';
-  if (!payload.currency) return 'Currency is required';
+  if (!payload.name) return "Name is required";
+  if (!payload.department) return "Department is required";
+  if (typeof payload.allocated !== "number" || payload.allocated <= 0)
+    return "Allocated amount must be > 0";
+  if (!payload.currency) return "Currency is required";
   return null;
 };
 
@@ -59,22 +64,34 @@ const mapBudget = (doc: BudgetDocument) => ({
 
 export async function GET(req: NextRequest) {
   try {
-    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.VIEW });
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.FINANCE,
+      action: FMAction.VIEW,
+    });
     if (actor instanceof NextResponse) return actor;
 
-    const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
-    if ('error' in tenantResolution) return tenantResolution.error;
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
 
     const { searchParams } = new URL(req.url);
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
-    const q = searchParams.get('q');
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "20", 10)),
+    );
+    const q = searchParams.get("q");
 
     const query: Record<string, unknown> = { org_id: tenantId };
     if (q) {
-      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const expression = { $regex: escaped, $options: 'i' } as Record<string, unknown>;
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const expression = { $regex: escaped, $options: "i" } as Record<
+        string,
+        unknown
+      >;
       query.$or = [{ name: expression }, { department: expression }];
     }
 
@@ -83,7 +100,12 @@ export async function GET(req: NextRequest) {
     const skip = (page - 1) * limit;
 
     const [items, total] = await Promise.all([
-      collection.find(query).sort({ updatedAt: -1 }).skip(skip).limit(limit).toArray(),
+      collection
+        .find(query)
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray(),
       collection.countDocuments(query),
     ]);
 
@@ -98,24 +120,33 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('FM Budgets API - GET error', error as Error);
+    logger.error("FM Budgets API - GET error", error as Error);
     return FMErrors.internalError();
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.CREATE });
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.FINANCE,
+      action: FMAction.CREATE,
+    });
     if (actor instanceof NextResponse) return actor;
 
-    const tenantResolution = resolveTenantId(req, actor.orgId ?? actor.tenantId);
-    if ('error' in tenantResolution) return tenantResolution.error;
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
 
     const payload = sanitizePayload(await req.json());
     const validationError = validatePayload(payload);
     if (validationError) {
-      return NextResponse.json({ success: false, error: validationError }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: validationError },
+        { status: 400 },
+      );
     }
 
     const now = new Date();
@@ -125,7 +156,7 @@ export async function POST(req: NextRequest) {
       name: payload.name!,
       department: payload.department!,
       allocated: payload.allocated!,
-      currency: payload.currency || 'SAR',
+      currency: payload.currency || "SAR",
       createdAt: now,
       updatedAt: now,
     };
@@ -134,9 +165,12 @@ export async function POST(req: NextRequest) {
     const collection = db.collection<BudgetDocument>(COLLECTION);
     await collection.insertOne(doc);
 
-    return NextResponse.json({ success: true, data: mapBudget(doc) }, { status: 201 });
+    return NextResponse.json(
+      { success: true, data: mapBudget(doc) },
+      { status: 201 },
+    );
   } catch (error) {
-    logger.error('FM Budgets API - POST error', error as Error);
+    logger.error("FM Budgets API - POST error", error as Error);
     return FMErrors.internalError();
   }
 }

@@ -1,43 +1,43 @@
-import { Schema, model, models, Model, Document } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
-import { auditPlugin } from '../plugins/auditPlugin';
+import { Schema, model, models, Model, Document } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { auditPlugin } from "../plugins/auditPlugin";
 
 const PaymentMethodSchema = new Schema(
   {
     // NOTE: This schema uses a flexible ownership model (XOR validation)
     // Either org_id (organization payment method) OR owner_user_id (user payment method)
     // This is intentional and does NOT use tenantIsolationPlugin
-    org_id: { 
-      type: Schema.Types.ObjectId, 
-      ref: 'Organization',
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
       // Note: required conditionally in validation - see validate hook below
     },
-    owner_user_id: { 
-      type: Schema.Types.ObjectId, 
-      ref: 'User',
+    owner_user_id: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
       // Note: required conditionally in validation - see validate hook below
     },
-    gateway: { type: String, default: 'PAYTABS' },
+    gateway: { type: String, default: "PAYTABS" },
     pt_token: { type: String },
     pt_masked_card: String,
     pt_customer_email: String,
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // XOR validation: Either org_id OR owner_user_id must be provided, but not both
-PaymentMethodSchema.pre('validate', function (next) {
+PaymentMethodSchema.pre("validate", function (next) {
   const hasOrg = !!this.org_id;
   const hasOwner = !!this.owner_user_id;
-  
+
   if (!hasOrg && !hasOwner) {
-    return next(new Error('Either org_id or owner_user_id must be provided'));
+    return next(new Error("Either org_id or owner_user_id must be provided"));
   }
-  
+
   if (hasOrg && hasOwner) {
-    return next(new Error('Cannot set both org_id and owner_user_id'));
+    return next(new Error("Cannot set both org_id and owner_user_id"));
   }
-  
+
   next();
 });
 
@@ -63,6 +63,8 @@ interface IPaymentMethod extends Document {
   updatedBy?: Schema.Types.ObjectId;
 }
 
-const PaymentMethod = getModel<IPaymentMethod>('PaymentMethod', PaymentMethodSchema);
+const PaymentMethod = getModel<IPaymentMethod>(
+  "PaymentMethod",
+  PaymentMethodSchema,
+);
 export default PaymentMethod;
-

@@ -43,10 +43,12 @@ npx tsx scripts/replace-string-in-file.ts --path file.txt --search "old" --repla
 
 ```json
 {
-  "totalReplacements": 0,  // ← No matches!
-  "details": [{
-    "skipped": "no matches"
-  }]
+  "totalReplacements": 0, // ← No matches!
+  "details": [
+    {
+      "skipped": "no matches"
+    }
+  ]
 }
 ```
 

@@ -1,9 +1,9 @@
-import React from 'react';
-import { logger } from '@/lib/logger';
-import ProductCard from '@/components/marketplace/ProductCard';
-import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
-import { MARKETPLACE_OFFLINE_DATA } from '@/data/marketplace-offline';
-import { getServerI18n } from '@/lib/i18n/server';
+import React from "react";
+import { logger } from "@/lib/logger";
+import ProductCard from "@/components/marketplace/ProductCard";
+import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
+import { MARKETPLACE_OFFLINE_DATA } from "@/data/marketplace-offline";
+import { getServerI18n } from "@/lib/i18n/server";
 
 interface Category {
   id: string;
@@ -41,37 +41,47 @@ interface MarketplaceProductCard {
   [key: string]: unknown;
 }
 
-const offlineMarketplaceEnabled = process.env.ALLOW_OFFLINE_MONGODB === 'true';
+const offlineMarketplaceEnabled = process.env.ALLOW_OFFLINE_MONGODB === "true";
 
 async function loadHomepageData() {
   if (offlineMarketplaceEnabled) {
-    logger.info('[Marketplace] Offline dataset enabled (ALLOW_OFFLINE_MONGODB)');
+    logger.info(
+      "[Marketplace] Offline dataset enabled (ALLOW_OFFLINE_MONGODB)",
+    );
     return MARKETPLACE_OFFLINE_DATA;
   }
   try {
     const [categoriesResponse, featuredResponse] = await Promise.all([
-      serverFetchJsonWithTenant<{ data: Category[] }>('/api/marketplace/categories'),
-      serverFetchJsonWithTenant<{ data: { items: Product[] } }>('/api/marketplace/products?limit=8')
+      serverFetchJsonWithTenant<{ data: Category[] }>(
+        "/api/marketplace/categories",
+      ),
+      serverFetchJsonWithTenant<{ data: { items: Product[] } }>(
+        "/api/marketplace/products?limit=8",
+      ),
     ]);
 
     const categories = categoriesResponse.data;
     const featured = featuredResponse.data.items;
 
     const carousels = await Promise.all(
-      categories.slice(0, 4).map(async category => {
-        const response = await serverFetchJsonWithTenant<{ data: { items: Product[] } }>(`/api/marketplace/search?cat=${category.slug}&limit=6`);
+      categories.slice(0, 4).map(async (category) => {
+        const response = await serverFetchJsonWithTenant<{
+          data: { items: Product[] };
+        }>(`/api/marketplace/search?cat=${category.slug}&limit=6`);
         return {
           category,
-          items: response.data.items
+          items: response.data.items,
         };
-      })
+      }),
     );
 
     return { categories, featured, carousels };
   } catch (error) {
-    logger.error('Failed to load marketplace homepage data', { error });
+    logger.error("Failed to load marketplace homepage data", { error });
     if (offlineMarketplaceEnabled) {
-      logger.warn('[Marketplace] Falling back to offline dataset after fetch failure');
+      logger.warn(
+        "[Marketplace] Falling back to offline dataset after fetch failure",
+      );
       return MARKETPLACE_OFFLINE_DATA;
     }
     // Return empty data to allow graceful degradation
@@ -83,32 +93,43 @@ export default async function MarketplaceHome() {
   const { featured, carousels } = await loadHomepageData();
   const { t } = await getServerI18n();
   const heroHighlights = [
-    t('marketplace.home.hero.highlights.rapidRfq', 'Rapid RFQ'),
-    t('marketplace.home.hero.highlights.linkedOrders', 'Work Order linked orders'),
-    t('marketplace.home.hero.highlights.financeReady', 'Finance ready invoices')
+    t("marketplace.home.hero.highlights.rapidRfq", "Rapid RFQ"),
+    t(
+      "marketplace.home.hero.highlights.linkedOrders",
+      "Work Order linked orders",
+    ),
+    t(
+      "marketplace.home.hero.highlights.financeReady",
+      "Finance ready invoices",
+    ),
   ];
 
   return (
     <div className="min-h-screen bg-muted flex flex-col">
-      
       <main className="mx-auto max-w-7xl px-4 py-8 flex-1">
         <section className="grid gap-6 lg:grid-cols-[1fr_320px]">
           <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-primary via-success to-primary p-10 text-white shadow-xl">
             <p className="text-sm uppercase tracking-[0.3em] text-white/70">
-              {t('marketplace.home.hero.pill', 'Fixzit Souq')}
+              {t("marketplace.home.hero.pill", "Fixzit Souq")}
             </p>
             <h1 className="mt-4 text-4xl font-bold">
-              {t('marketplace.home.hero.title', 'Facilities, MRO & Construction Marketplace')}
+              {t(
+                "marketplace.home.hero.title",
+                "Facilities, MRO & Construction Marketplace",
+              )}
             </h1>
             <p className="mt-3 max-w-xl text-lg text-white/80">
               {t(
-                'marketplace.home.hero.description',
-                'Source ASTM and BS EN compliant materials with tenant-level approvals, finance posting, and vendor SLAs baked in.'
+                "marketplace.home.hero.description",
+                "Source ASTM and BS EN compliant materials with tenant-level approvals, finance posting, and vendor SLAs baked in.",
               )}
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3 text-sm font-semibold">
               {heroHighlights.map((highlight) => (
-                <span key={highlight} className="rounded-full bg-white/20 px-4 py-2">
+                <span
+                  key={highlight}
+                  className="rounded-full bg-white/20 px-4 py-2"
+                >
                   {highlight}
                 </span>
               ))}
@@ -116,24 +137,27 @@ export default async function MarketplaceHome() {
           </div>
           <div className="flex flex-col gap-3 rounded-3xl border border-primary/20 bg-card p-6 shadow-lg">
             <h2 className="text-lg font-semibold text-foreground">
-              {t('marketplace.home.kpis.title', 'Live Operational KPIs')}
+              {t("marketplace.home.kpis.title", "Live Operational KPIs")}
             </h2>
             <div className="grid gap-3 text-sm text-foreground">
               <div className="rounded-2xl bg-primary/10 p-4">
                 <p className="text-xs uppercase tracking-wider text-primary">
-                  {t('marketplace.home.kpis.openApprovals', 'Open approvals')}
+                  {t("marketplace.home.kpis.openApprovals", "Open approvals")}
                 </p>
                 <p className="text-2xl font-bold text-primary">3</p>
               </div>
               <div className="rounded-2xl bg-warning/10 p-4">
                 <p className="text-xs uppercase tracking-wider text-warning">
-                  {t('marketplace.home.kpis.pendingDeliveries', 'Pending deliveries')}
+                  {t(
+                    "marketplace.home.kpis.pendingDeliveries",
+                    "Pending deliveries",
+                  )}
                 </p>
                 <p className="text-2xl font-bold text-warning">7</p>
               </div>
               <div className="rounded-2xl bg-success/10 p-4">
                 <p className="text-xs uppercase tracking-wider text-success">
-                  {t('marketplace.home.kpis.financeReady', 'Finance ready')}
+                  {t("marketplace.home.kpis.financeReady", "Finance ready")}
                 </p>
                 <p className="text-2xl font-bold text-success">5</p>
               </div>
@@ -144,32 +168,34 @@ export default async function MarketplaceHome() {
         <section className="mt-12 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-primary">
-              {t('marketplace.home.featured.title', 'Featured for your organisation')}
+              {t(
+                "marketplace.home.featured.title",
+                "Featured for your organisation",
+              )}
             </h2>
-            <a href="/marketplace/search" className="text-sm font-semibold text-primary hover:underline">
-              {t('marketplace.home.featured.viewAll', 'View all')}
+            <a
+              href="/marketplace/search"
+              className="text-sm font-semibold text-primary hover:underline"
+            >
+              {t("marketplace.home.featured.viewAll", "View all")}
             </a>
           </div>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {featured.map((product, idx) => {
               const p = product as unknown as Product;
-              const idFromObject = typeof p?._id === 'object' && p._id && 'toString' in p._id 
-                ? (p._id as { toString: () => string }).toString() 
-                : String(p?._id ?? '');
+              const idFromObject =
+                typeof p?._id === "object" && p._id && "toString" in p._id
+                  ? (p._id as { toString: () => string }).toString()
+                  : String(p?._id ?? "");
               const key = p?.id || idFromObject || p?.slug || `featured-${idx}`;
-              const normalized: MarketplaceProductCard = { 
-                ...p, 
-                id: key, 
-                title: p.title, 
+              const normalized: MarketplaceProductCard = {
+                ...p,
+                id: key,
+                title: p.title,
                 buy: p.buy,
                 slug: (p as { slug?: string })?.slug ?? key,
               };
-              return (
-                <ProductCard
-                  key={key}
-                  product={normalized}
-                />
-              );
+              return <ProductCard key={key} product={normalized} />;
             })}
           </div>
         </section>
@@ -184,24 +210,23 @@ export default async function MarketplaceHome() {
                 href={`/marketplace/search?cat=${carousel.category.slug}`}
                 className="text-sm font-semibold text-primary hover:underline"
               >
-                {t('marketplace.home.categories.explore', 'Explore all')}
+                {t("marketplace.home.categories.explore", "Explore all")}
               </a>
             </div>
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {carousel.items.map((product, idx) => {
                 const p = product as Product;
-                const key = p.id ?? p._id ?? (p as { slug?: string })?.slug ?? `carousel-${carousel.category.slug}-${idx}`;
-                const normalized = { 
-                  ...p, 
+                const key =
+                  p.id ??
+                  p._id ??
+                  (p as { slug?: string })?.slug ??
+                  `carousel-${carousel.category.slug}-${idx}`;
+                const normalized = {
+                  ...p,
                   id: p.id ?? p._id ?? (p as { slug?: string })?.slug ?? key,
                   slug: (p as { slug?: string })?.slug ?? key,
                 };
-                return (
-                  <ProductCard
-                    key={key}
-                    product={normalized}
-                  />
-                );
+                return <ProductCard key={key} product={normalized} />;
               })}
             </div>
           </section>

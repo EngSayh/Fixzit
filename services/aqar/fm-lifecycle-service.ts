@@ -1,29 +1,40 @@
-import { logger } from '@/lib/logger';
-import { connectDb } from '@/lib/mongo';
-import { AqarListing } from '@/models/aqar';
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongo";
+import { AqarListing } from "@/models/aqar";
 import {
   ListingStatus,
   type IListing,
   type IListingFmLifecycle,
-} from '@/models/aqar/Listing';
-import { generateZATCAQR } from '@/lib/zatca';
-import { create as createWorkOrder } from '@/server/work-orders/wo.service';
-import { Types } from 'mongoose';
+} from "@/models/aqar/Listing";
+import { generateZATCAQR } from "@/lib/zatca";
+import { create as createWorkOrder } from "@/server/work-orders/wo.service";
+import { Types } from "mongoose";
 
 // AqarListing is already typed as Model<IListing> from the import
 const listingModel = AqarListing;
 
-const isDevEnvironment = ['development', 'test'].includes(process.env.NODE_ENV || '');
+const isDevEnvironment = ["development", "test"].includes(
+  process.env.NODE_ENV || "",
+);
+
+// Skip ZATCA validation during build time (when DISABLE_MONGODB_FOR_BUILD is set)
+const isBuildTime = process.env.DISABLE_MONGODB_FOR_BUILD === "true";
 
 type ZatcaConfig = { sellerName: string; vatNumber: string } | null;
 
 const validateZatcaConfig = (): ZatcaConfig => {
+  // Skip validation during build time
+  if (isBuildTime) {
+    return null;
+  }
+
   const sellerName = process.env.ZATCA_SELLER_NAME?.trim();
   const vatNumber = process.env.ZATCA_VAT_NUMBER?.trim();
   const vatPattern = /^\d{15}$/;
 
   if (!sellerName || !vatNumber || !vatPattern.test(vatNumber)) {
-    const message = 'ZATCA_SELLER_NAME and a 15-digit ZATCA_VAT_NUMBER are required to generate QR codes.';
+    const message =
+      "ZATCA_SELLER_NAME and a 15-digit ZATCA_VAT_NUMBER are required to generate QR codes.";
     if (isDevEnvironment) {
       logger.warn(message, {
         sellerNamePresent: Boolean(sellerName),
@@ -37,7 +48,14 @@ const validateZatcaConfig = (): ZatcaConfig => {
   return { sellerName, vatNumber };
 };
 
-const ZATCA_CONFIG = validateZatcaConfig();
+// Lazy initialization - only validate when actually used, not at module load time
+let ZATCA_CONFIG: ZatcaConfig | undefined;
+const getZatcaConfig = (): ZatcaConfig => {
+  if (ZATCA_CONFIG === undefined) {
+    ZATCA_CONFIG = validateZatcaConfig();
+  }
+  return ZATCA_CONFIG;
+};
 
 export interface ListingLifecycleEvent {
   listingId: string;
@@ -68,8 +86,22 @@ export class AqarFmLifecycleService {
     await connectDb();
     const listing = await listingModel
       .findById(event.listingId)
-      .select('title orgId listerId propertyRef price city neighborhood address fmLifecycle status')
-      .lean<{ _id: Types.ObjectId; orgId: Types.ObjectId; listerId: Types.ObjectId; propertyRef?: Types.ObjectId; price?: { amount: number }; title?: string; city?: string; neighborhood?: string; address?: string; fmLifecycle?: IListing['fmLifecycle']; status: ListingStatus } | null>();
+      .select(
+        "title orgId listerId propertyRef price city neighborhood address fmLifecycle status",
+      )
+      .lean<{
+        _id: Types.ObjectId;
+        orgId: Types.ObjectId;
+        listerId: Types.ObjectId;
+        propertyRef?: Types.ObjectId;
+        price?: { amount: number };
+        title?: string;
+        city?: string;
+        neighborhood?: string;
+        address?: string;
+        fmLifecycle?: IListing["fmLifecycle"];
+        status: ListingStatus;
+      } | null>();
 
     if (!listing) {
       return;
@@ -82,15 +114,23 @@ export class AqarFmLifecycleService {
         : [ListingStatus.RENTED],
       propertyId: listing.fmLifecycle?.propertyId ?? listing.propertyRef,
       workOrderTemplateId: listing.fmLifecycle?.workOrderTemplateId,
-      lastWorkOrderId: workOrder ? new Types.ObjectId(workOrder._id) : listing.fmLifecycle?.lastWorkOrderId,
-      lastWorkOrderCreatedAt: workOrder ? new Date() : listing.fmLifecycle?.lastWorkOrderCreatedAt,
-      lastTransactionValue: event.transactionValue ?? listing.fmLifecycle?.lastTransactionValue,
+      lastWorkOrderId: workOrder
+        ? new Types.ObjectId(workOrder._id)
+        : listing.fmLifecycle?.lastWorkOrderId,
+      lastWorkOrderCreatedAt: workOrder
+        ? new Date()
+        : listing.fmLifecycle?.lastWorkOrderCreatedAt,
+      lastTransactionValue:
+        event.transactionValue ?? listing.fmLifecycle?.lastTransactionValue,
       lastVatAmount: event.vatAmount ?? listing.fmLifecycle?.lastVatAmount,
       zatcaQrBase64: listing.fmLifecycle?.zatcaQrBase64,
     };
 
     if (event.transactionValue) {
-      const evidence = await this.generateZatcaEvidence(event.transactionValue, event.vatAmount);
+      const evidence = await this.generateZatcaEvidence(
+        event.transactionValue,
+        event.vatAmount,
+      );
       if (evidence) {
         fmLifecycle.zatcaQrBase64 = evidence.qr;
         fmLifecycle.lastVatAmount = evidence.vat;
@@ -102,14 +142,20 @@ export class AqarFmLifecycleService {
     });
   }
 
-  static async linkProperty(listingId: string, propertyId: string): Promise<void> {
-    if (!Types.ObjectId.isValid(listingId) || !Types.ObjectId.isValid(propertyId)) {
+  static async linkProperty(
+    listingId: string,
+    propertyId: string,
+  ): Promise<void> {
+    if (
+      !Types.ObjectId.isValid(listingId) ||
+      !Types.ObjectId.isValid(propertyId)
+    ) {
       return;
     }
     await connectDb();
     await listingModel.findByIdAndUpdate(listingId, {
       $set: {
-        'fmLifecycle.propertyId': new Types.ObjectId(propertyId),
+        "fmLifecycle.propertyId": new Types.ObjectId(propertyId),
       },
     });
   }
@@ -133,19 +179,19 @@ export class AqarFmLifecycleService {
       orgId: Types.ObjectId;
       listerId: Types.ObjectId;
       propertyRef?: Types.ObjectId;
-      fmLifecycle?: IListing['fmLifecycle'];
+      fmLifecycle?: IListing["fmLifecycle"];
       title?: string;
       city?: string;
       neighborhood?: string;
       address?: string;
     },
-    event: ListingLifecycleEvent
+    event: ListingLifecycleEvent,
   ) {
     const propertyId = listing.fmLifecycle?.propertyId ?? listing.propertyRef;
     if (!propertyId) {
-      logger.warn('AQAR_FM_WORK_ORDER_SKIPPED', {
+      logger.warn("AQAR_FM_WORK_ORDER_SKIPPED", {
         listingId: listing._id.toHexString(),
-        reason: 'missing_property_ref',
+        reason: "missing_property_ref",
       });
       return null;
     }
@@ -160,27 +206,29 @@ export class AqarFmLifecycleService {
               : `Post-sale handover - ${listing.title || listing._id.toHexString()}`,
           description:
             event.nextStatus === ListingStatus.RENTED
-              ? 'Automatic work order to capture move-in inspection and IoT sensor baseline after rent contract.'
-              : 'Automatic work order to trigger FM onboarding after sale completion.',
+              ? "Automatic work order to capture move-in inspection and IoT sensor baseline after rent contract."
+              : "Automatic work order to trigger FM onboarding after sale completion.",
           propertyId: propertyId.toHexString(),
           requesterId: event.actorId,
-          requesterName: 'Aqar Souq Automation',
-          requesterType: 'SYSTEM',
+          requesterName: "Aqar Souq Automation",
+          requesterType: "SYSTEM",
           requesterEmail: undefined,
-          priority: 'MEDIUM',
-          category: 'REAL_ESTATE',
-          type: 'POST_TRANSACTION',
-          subcategory: event.nextStatus === ListingStatus.RENTED ? 'MOVE_IN' : 'HANDOVER',
+          priority: "MEDIUM",
+          category: "REAL_ESTATE",
+          type: "POST_TRANSACTION",
+          subcategory:
+            event.nextStatus === ListingStatus.RENTED ? "MOVE_IN" : "HANDOVER",
           slaHours: 48,
           responseMinutes: 180,
           assignmentUserId: listing.listerId.toHexString(),
         },
-        event.actorId
+        event.actorId,
       );
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('AQAR_FM_WORK_ORDER_FAILED', {
+      logger.error("AQAR_FM_WORK_ORDER_FAILED", {
         listingId: listing._id.toHexString(),
         error: (error as Error)?.message ?? String(error),
       });
@@ -193,10 +241,11 @@ export class AqarFmLifecycleService {
       return undefined;
     }
     try {
-      if (!ZATCA_CONFIG) {
+      const zatcaConfig = getZatcaConfig();
+      if (!zatcaConfig) {
         return undefined;
       }
-      const { sellerName, vatNumber } = ZATCA_CONFIG;
+      const { sellerName, vatNumber } = zatcaConfig;
       const payload = {
         sellerName,
         vatNumber,
@@ -207,9 +256,10 @@ export class AqarFmLifecycleService {
       const qr = await generateZATCAQR(payload);
       return { qr, vat: payload.vatAmount };
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.warn('AQAR_ZATCA_QR_FAILED', {
+      logger.warn("AQAR_ZATCA_QR_FAILED", {
         error: (error as Error)?.message ?? String(error),
       });
       return undefined;

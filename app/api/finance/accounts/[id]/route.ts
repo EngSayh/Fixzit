@@ -1,22 +1,22 @@
 /**
  * Chart of Accounts Single Account API Routes - Finance Pack Phase 2
- * 
+ *
  * Endpoints:
  * - GET /api/finance/accounts/[id]     - Get account details
  * - PUT /api/finance/accounts/[id]     - Update account
  * - DELETE /api/finance/accounts/[id]  - Deactivate account
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { dbConnect } from '@/lib/mongodb-unified';
-import ChartAccount from '@/server/models/finance/ChartAccount';
-import LedgerEntry from '@/server/models/finance/LedgerEntry';
-import { runWithContext } from '@/server/lib/authContext';
-import { requirePermission } from '@/server/lib/rbac.config';
-import { Types } from 'mongoose';
-import { z } from 'zod';
+import { dbConnect } from "@/lib/mongodb-unified";
+import ChartAccount from "@/server/models/finance/ChartAccount";
+import LedgerEntry from "@/server/models/finance/LedgerEntry";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/server/lib/rbac.config";
+import { Types } from "mongoose";
+import { z } from "zod";
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -27,7 +27,7 @@ const UpdateAccountSchema = z.object({
   description: z.string().optional(),
   taxable: z.boolean().optional(),
   vatRate: z.number().min(0).max(100).optional(), // 0-100 percentage
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
 });
 
 // ============================================================================
@@ -36,15 +36,15 @@ const UpdateAccountSchema = z.object({
 
 async function getUserSession(_req: NextRequest) {
   const user = await getSessionUser(_req);
-  
+
   if (!user) {
     return null;
   }
-  
+
   return {
     userId: user.id,
     orgId: user.orgId,
-    role: user.role
+    role: user.role,
   };
 }
 
@@ -52,92 +52,109 @@ async function getUserSession(_req: NextRequest) {
 // GET /api/finance/accounts/[id] - Get account details
 // ============================================================================
 
-import type { RouteContext } from '@/lib/types/route-context';
+import type { RouteContext } from "@/lib/types/route-context";
 
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 export async function GET(
   req: NextRequest,
-  context: RouteContext<{ id: string }>
+  context: RouteContext<{ id: string }>,
 ) {
   try {
     await dbConnect();
-    
+
     // Auth check
     const user = await getUserSession(req);
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
+
     // Authorization check
-    requirePermission(user.role, 'finance.accounts.read');
-    
+    requirePermission(user.role, "finance.accounts.read");
+
     // Resolve params (Next.js 15 provides params as a Promise)
     const _params = await Promise.resolve(context.params);
 
     // Validate account ID
     if (!Types.ObjectId.isValid(_params.id)) {
-      return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid account ID" },
+        { status: 400 },
+      );
     }
-    
+
     // Execute with proper context
     return await runWithContext(
-      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
       async () => {
         // Get account
         const account = await ChartAccount.findOne({
           _id: new Types.ObjectId(_params.id),
-          orgId: new Types.ObjectId(user.orgId)
+          orgId: new Types.ObjectId(user.orgId),
         });
-        
+
         if (!account) {
-          return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+          return NextResponse.json(
+            { error: "Account not found" },
+            { status: 404 },
+          );
         }
-        
+
         // Get parent account if exists (with tenant isolation)
         let parent = null;
         if (account.parentId) {
           parent = await ChartAccount.findOne({
             _id: account.parentId,
-            orgId: new Types.ObjectId(user.orgId)
+            orgId: new Types.ObjectId(user.orgId),
           }).lean();
         }
-        
+
         // Get child accounts
         const children = await ChartAccount.find({
           orgId: new Types.ObjectId(user.orgId),
-          parentId: account._id
+          parentId: account._id,
         }).lean();
-        
+
         // Get current balance from most recent ledger entry
         const latestEntry = await LedgerEntry.findOne({
           orgId: new Types.ObjectId(user.orgId),
-          accountId: account._id
-        }).sort({ date: -1, createdAt: -1 }).lean();
-        
-        const currentBalance = latestEntry ? ((latestEntry as { runningBalance?: number }).runningBalance || 0) : 0;
-        
+          accountId: account._id,
+        })
+          .sort({ date: -1, createdAt: -1 })
+          .lean();
+
+        const currentBalance = latestEntry
+          ? (latestEntry as { runningBalance?: number }).runningBalance || 0
+          : 0;
+
         return NextResponse.json({
           success: true,
           data: {
             ...account.toObject(),
             parent,
             children,
-            currentBalance
-          }
+            currentBalance,
+          },
         });
-      }
+      },
     );
-    
   } catch (error) {
-    logger.error('GET /api/finance/accounts/[id] error:', error);
-    
-    if (error instanceof Error && error.message.includes('Forbidden')) {
+    logger.error("GET /api/finance/accounts/[id] error:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : 'Internal server error'
-    }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
+    );
   }
 }
 
@@ -147,111 +164,135 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  context: RouteContext<{ id: string }>
+  context: RouteContext<{ id: string }>,
 ) {
   try {
     await dbConnect();
-    
+
     // Auth check
     const user = await getUserSession(req);
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
+
     // Authorization check
-    requirePermission(user.role, 'finance.accounts.update');
-    
+    requirePermission(user.role, "finance.accounts.update");
+
     // Resolve params (Next.js 15 provides params as a Promise)
     const _params = await Promise.resolve(context.params);
 
     // Validate account ID
     if (!Types.ObjectId.isValid(_params.id)) {
-      return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid account ID" },
+        { status: 400 },
+      );
     }
-    
+
     // Parse and validate request body
     const body = await req.json();
     const validated = UpdateAccountSchema.parse(body);
-    
+
     // Execute with proper context
     return await runWithContext(
-      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
       async () => {
         // Get account
         const account = await ChartAccount.findOne({
           _id: new Types.ObjectId(_params.id),
-          orgId: new Types.ObjectId(user.orgId)
+          orgId: new Types.ObjectId(user.orgId),
         });
-        
+
         if (!account) {
-          return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+          return NextResponse.json(
+            { error: "Account not found" },
+            { status: 404 },
+          );
         }
-        
+
         // Update fields (only allow updating certain fields)
-        if (validated.accountName !== undefined) account.accountName = validated.accountName;
-        if (validated.description !== undefined) account.description = validated.description;
-        if (validated.taxable !== undefined) account.taxable = validated.taxable;
-        if (validated.vatRate !== undefined) account.vatRate = validated.vatRate;
-        
+        if (validated.accountName !== undefined)
+          account.accountName = validated.accountName;
+        if (validated.description !== undefined)
+          account.description = validated.description;
+        if (validated.taxable !== undefined)
+          account.taxable = validated.taxable;
+        if (validated.vatRate !== undefined)
+          account.vatRate = validated.vatRate;
+
         // Apply same safeguards as DELETE when deactivating
-        if (validated.isActive !== undefined && !validated.isActive && account.isActive) {
+        if (
+          validated.isActive !== undefined &&
+          !validated.isActive &&
+          account.isActive
+        ) {
           // Check for ledger entries
           const hasEntries = await LedgerEntry.exists({
             orgId: new Types.ObjectId(user.orgId),
-            accountId: account._id
+            accountId: account._id,
           });
-          
+
           if (hasEntries) {
             return NextResponse.json(
-              { error: 'Cannot deactivate account with ledger entries' },
-              { status: 400 }
+              { error: "Cannot deactivate account with ledger entries" },
+              { status: 400 },
             );
           }
-          
+
           // Check for child accounts
           const hasChildren = await ChartAccount.exists({
             orgId: new Types.ObjectId(user.orgId),
-            parentId: account._id
+            parentId: account._id,
           });
-          
+
           if (hasChildren) {
             return NextResponse.json(
-              { error: 'Cannot deactivate account with child accounts' },
-              { status: 400 }
+              { error: "Cannot deactivate account with child accounts" },
+              { status: 400 },
             );
           }
-          
+
           account.isActive = false;
         } else if (validated.isActive !== undefined) {
           account.isActive = validated.isActive;
         }
-        
+
         await account.save();
-        
+
         return NextResponse.json({
           success: true,
-          data: account
+          data: account,
         });
-      }
+      },
     );
-    
   } catch (error) {
-    logger.error('PUT /api/finance/accounts/[id] error:', error);
-    
-    if (error instanceof Error && error.message.includes('Forbidden')) {
+    logger.error("PUT /api/finance/accounts/[id] error:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json({
-        error: 'Validation failed',
-        details: error.issues
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          details: error.issues,
+        },
+        { status: 400 },
+      );
     }
-    
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : 'Internal server error'
-    }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
+    );
   }
 }
 
@@ -261,87 +302,108 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  context: RouteContext<{ id: string }>
+  context: RouteContext<{ id: string }>,
 ) {
   try {
     await dbConnect();
-    
+
     // Auth check
     const user = await getUserSession(req);
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
+
     // Authorization check
-    requirePermission(user.role, 'finance.accounts.delete');
-    
+    requirePermission(user.role, "finance.accounts.delete");
+
     // Resolve params (Next.js 15 provides params as a Promise)
     const _params = await Promise.resolve(context.params);
 
     // Validate account ID
     if (!Types.ObjectId.isValid(_params.id)) {
-      return NextResponse.json({ error: 'Invalid account ID' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid account ID" },
+        { status: 400 },
+      );
     }
-    
+
     // Execute with proper context
     return await runWithContext(
-      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
       async () => {
         // Get account
         const account = await ChartAccount.findOne({
           _id: new Types.ObjectId(_params.id),
-          orgId: new Types.ObjectId(user.orgId)
+          orgId: new Types.ObjectId(user.orgId),
         });
-        
+
         if (!account) {
-          return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+          return NextResponse.json(
+            { error: "Account not found" },
+            { status: 404 },
+          );
         }
-        
+
         // Prevent deletion if ledger entries exist for this account
         const hasEntries = await LedgerEntry.exists({
           orgId: new Types.ObjectId(user.orgId),
-          accountId: account._id
+          accountId: account._id,
         });
-        
+
         if (hasEntries) {
-          return NextResponse.json({
-            error: 'Cannot delete account with existing ledger entries. Use deactivation instead.'
-          }, { status: 400 });
+          return NextResponse.json(
+            {
+              error:
+                "Cannot delete account with existing ledger entries. Use deactivation instead.",
+            },
+            { status: 400 },
+          );
         }
-        
+
         // Check if account has children
         const hasChildren = await ChartAccount.exists({
           orgId: new Types.ObjectId(user.orgId),
-          parentId: account._id
+          parentId: account._id,
         });
-        
+
         if (hasChildren) {
-          return NextResponse.json({
-            error: 'Cannot delete account with child accounts. Delete children first or deactivate instead.'
-          }, { status: 400 });
+          return NextResponse.json(
+            {
+              error:
+                "Cannot delete account with child accounts. Delete children first or deactivate instead.",
+            },
+            { status: 400 },
+          );
         }
-        
+
         // Soft delete by setting isActive = false
         account.isActive = false;
         await account.save();
-        
+
         return NextResponse.json({
           success: true,
-          message: 'Account deactivated successfully',
-          data: account
+          message: "Account deactivated successfully",
+          data: account,
         });
-      }
+      },
     );
-    
   } catch (error) {
-    logger.error('DELETE /api/finance/accounts/[id] error:', error);
-    
-    if (error instanceof Error && error.message.includes('Forbidden')) {
+    logger.error("DELETE /api/finance/accounts/[id] error:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : 'Internal server error'
-    }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
+    );
   }
 }

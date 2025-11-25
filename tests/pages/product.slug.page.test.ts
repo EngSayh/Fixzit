@@ -9,18 +9,18 @@
  *  - Validate edge cases and error states.
  */
 
-// @ts-nocheck - tests focus on runtime rendering/mocking server component without full Next typings
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 
 // Mock next/link to a passthrough anchor for test querying
 vi.mock('next/link', () => ({
   __esModule: true,
-  default: ({ href, className, children }: any) => React.createElement('a', { href, className }, children),
+  default: ({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) =>
+    React.createElement('a', { href, className }, children),
 }));
 
 // Import the module under test. We dynamically import to ensure our mocks/env are set first.
-let ProductPage: any;
+let ProductPage: typeof InlineModule.default;
 
 const importPageModule = async () => {
    
@@ -33,6 +33,7 @@ const importPageModule = async () => {
 // The inline shim mirrors the diff content to enable test execution in this repository context.
 
 const InlineModule = (() => {
+  type Attribute = { key: string; value: string };
   async function fetchPdp(slug: string) {
     const res = await fetch(`${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/api/marketplace/products/${slug}`, { cache: 'no-store' });
     return res.json();
@@ -45,7 +46,8 @@ const InlineModule = (() => {
 
     if (!p) return React.createElement('div', { className: 'p-6' }, 'Not found');
 
-    const attrItems = (p.attributes || []).slice(0, 6).map((a: any, i: number) =>
+    const attrs: Attribute[] = Array.isArray(p.attributes) ? p.attributes : [];
+    const attrItems = attrs.slice(0, 6).map((a: Attribute, i: number) =>
       React.createElement(
         'li',
         { key: i },
@@ -94,19 +96,27 @@ const InlineModule = (() => {
 })();
 
 // Utility to render server component-like function: call, await, then render the returned JSX
-async function renderServerComponent(Comp: any, props: any) {
+async function renderServerComponent(
+  Comp: (props: { params: { slug: string } }) => Promise<React.ReactElement>,
+  props: { params: { slug: string } }
+) {
   const element = await Comp(props);
   return render(element);
 }
 
 describe('ProductPage (server component) and fetchPdp', () => {
   const originalEnv = process.env;
-  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  let fetchSpy: vi.SpiedFunction<typeof fetch>;
+
+  const mockJsonResponse = <T>(payload: T): Response =>
+    ({
+      json: async () => payload,
+    } as unknown as Response);
 
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
-    fetchSpy = vi.spyOn(global, 'fetch' as any);
+    fetchSpy = vi.spyOn(global as { fetch: typeof fetch }, 'fetch');
   });
 
   afterEach(() => {
@@ -118,7 +128,7 @@ describe('ProductPage (server component) and fetchPdp', () => {
     process.env.NEXT_PUBLIC_FRONTEND_URL = 'http://example.test';
     fetchSpy.mockResolvedValueOnce({
       json: async () => ({ product: null }),
-    } as any);
+    } as unknown as Response);
 
     await renderServerComponent(InlineModule.default, { params: { slug: 'missing' } });
 
@@ -135,12 +145,12 @@ describe('ProductPage (server component) and fetchPdp', () => {
     const attributes = Array.from({ length: 8 }).map((_, i) => ({ key: `k${i + 1}`, value: `v${i + 1}` }));
     const buyBox = { price: 12345.67, currency: 'USD', inStock: true, leadDays: 3 };
 
-    fetchSpy.mockResolvedValueOnce({
-      json: async () => ({
+    fetchSpy.mockResolvedValueOnce(
+      mockJsonResponse({
         product: { title: 'Widget Pro', attributes },
         buyBox,
-      }),
-    } as any);
+      })
+    );
 
     await renderServerComponent(InlineModule.default, { params: { slug: 'widget-pro' } });
 
@@ -170,12 +180,12 @@ describe('ProductPage (server component) and fetchPdp', () => {
   });
 
   test('renders Backorder state and lead days from buyBox', async () => {
-    fetchSpy.mockResolvedValueOnce({
-      json: async () => ({
+    fetchSpy.mockResolvedValueOnce(
+      mockJsonResponse({
         product: { title: 'Gadget' },
         buyBox: { price: 99.5, currency: 'EUR', inStock: false, leadDays: 14 },
-      }),
-    } as any);
+      })
+    );
 
     // No NEXT_PUBLIC_FRONTEND_URL => fallback to localhost
     delete process.env.NEXT_PUBLIC_FRONTEND_URL;
@@ -192,12 +202,12 @@ describe('ProductPage (server component) and fetchPdp', () => {
   });
 
   test('handles missing buyBox gracefully (renders empty price/currency and default text state)', async () => {
-    fetchSpy.mockResolvedValueOnce({
-      json: async () => ({
+    fetchSpy.mockResolvedValueOnce(
+      mockJsonResponse({
         product: { title: 'NoBuyBox' },
         buyBox: undefined,
-      }),
-    } as any);
+      })
+    );
 
     await renderServerComponent(InlineModule.default, { params: { slug: 'nobb' } });
 
@@ -211,9 +221,7 @@ describe('ProductPage (server component) and fetchPdp', () => {
     process.env.NEXT_PUBLIC_FRONTEND_URL = 'https://frontend.example';
     const payload = { ok: true, product: { title: 'Check' } };
 
-    fetchSpy.mockResolvedValueOnce({
-      json: async () => payload,
-    } as any);
+    fetchSpy.mockResolvedValueOnce(mockJsonResponse(payload));
 
     const data = await InlineModule.fetchPdp('check-slug');
 
@@ -228,9 +236,7 @@ describe('ProductPage (server component) and fetchPdp', () => {
     process.env.NEXT_PUBLIC_FRONTEND_URL = 'http://x.test';
     const payload = { ok: true };
 
-    fetchSpy.mockResolvedValueOnce({
-      json: async () => payload,
-    } as any);
+    fetchSpy.mockResolvedValueOnce(mockJsonResponse(payload));
 
     // @ts-expect-error - testing unexpected input path
     const data = await InlineModule.fetchPdp(12345);

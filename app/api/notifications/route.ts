@@ -3,12 +3,12 @@ import { z } from "zod";
 import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
 
-import type { NotificationDoc } from '@/lib/models';
-import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import type { NotificationDoc } from "@/lib/models";
+import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
 const notificationSchema = z.object({
   title: z.string().min(1),
@@ -17,16 +17,22 @@ const notificationSchema = z.object({
   priority: z.enum(["low", "medium", "high"]),
   category: z.enum(["maintenance", "vendor", "finance", "system"]),
   targetUrl: z.string().url().optional(), // Optional deep link URL
-  orgId: z.string().optional()
+  orgId: z.string().optional(),
 });
 
 // Valid enum values for filtering
 const VALID_PRIORITIES = ["low", "medium", "high"] as const;
-const VALID_CATEGORIES = ["maintenance", "vendor", "finance", "system"] as const;
+const VALID_CATEGORIES = [
+  "maintenance",
+  "vendor",
+  "finance",
+  "system",
+] as const;
 
 // All operations now backed by Mongo collection (tenant-scoped)
 
-const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegex = (input: string) =>
+  input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
  * @openapi
@@ -54,7 +60,8 @@ export async function GET(req: NextRequest) {
   const rawPage = Number.parseInt(searchParams.get("page") || "1", 10);
   const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
   const rawLimit = Number.parseInt(searchParams.get("limit") || "20", 10);
-  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
+  const limit =
+    Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
 
   let orgId: string;
   try {
@@ -65,7 +72,7 @@ export async function GET(req: NextRequest) {
     }
     orgId = user.orgId;
   } catch {
-    return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
 
   const { notifications } = await getCollections();
@@ -73,30 +80,43 @@ export async function GET(req: NextRequest) {
   if (q) {
     const safe = escapeRegex(q);
     filter.$or = [
-      { title: { $regex: safe, $options: 'i' } },
-      { message: { $regex: safe, $options: 'i' } }
+      { title: { $regex: safe, $options: "i" } },
+      { message: { $regex: safe, $options: "i" } },
     ];
   }
   // Validate category against enum before filtering
-  if (category && category !== 'all' && VALID_CATEGORIES.includes(category as typeof VALID_CATEGORIES[number])) {
+  if (
+    category &&
+    category !== "all" &&
+    VALID_CATEGORIES.includes(category as (typeof VALID_CATEGORIES)[number])
+  ) {
     filter.category = category;
   }
   // Validate priority against enum before filtering
-  if (priority && priority !== 'all' && VALID_PRIORITIES.includes(priority as typeof VALID_PRIORITIES[number])) {
+  if (
+    priority &&
+    priority !== "all" &&
+    VALID_PRIORITIES.includes(priority as (typeof VALID_PRIORITIES)[number])
+  ) {
     filter.priority = priority;
   }
-  if (read !== '') filter.read = read === 'true';
+  if (read !== "") filter.read = read === "true";
 
   const skip = (page - 1) * limit;
   const [rawItems, total] = await Promise.all([
-    notifications.find(filter).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray(),
-    notifications.countDocuments(filter)
+    notifications
+      .find(filter)
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray(),
+    notifications.countDocuments(filter),
   ]);
   // 🔒 TYPE SAFETY: Serialize MongoDB documents with explicit type
-  const items = rawItems.map((n) => ({ 
-    id: String((n as { _id: unknown })._id), 
-    ...n, 
-    _id: undefined 
+  const items = rawItems.map((n) => ({
+    id: String((n as { _id: unknown })._id),
+    ...n,
+    _id: undefined,
   }));
 
   return NextResponse.json({
@@ -104,7 +124,7 @@ export async function GET(req: NextRequest) {
     total,
     page,
     limit,
-    hasMore: skip + items.length < total
+    hasMore: skip + items.length < total,
   });
 }
 
@@ -118,13 +138,13 @@ export async function POST(req: NextRequest) {
     }
     orgId = user.orgId;
   } catch {
-    return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
 
   const body = await req.json();
   const data = notificationSchema.parse(body);
   const { notifications } = await getCollections();
-  const doc: Omit<NotificationDoc, 'id'> = {
+  const doc: Omit<NotificationDoc, "id"> = {
     tenantId: orgId,
     type: data.type,
     title: data.title,
@@ -134,7 +154,7 @@ export async function POST(req: NextRequest) {
     timestamp: new Date().toISOString(),
     read: false,
     archived: false,
-    ...(data.targetUrl && { targetUrl: data.targetUrl }) // Include targetUrl if provided
+    ...(data.targetUrl && { targetUrl: data.targetUrl }), // Include targetUrl if provided
   };
 
   const result = await notifications.insertOne(doc);

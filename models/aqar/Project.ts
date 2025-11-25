@@ -1,35 +1,35 @@
 /**
  * Aqar Souq - Project Model
- * 
+ *
  * Off-plan / new development projects for developers
  * Matches sa.aqar.fm Projects functionality
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import mongoose, { Schema, Document, Model } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
 
 export enum ProjectStatus {
-  DRAFT = 'DRAFT',
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  COMPLETED = 'COMPLETED',
+  DRAFT = "DRAFT",
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  COMPLETED = "COMPLETED",
 }
 
 export interface IUnitType {
-  name: string;           // e.g., "2 Bedroom Apartment"
-  minArea: number;        // sqm
-  minPrice: number;       // SAR
+  name: string; // e.g., "2 Bedroom Apartment"
+  minArea: number; // sqm
+  minPrice: number; // SAR
   description?: string;
 }
 
 export interface IPaymentPlanStep {
-  name: string;           // e.g., "Down Payment"
-  percent: number;        // 10, 20, etc.
+  name: string; // e.g., "Down Payment"
+  percent: number; // 10, 20, etc.
   dueDate?: Date;
 }
 
 export interface IPaymentPlan {
-  title: string;          // e.g., "Standard Payment Plan"
+  title: string; // e.g., "Standard Payment Plan"
   steps: IPaymentPlanStep[];
 }
 
@@ -37,36 +37,36 @@ export interface IProject extends Document {
   // Developer
   developerId: mongoose.Types.ObjectId;
   orgId: mongoose.Types.ObjectId;
-  
+
   // Project details
   name: string;
   city: string;
   neighborhood?: string;
   geo: {
-    type: 'Point';
+    type: "Point";
     coordinates: [number, number]; // [lng, lat]
   };
   overview: string;
-  
+
   // Units
   unitTypes: IUnitType[];
-  
+
   // Media
   brochures: Array<{ url: string; label?: string }>;
   videos: Array<{ url: string; label?: string }>;
   masterPlanImage?: string;
-  
+
   // Payment plans
   paymentPlans: IPaymentPlan[];
-  
+
   // Status
   status: ProjectStatus;
   handoverDate?: Date;
-  
+
   // Analytics
   views: number;
   inquiries: number;
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -74,18 +74,28 @@ export interface IProject extends Document {
 
 const ProjectSchema = new Schema<IProject>(
   {
-    developerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
-    
+    developerId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+
     name: { type: String, required: true, maxlength: 200 },
     city: { type: String, required: true, index: true },
     neighborhood: { type: String, index: true },
     geo: {
-      type: { type: String, enum: ['Point'], default: 'Point', required: true },
+      type: { type: String, enum: ["Point"], default: "Point", required: true },
       coordinates: { type: [Number], required: true },
     },
     overview: { type: String, required: true, maxlength: 5000 },
-    
+
     unitTypes: [
       {
         name: { type: String, required: true },
@@ -94,7 +104,7 @@ const ProjectSchema = new Schema<IProject>(
         description: { type: String },
       },
     ],
-    
+
     brochures: [
       {
         url: { type: String, required: true },
@@ -108,7 +118,7 @@ const ProjectSchema = new Schema<IProject>(
       },
     ],
     masterPlanImage: { type: String },
-    
+
     paymentPlans: [
       {
         title: { type: String, required: true },
@@ -121,7 +131,7 @@ const ProjectSchema = new Schema<IProject>(
         ],
       },
     ],
-    
+
     status: {
       type: String,
       enum: Object.values(ProjectStatus),
@@ -130,37 +140,36 @@ const ProjectSchema = new Schema<IProject>(
       index: true,
     },
     handoverDate: { type: Date },
-    
+
     views: { type: Number, default: 0 },
     inquiries: { type: Number, default: 0 },
   },
   {
     timestamps: true,
-    collection: 'aqar_projects',
-  }
+    collection: "aqar_projects",
+  },
 );
 
 // Indexes
-ProjectSchema.index({ geo: '2dsphere' });
+ProjectSchema.index({ geo: "2dsphere" });
 ProjectSchema.index({ city: 1, status: 1, handoverDate: 1 });
 ProjectSchema.index({ createdAt: -1 });
 
 // Methods
 ProjectSchema.methods.incrementViews = async function (this: IProject) {
-  await (this.constructor as typeof import('mongoose').Model).updateOne(
+  await (this.constructor as typeof import("mongoose").Model).updateOne(
     { _id: this._id },
-    { $inc: { views: 1 } }
+    { $inc: { views: 1 } },
   );
 };
 
 ProjectSchema.methods.incrementInquiries = async function (this: IProject) {
-  await (this.constructor as typeof import('mongoose').Model).updateOne(
+  await (this.constructor as typeof import("mongoose").Model).updateOne(
     { _id: this._id },
-    { $inc: { inquiries: 1 } }
+    { $inc: { inquiries: 1 } },
   );
 };
 
-const Project =
-  getModel<IProject>('AqarProject', ProjectSchema);
+const Project = getModel<IProject>("AqarProject", ProjectSchema);
 
 export default Project;

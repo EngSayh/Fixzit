@@ -3,9 +3,9 @@
  * Provides persistent chat history, API integration, and correlation tracking
  */
 
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { STORAGE_KEYS } from '@/config/constants';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { STORAGE_KEYS } from "@/config/constants";
 
 /**
  * Maximum number of messages to send as context window to the AI API.
@@ -15,7 +15,7 @@ const MESSAGE_HISTORY_LIMIT = 10;
 
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string; // Translation keys for 'system'/'assistant', raw text for 'user'
   timestamp: number;
   correlationId?: string;
@@ -26,9 +26,9 @@ export interface ChatMessage {
  * Will be rendered by AIChat component using useTranslation hook
  */
 const WELCOME_MESSAGE: ChatMessage = {
-  id: 'msg-welcome',
-  role: 'assistant',
-  content: 'chat.welcome', // Translation key, not hardcoded text
+  id: "msg-welcome",
+  role: "assistant",
+  content: "chat.welcome", // Translation key, not hardcoded text
   timestamp: Date.now(),
 };
 
@@ -37,7 +37,7 @@ interface AIChatState {
   isOpen: boolean;
   isLoading: boolean;
   currentCorrelationId: string | null;
-  
+
   // Actions
   sendMessage: (content: string) => Promise<void>;
   clearMessages: () => void;
@@ -57,7 +57,7 @@ const generateCorrelationId = (): string => {
  */
 const addMessage = (
   set: (fn: (state: AIChatState) => Partial<AIChatState>) => void,
-  message: Omit<ChatMessage, 'id' | 'timestamp'>
+  message: Omit<ChatMessage, "id" | "timestamp">,
 ) => {
   const newMessage: ChatMessage = {
     ...message,
@@ -82,10 +82,10 @@ export const useAIChatStore = create<AIChatState>()(
 
       sendMessage: async (content: string) => {
         const correlationId = generateCorrelationId();
-        
+
         // Add user message
         addMessage(set, {
-          role: 'user',
+          role: "user",
           content,
           correlationId,
         });
@@ -93,11 +93,11 @@ export const useAIChatStore = create<AIChatState>()(
         set({ isLoading: true, currentCorrelationId: correlationId });
 
         try {
-          const response = await fetch('/api/ai/chat', {
-            method: 'POST',
+          const response = await fetch("/api/ai/chat", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
-              'X-Correlation-Id': correlationId,
+              "Content-Type": "application/json",
+              "X-Correlation-Id": correlationId,
             },
             body: JSON.stringify({
               message: content,
@@ -113,17 +113,20 @@ export const useAIChatStore = create<AIChatState>()(
 
           // Add assistant response (use translation key if no response)
           addMessage(set, {
-            role: 'assistant',
-            content: data.response || data.message || 'chat.error.noAnswer',
+            role: "assistant",
+            content: data.response || data.message || "chat.error.noAnswer",
             correlationId,
           });
         } catch (error) {
-          console.error('[AI Chat] Error sending message:', { correlationId, error });
-          
+          console.error("[AI Chat] Error sending message:", {
+            correlationId,
+            error,
+          });
+
           // Add error message using i18n translation key
           addMessage(set, {
-            role: 'system',
-            content: 'chat.error.general', // Translation key, not hardcoded text
+            role: "system",
+            content: "chat.error.general", // Translation key, not hardcoded text
             correlationId,
           });
         } finally {
@@ -149,16 +152,16 @@ export const useAIChatStore = create<AIChatState>()(
       // Use sessionStorage for persistence within the same session
       storage: {
         getItem: (name: string) => {
-          if (typeof window === 'undefined') return null;
+          if (typeof window === "undefined") return null;
           const str = sessionStorage.getItem(name);
           return str ? JSON.parse(str) : null;
         },
         setItem: (name: string, value: unknown) => {
-          if (typeof window === 'undefined') return;
+          if (typeof window === "undefined") return;
           sessionStorage.setItem(name, JSON.stringify(value));
         },
         removeItem: (name: string) => {
-          if (typeof window === 'undefined') return;
+          if (typeof window === "undefined") return;
           sessionStorage.removeItem(name);
         },
       },
@@ -167,6 +170,6 @@ export const useAIChatStore = create<AIChatState>()(
         messages: state.messages,
         isOpen: state.isOpen,
       }),
-    }
-  )
+    },
+  ),
 );

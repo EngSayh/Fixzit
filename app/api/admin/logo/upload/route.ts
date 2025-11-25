@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { PlatformSettings } from '@/server/models/PlatformSettings';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
-import { existsSync } from 'fs';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { PlatformSettings } from "@/server/models/PlatformSettings";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
+import { existsSync } from "fs";
+import { logger } from "@/lib/logger";
 
 interface PlatformSettingsDocument {
   logoUrl?: string;
@@ -28,10 +28,10 @@ export async function POST(request: NextRequest) {
     const user = await getSessionUser(request);
 
     // SUPER_ADMIN only
-    if (user.role !== 'SUPER_ADMIN') {
+    if (user.role !== "SUPER_ADMIN") {
       return NextResponse.json(
-        { error: 'Forbidden - SUPER_ADMIN access required' },
-        { status: 403 }
+        { error: "Forbidden - SUPER_ADMIN access required" },
+        { status: 403 },
       );
     }
 
@@ -39,21 +39,27 @@ export async function POST(request: NextRequest) {
 
     // Parse multipart form data
     const formData = await request.formData();
-    const logoFile = formData.get('logo') as File | null;
+    const logoFile = formData.get("logo") as File | null;
 
     if (!logoFile) {
       return NextResponse.json(
-        { error: 'No logo file provided' },
-        { status: 400 }
+        { error: "No logo file provided" },
+        { status: 400 },
       );
     }
 
     // Validate file type
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
+    const allowedTypes = [
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/svg+xml",
+      "image/webp",
+    ];
     if (!allowedTypes.includes(logoFile.type)) {
       return NextResponse.json(
-        { error: `Invalid file type. Allowed: ${allowedTypes.join(', ')}` },
-        { status: 400 }
+        { error: `Invalid file type. Allowed: ${allowedTypes.join(", ")}` },
+        { status: 400 },
       );
     }
 
@@ -62,17 +68,17 @@ export async function POST(request: NextRequest) {
     if (logoFile.size > maxSize) {
       return NextResponse.json(
         { error: `File too large. Maximum size: ${maxSize / (1024 * 1024)}MB` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Generate unique filename
     const timestamp = Date.now();
-    const extension = logoFile.name.split('.').pop();
+    const extension = logoFile.name.split(".").pop();
     const fileName = `logo-${timestamp}.${extension}`;
-    
+
     // Define storage path (public/uploads/logos/)
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'logos');
+    const uploadDir = path.join(process.cwd(), "public", "uploads", "logos");
     const filePath = path.join(uploadDir, fileName);
     const publicUrl = `/uploads/logos/${fileName}`;
 
@@ -96,13 +102,13 @@ export async function POST(request: NextRequest) {
         logoMimeType: logoFile.type,
         logoFileSize: logoFile.size,
         updatedBy: user.id,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       {
         upsert: true,
         new: true,
-        runValidators: true
-      }
+        runValidators: true,
+      },
     );
 
     const settingsTyped = settings as unknown as PlatformSettingsDocument;
@@ -113,23 +119,22 @@ export async function POST(request: NextRequest) {
         fileName: settingsTyped.logoFileName,
         fileSize: settingsTyped.logoFileSize,
         mimeType: settingsTyped.logoMimeType,
-        updatedAt: settingsTyped.updatedAt
-      }
+        updatedAt: settingsTyped.updatedAt,
+      },
     });
-
   } catch (error) {
     // Handle authentication errors specifically
-    if (error instanceof Error && error.message.includes('No valid token')) {
+    if (error instanceof Error && error.message.includes("No valid token")) {
       return NextResponse.json(
-        { error: 'Unauthorized - Authentication required' },
-        { status: 401 }
+        { error: "Unauthorized - Authentication required" },
+        { status: 401 },
       );
     }
 
-    logger.error('[POST /api/admin/logo/upload] Error', error);
+    logger.error("[POST /api/admin/logo/upload] Error", error);
     return NextResponse.json(
-      { error: 'Failed to upload logo' },
-      { status: 500 }
+      { error: "Failed to upload logo" },
+      { status: 500 },
     );
   }
 }
@@ -144,24 +149,28 @@ export async function GET(request: NextRequest) {
     const user = await getSessionUser(request);
 
     // SUPER_ADMIN only
-    if (user.role !== 'SUPER_ADMIN') {
+    if (user.role !== "SUPER_ADMIN") {
       return NextResponse.json(
-        { error: 'Forbidden - SUPER_ADMIN access required' },
-        { status: 403 }
+        { error: "Forbidden - SUPER_ADMIN access required" },
+        { status: 403 },
       );
     }
 
     await connectToDatabase();
 
-    const settings = await PlatformSettings.findOne({ orgId: user.orgId }) as unknown as PlatformSettingsDocument | null;
-    
-    const logoData = settings ? {
-      logoUrl: settings.logoUrl,
-      logoFileName: settings.logoFileName,
-      logoFileSize: settings.logoFileSize,
-      logoMimeType: settings.logoMimeType,
-      updatedAt: settings.updatedAt
-    } : null;
+    const settings = (await PlatformSettings.findOne({
+      orgId: user.orgId,
+    })) as unknown as PlatformSettingsDocument | null;
+
+    const logoData = settings
+      ? {
+          logoUrl: settings.logoUrl,
+          logoFileName: settings.logoFileName,
+          logoFileSize: settings.logoFileSize,
+          logoMimeType: settings.logoMimeType,
+          updatedAt: settings.updatedAt,
+        }
+      : null;
 
     if (!logoData || !logoData.logoUrl) {
       return NextResponse.json({
@@ -169,7 +178,7 @@ export async function GET(request: NextRequest) {
         fileName: null,
         fileSize: null,
         mimeType: null,
-        updatedAt: null
+        updatedAt: null,
       });
     }
 
@@ -178,22 +187,21 @@ export async function GET(request: NextRequest) {
       fileName: logoData.logoFileName,
       fileSize: logoData.logoFileSize,
       mimeType: logoData.logoMimeType,
-      updatedAt: logoData.updatedAt
+      updatedAt: logoData.updatedAt,
     });
-
   } catch (error) {
     // Handle authentication errors specifically
-    if (error instanceof Error && error.message.includes('No valid token')) {
+    if (error instanceof Error && error.message.includes("No valid token")) {
       return NextResponse.json(
-        { error: 'Unauthorized - Authentication required' },
-        { status: 401 }
+        { error: "Unauthorized - Authentication required" },
+        { status: 401 },
       );
     }
 
-    logger.error('[GET /api/admin/logo] Error', error);
+    logger.error("[GET /api/admin/logo] Error", error);
     return NextResponse.json(
-      { error: 'Failed to fetch logo settings' },
-      { status: 500 }
+      { error: "Failed to fetch logo settings" },
+      { status: 500 },
     );
   }
 }

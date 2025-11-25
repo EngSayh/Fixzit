@@ -29,19 +29,19 @@ import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event'
 
 // Use conditional jest/vi globals without importing to fit either runner
-const jestLike = (global as any).vi ?? (global as any).jest
+const jestLike = (global as { vi?: typeof vi; jest?: typeof jest }).vi ?? (global as { jest?: typeof jest }).jest
 
 // Keep a reference we can update per-test to control SWR responses
 type SWRProductsState = {
-  data?: any
-  error?: any
+  data?: unknown
+  error?: unknown
   isLoading?: boolean
    
-  mutate?: ReturnType<typeof jestLike.fn> | ((...args: any[]) => any)
+  mutate?: ReturnType<NonNullable<typeof jestLike>['fn']> | ((...args: unknown[]) => unknown)
 }
 type SWRCategoriesState = {
-  data?: any
-  error?: any
+  data?: unknown
+  error?: unknown
   isLoading?: boolean
 }
 
@@ -53,12 +53,12 @@ const getProductsState = () => _productsState
 const getCategoriesState = () => _categoriesState
 
 // Capture useSWR calls to assert query key recomputation
-const useSWRCalls: Array<{ key: any; fetcher: any; opts: any }> = []
+const useSWRCalls: Array<{ key: unknown; fetcher: unknown; opts: unknown }> = []
 
 function mockLoginPromptModule() {
   return {
     __esModule: true,
-    default: ({ isOpen, title = 'Sign in to continue' }: any) => (
+    default: ({ isOpen, title = 'Sign in to continue' }: { isOpen: boolean; title?: string }) => (
       <div aria-label="login-prompt" data-open={isOpen ? 'true' : 'false'}>
         {isOpen ? title : null}
       </div>
@@ -70,7 +70,7 @@ function mockLoginPromptModule() {
 function mockSWRModule() {
   return {
     __esModule: true,
-    default: (key: any, fetcher: any, opts: any) => {
+    default: (key: unknown, fetcher: unknown, opts: unknown) => {
       useSWRCalls.push({ key, fetcher, opts })
       
       // If the key is for categories, return categories state
@@ -98,11 +98,11 @@ function mockSWRModule() {
   }
 }
 
-if ((global as any).vi) {
+if ((global as { vi?: typeof import('vitest') }).vi) {
   // vitest exposes `vi`
   vi.mock('@/components/LoginPrompt', mockLoginPromptModule)
   vi.mock('swr', mockSWRModule)
-} else if ((global as any).jest) {
+} else if ((global as { jest?: typeof import('@jest/globals') }).jest) {
   // jest fallback if these tests are run there
   jest.mock('@/components/LoginPrompt', mockLoginPromptModule)
   jest.mock('swr', mockSWRModule)
@@ -116,7 +116,7 @@ function setSWRProducts(state: Partial<SWRProductsState>) {
   if ('data' in state) _productsState.data = state.data
   if ('error' in state) _productsState.error = state.error
   if ('isLoading' in state) _productsState.isLoading = state.isLoading
-  if ('mutate' in state) _productsState.mutate = state.mutate as any
+  if ('mutate' in state) _productsState.mutate = state.mutate as SWRProductsState['mutate']
 }
 function setSWRCategories(state: Partial<SWRCategoriesState>) {
   if ('data' in state) _categoriesState.data = state.data
@@ -124,7 +124,22 @@ function setSWRCategories(state: Partial<SWRCategoriesState>) {
   if ('isLoading' in state) _categoriesState.isLoading = state.isLoading
 }
 
-function makeProduct(overrides: Partial<any> = {}) {
+type Product = {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  currency: string;
+  unit: string;
+  stock: number;
+  rating: number;
+  reviewCount: number;
+  images: unknown[];
+  vendor: { id: string; name: string; verified: boolean };
+  category: { id: string; name: string; slug: string };
+} & Record<string, unknown>;
+
+function makeProduct(overrides: Partial<Product> = {}): Product {
   return {
     id: 'p1',
     title: 'Premium Cement',
@@ -146,7 +161,7 @@ function makeProduct(overrides: Partial<any> = {}) {
   }
 }
 
-function makeCatalog(products: any[]) {
+function makeCatalog(products: Product[]) {
   return {
     products,
     pagination: {
@@ -159,7 +174,9 @@ function makeCatalog(products: any[]) {
   }
 }
 
-function makeCategories(cats: any[]) {
+type Category = { id: string; name: string; slug: string } & Record<string, unknown>;
+
+function makeCategories(cats: Category[]) {
   return {
     categories: cats,
     tenantId: 'demo-tenant',
@@ -177,7 +194,7 @@ beforeEach(() => {
   localStorage.clear()
 
   // Reset fetch mock
-  ;(global as any).fetch = undefined
+vi.stubGlobal('fetch', undefined as unknown as typeof fetch);
 })
 
 describe('CatalogView - basic rendering', () => {
@@ -284,7 +301,7 @@ describe('CatalogView - interactions', () => {
     render(<CatalogView />)
 
     const fetchSpy = jestLike.fn()
-    ;(global as any).fetch = fetchSpy
+    vi.stubGlobal('fetch', fetchSpy as unknown as typeof fetch);
 
     await userEvent.click(screen.getByRole('button', { name: /Add to cart/i }))
     expect(screen.getByLabelText('login-prompt')).toHaveAttribute('data-open', 'true')
@@ -300,7 +317,7 @@ describe('CatalogView - interactions', () => {
     document.cookie = 'fixzit_auth=1'
 
     const fetchSpy = jestLike.fn().mockResolvedValue({ ok: true, json: async () => ({}) })
-    ;(global as any).fetch = fetchSpy
+    vi.stubGlobal('fetch', fetchSpy as unknown as typeof fetch);
 
     render(<CatalogView />)
 
@@ -324,7 +341,7 @@ describe('CatalogView - interactions', () => {
     document.cookie = 'fixzit_auth=1'
 
     const fetchSpy = jestLike.fn().mockResolvedValue({ ok: false, json: async () => ({}) })
-    ;(global as any).fetch = fetchSpy
+    vi.stubGlobal('fetch', fetchSpy as unknown as typeof fetch);
 
     render(<CatalogView />)
     await userEvent.click(screen.getByRole('button', { name: /Add to cart/i }))

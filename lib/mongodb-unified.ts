@@ -1,22 +1,22 @@
-import { logger } from '@/lib/logger';
-import mongoose from 'mongoose';
-import { connectMongo as ensureDatabaseHandle } from '@/lib/mongo';
+import { logger } from "@/lib/logger";
+import mongoose from "mongoose";
+import { connectMongo as ensureDatabaseHandle } from "@/lib/mongo";
 
 declare global {
   var _mongooseConnection: typeof mongoose | undefined;
 }
 
-const isNextBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+const isNextBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
 const disableMongoForBuild =
-  process.env.DISABLE_MONGODB_FOR_BUILD === 'true' ||
-  (isNextBuildPhase && process.env.ALLOW_MONGODB_DURING_BUILD !== 'true');
+  process.env.DISABLE_MONGODB_FOR_BUILD === "true" ||
+  (isNextBuildPhase && process.env.ALLOW_MONGODB_DURING_BUILD !== "true");
 let connectPromise: Promise<typeof mongoose> | null = null;
 
 function createBuildDisabledError(): Error & { code: string } {
   const error = new Error(
-    'MongoDB connections are disabled during build (DISABLE_MONGODB_FOR_BUILD/phase-production-build). Set ALLOW_MONGODB_DURING_BUILD=true to override.'
+    "MongoDB connections are disabled during build (DISABLE_MONGODB_FOR_BUILD/phase-production-build). Set ALLOW_MONGODB_DURING_BUILD=true to override.",
   ) as Error & { code: string };
-  error.code = 'MONGO_DISABLED_FOR_BUILD';
+  error.code = "MONGO_DISABLED_FOR_BUILD";
   return error;
 }
 
@@ -32,15 +32,18 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
   if (!connectPromise) {
     connectPromise = ensureDatabaseHandle()
       .then(() => {
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === "development") {
           globalThis._mongooseConnection = mongoose;
         }
-        logger.info('✅ MongoDB connected successfully');
+        logger.info("✅ MongoDB connected successfully");
         return mongoose;
       })
       .catch((error: unknown) => {
         connectPromise = null;
-        logger.error('[MongoDB] Connection failed', error instanceof Error ? error : undefined);
+        logger.error(
+          "[MongoDB] Connection failed",
+          error instanceof Error ? error : undefined,
+        );
         throw error;
       });
   }
@@ -63,7 +66,9 @@ export async function disconnectFromDatabase(): Promise<void> {
 
 export async function checkDatabaseHealth(): Promise<boolean> {
   if (disableMongoForBuild) {
-    logger.warn('[MongoDB] Health check skipped because database access is disabled for build.');
+    logger.warn(
+      "[MongoDB] Health check skipped because database access is disabled for build.",
+    );
     return true;
   }
 
@@ -73,7 +78,7 @@ export async function checkDatabaseHealth(): Promise<boolean> {
     }
 
     if (!mongoose.connection.db) {
-      throw new Error('Database connection not established');
+      throw new Error("Database connection not established");
     }
 
     await mongoose.connection.db.admin().ping();
@@ -81,7 +86,10 @@ export async function checkDatabaseHealth(): Promise<boolean> {
   } catch (_error: unknown) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('Database health check failed', error instanceof Error ? error : undefined);
+    logger.error(
+      "Database health check failed",
+      error instanceof Error ? error : undefined,
+    );
     return false;
   }
 }
@@ -96,7 +104,7 @@ export async function getDatabase(): Promise<ConnectionDb> {
   await connectToDatabase();
   const db = mongoose.connection.db;
   if (!db) {
-    throw new Error('Database not available');
+    throw new Error("Database not available");
   }
   return db as ConnectionDb;
 }

@@ -1,12 +1,15 @@
-import { NextRequest } from 'next/server';
-import { dbConnect } from '@/db/mongoose';
-import Subscription from '@/server/models/Subscription';
-import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/lib/finance/paytabs';
+import { NextRequest } from "next/server";
+import { dbConnect } from "@/db/mongoose";
+import Subscription from "@/server/models/Subscription";
+import {
+  finalizePayTabsTransaction,
+  normalizePayTabsPayload,
+} from "@/lib/finance/paytabs";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
 
 /**
  * @openapi
@@ -61,20 +64,22 @@ export async function POST(req: NextRequest) {
 
   const subscription = subscriptionId
     ? await Subscription.findById(subscriptionId)
-    : (await Subscription.findOne({ 'paytabs.cart_id': cartId }));
+    : await Subscription.findOne({ "paytabs.cart_id": cartId });
 
   if (!subscription) {
-    return createSecureResponse({ error: 'SUBSCRIPTION_NOT_FOUND' }, 404, req);
+    return createSecureResponse({ error: "SUBSCRIPTION_NOT_FOUND" }, 404, req);
   }
 
   /**
    * Return subscription status
    * Frontend uses this to determine if checkout was successful
    */
-  return createSecureResponse({
-    ok: subscription.status === 'ACTIVE',
-    subscription
-  }, 200, req);
+  return createSecureResponse(
+    {
+      ok: subscription.status === "ACTIVE",
+      subscription,
+    },
+    200,
+    req,
+  );
 }
-
-

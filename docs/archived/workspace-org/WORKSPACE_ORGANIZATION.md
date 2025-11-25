@@ -1,6 +1,7 @@
 # 📁 Fixzit Workspace Organization Guide
 
 ## 🎯 Purpose
+
 This document explains the organized structure of the Fixzit workspace and where to find (or place) different types of files.
 
 ## 📂 Directory Structure
@@ -64,6 +65,7 @@ docs/
 ## 🗂️ File Location Guidelines
 
 ### ✅ Keep in Root Directory
+
 - `README.md` - Main project documentation
 - `package.json` - Project dependencies
 - `tsconfig.json` - TypeScript configuration
@@ -73,6 +75,7 @@ docs/
 - Other configuration files (`.eslintrc`, `tailwind.config.js`, etc.)
 
 ### ❌ Don't Keep in Root
+
 - Session reports → `docs/sessions/`
 - Security audits → `docs/security/`
 - PR documentation → `docs/pull-requests/`
@@ -83,7 +86,9 @@ docs/
 ## 🧹 Organizing Your Workspace
 
 ### Automatic Organization
+
 Run the organization script:
+
 ```bash
 bash scripts/organize-workspace.sh
 ```
@@ -117,9 +122,11 @@ This will automatically move files to their proper locations.
 ## 🚀 Dev Server Auto-Start
 
 ### The Problem
+
 The dev server doesn't stay alive because Next.js dev servers don't auto-start by default.
 
 ### The Solution
+
 We've configured VS Code to auto-start the dev server when you open the workspace.
 
 **Auto-start on folder open**: ✅ Enabled  
@@ -136,6 +143,7 @@ If auto-start doesn't work:
    - Select "Dev Server: Start"
 
 2. **Via Terminal**:
+
    ```bash
    pnpm dev
    ```
@@ -146,11 +154,13 @@ If auto-start doesn't work:
    ```
 
 ### Troubleshooting
+
 See `.vscode/DEV_SERVER_GUIDE.md` for detailed troubleshooting.
 
 ## 📋 Maintenance Tasks
 
 ### Weekly
+
 ```bash
 # Run the organization script
 bash scripts/organize-workspace.sh
@@ -160,6 +170,7 @@ rm -rf node_modules && pnpm install
 ```
 
 ### Monthly
+
 ```bash
 # Archive old reports
 mv docs/sessions/SESSION_SUMMARY_2025-09-*.md docs/sessions/archive/
@@ -169,6 +180,7 @@ rm -rf .next dist out
 ```
 
 ### Before Committing
+
 ```bash
 # Check what's being committed
 git status
@@ -183,6 +195,7 @@ bash scripts/organize-workspace.sh
 ## 🎯 Best Practices
 
 ### ✅ Do
+
 - Keep root directory clean (only config files)
 - Use the organization script regularly
 - Put new docs in the correct `docs/` subdirectory
@@ -190,6 +203,7 @@ bash scripts/organize-workspace.sh
 - Use descriptive filenames with dates
 
 ### ❌ Don't
+
 - Create reports in root directory
 - Keep temp/test files in root
 - Commit `.env` or `.env.local` files
@@ -210,6 +224,7 @@ If you're organizing an existing messy workspace:
 ## 📞 Questions?
 
 If you're unsure where a file should go:
+
 1. Check this guide first
 2. Look at similar existing files
 3. When in doubt, use `docs/reports/` for documentation

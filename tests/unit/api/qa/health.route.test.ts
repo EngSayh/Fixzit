@@ -4,7 +4,9 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import type mongoose from 'mongoose';
 import * as mongodbUnified from '@/lib/mongodb-unified';
+import { makeGetRequest, makePostRequest } from '@/tests/helpers/request';
 
 vi.mock('@/lib/mongodb-unified', () => {
   const connectToDatabase = vi.fn();
@@ -22,11 +24,22 @@ vi.mock('@/lib/logger', () => ({
 import { POST, GET } from "@/app/api/qa/health/route";
 import { logger } from '@/lib/logger';
 
-function createMockRequest() {
-  return {
-    headers: { get: () => null },
-    url: 'http://localhost:3000/api/qa/health'
+type MongooseLike = {
+  connection?: {
+    db?: {
+      listCollections?: () => { toArray: () => Promise<Array<{ name: string }>> };
+    };
   };
+};
+
+const HEALTH_URL = 'http://localhost:3000/api/qa/health';
+
+function createGetRequest() {
+  return makeGetRequest(HEALTH_URL);
+}
+
+function createPostRequest() {
+  return makePostRequest(HEALTH_URL, {}, { 'content-type': 'application/json' });
 }
 
 describe('api/qa/health route - GET', () => {
@@ -52,8 +65,8 @@ describe('api/qa/health route - GET', () => {
       connection: {
         db: { listCollections }
       }
-    };
-    mod.connectToDatabase.mockResolvedValue(mockMongoose as any);
+    } satisfies MongooseLike;
+    mod.connectToDatabase.mockResolvedValue(mockMongoose as unknown as typeof mongoose);
 
     const memSpy = vi.spyOn(process, 'memoryUsage').mockReturnValue({
       rss: 100 * 1024 * 1024,
@@ -63,7 +76,7 @@ describe('api/qa/health route - GET', () => {
       arrayBuffers: 1 * 1024 * 1024
     });
 
-    const res = await GET(createMockRequest() as any);
+    const res = await GET(createGetRequest());
     expect(res.status).toBe(200);
     const body = await res.json();
 
@@ -80,7 +93,7 @@ describe('api/qa/health route - GET', () => {
     const err = new Error('DB down');
     mod.connectToDatabase.mockRejectedValue(err);
 
-    const res = await GET(createMockRequest() as any);
+    const res = await GET(createGetRequest());
     expect(logger.error).toHaveBeenCalled();
     expect(res.status).toBe(503);
     const body = await res.json();
@@ -101,9 +114,9 @@ describe('api/qa/health route - POST', () => {
 
   it('returns success when DB reconnects successfully', async () => {
     const mod = vi.mocked(mongodbUnified);
-    mod.connectToDatabase.mockResolvedValue(undefined as any);
+    mod.connectToDatabase.mockResolvedValue({} as unknown as typeof mongoose);
 
-    const res = await POST(createMockRequest() as any);
+    const res = await POST(createPostRequest());
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
@@ -115,7 +128,7 @@ describe('api/qa/health route - POST', () => {
     const err = new Error('reconnect failed');
     mod.connectToDatabase.mockRejectedValue(err);
 
-    const res = await POST(createMockRequest() as any);
+    const res = await POST(createPostRequest());
     expect(res.status).toBe(500);
     const body = await res.json();
     expect(body.success).toBe(false);

@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-import crypto from 'crypto';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { getPresignedGetUrl, buildResumeKey } from '@/lib/storage/s3';
+import { NextRequest, NextResponse } from "next/server";
+import fs from "fs/promises";
+import path from "path";
+import crypto from "crypto";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getPresignedGetUrl, buildResumeKey } from "@/lib/storage/s3";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
 // Resume files are stored under a non-public project directory with UUID-based names
-const BASE_DIR = path.join(process.cwd(), 'private-uploads', 'resumes');
+const BASE_DIR = path.join(process.cwd(), "private-uploads", "resumes");
 
 /**
  * @openapi
@@ -30,28 +30,40 @@ const BASE_DIR = path.join(process.cwd(), 'private-uploads', 'resumes');
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET(req: NextRequest, props: { params: Promise<{ file: string }> }) {
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ file: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req).catch(() => null);
-    if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
-    const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
-    if (!allowed.has(user.role || '')) return createSecureResponse({ error: 'Forbidden' }, 403, req);
+    if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    const allowed = new Set(["SUPER_ADMIN", "ADMIN", "HR"]);
+    if (!allowed.has(user.role || ""))
+      return createSecureResponse({ error: "Forbidden" }, 403, req);
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
 
     const url = new URL(req.url);
-    const token = url.searchParams.get('token') || '';
-    const expParam = url.searchParams.get('exp') || '';
+    const token = url.searchParams.get("token") || "";
+    const expParam = url.searchParams.get("exp") || "";
     const exp = Number(expParam);
-    if (!token || !Number.isFinite(exp)) return createSecureResponse({ error: 'Missing token' }, 400, req);
-    if (Date.now() > exp) return createSecureResponse({ error: 'Token expired' }, 403, req);
+    if (!token || !Number.isFinite(exp))
+      return createSecureResponse({ error: "Missing token" }, 400, req);
+    if (Date.now() > exp)
+      return createSecureResponse({ error: "Token expired" }, 403, req);
     const safeName = path.basename(params.file);
-    const tenant = String(user.tenantId || 'global');
-    const expected = generateToken(`${tenant}:${safeName}`, exp, String(user.id || ''), tenant);
-    if (!timingSafeEqual(expected, token)) return createSecureResponse({ error: 'Invalid token' }, 403, req);
+    const tenant = String(user.tenantId || "global");
+    const expected = generateToken(
+      `${tenant}:${safeName}`,
+      exp,
+      String(user.id || ""),
+      tenant,
+    );
+    if (!timingSafeEqual(expected, token))
+      return createSecureResponse({ error: "Invalid token" }, 403, req);
 
     // Prefer S3 if configured; else local fallback
     if (process.env.AWS_S3_BUCKET) {
@@ -61,34 +73,52 @@ export async function GET(req: NextRequest, props: { params: Promise<{ file: str
     }
     const filePath = path.join(BASE_DIR, tenant, safeName);
     const data = await fs.readFile(filePath).catch(() => null);
-    if (!data) return createSecureResponse({ error: 'Not found' }, 404, req);
+    if (!data) return createSecureResponse({ error: "Not found" }, 404, req);
     const contentType = contentTypeFromName(safeName);
     const out = new Uint8Array(data.length);
     out.set(data);
-    return new NextResponse(out, { status: 200, headers: { 'Content-Type': contentType, 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': `attachment; filename="${safeName}"` } });
+    return new NextResponse(out, {
+      status: 200,
+      headers: {
+        "Content-Type": contentType,
+        "X-Content-Type-Options": "nosniff",
+        "Content-Disposition": `attachment; filename="${safeName}"`,
+      },
+    });
   } catch {
-    return createSecureResponse({ error: 'Failed to fetch file' }, 500, req);
+    return createSecureResponse({ error: "Failed to fetch file" }, 500, req);
   }
 }
 
-export async function POST(req: NextRequest, props: { params: Promise<{ file: string }> }) {
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ file: string }> },
+) {
   const params = await props.params;
   try {
     const user = await getSessionUser(req).catch(() => null);
-    if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
-    const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
-    if (!allowed.has(user.role || '')) return createSecureResponse({ error: 'Forbidden' }, 403, req);
+    if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    const allowed = new Set(["SUPER_ADMIN", "ADMIN", "HR"]);
+    if (!allowed.has(user.role || ""))
+      return createSecureResponse({ error: "Forbidden" }, 403, req);
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
     const expires = Date.now() + 1000 * 60 * 10; // 10 minutes
     const safeName = path.basename(params.file);
-    const tenant = String(user.tenantId || 'global');
-    const token = generateToken(`${tenant}:${safeName}`, expires, String(user.id || ''), tenant);
-    return NextResponse.json({ url: `${new URL(req.url).origin}/api/files/resumes/${encodeURIComponent(safeName)}?token=${encodeURIComponent(token)}&exp=${expires}` });
+    const tenant = String(user.tenantId || "global");
+    const token = generateToken(
+      `${tenant}:${safeName}`,
+      expires,
+      String(user.id || ""),
+      tenant,
+    );
+    return NextResponse.json({
+      url: `${new URL(req.url).origin}/api/files/resumes/${encodeURIComponent(safeName)}?token=${encodeURIComponent(token)}&exp=${expires}`,
+    });
   } catch {
-    return createSecureResponse({ error: 'Failed to sign URL' }, 500, req);
+    return createSecureResponse({ error: "Failed to sign URL" }, 500, req);
   }
 }
 
@@ -97,22 +127,37 @@ declare global {
   var __DEV_FILE_SIGN_SECRET__: string | undefined;
 }
 
-function generateToken(name: string, exp: number | undefined, userId: string, tenantId: string) {
+function generateToken(
+  name: string,
+  exp: number | undefined,
+  userId: string,
+  tenantId: string,
+) {
   const raw = process.env.FILE_SIGNING_SECRET;
-  let secret = typeof raw === 'string' ? raw.trim() : '';
-  const WEAK = new Set(['', 'dev-secret-change-me', 'changeme', 'secret', 'password']);
-  if (process.env.NODE_ENV === 'production' && WEAK.has(secret)) {
-    throw new Error('FILE_SIGNING_SECRET must be set to a strong, non-default value in production');
+  let secret = typeof raw === "string" ? raw.trim() : "";
+  const WEAK = new Set([
+    "",
+    "dev-secret-change-me",
+    "changeme",
+    "secret",
+    "password",
+  ]);
+  if (process.env.NODE_ENV === "production" && WEAK.has(secret)) {
+    throw new Error(
+      "FILE_SIGNING_SECRET must be set to a strong, non-default value in production",
+    );
   }
   // In non-production, generate an ephemeral in-memory secret if unset/weak to avoid predictable tokens
-  if (process.env.NODE_ENV !== 'production' && WEAK.has(secret)) {
+  if (process.env.NODE_ENV !== "production" && WEAK.has(secret)) {
     if (!globalThis.__DEV_FILE_SIGN_SECRET__) {
-      globalThis.__DEV_FILE_SIGN_SECRET__ = crypto.randomBytes(32).toString('hex');
+      globalThis.__DEV_FILE_SIGN_SECRET__ = crypto
+        .randomBytes(32)
+        .toString("hex");
     }
     secret = globalThis.__DEV_FILE_SIGN_SECRET__;
   }
-  const payload = `${tenantId}:${userId}:${name}:${exp || ''}`;
-  return crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  const payload = `${tenantId}:${userId}:${name}:${exp || ""}`;
+  return crypto.createHmac("sha256", secret).update(payload).digest("hex");
 }
 
 function timingSafeEqual(a: string, b: string) {
@@ -124,9 +169,10 @@ function timingSafeEqual(a: string, b: string) {
 
 function contentTypeFromName(name: string) {
   const lower = name.toLowerCase();
-  if (lower.endsWith('.pdf')) return 'application/pdf';
-  if (lower.endsWith('.doc')) return 'application/msword';
-  if (lower.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-  if (lower.endsWith('.txt')) return 'text/plain';
-  return 'application/octet-stream';
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  if (lower.endsWith(".doc")) return "application/msword";
+  if (lower.endsWith(".docx"))
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (lower.endsWith(".txt")) return "text/plain";
+  return "application/octet-stream";
 }

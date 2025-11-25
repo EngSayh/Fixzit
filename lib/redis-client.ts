@@ -4,16 +4,16 @@
  * Provides in-memory fallbacks when Redis is not configured.
  */
 
-import Redis from 'ioredis';
-import { logger } from '@/lib/logger';
+import Redis from "ioredis";
+import { logger } from "@/lib/logger";
 
 type MemoryEntry = { value: string; expiresAt: number };
 
 const redisUrl = process.env.REDIS_URL;
 const redisHost = process.env.REDIS_HOST;
-const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
+const redisPort = parseInt(process.env.REDIS_PORT || "6379", 10);
 const redisPassword = process.env.REDIS_PASSWORD;
-const redisDb = parseInt(process.env.REDIS_DB || '0', 10);
+const redisDb = parseInt(process.env.REDIS_DB || "0", 10);
 
 const hasRedisConfig = Boolean(redisUrl || redisHost);
 
@@ -26,7 +26,10 @@ const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 function cleanupMemoryEntry(key: string): MemoryEntry | null {
   const entry = memoryStore.get(key);
   if (!entry) return null;
-  if (entry.expiresAt !== Number.POSITIVE_INFINITY && entry.expiresAt <= Date.now()) {
+  if (
+    entry.expiresAt !== Number.POSITIVE_INFINITY &&
+    entry.expiresAt <= Date.now()
+  ) {
     memoryStore.delete(key);
     return null;
   }
@@ -50,7 +53,7 @@ function memoryDel(key: string): void {
 }
 
 function memoryDelPattern(pattern: string): void {
-  const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+  const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");
   for (const key of memoryStore.keys()) {
     if (regex.test(key)) {
       memoryStore.delete(key);
@@ -59,7 +62,7 @@ function memoryDelPattern(pattern: string): void {
 }
 
 function memoryIncr(key: string): number {
-  const current = Number(memoryGet(key) || '0');
+  const current = Number(memoryGet(key) || "0");
   const next = current + 1;
   memorySet(key, next.toString());
   return next;
@@ -74,8 +77,10 @@ function memoryExpire(key: string, ttlSeconds: number): void {
 
 function buildRedisClient(): Redis | null {
   if (!hasRedisConfig) {
-    if (!warnedMissingRedis && process.env.NODE_ENV !== 'test') {
-      logger.warn('[Redis] REDIS_URL/REDIS_HOST not configured. Redis-backed features disabled.');
+    if (!warnedMissingRedis && process.env.NODE_ENV !== "test") {
+      logger.warn(
+        "[Redis] REDIS_URL/REDIS_HOST not configured. Redis-backed features disabled.",
+      );
       warnedMissingRedis = true;
     }
     return null;
@@ -103,24 +108,27 @@ function buildRedisClient(): Redis | null {
         ...baseConfig,
       });
 
-  redisClient.on('connect', () => {
-    logger.info('🔴 Redis connected', redisUrl ? { url: redisUrl } : { host: redisHost, port: redisPort });
+  redisClient.on("connect", () => {
+    logger.info(
+      "🔴 Redis connected",
+      redisUrl ? { url: redisUrl } : { host: redisHost, port: redisPort },
+    );
   });
 
-  redisClient.on('ready', () => {
-    logger.info('✅ Redis ready for commands');
+  redisClient.on("ready", () => {
+    logger.info("✅ Redis ready for commands");
   });
 
-  redisClient.on('reconnecting', () => {
-    logger.info('Redis reconnecting...');
+  redisClient.on("reconnecting", () => {
+    logger.info("Redis reconnecting...");
   });
 
-  redisClient.on('close', () => {
-    logger.warn('Redis connection closed');
+  redisClient.on("close", () => {
+    logger.warn("Redis connection closed");
   });
 
-  redisClient.on('error', (error) => {
-    logger.error('Redis connection error', { error });
+  redisClient.on("error", (error) => {
+    logger.error("Redis connection error", { error });
   });
 
   return redisClient;
@@ -133,19 +141,19 @@ export function getRedisClient(): Redis | null {
 export async function connectRedis(): Promise<void> {
   const client = getRedisClient();
   if (!client) {
-    logger.warn('connectRedis skipped - Redis not configured');
+    logger.warn("connectRedis skipped - Redis not configured");
     return;
   }
-  if (client.status === 'ready') return;
+  if (client.status === "ready") return;
   await client.connect();
-  logger.info('Redis client connected successfully');
+  logger.info("Redis client connected successfully");
 }
 
 export async function disconnectRedis(): Promise<void> {
   if (redisClient) {
     await redisClient.quit();
     redisClient = null;
-    logger.info('Redis client disconnected');
+    logger.info("Redis client disconnected");
   }
 }
 
@@ -155,15 +163,16 @@ export const cache = {
     if (client) {
       try {
         const value = await client.get(key);
-        return value ? JSON.parse(value) as T : null;
+        return value ? (JSON.parse(value) as T) : null;
       } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
         void error;
-        logger.error('Cache get error', { key, error });
+        logger.error("Cache get error", { key, error });
       }
     }
     const memoryValue = memoryGet(key);
-    return memoryValue ? JSON.parse(memoryValue) as T : null;
+    return memoryValue ? (JSON.parse(memoryValue) as T) : null;
   },
 
   async set(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
@@ -178,9 +187,10 @@ export const cache = {
         }
         return;
       } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
         void error;
-        logger.error('Cache set error', { key, error });
+        logger.error("Cache set error", { key, error });
       }
     }
     memorySet(key, serialized, ttlSeconds);
@@ -193,9 +203,10 @@ export const cache = {
         await client.del(key);
         return;
       } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
         void error;
-        logger.error('Cache delete error', { key, error });
+        logger.error("Cache delete error", { key, error });
       }
     }
     memoryDel(key);
@@ -211,9 +222,10 @@ export const cache = {
         }
         return;
       } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
         void error;
-        logger.error('Cache delete pattern error', { pattern, error });
+        logger.error("Cache delete pattern error", { pattern, error });
       }
     }
     memoryDelPattern(pattern);
@@ -225,9 +237,10 @@ export const cache = {
       try {
         return (await client.exists(key)) === 1;
       } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
         void error;
-        logger.error('Cache exists error', { key, error });
+        logger.error("Cache exists error", { key, error });
       }
     }
     return memoryGet(key) !== null;
@@ -239,9 +252,10 @@ export const cache = {
       try {
         return await client.incr(key);
       } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
         void error;
-        logger.error('Cache increment error', { key, error });
+        logger.error("Cache increment error", { key, error });
       }
     }
     return memoryIncr(key);
@@ -254,9 +268,10 @@ export const cache = {
         await client.expire(key, ttlSeconds);
         return;
       } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
         void error;
-        logger.error('Cache expire error', { key, error });
+        logger.error("Cache expire error", { key, error });
       }
     }
     memoryExpire(key, ttlSeconds);
@@ -267,7 +282,7 @@ export const rateLimit = {
   async check(
     key: string,
     limit: number,
-    windowSeconds: number
+    windowSeconds: number,
   ): Promise<{ allowed: boolean; remaining: number; resetAt: Date }> {
     const client = getRedisClient();
     if (client) {
@@ -282,9 +297,10 @@ export const rateLimit = {
         const remaining = Math.max(0, limit - current);
         return { allowed: current <= limit, remaining, resetAt };
       } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
         void error;
-        logger.error('Rate limit check error', { key, error });
+        logger.error("Rate limit check error", { key, error });
       }
     }
 
@@ -293,7 +309,11 @@ export const rateLimit = {
     if (!bucket || bucket.resetAt <= now) {
       const resetAt = now + windowSeconds * 1000;
       rateLimitBuckets.set(key, { count: 1, resetAt });
-      return { allowed: true, remaining: limit - 1, resetAt: new Date(resetAt) };
+      return {
+        allowed: true,
+        remaining: limit - 1,
+        resetAt: new Date(resetAt),
+      };
     }
 
     bucket.count += 1;

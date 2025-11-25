@@ -1,6 +1,6 @@
 /**
  * Ad Campaign Service
- * 
+ *
  * CRUD operations for advertising campaigns:
  * - Create campaigns (Sponsored Products, Sponsored Brands)
  * - Manage targeting (keywords, categories, products)
@@ -9,33 +9,35 @@
  * - Track performance metrics
  */
 
-import { nanoid } from 'nanoid';
-import { logger } from '@/lib/logger';
+import { nanoid } from "nanoid";
+import { logger } from "@/lib/logger";
 
 const MIN_BID_SAR = 0.05;
 const MIN_DAILY_BUDGET_SAR = 10;
 
-type KeywordMatchType = 'exact' | 'phrase' | 'broad';
-type KeywordTargetInput = string | {
-  value: string;
-  matchType?: KeywordMatchType;
-};
+type KeywordMatchType = "exact" | "phrase" | "broad";
+type KeywordTargetInput =
+  | string
+  | {
+      value: string;
+      matchType?: KeywordMatchType;
+    };
 
 interface CreateCampaignInput {
   sellerId: string;
   name: string;
-  type: 'sponsored_products' | 'sponsored_brands' | 'product_display';
+  type: "sponsored_products" | "sponsored_brands" | "product_display";
   dailyBudget: number;
   startDate: Date;
   endDate?: Date;
-  biddingStrategy: 'manual' | 'automatic';
+  biddingStrategy: "manual" | "automatic";
   defaultBid?: number; // For automatic bidding
   targeting: CampaignTargeting;
   products: string[]; // FSINs to advertise
 }
 
 interface CampaignTargeting {
-  type: 'keyword' | 'category' | 'product' | 'automatic';
+  type: "keyword" | "category" | "product" | "automatic";
   keywords?: KeywordTargetInput[]; // Keyword strings or structured values
   categories?: string[]; // For category targeting
   targetProducts?: string[]; // Competitor ASINs for product targeting
@@ -48,8 +50,8 @@ interface UpdateCampaignInput {
   dailyBudget?: number;
   startDate?: Date;
   endDate?: Date;
-  status?: 'active' | 'paused' | 'ended';
-  biddingStrategy?: 'manual' | 'automatic';
+  status?: "active" | "paused" | "ended";
+  biddingStrategy?: "manual" | "automatic";
   defaultBid?: number;
 }
 
@@ -57,13 +59,13 @@ interface Campaign {
   campaignId: string;
   sellerId: string;
   name: string;
-  type: 'sponsored_products' | 'sponsored_brands' | 'product_display';
-  status: 'active' | 'paused' | 'ended';
+  type: "sponsored_products" | "sponsored_brands" | "product_display";
+  status: "active" | "paused" | "ended";
   dailyBudget: number;
   spentToday: number;
   startDate: Date;
   endDate?: Date;
-  biddingStrategy: 'manual' | 'automatic';
+  biddingStrategy: "manual" | "automatic";
   defaultBid?: number;
   targeting: CampaignTargeting;
   products: string[];
@@ -75,17 +77,21 @@ interface Campaign {
 interface AdBid {
   bidId: string;
   campaignId: string;
-  targetType: 'keyword' | 'category' | 'product' | 'asin';
+  targetType: "keyword" | "category" | "product" | "asin";
   targetValue: string;
   bidAmount: number;
   productId: string;
-  status: 'active' | 'paused';
+  status: "active" | "paused";
   createdAt: Date;
   matchType?: KeywordMatchType;
 }
 
 export class CampaignService {
-  private static assertBudget(num: number, field = 'dailyBudget', min = MIN_DAILY_BUDGET_SAR): void {
+  private static assertBudget(
+    num: number,
+    field = "dailyBudget",
+    min = MIN_DAILY_BUDGET_SAR,
+  ): void {
     if (!Number.isFinite(num) || num < min) {
       throw new Error(`${field} must be at least ${min} SAR`);
     }
@@ -93,14 +99,14 @@ export class CampaignService {
 
   private static assertDates(startDate: Date, endDate?: Date): void {
     if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime())) {
-      throw new Error('Invalid start date');
+      throw new Error("Invalid start date");
     }
     if (endDate) {
       if (!(endDate instanceof Date) || Number.isNaN(endDate.getTime())) {
-        throw new Error('Invalid end date');
+        throw new Error("Invalid end date");
       }
       if (endDate < startDate) {
-        throw new Error('End date must be on or after start date');
+        throw new Error("End date must be on or after start date");
       }
     }
   }
@@ -108,13 +114,13 @@ export class CampaignService {
   private static ensureOwnership<T extends { sellerId: string }>(
     doc: T | null,
     sellerId: string,
-    action: string
+    action: string,
   ): T {
     if (!doc) {
       throw new Error(`Campaign not found for ${action}`);
     }
     if (doc.sellerId !== sellerId) {
-      throw new Error('Forbidden: campaign does not belong to seller');
+      throw new Error("Forbidden: campaign does not belong to seller");
     }
     return doc;
   }
@@ -128,14 +134,26 @@ export class CampaignService {
     this.assertDates(input.startDate, input.endDate);
 
     if (input.products.length === 0) {
-      throw new Error('At least one product must be selected');
+      throw new Error("At least one product must be selected");
     }
 
     const effectiveDefaultBid =
-      input.defaultBid !== undefined ? input.defaultBid : input.biddingStrategy === 'manual' ? MIN_BID_SAR : undefined;
-    if (input.biddingStrategy === 'automatic' || input.biddingStrategy === 'manual') {
-      if (effectiveDefaultBid === undefined || effectiveDefaultBid < MIN_BID_SAR) {
-        throw new Error(`Default bid required and must be at least ${MIN_BID_SAR} SAR`);
+      input.defaultBid !== undefined
+        ? input.defaultBid
+        : input.biddingStrategy === "manual"
+          ? MIN_BID_SAR
+          : undefined;
+    if (
+      input.biddingStrategy === "automatic" ||
+      input.biddingStrategy === "manual"
+    ) {
+      if (
+        effectiveDefaultBid === undefined ||
+        effectiveDefaultBid < MIN_BID_SAR
+      ) {
+        throw new Error(
+          `Default bid required and must be at least ${MIN_BID_SAR} SAR`,
+        );
       }
     }
 
@@ -147,7 +165,7 @@ export class CampaignService {
       campaignId,
       input.targeting,
       input.products,
-      (effectiveDefaultBid as number)
+      effectiveDefaultBid as number,
     );
 
     const campaign: Campaign = {
@@ -155,7 +173,7 @@ export class CampaignService {
       sellerId: input.sellerId,
       name: input.name,
       type: input.type,
-      status: 'active',
+      status: "active",
       dailyBudget: input.dailyBudget,
       spentToday: 0,
       startDate: input.startDate,
@@ -170,11 +188,11 @@ export class CampaignService {
     };
 
     // Save to database
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    await db.collection('souq_ad_campaigns').insertOne(campaign);
-    await db.collection('souq_ad_bids').insertMany(bids);
+    await db.collection("souq_ad_campaigns").insertOne(campaign);
+    await db.collection("souq_ad_bids").insertMany(bids);
 
     logger.info(`[CampaignService] Created campaign: ${campaignId}`);
 
@@ -187,22 +205,29 @@ export class CampaignService {
   static async updateCampaign(
     campaignId: string,
     updates: UpdateCampaignInput,
-    sellerId: string
+    sellerId: string,
   ): Promise<Campaign> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const campaign = await db
-      .collection<Campaign>('souq_ad_campaigns')
+      .collection<Campaign>("souq_ad_campaigns")
       .findOne({ campaignId });
 
-    const existingCampaign = this.ensureOwnership(campaign, sellerId, 'update');
+    const existingCampaign = this.ensureOwnership(campaign, sellerId, "update");
 
-    const nextBiddingStrategy = updates.biddingStrategy ?? existingCampaign.biddingStrategy;
-    const nextDefaultBid = updates.defaultBid ?? existingCampaign.defaultBid ?? MIN_BID_SAR;
-    if (nextBiddingStrategy === 'automatic' || nextBiddingStrategy === 'manual') {
+    const nextBiddingStrategy =
+      updates.biddingStrategy ?? existingCampaign.biddingStrategy;
+    const nextDefaultBid =
+      updates.defaultBid ?? existingCampaign.defaultBid ?? MIN_BID_SAR;
+    if (
+      nextBiddingStrategy === "automatic" ||
+      nextBiddingStrategy === "manual"
+    ) {
       if (nextDefaultBid < MIN_BID_SAR) {
-        throw new Error(`Default bid must be at least ${MIN_BID_SAR} SAR for ${nextBiddingStrategy} bidding`);
+        throw new Error(
+          `Default bid must be at least ${MIN_BID_SAR} SAR for ${nextBiddingStrategy} bidding`,
+        );
       }
     }
 
@@ -218,13 +243,12 @@ export class CampaignService {
       updatedAt: new Date(),
     };
 
-    await db.collection('souq_ad_campaigns').updateOne(
-      { campaignId },
-      { $set: updateDoc }
-    );
+    await db
+      .collection("souq_ad_campaigns")
+      .updateOne({ campaignId }, { $set: updateDoc });
 
     const updated = await db
-      .collection<Campaign>('souq_ad_campaigns')
+      .collection<Campaign>("souq_ad_campaigns")
       .findOne({ campaignId });
 
     if (!updated) {
@@ -239,18 +263,23 @@ export class CampaignService {
   /**
    * Delete campaign
    */
-  static async deleteCampaign(campaignId: string, sellerId: string): Promise<void> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+  static async deleteCampaign(
+    campaignId: string,
+    sellerId: string,
+  ): Promise<void> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    const campaign = await db.collection<Campaign>('souq_ad_campaigns').findOne({ campaignId });
-    this.ensureOwnership(campaign, sellerId, 'delete');
+    const campaign = await db
+      .collection<Campaign>("souq_ad_campaigns")
+      .findOne({ campaignId });
+    this.ensureOwnership(campaign, sellerId, "delete");
 
     // Delete bids
-    await db.collection('souq_ad_bids').deleteMany({ campaignId });
+    await db.collection("souq_ad_bids").deleteMany({ campaignId });
 
     // Delete campaign
-    await db.collection('souq_ad_campaigns').deleteOne({ campaignId });
+    await db.collection("souq_ad_campaigns").deleteOne({ campaignId });
 
     logger.info(`[CampaignService] Deleted campaign: ${campaignId}`);
   }
@@ -259,18 +288,18 @@ export class CampaignService {
    * Get campaign by ID
    */
   static async getCampaign(campaignId: string): Promise<Campaign | null> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const campaign = await db
-      .collection('souq_ad_campaigns')
+      .collection("souq_ad_campaigns")
       .findOne({ campaignId });
 
     if (!campaign) return null;
 
     // Fetch bids
     const bids = await db
-      .collection<AdBid>('souq_ad_bids')
+      .collection<AdBid>("souq_ad_bids")
       .find({ campaignId })
       .toArray();
 
@@ -288,20 +317,20 @@ export class CampaignService {
   static async listCampaigns(
     sellerId: string,
     filters?: {
-      status?: 'active' | 'paused' | 'ended';
-      type?: 'sponsored_products' | 'sponsored_brands' | 'product_display';
-    }
+      status?: "active" | "paused" | "ended";
+      type?: "sponsored_products" | "sponsored_brands" | "product_display";
+    },
   ): Promise<Campaign[]> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const query: Record<string, unknown> = { sellerId };
-    
+
     if (filters?.status) query.status = filters.status;
     if (filters?.type) query.type = filters.type;
 
     const campaigns = await db
-      .collection('souq_ad_campaigns')
+      .collection("souq_ad_campaigns")
       .find(query)
       .sort({ createdAt: -1 })
       .toArray();
@@ -309,9 +338,10 @@ export class CampaignService {
     // Fetch bids for each campaign
     const campaignsWithBids = await Promise.all(
       campaigns.map(async (campaign) => {
-        const campaignId = (campaign as unknown as { campaignId: string }).campaignId;
+        const campaignId = (campaign as unknown as { campaignId: string })
+          .campaignId;
         const bids = await db
-          .collection<AdBid>('souq_ad_bids')
+          .collection<AdBid>("souq_ad_bids")
           .find({ campaignId })
           .toArray();
 
@@ -320,7 +350,7 @@ export class CampaignService {
           ...campaign,
           bids,
         } as unknown as Campaign;
-      })
+      }),
     );
 
     return campaignsWithBids;
@@ -331,7 +361,7 @@ export class CampaignService {
    */
   static async getCampaignStats(
     campaignId: string,
-    sellerId: string
+    sellerId: string,
   ): Promise<{
     impressions: number;
     clicks: number;
@@ -343,22 +373,24 @@ export class CampaignService {
     acos: number; // Advertising Cost of Sales
     roas: number; // Return on Ad Spend
   }> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    const campaign = await db.collection<Campaign>('souq_ad_campaigns').findOne({ campaignId });
-    this.ensureOwnership(campaign, sellerId, 'stats');
+    const campaign = await db
+      .collection<Campaign>("souq_ad_campaigns")
+      .findOne({ campaignId });
+    this.ensureOwnership(campaign, sellerId, "stats");
 
     // Aggregate stats from all bids in campaign
     const bids = await db
-      .collection('souq_ad_bids')
+      .collection("souq_ad_bids")
       .find({ campaignId })
       .toArray();
 
-    const bidIds = bids.map(b => b.bidId);
+    const bidIds = bids.map((b) => b.bidId);
 
     const stats = await db
-      .collection('souq_ad_stats')
+      .collection("souq_ad_stats")
       .find({ bidId: { $in: bidIds } })
       .toArray();
 
@@ -370,10 +402,11 @@ export class CampaignService {
         spend: acc.spend + (stat.spend || 0),
         revenue: acc.revenue + (stat.revenue || 0),
       }),
-      { impressions: 0, clicks: 0, conversions: 0, spend: 0, revenue: 0 }
+      { impressions: 0, clicks: 0, conversions: 0, spend: 0, revenue: 0 },
     );
 
-    const ctr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
+    const ctr =
+      totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0;
     const avgCpc = totals.clicks > 0 ? totals.spend / totals.clicks : 0;
     const acos = totals.revenue > 0 ? (totals.spend / totals.revenue) * 100 : 0;
     const roas = totals.spend > 0 ? totals.revenue / totals.spend : 0;
@@ -390,21 +423,17 @@ export class CampaignService {
   /**
    * Update bid amount for specific target
    */
-  static async updateBid(
-    bidId: string,
-    newBidAmount: number
-  ): Promise<void> {
+  static async updateBid(bidId: string, newBidAmount: number): Promise<void> {
     if (newBidAmount < MIN_BID_SAR) {
       throw new Error(`Bid amount must be at least ${MIN_BID_SAR} SAR`);
     }
 
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    await db.collection('souq_ad_bids').updateOne(
-      { bidId },
-      { $set: { bidAmount: newBidAmount } }
-    );
+    await db
+      .collection("souq_ad_bids")
+      .updateOne({ bidId }, { $set: { bidAmount: newBidAmount } });
 
     logger.info(`[CampaignService] Updated bid ${bidId}: ${newBidAmount} SAR`);
   }
@@ -412,14 +441,16 @@ export class CampaignService {
   /**
    * Pause/resume bid
    */
-  static async toggleBid(bidId: string, status: 'active' | 'paused'): Promise<void> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+  static async toggleBid(
+    bidId: string,
+    status: "active" | "paused",
+  ): Promise<void> {
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    await db.collection('souq_ad_bids').updateOne(
-      { bidId },
-      { $set: { status } }
-    );
+    await db
+      .collection("souq_ad_bids")
+      .updateOne({ bidId }, { $set: { status } });
 
     logger.info(`[CampaignService] Bid ${bidId} status: ${status}`);
   }
@@ -432,7 +463,7 @@ export class CampaignService {
     keyword: string,
     bidAmount: number,
     productId: string,
-    matchType: KeywordMatchType = 'broad'
+    matchType: KeywordMatchType = "broad",
   ): Promise<AdBid> {
     if (bidAmount < MIN_BID_SAR) {
       throw new Error(`Bid amount must be at least ${MIN_BID_SAR} SAR`);
@@ -443,21 +474,23 @@ export class CampaignService {
     const bid: AdBid = {
       bidId,
       campaignId,
-      targetType: 'keyword',
+      targetType: "keyword",
       targetValue: keyword.toLowerCase(),
       bidAmount,
       productId,
-      status: 'active',
+      status: "active",
       createdAt: new Date(),
       matchType,
     };
 
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
-    await db.collection('souq_ad_bids').insertOne(bid);
+    await db.collection("souq_ad_bids").insertOne(bid);
 
-    logger.info(`[CampaignService] Added keyword "${keyword}" to campaign ${campaignId}`);
+    logger.info(
+      `[CampaignService] Added keyword "${keyword}" to campaign ${campaignId}`,
+    );
 
     return bid;
   }
@@ -469,59 +502,58 @@ export class CampaignService {
     campaignId: string,
     targeting: CampaignTargeting,
     products: string[],
-    defaultBid: number
+    defaultBid: number,
   ): Promise<AdBid[]> {
     const bids: AdBid[] = [];
 
-    if (targeting.type === 'keyword' && targeting.keywords?.length) {
+    if (targeting.type === "keyword" && targeting.keywords?.length) {
       // Create bid for each keyword-product combination
       for (const keywordEntry of targeting.keywords) {
-        const keywordValue = typeof keywordEntry === 'string'
-          ? keywordEntry
-          : keywordEntry.value;
+        const keywordValue =
+          typeof keywordEntry === "string" ? keywordEntry : keywordEntry.value;
         if (!keywordValue) continue;
 
         const normalizedKeyword = keywordValue.trim().toLowerCase();
         if (!normalizedKeyword) continue;
 
-        const entryMatchType = typeof keywordEntry === 'string'
-          ? undefined
-          : keywordEntry.matchType;
-        const matchType = entryMatchType ?? targeting.matchType ?? 'broad';
+        const entryMatchType =
+          typeof keywordEntry === "string" ? undefined : keywordEntry.matchType;
+        const matchType = entryMatchType ?? targeting.matchType ?? "broad";
 
         for (const productId of products) {
           bids.push({
             bidId: `bid_${nanoid(12)}`,
             campaignId,
-            targetType: 'keyword',
+            targetType: "keyword",
             targetValue: normalizedKeyword,
             matchType,
             bidAmount: defaultBid,
             productId,
-            status: 'active',
+            status: "active",
             createdAt: new Date(),
           });
         }
       }
-    } else if (targeting.type === 'category' && targeting.categories) {
+    } else if (targeting.type === "category" && targeting.categories) {
       // Create bid for each category-product combination
       for (const category of targeting.categories) {
         for (const productId of products) {
           bids.push({
             bidId: `bid_${nanoid(12)}`,
             campaignId,
-            targetType: 'category',
+            targetType: "category",
             targetValue: category,
             bidAmount: defaultBid,
             productId,
-            status: 'active',
+            status: "active",
             createdAt: new Date(),
           });
         }
       }
-    } else if (targeting.type === 'product') {
+    } else if (targeting.type === "product") {
       // Product/ASIN targeting (for PDP ads)
-      const targetProducts = targeting.targetProducts ?? targeting.products ?? [];
+      const targetProducts =
+        targeting.targetProducts ?? targeting.products ?? [];
 
       for (const targetProductId of targetProducts) {
         const sanitizedTarget = targetProductId?.trim();
@@ -531,34 +563,36 @@ export class CampaignService {
           bids.push({
             bidId: `bid_${nanoid(12)}`,
             campaignId,
-            targetType: 'asin',
+            targetType: "asin",
             targetValue: sanitizedTarget,
             bidAmount: defaultBid,
             productId,
-            status: 'active',
+            status: "active",
             createdAt: new Date(),
           });
         }
       }
-    } else if (targeting.type === 'automatic') {
+    } else if (targeting.type === "automatic") {
       // Automatic targeting (match all relevant searches)
       // Generate bids for product's category and auto-discovered keywords
-      const { getDatabase } = await import('@/lib/mongodb-unified');
+      const { getDatabase } = await import("@/lib/mongodb-unified");
       const db = await getDatabase();
 
       for (const productId of products) {
-        const product = await db.collection('souq_products').findOne({ fsin: productId });
-        
+        const product = await db
+          .collection("souq_products")
+          .findOne({ fsin: productId });
+
         if (product) {
           // Category bid
           bids.push({
             bidId: `bid_${nanoid(12)}`,
             campaignId,
-            targetType: 'category',
+            targetType: "category",
             targetValue: product.category,
             bidAmount: defaultBid,
             productId,
-            status: 'active',
+            status: "active",
             createdAt: new Date(),
           });
 
@@ -567,12 +601,12 @@ export class CampaignService {
             bids.push({
               bidId: `bid_${nanoid(12)}`,
               campaignId,
-              targetType: 'keyword',
+              targetType: "keyword",
               targetValue: product.brand.toLowerCase(),
-              matchType: 'phrase',
+              matchType: "phrase",
               bidAmount: defaultBid,
               productId,
-              status: 'active',
+              status: "active",
               createdAt: new Date(),
             });
           }
@@ -589,7 +623,13 @@ export class CampaignService {
     startDate?: string;
     endDate?: string;
   }): Promise<{
-    timeseries: Array<{ date: string; impressions: number; clicks: number; conversions: number; spend: number }>;
+    timeseries: Array<{
+      date: string;
+      impressions: number;
+      clicks: number;
+      conversions: number;
+      spend: number;
+    }>;
     keywords: Array<{
       keyword: string;
       campaignName: string;
@@ -614,7 +654,7 @@ export class CampaignService {
       acos: number;
     }>;
   }> {
-    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const now = new Date();
@@ -624,7 +664,11 @@ export class CampaignService {
     const parseDate = (value?: string, fallback?: Date) => {
       if (!value) return fallback ? new Date(fallback) : undefined;
       const parsed = new Date(value);
-      return isNaN(parsed.getTime()) ? (fallback ? new Date(fallback) : undefined) : parsed;
+      return isNaN(parsed.getTime())
+        ? fallback
+          ? new Date(fallback)
+          : undefined
+        : parsed;
     };
 
     let start = parseDate(params.startDate, defaultStart) ?? defaultStart;
@@ -636,13 +680,15 @@ export class CampaignService {
       end = tmp;
     }
 
-    const campaignQuery: Record<string, unknown> = { sellerId: params.sellerId };
+    const campaignQuery: Record<string, unknown> = {
+      sellerId: params.sellerId,
+    };
     if (params.campaignId) {
       campaignQuery.campaignId = params.campaignId;
     }
 
     const campaigns = await db
-      .collection('souq_ad_campaigns')
+      .collection("souq_ad_campaigns")
       .find(campaignQuery)
       .toArray();
 
@@ -650,11 +696,13 @@ export class CampaignService {
       return { timeseries: [], keywords: [], products: [] };
     }
 
-    const campaignIds = campaigns.map(c => c.campaignId);
-    const campaignNameMap = new Map(campaigns.map(c => [c.campaignId, c.name]));
+    const campaignIds = campaigns.map((c) => c.campaignId);
+    const campaignNameMap = new Map(
+      campaigns.map((c) => [c.campaignId, c.name]),
+    );
 
     const bids = await db
-      .collection('souq_ad_bids')
+      .collection("souq_ad_bids")
       .find({ campaignId: { $in: campaignIds } })
       .toArray();
 
@@ -662,26 +710,26 @@ export class CampaignService {
       return { timeseries: [], keywords: [], products: [] };
     }
 
-    const bidIds = bids.map(b => b.bidId);
+    const bidIds = bids.map((b) => b.bidId);
     const rawStats = await db
-      .collection('souq_ad_stats')
+      .collection("souq_ad_stats")
       .find({ bidId: { $in: bidIds } })
       .toArray();
 
     const stats = rawStats.map((stat: Record<string, unknown>) => ({
-      bidId: String(stat.bidId ?? ''),
-      impressions: typeof stat.impressions === 'number' ? stat.impressions : 0,
-      clicks: typeof stat.clicks === 'number' ? stat.clicks : 0,
-      spend: typeof stat.spend === 'number' ? stat.spend : 0,
-      conversions: typeof stat.conversions === 'number' ? stat.conversions : 0,
-      revenue: typeof stat.revenue === 'number' ? stat.revenue : 0,
+      bidId: String(stat.bidId ?? ""),
+      impressions: typeof stat.impressions === "number" ? stat.impressions : 0,
+      clicks: typeof stat.clicks === "number" ? stat.clicks : 0,
+      spend: typeof stat.spend === "number" ? stat.spend : 0,
+      conversions: typeof stat.conversions === "number" ? stat.conversions : 0,
+      revenue: typeof stat.revenue === "number" ? stat.revenue : 0,
     }));
 
-    const statsMap = new Map(stats.map(stat => [stat.bidId, stat]));
+    const statsMap = new Map(stats.map((stat) => [stat.bidId, stat]));
 
     const keywordData = bids
-      .filter(bid => bid.targetType === 'keyword')
-      .map(bid => {
+      .filter((bid) => bid.targetType === "keyword")
+      .map((bid) => {
         const stat = statsMap.get(bid.bidId);
         const impressions = stat?.impressions ?? 0;
         const clicks = stat?.clicks ?? 0;
@@ -703,25 +751,32 @@ export class CampaignService {
       })
       .sort((a, b) => b.impressions - a.impressions);
 
-    const productBids = bids.filter(bid => bid.targetType === 'product' || bid.targetType === 'asin');
-    const productFsins = Array.from(new Set(productBids.map(b => b.productId).filter(Boolean)));
+    const productBids = bids.filter(
+      (bid) => bid.targetType === "product" || bid.targetType === "asin",
+    );
+    const productFsins = Array.from(
+      new Set(productBids.map((b) => b.productId).filter(Boolean)),
+    );
 
     let productNameMap: Map<string, string> = new Map();
     if (productFsins.length > 0) {
       const products = await db
-        .collection('souq_products')
+        .collection("souq_products")
         .find(
           { fsin: { $in: productFsins } },
-          { projection: { fsin: 1, title: 1, name: 1 } }
+          { projection: { fsin: 1, title: 1, name: 1 } },
         )
         .toArray();
       productNameMap = new Map(
-        products.map(product => [product.fsin, product.title || product.name || product.fsin])
+        products.map((product) => [
+          product.fsin,
+          product.title || product.name || product.fsin,
+        ]),
       );
     }
 
     const productData = productBids
-      .map(bid => {
+      .map((bid) => {
         const stat = statsMap.get(bid.bidId);
         const impressions = stat?.impressions ?? 0;
         const clicks = stat?.clicks ?? 0;
@@ -751,7 +806,7 @@ export class CampaignService {
     };
 
     const timeseries = (await db
-      .collection('souq_ad_events')
+      .collection("souq_ad_events")
       .aggregate([
         { $match: match },
         {
@@ -760,45 +815,45 @@ export class CampaignService {
             cpc: 1,
             day: {
               $dateToString: {
-                format: '%Y-%m-%d',
-                date: '$timestamp',
-                timezone: 'UTC',
+                format: "%Y-%m-%d",
+                date: "$timestamp",
+                timezone: "UTC",
               },
             },
           },
         },
         {
           $group: {
-            _id: { day: '$day', type: '$eventType' },
+            _id: { day: "$day", type: "$eventType" },
             count: { $sum: 1 },
             spend: {
               $sum: {
-                $cond: [{ $eq: ['$eventType', 'click'] }, '$cpc', 0],
+                $cond: [{ $eq: ["$eventType", "click"] }, "$cpc", 0],
               },
             },
           },
         },
         {
           $group: {
-            _id: '$_id.day',
+            _id: "$_id.day",
             impressions: {
               $sum: {
-                $cond: [{ $eq: ['$_id.type', 'impression'] }, '$count', 0],
+                $cond: [{ $eq: ["$_id.type", "impression"] }, "$count", 0],
               },
             },
             clicks: {
               $sum: {
-                $cond: [{ $eq: ['$_id.type', 'click'] }, '$count', 0],
+                $cond: [{ $eq: ["$_id.type", "click"] }, "$count", 0],
               },
             },
             conversions: {
               $sum: {
-                $cond: [{ $eq: ['$_id.type', 'conversion'] }, '$count', 0],
+                $cond: [{ $eq: ["$_id.type", "conversion"] }, "$count", 0],
               },
             },
             spend: {
               $sum: {
-                $cond: [{ $eq: ['$_id.type', 'click'] }, '$spend', 0],
+                $cond: [{ $eq: ["$_id.type", "click"] }, "$spend", 0],
               },
             },
           },
@@ -807,7 +862,7 @@ export class CampaignService {
         {
           $project: {
             _id: 0,
-            date: '$_id',
+            date: "$_id",
             impressions: 1,
             clicks: 1,
             conversions: 1,
@@ -815,7 +870,13 @@ export class CampaignService {
           },
         },
       ])
-      .toArray()) as Array<{ date: string; impressions: number; clicks: number; conversions: number; spend: number }>;
+      .toArray()) as Array<{
+      date: string;
+      impressions: number;
+      clicks: number;
+      conversions: number;
+      spend: number;
+    }>;
 
     return {
       timeseries,

@@ -1,5 +1,6 @@
 {
   "en": {
+    "Customer": "Customer",
     "customer.buyer": "Buyer",
     "customer.caseManagement": "Case Management",
     "customer.client": "Client",
@@ -11,10 +12,10 @@
     "customer.customer1": "Customer",
     "customer.customerCare": "Customer Care",
     "customer.customerExperience": "Customer Experience",
-    "customer.customers": "Customers",
     "customer.customerSatisfaction": "Customer Satisfaction",
     "customer.customerService": "Customer Service",
     "customer.customerSupport": "Customer Support",
+    "customer.customers": "Customers",
     "customer.endUser": "End User",
     "customer.feedback": "Feedback",
     "customer.followup": "Follow-up",
@@ -30,6 +31,7 @@
     "customer.ticketing": "Ticketing"
   },
   "ar": {
+    "Customer": "[AR] Customer",
     "customer.buyer": "مشتري",
     "customer.caseManagement": "إدارة الحالة",
     "customer.client": "عميل",
@@ -41,10 +43,10 @@
     "customer.customer1": "عميل",
     "customer.customerCare": "رعاية العملاء",
     "customer.customerExperience": "تجربة العملاء",
-    "customer.customers": "عملاء",
     "customer.customerSatisfaction": "رضا العملاء",
     "customer.customerService": "خدمة العملاء",
     "customer.customerSupport": "دعم العملاء",
+    "customer.customers": "عملاء",
     "customer.endUser": "المستخدم النهائي",
     "customer.feedback": "تعليقات",
     "customer.followup": "متابعة",

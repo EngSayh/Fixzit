@@ -32,24 +32,24 @@ describe('GET /api/marketplace/search', () => {
     const qs = params.toString();
     const url = `http://localhost/api/marketplace/search${qs ? '?' + qs : ''}`;
     // The handler only uses req.url; a minimal shim suffices.
-    return { url } as any;
+    return { url };
   };
 
   it('returns empty items when q is missing', async () => {
     const res = await GET(makeReq(undefined, 'en', 'demo-tenant'));
-    const json = await (res as Response).json();
+    const json = await res.json();
     expect(json).toEqual({ items: [] });
   });
 
   it('returns empty items when q is blank after trim', async () => {
     const res = await GET(makeReq('   '));
-    const json = await (res as Response).json();
+    const json = await res.json();
     expect(json).toEqual({ items: [] });
   });
 
   it('queries products with default locale and tenant when only q is provided', async () => {
     const res = await GET(makeReq('Laptop'));
-    const json = await (res as Response).json();
+    const json = await res.json();
 
     expect(globalThis.__mp_find_calls__.length).toBe(1);
     const [filter] = globalThis.__mp_find_calls__[0];
@@ -76,7 +76,7 @@ describe('GET /api/marketplace/search', () => {
 
   it('uses provided locale and orgId from query params', async () => {
     const res = await GET(makeReq('Phone', 'ES', 'tenant-123')); // locale should be lowercased
-    const json = await (res as Response).json();
+    const json = await res.json();
 
     expect(globalThis.__mp_find_calls__.length).toBeGreaterThan(0);
     const [filter] = globalThis.__mp_find_calls__[globalThis.__mp_find_calls__.length - 1];
@@ -95,7 +95,7 @@ describe('GET /api/marketplace/search', () => {
     });
 
     const res = await GET(makeReq('tablet', 'en'));
-    const json = await (res as Response).json();
+    const json = await res.json();
 
     const [filter] = globalThis.__mp_find_calls__[globalThis.__mp_find_calls__.length - 1];
     // Should include unique terms, original first is okay, order doesn't strictly matter,
@@ -115,7 +115,7 @@ describe('GET /api/marketplace/search', () => {
     });
 
     const res = await GET(makeReq('camera'));
-    const json = await (res as Response).json();
+    const json = await res.json();
 
     const [filter] = globalThis.__mp_find_calls__[globalThis.__mp_find_calls__.length - 1];
     expect(filter.$or[0].$text.$search).toBe('camera');
@@ -131,7 +131,7 @@ describe('GET /api/marketplace/search', () => {
     });
 
     const res = await GET(makeReq('watch'));
-    const json = await (res as Response).json();
+    const json = await res.json();
 
     const [filter] = globalThis.__mp_find_calls__[globalThis.__mp_find_calls__.length - 1];
     expect(filter.$or[0].$text.$search).toBe('watch');
@@ -143,7 +143,7 @@ describe('GET /api/marketplace/search', () => {
     globalThis.__mp_throw_on_lean__ = true;
 
     const res = await GET(makeReq('drone'));
-    const json = await (res as Response).json();
+    const json = await res.json();
 
     expect(json).toEqual({ items: [] });
 

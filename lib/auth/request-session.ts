@@ -1,4 +1,4 @@
-import type { NextRequest } from 'next/server';
+import type { NextRequest } from "next/server";
 
 type SessionUser = {
   id: string;
@@ -23,7 +23,7 @@ async function loadAuth(): Promise<AuthFn | null> {
     return cachedAuth;
   }
   try {
-    const mod = await import('@/auth');
+    const mod = await import("@/auth");
     cachedAuth = mod.auth as AuthFn;
     return cachedAuth;
   } catch {
@@ -31,19 +31,21 @@ async function loadAuth(): Promise<AuthFn | null> {
   }
 }
 
-export async function resolveRequestSession(request: NextRequest): Promise<SessionShape | null> {
-  const headerUserId = request.headers.get('x-user-id');
+export async function resolveRequestSession(
+  request: NextRequest,
+): Promise<SessionShape | null> {
+  const headerUserId = request.headers.get("x-user-id");
   if (headerUserId) {
     return {
       user: {
         id: headerUserId,
-        role: request.headers.get('x-user-role') ?? undefined,
-        email: request.headers.get('x-user-email') ?? undefined,
+        role: request.headers.get("x-user-role") ?? undefined,
+        email: request.headers.get("x-user-email") ?? undefined,
       },
     };
   }
 
-  if (process.env.NODE_ENV === 'test') {
+  if (process.env.NODE_ENV === "test") {
     return null;
   }
 

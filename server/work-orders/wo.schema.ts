@@ -1,8 +1,14 @@
 import { z } from "zod";
 
-export const WOPriority = z.enum(["LOW","MEDIUM","HIGH","URGENT","CRITICAL"]);
+export const WOPriority = z.enum([
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+  "URGENT",
+  "CRITICAL",
+]);
 
-export const RequesterType = z.enum(["TENANT","OWNER","STAFF","EXTERNAL"]);
+export const RequesterType = z.enum(["TENANT", "OWNER", "STAFF", "EXTERNAL"]);
 
 export const WOStatus = z.enum([
   "DRAFT",
@@ -15,7 +21,7 @@ export const WOStatus = z.enum([
   "VERIFIED",
   "CLOSED",
   "CANCELLED",
-  "REJECTED"
+  "REJECTED",
 ]);
 
 export const WoCreate = z.object({
@@ -35,7 +41,7 @@ export const WoCreate = z.object({
   assignmentUserId: z.string().min(1).optional(),
   assignmentVendorId: z.string().min(1).optional(),
   slaHours: z.number().int().min(1).max(720).default(72),
-  responseMinutes: z.number().int().min(15).max(720).default(120)
+  responseMinutes: z.number().int().min(15).max(720).default(120),
 });
 
 export const WoUpdate = z.object({
@@ -51,7 +57,7 @@ export const WoUpdate = z.object({
   startedAt: z.coerce.date().optional(),
   completedAt: z.coerce.date().optional(),
   slaHours: z.number().int().min(1).max(720).optional(),
-  responseMinutes: z.number().int().min(15).max(720).optional()
+  responseMinutes: z.number().int().min(15).max(720).optional(),
 });
 
 export type WoCreateInput = z.infer<typeof WoCreate>;

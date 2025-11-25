@@ -3,7 +3,7 @@
  * Provides helpers for making API requests in tests
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 /**
  * Makes a test HTTP request with proper base URL handling
@@ -11,7 +11,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
  * @param options - Fetch options
  * @returns Response object
  */
-export async function makeReq(path: string, options?: RequestInit): Promise<Response> {
+export async function makeReq(
+  path: string,
+  options?: RequestInit,
+): Promise<Response> {
   const url = `${BASE_URL}${path}`;
   return fetch(url, options);
 }
@@ -22,7 +25,10 @@ export async function makeReq(path: string, options?: RequestInit): Promise<Resp
  * @param options - Fetch options
  * @returns Parsed JSON response
  */
-export async function makeJsonReq<T = unknown>(path: string, options?: RequestInit): Promise<T> {
+export async function makeJsonReq<T = unknown>(
+  path: string,
+  options?: RequestInit,
+): Promise<T> {
   const response = await makeReq(path, options);
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -40,13 +46,13 @@ export async function makeJsonReq<T = unknown>(path: string, options?: RequestIn
 export async function makePostReq(
   path: string,
   body: unknown,
-  options?: Omit<RequestInit, 'method' | 'body'>
+  options?: Omit<RequestInit, "method" | "body">,
 ): Promise<Response> {
   return makeReq(path, {
     ...options,
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...options?.headers,
     },
     body: JSON.stringify(body),

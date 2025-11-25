@@ -1,10 +1,11 @@
-import type { NextRequest } from 'next/server';
-import { z } from 'zod';
+import type { NextRequest } from "next/server";
+import { z } from "zod";
 
-import { createIdempotencyKey } from '@/server/security/idempotency';
+import { createIdempotencyKey } from "@/server/security/idempotency";
 
-export const PAYTABS_CALLBACK_MAX_BYTES =
-  Number(process.env.PAYTABS_CALLBACK_MAX_BYTES ?? 32_768);
+export const PAYTABS_CALLBACK_MAX_BYTES = Number(
+  process.env.PAYTABS_CALLBACK_MAX_BYTES ?? 32_768,
+);
 
 export const PAYTABS_CALLBACK_RATE_LIMIT = {
   requests: Number(process.env.PAYTABS_CALLBACK_RATE_LIMIT ?? 60),
@@ -12,13 +13,13 @@ export const PAYTABS_CALLBACK_RATE_LIMIT = {
 };
 
 export const PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS = Number(
-  process.env.PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS ?? 5 * 60_000
+  process.env.PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS ?? 5 * 60_000,
 );
 
 export class PaytabsCallbackValidationError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'PaytabsCallbackValidationError';
+    this.name = "PaytabsCallbackValidationError";
   }
 }
 
@@ -26,8 +27,12 @@ const RawPaytabsPayloadSchema = z
   .object({
     tran_ref: z.union([z.string(), z.number(), z.bigint()]).optional(),
     tranRef: z.union([z.string(), z.number(), z.bigint()]).optional(),
-    transaction_reference: z.union([z.string(), z.number(), z.bigint()]).optional(),
-    transactionReference: z.union([z.string(), z.number(), z.bigint()]).optional(),
+    transaction_reference: z
+      .union([z.string(), z.number(), z.bigint()])
+      .optional(),
+    transactionReference: z
+      .union([z.string(), z.number(), z.bigint()])
+      .optional(),
     cart_id: z.union([z.string(), z.number(), z.bigint()]).optional(),
     cartId: z.union([z.string(), z.number(), z.bigint()]).optional(),
     invoice_id: z.union([z.string(), z.number(), z.bigint()]).optional(),
@@ -104,9 +109,9 @@ const RawPaytabsPayloadSchema = z
   .passthrough();
 
 export const PaytabsCallbackPayloadSchema = z.object({
-  tranRef: z.string().min(1, 'PayTabs callback missing tran_ref/tranRef'),
-  cartId: z.string().min(1, 'PayTabs callback missing cart_id/cartId'),
-  respStatus: z.string().min(1, 'PayTabs callback missing respStatus'),
+  tranRef: z.string().min(1, "PayTabs callback missing tran_ref/tranRef"),
+  cartId: z.string().min(1, "PayTabs callback missing cart_id/cartId"),
+  respStatus: z.string().min(1, "PayTabs callback missing respStatus"),
   respMessage: z.string().optional(),
   token: z.string().optional(),
   amount: z.number().nonnegative().optional(),
@@ -118,15 +123,21 @@ export const PaytabsCallbackPayloadSchema = z.object({
   maskedCard: z.string().optional(),
 });
 
-export type PaytabsCallbackPayload = z.infer<typeof PaytabsCallbackPayloadSchema>;
+export type PaytabsCallbackPayload = z.infer<
+  typeof PaytabsCallbackPayloadSchema
+>;
 
 export type RawPaytabsCallbackPayload = z.infer<typeof RawPaytabsPayloadSchema>;
 
-export function parsePaytabsJsonPayload(rawBody: string): RawPaytabsCallbackPayload {
+export function parsePaytabsJsonPayload(
+  rawBody: string,
+): RawPaytabsCallbackPayload {
   try {
     const data = JSON.parse(rawBody);
-    if (!data || typeof data !== 'object') {
-      throw new PaytabsCallbackValidationError('PayTabs payload must be a JSON object');
+    if (!data || typeof data !== "object") {
+      throw new PaytabsCallbackValidationError(
+        "PayTabs payload must be a JSON object",
+      );
     }
     return RawPaytabsPayloadSchema.parse(data);
   } catch (_error) {
@@ -134,17 +145,21 @@ export function parsePaytabsJsonPayload(rawBody: string): RawPaytabsCallbackPayl
     void error;
     if (error instanceof PaytabsCallbackValidationError) throw error;
     if (error instanceof z.ZodError) {
-      throw new PaytabsCallbackValidationError(error.issues[0]?.message || 'Invalid PayTabs payload structure');
+      throw new PaytabsCallbackValidationError(
+        error.issues[0]?.message || "Invalid PayTabs payload structure",
+      );
     }
-    throw new PaytabsCallbackValidationError('Invalid JSON payload');
+    throw new PaytabsCallbackValidationError("Invalid JSON payload");
   }
 }
 
 export function normalizePaytabsCallbackPayload(
-  data: unknown
+  data: unknown,
 ): PaytabsCallbackPayload {
-  if (!data || typeof data !== 'object') {
-    throw new PaytabsCallbackValidationError('PayTabs payload must be an object');
+  if (!data || typeof data !== "object") {
+    throw new PaytabsCallbackValidationError(
+      "PayTabs payload must be an object",
+    );
   }
   const parsed = RawPaytabsPayloadSchema.parse(data);
 
@@ -155,7 +170,9 @@ export function normalizePaytabsCallbackPayload(
     parsed.transactionReference,
   ]);
   if (!tranRef) {
-    throw new PaytabsCallbackValidationError('Missing transaction reference (tran_ref)');
+    throw new PaytabsCallbackValidationError(
+      "Missing transaction reference (tran_ref)",
+    );
   }
 
   const cartId = coerceString([
@@ -165,7 +182,9 @@ export function normalizePaytabsCallbackPayload(
     parsed.order_id,
   ]);
   if (!cartId) {
-    throw new PaytabsCallbackValidationError('Missing cart identifier (cart_id)');
+    throw new PaytabsCallbackValidationError(
+      "Missing cart identifier (cart_id)",
+    );
   }
 
   const respStatus = coerceString([
@@ -177,7 +196,9 @@ export function normalizePaytabsCallbackPayload(
     parsed.respStatus,
   ])?.toUpperCase();
   if (!respStatus) {
-    throw new PaytabsCallbackValidationError('Missing payment status (respStatus)');
+    throw new PaytabsCallbackValidationError(
+      "Missing payment status (respStatus)",
+    );
   }
 
   const normalized = {
@@ -242,25 +263,25 @@ export function normalizePaytabsCallbackPayload(
 
 export function enforcePaytabsPayloadSize(
   rawBody: string,
-  maxBytes: number = PAYTABS_CALLBACK_MAX_BYTES
+  maxBytes: number = PAYTABS_CALLBACK_MAX_BYTES,
 ): void {
-  const size = Buffer.byteLength(rawBody, 'utf8');
+  const size = Buffer.byteLength(rawBody, "utf8");
   if (!Number.isFinite(maxBytes) || maxBytes <= 0) return;
   if (size > maxBytes) {
     throw new PaytabsCallbackValidationError(
-      `PayTabs payload exceeds limit (${size} > ${maxBytes} bytes)`
+      `PayTabs payload exceeds limit (${size} > ${maxBytes} bytes)`,
     );
   }
 }
 
 export function extractPaytabsSignature(
-  req: Pick<NextRequest, 'headers'>,
-  payload?: RawPaytabsCallbackPayload
+  req: Pick<NextRequest, "headers">,
+  payload?: RawPaytabsCallbackPayload,
 ): string | null {
   const headerCandidates = [
-    'x-paytabs-signature',
-    'paytabs-signature',
-    'signature',
+    "x-paytabs-signature",
+    "paytabs-signature",
+    "signature",
   ];
   for (const header of headerCandidates) {
     const value = req.headers.get(header);
@@ -268,13 +289,13 @@ export function extractPaytabsSignature(
   }
   if (!payload) return null;
   const payloadCandidates: Array<keyof RawPaytabsCallbackPayload> = [
-    'signature',
-    'payment_signature',
-    'sign',
+    "signature",
+    "payment_signature",
+    "sign",
   ];
   for (const key of payloadCandidates) {
     const raw = payload[key];
-    if (typeof raw === 'string' && raw.trim()) {
+    if (typeof raw === "string" && raw.trim()) {
       return raw.trim();
     }
   }
@@ -283,9 +304,9 @@ export function extractPaytabsSignature(
 
 export function buildPaytabsIdempotencyKey(
   payload: PaytabsCallbackPayload,
-  extra?: Record<string, unknown>
+  extra?: Record<string, unknown>,
 ): string {
-  return createIdempotencyKey('paytabs:callback', {
+  return createIdempotencyKey("paytabs:callback", {
     tranRef: payload.tranRef,
     cartId: payload.cartId,
     status: payload.respStatus,
@@ -296,12 +317,12 @@ export function buildPaytabsIdempotencyKey(
 function coerceString(values: Array<unknown>): string | undefined {
   for (const value of values) {
     if (value === undefined || value === null) continue;
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       const trimmed = value.trim();
       if (trimmed) return trimmed;
       continue;
     }
-    if (typeof value === 'number' || typeof value === 'bigint') {
+    if (typeof value === "number" || typeof value === "bigint") {
       const str = String(value);
       if (str) return str;
     }
@@ -312,10 +333,10 @@ function coerceString(values: Array<unknown>): string | undefined {
 function coerceNumber(values: Array<unknown>): number | undefined {
   for (const value of values) {
     if (value === undefined || value === null) continue;
-    if (typeof value === 'number' && Number.isFinite(value)) {
+    if (typeof value === "number" && Number.isFinite(value)) {
       return value;
     }
-    if (typeof value === 'string' && value.trim()) {
+    if (typeof value === "string" && value.trim()) {
       const num = Number(value);
       if (Number.isFinite(num)) {
         return num;
@@ -326,7 +347,7 @@ function coerceNumber(values: Array<unknown>): number | undefined {
 }
 
 function mergeMetadata(
-  candidates: Array<unknown>
+  candidates: Array<unknown>,
 ): Record<string, unknown> | undefined {
   const merged: Record<string, unknown> = {};
   let hasData = false;
@@ -342,12 +363,12 @@ function mergeMetadata(
 
 function toMetadata(value: unknown): Record<string, unknown> | undefined {
   if (!value) return undefined;
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const trimmed = value.trim();
     if (!trimmed) return undefined;
     try {
       const parsed = JSON.parse(trimmed);
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
         return { ...parsed } as Record<string, unknown>;
       }
     } catch {
@@ -355,7 +376,7 @@ function toMetadata(value: unknown): Record<string, unknown> | undefined {
     }
     return undefined;
   }
-  if (typeof value === 'object' && !Array.isArray(value)) {
+  if (typeof value === "object" && !Array.isArray(value)) {
     return { ...(value as Record<string, unknown>) };
   }
   return undefined;

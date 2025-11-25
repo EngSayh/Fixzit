@@ -3,135 +3,150 @@
  * Tests marketplace browsing, search, and product viewing
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('Marketplace - Public Access', () => {
-  test('should display marketplace home page', async ({ page }) => {
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
-    
+test.describe("Marketplace - Public Access", () => {
+  test("should display marketplace home page", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
     // Page should load
     await expect(page).toHaveTitle(/Marketplace|Fixzit/i);
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator("body")).toBeVisible();
   });
 
-  test('should display product categories', async ({ page }) => {
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
-    
+  test("should display product categories", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
     // Look for category navigation or filters
     const categories = page.locator('[data-category], [class*="category"]');
     const categoryCount = await categories.count();
-    
+
     // Should have some category elements
     expect(categoryCount).toBeGreaterThanOrEqual(0);
   });
 
-  test('should have working search functionality', async ({ page }) => {
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
-    
+  test("should have working search functionality", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
     // Find search input
-    const searchInput = page.locator('input[type="search"], input[placeholder*="search" i], input[placeholder*="بحث" i]');
-    
+    const searchInput = page.locator(
+      'input[type="search"], input[placeholder*="search" i], input[placeholder*="بحث" i]',
+    );
+
     if (await searchInput.isVisible()) {
       // Type search query
-      await searchInput.fill('pump');
+      await searchInput.fill("pump");
       await page.waitForTimeout(1000);
-      
+
       // Should show results or no results message
-      const hasResults = await page.locator('[class*="product"], [data-product]').count() > 0;
-      const hasNoResultsMsg = await page.locator('text=/no.*results|not.*found/i').isVisible();
-      
+      const hasResults =
+        (await page.locator('[class*="product"], [data-product]').count()) > 0;
+      const hasNoResultsMsg = await page
+        .locator("text=/no.*results|not.*found/i")
+        .isVisible();
+
       expect(hasResults || hasNoResultsMsg).toBeTruthy();
     }
   });
 
-  test('should display product cards', async ({ page }) => {
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
-    
+  test("should display product cards", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
     // Look for product cards/items
-    const productCards = page.locator('[data-testid*="product"], [class*="product-card"]');
+    const productCards = page.locator(
+      '[data-testid*="product"], [class*="product-card"]',
+    );
     const cardCount = await productCards.count();
-    
+
     if (cardCount > 0) {
       // First product should be visible
       await expect(productCards.first()).toBeVisible();
     }
   });
 
-  test('should navigate to product details', async ({ page }) => {
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
-    
+  test("should navigate to product details", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
     // Find a product link
-    const productLink = page.locator('a[href*="/marketplace/"], a[href*="/product/"]').first();
-    
+    const productLink = page
+      .locator('a[href*="/marketplace/"], a[href*="/product/"]')
+      .first();
+
     if (await productLink.isVisible()) {
       await productLink.click();
-      await page.waitForLoadState('networkidle');
-      
+      await page.waitForLoadState("networkidle");
+
       // Should navigate to product page
       expect(page.url()).toMatch(/marketplace|product/);
     }
   });
 
-  test('should display product filters', async ({ page }) => {
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
-    
+  test("should display product filters", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
     // Look for filter controls
-    const filters = page.locator('[data-filter], [class*="filter"], select, button:has-text("Filter")');
-    const hasFilters = await filters.count() > 0;
-    
+    const filters = page.locator(
+      '[data-filter], [class*="filter"], select, button:has-text("Filter")',
+    );
+    const hasFilters = (await filters.count()) > 0;
+
     if (hasFilters) {
       expect(hasFilters).toBeTruthy();
     }
   });
 
-  test('should handle pagination', async ({ page }) => {
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
-    
+  test("should handle pagination", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
     // Look for pagination controls
-    const pagination = page.locator('[aria-label*="pagination" i], button:has-text("Next"), button:has-text("Previous")');
-    const hasPagination = await pagination.count() > 0;
-    
+    const pagination = page.locator(
+      '[aria-label*="pagination" i], button:has-text("Next"), button:has-text("Previous")',
+    );
+    const hasPagination = (await pagination.count()) > 0;
+
     if (hasPagination) {
       await expect(pagination.first()).toBeVisible();
     }
   });
 });
 
-test.describe('Marketplace - Product Details', () => {
-  test('should display product information', async ({ page }) => {
+test.describe("Marketplace - Product Details", () => {
+  test("should display product information", async ({ page }) => {
     // Navigate to a product (using a sample URL pattern)
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
-    
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
     // Try to click first product
-    const firstProduct = page.locator('a[href*="/product/"], a[href*="/marketplace/"]').first();
-    
+    const firstProduct = page
+      .locator('a[href*="/product/"], a[href*="/marketplace/"]')
+      .first();
+
     if (await firstProduct.isVisible()) {
       await firstProduct.click();
-      await page.waitForLoadState('networkidle');
-      
+      await page.waitForLoadState("networkidle");
+
       // Should show product details
-      const hasTitle = await page.locator('h1, h2').count() > 0;
+      const hasTitle = (await page.locator("h1, h2").count()) > 0;
       expect(hasTitle).toBeTruthy();
     }
   });
 
-  test('should display product price', async ({ page }) => {
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
-    
+  test("should display product price", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
     // Look for price indicators
     const pricePattern = /ر\.س|SAR|\$|€|£|\d+/;
     const prices = page.locator('[class*="price"], [data-price]');
-    
-    if (await prices.count() > 0) {
+
+    if ((await prices.count()) > 0) {
       const priceText = await prices.first().textContent();
       if (priceText) {
         expect(priceText).toMatch(pricePattern);
@@ -139,85 +154,99 @@ test.describe('Marketplace - Product Details', () => {
     }
   });
 
-  test('should display add to cart or request quote button', async ({ page }) => {
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
-    
-    const firstProduct = page.locator('a[href*="/product/"], a[href*="/marketplace/"]').first();
-    
+  test("should display add to cart or request quote button", async ({
+    page,
+  }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
+    const firstProduct = page
+      .locator('a[href*="/product/"], a[href*="/marketplace/"]')
+      .first();
+
     if (await firstProduct.isVisible()) {
       await firstProduct.click();
-      await page.waitForLoadState('networkidle');
-      
+      await page.waitForLoadState("networkidle");
+
       // Look for action buttons
-      const actionButton = page.locator('button:has-text("Cart"), button:has-text("Quote"), button:has-text("Add"), button:has-text("Request")');
-      
-      if (await actionButton.count() > 0) {
+      const actionButton = page.locator(
+        'button:has-text("Cart"), button:has-text("Quote"), button:has-text("Add"), button:has-text("Request")',
+      );
+
+      if ((await actionButton.count()) > 0) {
         await expect(actionButton.first()).toBeVisible();
       }
     }
   });
 });
 
-test.describe('Marketplace - API Integration', () => {
-  test('should search products via API', async ({ request }) => {
-    const response = await request.get('/api/marketplace/products?q=pump', {
-      failOnStatusCode: false
+test.describe("Marketplace - API Integration", () => {
+  test("should search products via API", async ({ request }) => {
+    const response = await request.get("/api/marketplace/products?q=pump", {
+      failOnStatusCode: false,
     });
-    
+
     // API should respond (even if empty results)
     expect(response.status()).toBeLessThan(500);
   });
 
-  test('should handle malformed search queries', async ({ request }) => {
-    const response = await request.get('/api/marketplace/products?q=' + encodeURIComponent('<script>alert("xss")</script>'), {
-      failOnStatusCode: false
-    });
-    
+  test("should handle malformed search queries", async ({ request }) => {
+    const response = await request.get(
+      "/api/marketplace/products?q=" +
+        encodeURIComponent('<script>alert("xss")</script>'),
+      {
+        failOnStatusCode: false,
+      },
+    );
+
     // Should not crash (404, 400, or 200 are all acceptable)
     expect(response.status()).toBeLessThan(500);
   });
 });
 
-test.describe('Marketplace - Language Support', () => {
-  test('should display marketplace in Arabic', async ({ page }) => {
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
-    
+test.describe("Marketplace - Language Support", () => {
+  test("should display marketplace in Arabic", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
     // Check document direction
-    const dir = await page.locator('html').getAttribute('dir');
-    
-    if (dir === 'rtl') {
+    const dir = await page.locator("html").getAttribute("dir");
+
+    if (dir === "rtl") {
       // Should have RTL layout
-      expect(dir).toBe('rtl');
-      
+      expect(dir).toBe("rtl");
+
       // Should have Arabic text
-      const bodyText = await page.locator('body').textContent();
-      const hasArabic = /[\u0600-\u06FF]/.test(bodyText || '');
+      const bodyText = await page.locator("body").textContent();
+      const hasArabic = /[\u0600-\u06FF]/.test(bodyText || "");
       expect(hasArabic).toBeTruthy();
     }
   });
 
-  test('should switch marketplace language', async ({ page }) => {
-    await page.goto('/marketplace');
-    await page.waitForLoadState('networkidle');
-    
+  test("should switch marketplace language", async ({ page }) => {
+    await page.goto("/marketplace");
+    await page.waitForLoadState("networkidle");
+
     // Find language selector
-    const langSelector = page.locator('[aria-label*="language" i], button:has-text("العربية"), button:has-text("English")').first();
-    
+    const langSelector = page
+      .locator(
+        '[aria-label*="language" i], button:has-text("العربية"), button:has-text("English")',
+      )
+      .first();
+
     if (await langSelector.isVisible()) {
-      const initialDir = await page.locator('html').getAttribute('dir');
-      
+      const initialDir = await page.locator("html").getAttribute("dir");
+
       await langSelector.click();
       await page.waitForTimeout(500);
-      
+
       // Try to select a language
       const langOption = page.locator('[role="option"], li').first();
       if (await langOption.isVisible()) {
         await langOption.click();
         await page.waitForTimeout(500);
-        
-        const newDir = await page.locator('html').getAttribute('dir');
+
+        const newDir = await page.locator("html").getAttribute("dir");
         // Direction should be set (may or may not change)
         expect(newDir).toBeTruthy();
       }

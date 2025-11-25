@@ -38,13 +38,13 @@ src/server/models/Application.ts         - 1 array type in middleware (harmless)
 
 ```typescript
 // We imported these for standardization:
-import { 
-  unauthorizedError,  // ← Used
-  forbiddenError,     // ← NOT used in this file
-  notFoundError,      // ← Used
-  validationError,    // ← NOT used in this file
-  rateLimitError      // ← Used
-} from '@/server/utils/errorResponses';
+import {
+  unauthorizedError, // ← Used
+  forbiddenError, // ← NOT used in this file
+  notFoundError, // ← Used
+  validationError, // ← NOT used in this file
+  rateLimitError, // ← Used
+} from "@/server/utils/errorResponses";
 ```
 
 **Why it happened**: When we standardized 145 files, we added complete error helper imports but not all files use all helpers.

@@ -1,13 +1,13 @@
 /**
  * MongoDB Type Definitions
- * 
+ *
  * Provides type-safe interfaces for MongoDB operations,
  * replacing `any` types throughout the codebase.
- * 
+ *
  * @module types/mongodb
  */
 
-import type { ObjectId } from 'mongodb';
+import type { ObjectId } from "mongodb";
 
 /**
  * MongoDB filter object for queries
@@ -48,17 +48,21 @@ export interface MongoQueryOptions {
  * Type guard to check if value is a MongoDB ObjectId
  */
 export function isObjectId(value: unknown): value is ObjectId {
-  return value !== null && 
-         typeof value === 'object' && 
-         '_bsontype' in value && 
-         value._bsontype === 'ObjectID';
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "_bsontype" in value &&
+    value._bsontype === "ObjectID"
+  );
 }
 
 /**
  * Serializes MongoDB document for API responses
  * Converts _id to id and ensures JSON-serializable output
  */
-export function serializeMongoDoc<T extends MongoDocument>(doc: T): SerializedMongoDoc {
+export function serializeMongoDoc<T extends MongoDocument>(
+  doc: T,
+): SerializedMongoDoc {
   const { _id, ...rest } = doc;
   return {
     id: String(_id),

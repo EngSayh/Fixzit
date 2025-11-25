@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 import {
   ROLE_MODULE_ACCESS,
   ROLE_ACTIONS,
@@ -8,14 +8,14 @@ import {
   SubmoduleKey,
   Action,
   Plan,
-} from '@/domain/fm/fm.behavior';
-import { FMErrors } from './errors';
+} from "@/domain/fm/fm.behavior";
+import { FMErrors } from "./errors";
 import {
   getSessionUser,
   UnauthorizedError,
   type SessionUser,
-} from '@/server/middleware/withAuthRbac';
-import { fmErrorContext } from './errors';
+} from "@/server/middleware/withAuthRbac";
+import { fmErrorContext } from "./errors";
 
 type PermissionOptions = {
   module?: ModuleKey;
@@ -75,8 +75,10 @@ const normalizeRole = (role?: string | null): Role | null => {
 
 const normalizePlan = (plan?: string | null): Plan => {
   if (!plan) return DEFAULT_PLAN;
-  const key = plan.toUpperCase().replace(/[\s-]+/g, '_');
-  return PLAN_ALIAS_MAP[key] ?? (Plan as Record<string, Plan>)[key] ?? DEFAULT_PLAN;
+  const key = plan.toUpperCase().replace(/[\s-]+/g, "_");
+  return (
+    PLAN_ALIAS_MAP[key] ?? (Plan as Record<string, Plan>)[key] ?? DEFAULT_PLAN
+  );
 };
 
 const hasModuleAccess = (role: Role, module?: ModuleKey): boolean => {
@@ -87,7 +89,7 @@ const hasModuleAccess = (role: Role, module?: ModuleKey): boolean => {
 const hasSubmoduleAccess = (
   role: Role,
   plan: Plan,
-  submodule?: SubmoduleKey
+  submodule?: SubmoduleKey,
 ): boolean => {
   if (!submodule) return true;
   const planGate = PLAN_GATES[plan]?.[submodule];
@@ -98,7 +100,7 @@ const hasSubmoduleAccess = (
 const hasActionAccess = (
   role: Role,
   submodule: SubmoduleKey,
-  action?: Action
+  action?: Action,
 ): boolean => {
   if (!action) return true;
   const actions = ROLE_ACTIONS[role]?.[submodule];
@@ -107,7 +109,7 @@ const hasActionAccess = (
 
 export async function requireFmPermission(
   req: NextRequest,
-  options: PermissionOptions
+  options: PermissionOptions,
 ): Promise<PermissionSuccess | NextResponse> {
   try {
     const errorContext = fmErrorContext(req);
@@ -115,25 +117,34 @@ export async function requireFmPermission(
     const fmRole = normalizeRole(sessionUser.role);
 
     if (!fmRole) {
-      return FMErrors.forbidden('Role is not authorized for FM module', errorContext);
+      return FMErrors.forbidden(
+        "Role is not authorized for FM module",
+        errorContext,
+      );
     }
 
     const plan = normalizePlan(sessionUser.subscriptionPlan);
 
     if (!sessionUser.isSuperAdmin) {
       if (!hasModuleAccess(fmRole, options.module)) {
-        return FMErrors.forbidden('Module access denied', errorContext);
+        return FMErrors.forbidden("Module access denied", errorContext);
       }
 
       if (!hasSubmoduleAccess(fmRole, plan, options.submodule)) {
-        return FMErrors.forbidden('Submodule not enabled for this role/plan', errorContext);
+        return FMErrors.forbidden(
+          "Submodule not enabled for this role/plan",
+          errorContext,
+        );
       }
 
       if (
         options.submodule &&
         !hasActionAccess(fmRole, options.submodule, options.action)
       ) {
-        return FMErrors.forbidden('Insufficient permissions for requested action', errorContext);
+        return FMErrors.forbidden(
+          "Insufficient permissions for requested action",
+          errorContext,
+        );
       }
     }
 
@@ -145,8 +156,11 @@ export async function requireFmPermission(
     };
   } catch (error) {
     if (error instanceof UnauthorizedError) {
-      return FMErrors.unauthorized('Authentication required', fmErrorContext(req));
+      return FMErrors.unauthorized(
+        "Authentication required",
+        fmErrorContext(req),
+      );
     }
-    return FMErrors.internalError('Internal server error', fmErrorContext(req));
+    return FMErrors.internalError("Internal server error", fmErrorContext(req));
   }
 }

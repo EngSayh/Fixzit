@@ -107,7 +107,7 @@ describe("HelpArticle model schema", () => {
       slug: 'test2',
       title: 'Test2',
       content: 'Content2',
-      status: 'INVALID_STATUS' as any,
+      status: 'INVALID_STATUS',
       createdBy,
     });
     const err = invalidDoc.validateSync();
@@ -137,7 +137,7 @@ describe("HelpArticle model schema", () => {
   });
   
   it("configures timestamps and has orgId from tenant isolation plugin", () => {
-    const schema: any = HelpArticle.schema;
+    const schema = HelpArticle.schema;
     
     // Check timestamps option
     expect(schema.options.timestamps).toBe(true);

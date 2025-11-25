@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import React, { useMemo, useState, useEffect } from 'react';
-import { Check, CheckCheck, Filter, Search, MoreVertical } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import { toast } from 'sonner';
-import useSWR from 'swr';
-import type { NotificationDoc } from '@/lib/models';
-import ClientDate from '@/components/ClientDate';
-import { useTranslation } from '@/contexts/TranslationContext';
+import React, { useMemo, useState, useEffect } from "react";
+import { Check, CheckCheck, Filter, Search, MoreVertical } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
+import useSWR from "swr";
+import type { NotificationDoc } from "@/lib/models";
+import ClientDate from "@/components/ClientDate";
+import { useTranslation } from "@/contexts/TranslationContext";
 
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 /**
  * Formats a translated toast/message string that needs a dynamic count placeholder.
@@ -17,32 +17,37 @@ import { logger } from '@/lib/logger';
  */
 const formatCountMessage = (
   formatter: (_value: string) => string,
-  count: number
+  count: number,
 ) => formatter(String(count));
 
 const PRIORITY_TRANSLATIONS = {
-  high: { key: 'notifications.priority.high', fallback: 'HIGH' },
-  medium: { key: 'notifications.priority.medium', fallback: 'MEDIUM' },
-  low: { key: 'notifications.priority.low', fallback: 'LOW' }
+  high: { key: "notifications.priority.high", fallback: "HIGH" },
+  medium: { key: "notifications.priority.medium", fallback: "MEDIUM" },
+  low: { key: "notifications.priority.low", fallback: "LOW" },
 } as const;
 
 const CATEGORY_TRANSLATIONS = {
-  maintenance: { key: 'notifications.category.maintenance', fallback: 'Maintenance' },
-  vendor: { key: 'notifications.category.vendor', fallback: 'Vendor' },
-  finance: { key: 'notifications.category.finance', fallback: 'Finance' },
-  system: { key: 'notifications.category.system', fallback: 'System' }
+  maintenance: {
+    key: "notifications.category.maintenance",
+    fallback: "Maintenance",
+  },
+  vendor: { key: "notifications.category.vendor", fallback: "Vendor" },
+  finance: { key: "notifications.category.finance", fallback: "Finance" },
+  system: { key: "notifications.category.system", fallback: "System" },
 } as const;
 
 export default function NotificationsPage() {
   const { data: session } = useSession();
   const { t } = useTranslation();
   const orgId = session?.user?.orgId;
-  const [selectedTab, setSelectedTab] = useState('all');
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('all');
-  const [selectedNotifications, setSelectedNotifications] = useState<Set<string>>(new Set());
+  const [selectedTab, setSelectedTab] = useState("all");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [selectedNotifications, setSelectedNotifications] = useState<
+    Set<string>
+  >(new Set());
   const [selectAll, setSelectAll] = useState(false);
-  const [todayDateString, setTodayDateString] = useState('');
+  const [todayDateString, setTodayDateString] = useState("");
 
   useEffect(() => {
     setTodayDateString(new Date().toDateString());
@@ -50,21 +55,23 @@ export default function NotificationsPage() {
 
   const fetcher = (url: string) => {
     if (!orgId) {
-      return Promise.reject(new Error(t('notifications.toast.noOrgId', 'No organization ID found')));
+      return Promise.reject(
+        new Error(t("notifications.toast.noOrgId", "No organization ID found")),
+      );
     }
     return fetch(url, {
-      headers: { 'x-tenant-id': orgId }
+      headers: { "x-tenant-id": orgId },
     })
-      .then(r => r.json())
-      .catch(error => {
-        logger.error('Notifications fetch error', error);
+      .then((r) => r.json())
+      .catch((error) => {
+        logger.error("Notifications fetch error", error);
         throw error;
       });
   };
 
   const { data, mutate, isLoading } = useSWR<{ items: NotificationDoc[] }>(
-    orgId ? '/api/notifications' : null,
-    fetcher
+    orgId ? "/api/notifications" : null,
+    fetcher,
   );
   const notificationItems = data?.items;
 
@@ -77,8 +84,12 @@ export default function NotificationsPage() {
    * Falls back to the uppercase raw value so the UI is never blank.
    */
   const formatPriorityChip = (priority: string) => {
-    const normalized = priority?.toLowerCase?.() as keyof typeof PRIORITY_TRANSLATIONS | undefined;
-    const translation = normalized ? PRIORITY_TRANSLATIONS[normalized] : undefined;
+    const normalized = priority?.toLowerCase?.() as
+      | keyof typeof PRIORITY_TRANSLATIONS
+      | undefined;
+    const translation = normalized
+      ? PRIORITY_TRANSLATIONS[normalized]
+      : undefined;
     if (translation) {
       return t(translation.key, translation.fallback);
     }
@@ -90,8 +101,12 @@ export default function NotificationsPage() {
    * If a key is missing in the dictionaries we fall back to the original category text.
    */
   const formatCategoryChip = (category: string) => {
-    const normalized = category?.toLowerCase?.() as keyof typeof CATEGORY_TRANSLATIONS | undefined;
-    const translation = normalized ? CATEGORY_TRANSLATIONS[normalized] : undefined;
+    const normalized = category?.toLowerCase?.() as
+      | keyof typeof CATEGORY_TRANSLATIONS
+      | undefined;
+    const translation = normalized
+      ? CATEGORY_TRANSLATIONS[normalized]
+      : undefined;
     return translation ? t(translation.key, translation.fallback) : category;
   };
 
@@ -99,21 +114,23 @@ export default function NotificationsPage() {
    * Generates the localized label for the read/unread badge.
    */
   const formatStatusLabel = (read: boolean) =>
-    read ? t('notifications.status.read', 'Read') : t('notifications.status.unread', 'Unread');
+    read
+      ? t("notifications.status.read", "Read")
+      : t("notifications.status.unread", "Unread");
 
   /**
    * Maps priority codes to tailwind utility classes so the chips stay consistent across the view.
    */
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high':
-        return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
-      case 'medium':
-        return 'bg-warning/10 text-warning-foreground border-warning/20';
-      case 'low':
-        return 'bg-success/10 text-success-foreground border-success/20';
+      case "high":
+        return "bg-destructive/10 text-destructive-foreground border-destructive/20";
+      case "medium":
+        return "bg-warning/10 text-warning-foreground border-warning/20";
+      case "low":
+        return "bg-success/10 text-success-foreground border-success/20";
       default:
-        return 'bg-muted text-foreground border-border';
+        return "bg-muted text-foreground border-border";
     }
   };
 
@@ -123,18 +140,18 @@ export default function NotificationsPage() {
    */
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'work-order':
-        return '🔧';
-      case 'vendor':
-        return '👥';
-      case 'payment':
-        return '💰';
-      case 'maintenance':
-        return '🛠️';
-      case 'system':
-        return '⚙️';
+      case "work-order":
+        return "🔧";
+      case "vendor":
+        return "👥";
+      case "payment":
+        return "💰";
+      case "maintenance":
+        return "🛠️";
+      case "system":
+        return "⚙️";
       default:
-        return '📢';
+        return "📢";
     }
   };
 
@@ -144,16 +161,16 @@ export default function NotificationsPage() {
    */
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'maintenance':
-        return 'bg-primary/10 text-primary-foreground border-primary/20';
-      case 'vendor':
-        return 'bg-secondary/10 text-secondary border-secondary/30';
-      case 'finance':
-        return 'bg-success/10 text-success-foreground border-success/20';
-      case 'system':
-        return 'bg-muted text-foreground border-border';
+      case "maintenance":
+        return "bg-primary/10 text-primary-foreground border-primary/20";
+      case "vendor":
+        return "bg-secondary/10 text-secondary border-secondary/30";
+      case "finance":
+        return "bg-success/10 text-success-foreground border-success/20";
+      case "system":
+        return "bg-muted text-foreground border-border";
       default:
-        return 'bg-muted text-foreground border-border';
+        return "bg-muted text-foreground border-border";
     }
   };
 
@@ -165,23 +182,23 @@ export default function NotificationsPage() {
 
       let matchesTab = true;
       switch (selectedTab) {
-        case 'unread':
+        case "unread":
           matchesTab = !notif.read;
           break;
-        case 'urgent':
-          matchesTab = notif.priority === 'high';
+        case "urgent":
+          matchesTab = notif.priority === "high";
           break;
-        case 'all':
+        case "all":
         default:
           matchesTab = true;
           break;
       }
 
       const matchesFilter =
-        filter === 'all' ||
+        filter === "all" ||
         notif.category === filter ||
-        (filter === 'unread' && !notif.read) ||
-        (filter === 'high' && notif.priority === 'high');
+        (filter === "unread" && !notif.read) ||
+        (filter === "high" && notif.priority === "high");
 
       return matchesSearch && matchesTab && matchesFilter;
     });
@@ -191,7 +208,11 @@ export default function NotificationsPage() {
     if (selectAll) {
       setSelectedNotifications(new Set());
     } else {
-      setSelectedNotifications(new Set(filteredNotifications.map((n: NotificationDoc) => String(n.id || ''))));
+      setSelectedNotifications(
+        new Set(
+          filteredNotifications.map((n: NotificationDoc) => String(n.id || "")),
+        ),
+      );
     }
     setSelectAll(!selectAll);
   };
@@ -207,10 +228,15 @@ export default function NotificationsPage() {
     setSelectAll(newSelected.size === filteredNotifications.length);
   };
 
-  const unreadCount = useMemo(() => notifications.filter((n: NotificationDoc) => !n.read).length, [notifications]);
+  const unreadCount = useMemo(
+    () => notifications.filter((n: NotificationDoc) => !n.read).length,
+    [notifications],
+  );
   const urgentCount = useMemo(
-    () => notifications.filter((n: NotificationDoc) => n.priority === 'high').length,
-    [notifications]
+    () =>
+      notifications.filter((n: NotificationDoc) => n.priority === "high")
+        .length,
+    [notifications],
   );
 
   const tabCounts = useMemo(() => {
@@ -219,23 +245,23 @@ export default function NotificationsPage() {
         notif.title.toLowerCase().includes(search.toLowerCase()) ||
         notif.message.toLowerCase().includes(search.toLowerCase());
       const matchesFilter =
-        filter === 'all' ||
+        filter === "all" ||
         notif.category === filter ||
-        (filter === 'unread' && !notif.read) ||
-        (filter === 'high' && notif.priority === 'high');
+        (filter === "unread" && !notif.read) ||
+        (filter === "high" && notif.priority === "high");
       return matchesSearch && matchesFilter;
     });
 
     return {
       all: allFiltered.length,
       unread: unreadCount,
-      urgent: urgentCount
+      urgent: urgentCount,
     };
   }, [notifications, search, filter, unreadCount, urgentCount]);
 
   const requireOrgId = () => {
     if (!orgId) {
-      toast.error(t('notifications.toast.noOrgId', 'No organization ID found'));
+      toast.error(t("notifications.toast.noOrgId", "No organization ID found"));
       return false;
     }
     return true;
@@ -248,17 +274,22 @@ export default function NotificationsPage() {
 
     try {
       await fetch(`/api/notifications/${id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
-          'x-tenant-id': orgId!
+          "Content-Type": "application/json",
+          "x-tenant-id": orgId!,
         },
-        body: JSON.stringify({ read: true })
+        body: JSON.stringify({ read: true }),
       });
       mutate();
     } catch (error) {
-      logger.error('Error marking notification as read:', error);
-      toast.error(t('notifications.toast.markReadFailed', 'Failed to mark notification as read'));
+      logger.error("Error marking notification as read:", error);
+      toast.error(
+        t(
+          "notifications.toast.markReadFailed",
+          "Failed to mark notification as read",
+        ),
+      );
     }
   };
 
@@ -267,40 +298,54 @@ export default function NotificationsPage() {
       return;
     }
 
-    const unreadIds = notifications.filter((n: NotificationDoc) => !n.read).map((n: NotificationDoc) => String(n.id || ''));
+    const unreadIds = notifications
+      .filter((n: NotificationDoc) => !n.read)
+      .map((n: NotificationDoc) => String(n.id || ""));
     if (unreadIds.length > 0) {
       const toastId = toast.loading(
         formatCountMessage(
           (count) =>
-            t('notifications.toast.markingCount', 'Marking {{count}} notifications as read...').replace('{{count}}', count),
-          unreadIds.length
-        )
+            t(
+              "notifications.toast.markingCount",
+              "Marking {{count}} notifications as read...",
+            ).replace("{{count}}", count),
+          unreadIds.length,
+        ),
       );
 
       try {
-        await fetch('/api/notifications/bulk', {
-          method: 'POST',
+        await fetch("/api/notifications/bulk", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'x-tenant-id': orgId!
+            "Content-Type": "application/json",
+            "x-tenant-id": orgId!,
           },
           body: JSON.stringify({
-            action: 'mark-read',
-            notificationIds: unreadIds
-          })
+            action: "mark-read",
+            notificationIds: unreadIds,
+          }),
         });
         toast.success(
           formatCountMessage(
             (count) =>
-              t('notifications.toast.markedCount', 'Marked {{count}} notifications as read').replace('{{count}}', count),
-            unreadIds.length
+              t(
+                "notifications.toast.markedCount",
+                "Marked {{count}} notifications as read",
+              ).replace("{{count}}", count),
+            unreadIds.length,
           ),
-          { id: toastId }
+          { id: toastId },
         );
         mutate();
       } catch (error) {
-        logger.error('Error marking notifications as read:', error);
-        toast.error(t('notifications.toast.markReadFailed', 'Failed to mark notifications as read'), { id: toastId });
+        logger.error("Error marking notifications as read:", error);
+        toast.error(
+          t(
+            "notifications.toast.markReadFailed",
+            "Failed to mark notifications as read",
+          ),
+          { id: toastId },
+        );
       }
     }
   };
@@ -315,37 +360,49 @@ export default function NotificationsPage() {
       const toastId = toast.loading(
         formatCountMessage(
           (count) =>
-            t('notifications.toast.markingCount', 'Marking {{count}} notifications as read...').replace('{{count}}', count),
-          selectedIds.length
-        )
+            t(
+              "notifications.toast.markingCount",
+              "Marking {{count}} notifications as read...",
+            ).replace("{{count}}", count),
+          selectedIds.length,
+        ),
       );
 
       try {
-        await fetch('/api/notifications/bulk', {
-          method: 'POST',
+        await fetch("/api/notifications/bulk", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'x-tenant-id': orgId!
+            "Content-Type": "application/json",
+            "x-tenant-id": orgId!,
           },
           body: JSON.stringify({
-            action: 'mark-read',
-            notificationIds: selectedIds
-          })
+            action: "mark-read",
+            notificationIds: selectedIds,
+          }),
         });
         toast.success(
           formatCountMessage(
             (count) =>
-              t('notifications.toast.markedCount', 'Marked {{count}} notifications as read').replace('{{count}}', count),
-            selectedIds.length
+              t(
+                "notifications.toast.markedCount",
+                "Marked {{count}} notifications as read",
+              ).replace("{{count}}", count),
+            selectedIds.length,
           ),
-          { id: toastId }
+          { id: toastId },
         );
         mutate();
         setSelectedNotifications(new Set());
         setSelectAll(false);
       } catch (error) {
-        logger.error('Error marking notifications as read:', error);
-        toast.error(t('notifications.toast.markReadFailed', 'Failed to mark notifications as read'), { id: toastId });
+        logger.error("Error marking notifications as read:", error);
+        toast.error(
+          t(
+            "notifications.toast.markReadFailed",
+            "Failed to mark notifications as read",
+          ),
+          { id: toastId },
+        );
       }
     }
   };
@@ -355,9 +412,13 @@ export default function NotificationsPage() {
     if (selectedIds.length > 0) {
       toast.success(
         formatCountMessage(
-          (count) => t('notifications.toast.archived', 'Archived {{count}} notifications').replace('{{count}}', count),
-          selectedIds.length
-        )
+          (count) =>
+            t(
+              "notifications.toast.archived",
+              "Archived {{count}} notifications",
+            ).replace("{{count}}", count),
+          selectedIds.length,
+        ),
       );
       setSelectedNotifications(new Set());
       setSelectAll(false);
@@ -369,9 +430,13 @@ export default function NotificationsPage() {
     if (selectedIds.length > 0) {
       toast.success(
         formatCountMessage(
-          (count) => t('notifications.toast.deleted', 'Deleted {{count}} notifications').replace('{{count}}', count),
-          selectedIds.length
-        )
+          (count) =>
+            t(
+              "notifications.toast.deleted",
+              "Deleted {{count}} notifications",
+            ).replace("{{count}}", count),
+          selectedIds.length,
+        ),
       );
       setSelectedNotifications(new Set());
       setSelectAll(false);
@@ -382,23 +447,27 @@ export default function NotificationsPage() {
     const selectedIds = Array.from(selectedNotifications);
     if (selectedIds.length > 0) {
       const selectedData = filteredNotifications
-        .filter((n: NotificationDoc) => selectedIds.includes(String(n.id || '')))
+        .filter((n: NotificationDoc) =>
+          selectedIds.includes(String(n.id || "")),
+        )
         .map((notif: NotificationDoc) => ({
-          id: String(notif.id || ''),
+          id: String(notif.id || ""),
           title: notif.title,
           message: notif.message,
           priority: notif.priority,
           category: notif.category,
           read: notif.read,
-          timestamp: notif.timestamp
+          timestamp: notif.timestamp,
         }));
 
-      const blob = new Blob([JSON.stringify(selectedData, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(selectedData, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `${t('notifications.report.filenamePrefix', 'notification-report-')}${
-        new Date().toISOString().split('T')[0]
+      a.download = `${t("notifications.report.filenamePrefix", "notification-report-")}${
+        new Date().toISOString().split("T")[0]
       }.json`;
       document.body.appendChild(a);
       a.click();
@@ -412,9 +481,13 @@ export default function NotificationsPage() {
     if (selectedIds.length > 0) {
       toast.success(
         formatCountMessage(
-          (count) => t('notifications.toast.markedImportant', 'Marked {{count}} notifications as important').replace('{{count}}', count),
-          selectedIds.length
-        )
+          (count) =>
+            t(
+              "notifications.toast.markedImportant",
+              "Marked {{count}} notifications as important",
+            ).replace("{{count}}", count),
+          selectedIds.length,
+        ),
       );
       setSelectedNotifications(new Set());
       setSelectAll(false);
@@ -422,23 +495,28 @@ export default function NotificationsPage() {
   };
 
   const handleEmailSettings = () => {
-    window.open('/settings?tab=notifications', '_blank');
+    window.open("/settings?tab=notifications", "_blank");
   };
 
   const handlePushNotifications = () => {
-    window.open('/settings?tab=preferences', '_blank');
+    window.open("/settings?tab=preferences", "_blank");
   };
 
   const handleMuteCategories = () => {
-    if (filter !== 'all' && filter !== 'unread' && filter !== 'high') {
+    if (filter !== "all" && filter !== "unread" && filter !== "high") {
       toast.success(
-        t('notifications.toast.mutedCategory', 'Muted notifications for category: {{category}}').replace(
-          '{{category}}',
-          formatCategoryChip(filter)
-        )
+        t(
+          "notifications.toast.mutedCategory",
+          "Muted notifications for category: {{category}}",
+        ).replace("{{category}}", formatCategoryChip(filter)),
       );
     } else {
-      toast.info(t('notifications.toast.muteSelectCategory', 'Please select a specific category first to mute it'));
+      toast.info(
+        t(
+          "notifications.toast.muteSelectCategory",
+          "Please select a specific category first to mute it",
+        ),
+      );
     }
   };
 
@@ -448,20 +526,30 @@ export default function NotificationsPage() {
       unread: unreadCount,
       urgent: urgentCount,
       byCategory: {
-        maintenance: notifications.filter((n: NotificationDoc) => n.category === 'maintenance').length,
-        vendor: notifications.filter((n: NotificationDoc) => n.category === 'vendor').length,
-        finance: notifications.filter((n: NotificationDoc) => n.category === 'finance').length,
-        system: notifications.filter((n: NotificationDoc) => n.category === 'system').length
+        maintenance: notifications.filter(
+          (n: NotificationDoc) => n.category === "maintenance",
+        ).length,
+        vendor: notifications.filter(
+          (n: NotificationDoc) => n.category === "vendor",
+        ).length,
+        finance: notifications.filter(
+          (n: NotificationDoc) => n.category === "finance",
+        ).length,
+        system: notifications.filter(
+          (n: NotificationDoc) => n.category === "system",
+        ).length,
       },
-      generatedAt: new Date().toISOString()
+      generatedAt: new Date().toISOString(),
     };
 
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `${t('notifications.report.filenamePrefix', 'notification-report-')}${
-      new Date().toISOString().split('T')[0]
+    a.download = `${t("notifications.report.filenamePrefix", "notification-report-")}${
+      new Date().toISOString().split("T")[0]
     }.json`;
     document.body.appendChild(a);
     a.click();
@@ -470,25 +558,30 @@ export default function NotificationsPage() {
   };
 
   const handleSettings = () => {
-    window.open('/settings', '_blank');
+    window.open("/settings", "_blank");
   };
 
   const handleClearAll = () => {
-    toast.success(t('notifications.toast.clearedAll', 'All notifications cleared'));
+    toast.success(
+      t("notifications.toast.clearedAll", "All notifications cleared"),
+    );
   };
 
   const formatSelectionSummary = () => {
     if (selectedNotifications.size > 0) {
-      return t('notifications.bulk.selected', '{{selected}} of {{total}} selected')
-        .replace('{{selected}}', String(selectedNotifications.size))
-        .replace('{{total}}', String(filteredNotifications.length));
+      return t(
+        "notifications.bulk.selected",
+        "{{selected}} of {{total}} selected",
+      )
+        .replace("{{selected}}", String(selectedNotifications.size))
+        .replace("{{total}}", String(filteredNotifications.length));
     }
     if (filteredNotifications.length === 1) {
-      return t('notifications.bulk.countSingle', '1 notification');
+      return t("notifications.bulk.countSingle", "1 notification");
     }
-    return t('notifications.bulk.count', '{{count}} notifications').replace(
-      '{{count}}',
-      String(filteredNotifications.length)
+    return t("notifications.bulk.count", "{{count}} notifications").replace(
+      "{{count}}",
+      String(filteredNotifications.length),
     );
   };
 
@@ -497,20 +590,28 @@ export default function NotificationsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            {t('notifications.page.title', 'Notifications')}
+            {t("notifications.page.title", "Notifications")}
           </h1>
           <p className="text-muted-foreground">
-            {t('notifications.page.subtitle', 'Stay updated with all system notifications and alerts')}
+            {t(
+              "notifications.page.subtitle",
+              "Stay updated with all system notifications and alerts",
+            )}
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary" onClick={markAllAsRead} disabled={unreadCount === 0}>
+          <button
+            className="btn-secondary"
+            onClick={markAllAsRead}
+            disabled={unreadCount === 0}
+          >
             <CheckCheck size={16} className="me-2" />
-            {t('notifications.actions.markAllRead', 'Mark All Read')} ({unreadCount})
+            {t("notifications.actions.markAllRead", "Mark All Read")} (
+            {unreadCount})
           </button>
           <button className="btn-primary" onClick={handleSettings}>
             <Filter size={16} className="me-2" />
-            {t('notifications.actions.openSettings', 'Settings')}
+            {t("notifications.actions.openSettings", "Settings")}
           </button>
         </div>
       </div>
@@ -520,9 +621,11 @@ export default function NotificationsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">
-                {t('notifications.stats.total', 'Total Notifications')}
+                {t("notifications.stats.total", "Total Notifications")}
               </p>
-              <p className="text-2xl font-bold text-primary">{notifications.length}</p>
+              <p className="text-2xl font-bold text-primary">
+                {notifications.length}
+              </p>
             </div>
             <div className="text-primary">📢</div>
           </div>
@@ -531,9 +634,11 @@ export default function NotificationsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">
-                {t('notifications.stats.unread', 'Unread')}
+                {t("notifications.stats.unread", "Unread")}
               </p>
-              <p className="text-2xl font-bold text-destructive">{unreadCount}</p>
+              <p className="text-2xl font-bold text-destructive">
+                {unreadCount}
+              </p>
             </div>
             <div className="text-[hsl(var(--destructive)) / 0.1]">🔴</div>
           </div>
@@ -542,10 +647,14 @@ export default function NotificationsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">
-                {t('notifications.stats.highPriority', 'High Priority')}
+                {t("notifications.stats.highPriority", "High Priority")}
               </p>
               <p className="text-2xl font-bold text-warning">
-                {notifications.filter((n: NotificationDoc) => n.priority === 'high').length}
+                {
+                  notifications.filter(
+                    (n: NotificationDoc) => n.priority === "high",
+                  ).length
+                }
               </p>
             </div>
             <div className="text-warning">⚠️</div>
@@ -555,12 +664,14 @@ export default function NotificationsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">
-                {t('notifications.stats.today', 'Today')}
+                {t("notifications.stats.today", "Today")}
               </p>
               <p className="text-2xl font-bold text-success">
                 {todayDateString
                   ? notifications.filter(
-                      (n: NotificationDoc) => new Date(n.timestamp).toDateString() === todayDateString
+                      (n: NotificationDoc) =>
+                        new Date(n.timestamp).toDateString() ===
+                        todayDateString,
                     ).length
                   : 0}
               </p>
@@ -577,7 +688,10 @@ export default function NotificationsPage() {
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder={t('notifications.search.placeholder', 'Search notifications...')}
+                placeholder={t(
+                  "notifications.search.placeholder",
+                  "Search notifications...",
+                )}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full ps-10 pe-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -590,47 +704,61 @@ export default function NotificationsPage() {
               onChange={(e) => setFilter(e.target.value)}
               className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
             >
-              <option value="all">{t('notifications.filters.all', 'All Notifications')}</option>
-              <option value="unread">{t('notifications.filters.unread', 'Unread Only')}</option>
-              <option value="high">{t('notifications.filters.high', 'High Priority')}</option>
-              <option value="maintenance">{t('notifications.filters.maintenance', 'Maintenance')}</option>
-              <option value="vendor">{t('notifications.filters.vendor', 'Vendor')}</option>
-              <option value="finance">{t('notifications.filters.finance', 'Finance')}</option>
-              <option value="system">{t('notifications.filters.system', 'System')}</option>
+              <option value="all">
+                {t("notifications.filters.all", "All Notifications")}
+              </option>
+              <option value="unread">
+                {t("notifications.filters.unread", "Unread Only")}
+              </option>
+              <option value="high">
+                {t("notifications.filters.high", "High Priority")}
+              </option>
+              <option value="maintenance">
+                {t("notifications.filters.maintenance", "Maintenance")}
+              </option>
+              <option value="vendor">
+                {t("notifications.filters.vendor", "Vendor")}
+              </option>
+              <option value="finance">
+                {t("notifications.filters.finance", "Finance")}
+              </option>
+              <option value="system">
+                {t("notifications.filters.system", "System")}
+              </option>
             </select>
           </div>
         </div>
 
         <div className="flex border-b border-border mt-4">
           <button
-            onClick={() => setSelectedTab('all')}
+            onClick={() => setSelectedTab("all")}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-              selectedTab === 'all'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+              selectedTab === "all"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t('notifications.tabs.all', 'All')} ({tabCounts.all})
+            {t("notifications.tabs.all", "All")} ({tabCounts.all})
           </button>
           <button
-            onClick={() => setSelectedTab('unread')}
+            onClick={() => setSelectedTab("unread")}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-              selectedTab === 'unread'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+              selectedTab === "unread"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t('notifications.tabs.unread', 'Unread')} ({tabCounts.unread})
+            {t("notifications.tabs.unread", "Unread")} ({tabCounts.unread})
           </button>
           <button
-            onClick={() => setSelectedTab('urgent')}
+            onClick={() => setSelectedTab("urgent")}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors relative ${
-              selectedTab === 'urgent'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+              selectedTab === "urgent"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t('notifications.tabs.urgent', 'Urgent')} ({tabCounts.urgent})
+            {t("notifications.tabs.urgent", "Urgent")} ({tabCounts.urgent})
             {tabCounts.urgent > 0 && (
               <span className="absolute -top-1 -end-1 w-2 h-2 bg-destructive/20 rounded-full"></span>
             )}
@@ -644,51 +772,73 @@ export default function NotificationsPage() {
             <div className="text-center py-8">
               <div className="text-muted-foreground mb-2">⏳</div>
               <p className="text-muted-foreground">
-                {t('notifications.state.loading', 'Loading notifications...')}
+                {t("notifications.state.loading", "Loading notifications...")}
               </p>
             </div>
           ) : filteredNotifications.length === 0 ? (
             <div className="text-center py-8">
               <div className="text-muted-foreground mb-2">📭</div>
               <p className="text-muted-foreground">
-                {t('notifications.state.emptyTitle', 'No notifications found')}
+                {t("notifications.state.emptyTitle", "No notifications found")}
               </p>
               <p className="text-sm text-muted-foreground">
-                {t("notifications.state.emptySubtitle", "You're all caught up!")}
+                {t(
+                  "notifications.state.emptySubtitle",
+                  "You're all caught up!",
+                )}
               </p>
             </div>
           ) : (
             filteredNotifications.map((notif: NotificationDoc) => (
               <div
-                key={String(notif.id || '')}
+                key={String(notif.id || "")}
                 className={`p-4 rounded-2xl border transition-all hover:shadow-md ${
-                  notif.read ? 'bg-card border-border' : 'bg-primary/10 border-primary/20'
+                  notif.read
+                    ? "bg-card border-border"
+                    : "bg-primary/10 border-primary/20"
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3 flex-1">
                     <input
                       type="checkbox"
-                      checked={selectedNotifications.has(String(notif.id || ''))}
-                      onChange={() => handleSelectNotification(String(notif.id || ''))}
+                      checked={selectedNotifications.has(
+                        String(notif.id || ""),
+                      )}
+                      onChange={() =>
+                        handleSelectNotification(String(notif.id || ""))
+                      }
                       className="mt-1 h-4 w-4 text-primary focus:ring-blue-500 border-border rounded"
-                      aria-label={t('notifications.accessibility.selectNotification', 'Select notification')}
+                      aria-label={t(
+                        "notifications.accessibility.selectNotification",
+                        "Select notification",
+                      )}
                     />
                     <div className="text-xl">{getTypeIcon(notif.type)}</div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className={`font-medium ${notif.read ? 'text-foreground' : 'text-primary'}`}>
+                        <h3
+                          className={`font-medium ${notif.read ? "text-foreground" : "text-primary"}`}
+                        >
                           {notif.title}
                         </h3>
-                        {!notif.read && <div className="w-2 h-2 bg-primary/20 rounded-full"></div>}
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getPriorityColor(notif.priority)}`}>
+                        {!notif.read && (
+                          <div className="w-2 h-2 bg-primary/20 rounded-full"></div>
+                        )}
+                        <span
+                          className={`px-2 py-1 text-xs font-semibold rounded-full border ${getPriorityColor(notif.priority)}`}
+                        >
                           {formatPriorityChip(notif.priority)}
                         </span>
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getCategoryColor(notif.category)}`}>
+                        <span
+                          className={`px-2 py-1 text-xs font-semibold rounded-full border ${getCategoryColor(notif.category)}`}
+                        >
                           {formatCategoryChip(notif.category)}
                         </span>
                       </div>
-                      <p className={`text-sm ${notif.read ? 'text-muted-foreground' : 'text-primary'}`}>
+                      <p
+                        className={`text-sm ${notif.read ? "text-muted-foreground" : "text-primary"}`}
+                      >
                         {notif.message}
                       </p>
                       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
@@ -703,17 +853,26 @@ export default function NotificationsPage() {
                   <div className="flex items-center gap-2">
                     {!notif.read && (
                       <button
-                        onClick={() => markAsRead(String(notif.id || ''))}
+                        onClick={() => markAsRead(String(notif.id || ""))}
                         className="p-1 text-primary hover:text-primary hover:bg-primary/10 rounded"
-                        title={t('notifications.item.markAsRead', 'Mark as read')}
-                        aria-label={t('notifications.item.markAsRead', 'Mark as read')}
+                        title={t(
+                          "notifications.item.markAsRead",
+                          "Mark as read",
+                        )}
+                        aria-label={t(
+                          "notifications.item.markAsRead",
+                          "Mark as read",
+                        )}
                       >
                         <Check size={16} />
                       </button>
                     )}
                     <button
                       className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded"
-                      aria-label={t('notifications.item.moreActions', 'More actions')}
+                      aria-label={t(
+                        "notifications.item.moreActions",
+                        "More actions",
+                      )}
                     >
                       <MoreVertical size={16} />
                     </button>
@@ -729,13 +888,15 @@ export default function NotificationsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">{formatSelectionSummary()}</span>
+              <span className="text-sm text-muted-foreground">
+                {formatSelectionSummary()}
+              </span>
               {selectedNotifications.size === 0 && (
                 <button
                   onClick={handleSelectAll}
                   className="px-3 py-1 text-sm bg-secondary text-secondary-foreground rounded-2xl hover:bg-secondary/90 transition-colors"
                 >
-                  {t('notifications.bulk.selectAll', 'Select All')}
+                  {t("notifications.bulk.selectAll", "Select All")}
                 </button>
               )}
               {selectedNotifications.size > 0 && (
@@ -744,31 +905,36 @@ export default function NotificationsPage() {
                     onClick={bulkMarkAsRead}
                     className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
                   >
-                    {t('notifications.bulk.markRead', 'Mark as Read')} ({selectedNotifications.size})
+                    {t("notifications.bulk.markRead", "Mark as Read")} (
+                    {selectedNotifications.size})
                   </button>
                   <button
                     onClick={markAsImportant}
                     className="px-3 py-1 text-sm bg-warning text-white rounded hover:bg-warning transition-colors"
                   >
-                    {t('notifications.bulk.markImportant', 'Mark Important')} ({selectedNotifications.size})
+                    {t("notifications.bulk.markImportant", "Mark Important")} (
+                    {selectedNotifications.size})
                   </button>
                   <button
                     onClick={exportNotifications}
                     className="px-3 py-1 text-sm bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 transition-colors"
                   >
-                    {t('notifications.bulk.export', 'Export')} ({selectedNotifications.size})
+                    {t("notifications.bulk.export", "Export")} (
+                    {selectedNotifications.size})
                   </button>
                   <button
                     onClick={archiveNotifications}
                     className="px-3 py-1 text-sm bg-success text-white rounded hover:bg-success transition-colors"
                   >
-                    {t('notifications.bulk.archive', 'Archive')} ({selectedNotifications.size})
+                    {t("notifications.bulk.archive", "Archive")} (
+                    {selectedNotifications.size})
                   </button>
                   <button
                     onClick={deleteNotifications}
                     className="px-3 py-1 text-sm bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 transition-colors"
                   >
-                    {t('notifications.bulk.delete', 'Delete')} ({selectedNotifications.size})
+                    {t("notifications.bulk.delete", "Delete")} (
+                    {selectedNotifications.size})
                   </button>
                 </div>
               )}
@@ -779,43 +945,61 @@ export default function NotificationsPage() {
 
       <div className="card">
         <h3 className="text-lg font-semibold mb-4">
-          {t('notifications.quickActions.title', 'Quick Actions')}
+          {t("notifications.quickActions.title", "Quick Actions")}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <button onClick={handleEmailSettings} className="btn-ghost text-center hover:bg-primary/10 transition-colors">
+          <button
+            onClick={handleEmailSettings}
+            className="btn-ghost text-center hover:bg-primary/10 transition-colors"
+          >
             <div className="text-2xl mb-2">📧</div>
             <div className="text-sm font-medium">
-              {t('notifications.quickActions.email', 'Email Settings')}
+              {t("notifications.quickActions.email", "Email Settings")}
             </div>
           </button>
-          <button onClick={handlePushNotifications} className="btn-ghost text-center hover:bg-success/10 transition-colors">
+          <button
+            onClick={handlePushNotifications}
+            className="btn-ghost text-center hover:bg-success/10 transition-colors"
+          >
             <div className="text-2xl mb-2">📱</div>
             <div className="text-sm font-medium">
-              {t('notifications.quickActions.push', 'Push Notifications')}
+              {t("notifications.quickActions.push", "Push Notifications")}
             </div>
           </button>
-          <button onClick={handleMuteCategories} className="btn-ghost text-center hover:bg-accent/10 transition-colors">
+          <button
+            onClick={handleMuteCategories}
+            className="btn-ghost text-center hover:bg-accent/10 transition-colors"
+          >
             <div className="text-2xl mb-2">🔕</div>
             <div className="text-sm font-medium">
-              {t('notifications.quickActions.mute', 'Mute Categories')}
+              {t("notifications.quickActions.mute", "Mute Categories")}
             </div>
           </button>
-          <button onClick={handleNotificationReport} className="btn-ghost text-center hover:bg-secondary/10 transition-colors">
+          <button
+            onClick={handleNotificationReport}
+            className="btn-ghost text-center hover:bg-secondary/10 transition-colors"
+          >
             <div className="text-2xl mb-2">📊</div>
             <div className="text-sm font-medium">
-              {t('notifications.quickActions.report', 'Notification Report')}
+              {t("notifications.quickActions.report", "Notification Report")}
             </div>
           </button>
-          <button onClick={handleSettings} className="btn-ghost text-center hover:bg-muted transition-colors">
+          <button
+            onClick={handleSettings}
+            className="btn-ghost text-center hover:bg-muted transition-colors"
+          >
             <div className="text-2xl mb-2">⚙️</div>
             <div className="text-sm font-medium">
-              {t('notifications.quickActions.settings', 'Settings')}
+              {t("notifications.quickActions.settings", "Settings")}
             </div>
           </button>
-          <button onClick={handleClearAll} className="btn-ghost text-center hover:bg-destructive/10 transition-colors">
+          <button
+            onClick={handleClearAll}
+            className="btn-ghost text-center hover:bg-destructive/10 transition-colors"
+          >
             <div className="text-2xl mb-2">🗑️</div>
             <div className="text-sm font-medium">
-              {t('notifications.quickActions.clearAll', 'Clear All')}
+              {t("notifications.quickActions.clearAll", "Clear All")}
             </div>
           </button>
         </div>

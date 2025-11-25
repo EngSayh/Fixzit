@@ -26,9 +26,8 @@
 ### 3. Branding Tokens (Sanctioned Palette)
 
 ```css
---brand-blue:   #0061A8  /* Primary */
---brand-green:  #00A859  /* Success */
---brand-yellow: #FFB400  /* Warning */
+--brand-blue: #0061a8 /* Primary */ --brand-green: #00a859 /* Success */
+  --brand-yellow: #ffb400 /* Warning */;
 ```
 
 **Whitelist** (approved grays/reds/etc):
@@ -215,23 +214,23 @@
 
 ## 📊 ROLE MATRIX (Page × Role Verification)
 
-| Module | Super Admin | Admin | Corp Owner | Team | Tech | PM | Tenant | Vendor | Guest |
-|--------|-------------|-------|------------|------|------|----|----|--------|-------|
-| Landing | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 |
-| Auth | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 |
-| Layout Shell | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 |
-| Dashboard | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Work Orders | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Properties | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Finance | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| HR/ATS | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Admin | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| CRM | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Support | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Marketplace | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Compliance | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| Reports | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| System Mgmt | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| Module       | Super Admin | Admin | Corp Owner | Team | Tech | PM  | Tenant | Vendor | Guest |
+| ------------ | ----------- | ----- | ---------- | ---- | ---- | --- | ------ | ------ | ----- |
+| Landing      | 🟡          | 🟡    | 🟡         | 🟡   | 🟡   | 🟡  | 🟡     | 🟡     | 🟡    |
+| Auth         | 🟡          | 🟡    | 🟡         | 🟡   | 🟡   | 🟡  | 🟡     | 🟡     | 🟡    |
+| Layout Shell | 🟡          | 🟡    | 🟡         | 🟡   | 🟡   | 🟡  | 🟡     | 🟡     | 🟡    |
+| Dashboard    | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Work Orders  | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Properties   | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Finance      | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| HR/ATS       | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Admin        | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| CRM          | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Support      | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Marketplace  | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Compliance   | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| Reports      | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
+| System Mgmt  | ⬜          | ⬜    | ⬜         | ⬜   | ⬜   | ⬜  | ⬜     | ⬜     | ⬜    |
 
 **Legend**:
 
@@ -313,7 +312,7 @@ pnpm verify:page --module $PAGE --role $ROLE
 
 # 4. Verify no regressions
 pnpm typecheck  # Must pass
-pnpm lint       # Must pass  
+pnpm lint       # Must pass
 pnpm style:scan # Must pass
 
 # 5. Re-run verification
@@ -358,7 +357,7 @@ pnpm verify:page --module $PAGE --role $ROLE
 ## 📈 CURRENT STATUS
 
 **TypeScript**: ✅ 0 errors (MAINTAINED)  
-**ESLint**: ❌ 423 warnings  
+**ESLint**: ❌ 423 warnings
 
 - 348 `any` types
 - 68 unused variables

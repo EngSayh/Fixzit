@@ -1,6 +1,7 @@
 # Fixzit Platform - Modular Architecture
 
 ## Overview
+
 The Fixzit platform is structured into **7 primary modules**, each containing related services and features. This architecture consolidates the 70+ existing pages into logical, maintainable groups.
 
 ---
@@ -8,9 +9,11 @@ The Fixzit platform is structured into **7 primary modules**, each containing re
 ## Module 1: Property & Tenancy Management
 
 ### Purpose
+
 Manage properties, units, owners, and rental operations with Ejar integration.
 
 ### Main Services
+
 - Properties Dashboard (Ejar-style metrics)
 - Rental Management
 - Real Estate Listings
@@ -18,6 +21,7 @@ Manage properties, units, owners, and rental operations with Ejar integration.
 ### Sub-Services & Pages
 
 #### Existing Pages
+
 - `/app/(dashboard)/properties/page.tsx` - Properties list
 - `/app/(dashboard)/properties/[id]/page.tsx` - Property details
 - `/app/(dashboard)/bulk-units/page.tsx` - Bulk Unit Management
@@ -25,6 +29,7 @@ Manage properties, units, owners, and rental operations with Ejar integration.
 - `/app/(dashboard)/real-estate-projects/page.tsx` - Real Estate Projects
 
 #### Features
+
 - Property metrics (Total Flats/Units, Empty Flats)
 - Building Type Configuration
 - Utility Transfer
@@ -34,6 +39,7 @@ Manage properties, units, owners, and rental operations with Ejar integration.
 - Property Advertisements
 
 #### Database Models
+
 - `Property` (existing)
 - `Unit` (existing)
 - `BuildingType` (needs creation)
@@ -43,9 +49,11 @@ Manage properties, units, owners, and rental operations with Ejar integration.
 ## Module 2: Customer & User Lifecycle
 
 ### Purpose
+
 Manage all user types: owners, tenants, employees, families, and customer relationships.
 
 ### Main Services
+
 - Owner Management
 - Tenant Management
 - Employee Management
@@ -54,11 +62,13 @@ Manage all user types: owners, tenants, employees, families, and customer relati
 ### Sub-Services & Pages
 
 #### Existing Pages
+
 - `/app/(dashboard)/profile/page.tsx` - Profile Management
 - Employee Management pages (need consolidation)
 - Client Management pages (need consolidation)
 
 #### Needs Implementation
+
 - **Owner Management** (Add/List) - Not found in codebase
 - **Tenant Management** (Add/List/Multiple) - Not found in codebase
 - **Family Management** - Not implemented
@@ -67,6 +77,7 @@ Manage all user types: owners, tenants, employees, families, and customer relati
 - **Job Application Process** - Not implemented
 
 #### Database Models
+
 - `Owner` (needs creation)
 - `Tenant` (needs creation)
 - `Employee` (needs creation)
@@ -80,9 +91,11 @@ Manage all user types: owners, tenants, employees, families, and customer relati
 ## Module 3: Legal & Contract Management
 
 ### Purpose
+
 Handle all contracts (rental and sales), legal documents, and agreements.
 
 ### Main Services
+
 - Contract Management Dashboard
 - Sales Contracts
 - Legal Documents
@@ -90,9 +103,11 @@ Handle all contracts (rental and sales), legal documents, and agreements.
 ### Sub-Services & Pages
 
 #### Existing Pages
+
 - Contract management pages (need to locate/consolidate)
 
 #### Needs Implementation
+
 - **Contract Dashboard** (Active/Closed/Expired metrics)
 - **Sales Contracts** (Listing/Add/Management)
 - **Contract Documentation**
@@ -105,6 +120,7 @@ Handle all contracts (rental and sales), legal documents, and agreements.
 - **Brokerage Establishments**
 
 #### Database Models
+
 - `Contract` (existing?)
 - `SalesContract` (needs creation)
 - `ContractTermination` (needs creation)
@@ -115,9 +131,11 @@ Handle all contracts (rental and sales), legal documents, and agreements.
 ## Module 4: Financial & Accounting
 
 ### Purpose
+
 Comprehensive financial management including payments, invoices, settlements, and accounting.
 
 ### Main Services
+
 - Financial Dashboard (AqaryPro-style)
 - Payment Management
 - Invoice Management
@@ -125,10 +143,12 @@ Comprehensive financial management including payments, invoices, settlements, an
 ### Sub-Services & Pages
 
 #### Existing Pages
+
 - Payment pages (need to locate)
 - Invoice pages (need to locate)
 
 #### Needs Implementation
+
 - **Financial Dashboard** (Owners, Tenants, Buildings, Units counts)
 - **Payments** (All/Overdue)
 - **Payment Tracking**
@@ -145,6 +165,7 @@ Comprehensive financial management including payments, invoices, settlements, an
 - **Offer Type Config**
 
 #### Database Models
+
 - `Payment` (existing?)
 - `Invoice` (needs creation)
 - `ReceiptVoucher` (needs creation)
@@ -159,9 +180,11 @@ Comprehensive financial management including payments, invoices, settlements, an
 ## Module 5: Service & Maintenance Operations
 
 ### Purpose
+
 Handle maintenance tickets, inspections, service scheduling, and warranty tracking.
 
 ### Main Services
+
 - Ticket Management
 - Inspection Management
 - Maintenance Scheduling
@@ -169,10 +192,12 @@ Handle maintenance tickets, inspections, service scheduling, and warranty tracki
 ### Sub-Services & Pages
 
 #### Existing Pages
+
 - `/app/(dashboard)/tickets/page.tsx` - Ticket Management (if exists)
 - `/app/(dashboard)/inspections/page.tsx` - Inspections (if exists)
 
 #### Needs Implementation
+
 - **Tickets** (All/Assignment)
 - **Requests**
 - **Fixzit Services** (Company-Provided)
@@ -185,6 +210,7 @@ Handle maintenance tickets, inspections, service scheduling, and warranty tracki
 - **Service Fees** (5% configurable)
 
 #### Database Models
+
 - `Ticket` (existing?)
 - `MaintenanceRequest` (needs creation)
 - `ServiceRating` (needs creation)
@@ -197,9 +223,11 @@ Handle maintenance tickets, inspections, service scheduling, and warranty tracki
 ## Module 6: Marketplace & Project Bidding
 
 ### Purpose
+
 Manage vendors, service providers, products, projects, and bidding processes.
 
 ### Main Services
+
 - Project Management
 - Vendor Management
 - E-commerce Store
@@ -207,10 +235,12 @@ Manage vendors, service providers, products, projects, and bidding processes.
 ### Sub-Services & Pages
 
 #### Existing Pages
+
 - `/app/(dashboard)/marketplace/*` (if exists)
 - Product/Service pages (need consolidation)
 
 #### Needs Implementation
+
 - **Project Management** (Create/Dashboard)
 - **Bidding Interface** (Submit/Overview)
 - **Contractor Registration** (with approval workflow)
@@ -224,6 +254,7 @@ Manage vendors, service providers, products, projects, and bidding processes.
 - **Order Tracking**
 
 #### Database Models
+
 - `Project` (needs creation)
 - `ProjectCategory` (needs creation)
 - `ProjectBid` (needs creation)
@@ -238,9 +269,11 @@ Manage vendors, service providers, products, projects, and bidding processes.
 ## Module 7: System & Administration
 
 ### Purpose
+
 System configuration, access control, audit logging, backups, and admin tools.
 
 ### Main Services
+
 - Admin Dashboard
 - Access Control
 - System Configuration
@@ -249,10 +282,12 @@ System configuration, access control, audit logging, backups, and admin tools.
 ### Sub-Services & Pages
 
 #### Existing Pages
+
 - `/app/admin/*` - Admin pages (need consolidation)
 - `/app/(dashboard)/settings/page.tsx` - Settings
 
 #### Needs Implementation
+
 - **Admin Dashboard** (Super/Sub-Admin)
 - **Admin Settings** (Feature On/Off Toggles with iOS-style switches)
 - **Role Registration**
@@ -267,6 +302,7 @@ System configuration, access control, audit logging, backups, and admin tools.
 - **Market Intelligence Tracker** (CEO/Super Admin only)
 
 #### Database Models
+
 - `AuditLog` (needs creation)
 - `FeatureFlag` (needs creation)
 - `Permission` (needs creation)
@@ -311,24 +347,28 @@ System configuration, access control, audit logging, backups, and admin tools.
 ## Implementation Priority
 
 ### Phase 1: Critical Infrastructure (Week 1-2)
+
 1. Create missing database schemas (Module 2, 4, 5, 6)
 2. Implement Two-Level Admin System (Module 7)
 3. Create Audit Logging System (Module 7)
 4. Add iOS-style Toggle Component (Module 7)
 
 ### Phase 2: Core Features (Week 3-4)
+
 1. Family Management System (Module 2)
 2. Referral Program (Module 2)
 3. Payment Methods & Auto-Pay (Module 4)
 4. Receipt Vouchers with QR (Module 4)
 
 ### Phase 3: Advanced Features (Week 5-6)
+
 1. Project Bidding System (Module 6)
 2. Vendor Registration & Verification (Module 6)
 3. Maintenance Scheduling (Module 5)
 4. Spare Parts Approval (Module 5)
 
 ### Phase 4: Enhancement (Week 7-8)
+
 1. HR Module (Module 2)
 2. Market Intelligence (Module 7)
 3. Help & Support with AI (Module 7)
@@ -339,6 +379,7 @@ System configuration, access control, audit logging, backups, and admin tools.
 ## File Structure Reorganization
 
 ### Proposed Structure
+
 ```
 /app
   /(dashboard)
@@ -380,6 +421,7 @@ System configuration, access control, audit logging, backups, and admin tools.
 ## Navigation Menu Structure
 
 ### Updated Sidebar Categories
+
 1. 🏢 **Property & Tenancy**
 2. 👥 **Customers & Users**
 3. 📄 **Contracts & Legal**

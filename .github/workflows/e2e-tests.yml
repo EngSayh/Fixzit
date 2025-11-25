@@ -1,5 +1,7 @@
 name: E2E Tests (Playwright)
 
+# Expected secret warnings documented in: .github/WORKFLOW_SECRETS_DOCUMENTATION.md
+
 on:
   pull_request:
     branches: [main, develop]
@@ -43,6 +45,7 @@ jobs:
       mongodb:
         image: mongo:7
         env:
+      # Secrets are configured in GitHub Settings > Secrets and variables > Actions
           MONGO_INITDB_DATABASE: fixzit_test
         ports:
           - 27017:27017
@@ -56,11 +59,12 @@ jobs:
       fail-fast: false
       matrix:
         # Run critical smoke tests in parallel
+        # Project names MUST match playwright.config.ts exactly
         project: 
-          - 'Desktop:EN:Admin'
-          - 'Mobile:AR:Tenant'
-          - 'Desktop:AR:Tenant'
-          - 'Mobile:EN:Admin'
+          - 'Desktop:EN:Admin'       # Matches: Desktop:EN:Admin
+          - 'Desktop:AR:Tenant'      # Matches: Desktop:AR:Tenant
+          - 'Mobile:EN:Technician'   # Mobile Android field ops
+          - 'Mobile:AR:Tenant'       # Mobile iOS self-service
     
     env:
       NODE_OPTIONS: --max-old-space-size=4096
@@ -81,10 +85,9 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
-          cache-dependency-path: Fixzit/pnpm-lock.yaml
+          cache-dependency-path: 'pnpm-lock.yaml'
 
       - name: Install dependencies
-        working-directory: Fixzit
         run: pnpm install --frozen-lockfile
 
       - name: Get Playwright version
@@ -102,29 +105,37 @@ jobs:
 
       - name: Install Playwright Browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        working-directory: Fixzit
         run: pnpm exec playwright install --with-deps
       
       - name: Install Playwright system dependencies
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        working-directory: Fixzit
         run: pnpm exec playwright install-deps
 
       - name: Cache Next.js build
         uses: actions/cache@v4
         with:
-          path: Fixzit/.next/cache
-          key: nextjs-${{ runner.os }}-${{ hashFiles('Fixzit/pnpm-lock.yaml', 'Fixzit/package.json', 'Fixzit/tsconfig*.json', 'Fixzit/next.config.*', 'Fixzit/next-env.d.ts', 'Fixzit/middleware.*', 'Fixzit/tailwind.config.*', 'Fixzit/postcss.config.*', 'Fixzit/babel.config.*', 'Fixzit/turbo.json', 'Fixzit/app/**', 'Fixzit/pages/**', 'Fixzit/components/**', 'Fixzit/lib/**', 'Fixzit/src/**', 'Fixzit/styles/**', 'Fixzit/public/**', 'Fixzit/public_local/**') }}
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'package.json', 'tsconfig*.json', 'next.config.*', 'next-env.d.ts', 'middleware.*', 'tailwind.config.*', 'postcss.config.*', 'babel.config.*', 'turbo.json', 'app/**', 'pages/**', 'components/**', 'lib/**', 'src/**', 'styles/**', 'public/**', 'public_local/**') }}
           restore-keys: |
             nextjs-${{ runner.os }}-
 
-      - name: Build app (production)
+      - name: Build app (for E2E tests)
         env:
-          NODE_ENV: production
+          NODE_ENV: test
           SKIP_ENV_VALIDATION: 'true'
           ALLOW_OFFLINE_MONGODB: 'true'
-        working-directory: Fixzit
-        run: pnpm build
+        run: |
+          echo "Building Next.js app for E2E tests..."
+          if [ "$ALLOW_OFFLINE_MONGODB" = "true" ]; then
+            echo "⏭️  Building in offline mode (MongoDB disabled)..."
+          fi
+          pnpm build || {
+            echo "❌ Build failed! Checking for common issues..."
+            echo "NODE_ENV: $NODE_ENV"
+            echo "Disk space:"
+            df -h
+            exit 1
+          }
 
       - name: Verify MongoDB health
         run: |
@@ -142,6 +153,10 @@ jobs:
           exit 1
 
       - name: Prepare E2E env vars
+        env:
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
             echo "Using generated secrets for forked PR (GitHub secrets are unavailable)."
@@ -151,15 +166,18 @@ jobs:
             echo "GOOGLE_CLIENT_ID=" >> "$GITHUB_ENV"
             echo "GOOGLE_CLIENT_SECRET=" >> "$GITHUB_ENV"
           else
-            if [ -z "${{ secrets.NEXTAUTH_SECRET }}" ]; then
+            # Use shell parameter expansion for secret checking and fallback
+            if [ -z "${NEXTAUTH_SECRET}" ]; then
               echo "Missing NEXTAUTH_SECRET secret for internal run." >&2
               exit 1
             fi
-            echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> "$GITHUB_ENV"
-            echo "AUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> "$GITHUB_ENV"
+            echo "NEXTAUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
+            echo "AUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
             # Google OAuth is optional - set to empty string if not configured
-            echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> "$GITHUB_ENV"
-            echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> "$GITHUB_ENV"
+            GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
+            GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
+            echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}" >> "$GITHUB_ENV"
+            echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}" >> "$GITHUB_ENV"
           fi
 
       - name: Run Playwright E2E Tests
@@ -168,16 +186,21 @@ jobs:
           NEXTAUTH_URL: http://localhost:3000
           NEXTAUTH_SECRET: ${{ env.NEXTAUTH_SECRET }}
           AUTH_SECRET: ${{ env.AUTH_SECRET }}
+          NEXTAUTH_SKIP_CSRF_CHECK: 'true'
+          AUTH_TRUST_HOST: 'true'
+          
+          # Disable OTP for E2E tests
+          NEXT_PUBLIC_REQUIRE_SMS_OTP: 'false'
+          NEXTAUTH_REQUIRE_SMS_OTP: 'false'
           
           # Google OAuth (from GitHub Secrets - optional)
-          # These secrets are optional - if not set, they will be empty strings
-          # The application handles missing OAuth gracefully with SKIP_ENV_VALIDATION=true
           GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ env.GOOGLE_CLIENT_SECRET }}
           
-          # Database
+          # Database - use offline mode with mock sessions
           MONGODB_URI: mongodb://localhost:27017/fixzit_test
           ALLOW_OFFLINE_MONGODB: 'true'
+          PLAYWRIGHT_TESTS: 'true'
           
           # Test environment
           NODE_ENV: test
@@ -203,9 +226,22 @@ jobs:
             test_path_arg="${{ github.event.inputs.test_path }}"
           fi
           
-          echo "Running Playwright tests..."
+          echo "🎭 Running Playwright E2E Tests"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Project: ${project_arg:-all projects}"
           echo "Test path: ${test_path_arg:-all tests}"
+          echo "Config: $PLAYWRIGHT_CONFIG"
+          echo "Offline mode: $ALLOW_OFFLINE_MONGODB"
+          echo "CSRF bypass: $NEXTAUTH_SKIP_CSRF_CHECK"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          # Verify auth states were created
+          if [ -d "tests/state" ]; then
+            echo "✅ Auth state directory exists"
+            ls -lh tests/state/ || echo "⚠️  Could not list auth states"
+          else
+            echo "❌ Auth state directory missing!"
+          fi
           
           # Run with retries for flaky tests and reasonable failure threshold
           pnpm exec playwright test \
@@ -214,8 +250,17 @@ jobs:
             --max-failures=10 \
             --reporter=list,html \
             ${project_arg} \
-            ${test_path_arg}
-        working-directory: Fixzit
+            ${test_path_arg} || {
+              echo "❌ Tests failed!"
+              echo "Checking for common issues..."
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "Auth states:"
+              ls -lh tests/state/ 2>/dev/null || echo "No auth states found"
+              echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              echo "Recent logs from test output:"
+              tail -50 playwright-report/*.log 2>/dev/null || echo "No logs available"
+              exit 1
+            }
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
@@ -333,7 +378,7 @@ jobs:
               { name: 'Desktop:EN:Admin', locale: 'EN', persona: 'Admin' },
               { name: 'Mobile:AR:Tenant', locale: 'AR', persona: 'Tenant' },
               { name: 'Desktop:AR:Tenant', locale: 'AR', persona: 'Tenant' },
-              { name: 'Mobile:EN:Admin', locale: 'EN', persona: 'Admin' }
+              { name: 'Mobile:EN:Technician', locale: 'EN', persona: 'Technician' }
             ];
             
             const statuses = {};

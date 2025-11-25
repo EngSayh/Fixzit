@@ -1,19 +1,25 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
+import { useState, useEffect, useMemo } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +27,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -29,8 +35,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+} from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertCircle,
   CheckCircle2,
@@ -40,15 +46,20 @@ import {
   Search,
   Shield,
   TrendingUp,
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import { logger } from '@/lib/logger';
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 const STATUS_FILTER_MAP: Record<string, string[]> = {
-  'pending-decision': ['pending_investigation', 'pending_seller_response', 'under_review', 'pending_review'],
-  'under-investigation': ['pending_investigation', 'under_review'],
-  'under-appeal': ['escalated', 'under_appeal'],
+  "pending-decision": [
+    "pending_investigation",
+    "pending_seller_response",
+    "under_review",
+    "pending_review",
+  ],
+  "under-investigation": ["pending_investigation", "under_review"],
+  "under-appeal": ["escalated", "under_appeal"],
 };
 
 interface ClaimForReview {
@@ -61,25 +72,29 @@ interface ClaimForReview {
   buyerName: string;
   sellerName: string;
   fraudScore: number;
-  riskLevel: 'low' | 'medium' | 'high';
-  recommendedAction: 'approve-full' | 'approve-partial' | 'reject' | 'pending-review';
+  riskLevel: "low" | "medium" | "high";
+  recommendedAction:
+    | "approve-full"
+    | "approve-partial"
+    | "reject"
+    | "pending-review";
   confidence: number;
   fraudFlags?: string[];
   evidenceCount: number;
   createdAt: string;
   updatedAt?: string;
-  priority: 'high' | 'medium' | 'low';
+  priority: "high" | "medium" | "low";
 }
 
 interface DecisionData {
-  outcome: 'approve-full' | 'approve-partial' | 'reject';
+  outcome: "approve-full" | "approve-partial" | "reject";
   reason: string;
   refundAmount?: number;
   recommendedAction?: string;
 }
 
-const isValidOutcome = (value: string): value is DecisionData['outcome'] =>
-  value === 'approve-full' || value === 'approve-partial' || value === 'reject';
+const isValidOutcome = (value: string): value is DecisionData["outcome"] =>
+  value === "approve-full" || value === "approve-partial" || value === "reject";
 
 export default function ClaimReviewPanel() {
   const { toast } = useToast();
@@ -91,19 +106,23 @@ export default function ClaimReviewPanel() {
     highRisk: number;
     totalAmount: number;
   } | null>(null);
-  const [selectedClaim, setSelectedClaim] = useState<ClaimForReview | null>(null);
+  const [selectedClaim, setSelectedClaim] = useState<ClaimForReview | null>(
+    null,
+  );
   const [showDecisionDialog, setShowDecisionDialog] = useState(false);
   const [decisionData, setDecisionData] = useState<DecisionData>({
-    outcome: 'approve-full',
-    reason: '',
+    outcome: "approve-full",
+    reason: "",
   });
-  const [searchQuery, setSearchQuery] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('pending-decision');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("pending-decision");
   const [selectedClaims, setSelectedClaims] = useState<Set<string>>(new Set());
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
-  const [bulkAction, setBulkAction] = useState<'approve' | 'reject' | null>(null);
-  const [bulkReason, setBulkReason] = useState('');
+  const [bulkAction, setBulkAction] = useState<"approve" | "reject" | null>(
+    null,
+  );
+  const [bulkReason, setBulkReason] = useState("");
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
 
   useEffect(() => {
@@ -116,15 +135,17 @@ export default function ClaimReviewPanel() {
       const params = new URLSearchParams({
         status: statusFilter,
       });
-      if (priorityFilter !== 'all') {
-        params.append('priority', priorityFilter);
+      if (priorityFilter !== "all") {
+        params.append("priority", priorityFilter);
       }
       if (searchQuery) {
-        params.append('search', searchQuery);
+        params.append("search", searchQuery);
       }
 
       // Use dedicated fraud detection endpoint
-      const response = await fetch(`/api/souq/claims/admin/review?${params.toString()}`);
+      const response = await fetch(
+        `/api/souq/claims/admin/review?${params.toString()}`,
+      );
       if (response.ok) {
         const data: {
           claims: ClaimForReview[];
@@ -139,15 +160,20 @@ export default function ClaimReviewPanel() {
         setReviewStats(data.stats ?? null);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'فشل تحميل قائمة المطالبات. يرجى المحاولة مرة أخرى.');
+        throw new Error(
+          errorData.error ||
+            "فشل تحميل قائمة المطالبات. يرجى المحاولة مرة أخرى.",
+        );
       }
     } catch (error) {
-      logger.error('Failed to fetch claims', error);
+      logger.error("Failed to fetch claims", error);
       const message =
-        error instanceof Error ? error.message : 'تعذر الاتصال بالخادم. يرجى المحاولة مرة أخرى.';
+        error instanceof Error
+          ? error.message
+          : "تعذر الاتصال بالخادم. يرجى المحاولة مرة أخرى.";
       toast({
-        variant: 'destructive',
-        title: 'خطأ في تحميل المطالبات',
+        variant: "destructive",
+        title: "خطأ في تحميل المطالبات",
         description: message,
       });
     } finally {
@@ -158,13 +184,14 @@ export default function ClaimReviewPanel() {
   const handleMakeDecision = (claim: ClaimForReview) => {
     setSelectedClaim(claim);
     const recommended =
-      claim.recommendedAction === 'pending-review'
-        ? 'approve-full'
+      claim.recommendedAction === "pending-review"
+        ? "approve-full"
         : claim.recommendedAction;
     setDecisionData({
-      outcome: recommended as DecisionData['outcome'],
-      reason: '',
-      refundAmount: recommended === 'approve-full' ? claim.claimAmount : undefined,
+      outcome: recommended as DecisionData["outcome"],
+      reason: "",
+      refundAmount:
+        recommended === "approve-full" ? claim.claimAmount : undefined,
     });
     setShowDecisionDialog(true);
   };
@@ -174,65 +201,72 @@ export default function ClaimReviewPanel() {
 
     if (decisionData.reason.trim().length < 20) {
       toast({
-        variant: 'destructive',
-        title: 'خطأ',
-        description: 'الرجاء تقديم سبب تفصيلي (20 حرف على الأقل)',
+        variant: "destructive",
+        title: "خطأ",
+        description: "الرجاء تقديم سبب تفصيلي (20 حرف على الأقل)",
       });
       return;
     }
 
-    if (decisionData.outcome === 'approve-partial') {
-      if (!decisionData.refundAmount || decisionData.refundAmount <= 0 || decisionData.refundAmount > selectedClaim.claimAmount) {
+    if (decisionData.outcome === "approve-partial") {
+      if (
+        !decisionData.refundAmount ||
+        decisionData.refundAmount <= 0 ||
+        decisionData.refundAmount > selectedClaim.claimAmount
+      ) {
         toast({
-          variant: 'destructive',
-          title: 'خطأ',
-          description: 'الرجاء إدخال مبلغ استرجاع صحيح',
+          variant: "destructive",
+          title: "خطأ",
+          description: "الرجاء إدخال مبلغ استرجاع صحيح",
         });
         return;
       }
     }
 
     try {
-      const response = await fetch(`/api/souq/claims/${selectedClaim.claimId}/decision`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(decisionData),
-      });
+      const response = await fetch(
+        `/api/souq/claims/${selectedClaim.claimId}/decision`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(decisionData),
+        },
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'فشل إرسال القرار');
+        throw new Error(errorData.error || "فشل إرسال القرار");
       }
 
       toast({
-        title: 'تم إرسال القرار بنجاح',
+        title: "تم إرسال القرار بنجاح",
         description: `تم اتخاذ القرار للمطالبة #${selectedClaim.claimNumber}`,
       });
 
       setShowDecisionDialog(false);
       fetchClaimsForReview();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
       toast({
-        variant: 'destructive',
-        title: 'خطأ',
+        variant: "destructive",
+        title: "خطأ",
         description: errorMessage,
       });
     }
   };
 
-  const handleBulkAction = (action: 'approve' | 'reject') => {
+  const handleBulkAction = (action: "approve" | "reject") => {
     if (selectedClaims.size === 0) {
       toast({
-        variant: 'destructive',
-        title: 'خطأ',
-        description: 'الرجاء اختيار مطالبات أولاً',
+        variant: "destructive",
+        title: "خطأ",
+        description: "الرجاء اختيار مطالبات أولاً",
       });
       return;
     }
 
     setBulkAction(action);
-    setBulkReason('');
+    setBulkReason("");
     setBulkDialogOpen(true);
   };
 
@@ -241,9 +275,9 @@ export default function ClaimReviewPanel() {
 
     if (bulkReason.trim().length < 20) {
       toast({
-        variant: 'destructive',
-        title: 'خطأ',
-        description: 'يجب إدخال سبب لا يقل عن 20 حرفاً',
+        variant: "destructive",
+        title: "خطأ",
+        description: "يجب إدخال سبب لا يقل عن 20 حرفاً",
       });
       return;
     }
@@ -251,9 +285,9 @@ export default function ClaimReviewPanel() {
     setBulkSubmitting(true);
 
     try {
-      const response = await fetch('/api/souq/claims/admin/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/souq/claims/admin/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: bulkAction,
           claimIds: Array.from(selectedClaims),
@@ -263,11 +297,11 @@ export default function ClaimReviewPanel() {
 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(payload.error || 'فشل تنفيذ الإجراء الجماعي');
+        throw new Error(payload.error || "فشل تنفيذ الإجراء الجماعي");
       }
 
       toast({
-        title: 'تم بنجاح',
+        title: "تم بنجاح",
         description:
           payload.message ||
           `تمت معالجة ${payload.results?.success ?? selectedClaims.size} مطالبة بنجاح`,
@@ -277,10 +311,11 @@ export default function ClaimReviewPanel() {
       setBulkDialogOpen(false);
       fetchClaimsForReview();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       toast({
-        variant: 'destructive',
-        title: 'خطأ',
+        variant: "destructive",
+        title: "خطأ",
         description: errorMessage,
       });
     } finally {
@@ -300,9 +335,9 @@ export default function ClaimReviewPanel() {
 
   const getPriorityBadge = (priority: string) => {
     const config = {
-      high: { label: 'عالي', variant: 'destructive' as const },
-      medium: { label: 'متوسط', variant: 'default' as const },
-      low: { label: 'منخفض', variant: 'secondary' as const },
+      high: { label: "عالي", variant: "destructive" as const },
+      medium: { label: "متوسط", variant: "default" as const },
+      low: { label: "منخفض", variant: "secondary" as const },
     };
     const item = config[priority as keyof typeof config] || config.medium;
     return <Badge variant={item.variant}>{item.label}</Badge>;
@@ -310,27 +345,33 @@ export default function ClaimReviewPanel() {
 
   const getFraudScoreBadge = (score: number) => {
     if (score >= 70) {
-      return <Badge variant="destructive" className="flex items-center gap-1">
-        <AlertCircle className="w-3 h-3" />
-        عالي: {score}
-      </Badge>;
+      return (
+        <Badge variant="destructive" className="flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          عالي: {score}
+        </Badge>
+      );
     } else if (score >= 40) {
-      return <Badge variant="default" className="flex items-center gap-1">
-        <AlertCircle className="w-3 h-3" />
-        متوسط: {score}
-      </Badge>;
+      return (
+        <Badge variant="default" className="flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          متوسط: {score}
+        </Badge>
+      );
     }
-    return <Badge variant="secondary" className="flex items-center gap-1">
-      <CheckCircle2 className="w-3 h-3" />
-      منخفض: {score}
-    </Badge>;
+    return (
+      <Badge variant="secondary" className="flex items-center gap-1">
+        <CheckCircle2 className="w-3 h-3" />
+        منخفض: {score}
+      </Badge>
+    );
   };
 
   const getRecommendationBadge = (action: string, confidence: number) => {
     const labels = {
-      'approve-full': 'موافقة كاملة',
-      'approve-partial': 'موافقة جزئية',
-      'reject': 'رفض',
+      "approve-full": "موافقة كاملة",
+      "approve-partial": "موافقة جزئية",
+      reject: "رفض",
     };
     return (
       <div className="flex items-center gap-2">
@@ -354,12 +395,16 @@ export default function ClaimReviewPanel() {
   const stats = useMemo(() => {
     const matchesFilter = (claim: ClaimForReview, filterKey: string) => {
       const mapped = STATUS_FILTER_MAP[filterKey];
-      return mapped ? mapped.includes(claim.status) : claim.status === filterKey;
+      return mapped
+        ? mapped.includes(claim.status)
+        : claim.status === filterKey;
     };
 
-    const pending = claims.filter(c => matchesFilter(c, 'pending-decision')).length;
-    const highPriority = claims.filter(c => c.priority === 'high').length;
-    const highRisk = claims.filter(c => c.fraudScore >= 70).length;
+    const pending = claims.filter((c) =>
+      matchesFilter(c, "pending-decision"),
+    ).length;
+    const highPriority = claims.filter((c) => c.priority === "high").length;
+    const highRisk = claims.filter((c) => c.fraudScore >= 70).length;
     const totalAmount = claims.reduce((sum, c) => sum + c.claimAmount, 0);
 
     return {
@@ -388,7 +433,7 @@ export default function ClaimReviewPanel() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleBulkAction('approve')}
+                onClick={() => handleBulkAction("approve")}
                 disabled={selectedClaims.size === 0}
               >
                 موافقة جماعية ({selectedClaims.size})
@@ -396,7 +441,7 @@ export default function ClaimReviewPanel() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleBulkAction('reject')}
+                onClick={() => handleBulkAction("reject")}
                 disabled={selectedClaims.size === 0}
               >
                 رفض جماعي ({selectedClaims.size})
@@ -412,10 +457,10 @@ export default function ClaimReviewPanel() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">بانتظار المراجعة</p>
-                    <p className="text-2xl font-bold">
-                      {stats.pending}
+                    <p className="text-sm text-muted-foreground">
+                      بانتظار المراجعة
                     </p>
+                    <p className="text-2xl font-bold">{stats.pending}</p>
                   </div>
                   <Clock className="w-8 h-8 text-muted-foreground" />
                 </div>
@@ -426,7 +471,9 @@ export default function ClaimReviewPanel() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">عالية الأولوية</p>
+                    <p className="text-sm text-muted-foreground">
+                      عالية الأولوية
+                    </p>
                     <p className="text-2xl font-bold text-destructive">
                       {stats.highPriority}
                     </p>
@@ -440,7 +487,9 @@ export default function ClaimReviewPanel() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">احتيال محتمل</p>
+                    <p className="text-sm text-muted-foreground">
+                      احتيال محتمل
+                    </p>
                     <p className="text-2xl font-bold text-orange-600">
                       {stats.highRisk}
                     </p>
@@ -454,7 +503,9 @@ export default function ClaimReviewPanel() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">إجمالي المبلغ</p>
+                    <p className="text-sm text-muted-foreground">
+                      إجمالي المبلغ
+                    </p>
                     <p className="text-2xl font-bold">
                       {stats.totalAmount.toLocaleString()} SAR
                     </p>
@@ -526,10 +577,15 @@ export default function ClaimReviewPanel() {
                     <TableHead className="w-[50px]">
                       <input
                         type="checkbox"
-                        checked={selectedClaims.size === claims.length && claims.length > 0}
+                        checked={
+                          selectedClaims.size === claims.length &&
+                          claims.length > 0
+                        }
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedClaims(new Set(claims.map(c => c.claimId)));
+                            setSelectedClaims(
+                              new Set(claims.map((c) => c.claimId)),
+                            );
                           } else {
                             setSelectedClaims(new Set());
                           }
@@ -549,9 +605,12 @@ export default function ClaimReviewPanel() {
                 </TableHeader>
                 <TableBody>
                   {claims.map((claim) => (
-                    <TableRow key={claim.claimId} className={cn(
-                      selectedClaims.has(claim.claimId) && 'bg-muted/50'
-                    )}>
+                    <TableRow
+                      key={claim.claimId}
+                      className={cn(
+                        selectedClaims.has(claim.claimId) && "bg-muted/50",
+                      )}
+                    >
                       <TableCell>
                         <input
                           type="checkbox"
@@ -562,22 +621,31 @@ export default function ClaimReviewPanel() {
                       <TableCell className="font-medium">
                         <div>
                           <p>{claim.claimNumber}</p>
-                          <p className="text-xs text-muted-foreground">Order #{claim.orderId}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Order #{claim.orderId}
+                          </p>
                         </div>
                       </TableCell>
                       <TableCell>{getPriorityBadge(claim.priority)}</TableCell>
                       <TableCell>
                         <div className="text-sm">
                           <p>{claim.buyerName}</p>
-                          <p className="text-muted-foreground">vs {claim.sellerName}</p>
+                          <p className="text-muted-foreground">
+                            vs {claim.sellerName}
+                          </p>
                         </div>
                       </TableCell>
                       <TableCell className="font-medium">
                         {claim.claimAmount} SAR
                       </TableCell>
-                      <TableCell>{getFraudScoreBadge(claim.fraudScore)}</TableCell>
                       <TableCell>
-                        {getRecommendationBadge(claim.recommendedAction, claim.confidence)}
+                        {getFraudScoreBadge(claim.fraudScore)}
+                      </TableCell>
+                      <TableCell>
+                        {getRecommendationBadge(
+                          claim.recommendedAction,
+                          claim.confidence,
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
@@ -586,7 +654,7 @@ export default function ClaimReviewPanel() {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {new Date(claim.createdAt).toLocaleDateString('ar-SA')}
+                        {new Date(claim.createdAt).toLocaleDateString("ar-SA")}
                       </TableCell>
                       <TableCell>
                         <Button
@@ -612,9 +680,7 @@ export default function ClaimReviewPanel() {
             <DialogTitle>
               اتخاذ قرار - المطالبة #{selectedClaim?.claimNumber}
             </DialogTitle>
-            <DialogDescription>
-              Make Decision for Claim
-            </DialogDescription>
+            <DialogDescription>Make Decision for Claim</DialogDescription>
           </DialogHeader>
 
           {selectedClaim && (
@@ -624,7 +690,9 @@ export default function ClaimReviewPanel() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground">المبلغ:</p>
-                    <p className="font-medium">{selectedClaim.claimAmount} SAR</p>
+                    <p className="font-medium">
+                      {selectedClaim.claimAmount} SAR
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">مؤشر الاحتيال:</p>
@@ -632,11 +700,16 @@ export default function ClaimReviewPanel() {
                   </div>
                   <div>
                     <p className="text-muted-foreground">التوصية:</p>
-                    {getRecommendationBadge(selectedClaim.recommendedAction, selectedClaim.confidence)}
+                    {getRecommendationBadge(
+                      selectedClaim.recommendedAction,
+                      selectedClaim.confidence,
+                    )}
                   </div>
                   <div>
                     <p className="text-muted-foreground">الأدلة:</p>
-                    <p className="font-medium">{selectedClaim.evidenceCount} ملف</p>
+                    <p className="font-medium">
+                      {selectedClaim.evidenceCount} ملف
+                    </p>
                   </div>
                 </div>
               </div>
@@ -653,14 +726,18 @@ export default function ClaimReviewPanel() {
                       <SelectValue placeholder="اختر القرار" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="approve-full">موافقة كاملة (Full Refund)</SelectItem>
-                      <SelectItem value="approve-partial">موافقة جزئية (Partial Refund)</SelectItem>
+                      <SelectItem value="approve-full">
+                        موافقة كاملة (Full Refund)
+                      </SelectItem>
+                      <SelectItem value="approve-partial">
+                        موافقة جزئية (Partial Refund)
+                      </SelectItem>
                       <SelectItem value="reject">رفض (Reject Claim)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {decisionData.outcome === 'approve-partial' && (
+                {decisionData.outcome === "approve-partial" && (
                   <div className="space-y-2">
                     <Label>مبلغ الاسترجاع (Refund Amount) *</Label>
                     <div className="flex items-center gap-2">
@@ -669,11 +746,13 @@ export default function ClaimReviewPanel() {
                         step="0.01"
                         min="0"
                         max={selectedClaim.claimAmount}
-                        value={decisionData.refundAmount || ''}
-                        onChange={(e) => setDecisionData({
-                          ...decisionData,
-                          refundAmount: parseFloat(e.target.value)
-                        })}
+                        value={decisionData.refundAmount || ""}
+                        onChange={(e) =>
+                          setDecisionData({
+                            ...decisionData,
+                            refundAmount: parseFloat(e.target.value),
+                          })
+                        }
                         placeholder="0.00"
                       />
                       <span className="text-sm">SAR</span>
@@ -689,7 +768,12 @@ export default function ClaimReviewPanel() {
                   <Textarea
                     placeholder="اشرح سبب القرار بالتفصيل..."
                     value={decisionData.reason}
-                    onChange={(e) => setDecisionData({ ...decisionData, reason: e.target.value })}
+                    onChange={(e) =>
+                      setDecisionData({
+                        ...decisionData,
+                        reason: e.target.value,
+                      })
+                    }
                     rows={6}
                   />
                   <p className="text-xs text-muted-foreground">
@@ -712,12 +796,13 @@ export default function ClaimReviewPanel() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDecisionDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowDecisionDialog(false)}
+            >
               إلغاء
             </Button>
-            <Button onClick={submitDecision}>
-              تأكيد القرار
-            </Button>
+            <Button onClick={submitDecision}>تأكيد القرار</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -727,10 +812,11 @@ export default function ClaimReviewPanel() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {bulkAction === 'approve' ? 'موافقة جماعية' : 'رفض جماعي'}
+              {bulkAction === "approve" ? "موافقة جماعية" : "رفض جماعي"}
             </DialogTitle>
             <DialogDescription>
-              سيجري تطبيق الإجراء على {selectedClaims.size} مطالبة. يرجى توضيح السبب.
+              سيجري تطبيق الإجراء على {selectedClaims.size} مطالبة. يرجى توضيح
+              السبب.
             </DialogDescription>
           </DialogHeader>
 
@@ -755,11 +841,15 @@ export default function ClaimReviewPanel() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBulkDialogOpen(false)} disabled={bulkSubmitting}>
+            <Button
+              variant="outline"
+              onClick={() => setBulkDialogOpen(false)}
+              disabled={bulkSubmitting}
+            >
               إلغاء
             </Button>
             <Button onClick={submitBulkAction} disabled={bulkSubmitting}>
-              {bulkSubmitting ? 'جاري التطبيق...' : 'تأكيد الإجراء'}
+              {bulkSubmitting ? "جاري التطبيق..." : "تأكيد الإجراء"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -13,6 +13,7 @@ export const QUEUE_NAMES = {
   BUY_BOX_RECOMPUTE: 'souq:buybox-recompute',
   AUTO_REPRICER: 'souq:auto-repricer',
   SETTLEMENT: 'souq:settlement',
+  REFUNDS: 'souq:refunds',
   INVENTORY_HEALTH: 'souq:inventory-health',
   ADS_AUCTION: 'souq:ads-auction',
   POLICY_SWEEP: 'souq:policy-sweep',

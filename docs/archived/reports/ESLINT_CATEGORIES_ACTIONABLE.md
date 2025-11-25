@@ -135,9 +135,14 @@ useEffect(() => {
 **B2. Unknown file** - 1 warning (map dependency)
 
 ```typescript
-useEffect(() => {
-  // ... uses map
-}, [/* missing */]); // ❌
+useEffect(
+  () => {
+    // ... uses map
+  },
+  [
+    /* missing */
+  ],
+); // ❌
 
 // FIX: Add 'map' to dependency array
 ```
@@ -157,7 +162,7 @@ useEffect(() => {
 const pattern = /\!/g;
 
 // AFTER
-const pattern = /!/g;  // ! doesn't need escaping
+const pattern = /!/g; // ! doesn't need escaping
 ```
 
 **Estimated time**: 2 minutes
@@ -171,12 +176,12 @@ const pattern = /!/g;  // ! doesn't need escaping
 ```typescript
 // BEFORE
 export default {
-  foo: 'bar'
+  foo: "bar",
 };
 
 // AFTER
 const config = {
-  foo: 'bar'
+  foo: "bar",
 };
 export default config;
 ```
@@ -214,12 +219,12 @@ export async function POST(req: Request) {
 }
 
 // AFTER
-import { z } from 'zod';
-import type { ApiResponse, MongoDocument } from '@/types/common';
+import { z } from "zod";
+import type { ApiResponse, MongoDocument } from "@/types/common";
 
 const CreateSchema = z.object({
   name: z.string(),
-  email: z.string().email()
+  email: z.string().email(),
 });
 
 export async function POST(req: Request) {
@@ -306,12 +311,12 @@ export async function findDocuments(query: any) {
 }
 
 // AFTER
-import type { MongoFilter, MongoDocument } from '@/types/common';
+import type { MongoFilter, MongoDocument } from "@/types/common";
 
 export async function findDocuments<T extends MongoDocument>(
-  query: MongoFilter<T>
+  query: MongoFilter<T>,
 ): Promise<T[]> {
-  return await db.collection.find(query).toArray() as T[];
+  return (await db.collection.find(query).toArray()) as T[];
 }
 ```
 
@@ -335,21 +340,21 @@ export async function findDocuments<T extends MongoDocument>(
 ```typescript
 // BEFORE
 const workOrderSchema = new Schema({
-  metadata: Schema.Types.Mixed as any
+  metadata: Schema.Types.Mixed as any,
 });
 
 // AFTER
 interface WorkOrderMetadata {
   source: string;
-  priority: 'low' | 'medium' | 'high';
+  priority: "low" | "medium" | "high";
   tags: string[];
 }
 
 const workOrderSchema = new Schema({
   metadata: {
     type: Schema.Types.Mixed,
-    required: true
-  } as { type: typeof Schema.Types.Mixed; required: boolean }
+    required: true,
+  } as { type: typeof Schema.Types.Mixed; required: boolean },
 });
 ```
 
@@ -442,14 +447,14 @@ Then fix files one by one:
 
 ## 📊 PROGRESS TRACKING
 
-| Phase | Warnings | Status | Time Spent | Remaining |
-|-------|----------|--------|------------|-----------|
-| **Start** | 423 | 🔴 | 0h | 423 |
-| **Phase 1: Quick Wins** | 350 | ⏳ | 0h | 73 to fix |
-| **Phase 2: API Routes** | 200 | ⏳ | 0h | 150 to fix |
-| **Phase 3: Components** | 120 | ⏳ | 0h | 80 to fix |
-| **Phase 4: Lib/Models** | 30 | ⏳ | 0h | 90 to fix |
-| **Phase 5: Final** | 0 | ⏳ | 0h | 30 to fix |
+| Phase                   | Warnings | Status | Time Spent | Remaining  |
+| ----------------------- | -------- | ------ | ---------- | ---------- |
+| **Start**               | 423      | 🔴     | 0h         | 423        |
+| **Phase 1: Quick Wins** | 350      | ⏳     | 0h         | 73 to fix  |
+| **Phase 2: API Routes** | 200      | ⏳     | 0h         | 150 to fix |
+| **Phase 3: Components** | 120      | ⏳     | 0h         | 80 to fix  |
+| **Phase 4: Lib/Models** | 30       | ⏳     | 0h         | 90 to fix  |
+| **Phase 5: Final**      | 0        | ⏳     | 0h         | 30 to fix  |
 
 ---
 

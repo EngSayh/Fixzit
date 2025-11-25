@@ -25,18 +25,19 @@ Both jobs are wired into `.github/workflows/fixzit-quality-gates.yml` and fail t
 **Purpose:** Runtime translation system using React Context API
 
 **Structure:**
+
 ```typescript
 const baseTranslations = {
   ar: {
-    'common.welcome': 'مرحبا',
-    'app.fm': 'إدارة المرافق',
+    "common.welcome": "مرحبا",
+    "app.fm": "إدارة المرافق",
     // ... 2,662 total keys
   },
   en: {
-    'common.welcome': 'Welcome',
-    'app.fm': 'Facility Management',
+    "common.welcome": "Welcome",
+    "app.fm": "Facility Management",
     // ... 2,662 total keys
-  }
+  },
 };
 
 const translations = {
@@ -54,7 +55,8 @@ const translations = {
 
 ### 2. Secondary Translation Source: `i18n/*.json`
 
-**Location:** 
+**Location:**
+
 - `/workspaces/Fixzit/i18n/en.json`
 - `/workspaces/Fixzit/i18n/ar.json`
 
@@ -71,14 +73,14 @@ const translations = {
 ### 4. Component workflow (new `useAutoTranslator` helper)
 
 ```tsx
-import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 export function ExampleCard() {
-  const auto = useAutoTranslator('example.card');
+  const auto = useAutoTranslator("example.card");
   return (
     <>
-      <h3>{auto('System Management', 'title')}</h3>
-      <p>{auto('Configure system settings and preferences', 'subtitle')}</p>
+      <h3>{auto("System Management", "title")}</h3>
+      <p>{auto("Configure system settings and preferences", "subtitle")}</p>
     </>
   );
 }
@@ -94,12 +96,14 @@ export function ExampleCard() {
 ### 3. Language Configuration: `language-options.ts`
 
 **Locations:**
+
 - `/workspaces/Fixzit/config/language-options.ts` (primary)
 - `/workspaces/Fixzit/data/language-options.ts` (backup/alternate)
 
 **Purpose:** Language metadata configuration (NOT a translation catalog)
 
 **Content:**
+
 - Language names (native & English)
 - ISO codes, locales
 - Country names
@@ -136,6 +140,7 @@ export function ExampleCard() {
 ### Issue 2: Translation Gaps
 
 **Found:**
+
 - 29 missing Arabic keys (careers section)
 - 1 missing English key (`common.remember`)
 
@@ -148,21 +153,25 @@ export function ExampleCard() {
 ## Files Reviewed
 
 ### Translation Catalogs
+
 - ✅ `/contexts/TranslationContext.tsx` - 944 keys each
 - ✅ `/i18n/en.json` - 403 keys
 - ✅ `/i18n/ar.json` - 403 keys
 
 ### Configuration Files (Not Translation Catalogs)
+
 - ℹ️ `/config/language-options.ts` - Language metadata
 - ℹ️ `/data/language-options.ts` - Language metadata (alternate)
 
 ### Test Files (Excluded from Audit)
+
 - 🧪 `/data/language-options.test.ts` - Unit tests
 - 🧪 `/qa/tests/i18n-en.unit.spec.ts` - Translation tests
 - 🧪 `/qa/tests/02-rtl-lang.spec.ts` - RTL tests
 - 🧪 `/tests/specs/i18n.spec.ts` - E2E translation tests
 
 ### Utility Scripts
+
 - 🔧 `/scripts/i18n/check_language_selector.ts` - Language selector verification
 - 🔧 `/scripts/check-translation-gap.mjs` - TranslationContext audit script (NEW)
 - 🔧 `/scripts/check-json-translation-gap.mjs` - JSON audit script (NEW)
@@ -175,6 +184,7 @@ export function ExampleCard() {
 ### Adding New Translations
 
 1. **For UI translations**: Add to `TranslationContext.tsx`
+
    ```typescript
    ar: {
      'new.key': 'النص العربي',
@@ -193,11 +203,13 @@ export function ExampleCard() {
 ### Verifying Translation Parity
 
 Run the system-wide audit:
+
 ```bash
 node scripts/system-translation-audit.mjs
 ```
 
 Or check individual sources:
+
 ```bash
 # TranslationContext.tsx
 node scripts/check-translation-gap.mjs
@@ -209,6 +221,7 @@ node scripts/check-json-translation-gap.mjs
 ### Test Pages
 
 Diagnostic pages for translation testing:
+
 - `/test-translations` - Client-side translation hook test
 - `/test-translations-ssr` - Server-side JSON translation test
 
@@ -216,11 +229,11 @@ Diagnostic pages for translation testing:
 
 ## System Status
 
-| Source | English Keys | Arabic Keys | Gap | Status |
-|--------|-------------|-------------|-----|--------|
-| TranslationContext.tsx | 944 | 944 | 0 | ✅ Perfect |
-| i18n/*.json | 403 | 403 | 0 | ✅ Perfect |
-| **TOTAL** | **1347** | **1347** | **0** | ✅ **100% Parity** |
+| Source                 | English Keys | Arabic Keys | Gap   | Status             |
+| ---------------------- | ------------ | ----------- | ----- | ------------------ |
+| TranslationContext.tsx | 944          | 944         | 0     | ✅ Perfect         |
+| i18n/\*.json           | 403          | 403         | 0     | ✅ Perfect         |
+| **TOTAL**              | **1347**     | **1347**    | **0** | ✅ **100% Parity** |
 
 ---
 

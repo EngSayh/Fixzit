@@ -44,7 +44,7 @@ if (xUserHeader) {
   try {
     return JSON.parse(xUserHeader) as SessionUser;
   } catch (e) {
-    console.error('Failed to parse x-user header:', e);
+    console.error("Failed to parse x-user header:", e);
   }
 }
 ```
@@ -54,7 +54,7 @@ if (xUserHeader) {
 ## Commits Made (Session Total: 9+)
 
 1. `52b120c6f` - Compile paytabs.ts to JavaScript and update test imports
-2. `1da02a767` - Fix remaining paytabs dynamic imports  
+2. `1da02a767` - Fix remaining paytabs dynamic imports
 3. `4f201605b` - Fix Projects API tests: update status expectations and add orgId to mock user
 4. `767abb523` - Add comprehensive E2E test progress report
 5. `2be845764` - Fix getSessionUser to prioritize x-user header for tests
@@ -63,17 +63,17 @@ if (xUserHeader) {
 
 ## Test Categories Status
 
-| Category | Status | Notes |
-|----------|--------|-------|
-| Paytabs Library | ✅ 70% | 17/27 tests passing per browser |
-| Projects API - Auth | ✅ 100% | All unauth tests passing |
-| Projects API - CRUD | ✅ Fixed | Auth now working correctly |
-| Smoke Tests | ⏳ Pending | Landing, login, guest browse |
-| Code Validation | ⏳ Pending | Help article patterns |
-| Help Page | ⏳ Pending | Component rendering |
-| Marketplace | ⏳ Pending | Page structure |
-| API Health | ⏳ Pending | Health endpoints |
-| Other | ⏳ Pending | RTL, placeholders |
+| Category            | Status     | Notes                           |
+| ------------------- | ---------- | ------------------------------- |
+| Paytabs Library     | ✅ 70%     | 17/27 tests passing per browser |
+| Projects API - Auth | ✅ 100%    | All unauth tests passing        |
+| Projects API - CRUD | ✅ Fixed   | Auth now working correctly      |
+| Smoke Tests         | ⏳ Pending | Landing, login, guest browse    |
+| Code Validation     | ⏳ Pending | Help article patterns           |
+| Help Page           | ⏳ Pending | Component rendering             |
+| Marketplace         | ⏳ Pending | Page structure                  |
+| API Health          | ⏳ Pending | Health endpoints                |
+| Other               | ⏳ Pending | RTL, placeholders               |
 
 ---
 

@@ -178,7 +178,7 @@ If no matches found:
 
 ```json
 {
-  "success": false,  // ← Honest reporting!
+  "success": false, // ← Honest reporting!
   "message": "No matches found. 0 replacements across 3 file(s).",
   "totalReplacements": 0
 }

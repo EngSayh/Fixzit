@@ -9,6 +9,7 @@ Complete Property Owner Portal implementation for Fixzit FM module using **Mongo
 ### Database: MongoDB Atlas + Mongoose 8.19.2
 
 ✅ **Correct Architecture Confirmed:**
+
 - MongoDB Atlas (cloud-hosted)
 - Mongoose 8.19.2 ODM
 - Multi-tenancy via `tenantIsolationPlugin`
@@ -21,6 +22,7 @@ Complete Property Owner Portal implementation for Fixzit FM module using **Mongo
 ### 1. **Data Models** (`server/models/owner/`)
 
 All models use:
+
 - ✅ `tenantIsolationPlugin` for automatic `orgId` scoping
 - ✅ `auditPlugin` for change tracking
 - ✅ Compound indexes for tenant-scoped uniqueness
@@ -29,6 +31,7 @@ All models use:
 **Models Created:**
 
 #### AgentContract
+
 - Real estate agent assignments per property
 - Commission structures (percentage/fixed/hybrid)
 - Responsibilities tracking
@@ -36,6 +39,7 @@ All models use:
 - Performance metrics
 
 #### UtilityMeter
+
 - Water, electricity, gas, district cooling meters
 - IoT integration support
 - OCR bill scanning configuration
@@ -43,6 +47,7 @@ All models use:
 - Maintenance tracking
 
 #### UtilityBill
+
 - Bill processing and payment tracking
 - Owner/tenant responsibility split
 - OCR extraction with confidence scores
@@ -50,6 +55,7 @@ All models use:
 - Finance module integration
 
 #### MoveInOutInspection
+
 - Digital inspection forms with:
   - Room-by-room assessment
   - Electrical inventory (sockets, lights, switches)
@@ -61,6 +67,7 @@ All models use:
 - Security deposit deduction tracking
 
 #### Warranty
+
 - Equipment and service warranties
 - Claim management with work order integration
 - Service provider tracking
@@ -68,6 +75,7 @@ All models use:
 - Maintenance requirement tracking
 
 #### Advertisement
+
 - Government advertisement permits
 - Multi-channel publication tracking
 - Performance metrics (views, inquiries, leads)
@@ -75,6 +83,7 @@ All models use:
 - Compliance documentation
 
 #### Delegation
+
 - Approval workflow delegation
 - Financial limit enforcement
 - Time-bound access control
@@ -82,6 +91,7 @@ All models use:
 - Security features (2FA, IP restrictions)
 
 #### MailboxThread
+
 - Owner communication hub
 - Auto-generated request numbers
 - Multi-party conversations
@@ -92,6 +102,7 @@ All models use:
 ### 2. **Property & Owner Model Extensions**
 
 **Property.ts:**
+
 ```typescript
 ownerPortal: {
   ownerId: ObjectId,
@@ -107,6 +118,7 @@ ownerPortal: {
 ```
 
 **Owner.ts:**
+
 ```typescript
 subscription: {
   plan: "BASIC" | "PRO" | "ENTERPRISE",
@@ -130,17 +142,20 @@ nickname: String
 ✅ **Addresses Code Review Findings:**
 
 #### Idempotent Finance Posting
+
 ```typescript
-async function postFinanceOnClose(input, session)
+async function postFinanceOnClose(input, session);
 ```
 
 **Implemented Safeguards:**
+
 1. ✅ **Status Check**: Prevents duplicate posting via `workOrder.financePosted` flag
 2. ✅ **AFTER Photo Validation**: Enforces photo documentation for inspections
 3. ✅ **MongoDB Transactions**: Atomic commit/rollback with `session.startTransaction()`
 4. ✅ **Integration**: Works with existing `postingService.ts`
 
 **Key Functions:**
+
 - `postFinanceOnClose()` - Work order expense posting
 - `postUtilityBillPayment()` - Utility expense posting
 - `calculateNOI()` - Net Operating Income
@@ -152,22 +167,26 @@ async function postFinanceOnClose(input, session)
 MongoDB aggregation pipelines for:
 
 #### Revenue Calculations
+
 - Rental income aggregation
 - Payment history analysis
 - Period comparisons (3/6/9/12 months, YTD, custom)
 
 #### Expense Tracking
+
 - Maintenance costs (overall, per-unit, post-handover)
 - Utility expenses
 - Agent commissions
 - Category breakdowns
 
 #### ROI/NOI Analytics
+
 ```typescript
-async function calculatePortfolioAnalytics(input: ROICalculationInput)
+async function calculatePortfolioAnalytics(input: ROICalculationInput);
 ```
 
 Returns:
+
 - Portfolio summary (total properties, units, occupancy)
 - Financial metrics (revenue, expenses, NOI, ROI)
 - Property-level breakdowns
@@ -175,6 +194,7 @@ Returns:
 - Investment performance
 
 #### Anomaly Detection
+
 ```typescript
 async function detectUtilityAnomalies(...)
 ```
@@ -186,10 +206,11 @@ Identifies bills with consumption significantly above average (configurable thre
 ✅ **Correct Implementation:**
 
 ```typescript
-async function checkSubscriptionStatus(ownerId, orgId, options)
+async function checkSubscriptionStatus(ownerId, orgId, options);
 ```
 
 **Key Features:**
+
 1. ✅ **activeUntil Validation**: Uses correct field (NOT `createdAt`)
 2. ✅ **402 Payment Required**: Returns appropriate HTTP status
 3. ✅ **Feature-Level Gating**: Checks specific features
@@ -198,36 +219,41 @@ async function checkSubscriptionStatus(ownerId, orgId, options)
 
 **Subscription Plans:**
 
-| Feature | BASIC | PRO | ENTERPRISE |
-|---------|-------|-----|------------|
-| Max Properties | 1 | 5 | Unlimited |
-| Utilities Tracking | ❌ | ✅ | ✅ |
-| ROI Analytics | ❌ | ✅ | ✅ |
-| Custom Reports | ❌ | ✅ | ✅ |
-| API Access | ❌ | ❌ | ✅ |
-| Dedicated Support | ❌ | ❌ | ✅ |
-| Multi-User Access | ❌ | ✅ | ✅ |
-| Advanced Delegation | ❌ | ✅ | ✅ |
+| Feature             | BASIC | PRO | ENTERPRISE |
+| ------------------- | ----- | --- | ---------- |
+| Max Properties      | 1     | 5   | Unlimited  |
+| Utilities Tracking  | ❌    | ✅  | ✅         |
+| ROI Analytics       | ❌    | ✅  | ✅         |
+| Custom Reports      | ❌    | ✅  | ✅         |
+| API Access          | ❌    | ❌  | ✅         |
+| Dedicated Support   | ❌    | ❌  | ✅         |
+| Multi-User Access   | ❌    | ✅  | ✅         |
+| Advanced Delegation | ❌    | ✅  | ✅         |
 
 ### 6. **API Endpoints** (`app/api/owner/`)
 
 #### GET /api/owner/properties
+
 **Requirements:** BASIC subscription
 
 Returns all properties owned by authenticated owner with:
+
 - Property details (code, name, address, type)
 - Unit summaries
 - Optional financials
 - Occupancy statistics
 
 **Query Parameters:**
+
 - `includeFinancials`: boolean
 - `includeUnits`: boolean
 
 #### GET /api/owner/units/[unitId]/history
+
 **Requirements:** BASIC subscription
 
 Comprehensive unit history including:
+
 - Tenant history (current and past)
 - Maintenance records (work orders)
 - Move-in/move-out inspections
@@ -235,14 +261,17 @@ Comprehensive unit history including:
 - Utility consumption
 
 **Query Parameters:**
+
 - `include`: "tenants,maintenance,inspections,revenue,utilities" (or "all")
 - `startDate`: ISO date
 - `endDate`: ISO date
 
 #### GET /api/owner/reports/roi
+
 **Requirements:** PRO subscription + roiAnalytics feature
 
 Financial analytics with ROI/NOI calculations:
+
 - Portfolio metrics (revenue, expenses, NOI, ROI)
 - Property-level breakdowns
 - Unit-level details
@@ -250,6 +279,7 @@ Financial analytics with ROI/NOI calculations:
 - Investment performance
 
 **Query Parameters:**
+
 - `period`: "3m" | "6m" | "9m" | "12m" | "ytd" | "custom"
 - `startDate`: ISO date (if custom)
 - `endDate`: ISO date (if custom)
@@ -257,15 +287,18 @@ Financial analytics with ROI/NOI calculations:
 - `includeCapitalGains`: boolean
 
 #### GET /api/owner/statements
+
 **Requirements:** BASIC subscription
 
 Comprehensive financial statements (similar to bank statements):
+
 - All income (rental payments)
 - All expenses (maintenance, utilities, commissions)
 - Category breakdowns
 - Period totals and net income
 
 **Query Parameters:**
+
 - `period`: "MTD" | "QTD" | "YTD" | "CUSTOM"
 - `startDate`: ISO date (if CUSTOM)
 - `endDate`: ISO date (if CUSTOM)
@@ -277,24 +310,28 @@ Comprehensive financial statements (similar to bank statements):
 ### Existing Fixzit Modules
 
 #### Finance Module
+
 - ✅ Integrated via `postingService.ts`
 - ✅ Automatic journal entry creation
 - ✅ Ledger updates with double-entry bookkeeping
 - ✅ Chart of accounts linkage
 
 #### Work Orders Module
+
 - ✅ Maintenance cost tracking
 - ✅ Inspection integration
 - ✅ Finance posting on completion
 - ✅ Owner approval workflows
 
 #### Tenant Management
+
 - ✅ Lease tracking in unit history
 - ✅ Move-in/out inspections
 - ✅ Utility responsibility assignment
 - ✅ Payment history
 
 #### Approvals Module
+
 - ✅ Delegation system
 - ✅ Financial thresholds
 - ✅ Owner notification
@@ -312,17 +349,20 @@ All Owner Portal features enforce strict multi-tenancy:
 ## Security
 
 ### Authentication
+
 - Owner user authentication required
 - `x-owner-id` and `x-org-id` headers
 - Session management
 
 ### Authorization
+
 - Subscription-based feature access
 - Property ownership verification
 - Delegation permission checks
 - Financial limit enforcement
 
 ### Data Protection
+
 - Multi-tenant isolation
 - Encrypted credentials (IoT, OCR)
 - Audit logging for all changes
@@ -344,27 +384,30 @@ All Owner Portal features enforce strict multi-tenancy:
 ### Adding New Features
 
 1. **Create Model** in `server/models/owner/`
+
    ```typescript
    import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
    import { auditPlugin } from '../../plugins/auditPlugin';
-   
+
    const MySchema = new Schema({...});
    MySchema.plugin(tenantIsolationPlugin);
    MySchema.plugin(auditPlugin);
    ```
 
 2. **Add Service Logic** in `server/services/owner/`
+
    ```typescript
-   import { connectToDatabase } from '@/lib/mongodb-unified';
-   import { setTenantContext } from '@/server/plugins/tenantIsolation';
+   import { connectToDatabase } from "@/lib/mongodb-unified";
+   import { setTenantContext } from "@/server/plugins/tenantIsolation";
    ```
 
 3. **Create API Endpoint** in `app/api/owner/`
+
    ```typescript
-   import { requireSubscription } from '@/server/middleware/subscriptionCheck';
-   
+   import { requireSubscription } from "@/server/middleware/subscriptionCheck";
+
    const subCheck = await requireSubscription(req, {
-     requireFeature: 'yourFeature'
+     requireFeature: "yourFeature",
    });
    ```
 
@@ -383,6 +426,7 @@ All Owner Portal features enforce strict multi-tenancy:
 ### From Development to Production
 
 1. **Indexes**: Ensure all indexes created
+
    ```bash
    # Check indexes per collection
    db.agentcontracts.getIndexes()
@@ -397,19 +441,20 @@ All Owner Portal features enforce strict multi-tenancy:
    - 1100: Cash/Bank
 
 3. **Subscription Plans**: Initialize owner subscriptions
+
    ```typescript
    await OwnerModel.updateMany(
-     { 'subscription.plan': { $exists: false } },
-     { $set: { 'subscription.plan': 'BASIC' } }
+     { "subscription.plan": { $exists: false } },
+     { $set: { "subscription.plan": "BASIC" } },
    );
    ```
 
 4. **Counter Service**: Initialize for auto-increment fields
    ```typescript
    await CounterModel.create({
-     name: 'mailboxThread',
+     name: "mailboxThread",
      orgId,
-     value: 1000
+     value: 1000,
    });
    ```
 
@@ -430,6 +475,7 @@ Import-ready collection: `docs/owner-portal-postman.json`
 ## Support
 
 For issues or questions:
+
 1. Check existing work orders: `/app/api/owner/mailbox`
 2. Create support ticket via mailbox system
 3. Contact property agent if assigned

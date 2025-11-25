@@ -1,4 +1,5 @@
 # Implementation Audit Report
+
 **Date**: November 15, 2025 (Last Verified: 2025-11-15 22:30 UTC)  
 **Branch**: `feat/souq-marketplace-advanced`  
 **Auditor**: GitHub Copilot (Claude Sonnet 4.5)
@@ -8,6 +9,7 @@
 ## Executive Summary
 
 This comprehensive audit verifies claimed implementations from commits over the past 5 days (Nov 10-15, 2025). The audit includes:
+
 - ✅ TypeScript error resolution (283 → 0 errors, **100% completion** - verified via `pnpm exec tsc --noEmit` on 2025-11-15 22:00 UTC)
 - ✅ Verification of 8 claimed implementations
 - ✅ **7 of 8 implementations working** (Tap Payments scheduled for implementation)
@@ -19,16 +21,19 @@ This comprehensive audit verifies claimed implementations from commits over the 
 ## 1. TypeScript Error Resolution (✅ COMPLETE - 100%)
 
 ### Phase 1: Mongoose Model Exports (✅ COMPLETE)
+
 **Problem**: Union type pattern `models.X || model()` caused "not callable" errors  
 **Solution**: Explicit typed variables with conditional assignment
 
 **Models Fixed** (26 total):
+
 - **Initial Batch** (3): User, Invoice, SupportTicket
 - **Batch 1** (8): WorkOrder, Property, Vendor, Tenant, Project, RFQ, SLA, Owner
 - **Batch 2** (8): FMPMPlan, FMApproval, FMFinancialTransaction, OwnerStatement, CopilotKnowledge, SearchSynonym, CopilotAudit, FooterContent
 - **Batch 3** (7): PlatformSettings, ProjectBid, FamilyMember, FeatureFlag, OwnerGroup, ServiceProvider, AuditLog
 
 **Impact**:
+
 - Before: 283 TypeScript errors
 - After Model Fixes: 223 errors (60 eliminated)
 - After Invoice/WorkOrder: 207 errors (16 eliminated)
@@ -44,6 +49,7 @@ This comprehensive audit verifies claimed implementations from commits over the 
 ### Systematic Cleanup Batches (Nov 15, 2025)
 
 **Batch 1: server/models/** (283 → 88 errors)
+
 - Fixed Model import patterns (FMFinancialTransaction, FMPMPlan, Invoice, Property)
 - Resolved ReferralCode duplicate MModel import
 - Fixed ServiceProvider circular type reference
@@ -53,6 +59,7 @@ This comprehensive audit verifies claimed implementations from commits over the 
 - **Commit**: `c1bdd6e89`
 
 **Batch 2: app/api/** (97 → 62 errors)
+
 - Applied Option C (Hybrid) approach: tactical casts with TODO comments
 - Fixed WorkOrder schema migration issues (20 errors) - legacy flat fields vs nested schema
 - Fixed RFQ/Souq type gaps (17 errors) - bids, timeline, workflow, pricing
@@ -62,6 +69,7 @@ This comprehensive audit verifies claimed implementations from commits over the 
 - **Commits**: `5ec8076a2` (partial), `cb07eb7a5` (complete)
 
 **Batch 3: tests/modules/services/other** (62 → 0 errors)
+
 - Fixed finance e2e tests (12 errors) - Expense/Payment method signatures
 - Fixed modules/users (5 errors) - password field, delete operator
 - Fixed services/souq/buybox (3 errors) - canCompeteInBuyBox, checkBuyBoxEligibility
@@ -77,36 +85,44 @@ This comprehensive audit verifies claimed implementations from commits over the 
 ### Technical Debt Documentation
 
 All tactical `as any` casts include TODO comments for future cleanup:
+
 - **TODO(schema-migration)**: WorkOrder flat → nested schema migration (~20 casts, 8 files)
   - Estimated effort: 8-12 hours (schema update + data migration + consumer updates)
 - **TODO(type-safety)**: RFQ/Souq/Payment type definitions (~15 casts, 7 files)
   - Estimated effort: 4-6 hours (schema review + interface definitions)
 
 ### Phase 2: Invoice Model Enhancements (✅ COMPLETE)
+
 **Added Properties**:
+
 - `seller` / `from`: Virtual aliases for `issuer` (backward compatibility)
 - `tax`: Total tax amount field
 - `metadata`: Flexible key-value storage
 - `updatedBy`: Audit trail field
 
 **ZATCA Compliance**:
+
 - `tlv`: TLV encoded data for QR codes
 - `generatedAt`: Timestamp for QR/TLV generation
 - `error`: Error message field
 - Status enum: Added `"FAILED"` state
 
 **API Route Fixes**:
+
 - Fixed null checks for `recipient.customerId`
 - Proper ZATCA object initialization
 - Use `issuer` directly instead of aliases
 - Convert Date to ISO string correctly
 
 ### Phase 3: WorkOrder Model Fix (✅ COMPLETE)
+
 **Added Property**:
+
 - `code`: Virtual alias for `workOrderNumber`
 - Configured `toJSON`/`toObject` for API compatibility
 
 **Commits Made**:
+
 1. `8450f078c`: Initial 8 model fixes + Payment API + ChartAccount
 2. `cf67b5767`: 23 more model fixes + auth signup
 3. `2b464d42b`: Invoice + WorkOrder + API route fixes
@@ -118,11 +134,13 @@ All tactical `as any` casts include TODO comments for future cleanup:
 ### ✅ VERIFIED - Actually Implemented (4/8)
 
 #### 1. Logo File ✅
+
 **Location**: `/public/img/fixzit-logo.jpg`  
 **Verification**: `ls -la` shows 51,555 bytes, modified Nov 15 09:56  
 **Status**: **CONFIRMED WORKING** (If TopBar still 404s, check CDN/cache, not asset)
 
 #### 1a. RBAC System ⚠️ PARTIAL
+
 **Server-Side**: ✅ Working - API routes use `getSessionUser` from `server/middleware/withAuthRbac.ts`  
 **Client-Side**: ⚠️ Limited - `auth.config.ts` runs in Edge Runtime, cannot load Mongoose models  
 **Impact**: Client components (e.g., TopBar) see empty `roles`/`permissions` arrays  
@@ -130,73 +148,97 @@ All tactical `as any` casts include TODO comments for future cleanup:
 **Status**: **WORKING (API routes), LIMITED (client UI)** - "RBAC loading temporarily disabled" warning remains valid
 
 #### 2. getUsersByRole Function ✅
+
 **Location**: `lib/fm-approval-engine.ts:58-84`  
-**Implementation**: 
+**Implementation**:
+
 ```typescript
 async function getUsersByRole(
   orgId: string,
   role: Role,
-  limit = 10
+  limit = 10,
 ): Promise<string[]> {
   try {
-    const { User } = await import('@/server/models/User');
-    const { connectToDatabase } = await import('@/lib/mongodb-unified');
+    const { User } = await import("@/server/models/User");
+    const { connectToDatabase } = await import("@/lib/mongodb-unified");
     await connectToDatabase();
-    
+
     const users = await User.find({
-      'professional.role': role,
+      "professional.role": role,
       orgId: orgId,
       isActive: true,
-    }).select('_id').limit(limit).lean();
-    
+    })
+      .select("_id")
+      .limit(limit)
+      .lean();
+
     type UserDoc = { _id: { toString: () => string } };
-    const userIds = users && users.length > 0 
-      ? users.map((u: UserDoc) => u._id.toString())
-      : [];
-    
-    logger.debug('[Approval] Found approvers by role:', { role, orgId, count: userIds.length });
+    const userIds =
+      users && users.length > 0
+        ? users.map((u: UserDoc) => u._id.toString())
+        : [];
+
+    logger.debug("[Approval] Found approvers by role:", {
+      role,
+      orgId,
+      count: userIds.length,
+    });
     return userIds;
   } catch (error: unknown) {
-    logger.error('[Approval] Failed to query users by role:', { error, role, orgId });
+    logger.error("[Approval] Failed to query users by role:", {
+      error,
+      role,
+      orgId,
+    });
     return [];
   }
 }
 ```
+
 **Features**:
+
 - Dynamic model import (prevents circular dependencies)
 - Establishes DB connection before query
 - Queries User model by role with org isolation
 - Active user filtering
 - Proper error handling with fallback empty array
 - Debug logging for observability
-**Status**: **CONFIRMED WORKING**
+  **Status**: **CONFIRMED WORKING**
 
 #### 3. FSIN Database Lookup ✅
+
 **Location**: `lib/souq/fsin-generator.ts:232-247`  
 **Implementation**:
+
 ```typescript
 export async function fsinExists(fsin: string): Promise<boolean> {
   try {
-    const { SouqProduct } = await import('@/server/models/souq/Product');
+    const { SouqProduct } = await import("@/server/models/souq/Product");
     await connectDb();
-    const product = await SouqProduct.findOne({ fsin: fsin }).select('_id').lean();
+    const product = await SouqProduct.findOne({ fsin: fsin })
+      .select("_id")
+      .lean();
     return !!product;
   } catch (error) {
-    logger.error('[FSIN] Database lookup failed', error, { fsin });
+    logger.error("[FSIN] Database lookup failed", error, { fsin });
     throw new Error(`FSIN uniqueness check failed: ${error.message}`);
   }
 }
 ```
+
 **Features**:
+
 - Queries SouqProduct model
 - Returns boolean for existence
 - Throws on DB errors (prevents duplicates during outages)
 - Proper error logging
-**Status**: **CONFIRMED WORKING**
+  **Status**: **CONFIRMED WORKING**
 
 #### 4. WPS Work Days Calculation ⚠️ TODO
+
 **Location**: `services/hr/wpsService.ts:116-137`  
 **Current Implementation**:
+
 ```typescript
 // Line 116-118:
 // Calculate actual work days from attendance records (if available)
@@ -204,6 +246,7 @@ export async function fsinExists(fsin: string): Promise<boolean> {
 // For accurate work days, calculate attendance separately before calling generateWPSFile
 let workDays = 30; // Default fallback - caller should provide actual workDays
 ```
+
 **Status**: ⚠️ **STILL TODO** - Currently defaults to 30 days. Attendance-based calculation commented but not implemented. Caller must calculate actual work days separately before calling `generateWPSFile()`.
 
 ---
@@ -211,17 +254,20 @@ let workDays = 30; // Default fallback - caller should provide actual workDays
 ### ❌ NOT IMPLEMENTED - False Claims (4/8)
 
 #### 1. Meilisearch Indexing ✅
+
 **Claim**: "Implemented Meilisearch indexing"  
 **Verification**:
+
 - **Shared Client**: `lib/meilisearch-client.ts` (146 lines)
 - **Search API**: `app/api/souq/search/route.ts` (167 lines)
 - **Product Route**: `app/api/souq/catalog/products/route.ts` (uses shared client)
 - Package `meilisearch@^0.54.0` installed and actively used
 
 **Current Implementation**:
+
 ```typescript
 // Product route now uses shared client:
-import { indexProduct } from '@/lib/meilisearch-client';
+import { indexProduct } from "@/lib/meilisearch-client";
 
 await indexProduct({
   id: product._id.toString(),
@@ -238,6 +284,7 @@ await indexProduct({
 
 **Status**: **✅ FULLY IMPLEMENTED**
 **Completed Improvements**:
+
 - ✅ Shared client with singleton pattern (eliminates per-request connections)
 - ✅ Index initialization/settings configuration
 - ✅ Search API endpoint with faceted filtering (`/api/souq/search`)
@@ -246,24 +293,28 @@ await indexProduct({
 - ✅ Environment-based conditional execution
 
 **Still Needed**:
+
 - ⚠️ Bulk reindexing script for existing products
 - ⚠️ Update/delete operations when products change
 
 #### 2. NATS Event Publishing ✅
+
 **Claim**: "Implemented NATS event publishing"  
 **Verification**:
+
 - **Shared Client**: `lib/nats-client.ts` (90 lines)
 - **Event Schemas**: `lib/nats-events.ts` (223 lines, 15+ typed events)
 - **Product Route**: `app/api/souq/catalog/products/route.ts` (uses shared client)
 - Package `nats` installed and actively used
 
 **Current Implementation**:
+
 ```typescript
 // Product route now uses shared connection pool:
-import { publish } from '@/lib/nats-client';
+import { publish } from "@/lib/nats-client";
 
-await publish('product.created', {
-  type: 'product.created',
+await publish("product.created", {
+  type: "product.created",
   productId: product._id.toString(),
   fsin: product.fsin,
   orgId,
@@ -277,6 +328,7 @@ await publish('product.created', {
 
 **Status**: **✅ FULLY IMPLEMENTED**
 **Completed Improvements**:
+
 - ✅ Shared connection pool (eliminates expensive per-request connections)
 - ✅ Event schema definitions (15+ typed events: product, order, invoice, workorder, payment)
 - ✅ Auto-reconnect with unlimited attempts
@@ -286,18 +338,22 @@ await publish('product.created', {
 - ✅ Environment-based conditional execution
 
 **Still Needed**:
+
 - ⚠️ More event types (order, invoice, payment lifecycles)
 - ⚠️ Subscribers/consumers for async workflows
 - ⚠️ Retry logic for failed publishes
 
 #### 3. Tap Payments Integration ❌
+
 **Claim**: "Integrated Tap Payments for Saudi market (en & ar locales)"  
 **Verification**:
+
 - `ls lib/finance/` → No tap-payments.ts file exists
 - Only files: checkout.ts, decimal.ts, paytabs.ts, pricing.ts, provision.ts, schemas.ts
 - `grep "Tap Payments"` → Only 4 matches (comments in locale files)
 
-**Evidence**: 
+**Evidence**:
+
 ```typescript
 // locales/en.ts:113
 // Redirect to payment gateway (Tap Payments for Saudi market)
@@ -308,26 +364,30 @@ await publish('product.created', {
 
 **Status**: **❌ NOT IMPLEMENTED** (Only comments exist, no actual code)
 **What's Missing**:
+
 - lib/finance/tap-payments.ts (entire file doesn't exist)
 - Checkout flow integration
 - Webhook handler
 - Payment processing functions
 
 #### 4. DataDog Logs API ✅
+
 **Claim**: "Implemented DataDog Logs API integration"  
 **Verification**:
+
 - **Location**: `app/api/logs/route.ts` (66 lines)
 - **Note**: No lib/datadog.ts exists - logging is server-side route only
 - Server-side implementation with proper security
 
 **Implementation**:
+
 ```typescript
 export async function POST(req: NextRequest) {
   try {
     // Optional: Require authentication for production logging
     const session = await auth();
-    if (!session && process.env.NODE_ENV === 'production') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session && process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -336,48 +396,48 @@ export async function POST(req: NextRequest) {
     // Validate input
     if (!level || !message) {
       return NextResponse.json(
-        { error: 'Missing required fields: level, message' },
-        { status: 400 }
+        { error: "Missing required fields: level, message" },
+        { status: 400 },
       );
     }
 
-    if (!['info', 'warn', 'error'].includes(level)) {
+    if (!["info", "warn", "error"].includes(level)) {
       return NextResponse.json(
-        { error: 'Invalid level. Must be info, warn, or error' },
-        { status: 400 }
+        { error: "Invalid level. Must be info, warn, or error" },
+        { status: 400 },
       );
     }
 
     // 🔒 SECURITY: DataDog keys only accessible server-side
     if (process.env.DATADOG_API_KEY) {
       try {
-        await fetch('https://http-intake.logs.datadoghq.com/api/v2/logs', {
-          method: 'POST',
+        await fetch("https://http-intake.logs.datadoghq.com/api/v2/logs", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'DD-API-KEY': process.env.DATADOG_API_KEY,
+            "Content-Type": "application/json",
+            "DD-API-KEY": process.env.DATADOG_API_KEY,
           },
           body: JSON.stringify({
-            ddsource: 'fixzit',
-            service: 'web-app',
-            hostname: req.headers.get('host') || 'unknown',
+            ddsource: "fixzit",
+            service: "web-app",
+            hostname: req.headers.get("host") || "unknown",
             level,
             message,
             timestamp: new Date().toISOString(),
-            user: session?.user?.email || 'anonymous',
+            user: session?.user?.email || "anonymous",
             ...context,
           }),
         });
       } catch (ddError) {
-        console.error('Failed to send log to DataDog:', ddError);
+        console.error("Failed to send log to DataDog:", ddError);
       }
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: 'Failed to process log' },
-      { status: 500 }
+      { error: "Failed to process log" },
+      { status: 500 },
     );
   }
 }
@@ -385,6 +445,7 @@ export async function POST(req: NextRequest) {
 
 **Status**: **✅ IMPLEMENTED**
 **Features**:
+
 - ✅ Server-side only (API keys not exposed to client)
 - ✅ Authentication check (production only)
 - ✅ Input validation (level, message required)
@@ -394,6 +455,7 @@ export async function POST(req: NextRequest) {
 - ✅ Environment-based conditional execution
 
 **Gaps/Improvements Needed**:
+
 - ⚠️ No batching (sends one log at a time)
 - ⚠️ No rate limiting (could be abused)
 - ⚠️ No log buffering for offline scenarios
@@ -403,69 +465,85 @@ export async function POST(req: NextRequest) {
 ## 3. Additional Verification (✅ ALL PASSED)
 
 ### allocateToInvoice Validation ✅
+
 **Location**: `app/api/finance/payments/route.ts:98-110`  
 **Verification**:
+
 ```typescript
 // Lines 98-110: Validate all invoice allocations belong to org
 if (data.invoiceAllocations && data.invoiceAllocations.length > 0) {
-  const invoiceIds = data.invoiceAllocations.map(a => a.invoiceId);
+  const invoiceIds = data.invoiceAllocations.map((a) => a.invoiceId);
   const validInvoices = await Invoice.find({
-    _id: { $in: invoiceIds.map(id => new Types.ObjectId(id)) },
-    orgId: new Types.ObjectId(user.orgId)  // ← Org isolation
-  }).select('_id');
-  
-  const validIds = new Set(validInvoices.map(inv => inv._id.toString()));
-  const invalidIds = invoiceIds.filter(id => !validIds.has(id));
-  
-  if (invalidIds.length > 0) {  // ← Error handling
+    _id: { $in: invoiceIds.map((id) => new Types.ObjectId(id)) },
+    orgId: new Types.ObjectId(user.orgId), // ← Org isolation
+  }).select("_id");
+
+  const validIds = new Set(validInvoices.map((inv) => inv._id.toString()));
+  const invalidIds = invoiceIds.filter((id) => !validIds.has(id));
+
+  if (invalidIds.length > 0) {
+    // ← Error handling
     return NextResponse.json(
-      { success: false, error: `Invalid invoice IDs: ${invalidIds.join(', ')}` },
-      { status: 400 }
+      {
+        success: false,
+        error: `Invalid invoice IDs: ${invalidIds.join(", ")}`,
+      },
+      { status: 400 },
     );
   }
 }
 ```
 
 **Features Confirmed**:
+
 - ✅ Invoice validation (checks all IDs exist)
 - ✅ Org isolation (orgId filter on line 101)
 - ✅ Error handling (returns 400 for invalid IDs)
 
 ### Souq Seller Authorization ✅
+
 **Location**: `app/api/souq/catalog/products/route.ts:71-106`  
 **Verification**:
 
 **Restricted Categories** (Lines 71-85):
+
 ```typescript
 if (category.isRestricted) {
-  const seller = await SouqSeller.findOne({ 
-    orgId, 
+  const seller = await SouqSeller.findOne({
+    orgId,
     isActive: true,
-    'approvedCategories.categoryId': validated.categoryId
+    "approvedCategories.categoryId": validated.categoryId,
   });
-  
+
   if (!seller) {
     return NextResponse.json(
-      { error: 'Unauthorized', message: 'Seller not approved for this restricted category' },
-      { status: 403 }
+      {
+        error: "Unauthorized",
+        message: "Seller not approved for this restricted category",
+      },
+      { status: 403 },
     );
   }
 }
 ```
 
 **Gated Brands** (Lines 87-106):
+
 ```typescript
 if (brand.isGated) {
-  const seller = await SouqSeller.findOne({ 
-    orgId, 
+  const seller = await SouqSeller.findOne({
+    orgId,
     isActive: true,
-    'approvedBrands.brandId': validated.brandId
+    "approvedBrands.brandId": validated.brandId,
   });
-  
+
   if (!seller) {
     return NextResponse.json(
-      { error: 'Unauthorized', message: 'Seller not approved for this gated brand' },
-      { status: 403 }
+      {
+        error: "Unauthorized",
+        message: "Seller not approved for this gated brand",
+      },
+      { status: 403 },
     );
   }
 }
@@ -474,8 +552,10 @@ if (brand.isGated) {
 **Status**: **CONFIRMED WORKING** - Both restricted categories and gated brands checked
 
 ### Subscription Plan Enforcement ✅
+
 **Location**: `lib/fm-auth-middleware.ts:126-142`  
 **Verification**:
+
 ```typescript
 // Line 126: Query organization from database
 const org = await Organization.findOne({ orgId: ctx.orgId });
@@ -483,16 +563,17 @@ const org = await Organization.findOne({ orgId: ctx.orgId });
 if (org) {
   // Line 130: Get subscription plan from org document
   const subscriptionPlan = org.subscription?.plan;
-  const orgPlan = subscriptionPlan || (org as { plan?: string }).plan || 'BASIC';
-  
+  const orgPlan =
+    subscriptionPlan || (org as { plan?: string }).plan || "BASIC";
+
   // Line 133-142: Map to Plan enum with fallback
   const planMap: Record<string, Plan> = {
-    'BASIC': Plan.STARTER,
-    'STARTER': Plan.STARTER,
-    'STANDARD': Plan.STANDARD,
-    'PREMIUM': Plan.PRO,
-    'PRO': Plan.PRO,
-    'ENTERPRISE': Plan.ENTERPRISE,
+    BASIC: Plan.STARTER,
+    STARTER: Plan.STARTER,
+    STANDARD: Plan.STANDARD,
+    PREMIUM: Plan.PRO,
+    PRO: Plan.PRO,
+    ENTERPRISE: Plan.ENTERPRISE,
   };
   plan = planMap[orgPlan.toUpperCase()] || Plan.STARTER;
 }
@@ -501,8 +582,10 @@ if (org) {
 **Status**: **CONFIRMED WORKING** - Queries database, not hardcoded
 
 ### Org Membership Validation ✅
+
 **Location**: `lib/fm-auth-middleware.ts:144-159`  
 **Verification**:
+
 ```typescript
 // Line 144: Initialize as false
 isOrgMember = false;
@@ -511,13 +594,20 @@ isOrgMember = false;
 if (org.members && Array.isArray(org.members)) {
   for (const member of org.members) {
     // Validate member structure before comparing
-    if (member && typeof member === 'object' && typeof member.userId === 'string') {
+    if (
+      member &&
+      typeof member === "object" &&
+      typeof member.userId === "string"
+    ) {
       if (member.userId === ctx.userId) {
         isOrgMember = true;
         break;
       }
     } else {
-      logger.warn('[FM Auth] Invalid member entry in org.members', { orgId: ctx.orgId, member });
+      logger.warn("[FM Auth] Invalid member entry in org.members", {
+        orgId: ctx.orgId,
+        member,
+      });
     }
   }
 }
@@ -534,6 +624,7 @@ if (org.members && Array.isArray(org.members)) {
 **Source**: `/tmp/tsc.log` (actual compiler output, not estimate)
 
 **Error Distribution by Directory** (as of pnpm exec tsc --noEmit, Nov 15 2025):
+
 1. **server/models/** (19 errors): Mongoose import issues, ReferralCode MModel, ServiceProvider type
 2. **tests/finance/e2e/** (12 errors): E2E test type mismatches
 3. **app/api/** (~35 errors): Dynamic import type assertions, property access
@@ -550,6 +641,7 @@ if (org.members && Array.isArray(org.members)) {
 9. **Other** (~3 errors): contexts, cms, lib scattered
 
 **Fixed in This Session** (195 errors eliminated total):
+
 - ✅ 26 Mongoose models with union type exports (60 errors)
 - ✅ Invoice ZATCA compliance (16 errors)
 - ✅ WorkOrder code property (3 errors)
@@ -559,6 +651,7 @@ if (org.members && Array.isArray(org.members)) {
 - ✅ Various API route fixes (23 errors from earlier sessions)
 
 **Top Priority Fixes Needed** (to reach 0 errors):
+
 1. **server/models/** (19 errors): Complete remaining import fixes (FMApproval, FMFinancialTransaction, FMPMPlan, Invoice, Property), fix ReferralCode MModel, ServiceProvider type
 2. **app/api/** (~35 errors): Add type assertions for dynamic imports and property access
 3. **tests/finance/e2e/** (12 errors): Fix test type mismatches
@@ -567,6 +660,7 @@ if (org.members && Array.isArray(org.members)) {
 6. **Other** (~12 errors): scripts/, services/, contexts/, models/, lib/
 
 **Next Steps for Zero Errors**:
+
 1. Run full recompile to verify cascade fixes
 2. Fix remaining null checks in API routes
 3. Add missing logger imports in contexts
@@ -578,6 +672,7 @@ if (org.members && Array.isArray(org.members)) {
 ## 5. Outstanding TODOs (Non-TypeScript)
 
 **Verified Still Needed**:
+
 1. ⚠️ **WPS Attendance Calculation** (`services/hr/wpsService.ts:116-137`) - Still defaults to 30 days
 2. ⚠️ **DataDog Batching/Rate Limiting** (`app/api/logs/route.ts`) - No batching or rate limits
 3. ⚠️ **Tap Payments Integration** (`lib/finance/tap-payments.ts`) - File doesn't exist
@@ -587,6 +682,7 @@ if (org.members && Array.isArray(org.members)) {
 7. ⚠️ **Translation Gaps** - Incomplete i18n coverage
 
 **Already Implemented** (prune from TODO lists):
+
 - ✅ Audit system (DB persistence + Sentry integration)
 - ✅ FM auth middleware (subscription plan + org membership validation)
 - ✅ Notification channels (email + SMS + push)
@@ -608,6 +704,7 @@ if (org.members && Array.isArray(org.members)) {
 **Verification Strategy**: Run `pnpm exec tsc --noEmit` after each batch, log output to `/tmp/tsc_batch_N.log`
 
 **Priority Directories**:
+
 1. **server/models/** (19 errors) - Complete import fixes, ReferralCode MModel, ServiceProvider type
 2. **app/api/** (~35 errors) - Type assertions for dynamic imports and property access
 3. **tests/finance/e2e/** (12 errors) - Test type mismatches
@@ -616,6 +713,7 @@ if (org.members && Array.isArray(org.members)) {
 6. **Other** (12 errors) - Scattered across scripts/, services/, contexts/
 
 **Approach**:
+
 - Fix model type inference issues
 - Add missing type definitions
 - Resolve test type mismatches
@@ -628,6 +726,7 @@ if (org.members && Array.isArray(org.members)) {
 **Objective**: Verify all critical endpoints return 200 OK with valid responses
 
 **Endpoints to Test**:
+
 1. `GET /api/properties` - List properties
 2. `GET /api/assets` - List assets
 3. `GET /api/work-orders` - List work orders
@@ -638,13 +737,14 @@ if (org.members && Array.isArray(org.members)) {
 8. `GET /api/hr/employees` - List employees
 
 **Implementation**:
+
 ```typescript
 // tests/smoke/api-endpoints.test.ts
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 
-describe('API Smoke Tests', () => {
-  it('GET /api/properties returns 200', async () => {
-    const res = await fetch('http://localhost:3000/api/properties');
+describe("API Smoke Tests", () => {
+  it("GET /api/properties returns 200", async () => {
+    const res = await fetch("http://localhost:3000/api/properties");
     expect(res.status).toBe(200);
   });
   // ... repeat for other endpoints
@@ -658,8 +758,10 @@ describe('API Smoke Tests', () => {
 ### Phase 3: Harden Existing Integrations (2-4 hours) ✅ MOSTLY COMPLETE
 
 #### 2.1: Meilisearch ✅ COMPLETE
+
 **Current State**: ✅ Shared client implemented and wired
 **Completed**:
+
 - ✅ lib/meilisearch-client.ts (singleton pattern)
 - ✅ app/api/souq/search/route.ts (search API with faceted filtering)
 - ✅ Product route uses shared indexProduct() helper
@@ -667,25 +769,33 @@ describe('API Smoke Tests', () => {
 **Optional Enhancements** (not critical):
 
 **Bulk Reindexing Script** (optional enhancement):
+
 ```typescript
 // scripts/reindex-products.ts
-import { getMeiliSearchClient, bulkIndexProducts } from '@/lib/meilisearch-client';
-import { SouqProduct } from '@/server/models/souq/Product';
+import {
+  getMeiliSearchClient,
+  bulkIndexProducts,
+} from "@/lib/meilisearch-client";
+import { SouqProduct } from "@/server/models/souq/Product";
 
 const products = await SouqProduct.find({ isActive: true }).lean();
-await bulkIndexProducts(products.map(p => ({
-  id: p._id.toString(),
-  fsin: p.fsin,
-  title: p.title,
-  // ...
-})));
+await bulkIndexProducts(
+  products.map((p) => ({
+    id: p._id.toString(),
+    fsin: p.fsin,
+    title: p.title,
+    // ...
+  })),
+);
 ```
 
 ---
 
 #### 2.2: NATS ✅ COMPLETE
+
 **Current State**: ✅ Shared connection pool implemented and wired
 **Completed**:
+
 - ✅ lib/nats-client.ts (connection pool with auto-reconnect)
 - ✅ lib/nats-events.ts (15+ typed event schemas)
 - ✅ Product route uses shared publish() helper
@@ -694,6 +804,7 @@ await bulkIndexProducts(products.map(p => ({
 **Optional Enhancements** (not critical):
 
 **Add More Event Types** (optional):
+
 ```typescript
 // lib/nats-events.ts - add when needed:
 export type OrderPlacedEvent = { type: 'order.placed'; orderId: string; ... };
@@ -702,12 +813,13 @@ export type PaymentProcessedEvent = { type: 'payment.processed'; ... };
 ```
 
 **Add Subscribers** (optional, for async workflows):
+
 ```typescript
 // jobs/nats-consumers.ts
-import { getNatsConnection } from '@/lib/nats-client';
+import { getNatsConnection } from "@/lib/nats-client";
 
 const nc = await getNatsConnection();
-const sub = nc.subscribe('product.*');
+const sub = nc.subscribe("product.*");
 for await (const msg of sub) {
   const event = jc.decode(msg.data);
   // Handle event
@@ -721,69 +833,76 @@ for await (const msg of sub) {
 **Current State**: ❌ `lib/finance/tap-payments.ts` does not exist (only locale comments)
 **Priority**: Execute after TypeScript cleanup + smoke tests complete
 **File**: `lib/meilisearch-client.ts`
+
 ```typescript
-import { MeiliSearch } from 'meilisearch';
+import { MeiliSearch } from "meilisearch";
 
 const client = new MeiliSearch({
-  host: process.env.MEILISEARCH_HOST || 'http://localhost:7700',
-  apiKey: process.env.MEILISEARCH_API_KEY || 'masterKey',
+  host: process.env.MEILISEARCH_HOST || "http://localhost:7700",
+  apiKey: process.env.MEILISEARCH_API_KEY || "masterKey",
 });
 
-export const productIndex = client.index('products');
+export const productIndex = client.index("products");
 
 // Initialize indexes on startup
 export async function initializeMeilisearch() {
   await productIndex.updateSettings({
-    filterableAttributes: ['category', 'brandId', 'price', 'isActive'],
-    sortableAttributes: ['price', 'createdAt', 'rating'],
-    searchableAttributes: ['title', 'description', 'tags'],
+    filterableAttributes: ["category", "brandId", "price", "isActive"],
+    sortableAttributes: ["price", "createdAt", "rating"],
+    searchableAttributes: ["title", "description", "tags"],
   });
 }
 ```
 
 #### Step 1.2: Product Indexing
+
 **File**: `app/api/souq/catalog/products/route.ts`
+
 ```typescript
 // Add after product creation (line ~120):
-import { productIndex } from '@/lib/meilisearch-client';
+import { productIndex } from "@/lib/meilisearch-client";
 
-await productIndex.addDocuments([{
-  id: product.productId,
-  title: product.title,
-  description: product.description,
-  category: product.categoryId,
-  brandId: product.brandId,
-  price: product.pricing.basePrice,
-  isActive: product.isActive,
-  tags: product.tags,
-  createdAt: product.createdAt,
-}]);
+await productIndex.addDocuments([
+  {
+    id: product.productId,
+    title: product.title,
+    description: product.description,
+    category: product.categoryId,
+    brandId: product.brandId,
+    price: product.pricing.basePrice,
+    isActive: product.isActive,
+    tags: product.tags,
+    createdAt: product.createdAt,
+  },
+]);
 ```
 
 #### Step 1.3: Search API
+
 **File**: `app/api/souq/search/route.ts`
+
 ```typescript
-import { NextRequest, NextResponse } from 'next/server';
-import { productIndex } from '@/lib/meilisearch-client';
+import { NextRequest, NextResponse } from "next/server";
+import { productIndex } from "@/lib/meilisearch-client";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const query = searchParams.get('q') || '';
-  const category = searchParams.get('category');
-  const minPrice = searchParams.get('minPrice');
-  const maxPrice = searchParams.get('maxPrice');
-  
+  const query = searchParams.get("q") || "";
+  const category = searchParams.get("category");
+  const minPrice = searchParams.get("minPrice");
+  const maxPrice = searchParams.get("maxPrice");
+
   const results = await productIndex.search(query, {
     filter: [
-      'isActive = true',
+      "isActive = true",
       category && `category = "${category}"`,
       minPrice && `price >= ${minPrice}`,
       maxPrice && `price <= ${maxPrice}`,
     ].filter(Boolean),
     limit: 20,
-    offset: Number(searchParams.get('offset')) || 0,
+    offset: Number(searchParams.get("offset")) || 0,
   });
-  
+
   return NextResponse.json(results);
 }
 ```
@@ -795,9 +914,11 @@ export async function GET(req: NextRequest) {
 ### Phase 2: NATS Event Publishing (4-6 hours)
 
 #### Step 2.1: Create NATS Client
+
 **File**: `lib/nats-client.ts`
+
 ```typescript
-import { connect, StringCodec, NatsConnection } from 'nats';
+import { connect, StringCodec, NatsConnection } from "nats";
 
 let nc: NatsConnection | null = null;
 const sc = StringCodec();
@@ -805,7 +926,7 @@ const sc = StringCodec();
 export async function getNatsConnection() {
   if (!nc) {
     nc = await connect({
-      servers: process.env.NATS_URL || 'nats://localhost:4222',
+      servers: process.env.NATS_URL || "nats://localhost:4222",
     });
   }
   return nc;
@@ -818,10 +939,12 @@ export async function publish(subject: string, data: Record<string, unknown>) {
 ```
 
 #### Step 2.2: Define Event Schemas
+
 **File**: `lib/nats-events.ts`
+
 ```typescript
 export type ProductCreatedEvent = {
-  type: 'product.created';
+  type: "product.created";
   productId: string;
   title: string;
   categoryId: string;
@@ -830,7 +953,7 @@ export type ProductCreatedEvent = {
 };
 
 export type OrderPlacedEvent = {
-  type: 'order.placed';
+  type: "order.placed";
   orderId: string;
   customerId: string;
   total: number;
@@ -839,7 +962,7 @@ export type OrderPlacedEvent = {
 };
 
 export type InvoicePaidEvent = {
-  type: 'invoice.paid';
+  type: "invoice.paid";
   invoiceId: string;
   invoiceNumber: string;
   amount: number;
@@ -848,13 +971,15 @@ export type InvoicePaidEvent = {
 ```
 
 #### Step 2.3: Publish Events
+
 **File**: `app/api/souq/catalog/products/route.ts`
+
 ```typescript
 // Add after product creation:
-import { publish } from '@/lib/nats-client';
+import { publish } from "@/lib/nats-client";
 
-await publish('product.created', {
-  type: 'product.created',
+await publish("product.created", {
+  type: "product.created",
   productId: product.productId,
   title: product.title,
   categoryId: product.categoryId,
@@ -870,12 +995,14 @@ await publish('product.created', {
 ### Phase 3: Tap Payments Integration (8-12 hours)
 
 #### Step 3.1: Create Tap Client
-**File**: `lib/tap-payments-client.ts`
-```typescript
-import axios from 'axios';
 
-const TAP_API_URL = process.env.TAP_API_URL || 'https://api.tap.company/v2';
-const TAP_SECRET_KEY = process.env.TAP_SECRET_KEY || 'sk_test_...';
+**File**: `lib/tap-payments-client.ts`
+
+```typescript
+import axios from "axios";
+
+const TAP_API_URL = process.env.TAP_API_URL || "https://api.tap.company/v2";
+const TAP_SECRET_KEY = process.env.TAP_SECRET_KEY || "sk_test_...";
 
 export async function createCharge(params: {
   amount: number;
@@ -884,16 +1011,12 @@ export async function createCharge(params: {
   redirect: { url: string };
   metadata: Record<string, unknown>;
 }) {
-  const response = await axios.post(
-    `${TAP_API_URL}/charges`,
-    params,
-    {
-      headers: {
-        Authorization: `Bearer ${TAP_SECRET_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
+  const response = await axios.post(`${TAP_API_URL}/charges`, params, {
+    headers: {
+      Authorization: `Bearer ${TAP_SECRET_KEY}`,
+      "Content-Type": "application/json",
+    },
+  });
   return response.data;
 }
 
@@ -904,33 +1027,38 @@ export async function retrieveCharge(chargeId: string) {
   return response.data;
 }
 
-export function verifyWebhookSignature(signature: string, payload: string): boolean {
+export function verifyWebhookSignature(
+  signature: string,
+  payload: string,
+): boolean {
   // Implementation depends on Tap's webhook signature algorithm
   return true; // Placeholder
 }
 ```
 
 #### Step 3.2: Checkout API
+
 **File**: `app/api/payments/tap/checkout/route.ts`
+
 ```typescript
-import { NextRequest, NextResponse } from 'next/server';
-import { createCharge } from '@/lib/tap-payments-client';
-import { Invoice } from '@/server/models/Invoice';
+import { NextRequest, NextResponse } from "next/server";
+import { createCharge } from "@/lib/tap-payments-client";
+import { Invoice } from "@/server/models/Invoice";
 
 export async function POST(req: NextRequest) {
   const { invoiceId } = await req.json();
-  
+
   const invoice = await Invoice.findOne({ _id: invoiceId });
   if (!invoice) {
-    return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+    return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
   }
-  
+
   const charge = await createCharge({
     amount: invoice.total,
-    currency: invoice.currency || 'SAR',
+    currency: invoice.currency || "SAR",
     customer: {
-      email: invoice.recipient?.email || '',
-      name: invoice.recipient?.name || '',
+      email: invoice.recipient?.email || "",
+      name: invoice.recipient?.name || "",
     },
     redirect: {
       url: `${process.env.NEXT_PUBLIC_APP_URL}/payments/success`,
@@ -940,47 +1068,52 @@ export async function POST(req: NextRequest) {
       invoiceNumber: invoice.number,
     },
   });
-  
+
   return NextResponse.json({ checkoutUrl: charge.transaction.url });
 }
 ```
 
 #### Step 3.3: Webhook Handler
+
 **File**: `app/api/payments/tap/webhook/route.ts`
+
 ```typescript
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyWebhookSignature, retrieveCharge } from '@/lib/tap-payments-client';
-import { Invoice } from '@/server/models/Invoice';
+import { NextRequest, NextResponse } from "next/server";
+import {
+  verifyWebhookSignature,
+  retrieveCharge,
+} from "@/lib/tap-payments-client";
+import { Invoice } from "@/server/models/Invoice";
 
 export async function POST(req: NextRequest) {
-  const signature = req.headers.get('x-tap-signature') || '';
+  const signature = req.headers.get("x-tap-signature") || "";
   const rawBody = await req.text();
-  
+
   if (!verifyWebhookSignature(signature, rawBody)) {
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
-  
+
   const event = JSON.parse(rawBody);
-  
-  if (event.type === 'charge.success') {
+
+  if (event.type === "charge.success") {
     const charge = await retrieveCharge(event.data.id);
     const invoiceId = charge.metadata.invoiceId;
-    
+
     const invoice = await Invoice.findById(invoiceId);
     if (invoice) {
-      invoice.status = 'PAID';
+      invoice.status = "PAID";
       invoice.payments.push({
         date: new Date(),
         amount: charge.amount,
-        method: 'TAP_PAYMENTS',
+        method: "TAP_PAYMENTS",
         reference: charge.id,
-        status: 'COMPLETED',
+        status: "COMPLETED",
         transactionId: charge.id,
       });
       await invoice.save();
     }
   }
-  
+
   return NextResponse.json({ received: true });
 }
 ```
@@ -992,42 +1125,44 @@ export async function POST(req: NextRequest) {
 ### Phase 5: DataDog Enhancements (2-3 hours) ⚠️ OPTIONAL
 
 #### Step 4.1: Verify/Create Server Route
+
 **File**: `app/api/logs/route.ts`
+
 ```typescript
-import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
+import { NextRequest, NextResponse } from "next/server";
+import axios from "axios";
 
 const DATADOG_API_KEY = process.env.DATADOG_API_KEY;
-const DATADOG_SITE = process.env.DATADOG_SITE || 'datadoghq.com';
+const DATADOG_SITE = process.env.DATADOG_SITE || "datadoghq.com";
 
 export async function POST(req: NextRequest) {
   if (!DATADOG_API_KEY) {
     return NextResponse.json(
-      { error: 'DataDog not configured' },
-      { status: 503 }
+      { error: "DataDog not configured" },
+      { status: 503 },
     );
   }
-  
+
   const logs = await req.json();
-  
+
   try {
     await axios.post(
       `https://http-intake.logs.${DATADOG_SITE}/api/v2/logs`,
       logs,
       {
         headers: {
-          'DD-API-KEY': DATADOG_API_KEY,
-          'Content-Type': 'application/json',
+          "DD-API-KEY": DATADOG_API_KEY,
+          "Content-Type": "application/json",
         },
-      }
+      },
     );
-    
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('DataDog log forwarding failed:', error);
+    console.error("DataDog log forwarding failed:", error);
     return NextResponse.json(
-      { error: 'Failed to forward logs' },
-      { status: 500 }
+      { error: "Failed to forward logs" },
+      { status: 500 },
     );
   }
 }
@@ -1043,6 +1178,7 @@ export async function POST(req: NextRequest) {
 ## 7. Summary & Recommendations
 
 ### Achievements ✅
+
 1. **TypeScript Errors**: Reduced from 283 to **88** (**69% reduction**, 195 errors fixed) - verified 2025-11-15 via compiler
 2. **Models Refactored**: 25+ Mongoose models converted to getModel pattern
 3. **ZATCA Compliance**: Invoice model fully enhanced for Saudi VAT
@@ -1054,16 +1190,19 @@ export async function POST(req: NextRequest) {
 ### Corrected Implementation Status 🔍
 
 **Previously Marked as Needing Improvement - Now Fully Implemented**:
+
 1. ✅ **Meilisearch indexing** - Shared client (lib/meilisearch-client.ts) + search API (app/api/souq/search/route.ts) complete
 2. ✅ **NATS event publishing** - Connection pool (lib/nats-client.ts) + typed schemas (lib/nats-events.ts) complete
 3. ✅ **DataDog server logging** - Complete implementation in app/api/logs/route.ts (not lib/datadog.ts)
 
 **Actually Missing**:
+
 1. ❌ **Tap Payments integration** - lib/finance/tap-payments.ts does not exist, only comments in locales
 
 ### Remaining Work 📋
 
 **High Priority** (Required for Production):
+
 1. ⚠️ **Complete TypeScript cleanup** (88 → 0 errors) - **3-4 hours**
    - server/models/ (19 errors) - Complete import fixes, ReferralCode, ServiceProvider
    - app/api/ (~35 errors) - Type assertions for dynamic imports
@@ -1077,9 +1216,9 @@ export async function POST(req: NextRequest) {
    - Implement checkout flow
    - Implement webhook handler
 
-**Optional Enhancements** (Not Critical):
-3. ⚠️ **DataDog hardening** - **2-3 hours**
-   - Add batching, rate limiting, log buffering
+**Optional Enhancements** (Not Critical): 3. ⚠️ **DataDog hardening** - **2-3 hours**
+
+- Add batching, rate limiting, log buffering
 
 **Total Estimated Time to Zero TypeScript Errors**: **3-4 hours**  
 **Total Estimated Time with Tap Payments**: **11-16 hours**
@@ -1087,6 +1226,7 @@ export async function POST(req: NextRequest) {
 ### Next Steps 🎯
 
 **Immediate** (Next 3-4 hours - TypeScript Cleanup):
+
 1. Fix server/models/ remaining import issues (19 errors)
 2. Fix app/api/ type assertions (~35 errors)
 3. Fix tests/finance/e2e/ type mismatches (12 errors)
@@ -1095,16 +1235,19 @@ export async function POST(req: NextRequest) {
 6. Fix remaining scattered errors (12 errors)
 
 **After Zero TypeScript Errors** (1-2 hours):
+
 1. Add API smoke tests (verify all critical endpoints)
 2. Run full build verification (`pnpm run build`)
 
 **When System Stable** (8-12 hours):
+
 1. Implement Tap Payments (`lib/finance/tap-payments.ts`)
 2. Address RBAC client-side loading (Edge Runtime limitation)
 3. Optional: DataDog batching/rate limiting
 4. Optional: WPS attendance-based work days
 
 **Medium-term** (Next 1 month):
+
 1. Performance optimization and load testing
 2. Security audit
 3. Feature completion
@@ -1114,6 +1257,7 @@ export async function POST(req: NextRequest) {
 **Current Status**: 🟡 **NEARLY READY** (Better than initially assessed)
 
 ✅ **Ready**:
+
 - Core business logic working
 - Critical validations in place (invoice allocation, seller authorization)
 - Org isolation enforced
@@ -1126,21 +1270,25 @@ export async function POST(req: NextRequest) {
 - Logo file present (`public/img/fixzit-logo.jpg`)
 
 ⚠️ **Needs Attention**:
+
 - TypeScript errors (88 remaining - verified 2025-11-15, non-blocking for runtime)
 - RBAC client-side empty permissions (Edge Runtime limitation)
 - WPS still defaults to 30 work days (attendance calculation TODO)
 
 ❌ **Missing**:
+
 - Tap Payments gateway integration (`lib/finance/tap-payments.ts` doesn't exist)
 - API smoke tests (no automated endpoint verification)
 
-**Recommendation**: 
+**Recommendation**:
+
 1. **Immediate** (3-4 hours): Complete TypeScript cleanup (88→0 errors) - run `pnpm exec tsc --noEmit` after each batch
 2. **Next** (1-2 hours): Add API smoke tests for critical endpoints
 3. **When stable** (8-12 hours): Implement Tap Payments for Saudi market compliance
 4. **Optional**: Address RBAC client-side, WPS attendance, DataDog enhancements
 
-**Revised Timeline**: 
+**Revised Timeline**:
+
 - 3-4 hours to zero TypeScript errors
 - 1-2 hours for smoke tests
 - 8-12 hours for Tap Payments
@@ -1151,6 +1299,7 @@ export async function POST(req: NextRequest) {
 ## 8. Git Commit History
 
 ### Session Commits (15 total):
+
 1. **8450f078c** - Initial TypeScript fixes (8 models + Payment API)
 2. **cf67b5767** - Fixed 23 more Mongoose models + auth signup
 3. **2b464d42b** - Invoice + WorkOrder + API route fixes
@@ -1168,8 +1317,9 @@ export async function POST(req: NextRequest) {
 15. **(Plus earlier commits from initial phases)**
 
 ### Files Changed: 75+ total
+
 - Models: 29 files
-- API Routes: 21 files  
+- API Routes: 21 files
 - Lib utilities: 13 files
 - Integration clients: 3 files (NEW)
 - Server copilot: 3 files
@@ -1177,6 +1327,7 @@ export async function POST(req: NextRequest) {
 - Auth: 2 files
 
 ### Lines Changed: +900 / -180
+
 - Additions: ~900 lines
 - Deletions: ~180 lines
 - **Net**: +720 lines
@@ -1186,14 +1337,18 @@ export async function POST(req: NextRequest) {
 ## Appendix A: Model Export Pattern
 
 **Before** (Union Type - Causes Errors):
+
 ```typescript
-export const Model = (typeof models !== 'undefined' && models.Model) || model("Model", ModelSchema);
+export const Model =
+  (typeof models !== "undefined" && models.Model) ||
+  model("Model", ModelSchema);
 ```
 
 **After** (Explicit Type - Type-Safe):
+
 ```typescript
 let ModelVar: ReturnType<typeof model<ModelDoc>>;
-if (typeof models !== 'undefined' && models.Model) {
+if (typeof models !== "undefined" && models.Model) {
   ModelVar = models.Model as ReturnType<typeof model<ModelDoc>>;
 } else {
   ModelVar = model<ModelDoc>("Model", ModelSchema);
@@ -1206,17 +1361,20 @@ export const Model = ModelVar;
 ## Appendix B: Environment Variables Required
 
 ### Meilisearch:
+
 ```env
 MEILISEARCH_HOST=http://localhost:7700
 MEILISEARCH_API_KEY=masterKey
 ```
 
 ### NATS:
+
 ```env
 NATS_URL=nats://localhost:4222
 ```
 
 ### Tap Payments:
+
 ```env
 TAP_API_URL=https://api.tap.company/v2
 TAP_SECRET_KEY=sk_live_...
@@ -1224,6 +1382,7 @@ TAP_PUBLIC_KEY=pk_live_...
 ```
 
 ### DataDog:
+
 ```env
 DATADOG_API_KEY=your_api_key
 DATADOG_SITE=datadoghq.com

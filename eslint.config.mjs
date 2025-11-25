@@ -1,11 +1,11 @@
 // ESLint 9 Flat Config - Migration from .eslintrc.cjs
 // @ts-check
 
-import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
-import globals from 'globals';
-import reactHooks from 'eslint-plugin-react-hooks';
-import nextPlugin from '@next/eslint-plugin-next';
+import eslint from "@eslint/js";
+import tseslint from "typescript-eslint";
+import globals from "globals";
+import reactHooks from "eslint-plugin-react-hooks";
+import nextPlugin from "@next/eslint-plugin-next";
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 export default [
@@ -16,65 +16,65 @@ export default [
     },
     ignores: [
       // Build outputs
-      '.next/**',
-      '**/.next/**',
-      'node_modules/**',
-      '_artifacts/**',
-      'coverage/**',
-      'playwright-report/**',
-      'e2e-test-results/**',
-      'jscpd-report/**',
-      'test-results/**',
-      '**/playwright-report/**',
-      '**/e2e-test-results/**',
-      '**/test-results/**',
-      
+      ".next/**",
+      "**/.next/**",
+      "node_modules/**",
+      "_artifacts/**",
+      "coverage/**",
+      "playwright-report/**",
+      "e2e-test-results/**",
+      "jscpd-report/**",
+      "test-results/**",
+      "**/playwright-report/**",
+      "**/e2e-test-results/**",
+      "**/test-results/**",
+
       // Assets and static files
-      'public/**',
-      
+      "public/**",
+
       // Large non-critical directories
-      'database/**',
-      '_deprecated/**',
-      'aws/dist/**',
-      'models/**',
-      'server/models/**',
-      
+      "database/**",
+      "_deprecated/**",
+      "aws/dist/**",
+      "models/**",
+      "server/models/**",
+
       // Specific files
-      'test-*.js',
-      'test-auth.js',
-      'create-guardrails.js',
-      'smart-merge-conflicts.ts',
-      'test-powershell-heredoc.ts',
-      'webpack-entry.js',
+      "test-*.js",
+      "test-auth.js",
+      "create-guardrails.js",
+      "smart-merge-conflicts.ts",
+      "test-powershell-heredoc.ts",
+      "webpack-entry.js",
     ],
   },
 
   {
-    files: ['next-env.d.ts'],
+    files: ["next-env.d.ts"],
     rules: {
-      '@typescript-eslint/triple-slash-reference': 'off',
+      "@typescript-eslint/triple-slash-reference": "off",
     },
   },
-  // Base JavaScript/TypeScript configuration  
+  // Base JavaScript/TypeScript configuration
   {
-    files: ['**/*.{js,mjs,cjs,ts,tsx,jsx}'],
+    files: ["**/*.{js,mjs,cjs,ts,tsx,jsx}"],
     languageOptions: {
       ecmaVersion: 2021,
-      sourceType: 'module',
+      sourceType: "module",
       parser: tseslint.parser,
       globals: {
         ...globals.browser,
         ...globals.node,
         ...globals.es2021,
         // Additional browser/library globals
-        google: 'readonly',
-        NodeJS: 'readonly',
-        RequestInit: 'readonly',
-        HeadersInit: 'readonly',
-        EventListener: 'readonly',
+        google: "readonly",
+        NodeJS: "readonly",
+        RequestInit: "readonly",
+        HeadersInit: "readonly",
+        EventListener: "readonly",
         // Next.js 14+ uses new JSX transform - React is available globally
-        React: 'readonly',
-        JSX: 'readonly',
+        React: "readonly",
+        JSX: "readonly",
       },
       parserOptions: {
         ecmaFeatures: {
@@ -83,164 +83,178 @@ export default [
       },
     },
     plugins: {
-      'react-hooks': reactHooks,
-      '@next/next': nextPlugin,
-      '@typescript-eslint': tseslint.plugin,
+      "react-hooks": reactHooks,
+      "@next/next": nextPlugin,
+      "@typescript-eslint": tseslint.plugin,
     },
     rules: {
       ...eslint.configs.recommended.rules,
-      
+
       /* TypeScript - Balanced approach between strict and permissive */
-      '@typescript-eslint/no-explicit-any': 'warn', // Re-enabled to measure type-safety debt
-      '@typescript-eslint/no-unused-vars': 'off',
-      'no-unused-vars': 'off',
-      '@typescript-eslint/no-var-requires': 'off',
-      '@typescript-eslint/ban-ts-comment': 'off',
+      "@typescript-eslint/no-explicit-any": "warn", // Re-enabled to measure type-safety debt
+      "@typescript-eslint/no-unused-vars": "off",
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-var-requires": "off",
+      "@typescript-eslint/ban-ts-comment": "off",
 
       /* JavaScript */
-      'no-var': 'off',
-      'no-empty': 'off',
-      'no-extra-semi': 'off',
-      'no-useless-escape': 'warn',
-      'no-mixed-spaces-and-tabs': 'off',
+      "no-var": "off",
+      "no-empty": "off",
+      "no-extra-semi": "off",
+      "no-useless-escape": "warn",
+      "no-mixed-spaces-and-tabs": "off",
 
       /* Next.js specific rules */
       ...nextPlugin.configs.recommended.rules,
 
       /* React Hooks Rules */
-      'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'off',
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "off",
     },
   },
 
   // TypeScript files - use typescript-eslint configs
-  ...tseslint.configs.recommended.map(config => ({
+  ...tseslint.configs.recommended.map((config) => ({
     ...config,
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.{ts,tsx}"],
   })),
 
   // TypeScript files - enforce the TS-aware unused vars rule
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.{ts,tsx}"],
     rules: {
-      '@typescript-eslint/no-unused-vars': ['error', { 
-        argsIgnorePattern: '^_', 
-        varsIgnorePattern: '^_', 
-        caughtErrorsIgnorePattern: '^_' 
-      }],
-      'no-unused-vars': 'off',
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+      "no-unused-vars": "off",
     },
   },
 
   // JavaScript / JSX modules - keep the base unused vars rule
   {
-    files: ['**/*.{js,jsx,mjs}'],
+    files: ["**/*.{js,jsx,mjs}"],
     rules: {
-      'no-unused-vars': ['error', { 
-        argsIgnorePattern: '^_', 
-        varsIgnorePattern: '^_', 
-        caughtErrorsIgnorePattern: '^_' 
-      }],
+      "no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
     },
   },
 
   // Test files - allow CommonJS patterns and mutable variables for fixtures
   {
-    files: ['tests/**/*.{ts,tsx,js,jsx}'],
+    files: ["tests/**/*.{ts,tsx,js,jsx}"],
     rules: {
-      '@typescript-eslint/no-require-imports': 'off',
-      'prefer-const': 'off',
+      "@typescript-eslint/no-require-imports": "off",
+      "prefer-const": "off",
     },
   },
 
   // Schema-heavy files (Mongoose models, plugins, declaration files)
   {
     files: [
-      'server/models/**/*',
-      'models/**/*',
-      'server/plugins/**/*',
-      '**/*.d.ts',
+      "server/models/**/*",
+      "models/**/*",
+      "server/plugins/**/*",
+      "**/*.d.ts",
     ],
     rules: {
-      'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/triple-slash-reference': 'off',
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/triple-slash-reference": "off",
     },
   },
 
   // Next.js specific overrides
   {
-    files: ['**/*.{ts,tsx,js,jsx}'],
+    files: ["**/*.{ts,tsx,js,jsx}"],
     plugins: {
-      '@next/next': nextPlugin,
+      "@next/next": nextPlugin,
     },
     rules: {
       ...nextPlugin.configs.recommended.rules,
-      '@next/next/no-img-element': 'off', // Allow img tags for data URLs and dynamic images
+      "@next/next/no-img-element": "off", // Allow img tags for data URLs and dynamic images
     },
   },
 
   // CommonJS JavaScript files
   {
-    files: ['**/*.cjs'],
+    files: ["**/*.cjs"],
     languageOptions: {
-      sourceType: 'commonjs',
+      sourceType: "commonjs",
     },
     rules: {
-      '@typescript-eslint/no-var-requires': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
-      'no-unused-vars': ['error', { 
-        argsIgnorePattern: '^_', 
-        varsIgnorePattern: '^_', 
-        caughtErrorsIgnorePattern: '^_' 
-      }],
+      "@typescript-eslint/no-var-requires": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
     },
   },
 
   // Configuration files
   {
     files: [
-      'tailwind.config.js',
-      'next.config.js',
-      'postcss.config.js',
-      'jest.config.js',
-      'playwright.config.ts',
-      'vitest.config.ts',
+      "tailwind.config.js",
+      "next.config.js",
+      "postcss.config.js",
+      "jest.config.js",
+      "playwright.config.ts",
+      "vitest.config.ts",
     ],
     rules: {
-      'no-mixed-spaces-and-tabs': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
-      '@typescript-eslint/no-var-requires': 'off',
+      "no-mixed-spaces-and-tabs": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-var-requires": "off",
     },
   },
 
   // Database and MongoDB files
   {
-    files: ['lib/mongodb.ts', 'lib/mongo.ts', 'lib/mongodb-unified.ts', 'database/**/*'],
+    files: [
+      "lib/mongodb.ts",
+      "lib/mongo.ts",
+      "lib/mongodb-unified.ts",
+      "database/**/*",
+    ],
     rules: {
-      'no-var': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      'no-undef': 'off',
+      "no-var": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "no-undef": "off",
     },
   },
 
   // API Routes - Allow 'any' for Mongoose Model type casting (Mongoose v8 compatibility)
   {
-    files: ['app/api/**/*'],
+    files: ["app/api/**/*"],
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 
   // Test files - More permissive with test framework globals
   {
     files: [
-      '**/*.test.{ts,tsx,js,jsx,mjs}', 
-      '**/*.spec.{ts,tsx,js,jsx,mjs}', 
-      'qa/**/*', 
-      'tests/**/*',
-      'server/**/__tests__/**/*',
+      "**/*.test.{ts,tsx,js,jsx,mjs}",
+      "**/*.spec.{ts,tsx,js,jsx,mjs}",
+      "qa/**/*",
+      "tests/**/*",
+      "server/**/__tests__/**/*",
     ],
     languageOptions: {
       globals: {
@@ -248,63 +262,69 @@ export default [
         ...globals.node,
         ...globals.es2021,
         // Vitest/Jest globals
-        describe: 'readonly',
-        test: 'readonly',
-        it: 'readonly',
-        expect: 'readonly',
-        beforeEach: 'readonly',
-        afterEach: 'readonly',
-        beforeAll: 'readonly',
-        afterAll: 'readonly',
-        vi: 'readonly',
-        jest: 'readonly',
+        describe: "readonly",
+        test: "readonly",
+        it: "readonly",
+        expect: "readonly",
+        beforeEach: "readonly",
+        afterEach: "readonly",
+        beforeAll: "readonly",
+        afterAll: "readonly",
+        vi: "readonly",
+        jest: "readonly",
       },
     },
     rules: {
-      '@typescript-eslint/ban-ts-comment': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
-      'no-unused-vars': 'off', // Also disable base rule for test files
-      'no-undef': 'off', // Disable for test files since we define globals
-      '@typescript-eslint/no-require-imports': 'off',
+      "@typescript-eslint/ban-ts-comment": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "no-unused-vars": "off", // Also disable base rule for test files
+      "no-undef": "off", // Disable for test files since we define globals
+      "@typescript-eslint/no-require-imports": "off",
     },
   },
 
   {
-    files: ['services/souq/**/*.{ts,tsx}'],
+    files: ["services/souq/**/*.{ts,tsx}"],
     rules: {
-      '@typescript-eslint/ban-ts-comment': 'off',
+      "@typescript-eslint/ban-ts-comment": "off",
     },
   },
 
   // Scripts and tooling - Most permissive
   {
-    files: ['scripts/**/*', 'packages/**/*', 'deployment/**/*', 'tools/**/*'],
+    files: ["scripts/**/*", "packages/**/*", "deployment/**/*", "tools/**/*"],
     languageOptions: {
       globals: {
         ...globals.node,
-        $: 'readonly', // zx
-        cd: 'readonly',
-        db: 'readonly', // mongo shell
-        ObjectId: 'readonly', // mongo shell
-        __ENV: 'readonly', // k6
+        $: "readonly", // zx
+        cd: "readonly",
+        db: "readonly", // mongo shell
+        ObjectId: "readonly", // mongo shell
+        __ENV: "readonly", // k6
       },
     },
     rules: {
-      '@typescript-eslint/no-var-requires': 'off',
-      '@typescript-eslint/no-require-imports': 'off',
-      '@typescript-eslint/ban-ts-comment': 'off',
-      '@typescript-eslint/no-explicit-any': ['error'],
-      '@typescript-eslint/no-unused-vars': ['error', { 
-        argsIgnorePattern: '^_', 
-        varsIgnorePattern: '^_', 
-        caughtErrorsIgnorePattern: '^_' 
-      }],
-      'no-unused-vars': ['error', { 
-        argsIgnorePattern: '^_', 
-        varsIgnorePattern: '^_', 
-        caughtErrorsIgnorePattern: '^_' 
-      }],
+      "@typescript-eslint/no-var-requires": "off",
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/ban-ts-comment": "off",
+      "@typescript-eslint/no-explicit-any": ["error"],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+      "no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
     },
   },
 ];

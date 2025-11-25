@@ -1,71 +1,81 @@
-'use client';
+"use client";
 
-import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { ClipboardCheck, MapPinned, Users } from 'lucide-react';
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { ClipboardCheck, MapPinned, Users } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
 
 export default function CreateInspectionPage() {
-  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({ moduleId: 'properties' });
-  const auto = useAutoTranslator('fm.properties.inspections.new');
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({
+    moduleId: "properties",
+  });
+  const auto = useAutoTranslator("fm.properties.inspections.new");
   const [form, setForm] = useState({
-    property: '',
-    type: '',
-    window: '',
-    duration: '',
-    scope: '',
+    property: "",
+    type: "",
+    window: "",
+    duration: "",
+    scope: "",
   });
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!form.property || !form.type || !form.window) {
-      toast.error(auto('Please complete the required fields.', 'form.validation'));
+      toast.error(
+        auto("Please complete the required fields.", "form.validation"),
+      );
       return;
     }
     setSubmitting(true);
     try {
       const headers: HeadersInit = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       };
       if (orgId) {
-        headers['x-tenant-id'] = orgId;
+        headers["x-tenant-id"] = orgId;
       }
 
-      const response = await fetch('/api/properties', {
-        method: 'POST',
+      const response = await fetch("/api/properties", {
+        method: "POST",
         headers,
         body: JSON.stringify({
           orgId,
           name: form.property,
-          type: 'COMMERCIAL',
+          type: "COMMERCIAL",
           subtype: form.type,
           description: form.scope,
           address: {
             street: form.property,
-            city: 'Riyadh',
-            region: 'Riyadh',
+            city: "Riyadh",
+            region: "Riyadh",
             coordinates: { lat: 24.7136, lng: 46.6753 },
           },
-          tags: ['inspection', form.type],
+          tags: ["inspection", form.type],
         }),
       });
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        throw new Error(payload?.error ?? 'Failed to schedule inspection');
+        throw new Error(payload?.error ?? "Failed to schedule inspection");
       }
-      toast.success(auto('Inspection request captured.', 'next.success'));
-      setForm({ property: '', type: '', window: '', duration: '', scope: '' });
+      toast.success(auto("Inspection request captured.", "next.success"));
+      setForm({ property: "", type: "", window: "", duration: "", scope: "" });
     } catch (_error) {
-      toast.error(_error instanceof Error ? _error.message : 'Request failed');
+      toast.error(_error instanceof Error ? _error.message : "Request failed");
     } finally {
       setSubmitting(false);
     }
@@ -81,108 +91,172 @@ export default function CreateInspectionPage() {
       {supportBanner}
 
       <header className="space-y-2">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">{auto('Scheduler', 'header.kicker')}</p>
-        <h1 className="text-3xl font-semibold">{auto('Schedule a new inspection', 'header.title')}</h1>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          {auto("Scheduler", "header.kicker")}
+        </p>
+        <h1 className="text-3xl font-semibold">
+          {auto("Schedule a new inspection", "header.title")}
+        </h1>
         <p className="text-muted-foreground">
           {auto(
-            'Capture the basic scope, assets, and team members before dispatching to vendors.',
-            'header.subtitle'
+            "Capture the basic scope, assets, and team members before dispatching to vendors.",
+            "header.subtitle",
           )}
         </p>
       </header>
 
       <form onSubmit={handleSubmit}>
         <Card>
-        <CardHeader>
-          <CardTitle>{auto('Inspection details', 'form.title')}</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {auto('This data feeds the dispatch API and work order templates.', 'form.subtitle')}
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <CardHeader>
+            <CardTitle>{auto("Inspection details", "form.title")}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {auto(
+                "This data feeds the dispatch API and work order templates.",
+                "form.subtitle",
+              )}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="property">
+                  {auto("Property / asset", "form.property")}
+                </Label>
+                <Input
+                  id="property"
+                  placeholder={auto(
+                    "Olaya Tower 2 - PH Level",
+                    "form.property.placeholder",
+                  )}
+                  value={form.property}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      property: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="type">
+                  {auto("Inspection type", "form.type")}
+                </Label>
+                <Select
+                  value={form.type}
+                  onValueChange={(value) =>
+                    setForm((prev) => ({ ...prev, type: value }))
+                  }
+                >
+                  <SelectTrigger id="type">
+                    <SelectValue
+                      placeholder={auto("Select type", "form.type.placeholder")}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="handover">
+                      {auto("Handover", "form.type.handover")}
+                    </SelectItem>
+                    <SelectItem value="preventive">
+                      {auto("Preventive", "form.type.preventive")}
+                    </SelectItem>
+                    <SelectItem value="corrective">
+                      {auto("Corrective", "form.type.corrective")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="window">
+                  {auto("Preferred window", "form.window")}
+                </Label>
+                <Input
+                  id="window"
+                  type="date"
+                  value={form.window}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, window: event.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="duration">
+                  {auto("Duration (hours)", "form.duration")}
+                </Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  placeholder="4"
+                  value={form.duration}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      duration: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
             <div className="space-y-2">
-              <Label htmlFor="property">{auto('Property / asset', 'form.property')}</Label>
-              <Input
-                id="property"
-                placeholder={auto('Olaya Tower 2 - PH Level', 'form.property.placeholder')}
-                value={form.property}
-                onChange={(event) => setForm((prev) => ({ ...prev, property: event.target.value }))}
+              <Label htmlFor="scope">
+                {auto("Scope / notes", "form.scope")}
+              </Label>
+              <Textarea
+                id="scope"
+                rows={4}
+                placeholder={auto(
+                  "Inspect all HVAC equipment…",
+                  "form.scope.placeholder",
+                )}
+                value={form.scope}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, scope: event.target.value }))
+                }
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="type">{auto('Inspection type', 'form.type')}</Label>
-              <Select
-                value={form.type}
-                onValueChange={(value) => setForm((prev) => ({ ...prev, type: value }))}
-              >
-                <SelectTrigger id="type">
-                  <SelectValue placeholder={auto('Select type', 'form.type.placeholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="handover">{auto('Handover', 'form.type.handover')}</SelectItem>
-                  <SelectItem value="preventive">{auto('Preventive', 'form.type.preventive')}</SelectItem>
-                  <SelectItem value="corrective">{auto('Corrective', 'form.type.corrective')}</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="outline">
+                <MapPinned className="me-2 h-4 w-4" />
+                {auto("Add location pin", "form.addLocation")}
+              </Button>
+              <Button variant="outline">
+                <Users className="me-2 h-4 w-4" />
+                {auto("Assign internal reviewer", "form.assignReviewer")}
+              </Button>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="window">{auto('Preferred window', 'form.window')}</Label>
-              <Input
-                id="window"
-                type="date"
-                value={form.window}
-                onChange={(event) => setForm((prev) => ({ ...prev, window: event.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="duration">{auto('Duration (hours)', 'form.duration')}</Label>
-              <Input
-                id="duration"
-                type="number"
-                placeholder="4"
-                value={form.duration}
-                onChange={(event) => setForm((prev) => ({ ...prev, duration: event.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="scope">{auto('Scope / notes', 'form.scope')}</Label>
-            <Textarea
-              id="scope"
-              rows={4}
-              placeholder={auto('Inspect all HVAC equipment…', 'form.scope.placeholder')}
-              value={form.scope}
-              onChange={(event) => setForm((prev) => ({ ...prev, scope: event.target.value }))}
-            />
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button variant="outline">
-              <MapPinned className="me-2 h-4 w-4" />
-              {auto('Add location pin', 'form.addLocation')}
-            </Button>
-            <Button variant="outline">
-              <Users className="me-2 h-4 w-4" />
-              {auto('Assign internal reviewer', 'form.assignReviewer')}
-            </Button>
-          </div>
-        </CardContent>
+          </CardContent>
         </Card>
 
         <Card className="mt-6 border-dashed border-border/70">
           <CardHeader>
-            <CardTitle>{auto('Next steps', 'next.title')}</CardTitle>
+            <CardTitle>{auto("Next steps", "next.title")}</CardTitle>
             <p className="text-sm text-muted-foreground">
-              {auto('Save to draft or push directly to /api/properties.', 'next.subtitle')}
+              {auto(
+                "Save to draft or push directly to /api/properties.",
+                "next.subtitle",
+              )}
             </p>
           </CardHeader>
           <CardContent className="flex gap-3">
-            <Button type="button" variant="outline" onClick={() => setForm({ property: '', type: '', window: '', duration: '', scope: '' })}>
-              {auto('Reset form', 'next.reset')}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                setForm({
+                  property: "",
+                  type: "",
+                  window: "",
+                  duration: "",
+                  scope: "",
+                })
+              }
+            >
+              {auto("Reset form", "next.reset")}
             </Button>
             <Button type="submit" disabled={submitting}>
               <ClipboardCheck className="me-2 h-4 w-4" />
-              {submitting ? auto('Submitting...', 'next.submitting') : auto('Create inspection', 'next.create')}
+              {submitting
+                ? auto("Submitting...", "next.submitting")
+                : auto("Create inspection", "next.create")}
             </Button>
           </CardContent>
         </Card>

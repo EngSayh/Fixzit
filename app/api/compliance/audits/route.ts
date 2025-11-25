@@ -1,18 +1,32 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { UnauthorizedError } from '@/server/middleware/withAuthRbac';
-import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
-import { setAuditContext, clearAuditContext } from '@/server/plugins/auditPlugin';
-import { getClientIP } from '@/server/security/headers';
-import ComplianceAudit from '@/server/models/ComplianceAudit';
-import type { AuditStatus, AuditRiskLevel } from '@/server/models/ComplianceAudit';
-import { UserRole, type UserRoleType } from '@/types/user';
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { UnauthorizedError } from "@/server/middleware/withAuthRbac";
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import {
+  setAuditContext,
+  clearAuditContext,
+} from "@/server/plugins/auditPlugin";
+import { getClientIP } from "@/server/security/headers";
+import ComplianceAudit from "@/server/models/ComplianceAudit";
+import type {
+  AuditStatus,
+  AuditRiskLevel,
+} from "@/server/models/ComplianceAudit";
+import { UserRole, type UserRoleType } from "@/types/user";
 
-const AuditStatuses: AuditStatus[] = ['PLANNED', 'IN_PROGRESS', 'FOLLOW_UP', 'COMPLETED'];
-const RiskLevels: AuditRiskLevel[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+const AuditStatuses: AuditStatus[] = [
+  "PLANNED",
+  "IN_PROGRESS",
+  "FOLLOW_UP",
+  "COMPLETED",
+];
+const RiskLevels: AuditRiskLevel[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
   UserRole.SUPER_ADMIN,
   UserRole.CORPORATE_ADMIN,
@@ -29,8 +43,12 @@ const AuditCreateSchema = z.object({
   scope: z.string().min(1),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
-  status: z.enum(AuditStatuses as [AuditStatus, ...AuditStatus[]]).default('PLANNED'),
-  riskLevel: z.enum(RiskLevels as [AuditRiskLevel, ...AuditRiskLevel[]]).default('MEDIUM'),
+  status: z
+    .enum(AuditStatuses as [AuditStatus, ...AuditStatus[]])
+    .default("PLANNED"),
+  riskLevel: z
+    .enum(RiskLevels as [AuditRiskLevel, ...AuditRiskLevel[]])
+    .default("MEDIUM"),
   findings: z.number().min(0).optional(),
   openIssues: z.number().min(0).optional(),
   checklist: z.array(z.string().min(1)).optional(),
@@ -42,7 +60,8 @@ const AuditCreateSchema = z.object({
 function isUnauthenticatedError(error: unknown): boolean {
   return (
     error instanceof UnauthorizedError ||
-    (error instanceof Error && error.message.toLowerCase().includes('unauthenticated'))
+    (error instanceof Error &&
+      error.message.toLowerCase().includes("unauthenticated"))
   );
 }
 
@@ -64,16 +83,18 @@ async function resolveUser(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const user = await resolveUser(req);
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   await connectToDatabase();
   const url = new URL(req.url);
-  const statusFilter = url.searchParams.get('status')?.toUpperCase();
-  const riskFilter = url.searchParams.get('risk')?.toUpperCase();
-  const search = url.searchParams.get('search')?.trim();
-  const limitParam = Number(url.searchParams.get('limit') ?? '50');
-  const limit = Number.isFinite(limitParam) ? Math.min(Math.max(Math.trunc(limitParam), 1), 100) : 50;
+  const statusFilter = url.searchParams.get("status")?.toUpperCase();
+  const riskFilter = url.searchParams.get("risk")?.toUpperCase();
+  const search = url.searchParams.get("search")?.trim();
+  const limitParam = Number(url.searchParams.get("limit") ?? "50");
+  const limit = Number.isFinite(limitParam)
+    ? Math.min(Math.max(Math.trunc(limitParam), 1), 100)
+    : 50;
 
   setTenantContext({ orgId: user.orgId });
   try {
@@ -87,21 +108,25 @@ export async function GET(req: NextRequest) {
     }
     if (search) {
       filter.$or = [
-        { name: new RegExp(search, 'i') },
-        { owner: new RegExp(search, 'i') },
-        { scope: new RegExp(search, 'i') },
-        { tags: new RegExp(search, 'i') },
+        { name: new RegExp(search, "i") },
+        { owner: new RegExp(search, "i") },
+        { scope: new RegExp(search, "i") },
+        { tags: new RegExp(search, "i") },
       ];
     }
 
-    const [audits, total, inProgress, upcoming, completed, highRisk] = await Promise.all([
-      ComplianceAudit.find(filter).sort({ startDate: -1 }).limit(limit).lean(),
-      ComplianceAudit.countDocuments(),
-      ComplianceAudit.countDocuments({ status: 'IN_PROGRESS' }),
-      ComplianceAudit.countDocuments({ status: 'PLANNED' }),
-      ComplianceAudit.countDocuments({ status: 'COMPLETED' }),
-      ComplianceAudit.countDocuments({ riskLevel: 'HIGH' }),
-    ]);
+    const [audits, total, inProgress, upcoming, completed, highRisk] =
+      await Promise.all([
+        ComplianceAudit.find(filter)
+          .sort({ startDate: -1 })
+          .limit(limit)
+          .lean(),
+        ComplianceAudit.countDocuments(),
+        ComplianceAudit.countDocuments({ status: "IN_PROGRESS" }),
+        ComplianceAudit.countDocuments({ status: "PLANNED" }),
+        ComplianceAudit.countDocuments({ status: "COMPLETED" }),
+        ComplianceAudit.countDocuments({ riskLevel: "HIGH" }),
+      ]);
 
     return NextResponse.json({
       audits,
@@ -114,15 +139,18 @@ export async function GET(req: NextRequest) {
       },
       meta: {
         appliedFilters: {
-          status: filter.status ?? 'ALL',
-          risk: filter.riskLevel ?? 'ALL',
+          status: filter.status ?? "ALL",
+          risk: filter.riskLevel ?? "ALL",
           search: search ?? null,
         },
       },
     });
   } catch (error) {
-    logger.error('[compliance/audits] Failed to fetch audits', { error });
-    return NextResponse.json({ error: 'Failed to load audits' }, { status: 500 });
+    logger.error("[compliance/audits] Failed to fetch audits", { error });
+    return NextResponse.json(
+      { error: "Failed to load audits" },
+      { status: 500 },
+    );
   } finally {
     clearTenantContext();
   }
@@ -131,7 +159,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await resolveUser(req);
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   let payload: z.infer<typeof AuditCreateSchema>;
@@ -139,15 +167,18 @@ export async function POST(req: NextRequest) {
     payload = AuditCreateSchema.parse(await req.json());
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid payload', details: error.flatten() }, { status: 422 });
+      return NextResponse.json(
+        { error: "Invalid payload", details: error.flatten() },
+        { status: 422 },
+      );
     }
-    return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
   if (payload.endDate < payload.startDate) {
     return NextResponse.json(
-      { error: 'End date must be after start date' },
-      { status: 422 }
+      { error: "End date must be after start date" },
+      { status: 422 },
     );
   }
 
@@ -156,7 +187,7 @@ export async function POST(req: NextRequest) {
   setAuditContext({
     userId: user.id,
     ipAddress: getClientIP(req),
-    userAgent: req.headers.get('user-agent') ?? undefined,
+    userAgent: req.headers.get("user-agent") ?? undefined,
     timestamp: new Date(),
   });
 
@@ -170,8 +201,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ audit }, { status: 201 });
   } catch (error) {
-    logger.error('[compliance/audits] Failed to create audit', { error });
-    return NextResponse.json({ error: 'Failed to create audit plan' }, { status: 500 });
+    logger.error("[compliance/audits] Failed to create audit", { error });
+    return NextResponse.json(
+      { error: "Failed to create audit plan" },
+      { status: 500 },
+    );
   } finally {
     clearTenantContext();
     clearAuditContext();

@@ -1,11 +1,11 @@
 /**
  * StandardError Response Utility
- * 
+ *
  * Zero-Tolerance Gate 2.G Compliance
- * 
+ *
  * This utility provides standardized error responses across the entire application.
  * All API routes MUST use these standardized error codes and structures.
- * 
+ *
  * Benefits:
  * - Consistent error format across all APIs
  * - Client-friendly error codes for i18n
@@ -14,7 +14,7 @@
  * - Centralized error taxonomy
  */
 
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
 /**
  * Standard Error Codes
@@ -22,39 +22,39 @@ import { NextResponse } from 'next/server';
  */
 export const ERROR_CODES = {
   // Authentication & Authorization (40x)
-  UNAUTHORIZED: 'UNAUTHORIZED',
-  FORBIDDEN: 'FORBIDDEN',
-  SESSION_EXPIRED: 'SESSION_EXPIRED',
-  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
-  INSUFFICIENT_PERMISSIONS: 'INSUFFICIENT_PERMISSIONS',
-  
+  UNAUTHORIZED: "UNAUTHORIZED",
+  FORBIDDEN: "FORBIDDEN",
+  SESSION_EXPIRED: "SESSION_EXPIRED",
+  INVALID_CREDENTIALS: "INVALID_CREDENTIALS",
+  INSUFFICIENT_PERMISSIONS: "INSUFFICIENT_PERMISSIONS",
+
   // Validation (400)
-  VALIDATION_ERROR: 'VALIDATION_ERROR',
-  INVALID_INPUT: 'INVALID_INPUT',
-  MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD',
-  INVALID_FORMAT: 'INVALID_FORMAT',
-  
+  VALIDATION_ERROR: "VALIDATION_ERROR",
+  INVALID_INPUT: "INVALID_INPUT",
+  MISSING_REQUIRED_FIELD: "MISSING_REQUIRED_FIELD",
+  INVALID_FORMAT: "INVALID_FORMAT",
+
   // Resource Errors (404, 409)
-  NOT_FOUND: 'NOT_FOUND',
-  RESOURCE_NOT_FOUND: 'RESOURCE_NOT_FOUND',
-  ALREADY_EXISTS: 'ALREADY_EXISTS',
-  CONFLICT: 'CONFLICT',
-  
+  NOT_FOUND: "NOT_FOUND",
+  RESOURCE_NOT_FOUND: "RESOURCE_NOT_FOUND",
+  ALREADY_EXISTS: "ALREADY_EXISTS",
+  CONFLICT: "CONFLICT",
+
   // Rate Limiting (429)
-  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
-  TOO_MANY_REQUESTS: 'TOO_MANY_REQUESTS',
-  
+  RATE_LIMIT_EXCEEDED: "RATE_LIMIT_EXCEEDED",
+  TOO_MANY_REQUESTS: "TOO_MANY_REQUESTS",
+
   // Server Errors (500)
-  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
-  DATABASE_ERROR: 'DATABASE_ERROR',
-  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
-  EXTERNAL_SERVICE_ERROR: 'EXTERNAL_SERVICE_ERROR',
-  
+  INTERNAL_SERVER_ERROR: "INTERNAL_SERVER_ERROR",
+  DATABASE_ERROR: "DATABASE_ERROR",
+  SERVICE_UNAVAILABLE: "SERVICE_UNAVAILABLE",
+  EXTERNAL_SERVICE_ERROR: "EXTERNAL_SERVICE_ERROR",
+
   // Business Logic Errors
-  BUSINESS_RULE_VIOLATION: 'BUSINESS_RULE_VIOLATION',
-  INSUFFICIENT_BALANCE: 'INSUFFICIENT_BALANCE',
-  QUOTA_EXCEEDED: 'QUOTA_EXCEEDED',
-  OPERATION_NOT_ALLOWED: 'OPERATION_NOT_ALLOWED',
+  BUSINESS_RULE_VIOLATION: "BUSINESS_RULE_VIOLATION",
+  INSUFFICIENT_BALANCE: "INSUFFICIENT_BALANCE",
+  QUOTA_EXCEEDED: "QUOTA_EXCEEDED",
+  OPERATION_NOT_ALLOWED: "OPERATION_NOT_ALLOWED",
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -87,7 +87,7 @@ export interface ErrorResponseOptions {
 
 /**
  * Creates a standardized error response
- * 
+ *
  * @example
  * ```typescript
  * return createErrorResponse({
@@ -99,7 +99,9 @@ export interface ErrorResponseOptions {
  * });
  * ```
  */
-export function createErrorResponse(options: ErrorResponseOptions): NextResponse<ErrorResponse> {
+export function createErrorResponse(
+  options: ErrorResponseOptions,
+): NextResponse<ErrorResponse> {
   const {
     code,
     message,
@@ -129,7 +131,7 @@ export function createErrorResponse(options: ErrorResponseOptions): NextResponse
 export function badRequest(
   message: string,
   details?: Record<string, unknown>,
-  correlationId?: string
+  correlationId?: string,
 ): NextResponse<ErrorResponse> {
   return createErrorResponse({
     code: ERROR_CODES.INVALID_INPUT,
@@ -144,8 +146,8 @@ export function badRequest(
  * Helper: 401 Unauthorized
  */
 export function unauthorized(
-  message: string = 'Authentication required',
-  correlationId?: string
+  message: string = "Authentication required",
+  correlationId?: string,
 ): NextResponse<ErrorResponse> {
   return createErrorResponse({
     code: ERROR_CODES.UNAUTHORIZED,
@@ -159,8 +161,8 @@ export function unauthorized(
  * Helper: 403 Forbidden
  */
 export function forbidden(
-  message: string = 'Insufficient permissions',
-  correlationId?: string
+  message: string = "Insufficient permissions",
+  correlationId?: string,
 ): NextResponse<ErrorResponse> {
   return createErrorResponse({
     code: ERROR_CODES.FORBIDDEN,
@@ -174,9 +176,9 @@ export function forbidden(
  * Helper: 404 Not Found
  */
 export function notFound(
-  message: string = 'Resource not found',
+  message: string = "Resource not found",
   details?: Record<string, unknown>,
-  correlationId?: string
+  correlationId?: string,
 ): NextResponse<ErrorResponse> {
   return createErrorResponse({
     code: ERROR_CODES.NOT_FOUND,
@@ -193,7 +195,7 @@ export function notFound(
 export function conflict(
   message: string,
   details?: Record<string, unknown>,
-  correlationId?: string
+  correlationId?: string,
 ): NextResponse<ErrorResponse> {
   return createErrorResponse({
     code: ERROR_CODES.CONFLICT,
@@ -208,8 +210,8 @@ export function conflict(
  * Helper: 429 Rate Limit Exceeded
  */
 export function rateLimitExceeded(
-  message: string = 'Too many requests',
-  correlationId?: string
+  message: string = "Too many requests",
+  correlationId?: string,
 ): NextResponse<ErrorResponse> {
   return createErrorResponse({
     code: ERROR_CODES.RATE_LIMIT_EXCEEDED,
@@ -223,9 +225,9 @@ export function rateLimitExceeded(
  * Helper: 500 Internal Server Error
  */
 export function serverError(
-  message: string = 'Internal server error',
+  message: string = "Internal server error",
   details?: Record<string, unknown>,
-  correlationId?: string
+  correlationId?: string,
 ): NextResponse<ErrorResponse> {
   return createErrorResponse({
     code: ERROR_CODES.INTERNAL_SERVER_ERROR,
@@ -240,8 +242,8 @@ export function serverError(
  * Helper: 503 Service Unavailable
  */
 export function serviceUnavailable(
-  message: string = 'Service temporarily unavailable',
-  correlationId?: string
+  message: string = "Service temporarily unavailable",
+  correlationId?: string,
 ): NextResponse<ErrorResponse> {
   return createErrorResponse({
     code: ERROR_CODES.SERVICE_UNAVAILABLE,

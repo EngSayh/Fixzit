@@ -1,33 +1,40 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 
 interface SLATimerProps {
   dueDate: Date | string;
   status: string;
   priority?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
 }
 
 /**
  * SLATimer Component
- * 
+ *
  * Displays a live countdown timer showing time remaining until SLA breach.
  * Color-coded based on urgency:
  * - Green (safe): 4+ hours remaining
- * - Yellow (warning): 2-4 hours remaining  
+ * - Yellow (warning): 2-4 hours remaining
  * - Red (critical): Less than 2 hours remaining OR breached
- * 
+ *
  * The timer updates every minute and displays appropriate visual indicators.
  */
-export default function SLATimer({ dueDate, status, priority, size = 'md' }: SLATimerProps) {
-  const [timeRemaining, setTimeRemaining] = useState<string>('');
-  const [urgencyLevel, setUrgencyLevel] = useState<'safe' | 'warning' | 'critical'>('safe');
+export default function SLATimer({
+  dueDate,
+  status,
+  priority,
+  size = "md",
+}: SLATimerProps) {
+  const [timeRemaining, setTimeRemaining] = useState<string>("");
+  const [urgencyLevel, setUrgencyLevel] = useState<
+    "safe" | "warning" | "critical"
+  >("safe");
   const [isBreached, setIsBreached] = useState(false);
 
   useEffect(() => {
     // Don't show timer for closed/cancelled statuses
-    if (['CLOSED', 'CANCELLED', 'ARCHIVED'].includes(status)) {
+    if (["CLOSED", "CANCELLED", "ARCHIVED"].includes(status)) {
       return;
     }
 
@@ -43,23 +50,23 @@ export default function SLATimer({ dueDate, status, priority, size = 'md' }: SLA
         const hours = Math.floor(overdue / (1000 * 60 * 60));
         const minutes = Math.floor((overdue % (1000 * 60 * 60)) / (1000 * 60));
         setTimeRemaining(`${hours}h ${minutes}m overdue`);
-        setUrgencyLevel('critical');
+        setUrgencyLevel("critical");
         return;
       }
 
       // Calculate remaining time
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      
+
       setTimeRemaining(`${hours}h ${minutes}m`);
 
       // Set urgency level
       if (hours < 2) {
-        setUrgencyLevel('critical');
+        setUrgencyLevel("critical");
       } else if (hours < 4) {
-        setUrgencyLevel('warning');
+        setUrgencyLevel("warning");
       } else {
-        setUrgencyLevel('safe');
+        setUrgencyLevel("safe");
       }
     };
 
@@ -73,32 +80,38 @@ export default function SLATimer({ dueDate, status, priority, size = 'md' }: SLA
   }, [dueDate, status]);
 
   // Don't render for closed/cancelled
-  if (['CLOSED', 'CANCELLED', 'ARCHIVED'].includes(status)) {
+  if (["CLOSED", "CANCELLED", "ARCHIVED"].includes(status)) {
     return null;
   }
 
   const sizeClasses = {
-    sm: 'text-xs px-2 py-0.5',
-    md: 'text-sm px-2.5 py-1',
-    lg: 'text-base px-3 py-1.5'
+    sm: "text-xs px-2 py-0.5",
+    md: "text-sm px-2.5 py-1",
+    lg: "text-base px-3 py-1.5",
   };
 
   const urgencyColors = {
-    safe: 'bg-green-50 text-success border-success/20',
-    warning: 'bg-warning/5 text-warning border-warning/20',
-    critical: 'bg-red-50 text-destructive border-destructive/20'
+    safe: "bg-green-50 text-success border-success/20",
+    warning: "bg-warning/5 text-warning border-warning/20",
+    critical: "bg-red-50 text-destructive border-destructive/20",
   };
 
-  const icon = isBreached ? '⚠️' : urgencyLevel === 'critical' ? '⏰' : urgencyLevel === 'warning' ? '⏰' : '✓';
+  const icon = isBreached
+    ? "⚠️"
+    : urgencyLevel === "critical"
+      ? "⏰"
+      : urgencyLevel === "warning"
+        ? "⏰"
+        : "✓";
 
   return (
-    <div 
+    <div
       className={`inline-flex items-center gap-1.5 font-medium rounded-md border ${sizeClasses[size]} ${urgencyColors[urgencyLevel]}`}
-      title={`SLA ${isBreached ? 'BREACHED' : 'Due'}: ${new Date(dueDate).toLocaleString()}`}
+      title={`SLA ${isBreached ? "BREACHED" : "Due"}: ${new Date(dueDate).toLocaleString()}`}
     >
       <span className="text-base leading-none">{icon}</span>
       <span className="font-mono">{timeRemaining}</span>
-      {priority === 'URGENT' && <span className="text-xs">🔥</span>}
+      {priority === "URGENT" && <span className="text-xs">🔥</span>}
     </div>
   );
 }

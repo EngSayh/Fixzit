@@ -34,30 +34,31 @@ i18n/
 
 ### Adding New Translations
 
-👉 **Single source of truth:** the `i18n/sources/*.translations.json` files. Running `pnpm run i18n:build` regenerates both the runtime dictionaries *and* `i18n/new-translations.ts` from these modular files.
+👉 **Single source of truth:** the `i18n/sources/*.translations.json` files. Running `pnpm run i18n:build` regenerates both the runtime dictionaries _and_ `i18n/new-translations.ts` from these modular files.
 
 **Step 1: Choose the correct domain file**
 
 Translations are organized by feature domain. Edit the appropriate file in `i18n/sources/`:
 
-| Domain | File | Purpose |
-|--------|------|---------|
-| `admin` | `admin.translations.json` | Admin panel, feature settings, notifications |
-| `dashboard` | `dashboard.translations.json` | Main dashboard, widgets, analytics |
-| `fm` | `fm.translations.json` | Facilities management, properties, units |
-| `marketplace` | `marketplace.translations.json` | Product listings, orders, reviews |
-| `hr` | `hr.translations.json` | Human resources, attendance, payroll |
-| `careers` | `careers.translations.json` | Job applications, interviews |
-| `finance` | `finance.translations.json` | Invoices, payments, accounting |
-| `workOrders` | `workOrders.translations.json` | Maintenance requests, PM schedules |
-| `properties` | `properties.translations.json` | Property details, inspections |
-| `souq` | `souq.translations.json` | Online store, e-commerce |
-| `common` | `common.translations.json` | Shared UI elements |
-| `sidebar` | `sidebar.translations.json` | Navigation sidebar |
+| Domain        | File                            | Purpose                                      |
+| ------------- | ------------------------------- | -------------------------------------------- |
+| `admin`       | `admin.translations.json`       | Admin panel, feature settings, notifications |
+| `dashboard`   | `dashboard.translations.json`   | Main dashboard, widgets, analytics           |
+| `fm`          | `fm.translations.json`          | Facilities management, properties, units     |
+| `marketplace` | `marketplace.translations.json` | Product listings, orders, reviews            |
+| `hr`          | `hr.translations.json`          | Human resources, attendance, payroll         |
+| `careers`     | `careers.translations.json`     | Job applications, interviews                 |
+| `finance`     | `finance.translations.json`     | Invoices, payments, accounting               |
+| `workOrders`  | `workOrders.translations.json`  | Maintenance requests, PM schedules           |
+| `properties`  | `properties.translations.json`  | Property details, inspections                |
+| `souq`        | `souq.translations.json`        | Online store, e-commerce                     |
+| `common`      | `common.translations.json`      | Shared UI elements                           |
+| `sidebar`     | `sidebar.translations.json`     | Navigation sidebar                           |
 
 **Step 2: Add translations to the JSON file**
 
 Format:
+
 ```json
 {
   "en": {
@@ -72,6 +73,7 @@ Format:
 ```
 
 Example - adding work order status:
+
 ```json
 {
   "en": {
@@ -94,6 +96,7 @@ pnpm run i18n:build
 ```
 
 This merges all source files and generates:
+
 - `i18n/generated/en.dictionary.json`
 - `i18n/generated/ar.dictionary.json`
 - `i18n/new-translations.ts` (used by `TranslationContext` on the client)
@@ -111,7 +114,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 
 function MyComponent() {
   const { t } = useTranslation();
-  
+
   return (
     <div>
       <h1>{t('workOrders.status.pending', 'Pending Assignment')}</h1>
@@ -158,6 +161,7 @@ Automatically regenerates dictionaries when translation sources change:
 ```
 
 This hook:
+
 1. Detects changes in `i18n/sources/*.json`
 2. Runs `npm run i18n:build`
 3. Adds generated files to the commit
@@ -170,6 +174,7 @@ This hook:
 Now includes comprehensive validation:
 
 #### Triggers
+
 - ✅ Changes to `i18n/sources/**/*.json`
 - ✅ Changes to `i18n/dictionaries/**/*.ts` (base dictionaries)
 - ✅ Changes to any script in `scripts/` directory
@@ -178,18 +183,22 @@ Now includes comprehensive validation:
 #### Validation Steps
 
 **1. Source File Validation (Check Mode)**
+
 ```bash
 npx tsx scripts/split-translations.ts --check
 ```
+
 - Validates without writing files
 - Checks for schema errors
 - Reports parity issues
 - Exits with error if validation fails
 
 **2. Translation Parity Check**
+
 ```bash
 npx tsx scripts/check-translation-parity.ts --format=text
 ```
+
 - Analyzes all domain files
 - Reports missing keys per domain
 - Detects case-insensitive duplicates
@@ -197,52 +206,63 @@ npx tsx scripts/check-translation-parity.ts --format=text
 - Skippable via `workflow_dispatch` input
 
 **3. Build Dictionary Artifacts**
+
 ```bash
 pnpm i18n:build
 ```
+
 - Loads all modular sources
 - Builds nested dictionaries
 - Generates flat bundle
 - Reports key counts
 
 **4. Generated Artifacts Drift Detection**
+
 ```bash
 git status --porcelain i18n/generated/
 ```
+
 - Checks if generated files modified
 - Ensures developers ran build locally
 - Provides clear fix instructions
 - Shows diff of changes
 
 **5. Source Artifacts Drift Detection**
+
 ```bash
 git status --porcelain i18n/sources/
 ```
+
 - Detects if build modified sources
 - Flags automatic formatting
 - Warns about merge artifacts
 - Requires manual review
 
 **6. TypeScript Compilation**
+
 ```bash
 pnpm tsc --noEmit
 ```
+
 - Validates type safety
 - Catches import errors
 - Ensures shims work correctly
 
 **7. Coverage Baseline Verification**
+
 ```bash
 # Current baseline: 1149 EN, 1169 AR keys
 EN_KEYS=$(jq 'keys | length' i18n/generated/en.dictionary.json)
 AR_KEYS=$(jq 'keys | length' i18n/generated/ar.dictionary.json)
 ```
+
 - Prevents accidental key deletion
 - Tracks key count growth
 - Allows difference but warns if > 50 keys
 - Uses actual current state as baseline
 
 **8. Artifact Upload on Failure**
+
 ```yaml
 uses: actions/upload-artifact@v3
 with:
@@ -250,6 +270,7 @@ with:
   path: parity-report.json
   retention-days: 30
 ```
+
 - Saves detailed parity report
 - Available for download from Actions tab
 - 30-day retention for auditing
@@ -257,6 +278,7 @@ with:
 #### Performance Optimizations
 
 **pnpm Store Caching:**
+
 ```yaml
 - name: Get pnpm store directory
   run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
@@ -267,11 +289,13 @@ with:
     path: ${{ env.STORE_PATH }}
     key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
 ```
+
 - Reduces install time by 40-60%
 - Persistent across workflow runs
 - Invalidates on `pnpm-lock.yaml` changes
 
 **Workflow Run Time:**
+
 - Before: ~3-4 minutes
 - After: ~1-2 minutes (with cache hit)
 
@@ -288,6 +312,7 @@ Actions → I18n Validation → Run workflow
 ```
 
 **Use cases:**
+
 - Testing validation changes
 - Baseline updates after bulk translation
 - Post-migration verification
@@ -295,12 +320,14 @@ Actions → I18n Validation → Run workflow
 ## Performance Benefits
 
 ### Before (Monolithic)
+
 - ❌ 2,523-line `new-translations.ts` loaded by TypeScript
 - ❌ VS Code TypeScript server parses entire file
 - ❌ Slow autocomplete and IntelliSense
 - ❌ High memory usage
 
 ### After (Modular + Generated)
+
 - ✅ 28 small JSON files (~90 lines each)
 - ✅ TypeScript only sees type definitions
 - ✅ Runtime loads pre-compiled JSON
@@ -309,6 +336,7 @@ Actions → I18n Validation → Run workflow
 ## Best Practices
 
 ### ✅ DO
+
 - Edit `.json` files in `i18n/sources/`
 - Run `npm run i18n:build` before committing
 - Use semantic key names: `domain.section.element.attribute`
@@ -316,6 +344,7 @@ Actions → I18n Validation → Run workflow
 - Provide fallback text in `t()` calls: `t('key', 'Fallback')`
 
 ### ❌ DON'T
+
 - Edit `i18n/generated/*.json` directly (they're overwritten)
 - Edit `i18n/new-translations.ts` (deprecated, will be removed)
 - Create deeply nested keys (max 4 levels)
@@ -325,13 +354,15 @@ Actions → I18n Validation → Run workflow
 ## Migration from Legacy System
 
 If you see imports like:
+
 ```typescript
-import { newTranslations } from '@/i18n/new-translations';
+import { newTranslations } from "@/i18n/new-translations";
 ```
 
 Replace with:
+
 ```typescript
-import { useTranslation } from '@/contexts/TranslationContext';
+import { useTranslation } from "@/contexts/TranslationContext";
 
 const { t } = useTranslation();
 // Use t('key', 'fallback') instead of direct object access
@@ -340,27 +371,31 @@ const { t } = useTranslation();
 ## Future Enhancements
 
 ### Phase 1: ✅ Complete
+
 - Modular sources by domain
 - Automated build pipeline
 - CI/CD validation
 
 ### Phase 2: Lazy Loading
+
 ```typescript
 // Load only dashboard translations when needed
-import { loadDomainTranslations } from '@/lib/i18n/loader';
+import { loadDomainTranslations } from "@/lib/i18n/loader";
 
 async function DashboardPage() {
-  const translations = await loadDomainTranslations('dashboard');
+  const translations = await loadDomainTranslations("dashboard");
   // ...
 }
 ```
 
 ### Phase 3: External Translation Service
+
 - Integrate with Phrase, Lokalise, or Crowdin
 - Translator UI for non-technical team members
 - Version control for translation changes
 
 ### Phase 4: Per-Route Bundles
+
 ```javascript
 // next.config.js
 experimental: {
@@ -380,16 +415,19 @@ experimental: {
 ## Troubleshooting
 
 ### "Translation key not found"
+
 1. Check if key exists in correct domain file
 2. Run `npm run i18n:build`
 3. Restart development server
 
 ### "TypeScript errors in new-translations.ts"
+
 - This file is auto-generated via `pnpm run i18n:build`
 - Do not edit it manually—fix the corresponding entry inside `i18n/sources/*.translations.json`
 - Re-run `pnpm run i18n:build` to regenerate the bundle after editing the source file
 
 ### "Generated files out of sync"
+
 ```bash
 # Regenerate all dictionaries + flat bundle
 pnpm run i18n:build
@@ -399,6 +437,7 @@ git status i18n/generated/
 ```
 
 ### "Pre-commit hook failing"
+
 ```bash
 # Manually regenerate
 npm run i18n:build
@@ -429,6 +468,7 @@ npx tsx scripts/check-translation-parity.ts --domain=marketplace
 ```
 
 **Fix:**
+
 1. Add missing keys to appropriate domain file
 2. Run `pnpm i18n:build`
 3. Verify: `npx tsx scripts/check-translation-parity.ts`
@@ -443,6 +483,7 @@ npx tsx scripts/check-translation-parity.ts --domain=marketplace
 ```
 
 **Investigate:**
+
 ```bash
 # Check git diff
 git diff HEAD~1 i18n/sources/
@@ -452,6 +493,7 @@ git log -p --all -S 'deleted.key.name' -- i18n/sources/
 ```
 
 **Fix:**
+
 - If intentional deletion: Update baseline in CI workflow
 - If accidental: Restore keys from git history
 
@@ -465,6 +507,7 @@ git log -p --all -S 'deleted.key.name' -- i18n/sources/
 ```
 
 **Fix:**
+
 ```json
 // Before (invalid)
 {
@@ -492,6 +535,7 @@ git log -p --all -S 'deleted.key.name' -- i18n/sources/
 ```
 
 **Investigate:**
+
 ```bash
 # Check backup files
 ls -lh i18n/dictionaries/backup/
@@ -501,11 +545,13 @@ git diff i18n/sources/
 ```
 
 **Possible causes:**
+
 - Duplicate keys with different casing
 - Keys without proper domain prefix
 - Merge conflicts overwriting values
 
 **Recovery:**
+
 ```bash
 # Restore from backup
 cp i18n/dictionaries/backup/en.ts.backup.<timestamp> i18n/dictionaries/en.ts
@@ -526,6 +572,7 @@ grep "⚠️" flatten.log
 ```
 
 **Fix keys in source dictionaries:**
+
 ```json
 // Before (invalid domain)
 {
@@ -549,11 +596,13 @@ grep "⚠️" flatten.log
 **Symptom:** Workflow exceeds 10-minute limit
 
 **Causes:**
+
 - pnpm cache miss (full install)
 - Large number of domain files (1000+)
 - Slow parity check
 
 **Solutions:**
+
 ```yaml
 # Increase timeout in workflow
 jobs:
@@ -575,6 +624,7 @@ gh workflow run i18n-validation.yml -f skip_parity_check=true
 **Impact:** Only one key will be used at runtime (platform-dependent)
 
 **Fix:**
+
 ```json
 // Before (duplicates)
 {
@@ -594,32 +644,35 @@ gh workflow run i18n-validation.yml -f skip_parity_check=true
 
 ## Scripts
 
-| Script | Purpose | Usage |
-|--------|---------|-------|
-| `pnpm run i18n:build` | Generate runtime dictionaries **and** `new-translations.ts` from modular sources | Run after editing source files |
-| `npx tsx scripts/check-translation-parity.ts` | ⭐ **NEW** - Analyze translation parity across locales | CI validation & diagnostics |
-| `npx tsx scripts/check-translation-parity.ts --domain=fm` | Detailed analysis for specific domain | Debug missing keys |
-| `npx tsx scripts/check-translation-parity.ts --format=json` | JSON output for CI consumption | Automated reporting |
-| `npx tsx scripts/split-translations.ts` | Split flat translations into modular sources | Migration tool |
-| `npx tsx scripts/split-translations.ts --check` | Validate sources without writing | CI dry-run mode |
-| `npx tsx scripts/flatten-base-dictionaries.ts` | Flatten monolithic TypeScript dictionaries | One-time migration |
+| Script                                                      | Purpose                                                                          | Usage                          |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------ |
+| `pnpm run i18n:build`                                       | Generate runtime dictionaries **and** `new-translations.ts` from modular sources | Run after editing source files |
+| `npx tsx scripts/check-translation-parity.ts`               | ⭐ **NEW** - Analyze translation parity across locales                           | CI validation & diagnostics    |
+| `npx tsx scripts/check-translation-parity.ts --domain=fm`   | Detailed analysis for specific domain                                            | Debug missing keys             |
+| `npx tsx scripts/check-translation-parity.ts --format=json` | JSON output for CI consumption                                                   | Automated reporting            |
+| `npx tsx scripts/split-translations.ts`                     | Split flat translations into modular sources                                     | Migration tool                 |
+| `npx tsx scripts/split-translations.ts --check`             | Validate sources without writing                                                 | CI dry-run mode                |
+| `npx tsx scripts/flatten-base-dictionaries.ts`              | Flatten monolithic TypeScript dictionaries                                       | One-time migration             |
 
 ## Validation & Quality Assurance
 
 ### Translation Parity Checker ⭐ NEW
 
 The parity checker analyzes all translation files and reports:
+
 - Per-domain key count mismatches
 - Missing keys in each locale
 - Case-insensitive duplicate detection
 - Coverage statistics
 
 **Run locally:**
+
 ```bash
 npx tsx scripts/check-translation-parity.ts
 ```
 
 **Sample Output:**
+
 ```
 ═══════════════════════════════════════════════════════════════════════
                     TRANSLATION PARITY REPORT
@@ -651,11 +704,13 @@ npx tsx scripts/check-translation-parity.ts
 ```
 
 **Check specific domain:**
+
 ```bash
 npx tsx scripts/check-translation-parity.ts --domain=marketplace
 ```
 
 **CI/JSON mode:**
+
 ```bash
 npx tsx scripts/check-translation-parity.ts --format=json > parity-report.json
 ```
@@ -663,6 +718,7 @@ npx tsx scripts/check-translation-parity.ts --format=json > parity-report.json
 ### Schema Validation
 
 All scripts now validate translation values:
+
 - ✅ **Type checking** - Only strings allowed (numbers/booleans coerced with warnings)
 - ✅ **Empty value detection** - Flags empty strings
 - ✅ **Domain sanitization** - Prevents path traversal, illegal characters
@@ -670,6 +726,7 @@ All scripts now validate translation values:
 - ✅ **Bundle integrity** - Validates JSON structure
 
 **Built-in protections:**
+
 ```typescript
 // ❌ Invalid - will fail validation
 {
@@ -700,6 +757,7 @@ npx tsx scripts/flatten-base-dictionaries.ts
 ```
 
 **Output includes:**
+
 ```
 📦 Flattening base dictionaries...
 
@@ -736,12 +794,14 @@ npx tsx scripts/flatten-base-dictionaries.ts
 ### Merge Strategy & Backups
 
 **Automatic backups:**
+
 - Created BEFORE flattening (prevents data loss)
 - Only backs up files > 1MB (huge dictionaries)
 - Prunes old backups (keeps last 10)
 - Timestamped for easy recovery
 
 **Merge behavior:**
+
 ```bash
 # Fresh keys override stale JSON
 # Existing keys preserved if not in fresh data
@@ -749,6 +809,7 @@ npx tsx scripts/flatten-base-dictionaries.ts
 ```
 
 **Restore from backup:**
+
 ```bash
 # List available backups
 ls -lh i18n/dictionaries/backup/
@@ -760,6 +821,7 @@ cp i18n/dictionaries/backup/en.ts.backup.1731901234567 i18n/dictionaries/en.ts
 ## Support
 
 For questions or issues with the translation system:
+
 1. Check this README
 2. Review existing domain files for examples
 3. Ask in #engineering Slack channel

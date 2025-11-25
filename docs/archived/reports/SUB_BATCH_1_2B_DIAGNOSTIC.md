@@ -8,12 +8,12 @@
 
 ### Actual Failures Identified: 31 tests (not 26 as estimated)
 
-| Test File | Total Tests | Failures | Pass Rate |
-|-----------|-------------|----------|-----------|
-| `components/fm/__tests__/WorkOrdersView.test.tsx` | 13 | 13 | 0% |
-| `components/marketplace/CatalogView.test.tsx` | 14 | 10 | 29% |
-| `tests/unit/components/SupportPopup.test.tsx` | 13 | 8 | 38% |
-| **TOTAL** | **40** | **31** | **23%** |
+| Test File                                         | Total Tests | Failures | Pass Rate |
+| ------------------------------------------------- | ----------- | -------- | --------- |
+| `components/fm/__tests__/WorkOrdersView.test.tsx` | 13          | 13       | 0%        |
+| `components/marketplace/CatalogView.test.tsx`     | 14          | 10       | 29%       |
+| `tests/unit/components/SupportPopup.test.tsx`     | 13          | 8        | 38%       |
+| **TOTAL**                                         | **40**      | **31**   | **23%**   |
 
 ## Root Causes Identified
 
@@ -24,10 +24,10 @@
 **Location:** Line 38 in `beforeEach()` hook:
 
 ```typescript
-(require('swr') as any).__reset();
+(require("swr") as any).__reset();
 ```
 
-**Root Cause:**  
+**Root Cause:**
 
 - Jest-specific mock reset method
 - `__reset()` doesn't exist in Vitest's module system
@@ -38,7 +38,7 @@ Replace with Vitest's `vi.resetModules()` or remove entirely (SWR doesn't need m
 
 ```typescript
 // OLD (Jest):
-(require('swr') as any).__reset();
+(require("swr") as any).__reset();
 
 // NEW (Vitest):
 // Remove this line - Vitest handles module cleanup automatically
@@ -80,7 +80,7 @@ Fix SWR mock setup to properly return product data:
 
 ```typescript
 // Current (not working):
-setSWRProducts({ data: makeCatalog([product]) })
+setSWRProducts({ data: makeCatalog([product]) });
 
 // Needs investigation of setSWRProducts function
 // Likely needs await or proper mock configuration
@@ -105,7 +105,7 @@ Debug SWR key generation and ensure filters are properly encoded in the URL
 **Location:** All tests using `typeInto('Description *', value)`
 
 **Root Cause:**  
-The `<label>` for "Description *" is missing the `for` attribute:
+The `<label>` for "Description \*" is missing the `for` attribute:
 
 ```tsx
 // Current (WRONG):

@@ -212,11 +212,25 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  const mountedRef = useRef(true);
+  const escalationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync with global language - use TranslationContext instead of API locale
   const locale: 'en' | 'ar' = globalLocale === 'ar' ? 'ar' : 'en';
   const t = translations[locale];
   const isRTL = locale === 'ar';
+
+  // Track component mount state and cleanup timers
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (escalationTimerRef.current !== null) {
+        clearTimeout(escalationTimerRef.current);
+        escalationTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // Track online/offline status
   useEffect(() => {
@@ -351,8 +365,14 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       const escalationHint = locale === 'ar' 
         ? 'يبدو أنك تواجه مشكلة. يمكنني مساعدتك بإنشاء تذكرة دعم عاجلة أو توجيهك إلى خدمة العملاء.'
         : 'You seem frustrated. I can help create a priority support ticket or direct you to customer care.';
-      setTimeout(() => {
-        appendAssistantMessage(escalationHint, undefined, 'escalation_hint');
+      // Clear any pending escalation timer
+      if (escalationTimerRef.current) {
+        clearTimeout(escalationTimerRef.current);
+      }
+      escalationTimerRef.current = setTimeout(() => {
+        if (mountedRef.current) {
+          appendAssistantMessage(escalationHint, undefined, 'escalation_hint');
+        }
       }, 500);
     }
 

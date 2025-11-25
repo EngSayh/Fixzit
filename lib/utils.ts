@@ -7,13 +7,13 @@ export function cn(...inputs: ClassValue[]) {
 
 export function generateSlug(input: string | null | undefined): string {
   // Handle null/undefined/non-string inputs
-  if (input == null || typeof input !== 'string') {
-    return '';
+  if (input == null || typeof input !== "string") {
+    return "";
   }
-  
+
   const src = input.trim();
-  if (!src) return '';
-  
+  if (!src) return "";
+
   // Check for leading/trailing hyphens *after* trimming
   const hadLeadingHyphen = src.startsWith("-");
   const hadTrailingHyphen = src.endsWith("-");
@@ -34,6 +34,6 @@ export function generateSlug(input: string | null | undefined): string {
   if (!hadTrailingHyphen) {
     slug = slug.replace(/-+$/, "");
   }
-  
+
   return slug;
 }

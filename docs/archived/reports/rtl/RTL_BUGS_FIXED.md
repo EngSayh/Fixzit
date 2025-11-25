@@ -1,9 +1,11 @@
 # RTL Layout Bugs Fixed - Nov 19, 2025
 
 ## Overview
+
 Fixed 20+ hardcoded directional values that were preventing proper RTL layout for Arabic users (70% of Fixzit's user base).
 
 ## Issues Found
+
 **Problem**: Components used hardcoded Tailwind classes like `left-*`, `right-*`, `ml-*`, `mr-*`, `pl-*`, `pr-*`, `text-left`, `text-right` which don't flip automatically for RTL layouts.
 
 **Impact**: Arabic-speaking users experienced broken layouts with search bars, filters, forms, and navigation on the wrong side.
@@ -11,7 +13,9 @@ Fixed 20+ hardcoded directional values that were preventing proper RTL layout fo
 ## Files Fixed
 
 ### 1. SearchBar.tsx ✅
+
 **Issues**: 6 hardcoded directional values
+
 - `absolute inset-y-0 left-0 pl-3` → `absolute inset-y-0 start-0 ps-3` (search icon)
 - `pl-10 pr-12` → `ps-10 pe-12` (input padding)
 - `absolute inset-y-0 right-0 pr-3` → `absolute inset-y-0 end-0 pe-3` (clear button)
@@ -21,7 +25,9 @@ Fixed 20+ hardcoded directional values that were preventing proper RTL layout fo
 ---
 
 ### 2. ClaimList.tsx ✅
+
 **Issues**: 8 hardcoded directional values
+
 - **Search input** (line 178): `absolute left-3` → `absolute start-3` + `pl-10` → `ps-10`
 - **Status filter** (line 189): `absolute left-3` → `absolute start-3` + `pl-9` → `ps-9`
 - **Type filter** (line 211): `absolute left-3` → `absolute start-3` + `pl-9` → `ps-9`
@@ -32,7 +38,9 @@ Fixed 20+ hardcoded directional values that were preventing proper RTL layout fo
 ---
 
 ### 3. SearchFilters.tsx ✅
+
 **Issues**: 5 hardcoded `text-left` values
+
 - **Category buttons** (line 163): `text-left` → `text-start`
 - **Price range buttons** (line 206): `text-left` → `text-start`
 - **Rating buttons** (line 229): `text-left` → `text-start`
@@ -42,7 +50,9 @@ Fixed 20+ hardcoded directional values that were preventing proper RTL layout fo
 ---
 
 ### 4. Footer.tsx ✅
+
 **Issues**: 2 hardcoded text alignment values
+
 - **Main container** (line 44): Removed `text-right` from conditional (kept `flex-row-reverse` for layout)
 - **Ticket button** (line 77): `${translationIsRTL ? 'text-right' : 'text-left'}` → `text-start`
 
@@ -51,7 +61,9 @@ Fixed 20+ hardcoded directional values that were preventing proper RTL layout fo
 ---
 
 ### 5. OtherOffersTab.tsx ✅
+
 **Issues**: 1 hardcoded margin value
+
 - **Buy Box badge** (line 165): `ml-1` → `ms-1`
 
 **Lines Changed**: 165
@@ -59,7 +71,9 @@ Fixed 20+ hardcoded directional values that were preventing proper RTL layout fo
 ---
 
 ### 6. ClaimForm.tsx ✅
+
 **Issues**: 1 hardcoded positioning value
+
 - **Remove file button** (line 332): `-right-2` → `-end-2`
 
 **Lines Changed**: 332
@@ -67,7 +81,9 @@ Fixed 20+ hardcoded directional values that were preventing proper RTL layout fo
 ---
 
 ### 7. ClaimDetails.tsx ✅
+
 **Issues**: 1 hardcoded positioning value
+
 - **Evidence overlay** (line 386): `left-0 right-0` → `start-0 end-0`
 
 **Lines Changed**: 386
@@ -77,19 +93,22 @@ Fixed 20+ hardcoded directional values that were preventing proper RTL layout fo
 ## Technical Changes
 
 ### Directional Properties Converted
-| Old Class | New Class | Purpose |
-|-----------|-----------|---------|
-| `left-*` | `start-*` | Absolute positioning (left side) |
-| `right-*` | `end-*` | Absolute positioning (right side) |
-| `ml-*` | `ms-*` | Margin-left → Margin-inline-start |
-| `mr-*` | `me-*` | Margin-right → Margin-inline-end |
-| `pl-*` | `ps-*` | Padding-left → Padding-inline-start |
-| `pr-*` | `pe-*` | Padding-right → Padding-inline-end |
-| `text-left` | `text-start` | Text alignment (left) |
-| `text-right` | `text-end` or **removed** | Text alignment (right) |
+
+| Old Class    | New Class                 | Purpose                             |
+| ------------ | ------------------------- | ----------------------------------- |
+| `left-*`     | `start-*`                 | Absolute positioning (left side)    |
+| `right-*`    | `end-*`                   | Absolute positioning (right side)   |
+| `ml-*`       | `ms-*`                    | Margin-left → Margin-inline-start   |
+| `mr-*`       | `me-*`                    | Margin-right → Margin-inline-end    |
+| `pl-*`       | `ps-*`                    | Padding-left → Padding-inline-start |
+| `pr-*`       | `pe-*`                    | Padding-right → Padding-inline-end  |
+| `text-left`  | `text-start`              | Text alignment (left)               |
+| `text-right` | `text-end` or **removed** | Text alignment (right)              |
 
 ### RTL Auto-Detection (Already Working)
+
 ✅ `i18n/I18nProvider.tsx` correctly sets:
+
 - `document.documentElement.dir = 'rtl'` when Arabic selected
 - `document.documentElement.classList.toggle('rtl', true)`
 - `document.body.style.direction = 'rtl'`
@@ -102,6 +121,7 @@ Fixed 20+ hardcoded directional values that were preventing proper RTL layout fo
 ## Testing Status
 
 ### ✅ Completed
+
 - [x] TypeScript compilation (0 errors)
 - [x] ESLint validation (0 errors)
 - [x] Dev server running (localhost:3000)
@@ -109,6 +129,7 @@ Fixed 20+ hardcoded directional values that were preventing proper RTL layout fo
 - [x] All 7 components fixed (20+ instances)
 
 ### ⏸️ Pending Manual Testing
+
 - [ ] Test Arabic language selection on home page
 - [ ] Verify search bar flips correctly
 - [ ] Verify claims list UI aligns properly
@@ -119,6 +140,7 @@ Fixed 20+ hardcoded directional values that were preventing proper RTL layout fo
 - [ ] Verify navigation menus
 
 ### Critical Pages to Test
+
 1. **Home** (/) - Language selector + search
 2. **Login** (/login) - Form inputs
 3. **Souq Marketplace** (/souq) - Search + filters
@@ -132,6 +154,7 @@ Fixed 20+ hardcoded directional values that were preventing proper RTL layout fo
 ## How RTL Works Now
 
 ### Before (Broken)
+
 ```tsx
 // Hardcoded left positioning
 <div className="absolute left-0 pl-3">
@@ -139,10 +162,12 @@ Fixed 20+ hardcoded directional values that were preventing proper RTL layout fo
 </div>
 <input className="pl-10 pr-3" />
 ```
+
 - **Problem**: Icon stays on left in both LTR and RTL
 - **Arabic users see**: Icon on wrong side, text clipped
 
 ### After (Working)
+
 ```tsx
 // Logical positioning
 <div className="absolute start-0 ps-3">
@@ -150,6 +175,7 @@ Fixed 20+ hardcoded directional values that were preventing proper RTL layout fo
 </div>
 <input className="ps-10 pe-3" />
 ```
+
 - **LTR (English)**: `start-0` = left, `ps-3` = padding-left
 - **RTL (Arabic)**: `start-0` = right, `ps-3` = padding-right
 - **Result**: Icon automatically flips to correct side!
@@ -179,6 +205,7 @@ open http://localhost:3000
 ## Remaining Work
 
 ### High Priority
+
 1. **Manual RTL Testing** (2-3 hours)
    - Test all critical pages in Arabic
    - Verify search, filters, forms flip correctly
@@ -191,6 +218,7 @@ open http://localhost:3000
    - Number formatting (SAR currency)
 
 ### Medium Priority
+
 3. **Additional Grep Search** (30 minutes)
    - Search for any remaining hardcoded values in other directories
    - Check `app/` routes for inline styles
@@ -202,6 +230,7 @@ open http://localhost:3000
    - Test on mobile devices
 
 ### Low Priority
+
 5. **Documentation Update** (15 minutes)
    - Update developer guidelines with RTL best practices
    - Add RTL checklist to PR template
@@ -212,6 +241,7 @@ open http://localhost:3000
 ## Impact
 
 ### Before Fixes
+
 - ❌ Search bar: Icon on wrong side for Arabic users
 - ❌ Claims filters: Icons misaligned
 - ❌ Forms: Buttons on wrong side
@@ -220,6 +250,7 @@ open http://localhost:3000
 - **Result**: 70% of users (Arabic speakers) had broken UI
 
 ### After Fixes
+
 - ✅ Search bar: Icon automatically flips to correct side
 - ✅ Claims filters: Icons align properly
 - ✅ Forms: Buttons position correctly
@@ -232,19 +263,23 @@ open http://localhost:3000
 ## Best Practices for Future Development
 
 ### DO ✅
+
 - Use logical properties: `start-*`, `end-*`, `ps-*`, `pe-*`, `ms-*`, `me-*`
 - Use `text-start` and `text-end` instead of `text-left`/`text-right`
 - Use `flex-row-reverse` for layout (doesn't affect content direction)
 - Test with Arabic language before deploying
 
 ### DON'T ❌
+
 - Don't use hardcoded: `left-*`, `right-*`, `ml-*`, `mr-*`, `pl-*`, `pr-*`
 - Don't use: `text-left`, `text-right` (except for specific non-text content)
 - Don't manually check `isRTL` for basic positioning (logical properties handle it)
 - Don't assume LTR-only user base
 
 ### When to Use Manual RTL Checks
+
 Only use `isRTL` / `translationIsRTL` for:
+
 - Layout order (flex-row-reverse)
 - SVG paths or canvas drawing
 - Third-party components without RTL support
@@ -268,10 +303,11 @@ Only use `isRTL` / `translationIsRTL` for:
 ## Next Steps
 
 1. **Manual Testing** (Required before deployment)
+
    ```bash
    # Start dev server
    npm run dev
-   
+
    # Test in browser
    1. Go to http://localhost:3000
    2. Click language selector (top right)
@@ -282,6 +318,7 @@ Only use `isRTL` / `translationIsRTL` for:
    ```
 
 2. **Automated Testing** (Recommended)
+
    ```bash
    # Add Playwright tests for RTL
    # File: tests/e2e/rtl.spec.ts

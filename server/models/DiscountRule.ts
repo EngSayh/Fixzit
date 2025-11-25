@@ -1,7 +1,7 @@
-import { Schema, model, models, Model, Document } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
-import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
-import { auditPlugin } from '../plugins/auditPlugin';
+import { Schema, model, models, Model, Document } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
 
 interface IDiscountRule extends Document {
   key: string;
@@ -16,21 +16,21 @@ interface IDiscountRule extends Document {
 
 const DiscountRuleSchema = new Schema<IDiscountRule>(
   {
-    key: { 
-      type: String, 
+    key: {
+      type: String,
       required: true,
-      trim: true 
+      trim: true,
     },
-    percentage: { 
-      type: Number, 
+    percentage: {
+      type: Number,
       default: 15,
-      min: [0, 'Percentage must be between 0 and 100'],
-      max: [100, 'Percentage must be between 0 and 100']
+      min: [0, "Percentage must be between 0 and 100"],
+      max: [100, "Percentage must be between 0 and 100"],
     },
     editableBySuperAdminOnly: { type: Boolean, default: true },
     // REMOVED: Manual tenantId (plugin will add orgId)
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // APPLY PLUGINS (BEFORE INDEXES)
@@ -42,6 +42,8 @@ DiscountRuleSchema.plugin(auditPlugin);
 DiscountRuleSchema.index({ orgId: 1, key: 1 }, { unique: true });
 
 // TypeScript-safe model export
-const DiscountRule = getModel<IDiscountRule>('DiscountRule', DiscountRuleSchema);
+const DiscountRule = getModel<IDiscountRule>(
+  "DiscountRule",
+  DiscountRuleSchema,
+);
 export default DiscountRule;
-

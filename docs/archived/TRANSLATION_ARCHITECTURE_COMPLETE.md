@@ -14,13 +14,16 @@ Successfully eliminated the **28k-line TypeScript dictionary files** that were c
 ## Problem Statement (Original)
 
 ### The Root Cause
+
 - **`i18n/dictionaries/en.ts`** - 28,450 lines of TypeScript literals
 - **`i18n/dictionaries/ar.ts`** - 28,486 lines of TypeScript literals
 - **Total:** 56,936 lines that VS Code TypeScript server must parse
 - **Impact:** Opening these files instantly consumes **2-4GB RAM**, crashes IDE
 
 ### Why tsconfig Exclusion Wasn't Enough
+
 Even excluding these files from `tsconfig.json`, they were still:
+
 1. Imported by `scripts/generate-dictionaries-json.ts`
 2. Cloned via `structuredClone()` during build
 3. Force TypeScript to materialize the entire literal type tree
@@ -31,16 +34,19 @@ Even excluding these files from `tsconfig.json`, they were still:
 ## Solution Architecture
 
 ### Phase 1: Flatten Base Dictionaries ✅
+
 **Script:** `scripts/flatten-base-dictionaries.ts`
 
 **What it does:**
-1. Loads the massive [`Fixzit/i18n/dictionaries/en.ts`](Fixzit/i18n/dictionaries/en.ts ) and ar.ts files (ONE TIME ONLY)
+
+1. Loads the massive [`Fixzit/i18n/dictionaries/en.ts`](Fixzit/i18n/dictionaries/en.ts) and ar.ts files (ONE TIME ONLY)
 2. Flattens nested objects into dot-notation keys
 3. Groups keys by top-level domain (e.g., `dashboard.*`, `fm.*`, `aqar.*`)
 4. Writes **1,168 modular JSON files** to `i18n/sources/`
 5. Backs up original TypeScript files
 
 **Output:**
+
 ```
 i18n/sources/
 ├── admin.translations.json          (113 en, 113 ar)
@@ -54,6 +60,7 @@ Total: 29,061 en keys, 29,667 ar keys
 ```
 
 **Key Improvements:**
+
 - ✅ **Sorted keys** - Deterministic output, clean git diffs
 - ✅ **Legacy key filtering** - Removes keys containing `.legacy.`
 - ✅ **Merge with existing** - Preserves manual edits in modular sources
@@ -61,43 +68,49 @@ Total: 29,061 en keys, 29,667 ar keys
 - ✅ **Error handling** - Exits with non-zero code on failure
 
 ### Phase 2: Lightweight Dictionary Shims ✅
+
 **Files:** `i18n/dictionaries/en.ts`, `i18n/dictionaries/ar.ts`
 
 **Before:** 28,450 lines each
 **After:** 84 lines each (99.7% reduction!)
 
 **New Structure:**
-```typescript
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
-const generatedPath = join(__dirname, '../generated/en.dictionary.json');
-const dictionary = JSON.parse(readFileSync(generatedPath, 'utf-8'));
+```typescript
+import { readFileSync } from "fs";
+import { join } from "path";
+
+const generatedPath = join(__dirname, "../generated/en.dictionary.json");
+const dictionary = JSON.parse(readFileSync(generatedPath, "utf-8"));
 
 export default new Proxy(dictionary, {
   get(target, prop) {
     if (prop in target) return target[prop];
     console.warn(`Missing translation key: ${String(prop)}`);
     return undefined;
-  }
+  },
 }) as TranslationDictionary;
 ```
 
 **Benefits:**
+
 - ✅ **Lazy loading** - Only reads JSON when imported
 - ✅ **IDE-friendly** - No massive literals to parse
 - ✅ **Proxy wrapper** - Warns about missing keys in development
 - ✅ **Type-safe** - Still exports `TranslationDictionary` type
 
 ### Phase 3: Build System Rewrite ✅
+
 **Script:** `scripts/generate-dictionaries-json.ts`
 
 **Before:**
+
 - Imported and cloned 56k-line TypeScript files
 - Used [`structuredClone`](/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/node_modules/typescript/lib/lib.es2022.object.d.ts )`()` on Proxy objects (failed)
 - Merged with legacy `new-translations.ts` (duplicate keys)
 
 **After:**
+
 - **Loads ONLY from modular JSON sources**
 - No TypeScript dictionary imports
 - Filters out `.legacy.` keys automatically
@@ -105,6 +118,7 @@ export default new Proxy(dictionary, {
 - Clean, deterministic output
 
 **Build Process:**
+
 ```
 1. Load 1,168 *.translations.json files from i18n/sources/
 2. Filter out legacy keys (*.legacy.*)
@@ -114,6 +128,7 @@ export default new Proxy(dictionary, {
 ```
 
 **Output:**
+
 ```
 📦 Loading 1168 modular source files...
   ✓ admin.translations.json            (113 en, 113 ar)
@@ -140,31 +155,31 @@ export default new Proxy(dictionary, {
 
 ### Memory Usage
 
-| Scenario | Before | After | Improvement |
-|----------|--------|-------|-------------|
-| Opening `en.ts` in VS Code | 3.5 GB | N/A (file replaced) | ♾️ |
-| Opening `ar.ts` in VS Code | 3.8 GB | N/A (file replaced) | ♾️ |
-| TypeScript server idle | 1.5 GB | 150 MB | 90% |
-| Running `pnpm i18n:build` | 2.2 GB | 320 MB | 85% |
-| IDE autocomplete speed | Slow (5-10s lag) | Instant | ✅ |
+| Scenario                   | Before           | After               | Improvement |
+| -------------------------- | ---------------- | ------------------- | ----------- |
+| Opening `en.ts` in VS Code | 3.5 GB           | N/A (file replaced) | ♾️          |
+| Opening `ar.ts` in VS Code | 3.8 GB           | N/A (file replaced) | ♾️          |
+| TypeScript server idle     | 1.5 GB           | 150 MB              | 90%         |
+| Running `pnpm i18n:build`  | 2.2 GB           | 320 MB              | 85%         |
+| IDE autocomplete speed     | Slow (5-10s lag) | Instant             | ✅          |
 
 ### File Metrics
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Lines of TypeScript | 56,936 | 168 | -99.7% |
-| Number of files | 2 monoliths | 1,168 modular | +583x |
-| Total size (sources) | 1.9 MB (TS) | 5.3 MB (JSON) | +179% |
-| Git diff clarity | Impossible | Crystal clear | ✅ |
+| Metric               | Before      | After         | Change |
+| -------------------- | ----------- | ------------- | ------ |
+| Lines of TypeScript  | 56,936      | 168           | -99.7% |
+| Number of files      | 2 monoliths | 1,168 modular | +583x  |
+| Total size (sources) | 1.9 MB (TS) | 5.3 MB (JSON) | +179%  |
+| Git diff clarity     | Impossible  | Crystal clear | ✅     |
 
 ### Build Performance
 
-| Operation | Before | After | Change |
-|-----------|--------|-------|--------|
-| First build (cold) | N/A | 4.2s | New |
-| Incremental build | N/A | 3.8s | New |
-| TypeScript compilation | 18 errors | 0 errors | ✅ |
-| Memory during build | 2.2 GB | 320 MB | -85% |
+| Operation              | Before    | After    | Change |
+| ---------------------- | --------- | -------- | ------ |
+| First build (cold)     | N/A       | 4.2s     | New    |
+| Incremental build      | N/A       | 3.8s     | New    |
+| TypeScript compilation | 18 errors | 0 errors | ✅     |
+| Memory during build    | 2.2 GB    | 320 MB   | -85%   |
 
 ---
 
@@ -173,6 +188,7 @@ export default new Proxy(dictionary, {
 ### Adding New Translations
 
 **1. Choose the domain file:**
+
 ```bash
 # For dashboard features
 vim i18n/sources/dashboard.translations.json
@@ -185,6 +201,7 @@ vim i18n/sources/marketplace.translations.json
 ```
 
 **2. Add keys (sorted alphabetically):**
+
 ```json
 {
   "en": {
@@ -199,17 +216,19 @@ vim i18n/sources/marketplace.translations.json
 ```
 
 **3. Build dictionaries:**
+
 ```bash
 npm run i18n:build
 ```
 
 **4. Use in components:**
+
 ```typescript
 import { useTranslation } from '@/contexts/TranslationContext';
 
 function DashboardAnalytics() {
   const { t } = useTranslation();
-  
+
   return (
     <div>
       <h2>{t('dashboard.analytics.revenue', 'Revenue Analytics')}</h2>
@@ -251,6 +270,7 @@ npm run i18n:build
 ### Best Practices
 
 ✅ **DO:**
+
 - Edit `.json` files in `i18n/sources/`
 - Keep keys sorted alphabetically
 - Run `npm run i18n:build` before committing
@@ -258,6 +278,7 @@ npm run i18n:build
 - Provide fallback text: `t('key', 'Fallback')`
 
 ❌ **DON'T:**
+
 - Edit `i18n/generated/*.json` (overwritten on build)
 - Edit `i18n/dictionaries/en.ts` or `ar.ts` (now shims)
 - Create deeply nested keys (max 4 levels)
@@ -291,23 +312,26 @@ npm run i18n:build
 ### 📋 Optional Enhancements (Future)
 
 **Phase 4: Lazy Loading per Route**
+
 ```typescript
 // Load only marketplace translations when needed
-import { loadDomainTranslations } from '@/lib/i18n/loader';
+import { loadDomainTranslations } from "@/lib/i18n/loader";
 
 async function MarketplacePage() {
-  const translations = await loadDomainTranslations('marketplace');
+  const translations = await loadDomainTranslations("marketplace");
   // Reduces initial bundle by ~85%
 }
 ```
 
 **Phase 5: External Translation Service**
+
 - Integrate Phrase/Lokalise/Crowdin
 - Non-technical translator UI
 - Version control for translations
 - Translation memory & suggestions
 
 **Phase 6: Per-Locale Bundles**
+
 ```javascript
 // next.config.js
 experimental: {
@@ -355,17 +379,18 @@ i18n/
 
 ## Scripts
 
-| Script | Purpose | Usage |
-|--------|---------|-------|
-| `npm run i18n:build` | Generate dictionaries from modular sources | Run before commit |
-| `npx tsx scripts/flatten-base-dictionaries.ts` | **ONE-TIME:** Flatten monolithic dictionaries | Already done ✅ |
-| `npx tsx scripts/split-translations.ts` | **LEGACY:** Split new-translations.ts | Already done ✅ |
+| Script                                         | Purpose                                       | Usage             |
+| ---------------------------------------------- | --------------------------------------------- | ----------------- |
+| `npm run i18n:build`                           | Generate dictionaries from modular sources    | Run before commit |
+| `npx tsx scripts/flatten-base-dictionaries.ts` | **ONE-TIME:** Flatten monolithic dictionaries | Already done ✅   |
+| `npx tsx scripts/split-translations.ts`        | **LEGACY:** Split new-translations.ts         | Already done ✅   |
 
 ---
 
 ## CI/CD Integration
 
 ### Pre-commit Hook (`.husky/pre-commit`)
+
 ```bash
 #!/usr/bin/env sh
 
@@ -380,6 +405,7 @@ pnpm tsc --noEmit
 ```
 
 ### GitHub Actions (`.github/workflows/i18n-validation.yml`)
+
 ```yaml
 - name: Build translation dictionaries
   run: npm run i18n:build
@@ -403,6 +429,7 @@ pnpm tsc --noEmit
 
 **Cause:** Generated dictionaries not built  
 **Fix:**
+
 ```bash
 npm run i18n:build
 ```
@@ -411,6 +438,7 @@ npm run i18n:build
 
 **Cause:** Key doesn't exist in any source file  
 **Fix:**
+
 1. Find correct domain: `grep -r "xyz" i18n/sources/`
 2. If not found, add to appropriate domain file
 3. Run `npm run i18n:build`
@@ -419,9 +447,11 @@ npm run i18n:build
 
 **Cause:** Shim files broken or old files not replaced  
 **Fix:**
+
 1. Check `i18n/dictionaries/en.ts` is 84 lines (not 28k)
 2. Check `i18n/dictionaries/ar.ts` is 84 lines (not 28k)
 3. If not, restore from backup:
+
 ```bash
 npx tsx scripts/flatten-base-dictionaries.ts
 ```
@@ -435,11 +465,13 @@ npx tsx scripts/flatten-base-dictionaries.ts
 ### "VS Code still crashes"
 
 **Possible causes:**
+
 1. Old dictionary files still open - Close all tabs
 2. TypeScript server cache - Reload VS Code window
 3. tsconfig not excluding sources - Check `tsconfig.json`
 
 **Fix:**
+
 ```bash
 # Reload VS Code
 CMD+Shift+P → "Developer: Reload Window"
@@ -458,9 +490,11 @@ rm -rf ~/Library/Caches/Code
 ### Test 1: Opening Large Dictionary Files
 
 **Before:**
+
 - Open `en.ts` → RAM spikes to 4.2 GB → VS Code crashes after 30s
 
 **After:**
+
 - Open `en.ts` → 84 lines → RAM stable at 320 MB → Instant autocomplete
 
 ✅ **PASS**
@@ -468,9 +502,11 @@ rm -rf ~/Library/Caches/Code
 ### Test 2: Running i18n:build
 
 **Before:**
+
 - Cloning 56k-line dictionaries → 2.2 GB RAM → 8s build time
 
 **After:**
+
 - Loading 1,168 JSON files → 320 MB RAM → 3.8s build time
 
 ✅ **PASS** (57% faster, 85% less memory)
@@ -478,10 +514,12 @@ rm -rf ~/Library/Caches/Code
 ### Test 3: TypeScript Compilation
 
 **Before:**
+
 - 18 duplicate key errors in `new-translations.ts`
 - `en.ts`/`ar.ts` take 45s to parse
 
 **After:**
+
 - 0 errors
 - All files parse in <1s
 
@@ -490,9 +528,11 @@ rm -rf ~/Library/Caches/Code
 ### Test 4: Runtime Translation Loading
 
 **Before:**
+
 - Server startup loads 56k lines of TS → 1.8s
 
 **After:**
+
 - Server startup loads JSON via shim → 0.3s
 
 ✅ **PASS** (83% faster)
@@ -504,14 +544,16 @@ rm -rf ~/Library/Caches/Code
 ### Filtered Legacy Keys
 
 Keys containing `.legacy.` are automatically excluded during build:
+
 ```typescript
 // In generate-dictionaries-json.ts
 const cleanEn = Object.fromEntries(
-  Object.entries(bundle.en).filter(([key]) => !key.includes('.legacy.'))
+  Object.entries(bundle.en).filter(([key]) => !key.includes(".legacy.")),
 );
 ```
 
 **Why:** Legacy keys often contain:
+
 - Deprecated features
 - Security vulnerabilities
 - Outdated terminology
@@ -520,6 +562,7 @@ const cleanEn = Object.fromEntries(
 ### JSON Validation
 
 All JSON files are parsed during build. Invalid JSON fails the build:
+
 ```bash
 ✗ Failed to load dashboard.translations.json: Unexpected token } in JSON
 ```
@@ -527,13 +570,14 @@ All JSON files are parsed during build. Invalid JSON fails the build:
 ### Type Safety
 
 Despite using JSON sources, runtime maintains type safety:
+
 ```typescript
 export default new Proxy(dictionary, {
   get(target, prop) {
     if (prop in target) return target[prop];
     console.warn(`Missing translation key: ${String(prop)}`);
     return undefined;
-  }
+  },
 }) as TranslationDictionary;
 ```
 
@@ -542,23 +586,27 @@ export default new Proxy(dictionary, {
 ## Success Metrics
 
 ### Memory Impact
+
 - ✅ **VS Code idle:** 1.5 GB → 150 MB (90% reduction)
 - ✅ **Build process:** 2.2 GB → 320 MB (85% reduction)
 - ✅ **Dictionary parsing:** 4.2 GB → 320 MB (92% reduction)
 
 ### Developer Experience
+
 - ✅ **File opening:** Instant (was 30s+ crash)
 - ✅ **Autocomplete:** Instant (was 5-10s lag)
 - ✅ **TypeScript errors:** 0 (was 18)
 - ✅ **Build time:** 3.8s (was 8s)
 
 ### Code Quality
+
 - ✅ **Modular organization:** 1,168 domain files
 - ✅ **Deterministic output:** Sorted keys
 - ✅ **Legacy cleanup:** Filtered automatically
 - ✅ **Git-friendly:** Clean, readable diffs
 
 ### Scalability
+
 - ✅ **Adding translations:** Edit JSON, rebuild (3.8s)
 - ✅ **New domains:** Create file, rebuild
 - ✅ **Per-route bundles:** Ready for lazy loading
@@ -583,6 +631,7 @@ The translation architecture has been **completely transformed** from a VS Code-
 ## Support
 
 For questions or issues:
+
 - **Documentation:** `i18n/README.md`
 - **Code examples:** `i18n/sources/*.translations.json`
 - **Build script:** `scripts/generate-dictionaries-json.ts`
