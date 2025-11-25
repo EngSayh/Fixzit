@@ -11,6 +11,7 @@ This document explains the **expected informational warnings** that appear in Gi
 ### 1. **agent-governor.yml** (CI/CD Build & Lint)
 
 **Lines 51-53:**
+
 ```yaml
 MONGODB_URI="${{ secrets.MONGODB_URI || '' }}"
 NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET || '' }}"
@@ -18,7 +19,8 @@ NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL || '' }}"
 ```
 
 **Warning Message:**
-```
+
+```text
 Context access might be invalid: MONGODB_URI
 Context access might be invalid: NEXTAUTH_SECRET  
 Context access might be invalid: NEXTAUTH_URL
@@ -30,6 +32,7 @@ Context access might be invalid: NEXTAUTH_URL
 - This is **intentional behavior** - we provide fallback defaults for CI environments
 
 **Fallback Defaults (lines 56-58):**
+
 ```bash
 export MONGODB_URI="${MONGODB_URI:-mongodb://localhost:27017/fixzit-ci-test}"
 export NEXTAUTH_SECRET="${NEXTAUTH_SECRET:-ci-test-secret-key-min-32-chars-long-for-testing}"
@@ -43,6 +46,7 @@ export NEXTAUTH_URL="${NEXTAUTH_URL:-http://localhost:3000}"
 ### 2. **e2e-tests.yml** (E2E Testing)
 
 **Lines 157-159:**
+
 ```yaml
 NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
 GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
@@ -50,7 +54,8 @@ GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
 ```
 
 **Warning Message:**
-```
+
+```text
 Context access might be invalid: NEXTAUTH_SECRET
 Context access might be invalid: GOOGLE_CLIENT_ID
 Context access might be invalid: GOOGLE_CLIENT_SECRET
@@ -62,6 +67,7 @@ Context access might be invalid: GOOGLE_CLIENT_SECRET
 - Google OAuth can be disabled/empty - workflow handles missing secrets gracefully
 
 **Forked PR Handling (lines 168-173):**
+
 ```bash
 if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
   echo "Using generated secrets for forked PR (GitHub secrets are unavailable)."
@@ -172,7 +178,7 @@ RAND_SECRET="$(node -e \"console.log(require('crypto').randomBytes(32).toString(
 ---
 
 **Last Updated:** 2025-11-25  
-**Verified Against:** 
+**Verified Against:**
 - `.github/workflows/agent-governor.yml` (commit 66e13ba25)
 - `.github/workflows/e2e-tests.yml` (commit 66e13ba25)
 

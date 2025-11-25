@@ -1,5 +1,7 @@
 name: E2E Tests (Playwright)
 
+# Expected secret warnings documented in: .github/WORKFLOW_SECRETS_DOCUMENTATION.md
+
 on:
   pull_request:
     branches: [main, develop]

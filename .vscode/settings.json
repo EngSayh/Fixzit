@@ -14,23 +14,6 @@
   "yaml.schemas": {
     "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml"
   },
-  "yaml.customTags": [
-    "!And",
-    "!If",
-    "!Not",
-    "!Equals",
-    "!Or",
-    "!Base64",
-    "!Cidr",
-    "!Ref",
-    "!Sub",
-    "!GetAtt",
-    "!GetAZs",
-    "!ImportValue",
-    "!Select",
-    "!Split",
-    "!Join"
-  ],
   "typescript.tsserver.log": "off",
   "typescript.surveys.enabled": false,
   "typescript.suggest.completeJSDocs": false,

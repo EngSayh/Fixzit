@@ -1,5 +1,7 @@
 name: Agent Governor CI
 
+# Expected secret warnings documented in: .github/WORKFLOW_SECRETS_DOCUMENTATION.md
+
 on:
   pull_request:
   push:
