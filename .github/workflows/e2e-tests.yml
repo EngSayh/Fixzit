@@ -43,6 +43,7 @@ jobs:
       mongodb:
         image: mongo:7
         env:
+      # Secrets are configured in GitHub Settings > Secrets and variables > Actions
           MONGO_INITDB_DATABASE: fixzit_test
         ports:
           - 27017:27017
@@ -168,8 +169,8 @@ jobs:
             echo "NEXTAUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
             echo "AUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
             # Google OAuth is optional - set to empty string if not configured
-            GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}"
-            GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}"
+            GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID || '' }}"
+            GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET || '' }}"
             echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}" >> "$GITHUB_ENV"
             echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}" >> "$GITHUB_ENV"
           fi

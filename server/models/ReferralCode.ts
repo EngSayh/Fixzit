@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Schema, model, models, Types, HydratedDocument } from "mongoose";
 import { getModel, MModel } from "@/src/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";

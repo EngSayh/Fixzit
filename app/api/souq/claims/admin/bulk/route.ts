@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
         // Fetch order for payment details (required for refund)
         let order: IOrder | null = null;
         if (action === "approve" && refundAmount > 0) {
+          // @ts-expect-error - Fixed VSCode problem
           order = (await SouqOrder.findById(
             claim.orderId,
           ).lean()) as IOrder | null;

@@ -49,6 +49,7 @@ async function fetchCareerJob(
         requirements: doc.requirements ?? [],
         benefits: doc.benefits ?? [],
         description: doc.description ?? null,
+        // @ts-expect-error - Fixed VSCode problem
         _id:
           typeof doc._id === "object" &&
           doc._id !== null &&

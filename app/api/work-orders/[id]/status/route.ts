@@ -95,7 +95,7 @@ export async function POST(
     // Validate technician assignment guard
     if (transition.guard === "technicianAssigned") {
       const assignedTo = (
-        wo as {
+        wo as unknown as {
           assignment?: { assignedTo?: { userId?: string; vendorId?: string } };
         }
       ).assignment?.assignedTo;
@@ -135,7 +135,7 @@ export async function POST(
   // Technician/Vendor can only move their own assignments
   if (user.role === "TECHNICIAN" || user.role === "VENDOR") {
     const assignedTo = (
-      wo as {
+      wo as unknown as {
         assignment?: { assignedTo?: { userId?: string; vendorId?: string } };
       }
     ).assignment?.assignedTo;

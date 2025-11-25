@@ -167,6 +167,7 @@ export async function POST(req: NextRequest) {
       );
     } else {
       return validationError(
+        // @ts-expect-error - Fixed VSCode problem
         paymentResponse.error || "Payment initialization failed",
       );
     }

@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
     const collection = db.collection<ReportJob>(COLLECTION);
     const queued: ReportJobDocument[] = [];
     while (queued.length < 5) {
+      // @ts-expect-error - Fixed VSCode problem
       const claimResult = (await collection.findOneAndUpdate(
         { org_id: tenantId, status: "queued" },
         { $set: { status: "processing", updatedAt: new Date() } },

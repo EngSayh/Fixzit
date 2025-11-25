@@ -9,6 +9,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     env:
+      # Secrets are configured in GitHub Settings > Secrets and variables > Actions
       NODE_OPTIONS: --max-old-space-size=8192
 
     steps:
@@ -46,10 +47,10 @@ jobs:
       #   run: pnpm run test --if-present
       - name: Build project
         run: |
-          # Set env vars with fallbacks
-          MONGODB_URI="${{ secrets.MONGODB_URI }}"
-          NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}"
-          NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL }}"
+          # GitHub Repository Secrets (configured in Settings > Secrets and variables > Actions)
+          MONGODB_URI="${{ secrets.MONGODB_URI || '' }}"
+          NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET || '' }}"
+          NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL || '' }}"
           
           export MONGODB_URI="${MONGODB_URI:-mongodb://localhost:27017/fixzit-ci-test}"
           export NEXTAUTH_SECRET="${NEXTAUTH_SECRET:-ci-test-secret-key-min-32-chars-long-for-testing}"

@@ -1,6 +1,9 @@
 name: ESLint Production Code Quality
 
 on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
   push:
     branches: [main, develop]
     paths:
@@ -25,9 +28,6 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "eslint.config.mjs"
-  schedule:
-    - cron: "0 3 * * *"
-  workflow_dispatch:
 
 jobs:
   lint-production-code:

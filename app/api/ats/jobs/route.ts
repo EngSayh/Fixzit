@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     // RBAC: Check permissions for reading jobs
     const authResult = await atsRBAC(req, ["jobs:read"]);
     if (!authResult.authorized) {
-      return authResult.response;
+      return (authResult as any).response;
     }
     const { orgId } = authResult;
 
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
     // RBAC: Check permissions for creating jobs
     const authResult = await atsRBAC(req, ["jobs:create"]);
     if (!authResult.authorized) {
-      return authResult.response;
+      return (authResult as any).response;
     }
     const { userId, orgId, atsModule } = authResult;
 

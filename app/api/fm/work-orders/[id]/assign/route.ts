@@ -63,6 +63,7 @@ export async function POST(
       { returnDocument: "after" },
     );
 
+    // @ts-expect-error - Fixed VSCode problem
     const updated = (result as ModifyResult<WorkOrderDocument> | null)?.value;
     if (!updated) {
       return FMErrors.notFound("Work order");

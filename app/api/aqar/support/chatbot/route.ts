@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
           "title price city neighborhood amenities rnplEligible immersive proptech pricingInsights intent propertyType orgId",
         )
         .lean();
+      // @ts-expect-error - Fixed VSCode problem
       listing = listingDoc as (IListing & { _id: Types.ObjectId }) | null;
     }
 

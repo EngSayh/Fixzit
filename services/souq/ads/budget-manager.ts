@@ -410,7 +410,7 @@ export class BudgetManager {
       .collection("souq_ad_campaigns")
       .findOne({ campaignId });
 
-    return campaign as {
+    return campaign as unknown as {
       campaignId: string;
       dailyBudget: number;
       status: string;

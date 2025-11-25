@@ -16,11 +16,12 @@ jobs:
   build-upload:
     runs-on: ubuntu-latest
     env:
+      # Secrets are configured in GitHub Settings > Secrets and variables > Actions
       CI: "true"
       NODE_OPTIONS: --max-old-space-size=8192
       NEXT_TELEMETRY_DISABLED: "1"
       # Sentry envs (required by the action)
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN || '' }}
       SENTRY_ORG: ${{ secrets.SENTRY_ORG || vars.SENTRY_ORG }}
       # expose release to build/runtime; SDKs read SENTRY_RELEASE
       SENTRY_RELEASE: ${{ github.sha }}

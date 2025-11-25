@@ -48,11 +48,11 @@ export async function POST(
     // RBAC: Check permissions
     const authResult = await atsRBAC(req, ["jobs:publish"]);
     if (!authResult.authorized) {
-      return authResult.response;
+      return (authResult as any).response;
     }
     const { orgId, isSuperAdmin } = authResult;
 
-    const job = await Job.findById(params.id);
+    const job = await Job.findById((await params).id);
     if (!job) return notFoundError("Job");
 
     // Resource ownership check

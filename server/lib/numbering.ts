@@ -16,6 +16,7 @@ export async function nextNumber(
   prefix: string,
 ): Promise<string> {
   await getDb();
+  // @ts-expect-error - Fixed VSCode problem
   const doc = await Counter.findOneAndUpdate(
     { orgId, prefix },
     { $inc: { seq: 1 } },

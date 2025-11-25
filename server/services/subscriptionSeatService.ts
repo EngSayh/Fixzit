@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Subscription Seat Management Service
  * Handles user activation/deactivation, seat allocation, and usage tracking

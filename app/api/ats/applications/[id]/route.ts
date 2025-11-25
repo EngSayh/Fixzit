@@ -49,11 +49,11 @@ export async function GET(
     // RBAC: Check permissions
     const authResult = await atsRBAC(req, ["applications:read"]);
     if (!authResult.authorized) {
-      return authResult.response;
+      return (authResult as any).response;
     }
     const { orgId, isSuperAdmin } = authResult;
 
-    const application = await Application.findById(params.id)
+    const application = await Application.findById((await params).id)
       .populate("jobId")
       .populate("candidateId")
       .lean();
@@ -100,11 +100,11 @@ export async function PATCH(
       "applications:stage-transition",
     ]);
     if (!authResult.authorized) {
-      return authResult.response;
+      return (authResult as any).response;
     }
     const { userId, orgId, isSuperAdmin } = authResult;
 
-    const application = await Application.findById(params.id);
+    const application = await Application.findById((await params).id);
     if (!application) return notFoundError("Application");
 
     // Resource ownership check

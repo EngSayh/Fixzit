@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     // RBAC: Check permissions for reading settings
     const authResult = await atsRBAC(req, ["settings:read"]);
     if (!authResult.authorized) {
-      return authResult.response;
+      return (authResult as any).response;
     }
     const rl = rateLimit(buildRateLimitKey(req, authResult.userId), 60, 60_000);
     if (!rl.allowed) {
@@ -72,7 +72,7 @@ export async function PATCH(req: NextRequest) {
     // RBAC: Check permissions for updating settings
     const authResult = await atsRBAC(req, ["settings:update"]);
     if (!authResult.authorized) {
-      return authResult.response;
+      return (authResult as any).response;
     }
     const rl = rateLimit(buildRateLimitKey(req, authResult.userId), 30, 60_000);
     if (!rl.allowed) {

@@ -71,7 +71,7 @@ export async function GET(
         : context.params;
 
     // Validate account ID
-    if (!Types.ObjectId.isValid(params.accountId)) {
+    if (!Types.ObjectId.isValid((await params).accountId)) {
       return NextResponse.json(
         { error: "Invalid account ID" },
         { status: 400 },
@@ -89,7 +89,7 @@ export async function GET(
       async () => {
         // Check account exists and belongs to org
         const account = await ChartAccount.findOne({
-          _id: new Types.ObjectId(params.accountId),
+          _id: new Types.ObjectId((await params).accountId),
           orgId: new Types.ObjectId(user.orgId),
         });
 
@@ -118,7 +118,7 @@ export async function GET(
           journalDate?: { $gte?: Date; $lte?: Date };
         } = {
           orgId: new Types.ObjectId(user.orgId),
-          accountId: new Types.ObjectId(params.accountId),
+          accountId: new Types.ObjectId((await params).accountId),
         };
 
         if (startDate || endDate) {
@@ -135,7 +135,7 @@ export async function GET(
         if (startDate) {
           const entriesBeforeStart = (await LedgerEntry.find({
             orgId: new Types.ObjectId(user.orgId),
-            accountId: new Types.ObjectId(params.accountId),
+            accountId: new Types.ObjectId((await params).accountId),
             journalDate: { $lt: new Date(startDate) },
           })
             .sort({ journalDate: 1, createdAt: 1 })

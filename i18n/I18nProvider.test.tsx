@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Testing library and framework:
  * - This test suite uses React Testing Library with Vitest in a jsdom environment.

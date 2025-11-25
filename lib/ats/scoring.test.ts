@@ -88,9 +88,7 @@ describe("calculateExperienceFromText", () => {
   });
 
   it("handles nullish input gracefully", () => {
-    // @ts-expect-error testing runtime behavior on null
     expect(calculateExperienceFromText(null)).toBe(0);
-    // @ts-expect-error testing runtime behavior on undefined
     expect(calculateExperienceFromText(undefined)).toBe(0);
   });
 });
