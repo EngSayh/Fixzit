@@ -1,10 +1,14 @@
 import crypto from "crypto";
 import { db } from "@/lib/mongo";
-import { CopilotKnowledge, KnowledgeDoc } from "@/server/models/CopilotKnowledge";
+import {
+  CopilotKnowledge,
+  KnowledgeDoc,
+} from "@/server/models/CopilotKnowledge";
 import { CopilotSession } from "./session";
 import { Types } from "mongoose";
 
-const EMBEDDING_MODEL = process.env.COPILOT_EMBEDDING_MODEL || "text-embedding-3-small";
+const EMBEDDING_MODEL =
+  process.env.COPILOT_EMBEDDING_MODEL || "text-embedding-3-small";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GLOBAL_KNOWLEDGE_ORG = new Types.ObjectId("000000000000000000000000");
 
@@ -23,12 +27,12 @@ async function callEmbedding(text: string): Promise<number[]> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${OPENAI_API_KEY}`
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
       input: text,
-      model: EMBEDDING_MODEL
-    })
+      model: EMBEDDING_MODEL,
+    }),
   });
 
   if (!response.ok) {
@@ -62,12 +66,18 @@ export interface RetrievedDoc {
   score: number;
 }
 
-export async function retrieveKnowledge(session: CopilotSession, query: string, limit = 6): Promise<RetrievedDoc[]> {
+export async function retrieveKnowledge(
+  session: CopilotSession,
+  query: string,
+  limit = 6,
+): Promise<RetrievedDoc[]> {
   if (!query.trim()) return [];
   await db;
 
   const embedding = await callEmbedding(query);
-  const tenantObjectId = Types.ObjectId.isValid(session.tenantId) ? new Types.ObjectId(session.tenantId) : null;
+  const tenantObjectId = Types.ObjectId.isValid(session.tenantId)
+    ? new Types.ObjectId(session.tenantId)
+    : null;
 
   const docs = await CopilotKnowledge.find({
     $and: [
@@ -79,33 +89,46 @@ export async function retrieveKnowledge(session: CopilotSession, query: string, 
           { orgId: GLOBAL_KNOWLEDGE_ORG },
         ],
       },
-      { locale: { $in: [session.locale, "en"] } }
-    ]
+      { locale: { $in: [session.locale, "en"] } },
+    ],
   }).lean<KnowledgeDoc[]>();
 
-  const filtered = docs.filter(doc => {
+  const filtered = docs.filter((doc) => {
     if (doc.roles?.length) {
       return doc.roles.includes(session.role);
     }
     return true;
   });
 
-  const scored = filtered.map(doc => ({
+  const scored = filtered.map((doc) => ({
     id: doc.slug,
     title: doc.title,
     content: doc.content,
-    score: cosineSimilarity(embedding, doc.embedding || [])
+    score: cosineSimilarity(embedding, doc.embedding || []),
   }));
 
   return scored
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
-    .filter(doc => doc.score > 0.05 || doc.content.toLowerCase().includes(query.toLowerCase()));
+    .filter(
+      (doc) =>
+        doc.score > 0.05 ||
+        doc.content.toLowerCase().includes(query.toLowerCase()),
+    );
 }
 
-export async function upsertKnowledgeDocument(doc: Partial<KnowledgeDoc> & { slug: string; title: string; content: string; orgId?: string }): Promise<void> {
+export async function upsertKnowledgeDocument(
+  doc: Partial<KnowledgeDoc> & {
+    slug: string;
+    title: string;
+    content: string;
+    orgId?: string;
+  },
+): Promise<void> {
   await db;
-  const embedding = doc.embedding?.length ? doc.embedding : await callEmbedding(doc.content);
+  const embedding = doc.embedding?.length
+    ? doc.embedding
+    : await callEmbedding(doc.content);
   const orgId =
     doc.orgId && Types.ObjectId.isValid(doc.orgId)
       ? new Types.ObjectId(doc.orgId)
@@ -122,9 +145,9 @@ export async function upsertKnowledgeDocument(doc: Partial<KnowledgeDoc> & { slu
         tags: doc.tags ?? [],
         source: doc.source ?? undefined,
         embedding,
-        checksum: doc.checksum
-      }
+        checksum: doc.checksum,
+      },
     },
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
 }

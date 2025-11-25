@@ -51,12 +51,12 @@ Successfully reviewed, merged, and closed the ESLint 'any' warnings elimination 
 
 ### Issue #100: "Reduce ESLint 'any' warnings: 222 → <20 (91% reduction needed)"
 
-| Metric | Target | Achieved | Status |
-|--------|--------|----------|--------|
-| **Production 'any' Warnings** | <20 (from 34) | **0** | ✅ **100% eliminated** |
-| **Target Reduction** | 91% | **100%** | 🏆 **Exceeded** |
-| **Test File Warnings** | N/A | 188 (excluded) | ⏸️ Per policy |
-| **Total Visible Impact** | <20 | **0 production** | ✅ **Target crushed** |
+| Metric                        | Target        | Achieved         | Status                 |
+| ----------------------------- | ------------- | ---------------- | ---------------------- |
+| **Production 'any' Warnings** | <20 (from 34) | **0**            | ✅ **100% eliminated** |
+| **Target Reduction**          | 91%           | **100%**         | 🏆 **Exceeded**        |
+| **Test File Warnings**        | N/A           | 188 (excluded)   | ⏸️ Per policy          |
+| **Total Visible Impact**      | <20           | **0 production** | ✅ **Target crushed**  |
 
 ---
 
@@ -79,7 +79,7 @@ Successfully reviewed, merged, and closed the ESLint 'any' warnings elimination 
    - Catch block: `any` → `unknown` + type guards
    - Quality: 🔒 **HIGH**
 
-4-11. **scripts/*.ts** (8 files)
+4-11. **scripts/\*.ts** (8 files)
 
 - All catch blocks: `catch (err: any)` → `catch (err: unknown)`
 - Consistent type guards throughout

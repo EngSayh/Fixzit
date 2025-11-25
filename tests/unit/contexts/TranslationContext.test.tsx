@@ -2,14 +2,14 @@
  * TranslationProvider + useTranslation tests (Vitest + RTL)
  */
 
-import React from 'react';
-import { render, screen, act } from '@testing-library/react';
-import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
+import React from "react";
+import { render, screen, act } from "@testing-library/react";
+import { describe, it, expect, beforeEach, beforeAll, vi } from "vitest";
 const hoistedMocks = vi.hoisted(() => {
-  const setLocale = vi.fn<(locale: 'en' | 'ar') => void>();
+  const setLocale = vi.fn<(locale: "en" | "ar") => void>();
   const t = vi.fn<(key: string) => string>();
   return {
-    state: { locale: 'ar' as 'en' | 'ar', dir: 'rtl' as 'ltr' | 'rtl' },
+    state: { locale: "ar" as "en" | "ar", dir: "rtl" as "ltr" | "rtl" },
     setLocale,
     t,
   };
@@ -19,7 +19,7 @@ const mockI18nState = hoistedMocks.state;
 const mockSetLocale = hoistedMocks.setLocale;
 const mockTranslate = hoistedMocks.t;
 
-vi.mock('@/i18n/useI18n', () => ({
+vi.mock("@/i18n/useI18n", () => ({
   useI18n: () => ({
     locale: mockI18nState.locale,
     dir: mockI18nState.dir,
@@ -28,26 +28,33 @@ vi.mock('@/i18n/useI18n', () => ({
   }),
 }));
 
-vi.mock('@/i18n/config', () => ({
-  DEFAULT_LOCALE: 'ar',
+vi.mock("@/i18n/config", () => ({
+  DEFAULT_LOCALE: "ar",
 }));
 
-import { TranslationProvider, useTranslation } from '@/contexts/TranslationContext';
+import {
+  TranslationProvider,
+  useTranslation,
+} from "@/contexts/TranslationContext";
 
-type TranslationModule = typeof import('@/contexts/TranslationContext');
-type TranslationContextValue = ReturnType<TranslationModule['useTranslation']>;
+type TranslationModule = typeof import("@/contexts/TranslationContext");
+type TranslationContextValue = ReturnType<TranslationModule["useTranslation"]>;
 
-let TranslationProvider: TranslationModule['TranslationProvider'];
-let useTranslationHook: TranslationModule['useTranslation'];
+let TranslationProvider: TranslationModule["TranslationProvider"];
+let useTranslationHook: TranslationModule["useTranslation"];
 
 beforeAll(async () => {
   vi.resetModules();
-  const translationModule = await import('@/contexts/TranslationContext');
+  const translationModule = await import("@/contexts/TranslationContext");
   TranslationProvider = translationModule.TranslationProvider;
   useTranslationHook = translationModule.useTranslation;
 });
 
-const Capture = ({ report }: { report: (value: TranslationContextValue) => void }) => {
+const Capture = ({
+  report,
+}: {
+  report: (value: TranslationContextValue) => void;
+}) => {
   const ctx = useTranslationHook();
   report(ctx);
   return <div data-testid="capture" />;
@@ -57,30 +64,30 @@ function renderWithCapture(report: (value: TranslationContextValue) => void) {
   return render(
     <TranslationProvider>
       <Capture report={report} />
-    </TranslationProvider>
+    </TranslationProvider>,
   );
 }
 
-describe('TranslationProvider / useTranslation', () => {
+describe("TranslationProvider / useTranslation", () => {
   beforeEach(() => {
-    mockI18nState.locale = 'ar';
-    mockI18nState.dir = 'rtl';
+    mockI18nState.locale = "ar";
+    mockI18nState.dir = "rtl";
     mockSetLocale.mockClear();
     mockTranslate.mockImplementation((key: string) => `i18n:${key}`);
   });
 
-  it('renders children', () => {
+  it("renders children", () => {
     render(
       <TranslationProvider>
         <div data-testid="child">child</div>
-      </TranslationProvider>
+      </TranslationProvider>,
     );
-    expect(screen.getByTestId('child')).toBeInTheDocument();
+    expect(screen.getByTestId("child")).toBeInTheDocument();
   });
 
-  it('derives language metadata from useI18n locale', async () => {
-    mockI18nState.locale = 'en';
-    mockI18nState.dir = 'ltr';
+  it("derives language metadata from useI18n locale", async () => {
+    mockI18nState.locale = "en";
+    mockI18nState.dir = "ltr";
 
     let captured: TranslationContextValue | null = null;
     renderWithCapture((value) => {
@@ -88,12 +95,12 @@ describe('TranslationProvider / useTranslation', () => {
     });
 
     expect(captured).not.toBeNull();
-    expect(captured!.language).toBe('en');
-    expect(captured!.locale).toBe('en-GB');
+    expect(captured!.language).toBe("en");
+    expect(captured!.locale).toBe("en-GB");
     expect(captured!.isRTL).toBe(false);
   });
 
-  it('setLanguage forwards to useI18n.setLocale', async () => {
+  it("setLanguage forwards to useI18n.setLocale", async () => {
     let captured: TranslationContextValue | null = null;
     renderWithCapture((value) => {
       captured = value;
@@ -101,12 +108,12 @@ describe('TranslationProvider / useTranslation', () => {
 
     expect(captured).not.toBeNull();
     await act(async () => {
-      captured!.setLanguage('en');
+      captured!.setLanguage("en");
     });
-    expect(mockSetLocale).toHaveBeenCalledWith('en');
+    expect(mockSetLocale).toHaveBeenCalledWith("en");
   });
 
-  it('setLocale normalizes friendly locale strings', async () => {
+  it("setLocale normalizes friendly locale strings", async () => {
     let captured: TranslationContextValue | null = null;
     renderWithCapture((value) => {
       captured = value;
@@ -114,18 +121,18 @@ describe('TranslationProvider / useTranslation', () => {
 
     expect(captured).not.toBeNull();
     await act(async () => {
-      captured!.setLocale('en-GB');
+      captured!.setLocale("en-GB");
     });
-    expect(mockSetLocale).toHaveBeenCalledWith('en');
+    expect(mockSetLocale).toHaveBeenCalledWith("en");
 
     mockSetLocale.mockClear();
     await act(async () => {
-      captured!.setLocale('ar-SA');
+      captured!.setLocale("ar-SA");
     });
-    expect(mockSetLocale).toHaveBeenCalledWith('ar');
+    expect(mockSetLocale).toHaveBeenCalledWith("ar");
   });
 
-  it('setLocale falls back to current language when unsupported locale provided', async () => {
+  it("setLocale falls back to current language when unsupported locale provided", async () => {
     let captured: TranslationContextValue | null = null;
     renderWithCapture((value) => {
       captured = value;
@@ -133,12 +140,12 @@ describe('TranslationProvider / useTranslation', () => {
 
     expect(captured).not.toBeNull();
     await act(async () => {
-      captured!.setLocale('fr-FR');
+      captured!.setLocale("fr-FR");
     });
-    expect(mockSetLocale).toHaveBeenCalledWith('ar');
+    expect(mockSetLocale).toHaveBeenCalledWith("ar");
   });
 
-  it('t(key, fallback) returns fallback when translator returns key', async () => {
+  it("t(key, fallback) returns fallback when translator returns key", async () => {
     mockTranslate.mockImplementation((key: string) => key);
     let captured: TranslationContextValue | null = null;
     renderWithCapture((value) => {
@@ -146,7 +153,7 @@ describe('TranslationProvider / useTranslation', () => {
     });
 
     expect(captured).not.toBeNull();
-    const result = captured!.t('missing.key', 'Fallback value');
-    expect(result).toBe('Fallback value');
+    const result = captured!.t("missing.key", "Fallback value");
+    expect(result).toBe("Fallback value");
   });
 });

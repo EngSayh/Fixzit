@@ -1,16 +1,16 @@
 /**
  * Balance Overview Component
- * 
+ *
  * Displays seller's balance with available, reserved, and pending amounts.
  * Shows payout schedule and quick withdrawal action.
  */
 
-'use client';
+"use client";
 
-import React from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { DollarSign, Clock, Lock, TrendingUp } from 'lucide-react';
+import React from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { DollarSign, Clock, Lock, TrendingUp } from "lucide-react";
 
 interface BalanceOverviewProps {
   balance: {
@@ -26,14 +26,14 @@ interface BalanceOverviewProps {
 
 export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
   const formatCurrency = (amount: number) => {
-    return `${amount.toLocaleString('ar-SA')} ر.س`;
+    return `${amount.toLocaleString("ar-SA")} ر.س`;
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('ar-SA', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    return new Intl.DateTimeFormat("ar-SA", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     }).format(date);
   };
 
@@ -55,7 +55,9 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
           <p className="text-3xl font-bold text-success">
             {formatCurrency(balance.available)}
           </p>
-          <p className="text-xs text-gray-500">جاهز للسحب (Ready to withdraw)</p>
+          <p className="text-xs text-gray-500">
+            جاهز للسحب (Ready to withdraw)
+          </p>
         </div>
         <Button
           onClick={onWithdraw}
@@ -64,8 +66,8 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
           variant="default"
         >
           {balance.available < 500
-            ? 'الحد الأدنى 500 ر.س (Min 500 SAR)'
-            : 'طلب سحب (Request Withdrawal)'}
+            ? "الحد الأدنى 500 ر.س (Min 500 SAR)"
+            : "طلب سحب (Request Withdrawal)"}
         </Button>
       </Card>
 
@@ -143,7 +145,9 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
             <div className="flex items-center gap-8 text-sm">
               {balance.lastPayoutDate && (
                 <div>
-                  <span className="text-gray-600">آخر دفعة (Last payout): </span>
+                  <span className="text-gray-600">
+                    آخر دفعة (Last payout):{" "}
+                  </span>
                   <span className="font-medium">
                     {formatDate(balance.lastPayoutDate)}
                   </span>
@@ -151,7 +155,9 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
               )}
               {balance.nextPayoutDate && (
                 <div>
-                  <span className="text-gray-600">الدفعة القادمة (Next payout): </span>
+                  <span className="text-gray-600">
+                    الدفعة القادمة (Next payout):{" "}
+                  </span>
                   <span className="font-medium text-primary">
                     {formatDate(balance.nextPayoutDate)}
                   </span>

@@ -15,6 +15,7 @@ Your website at **https://fixzit.co** is deployed but **NOT WORKING** because:
 ## Root Cause
 
 **Vercel has NO environment variables configured:**
+
 ```bash
 $ vercel env ls production
 > No Environment Variables found for fixzit/fixzit
@@ -36,6 +37,7 @@ cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
 ```
 
 **You'll need:**
+
 1. **MongoDB Atlas connection string** (CRITICAL - see below if you don't have it)
 2. That's it! The script will handle everything else from your `.env.local`
 
@@ -95,10 +97,12 @@ vercel env add MARKETPLACE_ENABLED production
 If you **DON'T have MongoDB Atlas** yet:
 
 ### Step 1: Create Account
+
 1. Go to: https://www.mongodb.com/cloud/atlas/register
 2. Sign up (free tier available)
 
 ### Step 2: Create Cluster
+
 1. Click "Build Database"
 2. Choose **FREE** tier (M0 Sandbox - 512MB)
 3. Provider: **AWS**
@@ -107,6 +111,7 @@ If you **DON'T have MongoDB Atlas** yet:
 6. Click "Create Cluster" (takes 3-5 minutes)
 
 ### Step 3: Configure Security
+
 1. **Database Access** (left menu):
    - Click "Add New Database User"
    - Username: `fixzit-admin`
@@ -121,6 +126,7 @@ If you **DON'T have MongoDB Atlas** yet:
    - Click "Confirm"
 
 ### Step 4: Get Connection String
+
 1. Go back to "Database" → Your Cluster
 2. Click "Connect"
 3. Choose "Connect your application"
@@ -136,6 +142,7 @@ If you **DON'T have MongoDB Atlas** yet:
    ```
 
 ### Step 5: Test Locally (Optional but Recommended)
+
 ```bash
 cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
 
@@ -156,6 +163,7 @@ pnpm dev
 ```
 
 If you **ALREADY have MongoDB Atlas:**
+
 - Just get your connection string from the cluster
 - Make sure IP whitelist includes `0.0.0.0/0`
 - Ensure database name is `/fixzit`
@@ -174,6 +182,7 @@ vercel --prod
 ```
 
 Expected output:
+
 ```
 ✔ Linked to fixzit/fixzit
 ✔ Build Completed in 2m
@@ -186,11 +195,13 @@ Expected output:
 ## ✅ Verify Deployment
 
 ### 1. Check Environment Variables
+
 ```bash
 vercel env ls production
 ```
 
 Should show:
+
 ```
 MONGODB_URI
 NEXTAUTH_SECRET
@@ -201,22 +212,26 @@ TWILIO_ACCOUNT_SID
 ```
 
 ### 2. Check Logs
+
 ```bash
 vercel logs https://fixzit.co --follow
 ```
 
 Should **NOT** show:
+
 ```
 ❌ connect ECONNREFUSED 127.0.0.1:27017
 ```
 
 Should show:
+
 ```
 ✅ Database connected successfully
 ✅ Server ready
 ```
 
 ### 3. Test Website
+
 1. Visit: https://fixzit.co
 2. Should load the full homepage (not stuck at "Loading...")
 3. Try to log in
@@ -226,16 +241,16 @@ Should show:
 
 ## 📊 Current Status
 
-| Component | Status | Fix |
-|-----------|--------|-----|
-| Code | ✅ Ready | None needed |
-| Tests | ✅ 891 passing | None needed |
-| Build | ✅ Succeeds | None needed |
-| Vercel Deployment | ⚠️ Deployed (old) | Need to redeploy |
-| **Environment Variables** | 🔴 **MISSING** | **Run setup script** |
-| MongoDB Connection | 🔴 **Localhost** | **Need Atlas** |
-| Domain | ✅ Active | None needed |
-| SSL | ✅ Active | None needed |
+| Component                 | Status            | Fix                  |
+| ------------------------- | ----------------- | -------------------- |
+| Code                      | ✅ Ready          | None needed          |
+| Tests                     | ✅ 891 passing    | None needed          |
+| Build                     | ✅ Succeeds       | None needed          |
+| Vercel Deployment         | ⚠️ Deployed (old) | Need to redeploy     |
+| **Environment Variables** | 🔴 **MISSING**    | **Run setup script** |
+| MongoDB Connection        | 🔴 **Localhost**  | **Need Atlas**       |
+| Domain                    | ✅ Active         | None needed          |
+| SSL                       | ✅ Active         | None needed          |
 
 ---
 
@@ -259,14 +274,17 @@ Should show:
    - Follow step-by-step guide above
 
 3. **Run Setup Script**
+
    ```bash
    cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
    ./setup-vercel-env.sh
    ```
+
    - Enter MongoDB Atlas connection string when prompted
    - Script will configure all other variables automatically
 
 4. **Deploy**
+
    ```bash
    vercel --prod
    ```
@@ -280,16 +298,19 @@ Should show:
 ## 🆘 Troubleshooting
 
 ### Script Permission Error
+
 ```bash
 chmod +x setup-vercel-env.sh
 ```
 
 ### "No MongoDB Atlas"
+
 - Follow the "MongoDB Atlas Setup" section above
 - Takes 10 minutes
 - Free tier available
 
 ### "Deployment still shows old version"
+
 ```bash
 # Check if new deployment is actually being used
 vercel ls
@@ -299,6 +320,7 @@ vercel alias set <latest-deployment-url> fixzit.co
 ```
 
 ### "Still getting localhost error"
+
 ```bash
 # Verify environment variables are set
 vercel env ls production
@@ -314,11 +336,13 @@ cat .env.production | grep MONGODB_URI
 ## 📞 Ready to Fix?
 
 **Tell me:**
+
 1. Do you have MongoDB Atlas account/cluster?
 2. If yes, what's your connection string?
 3. If no, should I guide you through creating one?
 
 Once you provide the MongoDB Atlas info, I can help you:
+
 - Run the setup script
 - Configure all environment variables
 - Deploy to production

@@ -5,19 +5,18 @@
  * DELETE /api/finance/expenses/:id - Cancel expense
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { Types } from 'mongoose';
-import { z } from 'zod';
-import { Expense } from '@/server/models/finance/Expense';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { runWithContext } from '@/server/lib/authContext';
-import { requirePermission } from '@/server/lib/rbac.config';
-
+import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
+import { z } from "zod";
+import { Expense } from "@/server/models/finance/Expense";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { runWithContext } from "@/server/lib/authContext";
+import { requirePermission } from "@/server/lib/rbac.config";
 
 async function getUserSession(req: NextRequest) {
   const user = await getSessionUser(req);
   if (!user || !user.id || !user.orgId) {
-    throw new Error('Unauthorized: Invalid session');
+    throw new Error("Unauthorized: Invalid session");
   }
   return {
     userId: user.id,
@@ -26,32 +25,40 @@ async function getUserSession(req: NextRequest) {
   };
 }
 
-import type { RouteContext } from '@/lib/types/route-context';
+import type { RouteContext } from "@/lib/types/route-context";
 
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 /**
  * GET /api/finance/expenses/:id
  */
-export async function GET(req: NextRequest, context: RouteContext<{ id: string }>) {
+export async function GET(
+  req: NextRequest,
+  context: RouteContext<{ id: string }>,
+) {
   try {
     const user = await getUserSession(req);
 
     // Authorization check
-    requirePermission(user.role, 'finance.expenses.read');
+    requirePermission(user.role, "finance.expenses.read");
 
     // Resolve params (Next.js 15 provides params as a Promise)
     const _params = await Promise.resolve(context.params);
 
     if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid expense ID' },
-        { status: 400 }
+        { success: false, error: "Invalid expense ID" },
+        { status: 400 },
       );
     }
 
     // Execute with proper context
     return await runWithContext(
-      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
       async () => {
         const expense = await Expense.findOne({
           _id: _params.id,
@@ -60,8 +67,8 @@ export async function GET(req: NextRequest, context: RouteContext<{ id: string }
 
         if (!expense) {
           return NextResponse.json(
-            { success: false, error: 'Expense not found' },
-            { status: 404 }
+            { success: false, error: "Expense not found" },
+            { status: 404 },
           );
         }
 
@@ -69,21 +76,25 @@ export async function GET(req: NextRequest, context: RouteContext<{ id: string }
           success: true,
           data: expense,
         });
-      }
+      },
     );
   } catch (error) {
-    logger.error('Error fetching expense:', error);
-    
-    if (error instanceof Error && error.message.includes('Forbidden')) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    logger.error("Error fetching expense:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
     }
-    
+
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch expense',
+        error:
+          error instanceof Error ? error.message : "Failed to fetch expense",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -103,20 +114,23 @@ const UpdateExpenseSchema = z.object({
  * PUT /api/finance/expenses/:id
  * Update expense (only if DRAFT status)
  */
-export async function PUT(req: NextRequest, context: RouteContext<{ id: string }>) {
+export async function PUT(
+  req: NextRequest,
+  context: RouteContext<{ id: string }>,
+) {
   try {
     const user = await getUserSession(req);
 
     // Authorization check
-    requirePermission(user.role, 'finance.expenses.update');
+    requirePermission(user.role, "finance.expenses.update");
 
     // Resolve params (Next.js 15 provides params as a Promise)
     const _params = await Promise.resolve(context.params);
 
     if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid expense ID' },
-        { status: 400 }
+        { success: false, error: "Invalid expense ID" },
+        { status: 400 },
       );
     }
 
@@ -125,7 +139,12 @@ export async function PUT(req: NextRequest, context: RouteContext<{ id: string }
 
     // Execute with proper context
     return await runWithContext(
-      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
       async () => {
         const expense = await Expense.findOne({
           _id: _params.id,
@@ -134,16 +153,16 @@ export async function PUT(req: NextRequest, context: RouteContext<{ id: string }
 
         if (!expense) {
           return NextResponse.json(
-            { success: false, error: 'Expense not found' },
-            { status: 404 }
+            { success: false, error: "Expense not found" },
+            { status: 404 },
           );
         }
 
         // Only allow updates for DRAFT expenses
-        if (expense.status !== 'DRAFT') {
+        if (expense.status !== "DRAFT") {
           return NextResponse.json(
-            { success: false, error: 'Only draft expenses can be updated' },
-            { status: 400 }
+            { success: false, error: "Only draft expenses can be updated" },
+            { status: 400 },
           );
         }
 
@@ -155,34 +174,38 @@ export async function PUT(req: NextRequest, context: RouteContext<{ id: string }
         return NextResponse.json({
           success: true,
           data: expense,
-          message: 'Expense updated successfully',
+          message: "Expense updated successfully",
         });
-      }
+      },
     );
   } catch (error) {
-    logger.error('Error updating expense:', error);
+    logger.error("Error updating expense:", error);
 
-    if (error instanceof Error && error.message.includes('Forbidden')) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
     }
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Validation failed',
+          error: "Validation failed",
           issues: error.issues,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to update expense',
+        error:
+          error instanceof Error ? error.message : "Failed to update expense",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -191,26 +214,34 @@ export async function PUT(req: NextRequest, context: RouteContext<{ id: string }
  * DELETE /api/finance/expenses/:id
  * Cancel expense
  */
-export async function DELETE(req: NextRequest, context: RouteContext<{ id: string }>) {
+export async function DELETE(
+  req: NextRequest,
+  context: RouteContext<{ id: string }>,
+) {
   try {
     const user = await getUserSession(req);
 
     // Authorization check
-    requirePermission(user.role, 'finance.expenses.delete');
+    requirePermission(user.role, "finance.expenses.delete");
 
     // Resolve params (Next.js 15 provides params as a Promise)
     const _params = await Promise.resolve(context.params);
 
     if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid expense ID' },
-        { status: 400 }
+        { success: false, error: "Invalid expense ID" },
+        { status: 400 },
       );
     }
 
     // Execute with proper context
     return await runWithContext(
-      { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+      {
+        userId: user.userId,
+        orgId: user.orgId,
+        role: user.role,
+        timestamp: new Date(),
+      },
       async () => {
         const expense = await Expense.findOne({
           _id: _params.id,
@@ -219,42 +250,46 @@ export async function DELETE(req: NextRequest, context: RouteContext<{ id: strin
 
         if (!expense) {
           return NextResponse.json(
-            { success: false, error: 'Expense not found' },
-            { status: 404 }
+            { success: false, error: "Expense not found" },
+            { status: 404 },
           );
         }
 
         // Only allow cancellation for non-PAID expenses
-        if (expense.status === 'PAID') {
+        if (expense.status === "PAID") {
           return NextResponse.json(
-            { success: false, error: 'Paid expenses cannot be cancelled' },
-            { status: 400 }
+            { success: false, error: "Paid expenses cannot be cancelled" },
+            { status: 400 },
           );
         }
 
-        expense.status = 'CANCELLED';
+        expense.status = "CANCELLED";
         expense.updatedBy = new Types.ObjectId(user.userId);
         await expense.save();
 
         return NextResponse.json({
           success: true,
-          message: 'Expense cancelled successfully',
+          message: "Expense cancelled successfully",
         });
-      }
+      },
     );
   } catch (error) {
-    logger.error('Error cancelling expense:', error);
-    
-    if (error instanceof Error && error.message.includes('Forbidden')) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 403 });
+    logger.error("Error cancelling expense:", error);
+
+    if (error instanceof Error && error.message.includes("Forbidden")) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 403 },
+      );
     }
-    
+
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to cancel expense',
+        error:
+          error instanceof Error ? error.message : "Failed to cancel expense",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

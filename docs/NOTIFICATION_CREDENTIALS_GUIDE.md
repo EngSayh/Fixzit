@@ -3,11 +3,13 @@
 ## ⚡ Quick Start (Choose One Method)
 
 ### Method 1: Interactive Setup (Recommended)
+
 ```bash
 bash scripts/setup-notification-credentials.sh
 ```
 
 ### Method 2: Manual Setup (Copy-paste into .env.local)
+
 Edit `.env.local` and add these values:
 
 ---
@@ -23,6 +25,7 @@ NOTIFICATIONS_SMOKE_PHONE=<+966501234567>
 ```
 
 **How to get user ID:**
+
 ```bash
 # Option A: Use mongosh
 mongosh "mongodb://localhost:27017/fixzit" --eval 'db.users.findOne({}, {_id: 1, email: 1})'
@@ -42,6 +45,7 @@ SENDGRID_FROM_NAME=Fixzit Notifications
 ```
 
 **Get API Key:**
+
 1. Go to https://app.sendgrid.com/settings/api_keys
 2. Click "Create API Key"
 3. Name: `Fixzit Notifications`
@@ -49,6 +53,7 @@ SENDGRID_FROM_NAME=Fixzit Notifications
 5. Copy the key (starts with `SG.`)
 
 **Test command:**
+
 ```bash
 pnpm tsx qa/notifications/run-smoke.ts --channel email
 ```
@@ -64,12 +69,14 @@ TWILIO_PHONE_NUMBER=+15551234567
 ```
 
 **Get Credentials:**
+
 1. Go to https://console.twilio.com
 2. Copy **Account SID** and **Auth Token** from dashboard
 3. Go to **Phone Numbers** → Active Numbers
 4. Copy your phone number (E.164 format: +1XXXXXXXXXX)
 
 **Test command:**
+
 ```bash
 pnpm tsx qa/notifications/run-smoke.ts --channel sms
 ```
@@ -85,6 +92,7 @@ FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQI...\n-----END PR
 ```
 
 **Get Service Account:**
+
 1. Go to https://console.firebase.google.com
 2. Select your project
 3. Click ⚙️ **Settings** → **Service Accounts**
@@ -98,6 +106,7 @@ FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQI...\n-----END PR
 **Important:** User must have `fcmTokens` array in MongoDB for push to work!
 
 **Test command:**
+
 ```bash
 pnpm tsx qa/notifications/run-smoke.ts --channel push
 ```
@@ -112,12 +121,14 @@ WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id_here
 ```
 
 **Get Credentials:**
+
 1. Go to https://business.facebook.com
 2. Select your business
 3. Go to **WhatsApp** → **API Setup**
 4. Copy **API Key** and **Phone Number ID**
 
 **Test command:**
+
 ```bash
 pnpm tsx qa/notifications/run-smoke.ts --channel whatsapp
 ```
@@ -133,6 +144,7 @@ NOTIFICATIONS_TELEMETRY_WEBHOOK=https://your-monitoring-service.com/webhook
 **⚠️ IMPORTANT:** Without this webhook, dispatch metrics won't reach your monitoring system. Operations teams won't see alerts in Datadog/PagerDuty/Slack.
 
 **Supported Services:**
+
 - **Datadog Events API:** `https://api.datadoghq.com/api/v1/events?api_key=YOUR_KEY`
 - **PagerDuty Events v2:** `https://events.pagerduty.com/v2/enqueue`
 - **Slack Incoming Webhook:** `https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXX`
@@ -142,11 +154,13 @@ NOTIFICATIONS_TELEMETRY_WEBHOOK=https://your-monitoring-service.com/webhook
 ## ✅ Verification Steps
 
 ### 1. Validate Configuration
+
 ```bash
 pnpm tsx scripts/validate-notification-env.ts
 ```
 
 **Expected Output:**
+
 ```
 🔍 Notification Environment Validation
 ═══════════════════════════════════════
@@ -161,6 +175,7 @@ pnpm tsx scripts/validate-notification-env.ts
 ```
 
 ### 2. Run Individual Channel Tests
+
 ```bash
 # Test email only (easiest to set up)
 pnpm tsx qa/notifications/run-smoke.ts --channel email
@@ -176,6 +191,7 @@ pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel w
 ```
 
 ### 3. Check Results
+
 - ✅ **Email:** Check inbox for notification
 - ✅ **SMS:** Check phone for text message
 - ✅ **Push:** Check device for push notification
@@ -190,6 +206,7 @@ pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel w
 **Problem:** Missing environment variables
 
 **Fix:**
+
 1. Check `.env.local` has the variables
 2. Restart terminal/VS Code to reload environment
 3. Run validation again: `pnpm tsx scripts/validate-notification-env.ts`
@@ -201,6 +218,7 @@ pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel w
 **Problem:** Invalid API key
 
 **Fix:**
+
 1. Verify key starts with `SG.`
 2. Check key has **Mail Send** permission
 3. Key must not be revoked in SendGrid dashboard
@@ -212,6 +230,7 @@ pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel w
 **Problem:** Invalid credentials
 
 **Fix:**
+
 1. Verify Account SID starts with `AC`
 2. Check Auth Token is correct (32 chars)
 3. Account must be active (not suspended)
@@ -223,6 +242,7 @@ pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel w
 **Problem:** Invalid service account or permissions
 
 **Fix:**
+
 1. Download new service account JSON
 2. Ensure `private_key` has `\n` newlines preserved
 3. Check Firebase project is active
@@ -234,6 +254,7 @@ pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel w
 **Problem:** Invalid `NOTIFICATIONS_SMOKE_USER_ID`
 
 **Fix:**
+
 ```bash
 # Find a valid user ID
 mongosh "mongodb://localhost:27017/fixzit" --eval '
@@ -267,6 +288,7 @@ SENDGRID_FROM_EMAIL=noreply@fixzit.co
 ```
 
 Then run:
+
 ```bash
 pnpm tsx qa/notifications/run-smoke.ts --channel email
 ```

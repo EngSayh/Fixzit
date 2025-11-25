@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
-import { OrgContextGate } from '@/components/fm/OrgContextGate';
+import { ReactNode } from "react";
+import { OrgContextGate } from "@/components/fm/OrgContextGate";
 
 interface SupportTemplateProps {
   children: ReactNode;

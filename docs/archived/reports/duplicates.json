@@ -394,38 +394,23 @@
     },
     {
       "name": "language-options.ts",
-      "locations": [
-        "config/language-options.ts",
-        "data/language-options.ts"
-      ]
+      "locations": ["config/language-options.ts", "data/language-options.ts"]
     },
     {
       "name": "Dockerfile",
-      "locations": [
-        "Dockerfile",
-        "deployment/Dockerfile"
-      ]
+      "locations": ["Dockerfile", "deployment/Dockerfile"]
     },
     {
       "name": "docker-compose.yml",
-      "locations": [
-        "docker-compose.yml",
-        "deployment/docker-compose.yml"
-      ]
+      "locations": ["docker-compose.yml", "deployment/docker-compose.yml"]
     },
     {
       "name": "auth.ts",
-      "locations": [
-        "auth.ts",
-        "lib/auth.ts"
-      ]
+      "locations": ["auth.ts", "lib/auth.ts"]
     },
     {
       "name": "ErrorBoundary.tsx",
-      "locations": [
-        "components/ErrorBoundary.tsx",
-        "qa/ErrorBoundary.tsx"
-      ]
+      "locations": ["components/ErrorBoundary.tsx", "qa/ErrorBoundary.tsx"]
     },
     {
       "name": "playwright.config.ts",
@@ -437,38 +422,23 @@
     },
     {
       "name": "mongo-init.js",
-      "locations": [
-        "deployment/mongo-init.js",
-        "scripts/mongo-init.js"
-      ]
+      "locations": ["deployment/mongo-init.js", "scripts/mongo-init.js"]
     },
     {
       "name": "paytabs.ts",
-      "locations": [
-        "lib/paytabs.ts",
-        "services/paytabs.ts"
-      ]
+      "locations": ["lib/paytabs.ts", "services/paytabs.ts"]
     },
     {
       "name": "pricing.ts",
-      "locations": [
-        "lib/pricing.ts",
-        "services/pricing.ts"
-      ]
+      "locations": ["lib/pricing.ts", "services/pricing.ts"]
     },
     {
       "name": "i18n-scan.mjs",
-      "locations": [
-        "scripts/i18n-scan.mjs",
-        "tests/i18n-scan.mjs"
-      ]
+      "locations": ["scripts/i18n-scan.mjs", "tests/i18n-scan.mjs"]
     },
     {
       "name": "utils.test.ts",
-      "locations": [
-        "lib/utils.test.ts",
-        "tests/utils.test.ts"
-      ]
+      "locations": ["lib/utils.test.ts", "tests/utils.test.ts"]
     },
     {
       "name": "layout.tsx",
@@ -592,10 +562,7 @@
     },
     {
       "name": "GOVERNANCE.md",
-      "locations": [
-        "docs/GOVERNANCE.md",
-        "docs/guides/GOVERNANCE.md"
-      ]
+      "locations": ["docs/GOVERNANCE.md", "docs/guides/GOVERNANCE.md"]
     },
     {
       "name": "NEXTAUTH_V5_PRODUCTION_READINESS.md",
@@ -627,10 +594,7 @@
     },
     {
       "name": "middleware.ts",
-      "locations": [
-        "middleware.ts",
-        "lib/audit/middleware.ts"
-      ]
+      "locations": ["middleware.ts", "lib/audit/middleware.ts"]
     },
     {
       "name": "index.ts",
@@ -643,10 +607,7 @@
     },
     {
       "name": "search.ts",
-      "locations": [
-        "kb/search.ts",
-        "lib/marketplace/search.ts"
-      ]
+      "locations": ["kb/search.ts", "lib/marketplace/search.ts"]
     },
     {
       "name": "schema.ts",
@@ -671,52 +632,31 @@
     },
     {
       "name": "seed.mjs",
-      "locations": [
-        "modules/organizations/seed.mjs",
-        "qa/scripts/seed.mjs"
-      ]
+      "locations": ["modules/organizations/seed.mjs", "qa/scripts/seed.mjs"]
     },
     {
       "name": "Employee.ts",
-      "locations": [
-        "models/hr/Employee.ts",
-        "server/models/Employee.ts"
-      ]
+      "locations": ["models/hr/Employee.ts", "server/models/Employee.ts"]
     },
     {
       "name": "Project.ts",
-      "locations": [
-        "models/aqar/Project.ts",
-        "server/models/Project.ts"
-      ]
+      "locations": ["models/aqar/Project.ts", "server/models/Project.ts"]
     },
     {
       "name": "rateLimit.ts",
-      "locations": [
-        "lib/rateLimit.ts",
-        "server/security/rateLimit.ts"
-      ]
+      "locations": ["lib/rateLimit.ts", "server/security/rateLimit.ts"]
     },
     {
       "name": "mongodb-unified.ts",
-      "locations": [
-        "lib/mongodb-unified.ts",
-        "tests/mocks/mongodb-unified.ts"
-      ]
+      "locations": ["lib/mongodb-unified.ts", "tests/mocks/mongodb-unified.ts"]
     },
     {
       "name": "http.ts",
-      "locations": [
-        "lib/api/http.ts",
-        "tests/utils/http.ts"
-      ]
+      "locations": ["lib/api/http.ts", "tests/utils/http.ts"]
     },
     {
       "name": "test-system.ps1",
-      "locations": [
-        "scripts/test-system.ps1",
-        "tools/fixers/test-system.ps1"
-      ]
+      "locations": ["scripts/test-system.ps1", "tools/fixers/test-system.ps1"]
     },
     {
       "name": "route.ts",
@@ -908,10 +848,7 @@
     },
     {
       "name": "app.js",
-      "locations": [
-        "public/app.js",
-        "public/assets/js/app.js"
-      ]
+      "locations": ["public/app.js", "public/assets/js/app.js"]
     },
     {
       "name": "Payment.ts",
@@ -922,17 +859,11 @@
     },
     {
       "name": "RFQ.ts",
-      "locations": [
-        "server/models/RFQ.ts",
-        "server/models/marketplace/RFQ.ts"
-      ]
+      "locations": ["server/models/RFQ.ts", "server/models/marketplace/RFQ.ts"]
     },
     {
       "name": "format.test.ts",
-      "locations": [
-        "utils/format.test.ts",
-        "tests/unit/utils/format.test.ts"
-      ]
+      "locations": ["utils/format.test.ts", "tests/unit/utils/format.test.ts"]
     },
     {
       "name": "index.html",

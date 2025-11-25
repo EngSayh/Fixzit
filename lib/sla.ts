@@ -1,6 +1,6 @@
-import { addMinutes } from 'date-fns';
+import { addMinutes } from "date-fns";
 
-export type WorkOrderPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type WorkOrderPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 const SLA_MINUTES_MAP: Record<WorkOrderPriority, number> = {
   LOW: 72 * 60, // 3 days
@@ -32,7 +32,10 @@ export function computeDueAt(start: Date, slaMinutes: number): Date {
  * concise and guarantees consistent calculations across the app and QA
  * tooling.
  */
-export function resolveSlaTarget(priority: WorkOrderPriority, start: Date = new Date()) {
+export function resolveSlaTarget(
+  priority: WorkOrderPriority,
+  start: Date = new Date(),
+) {
   const slaMinutes = computeSlaMinutes(priority);
   return {
     slaMinutes,

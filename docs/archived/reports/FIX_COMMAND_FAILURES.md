@@ -76,8 +76,8 @@ bash script.sh
 
 ```javascript
 // Cross-platform, always works
-const fs = require('fs');
-fs.writeFileSync('file.txt', 'content');
+const fs = require("fs");
+fs.writeFileSync("file.txt", "content");
 ```
 
 ---
@@ -95,7 +95,7 @@ Write-Host "Installing missing packages..." -ForegroundColor Cyan
 # Production dependencies
 $prodPackages = @(
     "express",
-    "cors", 
+    "cors",
     "helmet",
     "express-rate-limit",
     "express-mongo-sanitize",
@@ -357,16 +357,16 @@ npm run install:missing
 
 ## Quick Reference
 
-| Task | Command |
-|------|---------|
+| Task                     | Command                                              |
+| ------------------------ | ---------------------------------------------------- |
 | Install missing packages | `npm install express cors helmet express-rate-limit` |
-| Verify imports | `node analyze-imports.js` |
-| Run E2E tests | `bash verify-final.sh` |
-| Replace strings | `node scripts/replace.js "path" "search" "replace"` |
-| Create file (PS) | `@'content'@ \| Set-Content file.txt` |
-| Create file (Bash) | `bash -c 'cat > file.txt << EOF...'` |
-| Find files (PS) | `Get-ChildItem -Recurse -Filter *.ts` |
-| Find files (Bash) | `bash -c 'find . -name "*.ts"'` |
+| Verify imports           | `node analyze-imports.js`                            |
+| Run E2E tests            | `bash verify-final.sh`                               |
+| Replace strings          | `node scripts/replace.js "path" "search" "replace"`  |
+| Create file (PS)         | `@'content'@ \| Set-Content file.txt`                |
+| Create file (Bash)       | `bash -c 'cat > file.txt << EOF...'`                 |
+| Find files (PS)          | `Get-ChildItem -Recurse -Filter *.ts`                |
+| Find files (Bash)        | `bash -c 'find . -name "*.ts"'`                      |
 
 ---
 

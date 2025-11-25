@@ -1,6 +1,6 @@
 // AutoFixManager for system health monitoring - MongoDB only
-import { logger } from '@/lib/logger';
-import { STORAGE_KEYS } from '@/config/constants';
+import { logger } from "@/lib/logger";
+import { STORAGE_KEYS } from "@/config/constants";
 
 export interface SystemCheck {
   id: string;
@@ -8,8 +8,8 @@ export interface SystemCheck {
   description: string;
   check: () => Promise<boolean>;
   fix?: () => Promise<boolean>;
-  priority: 'critical' | 'high' | 'medium' | 'low';
-  category: 'api' | 'database' | 'component' | 'network' | 'auth' | 'ui';
+  priority: "critical" | "high" | "medium" | "low";
+  category: "api" | "database" | "component" | "network" | "auth" | "ui";
 }
 
 export interface FixResult {
@@ -35,14 +35,14 @@ export class AutoFixManager {
     this.checks = [
       // Critical API endpoints
       {
-        id: 'api-auth-me',
-        name: 'Authentication API',
-        description: 'Check auth/me endpoint',
-        category: 'api',
-        priority: 'critical',
+        id: "api-auth-me",
+        name: "Authentication API",
+        description: "Check auth/me endpoint",
+        category: "api",
+        priority: "critical",
         check: async () => {
           try {
-            const res = await fetch('/api/auth/me', { credentials: 'include' });
+            const res = await fetch("/api/auth/me", { credentials: "include" });
             return res.ok || res.status === 401; // 401 is acceptable for unauthenticated
           } catch {
             return false;
@@ -50,23 +50,23 @@ export class AutoFixManager {
         },
         fix: async () => {
           // Clear auth cache and retry
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('fxz.auth');
-            localStorage.removeItem('fxz.user');
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("fxz.auth");
+            localStorage.removeItem("fxz.user");
           }
           return true;
-        }
+        },
       },
 
       {
-        id: 'api-help-articles',
-        name: 'Help Articles API',
-        description: 'Check help/articles endpoint',
-        category: 'api',
-        priority: 'high',
+        id: "api-help-articles",
+        name: "Help Articles API",
+        description: "Check help/articles endpoint",
+        category: "api",
+        priority: "high",
         check: async () => {
           try {
-            const res = await fetch('/api/help/articles');
+            const res = await fetch("/api/help/articles");
             // 401 is acceptable for unauthenticated users
             return res.ok || res.status === 401;
           } catch {
@@ -75,22 +75,22 @@ export class AutoFixManager {
         },
         fix: async () => {
           // Clear any cached help data
-          if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('fxz.help.cache');
+          if (typeof window !== "undefined") {
+            sessionStorage.removeItem("fxz.help.cache");
           }
           return true;
-        }
+        },
       },
 
       {
-        id: 'api-notifications',
-        name: 'Notifications API',
-        description: 'Check notifications endpoint',
-        category: 'api',
-        priority: 'high',
+        id: "api-notifications",
+        name: "Notifications API",
+        description: "Check notifications endpoint",
+        category: "api",
+        priority: "high",
         check: async () => {
           try {
-            const res = await fetch('/api/notifications');
+            const res = await fetch("/api/notifications");
             // 401 is acceptable for unauthenticated users
             return res.ok || res.status === 401;
           } catch {
@@ -99,25 +99,28 @@ export class AutoFixManager {
         },
         fix: async () => {
           // Clear notification cache
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('fxz.notifications');
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("fxz.notifications");
           }
           return true;
-        }
+        },
       },
 
       // Database connectivity
       {
-        id: 'database-connection',
-        name: 'Database Connection',
-        description: 'Verify database connectivity',
-        category: 'database',
-        priority: 'critical',
+        id: "database-connection",
+        name: "Database Connection",
+        description: "Verify database connectivity",
+        category: "database",
+        priority: "critical",
         check: async () => {
           try {
-            const res = await fetch('/api/qa/health');
+            const res = await fetch("/api/qa/health");
             const data = await res.json();
-            return data.database === 'connected' || data.database === 'mock-connected';
+            return (
+              data.database === "connected" ||
+              data.database === "mock-connected"
+            );
           } catch {
             return false;
           }
@@ -125,21 +128,21 @@ export class AutoFixManager {
         fix: async () => {
           // Force database reconnection
           try {
-            await fetch('/api/qa/reconnect', { method: 'POST' });
+            await fetch("/api/qa/reconnect", { method: "POST" });
           } catch {
             // Silent fail
           }
           return true;
-        }
+        },
       },
 
       // Network connectivity
       {
-        id: 'network-connectivity',
-        name: 'Network Connectivity',
-        description: 'Check internet connectivity',
-        category: 'network',
-        priority: 'critical',
+        id: "network-connectivity",
+        name: "Network Connectivity",
+        description: "Check internet connectivity",
+        category: "network",
+        priority: "critical",
         check: async () => {
           return navigator.onLine;
         },
@@ -154,7 +157,7 @@ export class AutoFixManager {
             };
             setTimeout(checkOnline, 1000);
           });
-        }
+        },
       },
 
       // Component loading - disabled to prevent dynamic import issues
@@ -172,44 +175,44 @@ export class AutoFixManager {
 
       // Local storage
       {
-        id: 'localStorage-access',
-        name: 'Local Storage Access',
-        description: 'Check localStorage functionality',
-        category: 'ui',
-        priority: 'medium',
+        id: "localStorage-access",
+        name: "Local Storage Access",
+        description: "Check localStorage functionality",
+        category: "ui",
+        priority: "medium",
         check: async () => {
-          if (typeof window === 'undefined') return false;
+          if (typeof window === "undefined") return false;
           try {
-            const testKey = 'fxz.test';
-            localStorage.setItem(testKey, 'test');
+            const testKey = "fxz.test";
+            localStorage.setItem(testKey, "test");
             const value = localStorage.getItem(testKey);
             localStorage.removeItem(testKey);
-            return value === 'test';
+            return value === "test";
           } catch {
             return false;
           }
         },
         fix: async () => {
           // Clear corrupted data
-          if (typeof window !== 'undefined') {
+          if (typeof window !== "undefined") {
             localStorage.clear();
             sessionStorage.clear();
           }
           return true;
-        }
+        },
       },
 
       // Session management
       {
-        id: 'session-management',
-        name: 'Session Management',
-        description: 'Check session persistence',
-        category: 'auth',
-        priority: 'high',
+        id: "session-management",
+        name: "Session Management",
+        description: "Check session persistence",
+        category: "auth",
+        priority: "high",
         check: async () => {
-          if (typeof window === 'undefined') return true; // Skip on server
+          if (typeof window === "undefined") return true; // Skip on server
           try {
-            const authData = localStorage.getItem('fxz.auth');
+            const authData = localStorage.getItem("fxz.auth");
             if (!authData) return true; // No session is ok
 
             const auth = JSON.parse(authData);
@@ -219,14 +222,14 @@ export class AutoFixManager {
           }
         },
         fix: async () => {
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('fxz.auth');
-            localStorage.removeItem('fxz.user');
-            localStorage.setItem('fxz.session.reset', 'true');
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("fxz.auth");
+            localStorage.removeItem("fxz.user");
+            localStorage.setItem("fxz.session.reset", "true");
           }
           return true;
-        }
-      }
+        },
+      },
     ];
   }
 
@@ -250,9 +253,9 @@ export class AutoFixManager {
               // Capture fix failure for diagnostics
               const errorMsg = err instanceof Error ? err.message : String(err);
               fixError = `Fix attempt failed: ${errorMsg}`;
-              
+
               // Log for development/debugging (not in production)
-              if (process.env.NODE_ENV !== 'production') {
+              if (process.env.NODE_ENV !== "production") {
                 logger.debug(`[AutoFix] ${check.id} fix failed:`, err);
               }
             }
@@ -264,18 +267,19 @@ export class AutoFixManager {
             error: fixError || `${check.name} check failed`,
             fixApplied,
             timestamp: new Date().toISOString(),
-            duration
+            duration,
           });
         } else {
           results.push({
             checkId: check.id,
             success: true,
             timestamp: new Date().toISOString(),
-            duration
+            duration,
           });
         }
       } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
         void error;
         const duration = Date.now() - startTime;
         results.push({
@@ -283,7 +287,7 @@ export class AutoFixManager {
           success: false,
           error: (error as Error).message,
           timestamp: new Date().toISOString(),
-          duration
+          duration,
         });
       }
     }
@@ -296,16 +300,19 @@ export class AutoFixManager {
 
     this.isRunning = true;
 
-    this.intervalId = setInterval(async () => {
-      const results = await this.runHealthCheck();
+    this.intervalId = setInterval(
+      async () => {
+        const results = await this.runHealthCheck();
 
-      // Log results
-      const failedCount = results.filter(r => !r.success).length;
-      if (failedCount > 0) {
-        // Send alert to QA system
-        this.sendAlert(results);
-      }
-    }, intervalMinutes * 60 * 1000);
+        // Log results
+        const failedCount = results.filter((r) => !r.success).length;
+        if (failedCount > 0) {
+          // Send alert to QA system
+          this.sendAlert(results);
+        }
+      },
+      intervalMinutes * 60 * 1000,
+    );
   }
 
   public stopAutoMonitoring(): void {
@@ -317,18 +324,18 @@ export class AutoFixManager {
 
   private async sendAlert(results: FixResult[]): Promise<void> {
     try {
-      await fetch('/api/qa/alert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/qa/alert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          event: 'SYSTEM_HEALTH_ISSUE',
+          event: "SYSTEM_HEALTH_ISSUE",
           data: {
             results,
             timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent,
-            url: window.location.href
-          }
-        })
+            url: window.location.href,
+          },
+        }),
       });
     } catch {
       // Silent fail for alerts
@@ -336,29 +343,30 @@ export class AutoFixManager {
   }
 
   public async verifySystemHealth(): Promise<{
-    overall: 'healthy' | 'degraded' | 'critical';
+    overall: "healthy" | "degraded" | "critical";
     issues: string[];
     fixes: string[];
   }> {
     const results = await this.runHealthCheck();
-    const failedResults = results.filter(r => !r.success);
-    const criticalFailures = failedResults.filter(r =>
-      this.checks.find(c => c.id === r.checkId)?.priority === 'critical'
+    const failedResults = results.filter((r) => !r.success);
+    const criticalFailures = failedResults.filter(
+      (r) =>
+        this.checks.find((c) => c.id === r.checkId)?.priority === "critical",
     );
 
-    const issues = failedResults.map(r =>
-      `${r.checkId}: ${r.error}${r.fixApplied ? ' (fix applied)' : ''}`
+    const issues = failedResults.map(
+      (r) => `${r.checkId}: ${r.error}${r.fixApplied ? " (fix applied)" : ""}`,
     );
 
     const fixes = results
-      .filter(r => r.fixApplied)
-      .map(r => `Fixed: ${r.checkId}`);
+      .filter((r) => r.fixApplied)
+      .map((r) => `Fixed: ${r.checkId}`);
 
-    let overall: 'healthy' | 'degraded' | 'critical' = 'healthy';
+    let overall: "healthy" | "degraded" | "critical" = "healthy";
     if (criticalFailures.length > 0) {
-      overall = 'critical';
+      overall = "critical";
     } else if (failedResults.length > 0) {
-      overall = 'degraded';
+      overall = "degraded";
     }
 
     return { overall, issues, fixes };
@@ -366,14 +374,14 @@ export class AutoFixManager {
 
   // Emergency recovery
   public async emergencyRecovery(): Promise<void> {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       // Clear all caches
       localStorage.clear();
       sessionStorage.clear();
 
       // Reset application state
       const keysToKeep: string[] = [STORAGE_KEYS.language, STORAGE_KEYS.theme];
-      Object.keys(localStorage).forEach(key => {
+      Object.keys(localStorage).forEach((key) => {
         if (!keysToKeep.includes(key)) {
           localStorage.removeItem(key);
         }

@@ -1,4 +1,5 @@
 # Fixzit Deployment Guide
+
 **Version**: 1.0  
 **Last Updated**: November 17, 2025  
 **Target Platforms**: Vercel, AWS, Docker, Traditional Hosting
@@ -27,24 +28,29 @@
 ## Prerequisites
 
 ### Required Software
+
 - **Node.js**: v18.17.0 or higher (v20+ recommended)
 - **pnpm**: v8.0.0 or higher (`npm install -g pnpm`)
 - **MongoDB**: v6.0 or higher
 - **Git**: Latest version
 
 ### Optional Tools
+
 - **Docker**: v24.0 or higher (for containerized deployment)
 - **Redis**: v7.0 or higher (for caching and background jobs)
 - **PM2**: v5.0 or higher (for process management on traditional hosting)
 
 ### System Requirements
+
 **Minimum** (Development/Staging):
+
 - CPU: 2 cores
 - RAM: 4 GB
 - Storage: 20 GB SSD
 - Network: 10 Mbps
 
 **Recommended** (Production):
+
 - CPU: 4 cores
 - RAM: 8 GB
 - Storage: 100 GB SSD
@@ -55,6 +61,7 @@
 ## Pre-Deployment Checklist
 
 ### Code Quality
+
 - [ ] All tests passing (`pnpm test`)
 - [ ] TypeScript compilation successful (`pnpm build`)
 - [ ] No ESLint errors (`pnpm lint`)
@@ -62,6 +69,7 @@
 - [ ] Security audit passed (`pnpm audit`)
 
 ### Configuration
+
 - [ ] `.env.local` created from `.env.example`
 - [ ] All required environment variables set
 - [ ] Secrets rotated (different from development)
@@ -69,6 +77,7 @@
 - [ ] External service credentials configured
 
 ### Security
+
 - [ ] NEXTAUTH_SECRET is strong and unique
 - [ ] API keys rotated for production
 - [ ] CORS origins configured correctly
@@ -76,6 +85,7 @@
 - [ ] Security headers configured
 
 ### Documentation
+
 - [ ] Environment variables documented
 - [ ] Deployment steps reviewed
 - [ ] Rollback procedure understood
@@ -86,11 +96,13 @@
 ## Environment Configuration
 
 ### 1. Copy Environment Template
+
 ```bash
 cp .env.example .env.local
 ```
 
 ### 2. Configure Required Variables
+
 Edit `.env.local` and set these **REQUIRED** variables:
 
 ```bash
@@ -106,6 +118,7 @@ NODE_ENV=production
 ```
 
 ### 3. Configure Recommended Variables
+
 For production deployments, also set:
 
 ```bash
@@ -122,6 +135,7 @@ ENABLE_RATE_LIMITING=true
 ```
 
 ### 4. Configure Optional Variables
+
 Enable additional features as needed:
 
 ```bash
@@ -140,6 +154,7 @@ AWS_S3_BUCKET=fixzit-uploads
 ```
 
 ### 5. Verify Configuration
+
 ```bash
 # Check environment variables are loaded
 node -e "console.log(process.env.NEXTAUTH_URL || 'NOT SET')"
@@ -152,12 +167,14 @@ node -e "console.log(process.env.NEXTAUTH_URL || 'NOT SET')"
 ### MongoDB Atlas (Recommended for Production)
 
 #### 1. Create Cluster
+
 1. Go to [MongoDB Atlas](https://cloud.mongodb.com/)
 2. Create new cluster (M10+ recommended for production)
 3. Select region closest to your users (Middle East - Bahrain for Saudi market)
 4. Wait for cluster to provision (~10 minutes)
 
 #### 2. Configure Security
+
 ```bash
 # Add IP whitelist
 # Production: Add server IP
@@ -170,6 +187,7 @@ Role: readWrite on fixzit database
 ```
 
 #### 3. Get Connection String
+
 ```bash
 # Format:
 mongodb+srv://fixzit-app:<password>@cluster.mongodb.net/fixzit?retryWrites=true&w=majority
@@ -179,6 +197,7 @@ MONGODB_URI=<your-connection-string>
 ```
 
 #### 4. Create Indexes
+
 ```bash
 # Connect to your database
 mongosh "mongodb+srv://cluster.mongodb.net/fixzit" --username fixzit-app
@@ -203,6 +222,7 @@ exit
 ### Self-Hosted MongoDB
 
 #### 1. Install MongoDB
+
 ```bash
 # Ubuntu/Debian
 wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
@@ -216,6 +236,7 @@ sudo systemctl enable mongod
 ```
 
 #### 2. Secure MongoDB
+
 ```bash
 # Edit config
 sudo nano /etc/mongod.conf
@@ -233,6 +254,7 @@ sudo systemctl restart mongod
 ```
 
 #### 3. Create Admin User
+
 ```bash
 mongosh
 
@@ -254,6 +276,7 @@ exit
 ```
 
 #### 4. Connection String
+
 ```bash
 MONGODB_URI=mongodb://fixzit-app:<password>@localhost:27017/fixzit?authSource=fixzit
 ```
@@ -261,6 +284,7 @@ MONGODB_URI=mongodb://fixzit-app:<password>@localhost:27017/fixzit?authSource=fi
 ### Database Seeding (Optional)
 
 #### Seed Initial Data
+
 ```bash
 # Run seed script
 pnpm seed
@@ -275,6 +299,7 @@ mongoimport --uri="$MONGODB_URI" --collection=users --file=./data/seeds/users.js
 ## Build Process
 
 ### 1. Install Dependencies
+
 ```bash
 # Clean install
 rm -rf node_modules .next
@@ -282,6 +307,7 @@ pnpm install --frozen-lockfile
 ```
 
 ### 2. Type Check
+
 ```bash
 # Verify TypeScript compilation
 pnpm typecheck
@@ -290,6 +316,7 @@ pnpm typecheck
 ```
 
 ### 3. Lint
+
 ```bash
 # Run ESLint
 pnpm lint
@@ -299,6 +326,7 @@ pnpm lint --fix
 ```
 
 ### 4. Run Tests
+
 ```bash
 # Unit tests
 pnpm test
@@ -311,6 +339,7 @@ pnpm test:coverage
 ```
 
 ### 5. Build
+
 ```bash
 # Production build
 pnpm build
@@ -325,6 +354,7 @@ pnpm build
 ```
 
 ### 6. Test Build Locally
+
 ```bash
 # Start production server locally
 pnpm start
@@ -344,6 +374,7 @@ pnpm start
 ## Vercel (Recommended)
 
 ### Why Vercel?
+
 - ✅ Optimized for Next.js (created by same team)
 - ✅ Automatic deployments on git push
 - ✅ Built-in CDN and edge functions
@@ -354,16 +385,19 @@ pnpm start
 ### Setup
 
 #### 1. Install Vercel CLI
+
 ```bash
 pnpm install -g vercel
 ```
 
 #### 2. Login
+
 ```bash
 vercel login
 ```
 
 #### 3. Link Project
+
 ```bash
 # From project root
 vercel link
@@ -377,6 +411,7 @@ vercel link
 ```
 
 #### 4. Configure Environment Variables
+
 ```bash
 # Add via CLI
 vercel env add MONGODB_URI production
@@ -392,6 +427,7 @@ vercel env add NEXTAUTH_URL production
 ```
 
 #### 5. Deploy
+
 ```bash
 # Deploy to production
 vercel --prod
@@ -401,6 +437,7 @@ vercel --prod
 ```
 
 #### 6. Configure Custom Domain (Optional)
+
 ```bash
 # Add domain
 vercel domains add yourdomain.com
@@ -417,6 +454,7 @@ vercel domains verify yourdomain.com
 ### Automatic Deployments
 
 #### 1. Connect Git Repository
+
 1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
 2. Click "Import Project"
 3. Select your Git provider (GitHub/GitLab/Bitbucket)
@@ -429,10 +467,12 @@ vercel domains verify yourdomain.com
    - Install Command: `pnpm install`
 
 #### 2. Configure Branches
+
 - **Production Branch**: `main` → Deploys to production
 - **Preview Branches**: All other branches → Preview deployments
 
 #### 3. Environment Variables
+
 - Add all production variables in Vercel dashboard
 - Use different secrets for preview vs production
 
@@ -443,6 +483,7 @@ vercel domains verify yourdomain.com
 ### EC2 Deployment
 
 #### 1. Launch EC2 Instance
+
 ```bash
 # Instance type: t3.medium or larger
 # AMI: Ubuntu 22.04 LTS
@@ -451,11 +492,13 @@ vercel domains verify yourdomain.com
 ```
 
 #### 2. Connect to Instance
+
 ```bash
 ssh -i your-key.pem ubuntu@your-instance-ip
 ```
 
 #### 3. Install Dependencies
+
 ```bash
 # Update system
 sudo apt update && sudo apt upgrade -y
@@ -478,6 +521,7 @@ sudo apt install -y nginx
 ```
 
 #### 4. Clone Repository
+
 ```bash
 cd /var/www
 sudo mkdir fixzit
@@ -488,6 +532,7 @@ git clone https://github.com/EngSayh/Fixzit.git .
 ```
 
 #### 5. Configure Environment
+
 ```bash
 cp .env.example .env.local
 nano .env.local
@@ -497,12 +542,14 @@ nano .env.local
 ```
 
 #### 6. Build Application
+
 ```bash
 pnpm install --frozen-lockfile
 pnpm build
 ```
 
 #### 7. Configure PM2
+
 ```bash
 # Create ecosystem file
 cat > ecosystem.config.js << 'EOF'
@@ -542,6 +589,7 @@ pm2 startup
 ```
 
 #### 8. Configure Nginx
+
 ```bash
 # Create Nginx config
 sudo nano /etc/nginx/sites-available/fixzit
@@ -587,6 +635,7 @@ sudo systemctl restart nginx
 ```
 
 #### 9. Setup SSL with Let's Encrypt
+
 ```bash
 # Install Certbot
 sudo apt install -y certbot python3-certbot-nginx
@@ -599,6 +648,7 @@ sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
 ```
 
 #### 10. Verify Deployment
+
 ```bash
 # Check PM2 status
 pm2 status
@@ -620,6 +670,7 @@ curl https://yourdomain.com
 ### Build Docker Image
 
 #### 1. Verify Dockerfile
+
 ```dockerfile
 # Dockerfile is already in project root
 # Verify it exists:
@@ -627,6 +678,7 @@ cat Dockerfile
 ```
 
 #### 2. Build Image
+
 ```bash
 # Build for production
 docker build -t fixzit:latest .
@@ -639,6 +691,7 @@ docker build \
 ```
 
 #### 3. Run Container Locally
+
 ```bash
 # Run with environment file
 docker run -d \
@@ -658,12 +711,14 @@ docker rm fixzit-app
 ### Docker Compose
 
 #### 1. Use docker-compose.yml
+
 ```bash
 # File already exists in project root
 cat docker-compose.yml
 ```
 
 #### 2. Start Services
+
 ```bash
 # Start all services (app + MongoDB)
 docker-compose up -d
@@ -681,6 +736,7 @@ docker-compose down
 ### Deploy to Container Registry
 
 #### AWS ECR
+
 ```bash
 # Login to ECR
 aws ecr get-login-password --region us-east-1 | \
@@ -694,6 +750,7 @@ docker push <account>.dkr.ecr.us-east-1.amazonaws.com/fixzit:latest
 ```
 
 #### Docker Hub
+
 ```bash
 # Login
 docker login
@@ -722,6 +779,7 @@ Follow the [EC2 Deployment](#ec2-deployment) steps above. They work for any Ubun
 ## Post-Deployment
 
 ### 1. Verify Health Endpoint
+
 ```bash
 curl https://yourdomain.com/api/health
 
@@ -744,6 +802,7 @@ curl https://yourdomain.com/api/health
 ```
 
 ### 2. Test Authentication
+
 ```bash
 # Login
 curl -X POST https://yourdomain.com/api/auth/callback/credentials \
@@ -754,6 +813,7 @@ curl -X POST https://yourdomain.com/api/auth/callback/credentials \
 ```
 
 ### 3. Test Protected Endpoints
+
 ```bash
 # Should return 401 Unauthorized
 curl https://yourdomain.com/api/work-orders
@@ -762,12 +822,14 @@ curl https://yourdomain.com/api/work-orders
 ```
 
 ### 4. Check Browser Console
+
 1. Open https://yourdomain.com in browser
 2. Open DevTools (F12)
 3. Check Console tab for errors
 4. Check Network tab for failed requests
 
 ### 5. Test Critical User Flows
+
 - [ ] Login with email/password
 - [ ] Navigate to dashboard
 - [ ] Create work order
@@ -776,6 +838,7 @@ curl https://yourdomain.com/api/work-orders
 - [ ] Logout
 
 ### 6. Monitor Logs
+
 ```bash
 # Vercel
 vercel logs --prod
@@ -794,11 +857,13 @@ docker logs -f fixzit-app
 ### Sentry (Error Tracking)
 
 #### 1. Create Sentry Project
+
 1. Go to [Sentry.io](https://sentry.io)
 2. Create new project → Next.js
 3. Copy DSN
 
 #### 2. Configure Environment
+
 ```bash
 NEXT_PUBLIC_SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
 SENTRY_ORG=your-org
@@ -806,12 +871,14 @@ SENTRY_PROJECT=fixzit
 ```
 
 #### 3. Verify Integration
+
 - Trigger test error
 - Check Sentry dashboard for event
 
 ### Application Logs
 
 #### Centralized Logging (Production)
+
 ```bash
 # Use Winston with external transport
 # Already configured in lib/logger.ts
@@ -824,6 +891,7 @@ SENTRY_PROJECT=fixzit
 ```
 
 #### Log Aggregation
+
 ```bash
 # View logs by level
 pm2 logs fixzit --err  # Errors only
@@ -839,6 +907,7 @@ pm2 flush
 ### Performance Monitoring
 
 #### Vercel Analytics
+
 ```bash
 # Enable in Vercel dashboard
 # Settings → Analytics → Enable
@@ -848,19 +917,21 @@ pm2 flush
 ```
 
 #### Custom Metrics
+
 ```typescript
 // Track custom events
-import { analytics } from '@/lib/analytics';
+import { analytics } from "@/lib/analytics";
 
-analytics.track('work_order_created', {
+analytics.track("work_order_created", {
   orgId: user.orgId,
-  duration: Date.now() - startTime
+  duration: Date.now() - startTime,
 });
 ```
 
 ### Uptime Monitoring
 
 #### UptimeRobot (Free)
+
 1. Go to [UptimeRobot.com](https://uptimerobot.com)
 2. Add monitor:
    - Type: HTTPS
@@ -869,6 +940,7 @@ analytics.track('work_order_created', {
 3. Configure alerts (email, SMS, Slack)
 
 #### Pingdom (Premium)
+
 - More detailed monitoring
 - Global check locations
 - Transaction monitoring
@@ -880,6 +952,7 @@ analytics.track('work_order_created', {
 ### Application Won't Start
 
 #### Check Logs
+
 ```bash
 # PM2
 pm2 logs fixzit --lines 100
@@ -894,6 +967,7 @@ vercel logs --prod
 #### Common Issues
 
 **MongoDB Connection Failed**
+
 ```bash
 # Check connection string
 echo $MONGODB_URI
@@ -906,6 +980,7 @@ mongosh "$MONGODB_URI"
 ```
 
 **Missing Environment Variables**
+
 ```bash
 # Check variables are loaded
 pm2 env 0
@@ -915,6 +990,7 @@ pm2 restart fixzit --update-env
 ```
 
 **Port Already in Use**
+
 ```bash
 # Find process using port
 lsof -i :3000
@@ -928,17 +1004,20 @@ kill -9 <PID>
 ### 500 Internal Server Error
 
 #### Check Application Logs
+
 ```bash
 pm2 logs fixzit --err
 ```
 
 #### Common Causes
+
 1. Database connection failed
 2. Missing environment variable
 3. Unhandled exception in code
 4. Out of memory
 
 #### Debug Mode
+
 ```bash
 # Enable debug logging
 pm2 restart fixzit --update-env
@@ -948,6 +1027,7 @@ pm2 restart fixzit --update-env
 ### Authentication Not Working
 
 #### Check NextAuth Configuration
+
 ```bash
 # Verify NEXTAUTH_URL matches domain
 echo $NEXTAUTH_URL
@@ -960,6 +1040,7 @@ echo $NEXTAUTH_SECRET | head -c 10
 ```
 
 #### Check Session Cookie
+
 1. Open DevTools → Application → Cookies
 2. Look for `next-auth.session-token`
 3. If missing, check CORS/SameSite settings
@@ -967,6 +1048,7 @@ echo $NEXTAUTH_SECRET | head -c 10
 ### Database Performance Issues
 
 #### Check Indexes
+
 ```bash
 mongosh "$MONGODB_URI"
 
@@ -978,6 +1060,7 @@ db.workorders.createIndex({ orgId: 1, status: 1 })
 ```
 
 #### Enable Profiling
+
 ```bash
 # Enable slow query logging
 db.setProfilingLevel(1, { slowms: 100 })
@@ -989,6 +1072,7 @@ db.system.profile.find().sort({ ts: -1 }).limit(10)
 ### High Memory Usage
 
 #### Check Memory
+
 ```bash
 # PM2
 pm2 info fixzit
@@ -1001,6 +1085,7 @@ free -h
 ```
 
 #### Restart Application
+
 ```bash
 # PM2 will auto-restart if max_memory_restart exceeded
 pm2 restart fixzit
@@ -1017,6 +1102,7 @@ pm2 start ecosystem.config.js
 ### Quick Rollback (Vercel)
 
 #### 1. Find Previous Deployment
+
 ```bash
 vercel ls
 
@@ -1027,6 +1113,7 @@ vercel ls
 ```
 
 #### 2. Promote Previous Deployment
+
 ```bash
 # Via CLI
 vercel promote def456
@@ -1038,6 +1125,7 @@ vercel promote def456
 ```
 
 #### 3. Verify
+
 ```bash
 curl https://yourdomain.com/api/health
 ```
@@ -1045,6 +1133,7 @@ curl https://yourdomain.com/api/health
 ### Git Rollback (PM2/Docker)
 
 #### 1. Identify Last Good Commit
+
 ```bash
 git log --oneline -10
 
@@ -1052,6 +1141,7 @@ git log --oneline -10
 ```
 
 #### 2. Rollback Code
+
 ```bash
 # Create rollback branch
 git checkout -b rollback-$(date +%Y%m%d)
@@ -1066,6 +1156,7 @@ git push origin rollback-$(date +%Y%m%d)
 ```
 
 #### 3. Redeploy
+
 ```bash
 # Pull rollback branch
 git fetch origin
@@ -1082,6 +1173,7 @@ pm2 restart fixzit
 ### Database Rollback
 
 #### 1. Restore from Backup
+
 ```bash
 # MongoDB Atlas
 # 1. Go to Clusters → ... → Restore
@@ -1093,6 +1185,7 @@ mongorestore --uri="$MONGODB_URI" --archive=backup-2025-11-17.gz --gzip
 ```
 
 #### 2. Verify Data
+
 ```bash
 mongosh "$MONGODB_URI"
 
@@ -1105,21 +1198,25 @@ db.workorders.countDocuments()
 ### Emergency Rollback (Complete)
 
 #### 1. Stop Application
+
 ```bash
 pm2 stop fixzit
 ```
 
 #### 2. Rollback Code
+
 ```bash
 git reset --hard <last-stable-commit>
 ```
 
 #### 3. Restore Database
+
 ```bash
 mongorestore --uri="$MONGODB_URI" --archive=backup.gz --gzip
 ```
 
 #### 4. Restart Application
+
 ```bash
 pnpm install
 pnpm build
@@ -1127,6 +1224,7 @@ pm2 restart fixzit
 ```
 
 #### 5. Verify
+
 ```bash
 curl https://yourdomain.com/api/health
 ```
@@ -1138,11 +1236,13 @@ curl https://yourdomain.com/api/health
 ### Automated MongoDB Backups
 
 #### MongoDB Atlas
+
 - Automatic continuous backups (enabled by default)
 - Retention: 2 days (configurable)
 - Point-in-time recovery available
 
 #### Self-Hosted MongoDB
+
 ```bash
 # Create backup script
 cat > /usr/local/bin/backup-fixzit.sh << 'EOF'
@@ -1170,6 +1270,7 @@ crontab -e
 ### Application Backups
 
 #### Code
+
 ```bash
 # Git is your backup
 git push origin main
@@ -1180,6 +1281,7 @@ git push origin v1.0.0
 ```
 
 #### Uploaded Files
+
 ```bash
 # If using local storage
 rsync -avz /var/www/fixzit/public/uploads/ user@backup-server:/backups/uploads/
@@ -1193,24 +1295,28 @@ rsync -avz /var/www/fixzit/public/uploads/ user@backup-server:/backups/uploads/
 ## Security Best Practices
 
 ### 1. Secrets Management
+
 - Never commit secrets to Git
 - Rotate secrets regularly (every 90 days)
 - Use different secrets per environment
 - Store secrets in secure vault (AWS Secrets Manager, Vault)
 
 ### 2. Access Control
+
 - Use SSH keys (not passwords)
 - Implement least privilege principle
 - Disable root login
 - Use bastion host for database access
 
 ### 3. Network Security
+
 - Enable firewall (ufw on Ubuntu)
 - Close unused ports
 - Use VPC/private networking
 - Enable DDoS protection
 
 ### 4. Application Security
+
 - Keep dependencies updated
 - Run security audits (`pnpm audit`)
 - Enable HTTPS everywhere
@@ -1218,6 +1324,7 @@ rsync -avz /var/www/fixzit/public/uploads/ user@backup-server:/backups/uploads/
 - Use security headers
 
 ### 5. Monitoring
+
 - Set up alerting for errors
 - Monitor resource usage
 - Track failed login attempts
@@ -1228,24 +1335,28 @@ rsync -avz /var/www/fixzit/public/uploads/ user@backup-server:/backups/uploads/
 ## Performance Optimization
 
 ### 1. CDN Configuration
+
 - Use Vercel Edge Network (automatic on Vercel)
 - Or CloudFlare for custom hosting
 - Cache static assets
 - Optimize images with Next.js Image
 
 ### 2. Database Optimization
+
 - Create indexes on frequent queries
 - Use lean() for read-only queries
 - Implement connection pooling
 - Consider read replicas for high traffic
 
 ### 3. Caching Strategy
+
 - Redis for session storage
 - Cache API responses
 - Use stale-while-revalidate
 - Implement service worker
 
 ### 4. Build Optimization
+
 - Enable compression
 - Tree-shake unused code
 - Code split large bundles
@@ -1256,16 +1367,19 @@ rsync -avz /var/www/fixzit/public/uploads/ user@backup-server:/backups/uploads/
 ## Support & Resources
 
 ### Documentation
+
 - [Next.js Deployment](https://nextjs.org/docs/deployment)
 - [Vercel Docs](https://vercel.com/docs)
 - [MongoDB Atlas Docs](https://docs.atlas.mongodb.com/)
 - [PM2 Docs](https://pm2.keymetrics.io/docs/)
 
 ### Community
+
 - GitHub Issues: [EngSayh/Fixzit/issues](https://github.com/EngSayh/Fixzit/issues)
 - Email Support: support@fixzit.co
 
 ### Emergency Contacts
+
 - On-Call Developer: [Contact Info]
 - Database Admin: [Contact Info]
 - DevOps Team: [Contact Info]

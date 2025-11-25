@@ -1,7 +1,7 @@
-import { Schema, Document, Types } from 'mongoose';
-import { getModel } from '@/src/types/mongoose-compat';
-import { auditPlugin } from '../plugins/auditPlugin';
-import { MODULE_KEYS } from './Module';
+import { Schema, Document, Types } from "mongoose";
+import { getModel } from "@/src/types/mongoose-compat";
+import { auditPlugin } from "../plugins/auditPlugin";
+import { MODULE_KEYS } from "./Module";
 
 const PayTabsInfoSchema = new Schema(
   {
@@ -12,7 +12,7 @@ const PayTabsInfoSchema = new Schema(
     agreement_id: String,
     cart_id: String,
   },
-  { _id: false }
+  { _id: false },
 );
 
 const BillingHistorySchema = new Schema(
@@ -21,70 +21,78 @@ const BillingHistorySchema = new Schema(
     amount: { type: Number, required: true },
     currency: { type: String, required: true },
     tran_ref: String,
-    status: { 
-      type: String, 
-      enum: ['SUCCESS', 'FAILED', 'PENDING'], 
-      required: true 
+    status: {
+      type: String,
+      enum: ["SUCCESS", "FAILED", "PENDING"],
+      required: true,
     },
     error: String,
   },
-  { _id: false }
+  { _id: false },
 );
 
 const SubscriptionSchema = new Schema(
   {
-    tenant_id: { type: Schema.Types.ObjectId, ref: 'Organization', required: false },
-    owner_user_id: { type: Schema.Types.ObjectId, ref: 'User', required: false },
-    subscriber_type: { 
-      type: String, 
-      enum: ['CORPORATE', 'OWNER'], 
-      required: true 
+    tenant_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: false,
     },
-    modules: { 
-      type: [String], 
-      enum: MODULE_KEYS,
-      default: [] 
+    owner_user_id: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
     },
-    seats: { 
-      type: Number, 
+    subscriber_type: {
+      type: String,
+      enum: ["CORPORATE", "OWNER"],
       required: true,
-      min: [1, 'Seats must be at least 1']
     },
-    billing_cycle: { 
-      type: String, 
-      enum: ['MONTHLY', 'ANNUAL'], 
-      default: 'MONTHLY' 
+    modules: {
+      type: [String],
+      enum: MODULE_KEYS,
+      default: [],
     },
-    currency: { 
-      type: String, 
-      enum: ['USD', 'SAR'], 
-      default: 'USD' 
+    seats: {
+      type: Number,
+      required: true,
+      min: [1, "Seats must be at least 1"],
     },
-    price_book_id: { 
-      type: Schema.Types.ObjectId, 
-      ref: 'PriceBook', 
-      required: true 
+    billing_cycle: {
+      type: String,
+      enum: ["MONTHLY", "ANNUAL"],
+      default: "MONTHLY",
+    },
+    currency: {
+      type: String,
+      enum: ["USD", "SAR"],
+      default: "USD",
+    },
+    price_book_id: {
+      type: Schema.Types.ObjectId,
+      ref: "PriceBook",
+      required: true,
     },
     amount: { type: Number, default: 0 },
     status: {
       type: String,
-      enum: ['INCOMPLETE', 'ACTIVE', 'PAST_DUE', 'CANCELED'],
-      default: 'INCOMPLETE',
+      enum: ["INCOMPLETE", "ACTIVE", "PAST_DUE", "CANCELED"],
+      default: "INCOMPLETE",
     },
     paytabs: PayTabsInfoSchema,
-    next_billing_date: { 
-      type: Date, 
+    next_billing_date: {
+      type: Date,
       required: false,
-      index: true 
+      index: true,
     },
     billing_history: {
       type: [BillingHistorySchema],
-      default: []
+      default: [],
     },
-    paytabs_token_id: { type: Schema.Types.ObjectId, ref: 'PaymentMethod' },
+    paytabs_token_id: { type: Schema.Types.ObjectId, ref: "PaymentMethod" },
     metadata: { type: Schema.Types.Mixed },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // NOTE: This schema uses XOR validation (tenant_id OR owner_user_id, not both)
@@ -92,20 +100,30 @@ const SubscriptionSchema = new Schema(
 SubscriptionSchema.plugin(auditPlugin);
 
 // Validate subscriber_type matches tenant_id/owner_user_id (XOR validation)
-SubscriptionSchema.pre('validate', function(next) {
-  if (this.subscriber_type === 'CORPORATE') {
+SubscriptionSchema.pre("validate", function (next) {
+  if (this.subscriber_type === "CORPORATE") {
     if (!this.tenant_id) {
-      return next(new Error('tenant_id is required when subscriber_type is CORPORATE'));
+      return next(
+        new Error("tenant_id is required when subscriber_type is CORPORATE"),
+      );
     }
     if (this.owner_user_id) {
-      return next(new Error('owner_user_id must not be set when subscriber_type is CORPORATE'));
+      return next(
+        new Error(
+          "owner_user_id must not be set when subscriber_type is CORPORATE",
+        ),
+      );
     }
-  } else if (this.subscriber_type === 'OWNER') {
+  } else if (this.subscriber_type === "OWNER") {
     if (!this.owner_user_id) {
-      return next(new Error('owner_user_id is required when subscriber_type is OWNER'));
+      return next(
+        new Error("owner_user_id is required when subscriber_type is OWNER"),
+      );
     }
     if (this.tenant_id) {
-      return next(new Error('tenant_id must not be set when subscriber_type is OWNER'));
+      return next(
+        new Error("tenant_id must not be set when subscriber_type is OWNER"),
+      );
     }
   }
   next();
@@ -133,21 +151,21 @@ interface IBillingHistory {
   amount: number;
   currency: string;
   tran_ref?: string;
-  status: 'SUCCESS' | 'FAILED' | 'PENDING';
+  status: "SUCCESS" | "FAILED" | "PENDING";
   error?: string;
 }
 
 interface ISubscription extends Document {
   tenant_id?: Schema.Types.ObjectId;
   owner_user_id?: Schema.Types.ObjectId;
-  subscriber_type: 'CORPORATE' | 'OWNER';
+  subscriber_type: "CORPORATE" | "OWNER";
   modules: string[];
   seats: number;
-  billing_cycle: 'MONTHLY' | 'ANNUAL';
-  currency: 'USD' | 'SAR';
+  billing_cycle: "MONTHLY" | "ANNUAL";
+  currency: "USD" | "SAR";
   price_book_id: Schema.Types.ObjectId;
   amount: number;
-  status: 'INCOMPLETE' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+  status: "INCOMPLETE" | "ACTIVE" | "PAST_DUE" | "CANCELED";
   paytabs?: IPayTabsInfo;
   next_billing_date?: Date;
   billing_history: IBillingHistory[];
@@ -159,5 +177,8 @@ interface ISubscription extends Document {
   updatedBy?: Schema.Types.ObjectId;
 }
 
-const Subscription = getModel<ISubscription>('Subscription', SubscriptionSchema);
+const Subscription = getModel<ISubscription>(
+  "Subscription",
+  SubscriptionSchema,
+);
 export default Subscription;

@@ -11,7 +11,7 @@ aws configure
 Enter your real AWS credentials:
 
 - **AWS Access Key ID**: Replace `your_access_key` with your actual key
-- **AWS Secret Access Key**: Replace `your_secret_key` with your actual key  
+- **AWS Secret Access Key**: Replace `your_secret_key` with your actual key
 - **Default region name**: `me-south-1` (already correct)
 - **Default output format**: `json`
 
@@ -44,10 +44,10 @@ yarn add aws-sdk
 
 ```javascript
 // lib/secrets.js
-const AWS = require('aws-sdk');
+const AWS = require("aws-sdk");
 
 const secretsManager = new AWS.SecretsManager({
-  region: process.env.AWS_REGION || 'me-south-1'
+  region: process.env.AWS_REGION || "me-south-1",
 });
 
 let cachedSecret = null;
@@ -56,16 +56,18 @@ async function getJWTSecret() {
   if (cachedSecret) {
     return cachedSecret;
   }
-  
+
   try {
-    const result = await secretsManager.getSecretValue({ 
-      SecretId: 'fixzit/production/jwt-secret' 
-    }).promise();
-    
+    const result = await secretsManager
+      .getSecretValue({
+        SecretId: "fixzit/production/jwt-secret",
+      })
+      .promise();
+
     cachedSecret = result.SecretString;
     return cachedSecret;
   } catch (error) {
-    console.error('Error retrieving JWT secret:', error);
+    console.error("Error retrieving JWT secret:", error);
     // Fallback to environment variable in development
     return process.env.JWT_SECRET;
   }
@@ -78,19 +80,19 @@ module.exports = { getJWTSecret };
 
 ```javascript
 // In your main app file
-const { getJWTSecret } = require('./lib/secrets');
+const { getJWTSecret } = require("./lib/secrets");
 
 // Initialize JWT secret at startup
 let jwtSecret;
 async function initializeApp() {
   try {
     jwtSecret = await getJWTSecret();
-    console.log('JWT secret loaded from AWS Secrets Manager');
+    console.log("JWT secret loaded from AWS Secrets Manager");
   } catch (error) {
-    console.error('Failed to load JWT secret:', error);
+    console.error("Failed to load JWT secret:", error);
     process.exit(1);
   }
-  
+
   // Continue with app initialization
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
@@ -130,23 +132,21 @@ Your AWS user/role needs this policy:
 
 ```json
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "secretsmanager:GetSecretValue"
-            ],
-            "Resource": "arn:aws:secretsmanager:me-south-1:*:secret:fixzit/production/jwt-secret-*"
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["secretsmanager:GetSecretValue"],
+      "Resource": "arn:aws:secretsmanager:me-south-1:*:secret:fixzit/production/jwt-secret-*"
+    }
+  ]
 }
 ```
 
 ## STEP 6: VERIFICATION CHECKLIST
 
 - [ ] AWS CLI configured with real credentials
-- [ ] `./setup-aws-secrets.sh` runs successfully  
+- [ ] `./setup-aws-secrets.sh` runs successfully
 - [ ] Secret visible in AWS Console: Secrets Manager → `fixzit/production/jwt-secret`
 - [ ] Application code updated to use `getJWTSecret()`
 - [ ] AWS SDK installed (`npm install aws-sdk`)

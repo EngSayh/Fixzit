@@ -1,4 +1,5 @@
 # Phase 2 - Multi-PR Split Strategy
+
 **Date:** November 16, 2025  
 **Purpose:** Break Phase 2 into manageable, reviewable PRs  
 **Total Conflicts:** 65 files  
@@ -9,18 +10,21 @@
 ## PR Grouping Strategy
 
 ### 🎯 PR #1: Core Infrastructure & Models (Foundation)
+
 **Branch:** `feat/souq-phase2-pr1-infrastructure`  
 **Files:** ~20 files  
 **Conflicts:** Low (2-3)  
 **Review Time:** 30 minutes
 
 **Includes:**
+
 - Core Souq models (Product, Category, Brand)
 - Database schemas and migrations
 - Shared utilities (FSIN generator, feature flags)
 - MongoDB plugins and helpers
 
 **Files:**
+
 ```
 server/models/souq/Product.ts
 server/models/souq/Category.ts
@@ -37,18 +41,21 @@ types/souq/reviews.ts
 ---
 
 ### 📦 PR #2: Inventory Management (EPIC I - Part 1)
+
 **Branch:** `feat/souq-phase2-pr2-inventory`  
 **Files:** ~15 files  
 **Conflicts:** Medium (4-5)  
 **Review Time:** 45 minutes
 
 **Includes:**
+
 - Inventory models and services
 - Stock tracking APIs
 - Warehouse management
 - Reserve/release logic
 
 **Files:**
+
 ```
 server/models/souq/Inventory.ts
 server/models/souq/Listing.ts
@@ -66,18 +73,21 @@ app/api/souq/inventory/release/route.ts
 ---
 
 ### 📊 PR #3: Analytics Dashboard (EPIC G)
+
 **Branch:** `feat/souq-phase2-pr3-analytics`  
 **Files:** ~18 files  
 **Conflicts:** Medium (5-6)  
 **Review Time:** 1 hour
 
 **Includes:**
+
 - Analytics service
 - Dashboard APIs
 - Sales/traffic/customer analytics
 - UI components
 
 **Files:**
+
 ```
 services/souq/analytics/analytics-service.ts
 app/api/souq/analytics/dashboard/route.ts
@@ -97,12 +107,14 @@ app/marketplace/seller-central/analytics/page.tsx
 ---
 
 ### ⭐ PR #4: Reviews & Ratings System (EPIC H)
+
 **Branch:** `feat/souq-phase2-pr4-reviews`  
 **Files:** ~22 files  
 **Conflicts:** High (8-10)  
 **Review Time:** 1.5 hours
 
 **Includes:**
+
 - Review models and services
 - Rating aggregation
 - Buyer submission APIs
@@ -111,6 +123,7 @@ app/marketplace/seller-central/analytics/page.tsx
 - UI components
 
 **Files:**
+
 ```
 server/models/souq/Review.ts
 services/souq/reviews/review-service.ts
@@ -139,18 +152,21 @@ docs/api/souq-reviews.md
 ---
 
 ### 🏪 PR #5: Seller Central Dashboard (EPIC E - Part 1)
+
 **Branch:** `feat/souq-phase2-pr5-seller-dashboard`  
 **Files:** ~16 files  
 **Conflicts:** Medium (5-6)  
 **Review Time:** 1 hour
 
 **Includes:**
+
 - Seller dashboard
 - Performance metrics
 - Account health
 - KYC system
 
 **Files:**
+
 ```
 server/models/souq/Seller.ts
 server/models/souq/SellerMetrics.ts
@@ -175,18 +191,21 @@ app/marketplace/seller-central/kyc/page.tsx
 ---
 
 ### 💰 PR #6: Returns & Claims (EPIC E - Part 2)
+
 **Branch:** `feat/souq-phase2-pr6-returns-claims`  
 **Files:** ~20 files  
 **Conflicts:** High (7-9)  
 **Review Time:** 1.5 hours
 
 **Includes:**
+
 - Returns management (RMA)
 - Claims system
 - Refund processing
 - Investigation workflow
 
 **Files:**
+
 ```
 server/models/souq/RMA.ts
 server/models/souq/Claim.ts
@@ -212,18 +231,21 @@ app/marketplace/seller-central/claims/page.tsx
 ---
 
 ### 🚚 PR #7: Order Processing & Fulfillment (EPIC I - Part 2)
+
 **Branch:** `feat/souq-phase2-pr7-orders-fulfillment`  
 **Files:** ~14 files  
 **Conflicts:** Medium-High (6-7)  
 **Review Time:** 1 hour
 
 **Includes:**
+
 - Order processing
 - Fulfillment engine
 - Shipping integration
 - SLA tracking
 
 **Files:**
+
 ```
 server/models/souq/Order.ts
 services/souq/fulfillment-service.ts
@@ -242,18 +264,21 @@ lib/carriers/spl.ts
 ---
 
 ### 💳 PR #8: Settlements & Payouts (EPIC I - Part 3)
+
 **Branch:** `feat/souq-phase2-pr8-settlements`  
 **Files:** ~18 files  
 **Conflicts:** Medium (4-5)  
 **Review Time:** 1 hour
 
 **Includes:**
+
 - Settlement calculation
 - Balance management
 - Payout processing
 - Transaction history
 
 **Files:**
+
 ```
 server/models/souq/Settlement.ts
 server/models/souq/SettlementExtended.ts
@@ -278,18 +303,21 @@ app/marketplace/seller-central/settlements/page.tsx
 ---
 
 ### 🛍️ PR #9: Product Catalog & Variations (EPIC F)
+
 **Branch:** `feat/souq-phase2-pr9-catalog`  
 **Files:** ~12 files  
 **Conflicts:** Low-Medium (3-4)  
 **Review Time:** 45 minutes
 
 **Includes:**
+
 - Product catalog APIs
 - Variation management
 - BuyBox logic
 - Multi-currency support
 
 **Files:**
+
 ```
 app/api/souq/catalog/products/route.ts
 app/api/souq/products/route.ts
@@ -309,18 +337,21 @@ app/souq/catalog/page.tsx
 ---
 
 ### 🔍 PR #10: Search & Discovery
+
 **Branch:** `feat/souq-phase2-pr10-search`  
 **Files:** ~10 files  
 **Conflicts:** Medium (4-5)  
 **Review Time:** 45 minutes
 
 **Includes:**
+
 - Meilisearch integration
 - Search indexing
 - Filters and facets
 - Search UI
 
 **Files:**
+
 ```
 app/api/souq/search/route.ts
 services/souq/search-indexer-service.ts
@@ -337,12 +368,14 @@ jobs/search-index-jobs.ts
 ---
 
 ### 📢 PR #11: Advertising & Deals (EPIC F)
+
 **Branch:** `feat/souq-phase2-pr11-advertising`  
 **Files:** ~16 files  
 **Conflicts:** Low (2-3)  
 **Review Time:** 1 hour
 
 **Includes:**
+
 - Advertising campaigns
 - Sponsored products
 - Auction engine
@@ -350,6 +383,7 @@ jobs/search-index-jobs.ts
 - Deals management
 
 **Files:**
+
 ```
 server/models/souq/Advertising.ts
 server/models/souq/Deal.ts
@@ -372,18 +406,21 @@ app/marketplace/seller-central/advertising/page.tsx
 ---
 
 ### 💲 PR #12: Dynamic Pricing & Repricer
+
 **Branch:** `feat/souq-phase2-pr12-pricing`  
 **Files:** ~8 files  
 **Conflicts:** Low (1-2)  
 **Review Time:** 30 minutes
 
 **Includes:**
+
 - Auto-repricer service
 - Pricing rules
 - Competitor analysis
 - Price history
 
 **Files:**
+
 ```
 services/souq/auto-repricer-service.ts
 app/api/souq/repricer/settings/route.ts
@@ -399,12 +436,14 @@ app/marketplace/seller-central/pricing/page.tsx
 ---
 
 ### 🧪 PR #13: Testing & Documentation
+
 **Branch:** `feat/souq-phase2-pr13-testing-docs`  
 **Files:** ~10 files  
 **Conflicts:** None (0)  
 **Review Time:** 30 minutes
 
 **Includes:**
+
 - Test data seeding script
 - API documentation
 - Testing execution guide
@@ -412,6 +451,7 @@ app/marketplace/seller-central/pricing/page.tsx
 - Status reports
 
 **Files:**
+
 ```
 scripts/seed/souq-test-data.ts
 scripts/finance/seed-fx.ts
@@ -431,6 +471,7 @@ EXTERNAL_MODIFICATIONS_REVIEW.md
 ## Merge Order & Timeline
 
 ### Week 1 (Foundation)
+
 1. **Monday:** PR #1 (Infrastructure) - 30 min review
 2. **Tuesday:** PR #2 (Inventory) - 45 min review
 3. **Wednesday:** PR #9 (Catalog) - 45 min review
@@ -438,6 +479,7 @@ EXTERNAL_MODIFICATIONS_REVIEW.md
 5. **Friday:** PR #13 (Testing/Docs) - 30 min review
 
 ### Week 2 (Features)
+
 6. **Monday:** PR #3 (Analytics) - 1 hour review
 7. **Tuesday:** PR #4 (Reviews) - 1.5 hours review
 8. **Wednesday:** PR #5 (Seller Dashboard) - 1 hour review
@@ -445,6 +487,7 @@ EXTERNAL_MODIFICATIONS_REVIEW.md
 10. **Friday:** PR #12 (Pricing) - 30 min review
 
 ### Week 3 (Complex Features)
+
 11. **Monday:** PR #6 (Returns/Claims) - 1.5 hours review
 12. **Tuesday:** PR #7 (Fulfillment) - 1 hour review
 13. **Wednesday:** PR #8 (Settlements) - 1 hour review
@@ -454,12 +497,14 @@ EXTERNAL_MODIFICATIONS_REVIEW.md
 ## Implementation Steps
 
 ### 1. Abort Current Merge
+
 ```bash
 git merge --abort
 git stash pop  # Restore stashed changes if needed
 ```
 
 ### 2. Create PR Branches (Script)
+
 ```bash
 #!/bin/bash
 # Create all PR branches from feat/souq-marketplace-advanced
@@ -483,6 +528,7 @@ git push origin feat/souq-phase2-pr2-inventory
 ```
 
 ### 3. For Each PR
+
 1. Create branch from `feat/souq-marketplace-advanced`
 2. Cherry-pick only relevant commits
 3. Resolve conflicts for that PR only
@@ -498,6 +544,7 @@ git push origin feat/souq-phase2-pr2-inventory
 ## Conflict Resolution Strategy
 
 ### High-Conflict Files (Priority)
+
 These files appear in multiple PRs and need careful handling:
 
 1. **package.json / pnpm-lock.yaml** (All PRs)
@@ -529,26 +576,31 @@ These files appear in multiple PRs and need careful handling:
 ## Benefits of This Approach
 
 ### ✅ Easier Reviews
+
 - Each PR focuses on one feature
 - Reviewers understand context quickly
 - Faster approval cycles
 
 ### ✅ Incremental Deployment
+
 - Can deploy PRs 1-5 first (foundation)
 - PRs 6-12 add advanced features
 - Rollback is easier
 
 ### ✅ Parallel Development
+
 - Multiple developers can work on different PRs
 - Less merge conflict hell
 - Faster overall delivery
 
 ### ✅ Better Testing
+
 - Each PR can be tested independently
 - Easier to identify breaking changes
 - Staging validation per feature
 
 ### ✅ Risk Mitigation
+
 - If one PR has issues, others proceed
 - Can defer complex PRs if needed
 - Production deployment is safer
@@ -558,36 +610,45 @@ These files appear in multiple PRs and need careful handling:
 ## PR Templates
 
 ### PR #1 Example
+
 **Title:** `[Phase 2 - PR 1/13] Core Infrastructure & Models`
 
 **Description:**
+
 ```markdown
 ## Overview
+
 Foundation for Souq marketplace - core models, utilities, and database schemas.
 
 ## What's Included
+
 - ✅ Product, Category, Brand models
 - ✅ FSIN generator utility
 - ✅ Feature flags system
 - ✅ Mongoose compatibility types
 
 ## Dependencies
+
 - None (foundation PR)
 
 ## Testing
+
 - Unit tests for FSIN generator
 - Model validation tests
 - TypeScript compilation verified
 
 ## Deployment Notes
+
 - No database migrations needed
 - No breaking changes
 - Safe to merge
 
 ## Related PRs
+
 - Blocks: PR #2 (Inventory), PR #9 (Catalog)
 
 ## Checklist
+
 - [x] Code reviewed
 - [x] Tests passing
 - [x] Documentation updated
@@ -600,16 +661,19 @@ Foundation for Souq marketplace - core models, utilities, and database schemas.
 ## Next Steps
 
 **Immediate:**
+
 1. Abort current merge
 2. Create branch creation script
 3. Start with PR #1 (Infrastructure)
 
 **Short-term:**
+
 1. Create all 13 PR branches
 2. Submit PRs 1-5 for review
 3. Begin PR #1 merge process
 
 **Long-term:**
+
 1. Complete all 13 PRs
 2. Update main branch incrementally
 3. Full Phase 2 deployment

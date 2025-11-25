@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
-import { logger } from '@/lib/logger';
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface Product {
   fsin: string;
@@ -28,7 +28,12 @@ interface SponsoredBrandBannerProps {
     category?: string;
   };
   onImpression?: (_bidId: string, _campaignId: string) => void;
-  onClick?: (_bidId: string, _campaignId: string, _productId: string, _actualCpc: number) => void;
+  onClick?: (
+    _bidId: string,
+    _campaignId: string,
+    _productId: string,
+    _actualCpc: number,
+  ) => void;
 }
 
 export function SponsoredBrandBanner({
@@ -63,8 +68,8 @@ export function SponsoredBrandBanner({
       },
       {
         threshold: 0.3, // 30% of banner must be visible
-        rootMargin: '0px',
-      }
+        rootMargin: "0px",
+      },
     );
 
     if (containerRef.current) {
@@ -90,13 +95,13 @@ export function SponsoredBrandBanner({
 
     const scrollElement = scrollRef.current;
     if (scrollElement) {
-      scrollElement.addEventListener('scroll', updateScrollButtons);
+      scrollElement.addEventListener("scroll", updateScrollButtons);
       updateScrollButtons();
     }
 
     return () => {
       if (scrollElement) {
-        scrollElement.removeEventListener('scroll', updateScrollButtons);
+        scrollElement.removeEventListener("scroll", updateScrollButtons);
       }
     };
   }, []);
@@ -109,9 +114,9 @@ export function SponsoredBrandBanner({
         onImpression(bidId, campaignId);
       }
 
-      await fetch('/api/souq/ads/impressions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/souq/ads/impressions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bidId,
           campaignId,
@@ -120,7 +125,7 @@ export function SponsoredBrandBanner({
         }),
       });
     } catch (error) {
-      logger.error('[SponsoredBrandBanner] Failed to track impression', error);
+      logger.error("[SponsoredBrandBanner] Failed to track impression", error);
     }
   };
 
@@ -132,9 +137,9 @@ export function SponsoredBrandBanner({
         onClick(bidId, campaignId, productId, actualCpc);
       }
 
-      await fetch('/api/souq/ads/clicks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/souq/ads/clicks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bidId,
           campaignId,
@@ -147,17 +152,17 @@ export function SponsoredBrandBanner({
 
       window.location.href = `/souq/products/${productId}`;
     } catch (error) {
-      logger.error('[SponsoredBrandBanner] Failed to track click', error);
+      logger.error("[SponsoredBrandBanner] Failed to track click", error);
       window.location.href = `/souq/products/${productId}`;
     }
   };
 
-  const scroll = (direction: 'left' | 'right') => {
+  const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
       const scrollAmount = 300;
       scrollRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth',
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
       });
     }
   };
@@ -201,7 +206,7 @@ export function SponsoredBrandBanner({
           {/* Scroll Left Button */}
           {canScrollLeft && (
             <button
-              onClick={() => scroll('left')}
+              onClick={() => scroll("left")}
               className="absolute start-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
               aria-label="Scroll left"
             >
@@ -213,7 +218,7 @@ export function SponsoredBrandBanner({
           <div
             ref={scrollRef}
             className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {products.map((product) => (
               <Link
@@ -262,7 +267,7 @@ export function SponsoredBrandBanner({
           {/* Scroll Right Button */}
           {canScrollRight && (
             <button
-              onClick={() => scroll('right')}
+              onClick={() => scroll("right")}
               className="absolute end-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
               aria-label="Scroll right"
             >

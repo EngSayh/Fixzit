@@ -17,5 +17,6 @@ jobs:
       - name: PR Agent action step
         uses: qodo-ai/pr-agent@main
         env:
-          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Secrets are configured in GitHub Settings > Secrets and variables > Actions
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY || '' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN || '' }}

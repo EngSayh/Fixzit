@@ -1,0 +1,19 @@
+# Gitleaks configuration for Fixzit
+# Allows example API keys and tokens in documentation
+
+[allowlist]
+description = "Allow example credentials in documentation and migration guides"
+
+# Allow entire documentation directories
+paths = [
+  '''docs/migrations/.*\.md$''',
+  '''docs/api/.*\.md$''',
+  '''README\.md$''',
+  '''.*\.example$'''
+]
+
+# Allow common placeholder patterns
+regexes = [
+  '''YOUR_TOKEN|YOUR_API_KEY|your-secret-key|example-token|xxx-xxx-xxx''',
+  '''Authorization:\s+Bearer\s+(YOUR_|your-|example-)'''
+]

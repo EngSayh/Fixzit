@@ -9,99 +9,130 @@ import type { Intent } from "@/src/types/copilot";
 /**
  * Classifies user message into one of 10 intents using pattern matching
  * Supports both English and Arabic queries with RTL awareness
- * 
+ *
  * @param text - User's message text
  * @param locale - Current locale ('en' | 'ar')
  * @returns Detected intent for routing to appropriate handler
  */
-export function classifyIntent(text: string, _locale: 'en' | 'ar'): Intent {
+export function classifyIntent(text: string, _locale: "en" | "ar"): Intent {
   const lower = text.toLowerCase();
 
   // APARTMENT_SEARCH: Real estate queries (high priority for Aqar module integration)
   // EN: apartment, flat, unit, studio, bedroom, 2br, 3br, available, vacant, for rent, search
   // AR: شقة, وحدة, متاح, للإيجار, بحث, استوديو, غرفة
   if (
-    (/(apartment|flat|unit|studio|bedroom|2br|3br|4br|شقة|وحدة|غرفة|استوديو)/.test(lower)) &&
-    (/(search|find|available|vacant|for rent|looking for|بحث|متاح|للإيجار|أبحث عن|ابحث|اريد)/.test(lower))
+    /(apartment|flat|unit|studio|bedroom|2br|3br|4br|شقة|وحدة|غرفة|استوديو)/.test(
+      lower,
+    ) &&
+    /(search|find|available|vacant|for rent|looking for|بحث|متاح|للإيجار|أبحث عن|ابحث|اريد)/.test(
+      lower,
+    )
   ) {
-    return 'APARTMENT_SEARCH';
+    return "APARTMENT_SEARCH";
   }
 
   // LIST_MY_TICKETS: Work order status queries
   // EN: my tickets, my work orders, status, track, show me
   // AR: طلباتي, تذاكري, حالة, متابعة, أرني
   if (
-    /(my (ticket|work order|request)|show me|track|status|list|طلباتي|تذاكري|أرني|اعرض|حالة|متابعة)/i.test(lower)
+    /(my (ticket|work order|request)|show me|track|status|list|طلباتي|تذاكري|أرني|اعرض|حالة|متابعة)/i.test(
+      lower,
+    )
   ) {
-    return 'LIST_MY_TICKETS';
+    return "LIST_MY_TICKETS";
   }
 
   // CREATE_WORK_ORDER: Maintenance/service requests
   // EN: create, new ticket, report, maintenance, repair, fix, broken
   // AR: إنشاء, تذكرة جديدة, صيانة, إصلاح, عطل, خلل
   if (
-    /(create|new|report|maintenance|repair|fix|broken|issue|problem|إنشاء|تذكرة|صيانة|إصلاح|عطل|خلل|مشكلة)/i.test(lower) &&
+    /(create|new|report|maintenance|repair|fix|broken|issue|problem|إنشاء|تذكرة|صيانة|إصلاح|عطل|خلل|مشكلة)/i.test(
+      lower,
+    ) &&
     /(ticket|work order|request|طلب|تذكرة)/i.test(lower)
   ) {
-    return 'CREATE_WORK_ORDER';
+    return "CREATE_WORK_ORDER";
   }
 
   // DISPATCH: Technician assignment (FM Manager, Admin roles)
   // EN: dispatch, assign, send technician, allocate
   // AR: توجيه, تعيين, إرسال فني, تخصيص
-  if (/(dispatch|assign|send (technician|tech)|allocate|توجيه|تعيين|إرسال فني|تخصيص فني|فني)/i.test(lower)) {
-    return 'DISPATCH';
+  if (
+    /(dispatch|assign|send (technician|tech)|allocate|توجيه|تعيين|إرسال فني|تخصيص فني|فني)/i.test(
+      lower,
+    )
+  ) {
+    return "DISPATCH";
   }
 
   // SCHEDULE_VISIT: Appointment scheduling
   // EN: schedule, appointment, visit, book, set time
   // AR: جدولة, موعد, زيارة, حجز, تحديد وقت
-  if (/(schedule|appointment|visit|book|set time|meeting|جدولة|موعد|زيارة|حجز|تحديد وقت)/i.test(lower)) {
-    return 'SCHEDULE_VISIT';
+  if (
+    /(schedule|appointment|visit|book|set time|meeting|جدولة|موعد|زيارة|حجز|تحديد وقت)/i.test(
+      lower,
+    )
+  ) {
+    return "SCHEDULE_VISIT";
   }
 
   // UPLOAD_PHOTO: Photo/document attachment
   // EN: upload, attach, photo, picture, image, document
   // AR: رفع, إرفاق, صورة, مستند, ملف
-  if (/(upload|attach|photo|picture|image|document|file|رفع|إرفاق|صورة|مستند|ملف)/i.test(lower)) {
-    return 'UPLOAD_PHOTO';
+  if (
+    /(upload|attach|photo|picture|image|document|file|رفع|إرفاق|صورة|مستند|ملف)/i.test(
+      lower,
+    )
+  ) {
+    return "UPLOAD_PHOTO";
   }
 
   // APPROVE_QUOTATION: Quotation approval (Finance, Admin roles)
   // EN: approve, accept, quotation, quote, estimate
   // AR: اعتماد, قبول, عرض سعر, تسعير
-  if (/(approve|accept|confirm|اعتماد|قبول|موافقة)/i.test(lower) && /(quotation|quote|estimate|عرض سعر|تسعير)/i.test(lower)) {
-    return 'APPROVE_QUOTATION';
+  if (
+    /(approve|accept|confirm|اعتماد|قبول|موافقة)/i.test(lower) &&
+    /(quotation|quote|estimate|عرض سعر|تسعير)/i.test(lower)
+  ) {
+    return "APPROVE_QUOTATION";
   }
 
   // OWNER_STATEMENTS: Financial reports (Finance, Owner, Property Manager roles)
   // EN: owner statement, financial report, income, expenses, revenue
   // AR: كشف حساب مالك, كشف مالك, تقرير مالي, دخل, مصروفات
-  if (/(owner.*statement|owner.*report|financial.*statement|كشف حساب مالك|كشف مالك|تقرير مالي)/i.test(lower)) {
-    return 'OWNER_STATEMENTS';
+  if (
+    /(owner.*statement|owner.*report|financial.*statement|كشف حساب مالك|كشف مالك|تقرير مالي)/i.test(
+      lower,
+    )
+  ) {
+    return "OWNER_STATEMENTS";
   }
 
   // PERSONAL: User-specific data (requires authentication)
   // EN: my, mine, personal, account, profile
   // AR: الخاص بي, حسابي, ملفي, شخصي
   if (
-    /(my|mine|personal|account|profile|invoice|contract|lease|payment|الخاص بي|حسابي|ملفي|شخصي|عقدي|دفعاتي|فاتورتي)/i.test(lower)
+    /(my|mine|personal|account|profile|invoice|contract|lease|payment|الخاص بي|حسابي|ملفي|شخصي|عقدي|دفعاتي|فاتورتي)/i.test(
+      lower,
+    )
   ) {
-    return 'PERSONAL';
+    return "PERSONAL";
   }
 
   // GENERAL: Default fallback for general guidance/knowledge base queries
-  return 'GENERAL';
+  return "GENERAL";
 }
 
 /**
  * Detects sentiment in user message for escalation triggers
  * Used to identify frustrated/angry users requiring immediate support
- * 
+ *
  * @param text - User's message text
  * @returns Sentiment score: 'negative' | 'neutral' | 'positive'
  */
-export function detectSentiment(text: string): 'negative' | 'neutral' | 'positive' {
+export function detectSentiment(
+  text: string,
+): "negative" | "neutral" | "positive" {
   const lower = text.toLowerCase();
 
   // Negative sentiment patterns (frustration, anger, urgency)
@@ -125,30 +156,33 @@ export function detectSentiment(text: string): 'negative' | 'neutral' | 'positiv
   let score = 0;
 
   // Check negative patterns (weight: -1 each)
-  negativePatterns.forEach(pattern => {
+  negativePatterns.forEach((pattern) => {
     if (pattern.test(lower)) score -= 1;
   });
 
   // Check positive patterns (weight: +1 each)
-  positivePatterns.forEach(pattern => {
+  positivePatterns.forEach((pattern) => {
     if (pattern.test(lower)) score += 1;
   });
 
   // Classify based on net score
-  if (score < -1) return 'negative';
-  if (score > 0) return 'positive';
-  return 'neutral';
+  if (score < -1) return "negative";
+  if (score > 0) return "positive";
+  return "neutral";
 }
 
 /**
  * Extracts key parameters from apartment search queries
  * Used to build MongoDB queries for property/unit filtering
- * 
+ *
  * @param text - User's search query
  * @param locale - Current locale
  * @returns Extracted parameters (bedrooms, city, priceRange, etc.)
  */
-export function extractApartmentSearchParams(text: string, _locale: 'en' | 'ar'): {
+export function extractApartmentSearchParams(
+  text: string,
+  _locale: "en" | "ar",
+): {
   bedrooms?: number;
   city?: string;
   priceRange?: { min?: number; max?: number };
@@ -167,16 +201,16 @@ export function extractApartmentSearchParams(text: string, _locale: 'en' | 'ar')
 
   // Extract city (Riyadh, Jeddah, Dammam, etc.)
   const cityPatterns = [
-    { en: 'riyadh', ar: 'الرياض', key: 'Riyadh' },
-    { en: 'jeddah', ar: 'جدة', key: 'Jeddah' },
-    { en: 'dammam', ar: 'الدمام', key: 'Dammam' },
-    { en: 'makkah', ar: 'مكة', key: 'Makkah' },
-    { en: 'medina', ar: 'المدينة', key: 'Medina' },
-    { en: 'khobar', ar: 'الخبر', key: 'Khobar' },
+    { en: "riyadh", ar: "الرياض", key: "Riyadh" },
+    { en: "jeddah", ar: "جدة", key: "Jeddah" },
+    { en: "dammam", ar: "الدمام", key: "Dammam" },
+    { en: "makkah", ar: "مكة", key: "Makkah" },
+    { en: "medina", ar: "المدينة", key: "Medina" },
+    { en: "khobar", ar: "الخبر", key: "Khobar" },
   ];
 
   for (const city of cityPatterns) {
-    if (new RegExp(`\\b(${city.en}|${city.ar})\\b`, 'i').test(lower)) {
+    if (new RegExp(`\\b(${city.en}|${city.ar})\\b`, "i").test(lower)) {
       params.city = city.key;
       break;
     }
@@ -190,7 +224,9 @@ export function extractApartmentSearchParams(text: string, _locale: 'en' | 'ar')
       max: parseInt(priceMatch[2], 10),
     };
   } else {
-    const singlePriceMatch = lower.match(/(under|below|less than|أقل من|تحت)\s*(\d+)/i);
+    const singlePriceMatch = lower.match(
+      /(under|below|less than|أقل من|تحت)\s*(\d+)/i,
+    );
     if (singlePriceMatch) {
       params.priceRange = { max: parseInt(singlePriceMatch[2], 10) };
     }

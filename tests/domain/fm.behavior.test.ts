@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 
 import {
   canTransition,
@@ -8,52 +8,52 @@ import {
   WOStatus,
   SubmoduleKey,
   type ResourceCtx,
-} from '@/domain/fm/fm.behavior';
+} from "@/domain/fm/fm.behavior";
 
-describe('FM Work Order FSM transition validation', () => {
+describe("FM Work Order FSM transition validation", () => {
   const baseCtx: ResourceCtx = {
-    orgId: 'org-1',
+    orgId: "org-1",
     plan: Plan.PRO,
     role: Role.TECHNICIAN,
-    userId: 'tech-1',
+    userId: "tech-1",
     isOrgMember: true,
     uploadedMedia: [],
     isTechnicianAssigned: true,
   };
 
-  it('requires BEFORE media for assessment -> estimate', () => {
+  it("requires BEFORE media for assessment -> estimate", () => {
     const invalid = canTransition(
       WOStatus.ASSESSMENT,
       WOStatus.ESTIMATE_PENDING,
       Role.TECHNICIAN,
-      baseCtx
+      baseCtx,
     );
     expect(invalid).toBe(false);
 
     const ctxWithMedia: ResourceCtx = {
       ...baseCtx,
-      uploadedMedia: ['BEFORE'],
+      uploadedMedia: ["BEFORE"],
     };
     const valid = canTransition(
       WOStatus.ASSESSMENT,
       WOStatus.ESTIMATE_PENDING,
       Role.TECHNICIAN,
-      ctxWithMedia
+      ctxWithMedia,
     );
     expect(valid).toBe(true);
   });
 
-  it('requires technician assignment before starting work', () => {
+  it("requires technician assignment before starting work", () => {
     const ctxWithoutAssignment: ResourceCtx = {
       ...baseCtx,
-      uploadedMedia: ['BEFORE'],
+      uploadedMedia: ["BEFORE"],
       isTechnicianAssigned: false,
     };
     const blocked = canTransition(
       WOStatus.APPROVED,
       WOStatus.IN_PROGRESS,
       Role.TECHNICIAN,
-      ctxWithoutAssignment
+      ctxWithoutAssignment,
     );
     expect(blocked).toBe(false);
 
@@ -65,28 +65,28 @@ describe('FM Work Order FSM transition validation', () => {
       WOStatus.APPROVED,
       WOStatus.IN_PROGRESS,
       Role.TECHNICIAN,
-      ctxWithAssignment
+      ctxWithAssignment,
     );
     expect(allowed).toBe(true);
   });
 
-  it('blocks property owners from acting on properties they do not own', () => {
+  it("blocks property owners from acting on properties they do not own", () => {
     const ownerCtx: ResourceCtx = {
-      orgId: 'org-1',
+      orgId: "org-1",
       plan: Plan.STANDARD,
       role: Role.PROPERTY_OWNER,
-      userId: 'owner-1',
+      userId: "owner-1",
       isOrgMember: true,
-      propertyId: 'prop-1',
+      propertyId: "prop-1",
       isOwnerOfProperty: false,
     };
 
-    const allowed = can(SubmoduleKey.WO_TRACK_ASSIGN, 'approve', {
+    const allowed = can(SubmoduleKey.WO_TRACK_ASSIGN, "approve", {
       ...ownerCtx,
     });
     expect(allowed).toBe(false);
 
-    const nowOwner = can(SubmoduleKey.WO_TRACK_ASSIGN, 'approve', {
+    const nowOwner = can(SubmoduleKey.WO_TRACK_ASSIGN, "approve", {
       ...ownerCtx,
       isOwnerOfProperty: true,
     });

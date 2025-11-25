@@ -11,7 +11,7 @@
 ### Findings
 
 - **Total API Routes:** 218+ route files
-- **Routes with Rate Limiting:** ~10 (4.6% coverage)  
+- **Routes with Rate Limiting:** ~10 (4.6% coverage)
 - **Routes with Standardized Error Handling:** ~2 (0.9% coverage)
 - **Routes with OpenAPI Documentation:** 0 (0% coverage)
 - **Routes with Zod Validation:** ~30 (13.8% coverage)
@@ -104,8 +104,8 @@ import {
   zodValidationError,
   rateLimitError,
   internalServerError,
-  handleApiError
-} from '@/server/utils/errorResponses';
+  handleApiError,
+} from "@/server/utils/errorResponses";
 ```
 
 **Usage:**
@@ -139,17 +139,17 @@ catch (error) {
 **Existing Utility:** `/workspaces/Fixzit/server/security/rateLimit.ts`
 
 ```typescript
-import { rateLimit } from '@/server/security/rateLimit';
+import { rateLimit } from "@/server/security/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
-    
+
     // Rate limiting (adjust limits per route sensitivity)
     const key = `route-name:${user.orgId}`;
     const rl = rateLimit(key, 20, 60_000); // 20 requests per minute
     if (!rl.allowed) return rateLimitError();
-    
+
     // ... rest of handler
   } catch (error) {
     return handleApiError(error);
@@ -214,19 +214,19 @@ export async function POST(req: NextRequest) { ... }
 ### Pattern 4: Complete Route Template
 
 ```typescript
-import { NextRequest } from 'next/server';
-import { z } from 'zod';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { rateLimit } from '@/server/security/rateLimit';
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { rateLimit } from "@/server/security/rateLimit";
 import {
   unauthorizedError,
   forbiddenError,
   notFoundError,
   zodValidationError,
   rateLimitError,
-  handleApiError
-} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
 
 // Zod validation schema
 const CreateResourceSchema = z.object({
@@ -247,38 +247,33 @@ export async function POST(req: NextRequest) {
     // 1. Authentication
     const user = await getSessionUser(req);
     if (!user) return unauthorizedError();
-    
+
     // 2. Authorization
-    if (!['admin', 'manager'].includes(user.role)) {
-      return forbiddenError('Only admins and managers can create resources');
+    if (!["admin", "manager"].includes(user.role)) {
+      return forbiddenError("Only admins and managers can create resources");
     }
-    
+
     // 3. Rate Limiting
     const key = `create-resource:${user.orgId}`;
     const rl = rateLimit(key, 20, 60_000);
     if (!rl.allowed) return rateLimitError();
-    
+
     // 4. Input Validation
     const body = await req.json();
     const payload = CreateResourceSchema.parse(body);
-    
+
     // 5. Database Connection
     await connectToDatabase();
-    
+
     // 6. Tenant Isolation
     const resource = await Resource.create({
       ...payload,
       orgId: user.orgId,
-      createdBy: user.id
+      createdBy: user.id,
     });
-    
+
     // 7. Success Response with Security Headers
-    return createSecureResponse(
-      { ok: true, data: resource },
-      201,
-      req
-    );
-    
+    return createSecureResponse({ ok: true, data: resource }, 201, req);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
@@ -298,20 +293,19 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
     if (!user) return unauthorizedError();
-    
+
     const key = `list-resources:${user.orgId}`;
     const rl = rateLimit(key, 60, 60_000);
     if (!rl.allowed) return rateLimitError();
-    
+
     await connectToDatabase();
-    
+
     // Tenant isolation
     const resources = await Resource.find({ orgId: user.orgId })
       .sort({ createdAt: -1 })
       .limit(100);
-    
+
     return createSecureResponse({ ok: true, data: resources }, 200, req);
-    
   } catch (error) {
     return handleApiError(error);
   }
@@ -330,7 +324,7 @@ High-traffic routes that MUST have all patterns:
 
 ```
 1. app/api/auth/login/route.ts
-2. app/api/auth/signup/route.ts  
+2. app/api/auth/signup/route.ts
 3. app/api/auth/me/route.ts
 4. app/api/payments/paytabs/callback/route.ts
 5. app/api/payments/create/route.ts

@@ -1,7 +1,9 @@
 # Google OAuth Setup Guide
 
 ## 🎯 Problem
+
 You're seeing this warning in tests/development:
+
 ```
 ⚠️  Google OAuth not configured. Only credentials authentication will be available.
 ```
@@ -65,21 +67,24 @@ This happens because `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment v
 #### For Development (`.env.local`)
 
 1. **Copy the example file** (if you haven't already):
+
    ```bash
    cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
    cp .env.example .env.local
    ```
 
 2. **Edit `.env.local`**:
+
    ```bash
    # Using nano
    nano .env.local
-   
+
    # Or using VS Code
    code .env.local
    ```
 
 3. **Add your Google credentials**:
+
    ```env
    # Find the Google OAuth section and replace with your credentials:
    GOOGLE_CLIENT_ID=your-actual-client-id.apps.googleusercontent.com
@@ -93,16 +98,19 @@ This happens because `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment v
 #### For Testing (`.env.test`)
 
 1. **Copy the test example file**:
+
    ```bash
    cp .env.test.example .env.test
    ```
 
 2. **Edit `.env.test`** with the same Google credentials:
+
    ```bash
    nano .env.test
    ```
 
 3. **Add your Google credentials**:
+
    ```env
    GOOGLE_CLIENT_ID=your-actual-client-id.apps.googleusercontent.com
    GOOGLE_CLIENT_SECRET=GOCSPX-your-actual-client-secret
@@ -124,7 +132,6 @@ This happens because `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment v
    - Name: `GOOGLE_CLIENT_ID`
    - Value: Your Client ID
    - Click "Add secret"
-   
    - Click "New repository secret" again
    - Name: `GOOGLE_CLIENT_SECRET`
    - Value: Your Client Secret
@@ -141,16 +148,19 @@ This happens because `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment v
 #### Test Locally
 
 1. **Restart your dev server**:
+
    ```bash
    pnpm dev
    ```
 
 2. **Check the console** - You should see:
+
    ```
    ✅ Google OAuth configured successfully.
    ```
-   
+
    Instead of:
+
    ```
    ⚠️  Google OAuth not configured.
    ```
@@ -163,6 +173,7 @@ This happens because `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment v
 #### Test E2E Tests
 
 1. **Run Playwright tests**:
+
    ```bash
    pnpm exec playwright test tests/specs/smoke.spec.ts --project="Mobile:AR:Tenant"
    ```
@@ -177,6 +188,7 @@ This happens because `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment v
 ## 🔒 Security Best Practices
 
 ### ✅ DO:
+
 - ✅ Keep separate credentials for **development** and **production**
 - ✅ Add `.env.local` and `.env.test` to `.gitignore` (already done)
 - ✅ Rotate secrets if accidentally committed to git
@@ -184,6 +196,7 @@ This happens because `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment v
 - ✅ Restrict OAuth redirect URIs to your actual domains
 
 ### ❌ DON'T:
+
 - ❌ **Never commit** `.env.local` or `.env.test` to git
 - ❌ **Never share** your Client Secret publicly
 - ❌ **Never use** production credentials in development
@@ -198,6 +211,7 @@ This happens because `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment v
 **Cause**: Environment variables not loaded
 
 **Solutions**:
+
 1. Verify file names are exact: `.env.local` (not `.env.local.txt`)
 2. Restart your dev server (`Ctrl+C`, then `pnpm dev`)
 3. Check file contents:
@@ -211,6 +225,7 @@ This happens because `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment v
 **Cause**: Redirect URI not authorized in Google Console
 
 **Solution**:
+
 1. Go to Google Cloud Console → Credentials
 2. Edit your OAuth 2.0 Client ID
 3. Add exact redirect URI:
@@ -225,6 +240,7 @@ This happens because `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment v
 **Cause**: GitHub Secrets not configured or not passed to workflow
 
 **Solution**:
+
 1. Verify secrets in GitHub: Settings → Secrets → Actions
 2. Check workflow file uses secrets:
    ```yaml
@@ -239,6 +255,7 @@ This happens because `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment v
 **Cause**: Only one credential is set (partial configuration)
 
 **Solution**:
+
 - Either set **both** credentials, or remove **both** to use credentials-only auth
 - Check both `.env.local` and `.env.test` files
 

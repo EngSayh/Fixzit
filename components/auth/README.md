@@ -5,9 +5,11 @@ This directory contains reusable UI components for authentication flows.
 ## Components
 
 ### `LoginHeader.tsx`
+
 **Purpose:** Branded header for login page (logo + title)  
 **Used by:** `app/login/page.tsx`  
 **Features:**
+
 - Displays app logo
 - Shows localized welcome message
 - RTL layout support
@@ -15,15 +17,18 @@ This directory contains reusable UI components for authentication flows.
 ---
 
 ### `LoginForm.tsx`
+
 **Purpose:** Main login form for email/password credentials  
 **Used by:** `app/login/page.tsx`  
 **Features:**
+
 - Email/Employee Number & password credential login
 - Robust client-side validation and error handling
 - `rememberMe` functionality
 - Redirects to dashboard on success
 
 **Dependencies:**
+
 - `next-auth/react` - `signIn` function
 - `components/ui/button` - Button component
 - `components/ui/input` - Input fields
@@ -32,9 +37,11 @@ This directory contains reusable UI components for authentication flows.
 ---
 
 ### `SSOButtons.tsx`
+
 **Purpose:** Renders a divider and all configured SSO (OAuth) provider buttons  
 **Used by:** `app/login/page.tsx`  
 **Features:**
+
 - Displays "Or continue with" localized divider
 - Acts as a container for one or more SSO buttons
 - RTL layout support
@@ -42,9 +49,11 @@ This directory contains reusable UI components for authentication flows.
 ---
 
 ### `GoogleSignInButton.tsx`
+
 **Purpose:** A self-contained button to initiate the Google OAuth flow  
 **Used by:** `components/auth/SSOButtons.tsx`  
 **Features:**
+
 - Renders the Google brand icon and localized text
 - Handles `signIn('google')` flow
 - Manages its own loading and error states
@@ -52,9 +61,11 @@ This directory contains reusable UI components for authentication flows.
 ---
 
 ### `LoginFooter.tsx`
+
 **Purpose:** Footer with "Request a Demo" and "Back to Home" links  
 **Used by:** `app/login/page.tsx`  
 **Features:**
+
 - Localized footer links
 - "Request a Demo" link for new enterprise leads
 - "Back to Home" link with RTL-aware arrow
@@ -62,9 +73,11 @@ This directory contains reusable UI components for authentication flows.
 ---
 
 ### `LoginSuccess.tsx`
+
 **Purpose:** Post-login success screen with loading state  
 **Used by:** `app/login/page.tsx` (or parent logic)  
 **Features:**
+
 - Success message display
 - Animated loading indicator
 - Shown briefly before auto-redirect
@@ -72,14 +85,17 @@ This directory contains reusable UI components for authentication flows.
 ---
 
 ### `LoginPrompt.tsx`
+
 **Purpose:** Inline prompt for unauthenticated users viewing protected content  
 **Used by:** Marketplace/Aqar Souq components (e.g., "Save" button)  
 **Features:**
+
 - Lightweight auth check using `useSession`
 - "Sign in to continue" message
 - Link to `/login` page
 
 **Dependencies:**
+
 - `next-auth/react` - `useSession` hook
 - `next/link` - Navigation
 - `contexts/TranslationContext` - i18n
@@ -98,7 +114,7 @@ LoginForm (email/password)
 SSOButtons (divider + OAuth)
     ↓
 LoginFooter (links)
-    
+
 --- (On Form Submit) ---
     ↓
     ├─ Success → LoginSuccess → redirect to /dashboard
@@ -108,12 +124,13 @@ LoginFooter (links)
 ## Usage Examples
 
 ### Main Login Page
+
 ```tsx
 // app/login/page.tsx
-import LoginHeader from '@/components/auth/LoginHeader';
-import LoginForm from '@/components/auth/LoginForm';
-import SSOButtons from '@/components/auth/SSOButtons';
-import LoginFooter from '@/components/auth/LoginFooter';
+import LoginHeader from "@/components/auth/LoginHeader";
+import LoginForm from "@/components/auth/LoginForm";
+import SSOButtons from "@/components/auth/SSOButtons";
+import LoginFooter from "@/components/auth/LoginFooter";
 
 export default function LoginPage() {
   return (
@@ -128,9 +145,10 @@ export default function LoginPage() {
 ```
 
 ### Inline Login Prompt
+
 ```tsx
 // Any component that needs auth check
-import LoginPrompt from '@/components/LoginPrompt';
+import LoginPrompt from "@/components/LoginPrompt";
 
 export default function ProtectedContent() {
   return (
@@ -167,13 +185,16 @@ export default function ProtectedContent() {
 ## Configuration
 
 ### NextAuth Setup
+
 - **Provider:** Google OAuth (configured in `auth.config.ts`)
 - **Provider:** Credentials (email/password)
 - **Session:** JWT-based (stored in secure HTTP-only cookie)
 - **Callbacks:** Custom `signIn`, `jwt`, `session` callbacks for role/user data
 
 ### Environment Variables
+
 Required in `.env.local`:
+
 ```bash
 NEXTAUTH_SECRET=<generated-secret>
 NEXTAUTH_URL=http://localhost:3000
@@ -184,12 +205,14 @@ GOOGLE_CLIENT_SECRET=<your-google-client-secret>
 ## Testing
 
 ### Unit Tests
+
 - `components/__tests__/LoginForm.test.tsx` (if exists)
 - Test credential validation
 - Test OAuth button rendering
 - Test error handling
 
 ### E2E Tests
+
 - Test full login flow with Playwright
 - Test redirect after login
 - Test session persistence

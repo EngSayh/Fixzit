@@ -29,7 +29,7 @@ cat > file.txt << 'EOF'
 content
 EOF
 
-# ❌ FAILS in PowerShell  
+# ❌ FAILS in PowerShell
 find . -name "*.ts" -o -name "*.js"
 
 # ❌ FAILS in PowerShell
@@ -197,14 +197,14 @@ node script.js          # For Node scripts
 
 ## PowerShell vs Bash Quick Reference
 
-| Task | PowerShell | Bash |
-|------|-----------|------|
-| Create file | `@'content'@ \| Set-Content file.txt` | `cat > file.txt << 'EOF'...` |
-| Find files | `Get-ChildItem -Recurse -Filter *.ts` | `find . -name "*.ts"` |
+| Task        | PowerShell                                 | Bash                              |
+| ----------- | ------------------------------------------ | --------------------------------- |
+| Create file | `@'content'@ \| Set-Content file.txt`      | `cat > file.txt << 'EOF'...`      |
+| Find files  | `Get-ChildItem -Recurse -Filter *.ts`      | `find . -name "*.ts"`             |
 | Search text | `Select-String -Pattern "text" -Path *.ts` | `grep -r "text" --include="*.ts"` |
-| List files | `Get-ChildItem` or `ls` | `ls` |
-| Change dir | `cd` or `Set-Location` | `cd` |
-| Remove file | `Remove-Item` or `rm` | `rm` |
+| List files  | `Get-ChildItem` or `ls`                    | `ls`                              |
+| Change dir  | `cd` or `Set-Location`                     | `cd`                              |
+| Remove file | `Remove-Item` or `rm`                      | `rm`                              |
 
 ---
 
@@ -240,7 +240,7 @@ pwsh -c 'command with PowerShell syntax'
 ```json
 {
   "scripts": {
-    "task": "node script.js"  // Works everywhere
+    "task": "node script.js" // Works everywhere
   }
 }
 ```
@@ -266,15 +266,15 @@ pwsh -c 'command with PowerShell syntax'
 
 ## Quick Command Reference
 
-| Task | Command |
-|------|---------|
-| Verify imports | `npm run verify:imports` |
-| Install missing packages | `npm run install:missing` |
-| Run E2E tests | `npm run test:tool` |
-| Replace strings | `npm run replace:in-file -- --path "file" --search "old" --replace "new"` |
-| Analyze imports | `node analyze-imports.js` |
-| Create file (PS) | `@'content'@ \| Set-Content file.txt` |
-| Create file (Bash) | `bash -c 'cat > file.txt << EOF...'` |
+| Task                     | Command                                                                   |
+| ------------------------ | ------------------------------------------------------------------------- |
+| Verify imports           | `npm run verify:imports`                                                  |
+| Install missing packages | `npm run install:missing`                                                 |
+| Run E2E tests            | `npm run test:tool`                                                       |
+| Replace strings          | `npm run replace:in-file -- --path "file" --search "old" --replace "new"` |
+| Analyze imports          | `node analyze-imports.js`                                                 |
+| Create file (PS)         | `@'content'@ \| Set-Content file.txt`                                     |
+| Create file (Bash)       | `bash -c 'cat > file.txt << EOF...'`                                      |
 
 ---
 

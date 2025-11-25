@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-import { getValidatedMongoUri } from '@/lib/mongo-uri-validator';
+import { getValidatedMongoUri } from "@/lib/mongo-uri-validator";
 
 async function main() {
   try {

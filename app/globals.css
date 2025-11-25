@@ -45,13 +45,9 @@
     --apple-light-gray: 0 0% 98%;
 
     /* Subtle gradients and shadows */
-    --hero-gradient: linear-gradient(
-      180deg,
-      hsl(30 60% 96%),
-      hsl(30 30% 90%)
-    );
+    --hero-gradient: linear-gradient(180deg, hsl(30 60% 96%), hsl(30 30% 90%));
     --card-shadow: 0 2px 8px hsl(0 0% 0% / 0.06);
-    --card-shadow-lg: 0 4px 16px hsl(0 0% 0% / 0.10);
+    --card-shadow-lg: 0 4px 16px hsl(0 0% 0% / 0.1);
 
     /* Section backgrounds */
     --section-bg: 0 0% 100%;
@@ -190,7 +186,13 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "SF Pro Text",
+      "Helvetica Neue",
+      sans-serif;
   }
 }
 

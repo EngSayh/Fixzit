@@ -1,12 +1,16 @@
-import { Types } from 'mongoose';
-import { Candidate } from '@/server/models/Candidate';
-import { Application } from '@/server/models/Application';
-import { AtsSettings } from '@/server/models/AtsSettings';
-import { Job } from '@/server/models/Job';
-import { parseResumePDF } from '@/lib/ats/resume-parser';
-import { scoreApplication, extractSkillsFromText, calculateExperienceFromText } from '@/lib/ats/scoring';
-import { logger } from '@/lib/logger';
-import { buildResumeKey, putObjectBuffer } from '@/lib/storage/s3';
+import { Types } from "mongoose";
+import { Candidate } from "@/server/models/Candidate";
+import { Application } from "@/server/models/Application";
+import { AtsSettings } from "@/server/models/AtsSettings";
+import { Job } from "@/server/models/Job";
+import { parseResumePDF } from "@/lib/ats/resume-parser";
+import {
+  scoreApplication,
+  extractSkillsFromText,
+  calculateExperienceFromText,
+} from "@/lib/ats/scoring";
+import { logger } from "@/lib/logger";
+import { buildResumeKey, putObjectBuffer } from "@/lib/storage/s3";
 
 export interface ResumeFileInput {
   buffer: Buffer;
@@ -30,12 +34,12 @@ export interface ApplicationFields {
 }
 
 const ALLOWED_RESUME_MIME_TYPES = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 const MAX_RESUME_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const FALLBACK_RESUME_MIME = 'application/pdf';
+const FALLBACK_RESUME_MIME = "application/pdf";
 
 interface ApplicationSubmissionParams {
   job: {
@@ -66,55 +70,65 @@ export class ApplicationSubmissionError extends Error {
 }
 
 export async function submitApplicationFromForm(
-  params: ApplicationSubmissionParams
+  params: ApplicationSubmissionParams,
 ): Promise<{ applicationId: string; stage: string; score: number }> {
-  const { job, resumeFile, source, resumeKey, resumeMimeType, resumeUrl } = params;
+  const { job, resumeFile, source, resumeKey, resumeMimeType, resumeUrl } =
+    params;
   const orgId = normalizeOrgId(job?.orgId);
 
   if (!job?._id || !orgId) {
-    throw new ApplicationSubmissionError('Job not found', 404);
+    throw new ApplicationSubmissionError("Job not found", 404);
   }
 
-  if (source === 'careers') {
-    if (job.status !== 'published') {
-      throw new ApplicationSubmissionError('Job is not accepting applications at this time', 400);
+  if (source === "careers") {
+    if (job.status !== "published") {
+      throw new ApplicationSubmissionError(
+        "Job is not accepting applications at this time",
+        400,
+      );
     }
-    if (job.visibility === 'internal') {
-      throw new ApplicationSubmissionError('This job is not open to public applications', 403);
+    if (job.visibility === "internal") {
+      throw new ApplicationSubmissionError(
+        "This job is not open to public applications",
+        403,
+      );
     }
   }
 
   const { fields } = params;
   const normalizedResume =
-    resumeFile ?? (resumeKey ? await fetchResumeFromS3(resumeKey, resumeMimeType, resumeUrl) : undefined);
+    resumeFile ??
+    (resumeKey
+      ? await fetchResumeFromS3(resumeKey, resumeMimeType, resumeUrl)
+      : undefined);
 
   const resumeDetails = await extractResumeDetails(normalizedResume);
-  const email = (fields.email || resumeDetails.contactEmail || '').trim();
+  const email = (fields.email || resumeDetails.contactEmail || "").trim();
   if (!email) {
-    throw new ApplicationSubmissionError('Email address is required', 400);
+    throw new ApplicationSubmissionError("Email address is required", 400);
   }
 
-  let firstName = (fields.firstName || '').trim();
-  let lastName = (fields.lastName || '').trim();
-  const derivedFullName = (fields.fullName || '').trim();
+  let firstName = (fields.firstName || "").trim();
+  let lastName = (fields.lastName || "").trim();
+  const derivedFullName = (fields.fullName || "").trim();
 
   if (!firstName || !lastName) {
     const parts = (derivedFullName || email).split(/\s+/).filter(Boolean);
     if (!firstName && parts.length) {
-      firstName = parts.shift() || 'Candidate';
+      firstName = parts.shift() || "Candidate";
     }
     if (!lastName) {
-      lastName = parts.join(' ') || 'Applicant';
+      lastName = parts.join(" ") || "Applicant";
     }
   }
 
-  if (!firstName) firstName = 'Candidate';
-  if (!lastName) lastName = 'Applicant';
+  if (!firstName) firstName = "Candidate";
+  if (!lastName) lastName = "Applicant";
 
-  const phone = (fields.phone || resumeDetails.contactPhone || '').trim();
-  const location = (fields.location || '').trim();
-  const linkedin = (fields.linkedin || '').trim();
-  const coverLetter = (fields.coverLetter || '').trim();
+  const phone = (fields.phone || resumeDetails.contactPhone || "").trim();
+  const location = (fields.location || "").trim();
+  const linkedin = (fields.linkedin || "").trim();
+  const coverLetter = (fields.coverLetter || "").trim();
 
   const skillsFromForm = Array.isArray(fields.skills) ? fields.skills : [];
   const mergedSkills = new Set<string>();
@@ -122,14 +136,18 @@ export async function submitApplicationFromForm(
     if (skill) mergedSkills.add(skill.trim());
   });
   resumeDetails.skills.forEach((skill) => mergedSkills.add(skill));
-  extractSkillsFromText(`${resumeDetails.rawText} ${coverLetter}`).forEach((skill) => mergedSkills.add(skill));
+  extractSkillsFromText(`${resumeDetails.rawText} ${coverLetter}`).forEach(
+    (skill) => mergedSkills.add(skill),
+  );
 
   const experienceYears =
-    typeof fields.experience === 'number'
+    typeof fields.experience === "number"
       ? fields.experience
       : resumeDetails.experienceYears > 0
         ? resumeDetails.experienceYears
-        : calculateExperienceFromText(`${resumeDetails.rawText} ${coverLetter}`);
+        : calculateExperienceFromText(
+            `${resumeDetails.rawText} ${coverLetter}`,
+          );
 
   let candidate = await Candidate.findByEmail(orgId, email);
 
@@ -160,7 +178,9 @@ export async function submitApplicationFromForm(
     candidate.phone = phone || candidate.phone;
     candidate.location = location || candidate.location;
     candidate.linkedin = linkedin || candidate.linkedin;
-    candidate.experience = Number.isFinite(experienceYears) ? experienceYears : candidate.experience;
+    candidate.experience = Number.isFinite(experienceYears)
+      ? experienceYears
+      : candidate.experience;
     candidate.skills = Array.from(merged);
     if (resumeDetails.resumeUrl) {
       candidate.resumeUrl = resumeDetails.resumeUrl;
@@ -172,7 +192,10 @@ export async function submitApplicationFromForm(
   }
 
   if (!candidate) {
-    throw new ApplicationSubmissionError('Unable to create candidate profile', 500);
+    throw new ApplicationSubmissionError(
+      "Unable to create candidate profile",
+      500,
+    );
   }
 
   const existingApplication = await Application.findOne({
@@ -182,12 +205,19 @@ export async function submitApplicationFromForm(
   });
 
   if (existingApplication) {
-    throw new ApplicationSubmissionError('You have already applied for this position', 400);
+    throw new ApplicationSubmissionError(
+      "You have already applied for this position",
+      400,
+    );
   }
 
   const atsSettings = await AtsSettings.findOrCreateForOrg(orgId);
   const jobSkills: string[] = Array.isArray(job.skills) ? job.skills : [];
-  const requiredSkills = jobSkills.length ? jobSkills : Array.isArray(job.requirements) ? job.requirements : [];
+  const requiredSkills = jobSkills.length
+    ? jobSkills
+    : Array.isArray(job.requirements)
+      ? job.requirements
+      : [];
   const score = scoreApplication(
     {
       skills: Array.from(mergedSkills),
@@ -195,7 +225,7 @@ export async function submitApplicationFromForm(
       experience: experienceYears,
       minExperience: job.screeningRules?.minYears,
     },
-    atsSettings.scoringWeights || undefined
+    atsSettings.scoringWeights || undefined,
   );
 
   const knockoutCheck = atsSettings.shouldAutoReject({
@@ -203,11 +233,11 @@ export async function submitApplicationFromForm(
     skills: Array.from(mergedSkills),
   });
 
-  let stage: string = 'applied';
+  let stage: string = "applied";
   if (knockoutCheck.reject) {
-    stage = 'rejected';
+    stage = "rejected";
   } else if (score >= 70) {
-    stage = 'screening';
+    stage = "screening";
   }
 
   const application = await Application.create({
@@ -229,46 +259,54 @@ export async function submitApplicationFromForm(
     },
     history: [
       {
-        action: 'applied',
-        by: 'candidate',
+        action: "applied",
+        by: "candidate",
         at: new Date(),
         details: knockoutCheck.reason,
       },
     ],
   });
 
-  await Job.findByIdAndUpdate(job._id, { $inc: { applicationCount: 1 } }).catch((error) => {
-    logger.warn('Failed to increment application count', { error });
-  });
+  await Job.findByIdAndUpdate(job._id, { $inc: { applicationCount: 1 } }).catch(
+    (error) => {
+      logger.warn("Failed to increment application count", { error });
+    },
+  );
 
   return {
     applicationId: application._id.toString(),
     stage: application.stage,
-  score: application.score,
+    score: application.score,
   };
 }
 
 async function fetchResumeFromS3(
   key: string,
   mimeType?: string,
-  fallbackUrl?: string
+  fallbackUrl?: string,
 ): Promise<ResumeFileInput | undefined> {
   try {
-    const getUrl = await import('@/lib/storage/s3').then((m) => m.getPresignedGetUrl(key, 300));
+    const getUrl = await import("@/lib/storage/s3").then((m) =>
+      m.getPresignedGetUrl(key, 300),
+    );
     const res = await fetch(getUrl);
     if (!res.ok) {
       throw new Error(`Failed to fetch resume from S3: ${res.status}`);
     }
     const arrayBuffer = await res.arrayBuffer();
-    const contentType = res.headers.get('content-type') || mimeType || FALLBACK_RESUME_MIME;
+    const contentType =
+      res.headers.get("content-type") || mimeType || FALLBACK_RESUME_MIME;
     return {
       buffer: Buffer.from(arrayBuffer),
-      filename: key.split('/').pop() || 'resume.pdf',
+      filename: key.split("/").pop() || "resume.pdf",
       mimeType: contentType,
       size: arrayBuffer.byteLength,
     };
   } catch (error) {
-    logger.error('Failed to fetch resume from S3', error as Error, { key, fallbackUrl });
+    logger.error("Failed to fetch resume from S3", error as Error, {
+      key,
+      fallbackUrl,
+    });
     return undefined;
   }
 }
@@ -282,7 +320,7 @@ async function extractResumeDetails(resumeFile?: ResumeFileInput): Promise<{
   rawText: string;
 }> {
   if (!resumeFile?.buffer || resumeFile.buffer.length === 0) {
-    return { skills: [], experienceYears: 0, rawText: '' };
+    return { skills: [], experienceYears: 0, rawText: "" };
   }
 
   ensureValidResumeFile(resumeFile);
@@ -291,7 +329,7 @@ async function extractResumeDetails(resumeFile?: ResumeFileInput): Promise<{
   try {
     resumeUrl = await persistResumeFile(resumeFile);
   } catch (error) {
-    logger.error('Failed to persist resume file', error as Error);
+    logger.error("Failed to persist resume file", error as Error);
   }
 
   try {
@@ -302,30 +340,34 @@ async function extractResumeDetails(resumeFile?: ResumeFileInput): Promise<{
       contactEmail: parsed.contact?.email,
       contactPhone: parsed.contact?.phone,
       experienceYears: parsed.experience?.years ?? 0,
-      rawText: parsed.rawText || '',
+      rawText: parsed.rawText || "",
     };
   } catch (error) {
-    logger.error('Resume parsing failed', error as Error);
-    return { resumeUrl, skills: [], experienceYears: 0, rawText: '' };
+    logger.error("Resume parsing failed", error as Error);
+    return { resumeUrl, skills: [], experienceYears: 0, rawText: "" };
   }
 }
 
 async function persistResumeFile(file: ResumeFileInput): Promise<string> {
-  const safeName = file.filename.replace(/[^a-zA-Z0-9.-]+/g, '_');
+  const safeName = file.filename.replace(/[^a-zA-Z0-9.-]+/g, "_");
   const key = buildResumeKey(null, `${Date.now()}-${safeName}`);
 
-  await putObjectBuffer(key, file.buffer, file.mimeType || 'application/octet-stream');
+  await putObjectBuffer(
+    key,
+    file.buffer,
+    file.mimeType || "application/octet-stream",
+  );
 
-  const region = process.env.AWS_REGION || 'us-east-1';
-  const bucket = process.env.AWS_S3_BUCKET || '';
+  const region = process.env.AWS_REGION || "us-east-1";
+  const bucket = process.env.AWS_S3_BUCKET || "";
   return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
 }
 
 function normalizeOrgId(value: unknown): string | null {
   if (!value) return null;
-  if (typeof value === 'string') return value;
+  if (typeof value === "string") return value;
   if (value instanceof Types.ObjectId) return value.toHexString();
-  if (typeof value === 'object' && value && '_id' in value) {
+  if (typeof value === "object" && value && "_id" in value) {
     try {
       const nestedId = (value as { _id?: unknown })._id;
       if (!nestedId) {
@@ -334,7 +376,7 @@ function normalizeOrgId(value: unknown): string | null {
       if (nestedId instanceof Types.ObjectId) {
         return nestedId.toHexString();
       }
-      if (typeof nestedId === 'string' && Types.ObjectId.isValid(nestedId)) {
+      if (typeof nestedId === "string" && Types.ObjectId.isValid(nestedId)) {
         return new Types.ObjectId(nestedId).toHexString();
       }
       return null;
@@ -347,11 +389,14 @@ function normalizeOrgId(value: unknown): string | null {
 
 function ensureValidResumeFile(file: ResumeFileInput) {
   if (file.size && file.size > MAX_RESUME_FILE_SIZE) {
-    throw new ApplicationSubmissionError('Resume file exceeds 10MB limit', 400);
+    throw new ApplicationSubmissionError("Resume file exceeds 10MB limit", 400);
   }
 
   const mime = file.mimeType?.toLowerCase();
   if (mime && !ALLOWED_RESUME_MIME_TYPES.includes(mime)) {
-    throw new ApplicationSubmissionError('Resume must be a PDF or Word document', 400);
+    throw new ApplicationSubmissionError(
+      "Resume must be a PDF or Word document",
+      400,
+    );
   }
 }

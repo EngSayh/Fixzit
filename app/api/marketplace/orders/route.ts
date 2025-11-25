@@ -1,18 +1,21 @@
-import { NextRequest} from 'next/server';
-import { logger } from '@/lib/logger';
-import { z } from 'zod';
-import { resolveMarketplaceContext } from '@/lib/marketplace/context';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import Order from '@/server/models/marketplace/Order';
-import { serializeOrder } from '@/lib/marketplace/serializers';
-import { unauthorizedError, zodValidationError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+import { resolveMarketplaceContext } from "@/lib/marketplace/context";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import Order from "@/server/models/marketplace/Order";
+import { serializeOrder } from "@/lib/marketplace/serializers";
+import {
+  unauthorizedError,
+  zodValidationError,
+} from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
 
 const QuerySchema = z.object({
-  status: z.string().optional()
+  status: z.string().optional(),
 });
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 /**
  * @openapi
  * /api/marketplace/orders:
@@ -41,9 +44,12 @@ export async function GET(request: NextRequest) {
     const query = QuerySchema.parse(params);
     await connectToDatabase();
 
-    const filter: Record<string, unknown> = { orgId: context.orgId, status: { $ne: 'CART' } };
+    const filter: Record<string, unknown> = {
+      orgId: context.orgId,
+      status: { $ne: "CART" },
+    };
 
-    if (context.role === 'VENDOR') {
+    if (context.role === "VENDOR") {
       filter.vendorId = context.userId;
     } else {
       filter.buyerUserId = context.userId;
@@ -57,16 +63,20 @@ export async function GET(request: NextRequest) {
 
     return createSecureResponse({
       ok: true,
-      data: orders.map((order) => serializeOrder(order))
+      data: orders.map((order) => serializeOrder(order)),
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }
-    logger.error('Marketplace orders fetch failed', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Unable to load orders' }, 500, request);
+    logger.error(
+      "Marketplace orders fetch failed",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Unable to load orders" },
+      500,
+      request,
+    );
   }
 }
-
-
-

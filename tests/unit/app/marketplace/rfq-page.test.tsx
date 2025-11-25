@@ -19,11 +19,17 @@ vi.mock('@/lib/i18n/server', () => ({
 
 vi.mock('@/components/marketplace/RFQBoard', () => ({
   __esModule: true,
-  default: ({ categories, initialRfqs }: any) => (
+  default: ({
+    categories,
+    initialRfqs,
+  }: {
+    categories: Array<{ slug: string; name: Record<string, string> }>;
+    initialRfqs: Array<{ title: string }>;
+  }) => (
     <div data-testid="RFQBoard">
       <span data-testid="categories-count">{categories?.length ?? 0}</span>
       <span data-testid="rfqs-count">{initialRfqs?.length ?? 0}</span>
-      <div data-testid="rfq-titles">{initialRfqs?.map((r: any) => r.title).join('|')}</div>
+      <div data-testid="rfq-titles">{initialRfqs?.map((r) => r.title).join('|')}</div>
     </div>
   )
 }));

@@ -3,50 +3,50 @@
  * @module server/models/souq/Review
  */
 
-import mongoose, { Schema, type Document } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
 
 export interface IReview extends Document {
   _id: mongoose.Types.ObjectId;
   reviewId: string;
-  
+
   org_id: mongoose.Types.ObjectId;
   productId: mongoose.Types.ObjectId;
   fsin: string;
-  
+
   customerId: mongoose.Types.ObjectId;
   customerName: string;
   isVerifiedPurchase: boolean;
   orderId?: mongoose.Types.ObjectId;
-  
+
   rating: number;
   title: string;
   content: string;
-  
+
   pros?: string[];
   cons?: string[];
-  
+
   images?: Array<{
     url: string;
     caption?: string;
     uploadedAt: Date;
   }>;
-  
+
   helpful: number;
   notHelpful: number;
-  
+
   sellerResponse?: {
     content: string;
     respondedAt: Date;
     respondedBy: mongoose.Types.ObjectId;
   };
-  
-  status: 'pending' | 'published' | 'rejected' | 'flagged';
+
+  status: "pending" | "published" | "rejected" | "flagged";
   moderationNotes?: string;
-  
+
   reportedCount: number;
   reportReasons?: string[];
-  
+
   createdAt: Date;
   updatedAt: Date;
   publishedAt?: Date;
@@ -62,13 +62,13 @@ const ReviewSchema = new Schema<IReview>(
     },
     org_id: {
       type: Schema.Types.ObjectId,
-      ref: 'Organization',
+      ref: "Organization",
       required: true,
       index: true,
     },
     productId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqProduct',
+      ref: "SouqProduct",
       required: true,
       index: true,
     },
@@ -79,7 +79,7 @@ const ReviewSchema = new Schema<IReview>(
     },
     customerId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
       index: true,
     },
@@ -94,7 +94,7 @@ const ReviewSchema = new Schema<IReview>(
     },
     orderId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqOrder',
+      ref: "SouqOrder",
     },
     rating: {
       type: Number,
@@ -146,13 +146,13 @@ const ReviewSchema = new Schema<IReview>(
       respondedAt: Date,
       respondedBy: {
         type: Schema.Types.ObjectId,
-        ref: 'SouqSeller',
+        ref: "SouqSeller",
       },
     },
     status: {
       type: String,
-      enum: ['pending', 'published', 'rejected', 'flagged'],
-      default: 'pending',
+      enum: ["pending", "published", "rejected", "flagged"],
+      default: "pending",
       index: true,
     },
     moderationNotes: String,
@@ -166,8 +166,8 @@ const ReviewSchema = new Schema<IReview>(
   },
   {
     timestamps: true,
-    collection: 'souq_reviews',
-  }
+    collection: "souq_reviews",
+  },
 );
 
 ReviewSchema.index({ productId: 1, status: 1, createdAt: -1 });
@@ -176,6 +176,6 @@ ReviewSchema.index({ customerId: 1, productId: 1 }, { unique: true });
 ReviewSchema.index({ rating: 1, status: 1 });
 ReviewSchema.index({ helpful: -1, status: 1 });
 
-export const SouqReview = getModel<IReview>('SouqReview', ReviewSchema);
+export const SouqReview = getModel<IReview>("SouqReview", ReviewSchema);
 
 export default SouqReview;

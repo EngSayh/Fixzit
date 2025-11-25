@@ -62,7 +62,10 @@ Core commands: pnpm lint; pnpm typecheck; pnpm build; pnpm vitest -c vitest.conf
 async function main() {
   let seeded = 0;
   for (const doc of docs) {
-    const checksum = crypto.createHash("sha256").update(doc.content).digest("hex");
+    const checksum = crypto
+      .createHash("sha256")
+      .update(doc.content)
+      .digest("hex");
     await upsertKnowledgeDocument({
       ...doc,
       orgId: GLOBAL_ORG_ID,

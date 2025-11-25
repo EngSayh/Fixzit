@@ -9,6 +9,7 @@
 ## 🎯 Executive Summary
 
 ### What Was Pushed (Commit 37f7f8bf6)
+
 ✅ **Per-file upload UX improvements** - Completed and pushed  
 ✅ **Metadata verification endpoint** - New route: `app/api/upload/verify-metadata/route.ts`  
 ✅ **Schema relaxation for drafts** - Work order validation changes  
@@ -16,12 +17,15 @@
 ✅ **Work order route consolidation** - Deleted `app/api/work-orders/[id]/route.ts` (198 lines)
 
 ### What's in Your Local Dirty Tree
+
 ⚠️ **73 files modified** with local changes NOT yet committed  
 ⚠️ **342 insertions, 364 deletions** across the codebase  
 ⚠️ **Heavy modifications** across multiple domains (API routes, UI components, tests, config)
 
 ### ⚠️ RECOMMENDATION
+
 **DO NOT refactor further** until local changes are reconciled. The current dirty tree contains:
+
 - Google OAuth configuration changes (my recent work)
 - Unknown local modifications across 70+ files
 - Test updates and state fixtures
@@ -34,14 +38,17 @@
 ### Modified Files by Category (73 total)
 
 #### 1. **API Routes** (43 files)
+
 The largest category of changes:
 
 **Upload/Scan Related (3 files)**
+
 - ✏️ `app/api/upload/presigned-url/route.ts` - Local changes differ from pushed version
 - ✏️ `app/api/upload/scan-status/route.ts` - **SIGNIFICANT LOCAL CHANGES** (token auth, caching)
 - ✏️ `tests/unit/api/upload/scan-status.test.ts` - Test updates for scan-status changes
 
 **Souq/Marketplace (20 files)**
+
 - ✏️ `app/api/souq/buybox/[fsin]/route.ts`
 - ✏️ `app/api/souq/buybox/offers/[fsin]/route.ts`
 - ✏️ `app/api/souq/buybox/winner/[fsin]/route.ts`
@@ -64,27 +71,32 @@ The largest category of changes:
 - ✏️ `app/api/souq/inventory/return/route.ts`
 
 **FM (Facilities Management) (4 files)**
+
 - ✏️ `app/api/fm/permissions.ts`
 - ✏️ `app/api/fm/properties/route.ts`
 - ✏️ `app/api/fm/reports/process/route.ts`
 - ✏️ `app/api/fm/system/integrations/[id]/toggle/route.ts`
 
 **HR (Human Resources) (3 files)**
+
 - ✏️ `app/api/hr/employees/route.ts` - **Mentioned in context as recently edited**
 - ✏️ `app/api/hr/leaves/route.ts`
 - ✏️ `app/api/hr/payroll/runs/route.ts`
 
 **ATS (Applicant Tracking) (3 files)**
+
 - ✏️ `app/api/ats/convert-to-employee/route.ts`
 - ✏️ `app/api/ats/jobs/[id]/apply/route.ts`
 - ✏️ `app/api/careers/apply/route.ts`
 
 **Support & Admin (3 files)**
+
 - ✏️ `app/api/support/tickets/[id]/reply/route.ts` - **Mentioned in context as recently edited**
 - ✏️ `app/api/admin/footer/route.ts`
 - ✏️ `app/api/user/preferences/route.ts`
 
 **Other API Routes (7 files)**
+
 - ✏️ `app/api/aqar/favorites/route.ts`
 - ✏️ `app/api/aqar/pricing/route.ts` - **Mentioned in context as recently edited**
 - ✏️ `app/api/assistant/query/route.ts`
@@ -92,16 +104,19 @@ The largest category of changes:
 - ✏️ `app/api/webhooks/carrier/tracking/route.ts` - **Mentioned in context as recently edited**
 
 #### 2. **UI Components** (3 files)
+
 - ✏️ `components/ClientLayout.tsx` - **22 lines changed** (+18/-4)
 - ✏️ `components/ResponsiveLayout.tsx` - **11 lines changed** (+7/-4)
 - ✏️ `components/TopBar.tsx` - **7 lines changed** (+4/-3)
 
 #### 3. **FM Pages** (3 files)
+
 - ✏️ `app/fm/finance/budgets/page.tsx` - **Mentioned in context as recently edited**
 - ✏️ `app/fm/finance/invoices/page.tsx` - **Mentioned in context as recently edited**
 - ✏️ `app/fm/work-orders/new/page.tsx`
 
 #### 4. **Marketplace Pages** (5 files)
+
 - ✏️ `app/marketplace/page.tsx`
 - ✏️ `app/marketplace/seller-central/advertising/page.tsx`
 - ✏️ `app/marketplace/seller-central/analytics/page.tsx`
@@ -109,6 +124,7 @@ The largest category of changes:
 - ✏️ `app/marketplace/seller/onboarding/page.tsx`
 
 #### 5. **Tests** (9 files)
+
 - ✏️ `tests/unit/api/upload/scan-status.test.ts` - **44 lines changed** (+38/-6)
 - ✏️ `tests/unit/api/work-orders/patch.route.test.ts` - **11 lines changed** (+7/-4) - **Mentioned in context**
 - ✏️ `tests/specs/smoke.spec.ts` - **16 lines changed** (+10/-6)
@@ -120,6 +136,7 @@ The largest category of changes:
 - ✏️ `tests/state/vendor.json` - **4 lines changed**
 
 #### 6. **Library & Config Files** (11 files)
+
 - ✏️ `auth.config.ts` - **30 lines changed** (+25/-5) - Google OAuth improvements
 - ✏️ `playwright.config.ts` - **21 lines added** - Google OAuth env loading
 - ✏️ `.env.example` - **11 lines changed** - Google OAuth docs
@@ -133,6 +150,7 @@ The largest category of changes:
 - ✏️ `app/admin/route-metrics/page.tsx` - **8 lines changed**
 
 #### 7. **New Untracked Files** (5 files - Google OAuth setup)
+
 - ➕ `.github/workflows/e2e-tests.yml` - E2E test workflow
 - ➕ `GOOGLE_OAUTH_PRODUCTION_READY.md` - Solution documentation
 - ➕ `GOOGLE_OAUTH_SETUP.md` - Quick start guide
@@ -173,6 +191,7 @@ The largest category of changes:
 ### 2. `tests/unit/api/upload/scan-status.test.ts` - TEST UPDATES
 
 **Changes** (44 lines: +38/-6):
+
 - Added tests for token-based authentication
 - Updated test expectations for new cache headers
 - Mocked `getClientIP` for rate limiting tests
@@ -184,6 +203,7 @@ The largest category of changes:
 ### 3. `auth.config.ts` - GOOGLE OAUTH IMPROVEMENTS
 
 **Changes** (30 lines: +25/-5):
+
 - Enhanced Google OAuth validation with better logging
 - Separate messages for production vs development
 - Clear error messages with resolution steps
@@ -196,6 +216,7 @@ The largest category of changes:
 ### 4. `playwright.config.ts` - ENV LOADING
 
 **Changes** (21 lines added):
+
 - Import dotenv and path
 - Auto-load `.env.test` for Playwright
 - Pass Google OAuth credentials to webServer
@@ -218,13 +239,16 @@ The largest category of changes:
 ### 6. Work Order Routes & Tests
 
 **Deleted in Pushed Commit:**
+
 - `app/api/work-orders/[id]/route.ts` (198 lines removed)
 
 **Modified Locally:**
+
 - `tests/unit/api/work-orders/patch.route.test.ts` (+7/-4)
 - `app/fm/work-orders/new/page.tsx` (changes unknown)
 
 **Note**: Work order route was consolidated into separate endpoints:
+
 - `/api/work-orders/[id]/status/route.ts`
 - `/api/work-orders/[id]/assign/route.ts`
 - `/api/work-orders/[id]/attachments/presign/route.ts`
@@ -237,6 +261,7 @@ The largest category of changes:
 ## 🚨 High-Risk Conflict Areas
 
 ### 1. **Upload Routes** (Priority: CRITICAL)
+
 - `app/api/upload/scan-status/route.ts` - Token auth added locally, not in pushed commit
 - `app/api/upload/presigned-url/route.ts` - Local changes vs pushed version
 - Risk: Merge conflicts, feature duplication
@@ -246,6 +271,7 @@ The largest category of changes:
 ---
 
 ### 2. **Test Files** (Priority: HIGH)
+
 - `tests/unit/api/upload/scan-status.test.ts` - Tests for local token auth feature
 - `tests/unit/api/work-orders/patch.route.test.ts` - Updates for deleted route
 - Risk: Tests may fail if local code not committed
@@ -255,6 +281,7 @@ The largest category of changes:
 ---
 
 ### 3. **Souq/Marketplace Routes** (Priority: MEDIUM)
+
 - 20 files modified in souq domain
 - Nature of changes unknown (likely formatting or minor fixes)
 - Risk: Could be important business logic changes
@@ -264,6 +291,7 @@ The largest category of changes:
 ---
 
 ### 4. **State Fixtures** (Priority: LOW)
+
 - All 6 test state files modified (admin, manager, superadmin, etc.)
 - Likely token/session updates or test data changes
 - Risk: Low, but may affect test reliability
@@ -321,19 +349,21 @@ The largest category of changes:
 ### Immediate (DO NOW):
 
 1. **Backup your working directory**
+
    ```bash
    cd /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
    git stash push -u -m "backup-before-reconciliation-$(date +%Y%m%d)"
    ```
 
 2. **Review critical changes**
+
    ```bash
    # Check scan-status token auth feature
    git diff HEAD app/api/upload/scan-status/route.ts
-   
+
    # Check test updates
    git diff HEAD tests/unit/api/upload/scan-status.test.ts
-   
+
    # Check component changes
    git diff HEAD components/
    ```
@@ -416,6 +446,7 @@ New Untracked Files:     5 files (Google OAuth setup) ✅
 ## ✅ Conclusion
 
 ### Current State:
+
 - ✅ **Per-file upload UX** pushed successfully in commit 37f7f8bf6
 - ✅ **Metadata verification** endpoint exists in working directory
 - ✅ **Draft work order schema** relaxation applied in pushed commit
@@ -424,17 +455,21 @@ New Untracked Files:     5 files (Google OAuth setup) ✅
 - ⚠️ **Significant scan-status changes** (token auth) not in pushed commit
 
 ### Recommendation:
+
 **DO NOT refactor further** until you:
+
 1. Review and understand all 73 local changes
 2. Decide which changes to commit, discard, or separate
 3. Reconcile local work with pushed commits
 4. Ensure tests pass and code is production-ready
 
 ### Safe to Proceed With:
+
 - ✅ Google OAuth configuration (my recent work) - commit separately
 - ✅ Documentation updates (TYPESCRIPT_AUDIT_REPORT.md, etc.)
 
 ### Blocked Until Reconciled:
+
 - ❌ Further upload/scan route refactoring
 - ❌ Work order endpoint changes
 - ❌ Any API route modifications that touch dirty files

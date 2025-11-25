@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { randomUUID } from 'crypto';
-import { Types } from 'mongoose';
-import { z } from 'zod';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
+import { Types } from "mongoose";
+import { z } from "zod";
+import { logger } from "@/lib/logger";
 import {
   tapPayments,
   buildTapCustomer,
@@ -10,11 +10,11 @@ import {
   buildWebhookConfig,
   type TapChargeRequest,
   type TapChargeResponse,
-} from '@/lib/finance/tap-payments';
-import { getSessionUser } from '@/lib/auth-middleware';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { TapTransaction } from '@/server/models/finance/TapTransaction';
-import { Invoice } from '@/server/models/Invoice';
+} from "@/lib/finance/tap-payments";
+import { getSessionUser } from "@/lib/auth-middleware";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { TapTransaction } from "@/server/models/finance/TapTransaction";
+import { Invoice } from "@/server/models/Invoice";
 
 interface SessionUser {
   id: string;
@@ -36,33 +36,42 @@ interface InvoiceDocument {
 }
 
 // SECURITY: Explicit non-empty string validation (not just truthy check)
-const TAP_PAYMENTS_CONFIGURED = 
-  typeof process.env.TAP_SECRET_KEY === 'string' && 
-  process.env.TAP_SECRET_KEY.trim() !== '' &&
-  typeof process.env.TAP_PUBLIC_KEY === 'string' && 
-  process.env.TAP_PUBLIC_KEY.trim() !== '';
+const TAP_PAYMENTS_CONFIGURED =
+  typeof process.env.TAP_SECRET_KEY === "string" &&
+  process.env.TAP_SECRET_KEY.trim() !== "" &&
+  typeof process.env.TAP_PUBLIC_KEY === "string" &&
+  process.env.TAP_PUBLIC_KEY.trim() !== "";
 
-type ChargeResult = Pick<TapChargeResponse, 'id' | 'status' | 'transaction' | 'metadata' | 'reference' | 'currency' | 'amount'>;
+type ChargeResult = Pick<
+  TapChargeResponse,
+  | "id"
+  | "status"
+  | "transaction"
+  | "metadata"
+  | "reference"
+  | "currency"
+  | "amount"
+>;
 
 function buildMockCharge(params: {
   correlationId: string;
   amountHalalas: number;
   currency: string;
   baseUrl: string;
-  metadata?: TapChargeRequest['metadata'];
-  reference?: TapChargeRequest['reference'];
+  metadata?: TapChargeRequest["metadata"];
+  reference?: TapChargeRequest["reference"];
 }): ChargeResult {
   const createdAtIso = new Date().toISOString();
   return {
-    id: `chg_mock_${params.correlationId}`,  // Use Tap-valid format (starts with chg_)
-    status: 'INITIATED',
+    id: `chg_mock_${params.correlationId}`, // Use Tap-valid format (starts with chg_)
+    status: "INITIATED",
     currency: params.currency,
     amount: params.amountHalalas,
     transaction: {
-      timezone: 'UTC',
+      timezone: "UTC",
       created: createdAtIso,
       url: `${params.baseUrl}/payments/mock/${params.correlationId}`,
-      expiry: { period: 15, type: 'MINUTES' },
+      expiry: { period: 15, type: "MINUTES" },
       asynchronous: false,
     },
     metadata: params.metadata,
@@ -76,24 +85,30 @@ const CheckoutRequestSchema = z.object({
   description: z.string().optional(),
   orderId: z.string().optional(),
   invoiceId: z.string().optional(),
-  metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
+  metadata: z
+    .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+    .optional(),
   successPath: z.string().optional(),
   errorPath: z.string().optional(),
-  paymentContext: z.object({
-    partyType: z.enum(['TENANT', 'CUSTOMER', 'VENDOR', 'SUPPLIER', 'OWNER', 'OTHER']).optional(),
-    partyId: z.string().optional(),
-    partyName: z.string().optional(),
-    propertyId: z.string().optional(),
-    unitId: z.string().optional(),
-    notes: z.string().optional(),
-  }).optional(),
+  paymentContext: z
+    .object({
+      partyType: z
+        .enum(["TENANT", "CUSTOMER", "VENDOR", "SUPPLIER", "OWNER", "OTHER"])
+        .optional(),
+      partyId: z.string().optional(),
+      partyName: z.string().optional(),
+      propertyId: z.string().optional(),
+      unitId: z.string().optional(),
+      notes: z.string().optional(),
+    })
+    .optional(),
 });
 
 /**
  * POST /api/payments/tap/checkout
- * 
+ *
  * Create a Tap payment checkout session
- * 
+ *
  * Body:
  * {
  *   amount: number;        // Amount in SAR (will be converted to halalas)
@@ -101,7 +116,7 @@ const CheckoutRequestSchema = z.object({
  *   orderId?: string;      // Your internal order ID
  *   metadata?: object;     // Additional metadata
  * }
- * 
+ *
  * Returns:
  * {
  *   chargeId: string;      // Tap charge ID
@@ -118,11 +133,10 @@ export async function POST(req: NextRequest) {
     try {
       user = (await getSessionUser(req)) as unknown as SessionUser;
     } catch (_error) {
-      logger.warn('[POST /api/payments/tap/checkout] Unauthenticated request', { correlationId });
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      logger.warn("[POST /api/payments/tap/checkout] Unauthenticated request", {
+        correlationId,
+      });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectToDatabase();
@@ -130,7 +144,7 @@ export async function POST(req: NextRequest) {
     const body = CheckoutRequestSchema.parse(await req.json());
     const {
       amount,
-      currency = 'SAR',
+      currency = "SAR",
       description,
       orderId,
       invoiceId,
@@ -140,15 +154,20 @@ export async function POST(req: NextRequest) {
       paymentContext,
     } = body;
 
-    const orgObjectId = Types.ObjectId.isValid(user.orgId) ? new Types.ObjectId(user.orgId) : null;
+    const orgObjectId = Types.ObjectId.isValid(user.orgId)
+      ? new Types.ObjectId(user.orgId)
+      : null;
     if (!orgObjectId) {
-      logger.error('[POST /api/payments/tap/checkout] Invalid orgId on session', {
-        correlationId,
-        orgId: user.orgId,
-      });
+      logger.error(
+        "[POST /api/payments/tap/checkout] Invalid orgId on session",
+        {
+          correlationId,
+          orgId: user.orgId,
+        },
+      );
       return NextResponse.json(
-        { error: 'Invalid organization context' },
-        { status: 400 }
+        { error: "Invalid organization context" },
+        { status: 400 },
       );
     }
 
@@ -157,21 +176,21 @@ export async function POST(req: NextRequest) {
     if (invoiceId) {
       if (!Types.ObjectId.isValid(invoiceId)) {
         return NextResponse.json(
-          { error: 'Invalid invoiceId' },
-          { status: 400 }
+          { error: "Invalid invoiceId" },
+          { status: 400 },
         );
       }
       invoiceObjectId = new Types.ObjectId(invoiceId);
       invoiceDoc = await Invoice.findById(invoiceObjectId).lean();
       if (!invoiceDoc) {
         return NextResponse.json(
-          { error: 'Invoice not found' },
-          { status: 404 }
+          { error: "Invoice not found" },
+          { status: 404 },
         );
       }
     }
 
-    logger.info('[POST /api/payments/tap/checkout] Creating checkout session', {
+    logger.info("[POST /api/payments/tap/checkout] Creating checkout session", {
       correlationId,
       userId: user.id,
       email: user.email,
@@ -191,22 +210,23 @@ export async function POST(req: NextRequest) {
       };
     };
     const invoice = invoiceDoc as InvoiceWithRecipient;
-    
+
     const invoiceRecipientName = invoice?.recipient?.name;
-    const defaultNameParts = user.email ? user.email.split('@') : ['User'];
+    const defaultNameParts = user.email ? user.email.split("@") : ["User"];
     const tapCustomer = buildTapCustomer({
-      firstName: invoiceRecipientName?.split(' ')[0] || defaultNameParts[0] || 'User',
-      lastName: invoiceRecipientName?.split(' ').slice(1).join(' ') || '',
+      firstName:
+        invoiceRecipientName?.split(" ")[0] || defaultNameParts[0] || "User",
+      lastName: invoiceRecipientName?.split(" ").slice(1).join(" ") || "",
       email: invoice?.recipient?.email || user.email,
       phone: invoice?.recipient?.phone,
     });
 
     // Build redirect URLs (user will be sent here after payment)
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
     const redirectUrls = buildRedirectUrls(
       baseUrl,
-      successPath || '/payments/success',
-      errorPath || '/payments/error'
+      successPath || "/payments/success",
+      errorPath || "/payments/error",
     );
 
     // Build webhook config (Tap will send payment events here)
@@ -219,14 +239,14 @@ export async function POST(req: NextRequest) {
       customer: tapCustomer,
       redirect: redirectUrls,
       post: webhookConfig,
-      description: description || 'FixZit Payment',
+      description: description || "FixZit Payment",
       metadata: {
         ...metadata,
         userId: user.id,
         userEmail: user.email,
-        organizationId: user.orgId || '',
-        orderId: orderId || '',
-        invoiceId: invoiceId || '',
+        organizationId: user.orgId || "",
+        orderId: orderId || "",
+        invoiceId: invoiceId || "",
       },
       reference: {
         transaction: correlationId,
@@ -250,13 +270,16 @@ export async function POST(req: NextRequest) {
           reference: chargeRequest.reference,
         });
 
-    logger.info('[POST /api/payments/tap/checkout] Charge created successfully', {
-      correlationId,
-      chargeId: charge.id,
-      status: charge.status,
-      transactionUrl: charge.transaction.url,
-      tapConfigured: TAP_PAYMENTS_CONFIGURED,
-    });
+    logger.info(
+      "[POST /api/payments/tap/checkout] Charge created successfully",
+      {
+        correlationId,
+        chargeId: charge.id,
+        status: charge.status,
+        transactionUrl: charge.transaction.url,
+        tapConfigured: TAP_PAYMENTS_CONFIGURED,
+      },
+    );
 
     const expiresAt = charge.transaction.expiry
       ? new Date(Date.now() + (charge.transaction.expiry.period ?? 0) * 60000)
@@ -267,9 +290,10 @@ export async function POST(req: NextRequest) {
       invoice?.recipient?.name ||
       `${tapCustomer.first_name} ${tapCustomer.last_name}`.trim() ||
       user.email;
-    const resolvedPartyType = paymentContext?.partyType || 'CUSTOMER';
+    const resolvedPartyType = paymentContext?.partyType || "CUSTOMER";
     const invoiceTyped = invoice as InvoiceDocument | null;
-    const resolvedPartyId = paymentContext?.partyId || invoiceTyped?.recipient?.customerId;
+    const resolvedPartyId =
+      paymentContext?.partyId || invoiceTyped?.recipient?.customerId;
 
     await TapTransaction.create({
       orgId: orgObjectId,
@@ -296,12 +320,12 @@ export async function POST(req: NextRequest) {
       tapMetadata: charge.metadata,
       rawCharge: charge,
       requestContext: {
-        successPath: successPath || '/payments/success',
-        errorPath: errorPath || '/payments/error',
+        successPath: successPath || "/payments/success",
+        errorPath: errorPath || "/payments/error",
       },
       events: [
         {
-          type: 'charge.created',
+          type: "charge.created",
           status: charge.status,
           at: new Date(),
           payload: {
@@ -318,35 +342,37 @@ export async function POST(req: NextRequest) {
       status: charge.status,
       expiresAt: expiresAt ? expiresAt.toISOString() : null,
     });
-
   } catch (error) {
-    logger.error('[POST /api/payments/tap/checkout] Error creating checkout session', {
-      correlationId,
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    logger.error(
+      "[POST /api/payments/tap/checkout] Error creating checkout session",
+      {
+        correlationId,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+    );
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request payload', issues: error.issues },
-        { status: 400 }
+        { error: "Invalid request payload", issues: error.issues },
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       {
-        error: 'Failed to create payment session',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: "Failed to create payment session",
+        message: error instanceof Error ? error.message : "Unknown error",
         correlationId,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 /**
  * GET /api/payments/tap/checkout/:chargeId
- * 
+ *
  * Retrieve charge status
  */
 export async function GET(req: NextRequest) {
@@ -358,26 +384,22 @@ export async function GET(req: NextRequest) {
     try {
       user = (await getSessionUser(req)) as unknown as SessionUser;
     } catch (_error) {
-      logger.warn('[GET /api/payments/tap/checkout] Unauthenticated request', { correlationId });
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      logger.warn("[GET /api/payments/tap/checkout] Unauthenticated request", {
+        correlationId,
+      });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Extract charge ID from URL
     const url = new URL(req.url);
-    const pathParts = url.pathname.split('/');
+    const pathParts = url.pathname.split("/");
     const chargeId = pathParts[pathParts.length - 1];
 
-    if (!chargeId || !chargeId.startsWith('chg_')) {
-      return NextResponse.json(
-        { error: 'Invalid charge ID' },
-        { status: 400 }
-      );
+    if (!chargeId || !chargeId.startsWith("chg_")) {
+      return NextResponse.json({ error: "Invalid charge ID" }, { status: 400 });
     }
 
-    logger.info('[GET /api/payments/tap/checkout] Retrieving charge', {
+    logger.info("[GET /api/payments/tap/checkout] Retrieving charge", {
       correlationId,
       chargeId,
       userId: user.id,
@@ -386,7 +408,7 @@ export async function GET(req: NextRequest) {
     // Retrieve charge from Tap
     const charge = await tapPayments.getCharge(chargeId);
 
-    logger.info('[GET /api/payments/tap/checkout] Charge retrieved', {
+    logger.info("[GET /api/payments/tap/checkout] Charge retrieved", {
       correlationId,
       chargeId,
       status: charge.status,
@@ -405,20 +427,19 @@ export async function GET(req: NextRequest) {
         createdAt: charge.transaction.created,
       },
     });
-
   } catch (error) {
-    logger.error('[GET /api/payments/tap/checkout] Error retrieving charge', {
+    logger.error("[GET /api/payments/tap/checkout] Error retrieving charge", {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
     });
 
     return NextResponse.json(
       {
-        error: 'Failed to retrieve charge',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: "Failed to retrieve charge",
+        message: error instanceof Error ? error.message : "Unknown error",
         correlationId,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

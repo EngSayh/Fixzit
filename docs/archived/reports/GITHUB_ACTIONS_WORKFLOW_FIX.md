@@ -14,6 +14,7 @@
 **Location:** Lines 36-42 (original)
 
 **Problematic Code:**
+
 ```yaml
 - name: Set Sentry configuration
   id: sentry-check
@@ -48,6 +49,7 @@ From [GitHub Docs on Secrets](https://docs.github.com/en/actions/security-guides
 ### Correct Approach: Direct Conditional
 
 **New Code (Lines 35-38):**
+
 ```yaml
 - name: Upload source maps to Sentry (if configured)
   # Note: This step will be skipped if SENTRY_AUTH_TOKEN secret is not configured
@@ -73,6 +75,7 @@ From [GitHub Docs on Secrets](https://docs.github.com/en/actions/security-guides
 ### GitHub Actions Context Evaluation
 
 **Valid Secret Checks:**
+
 ```yaml
 # ✅ CORRECT - In step-level if
 if: ${{ secrets.MY_SECRET != '' }}
@@ -85,6 +88,7 @@ if: secrets.MY_SECRET
 ```
 
 **Invalid Secret Checks:**
+
 ```yaml
 # ❌ WRONG - In bash script
 run: |
@@ -114,18 +118,20 @@ run: echo "secret=${{ secrets.MY_SECRET }}" >> $GITHUB_OUTPUT
 
 ## 📊 Changes Summary
 
-| Aspect | Before | After |
-|--------|--------|-------|
-| **Lines of Code** | 13 lines (2 steps) | 8 lines (1 step) |
-| **Steps** | 2 (check + upload) | 1 (upload only) |
-| **Secret Access** | ❌ Invalid (bash check) | ✅ Valid (native if) |
-| **Logic** | ❌ Always false | ✅ Correct evaluation |
-| **Maintainability** | ❌ Complex | ✅ Simple |
+| Aspect              | Before                  | After                 |
+| ------------------- | ----------------------- | --------------------- |
+| **Lines of Code**   | 13 lines (2 steps)      | 8 lines (1 step)      |
+| **Steps**           | 2 (check + upload)      | 1 (upload only)       |
+| **Secret Access**   | ❌ Invalid (bash check) | ✅ Valid (native if)  |
+| **Logic**           | ❌ Always false         | ✅ Correct evaluation |
+| **Maintainability** | ❌ Complex              | ✅ Simple             |
 
 ### Lines Removed:
+
 - Lines 36-42: Entire "Set Sentry configuration" step (7 lines)
 
 ### Lines Modified:
+
 - Line 44 → Line 38: Changed `if: steps.sentry-check.outputs.sentry_configured == 'true'` to `if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}`
 - Added documentation comments (lines 36-37)
 
@@ -134,12 +140,14 @@ run: echo "secret=${{ secrets.MY_SECRET }}" >> $GITHUB_OUTPUT
 ## ✅ Verification
 
 ### Workflow Syntax Validation:
+
 ```bash
 # Extract the fixed conditional
 cat .github/workflows/build-sourcemaps.yml | grep -A 5 "Upload source maps to Sentry"
 ```
 
 **Output:**
+
 ```yaml
 - name: Upload source maps to Sentry (if configured)
   # Note: This step will be skipped if SENTRY_AUTH_TOKEN secret is not configured
@@ -152,6 +160,7 @@ cat .github/workflows/build-sourcemaps.yml | grep -A 5 "Upload source maps to Se
 ### Expected Behavior:
 
 **Scenario 1: Secret Not Configured**
+
 ```
 Repository Settings > Secrets > SENTRY_AUTH_TOKEN = (not set)
 
@@ -161,6 +170,7 @@ Workflow Result:
 ```
 
 **Scenario 2: Secret Configured**
+
 ```
 Repository Settings > Secrets > SENTRY_AUTH_TOKEN = "your-token-here"
 
@@ -177,6 +187,7 @@ Workflow Result:
 ### Other Workflows to Check:
 
 Use this pattern to find similar issues in other workflows:
+
 ```bash
 # Search for secret checks in bash
 grep -rn 'if \[ -n "\${{ secrets\.' .github/workflows/
@@ -186,6 +197,7 @@ grep -rn 'secrets\.' .github/workflows/ | grep GITHUB_OUTPUT
 ```
 
 **Result for this repository:**
+
 ```bash
 $ grep -rn 'if \[ -n "\${{ secrets\.' .github/workflows/
 # No other instances found
@@ -200,11 +212,13 @@ $ grep -rn 'if \[ -n "\${{ secrets\.' .github/workflows/
 ### For Future Workflow Development:
 
 1. **Always Use Native Conditionals:**
+
    ```yaml
    if: secrets.MY_SECRET != ''
    ```
 
 2. **Never Check Secrets in Bash:**
+
    ```yaml
    # ❌ DON'T DO THIS
    run: |
@@ -226,10 +240,11 @@ $ grep -rn 'if \[ -n "\${{ secrets\.' .github/workflows/
 ### Testing Workflow Changes:
 
 1. **Local Validation:**
+
    ```bash
    # Install actionlint
    brew install actionlint  # or appropriate package manager
-   
+
    # Validate workflow
    actionlint .github/workflows/build-sourcemaps.yml
    ```

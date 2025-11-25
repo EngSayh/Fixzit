@@ -54,7 +54,7 @@ This creates conflicting information. This document provides the **definitive cu
 **Files:**
 
 - `server/models/Benchmark.ts` - ✅ Has tenantId field
-- `server/models/DiscountRule.ts` - ✅ Has tenantId field  
+- `server/models/DiscountRule.ts` - ✅ Has tenantId field
 - `server/models/OwnerGroup.ts` - ✅ Has orgId field
 - `server/models/PaymentMethod.ts` - ✅ Has org_id/owner_user_id XOR validation
 
@@ -77,7 +77,7 @@ This creates conflicting information. This document provides the **definitive cu
 **Suggested Fix:**
 
 ```javascript
-if (process.env.NODE_ENV === 'development' && !process.env.CI) {
+if (process.env.NODE_ENV === "development" && !process.env.CI) {
   console.log(`Created user: ${u.email} (password: ${u.password})`);
 } else {
   console.log(`Created user: ${u.email}`);
@@ -100,8 +100,8 @@ if (process.env.NODE_ENV === 'development' && !process.env.CI) {
 
 ```javascript
 // Instead of showing first 10 chars
-console.log('✅ JWT_SECRET configured (********)');
-console.log('�� MongoDB URI configured');
+console.log("✅ JWT_SECRET configured (********)");
+console.log("�� MongoDB URI configured");
 ```
 
 **Priority:** LOW (test scripts, not production code)
@@ -116,8 +116,10 @@ console.log('�� MongoDB URI configured');
 **Suggested Fix:**
 
 ```typescript
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
-headers['Access-Control-Allow-Origin'] = allowedOrigins[0];
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [
+  "http://localhost:3000",
+];
+headers["Access-Control-Allow-Origin"] = allowedOrigins[0];
 ```
 
 **Priority:** MEDIUM (security best practice)

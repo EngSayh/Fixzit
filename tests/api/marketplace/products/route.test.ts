@@ -1,10 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { NextRequest } from 'next/server';
+import type { Mock } from 'vitest';
 
 vi.mock('next/server', () => {
   return {
     NextResponse: {
-      json: (body: unknown, init?: ResponseInit) => ({
+      json: (body: ResponseBody, init?: ResponseInit): JsonResponse => ({
         type: 'NextResponseMock',
         status: init?.status ?? 200,
         body
@@ -14,7 +15,7 @@ vi.mock('next/server', () => {
   };
 });
 
-const mockFindOne = vi.fn();
+const mockFindOne: Mock = vi.fn();
 vi.mock('@/server/models/MarketplaceProduct', () => ({
   MarketplaceProduct: {
     findOne: (...args: unknown[]) => mockFindOne(...args),
@@ -26,8 +27,23 @@ import { GET } from '@/app/api/marketplace/products/[slug]/route';
 type Context = {
   params: { slug: string };
 };
+type ProductDoc = {
+  _id: string;
+  slug: string;
+  prices: { listPrice: number; currency: string }[];
+  inventories: { onHand: number; leadDays: number }[];
+};
+type ResponseBody =
+  | { ok: false; error: string }
+  | {
+      ok: true;
+      data: { product: ProductDoc };
+      product: ProductDoc;
+      buyBox: { price: number; currency: string; inStock: boolean; leadDays: number };
+    };
+type JsonResponse = { type: 'NextResponseMock'; status: number; body: ResponseBody };
 
-const callGET = async (slug: string) => {
+const callGET = async (slug: string): Promise<JsonResponse> => {
   const req = { headers: new Headers(), nextUrl: { protocol: 'https:' } } as unknown as NextRequest;
   return await GET(req, { params: { slug } } as Context);
 };
@@ -43,7 +59,7 @@ describe('API GET /marketplace/products/[slug]', () => {
       lean: vi.fn().mockResolvedValue(null),
     });
 
-    const res: any = await callGET('missing');
+    const res = await callGET('missing');
     expect(mockFindOne).toHaveBeenCalledWith({
       tenantId: 'demo-tenant',
       slug: 'missing',
@@ -63,7 +79,7 @@ describe('API GET /marketplace/products/[slug]', () => {
       lean: vi.fn().mockResolvedValue(doc),
     });
 
-    const res: any = await callGET('toy');
+    const res = await callGET('toy');
 
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);

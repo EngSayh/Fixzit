@@ -1,26 +1,31 @@
-import { config } from 'dotenv';
-import { resolve } from 'path';
+import { config } from "dotenv";
+import { resolve } from "path";
 
 // Load environment variables BEFORE any other imports
-config({ path: resolve(process.cwd(), '.env.local') });
+config({ path: resolve(process.cwd(), ".env.local") });
 
-import { connectToDatabase, disconnectFromDatabase } from '../../lib/mongodb-unified';
-import { minorToDecimal128 } from '../../server/lib/money';
+import {
+  connectToDatabase,
+  disconnectFromDatabase,
+} from "../../lib/mongodb-unified";
+import { minorToDecimal128 } from "../../server/lib/money";
 
 function toMinorDecimal(value?: number) {
-  const asNumber = typeof value === 'number' ? value : 0;
+  const asNumber = typeof value === "number" ? value : 0;
   return minorToDecimal128(BigInt(Math.round(asNumber * 100)));
 }
 
 async function migrateDraftJournals() {
   await connectToDatabase();
-  
+
   // Dynamic import to ensure env vars are loaded first
-  const { default: Journal } = await import('../../server/models/finance/Journal');
+  const { default: Journal } = await import(
+    "../../server/models/finance/Journal"
+  );
 
   const journals = await Journal.find({
-    status: 'DRAFT',
-    'lines.0': { $exists: true },
+    status: "DRAFT",
+    "lines.0": { $exists: true },
   });
 
   let migrated = 0;
@@ -37,13 +42,14 @@ async function migrateDraftJournals() {
       if (line.tenantId) dimensions.tenantId = line.tenantId;
       if (line.vendorId) dimensions.vendorId = line.vendorId;
 
-      const cleanedDimensions = Object.keys(dimensions).length > 0 ? dimensions : undefined;
+      const cleanedDimensions =
+        Object.keys(dimensions).length > 0 ? dimensions : undefined;
 
       return {
         accountId: line.accountId,
         debitMinor: toMinorDecimal(line.debit),
         creditMinor: toMinorDecimal(line.credit),
-        currency: process.env.FINANCE_BASE_CURRENCY || 'SAR',
+        currency: process.env.FINANCE_BASE_CURRENCY || "SAR",
         fxRate: 1,
         memo: line.description,
         dimensions: cleanedDimensions,
@@ -60,7 +66,7 @@ async function migrateDraftJournals() {
 }
 
 migrateDraftJournals().catch(async (err) => {
-  console.error('Failed to migrate journals', err);
+  console.error("Failed to migrate journals", err);
   await disconnectFromDatabase();
   process.exit(1);
 });

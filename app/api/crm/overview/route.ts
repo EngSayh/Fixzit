@@ -1,13 +1,19 @@
-'use server';
+"use server";
 
-import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
-import { getSessionUser, UnauthorizedError } from '@/server/middleware/withAuthRbac';
-import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
-import CrmLead from '@/server/models/CrmLead';
-import CrmActivity from '@/server/models/CrmActivity';
-import { UserRole, type UserRoleType } from '@/types/user';
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import {
+  getSessionUser,
+  UnauthorizedError,
+} from "@/server/middleware/withAuthRbac";
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import CrmLead from "@/server/models/CrmLead";
+import CrmActivity from "@/server/models/CrmActivity";
+import { UserRole, type UserRoleType } from "@/types/user";
 
 const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
   UserRole.SUPER_ADMIN,
@@ -22,7 +28,8 @@ const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
 function isUnauthenticatedError(error: unknown): boolean {
   return (
     error instanceof UnauthorizedError ||
-    (error instanceof Error && error.message.toLowerCase().includes('unauthenticated'))
+    (error instanceof Error &&
+      error.message.toLowerCase().includes("unauthenticated"))
   );
 }
 
@@ -44,7 +51,7 @@ async function resolveUser(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const user = await resolveUser(req);
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   await connectToDatabase();
@@ -53,26 +60,41 @@ export async function GET(req: NextRequest) {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const [totalLeads, openPipeline, wonDeals, stageCounts, topAccounts, activities, recentCalls, recentEmails] =
-      await Promise.all([
-        CrmLead.countDocuments({ kind: 'LEAD' }),
-        CrmLead.aggregate([
-          { $match: { kind: 'LEAD', status: 'OPEN' } },
-          { $group: { _id: null, total: { $sum: '$value' }, count: { $sum: 1 } } },
-        ]),
-        CrmLead.countDocuments({ status: 'WON' }),
-        CrmLead.aggregate([
-          { $group: { _id: '$stage', total: { $sum: 1 } } },
-        ]),
-        CrmLead.find({ kind: 'ACCOUNT' }).sort({ revenue: -1 }).limit(5).lean(),
-        CrmActivity.find().sort({ performedAt: -1 }).limit(6).lean(),
-        CrmActivity.countDocuments({ type: 'CALL', performedAt: { $gte: sevenDaysAgo } }),
-        CrmActivity.countDocuments({ type: 'EMAIL', performedAt: { $gte: sevenDaysAgo } }),
-      ]);
+    const [
+      totalLeads,
+      openPipeline,
+      wonDeals,
+      stageCounts,
+      topAccounts,
+      activities,
+      recentCalls,
+      recentEmails,
+    ] = await Promise.all([
+      CrmLead.countDocuments({ kind: "LEAD" }),
+      CrmLead.aggregate([
+        { $match: { kind: "LEAD", status: "OPEN" } },
+        {
+          $group: { _id: null, total: { $sum: "$value" }, count: { $sum: 1 } },
+        },
+      ]),
+      CrmLead.countDocuments({ status: "WON" }),
+      CrmLead.aggregate([{ $group: { _id: "$stage", total: { $sum: 1 } } }]),
+      CrmLead.find({ kind: "ACCOUNT" }).sort({ revenue: -1 }).limit(5).lean(),
+      CrmActivity.find().sort({ performedAt: -1 }).limit(6).lean(),
+      CrmActivity.countDocuments({
+        type: "CALL",
+        performedAt: { $gte: sevenDaysAgo },
+      }),
+      CrmActivity.countDocuments({
+        type: "EMAIL",
+        performedAt: { $gte: sevenDaysAgo },
+      }),
+    ]);
 
     const pipelineTotal = openPipeline[0]?.total ?? 0;
     const pipelineCount = openPipeline[0]?.count ?? 0;
-    const avgDealSize = pipelineCount > 0 ? Math.round(pipelineTotal / pipelineCount) : 0;
+    const avgDealSize =
+      pipelineCount > 0 ? Math.round(pipelineTotal / pipelineCount) : 0;
     const conversionRate =
       totalLeads > 0 ? Number(((wonDeals / totalLeads) * 100).toFixed(1)) : 0;
 
@@ -111,8 +133,11 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('[crm/overview] Failed to load dashboard data', { error });
-    return NextResponse.json({ error: 'Failed to load CRM overview' }, { status: 500 });
+    logger.error("[crm/overview] Failed to load dashboard data", { error });
+    return NextResponse.json(
+      { error: "Failed to load CRM overview" },
+      { status: 500 },
+    );
   } finally {
     clearTenantContext();
   }

@@ -4,7 +4,7 @@ const candidates = [
   "openapi.yaml",
   "openapi.yml",
   "apps/api/openapi.yaml",
-  "apps/api/openapi.yml"
+  "apps/api/openapi.yml",
 ];
 
 const existing = candidates.find((p) => fs.existsSync(p));

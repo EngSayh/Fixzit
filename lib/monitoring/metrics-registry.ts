@@ -1,4 +1,4 @@
-import client from 'prom-client';
+import client from "prom-client";
 
 /**
  * Shared Prometheus registry for Fixzit metrics.
@@ -6,10 +6,10 @@ import client from 'prom-client';
  */
 export const metricsRegistry = new client.Registry();
 
-if (process.env.PROM_METRICS_DISABLE_DEFAULTS !== 'true') {
+if (process.env.PROM_METRICS_DISABLE_DEFAULTS !== "true") {
   client.collectDefaultMetrics({
     register: metricsRegistry,
-    prefix: 'fixzit_'
+    prefix: "fixzit_",
   });
 }
 

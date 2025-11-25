@@ -24,6 +24,7 @@ Created comprehensive locale coverage analysis tooling that **exposes the brutal
 **File:** `scripts/detect-unlocalized-strings.ts` (465 lines)
 
 **Capabilities:**
+
 - Compares each locale against EN dictionary character-by-character
 - Detects exact matches, case-insensitive matches, whitespace-only differences
 - Generates detailed coverage reports with cost estimates
@@ -31,6 +32,7 @@ Created comprehensive locale coverage analysis tooling that **exposes the brutal
 - Exports JSON artifacts for tracking progress over time
 
 **Usage:**
+
 ```bash
 # Full coverage report
 pnpm i18n:coverage
@@ -53,6 +55,7 @@ npx tsx scripts/detect-unlocalized-strings.ts --format=json > coverage-$(date +%
 **Artifact:** `_artifacts/i18n-locale-coverage.json`
 
 **Current Reality (November 18, 2024):**
+
 ```
 Locale | Total Keys | Localized | Identical to EN | Coverage | Unlocalized %
 -------|------------|-----------|-----------------|----------|---------------
@@ -73,6 +76,7 @@ Locale | Total Keys | Localized | Identical to EN | Coverage | Unlocalized %
 ### 3. Package Scripts ✅
 
 Added to `package.json`:
+
 ```json
 {
   "i18n:coverage": "Run full coverage analysis",
@@ -90,18 +94,21 @@ You now have **two clear paths forward**:
 ### Option A: Remove Unused Locales (Recommended - 1 hour)
 
 **When to choose:**
+
 - No immediate budget for translation ($52k-104k)
 - Product only targets English/Arabic markets currently
 - Want to reduce build time and artifact size
 - Prefer honest representation of capabilities
 
 **Implementation:**
+
 1. Update `ALL_LOCALES` in 3 files to `['en', 'ar']`:
    - `scripts/generate-dictionaries-json.ts` (line 15)
    - `lib/i18n/translation-loader.ts` (line 12)
    - `config/language-options.ts` (keep full list, add `supported: boolean` flag)
 
 2. Delete generated artifacts:
+
    ```bash
    rm i18n/generated/{fr,pt,ru,es,ur,hi,zh}.dictionary.json
    git add i18n/generated/
@@ -111,24 +118,28 @@ You now have **two clear paths forward**:
 3. Update documentation to state: **"Supported: EN, AR only"**
 
 **Benefits:**
+
 - ✅ Honest about capabilities (no fake "support" for 7 languages)
 - ✅ Faster builds (don't generate 7 unused 1.4MB files = 9.8MB saved)
 - ✅ Clearer for developers (only work on locales that matter)
 - ✅ Can add locales back when translation budget arrives
 
 **Drawbacks:**
+
 - ⚠️ Need to update ALL_LOCALES again when adding languages later
 - ⚠️ UI language selector will only show 2 options (but this is honest)
 
 ### Option B: Keep Infrastructure, Budget Translation (2-4 weeks + $52k-104k)
 
 **When to choose:**
+
 - Budget approved or in progress
 - Want to support multiple markets soon
 - Ready to hire translation service (Crowdin, Phrase, etc.)
 - Can tolerate temporarily fake "support" for 7 languages
 
 **Implementation:**
+
 1. **Week 1: Export & Contract**
    - Export EN dictionary to XLIFF/CSV format
    - Send RFP to 3+ translation vendors
@@ -152,11 +163,13 @@ You now have **two clear paths forward**:
    - Monitor for translation issues in production
 
 **Benefits:**
+
 - ✅ Actually supports 9 languages (not just infrastructure)
 - ✅ Can target multiple international markets
 - ✅ UI language selector shows real choices
 
 **Drawbacks:**
+
 - 💰 $52k-104k upfront cost
 - ⏳ 2-4 week timeline (vendor turnaround)
 - 🔄 Ongoing maintenance (keep translations updated)
@@ -173,6 +186,7 @@ You now have **two clear paths forward**:
 4. **Honest representation** - System should only claim to "support" languages it actually translates
 
 **Next Steps:**
+
 1. Get stakeholder confirmation: "Do we have budget for $52k-104k translation?"
 2. If NO → Proceed with Option A (remove unused locales)
 3. If YES → Proceed with Option B (budget translation work)
@@ -192,32 +206,32 @@ name: Translation Coverage Check
 on:
   pull_request:
     paths:
-      - 'i18n/sources/**'
-      - 'i18n/generated/**'
-      - 'scripts/generate-dictionaries-json.ts'
-      - 'scripts/detect-unlocalized-strings.ts'
+      - "i18n/sources/**"
+      - "i18n/generated/**"
+      - "scripts/generate-dictionaries-json.ts"
+      - "scripts/detect-unlocalized-strings.ts"
 
 jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: pnpm/action-setup@v2
         with:
           version: 9
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
-      
+          cache: "pnpm"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
+
       - name: Regenerate dictionaries
         run: pnpm i18n:build
-      
+
       - name: Check for uncommitted changes
         run: |
           git diff --exit-code i18n/generated/
@@ -226,30 +240,30 @@ jobs:
             echo "   Run: pnpm i18n:build"
             exit 1
           fi
-      
+
       - name: Analyze locale coverage
         run: pnpm i18n:coverage
-      
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: i18n-coverage-report
           path: _artifacts/i18n-locale-coverage.json
-      
+
       - name: Comment on PR
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const report = JSON.parse(fs.readFileSync('_artifacts/i18n-locale-coverage.json', 'utf8'));
-            
+
             const summary = report.locales
               .filter(l => l.locale !== 'en' && l.locale !== 'ar')
               .map(l => `- ${l.locale.toUpperCase()}: ${l.coveragePercent.toFixed(1)}% (${l.actuallyLocalized}/${l.totalKeys})`)
               .join('\n');
-            
+
             const body = `## 🌐 Translation Coverage Report\n\n${summary}\n\n**Overall:** ${report.summary.overallCoverage.toFixed(1)}% complete`;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -277,11 +291,13 @@ pnpm i18n:coverage --silent || echo "⚠️  Some locales have low coverage (not
 ### Phase 3: Retire Monolithic Bundle (After Locale Decision)
 
 **If Option A (remove locales):**
+
 1. Update generator to skip `writeFlatBundle()` when `ALL_LOCALES.length === 2`
 2. Move `i18n/new-translations.ts` to `.gitignore`
 3. Delete tracked file
 
 **If Option B (keep locales):**
+
 1. Wait until translation coverage ≥90% (proven by `pnpm i18n:coverage`)
 2. Then retire monolithic bundle
 3. Ensures all locales are real before cleanup
@@ -289,6 +305,7 @@ pnpm i18n:coverage --silent || echo "⚠️  Some locales have low coverage (not
 ### Phase 4: Tooling Hardening (After Locale Decision)
 
 **Regardless of option:**
+
 1. ✅ Add `pnpm i18n:coverage` to CI (done - see workflow above)
 2. ✅ Extend Husky to warn on low coverage (done - see hook above)
 3. 🔄 Create `scripts/i18n-report.ts` to track coverage over time
@@ -322,16 +339,19 @@ console.log(\`Coverage change: \${diff > 0 ? '+' : ''}\${diff.toFixed(1)}%\`);
 ## Cost-Benefit Analysis
 
 ### Option A: Remove Unused Locales
+
 - **Cost:** 1 hour developer time (~$100)
 - **Benefit:** Honest representation, faster builds, reduced complexity
 - **ROI:** Immediate
 
 ### Option B: Professional Translation
+
 - **Cost:** $52k-104k + 2-4 weeks timeline
 - **Benefit:** Support 7 additional markets (~70% of global internet users)
 - **ROI:** Depends on business model (if targeting international markets, high ROI)
 
 ### Option C: Status Quo (Keep Fake Locales)
+
 - **Cost:** Technical debt, misleading claims, wasted build time
 - **Benefit:** None
 - **ROI:** Negative (actively harmful)
@@ -343,6 +363,7 @@ console.log(\`Coverage change: \${diff > 0 ? '+' : ''}\${diff.toFixed(1)}%\`);
 ## Sample Commands & Outputs
 
 ### Check coverage for specific locale
+
 ```bash
 $ pnpm i18n:coverage --locale=fr --show-samples=5
 
@@ -355,12 +376,14 @@ $ pnpm i18n:coverage --locale=fr --show-samples=5
 ```
 
 ### Fail CI if coverage too low
+
 ```bash
 $ pnpm i18n:coverage:strict
 ❌ THRESHOLD EXCEEDED: 7 locale(s) have >10% unlocalized strings
 ```
 
 ### Track progress weekly
+
 ```bash
 $ pnpm i18n:coverage --silent && echo "Coverage: $(jq -r '.summary.overallCoverage' _artifacts/i18n-locale-coverage.json)%"
 Coverage: 0.0%
@@ -400,6 +423,7 @@ Coverage: 87.3%
 ## Success Metrics
 
 ### Phase 2.5 (Current) - Analytics Complete ✅
+
 - ✅ High-fidelity coverage script created
 - ✅ Real coverage data exposed (0% for 7 locales)
 - ✅ Cost estimates calculated ($52k-104k)
@@ -407,11 +431,13 @@ Coverage: 87.3%
 - ✅ Package scripts integrated
 
 ### Phase 3 (Next) - Locale Decision
+
 - ⏳ Stakeholder decision: Remove locales OR budget translation
 - ⏳ If remove: Update ALL_LOCALES to `['en', 'ar']`
 - ⏳ If budget: RFP sent to translation vendors
 
 ### Phase 4 (Future) - Production Ready
+
 - ⏳ Coverage ≥90% for all locales (if keeping them)
 - ⏳ CI fails on coverage regression
 - ⏳ Monolithic bundle retired

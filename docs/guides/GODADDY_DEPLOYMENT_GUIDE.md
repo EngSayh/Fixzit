@@ -5,7 +5,7 @@
 ✅ **You own the hosting** - Already paying for it, why pay elsewhere?  
 ✅ **Full control** - No third-party limitations  
 ✅ **Cost effective** - Use what you're already paying for  
-✅ **Direct domain connection** - No DNS complexity  
+✅ **Direct domain connection** - No DNS complexity
 
 ## GoDaddy Hosting Types & Compatibility
 
@@ -326,21 +326,23 @@ Add this configuration:
 
 ```javascript
 module.exports = {
-  apps: [{
-    name: 'fixzit',
-    script: 'npm',
-    args: 'start',
-    cwd: '/var/www/fixzit',
-    instances: 1,
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '1G',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 3000
-    }
-  }]
-}
+  apps: [
+    {
+      name: "fixzit",
+      script: "npm",
+      args: "start",
+      cwd: "/var/www/fixzit",
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: "1G",
+      env: {
+        NODE_ENV: "production",
+        PORT: 3000,
+      },
+    },
+  ],
+};
 ```
 
 #### Start Your Application
@@ -403,7 +405,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
-        
+
         # Timeouts
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
@@ -611,7 +613,7 @@ jobs:
    ```bash
    # Copy the public key
    cat ~/.ssh/deploy_key.pub
-   
+
    # SSH to your VPS and add it to authorized_keys
    ssh root@YOUR_VPS_IP
    mkdir -p ~/.ssh
@@ -687,12 +689,12 @@ sudo systemctl status mongod
 
 ## Cost Comparison
 
-| Service | Monthly Cost | Build Time | Setup Complexity |
-|---------|-------------|------------|------------------|
-| **GoDaddy VPS** (your option) | $5-20 (already paid) | Fast on VPS | Medium |
-| **Vercel** | Free tier / $20+ | Very fast | Easy |
-| **AWS EC2** | $5-50+ | Depends on instance | Complex |
-| **DigitalOcean** | $6-40 | Fast | Medium |
+| Service                       | Monthly Cost         | Build Time          | Setup Complexity |
+| ----------------------------- | -------------------- | ------------------- | ---------------- |
+| **GoDaddy VPS** (your option) | $5-20 (already paid) | Fast on VPS         | Medium           |
+| **Vercel**                    | Free tier / $20+     | Very fast           | Easy             |
+| **AWS EC2**                   | $5-50+               | Depends on instance | Complex          |
+| **DigitalOcean**              | $6-40                | Fast                | Medium           |
 
 **Bottom line**: If you already have GoDaddy VPS, use it! No additional cost.
 

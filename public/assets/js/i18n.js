@@ -1,17 +1,40 @@
 window.FXZ_I18N = {
-  en:{
-    'buttons.lang':'عربي',
-    'buttons.login':'Login','buttons.signUp':'Create Account',
-    'footer.rights':'All rights reserved.',
-    'nav.dashboard':'Dashboard','nav.workOrders':'Work Orders','nav.properties':'Properties','nav.finance':'Finance','nav.hr':'HR','nav.crm':'CRM','nav.fixzitSouq':'Fixzit Souq','nav.reports':'Reports','nav.support':'Support',
-    'fm.tabs.catalog':'Catalog','fm.tabs.vendors':'Vendors','fm.tabs.rfqs':'RFQs & Bids','fm.tabs.orders':'Orders & POs'
+  en: {
+    "buttons.lang": "عربي",
+    "buttons.login": "Login",
+    "buttons.signUp": "Create Account",
+    "footer.rights": "All rights reserved.",
+    "nav.dashboard": "Dashboard",
+    "nav.workOrders": "Work Orders",
+    "nav.properties": "Properties",
+    "nav.finance": "Finance",
+    "nav.hr": "HR",
+    "nav.crm": "CRM",
+    "nav.fixzitSouq": "Fixzit Souq",
+    "nav.reports": "Reports",
+    "nav.support": "Support",
+    "fm.tabs.catalog": "Catalog",
+    "fm.tabs.vendors": "Vendors",
+    "fm.tabs.rfqs": "RFQs & Bids",
+    "fm.tabs.orders": "Orders & POs",
   },
-  ar:{
-    'buttons.lang':'English',
-    'buttons.login':'دخول','buttons.signUp':'إنشاء حساب',
-    'footer.rights':'جميع الحقوق محفوظة.',
-    'nav.dashboard':'لوحة التحكم','nav.workOrders':'أوامر العمل','nav.properties':'العقارات','nav.finance':'المالية','nav.hr':'الموارد البشرية','nav.crm':'العلاقات','nav.fixzitSouq':'سوق فيكزت','nav.reports':'التقارير','nav.support':'الدعم',
-    'fm.tabs.catalog':'الكتالوج','fm.tabs.vendors':'الموردون','fm.tabs.rfqs':'طلبات التسعير والعطاءات','fm.tabs.orders':'الطلبات وأوامر الشراء'
-  }
+  ar: {
+    "buttons.lang": "English",
+    "buttons.login": "دخول",
+    "buttons.signUp": "إنشاء حساب",
+    "footer.rights": "جميع الحقوق محفوظة.",
+    "nav.dashboard": "لوحة التحكم",
+    "nav.workOrders": "أوامر العمل",
+    "nav.properties": "العقارات",
+    "nav.finance": "المالية",
+    "nav.hr": "الموارد البشرية",
+    "nav.crm": "العلاقات",
+    "nav.fixzitSouq": "سوق فيكزت",
+    "nav.reports": "التقارير",
+    "nav.support": "الدعم",
+    "fm.tabs.catalog": "الكتالوج",
+    "fm.tabs.vendors": "الموردون",
+    "fm.tabs.rfqs": "طلبات التسعير والعطاءات",
+    "fm.tabs.orders": "الطلبات وأوامر الشراء",
+  },
 };
-

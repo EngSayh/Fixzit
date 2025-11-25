@@ -5,25 +5,25 @@
 
 // Role types from Blueprint Bible PDF - covers all system roles
 export type Role =
-  | 'SUPER_ADMIN'
-  | 'CORPORATE_ADMIN'
-  | 'MANAGEMENT'
-  | 'FINANCE'
-  | 'HR'
-  | 'CORPORATE_EMPLOYEE'
-  | 'PROPERTY_OWNER'
-  | 'TECHNICIAN'
-  | 'TENANT'
-  | 'VENDOR'
-  | 'GUEST'
-  | 'ADMIN'
-  | 'FM_MANAGER'
-  | 'PROCUREMENT'
-  | 'PROPERTY_MANAGER'
-  | 'EMPLOYEE'
-  | 'CUSTOMER'
-  | 'OWNER'
-  | 'AUDITOR';
+  | "SUPER_ADMIN"
+  | "CORPORATE_ADMIN"
+  | "MANAGEMENT"
+  | "FINANCE"
+  | "HR"
+  | "CORPORATE_EMPLOYEE"
+  | "PROPERTY_OWNER"
+  | "TECHNICIAN"
+  | "TENANT"
+  | "VENDOR"
+  | "GUEST"
+  | "ADMIN"
+  | "FM_MANAGER"
+  | "PROCUREMENT"
+  | "PROPERTY_MANAGER"
+  | "EMPLOYEE"
+  | "CUSTOMER"
+  | "OWNER"
+  | "AUDITOR";
 
 // Session profile with locale and directionality for RTL support
 export interface SessionProfile {
@@ -32,13 +32,13 @@ export interface SessionProfile {
   email: string;
   role: Role;
   orgId: string | null;
-  locale: 'ar' | 'en';
-  dir: 'rtl' | 'ltr';
+  locale: "ar" | "en";
+  dir: "rtl" | "ltr";
 }
 
 // Chat message structure
 export interface ChatMessage {
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   intent?: Intent;
   dataClass?: DataClass;
@@ -47,34 +47,34 @@ export interface ChatMessage {
 
 // Intent classification for message routing
 export type Intent =
-  | 'GENERAL'
-  | 'PERSONAL'
-  | 'APARTMENT_SEARCH'
-  | 'DISPATCH'
-  | 'UPLOAD_PHOTO'
-  | 'APPROVE_QUOTATION'
-  | 'OWNER_STATEMENTS'
-  | 'SCHEDULE_VISIT'
-  | 'CREATE_WORK_ORDER'
-  | 'LIST_MY_TICKETS';
+  | "GENERAL"
+  | "PERSONAL"
+  | "APARTMENT_SEARCH"
+  | "DISPATCH"
+  | "UPLOAD_PHOTO"
+  | "APPROVE_QUOTATION"
+  | "OWNER_STATEMENTS"
+  | "SCHEDULE_VISIT"
+  | "CREATE_WORK_ORDER"
+  | "LIST_MY_TICKETS";
 
 // Data classification for RBAC enforcement
 export type DataClass =
-  | 'PUBLIC'
-  | 'TENANT_SCOPED'
-  | 'OWNER_SCOPED'
-  | 'ORG_FINANCIALS'
-  | 'FINANCE'
-  | 'HR'
-  | 'INTERNAL'
-  | 'SENSITIVE';
+  | "PUBLIC"
+  | "TENANT_SCOPED"
+  | "OWNER_SCOPED"
+  | "ORG_FINANCIALS"
+  | "FINANCE"
+  | "HR"
+  | "INTERNAL"
+  | "SENSITIVE";
 
 // Session context for backend processing
 export interface SessionContext {
   userId: string | null;
   orgId: string | null;
   role: Role;
-  locale: 'en' | 'ar';
+  locale: "en" | "ar";
   tenantId?: string;
 }
 
@@ -122,15 +122,15 @@ export interface ApartmentSearchResult {
 export interface AIAssistantEnhancement {
   featureId: string;
   description: string;
-  impact: 'LOW' | 'MEDIUM' | 'HIGH';
-  effort: 'LOW' | 'MEDIUM' | 'HIGH';
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  impact: "LOW" | "MEDIUM" | "HIGH";
+  effort: "LOW" | "MEDIUM" | "HIGH";
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
 }
 
 // Server status
 export const serverStatus = {
   running: true,
-  url: 'http://localhost:3000',
+  url: "http://localhost:3000",
   errors: null,
   aiAssistantAccessible: true,
   featuresWorking: true,

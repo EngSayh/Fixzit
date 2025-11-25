@@ -19,7 +19,6 @@ Completed comprehensive fixes across documentation, test imports, multi-tenant c
 - **Line 121-127:** Fixed occurrence count discrepancy
   - Changed "14 occurrences" → "12 occurrences"
   - Matches the 12 line numbers actually listed in the code block
-  
 - **Line 11-13:** Fixed "Already Fixed" count
   - Changed "39+" → "42+"
   - Eliminates 3-issue discrepancy with detailed breakdown
@@ -29,7 +28,6 @@ Completed comprehensive fixes across documentation, test imports, multi-tenant c
 - **Lines 357-358:** Removed deprecated vi.importMock conversions
   - Deleted sed commands converting `jest.requireMock` → `vi.importMock`
   - Reason: `vi.importMock` is deprecated and returns Promise
-  
 - **Line 372:** Added manual handling warning
   - Explicit note that `jest.requireMock` requires manual review
   - Suggests synchronous `vi.mock` patterns or async conversion
@@ -45,10 +43,10 @@ Completed comprehensive fixes across documentation, test imports, multi-tenant c
 
 ```typescript
 // BEFORE:
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from "vitest";
 
 // AFTER:
-import { vi, describe, it, test, expect, beforeEach } from 'vitest';
+import { vi, describe, it, test, expect, beforeEach } from "vitest";
 ```
 
 **Impact:** Fixes ReferenceError when running tests
@@ -62,10 +60,10 @@ import { vi, describe, it, test, expect, beforeEach } from 'vitest';
 
 ```typescript
 // BEFORE:
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from "vitest";
 
 // AFTER:
-import { vi, describe, it, test, expect, beforeAll, afterEach } from 'vitest';
+import { vi, describe, it, test, expect, beforeAll, afterEach } from "vitest";
 ```
 
 **Impact:**
@@ -83,10 +81,10 @@ import { vi, describe, it, test, expect, beforeAll, afterEach } from 'vitest';
 
 ```typescript
 // BEFORE:
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 
 // AFTER:
-import { vi, describe, test, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, test, expect, beforeEach, afterEach } from "vitest";
 ```
 
 **Impact:** Aligns imports with usage patterns
@@ -103,8 +101,8 @@ import { vi, describe, test, expect, beforeEach, afterEach } from 'vitest';
 // BEFORE:
 export async function resolveMarketplaceContext(): Promise<MarketplaceContext> {
   return {
-    orgId: 'default-org',      // ❌ Hardcoded
-    tenantKey: 'default-tenant' // ❌ Hardcoded
+    orgId: "default-org", // ❌ Hardcoded
+    tenantKey: "default-tenant", // ❌ Hardcoded
   };
 }
 ```
@@ -114,8 +112,8 @@ export async function resolveMarketplaceContext(): Promise<MarketplaceContext> {
 ```typescript
 // AFTER:
 export async function resolveMarketplaceContext(
-  req?: RequestContext
-): Promise<MarketplaceContext>
+  req?: RequestContext,
+): Promise<MarketplaceContext>;
 ```
 
 **New Features:**
@@ -126,7 +124,7 @@ export async function resolveMarketplaceContext(
    export interface RequestContext {
      headers?: Headers | Record<string, string | string[] | undefined>;
      cookies?: Record<string, string>;
-     session?: { orgId?: string; tenantKey?: string; };
+     session?: { orgId?: string; tenantKey?: string };
      authToken?: string;
    }
    ```
@@ -140,7 +138,7 @@ export async function resolveMarketplaceContext(
 3. **JWT Decode Utility**
 
    ```typescript
-   function decodeJWT(token: string): Record<string, string>
+   function decodeJWT(token: string): Record<string, string>;
    ```
 
    - Extracts `orgId`, `org_id`, or `organizationId`

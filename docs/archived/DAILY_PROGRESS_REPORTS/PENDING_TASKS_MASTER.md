@@ -1,4 +1,5 @@
 # MASTER PENDING TASKS REPORT
+
 **Created**: 2025-11-12  
 **Last Updated**: 2025-11-18  
 **Status**: IN PROGRESS  
@@ -7,6 +8,7 @@
 ---
 
 ## 🎯 COMMITMENT
+
 - **Fix ALL issues** - not 7%, not 66.7%, not 80% - **100%**
 - **No prioritization without consent** - fix all categories completely
 - **Daily updates** - track every change, never lose progress
@@ -18,81 +20,90 @@
 ## 📊 KNOWN ISSUE COUNTS (From Previous Scans)
 
 ### Category 1: Type Safety Issues
-| Issue Type | Count | Status | Priority |
-|------------|-------|--------|----------|
-| Implicit 'any' types | ~42 | ✅ Completed (audit 2025-11-17, commits df04f1fc2 / 837463a5c / db5cfc4da) | 🟢 Monitor |
-| Explicit 'any' types | 10 | ✅ Completed | 🟢 Monitor |
-| @ts-ignore comments | TBD | ⚠️ Track via `scripts/typecheck-tail.mjs` (0 blockers today) | 🟡 Medium |
-| @ts-expect-error | TBD | ⚠️ Track via `scripts/typecheck-tail.mjs` (0 blockers today) | 🟡 Medium |
-| **SUBTOTAL** | **52+** | **100% complete for PROD blockers** | |
+
+| Issue Type           | Count   | Status                                                                     | Priority   |
+| -------------------- | ------- | -------------------------------------------------------------------------- | ---------- |
+| Implicit 'any' types | ~42     | ✅ Completed (audit 2025-11-17, commits df04f1fc2 / 837463a5c / db5cfc4da) | 🟢 Monitor |
+| Explicit 'any' types | 10      | ✅ Completed                                                               | 🟢 Monitor |
+| @ts-ignore comments  | TBD     | ⚠️ Track via `scripts/typecheck-tail.mjs` (0 blockers today)               | 🟡 Medium  |
+| @ts-expect-error     | TBD     | ⚠️ Track via `scripts/typecheck-tail.mjs` (0 blockers today)               | 🟡 Medium  |
+| **SUBTOTAL**         | **52+** | **100% complete for PROD blockers**                                        |            |
 
 ### Category 2: Production Logging
-| Issue Type | Count | Status | Priority |
-|------------|-------|--------|----------|
-| console.log | 36 | ✅ Replaced with `lib/logger` (PR batch Nov 13-15) | 🟢 Monitor |
-| console.error | 156 | ✅ Routed to logger + Datadog/Sentry (`lib/logger.ts` 2025-11-17) | 🟢 Monitor |
-| console.warn/info | 30+ | ✅ Routed to logger (`logger.warn/info` relay to Datadog) | 🟢 Monitor |
-| Outstanding follow-up | n/a | ⚠️ Add dashboards for Datadog ingestion (tracked separately) | 🟡 Medium |
-| **SUBTOTAL** | **225+** | **100% migrated** | |
-| **Note** | Logger now pushes to Sentry + Datadog and documents the client `/api/logs` fallback. | | |
+
+| Issue Type            | Count                                                                                | Status                                                            | Priority   |
+| --------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------- | ---------- |
+| console.log           | 36                                                                                   | ✅ Replaced with `lib/logger` (PR batch Nov 13-15)                | 🟢 Monitor |
+| console.error         | 156                                                                                  | ✅ Routed to logger + Datadog/Sentry (`lib/logger.ts` 2025-11-17) | 🟢 Monitor |
+| console.warn/info     | 30+                                                                                  | ✅ Routed to logger (`logger.warn/info` relay to Datadog)         | 🟢 Monitor |
+| Outstanding follow-up | n/a                                                                                  | ⚠️ Add dashboards for Datadog ingestion (tracked separately)      | 🟡 Medium  |
+| **SUBTOTAL**          | **225+**                                                                             | **100% migrated**                                                 |            |
+| **Note**              | Logger now pushes to Sentry + Datadog and documents the client `/api/logs` fallback. |                                                                   |            |
 
 ---
 
 ## 🔥 Active Focus Items (as of Nov 18)
-| Area | Status | Owner Notes |
-|------|--------|-------------|
-| Souq notifications | ✅ Claims appeal + budget alerts wired to notification queue (Nov 18). | Product Ops to verify templates. |
-| Seller withdrawals | ✅ PayTabs payout path implemented with manual fallback. Docs in `docs/payments/manual-withdrawal-process.md`. | Finance to enable `PAYTABS_PAYOUT_ENABLED` once secrets deployed. |
-| Translation Phase 2 | ⏳ Careers + Marketplace pending (~6-8 h sprint). See `TRANSLATION_STATUS_REALISTIC_ASSESSMENT.md`. | Assign bilingual reviewer. |
-| SADAD/SPAN | ⏸ Deferred to Q1 2026. Code now logs deferral when `ENABLE_SADAD_PAYOUTS` is false. | Await banking partnership. |
+
+| Area                | Status                                                                                                         | Owner Notes                                                       |
+| ------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Souq notifications  | ✅ Claims appeal + budget alerts wired to notification queue (Nov 18).                                         | Product Ops to verify templates.                                  |
+| Seller withdrawals  | ✅ PayTabs payout path implemented with manual fallback. Docs in `docs/payments/manual-withdrawal-process.md`. | Finance to enable `PAYTABS_PAYOUT_ENABLED` once secrets deployed. |
+| Translation Phase 2 | ⏳ Careers + Marketplace pending (~6-8 h sprint). See `TRANSLATION_STATUS_REALISTIC_ASSESSMENT.md`.            | Assign bilingual reviewer.                                        |
+| SADAD/SPAN          | ⏸ Deferred to Q1 2026. Code now logs deferral when `ENABLE_SADAD_PAYOUTS` is false.                           | Await banking partnership.                                        |
 
 ### Category 3: Code Quality
-| Issue Type | Count | Status | Priority |
-|------------|-------|--------|----------|
-| parseInt without radix | 41 | ✅ **COMPLETE** | 🟡 High |
-| TODO/FIXME comments | 34 | ❌ Not Started | 🟡 High |
-| Empty catch blocks | TBD | ❌ Not Started | 🟡 High |
-| eslint-disable comments | TBD | ❌ Not Started | 🟢 Medium |
-| **SUBTOTAL** | **75+** | **54.7% complete** | |
+
+| Issue Type              | Count   | Status             | Priority  |
+| ----------------------- | ------- | ------------------ | --------- |
+| parseInt without radix  | 41      | ✅ **COMPLETE**    | 🟡 High   |
+| TODO/FIXME comments     | 34      | ❌ Not Started     | 🟡 High   |
+| Empty catch blocks      | TBD     | ❌ Not Started     | 🟡 High   |
+| eslint-disable comments | TBD     | ❌ Not Started     | 🟢 Medium |
+| **SUBTOTAL**            | **75+** | **54.7% complete** |           |
 
 ### Category 4: React/JSX Issues
-| Issue Type | Count | Status | Priority |
-|------------|-------|--------|----------|
-| new Date() in JSX | 47 | ❌ Not Started | 🟡 High |
-| Date.now() in JSX | 20 | ❌ Not Started | 🟡 High |
-| Unhandled promises | TBD | ❌ Not Started | 🔴 Critical |
-| **SUBTOTAL** | **67+** | **0% complete** | |
+
+| Issue Type         | Count   | Status          | Priority    |
+| ------------------ | ------- | --------------- | ----------- |
+| new Date() in JSX  | 47      | ❌ Not Started  | 🟡 High     |
+| Date.now() in JSX  | 20      | ❌ Not Started  | 🟡 High     |
+| Unhandled promises | TBD     | ❌ Not Started  | 🔴 Critical |
+| **SUBTOTAL**       | **67+** | **0% complete** |             |
 
 ### Category 5: Internationalization
-| Issue Type | Count | Status | Priority |
-|------------|-------|--------|----------|
-| Dynamic i18n keys (t(`...`)) | 112 | ❌ Not Started | 🟡 High |
-| Missing translations | TBD | ❌ Not Started | 🟡 High |
-| **SUBTOTAL** | **112+** | **0% complete** | |
+
+| Issue Type                   | Count    | Status          | Priority |
+| ---------------------------- | -------- | --------------- | -------- |
+| Dynamic i18n keys (t(`...`)) | 112      | ❌ Not Started  | 🟡 High  |
+| Missing translations         | TBD      | ❌ Not Started  | 🟡 High  |
+| **SUBTOTAL**                 | **112+** | **0% complete** |          |
 
 ### Category 6: Code Duplication
-| Issue Type | Count | Status | Priority |
-|------------|-------|--------|----------|
-| Duplicate files identified | 11 | ❌ Not Started | 🟡 High |
-| Similar code patterns | TBD | ❌ Not Started | 🟢 Medium |
-| **SUBTOTAL** | **11+** | **0% complete** | |
+
+| Issue Type                 | Count   | Status          | Priority  |
+| -------------------------- | ------- | --------------- | --------- |
+| Duplicate files identified | 11      | ❌ Not Started  | 🟡 High   |
+| Similar code patterns      | TBD     | ❌ Not Started  | 🟢 Medium |
+| **SUBTOTAL**               | **11+** | **0% complete** |           |
 
 ### Category 7: Documentation
-| Issue Type | Count | Status | Priority |
-|------------|-------|--------|----------|
-| Missing docstrings | ~669 functions | ❌ Not Started | 🟢 Medium |
-| Incomplete PR descriptions | 10 PRs | ❌ Not Started | 🟡 High |
-| **SUBTOTAL** | **679+** | **0% complete** | |
+
+| Issue Type                 | Count          | Status          | Priority  |
+| -------------------------- | -------------- | --------------- | --------- |
+| Missing docstrings         | ~669 functions | ❌ Not Started  | 🟢 Medium |
+| Incomplete PR descriptions | 10 PRs         | ❌ Not Started  | 🟡 High   |
+| **SUBTOTAL**               | **679+**       | **0% complete** |           |
 
 ### Category 8: PR Management
-| Issue Type | Count | Status | Priority |
-|------------|-------|--------|----------|
-| Unaddressed PR comments | 0 | ✅ **COMPLETE** | 🔴 Critical |
-| Unapproved PRs | 0 | ✅ **COMPLETE** | 🔴 Critical |
-| Unmerged approved PRs | 0 | ✅ **COMPLETE** | 🟡 High |
-| Undeleted merged branches | 0 | ✅ **COMPLETE** | 🟢 Medium |
-| **SUBTOTAL** | **0** | **100% complete** | |
-| **Note** | All 13 PRs consolidated and merged (PR #285, #289, #298). Zero backlog. | | |
+
+| Issue Type                | Count                                                                   | Status            | Priority    |
+| ------------------------- | ----------------------------------------------------------------------- | ----------------- | ----------- |
+| Unaddressed PR comments   | 0                                                                       | ✅ **COMPLETE**   | 🔴 Critical |
+| Unapproved PRs            | 0                                                                       | ✅ **COMPLETE**   | 🔴 Critical |
+| Unmerged approved PRs     | 0                                                                       | ✅ **COMPLETE**   | 🟡 High     |
+| Undeleted merged branches | 0                                                                       | ✅ **COMPLETE**   | 🟢 Medium   |
+| **SUBTOTAL**              | **0**                                                                   | **100% complete** |             |
+| **Note**                  | All 13 PRs consolidated and merged (PR #285, #289, #298). Zero backlog. |                   |             |
 
 ---
 
@@ -111,6 +122,7 @@
 ## 🚀 EXECUTION PLAN
 
 ### Phase 1: Critical Security & Type Safety (4-6 hours)
+
 1. ✅ Memory optimization (DONE - PR #289)
 2. ✅ Comprehensive scan for exact counts (DONE)
 3. ❌ Fix ALL implicit any types (DEFERRED - lower priority)
@@ -121,6 +133,7 @@
 **Memory Checkpoint**: ✅ VS Code stable, no crashes
 
 ### Phase 2: Console & Code Quality (4-6 hours)
+
 7. 🔄 Replace ALL console.log with logger (65% complete - PR #289)
 8. 🔄 Replace ALL console.error with logger (75% complete - PR #289)
 9. 🔄 Replace ALL console.warn with logger (75% complete - PR #289)
@@ -131,6 +144,7 @@
 **Memory Checkpoint**: ✅ VS Code stable, no crashes
 
 ### Phase 3: React/JSX & i18n (4-6 hours)
+
 13. ❌ Fix ALL Date hydration issues
 14. ❌ Fix ALL dynamic i18n keys
 15. ❌ Add missing translations
@@ -139,6 +153,7 @@
 **Memory Checkpoint**: Restart VS Code after Phase 3
 
 ### Phase 4: Duplication & Documentation (6-8 hours)
+
 17. ❌ Remove ALL duplicate files
 18. ❌ Add docstrings to 80% of functions
 19. ❌ Complete ALL PR descriptions
@@ -147,6 +162,7 @@
 **Memory Checkpoint**: Restart VS Code after Phase 4
 
 ### Phase 5: PR Management & Final Verification (4-6 hours)
+
 21. ❌ Address ALL PR comments
 22. ❌ Get ALL PRs approved
 23. ❌ Merge ALL approved PRs
@@ -161,6 +177,7 @@
 ## 📝 DAILY PROGRESS LOG
 
 ### 2025-11-13 (Day 2) ✅ MAJOR PROGRESS
+
 - **Time**: 2 hours
 - **Actions**:
   - **PR Consolidation**: Closed 13 PRs, merged 3 clean PRs (ZERO backlog)
@@ -175,7 +192,8 @@
 - **Next**: Address Issue #293 TODO items (39 production readiness tasks)
 
 ### 2025-11-12 (Day 1)
-- **Time**: Started 
+
+- **Time**: Started
 - **Actions**:
   - Created memory guard script
   - Started memory monitoring
@@ -191,6 +209,7 @@
 ## 🛡️ MEMORY MANAGEMENT
 
 ### Crash Prevention Strategy
+
 1. ✅ Stop dev server before heavy work
 2. ✅ Memory monitoring running (vscode-memory-guard.sh)
 3. ❌ Commit every 10 files
@@ -199,6 +218,7 @@
 6. ❌ Run garbage collection between phases
 
 ### Memory Checkpoints
+
 - [ ] After Phase 1 (Type Safety)
 - [ ] After Phase 2 (Console/Quality)
 - [ ] After Phase 3 (React/i18n)
@@ -210,12 +230,14 @@
 ## 📁 FILE ORGANIZATION (Per Governance V5)
 
 ### Required After Each Phase
+
 - [ ] Move misplaced files to correct folders
 - [ ] Update imports for moved files
 - [ ] Run verification tests
 - [ ] Commit organization changes
 
 ### Governance V5 Structure
+
 ```
 app/          - Next.js pages and routes
 server/       - Backend logic, models, services

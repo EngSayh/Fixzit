@@ -78,17 +78,17 @@ npm run replace:in-file -- \
 
 ## Options
 
-| Option | Description | Required | Default |
-|--------|-------------|----------|---------|
-| `--path` | File path or glob pattern (repeatable) | Yes | - |
-| `--search` | String or regex pattern to search for | Yes | - |
-| `--replace` | Replacement string | Yes | - |
-| `--regex` | Treat search as regex | No | false |
-| `--flags` | Regex flags (e.g., "gi") | No | "g" |
-| `--word-match` | Match whole words only (literal mode) | No | false |
-| `--encoding` | File encoding | No | utf8 |
-| `--backup` | Create .bak files | No | false |
-| `--dry-run` | Preview without changes | No | false |
+| Option         | Description                            | Required | Default |
+| -------------- | -------------------------------------- | -------- | ------- |
+| `--path`       | File path or glob pattern (repeatable) | Yes      | -       |
+| `--search`     | String or regex pattern to search for  | Yes      | -       |
+| `--replace`    | Replacement string                     | Yes      | -       |
+| `--regex`      | Treat search as regex                  | No       | false   |
+| `--flags`      | Regex flags (e.g., "gi")               | No       | "g"     |
+| `--word-match` | Match whole words only (literal mode)  | No       | false   |
+| `--encoding`   | File encoding                          | No       | utf8    |
+| `--backup`     | Create .bak files                      | No       | false   |
+| `--dry-run`    | Preview without changes                | No       | false   |
 
 ## Examples
 

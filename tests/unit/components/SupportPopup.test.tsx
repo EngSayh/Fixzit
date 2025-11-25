@@ -22,9 +22,15 @@ const origRemoveItem = window.localStorage.removeItem;
 beforeEach(() => {
   // jsdom localStorage is available; ensure deterministic state
   const store = new Map();
-  window.localStorage.getItem = vi.fn((key) => (store.has(key) ? store.get(key) : null));
-  window.localStorage.setItem = vi.fn((key, value) => { store.set(key, value); });
-  window.localStorage.removeItem = vi.fn((key) => { store.delete(key); });
+  window.localStorage.getItem = vi.fn((key) =>
+    store.has(key) ? store.get(key) : null,
+  );
+  window.localStorage.setItem = vi.fn((key, value) => {
+    store.set(key, value);
+  });
+  window.localStorage.removeItem = vi.fn((key) => {
+    store.delete(key);
+  });
   window.alert = vi.fn();
   // @ts-expect-error: partial clipboard mock
   navigator.clipboard = { writeText: vi.fn().mockResolvedValue(undefined) };
@@ -43,7 +49,9 @@ afterEach(() => {
 });
 
 function typeInto(selectorText: string, value: string) {
-  const input = screen.getByLabelText(selectorText) as HTMLInputElement | HTMLTextAreaElement;
+  const input = screen.getByLabelText(selectorText) as
+    | HTMLInputElement
+    | HTMLTextAreaElement;
   fireEvent.change(input, { target: { value } });
   return input;
 }
@@ -84,7 +92,9 @@ describe("SupportPopup - rendering and validation", () => {
     render(<SupportPopup open={true} onClose={vi.fn()} />);
     expect(screen.queryByLabelText(/your name/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/email \*/i)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/phone \(optional\)/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(/phone \(optional\)/i),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -95,20 +105,38 @@ describe("SupportPopup - errorDetails auto-population", () => {
     url: "https://app.example.com/path",
     userAgent: "Mozilla/5.0",
     viewport: "1200x800",
-    system: { platform: "web", language: "en-US", onLine: true, memory: { used: 104857600 } },
-    localStorage: { hasAuth: false, hasUser: true, hasLang: true, hasTheme: false },
+    system: {
+      platform: "web",
+      language: "en-US",
+      onLine: true,
+      memory: { used: 104857600 },
+    },
+    localStorage: {
+      hasAuth: false,
+      hasUser: true,
+      hasLang: true,
+      hasTheme: false,
+    },
     error: {
       name: "TypeError",
       message: "Cannot read properties of undefined (reading 'x')",
       stack: "stack trace...",
-      componentStack: "component stack..."
-    }
+      componentStack: "component stack...",
+    },
   };
 
   test("pre-populates subject, priority, type, module and description", () => {
-    render(<SupportPopup open={true} onClose={vi.fn()} errorDetails={errorDetails} />);
+    render(
+      <SupportPopup
+        open={true}
+        onClose={vi.fn()}
+        errorDetails={errorDetails}
+      />,
+    );
     const subjectInput = screen.getByLabelText("Subject *") as HTMLInputElement;
-    expect(subjectInput.value).toMatch(/^System Error: TypeError - Cannot read properties of undefined/);
+    expect(subjectInput.value).toMatch(
+      /^System Error: TypeError - Cannot read properties of undefined/,
+    );
     const priority = screen.getByLabelText("Priority") as HTMLSelectElement;
     const type = screen.getByLabelText("Type") as HTMLSelectElement;
     const moduleSel = screen.getByLabelText("Module") as HTMLSelectElement;
@@ -131,7 +159,9 @@ describe("SupportPopup - copy details", () => {
     const copyBtn = screen.getByRole("button", { name: /copy details/i });
     fireEvent.click(copyBtn);
     await waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith("Subject only");
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        "Subject only",
+      );
       expect(window.alert).toHaveBeenCalledWith("Details copied to clipboard");
     });
   });
@@ -143,19 +173,25 @@ describe("SupportPopup - copy details", () => {
     const copyBtn = screen.getByRole("button", { name: /copy details/i });
     fireEvent.click(copyBtn);
     await waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith("Full details...");
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        "Full details...",
+      );
     });
   });
 
   test("silently ignores clipboard errors", async () => {
     // Intentional override of mock for error testing
-    navigator.clipboard.writeText = vi.fn().mockRejectedValue(new Error("Clipboard denied"));
+    navigator.clipboard.writeText = vi
+      .fn()
+      .mockRejectedValue(new Error("Clipboard denied"));
     render(<SupportPopup open={true} onClose={vi.fn()} />);
     typeInto("Subject *", "X");
     const copyBtn = screen.getByRole("button", { name: /copy details/i });
     fireEvent.click(copyBtn);
     await waitFor(() => {
-      expect(window.alert).not.toHaveBeenCalledWith("Details copied to clipboard");
+      expect(window.alert).not.toHaveBeenCalledWith(
+        "Details copied to clipboard",
+      );
     });
   });
 });
@@ -184,7 +220,7 @@ describe("SupportPopup - submission flow", () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({ code: "TCK-1001" })
+      json: async () => ({ code: "TCK-1001" }),
     });
 
     const { onClose, submitBtn } = setupForm({ loggedIn: false });
@@ -198,7 +234,8 @@ describe("SupportPopup - submission flow", () => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
-    const [url, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, any];
+    const [url, init] = (global.fetch as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, any];
     expect(url).toBe("/api/support/tickets");
     expect(init?.method).toBe("POST");
     expect(init?.headers).toMatchObject({ "content-type": "application/json" });
@@ -221,8 +258,12 @@ describe("SupportPopup - submission flow", () => {
 
     // Success alert and closing
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining("Support Ticket Created Successfully"));
-      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining("Ticket ID: TCK-1001"));
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringContaining("Support Ticket Created Successfully"),
+      );
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringContaining("Ticket ID: TCK-1001"),
+      );
       expect(onClose).toHaveBeenCalled();
     });
   });
@@ -231,7 +272,7 @@ describe("SupportPopup - submission flow", () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({ code: "TCK-2002" })
+      json: async () => ({ code: "TCK-2002" }),
     });
 
     const { onClose, submitBtn } = setupForm({ loggedIn: true });
@@ -241,12 +282,15 @@ describe("SupportPopup - submission flow", () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, any];
+    const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, any];
     const body = JSON.parse(init.body as string);
     expect(body.requester).toBeUndefined();
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining("Ticket ID: TCK-2002"));
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringContaining("Ticket ID: TCK-2002"),
+      );
       expect(onClose).toHaveBeenCalled();
     });
   });
@@ -255,14 +299,16 @@ describe("SupportPopup - submission flow", () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: false,
       status: 500,
-      json: async () => ({ error: "server error" })
+      json: async () => ({ error: "server error" }),
     });
 
     const { submitBtn } = setupForm({ loggedIn: false });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith(expect.stringMatching(/Failed to create ticket/i));
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringMatching(/Failed to create ticket/i),
+      );
     });
 
     // Button should be reset
@@ -271,13 +317,17 @@ describe("SupportPopup - submission flow", () => {
   });
 
   test("handles network rejection and resets button state", async () => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network down"));
+    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("Network down"),
+    );
 
     const { submitBtn } = setupForm({ loggedIn: false });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining("Network down"));
+      expect(window.alert).toHaveBeenCalledWith(
+        expect.stringContaining("Network down"),
+      );
     });
 
     expect(submitBtn.disabled).toBe(false);

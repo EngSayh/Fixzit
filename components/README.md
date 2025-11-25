@@ -31,12 +31,14 @@ components/
 ## 🎯 Key Components
 
 ### Navigation
+
 - **TopBar.tsx** - Main navigation bar with app switcher, search, and user menu
 - **Sidebar.tsx** - Collapsible side navigation with role-based menu items
 - **Footer.tsx** - Page footer with links and company info
 - **ClientLayout.tsx** - Wraps pages with TopBar, Sidebar, and Footer
 
 ### Authentication
+
 See [auth/README.md](./auth/README.md) for detailed authentication component documentation.
 
 - **LoginPrompt.tsx** - Inline prompt for unauthenticated users
@@ -46,6 +48,7 @@ See [auth/README.md](./auth/README.md) for detailed authentication component doc
 - **auth/LoginSuccess.tsx** - Post-login success screen
 
 ### Core Utilities
+
 - **ErrorBoundary.tsx** - Catches and displays React errors gracefully
 - **SystemVerifier.tsx** - System health monitoring component
 - **Portal.tsx** - React portal for modals and overlays
@@ -53,9 +56,11 @@ See [auth/README.md](./auth/README.md) for detailed authentication component doc
 - **CopilotWidget.tsx** - Copilot integration component
 
 ### Forms
+
 - **forms/** - Reusable form components and utilities
 
 ### UI Components
+
 - **ui/** - Shadcn UI component library (Button, Dialog, Input, Select, etc.)
 
 ## 🔧 Usage Guidelines
@@ -64,13 +69,13 @@ See [auth/README.md](./auth/README.md) for detailed authentication component doc
 
 ```typescript
 // Import from root components/
-import { TopBar } from '@/components/TopBar';
-import { ClientLayout } from '@/components/ClientLayout';
+import { TopBar } from "@/components/TopBar";
+import { ClientLayout } from "@/components/ClientLayout";
 
 // Import from subdirectories
-import { LoginForm } from '@/components/auth/LoginForm';
-import { Button } from '@/components/ui/button';
-import { LanguageSelector } from '@/components/i18n/LanguageSelector';
+import { LoginForm } from "@/components/auth/LoginForm";
+import { Button } from "@/components/ui/button";
+import { LanguageSelector } from "@/components/i18n/LanguageSelector";
 ```
 
 ### Component Conventions
@@ -90,7 +95,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function MyComponent() {
   const t = useTranslation();
-  
+
   return (
     <div>
       <h1>{t('myComponent.title', 'Default Title')}</h1>
@@ -117,6 +122,7 @@ pnpm test
 ## 🎨 Styling
 
 Components use:
+
 - **Tailwind CSS** for utility-first styling
 - **CSS Modules** for scoped styles when needed
 - **Semantic tokens** from design system
@@ -127,7 +133,7 @@ Most components support i18n via `useTranslation()` hook:
 
 ```typescript
 const t = useTranslation();
-const text = t('key.path', 'Default text');
+const text = t("key.path", "Default text");
 ```
 
 ## ♿ Accessibility
@@ -140,6 +146,7 @@ const text = t('key.path', 'Default text');
 ## 📦 Dependencies
 
 Key dependencies:
+
 - `react` - UI framework
 - `next` - React framework
 - `lucide-react` - Icon library

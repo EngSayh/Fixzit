@@ -22,7 +22,7 @@ import type { NextRequest } from 'next/server';
 vi.mock('next/server', () => {
   return {
     NextResponse: {
-      json: vi.fn((payload: any, init?: { status?: number }) => ({
+      json: vi.fn((payload: ResponsePayload, init?: { status?: number }) => ({
         ok: true,
         status: init?.status ?? 200,
         json: payload
@@ -45,7 +45,7 @@ vi.mock('@/lib/mongodb-unified', () => ({
   getDatabase: getDatabaseMock,
 }));
 
-const supportTicketCreateMock = vi.fn(async (doc: any) => ({
+const supportTicketCreateMock = vi.fn(async (doc: SupportTicketDoc) => ({
   ...doc,
   code: doc.code || 'SUP-2024-99999',
 }));
@@ -85,10 +85,25 @@ vi.mock('@/server/security/rateLimitKey', () => ({
 }));
 
 // Import after mocks
-let POST: any;
-let NextResponse: any;
-let getDatabase: any;
-let SupportTicket: any;
+type ResponsePayload = Record<string, string | number | boolean | null | object | undefined>;
+type NextResponseJson = { ok: boolean; status: number; json: ResponsePayload };
+type MongoCollection = {
+  insertOne: typeof insertOneMock;
+  findOne: typeof findOneMock;
+  updateOne: typeof updateOneMock;
+};
+type MongoDb = { collection: (name: string) => MongoCollection };
+type SupportTicketDoc = {
+  code?: string;
+  category?: string;
+  message?: string;
+  [key: string]: unknown;
+};
+
+let POST: (req: NextRequest) => Promise<NextResponseJson> | NextResponseJson;
+let NextResponse: { json: ReturnType<typeof vi.fn> };
+let getDatabase: ReturnType<typeof vi.fn>;
+let SupportTicket: { create: ReturnType<typeof vi.fn> };
 
 beforeAll(async () => {
   // Import the route handler
@@ -137,7 +152,7 @@ describe('POST /api/support/incidents', () => {
     vi.useRealTimers();
   });
 
-  function mkReq(body: any): NextRequest {
+  function mkReq(body: unknown): NextRequest {
     return { 
       json: async () => body,
       headers: new Map([['x-forwarded-for', '127.0.0.1']]),

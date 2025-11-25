@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * replace-string-in-file-verbose.ts
- * 
+ *
  * VERBOSE VERSION with detailed logging to debug write issues
  */
 
@@ -118,12 +118,16 @@ function autoUnescapeRegex(str: string): string {
 
 function buildPattern(opts: Options): RegExp {
   if (opts.regex) {
-    const source = opts.autoUnescape ? autoUnescapeRegex(opts.search) : opts.search;
+    const source = opts.autoUnescape
+      ? autoUnescapeRegex(opts.search)
+      : opts.search;
     try {
       return new RegExp(source, opts.flags);
     } catch (err: unknown) {
       const error = err as { message?: string };
-      throw new Error(`Invalid regex pattern: ${source}. Original: ${opts.search}. Error: ${error.message || String(err)}`);
+      throw new Error(
+        `Invalid regex pattern: ${source}. Original: ${opts.search}. Error: ${error.message || String(err)}`,
+      );
     }
   }
   const base = escapeRegExp(opts.search);
@@ -145,7 +149,11 @@ function createBackup(filePath: string): string {
   return backupPath;
 }
 
-function replaceInContent(content: string, pattern: RegExp, replacement: string): { result: string; count: number } {
+function replaceInContent(
+  content: string,
+  pattern: RegExp,
+  replacement: string,
+): { result: string; count: number } {
   const matches = content.match(pattern);
   const count = matches ? matches.length : 0;
   const result = count > 0 ? content.replace(pattern, replacement) : content;
@@ -155,11 +163,11 @@ function replaceInContent(content: string, pattern: RegExp, replacement: string)
 async function run() {
   console.error("🔍 VERBOSE MODE - Detailed logging enabled");
   console.error("");
-  
+
   const opts = parseArgs(process.argv);
   console.error("📋 Options:", JSON.stringify(opts, null, 2));
   console.error("");
-  
+
   const pattern = buildPattern(opts);
   console.error("🎯 Pattern:", pattern);
   console.error("");
@@ -188,7 +196,14 @@ async function run() {
     const msg = `No files matched for patterns: ${opts.paths.join(", ")}`;
     console.error(`❌ ${msg}`);
     process.exitCode = 2;
-    console.log(JSON.stringify({ success: false, message: msg, totalFiles: 0, totalReplacements: 0 }));
+    console.log(
+      JSON.stringify({
+        success: false,
+        message: msg,
+        totalFiles: 0,
+        totalReplacements: 0,
+      }),
+    );
     return;
   }
 
@@ -206,19 +221,30 @@ async function run() {
       const original = fs.readFileSync(file, { encoding: opts.encoding });
       console.error(`   📏 Original size: ${original.length} bytes`);
       console.error(`   🔍 Searching for pattern...`);
-      
-      const { result, count } = replaceInContent(original, pattern, opts.replace);
+
+      const { result, count } = replaceInContent(
+        original,
+        pattern,
+        opts.replace,
+      );
       console.error(`   ✨ Found ${count} match(es)`);
 
       if (count === 0) {
         console.error(`   ⏭️  Skipping (no matches)`);
-        results.push({ file, matched: true, replaced: 0, skipped: "no matches" });
+        results.push({
+          file,
+          matched: true,
+          replaced: 0,
+          skipped: "no matches",
+        });
         console.error("");
         continue;
       }
 
       console.error(`   📏 New size: ${result.length} bytes`);
-      console.error(`   📊 Size change: ${result.length - original.length} bytes`);
+      console.error(
+        `   📊 Size change: ${result.length - original.length} bytes`,
+      );
 
       let backupPath: string | undefined;
       if (opts.backup && !opts.dryRun) {
@@ -233,7 +259,7 @@ async function run() {
         fs.writeFileSync(file, result, { encoding: opts.encoding });
         const afterWrite = Date.now();
         console.error(`   ✅ Write completed in ${afterWrite - beforeWrite}ms`);
-        
+
         // Verify write
         const verification = fs.readFileSync(file, { encoding: opts.encoding });
         if (verification === result) {
@@ -248,12 +274,22 @@ async function run() {
       }
 
       totalReplacements += count;
-      results.push({ file, matched: true, replaced: count, ...(backupPath ? { backupPath } : {}) });
+      results.push({
+        file,
+        matched: true,
+        replaced: count,
+        ...(backupPath ? { backupPath } : {}),
+      });
     } catch (err: unknown) {
       const error = err as { message?: string };
       console.error(`   ❌ ERROR: ${error.message || String(err)}`);
       fileErrors++;
-      results.push({ file, matched: false, replaced: 0, skipped: error?.message || String(err) });
+      results.push({
+        file,
+        matched: false,
+        replaced: 0,
+        skipped: error?.message || String(err),
+      });
     }
     console.error("");
   }
@@ -262,10 +298,10 @@ async function run() {
   const message = opts.dryRun
     ? `Dry-run complete. ${totalReplacements} replacement(s) would be made across ${files.size} file(s).`
     : totalReplacements === 0
-    ? `No matches found. 0 replacements across ${files.size} file(s).`
-    : fileErrors > 0
-    ? `Completed with ${totalReplacements} replacement(s), but ${fileErrors} file(s) had errors.`
-    : `Completed with ${totalReplacements} replacement(s) across ${files.size} file(s).`;
+      ? `No matches found. 0 replacements across ${files.size} file(s).`
+      : fileErrors > 0
+        ? `Completed with ${totalReplacements} replacement(s), but ${fileErrors} file(s) had errors.`
+        : `Completed with ${totalReplacements} replacement(s) across ${files.size} file(s).`;
 
   console.error("📊 SUMMARY:");
   console.error(`   Success: ${success}`);

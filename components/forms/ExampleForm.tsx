@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useFormState } from '@/contexts/FormStateContext';
-import { logger } from '@/lib/logger';
+import { useEffect, useState } from "react";
+import { useFormState } from "@/contexts/FormStateContext";
+import { logger } from "@/lib/logger";
 
 export default function ExampleForm() {
   const { markFormDirty, markFormClean, onSaveRequest } = useFormState();
-  const [formData, setFormData] = useState({ name: '', email: '' });
+  const [formData, setFormData] = useState({ name: "", email: "" });
   const [pristine, setPristine] = useState(true);
-  const formId = 'exampleForm';
+  const formId = "exampleForm";
 
   // Register save handler on mount
   useEffect(() => {
     const handleSave = async () => {
       try {
-        const response = await fetch('/api/save', {
-          method: 'POST',
+        const response = await fetch("/api/save", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(formData),
         });
@@ -29,11 +29,11 @@ export default function ExampleForm() {
 
         // Mark form as clean after successful save
         markFormClean(formId);
-        
+
         // Success handled silently - form state cleared
         await response.json();
       } catch (error) {
-        logger.error('Error saving form:', { error });
+        logger.error("Error saving form:", { error });
         // Optionally show user-facing error state
         // You could add state like setErrorMessage(error.message);
         throw error; // Re-throw to let FormStateContext handle it if needed
@@ -43,10 +43,10 @@ export default function ExampleForm() {
     const dispose = onSaveRequest(formId, handleSave);
     return dispose;
   }, [formData, onSaveRequest, formId, markFormClean]);
-  
+
   // Track changes
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (pristine) {
       setPristine(false);
       markFormDirty(formId);
@@ -57,7 +57,7 @@ export default function ExampleForm() {
     <form>
       <input
         value={formData.name}
-        onChange={(e) => handleChange('name', e.target.value)}
+        onChange={(e) => handleChange("name", e.target.value)}
       />
       {/* ...existing code... */}
     </form>

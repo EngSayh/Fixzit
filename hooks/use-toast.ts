@@ -1,10 +1,10 @@
-import { useCallback } from 'react';
-import toastPrimitive from 'react-hot-toast';
+import { useCallback } from "react";
+import toastPrimitive from "react-hot-toast";
 
 type ToastPayload = {
   title: string;
   description?: string;
-  variant?: 'default' | 'destructive';
+  variant?: "default" | "destructive";
 };
 
 export function useToast() {
@@ -13,7 +13,7 @@ export function useToast() {
       ? `${payload.title}\n${payload.description}`
       : payload.title;
 
-    if (payload.variant === 'destructive') {
+    if (payload.variant === "destructive") {
       toastPrimitive.error(message);
     } else {
       toastPrimitive.success(message);

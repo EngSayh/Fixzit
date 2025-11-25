@@ -4,7 +4,7 @@
  * Avoids floating-point errors in financial calculations
  */
 
-import Decimal from 'decimal.js';
+import Decimal from "decimal.js";
 
 // Configure Decimal.js for currency (2 decimal places)
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
@@ -12,8 +12,10 @@ Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 /**
  * Create a Decimal instance from various input types
  */
-export function decimal(value: number | string | Decimal | null | undefined): Decimal {
-  if (value === '' || value == null) {
+export function decimal(
+  value: number | string | Decimal | null | undefined,
+): Decimal {
+  if (value === "" || value == null) {
     return new Decimal(0);
   }
   return new Decimal(value);
@@ -27,20 +29,29 @@ export const Money = {
    * Add two or more monetary values
    */
   add(...values: (number | string | Decimal)[]): Decimal {
-    return values.reduce<Decimal>((sum, val) => sum.plus(decimal(val)), decimal(0));
+    return values.reduce<Decimal>(
+      (sum, val) => sum.plus(decimal(val)),
+      decimal(0),
+    );
   },
 
   /**
    * Subtract monetary values
    */
-  subtract(a: number | string | Decimal, b: number | string | Decimal): Decimal {
+  subtract(
+    a: number | string | Decimal,
+    b: number | string | Decimal,
+  ): Decimal {
     return decimal(a).minus(decimal(b));
   },
 
   /**
    * Multiply a monetary value (e.g., quantity × rate)
    */
-  multiply(a: number | string | Decimal, b: number | string | Decimal): Decimal {
+  multiply(
+    a: number | string | Decimal,
+    b: number | string | Decimal,
+  ): Decimal {
     return decimal(a).times(decimal(b));
   },
 
@@ -50,7 +61,9 @@ export const Money = {
   divide(a: number | string | Decimal, b: number | string | Decimal): Decimal {
     const divisor = decimal(b);
     if (divisor.isZero()) {
-      throw new RangeError(`Division by zero attempted with dividend: ${a} and divisor: ${b}`);
+      throw new RangeError(
+        `Division by zero attempted with dividend: ${a} and divisor: ${b}`,
+      );
     }
     return decimal(a).dividedBy(divisor);
   },
@@ -60,7 +73,10 @@ export const Money = {
    * @param amount - Base amount
    * @param percentage - Percentage (0-100)
    */
-  percentage(amount: number | string | Decimal, percentage: number | string | Decimal): Decimal {
+  percentage(
+    amount: number | string | Decimal,
+    percentage: number | string | Decimal,
+  ): Decimal {
     return decimal(amount).times(decimal(percentage)).dividedBy(100);
   },
 
@@ -70,7 +86,10 @@ export const Money = {
    * @param whole - The whole amount
    * @returns Percentage (0-100)
    */
-  percentageOf(part: number | string | Decimal, whole: number | string | Decimal): Decimal {
+  percentageOf(
+    part: number | string | Decimal,
+    whole: number | string | Decimal,
+  ): Decimal {
     const wholeDec = decimal(whole);
     if (wholeDec.isZero()) {
       return decimal(0);
@@ -139,7 +158,10 @@ export const Money = {
    * Calculate sum of an array of values
    */
   sum(values: (number | string | Decimal)[]): Decimal {
-    return values.reduce<Decimal>((sum, val) => sum.plus(decimal(val)), decimal(0));
+    return values.reduce<Decimal>(
+      (sum, val) => sum.plus(decimal(val)),
+      decimal(0),
+    );
   },
 
   /**
@@ -155,7 +177,7 @@ export const Money = {
    */
   min(...values: (number | string | Decimal)[]): Decimal {
     if (values.length === 0) return decimal(0);
-    return Decimal.min(...values.map(v => decimal(v)));
+    return Decimal.min(...values.map((v) => decimal(v)));
   },
 
   /**
@@ -163,7 +185,7 @@ export const Money = {
    */
   max(...values: (number | string | Decimal)[]): Decimal {
     if (values.length === 0) return decimal(0);
-    return Decimal.max(...values.map(v => decimal(v)));
+    return Decimal.max(...values.map((v) => decimal(v)));
   },
 };
 
@@ -175,15 +197,17 @@ export const BudgetMath = {
    * Calculate total budget from categories
    */
   calculateTotal(categories: Array<{ amount: number }>): Decimal {
-    return Money.sum(categories.map(c => c.amount));
+    return Money.sum(categories.map((c) => c.amount));
   },
 
   /**
    * Calculate allocated budget (categories with non-empty names)
    */
-  calculateAllocated(categories: Array<{ category: string; amount: number }>): Decimal {
+  calculateAllocated(
+    categories: Array<{ category: string; amount: number }>,
+  ): Decimal {
     return Money.sum(
-      categories.filter(c => c.category.trim()).map(c => c.amount)
+      categories.filter((c) => c.category.trim()).map((c) => c.amount),
     );
   },
 
@@ -224,7 +248,7 @@ export const InvoiceMath = {
    * Calculate subtotal from line items
    */
   calculateSubtotal(lineItems: Array<{ amount: number }>): Decimal {
-    return Money.sum(lineItems.map(item => item.amount));
+    return Money.sum(lineItems.map((item) => item.amount));
   },
 
   /**
@@ -251,7 +275,7 @@ export const PaymentMath = {
    */
   allocatePayment(
     totalPayment: Decimal,
-    invoices: Array<{ id: string; amount: number }>
+    invoices: Array<{ id: string; amount: number }>,
   ): Array<{ id: string; allocated: Decimal }> {
     const allocations: Array<{ id: string; allocated: Decimal }> = [];
     let remaining = totalPayment;
@@ -262,7 +286,7 @@ export const PaymentMath = {
       const invoiceAmount = decimal(invoice.amount);
       const allocated = Decimal.min(remaining, invoiceAmount);
       const roundedAllocated = Money.round(allocated);
-      
+
       allocations.push({
         id: invoice.id,
         allocated: roundedAllocated,
@@ -279,9 +303,12 @@ export const PaymentMath = {
 /**
  * Format a Decimal value as currency string
  */
-export function formatDecimalCurrency(value: Decimal, currency = 'OMR'): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
+export function formatDecimalCurrency(
+  value: Decimal,
+  currency = "OMR",
+): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,

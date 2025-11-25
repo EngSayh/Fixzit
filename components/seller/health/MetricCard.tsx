@@ -1,36 +1,48 @@
-'use client';
+"use client";
 
-import { Card } from '@/components/ui/card';
-import { Info } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Card } from "@/components/ui/card";
+import { Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Props {
   title: string;
   value: number;
   count: number;
   target: number;
-  format: 'percentage' | 'number';
+  format: "percentage" | "number";
   tooltip: string;
 }
 
-export default function MetricCard({ title, value, count, target, format, tooltip }: Props) {
+export default function MetricCard({
+  title,
+  value,
+  count,
+  target,
+  format,
+  tooltip,
+}: Props) {
   const isGood = value <= target;
   const isWarning = value > target && value <= target * 1.5;
 
   const getColor = () => {
-    if (isGood) return 'text-green-600';
-    if (isWarning) return 'text-yellow-600';
-    return 'text-red-600';
+    if (isGood) return "text-green-600";
+    if (isWarning) return "text-yellow-600";
+    return "text-red-600";
   };
 
   const getBgColor = () => {
-    if (isGood) return 'bg-green-50';
-    if (isWarning) return 'bg-yellow-50';
-    return 'bg-red-50';
+    if (isGood) return "bg-green-50";
+    if (isWarning) return "bg-yellow-50";
+    return "bg-red-50";
   };
 
   const formatValue = (val: number) => {
-    if (format === 'percentage') {
+    if (format === "percentage") {
       return `${val.toFixed(2)}%`;
     }
     return val.toLocaleString();
@@ -57,9 +69,7 @@ export default function MetricCard({ title, value, count, target, format, toolti
       </div>
 
       <div className="flex items-center justify-between text-sm">
-        <span className="text-gray-600">
-          {count} of orders
-        </span>
+        <span className="text-gray-600">{count} of orders</span>
         <span className={`font-medium ${getColor()}`}>
           Target: {formatValue(target)}
         </span>
@@ -67,9 +77,9 @@ export default function MetricCard({ title, value, count, target, format, toolti
 
       {/* Progress Bar */}
       <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
-        <div 
+        <div
           className={`h-2 rounded-full transition-all ${
-            isGood ? 'bg-green-500' : isWarning ? 'bg-yellow-500' : 'bg-red-500'
+            isGood ? "bg-green-500" : isWarning ? "bg-yellow-500" : "bg-red-500"
           }`}
           style={{ width: `${Math.min(100, (value / (target * 2)) * 100)}%` }}
         />

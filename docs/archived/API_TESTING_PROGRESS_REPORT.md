@@ -1,4 +1,5 @@
 # API Testing Progress Report
+
 **Generated:** 2025-11-18
 **Status:** 🟡 **BLOCKED - FIXES REQUIRED**
 
@@ -30,26 +31,32 @@ Successfully set up comprehensive API testing infrastructure and completed initi
 ### Blocking Issues Identified ❌
 
 #### 1. Missing Routes Manifest (CRITICAL)
+
 **Issue:** `.next/routes-manifest.json` missing, causing 500 errors on many endpoints
+
 ```
 Error: ENOENT: no such file or directory, open '.next/routes-manifest.json'
 ```
+
 **Impact:** Blocks work orders API testing and potentially other endpoints
 **Fix:** Run production build once to generate manifest, or investigate middleware/routing logic
 
 #### 2. Response Body Reading (HIGH)
+
 **Issue:** "Body is unusable: Body has already been read" error
 **Cause:** Attempting to read response body multiple times in test script
 **Impact:** Unable to capture response data for analysis
 **Fix:** Clone response before reading, or refactor response handling
 
 #### 3. OTP Verification Flow (MEDIUM)
+
 **Issue:** OTP verify endpoint returns unexpected format (plain text instead of JSON)
 **Error:** `Unexpected token 'I', "Internal S"... is not valid JSON`
 **Impact:** Cannot complete authentication flow for protected endpoints
 **Fix:** Check OTP verify endpoint response format, may need Content-Type handling
 
 #### 4. Test Data Validation (MEDIUM)
+
 **Issue:** Signup endpoint returns 500 error with test data
 **Impact:** Cannot test new user registration flow
 **Fix:** Review signup validation schema and required fields
@@ -57,6 +64,7 @@ Error: ENOENT: no such file or directory, open '.next/routes-manifest.json'
 ### Test Results Summary
 
 **Total Endpoints Tested:** 10
+
 - Authentication: 3 endpoints (Signup, OTP Send, Get Current User)
 - Payments: 2 endpoints (Callback, Tap Checkout)
 - WhatsApp: 1 endpoint (Admin Notifications)
@@ -64,11 +72,13 @@ Error: ENOENT: no such file or directory, open '.next/routes-manifest.json'
 - Work Orders: 2 endpoints (Create, List)
 
 **Results:**
+
 - ✅ **Passed:** 0
 - ❌ **Failed:** 10
 - ⏭️ **Skipped:** 0
 
 **Failure Breakdown:**
+
 - 7 failures due to response body reading error
 - 2 failures due to missing auth (expected - auth flow broken)
 - 1 failure due to 403 Forbidden (expected - missing admin role)
@@ -77,14 +87,14 @@ Error: ENOENT: no such file or directory, open '.next/routes-manifest.json'
 
 All test users successfully configured in database:
 
-| Email | Role | Status |
-|-------|------|--------|
-| superadmin@test.fixzit.co | SUPER_ADMIN | ✅ |
-| admin@test.fixzit.co | ADMIN | ✅ |
-| property-manager@test.fixzit.co | MANAGER | ✅ |
-| technician@test.fixzit.co | TECHNICIAN | ✅ |
-| tenant@test.fixzit.co | TENANT | ✅ |
-| vendor@test.fixzit.co | VENDOR | ✅ |
+| Email                           | Role        | Status |
+| ------------------------------- | ----------- | ------ |
+| superadmin@test.fixzit.co       | SUPER_ADMIN | ✅     |
+| admin@test.fixzit.co            | ADMIN       | ✅     |
+| property-manager@test.fixzit.co | MANAGER     | ✅     |
+| technician@test.fixzit.co       | TECHNICIAN  | ✅     |
+| tenant@test.fixzit.co           | TENANT      | ✅     |
+| vendor@test.fixzit.co           | VENDOR      | ✅     |
 
 > Phone numbers and credentials are stored in the secured test data seed and are intentionally omitted here.
 
@@ -100,16 +110,19 @@ All test users successfully configured in database:
 ### Next Steps
 
 #### Immediate (Before Continuing API Tests)
+
 1. **Fix Routes Manifest Issue**
+
    ```bash
    # Option A: Run production build
    pnpm run build
-   
+
    # Option B: Investigate routing middleware
    # Check if routes-manifest is needed in dev mode
    ```
 
 2. **Fix Response Body Handling**
+
    ```typescript
    // Update testEndpoint function
    const responseClone = response.clone();
@@ -128,6 +141,7 @@ All test users successfully configured in database:
    - Test with minimal required fields first
 
 #### Secondary (After Fixes)
+
 5. **Complete API Endpoint Testing** (4-6 hours)
    - Re-run all endpoint tests with fixes applied
    - Test happy paths for each endpoint
@@ -135,6 +149,7 @@ All test users successfully configured in database:
    - Test edge cases and boundary conditions
 
 6. **Generate Playwright Auth States** (30 minutes)
+
    ```bash
    npx playwright test tests/setup-auth.ts
    ```
@@ -171,6 +186,7 @@ All test users successfully configured in database:
    - Monitor memory and CPU usage
 
 3. **Standardize Error Responses:** Ensure all API endpoints return consistent JSON format
+
    ```json
    {
      "success": false,
@@ -201,4 +217,5 @@ Once these are addressed, the full API test suite can be executed to validate al
 **Total Testing Time:** 8-11 hours
 
 ---
+
 **Status:** 🟡 **BLOCKED - FIXES REQUIRED**

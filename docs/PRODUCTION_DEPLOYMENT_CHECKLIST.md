@@ -32,10 +32,10 @@ Complete checklist for deploying Fixzit to production. Follow these steps to ens
   - [ ] Disaster recovery plan
 
 - [ ] **Capacity planning**
-  - [ ] Expected concurrent users: ________
-  - [ ] Expected requests per second: ________
-  - [ ] Database size estimate: ________
-  - [ ] Storage requirements: ________
+  - [ ] Expected concurrent users: **\_\_\_\_**
+  - [ ] Expected requests per second: **\_\_\_\_**
+  - [ ] Database size estimate: **\_\_\_\_**
+  - [ ] Storage requirements: **\_\_\_\_**
 
 - [ ] **Compliance & Legal**
   - [ ] GDPR compliance reviewed
@@ -46,10 +46,10 @@ Complete checklist for deploying Fixzit to production. Follow these steps to ens
 ### Team Preparation
 
 - [ ] **Deployment team identified**
-  - [ ] Lead: ________________
-  - [ ] Database admin: ________________
-  - [ ] DevOps: ________________
-  - [ ] QA: ________________
+  - [ ] Lead: **\*\***\_\_\_\_**\*\***
+  - [ ] Database admin: **\*\***\_\_\_\_**\*\***
+  - [ ] DevOps: **\*\***\_\_\_\_**\*\***
+  - [ ] QA: **\*\***\_\_\_\_**\*\***
 
 - [ ] **Communication plan**
   - [ ] Stakeholders notified
@@ -61,7 +61,7 @@ Complete checklist for deploying Fixzit to production. Follow these steps to ens
 
 ### Hosting Platform
 
-**Choose one**: ☐ Vercel ☐ AWS ☐ GCP ☐ Azure ☐ Other: ________
+**Choose one**: ☐ Vercel ☐ AWS ☐ GCP ☐ Azure ☐ Other: **\_\_\_\_**
 
 #### Vercel (Recommended for Next.js)
 
@@ -78,7 +78,7 @@ Complete checklist for deploying Fixzit to production. Follow these steps to ens
   - [ ] Install command: `pnpm install --frozen-lockfile`
 
 - [ ] **Domains**
-  - [ ] Custom domain configured: ________________
+  - [ ] Custom domain configured: **\*\***\_\_\_\_**\*\***
   - [ ] SSL certificate provisioned
   - [ ] DNS records updated
   - [ ] WWW redirect configured
@@ -86,7 +86,7 @@ Complete checklist for deploying Fixzit to production. Follow these steps to ens
 #### AWS/GCP/Azure
 
 - [ ] **Compute resources**
-  - [ ] Instance type selected: ________________
+  - [ ] Instance type selected: **\*\***\_\_\_\_**\*\***
   - [ ] Auto-scaling configured
   - [ ] Load balancer configured
   - [ ] Health check endpoints defined
@@ -111,9 +111,9 @@ See [PRODUCTION_MONGODB_SETUP.md](./PRODUCTION_MONGODB_SETUP.md) for detailed Mo
 
 - [ ] **Cluster setup**
   - [ ] Cluster tier: M10+ (production)
-  - [ ] Region selected: ________________
+  - [ ] Region selected: **\*\***\_\_\_\_**\*\***
   - [ ] MongoDB version: 7.0+
-  - [ ] Cluster name: ________________
+  - [ ] Cluster name: **\*\***\_\_\_\_**\*\***
 
 - [ ] **Database access**
   - [ ] Application user created
@@ -125,8 +125,8 @@ See [PRODUCTION_MONGODB_SETUP.md](./PRODUCTION_MONGODB_SETUP.md) for detailed Mo
 
 - [ ] **Network access**
   - [ ] IP allowlist configured
-    - Production IPs: ________________
-    - Admin IPs: ________________
+    - Production IPs: **\*\***\_\_\_\_**\*\***
+    - Admin IPs: **\*\***\_\_\_\_**\*\***
   - [ ] Private endpoint configured (if applicable)
   - [ ] VPC peering configured (if applicable)
 
@@ -160,22 +160,26 @@ Copy from `.env.example` and fill in production values:
 #### Core Configuration
 
 - [ ] **MONGODB_URI**
+
   ```bash
   MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/fixzit
   ```
 
 - [ ] **NEXTAUTH_URL**
+
   ```bash
   NEXTAUTH_URL=https://your-production-domain.com
   ```
 
 - [ ] **NEXTAUTH_SECRET** (32+ characters)
+
   ```bash
   # Generate with: openssl rand -base64 32
   NEXTAUTH_SECRET=________________________________
   ```
 
 - [ ] **AUTH_SECRET** (same as NEXTAUTH_SECRET)
+
   ```bash
   AUTH_SECRET=________________________________
   ```
@@ -188,10 +192,12 @@ Copy from `.env.example` and fill in production values:
 #### OAuth Providers (Recommended)
 
 - [ ] **Google OAuth**
+
   ```bash
   GOOGLE_CLIENT_ID=________________________________
   GOOGLE_CLIENT_SECRET=________________________________
   ```
+
   - [ ] OAuth consent screen configured
   - [ ] Authorized redirect URIs added
   - [ ] Scopes configured: email, profile
@@ -205,11 +211,13 @@ Copy from `.env.example` and fill in production values:
 #### Email Service
 
 - [ ] **SendGrid**
+
   ```bash
   SENDGRID_API_KEY=________________________________
   SENDGRID_FROM_EMAIL=noreply@your-domain.com
   SENDGRID_FROM_NAME=Fixzit
   ```
+
   - [ ] API key created
   - [ ] Sender email verified
   - [ ] Templates created
@@ -226,12 +234,14 @@ Copy from `.env.example` and fill in production values:
 #### File Storage
 
 - [ ] **AWS S3** or **Cloud Storage**
+
   ```bash
   AWS_REGION=us-east-1
   AWS_ACCESS_KEY_ID=________________________________
   AWS_SECRET_ACCESS_KEY=________________________________
   AWS_S3_BUCKET=fixzit-production-uploads
   ```
+
   - [ ] Bucket created
   - [ ] CORS configured
   - [ ] Lifecycle policies configured
@@ -248,12 +258,14 @@ Copy from `.env.example` and fill in production values:
 #### Observability
 
 - [ ] **Logging**
+
   ```bash
   LOG_LEVEL=info
   LOG_FORMAT=json
   ```
 
 - [ ] **Sentry** (recommended)
+
   ```bash
   NEXT_PUBLIC_SENTRY_DSN=________________________________
   SENTRY_AUTH_TOKEN=________________________________
@@ -424,7 +436,7 @@ Copy from `.env.example` and fill in production values:
   - [ ] Cumulative Layout Shift (CLS): <0.1
 
 - [ ] **Load testing**
-  - [ ] Concurrent users tested: ________
+  - [ ] Concurrent users tested: **\_\_\_\_**
   - [ ] Response time under load: <500ms
   - [ ] Error rate under load: <1%
   - [ ] Database connection pool: No exhaustion
@@ -522,9 +534,9 @@ Copy from `.env.example` and fill in production values:
   - [ ] Communication plan
 
 - [ ] **Recovery objectives**
-  - [ ] Recovery Time Objective (RTO): ________ hours
-  - [ ] Recovery Point Objective (RPO): ________ hours
-  - [ ] Maximum tolerable downtime: ________ hours
+  - [ ] Recovery Time Objective (RTO): **\_\_\_\_** hours
+  - [ ] Recovery Point Objective (RPO): **\_\_\_\_** hours
+  - [ ] Maximum tolerable downtime: **\_\_\_\_** hours
 
 - [ ] **Recovery testing**
   - [ ] Database restore tested
@@ -606,9 +618,11 @@ Copy from `.env.example` and fill in production values:
 #### Vercel Deployment
 
 - [ ] **Deploy to production**
+
   ```bash
   git push origin main
   ```
+
   - [ ] Build successful
   - [ ] Deployment preview checked
   - [ ] Promote to production
@@ -622,6 +636,7 @@ Copy from `.env.example` and fill in production values:
 #### Manual Deployment (AWS/GCP/Azure)
 
 - [ ] **Build application**
+
   ```bash
   pnpm install --frozen-lockfile
   pnpm build
@@ -718,6 +733,7 @@ Copy from `.env.example` and fill in production values:
 ### Rollback Decision Criteria
 
 Rollback if:
+
 - [ ] Error rate >5%
 - [ ] Response time >2s for >10 minutes
 - [ ] Database connection failures
@@ -729,9 +745,11 @@ Rollback if:
 #### Vercel
 
 1. **Instant rollback**
+
    ```bash
    # From Vercel dashboard: "Rollback to Previous Deployment"
    ```
+
    - [ ] Select previous deployment
    - [ ] Click "Promote to Production"
    - [ ] Verify rollback successful
@@ -739,12 +757,14 @@ Rollback if:
 #### Manual Deployment
 
 1. **Revert code**
+
    ```bash
    git revert HEAD
    git push origin main
    ```
 
 2. **Redeploy previous version**
+
    ```bash
    git checkout <previous-commit>
    pnpm build
@@ -774,23 +794,23 @@ Rollback if:
 ### Deployment Approval
 
 - [ ] **Technical sign-off**
-  - Approved by: ________________
-  - Date: ________________
+  - Approved by: **\*\***\_\_\_\_**\*\***
+  - Date: **\*\***\_\_\_\_**\*\***
 
 - [ ] **Business sign-off**
-  - Approved by: ________________
-  - Date: ________________
+  - Approved by: **\*\***\_\_\_\_**\*\***
+  - Date: **\*\***\_\_\_\_**\*\***
 
 - [ ] **Security sign-off**
-  - Approved by: ________________
-  - Date: ________________
+  - Approved by: **\*\***\_\_\_\_**\*\***
+  - Date: **\*\***\_\_\_\_**\*\***
 
 ### Go-Live Confirmation
 
 - [ ] **Deployment completed successfully**
-  - Deployed by: ________________
-  - Deployment time: ________________
-  - Production URL: ________________
+  - Deployed by: **\*\***\_\_\_\_**\*\***
+  - Deployment time: **\*\***\_\_\_\_**\*\***
+  - Production URL: **\*\***\_\_\_\_**\*\***
 
 - [ ] **Monitoring active**
   - All monitors configured
@@ -813,14 +833,14 @@ Rollback if:
 
 ## Support Contacts
 
-- **Technical Lead**: ________________
-- **DevOps**: ________________
-- **Database Admin**: ________________
-- **On-Call**: ________________
+- **Technical Lead**: **\*\***\_\_\_\_**\*\***
+- **DevOps**: **\*\***\_\_\_\_**\*\***
+- **Database Admin**: **\*\***\_\_\_\_**\*\***
+- **On-Call**: **\*\***\_\_\_\_**\*\***
 
 ## Emergency Contacts
 
-- **Platform Support**: ________________
+- **Platform Support**: **\*\***\_\_\_\_**\*\***
 - **MongoDB Atlas**: https://support.mongodb.com
 - **Vercel Support**: https://vercel.com/support
 

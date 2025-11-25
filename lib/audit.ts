@@ -73,7 +73,7 @@ export async function audit(event: AuditEvent): Promise<void> {
 
   // Send to external monitoring service (Sentry)
   try {
-    if (typeof window === 'undefined' && process.env.SENTRY_DSN) {
+    if (typeof window === 'undefined' && process.env.SENTRY_DSN && process.env.NODE_ENV === 'production') {
       // Server-side Sentry integration
       const Sentry = await import('@sentry/nextjs').catch(() => null);
       if (Sentry) {

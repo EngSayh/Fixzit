@@ -1,9 +1,9 @@
-import React from 'react';
+import React from "react";
 
 type LabelProps = React.LabelHTMLAttributes<HTMLLabelElement>;
 
 export const Label = React.forwardRef<HTMLLabelElement, LabelProps>(
-  ({ className = '', ...props }, ref) => {
+  ({ className = "", ...props }, ref) => {
     return (
       <label
         ref={ref}
@@ -11,7 +11,7 @@ export const Label = React.forwardRef<HTMLLabelElement, LabelProps>(
         {...props}
       />
     );
-  }
+  },
 );
 
-Label.displayName = 'Label';
+Label.displayName = "Label";

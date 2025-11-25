@@ -1,9 +1,9 @@
-'use client';
-import { logger } from '@/lib/logger';
+"use client";
+import { logger } from "@/lib/logger";
 
-import { useMemo, useState } from 'react';
-import GoogleMap from '@/components/GoogleMap';
-import { useTranslation } from '@/contexts/TranslationContext';
+import { useMemo, useState } from "react";
+import GoogleMap from "@/components/GoogleMap";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 const DEFAULT_CENTER = { lat: 24.7136, lng: 46.6753 };
 const DEFAULT_ZOOM = 11;
@@ -21,9 +21,17 @@ interface Cluster {
 export default function MapPage() {
   const { t } = useTranslation();
   const center = useMemo(() => DEFAULT_CENTER, []);
-  const [markers, setMarkers] = useState<{ position: { lat: number; lng: number }; title?: string; info?: string }[]>([]);
+  const [markers, setMarkers] = useState<
+    { position: { lat: number; lng: number }; title?: string; info?: string }[]
+  >([]);
 
-  async function loadClusters(b: { n: number; s: number; e: number; w: number; z: number }) {
+  async function loadClusters(b: {
+    n: number;
+    s: number;
+    e: number;
+    w: number;
+    z: number;
+  }) {
     try {
       const url = `/api/aqar/map?n=${b.n}&s=${b.s}&e=${b.e}&w=${b.w}&z=${b.z}`;
       const res = await fetch(url);
@@ -31,24 +39,24 @@ export default function MapPage() {
       const clusters = Array.isArray(data?.clusters) ? data.clusters : [];
       setMarkers(
         clusters.map((c: Cluster) => {
-          const priceText = t('aqar.map.avgPrice', 'Avg SAR {{price}}').replace(
-            '{{price}}',
+          const priceText = t("aqar.map.avgPrice", "Avg SAR {{price}}").replace(
+            "{{price}}",
             c.avgPrice?.toLocaleString
               ? c.avgPrice.toLocaleString()
-              : typeof c.avgPrice === 'number'
+              : typeof c.avgPrice === "number"
                 ? c.avgPrice.toString()
-                : '-'
+                : "-",
           );
-          const extra = `${c.auctions || 0} ${t('aqar.map.auctions', 'auctions')} • ${c.rnpl || 0} ${t('aqar.map.rnpl', 'RNPL-ready')}`;
+          const extra = `${c.auctions || 0} ${t("aqar.map.auctions", "auctions")} • ${c.rnpl || 0} ${t("aqar.map.rnpl", "RNPL-ready")}`;
           return {
             position: { lat: c.lat, lng: c.lng },
             title: String(c.count),
             info: `${priceText} • ${extra}`,
           };
-        })
+        }),
       );
     } catch (error) {
-      logger.error('Aqar map cluster load error', { error });
+      logger.error("Aqar map cluster load error", { error });
       setMarkers([]);
     }
   }
@@ -58,13 +66,16 @@ export default function MapPage() {
       <div className="bg-card border-b border-border px-6 py-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            {t('aqar.interactiveMap', 'Interactive Property Map')}
+            {t("aqar.interactiveMap", "Interactive Property Map")}
           </h1>
           <p className="text-muted-foreground">
-            {t('aqar.interactiveMap.desc', 'Explore properties on the map')}
+            {t("aqar.interactiveMap.desc", "Explore properties on the map")}
           </p>
           <p className="text-xs text-muted-foreground mt-2">
-            {t('aqar.map.legend', 'Cluster tooltip shows avg price • auction-ready listings • RNPL-ready listings.')}
+            {t(
+              "aqar.map.legend",
+              "Cluster tooltip shows avg price • auction-ready listings • RNPL-ready listings.",
+            )}
           </p>
         </div>
       </div>
@@ -76,7 +87,13 @@ export default function MapPage() {
           height="100%"
           markers={markers}
           onMapClick={(lat, lng) => {
-            const b = { n: lat + CLICK_BBOX_DELTA, s: lat - CLICK_BBOX_DELTA, e: lng + CLICK_BBOX_DELTA, w: lng - CLICK_BBOX_DELTA, z: DEFAULT_ZOOM };
+            const b = {
+              n: lat + CLICK_BBOX_DELTA,
+              s: lat - CLICK_BBOX_DELTA,
+              e: lng + CLICK_BBOX_DELTA,
+              w: lng - CLICK_BBOX_DELTA,
+              z: DEFAULT_ZOOM,
+            };
             void loadClusters(b);
           }}
         />

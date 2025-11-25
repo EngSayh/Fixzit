@@ -1,5 +1,5 @@
-import { notFound } from 'next/navigation';
-import DevLoginClient from './DevLoginClient';
+import { notFound } from "next/navigation";
+import DevLoginClient from "./DevLoginClient";
 
 /**
  * Server component gate for dev login helpers
@@ -7,8 +7,10 @@ import DevLoginClient from './DevLoginClient';
  * Uses server-only ENABLE_DEMO_LOGIN (NOT NEXT_PUBLIC_)
  */
 export default async function Page() {
-  const enabled = process.env.ENABLE_DEMO_LOGIN === 'true' || process.env.NODE_ENV === 'development';
-  
+  const enabled =
+    process.env.ENABLE_DEMO_LOGIN === "true" ||
+    process.env.NODE_ENV === "development";
+
   if (!enabled) {
     return notFound(); // Hard-block in prod without the flag
   }
@@ -18,6 +20,6 @@ export default async function Page() {
 }
 
 export const metadata = {
-  title: 'Dev Login Helpers | Fixzit',
-  description: 'Developer-only quick login utility',
+  title: "Dev Login Helpers | Fixzit",
+  description: "Developer-only quick login utility",
 };

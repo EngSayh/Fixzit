@@ -1,13 +1,9 @@
 import { spawnSync } from "node:child_process";
 
-const result = spawnSync(
-  "eslint",
-  ["."],
-  {
-    stdio: "inherit",
-    env: { ...process.env, ESLINT_USE_FLAT_CONFIG: "false" }
-  }
-);
+const result = spawnSync("eslint", ["."], {
+  stdio: "inherit",
+  env: { ...process.env, ESLINT_USE_FLAT_CONFIG: "false" },
+});
 
 if (result.error) {
   console.error(result.error);

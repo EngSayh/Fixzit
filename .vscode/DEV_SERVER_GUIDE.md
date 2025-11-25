@@ -16,24 +16,35 @@ The Next.js development server **must be manually started** and doesn't run auto
 
 ## ✅ Solutions
 
-### Option 1: Quick Start (Recommended)
-Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac), type "Run Task", and select:
-- **"Dev Server: Start"** - Start the server normally
-- **"Dev Server: Keep-Alive"** - Start with auto-restart on crash
+### Option 1: Quick Start (Terminal Commands)
 
-### Option 2: Terminal Command
+**VSCode tasks have been simplified - use npm scripts directly in the integrated terminal.**
+
+Open the integrated terminal (`Ctrl+`` or `Cmd+``) and run:
+
 ```bash
 # Start dev server (Turbopack - fastest)
 pnpm dev
 
-# Or with webpack
-pnpm dev:webpack
-
-# With keep-alive monitoring
+# Or with keep-alive monitoring (auto-restart on crash)
 bash scripts/dev-server-keepalive.sh
 ```
 
+### Option 2: Alternative Commands
+
+```bash
+# Start with webpack instead of Turbopack
+pnpm dev:webpack
+
+# Run E2E tests
+pnpm qa:e2e
+
+# Run tests in loop (3-hour unattended testing)
+pnpm test:e2e:loop
+```
+
 ### Option 3: Check if Running
+
 ```bash
 # Check if server is running
 lsof -i :3000
@@ -87,11 +98,13 @@ NODE_OPTIONS="--max-old-space-size=4096" pnpm dev
 ## 📋 Status Indicators
 
 **Server Running** ✅
+
 - Terminal shows: `✓ Ready in Xs`
 - Browser: http://localhost:3000 loads
 - Command: `lsof -i :3000` shows a process
 
 **Server Stopped** ❌
+
 - Terminal: No "Ready" message
 - Browser: "Connection refused"
 - Command: `lsof -i :3000` shows nothing

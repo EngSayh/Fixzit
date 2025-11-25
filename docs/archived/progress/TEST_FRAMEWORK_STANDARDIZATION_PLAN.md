@@ -87,16 +87,16 @@ grep -r "jest\." tests/ --include="*.test.ts" --include="*.spec.ts"
 
 **Conversion Reference:**
 
-| Jest API | Vitest Equivalent | Notes |
-|----------|-------------------|-------|
-| `jest.resetModules()` | `vi.resetModules()` | Clear module cache |
-| `jest.clearAllMocks()` | `vi.clearAllMocks()` | Clear all mock state |
-| `jest.fn()` | `vi.fn()` | Create mock function |
-| `jest.spyOn(obj, 'method')` | `vi.spyOn(obj, 'method')` | Spy on method |
-| `jest.mock('module')` | `vi.mock('module')` | Mock module |
-| `jest.requireMock('module')` | `await import('module')` + `vi.mocked()` | Dynamic import |
-| `jest.useFakeTimers()` | `vi.useFakeTimers()` | Fake timers |
-| `jest.advanceTimersByTime(ms)` | `vi.advanceTimersByTime(ms)` | Advance timers |
+| Jest API                       | Vitest Equivalent                        | Notes                |
+| ------------------------------ | ---------------------------------------- | -------------------- |
+| `jest.resetModules()`          | `vi.resetModules()`                      | Clear module cache   |
+| `jest.clearAllMocks()`         | `vi.clearAllMocks()`                     | Clear all mock state |
+| `jest.fn()`                    | `vi.fn()`                                | Create mock function |
+| `jest.spyOn(obj, 'method')`    | `vi.spyOn(obj, 'method')`                | Spy on method        |
+| `jest.mock('module')`          | `vi.mock('module')`                      | Mock module          |
+| `jest.requireMock('module')`   | `await import('module')` + `vi.mocked()` | Dynamic import       |
+| `jest.useFakeTimers()`         | `vi.useFakeTimers()`                     | Fake timers          |
+| `jest.advanceTimersByTime(ms)` | `vi.advanceTimersByTime(ms)`             | Advance timers       |
 
 ---
 
@@ -107,7 +107,7 @@ grep -r "jest\." tests/ --include="*.test.ts" --include="*.spec.ts"
 1. **Check imports** - Ensure importing from `vitest`:
 
    ```typescript
-   import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+   import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
    ```
 
 2. **Replace Jest API calls** with Vitest equivalents:
@@ -154,12 +154,12 @@ grep -r "jest\." tests/ --include="*.test.ts" --include="*.spec.ts"
 **File to Create:** `tests/mocks/mongodb-unified.ts`
 
 ```typescript
-import { vi } from 'vitest';
-import type { Db, Collection, MongoClient } from 'mongodb';
+import { vi } from "vitest";
+import type { Db, Collection, MongoClient } from "mongodb";
 
 // Mock MongoDB collection methods
 const createMockCollection = <T = any>(): Partial<Collection<T>> => ({
-  insertOne: vi.fn().mockResolvedValue({ insertedId: 'mock-id' }),
+  insertOne: vi.fn().mockResolvedValue({ insertedId: "mock-id" }),
   find: vi.fn().mockReturnValue({
     sort: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
@@ -200,10 +200,10 @@ export const resetMongoMocks = () => {
 **File to Update:** `vitest.setup.ts`
 
 ```typescript
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
 // Mock MongoDB unified module globally
-vi.mock('@/lib/mongodb-unified', () => ({
+vi.mock("@/lib/mongodb-unified", () => ({
   getDatabase: vi.fn(),
   connectToDatabase: vi.fn(),
 }));
@@ -214,25 +214,25 @@ vi.mock('@/lib/mongodb-unified', () => ({
 **Update Test Files:**
 
 ```typescript
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { getDatabase } from '@/lib/mongodb-unified';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { getDatabase } from "@/lib/mongodb-unified";
 
 // Mock is already set up globally via vitest.setup.ts
 // Just use vi.mocked() to configure per-test behavior
 
-describe('Test Suite', () => {
+describe("Test Suite", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Configure mock behavior for this test
     vi.mocked(getDatabase).mockReturnValue({
       collection: vi.fn().mockReturnValue({
-        insertOne: vi.fn().mockResolvedValue({ insertedId: '123' }),
+        insertOne: vi.fn().mockResolvedValue({ insertedId: "123" }),
       }),
     } as any);
   });
 
-  it('should work', async () => {
+  it("should work", async () => {
     // Test code here
   });
 });
@@ -368,9 +368,9 @@ git commit -m "test: standardize all tests to Vitest, add MongoDB mock"
 git push -u origin fix/standardize-test-framework-vitest
 gh pr create --title "test: standardize test framework to Vitest" \
   --body "Fixes mixed Jest/Vitest API usage and adds MongoDB mock.
-  
+
 Resolves test framework issues documented in SESSION_PROGRESS_REPORT_20251014.md
-  
+
 ## Changes
 - Replaced all jest.* calls with vi.* (Vitest API)
 - Created centralized MongoDB mock in tests/mocks/

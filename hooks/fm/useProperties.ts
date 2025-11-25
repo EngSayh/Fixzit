@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import useSWR from 'swr';
+import useSWR from "swr";
 
 export type PropertyRecord = {
   _id: string;
@@ -29,20 +29,19 @@ export type PropertyRecord = {
 };
 
 const fetcher = async <T>(url: string): Promise<T> => {
-  const res = await fetch(url, { credentials: 'include' });
+  const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
     const payload = await res.json().catch(() => ({}));
-    throw new Error(payload?.error ?? 'Request failed');
+    throw new Error(payload?.error ?? "Request failed");
   }
   return res.json();
 };
 
 export function useProperties(params?: string) {
-  const url = params ? `/api/properties${params}` : '/api/properties';
-  const { data, error, isLoading, mutate } = useSWR<{ items: PropertyRecord[] }>(
-    url,
-    fetcher
-  );
+  const url = params ? `/api/properties${params}` : "/api/properties";
+  const { data, error, isLoading, mutate } = useSWR<{
+    items: PropertyRecord[];
+  }>(url, fetcher);
 
   return {
     properties: data?.items ?? [],

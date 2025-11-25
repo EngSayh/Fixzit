@@ -1,29 +1,29 @@
 /**
  * Admin Notification Broadcast API
  * POST /api/admin/notifications/send
- * 
+ *
  * Allows super admins to send notifications via Email, SMS, or WhatsApp
  * to users, tenants, or corporate groups
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId, type Document, type Filter } from 'mongodb';
-import { auth } from '@/auth';
-import { getDatabase } from '@/lib/mongodb-unified';
-import { sendEmail } from '@/lib/email';
-import { sendSMS } from '@/lib/sms';
-import { logCommunication } from '@/lib/communication-logger';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { ObjectId, type Document, type Filter } from "mongodb";
+import { auth } from "@/auth";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { sendEmail } from "@/lib/email";
+import { sendSMS } from "@/lib/sms";
+import { logCommunication } from "@/lib/communication-logger";
+import { logger } from "@/lib/logger";
 
 interface NotificationRequest {
   recipients: {
-    type: 'users' | 'tenants' | 'corporate' | 'all';
+    type: "users" | "tenants" | "corporate" | "all";
     ids?: string[]; // Specific user/tenant IDs, or empty for "all"
   };
-  channels: ('email' | 'sms' | 'whatsapp')[];
+  channels: ("email" | "sms" | "whatsapp")[];
   subject: string;
   message: string;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
+  priority: "low" | "normal" | "high" | "urgent";
   scheduledAt?: string; // ISO timestamp for scheduled delivery
 }
 
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       logCommunication(entry)
         .then((result) => {
           if (!result.success) {
-            logger.warn('[Admin Notification] Communication log failed', {
+            logger.warn("[Admin Notification] Communication log failed", {
               error: result.error,
               channel: entry.channel,
               recipient: entry.recipient,
@@ -42,11 +42,15 @@ export async function POST(req: NextRequest) {
           }
         })
         .catch((error) => {
-          logger.error('[Admin Notification] Communication log error', error as Error, {
-            channel: entry.channel,
-            recipient: entry.recipient,
-          });
-        })
+          logger.error(
+            "[Admin Notification] Communication log error",
+            error as Error,
+            {
+              channel: entry.channel,
+              recipient: entry.recipient,
+            },
+          );
+        }),
     );
   };
   const flushLogs = async () => {
@@ -58,49 +62,59 @@ export async function POST(req: NextRequest) {
   try {
     // Authentication check
     const session = await auth();
-    
+
     if (!session?.user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
       );
     }
 
     // Super admin or delegated permission check
-    const sessionUser = session.user as { role?: string; permissions?: string[]; roles?: string[] };
-    const role = sessionUser.role || 'GUEST';
+    const sessionUser = session.user as {
+      role?: string;
+      permissions?: string[];
+      roles?: string[];
+    };
+    const role = sessionUser.role || "GUEST";
     const permissions = sessionUser.permissions || [];
     const hasBroadcastPermission =
-      permissions.includes('notifications.broadcast') ||
-      permissions.includes('notifications.*');
+      permissions.includes("notifications.broadcast") ||
+      permissions.includes("notifications.*");
     // Check authorization: single role field OR roles array (normalized to uppercase)
-    const isAuthorizedRole = 
-      role === 'SUPER_ADMIN' || 
-      role === 'ADMIN' || 
-      role === 'CORPORATE_ADMIN' || 
-      (Array.isArray(sessionUser.roles) && sessionUser.roles.includes('SUPER_ADMIN'));
+    const isAuthorizedRole =
+      role === "SUPER_ADMIN" ||
+      role === "ADMIN" ||
+      role === "CORPORATE_ADMIN" ||
+      (Array.isArray(sessionUser.roles) &&
+        sessionUser.roles.includes("SUPER_ADMIN"));
 
     if (!isAuthorizedRole && !hasBroadcastPermission) {
-      logger.warn('[Admin Notification] Broadcast denied for user', {
+      logger.warn("[Admin Notification] Broadcast denied for user", {
         role,
         permissionsCount: permissions.length,
         userEmail: session.user.email,
       });
       return NextResponse.json(
-        { success: false, error: 'Forbidden: broadcast permission required' },
-        { status: 403 }
+        { success: false, error: "Forbidden: broadcast permission required" },
+        { status: 403 },
       );
     }
 
     // Parse request body
     const body: NotificationRequest = await req.json();
-    const { recipients, channels, subject, message, priority, scheduledAt } = body;
+    const { recipients, channels, subject, message, priority, scheduledAt } =
+      body;
 
     // Validation
     if (!recipients?.type || !channels?.length || !subject || !message) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: recipients, channels, subject, message' },
-        { status: 400 }
+        {
+          success: false,
+          error:
+            "Missing required fields: recipients, channels, subject, message",
+        },
+        { status: 400 },
       );
     }
 
@@ -109,8 +123,8 @@ export async function POST(req: NextRequest) {
       const parsed = Date.parse(scheduledAt);
       if (Number.isNaN(parsed)) {
         return NextResponse.json(
-          { success: false, error: 'Invalid scheduledAt timestamp' },
-          { status: 400 }
+          { success: false, error: "Invalid scheduledAt timestamp" },
+          { status: 400 },
         );
       }
       scheduledDate = new Date(parsed);
@@ -120,11 +134,17 @@ export async function POST(req: NextRequest) {
     const db = await getDatabase();
     const broadcastId = new ObjectId();
 
-    const triggeredBy = (session.user as { id?: string }).id || session.user.email || 'unknown';
+    const triggeredBy =
+      (session.user as { id?: string }).id || session.user.email || "unknown";
     const senderEmail: string | undefined = session.user.email ?? undefined;
 
     // Fetch recipient contacts based on type
-    let targetContacts: Array<{ id: string; name: string; email?: string; phone?: string }> = [];
+    let targetContacts: Array<{
+      id: string;
+      name: string;
+      email?: string;
+      phone?: string;
+    }> = [];
 
     const buildRecipientQuery = (ids?: string[]): Filter<Document> | null => {
       if (!ids?.length) {
@@ -132,11 +152,14 @@ export async function POST(req: NextRequest) {
       }
 
       const objectIds = ids
-        .map(id => {
+        .map((id) => {
           try {
             return new ObjectId(id);
           } catch (error) {
-            logger.warn('[Admin Notification] Invalid recipient id provided', { id, error });
+            logger.warn("[Admin Notification] Invalid recipient id provided", {
+              id,
+              error,
+            });
             return null;
           }
         })
@@ -149,69 +172,78 @@ export async function POST(req: NextRequest) {
       return { _id: { $in: objectIds } };
     };
 
-    if (recipients.type === 'users') {
+    if (recipients.type === "users") {
       const query = buildRecipientQuery(recipients.ids);
       if (recipients.ids?.length && query === null) {
         return NextResponse.json(
-          { success: false, error: 'Invalid user recipient IDs' },
-          { status: 400 }
+          { success: false, error: "Invalid user recipient IDs" },
+          { status: 400 },
         );
       }
 
-      const users = await db.collection('users').find(query ?? {}).toArray();
-      targetContacts = users.map(u => ({
+      const users = await db
+        .collection("users")
+        .find(query ?? {})
+        .toArray();
+      targetContacts = users.map((u) => ({
         id: u._id.toString(),
         name: u.name || u.email,
         email: u.email,
-        phone: u.phone
+        phone: u.phone,
       }));
-    } else if (recipients.type === 'tenants') {
+    } else if (recipients.type === "tenants") {
       const query = buildRecipientQuery(recipients.ids);
       if (recipients.ids?.length && query === null) {
         return NextResponse.json(
-          { success: false, error: 'Invalid tenant recipient IDs' },
-          { status: 400 }
+          { success: false, error: "Invalid tenant recipient IDs" },
+          { status: 400 },
         );
       }
 
-      const tenants = await db.collection('tenants').find(query ?? {}).toArray();
-      targetContacts = tenants.map(t => ({
+      const tenants = await db
+        .collection("tenants")
+        .find(query ?? {})
+        .toArray();
+      targetContacts = tenants.map((t) => ({
         id: t._id.toString(),
         name: t.name,
         email: t.email || t.contactEmail,
-        phone: t.phone || t.contactPhone
+        phone: t.phone || t.contactPhone,
       }));
-    } else if (recipients.type === 'corporate') {
+    } else if (recipients.type === "corporate") {
       const query = buildRecipientQuery(recipients.ids);
       if (recipients.ids?.length && query === null) {
         return NextResponse.json(
-          { success: false, error: 'Invalid corporate recipient IDs' },
-          { status: 400 }
+          { success: false, error: "Invalid corporate recipient IDs" },
+          { status: 400 },
         );
       }
 
-      const corps = await db.collection('organizations').find(query ?? {}).toArray();
-      targetContacts = corps.map(c => ({
+      const corps = await db
+        .collection("organizations")
+        .find(query ?? {})
+        .toArray();
+      targetContacts = corps.map((c) => ({
         id: c._id.toString(),
         name: c.name,
         email: c.contactEmail,
-        phone: c.contactPhone
+        phone: c.contactPhone,
       }));
-    } else if (recipients.type === 'all') {
+    } else if (recipients.type === "all") {
       // Fetch all users
-      const users = await db.collection('users').find({}).toArray();
-      targetContacts = users.map(u => ({
+      const users = await db.collection("users").find({}).toArray();
+      targetContacts = users.map((u) => ({
         id: u._id.toString(),
         name: u.name || u.email,
         email: u.email,
-        phone: u.phone
+        phone: u.phone,
       }));
     }
 
     if (targetContacts.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'No recipients found' },
-        { status: 404 }
+        { success: false, error: "No recipients found" },
+        { status: 404 },
       );
     }
 
@@ -220,38 +252,38 @@ export async function POST(req: NextRequest) {
       email: { sent: 0, failed: 0 },
       sms: { sent: 0, failed: 0 },
       whatsapp: { sent: 0, failed: 0 },
-      totalRecipients: targetContacts.length
+      totalRecipients: targetContacts.length,
     };
 
     const smsBody = `${subject}\n\n${message}`;
 
     for (const contact of targetContacts) {
       // Email
-      if (channels.includes('email') && contact.email) {
+      if (channels.includes("email") && contact.email) {
         try {
           const emailResult = await sendEmail(contact.email, subject, message);
           if (emailResult.success) {
             results.email.sent++;
           } else {
             results.email.failed++;
-            logger.error('[Admin Notification] Email failed', {
+            logger.error("[Admin Notification] Email failed", {
               email: contact.email,
               error: emailResult.error,
             });
           }
           enqueueLog({
             userId: contact.id,
-            channel: 'email',
-            type: 'broadcast',
+            channel: "email",
+            type: "broadcast",
             recipient: contact.email,
             subject,
             message,
-            status: emailResult.success ? 'sent' : 'failed',
+            status: emailResult.success ? "sent" : "failed",
             errorMessage: emailResult.success ? undefined : emailResult.error,
             metadata: {
               email: contact.email,
               name: contact.name,
-              priority: priority || 'normal',
+              priority: priority || "normal",
               broadcastId: broadcastId.toString(),
               triggeredBy,
               sendgridId: emailResult.messageId,
@@ -259,21 +291,25 @@ export async function POST(req: NextRequest) {
             },
           });
         } catch (error) {
-          logger.error('[Admin Notification] Email failed', { error, email: contact.email });
+          logger.error("[Admin Notification] Email failed", {
+            error,
+            email: contact.email,
+          });
           results.email.failed++;
           enqueueLog({
             userId: contact.id,
-            channel: 'email',
-            type: 'broadcast',
+            channel: "email",
+            type: "broadcast",
             recipient: contact.email,
             subject,
             message,
-            status: 'failed',
-            errorMessage: error instanceof Error ? error.message : String(error),
+            status: "failed",
+            errorMessage:
+              error instanceof Error ? error.message : String(error),
             metadata: {
               email: contact.email,
               name: contact.name,
-              priority: priority || 'normal',
+              priority: priority || "normal",
               broadcastId: broadcastId.toString(),
               triggeredBy,
               triggeredByEmail: senderEmail,
@@ -283,52 +319,56 @@ export async function POST(req: NextRequest) {
       }
 
       // SMS
-      if (channels.includes('sms') && contact.phone) {
+      if (channels.includes("sms") && contact.phone) {
         try {
           const smsResult = await sendSMS(contact.phone, smsBody);
           if (smsResult.success) {
             results.sms.sent++;
           } else {
             results.sms.failed++;
-            logger.error('[Admin Notification] SMS failed', {
+            logger.error("[Admin Notification] SMS failed", {
               phone: contact.phone,
               error: smsResult.error,
             });
           }
           enqueueLog({
             userId: contact.id,
-            channel: 'sms',
-            type: 'broadcast',
+            channel: "sms",
+            type: "broadcast",
             recipient: contact.phone,
             subject,
             message: smsBody,
-            status: smsResult.success ? 'sent' : 'failed',
+            status: smsResult.success ? "sent" : "failed",
             errorMessage: smsResult.success ? undefined : smsResult.error,
             metadata: {
               phone: contact.phone,
               name: contact.name,
-              priority: priority || 'normal',
+              priority: priority || "normal",
               broadcastId: broadcastId.toString(),
               triggeredBy,
               segments: Math.max(1, Math.ceil(smsBody.length / 160)),
             },
           });
         } catch (error) {
-          logger.error('[Admin Notification] SMS failed', { error, phone: contact.phone });
+          logger.error("[Admin Notification] SMS failed", {
+            error,
+            phone: contact.phone,
+          });
           results.sms.failed++;
           enqueueLog({
             userId: contact.id,
-            channel: 'sms',
-            type: 'broadcast',
+            channel: "sms",
+            type: "broadcast",
             recipient: contact.phone,
             subject,
             message: smsBody,
-            status: 'failed',
-            errorMessage: error instanceof Error ? error.message : String(error),
+            status: "failed",
+            errorMessage:
+              error instanceof Error ? error.message : String(error),
             metadata: {
               phone: contact.phone,
               name: contact.name,
-              priority: priority || 'normal',
+              priority: priority || "normal",
               broadcastId: broadcastId.toString(),
               triggeredBy,
             },
@@ -337,26 +377,31 @@ export async function POST(req: NextRequest) {
       }
 
       // WhatsApp via WhatsApp Business API
-      if (channels.includes('whatsapp') && contact.phone) {
+      if (channels.includes("whatsapp") && contact.phone) {
         try {
-          const { sendWhatsAppTextMessage, isWhatsAppEnabled } = await import('@/lib/integrations/whatsapp');
-          
+          const { sendWhatsAppTextMessage, isWhatsAppEnabled } = await import(
+            "@/lib/integrations/whatsapp"
+          );
+
           if (!isWhatsAppEnabled()) {
-            logger.warn('[Admin Notification] WhatsApp not configured', { phone: contact.phone });
+            logger.warn("[Admin Notification] WhatsApp not configured", {
+              phone: contact.phone,
+            });
             results.whatsapp.failed++;
             enqueueLog({
               userId: contact.id,
-              channel: 'whatsapp',
-              type: 'broadcast',
+              channel: "whatsapp",
+              type: "broadcast",
               recipient: contact.phone,
               subject,
               message,
-              status: 'failed',
-              errorMessage: 'WhatsApp Business API not configured. Add WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN, WHATSAPP_BUSINESS_ACCOUNT_ID to environment.',
+              status: "failed",
+              errorMessage:
+                "WhatsApp Business API not configured. Add WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN, WHATSAPP_BUSINESS_ACCOUNT_ID to environment.",
               metadata: {
                 phone: contact.phone,
                 name: contact.name,
-                priority: priority || 'normal',
+                priority: priority || "normal",
                 broadcastId: broadcastId.toString(),
                 triggeredBy,
               },
@@ -371,16 +416,16 @@ export async function POST(req: NextRequest) {
               results.whatsapp.sent++;
               enqueueLog({
                 userId: contact.id,
-                channel: 'whatsapp',
-                type: 'broadcast',
+                channel: "whatsapp",
+                type: "broadcast",
                 recipient: contact.phone,
                 subject,
                 message,
-                status: 'sent',
+                status: "sent",
                 metadata: {
                   phone: contact.phone,
                   name: contact.name,
-                  priority: priority || 'normal',
+                  priority: priority || "normal",
                   broadcastId: broadcastId.toString(),
                   triggeredBy,
                   messageId: result.messageId,
@@ -390,17 +435,17 @@ export async function POST(req: NextRequest) {
               results.whatsapp.failed++;
               enqueueLog({
                 userId: contact.id,
-                channel: 'whatsapp',
-                type: 'broadcast',
+                channel: "whatsapp",
+                type: "broadcast",
                 recipient: contact.phone,
                 subject,
                 message,
-                status: 'failed',
-                errorMessage: result.error || 'Unknown error',
+                status: "failed",
+                errorMessage: result.error || "Unknown error",
                 metadata: {
                   phone: contact.phone,
                   name: contact.name,
-                  priority: priority || 'normal',
+                  priority: priority || "normal",
                   broadcastId: broadcastId.toString(),
                   triggeredBy,
                 },
@@ -408,34 +453,37 @@ export async function POST(req: NextRequest) {
             }
           }
         } catch (error) {
-          logger.error('[Admin Notification] WhatsApp failed', { error, phone: contact.phone });
+          logger.error("[Admin Notification] WhatsApp failed", {
+            error,
+            phone: contact.phone,
+          });
           results.whatsapp.failed++;
         }
       }
     }
 
     // Log notification in database
-    await db.collection('admin_notifications').insertOne({
+    await db.collection("admin_notifications").insertOne({
       _id: broadcastId,
       senderId: session.user.id,
       senderEmail: session.user.email,
       recipients: {
         type: recipients.type,
         ids: recipients.ids || [],
-        count: targetContacts.length
+        count: targetContacts.length,
       },
       channels,
       subject,
       message,
-      priority: priority || 'normal',
+      priority: priority || "normal",
       scheduledAt: scheduledDate,
       sentAt: new Date(),
       results,
-      status: 'sent',
-      createdAt: new Date()
+      status: "sent",
+      createdAt: new Date(),
     });
 
-    logger.info('[Admin Notification] Broadcast sent', {
+    logger.info("[Admin Notification] Broadcast sent", {
       sender: session.user.email,
       recipients: recipients.type,
       channels,
@@ -447,19 +495,21 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Notifications sent successfully',
-      results
+      message: "Notifications sent successfully",
+      results,
     });
-
   } catch (error) {
-    logger.error('[Admin Notification] Send failed', { error });
+    logger.error("[Admin Notification] Send failed", { error });
     await flushLogs();
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to send notifications' 
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to send notifications",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

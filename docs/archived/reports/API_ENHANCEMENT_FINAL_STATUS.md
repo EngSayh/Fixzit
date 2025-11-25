@@ -17,22 +17,22 @@
 
 ### Critical Auth & Payment Routes ✅
 
-| Route | Rate Limit | OpenAPI | Std Errors | Secure Response |
-|-------|-----------|---------|------------|-----------------|
-| `app/api/auth/login/route.ts` | ✅ 5 req/15min | ✅ Full | ✅ Yes | ✅ Yes |
-| `app/api/auth/signup/route.ts` | ✅ 5 req/15min | ✅ Full | ✅ Yes | ✅ Yes |
-| `app/api/auth/me/route.ts` | ✅ 60 req/min | ✅ Full | ✅ Yes | ✅ Yes |
-| `app/api/auth/logout/route.ts` | ✅ 20 req/min | ✅ Full | ✅ Yes | ✅ Yes |
-| `app/api/payments/paytabs/callback/route.ts` | ✅ 30 req/min | ✅ Full | ✅ Yes | ✅ Yes |
-| `app/api/payments/create/route.ts` | ✅ 10 req/5min | ✅ Full | ✅ Yes | ✅ Yes |
+| Route                                        | Rate Limit     | OpenAPI | Std Errors | Secure Response |
+| -------------------------------------------- | -------------- | ------- | ---------- | --------------- |
+| `app/api/auth/login/route.ts`                | ✅ 5 req/15min | ✅ Full | ✅ Yes     | ✅ Yes          |
+| `app/api/auth/signup/route.ts`               | ✅ 5 req/15min | ✅ Full | ✅ Yes     | ✅ Yes          |
+| `app/api/auth/me/route.ts`                   | ✅ 60 req/min  | ✅ Full | ✅ Yes     | ✅ Yes          |
+| `app/api/auth/logout/route.ts`               | ✅ 20 req/min  | ✅ Full | ✅ Yes     | ✅ Yes          |
+| `app/api/payments/paytabs/callback/route.ts` | ✅ 30 req/min  | ✅ Full | ✅ Yes     | ✅ Yes          |
+| `app/api/payments/create/route.ts`           | ✅ 10 req/5min | ✅ Full | ✅ Yes     | ✅ Yes          |
 
 ### Business Logic Routes ✅
 
-| Route | Rate Limit | OpenAPI | Std Errors | Secure Response |
-|-------|-----------|---------|------------|-----------------|
-| `app/api/marketplace/rfq/route.ts` | ✅ 60/20 req/min | ✅ Full | ✅ Yes | ✅ Yes |
-| `app/api/subscribe/corporate/route.ts` | ✅ 3 req/5min | ✅ Full | ✅ Yes | ✅ Yes |
-| `app/api/subscribe/owner/route.ts` | ✅ 3 req/5min | ✅ Full | ✅ Yes | ✅ Yes |
+| Route                                  | Rate Limit       | OpenAPI | Std Errors | Secure Response |
+| -------------------------------------- | ---------------- | ------- | ---------- | --------------- |
+| `app/api/marketplace/rfq/route.ts`     | ✅ 60/20 req/min | ✅ Full | ✅ Yes     | ✅ Yes          |
+| `app/api/subscribe/corporate/route.ts` | ✅ 3 req/5min    | ✅ Full | ✅ Yes     | ✅ Yes          |
+| `app/api/subscribe/owner/route.ts`     | ✅ 3 req/5min    | ✅ Full | ✅ Yes     | ✅ Yes          |
 
 ### **Commits Made:**
 
@@ -53,19 +53,19 @@
 
 **Must be enhanced before merge:**
 
-| Route | Complexity | Est. Time |
-|-------|------------|-----------|
-| `app/api/work-orders/route.ts` | High (2 methods) | 15 min |
-| `app/api/work-orders/[id]/route.ts` | High (4 methods) | 20 min |
-| `app/api/properties/route.ts` | Medium | 12 min |
-| `app/api/properties/[id]/route.ts` | Medium | 12 min |
-| `app/api/projects/route.ts` | Medium | 12 min |
-| `app/api/vendors/route.ts` | Medium | 12 min |
-| `app/api/assets/route.ts` | Medium | 12 min |
-| `app/api/assets/[id]/route.ts` | Medium | 12 min |
-| `app/api/invoices/route.ts` | Medium | 12 min |
-| `app/api/invoices/[id]/route.ts` | Medium | 12 min |
-| `app/api/finance/invoices/route.ts` | Medium | 12 min |
+| Route                               | Complexity       | Est. Time |
+| ----------------------------------- | ---------------- | --------- |
+| `app/api/work-orders/route.ts`      | High (2 methods) | 15 min    |
+| `app/api/work-orders/[id]/route.ts` | High (4 methods) | 20 min    |
+| `app/api/properties/route.ts`       | Medium           | 12 min    |
+| `app/api/properties/[id]/route.ts`  | Medium           | 12 min    |
+| `app/api/projects/route.ts`         | Medium           | 12 min    |
+| `app/api/vendors/route.ts`          | Medium           | 12 min    |
+| `app/api/assets/route.ts`           | Medium           | 12 min    |
+| `app/api/assets/[id]/route.ts`      | Medium           | 12 min    |
+| `app/api/invoices/route.ts`         | Medium           | 12 min    |
+| `app/api/invoices/[id]/route.ts`    | Medium           | 12 min    |
+| `app/api/finance/invoices/route.ts` | Medium           | 12 min    |
 
 **Subtotal:** 11 routes × ~13 min avg = **~2.5 hours**
 
@@ -105,12 +105,12 @@
 
 ### Remaining Work
 
-| Priority | Routes | Est. Time | Can Automate? |
-|----------|--------|-----------|---------------|
-| P0 Critical | 11 | 2.5 hours | Partial (60%) |
-| P1 High | 40 | 6.5 hours | Yes (80%) |
-| P2 Supporting | 49 | 6.5 hours | Yes (90%) |
-| **TOTAL** | **100** | **15.5 hours** | **Avg 77%** |
+| Priority      | Routes  | Est. Time      | Can Automate? |
+| ------------- | ------- | -------------- | ------------- |
+| P0 Critical   | 11      | 2.5 hours      | Partial (60%) |
+| P1 High       | 40      | 6.5 hours      | Yes (80%)     |
+| P2 Supporting | 49      | 6.5 hours      | Yes (90%)     |
+| **TOTAL**     | **100** | **15.5 hours** | **Avg 77%**   |
 
 ### With Automation
 
@@ -190,7 +190,7 @@
 
 ```
 Rate Limiting:     9/109  =  8.3%  coverage
-OpenAPI Docs:      9/109  =  8.3%  coverage  
+OpenAPI Docs:      9/109  =  8.3%  coverage
 Std Error Handling: 9/109  =  8.3%  coverage
 Security Headers:   9/109  =  8.3%  coverage
 ```
@@ -206,13 +206,13 @@ Security Headers:   109/109 = 100% coverage ✅
 
 ### PR Review Metrics
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| CodeRabbit Score | 60/100 | 95-100/100 | +58% |
-| API Contracts Gate | ❌ FAIL | ✅ PASS | Fixed |
-| Error UX Gate | ❌ FAIL | ✅ PASS | Fixed |
-| Security Gate | ❌ FAIL | ✅ PASS | Fixed |
-| Performance Gate | ✅ PASS | ✅ PASS | Maintained |
+| Metric             | Before  | After      | Improvement |
+| ------------------ | ------- | ---------- | ----------- |
+| CodeRabbit Score   | 60/100  | 95-100/100 | +58%        |
+| API Contracts Gate | ❌ FAIL | ✅ PASS    | Fixed       |
+| Error UX Gate      | ❌ FAIL | ✅ PASS    | Fixed       |
+| Security Gate      | ❌ FAIL | ✅ PASS    | Fixed       |
+| Performance Gate   | ✅ PASS | ✅ PASS    | Maintained  |
 
 ---
 

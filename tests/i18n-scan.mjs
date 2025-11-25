@@ -394,8 +394,8 @@ if (FIX_MODE) {
 // -------------------------------------------------------------------------------------------------
 // 5) Exit
 // -------------------------------------------------------------------------------------------------
-const anyMissing = LANGS.some(l => missing[l].size > 0);
-if (anyMissing && STRICT) {
+const hasMissing = LANGS.some(l => missing[l].size > 0);
+if (hasMissing && STRICT) {
   err('❌ FAILED: Missing translation keys detected.\n   Add these keys to your translation dictionaries or run with --fix to generate skeletons.\n');
   process.exit(1);
 }

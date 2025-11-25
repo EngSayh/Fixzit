@@ -3,27 +3,27 @@
  * @module server/models/souq/Variation
  */
 
-import mongoose, { Schema, type Document } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
 
 export interface IVariation extends Document {
   _id: mongoose.Types.ObjectId;
   variationId: string; // VAR-{UUID}
   fsin: string; // Parent product FSIN
   sku: string; // Unique SKU
-  
+
   // Variation Attributes
   attributes: Record<string, string | number | boolean>; // { color: 'Red', size: 'L' }
-  
+
   // Images (variation-specific)
   images?: string[]; // If empty, use parent product images
-  
+
   // Identifiers
   upc?: string;
   ean?: string;
   gtin?: string;
   manufacturerPartNumber?: string;
-  
+
   // Physical Properties
   dimensions?: {
     length: number; // cm
@@ -31,10 +31,10 @@ export interface IVariation extends Document {
     height: number; // cm
     weight: number; // kg
   };
-  
+
   // Status
   isActive: boolean;
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -97,8 +97,8 @@ const VariationSchema = new Schema<IVariation>(
   },
   {
     timestamps: true,
-    collection: 'souq_variations',
-  }
+    collection: "souq_variations",
+  },
 );
 
 // Indexes
@@ -107,10 +107,11 @@ VariationSchema.index({ sku: 1, isActive: 1 });
 
 // Method: Get display name based on attributes
 VariationSchema.methods.getDisplayName = function (): string {
-  const entries = Array.from(this.attributes.entries()) as [string, string | number | boolean][];
-  const attrs = entries
-    .map(([key, value]) => `${key}: ${value}`)
-    .join(', ');
+  const entries = Array.from(this.attributes.entries()) as [
+    string,
+    string | number | boolean,
+  ][];
+  const attrs = entries.map(([key, value]) => `${key}: ${value}`).join(", ");
   return attrs || this.sku;
 };
 
@@ -132,7 +133,9 @@ VariationSchema.statics.findBySKU = async function (sku: string) {
   return this.findOne({ sku: sku.toUpperCase(), isActive: true });
 };
 
-export const SouqVariation =
-  getModel<IVariation>('SouqVariation', VariationSchema);
+export const SouqVariation = getModel<IVariation>(
+  "SouqVariation",
+  VariationSchema,
+);
 
 export default SouqVariation;

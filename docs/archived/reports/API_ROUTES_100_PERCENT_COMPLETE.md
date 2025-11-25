@@ -11,11 +11,11 @@
 
 ### **100% Complete - All 109 API Route Files Enhanced**
 
-| Enhancement | Coverage | Status |
-|------------|----------|--------|
-| **Rate Limiting** | **109/109 (100%)** | ✅ COMPLETE |
-| **Security Headers** | **109/109 (100%)** | ✅ COMPLETE |
-| **OpenAPI Documentation** | **104/109 (95.4%)** | ✅ EXCELLENT |
+| Enhancement                     | Coverage            | Status       |
+| ------------------------------- | ------------------- | ------------ |
+| **Rate Limiting**               | **109/109 (100%)**  | ✅ COMPLETE  |
+| **Security Headers**            | **109/109 (100%)**  | ✅ COMPLETE  |
+| **OpenAPI Documentation**       | **104/109 (95.4%)** | ✅ EXCELLENT |
 | **Standardized Error Handling** | **103/109 (94.5%)** | ✅ EXCELLENT |
 
 ---
@@ -46,16 +46,16 @@
 
 Every API route now has sensitivity-based rate limiting:
 
-| Route Type | Rate Limit | Window | Example Routes |
-|------------|------------|--------|----------------|
-| **Auth (Critical)** | 5 req | 15min | login, signup |
-| **Payment Creation** | 10 req | 5min | payments/create |
-| **Payment Webhooks** | 30 req | 1min | paytabs/callback |
-| **Subscriptions** | 3 req | 5min | subscribe/corporate, owner |
-| **Read Operations** | 60 req | 1min | GET work-orders, properties |
-| **Write Operations** | 20 req | 1min | POST work-orders, projects |
-| **Admin Operations** | 100 req | 1min | admin/* routes |
-| **Public Endpoints** | 10 req | 1min | health checks |
+| Route Type           | Rate Limit | Window | Example Routes              |
+| -------------------- | ---------- | ------ | --------------------------- |
+| **Auth (Critical)**  | 5 req      | 15min  | login, signup               |
+| **Payment Creation** | 10 req     | 5min   | payments/create             |
+| **Payment Webhooks** | 30 req     | 1min   | paytabs/callback            |
+| **Subscriptions**    | 3 req      | 5min   | subscribe/corporate, owner  |
+| **Read Operations**  | 60 req     | 1min   | GET work-orders, properties |
+| **Write Operations** | 20 req     | 1min   | POST work-orders, projects  |
+| **Admin Operations** | 100 req    | 1min   | admin/\* routes             |
+| **Public Endpoints** | 10 req     | 1min   | health checks               |
 
 ### **Security Headers (100% Coverage)**
 
@@ -91,7 +91,7 @@ Replaced manual error responses with:
 ✅ **Detailed Descriptions** with business context  
 ✅ **Example Values** for all parameters  
 ✅ **Error Response Scenarios** (400, 401, 403, 404, 429, 500)  
-✅ **Tags for Organization** (Authentication, Payments, Work Orders, etc.)  
+✅ **Tags for Organization** (Authentication, Payments, Work Orders, etc.)
 
 **API Documentation can now be auto-generated using:**
 
@@ -214,28 +214,28 @@ All enhancements use existing, battle-tested utility functions:
 
 ```typescript
 // Rate Limiting - LRU cache-based (5000 entries)
-import { rateLimit } from '@/server/security/rateLimit';
-const rl = rateLimit('key', limit, windowSeconds);
+import { rateLimit } from "@/server/security/rateLimit";
+const rl = rateLimit("key", limit, windowSeconds);
 
 // Standardized Errors - Consistent response format
-import { 
-  unauthorizedError, 
-  validationError, 
-  handleApiError 
-} from '@/server/utils/errorResponses';
+import {
+  unauthorizedError,
+  validationError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
 
 // Security Headers - CSP, HSTS, X-Frame-Options
-import { createSecureResponse } from '@/server/security/headers';
+import { createSecureResponse } from "@/server/security/headers";
 const response = createSecureResponse(data, status, req);
 ```
 
 ### **Pattern Applied to Every Route**
 
 ```typescript
-import { NextRequest } from 'next/server';
-import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError, handleApiError } from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+import { NextRequest } from "next/server";
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
 
 /**
  * @openapi
@@ -249,7 +249,8 @@ import { createSecureResponse } from '@/server/security/headers';
 export async function POST(req: NextRequest) {
   try {
     // 1. Rate limiting
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    const clientIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
     const rl = rateLimit(`route:${clientIp}`, limit, window);
     if (!rl.allowed) return rateLimitError();
 
@@ -299,7 +300,7 @@ find app/api -name "route.ts" -type f | xargs grep -l "handleApiError\|unauthori
 ✅ **Consistent Pattern** - Every route follows same structure  
 ✅ **Type Safety** - Full TypeScript compliance maintained  
 ✅ **Tenant Isolation** - All routes enforce orgId/tenantId checks  
-✅ **RBAC Preserved** - Authorization logic untouched  
+✅ **RBAC Preserved** - Authorization logic untouched
 
 ---
 
@@ -312,13 +313,13 @@ find app/api -name "route.ts" -type f | xargs grep -l "handleApiError\|unauthori
 
 ### **Must-Pass Gates Status**
 
-| Gate | Before | After | Status |
-|------|--------|-------|--------|
-| **API Contracts** | ❌ FAIL (0% documented) | ✅ PASS (95.4%) | 🎯 FIXED |
-| **Error UX** | ❌ FAIL (inconsistent) | ✅ PASS (94.5% standardized) | 🎯 FIXED |
-| **Security** | ❌ FAIL (no rate limiting) | ✅ PASS (100% protected) | 🎯 FIXED |
-| **Performance** | ✅ PASS | ✅ PASS | ✅ Maintained |
-| **Type Safety** | ✅ PASS | ✅ PASS | ✅ Maintained |
+| Gate              | Before                     | After                        | Status        |
+| ----------------- | -------------------------- | ---------------------------- | ------------- |
+| **API Contracts** | ❌ FAIL (0% documented)    | ✅ PASS (95.4%)              | 🎯 FIXED      |
+| **Error UX**      | ❌ FAIL (inconsistent)     | ✅ PASS (94.5% standardized) | 🎯 FIXED      |
+| **Security**      | ❌ FAIL (no rate limiting) | ✅ PASS (100% protected)     | 🎯 FIXED      |
+| **Performance**   | ✅ PASS                    | ✅ PASS                      | ✅ Maintained |
+| **Type Safety**   | ✅ PASS                    | ✅ PASS                      | ✅ Maintained |
 
 ---
 
@@ -376,14 +377,14 @@ find app/api -name "route.ts" -type f | xargs grep -l "handleApiError\|unauthori
 ✅ **Consistent Pattern**: Same structure for every route → easy to review  
 ✅ **Automation Script**: Processed 67 routes in minutes vs. hours manually  
 ✅ **Incremental Commits**: Small batches made review/rollback easier  
-✅ **Terminal Commands**: More reliable than file editing tools for bulk operations  
+✅ **Terminal Commands**: More reliable than file editing tools for bulk operations
 
 ### **Challenges Overcome**
 
 ⚠️ **File Persistence**: Used terminal `cat` commands instead of edit tools  
 ⚠️ **Manual Edits**: User edited 85 files → required re-enhancement of 3 critical routes  
 ⚠️ **Scope Creep**: Initial estimate was 218 routes, actual was 109 unique files  
-⚠️ **Rate Limit Tuning**: Required research into sensitivity-based limits  
+⚠️ **Rate Limit Tuning**: Required research into sensitivity-based limits
 
 ### **Best Practices Established**
 
@@ -414,4 +415,4 @@ This PR is now **ready for merge** and will significantly improve the security, 
 **Status**: ✅ **MISSION ACCOMPLISHED**  
 **Prepared by**: GitHub Copilot AI Agent  
 **Date**: October 8, 2025  
-**PR**: #84 - Fix/consolidation-guardrails  
+**PR**: #84 - Fix/consolidation-guardrails

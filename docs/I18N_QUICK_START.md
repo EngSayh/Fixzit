@@ -18,11 +18,13 @@
 ## 🎯 Executive Summary
 
 ### Current State
+
 - **Translation Coverage:** 100% (EN/AR)
 - **RTL Support:** ✅ Fully implemented
 - **Issues Found:** 46 files with hardcoded text, 162 duplicate keys
 
 ### Proposed Solution
+
 - **5 Batches:** Methodical refactoring approach
 - **Total Effort:** 20-25 hours (3-4 working days)
 - **Risk Level:** Medium (large refactor, but methodical)
@@ -33,17 +35,20 @@
 ## 🔢 The 5 Batches
 
 ### **Batch 1: Foundation Cleanup** ⭐ START HERE
+
 **PR:** `feat/i18n-batch-1-foundation`  
 **Files:** 2 files (locales/en.ts, locales/ar.ts)  
 **Effort:** 4 hours  
-**Risk:** 🟢 Low  
+**Risk:** 🟢 Low
 
 **What it does:**
+
 - Consolidate 162 duplicate keys → 42 common keys
 - Add `common.status.*`, `common.actions.*`, `common.validation.*`, `common.pagination.*`
 - No functional changes, purely additive
 
 **Ready to start?**
+
 ```bash
 git checkout -b feat/i18n-batch-1-foundation
 # Follow instructions in I18N_IMPACT_REPORT.md "Task 1.1"
@@ -52,17 +57,20 @@ git checkout -b feat/i18n-batch-1-foundation
 ---
 
 ### **Batch 2: High Priority UI** ⚠️ CRITICAL PATH
+
 **PR:** `feat/i18n-batch-2-ui-components`  
 **Files:** 12 user-facing components  
 **Effort:** 3-4 hours  
-**Risk:** 🟡 Medium  
+**Risk:** 🟡 Medium
 
 **What it does:**
+
 - Fix hardcoded text in checkout, marketplace, search
 - Add `useTranslations()` hooks
 - Test language switching
 
 **Files:**
+
 ```
 components/marketplace/RFQBoard.tsx        ⭐ PRIORITY 1
 components/marketplace/CheckoutForm.tsx    ⭐ PRIORITY 1
@@ -75,12 +83,14 @@ app/page.tsx                               ⭐ PRIORITY 3
 ---
 
 ### **Batch 3: Seller Module** 👤 SELLER FEATURES
+
 **PR:** `feat/i18n-batch-3-seller-module`  
 **Files:** 11 seller-facing components  
 **Effort:** 4-5 hours  
-**Risk:** 🟢 Low  
+**Risk:** 🟢 Low
 
 **What it does:**
+
 - Internationalize seller dashboard
 - Reviews, KYC, analytics, advertising
 - Smaller user base, less critical
@@ -88,12 +98,14 @@ app/page.tsx                               ⭐ PRIORITY 3
 ---
 
 ### **Batch 4: Service Layer** 🔧 BACKEND
+
 **PR:** `feat/i18n-batch-4-services`  
 **Files:** 14 service files  
 **Effort:** 2-3 hours  
-**Risk:** 🟢 Low  
+**Risk:** 🟢 Low
 
 **What it does:**
+
 - Backend notifications
 - Service worker messages
 - Minimal UI impact
@@ -101,13 +113,15 @@ app/page.tsx                               ⭐ PRIORITY 3
 ---
 
 ### **Batch 5: Consolidation Migration** 🤖 AUTOMATED
+
 **PR:** `feat/i18n-batch-5-migration`  
 **Files:** 180+ files (automated refactor)  
 **Effort:** 2 hours  
-**Risk:** 🟡 Medium  
+**Risk:** 🟡 Medium
 
 **What it does:**
-- Replace module-specific keys with common.* keys
+
+- Replace module-specific keys with common.\* keys
 - Run migration script with --apply
 - Comprehensive testing required
 
@@ -121,12 +135,13 @@ RTL (Right-to-Left) support for Arabic is already fully implemented:
 
 ```typescript
 // lib/i18n.ts
-export function getDirection(locale: Locale): 'ltr' | 'rtl' {
-  return locale === 'ar' ? 'rtl' : 'ltr';
+export function getDirection(locale: Locale): "ltr" | "rtl" {
+  return locale === "ar" ? "rtl" : "ltr";
 }
 ```
 
 ### **Verified Features:**
+
 - ✅ Layout mirroring (sidebar, navigation)
 - ✅ Text alignment (right-aligned for Arabic)
 - ✅ Icon positioning (flipped for RTL)
@@ -134,6 +149,7 @@ export function getDirection(locale: Locale): 'ltr' | 'rtl' {
 - ✅ Data tables (scrollbar on left)
 
 ### **Test RTL Yourself:**
+
 ```bash
 # Start dev server
 pnpm dev
@@ -150,6 +166,7 @@ pnpm dev
 ## 🧪 Smoke Test Plan
 
 ### **Pre-Consolidation Tests** (Run Before Starting)
+
 ```bash
 # 1. Lint check
 pnpm lint
@@ -168,6 +185,7 @@ pnpm test:e2e:smoke
 ```
 
 ### **Post-Batch Tests** (Run After Each PR)
+
 ```bash
 # 1. Full test suite
 pnpm test && pnpm test:e2e
@@ -194,12 +212,14 @@ pnpm test:visual:ar
 ## 🚨 Known Blockers
 
 ### **E2E Tests Currently Failing**
+
 **Status:** 🔴 Blocked  
 **Issue:** Dev server not accepting connections on port 3000  
 **Impact:** Cannot run automated E2E tests  
 **Workaround:** Manual testing + unit tests
 
 **To Debug:**
+
 ```bash
 # 1. Kill all node processes
 pkill -9 node
@@ -237,6 +257,7 @@ Use this checklist to track progress:
 ## 🎬 Next Steps
 
 ### **Option A: Start Batch 1 (Recommended)**
+
 ```bash
 git checkout -b feat/i18n-batch-1-foundation
 # Open I18N_IMPACT_REPORT.md
@@ -245,6 +266,7 @@ git checkout -b feat/i18n-batch-1-foundation
 ```
 
 ### **Option B: Fix E2E Tests First**
+
 ```bash
 # Debug dev server issues
 # Get authentication working
@@ -252,6 +274,7 @@ git checkout -b feat/i18n-batch-1-foundation
 ```
 
 ### **Option C: Review & Approve Scope**
+
 ```bash
 # Review I18N_IMPACT_REPORT.md thoroughly
 # Discuss with team
@@ -264,6 +287,7 @@ git checkout -b feat/i18n-batch-1-foundation
 ## 📞 Questions?
 
 **Ask me to:**
+
 - "Start Batch 1" - I'll create the foundation cleanup PR
 - "Fix E2E tests" - I'll debug the dev server issues
 - "Show me Batch 2 details" - I'll explain the UI component changes
@@ -280,7 +304,7 @@ After completing all 5 batches, you'll have:
 ✅ **~162 fewer duplicate keys** - 15-20% file size reduction  
 ✅ **Improved maintainability** - Single source of truth  
 ✅ **Perfect Arabic (RTL) support** - Already working, preserved  
-✅ **Comprehensive test coverage** - Automated i18n validation  
+✅ **Comprehensive test coverage** - Automated i18n validation
 
 **Business Value:** Better UX for Arabic-speaking users, easier to add new languages, cleaner codebase.
 

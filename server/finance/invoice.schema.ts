@@ -14,10 +14,9 @@ export const InvoiceCreate = z.object({
   dueDate: z.coerce.date(),
   customerRef: z.string().optional(),
   currency: z.string().default("SAR"),
-  lines: z.array(InvoiceLine).min(1)
+  lines: z.array(InvoiceLine).min(1),
 });
 
 export const InvoicePost = z.object({
-  action: z.enum(["POST","VOID"]).default("POST")
+  action: z.enum(["POST", "VOID"]).default("POST"),
 });
-

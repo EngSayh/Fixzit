@@ -39,7 +39,7 @@ Significant progress made on E2E test fixes. **Paytabs tests: 70% passing** (was
 
 1. **Smoke Tests** (0/8 passing): landing, login, guest browse
 2. **Code Validation** (0/3 passing): help-article-page patterns
-3. **Help Page** (0/8 passing): hero, articles, tutorials  
+3. **Help Page** (0/8 passing): hero, articles, tutorials
 4. **Marketplace Page** (0/7 passing): structure, rendering, errors
 5. **API Health** (0/1 passing): health endpoint checks
 6. **Other** (0/4 passing): RTL, placeholders, acceptance gates
@@ -70,10 +70,10 @@ npx tsc lib/paytabs.ts --outDir lib --module commonjs --target es2017 --esModule
 
 ```typescript
 // Before
-import { paytabsBase, createHppRequest } from '../../lib/paytabs';
+import { paytabsBase, createHppRequest } from "../../lib/paytabs";
 
-// After  
-import { paytabsBase, createHppRequest } from '../../lib/paytabs.js';
+// After
+import { paytabsBase, createHppRequest } from "../../lib/paytabs.js";
 ```
 
 ### Projects API Auth Fix
@@ -92,11 +92,11 @@ test("returns 401 when unauthenticated", async ({ playwright }, testInfo) => {
 });
 
 // Mock user helper updated
-const newUser = (tenantId = newTenantId()) => ({ 
-  id: `u-${rand()}`, 
-  tenantId, 
-  orgId: tenantId,  // Added
-  role: 'admin'     // Added
+const newUser = (tenantId = newTenantId()) => ({
+  id: `u-${rand()}`,
+  tenantId,
+  orgId: tenantId, // Added
+  role: "admin", // Added
 });
 ```
 

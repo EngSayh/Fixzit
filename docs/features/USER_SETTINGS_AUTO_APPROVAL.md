@@ -76,6 +76,7 @@ Ask the agent in Agent mode:
 ## After Configuration
 
 Once all three scopes (User, Workspace, Remote) have the same settings:
+
 - The agent will operate with **ZERO permission prompts**
 - All changes still go through **PR workflow** (cannot push to main directly)
 - You can focus on high-level instructions while agent executes autonomously

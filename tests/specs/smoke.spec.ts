@@ -301,7 +301,7 @@ test.describe('Branding & Theme Consistency', () => {
     // Logo in header
     const logo = page
       .locator(
-        'header img[alt*="fixzit" i], header svg[class*="logo"], header .fxz-topbar-logo, [data-testid="header-logo-img"]'
+        'header img[alt*="fixzit" i], header svg[class*="logo"], header .fxz-topbar-logo, header [data-testid="header-logo-img"]'
       )
       .first();
     await expect.soft(logo).toBeVisible({ timeout: 15000 });

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useTranslation } from '@/contexts/TranslationContext';
+import { useTranslation } from "@/contexts/TranslationContext";
 
 /**
  * Page component that displays a "Properties" heading and a short description.
@@ -12,9 +12,18 @@ import { useTranslation } from '@/contexts/TranslationContext';
  */
 export default function Page() {
   const { t } = useTranslation();
-  
-  return <div className="space-y-2">
-    <h1 className="text-2xl font-bold">{t('properties.title', 'Properties')}</h1>
-    <p className="text-muted-foreground">{t('properties.description', 'Browse and manage properties. Use Aqar module for public discovery.')}</p>
-  </div>;
+
+  return (
+    <div className="space-y-2">
+      <h1 className="text-2xl font-bold">
+        {t("properties.title", "Properties")}
+      </h1>
+      <p className="text-muted-foreground">
+        {t(
+          "properties.description",
+          "Browse and manage properties. Use Aqar module for public discovery.",
+        )}
+      </p>
+    </div>
+  );
 }

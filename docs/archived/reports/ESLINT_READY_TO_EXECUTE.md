@@ -37,14 +37,14 @@ Category 4: Miscellaneous           4 (0.9%)   🔧 LOW - 15 minutes
 try {
   // ... code
 } catch (error) {
-  return NextResponse.json({ error: 'Failed' }, { status: 500 });
+  return NextResponse.json({ error: "Failed" }, { status: 500 });
 }
 
 // AFTER ✅
 try {
   // ... code
 } catch (_error) {
-  return NextResponse.json({ error: 'Failed' }, { status: 500 });
+  return NextResponse.json({ error: "Failed" }, { status: 500 });
 }
 ```
 
@@ -93,11 +93,11 @@ export default function MyComponent({ className: _className, children }: Props) 
 
 ```typescript
 // BEFORE ❌
-import { FileText, CheckCircle, Users } from 'lucide-react';
+import { FileText, CheckCircle, Users } from "lucide-react";
 // Only uses Users
 
 // AFTER ✅
-import { Users } from 'lucide-react';
+import { Users } from "lucide-react";
 ```
 
 ---
@@ -112,7 +112,8 @@ const { responsiveClasses, screenInfo } = useResponsiveLayout();
 // Only uses screenInfo
 
 // AFTER ✅
-const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayout();
+const { responsiveClasses: _responsiveClasses, screenInfo } =
+  useResponsiveLayout();
 ```
 
 **Common patterns**:
@@ -159,7 +160,7 @@ npm run lint 2>&1 | grep "missing dependency: 'map'"
 const pattern = /\!/g;
 
 // AFTER ✅
-const pattern = /!/g;  // ! doesn't need escaping in regex
+const pattern = /!/g; // ! doesn't need escaping in regex
 ```
 
 ---
@@ -171,12 +172,12 @@ const pattern = /!/g;  // ! doesn't need escaping in regex
 ```typescript
 // BEFORE ❌
 export default {
-  foo: 'bar'
+  foo: "bar",
 };
 
 // AFTER ✅
 const config = {
-  foo: 'bar'
+  foo: "bar",
 };
 export default config;
 ```
@@ -198,11 +199,11 @@ export default config;
 const body: any = await req.json();
 
 // AFTER ✅
-import { z } from 'zod';
+import { z } from "zod";
 
 const BodySchema = z.object({
   name: z.string(),
-  email: z.string().email()
+  email: z.string().email(),
 });
 
 const body = BodySchema.parse(await req.json());
@@ -215,14 +216,14 @@ const body = BodySchema.parse(await req.json());
 const result: any = await collection.find(query).toArray();
 
 // AFTER ✅
-import type { MongoDocument } from '@/types/common';
+import type { MongoDocument } from "@/types/common";
 
 interface WorkOrder extends MongoDocument {
   title: string;
-  status: 'open' | 'closed';
+  status: "open" | "closed";
 }
 
-const result = await collection.find(query).toArray() as WorkOrder[];
+const result = (await collection.find(query).toArray()) as WorkOrder[];
 ```
 
 #### Pattern 3: Error Handling
@@ -352,12 +353,12 @@ export async function findDocuments(query: any) {
 }
 
 // AFTER ✅
-import type { MongoFilter, MongoDocument } from '@/types/common';
+import type { MongoFilter, MongoDocument } from "@/types/common";
 
 export async function findDocuments<T extends MongoDocument>(
-  query: MongoFilter<T>
+  query: MongoFilter<T>,
 ): Promise<T[]> {
-  return await db.collection.find(query).toArray() as T[];
+  return (await db.collection.find(query).toArray()) as T[];
 }
 ```
 
@@ -426,11 +427,11 @@ Update this file after each batch:
 
 ## 📊 METRICS
 
-| Metric | Start | Phase 1 | Phase 2 | Phase 3 | Phase 4 | Phase 5 |
-|--------|-------|---------|---------|---------|---------|---------|
-| **Warnings** | 423 | 350 | 200 | 120 | 30 | **0** ✅ |
-| **% Complete** | 0% | 17% | 53% | 72% | 93% | **100%** |
-| **Time Spent** | 0h | 3h | 18h | 30h | 42h | ~50h |
+| Metric         | Start | Phase 1 | Phase 2 | Phase 3 | Phase 4 | Phase 5  |
+| -------------- | ----- | ------- | ------- | ------- | ------- | -------- |
+| **Warnings**   | 423   | 350     | 200     | 120     | 30      | **0** ✅ |
+| **% Complete** | 0%    | 17%     | 53%     | 72%     | 93%     | **100%** |
+| **Time Spent** | 0h    | 3h      | 18h     | 30h     | 42h     | ~50h     |
 
 ---
 
@@ -453,7 +454,7 @@ Update this file after each batch:
 **Current status**: All 423 warnings categorized ✅  
 **Next action**: Execute Phase 1 quick wins  
 **First target**: Fix 19 unused error variables  
-**Estimated completion**: Phase 1 in 2-3 hours  
+**Estimated completion**: Phase 1 in 2-3 hours
 
 **Let's go!** 🚀
 

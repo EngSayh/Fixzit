@@ -5,9 +5,9 @@
  * REDUCTION: 45% less code
  */
 
-import { createCrudHandlers } from '@/lib/api/crud-factory';
-import { Project } from '@/server/models/Project';
-import { z } from 'zod';
+import { createCrudHandlers } from "@/lib/api/crud-factory";
+import { Project } from "@/server/models/Project";
+import { z } from "zod";
 
 /**
  * Project Creation Schema
@@ -15,26 +15,36 @@ import { z } from 'zod';
 const createProjectSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
-  type: z.enum(["NEW_CONSTRUCTION", "RENOVATION", "MAINTENANCE", "FIT_OUT", "DEMOLITION"]),
+  type: z.enum([
+    "NEW_CONSTRUCTION",
+    "RENOVATION",
+    "MAINTENANCE",
+    "FIT_OUT",
+    "DEMOLITION",
+  ]),
   propertyId: z.string().optional(),
-  location: z.object({
-    address: z.string().optional(),
-    city: z.string().optional(),
-    coordinates: z.object({
-      lat: z.number(),
-      lng: z.number()
-    }).optional()
-  }).optional(),
+  location: z
+    .object({
+      address: z.string().optional(),
+      city: z.string().optional(),
+      coordinates: z
+        .object({
+          lat: z.number(),
+          lng: z.number(),
+        })
+        .optional(),
+    })
+    .optional(),
   timeline: z.object({
     startDate: z.string(),
     endDate: z.string(),
-    duration: z.number().optional()
+    duration: z.number().optional(),
   }),
   budget: z.object({
     total: z.number(),
-    currency: z.string().default("SAR")
+    currency: z.string().default("SAR"),
   }),
-  tags: z.array(z.string()).optional()
+  tags: z.array(z.string()).optional(),
 });
 
 /**
@@ -44,30 +54,39 @@ const createProjectSchema = z.object({
 function buildProjectFilter(searchParams: URLSearchParams, orgId: string) {
   const filter: Record<string, unknown> = { orgId };
 
-  const type = searchParams.get('type');
-  if (type && ["NEW_CONSTRUCTION", "RENOVATION", "MAINTENANCE", "FIT_OUT", "DEMOLITION"].includes(type)) {
+  const type = searchParams.get("type");
+  if (
+    type &&
+    [
+      "NEW_CONSTRUCTION",
+      "RENOVATION",
+      "MAINTENANCE",
+      "FIT_OUT",
+      "DEMOLITION",
+    ].includes(type)
+  ) {
     filter.type = type;
   }
 
-  const status = searchParams.get('status');
+  const status = searchParams.get("status");
   if (status) {
     filter.status = status;
   }
 
-  const propertyId = searchParams.get('propertyId');
+  const propertyId = searchParams.get("propertyId");
   if (propertyId) {
     filter.propertyId = propertyId;
   }
 
-  const search = searchParams.get('search');
+  const search = searchParams.get("search");
   if (search) {
-    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     filter.$or = [
-      { name: { $regex: escapedSearch, $options: 'i' } },
-      { code: { $regex: escapedSearch, $options: 'i' } },
-      { description: { $regex: escapedSearch, $options: 'i' } },
-      { 'location.address': { $regex: escapedSearch, $options: 'i' } },
-      { 'location.city': { $regex: escapedSearch, $options: 'i' } },
+      { name: { $regex: escapedSearch, $options: "i" } },
+      { code: { $regex: escapedSearch, $options: "i" } },
+      { description: { $regex: escapedSearch, $options: "i" } },
+      { "location.address": { $regex: escapedSearch, $options: "i" } },
+      { "location.city": { $regex: escapedSearch, $options: "i" } },
     ];
   }
 
@@ -80,10 +99,17 @@ function buildProjectFilter(searchParams: URLSearchParams, orgId: string) {
 export const { GET, POST } = createCrudHandlers({
   Model: Project,
   createSchema: createProjectSchema,
-  entityName: 'project',
-  generateCode: () => `PRJ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
+  entityName: "project",
+  generateCode: () =>
+    `PRJ-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`,
   defaultSort: { createdAt: -1 },
-  searchFields: ['name', 'code', 'description', 'location.address', 'location.city'],
+  searchFields: [
+    "name",
+    "code",
+    "description",
+    "location.address",
+    "location.city",
+  ],
   buildFilter: buildProjectFilter,
   // Custom onCreate hook to initialize project state
   // 🔒 TYPE SAFETY: Using Record for dynamic project data
@@ -96,8 +122,8 @@ export const { GET, POST } = createCrudHandlers({
         schedule: 0,
         quality: 0,
         cost: 0,
-        lastUpdated: new Date()
-      }
+        lastUpdated: new Date(),
+      },
     };
-  }
+  },
 });

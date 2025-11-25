@@ -1,16 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
-import { auth } from '@/auth';
+import { auth } from "@/auth";
 import {
   readAliasWorkflow,
   upsertAliasWorkflow,
   AliasWorkflowMap,
-} from '@/lib/routes/workflowStore';
+} from "@/lib/routes/workflowStore";
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const map = readAliasWorkflow();
@@ -19,8 +19,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -32,16 +32,19 @@ export async function POST(request: NextRequest) {
     };
 
     if (!aliasFile) {
-      return NextResponse.json({ error: 'aliasFile is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "aliasFile is required" },
+        { status: 400 },
+      );
     }
 
     const entry = upsertAliasWorkflow(aliasFile, {
-      owner: owner ?? '',
+      owner: owner ?? "",
       resolved: resolved ?? false,
     });
 
     return NextResponse.json(entry);
   } catch (_error) {
-    return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 }

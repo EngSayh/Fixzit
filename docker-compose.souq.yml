@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # Redis - Caching + BullMQ job queues
@@ -62,10 +62,10 @@ services:
     image: nats:latest
     container_name: fixzit-nats
     ports:
-      - "4222:4222"  # Client connections
-      - "8222:8222"  # HTTP monitoring
-      - "6222:6222"  # Cluster
-    command: 
+      - "4222:4222" # Client connections
+      - "8222:8222" # HTTP monitoring
+      - "6222:6222" # Cluster
+    command:
       - "-js"
       - "-m"
       - "8222"

@@ -19,11 +19,17 @@ Successfully fixed all deprecated `vi.importMock` usage across the codebase. The
 **Before:**
 
 ```typescript
-const { NextResponse } = vi.importMock('next/server') as { NextResponse: { json: ReturnType<typeof vi.fn> } };
-const { getNativeDb } = vi.importMock('@/lib/mongo') as { getNativeDb: ReturnType<typeof vi.fn> };
-const { SupportTicket } = vi.importMock('@/server/models/SupportTicket') as { SupportTicket: { create: ReturnType<typeof vi.fn> } };
+const { NextResponse } = vi.importMock("next/server") as {
+  NextResponse: { json: ReturnType<typeof vi.fn> };
+};
+const { getNativeDb } = vi.importMock("@/lib/mongo") as {
+  getNativeDb: ReturnType<typeof vi.fn>;
+};
+const { SupportTicket } = vi.importMock("@/server/models/SupportTicket") as {
+  SupportTicket: { create: ReturnType<typeof vi.fn> };
+};
 
-vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
+vi.spyOn(Math, "random").mockReturnValue(0.123456789);
 // Later: (Math.random as ReturnType<typeof vi.fn>).mockRestore?.();
 ```
 
@@ -36,14 +42,14 @@ let getNativeDb: any;
 let SupportTicket: any;
 
 beforeAll(async () => {
-  ({ POST } = await import('@/app/api/support/incidents/route'));
-  ({ NextResponse } = await import('next/server'));
-  ({ getNativeDb } = await import('@/lib/mongo'));
-  ({ SupportTicket } = await import('@/server/models/SupportTicket'));
+  ({ POST } = await import("@/app/api/support/incidents/route"));
+  ({ NextResponse } = await import("next/server"));
+  ({ getNativeDb } = await import("@/lib/mongo"));
+  ({ SupportTicket } = await import("@/server/models/SupportTicket"));
 });
 
 // In beforeEach:
-randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
+randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.123456789);
 
 // In afterEach:
 randomSpy.mockRestore();
@@ -159,8 +165,8 @@ pnpm test tests/api/marketplace/products/route.test.ts --run
 **Solution:**
 
 ```typescript
-vi.mock('@/lib/rate-limit', () => ({
-  rateLimit: vi.fn(() => ({ allowed: true, remaining: 10 }))
+vi.mock("@/lib/rate-limit", () => ({
+  rateLimit: vi.fn(() => ({ allowed: true, remaining: 10 })),
 }));
 ```
 
@@ -178,7 +184,7 @@ vi.mock('@/lib/rate-limit', () => ({
 
 ```typescript
 const req = {
-  headers: new Headers([['origin', 'http://localhost']])
+  headers: new Headers([["origin", "http://localhost"]]),
 } as unknown as NextRequest;
 ```
 
@@ -190,14 +196,14 @@ const req = {
 
 ```typescript
 // 1. Mock modules BEFORE any imports
-vi.mock('module-path', () => ({
-  exportedFunction: vi.fn()
+vi.mock("module-path", () => ({
+  exportedFunction: vi.fn(),
 }));
 
 // 2. Import dynamically in beforeAll
 let exportedFunction: any;
 beforeAll(async () => {
-  ({ exportedFunction } = await import('module-path'));
+  ({ exportedFunction } = await import("module-path"));
 });
 
 // 3. Use directly (no vi.mocked wrapper needed if declared at file scope)
@@ -209,7 +215,7 @@ beforeEach(() => {
 ### ❌ NEVER Use (Deprecated)
 
 ```typescript
-const { exportedFunction } = vi.importMock('module-path'); // Returns Promise!
+const { exportedFunction } = vi.importMock("module-path"); // Returns Promise!
 ```
 
 ---
@@ -221,7 +227,7 @@ const { exportedFunction } = vi.importMock('module-path'); // Returns Promise!
 **Before:**
 
 ```typescript
-vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
+vi.spyOn(Math, "random").mockReturnValue(0.123456789);
 // Later:
 (Math.random as ReturnType<typeof vi.fn>).mockRestore?.();
 ```
@@ -231,7 +237,7 @@ vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
 ```typescript
 let randomSpy: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
-  randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
+  randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.123456789);
 });
 afterEach(() => {
   randomSpy.mockRestore();

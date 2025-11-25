@@ -11,13 +11,13 @@ Fixzit supports multiple personas with scoped permissions across web and mobile 
 
 ## Authorization Matrix (Must-Pass)
 
-| Capability | Resident | Pro | Coordinator | Admin |
-| --- | --- | --- | --- | --- |
-| Create work order | ✅ | ❌ | ✅ | ✅ |
-| Accept work order | ❌ | ✅ | ✅ | ✅ |
-| Reassign work order | ❌ | ❌ | ✅ | ✅ |
-| View billing reports | ✅ (own) | ✅ (own) | ✅ (team) | ✅ (all) |
-| Manage users | ❌ | ❌ | ❌ | ✅ |
+| Capability           | Resident | Pro      | Coordinator | Admin    |
+| -------------------- | -------- | -------- | ----------- | -------- |
+| Create work order    | ✅       | ❌       | ✅          | ✅       |
+| Accept work order    | ❌       | ✅       | ✅          | ✅       |
+| Reassign work order  | ❌       | ❌       | ✅          | ✅       |
+| View billing reports | ✅ (own) | ✅ (own) | ✅ (team)   | ✅ (all) |
+| Manage users         | ❌       | ❌       | ❌          | ✅       |
 
 ## Enforcement Rules
 

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Check } from 'lucide-react';
-import { useTranslation } from '@/contexts/TranslationContext';
+import { Check } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 export default function LoginSuccess() {
   const { t } = useTranslation();
@@ -13,13 +13,16 @@ export default function LoginSuccess() {
           <Check className="w-8 h-8 text-success" />
         </div>
         <h2 className="text-2xl font-bold text-foreground mb-2">
-          {t('login.success.title', 'Welcome Back!')}
+          {t("login.success.title", "Welcome Back!")}
         </h2>
         <p className="text-muted-foreground mb-4">
-          {t('login.success.message', 'Signing you in...')}
+          {t("login.success.message", "Signing you in...")}
         </p>
         <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-          <div className="h-full bg-primary animate-pulse" style={{ width: '100%' }} />
+          <div
+            className="h-full bg-primary animate-pulse"
+            style={{ width: "100%" }}
+          />
         </div>
       </div>
     </div>

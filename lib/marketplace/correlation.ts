@@ -1,9 +1,8 @@
-import { randomUUID } from 'node:crypto';
-
+import { randomUUID } from "node:crypto";
 
 /**
  * Marketplace Request Correlation Utilities
- * 
+ *
  * Provides consistent correlation ID generation and tracking
  * for improved debugging and error tracking across marketplace operations
  */
@@ -19,11 +18,13 @@ export interface CorrelationContext {
 /**
  * Generate a new correlation ID with context
  */
-export function createCorrelationContext(options: {
-  operation?: string;
-  userId?: string;
-  tenantId?: string;
-} = {}): CorrelationContext {
+export function createCorrelationContext(
+  options: {
+    operation?: string;
+    userId?: string;
+    tenantId?: string;
+  } = {},
+): CorrelationContext {
   return {
     correlationId: randomUUID(),
     timestamp: Date.now(),
@@ -34,13 +35,15 @@ export function createCorrelationContext(options: {
 /**
  * Create correlation headers for API requests
  */
-export function getCorrelationHeaders(context: CorrelationContext): Record<string, string> {
+export function getCorrelationHeaders(
+  context: CorrelationContext,
+): Record<string, string> {
   return {
-    'X-Correlation-ID': context.correlationId,
-    'X-Request-Timestamp': context.timestamp.toString(),
-    ...(context.operation && { 'X-Operation': context.operation }),
-    ...(context.userId && { 'X-User-ID': context.userId }),
-    ...(context.tenantId && { 'X-Tenant-ID': context.tenantId }),
+    "X-Correlation-ID": context.correlationId,
+    "X-Request-Timestamp": context.timestamp.toString(),
+    ...(context.operation && { "X-Operation": context.operation }),
+    ...(context.userId && { "X-User-ID": context.userId }),
+    ...(context.tenantId && { "X-Tenant-ID": context.tenantId }),
   };
 }
 
@@ -48,17 +51,17 @@ export function getCorrelationHeaders(context: CorrelationContext): Record<strin
  * Log with correlation context for debugging
  */
 export function logWithCorrelation(
-  level: 'debug' | 'info' | 'warn' | 'error',
+  level: "debug" | "info" | "warn" | "error",
   message: string,
   context: CorrelationContext,
-  additional?: Record<string, unknown>
+  additional?: Record<string, unknown>,
 ): void {
   const logData = {
     ...context,
     message,
     ...additional,
   };
-   
+
   console[level](`[MarketplaceCorrelation] ${message}`, logData);
 }
 
@@ -91,16 +94,17 @@ export function createCorrelatedError(
     userMessageKey?: string;
     userMessage?: string;
     devMessage?: string;
-  } = {}
+  } = {},
 ): Error {
   const errorPayload = {
-    name: errorDetails.name || 'MarketplaceError',
-    code: errorDetails.code || 'UNKNOWN_ERROR',
-    userMessageKey: errorDetails.userMessageKey || 'marketplace.errors.fetch_failed',
-    userMessage: errorDetails.userMessage || 'An error occurred',
+    name: errorDetails.name || "MarketplaceError",
+    code: errorDetails.code || "UNKNOWN_ERROR",
+    userMessageKey:
+      errorDetails.userMessageKey || "marketplace.errors.fetch_failed",
+    userMessage: errorDetails.userMessage || "An error occurred",
     devMessage: errorDetails.devMessage || message,
     ...context,
   };
-  logWithCorrelation('error', message, context, errorDetails);
+  logWithCorrelation("error", message, context, errorDetails);
   return new Error(JSON.stringify(errorPayload));
 }

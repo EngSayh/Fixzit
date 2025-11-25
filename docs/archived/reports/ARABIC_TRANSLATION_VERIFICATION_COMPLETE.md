@@ -186,38 +186,41 @@
 const handleLogout = async () => {
   try {
     // Call logout API
-    await fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include'
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
     });
 
     // ✅ STEP 1: Save language preferences BEFORE clearing storage
-    const savedLang = localStorage.getItem('fxz.lang');      // Line 217
-    const savedLocale = localStorage.getItem('fxz.locale');   // Line 218
+    const savedLang = localStorage.getItem("fxz.lang"); // Line 217
+    const savedLocale = localStorage.getItem("fxz.locale"); // Line 218
 
     // STEP 2: Clear application storage
-    localStorage.removeItem('fixzit-role');
-    localStorage.removeItem('fixzit-currency');
-    localStorage.removeItem('fixzit-theme');
+    localStorage.removeItem("fixzit-role");
+    localStorage.removeItem("fixzit-currency");
+    localStorage.removeItem("fixzit-theme");
 
     // STEP 3: Clear all fixzit-related items EXCEPT language settings
-    Object.keys(localStorage).forEach(key => {
-      if ((key.startsWith('fixzit-') || key.startsWith('fxz-')) && 
-          key !== 'fxz.lang' &&      // ✅ Exclude language
-          key !== 'fxz.locale') {    // ✅ Exclude locale
+    Object.keys(localStorage).forEach((key) => {
+      if (
+        (key.startsWith("fixzit-") || key.startsWith("fxz-")) &&
+        key !== "fxz.lang" && // ✅ Exclude language
+        key !== "fxz.locale"
+      ) {
+        // ✅ Exclude locale
         localStorage.removeItem(key);
       }
     });
 
     // ✅ STEP 4: Restore language preferences AFTER clearing
-    if (savedLang) localStorage.setItem('fxz.lang', savedLang);       // Line 233
-    if (savedLocale) localStorage.setItem('fxz.locale', savedLocale); // Line 234
+    if (savedLang) localStorage.setItem("fxz.lang", savedLang); // Line 233
+    if (savedLocale) localStorage.setItem("fxz.locale", savedLocale); // Line 234
 
     // STEP 5: Redirect to login
-    router.push('/login');
+    router.push("/login");
   } catch (error) {
-    console.error('Logout error:', error);
-    router.push('/login');
+    console.error("Logout error:", error);
+    router.push("/login");
   }
 };
 ```
@@ -292,7 +295,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function MyPage() {
   const { t, isRTL } = useTranslation();
-  
+
   return (
     <button>{t('common.save', 'Save')}</button>
   );
@@ -310,7 +313,7 @@ export default function MyPage() {
 **TranslationContext:**
 
 ```typescript
-const isRTL = language === 'ar';
+const isRTL = language === "ar";
 ```
 
 **Usage in Components:**
@@ -394,18 +397,18 @@ className={`${isRTL ? 'right-3' : 'left-3'}`}
 
 ## 📊 VERIFICATION STATISTICS
 
-| Category | Keys | Status |
-|----------|------|--------|
-| Navigation | 23 | ✅ 100% |
-| Common Actions | 30+ | ✅ 100% |
-| Login Page | 29 | ✅ 100% |
-| CMS | 2 | ✅ 100% |
-| FM Module | 30+ | ✅ 100% |
-| Settings | 35+ | ✅ 100% |
-| Footer | 12 | ✅ 100% |
-| Orders | 15+ | ✅ 100% |
-| Maintenance | 10+ | ✅ 100% |
-| **TOTAL** | **180+** | **✅ 100%** |
+| Category       | Keys     | Status      |
+| -------------- | -------- | ----------- |
+| Navigation     | 23       | ✅ 100%     |
+| Common Actions | 30+      | ✅ 100%     |
+| Login Page     | 29       | ✅ 100%     |
+| CMS            | 2        | ✅ 100%     |
+| FM Module      | 30+      | ✅ 100%     |
+| Settings       | 35+      | ✅ 100%     |
+| Footer         | 12       | ✅ 100%     |
+| Orders         | 15+      | ✅ 100%     |
+| Maintenance    | 10+      | ✅ 100%     |
+| **TOTAL**      | **180+** | **✅ 100%** |
 
 ---
 

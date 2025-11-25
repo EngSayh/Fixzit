@@ -17,11 +17,13 @@
 ### Gap 1: Runtime Still Uses Monolithic TypeScript ❌
 
 **Documentation Claims:**
+
 - "VS Code will never crash from these dictionary files again"
 - "28k-line TypeScript sources were removed"
 - "Replaced with lightweight shims (99.7% reduction)"
 
 **Reality:**
+
 - ✅ Original 28k dictionaries (`en.ts`/`ar.ts`) replaced with 84-line shims
 - ❌ **NEW** 59,353-line `new-translations.ts` created by build (larger than originals!)
 - ❌ Runtime imports this massive file directly:
@@ -31,16 +33,18 @@
   - Various scripts
 
 **Impact:**
+
 - VS Code TypeScript server must parse 59k lines of literals
 - Memory usage similar to original problem
 - Build artifacts (`i18n/generated/*.json`) unused by app
 
 **Evidence:**
+
 ```bash
 $ wc -l i18n/new-translations.ts
 59353 i18n/new-translations.ts
 
-$ du -h i18n/new-translations.ts  
+$ du -h i18n/new-translations.ts
 3.3M i18n/new-translations.ts
 ```
 
@@ -49,17 +53,20 @@ $ du -h i18n/new-translations.ts
 ### Gap 2: Generated JSON Artifacts Unused ❌
 
 **Documentation Claims:**
+
 - "Runtime loads from generated JSON"
 - "Modular source workflow"
 - "Build pipeline generates artifacts automatically"
 
 **Reality:**
+
 - ✅ `i18n/generated/en.dictionary.json` (881 KB) - EXISTS
 - ✅ `i18n/generated/ar.dictionary.json` (1.2 MB) - EXISTS
 - ❌ **Nothing imports these files**
 - ❌ All consumers use `newTranslations` from TypeScript file
 
 **Data Flow (Current):**
+
 ```
 i18n/sources/*.json (1,168 files)
   ↓ (build)
@@ -73,6 +80,7 @@ hooks/usePageLabels.ts
 ```
 
 **Data Flow (Documented):**
+
 ```
 i18n/sources/*.json (1,168 files)
   ↓ (build)
@@ -86,19 +94,22 @@ Application ← NOT HAPPENING
 ### Gap 3: Flatten Script Cannot Run ❌
 
 **Documentation Claims:**
+
 - "✅ Phase 1: Flatten base dictionaries - Complete"
 - "Run: npx tsx scripts/flatten-base-dictionaries.ts"
 
 **Reality:**
+
 ```typescript
 // scripts/flatten-base-dictionaries.ts lines 8-9
-import en from '../i18n/dictionaries/en';
-import ar from '../i18n/dictionaries/ar';
+import en from "../i18n/dictionaries/en";
+import ar from "../i18n/dictionaries/ar";
 ```
 
 These imports load the **84-line shims** that proxy `i18n/generated/*.json` (1,170 nested keys), not the original 28k-line dictionaries.
 
 **Problems:**
+
 1. **Original data gone** - Backed up but not imported
 2. **Script exits on parity errors** - `process.exit(1)` at lines 317, 337, 394
 3. **Current state has issues** - Parity checker shows problems (nav, payments, etc.)
@@ -111,10 +122,12 @@ These imports load the **84-line shims** that proxy `i18n/generated/*.json` (1,1
 ### Gap 4: Legacy Key Filtering Missing ❌
 
 **Documentation Claims:**
+
 - "Filtered legacy keys (removes `.legacy.` entries)" (Phase 1)
 - "Legacy key filtering" in multiple sections
 
 **Reality:**
+
 ```bash
 $ grep -r "\.legacy\." scripts/flatten-base-dictionaries.ts
 # No results
@@ -124,13 +137,15 @@ $ grep -r "\.legacy\." scripts/split-translations.ts
 ```
 
 Only `scripts/generate-dictionaries-json.ts` (lines 93-107) filters legacy keys:
+
 ```typescript
 const cleanEn = Object.fromEntries(
-  Object.entries(bundle.en).filter(([key]) => !key.includes('.legacy.'))
+  Object.entries(bundle.en).filter(([key]) => !key.includes(".legacy.")),
 );
 ```
 
 **Impact:**
+
 - Contributors editing `i18n/sources/*.json` can add `.legacy.` keys
 - Keys persist until build runs
 - No validation at source level
@@ -140,6 +155,7 @@ const cleanEn = Object.fromEntries(
 ### Gap 5: Documentation Overstates Completion ❌
 
 **Documentation Claims:**
+
 ```markdown
 ## Production Readiness Checklist
 
@@ -147,13 +163,14 @@ const cleanEn = Object.fromEntries(
 - [x] Domain parity checker created
 - [x] Merge strategy hardened
 - [x] Backup lifecycle improved
-...
+      ...
 - [x] All scripts tested
 
 Status: ✅ PRODUCTION READY
 ```
 
 **Reality:**
+
 - ✅ Validation infrastructure exists (good!)
 - ❌ Runtime still uses 59k-line monolith
 - ❌ JSON artifacts unused
@@ -186,6 +203,7 @@ Status: ✅ PRODUCTION READY
    - [ ] Test all translation features work
 
 **Validation:**
+
 ```bash
 # Should return 0 results after migration
 grep -r "from '@/i18n/new-translations'" --include="*.ts" --include="*.tsx" --exclude-dir=scripts
@@ -219,6 +237,7 @@ grep -r "from '@/i18n/new-translations'" --include="*.ts" --include="*.tsx" --ex
    - [ ] Update `.gitignore` if needed
 
 **Validation:**
+
 ```bash
 $ ls -lh i18n/new-translations.ts
 # Should not exist OR be in i18n/generated/
@@ -239,13 +258,12 @@ $ git status i18n/
    - [ ] Update `scripts/flatten-base-dictionaries.ts`
    - [ ] Add filter in `flattenDictionary()`:
      ```typescript
-     if (key.includes('.legacy.')) {
+     if (key.includes(".legacy.")) {
        stats.legacyKeysDropped++;
        continue;
      }
      ```
    - [ ] Report legacy key count
-   
    - [ ] Update `scripts/split-translations.ts`
    - [ ] Add same filtering logic
 
@@ -258,14 +276,12 @@ $ git status i18n/
       * Use scripts/split-translations.ts for ongoing work
       */
      ```
-   
    - [ ] Option B: Point to backups
      ```typescript
      // Import from backups instead of shims
-     const BACKUP_DIR = path.join(__dirname, '../i18n/dictionaries/backup');
+     const BACKUP_DIR = path.join(__dirname, "../i18n/dictionaries/backup");
      // Load latest backup file
      ```
-   
    - [ ] Option C: Remove entirely if not needed
 
 3. **Soften Parity Exit Behavior** (5%)
@@ -274,6 +290,7 @@ $ git status i18n/
    - [ ] Match documentation's "report issues" language
 
 **Validation:**
+
 ```bash
 $ npx tsx scripts/flatten-base-dictionaries.ts
 # Should run without errors OR show clear deprecation warning
@@ -310,6 +327,7 @@ $ npx tsx scripts/flatten-base-dictionaries.ts
    - [ ] Add TODO comments for migration completion
 
 **Validation:**
+
 - [ ] Documentation matches `grep` results
 - [ ] No claims about features not yet implemented
 - [ ] Clear roadmap for completion
@@ -318,13 +336,13 @@ $ npx tsx scripts/flatten-base-dictionaries.ts
 
 ## Current Progress Tracking
 
-| Phase | Status | Progress | Blockers |
-|-------|--------|----------|----------|
-| **Phase 1: Runtime Migration** | 🚧 In Progress | 40% | Need to find all consumers |
-| **Phase 2: Retire Monolith** | ⏳ Not Started | 0% | Depends on Phase 1 |
-| **Phase 3: Fix Scripts** | ⏳ Not Started | 0% | None |
-| **Phase 4: Documentation** | ⏳ Not Started | 0% | Depends on 1-3 |
-| **TOTAL** | 🚧 In Progress | **16%** | - |
+| Phase                          | Status         | Progress | Blockers                   |
+| ------------------------------ | -------------- | -------- | -------------------------- |
+| **Phase 1: Runtime Migration** | 🚧 In Progress | 40%      | Need to find all consumers |
+| **Phase 2: Retire Monolith**   | ⏳ Not Started | 0%       | Depends on Phase 1         |
+| **Phase 3: Fix Scripts**       | ⏳ Not Started | 0%       | None                       |
+| **Phase 4: Documentation**     | ⏳ Not Started | 0%       | Depends on 1-3             |
+| **TOTAL**                      | 🚧 In Progress | **16%**  | -                          |
 
 ---
 
@@ -347,6 +365,7 @@ $ npx tsx scripts/flatten-base-dictionaries.ts
 ## Success Criteria
 
 ### Must Have (Blocking Production)
+
 - [ ] Runtime loads from JSON, not TypeScript literals
 - [ ] `new-translations.ts` excluded from TypeScript or deleted
 - [ ] All translation features tested and working
@@ -354,12 +373,14 @@ $ npx tsx scripts/flatten-base-dictionaries.ts
 - [ ] CI passes with new architecture
 
 ### Should Have (Quality)
+
 - [ ] Flatten script functional or documented as legacy
 - [ ] Legacy key filtering in source scripts
 - [ ] Documentation matches implementation
 - [ ] Parity issues addressed or explicitly tracked
 
 ### Nice to Have (Future)
+
 - [ ] Lazy loading per route
 - [ ] External translation service integration
 - [ ] Per-locale bundle splitting
@@ -368,32 +389,33 @@ $ npx tsx scripts/flatten-base-dictionaries.ts
 
 ## Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Translation features break | Medium | High | Comprehensive testing before deploy |
-| Performance regression | Low | Medium | Benchmark memory before/after |
-| Missing edge case consumers | Medium | Medium | Thorough grep + manual code review |
-| CI failures | Low | Low | Test locally before push |
+| Risk                        | Likelihood | Impact | Mitigation                          |
+| --------------------------- | ---------- | ------ | ----------------------------------- |
+| Translation features break  | Medium     | High   | Comprehensive testing before deploy |
+| Performance regression      | Low        | Medium | Benchmark memory before/after       |
+| Missing edge case consumers | Medium     | Medium | Thorough grep + manual code review  |
+| CI failures                 | Low        | Low    | Test locally before push            |
 
 ---
 
 ## Testing Plan
 
 ### Unit Tests
+
 ```typescript
 // lib/i18n/__tests__/translation-loader.test.ts
-describe('Translation Loader', () => {
-  it('loads English translations from JSON', () => {
-    const en = getTranslations('en');
-    expect(en).toHaveProperty('admin.title');
+describe("Translation Loader", () => {
+  it("loads English translations from JSON", () => {
+    const en = getTranslations("en");
+    expect(en).toHaveProperty("admin.title");
   });
-  
-  it('flattens nested dictionaries correctly', () => {
+
+  it("flattens nested dictionaries correctly", () => {
     const bundle = loadTranslations();
-    expect(bundle.en['dashboard.analytics.revenue']).toBeDefined();
+    expect(bundle.en["dashboard.analytics.revenue"]).toBeDefined();
   });
-  
-  it('caches translations after first load', () => {
+
+  it("caches translations after first load", () => {
     loadTranslations();
     expect(areTranslationsLoaded()).toBe(true);
   });
@@ -401,6 +423,7 @@ describe('Translation Loader', () => {
 ```
 
 ### Integration Tests
+
 ```bash
 # Test translation features
 pnpm test:translation-features
@@ -421,18 +444,21 @@ pnpm build && pnpm start
 If migration causes issues:
 
 1. **Revert consumer changes**
+
    ```bash
    git revert <commit-hash>
    ```
 
 2. **Re-enable new-translations.ts in tsconfig**
+
    ```json
    // Remove from exclude array
    ```
 
 3. **Restore imports**
+
    ```typescript
-   import { newTranslations } from '@/i18n/new-translations';
+   import { newTranslations } from "@/i18n/new-translations";
    ```
 
 4. **Deploy previous version**
@@ -442,12 +468,14 @@ If migration causes issues:
 ## Communication Plan
 
 ### Stakeholders
+
 - Engineering team (implementation)
 - Translation team (workflow changes)
 - QA team (testing requirements)
 - DevOps (CI/CD updates)
 
 ### Updates
+
 - **Daily:** Progress updates in #engineering
 - **Weekly:** Demo of migration progress
 - **Completion:** Documentation of new workflow
@@ -456,13 +484,13 @@ If migration causes issues:
 
 ## Timeline Estimate
 
-| Phase | Estimated Time | Dependencies |
-|-------|----------------|--------------|
-| Phase 1 | 4-6 hours | None |
-| Phase 2 | 2-3 hours | Phase 1 complete |
-| Phase 3 | 2-4 hours | None (parallel) |
-| Phase 4 | 2-3 hours | All phases |
-| **Total** | **10-16 hours** | - |
+| Phase     | Estimated Time  | Dependencies     |
+| --------- | --------------- | ---------------- |
+| Phase 1   | 4-6 hours       | None             |
+| Phase 2   | 2-3 hours       | Phase 1 complete |
+| Phase 3   | 2-4 hours       | None (parallel)  |
+| Phase 4   | 2-3 hours       | All phases       |
+| **Total** | **10-16 hours** | -                |
 
 **Target Completion:** 2-3 business days
 

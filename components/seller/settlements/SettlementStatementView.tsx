@@ -3,13 +3,13 @@
  * Display detailed settlement statement
  */
 
-'use client';
+"use client";
 
-import React from 'react';
-import { logger } from '@/lib/logger';
-import { Card } from '@/components/ui/card';
-import { Download, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import { logger } from "@/lib/logger";
+import { Card } from "@/components/ui/card";
+import { Download, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface SettlementStatement {
   statementId: string;
@@ -42,49 +42,86 @@ interface SettlementStatementViewProps {
   statement: SettlementStatement;
 }
 
-export function SettlementStatementView({ statement }: SettlementStatementViewProps) {
+export function SettlementStatementView({
+  statement,
+}: SettlementStatementViewProps) {
   const formatCurrency = (amount: number) => {
-    return `${amount.toLocaleString('ar-SA')} ر.س`;
+    return `${amount.toLocaleString("ar-SA")} ر.س`;
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('ar-SA', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    return new Intl.DateTimeFormat("ar-SA", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     }).format(new Date(date));
   };
 
   const downloadPDF = async () => {
     try {
-      const { exportToPDF } = await import('@/lib/export-utils');
-      
+      const { exportToPDF } = await import("@/lib/export-utils");
+
       // Prepare statement data for PDF
       const summaryData = [
-        { item: 'Gross Sales', amount: `${statement.summary.grossSales.toFixed(2)} SAR` },
-        { item: 'Platform Commission', amount: `-${statement.summary.platformCommissions.toFixed(2)} SAR` },
-        { item: 'Gateway Fees', amount: `-${statement.summary.gatewayFees.toFixed(2)} SAR` },
-        { item: 'VAT on Commission', amount: `-${statement.summary.vat.toFixed(2)} SAR` },
-        { item: 'Refunds', amount: `-${statement.summary.refunds.toFixed(2)} SAR` },
-        { item: 'Chargebacks', amount: `-${statement.summary.chargebacks.toFixed(2)} SAR` },
-        { item: 'Reserves', amount: `-${statement.summary.reserves.toFixed(2)} SAR` },
-        { item: 'Net Payout', amount: `${statement.summary.netPayout.toFixed(2)} SAR` },
+        {
+          item: "Gross Sales",
+          amount: `${statement.summary.grossSales.toFixed(2)} SAR`,
+        },
+        {
+          item: "Platform Commission",
+          amount: `-${statement.summary.platformCommissions.toFixed(2)} SAR`,
+        },
+        {
+          item: "Gateway Fees",
+          amount: `-${statement.summary.gatewayFees.toFixed(2)} SAR`,
+        },
+        {
+          item: "VAT on Commission",
+          amount: `-${statement.summary.vat.toFixed(2)} SAR`,
+        },
+        {
+          item: "Refunds",
+          amount: `-${statement.summary.refunds.toFixed(2)} SAR`,
+        },
+        {
+          item: "Chargebacks",
+          amount: `-${statement.summary.chargebacks.toFixed(2)} SAR`,
+        },
+        {
+          item: "Reserves",
+          amount: `-${statement.summary.reserves.toFixed(2)} SAR`,
+        },
+        {
+          item: "Net Payout",
+          amount: `${statement.summary.netPayout.toFixed(2)} SAR`,
+        },
       ];
-      
+
       const filename = `statement-${statement.statementId}.pdf`;
-      await exportToPDF(summaryData, [
-        { key: 'item', label: 'Item' },
-        { key: 'amount', label: 'Amount' },
-      ], filename, {
-        title: 'Settlement Statement',
-        subtitle: `Statement ID: ${statement.statementId} | Period: ${new Date(statement.period.start).toLocaleDateString()} - ${new Date(statement.period.end).toLocaleDateString()}`,
-        orientation: 'portrait',
+      await exportToPDF(
+        summaryData,
+        [
+          { key: "item", label: "Item" },
+          { key: "amount", label: "Amount" },
+        ],
+        filename,
+        {
+          title: "Settlement Statement",
+          subtitle: `Statement ID: ${statement.statementId} | Period: ${new Date(statement.period.start).toLocaleDateString()} - ${new Date(statement.period.end).toLocaleDateString()}`,
+          orientation: "portrait",
+        },
+      );
+
+      logger.info("Settlement statement downloaded", {
+        statementId: statement.statementId,
+        filename,
       });
-      
-      logger.info('Settlement statement downloaded', { statementId: statement.statementId, filename });
     } catch (error) {
-      logger.error('Failed to download statement', { error, statementId: statement.statementId });
-      alert('Failed to download statement. Please try again.');
+      logger.error("Failed to download statement", {
+        error,
+        statementId: statement.statementId,
+      });
+      alert("Failed to download statement. Please try again.");
     }
   };
 
@@ -101,7 +138,8 @@ export function SettlementStatementView({ statement }: SettlementStatementViewPr
           </div>
           <p className="text-sm text-gray-600">#{statement.statementId}</p>
           <p className="text-sm text-gray-600">
-            الفترة: {formatDate(statement.period.start)} - {formatDate(statement.period.end)}
+            الفترة: {formatDate(statement.period.start)} -{" "}
+            {formatDate(statement.period.end)}
           </p>
         </div>
         <Button onClick={downloadPDF} variant="outline">
@@ -127,7 +165,10 @@ export function SettlementStatementView({ statement }: SettlementStatementViewPr
         <div className="p-4 bg-warning/5 rounded-lg">
           <p className="text-sm text-gray-600 mb-1">الرسوم والضرائب</p>
           <p className="text-xl font-bold text-warning">
-            -{formatCurrency(statement.summary.gatewayFees + statement.summary.vat)}
+            -
+            {formatCurrency(
+              statement.summary.gatewayFees + statement.summary.vat,
+            )}
           </p>
         </div>
         <div className="p-4 bg-primary/5 rounded-lg">

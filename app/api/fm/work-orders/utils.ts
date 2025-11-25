@@ -1,7 +1,7 @@
-import type { DefaultSession } from 'next-auth';
-import type { WorkOrder, WorkOrderUser } from '@/types/fm';
-import type { getDatabase } from '@/lib/mongodb-unified';
-import type { ObjectId } from 'mongodb';
+import type { DefaultSession } from "next-auth";
+import type { WorkOrder, WorkOrderUser } from "@/types/fm";
+import type { getDatabase } from "@/lib/mongodb-unified";
+import type { ObjectId } from "mongodb";
 
 export type WorkOrderDocument = Partial<WorkOrder> & {
   _id?: ObjectId;
@@ -31,10 +31,10 @@ export type WorkOrderDocument = Partial<WorkOrder> & {
  */
 export function mapWorkOrderDocument(doc: WorkOrderDocument): WorkOrder {
   if (!doc) {
-    throw new Error('Work order document is required');
+    throw new Error("Work order document is required");
   }
 
-  const normalizedId = doc._id?.toString?.() ?? doc.id ?? '';
+  const normalizedId = doc._id?.toString?.() ?? doc.id ?? "";
 
   return {
     id: normalizedId,
@@ -72,22 +72,28 @@ export function mapWorkOrderDocument(doc: WorkOrderDocument): WorkOrder {
   } as WorkOrder;
 }
 
-type SessionUser = (DefaultSession['user'] & { id?: string | null; role?: string | null }) | null | undefined;
+type SessionUser =
+  | (DefaultSession["user"] & { id?: string | null; role?: string | null })
+  | null
+  | undefined;
 
 /**
  * Build a WorkOrderUser structure using session/user metadata.
  */
-export function buildWorkOrderUser(user: SessionUser, overrides: Partial<WorkOrderUser> = {}): WorkOrderUser {
-  const fallbackName = (user?.name ?? user?.email ?? 'User').trim();
+export function buildWorkOrderUser(
+  user: SessionUser,
+  overrides: Partial<WorkOrderUser> = {},
+): WorkOrderUser {
+  const fallbackName = (user?.name ?? user?.email ?? "User").trim();
   const [firstName, ...rest] = fallbackName.split(/\s+/);
 
   return {
-    id: (user?.id ?? user?.email ?? overrides.id ?? 'unknown').toString(),
-    firstName: overrides.firstName ?? (firstName || 'User'),
-    lastName: overrides.lastName ?? rest.join(' '),
+    id: (user?.id ?? user?.email ?? overrides.id ?? "unknown").toString(),
+    firstName: overrides.firstName ?? (firstName || "User"),
+    lastName: overrides.lastName ?? rest.join(" "),
     avatar: overrides.avatar ?? undefined,
-    role: overrides.role ?? (user?.role ?? undefined),
-    email: overrides.email ?? (user?.email ?? undefined),
+    role: overrides.role ?? user?.role ?? undefined,
+    email: overrides.email ?? user?.email ?? undefined,
     phone: overrides.phone ?? undefined,
   };
 }
@@ -96,7 +102,7 @@ export class WorkOrderQuotaError extends Error {
   limit: number;
   constructor(message: string, limit: number) {
     super(message);
-    this.name = 'WorkOrderQuotaError';
+    this.name = "WorkOrderQuotaError";
     this.limit = limit;
   }
 }
@@ -112,13 +118,15 @@ export async function assertWorkOrderQuota(
   collectionName: string,
   tenantId: string,
   workOrderId: string,
-  limit: number
+  limit: number,
 ): Promise<void> {
-  const existingCount = await db.collection(collectionName).countDocuments({ tenantId, workOrderId });
+  const existingCount = await db
+    .collection(collectionName)
+    .countDocuments({ tenantId, workOrderId });
   if (existingCount >= limit) {
     throw new WorkOrderQuotaError(
-      `Maximum ${collectionName.replace('workorder_', '').replace('_', ' ')} reached for this work order`,
-      limit
+      `Maximum ${collectionName.replace("workorder_", "").replace("_", " ")} reached for this work order`,
+      limit,
     );
   }
 }
@@ -137,9 +145,9 @@ type TimelineEntry = {
 export async function recordTimelineEntry(
   db: MongoDatabase,
   entry: TimelineEntry,
-  limit: number = WORK_ORDER_TIMELINE_LIMIT
+  limit: number = WORK_ORDER_TIMELINE_LIMIT,
 ) {
-  await db.collection('workorder_timeline').insertOne(entry);
+  await db.collection("workorder_timeline").insertOne(entry);
   await trimTimelineEntries(db, entry.tenantId, entry.workOrderId, limit);
 }
 
@@ -158,9 +166,9 @@ async function trimTimelineEntries(
   db: MongoDatabase,
   tenantId: string,
   workOrderId: string,
-  limit: number
+  limit: number,
 ) {
-  const collection = db.collection('workorder_timeline');
+  const collection = db.collection("workorder_timeline");
   const total = await collection.countDocuments({ tenantId, workOrderId });
   const excess = total - limit;
   if (excess <= 0) {

@@ -21,6 +21,7 @@
 ## 🔴 CRITICAL: MongoDB Atlas Setup (REQUIRED FIRST)
 
 ### Option A: If You Have Atlas Already
+
 1. Log in to https://cloud.mongodb.com
 2. Get your connection string from your cluster
 3. Format: `mongodb+srv://<username>:<password>@<cluster>.mongodb.net/fixzit`
@@ -28,6 +29,7 @@
 5. **SKIP TO STEP 3** (Vercel Environment Variables)
 
 ### Option B: Create New Atlas Account (10 minutes)
+
 1. Go to https://www.mongodb.com/cloud/atlas/register
 2. Sign up (free tier available - M0 Sandbox, 512MB storage)
 3. Create organization: "Fixzit"
@@ -50,6 +52,7 @@
 11. Add database name at end: `...mongodb.net/fixzit?retryWrites=true&w=majority`
 
 **Final format:**
+
 ```
 mongodb+srv://fixzit-admin:YOUR_SECURE_PASSWORD@fixzit-production.xxxxx.mongodb.net/fixzit?retryWrites=true&w=majority
 ```
@@ -66,22 +69,26 @@ nano .env.local
 ```
 
 Replace:
+
 ```env
 MONGODB_URI=mongodb://localhost:27017/fixzit
 ```
 
 With your Atlas connection string:
+
 ```env
 MONGODB_URI=mongodb+srv://fixzit-admin:YOUR_PASSWORD@fixzit-production.xxxxx.mongodb.net/fixzit?retryWrites=true&w=majority
 ```
 
 **Test locally:**
+
 ```bash
 pnpm build
 pnpm dev
 ```
 
 Visit http://localhost:3000 and verify:
+
 - App loads without MongoDB connection errors
 - You can log in
 - Data persists
@@ -115,6 +122,7 @@ NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
 **Generate NEXTAUTH_SECRET:**
+
 ```bash
 openssl rand -base64 32
 ```
@@ -156,6 +164,7 @@ vercel env add SENDGRID_FROM_EMAIL production
 ```
 
 **Or use environment variables from `.env.local`:**
+
 ```bash
 vercel env pull .env.production
 # Edit .env.production with production values
@@ -180,6 +189,7 @@ vercel --prod
 ```
 
 **Expected output:**
+
 ```
 ✔ Linked to <your-username>/fixzit
 ✔ Build Completed in <time>
@@ -205,12 +215,14 @@ vercel --prod
 Vercel will show DNS configuration:
 
 **Option A: Nameservers (Recommended)**
+
 ```
 ns1.vercel-dns.com
 ns2.vercel-dns.com
 ```
 
 **Option B: A Record**
+
 ```
 Type: A
 Name: @
@@ -218,6 +230,7 @@ Value: 76.76.21.21
 ```
 
 **Option C: CNAME Record**
+
 ```
 Type: CNAME
 Name: www
@@ -231,6 +244,7 @@ Value: cname.vercel-dns.com
 3. Click **DNS** next to fixzit.co
 
 **For Nameservers (Recommended):**
+
 1. Click **Change** next to Nameservers
 2. Select **Custom**
 3. Enter:
@@ -239,6 +253,7 @@ Value: cname.vercel-dns.com
 4. Click **Save**
 
 **For A Record (Alternative):**
+
 1. Add new record:
    - Type: A
    - Name: @
@@ -258,11 +273,13 @@ Value: cname.vercel-dns.com
 ## ✅ Step 6: Verify Deployment
 
 ### 6a. Check Vercel Deployment
+
 ```bash
 vercel ls
 ```
 
 Visit your deployment URL and verify:
+
 - [ ] App loads without errors
 - [ ] HTTPS certificate is active (green padlock)
 - [ ] Login works
@@ -271,12 +288,15 @@ Visit your deployment URL and verify:
 - [ ] Email sending works (test forgot password)
 
 ### 6b. Check Custom Domain
+
 After DNS propagates:
+
 - [ ] https://fixzit.co loads
 - [ ] https://www.fixzit.co redirects to fixzit.co
 - [ ] SSL certificate shows "Issued to: fixzit.co"
 
 ### 6c. Monitor Errors
+
 ```bash
 # Watch real-time logs
 vercel logs --follow
@@ -290,13 +310,17 @@ vercel logs --follow
 ## 🔧 Troubleshooting
 
 ### Issue: "MongoDB connection failed"
+
 **Solution:**
+
 1. Check Atlas IP whitelist includes `0.0.0.0/0`
 2. Verify MONGODB_URI is correct in Vercel env vars
 3. Check cluster is running (not paused)
 
 ### Issue: "NEXTAUTH_URL must be provided"
+
 **Solution:**
+
 ```bash
 vercel env add NEXTAUTH_URL production
 # Enter: https://fixzit.co
@@ -304,7 +328,9 @@ vercel --prod
 ```
 
 ### Issue: "Domain not working after 30 minutes"
+
 **Solution:**
+
 ```bash
 # Check DNS propagation
 nslookup fixzit.co
@@ -314,7 +340,9 @@ dig fixzit.co
 ```
 
 ### Issue: "Build failed"
+
 **Solution:**
+
 ```bash
 # Check build logs
 vercel logs
@@ -328,22 +356,26 @@ pnpm build
 ## 📊 Post-Deployment Tasks (Optional)
 
 ### 1. Set Up Monitoring
+
 - [ ] Add Vercel Analytics (free, built-in)
 - [ ] Set up Sentry error tracking
 - [ ] Configure uptime monitoring (UptimeRobot, Pingdom)
 
 ### 2. Performance Optimization
+
 - [ ] Enable Vercel Speed Insights
 - [ ] Run Lighthouse audit
 - [ ] Optimize images with Next.js Image component
 
 ### 3. Security
+
 - [ ] Enable Vercel DDoS protection
 - [ ] Set up rate limiting
 - [ ] Review CORS policies
 - [ ] Enable security headers (CSP, HSTS)
 
 ### 4. Backups
+
 - [ ] Configure MongoDB Atlas automated backups (free tier: 1 day retention)
 - [ ] Set up S3 bucket versioning
 - [ ] Document disaster recovery plan
@@ -353,16 +385,19 @@ pnpm build
 ## 📞 Support
 
 **Vercel Support:**
+
 - Dashboard: https://vercel.com/dashboard
 - Docs: https://vercel.com/docs
 - Discord: https://vercel.com/discord
 
 **MongoDB Atlas Support:**
+
 - Dashboard: https://cloud.mongodb.com
 - Docs: https://www.mongodb.com/docs/atlas/
 - Support: https://www.mongodb.com/cloud/atlas/support
 
 **GoDaddy DNS:**
+
 - DNS Management: https://dcc.godaddy.com/manage/dns
 - Support: https://www.godaddy.com/help
 
@@ -378,6 +413,7 @@ pnpm build
    - Update `.env.local` locally
 
 2. **Configure Vercel** (5 min)
+
    ```bash
    vercel env add MONGODB_URI production
    vercel env add NEXTAUTH_URL production
@@ -385,6 +421,7 @@ pnpm build
    ```
 
 3. **Deploy** (5 min)
+
    ```bash
    vercel --prod
    ```

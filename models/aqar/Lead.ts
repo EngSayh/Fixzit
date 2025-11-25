@@ -1,96 +1,96 @@
 /**
  * Aqar Souq - Lead Model
- * 
+ *
  * Property inquiry leads for CRM integration
  * Links to Fixzit CRM module
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import mongoose, { Schema, Document, Model } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
 
 export enum LeadStatus {
-  NEW = 'NEW',                   // Fresh inquiry
-  CONTACTED = 'CONTACTED',       // Agent reached out
-  QUALIFIED = 'QUALIFIED',       // Genuine interest
-  VIEWING = 'VIEWING',           // Scheduled property viewing
-  NEGOTIATING = 'NEGOTIATING',   // In negotiation
-  WON = 'WON',                   // Deal closed
-  LOST = 'LOST',                 // Deal lost
-  SPAM = 'SPAM',                 // Marked as spam
+  NEW = "NEW", // Fresh inquiry
+  CONTACTED = "CONTACTED", // Agent reached out
+  QUALIFIED = "QUALIFIED", // Genuine interest
+  VIEWING = "VIEWING", // Scheduled property viewing
+  NEGOTIATING = "NEGOTIATING", // In negotiation
+  WON = "WON", // Deal closed
+  LOST = "LOST", // Deal lost
+  SPAM = "SPAM", // Marked as spam
 }
 
 export enum LeadIntent {
-  BUY = 'BUY',
-  RENT = 'RENT',
-  DAILY = 'DAILY',
+  BUY = "BUY",
+  RENT = "RENT",
+  DAILY = "DAILY",
 }
 
 export enum LeadSource {
-  LISTING_INQUIRY = 'LISTING_INQUIRY',       // From listing detail page
-  PROJECT_INQUIRY = 'PROJECT_INQUIRY',       // From project page
-  PHONE_CALL = 'PHONE_CALL',                 // Phone inquiry
-  WHATSAPP = 'WHATSAPP',                     // WhatsApp inquiry
-  EMAIL = 'EMAIL',                           // Email inquiry
-  WALK_IN = 'WALK_IN',                       // Walk-in to office
+  LISTING_INQUIRY = "LISTING_INQUIRY", // From listing detail page
+  PROJECT_INQUIRY = "PROJECT_INQUIRY", // From project page
+  PHONE_CALL = "PHONE_CALL", // Phone inquiry
+  WHATSAPP = "WHATSAPP", // WhatsApp inquiry
+  EMAIL = "EMAIL", // Email inquiry
+  WALK_IN = "WALK_IN", // Walk-in to office
 }
 
 export enum LeadChannel {
-  FORM = 'FORM',
-  CALL_REVEAL = 'CALL_REVEAL',
-  WHATSAPP_CLICK = 'WHATSAPP_CLICK',
-  BOOKING_REQUEST = 'BOOKING_REQUEST',
-  AUCTION_BID = 'AUCTION_BID',
+  FORM = "FORM",
+  CALL_REVEAL = "CALL_REVEAL",
+  WHATSAPP_CLICK = "WHATSAPP_CLICK",
+  BOOKING_REQUEST = "BOOKING_REQUEST",
+  AUCTION_BID = "AUCTION_BID",
 }
 
 export interface ILead extends Document {
   // Organization
   orgId: mongoose.Types.ObjectId;
-  
+
   // Source
   listingId?: mongoose.Types.ObjectId;
   projectId?: mongoose.Types.ObjectId;
   source: LeadSource;
-  
+
   // Inquirer (potential client)
-  inquirerId?: mongoose.Types.ObjectId;    // User ID if logged in
+  inquirerId?: mongoose.Types.ObjectId; // User ID if logged in
   inquirerName: string;
   inquirerPhone: string;
   inquirerEmail?: string;
-  inquirerNationalId?: string;             // If Nafath verified
-  
+  inquirerNationalId?: string; // If Nafath verified
+
   // Owner/Agent (recipient)
   recipientId: mongoose.Types.ObjectId;
-  
+
   // Intent
   intent: LeadIntent;
   message?: string;
   channel: LeadChannel;
-  
+
   // Status & assignment
   status: LeadStatus;
-  assignedTo?: mongoose.Types.ObjectId;    // Agent/salesperson
+  assignedTo?: mongoose.Types.ObjectId; // Agent/salesperson
   assignedAt?: Date;
-  
+
   // Follow-up
   notes: Array<{
     authorId: mongoose.Types.ObjectId;
     content: string;
     createdAt: Date;
   }>;
-  
+
   // Viewing
   viewingScheduledAt?: Date;
   viewingCompletedAt?: Date;
-  
+
   // Outcome
   closedAt?: Date;
   closedBy?: mongoose.Types.ObjectId;
   lostReason?: string;
-  
+
   // Integration
-  crmContactId?: mongoose.Types.ObjectId;   // Link to CRM Contact
-  crmDealId?: mongoose.Types.ObjectId;      // Link to CRM Deal
-  
+  crmContactId?: mongoose.Types.ObjectId; // Link to CRM Contact
+  crmDealId?: mongoose.Types.ObjectId; // Link to CRM Deal
+
   // Instance methods
   addNote(authorId: mongoose.Types.ObjectId, content: string): Promise<void>;
   assign(agentId: mongoose.Types.ObjectId): Promise<void>;
@@ -99,7 +99,7 @@ export interface ILead extends Document {
   markAsWon(userId: mongoose.Types.ObjectId): Promise<void>;
   markAsLost(userId: mongoose.Types.ObjectId, reason?: string): Promise<void>;
   markAsSpam(): Promise<void>;
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -107,25 +107,35 @@ export interface ILead extends Document {
 
 const LeadSchema = new Schema<ILead>(
   {
-    orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
-    
-    listingId: { type: Schema.Types.ObjectId, ref: 'AqarListing', index: true },
-    projectId: { type: Schema.Types.ObjectId, ref: 'AqarProject', index: true },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+
+    listingId: { type: Schema.Types.ObjectId, ref: "AqarListing", index: true },
+    projectId: { type: Schema.Types.ObjectId, ref: "AqarProject", index: true },
     source: {
       type: String,
       enum: Object.values(LeadSource),
       required: true,
       index: true,
     },
-    
-    inquirerId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+
+    inquirerId: { type: Schema.Types.ObjectId, ref: "User", index: true },
     inquirerName: { type: String, required: true, maxlength: 200 },
     inquirerPhone: { type: String, required: true },
     inquirerEmail: { type: String, maxlength: 200 },
     inquirerNationalId: { type: String },
-    
-    recipientId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    
+
+    recipientId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+
     intent: {
       type: String,
       enum: Object.values(LeadIntent),
@@ -138,7 +148,7 @@ const LeadSchema = new Schema<ILead>(
       enum: Object.values(LeadChannel),
       default: LeadChannel.FORM,
     },
-    
+
     status: {
       type: String,
       enum: Object.values(LeadStatus),
@@ -146,31 +156,31 @@ const LeadSchema = new Schema<ILead>(
       required: true,
       index: true,
     },
-    assignedTo: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    assignedTo: { type: Schema.Types.ObjectId, ref: "User", index: true },
     assignedAt: { type: Date },
-    
+
     notes: [
       {
-        authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+        authorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
         content: { type: String, required: true, maxlength: 2000 },
         createdAt: { type: Date, default: Date.now },
       },
     ],
-    
+
     viewingScheduledAt: { type: Date },
     viewingCompletedAt: { type: Date },
-    
+
     closedAt: { type: Date },
-    closedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    closedBy: { type: Schema.Types.ObjectId, ref: "User" },
     lostReason: { type: String, maxlength: 500 },
-    
-    crmContactId: { type: Schema.Types.ObjectId, ref: 'Contact' },
-    crmDealId: { type: Schema.Types.ObjectId, ref: 'Deal' },
+
+    crmContactId: { type: Schema.Types.ObjectId, ref: "Contact" },
+    crmDealId: { type: Schema.Types.ObjectId, ref: "Deal" },
   },
   {
     timestamps: true,
-    collection: 'aqar_leads',
-  }
+    collection: "aqar_leads",
+  },
 );
 
 // Indexes
@@ -184,7 +194,7 @@ LeadSchema.index({ orgId: 1, status: 1, createdAt: -1 });
 LeadSchema.methods.addNote = async function (
   this: ILead,
   authorId: mongoose.Types.ObjectId,
-  content: string
+  content: string,
 ) {
   this.notes.push({
     authorId,
@@ -196,7 +206,7 @@ LeadSchema.methods.addNote = async function (
 
 LeadSchema.methods.assign = async function (
   this: ILead,
-  agentId: mongoose.Types.ObjectId
+  agentId: mongoose.Types.ObjectId,
 ) {
   this.assignedTo = agentId;
   this.assignedAt = new Date();
@@ -206,11 +216,20 @@ LeadSchema.methods.assign = async function (
   await this.save();
 };
 
-LeadSchema.methods.scheduleViewing = async function (this: ILead, dateTime: Date) {
+LeadSchema.methods.scheduleViewing = async function (
+  this: ILead,
+  dateTime: Date,
+) {
   // Don't regress from advanced states
-  const advancedStates = [LeadStatus.NEGOTIATING, LeadStatus.WON, LeadStatus.LOST];
+  const advancedStates = [
+    LeadStatus.NEGOTIATING,
+    LeadStatus.WON,
+    LeadStatus.LOST,
+  ];
   if (advancedStates.includes(this.status)) {
-    throw new Error(`Cannot schedule viewing for lead in ${this.status} status`);
+    throw new Error(
+      `Cannot schedule viewing for lead in ${this.status} status`,
+    );
   }
   this.viewingScheduledAt = dateTime;
   this.status = LeadStatus.VIEWING;
@@ -219,7 +238,7 @@ LeadSchema.methods.scheduleViewing = async function (this: ILead, dateTime: Date
 
 LeadSchema.methods.completeViewing = async function (this: ILead) {
   if (!this.viewingScheduledAt) {
-    throw new Error('No viewing scheduled');
+    throw new Error("No viewing scheduled");
   }
   this.viewingCompletedAt = new Date();
   this.status = LeadStatus.NEGOTIATING;
@@ -228,7 +247,7 @@ LeadSchema.methods.completeViewing = async function (this: ILead) {
 
 LeadSchema.methods.markAsWon = async function (
   this: ILead,
-  userId: mongoose.Types.ObjectId
+  userId: mongoose.Types.ObjectId,
 ) {
   this.status = LeadStatus.WON;
   this.closedAt = new Date();
@@ -239,7 +258,7 @@ LeadSchema.methods.markAsWon = async function (
 LeadSchema.methods.markAsLost = async function (
   this: ILead,
   userId: mongoose.Types.ObjectId,
-  reason?: string
+  reason?: string,
 ) {
   this.status = LeadStatus.LOST;
   this.closedAt = new Date();
@@ -253,7 +272,6 @@ LeadSchema.methods.markAsSpam = async function (this: ILead) {
   await this.save();
 };
 
-const Lead =
-  getModel<ILead>('AqarLead', LeadSchema);
+const Lead = getModel<ILead>("AqarLead", LeadSchema);
 
 export default Lead;

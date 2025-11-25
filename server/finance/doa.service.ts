@@ -1,9 +1,9 @@
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { RequestContext } from '@/server/lib/authContext';
-import { log } from '@/server/lib/logger';
-import { UserRole } from '@/server/lib/rbac.config';
-import { FMApproval } from '@/server/models/FMApproval';
-import { User } from '@/server/models/User';
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { RequestContext } from "@/server/lib/authContext";
+import { log } from "@/server/lib/logger";
+import { UserRole } from "@/server/lib/rbac.config";
+import { FMApproval } from "@/server/models/FMApproval";
+import { User } from "@/server/models/User";
 
 interface BudgetApprovalPayload {
   budgetId: string;
@@ -26,26 +26,43 @@ const BUDGET_APPROVAL_MATRIX: StageConfig[] = [
 ];
 
 async function findApprovers(orgId: string, roles: string[]) {
-  const approvers: Array<{ id: string; name: string; email?: string; role: string }> = [];
+  const approvers: Array<{
+    id: string;
+    name: string;
+    email?: string;
+    role: string;
+  }> = [];
   for (const role of roles) {
     const user = await User.findOne({
       orgId,
-      'professional.role': role,
+      "professional.role": role,
     })
-      .select('_id email personal.firstName personal.lastName professional.role')
+      .select(
+        "_id email personal.firstName personal.lastName professional.role",
+      )
       .lean();
 
     if (user) {
       const fullName =
-        `${user.personal?.firstName ?? ''} ${user.personal?.lastName ?? ''}`.trim() || 'Approver';
-      approvers.push({ id: user._id.toString(), name: fullName, email: user.email, role });
+        `${user.personal?.firstName ?? ""} ${user.personal?.lastName ?? ""}`.trim() ||
+        "Approver";
+      approvers.push({
+        id: user._id.toString(),
+        name: fullName,
+        email: user.email,
+        role,
+      });
     }
   }
   return approvers;
 }
 
 function buildStages(_: string, amount: number) {
-  const stages: Array<{ stage: number; roles: string[]; timeoutHours: number }> = [];
+  const stages: Array<{
+    stage: number;
+    roles: string[];
+    timeoutHours: number;
+  }> = [];
   BUDGET_APPROVAL_MATRIX.forEach((config) => {
     if (amount >= config.threshold) {
       stages.push({
@@ -57,7 +74,11 @@ function buildStages(_: string, amount: number) {
   });
 
   if (stages.length === 0) {
-    stages.push({ stage: 1, roles: [UserRole.FINANCE_MANAGER], timeoutHours: 24 });
+    stages.push({
+      stage: 1,
+      roles: [UserRole.FINANCE_MANAGER],
+      timeoutHours: 24,
+    });
   }
 
   return stages;
@@ -65,7 +86,7 @@ function buildStages(_: string, amount: number) {
 
 export async function submitBudgetForApproval(
   ctx: RequestContext,
-  payload: BudgetApprovalPayload
+  payload: BudgetApprovalPayload,
 ): Promise<void> {
   await connectToDatabase();
 
@@ -74,18 +95,23 @@ export async function submitBudgetForApproval(
     stage: number;
     approvers: string[];
     approverRoles: string[];
-    type: 'sequential';
+    type: "sequential";
     timeout: number;
-    status: 'pending';
+    status: "pending";
     decisions: never[];
   }> = [];
 
-  const approverDetails: Array<{ id: string; name: string; email?: string; role: string }> = [];
+  const approverDetails: Array<{
+    id: string;
+    name: string;
+    email?: string;
+    role: string;
+  }> = [];
 
   for (const config of stagesConfig) {
     const approvers = await findApprovers(ctx.orgId, config.roles);
     if (approvers.length === 0) {
-      log('[BudgetDoA] No approvers found for stage', 'warn', {
+      log("[BudgetDoA] No approvers found for stage", "warn", {
         orgId: ctx.orgId,
         roles: config.roles,
       });
@@ -96,30 +122,32 @@ export async function submitBudgetForApproval(
       stage: config.stage,
       approvers: approvers.map((approver) => approver.id),
       approverRoles: approvers.map((approver) => approver.role),
-      type: 'sequential',
+      type: "sequential",
       timeout: config.timeoutHours * 60 * 60 * 1000,
-      status: 'pending',
+      status: "pending",
       decisions: [] as never[],
     });
   }
 
   if (stages.length === 0) {
-    throw new Error('No approvers available for budget approval workflow');
+    throw new Error("No approvers available for budget approval workflow");
   }
 
   const firstApprover = approverDetails[0];
   const now = new Date();
-  const dueDate = new Date(now.getTime() + stagesConfig[0].timeoutHours * 60 * 60 * 1000);
+  const dueDate = new Date(
+    now.getTime() + stagesConfig[0].timeoutHours * 60 * 60 * 1000,
+  );
   const workflowId = `BUD-${payload.budgetId}`;
 
   await FMApproval.create({
     orgId: ctx.orgId,
-    type: 'BUDGET',
-    entityType: 'Budget',
+    type: "BUDGET",
+    entityType: "Budget",
     entityId: payload.budgetId,
     entityNumber: `BUD-${payload.period}`,
     amount: payload.amount,
-    currency: payload.currency || 'SAR',
+    currency: payload.currency || "SAR",
     thresholdLevel: `SAR_${payload.amount}`,
     workflowId,
     currentStage: 1,
@@ -128,17 +156,17 @@ export async function submitBudgetForApproval(
     approverName: firstApprover.name,
     approverEmail: firstApprover.email,
     approverRole: firstApprover.role,
-    status: 'PENDING',
+    status: "PENDING",
     dueDate,
     stages,
     history: [
       {
         timestamp: now,
-        action: 'CREATED',
+        action: "CREATED",
         actorId: ctx.userId,
-        actorName: 'Finance Budget Service',
-        previousStatus: 'NEW',
-        newStatus: 'PENDING',
+        actorName: "Finance Budget Service",
+        previousStatus: "NEW",
+        newStatus: "PENDING",
         notes: `Budget ${payload.period} submitted for approval`,
       },
     ],

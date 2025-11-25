@@ -17,7 +17,8 @@ fi
 missing=()
 while IFS= read -r page; do
   [[ -z "$page" ]] && continue
-  if ! rg -q -e "useSupportOrg" -e "useOrgGuard" -e "useFmOrgGuard" "$page"; then
+  # Check for either direct hook usage OR FmGuardedPage component wrapper
+  if ! rg -q -e "useSupportOrg" -e "useOrgGuard" -e "useFmOrgGuard" -e "FmGuardedPage" "$page"; then
     rel_path="${page#$REPO_ROOT/}"
     missing+=("$rel_path")
   fi
@@ -29,8 +30,8 @@ if ((${#missing[@]} > 0)); then
     echo " - $file"
   done
   echo ""
-  echo "Add the standard org guard (useSupportOrg() or useFmOrgGuard()) before rerunning this script."
+  echo "Add the standard org guard (useSupportOrg(), useFmOrgGuard(), or FmGuardedPage component) before rerunning this script."
   exit 1
 fi
 
-echo "✅ All FM pages include useSupportOrg() guard."
+echo "✅ All FM pages include org guard (hook or FmGuardedPage component)."

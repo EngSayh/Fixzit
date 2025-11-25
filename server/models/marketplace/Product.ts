@@ -1,8 +1,8 @@
-import { Schema, model, models, Types, Model } from 'mongoose';
-import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
-import { auditPlugin } from '../../plugins/auditPlugin';
+import { Schema, model, models, Types, Model } from "mongoose";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { auditPlugin } from "../../plugins/auditPlugin";
 
-export type MarketplaceMediaRole = 'GALLERY' | 'MSDS' | 'COA';
+export type MarketplaceMediaRole = "GALLERY" | "MSDS" | "COA";
 
 export interface MarketplaceMedia {
   url: string;
@@ -53,7 +53,7 @@ export interface MarketplaceProduct {
   buy: MarketplaceBuyDetail;
   stock?: MarketplaceStockInfo;
   rating?: MarketplaceRating;
-  status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
+  status: "ACTIVE" | "DRAFT" | "ARCHIVED";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -61,13 +61,17 @@ export interface MarketplaceProduct {
 const ProductSchema = new Schema<MarketplaceProduct>(
   {
     // orgId will be added by tenantIsolationPlugin
-    vendorId: { type: Schema.Types.ObjectId, ref: 'Vendor' },
-    categoryId: { type: Schema.Types.ObjectId, required: true, ref: 'MarketplaceCategory' },
+    vendorId: { type: Schema.Types.ObjectId, ref: "Vendor" },
+    categoryId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "MarketplaceCategory",
+    },
     sku: { type: String, required: true, trim: true },
     slug: { type: String, required: true, trim: true },
     title: {
       en: { type: String, required: true, trim: true },
-      ar: { type: String, trim: true }
+      ar: { type: String, trim: true },
     },
     summary: { type: String, trim: true },
     brand: { type: String, trim: true },
@@ -76,21 +80,25 @@ const ProductSchema = new Schema<MarketplaceProduct>(
     media: [
       {
         url: { type: String, required: true, trim: true },
-        role: { type: String, enum: ['GALLERY', 'MSDS', 'COA'], default: 'GALLERY' },
-        title: { type: String, trim: true }
-      }
+        role: {
+          type: String,
+          enum: ["GALLERY", "MSDS", "COA"],
+          default: "GALLERY",
+        },
+        title: { type: String, trim: true },
+      },
     ],
     buy: {
       price: { type: Number, required: true },
       currency: { type: String, required: true, trim: true },
       uom: { type: String, required: true, trim: true },
       minQty: { type: Number },
-      leadDays: { type: Number }
+      leadDays: { type: Number },
     },
     stock: {
       onHand: { type: Number, default: 0 },
       reserved: { type: Number, default: 0 },
-      location: { type: String, trim: true }
+      location: { type: String, trim: true },
     },
     rating: {
       avg: { type: Number, default: 0, min: 0, max: 5 },
@@ -100,13 +108,17 @@ const ProductSchema = new Schema<MarketplaceProduct>(
         2: { type: Number, default: 0 },
         3: { type: Number, default: 0 },
         4: { type: Number, default: 0 },
-        5: { type: Number, default: 0 }
+        5: { type: Number, default: 0 },
       },
-      lastReviewAt: { type: Date }
+      lastReviewAt: { type: Date },
     },
-    status: { type: String, enum: ['ACTIVE', 'DRAFT', 'ARCHIVED'], default: 'ACTIVE' }
+    status: {
+      type: String,
+      enum: ["ACTIVE", "DRAFT", "ARCHIVED"],
+      default: "ACTIVE",
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // APPLY PLUGINS (BEFORE INDEXES)
@@ -122,12 +134,18 @@ ProductSchema.index({ orgId: 1, categoryId: 1 });
 // ⚡ CRITICAL FIX: Tenant-scoped text index (prevents cross-tenant data leaks)
 // This was previously a global text index that would search ALL organizations
 ProductSchema.index(
-  { orgId: 1, title: 'text', summary: 'text', brand: 'text', standards: 'text' },
-  { name: 'org_text_search' }
+  {
+    orgId: 1,
+    title: "text",
+    summary: "text",
+    brand: "text",
+    standards: "text",
+  },
+  { name: "org_text_search" },
 );
 
 const ProductModel =
   (models.MarketplaceProduct as Model<MarketplaceProduct> | undefined) ||
-  model<MarketplaceProduct>('MarketplaceProduct', ProductSchema);
+  model<MarketplaceProduct>("MarketplaceProduct", ProductSchema);
 
 export default ProductModel;

@@ -18,17 +18,17 @@ export class ArchitectureGuard {
     return ArchitectureGuard.instance;
   }
 
-  validateSystem(): { 
-    healthy: boolean; 
-    issues: string[]; 
-    report: { totalComponents: number } 
+  validateSystem(): {
+    healthy: boolean;
+    issues: string[];
+    report: { totalComponents: number };
   } {
     return {
       healthy: true,
       issues: [],
       report: {
-        totalComponents: 0
-      }
+        totalComponents: 0,
+      },
     };
   }
 }

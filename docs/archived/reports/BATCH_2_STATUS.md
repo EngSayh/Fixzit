@@ -21,24 +21,27 @@ TOTAL:             97 errors
 **Problem**: API routes and services use **legacy flat schema** but WorkOrder model now uses **nested schema**:
 
 **Legacy (used in code)**:
+
 ```typescript
 wo.assigneeUserId
-wo.assigneeVendorId  
+wo.assigneeVendorId
 wo.code
 wo.dueAt
 wo.statusHistory.push(...)
 ```
 
 **Current (actual schema)**:
+
 ```typescript
-wo.assignment.assignedTo.userId
-wo.assignment.assignedTo.vendorId
-wo.workOrderNumber  // not 'code'
-wo.sla.resolutionDeadline  // not 'dueAt'
-wo.statusHistory  // array structure may differ
+wo.assignment.assignedTo.userId;
+wo.assignment.assignedTo.vendorId;
+wo.workOrderNumber; // not 'code'
+wo.sla.resolutionDeadline; // not 'dueAt'
+wo.statusHistory; // array structure may differ
 ```
 
 **Affected Files** (11 files, ~30 errors):
+
 - `app/api/work-orders/[id]/assign/route.ts` (3 errors)
 - `app/api/work-orders/[id]/status/route.ts` (4 errors)
 - `app/api/work-orders/[id]/comments/route.ts` (2 errors)
@@ -53,11 +56,13 @@ wo.statusHistory  // array structure may differ
 ### Other app/api/ Type Issues
 
 **app/api/rfqs/[id]/bids/route.ts** (10 errors):
+
 - Dynamic imports returning unknown types
 - Property access on untyped objects
 - Needs `as any` casts
 
-**app/api/souq/*** (8 errors across 3 files):
+**app/api/souq/\*** (8 errors across 3 files):
+
 - Similar dynamic import issues
 - Product type mismatches
 
@@ -75,8 +80,8 @@ wo.statusHistory  // array structure may differ
 **server/services/owner/financeIntegration.ts** (3 errors)
 **server/rbac/workOrdersPolicy.ts** (1 error)
 **server/middleware/withAuthRbac.ts** (1 error)
-**models/*** (6 errors across 2 files)
-**scripts/*** (6 errors across 2 files)
+**models/\*** (6 errors across 2 files)
+**scripts/\*** (6 errors across 2 files)
 **contexts/FormStateContext.tsx** (1 error)
 **lib/audit.ts** (1 error)
 **lib/fm-auth-middleware.ts** (1 error)
@@ -85,12 +90,14 @@ wo.statusHistory  // array structure may differ
 ## Recommended Approach
 
 ### Option A: Quick Fix (1-2 hours)
+
 Add `as any` casts to unblock TypeScript compilation:
+
 ```typescript
 // Before
 wo.assigneeUserId = body.assigneeUserId;
 
-// After  
+// After
 (wo as any).assigneeUserId = body.assigneeUserId;
 ```
 
@@ -98,7 +105,9 @@ wo.assigneeUserId = body.assigneeUserId;
 **Cons**: Hides runtime bugs, creates technical debt
 
 ### Option B: Proper Refactor (6-8 hours)
+
 Update all code to use correct WorkOrder schema:
+
 ```typescript
 // Update API routes
 wo.assignment = wo.assignment || { assignedTo: {} };
@@ -106,7 +115,7 @@ wo.assignment.assignedTo.userId = body.assigneeUserId;
 
 // Update queries
 const filter = {
-  'assignment.assignedTo.userId': userId
+  "assignment.assignedTo.userId": userId,
 };
 ```
 
@@ -114,6 +123,7 @@ const filter = {
 **Cons**: Time-consuming, requires testing
 
 ### Option C: Hybrid (3-4 hours)
+
 1. Fix high-impact files properly (copilot/tools.ts, wo.service.ts)
 2. Add casts to low-impact files
 3. File technical debt issues for cleanup
@@ -123,6 +133,7 @@ const filter = {
 ## Next Steps
 
 ### Immediate (Batch 2 continuation):
+
 1. Fix `server/copilot/tools.ts` properly (12 errors) - highest impact
 2. Add casts to `app/api/work-orders/*` files (9 errors)
 3. Fix `app/api/rfqs/[id]/bids/route.ts` with casts (10 errors)
@@ -131,9 +142,11 @@ const filter = {
 **Estimated**: 2-3 hours to complete Batch 2
 
 ### Then Batch 3 (tests):
+
 - `tests/finance/e2e/finance-pack.test.ts` (12 errors) - fixture updates
 
 ### Then Batch 4 (other):
+
 - modules/users/service.ts (5 errors)
 - services/souq/buybox-service.ts (3 errors)
 - Scattered fixes (~39 errors)
@@ -141,6 +154,7 @@ const filter = {
 ## Technical Debt Created
 
 If using Option A (casts), create issues for:
+
 1. **WorkOrder API Migration**: Update all API routes to use nested schema
 2. **WorkOrder Service Migration**: Update wo.service.ts, financeIntegration.ts
 3. **WorkOrder Copilot Migration**: Refactor copilot/tools.ts completely

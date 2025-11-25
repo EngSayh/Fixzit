@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useMemo } from 'react';
-import { useSession } from 'next-auth/react';
-import type { QuickActionConfig } from '@/config/topbar-modules';
-import type { UserRoleType } from '@/types/user';
+import { useMemo } from "react";
+import { useSession } from "next-auth/react";
+import type { QuickActionConfig } from "@/config/topbar-modules";
+import type { UserRoleType } from "@/types/user";
 
 export function usePermittedQuickActions(actions: QuickActionConfig[]) {
   const { data } = useSession();
@@ -14,7 +14,9 @@ export function usePermittedQuickActions(actions: QuickActionConfig[]) {
       return [];
     }
     if (!role) {
-      return actions.filter((action) => !action.roles || action.roles.length === 0);
+      return actions.filter(
+        (action) => !action.roles || action.roles.length === 0,
+      );
     }
     return actions.filter((action) => {
       if (!action.roles || action.roles.length === 0) return true;

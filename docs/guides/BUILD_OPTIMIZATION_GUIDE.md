@@ -25,11 +25,11 @@ npm run build      # 5-7min - no type checking overhead
 # In CI/CD pipeline - run in parallel
 jobs:
   quality-checks:
-    - npm run typecheck  # 34s
-    - npm run lint       # ~30s
-  
+    - npm run typecheck # 34s
+    - npm run lint # ~30s
+
   build:
-    - npm run build      # 5-7min (no quality checks)
+    - npm run build # 5-7min (no quality checks)
 ```
 
 ### 3. **Incremental Builds** (Development)
@@ -46,9 +46,9 @@ npm run dev  # Instant hot-reload, no full rebuilds
 ```javascript
 // next.config.js
 const nextConfig = {
-  swcMinify: true,  // 30-50% faster minification
+  swcMinify: true, // 30-50% faster minification
   // ... rest of config
-}
+};
 ```
 
 ### Option 2: Turbopack (Experimental - 10x faster)
@@ -57,8 +57,8 @@ const nextConfig = {
 // package.json
 {
   "scripts": {
-    "dev": "next dev --turbo",  // Development only
-    "build": "next build"        // Stable for production
+    "dev": "next dev --turbo", // Development only
+    "build": "next build" // Stable for production
   }
 }
 ```
@@ -78,19 +78,19 @@ const nextConfig = {
 const nextConfig = {
   // Only build changed pages (experimental)
   experimental: {
-    incrementalCacheHandlerPath: require.resolve('./cache-handler.js')
-  }
-}
+    incrementalCacheHandlerPath: require.resolve("./cache-handler.js"),
+  },
+};
 ```
 
 ## 📊 Build Time Comparison
 
-| Strategy | First Build | Rebuild | When to Use |
-|----------|-------------|---------|-------------|
-| **Current (Optimized)** | 5-7 min | 5-7 min | ✅ Production CI/CD |
-| **+ SWC Minify** | 3-5 min | 3-5 min | ✅ All environments |
-| **+ Build Cache** | 5-7 min | 2-3 min | ✅ CI/CD with cache |
-| **+ Turbopack Dev** | N/A | Instant | ✅ Development only |
+| Strategy                | First Build | Rebuild | When to Use         |
+| ----------------------- | ----------- | ------- | ------------------- |
+| **Current (Optimized)** | 5-7 min     | 5-7 min | ✅ Production CI/CD |
+| **+ SWC Minify**        | 3-5 min     | 3-5 min | ✅ All environments |
+| **+ Build Cache**       | 5-7 min     | 2-3 min | ✅ CI/CD with cache |
+| **+ Turbopack Dev**     | N/A         | Instant | ✅ Development only |
 
 ## 🎯 Recommended Setup
 
@@ -127,7 +127,7 @@ jobs:
         check: [typecheck, lint, test]
     steps:
       - run: npm run ${{ matrix.check }}
-  
+
   build:
     needs: quality
     runs-on: ubuntu-latest

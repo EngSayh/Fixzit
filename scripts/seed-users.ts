@@ -1,41 +1,41 @@
-import { db } from '../lib/mongo';
-import { User } from '../server/models/User';
-import { hashPassword } from '../lib/auth';
+import { db } from "../lib/mongo";
+import { User } from "../server/models/User";
+import { hashPassword } from "../lib/auth";
 
 const initialUsers = [
   {
-    code: 'USR-001',
-    username: 'admin',
-    email: 'admin@fixzit.co',
-    password: 'admin123',
+    code: "USR-001",
+    username: "admin",
+    email: "admin@fixzit.co",
+    password: "admin123",
     personal: {
-      firstName: 'System',
-      lastName: 'Administrator',
-      nationalId: '1234567890',
-      dateOfBirth: new Date('1980-01-01'),
-      gender: 'Male',
-      nationality: 'SA',
+      firstName: "System",
+      lastName: "Administrator",
+      nationalId: "1234567890",
+      dateOfBirth: new Date("1980-01-01"),
+      gender: "Male",
+      nationality: "SA",
       address: {
-        street: 'King Fahd Road',
-        city: 'Riyadh',
-        region: 'Riyadh',
-        postalCode: '11564',
-        country: 'SA'
-      }
+        street: "King Fahd Road",
+        city: "Riyadh",
+        region: "Riyadh",
+        postalCode: "11564",
+        country: "SA",
+      },
     },
     professional: {
-      role: 'SUPER_ADMIN',
-      title: 'System Administrator',
-      department: 'IT',
-      skills: []
+      role: "SUPER_ADMIN",
+      title: "System Administrator",
+      department: "IT",
+      skills: [],
     },
     security: {
-      accessLevel: 'ADMIN',
-      permissions: ['*'],
+      accessLevel: "ADMIN",
+      permissions: ["*"],
       mfa: {
         enabled: false,
-        type: 'EMAIL'
-      }
+        type: "EMAIL",
+      },
     },
     preferences: {
       notifications: {
@@ -44,65 +44,65 @@ const initialUsers = [
         app: true,
         workOrders: true,
         maintenance: true,
-        reports: true
+        reports: true,
       },
-      language: 'en',
-      timezone: 'Asia/Riyadh',
-      theme: 'LIGHT'
+      language: "en",
+      timezone: "Asia/Riyadh",
+      theme: "LIGHT",
     },
     workload: {
       maxAssignments: 100,
       currentAssignments: 0,
       available: true,
       location: {
-        city: 'Riyadh',
-        region: 'Riyadh',
-        radius: 50
+        city: "Riyadh",
+        region: "Riyadh",
+        radius: 50,
       },
       workingHours: {
-        start: '08:00',
-        end: '17:00',
-        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'sunday'],
-        timezone: 'Asia/Riyadh'
-      }
+        start: "08:00",
+        end: "17:00",
+        days: ["monday", "tuesday", "wednesday", "thursday", "sunday"],
+        timezone: "Asia/Riyadh",
+      },
     },
-    status: 'ACTIVE',
-    tenantId: 'demo-tenant',
-    createdBy: 'system'
+    status: "ACTIVE",
+    tenantId: "demo-tenant",
+    createdBy: "system",
   },
   {
-    code: 'USR-002',
-    username: 'manager',
-    email: 'manager@fixzit.co',
-    password: 'Manager@123',
+    code: "USR-002",
+    username: "manager",
+    email: "manager@fixzit.co",
+    password: "Manager@123",
     personal: {
-      firstName: 'Ahmed',
-      lastName: 'Al-Rashid',
-      nationalId: '2345678901',
-      dateOfBirth: new Date('1985-05-15'),
-      gender: 'Male',
-      nationality: 'SA',
+      firstName: "Ahmed",
+      lastName: "Al-Rashid",
+      nationalId: "2345678901",
+      dateOfBirth: new Date("1985-05-15"),
+      gender: "Male",
+      nationality: "SA",
       address: {
-        street: 'Olaya Street',
-        city: 'Riyadh',
-        region: 'Riyadh',
-        postalCode: '11622',
-        country: 'SA'
-      }
+        street: "Olaya Street",
+        city: "Riyadh",
+        region: "Riyadh",
+        postalCode: "11622",
+        country: "SA",
+      },
     },
     professional: {
-      role: 'PROPERTY_MANAGER',
-      title: 'Property Manager',
-      department: 'Operations',
-      skills: []
+      role: "PROPERTY_MANAGER",
+      title: "Property Manager",
+      department: "Operations",
+      skills: [],
     },
     security: {
-      accessLevel: 'WRITE',
-      permissions: ['properties.*', 'tenants.*', 'workorders.*'],
+      accessLevel: "WRITE",
+      permissions: ["properties.*", "tenants.*", "workorders.*"],
       mfa: {
         enabled: false,
-        type: 'EMAIL'
-      }
+        type: "EMAIL",
+      },
     },
     preferences: {
       notifications: {
@@ -111,84 +111,84 @@ const initialUsers = [
         app: true,
         workOrders: true,
         maintenance: true,
-        reports: true
+        reports: true,
       },
-      language: 'ar',
-      timezone: 'Asia/Riyadh',
-      theme: 'LIGHT'
+      language: "ar",
+      timezone: "Asia/Riyadh",
+      theme: "LIGHT",
     },
     workload: {
       maxAssignments: 50,
       currentAssignments: 0,
       available: true,
       location: {
-        city: 'Riyadh',
-        region: 'Riyadh',
-        radius: 30
+        city: "Riyadh",
+        region: "Riyadh",
+        radius: 30,
       },
       workingHours: {
-        start: '08:00',
-        end: '17:00',
-        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'sunday'],
-        timezone: 'Asia/Riyadh'
-      }
+        start: "08:00",
+        end: "17:00",
+        days: ["monday", "tuesday", "wednesday", "thursday", "sunday"],
+        timezone: "Asia/Riyadh",
+      },
     },
-    status: 'ACTIVE',
-    tenantId: 'demo-tenant',
-    createdBy: 'system'
+    status: "ACTIVE",
+    tenantId: "demo-tenant",
+    createdBy: "system",
   },
   {
-    code: 'USR-003',
-    username: 'technician',
-    email: 'technician@fixzit.co',
-    password: 'Tech@123',
+    code: "USR-003",
+    username: "technician",
+    email: "technician@fixzit.co",
+    password: "Tech@123",
     personal: {
-      firstName: 'Mohammed',
-      lastName: 'Al-Harbi',
-      nationalId: '3456789012',
-      dateOfBirth: new Date('1990-03-20'),
-      gender: 'Male',
-      nationality: 'SA',
+      firstName: "Mohammed",
+      lastName: "Al-Harbi",
+      nationalId: "3456789012",
+      dateOfBirth: new Date("1990-03-20"),
+      gender: "Male",
+      nationality: "SA",
       address: {
-        street: 'King Abdullah Road',
-        city: 'Riyadh',
-        region: 'Riyadh',
-        postalCode: '11693',
-        country: 'SA'
-      }
+        street: "King Abdullah Road",
+        city: "Riyadh",
+        region: "Riyadh",
+        postalCode: "11693",
+        country: "SA",
+      },
     },
     professional: {
-      role: 'TECHNICIAN',
-      title: 'Senior Technician',
-      department: 'Maintenance',
+      role: "TECHNICIAN",
+      title: "Senior Technician",
+      department: "Maintenance",
       skills: [
         {
-          category: 'ELECTRICAL',
-          skill: 'Wiring Installation',
-          level: 'EXPERT',
+          category: "ELECTRICAL",
+          skill: "Wiring Installation",
+          level: "EXPERT",
           certified: true,
-          certification: 'Master Electrician',
-          expiry: new Date('2025-12-31'),
-          experience: 10
+          certification: "Master Electrician",
+          expiry: new Date("2025-12-31"),
+          experience: 10,
         },
         {
-          category: 'HVAC',
-          skill: 'AC Repair',
-          level: 'ADVANCED',
+          category: "HVAC",
+          skill: "AC Repair",
+          level: "ADVANCED",
           certified: true,
-          certification: 'HVAC Technician',
-          expiry: new Date('2024-06-30'),
-          experience: 8
-        }
-      ]
+          certification: "HVAC Technician",
+          expiry: new Date("2024-06-30"),
+          experience: 8,
+        },
+      ],
     },
     security: {
-      accessLevel: 'WRITE',
-      permissions: ['workorders.update', 'assets.read'],
+      accessLevel: "WRITE",
+      permissions: ["workorders.update", "assets.read"],
       mfa: {
         enabled: false,
-        type: 'SMS'
-      }
+        type: "SMS",
+      },
     },
     preferences: {
       notifications: {
@@ -197,27 +197,27 @@ const initialUsers = [
         app: true,
         workOrders: true,
         maintenance: true,
-        reports: false
+        reports: false,
       },
-      language: 'ar',
-      timezone: 'Asia/Riyadh',
-      theme: 'LIGHT'
+      language: "ar",
+      timezone: "Asia/Riyadh",
+      theme: "LIGHT",
     },
     workload: {
       maxAssignments: 10,
       currentAssignments: 0,
       available: true,
       location: {
-        city: 'Riyadh',
-        region: 'Riyadh',
-        radius: 20
+        city: "Riyadh",
+        region: "Riyadh",
+        radius: 20,
       },
       workingHours: {
-        start: '07:00',
-        end: '16:00',
-        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'sunday'],
-        timezone: 'Asia/Riyadh'
-      }
+        start: "07:00",
+        end: "16:00",
+        days: ["monday", "tuesday", "wednesday", "thursday", "sunday"],
+        timezone: "Asia/Riyadh",
+      },
     },
     performance: {
       rating: 4.5,
@@ -226,45 +226,47 @@ const initialUsers = [
       successRate: 96,
       averageResponseTime: 2,
       averageResolutionTime: 24,
-      customerSatisfaction: 94
+      customerSatisfaction: 94,
     },
-    status: 'ACTIVE',
-    tenantId: 'demo-tenant',
-    createdBy: 'system'
-  }
+    status: "ACTIVE",
+    tenantId: "demo-tenant",
+    createdBy: "system",
+  },
 ];
 
 async function seedUsers() {
   try {
     await db;
-    console.log('🌱 Seeding users...');
-    
+    console.log("🌱 Seeding users...");
+
     for (const userData of initialUsers) {
       const existingUser = await User.findOne({ email: userData.email });
-      
+
       if (!existingUser) {
         const hashedPassword = await hashPassword(userData.password);
         const userWithHashedPassword = {
           ...userData,
-          password: hashedPassword
+          password: hashedPassword,
         };
-        
+
         await User.create(userWithHashedPassword);
         console.log(`✅ Created user: ${userData.email}`);
       } else {
         console.log(`⏭️  User already exists: ${userData.email}`);
       }
     }
-    
-    console.log('✅ User seeding completed!');
+
+    console.log("✅ User seeding completed!");
   } catch (error) {
-    console.error('❌ Error seeding users:', error);
+    console.error("❌ Error seeding users:", error);
   }
 }
 
 // Run if called directly
 if (require.main === module) {
-  seedUsers().then(() => process.exit(0)).catch(() => process.exit(1));
+  seedUsers()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
 }
 
 export default seedUsers;

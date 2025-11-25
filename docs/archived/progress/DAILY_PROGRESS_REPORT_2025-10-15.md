@@ -380,14 +380,14 @@
 
 ### Estimated vs Actual
 
-| Task | Estimated | Actual | Efficiency |
-|------|-----------|--------|------------|
-| GitHub Secrets | 15 min | 5 min | +67% faster |
-| Deprecated Hook | 30 min | 10 min | +67% faster |
-| Email Integration | 3 hours* | 35 min** | Implementation started |
-| Duplicate Detection | 1 hour | 25 min | +58% faster |
-| Dead Code Analysis | 1 hour | 25 min | +58% faster |
-| **Total** | **5h 45m** | **1h 40m*** | **71% faster** |
+| Task                | Estimated  | Actual       | Efficiency             |
+| ------------------- | ---------- | ------------ | ---------------------- |
+| GitHub Secrets      | 15 min     | 5 min        | +67% faster            |
+| Deprecated Hook     | 30 min     | 10 min       | +67% faster            |
+| Email Integration   | 3 hours\*  | 35 min\*\*   | Implementation started |
+| Duplicate Detection | 1 hour     | 25 min       | +58% faster            |
+| Dead Code Analysis  | 1 hour     | 25 min       | +58% faster            |
+| **Total**           | **5h 45m** | **1h 40m\*** | **71% faster**         |
 
 \* Full email integration includes testing, admin dashboard (future work)  
 \*\* Core functionality implemented, blocked on user adding GitHub secrets

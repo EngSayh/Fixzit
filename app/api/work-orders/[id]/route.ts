@@ -82,6 +82,7 @@ const patchSchema = z.object({
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
   const params = await props.params;
+  const workOrderId = params?.id || req.url.split('/').pop() || '';
   const ability: Ability = "EDIT"; // Type-safe: must match Ability union type
   const user = await requireAbility(ability)(req);
   if (user instanceof NextResponse) return user;
@@ -151,7 +152,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   let removedKeys: string[] = [];
   if (updates.attachments) {
     // Fetch existing to calculate removed attachments for cleanup
-    const existing = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId })
+    const existing = await WorkOrder.findOne({ _id: workOrderId, tenantId: user.tenantId })
       .select({ attachments: 1 })
       .lean<{ attachments?: { key?: string }[] } | null>();
     const existingKeys = new Set((existing?.attachments || []).map((att) => att.key).filter(Boolean) as string[]);
@@ -162,7 +163,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   }
 
   const wo = (await WorkOrder.findOneAndUpdate(
-    { _id: params.id, tenantId: user.tenantId },
+    { _id: workOrderId, tenantId: user.tenantId },
     { $set: updatePayload },
     { new: true }
   ));
@@ -179,7 +180,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     deleteResults.forEach((result, idx) => {
       if (result.status === 'rejected') {
         logger.error('[WorkOrder PATCH] S3 cleanup failed', {
-          workOrderId: params.id,
+          workOrderId,
           key: removedKeys[idx],
           error: result.reason
         });
@@ -192,12 +193,12 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     if (failedKeys.length === 0) {
       logger.info('[WorkOrder PATCH] S3 cleanup success', {
-        workOrderId: params.id,
+        workOrderId,
         total: removedKeys.length
       });
     } else {
       logger.warn('[WorkOrder PATCH] S3 cleanup partial failure', {
-        workOrderId: params.id,
+        workOrderId,
         total: removedKeys.length,
         failed: failedKeys.length
       });
@@ -206,18 +207,18 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         const { JobQueue } = await import('@/lib/jobs/queue');
         const jobId = await JobQueue.enqueue('s3-cleanup', {
           keys: failedKeys,
-          workOrderId: params.id,
+          workOrderId,
           source: 'work-order-patch'
         });
 
         logger.info('[WorkOrder PATCH] S3 cleanup retry enqueued', {
-          workOrderId: params.id,
+          workOrderId,
           failedKeys: failedKeys.length,
           jobId
         });
       } catch (error) {
         logger.error('[WorkOrder PATCH] Failed to enqueue cleanup retry', error as Error, {
-          workOrderId: params.id,
+          workOrderId,
           failedKeys
         });
       }

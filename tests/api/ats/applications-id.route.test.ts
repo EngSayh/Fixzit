@@ -1,13 +1,18 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { NextRequest } from 'next/server';
+import type { Mock } from 'vitest';
 
 process.env.SKIP_ENV_VALIDATION = 'true';
 process.env.NEXTAUTH_SECRET = 'test-secret';
 
+type JsonBody = { error?: string; allowedTransitions?: string[] } | Record<string, string | number | boolean | null | object>;
+type JsonResponse = { status: number; body: JsonBody };
+type PatchBody = { stage?: string; [key: string]: string | number | boolean | null | object | undefined };
+
 vi.mock('next/server', () => ({
   NextRequest: class {},
   NextResponse: {
-    json: (body: any, init?: ResponseInit) => ({
+    json: (body: JsonBody, init?: ResponseInit): JsonResponse => ({
       status: init?.status ?? 200,
       body
     })
@@ -62,8 +67,8 @@ vi.mock('@/server/models/Application', () => ({
   Application: ApplicationMock
 }));
 
-let PATCH: any;
-let atsRBAC: any;
+let PATCH: (req: NextRequest, ctx: { params: Promise<{ id: string }> }) => Promise<JsonResponse> | JsonResponse;
+let atsRBAC: Mock;
 
 describe('API /api/ats/applications/[id] PATCH', () => {
   beforeAll(async () => {
@@ -95,7 +100,7 @@ describe('API /api/ats/applications/[id] PATCH', () => {
     });
   });
 
-  const callPATCH = async (body: any) => {
+  const callPATCH = async (body: PatchBody) => {
     const req = {
       url: 'https://example.com/api/ats/applications/app-1',
       json: async () => body
@@ -104,7 +109,7 @@ describe('API /api/ats/applications/[id] PATCH', () => {
   };
 
   it('returns allowed transitions when invalid stage move attempted', async () => {
-    const res: any = await callPATCH({ stage: 'hired' });
+    const res = await callPATCH({ stage: 'hired' });
     expect(res.status).toBe(400);
     expect(res.body.allowedTransitions).toEqual(['screening', 'rejected', 'withdrawn']);
   });

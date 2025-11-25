@@ -9,13 +9,15 @@ This directory contains automation scripts for maintaining code quality and orga
 **Purpose:** Implement backup retention policy - keep only the 2 most recent backups.
 
 **Usage:**
+
 ```bash
 ./scripts/cleanup-backups.sh
 ```
 
 **What it does:**
+
 - Scans `i18n/dictionaries/backup` and `.archive` directories
-- Identifies backup files (*.backup*, *.bak, *.old, *.orig)
+- Identifies backup files (_.backup_, _.bak, _.old, \*.orig)
 - Keeps only the 2 most recent backups per directory
 - Deletes older backups to save space
 - Reports space savings
@@ -29,11 +31,13 @@ This directory contains automation scripts for maintaining code quality and orga
 **Purpose:** Monthly review of current documentation for outdated content.
 
 **Usage:**
+
 ```bash
 ./scripts/review-docs.sh
 ```
 
 **What it does:**
+
 - Scans `docs/current/` for markdown files
 - Checks file age (flags files older than 90 days)
 - Reports modification dates and file sizes
@@ -49,6 +53,7 @@ This directory contains automation scripts for maintaining code quality and orga
 **Purpose:** Archive completion reports after each major milestone.
 
 **Usage:**
+
 ```bash
 # Interactive mode
 ./scripts/archive-milestone.sh "Phase 2 Complete"
@@ -58,8 +63,9 @@ This directory contains automation scripts for maintaining code quality and orga
 ```
 
 **What it does:**
+
 - Creates timestamped milestone directory
-- Searches for completion reports (*COMPLETE*.md, *REPORT*.md, etc.)
+- Searches for completion reports (_COMPLETE_.md, _REPORT_.md, etc.)
 - Checks `docs/current/` for completed items
 - Archives files to `docs/archived/milestones/`
 - Creates milestone summary document
@@ -74,6 +80,7 @@ This directory contains automation scripts for maintaining code quality and orga
 **Purpose:** Detect duplicate files for CI/CD integration.
 
 **Usage:**
+
 ```bash
 # Report only mode
 ./scripts/detect-duplicates.sh
@@ -83,6 +90,7 @@ This directory contains automation scripts for maintaining code quality and orga
 ```
 
 **What it does:**
+
 - Scans entire codebase for duplicate files
 - Uses MD5 hashing for exact match detection
 - Calculates wasted space
@@ -90,9 +98,11 @@ This directory contains automation scripts for maintaining code quality and orga
 - Fails build if duplicates exceed 1MB threshold (configurable)
 
 **Environment variables:**
+
 - `THRESHOLD_MB`: Fail threshold in MB (default: 1)
 
-**Recommended schedule:** 
+**Recommended schedule:**
+
 - Weekly via GitHub Actions
 - On every PR
 - Before releases
@@ -108,12 +118,14 @@ This directory contains automation scripts for maintaining code quality and orga
 Located: `.github/workflows/duplicate-detection.yml`
 
 **Triggers:**
+
 - Push to main/develop branches
 - Pull requests
 - Weekly schedule (Monday 9 AM UTC)
 - Manual dispatch
 
 **Features:**
+
 - Runs duplicate detection with 5MB threshold
 - Uploads detection report as artifact
 - Comments on PRs if duplicates found
@@ -126,10 +138,12 @@ Located: `.github/workflows/duplicate-detection.yml`
 Located: `.github/workflows/monthly-documentation-review.yml`
 
 **Triggers:**
+
 - Monthly schedule (1st of month, 9 AM UTC)
 - Manual dispatch
 
 **Features:**
+
 - Runs documentation review
 - Creates GitHub issue if docs need review
 - Runs backup cleanup automatically
@@ -142,11 +156,13 @@ Located: `.github/workflows/monthly-documentation-review.yml`
 ### Local Setup
 
 1. **Make scripts executable:**
+
 ```bash
 chmod +x scripts/*.sh
 ```
 
 2. **Test each script:**
+
 ```bash
 ./scripts/cleanup-backups.sh
 ./scripts/review-docs.sh
@@ -174,6 +190,7 @@ Add to crontab (`crontab -e`):
 The workflows are already configured in `.github/workflows/`. They will run automatically based on their schedules.
 
 To test manually:
+
 1. Go to Actions tab in GitHub
 2. Select the workflow
 3. Click "Run workflow"
@@ -185,6 +202,7 @@ To test manually:
 ### Backup Retention Policy
 
 Edit `scripts/cleanup-backups.sh`:
+
 ```bash
 # Change retention count (default: 2)
 # Keep only last N backups
@@ -193,6 +211,7 @@ Edit `scripts/cleanup-backups.sh`:
 ### Documentation Review Age
 
 Edit `scripts/review-docs.sh`:
+
 ```bash
 REVIEW_AGE_DAYS=90  # Change to desired age threshold
 ```
@@ -200,12 +219,14 @@ REVIEW_AGE_DAYS=90  # Change to desired age threshold
 ### Duplicate Detection Threshold
 
 Edit `.github/workflows/duplicate-detection.yml`:
+
 ```yaml
 env:
-  THRESHOLD_MB: 5  # Change threshold in MB
+  THRESHOLD_MB: 5 # Change threshold in MB
 ```
 
 Or set environment variable:
+
 ```bash
 export THRESHOLD_MB=10
 ./scripts/detect-duplicates.sh --fail-on-duplicates
@@ -216,6 +237,7 @@ export THRESHOLD_MB=10
 ## Output Examples
 
 ### Cleanup Backups
+
 ```
 === Backup Retention Policy ===
 Keeping only the 2 most recent backups in each directory
@@ -233,21 +255,23 @@ Space saved: 2.8M
 ```
 
 ### Documentation Review
+
 ```
 === Documentation Review Report ===
 
 ✓ TECHNICAL_DEBT_BACKLOG.md
    Size: 16K | Age: 5 days | Modified: 2025-11-15
-   
+
 ⚠️  OLD_FEATURE_PLAN.md
    Size: 24K | Age: 125 days | Modified: 2025-07-18
-   
+
 === Review Summary ===
 ⚠️ 1 file(s) older than 90 days:
   - OLD_FEATURE_PLAN.md (125 days old)
 ```
 
 ### Duplicate Detection
+
 ```
 ⚠️ Found 2 groups of duplicate files
 
@@ -275,6 +299,7 @@ chmod +x scripts/cleanup-backups.sh
 ### Python Not Found
 
 Ensure Python 3 is installed:
+
 ```bash
 python3 --version
 ```
@@ -288,6 +313,7 @@ brew install bc
 ### Script Fails in CI
 
 Check workflow logs in GitHub Actions:
+
 - Actions tab > Select workflow > View run details
 
 ---

@@ -9,6 +9,7 @@
 ## 1. Quick Server Connectivity Test
 
 ### macOS / Linux
+
 Run the following curl command to verify that your machine can reach the Qodo IDE Plugin server:
 
 ```bash
@@ -16,6 +17,7 @@ curl -v https://qodo-platform.qodo.ai/health
 ```
 
 ### Windows (PowerShell)
+
 If curl is not available, use PowerShell:
 
 ```powershell
@@ -62,6 +64,7 @@ Content           : {"status":"healthy"}
 ### ❌ Issue 1: Cannot Reach Server
 
 **Example Output**:
+
 ```
 Failed to connect to qodo-platform.qodo.ai
 curl: (6) Could not resolve host: qodo-platform.qodo.ai
@@ -69,12 +72,14 @@ curl: (7) Failed to connect to qodo-platform.qodo.ai port 443
 ```
 
 **Likely Causes**:
+
 - Local network or firewall blocking access
 - DNS resolution issues
 - VPN/Proxy configuration blocking traffic
 - Port 443 (HTTPS) is blocked
 
 **Resolution Steps**:
+
 1. Check your internet connection
 2. Verify firewall allows traffic to `qodo-platform.qodo.ai` over port 443
 3. Check VPN/proxy settings
@@ -86,6 +91,7 @@ curl: (7) Failed to connect to qodo-platform.qodo.ai port 443
 ### ⚠️ Issue 2: Server Responding with Errors
 
 **Example Output**:
+
 ```
 < HTTP/2 500
 Internal Server Error
@@ -99,11 +105,13 @@ Service Unavailable
 ```
 
 **Likely Causes**:
+
 - Qodo server experiencing temporary issues
 - Maintenance in progress
 - Backend service degradation
 
 **Resolution Steps**:
+
 1. Check Qodo status page: https://status.qodo.ai/
 2. Wait 5-10 minutes and retry
 3. Check for service announcements
@@ -114,16 +122,19 @@ Service Unavailable
 ### 🔒 Issue 3: SSL/TLS Certificate Issues
 
 **Example Output**:
+
 ```
 SSL certificate problem: unable to get local issuer certificate
 ```
 
 **Likely Causes**:
+
 - Outdated CA certificates
 - Corporate SSL inspection/MITM proxy
 - System date/time incorrect
 
 **Resolution Steps**:
+
 1. Update system CA certificates
 2. Check system date/time is correct
 3. If behind corporate proxy, configure SSL certificate validation
@@ -156,6 +167,7 @@ Modules Status:
 ## 5. Additional Diagnostics
 
 ### Test DNS Resolution
+
 ```bash
 # macOS/Linux
 nslookup qodo-platform.qodo.ai
@@ -166,6 +178,7 @@ nslookup qodo-platform.qodo.ai
 ```
 
 ### Test Network Connectivity
+
 ```bash
 # Ping test (might be blocked)
 ping qodo-platform.qodo.ai
@@ -176,6 +189,7 @@ tracert qodo-platform.qodo.ai     # Windows
 ```
 
 ### Test Port 443
+
 ```bash
 # macOS/Linux
 nc -zv qodo-platform.qodo.ai 443
@@ -190,6 +204,7 @@ Test-NetConnection -ComputerName qodo-platform.qodo.ai -Port 443
 ## 6. VS Code Extension Settings
 
 ### Enable Qodo Extension Logging
+
 Add to `.vscode/settings.json`:
 
 ```json
@@ -200,6 +215,7 @@ Add to `.vscode/settings.json`:
 ```
 
 ### Check Extension Status
+
 1. Open VS Code
 2. View → Extensions
 3. Search for "Qodo"
@@ -212,6 +228,7 @@ Add to `.vscode/settings.json`:
 ### If Issues Persist
 
 1. **Collect Diagnostics**:
+
    ```bash
    # Run full test with output
    curl -v https://qodo-platform.qodo.ai/health > qodo-test.log 2>&1
@@ -240,6 +257,7 @@ Add these to your firewall/proxy allowlist:
 ---
 
 **Quick Test Command**:
+
 ```bash
 curl -s https://qodo-platform.qodo.ai/health | grep -q "healthy" && echo "✅ Connected" || echo "❌ Failed"
 ```

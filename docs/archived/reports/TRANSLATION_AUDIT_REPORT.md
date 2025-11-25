@@ -1,15 +1,17 @@
 # 🌍 Translation & Internationalization Audit Report
+
 **Date:** November 15, 2025  
 **Scope:** All `app/**/page.tsx` files in workspace  
 **Total Pages Found:** 120 pages  
 **Completed:** 72 pages (60.0%)  
-**Pending:** 48 pages (40.0%)  
+**Pending:** 48 pages (40.0%)
 
 ---
 
 ## ✅ Pages WITH Translation Support (72 pages)
 
 ### Already Internationalized - Using `useTranslation()` Hook
+
 1. ✅ `app/page.tsx` - Landing page
 1. ✅ `app/login/page.tsx` - Login page
 1. ✅ `app/signup/page.tsx` - Signup page
@@ -88,9 +90,11 @@
 ## ❌ Pages WITHOUT Translation Support (49 pages)
 
 ### Priority 1: High Traffic / User-Facing Pages (0 pages)
+
 **Status:** ✅ Completed in this pass (settings, marketplace SMP, and all Aqar entry points now localized)
 
 ### Priority 2: Admin & Management Pages (19 pages)
+
 **Estimated:** 8-12 hours for all Priority 2 pages
 
 1. ❌ `app/admin/feature-settings/page.tsx` - Feature flags
@@ -114,6 +118,7 @@
 1. ❌ `app/forgot-password/page.tsx` - Password reset
 
 ### Priority 3: Facility Management Module (25 pages)
+
 **Estimated:** 10-14 hours for all Priority 3 pages
 
 1. ❌ `app/fm/dashboard/page.tsx` - FM dashboard
@@ -148,27 +153,29 @@
 
 ## 📊 Summary Statistics
 
-| Category | Count | Percentage |
-|----------|-------|------------|
-| **Total Pages** | 120 | 100% |
-| **With i18n** | 72 | 60.0% |
-| **Without i18n** | 48 | 40.0% |
-| **Priority 1** | 0 | 0% |
-| **Priority 2** | 19 | 15.8% |
-| **Priority 3** | 29 | 24.2% |
-| **Priority 4** | 0 | 0% |
+| Category         | Count | Percentage |
+| ---------------- | ----- | ---------- |
+| **Total Pages**  | 120   | 100%       |
+| **With i18n**    | 72    | 60.0%      |
+| **Without i18n** | 48    | 40.0%      |
+| **Priority 1**   | 0     | 0%         |
+| **Priority 2**   | 19    | 15.8%      |
+| **Priority 3**   | 29    | 24.2%      |
+| **Priority 4**   | 0     | 0%         |
 
 ---
 
 ## 🔍 Key Findings
 
 ### Critical Issues
+
 1. **`app/careers/page.tsx`** - Comprehensive job board still hardcoded (~780 lines)
 1. **`app/dashboard/*`** - 13 dashboard surfaces remain untranslated (finance, HR, support, etc.)
 1. **`app/fm/*`** - 25-page Facility Management suite pending (tenants, vendors, projects, work orders)
 1. **`app/help/*` + `app/cms/[slug]`** - Dynamic help/CMS pages still English-only, blocking localized support content
 
 ### Patterns Identified
+
 1. **Custom Translation Objects:** Some pages use local `translations = { en: {...}, ar: {...} }` pattern
 1. **Server Components:** `app/about/page.tsx` uses `getServerI18n()` for SSR
 1. **Mixed Implementations:** Some pages use `useTranslation()` but only for `isRTL` detection
@@ -176,6 +183,7 @@
 1. **Translation Source Hygiene:** Duplicate keys inside `contexts/TranslationContext.tsx` (admin + marketplace blocks) caused build noise—cleaned during this pass to keep Vitest quiet and avoid runtime collisions.
 
 ### Estimated Total Effort
+
 - **Priority 1:** ✅ Completed in this pass
 - **Priority 2:** 8-12 hours (admin pages)
 - **Priority 3:** 12-16 hours (FM module + dynamic CMS/help)
@@ -187,6 +195,7 @@
 ## 🎯 Recommended Approach
 
 ### Phase 1: Quick Wins (2-3 hours)
+
 - ✅ `app/souq/catalog/page.tsx` – strings wrapped + hooks wired in this pass
 - ✅ `app/reports/page.tsx` – removed legacy translation object, now on `useTranslation()`
 - ✅ `app/test/page.tsx` & `app/test-cms/page.tsx` – stub/test pages fully localized
@@ -194,20 +203,24 @@
 - ✅ `app/administration/page.tsx` – finished localization cleanup
 
 ### Phase 2: High-Impact Pages (✅ Completed)
+
 - `app/notifications/page.tsx` - Critical notification center
 - `app/settings/page.tsx` - User settings
 - `app/marketplace/*` - Landing, cart, checkout, search, orders, admin, RFQ, seller onboarding, product detail
 - `app/aqar/*` - Landing, listings, filters, interactive map
 
 ### Phase 3: Dashboard Suite (6-8 hours)
+
 - All `app/dashboard/*` pages (13 pages)
 - Admin pages (`admin/feature-settings`, `admin/audit-logs`, etc.)
 
 ### Phase 4: FM Module (10-12 hours)
+
 - All `app/fm/*` pages (25 pages)
 - Work order related pages
 
 ### Phase 5: Remaining Pages (6-8 hours)
+
 - Help & support pages
 - Dynamic CMS pages
 - Test pages
@@ -217,6 +230,7 @@
 ## 🛠️ Implementation Notes
 
 ### For Each Page:
+
 1. Add `'use client'` directive if not present
 1. Import: `import { useTranslation } from '@/contexts/TranslationContext';`
 1. Add hook: `const { t, isRTL } = useTranslation();`
@@ -225,10 +239,11 @@
 1. Test RTL layout and translation quality
 
 ### Migration from Custom Translations:
+
 ```typescript
 // OLD PATTERN (e.g., reports/page.tsx)
 const translations = { en: { title: "Reports" }, ar: { title: "التقارير" } };
-const t = translations[isRTL ? 'ar' : 'en'];
+const t = translations[isRTL ? "ar" : "en"];
 
 // NEW PATTERN
 const { t, isRTL } = useTranslation();
@@ -249,9 +264,11 @@ const { t, isRTL } = useTranslation();
 ## 🎯 Updated Task Priority Order
 
 **Immediate Priority:**
+
 - Phase 3 dashboard suite + admin detail pages (`app/dashboard/*`, `app/admin/*`, `app/system/page.tsx`, `app/hr/ats/jobs/new`).
 
 **Deferred (after translation baseline improves):**
+
 - Phase 4 FM module + work-order suite, Phase 5 help/CMS/test cleanup, then SelectValue warning cleanup (Task 12) and `lib/fm-notifications.ts` (Task 11)
 
 ---

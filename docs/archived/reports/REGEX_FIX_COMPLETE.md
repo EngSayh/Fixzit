@@ -16,8 +16,8 @@ function unescapeRegexString(str: string): string {
   // When regex patterns come from command line, they're often double-escaped
   // e.g., "foo\\(\\d+\\)" should become "foo\(\d+\)"
   return str
-    .replace(/\\\\([()[\]{}.*+?^$|])/g, '\\$1')  // \\( -> \(
-    .replace(/\\\\([dDwWsS])/g, '\\$1');          // \\d -> \d
+    .replace(/\\\\([()[\]{}.*+?^$|])/g, "\\$1") // \\( -> \(
+    .replace(/\\\\([dDwWsS])/g, "\\$1"); // \\d -> \d
 }
 ```
 
@@ -173,25 +173,25 @@ Tests cover:
 
 ### Match Patterns
 
-| Pattern | Matches | Example |
-|---------|---------|---------|
-| `\d+` | One or more digits | `123` |
-| `\w+` | One or more word chars | `hello` |
-| `\s+` | One or more whitespace | ` ` |
-| `[a-z]+` | Lowercase letters | `abc` |
-| `[A-Z]+` | Uppercase letters | `ABC` |
-| `[^"]+` | Anything except quotes | `text` |
-| `.*` | Any characters (greedy) | `anything` |
-| `.*?` | Any characters (lazy) | `short` |
+| Pattern  | Matches                 | Example    |
+| -------- | ----------------------- | ---------- |
+| `\d+`    | One or more digits      | `123`      |
+| `\w+`    | One or more word chars  | `hello`    |
+| `\s+`    | One or more whitespace  | ` `        |
+| `[a-z]+` | Lowercase letters       | `abc`      |
+| `[A-Z]+` | Uppercase letters       | `ABC`      |
+| `[^"]+`  | Anything except quotes  | `text`     |
+| `.*`     | Any characters (greedy) | `anything` |
+| `.*?`    | Any characters (lazy)   | `short`    |
 
 ### Replacement Patterns
 
-| Pattern | Meaning | Example |
-|---------|---------|---------|
-| `$1` | First capture group | `foo(123)` → `$1` = `123` |
-| `$2` | Second capture group | `foo(1, 2)` → `$2` = `2` |
-| `$&` | Entire match | `foo` → `$&` = `foo` |
-| `$$` | Literal dollar sign | `$$` → `$` |
+| Pattern | Meaning              | Example                   |
+| ------- | -------------------- | ------------------------- |
+| `$1`    | First capture group  | `foo(123)` → `$1` = `123` |
+| `$2`    | Second capture group | `foo(1, 2)` → `$2` = `2`  |
+| `$&`    | Entire match         | `foo` → `$&` = `foo`      |
+| `$$`    | Literal dollar sign  | `$$` → `$`                |
 
 ## Troubleshooting
 

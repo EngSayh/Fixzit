@@ -13,10 +13,10 @@
 
 **Status**: ✅ **COMPLETE - ZERO ERRORS**
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| TypeScript Errors | 313 | **0** | ✅ -313 (100%) |
-| Compilation | ❌ Failing | ✅ **Passing** | Fixed |
+| Metric            | Before     | After          | Change         |
+| ----------------- | ---------- | -------------- | -------------- |
+| TypeScript Errors | 313        | **0**          | ✅ -313 (100%) |
+| Compilation       | ❌ Failing | ✅ **Passing** | Fixed          |
 
 #### What Was Fixed
 
@@ -41,26 +41,26 @@
 ```typescript
 ✅ app/api/admin/discounts/route.ts
    - Added: if (error instanceof Error && error.message === '...')
-   
+
 ✅ app/api/marketplace/cart/route.ts
    - Fixed: serializeProduct(item as Record<string, unknown>)
-   
+
 ✅ app/api/marketplace/products/route.ts
    - Added: MongoDB error.code type guard
    - Fixed: items.map((item: unknown) => serializeProduct(item as Record<string, unknown>))
-   
+
 ✅ app/api/marketplace/search/route.ts
    - Fixed: Category serialization with proper casting
-   
+
 ✅ app/api/marketplace/vendor/products/route.ts
    - Combined error.code type guard + serializeProduct typing
-   
+
 ✅ app/api/payments/callback/route.ts
    - Added: Transaction reference validation (!tran_ref check)
    - Fixed: parseFloat(body.cart_amount ?? '0')
    - Fixed: payment_result?.response_message with nullish coalescing
    - Changed: error: any → error: unknown
-   
+
 ✅ app/aqar/map/page.tsx
    - Added: interface Cluster { lat: number; lng: number; count: number }
 ```
@@ -69,15 +69,15 @@
 
 **Status**: ⚠️ **IN PROGRESS**
 
-| Category | Count | Notes |
-|----------|-------|-------|
-| Catch blocks `(error: any)` | ~50+ | Need `instanceof Error` type guards |
-| Map callbacks `(item: any)` | ~30 | Need proper Mongoose/DB types |
-| Test mocks | ~25 | Acceptable in *.test.tsx files |
-| Function parameters | ~20 | Need specific interfaces |
-| Type assertions `as any` | ~15 | Need proper casting |
-| Generic placeholders | ~10 | Need type parameters |
-| Helper functions | ~79 | Remaining in lib/ and components/ |
+| Category                    | Count | Notes                               |
+| --------------------------- | ----- | ----------------------------------- |
+| Catch blocks `(error: any)` | ~50+  | Need `instanceof Error` type guards |
+| Map callbacks `(item: any)` | ~30   | Need proper Mongoose/DB types       |
+| Test mocks                  | ~25   | Acceptable in \*.test.tsx files     |
+| Function parameters         | ~20   | Need specific interfaces            |
+| Type assertions `as any`    | ~15   | Need proper casting                 |
+| Generic placeholders        | ~10   | Need type parameters                |
+| Helper functions            | ~79   | Remaining in lib/ and components/   |
 
 **Total**: 229 warnings
 
@@ -116,7 +116,7 @@
    ```typescript
    // Define once in types/mongoose.ts
    type LeanDocument<T> = T & { _id: Types.ObjectId };
-   
+
    // Use consistently
    items.map((item: LeanDocument<Product>) => ...)
    ```
@@ -147,9 +147,9 @@
 
 **Status**: ✅ **MOSTLY COMPLETE**
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Unused Variables | 132 | 1-2 | -130 (98%) |
+| Metric           | Before | After | Change     |
+| ---------------- | ------ | ----- | ---------- |
+| Unused Variables | 132    | 1-2   | -130 (98%) |
 
 Remaining instances are in test files and are acceptable.
 
@@ -200,19 +200,23 @@ PR: #99 (draft)
 ```typescript
 // unknown blocks ALL property access
 // Must narrow type before use
-if (error instanceof Error) { /* safe */ }
-if (typeof error === 'object' && error !== null) { /* safe */ }
+if (error instanceof Error) {
+  /* safe */
+}
+if (typeof error === "object" && error !== null) {
+  /* safe */
+}
 ```
 
 ### 3. Mongoose `.lean()` Needs Proper Types
 
 ```typescript
 // Don't cast to any[]
-const items = await Model.find().lean() as any[];
+const items = (await Model.find().lean()) as any[];
 
 // Do define proper lean types
 type LeanDoc = Record<string, unknown>;
-const items = await Model.find().lean() as LeanDoc[];
+const items = (await Model.find().lean()) as LeanDoc[];
 ```
 
 ## Next Actions (Recommended)
@@ -253,15 +257,15 @@ const items = await Model.find().lean() as LeanDoc[];
 
 ## Files Changed Summary
 
-| File | Type | Lines Changed | Impact |
-|------|------|---------------|--------|
-| app/api/admin/discounts/route.ts | API | 8 | Error handling |
-| app/api/marketplace/cart/route.ts | API | 2 | Serialization |
-| app/api/marketplace/products/route.ts | API | 4 | DB + serialization |
-| app/api/marketplace/search/route.ts | API | 3 | Category cast |
-| app/api/marketplace/vendor/products/route.ts | API | 6 | Combined fix |
-| app/api/payments/callback/route.ts | API | 12 | Validation + types |
-| app/aqar/map/page.tsx | Page | 8 | Interface definition |
+| File                                         | Type | Lines Changed | Impact               |
+| -------------------------------------------- | ---- | ------------- | -------------------- |
+| app/api/admin/discounts/route.ts             | API  | 8             | Error handling       |
+| app/api/marketplace/cart/route.ts            | API  | 2             | Serialization        |
+| app/api/marketplace/products/route.ts        | API  | 4             | DB + serialization   |
+| app/api/marketplace/search/route.ts          | API  | 3             | Category cast        |
+| app/api/marketplace/vendor/products/route.ts | API  | 6             | Combined fix         |
+| app/api/payments/callback/route.ts           | API  | 12            | Validation + types   |
+| app/aqar/map/page.tsx                        | Page | 8             | Interface definition |
 
 **Total**: 7 files, ~43 lines changed
 
@@ -282,7 +286,7 @@ The remaining 229 ESLint 'any' warnings require a more sophisticated strategy wi
 
 ---
 
-*Generated on behalf of user request to complete code quality fixes*
-*Final state: 0 TypeScript errors, 229 ESLint 'any' warnings*
-*Branch: fix/code-quality-clean*
-*PR: #99*
+_Generated on behalf of user request to complete code quality fixes_
+_Final state: 0 TypeScript errors, 229 ESLint 'any' warnings_
+_Branch: fix/code-quality-clean_
+_PR: #99_

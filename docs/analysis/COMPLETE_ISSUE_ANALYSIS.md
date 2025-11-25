@@ -8,14 +8,14 @@
 
 ## Summary
 
-| Category | Count | Status |
-|----------|-------|--------|
-| **Already Fixed (This Session)** | 42+ | ✅ Complete |
-| **Path Resolution Issues** | 6 | 🔴 P0 - TypeScript editor errors |
-| **Syntax/Import Errors** | 18 | 🔴 P0 - candidate.test.ts broken |
-| **Deprecation Warnings** | 1 | 🟡 P1 - Low priority |
-| **Missing Mocks** | 2 | 🔴 P0 - Tests timeout/fail |
-| **TOTAL ISSUES** | 66+ | - |
+| Category                         | Count | Status                           |
+| -------------------------------- | ----- | -------------------------------- |
+| **Already Fixed (This Session)** | 42+   | ✅ Complete                      |
+| **Path Resolution Issues**       | 6     | 🔴 P0 - TypeScript editor errors |
+| **Syntax/Import Errors**         | 18    | 🔴 P0 - candidate.test.ts broken |
+| **Deprecation Warnings**         | 1     | 🟡 P1 - Low priority             |
+| **Missing Mocks**                | 2     | 🔴 P0 - Tests timeout/fail       |
+| **TOTAL ISSUES**                 | 66+   | -                                |
 
 ---
 
@@ -71,26 +71,26 @@ The `tsconfig.json` doesn't include test files in its compilation context, so Ty
 
 ```typescript
 // Line 62: Cannot find module '@/lib/marketplace/context'
-({ resolveMarketplaceContext } = await import('@/lib/marketplace/context'));
+({ resolveMarketplaceContext } = await import("@/lib/marketplace/context"));
 
 // Line 63: Cannot find module '@/lib/marketplace/search'
-({ findProductBySlug } = await import('@/lib/marketplace/search'));
+({ findProductBySlug } = await import("@/lib/marketplace/search"));
 
 // Line 64: Cannot find module '@/server/models/marketplace/Category'
-const CategoryMod = await import('@/server/models/marketplace/Category');
+const CategoryMod = await import("@/server/models/marketplace/Category");
 ```
 
 #### 2. tests/unit/api/support/incidents.route.test.ts (3 errors)
 
 ```typescript
 // Line 58: Cannot find module '@/app/api/support/incidents/route'
-({ POST } = await import('@/app/api/support/incidents/route'));
+({ POST } = await import("@/app/api/support/incidents/route"));
 
 // Line 62: Cannot find module '@/lib/mongo'
-({ getNativeDb } = await import('@/lib/mongo'));
+({ getNativeDb } = await import("@/lib/mongo"));
 
 // Line 63: Cannot find module '@/server/models/SupportTicket'
-({ SupportTicket } = await import('@/server/models/SupportTicket'));
+({ SupportTicket } = await import("@/server/models/SupportTicket"));
 ```
 
 ### Solutions (Choose One)
@@ -107,7 +107,7 @@ const CategoryMod = await import('@/server/models/marketplace/Category');
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "tests/**/*"  // Add this line
+    "tests/**/*" // Add this line
   ]
 }
 ```
@@ -121,12 +121,7 @@ const CategoryMod = await import('@/server/models/marketplace/Category');
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },
-  "include": [
-    "tests/**/*",
-    "app/**/test/**/*",
-    "**/*.ts",
-    "**/*.tsx"
-  ]
+  "include": ["tests/**/*", "app/**/test/**/*", "**/*.ts", "**/*.tsx"]
 }
 ```
 
@@ -136,7 +131,9 @@ Then configure your editor to use `tsconfig.test.json` for test files.
 
 ```typescript
 // Not recommended - breaks consistency with rest of codebase
-const CategoryMod = await import('../../../../server/models/marketplace/Category');
+const CategoryMod = await import(
+  "../../../../server/models/marketplace/Category"
+);
 ```
 
 **Note:** `skipLibCheck: true` does NOT fix this issue. That option only suppresses diagnostics in `.d.ts` declaration files, not module resolution errors in `.ts` source files.
@@ -160,14 +157,14 @@ File has critical syntax and import errors preventing it from loading.
 // Error: Cannot find name 'vi'
 
 // MISSING:
-import { vi, describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { vi, describe, it, expect, beforeAll, afterEach } from "vitest";
 ```
 
 #### Module Resolution Failure (1 error)
 
 ```typescript
 // Line 19: Cannot find module '@/models/candidate'
-const mod = await import('@/models/candidate');
+const mod = await import("@/models/candidate");
 ```
 
 #### Syntax Errors (3 errors)
@@ -203,7 +200,7 @@ Specify compilerOption '"ignoreDeprecations": "6.0"' to silence this error.
 {
   "compilerOptions": {
     "baseUrl": ".",
-    "ignoreDeprecations": "5.0"  // Currently set to 5.0
+    "ignoreDeprecations": "5.0" // Currently set to 5.0
   }
 }
 ```
@@ -215,7 +212,7 @@ Specify compilerOption '"ignoreDeprecations": "6.0"' to silence this error.
 ```json
 {
   "compilerOptions": {
-    "ignoreDeprecations": "6.0"  // Change from 5.0 to 6.0
+    "ignoreDeprecations": "6.0" // Change from 5.0 to 6.0
   }
 }
 ```
@@ -249,12 +246,12 @@ Specify compilerOption '"ignoreDeprecations": "6.0"' to silence this error.
 **Fix:**
 
 ```typescript
-vi.mock('@/lib/rate-limit', () => ({
-  rateLimit: vi.fn(async () => ({ 
-    allowed: true, 
+vi.mock("@/lib/rate-limit", () => ({
+  rateLimit: vi.fn(async () => ({
+    allowed: true,
     remaining: 10,
-    reset: Date.now() + 60000
-  }))
+    reset: Date.now() + 60000,
+  })),
 }));
 ```
 
@@ -277,16 +274,16 @@ vi.mock('@/lib/rate-limit', () => ({
 const callGET = async (slug: string) => {
   const req = {
     headers: new Headers([
-      ['origin', 'http://localhost'],
-      ['user-agent', 'test']
-    ])
+      ["origin", "http://localhost"],
+      ["user-agent", "test"],
+    ]),
   } as unknown as NextRequest;
   return await GET(req, { params: { slug } });
 };
 
 // 2. Ensure dbConnect mock works
-vi.mock('@/db/mongoose', () => ({
-  dbConnect: vi.fn().mockResolvedValue(true)
+vi.mock("@/db/mongoose", () => ({
+  dbConnect: vi.fn().mockResolvedValue(true),
 }));
 ```
 

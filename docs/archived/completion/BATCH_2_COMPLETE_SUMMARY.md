@@ -11,12 +11,12 @@
 
 ## Progress Timeline
 
-| Batch | Scope | Errors Before | Errors After | Reduction | Status |
-|-------|-------|---------------|--------------|-----------|--------|
-| **Batch 1** | `server/models/` | 283 | 88 | -195 (68%) | ✅ Complete |
-| **Cascade** | Schema changes | 88 | 97 | +9 | - |
-| **Batch 2** | `app/api/` routes | 97 | 62 | -35 (36%) | ✅ Complete |
-| **Batch 3** | Tests + other | 62 | TBD | TBD | 🔜 Next |
+| Batch       | Scope             | Errors Before | Errors After | Reduction  | Status      |
+| ----------- | ----------------- | ------------- | ------------ | ---------- | ----------- |
+| **Batch 1** | `server/models/`  | 283           | 88           | -195 (68%) | ✅ Complete |
+| **Cascade** | Schema changes    | 88            | 97           | +9         | -           |
+| **Batch 2** | `app/api/` routes | 97            | 62           | -35 (36%)  | ✅ Complete |
+| **Batch 3** | Tests + other     | 62            | TBD          | TBD        | 🔜 Next     |
 
 ---
 
@@ -27,6 +27,7 @@
 **Root Cause**: WorkOrder model refactored from flat → nested schema, but code still uses legacy fields
 
 **Legacy Fields Used**:
+
 - `wo.assigneeUserId` → Schema: `wo.assignment.assignedTo.userId`
 - `wo.code` → Schema: `wo.workOrderNumber`
 - `wo.dueAt` → Schema: `wo.sla.resolutionDeadline`
@@ -137,6 +138,7 @@ grep "^app/api" /tmp/tsc_batch_2_complete.log  # 0 results ✅
 ```
 
 **Commits**:
+
 1. `5ec8076a2` - Batch 2 partial (copilot + work-orders + RFQ) - 97 → 78 errors
 2. `cb07eb7a5` - Batch 2 complete (souq + small routes) - 78 → 62 errors
 
@@ -146,16 +148,16 @@ grep "^app/api" /tmp/tsc_batch_2_complete.log  # 0 results ✅
 
 ### Error Distribution
 
-| Category | Files | Est. Errors | Complexity |
-|----------|-------|-------------|------------|
-| **Tests** | finance-pack.test.ts, TopBar.test.tsx, contexts/providers tests | 15 | Medium |
-| **Models** | aqarBooking, project | 5 | Medium |
-| **Modules** | users/service.ts | 5 | Low |
-| **Services** | souq/buybox-service, notifications/fm-notification-engine | 5 | Low |
-| **Scripts** | check-demo-users, seed-realdb | 4 | Low |
-| **Server** | copilot/tools (1 remaining), middleware/withAuthRbac, rbac/workOrdersPolicy | 3 | Low |
-| **Lib/Contexts** | audit, fm-auth-middleware, FormStateContext | 4 | Low |
-| **App** | cms/[slug]/page | 2 | Low |
+| Category         | Files                                                                       | Est. Errors | Complexity |
+| ---------------- | --------------------------------------------------------------------------- | ----------- | ---------- |
+| **Tests**        | finance-pack.test.ts, TopBar.test.tsx, contexts/providers tests             | 15          | Medium     |
+| **Models**       | aqarBooking, project                                                        | 5           | Medium     |
+| **Modules**      | users/service.ts                                                            | 5           | Low        |
+| **Services**     | souq/buybox-service, notifications/fm-notification-engine                   | 5           | Low        |
+| **Scripts**      | check-demo-users, seed-realdb                                               | 4           | Low        |
+| **Server**       | copilot/tools (1 remaining), middleware/withAuthRbac, rbac/workOrdersPolicy | 3           | Low        |
+| **Lib/Contexts** | audit, fm-auth-middleware, FormStateContext                                 | 4           | Low        |
+| **App**          | cms/[slug]/page                                                             | 2           | Low        |
 
 ### Top Priority Errors
 
@@ -184,21 +186,25 @@ grep "^app/api" /tmp/tsc_batch_2_complete.log  # 0 results ✅
 ### Batch 3 Execution Plan
 
 **Phase 1: Quick Fixes** (Est. 15 min)
+
 - Fix typos: `paidDate` → `paidAt`, `passwordHash` → `password`
 - Add missing TODO-cast patterns for schema gaps
 - Fix isolatedModules export type issues
 
 **Phase 2: Model Type Extensions** (Est. 20 min)
+
 - Extend interface definitions for missing properties
 - Fix BookingModel and ProjectModel type conversions
 - Add proper method signatures
 
 **Phase 3: Test File Updates** (Est. 25 min)
+
 - Update finance-pack.test.ts with correct types
 - Fix Session type in TopBar.test.tsx
 - Resolve missing module imports in context/provider tests
 
 **Phase 4: Final Verification** (Est. 10 min)
+
 - Run `pnpm exec tsc --noEmit` → 0 errors target
 - Update IMPLEMENTATION_AUDIT_REPORT.md with final counts
 - Create technical debt issues for all TODO comments
@@ -215,6 +221,7 @@ All tactical casts have been documented with TODO comments for future proper fix
 - **TODO(type-safety)**: Missing type definitions for RFQ/Souq models (11 casts, 5 files)
 
 **Estimated Effort for Proper Fixes**:
+
 - WorkOrder schema migration: 8-12 hours (schema update + data migration + 8 file updates)
 - RFQ/Souq type definitions: 4-6 hours (schema review + interface definitions)
 

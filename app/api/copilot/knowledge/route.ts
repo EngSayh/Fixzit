@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { upsertKnowledgeDocument } from "@/server/copilot/retrieval";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
 
 const docSchema = z.object({
   slug: z.string(),
@@ -16,11 +16,11 @@ const docSchema = z.object({
   locale: z.enum(["en", "ar"]).optional(),
   tags: z.array(z.string()).optional(),
   source: z.string().optional(),
-  checksum: z.string().optional()
+  checksum: z.string().optional(),
 });
 
 const payloadSchema = z.object({
-  docs: z.array(docSchema)
+  docs: z.array(docSchema),
 });
 
 export const runtime = "nodejs";
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
   for (const doc of payload.docs) {
     await upsertKnowledgeDocument({
       ...doc,
-      orgId: doc.orgId || undefined
+      orgId: doc.orgId || undefined,
     });
   }
 
