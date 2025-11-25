@@ -143,14 +143,19 @@ export async function attemptLogin(page: Page, identifier: string, password: str
 
   try {
     // Wait for either success redirect, error message, or timeout
+    // Each branch has catch handler to prevent unhandled rejections from losing promises
     const raceResult = await Promise.race([
-      page.waitForURL(successPattern, { timeout: 20000 }).then(() => ({ success: true })),
-      errorLocator.first().waitFor({ state: 'visible', timeout: 20000 }).then(async () => ({
-        success: false,
-        errorText: await errorLocator.first().innerText().catch(() => 'Login error displayed'),
-      })),
+      page.waitForURL(successPattern, { timeout: 20000 })
+        .then(() => ({ success: true }))
+        .catch(() => null), // Losing branch - swallow rejection
+      errorLocator.first().waitFor({ state: 'visible', timeout: 20000 })
+        .then(async () => ({
+          success: false,
+          errorText: await errorLocator.first().innerText().catch(() => 'Login error displayed'),
+        }))
+        .catch(() => null), // Losing branch - swallow rejection
       page.waitForTimeout(20000).then(() => ({ success: false, errorText: 'Login timeout - no redirect or error' })),
-    ]);
+    ]).then(result => result || { success: false, errorText: 'All branches timed out' });
 
     resultDetails.success = raceResult.success;
     resultDetails.errorText = raceResult.errorText;

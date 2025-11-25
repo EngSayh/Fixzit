@@ -59,7 +59,8 @@ test.describe("lib/paytabs - createPaymentPage (default base URL)", () => {
       });
 
       // Body fields
-      const body = JSON.parse(calls[0][1].body);
+      const bodyStr = calls[0][1].body;
+      const body = typeof bodyStr === 'string' ? JSON.parse(bodyStr) : bodyStr;
       expect(body.profile_id).toBe("test-profile-id");
       expect(body.tran_type).toBe("sale");
       expect(body.tran_class).toBe("ecom");
@@ -198,7 +199,8 @@ test.describe("lib/paytabs - createPaymentPage (default base URL)", () => {
     const originalFetch = globalThis.fetch;
     let lastBody: any;
     globalThis.fetch = ((...args: any[]) => {
-      lastBody = JSON.parse(args[1]?.body);
+      const bodyStr = args[1]?.body;
+      lastBody = typeof bodyStr === 'string' ? JSON.parse(bodyStr) : bodyStr;
       return Promise.resolve({
         json: async () => ({ redirect_url: "url", tran_ref: "ref" }),
       } as any);
@@ -339,7 +341,8 @@ test.describe("lib/paytabs - createPaymentPage (default base URL)", () => {
     const originalFetch = globalThis.fetch;
     let bodyObj: any;
     globalThis.fetch = ((...args: any[]) => {
-      bodyObj = JSON.parse(args[1]?.body);
+      const bodyStr = args[1]?.body;
+      bodyObj = typeof bodyStr === 'string' ? JSON.parse(bodyStr) : bodyStr;
       return Promise.resolve({
         json: async () => ({ redirect_url: "url", tran_ref: "ref" }),
       } as any);

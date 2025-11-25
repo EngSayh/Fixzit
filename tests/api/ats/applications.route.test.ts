@@ -112,4 +112,33 @@ describe('API /api/ats/applications', () => {
     expect(filter.candidateId.toString()).toBe(candidateId);
     expect(ApplicationMock.countDocuments).toHaveBeenCalledWith(filter);
   });
+
+  it('returns 403 when user lacks ATS access', async () => {
+    // Mock atsRBAC to return forbidden
+    const { atsRBAC } = await import('@/lib/ats/rbac');
+    (atsRBAC as Mock).mockReturnValue({
+      status: 403,
+      body: { error: 'Access denied' }
+    });
+
+    const res = await callGET('?page=1');
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toContain('Access denied');
+    expect(ApplicationMock.find).not.toHaveBeenCalled();
+  });
+
+  it('returns 403 when user is not from correct org', async () => {
+    // Mock atsRBAC to return forbidden
+    const { atsRBAC } = await import('@/lib/ats/rbac');
+    (atsRBAC as Mock).mockReturnValue({
+      status: 403,
+      body: { error: 'Access denied - organization mismatch' }
+    });
+
+    const res = await callGET('?page=1');
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toContain('Access denied');
+  });
 });

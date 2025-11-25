@@ -120,7 +120,7 @@
     "check:mock-flags": "node scripts/check-mock-flags.js",
     "lint:md": "markdownlint \"**/*.md\" \"!node_modules\" \"!.next\"",
     "lint:md:fix": "markdownlint --fix \"**/*.md\" \"!node_modules\" \"!.next\"",
-    "guard:fm-hooks": "node -e \"const {execSync} = require('child_process'); try { execSync('which rg', {stdio: 'ignore'}); execSync('rg -n \\'eslint-disable react-hooks/rules-of-hooks\\' app/fm'); console.log('❌ Found react-hooks/rules-of-hooks disables in app/fm (use FmGuardedPage)'); process.exit(1); } catch(e) { if (e.status === 1) process.exit(0); }\"",
+    "guard:fm-hooks": "node -e \"const {execSync} = require('child_process'); try { const result = execSync('grep -rn \\'eslint-disable react-hooks/rules-of-hooks\\' app/fm 2>/dev/null || true', {encoding: 'utf8'}); if (result.trim()) { console.log('❌ Found react-hooks/rules-of-hooks disables in app/fm (use FmGuardedPage)'); process.exit(1); } } catch(e) { }\"",
     "health": "bash scripts/system-health-check.sh",
     "health:watch": "watch -n 30 'bash scripts/system-health-check.sh'",
     "prepare": "simple-git-hooks"

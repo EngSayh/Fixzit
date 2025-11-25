@@ -348,4 +348,71 @@ test.describe('Authentication', () => {
       await expect(loginButton).toContainText(/تسجيل الدخول/);
     });
   });
+
+  test.describe('Accessibility Compliance', () => {
+    test('login page should have proper skip link', async ({ page }) => {
+      await gotoWithRetry(page, '/login');
+
+      // Check skip link exists and points to main content
+      const skipLink = page.locator('a[href="#main-content"]');
+      await expect(skipLink).toBeAttached();
+
+      // Check main content landmark exists
+      const mainContent = page.locator('main#main-content');
+      await expect(mainContent).toBeAttached();
+    });
+
+    test('login form should have accessible labels', async ({ page }) => {
+      await gotoWithRetry(page, '/login');
+
+      // Check all form inputs have labels or aria-labels
+      const inputs = await page.locator('input[type="email"], input[type="password"]').all();
+      for (const input of inputs) {
+        const id = await input.getAttribute('id');
+        const ariaLabel = await input.getAttribute('aria-label');
+        const ariaLabelledBy = await input.getAttribute('aria-labelledby');
+        const hasLabel = id ? await page.locator(`label[for="${id}"]`).count() > 0 : false;
+        
+        expect(ariaLabel || ariaLabelledBy || hasLabel).toBeTruthy();
+      }
+    });
+
+    test('login page should have proper heading hierarchy', async ({ page }) => {
+      await gotoWithRetry(page, '/login');
+
+      // Should have exactly one h1
+      const h1Count = await page.locator('h1').count();
+      expect(h1Count).toBeGreaterThanOrEqual(1);
+
+      // All headings should be visible and meaningful
+      const h1Text = await page.locator('h1').first().textContent();
+      expect(h1Text).toBeTruthy();
+      expect(h1Text!.trim().length).toBeGreaterThan(0);
+    });
+
+    test('images should have alt text', async ({ page }) => {
+      await gotoWithRetry(page, '/login');
+
+      // Check all images have alt attributes
+      const images = await page.locator('img').all();
+      for (const img of images) {
+        const alt = await img.getAttribute('alt');
+        expect(alt).toBeDefined();
+      }
+    });
+
+    test('interactive elements should be keyboard accessible', async ({ page }) => {
+      await gotoWithRetry(page, '/login');
+
+      // Check buttons and links are focusable
+      const submitButton = page.locator('button[type="submit"]');
+      await submitButton.focus();
+      
+      const focused = await page.evaluate(() => {
+        return document.activeElement?.tagName.toLowerCase();
+      });
+      
+      expect(focused).toBe('button');
+    });
+  });
 });

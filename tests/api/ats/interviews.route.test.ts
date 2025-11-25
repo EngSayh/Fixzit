@@ -157,4 +157,56 @@ describe('API /api/ats/interviews', () => {
     expect(payload.scheduledAt).toBeInstanceOf(Date);
     expect(payload.metadata).toEqual({ source: 'panel' });
   });
+
+  it('returns 403 when user lacks ATS access on POST', async () => {
+    // Mock atsRBAC to return forbidden
+    const { atsRBAC } = await import('@/lib/ats/rbac');
+    (atsRBAC as Mock).mockReturnValue({
+      status: 403,
+      body: { error: 'Access denied' }
+    });
+
+    const appId = new Types.ObjectId();
+    const req = {
+      json: async () => ({
+        applicationId: appId.toHexString(),
+        scheduledAt: '2025-01-20T10:00:00Z',
+        stage: 'technical',
+        status: 'scheduled',
+        duration: 60,
+        interviewers: [],
+      } as InterviewRequestBody)
+    } as NextRequest;
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toContain('Access denied');
+    expect(InterviewMock.create).not.toHaveBeenCalled();
+  });
+
+  it('returns 403 when user tries to access other org interviews', async () => {
+    const { atsRBAC } = await import('@/lib/ats/rbac');
+    (atsRBAC as Mock).mockReturnValue({
+      status: 403,
+      body: { error: 'Organization mismatch' }
+    });
+
+    const appId = new Types.ObjectId();
+    const req = {
+      json: async () => ({
+        applicationId: appId.toHexString(),
+        scheduledAt: '2025-01-20T10:00:00Z',
+        stage: 'technical',
+        status: 'scheduled',
+        duration: 60,
+        interviewers: [],
+      } as InterviewRequestBody)
+    } as NextRequest;
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toContain('Organization mismatch');
+  });
 });
