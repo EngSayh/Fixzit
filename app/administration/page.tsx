@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import AdminNotificationsTab from "@/components/admin/AdminNotificationsTab";
 import CommunicationDashboard from "@/components/admin/CommunicationDashboard";
+import RoleBadge from "@/components/admin/RoleBadge";
 import { logger } from "@/lib/logger";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useAuthRbac } from "@/hooks/useAuthRbac";
@@ -715,9 +716,7 @@ const AdminModule: React.FC = () => {
                       <div className="text-sm text-gray-500">{user.email}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary/20 text-secondary-foreground">
-                        {user.role}
-                      </span>
+                      <RoleBadge role={user.role} size="sm" />
                     </td>
                     <td className="px-6 py-4">
                       <span
