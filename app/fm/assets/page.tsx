@@ -43,7 +43,7 @@ export default function AssetsPage() {
   return (
     <FmGuardedPage moduleId="administration">
       {({ orgId, supportBanner }) => (
-        <AssetsPageContent orgId={orgId!} supportBanner={supportBanner} />
+        <AssetsPageContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );

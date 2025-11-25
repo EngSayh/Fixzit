@@ -335,7 +335,7 @@ describe('Finance Pack E2E Tests', () => {
       expect(payment.unallocatedAmount).toBe(0); // Fully allocated
 
       // TYPESCRIPT FIX: Explicit types for reduce callback parameters
-      const totalAllocated = allocations.reduce((sum: number, alloc) => {
+      const totalAllocated = allocations.reduce((sum: number, alloc: { amount?: number | string }) => {
         const amount = typeof alloc.amount === 'number' ? alloc.amount : 0;
         return sum + amount;
       }, 0);

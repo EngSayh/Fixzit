@@ -4,12 +4,10 @@ const BASE = "http://localhost:3000";
 const user = {
   id: "u-admin-1",
   role: "FM_MANAGER",
-  orgId: "org-001"
+  orgId: "org_1"
 };
 
-type CallInit = RequestInit & { headers?: HeadersInit };
-
-async function call(path: string, init: CallInit = {}) {
+async function call(path: string, init: RequestInit = {}) {
   init.headers = { ...(init.headers||{}), "x-user": JSON.stringify(user), "content-type":"application/json" };
   const res = await fetch(BASE + path, init);
   const txt = await res.text();

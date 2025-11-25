@@ -57,9 +57,9 @@ const sarCurrencyFormatter = new Intl.NumberFormat('en-SA', {
 
 export default function TenantsPage() {
   return (
-    <FmGuardedPage moduleId="tenants">
+    <FmGuardedPage moduleId="tenant-management">
       {({ orgId, supportBanner }) => (
-        <TenantsContent orgId={orgId!} supportBanner={supportBanner} />
+        <TenantsContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );

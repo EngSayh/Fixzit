@@ -85,10 +85,10 @@ vi.mock('@/server/security/rateLimitKey', () => ({
 }));
 
 // Import after mocks
-let POST: any;
-let NextResponse: any;
-let getDatabase: any;
-let SupportTicket: any;
+let POST: (req: NextRequest) => Promise<unknown>;
+let NextResponse: { json: ReturnType<typeof vi.fn> };
+let getDatabase: ReturnType<typeof vi.fn>;
+let SupportTicket: { create: ReturnType<typeof vi.fn> };
 
 beforeAll(async () => {
   // Import the route handler
@@ -137,7 +137,7 @@ describe('POST /api/support/incidents', () => {
     vi.useRealTimers();
   });
 
-  function mkReq(body: any): NextRequest {
+  function mkReq(body: unknown): NextRequest {
     return { 
       json: async () => body,
       headers: new Map([['x-forwarded-for', '127.0.0.1']]),

@@ -1,13 +1,15 @@
 import Journal from '@/server/models/finance/Journal';
 
 describe('inspect Journal module', () => {
-  it('logs shape', () => {
+  it('verifies Journal module structure', () => {
     const journalAny = Journal as unknown as Record<string, unknown>;
     const defaultExport = (journalAny as { default?: Record<string, unknown> }).default ?? {};
 
-    console.log('Journal is', typeof Journal);
-    console.log('Journal keys', Object.keys(journalAny));
-    console.log('Journal.default type', typeof defaultExport);
-    console.log('Journal.default keys', Object.keys(defaultExport));
+    // Verify Journal is defined and has expected structure
+    expect(typeof Journal).toBe('function');
+    expect(Object.keys(journalAny).length).toBeGreaterThan(0);
+    expect(typeof defaultExport).toBe('object');
+    // Journal should have schema property as it's a Mongoose model
+    expect(journalAny).toHaveProperty('schema');
   });
 });

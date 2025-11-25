@@ -48,9 +48,10 @@ describe("generateSlug", () => {
   });
 
   test("handles undefined/null at runtime defensively", () => {
-    const unsafeGenerateSlug = generateSlug as (value: unknown) => string;
-    expect(unsafeGenerateSlug(undefined)).toBe("");
-    expect(unsafeGenerateSlug(null)).toBe("");
+    // @ts-expect-error - Testing runtime behavior with invalid types
+    expect(generateSlug(undefined)).toBe("");
+    // @ts-expect-error - Testing runtime behavior with invalid types
+    expect(generateSlug(null)).toBe("");
   });
 
   test("collapses hyphen runs including leading/trailing ones created by normalization", () => {

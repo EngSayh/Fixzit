@@ -138,7 +138,7 @@ describe('/api/jobs/process POST', () => {
 
     const { POST } = await import('@/app/api/jobs/process/route');
 
-    const res = await POST(buildRequest({ type: 'email-invitation', maxJobs: 1 }) as any);
+    const res = await POST(buildRequest({ type: 'email-invitation', maxJobs: 1 }));
     const json = await (res as NextResponse).json();
 
     expect(res.status).toBe(200);

@@ -4,10 +4,10 @@ import { extractSkillsFromText, calculateExperienceFromText, scoreApplication } 
 describe('extractSkillsFromText', () => {
   it('returns empty array for empty or falsy input', () => {
     expect(extractSkillsFromText('')).toEqual([]);
-    // Test runtime behavior with invalid types (TypeScript allows these now)
-    const unsafeExtract = extractSkillsFromText as (value: unknown) => string[];
-    expect(unsafeExtract(undefined)).toEqual([]);
-    expect(unsafeExtract(null)).toEqual([]);
+    // @ts-expect-error - Testing runtime behavior with invalid types
+    expect(extractSkillsFromText(undefined)).toEqual([]);
+    // @ts-expect-error - Testing runtime behavior with invalid types
+    expect(extractSkillsFromText(null)).toEqual([]);
   });
 
   it('extracts lowercase unique tokens and removes common stopwords', () => {

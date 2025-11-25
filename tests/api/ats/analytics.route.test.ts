@@ -57,7 +57,7 @@ vi.mock('@/server/models/Job', () => ({
   Job: JobMock
 }));
 
-type ApiResponse = { status: number; body: Record<string, unknown> };
+type ApiResponse<TBody = Record<string, unknown>> = { status: number; body: TBody };
 let GET: (req: NextRequest) => Promise<ApiResponse>;
 let atsRBAC: ReturnType<typeof vi.fn>;
 
@@ -94,7 +94,7 @@ describe('API /api/ats/analytics', () => {
   };
 
   it('rejects invalid period values', async () => {
-    const res = await callGET('?period=0');
+    const res = await callGET('?period=0') as ApiResponse<{ error: string }>;
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('Invalid period');
   });

@@ -222,7 +222,7 @@ describe('createPaymentPage', () => {
   });
 
   it('returns generic error when fetch throws', async () => {
-    const { createPaymentPage } = lib as any;
+    const { createPaymentPage } = lib as PayTabsHelpers;
 
     // Throw error
     // @ts-ignore
@@ -264,7 +264,7 @@ describe('verifyPayment', () => {
   });
 
   it('POSTs to query endpoint and returns parsed JSON', async () => {
-    const { verifyPayment } = lib as any;
+    const { verifyPayment } = lib as PayTabsHelpers;
 
     mockFetchOnce(async (input, init) => {
       expect(String(input)).toBe('https://api.example.com/payment/query');
@@ -283,7 +283,7 @@ describe('verifyPayment', () => {
   });
 
   it('rethrows on fetch error', async () => {
-    const { verifyPayment } = lib as any;
+    const { verifyPayment } = lib as PayTabsHelpers;
 
     // @ts-ignore
     global.fetch = vi.fn(async () => {
@@ -316,7 +316,7 @@ describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
   }
 
   it('returns false when server key missing or signature missing', async () => {
-    const { validateCallbackRaw } = lib as any;
+    const { validateCallbackRaw } = lib as PayTabsHelpers;
 
     // No server key
     const restore = setEnv({ PAYTABS_API_SERVER_KEY: undefined, PAYTABS_SERVER_KEY: undefined });
@@ -329,7 +329,7 @@ describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
   });
 
   it('returns true on exact signature match (constant-time compare)', async () => {
-    const { validateCallbackRaw } = lib as any;
+    const { validateCallbackRaw } = lib as PayTabsHelpers;
     // signature bytes -> hex "0a0b0c"
     const bytes = new Uint8Array([0x0a, 0x0b, 0x0c]);
     setCryptoMock(bytes);
@@ -340,7 +340,7 @@ describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
   });
 
   it('returns false on length mismatch', async () => {
-    const { validateCallbackRaw } = lib as any;
+    const { validateCallbackRaw } = lib as PayTabsHelpers;
     const bytes = new Uint8Array([0xde, 0xad, 0xbe, 0xef]); // hex "deadbeef"
     setCryptoMock(bytes);
     const notSameLen = 'deadbee'; // one nibble short
@@ -349,14 +349,14 @@ describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
   });
 
   it('returns false when any character differs', async () => {
-    const { validateCallbackRaw } = lib as any;
+    const { validateCallbackRaw } = lib as PayTabsHelpers;
     const bytes = new Uint8Array([0xaa, 0xbb]); // "aabb"
     setCryptoMock(bytes);
     expect(await validateCallbackRaw('raw', 'aaba')).toBe(false);
   });
 
   it('returns false on crypto error', async () => {
-    const { validateCallbackRaw } = lib as any;
+    const { validateCallbackRaw } = lib as PayTabsHelpers;
     // Force subtle.sign to throw
     vi.stubGlobal('crypto', {
       subtle: {
@@ -384,7 +384,7 @@ describe('constants and helpers', () => {
   });
 
   it('CURRENCIES includes SAR, USD, EUR, AED', () => {
-    const { CURRENCIES } = lib as any;
+    const { CURRENCIES } = lib as PayTabsHelpers;
     expect(CURRENCIES.SAR).toBe('SAR');
     expect(CURRENCIES.USD).toBe('USD');
     expect(CURRENCIES.EUR).toBe('EUR');
@@ -392,7 +392,7 @@ describe('constants and helpers', () => {
   });
 
   it('getAvailablePaymentMethods returns enabled list with expected shapes', () => {
-    const { getAvailablePaymentMethods, PAYMENT_METHODS } = lib as any;
+    const { getAvailablePaymentMethods, PAYMENT_METHODS } = lib as PayTabsHelpers;
     const list = getAvailablePaymentMethods();
     expect(Array.isArray(list)).toBe(true);
     // ensure unique ids and all enabled

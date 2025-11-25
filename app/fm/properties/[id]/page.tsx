@@ -41,9 +41,9 @@ interface PropertyUnit {
 
 export default function PropertyDetailsPage() {
   return (
-    <FmGuardedPage moduleId="properties">
+    <FmGuardedPage moduleId="property-management">
       {({ orgId, supportBanner }) => (
-        <PropertyDetailsContent orgId={orgId!} supportBanner={supportBanner} />
+        <PropertyDetailsContent orgId={orgId} supportBanner={supportBanner} />
       )}
     </FmGuardedPage>
   );

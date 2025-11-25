@@ -374,7 +374,7 @@ describe('GET /api/help-articles', () => {
     expect(Number.isNaN(cursor._skipArg)).toBe(true)
   })
 
-  test('handles errors and returns 500 with error message', async () => {
+  test('handles errors gracefully and returns empty results', async () => {
     ;(getDatabase as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('boom'))
     const res = await GET(makeReq('http://localhost/api/help-articles'))
     expect(res).toMatchObject({
