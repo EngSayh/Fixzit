@@ -6,14 +6,16 @@ on:
   pull_request:
   push:
     branches: [main, feature/*, develop]
+  workflow_dispatch:
 
 permissions:
   contents: read
   actions: read
+  checks: write
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       # Secrets are configured in GitHub Settings > Secrets and variables > Actions
       NODE_OPTIONS: --max-old-space-size=8192
