@@ -99,7 +99,7 @@ async function createBackup(): Promise<void> {
 /**
  * Migrate a single user document
  */
-function migrateUser(user: any): { modified: boolean; changes: string[] } {
+function migrateUser(user: Record<string, unknown> & { professional?: Record<string, unknown>; _id?: unknown }): { modified: boolean; changes: string[] } {
   const changes: string[] = [];
   let modified = false;
   
@@ -167,7 +167,7 @@ async function runMigration(): Promise<void> {
   }
   
   // Build query
-  const query: any = {};
+  const query: { orgId?: string } = {};
   if (ORG_ID) {
     query.orgId = ORG_ID;
   }

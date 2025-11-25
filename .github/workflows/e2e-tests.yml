@@ -156,7 +156,7 @@ jobs:
         env:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
             echo "Using generated secrets for forked PR (GitHub secrets are unavailable)."
