@@ -167,7 +167,6 @@ jobs:
             echo "GOOGLE_CLIENT_SECRET=" >> "$GITHUB_ENV"
           else
             # Use shell parameter expansion for secret checking and fallback
-            # Secrets loaded from env block
             if [ -z "${NEXTAUTH_SECRET}" ]; then
               echo "Missing NEXTAUTH_SECRET secret for internal run." >&2
               exit 1
