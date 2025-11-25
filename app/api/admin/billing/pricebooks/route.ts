@@ -1,12 +1,12 @@
-import { NextRequest} from 'next/server';
-import { dbConnect } from '@/db/mongoose';
-import PriceBook from '@/server/models/PriceBook';
-import { requireSuperAdmin } from '@/lib/authz';
+import { NextRequest } from "next/server";
+import { dbConnect } from "@/db/mongoose";
+import PriceBook from "@/server/models/PriceBook";
+import { requireSuperAdmin } from "@/lib/authz";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { getClientIP } from "@/server/security/headers";
 
 /**
  * @openapi
@@ -40,5 +40,3 @@ export async function POST(req: NextRequest) {
   const doc = await PriceBook.create(body);
   return createSecureResponse(doc, 200, req);
 }
-
-

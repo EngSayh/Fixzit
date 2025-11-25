@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { AlertCircle, Check, Smartphone, ArrowLeft } from 'lucide-react';
-import { logger } from '@/lib/logger';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { AlertCircle, Check, Smartphone, ArrowLeft } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface OTPVerificationProps {
   identifier: string;
@@ -12,7 +12,11 @@ interface OTPVerificationProps {
   expiresIn: number;
   devCode?: string;
   onVerified: (otpToken: string) => void;
-  onResend: () => Promise<{ success: boolean; expiresIn?: number; error?: string }>;
+  onResend: () => Promise<{
+    success: boolean;
+    expiresIn?: number;
+    error?: string;
+  }>;
   onBack: () => void;
   t: (key: string, fallback: string) => string;
   isRTL: boolean;
@@ -29,9 +33,9 @@ export default function OTPVerification({
   t,
   isRTL,
 }: OTPVerificationProps) {
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [resending, setResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(initialExpiresIn);
@@ -77,24 +81,26 @@ export default function OTPVerification({
     e.preventDefault();
 
     if (otp.length !== 6) {
-      setError(t('otp.errors.invalid', 'Please enter a valid 6-digit code'));
+      setError(t("otp.errors.invalid", "Please enter a valid 6-digit code"));
       return;
     }
 
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const response = await fetch('/api/auth/otp/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, otp }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || t('otp.errors.verifyFailed', 'Failed to verify OTP'));
+        setError(
+          data.error || t("otp.errors.verifyFailed", "Failed to verify OTP"),
+        );
         setLoading(false);
         return;
       }
@@ -102,35 +108,47 @@ export default function OTPVerification({
       // OTP verified successfully
       onVerified(data.data.otpToken ?? data.data.authToken);
     } catch (err) {
-      logger.error('OTP verification error', err instanceof Error ? err : new Error(String(err)));
-      setError(t('otp.errors.networkError', 'Network error. Please try again.'));
+      logger.error(
+        "OTP verification error",
+        err instanceof Error ? err : new Error(String(err)),
+      );
+      setError(
+        t("otp.errors.networkError", "Network error. Please try again."),
+      );
       setLoading(false);
     }
   };
 
   const handleResend = async () => {
     setResending(true);
-    setError('');
+    setError("");
 
     try {
       const result = await onResend();
       if (!result.success) {
-        setError(result.error || t('otp.errors.resendFailed', 'Failed to resend OTP'));
+        setError(
+          result.error || t("otp.errors.resendFailed", "Failed to resend OTP"),
+        );
         setResending(false);
         return;
       }
 
       // Reset timers
-      if (typeof result.expiresIn === 'number') {
+      if (typeof result.expiresIn === "number") {
         setTimeRemaining(result.expiresIn);
       } else {
         setTimeRemaining(initialExpiresIn);
       }
       setResendCooldown(60); // 60 second cooldown
-      setOtp('');
+      setOtp("");
     } catch (err) {
-      logger.error('OTP resend error', err instanceof Error ? err : new Error(String(err)));
-      setError(t('otp.errors.networkError', 'Network error. Please try again.'));
+      logger.error(
+        "OTP resend error",
+        err instanceof Error ? err : new Error(String(err)),
+      );
+      setError(
+        t("otp.errors.networkError", "Network error. Please try again."),
+      );
     } finally {
       setResending(false);
     }
@@ -139,7 +157,7 @@ export default function OTPVerification({
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -150,45 +168,53 @@ export default function OTPVerification({
           <Smartphone className="w-8 h-8 text-primary" />
         </div>
         <h2 className="text-2xl font-bold text-foreground mb-2">
-          {t('otp.title', 'Enter Verification Code')}
+          {t("otp.title", "Enter Verification Code")}
         </h2>
         <p className="text-muted-foreground text-sm">
-          {t('otp.subtitle', 'We sent a 6-digit code to')}
+          {t("otp.subtitle", "We sent a 6-digit code to")}
           <br />
-      <span className="font-medium text-foreground">{maskedPhone}</span>
-    </p>
-  </div>
-
-  {devCode && (
-    <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4 space-y-2 text-sm">
-      <p className="font-semibold text-primary">
-        {t('otp.devModeTitle', 'Developer mode active')}
-      </p>
-      <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <span className="font-mono text-2xl tracking-widest text-primary">
-          {devCode}
-        </span>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setOtp(devCode)}
-        >
-          {t('otp.useDevCode', 'Auto-fill code')}
-        </Button>
+          <span className="font-medium text-foreground">{maskedPhone}</span>
+        </p>
       </div>
-      <p className="text-xs text-muted-foreground">
-        {t('otp.devModeDescription', 'Shown only in local development to speed up testing.')}
-      </p>
-    </div>
-  )}
+
+      {devCode && (
+        <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4 space-y-2 text-sm">
+          <p className="font-semibold text-primary">
+            {t("otp.devModeTitle", "Developer mode active")}
+          </p>
+          <div
+            className={`flex items-center justify-between gap-3 ${isRTL ? "flex-row-reverse" : ""}`}
+          >
+            <span className="font-mono text-2xl tracking-widest text-primary">
+              {devCode}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setOtp(devCode)}
+            >
+              {t("otp.useDevCode", "Auto-fill code")}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {t(
+              "otp.devModeDescription",
+              "Shown only in local development to speed up testing.",
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Form */}
       <form onSubmit={handleVerify} className="space-y-5">
         {/* OTP Input */}
         <div>
-          <label htmlFor="otp" className="block text-sm font-medium text-foreground mb-2">
-            {t('otp.label', 'Verification Code')}
+          <label
+            htmlFor="otp"
+            className="block text-sm font-medium text-foreground mb-2"
+          >
+            {t("otp.label", "Verification Code")}
           </label>
           <Input
             id="otp"
@@ -199,12 +225,12 @@ export default function OTPVerification({
             placeholder="000000"
             value={otp}
             onChange={(e) => {
-              const value = e.target.value.replace(/\D/g, '');
+              const value = e.target.value.replace(/\D/g, "");
               setOtp(value);
-              if (error) setError('');
+              if (error) setError("");
             }}
             className={`h-14 text-center text-2xl tracking-widest font-mono ${
-              error ? 'border-destructive focus:ring-destructive' : ''
+              error ? "border-destructive focus:ring-destructive" : ""
             }`}
             disabled={loading || timeRemaining === 0}
             autoFocus
@@ -212,12 +238,12 @@ export default function OTPVerification({
           />
           {timeRemaining > 0 && (
             <p className="mt-2 text-xs text-muted-foreground text-center">
-              {t('otp.expiresIn', 'Expires in')} {formatTime(timeRemaining)}
+              {t("otp.expiresIn", "Expires in")} {formatTime(timeRemaining)}
             </p>
           )}
           {timeRemaining === 0 && (
             <p className="mt-2 text-xs text-destructive text-center">
-              {t('otp.expired', 'Code expired. Please request a new one.')}
+              {t("otp.expired", "Code expired. Please request a new one.")}
             </p>
           )}
         </div>
@@ -228,7 +254,7 @@ export default function OTPVerification({
             role="alert"
             aria-live="assertive"
             className={`flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-2xl text-destructive ${
-              isRTL ? 'flex-row-reverse' : ''
+              isRTL ? "flex-row-reverse" : ""
             }`}
           >
             <AlertCircle className="h-5 w-5 flex-shrink-0" />
@@ -243,14 +269,18 @@ export default function OTPVerification({
           className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
-            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div
+              className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              {t('otp.verifying', 'Verifying...')}
+              {t("otp.verifying", "Verifying...")}
             </div>
           ) : (
-            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div
+              className={`flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
               <Check className="h-5 w-5" />
-              {t('otp.verify', 'Verify & Continue')}
+              {t("otp.verify", "Verify & Continue")}
             </div>
           )}
         </Button>
@@ -261,7 +291,7 @@ export default function OTPVerification({
         {/* Resend */}
         <div className="text-center">
           <p className="text-sm text-muted-foreground mb-2">
-            {t('otp.didntReceive', "Didn't receive the code?")}
+            {t("otp.didntReceive", "Didn't receive the code?")}
           </p>
           <button
             type="button"
@@ -270,10 +300,10 @@ export default function OTPVerification({
             className="text-sm text-primary hover:text-primary font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {resending
-              ? t('otp.resending', 'Sending...')
+              ? t("otp.resending", "Sending...")
               : resendCooldown > 0
-              ? `${t('otp.resendIn', 'Resend in')} ${resendCooldown}s`
-              : t('otp.resend', 'Resend Code')}
+                ? `${t("otp.resendIn", "Resend in")} ${resendCooldown}s`
+                : t("otp.resend", "Resend Code")}
           </button>
         </div>
 
@@ -283,11 +313,11 @@ export default function OTPVerification({
           onClick={onBack}
           disabled={loading}
           className={`w-full py-3 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-            isRTL ? 'flex-row-reverse' : ''
+            isRTL ? "flex-row-reverse" : ""
           }`}
         >
           <ArrowLeft className="h-4 w-4" />
-          {t('otp.backToLogin', 'Back to Login')}
+          {t("otp.backToLogin", "Back to Login")}
         </button>
       </div>
     </div>

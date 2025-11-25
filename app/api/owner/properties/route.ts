@@ -1,22 +1,22 @@
 /**
  * Owner Portal API - Properties List
- * 
+ *
  * GET /api/owner/properties
  * Returns all properties owned by the authenticated owner
- * 
+ *
  * Query Parameters:
  * - includeFinancials: boolean (default: false) - Include financial summary
  * - includeUnits: boolean (default: true) - Include unit details
- * 
+ *
  * Requires: BASIC subscription
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { Property } from '@/server/models/Property';
-import { requireSubscription } from '@/server/middleware/subscriptionCheck';
-import { setTenantContext } from '@/server/plugins/tenantIsolation';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Property } from "@/server/models/Property";
+import { requireSubscription } from "@/server/middleware/subscriptionCheck";
+import { setTenantContext } from "@/server/plugins/tenantIsolation";
+import { logger } from "@/lib/logger";
 
 interface PropertyUnit {
   status: string;
@@ -32,26 +32,26 @@ export async function GET(req: NextRequest) {
   try {
     // Check subscription
     const subCheck = await requireSubscription(req, {
-      requirePlan: 'BASIC'
+      requirePlan: "BASIC",
     });
-    
+
     if (subCheck.error) {
       return subCheck.error;
     }
-    
+
     const { ownerId, orgId } = subCheck;
-    
+
     // Parse query parameters
     const { searchParams } = new URL(req.url);
-    const includeFinancials = searchParams.get('includeFinancials') === 'true';
-    const includeUnits = searchParams.get('includeUnits') !== 'false';
-    
+    const includeFinancials = searchParams.get("includeFinancials") === "true";
+    const includeUnits = searchParams.get("includeUnits") !== "false";
+
     // Connect to database
     await connectToDatabase();
-    
+
     // Set tenant context for automatic filtering
     setTenantContext({ orgId });
-    
+
     // Build projection
     const projection: Record<string, number> = {
       code: 1,
@@ -60,69 +60,74 @@ export async function GET(req: NextRequest) {
       type: 1,
       subtype: 1,
       address: 1,
-      'details.totalArea': 1,
-      'details.bedrooms': 1,
-      'details.bathrooms': 1,
-      'details.occupancyRate': 1,
-      'ownerPortal.ownerNickname': 1,
-      'ownerPortal.agentId': 1,
-      'ownerPortal.advertisementNumber': 1,
-      'ownerPortal.advertisementExpiry': 1,
+      "details.totalArea": 1,
+      "details.bedrooms": 1,
+      "details.bathrooms": 1,
+      "details.occupancyRate": 1,
+      "ownerPortal.ownerNickname": 1,
+      "ownerPortal.agentId": 1,
+      "ownerPortal.advertisementNumber": 1,
+      "ownerPortal.advertisementExpiry": 1,
       createdAt: 1,
-      updatedAt: 1
+      updatedAt: 1,
     };
-    
+
     if (includeFinancials) {
-      projection['financial.currentValue'] = 1;
-      projection['financial.monthlyRent'] = 1;
-      projection['financial.annualYield'] = 1;
+      projection["financial.currentValue"] = 1;
+      projection["financial.monthlyRent"] = 1;
+      projection["financial.annualYield"] = 1;
     }
-    
+
     if (includeUnits) {
       projection.units = 1;
     }
-    
+
     // Query properties
-    const properties = (await Property.find({
-      'ownerPortal.ownerId': ownerId
+    const properties = await Property.find({
+      "ownerPortal.ownerId": ownerId,
     })
-    .select(projection)
-    .sort({ name: 1 })
-    .lean());
-    
+      .select(projection)
+      .sort({ name: 1 })
+      .lean();
+
     // Calculate summary statistics
     const typedProperties = properties as unknown as PropertyDocument[];
     const summary = {
       totalProperties: typedProperties.length,
-      totalUnits: typedProperties.reduce((sum: number, p) => sum + (p.units?.length || 0), 0),
-      occupiedUnits: typedProperties.reduce((sum: number, p) => 
-        sum + (p.units?.filter((u) => u.status === 'OCCUPIED').length || 0), 0
+      totalUnits: typedProperties.reduce(
+        (sum: number, p) => sum + (p.units?.length || 0),
+        0,
       ),
-      averageOccupancy: 0
+      occupiedUnits: typedProperties.reduce(
+        (sum: number, p) =>
+          sum + (p.units?.filter((u) => u.status === "OCCUPIED").length || 0),
+        0,
+      ),
+      averageOccupancy: 0,
     };
-    
+
     if (summary.totalUnits > 0) {
-      summary.averageOccupancy = (summary.occupiedUnits / summary.totalUnits) * 100;
+      summary.averageOccupancy =
+        (summary.occupiedUnits / summary.totalUnits) * 100;
     }
-    
+
     return NextResponse.json({
       success: true,
       data: {
         properties,
-        summary
+        summary,
       },
-      subscription: subCheck.status
+      subscription: subCheck.status,
     });
-    
   } catch (error) {
-    logger.error('Error fetching owner properties', { error });
+    logger.error("Error fetching owner properties", { error });
     return NextResponse.json(
-      { 
+      {
         success: false,
-        error: 'Failed to fetch properties',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: "Failed to fetch properties",
+        message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

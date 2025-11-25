@@ -56,58 +56,63 @@ For each conflicting file, follow this pattern:
 
 #### 2. **Identify sections**
 
-   ```typescript
-   <<<<<<< HEAD (PR #84 - OURS)
-   // Your PR #84 code with enhancements
-   =======
-   // Main branch code
-   >>>>>>> main (THEIRS)
-   ```
+```typescript
+<<<<<<< HEAD (PR #84 - OURS)
+// Your PR #84 code with enhancements
+=======
+// Main branch code
+>>>>>>> main (THEIRS)
+```
 
 #### 3. **Apply merge strategy**
 
-   **For imports section:**
+**For imports section:**
 
-   ```typescript
-   // ✅ KEEP from PR #84 (OURS):
-   import { rateLimit } from '@/server/security/rateLimit';
-   import { createSecureResponse } from '@/server/security/headers';
-   import { zodValidationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
-   import { z } from 'zod';
-   
-   // ✅ ALSO KEEP any new imports from main (THEIRS)
-   // ... add them here if they exist
-   ```
+```typescript
+// ✅ KEEP from PR #84 (OURS):
+import { rateLimit } from "@/server/security/rateLimit";
+import { createSecureResponse } from "@/server/security/headers";
+import {
+  zodValidationError,
+  rateLimitError,
+  handleApiError,
+} from "@/server/utils/errorResponses";
+import { z } from "zod";
 
-   **For OpenAPI docs:**
+// ✅ ALSO KEEP any new imports from main (THEIRS)
+// ... add them here if they exist
+```
 
-   ```typescript
-   // ✅ KEEP from PR #84 (OURS):
-   /**
-    * @openapi
-    * /api/some/route:
-    *   post:
-    *     summary: Description
-    *     ...
-    */
-   ```
+**For OpenAPI docs:**
 
-   **For route handlers:**
+```typescript
+// ✅ KEEP from PR #84 (OURS):
+/**
+ * @openapi
+ * /api/some/route:
+ *   post:
+ *     summary: Description
+ *     ...
+ */
+```
 
-   ```typescript
-   export async function POST(req: NextRequest) {
-     // ✅ KEEP: Rate limiting from PR #84
-     const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-     const rl = rateLimit(`route-key:${clientIp}`, 20, 60_000);
-     if (!rl.allowed) return rateLimitError();
-     
-     // ✅ MERGE: Any new business logic from main goes here
-     // ... (copy from THEIRS section if present)
-     
-     // ✅ KEEP: Secure response from PR #84
-     return createSecureResponse({ data: result }, 200, req);
-   }
-   ```
+**For route handlers:**
+
+```typescript
+export async function POST(req: NextRequest) {
+  // ✅ KEEP: Rate limiting from PR #84
+  const clientIp =
+    req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+  const rl = rateLimit(`route-key:${clientIp}`, 20, 60_000);
+  if (!rl.allowed) return rateLimitError();
+
+  // ✅ MERGE: Any new business logic from main goes here
+  // ... (copy from THEIRS section if present)
+
+  // ✅ KEEP: Secure response from PR #84
+  return createSecureResponse({ data: result }, 200, req);
+}
+```
 
 #### 4. **Remove conflict markers**
 
@@ -117,9 +122,9 @@ For each conflicting file, follow this pattern:
 
 #### 5. **Save and stage**
 
-   ```bash
-   git add path/to/resolved/file.ts
-   ```
+```bash
+git add path/to/resolved/file.ts
+```
 
 ---
 
@@ -213,10 +218,15 @@ app/api/work-orders/import/route.ts
    import User from "@/modules/users/schema";
    import { z } from "zod";
    import bcrypt from "bcryptjs";
-   import { rateLimit } from '@/server/security/rateLimit';
-   import { zodValidationError, rateLimitError, duplicateKeyError, handleApiError } from '@/server/utils/errorResponses';
-   import { createSecureResponse } from '@/server/security/headers';
-   
+   import { rateLimit } from "@/server/security/rateLimit";
+   import {
+     zodValidationError,
+     rateLimitError,
+     duplicateKeyError,
+     handleApiError,
+   } from "@/server/utils/errorResponses";
+   import { createSecureResponse } from "@/server/security/headers";
+
    const signupSchema = z.object({
      firstName: z.string().min(1),
      lastName: z.string().min(1),
@@ -225,7 +235,7 @@ app/api/work-orders/import/route.ts
      userType: z.enum(["personal", "corporate", "vendor"]),
      // ... rest of schema
    });
-   
+
    /**
     * @openapi
     * /api/auth/signup:
@@ -248,30 +258,36 @@ app/api/work-orders/import/route.ts
    export async function POST(req: NextRequest) {
      try {
        // Rate limiting
-       const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+       const clientIp =
+         req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
        const rl = rateLimit(`auth-signup:${clientIp}`, 5, 900);
        if (!rl.allowed) {
          return rateLimitError();
        }
-   
+
        await connectToDatabase();
        const body = signupSchema.parse(await req.json());
-   
+
        // Business logic (merge from both branches if needed)
        let role = "TENANT";
        switch (body.userType) {
-         case "corporate": role = "CORPORATE_ADMIN"; break;
-         case "vendor": role = "VENDOR"; break;
-         default: role = "TENANT";
+         case "corporate":
+           role = "CORPORATE_ADMIN";
+           break;
+         case "vendor":
+           role = "VENDOR";
+           break;
+         default:
+           role = "TENANT";
        }
-   
+
        const hashedPassword = await bcrypt.hash(body.password, 12);
        const existingUser = await User.findOne({ email: body.email });
-       
+
        if (existingUser) {
          return duplicateKeyError();
        }
-   
+
        const newUser = await User.create({
          firstName: body.firstName,
          lastName: body.lastName,
@@ -280,18 +296,22 @@ app/api/work-orders/import/route.ts
          password: hashedPassword,
          // ... rest of fields
        });
-   
-       return createSecureResponse({
-         ok: true,
-         message: "User created successfully",
-         user: {
-           id: newUser._id,
-           email: newUser.email,
-           role: newUser.role,
+
+       return createSecureResponse(
+         {
+           ok: true,
+           message: "User created successfully",
+           user: {
+             id: newUser._id,
+             email: newUser.email,
+             role: newUser.role,
+           },
          },
-       }, 201, req);
+         201,
+         req,
+       );
      } catch (error: any) {
-       if (error.name === 'ZodError') {
+       if (error.name === "ZodError") {
          return zodValidationError(error);
        }
        return handleApiError(error);

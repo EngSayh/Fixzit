@@ -5,8 +5,8 @@
  * Addresses all critical and high security issues in project source code
  */
 
-const fs = require('fs').promises;
-const crypto = require('crypto');
+const fs = require("fs").promises;
+const crypto = require("crypto");
 
 // Security configuration
 const SECURITY_CONFIG = {
@@ -14,12 +14,12 @@ const SECURITY_CONFIG = {
   ENV_TEMPLATE: `
 # Security Configuration
 NODE_ENV=production
-JWT_SECRET=${crypto.randomBytes(64).toString('hex')}
-JWT_REFRESH_SECRET=${crypto.randomBytes(64).toString('hex')}
-DB_PASSWORD=${crypto.randomBytes(32).toString('hex')}
-ADMIN_DEFAULT_PASSWORD=${crypto.randomBytes(16).toString('hex')}
-ENCRYPTION_KEY=${crypto.randomBytes(32).toString('hex')}
-SESSION_SECRET=${crypto.randomBytes(32).toString('hex')}
+JWT_SECRET=${crypto.randomBytes(64).toString("hex")}
+JWT_REFRESH_SECRET=${crypto.randomBytes(64).toString("hex")}
+DB_PASSWORD=${crypto.randomBytes(32).toString("hex")}
+ADMIN_DEFAULT_PASSWORD=${crypto.randomBytes(16).toString("hex")}
+ENCRYPTION_KEY=${crypto.randomBytes(32).toString("hex")}
+SESSION_SECRET=${crypto.randomBytes(32).toString("hex")}
 
 # CORS Configuration
 CORS_ORIGIN=https://fixzit.co
@@ -106,7 +106,7 @@ function safeUpdateElement(element, content) {
     element.appendChild(temp.firstChild);
   }
 }
-`
+`,
 };
 
 // Fix functions for each file
@@ -158,8 +158,8 @@ async function seedDatabase() {
 
 module.exports = seedDatabase;`;
 
-  await fs.writeFile('database/seed-fixed.js', seedFile);
-  console.log('✅ Fixed database/seed.js - removed hardcoded passwords');
+  await fs.writeFile("database/seed-fixed.js", seedFile);
+  console.log("✅ Fixed database/seed.js - removed hardcoded passwords");
 }
 
 async function fixServerJS() {
@@ -230,8 +230,10 @@ app.listen(PORT, () => {
   console.log(\`Server running securely on port \${PORT}\`);
 });`;
 
-  await fs.writeFile('server-fixed.js', serverFile);
-  console.log('✅ Fixed server.js - added proper CORS configuration and security middleware');
+  await fs.writeFile("server-fixed.js", serverFile);
+  console.log(
+    "✅ Fixed server.js - added proper CORS configuration and security middleware",
+  );
 }
 
 async function fixPublicAppJS() {
@@ -322,39 +324,42 @@ document.addEventListener('DOMContentLoaded', () => {
   new FixzitApp();
 });`;
 
-  await fs.writeFile('public/app-fixed.js', appFile);
-  console.log('✅ Fixed public/app.js - removed localStorage token storage and innerHTML XSS vulnerabilities');
+  await fs.writeFile("public/app-fixed.js", appFile);
+  console.log(
+    "✅ Fixed public/app.js - removed localStorage token storage and innerHTML XSS vulnerabilities",
+  );
 }
 
 async function createEnvExample() {
-  await fs.writeFile('.env.example', SECURITY_CONFIG.ENV_TEMPLATE);
-  console.log('✅ Created .env.example with secure configuration template');
+  await fs.writeFile(".env.example", SECURITY_CONFIG.ENV_TEMPLATE);
+  console.log("✅ Created .env.example with secure configuration template");
 }
 
 // Main execution
 async function applySecurityFixes() {
-  console.log('🔒 Applying FIXZIT SOUQ Security Fixes...\n');
-  
+  console.log("🔒 Applying FIXZIT SOUQ Security Fixes...\n");
+
   try {
     // Ensure directories exist
-    await fs.mkdir('database', { recursive: true });
-    await fs.mkdir('public', { recursive: true });
-    
+    await fs.mkdir("database", { recursive: true });
+    await fs.mkdir("public", { recursive: true });
+
     // Apply fixes
     await fixDatabaseSeed();
     await fixServerJS();
     await fixPublicAppJS();
     await createEnvExample();
-    
-    console.log('\n🎉 Security fixes applied successfully!');
-    console.log('\n📋 Next steps:');
-    console.log('1. Install security packages: npm install helmet express-rate-limit express-mongo-sanitize cookie-parser isomorphic-dompurify');
-    console.log('2. Create .env file: cp .env.example .env');
-    console.log('3. Replace files with fixed versions');
-    console.log('4. Restart your application');
-    
+
+    console.log("\n🎉 Security fixes applied successfully!");
+    console.log("\n📋 Next steps:");
+    console.log(
+      "1. Install security packages: npm install helmet express-rate-limit express-mongo-sanitize cookie-parser isomorphic-dompurify",
+    );
+    console.log("2. Create .env file: cp .env.example .env");
+    console.log("3. Replace files with fixed versions");
+    console.log("4. Restart your application");
   } catch (error) {
-    console.error('❌ Error applying security fixes:', error);
+    console.error("❌ Error applying security fixes:", error);
   }
 }
 

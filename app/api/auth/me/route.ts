@@ -1,6 +1,6 @@
-import { logger } from '@/lib/logger';
-import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { logger } from "@/lib/logger";
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 
 /**
  * GET /api/auth/me
@@ -10,10 +10,13 @@ import { auth } from '@/auth';
 export async function GET() {
   try {
     const session = await auth();
-    
+
     if (!session || !session.user) {
       // Return a benign guest payload to avoid 401 noise on public/unauth pages
-      return NextResponse.json({ authenticated: false, user: null }, { status: 200 });
+      return NextResponse.json(
+        { authenticated: false, user: null },
+        { status: 200 },
+      );
     }
 
     // Return user data from session
@@ -27,13 +30,13 @@ export async function GET() {
         orgId: session.user.orgId,
         permissions: session.user.permissions,
         isSuperAdmin: session.user.isSuperAdmin,
-      }
+      },
     });
   } catch (error) {
-    logger.error('[/api/auth/me] Error:', error);
+    logger.error("[/api/auth/me] Error:", error);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
+      { error: "Internal Server Error" },
+      { status: 500 },
     );
   }
 }

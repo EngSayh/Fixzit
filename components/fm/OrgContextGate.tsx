@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
-import { OrgContextPrompt } from '@/components/fm/OrgContextPrompt';
-import { FMErrorBoundary } from '@/components/fm/FMErrorBoundary';
-import { useSupportOrg } from '@/contexts/SupportOrgContext';
+import { ReactNode } from "react";
+import { OrgContextPrompt } from "@/components/fm/OrgContextPrompt";
+import { FMErrorBoundary } from "@/components/fm/FMErrorBoundary";
+import { useSupportOrg } from "@/contexts/SupportOrgContext";
 
 interface OrgContextGateProps {
   children: ReactNode;
@@ -13,7 +13,7 @@ interface OrgContextGateProps {
  * Client-side gate that blocks module rendering until an organization
  * context is available. Centralizes the guard logic to avoid duplicating
  * organization checks across multiple route trees.
- * 
+ *
  * Includes error boundary to prevent white screen crashes.
  */
 export function OrgContextGate({ children }: OrgContextGateProps) {
@@ -42,9 +42,5 @@ export function OrgContextGate({ children }: OrgContextGateProps) {
     );
   }
 
-  return (
-    <FMErrorBoundary>
-      {children}
-    </FMErrorBoundary>
-  );
+  return <FMErrorBoundary>{children}</FMErrorBoundary>;
 }

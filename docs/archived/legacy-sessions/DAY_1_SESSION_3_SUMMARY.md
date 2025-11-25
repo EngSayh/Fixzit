@@ -10,6 +10,7 @@
 ## 🎯 Session Achievements
 
 ### Overall Impact
+
 - **22 new files created** (2,980 lines of production code)
 - **0 compilation errors** (strict TypeScript maintained)
 - **Phase 1.4 completion**: Seller Central Core (KYC + Account Health)
@@ -22,55 +23,53 @@
 ### Backend Services (2 files, 1,020 lines)
 
 #### 1. Seller KYC Service (`services/souq/seller-kyc-service.ts`)
+
 **480 lines** - Multi-step seller onboarding and verification
 
 **Key Features**:
+
 - **3-Step Workflow**:
-  * Step 1: Company information (business name EN/AR, CR number, VAT, address)
-  * Step 2: Document upload (CR certificate, VAT certificate, national ID, bank letter)
-  * Step 3: Bank account details (IBAN, bank name, account holder)
-  
+  - Step 1: Company information (business name EN/AR, CR number, VAT, address)
+  - Step 2: Document upload (CR certificate, VAT certificate, national ID, bank letter)
+  - Step 3: Bank account details (IBAN, bank name, account holder)
 - **Document Verification**:
-  * Admin review queue
-  * Approve/reject individual documents
-  * Auto-approval when all docs verified
-  * Resubmission workflow for rejections
-  
+  - Admin review queue
+  - Approve/reject individual documents
+  - Auto-approval when all docs verified
+  - Resubmission workflow for rejections
 - **Compliance Validation**:
-  * CR number: 10-digit Saudi format
-  * IBAN: SA + 2 digits + 18 alphanumeric characters
-  * Document types: PDF, JPG, PNG only
-  
+  - CR number: 10-digit Saudi format
+  - IBAN: SA + 2 digits + 18 alphanumeric characters
+  - Document types: PDF, JPG, PNG only
 - **Status Tracking**:
-  * not_started → pending → under_review → approved/rejected
-  * Completion flags for each step
-  * Rejection reason storage
-  
+  - not_started → pending → under_review → approved/rejected
+  - Completion flags for each step
+  - Rejection reason storage
 - **Background Jobs**:
-  * Auto-escalate pending KYC after 3+ days
-  * Email notifications at each status change
+  - Auto-escalate pending KYC after 3+ days
+  - Email notifications at each status change
 
 **Business Impact**: Enables legal seller onboarding (Saudi Arabia requires CR/VAT registration)
 
 ---
 
 #### 2. Account Health Service (`services/souq/account-health-service.ts`)
+
 **540 lines** - Seller performance monitoring and enforcement
 
 **Core Metrics Calculated**:
+
 1. **ODR (Order Defect Rate)**: (Negative feedback + A-to-Z claims + Chargebacks) / Total orders
    - Target: <1%, Warning: >1.5%, Suspend: >2%
-   
 2. **LSR (Late Shipment Rate)**: Late shipments / Total shipped orders
    - Target: <4%, Warning: >10%
-   
 3. **CR (Cancellation Rate)**: Seller cancellations / Total orders
    - Target: <2.5%, Warning: >5%
-   
 4. **RR (Return Rate)**: Returns / Delivered orders
    - Target: <10%, Warning: >15%
 
 **Health Assessment Algorithm**:
+
 ```typescript
 Score starts at 100
 Deductions:
@@ -92,17 +91,20 @@ Final Status:
 ```
 
 **Auto-Enforcement**:
+
 - ODR >2% → **Automatic account suspension**
 - Critical violations → Immediate action (listing suppression, account suspension, permanent deactivation)
 - Unresolved violations tracked with severity levels
 
 **Dashboard Data**:
+
 - Current metrics with counts
 - Trend analysis (improving/stable/declining)
 - Recent violations list
 - Personalized recommendations
 
 **Background Monitoring**:
+
 - Daily job: Check all active sellers
 - Auto-enforce policy violations
 - Email alerts for at-risk accounts
@@ -201,9 +203,9 @@ Final Status:
 7. **`components/seller/health/MetricCard.tsx`** (100 lines)
    - Individual metric display
    - Large number with color coding:
-     * Green: At target
-     * Yellow: Warning threshold
-     * Red: Critical threshold
+     - Green: At target
+     - Yellow: Warning threshold
+     - Red: Critical threshold
    - Count display ("X of orders")
    - Progress bar visualization
    - Tooltip with metric description
@@ -236,11 +238,15 @@ Final Status:
 ## 🎨 Design Patterns Used
 
 ### 1. Service Layer Pattern
+
 All business logic in services, APIs are thin wrappers:
+
 ```typescript
 // Service: Pure business logic
 class SellerKYCService {
-  async submitKYC(data) { /* complex logic */ }
+  async submitKYC(data) {
+    /* complex logic */
+  }
 }
 
 // API: Thin wrapper with auth
@@ -252,7 +258,9 @@ export async function POST(request) {
 ```
 
 ### 2. Multi-Step Form with State Machine
+
 KYC wizard uses explicit state transitions:
+
 ```
 not_started → pending → under_review → approved/rejected
          ↓
@@ -260,7 +268,9 @@ not_started → pending → under_review → approved/rejected
 ```
 
 ### 3. Component Composition
+
 Dashboard composed of reusable components:
+
 ```typescript
 <HealthDashboard>
   <HealthScore />
@@ -271,6 +281,7 @@ Dashboard composed of reusable components:
 ```
 
 ### 4. Validation at Multiple Layers
+
 - Client: React Hook Form + Zod schema
 - API: Request validation
 - Service: Business rule validation
@@ -281,18 +292,21 @@ Dashboard composed of reusable components:
 ## 📊 Technical Metrics
 
 ### Code Quality
+
 - **TypeScript Coverage**: 100% (strict mode)
 - **Compilation Errors**: 0
 - **Unused Variables**: 0
 - **Type Safety**: No `any` types used
 
 ### Performance Considerations
+
 - **API Response Time**: <100ms (simple CRUD), <500ms (complex calculations)
 - **UI Rendering**: Optimized with React.memo candidates
 - **File Uploads**: Direct S3 upload with presigned URLs (planned)
 - **Background Jobs**: BullMQ for async operations
 
 ### Security
+
 - **Authentication**: NextAuth session validation on all endpoints
 - **Authorization**: Role-based access control (Seller vs Admin)
 - **Input Validation**: Zod schemas + Mongoose validators
@@ -304,18 +318,21 @@ Dashboard composed of reusable components:
 ## 🚀 Business Impact
 
 ### Compliance (KYC System)
+
 - **Regulatory Requirement**: Saudi Arabia requires CR/VAT registration for sellers
 - **Onboarding Time**: Reduced from manual review (5-7 days) to automated (24-48 hours)
 - **Admin Efficiency**: 70% reduction in manual KYC review time
 - **Fraud Prevention**: Document verification catches fake registrations
 
 ### Quality Control (Account Health)
+
 - **Auto-Enforcement**: Suspend sellers with ODR >2% automatically
 - **Buyer Protection**: Performance metrics ensure reliable sellers
 - **Dispute Reduction**: Amazon reports 60% fewer buyer complaints with similar systems
 - **Revenue Protection**: Prevents bad actors from damaging marketplace reputation
 
 ### Seller Trust
+
 - **Transparency**: Real-time performance metrics dashboard
 - **Actionable Insights**: Personalized recommendations
 - **Fair Enforcement**: Clear policies and thresholds
@@ -332,6 +349,7 @@ Dashboard composed of reusable components:
 **Progress**: +6% (3 tasks completed)
 
 **Files Created**:
+
 - 2 services (1,020 lines)
 - 8 APIs (460 lines)
 - 14 UI components (1,500 lines)
@@ -345,6 +363,7 @@ Dashboard composed of reusable components:
 ## ✅ Validation Checklist
 
 **Backend Services**:
+
 - [x] KYC service compiles without errors
 - [x] Account Health service compiles without errors
 - [x] All service methods return proper types
@@ -352,6 +371,7 @@ Dashboard composed of reusable components:
 - [x] MongoDB models referenced correctly
 
 **APIs**:
+
 - [x] All 8 endpoints compile
 - [x] Auth validation on all routes
 - [x] Role-based access control implemented
@@ -359,6 +379,7 @@ Dashboard composed of reusable components:
 - [x] Response types consistent
 
 **UI Components**:
+
 - [x] All 14 components compile
 - [x] No TypeScript errors
 - [x] React Hook Form integration working
@@ -416,12 +437,14 @@ Dashboard composed of reusable components:
 
 **Current Completion**: 62%  
 **Cumulative Stats**:
+
 - **Files Created**: 58
 - **Lines of Code**: 10,420
 - **Time Invested**: 8 hours
 - **Average Velocity**: 745 LOC/hour
 
 **Phases Complete**:
+
 - ✅ Phase 0: Foundation (100%)
 - ✅ Phase 1.1: Inventory System (100%)
 - ✅ Phase 1.2: Fulfillment & Carriers (100%)
@@ -438,6 +461,7 @@ Dashboard composed of reusable components:
 ## 💡 Key Learnings
 
 ### What Worked Well
+
 1. **Service Layer Pattern**: Clean separation of concerns, easy to test
 2. **Multi-Step Forms**: React Hook Form + Zod provides excellent DX
 3. **Component Reusability**: MetricCard, StatusBadge patterns save time
@@ -445,6 +469,7 @@ Dashboard composed of reusable components:
 5. **BullMQ Integration**: Background jobs architecture scales well
 
 ### Technical Decisions
+
 1. **IBAN Validation**: Client-side regex + server-side verification
 2. **File Uploads**: Direct S3 presigned URLs (better performance than proxy)
 3. **Health Score Algorithm**: Weighted deductions based on Amazon's model
@@ -452,6 +477,7 @@ Dashboard composed of reusable components:
 5. **Dashboard Tabs**: Separate views for overview, violations, recommendations
 
 ### Patterns to Repeat
+
 1. **API Structure**: Consistent auth checks, validation, error handling
 2. **UI Composition**: Dashboard → Cards → Metrics (reusable)
 3. **Form Validation**: Zod schema shared between client and server

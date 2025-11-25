@@ -6,13 +6,8 @@
     "failed": 2,
     "warnings": 1
   },
-  "errors": [
-    "Database error: 0",
-    "Pages directory not found"
-  ],
-  "warnings": [
-    "Services directory not found"
-  ],
+  "errors": ["Database error: 0", "Pages directory not found"],
+  "warnings": ["Services directory not found"],
   "passes": [
     "Package installed: streamlit",
     "Package installed: pandas",

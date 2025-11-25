@@ -3,50 +3,50 @@
  * @module server/models/souq/Product
  */
 
-import mongoose, { Schema, type Document } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
 
 export interface IProduct extends Document {
   _id: mongoose.Types.ObjectId;
   fsin: string; // Fixzit Standard Item Number (unique)
-  
+
   // Basic Info
   title: Record<string, string>; // { en: '...', ar: '...' }
   description: Record<string, string>;
   shortDescription?: Record<string, string>;
-  
+
   // Classification
   categoryId: string; // Category.categoryId
   brandId?: string; // Brand.brandId
-  
+
   // Images & Media
   images: string[]; // URLs (first is primary)
   videos?: string[];
   documents?: string[]; // Spec sheets, manuals
-  
+
   // Attributes (category-specific)
   attributes: Record<string, string | number | boolean | string[]>; // { color: 'red', size: 'L', ... }
-  
+
   // Variations
   hasVariations: boolean; // If true, variations exist
-  variationTheme?: 'color' | 'size' | 'style' | 'color_size' | 'custom';
-  
+  variationTheme?: "color" | "size" | "style" | "color_size" | "custom";
+
   // Compliance
   complianceFlags: {
-    type: 'hazmat' | 'restricted' | 'age_restricted' | 'prescription' | 'other';
+    type: "hazmat" | "restricted" | "age_restricted" | "prescription" | "other";
     reason: string;
-    severity: 'warning' | 'error' | 'info';
+    severity: "warning" | "error" | "info";
     resolvedAt?: Date;
   }[];
-  
+
   // Status
   isActive: boolean;
   createdBy: mongoose.Types.ObjectId; // Seller ID who created
-  
+
   // Metadata
   searchKeywords?: string[]; // For search optimization
   bulletPoints?: Record<string, string[]>; // Key features
-  
+
   // Reviews & Ratings
   averageRating: number; // 0-5 star rating
   reviewCount: number; // Total number of reviews
@@ -57,7 +57,7 @@ export interface IProduct extends Document {
     4: number;
     5: number;
   };
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -100,7 +100,7 @@ const ProductSchema = new Schema<IProduct>(
       required: true,
       validate: {
         validator: (v: string[]) => v.length > 0,
-        message: 'At least one image is required',
+        message: "At least one image is required",
       },
     },
     videos: [String],
@@ -117,13 +117,19 @@ const ProductSchema = new Schema<IProduct>(
     },
     variationTheme: {
       type: String,
-      enum: ['color', 'size', 'style', 'color_size', 'custom', null],
+      enum: ["color", "size", "style", "color_size", "custom", null],
     },
     complianceFlags: [
       {
         type: {
           type: String,
-          enum: ['hazmat', 'restricted', 'age_restricted', 'prescription', 'other'],
+          enum: [
+            "hazmat",
+            "restricted",
+            "age_restricted",
+            "prescription",
+            "other",
+          ],
           required: true,
         },
         reason: {
@@ -132,8 +138,8 @@ const ProductSchema = new Schema<IProduct>(
         },
         severity: {
           type: String,
-          enum: ['warning', 'error', 'info'],
-          default: 'warning',
+          enum: ["warning", "error", "info"],
+          default: "warning",
         },
         resolvedAt: Date,
       },
@@ -145,7 +151,7 @@ const ProductSchema = new Schema<IProduct>(
     },
     createdBy: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqSeller',
+      ref: "SouqSeller",
       required: true,
       index: true,
     },
@@ -180,21 +186,25 @@ const ProductSchema = new Schema<IProduct>(
   },
   {
     timestamps: true,
-    collection: 'souq_products',
-  }
+    collection: "souq_products",
+  },
 );
 
 // Indexes for performance
 ProductSchema.index({ fsin: 1, isActive: 1 });
 ProductSchema.index({ categoryId: 1, brandId: 1 });
 ProductSchema.index({ createdBy: 1, isActive: 1 });
-ProductSchema.index({ 'title.en': 'text', 'title.ar': 'text', searchKeywords: 'text' });
+ProductSchema.index({
+  "title.en": "text",
+  "title.ar": "text",
+  searchKeywords: "text",
+});
 
 // Method: Check if product has unresolved compliance issues
 ProductSchema.methods.hasUnresolvedComplianceIssues = function (): boolean {
   return this.complianceFlags.some(
     (flag: { severity: string; resolvedAt?: Date }) =>
-      flag.severity === 'error' && !flag.resolvedAt
+      flag.severity === "error" && !flag.resolvedAt,
   );
 };
 
@@ -206,7 +216,7 @@ ProductSchema.methods.getPrimaryImage = function (): string | undefined {
 // Static: Search products
 ProductSchema.statics.searchProducts = async function (
   query: string,
-  filters: { categoryId?: string; brandId?: string; limit?: number } = {}
+  filters: { categoryId?: string; brandId?: string; limit?: number } = {},
 ) {
   const searchQuery: {
     isActive: boolean;
@@ -227,11 +237,10 @@ ProductSchema.statics.searchProducts = async function (
   }
 
   return this.find(searchQuery)
-    .select('fsin title images categoryId brandId')
+    .select("fsin title images categoryId brandId")
     .limit(filters.limit || 50);
 };
 
-export const SouqProduct =
-  getModel<IProduct>('SouqProduct', ProductSchema);
+export const SouqProduct = getModel<IProduct>("SouqProduct", ProductSchema);
 
 export default SouqProduct;

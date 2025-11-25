@@ -11,6 +11,7 @@
 The parity checker has identified **606 missing English translations** across 28 domains. These are legitimate Arabic translations that need English equivalents added to achieve 100% parity.
 
 ### Current State
+
 - ✅ Arabic: 29,671 keys (100%)
 - ⚠️ English: 29,065 keys (97.96% coverage)
 - 📊 Gap: **606 keys need English translation**
@@ -23,28 +24,28 @@ The parity checker has identified **606 missing English translations** across 28
 
 These domains have **complete Arabic translations but zero English translations**:
 
-| Domain | AR Keys | Missing EN | Priority |
-|--------|---------|------------|----------|
-| `dataGovernanceFramework` | 27 | 27 | High |
-| `productLifecycleManagement` | 27 | 27 | High |
-| `projectManagement` | 27 | 27 | High |
-| `accessibilityAdv` | 22 | 22 | Medium |
-| `burnoutPrevention` | 22 | 22 | Medium |
-| `collaborationTools` | 22 | 22 | Medium |
-| `digitalAssetManagement` | 22 | 22 | Medium |
-| `employeeAssistanceProgram` | 22 | 22 | Medium |
-| `employeeResourceGroups` | 22 | 22 | Medium |
-| `enterpriseContentManagement` | 22 | 22 | Medium |
-| `hybridWork` | 22 | 22 | Medium |
-| `incidentResponseExt` | 22 | 22 | Medium |
-| `inclusiveWorkplace` | 22 | 22 | Medium |
-| `mentalHealthSupport` | 22 | 22 | Medium |
-| `organizationalHealth` | 22 | 22 | Medium |
-| `projectCollaboration` | 22 | 22 | Medium |
-| `stressManagementAdv` | 22 | 22 | Medium |
-| `teamProductivity` | 22 | 22 | Medium |
-| `workLifeBalance` | 22 | 22 | Medium |
-| `workplaceFlexibility` | 22 | 22 | Medium |
+| Domain                        | AR Keys | Missing EN | Priority |
+| ----------------------------- | ------- | ---------- | -------- |
+| `dataGovernanceFramework`     | 27      | 27         | High     |
+| `productLifecycleManagement`  | 27      | 27         | High     |
+| `projectManagement`           | 27      | 27         | High     |
+| `accessibilityAdv`            | 22      | 22         | Medium   |
+| `burnoutPrevention`           | 22      | 22         | Medium   |
+| `collaborationTools`          | 22      | 22         | Medium   |
+| `digitalAssetManagement`      | 22      | 22         | Medium   |
+| `employeeAssistanceProgram`   | 22      | 22         | Medium   |
+| `employeeResourceGroups`      | 22      | 22         | Medium   |
+| `enterpriseContentManagement` | 22      | 22         | Medium   |
+| `hybridWork`                  | 22      | 22         | Medium   |
+| `incidentResponseExt`         | 22      | 22         | Medium   |
+| `inclusiveWorkplace`          | 22      | 22         | Medium   |
+| `mentalHealthSupport`         | 22      | 22         | Medium   |
+| `organizationalHealth`        | 22      | 22         | Medium   |
+| `projectCollaboration`        | 22      | 22         | Medium   |
+| `stressManagementAdv`         | 22      | 22         | Medium   |
+| `teamProductivity`            | 22      | 22         | Medium   |
+| `workLifeBalance`             | 22      | 22         | Medium   |
+| `workplaceFlexibility`        | 22      | 22         | Medium   |
 
 **Subtotal:** 20 domains, **462 keys**
 
@@ -52,13 +53,13 @@ These domains have **complete Arabic translations but zero English translations*
 
 ### Major (≥5 keys missing)
 
-| Domain | EN Keys | AR Keys | Missing | Priority |
-|--------|---------|---------|---------|----------|
-| `nav` | 26 | 74 | 48 | High |
-| `payments` | 18 | 66 | 48 | High |
-| `rfq` | 11 | 30 | 19 | Medium |
-| `workOrder` | 28 | 43 | 15 | Medium |
-| `preventiveMaintenance` | 27 | 40 | 13 | Medium |
+| Domain                  | EN Keys | AR Keys | Missing | Priority |
+| ----------------------- | ------- | ------- | ------- | -------- |
+| `nav`                   | 26      | 74      | 48      | High     |
+| `payments`              | 18      | 66      | 48      | High     |
+| `rfq`                   | 11      | 30      | 19      | Medium   |
+| `workOrder`             | 28      | 43      | 15      | Medium   |
+| `preventiveMaintenance` | 27      | 40      | 13      | Medium   |
 
 **Subtotal:** 5 domains, **143 keys**
 
@@ -66,11 +67,11 @@ These domains have **complete Arabic translations but zero English translations*
 
 ### Minor (<5 keys missing)
 
-| Domain | EN Keys | AR Keys | Missing | Priority |
-|--------|---------|---------|---------|----------|
-| `compliance` | 104 | 105 | 1 | Low |
-| `marketplace` | 201 | 202 | 1 | Low |
-| `recruitmentSystems` | 0 | 1 | 1 | Low |
+| Domain               | EN Keys | AR Keys | Missing | Priority |
+| -------------------- | ------- | ------- | ------- | -------- |
+| `compliance`         | 104     | 105     | 1       | Low      |
+| `marketplace`        | 201     | 202     | 1       | Low      |
+| `recruitmentSystems` | 0       | 1       | 1       | Low      |
 
 **Subtotal:** 3 domains, **3 keys**
 
@@ -138,6 +139,7 @@ These domains have **complete Arabic translations but zero English translations*
 ## Translation Workflow
 
 ### Step 1: Check Detailed Keys
+
 ```bash
 # See all missing keys for a specific domain
 npx tsx scripts/check-translation-parity.ts --domain=dataGovernanceFramework
@@ -147,6 +149,7 @@ npx tsx scripts/check-translation-parity.ts --domain=nav
 ```
 
 ### Step 2: Get Arabic Translations for Reference
+
 ```bash
 # View the Arabic file to understand context
 cat i18n/sources/dataGovernanceFramework.translations.json
@@ -179,6 +182,7 @@ Add English keys matching the Arabic structure:
 ```
 
 ### Step 4: Rebuild & Verify
+
 ```bash
 # Regenerate dictionaries
 pnpm i18n:build
@@ -191,6 +195,7 @@ npx tsx scripts/check-translation-parity.ts --domain=dataGovernanceFramework
 ```
 
 ### Step 5: Commit Changes
+
 ```bash
 git add i18n/sources/*.translations.json
 git add i18n/generated/*.json
@@ -204,45 +209,50 @@ git commit -m "feat(i18n): Add missing English translations for 20 domains"
 Create `scripts/add-missing-en-keys.ts` for bulk processing:
 
 ```typescript
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
-const SOURCES_DIR = path.join(__dirname, '../i18n/sources');
+const SOURCES_DIR = path.join(__dirname, "../i18n/sources");
 
 // Domains needing complete English translations
 const ZERO_EN_DOMAINS = [
-  'dataGovernanceFramework',
-  'productLifecycleManagement',
-  'projectManagement',
-  'accessibilityAdv',
-  'burnoutPrevention',
+  "dataGovernanceFramework",
+  "productLifecycleManagement",
+  "projectManagement",
+  "accessibilityAdv",
+  "burnoutPrevention",
   // ... add all 20 domains
 ];
 
 for (const domain of ZERO_EN_DOMAINS) {
   const filePath = path.join(SOURCES_DIR, `${domain}.translations.json`);
-  const bundle = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-  
+  const bundle = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+
   // Copy Arabic keys to English with placeholder text
   bundle.en = {};
   for (const key of Object.keys(bundle.ar)) {
-    const lastSegment = key.split('.').pop() || key;
+    const lastSegment = key.split(".").pop() || key;
     // Convert camelCase to Title Case
     const placeholder = lastSegment
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, str => str.toUpperCase())
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (str) => str.toUpperCase())
       .trim();
     bundle.en[key] = `[TODO: Translate] ${placeholder}`;
   }
-  
-  fs.writeFileSync(filePath, JSON.stringify(bundle, null, 2), 'utf-8');
-  console.log(`✓ Created placeholders for ${domain} (${Object.keys(bundle.ar).length} keys)`);
+
+  fs.writeFileSync(filePath, JSON.stringify(bundle, null, 2), "utf-8");
+  console.log(
+    `✓ Created placeholders for ${domain} (${Object.keys(bundle.ar).length} keys)`,
+  );
 }
 
-console.log('\n✅ Placeholders created. Now replace [TODO: Translate] with actual translations.');
+console.log(
+  "\n✅ Placeholders created. Now replace [TODO: Translate] with actual translations.",
+);
 ```
 
 **Usage:**
+
 ```bash
 npx tsx scripts/add-missing-en-keys.ts
 # Then search for "[TODO: Translate]" and replace with real translations
@@ -253,13 +263,16 @@ npx tsx scripts/add-missing-en-keys.ts
 ## Priority Recommendations
 
 ### Phase 1: High Priority (96 keys - 2-3 hours)
+
 1. **nav** (48 keys) - Navigation is visible to all users
 2. **payments** (48 keys) - Critical business function
 
 ### Phase 2: Medium Priority (462 keys - 1-2 days)
+
 3. Complete the 20 domains with 0 EN keys (HR, governance, collaboration features)
 
 ### Phase 3: Low Priority (48 keys - 1 hour)
+
 4. Fill remaining partial domains (rfq, workOrder, preventiveMaintenance)
 
 ---
@@ -282,6 +295,7 @@ Before marking complete:
 ## Expected Outcome
 
 **After completion:**
+
 ```
 📊 OVERALL STATISTICS
    Total English keys:     29,671
@@ -302,6 +316,7 @@ Before marking complete:
 ## Contact
 
 For questions or assistance with translations:
+
 - **Slack:** #translations or #engineering
 - **Translation Memory:** Check existing similar keys for consistency
 - **Glossary:** Refer to company terminology guide

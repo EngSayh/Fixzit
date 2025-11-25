@@ -1,10 +1,10 @@
-import QRCode from 'qrcode';
-import { minorToMajor } from '../lib/money';
+import QRCode from "qrcode";
+import { minorToMajor } from "../lib/money";
 
 type MinorAmount = string | number | { toString(): string };
 
 function toMinorBigInt(amount: MinorAmount): bigint {
-  if (typeof amount === 'number') {
+  if (typeof amount === "number") {
     return BigInt(Math.round(amount));
   }
   return BigInt(amount.toString());

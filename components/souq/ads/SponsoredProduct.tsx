@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Star, ShoppingCart } from 'lucide-react';
-import { AuctionWinner } from '@/services/souq/ads/auction-engine';
-import { logger } from '@/lib/logger';
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { Star, ShoppingCart } from "lucide-react";
+import { AuctionWinner } from "@/services/souq/ads/auction-engine";
+import { logger } from "@/lib/logger";
 
 interface SponsoredProductProps {
   winner: AuctionWinner;
@@ -18,7 +18,7 @@ interface SponsoredProductProps {
   onClick?: (_bid: string, _campaign: string, _actualCpc: number) => void;
 }
 
-type SponsoredProductData = NonNullable<AuctionWinner['product']>;
+type SponsoredProductData = NonNullable<AuctionWinner["product"]>;
 
 const getBidId = (winner: AuctionWinner): string =>
   winner.bidId ?? winner.bid.bidId;
@@ -27,7 +27,7 @@ const getCampaignId = (winner: AuctionWinner): string =>
   winner.campaignId ?? winner.campaign.campaignId;
 
 const buildProductData = (winner: AuctionWinner): SponsoredProductData => ({
-  title: winner.product?.title ?? 'Sponsored Product',
+  title: winner.product?.title ?? "Sponsored Product",
   imageUrl: winner.product?.imageUrl,
   price: winner.product?.price ?? 0,
   originalPrice: winner.product?.originalPrice,
@@ -63,8 +63,8 @@ export function SponsoredProduct({
       },
       {
         threshold: 0.5, // 50% of ad must be visible
-        rootMargin: '0px',
-      }
+        rootMargin: "0px",
+      },
     );
 
     if (containerRef.current) {
@@ -87,9 +87,9 @@ export function SponsoredProduct({
       onImpression?.(bidId, campaignId);
 
       // Track server-side
-      await fetch('/api/souq/ads/impressions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/souq/ads/impressions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bidId,
           campaignId,
@@ -99,7 +99,7 @@ export function SponsoredProduct({
         }),
       });
     } catch (error) {
-      logger.error('[SponsoredProduct] Failed to track impression', error);
+      logger.error("[SponsoredProduct] Failed to track impression", error);
     }
   };
 
@@ -114,9 +114,9 @@ export function SponsoredProduct({
       onClick?.(bidId, campaignId, winner.actualCpc);
 
       // Track click server-side
-      const response = await fetch('/api/souq/ads/clicks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/souq/ads/clicks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bidId,
           campaignId,
@@ -128,13 +128,15 @@ export function SponsoredProduct({
       });
 
       if (!response.ok) {
-        logger.error('[SponsoredProduct] Click tracking failed', { statusText: response.statusText });
+        logger.error("[SponsoredProduct] Click tracking failed", {
+          statusText: response.statusText,
+        });
       }
 
       // Navigate to product page
       window.location.href = `/souq/products/${winner.productId}`;
     } catch (error) {
-      logger.error('[SponsoredProduct] Failed to track click', error);
+      logger.error("[SponsoredProduct] Failed to track click", error);
       // Still navigate even if tracking fails
       window.location.href = `/souq/products/${winner.productId}`;
     } finally {
@@ -150,8 +152,8 @@ export function SponsoredProduct({
             key={star}
             className={`w-4 h-4 ${
               star <= rating
-                ? 'fill-yellow-400 text-yellow-400'
-                : 'fill-gray-200 text-gray-200'
+                ? "fill-yellow-400 text-yellow-400"
+                : "fill-gray-200 text-gray-200"
             }`}
           />
         ))}
@@ -233,7 +235,7 @@ export function SponsoredProduct({
                     key={badge}
                     className="px-2 py-0.5 text-xs font-medium bg-primary/5 text-primary-dark rounded"
                   >
-                    {badge === 'fbf' ? 'Fulfilled by Fixzit' : badge}
+                    {badge === "fbf" ? "Fulfilled by Fixzit" : badge}
                   </span>
                 ))}
               </div>

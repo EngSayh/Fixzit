@@ -1,6 +1,6 @@
-import * as React from 'react';
+import * as React from "react";
 
-type FlagCode = 'gb' | 'sa';
+type FlagCode = "gb" | "sa";
 
 interface FlagIconProps {
   code: FlagCode;
@@ -9,12 +9,16 @@ interface FlagIconProps {
 }
 
 const FLAG_TITLES: Record<FlagCode, string> = {
-  gb: 'United Kingdom',
-  sa: 'Saudi Arabia',
+  gb: "United Kingdom",
+  sa: "Saudi Arabia",
 };
 
-export const FlagIcon: React.FC<FlagIconProps> = ({ code, className, title }) => {
-  if (code === 'sa') {
+export const FlagIcon: React.FC<FlagIconProps> = ({
+  code,
+  className,
+  title,
+}) => {
+  if (code === "sa") {
     return (
       <svg
         viewBox="0 0 24 16"
@@ -25,10 +29,7 @@ export const FlagIcon: React.FC<FlagIconProps> = ({ code, className, title }) =>
       >
         <title>{title ?? FLAG_TITLES[code]}</title>
         <rect width="24" height="16" fill="#006C35" />
-        <path
-          d="M6 6h12v2H6zM10 10h4v1h-4z"
-          fill="#fff"
-        />
+        <path d="M6 6h12v2H6zM10 10h4v1h-4z" fill="#fff" />
       </svg>
     );
   }

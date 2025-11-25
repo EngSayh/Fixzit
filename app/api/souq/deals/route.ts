@@ -3,28 +3,37 @@
  * @route /api/souq/deals
  */
 
-import { NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
-import type { NextRequest } from 'next/server';
-import { z } from 'zod';
-import { SouqDeal } from '@/server/models/souq/Deal';
-import { connectDb } from '@/lib/mongodb-unified';
-import { nanoid } from 'nanoid';
+import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import type { NextRequest } from "next/server";
+import { z } from "zod";
+import { SouqDeal } from "@/server/models/souq/Deal";
+import { connectDb } from "@/lib/mongodb-unified";
+import { nanoid } from "nanoid";
 
 const dealCreateSchema = z.object({
-  type: z.enum(['lightning_deal', 'coupon', 'bundle', 'bogo', 'percentage_off', 'amount_off']),
+  type: z.enum([
+    "lightning_deal",
+    "coupon",
+    "bundle",
+    "bogo",
+    "percentage_off",
+    "amount_off",
+  ]),
   title: z.string().min(5).max(200),
   description: z.string().min(10).max(1000),
   sellerId: z.string().optional(),
-  applicableProducts: z.array(
-    z.object({
-      productId: z.string(),
-      fsin: z.string(),
-    })
-  ).optional(),
+  applicableProducts: z
+    .array(
+      z.object({
+        productId: z.string(),
+        fsin: z.string(),
+      }),
+    )
+    .optional(),
   applicableCategories: z.array(z.string()).optional(),
   allProducts: z.boolean(),
-  discountType: z.enum(['percentage', 'fixed_amount']),
+  discountType: z.enum(["percentage", "fixed_amount"]),
   discountValue: z.number().positive(),
   maxDiscountAmount: z.number().positive().optional(),
   minPurchaseAmount: z.number().min(0).optional(),
@@ -43,10 +52,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = dealCreateSchema.parse(body);
 
-    if (!validatedData.applicableProducts && !validatedData.applicableCategories && !validatedData.allProducts) {
+    if (
+      !validatedData.applicableProducts &&
+      !validatedData.applicableCategories &&
+      !validatedData.allProducts
+    ) {
       return NextResponse.json(
-        { error: 'Deal must have applicable products, categories, or be for all products' },
-        { status: 400 }
+        {
+          error:
+            "Deal must have applicable products, categories, or be for all products",
+        },
+        { status: 400 },
       );
     }
 
@@ -57,8 +73,8 @@ export async function POST(request: NextRequest) {
 
       if (existing) {
         return NextResponse.json(
-          { error: 'Coupon code already exists' },
-          { status: 400 }
+          { error: "Coupon code already exists" },
+          { status: 400 },
         );
       }
     }
@@ -71,8 +87,8 @@ export async function POST(request: NextRequest) {
     // Validate date range
     if (endDate <= startDate) {
       return NextResponse.json(
-        { error: 'endDate must be after startDate' },
-        { status: 400 }
+        { error: "endDate must be after startDate" },
+        { status: 400 },
       );
     }
 
@@ -83,14 +99,15 @@ export async function POST(request: NextRequest) {
     const startUTC = startDate.getTime();
     const endUTC = endDate.getTime();
 
-    let status: 'draft' | 'scheduled' | 'active' | 'expired' | 'paused' = 'draft';
+    let status: "draft" | "scheduled" | "active" | "expired" | "paused" =
+      "draft";
 
     if (startUTC > nowUTC) {
-      status = 'scheduled';
+      status = "scheduled";
     } else if (startUTC <= nowUTC && endUTC >= nowUTC) {
-      status = 'active';
+      status = "active";
     } else if (endUTC < nowUTC) {
-      status = 'expired';
+      status = "expired";
     }
 
     const deal = await SouqDeal.create({
@@ -110,15 +127,15 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', issues: error.issues },
-        { status: 400 }
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
       );
     }
 
-    logger.error('Deal creation error:', error as Error);
+    logger.error("Deal creation error:", error as Error);
     return NextResponse.json(
-      { error: 'Failed to create deal' },
-      { status: 500 }
+      { error: "Failed to create deal" },
+      { status: 500 },
     );
   }
 }
@@ -128,13 +145,16 @@ export async function GET(request: NextRequest) {
     await connectDb();
 
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type');
-    const sellerId = searchParams.get('sellerId');
-    const status = searchParams.get('status');
-    const fsin = searchParams.get('fsin');
-    const couponCode = searchParams.get('couponCode');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
+    const type = searchParams.get("type");
+    const sellerId = searchParams.get("sellerId");
+    const status = searchParams.get("status");
+    const fsin = searchParams.get("fsin");
+    const couponCode = searchParams.get("couponCode");
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "20", 10),
+      100,
+    );
 
     const query: Record<string, unknown> = {};
 
@@ -151,7 +171,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (fsin) {
-      query['applicableProducts.fsin'] = fsin;
+      query["applicableProducts.fsin"] = fsin;
     }
 
     if (couponCode) {
@@ -159,7 +179,7 @@ export async function GET(request: NextRequest) {
     }
 
     const now = new Date();
-    if (status === 'active') {
+    if (status === "active") {
       query.startDate = { $lte: now };
       query.endDate = { $gte: now };
     }
@@ -168,7 +188,7 @@ export async function GET(request: NextRequest) {
 
     const [deals, total] = await Promise.all([
       SouqDeal.find(query)
-        .populate('sellerId', 'legalName tradeName')
+        .populate("sellerId", "legalName tradeName")
         .sort({ priority: -1, startDate: -1 })
         .skip(skip)
         .limit(limit)
@@ -187,10 +207,10 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Deal fetch error:', error as Error);
+    logger.error("Deal fetch error:", error as Error);
     return NextResponse.json(
-      { error: 'Failed to fetch deals' },
-      { status: 500 }
+      { error: "Failed to fetch deals" },
+      { status: 500 },
     );
   }
 }

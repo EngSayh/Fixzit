@@ -3,37 +3,37 @@
  * @module server/models/souq/QA
  */
 
-import mongoose, { Schema, type Document } from 'mongoose';
-import { getModel } from '@/src/types/mongoose-compat';
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel } from "@/src/types/mongoose-compat";
 
 export interface IQuestion extends Document {
   _id: mongoose.Types.ObjectId;
   questionId: string;
-  
+
   // Product reference
   productId: mongoose.Types.ObjectId;
   fsin: string;
-  
+
   // Author
   userId: mongoose.Types.ObjectId;
   userDisplayName?: string;
-  
+
   // Content
   question: string;
-  
+
   // Moderation
-  moderationStatus: 'pending' | 'approved' | 'rejected' | 'flagged';
+  moderationStatus: "pending" | "approved" | "rejected" | "flagged";
   moderationNotes?: string;
   moderatedAt?: Date;
   moderatedBy?: mongoose.Types.ObjectId;
-  
+
   // Engagement
   answerCount: number;
   upvotes: number;
-  
+
   // Status
   isActive: boolean;
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -42,33 +42,33 @@ export interface IQuestion extends Document {
 export interface IAnswer extends Document {
   _id: mongoose.Types.ObjectId;
   answerId: string;
-  
+
   // Question reference
   questionId: mongoose.Types.ObjectId;
-  
+
   // Author
   userId?: mongoose.Types.ObjectId;
   sellerId?: mongoose.Types.ObjectId; // If answered by seller
   userDisplayName?: string;
   isSellerAnswer: boolean;
-  
+
   // Content
   answer: string;
-  
+
   // Moderation
-  moderationStatus: 'pending' | 'approved' | 'rejected' | 'flagged';
+  moderationStatus: "pending" | "approved" | "rejected" | "flagged";
   moderationNotes?: string;
   moderatedAt?: Date;
   moderatedBy?: mongoose.Types.ObjectId;
-  
+
   // Engagement
   upvotes: number;
   downvotes: number;
   isVerifiedPurchase?: boolean;
-  
+
   // Status
   isActive: boolean;
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -84,7 +84,7 @@ const QuestionSchema = new Schema<IQuestion>(
     },
     productId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqProduct',
+      ref: "SouqProduct",
       required: true,
       index: true,
     },
@@ -95,7 +95,7 @@ const QuestionSchema = new Schema<IQuestion>(
     },
     userId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
       index: true,
     },
@@ -107,15 +107,15 @@ const QuestionSchema = new Schema<IQuestion>(
     },
     moderationStatus: {
       type: String,
-      enum: ['pending', 'approved', 'rejected', 'flagged'],
-      default: 'pending',
+      enum: ["pending", "approved", "rejected", "flagged"],
+      default: "pending",
       index: true,
     },
     moderationNotes: String,
     moderatedAt: Date,
     moderatedBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
     },
     answerCount: {
       type: Number,
@@ -135,8 +135,8 @@ const QuestionSchema = new Schema<IQuestion>(
   },
   {
     timestamps: true,
-    collection: 'souq_questions',
-  }
+    collection: "souq_questions",
+  },
 );
 
 const AnswerSchema = new Schema<IAnswer>(
@@ -149,18 +149,18 @@ const AnswerSchema = new Schema<IAnswer>(
     },
     questionId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqQuestion',
+      ref: "SouqQuestion",
       required: true,
       index: true,
     },
     userId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       index: true,
     },
     sellerId: {
       type: Schema.Types.ObjectId,
-      ref: 'SouqSeller',
+      ref: "SouqSeller",
       index: true,
     },
     userDisplayName: String,
@@ -176,15 +176,15 @@ const AnswerSchema = new Schema<IAnswer>(
     },
     moderationStatus: {
       type: String,
-      enum: ['pending', 'approved', 'rejected', 'flagged'],
-      default: 'pending',
+      enum: ["pending", "approved", "rejected", "flagged"],
+      default: "pending",
       index: true,
     },
     moderationNotes: String,
     moderatedAt: Date,
     moderatedBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
     },
     upvotes: {
       type: Number,
@@ -208,8 +208,8 @@ const AnswerSchema = new Schema<IAnswer>(
   },
   {
     timestamps: true,
-    collection: 'souq_answers',
-  }
+    collection: "souq_answers",
+  },
 );
 
 // Indexes
@@ -222,10 +222,10 @@ AnswerSchema.index({ sellerId: 1, isActive: 1 });
 AnswerSchema.index({ createdAt: -1 });
 
 // Text search
-QuestionSchema.index({ question: 'text' });
-AnswerSchema.index({ answer: 'text' });
+QuestionSchema.index({ question: "text" });
+AnswerSchema.index({ answer: "text" });
 
-export const SouqQuestion = getModel<IQuestion>('SouqQuestion', QuestionSchema);
-export const SouqAnswer = getModel<IAnswer>('SouqAnswer', AnswerSchema);
+export const SouqQuestion = getModel<IQuestion>("SouqQuestion", QuestionSchema);
+export const SouqAnswer = getModel<IAnswer>("SouqAnswer", AnswerSchema);
 
 export default { SouqQuestion, SouqAnswer };

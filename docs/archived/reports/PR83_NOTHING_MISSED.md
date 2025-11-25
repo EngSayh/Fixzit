@@ -15,7 +15,9 @@
 **Line 23**:
 
 ```typescript
-const canConvertApplications = ['corporate_admin', 'hr_manager'].includes(user.role);
+const canConvertApplications = ["corporate_admin", "hr_manager"].includes(
+  user.role,
+);
 ```
 
 ✅ Correct roles
@@ -80,11 +82,11 @@ if (body.tenantId && body.tenantId !== user.tenantId && user.role !== 'super_adm
 
 ```typescript
 if (origin && allowedOrigins.includes(origin)) {
-  response.headers.set('Access-Control-Allow-Origin', origin);
-  response.headers.set('Access-Control-Allow-Credentials', 'true');
-} else if (process.env.NODE_ENV === 'development') {
-  response.headers.set('Access-Control-Allow-Origin', 'http://localhost:3000');
-  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  response.headers.set("Access-Control-Allow-Origin", origin);
+  response.headers.set("Access-Control-Allow-Credentials", "true");
+} else if (process.env.NODE_ENV === "development") {
+  response.headers.set("Access-Control-Allow-Origin", "http://localhost:3000");
+  response.headers.set("Access-Control-Allow-Credentials", "true");
 }
 ```
 
@@ -103,18 +105,18 @@ if (origin && allowedOrigins.includes(origin)) {
 
 ```typescript
 // XOR validation: Either org_id OR owner_user_id must be provided, but not both
-PaymentMethodSchema.pre('validate', function (next) {
+PaymentMethodSchema.pre("validate", function (next) {
   const hasOrg = !!this.org_id;
   const hasOwner = !!this.owner_user_id;
-  
+
   if (!hasOrg && !hasOwner) {
-    return next(new Error('Either org_id or owner_user_id must be provided'));
+    return next(new Error("Either org_id or owner_user_id must be provided"));
   }
-  
+
   if (hasOrg && hasOwner) {
-    return next(new Error('Cannot set both org_id and owner_user_id'));
+    return next(new Error("Cannot set both org_id and owner_user_id"));
   }
-  
+
   next();
 });
 ```
@@ -152,11 +154,11 @@ const user = await getSessionUser(req);
 **Benchmark.ts**:
 
 ```typescript
-tenantId: { 
-  type: Types.ObjectId, 
+tenantId: {
+  type: Types.ObjectId,
   ref: 'Organization',
   required: true,
-  index: true 
+  index: true
 }
 ```
 
@@ -165,11 +167,11 @@ tenantId: {
 **DiscountRule.ts**:
 
 ```typescript
-tenantId: { 
-  type: Types.ObjectId, 
+tenantId: {
+  type: Types.ObjectId,
   ref: 'Organization',
   required: true,
-  index: true 
+  index: true
 }
 ```
 
@@ -178,11 +180,11 @@ tenantId: {
 **OwnerGroup.ts**:
 
 ```typescript
-orgId: { 
-  type: Types.ObjectId, 
+orgId: {
+  type: Types.ObjectId,
   ref: 'Organization',
   required: true,
-  index: true 
+  index: true
 }
 ```
 
@@ -197,7 +199,7 @@ orgId: {
 **scripts/seed-auth-14users.mjs**:
 
 ```javascript
-if (process.env.NODE_ENV === 'development' && !process.env.CI) {
+if (process.env.NODE_ENV === "development" && !process.env.CI) {
   console.log(`\n🔑 LOCAL DEV ONLY (LOCAL_DEV=1) - Password: ${PASSWORD}`);
 }
 ```
@@ -213,7 +215,7 @@ if (process.env.NODE_ENV === 'development' && !process.env.CI) {
 **scripts/test-auth-config.js**:
 
 ```javascript
-console.log('✅ JWT_SECRET configured (********)');
+console.log("✅ JWT_SECRET configured (********)");
 ```
 
 ✅ No substring exposure
@@ -221,7 +223,11 @@ console.log('✅ JWT_SECRET configured (********)');
 **scripts/test-mongodb-atlas.js**:
 
 ```javascript
-console.log(MONGODB_URI.includes('mongodb+srv://') ? '✅ Atlas URI detected' : '✅ MongoDB URI configured');
+console.log(
+  MONGODB_URI.includes("mongodb+srv://")
+    ? "✅ Atlas URI detected"
+    : "✅ MongoDB URI configured",
+);
 ```
 
 ✅ No URI exposure
@@ -248,27 +254,27 @@ console.log(MONGODB_URI.includes('mongodb+srv://') ? '✅ Atlas URI detected' : 
 
 ### Critical Items (P0/P1): 10/10 ✅
 
-| # | Item | Status | Evidence |
-|---|------|--------|----------|
-| 1 | ATS roles | ✅ FIXED | Lines 23, 36 verified |
-| 2 | Subscribe roles | ✅ FIXED | Lines 12, 19 verified |
-| 3 | Marketplace connections | ✅ FIXED | 2 calls (not redundant) |
-| 4 | CORS security | ✅ FIXED | No '*' with credentials |
-| 5 | PaymentMethod XOR | ✅ FIXED | Lines 23-37 verified |
-| 6 | Subscribe auth | ✅ VERIFIED | getSessionUser present |
-| 7 | Model tenant fields | ✅ VERIFIED | All 3 models have fields |
-| 8 | Password guards | ✅ VERIFIED | Environment checks present |
-| 9 | Secret masking | ✅ VERIFIED | No exposure |
-| 10 | Shebang | ✅ FIXED | Valid format |
+| #   | Item                    | Status      | Evidence                   |
+| --- | ----------------------- | ----------- | -------------------------- |
+| 1   | ATS roles               | ✅ FIXED    | Lines 23, 36 verified      |
+| 2   | Subscribe roles         | ✅ FIXED    | Lines 12, 19 verified      |
+| 3   | Marketplace connections | ✅ FIXED    | 2 calls (not redundant)    |
+| 4   | CORS security           | ✅ FIXED    | No '\*' with credentials   |
+| 5   | PaymentMethod XOR       | ✅ FIXED    | Lines 23-37 verified       |
+| 6   | Subscribe auth          | ✅ VERIFIED | getSessionUser present     |
+| 7   | Model tenant fields     | ✅ VERIFIED | All 3 models have fields   |
+| 8   | Password guards         | ✅ VERIFIED | Environment checks present |
+| 9   | Secret masking          | ✅ VERIFIED | No exposure                |
+| 10  | Shebang                 | ✅ FIXED    | Valid format               |
 
 ### Deferred Items (P2): 4/4 ⏭️
 
-| # | Item | Status | Reason |
-|---|------|--------|--------|
-| 11 | GlobalSearch i18n | ⏭️ DEFERRED | Separate PR (UI) |
-| 12 | QuickActions colors | ⏭️ DEFERRED | Separate PR (UI) |
-| 13 | OpenAPI docs | ⏭️ DEFERRED | Separate PR (Docs) |
-| 14 | Error normalization | ⏭️ DEFERRED | Separate PR (API) |
+| #   | Item                | Status      | Reason             |
+| --- | ------------------- | ----------- | ------------------ |
+| 11  | GlobalSearch i18n   | ⏭️ DEFERRED | Separate PR (UI)   |
+| 12  | QuickActions colors | ⏭️ DEFERRED | Separate PR (UI)   |
+| 13  | OpenAPI docs        | ⏭️ DEFERRED | Separate PR (Docs) |
+| 14  | Error normalization | ⏭️ DEFERRED | Separate PR (API)  |
 
 ---
 

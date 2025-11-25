@@ -1,975 +1,1132 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" dir="ltr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Work Orders - Fixzit Facility Management</title>
-    
+
     <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
     <style>
-        :root {
-            --primary-blue: #0078D4;
-            --secondary-blue: #00BCF2;
-            --success-green: #6E4D2C;
-            --warning-yellow: #C98036;
-            --danger-red: #E74C3C;
-            --dark: #1A1A1A;
-            --white: #FFFFFF;
-            --gray-light: #F4F4F4;
-            --gray-medium: #8E8E8E;
-            --text-dark: #3A2A1F;
-            --border: #E0E0E0;
-            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);
-        }
+      :root {
+        --primary-blue: #0078d4;
+        --secondary-blue: #00bcf2;
+        --success-green: #6e4d2c;
+        --warning-yellow: #c98036;
+        --danger-red: #e74c3c;
+        --dark: #1a1a1a;
+        --white: #ffffff;
+        --gray-light: #f4f4f4;
+        --gray-medium: #8e8e8e;
+        --text-dark: #3a2a1f;
+        --border: #e0e0e0;
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);
+      }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            background: #F8F9FA;
-            color: var(--text-dark);
-        }
+      body {
+        font-family: "Inter", "Segoe UI", sans-serif;
+        background: #f8f9fa;
+        color: var(--text-dark);
+      }
 
-        /* Container */
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+      /* Container */
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+      }
 
-        /* Header */
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: var(--white);
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-        }
+      /* Header */
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: var(--white);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+      }
 
-        .page-title {
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--text-dark);
-        }
+      .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--text-dark);
+      }
 
-        .header-actions {
-            display: flex;
-            gap: 15px;
-        }
+      .header-actions {
+        display: flex;
+        gap: 15px;
+      }
 
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
 
-        .btn-primary {
-            background: var(--primary-blue);
-            color: white;
-        }
+      .btn-primary {
+        background: var(--primary-blue);
+        color: white;
+      }
 
-        .btn-primary:hover {
-            background: var(--secondary-blue);
-            transform: translateY(-2px);
-        }
+      .btn-primary:hover {
+        background: var(--secondary-blue);
+        transform: translateY(-2px);
+      }
 
-        .btn-secondary {
-            background: var(--gray-light);
-            color: var(--text-dark);
-        }
+      .btn-secondary {
+        background: var(--gray-light);
+        color: var(--text-dark);
+      }
 
-        /* Tabs */
-        .tabs-container {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
-        }
+      /* Tabs */
+      .tabs-container {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow);
+      }
 
-        .tabs {
-            display: flex;
-            gap: 20px;
-            border-bottom: 2px solid var(--border);
-            overflow-x: auto;
-        }
+      .tabs {
+        display: flex;
+        gap: 20px;
+        border-bottom: 2px solid var(--border);
+        overflow-x: auto;
+      }
 
-        .tab {
-            padding: 12px 20px;
-            background: none;
-            border: none;
-            color: var(--gray-medium);
-            font-weight: 500;
-            cursor: pointer;
-            position: relative;
-            white-space: nowrap;
-            transition: all 0.3s;
-        }
+      .tab {
+        padding: 12px 20px;
+        background: none;
+        border: none;
+        color: var(--gray-medium);
+        font-weight: 500;
+        cursor: pointer;
+        position: relative;
+        white-space: nowrap;
+        transition: all 0.3s;
+      }
 
-        .tab:hover {
-            color: var(--text-dark);
-        }
+      .tab:hover {
+        color: var(--text-dark);
+      }
 
-        .tab.active {
-            color: var(--primary-blue);
-        }
+      .tab.active {
+        color: var(--primary-blue);
+      }
 
-        .tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--primary-blue);
-        }
+      .tab.active::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--primary-blue);
+      }
 
-        .tab-badge {
-            background: var(--danger-red);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            margin-left: 8px;
-        }
+      .tab-badge {
+        background: var(--danger-red);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        margin-left: 8px;
+      }
 
-        /* Filters Bar */
+      /* Filters Bar */
+      .filters-bar {
+        display: flex;
+        gap: 15px;
+        padding: 20px;
+        background: var(--white);
+        border-radius: 12px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow);
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .filter-label {
+        font-size: 12px;
+        color: var(--gray-medium);
+        font-weight: 500;
+      }
+
+      .filter-input {
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 14px;
+        min-width: 150px;
+      }
+
+      .search-box {
+        flex: 1;
+        position: relative;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 8px 40px 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 14px;
+      }
+
+      .search-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray-medium);
+      }
+
+      /* View Toggle */
+      .view-toggle {
+        display: flex;
+        gap: 5px;
+        margin-left: auto;
+      }
+
+      .view-btn {
+        padding: 8px 12px;
+        background: var(--gray-light);
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .view-btn:first-child {
+        border-radius: 6px 0 0 6px;
+      }
+
+      .view-btn:last-child {
+        border-radius: 0 6px 6px 0;
+      }
+
+      .view-btn.active {
+        background: var(--primary-blue);
+        color: white;
+      }
+
+      /* Work Orders Table */
+      .table-container {
+        background: var(--white);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+      }
+
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .data-table th {
+        background: var(--gray-light);
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 13px;
+        text-transform: uppercase;
+        color: var(--gray-medium);
+        border-bottom: 2px solid var(--border);
+      }
+
+      .data-table td {
+        padding: 15px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .data-table tr:hover {
+        background: rgba(0, 120, 212, 0.05);
+      }
+
+      /* Status Badges */
+      .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .status-draft {
+        background: #e0e0e0;
+        color: #666;
+      }
+      .status-open {
+        background: #e3f2fd;
+        color: #1976d2;
+      }
+      .status-assigned {
+        background: #f3e5f5;
+        color: #7b1fa2;
+      }
+      .status-in-progress {
+        background: #fff3e0;
+        color: #f57c00;
+      }
+      .status-pending {
+        background: #fff8e1;
+        color: #f9a825;
+      }
+      .status-complete {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+      .status-closed {
+        background: #eceff1;
+        color: #455a64;
+      }
+
+      /* Priority Indicators */
+      .priority {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 500;
+      }
+
+      .priority-urgent {
+        color: var(--danger-red);
+      }
+      .priority-high {
+        color: #ff6b6b;
+      }
+      .priority-medium {
+        color: var(--warning-yellow);
+      }
+      .priority-low {
+        color: var(--gray-medium);
+      }
+
+      /* SLA Indicator */
+      .sla-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 13px;
+      }
+
+      .sla-ok {
+        color: var(--success-green);
+      }
+      .sla-warning {
+        color: var(--warning-yellow);
+      }
+      .sla-breach {
+        color: var(--danger-red);
+      }
+
+      /* Board View */
+      .board-container {
+        display: none;
+        gap: 20px;
+        overflow-x: auto;
+        padding-bottom: 20px;
+      }
+
+      .board-container.active {
+        display: flex;
+      }
+
+      .board-column {
+        min-width: 300px;
+        background: var(--gray-light);
+        border-radius: 12px;
+        padding: 15px;
+      }
+
+      .column-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: var(--white);
+        border-radius: 8px;
+      }
+
+      .column-title {
+        font-weight: 600;
+        color: var(--text-dark);
+      }
+
+      .column-count {
+        background: var(--primary-blue);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+      }
+
+      .work-order-card {
+        background: var(--white);
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        cursor: move;
+        transition: all 0.3s;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      .work-order-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 10px;
+      }
+
+      .card-id {
+        font-weight: 600;
+        color: var(--primary-blue);
+      }
+
+      .card-priority {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      .card-priority.urgent {
+        background: var(--danger-red);
+      }
+      .card-priority.high {
+        background: #ff6b6b;
+      }
+      .card-priority.medium {
+        background: var(--warning-yellow);
+      }
+      .card-priority.low {
+        background: var(--gray-medium);
+      }
+
+      .card-title {
+        font-weight: 500;
+        margin-bottom: 10px;
+        color: var(--text-dark);
+      }
+
+      .card-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: var(--gray-medium);
+      }
+
+      .card-assignee {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .assignee-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--primary-blue);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      /* Actions */
+      .actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .action-btn {
+        background: none;
+        border: none;
+        color: var(--gray-medium);
+        cursor: pointer;
+        transition: color 0.3s;
+      }
+
+      .action-btn:hover {
+        color: var(--primary-blue);
+      }
+
+      /* Pagination */
+      .pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        background: var(--white);
+        border-radius: 12px;
+        margin-top: 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .pagination-info {
+        color: var(--gray-medium);
+        font-size: 14px;
+      }
+
+      .pagination-controls {
+        display: flex;
+        gap: 10px;
+      }
+
+      .page-btn {
+        padding: 8px 12px;
+        background: var(--gray-light);
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .page-btn:hover {
+        background: var(--primary-blue);
+        color: white;
+      }
+
+      .page-btn.active {
+        background: var(--primary-blue);
+        color: white;
+      }
+
+      .page-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
         .filters-bar {
-            display: flex;
-            gap: 15px;
-            padding: 20px;
-            background: var(--white);
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .filter-label {
-            font-size: 12px;
-            color: var(--gray-medium);
-            font-weight: 500;
-        }
-
-        .filter-input {
-            padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 14px;
-            min-width: 150px;
+          flex-direction: column;
         }
 
         .search-box {
-            flex: 1;
-            position: relative;
+          width: 100%;
         }
 
-        .search-input {
-            width: 100%;
-            padding: 8px 40px 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .search-icon {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--gray-medium);
-        }
-
-        /* View Toggle */
-        .view-toggle {
-            display: flex;
-            gap: 5px;
-            margin-left: auto;
-        }
-
-        .view-btn {
-            padding: 8px 12px;
-            background: var(--gray-light);
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .view-btn:first-child {
-            border-radius: 6px 0 0 6px;
-        }
-
-        .view-btn:last-child {
-            border-radius: 0 6px 6px 0;
-        }
-
-        .view-btn.active {
-            background: var(--primary-blue);
-            color: white;
-        }
-
-        /* Work Orders Table */
         .table-container {
-            background: var(--white);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: var(--shadow);
+          overflow-x: auto;
         }
 
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .data-table th {
-            background: var(--gray-light);
-            padding: 15px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 13px;
-            text-transform: uppercase;
-            color: var(--gray-medium);
-            border-bottom: 2px solid var(--border);
-        }
-
-        .data-table td {
-            padding: 15px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .data-table tr:hover {
-            background: rgba(0, 120, 212, 0.05);
-        }
-
-        /* Status Badges */
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .status-draft { background: #E0E0E0; color: #666; }
-        .status-open { background: #E3F2FD; color: #1976D2; }
-        .status-assigned { background: #F3E5F5; color: #7B1FA2; }
-        .status-in-progress { background: #FFF3E0; color: #F57C00; }
-        .status-pending { background: #FFF8E1; color: #F9A825; }
-        .status-complete { background: #E8F5E9; color: #2E7D32; }
-        .status-closed { background: #ECEFF1; color: #455A64; }
-
-        /* Priority Indicators */
-        .priority {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-weight: 500;
-        }
-
-        .priority-urgent { color: var(--danger-red); }
-        .priority-high { color: #FF6B6B; }
-        .priority-medium { color: var(--warning-yellow); }
-        .priority-low { color: var(--gray-medium); }
-
-        /* SLA Indicator */
-        .sla-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 13px;
-        }
-
-        .sla-ok { color: var(--success-green); }
-        .sla-warning { color: var(--warning-yellow); }
-        .sla-breach { color: var(--danger-red); }
-
-        /* Board View */
         .board-container {
-            display: none;
-            gap: 20px;
-            overflow-x: auto;
-            padding-bottom: 20px;
-        }
-
-        .board-container.active {
-            display: flex;
+          flex-direction: column;
         }
 
         .board-column {
-            min-width: 300px;
-            background: var(--gray-light);
-            border-radius: 12px;
-            padding: 15px;
+          min-width: 100%;
         }
-
-        .column-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding: 10px;
-            background: var(--white);
-            border-radius: 8px;
-        }
-
-        .column-title {
-            font-weight: 600;
-            color: var(--text-dark);
-        }
-
-        .column-count {
-            background: var(--primary-blue);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-        }
-
-        .work-order-card {
-            background: var(--white);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            cursor: move;
-            transition: all 0.3s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        .work-order-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 10px;
-        }
-
-        .card-id {
-            font-weight: 600;
-            color: var(--primary-blue);
-        }
-
-        .card-priority {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        .card-priority.urgent { background: var(--danger-red); }
-        .card-priority.high { background: #FF6B6B; }
-        .card-priority.medium { background: var(--warning-yellow); }
-        .card-priority.low { background: var(--gray-medium); }
-
-        .card-title {
-            font-weight: 500;
-            margin-bottom: 10px;
-            color: var(--text-dark);
-        }
-
-        .card-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-            color: var(--gray-medium);
-        }
-
-        .card-assignee {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .assignee-avatar {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: var(--primary-blue);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: 600;
-        }
-
-        /* Actions */
-        .actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .action-btn {
-            background: none;
-            border: none;
-            color: var(--gray-medium);
-            cursor: pointer;
-            transition: color 0.3s;
-        }
-
-        .action-btn:hover {
-            color: var(--primary-blue);
-        }
-
-        /* Pagination */
-        .pagination {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            background: var(--white);
-            border-radius: 12px;
-            margin-top: 20px;
-            box-shadow: var(--shadow);
-        }
-
-        .pagination-info {
-            color: var(--gray-medium);
-            font-size: 14px;
-        }
-
-        .pagination-controls {
-            display: flex;
-            gap: 10px;
-        }
-
-        .page-btn {
-            padding: 8px 12px;
-            background: var(--gray-light);
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .page-btn:hover {
-            background: var(--primary-blue);
-            color: white;
-        }
-
-        .page-btn.active {
-            background: var(--primary-blue);
-            color: white;
-        }
-
-        .page-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .filters-bar {
-                flex-direction: column;
-            }
-
-            .search-box {
-                width: 100%;
-            }
-
-            .table-container {
-                overflow-x: auto;
-            }
-
-            .board-container {
-                flex-direction: column;
-            }
-
-            .board-column {
-                min-width: 100%;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <!-- Page Header -->
-        <div class="page-header">
-            <h1 class="page-title">Work Orders</h1>
-            <div class="header-actions">
-                <button class="btn btn-secondary">
-                    <i class="fas fa-filter"></i>
-                    Advanced Filter
-                </button>
-                <button class="btn btn-secondary">
-                    <i class="fas fa-download"></i>
-                    Export
-                </button>
-                <button class="btn btn-primary" onclick="createWorkOrder()">
-                    <i class="fas fa-plus"></i>
-                    Create Work Order
-                </button>
-            </div>
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 class="page-title">Work Orders</h1>
+        <div class="header-actions">
+          <button class="btn btn-secondary">
+            <i class="fas fa-filter"></i>
+            Advanced Filter
+          </button>
+          <button class="btn btn-secondary">
+            <i class="fas fa-download"></i>
+            Export
+          </button>
+          <button class="btn btn-primary" onclick="createWorkOrder()">
+            <i class="fas fa-plus"></i>
+            Create Work Order
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-container">
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('all')">
+            All Orders
+            <span class="tab-badge">124</span>
+          </button>
+          <button class="tab" onclick="switchTab('board')">
+            <i class="fas fa-th"></i>
+            Board
+          </button>
+          <button class="tab" onclick="switchTab('calendar')">
+            <i class="fas fa-calendar"></i>
+            Calendar/Gantt
+          </button>
+          <button class="tab" onclick="switchTab('create')">
+            <i class="fas fa-plus-circle"></i>
+            Create
+          </button>
+          <button class="tab" onclick="switchTab('pm')">
+            <i class="fas fa-clock"></i>
+            PM Schedule
+          </button>
+          <button class="tab" onclick="switchTab('history')">
+            <i class="fas fa-history"></i>
+            Service History
+          </button>
+          <button class="tab" onclick="switchTab('dispatch')">
+            <i class="fas fa-route"></i>
+            Dispatch
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters Bar -->
+      <div class="filters-bar">
+        <div class="filter-group">
+          <label class="filter-label">Status</label>
+          <select class="filter-input">
+            <option>All Status</option>
+            <option>Draft</option>
+            <option>Open</option>
+            <option>Assigned</option>
+            <option>In Progress</option>
+            <option>Pending Approval</option>
+            <option>Work Complete</option>
+            <option>Closed</option>
+          </select>
         </div>
 
-        <!-- Tabs -->
-        <div class="tabs-container">
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab('all')">
-                    All Orders
-                    <span class="tab-badge">124</span>
-                </button>
-                <button class="tab" onclick="switchTab('board')">
-                    <i class="fas fa-th"></i>
-                    Board
-                </button>
-                <button class="tab" onclick="switchTab('calendar')">
-                    <i class="fas fa-calendar"></i>
-                    Calendar/Gantt
-                </button>
-                <button class="tab" onclick="switchTab('create')">
-                    <i class="fas fa-plus-circle"></i>
-                    Create
-                </button>
-                <button class="tab" onclick="switchTab('pm')">
-                    <i class="fas fa-clock"></i>
-                    PM Schedule
-                </button>
-                <button class="tab" onclick="switchTab('history')">
-                    <i class="fas fa-history"></i>
-                    Service History
-                </button>
-                <button class="tab" onclick="switchTab('dispatch')">
-                    <i class="fas fa-route"></i>
-                    Dispatch
-                </button>
-            </div>
+        <div class="filter-group">
+          <label class="filter-label">Priority</label>
+          <select class="filter-input">
+            <option>All Priorities</option>
+            <option>Urgent</option>
+            <option>High</option>
+            <option>Medium</option>
+            <option>Low</option>
+          </select>
         </div>
 
-        <!-- Filters Bar -->
-        <div class="filters-bar">
-            <div class="filter-group">
-                <label class="filter-label">Status</label>
-                <select class="filter-input">
-                    <option>All Status</option>
-                    <option>Draft</option>
-                    <option>Open</option>
-                    <option>Assigned</option>
-                    <option>In Progress</option>
-                    <option>Pending Approval</option>
-                    <option>Work Complete</option>
-                    <option>Closed</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Priority</label>
-                <select class="filter-input">
-                    <option>All Priorities</option>
-                    <option>Urgent</option>
-                    <option>High</option>
-                    <option>Medium</option>
-                    <option>Low</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Property</label>
-                <select class="filter-input">
-                    <option>All Properties</option>
-                    <option>Sunset Plaza</option>
-                    <option>Metro Tower</option>
-                    <option>Garden Complex</option>
-                    <option>Oak Ridge</option>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label class="filter-label">Assigned To</label>
-                <select class="filter-input">
-                    <option>All Technicians</option>
-                    <option>John Doe</option>
-                    <option>Sarah Ahmed</option>
-                    <option>Mohammed Khan</option>
-                </select>
-            </div>
-
-            <div class="search-box">
-                <input type="text" class="search-input" placeholder="Search work orders...">
-                <i class="fas fa-search search-icon"></i>
-            </div>
-
-            <div class="view-toggle">
-                <button class="view-btn active" onclick="switchView('table')">
-                    <i class="fas fa-list"></i>
-                </button>
-                <button class="view-btn" onclick="switchView('board')">
-                    <i class="fas fa-th"></i>
-                </button>
-            </div>
+        <div class="filter-group">
+          <label class="filter-label">Property</label>
+          <select class="filter-input">
+            <option>All Properties</option>
+            <option>Sunset Plaza</option>
+            <option>Metro Tower</option>
+            <option>Garden Complex</option>
+            <option>Oak Ridge</option>
+          </select>
         </div>
 
-        <!-- Table View -->
-        <div class="table-container" id="tableView">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th style="width: 30px;">
-                            <input type="checkbox">
-                        </th>
-                        <th>WO Number</th>
-                        <th>Title</th>
-                        <th>Property</th>
-                        <th>Priority</th>
-                        <th>Status</th>
-                        <th>Assigned To</th>
-                        <th>SLA</th>
-                        <th>Created</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><input type="checkbox"></td>
-                        <td><a href="#" style="color: var(--primary-blue); font-weight: 600;">#WO-2024-047</a></td>
-                        <td>AC Unit Malfunction - Floor 3</td>
-                        <td>Sunset Plaza</td>
-                        <td><span class="priority priority-urgent"><i class="fas fa-exclamation-circle"></i> Urgent</span></td>
-                        <td><span class="status-badge status-in-progress">In Progress</span></td>
-                        <td>
-                            <div class="card-assignee">
-                                <div class="assignee-avatar">JD</div>
-                                <span>John Doe</span>
-                            </div>
-                        </td>
-                        <td><span class="sla-indicator sla-warning"><i class="fas fa-clock"></i> 2h left</span></td>
-                        <td>Sep 12, 2025</td>
-                        <td>
-                            <div class="actions">
-                                <button class="action-btn" title="View"><i class="fas fa-eye"></i></button>
-                                <button class="action-btn" title="Edit"><i class="fas fa-edit"></i></button>
-                                <button class="action-btn" title="Delete"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><input type="checkbox"></td>
-                        <td><a href="#" style="color: var(--primary-blue); font-weight: 600;">#WO-2024-046</a></td>
-                        <td>Elevator Maintenance - Building A</td>
-                        <td>Metro Tower</td>
-                        <td><span class="priority priority-high"><i class="fas fa-arrow-up"></i> High</span></td>
-                        <td><span class="status-badge status-assigned">Assigned</span></td>
-                        <td>
-                            <div class="card-assignee">
-                                <div class="assignee-avatar" style="background: var(--success-green);">SA</div>
-                                <span>Sarah Ahmed</span>
-                            </div>
-                        </td>
-                        <td><span class="sla-indicator sla-ok"><i class="fas fa-check-circle"></i> On Track</span></td>
-                        <td>Sep 11, 2025</td>
-                        <td>
-                            <div class="actions">
-                                <button class="action-btn" title="View"><i class="fas fa-eye"></i></button>
-                                <button class="action-btn" title="Edit"><i class="fas fa-edit"></i></button>
-                                <button class="action-btn" title="Delete"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><input type="checkbox"></td>
-                        <td><a href="#" style="color: var(--primary-blue); font-weight: 600;">#WO-2024-045</a></td>
-                        <td>Plumbing Issue - Unit 204</td>
-                        <td>Garden Complex</td>
-                        <td><span class="priority priority-medium"><i class="fas fa-minus-circle"></i> Medium</span></td>
-                        <td><span class="status-badge status-open">Open</span></td>
-                        <td>
-                            <div class="card-assignee">
-                                <div class="assignee-avatar" style="background: var(--gray-medium);">--</div>
-                                <span>Unassigned</span>
-                            </div>
-                        </td>
-                        <td><span class="sla-indicator sla-breach"><i class="fas fa-exclamation-triangle"></i> Overdue</span></td>
-                        <td>Sep 10, 2025</td>
-                        <td>
-                            <div class="actions">
-                                <button class="action-btn" title="View"><i class="fas fa-eye"></i></button>
-                                <button class="action-btn" title="Edit"><i class="fas fa-edit"></i></button>
-                                <button class="action-btn" title="Delete"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><input type="checkbox"></td>
-                        <td><a href="#" style="color: var(--primary-blue); font-weight: 600;">#WO-2024-044</a></td>
-                        <td>Parking Light Replacement</td>
-                        <td>Oak Ridge</td>
-                        <td><span class="priority priority-low"><i class="fas fa-arrow-down"></i> Low</span></td>
-                        <td><span class="status-badge status-complete">Complete</span></td>
-                        <td>
-                            <div class="card-assignee">
-                                <div class="assignee-avatar" style="background: var(--warning-yellow);">MK</div>
-                                <span>Mohammed Khan</span>
-                            </div>
-                        </td>
-                        <td><span class="sla-indicator sla-ok"><i class="fas fa-check-circle"></i> Completed</span></td>
-                        <td>Sep 9, 2025</td>
-                        <td>
-                            <div class="actions">
-                                <button class="action-btn" title="View"><i class="fas fa-eye"></i></button>
-                                <button class="action-btn" title="Edit"><i class="fas fa-edit"></i></button>
-                                <button class="action-btn" title="Delete"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="filter-group">
+          <label class="filter-label">Assigned To</label>
+          <select class="filter-input">
+            <option>All Technicians</option>
+            <option>John Doe</option>
+            <option>Sarah Ahmed</option>
+            <option>Mohammed Khan</option>
+          </select>
         </div>
 
-        <!-- Board View -->
-        <div class="board-container" id="boardView">
-            <!-- Draft Column -->
-            <div class="board-column">
-                <div class="column-header">
-                    <span class="column-title">Draft</span>
-                    <span class="column-count">3</span>
-                </div>
-                <div class="work-order-card">
-                    <div class="card-header">
-                        <span class="card-id">#WO-2024-048</span>
-                        <div class="card-priority urgent"></div>
-                    </div>
-                    <div class="card-title">Window Cleaning - All Buildings</div>
-                    <div class="card-meta">
-                        <div class="card-assignee">
-                            <div class="assignee-avatar">--</div>
-                            <span>Unassigned</span>
-                        </div>
-                        <span>Draft</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Open Column -->
-            <div class="board-column">
-                <div class="column-header">
-                    <span class="column-title">Open</span>
-                    <span class="column-count">8</span>
-                </div>
-                <div class="work-order-card">
-                    <div class="card-header">
-                        <span class="card-id">#WO-2024-045</span>
-                        <div class="card-priority medium"></div>
-                    </div>
-                    <div class="card-title">Plumbing Issue - Unit 204</div>
-                    <div class="card-meta">
-                        <div class="card-assignee">
-                            <div class="assignee-avatar">--</div>
-                            <span>Unassigned</span>
-                        </div>
-                        <span>2 days ago</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Assigned Column -->
-            <div class="board-column">
-                <div class="column-header">
-                    <span class="column-title">Assigned</span>
-                    <span class="column-count">12</span>
-                </div>
-                <div class="work-order-card">
-                    <div class="card-header">
-                        <span class="card-id">#WO-2024-046</span>
-                        <div class="card-priority high"></div>
-                    </div>
-                    <div class="card-title">Elevator Maintenance - Building A</div>
-                    <div class="card-meta">
-                        <div class="card-assignee">
-                            <div class="assignee-avatar" style="background: var(--success-green);">SA</div>
-                            <span>Sarah Ahmed</span>
-                        </div>
-                        <span>Yesterday</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- In Progress Column -->
-            <div class="board-column">
-                <div class="column-header">
-                    <span class="column-title">In Progress</span>
-                    <span class="column-count">5</span>
-                </div>
-                <div class="work-order-card">
-                    <div class="card-header">
-                        <span class="card-id">#WO-2024-047</span>
-                        <div class="card-priority urgent"></div>
-                    </div>
-                    <div class="card-title">AC Unit Malfunction - Floor 3</div>
-                    <div class="card-meta">
-                        <div class="card-assignee">
-                            <div class="assignee-avatar">JD</div>
-                            <span>John Doe</span>
-                        </div>
-                        <span>Today</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pending Approval Column -->
-            <div class="board-column">
-                <div class="column-header">
-                    <span class="column-title">Pending Approval</span>
-                    <span class="column-count">2</span>
-                </div>
-            </div>
-
-            <!-- Work Complete Column -->
-            <div class="board-column">
-                <div class="column-header">
-                    <span class="column-title">Work Complete</span>
-                    <span class="column-count">7</span>
-                </div>
-                <div class="work-order-card">
-                    <div class="card-header">
-                        <span class="card-id">#WO-2024-044</span>
-                        <div class="card-priority low"></div>
-                    </div>
-                    <div class="card-title">Parking Light Replacement</div>
-                    <div class="card-meta">
-                        <div class="card-assignee">
-                            <div class="assignee-avatar" style="background: var(--warning-yellow);">MK</div>
-                            <span>Mohammed Khan</span>
-                        </div>
-                        <span>3 days ago</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Closed Column -->
-            <div class="board-column">
-                <div class="column-header">
-                    <span class="column-title">Closed</span>
-                    <span class="column-count">89</span>
-                </div>
-            </div>
+        <div class="search-box">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search work orders..."
+          />
+          <i class="fas fa-search search-icon"></i>
         </div>
 
-        <!-- Pagination -->
-        <div class="pagination">
-            <div class="pagination-info">
-                Showing 1-10 of 124 work orders
-            </div>
-            <div class="pagination-controls">
-                <button class="page-btn" disabled>
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <button class="page-btn active">1</button>
-                <button class="page-btn">2</button>
-                <button class="page-btn">3</button>
-                <button class="page-btn">...</button>
-                <button class="page-btn">13</button>
-                <button class="page-btn">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            </div>
+        <div class="view-toggle">
+          <button class="view-btn active" onclick="switchView('table')">
+            <i class="fas fa-list"></i>
+          </button>
+          <button class="view-btn" onclick="switchView('board')">
+            <i class="fas fa-th"></i>
+          </button>
         </div>
+      </div>
+
+      <!-- Table View -->
+      <div class="table-container" id="tableView">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 30px">
+                <input type="checkbox" />
+              </th>
+              <th>WO Number</th>
+              <th>Title</th>
+              <th>Property</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Assigned To</th>
+              <th>SLA</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="checkbox" /></td>
+              <td>
+                <a href="#" style="color: var(--primary-blue); font-weight: 600"
+                  >#WO-2024-047</a
+                >
+              </td>
+              <td>AC Unit Malfunction - Floor 3</td>
+              <td>Sunset Plaza</td>
+              <td>
+                <span class="priority priority-urgent"
+                  ><i class="fas fa-exclamation-circle"></i> Urgent</span
+                >
+              </td>
+              <td>
+                <span class="status-badge status-in-progress">In Progress</span>
+              </td>
+              <td>
+                <div class="card-assignee">
+                  <div class="assignee-avatar">JD</div>
+                  <span>John Doe</span>
+                </div>
+              </td>
+              <td>
+                <span class="sla-indicator sla-warning"
+                  ><i class="fas fa-clock"></i> 2h left</span
+                >
+              </td>
+              <td>Sep 12, 2025</td>
+              <td>
+                <div class="actions">
+                  <button class="action-btn" title="View">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="action-btn" title="Edit">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="action-btn" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" /></td>
+              <td>
+                <a href="#" style="color: var(--primary-blue); font-weight: 600"
+                  >#WO-2024-046</a
+                >
+              </td>
+              <td>Elevator Maintenance - Building A</td>
+              <td>Metro Tower</td>
+              <td>
+                <span class="priority priority-high"
+                  ><i class="fas fa-arrow-up"></i> High</span
+                >
+              </td>
+              <td>
+                <span class="status-badge status-assigned">Assigned</span>
+              </td>
+              <td>
+                <div class="card-assignee">
+                  <div
+                    class="assignee-avatar"
+                    style="background: var(--success-green)"
+                  >
+                    SA
+                  </div>
+                  <span>Sarah Ahmed</span>
+                </div>
+              </td>
+              <td>
+                <span class="sla-indicator sla-ok"
+                  ><i class="fas fa-check-circle"></i> On Track</span
+                >
+              </td>
+              <td>Sep 11, 2025</td>
+              <td>
+                <div class="actions">
+                  <button class="action-btn" title="View">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="action-btn" title="Edit">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="action-btn" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" /></td>
+              <td>
+                <a href="#" style="color: var(--primary-blue); font-weight: 600"
+                  >#WO-2024-045</a
+                >
+              </td>
+              <td>Plumbing Issue - Unit 204</td>
+              <td>Garden Complex</td>
+              <td>
+                <span class="priority priority-medium"
+                  ><i class="fas fa-minus-circle"></i> Medium</span
+                >
+              </td>
+              <td><span class="status-badge status-open">Open</span></td>
+              <td>
+                <div class="card-assignee">
+                  <div
+                    class="assignee-avatar"
+                    style="background: var(--gray-medium)"
+                  >
+                    --
+                  </div>
+                  <span>Unassigned</span>
+                </div>
+              </td>
+              <td>
+                <span class="sla-indicator sla-breach"
+                  ><i class="fas fa-exclamation-triangle"></i> Overdue</span
+                >
+              </td>
+              <td>Sep 10, 2025</td>
+              <td>
+                <div class="actions">
+                  <button class="action-btn" title="View">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="action-btn" title="Edit">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="action-btn" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" /></td>
+              <td>
+                <a href="#" style="color: var(--primary-blue); font-weight: 600"
+                  >#WO-2024-044</a
+                >
+              </td>
+              <td>Parking Light Replacement</td>
+              <td>Oak Ridge</td>
+              <td>
+                <span class="priority priority-low"
+                  ><i class="fas fa-arrow-down"></i> Low</span
+                >
+              </td>
+              <td>
+                <span class="status-badge status-complete">Complete</span>
+              </td>
+              <td>
+                <div class="card-assignee">
+                  <div
+                    class="assignee-avatar"
+                    style="background: var(--warning-yellow)"
+                  >
+                    MK
+                  </div>
+                  <span>Mohammed Khan</span>
+                </div>
+              </td>
+              <td>
+                <span class="sla-indicator sla-ok"
+                  ><i class="fas fa-check-circle"></i> Completed</span
+                >
+              </td>
+              <td>Sep 9, 2025</td>
+              <td>
+                <div class="actions">
+                  <button class="action-btn" title="View">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="action-btn" title="Edit">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="action-btn" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Board View -->
+      <div class="board-container" id="boardView">
+        <!-- Draft Column -->
+        <div class="board-column">
+          <div class="column-header">
+            <span class="column-title">Draft</span>
+            <span class="column-count">3</span>
+          </div>
+          <div class="work-order-card">
+            <div class="card-header">
+              <span class="card-id">#WO-2024-048</span>
+              <div class="card-priority urgent"></div>
+            </div>
+            <div class="card-title">Window Cleaning - All Buildings</div>
+            <div class="card-meta">
+              <div class="card-assignee">
+                <div class="assignee-avatar">--</div>
+                <span>Unassigned</span>
+              </div>
+              <span>Draft</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Open Column -->
+        <div class="board-column">
+          <div class="column-header">
+            <span class="column-title">Open</span>
+            <span class="column-count">8</span>
+          </div>
+          <div class="work-order-card">
+            <div class="card-header">
+              <span class="card-id">#WO-2024-045</span>
+              <div class="card-priority medium"></div>
+            </div>
+            <div class="card-title">Plumbing Issue - Unit 204</div>
+            <div class="card-meta">
+              <div class="card-assignee">
+                <div class="assignee-avatar">--</div>
+                <span>Unassigned</span>
+              </div>
+              <span>2 days ago</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Assigned Column -->
+        <div class="board-column">
+          <div class="column-header">
+            <span class="column-title">Assigned</span>
+            <span class="column-count">12</span>
+          </div>
+          <div class="work-order-card">
+            <div class="card-header">
+              <span class="card-id">#WO-2024-046</span>
+              <div class="card-priority high"></div>
+            </div>
+            <div class="card-title">Elevator Maintenance - Building A</div>
+            <div class="card-meta">
+              <div class="card-assignee">
+                <div
+                  class="assignee-avatar"
+                  style="background: var(--success-green)"
+                >
+                  SA
+                </div>
+                <span>Sarah Ahmed</span>
+              </div>
+              <span>Yesterday</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- In Progress Column -->
+        <div class="board-column">
+          <div class="column-header">
+            <span class="column-title">In Progress</span>
+            <span class="column-count">5</span>
+          </div>
+          <div class="work-order-card">
+            <div class="card-header">
+              <span class="card-id">#WO-2024-047</span>
+              <div class="card-priority urgent"></div>
+            </div>
+            <div class="card-title">AC Unit Malfunction - Floor 3</div>
+            <div class="card-meta">
+              <div class="card-assignee">
+                <div class="assignee-avatar">JD</div>
+                <span>John Doe</span>
+              </div>
+              <span>Today</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pending Approval Column -->
+        <div class="board-column">
+          <div class="column-header">
+            <span class="column-title">Pending Approval</span>
+            <span class="column-count">2</span>
+          </div>
+        </div>
+
+        <!-- Work Complete Column -->
+        <div class="board-column">
+          <div class="column-header">
+            <span class="column-title">Work Complete</span>
+            <span class="column-count">7</span>
+          </div>
+          <div class="work-order-card">
+            <div class="card-header">
+              <span class="card-id">#WO-2024-044</span>
+              <div class="card-priority low"></div>
+            </div>
+            <div class="card-title">Parking Light Replacement</div>
+            <div class="card-meta">
+              <div class="card-assignee">
+                <div
+                  class="assignee-avatar"
+                  style="background: var(--warning-yellow)"
+                >
+                  MK
+                </div>
+                <span>Mohammed Khan</span>
+              </div>
+              <span>3 days ago</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Closed Column -->
+        <div class="board-column">
+          <div class="column-header">
+            <span class="column-title">Closed</span>
+            <span class="column-count">89</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <div class="pagination-info">Showing 1-10 of 124 work orders</div>
+        <div class="pagination-controls">
+          <button class="page-btn" disabled>
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">2</button>
+          <button class="page-btn">3</button>
+          <button class="page-btn">...</button>
+          <button class="page-btn">13</button>
+          <button class="page-btn">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
     </div>
 
     <script>
-        // Switch between tabs
-        function switchTab(tab) {
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            console.log('Switching to tab:', tab);
-            
-            if (tab === 'board') {
-                switchView('board');
-            } else {
-                switchView('table');
-            }
-        }
+      // Switch between tabs
+      function switchTab(tab) {
+        const tabs = document.querySelectorAll(".tab");
+        tabs.forEach((t) => t.classList.remove("active"));
+        event.target.classList.add("active");
 
-        // Switch between views
-        function switchView(view) {
-            const tableView = document.getElementById('tableView');
-            const boardView = document.getElementById('boardView');
-            const viewBtns = document.querySelectorAll('.view-btn');
-            
-            viewBtns.forEach(btn => btn.classList.remove('active'));
-            
-            if (view === 'board') {
-                tableView.style.display = 'none';
-                boardView.classList.add('active');
-                viewBtns[1].classList.add('active');
-            } else {
-                tableView.style.display = 'block';
-                boardView.classList.remove('active');
-                viewBtns[0].classList.add('active');
-            }
-        }
+        console.log("Switching to tab:", tab);
 
-        // Create Work Order
-        function createWorkOrder() {
-            console.log('Opening create work order form...');
-            alert('Create Work Order form would open here');
+        if (tab === "board") {
+          switchView("board");
+        } else {
+          switchView("table");
         }
+      }
 
-        // Initialize drag and drop for board view
-        document.addEventListener('DOMContentLoaded', function() {
-            const cards = document.querySelectorAll('.work-order-card');
-            const columns = document.querySelectorAll('.board-column');
-            
-            cards.forEach(card => {
-                card.draggable = true;
-                
-                card.addEventListener('dragstart', function(e) {
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.target.style.opacity = '0.5';
-                });
-                
-                card.addEventListener('dragend', function(e) {
-                    e.target.style.opacity = '';
-                });
-            });
-            
-            columns.forEach(column => {
-                column.addEventListener('dragover', function(e) {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    this.style.background = 'rgba(0, 120, 212, 0.05)';
-                });
-                
-                column.addEventListener('dragleave', function(e) {
-                    this.style.background = '';
-                });
-                
-                column.addEventListener('drop', function(e) {
-                    e.preventDefault();
-                    this.style.background = '';
-                    // In production, this would update the work order status
-                    console.log('Work order moved to:', this.querySelector('.column-title').textContent);
-                });
-            });
+      // Switch between views
+      function switchView(view) {
+        const tableView = document.getElementById("tableView");
+        const boardView = document.getElementById("boardView");
+        const viewBtns = document.querySelectorAll(".view-btn");
+
+        viewBtns.forEach((btn) => btn.classList.remove("active"));
+
+        if (view === "board") {
+          tableView.style.display = "none";
+          boardView.classList.add("active");
+          viewBtns[1].classList.add("active");
+        } else {
+          tableView.style.display = "block";
+          boardView.classList.remove("active");
+          viewBtns[0].classList.add("active");
+        }
+      }
+
+      // Create Work Order
+      function createWorkOrder() {
+        console.log("Opening create work order form...");
+        alert("Create Work Order form would open here");
+      }
+
+      // Initialize drag and drop for board view
+      document.addEventListener("DOMContentLoaded", function () {
+        const cards = document.querySelectorAll(".work-order-card");
+        const columns = document.querySelectorAll(".board-column");
+
+        cards.forEach((card) => {
+          card.draggable = true;
+
+          card.addEventListener("dragstart", function (e) {
+            e.dataTransfer.effectAllowed = "move";
+            e.target.style.opacity = "0.5";
+          });
+
+          card.addEventListener("dragend", function (e) {
+            e.target.style.opacity = "";
+          });
         });
+
+        columns.forEach((column) => {
+          column.addEventListener("dragover", function (e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            this.style.background = "rgba(0, 120, 212, 0.05)";
+          });
+
+          column.addEventListener("dragleave", function (e) {
+            this.style.background = "";
+          });
+
+          column.addEventListener("drop", function (e) {
+            e.preventDefault();
+            this.style.background = "";
+            // In production, this would update the work order status
+            console.log(
+              "Work order moved to:",
+              this.querySelector(".column-title").textContent,
+            );
+          });
+        });
+      });
     </script>
-</body>
+  </body>
 </html>

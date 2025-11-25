@@ -1,9 +1,9 @@
 /**
  * Settlement Calculator Service
- * 
+ *
  * Calculates seller payouts, fees, commissions, and VAT for completed orders.
  * Handles order reconciliation, dispute adjustments, and reserve management.
- * 
+ *
  * Fee Structure:
  * - Platform Commission: 10% of order value
  * - Payment Gateway Fee: 2.5% of order value
@@ -11,17 +11,17 @@
  * - Reserve: 20% held for returns/disputes (7-14 days)
  */
 
-import { ObjectId } from 'mongodb';
-import { connectDb } from '@/lib/mongodb-unified';
+import { ObjectId } from "mongodb";
+import { connectDb } from "@/lib/mongodb-unified";
 
 /**
  * Fee configuration
  */
 const FEE_CONFIG = {
-  platformCommissionRate: 0.10, // 10%
+  platformCommissionRate: 0.1, // 10%
   paymentGatewayFeeRate: 0.025, // 2.5%
   vatRate: 0.15, // 15%
-  reserveRate: 0.20, // 20%
+  reserveRate: 0.2, // 20%
   holdPeriodDays: 7, // Days to hold funds post-delivery
   minimumPayoutThreshold: 500, // SAR
 } as const;
@@ -29,26 +29,26 @@ const FEE_CONFIG = {
 /**
  * Order status types for settlement
  */
-type SettlementOrderStatus = 
-  | 'pending' 
-  | 'eligible' 
-  | 'processed' 
-  | 'held' 
-  | 'disputed';
+type SettlementOrderStatus =
+  | "pending"
+  | "eligible"
+  | "processed"
+  | "held"
+  | "disputed";
 
 /**
  * Transaction types
  */
-type TransactionType = 
-  | 'sale' 
-  | 'refund' 
-  | 'commission' 
-  | 'gateway_fee' 
-  | 'vat' 
-  | 'reserve_hold' 
-  | 'reserve_release' 
-  | 'adjustment'
-  | 'chargeback';
+type TransactionType =
+  | "sale"
+  | "refund"
+  | "commission"
+  | "gateway_fee"
+  | "vat"
+  | "reserve_hold"
+  | "reserve_release"
+  | "adjustment"
+  | "chargeback";
 
 /**
  * Order for settlement calculation
@@ -133,7 +133,7 @@ interface SettlementStatement {
     timestamp: Date;
     description: string;
   }>;
-  status: 'draft' | 'pending' | 'approved' | 'paid' | 'failed';
+  status: "draft" | "pending" | "approved" | "paid" | "failed";
   generatedAt: Date;
   paidAt?: Date;
   notes?: string;
@@ -169,19 +169,26 @@ type RawOrder = {
   escrow?: { accountId?: unknown };
   escrowAccountId?: unknown;
   orgId?: { toString?: () => string } | string;
-  status?: SettlementOrder['status'] | string;
+  status?: SettlementOrder["status"] | string;
 };
 
 const computeSellerOrderSnapshot = (
   order: RawOrder,
-  sellerId: string
+  sellerId: string,
 ): SettlementOrder | null => {
-  const items = Array.isArray(order.items) ? (order.items as RawOrderItem[]) : [];
+  const items = Array.isArray(order.items)
+    ? (order.items as RawOrderItem[])
+    : [];
   const sellerItems = items.filter((item) => {
     const itemSellerId = item?.sellerId;
     if (!itemSellerId) return false;
-    if (typeof itemSellerId === 'string') return itemSellerId === sellerId;
-    if (typeof itemSellerId === 'object' && itemSellerId !== null && 'toString' in itemSellerId && typeof itemSellerId.toString === 'function') {
+    if (typeof itemSellerId === "string") return itemSellerId === sellerId;
+    if (
+      typeof itemSellerId === "object" &&
+      itemSellerId !== null &&
+      "toString" in itemSellerId &&
+      typeof itemSellerId.toString === "function"
+    ) {
       return itemSellerId.toString() === sellerId;
     }
     return String(itemSellerId) === sellerId;
@@ -193,21 +200,26 @@ const computeSellerOrderSnapshot = (
 
   const listingId = sellerItems[0]?.listingId
     ? sellerItems[0].listingId.toString()
-    : order.listingId?.toString?.() ?? '';
+    : (order.listingId?.toString?.() ?? "");
 
   const subtotal = sellerItems.reduce((sum: number, item: RawOrderItem) => {
-    if (typeof item.subtotal === 'number') return sum + item.subtotal;
-    const price = typeof item.pricePerUnit === 'number' ? item.pricePerUnit : 0;
-    const qty = typeof item.quantity === 'number' ? item.quantity : 1;
+    if (typeof item.subtotal === "number") return sum + item.subtotal;
+    const price = typeof item.pricePerUnit === "number" ? item.pricePerUnit : 0;
+    const qty = typeof item.quantity === "number" ? item.quantity : 1;
     return sum + price * qty;
   }, 0);
 
   const pricing = order.pricing ?? {};
-  const shippingFee = typeof pricing.shippingFee === 'number' ? pricing.shippingFee : order.shippingFee ?? 0;
-  const tax = typeof pricing.tax === 'number' ? pricing.tax : 0;
-  const discount = typeof pricing.discount === 'number' ? pricing.discount : 0;
+  const shippingFee =
+    typeof pricing.shippingFee === "number"
+      ? pricing.shippingFee
+      : (order.shippingFee ?? 0);
+  const tax = typeof pricing.tax === "number" ? pricing.tax : 0;
+  const discount = typeof pricing.discount === "number" ? pricing.discount : 0;
   const orderValue =
-    typeof pricing.total === 'number' ? pricing.total : Math.max(0, subtotal + shippingFee + tax - discount);
+    typeof pricing.total === "number"
+      ? pricing.total
+      : Math.max(0, subtotal + shippingFee + tax - discount);
 
   const deliveredAtRaw =
     order.deliveredAt ??
@@ -219,10 +231,11 @@ const computeSellerOrderSnapshot = (
     deliveredAtRaw instanceof Date
       ? deliveredAtRaw
       : deliveredAtRaw
-      ? new Date(deliveredAtRaw as unknown as string | number | Date)
-      : new Date();
+        ? new Date(deliveredAtRaw as unknown as string | number | Date)
+        : new Date();
 
-  const refundAmount = order.returnRequest?.refundAmount ?? order.refundAmount ?? 0;
+  const refundAmount =
+    order.returnRequest?.refundAmount ?? order.refundAmount ?? 0;
   const hasDispute = Boolean(order.hasDispute || order.chargebackAmount);
 
   const escrowAccountId =
@@ -230,7 +243,7 @@ const computeSellerOrderSnapshot = (
     order.escrowAccountId?.toString?.();
 
   return {
-    orderId: order._id?.toString?.() ?? '',
+    orderId: order._id?.toString?.() ?? "",
     listingId,
     sellerId,
     orgId: order.orgId?.toString?.(),
@@ -238,10 +251,15 @@ const computeSellerOrderSnapshot = (
     orderValue,
     itemPrice: subtotal,
     shippingFee,
-    deliveredAt: deliveredAt instanceof Date ? deliveredAt : new Date(deliveredAt),
-    status: typeof order.status === 'string' && ['pending', 'eligible', 'processed', 'held', 'disputed'].includes(order.status)
-      ? (order.status as SettlementOrder['status'])
-      : 'pending',
+    deliveredAt:
+      deliveredAt instanceof Date ? deliveredAt : new Date(deliveredAt),
+    status:
+      typeof order.status === "string" &&
+      ["pending", "eligible", "processed", "held", "disputed"].includes(
+        order.status,
+      )
+        ? (order.status as SettlementOrder["status"])
+        : "pending",
     hasDispute,
     refundAmount,
     chargebackAmount: order.chargebackAmount ?? 0,
@@ -253,7 +271,7 @@ const computeSellerOrderSnapshot = (
  */
 interface Adjustment {
   orderId: string;
-  type: 'refund' | 'chargeback' | 'manual';
+  type: "refund" | "chargeback" | "manual";
   amount: number;
   reason: string;
   adminId?: string;
@@ -319,9 +337,7 @@ export class SettlementCalculatorService {
     // 3. No active dispute
     // 4. Not already processed
     return (
-      order.status === 'eligible' &&
-      now >= holdPeriodEnd &&
-      !order.hasDispute
+      order.status === "eligible" && now >= holdPeriodEnd && !order.hasDispute
     );
   }
 
@@ -331,18 +347,18 @@ export class SettlementCalculatorService {
   static async calculatePeriodSettlement(
     sellerId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<SettlementPeriod> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const ordersCollection = db.collection('souq_orders');
+    const ordersCollection = db.collection("souq_orders");
 
     // Fetch eligible orders for the period
     const orders = await ordersCollection
       .find({
-        'items.sellerId': new ObjectId(sellerId),
+        "items.sellerId": new ObjectId(sellerId),
         deliveredAt: { $gte: startDate, $lte: endDate },
-        status: 'delivered',
+        status: "delivered",
       })
       .toArray();
 
@@ -351,8 +367,13 @@ export class SettlementCalculatorService {
       .map((order) => computeSellerOrderSnapshot(order, sellerId))
       .filter((order): order is SettlementOrder => Boolean(order))
       .map((order) => {
-        const eligible = this.isOrderEligible({ ...order, status: 'eligible' });
-        return { ...order, status: eligible ? 'eligible' : 'pending' as SettlementOrder['status'] };
+        const eligible = this.isOrderEligible({ ...order, status: "eligible" });
+        return {
+          ...order,
+          status: eligible
+            ? "eligible"
+            : ("pending" as SettlementOrder["status"]),
+        };
       });
 
     // Calculate totals
@@ -364,7 +385,7 @@ export class SettlementCalculatorService {
     let netPayout = 0;
 
     for (const order of settlementOrders) {
-      if (order.status === 'eligible') {
+      if (order.status === "eligible") {
         const fees = this.calculateOrderFees(order);
         totalSales += order.orderValue;
         totalCommissions += fees.platformCommission;
@@ -378,7 +399,8 @@ export class SettlementCalculatorService {
     return {
       startDate,
       endDate,
-      totalOrders: settlementOrders.filter((o) => o.status === 'eligible').length,
+      totalOrders: settlementOrders.filter((o) => o.status === "eligible")
+        .length,
       totalSales: parseFloat(totalSales.toFixed(2)),
       totalCommissions: parseFloat(totalCommissions.toFixed(2)),
       totalFees: parseFloat(totalFees.toFixed(2)),
@@ -395,28 +417,33 @@ export class SettlementCalculatorService {
   static async generateStatement(
     sellerId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<SettlementStatement> {
-    const period = await this.calculatePeriodSettlement(sellerId, startDate, endDate);
+    const period = await this.calculatePeriodSettlement(
+      sellerId,
+      startDate,
+      endDate,
+    );
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const statementsCollection = db.collection<SettlementStatement>('souq_settlements');
+    const statementsCollection =
+      db.collection<SettlementStatement>("souq_settlements");
 
     // Generate statement ID
     const statementId = `STMT-${Date.now()}-${sellerId.slice(-6).toUpperCase()}`;
 
     // Build transactions list
-    const transactions: SettlementStatement['transactions'] = [];
+    const transactions: SettlementStatement["transactions"] = [];
 
     for (const order of period.orders) {
-      if (order.status === 'eligible') {
+      if (order.status === "eligible") {
         const fees = this.calculateOrderFees(order);
 
         // Sale transaction
         transactions.push({
           transactionId: `TXN-${order.orderId}-SALE`,
           orderId: order.orderId,
-          type: 'sale',
+          type: "sale",
           amount: order.orderValue,
           timestamp: order.deliveredAt,
           description: `Order sale: ${order.orderId}`,
@@ -426,7 +453,7 @@ export class SettlementCalculatorService {
         transactions.push({
           transactionId: `TXN-${order.orderId}-COMM`,
           orderId: order.orderId,
-          type: 'commission',
+          type: "commission",
           amount: -fees.platformCommission,
           timestamp: order.deliveredAt,
           description: `Platform commission (10%)`,
@@ -436,7 +463,7 @@ export class SettlementCalculatorService {
         transactions.push({
           transactionId: `TXN-${order.orderId}-GATE`,
           orderId: order.orderId,
-          type: 'gateway_fee',
+          type: "gateway_fee",
           amount: -fees.paymentGatewayFee,
           timestamp: order.deliveredAt,
           description: `Payment gateway fee (2.5%)`,
@@ -446,7 +473,7 @@ export class SettlementCalculatorService {
         transactions.push({
           transactionId: `TXN-${order.orderId}-VAT`,
           orderId: order.orderId,
-          type: 'vat',
+          type: "vat",
           amount: -fees.vatOnCommission,
           timestamp: order.deliveredAt,
           description: `VAT on commission (15%)`,
@@ -456,7 +483,7 @@ export class SettlementCalculatorService {
         transactions.push({
           transactionId: `TXN-${order.orderId}-RESV`,
           orderId: order.orderId,
-          type: 'reserve_hold',
+          type: "reserve_hold",
           amount: -fees.reserveAmount,
           timestamp: order.deliveredAt,
           description: `Reserve held (20%, released after 14 days)`,
@@ -467,7 +494,7 @@ export class SettlementCalculatorService {
           transactions.push({
             transactionId: `TXN-${order.orderId}-RFND`,
             orderId: order.orderId,
-            type: 'refund',
+            type: "refund",
             amount: -order.refundAmount,
             timestamp: new Date(),
             description: `Refund issued`,
@@ -479,7 +506,7 @@ export class SettlementCalculatorService {
           transactions.push({
             transactionId: `TXN-${order.orderId}-CHRG`,
             orderId: order.orderId,
-            type: 'chargeback',
+            type: "chargeback",
             amount: -order.chargebackAmount,
             timestamp: new Date(),
             description: `Chargeback deduction`,
@@ -493,7 +520,9 @@ export class SettlementCalculatorService {
       statementId,
       sellerId,
       orgId: period.orders[0]?.orgId,
-      escrowAccountId: period.orders.find((o: SettlementOrder) => o.escrowAccountId)?.escrowAccountId,
+      escrowAccountId: period.orders.find(
+        (o: SettlementOrder) => o.escrowAccountId,
+      )?.escrowAccountId,
       period: {
         start: startDate,
         end: endDate,
@@ -502,15 +531,19 @@ export class SettlementCalculatorService {
         totalOrders: period.totalOrders,
         grossSales: period.totalSales,
         platformCommissions: period.totalCommissions,
-        gatewayFees: parseFloat((period.totalSales * FEE_CONFIG.paymentGatewayFeeRate).toFixed(2)),
-        vat: parseFloat((period.totalCommissions * FEE_CONFIG.vatRate).toFixed(2)),
+        gatewayFees: parseFloat(
+          (period.totalSales * FEE_CONFIG.paymentGatewayFeeRate).toFixed(2),
+        ),
+        vat: parseFloat(
+          (period.totalCommissions * FEE_CONFIG.vatRate).toFixed(2),
+        ),
         refunds: period.totalRefunds,
         chargebacks: 0, // Calculate from orders
         reserves: period.totalReserves,
         netPayout: period.netPayout - period.totalRefunds,
       },
       transactions,
-      status: 'draft',
+      status: "draft",
       generatedAt: new Date(),
     };
 
@@ -525,23 +558,24 @@ export class SettlementCalculatorService {
    */
   static async applyAdjustment(
     statementId: string,
-    adjustment: Adjustment
+    adjustment: Adjustment,
   ): Promise<void> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const statementsCollection = db.collection<SettlementStatement>('souq_settlements');
+    const statementsCollection =
+      db.collection<SettlementStatement>("souq_settlements");
 
     // Find statement
     const statement = await statementsCollection.findOne({ statementId });
     if (!statement) {
-      throw new Error('Statement not found');
+      throw new Error("Statement not found");
     }
 
     // Create adjustment transaction
     const adjustmentTxn = {
       transactionId: `TXN-${adjustment.orderId}-ADJ-${Date.now()}`,
       orderId: adjustment.orderId,
-      type: 'adjustment' as TransactionType,
+      type: "adjustment" as TransactionType,
       amount: -Math.abs(adjustment.amount), // Always negative for deductions
       timestamp: new Date(),
       description: `${adjustment.type}: ${adjustment.reason}`,
@@ -553,12 +587,12 @@ export class SettlementCalculatorService {
       {
         $push: { transactions: adjustmentTxn },
         $inc: {
-          'summary.netPayout': -Math.abs(adjustment.amount),
+          "summary.netPayout": -Math.abs(adjustment.amount),
         },
         $set: {
           notes: adjustment.reason,
         },
-      }
+      },
     );
   }
 
@@ -568,7 +602,7 @@ export class SettlementCalculatorService {
   static async releaseReserves(sellerId: string): Promise<number> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const ordersCollection = db.collection('souq_orders');
+    const ordersCollection = db.collection("souq_orders");
 
     // Find orders past reserve period (14 days)
     const reservePeriodEnd = new Date();
@@ -576,9 +610,9 @@ export class SettlementCalculatorService {
 
     const orders = await ordersCollection
       .find({
-        'items.sellerId': new ObjectId(sellerId),
+        "items.sellerId": new ObjectId(sellerId),
         deliveredAt: { $lte: reservePeriodEnd },
-        'settlement.reserveReleased': { $ne: true },
+        "settlement.reserveReleased": { $ne: true },
       })
       .toArray();
 
@@ -595,7 +629,7 @@ export class SettlementCalculatorService {
         itemPrice: order.itemPrice,
         shippingFee: order.shippingFee || 0,
         deliveredAt: order.deliveredAt,
-        status: 'eligible',
+        status: "eligible",
       });
 
       totalReleased += fees.reserveAmount;
@@ -605,10 +639,10 @@ export class SettlementCalculatorService {
         { _id: rawOrder._id },
         {
           $set: {
-            'settlement.reserveReleased': true,
-            'settlement.reserveReleasedAt': new Date(),
+            "settlement.reserveReleased": true,
+            "settlement.reserveReleasedAt": new Date(),
           },
-        }
+        },
       );
     }
 
@@ -628,18 +662,21 @@ export class SettlementCalculatorService {
   }> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const ordersCollection = db.collection('souq_orders');
-    const statementsCollection = db.collection<SettlementStatement>('souq_settlements');
+    const ordersCollection = db.collection("souq_orders");
+    const statementsCollection =
+      db.collection<SettlementStatement>("souq_settlements");
 
     // Calculate available balance (orders past hold period)
     const availableOrders = await ordersCollection
       .find({
-        'items.sellerId': new ObjectId(sellerId),
-        status: 'delivered',
+        "items.sellerId": new ObjectId(sellerId),
+        status: "delivered",
         deliveredAt: {
-          $lte: new Date(Date.now() - FEE_CONFIG.holdPeriodDays * 24 * 60 * 60 * 1000),
+          $lte: new Date(
+            Date.now() - FEE_CONFIG.holdPeriodDays * 24 * 60 * 60 * 1000,
+          ),
         },
-        'settlement.processed': { $ne: true },
+        "settlement.processed": { $ne: true },
       })
       .toArray();
 
@@ -655,7 +692,7 @@ export class SettlementCalculatorService {
         itemPrice: order.itemPrice,
         shippingFee: order.shippingFee || 0,
         deliveredAt: order.deliveredAt,
-        status: 'eligible',
+        status: "eligible",
       });
       availableBalance += fees.netPayoutNow;
     }
@@ -663,8 +700,8 @@ export class SettlementCalculatorService {
     // Calculate reserved balance (orders within hold period)
     const reservedOrders = await ordersCollection
       .find({
-        'items.sellerId': new ObjectId(sellerId),
-        status: 'delivered',
+        "items.sellerId": new ObjectId(sellerId),
+        status: "delivered",
         deliveredAt: {
           $gt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
         },
@@ -683,7 +720,7 @@ export class SettlementCalculatorService {
         itemPrice: order.itemPrice,
         shippingFee: order.shippingFee || 0,
         deliveredAt: order.deliveredAt,
-        status: 'held',
+        status: "held",
       });
       reservedBalance += fees.reserveAmount;
     }
@@ -691,8 +728,8 @@ export class SettlementCalculatorService {
     // Calculate pending balance (orders not yet delivered)
     const pendingOrders = await ordersCollection
       .find({
-        'items.sellerId': new ObjectId(sellerId),
-        status: { $in: ['pending', 'processing', 'shipped'] },
+        "items.sellerId": new ObjectId(sellerId),
+        status: { $in: ["pending", "processing", "shipped"] },
       })
       .toArray();
 
@@ -708,7 +745,7 @@ export class SettlementCalculatorService {
         itemPrice: order.itemPrice,
         shippingFee: order.shippingFee || 0,
         deliveredAt: new Date(),
-        status: 'pending',
+        status: "pending",
       });
       pendingBalance += fees.netPayoutNow;
     }
@@ -717,19 +754,19 @@ export class SettlementCalculatorService {
     const paidStatements = await statementsCollection
       .find({
         sellerId,
-        status: 'paid',
+        status: "paid",
       })
       .toArray();
 
     const totalEarnings = paidStatements.reduce(
       (sum, stmt) => sum + (stmt.summary?.netPayout ?? 0),
-      0
+      0,
     );
 
     // Get last payout date
     const lastStatement = await statementsCollection.findOne(
-      { sellerId, status: 'paid' },
-      { sort: { paidAt: -1 } }
+      { sellerId, status: "paid" },
+      { sort: { paidAt: -1 } },
     );
 
     return {
@@ -757,10 +794,10 @@ export class SettlementCalculatorService {
 }
 
 export { FEE_CONFIG };
-export type { 
-  SettlementOrder, 
-  FeeBreakdown, 
-  SettlementPeriod, 
+export type {
+  SettlementOrder,
+  FeeBreakdown,
+  SettlementPeriod,
   SettlementStatement,
   Adjustment,
   TransactionType,

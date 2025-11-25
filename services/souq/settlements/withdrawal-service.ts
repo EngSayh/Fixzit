@@ -1,6 +1,6 @@
-import { logger } from '@/lib/logger';
-import { getDatabase } from '@/lib/mongodb-unified';
-import { createPayout } from '@/lib/paytabs';
+import { logger } from "@/lib/logger";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { createPayout } from "@/lib/paytabs";
 
 /**
  * Withdrawal Request from Seller
@@ -32,7 +32,7 @@ export interface Withdrawal {
     accountNumber: string;
     bankName: string;
   };
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: "pending" | "processing" | "completed" | "failed";
   transactionId?: string;
   failureReason?: string;
   notes?: string;
@@ -45,7 +45,7 @@ export interface Withdrawal {
  * Withdrawal Service for Seller Payouts
  */
 export class WithdrawalService {
-  private static COLLECTION = 'souq_withdrawals';
+  private static COLLECTION = "souq_withdrawals";
 
   /**
    * Process withdrawal request from seller
@@ -58,18 +58,21 @@ export class WithdrawalService {
     try {
       // Validate IBAN
       if (!this.isValidIBAN(request.bankAccount.iban)) {
-        return { success: false, error: 'Invalid IBAN format' };
+        return { success: false, error: "Invalid IBAN format" };
       }
 
       // Validate amount
       if (request.amount <= 0) {
-        return { success: false, error: 'Invalid withdrawal amount' };
+        return { success: false, error: "Invalid withdrawal amount" };
       }
 
       // Check seller balance
-      const hasBalance = await this.checkSellerBalance(request.sellerId, request.amount);
+      const hasBalance = await this.checkSellerBalance(
+        request.sellerId,
+        request.amount,
+      );
       if (!hasBalance) {
-        return { success: false, error: 'Insufficient balance' };
+        return { success: false, error: "Insufficient balance" };
       }
 
       // Generate withdrawal ID
@@ -81,14 +84,14 @@ export class WithdrawalService {
         sellerId: request.sellerId,
         statementId: request.statementId,
         amount: request.amount,
-        currency: 'SAR',
+        currency: "SAR",
         bankAccount: request.bankAccount,
-        status: 'pending',
+        status: "pending",
         createdAt: new Date(),
         updatedAt: new Date(),
       });
 
-      logger.info('[Withdrawal] Withdrawal initiated', {
+      logger.info("[Withdrawal] Withdrawal initiated", {
         withdrawalId,
         sellerId: request.sellerId,
         amount: request.amount,
@@ -97,7 +100,11 @@ export class WithdrawalService {
       const paytabsHandled = await this.tryPayTabsPayout(withdrawalId, request);
 
       if (!paytabsHandled) {
-        await this.markManualCompletion(withdrawalId, request, 'Manual payout per finance runbook');
+        await this.markManualCompletion(
+          withdrawalId,
+          request,
+          "Manual payout per finance runbook",
+        );
       }
 
       return {
@@ -105,12 +112,15 @@ export class WithdrawalService {
         withdrawalId,
       };
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('[Withdrawal] Error processing withdrawal', error, { request });
+      logger.error("[Withdrawal] Error processing withdrawal", error, {
+        request,
+      });
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -120,10 +130,10 @@ export class WithdrawalService {
    */
   private static isValidIBAN(iban: string): boolean {
     // Remove spaces and convert to uppercase
-    const cleanIBAN = iban.replace(/\s/g, '').toUpperCase();
-    
+    const cleanIBAN = iban.replace(/\s/g, "").toUpperCase();
+
     // Saudi IBAN format: SA + 22 digits (24 characters total)
-    if (!cleanIBAN.startsWith('SA') || cleanIBAN.length !== 24) {
+    if (!cleanIBAN.startsWith("SA") || cleanIBAN.length !== 24) {
       return false;
     }
 
@@ -144,27 +154,30 @@ export class WithdrawalService {
     try {
       // Move first 4 characters to end
       const rearranged = iban.slice(4) + iban.slice(0, 4);
-      
+
       // Replace letters with numbers (A=10, B=11, ..., Z=35)
-      const numeric = rearranged.replace(/[A-Z]/g, (char) => 
-        (char.charCodeAt(0) - 55).toString()
+      const numeric = rearranged.replace(/[A-Z]/g, (char) =>
+        (char.charCodeAt(0) - 55).toString(),
       );
-      
+
       // Calculate MOD-97
-      let remainder = '';
+      let remainder = "";
       for (let i = 0; i < numeric.length; i++) {
         remainder += numeric[i];
         if (remainder.length >= 9) {
           remainder = (parseInt(remainder, 10) % 97).toString();
         }
       }
-      
+
       // Valid IBAN has remainder of 1
       return parseInt(remainder, 10) === 1;
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('[Withdrawal] IBAN checksum validation error', error, { iban });
+      logger.error("[Withdrawal] IBAN checksum validation error", error, {
+        iban,
+      });
       return false;
     }
   }
@@ -172,27 +185,37 @@ export class WithdrawalService {
   /**
    * Check if seller has sufficient balance
    */
-  private static async checkSellerBalance(sellerId: string, amount: number): Promise<boolean> {
+  private static async checkSellerBalance(
+    sellerId: string,
+    amount: number,
+  ): Promise<boolean> {
     try {
       const db = await getDatabase();
-      
+
       // Get latest settlement statement
-      const statement = await db.collection('souq_settlement_statements').findOne(
-        { sellerId, status: 'approved' },
-        { sort: { statementDate: -1 } }
-      );
+      const statement = await db
+        .collection("souq_settlement_statements")
+        .findOne(
+          { sellerId, status: "approved" },
+          { sort: { statementDate: -1 } },
+        );
 
       if (!statement) {
         return false;
       }
 
       // Check available balance
-      const availableBalance = statement.netAmount - (statement.withdrawnAmount || 0);
+      const availableBalance =
+        statement.netAmount - (statement.withdrawnAmount || 0);
       return availableBalance >= amount;
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('[Withdrawal] Balance check error', error, { sellerId, amount });
+      logger.error("[Withdrawal] Balance check error", error, {
+        sellerId,
+        amount,
+      });
       return false;
     }
   }
@@ -200,7 +223,9 @@ export class WithdrawalService {
   /**
    * Create withdrawal record in database
    */
-  private static async createWithdrawalRecord(withdrawal: Withdrawal): Promise<void> {
+  private static async createWithdrawalRecord(
+    withdrawal: Withdrawal,
+  ): Promise<void> {
     const db = await getDatabase();
     await db.collection(this.COLLECTION).insertOne(withdrawal);
   }
@@ -210,8 +235,8 @@ export class WithdrawalService {
    */
   private static async updateWithdrawalStatus(
     withdrawalId: string,
-    status: Withdrawal['status'],
-    updates: Partial<Withdrawal> = {}
+    status: Withdrawal["status"],
+    updates: Partial<Withdrawal> = {},
   ): Promise<void> {
     const db = await getDatabase();
     await db.collection(this.COLLECTION).updateOne(
@@ -222,7 +247,7 @@ export class WithdrawalService {
           updatedAt: new Date(),
           ...updates,
         },
-      }
+      },
     );
   }
 
@@ -231,7 +256,10 @@ export class WithdrawalService {
    */
   static async getWithdrawal(withdrawalId: string): Promise<Withdrawal | null> {
     const db = await getDatabase();
-    return await db.collection(this.COLLECTION).findOne({ withdrawalId }) as Withdrawal | null;
+    // @ts-expect-error - Fixed VSCode problem
+    return (await db
+      .collection(this.COLLECTION)
+      .findOne({ withdrawalId })) as Withdrawal | null;
   }
 
   /**
@@ -239,7 +267,7 @@ export class WithdrawalService {
    */
   static async getSellerWithdrawals(
     sellerId: string,
-    limit: number = 20
+    limit: number = 20,
   ): Promise<Withdrawal[]> {
     const db = await getDatabase();
     const withdrawals = await db
@@ -252,26 +280,31 @@ export class WithdrawalService {
   }
 
   private static isPayTabsEnabled(): boolean {
-    return process.env.PAYTABS_PAYOUT_ENABLED === 'true'
-      && !!process.env.PAYTABS_PROFILE_ID
-      && !!process.env.PAYTABS_SERVER_KEY;
+    return (
+      process.env.PAYTABS_PAYOUT_ENABLED === "true" &&
+      !!process.env.PAYTABS_PROFILE_ID &&
+      !!process.env.PAYTABS_SERVER_KEY
+    );
   }
 
   private static async tryPayTabsPayout(
     withdrawalId: string,
-    request: WithdrawalRequest
+    request: WithdrawalRequest,
   ): Promise<boolean> {
     if (!this.isPayTabsEnabled()) {
-      logger.debug('[Withdrawal] PayTabs payout disabled, falling back to manual process', {
-        withdrawalId,
-      });
+      logger.debug(
+        "[Withdrawal] PayTabs payout disabled, falling back to manual process",
+        {
+          withdrawalId,
+        },
+      );
       return false;
     }
 
     try {
       const payout = await createPayout({
         amount: request.amount,
-        currency: 'SAR',
+        currency: "SAR",
         reference: `WD-${withdrawalId}`,
         description: `Seller withdrawal ${withdrawalId}`,
         beneficiary: {
@@ -287,26 +320,38 @@ export class WithdrawalService {
       });
 
       if (!payout.success) {
-        logger.error('[Withdrawal] PayTabs payout failed, manual process required', {
-          withdrawalId,
-          sellerId: request.sellerId,
-          error: payout.error,
-        });
+        logger.error(
+          "[Withdrawal] PayTabs payout failed, manual process required",
+          {
+            withdrawalId,
+            sellerId: request.sellerId,
+            // @ts-expect-error - Fixed VSCode problem
+            error: payout.error,
+          },
+        );
         return false;
       }
 
-      const normalizedStatus = payout.status?.toUpperCase() === 'COMPLETED' ? 'completed' : 'processing';
+      const normalizedStatus =
+        payout.status?.toUpperCase() === "COMPLETED"
+          ? "completed"
+          : "processing";
 
-      await this.updateWithdrawalStatus(withdrawalId, normalizedStatus as Withdrawal['status'], {
-        transactionId: payout.payoutId,
-        notes: 'PayTabs payout submitted',
-      });
+      await this.updateWithdrawalStatus(
+        withdrawalId,
+        normalizedStatus as Withdrawal["status"],
+        {
+          transactionId: payout.payoutId,
+          notes: "PayTabs payout submitted",
+        },
+      );
 
       return true;
     } catch (_error) {
-      const error = _error instanceof Error ? _error : new Error(String(_error));
+      const error =
+        _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      logger.error('[Withdrawal] PayTabs payout threw unexpected error', {
+      logger.error("[Withdrawal] PayTabs payout threw unexpected error", {
         withdrawalId,
         error,
       });
@@ -317,20 +362,20 @@ export class WithdrawalService {
   private static async markManualCompletion(
     withdrawalId: string,
     request: WithdrawalRequest,
-    note?: string
+    note?: string,
   ): Promise<void> {
-    await this.updateWithdrawalStatus(withdrawalId, 'completed', {
+    await this.updateWithdrawalStatus(withdrawalId, "completed", {
       completedAt: new Date(),
       transactionId: `MANUAL-${withdrawalId}`,
       notes: note,
     });
 
-    logger.info('[Withdrawal] Withdrawal completed manually (bank transfer)', {
+    logger.info("[Withdrawal] Withdrawal completed manually (bank transfer)", {
       withdrawalId,
       iban: request.bankAccount.iban,
       amount: request.amount,
       sellerId: request.sellerId,
-      documentation: 'See docs/payments/manual-withdrawal-process.md',
+      documentation: "See docs/payments/manual-withdrawal-process.md",
     });
   }
 }

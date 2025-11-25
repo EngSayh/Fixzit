@@ -7,6 +7,7 @@ This testing framework runs continuously for 3 hours without any user prompts, t
 ## Architecture
 
 ### User Roles Tested
+
 - **SuperAdmin**: Full system access
 - **Admin**: Organization-level administration
 - **Manager**: Department/team management
@@ -15,10 +16,12 @@ This testing framework runs continuously for 3 hours without any user prompts, t
 - **Vendor**: Service provider
 
 ### Locales Tested
+
 - **English (en-US)**: LTR layout
 - **Arabic (ar-SA)**: RTL layout
 
 ### Test Matrix
+
 Total configurations: **12** (6 roles × 2 locales)
 
 ## Quick Start
@@ -36,6 +39,7 @@ pnpm test:install
 ### Setup Test Users
 
 1. Copy environment template:
+
 ```bash
 cp .env.test .env.local
 ```
@@ -43,6 +47,7 @@ cp .env.test .env.local
 2. Update credentials in `.env.local` to match your test database
 
 3. Generate authentication states:
+
 ```bash
 pnpm test:e2e:setup
 ```
@@ -71,6 +76,7 @@ pnpm test:e2e:loop
 ## Test Coverage
 
 ### Pages Tested (14 modules)
+
 - `/` - Landing page
 - `/app` - App home
 - `/dashboard` - Main dashboard
@@ -89,6 +95,7 @@ pnpm test:e2e:loop
 ### Test Types
 
 #### 1. Smoke Tests (`smoke.spec.ts`)
+
 - Page loads successfully
 - Core layout elements present (header, sidebar, footer)
 - Language & currency selectors visible
@@ -97,12 +104,14 @@ pnpm test:e2e:loop
 - RTL/LTR direction correct for locale
 
 #### 2. i18n Tests (`i18n.spec.ts`)
+
 - No missing translation keys
 - Language switching works
 - RTL layout integrity
 - Currency selector functionality
 
 #### 3. i18n Scanner (`i18n-scan.mjs`)
+
 - Static code analysis for translation usage
 - Validates all keys exist in dictionaries
 - Detects hardcoded UI text
@@ -154,7 +163,7 @@ Edit `tests/specs/smoke.spec.ts`:
 ```typescript
 const CORE_PAGES = [
   // ... existing pages
-  { path: '/new-module', name: 'New Module' }
+  { path: "/new-module", name: "New Module" },
 ];
 ```
 
@@ -181,12 +190,14 @@ pnpm test:e2e:setup
 ```
 
 **Root Cause**: Session tokens in `tests/state/*.json` are encrypted JWTs with expiration. They need regeneration when:
+
 - NEXTAUTH_SECRET or AUTH_SECRET changes
 - Test user credentials change
 - Tokens expire (typically after 30 days)
 - globalSetup didn't run with correct environment
 
 **The regeneration script will**:
+
 1. Validate `.env.test` exists
 2. Check app is running on BASE_URL
 3. Execute `tests/setup-auth.ts` to regenerate all 6 role states
@@ -198,6 +209,7 @@ pnpm test:e2e:setup
 **Symptom**: Script fails with "App not running" or "Setup failed"
 
 **Fix**:
+
 ```bash
 # 1. Ensure dev server is running with proper env vars
 ALLOW_OFFLINE_MONGODB=true SKIP_ENV_VALIDATION=true \\
@@ -240,6 +252,7 @@ pnpm scan:i18n
 ```
 
 Fix missing keys in:
+
 - `i18n/locales/en/common.json`
 - `i18n/locales/ar/common.json`
 - `contexts/TranslationContext.tsx`
@@ -271,6 +284,7 @@ For GitHub Actions:
 ## Support
 
 For issues or questions:
+
 - Check `playwright-report/index.html` for test failures
 - Review `tests/loop-runner.log` for cycle details
 - Run single test: `pnpm exec playwright test --grep "Dashboard"`

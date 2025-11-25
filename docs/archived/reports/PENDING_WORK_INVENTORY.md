@@ -55,7 +55,6 @@
 - **Paytabs Tests**: 70% passing (17/27 per browser)
   - Remaining: 3 tests in `create-payment.custom-base.spec.ts`
   - Remaining: 1 test in `create-payment.default.spec.ts`
-  
 - **Projects API Tests**: 20% passing (2/10 per browser)
   - POST/GET authenticated requests return 401
   - Auth helper not working correctly with `x-user` header

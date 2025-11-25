@@ -1,25 +1,25 @@
 /**
  * Work Order Ability Constants
- * 
+ *
  * Used with requireAbility() middleware for RBAC enforcement
  * These match the uppercase string literals expected by lib/auth-middleware.ts
  */
 
 export const WOAbility = {
   /** View/read work orders */
-  READ: 'READ',
+  READ: "READ",
   /** Create new work orders */
-  CREATE: 'CREATE',
+  CREATE: "CREATE",
   /** Edit/update work orders */
-  EDIT: 'EDIT',
+  EDIT: "EDIT",
   /** Update work order fields */
-  UPDATE: 'UPDATE',
+  UPDATE: "UPDATE",
   /** Delete work orders */
-  DELETE: 'DELETE',
+  DELETE: "DELETE",
   /** Assign work orders to users/vendors */
-  ASSIGN: 'ASSIGN',
+  ASSIGN: "ASSIGN",
   /** Export work order data */
-  EXPORT: 'EXPORT',
+  EXPORT: "EXPORT",
 } as const;
 
-export type WOAbilityType = typeof WOAbility[keyof typeof WOAbility];
+export type WOAbilityType = (typeof WOAbility)[keyof typeof WOAbility];

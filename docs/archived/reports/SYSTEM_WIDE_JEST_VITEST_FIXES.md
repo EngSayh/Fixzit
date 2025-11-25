@@ -56,14 +56,16 @@ vi.mocked(Module.func).mockResolvedValue(...);
 
    ```typescript
    // CURRENT (BROKEN):
-   const { resolveMarketplaceContext } = vi.importMock('@/lib/marketplace/context');
-   const { findProductBySlug } = vi.importMock('@/lib/marketplace/search');
-   const CategoryMod = vi.importMock('@/models/marketplace/Category');
-   
+   const { resolveMarketplaceContext } = vi.importMock(
+     "@/lib/marketplace/context",
+   );
+   const { findProductBySlug } = vi.importMock("@/lib/marketplace/search");
+   const CategoryMod = vi.importMock("@/models/marketplace/Category");
+
    // SHOULD BE:
-   import * as CtxMod from '@/lib/marketplace/context';
-   import * as SearchMod from '@/lib/marketplace/search';
-   import CategoryMod from '@/models/marketplace/Category';
+   import * as CtxMod from "@/lib/marketplace/context";
+   import * as SearchMod from "@/lib/marketplace/search";
+   import CategoryMod from "@/models/marketplace/Category";
    // Then use: vi.mocked(CtxMod.resolveMarketplaceContext)
    ```
 
@@ -71,14 +73,14 @@ vi.mocked(Module.func).mockResolvedValue(...);
 
    ```typescript
    // CURRENT (BROKEN):
-   const { NextResponse } = vi.importMock('next/server');
-   const { getNativeDb } = vi.importMock('@/lib/mongo');
-   const { SupportTicket } = vi.importMock('@/server/models/SupportTicket');
-   
+   const { NextResponse } = vi.importMock("next/server");
+   const { getNativeDb } = vi.importMock("@/lib/mongo");
+   const { SupportTicket } = vi.importMock("@/server/models/SupportTicket");
+
    // SHOULD BE:
-   import { NextResponse } from 'next/server';
-   import * as MongoMod from '@/lib/mongo';
-   import { SupportTicket } from '@/server/models/SupportTicket';
+   import { NextResponse } from "next/server";
+   import * as MongoMod from "@/lib/mongo";
+   import { SupportTicket } from "@/server/models/SupportTicket";
    ```
 
 ---
@@ -122,6 +124,7 @@ expect(hasControlChars(lang.code)).toBe(false);
 **Current:** `"ignoreDeprecations": "5.0"`
 
 **Issue:** CodeRabbit review suggests removing entirely:
+
 > "No deprecation warnings are currently suppressed; address future deprecations explicitly or document suppression rationale."
 
 **Options:**
@@ -159,7 +162,7 @@ connect: vi.fn(async function(this: MongoClient) { return this; }),
 **Current Code:**
 
 ```typescript
-vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
+vi.spyOn(Math, "random").mockReturnValue(0.123456789);
 // later...
 (Math.random as ReturnType<typeof vi.fn>).mockRestore?.();
 ```
@@ -169,7 +172,7 @@ vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
 **Recommended Fix:**
 
 ```typescript
-const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
+const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.123456789);
 // later...
 randomSpy.mockRestore();
 ```
@@ -178,14 +181,14 @@ randomSpy.mockRestore();
 
 ## Fix Priority Matrix
 
-| Priority | Category | Files | Est. Time | Impact |
-|----------|----------|-------|-----------|--------|
-| 🔴 **P0** | `vi.importMock` | 2 | 20 min | CI Blocking |
-| 🔴 **P0** | `jest.Mock` casts | 5 | 30 min | Test Failures |
-| 🟡 **P1** | Control char regex | 1 | 10 min | Linter Error |
-| 🟡 **P1** | Math.random spy | 1 | 5 min | Test Flakiness |
-| 🟢 **P2** | MongoDB mock | 1 | 10 min | Edge Cases |
-| 🟢 **P2** | ignoreDeprecations | 1 | 5 min | Code Quality |
+| Priority  | Category           | Files | Est. Time | Impact         |
+| --------- | ------------------ | ----- | --------- | -------------- |
+| 🔴 **P0** | `vi.importMock`    | 2     | 20 min    | CI Blocking    |
+| 🔴 **P0** | `jest.Mock` casts  | 5     | 30 min    | Test Failures  |
+| 🟡 **P1** | Control char regex | 1     | 10 min    | Linter Error   |
+| 🟡 **P1** | Math.random spy    | 1     | 5 min     | Test Flakiness |
+| 🟢 **P2** | MongoDB mock       | 1     | 10 min    | Edge Cases     |
+| 🟢 **P2** | ignoreDeprecations | 1     | 5 min     | Code Quality   |
 
 **Total Estimated Time:** ~1.5 hours
 
@@ -217,7 +220,7 @@ pnpm test tests/api/marketplace/products/route.test.ts --run
 #### Step 1.2: Fix `vi.importMock` in incidents.route.test.ts
 
 ```bash
-# File: tests/unit/api/support/incidents.route.test.ts  
+# File: tests/unit/api/support/incidents.route.test.ts
 # Lines: 67-69
 ```
 
@@ -314,22 +317,26 @@ Already included in Step 1.2
 
 ```markdown
 ### Critical (P0) - CI Blocking
+
 - [ ] Fix vi.importMock in products/route.test.ts (20 min)
 - [ ] Fix vi.importMock in incidents.route.test.ts (15 min)
 - [ ] Fix jest.Mock in ErrorBoundary.test.tsx (10 min)
 - [ ] Fix jest.Mock in server tests (5 min)
 
 ### High Priority (P1) - Linter/Quality
+
 - [ ] Fix control char regex in language-options.test.ts (10 min)
 - [ ] Fix Math.random spy in incidents.route.test.ts (5 min)
 
 ### Medium Priority (P2) - Edge Cases
+
 - [ ] Fix MongoDB mock connect() return type (10 min)
 - [ ] Decide on ignoreDeprecations (remove or document) (5 min)
 
 ### Original Batch 1.2b Tasks
+
 - [ ] Fix remaining WorkOrdersView tests (8/13)
-- [ ] Fix CatalogView tests (0/10)  
+- [ ] Fix CatalogView tests (0/10)
 - [ ] Fix remaining SupportPopup tests (5/13)
 ```
 
@@ -487,7 +494,7 @@ git cherry-pick <commit-hash>
 7. ✅ `server/security/idempotency.spec.ts` - 10 conversions + inline fixes
 8. ✅ `tests/unit/components/ErrorBoundary.test.tsx` - 12 conversions + inline fixes
 
-**Total Conversions:** 83+ jest.*→ vi.* runtime calls
+**Total Conversions:** 83+ jest._→ vi._ runtime calls
 
 **Key Fixes Applied:**
 
@@ -505,7 +512,7 @@ git cherry-pick <commit-hash>
    ```typescript
    // Problem:
    const mock = { json: jest.fn(() => ...) }; // Missed by type-only replacements
-   
+
    // Solution: Target inline patterns specifically
    ```
 
@@ -514,7 +521,7 @@ git cherry-pick <commit-hash>
    ```typescript
    // WRONG:
    vi.doMock('@/module', () => ({ ... }), { virtual: true });
-   
+
    // CORRECT:
    vi.doMock('@/module', () => ({ ... }));
    ```
@@ -524,7 +531,7 @@ git cherry-pick <commit-hash>
    ```typescript
    // WRONG:
    const { NextResponse } = vi.importMock('next/server');
-   
+
    // CORRECT:
    import { NextResponse } from 'next/server';
    vi.mock('next/server', () => ({ ... }));
@@ -535,7 +542,7 @@ git cherry-pick <commit-hash>
    ```typescript
    // WRONG:
    await vi.isolateModulesAsync(async () => { ... });
-   
+
    // CORRECT:
    vi.resetModules();
    ```

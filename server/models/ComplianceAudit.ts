@@ -1,10 +1,15 @@
-import { Schema, Document } from 'mongoose';
-import { getModel } from '@/src/types/mongoose-compat';
-import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
-import { auditPlugin } from '../plugins/auditPlugin';
+import { Schema, Document } from "mongoose";
+import { getModel } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
 
-const AuditStatuses = ['PLANNED', 'IN_PROGRESS', 'FOLLOW_UP', 'COMPLETED'] as const;
-const RiskLevels = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
+const AuditStatuses = [
+  "PLANNED",
+  "IN_PROGRESS",
+  "FOLLOW_UP",
+  "COMPLETED",
+] as const;
+const RiskLevels = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
 
 export type AuditStatus = (typeof AuditStatuses)[number];
 export type AuditRiskLevel = (typeof RiskLevels)[number];
@@ -37,8 +42,8 @@ const ComplianceAuditSchema = new Schema<ComplianceAuditDocument>(
     name: { type: String, required: true, trim: true },
     owner: { type: String, required: true, trim: true },
     scope: { type: String, required: true, trim: true },
-    status: { type: String, enum: AuditStatuses, default: 'PLANNED' },
-    riskLevel: { type: String, enum: RiskLevels, default: 'MEDIUM' },
+    status: { type: String, enum: AuditStatuses, default: "PLANNED" },
+    riskLevel: { type: String, enum: RiskLevels, default: "MEDIUM" },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     findings: { type: Number, default: 0 },
@@ -58,11 +63,11 @@ const ComplianceAuditSchema = new Schema<ComplianceAuditDocument>(
       default: [],
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-ComplianceAuditSchema.pre('save', function (next) {
-  if (this.isModified('status')) {
+ComplianceAuditSchema.pre("save", function (next) {
+  if (this.isModified("status")) {
     this.lastStatusAt = new Date();
   }
   next();
@@ -75,5 +80,8 @@ ComplianceAuditSchema.index({ orgId: 1, status: 1 });
 ComplianceAuditSchema.index({ orgId: 1, riskLevel: 1 });
 ComplianceAuditSchema.index({ orgId: 1, startDate: -1 });
 
-const ComplianceAudit = getModel<ComplianceAuditDocument>('ComplianceAudit', ComplianceAuditSchema);
+const ComplianceAudit = getModel<ComplianceAuditDocument>(
+  "ComplianceAudit",
+  ComplianceAuditSchema,
+);
 export default ComplianceAudit;

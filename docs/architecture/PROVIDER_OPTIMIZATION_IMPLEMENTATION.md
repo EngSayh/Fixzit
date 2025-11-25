@@ -2,7 +2,7 @@
 
 **Date**: November 7, 2024  
 **Optimization**: Split provider tree for route-based bundle optimization  
-**Expected Impact**: -30-40 KB shared bundle, +2-3 Lighthouse points  
+**Expected Impact**: -30-40 KB shared bundle, +2-3 Lighthouse points
 
 ---
 
@@ -11,9 +11,11 @@
 ### Files Created
 
 #### 1. `providers/PublicProviders.tsx` (NEW)
+
 **Purpose**: Lightweight provider tree for public pages
 
 **Providers Included:**
+
 - ErrorBoundary - Error protection
 - I18nProvider - Internationalization
 - ThemeProvider - Theme state
@@ -21,6 +23,7 @@
 **Bundle Impact**: ~15 KB (vs 50 KB for full provider tree)
 
 **Used For:**
+
 - Homepage (`/`)
 - About page (`/about`)
 - Privacy page (`/privacy`)
@@ -31,9 +34,11 @@
 ---
 
 #### 2. `providers/AuthenticatedProviders.tsx` (NEW)
+
 **Purpose**: Complete provider tree for authenticated pages
 
 **Providers Included:**
+
 - All PublicProviders (ErrorBoundary, I18nProvider, ThemeProvider)
 - SessionProvider - NextAuth session management (~20 KB)
 - TranslationProvider - User-specific translations (~5 KB)
@@ -45,6 +50,7 @@
 **Bundle Impact**: ~50 KB (full provider tree)
 
 **Used For:**
+
 - Dashboard (`/fm/dashboard`)
 - Admin pages (`/admin`, `/system`)
 - Protected routes (`/fm/*`, `/profile`, etc.)
@@ -52,24 +58,27 @@
 ---
 
 #### 3. `providers/ConditionalProviders.tsx` (NEW)
+
 **Purpose**: Smart router-aware provider selector
 
 **Logic:**
+
 ```typescript
 // Public routes → PublicProviders (15 KB)
-const publicRoutes = ['/', '/about', '/privacy', '/terms', '/help', '/careers']
-const publicPrefixes = ['/aqar', '/souq', '/marketplace', '/test']
+const publicRoutes = ["/", "/about", "/privacy", "/terms", "/help", "/careers"];
+const publicPrefixes = ["/aqar", "/souq", "/marketplace", "/test"];
 
 // Auth pages → PublicProviders (no session needed yet)
-const authPages = ['/login', '/signup', '/forgot-password']
+const authPages = ["/login", "/signup", "/forgot-password"];
 
 // Protected routes → AuthenticatedProviders (50 KB)
 // Everything else → Full provider tree
 ```
 
 **Performance Benefits:**
+
 - Homepage: -35 KB bundle
-- Auth pages: -35 KB bundle  
+- Auth pages: -35 KB bundle
 - Protected pages: No change (already optimal)
 
 ---
@@ -77,7 +86,9 @@ const authPages = ['/login', '/signup', '/forgot-password']
 ### Files Modified
 
 #### 4. `app/layout.tsx` (MODIFIED)
+
 **Changes:**
+
 ```diff
 - import Providers from "@/providers/Providers";
 + import ConditionalProviders from "@/providers/ConditionalProviders";
@@ -102,6 +113,7 @@ const authPages = ['/login', '/signup', '/forgot-password']
 ### Bundle Size Impact
 
 **Before Optimization:**
+
 ```
 + First Load JS shared by all    102 KB
   ├ chunks/3103.js                100 KB
@@ -113,6 +125,7 @@ const authPages = ['/login', '/signup', '/forgot-password']
 ```
 
 **After Optimization (Expected):**
+
 ```
 + First Load JS shared by all     ~70 KB     ← -32 KB (-31%)
   ├ Public routes                  ~70 KB    ← Only PublicProviders
@@ -126,18 +139,21 @@ const authPages = ['/login', '/signup', '/forgot-password']
 ### Performance Impact (Projected)
 
 **Public Pages (/, /about, /privacy, /terms):**
+
 - Bundle size: -31-35 KB (-14-16%)
 - LCP: -0.3-0.4s improvement
 - TBT: -30-40ms improvement
 - Initial load: 30-40% faster
 
 **Auth Pages (/login, /signup):**
+
 - Bundle size: -31-35 KB (-14-16%)
 - LCP: -0.2-0.3s improvement
 - TTI: -0.4-0.5s improvement
 - Critical user flow optimization ✅
 
-**Protected Pages (/fm/*, /admin):**
+**Protected Pages (/fm/\*, /admin):**
+
 - Bundle size: No change (already has full providers)
 - Performance: No regression
 - Functionality: Fully preserved
@@ -148,6 +164,7 @@ const authPages = ['/login', '/signup', '/forgot-password']
 **After Provider Optimization:** 85-87/100 (+3-5 points)
 
 **Breakdown:**
+
 - LCP improvement: +2-3 points (0.3-0.4s faster on public pages)
 - TBT improvement: +1-2 points (30-40ms reduction)
 - Total: +3-5 points
@@ -186,6 +203,7 @@ Total Authenticated:  ~50 KB
 ### Routes Classification
 
 **Public Routes (PublicProviders = 15 KB):**
+
 - `/` - Homepage
 - `/about` - About page
 - `/privacy` - Privacy policy
@@ -198,12 +216,14 @@ Total Authenticated:  ~50 KB
 - `/test/*` - Test pages
 
 **Auth Routes (PublicProviders = 15 KB):**
+
 - `/login` - Login page
 - `/signup` - Signup page
 - `/forgot-password` - Password reset
 - `/reset-password` - Password reset confirm
 
 **Protected Routes (AuthenticatedProviders = 50 KB):**
+
 - `/fm/*` - Facilities management (dashboard, properties, work orders, etc.)
 - `/admin/*` - Admin pages
 - `/system/*` - System settings
@@ -218,12 +238,14 @@ Total Authenticated:  ~50 KB
 ### Testing Required
 
 **Public Pages:**
+
 - [ ] Homepage loads and theme switches work
 - [ ] Language switching works
 - [ ] Navigation to auth pages works
 - [ ] Navigation to protected pages redirects to login
 
 **Auth Pages:**
+
 - [ ] Login form works
 - [ ] Signup form works
 - [ ] Language/currency selectors work
@@ -231,6 +253,7 @@ Total Authenticated:  ~50 KB
 - [ ] Successful login redirects correctly
 
 **Protected Pages:**
+
 - [ ] Dashboard loads with session
 - [ ] All context providers accessible
 - [ ] Form state persists
@@ -269,12 +292,14 @@ jq '.categories.performance.score * 100' lighthouse-post-provider-opt.json
 ## 🚀 Next Steps
 
 ### Immediate
+
 1. ✅ Complete build and measure actual bundle sizes
 2. ⏳ Test all route types (public, auth, protected)
 3. ⏳ Run Lighthouse audit
 4. ⏳ Document actual vs expected results
 
 ### Follow-up Optimizations
+
 1. **ClientLayout Dynamic Imports** (-15-20 KB)
    - Lazy-load TopBar, Sidebar, Footer
    - Expected: +1-2 points
@@ -292,18 +317,21 @@ jq '.categories.performance.score * 100' lighthouse-post-provider-opt.json
 ## 📝 Notes
 
 ### Architecture Benefits
+
 - ✅ **Maintainable**: Clear separation between public and authenticated providers
 - ✅ **Scalable**: Easy to add new providers to appropriate tier
 - ✅ **Type-Safe**: Full TypeScript support maintained
 - ✅ **Testable**: Each provider tree can be tested independently
 
 ### Performance Benefits
+
 - ✅ **Public Pages**: 30-40% faster initial load
 - ✅ **Auth Flow**: Critical user journey optimized
 - ✅ **Protected Pages**: No regression
 - ✅ **Bundle Size**: 31% reduction on public pages
 
 ### Developer Experience
+
 - ✅ **Automatic**: No manual provider selection needed
 - ✅ **Transparent**: Existing code works without changes
 - ✅ **Documented**: Clear comments explain routing logic

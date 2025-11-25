@@ -283,7 +283,10 @@ export type ModuleId =
   | 'support'
   | 'compliance'
   | 'reports'
-  | 'system';
+  | 'system'
+  | 'assets'
+  | 'projects'
+  | 'rfqs';
 
 export const MODULE_PATHS = {
   dashboard: '/fm/dashboard',
@@ -300,6 +303,9 @@ export const MODULE_PATHS = {
   compliance: '/fm/compliance',
   reports: '/fm/reports',
   system: '/fm/system',
+  assets: '/fm/assets',
+  projects: '/fm/projects',
+  rfqs: '/fm/rfqs',
 } as const;
 
 

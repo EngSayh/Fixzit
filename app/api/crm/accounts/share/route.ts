@@ -1,16 +1,25 @@
-'use server';
+"use server";
 
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
-import { getSessionUser, UnauthorizedError } from '@/server/middleware/withAuthRbac';
-import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
-import { setAuditContext, clearAuditContext } from '@/server/plugins/auditPlugin';
-import { getClientIP } from '@/server/security/headers';
-import CrmLead from '@/server/models/CrmLead';
-import CrmActivity from '@/server/models/CrmActivity';
-import { UserRole, type UserRoleType } from '@/types/user';
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import {
+  getSessionUser,
+  UnauthorizedError,
+} from "@/server/middleware/withAuthRbac";
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import {
+  setAuditContext,
+  clearAuditContext,
+} from "@/server/plugins/auditPlugin";
+import { getClientIP } from "@/server/security/headers";
+import CrmLead from "@/server/models/CrmLead";
+import CrmActivity from "@/server/models/CrmActivity";
+import { UserRole, type UserRoleType } from "@/types/user";
 
 const PayloadSchema = z.object({
   company: z.string().min(1),
@@ -33,7 +42,8 @@ const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
 function isUnauthenticatedError(error: unknown): boolean {
   return (
     error instanceof UnauthorizedError ||
-    (error instanceof Error && error.message.toLowerCase().includes('unauthenticated'))
+    (error instanceof Error &&
+      error.message.toLowerCase().includes("unauthenticated"))
   );
 }
 
@@ -55,7 +65,7 @@ async function resolveUser(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await resolveUser(req);
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   let payload: z.infer<typeof PayloadSchema>;
@@ -63,9 +73,12 @@ export async function POST(req: NextRequest) {
     payload = PayloadSchema.parse(await req.json());
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid payload', details: error.flatten() }, { status: 422 });
+      return NextResponse.json(
+        { error: "Invalid payload", details: error.flatten() },
+        { status: 422 },
+      );
     }
-    return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
   await connectToDatabase();
@@ -74,21 +87,24 @@ export async function POST(req: NextRequest) {
     userId: user.id,
     timestamp: new Date(),
     ipAddress: getClientIP(req),
-    userAgent: req.headers.get('user-agent') ?? undefined,
+    userAgent: req.headers.get("user-agent") ?? undefined,
   });
 
   try {
     const account =
-      (await CrmLead.findOne({ company: payload.company.trim(), kind: 'ACCOUNT' })) ??
+      (await CrmLead.findOne({
+        company: payload.company.trim(),
+        kind: "ACCOUNT",
+      })) ??
       (await CrmLead.create({
-        kind: 'ACCOUNT',
+        kind: "ACCOUNT",
         company: payload.company.trim(),
         segment: payload.segment,
         revenue: payload.revenue,
         employees: payload.employees,
         notes: payload.notes,
-        stage: 'CUSTOMER',
-        status: 'OPEN',
+        stage: "CUSTOMER",
+        status: "OPEN",
         value: payload.revenue ?? 0,
         probability: 0.9,
         owner: user.id,
@@ -97,8 +113,8 @@ export async function POST(req: NextRequest) {
 
     await CrmActivity.create({
       leadId: account._id,
-      type: 'HANDOFF',
-      summary: payload.notes ?? 'Shared with customer success',
+      type: "HANDOFF",
+      summary: payload.notes ?? "Shared with customer success",
       performedAt: new Date(),
       owner: user.id,
       company: account.company,
@@ -107,8 +123,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    logger.error('[crm/accounts/share] Failed to share account', { error });
-    return NextResponse.json({ error: 'Failed to share account' }, { status: 500 });
+    logger.error("[crm/accounts/share] Failed to share account", { error });
+    return NextResponse.json(
+      { error: "Failed to share account" },
+      { status: 500 },
+    );
   } finally {
     clearTenantContext();
     clearAuditContext();

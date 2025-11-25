@@ -5,9 +5,15 @@ import { z } from "zod";
 import { requireAbility } from "@/server/middleware/withAuthRbac";
 import { WOAbility } from "@/types/work-orders/abilities";
 
-import { createSecureResponse } from '@/server/security/headers';
+import { createSecureResponse } from "@/server/security/headers";
 
-const upsertSchema = z.object({ sku:z.string().optional(), name:z.string(), qty:z.number().positive(), unitPrice:z.number().nonnegative(), currency:z.string().default("SAR") });
+const upsertSchema = z.object({
+  sku: z.string().optional(),
+  name: z.string(),
+  qty: z.number().positive(),
+  unitPrice: z.number().nonnegative(),
+  currency: z.string().default("SAR"),
+});
 
 /**
  * @openapi
@@ -26,7 +32,10 @@ const upsertSchema = z.object({ sku:z.string().optional(), name:z.string(), qty:
  *       429:
  *         description: Rate limit exceeded
  */
-export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}): Promise<NextResponse> {
+export async function POST(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
   const params = await props.params;
   const user = await requireAbility(WOAbility.EDIT)(req);
   if (user instanceof NextResponse) return user;
@@ -45,15 +54,24 @@ export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}
   }
   interface WorkOrderDoc {
     materials: Material[];
-    costSummary?: { labor?: number; materials?: number; other?: number; total?: number };
+    costSummary?: {
+      labor?: number;
+      materials?: number;
+      other?: number;
+      total?: number;
+    };
     save: () => Promise<void>;
   }
-  const wo = (await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId })) as WorkOrderDoc | null;
-  if (!wo) return createSecureResponse({error:"Not found"}, 404, req);
+  const wo = (await WorkOrder.findOne({
+    _id: params.id,
+    tenantId: user.tenantId,
+  })) as WorkOrderDoc | null;
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
   wo.materials.push(m);
-  const materials = wo.materials.reduce((s, c) => s + (c.qty * c.unitPrice), 0);
-  const total = (wo.costSummary?.labor||0) + materials + (wo.costSummary?.other||0);
-  wo.costSummary = { ...(wo.costSummary||{}), materials, total };
+  const materials = wo.materials.reduce((s, c) => s + c.qty * c.unitPrice, 0);
+  const total =
+    (wo.costSummary?.labor || 0) + materials + (wo.costSummary?.other || 0);
+  wo.costSummary = { ...(wo.costSummary || {}), materials, total };
   await wo.save();
   return createSecureResponse(wo.materials, 200, req);
 }

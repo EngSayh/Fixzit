@@ -23,6 +23,7 @@ Added comprehensive notification service configuration section with:
 **Location:** `/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/.env.local`
 
 All variables are clearly commented with:
+
 - Purpose and usage context
 - Where to obtain credentials (direct links when possible)
 - Format requirements (E.164 for phone numbers, multiline handling for Firebase key)
@@ -49,6 +50,7 @@ All variables are clearly commented with:
 7. **Monitoring & Alerts** - Telemetry webhook setup
 
 **Includes:**
+
 - ✅ Direct links to all service consoles
 - ✅ Screenshots placeholders for key setup steps
 - ✅ Code snippets for MongoDB queries
@@ -74,6 +76,7 @@ All variables are clearly commented with:
 - ✅ Quick debug commands for environment validation
 
 **Perfect for:**
+
 - First-time setup
 - Quick verification after credential changes
 - Onboarding new developers
@@ -114,6 +117,7 @@ WHATSAPP_PHONE_NUMBER_ID=<your_whatsapp_phone_number_id>
 ```
 
 **Where to get credentials:**
+
 - See `NOTIFICATION_SMOKE_TEST_QUICKSTART.md` for direct links to each service console
 
 ---
@@ -124,7 +128,7 @@ Ensure test user exists in MongoDB with required data:
 
 ```javascript
 // MongoDB shell or Compass
-db.users.findOne({ _id: ObjectId("YOUR_USER_ID") })
+db.users.findOne({ _id: ObjectId("YOUR_USER_ID") });
 
 // Should return document with:
 // - email: <matches NOTIFICATIONS_SMOKE_EMAIL>
@@ -133,6 +137,7 @@ db.users.findOne({ _id: ObjectId("YOUR_USER_ID") })
 ```
 
 **If user doesn't have FCM tokens:**
+
 - Push tests will be **skipped**
 - Email/SMS/WhatsApp will still work
 - Generate token using Firebase SDK in mobile/web app
@@ -152,6 +157,7 @@ pnpm tsx qa/notifications/run-smoke.ts --channel email
 ```
 
 **Expected successful output:**
+
 ```
 Running Fixzit notification smoke test
 Channels: email
@@ -217,6 +223,7 @@ Fixzit/
 ### Security
 
 ⚠️ **Never commit `.env.local` to git!**
+
 - Already in `.gitignore`
 - Contains sensitive API keys and tokens
 - Use environment variables in production/CI
@@ -224,21 +231,25 @@ Fixzit/
 ### Service-Specific Notes
 
 #### SendGrid Email
+
 - ✅ Requires sender verification before sending
 - ✅ Check Activity Feed if email not received
 - ✅ Free tier: 100 emails/day
 
 #### Twilio SMS (Trial Account)
+
 - ⚠️ Can only send to verified numbers
 - ⚠️ Messages include "trial account" prefix
 - ✅ Verify recipient number in console first
 
 #### Firebase Push
+
 - ⚠️ User **must** have `fcmTokens` array in MongoDB
 - ⚠️ Tokens expire after ~60 days (rotate regularly)
 - ✅ Script pulls tokens from database automatically
 
 #### WhatsApp
+
 - ⚠️ Business API requires template approval (use Twilio sandbox for testing)
 - ⚠️ Sandbox users must opt-in first (send join code)
 - ✅ Template-free messages work in sandbox mode
@@ -270,18 +281,18 @@ Fixzit/
 
 ## 📊 Current Status
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| `.env.local` configuration | ✅ Ready | Awaiting credential population |
-| Smoke test script | ✅ Exists | Already functional |
-| Setup documentation | ✅ Complete | Comprehensive guide created |
-| Quick start guide | ✅ Complete | 5-minute reference ready |
-| MongoDB connection | ✅ Working | `MONGODB_URI` already configured |
-| SendGrid credentials | ⏳ Pending | Need API key from service |
-| Twilio credentials | ⏳ Pending | Need account SID + auth token |
-| Firebase credentials | ⏳ Pending | Need service account JSON |
-| WhatsApp credentials | ⏳ Pending | Need API key + phone ID |
-| Test user in MongoDB | ⏳ Pending | Need to verify user exists with FCM tokens |
+| Component                  | Status      | Notes                                      |
+| -------------------------- | ----------- | ------------------------------------------ |
+| `.env.local` configuration | ✅ Ready    | Awaiting credential population             |
+| Smoke test script          | ✅ Exists   | Already functional                         |
+| Setup documentation        | ✅ Complete | Comprehensive guide created                |
+| Quick start guide          | ✅ Complete | 5-minute reference ready                   |
+| MongoDB connection         | ✅ Working  | `MONGODB_URI` already configured           |
+| SendGrid credentials       | ⏳ Pending  | Need API key from service                  |
+| Twilio credentials         | ⏳ Pending  | Need account SID + auth token              |
+| Firebase credentials       | ⏳ Pending  | Need service account JSON                  |
+| WhatsApp credentials       | ⏳ Pending  | Need API key + phone ID                    |
+| Test user in MongoDB       | ⏳ Pending  | Need to verify user exists with FCM tokens |
 
 ---
 
@@ -301,6 +312,7 @@ You'll know the setup is complete when:
 ## 🆘 Need Help?
 
 **Quick troubleshooting:**
+
 1. Check `NOTIFICATION_SMOKE_TEST_QUICKSTART.md` for common issues
 2. See `NOTIFICATION_SMOKE_TEST_SETUP.md` for detailed solutions
 3. Verify service status pages (all links above)

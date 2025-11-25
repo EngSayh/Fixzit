@@ -9,10 +9,12 @@ The login flow now includes **SMS OTP verification** for enhanced security. User
 ## 🚀 Quick Test
 
 ### 1. Prerequisites
+
 - ✅ Twilio credentials configured in `.env`
 - ✅ User has phone number in database (Saudi format: `+966501234567` or `0501234567`)
 
 ### 2. Test the Flow
+
 ```bash
 # Start the development server
 npm run dev
@@ -43,6 +45,7 @@ npm run dev
 ## 📱 Features at a Glance
 
 ### Security
+
 - ✅ Credentials validated before OTP sent
 - ✅ 5-minute OTP expiration
 - ✅ Max 3 verification attempts
@@ -50,6 +53,7 @@ npm run dev
 - ✅ Phone number masking (privacy)
 
 ### User Experience
+
 - ✅ Countdown timer (5:00 → 0:00)
 - ✅ Resend OTP with 60-second cooldown
 - ✅ Back to login button
@@ -58,6 +62,7 @@ npm run dev
 - ✅ Real-time error messages
 
 ### Internationalization
+
 - ✅ Full English support
 - ✅ Full Arabic support (RTL)
 - ✅ All UI text translated
@@ -67,6 +72,7 @@ npm run dev
 ## 🔧 Configuration
 
 ### Environment Variables
+
 ```env
 # Already configured via previous SMS integration
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -75,12 +81,13 @@ TWILIO_PHONE_NUMBER=+966501234567
 ```
 
 ### Constants (lib/otp-store.ts)
+
 ```typescript
-OTP_LENGTH = 6                    // 6-digit code
-OTP_EXPIRY_MS = 5 * 60 * 1000    // 5 minutes
-MAX_ATTEMPTS = 3                  // 3 verification attempts
-RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000  // 15 minutes
-MAX_SENDS_PER_WINDOW = 5          // 5 OTP sends per window
+OTP_LENGTH = 6; // 6-digit code
+OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+MAX_ATTEMPTS = 3; // 3 verification attempts
+RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+MAX_SENDS_PER_WINDOW = 5; // 5 OTP sends per window
 ```
 
 ---
@@ -88,7 +95,9 @@ MAX_SENDS_PER_WINDOW = 5          // 5 OTP sends per window
 ## 🐛 Troubleshooting
 
 ### OTP Not Received?
+
 1. **Check phone number format**
+
    ```typescript
    // Valid formats:
    +966501234567   // E.164 (preferred)
@@ -107,6 +116,7 @@ MAX_SENDS_PER_WINDOW = 5          // 5 OTP sends per window
    ```
 
 ### OTP Verification Fails?
+
 1. **Check if expired** (>5 minutes)
    - Request new OTP via "Resend Code"
 
@@ -118,6 +128,7 @@ MAX_SENDS_PER_WINDOW = 5          // 5 OTP sends per window
    - For production: Migrate to Redis
 
 ### Rate Limited?
+
 - Wait 15 minutes
 - Or for testing: Clear rate limit manually in code
 
@@ -126,6 +137,7 @@ MAX_SENDS_PER_WINDOW = 5          // 5 OTP sends per window
 ## 📚 Full Documentation
 
 See **`SMS_OTP_LOGIN_GUIDE.md`** for:
+
 - Complete architecture overview
 - API endpoint documentation
 - Security features in detail
@@ -137,23 +149,24 @@ See **`SMS_OTP_LOGIN_GUIDE.md`** for:
 ## 🔄 Next Steps
 
 ### Immediate (Optional)
+
 - [ ] Test OTP flow with real users
 - [ ] Monitor SMS delivery rates
 - [ ] Check Twilio costs/usage
 
 ### Short Term (Recommended)
+
 - [ ] **Migrate to Redis** (for production)
   - Replace in-memory OTP store
   - Enable distributed system support
-  
 - [ ] **Add monitoring**
   - Log OTP send/verify success rates
   - Alert on high failure rates
-  
 - [ ] **Add CAPTCHA** (optional)
   - Prevent automated OTP spam
 
 ### Long Term (Nice to Have)
+
 - [ ] WhatsApp OTP (cheaper alternative)
 - [ ] Trust device feature (skip OTP for known devices)
 - [ ] TOTP support (authenticator apps)
@@ -164,11 +177,13 @@ See **`SMS_OTP_LOGIN_GUIDE.md`** for:
 ## 📊 Metrics to Track
 
 ### Success Metrics
+
 - **OTP Delivery Rate:** >95% (Twilio success)
 - **Verification Success Rate:** >90% (users complete OTP)
 - **Average Time to Verify:** <60 seconds
 
 ### Performance Metrics
+
 - **OTP Send Time:** <3 seconds
 - **OTP Delivery Time:** <10 seconds (carrier dependent)
 - **Verification Time:** <1 second
@@ -178,10 +193,12 @@ See **`SMS_OTP_LOGIN_GUIDE.md`** for:
 ## 💰 Cost Estimate
 
 ### Twilio SMS Pricing (Saudi Arabia)
+
 - **Per SMS:** ~$0.05 - $0.10
 - **1000 logins/day:** $50 - $100/day ($1,500 - $3,000/month)
 
 ### Cost Optimization
+
 - Implement "Trust Device" → Reduce OTP frequency by 80%
 - Use WhatsApp → ~50% cheaper than SMS
 - Monitor and block abuse
@@ -194,7 +211,7 @@ See **`SMS_OTP_LOGIN_GUIDE.md`** for:
 ✅ **User Experience:** Seamless flow with clear feedback  
 ✅ **Internationalization:** Full bilingual support (EN/AR)  
 ✅ **Documentation:** Comprehensive guides and troubleshooting  
-✅ **Production Ready:** With Redis migration path defined  
+✅ **Production Ready:** With Redis migration path defined
 
 ---
 

@@ -1,7 +1,6 @@
-import { MeiliSearch } from 'meilisearch';
-import { logger } from '@/lib/logger';
-import { withMeiliResilience } from '@/lib/meilisearch-resilience';
-
+import { MeiliSearch } from "meilisearch";
+import { logger } from "@/lib/logger";
+import { withMeiliResilience } from "@/lib/meilisearch-resilience";
 
 let client: MeiliSearch | null = null;
 
@@ -10,7 +9,11 @@ let client: MeiliSearch | null = null;
  * @returns MeiliSearch client or null if not configured
  */
 export function getMeiliSearchClient(): MeiliSearch | null {
-  if (!client && process.env.MEILISEARCH_HOST && process.env.MEILISEARCH_API_KEY) {
+  if (
+    !client &&
+    process.env.MEILISEARCH_HOST &&
+    process.env.MEILISEARCH_API_KEY
+  ) {
     client = new MeiliSearch({
       host: process.env.MEILISEARCH_HOST,
       apiKey: process.env.MEILISEARCH_API_KEY,
@@ -26,33 +29,38 @@ export function getMeiliSearchClient(): MeiliSearch | null {
 export async function initializeMeilisearch(): Promise<void> {
   const client = getMeiliSearchClient();
   if (!client) {
-    logger.warn('[Meilisearch] Not configured, skipping initialization');
+    logger.warn("[Meilisearch] Not configured, skipping initialization");
     return;
   }
 
   try {
     // Configure products index
-    await withMeiliResilience('products-configure', 'index', () =>
-      client.index('products').updateSettings({
-        filterableAttributes: ['categoryId', 'brandId', 'isActive', 'orgId'],
-        sortableAttributes: ['createdAt', 'updatedAt'],
-        searchableAttributes: ['title', 'description', 'searchKeywords', 'fsin'],
-        rankingRules: [
-          'words',
-          'typo',
-          'proximity',
-          'attribute',
-          'sort',
-          'exactness',
+    await withMeiliResilience("products-configure", "index", () =>
+      client.index("products").updateSettings({
+        filterableAttributes: ["categoryId", "brandId", "isActive", "orgId"],
+        sortableAttributes: ["createdAt", "updatedAt"],
+        searchableAttributes: [
+          "title",
+          "description",
+          "searchKeywords",
+          "fsin",
         ],
-      })
+        rankingRules: [
+          "words",
+          "typo",
+          "proximity",
+          "attribute",
+          "sort",
+          "exactness",
+        ],
+      }),
     );
 
-    logger.info('[Meilisearch] Initialized products index');
+    logger.info("[Meilisearch] Initialized products index");
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[Meilisearch] Failed to initialize indexes:', error);
+    logger.error("[Meilisearch] Failed to initialize indexes:", error);
     throw error;
   }
 }
@@ -76,13 +84,13 @@ export async function indexProduct(product: {
   if (!client) return;
 
   try {
-    await withMeiliResilience('product-index', 'index', () =>
-      client.index('products').addDocuments([product])
+    await withMeiliResilience("product-index", "index", () =>
+      client.index("products").addDocuments([product]),
     );
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[Meilisearch] Failed to index product:', error);
+    logger.error("[Meilisearch] Failed to index product:", error);
     // Don't throw - indexing failure shouldn't break product creation
   }
 }
@@ -99,21 +107,19 @@ export async function updateProduct(
     description: string;
     isActive: boolean;
     searchKeywords: string[];
-  }>
+  }>,
 ): Promise<void> {
   const client = getMeiliSearchClient();
   if (!client) return;
 
   try {
-    await withMeiliResilience('product-update', 'index', () =>
-      client.index('products').updateDocuments([
-        { id: productId, ...updates },
-      ])
+    await withMeiliResilience("product-update", "index", () =>
+      client.index("products").updateDocuments([{ id: productId, ...updates }]),
     );
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[Meilisearch] Failed to update product:', error);
+    logger.error("[Meilisearch] Failed to update product:", error);
   }
 }
 
@@ -126,13 +132,13 @@ export async function deleteProduct(productId: string): Promise<void> {
   if (!client) return;
 
   try {
-    await withMeiliResilience('product-delete', 'index', () =>
-      client.index('products').deleteDocument(productId)
+    await withMeiliResilience("product-delete", "index", () =>
+      client.index("products").deleteDocument(productId),
     );
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[Meilisearch] Failed to delete product:', error);
+    logger.error("[Meilisearch] Failed to delete product:", error);
   }
 }
 
@@ -151,19 +157,19 @@ export async function bulkIndexProducts(
     searchKeywords?: string[];
     isActive: boolean;
     orgId: string;
-  }>
+  }>,
 ): Promise<void> {
   const client = getMeiliSearchClient();
   if (!client) return;
 
   try {
-    await withMeiliResilience('product-bulk-index', 'index', () =>
-      client.index('products').addDocuments(products)
+    await withMeiliResilience("product-bulk-index", "index", () =>
+      client.index("products").addDocuments(products),
     );
     logger.info(`[Meilisearch] Bulk indexed ${products.length} products`);
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[Meilisearch] Failed to bulk index products:', error);
+    logger.error("[Meilisearch] Failed to bulk index products:", error);
   }
 }

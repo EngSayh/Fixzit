@@ -25,7 +25,7 @@ Successfully completed comprehensive Jest→Vitest migration for 8 files that we
 
 ### Total Changes
 
-- **83+ runtime API conversions** (jest.*→ vi.*)
+- **83+ runtime API conversions** (jest._→ vi._)
 - **17 inline jest.fn() fixes**
 - **8 Vitest import additions**
 - **8 framework comment updates**
@@ -117,8 +117,10 @@ vi.importMock()
 // MISSED by type-only script:
 const storage = () => {
   return {
-    getItem: jest.fn((k: string) => store[k]),  // ❌ Still jest.fn()
-    setItem: jest.fn((k: string, v: string) => { store[k] = v; })
+    getItem: jest.fn((k: string) => store[k]), // ❌ Still jest.fn()
+    setItem: jest.fn((k: string, v: string) => {
+      store[k] = v;
+    }),
   };
 };
 ```
@@ -128,8 +130,10 @@ const storage = () => {
 ```typescript
 const storage = () => {
   return {
-    getItem: vi.fn((k: string) => store[k]),  // ✅ Now vi.fn()
-    setItem: vi.fn((k: string, v: string) => { store[k] = v; })
+    getItem: vi.fn((k: string) => store[k]), // ✅ Now vi.fn()
+    setItem: vi.fn((k: string, v: string) => {
+      store[k] = v;
+    }),
   };
 };
 ```
@@ -151,7 +155,7 @@ const storage = () => {
 
 ```typescript
 // BEFORE (Jest-style):
-vi.doMock('@/lib/mongo', () => ({ isMockDB: true }), { virtual: true });
+vi.doMock("@/lib/mongo", () => ({ isMockDB: true }), { virtual: true });
 //                                                    ^^^^^^^^^^^^^^^^^
 //                                                    ❌ Not supported in Vitest
 ```
@@ -160,7 +164,7 @@ vi.doMock('@/lib/mongo', () => ({ isMockDB: true }), { virtual: true });
 
 ```typescript
 // AFTER:
-vi.doMock('@/lib/mongo', () => ({ isMockDB: true }));
+vi.doMock("@/lib/mongo", () => ({ isMockDB: true }));
 //                                                    ✅ Works in Vitest
 ```
 
@@ -178,11 +182,11 @@ vi.doMock('@/lib/mongo', () => ({ isMockDB: true }));
 
 ```typescript
 // BEFORE (incorrect):
-const { NextResponse } = vi.importMock('next/server');
+const { NextResponse } = vi.importMock("next/server");
 //                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //                       ❌ Returns Promise<MockedObjectDeep<...>>
 
-expect(NextResponse.json).toHaveBeenCalledTimes(1);  // ❌ NextResponse is undefined
+expect(NextResponse.json).toHaveBeenCalledTimes(1); // ❌ NextResponse is undefined
 ```
 
 **Solution:**
@@ -219,7 +223,7 @@ await jest.isolateModulesAsync(async () => {
   // ^^^^^^^^^^^^^^^^^^^^^^
   // ❌ Doesn't exist in Vitest
   vi.resetModules();
-  await import('../Candidate');
+  await import("../Candidate");
 });
 ```
 
@@ -227,8 +231,8 @@ await jest.isolateModulesAsync(async () => {
 
 ```typescript
 // AFTER:
-vi.resetModules();  // ✅ Direct call, no wrapper needed
-await import('../Candidate');
+vi.resetModules(); // ✅ Direct call, no wrapper needed
+await import("../Candidate");
 ```
 
 **Files Fixed:**
@@ -245,7 +249,7 @@ await import('../Candidate');
 
 ```typescript
 // BEFORE:
-import '@testing-library/jest-dom/extend-expect';
+import "@testing-library/jest-dom/extend-expect";
 //                                  ^^^^^^^^^^^^^
 //                                  ❌ Path no longer exists
 ```
@@ -254,7 +258,7 @@ import '@testing-library/jest-dom/extend-expect';
 
 ```typescript
 // AFTER:
-import '@testing-library/jest-dom';
+import "@testing-library/jest-dom";
 //                                  ✅ Modern import path
 ```
 
@@ -361,7 +365,7 @@ Files: 1 changed, 76 insertions, 2 deletions
 - No `{ virtual: true }` option
 - No `vi.isolateModulesAsync()`
 - `vi.importMock()` returns Promise
-**Solution:** Consult Vitest docs for exact equivalents
+  **Solution:** Consult Vitest docs for exact equivalents
 
 ### 4. Import Paths Change
 
@@ -383,7 +387,7 @@ Files: 1 changed, 76 insertions, 2 deletions
 
 ```typescript
 // FIRST LINE after comments:
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 ```
 
 ### 2. Update Framework Comments
@@ -404,13 +408,13 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 ```typescript
 // Setup mocks BEFORE imports:
-vi.mock('module-name', () => ({
+vi.mock("module-name", () => ({
   export1: vi.fn(),
-  export2: vi.fn()
+  export2: vi.fn(),
 }));
 
 // Then import normally:
-import { export1, export2 } from 'module-name';
+import { export1, export2 } from "module-name";
 ```
 
 ### 4. Check Vitest API Documentation

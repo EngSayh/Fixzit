@@ -11,7 +11,7 @@ import ProductPage from '@/app/product/page'
 
 // Mock next/link to render simple anchor for test environment
 vi.mock('next/link', () => {
-  const MockLink = ({ href, className, children }: any) => <a href={href} className={className}>{children}</a>;
+  const MockLink = ({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) => <a href={href} className={className}>{children}</a>;
   MockLink.displayName = 'MockLink';
   return { default: MockLink };
 });

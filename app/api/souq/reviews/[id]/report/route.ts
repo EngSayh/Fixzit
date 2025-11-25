@@ -1,12 +1,12 @@
 /**
  * POST /api/souq/reviews/[id]/report - Report review
  */
-import { NextRequest, NextResponse } from 'next/server';
-import { reviewService } from '@/services/souq/reviews/review-service';
-import { auth } from '@/auth';
-import { logger } from '@/lib/logger';
-import { connectDb } from '@/lib/mongodb-unified';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { reviewService } from "@/services/souq/reviews/review-service";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
+import { connectDb } from "@/lib/mongodb-unified";
+import { z } from "zod";
 
 type RouteContext = {
   params: Promise<{
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDb();
@@ -36,15 +36,15 @@ export async function POST(req: NextRequest, context: RouteContext) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation failed', issues: error.issues },
-        { status: 400 }
+        { error: "Validation failed", issues: error.issues },
+        { status: 400 },
       );
     }
 
-    logger.error('[POST /api/souq/reviews/[id]/report]', { error });
+    logger.error("[POST /api/souq/reviews/[id]/report]", { error });
     return NextResponse.json(
-      { error: 'Failed to report review' },
-      { status: 500 }
+      { error: "Failed to report review" },
+      { status: 500 },
     );
   }
 }

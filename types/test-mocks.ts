@@ -1,15 +1,13 @@
 /**
  * Test Mock Type Definitions
- * 
+ *
  * Provides type-safe interfaces for test mocks,
  * replacing `any` types in test files.
- * 
+ *
  * @module types/test-mocks
  */
 
- 
-
-import type { Mock } from 'vitest';
+import type { Mock } from "vitest";
 
 /**
  * Generic mock function that accepts any arguments

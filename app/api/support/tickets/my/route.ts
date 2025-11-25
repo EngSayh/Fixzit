@@ -1,17 +1,17 @@
-import { NextRequest} from "next/server";
-import { logger } from '@/lib/logger';
+import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SupportTicket } from "@/server/models/SupportTicket";
-import { Types } from 'mongoose';
+import { Types } from "mongoose";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse } from "@/server/security/headers";
+import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
 // Force dynamic rendering for this route
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /**
  * @openapi
@@ -30,10 +30,10 @@ export const dynamic = 'force-dynamic';
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET(req: NextRequest){
+export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
-    
+
     // Handle authentication separately to return 401 instead of 500
     let user;
     try {
@@ -43,17 +43,32 @@ export async function GET(req: NextRequest){
         return rateLimitError();
       }
     } catch (authError) {
-      logger.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
-      return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+      logger.error(
+        "Authentication failed:",
+        authError instanceof Error ? authError.message : "Unknown error",
+      );
+      return createSecureResponse({ error: "Unauthorized" }, 401, req);
     }
-    
-    const creatorId = Types.ObjectId.isValid(user.id) ? new Types.ObjectId(user.id) : user.id;
-    const items = await SupportTicket.find({ orgId: user.orgId, createdBy: creatorId })
-      .sort({ createdAt:-1 })
+
+    const creatorId = Types.ObjectId.isValid(user.id)
+      ? new Types.ObjectId(user.id)
+      : user.id;
+    const items = await SupportTicket.find({
+      orgId: user.orgId,
+      createdBy: creatorId,
+    })
+      .sort({ createdAt: -1 })
       .limit(200);
     return createSecureResponse({ items }, 200, req);
   } catch (error) {
-    logger.error('My tickets query failed:', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Failed to fetch your tickets' }, 500, req);
+    logger.error(
+      "My tickets query failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return createSecureResponse(
+      { error: "Failed to fetch your tickets" },
+      500,
+      req,
+    );
   }
 }

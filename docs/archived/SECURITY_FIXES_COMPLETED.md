@@ -10,13 +10,13 @@
 
 ### ✅ Completed Security Improvements
 
-| Issue | Severity | Files Fixed | Status |
-|-------|----------|-------------|--------|
-| Hardcoded JWT secrets | 🔴 CRITICAL | 6 runtime files, 3 dev scripts, 3 infra configs use the new helper (`requireEnv`) | ✅ Code Fixed |
-| Hardcoded Docker secrets | 🔴 CRITICAL | 2 compose files | ✅ Fixed |
-| Missing rate limiting | 🔴 CRITICAL | 8 API routes now guarded (OTP send/verify, claims, evidence, response, aqar pricing, recommendations, support ticket replies) | ✅ Code Fixed ⚠️ Await manual & automated tests |
-| Inconsistent CORS | 🟡 HIGH | `lib/security/cors-allowlist.ts`, middleware, router wiring | ✅ Code Fixed ⚠️ Needs stricter env validation & manual testing |
-| Insecure MongoDB URI | 🟡 HIGH | Lap `lib/mongo.ts` enforces Atlas-only in prod, local fallback allowed only outside prod | ✅ Code Fixed |
+| Issue                    | Severity    | Files Fixed                                                                                                                   | Status                                                          |
+| ------------------------ | ----------- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Hardcoded JWT secrets    | 🔴 CRITICAL | 6 runtime files, 3 dev scripts, 3 infra configs use the new helper (`requireEnv`)                                             | ✅ Code Fixed                                                   |
+| Hardcoded Docker secrets | 🔴 CRITICAL | 2 compose files                                                                                                               | ✅ Fixed                                                        |
+| Missing rate limiting    | 🔴 CRITICAL | 8 API routes now guarded (OTP send/verify, claims, evidence, response, aqar pricing, recommendations, support ticket replies) | ✅ Code Fixed ⚠️ Await manual & automated tests                 |
+| Inconsistent CORS        | 🟡 HIGH     | `lib/security/cors-allowlist.ts`, middleware, router wiring                                                                   | ✅ Code Fixed ⚠️ Needs stricter env validation & manual testing |
+| Insecure MongoDB URI     | 🟡 HIGH     | Lap `lib/mongo.ts` enforces Atlas-only in prod, local fallback allowed only outside prod                                      | ✅ Code Fixed                                                   |
 
 ---
 
@@ -29,13 +29,19 @@
 **Solution:** Created centralized `lib/env.ts` + `lib/env.js` with `requireEnv()` helper.
 
 **Files Fixed:**
+
 ```typescript
 // lib/env.ts - NEW SECURE IMPLEMENTATION
-export const TEST_JWT_SECRET = 'test-secret-key-for-jest-tests-minimum-32-characters-long';
+export const TEST_JWT_SECRET =
+  "test-secret-key-for-jest-tests-minimum-32-characters-long";
 
-export function requireEnv(name: string, options: RequireEnvOptions = {}): string {
+export function requireEnv(
+  name: string,
+  options: RequireEnvOptions = {},
+): string {
   const value = process.env[name];
-  const hasValue = value !== undefined && (options.allowEmpty || value.trim() !== '');
+  const hasValue =
+    value !== undefined && (options.allowEmpty || value.trim() !== "");
 
   if (hasValue) {
     return value as string;
@@ -49,25 +55,20 @@ export function requireEnv(name: string, options: RequireEnvOptions = {}): strin
 
   // FAIL FAST - No production fallbacks
   throw new Error(
-    `Missing required environment variable "${name}". Set it in your environment or secrets manager.`
+    `Missing required environment variable "${name}". Set it in your environment or secrets manager.`,
   );
 }
 ```
 
 **Updated Files (Core Application - 3 production runtime files):**
+
 1. ✅ `lib/marketplace/context.ts` - Uses `requireEnv('JWT_SECRET', { testFallback })`
 2. ✅ `lib/startup-checks.ts` - Uses `requireEnv('JWT_SECRET')`
 3. ✅ `lib/meilisearch.ts` - Uses `requireEnv('MEILI_MASTER_KEY', { testFallback })`
 
-**Updated Files (Test/Development - 3 files):**
-4. ✅ `tests/setup.ts` - Uses `requireEnv('JWT_SECRET', { testFallback })`
-5. ✅ `scripts/server.js` - Uses `requireEnv('JWT_SECRET')`
-6. ✅ `scripts/test-auth-fix.js` - Uses `requireEnv('JWT_SECRET')`
+**Updated Files (Test/Development - 3 files):** 4. ✅ `tests/setup.ts` - Uses `requireEnv('JWT_SECRET', { testFallback })` 5. ✅ `scripts/server.js` - Uses `requireEnv('JWT_SECRET')` 6. ✅ `scripts/test-auth-fix.js` - Uses `requireEnv('JWT_SECRET')`
 
-**Infrastructure Files (Hardened - 3 files):**
-7. ✅ `docker-compose.yml` - Requires `JWT_SECRET`, `MONGO_INITDB_ROOT_PASSWORD`, `MEILI_MASTER_KEY` (fail-fast)
-8. ✅ `docker-compose.souq.yml` - Requires secrets, no hardcoded defaults
-9. ✅ `lib/security/cors-allowlist.ts` - NEW: Unified CORS origin validation
+**Infrastructure Files (Hardened - 3 files):** 7. ✅ `docker-compose.yml` - Requires `JWT_SECRET`, `MONGO_INITDB_ROOT_PASSWORD`, `MEILI_MASTER_KEY` (fail-fast) 8. ✅ `docker-compose.souq.yml` - Requires secrets, no hardcoded defaults 9. ✅ `lib/security/cors-allowlist.ts` - NEW: Unified CORS origin validation
 
 **Files Using getEnv (Still Secure - Has Dev Fallbacks):**
 ⚠️ `lib/mongo.ts` - Uses `getEnv('MONGODB_URI')` with localhost fallback in dev, but enforces Atlas-only in production via `assertNotLocalhostInProd()`
@@ -75,6 +76,7 @@ export function requireEnv(name: string, options: RequireEnvOptions = {}): strin
 **Total Files Secured:** 6 production files (3 runtime + 3 test/dev) + 3 infrastructure configs
 
 **Files Still Using Direct Access (Dev/Setup Scripts - Not Production Critical):**
+
 - ⚠️ `scripts/fix-server.sh` - Checks `process.env.JWT_SECRET`, logs error if missing (dev script)
 - ⚠️ `scripts/generate-fixzit-postgresql.sh` - Checks `process.env.JWT_SECRET`, throws error if missing (setup script)
 - ⚠️ `scripts/security-audit.js` - Reads `process.env.JWT_SECRET` for audit reporting
@@ -92,6 +94,7 @@ export function requireEnv(name: string, options: RequireEnvOptions = {}): strin
 **Solution:** Converted all secrets to required environment variables with fail-fast validation.
 
 **Files Fixed:**
+
 ```yaml
 # docker-compose.yml - BEFORE (insecure)
 services:
@@ -118,6 +121,7 @@ services:
 ```
 
 **Required Environment Variables:**
+
 - `MONGO_INITDB_ROOT_PASSWORD` - MongoDB admin password
 - `MEILI_MASTER_KEY` - Meilisearch master key (32+ chars)
 - `JWT_SECRET` - JWT signing secret (32+ chars)
@@ -126,6 +130,7 @@ services:
 **Result:** 🎯 **Docker Compose now fails fast** if any secret is missing. No hardcoded defaults remain.
 
 **Verification:**
+
 ```bash
 # Test in production mode (should fail without JWT_SECRET)
 NODE_ENV=production node -e "require('./lib/env.js').requireEnv('JWT_SECRET')"
@@ -149,22 +154,27 @@ NODE_ENV=test node -e "const { requireEnv } = require('./lib/env.js'); console.l
 **Implementation Status:** ✅ All code changes committed and verified
 
 **New Middleware:**
+
 ```typescript
 // lib/middleware/rate-limit.ts - NEW
-import { NextRequest, NextResponse } from 'next/server';
-import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError } from '@/server/utils/errorResponses';
-import { getClientIP } from '@/server/security/headers';
+import { NextRequest, NextResponse } from "next/server";
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
 export function enforceRateLimit(
   request: NextRequest,
-  options: RateLimitOptions = {}
+  options: RateLimitOptions = {},
 ): NextResponse | null {
   const identifier = options.identifier ?? getClientIP(request);
   const prefix = options.keyPrefix ?? new URL(request.url).pathname;
   const key = `${prefix}:${identifier}`;
 
-  const result = rateLimit(key, options.requests ?? 30, options.windowMs ?? 60_000);
+  const result = rateLimit(
+    key,
+    options.requests ?? 30,
+    options.windowMs ?? 60_000,
+  );
   if (!result.allowed) {
     return rateLimitError(); // 429 Too Many Requests
   }
@@ -174,33 +184,37 @@ export function enforceRateLimit(
 ```
 
 **Protected Routes:**
+
 1. ✅ `app/api/auth/otp/send/route.ts` - 10 requests/min (verified in code)
 2. ✅ `app/api/auth/otp/verify/route.ts` - 10 requests/min (verified in code)
 3. ✅ `app/api/souq/claims/route.ts` - 20 requests/min (verified in code)
 4. ✅ `app/api/souq/claims/[id]/evidence/route.ts` - 30 requests/2min (verified in code)
 5. ✅ `app/api/souq/claims/[id]/response/route.ts` - 30 requests/2min (verified in code)
+
    ```typescript
    const ipRateLimited = enforceRateLimit(request, {
-     keyPrefix: 'auth:otp-send',
+     keyPrefix: "auth:otp-send",
      requests: 10,
      windowMs: 60_000,
    });
    if (ipRateLimited) return ipRateLimited;
    ```
 
-2. ✅ `app/api/auth/otp/verify/route.ts` - 10 requests/min
-  ```typescript
-  const limited = enforceRateLimit(request, {
-    keyPrefix: 'auth:otp-verify',
-    requests: 10,
-    windowMs: 60_000,
-  });
-  if (limited) return limited;
-  ```
+6. ✅ `app/api/auth/otp/verify/route.ts` - 10 requests/min
+
+```typescript
+const limited = enforceRateLimit(request, {
+  keyPrefix: "auth:otp-verify",
+  requests: 10,
+  windowMs: 60_000,
+});
+if (limited) return limited;
+```
 
 **Validation Status:** Code complete ✅ | Manual tests pending ⚠️ | Monitoring/alerts pending ⚠️
 
 **Manual Validation Checklist:**
+
 - [ ] OTP send (10 req/min) returns 429 beyond limit
 - [ ] OTP verify (10 req/min) returns 429 beyond limit
 - [ ] Claims creation/evidence/response throttled as expected
@@ -210,47 +224,51 @@ export function enforceRateLimit(
 - [ ] Document results in `MANUAL_SECURITY_TESTING_RESULTS.md`
 
 3. ✅ `app/api/souq/claims/route.ts` - 20 requests/min
+
    ```typescript
    const limited = enforceRateLimit(request, {
-     keyPrefix: 'souq-claims:create',
+     keyPrefix: "souq-claims:create",
      requests: 20,
      windowMs: 60_000,
    });
    if (limited) return limited;
    ```
 
-3. ✅ `app/api/souq/claims/route.ts` - 20 requests/min
+4. ✅ `app/api/souq/claims/route.ts` - 20 requests/min
+
    ```typescript
    const limited = enforceRateLimit(request, {
-     keyPrefix: 'souq-claims:create',
+     keyPrefix: "souq-claims:create",
      requests: 20,
      windowMs: 60_000,
    });
    if (limited) return limited;
    ```
 
-4. ✅ `app/api/souq/claims/[id]/evidence/route.ts` - 30 requests/2min
+5. ✅ `app/api/souq/claims/[id]/evidence/route.ts` - 30 requests/2min
+
    ```typescript
    const limited = enforceRateLimit(request, {
-     keyPrefix: 'souq-claims:evidence',
+     keyPrefix: "souq-claims:evidence",
      requests: 30,
      windowMs: 120_000,
    });
    ```
 
-4. ✅ `app/api/souq/claims/[id]/evidence/route.ts` - 30 requests/2min
+6. ✅ `app/api/souq/claims/[id]/evidence/route.ts` - 30 requests/2min
+
    ```typescript
    const limited = enforceRateLimit(request, {
-     keyPrefix: 'souq-claims:evidence',
+     keyPrefix: "souq-claims:evidence",
      requests: 30,
      windowMs: 120_000,
    });
    ```
 
-5. ✅ `app/api/souq/claims/[id]/response/route.ts` - 30 requests/2min
+7. ✅ `app/api/souq/claims/[id]/response/route.ts` - 30 requests/2min
    ```typescript
    const limited = enforceRateLimit(request, {
-     keyPrefix: 'souq-claims:response',
+     keyPrefix: "souq-claims:response",
      requests: 30,
      windowMs: 120_000,
    });
@@ -268,6 +286,7 @@ export function enforceRateLimit(
 **Result:** 🎯 **All high-risk endpoints protected** with IP-based rate limiting (code verified)
 
 **✅ Verification Status:**
+
 - ✅ **Code implementation:** All 5 routes call `enforceRateLimit()` with documented thresholds
 - ✅ **File verification:** Confirmed in `app/api/auth/otp/send/route.ts` (lines 34-40), `app/api/auth/otp/verify/route.ts` (lines 34-40), `app/api/souq/claims/route.ts` (lines 11-17), `app/api/souq/claims/[id]/evidence/route.ts` (lines 14-20), `app/api/souq/claims/[id]/response/route.ts` (lines 14-20)
 - ✅ **Automated test scripts:** Created comprehensive test suite in `scripts/security/`
@@ -282,6 +301,7 @@ export function enforceRateLimit(
   - `docs/security/MONITORING_INTEGRATION.md` - Integration guide
 
 **Automated Testing Available:**
+
 ```bash
 # Run comprehensive security test suite
 ./scripts/security/run-all-security-tests.sh http://localhost:3000
@@ -307,22 +327,25 @@ export function enforceRateLimit(
 **Solution:** Updated `middleware.ts` and `next.config.js` with strict origin whitelist.
 
 **Middleware Changes:**
+
 ```typescript
 // lib/security/cors-allowlist.ts - Unified CORS validation
 const STATIC_ALLOWED_ORIGINS = [
-  'https://fixzit.sa',
-  'https://www.fixzit.sa',
-  'https://app.fixzit.sa',
-  'https://dashboard.fixzit.sa',
-  'https://staging.fixzit.sa',
+  "https://fixzit.sa",
+  "https://www.fixzit.sa",
+  "https://app.fixzit.sa",
+  "https://dashboard.fixzit.sa",
+  "https://staging.fixzit.sa",
 ];
-const DEV_ALLOWED_ORIGINS = ['http://localhost:3000', 'http://localhost:3001'];
+const DEV_ALLOWED_ORIGINS = ["http://localhost:3000", "http://localhost:3001"];
 
 // Parses CORS_ORIGINS and FRONTEND_URL env vars (comma-separated)
 function buildAllowedOrigins(): string[] {
   const envOrigins = parseOrigins(process.env.CORS_ORIGINS);
   const frontendOrigins = parseOrigins(process.env.FRONTEND_URL);
-  return Array.from(new Set([...STATIC_ALLOWED_ORIGINS, ...frontendOrigins, ...envOrigins]));
+  return Array.from(
+    new Set([...STATIC_ALLOWED_ORIGINS, ...frontendOrigins, ...envOrigins]),
+  );
 }
 
 export function isOriginAllowed(origin: string | null): boolean {
@@ -330,24 +353,31 @@ export function isOriginAllowed(origin: string | null): boolean {
   const allowedOrigins = getAllowedOriginsSet();
   if (allowedOrigins.has(origin)) return true;
   // Dev mode: auto-allow localhost
-  return process.env.NODE_ENV !== 'production' && DEV_ALLOWED_ORIGINS.includes(origin);
+  return (
+    process.env.NODE_ENV !== "production" &&
+    DEV_ALLOWED_ORIGINS.includes(origin)
+  );
 }
 
-export function resolveAllowedOrigin(origin: string | null): string | undefined {
+export function resolveAllowedOrigin(
+  origin: string | null,
+): string | undefined {
   if (origin && isOriginAllowed(origin)) return origin;
   // Dev mode without Origin header: default to localhost:3000
-  if (process.env.NODE_ENV !== 'production') return DEV_ALLOWED_ORIGINS[0];
+  if (process.env.NODE_ENV !== "production") return DEV_ALLOWED_ORIGINS[0];
   return undefined;
 }
 ```
 
 **⚠️ Note on CORS Permissiveness:**
+
 - **Production:** Only whitelisted domains in `STATIC_ALLOWED_ORIGINS` + `CORS_ORIGINS` env var
 - **Development:** Automatically allows `localhost:3000/3001` even without Origin header
 - **ENV var merging:** Any values in `CORS_ORIGINS` or `FRONTEND_URL` are trusted without URL validation
 - **Recommendation:** Consider adding protocol/domain validation for `CORS_ORIGINS` parsing
 
 **Next.js Config:**
+
 ```javascript
 // next.config.js - CORS_ORIGINS added to env
 env: {
@@ -358,15 +388,17 @@ env: {
 ```
 
 **Allowed Origins:**
+
 - Production: `fixzit.sa`, `www.fixzit.sa`, `app.fixzit.sa`, `dashboard.fixzit.sa`
 - Staging: `staging.fixzit.sa`
 - Development: `localhost:3000`, `localhost:3001`
 - Custom: Any domain in `CORS_ORIGINS` environment variable
 
 **Preflight Handling:**
+
 ```typescript
 // middleware.ts - OPTIONS requests handled
-if (method === 'OPTIONS') {
+if (method === "OPTIONS") {
   const preflight = handlePreflight(request);
   if (preflight) return preflight;
 }
@@ -383,6 +415,7 @@ if (method === 'OPTIONS') {
 **Problem:** Inconsistent CORS origin validation across middleware.ts and API responders.
 
 **Details:**
+
 - `middleware.ts` blocked everything except `.sa` domains
 - `server/security/headers.ts` (withCORS) still allowed `.co` domains
 - Dev origins were inconsistently applied
@@ -391,29 +424,33 @@ if (method === 'OPTIONS') {
 **Solution:** Created unified CORS allowlist helper used by all components.
 
 **New Implementation:**
+
 ```typescript
 // lib/security/cors-allowlist.ts - NEW UNIFIED HELPER
 const STATIC_ALLOWED_ORIGINS = [
-  'https://fixzit.sa',
-  'https://www.fixzit.sa',
-  'https://app.fixzit.sa',
-  'https://dashboard.fixzit.sa',
-  'https://staging.fixzit.sa',
+  "https://fixzit.sa",
+  "https://www.fixzit.sa",
+  "https://app.fixzit.sa",
+  "https://dashboard.fixzit.sa",
+  "https://staging.fixzit.sa",
 ];
 
-const DEV_ALLOWED_ORIGINS = ['http://localhost:3000', 'http://localhost:3001'];
+const DEV_ALLOWED_ORIGINS = ["http://localhost:3000", "http://localhost:3001"];
 
 export function isOriginAllowed(origin: string | null): boolean {
   if (!origin) return true;
   const allowedOrigins = getAllowedOriginsSet();
   if (allowedOrigins.has(origin)) return true;
   // Dev origins ONLY in non-production
-  return process.env.NODE_ENV !== 'production' && 
-         DEV_ALLOWED_ORIGINS.includes(origin);
+  return (
+    process.env.NODE_ENV !== "production" &&
+    DEV_ALLOWED_ORIGINS.includes(origin)
+  );
 }
 ```
 
 **Updated Files:**
+
 1. ✅ `lib/security/cors-allowlist.ts` - NEW: Single source of truth
 2. ✅ `middleware.ts` - Now imports and uses `isOriginAllowed()`
 3. ✅ `server/security/headers.ts` - Now imports and uses `resolveAllowedOrigin()`
@@ -429,6 +466,7 @@ export function isOriginAllowed(origin: string | null): boolean {
 **Solution:** Added explicit production guard requiring `mongodb+srv://` URIs (Atlas protocol).
 
 **Enhanced Implementation:**
+
 ```typescript
 // lib/mongo.ts - ENHANCED PRODUCTION VALIDATION
 function resolveMongoUri(): string {
@@ -438,20 +476,26 @@ function resolveMongoUri(): string {
 
   // ONLY allow localhost fallback in development
   if (!isProd) {
-    logger.warn('[Mongo] MONGODB_URI not set, using localhost fallback (development only)');
-    return 'mongodb://127.0.0.1:27017';
+    logger.warn(
+      "[Mongo] MONGODB_URI not set, using localhost fallback (development only)",
+    );
+    return "mongodb://127.0.0.1:27017";
   }
 
   // FAIL FAST in production
-  throw new Error('FATAL: MONGODB_URI is required in production environment.');
+  throw new Error("FATAL: MONGODB_URI is required in production environment.");
 }
 
 function assertNotLocalhostInProd(uri: string): void {
   if (!isProd) return;
-  const localPatterns = ['mongodb://localhost', 'mongodb://127.0.0.1', 'mongodb://0.0.0.0'];
-  if (localPatterns.some(pattern => uri.startsWith(pattern))) {
+  const localPatterns = [
+    "mongodb://localhost",
+    "mongodb://127.0.0.1",
+    "mongodb://0.0.0.0",
+  ];
+  if (localPatterns.some((pattern) => uri.startsWith(pattern))) {
     throw new Error(
-      'FATAL: Local MongoDB URIs are not allowed in production. Point MONGODB_URI to your managed cluster.'
+      "FATAL: Local MongoDB URIs are not allowed in production. Point MONGODB_URI to your managed cluster.",
     );
   }
 }
@@ -459,10 +503,10 @@ function assertNotLocalhostInProd(uri: string): void {
 // NEW: Enforce Atlas protocol in production
 function enforceAtlasInProduction(uri: string): void {
   if (!isProd) return;
-  if (!uri.startsWith('mongodb+srv://')) {
+  if (!uri.startsWith("mongodb+srv://")) {
     throw new Error(
-      'FATAL: Production requires MongoDB Atlas (mongodb+srv:// protocol). ' +
-      'Local or self-hosted MongoDB is not allowed in production.'
+      "FATAL: Production requires MongoDB Atlas (mongodb+srv:// protocol). " +
+        "Local or self-hosted MongoDB is not allowed in production.",
     );
   }
 }
@@ -471,10 +515,11 @@ function enforceAtlasInProduction(uri: string): void {
 const connectionUri = resolveMongoUri();
 validateMongoUri(connectionUri);
 assertNotLocalhostInProd(connectionUri);
-enforceAtlasInProduction(connectionUri);  // NEW!
+enforceAtlasInProduction(connectionUri); // NEW!
 ```
 
 **Validation Rules (Enhanced):**
+
 1. ✅ `MONGODB_URI` MUST be set in production (no fallback)
 2. ✅ URI MUST start with `mongodb://` or `mongodb+srv://`
 3. ✅ Local URIs (`localhost`, `127.0.0.1`) blocked in production
@@ -488,6 +533,7 @@ enforceAtlasInProduction(connectionUri);  // NEW!
 ## 📈 Security Posture Improvements
 
 ### Before
+
 - 🔴 **Critical:** 4 hardcoded secret vulnerabilities
 - 🔴 **Critical:** Hardcoded Docker secrets (4 services)
 - 🔴 **Critical:** Missing rate limiting on OTP verify endpoint
@@ -495,6 +541,7 @@ enforceAtlasInProduction(connectionUri);  // NEW!
 - 🟡 **High:** MongoDB accepts non-Atlas URIs in production
 
 ### After
+
 - ✅ **Production code secured** (12 files use `requireEnv()` or fail-fast validation)
 - ✅ **Docker secrets required** (compose files fail fast if missing)
 - ✅ **100% rate limiting** on sensitive endpoints (5 routes: OTP send/verify, claims, evidence, response)
@@ -502,15 +549,18 @@ enforceAtlasInProduction(connectionUri);  // NEW!
 - ✅ **Atlas-only MongoDB** (production enforces `mongodb+srv://` protocol)
 
 **Caveats:**
+
 - ⚠️ Dev/setup scripts still use direct `process.env` access (not production-critical)
 - ⚠️ Rate limiting and CORS changes not yet covered by automated tests
 - ⚠️ Manual verification recommended before production deployment
 
 ### Security Score
+
 - **Before:** 45/100 (Fail) - Based on: 4 critical vulnerabilities identified
 - **After:** 95/100 (Excellent) - Based on: All critical issues fixed + comprehensive test suite
 
 **Score Breakdown:**
+
 - Production dependencies: 100/100 (0 vulnerabilities)
 - Development dependencies: 95/100 (1 high in markdownlint-cli, dev-only)
 - Security implementation: 95/100 (all fixes verified)
@@ -518,11 +568,13 @@ enforceAtlasInProduction(connectionUri);  // NEW!
 - Monitoring: 95/100 (infrastructure configured, integration pending)
 
 **NPM Audit Results:** ✅ 1 HIGH in dev dependency (markdownlint-cli > glob@11.0.3)
+
 - Impact: Minimal (dev-only, CLI command injection)
 - Fix: `pnpm update markdownlint-cli@latest`
 - Status: Non-blocking for production
 
 **Automated Security Scans:**
+
 ```bash
 pnpm audit                                      # ✅ COMPLETE - See qa/security/NPM_AUDIT_REPORT.md
 ./scripts/security/run-all-security-tests.sh   # ✅ READY - Comprehensive test suite
@@ -535,6 +587,7 @@ pnpm dlx snyk test                             # ⏳ OPTIONAL - Requires Snyk ac
 ## 🧪 Testing & Verification
 
 ### 1. Environment Variable Tests
+
 ```bash
 # Test JWT_SECRET requirement
 NODE_ENV=production node -e "require('./lib/env.js').requireEnv('JWT_SECRET')"
@@ -546,6 +599,7 @@ NODE_ENV=test pnpm test lib/env
 ```
 
 ### 2. Rate Limiting Tests
+
 ```bash
 # Test OTP rate limit (manual verification)
 for i in {1..15}; do
@@ -560,6 +614,7 @@ done
 **Status:** Rate limiting code is in place but not yet validated by automated tests.
 
 ### 3. CORS Tests
+
 ```bash
 # Test blocked origin (manual verification)
 curl -X POST http://localhost:3000/api/souq/claims \
@@ -577,6 +632,7 @@ curl -X POST http://localhost:3000/api/souq/claims \
 **Status:** CORS whitelist is in middleware.ts but not yet validated by automated tests.
 
 ### 4. MongoDB Production Checks
+
 ```bash
 # Test localhost rejection in production
 NODE_ENV=production MONGODB_URI=mongodb://localhost:27017/test node -e "require('./lib/mongo')"
@@ -594,7 +650,7 @@ NODE_ENV=production MONGODB_URI=mongodb://localhost:27017/test node -e "require(
 ### Rate Limiting Tests (15 minutes)
 
 - [ ] **Test 1: OTP Send** - Verify 10 req/min limit, requests 11+ return 429
-- [ ] **Test 2: OTP Verify** - Verify 10 req/min limit, rate limit before validation  
+- [ ] **Test 2: OTP Verify** - Verify 10 req/min limit, rate limit before validation
 - [ ] **Test 3: Claims API** - Verify 10 req/min limit with auth token
 
 ### CORS Policy Tests (10 minutes)
@@ -628,7 +684,7 @@ Passing: ____ / 14
 Pass Rate: _____%
 
 Security Score Calculation:
-Final = (Dependencies 100 × 0.2) + (Implementation 87.5 × 0.3) + 
+Final = (Dependencies 100 × 0.2) + (Implementation 87.5 × 0.3) +
         (Manual ____% × 0.3) + (Automated 60 × 0.2)
       = ____ / 100
 
@@ -636,10 +692,11 @@ Production Ready: ≥ 90/100 (12+ tests passing)
 ```
 
 **Sign-Off:**
-- Completed By: ________________
-- Date: ________________  
+
+- Completed By: **\*\***\_\_\_\_**\*\***
+- Date: **\*\***\_\_\_\_**\*\***
 - Approved for Production: [ ] YES / [ ] NO
-- Issues/Blockers: ________________
+- Issues/Blockers: **\*\***\_\_\_\_**\*\***
 
 ---
 
@@ -648,6 +705,7 @@ Production Ready: ≥ 90/100 (12+ tests passing)
 ### Required Environment Variables
 
 **Production (Minimum):**
+
 ```bash
 # Authentication
 JWT_SECRET=<generate-with-openssl-rand-hex-32>
@@ -669,6 +727,7 @@ CORS_ORIGINS=https://fixzit.sa,https://app.fixzit.sa
 ```
 
 **Development (Minimum):**
+
 ```bash
 # Authentication
 JWT_SECRET=dev-jwt-secret-minimum-32-characters-long
@@ -682,6 +741,7 @@ MONGODB_URI=mongodb://localhost:27017/fixzit
 ```
 
 **Test Environment:**
+
 ```bash
 # .env.test - NO SECRETS NEEDED (fallbacks provided)
 NODE_ENV=test
@@ -689,6 +749,7 @@ MONGODB_URI=mongodb://localhost:27017/fixzit_test
 ```
 
 ### Secret Generation Commands
+
 ```bash
 # Generate strong JWT_SECRET (recommended)
 openssl rand -hex 32
@@ -707,6 +768,7 @@ echo -n "your-secret-here" | wc -c
 Before deploying to production:
 
 ### Pre-Deployment
+
 - [x] ✅ All hardcoded secrets removed
 - [x] ✅ Rate limiting configured
 - [x] ✅ CORS whitelist updated
@@ -714,13 +776,16 @@ Before deploying to production:
 - [x] ✅ Environment variables documented
 
 ### Deployment Steps
+
 1. ✅ Set production environment variables in secret manager
+
    ```bash
    # Verify all secrets are set
    grep -o "requireEnv('[^']*')" lib/**/*.{ts,js} | cut -d"'" -f2 | sort -u
    ```
 
 2. ✅ Run security audit
+
    ```bash
    pnpm audit
    pnpm lint
@@ -728,6 +793,7 @@ Before deploying to production:
    ```
 
 3. ✅ Test rate limiting in staging
+
    ```bash
    # Verify rate limits work
    for i in {1..15}; do curl -X POST https://staging.fixzit.sa/api/auth/otp/send; done
@@ -740,6 +806,7 @@ Before deploying to production:
    ```
 
 ### Post-Deployment
+
 - [ ] Monitor rate limit metrics (check for 429 responses)
 - [ ] Monitor CORS rejections (check for 403 responses)
 - [ ] Monitor MongoDB connection health
@@ -750,11 +817,13 @@ Before deploying to production:
 ## 📊 Files Changed Summary
 
 ### New Files (3)
+
 1. ✅ `lib/env.ts` - TypeScript environment helper
 2. ✅ `lib/env.js` - JavaScript environment helper (for scripts)
 3. ✅ `lib/middleware/rate-limit.ts` - Shared rate limiting middleware
 
 ### Modified Files (15)
+
 1. ✅ `app/api/auth/otp/send/route.ts` - Added rate limiting
 2. ✅ `app/api/souq/claims/route.ts` - Added rate limiting
 3. ✅ `app/api/souq/claims/[id]/evidence/route.ts` - Added rate limiting
@@ -776,6 +845,7 @@ Before deploying to production:
 ## 🎯 Results
 
 ### Security Vulnerabilities Addressed
+
 - ✅ **6 production files secured** → Use `requireEnv()` with fail-fast validation (3 runtime + 3 test/dev)
 - ⚠️ **1 file uses getEnv** → `lib/mongo.ts` has dev fallback but production validation
 - ✅ **2 Docker Compose files hardened** → All secrets now required (fail-fast)
@@ -784,6 +854,7 @@ Before deploying to production:
 - ✅ **MongoDB Atlas-only enforced** → `lib/mongo.ts` rejects localhost in production
 
 ### Implementation Status
+
 - ✅ **Code changes:** All committed and verified
 - ✅ **Docker secrets:** Fail-fast validation added
 - ✅ **CORS unification:** Middleware + API responders use shared helper
@@ -792,21 +863,25 @@ Before deploying to production:
 - ⚠️ **CI/CD:** Not yet integrated into pipeline
 
 ### Code Quality Improvements
+
 - ✅ **TypeScript errors:** 0 (unchanged)
 - ✅ **ESLint warnings:** 0 (unchanged)
 - ⚠️ **Security audit:** Manual code review only (no automated scanner output)
 - ✅ **Test coverage:** 78% (maintained, but no security-specific tests)
 
 ### Security Assessment (Manual)
+
 **Estimated Score:** ~85-90/100 (manual assessment, not verified by automated tools)
 
 **Reasoning:**
+
 - ✅ **Strong:** Docker secrets fail-fast, JWT secret in production code
 - ✅ **Good:** Rate limiting implemented, MongoDB production validation
 - ⚠️ **Medium:** CORS permissive in dev, no automated security tests
 - ⚠️ **Needs work:** No monitoring/alerting, manual testing not yet done
 
 **Recommended Tools for Verification:**
+
 ```bash
 # Run security audits
 pnpm audit --production          # Check npm dependencies
@@ -819,6 +894,7 @@ pnpm test                         # Run existing test suite
 ```
 
 ### Production Readiness
+
 - ✅ **Authentication:** Secure (3 runtime files use `requireEnv()`)
 - ⚠️ **API Protection:** Rate limiting code in place, but NOT manually tested
 - ⚠️ **CORS:** Whitelist configured, but dev mode permissive + merges untrusted env vars
@@ -834,6 +910,7 @@ pnpm test                         # Run existing test suite
 ## 📚 Additional Documentation
 
 ### Security Best Practices
+
 1. **Never commit `.env.local`** - Use secret managers (AWS Secrets Manager, Vercel Env Vars)
 2. **Rotate secrets regularly** - JWT_SECRET should change quarterly
 3. **Monitor rate limits** - Set up alerts for 429 responses
@@ -841,6 +918,7 @@ pnpm test                         # Run existing test suite
 5. **Use strong secrets** - Minimum 32 characters from `openssl rand`
 
 ### Related Documentation
+
 - `NOTIFICATION_SMOKE_TEST_SETUP.md` - Notification credentials setup
 - `PENDING_TASKS_NOV_11-17_UPDATED.md` - Overall project status
 - `.env.local` - Environment variable template
@@ -850,9 +928,10 @@ pnpm test                         # Run existing test suite
 ## ⚠️ Sign-Off
 
 **Security Fixes Completed:** November 17, 2025  
-**Status:** 🟡 **READY FOR STAGING VALIDATION** (Code changes complete, testing pending)  
+**Status:** 🟡 **READY FOR STAGING VALIDATION** (Code changes complete, testing pending)
 
 **What's Actually Done:**
+
 - ✅ Code changes committed and verified in files
 - ✅ Docker secrets require environment variables (fail-fast)
 - ✅ Rate limiting implemented in 5 routes (code verified)
@@ -860,6 +939,7 @@ pnpm test                         # Run existing test suite
 - ✅ MongoDB production validation enabled
 
 **What's DONE (Production Ready):**
+
 - ✅ Manual security testing scripts created and ready to run
 - ✅ Automated security scan completed (pnpm audit - 1 dev-only vulnerability)
 - ✅ Monitoring infrastructure configured (event tracking + alerting hooks)
@@ -867,6 +947,7 @@ pnpm test                         # Run existing test suite
 - ✅ Security documentation complete with integration guides
 
 **What's PENDING (Non-Blocking):**
+
 - ⏳ Run manual security tests in staging environment
 - ⏳ Integrate monitoring hooks into production middleware
 - ⏳ Set up security dashboard with provided queries
@@ -875,6 +956,7 @@ pnpm test                         # Run existing test suite
 - ⏳ Complete notification credentials setup (for RTL QA)
 
 **Next Steps (Prioritized):**
+
 1. ✅ **Run Security Tests:** Execute test suite in staging
    ```bash
    ./scripts/security/run-all-security-tests.sh https://staging.fixzit.sa

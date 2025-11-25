@@ -1,4 +1,5 @@
 # Security Audit Results
+
 **Date:** November 18, 2025  
 **Audit Type:** NPM Dependencies  
 **Tool:** pnpm audit
@@ -11,12 +12,12 @@ NPM audit completed with **1 HIGH severity** vulnerability found in development 
 
 ### Vulnerability Summary
 
-| Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 1 |
-| Moderate | 0 |
-| Low | 0 |
+| Severity  | Count |
+| --------- | ----- |
+| Critical  | 0     |
+| High      | 1     |
+| Moderate  | 0     |
+| Low       | 0     |
 | **Total** | **1** |
 
 ---
@@ -37,7 +38,8 @@ Command injection vulnerability in glob CLI when using `-c/--cmd` flag with `she
 **CVSS Score:** HIGH  
 **Advisory:** https://github.com/advisories/GHSA-5j98-mcp5-4vw2
 
-**Impact Assessment:**  
+**Impact Assessment:**
+
 - **Production Risk:** ✅ **LOW** - This is a **development dependency** (markdownlint-cli)
 - **Attack Vector:** Local - requires CLI access
 - **Exploitability:** Requires attacker to control glob patterns passed to CLI
@@ -47,20 +49,26 @@ Command injection vulnerability in glob CLI when using `-c/--cmd` flag with `she
 
 **Option 1: Update Dependency (Recommended)**
 \`\`\`bash
+
 # Update glob to patched version
+
 pnpm update glob@latest
 
 # Or update markdownlint-cli to latest (which should pull fixed glob)
+
 pnpm update markdownlint-cli@latest
 \`\`\`
 
 **Option 2: Remove Development Dependency**
 \`\`\`bash
+
 # If markdown linting is not critical, remove the dependency
+
 pnpm remove -D markdownlint-cli
 \`\`\`
 
 **Option 3: Accept Risk**
+
 - Risk is minimal since this is dev-only
 - Does not affect production runtime
 - Can be fixed in next maintenance cycle
@@ -82,6 +90,7 @@ All production runtime dependencies are secure with no known vulnerabilities.
 ### Dependency Security Score: 98/100
 
 **Breakdown:**
+
 - Production dependencies: 100/100 (0 vulnerabilities)
 - Development dependencies: 95/100 (1 high, non-critical)
 - Overall: 98/100
@@ -92,9 +101,9 @@ All production runtime dependencies are secure with no known vulnerabilities.
 
 ## Historical Tracking
 
-| Date | Critical | High | Moderate | Low | Total |
-|------|----------|------|----------|-----|-------|
-| 2025-11-18 | 0 | 1 | 0 | 0 | 1 |
+| Date       | Critical | High | Moderate | Low | Total |
+| ---------- | -------- | ---- | -------- | --- | ----- |
+| 2025-11-18 | 0        | 1    | 0        | 0   | 1     |
 
 ---
 
@@ -116,13 +125,9 @@ name: Security Audit
 on: [push, pull_request]
 
 jobs:
-  audit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level=high
+audit:
+runs-on: ubuntu-latest
+steps: - uses: actions/checkout@v3 - uses: pnpm/action-setup@v2 - run: pnpm install --frozen-lockfile - run: pnpm audit --audit-level=high
 \`\`\`
 
 ---

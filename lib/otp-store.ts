@@ -1,6 +1,6 @@
 /**
  * Shared OTP store for SMS verification
- * 
+ *
  * In production, replace this with Redis or database storage
  * for distributed systems and persistence.
  */
@@ -38,29 +38,32 @@ export const MAX_SENDS_PER_WINDOW = 5;
 export const OTP_SESSION_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
 
 // Cleanup expired OTPs periodically (every 10 minutes)
-if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
-    const now = Date.now();
-    
-    // Clean up expired OTPs
-    for (const [identifier, data] of otpStore.entries()) {
-      if (now > data.expiresAt) {
-        otpStore.delete(identifier);
-      }
-    }
-    
-    // Clean up expired rate limits
-    for (const [identifier, data] of rateLimitStore.entries()) {
-      if (now > data.resetAt) {
-        rateLimitStore.delete(identifier);
-      }
-    }
+if (typeof setInterval !== "undefined") {
+  setInterval(
+    () => {
+      const now = Date.now();
 
-    // Clean up expired OTP login sessions
-    for (const [token, session] of otpSessionStore.entries()) {
-      if (now > session.expiresAt) {
-        otpSessionStore.delete(token);
+      // Clean up expired OTPs
+      for (const [identifier, data] of otpStore.entries()) {
+        if (now > data.expiresAt) {
+          otpStore.delete(identifier);
+        }
       }
-    }
-  }, 10 * 60 * 1000); // 10 minutes
+
+      // Clean up expired rate limits
+      for (const [identifier, data] of rateLimitStore.entries()) {
+        if (now > data.resetAt) {
+          rateLimitStore.delete(identifier);
+        }
+      }
+
+      // Clean up expired OTP login sessions
+      for (const [token, session] of otpSessionStore.entries()) {
+        if (now > session.expiresAt) {
+          otpSessionStore.delete(token);
+        }
+      }
+    },
+    10 * 60 * 1000,
+  ); // 10 minutes
 }

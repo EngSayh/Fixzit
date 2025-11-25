@@ -10,17 +10,20 @@
 ## Executive Summary
 
 ✅ **Critical Infrastructure Issues Resolved**:
+
 1. **Memory Crisis Fixed**: Killed duplicate dev servers (2→1), extension hosts (2→2), TypeScript servers (4→2)
 2. **Git Push Blocker Resolved**: Removed 342MB tmp/ files from history (3,348 commits rewritten)
 3. **PR #273 Comments**: Addressed 7/7 review comments (duplicate rate limiting, Redis reconnection, PII redaction)
 4. **PR #272 Decimal.js**: Fixed floating-point precision bugs in budget and payment calculations
 
 ✅ **All Local Checks Pass**:
+
 - TypeScript: 0 errors
 - ESLint: 0 errors (within 50 warning limit)
 - Translation Audit: 100% EN-AR parity (1988 keys)
 
 🔄 **In Progress**:
+
 - CI build failures (E2E tests need Playwright browsers, secret scanning false positives)
 - System-wide pattern search (directional Tailwind, inline type assertions, truthy checks)
 - E2E seed script (8 users for testing)
@@ -32,6 +35,7 @@
 ### 1. Memory Optimization & VS Code Crash Prevention
 
 **Problem**: VS Code crashed with error code 5 (out of memory) due to:
+
 - 2 dev servers consuming 1.5GB + 553MB
 - 2 extension hosts consuming 3GB + 1.9GB
 - 4 TypeScript servers consuming 759MB + 1.5GB + 323MB + 1.4GB
@@ -46,6 +50,7 @@ kill 51968 51969 # Duplicate TypeScript servers
 ```
 
 **Result**:
+
 - ✅ Only 1 dev server on port 3000 (PID 1148)
 - ✅ 2 TypeScript servers remaining (primary instances)
 - ✅ Memory reduced from ~10GB to ~2-3GB
@@ -83,6 +88,7 @@ git push origin main --force
 ```
 
 **Result**:
+
 - ✅ 57 large files removed from Git history
 - ✅ Repository size reduced by ~342MB
 - ✅ Git push successful
@@ -90,9 +96,10 @@ git push origin main --force
 
 **Files Changed**: `.gitignore`
 **Commits**:
-- ⏳ **PENDING**: fix: Remove tmp/ from Git tracking (blocked push with 342MB file) *(commit SHA to be added)*
-- ⏳ **PENDING**: chore: Update translation audit artifacts *(commit SHA to be added)*
-- `f51bcd5e4`: Force push (history rewrite) *(verified)*
+
+- ⏳ **PENDING**: fix: Remove tmp/ from Git tracking (blocked push with 342MB file) _(commit SHA to be added)_
+- ⏳ **PENDING**: chore: Update translation audit artifacts _(commit SHA to be added)_
+- `f51bcd5e4`: Force push (history rewrite) _(verified)_
 
 ---
 
@@ -101,6 +108,7 @@ git push origin main --force
 #### 3.1. Duplicate Rate Limiting Logic ✅
 
 **Problem**: `app/api/help/ask/route.ts` had TWO rate limiting mechanisms:
+
 - Line 144: `rateLimit()` from `@/server/security/rateLimit`
 - Line 152: `rateLimitAssert()` (Redis/in-memory distributed rate limiter)
 
@@ -114,7 +122,7 @@ export async function POST(req: NextRequest) {
   if (!rl.allowed) {
     return rateLimitError();
   }
-  
+
   try {
     await rateLimitAssert(req); // ← Duplicate!
 
@@ -144,24 +152,26 @@ if (process.env.REDIS_URL) {
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => Math.min(times * 50, 2000),
       connectTimeout: 5000,
-      commandTimeout: 5000
+      commandTimeout: 5000,
     });
-    
+
     // NEW: Handle connection events for monitoring
-    redis.on('error', (err) => {
-      logger.error('Redis connection error:', { err });
+    redis.on("error", (err) => {
+      logger.error("Redis connection error:", { err });
     });
-    
-    redis.on('close', () => {
-      logger.warn('Redis connection closed, falling back to in-memory rate limiting');
+
+    redis.on("close", () => {
+      logger.warn(
+        "Redis connection closed, falling back to in-memory rate limiting",
+      );
       redis = null; // Reset to trigger in-memory fallback
     });
-    
-    redis.on('reconnecting', () => {
-      logger.info('Redis reconnecting...');
+
+    redis.on("reconnecting", () => {
+      logger.info("Redis reconnecting...");
     });
   } catch (err) {
-    logger.error('Failed to initialize Redis client:', { err });
+    logger.error("Failed to initialize Redis client:", { err });
   }
 }
 ```
@@ -179,19 +189,27 @@ if (process.env.REDIS_URL) {
 
 ```typescript
 function redactPII(s: string) {
-  return s
-    // Email addresses
-    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[redacted email]')
-    // Phone patterns
-    .replace(/\b(?:\+?(\d{1,3})?[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b/g, '[redacted phone]')
-    // NEW: Credit card patterns (13-19 digits with optional spaces/dashes)
-    .replace(/\b(?:\d{4}[-\s]?){3}\d{1,7}\b/g, '[redacted card]')
-    // NEW: SSN patterns (XXX-XX-XXXX)
-    .replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[redacted SSN]')
-    // NEW: IP addresses (IPv4)
-    .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[redacted IP]')
-    // NEW: Omani Civil IDs (8 digits)
-    .replace(/\b\d{8}\b/g, '[redacted ID]');
+  return (
+    s
+      // Email addresses
+      .replace(
+        /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+        "[redacted email]",
+      )
+      // Phone patterns
+      .replace(
+        /\b(?:\+?(\d{1,3})?[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b/g,
+        "[redacted phone]",
+      )
+      // NEW: Credit card patterns (13-19 digits with optional spaces/dashes)
+      .replace(/\b(?:\d{4}[-\s]?){3}\d{1,7}\b/g, "[redacted card]")
+      // NEW: SSN patterns (XXX-XX-XXXX)
+      .replace(/\b\d{3}-\d{2}-\d{4}\b/g, "[redacted SSN]")
+      // NEW: IP addresses (IPv4)
+      .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, "[redacted IP]")
+      // NEW: Omani Civil IDs (8 digits)
+      .replace(/\b\d{8}\b/g, "[redacted ID]")
+  );
 }
 ```
 
@@ -218,7 +236,7 @@ function redactPII(s: string) {
 
 ---
 
-#### 3.7. Dead Code (_hasPermission) ✅
+#### 3.7. Dead Code (\_hasPermission) ✅
 
 **Status**: Search for `_hasPermission` in `middleware.ts` found 0 matches - already removed.
 
@@ -234,6 +252,7 @@ function redactPII(s: string) {
 #### 4.1. Budget Page: Floating-Point Drift
 
 **Problem**: Budget category percentages drifted due to:
+
 1. Stale `totalBudget` from previous render (closed over in memo)
 2. `Math.round()` dropping cents
 3. Native JS arithmetic (0.1 + 0.2 ≠ 0.3)
@@ -243,16 +262,18 @@ function redactPII(s: string) {
 ```typescript
 // BEFORE
 const handleCategoryChange = (id, field, value) => {
-  setCategories(categories.map(cat => {
-    if (cat.id === id) {
-      const updated = { ...cat, [field]: value };
-      if (field === 'amount' && !totalBudget.isZero()) {
-        updated.percentage = Math.round((amount / totalBudget) * 100);
+  setCategories(
+    categories.map((cat) => {
+      if (cat.id === id) {
+        const updated = { ...cat, [field]: value };
+        if (field === "amount" && !totalBudget.isZero()) {
+          updated.percentage = Math.round((amount / totalBudget) * 100);
+        }
+        return updated;
       }
-      return updated;
-    }
-    return cat;
-  }));
+      return cat;
+    }),
+  );
 };
 
 // AFTER (using Decimal.js)
@@ -260,17 +281,17 @@ const handleCategoryChange = (id, field, value) => {
   setCategories((prevCategories) => {
     // Step 1: Update the changed field
     const nextCategories = prevCategories.map((cat) =>
-      cat.id === id ? { ...cat, [field]: value } : cat
+      cat.id === id ? { ...cat, [field]: value } : cat,
     );
 
-    if (field !== 'amount' && field !== 'percentage') {
+    if (field !== "amount" && field !== "percentage") {
       return nextCategories;
     }
 
     // Step 2: Recompute total from fresh categories
     const nextTotal = nextCategories.reduce(
       (sum, cat) => sum.plus(cat.amount || 0),
-      new Decimal(0)
+      new Decimal(0),
     );
 
     if (nextTotal.isZero()) {
@@ -283,13 +304,13 @@ const handleCategoryChange = (id, field, value) => {
 
       const updated = { ...cat };
 
-      if (field === 'amount') {
+      if (field === "amount") {
         const amt = new Decimal(updated.amount);
         const percentageDec = amt.dividedBy(nextTotal).times(100);
         updated.percentage = parseFloat(percentageDec.toFixed(2));
       }
 
-      if (field === 'percentage') {
+      if (field === "percentage") {
         const pct = new Decimal(updated.percentage);
         const amountDec = nextTotal.times(pct).dividedBy(100);
         updated.amount = parseFloat(amountDec.toFixed(2)); // Preserve cents!
@@ -302,6 +323,7 @@ const handleCategoryChange = (id, field, value) => {
 ```
 
 **Key Improvements**:
+
 - ✅ Recompute `nextTotal` from `nextCategories` (not stale `totalBudget`)
 - ✅ Use `Decimal.js` for all arithmetic (no 0.1 + 0.2 bugs)
 - ✅ Preserve cents with `toFixed(2)` instead of `Math.round()`
@@ -320,7 +342,7 @@ if (totalAllocated > paymentAmountNum) { // ← Coerces Decimal to float!
 **Problem 2**: Decimal object serialized to API
 
 ```typescript
-unallocatedAmount // ← Decimal instance, not number
+unallocatedAmount; // ← Decimal instance, not number
 ```
 
 **Solution**:
@@ -352,6 +374,7 @@ const payload = {
 ```
 
 **Key Improvements**:
+
 - ✅ Use `.greaterThan()`, `.lessThan()` instead of `>`, `<`
 - ✅ Convert Decimal to number for API payload: `parseFloat(decimal.toFixed(2))`
 - ✅ Preserve cents with `toFixed(2)`
@@ -360,6 +383,7 @@ const payload = {
 ---
 
 **Files Changed**:
+
 - `app/finance/budgets/new/page.tsx`
 - `app/finance/payments/new/page.tsx`
 
@@ -372,10 +396,12 @@ const payload = {
 ### Current Status (PR #273)
 
 ✅ **Passing Locally**:
+
 - TypeScript: 0 errors
 - ESLint: 0 errors (within 50 warning limit)
 
 ❌ **Failing on GitHub**:
+
 1. **verify**: E2E tests fail (Playwright browsers not installed in CI)
 2. **Analyze Code (javascript)**: CodeQL timeout (likely safe to ignore)
 3. **check**: ESLint/TypeScript (may pass after rerun)
@@ -406,12 +432,14 @@ const payload = {
 ## Translation Audit Results
 
 ✅ **Perfect Parity**:
+
 - EN keys: 1988
 - AR keys: 1988
 - Gap: 0
 - Keys used: 1556
 
 ⚠️ **Dynamic Template Literals** (5 files):
+
 - `app/finance/expenses/new/page.tsx`
 - `app/settings/page.tsx`
 - `components/Sidebar.tsx`
@@ -446,6 +474,7 @@ const payload = {
 ### Priority 3: E2E Seed Script (Medium)
 
 Create `scripts/seed-test-users.ts` with 8 test users:
+
 - `superadmin@fixzit.test` (Super Admin)
 - `admin@fixzit.test` (Corporate Admin)
 - `owner@fixzit.test` (Property Owner)
@@ -460,6 +489,7 @@ Password: `Test@123`
 ### Priority 4: File Organization (Low)
 
 Reorganize by feature (Governance V5):
+
 - `/domain/*` → feature modules
 - `/server/*` → feature modules
 - `/lib/*` → shared utilities
@@ -470,6 +500,7 @@ Reorganize by feature (Governance V5):
 ### Priority 5: Merge & Cleanup (Final)
 
 After ALL CI green + ALL comments addressed:
+
 1. Merge PR #273
 2. Delete `fix/unhandled-promises-batch1` branch
 3. Merge PR #272 (if separate)
@@ -518,6 +549,7 @@ After ALL CI green + ALL comments addressed:
 ## Conclusion
 
 ✅ **Major Infrastructure Issues Resolved**:
+
 - Memory crisis (10GB → 3GB)
 - Git push blocker (342MB removed)
 - All PR comments addressed (14/14)

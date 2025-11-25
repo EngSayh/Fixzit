@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { getServerI18n } from '@/lib/i18n/server';
+import Link from "next/link";
+import { getServerI18n } from "@/lib/i18n/server";
 
 export default async function JobNotFound() {
   const { t } = await getServerI18n();
@@ -23,15 +23,15 @@ export default async function JobNotFound() {
           </svg>
         </div>
         <h1 className="text-3xl font-bold text-foreground mb-2">
-          {t('careers.notFound.title', 'Job Not Found')}
+          {t("careers.notFound.title", "Job Not Found")}
         </h1>
         <p className="text-muted-foreground mb-6">
           {t(
-            'careers.notFound.description',
-            'This job posting may have been closed, removed, or the link may be invalid.'
+            "careers.notFound.description",
+            "This job posting may have been closed, removed, or the link may be invalid.",
           )}
         </p>
-        
+
         <div className="space-y-3">
           <Link
             href="/careers"
@@ -39,23 +39,29 @@ export default async function JobNotFound() {
                      hover:bg-primary/90 transition-colors font-semibold
                      focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
-            {t('careers.notFound.viewAll', 'View All Open Positions')}
+            {t("careers.notFound.viewAll", "View All Open Positions")}
           </Link>
-          
+
           <Link
             href="/"
             className="inline-block w-full px-6 py-3 border border-border text-foreground 
                      rounded-2xl hover:bg-muted transition-colors font-semibold
                      focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
-            {t('careers.notFound.goHome', 'Go to Homepage')}
+            {t("careers.notFound.goHome", "Go to Homepage")}
           </Link>
         </div>
-        
+
         <p className="text-sm text-muted-foreground mt-6">
-          {t('careers.notFound.footerPrompt', 'Looking for something specific?')}{' '}
-          <Link href="/support" className="text-primary hover:text-primary underline">
-            {t('careers.notFound.contact', 'Contact our HR team')}
+          {t(
+            "careers.notFound.footerPrompt",
+            "Looking for something specific?",
+          )}{" "}
+          <Link
+            href="/support"
+            className="text-primary hover:text-primary underline"
+          >
+            {t("careers.notFound.contact", "Contact our HR team")}
           </Link>
         </p>
       </div>

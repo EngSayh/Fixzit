@@ -15,22 +15,20 @@ The `FormStateContext` provides a centralized way to track form state across the
 The provider is already set up in `providers/Providers.tsx`:
 
 ```tsx
-<FormStateProvider>
-  {/* Your app content */}
-</FormStateProvider>
+<FormStateProvider>{/* Your app content */}</FormStateProvider>
 ```
 
 ### 2. Use in Form Components
 
 ```tsx
-'use client';
+"use client";
 
-import { useFormState } from '@/contexts/FormStateContext';
-import { useEffect } from 'react';
+import { useFormState } from "@/contexts/FormStateContext";
+import { useEffect } from "react";
 
 export default function MyForm() {
   const formState = useFormState();
-  const formId = 'my-unique-form-id';
+  const formId = "my-unique-form-id";
 
   // Register form on mount
   useEffect(() => {
@@ -38,7 +36,7 @@ export default function MyForm() {
     const dispose = formState.onSaveRequest(formId, async () => {
       // Your save logic here
       await saveFormData();
-      console.log('Form saved!');
+      console.log("Form saved!");
     });
 
     // Cleanup on unmount
@@ -52,7 +50,7 @@ export default function MyForm() {
   const handleFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Update your local state
     setFieldValue(e.target.value);
-    
+
     // Mark form as dirty
     formState.markFormDirty(formId);
   };
@@ -63,7 +61,7 @@ export default function MyForm() {
       await saveFormData();
       formState.markFormClean(formId);
     } catch (error) {
-      console.error('Save failed', error);
+      console.error("Save failed", error);
     }
   };
 
@@ -93,7 +91,7 @@ Returns the FormStateContext with these methods:
 - **Example:**
 
   ```tsx
-  const dispose = formState.onSaveRequest('myForm', async () => {
+  const dispose = formState.onSaveRequest("myForm", async () => {
     await saveData();
   });
   ```
@@ -122,19 +120,23 @@ Returns the FormStateContext with these methods:
 ## Complete Example
 
 ```tsx
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useFormState } from '@/contexts/FormStateContext';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { useFormState } from "@/contexts/FormStateContext";
+import { useRouter } from "next/navigation";
 
-export default function PropertyEditForm({ propertyId }: { propertyId: string }) {
+export default function PropertyEditForm({
+  propertyId,
+}: {
+  propertyId: string;
+}) {
   const formState = useFormState();
   const router = useRouter();
   const formId = `property-form-${propertyId}`;
-  
-  const [name, setName] = useState('');
-  const [address, setAddress] = useState('');
+
+  const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Register form
@@ -143,13 +145,13 @@ export default function PropertyEditForm({ propertyId }: { propertyId: string })
       setSaving(true);
       try {
         const response = await fetch(`/api/properties/${propertyId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, address }),
         });
-        
-        if (!response.ok) throw new Error('Save failed');
-        
+
+        if (!response.ok) throw new Error("Save failed");
+
         formState.markFormClean(formId);
       } finally {
         setSaving(false);
@@ -179,14 +181,19 @@ export default function PropertyEditForm({ propertyId }: { propertyId: string })
   const handleSave = async () => {
     try {
       await formState.requestSave();
-      alert('Saved successfully!');
+      alert("Saved successfully!");
     } catch (error) {
-      alert('Save failed. Please try again.');
+      alert("Save failed. Please try again.");
     }
   };
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleSave();
+      }}
+    >
       <input
         type="text"
         value={name}
@@ -200,7 +207,7 @@ export default function PropertyEditForm({ propertyId }: { propertyId: string })
         placeholder="Address"
       />
       <button type="submit" disabled={saving}>
-        {saving ? 'Saving...' : 'Save'}
+        {saving ? "Saving..." : "Save"}
       </button>
       {formState.hasUnsavedChanges && (
         <p className="text-amber-600">You have unsaved changes</p>

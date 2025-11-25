@@ -1,23 +1,25 @@
 /**
  * MongoDB Unified Mock for Vitest
- * 
+ *
  * Centralized mock for @/lib/mongodb-unified module.
  * Provides mock implementations of MongoDB client, database, and collection methods.
  */
 
-import { vi } from 'vitest';
-import type { Db, Collection, MongoClient, Document } from 'mongodb';
+import { vi } from "vitest";
+import type { Db, Collection, MongoClient, Document } from "mongodb";
 
 // Mock MongoDB collection methods
-export const createMockCollection = <T extends Document = Document>(): Partial<Collection<T>> => ({
-  insertOne: vi.fn().mockResolvedValue({ 
+export const createMockCollection = <T extends Document = Document>(): Partial<
+  Collection<T>
+> => ({
+  insertOne: vi.fn().mockResolvedValue({
     acknowledged: true,
-    insertedId: 'mock-id-123' 
+    insertedId: "mock-id-123",
   }),
   insertMany: vi.fn().mockResolvedValue({
     acknowledged: true,
     insertedCount: 1,
-    insertedIds: { 0: 'mock-id-123' }
+    insertedIds: { 0: "mock-id-123" },
   }),
   find: vi.fn().mockReturnValue({
     sort: vi.fn().mockReturnThis(),
@@ -26,27 +28,27 @@ export const createMockCollection = <T extends Document = Document>(): Partial<C
     toArray: vi.fn().mockResolvedValue([]),
   }),
   findOne: vi.fn().mockResolvedValue(null),
-  updateOne: vi.fn().mockResolvedValue({ 
+  updateOne: vi.fn().mockResolvedValue({
     acknowledged: true,
     modifiedCount: 1,
     matchedCount: 1,
     upsertedCount: 0,
-    upsertedId: null
+    upsertedId: null,
   }),
   updateMany: vi.fn().mockResolvedValue({
     acknowledged: true,
     modifiedCount: 1,
     matchedCount: 1,
     upsertedCount: 0,
-    upsertedId: null
+    upsertedId: null,
   }),
-  deleteOne: vi.fn().mockResolvedValue({ 
+  deleteOne: vi.fn().mockResolvedValue({
     acknowledged: true,
-    deletedCount: 1 
+    deletedCount: 1,
   }),
   deleteMany: vi.fn().mockResolvedValue({
     acknowledged: true,
-    deletedCount: 1
+    deletedCount: 1,
   }),
   countDocuments: vi.fn().mockResolvedValue(0),
   aggregate: vi.fn().mockReturnValue({
@@ -60,13 +62,16 @@ export const createMockCollection = <T extends Document = Document>(): Partial<C
     deletedCount: 0,
     upsertedCount: 0,
     upsertedIds: {},
-    insertedIds: {}
+    insertedIds: {},
   }),
 });
 
 // Mock MongoDB database
 export const createMockDatabase = (): Partial<Db> => ({
-  collection: vi.fn(<T extends Document = Document>(_name: string) => createMockCollection<T>() as Collection<T>) as any,
+  collection: vi.fn(
+    <T extends Document = Document>(_name: string) =>
+      createMockCollection<T>() as Collection<T>,
+  ) as any,
   command: vi.fn().mockResolvedValue({ ok: 1 }),
   listCollections: vi.fn().mockReturnValue({
     toArray: vi.fn().mockResolvedValue([]),

@@ -60,6 +60,7 @@ The system implements **fail-fast** principles to prevent silent security vulner
 ### Step 2: Configure Database Access
 
 1. **Create Database User**:
+
    ```
    Username: fixzit_app
    Password: [Generate strong password]
@@ -197,6 +198,7 @@ Core indexes are created automatically. See `lib/db/index.ts`:
 ```
 
 **Create indexes during deployment**:
+
 ```bash
 pnpm tsx scripts/ensure-indexes.ts
 ```
@@ -228,7 +230,7 @@ pnpm tsx scripts/ensure-indexes.ts
 The application includes built-in health checks:
 
 ```typescript
-import { checkDatabaseHealth } from '@/lib/mongodb-unified';
+import { checkDatabaseHealth } from "@/lib/mongodb-unified";
 
 // Returns true if MongoDB is accessible
 const isHealthy = await checkDatabaseHealth();
@@ -311,6 +313,7 @@ mongorestore --uri="mongodb+srv://..." --dir=./backup
 **Cause**: `NEXTAUTH_SECRET` mismatch between environments
 
 **Solution**:
+
 ```bash
 # Ensure identical secret across all environments
 NEXTAUTH_SECRET=same-secret-everywhere-32-chars-minimum
@@ -322,11 +325,13 @@ AUTH_SECRET=same-secret-everywhere-32-chars-minimum
 **Symptom**: Application fails to start, timeout errors
 
 **Causes**:
+
 - IP not allowlisted in Atlas
 - Network connectivity issues
 - Incorrect connection string
 
 **Solution**:
+
 ```bash
 # Verify connection string
 mongosh "mongodb+srv://username:password@cluster.mongodb.net/fixzit"
@@ -340,11 +345,13 @@ mongosh "mongodb+srv://username:password@cluster.mongodb.net/fixzit"
 **Symptom**: "Authentication failed" error
 
 **Causes**:
+
 - Wrong username/password
 - User doesn't have permissions
 - Special characters not URL-encoded
 
 **Solution**:
+
 ```bash
 # URL-encode special characters in password
 # @ becomes %40, : becomes %3A, etc.
@@ -360,6 +367,7 @@ mongodb+srv://user:p%40ssw%3Ard@cluster.mongodb.net/fixzit
 **Cause**: Using `mongodb://localhost` in production
 
 **Solution**:
+
 ```bash
 # Use Atlas connection string
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/fixzit
@@ -373,11 +381,13 @@ ALLOW_LOCAL_MONGODB=true
 **Symptom**: Requests taking >1 second
 
 **Causes**:
+
 - Missing indexes
 - Large result sets without pagination
 - Unoptimized queries
 
 **Solution**:
+
 ```bash
 # Run Performance Advisor in Atlas
 # Create recommended indexes

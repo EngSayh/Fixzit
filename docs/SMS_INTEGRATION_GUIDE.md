@@ -22,24 +22,25 @@ TWILIO_PHONE_NUMBER=+966XXXXXXXXX  # Your Twilio Saudi number
 ### 1. Core SMS Service (`lib/sms.ts`)
 
 ```typescript
-import { sendSMS, sendOTP, formatSaudiPhoneNumber } from '@/lib/sms';
+import { sendSMS, sendOTP, formatSaudiPhoneNumber } from "@/lib/sms";
 
 // Send SMS
-const result = await sendSMS('+966501234567', 'Your message here');
+const result = await sendSMS("+966501234567", "Your message here");
 // Returns: { success: true, messageSid: 'SM...' }
 
 // Send OTP
-await sendOTP('+966501234567', '123456');
+await sendOTP("+966501234567", "123456");
 
 // Format phone numbers
-formatSaudiPhoneNumber('0501234567') // '+966501234567'
-formatSaudiPhoneNumber('966501234567') // '+966501234567'
-formatSaudiPhoneNumber('501234567') // '+966501234567'
+formatSaudiPhoneNumber("0501234567"); // '+966501234567'
+formatSaudiPhoneNumber("966501234567"); // '+966501234567'
+formatSaudiPhoneNumber("501234567"); // '+966501234567'
 ```
 
 ### 2. Seller Notifications (`services/notifications/seller-notification-service.ts`)
 
 Automatically sends SMS for:
+
 - ✅ **Budget Low**: When ad budget < threshold
 - ✅ **Budget Depleted**: When ad budget runs out
 - ✅ **Refund Processed**: When refund is completed
@@ -52,6 +53,7 @@ All messages are bilingual (Arabic/English) based on seller's preferred locale.
 **Endpoint**: `POST /api/sms/test`
 
 #### Test Configuration
+
 ```bash
 curl -X POST http://localhost:3000/api/sms/test \
   -H "Content-Type: application/json" \
@@ -59,6 +61,7 @@ curl -X POST http://localhost:3000/api/sms/test \
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -67,6 +70,7 @@ curl -X POST http://localhost:3000/api/sms/test \
 ```
 
 #### Send Test SMS
+
 ```bash
 curl -X POST http://localhost:3000/api/sms/test \
   -H "Content-Type: application/json" \
@@ -77,6 +81,7 @@ curl -X POST http://localhost:3000/api/sms/test \
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -89,23 +94,25 @@ curl -X POST http://localhost:3000/api/sms/test \
 
 The system automatically handles these Saudi phone formats:
 
-| Input Format | Output (E.164) |
-|--------------|----------------|
-| `0501234567` | `+966501234567` |
-| `966501234567` | `+966501234567` |
-| `501234567` | `+966501234567` |
-| `+966501234567` | `+966501234567` |
-| `050 123 4567` | `+966501234567` |
+| Input Format       | Output (E.164)  |
+| ------------------ | --------------- |
+| `0501234567`       | `+966501234567` |
+| `966501234567`     | `+966501234567` |
+| `501234567`        | `+966501234567` |
+| `+966501234567`    | `+966501234567` |
+| `050 123 4567`     | `+966501234567` |
 | `+966 50 123 4567` | `+966501234567` |
 
 ## Testing Seller Notifications
 
 ### 1. Start Development Server
+
 ```bash
 pnpm dev
 ```
 
 ### 2. Test Configuration
+
 ```bash
 # Test if Twilio credentials are valid
 curl -X POST http://localhost:3000/api/sms/test \
@@ -114,6 +121,7 @@ curl -X POST http://localhost:3000/api/sms/test \
 ```
 
 ### 3. Send Test Message to Your Phone
+
 ```bash
 # Replace with your Saudi mobile number
 curl -X POST http://localhost:3000/api/sms/test \
@@ -129,25 +137,23 @@ curl -X POST http://localhost:3000/api/sms/test \
 Create a test seller and trigger notification:
 
 ```typescript
-import { sendSellerNotification } from '@/services/notifications/seller-notification-service';
+import { sendSellerNotification } from "@/services/notifications/seller-notification-service";
 
 // Send budget low alert
-await sendSellerNotification(
-  'SELLER123',
-  'BUDGET_LOW',
-  {
-    budgetRemaining: 50,
-    campaignName: 'Summer Sale Campaign'
-  }
-);
+await sendSellerNotification("SELLER123", "BUDGET_LOW", {
+  budgetRemaining: 50,
+  campaignName: "Summer Sale Campaign",
+});
 ```
 
 **Expected SMS (Arabic)**:
+
 ```
 تنبيه فيكسزت: رصيد إعلانات منخفض - 50 ريال. أضف رصيد للاستمرار.
 ```
 
 **Expected SMS (English)**:
+
 ```
 Fixzit Alert: Ad budget low - 50 SAR remaining. Add funds to continue.
 ```
@@ -155,10 +161,11 @@ Fixzit Alert: Ad budget low - 50 SAR remaining. Add funds to continue.
 ## Monitoring
 
 ### Check SMS Status
-```typescript
-import { getSMSStatus } from '@/lib/sms';
 
-const status = await getSMSStatus('SM1234567890abcdef');
+```typescript
+import { getSMSStatus } from "@/lib/sms";
+
+const status = await getSMSStatus("SM1234567890abcdef");
 console.log(status);
 // {
 //   status: 'delivered',
@@ -168,6 +175,7 @@ console.log(status);
 ```
 
 ### Message Statuses (Twilio)
+
 - `queued` - Message queued for sending
 - `sending` - Message is being sent
 - `sent` - Message sent to carrier
@@ -178,13 +186,13 @@ console.log(status);
 ## Bulk SMS (Marketing)
 
 ```typescript
-import { sendBulkSMS } from '@/lib/sms';
+import { sendBulkSMS } from "@/lib/sms";
 
-const recipients = ['+966501234567', '+966509876543'];
-const message = 'Special offer: 20% off all products this weekend!';
+const recipients = ["+966501234567", "+966509876543"];
+const message = "Special offer: 20% off all products this weekend!";
 
 const result = await sendBulkSMS(recipients, message, {
-  delayMs: 1000 // 1 second delay between messages
+  delayMs: 1000, // 1 second delay between messages
 });
 
 console.log(result);
@@ -196,7 +204,7 @@ console.log(result);
 The SMS service includes comprehensive error handling:
 
 ```typescript
-const result = await sendSMS('invalid-number', 'Test');
+const result = await sendSMS("invalid-number", "Test");
 
 if (!result.success) {
   console.error(result.error);
@@ -218,10 +226,12 @@ if (!result.success) {
 ## Costs (Twilio Pricing)
 
 **Saudi Arabia SMS Pricing** (as of 2024):
+
 - Outbound SMS: ~$0.07 USD per message
 - Phone number rental: ~$15 USD/month
 
 **Estimate for 1000 sellers**:
+
 - Budget alerts: ~2 SMS/seller/month = 2000 SMS = $140/month
 - Refunds: ~1 SMS/seller/month = 1000 SMS = $70/month
 - Withdrawals: ~2 SMS/seller/month = 2000 SMS = $140/month
@@ -231,20 +241,24 @@ if (!result.success) {
 ## Troubleshooting
 
 ### "Twilio not configured"
+
 - Check environment variables are set correctly
 - Verify `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
 
 ### "Invalid phone number format"
+
 - Ensure phone number starts with 05 (Saudi mobile)
 - Valid: 0501234567, +966501234567
 - Invalid: 0112345678 (landline), 0401234567 (wrong prefix)
 
 ### "Message failed to send"
+
 - Check Twilio account balance
 - Verify phone number is active
 - Check Twilio dashboard for error details
 
 ### "Rate limit exceeded"
+
 - Twilio has rate limits per account
 - Use `sendBulkSMS` with delay for batch sending
 - Consider upgrading Twilio plan for higher limits
@@ -252,6 +266,7 @@ if (!result.success) {
 ## Next Steps
 
 1. **Test with your phone number**:
+
    ```bash
    curl -X POST http://localhost:3000/api/sms/test \
      -H "Content-Type: application/json" \
@@ -271,6 +286,7 @@ if (!result.success) {
 ## Support
 
 For issues or questions:
+
 - Twilio Documentation: https://www.twilio.com/docs
 - Twilio Console: https://console.twilio.com
 - Internal: Contact DevOps team

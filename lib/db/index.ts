@@ -3,9 +3,9 @@ import { logger } from '@/lib/logger';
  * Database index management for MongoDB
  */
 
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
-import mongoose from 'mongoose';
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from "@/lib/logger";
+import mongoose from "mongoose";
 
 /**
  * Ensures core indexes are created on all collections
@@ -13,120 +13,120 @@ import mongoose from 'mongoose';
  */
 export async function ensureCoreIndexes(): Promise<void> {
   await connectToDatabase();
-  
+
   const db = mongoose.connection.db;
   if (!db) {
-    throw new Error('Database connection not established');
+    throw new Error("Database connection not established");
   }
 
   // Define indexes for each collection
   const indexes = [
     // Users
     {
-      collection: 'users',
+      collection: "users",
       indexes: [
         { key: { email: 1 }, unique: true },
         { key: { tenantId: 1 } },
         { key: { role: 1 } },
-        { key: { 'personal.phone': 1 } }
-      ]
+        { key: { "personal.phone": 1 } },
+      ],
     },
     // Work Orders
     {
-      collection: 'workorders',
+      collection: "workorders",
       indexes: [
         { key: { workOrderNumber: 1 }, unique: true },
         { key: { orgId: 1 } },
         { key: { status: 1 } },
         { key: { priority: 1 } },
-        { key: { 'location.propertyId': 1 } },
-        { key: { 'assignment.assignedTo.userId': 1 } },
-        { key: { 'assignment.assignedTo.vendorId': 1 } },
+        { key: { "location.propertyId": 1 } },
+        { key: { "assignment.assignedTo.userId": 1 } },
+        { key: { "assignment.assignedTo.vendorId": 1 } },
         { key: { createdAt: -1 } },
-        { key: { 'sla.resolutionDeadline': 1 } },
-        { key: { orgId: 1, status: 1, createdAt: -1 } }
-      ]
+        { key: { "sla.resolutionDeadline": 1 } },
+        { key: { orgId: 1, status: 1, createdAt: -1 } },
+      ],
     },
     // Work Order Comments
     {
-      collection: 'workorder_comments',
+      collection: "workorder_comments",
       indexes: [
         { key: { tenantId: 1, workOrderId: 1, createdAt: -1 } },
         { key: { workOrderId: 1, createdAt: -1 } },
-        { key: { createdAt: -1 } }
-      ]
+        { key: { createdAt: -1 } },
+      ],
     },
     // Work Order Attachments
     {
-      collection: 'workorder_attachments',
+      collection: "workorder_attachments",
       indexes: [
         { key: { tenantId: 1, workOrderId: 1, uploadedAt: -1 } },
         { key: { workOrderId: 1, uploadedAt: -1 } },
-        { key: { uploadedAt: -1 } }
-      ]
+        { key: { uploadedAt: -1 } },
+      ],
     },
     // Work Order Timeline
     {
-      collection: 'workorder_timeline',
+      collection: "workorder_timeline",
       indexes: [
         { key: { tenantId: 1, workOrderId: 1, performedAt: -1 } },
         { key: { workOrderId: 1, performedAt: -1 } },
-        { key: { performedAt: -1 } }
-      ]
+        { key: { performedAt: -1 } },
+      ],
     },
     // Properties
     {
-      collection: 'properties',
+      collection: "properties",
       indexes: [
         { key: { code: 1 }, unique: true },
         { key: { tenantId: 1 } },
         { key: { type: 1 } },
         { key: { status: 1 } },
-        { key: { 'location.city': 1 } }
-      ]
+        { key: { "location.city": 1 } },
+      ],
     },
     // Invoices
     {
-      collection: 'invoices',
+      collection: "invoices",
       indexes: [
         { key: { code: 1 }, unique: true },
         { key: { tenantId: 1 } },
         { key: { status: 1 } },
         { key: { dueDate: 1 } },
-        { key: { customerId: 1 } }
-      ]
+        { key: { customerId: 1 } },
+      ],
     },
     // Support Tickets
     {
-      collection: 'supporttickets',
+      collection: "supporttickets",
       indexes: [
         { key: { code: 1 }, unique: true },
         { key: { tenantId: 1 } },
         { key: { status: 1 } },
         { key: { priority: 1 } },
         { key: { assigneeUserId: 1 } },
-        { key: { createdAt: -1 } }
-      ]
+        { key: { createdAt: -1 } },
+      ],
     },
     // Help Articles
     {
-      collection: 'helparticles',
+      collection: "helparticles",
       indexes: [
         { key: { tenantId: 1 } },
         { key: { slug: 1 }, unique: true },
         { key: { category: 1 } },
-        { key: { published: 1 } }
-      ]
+        { key: { published: 1 } },
+      ],
     },
     // CMS Pages
     {
-      collection: 'cmspages',
+      collection: "cmspages",
       indexes: [
         { key: { tenantId: 1 } },
         { key: { slug: 1 }, unique: true },
-        { key: { published: 1 } }
-      ]
-    }
+        { key: { published: 1 } },
+      ],
+    },
   ];
 
   const failures: Array<{ collection: string; error: Error }> = [];
@@ -134,31 +134,39 @@ export async function ensureCoreIndexes(): Promise<void> {
   for (const { collection, indexes: collIndexes } of indexes) {
     try {
       const coll = db.collection(collection);
-      
+
       for (const indexSpec of collIndexes) {
         try {
           const isUnique =
-            'unique' in indexSpec && typeof indexSpec.unique === 'boolean'
+            "unique" in indexSpec && typeof indexSpec.unique === "boolean"
               ? indexSpec.unique
               : false;
-          await coll.createIndex(indexSpec.key as unknown as Record<string, 1 | -1>, {
-            unique: isUnique,
-            background: true
-          });
+          await coll.createIndex(
+            indexSpec.key as unknown as Record<string, 1 | -1>,
+            {
+              unique: isUnique,
+              background: true,
+            },
+          );
         } catch (_error: unknown) {
-          const error = _error instanceof Error ? _error : new Error(String(_error));
+          const error =
+            _error instanceof Error ? _error : new Error(String(_error));
           void error;
           const mongoError = error as { code?: number; message?: string };
           // Skip if index already exists (codes 85, 86)
-          if (mongoError.code === 85 || mongoError.code === 86 || mongoError.message?.includes('already exists')) {
+          if (
+            mongoError.code === 85 ||
+            mongoError.code === 86 ||
+            mongoError.message?.includes("already exists")
+          ) {
             // Index already exists - this is expected, skip silently
             continue;
           }
           // Log all other errors for observability
           logger.error(`Failed to create index on ${collection}:`, {
             index: JSON.stringify(indexSpec.key),
-            error: mongoError.message || 'Unknown error',
-            code: mongoError.code
+            error: mongoError.message || "Unknown error",
+            code: mongoError.code,
           });
           // Rethrow to propagate the error
           throw error;
@@ -170,7 +178,7 @@ export async function ensureCoreIndexes(): Promise<void> {
       failures.push({ collection, error });
       logger.error(`Failed to create indexes for collection ${collection}:`, {
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
       // Don't throw - allow other collections to be processed
     }
@@ -179,8 +187,10 @@ export async function ensureCoreIndexes(): Promise<void> {
 
   // If any collections failed, throw a summary error
   if (failures.length > 0) {
-    const collectionList = failures.map(f => f.collection).join(', ');
-    throw new Error(`Index creation failed for ${failures.length} collection(s): ${collectionList}`);
+    const collectionList = failures.map((f) => f.collection).join(", ");
+    throw new Error(
+      `Index creation failed for ${failures.length} collection(s): ${collectionList}`,
+    );
   }
 
   // Index creation complete

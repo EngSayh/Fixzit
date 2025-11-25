@@ -22,12 +22,14 @@
 
 ```javascript
 // BEFORE: Hardcoded credentials (SECURITY VIOLATION)
-const c = new MongoClient('mongodb+srv://[REDACTED]@fixzit.vgfiiff.mongodb.net/fixzit');
+const c = new MongoClient(
+  "mongodb+srv://[REDACTED]@fixzit.vgfiiff.mongodb.net/fixzit",
+);
 
 // AFTER: Environment variable with validation
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
-  console.error('❌ ERROR: MONGODB_URI environment variable is not set.');
+  console.error("❌ ERROR: MONGODB_URI environment variable is not set.");
   process.exit(1);
 }
 ```
@@ -54,26 +56,28 @@ if (!MONGODB_URI) {
 ```javascript
 /**
  * ⚠️ DEVELOPMENT-ONLY SEED PASSWORD WARNING ⚠️
- * 
+ *
  * This hardcoded password is ONLY for local development and testing purposes.
- * 
+ *
  * CRITICAL SECURITY REQUIREMENTS:
  * - NEVER run this script against production databases
  * - NEVER use this password in production environments
  * - Users MUST be forced to change password on first login in any non-local environment
  * - Production credentials must be generated with secure random passwords and delivered securely
  * - See SECURITY_POLICY.md and DEPLOYMENT_GUIDE.md for production credential management
- * 
+ *
  * For production seeding, use environment variable SEED_PASSWORD with secure value.
  */
-const PASSWORD = process.env.SEED_PASSWORD || 'Password123';
+const PASSWORD = process.env.SEED_PASSWORD || "Password123";
 ```
 
 **Password Logging Protection**:
 
 ```javascript
 // Only print password in local development, never in CI/CD or production
-const isDevelopment = process.env.NODE_ENV === 'development' || (!process.env.NODE_ENV && !process.env.CI);
+const isDevelopment =
+  process.env.NODE_ENV === "development" ||
+  (!process.env.NODE_ENV && !process.env.CI);
 
 if (isDevelopment) {
   console.log(`🔑 Password for all users: ${PASSWORD}`);
@@ -97,13 +101,17 @@ if (isDevelopment) {
 
 ```javascript
 // BEFORE: Credentials in source code
-const c = new MongoClient('mongodb+srv://[REDACTED]@fixzit.vgfiiff.mongodb.net/fixzit');
+const c = new MongoClient(
+  "mongodb+srv://[REDACTED]@fixzit.vgfiiff.mongodb.net/fixzit",
+);
 
 // AFTER: Environment-based with validation
 const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
-  console.error('❌ ERROR: MONGODB_URI environment variable is not set.');
-  console.error('📝 Please set MONGODB_URI in your .env.local file or environment.');
+  console.error("❌ ERROR: MONGODB_URI environment variable is not set.");
+  console.error(
+    "📝 Please set MONGODB_URI in your .env.local file or environment.",
+  );
   process.exit(1);
 }
 ```
@@ -122,10 +130,10 @@ if (!MONGODB_URI) {
 
 ```typescript
 // BEFORE: Local type definition causing mismatch
-type Locale = 'en' | 'ar' | (string & {}); // Incompatible with actual Locale type
+type Locale = "en" | "ar" | (string & {}); // Incompatible with actual Locale type
 
 // AFTER: Import actual type from config
-import type { Locale } from '@/i18n/config';
+import type { Locale } from "@/i18n/config";
 ```
 
 **Verification**:
@@ -257,7 +265,7 @@ Before merging to main:
 ❌ Passwords printed to console/logs  
 ❌ No confirmation for destructive operations  
 ❌ No error handling or validation  
-❌ TypeScript errors passing through  
+❌ TypeScript errors passing through
 
 ### AFTER (Secure Implementation)
 
@@ -267,10 +275,10 @@ Before merging to main:
 ✅ Comprehensive error handling + validation  
 ✅ TypeScript compilation clean (our code)  
 ✅ Security warnings prominently displayed  
-✅ Production guard mechanisms in place  
+✅ Production guard mechanisms in place
 
 ---
 
 **Commit**: 679df41e  
 **Author**: GitHub Copilot  
-**Reviewed by**: Pending @EngSayh approval  
+**Reviewed by**: Pending @EngSayh approval

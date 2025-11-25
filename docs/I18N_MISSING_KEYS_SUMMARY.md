@@ -20,24 +20,30 @@ The codebase uses 1,330 translation keys that are **not defined** in either `i18
 Based on the first 50 keys from the report, the missing keys span these namespaces:
 
 ### 1. **Admin Module** (`admin.*`)
+
 - User management: `admin.users.*` (cancel, create, searchPlaceholder, filterRole, filterStatus, deleteSelected, name, edit, delete, total, etc.)
 - Role management: `admin.roles.*` (comingSoon, superAdminDesc, adminDesc, managerDesc, userDesc)
 - Audit logs: `admin.audit.*` (filterUser, filterAction, clear, loadFailed, time, entity, previous, page, next)
 - Feature flags: `admin.features.*` (desc, open)
 
 ### 2. **Finance Module** (`finance.*`)
+
 Likely includes: budget management, invoices, payments, reports
 
 ### 3. **HR Module** (`hr.*`)
+
 Likely includes: employees, attendance, leave, payroll
 
 ### 4. **Work Orders** (`workOrders.*`)
+
 Likely includes: create, status, assign, close, filter
 
 ### 5. **Properties** (`properties.*`)
+
 Likely includes: listings, details, search, filter
 
 ### 6. **Common UI** (buttons, forms, tables)
+
 - Pagination: previous, page, next, of, total
 - Actions: cancel, create, edit, delete, save, clear
 - Filters: filterRole, filterStatus, filterUser, filterAction
@@ -46,28 +52,36 @@ Likely includes: listings, details, search, filter
 ## Priority Levels
 
 ### 🔴 CRITICAL (P0) - Immediate Action
+
 Keys used in authentication, navigation, and core workflows:
+
 - Login/logout flows
 - Primary navigation labels
 - Error messages and validation
 - Form submission buttons
 
 ### 🟡 HIGH (P1) - Short Term
+
 Keys used in frequently accessed modules:
+
 - Admin user management
 - Work order creation and status
 - Property listings and details
 - Financial dashboards
 
 ### 🟢 MEDIUM (P2) - Medium Term
+
 Keys used in secondary features:
+
 - Audit logs and reports
 - Feature flag descriptions
 - Advanced filters
 - Bulk actions
 
 ### ⚪ LOW (P3) - Long Term
+
 Keys used in edge cases or admin-only features:
+
 - Role descriptions
 - "Coming Soon" placeholders
 - Debug/developer tools
@@ -75,14 +89,17 @@ Keys used in edge cases or admin-only features:
 ## Recommended Actions
 
 ### Option 1: Auto-Generate Placeholders (Quick Fix)
+
 ```bash
 # Generate skeleton keys from the missing list
 node scripts/generate-i18n-placeholders.js
 ```
+
 - Pros: Fast, prevents UI breakage
 - Cons: English-only, requires manual translation
 
 ### Option 2: Manual Curation (Quality Fix)
+
 1. Review `reports/i18n-missing.json` full list
 2. Prioritize by module and frequency
 3. Add translations in batches:
@@ -92,6 +109,7 @@ node scripts/generate-i18n-placeholders.js
    - Week 4: Reports + Settings (P2)
 
 ### Option 3: Hybrid Approach (Recommended)
+
 1. Auto-generate English placeholders for all 1,330 keys
 2. Machine-translate to Arabic using i18n library
 3. Manual review and refinement by native speakers
@@ -100,14 +118,17 @@ node scripts/generate-i18n-placeholders.js
 ## Technical Notes
 
 ### Key Naming Convention
+
 Current pattern: `module.feature.action` (e.g., `admin.users.create`)
 
 **Recommendation:** Maintain consistency:
+
 - ✅ `admin.users.create` (Good)
 - ❌ `adminUserCreate` (Bad - hard to namespace)
 - ❌ `admin_users_create` (Bad - inconsistent delimiter)
 
 ### Translation File Structure
+
 ```json
 {
   "admin": {
@@ -121,14 +142,15 @@ Current pattern: `module.feature.action` (e.g., `admin.users.create`)
 ```
 
 ### Usage in Code
+
 ```tsx
-import { useTranslations } from 'next-intl';
+import { useTranslations } from "next-intl";
 
 export default function UsersPage() {
-  const t = useTranslations('admin.users');
-  
+  const t = useTranslations("admin.users");
+
   return (
-    <button>{t('create')}</button>  // ✅ Resolves to "admin.users.create"
+    <button>{t("create")}</button> // ✅ Resolves to "admin.users.create"
   );
 }
 ```

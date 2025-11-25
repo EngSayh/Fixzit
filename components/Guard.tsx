@@ -1,38 +1,38 @@
 /**
  * RBAC Guard Component
- * 
+ *
  * Conditionally renders children based on permission checks.
  * Uses NextAuth session data with RBAC fields.
- * 
+ *
  * Usage:
  * ```typescript
  * import Guard from '@/components/Guard';
- * 
+ *
  * // Simple permission check
  * <Guard permission="finance:invoice.create">
  *   <CreateInvoiceButton />
  * </Guard>
- * 
+ *
  * // Check multiple permissions (ANY)
  * <Guard permissions={['finance:invoice.read', 'finance:invoice.create']} requireAny>
  *   <InvoiceList />
  * </Guard>
- * 
+ *
  * // Check multiple permissions (ALL)
  * <Guard permissions={['finance:invoice.read', 'finance:invoice.export']} requireAll>
  *   <ExportInvoicesButton />
  * </Guard>
- * 
+ *
  * // Role-based rendering
  * <Guard role="admin">
  *   <AdminPanel />
  * </Guard>
- * 
+ *
  * // Super Admin only
  * <Guard superAdminOnly>
  *   <SystemSettings />
  * </Guard>
- * 
+ *
  * // Custom fallback
  * <Guard permission="finance:invoice.create" fallback={<p>Access denied</p>}>
  *   <CreateInvoiceButton />
@@ -40,37 +40,37 @@
  * ```
  */
 
-'use client';
+"use client";
 
-import { logger } from '@/lib/logger';
-import { useAuthRbac } from '@/hooks/useAuthRbac';
-import { ReactNode } from 'react';
+import { logger } from "@/lib/logger";
+import { useAuthRbac } from "@/hooks/useAuthRbac";
+import { ReactNode } from "react";
 
 export interface GuardProps {
   children: ReactNode;
-  
+
   // Single permission check
   permission?: string;
-  
+
   // Multiple permission checks
   permissions?: string[];
   requireAny?: boolean; // If true, user needs ANY of the permissions
   requireAll?: boolean; // If true, user needs ALL of the permissions
-  
+
   // Role-based checks
   role?: string;
   roles?: string[];
   requireAnyRole?: boolean;
-  
+
   // Super Admin check
   superAdminOnly?: boolean;
-  
+
   // Invert the check (render if user does NOT have permission)
   invert?: boolean;
-  
+
   // Custom fallback element (default: null)
   fallback?: ReactNode;
-  
+
   // Show loading state (default: null)
   loadingFallback?: ReactNode;
 }
@@ -92,28 +92,21 @@ export default function Guard({
   fallback = null,
   loadingFallback = null,
 }: GuardProps) {
-  const {
-    can,
-    canAny,
-    canAll,
-    hasRole,
-    hasAnyRole,
-    isSuperAdmin,
-    isLoading,
-  } = useAuthRbac();
-  
+  const { can, canAny, canAll, hasRole, hasAnyRole, isSuperAdmin, isLoading } =
+    useAuthRbac();
+
   // Show loading state if provided
   if (isLoading && loadingFallback) {
     return <>{loadingFallback}</>;
   }
-  
+
   // Wait for auth to load
   if (isLoading) {
     return null;
   }
-  
+
   let allowed = false;
-  
+
   // Super Admin check (highest priority)
   if (superAdminOnly) {
     allowed = isSuperAdmin;
@@ -148,15 +141,17 @@ export default function Guard({
   }
   // No checks specified, allow by default (guard is misconfigured)
   else {
-    logger.warn('[Guard] No permission or role checks specified. Allowing by default.');
+    logger.warn(
+      "[Guard] No permission or role checks specified. Allowing by default.",
+    );
     allowed = true;
   }
-  
+
   // Invert check if requested
   if (invert) {
     allowed = !allowed;
   }
-  
+
   // Render children if allowed, otherwise render fallback
   return allowed ? <>{children}</> : <>{fallback}</>;
 }
@@ -165,7 +160,13 @@ export default function Guard({
  * Convenience components for common patterns
  */
 
-export function SuperAdminOnly({ children, fallback = null }: { children: ReactNode; fallback?: ReactNode }) {
+export function SuperAdminOnly({
+  children,
+  fallback = null,
+}: {
+  children: ReactNode;
+  fallback?: ReactNode;
+}) {
   return (
     <Guard superAdminOnly fallback={fallback}>
       {children}

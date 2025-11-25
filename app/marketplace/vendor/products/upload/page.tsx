@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import Image from 'next/image';
-import { X, Image as ImageIcon } from 'lucide-react';
-import { useTranslation } from '@/contexts/TranslationContext';
-import toast, { Toaster } from 'react-hot-toast';
-import { FormWithNavigation } from '@/components/ui/navigation-buttons';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import Image from "next/image";
+import { X, Image as ImageIcon } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import toast, { Toaster } from "react-hot-toast";
+import { FormWithNavigation } from "@/components/ui/navigation-buttons";
 
-import { logger } from '@/lib/logger';
-import { nanoid } from 'nanoid';
+import { logger } from "@/lib/logger";
+import { nanoid } from "nanoid";
 
 interface ProductImage {
   id: string;
   file: File;
   preview: string;
-  role: 'GALLERY' | 'THUMBNAIL';
+  role: "GALLERY" | "THUMBNAIL";
 }
 
 export default function VendorProductUploadPage() {
@@ -27,21 +27,21 @@ export default function VendorProductUploadPage() {
   const [images, setImages] = useState<ProductImage[]>([]);
 
   const [formData, setFormData] = useState({
-    titleEn: '',
-    titleAr: '',
-    sku: '',
-    brand: '',
-    summary: '',
-    description: '',
-    category: '',
-    price: '',
-    currency: 'SAR',
-    uom: 'EA',
-    minQty: '1',
-    leadDays: '7',
-    stock: '0',
-    standards: '',
-    specifications: ''
+    titleEn: "",
+    titleAr: "",
+    sku: "",
+    brand: "",
+    summary: "",
+    description: "",
+    category: "",
+    price: "",
+    currency: "SAR",
+    uom: "EA",
+    minQty: "1",
+    leadDays: "7",
+    stock: "0",
+    standards: "",
+    specifications: "",
   });
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,7 +50,7 @@ export default function VendorProductUploadPage() {
       id: nanoid(),
       file,
       preview: URL.createObjectURL(file),
-      role: index === 0 ? 'THUMBNAIL' : 'GALLERY'
+      role: index === 0 ? "THUMBNAIL" : "GALLERY",
     }));
     setImages([...images, ...newImages]);
   };
@@ -64,64 +64,69 @@ export default function VendorProductUploadPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.titleEn || !formData.sku || !formData.price) {
-      toast.error('Please fill in all required fields');
+      toast.error("Please fill in all required fields");
       return;
     }
 
     if (images.length === 0) {
-      toast.error('Please upload at least one product image');
+      toast.error("Please upload at least one product image");
       return;
     }
 
     const orgId = session?.user?.orgId;
     if (!orgId) {
-      toast.error('Organization ID not found');
+      toast.error("Organization ID not found");
       return;
     }
 
     setLoading(true);
-    
+
     try {
       // Step 1: Upload images
       const uploadedImages = await Promise.all(
         images.map(async (img) => {
           const imageFormData = new FormData();
-          imageFormData.append('file', img.file);
-          imageFormData.append('role', img.role);
-          
-          const res = await fetch(`/api/org/${orgId}/marketplace/vendor/upload-image`, {
-            method: 'POST',
-            headers: {
-              'x-tenant-id': orgId
+          imageFormData.append("file", img.file);
+          imageFormData.append("role", img.role);
+
+          const res = await fetch(
+            `/api/org/${orgId}/marketplace/vendor/upload-image`,
+            {
+              method: "POST",
+              headers: {
+                "x-tenant-id": orgId,
+              },
+              body: imageFormData,
             },
-            body: imageFormData
-          });
-          
+          );
+
           if (!res.ok) {
-            const errorData = await res.json().catch(() => ({ message: 'Image upload failed' }));
-            throw new Error(errorData.message || 'Image upload failed');
+            const errorData = await res
+              .json()
+              .catch(() => ({ message: "Image upload failed" }));
+            throw new Error(errorData.message || "Image upload failed");
           }
           const data = await res.json();
           return {
             url: data.url,
             role: img.role,
-            alt: formData.titleEn
+            alt: formData.titleEn,
           };
-        })
-      ).catch(error => {
-        logger.error('Failed to upload one or more images', { error });
+        }),
+      ).catch((error) => {
+        logger.error("Failed to upload one or more images", { error });
         throw new Error(`Image upload failed: ${error.message}`);
       });
 
       // Step 2: Create product
       const product = {
-        slug: formData.sku.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: formData.sku.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
         sku: formData.sku,
         title: {
           en: formData.titleEn,
-          ar: formData.titleAr || formData.titleEn
+          ar: formData.titleAr || formData.titleEn,
         },
         brand: formData.brand,
         summary: formData.summary,
@@ -133,40 +138,46 @@ export default function VendorProductUploadPage() {
           currency: formData.currency,
           uom: formData.uom,
           minQty: parseInt(formData.minQty, 10),
-          leadDays: parseInt(formData.leadDays, 10)
+          leadDays: parseInt(formData.leadDays, 10),
         },
         stock: {
           onHand: parseInt(formData.stock, 10),
-          reserved: 0
+          reserved: 0,
         },
-        standards: formData.standards ? formData.standards.split(',').map(s => s.trim()) : [],
-        specifications: formData.specifications ? JSON.parse(formData.specifications) : {},
-        status: 'PENDING_APPROVAL'
+        standards: formData.standards
+          ? formData.standards.split(",").map((s) => s.trim())
+          : [],
+        specifications: formData.specifications
+          ? JSON.parse(formData.specifications)
+          : {},
+        status: "PENDING_APPROVAL",
       };
 
-      const response = await fetch(`/api/org/${orgId}/marketplace/vendor/products`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-tenant-id': orgId
+      const response = await fetch(
+        `/api/org/${orgId}/marketplace/vendor/products`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-tenant-id": orgId,
+          },
+          body: JSON.stringify(product),
         },
-        body: JSON.stringify(product)
-      });
+      );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to create product');
+        throw new Error(error.message || "Failed to create product");
       }
 
-      toast.success('Product uploaded successfully! Pending admin approval.');
-      
-      setTimeout(() => {
-        router.push('/marketplace/vendor');
-      }, 2000);
+      toast.success("Product uploaded successfully! Pending admin approval.");
 
+      setTimeout(() => {
+        router.push("/marketplace/vendor");
+      }, 2000);
     } catch (error) {
-      logger.error('Upload error:', error);
-      toast.error(error instanceof Error ? error.message : 'Upload failed');
+      logger.error("Upload error:", error);
+      toast.error(error instanceof Error ? error.message : "Upload failed");
     } finally {
       setLoading(false);
     }
@@ -175,20 +186,20 @@ export default function VendorProductUploadPage() {
   return (
     <div className="min-h-screen bg-muted flex flex-col">
       <Toaster position="top-right" />
-      
+
       <div className="mx-auto max-w-4xl px-4 py-8">
         {/* Header */}
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
-            {t('marketplace.vendor.uploadProduct', 'Upload Product')}
+            {t("marketplace.vendor.uploadProduct", "Upload Product")}
           </h1>
           <p className="text-muted-foreground mt-2">
             Add a new product to your catalogue
           </p>
         </header>
 
-        <FormWithNavigation 
-          onSubmit={handleSubmit} 
+        <FormWithNavigation
+          onSubmit={handleSubmit}
           saving={loading}
           showBack
           showHome
@@ -196,8 +207,10 @@ export default function VendorProductUploadPage() {
         >
           {/* Basic Information */}
           <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Basic Information</h2>
-            
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Basic Information
+            </h2>
+
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
@@ -206,7 +219,9 @@ export default function VendorProductUploadPage() {
                 <input
                   type="text"
                   value={formData.titleEn}
-                  onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, titleEn: e.target.value })
+                  }
                   className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                   required
                 />
@@ -219,7 +234,9 @@ export default function VendorProductUploadPage() {
                 <input
                   type="text"
                   value={formData.titleAr}
-                  onChange={(e) => setFormData({ ...formData, titleAr: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, titleAr: e.target.value })
+                  }
                   className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                   dir="rtl"
                 />
@@ -232,7 +249,9 @@ export default function VendorProductUploadPage() {
                 <input
                   type="text"
                   value={formData.sku}
-                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sku: e.target.value })
+                  }
                   className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                   required
                 />
@@ -245,7 +264,9 @@ export default function VendorProductUploadPage() {
                 <input
                   type="text"
                   value={formData.brand}
-                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, brand: e.target.value })
+                  }
                   className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -256,7 +277,9 @@ export default function VendorProductUploadPage() {
                 </label>
                 <textarea
                   value={formData.summary}
-                  onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, summary: e.target.value })
+                  }
                   rows={2}
                   className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 />
@@ -268,7 +291,9 @@ export default function VendorProductUploadPage() {
                 </label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   rows={4}
                   className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 />
@@ -278,12 +303,22 @@ export default function VendorProductUploadPage() {
 
           {/* Images */}
           <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Product Images *</h2>
-            
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Product Images *
+            </h2>
+
             <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-4">
               {images.map((img, index) => (
-                <div key={img.id} className="relative aspect-square rounded-2xl border border-border overflow-hidden">
-                  <Image src={img.preview} alt="Product" fill className="object-cover" />
+                <div
+                  key={img.id}
+                  className="relative aspect-square rounded-2xl border border-border overflow-hidden"
+                >
+                  <Image
+                    src={img.preview}
+                    alt="Product"
+                    fill
+                    className="object-cover"
+                  />
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
@@ -298,7 +333,7 @@ export default function VendorProductUploadPage() {
                   )}
                 </div>
               ))}
-              
+
               <label className="aspect-square rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-muted transition-colors">
                 <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
                 <span className="text-sm text-muted-foreground">Add Image</span>
@@ -311,7 +346,7 @@ export default function VendorProductUploadPage() {
                 />
               </label>
             </div>
-            
+
             <p className="text-sm text-muted-foreground">
               Upload up to 8 images. First image will be the main product image.
             </p>
@@ -319,8 +354,10 @@ export default function VendorProductUploadPage() {
 
           {/* Pricing & Inventory */}
           <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Pricing & Inventory</h2>
-            
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Pricing & Inventory
+            </h2>
+
             <div className="grid gap-4 md:grid-cols-3">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
@@ -330,7 +367,9 @@ export default function VendorProductUploadPage() {
                   type="number"
                   step="0.01"
                   value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, price: e.target.value })
+                  }
                   className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                   required
                 />
@@ -342,7 +381,9 @@ export default function VendorProductUploadPage() {
                 </label>
                 <select
                   value={formData.currency}
-                  onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, currency: e.target.value })
+                  }
                   className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 >
                   <option value="SAR">SAR</option>
@@ -358,7 +399,9 @@ export default function VendorProductUploadPage() {
                 </label>
                 <select
                   value={formData.uom}
-                  onChange={(e) => setFormData({ ...formData, uom: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, uom: e.target.value })
+                  }
                   className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 >
                   <option value="EA">Each (EA)</option>
@@ -376,7 +419,9 @@ export default function VendorProductUploadPage() {
                 <input
                   type="number"
                   value={formData.minQty}
-                  onChange={(e) => setFormData({ ...formData, minQty: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, minQty: e.target.value })
+                  }
                   className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -388,7 +433,9 @@ export default function VendorProductUploadPage() {
                 <input
                   type="number"
                   value={formData.leadDays}
-                  onChange={(e) => setFormData({ ...formData, leadDays: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, leadDays: e.target.value })
+                  }
                   className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -400,7 +447,9 @@ export default function VendorProductUploadPage() {
                 <input
                   type="number"
                   value={formData.stock}
-                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, stock: e.target.value })
+                  }
                   className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -409,8 +458,10 @@ export default function VendorProductUploadPage() {
 
           {/* Technical Details */}
           <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Technical Details</h2>
-            
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Technical Details
+            </h2>
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
@@ -419,7 +470,9 @@ export default function VendorProductUploadPage() {
                 <input
                   type="text"
                   value={formData.standards}
-                  onChange={(e) => setFormData({ ...formData, standards: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, standards: e.target.value })
+                  }
                   placeholder="e.g., ASTM, BS EN, ISO 9001"
                   className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 />
@@ -431,7 +484,9 @@ export default function VendorProductUploadPage() {
                 </label>
                 <textarea
                   value={formData.specifications}
-                  onChange={(e) => setFormData({ ...formData, specifications: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, specifications: e.target.value })
+                  }
                   placeholder='{"Material": "Steel", "Size": "100mm", "Weight": "5kg"}'
                   rows={4}
                   className="w-full rounded-2xl border border-border px-3 py-2 font-mono text-sm focus:border-primary focus:ring-1 focus:ring-primary"

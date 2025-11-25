@@ -13,6 +13,7 @@
 After comprehensive analysis of all CodeRabbit comments across the entire Fixzit system:
 
 ### ✅ What Was Fixed (Previous Sessions)
+
 - GitHub Actions workflow warning for `GOOGLE_CLIENT_SECRET` context access
 - 50+ unused variables in API routes, components, and utilities
 - 25+ unused error handler imports
@@ -21,6 +22,7 @@ After comprehensive analysis of all CodeRabbit comments across the entire Fixzit
 - Most TypeScript type errors
 
 ### 🟡 What Remains (Acceptable or Low Priority)
+
 - **0 `eslint-disable-next-line no-console` in code** - all replaced with logger/process logging
 - **9 `@ts-ignore` in test files** - Acceptable for testing error conditions
 - **2 `@ts-expect-error` in production** - Documented library compatibility issues (Firebase, Mongoose)
@@ -37,6 +39,7 @@ After comprehensive analysis of all CodeRabbit comments across the entire Fixzit
 **Remaining**: 3 files with intentional underscore-prefixed variables
 
 #### Fixed Issues:
+
 - ✅ Removed unused `_client`, `_user`, `_userId` in API routes
 - ✅ Removed 25+ unused error handler imports (`unauthorizedError`, `forbiddenError`, etc.)
 - ✅ Removed unused test utilities in 8 test files
@@ -44,14 +47,22 @@ After comprehensive analysis of all CodeRabbit comments across the entire Fixzit
 - ✅ Cleaned up unused imports in hooks, models, scripts
 
 #### Remaining (Intentional):
+
 ```typescript
 // These follow TypeScript convention for intentionally unused parameters
-const _id = (() => { try { return new ObjectId(params.id); } catch { return null; } })();
+const _id = (() => {
+  try {
+    return new ObjectId(params.id);
+  } catch {
+    return null;
+  }
+})();
 const _params = await Promise.resolve(context.params); // Next.js 15 requirement
 const _emailTemplate = `...`; // Template literal placeholder
 ```
 
 **Files with intentional unused variables**:
+
 1. `app/api/notifications/[id]/route.ts` - `_id` (3 instances)
 2. `app/api/finance/accounts/[id]/route.ts` - `_params` (3 instances)
 3. `app/api/finance/expenses/[id]/route.ts` - `_params` (3 instances)
@@ -67,6 +78,7 @@ const _emailTemplate = `...`; // Template literal placeholder
 **Estimated Effort**: 15-20 hours
 
 #### Fixed:
+
 - ✅ `lib/auth.ts` - Replaced 2 `any` types with proper types
 - ✅ `lib/db/index.ts` - Fixed error handling types
 - ✅ `services/notifications/fm-notification-engine.ts` - Documented `@ts-expect-error` for Firebase compatibility
@@ -74,6 +86,7 @@ const _emailTemplate = `...`; // Template literal placeholder
 #### Remaining Breakdown:
 
 **B1: Critical Infrastructure** (10 files)
+
 - `lib/mongo.ts` - 4 instances
 - `lib/marketplace/search.ts` - 3 instances
 - `lib/paytabs/core.ts` - 5 instances
@@ -81,6 +94,7 @@ const _emailTemplate = `...`; // Template literal placeholder
 
 **B2: API Routes - Error Handling** (50+ files)
 Pattern found:
+
 ```typescript
 // WRONG (found in 50+ files):
 catch (error: any) { ... }
@@ -94,11 +108,13 @@ catch (error: unknown) {
 ```
 
 **B3: Frontend Pages** (30+ files)
+
 - State management with `any` types
 - Props interfaces with `any`
 - Event handlers with `any`
 
 **B4: Components** (20+ files)
+
 ```typescript
 // Found in components/fm/WorkOrdersView.tsx and WorkOrderAttachments.tsx:
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -112,6 +128,7 @@ catch (error: unknown) {
 
 **Status**: All 20+ files reviewed and fixed (previous session)  
 **Pattern Applied**:
+
 ```typescript
 // Authentication now happens BEFORE rate limiting
 const user = await getSessionUser(req);
@@ -119,6 +136,7 @@ const rl = rateLimit(`${pathname}:${user.id}:${clientIp}`, 60, 60_000);
 ```
 
 **Files Fixed**:
+
 - ✅ `app/api/invoices/route.ts`
 - ✅ `app/api/assets/route.ts`
 - ✅ `app/api/properties/route.ts`
@@ -130,9 +148,10 @@ const rl = rateLimit(`${pathname}:${user.id}:${clientIp}`, 60, 60_000);
 
 **Status**: All 15+ files standardized  
 **Pattern Applied**:
+
 ```typescript
 // Replaced NextResponse.json() with:
-return createSecureResponse({ error: 'message' }, statusCode, req);
+return createSecureResponse({ error: "message" }, statusCode, req);
 ```
 
 ---
@@ -141,6 +160,7 @@ return createSecureResponse({ error: 'message' }, statusCode, req);
 
 **Status**: 10/10 files fixed  
 **Issues Resolved**:
+
 - ✅ Type mismatches in marketplace routes
 - ✅ Unknown error types in API routes
 - ✅ Property access errors in components
@@ -154,6 +174,7 @@ return createSecureResponse({ error: 'message' }, statusCode, req);
 **Conclusion**: All empty catch blocks are in test files for intentional error suppression during test scaffolding.
 
 **Files**:
+
 - ✅ `app/test/help_ai_chat_page.test.tsx` - 4 empty catch blocks (acceptable)
 
 ---
@@ -168,17 +189,21 @@ return createSecureResponse({ error: 'message' }, statusCode, req);
 ## 🚨 REMAINING PRODUCTION CODE ISSUES
 
 ### **HIGH PRIORITY** (0 files)
+
 All file-level `no-explicit-any` suppressions in WorkOrder components/pages removed.
 
 ### **LOW PRIORITY** (resolved logging suppressions; other items unchanged)
 
 #### Console logging suppressions
+
 **Status**: RESOLVED - All `eslint-disable-next-line no-console` in code replaced with logger/process logging helpers
 
 #### @ts-ignore in Test Files (9 files)
+
 **Status**: ACCEPTABLE - Testing error conditions
 
 Files:
+
 - `lib/ats/scoring.test.ts` (3 instances) - Testing runtime with invalid inputs
 - `tests/api/lib-paytabs.test.ts` (2 instances) - Testing error handling
 - `tests/unit/app/help_support_ticket_page.test.tsx` (9 instances) - Mock setup
@@ -187,36 +212,40 @@ Files:
 **Recommendation**: Keep as-is - these test error scenarios
 
 #### @ts-expect-error with Documentation (2 files)
+
 **Status**: ACCEPTABLE - Known library compatibility issues
 
 1. **`services/notifications/fm-notification-engine.ts`** (2 instances)
+
 ```typescript
 // @ts-expect-error - Type safety suppression for firebase-admin version compatibility
 // Reason: sendMulticast method exists in firebase-admin@11+ but type definitions may lag
 ```
 
 2. **`qa/qaPatterns.ts`** (1 instance)
+
 ```typescript
 //@ts-ignore
 ```
+
 **Recommendation**: Add proper documentation explaining why type suppression is needed
 
 ---
 
 ## 📈 PROGRESS TRACKING
 
-| Category | Total Files | Fixed | Remaining | % Complete | Status |
-|----------|-------------|-------|-----------|------------|--------|
-| **A: Unused Variables** | 50 | 47 | 3 | 94% | ✅ Complete |
-| **B: `any` Types** | 235+ | 3 | 232+ | 1% | 🟡 Ongoing |
-| **C: Auth-Rate-Limit** | 20+ | 20+ | 0 | 100% | ✅ Complete |
-| **D: Error Responses** | 15+ | 15+ | 0 | 100% | ✅ Complete |
-| **E: Type Errors** | 10 | 10 | 0 | 100% | ✅ Complete |
-| **F: Empty Catch** | 4 | 4 | 0 | 100% | ✅ Complete |
-| **G: Hook Deps** | 0 | 0 | 0 | 100% | ✅ Complete |
-| **Console Logging** | 44 | 44 | 0 | 100% | ✅ Complete |
-| **Test @ts-ignore** | 9 | 0 | 9 | 0% | 🟢 Acceptable |
-| **TOTAL** | **696** | **694** | **2** | **99.7%** | ✅ **Nearly Complete** |
+| Category                | Total Files | Fixed   | Remaining | % Complete | Status                 |
+| ----------------------- | ----------- | ------- | --------- | ---------- | ---------------------- |
+| **A: Unused Variables** | 50          | 47      | 3         | 94%        | ✅ Complete            |
+| **B: `any` Types**      | 235+        | 3       | 232+      | 1%         | 🟡 Ongoing             |
+| **C: Auth-Rate-Limit**  | 20+         | 20+     | 0         | 100%       | ✅ Complete            |
+| **D: Error Responses**  | 15+         | 15+     | 0         | 100%       | ✅ Complete            |
+| **E: Type Errors**      | 10          | 10      | 0         | 100%       | ✅ Complete            |
+| **F: Empty Catch**      | 4           | 4       | 0         | 100%       | ✅ Complete            |
+| **G: Hook Deps**        | 0           | 0       | 0         | 100%       | ✅ Complete            |
+| **Console Logging**     | 44          | 44      | 0         | 100%       | ✅ Complete            |
+| **Test @ts-ignore**     | 9           | 0       | 9         | 0%         | 🟢 Acceptable          |
+| **TOTAL**               | **696**     | **694** | **2**     | **99.7%**  | ✅ **Nearly Complete** |
 
 ---
 
@@ -254,6 +283,7 @@ Files:
 During analysis, CodeRabbit flagged several patterns that are actually **correct** TypeScript conventions:
 
 1. **Underscore-Prefixed Variables**
+
 ```typescript
 // CodeRabbit flagged these as "unused" but they're intentionally unused
 const _id = ...;     // Required by route handler signature
@@ -264,6 +294,7 @@ const _user = ...;   // Destructuring requirement but value not used
 **Conclusion**: These are NOT bugs. Underscore prefix is standard TypeScript convention.
 
 2. **Test File @ts-ignore**
+
 ```typescript
 // @ts-ignore - Testing runtime robustness against invalid input
 expect(validateEmail(null)).toBe(false);
@@ -272,6 +303,7 @@ expect(validateEmail(null)).toBe(false);
 **Conclusion**: These are CORRECT - testing error conditions requires bypassing type safety.
 
 3. **Library Compatibility @ts-expect-error**
+
 ```typescript
 // @ts-expect-error - sendMulticast method exists in firebase-admin@11+
 await messaging.sendMulticast(message);
@@ -284,9 +316,11 @@ await messaging.sendMulticast(message);
 ## 📋 FILES MODIFIED IN THIS SESSION
 
 ### Current Session Changes:
+
 1. ✅ `.github/workflows/e2e-tests.yml` - Fixed GOOGLE_CLIENT_SECRET context warning
 
 ### Files Ready to Commit:
+
 - `.eslintrc.json` (modified)
 - `.github/workflows/e2e-tests.yml` (modified)
 - `auth.config.ts` (modified)
@@ -299,6 +333,7 @@ await messaging.sendMulticast(message);
 ## 🚀 DEPLOYMENT STATUS
 
 ### GitHub Secrets: ✅ 14/14 Configured
+
 - MONGODB_URI ✅
 - NEXTAUTH_SECRET ✅
 - JWT_SECRET ✅
@@ -310,9 +345,11 @@ await messaging.sendMulticast(message);
 - And 6 more...
 
 ### Vercel Secrets: ✅ 57/70 Configured (81%)
+
 All critical features have required secrets configured.
 
 ### CI/CD Pipeline: ✅ PASSING
+
 - E2E tests workflow configured
 - Auto-deploy enabled
 - Health checks passing
@@ -323,31 +360,35 @@ All critical features have required secrets configured.
 
 ### Issues by Complexity:
 
-| Complexity | Count | Estimated Time | Status |
-|------------|-------|----------------|--------|
-| **Easy** (Remove unused imports) | 75 | ✅ 3-4 hours | Complete |
-| **Medium** (Fix type errors) | 15 | ✅ 2-3 hours | Complete |
-| **Medium** (Refactor components) | 2 | ✅ 4-6 hours | Complete |
-| **Hard** (Replace `any` types) | 235+ | ⏳ 15-20 hours | Ongoing |
-| **Acceptable** (Test @ts-ignore) | 9 | ⏸️ Optional | N/A |
+| Complexity                       | Count | Estimated Time | Status   |
+| -------------------------------- | ----- | -------------- | -------- |
+| **Easy** (Remove unused imports) | 75    | ✅ 3-4 hours   | Complete |
+| **Medium** (Fix type errors)     | 15    | ✅ 2-3 hours   | Complete |
+| **Medium** (Refactor components) | 2     | ✅ 4-6 hours   | Complete |
+| **Hard** (Replace `any` types)   | 235+  | ⏳ 15-20 hours | Ongoing  |
+| **Acceptable** (Test @ts-ignore) | 9     | ⏸️ Optional    | N/A      |
 
 ---
 
 ## 🏁 CONCLUSION
 
 ### Summary:
+
 - **99.7% of CodeRabbit issues have been resolved**
 - **Remaining 0.3% are documented suppressions or low-priority improvements**
 - **System is production-ready with minor technical debt**
 
 ### Next Steps:
+
 1. ✅ Commit current changes to Git
 2. ✅ Push to remote repository
 3. ⏳ Schedule TypeScript migration for `any` types (separate epic)
 4. ⏳ Triage runtime `@ts-ignore`/`@ts-expect-error` and document/remove as appropriate
 
 ### Final Recommendation:
+
 **The codebase is in excellent shape.** The remaining issues are:
+
 - 235+ `any` types requiring systematic migration (20 hours - separate initiative)
 - 9 acceptable test `@ts-ignore` usages and a handful of documented `@ts-expect-error` cases
 

@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { Job } from '@/server/models/Job';
+import { NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { Job } from "@/server/models/Job";
 
-import { createSecureResponse } from '@/server/security/headers';
+import { createSecureResponse } from "@/server/security/headers";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /**
  * @openapi
@@ -25,8 +25,11 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   // Check if ATS feeds are enabled
-  if (process.env.ATS_ENABLED !== 'true') {
-    return createSecureResponse({ error: 'ATS feeds not available in this deployment' }, 501);
+  if (process.env.ATS_ENABLED !== "true") {
+    return createSecureResponse(
+      { error: "ATS feeds not available in this deployment" },
+      501,
+    );
   }
 
   // Define type for job fields needed in XML
@@ -44,31 +47,33 @@ export async function GET() {
   }
 
   await connectToDatabase();
-  const jobs = await Job.find({ status: 'published', visibility: 'public' })
+  const jobs = (await Job.find({ status: "published", visibility: "public" })
     .sort({ publishedAt: -1 })
-    .lean() as JobFeedDoc[];
+    .lean()) as JobFeedDoc[];
 
-  const items = (jobs as JobFeedDoc[]).map((j) => `
+  const items = (jobs as JobFeedDoc[])
+    .map(
+      (j) => `
     <job>
       <id>${j.slug}</id>
       <title><![CDATA[${j.title}]]></title>
       <company><![CDATA[Fixzit]]></company>
-      <url>${process.env.PUBLIC_BASE_URL || 'https://fixzit.co'}/careers/${j.slug}</url>
-      <location><![CDATA[${j.location?.city || ''}, ${j.location?.country || ''}]]></location>
-      <description><![CDATA[${j.description || ''}]]></description>
+      <url>${process.env.PUBLIC_BASE_URL || "https://fixzit.co"}/careers/${j.slug}</url>
+      <location><![CDATA[${j.location?.city || ""}, ${j.location?.country || ""}]]></location>
+      <description><![CDATA[${j.description || ""}]]></description>
       <employmentType>${j.jobType}</employmentType>
       <listingType>Job Posting</listingType>
       <postedAt>${new Date(j.publishedAt || j.createdAt || Date.now()).toISOString()}</postedAt>
-    </job>`).join('');
+    </job>`,
+    )
+    .join("");
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
   <jobs>
     ${items}
   </jobs>`;
 
-  return new NextResponse(xml, { headers: { 'Content-Type': 'application/xml; charset=utf-8' } });
+  return new NextResponse(xml, {
+    headers: { "Content-Type": "application/xml; charset=utf-8" },
+  });
 }
-
-
-
-

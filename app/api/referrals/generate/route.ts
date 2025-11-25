@@ -1,66 +1,70 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { ReferralCodeModel } from '@/server/models/ReferralCode';
-import { connectDb } from '@/lib/mongo';
-import { REFERRAL_REWARD, REFERRAL_LIMITS, getReferralValidity } from '@/config/referrals.config';
-import { Types } from 'mongoose';
+import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { ReferralCodeModel } from "@/server/models/ReferralCode";
+import { connectDb } from "@/lib/mongo";
+import {
+  REFERRAL_REWARD,
+  REFERRAL_LIMITS,
+  getReferralValidity,
+} from "@/config/referrals.config";
+import { Types } from "mongoose";
 
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 /**
  * POST /api/referrals/generate
- * 
+ *
  * Generate a new referral code for the current user
  */
 export async function POST() {
   try {
     const session = await auth();
-    
+
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
+
     await connectDb();
-    
+
     // Get orgId from session and convert to ObjectId
     const orgIdString = session.user.orgId;
     if (!orgIdString) {
       return NextResponse.json(
-        { error: 'Organization ID not found in session' },
-        { status: 400 }
+        { error: "Organization ID not found in session" },
+        { status: 400 },
       );
     }
-    
+
     const orgId = new Types.ObjectId(orgIdString);
-    
+
     // Check if user already has an active referral code
     const existing = await ReferralCodeModel.findOne({
       orgId,
       referrerId: session.user.id,
-      status: 'ACTIVE',
+      status: "ACTIVE",
     });
-    
+
     if (existing) {
       return NextResponse.json({ code: existing });
     }
-    
+
     // Generate new code (tenant-aware)
     const code = await ReferralCodeModel.generateCode(orgId);
-    
+
     // Build referral URL from environment variable
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL;
     if (!baseUrl) {
       return NextResponse.json(
-        { error: 'BASE_URL not configured. Contact system administrator.' },
-        { status: 500 }
+        { error: "BASE_URL not configured. Contact system administrator." },
+        { status: 500 },
       );
     }
-    
+
     // Construct referral URL safely
     const shortUrl = new URL(`/ref/${code}`, baseUrl).toString();
-    
+
     // Get validity dates from config
     const { validFrom, validUntil } = getReferralValidity();
-    
+
     // Create referral code with centralized config
     const referralCode = await ReferralCodeModel.create({
       orgId,
@@ -83,15 +87,15 @@ export async function POST() {
         validFrom,
         validUntil,
       },
-      status: 'ACTIVE',
+      status: "ACTIVE",
     });
-    
+
     return NextResponse.json({ code: referralCode });
   } catch (error) {
-    logger.error('Failed to generate referral code:', error);
+    logger.error("Failed to generate referral code:", error);
     return NextResponse.json(
-      { error: 'Failed to generate referral code' },
-      { status: 500 }
+      { error: "Failed to generate referral code" },
+      { status: 500 },
     );
   }
 }

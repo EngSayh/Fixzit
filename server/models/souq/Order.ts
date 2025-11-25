@@ -3,19 +3,22 @@
  * @module server/models/souq/Order
  */
 
-import mongoose, { Schema, type Document } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
-import { EscrowState, type EscrowStateValue } from '@/server/models/finance/EscrowAccount';
+import mongoose, { Schema, type Document } from "mongoose";
+import { getModel, MModel } from "@/src/types/mongoose-compat";
+import {
+  EscrowState,
+  type EscrowStateValue,
+} from "@/server/models/finance/EscrowAccount";
 
 export interface IOrder extends Document {
   _id: mongoose.Types.ObjectId;
   orderId: string;
   orgId?: mongoose.Types.ObjectId;
-  
+
   customerId: mongoose.Types.ObjectId;
   customerEmail: string;
   customerPhone: string;
-  
+
   items: Array<{
     listingId: mongoose.Types.ObjectId;
     productId: mongoose.Types.ObjectId;
@@ -25,14 +28,20 @@ export interface IOrder extends Document {
     quantity: number;
     pricePerUnit: number;
     subtotal: number;
-    fulfillmentMethod: 'fbf' | 'fbm';
-    status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'returned';
+    fulfillmentMethod: "fbf" | "fbm";
+    status:
+      | "pending"
+      | "processing"
+      | "shipped"
+      | "delivered"
+      | "cancelled"
+      | "returned";
     trackingNumber?: string;
     carrier?: string;
     shippedAt?: Date;
     deliveredAt?: Date;
   }>;
-  
+
   shippingAddress: {
     name: string;
     phone: string;
@@ -43,7 +52,7 @@ export interface IOrder extends Document {
     country: string;
     postalCode: string;
   };
-  
+
   billingAddress?: {
     name: string;
     phone: string;
@@ -54,8 +63,8 @@ export interface IOrder extends Document {
     country: string;
     postalCode: string;
   };
-  shippingSpeed?: 'standard' | 'express' | 'same_day';
-  
+  shippingSpeed?: "standard" | "express" | "same_day";
+
   pricing: {
     subtotal: number;
     shippingFee: number;
@@ -64,30 +73,44 @@ export interface IOrder extends Document {
     total: number;
     currency: string;
   };
-  
+
   payment: {
-    method: 'card' | 'cod' | 'wallet' | 'installment';
-    status: 'pending' | 'authorized' | 'captured' | 'failed' | 'refunded';
+    method: "card" | "cod" | "wallet" | "installment";
+    status: "pending" | "authorized" | "captured" | "failed" | "refunded";
     transactionId?: string;
     paidAt?: Date;
   };
-  
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'returned';
-  fulfillmentStatus?: 'pending' | 'pending_seller' | 'shipped' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'delivery_failed';
+
+  status:
+    | "pending"
+    | "confirmed"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled"
+    | "returned";
+  fulfillmentStatus?:
+    | "pending"
+    | "pending_seller"
+    | "shipped"
+    | "in_transit"
+    | "out_for_delivery"
+    | "delivered"
+    | "delivery_failed";
   shippingCarrier?: string;
   trackingNumber?: string;
   shippingLabelUrl?: string;
   estimatedDeliveryDate?: Date;
   deliveredAt?: Date;
-  
+
   cancelledAt?: Date;
   cancellationReason?: string;
-  
+
   returnRequest?: {
     requestedAt: Date;
     reason: string;
     refundAmount: number;
-    status: 'pending' | 'approved' | 'rejected' | 'completed';
+    status: "pending" | "approved" | "rejected" | "completed";
     approvedAt?: Date;
     refundedAt?: Date;
   };
@@ -99,9 +122,9 @@ export interface IOrder extends Document {
     lastEventId?: string;
     idempotencyKey?: string;
   };
-  
+
   notes?: string;
-  
+
   createdAt: Date;
   updatedAt: Date;
   confirmedAt?: Date;
@@ -118,13 +141,13 @@ const OrderSchema = new Schema<IOrder>(
     },
     customerId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
       index: true,
     },
     orgId: {
       type: Schema.Types.ObjectId,
-      ref: 'Organization',
+      ref: "Organization",
       index: true,
     },
     customerEmail: {
@@ -139,12 +162,12 @@ const OrderSchema = new Schema<IOrder>(
       {
         listingId: {
           type: Schema.Types.ObjectId,
-          ref: 'SouqListing',
+          ref: "SouqListing",
           required: true,
         },
         productId: {
           type: Schema.Types.ObjectId,
-          ref: 'SouqProduct',
+          ref: "SouqProduct",
           required: true,
         },
         fsin: {
@@ -153,7 +176,7 @@ const OrderSchema = new Schema<IOrder>(
         },
         sellerId: {
           type: Schema.Types.ObjectId,
-          ref: 'SouqSeller',
+          ref: "SouqSeller",
           required: true,
           index: true,
         },
@@ -178,13 +201,20 @@ const OrderSchema = new Schema<IOrder>(
         },
         fulfillmentMethod: {
           type: String,
-          enum: ['fbf', 'fbm'],
+          enum: ["fbf", "fbm"],
           required: true,
         },
         status: {
           type: String,
-          enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'],
-          default: 'pending',
+          enum: [
+            "pending",
+            "processing",
+            "shipped",
+            "delivered",
+            "cancelled",
+            "returned",
+          ],
+          default: "pending",
         },
         trackingNumber: String,
         carrier: String,
@@ -214,7 +244,7 @@ const OrderSchema = new Schema<IOrder>(
       country: {
         type: String,
         required: true,
-        default: 'SA',
+        default: "SA",
       },
       postalCode: {
         type: String,
@@ -233,8 +263,8 @@ const OrderSchema = new Schema<IOrder>(
     },
     shippingSpeed: {
       type: String,
-      enum: ['standard', 'express', 'same_day'],
-      default: 'standard',
+      enum: ["standard", "express", "same_day"],
+      default: "standard",
     },
     pricing: {
       subtotal: {
@@ -266,33 +296,49 @@ const OrderSchema = new Schema<IOrder>(
       },
       currency: {
         type: String,
-        default: 'SAR',
+        default: "SAR",
       },
     },
     payment: {
       method: {
         type: String,
-        enum: ['card', 'cod', 'wallet', 'installment'],
+        enum: ["card", "cod", "wallet", "installment"],
         required: true,
       },
       status: {
         type: String,
-        enum: ['pending', 'authorized', 'captured', 'failed', 'refunded'],
-        default: 'pending',
+        enum: ["pending", "authorized", "captured", "failed", "refunded"],
+        default: "pending",
       },
       transactionId: String,
       paidAt: Date,
     },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'],
-      default: 'pending',
+      enum: [
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+        "returned",
+      ],
+      default: "pending",
       index: true,
     },
     fulfillmentStatus: {
       type: String,
-      enum: ['pending', 'pending_seller', 'shipped', 'in_transit', 'out_for_delivery', 'delivered', 'delivery_failed'],
-      default: 'pending',
+      enum: [
+        "pending",
+        "pending_seller",
+        "shipped",
+        "in_transit",
+        "out_for_delivery",
+        "delivered",
+        "delivery_failed",
+      ],
+      default: "pending",
       index: true,
     },
     shippingCarrier: String,
@@ -311,13 +357,17 @@ const OrderSchema = new Schema<IOrder>(
       refundAmount: Number,
       status: {
         type: String,
-        enum: ['pending', 'approved', 'rejected', 'completed'],
+        enum: ["pending", "approved", "rejected", "completed"],
       },
       approvedAt: Date,
       refundedAt: Date,
     },
     escrow: {
-      accountId: { type: Schema.Types.ObjectId, ref: 'EscrowAccount', index: true },
+      accountId: {
+        type: Schema.Types.ObjectId,
+        ref: "EscrowAccount",
+        index: true,
+      },
       status: { type: String, enum: Object.values(EscrowState) },
       releaseAfter: { type: Date },
       lastEventId: { type: String },
@@ -329,15 +379,15 @@ const OrderSchema = new Schema<IOrder>(
   },
   {
     timestamps: true,
-    collection: 'souq_orders',
-  }
+    collection: "souq_orders",
+  },
 );
 
 OrderSchema.index({ customerId: 1, createdAt: -1 });
-OrderSchema.index({ 'items.sellerId': 1, createdAt: -1 });
+OrderSchema.index({ "items.sellerId": 1, createdAt: -1 });
 OrderSchema.index({ status: 1, createdAt: -1 });
-OrderSchema.index({ orderId: 'text' });
+OrderSchema.index({ orderId: "text" });
 
-export const SouqOrder = getModel<IOrder>('SouqOrder', OrderSchema);
+export const SouqOrder = getModel<IOrder>("SouqOrder", OrderSchema);
 
 export default SouqOrder;

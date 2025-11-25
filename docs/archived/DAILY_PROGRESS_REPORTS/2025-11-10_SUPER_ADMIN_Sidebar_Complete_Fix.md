@@ -22,11 +22,13 @@
 ### Issue 1: SUPER_ADMIN Sidebar Missing 8+ Modules ❌→✅
 
 **Before:**
+
 - Sidebar showed only ~12 modules
 - Users couldn't access: administration, system, maintenance, orders, projects, rfqs, compliance, assets
 - Navigation disorganized, no category grouping
 
 **Root Causes:**
+
 1. `ROLE_PERMISSIONS.SUPER_ADMIN` contained `'admin'` but that module was removed (kept `'/fm/administration'`)
 2. `SUBSCRIPTION_PLANS.DEFAULT = []` (empty array)
 3. `SUBSCRIPTION_PLANS.ENTERPRISE` had `'admin'` instead of `'administration'`
@@ -37,6 +39,7 @@
 **Fixes Applied:**
 
 **Commit 1: 6cb3e3538** - Reorganized navigation.ts modules
+
 ```typescript
 // Before: 20 modules in random order with duplicate 'admin'
 // After: 20 modules organized by 11 categories
@@ -44,22 +47,23 @@
 export const MODULES: readonly ModuleItem[] = [
   // Core
   { id:'dashboard', ... },
-  
+
   // Facility Management (7 modules)
   { id:'work-orders', 'properties', 'assets', 'tenants', 'maintenance', 'projects' },
-  
+
   // Procurement (3 modules)
   { id:'vendors', 'rfqs', 'orders' },
-  
+
   // Finance (2 modules)
   { id:'finance', 'invoices' },
-  
+
   // HR, CRM, Marketplace, Support, Compliance, Reporting, Administration
   { id:'hr', 'crm', 'marketplace', 'support', 'compliance', 'reports', 'administration', 'system' }
 ]
 ```
 
 **Commit 2: 6fd4c08a7** - Fixed intersection logic bug
+
 ```typescript
 // Before:
 ROLE_PERMISSIONS.SUPER_ADMIN: ['admin', 'administration', ...] // 'admin' doesn't exist!
@@ -83,6 +87,7 @@ SUBSCRIPTION_PLANS.ENTERPRISE: ['administration', ...] // Fixed module id
 ### Issue 2: Arabic Translation Keywords Missing ❌→✅
 
 **Before:**
+
 - EN keys: 1920, AR keys: 1920
 - Admin dashboard cards showed English fallback text in Arabic mode
 - Sidebar categories had no translations
@@ -93,25 +98,27 @@ SUBSCRIPTION_PLANS.ENTERPRISE: ['administration', ...] // Fixed module id
 **Added 62 Translation Keys (31 EN + 31 AR):**
 
 1. **Admin Dashboard Cards (41 keys):**
+
 ```typescript
 // Card titles, descriptions, stats
-'admin.users.{title,description,active,online}'
-'admin.roles.{description,totalRoles,createRole}'
-'admin.audit.{description,recentEvents,viewLogs}'
-'admin.cms.{description,totalPages}'
-'admin.settings.{title,description,categories}'
-'admin.features.{description,active}'
-'admin.database.{title,description,status,healthy}'
-'admin.notifications.{title,description,pending}'
-'admin.email.{title,description,templates}'
-'admin.security.{title,description,policies}'
-'admin.monitoring.{title,description,uptime}'
-'admin.reports.{title,description,generated}'
-'admin.administration.{title,subtitle,description}'
-'admin.system.{title,description,status,operational,monitor}'
+"admin.users.{title,description,active,online}";
+"admin.roles.{description,totalRoles,createRole}";
+"admin.audit.{description,recentEvents,viewLogs}";
+"admin.cms.{description,totalPages}";
+"admin.settings.{title,description,categories}";
+"admin.features.{description,active}";
+"admin.database.{title,description,status,healthy}";
+"admin.notifications.{title,description,pending}";
+"admin.email.{title,description,templates}";
+"admin.security.{title,description,policies}";
+"admin.monitoring.{title,description,uptime}";
+"admin.reports.{title,description,generated}";
+"admin.administration.{title,subtitle,description}";
+"admin.system.{title,description,status,operational,monitor}";
 ```
 
 2. **Sidebar Category Labels (11 keys):**
+
 ```typescript
 'sidebar.category.core' → 'Core' / 'الأساسيات'
 'sidebar.category.fm' → 'Facility Management' / 'إدارة المرافق'
@@ -127,6 +134,7 @@ SUBSCRIPTION_PLANS.ENTERPRISE: ['administration', ...] // Fixed module id
 ```
 
 3. **Admin Page UI (10 keys):**
+
 ```typescript
 'admin.administration.subtitle' → 'Manage all aspects of the Fixzit platform' / 'إدارة جميع جوانب منصة فيكزيت'
 'admin.system.status' → 'System' / 'النظام'
@@ -151,12 +159,14 @@ SUBSCRIPTION_PLANS.ENTERPRISE: ['administration', ...] // Fixed module id
 ### Issue 3: Navigation Organization ❌→✅
 
 **Before:**
+
 - Modules in random order
 - No visual grouping by function
 - Duplicate routes (`/admin` and `/fm/administration`)
 - Inconsistent path patterns
 
 **After:**
+
 - **11 logical categories:**
   1. Core (1 module)
   2. Facility Management (7 modules)
@@ -183,28 +193,65 @@ SUBSCRIPTION_PLANS.ENTERPRISE: ['administration', ...] // Fixed module id
 **File:** `config/navigation.ts`
 
 **ROLE_PERMISSIONS Changes:**
+
 ```typescript
 SUPER_ADMIN: [
-  'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
-  'projects', 'rfqs', 'invoices', 'finance', 'hr', 'administration', // 'admin' removed
-  'crm', 'marketplace', 'support', 'compliance', 'reports', 'system', 'maintenance', 'orders'
-]
+  "dashboard",
+  "work-orders",
+  "properties",
+  "assets",
+  "tenants",
+  "vendors",
+  "projects",
+  "rfqs",
+  "invoices",
+  "finance",
+  "hr",
+  "administration", // 'admin' removed
+  "crm",
+  "marketplace",
+  "support",
+  "compliance",
+  "reports",
+  "system",
+  "maintenance",
+  "orders",
+];
 ```
 
 **SUBSCRIPTION_PLANS Changes:**
+
 ```typescript
 // Before:
-DEFAULT: [] // Empty - breaks intersection!
+DEFAULT: []; // Empty - breaks intersection!
 
 // After:
 DEFAULT: [
-  'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
-  'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'marketplace',
-  'support', 'compliance', 'reports', 'system', 'administration', 'maintenance', 'orders'
-] // Full access for system accounts without explicit subscription
+  "dashboard",
+  "work-orders",
+  "properties",
+  "assets",
+  "tenants",
+  "vendors",
+  "projects",
+  "rfqs",
+  "invoices",
+  "finance",
+  "hr",
+  "crm",
+  "marketplace",
+  "support",
+  "compliance",
+  "reports",
+  "system",
+  "administration",
+  "maintenance",
+  "orders",
+]; // Full access for system accounts without explicit subscription
 ```
 
 **ENTERPRISE Plan Fixed:**
+
 ```typescript
 // Before: 'admin' (non-existent module)
 // After: 'administration' (matches actual module id)
@@ -215,21 +262,23 @@ DEFAULT: [
 **File:** `components/Sidebar.tsx`
 
 **Intersection Logic (Line 51-55):**
+
 ```typescript
 const allowedModules = useMemo(() => {
   const roleModules = ROLE_PERMISSIONS[role] ?? [];
   const subscriptionModules = SUBSCRIPTION_PLANS[subscription] ?? [];
-  
+
   // Intersection: only modules in BOTH role AND subscription
   const allowedIds = new Set<string>(
-    subscriptionModules.filter(id => roleModules.includes(id))
+    subscriptionModules.filter((id) => roleModules.includes(id)),
   );
-  
-  return MODULES.filter(m => allowedIds.has(m.id));
+
+  return MODULES.filter((m) => allowedIds.has(m.id));
 }, [role, subscription]);
 ```
 
 **Why This Matters:**
+
 - If `subscription = 'DEFAULT'` and `DEFAULT = []`
 - Then `subscriptionModules.filter(...)` = `[]`
 - Intersection = `∅` → **NO MODULES SHOWN**
@@ -242,6 +291,7 @@ const allowedModules = useMemo(() => {
 **File:** `contexts/TranslationContext.tsx`
 
 **Arabic Section (Lines 1599-1646):**
+
 ```typescript
 ar: {
   // Admin Dashboard Cards
@@ -250,8 +300,8 @@ ar: {
   'admin.users.active': 'نشط',
   'admin.users.online': 'متصل',
   // ... 38 more keys
-  
-  // Sidebar Categories  
+
+  // Sidebar Categories
   'sidebar.category.core': 'الأساسيات',
   'sidebar.category.fm': 'إدارة المرافق',
   // ... 9 more categories
@@ -259,6 +309,7 @@ ar: {
 ```
 
 **English Section (Lines 3544-3591):**
+
 ```typescript
 en: {
   // Admin Dashboard Cards
@@ -267,7 +318,7 @@ en: {
   'admin.users.active': 'Active',
   'admin.users.online': 'Online',
   // ... 38 more keys
-  
+
   // Sidebar Categories
   'sidebar.category.core': 'Core',
   'sidebar.category.fm': 'Facility Management',
@@ -324,44 +375,55 @@ node 58074 next-server (v15.5.6) running on port 3000
 After login, sidebar should display:
 
 **CORE**
+
 - 📊 Dashboard
 
 **FACILITY MANAGEMENT**
+
 - 📋 Work Orders
-- 🏢 Properties  
+- 🏢 Properties
 - ⚙️ Assets
 - 👥 Tenants
 - 🔧 Maintenance
 - 📁 Projects
 
 **PROCUREMENT**
+
 - 🛒 Vendors
 - 📄 RFQs
 - 📦 Orders
 
 **FINANCE**
+
 - 💰 Finance
 - 🧾 Invoices
 
 **HUMAN RESOURCES**
+
 - 👔 HR
 
 **CUSTOMER RELATIONS**
+
 - ✅ CRM
 
 **MARKETPLACE**
+
 - 🛍️ Marketplace
 
 **SUPPORT**
+
 - 🎧 Support
 
 **COMPLIANCE**
+
 - 🛡️ Compliance
 
 **REPORTING**
+
 - 📊 Reports
 
 **ADMINISTRATION**
+
 - ⚙️ Administration
 - 🖥️ System
 
@@ -388,6 +450,7 @@ After login, sidebar should display:
 ## Git Commits
 
 ### Commit 1: 6cb3e3538
+
 ```
 feat(nav+i18n): Fix SUPER_ADMIN sidebar + complete translation coverage (62 keys)
 
@@ -399,17 +462,18 @@ Sidebar Issues RESOLVED:
 Translation: 100% EN-AR Parity Achieved
 - Added 62 keys (31 EN + 31 AR)
 - Admin dashboard cards: 41 keys
-- Sidebar categories: 11 keys  
+- Sidebar categories: 11 keys
 - Admin page UI: 10 keys
 - Total: EN=1982, AR=1982 (Gap: 0)
 
 Resolves user complaints about:
 - Missing modules in sidebar
-- Incomplete Arabic translations  
+- Incomplete Arabic translations
 - Navigation organization issues
 ```
 
 ### Commit 2: 6fd4c08a7
+
 ```
 fix(nav): SUPER_ADMIN sidebar shows all 20 modules - fixed DEFAULT plan
 
@@ -423,6 +487,7 @@ Result: SUPER_ADMIN sees full module scope
 ## Impact Assessment
 
 ### Before Fix
+
 - ❌ SUPER_ADMIN saw only ~12 modules (60% of assigned scope)
 - ❌ 8+ modules completely inaccessible via sidebar
 - ❌ Arabic UI incomplete - admin features showed English fallbacks
@@ -431,6 +496,7 @@ Result: SUPER_ADMIN sees full module scope
 - ❌ User complaints: "too many features are missing"
 
 ### After Fix
+
 - ✅ SUPER_ADMIN sees all 20 modules (100% of assigned scope)
 - ✅ All modules accessible and properly categorized
 - ✅ Arabic UI complete - 100% localized (1982 keys)
@@ -439,6 +505,7 @@ Result: SUPER_ADMIN sees full module scope
 - ✅ User satisfaction: all features visible and accessible
 
 ### User Experience Improvements
+
 - **Discoverability:** All features now visible in sidebar
 - **Organization:** Clear categories make navigation intuitive
 - **Localization:** Arabic users see proper translations, not English fallbacks
@@ -446,6 +513,7 @@ Result: SUPER_ADMIN sees full module scope
 - **Accessibility:** Modules grouped by function, easier to find
 
 ### Technical Quality
+
 - **Type Safety:** No TypeScript errors
 - **Code Quality:** Clean compilation, no lint warnings
 - **Translation Audit:** 100% pass rate
@@ -529,12 +597,14 @@ All user-reported issues have been resolved:
 5. ✅ Dev server healthy and ready for testing
 
 **User can now:**
+
 - Access all 20 modules from sidebar after login
 - See proper Arabic translations for all admin features
 - Navigate intuitively using category grouping
 - Trust that all assigned features are visible and accessible
 
 **Next session focus:**
+
 - Run comprehensive E2E tests (HFV suite)
 - Address 230 unhandled rejections (production stability)
 - Review dynamic translation keys for safety

@@ -1,4 +1,4 @@
-import ICAL from 'ical.js';
+import ICAL from "ical.js";
 
 export type InterviewInviteInput = {
   uid?: string;
@@ -16,32 +16,35 @@ function toICSTime(date: Date) {
 }
 
 export function generateInterviewICS(input: InterviewInviteInput) {
-  const vCalendar = new ICAL.Component(['vcalendar', [], []]);
-  vCalendar.updatePropertyWithValue('prodid', '-//Fixzit ATS//Interview Scheduling//EN');
-  vCalendar.updatePropertyWithValue('version', '2.0');
+  const vCalendar = new ICAL.Component(["vcalendar", [], []]);
+  vCalendar.updatePropertyWithValue(
+    "prodid",
+    "-//Fixzit ATS//Interview Scheduling//EN",
+  );
+  vCalendar.updatePropertyWithValue("version", "2.0");
 
-  const event = new ICAL.Component('vevent');
+  const event = new ICAL.Component("vevent");
   const vevent = new ICAL.Event(event);
   vevent.uid = input.uid || `${Date.now()}@fixzit.com`;
   vevent.summary = input.title;
-  vevent.description = input.description || '';
-  vevent.location = input.location || 'Virtual';
+  vevent.description = input.description || "";
+  vevent.location = input.location || "Virtual";
   vevent.startDate = toICSTime(input.start);
   vevent.endDate = toICSTime(input.end);
 
-  const organizerProp = new ICAL.Property('organizer');
-  organizerProp.setParameter('cn', input.organizer.name);
+  const organizerProp = new ICAL.Property("organizer");
+  organizerProp.setParameter("cn", input.organizer.name);
   organizerProp.setValue(`mailto:${input.organizer.email}`);
   event.addProperty(organizerProp);
 
   input.attendees.forEach((attendee) => {
-    const attendeeProp = new ICAL.Property('attendee');
+    const attendeeProp = new ICAL.Property("attendee");
     if (attendee.name) {
-      attendeeProp.setParameter('cn', attendee.name);
+      attendeeProp.setParameter("cn", attendee.name);
     }
     attendeeProp.setValue(`mailto:${attendee.email}`);
-    attendeeProp.setParameter('partstat', 'NEEDS-ACTION');
-    attendeeProp.setParameter('role', 'REQ-PARTICIPANT');
+    attendeeProp.setParameter("partstat", "NEEDS-ACTION");
+    attendeeProp.setParameter("role", "REQ-PARTICIPANT");
     event.addProperty(attendeeProp);
   });
 

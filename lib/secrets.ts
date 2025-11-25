@@ -1,15 +1,15 @@
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 /**
  * AWS Secrets Manager Integration
  * Securely retrieves sensitive configuration from AWS Secrets Manager
  * Falls back to environment variables for development
  */
 
-import { randomBytes } from 'crypto';
-import { 
-  SecretsManagerClient, 
-  GetSecretValueCommand 
-} from '@aws-sdk/client-secrets-manager';
+import { randomBytes } from "crypto";
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from "@aws-sdk/client-secrets-manager";
 
 // Cached secrets to avoid repeated AWS API calls
 const secretCache = new Map<string, { value: string; expiresAt: number }>();
@@ -20,7 +20,7 @@ let secretsClient: SecretsManagerClient | null = null;
 /**
  * Initialize AWS Secrets Manager client
  * Only initializes in production with proper AWS credentials
- * 
+ *
  * BUILD-SAFE: Returns null during Next.js build phase to prevent build failures
  */
 function getSecretsClient(): SecretsManagerClient | null {
@@ -31,9 +31,9 @@ function getSecretsClient(): SecretsManagerClient | null {
 
   // Skip AWS initialization during Next.js build phase
   // This prevents build failures when AWS credentials are not available
-  const isNextBuild = process.env.NEXT_PHASE === 'phase-production-build';
+  const isNextBuild = process.env.NEXT_PHASE === "phase-production-build";
   if (isNextBuild) {
-    logger.info('[Secrets] Skipping AWS initialization during build phase');
+    logger.info("[Secrets] Skipping AWS initialization during build phase");
     secretsClient = null;
     return null;
   }
@@ -54,22 +54,23 @@ function getSecretsClient(): SecretsManagerClient | null {
     secretsClient = new SecretsManagerClient({
       region,
       // Only provide explicit credentials if both are present
-      credentials: (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY)
-        ? {
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-          }
-        : undefined // Use AWS SDK default credential provider chain
+      credentials:
+        process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
+          ? {
+              accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+              secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+            }
+          : undefined, // Use AWS SDK default credential provider chain
     });
-    
-    logger.info('[Secrets] AWS Secrets Manager initialized', { region });
+
+    logger.info("[Secrets] AWS Secrets Manager initialized", { region });
     return secretsClient;
   } catch (error) {
     // Gracefully handle AWS initialization errors
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.warn('[Secrets] Could not initialize AWS Secrets Manager', { 
-      region, 
-      error: errorMessage 
+    logger.warn("[Secrets] Could not initialize AWS Secrets Manager", {
+      region,
+      error: errorMessage,
     });
     secretsClient = null;
     return null;
@@ -78,12 +79,12 @@ function getSecretsClient(): SecretsManagerClient | null {
 
 /**
  * Get a secret value from AWS Secrets Manager or environment variables
- * 
+ *
  * Priority order:
  * 1. AWS Secrets Manager (production only, with caching)
  * 2. Environment variables (all environments)
  * 3. Error if not found and required
- * 
+ *
  * @param secretName - The name of the secret (e.g., 'JWT_SECRET', 'prod/fixzit/jwt-secret')
  * @param envFallback - Environment variable name to use as fallback
  * @param required - Whether the secret is required (throws if not found)
@@ -92,7 +93,7 @@ function getSecretsClient(): SecretsManagerClient | null {
 export async function getSecret(
   secretName: string,
   envFallback?: string,
-  required: boolean = false
+  required: boolean = false,
 ): Promise<string | null> {
   try {
     // Check cache first
@@ -107,25 +108,34 @@ export async function getSecret(
       try {
         const command = new GetSecretValueCommand({ SecretId: secretName });
         const response = await client.send(command);
-        
-        const secretValue = response.SecretString || 
-          (response.SecretBinary ? Buffer.from(response.SecretBinary).toString('utf-8') : null);
-        
+
+        const secretValue =
+          response.SecretString ||
+          (response.SecretBinary
+            ? Buffer.from(response.SecretBinary).toString("utf-8")
+            : null);
+
         if (secretValue) {
           // Cache the secret
           secretCache.set(secretName, {
             value: secretValue,
-            expiresAt: Date.now() + CACHE_TTL
+            expiresAt: Date.now() + CACHE_TTL,
           });
-          
-          if (process.env.NODE_ENV !== 'production') {
-            logger.info('[Secrets] Retrieved from AWS Secrets Manager', { secretName });
+
+          if (process.env.NODE_ENV !== "production") {
+            logger.info("[Secrets] Retrieved from AWS Secrets Manager", {
+              secretName,
+            });
           }
           return secretValue;
         }
       } catch (awsError) {
-        const errorMessage = awsError instanceof Error ? awsError.message : String(awsError);
-        logger.warn('[Secrets] Failed to retrieve from AWS', { secretName, errorMessage });
+        const errorMessage =
+          awsError instanceof Error ? awsError.message : String(awsError);
+        logger.warn("[Secrets] Failed to retrieve from AWS", {
+          secretName,
+          errorMessage,
+        });
         // Fall through to environment variable fallback
       }
     }
@@ -134,8 +144,10 @@ export async function getSecret(
     if (envFallback) {
       const envValue = process.env[envFallback]?.trim();
       if (envValue) {
-        if (process.env.NODE_ENV !== 'production') {
-          logger.info('[Secrets] Using environment variable', { envKey: envFallback });
+        if (process.env.NODE_ENV !== "production") {
+          logger.info("[Secrets] Using environment variable", {
+            envKey: envFallback,
+          });
         }
         return envValue;
       }
@@ -143,8 +155,9 @@ export async function getSecret(
 
     // Not found
     if (required) {
-      const errorMessage = `Required secret '${secretName}' not found in AWS Secrets Manager` + 
-        (envFallback ? ` or environment variable '${envFallback}'` : '');
+      const errorMessage =
+        `Required secret '${secretName}' not found in AWS Secrets Manager` +
+        (envFallback ? ` or environment variable '${envFallback}'` : "");
       throw new Error(errorMessage);
     }
 
@@ -153,17 +166,20 @@ export async function getSecret(
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
     if (required) {
-      logger.error('[Secrets] Failed to retrieve required secret', { secretName, error });
+      logger.error("[Secrets] Failed to retrieve required secret", {
+        secretName,
+        error,
+      });
       throw error;
     }
-    logger.warn('[Secrets] Failed to retrieve optional secret', { secretName });
+    logger.warn("[Secrets] Failed to retrieve optional secret", { secretName });
     return null;
   }
 }
 
 /**
  * Get JWT secret with proper priority handling
- * 
+ *
  * Priority:
  * 1. AWS Secrets Manager: prod/fixzit/jwt-secret (production)
  * 2. Environment: JWT_SECRET (all environments)
@@ -171,25 +187,29 @@ export async function getSecret(
  */
 export async function getJWTSecret(): Promise<string> {
   // Try AWS Secrets Manager first (production only)
-  const awsSecretName = process.env.JWT_SECRET_NAME || 'prod/fixzit/jwt-secret';
-  const secret = await getSecret(awsSecretName, 'JWT_SECRET', false);
-  
+  const awsSecretName = process.env.JWT_SECRET_NAME || "prod/fixzit/jwt-secret";
+  const secret = await getSecret(awsSecretName, "JWT_SECRET", false);
+
   if (secret) {
     return secret;
   }
 
   // Production MUST have JWT_SECRET configured
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === "production") {
     throw new Error(
-      `JWT_SECRET is required in production. Configure it in AWS Secrets Manager (using secret name '${awsSecretName}') or as environment variable 'JWT_SECRET'.`
+      `JWT_SECRET is required in production. Configure it in AWS Secrets Manager (using secret name '${awsSecretName}') or as environment variable 'JWT_SECRET'.`,
     );
   }
 
   // Development fallback - generate ephemeral secret
-  logger.warn('[Secrets] No JWT_SECRET configured. Using ephemeral secret for development.');
-  logger.warn('[Secrets] Set JWT_SECRET environment variable for session persistence.');
-  
-  return randomBytes(32).toString('hex');
+  logger.warn(
+    "[Secrets] No JWT_SECRET configured. Using ephemeral secret for development.",
+  );
+  logger.warn(
+    "[Secrets] Set JWT_SECRET environment variable for session persistence.",
+  );
+
+  return randomBytes(32).toString("hex");
 }
 
 /**
@@ -197,15 +217,15 @@ export async function getJWTSecret(): Promise<string> {
  */
 export async function getDatabaseURL(): Promise<string> {
   const secret = await getSecret(
-    process.env.DB_SECRET_NAME || 'prod/fixzit/mongodb-uri',
-    'MONGODB_URI',
-    true
+    process.env.DB_SECRET_NAME || "prod/fixzit/mongodb-uri",
+    "MONGODB_URI",
+    true,
   );
-  
+
   if (!secret) {
-    throw new Error('Database connection string is required');
+    throw new Error("Database connection string is required");
   }
-  
+
   return secret;
 }
 
@@ -214,9 +234,9 @@ export async function getDatabaseURL(): Promise<string> {
  */
 export async function getSendGridAPIKey(): Promise<string | null> {
   return getSecret(
-    process.env.SENDGRID_SECRET_NAME || 'prod/fixzit/sendgrid-api-key',
-    'SENDGRID_API_KEY',
-    false
+    process.env.SENDGRID_SECRET_NAME || "prod/fixzit/sendgrid-api-key",
+    "SENDGRID_API_KEY",
+    false,
   );
 }
 
@@ -225,5 +245,5 @@ export async function getSendGridAPIKey(): Promise<string | null> {
  */
 export function clearSecretCache(): void {
   secretCache.clear();
-  logger.info('[Secrets] Cache cleared');
+  logger.info("[Secrets] Cache cleared");
 }

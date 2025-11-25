@@ -1,19 +1,33 @@
-'use client';
+"use client";
 
-import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
-import { DEFAULT_LOCALE, LOCALE_META, SUPPORTED_LOCALES, type Locale } from './config';
+import React, {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  DEFAULT_LOCALE,
+  LOCALE_META,
+  SUPPORTED_LOCALES,
+  type Locale,
+} from "./config";
 
 // ⚡ PERFORMANCE: Lazy load dictionaries to reduce initial bundle size
 // Each dictionary is 27k lines (~500KB). Loading both upfront wastes 500KB + 200ms parse time.
 // With dynamic imports, only the active locale is loaded, saving ~250KB and 100ms.
-const DICTIONARIES: Record<Locale, () => Promise<{ default: Record<string, unknown> }>> = {
-  en: () => import('./dictionaries/en'),
-  ar: () => import('./dictionaries/ar'),
+const DICTIONARIES: Record<
+  Locale,
+  () => Promise<{ default: Record<string, unknown> }>
+> = {
+  en: () => import("./dictionaries/en"),
+  ar: () => import("./dictionaries/ar"),
 };
 
 type ContextValue = {
   locale: Locale;
-  dir: 'ltr' | 'rtl';
+  dir: "ltr" | "rtl";
   dict: Record<string, unknown>;
   setLocale: (locale: Locale, opts?: { persist?: boolean }) => void;
 };
@@ -21,9 +35,9 @@ type ContextValue = {
 export const I18nContext = createContext<ContextValue | null>(null);
 
 const STORAGE_KEYS = {
-  locale: 'locale',
-  legacyLocale: 'fxz.locale',
-  language: 'fxz.lang',
+  locale: "locale",
+  legacyLocale: "fxz.locale",
+  language: "fxz.lang",
 };
 
 function setCookie(name: string, value: string, days = 365) {
@@ -66,7 +80,7 @@ export const I18nProvider: React.FC<{
           setIsLoading(false);
         }
       });
-    
+
     return () => {
       cancelled = true;
     };
@@ -81,32 +95,39 @@ export const I18nProvider: React.FC<{
 
       try {
         localStorage.setItem(STORAGE_KEYS.locale, next);
-        localStorage.setItem(STORAGE_KEYS.legacyLocale, next === 'ar' ? 'ar-SA' : 'en-GB');
+        localStorage.setItem(
+          STORAGE_KEYS.legacyLocale,
+          next === "ar" ? "ar-SA" : "en-GB",
+        );
         localStorage.setItem(STORAGE_KEYS.language, next);
-        setCookie('locale', next);
-        setCookie('fxz.locale', next === 'ar' ? 'ar-SA' : 'en-GB');
-        setCookie('fxz.lang', next);
-        fetch('/api/i18n', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        setCookie("locale", next);
+        setCookie("fxz.locale", next === "ar" ? "ar-SA" : "en-GB");
+        setCookie("fxz.lang", next);
+        fetch("/api/i18n", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ locale: next }),
         }).catch(() => void 0);
       } catch {
         // ignore storage errors silently to avoid breaking UX
       }
     },
-    []
+    [],
   );
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return;
     }
 
     try {
       const storedLocale = (localStorage.getItem(STORAGE_KEYS.locale) ||
         localStorage.getItem(STORAGE_KEYS.language)) as Locale | null;
-      if (storedLocale && SUPPORTED_LOCALES.includes(storedLocale) && storedLocale !== locale) {
+      if (
+        storedLocale &&
+        SUPPORTED_LOCALES.includes(storedLocale) &&
+        storedLocale !== locale
+      ) {
         setLocale(storedLocale);
       }
     } catch {
@@ -115,37 +136,42 @@ export const I18nProvider: React.FC<{
   }, [locale, setLocale]);
 
   useEffect(() => {
-    if (typeof document === 'undefined') {
+    if (typeof document === "undefined") {
       return;
     }
 
     document.documentElement.lang = locale;
     document.documentElement.dir = meta.dir;
-    document.documentElement.classList.toggle('rtl', meta.dir === 'rtl');
-    document.documentElement.setAttribute('data-locale', locale);
+    document.documentElement.classList.toggle("rtl", meta.dir === "rtl");
+    document.documentElement.setAttribute("data-locale", locale);
     if (document.body) {
       document.body.style.direction = meta.dir;
     }
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       window.dispatchEvent(
-        new CustomEvent('fixzit:language-change', {
+        new CustomEvent("fixzit:language-change", {
           detail: { locale, language: locale, dir: meta.dir },
-        })
+        }),
       );
     }
   }, [locale, meta.dir]);
 
-  const value = useMemo<ContextValue>(() => ({
-    locale,
-    dir: meta.dir,
-    dict,
-    setLocale,
-  }), [dict, locale, meta.dir, setLocale]);
+  const value = useMemo<ContextValue>(
+    () => ({
+      locale,
+      dir: meta.dir,
+      dict,
+      setLocale,
+    }),
+    [dict, locale, meta.dir, setLocale],
+  );
 
   // Show a minimal loading state while dictionary loads (< 100ms typically)
   if (isLoading) {
-    return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+    return (
+      <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
+    );
   }
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

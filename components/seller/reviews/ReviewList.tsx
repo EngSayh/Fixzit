@@ -1,13 +1,13 @@
 /**
  * ReviewList Component - Paginated list of reviews with filters
  */
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { ReviewCard } from './ReviewCard';
-import type { IReview } from '@/server/models/souq/Review';
-import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { logger } from '@/lib/logger';
+import React, { useState, useEffect } from "react";
+import { ReviewCard } from "./ReviewCard";
+import type { IReview } from "@/server/models/souq/Review";
+import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { logger } from "@/lib/logger";
 
 interface ReviewListProps {
   productId?: string;
@@ -19,7 +19,7 @@ interface ReviewListProps {
 interface FilterState {
   rating: number | null;
   verifiedOnly: boolean;
-  sortBy: 'recent' | 'helpful' | 'rating';
+  sortBy: "recent" | "helpful" | "rating";
 }
 
 export function ReviewList({
@@ -35,9 +35,9 @@ export function ReviewList({
   const [filters, setFilters] = useState<FilterState>({
     rating: null,
     verifiedOnly: false,
-    sortBy: 'recent',
+    sortBy: "recent",
   });
-  const auto = useAutoTranslator('seller.reviewList');
+  const auto = useAutoTranslator("seller.reviewList");
 
   useEffect(() => {
     if (productId) {
@@ -52,20 +52,26 @@ export function ReviewList({
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '20',
+        limit: "20",
         sortBy: filters.sortBy,
       });
 
-      if (filters.rating) params.append('rating', filters.rating.toString());
-      if (filters.verifiedOnly) params.append('verifiedOnly', 'true');
+      if (filters.rating) params.append("rating", filters.rating.toString());
+      if (filters.verifiedOnly) params.append("verifiedOnly", "true");
 
-      const response = await fetch(`/api/souq/reviews?productId=${productId}&${params}`);
+      const response = await fetch(
+        `/api/souq/reviews?productId=${productId}&${params}`,
+      );
       const data = await response.json();
 
       setReviews(data.data || []);
       setTotalPages(data.pagination?.pages || 1);
     } catch (error) {
-      logger.error('Failed to fetch reviews', error, { component: 'ReviewList', action: 'fetchReviews', productId });
+      logger.error("Failed to fetch reviews", error, {
+        component: "ReviewList",
+        action: "fetchReviews",
+        productId,
+      });
     } finally {
       setLoading(false);
     }
@@ -83,10 +89,10 @@ export function ReviewList({
         {/* Rating Filter */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            {auto('Filter by Rating', 'filters.ratingLabel')}
+            {auto("Filter by Rating", "filters.ratingLabel")}
           </label>
           <select
-            value={filters.rating || ''}
+            value={filters.rating || ""}
             onChange={(e) =>
               handleFilterChange({
                 rating: e.target.value ? parseInt(e.target.value) : null,
@@ -94,10 +100,15 @@ export function ReviewList({
             }
             className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="">{auto('All Ratings', 'filters.allRatings')}</option>
+            <option value="">
+              {auto("All Ratings", "filters.allRatings")}
+            </option>
             {[5, 4, 3, 2, 1].map((value) => (
               <option key={value} value={value}>
-                {auto('{{count}} Stars', 'filters.ratingOption').replace('{{count}}', String(value))}
+                {auto("{{count}} Stars", "filters.ratingOption").replace(
+                  "{{count}}",
+                  String(value),
+                )}
               </option>
             ))}
           </select>
@@ -114,25 +125,35 @@ export function ReviewList({
               }
               className="w-4 h-4 text-primary"
             />
-            <span className="text-sm">{auto('Verified Purchases Only', 'filters.verifiedOnly')}</span>
+            <span className="text-sm">
+              {auto("Verified Purchases Only", "filters.verifiedOnly")}
+            </span>
           </label>
         </div>
 
         {/* Sort By */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            {auto('Sort By', 'filters.sortLabel')}
+            {auto("Sort By", "filters.sortLabel")}
           </label>
           <select
             value={filters.sortBy}
             onChange={(e) =>
-              handleFilterChange({ sortBy: e.target.value as 'recent' | 'helpful' | 'rating' })
+              handleFilterChange({
+                sortBy: e.target.value as "recent" | "helpful" | "rating",
+              })
             }
             className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="recent">{auto('Most Recent', 'filters.sort.recent')}</option>
-            <option value="helpful">{auto('Most Helpful', 'filters.sort.helpful')}</option>
-            <option value="rating">{auto('Highest Rating', 'filters.sort.rating')}</option>
+            <option value="recent">
+              {auto("Most Recent", "filters.sort.recent")}
+            </option>
+            <option value="helpful">
+              {auto("Most Helpful", "filters.sort.helpful")}
+            </option>
+            <option value="rating">
+              {auto("Highest Rating", "filters.sort.rating")}
+            </option>
           </select>
         </div>
       </div>
@@ -142,7 +163,7 @@ export function ReviewList({
         <div className="text-center py-12">
           <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           <p className="mt-4 text-muted-foreground">
-            {auto('Loading reviews...', 'state.loading')}
+            {auto("Loading reviews...", "state.loading")}
           </p>
         </div>
       ) : reviews.length > 0 ? (
@@ -158,7 +179,9 @@ export function ReviewList({
         </div>
       ) : (
         <div className="text-center py-12 border rounded-lg">
-          <p className="text-muted-foreground">{auto('No reviews found', 'state.empty')}</p>
+          <p className="text-muted-foreground">
+            {auto("No reviews found", "state.empty")}
+          </p>
         </div>
       )}
 
@@ -170,19 +193,19 @@ export function ReviewList({
             disabled={page === 1 || loading}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
           >
-            {auto('Previous', 'pagination.previous')}
+            {auto("Previous", "pagination.previous")}
           </button>
           <span className="text-sm text-muted-foreground">
-            {auto('Page {{page}} of {{total}}', 'pagination.summary')
-              .replace('{{page}}', String(page))
-              .replace('{{total}}', String(totalPages))}
+            {auto("Page {{page}} of {{total}}", "pagination.summary")
+              .replace("{{page}}", String(page))
+              .replace("{{total}}", String(totalPages))}
           </span>
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages || loading}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
           >
-            {auto('Next', 'pagination.next')}
+            {auto("Next", "pagination.next")}
           </button>
         </div>
       )}

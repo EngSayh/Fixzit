@@ -17,7 +17,7 @@ export function validateTimestamp(value: unknown): Date | null {
   }
 
   // Handle numbers (Unix timestamps)
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     // Handle createdAt=0 edge case
     if (value === 0) {
       return null;
@@ -30,9 +30,9 @@ export function validateTimestamp(value: unknown): Date | null {
   }
 
   // Handle strings
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     // Handle empty strings
-    if (value.trim() === '') {
+    if (value.trim() === "") {
       return null;
     }
 
@@ -62,8 +62,8 @@ export function createSafeTimestamp(value?: unknown): Date {
  * Sanitize timestamp fields in an object
  */
 export function sanitizeTimestamps<T extends Record<string, unknown>>(
-  obj: T, 
-  fields: (keyof T)[] = ['createdAt', 'updatedAt']
+  obj: T,
+  fields: (keyof T)[] = ["createdAt", "updatedAt"],
 ): T {
   const sanitized = { ...obj };
 
@@ -81,14 +81,14 @@ export function sanitizeTimestamps<T extends Record<string, unknown>>(
  * Validate array of objects and sanitize their timestamps
  */
 export function validateCollection<T extends Record<string, unknown>>(
-  collection: T[], 
-  timestampFields: (keyof T)[] = ['createdAt', 'updatedAt']
+  collection: T[],
+  timestampFields: (keyof T)[] = ["createdAt", "updatedAt"],
 ): T[] {
   if (!Array.isArray(collection)) {
-    throw new Error('Collection must be an array');
+    throw new Error("Collection must be an array");
   }
 
-  return collection.map(item => sanitizeTimestamps(item, timestampFields));
+  return collection.map((item) => sanitizeTimestamps(item, timestampFields));
 }
 
 /**
@@ -96,24 +96,27 @@ export function validateCollection<T extends Record<string, unknown>>(
  */
 export function addTimestamps<T extends Record<string, unknown>>(
   obj: T,
-  overwrite: boolean = false
+  overwrite: boolean = false,
 ): T & { createdAt: Date; updatedAt: Date } {
   const now = new Date();
-  
+
   return {
     ...obj,
-    createdAt: (!obj.createdAt || overwrite) ? now : createSafeTimestamp(obj.createdAt),
-    updatedAt: now
+    createdAt:
+      !obj.createdAt || overwrite ? now : createSafeTimestamp(obj.createdAt),
+    updatedAt: now,
   };
 }
 
 /**
  * Update only the updatedAt timestamp
  */
-export function updateTimestamp<T extends Record<string, unknown>>(obj: T): T & { updatedAt: Date } {
+export function updateTimestamp<T extends Record<string, unknown>>(
+  obj: T,
+): T & { updatedAt: Date } {
   return {
     ...obj,
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
 }
 
@@ -124,17 +127,17 @@ export function updateTimestamp<T extends Record<string, unknown>>(obj: T): T & 
 export function formatTimestamp(
   timestamp: Date | string | number,
   locale: string,
-  options?: Intl.DateTimeFormatOptions
+  options?: Intl.DateTimeFormatOptions,
 ): string {
   const date = createSafeTimestamp(timestamp);
-  
+
   const defaultOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    ...options
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    ...options,
   };
 
   return date.toLocaleString(locale, defaultOptions);
@@ -146,21 +149,21 @@ export function formatTimestamp(
  */
 export function getRelativeTime(
   timestamp: Date | string | number,
-  locale: string
+  locale: string,
 ): string {
   const date = createSafeTimestamp(timestamp);
   const now = new Date();
   const diff = now.getTime() - date.getTime();
 
-  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
 
   const intervals = [
-    { unit: 'year', ms: 365 * 24 * 60 * 60 * 1000 },
-    { unit: 'month', ms: 30 * 24 * 60 * 60 * 1000 },
-    { unit: 'week', ms: 7 * 24 * 60 * 60 * 1000 },
-    { unit: 'day', ms: 24 * 60 * 60 * 1000 },
-    { unit: 'hour', ms: 60 * 60 * 1000 },
-    { unit: 'minute', ms: 60 * 1000 },
+    { unit: "year", ms: 365 * 24 * 60 * 60 * 1000 },
+    { unit: "month", ms: 30 * 24 * 60 * 60 * 1000 },
+    { unit: "week", ms: 7 * 24 * 60 * 60 * 1000 },
+    { unit: "day", ms: 24 * 60 * 60 * 1000 },
+    { unit: "hour", ms: 60 * 60 * 1000 },
+    { unit: "minute", ms: 60 * 1000 },
   ];
 
   for (const interval of intervals) {
@@ -170,5 +173,5 @@ export function getRelativeTime(
     }
   }
 
-  return rtf.format(0, 'second');
+  return rtf.format(0, "second");
 }

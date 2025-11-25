@@ -1,5 +1,5 @@
-import NextAuth from 'next-auth';
-import { authConfig } from './auth.config';
+import NextAuth from "next-auth";
+import { authConfig } from "./auth.config";
 
 // ⚡ CRITICAL: Do NOT add database operations here
 // This file is imported by middleware.ts (Edge Runtime)

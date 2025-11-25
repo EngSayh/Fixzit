@@ -11,7 +11,7 @@
 ### ✅ COMPLETE - Automatable Tasks (10)
 
 1. ✅ Review and commit subscription work
-2. ✅ Resolve disk space issues  
+2. ✅ Resolve disk space issues
 3. ✅ Implement governance infrastructure
 4. ✅ Run duplicate scan
 5. ✅ **Consolidate duplicates** (178 files removed)
@@ -29,7 +29,7 @@ These tasks **CANNOT be automated** without a running application:
    - **Blocker**: Requires `npm run dev` running
    - **Action**: Deploy to development, run tests, fix failures
 
-10. ⏳ **Test subscription management**
+9. ⏳ **Test subscription management**
 
 - **Blocker**: Requires deployed application + payment gateway
 - **Action**: Deploy to staging, test all user flows

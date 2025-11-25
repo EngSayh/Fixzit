@@ -22,9 +22,10 @@
 These secrets are **required for the app to work properly**. Without them, authentication and core features will fail.
 
 ### 1. JWT_SECRET
+
 - **Purpose:** JWT token signing for API authentication
 - **Impact:** API authentication may fail
-- **How to get:** 
+- **How to get:**
   ```bash
   openssl rand -hex 32
   ```
@@ -35,6 +36,7 @@ These secrets are **required for the app to work properly**. Without them, authe
   ```
 
 ### 2. INTERNAL_API_SECRET
+
 - **Purpose:** Server-to-server authentication
 - **Impact:** Internal API calls will fail
 - **How to get:**
@@ -53,6 +55,7 @@ These secrets are **required for the app to work properly**. Without them, authe
 These secrets enable major features. Without them, users will experience broken functionality.
 
 ### 1. OPENAI_API_KEY
+
 - **Purpose:** AI Copilot, Help Q&A, intelligent features
 - **Impact:** All AI features will be disabled
 - **How to get:**
@@ -68,17 +71,18 @@ These secrets enable major features. Without them, users will experience broken 
   ```
 
 ### 2. AWS S3 Storage (4 secrets)
+
 - **Purpose:** File uploads (resumes, work order attachments, documents)
 - **Impact:** Users cannot upload files
 - **How to get:**
-  
+
   **Option A: Use AWS S3 (Recommended)**
   1. Go to https://console.aws.amazon.com/s3/
   2. Create a new bucket (e.g., `fixzit-uploads`)
   3. Go to https://console.aws.amazon.com/iam/
   4. Create new user with S3 access
   5. Generate access keys
-  
+
   **Option B: Use Vercel Blob Storage**
   1. Go to Vercel dashboard
   2. Project Settings → Storage → Create Blob Store
@@ -93,6 +97,7 @@ These secrets enable major features. Without them, users will experience broken 
   ```
 
 ### 3. PayTabs Payment Gateway (3 secrets)
+
 - **Purpose:** Payment processing, invoicing, e-commerce
 - **Impact:** Users cannot make payments
 - **How to get:**
@@ -108,6 +113,7 @@ These secrets enable major features. Without them, users will experience broken 
   ```
 
 ### 4. Tap Payment (Alternative)
+
 - **Purpose:** Alternative payment processor
 - **How to get:**
   1. Go to https://dashboard.tap.company
@@ -126,6 +132,7 @@ These secrets enable major features. Without them, users will experience broken 
 These secrets improve user experience but the app works without them.
 
 ### 1. Public URLs (4 secrets)
+
 - **Purpose:** Email links, OAuth redirects, referral links
 - **Impact:** Links in emails may be broken, OAuth may fail
 - **How to get:** Use your production URL
@@ -138,6 +145,7 @@ These secrets improve user experience but the app works without them.
   ```
 
 ### 2. REDIS_URL
+
 - **Purpose:** Caching, rate limiting, job queues
 - **Impact:** Slower performance, no rate limiting
 - **How to get:**
@@ -151,6 +159,7 @@ These secrets improve user experience but the app works without them.
   ```
 
 ### 3. Security Secrets (3 secrets)
+
 - **Purpose:** Background jobs, file security, privacy
 - **How to get:**
   ```bash
@@ -167,6 +176,7 @@ These secrets improve user experience but the app works without them.
   ```
 
 ### 4. NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
 - **Purpose:** Google Maps on client-side
 - **Impact:** Maps won't load on frontend
 - **How to get:** Copy the value from existing `GOOGLE_MAPS_API_KEY` or create new one at https://console.cloud.google.com/apis/credentials
@@ -182,15 +192,18 @@ These secrets improve user experience but the app works without them.
 These are optional integrations that can be added later.
 
 ### 1. Error Tracking & Monitoring
+
 - **SENTRY_DSN:** From https://sentry.io dashboard
 - **DATADOG_API_KEY:** From https://app.datadoghq.com
 
 ### 2. Shipping Integrations
+
 - **ARAMEX_ACCOUNT_NUMBER, ARAMEX_USERNAME, ARAMEX_PASSWORD:** From Aramex account
 - **SMSA_USERNAME:** From SMSA Express account
 - **SPL_API_KEY:** From Saudi Post Logistics
 
 ### 3. Feature Flags (Enable Modules)
+
 ```bash
 vercel env add ATS_ENABLED production           # Enter: true
 vercel env add WO_ENABLED production            # Enter: true
@@ -205,32 +218,39 @@ vercel env add PROPERTY_ENABLED production      # Enter: true
 These **37 secrets** are already set up in Vercel:
 
 ### Core Authentication (3)
+
 - ✅ MONGODB_URI
 - ✅ NEXTAUTH_SECRET
 - ✅ NEXTAUTH_URL
 
 ### OAuth (2)
+
 - ✅ GOOGLE_CLIENT_ID
 - ✅ GOOGLE_CLIENT_SECRET
 
 ### Email (3)
+
 - ✅ SENDGRID_API_KEY
 - ✅ SENDGRID_FROM_EMAIL
 - ✅ SENDGRID_FROM_NAME
 
 ### SMS (3)
+
 - ✅ TWILIO_ACCOUNT_SID
 - ✅ TWILIO_AUTH_TOKEN
 - ✅ TWILIO_PHONE_NUMBER
 
 ### Maps (1)
+
 - ✅ GOOGLE_MAPS_API_KEY
 
 ### Search (2)
+
 - ✅ MEILI_HOST
 - ✅ MEILI_MASTER_KEY
 
 ### ZATCA E-Invoicing (6)
+
 - ✅ ZATCA_API_KEY
 - ✅ ZATCA_API_SECRET
 - ✅ ZATCA_SELLER_NAME
@@ -239,19 +259,23 @@ These **37 secrets** are already set up in Vercel:
 - ✅ ZATCA_ENVIRONMENT
 
 ### Firebase Push Notifications (3)
+
 - ✅ FIREBASE_ADMIN_PROJECT_ID
 - ✅ FIREBASE_ADMIN_CLIENT_EMAIL
 - ✅ FIREBASE_ADMIN_PRIVATE_KEY
 
 ### Organization IDs (3)
+
 - ✅ PUBLIC_ORG_ID
 - ✅ TEST_ORG_ID
 - ✅ DEFAULT_ORG_ID
 
 ### Feature Flags (1)
+
 - ✅ MARKETPLACE_ENABLED
 
 ### Notifications (7)
+
 - ✅ NOTIFICATIONS_SMOKE_USER_ID
 - ✅ NOTIFICATIONS_SMOKE_NAME
 - ✅ NOTIFICATIONS_SMOKE_EMAIL
@@ -261,6 +285,7 @@ These **37 secrets** are already set up in Vercel:
 - ✅ WHATSAPP_PHONE_NUMBER_ID
 
 ### SMS OTP (3)
+
 - ✅ NEXTAUTH_REQUIRE_SMS_OTP
 - ✅ NEXT_PUBLIC_REQUIRE_SMS_OTP
 - ✅ NEXTAUTH_SUPERADMIN_FALLBACK_PHONE
@@ -312,6 +337,7 @@ vercel --cwd Fixzit --prod --yes
 ## ⚠️ Important Notes
 
 1. **Always redeploy after adding secrets:**
+
    ```bash
    vercel --cwd Fixzit --prod --yes
    ```
@@ -345,6 +371,7 @@ vercel --cwd Fixzit --prod --yes
 ## 📝 Next Steps
 
 1. **Immediate (Critical):**
+
    ```bash
    vercel env add JWT_SECRET production
    vercel env add INTERNAL_API_SECRET production

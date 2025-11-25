@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { rateLimit } from '@/server/security/rateLimit';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { rateLimit } from "@/server/security/rateLimit";
 
-describe('rateLimit helper', () => {
+describe("rateLimit helper", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -10,8 +10,8 @@ describe('rateLimit helper', () => {
     vi.useRealTimers();
   });
 
-  it('allows requests up to the limit and blocks subsequent calls', () => {
-    const key = 'rate:test';
+  it("allows requests up to the limit and blocks subsequent calls", () => {
+    const key = "rate:test";
     const first = rateLimit(key, 3, 1_000);
     const second = rateLimit(key, 3, 1_000);
     const third = rateLimit(key, 3, 1_000);
@@ -24,8 +24,8 @@ describe('rateLimit helper', () => {
     expect(fourth.remaining).toBe(0);
   });
 
-  it('resets the window after the configured duration', () => {
-    const key = 'rate:window';
+  it("resets the window after the configured duration", () => {
+    const key = "rate:window";
     rateLimit(key, 2, 500);
     rateLimit(key, 2, 500);
 
@@ -39,15 +39,15 @@ describe('rateLimit helper', () => {
     expect(afterReset.remaining).toBe(1);
   });
 
-  it('isolates counters per key', () => {
-    const alpha = rateLimit('rate:alpha', 1, 1_000);
-    const beta = rateLimit('rate:beta', 1, 1_000);
+  it("isolates counters per key", () => {
+    const alpha = rateLimit("rate:alpha", 1, 1_000);
+    const beta = rateLimit("rate:beta", 1, 1_000);
 
     expect(alpha.allowed).toBe(true);
     expect(beta.allowed).toBe(true);
 
-    const alphaBlocked = rateLimit('rate:alpha', 1, 1_000);
-    const betaStillAllowed = rateLimit('rate:beta', 1, 1_000);
+    const alphaBlocked = rateLimit("rate:alpha", 1, 1_000);
+    const betaStillAllowed = rateLimit("rate:beta", 1, 1_000);
 
     expect(alphaBlocked.allowed).toBe(false);
     expect(betaStillAllowed.allowed).toBe(false); // beta hit its own limit separately

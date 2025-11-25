@@ -29,7 +29,7 @@ export function createTimeoutSignal({
   };
 
   if (upstreamSignal) {
-    upstreamSignal.addEventListener('abort', abortFromUpstream, { once: true });
+    upstreamSignal.addEventListener("abort", abortFromUpstream, { once: true });
   }
 
   const timeoutId =
@@ -50,7 +50,7 @@ export function createTimeoutSignal({
         clearTimeout(timeoutId);
       }
       if (upstreamSignal) {
-        upstreamSignal.removeEventListener('abort', abortFromUpstream);
+        upstreamSignal.removeEventListener("abort", abortFromUpstream);
       }
     },
   };
@@ -65,8 +65,8 @@ export async function withTimeout<T>(
   let abortHandler: (() => void) | null = null;
   const abortPromise = new Promise<never>((_, reject) => {
     abortHandler = () => {
-      signal.removeEventListener('abort', abortHandler!);
-      reject(signal.reason ?? new Error('Operation aborted'));
+      signal.removeEventListener("abort", abortHandler!);
+      reject(signal.reason ?? new Error("Operation aborted"));
     };
 
     if (signal.aborted) {
@@ -74,14 +74,14 @@ export async function withTimeout<T>(
       return;
     }
 
-    signal.addEventListener('abort', abortHandler!, { once: true });
+    signal.addEventListener("abort", abortHandler!, { once: true });
   });
 
   try {
     return await Promise.race([operation(signal), abortPromise]);
   } finally {
     if (abortHandler) {
-      signal.removeEventListener('abort', abortHandler);
+      signal.removeEventListener("abort", abortHandler);
     }
     dispose();
   }

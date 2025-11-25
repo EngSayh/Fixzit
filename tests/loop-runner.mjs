@@ -17,7 +17,7 @@ const CONFIG = {
 
 const endAt = Date.now() + CONFIG.durationMs;
 let runNumber = 1;
-let anyFailures = false; // Track if any command failed during the loop
+let hasFailures = false; // Track if any command failed during the loop
 const logFile = CONFIG.logFile;
 
 // Ensure log directory exists
@@ -97,7 +97,7 @@ async function runVerificationCycle() {
       await executeCommand(cmd, args, label, step);
     } catch (err) {
       cycleSuccess = false;
-      anyFailures = true; // Track that at least one failure occurred
+      hasFailures = true; // Track that at least one failure occurred
       logMessage(`Continuing to next step despite failure in: ${label}`, true);
     }
   }
@@ -157,7 +157,7 @@ async function main() {
   }
 
   // Exit with code 1 if any failures occurred during the loop
-  if (anyFailures) {
+  if (hasFailures) {
     logMessage('\n✗ Exiting with code 1 - failures detected during verification loop', true);
     process.exit(1);
   } else {
@@ -170,13 +170,13 @@ async function main() {
 process.on('SIGINT', () => {
   logMessage('\n⚠️  Received SIGINT - shutting down gracefully...');
   logMessage(`Completed ${runNumber - 1} verification cycles before shutdown`);
-  process.exit(anyFailures ? 1 : 0);
+  process.exit(hasFailures ? 1 : 0);
 });
 
 process.on('SIGTERM', () => {
   logMessage('\n⚠️  Received SIGTERM - shutting down gracefully...');
   logMessage(`Completed ${runNumber - 1} verification cycles before shutdown`);
-  process.exit(anyFailures ? 1 : 0);
+  process.exit(hasFailures ? 1 : 0);
 });
 
 main().catch((err) => {

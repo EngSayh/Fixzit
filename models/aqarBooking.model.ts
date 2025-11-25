@@ -17,6 +17,7 @@
  */
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
+import type { MModel } from '@/src/types/mongoose-compat';
 import { EscrowSource, EscrowState, type EscrowStateValue } from '@/server/models/finance/EscrowAccount';
 
 export enum BookingStatus {
@@ -346,7 +347,7 @@ BookingSchema.methods.cancel = async function (
 
 /* ---------------- Statics: availability & atomic create ---------------- */
 
-interface BookingModel extends Model<IBooking> {
+interface BookingModel extends MModel<IBooking> {
   /**
    * Check if any active booking overlaps with the given nights
    * @param orgId - Organization ID
@@ -418,30 +419,34 @@ BookingSchema.statics.overlaps = async function ({
  * Check if listing is available for booking (no overlaps)
  * Normalizes dates to UTC and checks for conflicts
  */
-BookingSchema.statics.isAvailable = async function ({
-  orgId,
-  listingId,
-  checkInDate,
-  checkOutDate,
-}: {
-  orgId: mongoose.Types.ObjectId;
-  listingId: mongoose.Types.ObjectId;
-  checkInDate: Date;
-  checkOutDate: Date;
-}): Promise<boolean> {
+// ✅ FIXED: Type-safe static method with proper BookingModel interface typing
+BookingSchema.statics.isAvailable = (async function (
+  this: BookingModel,
+  {
+    orgId,
+    listingId,
+    checkInDate,
+    checkOutDate,
+  }: {
+    orgId: mongoose.Types.ObjectId;
+    listingId: mongoose.Types.ObjectId;
+    checkInDate: Date;
+    checkOutDate: Date;
+  }
+): Promise<boolean> {
   const inUTC = toUTCDateOnly(checkInDate);
   const outUTC = toUTCDateOnly(checkOutDate);
   const nights = enumerateNightsUTC(inUTC, outUTC);
-  const bookingModel = this as unknown as BookingModel;
-  return !(await bookingModel.overlaps({ orgId, listingId, nights }));
-};
+  return !(await this.overlaps({ orgId, listingId, nights }));
+}) as BookingModel['isAvailable'];
 
 /**
  * Atomically create booking with availability check
  * Throws if dates are not available
  * The unique index on reservedNights provides final race protection
  */
-BookingSchema.statics.createWithAvailability = async function (
+BookingSchema.statics.createWithAvailability = (async function (
+  this: BookingModel,
   doc: Partial<IBooking>,
   session?: mongoose.ClientSession
 ): Promise<IBooking> {
@@ -450,8 +455,7 @@ BookingSchema.statics.createWithAvailability = async function (
   const nights = enumerateNightsUTC(inUTC, outUTC);
 
   // Pre-check for conflicts (UX feedback)
-  const bookingModel = this as unknown as BookingModel;
-  const conflict = await bookingModel.overlaps({
+  const conflict = await this.overlaps({
     orgId: doc.orgId as mongoose.Types.ObjectId,
     listingId: doc.listingId as mongoose.Types.ObjectId,
     nights,
@@ -514,12 +518,13 @@ BookingSchema.statics.createWithAvailability = async function (
   }
 
   return bookingDoc;
-};
+}) as BookingModel['createWithAvailability'];
 
 /* ---------------- Model Export ---------------- */
 
-const Booking =
-  (mongoose.models.AqarBooking as BookingModel | undefined) ||
+// ✅ FIXED: Type-safe model export with proper BookingModel interface typing  
+const Booking: BookingModel =
+  (mongoose.models.AqarBooking as BookingModel) ||
   mongoose.model<IBooking, BookingModel>('AqarBooking', BookingSchema);
 
 export default Booking;

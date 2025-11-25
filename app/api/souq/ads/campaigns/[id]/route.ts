@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { CampaignService } from '@/services/souq/ads/campaign-service';
-import { auth } from '@/auth';
-import { logger } from '@/lib/logger';
+import { NextRequest, NextResponse } from "next/server";
+import { CampaignService } from "@/services/souq/ads/campaign-service";
+import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/souq/ads/campaigns/[id]
@@ -9,32 +9,32 @@ import { logger } from '@/lib/logger';
  */
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await auth();
-    
+
     if (!session?.user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
       );
     }
 
     const campaign = await CampaignService.getCampaign(params.id);
-    
+
     if (!campaign) {
       return NextResponse.json(
-        { success: false, error: 'Campaign not found' },
-        { status: 404 }
+        { success: false, error: "Campaign not found" },
+        { status: 404 },
       );
     }
 
     // Verify ownership
     if (campaign.sellerId !== session.user.id) {
       return NextResponse.json(
-        { success: false, error: 'Forbidden' },
-        { status: 403 }
+        { success: false, error: "Forbidden" },
+        { status: 403 },
       );
     }
 
@@ -43,15 +43,15 @@ export async function GET(
       data: campaign,
     });
   } catch (error) {
-    logger.error('[Ad API] Get campaign failed', { error });
-    
+    logger.error("[Ad API] Get campaign failed", { error });
+
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to get campaign',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        error: "Failed to get campaign",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -62,44 +62,44 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await auth();
-    
+
     if (!session?.user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
       );
     }
 
     // Verify ownership
     const campaign = await CampaignService.getCampaign(params.id);
-    
+
     if (!campaign) {
       return NextResponse.json(
-        { success: false, error: 'Campaign not found' },
-        { status: 404 }
+        { success: false, error: "Campaign not found" },
+        { status: 404 },
       );
     }
 
     if (campaign.sellerId !== session.user.id) {
       return NextResponse.json(
-        { success: false, error: 'Forbidden' },
-        { status: 403 }
+        { success: false, error: "Forbidden" },
+        { status: 403 },
       );
     }
 
     const body = await request.json();
-    
+
     const updates: {
       name?: string;
       dailyBudget?: number;
       startDate?: Date;
       endDate?: Date;
-      status?: 'active' | 'paused' | 'ended';
-      biddingStrategy?: 'manual' | 'automatic';
+      status?: "active" | "paused" | "ended";
+      biddingStrategy?: "manual" | "automatic";
       defaultBid?: number;
     } = {};
 
@@ -111,22 +111,26 @@ export async function PUT(
     if (body.biddingStrategy) updates.biddingStrategy = body.biddingStrategy;
     if (body.defaultBid) updates.defaultBid = parseFloat(body.defaultBid);
 
-    const updated = await CampaignService.updateCampaign(params.id, updates, session.user.id);
+    const updated = await CampaignService.updateCampaign(
+      params.id,
+      updates,
+      session.user.id,
+    );
 
     return NextResponse.json({
       success: true,
       data: updated,
     });
   } catch (error) {
-    logger.error('[Ad API] Update campaign failed', { error });
-    
+    logger.error("[Ad API] Update campaign failed", { error });
+
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to update campaign',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        error: "Failed to update campaign",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -137,32 +141,32 @@ export async function PUT(
  */
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await auth();
-    
+
     if (!session?.user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
       );
     }
 
     // Verify ownership
     const campaign = await CampaignService.getCampaign(params.id);
-    
+
     if (!campaign) {
       return NextResponse.json(
-        { success: false, error: 'Campaign not found' },
-        { status: 404 }
+        { success: false, error: "Campaign not found" },
+        { status: 404 },
       );
     }
 
     if (campaign.sellerId !== session.user.id) {
       return NextResponse.json(
-        { success: false, error: 'Forbidden' },
-        { status: 403 }
+        { success: false, error: "Forbidden" },
+        { status: 403 },
       );
     }
 
@@ -170,18 +174,18 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Campaign deleted successfully',
+      message: "Campaign deleted successfully",
     });
   } catch (error) {
-    logger.error('[Ad API] Delete campaign failed', { error });
-    
+    logger.error("[Ad API] Delete campaign failed", { error });
+
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to delete campaign',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        error: "Failed to delete campaign",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

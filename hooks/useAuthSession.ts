@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useSession } from 'next-auth/react';
+import { useSession } from "next-auth/react";
 
 /**
  * Extended User Type with Fixzit-specific fields
@@ -33,23 +33,23 @@ export interface AuthSession {
  */
 export function useAuthSession(): AuthSession | null {
   const { data: session, status } = useSession();
-  
-  if (status === 'loading') {
+
+  if (status === "loading") {
     return null;
   }
-  
+
   if (!session?.user) {
     return null;
   }
-  
+
   const user = session.user as ExtendedUser;
-  
+
   return {
     userId: user.id,
     email: user.email,
     name: user.name,
-    role: user.role || 'GUEST',
-    tenantId: user.tenantId || '',
+    role: user.role || "GUEST",
+    tenantId: user.tenantId || "",
     sellerId: user.sellerId,
     isAuthenticated: true,
   };
@@ -59,22 +59,22 @@ export function useAuthSession(): AuthSession | null {
  * Server-side session helper (for Server Components and API routes)
  */
 export async function getServerAuthSession(): Promise<AuthSession | null> {
-  const { auth } = await import('@/auth');
-  
+  const { auth } = await import("@/auth");
+
   const session = await auth();
-  
+
   if (!session?.user) {
     return null;
   }
-  
+
   const user = session.user as ExtendedUser;
-  
+
   return {
     userId: user.id,
     email: user.email,
     name: user.name,
-    role: user.role || 'GUEST',
-    tenantId: user.tenantId || '',
+    role: user.role || "GUEST",
+    tenantId: user.tenantId || "",
     sellerId: user.sellerId,
     isAuthenticated: true,
   };

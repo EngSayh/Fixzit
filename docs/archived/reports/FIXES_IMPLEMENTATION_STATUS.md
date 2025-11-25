@@ -20,14 +20,14 @@
 
 ```typescript
 // Save language preferences before clearing
-const savedLang = localStorage.getItem('fxz.lang');
-const savedLocale = localStorage.getItem('fxz.locale');
+const savedLang = localStorage.getItem("fxz.lang");
+const savedLocale = localStorage.getItem("fxz.locale");
 
 // ... clear storage ...
 
 // Restore language preferences
-if (savedLang) localStorage.setItem('fxz.lang', savedLang);
-if (savedLocale) localStorage.setItem('fxz.locale', savedLocale);
+if (savedLang) localStorage.setItem("fxz.lang", savedLang);
+if (savedLocale) localStorage.setItem("fxz.locale", savedLocale);
 ```
 
 **Testing**:
@@ -148,7 +148,7 @@ login.invalidCredentials, login.corporateDescription, login.personalDescription
 
 ```typescript
 useEffect(() => {
-  console.log('Language changed:', language, locale);
+  console.log("Language changed:", language, locale);
 }, [language, locale]);
 ```
 
@@ -191,7 +191,7 @@ useEffect(() => {
 const LoginSchema = z.object({
   employeeNumber: z.string().optional(),
   password: z.string().min(1),
-  loginType: z.enum(['personal', 'corporate'])
+  loginType: z.enum(["personal", "corporate"]),
 });
 ```
 

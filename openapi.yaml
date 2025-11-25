@@ -2,7 +2,16 @@ openapi: 3.0.3
 info:
   title: Fixzit Aqar Real Estate API
   version: 1.0.0
-  description: REST API for Aqar real estate marketplace with listings, leads, favorites, and packages
+  description: |-
+    REST API for Aqar real estate marketplace with listings, leads, favorites, and packages
+    
+    ## Breaking Changes
+    ### v2.0.26 - Souq Refund Methods
+    - **DEPRECATED**: `store_credit` refund method removed
+    - **NEW**: Use `wallet` for refunds to user's digital wallet
+    - **Affected Endpoints**: `/api/souq/returns/refund`
+    - **Migration**: Update API clients to use `wallet` instead of `store_credit`
+    - **Timeline**: `store_credit` was removed in v2.0.26 (November 2025)
 
 servers:
   - url: http://localhost:3000/api
@@ -22,9 +31,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ListingCreate'
+              $ref: "#/components/schemas/ListingCreate"
       responses:
-        '201':
+        "201":
           description: Listing created
           content:
             application/json:
@@ -32,13 +41,13 @@ paths:
                 type: object
                 properties:
                   listing:
-                    $ref: '#/components/schemas/Listing'
+                    $ref: "#/components/schemas/Listing"
                   correlationId:
                     type: string
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /aqar/listings/{id}:
     get:
@@ -50,9 +59,9 @@ paths:
           required: true
           schema:
             type: string
-            pattern: '^[a-fA-F0-9]{24}$'
+            pattern: "^[a-fA-F0-9]{24}$"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
@@ -60,13 +69,13 @@ paths:
                 type: object
                 properties:
                   listing:
-                    $ref: '#/components/schemas/Listing'
+                    $ref: "#/components/schemas/Listing"
                   correlationId:
                     type: string
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /aqar/listings/search:
     get:
@@ -93,7 +102,7 @@ paths:
             type: number
             minimum: 0.1
             maximum: 20
-          description: 'Capped to 20km for performance'
+          description: "Capped to 20km for performance"
         - name: page
           in: query
           schema:
@@ -106,7 +115,7 @@ paths:
             minimum: 1
             maximum: 100
       responses:
-        '200':
+        "200":
           description: OK
 
   /aqar/leads:
@@ -117,13 +126,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LeadCreate'
+              $ref: "#/components/schemas/LeadCreate"
       responses:
-        '201':
+        "201":
           description: Created
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '429':
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
           description: Too Many Requests
 
   /aqar/favorites:
@@ -136,11 +145,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FavoriteCreate'
+              $ref: "#/components/schemas/FavoriteCreate"
       responses:
-        '201':
+        "201":
           description: Created
-        '409':
+        "409":
           description: Conflict (already favorited)
 
   /aqar/packages:
@@ -160,10 +169,65 @@ paths:
                   type: string
                   enum: [STARTER, STANDARD, PREMIUM]
       responses:
-        '201':
+        "201":
           description: Created
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /souq/returns/refund:
+    post:
+      summary: Process refund for RMA
+      description: |-
+        Process a refund for a return merchandise authorization (RMA).
+        
+        **Breaking Change (v2.0.26)**: The `store_credit` refund method has been removed.
+        Use `wallet` for refunds to user's digital wallet instead.
+      tags: [Refunds]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rmaId, refundMethod, refundAmount]
+              properties:
+                rmaId:
+                  type: string
+                  description: Return merchandise authorization ID
+                refundMethod:
+                  type: string
+                  enum: [original_payment, wallet, bank_transfer]
+                  description: |-
+                    Refund method:
+                    - `original_payment`: Refund to original payment method
+                    - `wallet`: Refund to user's digital wallet (replaces deprecated `store_credit`)
+                    - `bank_transfer`: Direct bank transfer
+                refundAmount:
+                  type: number
+                  minimum: 0.01
+                  description: Refund amount in SAR
+      responses:
+        '200':
+          description: Refund processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 'Refund processed successfully'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
 components:
   securitySchemes:
@@ -178,7 +242,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
     Forbidden:
       description: Forbidden
     NotFound:
@@ -208,7 +272,18 @@ components:
 
     ListingCreate:
       type: object
-      required: [intent, propertyType, title, description, city, price, areaSqm, geo, source]
+      required:
+        [
+          intent,
+          propertyType,
+          title,
+          description,
+          city,
+          price,
+          areaSqm,
+          geo,
+          source,
+        ]
       properties:
         intent:
           type: string
@@ -287,3 +362,208 @@ components:
         targetType:
           type: string
           enum: [LISTING, PROJECT]
+
+  # ATS Analytics Endpoint
+  /ats/analytics:
+    get:
+      summary: Get ATS analytics and metrics
+      tags: [ATS]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Start date for analytics period
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End date for analytics period
+        - name: orgId
+          in: query
+          schema:
+            type: string
+          description: Organization ID filter
+      responses:
+        "200":
+          description: Analytics data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  applications:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      byStage:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                      byStatus:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                  jobs:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      active:
+                        type: integer
+                      filled:
+                        type: integer
+                  candidates:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      hired:
+                        type: integer
+                  correlationId:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # Marketplace Search Endpoint
+  /marketplace/search:
+    get:
+      summary: Search marketplace products and vendors
+      tags: [Marketplace]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query term
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by product category
+        - name: vendor
+          in: query
+          schema:
+            type: string
+          description: Filter by vendor ID
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+          description: Minimum price filter
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+          description: Maximum price filter
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
+      responses:
+        "200":
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        description:
+                          type: string
+                        price:
+                          type: number
+                        category:
+                          type: string
+                        vendor:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  total:
+                    type: integer
+                  correlationId:
+                    type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  # PayTabs Callback Webhook
+  /paytabs/callback:
+    post:
+      summary: PayTabs payment callback webhook
+      tags: [Payments]
+      description: Webhook endpoint for PayTabs payment status notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tran_ref:
+                  type: string
+                  description: PayTabs transaction reference
+                cart_id:
+                  type: string
+                  description: Original cart/invoice ID
+                payment_result:
+                  type: object
+                  properties:
+                    response_status:
+                      type: string
+                      enum: [A, H, P, V, E]
+                      description: Payment status (A=Approved, H=Hold, P=Pending, V=Voided, E=Error)
+                    response_code:
+                      type: string
+                    response_message:
+                      type: string
+                    transaction_time:
+                      type: string
+                      format: date-time
+      responses:
+        "200":
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  correlationId:
+                    type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"

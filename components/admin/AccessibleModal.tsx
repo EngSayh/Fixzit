@@ -45,6 +45,7 @@ export default function AccessibleModal({
 }: AccessibleModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const focusTimerRef = useRef<NodeJS.Timeout>();
   
   // Focus management
   useEffect(() => {
@@ -52,8 +53,8 @@ export default function AccessibleModal({
       // Store currently focused element
       previousFocusRef.current = document.activeElement as HTMLElement;
       
-      // Focus first focusable element in modal
-      setTimeout(() => {
+      // Focus first focusable element in modal (with cleanup)
+      focusTimerRef.current = setTimeout(() => {
         const focusable = modalRef.current?.querySelectorAll(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
         );
@@ -76,6 +77,7 @@ export default function AccessibleModal({
     
     return () => {
       document.body.style.overflow = '';
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
     };
   }, [isOpen]);
   

@@ -95,22 +95,22 @@ When reporting a vulnerability, please include:
    - Check permissions on server-side
    - Never trust client-side data
 
-3. **Code Quality**
+4. **Code Quality**
    - Follow TypeScript best practices
    - Use proper error handling
    - Never trust client-side data
 
-4. **Secrets & URIs**
+5. **Secrets & URIs**
    - Never commit database URIs or credentials; always use environment variables
    - Use placeholders in docs/templates (`mongodb+srv://<user>:<password>@<host>/<db>`)
    - Local/CI guardrail: `bash scripts/security/check-hardcoded-uris.sh` (runs in CI to fail on hard-coded URIs)
 
-5. **Dependencies**
+6. **Dependencies**
    - Run `pnpm audit` before submitting PRs
    - Keep dependencies up to date
    - Review new dependencies for security issues
 
-6. **Error Handling**
+7. **Error Handling**
    - Never expose stack traces to users
    - Log errors securely
    - Use generic error messages for users
@@ -118,6 +118,7 @@ When reporting a vulnerability, please include:
 #### For Deployers
 
 1. **Environment Variables**
+
    ```bash
    # Required secure variables
    NEXTAUTH_SECRET=          # Strong random string (min 32 chars)
@@ -157,16 +158,19 @@ Before deploying to production:
 ## Known Security Considerations
 
 ### Client-Side Storage
+
 - LocalStorage used for non-sensitive user preferences (language, theme)
 - Sensitive data (tokens, sessions) handled via secure cookies
 - No PII stored in browser storage
 
 ### Third-Party Services
+
 - NextAuth.js: Well-maintained authentication library
 - MongoDB Atlas: Enterprise-grade database security
 - Vercel/Deployment platform: Follows industry security standards
 
 ### Rate Limiting
+
 - API routes are rate-limited to prevent abuse
 - Configurable limits per route
 - IP-based and user-based limiting
@@ -197,6 +201,7 @@ Security updates are released as:
 - **Low**: Next regular release
 
 Updates are communicated via:
+
 - GitHub Security Advisories
 - Release notes
 - Email to registered administrators

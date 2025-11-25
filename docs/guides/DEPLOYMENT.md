@@ -84,13 +84,13 @@
 
 ## Available Documentation
 
-| Document | Purpose | When to Read |
-|----------|---------|--------------|
-| **DEPLOYMENT_SETUP_GUIDE.md** | Complete overview of all options | Start here for big picture |
-| **GODADDY_DEPLOYMENT_GUIDE.md** | Direct GoDaddy deployment (VPS/Dedicated) | You have GoDaddy hosting |
-| **DEPLOYMENT_COMPARISON.md** | Vercel vs GoDaddy comparison | Deciding which option |
-| **setup-local-dev.sh** | Automated MacBook setup script | Setting up local dev |
-| This file (README_DEPLOYMENT.md) | Quick reference | Quick navigation |
+| Document                         | Purpose                                   | When to Read               |
+| -------------------------------- | ----------------------------------------- | -------------------------- |
+| **DEPLOYMENT_SETUP_GUIDE.md**    | Complete overview of all options          | Start here for big picture |
+| **GODADDY_DEPLOYMENT_GUIDE.md**  | Direct GoDaddy deployment (VPS/Dedicated) | You have GoDaddy hosting   |
+| **DEPLOYMENT_COMPARISON.md**     | Vercel vs GoDaddy comparison              | Deciding which option      |
+| **setup-local-dev.sh**           | Automated MacBook setup script            | Setting up local dev       |
+| This file (README_DEPLOYMENT.md) | Quick reference                           | Quick navigation           |
 
 ---
 

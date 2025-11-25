@@ -1,15 +1,15 @@
 /**
  * Package Activation Retry Queue
- * 
+ *
  * Handles background retries for failed package activations after payment.
  * Uses BullMQ for reliable job processing with exponential backoff.
  */
 
-import { Queue, Worker, Job } from 'bullmq';
-import { logger } from '@/lib/logger';
-import IORedis from 'ioredis';
+import { Queue, Worker, Job } from "bullmq";
+import { logger } from "@/lib/logger";
+import IORedis from "ioredis";
 
-const QUEUE_NAME = 'package-activation-retry';
+const QUEUE_NAME = "package-activation-retry";
 const MAX_ATTEMPTS = 5;
 
 // Redis connection for BullMQ
@@ -25,7 +25,7 @@ let queue: Queue | null = null;
  */
 export function getActivationQueue(): Queue | null {
   if (!connection) {
-    logger.warn('[ActivationQueue] Redis not configured, queue disabled');
+    logger.warn("[ActivationQueue] Redis not configured, queue disabled");
     return null;
   }
 
@@ -35,7 +35,7 @@ export function getActivationQueue(): Queue | null {
       defaultJobOptions: {
         attempts: MAX_ATTEMPTS,
         backoff: {
-          type: 'exponential',
+          type: "exponential",
           delay: 60000, // Start with 1 minute
         },
         removeOnComplete: {
@@ -64,17 +64,17 @@ interface ActivationJobData {
  */
 export async function enqueueActivationRetry(
   aqarPaymentId: string,
-  invoiceId: string
+  invoiceId: string,
 ): Promise<string | null> {
   const activationQueue = getActivationQueue();
   if (!activationQueue) {
-    logger.warn('[ActivationQueue] Cannot enqueue - queue not available');
+    logger.warn("[ActivationQueue] Cannot enqueue - queue not available");
     return null;
   }
 
   try {
     const job = await activationQueue.add(
-      'activate-package',
+      "activate-package",
       {
         aqarPaymentId,
         invoiceId,
@@ -82,10 +82,10 @@ export async function enqueueActivationRetry(
       } as ActivationJobData,
       {
         jobId: `activation-${aqarPaymentId}-${Date.now()}`,
-      }
+      },
     );
 
-    logger.info('[ActivationQueue] Enqueued activation retry', {
+    logger.info("[ActivationQueue] Enqueued activation retry", {
       jobId: job.id,
       aqarPaymentId,
       invoiceId,
@@ -95,7 +95,11 @@ export async function enqueueActivationRetry(
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[ActivationQueue] Failed to enqueue retry', { error, aqarPaymentId, invoiceId });
+    logger.error("[ActivationQueue] Failed to enqueue retry", {
+      error,
+      aqarPaymentId,
+      invoiceId,
+    });
     return null;
   }
 }
@@ -106,7 +110,7 @@ export async function enqueueActivationRetry(
  */
 export function startActivationWorker(): Worker | null {
   if (!connection) {
-    logger.warn('[ActivationQueue] Redis not configured, worker disabled');
+    logger.warn("[ActivationQueue] Redis not configured, worker disabled");
     return null;
   }
 
@@ -115,7 +119,7 @@ export function startActivationWorker(): Worker | null {
     async (job: Job<ActivationJobData>) => {
       const { aqarPaymentId, invoiceId } = job.data;
 
-      logger.info('[ActivationQueue] Processing activation retry', {
+      logger.info("[ActivationQueue] Processing activation retry", {
         jobId: job.id,
         aqarPaymentId,
         invoiceId,
@@ -124,24 +128,30 @@ export function startActivationWorker(): Worker | null {
 
       try {
         // Import dynamically to avoid circular dependencies
-        const { activatePackageAfterPayment } = await import('@/lib/aqar/package-activation');
+        const { activatePackageAfterPayment } = await import(
+          "@/lib/aqar/package-activation"
+        );
         await activatePackageAfterPayment(aqarPaymentId);
 
         // Update invoice metadata on success
-        const { Invoice } = await import('@/server/models/Invoice');
+        const { Invoice } = await import("@/server/models/Invoice");
         const invoice = await Invoice.findById(invoiceId);
         if (invoice && invoice.metadata?.aqarPaymentId === aqarPaymentId) {
-          invoice.metadata.activationStatus = 'completed';
+          invoice.metadata.activationStatus = "completed";
           invoice.metadata.activationCompletedAt = new Date();
           await invoice.save();
         }
 
-        logger.info('[ActivationQueue] Package activated successfully', { aqarPaymentId, invoiceId });
+        logger.info("[ActivationQueue] Package activated successfully", {
+          aqarPaymentId,
+          invoiceId,
+        });
         return { success: true, aqarPaymentId, invoiceId };
       } catch (_error) {
-        const error = _error instanceof Error ? _error : new Error(String(_error));
+        const error =
+          _error instanceof Error ? _error : new Error(String(_error));
         void error;
-        logger.error('[ActivationQueue] Activation attempt failed', {
+        logger.error("[ActivationQueue] Activation attempt failed", {
           jobId: job.id,
           aqarPaymentId,
           invoiceId,
@@ -151,15 +161,18 @@ export function startActivationWorker(): Worker | null {
 
         // Update invoice metadata on failure
         try {
-          const { Invoice } = await import('@/server/models/Invoice');
+          const { Invoice } = await import("@/server/models/Invoice");
           const invoice = await Invoice.findById(invoiceId);
           if (invoice && invoice.metadata?.aqarPaymentId === aqarPaymentId) {
-            invoice.metadata.lastActivationError = error instanceof Error ? error.message : String(error);
+            invoice.metadata.lastActivationError =
+              error instanceof Error ? error.message : String(error);
             invoice.metadata.lastActivationAttempt = new Date();
             await invoice.save();
           }
         } catch (updateError) {
-          logger.error('[ActivationQueue] Failed to update invoice metadata', { updateError });
+          logger.error("[ActivationQueue] Failed to update invoice metadata", {
+            updateError,
+          });
         }
 
         throw error; // Re-throw to trigger retry
@@ -172,22 +185,22 @@ export function startActivationWorker(): Worker | null {
         max: 10,
         duration: 60000, // Max 10 jobs per minute
       },
-    }
+    },
   );
 
-  worker.on('completed', (job) => {
-    logger.info('[ActivationQueue] Job completed', { jobId: job.id });
+  worker.on("completed", (job) => {
+    logger.info("[ActivationQueue] Job completed", { jobId: job.id });
   });
 
-  worker.on('failed', (job, error) => {
-    logger.error('[ActivationQueue] Job failed', {
+  worker.on("failed", (job, error) => {
+    logger.error("[ActivationQueue] Job failed", {
       jobId: job?.id,
       attempts: job?.attemptsMade,
       error,
     });
   });
 
-  logger.info('[ActivationQueue] Worker started');
+  logger.info("[ActivationQueue] Worker started");
   return worker;
 }
 
@@ -202,5 +215,5 @@ export async function closeActivationQueue(): Promise<void> {
   if (connection) {
     connection.disconnect();
   }
-  logger.info('[ActivationQueue] Closed');
+  logger.info("[ActivationQueue] Closed");
 }

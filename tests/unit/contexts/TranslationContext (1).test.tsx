@@ -31,7 +31,7 @@ let mockTranslateImpl: (key: string) => string = (k) => 'translated:' + k;
 vi.mock('@/i18n/I18nProvider', () => {
   // A pass-through component that exposes initialLocale for assertions.
   return {
-    I18nProvider: ({ initialLocale, children }: { initialLocale?: any; children: ReactNode }) => (
+    I18nProvider: ({ initialLocale, children }: { initialLocale?: string; children: ReactNode }) => (
       <div data-testid="i18n-provider" data-initial-locale={String(initialLocale)}>
         {children}
       </div>

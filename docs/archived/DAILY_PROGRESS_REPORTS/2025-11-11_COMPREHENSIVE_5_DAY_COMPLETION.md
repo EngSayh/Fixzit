@@ -83,6 +83,7 @@
 - **Issues Found**: 3 actionable comments
 
 **Issue 1: Stale Closure in handleCategoryChange** (Critical)
+
 - **File**: `app/finance/budgets/new/page.tsx` (lines 71-84)
 - **Problem**: `handleCategoryChange` closes over memoized `totalBudget`
   - First amount edit never updates percentage (totalBudget was 0)
@@ -97,7 +98,7 @@
   ```typescript
   setCategories((prevCategories) => {
     const nextCategories = prevCategories.map((cat) =>
-      cat.id === id ? { ...cat, [field]: value } : cat
+      cat.id === id ? { ...cat, [field]: value } : cat,
     );
     const nextTotal = BudgetMath.calculateTotal(nextCategories);
     // ... recompute with fresh nextTotal
@@ -107,6 +108,7 @@
 - **Status**: ✅ Fixed
 
 **Issue 2: Decimal Serialization** (Critical)
+
 - **File**: `app/finance/payments/new/page.tsx` (line 388)
 - **Problem**: `unallocatedAmount` is Decimal instance, `JSON.stringify` emits string
 - **Solution**: Convert to number before serialization
@@ -118,6 +120,7 @@
 - **Status**: ✅ Fixed
 
 **Issue 3: Decimal Comparison** (Already Fixed)
+
 - **File**: `app/finance/payments/new/page.tsx` (line 318)
 - **Problem**: Native comparison defeats Decimal precision
 - **Finding**: Already using `.greaterThan()` method

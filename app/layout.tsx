@@ -25,7 +25,7 @@ const notoSansArabic = Noto_Sans_Arabic({
 });
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { locale, isRTL } = await getServerI18n();
+  const { locale, isRTL, t } = await getServerI18n();
   const dir = isRTL ? 'rtl' : 'ltr';
 
   return (
@@ -36,9 +36,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       >
         <a
           href="#main-content"
+          data-testid="skip-to-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:start-4 z-50 bg-background text-foreground px-3 py-2 rounded-md shadow"
         >
-          Skip to content
+          {t('common.skipToContent')}
         </a>
         <ConditionalProviders initialLocale={locale}>
           <>

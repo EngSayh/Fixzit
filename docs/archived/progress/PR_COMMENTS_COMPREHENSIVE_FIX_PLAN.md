@@ -61,7 +61,7 @@ npx eslint --fix "app/**/*.{ts,tsx}" "components/**/*.{ts,tsx}" "lib/**/*.ts" "s
 
 - lib/mongo.ts
 - lib/auth.ts
-- lib/marketplace/*.ts
+- lib/marketplace/\*.ts
 - lib/paytabs.ts
 
 #### Batch 2B: API Routes (50 files - 2 hours)
@@ -262,12 +262,12 @@ echo "Usage: import { getErrorMessage } from '@/lib/utils/typeGuards';"
 
 ## 📊 PROGRESS TRACKING
 
-| Phase | Tasks | Status | Time |
-|-------|-------|--------|------|
-| Phase 1 | Immediate Fixes | 🔄 IN PROGRESS | 2h |
-| Phase 2 | Type Safety | ⏳ PENDING | 4h |
-| Phase 3 | Frontend | ⏳ PENDING | 3h |
-| Testing | Full Suite | ⏳ PENDING | 1h |
+| Phase   | Tasks           | Status         | Time |
+| ------- | --------------- | -------------- | ---- |
+| Phase 1 | Immediate Fixes | 🔄 IN PROGRESS | 2h   |
+| Phase 2 | Type Safety     | ⏳ PENDING     | 4h   |
+| Phase 3 | Frontend        | ⏳ PENDING     | 3h   |
+| Testing | Full Suite      | ⏳ PENDING     | 1h   |
 
 **Total Estimated Time**: 10 hours of focused work
 

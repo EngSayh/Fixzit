@@ -8,11 +8,12 @@ import { render, screen } from '@testing-library/react';
 import Providers from '@/providers/Providers';
 
 // Silence console.error during ErrorBoundary test (intentional "Boom" error)
+let consoleErrorSpy: ReturnType<typeof vi.spyOn<typeof console, 'error'>> | undefined;
 beforeAll(() => {
-  vi.spyOn(console, 'error').mockImplementation(() => {});
+  consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 afterAll(() => {
-  (console.error as any).mockRestore?.();
+  consoleErrorSpy?.mockRestore();
 });
 
 // Mock all nested providers to isolate Providers behavior.
@@ -70,12 +71,12 @@ vi.mock('@/contexts/FormStateContext', () => ({
 const ConsoleError = console.error;
 beforeAll(() => {
   // Silence expected error boundary logs in tests that trigger errors
-  console.error = (...args: any[]) => {
+  console.error = (...args: Parameters<typeof console.error>) => {
     const msg = args[0];
     if (typeof msg === 'string' && (msg.includes('ErrorBoundary') || msg.includes('The above error'))) {
       return;
     }
-    return (ConsoleError as any)(...args);
+    return ConsoleError(...args);
   };
 });
 afterAll(() => {
@@ -90,7 +91,7 @@ vi.mock('@/components/ErrorBoundary', () => {
     </div>
   );
   class MockErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error?: Error }> {
-    constructor(props: any) {
+    constructor(props: { children: React.ReactNode }) {
       super(props);
       this.state = { hasError: false, error: undefined };
     }

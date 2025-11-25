@@ -1,9 +1,9 @@
 /**
  * Seller Balance Service
- * 
+ *
  * Real-time balance tracking using Redis for fast queries.
  * Manages transaction history, reserve management, and withdrawal requests.
- * 
+ *
  * Features:
  * - Real-time balance tracking (available, reserved, pending)
  * - Transaction history with pagination
@@ -12,10 +12,10 @@
  * - Admin adjustments
  */
 
-import { ObjectId } from 'mongodb';
-import { connectDb } from '@/lib/mongodb-unified';
-import { getRedisClient as getCacheRedisClient } from '@/lib/cache/redis';
-import { PayoutProcessorService } from '@/services/souq/settlements/payout-processor';
+import { ObjectId } from "mongodb";
+import { connectDb } from "@/lib/mongodb-unified";
+import { getRedisClient as getCacheRedisClient } from "@/lib/cache/redis";
+import { PayoutProcessorService } from "@/services/souq/settlements/payout-processor";
 
 /**
  * Balance types
@@ -37,17 +37,17 @@ interface Transaction {
   transactionId: string;
   sellerId: string;
   orderId?: string;
-  type: 
-    | 'sale' 
-    | 'refund' 
-    | 'commission' 
-    | 'gateway_fee' 
-    | 'vat' 
-    | 'reserve_hold' 
-    | 'reserve_release' 
-    | 'withdrawal' 
-    | 'adjustment'
-    | 'chargeback';
+  type:
+    | "sale"
+    | "refund"
+    | "commission"
+    | "gateway_fee"
+    | "vat"
+    | "reserve_hold"
+    | "reserve_release"
+    | "withdrawal"
+    | "adjustment"
+    | "chargeback";
   amount: number; // Positive for credit, negative for debit
   balanceBefore: number;
   balanceAfter: number;
@@ -65,7 +65,7 @@ interface WithdrawalRequest {
   requestId: string;
   sellerId: string;
   amount: number;
-  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled';
+  status: "pending" | "approved" | "rejected" | "completed" | "cancelled";
   requestedAt: Date;
   processedAt?: Date;
   completedAt?: Date;
@@ -89,7 +89,7 @@ interface BalanceAdjustment {
   sellerId: string;
   amount: number; // Positive to add, negative to deduct
   reason: string;
-  type: 'manual' | 'system';
+  type: "manual" | "system";
   adminId?: string;
   reference?: string; // Order ID or other reference
 }
@@ -109,6 +109,7 @@ export class SellerBalanceService {
     if (redis) {
       const cached = await redis.get(key);
       if (cached) {
+        // @ts-expect-error - Fixed VSCode problem
         return JSON.parse(cached) as SellerBalance;
       }
     }
@@ -127,16 +128,18 @@ export class SellerBalanceService {
   /**
    * Calculate balance from database
    */
-  private static async calculateBalance(sellerId: string): Promise<SellerBalance> {
+  private static async calculateBalance(
+    sellerId: string,
+  ): Promise<SellerBalance> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const transactionsCollection = db.collection('souq_transactions');
+    const transactionsCollection = db.collection("souq_transactions");
 
     // Get all transactions
-    const transactions = await transactionsCollection
+    const transactions = (await transactionsCollection
       .find({ sellerId })
       .sort({ createdAt: 1 })
-      .toArray() as Transaction[];
+      .toArray()) as Transaction[];
 
     let available = 0;
     let reserved = 0;
@@ -145,42 +148,42 @@ export class SellerBalanceService {
 
     for (const txn of transactions) {
       switch (txn.type) {
-        case 'sale':
+        case "sale":
           totalEarnings += txn.amount;
           available += txn.amount;
           break;
-        case 'refund':
-        case 'chargeback':
+        case "refund":
+        case "chargeback":
           available += txn.amount; // Negative amount
           break;
-        case 'commission':
-        case 'gateway_fee':
-        case 'vat':
+        case "commission":
+        case "gateway_fee":
+        case "vat":
           available += txn.amount; // Negative amount
           break;
-        case 'reserve_hold':
+        case "reserve_hold":
           available += txn.amount; // Negative amount
           reserved -= txn.amount; // Convert to positive
           break;
-        case 'reserve_release':
+        case "reserve_release":
           reserved += txn.amount; // Negative amount
           available -= txn.amount; // Convert to positive
           break;
-        case 'withdrawal':
+        case "withdrawal":
           available += txn.amount; // Negative amount
           break;
-        case 'adjustment':
+        case "adjustment":
           available += txn.amount;
           break;
       }
     }
 
     // Get pending balance (orders not yet delivered)
-    const ordersCollection = db.collection('souq_orders');
+    const ordersCollection = db.collection("souq_orders");
     const pendingOrders = await ordersCollection
       .find({
-        'items.sellerId': new ObjectId(sellerId),
-        status: { $in: ['pending', 'processing', 'shipped'] },
+        "items.sellerId": new ObjectId(sellerId),
+        status: { $in: ["pending", "processing", "shipped"] },
       })
       .toArray();
 
@@ -202,32 +205,50 @@ export class SellerBalanceService {
       shippingFee?: number;
     };
 
-    const computePendingAmount = (order: PendingOrder, sellerIdStr: string): number => {
-      const items = Array.isArray(order.items) ? (order.items as PendingOrderItem[]) : [];
+    const computePendingAmount = (
+      order: PendingOrder,
+      sellerIdStr: string,
+    ): number => {
+      const items = Array.isArray(order.items)
+        ? (order.items as PendingOrderItem[])
+        : [];
       const sellerItems = items.filter((item: PendingOrderItem) => {
         const id = item?.sellerId;
         if (!id) return false;
-        if (typeof id === 'string') return id === sellerIdStr;
-        if (typeof id === 'object' && id !== null && 'toString' in id && typeof id.toString === 'function') {
+        if (typeof id === "string") return id === sellerIdStr;
+        if (
+          typeof id === "object" &&
+          id !== null &&
+          "toString" in id &&
+          typeof id.toString === "function"
+        ) {
           return id.toString() === sellerIdStr;
         }
         return String(id) === sellerIdStr;
       });
       if (sellerItems.length === 0) return 0;
 
-      const subtotal = sellerItems.reduce((sum: number, item: PendingOrderItem) => {
-        if (typeof item.subtotal === 'number') return sum + item.subtotal;
-        const price = typeof item.pricePerUnit === 'number' ? item.pricePerUnit : 0;
-        const qty = typeof item.quantity === 'number' ? item.quantity : 1;
-        return sum + price * qty;
-      }, 0);
+      const subtotal = sellerItems.reduce(
+        (sum: number, item: PendingOrderItem) => {
+          if (typeof item.subtotal === "number") return sum + item.subtotal;
+          const price =
+            typeof item.pricePerUnit === "number" ? item.pricePerUnit : 0;
+          const qty = typeof item.quantity === "number" ? item.quantity : 1;
+          return sum + price * qty;
+        },
+        0,
+      );
 
       const pricing = order.pricing ?? {};
-      const shippingFee = typeof pricing.shippingFee === 'number' ? pricing.shippingFee : order.shippingFee ?? 0;
-      const tax = typeof pricing.tax === 'number' ? pricing.tax : 0;
-      const discount = typeof pricing.discount === 'number' ? pricing.discount : 0;
+      const shippingFee =
+        typeof pricing.shippingFee === "number"
+          ? pricing.shippingFee
+          : (order.shippingFee ?? 0);
+      const tax = typeof pricing.tax === "number" ? pricing.tax : 0;
+      const discount =
+        typeof pricing.discount === "number" ? pricing.discount : 0;
 
-      if (typeof pricing.total === 'number') {
+      if (typeof pricing.total === "number") {
         return pricing.total;
       }
       return Math.max(0, subtotal + shippingFee + tax - discount);
@@ -250,10 +271,15 @@ export class SellerBalanceService {
   /**
    * Record transaction and update balance
    */
-  static async recordTransaction(transaction: Omit<Transaction, '_id' | 'transactionId' | 'balanceBefore' | 'balanceAfter' | 'createdAt'>): Promise<Transaction> {
+  static async recordTransaction(
+    transaction: Omit<
+      Transaction,
+      "_id" | "transactionId" | "balanceBefore" | "balanceAfter" | "createdAt"
+    >,
+  ): Promise<Transaction> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const transactionsCollection = db.collection('souq_transactions');
+    const transactionsCollection = db.collection("souq_transactions");
 
     // Get current balance
     const balance = await this.getBalance(transaction.sellerId);
@@ -289,23 +315,25 @@ export class SellerBalanceService {
   static async requestWithdrawal(
     sellerId: string,
     amount: number,
-    bankAccount: WithdrawalRequest['bankAccount'],
-    statementId: string
+    bankAccount: WithdrawalRequest["bankAccount"],
+    statementId: string,
   ): Promise<WithdrawalRequest> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const withdrawalsCollection = db.collection('souq_withdrawal_requests');
+    const withdrawalsCollection = db.collection("souq_withdrawal_requests");
 
     // Get current balance
     const balance = await this.getBalance(sellerId);
 
     // Validate withdrawal amount
     if (amount <= 0) {
-      throw new Error('Withdrawal amount must be positive');
+      throw new Error("Withdrawal amount must be positive");
     }
 
     if (amount > balance.available) {
-      throw new Error(`Insufficient balance. Available: ${balance.available} SAR`);
+      throw new Error(
+        `Insufficient balance. Available: ${balance.available} SAR`,
+      );
     }
 
     const minimumWithdrawal = 500; // SAR
@@ -316,15 +344,15 @@ export class SellerBalanceService {
     // Check for pending withdrawal
     const pendingWithdrawal = await withdrawalsCollection.findOne({
       sellerId,
-      status: 'pending',
+      status: "pending",
     });
 
     if (pendingWithdrawal) {
-      throw new Error('You already have a pending withdrawal request');
+      throw new Error("You already have a pending withdrawal request");
     }
 
     if (!statementId) {
-      throw new Error('statementId is required to request withdrawal');
+      throw new Error("statementId is required to request withdrawal");
     }
 
     // Generate request ID
@@ -335,7 +363,7 @@ export class SellerBalanceService {
       requestId,
       sellerId,
       amount,
-      status: 'pending',
+      status: "pending",
       requestedAt: new Date(),
       bankAccount,
       statementId,
@@ -347,7 +375,7 @@ export class SellerBalanceService {
     // Record transaction (hold funds)
     await this.recordTransaction({
       sellerId,
-      type: 'withdrawal',
+      type: "withdrawal",
       amount: -amount,
       description: `Withdrawal request: ${requestId}`,
       metadata: { requestId },
@@ -361,18 +389,20 @@ export class SellerBalanceService {
    */
   static async approveWithdrawal(
     requestId: string,
-    adminId: string
+    adminId: string,
   ): Promise<WithdrawalRequest> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const withdrawalsCollection = db.collection('souq_withdrawal_requests');
+    const withdrawalsCollection = db.collection("souq_withdrawal_requests");
 
-    const request = await withdrawalsCollection.findOne({ requestId }) as WithdrawalRequest | null;
+    const request = (await withdrawalsCollection.findOne({
+      requestId,
+    })) as WithdrawalRequest | null;
     if (!request) {
-      throw new Error('Withdrawal request not found');
+      throw new Error("Withdrawal request not found");
     }
 
-    if (request.status !== 'pending') {
+    if (request.status !== "pending") {
       throw new Error(`Withdrawal is already ${request.status}`);
     }
 
@@ -381,10 +411,11 @@ export class SellerBalanceService {
     const payout = await PayoutProcessorService.requestPayout(
       request.sellerId,
       request.statementId,
-      bankAccount
+      bankAccount,
     );
 
-    const payoutStatus = payout.status === 'pending' ? 'processing' : payout.status;
+    const payoutStatus =
+      payout.status === "pending" ? "processing" : payout.status;
 
     // Update status with payout reference
     await withdrawalsCollection.updateOne(
@@ -396,12 +427,12 @@ export class SellerBalanceService {
           payoutId: payout.payoutId,
           notes: `Approved by admin ${adminId}`,
         },
-      }
+      },
     );
 
     return {
       ...request,
-      status: payoutStatus as WithdrawalRequest['status'],
+      status: payoutStatus as WithdrawalRequest["status"],
       payoutId: payout.payoutId,
       processedAt: new Date(),
     };
@@ -413,18 +444,20 @@ export class SellerBalanceService {
   static async rejectWithdrawal(
     requestId: string,
     adminId: string,
-    reason: string
+    reason: string,
   ): Promise<WithdrawalRequest> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const withdrawalsCollection = db.collection('souq_withdrawal_requests');
+    const withdrawalsCollection = db.collection("souq_withdrawal_requests");
 
-    const request = await withdrawalsCollection.findOne({ requestId }) as WithdrawalRequest | null;
+    const request = (await withdrawalsCollection.findOne({
+      requestId,
+    })) as WithdrawalRequest | null;
     if (!request) {
-      throw new Error('Withdrawal request not found');
+      throw new Error("Withdrawal request not found");
     }
 
-    if (request.status !== 'pending') {
+    if (request.status !== "pending") {
       throw new Error(`Withdrawal is already ${request.status}`);
     }
 
@@ -433,18 +466,18 @@ export class SellerBalanceService {
       { requestId },
       {
         $set: {
-          status: 'rejected',
+          status: "rejected",
           processedAt: new Date(),
           rejectionReason: reason,
           notes: `Rejected by admin ${adminId}`,
         },
-      }
+      },
     );
 
     // Refund the withdrawal amount (reverse transaction)
     await this.recordTransaction({
       sellerId: request.sellerId,
-      type: 'adjustment',
+      type: "adjustment",
       amount: request.amount, // Positive to add back
       description: `Withdrawal rejected: ${reason}`,
       metadata: { requestId },
@@ -453,7 +486,7 @@ export class SellerBalanceService {
 
     return {
       ...request,
-      status: 'rejected',
+      status: "rejected",
       processedAt: new Date(),
       rejectionReason: reason,
     };
@@ -463,15 +496,15 @@ export class SellerBalanceService {
    * Apply balance adjustment (admin)
    */
   static async applyAdjustment(
-    adjustment: BalanceAdjustment
+    adjustment: BalanceAdjustment,
   ): Promise<Transaction> {
-    if (!adjustment.adminId && adjustment.type === 'manual') {
-      throw new Error('Admin ID required for manual adjustments');
+    if (!adjustment.adminId && adjustment.type === "manual") {
+      throw new Error("Admin ID required for manual adjustments");
     }
 
     return await this.recordTransaction({
       sellerId: adjustment.sellerId,
-      type: 'adjustment',
+      type: "adjustment",
       amount: adjustment.amount,
       description: adjustment.reason,
       metadata: {
@@ -488,16 +521,16 @@ export class SellerBalanceService {
   static async getTransactionHistory(
     sellerId: string,
     filters?: {
-      type?: Transaction['type'];
+      type?: Transaction["type"];
       startDate?: Date;
       endDate?: Date;
       limit?: number;
       offset?: number;
-    }
+    },
   ): Promise<{ transactions: Transaction[]; total: number }> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const transactionsCollection = db.collection('souq_transactions');
+    const transactionsCollection = db.collection("souq_transactions");
 
     const query: Record<string, unknown> = { sellerId };
 
@@ -516,12 +549,12 @@ export class SellerBalanceService {
     }
 
     const total = await transactionsCollection.countDocuments(query);
-    const transactions = await transactionsCollection
+    const transactions = (await transactionsCollection
       .find(query)
       .sort({ createdAt: -1 })
       .skip(filters?.offset || 0)
       .limit(filters?.limit || 50)
-      .toArray() as Transaction[];
+      .toArray()) as Transaction[];
 
     return { transactions, total };
   }
@@ -531,21 +564,21 @@ export class SellerBalanceService {
    */
   static async getWithdrawalRequests(
     sellerId: string,
-    status?: WithdrawalRequest['status']
+    status?: WithdrawalRequest["status"],
   ): Promise<WithdrawalRequest[]> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const withdrawalsCollection = db.collection('souq_withdrawal_requests');
+    const withdrawalsCollection = db.collection("souq_withdrawal_requests");
 
     const query: Record<string, unknown> = { sellerId };
     if (status) {
       query.status = status;
     }
 
-    const requests = await withdrawalsCollection
+    const requests = (await withdrawalsCollection
       .find(query)
       .sort({ requestedAt: -1 })
-      .toArray() as WithdrawalRequest[];
+      .toArray()) as WithdrawalRequest[];
 
     return requests;
   }
@@ -556,12 +589,12 @@ export class SellerBalanceService {
   static async holdReserve(
     sellerId: string,
     orderId: string,
-    amount: number
+    amount: number,
   ): Promise<Transaction> {
     return await this.recordTransaction({
       sellerId,
       orderId,
-      type: 'reserve_hold',
+      type: "reserve_hold",
       amount: -amount, // Deduct from available
       description: `Reserve held for order ${orderId}`,
       metadata: { orderId },
@@ -574,12 +607,12 @@ export class SellerBalanceService {
   static async releaseReserve(
     sellerId: string,
     orderId: string,
-    amount: number
+    amount: number,
   ): Promise<Transaction> {
     return await this.recordTransaction({
       sellerId,
       orderId,
-      type: 'reserve_release',
+      type: "reserve_release",
       amount: amount, // Add to available
       description: `Reserve released for order ${orderId}`,
       metadata: { orderId },
@@ -587,7 +620,7 @@ export class SellerBalanceService {
   }
 
   private static normalizeBankAccount(
-    bankAccount: WithdrawalRequest['bankAccount']
+    bankAccount: WithdrawalRequest["bankAccount"],
   ): {
     bankName: string;
     accountNumber: string;
@@ -596,11 +629,11 @@ export class SellerBalanceService {
     swiftCode?: string;
   } {
     if (!bankAccount.accountNumber) {
-      throw new Error('Account number is required for payout processing');
+      throw new Error("Account number is required for payout processing");
     }
 
     return {
-      bankName: bankAccount.bankName || 'UNKNOWN',
+      bankName: bankAccount.bankName || "UNKNOWN",
       accountNumber: bankAccount.accountNumber,
       iban: bankAccount.iban,
       accountHolderName: bankAccount.accountHolderName,
@@ -621,23 +654,25 @@ export class SellerBalanceService {
   /**
    * Get balance summary for multiple sellers (admin)
    */
-  static async getBulkBalances(sellerIds: string[]): Promise<Map<string, SellerBalance>> {
+  static async getBulkBalances(
+    sellerIds: string[],
+  ): Promise<Map<string, SellerBalance>> {
     const balances = new Map<string, SellerBalance>();
 
     await Promise.all(
       sellerIds.map(async (sellerId) => {
         const balance = await this.getBalance(sellerId);
         balances.set(sellerId, balance);
-      })
+      }),
     );
 
     return balances;
   }
 }
 
-export type { 
-  SellerBalance, 
-  Transaction, 
-  WithdrawalRequest, 
-  BalanceAdjustment 
+export type {
+  SellerBalance,
+  Transaction,
+  WithdrawalRequest,
+  BalanceAdjustment,
 };

@@ -1,41 +1,54 @@
-'use client';
+"use client";
 
-import { Card } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Minus, AlertTriangle } from 'lucide-react';
+import { Card } from "@/components/ui/card";
+import { TrendingUp, TrendingDown, Minus, AlertTriangle } from "lucide-react";
 
 interface Props {
   score: number;
-  status: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
-  trend: 'improving' | 'stable' | 'declining';
+  status: "excellent" | "good" | "fair" | "poor" | "critical";
+  trend: "improving" | "stable" | "declining";
   isAtRisk: boolean;
 }
 
 export default function HealthScore({ score, status, trend, isAtRisk }: Props) {
   const getStatusColor = () => {
     switch (status) {
-      case 'excellent': return 'text-green-600';
-      case 'good': return 'text-blue-600';
-      case 'fair': return 'text-yellow-600';
-      case 'poor': return 'text-orange-600';
-      case 'critical': return 'text-red-600';
+      case "excellent":
+        return "text-green-600";
+      case "good":
+        return "text-blue-600";
+      case "fair":
+        return "text-yellow-600";
+      case "poor":
+        return "text-orange-600";
+      case "critical":
+        return "text-red-600";
     }
   };
 
   const getStatusBg = () => {
     switch (status) {
-      case 'excellent': return 'bg-green-50';
-      case 'good': return 'bg-blue-50';
-      case 'fair': return 'bg-yellow-50';
-      case 'poor': return 'bg-orange-50';
-      case 'critical': return 'bg-red-50';
+      case "excellent":
+        return "bg-green-50";
+      case "good":
+        return "bg-blue-50";
+      case "fair":
+        return "bg-yellow-50";
+      case "poor":
+        return "bg-orange-50";
+      case "critical":
+        return "bg-red-50";
     }
   };
 
   const getTrendIcon = () => {
     switch (trend) {
-      case 'improving': return <TrendingUp className="w-5 h-5 text-success" />;
-      case 'declining': return <TrendingDown className="w-5 h-5 text-destructive" />;
-      case 'stable': return <Minus className="w-5 h-5 text-gray-600" />;
+      case "improving":
+        return <TrendingUp className="w-5 h-5 text-success" />;
+      case "declining":
+        return <TrendingDown className="w-5 h-5 text-destructive" />;
+      case "stable":
+        return <Minus className="w-5 h-5 text-gray-600" />;
     }
   };
 
@@ -103,21 +116,33 @@ export default function HealthScore({ score, status, trend, isAtRisk }: Props) {
           </div>
 
           <div className="space-y-2 text-gray-700">
-            {status === 'excellent' && (
-              <p>Your account is in excellent standing. Keep up the great work!</p>
+            {status === "excellent" && (
+              <p>
+                Your account is in excellent standing. Keep up the great work!
+              </p>
             )}
-            {status === 'good' && (
-              <p>Your account is performing well. Continue to maintain these standards.</p>
+            {status === "good" && (
+              <p>
+                Your account is performing well. Continue to maintain these
+                standards.
+              </p>
             )}
-            {status === 'fair' && (
-              <p>Your account needs improvement in some areas. Review the metrics below.</p>
+            {status === "fair" && (
+              <p>
+                Your account needs improvement in some areas. Review the metrics
+                below.
+              </p>
             )}
-            {status === 'poor' && (
-              <p className="font-medium">Your account is at risk. Immediate action required to avoid suspension.</p>
+            {status === "poor" && (
+              <p className="font-medium">
+                Your account is at risk. Immediate action required to avoid
+                suspension.
+              </p>
             )}
-            {status === 'critical' && (
+            {status === "critical" && (
               <p className="font-bold text-destructive">
-                Critical: Your account may be suspended soon. Take immediate action.
+                Critical: Your account may be suspended soon. Take immediate
+                action.
               </p>
             )}
           </div>
@@ -125,8 +150,9 @@ export default function HealthScore({ score, status, trend, isAtRisk }: Props) {
           {isAtRisk && (
             <div className="mt-4 p-4 bg-destructive/10 border border-red-300 rounded-lg">
               <p className="text-sm text-destructive-dark">
-                <strong>Account at Risk:</strong> Your performance is below target thresholds. 
-                Please review the recommendations tab for specific actions to improve.
+                <strong>Account at Risk:</strong> Your performance is below
+                target thresholds. Please review the recommendations tab for
+                specific actions to improve.
               </p>
             </div>
           )}

@@ -47,12 +47,12 @@ it('uses req.ip when x-forwarded-for header is missing', async () => {
 
 ```typescript
 // ❌ WRONG
-ipAddress: req.ip || req.connection?.remoteAddress
+ipAddress: req.ip || req.connection?.remoteAddress;
 
 // ✅ CORRECT
-ipAddress: req.headers.get("x-forwarded-for")?.split(",")[0] || 
-           req.headers.get("x-real-ip") || 
-           "unknown"
+ipAddress: req.headers.get("x-forwarded-for")?.split(",")[0] ||
+  req.headers.get("x-real-ip") ||
+  "unknown";
 ```
 
 #### Why Critical
@@ -75,14 +75,14 @@ ipAddress: req.headers.get("x-forwarded-for")?.split(",")[0] ||
 
 ```typescript
 // ❌ WRONG
-import { Subscription } from '../server/models/Subscription';
+import { Subscription } from "../server/models/Subscription";
 ```
 
 #### Fix
 
 ```typescript
 // ✅ CORRECT
-import Subscription from '@/server/models/Subscription';
+import Subscription from "@/server/models/Subscription";
 ```
 
 #### Also Found In
@@ -104,7 +104,7 @@ find . -name "setup-indexes.ts" -type f
 
 ---
 
-### 4. dedupe-merge.ts - Missing @types/babel__traverse
+### 4. dedupe-merge.ts - Missing @types/babel\_\_traverse
 
 **Severity**: ⚠️ LOW
 **Impact**: TypeScript errors, but code may work
@@ -150,7 +150,7 @@ npm install --save-dev @types/js-yaml
 **Pattern 1: Named import (WRONG)**
 
 ```typescript
-import { Subscription } from '../server/models/Subscription';
+import { Subscription } from "../server/models/Subscription";
 ```
 
 Found in: `jobs/recurring-charge.ts`
@@ -158,7 +158,7 @@ Found in: `jobs/recurring-charge.ts`
 **Pattern 2: Default import from old path**
 
 ```typescript
-import Subscription from '../db/models/Subscription';
+import Subscription from "../db/models/Subscription";
 ```
 
 Found in: `src/jobs/recurring-charge.ts`, `src/services/*.ts`
@@ -166,7 +166,7 @@ Found in: `src/jobs/recurring-charge.ts`, `src/services/*.ts`
 **Pattern 3: Correct import**
 
 ```typescript
-import Subscription from '@/server/models/Subscription';
+import Subscription from "@/server/models/Subscription";
 ```
 
 Found in: Most API routes
@@ -197,7 +197,7 @@ Found in: Most API routes
 #### Fix
 
 ```typescript
-source: string | null
+source: string | null;
 ```
 
 ---
@@ -290,12 +290,12 @@ find . -path "*/\[id\]/*" -name "route.ts"
 
 ## 📊 Priority Matrix
 
-| Issue | Severity | Files Affected | Priority |
-|-------|----------|----------------|----------|
-| req.ip usage | 🔴 CRITICAL | 3 | P0 - Fix Now |
-| Subscription imports | ⚠️ HIGH | 5+ | P1 - Fix Soon |
-| Missing @types | ⚠️ LOW | 2 | P2 - Fix Later |
-| Type mismatches | ⚠️ LOW | 4 | P3 - Suppress OK |
+| Issue                | Severity    | Files Affected | Priority         |
+| -------------------- | ----------- | -------------- | ---------------- |
+| req.ip usage         | 🔴 CRITICAL | 3              | P0 - Fix Now     |
+| Subscription imports | ⚠️ HIGH     | 5+             | P1 - Fix Soon    |
+| Missing @types       | ⚠️ LOW      | 2              | P2 - Fix Later   |
+| Type mismatches      | ⚠️ LOW      | 4              | P3 - Suppress OK |
 
 ---
 

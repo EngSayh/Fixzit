@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { logger } from '@/lib/logger';
-import { useEffect, useCallback, useRef } from 'react';
-import { useFormState } from '@/contexts/FormStateContext';
+import { logger } from "@/lib/logger";
+import { useEffect, useCallback, useRef } from "react";
+import { useFormState } from "@/contexts/FormStateContext";
 
 /**
  * 🟥 ARCHITECTURAL FIX: CONSOLIDATED FORM TRACKING HOOK
@@ -27,7 +27,8 @@ export interface UseFormTrackingOptions {
   unsavedMessage?: string;
 }
 
-const DEFAULT_UNSAVED_MESSAGE = 'You have unsaved changes. Are you sure you want to leave?';
+const DEFAULT_UNSAVED_MESSAGE =
+  "You have unsaved changes. Are you sure you want to leave?";
 
 /**
  * Production-Ready Form Tracking Hook
@@ -56,8 +57,19 @@ const DEFAULT_UNSAVED_MESSAGE = 'You have unsaved changes. Are you sure you want
  * ```
  */
 export function useFormTracking(options: UseFormTrackingOptions) {
-  const { formId, isDirty, onSave, unsavedMessage: _unsavedMessage = DEFAULT_UNSAVED_MESSAGE } = options;
-  const { registerForm, onSaveRequest, unregisterForm, markFormDirty, markFormClean } = useFormState();
+  const {
+    formId,
+    isDirty,
+    onSave,
+    unsavedMessage: _unsavedMessage = DEFAULT_UNSAVED_MESSAGE,
+  } = options;
+  const {
+    registerForm,
+    onSaveRequest,
+    unregisterForm,
+    markFormDirty,
+    markFormClean,
+  } = useFormState();
 
   // Keep a ref to the save function to avoid re-running effects
   const onSaveRef = useRef(onSave);
@@ -68,7 +80,7 @@ export function useFormTracking(options: UseFormTrackingOptions) {
   // ✅ FIXED: Register form on mount so it appears in context's forms Map
   useEffect(() => {
     registerForm(formId); // Register without initial fields (will use empty object)
-    
+
     const saveCallback = () => onSaveRef.current();
     const unsubscribe = onSaveRequest(formId, saveCallback);
 

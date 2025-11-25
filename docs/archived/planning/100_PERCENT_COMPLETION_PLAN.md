@@ -9,6 +9,7 @@
 ## 🎯 EXECUTION STRATEGY
 
 ### Phase 1: IMMEDIATE (Next 4 Hours) - Get to 50%
+
 **Target**: Fix 160 issues → 212/367 = 57.8%
 
 1. ✅ Fix ALL 42 remaining implicit 'any' types (Finance → API → Scripts)
@@ -19,9 +20,10 @@
 6. ✅ Remove ALL 10 explicit 'any' types
 
 **Commits**: Every 10 files  
-**Memory**: Restart VS Code every 2 hours  
+**Memory**: Restart VS Code every 2 hours
 
 ### Phase 2: SHORT-TERM (Next 8 Hours) - Get to 90%
+
 **Target**: Fix 250 issues → 302/367 = 82.3%
 
 7. ✅ Fix ALL 43 Date hydration risks
@@ -30,6 +32,7 @@
 10. ✅ Address ALL PR comments (10 PRs, ~100 comments)
 
 ### Phase 3: FINAL PUSH (Next 4 Hours) - Get to 100%
+
 **Target**: Fix ALL remaining issues → 367/367 = 100%
 
 11. ✅ Complete ALL PR descriptions
@@ -45,12 +48,14 @@
 ### Task 1: Fix Implicit 'any' Types (42 remaining)
 
 **Finance Module (4 files)**:
+
 - [ ] `app/finance/invoices/new/page.tsx` (line 126)
 - [ ] `app/finance/budgets/new/page.tsx` (line 59)
 - [ ] `app/finance/page.tsx` (line 236)
 - [ ] `app/finance/fm-finance-hooks.ts` (lines 236, 288)
 
 **API Routes (10 files)**:
+
 - [ ] `app/api/owner/statements/route.ts` (lines 158, 159)
 - [ ] `app/api/owner/units/[unitId]/history/route.ts` (line 200)
 - [ ] `app/api/aqar/favorites/route.ts` (lines 96, 97)
@@ -60,6 +65,7 @@
 - [ ] 4 more API routes
 
 **Scripts/Tests (28 files)**:
+
 - [ ] All files in `scripts/` with .map(x => ...)
 - [ ] All files in `tests/` with .filter(x => ...)
 
@@ -68,21 +74,25 @@
 ### Task 2: Fix Unhandled Promises (10 remaining)
 
 **Method**: Run comprehensive scan
+
 ```bash
 grep -rn "\.then(" --include="*.ts" --include="*.tsx" . | grep -v node_modules | grep -v ".next" | grep -v "\.catch("
 ```
 
 Fix ALL instances with:
+
 ```typescript
 // Before
-fetch('/api/data').then(r => r.json()).then(data => setData(data));
+fetch("/api/data")
+  .then((r) => r.json())
+  .then((data) => setData(data));
 
 // After
-fetch('/api/data')
-  .then(r => r.json())
-  .then(data => setData(data))
-  .catch(err => {
-    console.error('Failed to fetch data:', err);
+fetch("/api/data")
+  .then((r) => r.json())
+  .then((data) => setData(data))
+  .catch((err) => {
+    console.error("Failed to fetch data:", err);
     // Handle error appropriately
   });
 ```
@@ -98,6 +108,7 @@ grep -rn "parseInt([^,)]*)" --include="*.ts" --include="*.tsx" app/ lib/ server/
 ```
 
 Fix ALL with:
+
 ```typescript
 // Before
 const num = parseInt(value);
@@ -117,13 +128,14 @@ grep -rn "console\.log" --include="*.ts" --include="*.tsx" app/ server/ lib/ hoo
 ```
 
 Replace ALL with logger:
+
 ```typescript
 // Before
-console.log('Debug info:', data);
+console.log("Debug info:", data);
 
 // After
-import { logger } from '@/lib/logger';
-logger.debug('Debug info', { data });
+import { logger } from "@/lib/logger";
+logger.debug("Debug info", { data });
 ```
 
 ---
@@ -137,6 +149,7 @@ grep -rn "TODO\|FIXME" --include="*.ts" --include="*.tsx" app/ server/ lib/ hook
 ```
 
 For EACH TODO:
+
 1. If can be fixed immediately → FIX IT
 2. If needs discussion → CREATE GITHUB ISSUE
 3. If obsolete → REMOVE IT
@@ -154,6 +167,7 @@ grep -rn ": any" --include="*.ts" --include="*.tsx" app/ server/ lib/ hooks/ com
 ```
 
 Replace with proper types:
+
 ```typescript
 // Before
 function process(data: any) { ... }
@@ -178,6 +192,7 @@ grep -rn "new Date()" --include="*.tsx" app/ components/
 ```
 
 Fix with useEffect:
+
 ```typescript
 // Before
 <div>{new Date().toLocaleDateString()}</div>
@@ -203,17 +218,18 @@ grep -rn "t(\`" --include="*.ts" --include="*.tsx" app/ components/
 ```
 
 Convert to static:
+
 ```typescript
 // Before
-t(`admin.${category}.title`)
+t(`admin.${category}.title`);
 
 // After (option 1: create all keys)
-t('admin.users.title')
-t('admin.roles.title')
-t('admin.settings.title')
+t("admin.users.title");
+t("admin.roles.title");
+t("admin.settings.title");
 
 // After (option 2: fallback pattern)
-t('admin.dynamicTitle', { category, fallback: `${category} Management` })
+t("admin.dynamicTitle", { category, fallback: `${category} Management` });
 ```
 
 ---
@@ -221,6 +237,7 @@ t('admin.dynamicTitle', { category, fallback: `${category} Management` })
 ### Task 9: Remove Duplicate Files (40+ duplicates)
 
 **Duplicates Found**:
+
 - `auth.ts`: `./auth.ts` vs `./lib/auth.ts`
 - `audit.ts`: `./lib/audit.ts` vs `./server/copilot/audit.ts`
 - `Employee.ts`: `./models/hr/Employee.ts` vs `./server/models/Employee.ts`
@@ -229,6 +246,7 @@ t('admin.dynamicTitle', { category, fallback: `${category} Management` })
 - 35+ more duplicates
 
 **Strategy**:
+
 1. Determine canonical location (based on Governance V5)
 2. Update all imports to use canonical location
 3. Delete duplicate file
@@ -239,6 +257,7 @@ t('admin.dynamicTitle', { category, fallback: `${category} Management` })
 ### Task 10: Address ALL PR Comments (100+ comments across 10 PRs)
 
 **PRs to Review**:
+
 - PR #283: 20 comments, 11 reviews
 - PR #285: 15 comments, 7 reviews
 - PR #289: 3 comments, 2 reviews
@@ -251,6 +270,7 @@ t('admin.dynamicTitle', { category, fallback: `${category} Management` })
 - PR #292: 5 comments
 
 **Process for EACH PR**:
+
 1. Read ALL comments
 2. Address EVERY comment
 3. Reply with fix or explanation
@@ -263,6 +283,7 @@ t('admin.dynamicTitle', { category, fallback: `${category} Management` })
 ### Task 11: Complete PR Descriptions
 
 **Required Sections** (per CodeRabbit):
+
 - [ ] Summary
 - [ ] Related Issues
 - [ ] Changes Made (detailed)
@@ -284,14 +305,16 @@ t('admin.dynamicTitle', { category, fallback: `${category} Management` })
 **Required**: 80% coverage
 
 **Strategy**:
+
 1. Run `@coderabbitai generate docstrings` on PR
 2. Review generated docstrings
 3. Add JSDoc comments to ALL public functions
 4. Format:
-```typescript
+
+````typescript
 /**
  * Brief description of what function does
- * 
+ *
  * @param paramName - Description of parameter
  * @returns Description of return value
  * @throws {ErrorType} Description of when error is thrown
@@ -300,13 +323,14 @@ t('admin.dynamicTitle', { category, fallback: `${category} Management` })
  * const result = myFunction('input');
  * ```
  */
-```
+````
 
 ---
 
 ### Task 13-15: Merge & Cleanup
 
 **Once ALL PRs approved**:
+
 1. Merge PRs in dependency order
 2. Delete merged branches
 3. Run final verification:
@@ -330,6 +354,7 @@ t('admin.dynamicTitle', { category, fallback: `${category} Management` })
 5. **Archive tmp/**: Run `pnpm phase:end` after each batch
 
 ### Checkpoints:
+
 - After every 25 files fixed
 - After every 2 hours
 - Before starting new category
@@ -340,6 +365,7 @@ t('admin.dynamicTitle', { category, fallback: `${category} Management` })
 ## 📊 PROGRESS TRACKING
 
 ### Current Status:
+
 ```
 Total Critical Issues: 367
 Fixed: 52
@@ -348,6 +374,7 @@ Progress: 14.2%
 ```
 
 ### Phase 1 Target (4 hours):
+
 ```
 Total: 367
 Fixed: 212
@@ -356,6 +383,7 @@ Progress: 57.8%
 ```
 
 ### Phase 2 Target (12 hours total):
+
 ```
 Total: 367
 Fixed: 302
@@ -364,6 +392,7 @@ Progress: 82.3%
 ```
 
 ### Final Target (16 hours total):
+
 ```
 Total: 367
 Fixed: 367
@@ -376,8 +405,9 @@ Progress: 100% ✅
 ## 🚀 STARTING NOW
 
 I will begin executing Phase 1 immediately:
+
 1. Fix remaining 4 finance files
-2. Fix 10 API routes  
+2. Fix 10 API routes
 3. Start on scripts/tests
 
 **Estimated completion of Phase 1**: 4 hours  

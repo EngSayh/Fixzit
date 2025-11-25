@@ -57,6 +57,7 @@ export interface Refund {
   completedAt?: Date;
   failureReason?: string;
   retryCount: number;
+  nextRetryAt?: Date;
   
   createdAt: Date;
   updatedAt: Date;
@@ -66,6 +67,7 @@ export class RefundProcessor {
   private static COLLECTION = 'souq_refunds';
   private static MAX_RETRIES = 3;
   private static RETRY_DELAY_MS = 5000; // 5 seconds
+  private static retryTimers = new Map<string, NodeJS.Timeout>();
   private static async collection() {
     const db = await getDatabase();
     return db.collection<Refund>(this.COLLECTION);
@@ -133,12 +135,45 @@ export class RefundProcessor {
    * Execute refund with payment gateway (PayTabs)
    */
   private static async executeRefund(refund: Refund): Promise<RefundResult> {
-    // Update to processing
-    await this.updateRefundStatus(refund.refundId, 'processing');
+    // Atomically check and lock to prevent concurrent processing
+    // This guards against race conditions from queue + in-process timer or multiple workers
+    const collection = await this.collection();
+    const result = await collection.updateOne(
+      { 
+        refundId: refund.refundId, 
+        status: { $in: ['initiated', 'processing'] },
+        // Add a processing lock flag that's only set during active execution
+        processingLock: { $exists: false }
+      },
+      { 
+        $set: { 
+          status: 'processing',
+          processingLock: new Date(),
+          updatedAt: new Date() 
+        } 
+      }
+    );
+    
+    if (result.matchedCount === 0) {
+      logger.info('[Refunds] Skipping executeRefund; already being processed', {
+        refundId: refund.refundId,
+      });
+      return {
+        refundId: refund.refundId,
+        status: 'processing',
+        amount: refund.amount,
+      };
+    }
 
     try {
       // Call PayTabs refund API
       const gatewayResult = await this.callPaymentGateway(refund);
+
+      // Clear processing lock on success
+      await collection.updateOne(
+        { refundId: refund.refundId },
+        { $unset: { processingLock: '' } }
+      );
 
       return {
         refundId: refund.refundId,
@@ -152,6 +187,12 @@ export class RefundProcessor {
       void error;
       // Retry logic
       if (refund.retryCount < this.MAX_RETRIES) {
+        // Clear lock before scheduling retry
+        await collection.updateOne(
+          { refundId: refund.refundId },
+          { $unset: { processingLock: '' } }
+        );
+        
         await this.scheduleRetry(refund);
         
         return {
@@ -160,6 +201,12 @@ export class RefundProcessor {
           amount: refund.amount,
         };
       }
+
+      // Clear lock on final failure
+      await collection.updateOne(
+        { refundId: refund.refundId },
+        { $unset: { processingLock: '' } }
+      );
 
       return {
         refundId: refund.refundId,
@@ -224,6 +271,9 @@ export class RefundProcessor {
    */
   private static async scheduleRetry(refund: Refund): Promise<void> {
     const collection = await this.collection();
+    const nextRetryCount = refund.retryCount + 1;
+    const delayMs = this.RETRY_DELAY_MS * nextRetryCount;
+    const nextRetryAt = new Date(Date.now() + delayMs);
 
     await collection.updateOne(
       { refundId: refund.refundId },
@@ -231,20 +281,74 @@ export class RefundProcessor {
         $inc: { retryCount: 1 },
         $set: {
           status: 'processing',
+          nextRetryAt,
           updatedAt: new Date(),
         },
       }
     );
 
-    // Schedule retry after delay
-    setTimeout(async () => {
-      const latestCollection = await this.collection();
-      const updatedRefund = await latestCollection.findOne({ refundId: refund.refundId });
+    try {
+      await addJob(
+        QUEUE_NAMES.REFUNDS,
+        'souq-claim-refund-retry',
+        { refundId: refund.refundId },
+        {
+          delay: delayMs,
+          jobId: `refund-retry-${refund.refundId}-${nextRetryCount}`,
+          priority: 1,
+        }
+      );
+      logger.info('[Refunds] Retry scheduled via queue', {
+        refundId: refund.refundId,
+        attempt: nextRetryCount,
+        delayMs,
+      });
+      return;
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      logger.warn('[Refunds] Queue unavailable, using in-process retry fallback', {
+        refundId: refund.refundId,
+        attempt: nextRetryCount,
+        delayMs,
+        error: error.message,
+      });
+    }
 
-      if (updatedRefund && updatedRefund.status === 'processing') {
-        await this.executeRefund(updatedRefund);
+    this.scheduleInProcessRetry(refund.refundId, delayMs);
+  }
+
+  private static scheduleInProcessRetry(refundId: string, delayMs: number) {
+    const existingTimer = this.retryTimers.get(refundId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        await this.processRetryJob(refundId);
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        logger.error('[Refunds] Fallback retry failed', { refundId, error: error.message });
+      } finally {
+        this.retryTimers.delete(refundId);
       }
-    }, this.RETRY_DELAY_MS * (refund.retryCount + 1)); // Exponential backoff
+    }, delayMs);
+
+    this.retryTimers.set(refundId, timer);
+  }
+
+  static async processRetryJob(refundId: string): Promise<void> {
+    const latestCollection = await this.collection();
+    const updatedRefund = await latestCollection.findOne({ refundId });
+
+    if (updatedRefund && updatedRefund.status === 'processing') {
+      await this.executeRefund(updatedRefund);
+    } else {
+      logger.info('[Refunds] Skipping retry; refund no longer processing', {
+        refundId,
+        status: updatedRefund?.status,
+      });
+    }
   }
 
   /**

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { type ReactNode } from 'react';
-import { cn } from '@/lib/utils';
-import { usePageLabels, type PageLabelKey } from '@/hooks/usePageLabels';
+import { type ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { usePageLabels, type PageLabelKey } from "@/hooks/usePageLabels";
 
 interface ModulePageHeaderProps {
   pageKey: PageLabelKey;
@@ -20,7 +20,7 @@ export default function ModulePageHeader({
   const { title, subtitle } = usePageLabels(pageKey);
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn("space-y-4", className)}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">{title}</h1>
@@ -32,4 +32,3 @@ export default function ModulePageHeader({
     </div>
   );
 }
-

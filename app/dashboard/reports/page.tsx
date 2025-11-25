@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
-import { useTranslation } from '@/contexts/TranslationContext';
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 type ReportTab = {
   id: string;
@@ -12,14 +12,26 @@ type ReportTab = {
 };
 
 const TABS: ReportTab[] = [
-  { id: 'standard', labelKey: 'dashboard.reports.tabs.standard', fallback: 'Standard Reports' },
-  { id: 'custom', labelKey: 'dashboard.reports.tabs.custom', fallback: 'Custom Reports' },
-  { id: 'dashboards', labelKey: 'dashboard.reports.tabs.dashboards', fallback: 'Dashboards' }
+  {
+    id: "standard",
+    labelKey: "dashboard.reports.tabs.standard",
+    fallback: "Standard Reports",
+  },
+  {
+    id: "custom",
+    labelKey: "dashboard.reports.tabs.custom",
+    fallback: "Custom Reports",
+  },
+  {
+    id: "dashboards",
+    labelKey: "dashboard.reports.tabs.dashboards",
+    fallback: "Dashboards",
+  },
 ];
 
 export default function ReportsDashboard() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState(TABS[0]?.id ?? 'standard');
+  const [activeTab, setActiveTab] = useState(TABS[0]?.id ?? "standard");
 
   const activeTabLabel = TABS.find((tab) => tab.id === activeTab);
 
@@ -27,10 +39,13 @@ export default function ReportsDashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">
-          {t('dashboard.reports.title', 'Reports')}
+          {t("dashboard.reports.title", "Reports")}
         </h1>
         <p className="text-muted-foreground">
-          {t('dashboard.reports.subtitle', 'Generate and view business reports')}
+          {t(
+            "dashboard.reports.subtitle",
+            "Generate and view business reports",
+          )}
         </p>
       </div>
 
@@ -40,10 +55,10 @@ export default function ReportsDashboard() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+              "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
               activeTab === tab.id
-                ? 'border-primary text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
             {t(tab.labelKey, tab.fallback)}
@@ -55,10 +70,15 @@ export default function ReportsDashboard() {
         <CardContent className="py-8">
           <div className="text-center text-muted-foreground">
             <p className="font-medium">
-              {activeTabLabel ? t(activeTabLabel.labelKey, activeTabLabel.fallback) : ''}
+              {activeTabLabel
+                ? t(activeTabLabel.labelKey, activeTabLabel.fallback)
+                : ""}
             </p>
             <p className="text-sm mt-2">
-              {t('dashboard.reports.comingSoon', 'Content will be implemented here')}
+              {t(
+                "dashboard.reports.comingSoon",
+                "Content will be implemented here",
+              )}
             </p>
           </div>
         </CardContent>

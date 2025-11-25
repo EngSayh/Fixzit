@@ -3,16 +3,16 @@
  * Main dashboard for seller payouts and balance
  */
 
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { BalanceOverview } from '@/components/seller/settlements/BalanceOverview';
-import { TransactionHistory } from '@/components/seller/settlements/TransactionHistory';
-import { WithdrawalForm } from '@/components/seller/settlements/WithdrawalForm';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuthSession } from '@/hooks/useAuthSession';
-import { useI18n } from '@/i18n/useI18n';
-import { logger } from '@/lib/logger';
+import React, { useState, useEffect } from "react";
+import { BalanceOverview } from "@/components/seller/settlements/BalanceOverview";
+import { TransactionHistory } from "@/components/seller/settlements/TransactionHistory";
+import { WithdrawalForm } from "@/components/seller/settlements/WithdrawalForm";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { useI18n } from "@/i18n/useI18n";
+import { logger } from "@/lib/logger";
 
 export default function SellerSettlementsPage() {
   const { t } = useI18n();
@@ -35,13 +35,13 @@ export default function SellerSettlementsPage() {
   const fetchBalance = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/souq/settlements/balance');
+      const response = await fetch("/api/souq/settlements/balance");
       if (response.ok) {
         const data = await response.json();
         setBalance(data.balance);
       }
     } catch (error) {
-      logger.error('Error fetching balance', error);
+      logger.error("Error fetching balance", error);
     } finally {
       setLoading(false);
     }
@@ -50,7 +50,7 @@ export default function SellerSettlementsPage() {
   const handleWithdrawalSuccess = () => {
     setShowWithdrawalForm(false);
     fetchBalance();
-    alert(t('marketplace.settlements.withdrawalSuccess'));
+    alert(t("marketplace.settlements.withdrawalSuccess"));
   };
 
   // Check authentication and seller role
@@ -58,7 +58,9 @@ export default function SellerSettlementsPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center py-12">
-          <p className="text-destructive">{t('marketplace.settlements.pleaseLogin')}</p>
+          <p className="text-destructive">
+            {t("marketplace.settlements.pleaseLogin")}
+          </p>
         </div>
       </div>
     );
@@ -69,7 +71,7 @@ export default function SellerSettlementsPage() {
       <div className="container mx-auto p-6">
         <div className="text-center py-12">
           <p className="text-destructive">
-            {t('marketplace.settlements.mustBeSeller')}
+            {t("marketplace.settlements.mustBeSeller")}
           </p>
         </div>
       </div>
@@ -80,7 +82,9 @@ export default function SellerSettlementsPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center py-12">
-          <p className="text-gray-500">{t('marketplace.settlements.loading')}</p>
+          <p className="text-gray-500">
+            {t("marketplace.settlements.loading")}
+          </p>
         </div>
       </div>
     );
@@ -89,7 +93,7 @@ export default function SellerSettlementsPage() {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">
-        {t('marketplace.settlements.title')}
+        {t("marketplace.settlements.title")}
       </h1>
 
       {/* Balance Overview */}
@@ -116,10 +120,10 @@ export default function SellerSettlementsPage() {
       <Tabs defaultValue="transactions" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="transactions">
-            {t('marketplace.settlements.tabs.transactions')}
+            {t("marketplace.settlements.tabs.transactions")}
           </TabsTrigger>
           <TabsTrigger value="statements">
-            {t('marketplace.settlements.tabs.statements')}
+            {t("marketplace.settlements.tabs.statements")}
           </TabsTrigger>
         </TabsList>
 
@@ -129,7 +133,7 @@ export default function SellerSettlementsPage() {
 
         <TabsContent value="statements" className="mt-6">
           <div className="text-center py-12 text-gray-500">
-            <p>{t('marketplace.settlements.comingSoon')}</p>
+            <p>{t("marketplace.settlements.comingSoon")}</p>
           </div>
         </TabsContent>
       </Tabs>

@@ -1,14 +1,18 @@
-import { logger } from '@/lib/logger';
-import { getDatabase } from '@/lib/mongodb-unified';
-import { ObjectId } from 'mongodb';
+import { logger } from "@/lib/logger";
+import { getDatabase } from "@/lib/mongodb-unified";
+import { ObjectId } from "mongodb";
 
-export type JobType = 'email-invitation' | 'email-notification' | 's3-cleanup' | 'report-generation';
+export type JobType =
+  | "email-invitation"
+  | "email-notification"
+  | "s3-cleanup"
+  | "report-generation";
 
 export interface Job {
   _id: ObjectId;
   type: JobType;
   payload: Record<string, unknown>;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: "queued" | "processing" | "completed" | "failed";
   attempts: number;
   maxAttempts: number;
   error?: string;
@@ -17,12 +21,12 @@ export interface Job {
   processedAt?: Date;
 }
 
-const COLLECTION = 'background_jobs';
+const COLLECTION = "background_jobs";
 const MAX_ATTEMPTS = 3;
 
 /**
  * Background Job Queue Service
- * 
+ *
  * Simple in-database job queue for background tasks
  * Jobs are processed by worker endpoints or scheduled jobs
  */
@@ -30,7 +34,11 @@ export class JobQueue {
   /**
    * Enqueue a new background job
    */
-  static async enqueue(type: JobType, payload: Record<string, unknown>, maxAttempts = MAX_ATTEMPTS): Promise<string> {
+  static async enqueue(
+    type: JobType,
+    payload: Record<string, unknown>,
+    maxAttempts = MAX_ATTEMPTS,
+  ): Promise<string> {
     try {
       const db = await getDatabase();
       const collection = db.collection<Job>(COLLECTION);
@@ -39,7 +47,7 @@ export class JobQueue {
         _id: new ObjectId(),
         type,
         payload,
-        status: 'queued',
+        status: "queued",
         attempts: 0,
         maxAttempts,
         createdAt: new Date(),
@@ -47,11 +55,11 @@ export class JobQueue {
       };
 
       await collection.insertOne(job);
-      logger.info('Job enqueued', { jobId: job._id.toString(), type });
-      
+      logger.info("Job enqueued", { jobId: job._id.toString(), type });
+
       return job._id.toString();
     } catch (error) {
-      logger.error('Failed to enqueue job', error as Error, { type, payload });
+      logger.error("Failed to enqueue job", error as Error, { type, payload });
       throw error;
     }
   }
@@ -65,12 +73,9 @@ export class JobQueue {
       const collection = db.collection<Job>(COLLECTION);
 
       const query: Record<string, unknown> = {
-        status: 'queued',
+        status: "queued",
         $expr: {
-          $lt: [
-            '$attempts',
-            { $ifNull: ['$maxAttempts', MAX_ATTEMPTS] }
-          ]
+          $lt: ["$attempts", { $ifNull: ["$maxAttempts", MAX_ATTEMPTS] }],
         },
       };
 
@@ -81,18 +86,18 @@ export class JobQueue {
       const result = await collection.findOneAndUpdate(
         query,
         {
-          $set: { status: 'processing', updatedAt: new Date() },
+          $set: { status: "processing", updatedAt: new Date() },
           $inc: { attempts: 1 },
         },
         {
           sort: { createdAt: 1 },
-          returnDocument: 'after',
-        }
+          returnDocument: "after",
+        },
       );
 
       return result || null;
     } catch (error) {
-      logger.error('Failed to claim job', error as Error);
+      logger.error("Failed to claim job", error as Error);
       return null;
     }
   }
@@ -109,16 +114,16 @@ export class JobQueue {
         { _id: new ObjectId(jobId) },
         {
           $set: {
-            status: 'completed',
+            status: "completed",
             processedAt: new Date(),
             updatedAt: new Date(),
           },
-        }
+        },
       );
 
-      logger.info('Job completed', { jobId });
+      logger.info("Job completed", { jobId });
     } catch (error) {
-      logger.error('Failed to complete job', error as Error, { jobId });
+      logger.error("Failed to complete job", error as Error, { jobId });
     }
   }
 
@@ -131,15 +136,15 @@ export class JobQueue {
       const collection = db.collection<Job>(COLLECTION);
 
       const job = await collection.findOne({ _id: new ObjectId(jobId) });
-      
+
       if (!job) {
-        logger.warn('Job not found for failure update', { jobId });
+        logger.warn("Job not found for failure update", { jobId });
         return;
       }
 
       // If max attempts reached, mark as failed permanently
       // Otherwise, set back to queued for retry
-      const status = job.attempts >= job.maxAttempts ? 'failed' : 'queued';
+      const status = job.attempts >= job.maxAttempts ? "failed" : "queued";
 
       await collection.updateOne(
         { _id: new ObjectId(jobId) },
@@ -148,14 +153,18 @@ export class JobQueue {
             status,
             error,
             updatedAt: new Date(),
-            ...(status === 'failed' && { processedAt: new Date() }),
+            ...(status === "failed" && { processedAt: new Date() }),
           },
-        }
+        },
       );
 
-      logger.error('Job failed', new Error(error), { jobId, attempts: job.attempts, status });
+      logger.error("Job failed", new Error(error), {
+        jobId,
+        attempts: job.attempts,
+        status,
+      });
     } catch (error) {
-      logger.error('Failed to update failed job', error as Error, { jobId });
+      logger.error("Failed to update failed job", error as Error, { jobId });
     }
   }
 
@@ -171,30 +180,27 @@ export class JobQueue {
 
       const result = await collection.updateMany(
         {
-          status: 'processing',
+          status: "processing",
           updatedAt: { $lt: cutoffTime },
           $expr: {
-            $lt: [
-              '$attempts',
-              { $ifNull: ['$maxAttempts', MAX_ATTEMPTS] }
-            ]
+            $lt: ["$attempts", { $ifNull: ["$maxAttempts", MAX_ATTEMPTS] }],
           },
         },
         {
           $set: {
-            status: 'queued',
+            status: "queued",
             updatedAt: new Date(),
           },
-        }
+        },
       );
 
       if (result.modifiedCount > 0) {
-        logger.info('Retried stuck jobs', { count: result.modifiedCount });
+        logger.info("Retried stuck jobs", { count: result.modifiedCount });
       }
 
       return result.modifiedCount;
     } catch (error) {
-      logger.error('Failed to retry stuck jobs', error as Error);
+      logger.error("Failed to retry stuck jobs", error as Error);
       return 0;
     }
   }
@@ -214,16 +220,16 @@ export class JobQueue {
       const collection = db.collection<Job>(COLLECTION);
 
       const [queued, processing, completed, failed, total] = await Promise.all([
-        collection.countDocuments({ status: 'queued' }),
-        collection.countDocuments({ status: 'processing' }),
-        collection.countDocuments({ status: 'completed' }),
-        collection.countDocuments({ status: 'failed' }),
+        collection.countDocuments({ status: "queued" }),
+        collection.countDocuments({ status: "processing" }),
+        collection.countDocuments({ status: "completed" }),
+        collection.countDocuments({ status: "failed" }),
         collection.countDocuments(),
       ]);
 
       return { queued, processing, completed, failed, total };
     } catch (error) {
-      logger.error('Failed to get job stats', error as Error);
+      logger.error("Failed to get job stats", error as Error);
       return { queued: 0, processing: 0, completed: 0, failed: 0, total: 0 };
     }
   }
@@ -239,17 +245,17 @@ export class JobQueue {
       const cutoffDate = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000);
 
       const result = await collection.deleteMany({
-        status: { $in: ['completed', 'failed'] },
+        status: { $in: ["completed", "failed"] },
         updatedAt: { $lt: cutoffDate },
       });
 
       if (result.deletedCount > 0) {
-        logger.info('Cleaned up old jobs', { count: result.deletedCount });
+        logger.info("Cleaned up old jobs", { count: result.deletedCount });
       }
 
       return result.deletedCount;
     } catch (error) {
-      logger.error('Failed to cleanup old jobs', error as Error);
+      logger.error("Failed to cleanup old jobs", error as Error);
       return 0;
     }
   }

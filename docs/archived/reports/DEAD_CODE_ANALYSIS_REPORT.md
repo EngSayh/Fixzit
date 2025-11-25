@@ -258,8 +258,7 @@ grep -r "from '@/components/HelpWidget'" app/
 2. ❌ `components/HelpWidget.tsx` - Replaced by CopilotWidget
 3. ❌ `core/RuntimeMonitor.tsx` - Dev monitoring (not needed)
 
-**Exports to REMOVE from files**:
-4. ❌ `core/ArchitectureGuard.ts:36` - Remove `architectureGuard` export
+**Exports to REMOVE from files**: 4. ❌ `core/ArchitectureGuard.ts:36` - Remove `architectureGuard` export
 
 **Estimated Impact**: ~350 lines removed
 

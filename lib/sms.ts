@@ -1,27 +1,31 @@
 /**
  * SMS Service - Twilio Integration for Saudi Market
- * 
+ *
  * Provides SMS functionality for notifications, OTP, and alerts.
  * Supports Saudi Arabian phone number formats.
  */
 
-import { logger } from '@/lib/logger';
-import { executeWithRetry, withTimeout, getCircuitBreaker } from '@/lib/resilience';
-import { SERVICE_RESILIENCE } from '@/config/service-timeouts';
+import { logger } from "@/lib/logger";
+import {
+  executeWithRetry,
+  withTimeout,
+  getCircuitBreaker,
+} from "@/lib/resilience";
+import { SERVICE_RESILIENCE } from "@/config/service-timeouts";
 
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const NODE_ENV = process.env.NODE_ENV || "development";
 const SMS_DEV_MODE_ENABLED =
-  process.env.SMS_DEV_MODE === 'true' ||
-  (NODE_ENV !== 'production' && process.env.SMS_DEV_MODE !== 'false');
+  process.env.SMS_DEV_MODE === "true" ||
+  (NODE_ENV !== "production" && process.env.SMS_DEV_MODE !== "false");
 
-const twilioBreaker = getCircuitBreaker('twilio');
+const twilioBreaker = getCircuitBreaker("twilio");
 const twilioResilience = SERVICE_RESILIENCE.twilio;
 
 function hasTwilioConfiguration(): boolean {
   return Boolean(
     process.env.TWILIO_ACCOUNT_SID &&
       process.env.TWILIO_AUTH_TOKEN &&
-      process.env.TWILIO_PHONE_NUMBER
+      process.env.TWILIO_PHONE_NUMBER,
   );
 }
 
@@ -32,17 +36,17 @@ interface SMSResult {
 }
 
 export type TwilioOperationLabel =
-  | 'sms-send'
-  | 'sms-status'
-  | 'sms-config-test'
-  | 'whatsapp-send';
+  | "sms-send"
+  | "sms-status"
+  | "sms-config-test"
+  | "whatsapp-send";
 
 export async function withTwilioResilience<T>(
   label: TwilioOperationLabel,
-  operation: () => Promise<T>
+  operation: () => Promise<T>,
 ): Promise<T> {
   const timeoutMs =
-    label === 'sms-status'
+    label === "sms-status"
       ? twilioResilience.timeouts.statusMs
       : twilioResilience.timeouts.smsSendMs;
 
@@ -51,13 +55,13 @@ export async function withTwilioResilience<T>(
       twilioBreaker.run(() =>
         withTimeout(() => operation(), {
           timeoutMs,
-        })
+        }),
       ),
     {
       maxAttempts: twilioResilience.retries.maxAttempts,
       baseDelayMs: twilioResilience.retries.baseDelayMs,
       label: `twilio-${label}`,
-    }
+    },
   );
 }
 
@@ -67,28 +71,28 @@ export async function withTwilioResilience<T>(
  */
 function formatSaudiPhoneNumber(phone: string): string {
   // Remove all spaces, dashes, and parentheses
-  const cleaned = phone.replace(/[\s\-()]/g, '');
-  
+  const cleaned = phone.replace(/[\s\-()]/g, "");
+
   // If already in E.164 format
-  if (cleaned.startsWith('+966')) {
+  if (cleaned.startsWith("+966")) {
     return cleaned;
   }
-  
+
   // Remove leading zeros
-  if (cleaned.startsWith('00966')) {
-    return '+' + cleaned.substring(2);
+  if (cleaned.startsWith("00966")) {
+    return "+" + cleaned.substring(2);
   }
-  
-  if (cleaned.startsWith('966')) {
-    return '+' + cleaned;
+
+  if (cleaned.startsWith("966")) {
+    return "+" + cleaned;
   }
-  
-  if (cleaned.startsWith('0')) {
-    return '+966' + cleaned.substring(1);
+
+  if (cleaned.startsWith("0")) {
+    return "+966" + cleaned.substring(1);
   }
-  
+
   // Assume local number
-  return '+966' + cleaned;
+  return "+966" + cleaned;
 }
 
 /**
@@ -110,19 +114,20 @@ export async function sendSMS(to: string, message: string): Promise<SMSResult> {
 
   if (!isValidSaudiPhone(formattedPhone)) {
     const error = `Invalid Saudi phone number format: ${to}`;
-    logger.warn('[SMS] Invalid phone number', { to, formattedPhone });
+    logger.warn("[SMS] Invalid phone number", { to, formattedPhone });
     return { success: false, error };
   }
 
   if (!twilioConfigured && !SMS_DEV_MODE_ENABLED) {
-    const error = 'Twilio not configured. Missing TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, or TWILIO_PHONE_NUMBER';
-    logger.warn('[SMS] Configuration missing', { to: formattedPhone });
+    const error =
+      "Twilio not configured. Missing TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, or TWILIO_PHONE_NUMBER";
+    logger.warn("[SMS] Configuration missing", { to: formattedPhone });
     return { success: false, error };
   }
 
   if (SMS_DEV_MODE_ENABLED) {
     const messageSid = `dev-${Date.now()}`;
-    logger.info('[SMS] Dev mode enabled - SMS not sent via Twilio', {
+    logger.info("[SMS] Dev mode enabled - SMS not sent via Twilio", {
       to: formattedPhone,
       preview: message,
       messageSid,
@@ -132,18 +137,21 @@ export async function sendSMS(to: string, message: string): Promise<SMSResult> {
   }
 
   try {
-    const { default: twilio } = await import('twilio');
-    const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
+    const { default: twilio } = await import("twilio");
+    const client = twilio(
+      process.env.TWILIO_ACCOUNT_SID!,
+      process.env.TWILIO_AUTH_TOKEN!,
+    );
 
-    const result = await withTwilioResilience('sms-send', () =>
+    const result = await withTwilioResilience("sms-send", () =>
       client.messages.create({
         body: message,
         from: process.env.TWILIO_PHONE_NUMBER,
         to: formattedPhone,
-      })
+      }),
     );
 
-    logger.info('[SMS] Message sent successfully', {
+    logger.info("[SMS] Message sent successfully", {
       to: formattedPhone,
       messageSid: result.sid,
       status: result.status,
@@ -157,7 +165,7 @@ export async function sendSMS(to: string, message: string): Promise<SMSResult> {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error('[SMS] Send failed', {
+    logger.error("[SMS] Send failed", {
       error: errorMessage,
       to: formattedPhone,
     });
@@ -184,7 +192,7 @@ export async function sendOTP(to: string, code: string): Promise<SMSResult> {
 export async function sendBulkSMS(
   recipients: string[],
   message: string,
-  options?: { delayMs?: number }
+  options?: { delayMs?: number },
 ): Promise<{ sent: number; failed: number; results: SMSResult[] }> {
   const results: SMSResult[] = [];
   let sent = 0;
@@ -202,11 +210,15 @@ export async function sendBulkSMS(
 
     // Add delay between messages to avoid rate limiting
     if (options?.delayMs) {
-      await new Promise(resolve => setTimeout(resolve, options.delayMs));
+      await new Promise((resolve) => setTimeout(resolve, options.delayMs));
     }
   }
 
-  logger.info('[SMS] Bulk send completed', { total: recipients.length, sent, failed });
+  logger.info("[SMS] Bulk send completed", {
+    total: recipients.length,
+    sent,
+    failed,
+  });
 
   return { sent, failed, results };
 }
@@ -222,16 +234,19 @@ export async function getSMSStatus(messageSid: string): Promise<{
   errorMessage?: string;
 } | null> {
   if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-    logger.warn('[SMS] Cannot check status - Twilio not configured');
+    logger.warn("[SMS] Cannot check status - Twilio not configured");
     return null;
   }
 
   try {
-    const { default: twilio } = await import('twilio');
-    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    const { default: twilio } = await import("twilio");
+    const client = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN,
+    );
 
-    const message = await withTwilioResilience('sms-status', () =>
-      client.messages(messageSid).fetch()
+    const message = await withTwilioResilience("sms-status", () =>
+      client.messages(messageSid).fetch(),
     );
 
     return {
@@ -239,12 +254,12 @@ export async function getSMSStatus(messageSid: string): Promise<{
       dateCreated: new Date(message.dateCreated),
       dateSent: message.dateSent ? new Date(message.dateSent) : undefined,
       errorCode: message.errorCode || undefined,
-      errorMessage: message.errorMessage || undefined
+      errorMessage: message.errorMessage || undefined,
     };
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[SMS] Status check failed', { error, messageSid });
+    logger.error("[SMS] Status check failed", { error, messageSid });
     return null;
   }
 }
@@ -254,32 +269,32 @@ export async function getSMSStatus(messageSid: string): Promise<{
  */
 export async function testSMSConfiguration(): Promise<boolean> {
   if (!hasTwilioConfiguration()) {
-    logger.error('[SMS] Configuration test failed - missing credentials');
+    logger.error("[SMS] Configuration test failed - missing credentials");
     return false;
   }
 
   try {
-    const { default: twilio } = await import('twilio');
+    const { default: twilio } = await import("twilio");
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     if (!accountSid || !authToken) {
-      logger.error('[SMS] Configuration test failed - missing credentials');
+      logger.error("[SMS] Configuration test failed - missing credentials");
       return false;
     }
 
     const client = twilio(accountSid, authToken);
 
     // Validate credentials by fetching account info
-    await withTwilioResilience('sms-config-test', () =>
-      client.api.accounts(accountSid).fetch()
+    await withTwilioResilience("sms-config-test", () =>
+      client.api.accounts(accountSid).fetch(),
     );
 
-    logger.info('[SMS] Configuration test passed');
+    logger.info("[SMS] Configuration test passed");
     return true;
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
-    logger.error('[SMS] Configuration test failed', { error });
+    logger.error("[SMS] Configuration test failed", { error });
     return false;
   }
 }

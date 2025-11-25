@@ -1,8 +1,8 @@
-import { NextRequest } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import SubscriptionInvoice from '@/server/models/SubscriptionInvoice';
-import Subscription from '@/server/models/Subscription';
-import PaymentMethod from '@/server/models/PaymentMethod';
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import SubscriptionInvoice from "@/server/models/SubscriptionInvoice";
+import Subscription from "@/server/models/Subscription";
+import PaymentMethod from "@/server/models/PaymentMethod";
 import {
   buildPaytabsIdempotencyKey,
   enforcePaytabsPayloadSize,
@@ -12,17 +12,19 @@ import {
   PaytabsCallbackValidationError,
   PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS,
   PAYTABS_CALLBACK_RATE_LIMIT,
-} from '@/lib/payments/paytabs-callback.contract';
-import { verifyPayment, validateCallback } from '@/lib/paytabs';
-import { logger } from '@/lib/logger';
-import { withIdempotency } from '@/server/security/idempotency';
-import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError } from '@/server/utils/errorResponses';
-import { createSecureResponse, getClientIP } from '@/server/security/headers';
-import { Config } from '@/lib/config/constants';
+} from "@/lib/payments/paytabs-callback.contract";
+import { verifyPayment, validateCallback } from "@/lib/paytabs";
+import { logger } from "@/lib/logger";
+import { withIdempotency } from "@/server/security/idempotency";
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { createSecureResponse, getClientIP } from "@/server/security/headers";
+import { Config } from "@/lib/config/constants";
 
 const PAYTABS_SERVER_KEY = Config.payment.paytabs.serverKey;
-const PAYTABS_CONFIGURED = Boolean(PAYTABS_SERVER_KEY && Config.payment.paytabs.profileId);
+const PAYTABS_CONFIGURED = Boolean(
+  PAYTABS_SERVER_KEY && Config.payment.paytabs.profileId,
+);
 /**
  * @openapi
  * /api/billing/callback/paytabs:
@@ -46,7 +48,7 @@ export async function POST(req: NextRequest) {
   const rl = rateLimit(
     `${new URL(req.url).pathname}:${clientIp}`,
     PAYTABS_CALLBACK_RATE_LIMIT.requests,
-    PAYTABS_CALLBACK_RATE_LIMIT.windowMs
+    PAYTABS_CALLBACK_RATE_LIMIT.windowMs,
   );
   if (!rl.allowed) {
     return rateLimitError();
@@ -72,27 +74,27 @@ export async function POST(req: NextRequest) {
     }
     throw _error;
   }
-  
+
   const signature = extractPaytabsSignature(req, payload);
   if (!signature && PAYTABS_CONFIGURED) {
-    logger.error('[Billing Callback] Missing signature from PayTabs');
-    return createSecureResponse({ error: 'Invalid signature' }, 401, req);
+    logger.error("[Billing Callback] Missing signature from PayTabs");
+    return createSecureResponse({ error: "Invalid signature" }, 401, req);
   }
 
   if (!signature) {
-    logger.warn('[Billing Callback] Signature missing; dev mode fallback', {
+    logger.warn("[Billing Callback] Signature missing; dev mode fallback", {
       paytabsConfigured: PAYTABS_CONFIGURED,
     });
   }
 
   // 1) Validate signature
-  if (!validateCallback(payload, signature || '')) {
-    logger.error('[Billing Callback] Invalid signature from PayTabs');
-    return createSecureResponse({ error: 'Invalid signature' }, 401, req);
+  if (!validateCallback(payload, signature || "")) {
+    logger.error("[Billing Callback] Invalid signature from PayTabs");
+    return createSecureResponse({ error: "Invalid signature" }, 401, req);
   }
-  
+
   await connectToDatabase();
-  
+
   let normalized;
   try {
     normalized = normalizePaytabsCallbackPayload(payload);
@@ -102,7 +104,7 @@ export async function POST(req: NextRequest) {
     }
     throw _error;
   }
-  
+
   const tranRef = normalized.tranRef;
   const cartId = normalized.cartId;
   const token = normalized.token;
@@ -114,40 +116,62 @@ export async function POST(req: NextRequest) {
       verification = await verifyPayment(tranRef);
     } catch (_error) {
       const message = _error instanceof Error ? _error.message : String(_error);
-      logger.error('[Billing Callback] Failed to verify payment with PayTabs:', message);
-      return createSecureResponse({ error: 'Payment verification failed' }, 500, req);
+      logger.error(
+        "[Billing Callback] Failed to verify payment with PayTabs:",
+        message,
+      );
+      return createSecureResponse(
+        { error: "Payment verification failed" },
+        500,
+        req,
+      );
     }
   } else {
-    logger.warn('[Billing Callback] Skipping PayTabs verification (dev mode)');
+    logger.warn("[Billing Callback] Skipping PayTabs verification (dev mode)");
   }
-  
+
   // Type-safe validation of verification result
   function isValidPayTabsVerification(data: unknown): data is {
     payment_result: { response_status: string; response_message?: string };
     cart_amount?: string;
-    payment_info?: { card_scheme?: string; payment_description?: string; expiryMonth?: string; expYear?: string };
+    payment_info?: {
+      card_scheme?: string;
+      payment_description?: string;
+      expiryMonth?: string;
+      expYear?: string;
+    };
   } {
-    if (!data || typeof data !== 'object') return false;
+    if (!data || typeof data !== "object") return false;
     const obj = data as Record<string, unknown>;
     return (
-      typeof obj.payment_result === 'object' &&
+      typeof obj.payment_result === "object" &&
       obj.payment_result !== null &&
-      typeof (obj.payment_result as Record<string, unknown>).response_status === 'string'
+      typeof (obj.payment_result as Record<string, unknown>).response_status ===
+        "string"
     );
   }
 
-  let verificationData:
-    | {
-        payment_result: { response_status: string; response_message?: string };
-        cart_amount?: string;
-        payment_info?: { card_scheme?: string; payment_description?: string; expiryMonth?: string; expYear?: string };
-      }
-    | null = null;
+  let verificationData: {
+    payment_result: { response_status: string; response_message?: string };
+    cart_amount?: string;
+    payment_info?: {
+      card_scheme?: string;
+      payment_description?: string;
+      expiryMonth?: string;
+      expYear?: string;
+    };
+  } | null = null;
 
   if (PAYTABS_CONFIGURED) {
     if (!isValidPayTabsVerification(verification)) {
-      logger.error('[Billing Callback] Invalid verification response structure from PayTabs');
-      return createSecureResponse({ error: 'Invalid payment verification response' }, 500, req);
+      logger.error(
+        "[Billing Callback] Invalid verification response structure from PayTabs",
+      );
+      return createSecureResponse(
+        { error: "Invalid payment verification response" },
+        500,
+        req,
+      );
     }
     verificationData = verification;
   } else {
@@ -160,38 +184,41 @@ export async function POST(req: NextRequest) {
     };
   }
 
-  const verifiedOk = verificationData?.payment_result?.response_status === 'A';
-  
-  const subId = cartId?.replace('SUB-','');
-  const sub = (await Subscription.findById(subId));
-  if (!sub) return createSecureResponse({ error: 'SUB_NOT_FOUND' }, 400, req);
+  const verifiedOk = verificationData?.payment_result?.response_status === "A";
+
+  const subId = cartId?.replace("SUB-", "");
+  const sub = await Subscription.findById(subId);
+  if (!sub) return createSecureResponse({ error: "SUB_NOT_FOUND" }, 400, req);
 
   // Find invoice
   // @ts-expect-error - Mongoose 8.x type resolution issue with conditional model export
-  const inv = (await SubscriptionInvoice.findOne({ subscriptionId: sub._id, status: 'pending' }));
-  if (!inv) return createSecureResponse({ error: 'INV_NOT_FOUND' }, 400, req);
+  const inv = await SubscriptionInvoice.findOne({
+    subscriptionId: sub._id,
+    status: "pending",
+  });
+  if (!inv) return createSecureResponse({ error: "INV_NOT_FOUND" }, 400, req);
 
   await withIdempotency(
     buildPaytabsIdempotencyKey(normalized, {
-      route: 'billing',
+      route: "billing",
       subscriptionId: String(sub._id),
       invoiceId: String(inv._id),
     }),
     async () => {
       if (!verifiedOk) {
-        inv.status = 'failed';
+        inv.status = "failed";
         inv.errorMessage =
           verificationData?.payment_result?.response_message ||
           normalized.respMessage ||
-          'Payment declined';
+          "Payment declined";
       } else {
-        inv.status = 'paid';
+        inv.status = "paid";
         inv.paytabsTranRef = tranRef;
       }
 
       await inv.save();
 
-      if (verifiedOk && token && sub.billing_cycle === 'MONTHLY') {
+      if (verifiedOk && token && sub.billing_cycle === "MONTHLY") {
         type PaytabsPaymentInfo = {
           card_scheme?: string;
           payment_description?: string;
@@ -199,18 +226,22 @@ export async function POST(req: NextRequest) {
           expYear?: string;
           customer_email?: string;
         };
-        const paymentInfo = verificationData.payment_info as PaytabsPaymentInfo | undefined;
+        const paymentInfo = verificationData.payment_info as
+          | PaytabsPaymentInfo
+          | undefined;
         if (!paymentInfo) {
-          logger.warn('[Billing Callback] No payment_info in verification response, skipping token storage');
+          logger.warn(
+            "[Billing Callback] No payment_info in verification response, skipping token storage",
+          );
         } else {
           const paymentMethodPayload: Record<string, unknown> = {
-            gateway: 'PAYTABS',
+            gateway: "PAYTABS",
             pt_token: token,
             pt_masked_card: paymentInfo.payment_description,
             pt_customer_email: paymentInfo.customer_email,
           };
 
-          if (sub.subscriber_type === 'OWNER' && sub.owner_user_id) {
+          if (sub.subscriber_type === "OWNER" && sub.owner_user_id) {
             paymentMethodPayload.owner_user_id = sub.owner_user_id;
           } else if (sub.tenant_id) {
             paymentMethodPayload.org_id = sub.tenant_id;
@@ -222,7 +253,7 @@ export async function POST(req: NextRequest) {
         }
       }
     },
-    PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS
+    PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS,
   );
 
   return createSecureResponse({ ok: verifiedOk }, 200, req);

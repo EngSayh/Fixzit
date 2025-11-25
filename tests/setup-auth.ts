@@ -35,6 +35,8 @@ async function globalSetup(config: FullConfig) {
   console.log(`📍 Base URL: ${baseURL}`);
   console.log(`🗄️  Database Mode: ${offlineMode ? 'Offline (Mock Sessions)' : 'Online (Real MongoDB)'}`);
   console.log(`🔑 Using NextAuth Secret: ${nextAuthSecret.substring(0, 10)}...`);
+  const skipCsrf =
+    process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true' || process.env.NODE_ENV === 'test';
   
   const baseOrigin = (() => {
     try {
@@ -345,17 +347,13 @@ async function globalSetup(config: FullConfig) {
         throw new Error(lastError || 'OTP verification failed after retries');
       }
 
-      // Step 3: Obtain CSRF token (NextAuth requires the CSRF cookie + token)
+      // Step 3: Obtain CSRF token (NextAuth v5 has no /csrf endpoint; skip when configured)
       console.log(`  🛡️  Getting CSRF token...`);
-      const csrfResponse = await page.goto(`${baseURL}/api/auth/csrf`);
-      const csrfText = await csrfResponse?.text();
-      const csrfToken = csrfText ? JSON.parse(csrfText).csrfToken : undefined;
-
+      const csrfToken = await getCsrfToken(page, baseURL, skipCsrf);
       if (!csrfToken) {
         throw new Error('Failed to retrieve CSRF token');
       }
-
-      console.log(`  ✅ CSRF token obtained`);
+      console.log(`  ✅ CSRF token obtained (${csrfToken === 'csrf-disabled' ? 'skip enabled' : 'token found'})`);
 
       // Step 4: Create a NextAuth session through the credentials callback
       console.log(`  🔓 Creating session...`);
@@ -405,6 +403,52 @@ async function globalSetup(config: FullConfig) {
 
 export default globalSetup;
 const SESSION_COOKIE_PATTERNS = ['session', 'next-auth'];
+
+async function getCsrfToken(page: BrowserContext['pages'][number], baseURL: string, skip: boolean) {
+  // Prime session cookies first
+  try {
+    await page.request.get(`${baseURL}/api/auth/session`);
+  } catch {
+    // ignore warmup failures
+  }
+
+  if (skip) {
+    return 'csrf-disabled';
+  }
+
+  // Try cookie-based token first (authjs sets next-auth.csrf-token cookie)
+  try {
+    const cookies = await page.context().cookies(baseURL);
+    const csrfCookie = cookies.find(cookie => cookie.name.includes('next-auth.csrf-token'));
+    if (csrfCookie?.value) {
+      const raw = decodeURIComponent(csrfCookie.value);
+      const [token] = raw.split('|');
+      if (token) return token;
+    }
+  } catch {
+    // ignore cookie parsing issues
+  }
+
+  // Fallback: hit legacy /api/auth/csrf endpoint (some adapters still expose it)
+  try {
+    const resp = await page.request.get(`${baseURL}/api/auth/csrf`);
+    const text = (await resp.text().catch(() => ''))?.trim();
+    if (text) {
+      const match = text.match(/"csrfToken"\s*:\s*"([^"]+)"/i);
+      if (match?.[1]) return match[1];
+      try {
+        const parsed = JSON.parse(text);
+        return parsed?.csrfToken || parsed?.csrf?.token;
+      } catch {
+        // ignore JSON parse issues
+      }
+    }
+  } catch {
+    // ignore missing endpoint
+  }
+
+  return undefined;
+}
 
 async function ensureSessionCookie(context: BrowserContext, baseURL: string, timeoutMs = 5000) {
   const deadline = Date.now() + timeoutMs;

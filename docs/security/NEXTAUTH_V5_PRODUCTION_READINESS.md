@@ -25,18 +25,21 @@
 ### ✅ Phase 1: Static Analysis (COMPLETED)
 
 **TypeScript Compilation**:
+
 ```bash
 $ pnpm typecheck
 ✅ PASS - 0 errors
 ```
 
 **ESLint Verification**:
+
 ```bash
 $ pnpm lint
 ✅ PASS - 0 warnings, 0 errors
 ```
 
 **Dependency Audit**:
+
 ```bash
 $ pnpm audit
 Status: Reviewed and mitigated
@@ -45,6 +48,7 @@ Status: Reviewed and mitigated
 ### ✅ Phase 2: Unit Tests (COMPLETED)
 
 **Authentication Flow Tests**:
+
 - ✅ OAuth sign-in callback with email validation
 - ✅ JWT token generation and validation
 - ✅ Session persistence across requests
@@ -52,6 +56,7 @@ Status: Reviewed and mitigated
 - ✅ Access control enforcement
 
 **Test Coverage**:
+
 - Components: 85%+ coverage
 - Authentication logic: 95%+ coverage
 - Middleware: 90%+ coverage
@@ -73,6 +78,7 @@ Status: Reviewed and mitigated
    ```
 
 2. **Session Management**:
+
    ```bash
    Test Scenario: Session lifecycle
    ✅ Session persists across page navigations
@@ -120,7 +126,7 @@ Status: Reviewed and mitigated
 4. **Unauthorized Access Attempts**:
    - Try signing in with non-whitelisted domain
    - Verify rejection with error message
-   - Try accessing /fm/* without auth
+   - Try accessing /fm/\* without auth
    - Verify redirect to login
    - Try forging JWT token
    - Verify signature verification rejects it
@@ -128,6 +134,7 @@ Status: Reviewed and mitigated
 ### 📊 Phase 5: Load & Performance Tests
 
 **Metrics to Monitor**:
+
 - OAuth callback response time: < 500ms
 - JWT verification latency: < 10ms
 - Session lookup time: < 50ms
@@ -135,6 +142,7 @@ Status: Reviewed and mitigated
 - Memory footprint: Stable over 24h
 
 **Stress Testing**:
+
 ```bash
 # Simulate 1000 concurrent OAuth sign-ins
 $ artillery run auth-load-test.yml
@@ -179,6 +187,7 @@ Target: Stable memory usage over time
 ### 🔒 Security Best Practices
 
 **Environment Variables Required**:
+
 ```bash
 # NextAuth Configuration
 NEXTAUTH_SECRET=<strong-random-secret-256-bits>
@@ -193,6 +202,7 @@ JWT_SECRET=<strong-random-secret-256-bits>
 ```
 
 **Secret Generation**:
+
 ```bash
 # Generate secure secrets
 openssl rand -base64 32
@@ -202,6 +212,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
 **Access Control Configuration**:
+
 ```typescript
 // auth.config.ts
 import { getUserByEmail } from '@/lib/db/users';
@@ -213,18 +224,18 @@ async signIn({ user, account }) {
   if (account?.provider === 'google') {
     try {
       const dbUser = await getUserByEmail(user.email);
-      
+
       // Deny access if user not in database or inactive
       if (!dbUser) {
         console.warn(`OAuth login denied: User ${user.email} not found in database`);
         return false;
       }
-      
+
       if (!dbUser.isActive) {
         console.warn(`OAuth login denied: User ${user.email} is inactive`);
         return false;
       }
-      
+
       return true;
     } catch (error) {
       console.error('Database verification failed during OAuth login:', error);
@@ -242,24 +253,25 @@ async signIn({ user, account }) {
 
 ### Risk Matrix
 
-| Risk | Severity | Likelihood | Impact | Mitigation |
-|------|----------|------------|--------|------------|
-| Beta instability | Medium | Low | High | 29 releases, extensive testing, zero current issues |
-| Breaking changes in stable | Low | Medium | Medium | Monitor releases, test in staging first |
-| Security vulnerability | High | Low | Critical | Applied all security hardening, regular updates |
-| Performance degradation | Medium | Low | Medium | Load testing, monitoring, rollback plan |
-| OAuth provider issues | Medium | Low | High | Error handling, fallback to email login |
+| Risk                       | Severity | Likelihood | Impact   | Mitigation                                          |
+| -------------------------- | -------- | ---------- | -------- | --------------------------------------------------- |
+| Beta instability           | Medium   | Low        | High     | 29 releases, extensive testing, zero current issues |
+| Breaking changes in stable | Low      | Medium     | Medium   | Monitor releases, test in staging first             |
+| Security vulnerability     | High     | Low        | Critical | Applied all security hardening, regular updates     |
+| Performance degradation    | Medium   | Low        | Medium   | Load testing, monitoring, rollback plan             |
+| OAuth provider issues      | Medium   | Low        | High     | Error handling, fallback to email login             |
 
 ### Mitigation Strategies
 
 1. **Monitoring & Alerting**:
+
    ```bash
    # Monitor authentication errors
    - OAuth callback failures
    - JWT verification failures
    - Session creation errors
    - Middleware protection bypasses
-   
+
    # Set up alerts for:
    - Error rate > 1% of auth requests
    - Response time > 2s for OAuth callback
@@ -267,19 +279,20 @@ async signIn({ user, account }) {
    ```
 
 2. **Rollback Plan**:
+
    ```bash
    # If critical issues arise:
-   
+
    # Step 1: Immediate hotfix
    - Revert to previous commit
    - Deploy emergency patch
    - Notify users of temporary maintenance
-   
+
    # Step 2: Downgrade path (if needed)
    - See NEXTAUTH_VERSION_ANALYSIS.md for v4 migration
    - Estimated time: 5-7 hours
    - Requires code changes to 7 files
-   
+
    # Step 3: Post-mortem
    - Document issue and root cause
    - Implement additional safeguards
@@ -287,19 +300,20 @@ async signIn({ user, account }) {
    ```
 
 3. **Staged Rollout**:
+
    ```bash
    # Week 1: Staging environment
    - Deploy to staging
    - Run full E2E test suite
    - Monitor for 7 days
    - Collect metrics and feedback
-   
+
    # Week 2: Canary deployment (10% traffic)
    - Deploy to 10% of production users
    - Monitor error rates and performance
    - Collect user feedback
    - Expand to 50% if stable
-   
+
    # Week 3: Full production rollout
    - Deploy to 100% of users
    - Monitor closely for 48 hours
@@ -316,12 +330,13 @@ async signIn({ user, account }) {
 
 **Impact**: Low - cosmetic only
 
-**Workaround**: 
+**Workaround**:
+
 ```typescript
 // Suppress beta warnings in production
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === "production") {
   console.warn = (...args) => {
-    if (!args[0]?.includes('beta')) {
+    if (!args[0]?.includes("beta")) {
       console.log(...args);
     }
   };
@@ -345,7 +360,7 @@ if (process.env.NODE_ENV === 'production') {
    - Update user role: `db.users.updateOne({email: "user@example.com"}, {$set: {role: "ADMIN"}})`
    - User will receive updated role on next login/token refresh
 
-3. **What permissions does USER role grant?**  
+3. **What permissions does USER role grant?**
    - Read-only access to dashboard and profile
    - View work orders (own organization only)
    - View marketplace products
@@ -363,32 +378,36 @@ if (process.env.NODE_ENV === 'production') {
 
 **Impact**: Low - organization uses Google Workspace
 
-**Workaround**: 
+**Workaround**:
+
 ```typescript
 // If needed, add Credentials provider:
-import Credentials from 'next-auth/providers/credentials';
+import Credentials from "next-auth/providers/credentials";
 
 providers: [
-  Google({ /* ... */ }),
+  Google({
+    /* ... */
+  }),
   Credentials({
     credentials: {
       email: { label: "Email", type: "email" },
-      password: { label: "Password", type: "password" }
+      password: { label: "Password", type: "password" },
     },
     async authorize(credentials) {
       // Implement password verification
       const user = await validateCredentials(credentials);
       return user;
-    }
-  })
-]
+    },
+  }),
+];
 ```
 
 ### 4. OAuth Token Refresh Not Implemented
 
 **Issue**: JWT and session callbacks do not implement automatic token refresh or expiry checks
 
-**Current Behavior**: 
+**Current Behavior**:
+
 - Access tokens from Google OAuth are short-lived (typically 1 hour)
 - NextAuth session tokens have 30-day maxAge
 - No automatic refresh when provider access token expires
@@ -398,7 +417,8 @@ providers: [
 
 **Security Note**: This is actually a safer default - short-lived tokens reduce security risk
 
-**Operational Workaround**: 
+**Operational Workaround**:
+
 - Sessions persist for 30 days for navigation and UI
 - Provider access tokens expire after 1 hour (Google default)
 - Users re-authenticate via OAuth when provider token expires
@@ -463,6 +483,7 @@ async function refreshAccessToken(token) {
 ```
 
 **Security Considerations**:
+
 - Store refresh tokens server-side only (never expose to client)
 - Implement refresh token rotation
 - Secure token storage in database
@@ -519,6 +540,7 @@ async function refreshAccessToken(token) {
 ### Key Metrics to Track
 
 **Authentication Success Rate**:
+
 ```
 Target: > 99.5%
 Alert: < 98%
@@ -530,6 +552,7 @@ Breakdown:
 ```
 
 **Performance Metrics**:
+
 ```
 OAuth Callback: < 500ms (p95)
 JWT Verification: < 10ms (p95)
@@ -541,6 +564,7 @@ Alert if:
 ```
 
 **Error Types to Monitor**:
+
 ```
 - OAuth provider errors (Google API down)
 - JWT verification failures (signature mismatch)
@@ -550,6 +574,7 @@ Alert if:
 ```
 
 **Security Events**:
+
 ```
 - Failed sign-in attempts (potential attacks)
 - JWT forgery attempts (signature verification failures)
@@ -561,18 +586,21 @@ Alert if:
 ### Alerting Thresholds
 
 **Critical Alerts** (immediate response):
+
 - Authentication success rate < 95%
 - JWT signature verification failures > 10/min
 - Middleware protection bypass detected
 - OAuth provider returning 500 errors
 
 **Warning Alerts** (investigate within 1 hour):
+
 - Authentication success rate < 98%
 - Response time > 2s for any auth operation
 - Error rate > 1% of requests
 - Unusual spike in rejected sign-ins
 
 **Info Alerts** (review daily):
+
 - New email domains attempting sign-in
 - OAuth token refresh patterns
 - Session expiry distribution
@@ -584,6 +612,7 @@ Alert if:
 ### Monitoring for v5 Stable Release
 
 **Subscribe to Updates**:
+
 - GitHub: Watch `nextauthjs/next-auth` repository
 - NPM: Monitor `next-auth` package releases
 - Discord: Join Auth.js community for announcements
@@ -620,6 +649,7 @@ git push
 ### Long-Term Roadmap
 
 **Q1 2026**:
+
 - Upgrade to next-auth v5 stable (when released)
 - **Implement OAuth token refresh mechanism** (4-6 hours)
 - Implement database role sync for OAuth users
@@ -627,12 +657,14 @@ git push
 - Enable two-factor authentication (2FA)
 
 **Q2 2026**:
+
 - Implement passwordless authentication (magic links)
 - Add social login providers (Microsoft, Apple)
 - Enhanced session management (device tracking)
 - Implement refresh token rotation
 
 **Q3 2026**:
+
 - Migrate to NextAuth.js v6 (if available)
 - Evaluate Better Auth integration
 - Implement advanced RBAC with permissions
@@ -645,6 +677,7 @@ git push
 ### Evidence-Based Decision
 
 **1. Technical Stability**:
+
 - ✅ 29 beta releases (extensive production testing by community)
 - ✅ Zero TypeScript errors in our codebase
 - ✅ Zero ESLint warnings
@@ -652,23 +685,27 @@ git push
 - ✅ No runtime errors in development/staging
 
 **2. Next.js 15 Compatibility**:
+
 - next-auth v4 designed for Next.js 14.x
 - next-auth v5 designed for Next.js 15.x
 - Our project uses Next.js 15.5.4
 - Downgrading next-auth may introduce compatibility issues
 
 **3. Community Adoption**:
+
 - Thousands of production deployments on v5 beta
 - Active development and bug fixes
 - Strong community support on Discord/GitHub
 - Used by major companies in production
 
 **4. Risk Analysis**:
+
 - Downgrade to v4: 5-7 hours work + medium-high risk
 - Keep v5 beta: Minimal risk with proper testing
 - Forward path: v5 → stable is easier than v4 → v5
 
 **5. Security Posture**:
+
 - All critical vulnerabilities fixed
 - JWT signature verification implemented
 - OAuth access control enforced
@@ -678,6 +715,7 @@ git push
 ### Industry Precedent
 
 Many production systems run on beta software when:
+
 1. Beta is mature (29 releases indicates feature-complete)
 2. Required by platform (Next.js 15 requires v5)
 3. Properly tested and monitored
@@ -685,6 +723,7 @@ Many production systems run on beta software when:
 5. Benefits outweigh risks
 
 **Examples**:
+
 - Next.js itself releases major versions with beta/canary testing
 - React 18 was in beta for months with production adoption
 - TypeScript releases beta versions used in production
@@ -710,13 +749,13 @@ The comprehensive testing plan, security hardening, risk mitigation, and monitor
 
 **Note**: These conditions gate production deployment. Items marked TBD must be completed before final approval.
 
-- [ ] Completion of integration tests - *Evidence: TBD (In Progress - see Phase 3, lines 59-93)*
-- [ ] Successful E2E test results - *Evidence: TBD (Planned - see Phase 4, lines 94-126)*
-- [ ] Load test passing (1000+ users) - *Evidence: TBD (evidence will be added when Phase 5 load tests are completed)*
-- [ ] OAuth redirect URIs configured - *Evidence: TBD (see checklist line 403 - pending completion)*
-- [x] Production secrets secured - *Evidence: All secrets in GitHub Secrets and .env.production*
-- [x] Monitoring and alerting active - *Evidence: Sentry error tracking + CloudWatch alarms configured*
-- [x] Rollback plan tested - *Evidence: Rollback tested in staging, documented in DEPLOYMENT.md*
+- [ ] Completion of integration tests - _Evidence: TBD (In Progress - see Phase 3, lines 59-93)_
+- [ ] Successful E2E test results - _Evidence: TBD (Planned - see Phase 4, lines 94-126)_
+- [ ] Load test passing (1000+ users) - _Evidence: TBD (evidence will be added when Phase 5 load tests are completed)_
+- [ ] OAuth redirect URIs configured - _Evidence: TBD (see checklist line 403 - pending completion)_
+- [x] Production secrets secured - _Evidence: All secrets in GitHub Secrets and .env.production_
+- [x] Monitoring and alerting active - _Evidence: Sentry error tracking + CloudWatch alarms configured_
+- [x] Rollback plan tested - _Evidence: Rollback tested in staging, documented in DEPLOYMENT.md_
 
 **Deployment Status**: ✅ APPROVED FOR PRODUCTION - All critical criteria met
 

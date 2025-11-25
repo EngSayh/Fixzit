@@ -28,7 +28,7 @@ Comprehensive analysis of **880 files** found **192 potential import issues**:
 ### Import Distribution
 
 - **External packages**: 62 (from npm/node_modules)
-- **Relative imports**: 324 (./  ../)
+- **Relative imports**: 324 (./ ../)
 - **Absolute imports**: 649 (@/ path aliases)
 - **Node builtins**: 14 (fs, path, crypto, etc.)
 
@@ -36,28 +36,28 @@ Comprehensive analysis of **880 files** found **192 potential import issues**:
 
 ## Top 20 Most Used External Packages
 
-| Status | Package | Import Count | In package.json |
-|--------|---------|--------------|-----------------|
-| ✅ | mongoose | 210 | Yes |
-| ✅ | next | 195 | Yes |
-| ✅ | react | 147 | Yes |
-| ✅ | zod | 65 | Yes |
-| ✅ | lucide-react | 42 | Yes |
-| ✅ | swr | 30 | Yes |
-| ✅ | @playwright/test | 28 | Yes |
-| ❌ | express | 26 | **NO** |
-| ✅ | @testing-library/react | 21 | Yes |
-| ✅ | vitest | 19 | Yes |
-| ✅ | mongodb | 15 | Yes |
-| ✅ | dotenv | 15 | Yes |
-| ✅ | bcryptjs | 9 | Yes |
-| ✅ | fast-glob | 8 | Yes |
-| ✅ | axios | 7 | Yes |
-| ✅ | jsonwebtoken | 5 | Yes |
-| ✅ | nanoid | 5 | Yes |
-| ❌ | @jest/globals | 5 | **NO** |
-| ❌ | cors | 4 | **NO** |
-| ❌ | helmet | 4 | **NO** |
+| Status | Package                | Import Count | In package.json |
+| ------ | ---------------------- | ------------ | --------------- |
+| ✅     | mongoose               | 210          | Yes             |
+| ✅     | next                   | 195          | Yes             |
+| ✅     | react                  | 147          | Yes             |
+| ✅     | zod                    | 65           | Yes             |
+| ✅     | lucide-react           | 42           | Yes             |
+| ✅     | swr                    | 30           | Yes             |
+| ✅     | @playwright/test       | 28           | Yes             |
+| ❌     | express                | 26           | **NO**          |
+| ✅     | @testing-library/react | 21           | Yes             |
+| ✅     | vitest                 | 19           | Yes             |
+| ✅     | mongodb                | 15           | Yes             |
+| ✅     | dotenv                 | 15           | Yes             |
+| ✅     | bcryptjs               | 9            | Yes             |
+| ✅     | fast-glob              | 8            | Yes             |
+| ✅     | axios                  | 7            | Yes             |
+| ✅     | jsonwebtoken           | 5            | Yes             |
+| ✅     | nanoid                 | 5            | Yes             |
+| ❌     | @jest/globals          | 5            | **NO**          |
+| ❌     | cors                   | 4            | **NO**          |
+| ❌     | helmet                 | 4            | **NO**          |
 
 ---
 
