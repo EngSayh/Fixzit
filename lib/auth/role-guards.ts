@@ -31,24 +31,22 @@ export const canManageSubscriptions = buildRoleChecker(
   ["BILLING_ADMIN", "FINANCE_ADMIN"],
 );
 
+// 🔒 STRICT v4: Finance access limited to Finance Officer + Corporate Admin
 export const canViewInvoices = buildRoleChecker(
   [
     UserRole.SUPER_ADMIN,
     UserRole.CORPORATE_ADMIN,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.FM_MANAGER,
-    UserRole.FINANCE,
+    UserRole.FINANCE, // Finance Officer role
   ],
   ["BILLING_ADMIN", "FINANCE_ADMIN"],
 );
 
+// 🔒 STRICT v4: Finance edit limited to Finance Officer + Corporate Admin
 export const canEditInvoices = buildRoleChecker(
   [
     UserRole.SUPER_ADMIN,
     UserRole.CORPORATE_ADMIN,
-    UserRole.ADMIN,
-    UserRole.FINANCE,
+    UserRole.FINANCE, // Finance Officer role
   ],
   ["BILLING_ADMIN", "FINANCE_ADMIN"],
 );

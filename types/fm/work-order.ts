@@ -232,10 +232,12 @@ export interface WorkOrder {
   // Assignment
   requesterId?: string;
   requester?: WorkOrderUser;
-  assigneeId?: string;
+  assigneeId?: string; // Legacy field (deprecated, use assignedTo)
+  assignedTo?: string; // Fixed: normalized field name for assignment
   assignee?: WorkOrderUser;
   technicianId?: string;
   technician?: WorkOrderUser;
+  vendorId?: string; // Fixed: added for vendor RBAC filtering
 
   // Dates/Times
   scheduledAt?: Date | string;
