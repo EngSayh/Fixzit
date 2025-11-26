@@ -51,17 +51,31 @@ jobs:
         run: pnpm run lint
         # CRITICAL: Removed continue-on-error - lint failures must block PRs
 
-      # Note: No test script exists in package.json - placeholder tests use Playwright e2e
-      # E2E tests are expensive and run separately, so we skip unit tests here for now
-      # TODO: Add unit test script with Jest or Vitest when unit tests are implemented
-      # - name: Run tests
-      #   run: pnpm run test --if-present
+      - name: Run RBAC v4.1 Tests
+        run: |
+          echo "🔒 Running STRICT v4.1 RBAC validation tests..."
+          pnpm vitest run tests/domain/fm.behavior.v4.1.test.ts --reporter=dot || {
+            echo "❌ RBAC tests failed! Blocking build."
+            exit 1
+          }
+          echo "✅ All 41 RBAC tests passing"
+      
+      - name: Run SubRoleSelector Component Tests
+        run: |
+          echo "🧪 Running SubRoleSelector integration tests..."
+          pnpm vitest run tests/components/admin/SubRoleSelector.test.tsx --reporter=dot || {
+            echo "❌ Component tests failed!"
+            exit 1
+          }
+          echo "✅ All 17 component tests passing"
+
+      # Note: E2E tests are expensive and run separately in e2e-tests.yml workflow
       
       - name: Build project
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/fixzit-ci-test' }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-test-secret-key-min-32-chars-long-for-testing-must-be-32-chars' }}
-          NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL || 'http://localhost:3000' }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
           NEXT_PUBLIC_APP_URL: http://localhost:3000
           DISABLE_MONGODB_FOR_BUILD: "true"
           SKIP_ENV_VALIDATION: "true"

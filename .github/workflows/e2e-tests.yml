@@ -122,6 +122,17 @@ jobs:
           restore-keys: |
             nextjs-${{ runner.os }}-
 
+      - name: Run RBAC v4.1 Unit Tests
+        env:
+          NODE_ENV: test
+        run: |
+          echo "🔒 Running RBAC v4.1 validation tests..."
+          pnpm vitest run tests/domain/fm.behavior.v4.1.test.ts --reporter=dot || {
+            echo "❌ RBAC tests failed! E2E tests may produce false positives."
+            exit 1
+          }
+          echo "✅ All 41 RBAC tests passing"
+
       - name: Build app (for E2E tests)
         env:
           NODE_ENV: test
@@ -161,8 +172,8 @@ jobs:
           # VSCode warnings can be safely ignored - fallbacks provided below
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           # Google OAuth secrets are OPTIONAL - tests skip OAuth if not configured
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID || '' }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET || '' }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
             echo "Using generated secrets for forked PR (GitHub secrets are unavailable)."

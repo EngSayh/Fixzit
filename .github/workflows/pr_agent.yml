@@ -23,7 +23,7 @@ jobs:
       - name: PR Agent action step
         uses: qodo-ai/pr-agent@main
         env:
-          # ℹ️ OPENAI_API_KEY: Configure in GitHub Settings > Secrets (production only)
+          # ℹ️ OPENAI_KEY: Configure in GitHub Settings > Secrets (production only)
           # VSCode warning can be safely ignored - only needed when workflow runs
-          OPENAI_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY || '' }}
           GITHUB_TOKEN: ${{ github.token }}

@@ -129,6 +129,80 @@ To reduce noise in VSCode:
 - Tests will skip OAuth flows gracefully
 - Set secrets to enable full OAuth testing
 
+## Database Migration Scripts
+
+### RBAC v4.1 Migration (`scripts/migrate-rbac-v4.1.ts`)
+
+The STRICT v4.1 RBAC migration script is designed for production use with comprehensive safety features.
+
+#### Usage
+
+**Basic Migration** (Recommended):
+```bash
+npx ts-node scripts/migrate-rbac-v4.1.ts
+```
+
+**Dry-Run** (Preview changes without modifying database):
+```bash
+npx ts-node scripts/migrate-rbac-v4.1.ts --dry-run
+```
+
+**Custom Batch Size** (For large datasets > 50k users):
+```bash
+npx ts-node scripts/migrate-rbac-v4.1.ts --batch-size=1000
+```
+
+**Organization-Specific** (Multi-tenant):
+```bash
+npx ts-node scripts/migrate-rbac-v4.1.ts --org=abc123xyz
+```
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `--dry-run` | flag | false | Preview changes without modifying database |
+| `--org=<id>` | string | all | Migrate only users from specific organization |
+| `--batch-size=<n>` | number | 500 | Process N users per batch |
+
+#### Environment Variables
+
+| Variable | Required | Purpose | Example |
+|----------|----------|---------|---------|
+| `MONGODB_URI` | ✅ Yes | Database connection string | `mongodb+srv://user:pass@cluster.mongodb.net/db` |
+| `BATCH_SIZE` | ❌ No | Override default batch size | `1000` |
+
+#### Features
+
+**Transaction Safety**: All changes wrapped in MongoDB transaction with automatic rollback on error
+
+**Batching**: Configurable batch size (default: 500 users) for large datasets
+
+**Progress Tracking**: Real-time percentage, elapsed time, and ETA display
+
+**Performance Metrics**: Duration, throughput (users/sec), batch timings, failed user IDs
+
+#### Best Practices
+
+**Before Running**:
+1. ✅ Always run `--dry-run` first on staging
+2. ✅ Create database backup
+3. ✅ Verify MongoDB version >= 4.0
+4. ✅ Schedule during low-traffic window
+
+**After Migration**:
+1. ✅ Verify statistics (updated count = total count)
+2. ✅ Run test suite: `pnpm test tests/domain/fm.behavior.v4.1.test.ts`
+3. ✅ Monitor error logs for 1 hour
+
+#### Complete Guide
+
+For comprehensive deployment instructions, rollback procedures, and troubleshooting, see:
+
+📘 **[RBAC v4.1 Deployment Guide](./RBAC_V4_1_DEPLOYMENT.md)**
+
+---
+
 ## Contact
 
 For questions about secrets configuration:
@@ -136,7 +210,12 @@ For questions about secrets configuration:
 - Review GitHub Actions documentation: https://docs.github.com/en/actions/security-guides/encrypted-secrets
 - Contact DevOps team for production secret access
 
+For questions about database migrations:
+- Review the [Deployment Guide](./RBAC_V4_1_DEPLOYMENT.md)
+- Check migration script comments: `scripts/migrate-rbac-v4.1.ts`
+- Contact Platform Engineering team for production migrations
+
 ---
 
-**Last Updated:** November 25, 2025
-**Maintained By:** DevOps Team
+**Last Updated:** 2024
+**Maintained By:** DevOps & Platform Engineering Teams
