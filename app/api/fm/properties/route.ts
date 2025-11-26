@@ -15,7 +15,7 @@ interface MongoFindAndModifyResult<T> {
 
 type PropertyDocument = {
   _id: ObjectId;
-  org_id: string;
+  orgId: string; // AUDIT-2025-11-26: Changed from org_id to orgId for consistency
   name: string;
   code?: string;
   type?: string;
@@ -72,9 +72,15 @@ export async function GET(req: NextRequest) {
       action: FMAction.VIEW,
     });
     if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
@@ -90,8 +96,47 @@ export async function GET(req: NextRequest) {
     const types = normalizeListParam(searchParams.get("type"));
     const q = searchParams.get("q");
 
-    const query: Record<string, unknown> = { org_id: tenantId };
+    const query: Record<string, unknown> = { orgId: tenantId }; // AUDIT-2025-11-26: Changed from org_id
+    
+    // Use $and to combine multiple filter conditions
+    const andFilters: Record<string, unknown>[] = [];
 
+    // RBAC-009: Role-based property filtering per STRICT v4.1
+    // AUDIT-2025-11-26: Removed broken TENANT filtering (tenants use work-orders, not property list)
+    // TENANTs should NOT have direct property list access - they access via work orders
+    if (actor.role === "TENANT") {
+      return NextResponse.json(
+        { error: "Tenants do not have direct property list access" },
+        { status: 403 }
+      );
+    }
+    
+    // AUDIT-2025-11-26: Fixed OWNER → CORPORATE_OWNER per STRICT v4.1
+    if (actor.role === "CORPORATE_OWNER") {
+      const ownedProperties = (actor as { ownedProperties?: string[] }).ownedProperties || [];
+      if (ownedProperties.length === 0) {
+        // Owners with no properties see empty list, not error
+        return NextResponse.json({
+          success: true,
+          data: [],
+          pagination: { page, limit, total: 0, totalPages: 0 },
+        });
+      }
+      query._id = { $in: ownedProperties.map(id => {
+        try { return new ObjectId(id); } catch { return id; }
+      }) };
+    }
+    
+    // AUDIT-2025-11-26: Added PROPERTY_MANAGER filtering
+    if (actor.role === "PROPERTY_MANAGER") {
+      const assignedProperties = (actor as { assignedProperties?: string[] }).assignedProperties || [];
+      if (assignedProperties.length > 0) {
+        query._id = { $in: assignedProperties.map(id => {
+          try { return new ObjectId(id); } catch { return id; }
+        }) };
+      }
+    }
+    
     if (statuses?.length) {
       query.status = { $in: statuses };
     }
@@ -111,12 +156,20 @@ export async function GET(req: NextRequest) {
         string,
         unknown
       >;
-      query.$or = [
-        { name: expression },
-        { code: expression },
-        { "address.city": expression },
-        { "address.state": expression },
-      ];
+      // FIX: Add search to $and filters instead of overwriting $or
+      andFilters.push({
+        $or: [
+          { name: expression },
+          { code: expression },
+          { "address.city": expression },
+          { "address.state": expression },
+        ]
+      });
+    }
+    
+    // Apply $and filters if any exist
+    if (andFilters.length > 0) {
+      query.$and = andFilters;
     }
 
     const db = await getDatabase();
@@ -196,9 +249,15 @@ export async function POST(req: NextRequest) {
       action: FMAction.CREATE,
     });
     if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
@@ -218,7 +277,7 @@ export async function POST(req: NextRequest) {
     const propertyCode = body.code || generatePropertyCode();
 
     const existingCode = await collection.findOne({
-      org_id: tenantId,
+      orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
       code: propertyCode,
     });
     if (existingCode) {
@@ -227,7 +286,7 @@ export async function POST(req: NextRequest) {
 
     const document: PropertyDocument = {
       _id: new ObjectId(),
-      org_id: tenantId,
+      orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
       name: body.name,
       code: propertyCode,
       type: body.type,
@@ -265,9 +324,15 @@ export async function PATCH(req: NextRequest) {
       action: FMAction.UPDATE,
     });
     if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
@@ -291,7 +356,7 @@ export async function PATCH(req: NextRequest) {
 
     if (payload.code) {
       const duplicate = await collection.findOne({
-        org_id: tenantId,
+        orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
         code: payload.code,
         _id: { $ne: new ObjectId(propertyId) },
       });
@@ -316,7 +381,7 @@ export async function PATCH(req: NextRequest) {
     if (typeof payload.floors === "number") update.floors = payload.floors;
 
     const result = await collection.findOneAndUpdate(
-      { _id: new ObjectId(propertyId), org_id: tenantId },
+      { _id: new ObjectId(propertyId), orgId: tenantId }, // AUDIT-2025-11-26: Changed from org_id
       { $set: update },
       { returnDocument: "after" },
     );
@@ -348,9 +413,15 @@ export async function DELETE(req: NextRequest) {
       action: FMAction.DELETE,
     });
     if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
@@ -368,7 +439,7 @@ export async function DELETE(req: NextRequest) {
     const collection = db.collection<PropertyDocument>(COLLECTION_NAME);
     const result = await collection.findOneAndDelete({
       _id: new ObjectId(propertyId),
-      org_id: tenantId,
+      orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
     });
 
     const mongoResult = result as

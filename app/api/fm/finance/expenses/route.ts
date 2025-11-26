@@ -12,7 +12,7 @@ type ExpenseStatus = "pending" | "approved" | "rejected";
 
 type ExpenseDocument = {
   _id: ObjectId;
-  org_id: string;
+  orgId: string; // AUDIT-2025-11-26: Changed from org_id to orgId for consistency
   vendor: string;
   category: string;
   amount: number;
@@ -76,9 +76,15 @@ export async function GET(req: NextRequest) {
     });
     if (actor instanceof NextResponse) return actor;
 
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
@@ -90,15 +96,17 @@ export async function GET(req: NextRequest) {
       Math.max(1, parseInt(searchParams.get("limit") || "50", 10)),
     );
 
-    const query: Record<string, unknown> = { org_id: tenantId };
+    const query: Record<string, unknown> = { orgId: tenantId }; // AUDIT-2025-11-26: Changed from org_id
+    // SEC-002 FIX: Use $and pattern for search to prevent overwriting role-based filters
     if (q) {
       const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = { $regex: escaped, $options: "i" };
-      query.$or = [
+      // Use $and to combine org filter with search filter
+      query.$and = [{ $or: [
         { vendor: regex },
         { category: regex },
         { description: regex },
-      ];
+      ] }];
     }
 
     const db = await getDatabase();
@@ -124,9 +132,15 @@ export async function POST(req: NextRequest) {
     });
     if (actor instanceof NextResponse) return actor;
 
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
@@ -143,7 +157,7 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const doc: ExpenseDocument = {
       _id: new ObjectId(),
-      org_id: tenantId,
+      orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
       vendor: payload.vendor!,
       category: payload.category!,
       amount: payload.amount!,

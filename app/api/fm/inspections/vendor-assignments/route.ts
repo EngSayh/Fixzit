@@ -61,8 +61,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user has FM permissions
+    // 🔒 SECURITY FIX: Include FM-specific roles per UserRole enum
     const userRole = session.user.role;
-    const allowedRoles = ["ADMIN", "MANAGER", "SUPER_ADMIN"];
+    const allowedRoles = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "MANAGER", "FM_MANAGER", "PROPERTY_MANAGER"];
 
     if (!session.user.isSuperAdmin && !allowedRoles.includes(userRole || "")) {
       return NextResponse.json(
@@ -195,8 +196,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has FM write permissions
+    // 🔒 SECURITY FIX: Include FM-specific roles per UserRole enum
     const userRole = session.user.role;
-    const allowedRoles = ["ADMIN", "MANAGER", "SUPER_ADMIN"];
+    const allowedRoles = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "MANAGER", "FM_MANAGER", "PROPERTY_MANAGER"];
 
     if (!session.user.isSuperAdmin && !allowedRoles.includes(userRole || "")) {
       return NextResponse.json(

@@ -6,12 +6,40 @@ import type { ObjectId } from "mongodb";
 export type WorkOrderDocument = Partial<WorkOrder> & {
   _id?: ObjectId;
   id?: string;
+  orgId?: string; // Fixed: added for STRICT v4 multi-tenancy
   workOrderNumber?: string;
   woNumber?: string;
   code?: string;
   category?: string;
   unitId?: string;
+  unit_id?: string; // Canonical field per WorkOrder schema
   technicianId?: string;
+  vendorId?: string; // Fixed: added for vendor RBAC filtering
+  assignedTo?: string; // Fixed: normalized field name (legacy support)
+  // Canonical assignment structure per server/models/WorkOrder.ts
+  assignment?: {
+    assignedTo?: {
+      userId?: string | ObjectId;
+      teamId?: string | ObjectId;
+      vendorId?: string | ObjectId;
+      name?: string;
+      contactInfo?: {
+        phone?: string;
+        email?: string;
+      };
+    };
+    assignedBy?: string | ObjectId;
+    assignedAt?: Date;
+  };
+  // Location structure per WorkOrder schema
+  location?: {
+    propertyId?: string | ObjectId;
+    unitNumber?: string;
+    floor?: string;
+    building?: string;
+    area?: string;
+    room?: string;
+  };
   estimatedCost?: number;
   actualCost?: number;
   currency?: string;
@@ -40,6 +68,7 @@ export function mapWorkOrderDocument(doc: WorkOrderDocument): WorkOrder {
     id: normalizedId,
     _id: doc._id?.toString?.(),
     tenantId: doc.tenantId,
+    orgId: doc.orgId, // Fixed: include orgId in mapped output
     workOrderNumber: doc.workOrderNumber ?? doc.code ?? doc.woNumber,
     title: doc.title,
     description: doc.description,
@@ -49,8 +78,9 @@ export function mapWorkOrderDocument(doc: WorkOrderDocument): WorkOrder {
     propertyId: doc.propertyId,
     unitId: doc.unitId,
     requesterId: doc.requesterId,
-    assigneeId: doc.assigneeId,
+    assigneeId: doc.assigneeId ?? doc.assignedTo, // Fixed: support both field names during migration
     technicianId: doc.technicianId,
+    vendorId: doc.vendorId, // Fixed: include vendorId
     scheduledAt: doc.scheduledAt,
     startedAt: doc.startedAt,
     completedAt: doc.completedAt,
