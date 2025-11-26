@@ -159,15 +159,19 @@ describe('API /api/ats/interviews', () => {
   });
 
   it('returns 403 when user lacks ATS access on POST', async () => {
-    // Mock atsRBAC to return forbidden
+    // Mock atsRBAC to return unauthorized with response object
     const { atsRBAC } = await import('@/lib/ats/rbac');
-    (atsRBAC as Mock).mockReturnValue({
-      status: 403,
-      body: { error: 'Access denied' }
+    (atsRBAC as Mock).mockResolvedValue({
+      authorized: false,
+      response: {
+        status: 403,
+        body: { error: 'Access denied' }
+      }
     });
 
     const appId = new Types.ObjectId();
     const req = {
+      url: 'https://example.com/api/ats/interviews',
       json: async () => ({
         applicationId: appId.toHexString(),
         scheduledAt: '2025-01-20T10:00:00Z',
@@ -187,13 +191,17 @@ describe('API /api/ats/interviews', () => {
 
   it('returns 403 when user tries to access other org interviews', async () => {
     const { atsRBAC } = await import('@/lib/ats/rbac');
-    (atsRBAC as Mock).mockReturnValue({
-      status: 403,
-      body: { error: 'Organization mismatch' }
+    (atsRBAC as Mock).mockResolvedValue({
+      authorized: false,
+      response: {
+        status: 403,
+        body: { error: 'Organization mismatch' }
+      }
     });
 
     const appId = new Types.ObjectId();
     const req = {
+      url: 'https://example.com/api/ats/interviews',
       json: async () => ({
         applicationId: appId.toHexString(),
         scheduledAt: '2025-01-20T10:00:00Z',

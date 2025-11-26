@@ -39,8 +39,8 @@ const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'password123';
 
 // Test phone numbers
 const PRIMARY_PHONE = process.env.TEST_USER_PHONE || '+966552233456';
-const NONADMIN_PHONE = process.env.TEST_NONADMIN_PHONE || '+966552233457';
-const DEMO_PHONE = process.env.DEMO_PHONE || '+966552233458';
+const NONADMIN_PHONE = process.env.TEST_NONADMIN_PHONE || '+966552233456';
+const DEMO_PHONE = process.env.DEMO_PHONE || '+966552233456';
 
 const normalizeEmployeeId = (value: string) => value.trim().toUpperCase();
 const PRIMARY_EMPLOYEE_ID = normalizeEmployeeId(

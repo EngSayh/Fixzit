@@ -61,7 +61,7 @@ describe("useFMPermissions", () => {
     // `can` itself will be false for a GUEST, but we are testing the hook's context
     // We can't directly test `isOrgMember`, but we know the `plan` defaults to STARTER
     expect(result.current.plan).toBe(Plan.STARTER);
-    expect(result.current.orgId).toBe("");
+    expect(result.current.orgId).toBeUndefined();
     expect(result.current.role).toBe(Role.GUEST);
     expect(can).toBe(false); // Guest should not have access
   });

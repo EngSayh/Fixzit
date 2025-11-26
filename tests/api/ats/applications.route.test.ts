@@ -114,11 +114,14 @@ describe('API /api/ats/applications', () => {
   });
 
   it('returns 403 when user lacks ATS access', async () => {
-    // Mock atsRBAC to return forbidden
+    // Mock atsRBAC to return unauthorized with response object
     const { atsRBAC } = await import('@/lib/ats/rbac');
-    (atsRBAC as Mock).mockReturnValue({
-      status: 403,
-      body: { error: 'Access denied' }
+    (atsRBAC as Mock).mockResolvedValue({
+      authorized: false,
+      response: {
+        status: 403,
+        body: { error: 'Access denied' }
+      }
     });
 
     const res = await callGET('?page=1');
@@ -129,11 +132,14 @@ describe('API /api/ats/applications', () => {
   });
 
   it('returns 403 when user is not from correct org', async () => {
-    // Mock atsRBAC to return forbidden
+    // Mock atsRBAC to return unauthorized with response object
     const { atsRBAC } = await import('@/lib/ats/rbac');
-    (atsRBAC as Mock).mockReturnValue({
-      status: 403,
-      body: { error: 'Access denied - organization mismatch' }
+    (atsRBAC as Mock).mockResolvedValue({
+      authorized: false,
+      response: {
+        status: 403,
+        body: { error: 'Access denied - organization mismatch' }
+      }
     });
 
     const res = await callGET('?page=1');
