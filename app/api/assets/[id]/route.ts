@@ -109,7 +109,7 @@ export async function GET(
 
     const asset = await Asset.findOne({
       _id: params.id,
-      tenantId: user.tenantId,
+      orgId: user.orgId,
     });
 
     if (!asset) {
@@ -156,7 +156,7 @@ export async function PATCH(
     const data = updateAssetSchema.parse(await req.json());
 
     const asset = await Asset.findOneAndUpdate(
-      { _id: params.id, tenantId: user.tenantId },
+      { _id: params.id, orgId: user.orgId },
       { $set: { ...data, updatedBy: user.id } },
       { new: true },
     );

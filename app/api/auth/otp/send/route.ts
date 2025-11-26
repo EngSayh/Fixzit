@@ -74,6 +74,8 @@ const DEFAULT_TEST_FORCE_PHONE = "+966552233456";
 const FORCE_OTP_PHONE =
   process.env.NEXTAUTH_FORCE_OTP_PHONE || process.env.FORCE_OTP_PHONE || "";
 
+const EMPLOYEE_ID_REGEX = /^EMP[-A-Z0-9]+$/;
+
 const DEMO_AUTH_ENABLED =
   process.env.ALLOW_DEMO_LOGIN === "true" ||
   process.env.NODE_ENV !== "production";
@@ -147,6 +149,7 @@ const matchesDemoPassword = (password: string): boolean => {
 const buildDemoUser = (
   identifier: string,
   loginType: "personal" | "corporate",
+  companyCode?: string | null,
 ) => {
   const normalizedEmail =
     loginType === "personal"
@@ -165,6 +168,7 @@ const buildDemoUser = (
     contact: { phone: TEST_USERS_FALLBACK_PHONE },
     personal: { phone: TEST_USERS_FALLBACK_PHONE },
     professional: { role: "SUPER_ADMIN" },
+    code: companyCode ?? "DEMO-ORG",
     __isDemoUser: true,
   };
 };
@@ -174,6 +178,7 @@ const buildTestUser = (
   loginType: "personal" | "corporate",
   role: string,
   phone?: string,
+  companyCode?: string | null,
 ) => {
   const normalizedEmail =
     loginType === "personal"
@@ -192,6 +197,7 @@ const buildTestUser = (
     contact: { phone: phone ?? TEST_USERS_FALLBACK_PHONE },
     personal: { phone: phone ?? TEST_USERS_FALLBACK_PHONE },
     professional: { role },
+    code: companyCode ?? "TEST-ORG",
     __isDemoUser: true,
     __isTestUser: true,
   };
@@ -201,19 +207,43 @@ const resolveTestUser = (
   identifier: string,
   password: string,
   loginType: "personal" | "corporate",
+  companyCode?: string | null,
 ) => {
   const normalized =
     loginType === "personal"
       ? identifier.toLowerCase()
       : identifier.toUpperCase();
+  const normalizedCompanyCode = normalizeCompanyCode(
+    companyCode || process.env.TEST_COMPANY_CODE,
+  );
   for (const config of TEST_USER_CONFIG) {
     if (!config.identifier || !config.password) continue;
     const configIdentifier =
       loginType === "personal"
         ? config.identifier.toLowerCase()
         : config.identifier.toUpperCase();
-    if (normalized === configIdentifier && password === config.password) {
-      return buildTestUser(normalized, loginType, config.role, config.phone);
+    const configCompanyCode = normalizeCompanyCode(
+      (config as { companyCode?: string }).companyCode ||
+        process.env.TEST_COMPANY_CODE,
+    );
+    const companyCodeMatches =
+      loginType === "corporate"
+        ? !configCompanyCode ||
+          !normalizedCompanyCode ||
+          configCompanyCode === normalizedCompanyCode
+        : true;
+    if (
+      normalized === configIdentifier &&
+      password === config.password &&
+      companyCodeMatches
+    ) {
+      return buildTestUser(
+        normalized,
+        loginType,
+        config.role,
+        config.phone,
+        normalizedCompanyCode ?? configCompanyCode,
+      );
     }
   }
   return null;
@@ -223,7 +253,14 @@ const resolveTestUser = (
 const SendOTPSchema = z.object({
   identifier: z.string().trim().min(1, "Email or employee number is required"),
   password: z.string().min(1, "Password is required"),
+  companyCode: z.string().trim().optional(),
 });
+
+const normalizeCompanyCode = (code?: string | null) =>
+  code?.trim() ? code.trim().toUpperCase() : null;
+
+const buildOtpKey = (identifier: string, companyCode: string | null) =>
+  companyCode ? `${identifier}::${companyCode}` : identifier;
 
 // Generate random OTP
 function generateOTP(): string {
@@ -300,10 +337,11 @@ export async function POST(request: NextRequest) {
     // 3. Determine login type (email or employee number)
     const emailOk = z.string().email().safeParse(identifierRaw).success;
     const empUpper = identifierRaw.toUpperCase();
-    const empOk = /^EMP\d+$/.test(empUpper);
+    const empOk = EMPLOYEE_ID_REGEX.test(empUpper);
 
     let loginIdentifier = "";
     let loginType: "personal" | "corporate";
+    const normalizedCompanyCode = normalizeCompanyCode(parsed.data.companyCode);
 
     if (emailOk) {
       loginIdentifier = identifierRaw.toLowerCase();
@@ -322,10 +360,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (loginType === "corporate" && !normalizedCompanyCode) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Company number is required for corporate login",
+        },
+        { status: 400 },
+      );
+    }
+
+    const otpKey = buildOtpKey(loginIdentifier, normalizedCompanyCode);
+
     // 4. Check rate limit using normalized identifier
-    const rateLimitResult = checkRateLimit(loginIdentifier);
+    const rateLimitResult = checkRateLimit(otpKey);
     if (!rateLimitResult.allowed) {
-      logger.warn("[OTP] Rate limit exceeded", { identifier: loginIdentifier });
+      logger.warn("[OTP] Rate limit exceeded", { identifier: otpKey });
       return NextResponse.json(
         {
           success: false,
@@ -338,7 +388,12 @@ export async function POST(request: NextRequest) {
     // 5. Resolve user (test users → skip DB, otherwise perform lookup)
     let user: UserDocument | null = null;
     const testUser = smsDevMode
-      ? resolveTestUser(loginIdentifier, password, loginType)
+      ? resolveTestUser(
+          loginIdentifier,
+          password,
+          loginType,
+          normalizedCompanyCode,
+        )
       : null;
 
     if (testUser) {
@@ -351,11 +406,18 @@ export async function POST(request: NextRequest) {
       if (loginType === "personal") {
         user = await User.findOne({ email: loginIdentifier });
       } else {
-        user = await User.findOne({ username: loginIdentifier });
+        user = await User.findOne({
+          username: loginIdentifier,
+          code: normalizedCompanyCode,
+        });
       }
 
       if (!user && DEMO_AUTH_ENABLED && isDemoIdentifier(loginIdentifier)) {
-        user = buildDemoUser(loginIdentifier, loginType);
+        user = buildDemoUser(
+          loginIdentifier,
+          loginType,
+          normalizedCompanyCode ?? "DEMO-ORG",
+        );
         logger.warn("[OTP] Falling back to demo user profile", {
           identifier: loginIdentifier,
         });
@@ -517,12 +579,13 @@ export async function POST(request: NextRequest) {
     const expiresAt = Date.now() + OTP_EXPIRY_MS;
 
     // 11. Store OTP (in production, use Redis or database)
-    otpStore.set(loginIdentifier, {
+    otpStore.set(otpKey, {
       otp,
       expiresAt,
       attempts: 0,
       userId: user._id?.toString?.() || loginIdentifier,
       phone: userPhone,
+      companyCode: normalizedCompanyCode,
     });
 
     // 12. Send OTP via SMS
@@ -543,7 +606,7 @@ export async function POST(request: NextRequest) {
           otpExpiresAt: new Date(expiresAt),
           otpAttempts: MAX_ATTEMPTS,
           rateLimitRemaining: rateLimitResult.remaining,
-          identifier: loginIdentifier,
+          identifier: otpKey,
         },
       });
 
@@ -555,7 +618,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!smsResult.success) {
-      otpStore.delete(loginIdentifier);
+      otpStore.delete(otpKey);
       logger.error("[OTP] Failed to send SMS", {
         userId: user._id?.toString?.() || loginIdentifier,
         error: smsResult.error,
@@ -571,7 +634,7 @@ export async function POST(request: NextRequest) {
 
     logger.info("[OTP] OTP sent successfully", {
       userId: user._id?.toString?.() || loginIdentifier,
-      identifier: loginIdentifier,
+      identifier: otpKey,
       phone: userPhone.slice(-4),
     });
 

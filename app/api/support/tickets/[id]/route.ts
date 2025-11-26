@@ -48,7 +48,7 @@ export async function PATCH(
   const params = await props.params;
   await connectToDatabase();
   const user = await getSessionUser(req);
-  if (!["SUPER_ADMIN", "SUPPORT", "CORPORATE_ADMIN"].includes(user.role)) {
+  if (!["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role)) {
     return createSecureResponse({ error: "Forbidden" }, 403, req);
   }
   const data = patchSchema.parse(await req.json());
@@ -61,7 +61,7 @@ export async function PATCH(
     $or: [
       { orgId: user.orgId },
       // Allow admins to modify any ticket
-      ...(["SUPER_ADMIN", "SUPPORT", "CORPORATE_ADMIN"].includes(user.role)
+      ...(["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role)
         ? [{}]
         : []),
     ],

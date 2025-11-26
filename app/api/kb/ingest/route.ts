@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const user = await getSessionUser(req).catch(() => null);
-    if (!user || !["SUPER_ADMIN", "ADMIN"].includes(user.role)) {
+    if (!user || !["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(user.role)) {
       return createSecureResponse({ error: "Forbidden" }, 403, req);
     }
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);

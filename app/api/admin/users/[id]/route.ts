@@ -43,10 +43,19 @@ export async function DELETE(
 
     const UserModel = models.User || model("User", UserSchema);
 
+    // ORGID-FIX: Validate orgId before querying (tenant isolation)
+    const orgId = session.user.orgId;
+    if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid organization context" },
+        { status: 403 }
+      );
+    }
+
     // @ts-expect-error - Fixed VSCode problem
     const user = await UserModel.findOne({
       _id: id,
-      orgId: session.user.orgId || "default",
+      orgId,  // ✅ Validated orgId
     });
 
     if (!user) {
@@ -125,10 +134,19 @@ export async function PATCH(
 
     const UserModel = models.User || model("User", UserSchema);
 
+    // ORGID-FIX: Validate orgId before querying (tenant isolation)
+    const orgId = session.user.orgId;
+    if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid organization context" },
+        { status: 403 }
+      );
+    }
+
     // @ts-expect-error - Fixed VSCode problem
     const user = await UserModel.findOne({
       _id: id,
-      orgId: session.user.orgId || "default",
+      orgId,  // ✅ Validated orgId
     });
 
     if (!user) {
