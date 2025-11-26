@@ -1,7 +1,8 @@
 import { Schema, Types, type HydratedDocument } from 'mongoose';
 import { getModel } from '@/src/types/mongoose-compat';
 
-export const ONBOARDING_ROLES = ['CUSTOMER', 'PROPERTY_OWNER', 'TENANT', 'VENDOR', 'AGENT'] as const;
+// STRICT v4: Migrated CUSTOMER → TENANT (both are property roles)
+export const ONBOARDING_ROLES = ['TENANT', 'PROPERTY_OWNER', 'OWNER', 'VENDOR', 'AGENT'] as const;
 export type OnboardingRole = (typeof ONBOARDING_ROLES)[number];
 
 export const ONBOARDING_STATUSES = [

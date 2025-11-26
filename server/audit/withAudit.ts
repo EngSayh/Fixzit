@@ -134,8 +134,19 @@ export function withAudit<
         const status = res?.status ?? 0;
         const success = status >= 200 && status < 400;
 
+        // ORGID-FIX: Enforce mandatory orgId for multi-tenant isolation
+        const orgId = session!.user.orgId as string;
+        if (!orgId || orgId.trim() === "") {
+          logger.error("[Audit] CRITICAL: orgId missing in withAudit - skipping audit log", {
+            userId: session!.user.id,
+            action,
+            endpoint: pathname,
+          });
+          return res;  // Don't throw - just skip audit logging
+        }
+
         const auditData = {
-          orgId: (session!.user.orgId as string) || "default",
+          orgId,  // ✅ Validated above
           action,
           entityType,
           entityId,

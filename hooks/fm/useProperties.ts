@@ -31,7 +31,14 @@ export type PropertyRecord = {
 const fetcher = async <T>(url: string): Promise<T> => {
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
-    const payload = await res.json().catch(() => ({}));
+    const payload = await res.json().catch((jsonError) => {
+      console.error('[useProperties] Failed to parse JSON response:', {
+        status: res.status,
+        statusText: res.statusText,
+        error: jsonError instanceof Error ? jsonError.message : String(jsonError)
+      });
+      return {};
+    });
     throw new Error(payload?.error ?? "Request failed");
   }
   return res.json();

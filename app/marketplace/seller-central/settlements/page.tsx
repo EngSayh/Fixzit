@@ -1,9 +1,9 @@
+"use client";
+
 /**
  * Seller Settlements Page
  * Main dashboard for seller payouts and balance
  */
-
-"use client";
 
 import React, { useState, useEffect } from "react";
 import { BalanceOverview } from "@/components/seller/settlements/BalanceOverview";

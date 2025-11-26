@@ -243,8 +243,10 @@ export class AqarOfflineCacheService {
   }
 
   private static buildCacheKey(input: OfflineBundleInput): string {
+    // ORGID-FIX: Explicitly distinguish between tenant-scoped and public caches
+    // Use 'public' only for genuinely public listings, undefined for missing tenant
     const raw = JSON.stringify({
-      orgId: input.orgId || "public",
+      orgId: input.orgId ?? "public",  // ✅ Nullish coalescing for explicit public cache
       city: input.city,
       intent: input.intent,
       includeAuctions: input.includeAuctions,

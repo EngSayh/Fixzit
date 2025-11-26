@@ -28,22 +28,41 @@ export interface FMPermissionContext {
   plan: Plan;
 }
 
-// Map NextAuth roles to internal FM Role enum
-// This provides a single source of truth for role mapping.
+// RBAC-003 FIX: Map NextAuth roles (14-role matrix from types/user.ts) to FM Role enum
+// FM domain uses 9 canonical roles: SUPER_ADMIN, ADMIN, CORPORATE_OWNER, TEAM_MEMBER,
+// TECHNICIAN, PROPERTY_MANAGER, TENANT, VENDOR, GUEST
+// The 14-role matrix roles (FINANCE, HR, FM_MANAGER, etc.) map to these canonical roles
+// PHASE-3 FIX: Added specialized sub-roles (FINANCE_OFFICER, HR_OFFICER, etc.)
 const roleMapping: Record<string, Role> = {
+  // STRICT v4 14-role matrix → FM canonical roles
   SUPER_ADMIN: Role.SUPER_ADMIN,
-  CORPORATE_ADMIN: Role.CORPORATE_ADMIN,
-  FM_MANAGER: Role.MANAGEMENT,
-  MANAGEMENT: Role.MANAGEMENT,
-  FINANCE: Role.FINANCE,
-  HR: Role.HR,
-  EMPLOYEE: Role.EMPLOYEE,
-  PROPERTY_OWNER: Role.PROPERTY_OWNER,
-  OWNER: Role.PROPERTY_OWNER,
-  OWNER_DEPUTY: Role.OWNER_DEPUTY,
+  CORPORATE_ADMIN: Role.ADMIN, // Fixed: CORPORATE_ADMIN → ADMIN (alias in fm.behavior.ts)
+  ADMIN: Role.ADMIN,
+  MANAGER: Role.TEAM_MEMBER, // Fixed: MANAGER → TEAM_MEMBER
+  
+  // FM roles
+  FM_MANAGER: Role.PROPERTY_MANAGER, // Fixed: FM_MANAGER → PROPERTY_MANAGER
+  PROPERTY_MANAGER: Role.PROPERTY_MANAGER,
   TECHNICIAN: Role.TECHNICIAN,
+  
+  // Business function roles → TEAM_MEMBER (use SubRole for specialization)
+  FINANCE: Role.TEAM_MEMBER, // Fixed: Finance is TEAM_MEMBER with module access
+  FINANCE_OFFICER: Role.TEAM_MEMBER, // PHASE-3: Specialized finance sub-role
+  HR: Role.TEAM_MEMBER, // Fixed: HR is TEAM_MEMBER with module access
+  HR_OFFICER: Role.TEAM_MEMBER, // PHASE-3: Specialized HR sub-role
+  PROCUREMENT: Role.TEAM_MEMBER,
+  SUPPORT_AGENT: Role.TEAM_MEMBER, // PHASE-3: Support + CRM access
+  OPERATIONS_MANAGER: Role.TEAM_MEMBER, // PHASE-3: Wider operational scope
+  
+  // Property & External roles
+  OWNER: Role.CORPORATE_OWNER, // Fixed: OWNER → CORPORATE_OWNER
   TENANT: Role.TENANT,
   VENDOR: Role.VENDOR,
+  AUDITOR: Role.TEAM_MEMBER, // Fixed: AUDITOR → TEAM_MEMBER (read-only specialization)
+  
+  // Legacy aliases for backward compatibility
+  TEAM_MEMBER: Role.TEAM_MEMBER,
+  CORPORATE_OWNER: Role.CORPORATE_OWNER,
   GUEST: Role.GUEST,
 };
 
@@ -79,10 +98,12 @@ export function useFMPermissions() {
   const userRole = user?.role || "GUEST";
   const role = roleMapping[userRole] || Role.GUEST;
 
+  // ORGID-FIX: Use undefined instead of empty string for client-side permission checks
+  // Empty string would incorrectly indicate "valid orgId" rather than "no orgId"
   const ctx: FMPermissionContext = {
     role,
     userId: user?.id || "",
-    orgId: user?.orgId || "",
+    orgId: user?.orgId || undefined,  // ✅ undefined (not "") for missing orgId
     propertyId: undefined,
     plan,
   };
@@ -139,20 +160,23 @@ export function useFMPermissions() {
   };
 
   /**
-   * Check if user is admin (SUPER_ADMIN or CORPORATE_ADMIN)
+   * Check if user is admin (SUPER_ADMIN or ADMIN)
+   * RBAC-003 FIX: Use canonical FM roles
    */
   const isAdmin = (): boolean => {
-    return ctx.role === Role.SUPER_ADMIN || ctx.role === Role.CORPORATE_ADMIN;
+    return ctx.role === Role.SUPER_ADMIN || ctx.role === Role.ADMIN;
   };
 
   /**
    * Check if user is management level
+   * RBAC-003 FIX: Use canonical FM roles (TEAM_MEMBER hierarchy)
    */
   const isManagement = (): boolean => {
     return (
-      ctx.role === Role.MANAGEMENT ||
+      ctx.role === Role.TEAM_MEMBER ||
+      ctx.role === Role.PROPERTY_MANAGER ||
       ctx.role === Role.SUPER_ADMIN ||
-      ctx.role === Role.CORPORATE_ADMIN
+      ctx.role === Role.ADMIN
     );
   };
 

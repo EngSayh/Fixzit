@@ -58,7 +58,9 @@ if (require.main === module) {
     logger.info('[OnboardingOCR] Worker started', { queue: QUEUE_NAME });
   } else {
     // eslint-disable-next-line no-console
-    console.error('[OnboardingOCR] Worker not started; Redis missing');
+    logger.error('onboarding_ocr:worker_not_started', {
+      reason: 'Redis connection missing',
+    });
     process.exit(1);
   }
 }

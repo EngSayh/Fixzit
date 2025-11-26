@@ -1,7 +1,8 @@
+"use client";
+
 /**
  * ReviewList Component - Paginated list of reviews with filters
  */
-"use client";
 
 import React, { useState, useEffect } from "react";
 import { ReviewCard } from "./ReviewCard";

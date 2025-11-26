@@ -1,9 +1,9 @@
+"use client";
+
 /**
  * Withdrawal Form Component
  * Request withdrawal for available balance
  */
-
-"use client";
 
 import React, { useState } from "react";
 import { Card } from "@/components/ui/card";

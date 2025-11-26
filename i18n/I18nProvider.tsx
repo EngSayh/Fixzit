@@ -74,7 +74,12 @@ export const I18nProvider: React.FC<{
           setIsLoading(false);
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('[I18nProvider] Failed to load dictionary:', {
+          locale,
+          error: error instanceof Error ? error.message : String(error),
+          availableLocales: Object.keys(DICTIONARIES)
+        });
         if (!cancelled) {
           setDict({});
           setIsLoading(false);

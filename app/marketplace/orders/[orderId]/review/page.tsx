@@ -1,9 +1,9 @@
+"use client";
+
 /**
  * Review Submission Page - Submit review for purchased product
  * @route /marketplace/orders/[orderId]/review
  */
-
-"use client";
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";

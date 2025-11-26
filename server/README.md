@@ -236,9 +236,10 @@ describe("User Model", () => {
 
 ## 📚 Related Documentation
 
-- [Model Consolidation Strategy](/docs/MODEL_CONSOLIDATION_STRATEGY.md)
+- [Model Consolidation Strategy](/docs/architecture/MODEL_CONSOLIDATION_STRATEGY.md)
 - [MongoDB Unified Connection](/docs/archived/reports/MONGODB_UNIFIED_VERIFICATION_COMPLETE.md)
-- [Multi-Tenancy Guide](/docs/MULTI_TENANCY.md)
+- [Multi-Tenancy Guide](/docs/architecture/MULTI_TENANCY.md)
+- [RBAC & Security](/docs/architecture/RBAC_STRICT_V4.md)
 
 ## 🔑 Key Features
 

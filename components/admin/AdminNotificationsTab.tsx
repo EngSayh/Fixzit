@@ -1,9 +1,9 @@
+"use client";
+
 /**
  * Admin Notifications Tab Component
  * Allows super admins to broadcast notifications via Email, SMS, WhatsApp
  */
-
-"use client";
 
 import React, { useState, useEffect } from "react";
 import {
