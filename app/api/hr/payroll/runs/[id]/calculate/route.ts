@@ -10,6 +10,9 @@ import {
 import { PayrollService } from "@/server/services/hr/payroll.service";
 import { calculateNetPay } from "@/services/hr/ksaPayrollService";
 
+// 🔒 STRICT v4.1: Payroll calculation requires HR Officer, Finance Officer, or Admin role
+const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER', 'FINANCE', 'FINANCE_OFFICER'];
+
 type RouteParams = { id: string };
 
 export async function POST(
@@ -20,6 +23,11 @@ export async function POST(
     const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !PAYROLL_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR/Finance access required" }, { status: 403 });
     }
 
     await connectToDatabase();

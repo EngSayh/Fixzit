@@ -3,12 +3,22 @@ import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { PayrollService } from "@/server/services/hr/payroll.service";
+
+// 🔒 STRICT v4.1: Payroll requires HR Officer, Finance Officer, or Admin role
+// Finance Officer included because payroll is a financial function
+const PAYROLL_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER', 'FINANCE', 'FINANCE_OFFICER'];
+
 // GET /api/hr/payroll/runs - List all payroll runs
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !PAYROLL_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR/Finance access required" }, { status: 403 });
     }
 
     await connectToDatabase();
@@ -53,6 +63,11 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !PAYROLL_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR/Finance access required" }, { status: 403 });
     }
 
     await connectToDatabase();

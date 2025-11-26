@@ -5,6 +5,10 @@ import { logger } from "@/lib/logger";
 import { PayrollService } from "@/server/services/hr/payroll.service";
 import { generateWPSFile, validateWPSFile } from "@/services/hr/wpsService";
 
+// 🔒 STRICT v4.1 CRITICAL: WPS export contains banking data (IBANs, salaries)
+// Requires HR Officer, Finance Officer, or Admin role
+const PAYROLL_EXPORT_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER', 'FINANCE', 'FINANCE_OFFICER'];
+
 type RouteParams = { id: string };
 
 export async function GET(
@@ -15,6 +19,16 @@ export async function GET(
     const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check - CRITICAL for banking data protection
+    if (!session.user.role || !PAYROLL_EXPORT_ALLOWED_ROLES.includes(session.user.role)) {
+      logger.warn("WPS export access denied", { 
+        userId: session.user.id, 
+        role: session.user.role,
+        orgId: session.user.orgId 
+      });
+      return NextResponse.json({ error: "Forbidden: HR/Finance access required for WPS export" }, { status: 403 });
     }
 
     await connectToDatabase();

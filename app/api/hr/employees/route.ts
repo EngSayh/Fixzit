@@ -11,6 +11,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+    const allowedRoles = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
+    if (!session.user.role || !allowedRoles.includes(session.user.role)) {
+      return NextResponse.json(
+        { error: "Forbidden: HR access required" },
+        { status: 403 }
+      );
+    }
+
     await connectToDatabase();
 
     // Parse query parameters
@@ -25,6 +34,10 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search");
 
     // Build query
+    // MINOR FIX: Use projection to exclude PII by default (compensation, bankDetails)
+    // to avoid leaking sensitive data in bulk list responses
+    const includePii = searchParams.get("includePii") === "true";
+    
     const { items, total } = await EmployeeService.searchWithPagination(
       {
         orgId: session.user.orgId,
@@ -44,9 +57,16 @@ export async function GET(req: NextRequest) {
       },
       { page, limit },
     );
+    
+    // Strip PII fields unless explicitly requested
+    const sanitizedItems = includePii ? items : items.map((emp: Record<string, unknown>) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { compensation, bankDetails, ...safeEmployee } = emp;
+      return safeEmployee;
+    });
 
     return NextResponse.json({
-      employees: items,
+      employees: sanitizedItems,
       pagination: {
         page,
         limit,
@@ -69,6 +89,15 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+    const allowedRoles = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
+    if (!session.user.role || !allowedRoles.includes(session.user.role)) {
+      return NextResponse.json(
+        { error: "Forbidden: HR access required" },
+        { status: 403 }
+      );
     }
 
     await connectToDatabase();
