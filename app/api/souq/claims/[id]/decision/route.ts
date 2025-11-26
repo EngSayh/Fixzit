@@ -32,7 +32,8 @@ export async function POST(
       : await db.collection("users").findOne({ id: session.user.id });
 
     const role = (adminRecord?.role || session.user.role || "").toUpperCase();
-    const allowedRoles = ["ADMIN", "SUPERADMIN", "CLAIMS_ADMIN"];
+    // 🔒 SECURITY FIX: Use standard role names from UserRole enum
+    const allowedRoles = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "CLAIMS_ADMIN"];
     if (!allowedRoles.includes(role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

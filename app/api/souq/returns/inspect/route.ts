@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Admin or inspector role
-    if (!["ADMIN", "SUPER_ADMIN", "INSPECTOR"].includes(session.user.role)) {
+    if (!["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "INSPECTOR"].includes(session.user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

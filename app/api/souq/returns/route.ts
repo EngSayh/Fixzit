@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") || "buyer"; // buyer, seller, admin
 
-    const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
+    const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role);
 
     if (type === "buyer") {
       // Get buyer's return history

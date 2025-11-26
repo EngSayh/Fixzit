@@ -232,7 +232,7 @@ export async function GET(request: NextRequest) {
     };
 
     const effectiveView = (view || "buyer").toLowerCase();
-    const isAdminUser = ["SUPER_ADMIN", "ADMIN"].includes(
+    const isAdminUser = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(
       (session.user.role || "").toUpperCase(),
     );
     if (effectiveView === "admin" && isAdminUser) {
