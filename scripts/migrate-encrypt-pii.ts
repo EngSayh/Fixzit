@@ -59,6 +59,12 @@ const BATCH_SIZE = parseInt(
   10,
 );
 
+// Validate batch size - must be a positive integer
+if (isNaN(BATCH_SIZE) || BATCH_SIZE <= 0) {
+  console.error('❌ Invalid batch size: must be a positive integer');
+  process.exit(1);
+}
+
 const BACKUP_COLLECTION_PREFIX = 'users_backup_pii_encryption';
 
 // Fields to encrypt

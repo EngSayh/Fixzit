@@ -331,6 +331,8 @@ describe('PII Encryption Utility', () => {
   });
 
   describe('mock encryption (no key)', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    
     beforeAll(() => {
       delete process.env.ENCRYPTION_KEY;
       process.env.NODE_ENV = 'development';
@@ -338,6 +340,7 @@ describe('PII Encryption Utility', () => {
 
     afterAll(() => {
       process.env.ENCRYPTION_KEY = testKey;
+      process.env.NODE_ENV = originalNodeEnv; // Restore NODE_ENV to prevent test pollution
     });
 
     it('should use mock encryption without key in development', () => {

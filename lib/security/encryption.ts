@@ -119,7 +119,7 @@ function validateEncryptionKey(): void {
         env: process.env.NODE_ENV,
       });
     }
-  } catch (decodeError) {
+  } catch (_decodeError) {
     // Key is not valid base64, check raw length
     if (encryptionKey.length < KEY_LENGTH) {
       const error = `Invalid ENCRYPTION_KEY: must be at least ${KEY_LENGTH} characters or base64-encoded ${KEY_LENGTH} bytes`;
@@ -335,7 +335,7 @@ export function decryptField(
  * @example
  * const encrypted = encryptFields(user, ['personal.nationalId', 'personal.passport']);
  */
-export function encryptFields<T extends Record<string, any>>(
+export function encryptFields<T extends Record<string, unknown>>(
   obj: T,
   fieldPaths: string[],
 ): T {
@@ -343,14 +343,14 @@ export function encryptFields<T extends Record<string, any>>(
 
   for (const path of fieldPaths) {
     const parts = path.split('.');
-    let current: any = result;
+    let current: Record<string, unknown> = result as Record<string, unknown>;
 
     // Navigate to parent object
     for (let i = 0; i < parts.length - 1; i++) {
       if (!current[parts[i]]) {
         current[parts[i]] = {};
       }
-      current = current[parts[i]];
+      current = current[parts[i]] as Record<string, unknown>;
     }
 
     // Encrypt leaf value
@@ -381,7 +381,7 @@ export function encryptFields<T extends Record<string, any>>(
  * @param fieldPaths - Array of dot-notation field paths
  * @returns New object with decrypted fields
  */
-export function decryptFields<T extends Record<string, any>>(
+export function decryptFields<T extends Record<string, unknown>>(
   obj: T,
   fieldPaths: string[],
 ): T {
@@ -389,14 +389,14 @@ export function decryptFields<T extends Record<string, any>>(
 
   for (const path of fieldPaths) {
     const parts = path.split('.');
-    let current: any = result;
+    let current: Record<string, unknown> = result as Record<string, unknown>;
 
     // Navigate to parent object
     for (let i = 0; i < parts.length - 1; i++) {
       if (!current[parts[i]]) {
         break; // Path doesn't exist, skip
       }
-      current = current[parts[i]];
+      current = current[parts[i]] as Record<string, unknown>;
     }
 
     // Decrypt leaf value
@@ -424,7 +424,7 @@ export function decryptFields<T extends Record<string, any>>(
  * @param value - Value to check
  * @returns True if value appears to be encrypted
  */
-export function isEncrypted(value: any): boolean {
+export function isEncrypted(value: unknown): boolean {
   return typeof value === 'string' && (
     value.startsWith(VERSION_PREFIX) || 
     value.startsWith('MOCK_ENCRYPTED:')
