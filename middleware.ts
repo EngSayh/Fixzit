@@ -38,6 +38,60 @@ type WrappedReq = NextRequest & { auth?: AuthSession | null };
 // ---------- Configurable switches ----------
 const API_PROTECT_ALL = process.env.API_PROTECT_ALL !== 'false'; // secure-by-default
 const REQUIRE_ORG_ID_FOR_FM = process.env.REQUIRE_ORG_ID === 'true';
+// SECURITY: Enable CSRF protection for state-changing requests
+const CSRF_PROTECTION_ENABLED = process.env.CSRF_PROTECTION !== 'false'; // enabled by default
+
+// ---------- CSRF Protection ----------
+// Routes exempt from CSRF validation (auth callbacks, webhooks, etc.)
+const CSRF_EXEMPT_ROUTES = [
+  '/api/auth',       // NextAuth handles its own CSRF
+  '/api/webhooks',   // Webhooks use signature verification
+  '/api/health',     // Health checks don't change state
+  '/api/copilot',    // AI assistant uses separate auth
+];
+
+/**
+ * Validate CSRF token for state-changing requests
+ * Token must be present in X-CSRF-Token header and match session cookie
+ */
+function validateCSRF(request: NextRequest): boolean {
+  // Skip for safe methods (GET, HEAD, OPTIONS)
+  const method = request.method.toUpperCase();
+  if (['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    return true;
+  }
+  
+  const pathname = request.nextUrl.pathname;
+  
+  // Skip for exempt routes
+  if (CSRF_EXEMPT_ROUTES.some(route => pathname.startsWith(route))) {
+    return true;
+  }
+  
+  // Get CSRF token from header
+  const headerToken = request.headers.get('X-CSRF-Token') || request.headers.get('x-csrf-token');
+  
+  // Get CSRF token from cookie (set by client on initial page load)
+  const cookieToken = request.cookies.get('csrf-token')?.value;
+  
+  // Both must be present and match
+  if (!headerToken || !cookieToken) {
+    logger.warn('[CSRF] Missing token', {
+      path: pathname,
+      method,
+      hasHeader: !!headerToken,
+      hasCookie: !!cookieToken,
+    });
+    return false;
+  }
+  
+  if (headerToken !== cookieToken) {
+    logger.warn('[CSRF] Token mismatch', { path: pathname, method });
+    return false;
+  }
+  
+  return true;
+}
 
 // ---------- Rate limiting for credential logins (tests expect 429 on abuse) ----------
 const LOGIN_RATE_LIMIT_WINDOW_MS =
@@ -230,6 +284,22 @@ export async function middleware(request: NextRequest) {
       
       return NextResponse.json(
         { error: 'Origin not allowed' },
+        { status: 403 }
+      );
+    }
+
+    // SECURITY: CSRF protection for state-changing API requests
+    if (CSRF_PROTECTION_ENABLED && !validateCSRF(request)) {
+      logSecurityEvent({
+        type: 'csrf_violation',
+        ip: clientIp,
+        path: pathname,
+        timestamp: new Date().toISOString(),
+        metadata: { method },
+      }).catch(err => logger.error('[CSRF] Failed to log security event', { error: err }));
+      
+      return NextResponse.json(
+        { error: 'Invalid or missing CSRF token' },
         { status: 403 }
       );
     }

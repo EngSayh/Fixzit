@@ -94,8 +94,10 @@ const nextConfig = {
   poweredByHeader: false,
   // Note: SWC is the default compiler in Next.js 15+
   
-  // Enable production browser sourcemaps for Sentry error tracking
-  productionBrowserSourceMaps: true,
+  // SECURITY FIX: Disable production browser sourcemaps to prevent source code exposure
+  // Source maps are generated server-side only (hidden-source-map) for error tracking
+  // If you need source maps for Sentry/monitoring, upload them during CI/CD instead
+  productionBrowserSourceMaps: false,
   
   // 🚀 SPEED OPTIMIZATIONS - Memory-optimized for constrained environments
   experimental: {

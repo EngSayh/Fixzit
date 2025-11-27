@@ -45,9 +45,10 @@ describe('audit normalization', () => {
         action: 'LOGIN',
         metadata: expect.objectContaining({
           rawAction: 'auth.login',
-          actorEmail: 'user@example.com',
+          actorEmail: '[REDACTED]',
           source: 'WEB',
         }),
+        result: expect.objectContaining({ success: true }),
       }),
     );
     expect(mockLogger.error).not.toHaveBeenCalled();
@@ -97,6 +98,25 @@ describe('audit normalization', () => {
     expect(mockAuditLog.log).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'CUSTOM',
+      }),
+    );
+  });
+
+  it('triggers critical alert logger for grant actions using rawAction', async () => {
+    await audit({
+      actorId: 'admin-1',
+      actorEmail: 'admin@example.com',
+      action: 'user.grantSuperAdmin',
+      targetType: 'user',
+      target: 'target@example.com',
+      orgId: 'org-1',
+    });
+
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('[AUDIT CRITICAL]'),
+      expect.objectContaining({
+        meta: expect.objectContaining({ rawAction: 'user.grantSuperAdmin' }),
+        severity: 'critical',
       }),
     );
   });

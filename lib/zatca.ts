@@ -1,6 +1,9 @@
 import QRCode from "qrcode";
 import { logger } from "@/lib/logger";
 
+// ZATCA specification limits
+const MAX_TLV_FIELD_LENGTH = 256; // Maximum bytes per field per ZATCA spec
+
 interface ZATCAData {
   sellerName: string;
   vatNumber: string;
@@ -9,8 +12,21 @@ interface ZATCAData {
   vatAmount: string | number;
 }
 
+/**
+ * Create a TLV (Tag-Length-Value) buffer for ZATCA QR code
+ * @throws Error if value exceeds ZATCA maximum field length (256 bytes)
+ */
 function toTLV(tag: number, value: string): Buffer {
   const valueBuffer = Buffer.from(value, "utf8");
+  
+  // SECURITY FIX: Validate TLV field length per ZATCA specification
+  if (valueBuffer.length > MAX_TLV_FIELD_LENGTH) {
+    throw new Error(
+      `ZATCA TLV field (tag ${tag}) exceeds maximum length of ${MAX_TLV_FIELD_LENGTH} bytes. ` +
+      `Actual: ${valueBuffer.length} bytes. Truncate or split the value.`
+    );
+  }
+  
   const tagBuffer = Buffer.from([tag]);
   const lengthBuffer = Buffer.from([valueBuffer.length]);
 

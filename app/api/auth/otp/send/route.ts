@@ -79,9 +79,7 @@ const DEFAULT_TEST_FORCE_PHONE = "+966552233456";
 const FORCE_OTP_PHONE =
   process.env.NEXTAUTH_FORCE_OTP_PHONE || process.env.FORCE_OTP_PHONE || "";
 
-const DEMO_AUTH_ENABLED =
-  process.env.ALLOW_DEMO_LOGIN === "true" ||
-  process.env.NODE_ENV !== "production";
+// Note: DEMO_AUTH_ENABLED is defined below with demo password configuration
 const OFFLINE_MODE = process.env.ALLOW_OFFLINE_MONGODB === "true";
 
 const TEST_USER_CONFIG = [
@@ -123,7 +121,14 @@ const TEST_USER_CONFIG = [
   },
 ] as const;
 
-const DEFAULT_DEMO_PASSWORDS = ["admin123", "password123", "Admin@123"];
+// SECURITY: Demo passwords are ONLY for local development/testing
+// In production (NODE_ENV=production), demo auth is completely disabled
+const DEMO_AUTH_ENABLED =
+  process.env.NODE_ENV !== "production" &&
+  (process.env.ALLOW_DEMO_LOGIN === "true" || process.env.NODE_ENV === "development");
+
+// SECURITY: Demo passwords are not hardcoded - must be set via environment variable
+// If not set, demo auth is effectively disabled even in development
 const CUSTOM_DEMO_PASSWORDS = (
   process.env.NEXTAUTH_DEMO_PASSWORDS ||
   process.env.DEMO_LOGIN_PASSWORDS ||
@@ -132,9 +137,9 @@ const CUSTOM_DEMO_PASSWORDS = (
   .split(",")
   .map((pwd) => pwd.trim())
   .filter(Boolean);
-const DEMO_PASSWORD_WHITELIST = (
-  CUSTOM_DEMO_PASSWORDS.length ? CUSTOM_DEMO_PASSWORDS : DEFAULT_DEMO_PASSWORDS
-).filter(Boolean);
+
+// Only use demo passwords if explicitly configured via environment
+const DEMO_PASSWORD_WHITELIST = DEMO_AUTH_ENABLED ? CUSTOM_DEMO_PASSWORDS : [];
 
 const isDemoIdentifier = (identifier: string | undefined | null): boolean => {
   if (!identifier) return false;
@@ -649,8 +654,14 @@ export async function POST(request: NextRequest) {
       attemptsRemaining: MAX_ATTEMPTS,
     };
 
-    if (smsDevMode) {
+    // SECURITY FIX: Only expose OTP code in dev mode when NOT in production
+    // and when SMS_DEV_MODE is explicitly enabled
+    // This prevents accidental OTP exposure in staging/preview environments
+    if (smsDevMode && process.env.NODE_ENV === "development") {
       responseData.devCode = otp;
+      logger.warn("[OTP] Dev code included in response - development only", {
+        identifier: otpKey,
+      });
     }
 
     return NextResponse.json({

@@ -11,6 +11,8 @@ import { AuditLogModel } from '@/server/models/AuditLog';
 export type AuditEvent = {
   actorId: string;      // User ID performing the action
   actorEmail: string;   // User email for readability
+  actorRole?: string;   // Actor role for RBAC correlation
+  actorSubRole?: string; // Actor sub-role for STRICT v4 enforcement
   action: string;       // Action performed (e.g., "user.grantSuperAdmin", "user.impersonate")
   target?: string;      // Target user ID/email (if applicable)
   targetType?: string;  // Type of target (e.g., "user", "role", "permission")
@@ -34,9 +36,64 @@ export type AuditEvent = {
  * @param event Audit event data
  */
 export async function audit(event: AuditEvent): Promise<void> {
+  const SENSITIVE_KEYS = [
+    'password', 'token', 'secret', 'apiKey', 'api_key',
+    'accessToken', 'refreshToken', 'authToken', 'bearerToken',
+    'ssn', 'socialSecurityNumber', 'creditCard', 'cardNumber', 'cvv', 'pin',
+    'privateKey', 'credentials',
+    // PII fields
+    'email', 'phone', 'mobile', 'phoneNumber', 'mobileNumber',
+  ];
+
+  const redactSensitive = (obj: Record<string, unknown>): Record<string, unknown> => {
+    const redactValue = (value: unknown): unknown => {
+      if (Array.isArray(value)) {
+        return value.map(redactValue);
+      }
+      if (value && typeof value === 'object') {
+        return redactSensitive(value as Record<string, unknown>);
+      }
+      return value;
+    };
+
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const lowerKey = key.toLowerCase();
+      if (SENSITIVE_KEYS.some(s => lowerKey.includes(s))) {
+        result[key] = '[REDACTED]';
+      } else {
+        result[key] = redactValue(value);
+      }
+    }
+    return result;
+  };
+
   const orgId = event.orgId?.trim();
   if (!orgId) {
-    logger.error('[AUDIT] CRITICAL: orgId missing', { event });
+    const sanitizedEvent = {
+      ...event,
+      meta: event.meta ? redactSensitive(event.meta) : undefined,
+      actorEmail: event.actorEmail ? '[REDACTED]' : undefined,
+      target: event.target ? '[REDACTED]' : undefined,
+    };
+    logger.error('[AUDIT] CRITICAL: orgId missing', { event: sanitizedEvent });
+    try {
+      if (typeof window === 'undefined' && process.env.SENTRY_DSN && process.env.NODE_ENV === 'production') {
+        const Sentry = await import('@sentry/nextjs').catch(() => null);
+        if (Sentry) {
+          Sentry.captureMessage('[AUDIT] orgId missing', {
+            level: 'error',
+            extra: sanitizedEvent,
+            tags: {
+              audit_action: sanitizedEvent.action ?? 'unknown',
+            },
+          });
+        }
+      }
+    } catch (sentryError: unknown) {
+      const errorToLog = sentryError instanceof Error ? sentryError : new Error(String(sentryError));
+      logger.error('[AUDIT] Failed to send missing orgId alert:', errorToLog);
+    }
     return;
   }
 
@@ -98,51 +155,48 @@ export async function audit(event: AuditEvent): Promise<void> {
     project: 'PROJECT',
     bid: 'BID',
     vendor: 'VENDOR',
+    serviceprovider: 'SERVICE_PROVIDER',
+    service_provider: 'SERVICE_PROVIDER',
     document: 'DOCUMENT',
     setting: 'SETTING',
   };
   const entityType = ENTITY_MAP[targetType] ?? 'OTHER';
 
-  // AUDIT-004 FIX: Comprehensive PII redaction
-  const SENSITIVE_KEYS = [
-    'password', 'token', 'secret', 'apiKey', 'api_key',
-    'accessToken', 'refreshToken', 'authToken', 'bearerToken',
-    'ssn', 'socialSecurityNumber', 'creditCard', 'cardNumber', 'cvv', 'pin',
-    'privateKey', 'credentials',
-    // PII fields
-    'email', 'phone', 'mobile', 'phoneNumber', 'mobileNumber',
-  ];
-  const redactSensitive = (obj: Record<string, unknown>): Record<string, unknown> => {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      const lowerKey = key.toLowerCase();
-      if (SENSITIVE_KEYS.some(s => lowerKey.includes(s))) {
-        result[key] = '[REDACTED]';
-      } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-        result[key] = redactSensitive(value as Record<string, unknown>);
-      } else {
-        result[key] = value;
-      }
-    }
-    return result;
-  };
   const sanitizedMeta = redactSensitive(event.meta || {});
+
+  const success = event.success ?? true;
+  if (event.success === undefined) {
+    logger.warn('[AUDIT] success flag missing; defaulting to true', {
+      action: rawAction,
+      actorId: event.actorId,
+    });
+  }
 
   const entry: AuditEvent = {
     ...event,
     orgId,
     action,
     targetType: entityType,
+    actorRole: event.actorRole,
+    actorSubRole: event.actorSubRole,
     meta: {
       ...sanitizedMeta,
       rawAction,
+      actorRole: event.actorRole,
+      actorSubRole: event.actorSubRole,
     },
-    success: event.success !== false,
+    success,
     timestamp: event.timestamp || new Date().toISOString(),
   };
 
+  const sanitizedLogEntry = {
+    ...entry,
+    actorEmail: entry.actorEmail ? '[REDACTED]' : undefined,
+    target: entry.target ? '[REDACTED]' : undefined,
+  };
+
   // Structured logging
-  logger.info('[AUDIT]', entry);
+  logger.info('[AUDIT]', sanitizedLogEntry);
 
   // ✅ Write to database
   try {
@@ -160,7 +214,7 @@ export async function audit(event: AuditEvent): Promise<void> {
       },
       metadata: {
         ...entry.meta,
-        actorEmail: entry.actorEmail,
+        actorEmail: redactSensitive({ actorEmail: entry.actorEmail ?? '' }).actorEmail,
         source: 'WEB',
       },
       result: {
@@ -183,11 +237,14 @@ export async function audit(event: AuditEvent): Promise<void> {
       if (Sentry) {
         Sentry.captureMessage(`[AUDIT] ${entry.action}`, {
           level: 'info',
-          extra: entry,
+          extra: sanitizedLogEntry,
           tags: {
             audit_action: entry.action,
             actor_id: entry.actorId,
             target_type: entry.targetType || 'unknown',
+            org_id: orgId,
+            actor_role: entry.actorRole,
+            actor_sub_role: entry.actorSubRole,
           },
         });
       }
@@ -199,11 +256,17 @@ export async function audit(event: AuditEvent): Promise<void> {
   }
 
   // Trigger alerts for critical actions (Super Admin, Impersonation)
-  if (entry.action.includes('grant') || entry.action.includes('impersonate') || entry.action.includes('revoke')) {
+  const rawActionLower = (entry.meta?.rawAction as string | undefined)?.toLowerCase() || '';
+  const isCriticalAction =
+    rawActionLower.includes('grant') ||
+    rawActionLower.includes('impersonate') ||
+    rawActionLower.includes('revoke');
+
+  if (isCriticalAction) {
     try {
       // Log critical action with high priority
-      logger.warn(`[AUDIT CRITICAL] ${entry.action} by ${entry.actorEmail} on ${entry.target}`, {
-        ...entry,
+      logger.warn(`[AUDIT CRITICAL] ${entry.action} by [REDACTED] on [REDACTED]`, {
+        ...sanitizedLogEntry,
         severity: 'critical',
       });
       
