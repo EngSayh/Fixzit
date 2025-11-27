@@ -213,7 +213,8 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
 
     if (session?.user?.id) {
       userId = session.user.id;
-      const sessionOrgId = session.user.orgId || "";
+      // ORGID-FIX: Use undefined (not empty string) for missing orgId
+      const sessionOrgId = session.user.orgId ? String(session.user.orgId).trim() : undefined;
       realOrgId = sessionOrgId || undefined;
       sessionIsSuperAdmin = Boolean(
         (session.user as { isSuperAdmin?: boolean }).isSuperAdmin,
@@ -236,7 +237,9 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
         orgId = supportOrgOverride;
         impersonatedOrgId = supportOrgOverride;
       } else {
-        orgId = sessionOrgId || "";
+        // ORGID-FIX: Use undefined (not empty string) for missing orgId
+        // Empty string would bypass tenant isolation checks
+        orgId = sessionOrgId || undefined;  // ✅ undefined (not "")
       }
 
       // Validate role before casting

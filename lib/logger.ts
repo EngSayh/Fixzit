@@ -94,7 +94,10 @@ class Logger {
     try {
       // Sentry integration for error tracking
       if (level === "error" && process.env.NEXT_PUBLIC_SENTRY_DSN) {
-        const Sentry = await import("@sentry/nextjs").catch(() => null);
+        const Sentry = await import("@sentry/nextjs").catch((importError) => {
+          console.error('[Logger] Failed to import Sentry for error tracking:', importError);
+          return null;
+        });
 
         if (Sentry) {
           // Pass original Error if available, otherwise create new Error with cause
@@ -118,7 +121,10 @@ class Logger {
           });
         }
       } else if (level === "warn" && process.env.NEXT_PUBLIC_SENTRY_DSN) {
-        const Sentry = await import("@sentry/nextjs").catch(() => null);
+        const Sentry = await import("@sentry/nextjs").catch((importError) => {
+          console.error('[Logger] Failed to import Sentry for warning:', importError);
+          return null;
+        });
 
         if (Sentry) {
           Sentry.captureMessage(message, {

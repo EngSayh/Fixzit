@@ -61,9 +61,11 @@ export async function resolveCopilotSession(
     };
   }
 
+  // ORGID-FIX: Use undefined (not "default") for missing orgId
+  // Copilot should handle missing tenant context explicitly
   return {
     userId: user.id,
-    tenantId: user.orgId || "default",
+    tenantId: user.orgId || undefined,  // ✅ undefined for missing tenant
     role: (user.role || "GUEST") as CopilotRole,
     email: user.email,
     name: user.name,

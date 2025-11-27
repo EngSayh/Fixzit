@@ -1,10 +1,10 @@
+"use client";
+
 /**
  * Transaction History Component
  *
  * Displays seller's transaction history with filters and pagination.
  */
-
-"use client";
 
 import React, { useState } from "react";
 import { logger } from "@/lib/logger";

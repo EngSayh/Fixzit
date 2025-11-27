@@ -1,7 +1,8 @@
+"use client";
+
 /**
  * ReviewCard Component - Display individual review
  */
-"use client";
 
 import React, { useState } from "react";
 import { Star, ThumbsUp, Flag, MessageSquare } from "lucide-react";

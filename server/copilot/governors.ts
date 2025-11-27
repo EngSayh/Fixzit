@@ -118,8 +118,8 @@ function checkRoleAccess(context: GovernorContext): GovernorResult {
     return { allowed: true };
   }
 
-  // Tenant has read-only access
-  if (session.role === "TENANT" || session.role === "CUSTOMER") {
+  // Tenant has read-only access (STRICT v4: CUSTOMER deprecated, use TENANT)
+  if (session.role === "TENANT") {
     // Block any attempt to modify data
     const modifyKeywords = [
       "create",
