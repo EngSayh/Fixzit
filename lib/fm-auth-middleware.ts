@@ -67,16 +67,26 @@ export async function getFMAuthContext(
     const userRole = user.role || "GUEST";
     const role = roleMapping[userRole] || Role.GUEST;
 
+    // ORGID-FIX: Enforce mandatory orgId for multi-tenant isolation
+    const orgId = (user as { orgId?: string }).orgId;
+    if (!orgId || orgId.trim() === "") {
+      logger.error("[FM Auth] orgId missing - violates multi-tenant isolation", {
+        userId: user.id,
+        email: user.email,
+      });
+      return null;
+    }
+
     return {
       userId: user.id || user.email || "",
       role,
-      orgId: (user as { orgId?: string }).orgId || "",
+      orgId,  // ✅ Validated above
       propertyIds: (user as { propertyIds?: string[] }).propertyIds || [],
       user: {
         id: user.id || "",
         email: user.email || "",
         role: user.role,
-        orgId: (user as { orgId?: string }).orgId,
+        orgId,  // ✅ Validated above
         propertyIds: (user as { propertyIds?: string[] }).propertyIds,
       },
     };
@@ -281,14 +291,24 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
         .lean();
 
       if (property) {
+        // ORGID-FIX: Validate orgId exists before returning
+        const orgId = property.orgId?.toString() || null;
+        if (!orgId || orgId.trim() === "") {
+          logger.error("[FM Auth] Property has no orgId - data integrity issue", {
+            propertyId: _propertyId,
+            ownerId: property.ownerId,
+          });
+          return null;
+        }
+
         logger.debug("[FM Auth] Property ownership found", {
           propertyId: _propertyId,
           ownerId: property.ownerId,
-          orgId: property.orgId,
+          orgId,
         });
         return {
           ownerId: property.ownerId?.toString() || "",
-          orgId: property.orgId?.toString() || "",
+          orgId,
         };
       }
     } else {
@@ -301,9 +321,19 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
         .lean();
 
       if (workOrder && workOrder.propertyOwnerId) {
+        // ORGID-FIX: Validate orgId exists before returning
+        const orgId = workOrder.orgId?.toString() || null;
+        if (!orgId || orgId.trim() === "") {
+          logger.error("[FM Auth] WorkOrder has no orgId - data integrity issue", {
+            propertyId: _propertyId,
+            ownerId: workOrder.propertyOwnerId,
+          });
+          return null;
+        }
+
         return {
           ownerId: workOrder.propertyOwnerId.toString(),
-          orgId: workOrder.orgId?.toString() || "",
+          orgId,
         };
       }
     }

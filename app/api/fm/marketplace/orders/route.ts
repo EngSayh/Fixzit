@@ -81,6 +81,85 @@ const mapOrder = (doc: OrderDocument) => ({
   createdAt: doc.createdAt,
 });
 
+// FUNC-003 FIX: Add GET route for listing marketplace orders
+export async function GET(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.MARKETPLACE,
+      action: FMAction.VIEW,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "20", 10)),
+    );
+    const q = searchParams.get("q");
+    const status = searchParams.get("status");
+    const department = searchParams.get("department");
+
+    const query: Record<string, unknown> = { org_id: tenantId };
+    
+    // Use $and to combine filters
+    const filters: Record<string, unknown>[] = [];
+    
+    if (q) {
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = { $regex: escaped, $options: "i" };
+      filters.push({ $or: [{ requester: regex }, { department: regex }, { justification: regex }] });
+    }
+    
+    if (status) {
+      query.status = status;
+    }
+    
+    if (department) {
+      query.department = department;
+    }
+    
+    if (filters.length > 0) {
+      query.$and = filters;
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<OrderDocument>(COLLECTION);
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      collection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: items.map(mapOrder),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("FM Marketplace Orders API - GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const actor = await requireFmPermission(req, {

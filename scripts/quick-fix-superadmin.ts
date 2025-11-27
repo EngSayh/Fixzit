@@ -1,0 +1,58 @@
+/**
+ * Quick Fix for Super Admin Login
+ * Directly updates database without complex logic
+ */
+
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { User } from '@/server/models/User';
+import bcrypt from 'bcryptjs';
+
+const SUPERADMIN_EMAIL = 'superadmin@fixzit.co';
+const PASSWORD = 'admin123';
+const PHONE = '+966552233456';
+
+async function quickFix() {
+  try {
+    await connectToDatabase();
+    console.log('✅ Connected to database');
+
+    const hashedPassword = await bcrypt.hash(PASSWORD, 10);
+
+    const result = await User.updateOne(
+      { email: SUPERADMIN_EMAIL },
+      {
+        $set: {
+          password: hashedPassword,
+          status: 'ACTIVE',
+          isActive: true,
+          role: 'SUPER_ADMIN',
+          isSuperAdmin: true,
+          phone: PHONE,
+          'contact.phone': PHONE,
+          'personal.phone': PHONE,
+          'professional.role': 'SUPER_ADMIN',
+          'security.lastLogin': new Date(),
+        }
+      },
+      { upsert: false }
+    );
+
+    if (result.modifiedCount > 0) {
+      console.log('✅ Super admin updated successfully!');
+      console.log('\nLogin credentials:');
+      console.log(`Email: ${SUPERADMIN_EMAIL}`);
+      console.log(`Password: ${PASSWORD}`);
+      console.log(`Phone: ${PHONE}`);
+      console.log('\n🎉 You can now login!');
+    } else {
+      console.log('⚠️  No changes made - user may not exist');
+    }
+
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Error:', error);
+    process.exit(1);
+  }
+}
+
+quickFix();

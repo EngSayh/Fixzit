@@ -143,6 +143,7 @@
     "@sendgrid/mail": "^8.1.6",
     "@sentry/nextjs": "^10.27.0",
     "@smithy/smithy-client": "^4.9.7",
+    "@tanstack/react-query": "^5.90.10",
     "@types/redis": "^4.0.11",
     "@vercel/functions": "^3.3.3",
     "ai": "^5.0.98",

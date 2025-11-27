@@ -9,11 +9,19 @@ import type {
 } from "@/server/models/hr.models";
 import { Types } from "mongoose";
 
+// 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+const HR_ALLOWED_ROLES = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
+
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -40,6 +48,11 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     if (!session?.user?.orgId || !session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 
     const body = await req.json();
@@ -90,6 +103,11 @@ export async function PUT(req: NextRequest) {
     const session = await auth();
     if (!session?.user?.orgId || !session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 RBAC check
+    if (!session.user.role || !HR_ALLOWED_ROLES.includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden: HR access required" }, { status: 403 });
     }
 
     const body = await req.json();

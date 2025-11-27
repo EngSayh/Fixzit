@@ -133,14 +133,20 @@ export async function authenticateUser(
     throw new Error("Account is not active");
   }
 
+  // ORGID-FIX: Enforce mandatory orgId for multi-tenant isolation
+  const normalizedOrgId = typeof userDoc.orgId === "string"
+    ? userDoc.orgId
+    : userDoc.orgId?.toString() || null;
+  
+  if (!normalizedOrgId || normalizedOrgId.trim() === "") {
+    throw new Error(`AUTH-001: User ${user._id} has no orgId - violates multi-tenant isolation`);
+  }
+
   const token = await generateToken({
     id: user._id.toString(),
     email: user.email,
     role: userDoc.professional?.role || userDoc.role || "USER",
-    orgId:
-      typeof userDoc.orgId === "string"
-        ? userDoc.orgId
-        : userDoc.orgId?.toString() || "",
+    orgId: normalizedOrgId,
   });
 
   return {
@@ -150,10 +156,7 @@ export async function authenticateUser(
       email: user.email,
       name: `${userDoc.personal?.firstName || ""} ${userDoc.personal?.lastName || ""}`.trim(),
       role: userDoc.professional?.role || userDoc.role || "USER",
-      orgId:
-        typeof userDoc.orgId === "string"
-          ? userDoc.orgId
-          : userDoc.orgId?.toString() || "",
+      orgId: normalizedOrgId,  // ✅ Already validated above
     },
   };
 }
@@ -189,14 +192,21 @@ export async function getUserFromToken(token: string) {
     return null;
   }
 
+  // ORGID-FIX: Enforce mandatory orgId for multi-tenant isolation
+  const normalizedOrgId = typeof userDoc.orgId === "string"
+    ? userDoc.orgId
+    : userDoc.orgId?.toString() || null;
+  
+  if (!normalizedOrgId || normalizedOrgId.trim() === "") {
+    // Return null instead of throwing - token validation should fail gracefully
+    return null;
+  }
+
   return {
     id: user._id.toString(),
     email: user.email,
     name: `${userDoc.personal?.firstName || ""} ${userDoc.personal?.lastName || ""}`.trim(),
     role: userDoc.professional?.role || userDoc.role || "USER",
-    orgId:
-      typeof userDoc.orgId === "string"
-        ? userDoc.orgId
-        : userDoc.orgId?.toString() || "",
+    orgId: normalizedOrgId,
   };
 }

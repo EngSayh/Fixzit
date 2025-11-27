@@ -7,8 +7,11 @@ import type { Ability } from "@/server/rbac/workOrdersPolicy";
 import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
 import { WOPriority } from "@/server/work-orders/wo.schema";
 
-import { createSecureResponse } from '@/server/security/headers';
-import { deleteObject } from '@/lib/storage/s3';
+import { createSecureResponse } from "@/server/security/headers";
+import { deleteObject } from "@/lib/storage/s3";
+import { getClientIP } from "@/server/security/headers";
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
 
 const attachmentInputSchema = z.object({
   key: z.string(),
@@ -55,12 +58,53 @@ function normalizeAttachments(attachments: AttachmentInput[], userId: string) {
  *       429:
  *         description: Rate limit exceeded
  */
-export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
+export async function GET(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
   const params = await props.params;
+  const user = await requireAbility("VIEW")(req);
+  if (user instanceof NextResponse) return user;
+
+  // Basic rate limit to avoid hot path abuse
+  const clientIp = getClientIP(req);
+  const rl = rateLimit(
+    `${new URL(req.url).pathname}:${clientIp}:${user.id}`,
+    60,
+    60_000,
+  );
+  if (!rl.allowed) return rateLimitError();
+
   await connectToDatabase();
-  const wo = (await WorkOrder.findById(params.id));
-  if (!wo) return createSecureResponse({ error: "Not found" }, 404, _req);
-  return createSecureResponse(wo, 200, _req);
+  const scopedQuery =
+    user.isSuperAdmin === true
+      ? { _id: params.id }
+      : { _id: params.id, orgId: user.orgId };
+
+  const wo = await WorkOrder.findOne(scopedQuery).lean();
+  if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+
+  // Enforce data scope for limited roles (tenant/technician)
+  if (!user.isSuperAdmin) {
+    const assignedTech = wo.assignment?.assignedTo?.userId;
+    const requesterId = wo.requester?.userId;
+    if (
+      user.role === "TECHNICIAN" &&
+      assignedTech &&
+      String(assignedTech) !== user.id
+    ) {
+      return createSecureResponse({ error: "Forbidden" }, 403, req);
+    }
+    if (
+      user.role === "TENANT" &&
+      requesterId &&
+      String(requesterId) !== user.id
+    ) {
+      return createSecureResponse({ error: "Forbidden" }, 403, req);
+    }
+  }
+
+  return createSecureResponse(wo, 200, req);
 }
 
 const patchSchema = z.object({
@@ -90,6 +134,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const updates = patchSchema.parse(await req.json());
   const updatePayload: Record<string, unknown> = { ...updates };
 
+  const scopedQuery =
+    user.isSuperAdmin === true
+      ? { _id: workOrderId }
+      : { _id: workOrderId, orgId: user.orgId };
+
   // Validate property existence if provided
   if (updates.propertyId) {
     const { getDatabase } = await import('@/lib/mongodb-unified');
@@ -97,7 +146,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const db = await getDatabase();
     const propertyExists = await db.collection('properties').countDocuments({
       _id: new ObjectId(updates.propertyId),
-      org_id: user.tenantId
+      orgId: user.orgId
     });
     if (!propertyExists) {
       return createSecureResponse({ error: 'Invalid propertyId: property not found' }, 422, req);
@@ -111,7 +160,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const db = await getDatabase();
     const userExists = await db.collection('users').countDocuments({
       _id: new ObjectId(updates.assignment.assignedTo.userId),
-      orgId: user.tenantId
+      orgId: user.orgId
     });
     if (!userExists) {
       return createSecureResponse({ error: 'Invalid assignee: user not found' }, 422, req);
@@ -152,7 +201,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   let removedKeys: string[] = [];
   if (updates.attachments) {
     // Fetch existing to calculate removed attachments for cleanup
-    const existing = await WorkOrder.findOne({ _id: workOrderId, tenantId: user.tenantId })
+    const existing = await WorkOrder.findOne(scopedQuery)
       .select({ attachments: 1 })
       .lean<{ attachments?: { key?: string }[] } | null>();
     const existingKeys = new Set((existing?.attachments || []).map((att) => att.key).filter(Boolean) as string[]);
@@ -163,7 +212,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   }
 
   const wo = (await WorkOrder.findOneAndUpdate(
-    { _id: workOrderId, tenantId: user.tenantId },
+    scopedQuery,
     { $set: updatePayload },
     { new: true }
   ));

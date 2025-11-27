@@ -5,14 +5,14 @@ import { logger } from "@/lib/logger";
 import { ModuleKey } from "@/domain/fm/fm.behavior";
 import { FMAction } from "@/types/fm/enums";
 import { requireFmPermission } from "@/app/api/fm/permissions";
-import { resolveTenantId } from "@/app/api/fm/utils/tenant";
+import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
 import { FMErrors } from "@/app/api/fm/errors";
 
 type ExpenseStatus = "pending" | "approved" | "rejected";
 
 type ExpenseDocument = {
   _id: ObjectId;
-  org_id: string;
+  orgId: string; // AUDIT-2025-11-26: Changed from org_id to orgId for consistency
   vendor: string;
   category: string;
   amount: number;
@@ -76,9 +76,15 @@ export async function GET(req: NextRequest) {
     });
     if (actor instanceof NextResponse) return actor;
 
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
@@ -90,15 +96,18 @@ export async function GET(req: NextRequest) {
       Math.max(1, parseInt(searchParams.get("limit") || "50", 10)),
     );
 
-    const query: Record<string, unknown> = { org_id: tenantId };
+    // AUDIT-2025-11-27: Use buildTenantFilter to handle cross-tenant mode for Super Admins
+    const query: Record<string, unknown> = { ...buildTenantFilter(tenantId) };
+    // SEC-002 FIX: Use $and pattern for search to prevent overwriting role-based filters
     if (q) {
       const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = { $regex: escaped, $options: "i" };
-      query.$or = [
+      // Use $and to combine org filter with search filter
+      query.$and = [{ $or: [
         { vendor: regex },
         { category: regex },
         { description: regex },
-      ];
+      ] }];
     }
 
     const db = await getDatabase();
@@ -124,12 +133,26 @@ export async function POST(req: NextRequest) {
     });
     if (actor instanceof NextResponse) return actor;
 
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-27: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for expense creation" },
+        { status: 400 }
+      );
+    }
 
     const payload = sanitizePayload(await req.json());
     const validationError = validatePayload(payload);
@@ -143,7 +166,7 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const doc: ExpenseDocument = {
       _id: new ObjectId(),
-      org_id: tenantId,
+      orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
       vendor: payload.vendor!,
       category: payload.category!,
       amount: payload.amount!,

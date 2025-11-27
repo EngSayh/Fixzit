@@ -171,7 +171,7 @@ export async function GET(req: NextRequest) {
 
     if (
       !user ||
-      !["SUPER_ADMIN", "SUPPORT", "CORPORATE_ADMIN"].includes(user.role)
+      !["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role)
     ) {
       return createSecureResponse({ error: "Forbidden" }, 403, req);
     }
@@ -183,7 +183,7 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, Number(sp.get("page") || 1));
     const limit = Math.min(100, Number(sp.get("limit") || 20));
     const match: Record<string, unknown> = {};
-    const isGlobalAdmin = ["SUPER_ADMIN", "SUPPORT"].includes(user.role);
+    const isGlobalAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(user.role);
     if (!isGlobalAdmin) {
       match.orgId = user.orgId;
     }

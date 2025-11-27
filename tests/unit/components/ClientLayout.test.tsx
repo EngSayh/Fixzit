@@ -41,6 +41,20 @@ vi.mock("@/contexts/TranslationContext", () => ({
   useTranslation: mockUseTranslation,
 }));
 
+// Mock TopBarContext to avoid "useTopBar must be used within TopBarProvider" error
+vi.mock("@/contexts/TopBarContext", () => ({
+  TopBarProvider: ({ children }: { children: React.ReactNode }) => children,
+  useTopBar: vi.fn(() => ({
+    title: "",
+    subtitle: "",
+    actions: [],
+    setTitle: vi.fn(),
+    setSubtitle: vi.fn(),
+    setActions: vi.fn(),
+    resetTopBar: vi.fn(),
+  })),
+}));
+
 // Mock dynamic imports
 vi.mock("next/dynamic", () => ({
   default: (fn: () => Promise<unknown>) => {
