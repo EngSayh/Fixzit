@@ -31,7 +31,7 @@ export async function GET(
       allowHeaderOverride: actor.isSuperAdmin,
     });
     if ("error" in tenantResult) return tenantResult.error;
-    const { tenantId } = tenantResult;
+    const { tenantId: _tenantId } = tenantResult; // Prefix with _ to indicate intentionally unused
 
     const { id } = params;
     if (!ObjectId.isValid(id)) {

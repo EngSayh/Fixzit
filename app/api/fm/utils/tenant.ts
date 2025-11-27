@@ -19,6 +19,36 @@ export interface TenantResolutionOptions {
   allowHeaderOverride?: boolean; // Only true for Super Admin with explicit assumption
 }
 
+// Constants for cross-tenant marker
+export const CROSS_TENANT_MARKER = '__CROSS_TENANT__' as const;
+
+/**
+ * Type guard to check if resolved tenantId is the cross-tenant marker
+ * Used by Super Admins for platform-wide queries
+ */
+export function isCrossTenantMode(tenantId: string): tenantId is typeof CROSS_TENANT_MARKER {
+  return tenantId === CROSS_TENANT_MARKER;
+}
+
+/**
+ * Build a tenant-scoped query filter.
+ * For Super Admins in cross-tenant mode, returns empty object (no org filter).
+ * For regular users, returns { orgId: tenantId } filter.
+ * 
+ * @param tenantId - The resolved tenant ID or CROSS_TENANT_MARKER
+ * @param fieldName - The field name to use (default: 'orgId', some collections use 'org_id')
+ */
+export function buildTenantFilter(
+  tenantId: string,
+  fieldName: 'orgId' | 'org_id' = 'orgId'
+): Record<string, string> {
+  if (isCrossTenantMode(tenantId)) {
+    // Super Admin cross-tenant mode - no org filter
+    return {};
+  }
+  return { [fieldName]: tenantId };
+}
+
 const TENANT_HEADER_CANDIDATES = [
   "x-tenant-id",
   "x-org-id",

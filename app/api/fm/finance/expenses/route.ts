@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 import { ModuleKey } from "@/domain/fm/fm.behavior";
 import { FMAction } from "@/types/fm/enums";
 import { requireFmPermission } from "@/app/api/fm/permissions";
-import { resolveTenantId } from "@/app/api/fm/utils/tenant";
+import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
 import { FMErrors } from "@/app/api/fm/errors";
 
 type ExpenseStatus = "pending" | "approved" | "rejected";
@@ -96,7 +96,8 @@ export async function GET(req: NextRequest) {
       Math.max(1, parseInt(searchParams.get("limit") || "50", 10)),
     );
 
-    const query: Record<string, unknown> = { orgId: tenantId }; // AUDIT-2025-11-26: Changed from org_id
+    // AUDIT-2025-11-27: Use buildTenantFilter to handle cross-tenant mode for Super Admins
+    const query: Record<string, unknown> = { ...buildTenantFilter(tenantId) };
     // SEC-002 FIX: Use $and pattern for search to prevent overwriting role-based filters
     if (q) {
       const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -144,6 +145,14 @@ export async function POST(req: NextRequest) {
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-27: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for expense creation" },
+        { status: 400 }
+      );
+    }
 
     const payload = sanitizePayload(await req.json());
     const validationError = validatePayload(payload);
