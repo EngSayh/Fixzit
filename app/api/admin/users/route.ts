@@ -78,8 +78,17 @@ export async function GET(request: NextRequest) {
 
     // Build query
     // 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB query
+    // ORGID-FIX: Enforce mandatory orgId for admin queries
+    const orgId = session.user.orgId;
+    if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid organization context" },
+        { status: 403 }
+      );
+    }
+
     const query: Record<string, unknown> = {
-      orgId: session.user.orgId || "default",
+      orgId,  // ✅ Validated above
     };
 
     if (search) {
@@ -181,10 +190,19 @@ export async function POST(request: NextRequest) {
 
     const UserModel = models.User || model("User", UserSchema);
 
+    // ORGID-FIX: Enforce mandatory orgId for user creation
+    const orgId = session.user.orgId;
+    if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid organization context" },
+        { status: 403 }
+      );
+    }
+
     // Check if user already exists
     // @ts-expect-error - Fixed VSCode problem
     const existing = await UserModel.findOne({
-      orgId: session.user.orgId || "default",
+      orgId,  // ✅ Validated above
       $or: [{ email: body.email }, { username: body.username }],
     });
 
@@ -213,7 +231,7 @@ export async function POST(request: NextRequest) {
 
     // @ts-expect-error - Fixed VSCode problem
     const newUser = await UserModel.create({
-      orgId: session.user.orgId || "default",
+      orgId,  // ✅ Already validated above
       code: body.code || `USER-${crypto.randomUUID()}`, // SECURITY: Use crypto instead of Date.now()
       username: body.username,
       email: body.email,

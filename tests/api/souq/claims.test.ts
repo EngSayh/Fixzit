@@ -486,7 +486,8 @@ describe("Claims API - Core Functionality", () => {
     beforeEach(async () => {
       const adminResult = await db.collection("users").insertOne({
         email: "admin@fixzit.co",
-        role: "superadmin",
+        // 🔒 SECURITY FIX: Use standard role name from UserRole enum (SUPER_ADMIN not SUPERADMIN)
+        role: "SUPER_ADMIN",
         testData: true,
       });
       adminId = adminResult.insertedId;

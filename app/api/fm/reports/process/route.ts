@@ -43,12 +43,12 @@ const COLLECTION = "fm_report_jobs";
  * recovered by a separate cleanup job that resets status back to 'queued' based
  * on updatedAt timestamp (e.g., older than 10 minutes).
  *
- * @security Requires FM FINANCE/EXPORT permission
+ * @security Requires FM REPORTS/EXPORT permission
  */
 export async function POST(req: NextRequest) {
   try {
     const actor = await requireFmPermission(req, {
-      module: ModuleKey.FINANCE,
+      module: ModuleKey.REPORTS,
       action: FMAction.EXPORT,
     });
     if (actor instanceof NextResponse) return actor;

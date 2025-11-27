@@ -99,9 +99,10 @@ export async function POST(
 
     const db = await getDatabase();
     const collection = db.collection<WorkOrderDocument>("workorders");
+    // LEGACY-003 FIX: Use orgId for STRICT v4 tenant isolation
     const workOrder = await collection.findOne({
       _id: new ObjectId(id),
-      tenantId,
+      orgId: user.orgId, // Fixed: use orgId (not tenantId)
     });
 
     if (!workOrder) {
@@ -178,8 +179,9 @@ export async function POST(
     }
 
     // Apply update
+    // LEGACY-003 FIX: Use orgId for STRICT v4 tenant isolation
     const result = (await collection.findOneAndUpdate(
-      { _id: new ObjectId(id), tenantId },
+      { _id: new ObjectId(id), orgId: user.orgId }, // Fixed: use orgId
       { $set: update },
       { returnDocument: "after" },
     )) as unknown as ModifyResult<WorkOrderDocument>;
@@ -195,9 +197,10 @@ export async function POST(
       return FMErrors.validationError("User identifier is required");
     }
 
+    // LEGACY-003 FIX: Use orgId for timeline entry
     await recordTimelineEntry(db, {
       workOrderId: workOrder._id?.toString?.() ?? id,
-      tenantId,
+      tenantId: user.orgId, // Fixed: use orgId for STRICT v4 compliance
       action: "status_changed",
       description: `Status changed from ${currentStatus} to ${toStatus}`,
       metadata: {
@@ -339,17 +342,32 @@ export async function POST(
   }
 }
 
+// LEGACY-003 FIX: Use canonical STRICT v4 FM roles (not deprecated aliases)
 const ROLE_ALIASES: Record<string, FMRole> = {
-  ADMIN: FMRole.CORPORATE_ADMIN,
-  MANAGER: FMRole.MANAGEMENT,
-  FM_MANAGER: FMRole.MANAGEMENT,
-  PROPERTY_MANAGER: FMRole.MANAGEMENT,
-  DISPATCHER: FMRole.EMPLOYEE,
-  OWNER: FMRole.PROPERTY_OWNER,
-  OWNER_DEPUTY: FMRole.OWNER_DEPUTY,
-  PROPERTY_OWNER: FMRole.PROPERTY_OWNER,
+  // Admin roles → ADMIN
+  ADMIN: FMRole.ADMIN,
+  CORPORATE_ADMIN: FMRole.ADMIN,
+  
+  // Management roles → TEAM_MEMBER or PROPERTY_MANAGER
+  MANAGER: FMRole.TEAM_MEMBER,
+  FM_MANAGER: FMRole.PROPERTY_MANAGER,
+  PROPERTY_MANAGER: FMRole.PROPERTY_MANAGER,
+  DISPATCHER: FMRole.TEAM_MEMBER,
+  
+  // Owner roles → CORPORATE_OWNER
+  OWNER: FMRole.CORPORATE_OWNER,
+  PROPERTY_OWNER: FMRole.CORPORATE_OWNER,
+  OWNER_DEPUTY: FMRole.PROPERTY_MANAGER, // Deputy acts as Property Manager
+  
+  // Other mappings
   CUSTOMER: FMRole.TENANT,
-  SUPPORT: FMRole.EMPLOYEE,
+  SUPPORT: FMRole.TEAM_MEMBER,
+  AUDITOR: FMRole.TEAM_MEMBER,
+  
+  // Business function roles → TEAM_MEMBER
+  FINANCE: FMRole.TEAM_MEMBER,
+  HR: FMRole.TEAM_MEMBER,
+  PROCUREMENT: FMRole.TEAM_MEMBER,
 };
 
 const PLAN_ALIASES: Record<string, FMPlan> = {

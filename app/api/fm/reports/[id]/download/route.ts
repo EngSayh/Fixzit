@@ -17,7 +17,7 @@ export async function GET(
 ) {
   try {
     const actor = await requireFmPermission(req, {
-      module: ModuleKey.FINANCE,
+      module: ModuleKey.REPORTS,
       action: FMAction.EXPORT,
     });
     if (actor instanceof NextResponse) return actor;

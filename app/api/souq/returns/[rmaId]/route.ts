@@ -31,7 +31,7 @@ export async function GET(
     }
 
     // Check access
-    const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
+    const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role);
     const isBuyer = rma.buyerId.toString() === session.user.id;
     const isSeller = rma.sellerId.toString() === session.user.id;
 

@@ -9,6 +9,7 @@ type RoleConfig = {
   identifierEnv: string;
   passwordEnv: string;
   phoneEnv?: string;
+  companyCodeEnv?: string;
   statePath: string;
 };
 
@@ -117,6 +118,7 @@ async function globalSetup(config: FullConfig) {
 
   await mkdir('tests/state', { recursive: true });
   const browser = await chromium.launch();
+  const EMP_REGEX = /^EMP[-A-Z0-9]+$/i;
 
   if (offlineMode) {
     console.warn('\n⚠️  OFFLINE MODE - Creating mock JWT session cookies (for CI/CD without database)\n');
@@ -283,6 +285,12 @@ async function globalSetup(config: FullConfig) {
       const identifier = process.env[role.identifierEnv]!;
       const password = process.env[role.passwordEnv]!;
       const phone = role.phoneEnv ? process.env[role.phoneEnv] : undefined;
+      const companyCode =
+        EMP_REGEX.test(identifier.trim())
+          ? (role.companyCodeEnv
+              ? process.env[role.companyCodeEnv]
+              : process.env.TEST_COMPANY_CODE)
+          : undefined;
       console.log(`🔑 ${role.name}: Authenticating ${identifier}...`);
 
       const page = await context.newPage();
@@ -294,7 +302,9 @@ async function globalSetup(config: FullConfig) {
         console.log(`  📤 Sending OTP request... (attempt ${attempt}/3)`);
         const otpResponse = await page.request.post(`${baseURL}/api/auth/otp/send`, {
           headers: { 'Content-Type': 'application/json' },
-          data: { identifier, password },
+          data: companyCode
+            ? { identifier, password, companyCode }
+            : { identifier, password },
         });
 
         if (!otpResponse.ok()) {
@@ -322,7 +332,9 @@ async function globalSetup(config: FullConfig) {
         console.log(`  🔐 Verifying OTP...`);
         const verifyResponse = await page.request.post(`${baseURL}/api/auth/otp/verify`, {
           headers: { 'Content-Type': 'application/json' },
-          data: { identifier, otp: otpCode },
+          data: companyCode
+            ? { identifier, otp: otpCode, companyCode }
+            : { identifier, otp: otpCode },
         });
 
         if (!verifyResponse.ok()) {
@@ -367,6 +379,9 @@ async function globalSetup(config: FullConfig) {
         callbackUrl: `${baseURL}/dashboard`,
         json: 'true',
       });
+      if (companyCode) {
+        form.append('companyCode', companyCode);
+      }
 
       const sessionResponse = await page.request.post(`${baseURL}/api/auth/callback/credentials`, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

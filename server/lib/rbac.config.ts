@@ -2,165 +2,223 @@
  * Role-Based Access Control (RBAC) Configuration for Finance Pack
  *
  * Defines which roles can access which finance endpoints
+ * 🔒 STRICT v4: Aligned with 14-role matrix from types/user.ts
  */
 
 import { logger } from "@/lib/logger";
+import { UserRole as CentralUserRole } from "@/types/user";
 
-export const UserRole = {
-  ADMIN: "ADMIN",
-  FINANCE_OFFICER: "FINANCE_OFFICER",
-  FINANCE_MANAGER: "FINANCE_MANAGER",
-  MANAGER: "MANAGER",
-  STAFF: "STAFF",
-  TENANT: "TENANT",
-  VENDOR: "VENDOR",
-  OWNER: "OWNER",
-  PROPERTY_OWNER: "PROPERTY_OWNER",
-} as const;
+// Re-export the central UserRole for backward compatibility
+export const UserRole = CentralUserRole;
 
 export type Role = (typeof UserRole)[keyof typeof UserRole];
 
 /**
  * Finance permissions by endpoint/operation
+ * 🔒 STRICT v4: Finance access limited to FINANCE role + Admin hierarchy
+ * BLOCKER FIX: Use central UserRole (14-role matrix), removed legacy roles
+ * PHASE-3 FIX: Added FINANCE_OFFICER sub-role for STRICT v4.1 compliance
  */
 export const FinancePermissions = {
   // Chart of Accounts
   "finance.accounts.read": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
-    UserRole.MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+    UserRole.AUDITOR,
   ],
-  "finance.accounts.create": [UserRole.ADMIN, UserRole.FINANCE_OFFICER],
-  "finance.accounts.update": [UserRole.ADMIN, UserRole.FINANCE_OFFICER],
-  "finance.accounts.delete": [UserRole.ADMIN],
+  "finance.accounts.create": [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+  ],
+  "finance.accounts.update": [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+  ],
+  "finance.accounts.delete": [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+  ],
 
-  // Expenses
+  // Expenses - STRICT v4: Only FINANCE role can manage expenses (not MANAGER/STAFF)
   "finance.expenses.read": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
-    UserRole.MANAGER,
-    UserRole.STAFF,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+    UserRole.AUDITOR,
   ],
   "finance.expenses.create": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
-    UserRole.MANAGER,
-    UserRole.STAFF,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
   ],
   "finance.expenses.update": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
-    UserRole.MANAGER,
-    UserRole.STAFF,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
   ],
-  "finance.expenses.delete": [UserRole.ADMIN, UserRole.FINANCE_OFFICER],
+  "finance.expenses.delete": [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+  ],
   "finance.expenses.submit": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
-    UserRole.MANAGER,
-    UserRole.STAFF,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
   ],
   "finance.expenses.approve": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_MANAGER,
-    UserRole.MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
   ],
   "finance.expenses.reject": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_MANAGER,
-    UserRole.MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
   ],
 
   // Payments
   "finance.payments.read": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
-    UserRole.MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+    UserRole.AUDITOR,
   ],
   "finance.payments.create": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
   ],
   "finance.payments.update": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
   ],
-  "finance.payments.delete": [UserRole.ADMIN, UserRole.FINANCE_OFFICER],
+  "finance.payments.delete": [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+  ],
   "finance.payments.reconcile": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
   ],
   "finance.payments.clear": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
   ],
   "finance.payments.bounce": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
   ],
-  "finance.payments.cancel": [UserRole.ADMIN, UserRole.FINANCE_OFFICER],
-  "finance.payments.refund": [UserRole.ADMIN, UserRole.FINANCE_MANAGER],
+  "finance.payments.cancel": [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+  ],
+  "finance.payments.refund": [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+  ],
 
   // Journals
   "finance.journals.read": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+    UserRole.AUDITOR,
   ],
-  "finance.journals.create": [UserRole.ADMIN, UserRole.FINANCE_OFFICER],
-  "finance.journals.post": [UserRole.ADMIN, UserRole.FINANCE_OFFICER],
-  "finance.journals.void": [UserRole.ADMIN, UserRole.FINANCE_MANAGER],
+  "finance.journals.create": [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+  ],
+  "finance.journals.post": [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+  ],
+  "finance.journals.void": [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+  ],
 
   // Ledger
   "finance.ledger.read": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
-    UserRole.MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+    UserRole.AUDITOR,
   ],
   "finance.ledger.trial-balance": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
-    UserRole.MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+    UserRole.AUDITOR,
   ],
   "finance.ledger.account-activity": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
-    UserRole.MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+    UserRole.AUDITOR,
   ],
 
   // Reporting
   "finance.reports.income-statement": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
-    UserRole.MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+    UserRole.AUDITOR,
   ],
   "finance.reports.balance-sheet": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
-    UserRole.MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
+    UserRole.AUDITOR,
   ],
   "finance.reports.owner-statement": [
-    UserRole.ADMIN,
-    UserRole.FINANCE_OFFICER,
-    UserRole.FINANCE_MANAGER,
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
     UserRole.OWNER,
-    UserRole.PROPERTY_OWNER,
+    UserRole.AUDITOR,
   ],
 } as const;
 

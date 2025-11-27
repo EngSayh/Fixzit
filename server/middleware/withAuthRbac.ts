@@ -21,6 +21,9 @@ export type SessionUser = {
   role: UserRoleType;
   orgId: string;
   tenantId: string;
+  units?: string[];
+  vendorId?: string;
+  assignedProperties?: string[];
   email?: string;
   name?: string;
   subscriptionPlan?: string | null;

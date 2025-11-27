@@ -11,6 +11,7 @@ export interface OTPData {
   attempts: number;
   userId: string;
   phone: string;
+  companyCode?: string | null;
 }
 
 export interface RateLimitData {
