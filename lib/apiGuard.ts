@@ -22,6 +22,17 @@ import { auth } from "@/auth";
 import { can, createRbacContext } from "./rbac";
 import { audit } from "./audit";
 
+function deriveOrgId(
+  req: NextApiRequest,
+  sessionOrgId?: string | null,
+): string {
+  const headerOrg =
+    (req.headers["x-org-id"] as string | undefined) ||
+    (req.headers["x-organization-id"] as string | undefined);
+  const orgId = sessionOrgId || headerOrg;
+  return orgId?.trim() || "unknown";
+}
+
 /**
  * Require a specific permission to access an API route
  *
@@ -44,6 +55,7 @@ export function requirePermission(
           actorId: "anonymous",
           actorEmail: "anonymous",
           action: "api.access.denied",
+          orgId: deriveOrgId(req),
           meta: {
             path: req.url,
             method: req.method,
@@ -71,6 +83,7 @@ export function requirePermission(
           actorId: session.user.id || "unknown",
           actorEmail: session.user.email || "unknown",
           action: "api.access.forbidden",
+          orgId: deriveOrgId(req, session.user.orgId),
           meta: {
             path: req.url,
             method: req.method,
@@ -98,6 +111,7 @@ export function requirePermission(
           actorId: session.user.id || "unknown",
           actorEmail: session.user.email || "unknown",
           action: "api.access.granted",
+          orgId: deriveOrgId(req, session.user.orgId),
           meta: {
             path: req.url,
             method: req.method,
@@ -123,6 +137,7 @@ export function requirePermission(
         actorId: "system",
         actorEmail: "system",
         action: "api.access.error",
+        orgId: deriveOrgId(req, session?.user?.orgId),
         meta: {
           path: req.url,
           method: req.method,
@@ -168,6 +183,7 @@ export function requireAnyPermission(
           actorId: session.user.id || "unknown",
           actorEmail: session.user.email || "unknown",
           action: "api.access.forbidden",
+          orgId: deriveOrgId(req, session.user.orgId),
           meta: {
             path: req.url,
             method: req.method,
@@ -226,6 +242,7 @@ export function requireAllPermissions(
           actorId: session.user.id || "unknown",
           actorEmail: session.user.email || "unknown",
           action: "api.access.forbidden",
+          orgId: deriveOrgId(req, session.user.orgId),
           meta: {
             path: req.url,
             method: req.method,

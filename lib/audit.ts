@@ -25,6 +25,20 @@ export type AuditEvent = {
   orgId?: string;       // Organization ID for multi-tenancy
 };
 
+// Sensitive data redaction lists
+const SENSITIVE_META_KEYS = [
+  'password', 'token', 'secret', 'apiKey', 'api_key',
+  'accessToken', 'refreshToken', 'authToken', 'bearerToken',
+  'ssn', 'socialSecurityNumber', 'creditCard', 'cardNumber', 'cvv', 'pin',
+  'privateKey', 'credentials',
+];
+
+const SENSITIVE_LOG_KEYS = [
+  ...SENSITIVE_META_KEYS,
+  // Additional PII to keep out of log streams (still stored in DB metadata for accountability)
+  'email', 'phone', 'mobile', 'phonenumber', 'mobilenumber',
+];
+
 /**
  * Audit log to console and/or database
  * 
@@ -36,22 +50,20 @@ export type AuditEvent = {
  * @param event Audit event data
  */
 export async function audit(event: AuditEvent): Promise<void> {
-  const SENSITIVE_KEYS = [
-    'password', 'token', 'secret', 'apiKey', 'api_key',
-    'accessToken', 'refreshToken', 'authToken', 'bearerToken',
-    'ssn', 'socialSecurityNumber', 'creditCard', 'cardNumber', 'cvv', 'pin',
-    'privateKey', 'credentials',
-    // PII fields
-    'email', 'phone', 'mobile', 'phoneNumber', 'mobileNumber',
-  ];
+  const normalizeKeys = (keys: string[]): string[] =>
+    keys.map(key => key.toLowerCase());
 
-  const redactSensitive = (obj: Record<string, unknown>): Record<string, unknown> => {
+  const redactSensitive = (
+    obj: Record<string, unknown>,
+    sensitiveKeys: string[] = SENSITIVE_META_KEYS,
+    normalizedKeys: string[] = normalizeKeys(sensitiveKeys),
+  ): Record<string, unknown> => {
     const redactValue = (value: unknown): unknown => {
       if (Array.isArray(value)) {
         return value.map(redactValue);
       }
       if (value && typeof value === 'object') {
-        return redactSensitive(value as Record<string, unknown>);
+        return redactSensitive(value as Record<string, unknown>, sensitiveKeys, normalizedKeys);
       }
       return value;
     };
@@ -59,7 +71,7 @@ export async function audit(event: AuditEvent): Promise<void> {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       const lowerKey = key.toLowerCase();
-      if (SENSITIVE_KEYS.some(s => lowerKey.includes(s))) {
+      if (normalizedKeys.some(s => lowerKey.includes(s))) {
         result[key] = '[REDACTED]';
       } else {
         result[key] = redactValue(value);
@@ -72,7 +84,7 @@ export async function audit(event: AuditEvent): Promise<void> {
   if (!orgId) {
     const sanitizedEvent = {
       ...event,
-      meta: event.meta ? redactSensitive(event.meta) : undefined,
+      meta: event.meta ? redactSensitive(event.meta, SENSITIVE_LOG_KEYS) : undefined,
       actorEmail: event.actorEmail ? '[REDACTED]' : undefined,
       target: event.target ? '[REDACTED]' : undefined,
     };
@@ -97,43 +109,78 @@ export async function audit(event: AuditEvent): Promise<void> {
     return;
   }
 
-  const rawAction = event.action;
+  const rawAction = event.action?.trim() ?? '';
+  const normalizedRawAction = rawAction;
+  const normalizedRawActionKey = normalizedRawAction.toLowerCase();
+  const ACTION_TYPES = new Set([
+    'CREATE',
+    'READ',
+    'UPDATE',
+    'DELETE',
+    'LOGIN',
+    'LOGOUT',
+    'EXPORT',
+    'IMPORT',
+    'APPROVE',
+    'REJECT',
+    'SEND',
+    'RECEIVE',
+    'UPLOAD',
+    'DOWNLOAD',
+    'SHARE',
+    'ARCHIVE',
+    'RESTORE',
+    'ACTIVATE',
+    'DEACTIVATE',
+    'CUSTOM',
+  ]);
   // AUDIT-001 FIX: Comprehensive action mapping to ActionType enum
   const ACTION_MAP: Record<string, string> = {
     // Create actions
     'user.create': 'CREATE',
     'role.create': 'CREATE',
     'permission.create': 'CREATE',
-    'security.apiKeyCreate': 'CREATE',
+    'security.apikeycreate': 'CREATE',
     // Update actions
     'user.update': 'UPDATE',
-    'user.grantSuperAdmin': 'UPDATE',
-    'user.revokeSuperAdmin': 'UPDATE',
-    'user.assignRole': 'UPDATE',
-    'user.removeRole': 'UPDATE',
-    'auth.passwordChange': 'UPDATE',
-    'auth.passwordReset': 'UPDATE',
+    'user.grantsuperadmin': 'UPDATE',
+    'user.revokesuperadmin': 'UPDATE',
+    'user.assignrole': 'UPDATE',
+    'user.removerole': 'UPDATE',
+    'role.update': 'UPDATE',
+    'role.assignpermission': 'UPDATE',
+    'role.removepermission': 'UPDATE',
+    'permission.update': 'UPDATE',
+    'auth.passwordchange': 'UPDATE',
+    'auth.passwordreset': 'UPDATE',
+    'data.bulkupdate': 'UPDATE',
     // Delete actions
     'user.delete': 'DELETE',
     'role.delete': 'DELETE',
     'permission.delete': 'DELETE',
+    'data.bulkdelete': 'DELETE',
     // Auth actions
     'auth.login': 'LOGIN',
     'auth.logout': 'LOGOUT',
-    'auth.failedLogin': 'LOGIN',
+    'auth.failedlogin': 'LOGIN',
     // Data operations
     'data.export': 'EXPORT',
     'data.import': 'IMPORT',
+    'compliance.reportgenerate': 'EXPORT',
+    'compliance.auditlogaccess': 'READ',
     // MFA/Security
-    'auth.mfaEnable': 'ACTIVATE',
-    'auth.mfaDisable': 'DEACTIVATE',
+    'auth.mfaenable': 'ACTIVATE',
+    'auth.mfadisable': 'DEACTIVATE',
     'user.lock': 'DEACTIVATE',
     'user.unlock': 'ACTIVATE',
+    'security.settingschange': 'UPDATE',
+    'security.apikeyrevoke': 'DEACTIVATE',
     // Impersonation
     'impersonate.start': 'CUSTOM',
     'impersonate.end': 'CUSTOM',
   };
-  const action = ACTION_MAP[rawAction] ?? 'CUSTOM';
+  const mappedAction = ACTION_MAP[normalizedRawActionKey];
+  const action = mappedAction ?? (ACTION_TYPES.has(normalizedRawAction.toUpperCase()) ? normalizedRawAction.toUpperCase() : 'CUSTOM');
 
   const targetType = (event.targetType || '').toLowerCase();
   // AUDIT-005 FIX: Comprehensive entity type mapping
@@ -164,11 +211,12 @@ export async function audit(event: AuditEvent): Promise<void> {
 
   const sanitizedMeta = redactSensitive(event.meta || {});
 
-  const success = event.success ?? true;
+  const success = event.success ?? (event.error ? false : rawAction !== 'auth.failedLogin');
   if (event.success === undefined) {
-    logger.warn('[AUDIT] success flag missing; defaulting to true', {
+    logger.warn('[AUDIT] success flag missing; inferring from context', {
       action: rawAction,
       actorId: event.actorId,
+      inferredSuccess: success,
     });
   }
 
@@ -193,6 +241,7 @@ export async function audit(event: AuditEvent): Promise<void> {
     ...entry,
     actorEmail: entry.actorEmail ? '[REDACTED]' : undefined,
     target: entry.target ? '[REDACTED]' : undefined,
+    meta: redactSensitive(entry.meta || {}, SENSITIVE_LOG_KEYS),
   };
 
   // Structured logging
@@ -214,7 +263,7 @@ export async function audit(event: AuditEvent): Promise<void> {
       },
       metadata: {
         ...entry.meta,
-        actorEmail: redactSensitive({ actorEmail: entry.actorEmail ?? '' }).actorEmail,
+        actorEmail: entry.actorEmail ? '[REDACTED]' : undefined,
         source: 'WEB',
       },
       result: {

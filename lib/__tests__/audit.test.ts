@@ -206,6 +206,72 @@ describe('lib/audit.ts - AUDIT-002: Action Mapping', () => {
       })
     );
   });
+
+  it('should map role.update to UPDATE action', async () => {
+    const event: AuditEvent = {
+      actorId: 'admin-123',
+      actorEmail: 'admin@example.com',
+      action: 'role.update',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'UPDATE',
+        metadata: expect.objectContaining({
+          rawAction: 'role.update',
+        }),
+      })
+    );
+  });
+
+  it('should map security.apiKeyRevoke to DEACTIVATE', async () => {
+    const event: AuditEvent = {
+      actorId: 'admin-123',
+      actorEmail: 'admin@example.com',
+      action: 'security.apiKeyRevoke',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'DEACTIVATE',
+        metadata: expect.objectContaining({
+          rawAction: 'security.apiKeyRevoke',
+        }),
+      })
+    );
+  });
+
+  it('should keep already-normalized ActionType values', async () => {
+    const event: AuditEvent = {
+      actorId: 'admin-123',
+      actorEmail: 'admin@example.com',
+      action: 'CREATE',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'CREATE',
+        metadata: expect.objectContaining({
+          rawAction: 'CREATE',
+        }),
+      })
+    );
+  });
 });
 
 describe('lib/audit.ts - AUDIT-003: Entity Type Mapping', () => {
@@ -358,6 +424,38 @@ describe('lib/audit.ts - AUDIT-004: PII Redaction', () => {
       })
     );
   });
+
+  it('should redact API tokens regardless of casing', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.update',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+      meta: {
+        apiKey: 'SUPER-SECRET-KEY',  // Camel case key must be redacted
+        bearerToken: 'shhh-123',  // Mixed case key must be redacted
+        nested: {
+          authToken: 'nested-secret',  // Nested sensitive field must be redacted
+        },
+      },
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          apiKey: '[REDACTED]',
+          bearerToken: '[REDACTED]',
+          nested: expect.objectContaining({
+            authToken: '[REDACTED]',
+          }),
+        }),
+      })
+    );
+  });
 });
 
 describe('lib/audit.ts - AUDIT-005: Success Default', () => {
@@ -365,7 +463,7 @@ describe('lib/audit.ts - AUDIT-005: Success Default', () => {
     vi.clearAllMocks();
   });
 
-  it('should default success to true when not provided', async () => {
+  it('should default success to true when not provided and no error/failure indicator', async () => {
     const event: AuditEvent = {
       actorId: 'user-123',
       actorEmail: 'user@example.com',
@@ -381,6 +479,49 @@ describe('lib/audit.ts - AUDIT-005: Success Default', () => {
       expect.objectContaining({
         result: expect.objectContaining({
           success: true,
+        }),
+      })
+    );
+  });
+
+  it('should default success to false when error is present', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.create',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      error: 'DB failure',
+      // success not provided - inferred false due to error
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        result: expect.objectContaining({
+          success: false,
+        }),
+      })
+    );
+  });
+
+  it('should default success to false for auth.failedLogin when success is undefined', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'auth.failedLogin',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      // success not provided - inferred false due to failed login action
+    };
+
+    await audit(event);
+
+    expect(mockAuditLogModel.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        result: expect.objectContaining({
+          success: false,
         }),
       })
     );
@@ -402,6 +543,42 @@ describe('lib/audit.ts - AUDIT-005: Success Default', () => {
       expect.objectContaining({
         result: expect.objectContaining({
           success: false,
+        }),
+      })
+    );
+  });
+});
+
+describe('lib/audit.ts - AUDIT-004: PII redaction in logger output', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should log redacted actorEmail/target and redacted meta to logger.info', async () => {
+    const event: AuditEvent = {
+      actorId: 'user-123',
+      actorEmail: 'user@example.com',
+      action: 'user.update',
+      target: 'target-user@example.com',
+      targetType: 'user',
+      orgId: 'org-abc-123',
+      success: true,
+      meta: {
+        email: 'sensitive@example.com',
+        token: 'super-secret',
+      },
+    };
+
+    await audit(event);
+
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      '[AUDIT]',
+      expect.objectContaining({
+        actorEmail: '[REDACTED]',
+        target: '[REDACTED]',
+        meta: expect.objectContaining({
+          email: '[REDACTED]',
+          token: '[REDACTED]',
         }),
       })
     );
