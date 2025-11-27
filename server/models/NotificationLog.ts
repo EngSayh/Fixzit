@@ -18,7 +18,7 @@ const ChannelResultSchema = new Schema(
     failedCount: { type: Number, default: 0 },
     skipped: { type: Number, default: 0 },
     lastAttemptAt: Date,
-    errors: { type: [String], default: [] },
+    errorMessages: { type: [String], default: [] },
   },
   { _id: false }
 );
@@ -116,7 +116,7 @@ export interface NotificationLogDocument extends Document {
     failedCount: number;
     skipped: number;
     lastAttemptAt?: Date;
-    errors?: string[];
+    errorMessages?: string[];
   }>;
   metrics?: {
     attempted: number;

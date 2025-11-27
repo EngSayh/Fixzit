@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { getPresignedPutUrl } from '@/lib/storage/s3';
@@ -62,7 +63,7 @@ export async function POST(
 
     const contentType = requestedType;
     const safeName = sanitizeFileName(file_name || document_type_code);
-    const key = `onboarding/${onboarding._id}/${Date.now()}-${document_type_code}-${safeName}`;
+    const key = `onboarding/${onboarding._id}/${Date.now()}-${randomUUID()}-${document_type_code}-${safeName}`;
 
     const { url: uploadUrl, headers: uploadHeaders } = await getPresignedPutUrl(
       key,

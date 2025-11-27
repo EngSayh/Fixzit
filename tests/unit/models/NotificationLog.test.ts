@@ -26,9 +26,9 @@ beforeEach(async () => {
 
   // Reload module to apply env overrides and refresh indexes
   vi.resetModules();
-  const module = await import('@/server/models/NotificationLog');
-  NotificationLogModel = module.NotificationLogModel;
-  NotificationDeadLetterModel = module.NotificationDeadLetterModel;
+  const notificationModels = await import('@/server/models/NotificationLog');
+  NotificationLogModel = notificationModels.NotificationLogModel;
+  NotificationDeadLetterModel = notificationModels.NotificationDeadLetterModel;
 
   if (!NotificationLogModel?.schema) {
     throw new Error('NotificationLog model not initialized');
