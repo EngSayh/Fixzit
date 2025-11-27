@@ -46,7 +46,7 @@ The warnings about missing secrets in VSCode's Problems tab are **expected and c
 
 | Secret | Required | Purpose | How to Get |
 |--------|----------|---------|------------|
-| `OPENAI_API_KEY` | Required | Power AI-driven code reviews | Create at https://platform.openai.com/api-keys |
+| `OPENAI_KEY` | Required | Power AI-driven code reviews | Create at https://platform.openai.com/api-keys |
 
 **Note:** PR Agent only runs on pull requests when configured.
 

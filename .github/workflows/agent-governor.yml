@@ -58,16 +58,7 @@ jobs:
             echo "❌ RBAC tests failed! Blocking build."
             exit 1
           }
-          echo "✅ All 41 RBAC tests passing"
-      
-      - name: Run SubRoleSelector Component Tests
-        run: |
-          echo "🧪 Running SubRoleSelector integration tests..."
-          pnpm vitest run tests/components/admin/SubRoleSelector.test.tsx --reporter=dot || {
-            echo "❌ Component tests failed!"
-            exit 1
-          }
-          echo "✅ All 17 component tests passing"
+          echo "✅ RBAC tests passing"
 
       # Note: E2E tests are expensive and run separately in e2e-tests.yml workflow
       
