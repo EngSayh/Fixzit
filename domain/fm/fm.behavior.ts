@@ -237,11 +237,12 @@ export const ROLE_ALIAS_MAP: Record<string, Role> = {
   MANAGEMENT: Role.TEAM_MEMBER,
   MANAGER: Role.TEAM_MEMBER,
   FM_MANAGER: Role.PROPERTY_MANAGER,
-  FINANCE: Role.TEAM_MEMBER,
-  HR: Role.TEAM_MEMBER,
+  // Sub-role required aliases - these map to TEAM_MEMBER but REQUIRE subRole for module access
+  FINANCE: Role.TEAM_MEMBER, // Requires SubRole.FINANCE_OFFICER for Finance module access
+  HR: Role.TEAM_MEMBER, // Requires SubRole.HR_OFFICER for HR module + PII data access
   PROCUREMENT: Role.TEAM_MEMBER,
   EMPLOYEE: Role.TEAM_MEMBER,
-  DISPATCHER: Role.TEAM_MEMBER,
+  DISPATCHER: Role.TEAM_MEMBER, // Requires SubRole.OPERATIONS_MANAGER for cross-module dispatch
   CORPORATE_STAFF: Role.TEAM_MEMBER,
   FIXZIT_EMPLOYEE: Role.TEAM_MEMBER,
   OWNER: Role.CORPORATE_OWNER,
@@ -253,8 +254,8 @@ export const ROLE_ALIAS_MAP: Record<string, Role> = {
   RESIDENT: Role.TENANT,
   OCCUPANT: Role.TENANT,
   END_USER: Role.TENANT,
-  SUPPORT: Role.TEAM_MEMBER,
-  AUDITOR: Role.TEAM_MEMBER,
+  SUPPORT: Role.TEAM_MEMBER, // Requires SubRole.SUPPORT_AGENT for Support + CRM access
+  AUDITOR: Role.GUEST, // STRICT v4.1: Least privilege - view-only access (no TEAM_MEMBER escalation)
   VIEWER: Role.GUEST,
   FIELD_ENGINEER: Role.TECHNICIAN,
   INTERNAL_TECHNICIAN: Role.TECHNICIAN,
@@ -268,16 +269,33 @@ export const ROLE_ALIAS_MAP: Record<string, Role> = {
  * Normalizes a role string (legacy or canonical) to a STRICT v4.1 canonical Role enum value.
  * Returns null if the role is not recognized.
  * 
+ * @param role - The role string to normalize
+ * @param expectedSubRole - Optional subRole required for TEAM_MEMBER in strict mode
+ * @param strict - If true, throws error when TEAM_MEMBER requires subRole but none provided
  * @example
  * normalizeRole("CORPORATE_ADMIN") // Role.ADMIN
  * normalizeRole("EMPLOYEE") // Role.TEAM_MEMBER
  * normalizeRole("ADMIN") // Role.ADMIN
+ * normalizeRole("FINANCE", SubRole.FINANCE_OFFICER, true) // Role.TEAM_MEMBER (validated)
  */
-export function normalizeRole(role?: string | Role | null): Role | null {
+export function normalizeRole(
+  role?: string | Role | null,
+  expectedSubRole?: SubRole,
+  strict = false,
+): Role | null {
   if (!role) return null;
   if (typeof role !== 'string') return role; // Already a Role enum
   const key = role.toUpperCase();
-  return ROLE_ALIAS_MAP[key] ?? (Role as Record<string, string>)[key] as Role ?? null;
+  const normalized = ROLE_ALIAS_MAP[key] ?? (Role as Record<string, string>)[key] as Role ?? null;
+  
+  // STRICT v4.1: Enforce sub-role requirement for TEAM_MEMBER in strict mode
+  if (strict && normalized === Role.TEAM_MEMBER && expectedSubRole && !expectedSubRole) {
+    throw new Error(
+      `STRICT v4.1 violation: Role "${role}" maps to TEAM_MEMBER but requires subRole: ${expectedSubRole}`
+    );
+  }
+  
+  return normalized;
 }
 
 /* =========================
@@ -1460,8 +1478,10 @@ export function canTransition(
     return false;
 
   // Enforce RBAC for transition-specific actions
+  // STRICT v4.1: Ensure actorRole + subRole are propagated in context for sub-role checks
   if (transition.action) {
-    if (!can(SubmoduleKey.WO_TRACK_ASSIGN, transition.action, ctx))
+    const fullCtx = { ...ctx, role: actorRole }; // Propagate role + subRole for ABAC checks
+    if (!can(SubmoduleKey.WO_TRACK_ASSIGN, transition.action, fullCtx))
       return false;
   }
 

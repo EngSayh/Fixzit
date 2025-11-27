@@ -126,12 +126,3 @@ export interface AIAssistantEnhancement {
   effort: "LOW" | "MEDIUM" | "HIGH";
   status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
 }
-
-// Server status
-export const serverStatus = {
-  running: true,
-  url: "http://localhost:3000",
-  errors: null,
-  aiAssistantAccessible: true,
-  featuresWorking: true,
-};
