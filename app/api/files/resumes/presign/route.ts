@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
 
     const key = buildResumeKey(
       user?.tenantId || "public",
-      `${Date.now()}-${baseName}`,
+      `${Date.now()}-${randomUUID()}-${baseName}`,
     );
     const { url, headers } = await getPresignedPutUrl(key, contentType, 300, {
       category: "resume",

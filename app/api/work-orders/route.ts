@@ -95,8 +95,37 @@ const createWorkOrderSchema = z.object({
  * Build Work Order Filter
  */
 // 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB filter
-function buildWorkOrderFilter(searchParams: URLSearchParams, orgId: string) {
+// 🔒 STRICT v4: Add role-based filtering for user assignments using canonical schema paths
+function buildWorkOrderFilter(
+  searchParams: URLSearchParams,
+  orgId: string,
+  userId?: string,
+  userRole?: string,
+  vendorId?: string,
+  units?: string[]
+) {
   const filter: Record<string, unknown> = { orgId, isDeleted: { $ne: true } };
+
+  // 🔒 RBAC: Scope by role per STRICT v4 multi-tenant isolation
+  // BLOCKER FIX: Use canonical schema paths from server/models/WorkOrder.ts
+  if (userRole === 'TECHNICIAN' && userId) {
+    // Technicians only see work orders assigned to them (canonical: assignment.assignedTo.userId)
+    filter["assignment.assignedTo.userId"] = userId;
+  } else if (userRole === 'VENDOR' && vendorId) {
+    // Vendors only see work orders for their vendor organization (canonical: assignment.assignedTo.vendorId)
+    filter["assignment.assignedTo.vendorId"] = vendorId;
+  } else if (userRole === 'TENANT') {
+    // MAJOR FIX: Tenants with empty units get 403, not org-wide access
+    if (!units || units.length === 0) {
+      // Return a filter that matches nothing - caller should check for this
+      filter._id = { $exists: false }; // Impossible condition = no results
+      filter.__tenantNoUnits = true; // Signal to caller
+    } else {
+      // Tenants only see work orders for their units (canonical: location.propertyId or unitNumber)
+      filter["location.unitNumber"] = { $in: units };
+    }
+  }
+  // SUPER_ADMIN, CORPORATE_ADMIN, ADMIN, MANAGER, FM_MANAGER, PROPERTY_MANAGER see all in org
 
   const status = searchParams.get("status");
   if (status) {

@@ -24,6 +24,7 @@ const defaultConfig: AuditConfig = {
 
 /**
  * Entity type mapping for path parsing
+ * PHASE-3 FIX: Extended with sub-role paths
  */
 const entityMap: Record<string, string> = {
   properties: "PROPERTY",
@@ -46,6 +47,17 @@ const entityMap: Record<string, string> = {
   accounts: "ACCOUNT",
   fm: "FM",
   aqar: "AQAR",
+  // PHASE-3 FIX: Add sub-role and HR-specific entities
+  hr: "HR",
+  employees: "EMPLOYEE",
+  payroll: "PAYROLL",
+  attendance: "ATTENDANCE",
+  leave: "LEAVE",
+  crm: "CRM",
+  leads: "LEAD",
+  contacts: "CONTACT",
+  support: "SUPPORT",
+  reports: "REPORT",
 };
 
 /**
@@ -178,31 +190,65 @@ export async function auditLogMiddleware(
   // Extract request context with improved UA parsing
   const requestContext = getRequestContext(userAgent);
 
-  // Prepare audit log data - handle both authenticated and anonymous users
+  // ORGID-FIX: Enforce mandatory orgId for authenticated users
+  // SUPER ADMIN FIX: Log Super Admin cross-tenant actions with marker
+  // DRY FIX: Extract isSuperAdmin check to avoid repeated type assertions
+  type UserWithSuperAdmin = { isSuperAdmin?: boolean; assumedOrgId?: string };
+  const userWithAdmin = session?.user as UserWithSuperAdmin | undefined;
+  const isSuperAdmin = Boolean(userWithAdmin?.isSuperAdmin);
+  const assumedOrgId = userWithAdmin?.assumedOrgId;
+  const rawOrgId = session?.user?.orgId;
+  
+  // Super Admin can operate cross-tenant - use assumedOrgId or marker
+  const orgId = rawOrgId || (isSuperAdmin ? (assumedOrgId || 'superadmin-cross-tenant') : null);
+  
+  if (!orgId || orgId.trim() === '') {
+    // Skip audit logging for anonymous/unauthenticated users
+    // REASON: Multi-tenant isolation - cannot assign pseudo-orgId like "anonymous"
+    return;
+  }
+
+  // Prepare audit log data - authenticated users only
   const auditData = {
-    orgId: session?.user?.orgId || "anonymous",
+    orgId,  // ✅ Validated above
     action: getActionType(method, pathname),
     entityType,
     entityId,
-    userId: session?.user?.id || session?.user?.email || "anonymous",
-    userName: session?.user?.name || "Anonymous User",
-    userEmail: session?.user?.email || "anonymous",
-    userRole: session?.user?.role || "ANONYMOUS",
+    userId: session?.user?.id || session?.user?.email || "unknown",
+    userName: session?.user?.name || "Unknown User",
+    userEmail: session?.user?.email || "unknown",
+    userRole: session?.user?.role || "USER",
+    // PHASE-2 FIX: Track Super Admin status for elevated access auditing
+    isSuperAdmin,
     context: {
       method,
       endpoint: pathname,
       ipAddress,
-      sessionId: session?.user?.sessionId, // Will be undefined for anonymous
+      sessionId: session?.user?.sessionId,
       ...requestContext, // browser, os, device, userAgent
     },
     metadata: {
       source: "WEB" as const,
+      // PHASE-2 FIX: Flag elevated access in metadata
+      elevatedAccess: isSuperAdmin,
     },
     result: {
       success: true, // Will be updated after request completes
       duration: 0,
     },
   };
+
+  // PHASE-2 FIX: Log Super Admin access explicitly
+  if (isSuperAdmin) {
+    logger.info('superadmin_api_access', {
+      action: auditData.action,
+      endpoint: pathname,
+      method,
+      orgId,
+      userId: auditData.userId,
+      timestamp: new Date().toISOString(),
+    });
+  }
 
   return auditData;
 }

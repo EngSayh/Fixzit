@@ -24,9 +24,14 @@ export async function GET(
   try {
     const actor = await requireFmAbility("VIEW")(req);
     if (actor instanceof NextResponse) return actor;
-    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId);
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
+    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId, {
+      isSuperAdmin: actor.isSuperAdmin,
+      userId: actor.id,
+      allowHeaderOverride: actor.isSuperAdmin,
+    });
     if ("error" in tenantResult) return tenantResult.error;
-    const { tenantId } = tenantResult;
+    const { tenantId: _tenantId } = tenantResult; // Prefix with _ to indicate intentionally unused
 
     const { id } = params;
     if (!ObjectId.isValid(id)) {
@@ -35,10 +40,52 @@ export async function GET(
 
     const db = await getDatabase();
     const collection = db.collection<WorkOrderDocument>("workorders");
-    const workOrder = await collection.findOne({
+    
+    // RBAC-005: Build role-based filter per STRICT v4 multi-tenant isolation
+    const baseFilter: Record<string, unknown> = {
       _id: new ObjectId(id),
-      tenantId,
-    });
+      orgId: actor.orgId, // Fixed: use orgId (not tenantId)
+    };
+    
+    // Scope by role to enforce assignment/ownership
+    // BLOCKER FIX: Add empty-unit guard for TENANT role and use canonical paths
+    if (actor.role === "TENANT") {
+      if (!actor.units?.length) {
+        return NextResponse.json(
+          { error: "No units assigned to this tenant" },
+          { status: 403 }
+        );
+      }
+      // Use $or to match both legacy and canonical field paths
+      baseFilter.$or = [
+        { "location.unitNumber": { $in: actor.units } },
+        { unit_id: { $in: actor.units } },
+        { unitId: { $in: actor.units } },
+      ];
+    }
+    // BLOCKER FIX: Use correct session field 'id' (not 'userId') and canonical schema paths
+    // MIGRATION FIX: Support both legacy flat fields and canonical paths for legacy data
+    const actorId = actor.id;
+    if (actor.role === "TECHNICIAN" && actorId) {
+      // Support both canonical and legacy paths
+      baseFilter.$or = [
+        ...(baseFilter.$or || []),
+        { "assignment.assignedTo.userId": actorId },
+        { technicianId: actorId },
+        { assignedTo: actorId },
+      ];
+    }
+    if (actor.role === "VENDOR" && actor.vendorId) {
+      // Support both canonical and legacy paths
+      baseFilter.$or = [
+        ...(baseFilter.$or || []),
+        { "assignment.assignedTo.vendorId": actor.vendorId },
+        { vendorId: actor.vendorId },
+      ];
+    }
+    // ADMIN, MANAGER, FM_MANAGER, PROPERTY_MANAGER see all org work orders
+    
+    const workOrder = await collection.findOne(baseFilter);
 
     if (!workOrder) {
       return FMErrors.notFound("Work order");
@@ -61,7 +108,12 @@ export async function PATCH(
   try {
     const actor = await requireFmAbility("EDIT")(req);
     if (actor instanceof NextResponse) return actor;
-    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId);
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
+    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId, {
+      isSuperAdmin: actor.isSuperAdmin,
+      userId: actor.id,
+      allowHeaderOverride: actor.isSuperAdmin,
+    });
     if ("error" in tenantResult) return tenantResult.error;
     const { tenantId } = tenantResult;
     const actorId = getCanonicalUserId(actor);
@@ -78,6 +130,48 @@ export async function PATCH(
     const update: Record<string, unknown> & { updatedAt: Date } = {
       updatedAt: new Date(),
     };
+    
+    // RBAC-006: Build role-based filter for updates
+    const baseFilter: Record<string, unknown> = {
+      _id: new ObjectId(id),
+      orgId: actor.orgId, // Fixed: use orgId (not tenantId)
+    };
+    
+    // BLOCKER FIX: Add empty-unit guard for TENANT role and use canonical paths
+    if (actor.role === "TENANT") {
+      if (!actor.units?.length) {
+        return NextResponse.json(
+          { error: "No units assigned to this tenant" },
+          { status: 403 }
+        );
+      }
+      baseFilter.$or = [
+        { "location.unitNumber": { $in: actor.units } },
+        { unit_id: { $in: actor.units } },
+        { unitId: { $in: actor.units } },
+      ];
+    }
+    // BLOCKER FIX: Use correct session field 'id' (not 'userId') and canonical schema paths
+    // MIGRATION FIX: Support both legacy flat fields and canonical paths for legacy data
+    const actorIdForFilter = actor.id;
+    if (actor.role === "TECHNICIAN" && actorIdForFilter) {
+      // Support both canonical and legacy paths
+      baseFilter.$or = [
+        ...(baseFilter.$or || []),
+        { "assignment.assignedTo.userId": actorIdForFilter },
+        { technicianId: actorIdForFilter },
+        { assignedTo: actorIdForFilter },
+      ];
+    }
+    if (actor.role === "VENDOR" && actor.vendorId) {
+      // Support both canonical and legacy paths
+      baseFilter.$or = [
+        ...(baseFilter.$or || []),
+        { "assignment.assignedTo.vendorId": actor.vendorId },
+        { vendorId: actor.vendorId },
+      ];
+    }
+    
     const allowedFields = [
       "title",
       "description",
@@ -86,8 +180,9 @@ export async function PATCH(
       "category",
       "propertyId",
       "unitId",
-      "assigneeId",
+      "assignedTo", // Fixed: assignedTo (not assigneeId)
       "technicianId",
+      "vendorId", // Added for vendor assignment tracking
       "scheduledAt",
       "startedAt",
       "completedAt",
@@ -110,17 +205,16 @@ export async function PATCH(
 
     const db = await getDatabase();
     const collection = db.collection<WorkOrderDocument>("workorders");
-    const existingWorkOrder = await collection.findOne({
-      _id: new ObjectId(id),
-      tenantId,
-    });
+    
+    // Use role-based filter for finding and updating (RBAC-006)
+    const existingWorkOrder = await collection.findOne(baseFilter);
 
     if (!existingWorkOrder) {
       return FMErrors.notFound("Work order");
     }
 
     const result = (await collection.findOneAndUpdate(
-      { _id: new ObjectId(id), tenantId },
+      baseFilter, // Fixed: use role-based filter
       { $set: update },
       { returnDocument: "after" },
     )) as unknown as ModifyResult<WorkOrderDocument>;
@@ -133,7 +227,7 @@ export async function PATCH(
     if (body.status && existingWorkOrder.status !== body.status) {
       await recordTimelineEntry(db, {
         workOrderId: id,
-        tenantId,
+        tenantId: tenantId, // FIX: Use tenantId variable (has fallback to actor.tenantId)
         action: "status_changed",
         description: `Status changed to ${body.status}`,
         metadata: {
@@ -162,7 +256,12 @@ export async function DELETE(
   try {
     const actor = await requireFmAbility("DELETE")(req);
     if (actor instanceof NextResponse) return actor;
-    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId);
+    // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
+    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId, {
+      isSuperAdmin: actor.isSuperAdmin,
+      userId: actor.id,
+      allowHeaderOverride: actor.isSuperAdmin,
+    });
     if ("error" in tenantResult) return tenantResult.error;
     const { tenantId } = tenantResult;
     const actorId = getCanonicalUserId(actor);
@@ -175,10 +274,39 @@ export async function DELETE(
       return FMErrors.invalidId("work order");
     }
 
+    // RBAC-007: Build role-based filter for deletion
+    const baseFilter: Record<string, unknown> = {
+      _id: new ObjectId(id),
+      orgId: actor.orgId, // Fixed: use orgId (not tenantId)
+    };
+    
+    // BLOCKER FIX: Add empty-unit guard for TENANT role and use canonical paths
+    if (actor.role === "TENANT") {
+      if (!actor.units?.length) {
+        return NextResponse.json(
+          { error: "No units assigned to this tenant" },
+          { status: 403 }
+        );
+      }
+      baseFilter.$or = [
+        { "location.unitNumber": { $in: actor.units } },
+        { unit_id: { $in: actor.units } },
+        { unitId: { $in: actor.units } },
+      ];
+    }
+    // BLOCKER FIX: Use correct session field 'id' (not 'userId') and canonical schema paths
+    const actorIdForDelete = actor.id;
+    if (actor.role === "TECHNICIAN" && actorIdForDelete) {
+      baseFilter["assignment.assignedTo.userId"] = actorIdForDelete;
+    }
+    if (actor.role === "VENDOR" && actor.vendorId) {
+      baseFilter["assignment.assignedTo.vendorId"] = actor.vendorId;
+    }
+
     const db = await getDatabase();
     const collection = db.collection<WorkOrderDocument>("workorders");
     const deleteResult = (await collection.findOneAndUpdate(
-      { _id: new ObjectId(id), tenantId },
+      baseFilter, // Fixed: use role-based filter
       {
         $set: {
           status: WOStatus.CLOSED,
@@ -196,7 +324,7 @@ export async function DELETE(
 
     await recordTimelineEntry(db, {
       workOrderId: id,
-      tenantId,
+      tenantId: tenantId, // FIX: Use tenantId variable (has fallback to actor.tenantId)
       action: "status_changed",
       description: "Work order closed",
       metadata: { toStatus: WOStatus.CLOSED },

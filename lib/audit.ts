@@ -34,8 +34,110 @@ export type AuditEvent = {
  * @param event Audit event data
  */
 export async function audit(event: AuditEvent): Promise<void> {
+  const orgId = event.orgId?.trim();
+  if (!orgId) {
+    logger.error('[AUDIT] CRITICAL: orgId missing', { event });
+    return;
+  }
+
+  const rawAction = event.action;
+  // AUDIT-001 FIX: Comprehensive action mapping to ActionType enum
+  const ACTION_MAP: Record<string, string> = {
+    // Create actions
+    'user.create': 'CREATE',
+    'role.create': 'CREATE',
+    'permission.create': 'CREATE',
+    'security.apiKeyCreate': 'CREATE',
+    // Update actions
+    'user.update': 'UPDATE',
+    'user.grantSuperAdmin': 'UPDATE',
+    'user.revokeSuperAdmin': 'UPDATE',
+    'user.assignRole': 'UPDATE',
+    'user.removeRole': 'UPDATE',
+    'auth.passwordChange': 'UPDATE',
+    'auth.passwordReset': 'UPDATE',
+    // Delete actions
+    'user.delete': 'DELETE',
+    'role.delete': 'DELETE',
+    'permission.delete': 'DELETE',
+    // Auth actions
+    'auth.login': 'LOGIN',
+    'auth.logout': 'LOGOUT',
+    'auth.failedLogin': 'LOGIN',
+    // Data operations
+    'data.export': 'EXPORT',
+    'data.import': 'IMPORT',
+    // MFA/Security
+    'auth.mfaEnable': 'ACTIVATE',
+    'auth.mfaDisable': 'DEACTIVATE',
+    'user.lock': 'DEACTIVATE',
+    'user.unlock': 'ACTIVATE',
+    // Impersonation
+    'impersonate.start': 'CUSTOM',
+    'impersonate.end': 'CUSTOM',
+  };
+  const action = ACTION_MAP[rawAction] ?? 'CUSTOM';
+
+  const targetType = (event.targetType || '').toLowerCase();
+  // AUDIT-005 FIX: Comprehensive entity type mapping
+  const ENTITY_MAP: Record<string, string> = {
+    user: 'USER',
+    users: 'USER',
+    role: 'SETTING',
+    permission: 'SETTING',
+    property: 'PROPERTY',
+    properties: 'PROPERTY',
+    tenant: 'TENANT',
+    owner: 'OWNER',
+    contract: 'CONTRACT',
+    payment: 'PAYMENT',
+    invoice: 'INVOICE',
+    workorder: 'WORKORDER',
+    work_order: 'WORKORDER',
+    ticket: 'TICKET',
+    project: 'PROJECT',
+    bid: 'BID',
+    vendor: 'VENDOR',
+    document: 'DOCUMENT',
+    setting: 'SETTING',
+  };
+  const entityType = ENTITY_MAP[targetType] ?? 'OTHER';
+
+  // AUDIT-004 FIX: Comprehensive PII redaction
+  const SENSITIVE_KEYS = [
+    'password', 'token', 'secret', 'apiKey', 'api_key',
+    'accessToken', 'refreshToken', 'authToken', 'bearerToken',
+    'ssn', 'socialSecurityNumber', 'creditCard', 'cardNumber', 'cvv', 'pin',
+    'privateKey', 'credentials',
+    // PII fields
+    'email', 'phone', 'mobile', 'phoneNumber', 'mobileNumber',
+  ];
+  const redactSensitive = (obj: Record<string, unknown>): Record<string, unknown> => {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const lowerKey = key.toLowerCase();
+      if (SENSITIVE_KEYS.some(s => lowerKey.includes(s))) {
+        result[key] = '[REDACTED]';
+      } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+        result[key] = redactSensitive(value as Record<string, unknown>);
+      } else {
+        result[key] = value;
+      }
+    }
+    return result;
+  };
+  const sanitizedMeta = redactSensitive(event.meta || {});
+
   const entry: AuditEvent = {
     ...event,
+    orgId,
+    action,
+    targetType: entityType,
+    meta: {
+      ...sanitizedMeta,
+      rawAction,
+    },
+    success: event.success !== false,
     timestamp: event.timestamp || new Date().toISOString(),
   };
 
@@ -44,31 +146,33 @@ export async function audit(event: AuditEvent): Promise<void> {
 
   // ✅ Write to database
   try {
-    const entityId = (event.meta?.targetId as string | undefined) || undefined;
+    const entityId = (entry.meta?.targetId as string | undefined) || undefined;
     await AuditLogModel.log({
-      orgId: event.orgId || '',  // ✅ Schema requires orgId (string)
-      action: event.action ? event.action.toUpperCase() : 'CUSTOM',
-      entityType: event.targetType ? event.targetType.toUpperCase() : 'OTHER',
-      entityId,  // ✅ Schema allows optional entityId (string | undefined)
-      entityName: (event.meta?.targetName as string | undefined) || (event.target ? String(event.target) : undefined),
-      userId: event.actorId,
+      orgId,
+      action: entry.action,
+      entityType: entry.targetType || 'OTHER',
+      entityId,
+      entityName: (entry.meta?.targetName as string | undefined) || (entry.target ? String(entry.target) : undefined),
+      userId: entry.actorId,
       context: {
-        ipAddress: event.ipAddress,
-        userAgent: event.userAgent,
+        ipAddress: entry.ipAddress,
+        userAgent: entry.userAgent,
       },
       metadata: {
-        ...event.meta,
-        actorEmail: event.actorEmail,
+        ...entry.meta,
+        actorEmail: entry.actorEmail,
         source: 'WEB',
       },
       result: {
-        success: event.success === true,
-        errorMessage: event.error,
+        success: entry.success === true,
+        errorMessage: entry.error,
       },
     });
   } catch (dbError: unknown) {
     // Silent fail - don't break main operation if database write fails
-    logger.error('[AUDIT] Database write failed:', dbError as Error);
+    // Safe error handling: preserve stack trace
+    const errorToLog = dbError instanceof Error ? dbError : new Error(String(dbError));
+    logger.error('[AUDIT] Database write failed:', errorToLog);
   }
 
   // Send to external monitoring service (Sentry)
@@ -115,7 +219,9 @@ export async function audit(event: AuditEvent): Promise<void> {
       //   });
       // }
     } catch (alertError: unknown) {
-      logger.error('[AUDIT] Failed to send critical action alert:', alertError as Error);
+      // Safe error handling: preserve stack trace
+      const errorToLog = alertError instanceof Error ? alertError : new Error(String(alertError));
+      logger.error('[AUDIT] Failed to send critical action alert:', errorToLog);
     }
   }
 }
@@ -196,6 +302,7 @@ export const AuditActions = {
  * Helper to audit Super Admin actions
  */
 export async function auditSuperAdminAction(
+  orgId: string,
   action: string,
   actorId: string,
   actorEmail: string,
@@ -203,7 +310,18 @@ export async function auditSuperAdminAction(
   targetEmail?: string,
   meta?: Record<string, unknown>
 ): Promise<void> {
+  const normalizedOrgId = orgId?.trim();
+  if (!normalizedOrgId) {
+    logger.error("[AUDIT] CRITICAL: orgId missing for super admin action", {
+      action,
+      actorId,
+      targetId,
+    });
+    return;
+  }
+
   await audit({
+    orgId: normalizedOrgId,
     actorId,
     actorEmail,
     action,
@@ -221,6 +339,7 @@ export async function auditSuperAdminAction(
  * Helper to audit impersonation
  */
 export async function auditImpersonation(
+  orgId: string,
   actorId: string,
   actorEmail: string,
   targetId: string,
@@ -228,7 +347,18 @@ export async function auditImpersonation(
   action: 'start' | 'end',
   meta?: Record<string, unknown>
 ): Promise<void> {
+  const normalizedOrgId = orgId?.trim();
+  if (!normalizedOrgId) {
+    logger.error("[AUDIT] CRITICAL: orgId missing for impersonation action", {
+      actorId,
+      targetId,
+      action,
+    });
+    return;
+  }
+
   await audit({
+    orgId: normalizedOrgId,
     actorId,
     actorEmail,
     action: action === 'start' ? AuditActions.IMPERSONATE_START : AuditActions.IMPERSONATE_END,

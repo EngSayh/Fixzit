@@ -133,7 +133,7 @@ const InvoiceSchema = new Schema(
         requestId: String,
         responseId: String,
         status: String,
-        errors: [String],
+        errorMessages: [String],
       },
     },
 

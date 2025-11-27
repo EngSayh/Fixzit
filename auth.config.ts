@@ -193,23 +193,18 @@ const LoginSchema = z
   .object({
     identifier: z.string().trim().min(1, 'Email or employee number is required'),
     password: z.string().min(1, 'Password is required'),
-    otpToken: z.string().trim().min(1, 'OTP verification token is required').optional(),
+    // ✅ FIX: Make OTP fully optional (validation happens after user lookup)
+    otpToken: z.string().trim().optional(),
     // ✅ FIXED: Handle HTML checkbox behavior ('on' when checked, undefined when unchecked)
     rememberMe: z.union([z.boolean(), z.string(), z.undefined()]).transform(val => {
       if (typeof val === 'boolean') return val;
       if (val === 'on' || val === 'true' || val === '1') return true;
       return false;
     }).optional().default(false),
+    companyCode: z.string().trim().optional(),
   })
-  .superRefine((data, ctx) => {
-    if (REQUIRE_SMS_OTP && !data.otpToken) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['otpToken'],
-        message: 'OTP verification is required. Please enter the latest code.',
-      });
-    }
-  })
+  // ✅ FIX: Remove OTP validation from schema - will be checked after user lookup
+  // This allows super admin bypass to work properly
   .transform((data, ctx) => {
     const idRaw = data.identifier.trim();
     const emailOk = z.string().email().safeParse(idRaw).success;
@@ -234,12 +229,26 @@ const LoginSchema = z
       return z.NEVER;
     }
 
+    const normalizedCompanyCode = data.companyCode?.trim()
+      ? data.companyCode.trim().toUpperCase()
+      : null;
+
+    if (loginType === 'corporate' && !normalizedCompanyCode) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['companyCode'],
+        message: 'Company number is required for corporate login',
+      });
+      return z.NEVER;
+    }
+
     return {
       loginIdentifier,
       loginType,
       password: data.password,
       otpToken: data.otpToken || null,
       rememberMe: data.rememberMe,
+      companyCode: normalizedCompanyCode,
     };
   });
 
@@ -267,6 +276,7 @@ export const authConfig = {
         identifier: { label: 'Email or Employee Number', type: 'text' },
         password: { label: 'Password', type: 'password' },
         rememberMe: { label: 'Remember Me', type: 'checkbox' },
+        companyCode: { label: 'Company Code', type: 'text' },
       },
        
       async authorize(credentials, _request) {
@@ -282,7 +292,11 @@ export const authConfig = {
             return null;
           }
 
-          const { loginIdentifier, loginType, password, rememberMe, otpToken } = parsed.data;
+          const { loginIdentifier, loginType, password, rememberMe, otpToken, companyCode } = parsed.data;
+          const otpIdentifier =
+            loginType === 'corporate' && companyCode
+              ? `${loginIdentifier}::${companyCode}`
+              : loginIdentifier;
 
           // 2. Dynamic imports (Edge Runtime compatible)
           const { connectToDatabase } = await import('@/lib/mongodb-unified');
@@ -304,8 +318,12 @@ export const authConfig = {
           if (loginType === 'personal') {
             user = await User.findOne({ email: loginIdentifier }).lean<LeanUser>();
           } else {
-            // Corporate login uses employee number (stored in username field)
-            user = await User.findOne({ username: loginIdentifier }).lean<LeanUser>();
+            if (!companyCode) {
+              logger.warn('[NextAuth] Corporate login missing company code', { loginIdentifier });
+              return null;
+            }
+            // Corporate login uses employee number (stored in username field) + company code
+            user = await User.findOne({ username: loginIdentifier, code: companyCode }).lean<LeanUser>();
           }
 
           if (!user) {
@@ -344,8 +362,23 @@ export const authConfig = {
             { $set: { 'security.lastLogin': new Date() } }
           );
 
+          // 7.5. ✅ FIX: Validate orgId for non-superadmin users (tenant isolation)
+          const isSuperAdmin = Boolean((user as { isSuperAdmin?: boolean }).isSuperAdmin);
+          if (!user.orgId && !isSuperAdmin) {
+            logger.error('[NextAuth] Credentials login rejected: Missing orgId for non-superadmin user', { 
+              loginIdentifier,
+              userId: user._id.toString()
+            });
+            return null;
+          }
+
           // 8. Enforce OTP session usage unless explicitly disabled
-          if (REQUIRE_SMS_OTP) {
+          // ✅ FIX: Bypass OTP ONLY in development for super admin (NEVER in production)
+          const isDevelopment = process.env.NODE_ENV !== 'production';
+          const explicitBypass = process.env.NEXTAUTH_SUPERADMIN_BYPASS_OTP === 'true';
+          const bypassOTP = isSuperAdmin && isDevelopment && explicitBypass;
+
+          if (REQUIRE_SMS_OTP && !bypassOTP) {
             if (!otpToken) {
               logger.warn('[NextAuth] Missing OTP token for credentials login', { loginIdentifier });
               return null;
@@ -366,7 +399,7 @@ export const authConfig = {
 
             if (
               session.userId !== user._id.toString() ||
-              session.identifier !== loginIdentifier
+              session.identifier !== otpIdentifier
             ) {
               otpSessionStore.delete(otpToken);
               logger.error('[NextAuth] OTP session mismatch', new Error('OTP session mismatch'), {
@@ -377,6 +410,8 @@ export const authConfig = {
             }
 
             otpSessionStore.delete(otpToken);
+          } else if (bypassOTP) {
+            logger.info('[NextAuth] OTP bypassed for super admin', { loginIdentifier });
           }
 
           // 9. Return user object for NextAuth session
@@ -437,11 +472,59 @@ export const authConfig = {
         return false;
       }
       
-      // ⚡ OAuth user provisioning moved to auth.ts (Node.js runtime)
-      // This callback just validates the sign-in attempt
-      // Actual user creation happens in the jwt() callback which runs in Node.js runtime
+      // ✅ FIX: OAuth user lookup and validation (SECURITY)
+      // Import User model dynamically to avoid edge runtime issues
+      const { default: User } = await import('./server/models/User');
       
-      return true;
+      try {
+        const dbUser = await User.findOne({ email: _user.email }).lean().exec();
+        
+        // Block sign-in if user doesn't exist
+        if (!dbUser) {
+          logger.warn('[NextAuth] OAuth sign-in rejected: User not found in database', { 
+            email: _user.email.substring(0, 3) + '***' // Privacy: partial email
+          });
+          return false;
+        }
+        
+        // Block sign-in if user is not ACTIVE
+        if (dbUser.status !== 'ACTIVE') {
+          logger.warn('[NextAuth] OAuth sign-in rejected: User status not ACTIVE', { 
+            email: _user.email.substring(0, 3) + '***',
+            status: dbUser.status
+          });
+          return false;
+        }
+        
+        // Block sign-in if non-superadmin user lacks orgId (tenant isolation)
+        if (!dbUser.orgId && !dbUser.isSuperAdmin) {
+          logger.error('[NextAuth] OAuth sign-in rejected: Missing orgId for non-superadmin user', { 
+            email: _user.email.substring(0, 3) + '***'
+          });
+          return false;
+        }
+        
+        // ✅ Attach role and orgId for jwt() callback to propagate to session
+        const userWithMeta = _user as typeof _user & { 
+          role?: string; 
+          orgId?: string | null; 
+          isSuperAdmin?: boolean; 
+        };
+        userWithMeta.role = dbUser.professional?.role || dbUser.role || 'USER';
+        userWithMeta.orgId = dbUser.orgId?.toString() || null;
+        userWithMeta.isSuperAdmin = dbUser.isSuperAdmin || false;
+        
+        logger.info('[NextAuth] OAuth sign-in allowed', { 
+          email: _user.email.substring(0, 3) + '***',
+          role: userWithMeta.role,
+          hasOrgId: !!userWithMeta.orgId
+        });
+        
+        return true;
+      } catch (error) {
+        logger.error('[NextAuth] OAuth sign-in error during user lookup', { error });
+        return false; // Fail closed on errors
+      }
     },
     async redirect({ url, baseUrl }) {
       // Handle callbackUrl properly
