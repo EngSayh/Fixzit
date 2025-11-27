@@ -79,7 +79,8 @@ export async function POST(request: Request) {
     }
 
     const userRole = (session.user as { role?: string }).role;
-    if (userRole !== "SUPER_ADMIN" && userRole !== "ADMIN") {
+    // 🔒 SECURITY FIX: Include CORPORATE_ADMIN and FINANCE_OFFICER for settlements
+    if (!["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "FINANCE", "FINANCE_OFFICER"].includes(userRole || "")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -259,7 +259,8 @@ export async function GET(request: NextRequest) {
     const userRole = session.user.role;
     const isSuperAdmin = session.user.isSuperAdmin;
 
-    if (!isSuperAdmin && userRole !== "ADMIN") {
+    // 🔒 SECURITY FIX: Include CORPORATE_ADMIN per 14-role matrix
+    if (!isSuperAdmin && !["ADMIN", "CORPORATE_ADMIN"].includes(userRole || "")) {
       return NextResponse.json(
         { error: "Forbidden: Admin access required" },
         { status: 403 },

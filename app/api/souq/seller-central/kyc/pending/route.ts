@@ -15,7 +15,7 @@ export async function GET(_request: NextRequest) {
     }
 
     // Admin only
-    if (!["ADMIN", "SUPER_ADMIN"].includes(session.user.role)) {
+    if (!["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

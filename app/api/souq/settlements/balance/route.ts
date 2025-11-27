@@ -21,9 +21,9 @@ export async function GET(request: NextRequest) {
 
     // Authorization: Seller can only view own balance, admin can view all
     const userRole = (session.user as { role?: string }).role;
+    // 🔒 SECURITY FIX: Include CORPORATE_ADMIN and FINANCE roles
     if (
-      userRole !== "ADMIN" &&
-      userRole !== "SUPER_ADMIN" &&
+      !["ADMIN", "SUPER_ADMIN", "CORPORATE_ADMIN", "FINANCE", "FINANCE_OFFICER"].includes(userRole || "") &&
       sellerId !== session.user.id
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

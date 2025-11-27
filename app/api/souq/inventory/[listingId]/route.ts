@@ -32,7 +32,7 @@ export async function GET(
     // Authorization: Can only view own inventory unless admin
     if (
       inventory.sellerId !== session.user.id &&
-      !["ADMIN", "SUPER_ADMIN"].includes(session.user.role)
+      !["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role)
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
