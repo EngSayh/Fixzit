@@ -14,6 +14,11 @@ import {
   MAX_SENDS_PER_WINDOW,
 } from "@/lib/otp-store";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import {
+  EMPLOYEE_ID_REGEX,
+  normalizeCompanyCode,
+  buildOtpKey,
+} from "@/lib/otp-utils";
 
 interface UserDocument {
   _id?: { toString: () => string };
@@ -73,8 +78,6 @@ const TEST_USERS_FALLBACK_PHONE =
 const DEFAULT_TEST_FORCE_PHONE = "+966552233456";
 const FORCE_OTP_PHONE =
   process.env.NEXTAUTH_FORCE_OTP_PHONE || process.env.FORCE_OTP_PHONE || "";
-
-const EMPLOYEE_ID_REGEX = /^EMP[-A-Z0-9]+$/;
 
 const DEMO_AUTH_ENABLED =
   process.env.ALLOW_DEMO_LOGIN === "true" ||
@@ -255,12 +258,6 @@ const SendOTPSchema = z.object({
   password: z.string().min(1, "Password is required"),
   companyCode: z.string().trim().optional(),
 });
-
-const normalizeCompanyCode = (code?: string | null) =>
-  code?.trim() ? code.trim().toUpperCase() : null;
-
-const buildOtpKey = (identifier: string, companyCode: string | null) =>
-  companyCode ? `${identifier}::${companyCode}` : identifier;
 
 // Generate random OTP
 function generateOTP(): string {

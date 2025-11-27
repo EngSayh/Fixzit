@@ -206,7 +206,7 @@ export async function DELETE(
     await connectToDatabase();
 
     const asset = await Asset.findOneAndUpdate(
-      { _id: params.id, tenantId: user.tenantId },
+      { _id: params.id, orgId: user.orgId },
       { $set: { status: "DECOMMISSIONED", updatedBy: user.id } },
       { new: true },
     );

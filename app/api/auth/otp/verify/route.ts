@@ -9,8 +9,11 @@ import {
   otpSessionStore,
   OTP_SESSION_EXPIRY_MS,
 } from "@/lib/otp-store";
-
-const EMPLOYEE_ID_REGEX = /^EMP[-A-Z0-9]+$/;
+import {
+  EMPLOYEE_ID_REGEX,
+  normalizeCompanyCode,
+  buildOtpKey,
+} from "@/lib/otp-utils";
 
 // Validation schema
 const VerifyOTPSchema = z.object({
@@ -18,12 +21,6 @@ const VerifyOTPSchema = z.object({
   otp: z.string().length(6, "OTP must be 6 digits"),
   companyCode: z.string().trim().optional(),
 });
-
-const normalizeCompanyCode = (code?: string | null) =>
-  code?.trim() ? code.trim().toUpperCase() : null;
-
-const buildOtpKey = (identifier: string, companyCode: string | null) =>
-  companyCode ? `${identifier}::${companyCode}` : identifier;
 
 /**
  * POST /api/auth/otp/verify

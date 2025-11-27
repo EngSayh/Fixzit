@@ -62,7 +62,8 @@ export async function DELETE(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    await UserModel.deleteOne({ _id: id });
+    // DEFENSE-IN-DEPTH: Include orgId in delete filter (per CodeRabbit review)
+    await UserModel.deleteOne({ _id: id, orgId });
 
     return NextResponse.json({
       success: true,
