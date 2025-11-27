@@ -243,12 +243,30 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Unauthorized - Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     Forbidden:
-      description: Forbidden
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     NotFound:
       description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     ServerError:
       description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
 
   schemas:
     Error:
@@ -362,6 +380,313 @@ components:
         targetType:
           type: string
           enum: [LISTING, PROJECT]
+
+    # ============================================
+    # FM Schemas
+    # ============================================
+
+    WorkOrderCreate:
+      type: object
+      required: [title, propertyId, priority]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        propertyId:
+          type: string
+          pattern: "^[a-fA-F0-9]{24}$"
+        priority:
+          type: string
+          enum: [critical, high, medium, low]
+        category:
+          type: string
+          enum: [hvac, plumbing, electrical, general, cleaning, security]
+        scheduledDate:
+          type: string
+          format: date-time
+        attachments:
+          type: array
+          items:
+            type: string
+
+    WorkOrderUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [critical, high, medium, low]
+        scheduledDate:
+          type: string
+          format: date-time
+
+    WorkOrder:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        propertyId:
+          type: string
+        status:
+          type: string
+          enum: [draft, pending, in_progress, on_hold, completed, cancelled]
+        priority:
+          type: string
+        category:
+          type: string
+        assigneeId:
+          type: string
+        scheduledDate:
+          type: string
+          format: date-time
+        slaDeadline:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+
+    WorkOrderResponse:
+      type: object
+      properties:
+        workOrder:
+          $ref: "#/components/schemas/WorkOrder"
+        correlationId:
+          type: string
+
+    WorkOrderListResponse:
+      type: object
+      properties:
+        workOrders:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkOrder"
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        correlationId:
+          type: string
+
+    PropertyListResponse:
+      type: object
+      properties:
+        properties:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              name:
+                type: string
+              type:
+                type: string
+              address:
+                type: string
+        page:
+          type: integer
+        total:
+          type: integer
+
+    # ============================================
+    # HR Schemas
+    # ============================================
+
+    EmployeeCreate:
+      type: object
+      required: [firstName, lastName, email, department, position]
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        department:
+          type: string
+        position:
+          type: string
+        hireDate:
+          type: string
+          format: date
+        salary:
+          type: number
+        employeeNumber:
+          type: string
+
+    EmployeeUpdate:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        department:
+          type: string
+        position:
+          type: string
+        salary:
+          type: number
+        status:
+          type: string
+          enum: [active, inactive, terminated, on_leave]
+
+    Employee:
+      type: object
+      properties:
+        _id:
+          type: string
+        employeeNumber:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        department:
+          type: string
+        position:
+          type: string
+        status:
+          type: string
+        hireDate:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+
+    EmployeeListResponse:
+      type: object
+      properties:
+        employees:
+          type: array
+          items:
+            $ref: "#/components/schemas/Employee"
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+
+    LeaveListResponse:
+      type: object
+      properties:
+        leaves:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              employeeId:
+                type: string
+              type:
+                type: string
+              startDate:
+                type: string
+                format: date
+              endDate:
+                type: string
+                format: date
+              status:
+                type: string
+              reason:
+                type: string
+        page:
+          type: integer
+        total:
+          type: integer
+
+    AttendanceListResponse:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              employeeId:
+                type: string
+              date:
+                type: string
+                format: date
+              clockIn:
+                type: string
+                format: date-time
+              clockOut:
+                type: string
+                format: date-time
+              hoursWorked:
+                type: number
+        page:
+          type: integer
+        total:
+          type: integer
+
+    PayrollListResponse:
+      type: object
+      properties:
+        payrolls:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              employeeId:
+                type: string
+              month:
+                type: integer
+              year:
+                type: integer
+              basicSalary:
+                type: number
+              allowances:
+                type: number
+              deductions:
+                type: number
+              gosiDeduction:
+                type: number
+              netPay:
+                type: number
+              status:
+                type: string
+                enum: [draft, approved, paid]
+        page:
+          type: integer
+        total:
+          type: integer
 
   # ATS Analytics Endpoint
   /ats/analytics:
@@ -567,3 +892,819 @@ components:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+
+  # ============================================
+  # Facility Management (FM) API
+  # ============================================
+
+  /fm/work-orders:
+    get:
+      summary: List work orders
+      description: Retrieve work orders with filtering and pagination. Results are scoped to user's organization.
+      tags: [FM - Work Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, pending, in_progress, on_hold, completed, cancelled]
+          description: Filter by work order status
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [critical, high, medium, low]
+          description: Filter by priority level
+        - name: assigneeId
+          in: query
+          schema:
+            type: string
+          description: Filter by assigned technician ID
+        - name: propertyId
+          in: query
+          schema:
+            type: string
+          description: Filter by property ID
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter by creation date (from)
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter by creation date (to)
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Work orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+    post:
+      summary: Create work order
+      description: Create a new work order. Requires `work-orders:create` permission.
+      tags: [FM - Work Orders]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkOrderCreate"
+      responses:
+        "201":
+          description: Work order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /fm/work-orders/{id}:
+    get:
+      summary: Get work order by ID
+      tags: [FM - Work Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-fA-F0-9]{24}$"
+      responses:
+        "200":
+          description: Work order retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      summary: Update work order
+      tags: [FM - Work Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-fA-F0-9]{24}$"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkOrderUpdate"
+      responses:
+        "200":
+          description: Work order updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /fm/work-orders/{id}/assign:
+    post:
+      summary: Assign work order to technician
+      tags: [FM - Work Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [technicianId]
+              properties:
+                technicianId:
+                  type: string
+                  description: ID of technician to assign
+                notes:
+                  type: string
+                  description: Assignment notes
+      responses:
+        "200":
+          description: Work order assigned
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /fm/work-orders/{id}/status:
+    patch:
+      summary: Update work order status
+      description: |
+        Transition work order to a new status. Valid transitions:
+        - draft → pending
+        - pending → in_progress, cancelled
+        - in_progress → completed, on_hold
+        - on_hold → in_progress
+      tags: [FM - Work Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [pending, in_progress, on_hold, completed, cancelled]
+                reason:
+                  type: string
+                  description: Reason for status change (required for cancel/hold)
+      responses:
+        "200":
+          description: Status updated
+        "400":
+          description: Invalid status transition
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /fm/properties:
+    get:
+      summary: List properties
+      tags: [FM - Properties]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [residential, commercial, industrial, mixed]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Properties retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PropertyListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /fm/reports/summary:
+    get:
+      summary: Get FM summary report
+      tags: [FM - Reports]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Report generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workOrders:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      byStatus:
+                        type: object
+                      avgResolutionTime:
+                        type: number
+                  slaCompliance:
+                    type: object
+                    properties:
+                      onTime:
+                        type: integer
+                      breached:
+                        type: integer
+                      percentage:
+                        type: number
+
+  # ============================================
+  # Billing API
+  # ============================================
+
+  /billing/subscribe:
+    post:
+      summary: Create subscription
+      description: Subscribe to a billing plan. Initiates payment flow.
+      tags: [Billing]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [planId]
+              properties:
+                planId:
+                  type: string
+                  description: Subscription plan ID
+                  example: "plan_starter_monthly"
+                couponCode:
+                  type: string
+                  description: Optional discount coupon
+                paymentMethod:
+                  type: string
+                  enum: [card, bank_transfer]
+                  default: card
+      responses:
+        "200":
+          description: Subscription initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subscriptionId:
+                    type: string
+                  paymentUrl:
+                    type: string
+                    description: Redirect URL for payment
+                  amount:
+                    type: number
+                  currency:
+                    type: string
+                    example: "SAR"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /billing/charge-recurring:
+    post:
+      summary: Process recurring charge
+      description: Internal endpoint for processing recurring subscription charges.
+      tags: [Billing]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subscriptionId]
+              properties:
+                subscriptionId:
+                  type: string
+      responses:
+        "200":
+          description: Charge processed
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "402":
+          description: Payment failed
+
+  /billing/quote:
+    post:
+      summary: Generate billing quote
+      description: Generate a quote for services or products.
+      tags: [Billing]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      productId:
+                        type: string
+                      quantity:
+                        type: integer
+                      unitPrice:
+                        type: number
+                customerId:
+                  type: string
+                validDays:
+                  type: integer
+                  default: 30
+      responses:
+        "201":
+          description: Quote generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quoteId:
+                    type: string
+                  subtotal:
+                    type: number
+                  tax:
+                    type: number
+                  total:
+                    type: number
+                  expiresAt:
+                    type: string
+                    format: date-time
+
+  /billing/callback:
+    post:
+      summary: Payment callback webhook
+      description: Webhook for payment provider callbacks.
+      tags: [Billing]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Callback processed
+
+  # ============================================
+  # Human Resources (HR) API
+  # ============================================
+
+  /hr/employees:
+    get:
+      summary: List employees
+      description: Retrieve employees in the organization.
+      tags: [HR - Employees]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, terminated, on_leave]
+        - name: department
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Employees retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      summary: Create employee
+      tags: [HR - Employees]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeCreate"
+      responses:
+        "201":
+          description: Employee created
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /hr/employees/{id}:
+    get:
+      summary: Get employee by ID
+      tags: [HR - Employees]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Employee retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      summary: Update employee
+      tags: [HR - Employees]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeUpdate"
+      responses:
+        "200":
+          description: Employee updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /hr/leaves:
+    get:
+      summary: List leave requests
+      tags: [HR - Leave Management]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, cancelled]
+        - name: employeeId
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [annual, sick, unpaid, maternity, paternity, hajj]
+      responses:
+        "200":
+          description: Leave requests retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveListResponse"
+
+    post:
+      summary: Submit leave request
+      tags: [HR - Leave Management]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, startDate, endDate]
+              properties:
+                type:
+                  type: string
+                  enum: [annual, sick, unpaid, maternity, paternity, hajj]
+                startDate:
+                  type: string
+                  format: date
+                endDate:
+                  type: string
+                  format: date
+                reason:
+                  type: string
+                attachments:
+                  type: array
+                  items:
+                    type: string
+                  description: URLs to supporting documents
+      responses:
+        "201":
+          description: Leave request submitted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /hr/leaves/{id}/approve:
+    post:
+      summary: Approve leave request
+      tags: [HR - Leave Management]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comments:
+                  type: string
+      responses:
+        "200":
+          description: Leave approved
+
+  /hr/leaves/{id}/reject:
+    post:
+      summary: Reject leave request
+      tags: [HR - Leave Management]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        "200":
+          description: Leave rejected
+
+  /hr/attendance:
+    get:
+      summary: Get attendance records
+      tags: [HR - Attendance]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: employeeId
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Attendance records retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceListResponse"
+
+    post:
+      summary: Record attendance (clock in/out)
+      tags: [HR - Attendance]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type:
+                  type: string
+                  enum: [clock_in, clock_out]
+                location:
+                  type: object
+                  properties:
+                    lat:
+                      type: number
+                    lng:
+                      type: number
+                notes:
+                  type: string
+      responses:
+        "201":
+          description: Attendance recorded
+
+  /hr/payroll:
+    get:
+      summary: Get payroll records
+      tags: [HR - Payroll]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: employeeId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Payroll records retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayrollListResponse"
+
+    post:
+      summary: Generate payroll
+      description: Generate payroll for a specific month. Calculates GOSI, deductions, and net pay.
+      tags: [HR - Payroll]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [month, year]
+              properties:
+                month:
+                  type: integer
+                  minimum: 1
+                  maximum: 12
+                year:
+                  type: integer
+                employeeIds:
+                  type: array
+                  items:
+                    type: string
+                  description: Specific employees (empty = all)
+      responses:
+        "201":
+          description: Payroll generated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /hr/leave-types:
+    get:
+      summary: Get leave types
+      tags: [HR - Leave Management]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Leave types retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  leaveTypes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        daysPerYear:
+                          type: integer
+                        isPaid:
+                          type: boolean
+                        requiresApproval:
+                          type: boolean
+
