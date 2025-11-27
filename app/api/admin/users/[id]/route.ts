@@ -43,17 +43,27 @@ export async function DELETE(
 
     const UserModel = models.User || model("User", UserSchema);
 
+    // ORGID-FIX: Validate orgId before querying (tenant isolation)
+    const orgId = session.user.orgId;
+    if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid organization context" },
+        { status: 403 }
+      );
+    }
+
     // @ts-expect-error - Fixed VSCode problem
     const user = await UserModel.findOne({
       _id: id,
-      orgId: session.user.orgId || "default",
+      orgId,  // ✅ Validated orgId
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    await UserModel.deleteOne({ _id: id });
+    // DEFENSE-IN-DEPTH: Include orgId in delete filter (per CodeRabbit review)
+    await UserModel.deleteOne({ _id: id, orgId });
 
     return NextResponse.json({
       success: true,
@@ -125,10 +135,19 @@ export async function PATCH(
 
     const UserModel = models.User || model("User", UserSchema);
 
+    // ORGID-FIX: Validate orgId before querying (tenant isolation)
+    const orgId = session.user.orgId;
+    if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid organization context" },
+        { status: 403 }
+      );
+    }
+
     // @ts-expect-error - Fixed VSCode problem
     const user = await UserModel.findOne({
       _id: id,
-      orgId: session.user.orgId || "default",
+      orgId,  // ✅ Validated orgId
     });
 
     if (!user) {

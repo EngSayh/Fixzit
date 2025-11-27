@@ -14,8 +14,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    deps: {
-      inline: ["next-auth"],
+    server: {
+      deps: {
+        inline: ["next-auth"],
+      },
     },
     env: {
       NEXTAUTH_SECRET: "test-secret",
