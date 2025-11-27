@@ -35,8 +35,15 @@ describe("app/api/hr/leave-types route", () => {
     expect(response.status).toBe(401);
   });
 
-  it("lists leave types for authenticated org", async () => {
-    authMock.mockResolvedValue({ user: { orgId: "org-1" } });
+  it("returns 403 when user lacks HR role", async () => {
+    authMock.mockResolvedValue({ user: { orgId: "org-1", role: "TENANT" } });
+    const request = new NextRequest("http://localhost/api/hr/leave-types");
+    const response = await GET(request);
+    expect(response.status).toBe(403);
+  });
+
+  it("lists leave types for authenticated org with HR role", async () => {
+    authMock.mockResolvedValue({ user: { orgId: "org-1", role: "HR_OFFICER" } });
     listMock.mockResolvedValue([
       { _id: "lt1", code: "ANNUAL", name: "Annual Leave" },
     ]);
@@ -53,7 +60,7 @@ describe("app/api/hr/leave-types route", () => {
   });
 
   it("validates POST body", async () => {
-    authMock.mockResolvedValue({ user: { orgId: "org-1" } });
+    authMock.mockResolvedValue({ user: { orgId: "org-1", role: "HR" } });
     const request = new NextRequest("http://localhost/api/hr/leave-types", {
       method: "POST",
       body: JSON.stringify({ name: "Test" }),
@@ -66,7 +73,7 @@ describe("app/api/hr/leave-types route", () => {
   });
 
   it("creates leave type when payload is valid", async () => {
-    authMock.mockResolvedValue({ user: { orgId: "org-1" } });
+    authMock.mockResolvedValue({ user: { orgId: "org-1", role: "HR" } });
     createMock.mockResolvedValue({
       _id: "lt2",
       code: "EMERGENCY",

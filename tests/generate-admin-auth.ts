@@ -11,6 +11,8 @@ import { config } from "dotenv";
 import { resolve } from "path";
 import { URLSearchParams } from "url";
 
+const EMP_REGEX = /^EMP[-A-Z0-9]+$/i;
+
 // Load .env.test
 config({ path: resolve(__dirname, "../.env.test") });
 
@@ -21,6 +23,10 @@ async function generateAuthState() {
   const identifier = process.env.TEST_ADMIN_IDENTIFIER;
   const password = process.env.TEST_ADMIN_PASSWORD;
   const phone = process.env.TEST_ADMIN_PHONE;
+  const companyCode =
+    identifier && EMP_REGEX.test(identifier.trim())
+      ? process.env.TEST_ADMIN_COMPANY_CODE || process.env.TEST_COMPANY_CODE
+      : undefined;
 
   if (!identifier || !password) {
     throw new Error(
@@ -44,10 +50,16 @@ async function generateAuthState() {
       `${baseURL}/api/auth/otp/send`,
       {
         headers: { "Content-Type": "application/json" },
-        data: {
-          identifier,
-          password,
-        },
+        data: companyCode
+          ? {
+              identifier,
+              password,
+              companyCode,
+            }
+          : {
+              identifier,
+              password,
+            },
       },
     );
 
@@ -76,10 +88,16 @@ async function generateAuthState() {
       `${baseURL}/api/auth/otp/verify`,
       {
         headers: { "Content-Type": "application/json" },
-        data: {
-          identifier,
-          otp: otpCode,
-        },
+        data: companyCode
+          ? {
+              identifier,
+              otp: otpCode,
+              companyCode,
+            }
+          : {
+              identifier,
+              otp: otpCode,
+            },
       },
     );
 
@@ -121,6 +139,9 @@ async function generateAuthState() {
       callbackUrl: `${baseURL}/dashboard`,
       json: "true",
     });
+    if (companyCode) {
+      form.append("companyCode", companyCode);
+    }
     const sessionResponse = await page.request.post(
       `${baseURL}/api/auth/callback/credentials`,
       {

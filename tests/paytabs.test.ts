@@ -27,6 +27,8 @@ const loggerMock = {
   debug: vi.fn(),
 };
 
+const fetchMock = vi.fn();
+
 vi.mock("@/lib/logger", () => ({
   logger: loggerMock,
 }));
@@ -37,6 +39,8 @@ const ORIGINAL_ENV = { ...process.env };
 beforeEach(() => {
   vi.resetModules();
   vi.restoreAllMocks();
+  fetchMock.mockReset();
+  vi.stubGlobal("fetch", fetchMock);
   // Reset environment for each test
   process.env = { ...ORIGINAL_ENV };
 });
@@ -44,6 +48,7 @@ beforeEach(() => {
 afterEach(() => {
   process.env = { ...ORIGINAL_ENV };
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   Object.values(loggerMock).forEach((fn) => fn.mockClear());
 });
 
@@ -125,10 +130,9 @@ describe("createHppRequest", () => {
     const { createHppRequest, paytabsBase } = mod;
 
     const mockResponse = { ok: true, id: "hpp_req_1" };
-    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+    fetchMock.mockResolvedValue({
       json: vi.fn().mockResolvedValue(mockResponse),
     });
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const payload = { amount: 100, currency: "SAR", note: "Test" };
     const region = "EGYPT";

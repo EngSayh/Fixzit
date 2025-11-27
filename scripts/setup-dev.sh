@@ -13,9 +13,10 @@ echo "📦 Installing dependencies..."
 pnpm install || npm install
 
 # Setup database
-echo "🗄️ Setting up database..."
-npx prisma generate
-npx prisma db push --accept-data-loss
+echo "🗄️ Setting up MongoDB connection..."
+# Note: Fixzit uses MongoDB with Mongoose (not Prisma/PostgreSQL)
+# Ensure MONGODB_URI is set in your .env.local file
+# Example: MONGODB_URI=mongodb://localhost:27017/fixzit
 
 # Create logs directory
 mkdir -p logs

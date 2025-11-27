@@ -2,7 +2,7 @@
   "cookies": [
     {
       "name": "authjs.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..XOiDZ3sm94cbfXKqQH6I_g.QdPDofKsnaDrs1sdq7DTxf9uWl0G0FstkHXuV98AC3SBGS1B8U6ZB8jDkqW47a0RjGqDtHanJnLGJkZhGBiGC_FVwZY0dQqX4DKrUSfPyACMWqitNUe-OsVvm5Fz2wgXbL04H4JG5MYHg0Fw64XvxAGXvVq7imJwGATXEITonXU0L5e5x4VjyDf7c2M-0Yp2LVHlOJqQ093UVtMwQYGP_MXL0AJtv5QlOJMy0ADbvgfgO30Og7s0VNX048N6qIxowyahmACTpTepUKUG33l7swbAoqENrVYw-9S8MmeUy6a33c_e6EPf8LO315tF5jKXuU3yKncorJzXQetzLlca9ZtkJhLwEtL_sqBukQzZe52SL1Xe6nDHcwwUqV9-GW_5QHNYQuZm6PtZ5pFoScmuXyGc6tZqNGeB0qYXvONBbKxIGou_tTXbzgHrvAuMEbps.zBnzfEEquldeca6P4dxJm0OA5-imIDBKAYt8Zir6150",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..11RnCGxMVnh4yhZfDG8eFw.2KBxV-oJKm11HFEPmQ1MUlfawZVHHKl9C79S8fuM1vEjV-T-1f2pMCEudI0FL5ZfnIGCakaylLrZUvhVG2nI7l6AQEi7eiE36TGpRG8p-HRqn06rcFQExlz0INLI9sbpC5-nGBnrSbkIofkjCxNc1748tk6v1lz8meGjHWeGGHPcU9XrsnHaT_1ZmH3URita-OdpCp9KmoHO1L90uVsgr8R5i1t9f_-zd58xfKLP-irinIhSRFgzdc0BBIanvqwmGaivpQ73gSXTP5PHyZed84D1MBTn7sFjtvGV_FfEVsiisOKsZXvp7LLv0hQaT-GIlHSnw4HXXbQfDAdKYrJyKIDDCzk4F9FdX8qWqHN_37mnseHZpd2qTspl0oreYt3J2cvIIXjWUEK8IXsEQ4GuoBMz-eyKQ25mFJW7N__9L6V8PQ3Hq2JpZ3I9jo60sab4.DF0POF81lQt9N_APalLVjieCwy8N7Y8AYcHqWzItVlA",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
@@ -12,30 +12,10 @@
     },
     {
       "name": "next-auth.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..XOiDZ3sm94cbfXKqQH6I_g.QdPDofKsnaDrs1sdq7DTxf9uWl0G0FstkHXuV98AC3SBGS1B8U6ZB8jDkqW47a0RjGqDtHanJnLGJkZhGBiGC_FVwZY0dQqX4DKrUSfPyACMWqitNUe-OsVvm5Fz2wgXbL04H4JG5MYHg0Fw64XvxAGXvVq7imJwGATXEITonXU0L5e5x4VjyDf7c2M-0Yp2LVHlOJqQ093UVtMwQYGP_MXL0AJtv5QlOJMy0ADbvgfgO30Og7s0VNX048N6qIxowyahmACTpTepUKUG33l7swbAoqENrVYw-9S8MmeUy6a33c_e6EPf8LO315tF5jKXuU3yKncorJzXQetzLlca9ZtkJhLwEtL_sqBukQzZe52SL1Xe6nDHcwwUqV9-GW_5QHNYQuZm6PtZ5pFoScmuXyGc6tZqNGeB0qYXvONBbKxIGou_tTXbzgHrvAuMEbps.zBnzfEEquldeca6P4dxJm0OA5-imIDBKAYt8Zir6150",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..11RnCGxMVnh4yhZfDG8eFw.2KBxV-oJKm11HFEPmQ1MUlfawZVHHKl9C79S8fuM1vEjV-T-1f2pMCEudI0FL5ZfnIGCakaylLrZUvhVG2nI7l6AQEi7eiE36TGpRG8p-HRqn06rcFQExlz0INLI9sbpC5-nGBnrSbkIofkjCxNc1748tk6v1lz8meGjHWeGGHPcU9XrsnHaT_1ZmH3URita-OdpCp9KmoHO1L90uVsgr8R5i1t9f_-zd58xfKLP-irinIhSRFgzdc0BBIanvqwmGaivpQ73gSXTP5PHyZed84D1MBTn7sFjtvGV_FfEVsiisOKsZXvp7LLv0hQaT-GIlHSnw4HXXbQfDAdKYrJyKIDDCzk4F9FdX8qWqHN_37mnseHZpd2qTspl0oreYt3J2cvIIXjWUEK8IXsEQ4GuoBMz-eyKQ25mFJW7N__9L6V8PQ3Hq2JpZ3I9jo60sab4.DF0POF81lQt9N_APalLVjieCwy8N7Y8AYcHqWzItVlA",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
-      "httpOnly": true,
-      "secure": false,
-      "sameSite": "Lax"
-    },
-    {
-      "name": "fxz.currency",
-      "value": "SAR",
-      "domain": "localhost",
-      "path": "/",
-      "expires": 1795386729.232877,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Strict"
-    },
-    {
-      "name": "authjs.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..8Arnvezo113ZpY16LKz5Ig.iQVgDbO7REmVH0CP0jM9MrpRFdYqnPa15qXMYSh5Ui4ua6p18nNW5gU1NCMz9pu66XqzrcFwn4VnyWSJ6Pg9yB0mC4bPxjV6mcgsLfhjsoE_mjGWKzkLVQ9x4ACUTwgZXfBtgfCqsWpXaFE2qMa-CLunVXjooR6q28JE4SMqjoa0JRtxQMnpM2s0DpgIE-4ig7uppSA4ycrpFkm6xQVqv8rBFF7a0EdZbNHyddxaZnOgz5HJWr8CG1quXUiHljIecn_J80oRY-q_yCvaAWxPpZM_FB3lQU-cg_an2689Msb-MXbgKTNSfLF0YJMMX0lZeYNN2Xd0oE5DBFpourKK5Pl2h9rMhaX5J1PdUROTSunJJQtI08voUZ93Nbd-gMTnlMQIzskUC9MXJb_sdjKInc3Il6vbNbZvViQ0-cX72e4BeEUTh1YkfeGtKkOvmthVuhQSdnHWEciM1jT-8lHwvA.JndInA3CRuk3R45LOmdDKwR4TT-ntNBBmui-oRru74I",
-      "domain": "localhost",
-      "path": "/",
-      "expires": 1766442730.568355,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
@@ -46,24 +26,8 @@
       "origin": "http://localhost:3000",
       "localStorage": [
         {
-          "name": "theme",
-          "value": "light"
-        },
-        {
-          "name": "fxz.theme",
-          "value": "light"
-        },
-        {
-          "name": "fixzit-currency",
-          "value": "SAR"
-        },
-        {
           "name": "fixzit-role",
-          "value": "MANAGER"
-        },
-        {
-          "name": "sidebarCollapsed",
-          "value": "{}"
+          "value": "manager"
         }
       ]
     }

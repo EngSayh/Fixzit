@@ -34,8 +34,42 @@ export type AuditEvent = {
  * @param event Audit event data
  */
 export async function audit(event: AuditEvent): Promise<void> {
+  const orgId = event.orgId?.trim();
+  if (!orgId) {
+    logger.error('[AUDIT] CRITICAL: orgId missing', { event });
+    return;
+  }
+
+  const rawAction = event.action;
+  const ACTION_MAP: Record<string, string> = {
+    'user.create': 'CREATE',
+    'user.grantSuperAdmin': 'UPDATE',
+  };
+  const action = ACTION_MAP[rawAction] ?? 'CUSTOM';
+
+  const targetType = (event.targetType || '').toLowerCase();
+  const ENTITY_MAP: Record<string, string> = {
+    user: 'USER',
+    workorder: 'WORKORDER',
+    'work_order': 'WORKORDER',
+  };
+  const entityType = ENTITY_MAP[targetType] ?? 'OTHER';
+
+  const sanitizedMeta = { ...(event.meta || {}) };
+  if (sanitizedMeta.ssn) {
+    sanitizedMeta.ssn = '[REDACTED]';
+  }
+
   const entry: AuditEvent = {
     ...event,
+    orgId,
+    action,
+    targetType: entityType,
+    meta: {
+      ...sanitizedMeta,
+      rawAction,
+    },
+    success: event.success !== false,
     timestamp: event.timestamp || new Date().toISOString(),
   };
 
@@ -44,26 +78,26 @@ export async function audit(event: AuditEvent): Promise<void> {
 
   // ✅ Write to database
   try {
-    const entityId = (event.meta?.targetId as string | undefined) || undefined;
+    const entityId = (entry.meta?.targetId as string | undefined) || undefined;
     await AuditLogModel.log({
-      orgId: event.orgId || '',  // ✅ Schema requires orgId (string)
-      action: event.action ? event.action.toUpperCase() : 'CUSTOM',
-      entityType: event.targetType ? event.targetType.toUpperCase() : 'OTHER',
-      entityId,  // ✅ Schema allows optional entityId (string | undefined)
-      entityName: (event.meta?.targetName as string | undefined) || (event.target ? String(event.target) : undefined),
-      userId: event.actorId,
+      orgId,
+      action: entry.action,
+      entityType: entry.targetType || 'OTHER',
+      entityId,
+      entityName: (entry.meta?.targetName as string | undefined) || (entry.target ? String(entry.target) : undefined),
+      userId: entry.actorId,
       context: {
-        ipAddress: event.ipAddress,
-        userAgent: event.userAgent,
+        ipAddress: entry.ipAddress,
+        userAgent: entry.userAgent,
       },
       metadata: {
-        ...event.meta,
-        actorEmail: event.actorEmail,
+        ...entry.meta,
+        actorEmail: entry.actorEmail,
         source: 'WEB',
       },
       result: {
-        success: event.success === true,
-        errorMessage: event.error,
+        success: entry.success === true,
+        errorMessage: entry.error,
       },
     });
   } catch (dbError: unknown) {
@@ -196,6 +230,7 @@ export const AuditActions = {
  * Helper to audit Super Admin actions
  */
 export async function auditSuperAdminAction(
+  orgId: string,
   action: string,
   actorId: string,
   actorEmail: string,
@@ -203,7 +238,18 @@ export async function auditSuperAdminAction(
   targetEmail?: string,
   meta?: Record<string, unknown>
 ): Promise<void> {
+  const normalizedOrgId = orgId?.trim();
+  if (!normalizedOrgId) {
+    logger.error("[AUDIT] CRITICAL: orgId missing for super admin action", {
+      action,
+      actorId,
+      targetId,
+    });
+    return;
+  }
+
   await audit({
+    orgId: normalizedOrgId,
     actorId,
     actorEmail,
     action,
@@ -221,6 +267,7 @@ export async function auditSuperAdminAction(
  * Helper to audit impersonation
  */
 export async function auditImpersonation(
+  orgId: string,
   actorId: string,
   actorEmail: string,
   targetId: string,
@@ -228,7 +275,18 @@ export async function auditImpersonation(
   action: 'start' | 'end',
   meta?: Record<string, unknown>
 ): Promise<void> {
+  const normalizedOrgId = orgId?.trim();
+  if (!normalizedOrgId) {
+    logger.error("[AUDIT] CRITICAL: orgId missing for impersonation action", {
+      actorId,
+      targetId,
+      action,
+    });
+    return;
+  }
+
   await audit({
+    orgId: normalizedOrgId,
     actorId,
     actorEmail,
     action: action === 'start' ? AuditActions.IMPERSONATE_START : AuditActions.IMPERSONATE_END,
