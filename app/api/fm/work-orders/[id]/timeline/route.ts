@@ -47,7 +47,8 @@ export async function GET(
 
     const db = await getDatabase();
     const collection = db.collection("workorder_timeline");
-    const filter = { tenantId, workOrderId };
+    // RBAC-002 FIX: Use tenantId variable (has fallback) for STRICT v4 tenant isolation
+    const filter = { tenantId: tenantId, workOrderId };
 
     const [entries, total] = await Promise.all([
       collection

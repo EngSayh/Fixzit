@@ -50,7 +50,7 @@ async function main() {
         primary: {
           name: "Ahmad Al Saud",
           email: "contact@acmasters.sa",
-          phone: "+966500000001",
+          phone: "+966552233456",
         },
         address: { city: "Riyadh", region: "Riyadh", country: "SA" },
       },
@@ -87,7 +87,7 @@ async function main() {
         primary: {
           name: "Sara Al Qahtani",
           email: "hello@e-electricals.sa",
-          phone: "+966500000002",
+          phone: "+966552233456",
         },
         address: { city: "Dammam", region: "Eastern Province", country: "SA" },
       },

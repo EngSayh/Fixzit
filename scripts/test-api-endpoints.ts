@@ -39,6 +39,7 @@ let authToken: string | null = null;
 let testUserId: string | null = null;
 let sessionCookie: string | null = null;
 const allCookies: string[] = []; // Store all cookies for cookie jar
+const EMP_REGEX = /^EMP[-A-Z0-9]+$/i;
 
 // Login helper to get auth token and session cookie
 async function authenticateTestUser() {
@@ -48,6 +49,14 @@ async function authenticateTestUser() {
       identifier: "admin@test.fixzit.co",
       password: "Test@1234",
     };
+    const companyCode =
+      EMP_REGEX.test(loginData.identifier.trim()) &&
+      process.env.TEST_COMPANY_CODE
+        ? process.env.TEST_COMPANY_CODE
+        : undefined;
+    const loginPayload = companyCode
+      ? { ...loginData, companyCode }
+      : loginData;
 
     log("Step 1: Sending OTP...", "INFO");
 
@@ -55,7 +64,7 @@ async function authenticateTestUser() {
     const otpResponse = await fetch(`${BASE_URL}/api/auth/otp/send`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(loginData),
+      body: JSON.stringify(loginPayload),
     });
 
     const otpText = await otpResponse.text();
@@ -90,10 +99,11 @@ async function authenticateTestUser() {
     const verifyResponse = await fetch(`${BASE_URL}/api/auth/otp/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        identifier: loginData.identifier,
-        otp,
-      }),
+      body: JSON.stringify(
+        companyCode
+          ? { identifier: loginData.identifier, otp, companyCode }
+          : { identifier: loginData.identifier, otp },
+      ),
     });
 
     const verifyText = await verifyResponse.text();
@@ -156,14 +166,20 @@ async function authenticateTestUser() {
           "Content-Type": "application/x-www-form-urlencoded",
           Cookie: allCookies.join("; "),
         },
-        body: new URLSearchParams({
-          identifier: loginData.identifier,
-          password: loginData.password,
-          otpToken: otpToken,
-          csrfToken: csrfToken,
-          redirect: "false",
-          callbackUrl: `${BASE_URL}/`,
-        }).toString(),
+        body: (() => {
+          const params = new URLSearchParams({
+            identifier: loginData.identifier,
+            password: loginData.password,
+            otpToken: otpToken,
+            csrfToken: csrfToken,
+            redirect: "false",
+            callbackUrl: `${BASE_URL}/`,
+          });
+          if (companyCode) {
+            params.append("companyCode", companyCode);
+          }
+          return params.toString();
+        })(),
         redirect: "manual", // Don't follow redirects
       },
     );

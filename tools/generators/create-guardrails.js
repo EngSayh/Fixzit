@@ -66,24 +66,25 @@ write(
   "## Governance Checklist\n- [ ] Layout Freeze respected\n- [ ] Artifacts attached",
 );
 
-// Create docs
+// Create docs using structured tree
+// Note: Use docs/architecture/, docs/development/, docs/product/ paths
 write(
-  "docs/GOVERNANCE.md",
+  "docs/development/GOVERNANCE.md",
   "# Governance\n\n## Layout Freeze\n- Single header\n- Single sidebar\n\n## Branding\n- #0061A8 Primary\n- #00A859 Secondary\n- #FFB400 Accent",
 );
 
 write(
-  "docs/AGENT.md",
+  "docs/development/AGENT.md",
   "# Agent Playbook\n\n## Rules\n1. Layout Freeze\n2. Use tokens\n3. Halt-Fix-Verify\n\n## Scripts\n- npm run consolidate:dry\n- npm run ui:freeze:check",
 );
 
 write(
-  "docs/CONSOLIDATION_PLAN.md",
+  "docs/development/CONSOLIDATION_PLAN.md",
   "# Consolidation Plan\n\n## Phase 0: Baseline\n- Create configs\n\n## Phase 1: Consolidation\n- Find duplicates\n- Move to .trash",
 );
 
 write(
-  "docs/VERIFICATION.md",
+  "docs/development/VERIFICATION.md",
   "# Verification Protocol\n\n## Process\n1. Navigate\n2. Capture errors\n3. HALT\n4. Fix\n5. Re-test\n6. Attach artifacts",
 );
 

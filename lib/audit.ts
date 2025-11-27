@@ -20,196 +20,8 @@ export type AuditEvent = {
   success?: boolean;    // Whether action succeeded
   error?: string;       // Error message if failed
   timestamp?: string;   // ISO timestamp (auto-added)
-  orgId?: string;       // Organization ID for multi-tenancy (REQUIRED - should always be provided)
+  orgId?: string;       // Organization ID for multi-tenancy
 };
-
-/**
- * AUDIT-001 FIX: Action Mapping to AuditLog ActionType Enum
- * 
- * Maps dotted action strings (e.g., "user.create") to AuditLog ActionType enum values.
- * ActionType enum: CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT, EXPORT, IMPORT, 
- *                  APPROVE, REJECT, SEND, RECEIVE, UPLOAD, DOWNLOAD, SHARE, 
- *                  ARCHIVE, RESTORE, ACTIVATE, DEACTIVATE, CUSTOM
- * 
- * Original action preserved in metadata.rawAction for searchability.
- */
-const actionToVerb: Record<string, string> = {
-  // Create actions
-  'user.create': 'CREATE',
-  'role.create': 'CREATE',
-  'permission.create': 'CREATE',
-  'security.apiKeyCreate': 'CREATE',
-  
-  // Update actions
-  'user.update': 'UPDATE',
-  'role.update': 'UPDATE',
-  'permission.update': 'UPDATE',
-  'user.assignRole': 'UPDATE',
-  'user.removeRole': 'UPDATE',
-  'role.assignPermission': 'UPDATE',
-  'role.removePermission': 'UPDATE',
-  'user.grantSuperAdmin': 'UPDATE',
-  'user.revokeSuperAdmin': 'UPDATE',
-  'auth.passwordChange': 'UPDATE',
-  'auth.passwordReset': 'UPDATE',
-  'security.settingsChange': 'UPDATE',
-  'data.bulkUpdate': 'UPDATE',
-  
-  // Delete actions
-  'user.delete': 'DELETE',
-  'role.delete': 'DELETE',
-  'permission.delete': 'DELETE',
-  'data.bulkDelete': 'DELETE',
-  
-  // Auth actions
-  'auth.login': 'LOGIN',
-  'auth.logout': 'LOGOUT',
-  'auth.failedLogin': 'LOGIN',
-  
-  // Data operations
-  'data.export': 'EXPORT',
-  'data.import': 'IMPORT',
-  'compliance.reportGenerate': 'EXPORT',
-  
-  // MFA / Security
-  'auth.mfaEnable': 'ACTIVATE',
-  'auth.mfaDisable': 'DEACTIVATE',
-  'user.lock': 'DEACTIVATE',
-  'user.unlock': 'ACTIVATE',
-  'security.apiKeyRevoke': 'DEACTIVATE',
-  
-  // Impersonation
-  'impersonate.start': 'CUSTOM',
-  'impersonate.end': 'CUSTOM',
-  
-  // Compliance
-  'compliance.auditLogAccess': 'READ',
-  
-  // API access
-  'api.access.denied': 'CUSTOM',
-  'api.access.forbidden': 'CUSTOM',
-};
-
-/**
- * AUDIT-005 FIX: Entity Type Mapping to AuditLog EntityType Enum
- * 
- * Maps various entity type strings to AuditLog EntityType enum values.
- * EntityType enum: USER, PROPERTY, TENANT, OWNER, CONTRACT, PAYMENT, INVOICE, 
- *                  WORKORDER, TICKET, PROJECT, BID, VENDOR, SERVICE_PROVIDER, 
- *                  DOCUMENT, SETTING, OTHER
- */
-const entityTypeMap: Record<string, string> = {
-  'user': 'USER',
-  'users': 'USER',
-  'role': 'SETTING',
-  'roles': 'SETTING',
-  'permission': 'SETTING',
-  'permissions': 'SETTING',
-  'property': 'PROPERTY',
-  'properties': 'PROPERTY',
-  'tenant': 'TENANT',
-  'tenants': 'TENANT',
-  'owner': 'OWNER',
-  'owners': 'OWNER',
-  'contract': 'CONTRACT',
-  'contracts': 'CONTRACT',
-  'payment': 'PAYMENT',
-  'payments': 'PAYMENT',
-  'invoice': 'INVOICE',
-  'invoices': 'INVOICE',
-  'workorder': 'WORKORDER',
-  'workorders': 'WORKORDER',
-  'work_order': 'WORKORDER',
-  'work_orders': 'WORKORDER',
-  'ticket': 'TICKET',
-  'tickets': 'TICKET',
-  'project': 'PROJECT',
-  'projects': 'PROJECT',
-  'bid': 'BID',
-  'bids': 'BID',
-  'vendor': 'VENDOR',
-  'vendors': 'VENDOR',
-  'service_provider': 'SERVICE_PROVIDER',
-  'service_providers': 'SERVICE_PROVIDER',
-  'document': 'DOCUMENT',
-  'documents': 'DOCUMENT',
-  'setting': 'SETTING',
-  'settings': 'SETTING',
-};
-
-/**
- * AUDIT-004 FIX: Redact Sensitive Fields from Metadata
- * 
- * Removes PII and security-sensitive fields before external logging.
- * Prevents exposure of passwords, tokens, API keys, SSNs, credit cards in logs/Sentry.
- * 
- * @param data Object to redact
- * @returns Sanitized copy with sensitive fields removed
- */
-function redactSensitiveFields(data: unknown): unknown {
-  if (data === null || data === undefined) {
-    return data;
-  }
-
-  if (typeof data !== 'object') {
-    return data;
-  }
-
-  if (Array.isArray(data)) {
-    return data.map(item => redactSensitiveFields(item));
-  }
-
-  const sensitiveKeys = [
-    'password',
-    'token',
-    'secret',
-    'apiKey',
-    'api_key',
-    'accessToken',
-    'access_token',
-    'refreshToken',
-    'refresh_token',
-    'authToken',
-    'auth_token',
-    'bearerToken',
-    'bearer_token',
-    'ssn',
-    'socialSecurityNumber',
-    'creditCard',
-    'credit_card',
-    'cardNumber',
-    'card_number',
-    'cvv',
-    'pin',
-    'privateKey',
-    'private_key',
-    'credentials',
-    // PII fields (AUDIT-004 enhancement)
-    'email',
-    'phone',
-    'mobile',
-    'phoneNumber',
-    'phone_number',
-    'mobileNumber',
-    'mobile_number',
-  ];
-
-  const result: Record<string, unknown> = {};
-  
-  for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
-    const lowerKey = key.toLowerCase();
-    
-    if (sensitiveKeys.some(sensitive => lowerKey.includes(sensitive))) {
-      result[key] = '[REDACTED]';
-    } else if (typeof value === 'object' && value !== null) {
-      result[key] = redactSensitiveFields(value);
-    } else {
-      result[key] = value;
-    }
-  }
-
-  return result;
-}
 
 /**
  * Audit log to console and/or database
@@ -219,80 +31,146 @@ function redactSensitiveFields(data: unknown): unknown {
  * - ✅ Sends to external logging service (Sentry)
  * - ✅ Triggers alerts for critical actions (logger.warn with high priority)
  * 
- * FIXES APPLIED (2025-11-25):
- * - AUDIT-001: Action mapping to ActionType enum with rawAction preservation
- * - AUDIT-002: Enforced mandatory orgId for multi-tenant isolation
- * - AUDIT-003: Success defaults to true (not false) for undefined values
- * - AUDIT-004: PII/secret redaction before external logging
- * - AUDIT-005: Entity type mapping to EntityType enum
- * 
  * @param event Audit event data
  */
 export async function audit(event: AuditEvent): Promise<void> {
-  // AUDIT-002 FIX: Enforce mandatory orgId for multi-tenant isolation
-  // Log error but don't throw to maintain backwards compatibility
-  if (!event.orgId || event.orgId.trim() === '') {
-    logger.error('[AUDIT] CRITICAL: orgId missing - violates multi-tenant isolation', {
-      actorId: event.actorId,
-      actorEmail: event.actorEmail,
-      action: event.action,
-      timestamp: new Date().toISOString(),
-      stackTrace: new Error().stack,
-    });
-    // Return early - do not write audit logs without orgId
+  const orgId = event.orgId?.trim();
+  if (!orgId) {
+    logger.error('[AUDIT] CRITICAL: orgId missing', { event });
     return;
   }
 
+  const rawAction = event.action;
+  // AUDIT-001 FIX: Comprehensive action mapping to ActionType enum
+  const ACTION_MAP: Record<string, string> = {
+    // Create actions
+    'user.create': 'CREATE',
+    'role.create': 'CREATE',
+    'permission.create': 'CREATE',
+    'security.apiKeyCreate': 'CREATE',
+    // Update actions
+    'user.update': 'UPDATE',
+    'user.grantSuperAdmin': 'UPDATE',
+    'user.revokeSuperAdmin': 'UPDATE',
+    'user.assignRole': 'UPDATE',
+    'user.removeRole': 'UPDATE',
+    'auth.passwordChange': 'UPDATE',
+    'auth.passwordReset': 'UPDATE',
+    // Delete actions
+    'user.delete': 'DELETE',
+    'role.delete': 'DELETE',
+    'permission.delete': 'DELETE',
+    // Auth actions
+    'auth.login': 'LOGIN',
+    'auth.logout': 'LOGOUT',
+    'auth.failedLogin': 'LOGIN',
+    // Data operations
+    'data.export': 'EXPORT',
+    'data.import': 'IMPORT',
+    // MFA/Security
+    'auth.mfaEnable': 'ACTIVATE',
+    'auth.mfaDisable': 'DEACTIVATE',
+    'user.lock': 'DEACTIVATE',
+    'user.unlock': 'ACTIVATE',
+    // Impersonation
+    'impersonate.start': 'CUSTOM',
+    'impersonate.end': 'CUSTOM',
+  };
+  const action = ACTION_MAP[rawAction] ?? 'CUSTOM';
+
+  const targetType = (event.targetType || '').toLowerCase();
+  // AUDIT-005 FIX: Comprehensive entity type mapping
+  const ENTITY_MAP: Record<string, string> = {
+    user: 'USER',
+    users: 'USER',
+    role: 'SETTING',
+    permission: 'SETTING',
+    property: 'PROPERTY',
+    properties: 'PROPERTY',
+    tenant: 'TENANT',
+    owner: 'OWNER',
+    contract: 'CONTRACT',
+    payment: 'PAYMENT',
+    invoice: 'INVOICE',
+    workorder: 'WORKORDER',
+    work_order: 'WORKORDER',
+    ticket: 'TICKET',
+    project: 'PROJECT',
+    bid: 'BID',
+    vendor: 'VENDOR',
+    document: 'DOCUMENT',
+    setting: 'SETTING',
+  };
+  const entityType = ENTITY_MAP[targetType] ?? 'OTHER';
+
+  // AUDIT-004 FIX: Comprehensive PII redaction
+  const SENSITIVE_KEYS = [
+    'password', 'token', 'secret', 'apiKey', 'api_key',
+    'accessToken', 'refreshToken', 'authToken', 'bearerToken',
+    'ssn', 'socialSecurityNumber', 'creditCard', 'cardNumber', 'cvv', 'pin',
+    'privateKey', 'credentials',
+    // PII fields
+    'email', 'phone', 'mobile', 'phoneNumber', 'mobileNumber',
+  ];
+  const redactSensitive = (obj: Record<string, unknown>): Record<string, unknown> => {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const lowerKey = key.toLowerCase();
+      if (SENSITIVE_KEYS.some(s => lowerKey.includes(s))) {
+        result[key] = '[REDACTED]';
+      } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+        result[key] = redactSensitive(value as Record<string, unknown>);
+      } else {
+        result[key] = value;
+      }
+    }
+    return result;
+  };
+  const sanitizedMeta = redactSensitive(event.meta || {});
+
   const entry: AuditEvent = {
     ...event,
+    orgId,
+    action,
+    targetType: entityType,
+    meta: {
+      ...sanitizedMeta,
+      rawAction,
+    },
+    success: event.success !== false,
     timestamp: event.timestamp || new Date().toISOString(),
   };
 
-  // AUDIT-004 FIX: Redact sensitive fields before logging
-  const safeEntry = {
-    ...entry,
-    meta: redactSensitiveFields(entry.meta) as Record<string, unknown>,
-  };
-
-  // Structured logging with redacted metadata
-  logger.info('[AUDIT]', safeEntry);
+  // Structured logging
+  logger.info('[AUDIT]', entry);
 
   // ✅ Write to database
   try {
-    const entityId = (event.meta?.targetId as string | undefined) || undefined;
-    
-    // AUDIT-001 FIX: Map action to ActionType enum (default to CUSTOM)
-    const actionVerb = actionToVerb[event.action] || 'CUSTOM';
-    
-    // AUDIT-005 FIX: Map entity type to EntityType enum (default to OTHER)
-    const normalizedTargetType = event.targetType?.toLowerCase() || '';
-    const entityType = entityTypeMap[normalizedTargetType] || 'OTHER';
-    
+    const entityId = (entry.meta?.targetId as string | undefined) || undefined;
     await AuditLogModel.log({
-      orgId: event.orgId,  // ✅ Now guaranteed to be non-empty
-      action: actionVerb,  // ✅ Now maps to ActionType enum
-      entityType: entityType,  // ✅ Now maps to EntityType enum
+      orgId,
+      action: entry.action,
+      entityType: entry.targetType || 'OTHER',
       entityId,
-      entityName: (event.meta?.targetName as string | undefined) || (event.target ? String(event.target) : undefined),
-      userId: event.actorId,
+      entityName: (entry.meta?.targetName as string | undefined) || (entry.target ? String(entry.target) : undefined),
+      userId: entry.actorId,
       context: {
-        ipAddress: event.ipAddress,
-        userAgent: event.userAgent,
+        ipAddress: entry.ipAddress,
+        userAgent: entry.userAgent,
       },
       metadata: {
-        ...(safeEntry.meta || {}),  // ✅ Already redacted
-        rawAction: event.action,  // ✅ Preserve original dotted action for searchability
-        actorEmail: event.actorEmail,
+        ...entry.meta,
+        actorEmail: entry.actorEmail,
         source: 'WEB',
       },
       result: {
-        success: event.success !== false,  // AUDIT-003 FIX: Default to true (not false)
-        errorMessage: event.error,
+        success: entry.success === true,
+        errorMessage: entry.error,
       },
     });
   } catch (dbError: unknown) {
-    // Log database write failures but don't break main operation
-    // Safe error handling: preserve stack trace and original error info
+    // Silent fail - don't break main operation if database write fails
+    // Safe error handling: preserve stack trace
     const errorToLog = dbError instanceof Error ? dbError : new Error(String(dbError));
     logger.error('[AUDIT] Database write failed:', errorToLog);
   }
@@ -303,14 +181,13 @@ export async function audit(event: AuditEvent): Promise<void> {
       // Server-side Sentry integration
       const Sentry = await import('@sentry/nextjs').catch(() => null);
       if (Sentry) {
-        // AUDIT-004 FIX: Use redacted entry for Sentry (no PII leakage)
-        Sentry.captureMessage(`[AUDIT] ${safeEntry.action}`, {
+        Sentry.captureMessage(`[AUDIT] ${entry.action}`, {
           level: 'info',
-          extra: safeEntry,  // ✅ Already redacted
+          extra: entry,
           tags: {
-            audit_action: safeEntry.action,
-            actor_id: safeEntry.actorId,
-            target_type: safeEntry.targetType || 'unknown',
+            audit_action: entry.action,
+            actor_id: entry.actorId,
+            target_type: entry.targetType || 'unknown',
           },
         });
       }
@@ -324,9 +201,9 @@ export async function audit(event: AuditEvent): Promise<void> {
   // Trigger alerts for critical actions (Super Admin, Impersonation)
   if (entry.action.includes('grant') || entry.action.includes('impersonate') || entry.action.includes('revoke')) {
     try {
-      // AUDIT-004 FIX: Use redacted entry for critical alerts
-      logger.warn(`[AUDIT CRITICAL] ${safeEntry.action} by ${safeEntry.actorEmail} on ${safeEntry.target}`, {
-        ...safeEntry,  // ✅ Already redacted
+      // Log critical action with high priority
+      logger.warn(`[AUDIT CRITICAL] ${entry.action} by ${entry.actorEmail} on ${entry.target}`, {
+        ...entry,
         severity: 'critical',
       });
       
@@ -336,13 +213,13 @@ export async function audit(event: AuditEvent): Promise<void> {
       //     method: 'POST',
       //     headers: { 'Content-Type': 'application/json' },
       //     body: JSON.stringify({
-      //       text: `🚨 CRITICAL AUDIT: ${safeEntry.action}`,
-      //       attachments: [{ text: JSON.stringify(safeEntry, null, 2), color: 'danger' }]
+      //       text: `🚨 CRITICAL AUDIT: ${entry.action}`,
+      //       attachments: [{ text: JSON.stringify(entry, null, 2), color: 'danger' }]
       //     })
       //   });
       // }
     } catch (alertError: unknown) {
-      // Safe error handling: preserve stack trace and original error info
+      // Safe error handling: preserve stack trace
       const errorToLog = alertError instanceof Error ? alertError : new Error(String(alertError));
       logger.error('[AUDIT] Failed to send critical action alert:', errorToLog);
     }
@@ -423,14 +300,6 @@ export const AuditActions = {
 
 /**
  * Helper to audit Super Admin actions
- * 
- * @param orgId Organization ID (REQUIRED for multi-tenant isolation)
- * @param action Action performed
- * @param actorId User ID performing the action
- * @param actorEmail User email
- * @param targetId Target user ID (optional)
- * @param targetEmail Target user email (optional)
- * @param meta Additional metadata (optional)
  */
 export async function auditSuperAdminAction(
   orgId: string,
@@ -441,8 +310,18 @@ export async function auditSuperAdminAction(
   targetEmail?: string,
   meta?: Record<string, unknown>
 ): Promise<void> {
+  const normalizedOrgId = orgId?.trim();
+  if (!normalizedOrgId) {
+    logger.error("[AUDIT] CRITICAL: orgId missing for super admin action", {
+      action,
+      actorId,
+      targetId,
+    });
+    return;
+  }
+
   await audit({
-    orgId,  // ✅ AUDIT-006 FIX: Pass orgId to prevent empty-string writes
+    orgId: normalizedOrgId,
     actorId,
     actorEmail,
     action,
@@ -458,14 +337,6 @@ export async function auditSuperAdminAction(
 
 /**
  * Helper to audit impersonation
- * 
- * @param orgId Organization ID (REQUIRED for multi-tenant isolation)
- * @param actorId User ID performing impersonation
- * @param actorEmail User email
- * @param targetId Target user ID being impersonated
- * @param targetEmail Target user email
- * @param action 'start' or 'end' impersonation
- * @param meta Additional metadata (optional)
  */
 export async function auditImpersonation(
   orgId: string,
@@ -476,8 +347,18 @@ export async function auditImpersonation(
   action: 'start' | 'end',
   meta?: Record<string, unknown>
 ): Promise<void> {
+  const normalizedOrgId = orgId?.trim();
+  if (!normalizedOrgId) {
+    logger.error("[AUDIT] CRITICAL: orgId missing for impersonation action", {
+      actorId,
+      targetId,
+      action,
+    });
+    return;
+  }
+
   await audit({
-    orgId,  // ✅ AUDIT-006 FIX: Pass orgId to prevent empty-string writes
+    orgId: normalizedOrgId,
     actorId,
     actorEmail,
     action: action === 'start' ? AuditActions.IMPERSONATE_START : AuditActions.IMPERSONATE_END,

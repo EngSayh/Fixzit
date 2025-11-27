@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Only admins can create corporate subscriptions
-    if (!["SUPER_ADMIN", "ADMIN"].includes(user.role)) {
+    if (!["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(user.role)) {
       return forbiddenError("Admin role required for corporate subscriptions");
     }
 

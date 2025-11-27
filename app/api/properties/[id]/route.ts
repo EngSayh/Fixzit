@@ -119,7 +119,7 @@ export async function GET(
 
     const property = await Property.findOne({
       _id: params.id,
-      tenantId: user.tenantId,
+      orgId: user.orgId,
     });
 
     if (!property) {
@@ -174,7 +174,7 @@ export async function DELETE(
 
     // Soft delete by updating status
     const property = await Property.findOneAndUpdate(
-      { _id: params.id, tenantId: user.tenantId },
+      { _id: params.id, orgId: user.orgId },
       { $set: { "units.$[].status": "SOLD", updatedBy: user.id } },
       { new: true },
     );

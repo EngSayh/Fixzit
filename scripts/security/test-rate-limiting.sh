@@ -20,12 +20,18 @@ fi
 
 OTP_IDENTIFIER="${OTP_IDENTIFIER:-${FIXZIT_OTP_IDENTIFIER:-admin@fixzit.co}}"
 OTP_PASSWORD="${OTP_PASSWORD:-${FIXZIT_OTP_PASSWORD:-Admin@123}}"
+OTP_COMPANY_CODE="${OTP_COMPANY_CODE:-${FIXZIT_OTP_COMPANY_CODE:-}}"
 OTP_INVALID_CODE="${OTP_INVALID_CODE:-999999}"
 CLAIMS_SESSION_COOKIE="${CLAIMS_SESSION_COOKIE:-${FIXZIT_SESSION_COOKIE:-}}"
 CLAIM_ID="${CLAIM_ID:-${FIXZIT_CLAIM_ID:-}}"
 
-OTP_SEND_PAYLOAD=$(jq -nc --arg id "$OTP_IDENTIFIER" --arg pwd "$OTP_PASSWORD" '{identifier:$id,password:$pwd}')
-OTP_VERIFY_PAYLOAD=$(jq -nc --arg id "$OTP_IDENTIFIER" --arg otp "$OTP_INVALID_CODE" '{identifier:$id,otp:$otp}')
+if [ -n "$OTP_COMPANY_CODE" ]; then
+  OTP_SEND_PAYLOAD=$(jq -nc --arg id "$OTP_IDENTIFIER" --arg pwd "$OTP_PASSWORD" --arg cc "$OTP_COMPANY_CODE" '{identifier:$id,password:$pwd,companyCode:$cc}')
+  OTP_VERIFY_PAYLOAD=$(jq -nc --arg id "$OTP_IDENTIFIER" --arg otp "$OTP_INVALID_CODE" --arg cc "$OTP_COMPANY_CODE" '{identifier:$id,otp:$otp,companyCode:$cc}')
+else
+  OTP_SEND_PAYLOAD=$(jq -nc --arg id "$OTP_IDENTIFIER" --arg pwd "$OTP_PASSWORD" '{identifier:$id,password:$pwd}')
+  OTP_VERIFY_PAYLOAD=$(jq -nc --arg id "$OTP_IDENTIFIER" --arg otp "$OTP_INVALID_CODE" '{identifier:$id,otp:$otp}')
+fi
 
 # Colors
 RED='\033[0;31m'

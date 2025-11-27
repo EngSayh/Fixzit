@@ -65,7 +65,8 @@ describe('api/fm/properties route', () => {
     });
     expect(body.pagination).toMatchObject({ page: 1, total: 2, totalPages: 1 });
     const collection = getCollectionMock();
-    expect(collection.find).toHaveBeenCalledWith({ org_id: 'tenant-1' });
+    // AUDIT-2025-11-26: Changed from org_id to orgId per STRICT v4.1
+    expect(collection.find).toHaveBeenCalledWith({ orgId: 'tenant-1' });
   });
 
   it('validates payload when creating properties', async () => {
