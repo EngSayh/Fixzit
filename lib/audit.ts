@@ -184,6 +184,14 @@ function redactSensitiveFields(data: unknown): unknown {
     'privateKey',
     'private_key',
     'credentials',
+    // PII fields (AUDIT-004 enhancement)
+    'email',
+    'phone',
+    'mobile',
+    'phoneNumber',
+    'phone_number',
+    'mobileNumber',
+    'mobile_number',
   ];
 
   const result: Record<string, unknown> = {};
@@ -284,7 +292,9 @@ export async function audit(event: AuditEvent): Promise<void> {
     });
   } catch (dbError: unknown) {
     // Log database write failures but don't break main operation
-    logger.error('[AUDIT] Database write failed:', dbError as Error);
+    // Safe error handling: preserve stack trace and original error info
+    const errorToLog = dbError instanceof Error ? dbError : new Error(String(dbError));
+    logger.error('[AUDIT] Database write failed:', errorToLog);
   }
 
   // Send to external monitoring service (Sentry)
@@ -332,7 +342,9 @@ export async function audit(event: AuditEvent): Promise<void> {
       //   });
       // }
     } catch (alertError: unknown) {
-      logger.error('[AUDIT] Failed to send critical action alert:', alertError as Error);
+      // Safe error handling: preserve stack trace and original error info
+      const errorToLog = alertError instanceof Error ? alertError : new Error(String(alertError));
+      logger.error('[AUDIT] Failed to send critical action alert:', errorToLog);
     }
   }
 }
