@@ -19,7 +19,8 @@ export async function POST(
   try {
     const actor = await requireFmAbility("ASSIGN")(req);
     if (actor instanceof NextResponse) return actor;
-    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId);
+    const isSuperAdmin = actor.role === 'SUPER_ADMIN';
+    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId, { isSuperAdmin });
     if ("error" in tenantResult) return tenantResult.error;
     const { tenantId } = tenantResult;
     const actorId = getCanonicalUserId(actor);
@@ -33,32 +34,32 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { assigneeId, technicianId, notes } = body ?? {};
-    if (!assigneeId && !technicianId) {
-      return FMErrors.validationError("assigneeId or technicianId is required");
+    const { assigneeId, technicianId, vendorId, notes } = body ?? {};
+    if (!assigneeId && !technicianId && !vendorId) {
+      return FMErrors.validationError("assigneeId, technicianId, or vendorId is required");
     }
 
     const db = await getDatabase();
     const now = new Date();
+    // STRICT v4.1: Use canonical assignment.assignedTo structure only
     const update: Record<string, unknown> = {
       updatedAt: now,
       assignment: {
+        assignedTo: {
+          userId: assigneeId || technicianId,
+          vendorId: vendorId,
+          assignedAt: now,
+        },
         assignedBy: actorId,
         assignedAt: now,
         notes,
       },
     };
 
-    if (assigneeId) {
-      update.assigneeId = assigneeId;
-    }
-    if (technicianId) {
-      update.technicianId = technicianId;
-    }
-
     const collection = db.collection<WorkOrderDocument>("workorders");
+    // RBAC-001 FIX: Use tenantId variable (has fallback) for STRICT v4 tenant isolation
     const result = await collection.findOneAndUpdate(
-      { _id: new ObjectId(workOrderId), tenantId },
+      { _id: new ObjectId(workOrderId), orgId: tenantId },
       { $set: update },
       { returnDocument: "after" },
     );
@@ -69,14 +70,19 @@ export async function POST(
       return FMErrors.notFound("Work order");
     }
 
+    // RBAC-001 FIX: Use tenantId variable (has fallback) for timeline entry
     await recordTimelineEntry(db, {
       workOrderId,
-      tenantId,
+      tenantId: tenantId, // FIX: Use tenantId variable (has fallback to actor.tenantId)
       action: "assigned",
       description: notes
         ? `Assigned with note: ${notes}`
         : "Assignment updated",
-      metadata: { assigneeId, technicianId },
+      metadata: { 
+        userId: assigneeId || technicianId,
+        vendorId,
+        assignmentType: vendorId ? 'vendor' : 'internal',
+      },
       performedBy: actorId,
       performedAt: now,
     });

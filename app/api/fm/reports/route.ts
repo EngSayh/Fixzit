@@ -85,7 +85,7 @@ const mapJob = (doc: ReportJobDocument) => ({
 export async function GET(req: NextRequest) {
   try {
     const actor = await requireFmPermission(req, {
-      module: ModuleKey.FINANCE,
+      module: ModuleKey.REPORTS,
       action: FMAction.EXPORT,
     });
     if (actor instanceof NextResponse) return actor;
@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const actor = await requireFmPermission(req, {
-      module: ModuleKey.FINANCE,
+      module: ModuleKey.REPORTS,
       action: FMAction.EXPORT,
     });
     if (actor instanceof NextResponse) return actor;
