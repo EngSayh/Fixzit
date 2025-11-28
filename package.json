@@ -270,7 +270,8 @@
       "vite": "^7.1.11",
       "import-in-the-middle": "1.15.0",
       "require-in-the-middle": "7.5.2",
-      "mongodb": "6.21.0"
+      "mongodb": "6.21.0",
+      "node-forge": ">=1.3.2"
     }
   },
   "simple-git-hooks": {
