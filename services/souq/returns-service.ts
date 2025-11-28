@@ -82,12 +82,16 @@ class ReturnsService {
   /**
    * Check if an order item is eligible for return
    */
-  async checkEligibility(orderId: string, listingId: string): Promise<{
+  async checkEligibility(
+    orderId: string,
+    listingId: string,
+    preloadedOrder?: IOrder | null,
+  ): Promise<{
     eligible: boolean;
     reason?: string;
     daysRemaining?: number;
   }> {
-    const order = await this.findOrder(orderId);
+    const order = preloadedOrder ?? (await this.findOrder(orderId));
     if (!order) {
       return { eligible: false, reason: 'Order not found' };
     }
@@ -146,7 +150,7 @@ class ReturnsService {
 
     // Validate eligibility for all items
     for (const item of items) {
-      const eligibility = await this.checkEligibility(orderId, item.listingId);
+      const eligibility = await this.checkEligibility(orderId, item.listingId, order);
       if (!eligibility.eligible) {
         throw new Error(`Item ${item.listingId} not eligible: ${eligibility.reason}`);
       }
@@ -361,7 +365,15 @@ class ReturnsService {
 
     const order = await this.findOrder(rma.orderId);
     if (!order) {
-      throw new Error('Order not found for RMA');
+      logger.error(
+        {
+          rmaId: rma._id?.toString?.(),
+          orderId: rma.orderId?.toString?.(),
+          buyerId: rma.buyerId?.toString?.(),
+        },
+        "RMA return label generation failed: order not found",
+      );
+      throw new Error(`Order not found for RMA ${rma.orderId}`);
     }
     
     // Get buyer's address from order
@@ -598,6 +610,32 @@ class ReturnsService {
 
     // Calculate refund amount
     const refundAmount = await this.calculateRefundAmount(rmaId, condition, restockable);
+
+    // If nothing is refundable, close the RMA to avoid stuck "inspected" states
+    if (refundAmount <= 0) {
+      const transactionId = `REF-${Date.now()}-${rma._id.toString().slice(-6)}`;
+      const timeline = Array.isArray(rma.timeline) ? rma.timeline : [];
+      timeline.push({
+        status: 'completed',
+        timestamp: now,
+        note: 'No refund due after inspection; closing RMA',
+        performedBy: inspectorId,
+      });
+
+      rma.timeline = timeline;
+      rma.status = 'completed';
+      rma.completedAt = now;
+      rma.refund = {
+        amount: 0,
+        method: 'original_payment',
+        processedBy: inspectorId,
+        processedAt: now,
+        transactionId,
+        status: 'completed',
+      };
+      await rma.save();
+      return;
+    }
     
     // Auto-process refund for approved returns
     if (refundAmount > 0) {

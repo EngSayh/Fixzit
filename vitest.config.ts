@@ -56,8 +56,8 @@ export default defineConfig({
           environment: "jsdom",
           env: {
             ...sharedProjectConfig.env,
-            // Skip MongoMemoryServer for client/jsdom runs; server project handles DB tests
-            SKIP_GLOBAL_MONGO: "true",
+            // Enable MongoMemoryServer for client/jsdom runs that exercise services
+            SKIP_GLOBAL_MONGO: "false",
           },
           include: ["**/*.test.ts", "**/*.test.tsx"],
           exclude: [

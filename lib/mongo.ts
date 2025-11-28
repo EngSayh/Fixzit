@@ -4,6 +4,10 @@ import { getEnv } from "@/lib/env";
 
 // Vercel Functions database pool management for serverless optimization
 let attachDatabasePool: ((client: unknown) => void) | undefined;
+
+const isTruthy = (value?: string): boolean =>
+  value === "true" || value === "1";
+
 async function loadAttachDatabasePool(): Promise<typeof attachDatabasePool> {
   if (attachDatabasePool !== undefined) return attachDatabasePool;
   try {
@@ -78,11 +82,11 @@ interface DatabaseHandle {
 const rawMongoUri = getEnv("MONGODB_URI");
 const dbName = process.env.MONGODB_DB || "fixzit";
 const isProd = process.env.NODE_ENV === "production";
-const allowLocalMongo = process.env.ALLOW_LOCAL_MONGODB === "true";
+const allowLocalMongo = isTruthy(process.env.ALLOW_LOCAL_MONGODB);
 const isNextBuild = process.env.NEXT_PHASE === "phase-production-build";
 const disableMongoForBuild =
-  process.env.DISABLE_MONGODB_FOR_BUILD === "true" || isNextBuild;
-const allowOfflineMongo = process.env.ALLOW_OFFLINE_MONGODB === "true";
+  isTruthy(process.env.DISABLE_MONGODB_FOR_BUILD) || isNextBuild;
+const allowOfflineMongo = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
 
 function resolveMongoUri(): string {
   if (disableMongoForBuild) {

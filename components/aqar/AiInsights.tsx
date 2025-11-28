@@ -3,15 +3,15 @@
 import { Sparkles, TrendingUp, Cpu, ShieldCheck } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
 import type {
-  IListingPricingInsights,
-  IListingProptech,
-} from "@/models/aqar/Listing";
+  ListingPricingInsights,
+  ListingProptech,
+} from "@/lib/aqar/client-types";
 
 interface AiInsightsProps {
   aiScore?: number;
-  pricing?: IListingPricingInsights;
+  pricing?: ListingPricingInsights;
   rnplEligible?: boolean;
-  proptech?: IListingProptech;
+  proptech?: ListingProptech;
   city?: string;
   neighborhood?: string;
 }

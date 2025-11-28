@@ -9,6 +9,8 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { reviewService } from "@/services/souq/reviews/review-service";
 import { SellerReviewsDashboard } from "@/components/marketplace/seller-central/SellerReviewsDashboard";
+import type { IReview } from "@/server/models/souq/Review";
+import type { SellerReview } from "@/lib/souq/review-types";
 
 export const metadata: Metadata = {
   title: "Product Reviews | Seller Central",
@@ -39,6 +41,38 @@ export default async function SellerReviewsPage({
   // Get seller stats
   const stats = await reviewService.getSellerReviewStats(session.user.id);
 
+  const toClientReview = (review: IReview): SellerReview => ({
+    reviewId: review.reviewId,
+    productId: review.productId?.toString?.(),
+    fsin: review.fsin,
+    customerName: review.customerName,
+    isVerifiedPurchase: review.isVerifiedPurchase,
+    rating: review.rating,
+    title: review.title,
+    content: review.content,
+    pros: review.pros,
+    cons: review.cons,
+    images: review.images,
+    helpful: review.helpful,
+    notHelpful: review.notHelpful,
+    sellerResponse: review.sellerResponse
+      ? {
+          content: review.sellerResponse.content,
+          respondedAt: review.sellerResponse.respondedAt,
+          respondedBy: review.sellerResponse.respondedBy.toString(),
+        }
+      : undefined,
+    status: review.status,
+    moderationNotes: review.moderationNotes,
+    reportedCount: review.reportedCount,
+    reportReasons: review.reportReasons,
+    createdAt: review.createdAt,
+    updatedAt: review.updatedAt,
+    publishedAt: review.publishedAt,
+  });
+
+  const clientReviews = reviewsData.reviews.map(toClientReview);
+
   return (
     <SellerReviewsDashboard
       stats={{
@@ -47,7 +81,7 @@ export default async function SellerReviewsPage({
         responseRate: stats.responseRate,
         pendingResponses: stats.pendingResponses,
       }}
-      reviews={reviewsData.reviews}
+      reviews={clientReviews}
       totalPages={reviewsData.totalPages}
       page={page}
       status={status as "published" | "pending" | "flagged"}

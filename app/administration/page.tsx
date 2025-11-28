@@ -51,7 +51,7 @@ import UserModal, { type UserFormData } from "@/components/admin/UserModal";
 import { logger } from "@/lib/logger";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useAuthRbac } from "@/hooks/useAuthRbac";
-import { SubRole } from "@/domain/fm/fm.behavior";
+import { SubRole } from "@/lib/rbac/client-roles";
 import {
   adminApi,
   type OrgSettings,

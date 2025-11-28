@@ -2,14 +2,17 @@ import { logger } from "@/lib/logger";
 import mongoose from "mongoose";
 import { connectMongo as ensureDatabaseHandle } from "@/lib/mongo";
 
+const isTruthy = (value?: string): boolean =>
+  value === "true" || value === "1";
+
 declare global {
   var _mongooseConnection: typeof mongoose | undefined;
 }
 
 const isNextBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
 const disableMongoForBuild =
-  process.env.DISABLE_MONGODB_FOR_BUILD === "true" ||
-  (isNextBuildPhase && process.env.ALLOW_MONGODB_DURING_BUILD !== "true");
+  isTruthy(process.env.DISABLE_MONGODB_FOR_BUILD) ||
+  (isNextBuildPhase && !isTruthy(process.env.ALLOW_MONGODB_DURING_BUILD));
 let connectPromise: Promise<typeof mongoose> | null = null;
 
 function createBuildDisabledError(): Error & { code: string } {

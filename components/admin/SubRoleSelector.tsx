@@ -1,12 +1,11 @@
 /**
  * SubRoleSelector Component (STRICT v4.1)
- * 
- * Dropdown for selecting Team Member sub-role specialization.
- * Only visible when user role is TEAM_MEMBER.
- * 
+ *
+ * Dropdown for selecting sub-role specialization for eligible roles.
+ *
  * Features:
  * - Displays module access for each sub-role
- * - Validates selection (only TEAM_MEMBER can have sub-roles)
+ * - Validates selection (only eligible roles can have sub-roles)
  * - RTL support
  * - WCAG 2.1 AA compliant
  */
@@ -14,7 +13,13 @@
 "use client";
 
 import React from "react";
-import { SubRole, Role, ModuleKey, computeAllowedModules } from "@/domain/fm/fm.behavior";
+import {
+  SubRole,
+  Role,
+  ModuleKey,
+  computeAllowedModules,
+  normalizeRole,
+} from "@/lib/rbac/client-roles";
 import { useTranslation } from "@/contexts/TranslationContext";
 
 interface SubRoleSelectorProps {
@@ -77,11 +82,19 @@ export default function SubRoleSelector({
   className = "",
 }: SubRoleSelectorProps) {
   const { t } = useTranslation();
-  
-  // Only show for TEAM_MEMBER role
-  const isTeamMember = role === Role.TEAM_MEMBER || role === "TEAM_MEMBER";
-  
-  if (!isTeamMember) {
+
+  const normalizedRole = normalizeRole(role);
+  const eligibleRoles = new Set<Role>([
+    Role.FINANCE,
+    Role.HR,
+    Role.SUPPORT,
+    Role.OPERATIONS_MANAGER,
+    Role.FINANCE_OFFICER,
+    Role.HR_OFFICER,
+    Role.SUPPORT_AGENT,
+  ]);
+
+  if (!normalizedRole || !eligibleRoles.has(normalizedRole)) {
     return null;
   }
   
@@ -92,8 +105,8 @@ export default function SubRoleSelector({
   
   // Get allowed modules for selected sub-role
   const allowedModules = value
-    ? computeAllowedModules(Role.TEAM_MEMBER, value as SubRole)
-    : computeAllowedModules(Role.TEAM_MEMBER);
+    ? computeAllowedModules(normalizedRole, value as SubRole)
+    : computeAllowedModules(normalizedRole);
   
   return (
     <div className={`space-y-2 ${className}`}>

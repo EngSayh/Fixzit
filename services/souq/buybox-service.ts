@@ -43,7 +43,7 @@ export class BuyBoxService {
       .populate("sellerId")
       .lean();
 
-    const typedListings = (listings as unknown as BuyBoxCandidate[]).filter(
+    let typedListings = (listings as unknown as BuyBoxCandidate[]).filter(
       (listing) =>
         listing.status === "active" &&
         listing.buyBoxEligible &&
@@ -51,7 +51,18 @@ export class BuyBoxService {
     );
 
     if (typedListings.length === 0) {
-      return null;
+      const fallbackListings = await SouqListing.find({ fsin })
+        .populate("sellerId")
+        .lean();
+      typedListings = (fallbackListings as unknown as BuyBoxCandidate[]).filter(
+        (listing) =>
+          listing.status === "active" &&
+          listing.buyBoxEligible !== false &&
+          (listing.availableQuantity ?? 0) > 0,
+      );
+      if (typedListings.length === 0) {
+        return null;
+      }
     }
 
     if (typedListings.length === 1) {
@@ -227,9 +238,13 @@ export class BuyBoxService {
       .sort(sortQuery);
 
     if (offers.length === 0) {
-      return SouqListing.find({ fsin })
+      const fallbackOffers = await SouqListing.find({ fsin })
         .populate("sellerId", "legalName tradeName accountHealth")
         .sort(sortQuery);
+      if (fallbackOffers.length > 0) {
+        return fallbackOffers;
+      }
+      return [];
     }
 
     return offers;

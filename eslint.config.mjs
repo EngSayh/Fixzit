@@ -5,7 +5,9 @@ import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
+import importPlugin from "eslint-plugin-import";
 import nextPlugin from "@next/eslint-plugin-next";
+import path from "node:path";
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 export default [
@@ -85,6 +87,7 @@ export default [
     },
     plugins: {
       "react-hooks": reactHooks,
+      import: importPlugin,
       "@next/next": nextPlugin,
       "@typescript-eslint": tseslint.plugin,
     },
@@ -329,6 +332,62 @@ export default [
           caughtErrorsIgnorePattern: "^_",
         },
       ],
+    },
+  },
+
+  // Client-side guardrails to prevent server-only imports in bundles
+  {
+    files: ["components/**/*.{ts,tsx}", "pages/**/*.{ts,tsx}"],
+    rules: {
+      "import/no-restricted-paths": [
+        "error",
+        {
+          zones: [
+            {
+              target: "./components",
+              from: [
+                "./server",
+                "./domain",
+                "./models",
+                "./server/models",
+                "./domain/fm/fm.behavior",
+                "mongoose",
+              ],
+              message:
+                "Do not import server-only modules (models/mongoose/fm.behavior) into client components. Use client-safe facades (e.g., lib/rbac/client-roles).",
+            },
+            {
+              target: "./pages",
+              from: [
+                "./server",
+                "./domain",
+                "./models",
+                "./server/models",
+                "./domain/fm/fm.behavior",
+                "mongoose",
+              ],
+              message:
+                "Do not import server-only modules (models/mongoose/fm.behavior) into client components. Use client-safe facades (e.g., lib/rbac/client-roles).",
+            },
+          ],
+        },
+      ],
+    },
+    settings: {
+      "import/resolver": {
+        node: true,
+        alias: {
+          map: [
+            ["@", path.resolve("./")],
+            ["@/app", path.resolve("./app")],
+            ["@/components", path.resolve("./components")],
+            ["@/lib", path.resolve("./lib")],
+            ["@/domain", path.resolve("./domain")],
+            ["@/server", path.resolve("./server")],
+          ],
+          extensions: [".ts", ".tsx", ".js", ".jsx"],
+        },
+      },
     },
   },
 ];

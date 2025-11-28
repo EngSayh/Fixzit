@@ -18,7 +18,9 @@ const isDevEnvironment = ["development", "test"].includes(
 );
 
 // Skip ZATCA validation during build time (when DISABLE_MONGODB_FOR_BUILD is set)
-const isBuildTime = process.env.DISABLE_MONGODB_FOR_BUILD === "true";
+const isBuildTime =
+  process.env.DISABLE_MONGODB_FOR_BUILD === "true" ||
+  process.env.DISABLE_MONGODB_FOR_BUILD === "1";
 
 type ZatcaConfig = { sellerName: string; vatNumber: string } | null;
 

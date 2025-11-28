@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { MessageSquare, Star, TrendingUp } from "lucide-react";
-import type { IReview } from "@/server/models/souq/Review";
+import type { SellerReview } from "@/lib/souq/review-types";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { ReviewCard } from "@/components/seller/reviews/ReviewCard";
 import { SellerResponseForm } from "@/components/seller/reviews/SellerResponseForm";
@@ -18,7 +18,7 @@ interface SellerReviewStats {
 
 interface SellerReviewsDashboardProps {
   stats: SellerReviewStats;
-  reviews: IReview[];
+  reviews: SellerReview[];
   totalPages: number;
   page: number;
   status: ReviewStatus;

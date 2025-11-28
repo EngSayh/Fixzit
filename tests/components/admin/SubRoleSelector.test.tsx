@@ -14,7 +14,7 @@ import React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import SubRoleSelector from '@/components/admin/SubRoleSelector';
-import { Role, SubRole } from '@/domain/fm/fm.behavior';
+import { Role, SubRole } from '@/lib/rbac/client-roles';
 
 // Mock translation context
 vi.mock('@/contexts/TranslationContext', () => ({
@@ -25,12 +25,12 @@ vi.mock('@/contexts/TranslationContext', () => ({
 
 describe('SubRoleSelector', () => {
   describe('Rendering based on role', () => {
-    it('renders for TEAM_MEMBER role', () => {
+    it('renders for FINANCE role', () => {
       const mockOnChange = vi.fn();
       
       render(
         <SubRoleSelector
-          role={Role.TEAM_MEMBER}
+          role={Role.FINANCE}
           value={null}
           onChange={mockOnChange}
         />
@@ -39,12 +39,12 @@ describe('SubRoleSelector', () => {
       expect(screen.getByLabelText(/Sub-Role/i)).toBeInTheDocument();
     });
     
-    it('renders for TEAM_MEMBER string', () => {
+    it('renders for FINANCE string', () => {
       const mockOnChange = vi.fn();
       
       render(
         <SubRoleSelector
-          role="TEAM_MEMBER"
+          role="FINANCE"
           value={null}
           onChange={mockOnChange}
         />
@@ -53,7 +53,7 @@ describe('SubRoleSelector', () => {
       expect(screen.getByLabelText(/Sub-Role/i)).toBeInTheDocument();
     });
     
-    it('does not render for non-TEAM_MEMBER roles', () => {
+    it('does not render for non-eligible roles', () => {
       const mockOnChange = vi.fn();
       const { container } = render(
         <SubRoleSelector
@@ -86,7 +86,7 @@ describe('SubRoleSelector', () => {
       
       render(
         <SubRoleSelector
-          role={Role.TEAM_MEMBER}
+          role={Role.FINANCE}
           value={null}
           onChange={mockOnChange}
         />
@@ -109,7 +109,7 @@ describe('SubRoleSelector', () => {
       
       render(
         <SubRoleSelector
-          role={Role.TEAM_MEMBER}
+          role={Role.FINANCE}
           value={SubRole.FINANCE_OFFICER}
           onChange={mockOnChange}
         />
@@ -124,7 +124,7 @@ describe('SubRoleSelector', () => {
       
       render(
         <SubRoleSelector
-          role={Role.TEAM_MEMBER}
+          role={Role.FINANCE}
           value={null}
           onChange={mockOnChange}
         />
@@ -142,7 +142,7 @@ describe('SubRoleSelector', () => {
       
       render(
         <SubRoleSelector
-          role={Role.TEAM_MEMBER}
+          role={Role.FINANCE}
           value={SubRole.FINANCE_OFFICER}
           onChange={mockOnChange}
         />
@@ -161,7 +161,7 @@ describe('SubRoleSelector', () => {
       
       render(
         <SubRoleSelector
-          role={Role.TEAM_MEMBER}
+          role={Role.FINANCE}
           value={SubRole.FINANCE_OFFICER}
           onChange={mockOnChange}
         />
@@ -176,7 +176,7 @@ describe('SubRoleSelector', () => {
       
       render(
         <SubRoleSelector
-          role={Role.TEAM_MEMBER}
+          role={Role.FINANCE}
           value={SubRole.HR_OFFICER}
           onChange={mockOnChange}
         />
@@ -192,7 +192,7 @@ describe('SubRoleSelector', () => {
       
       render(
         <SubRoleSelector
-          role={Role.TEAM_MEMBER}
+          role={Role.FINANCE}
           value={null}
           onChange={mockOnChange}
           required
@@ -209,7 +209,7 @@ describe('SubRoleSelector', () => {
       
       render(
         <SubRoleSelector
-          role={Role.TEAM_MEMBER}
+          role={Role.FINANCE}
           value={null}
           onChange={mockOnChange}
           required
@@ -226,7 +226,7 @@ describe('SubRoleSelector', () => {
       
       render(
         <SubRoleSelector
-          role={Role.TEAM_MEMBER}
+          role={Role.FINANCE}
           value={null}
           onChange={mockOnChange}
           error={errorMessage}
@@ -243,7 +243,7 @@ describe('SubRoleSelector', () => {
       
       render(
         <SubRoleSelector
-          role={Role.TEAM_MEMBER}
+          role={Role.FINANCE}
           value={null}
           onChange={mockOnChange}
         />
@@ -261,7 +261,7 @@ describe('SubRoleSelector', () => {
       
       render(
         <SubRoleSelector
-          role={Role.TEAM_MEMBER}
+          role={Role.FINANCE}
           value={null}
           onChange={mockOnChange}
           disabled
@@ -277,7 +277,7 @@ describe('SubRoleSelector', () => {
       
       render(
         <SubRoleSelector
-          role={Role.TEAM_MEMBER}
+          role={Role.FINANCE}
           value={null}
           onChange={mockOnChange}
           disabled
@@ -296,7 +296,7 @@ describe('SubRoleSelector', () => {
       
       const { container } = render(
         <SubRoleSelector
-          role={Role.TEAM_MEMBER}
+          role={Role.FINANCE}
           value={null}
           onChange={mockOnChange}
           className={customClass}

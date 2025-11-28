@@ -2,19 +2,17 @@
 
 /**
  * User Modal Component - User Creation and Editing
- * 
+ *
  * Features:
  * - Create new users
  * - Edit existing users
  * - Sub-role selection for Team Members (STRICT v4.1)
  * - Form validation
  * - Real-time module access preview
- * 
+ *
  * RBAC: Super Admin and Corporate Admin only
  * Compliance: WCAG 2.1 AA
  */
-
-'use client';
 
 import React, { useEffect } from 'react';
 import { Save, X, AlertCircle } from 'lucide-react';
@@ -23,7 +21,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import AccessibleModal from '@/components/admin/AccessibleModal';
 import SubRoleSelector from '@/components/admin/SubRoleSelector';
 import { Button } from '@/components/ui/button';
-import { normalizeRole, SubRole } from '@/domain/fm/fm.behavior';
+import { normalizeRole, SubRole, Role } from '@/lib/rbac/client-roles';
 import { userFormSchema, type UserFormSchema } from '@/lib/schemas/admin';
 
 export interface UserFormData {
@@ -108,10 +106,23 @@ export default function UserModal({
     }
   }, [isOpen, editingUser, reset]);
 
-  // Clear sub-role when role changes away from TEAM_MEMBER
+  const subRoleEligible = new Set<Role>([
+    Role.FINANCE,
+    Role.HR,
+    Role.SUPPORT,
+    Role.OPERATIONS_MANAGER,
+    Role.FINANCE_OFFICER,
+    Role.HR_OFFICER,
+    Role.SUPPORT_AGENT,
+  ]);
+
+  // Clear sub-role when role changes away from eligible buckets
   useEffect(() => {
     const normalizedRole = normalizeRole(watchedRole || '');
-    if (normalizedRole !== 'TEAM_MEMBER' && watchedSubRole) {
+    if (
+      (!normalizedRole || !subRoleEligible.has(normalizedRole)) &&
+      watchedSubRole
+    ) {
       setValue('subRole', null);
     }
   }, [watchedRole, watchedSubRole, setValue]);
@@ -131,7 +142,8 @@ export default function UserModal({
   };
 
   const normalizedRole = normalizeRole(watchedRole || '');
-  const isTeamMember = normalizedRole === 'TEAM_MEMBER';
+  const allowSubRole =
+    normalizedRole !== null && subRoleEligible.has(normalizedRole);
 
   return (
     <AccessibleModal
@@ -272,7 +284,10 @@ export default function UserModal({
                 <option value="VENDOR">{t('admin.roles.vendor', 'Vendor')}</option>
                 <option value="TECHNICIAN">{t('admin.roles.technician', 'Technician')}</option>
                 <option value="PROPERTY_MANAGER">{t('admin.roles.propertyManager', 'Property Manager')}</option>
-                <option value="TEAM_MEMBER">{t('admin.roles.teamMember', 'Team Member')}</option>
+                <option value="FM_MANAGER">{t('admin.roles.fmManager', 'FM Manager')}</option>
+                <option value="FINANCE">{t('admin.roles.finance', 'Finance')}</option>
+                <option value="HR">{t('admin.roles.hr', 'HR')}</option>
+                <option value="SUPPORT">{t('admin.roles.support', 'Support')}</option>
                 <option value="ADMIN">{t('admin.roles.admin', 'Corporate Admin')}</option>
                 <option value="SUPER_ADMIN">{t('admin.roles.superAdmin', 'Super Admin')}</option>
               </select>
@@ -285,8 +300,8 @@ export default function UserModal({
           )}
         </div>
 
-        {/* Sub-Role Selector (only for TEAM_MEMBER) */}
-        {isTeamMember && (
+        {/* Sub-Role Selector (eligible roles only) */}
+        {allowSubRole && (
           <div>
             <label htmlFor="user-subrole" className="block text-sm font-medium text-foreground mb-2">
               {t('admin.userModal.fields.subRole', 'Sub-Role')}

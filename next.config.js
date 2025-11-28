@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const isDevelopment = process.env.NODE_ENV === 'development';
+const isTruthy = (value) => value === 'true' || value === '1';
 
 // Bundle analyzer configuration
 const path = require('path');
@@ -24,10 +25,10 @@ if (isVercelDeploy) {
     Boolean(process.env.PAYTABS_SERVER_KEY);
   
   // Critical security checks for all Vercel deployments
-  if (process.env.SKIP_ENV_VALIDATION === 'true') {
+  if (isTruthy(process.env.SKIP_ENV_VALIDATION)) {
     violations.push('SKIP_ENV_VALIDATION must be false in production');
   }
-  if (process.env.DISABLE_MONGODB_FOR_BUILD === 'true') {
+  if (isTruthy(process.env.DISABLE_MONGODB_FOR_BUILD)) {
     violations.push('DISABLE_MONGODB_FOR_BUILD must be false in production');
   }
   

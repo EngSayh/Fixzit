@@ -15,7 +15,12 @@
 "use client";
 
 import React from "react";
-import { Role, SubRole, normalizeRole } from "@/domain/fm/fm.behavior";
+import {
+  Role,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+} from "@/lib/rbac/client-roles";
 
 interface RoleBadgeProps {
   role: Role | string;
@@ -26,11 +31,18 @@ interface RoleBadgeProps {
 }
 
 // Role display configuration
-const ROLE_CONFIG: Record<Role, { label: string; color: string; description: string }> = {
+const ROLE_CONFIG: Partial<
+  Record<Role, { label: string; color: string; description: string }>
+> = {
   [Role.SUPER_ADMIN]: {
     label: "Super Admin",
     color: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
     description: "Platform administrator with cross-organization access",
+  },
+  [Role.CORPORATE_ADMIN]: {
+    label: "Corporate Admin",
+    color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+    description: "Organization administrator with full tenant access",
   },
   [Role.ADMIN]: {
     label: "Admin",
@@ -42,8 +54,8 @@ const ROLE_CONFIG: Record<Role, { label: string; color: string; description: str
     color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
     description: "Portfolio owner managing multiple properties",
   },
-  [Role.TEAM_MEMBER]: {
-    label: "Team Member",
+  [Role.MANAGER]: {
+    label: "Management",
     color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
     description: "Corporate staff member with operational access",
   },
@@ -67,10 +79,10 @@ const ROLE_CONFIG: Record<Role, { label: string; color: string; description: str
     color: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
     description: "External service provider",
   },
-  [Role.GUEST]: {
-    label: "Guest",
+  [Role.AUDITOR]: {
+    label: "Auditor",
     color: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
-    description: "Public visitor with limited access",
+    description: "Limited read-only access",
   },
 };
 
@@ -95,8 +107,15 @@ export default function RoleBadge({
   className = "",
 }: RoleBadgeProps) {
   // Normalize legacy role names
-  const normalizedRole = normalizeRole(role) || Role.GUEST;
-  const config = ROLE_CONFIG[normalizedRole];
+  const normalizedRole = normalizeRole(role) || Role.VIEWER;
+  const normalizedSubRole = normalizeSubRole(subRole ?? undefined);
+  const config =
+    ROLE_CONFIG[normalizedRole] ||
+    ({
+      label: role?.toString() ?? "Viewer",
+      color: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
+      description: "",
+    } as const);
   
   if (!config) {
     return (
@@ -121,15 +140,25 @@ export default function RoleBadge({
       </span>
       
       {/* Sub-role badge (for Team Members) */}
-      {subRole && normalizedRole === Role.TEAM_MEMBER && (
+      {normalizedSubRole && (
         <span
           className={`inline-flex items-center rounded-full font-medium bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800 ${sizeClass}`}
-          title={showTooltip ? `Specialization: ${SUB_ROLE_CONFIG[subRole as SubRole]?.label}` : undefined}
+          title={
+            showTooltip
+              ? `Specialization: ${
+                  SUB_ROLE_CONFIG[normalizedSubRole]?.label ?? normalizedSubRole
+                }`
+              : undefined
+          }
           role="status"
-          aria-label={`Sub-role: ${SUB_ROLE_CONFIG[subRole as SubRole]?.label}`}
+          aria-label={`Sub-role: ${
+            SUB_ROLE_CONFIG[normalizedSubRole]?.label ?? normalizedSubRole
+          }`}
         >
-          <span className="me-1">{SUB_ROLE_CONFIG[subRole as SubRole]?.icon}</span>
-          {SUB_ROLE_CONFIG[subRole as SubRole]?.label}
+          <span className="me-1">
+            {SUB_ROLE_CONFIG[normalizedSubRole]?.icon ?? "⭐"}
+          </span>
+          {SUB_ROLE_CONFIG[normalizedSubRole]?.label ?? normalizedSubRole}
         </span>
       )}
     </div>

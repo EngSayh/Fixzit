@@ -13,7 +13,7 @@ import {
   normalizeRole as normalizeFmRole,
   normalizeSubRole,
   inferSubRoleFromRole,
-} from "@/domain/fm/fm.behavior";
+} from "@/lib/rbac/client-roles";
 
 type RoleLabel =
   | "Super Admin"
@@ -386,32 +386,50 @@ function hasAccess(role: LocalRole, path: string): boolean {
   return false;
 }
 
-const toDisplayRole = (rawRole?: string | null, rawSubRole?: string | null): RoleLabel => {
+const toDisplayRole = (
+  rawRole?: string | null,
+  rawSubRole?: string | null,
+): RoleLabel => {
   const subRole =
     normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(rawRole);
-  const role =
-    normalizeFmRole(rawRole, subRole) ?? CanonicalRole.TEAM_MEMBER;
+  const role = normalizeFmRole(rawRole) ?? CanonicalRole.VIEWER;
 
   switch (role) {
     case CanonicalRole.SUPER_ADMIN:
       return "Super Admin";
+    case CanonicalRole.CORPORATE_ADMIN:
     case CanonicalRole.ADMIN:
       return "Corporate Admin";
     case CanonicalRole.CORPORATE_OWNER:
       return "Corporate Owner";
+    case CanonicalRole.MANAGER:
+    case CanonicalRole.FM_MANAGER:
+    case CanonicalRole.PROCUREMENT:
+    case CanonicalRole.SUPPORT:
+    case CanonicalRole.OPERATIONS_MANAGER:
+      return "Management";
+    case CanonicalRole.FINANCE:
+    case CanonicalRole.FINANCE_MANAGER:
+    case CanonicalRole.FINANCE_OFFICER:
+      return "Finance";
+    case CanonicalRole.HR:
+    case CanonicalRole.HR_OFFICER:
+      return "HR";
     case CanonicalRole.PROPERTY_MANAGER:
+    case CanonicalRole.OWNER:
       return "Property Owner";
     case CanonicalRole.TECHNICIAN:
       return "Technician";
     case CanonicalRole.TENANT:
+    case CanonicalRole.CUSTOMER:
       return "Tenant / End-User";
     case CanonicalRole.VENDOR:
       return "Corporate Employee";
-    case CanonicalRole.GUEST:
-      return "Corporate Employee";
-    case CanonicalRole.TEAM_MEMBER:
+    case CanonicalRole.AUDITOR:
+    case CanonicalRole.VIEWER:
+    case CanonicalRole.EMPLOYEE:
+    case CanonicalRole.DISPATCHER:
     default: {
-      // Specialize based on sub-role when present
       if (subRole === SubRole.FINANCE_OFFICER) return "Finance";
       if (subRole === SubRole.HR_OFFICER) return "HR";
       if (subRole === SubRole.SUPPORT_AGENT) return "Management";

@@ -26,7 +26,8 @@ class ConfigurationError extends Error {
 function getRequired(key: string, fallback?: string): string {
   const value = process.env[key];
   const isProduction = process.env.NODE_ENV === "production";
-  const shouldSkipValidation = isProduction && SKIP_CONFIG_VALIDATION;
+  const shouldSkipValidation =
+    SKIP_CONFIG_VALIDATION && (isProduction || IS_NEXT_BUILD);
 
   if (!value || value.trim() === "") {
     // During build-time (or when explicitly skipped), fall back to the provided default
@@ -93,8 +94,9 @@ function getInteger(key: string, fallback: number): number {
 const NODE_ENV = (process.env.NODE_ENV || "development") as Environment;
 const IS_NEXT_BUILD = process.env.NEXT_PHASE === "phase-production-build";
 const SKIP_CONFIG_VALIDATION =
-  process.env.SKIP_CONFIG_VALIDATION === "true" ||
-  process.env.DISABLE_MONGODB_FOR_BUILD === "true" ||
+  getBoolean("SKIP_CONFIG_VALIDATION") ||
+  getBoolean("SKIP_ENV_VALIDATION") ||
+  getBoolean("DISABLE_MONGODB_FOR_BUILD") ||
   IS_NEXT_BUILD;
 
 export const Config = {
