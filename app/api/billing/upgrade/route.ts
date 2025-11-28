@@ -240,16 +240,17 @@ export async function POST(req: NextRequest) {
         .toUpperCase();
       const cycleDays = billingCycleCode === "ANNUAL" ? 365 : 30;
 
-      // Prefer explicit next_billing_date or activeUntil for period end; fallback to createdAt
+      // Prefer explicit current_period_start/end; then next_billing_date/activeUntil; fallback to updatedAt/createdAt
       const periodEnd =
+        (currentSub as any).current_period_end ||
         currentSub.next_billing_date ||
         (currentSub.get?.("activeUntil") as Date | undefined) ||
         currentSub.updatedAt ||
         currentSub.createdAt;
       const cycleEnd = new Date(periodEnd);
-      const cycleStart = new Date(
-        cycleEnd.getTime() - cycleDays * 24 * 60 * 60 * 1000,
-      );
+      const cycleStart =
+        (currentSub as any).current_period_start ||
+        new Date(cycleEnd.getTime() - cycleDays * 24 * 60 * 60 * 1000);
 
       const totalDays = Math.max(
         1,

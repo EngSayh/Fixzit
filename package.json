@@ -105,6 +105,7 @@
     "seed:marketplace": "tsx scripts/seed-marketplace.ts",
     "seed:prod-data": "tsx scripts/seed-production-data.ts",
     "seed:test": "pnpm exec tsx scripts/seed-test-users.ts",
+    "scripts:backfill:subscription-periods": "tsx scripts/backfill-subscription-periods.ts",
     "check:env": "tsx scripts/check-required-env.ts",
     "docs:marketplace-bible": "node scripts/generate-marketplace-bible.js",
     "replace:in-file": "tsx scripts/replace-string-in-file.ts",

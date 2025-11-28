@@ -6,7 +6,6 @@ import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { otpSessionStore } from '@/lib/otp-store';
-import { ACCESS_COOKIE, ACCESS_TTL_SECONDS, REFRESH_COOKIE, REFRESH_TTL_SECONDS } from '@/app/api/auth/refresh/route';
 import type { UserRoleType } from '@/types/user';
 import type { SubscriptionPlan } from '@/config/navigation';
 import type { UserDoc } from '@/server/models/User';

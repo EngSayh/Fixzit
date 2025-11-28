@@ -72,6 +72,10 @@ export async function createSubscriptionCheckout(
     return { requiresQuote: true, quote };
   }
 
+  const now = new Date();
+  const periodLengthDays = billingCycle === "ANNUAL" ? 365 : 30;
+  const periodEnd = new Date(now.getTime() + periodLengthDays * 24 * 60 * 60 * 1000);
+
   const subscription = await Subscription.create({
     tenant_id:
       input.subscriberType === "CORPORATE" ? input.tenantId : undefined,
@@ -90,6 +94,9 @@ export async function createSubscriptionCheckout(
       customer_email: input.customer.email,
     },
     metadata: input.metadata,
+    current_period_start: now,
+    current_period_end: periodEnd,
+    next_billing_date: periodEnd,
   });
 
   const cartId = `SUB-${subscription._id.toString()}`;

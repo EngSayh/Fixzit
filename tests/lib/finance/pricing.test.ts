@@ -111,9 +111,11 @@ describe("Pricing Service Unit Tests", () => {
     // await mongoose.disconnect();
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Clear any mocks
     vi.clearAllMocks();
+    await PriceBook.deleteMany({ orgId: TEST_ORG_ID });
+    await DiscountRule.deleteMany({ orgId: TEST_ORG_ID });
     return seedPriceBooks();
   });
 

@@ -132,9 +132,10 @@ describe("AutoRepricerService", () => {
     it("should return empty results when seller not found", async () => {
       const fakeSellerId = new Types.ObjectId().toString();
       
-      await expect(
-        AutoRepricerService.repriceSeller(fakeSellerId)
-      ).rejects.toThrow("Seller not found");
+      const result = await AutoRepricerService.repriceSeller(fakeSellerId);
+      expect(result.repriced).toBe(0);
+      expect(result.errors).toBe(0);
+      expect(result.listings).toHaveLength(0);
     });
 
     it("should return empty results when repricer is disabled", async () => {

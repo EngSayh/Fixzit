@@ -48,9 +48,9 @@ if (isVercelDeploy) {
   }
 
   if (warnings.length > 0) {
-    console.warn(
-      `Production env warnings (non-blocking):\n- ${warnings.join('\n- ')}`
-    );
+    warnings.forEach((warning) => {
+      process.stderr.write(`Production env warning (non-blocking): ${warning}\n`);
+    });
   }
 }
 
@@ -135,14 +135,6 @@ const nextConfig = {
     // Reduce parallel compilation (Next.js 15 handles Edge builds automatically)
     parallelServerCompiles: false,
   },
-  webpack: (config) => {
-    // Avoid bundling mongoose on the client to prevent schema errors during Playwright runs
-    config.resolve = config.resolve || {};
-    config.resolve.alias = config.resolve.alias || {};
-    config.resolve.alias.mongoose = false;
-    return config;
-  },
-  
   // ⚡ FIX BUILD TIMEOUT: Add reasonable timeout for static page generation
   // Default is infinite which can cause CI to kill the process (exit 143 = SIGTERM)
   staticPageGenerationTimeout: 180, // 3 minutes per page (was hanging at 135/181 pages)
@@ -228,6 +220,14 @@ const nextConfig = {
         '@/lib/mongoUtils.server': false,
         'bcryptjs': false,
         'async_hooks': false,
+      };
+    }
+
+    // Avoid bundling mongoose on the client to prevent schema errors during Playwright runs
+    if (nextRuntime === 'web') {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        mongoose: false,
       };
     }
 
