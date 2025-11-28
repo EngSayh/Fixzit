@@ -1062,7 +1062,8 @@ export const WORK_ORDER_FSM: {
     {
       from: "NEW",
       to: "ASSESSMENT",
-      by: [Role.EMPLOYEE, Role.CORPORATE_ADMIN, Role.MANAGEMENT, Role.HR],
+      // STRICT v4.1: Using canonical roles - TEAM_MEMBER replaces legacy EMPLOYEE, MANAGEMENT, HR
+      by: [Role.TEAM_MEMBER, Role.ADMIN],
     },
     {
       from: "ASSESSMENT",
@@ -1079,17 +1080,19 @@ export const WORK_ORDER_FSM: {
     {
       from: "QUOTATION_REVIEW",
       to: "PENDING_APPROVAL",
-      by: [Role.EMPLOYEE, Role.CORPORATE_ADMIN],
+      // STRICT v4.1: Using canonical roles
+      by: [Role.TEAM_MEMBER, Role.ADMIN],
       action: "request_approval",
     },
     {
       from: "PENDING_APPROVAL",
       to: "APPROVED",
+      // STRICT v4.1: Using canonical roles - CORPORATE_OWNER replaces PROPERTY_OWNER
+      // PROPERTY_MANAGER replaces OWNER_DEPUTY, TEAM_MEMBER replaces MANAGEMENT/FINANCE
       by: [
-        Role.PROPERTY_OWNER,
-        Role.OWNER_DEPUTY,
-        Role.MANAGEMENT,
-        Role.FINANCE,
+        Role.CORPORATE_OWNER,
+        Role.PROPERTY_MANAGER,
+        Role.TEAM_MEMBER,
       ],
       action: "approve",
     },
@@ -1109,23 +1112,27 @@ export const WORK_ORDER_FSM: {
     {
       from: "WORK_COMPLETE",
       to: "QUALITY_CHECK",
-      by: [Role.MANAGEMENT, Role.PROPERTY_OWNER],
+      // STRICT v4.1: Using canonical roles
+      by: [Role.TEAM_MEMBER, Role.CORPORATE_OWNER],
       optional: true,
     },
     {
       from: "QUALITY_CHECK",
       to: "FINANCIAL_POSTING",
-      by: [Role.EMPLOYEE, Role.CORPORATE_ADMIN],
+      // STRICT v4.1: Using canonical roles
+      by: [Role.TEAM_MEMBER, Role.ADMIN],
     },
     {
       from: "WORK_COMPLETE",
       to: "FINANCIAL_POSTING",
-      by: [Role.EMPLOYEE, Role.CORPORATE_ADMIN],
+      // STRICT v4.1: Using canonical roles
+      by: [Role.TEAM_MEMBER, Role.ADMIN],
     },
     {
       from: "FINANCIAL_POSTING",
       to: "CLOSED",
-      by: [Role.EMPLOYEE, Role.CORPORATE_ADMIN],
+      // STRICT v4.1: Using canonical roles
+      by: [Role.TEAM_MEMBER, Role.ADMIN],
       action: "post_finance",
     },
   ],

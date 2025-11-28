@@ -464,8 +464,8 @@ export async function middleware(request: NextRequest) {
       ]);
       
       if (!hasAdminAccess) {
-        // Fallback to legacy role check
-        const adminRoles = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN']);
+        // Fallback to legacy role check (includes legacy aliases for migration period)
+        const adminRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
         if (!adminRoles.has(user.role)) {
           logger.warn('[Middleware] API admin access denied', {
             path: pathname,
@@ -514,8 +514,8 @@ export async function middleware(request: NextRequest) {
     ]);
     
     if (!hasAdminAccess) {
-      // Fallback to legacy role check
-      const adminRoles = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN']);
+      // Fallback to legacy role check (includes legacy aliases for migration period)
+      const adminRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
       if (!adminRoles.has(user.role)) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
