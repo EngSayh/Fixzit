@@ -337,12 +337,6 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
       if (!name && typeof parsed.name === "string") {
         name = parsed.name;
       }
-      if (
-        subscriptionPlan === undefined &&
-        typeof parsed.subscriptionPlan === "string"
-      ) {
-        subscriptionPlan = parsed.subscriptionPlan;
-      }
     } catch (e) {
       logger.error("Failed to parse x-user header", { error: e });
     }

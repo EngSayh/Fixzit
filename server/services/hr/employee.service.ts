@@ -19,6 +19,7 @@ export interface EmployeeSearchFilters {
 export interface EmployeeSearchOptions {
   page?: number;
   limit?: number;
+  includePii?: boolean;
 }
 
 export interface UpsertEmployeePayload {
@@ -61,7 +62,9 @@ export class EmployeeService {
     };
 
     if (filters.departmentId) {
-      query.departmentId = new Types.ObjectId(filters.departmentId);
+      if (Types.ObjectId.isValid(filters.departmentId)) {
+        query.departmentId = new Types.ObjectId(filters.departmentId);
+      }
     }
     if (filters.employmentStatus)
       query.employmentStatus = filters.employmentStatus;
@@ -69,11 +72,13 @@ export class EmployeeService {
       query["technicianProfile.skills"] = { $all: filters.skills };
     }
     if (filters.text) {
+      // SECURITY: Escape regex special characters to prevent ReDoS
+      const escapedText = filters.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
-        { firstName: new RegExp(filters.text, "i") },
-        { lastName: new RegExp(filters.text, "i") },
-        { email: new RegExp(filters.text, "i") },
-        { employeeCode: new RegExp(filters.text, "i") },
+        { firstName: new RegExp(escapedText, "i") },
+        { lastName: new RegExp(escapedText, "i") },
+        { email: new RegExp(escapedText, "i") },
+        { employeeCode: new RegExp(escapedText, "i") },
       ];
     }
     return query;
@@ -91,12 +96,14 @@ export class EmployeeService {
     const limit = options.limit && options.limit > 0 ? options.limit : 50;
     const skip = (page - 1) * limit;
     const query = this.buildQuery(filters);
+    const includePii = options.includePii === true;
 
     const [items, total] = await Promise.all([
       Employee.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
+        .select(includePii ? undefined : { compensation: 0, bankDetails: 0 })
         .lean<EmployeeDoc>()
         .exec(),
       Employee.countDocuments(query).exec(),
@@ -117,10 +124,10 @@ export class EmployeeService {
       hireDate: payload.hireDate,
     };
 
-    if (payload.departmentId) {
+    if (payload.departmentId && Types.ObjectId.isValid(payload.departmentId)) {
       update.departmentId = new Types.ObjectId(payload.departmentId);
     }
-    if (payload.managerId) {
+    if (payload.managerId && Types.ObjectId.isValid(payload.managerId)) {
       update.managerId = new Types.ObjectId(payload.managerId);
     }
 
@@ -147,9 +154,22 @@ export class EmployeeService {
       update.bankDetails = payload.bankDetails;
     }
 
+    const filter = {
+      orgId: payload.orgId,
+      employeeCode: payload.employeeCode,
+      isDeleted: false,
+    };
+
     return Employee.findOneAndUpdate(
-      { orgId: payload.orgId, employeeCode: payload.employeeCode },
-      update,
+      filter,
+      {
+        $set: { ...update, isDeleted: false },
+        $setOnInsert: {
+          orgId: payload.orgId,
+          employeeCode: payload.employeeCode,
+          isDeleted: false,
+        },
+      },
       { upsert: true, new: true, setDefaultsOnInsert: true },
     ).exec();
   }

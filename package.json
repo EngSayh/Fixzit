@@ -59,6 +59,7 @@
     "doctor": "npm run lint && npm run typecheck && npm run verify:all",
     "test": "npm run test:production",
     "test:production": "npm run test:models && npm run test:e2e",
+    "test:fast": "npm run test:ci",
     "test:legacy": "vitest -c vitest.config.api.ts run",
     "test:models": "vitest -c vitest.config.models.ts run",
     "test:services": "pnpm exec vitest run tests/services",

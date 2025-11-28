@@ -113,9 +113,9 @@ export async function createEntitiesFromCase(onboarding: OnboardingCaseLean): Pr
 
   // Stub hooks to be replaced with actual integrations.
   switch (role) {
-    case 'CUSTOMER':
-    case 'PROPERTY_OWNER': {
-      logger.info('[Onboarding] Org provisioning stub (customer/owner)', summary);
+    case 'PROPERTY_OWNER':
+    case 'OWNER': {
+      logger.info('[Onboarding] Org provisioning stub (owner)', summary);
       break;
     }
     case 'VENDOR': {

@@ -269,10 +269,12 @@ export async function list(orgId: string, q?: string, status?: string) {
   }
 
   if (q) {
+    // SECURITY: Escape regex special characters to prevent ReDoS
+    const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filters.$or = [
-      { workOrderNumber: new RegExp(q, "i") },
-      { title: new RegExp(q, "i") },
-      { description: new RegExp(q, "i") },
+      { workOrderNumber: new RegExp(escapedQ, "i") },
+      { title: new RegExp(escapedQ, "i") },
+      { description: new RegExp(escapedQ, "i") },
     ];
   }
 

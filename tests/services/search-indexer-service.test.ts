@@ -75,7 +75,7 @@ describe("SearchIndexerService", () => {
 
   describe("deleteFromIndex", () => {
     it("should delete a product from the search index", async () => {
-      await SearchIndexerService.deleteFromIndex("FSIN123");
+      await SearchIndexerService.deleteFromIndex("FSIN123", { orgId: "ORG1" });
 
       expect(mockIndex).toHaveBeenCalledWith(INDEXES.PRODUCTS);
       expect(mockDeleteDocument).toHaveBeenCalledWith("FSIN123");
@@ -85,7 +85,7 @@ describe("SearchIndexerService", () => {
           action: "deleteFromIndex",
           component: "SearchIndexerService",
           fsin: "FSIN123",
-          orgId: undefined,
+          orgId: "ORG1",
         }),
       );
     });
@@ -94,7 +94,7 @@ describe("SearchIndexerService", () => {
       mockDeleteDocument.mockRejectedValueOnce(new Error("Delete failed"));
 
       await expect(
-        SearchIndexerService.deleteFromIndex("FSIN123")
+        SearchIndexerService.deleteFromIndex("FSIN123", { orgId: "ORG1" })
       ).rejects.toThrow("Delete failed");
       expect(logger.error).toHaveBeenCalled();
     });
@@ -111,7 +111,9 @@ describe("SearchIndexerService", () => {
         "fetchListingById"
       ).mockResolvedValue(null);
 
-      await SearchIndexerService.updateListing("NONEXISTENT");
+      await SearchIndexerService.updateListing("NONEXISTENT", {
+        orgId: "ORG1",
+      });
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Listing not found"),
@@ -146,9 +148,11 @@ describe("SearchIndexerService", () => {
       );
       deleteFromIndexSpy.mockResolvedValue();
 
-      await SearchIndexerService.updateListing("L1");
+      await SearchIndexerService.updateListing("L1", { orgId: "ORG1" });
 
-      expect(deleteFromIndexSpy).toHaveBeenCalledWith("P1");
+      expect(deleteFromIndexSpy).toHaveBeenCalledWith("P1", {
+        orgId: "ORG1",
+      });
     });
 
     it("should scope listing fetch by org when provided", async () => {
@@ -205,11 +209,17 @@ describe("SearchIndexerService", () => {
         "transformListingsToDocuments"
       ).mockResolvedValue([{ fsin: "P1" }]);
 
-      await SearchIndexerService.updateListing("L1");
+      await SearchIndexerService.updateListing("L1", { orgId: "ORG1" });
 
       expect(mockAddDocuments).toHaveBeenCalledWith([{ fsin: "P1" }]);
       expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining("Updated listing in search")
+        "[SearchIndexer] Updated listing in search: L1",
+        expect.objectContaining({
+          action: "updateListing",
+          component: "SearchIndexerService",
+          listingId: "L1",
+          orgId: "ORG1",
+        }),
       );
     });
   });

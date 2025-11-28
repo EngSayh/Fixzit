@@ -151,6 +151,18 @@ export default function LandingPage() {
               >
                 {translate("Book a live demo", "hero.actions.bookDemo")}
               </Link>
+              <Link
+                href="/pricing"
+                className="fxz-btn-ghost px-4 py-2 text-sm font-medium border border-primary text-primary hover:bg-primary/10"
+              >
+                {translate("Pricing & Free Trial", "hero.actions.pricing")}
+              </Link>
+              <Link
+                href="/vendor/apply"
+                className="fxz-btn-ghost px-4 py-2 text-sm font-medium border border-secondary text-secondary hover:bg-secondary/10"
+              >
+                {translate("Apply as Vendor", "hero.actions.vendorApply")}
+              </Link>
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-3 text-sm font-semibold">
               {heroHighlights.map((highlight) => (

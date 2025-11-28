@@ -110,7 +110,9 @@ export async function list(tenantId: string, q?: string, status?: string) {
   }
 
   if (q) {
-    const regex = new RegExp(q, "i");
+    // SECURITY: Escape regex special characters to prevent ReDoS
+    const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedQ, "i");
     filters.$or = [
       { number: regex },
       { customerRef: regex },

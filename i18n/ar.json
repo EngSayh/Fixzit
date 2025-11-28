@@ -1511,5 +1511,127 @@
       "moduleDisabled": "وحدة التوظيف غير مفعلة للمستأجر الخاص بك",
       "seatLimitExceeded": "تم تجاوز عدد مقاعد ATS. يرجى التواصل مع المسؤول"
     }
+  },
+  "onboarding": {
+    "welcome": "مرحباً بك في فيكزت",
+    "subtitle": "أكمل التسجيل للبدء في استخدام المنصة",
+    "name": "الاسم الكامل",
+    "email": "البريد الإلكتروني",
+    "phone": "رقم الهاتف",
+    "country": "الدولة",
+    "companyName": "اسم الشركة",
+    "address": "العنوان",
+    "serviceCategories": "فئات الخدمات",
+    "selectCategories": "اختر فئات الخدمات التي تقدمها",
+    "next": "التالي",
+    "previous": "السابق",
+    "submit": "إرسال",
+    "step": {
+      "role": {
+        "title": "اختر دورك",
+        "description": "أخبرنا كيف ستستخدم فيكزت"
+      },
+      "profile": {
+        "title": "معلوماتك",
+        "description": "التفاصيل الأساسية لإعداد حسابك"
+      },
+      "documents": {
+        "title": "المستندات",
+        "description": "تحميل مستندات التحقق المطلوبة"
+      },
+      "review": {
+        "title": "مراجعة وإرسال",
+        "description": "تأكيد تفاصيلك وإرسال"
+      }
+    },
+    "roles": {
+      "TENANT": {
+        "label": "مستأجر",
+        "description": "أنا أستأجر عقاراً وأحتاج خدمات الصيانة"
+      },
+      "PROPERTY_OWNER": {
+        "label": "مالك عقار",
+        "description": "أملك عقارات وأريد إدارتها"
+      },
+      "OWNER": {
+        "label": "مالك مؤسسي",
+        "description": "أدير عقارات لشركة"
+      },
+      "VENDOR": {
+        "label": "مقدم خدمات",
+        "description": "أقدم خدمات الصيانة أو غيرها"
+      },
+      "AGENT": {
+        "label": "وكيل عقاري",
+        "description": "أساعد العملاء في شراء أو بيع أو استئجار العقارات"
+      }
+    },
+    "documents": {
+      "uploadNote": "يرجى تحميل المستندات المطلوبة للتحقق من هويتك",
+      "formatNote": "PDF أو JPG أو PNG (بحد أقصى 5 ميجابايت)",
+      "uploaded": "تم التحميل",
+      "upload": "تحميل"
+    },
+    "review": {
+      "role": "الدور",
+      "uploadedDocs": "المستندات المحملة",
+      "submitNote": "بالنقر على إرسال، أنت توافق على شروط الخدمة وسياسة الخصوصية."
+    },
+    "success": {
+      "title": "تم إرسال الطلب",
+      "message": "تم إرسال طلبك بنجاح. سنراجعه قريباً."
+    }
+  },
+  "subscription": {
+    "plans": {
+      "BASIC": "أساسي",
+      "STANDARD": "قياسي",
+      "PRO": "احترافي",
+      "PREMIUM": "مميز",
+      "ENTERPRISE": "مؤسسي"
+    },
+    "upgrade": {
+      "title": "قم بالترقية لفتح {{feature}}",
+      "description": "هذه الميزة تتطلب خطة {{plan}}. قم بالترقية الآن للوصول إلى {{feature}} والمزيد.",
+      "button": "ترقية إلى {{plan}}",
+      "comparePlans": "مقارنة الخطط",
+      "viewPlans": "عرض الخطط",
+      "guarantee": "ضمان استرداد الأموال خلال 30 يوماً"
+    },
+    "features": {
+      "workOrders": "أوامر العمل",
+      "properties": "العقارات",
+      "units": "الوحدات",
+      "basicReports": "التقارير الأساسية",
+      "finance": "المالية والفواتير",
+      "invoicing": "الفوترة",
+      "hrManagement": "إدارة الموارد البشرية",
+      "technicians": "إدارة الفنيين",
+      "approvals": "الموافقات وسير العمل",
+      "auditTrail": "سجل التدقيق",
+      "advancedReports": "التقارير المتقدمة",
+      "apiAccess": "الوصول لواجهة البرمجة",
+      "sso": "تسجيل الدخول الموحد",
+      "scim": "توفير SCIM",
+      "customSla": "اتفاقيات مستوى خدمة مخصصة",
+      "dedicatedSupport": "دعم مخصص",
+      "whiteLabeling": "العلامة التجارية البيضاء",
+      "multiRegion": "متعدد المناطق",
+      "complianceReports": "تقارير الامتثال"
+    },
+    "billing": {
+      "history": "سجل الفواتير",
+      "invoices": "الفواتير",
+      "noInvoices": "لا توجد فواتير",
+      "paid": "مدفوعة",
+      "pending": "معلقة",
+      "overdue": "متأخرة",
+      "downloadInvoice": "تحميل الفاتورة"
+    },
+    "trial": {
+      "banner": "أنت على خطة تجريبية. قم بالترقية للحفاظ على جميع الميزات.",
+      "daysRemaining": "{{days}} أيام متبقية",
+      "viewBilling": "عرض الفوترة لإدارة اشتراكك أو تحميل الفواتير أو التحدث مع المبيعات."
+    }
   }
 }

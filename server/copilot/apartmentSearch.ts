@@ -80,7 +80,9 @@ export async function searchAvailableUnits(
 
     // Apply search parameters
     if (params.city) {
-      filter["address.city"] = new RegExp(params.city, "i");
+      // SECURITY: Escape regex special characters to prevent ReDoS
+      const escapedCity = params.city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      filter["address.city"] = new RegExp(escapedCity, "i");
     }
 
     if (params.bedrooms !== undefined) {

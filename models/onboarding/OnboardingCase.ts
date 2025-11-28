@@ -22,6 +22,7 @@ export interface IOnboardingCase {
   status: OnboardingStatus;
   current_step: number;
   tutorial_completed: boolean;
+  country?: string;
   sla_deadline?: Date;
   subject_user_id?: Types.ObjectId;
   subject_org_id?: Types.ObjectId;
@@ -49,6 +50,7 @@ const OnboardingCaseSchema = new Schema<IOnboardingCase>(
     status: { type: String, enum: ONBOARDING_STATUSES, default: 'DRAFT', index: true },
     current_step: { type: Number, min: 1, max: 4, default: 1 },
     tutorial_completed: { type: Boolean, default: false },
+    country: { type: String, default: 'SA' },
     sla_deadline: { type: Date },
     subject_user_id: { type: Schema.Types.ObjectId, ref: 'User' },
     subject_org_id: { type: Schema.Types.ObjectId, ref: 'Organization' },

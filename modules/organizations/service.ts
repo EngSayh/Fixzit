@@ -6,6 +6,9 @@ import type {
   QueryOrganizationsInput,
 } from "./validator";
 
+const escapeRegex = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 export class OrganizationService {
   static async list(filters: QueryOrganizationsInput) {
     const { page, limit, subscriptionPlan, status, search, sortBy, sortOrder } =
@@ -15,9 +18,10 @@ export class OrganizationService {
     if (subscriptionPlan) query.subscriptionPlan = subscriptionPlan;
     if (status) query.status = status;
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { nameAr: { $regex: search, $options: "i" } },
+        { name: { $regex: safeSearch, $options: "i" } },
+        { nameAr: { $regex: safeSearch, $options: "i" } },
       ];
     }
 
@@ -54,8 +58,9 @@ export class OrganizationService {
   }
 
   static async create(data: CreateOrganizationInput, userId?: string) {
+    const escapedName = escapeRegex(data.name);
     const existing = await Organization.findOne({
-      name: new RegExp(`^${data.name}$`, "i"),
+      name: new RegExp(`^${escapedName}$`, "i"),
     }).exec();
     if (existing) throw new Error("Organization with this name already exists");
 
@@ -80,8 +85,9 @@ export class OrganizationService {
     if (!organization) throw new Error("Organization not found");
 
     if (data.name && data.name !== organization.name) {
+      const escapedName = escapeRegex(data.name);
       const existing = await Organization.findOne({
-        name: new RegExp(`^${data.name}$`, "i"),
+        name: new RegExp(`^${escapedName}$`, "i"),
         _id: { $ne: id },
       }).exec();
       if (existing)

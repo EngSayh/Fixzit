@@ -8,9 +8,11 @@ export class LeaveTypeService {
   static async list(orgId: string, search?: string, options: ListOptions = {}) {
     const query: Record<string, unknown> = { orgId, isDeleted: false };
     if (search) {
+      // SECURITY: Escape regex special characters to prevent ReDoS
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
-        { name: new RegExp(search, "i") },
-        { code: new RegExp(search, "i") },
+        { name: new RegExp(escapedSearch, "i") },
+        { code: new RegExp(escapedSearch, "i") },
       ];
     }
 

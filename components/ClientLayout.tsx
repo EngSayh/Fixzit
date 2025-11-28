@@ -13,6 +13,7 @@ import AutoFixInitializer from "./AutoFixInitializer";
 import ResponsiveLayout from "./ResponsiveLayout";
 import HtmlAttrs from "./HtmlAttrs";
 import PreferenceBroadcast from "./PreferenceBroadcast";
+import TrialBanner from "./TrialBanner";
 import { useTranslation } from "@/contexts/TranslationContext";
 import {
   AUTH_ROUTES,
@@ -416,7 +417,10 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           showSidebarToggle={true}
           footer={<Footer />}
         >
-          {children}
+          <div className="relative min-h-full">
+            {children}
+            <TrialBanner />
+          </div>
         </ResponsiveLayout>
         <PreferenceBroadcast />
         <CopilotWidget />

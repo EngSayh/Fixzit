@@ -78,6 +78,11 @@ export default function Footer() {
                   {t("footer.careers", "Careers")}
                 </Link>
               </li>
+              <li>
+                <Link href="/pricing" className="hover:underline">
+                  {t("footer.pricing", "Pricing & Trial")}
+                </Link>
+              </li>
             </ul>
           </div>
           <div>

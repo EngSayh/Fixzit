@@ -1511,5 +1511,127 @@
       "moduleDisabled": "ATS module is not enabled for your tenant",
       "seatLimitExceeded": "ATS seat limit exceeded. Please contact an administrator"
     }
+  },
+  "onboarding": {
+    "welcome": "Welcome to Fixzit",
+    "subtitle": "Complete your registration to start using the platform",
+    "name": "Full Name",
+    "email": "Email Address",
+    "phone": "Phone Number",
+    "country": "Country",
+    "companyName": "Company Name",
+    "address": "Address",
+    "serviceCategories": "Service Categories",
+    "selectCategories": "Select the service categories you provide",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "step": {
+      "role": {
+        "title": "Select Your Role",
+        "description": "Tell us how you'll be using Fixzit"
+      },
+      "profile": {
+        "title": "Your Information",
+        "description": "Basic details to set up your account"
+      },
+      "documents": {
+        "title": "Documents",
+        "description": "Upload required verification documents"
+      },
+      "review": {
+        "title": "Review & Submit",
+        "description": "Confirm your details and submit"
+      }
+    },
+    "roles": {
+      "TENANT": {
+        "label": "Tenant",
+        "description": "I rent a property and need maintenance services"
+      },
+      "PROPERTY_OWNER": {
+        "label": "Property Owner",
+        "description": "I own properties and want to manage them"
+      },
+      "OWNER": {
+        "label": "Corporate Owner",
+        "description": "I manage properties for a company"
+      },
+      "VENDOR": {
+        "label": "Service Vendor",
+        "description": "I provide maintenance or services"
+      },
+      "AGENT": {
+        "label": "Real Estate Agent",
+        "description": "I help clients buy, sell, or rent properties"
+      }
+    },
+    "documents": {
+      "uploadNote": "Please upload the required documents to verify your identity",
+      "formatNote": "PDF, JPG, or PNG (max 5MB)",
+      "uploaded": "Uploaded",
+      "upload": "Upload"
+    },
+    "review": {
+      "role": "Role",
+      "uploadedDocs": "Uploaded Documents",
+      "submitNote": "By clicking Submit, you agree to our Terms of Service and Privacy Policy."
+    },
+    "success": {
+      "title": "Application Submitted",
+      "message": "Your application has been submitted. We'll review it shortly."
+    }
+  },
+  "subscription": {
+    "plans": {
+      "BASIC": "Basic",
+      "STANDARD": "Standard",
+      "PRO": "Professional",
+      "PREMIUM": "Premium",
+      "ENTERPRISE": "Enterprise"
+    },
+    "upgrade": {
+      "title": "Upgrade to unlock {{feature}}",
+      "description": "This feature requires the {{plan}} plan. Upgrade now to access {{feature}} and more.",
+      "button": "Upgrade to {{plan}}",
+      "comparePlans": "Compare plans",
+      "viewPlans": "View plans",
+      "guarantee": "30-day money-back guarantee"
+    },
+    "features": {
+      "workOrders": "Work Orders",
+      "properties": "Properties",
+      "units": "Units",
+      "basicReports": "Basic Reports",
+      "finance": "Finance & Invoicing",
+      "invoicing": "Invoicing",
+      "hrManagement": "HR Management",
+      "technicians": "Technician Management",
+      "approvals": "Approvals & Workflows",
+      "auditTrail": "Audit Trail",
+      "advancedReports": "Advanced Reports",
+      "apiAccess": "API Access",
+      "sso": "Single Sign-On",
+      "scim": "SCIM Provisioning",
+      "customSla": "Custom SLAs",
+      "dedicatedSupport": "Dedicated Support",
+      "whiteLabeling": "White Labeling",
+      "multiRegion": "Multi-Region",
+      "complianceReports": "Compliance Reports"
+    },
+    "billing": {
+      "history": "Billing History",
+      "invoices": "Invoices",
+      "noInvoices": "No invoices found",
+      "paid": "Paid",
+      "pending": "Pending",
+      "overdue": "Overdue",
+      "downloadInvoice": "Download Invoice"
+    },
+    "trial": {
+      "banner": "You're on a trial plan. Upgrade to keep all features active.",
+      "daysRemaining": "{{days}} days remaining",
+      "viewBilling": "View billing to manage your subscription, download invoices, or talk to sales."
+    }
   }
 }

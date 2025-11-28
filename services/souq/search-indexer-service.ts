@@ -158,23 +158,25 @@ export class SearchIndexerService {
    */
   static async updateListing(
     listingId: string,
-    options?: { orgId?: string },
+    options: { orgId: string },
   ): Promise<void> {
     try {
-      const listing = await this.fetchListingById(listingId, options?.orgId);
+      const listing = await this.fetchListingById(listingId, options.orgId);
       if (!listing) {
         logger.warn(`[SearchIndexer] Listing not found: ${listingId}`, {
           component: "SearchIndexerService",
           action: "updateListing",
           listingId,
-          orgId: options?.orgId,
+          orgId: options.orgId,
         });
         return;
       }
 
       // Skip if not active
       if (listing.status !== "active") {
-        await this.deleteFromIndex(listing.productId);
+        await this.deleteFromIndex(listing.productId, {
+          orgId: options.orgId,
+        });
         return;
       }
 
@@ -185,7 +187,12 @@ export class SearchIndexerService {
         index.addDocuments(documents),
       );
 
-      logger.info(`[SearchIndexer] Updated listing in search: ${listingId}`);
+      logger.info(`[SearchIndexer] Updated listing in search: ${listingId}`, {
+        component: "SearchIndexerService",
+        action: "updateListing",
+        listingId,
+        orgId: options.orgId,
+      });
     } catch (_error) {
       const error =
         _error instanceof Error ? _error : new Error(String(_error));
@@ -197,6 +204,7 @@ export class SearchIndexerService {
           component: "SearchIndexerService",
           action: "updateListing",
           listingId,
+          orgId: options.orgId,
         },
       );
       throw error;
@@ -209,7 +217,7 @@ export class SearchIndexerService {
    */
   static async deleteFromIndex(
     fsin: string,
-    options?: { orgId?: string },
+    options: { orgId: string },
   ): Promise<void> {
     try {
       const index = searchClient.index(INDEXES.PRODUCTS);
@@ -221,7 +229,7 @@ export class SearchIndexerService {
         component: "SearchIndexerService",
         action: "deleteFromIndex",
         fsin,
-        orgId: options?.orgId,
+        orgId: options.orgId,
       });
     } catch (_error) {
       const error =
@@ -231,7 +239,7 @@ export class SearchIndexerService {
         component: "SearchIndexerService",
         action: "deleteFromIndex",
         fsin,
-        orgId: options?.orgId,
+        orgId: options.orgId,
       });
       throw error;
     }
@@ -320,16 +328,16 @@ export class SearchIndexerService {
    */
   static async updateSeller(
     sellerId: string,
-    options?: { orgId?: string },
+    options: { orgId: string },
   ): Promise<void> {
     try {
-      const seller = await this.fetchSellerById(sellerId, options?.orgId);
+      const seller = await this.fetchSellerById(sellerId, options.orgId);
       if (!seller) {
         logger.warn(`[SearchIndexer] Seller not found: ${sellerId}`, {
           component: "SearchIndexerService",
           action: "updateSeller",
           sellerId,
-          orgId: options?.orgId,
+          orgId: options.orgId,
         });
         return;
       }
@@ -341,7 +349,12 @@ export class SearchIndexerService {
         index.addDocuments(documents),
       );
 
-      logger.info(`[SearchIndexer] Updated seller in search: ${sellerId}`);
+      logger.info(`[SearchIndexer] Updated seller in search: ${sellerId}`, {
+        component: "SearchIndexerService",
+        action: "updateSeller",
+        sellerId,
+        orgId: options.orgId,
+      });
     } catch (_error) {
       const error =
         _error instanceof Error ? _error : new Error(String(_error));
@@ -353,6 +366,7 @@ export class SearchIndexerService {
           component: "SearchIndexerService",
           action: "updateSeller",
           sellerId,
+          orgId: options.orgId,
         },
       );
       throw error;

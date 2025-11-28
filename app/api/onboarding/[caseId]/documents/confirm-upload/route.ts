@@ -42,7 +42,8 @@ export async function POST(
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    const profile = await DocumentProfile.findOne({ role: onboarding.role, country: 'SA' }).lean();
+    const profileCountry = onboarding.country || 'SA';
+    const profile = await DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean();
     if (!profile || !profile.required_doc_codes.includes(document_type_code)) {
       return NextResponse.json({ error: 'Document type not required for this role' }, { status: 400 });
     }

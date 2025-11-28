@@ -21,6 +21,7 @@ const UserSchema = new Schema(
     password: { type: String, required: true }, // Hashed password
     phone: String,
     mobile: String,
+    emailVerifiedAt: { type: Date },
     employeeId: String, // Top-level for unique compound index {orgId, employeeId}
 
     // Personal Information

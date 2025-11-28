@@ -1,15 +1,10 @@
 import { NextRequest } from "next/server";
 import { dbConnect } from "@/db/mongoose";
 import Subscription from "@/server/models/Subscription";
-import {
-  finalizePayTabsTransaction,
-  normalizePayTabsPayload,
-} from "@/lib/finance/paytabs";
-
 import { rateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
-import { createSecureResponse } from "@/server/security/headers";
-import { getClientIP } from "@/server/security/headers";
+import { createSecureResponse, getClientIP } from "@/server/security/headers";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 /**
  * @openapi
@@ -39,18 +34,20 @@ export async function POST(req: NextRequest) {
     return rateLimitError();
   }
 
+  const session = await getSessionUser(req).catch(() => null);
+  if (!session) {
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
+  }
+
   await dbConnect();
   const body = await req.json();
 
-  /**
-   * PayTabs Payment Gateway Callback Flow
-   * When PayTabs sends a callback with payment confirmation,
-   * we normalize and finalize the transaction
-   */
   if (body.payload) {
-    const normalized = normalizePayTabsPayload(body.payload);
-    const result = await finalizePayTabsTransaction(normalized);
-    return createSecureResponse(result, 200, req);
+    return createSecureResponse(
+      { error: "Use /api/paytabs/callback for PayTabs payloads" },
+      400,
+      req,
+    );
   }
 
   /**
@@ -68,6 +65,19 @@ export async function POST(req: NextRequest) {
 
   if (!subscription) {
     return createSecureResponse({ error: "SUBSCRIPTION_NOT_FOUND" }, 404, req);
+  }
+
+  const isTenantMatch =
+    subscription.tenant_id &&
+    session.orgId &&
+    subscription.tenant_id.toString() === session.orgId;
+  const isOwnerMatch =
+    subscription.owner_user_id &&
+    subscription.owner_user_id.toString() === session.id;
+  const isSuperAdmin = Boolean(session.isSuperAdmin);
+
+  if (!isTenantMatch && !isOwnerMatch && !isSuperAdmin) {
+    return createSecureResponse({ error: "Forbidden" }, 403, req);
   }
 
   /**

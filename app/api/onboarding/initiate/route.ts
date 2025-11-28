@@ -9,6 +9,7 @@ type InitiateBody = {
   role?: OnboardingRole;
   basic_info?: Record<string, unknown>;
   payload?: Record<string, unknown>;
+  country?: string;
 };
 
 export async function POST(req: NextRequest) {
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = (await req.json().catch(() => ({}))) as InitiateBody;
-  const { role, basic_info, payload } = body;
+  const { role, basic_info, payload, country } = body;
 
   if (!role || !ONBOARDING_ROLES.includes(role)) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
       role,
       basic_info,
       payload,
+      country: typeof country === 'string' && country.trim() ? country.trim() : 'SA',
       created_by_id: new Types.ObjectId(user.id),
       source_channel: 'web',
     });

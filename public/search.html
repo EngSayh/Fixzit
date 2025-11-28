@@ -734,8 +734,12 @@
         return results.sort((a, b) => b.relevance - a.relevance);
       }
 
+      function escapeRegex(text) {
+        return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }
+
       function highlightMatch(text, searchTerm) {
-        const regex = new RegExp(`(${searchTerm})`, "gi");
+        const regex = new RegExp(`(${escapeRegex(searchTerm)})`, "gi");
         return text.replace(regex, '<span class="result-match">$1</span>');
       }
 

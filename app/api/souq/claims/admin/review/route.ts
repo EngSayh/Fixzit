@@ -290,10 +290,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
+      // Escape special regex characters to prevent injection
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       query.$or = [
-        { claimId: { $regex: search, $options: "i" } },
-        { orderNumber: { $regex: search, $options: "i" } },
-        { orderId: { $regex: search, $options: "i" } },
+        { claimId: { $regex: escapedSearch, $options: "i" } },
+        { orderNumber: { $regex: escapedSearch, $options: "i" } },
+        { orderId: { $regex: escapedSearch, $options: "i" } },
       ];
     }
 

@@ -14,6 +14,8 @@ import {
   normalizeCompanyCode,
   buildOtpKey,
 } from "@/lib/otp-utils";
+import { ACCESS_COOKIE, ACCESS_TTL_SECONDS, REFRESH_COOKIE, REFRESH_TTL_SECONDS } from "@/app/api/auth/refresh/route";
+import jwt from "jsonwebtoken";
 
 // Validation schema
 const VerifyOTPSchema = z.object({
@@ -180,14 +182,62 @@ export async function POST(request: NextRequest) {
       expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "OTP verified successfully",
-      data: {
-        otpToken: sessionToken,
-        userId: otpData.userId,
+    const secret = process.env.NEXTAUTH_SECRET;
+    if (!secret) {
+      return NextResponse.json(
+        { success: false, error: "Server config error" },
+        { status: 500 },
+      );
+    }
+
+    const accessToken = jwt.sign(
+      { sub: otpData.userId },
+      secret,
+      { expiresIn: ACCESS_TTL_SECONDS },
+    );
+    const refreshToken = jwt.sign(
+      { sub: otpData.userId },
+      secret,
+      { expiresIn: REFRESH_TTL_SECONDS },
+    );
+
+    const res = NextResponse.json(
+      {
+        success: true,
+        message: "OTP verified successfully",
+        data: {
+          otpToken: sessionToken,
+          userId: otpData.userId,
+          expiresIn: OTP_SESSION_EXPIRY_MS / 1000,
+          accessToken,
+        },
       },
+    );
+    const secure =
+      request.nextUrl.protocol === "https:" ||
+      process.env.NODE_ENV === "production";
+    res.cookies.set("fxz.otp", sessionToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure,
+      path: "/",
+      maxAge: Math.floor(OTP_SESSION_EXPIRY_MS / 1000),
     });
+    res.cookies.set(ACCESS_COOKIE, accessToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure,
+      path: "/",
+      maxAge: ACCESS_TTL_SECONDS,
+    });
+    res.cookies.set(REFRESH_COOKIE, refreshToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure,
+      path: "/",
+      maxAge: REFRESH_TTL_SECONDS,
+    });
+    return res;
   } catch (error) {
     logger.error("[OTP] Verify OTP error", error as Error);
     return NextResponse.json(

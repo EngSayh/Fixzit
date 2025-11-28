@@ -13,6 +13,7 @@ import {
   RATE_LIMIT_WINDOW_MS,
   MAX_SENDS_PER_WINDOW,
 } from "@/lib/otp-store";
+import { rateLimit } from "@/server/security/rateLimit";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   EMPLOYEE_ID_REGEX,
@@ -266,8 +267,8 @@ const resolveTestUser = (
 
 // Validation schema
 const SendOTPSchema = z.object({
-  identifier: z.string().trim().min(1, "Email or employee number is required"),
-  password: z.string().min(1, "Password is required"),
+  identifier: z.string().trim().min(1, "Email, phone, or employee number is required"),
+  password: z.string().trim().optional(),
   companyCode: z.string().trim().optional(),
 });
 
@@ -307,8 +308,8 @@ function checkRateLimit(identifier: string): {
  * Send OTP via SMS for login verification
  *
  * Request Body:
- * - identifier: Email or employee number
- * - password: User password (for authentication)
+ * - identifier: Email, phone, or employee number
+ * - password: User password (for authentication; optional for phone-only OTP when allowed)
  *
  * Response:
  * - 200: OTP sent successfully (includes phone last 4 digits for UI)
@@ -323,6 +324,14 @@ export async function POST(request: NextRequest) {
     windowMs: 60_000,
   });
   if (ipRateLimited) return ipRateLimited;
+  const clientIp = request.headers.get("x-forwarded-for") || "otp-ip";
+  const rl = rateLimit(`auth:otp-send:${clientIp}`, 5, 300_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { success: false, error: "Too many attempts. Please try again later." },
+      { status: 429 },
+    );
+  }
 
   try {
     // 1. Parse and validate request body
@@ -446,45 +455,61 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 6. Verify password via bcrypt (demo users may bypass)
+      // 6. Verify password via bcrypt (demo users may bypass), unless phone-only OTP is allowed and we're in phone flow
       let isValid = false;
       const hashedPassword =
         typeof user.password === "string" ? user.password : "";
-      if (hashedPassword) {
-        try {
-          const compareResult = await bcrypt.compare(password, hashedPassword);
-          isValid = !!compareResult;
-        } catch (compareError) {
-          logger.error(
-            "[OTP] Password comparison failed",
-            compareError as Error,
+
+      if (password) {
+        if (hashedPassword) {
+          try {
+            const compareResult = await bcrypt.compare(password, hashedPassword);
+            isValid = !!compareResult;
+          } catch (compareError) {
+            logger.error(
+              "[OTP] Password comparison failed",
+              compareError as Error,
+            );
+          }
+        }
+
+        const isDemoUserCandidate =
+          isDemoIdentifier(loginIdentifier) ||
+          isDemoIdentifier(user.email) ||
+          isDemoIdentifier(user.username) ||
+          isDemoIdentifier(user.employeeId) ||
+          Boolean(user.__isDemoUser);
+
+        if (!isValid && isDemoUserCandidate && matchesDemoPassword(password)) {
+          isValid = true;
+          logger.warn("[OTP] Accepted demo credentials", {
+            identifier: loginIdentifier,
+          });
+        }
+
+        if (!isValid) {
+          logger.warn("[OTP] Invalid password", { identifier: loginIdentifier });
+          return NextResponse.json(
+            {
+              success: false,
+              error: "Invalid credentials",
+            },
+            { status: 401 },
           );
         }
-      }
-
-      const isDemoUserCandidate =
-        isDemoIdentifier(loginIdentifier) ||
-        isDemoIdentifier(user.email) ||
-        isDemoIdentifier(user.username) ||
-        isDemoIdentifier(user.employeeId) ||
-        Boolean(user.__isDemoUser);
-
-      if (!isValid && isDemoUserCandidate && matchesDemoPassword(password)) {
-        isValid = true;
-        logger.warn("[OTP] Accepted demo credentials", {
-          identifier: loginIdentifier,
-        });
-      }
-
-      if (!isValid) {
-        logger.warn("[OTP] Invalid password", { identifier: loginIdentifier });
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Invalid credentials",
-          },
-          { status: 401 },
-        );
+      } else {
+        if (!allowPhoneOnly) {
+          return NextResponse.json(
+            { success: false, error: "Password is required for non-phone login" },
+            { status: 400 },
+          );
+        }
+        if (!phoneOk) {
+          return NextResponse.json(
+            { success: false, error: "Phone number required for phone-only OTP" },
+            { status: 400 },
+          );
+        }
       }
     }
 

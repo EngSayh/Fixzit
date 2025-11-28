@@ -49,7 +49,9 @@ export async function GET(req: NextRequest) {
     filter.jobType = jobType;
   }
   if (location) {
-    const regex = new RegExp(location, "i");
+    // SECURITY: Escape regex special characters to prevent ReDoS
+    const escapedLocation = location.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedLocation, "i");
     filter.$or = [{ "location.city": regex }, { "location.country": regex }];
   }
 

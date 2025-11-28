@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import Customer from "@/server/models/Customer";
-import Subscription from "@/server/models/Subscription";
-import SubscriptionInvoice from "@/server/models/SubscriptionInvoice";
 import { computeQuote } from "@/lib/pricing";
-import { createHppRequest } from "@/lib/paytabs";
+import { createSubscriptionCheckout } from "@/lib/finance/checkout";
 import { getUserFromToken } from "@/lib/auth";
 import { rateLimit } from "@/server/security/rateLimit";
 import {
@@ -16,7 +14,6 @@ import { createSecureResponse } from "@/server/security/headers";
 import { z } from "zod";
 import { getClientIP } from "@/server/security/headers";
 import { canManageSubscriptions } from "@/lib/auth/role-guards";
-import { Config } from "@/lib/config/constants";
 
 const subscriptionSchema = z.object({
   customer: z.object({
@@ -32,6 +29,7 @@ const subscriptionSchema = z.object({
   paytabsRegion: z.string().optional(),
   returnUrl: z.string().url(),
   callbackUrl: z.string().url(),
+  priceBookId: z.string().optional(),
 });
 
 // Require: {customer:{type:'ORG'|'OWNER',...}, planType:'CORPORATE_FM'|'OWNER_FM', items:[], seatTotal, billingCycle, paytabsRegion, returnUrl, callbackUrl}
@@ -130,78 +128,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3) Create Subscription snapshot (status pending until paid)
-    const sub = await Subscription.create({
-      customerId: customer._id,
-      orgId: user.orgId,
-      planType: body.planType,
-      items: (quote.items || []).map((i: Record<string, unknown>) => ({
-        moduleId: undefined, // resolved later in worker if needed
-        moduleCode: i.module, // keep code snapshot
-        seatCount: i.seatCount,
-        unitPriceMonthly: i.unitPriceMonthly,
-        billingCategory: i.billingCategory,
-      })),
-      totalMonthly: quote.monthly,
-      billingCycle: body.billingCycle,
-      annualDiscountPct: quote.annualDiscountPct,
-      status: "active",
-      seatTotal: body.seatTotal,
-      currency: quote.currency,
-      paytabsRegion: body.paytabsRegion || "GLOBAL",
-      startedAt: new Date(),
-      nextInvoiceAt: new Date(),
-      createdBy: user.id,
-    });
-
-    // 4) First invoice amount:
-    const amount =
-      body.billingCycle === "annual" ? quote.annualTotal : quote.monthly;
-
-    // @ts-expect-error - Mongoose 8.x type resolution issue with create overloads
-    const inv = await SubscriptionInvoice.create({
-      subscriptionId: sub._id,
-      orgId: user.orgId,
-      amount,
-      currency: quote.currency,
-      periodStart: new Date(),
-      periodEnd: new Date(
-        new Date().setMonth(
-          new Date().getMonth() + (body.billingCycle === "annual" ? 12 : 1),
-        ),
-      ),
-      dueDate: new Date(),
-      status: "pending",
-    });
-
-    // 5) Create PayTabs HPP. For monthly: include tokenise=2 to capture token. For annual: no token needed.
-    const basePayload = {
-      profile_id: Config.payment.paytabs.profileId,
-      tran_type: "sale",
-      tran_class: body.billingCycle === "monthly" ? "ecom" : "ecom",
-      cart_id: `SUB-${sub._id}`,
-      cart_description: `Fixzit ${body.planType} (${body.billingCycle})`,
-      cart_amount: amount,
-      cart_currency: quote.currency,
-      return: body.returnUrl,
-      callback: body.callbackUrl,
-      customer_details: {
-        name: customer.name,
-        email: body.customer.billingEmail, // Use email from request body, not DB model
-        country: customer.address?.country || "SA",
-      },
-    } as Record<string, unknown>;
-
-    if (body.billingCycle === "monthly") basePayload.tokenise = 2; // Hex32 token, delivered in callback
-    const resp = await createHppRequest(
-      body.paytabsRegion || "GLOBAL",
-      basePayload,
+    const modules = (body.items || []).map(
+      (i: Record<string, unknown>) =>
+        (i.moduleCode as string) ||
+        (i.module as string) ||
+        (i.billingCategory as string) ||
+        "CORE",
     );
-    // resp.redirect_url to be used on FE
+
+    const subscriberType = body.customer.type === "OWNER" ? "OWNER" : "CORPORATE";
+    const checkout = await createSubscriptionCheckout({
+      subscriberType,
+      tenantId: subscriberType === "CORPORATE" ? user.orgId : undefined,
+      ownerUserId: subscriberType === "OWNER" ? user.id : undefined,
+      modules,
+      seats: body.seatTotal,
+      billingCycle: body.billingCycle === "annual" ? "ANNUAL" : "MONTHLY",
+      currency: quote.currency === "SAR" ? "SAR" : "USD",
+      customer: {
+        name: customer.name,
+        email: body.customer.billingEmail,
+        phone: customer.phone,
+      },
+      priceBookId: body.priceBookId,
+      metadata: {
+        planType: body.planType,
+        items: body.items,
+        billingCycle: body.billingCycle,
+      },
+    });
+
     return NextResponse.json({
-      subscriptionId: sub._id,
-      invoiceId: inv._id,
-      paytabs: resp,
+      subscriptionId: checkout.subscriptionId,
+      cartId: checkout.cartId,
+      redirectUrl: checkout.redirectUrl,
+      quote,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

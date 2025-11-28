@@ -16,6 +16,7 @@ interface OTPVerificationProps {
   onResend: () => Promise<{
     success: boolean;
     expiresIn?: number;
+    accessToken?: string;
     error?: string;
   }>;
   onBack: () => void;
