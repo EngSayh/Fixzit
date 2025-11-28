@@ -207,14 +207,22 @@ export class SearchIndexerService {
    * Remove product from index
    * Triggered on listing deletion or deactivation
    */
-  static async deleteFromIndex(fsin: string): Promise<void> {
+  static async deleteFromIndex(
+    fsin: string,
+    options?: { orgId?: string },
+  ): Promise<void> {
     try {
       const index = searchClient.index(INDEXES.PRODUCTS);
       await withMeiliResilience("product-delete", "index", () =>
         index.deleteDocument(fsin),
       );
 
-      logger.info(`[SearchIndexer] Deleted product from search: ${fsin}`);
+      logger.info(`[SearchIndexer] Deleted product from search: ${fsin}`, {
+        component: "SearchIndexerService",
+        action: "deleteFromIndex",
+        fsin,
+        orgId: options?.orgId,
+      });
     } catch (_error) {
       const error =
         _error instanceof Error ? _error : new Error(String(_error));
@@ -223,6 +231,7 @@ export class SearchIndexerService {
         component: "SearchIndexerService",
         action: "deleteFromIndex",
         fsin,
+        orgId: options?.orgId,
       });
       throw error;
     }

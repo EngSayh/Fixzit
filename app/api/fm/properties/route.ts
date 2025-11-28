@@ -112,7 +112,8 @@ export async function GET(req: NextRequest) {
     }
     
     // AUDIT-2025-11-26: Support owner roles (corporate/owner)
-    if (actor.role === "CORPORATE_OWNER" || actor.role === "OWNER") {
+    // STRICT v4.1: CORPORATE_OWNER is the canonical role (OWNER is legacy alias)
+    if (actor.role === "CORPORATE_OWNER") {
       const ownedProperties = (actor as { ownedProperties?: string[] }).ownedProperties || [];
       if (ownedProperties.length === 0) {
         // Owners with no properties see empty list, not error

@@ -246,7 +246,9 @@ async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
       }
 
       case "delete": {
-        await SearchIndexerService.deleteFromIndex(data.id);
+        await SearchIndexerService.deleteFromIndex(data.id, {
+          orgId: data.orgId,
+        });
         await job.updateProgress(100);
         break;
       }

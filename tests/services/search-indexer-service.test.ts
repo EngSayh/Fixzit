@@ -80,7 +80,13 @@ describe("SearchIndexerService", () => {
       expect(mockIndex).toHaveBeenCalledWith(INDEXES.PRODUCTS);
       expect(mockDeleteDocument).toHaveBeenCalledWith("FSIN123");
       expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining("Deleted product from search")
+        "[SearchIndexer] Deleted product from search: FSIN123",
+        expect.objectContaining({
+          action: "deleteFromIndex",
+          component: "SearchIndexerService",
+          fsin: "FSIN123",
+          orgId: undefined,
+        }),
       );
     });
 
@@ -226,6 +232,11 @@ describe("SearchIndexerService", () => {
 
       expect(mockIndex).toHaveBeenCalledWith(INDEXES.PRODUCTS);
       expect(mockDeleteAllDocuments).toHaveBeenCalled();
+      expect(withMeiliResilience).toHaveBeenCalledWith(
+        "products-clear-index",
+        "index",
+        expect.any(Function),
+      );
       expect(result).toEqual({ indexed: 0, errors: 0 });
       expect(logger.info).toHaveBeenCalledWith(
         expect.stringContaining("Starting full product reindex")
