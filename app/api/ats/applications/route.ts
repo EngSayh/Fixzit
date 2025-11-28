@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     // RBAC: Check permissions for reading applications
     const authResult = await atsRBAC(req, ["applications:read"]);
     if (!authResult.authorized) {
-      return (authResult as any).response;
+      return authResult.response;
     }
     const { orgId } = authResult;
 

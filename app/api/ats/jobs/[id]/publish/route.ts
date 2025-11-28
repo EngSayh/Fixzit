@@ -48,7 +48,7 @@ export async function POST(
     // RBAC: Check permissions
     const authResult = await atsRBAC(req, ["jobs:publish"]);
     if (!authResult.authorized) {
-      return (authResult as any).response;
+      return authResult.response;
     }
     const { orgId, isSuperAdmin } = authResult;
 

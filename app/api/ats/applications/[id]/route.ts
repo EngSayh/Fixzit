@@ -49,7 +49,7 @@ export async function GET(
     // RBAC: Check permissions
     const authResult = await atsRBAC(req, ["applications:read"]);
     if (!authResult.authorized) {
-      return (authResult as any).response;
+      return authResult.response;
     }
     const { orgId, isSuperAdmin } = authResult;
 
@@ -100,7 +100,7 @@ export async function PATCH(
       "applications:stage-transition",
     ]);
     if (!authResult.authorized) {
-      return (authResult as any).response;
+      return authResult.response;
     }
     const { userId, orgId, isSuperAdmin } = authResult;
 
