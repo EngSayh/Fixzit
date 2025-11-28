@@ -339,7 +339,8 @@ export function encryptFields<T extends Record<string, unknown>>(
   obj: T,
   fieldPaths: string[],
 ): T {
-  const result = { ...obj };
+  // Deep clone to prevent mutating nested objects in the original
+  const result = JSON.parse(JSON.stringify(obj)) as T;
 
   for (const path of fieldPaths) {
     const parts = path.split('.');
@@ -388,7 +389,8 @@ export function decryptFields<T extends Record<string, unknown>>(
   obj: T,
   fieldPaths: string[],
 ): T {
-  const result = { ...obj };
+  // Deep clone to prevent mutating nested objects in the original
+  const result = JSON.parse(JSON.stringify(obj)) as T;
 
   for (const path of fieldPaths) {
     const parts = path.split('.');

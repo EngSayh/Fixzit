@@ -14,8 +14,13 @@ import { User } from '@/server/models/User';
 import bcrypt from 'bcryptjs';
 
 const SUPERADMIN_EMAIL = 'superadmin@fixzit.co';
-const EXPECTED_PASSWORD = 'admin123'; // From DATABASE_VERIFICATION_REPORT.md
+const EXPECTED_PASSWORD = process.env.SUPERADMIN_PASSWORD;
 const FALLBACK_PHONE = process.env.NEXTAUTH_SUPERADMIN_FALLBACK_PHONE || '+966552233456'; // Updated to user's number
+
+if (!EXPECTED_PASSWORD) {
+  console.error('❌ SUPERADMIN_PASSWORD environment variable is required');
+  process.exit(1);
+}
 
 async function fixSuperAdminLogin() {
   console.log('🔍 Diagnosing Super Admin login issue...\n');
@@ -52,7 +57,7 @@ async function fixSuperAdminLogin() {
     const isPasswordValid = await bcrypt.compare(EXPECTED_PASSWORD, user.password);
     
     if (!isPasswordValid) {
-      console.log(`   ⚠️  Password mismatch - updating to "${EXPECTED_PASSWORD}"`);
+      console.log('   ⚠️  Password mismatch - updating to value from SUPERADMIN_PASSWORD env');
       const hashedPassword = await bcrypt.hash(EXPECTED_PASSWORD, 10);
       updates.password = hashedPassword;
       needsUpdate = true;
@@ -114,7 +119,7 @@ async function fixSuperAdminLogin() {
       
       console.log('📋 Final Status:');
       console.log('   Email:', SUPERADMIN_EMAIL);
-      console.log('   Password:', EXPECTED_PASSWORD);
+      console.log('   Password:', '[configured via env]');
       console.log('   Password Valid:', finalPasswordCheck ? '✅ YES' : '❌ NO');
       console.log('   Phone:', updatedUser.contact?.phone || updatedUser.personal?.phone || updatedUser.phone || 'MISSING');
       console.log('   Status:', updatedUser.status);
@@ -125,7 +130,7 @@ async function fixSuperAdminLogin() {
         console.log('\n✅ ✅ ✅ LOGIN SHOULD NOW WORK! ✅ ✅ ✅\n');
         console.log('Try logging in at: https://fixzit.co/login');
         console.log(`Email: ${SUPERADMIN_EMAIL}`);
-        console.log(`Password: ${EXPECTED_PASSWORD}`);
+        console.log('Password: [use the value from SUPERADMIN_PASSWORD env]');
       } else {
         console.log('\n⚠️  Some issues remain - check above for details\n');
       }
