@@ -103,7 +103,7 @@ export class EmployeeService {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .select(includePii ? undefined : { compensation: 0, bankDetails: 0 })
+        .select(includePii ? {} : { compensation: 0, bankDetails: 0 })
         .lean<EmployeeDoc>()
         .exec(),
       Employee.countDocuments(query).exec(),
