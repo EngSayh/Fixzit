@@ -21,6 +21,7 @@ export function useI18n() {
   if (!ctx) {
     throw new Error("useI18n must be used within <I18nProvider />");
   }
+  const isRTL = ctx.dir === "rtl";
 
   // FIX: Use useCallback to memoize translation function based on dict reference
   // This ensures 't' has a stable identity when dict doesn't change,
@@ -44,7 +45,7 @@ export function useI18n() {
     [dict], // Recreate function when dict reference changes
   );
 
-  return { ...ctx, t };
+  return { ...ctx, t, isRTL };
 }
 
 export type UseI18nReturn = ReturnType<typeof useI18n>;

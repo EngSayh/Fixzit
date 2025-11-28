@@ -207,6 +207,48 @@ export default function OnboardingWizard({
 
   const progress = (currentStep / STEPS.length) * 100;
 
+  const validateProfileStep = useCallback(() => {
+    if (!basicInfo.name.trim()) {
+      toast.error(isRTL ? "الرجاء إدخال الاسم" : "Please enter your name");
+      return false;
+    }
+    const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    if (!emailPattern.test(basicInfo.email.trim())) {
+      toast.error(isRTL ? "الرجاء إدخال بريد إلكتروني صالح" : "Please enter a valid email");
+      return false;
+    }
+    if (
+      (selectedRole === "OWNER" || selectedRole === "VENDOR") &&
+      !basicInfo.companyName.trim()
+    ) {
+      toast.error(isRTL ? "اسم الشركة مطلوب" : "Company name is required");
+      return false;
+    }
+    if (basicInfo.phone.trim()) {
+      const phonePattern = /^\+?\d{7,15}$/;
+      if (!phonePattern.test(basicInfo.phone.trim())) {
+        toast.error(isRTL ? "الرجاء إدخال رقم هاتف صالح" : "Please enter a valid phone number");
+        return false;
+      }
+    }
+    return true;
+  }, [basicInfo, isRTL, selectedRole]);
+
+  const ensureRequiredDocs = useCallback(() => {
+    if (!selectedRole) return true;
+    const requiredDocs = REQUIRED_DOCS[selectedRole] || [];
+    const missingDocs = requiredDocs.filter((doc) => !uploadedDocs[doc]);
+    if (missingDocs.length > 0) {
+      toast.error(
+        isRTL
+          ? "يرجى تحميل جميع المستندات المطلوبة قبل الإرسال"
+          : "Please upload all required documents before submitting",
+      );
+      return false;
+    }
+    return true;
+  }, [isRTL, selectedRole, uploadedDocs]);
+
   // Navigate between steps
   const nextStep = useCallback(async () => {
     if (currentStep === 1 && !selectedRole) {
@@ -215,6 +257,7 @@ export default function OnboardingWizard({
     }
 
     if (currentStep === 1 && !caseId) {
+      if (!validateProfileStep()) return;
       // Create case on first step completion
       setIsLoading(true);
       try {
@@ -249,11 +292,16 @@ export default function OnboardingWizard({
       return;
     }
 
+    // Validate profile before moving past profile/doc steps
+    if (currentStep === 2 && !validateProfileStep()) {
+      return;
+    }
+
     // Save progress for subsequent steps
     if (caseId) {
       setIsLoading(true);
       try {
-        await fetch(`/api/onboarding/${caseId}`, {
+        const res = await fetch(`/api/onboarding/${caseId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -262,14 +310,20 @@ export default function OnboardingWizard({
             current_step: currentStep + 1,
           }),
         });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Failed to save progress");
+        }
         setCurrentStep((s) => Math.min(s + 1, STEPS.length));
       } catch (_error) {
-        toast.error("Failed to save progress");
+        toast.error(
+          isRTL ? "فشل في حفظ التقدم" : "Failed to save progress",
+        );
       } finally {
         setIsLoading(false);
       }
     }
-  }, [currentStep, selectedRole, caseId, basicInfo, payload, session, isRTL]);
+  }, [currentStep, selectedRole, caseId, basicInfo, payload, session, isRTL, validateProfileStep]);
 
   const prevStep = useCallback(() => {
     setCurrentStep((s) => Math.max(s - 1, 1));
@@ -278,6 +332,8 @@ export default function OnboardingWizard({
   // Submit final step
   const handleSubmit = useCallback(async () => {
     if (!caseId) return;
+    if (!validateProfileStep()) return;
+    if (!ensureRequiredDocs()) return;
 
     setIsLoading(true);
     try {
@@ -312,7 +368,7 @@ export default function OnboardingWizard({
     } finally {
       setIsLoading(false);
     }
-  }, [caseId, isRTL, onComplete, router]);
+  }, [caseId, isRTL, onComplete, router, validateProfileStep, ensureRequiredDocs]);
 
   // Document upload handler
   const handleDocUpload = async (docType: string, file: File) => {

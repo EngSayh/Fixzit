@@ -35,10 +35,6 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID;
 const APPLE_CLIENT_SECRET = process.env.APPLE_CLIENT_SECRET;
-const REFRESH_COOKIE = 'fxz.refresh';
-const ACCESS_COOKIE = 'fxz.access';
-const ACCESS_TTL_SECONDS = 15 * 60;
-const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
 
 // Derive NEXTAUTH_URL when missing (helps preview builds)

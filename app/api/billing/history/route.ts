@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { SubscriptionInvoice } from "@/server/models/SubscriptionInvoice";
+import {
+  SubscriptionInvoice,
+  type ISubscriptionInvoice,
+} from "@/server/models/SubscriptionInvoice";
 import Subscription from "@/server/models/Subscription";
 import { logger } from "@/lib/logger";
 import { auth } from "@/auth";
 import { createSecureResponse } from "@/server/security/headers";
-import { Types } from "mongoose";
+import { Types, type Model } from "mongoose";
 
 /**
  * GET /api/billing/history
@@ -70,13 +73,15 @@ export async function GET(req: NextRequest) {
     }
 
     // Count total invoices
-    const total = await SubscriptionInvoice.countDocuments({
+    const InvoiceModel = SubscriptionInvoice as Model<ISubscriptionInvoice>;
+
+    const total = await InvoiceModel.countDocuments({
       orgId: orgObjectId,
       subscriptionId: { $in: subscriptionIds },
     });
 
     // Fetch invoices with pagination, sorted by newest first
-    const invoices = await SubscriptionInvoice.find({
+    const invoices = await InvoiceModel.find({
       orgId: orgObjectId,
       subscriptionId: { $in: subscriptionIds },
     })

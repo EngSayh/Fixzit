@@ -221,10 +221,13 @@ const buildTestUser = (
 
 const resolveTestUser = (
   identifier: string,
-  password: string,
+  password: string | undefined,
   loginType: "personal" | "corporate",
   companyCode?: string | null,
 ) => {
+  if (!password) {
+    return null;
+  }
   const normalized =
     loginType === "personal"
       ? identifier.toLowerCase()

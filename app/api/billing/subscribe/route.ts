@@ -86,10 +86,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Rate limiting for subscription operations
+    // Rate limiting for subscription operations (per tenant)
     const key = `billing:subscribe:${user.orgId}`;
-    const rl = rateLimit(key, 3, 300_000); // 3 subscriptions per 5 minutes per tenant
-    if (!rl.allowed) {
+    const tenantRl = rateLimit(key, 3, 300_000); // 3 subscriptions per 5 minutes per tenant
+    if (!tenantRl.allowed) {
       return createSecureResponse(
         {
           error:
@@ -158,7 +158,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    if (checkout.requiresQuote) {
+      return NextResponse.json({
+        requiresQuote: true,
+        quote: checkout.quote,
+      });
+    }
+
     return NextResponse.json({
+      requiresQuote: false,
       subscriptionId: checkout.subscriptionId,
       cartId: checkout.cartId,
       redirectUrl: checkout.redirectUrl,

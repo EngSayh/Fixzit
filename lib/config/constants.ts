@@ -25,9 +25,21 @@ class ConfigurationError extends Error {
  */
 function getRequired(key: string, fallback?: string): string {
   const value = process.env[key];
+  const isProduction = process.env.NODE_ENV === "production";
+  const shouldSkipValidation = isProduction && SKIP_CONFIG_VALIDATION;
 
   if (!value || value.trim() === "") {
-    if (process.env.NODE_ENV === "production") {
+    // During build-time (or when explicitly skipped), fall back to the provided default
+    // so preview builds don't crash when secrets aren't injected. Runtime validation below
+    // still enforces presence in real production environments.
+    if (shouldSkipValidation && fallback !== undefined) {
+      logger.warn(
+        `[Config] ${key} not set; using fallback because SKIP_CONFIG_VALIDATION is enabled`,
+      );
+      return fallback;
+    }
+
+    if (isProduction && !shouldSkipValidation) {
       throw new ConfigurationError(
         `Required environment variable ${key} is not set`,
       );

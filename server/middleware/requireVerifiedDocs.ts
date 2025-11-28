@@ -50,7 +50,10 @@ export async function ensureVerifiedDocs(
       !caseRecord ||
       !Array.isArray(docs) ||
       docs.length === 0 ||
-      docs.some((doc) => doc.status !== 'VERIFIED' || (doc.expiry_date && new Date(doc.expiry_date) < now) || doc.status === 'EXPIRED' || doc.status === 'REJECTED');
+      docs.some((doc) => {
+        const expired = doc.expiry_date && new Date(doc.expiry_date) < now;
+        return doc.status !== 'VERIFIED' || expired;
+      });
 
     if (notVerified) {
       const escalation = await resolveEscalationContact(user);

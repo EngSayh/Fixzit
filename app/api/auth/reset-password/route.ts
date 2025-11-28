@@ -51,9 +51,9 @@ export async function POST(req: NextRequest) {
     // Validate input
     const parseResult = resetSchema.safeParse(body);
     if (!parseResult.success) {
-      const errors = parseResult.error.errors.map((e) => ({
-        path: e.path.join("."),
-        message: e.message,
+      const errors = parseResult.error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
       }));
       return NextResponse.json({ error: "Validation failed", errors }, { status: 400 });
     }
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
     );
 
     logger.info("[reset-password] Password reset successful", {
-      userId: user._id,
+      userId: String(user._id),
     });
 
     return NextResponse.json({

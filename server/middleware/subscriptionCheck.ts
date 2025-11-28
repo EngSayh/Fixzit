@@ -260,7 +260,7 @@ export async function requireSubscription(
       status.daysUntilExpiry <= 7
     ) {
       logger.warn(
-        `Subscription expiring soon for owner ${ownerId}: ${status.daysUntilExpiry} days remaining`,
+        `Subscription expiring soon for owner ${ownerObjectId}: ${status.daysUntilExpiry} days remaining`,
       );
     }
 

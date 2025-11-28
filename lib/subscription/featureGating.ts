@@ -96,6 +96,8 @@ export const PLAN_LIMITS = {
   },
 } as const;
 
+export type PlanLimits = (typeof PLAN_LIMITS)[keyof typeof PLAN_LIMITS];
+
 /**
  * Check if a plan has access to a specific feature
  */
@@ -161,7 +163,7 @@ export function getAvailableModules(userPlan: string | undefined | null): Module
 /**
  * Get plan limits
  */
-export function getPlanLimits(userPlan: string | undefined | null): typeof PLAN_LIMITS.BASIC {
+export function getPlanLimits(userPlan: string | undefined | null): PlanLimits {
   const plan = normalizePlanName(userPlan);
   return PLAN_LIMITS[plan] || PLAN_LIMITS.BASIC;
 }

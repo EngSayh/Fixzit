@@ -161,7 +161,8 @@ export async function POST(req: NextRequest) {
 
     // Get current plan level
     const PLAN_HIERARCHY = { BASIC: 0, STANDARD: 1, PRO: 2, PREMIUM: 3, ENTERPRISE: 4 };
-    const currentPlan = currentSub?.plan || "BASIC";
+    const currentPlan =
+      (currentSub?.get?.("plan") as string | undefined) || "BASIC";
     const currentLevel = PLAN_HIERARCHY[currentPlan as keyof typeof PLAN_HIERARCHY] ?? 0;
     const targetLevel = PLAN_HIERARCHY[targetPlan as keyof typeof PLAN_HIERARCHY];
 
@@ -232,13 +233,22 @@ export async function POST(req: NextRequest) {
 
     // Calculate proration if upgrading mid-cycle
     let prorationCredit = 0;
-    if (currentSub?.activeUntil && currentSub.amount) {
+    if (currentSub?.amount) {
       const now = new Date();
-      const cycleEnd = new Date(currentSub.activeUntil);
-      const cycleLengthDays =
-        (currentSub.billing_cycle || "").toString().toUpperCase() === "ANNUAL" ? 365 : 30;
+      const billingCycleCode = (currentSub.billing_cycle || "")
+        .toString()
+        .toUpperCase();
+      const cycleDays = billingCycleCode === "ANNUAL" ? 365 : 30;
+
+      // Prefer explicit next_billing_date or activeUntil for period end; fallback to createdAt
+      const periodEnd =
+        currentSub.next_billing_date ||
+        (currentSub.get?.("activeUntil") as Date | undefined) ||
+        currentSub.updatedAt ||
+        currentSub.createdAt;
+      const cycleEnd = new Date(periodEnd);
       const cycleStart = new Date(
-        cycleEnd.getTime() - cycleLengthDays * 24 * 60 * 60 * 1000,
+        cycleEnd.getTime() - cycleDays * 24 * 60 * 60 * 1000,
       );
 
       const totalDays = Math.max(
@@ -331,6 +341,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    if (checkout.requiresQuote) {
+      return createSecureResponse(
+        {
+          success: false,
+          requiresQuote: true,
+          quote: checkout.quote,
+        },
+        200,
+        req,
+      );
+    }
+
     // Log upgrade attempt
     logger.info("[billing/upgrade] Upgrade checkout created", {
       userId: user.id,
@@ -359,7 +381,7 @@ export async function POST(req: NextRequest) {
         },
         pricing: {
           subtotal: quote.subtotal,
-          discount: quote.discount || 0,
+          discount: 0,
           prorationCredit,
           total: finalAmount,
           currency: quote.currency,
@@ -420,7 +442,8 @@ export async function GET(req: NextRequest) {
       ],
     }).sort({ createdAt: -1 }).lean();
 
-    const currentPlan = currentSub?.plan || "BASIC";
+    const currentPlan =
+      (currentSub as { plan?: string } | null)?.plan || "BASIC";
     const PLAN_HIERARCHY = { BASIC: 0, STANDARD: 1, PRO: 2, PREMIUM: 3, ENTERPRISE: 4 };
     const currentLevel = PLAN_HIERARCHY[currentPlan as keyof typeof PLAN_HIERARCHY] ?? 0;
 
@@ -445,7 +468,7 @@ export async function GET(req: NextRequest) {
           modules: currentSub.modules,
           seats: currentSub.seats,
           billingCycle: currentSub.billing_cycle,
-          activeUntil: currentSub.activeUntil,
+          activeUntil: (currentSub as { activeUntil?: Date }).activeUntil,
         } : null,
         availableUpgrades,
       },
