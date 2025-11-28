@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -46,9 +47,13 @@ import {
   Loader2,
   ExternalLink,
   AlertTriangle,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+// Roles allowed to access admin approval queue
+const ADMIN_ROLES = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "SUPPORT"];
 
 type OnboardingStatus = "DRAFT" | "SUBMITTED" | "UNDER_REVIEW" | "DOCS_PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 type OnboardingRole = "TENANT" | "PROPERTY_OWNER" | "OWNER" | "VENDOR" | "AGENT";
@@ -99,7 +104,8 @@ const ROLE_LABELS: Record<OnboardingRole, { en: string; ar: string }> = {
 
 export default function AdminApprovalQueuePage() {
   const { t, isRTL } = useTranslation();
-  const _session = useSession(); // Used for auth state
+  const { data: session, status } = useSession();
+  const router = useRouter();
   
   const [cases, setCases] = useState<OnboardingCase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -112,6 +118,17 @@ export default function AdminApprovalQueuePage() {
   const [reviewAction, setReviewAction] = useState<"approve" | "reject" | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // RBAC Check: Only allow admin roles
+  const userRole = session?.user?.role as string | undefined;
+  const hasAccess = userRole && ADMIN_ROLES.includes(userRole);
+
+  // Redirect if not authorized (after session loads)
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login?callbackUrl=/admin/onboarding");
+    }
+  }, [status, router]);
 
   const fetchCases = useCallback(async () => {
     setIsLoading(true);
@@ -136,6 +153,43 @@ export default function AdminApprovalQueuePage() {
   useEffect(() => {
     fetchCases();
   }, [fetchCases]);
+
+  // Show loading while checking session
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Show access denied if no permission
+  if (status === "authenticated" && !hasAccess) {
+    return (
+      <div className="container max-w-2xl py-16 px-4">
+        <Card className="border-destructive/50">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <ShieldAlert className="h-6 w-6 text-destructive" />
+            </div>
+            <CardTitle className="text-xl">
+              {isRTL ? "الوصول مرفوض" : "Access Denied"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center text-muted-foreground">
+            <p className="mb-4">
+              {isRTL
+                ? "ليس لديك صلاحية للوصول إلى قائمة الموافقات. هذه الصفحة مخصصة للمسؤولين فقط."
+                : "You do not have permission to access the Approval Queue. This page is restricted to Admin users only."}
+            </p>
+            <Button variant="outline" onClick={() => router.push("/dashboard")}>
+              {isRTL ? "العودة للوحة التحكم" : "Back to Dashboard"}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const filteredCases = cases.filter((c) => {
     if (!searchQuery) return true;
@@ -188,7 +242,16 @@ export default function AdminApprovalQueuePage() {
 
   const pendingCount = cases.filter((c) => c.status === "SUBMITTED").length;
   const reviewingCount = cases.filter((c) => c.status === "UNDER_REVIEW").length;
-  const approvedCount = cases.filter((c) => c.status === "APPROVED").length;
+  const now = new Date();
+  const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+  const endOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+  const approvedCount = cases.filter((c) => {
+    if (c.status !== "APPROVED") return false;
+    const ts = (c as { approvedAt?: string | Date; createdAt?: string | Date }).approvedAt ?? c.createdAt;
+    if (!ts) return false;
+    const d = new Date(ts);
+    return d >= startOfDay && d <= endOfDay;
+  }).length;
 
   return (
     <div className="container max-w-7xl py-8 px-4">

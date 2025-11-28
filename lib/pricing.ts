@@ -182,8 +182,31 @@ export function computeQuote(params: {
   items: QuoteItem[];
   seatTotal: number;
   billingCycle: "monthly" | "annual";
+  isUnlimited?: boolean; // For enterprise plans with unlimited seats
 }): SubscriptionQuote {
-  const { items, seatTotal } = params;
+  const { items, seatTotal, isUnlimited } = params;
+
+  // For unlimited plans (Enterprise), use a fixed enterprise pricing model
+  // instead of per-seat calculation
+  if (isUnlimited) {
+    return {
+      items: items.map((item) => ({
+        module: item.moduleCode || item.module || "UNKNOWN",
+        seatCount: -1, // Unlimited
+        unitPriceMonthly: 0, // Enterprise uses custom pricing
+        billingCategory: item.billingCategory || "ENTERPRISE",
+        total: 0,
+      })),
+      subtotal: 0,
+      tax: 0,
+      total: 0,
+      monthly: 0,
+      annualTotal: 0,
+      annualDiscountPct: 0,
+      currency: "SAR",
+      contactSales: true, // Enterprise plans require sales contact
+    };
+  }
 
   // Process items with seat-based pricing
   const processedItems = items.map((item) => {

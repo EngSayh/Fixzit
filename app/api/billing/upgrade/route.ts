@@ -26,22 +26,26 @@ const upgradeSchema = z.object({
 /**
  * Plan configurations with module mappings
  */
-const PLAN_CONFIGS: Record<string, { modules: string[]; baseSeats: number }> = {
+const PLAN_CONFIGS: Record<string, { modules: string[]; baseSeats: number; allowedAddons: string[] }> = {
   STANDARD: {
     modules: ["CORE", "WORK_ORDERS", "PROPERTIES"],
     baseSeats: 3,
+    allowedAddons: [], // No add-ons for STANDARD
   },
   PRO: {
     modules: ["CORE", "WORK_ORDERS", "PROPERTIES", "FINANCE", "HR", "CRM", "MARKETPLACE"],
     baseSeats: 10,
+    allowedAddons: ["COMPLIANCE", "API"], // Limited add-ons for PRO
   },
   PREMIUM: {
     modules: ["CORE", "WORK_ORDERS", "PROPERTIES", "FINANCE", "HR", "CRM", "MARKETPLACE", "COMPLIANCE"],
     baseSeats: 25,
+    allowedAddons: ["API", "SSO", "ADVANCED_ANALYTICS"], // More add-ons for PREMIUM
   },
   ENTERPRISE: {
     modules: ["CORE", "WORK_ORDERS", "PROPERTIES", "FINANCE", "HR", "CRM", "MARKETPLACE", "COMPLIANCE", "API", "SSO"],
     baseSeats: -1, // Unlimited
+    allowedAddons: ["WHITE_LABEL", "MULTI_REGION", "CUSTOM_INTEGRATIONS"], // Enterprise-only add-ons
   },
 };
 
@@ -180,12 +184,32 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: "Invalid target plan" }, 400, req);
     }
 
-    // Calculate seats
-    const baseSeats = planConfig.baseSeats === -1 ? 100 : planConfig.baseSeats;
-    const totalSeats = baseSeats + additionalSeats;
+    // Validate additionalModules against allowed add-ons for the target plan
+    const allAllowedModules = new Set([...planConfig.modules, ...planConfig.allowedAddons]);
+    const validAddons = additionalModules.filter((m) => allAllowedModules.has(m));
+    const invalidAddons = additionalModules.filter((m) => !allAllowedModules.has(m));
+    
+    if (invalidAddons.length > 0) {
+      return createSecureResponse(
+        {
+          error: "Invalid module selection",
+          message: `The following modules are not available for ${targetPlan} plan: ${invalidAddons.join(", ")}`,
+          invalidModules: invalidAddons,
+          allowedAddons: planConfig.allowedAddons,
+        },
+        400,
+        req
+      );
+    }
 
-    // Build modules list
-    const modules = [...new Set([...planConfig.modules, ...additionalModules])];
+    // Calculate seats - handle unlimited (ENTERPRISE) properly
+    // For unlimited plans, don't use a hard-coded fallback; use undefined for unlimited semantics
+    const isUnlimitedSeats = planConfig.baseSeats === -1;
+    const baseSeats = isUnlimitedSeats ? undefined : planConfig.baseSeats;
+    const totalSeats = isUnlimitedSeats ? undefined : (baseSeats! + additionalSeats);
+
+    // Build modules list (only include valid add-ons)
+    const modules = [...new Set([...planConfig.modules, ...validAddons])];
 
     // Build quote items
     const items = modules.map((moduleCode) => ({
@@ -199,8 +223,9 @@ export async function POST(req: NextRequest) {
 
     const quote = await computeQuote({
       items,
-      seatTotal: totalSeats,
+      seatTotal: totalSeats ?? 0, // Pass 0 for unlimited; computeQuote should handle contract pricing
       billingCycle: effectiveBillingCycle,
+      isUnlimited: isUnlimitedSeats, // Signal unlimited plan for special pricing
     });
 
     // Calculate proration if upgrading mid-cycle
@@ -243,7 +268,7 @@ export async function POST(req: NextRequest) {
       tenantId: user.orgId,
       ownerUserId: subscriberType === "OWNER" ? user.id : undefined,
       modules,
-      seats: totalSeats,
+      seats: totalSeats ?? -1, // -1 signals unlimited seats
       billingCycle: effectiveBillingCycle === "annual" ? "ANNUAL" : "MONTHLY",
       currency: quote.currency === "SAR" ? "SAR" : "USD",
       customer: {
@@ -284,7 +309,7 @@ export async function POST(req: NextRequest) {
           from: currentPlan,
           to: targetPlan,
           modules,
-          seats: totalSeats,
+          seats: isUnlimitedSeats ? "Unlimited" : totalSeats,
           billingCycle: effectiveBillingCycle,
         },
         pricing: {
@@ -364,7 +389,7 @@ export async function GET(req: NextRequest) {
         plan,
         modules: config.modules,
         baseSeats: config.baseSeats === -1 ? "Unlimited" : config.baseSeats,
-        features: getplanFeatures(plan),
+        features: getPlanFeatures(plan),
       }));
 
     return createSecureResponse(
@@ -397,7 +422,7 @@ export async function GET(req: NextRequest) {
 /**
  * Get human-readable features for a plan
  */
-function getplanFeatures(plan: string): string[] {
+function getPlanFeatures(plan: string): string[] {
   const features: Record<string, string[]> = {
     STANDARD: [
       "Up to 3 users",
