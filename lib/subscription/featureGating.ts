@@ -179,7 +179,7 @@ export function isWithinLimit(
   
   // -1 means unlimited
   if (typeof limit === "number" && limit === -1) return true;
-  if (typeof limit === "number") return currentValue < limit;
+  if (typeof limit === "number") return currentValue <= limit;
   
   return true;
 }

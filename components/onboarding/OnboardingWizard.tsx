@@ -170,16 +170,10 @@ export default function OnboardingWizard({
     country: "SA",
   });
   const [payload, setPayload] = useState<Record<string, unknown>>({});
-  const [uploadedDocs, setUploadedDocs] = useState<string[]>([]);
+  const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>({});
 
   // Load existing case data
-  useEffect(() => {
-    if (existingCaseId) {
-      loadCaseData(existingCaseId);
-    }
-  }, [existingCaseId]);
-
-  const loadCaseData = async (id: string) => {
+  const loadCaseData = useCallback(async (id: string) => {
     try {
       const res = await fetch(`/api/onboarding/${id}`);
       if (res.ok) {
@@ -188,12 +182,28 @@ export default function OnboardingWizard({
         setBasicInfo((prev) => ({ ...prev, ...data.basic_info }));
         setPayload(data.payload || {});
         setCurrentStep(data.current_step || 1);
-        setUploadedDocs(data.documents || []);
+        if (Array.isArray(data.documents)) {
+          const map: Record<string, string> = {};
+          for (const doc of data.documents) {
+            if (typeof doc === "string") {
+              map[doc] = doc;
+            } else if (doc?.documentType && doc?.documentId) {
+              map[doc.documentType] = doc.documentId;
+            }
+          }
+          setUploadedDocs(map);
+        }
       }
     } catch (_error) {
       // Silent fail - case data will be loaded on retry
     }
-  };
+  }, [session?.user]);
+
+  useEffect(() => {
+    if (existingCaseId) {
+      loadCaseData(existingCaseId);
+    }
+  }, [existingCaseId, loadCaseData]);
 
   const progress = (currentStep / STEPS.length) * 100;
 
@@ -307,6 +317,13 @@ export default function OnboardingWizard({
   // Document upload handler
   const handleDocUpload = async (docType: string, file: File) => {
     if (!caseId) return;
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error(
+        isRTL ? "حجم الملف يتجاوز 5 ميغابايت" : "File size exceeds 5MB limit",
+      );
+      return;
+    }
 
     const formData = new FormData();
     formData.append("file", file);
@@ -329,11 +346,15 @@ export default function OnboardingWizard({
       if (res.ok) {
         const { uploadUrl, documentId } = await res.json();
         // Upload to presigned URL (S3)
-        await fetch(uploadUrl, {
+        const uploadRes = await fetch(uploadUrl, {
           method: "PUT",
           body: file,
           headers: { "Content-Type": file.type },
         });
+
+        if (!uploadRes.ok) {
+          throw new Error("upload_failed");
+        }
 
         // Confirm upload
         await fetch(`/api/onboarding/${caseId}/documents/confirm-upload`, {
@@ -342,7 +363,7 @@ export default function OnboardingWizard({
           body: JSON.stringify({ documentId }),
         });
 
-        setUploadedDocs((prev) => [...prev, documentId]);
+        setUploadedDocs((prev) => ({ ...prev, [docType]: documentId }));
         toast.success(
           isRTL ? `تم تحميل ${docType} بنجاح` : `${docType} uploaded successfully`
         );
@@ -503,7 +524,7 @@ export default function OnboardingWizard({
                   </div>
                 </div>
                 <div>
-                  {uploadedDocs.includes(docType) ? (
+                  {uploadedDocs[docType] ? (
                     <div className="flex items-center gap-2 text-green-600">
                       <Check className="h-4 w-4" />
                       <span className="text-sm">{isRTL ? "تم التحميل" : "Uploaded"}</span>
@@ -589,7 +610,7 @@ export default function OnboardingWizard({
             {isRTL ? "المستندات المحملة" : "Uploaded Documents"}
           </h4>
           <p>
-            {uploadedDocs.length} / {selectedRole ? REQUIRED_DOCS[selectedRole].length : 0}
+            {Object.keys(uploadedDocs).length} / {selectedRole ? REQUIRED_DOCS[selectedRole].length : 0}
           </p>
         </div>
       </div>

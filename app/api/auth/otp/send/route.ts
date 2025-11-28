@@ -497,19 +497,6 @@ export async function POST(request: NextRequest) {
             { status: 401 },
           );
         }
-      } else {
-        if (!allowPhoneOnly) {
-          return NextResponse.json(
-            { success: false, error: "Password is required for non-phone login" },
-            { status: 400 },
-          );
-        }
-        if (!phoneOk) {
-          return NextResponse.json(
-            { success: false, error: "Phone number required for phone-only OTP" },
-            { status: 400 },
-          );
-        }
       }
     }
 

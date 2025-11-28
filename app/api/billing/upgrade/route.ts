@@ -11,6 +11,7 @@ import { rateLimitError, zodValidationError } from "@/server/utils/errorResponse
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
 import { canManageSubscriptions } from "@/lib/auth/role-guards";
 import { Types } from "mongoose";
+import PriceBook from "@/server/models/PriceBook";
 
 /**
  * Plan upgrade request schema
@@ -206,7 +207,8 @@ export async function POST(req: NextRequest) {
     // For unlimited plans, don't use a hard-coded fallback; use undefined for unlimited semantics
     const isUnlimitedSeats = planConfig.baseSeats === -1;
     const baseSeats = isUnlimitedSeats ? undefined : planConfig.baseSeats;
-    const totalSeats = isUnlimitedSeats ? undefined : (baseSeats! + additionalSeats);
+    // Ensure seatTotal is never 0 for priced plans; unlimited still passes a sentinel seat count
+    const totalSeats = isUnlimitedSeats ? 1 : (baseSeats! + additionalSeats);
 
     // Build modules list (only include valid add-ons)
     const modules = [...new Set([...planConfig.modules, ...validAddons])];
@@ -223,7 +225,7 @@ export async function POST(req: NextRequest) {
 
     const quote = await computeQuote({
       items,
-      seatTotal: totalSeats ?? 0, // Pass 0 for unlimited; computeQuote should handle contract pricing
+      seatTotal: totalSeats,
       billingCycle: effectiveBillingCycle,
       isUnlimited: isUnlimitedSeats, // Signal unlimited plan for special pricing
     });
@@ -233,13 +235,56 @@ export async function POST(req: NextRequest) {
     if (currentSub?.activeUntil && currentSub.amount) {
       const now = new Date();
       const cycleEnd = new Date(currentSub.activeUntil);
-      const cycleStart = new Date(currentSub.createdAt);
-      
-      const totalDays = Math.max(1, (cycleEnd.getTime() - cycleStart.getTime()) / (1000 * 60 * 60 * 24));
-      const remainingDays = Math.max(0, (cycleEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      
-      // Credit for unused time on current plan
-      prorationCredit = Math.round((currentSub.amount * (remainingDays / totalDays)) * 100) / 100;
+      const cycleLengthDays =
+        (currentSub.billing_cycle || "").toString().toUpperCase() === "ANNUAL" ? 365 : 30;
+      const cycleStart = new Date(
+        cycleEnd.getTime() - cycleLengthDays * 24 * 60 * 60 * 1000,
+      );
+
+      const totalDays = Math.max(
+        1,
+        (cycleEnd.getTime() - cycleStart.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      const remainingDays = Math.max(
+        0,
+        (cycleEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      // Credit for unused time on current plan based on current billing cycle window
+      prorationCredit =
+        Math.round(currentSub.amount * (remainingDays / totalDays) * 100) / 100;
+    }
+
+    // Validate price book selection (must exist, be active, and match currency)
+    let priceBookId: string | undefined;
+    if (body.priceBookId) {
+      const priceBook = await PriceBook.findOne({
+        _id: body.priceBookId,
+        active: true,
+      })
+        .lean()
+        .exec();
+
+      if (!priceBook) {
+        return createSecureResponse(
+          { error: "Invalid price book selection" },
+          400,
+          req,
+        );
+      }
+
+      if (priceBook.currency !== quote.currency) {
+        return createSecureResponse(
+          {
+            error: "Price book currency mismatch",
+            message: `Price book currency ${priceBook.currency} does not match quote currency ${quote.currency}`,
+          },
+          400,
+          req,
+        );
+      }
+
+      priceBookId = priceBook._id.toString();
     }
 
     // Contact sales for enterprise custom pricing
@@ -276,7 +321,7 @@ export async function POST(req: NextRequest) {
         email: user.email || "",
         phone: undefined,
       },
-      priceBookId: body.priceBookId,
+      priceBookId,
       metadata: {
         upgradeFrom: currentPlan,
         upgradeTo: targetPlan,

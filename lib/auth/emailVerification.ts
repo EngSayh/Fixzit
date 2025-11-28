@@ -27,7 +27,14 @@ export function verifyVerificationToken(
       .createHmac("sha256", secret)
       .update(payload)
       .digest("hex");
-    if (expected !== sig) return { ok: false, reason: "signature" };
+    const expectedBuf = Buffer.from(expected, "hex");
+    const sigBuf = Buffer.from(sig, "hex");
+    if (expectedBuf.length !== sigBuf.length) {
+      return { ok: false, reason: "signature" };
+    }
+    if (!crypto.timingSafeEqual(expectedBuf, sigBuf)) {
+      return { ok: false, reason: "signature" };
+    }
     const exp = Number(expStr);
     if (!Number.isFinite(exp) || now > exp) {
       return { ok: false, reason: "expired" };

@@ -121,7 +121,6 @@ export async function POST(req: NextRequest) {
 
     logger.info("[reset-password] Password reset successful", {
       userId: user._id,
-      email,
     });
 
     return NextResponse.json({

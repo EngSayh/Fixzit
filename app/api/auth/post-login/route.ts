@@ -19,20 +19,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Not configured" }, { status: 500 });
   }
 
-  const accessToken = jwt.sign(
-    {
-      sub: session.user?.id,
-      role: session.user?.role,
-      orgId: (session.user as { orgId?: string })?.orgId,
-    },
-    secret,
-    { expiresIn: ACCESS_TTL_SECONDS },
-  );
-  const refreshToken = jwt.sign(
-    { sub: session.user?.id },
-    secret,
-    { expiresIn: REFRESH_TTL_SECONDS },
-  );
+  const sub = session.user?.id;
+  if (!sub || typeof sub !== "string") {
+    return NextResponse.json(
+      { error: "Invalid session: missing user id" },
+      { status: 401 },
+    );
+  }
+
+  const accessPayload: Record<string, unknown> = { sub };
+  if (session.user?.role) accessPayload.role = session.user.role;
+  const orgId = (session.user as { orgId?: string })?.orgId;
+  if (orgId) accessPayload.orgId = orgId;
+
+  const accessToken = jwt.sign(accessPayload, secret, {
+    expiresIn: ACCESS_TTL_SECONDS,
+  });
+
+  const refreshToken = jwt.sign({ sub, type: "refresh" }, secret, {
+    expiresIn: REFRESH_TTL_SECONDS,
+  });
 
   const res = NextResponse.json({ ok: true });
   const secure =

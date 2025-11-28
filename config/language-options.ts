@@ -7,7 +7,7 @@
 
 // Only English/Arabic have production-ready translations. Additional locales can be
 // reintroduced here once professional translations land.
-export type LanguageCode = "ar" | "en";
+export type LanguageCode = "ar" | "en" | "fr" | "es";
 
 export interface LanguageOption {
   language: LanguageCode;
@@ -49,7 +49,7 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
     keywords: ["english", "uk", "us"],
   },
   {
-    language: "en",
+    language: "fr",
     code: "fr",
     native: "Français",
     english: "French",
@@ -62,7 +62,7 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
     comingSoon: true,
   },
   {
-    language: "en",
+    language: "es",
     code: "es",
     native: "Español",
     english: "Spanish",

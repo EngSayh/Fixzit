@@ -36,7 +36,14 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") || "10", 10)));
     const skip = (page - 1) * limit;
 
-    // Find subscriptions for this org/user
+    // Validate ObjectId format before creating instances
+    if (!Types.ObjectId.isValid(orgId)) {
+      return createSecureResponse({ error: "Invalid organization ID" }, 400, req);
+    }
+    if (!Types.ObjectId.isValid(userId)) {
+      return createSecureResponse({ error: "Invalid user ID" }, 400, req);
+    }
+
     const orgObjectId = new Types.ObjectId(orgId);
     const userObjectId = new Types.ObjectId(userId);
 

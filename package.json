@@ -99,6 +99,7 @@
     "artifacts:init": "mkdir -p _artifacts",
     "reports:clean": "node -e \"require('fs').rmSync('_artifacts', {recursive:true, force:true}); require('fs').mkdirSync('_artifacts', {recursive:true});\"",
     "pack:reports": "npm run artifacts:init && tar -czf _artifacts/reports-$(date +%Y%m%d-%H%M%S).tar.gz _artifacts || true",
+    "test:stable": "pnpm exec vitest run --reporter=dot --maxWorkers=1 --fileParallelism=false",
     "clean:root": "tsx scripts/janitor.ts --apply",
     "bundle:check": "webpack --config webpack.config.js --mode=production",
     "seed:marketplace": "tsx scripts/seed-marketplace.ts",

@@ -220,11 +220,15 @@ export default function PricingPage() {
                 <label className="text-sm font-medium">
                   {t("pricing.trial.plan", "Preferred plan")}
                 </label>
-                <Input
+                <select
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={form.plan}
                   onChange={(e) => update("plan", e.target.value)}
-                  placeholder="standard | premium | enterprise"
-                />
+                >
+                  <option value="standard">{t("pricing.trial.plan.standard", "Standard")}</option>
+                  <option value="premium">{t("pricing.trial.plan.premium", "Premium")}</option>
+                  <option value="enterprise">{t("pricing.trial.plan.enterprise", "Enterprise")}</option>
+                </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">

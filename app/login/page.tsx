@@ -24,12 +24,9 @@ import { logger } from '@/lib/logger';
 const REQUIRE_SMS_OTP = process.env.NEXT_PUBLIC_REQUIRE_SMS_OTP !== 'false';
 const SKIP_CSRF = process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true' || process.env.NODE_ENV === 'test';
 
-const GOOGLE_ENABLED =
-  Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) &&
-  Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET);
-const APPLE_ENABLED =
-  Boolean(process.env.NEXT_PUBLIC_APPLE_CLIENT_ID) &&
-  Boolean(process.env.NEXT_PUBLIC_APPLE_CLIENT_SECRET);
+// Client-side feature flags: do NOT read secrets here
+const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_ENABLED === 'true';
+const APPLE_ENABLED = process.env.NEXT_PUBLIC_APPLE_ENABLED === 'true';
 
 const GoogleSignInButton = dynamic(
   () => import('@/components/auth/GoogleSignInButton'),

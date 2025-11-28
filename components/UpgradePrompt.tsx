@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Lock, ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -38,34 +39,40 @@ export function UpgradePrompt({
 }: UpgradePromptProps) {
   const { t } = useTranslation();
   
-  const featureNames: Record<FeatureName, string> = {
-    workOrders: t("features.workOrders", "Work Orders"),
-    properties: t("features.properties", "Properties"),
-    units: t("features.units", "Units"),
-    basicReports: t("features.basicReports", "Basic Reports"),
-    finance: t("features.finance", "Finance & Invoicing"),
-    invoicing: t("features.invoicing", "Invoicing"),
-    hrManagement: t("features.hrManagement", "HR Management"),
-    technicians: t("features.technicians", "Technician Management"),
-    approvals: t("features.approvals", "Approvals & Workflows"),
-    auditTrail: t("features.auditTrail", "Audit Trail"),
-    advancedReports: t("features.advancedReports", "Advanced Reports"),
-    apiAccess: t("features.apiAccess", "API Access"),
-    sso: t("features.sso", "Single Sign-On"),
-    scim: t("features.scim", "SCIM Provisioning"),
-    customSla: t("features.customSla", "Custom SLAs"),
-    dedicatedSupport: t("features.dedicatedSupport", "Dedicated Support"),
-    whiteLabeling: t("features.whiteLabeling", "White Labeling"),
-    multiRegion: t("features.multiRegion", "Multi-Region"),
-    complianceReports: t("features.complianceReports", "Compliance Reports"),
-  };
+  const featureNames: Record<FeatureName, string> = useMemo(
+    () => ({
+      workOrders: t("features.workOrders", "Work Orders"),
+      properties: t("features.properties", "Properties"),
+      units: t("features.units", "Units"),
+      basicReports: t("features.basicReports", "Basic Reports"),
+      finance: t("features.finance", "Finance & Invoicing"),
+      invoicing: t("features.invoicing", "Invoicing"),
+      hrManagement: t("features.hrManagement", "HR Management"),
+      technicians: t("features.technicians", "Technician Management"),
+      approvals: t("features.approvals", "Approvals & Workflows"),
+      auditTrail: t("features.auditTrail", "Audit Trail"),
+      advancedReports: t("features.advancedReports", "Advanced Reports"),
+      apiAccess: t("features.apiAccess", "API Access"),
+      sso: t("features.sso", "Single Sign-On"),
+      scim: t("features.scim", "SCIM Provisioning"),
+      customSla: t("features.customSla", "Custom SLAs"),
+      dedicatedSupport: t("features.dedicatedSupport", "Dedicated Support"),
+      whiteLabeling: t("features.whiteLabeling", "White Labeling"),
+      multiRegion: t("features.multiRegion", "Multi-Region"),
+      complianceReports: t("features.complianceReports", "Compliance Reports"),
+    }),
+    [t],
+  );
   
-  const planNames: Record<PlanName, string> = {
-    BASIC: t("plans.basic", "Basic"),
-    STANDARD: t("plans.standard", "Standard"),
-    PREMIUM: t("plans.premium", "Premium"),
-    ENTERPRISE: t("plans.enterprise", "Enterprise"),
-  };
+  const planNames: Record<PlanName, string> = useMemo(
+    () => ({
+      BASIC: t("plans.basic", "Basic"),
+      STANDARD: t("plans.standard", "Standard"),
+      PREMIUM: t("plans.premium", "Premium"),
+      ENTERPRISE: t("plans.enterprise", "Enterprise"),
+    }),
+    [t],
+  );
   
   const featureName = featureNames[feature] || feature;
   const planName = planNames[requiredPlan] || requiredPlan;

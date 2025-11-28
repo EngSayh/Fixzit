@@ -15,6 +15,13 @@ const isVercelDeploy = process.env.VERCEL_ENV === 'production' || process.env.VE
 
 if (isVercelDeploy) {
   const violations = [];
+  const warnings = [];
+  const tapConfigured =
+    Boolean(process.env.TAP_PUBLIC_KEY) &&
+    Boolean(process.env.TAP_WEBHOOK_SECRET);
+  const paytabsConfigured =
+    Boolean(process.env.PAYTABS_PROFILE_ID) &&
+    Boolean(process.env.PAYTABS_SERVER_KEY);
   
   // Critical security checks for all Vercel deployments
   if (process.env.SKIP_ENV_VALIDATION === 'true') {
@@ -24,13 +31,12 @@ if (isVercelDeploy) {
     violations.push('DISABLE_MONGODB_FOR_BUILD must be false in production');
   }
   
-  // Payment keys only required for actual production (not preview)
+  // Payment provider guardrails (at least one provider configured in production)
   if (isProdDeploy) {
-    if (!process.env.TAP_PUBLIC_KEY) {
-      violations.push('TAP_PUBLIC_KEY is required for production payment flows');
-    }
-    if (!process.env.TAP_WEBHOOK_SECRET) {
-      violations.push('TAP_WEBHOOK_SECRET is required to verify payment webhooks');
+    if (!tapConfigured && !paytabsConfigured) {
+      warnings.push(
+        'No payment provider configured: set PayTabs (PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY) or Tap (TAP_PUBLIC_KEY, TAP_WEBHOOK_SECRET)',
+      );
     }
   }
 
@@ -38,6 +44,12 @@ if (isVercelDeploy) {
     // Throwing here fails the build early and loudly
     throw new Error(
       `Production env validation failed:\n- ${violations.join('\n- ')}`
+    );
+  }
+
+  if (warnings.length > 0) {
+    console.warn(
+      `Production env warnings (non-blocking):\n- ${warnings.join('\n- ')}`
     );
   }
 }

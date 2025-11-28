@@ -12,6 +12,7 @@ import {
   normalizePlanName,
   isSubscriptionActive,
   daysUntilExpiry,
+  FEATURE_REQUIREMENTS,
   type FeatureName,
   type ModuleName,
   type PlanName,
@@ -23,6 +24,7 @@ export interface SubscriptionState {
   isActive: boolean;
   plan: PlanName;
   daysRemaining: number | null;
+  subscriptionStatus?: string | null;
   
   // Access checks
   canAccessFeature: (feature: FeatureName) => boolean;
@@ -87,6 +89,7 @@ export function useSubscription(): SubscriptionState {
       isActive,
       plan,
       daysRemaining,
+      subscriptionStatus: subscriptionStatus ?? null,
       availableFeatures,
       availableModules,
       limits,
@@ -124,7 +127,6 @@ export function useSubscription(): SubscriptionState {
   
   const getUpgradePlan = useMemo(() => {
     return (feature: FeatureName): PlanName => {
-      const { FEATURE_REQUIREMENTS } = require("@/lib/subscription/featureGating");
       return FEATURE_REQUIREMENTS[feature] as PlanName;
     };
   }, []);

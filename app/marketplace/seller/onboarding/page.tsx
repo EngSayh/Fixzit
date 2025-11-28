@@ -298,7 +298,6 @@ export default function SellerOnboarding() {
 
     try {
       const caseId = await ensureOnboardingCase();
-      await syncOnboarding({ current_step: 4, status: "SUBMITTED" });
 
       if (!documents.commercialRegistration.file || !documents.taxCertificate.file) {
         throw new Error(
@@ -320,6 +319,8 @@ export default function SellerOnboarding() {
         documents.taxCertificate.file,
         "VAT_CERT",
       );
+
+      await syncOnboarding({ current_step: 4, status: "SUBMITTED" });
 
       router.push("/marketplace/vendor/portal");
     } catch (error) {

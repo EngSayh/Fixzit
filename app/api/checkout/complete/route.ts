@@ -40,7 +40,12 @@ export async function POST(req: NextRequest) {
   }
 
   await dbConnect();
-  const body = await req.json();
+  let body: any;
+  try {
+    body = await req.json();
+  } catch (_error) {
+    return createSecureResponse({ error: "Invalid JSON" }, 400, req);
+  }
 
   if (body.payload) {
     return createSecureResponse(

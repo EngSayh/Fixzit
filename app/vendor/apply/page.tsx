@@ -137,7 +137,6 @@ export default function VendorApplyPage() {
                 {t("vendor.apply.services", "Services offered")}
               </label>
               <Textarea
-                required
                 value={form.services}
                 onChange={(e) => update("services", e.target.value)}
                 placeholder={t(

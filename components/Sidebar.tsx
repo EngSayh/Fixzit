@@ -147,10 +147,12 @@ export default function Sidebar({
         const plan =
           (data?.metadata?.plan as string) ||
           (data?.plan as string) ||
-          (data?.subscription_plan as string) ||
-          data?.status;
+          (data?.subscription_plan as string);
         if (typeof plan === "string" && plan.trim()) {
-          setPlanOverride(plan);
+          const normalized = normalizePlan(plan);
+          if (normalized !== "DEFAULT") {
+            setPlanOverride(normalized);
+          }
         }
       } catch (error) {
         if (process.env.NODE_ENV === "development") {
