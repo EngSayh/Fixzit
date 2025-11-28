@@ -28,7 +28,7 @@ const ticketMessages = {
  * a CRM trail and setting the right tenant context.
  */
 export async function createEntitiesFromCase(onboarding: OnboardingCaseLean): Promise<void> {
-  const role = onboarding.role;
+  const role = onboarding.role as string;
   const orgId =
     onboarding.org_id ||
     onboarding.subject_org_id ||

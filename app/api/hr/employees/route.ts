@@ -58,12 +58,15 @@ export async function GET(req: NextRequest) {
       { page, limit },
     );
     
+    const itemArray = Array.isArray(items) ? items : [];
     // Strip PII fields unless explicitly requested
-    const sanitizedItems = includePii ? items : items.map((emp: Record<string, unknown>) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { compensation, bankDetails, ...safeEmployee } = emp;
-      return safeEmployee;
-    });
+    const sanitizedItems = includePii
+      ? itemArray
+      : itemArray.map((emp: Record<string, unknown>) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { compensation, bankDetails, ...safeEmployee } = emp;
+          return safeEmployee;
+        });
 
     return NextResponse.json({
       employees: sanitizedItems,

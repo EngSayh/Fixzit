@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR from "swr";
+import { logger } from "@/lib/logger";
 
 export type PropertyRecord = {
   _id: string;
@@ -32,10 +33,9 @@ const fetcher = async <T>(url: string): Promise<T> => {
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
     const payload = await res.json().catch((jsonError) => {
-      console.error('[useProperties] Failed to parse JSON response:', {
-        status: res.status,
-        statusText: res.statusText,
-        error: jsonError instanceof Error ? jsonError.message : String(jsonError)
+      logger.error('[useProperties] Failed to parse JSON response:', jsonError, {
+        status: res.status.toString(),
+        statusText: res.statusText
       });
       return {};
     });

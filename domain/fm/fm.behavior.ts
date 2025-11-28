@@ -48,6 +48,7 @@
  */
 
 import mongoose, { Schema, Types } from "mongoose";
+import { logger } from "@/lib/logger";
 
 /* =========================
  * 1) Enums & Constants
@@ -245,6 +246,8 @@ export const ROLE_ALIAS_MAP: Record<string, Role> = {
   DISPATCHER: Role.TEAM_MEMBER, // Requires SubRole.OPERATIONS_MANAGER for cross-module dispatch
   CORPORATE_STAFF: Role.TEAM_MEMBER,
   FIXZIT_EMPLOYEE: Role.TEAM_MEMBER,
+  FINANCE_MANAGER: Role.TEAM_MEMBER, // Finance-aligned legacy role
+  HR_MANAGER: Role.TEAM_MEMBER, // HR-aligned legacy role
   OWNER: Role.CORPORATE_OWNER,
   PROPERTY_OWNER: Role.CORPORATE_OWNER,
   INDIVIDUAL_PROPERTY_OWNER: Role.CORPORATE_OWNER,
@@ -289,13 +292,47 @@ export function normalizeRole(
   const normalized = ROLE_ALIAS_MAP[key] ?? (Role as Record<string, string>)[key] as Role ?? null;
   
   // STRICT v4.1: Enforce sub-role requirement for TEAM_MEMBER in strict mode
-  if (strict && normalized === Role.TEAM_MEMBER && expectedSubRole && !expectedSubRole) {
+  // When strict=true and role maps to TEAM_MEMBER, expectedSubRole MUST be provided
+  if (strict && normalized === Role.TEAM_MEMBER && !expectedSubRole) {
     throw new Error(
-      `STRICT v4.1 violation: Role "${role}" maps to TEAM_MEMBER but requires subRole: ${expectedSubRole}`
+      `STRICT v4.1 violation: Role "${role}" maps to TEAM_MEMBER but requires a subRole to be specified`
     );
   }
   
   return normalized;
+}
+
+/** Normalizes sub-role strings to SubRole enum */
+export function normalizeSubRole(subRole?: string | null): SubRole | undefined {
+  if (!subRole) return undefined;
+  const key = subRole.toUpperCase();
+  return (Object.values(SubRole) as string[]).includes(key)
+    ? (key as SubRole)
+    : undefined;
+}
+
+/** Infers sub-role from a raw role string when explicit subRole is missing */
+export function inferSubRoleFromRole(role?: string | Role | null): SubRole | undefined {
+  if (!role) return undefined;
+  const key = typeof role === "string" ? role.toUpperCase() : String(role);
+  switch (key) {
+    case "FINANCE":
+    case "FINANCE_OFFICER":
+    case "FINANCE_MANAGER":
+      return SubRole.FINANCE_OFFICER;
+    case "HR":
+    case "HR_OFFICER":
+    case "HR_MANAGER":
+      return SubRole.HR_OFFICER;
+    case "SUPPORT":
+    case "SUPPORT_AGENT":
+      return SubRole.SUPPORT_AGENT;
+    case "OPERATIONS_MANAGER":
+    case "DISPATCHER":
+      return SubRole.OPERATIONS_MANAGER;
+    default:
+      return undefined;
+  }
 }
 
 /* =========================
@@ -477,6 +514,8 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
       "update",
       "export",
       "share",
+      "request_approval",
+      "approve",
       "post_finance",
     ],
     WO_PM: ["view", "create", "update", "export"],
@@ -499,6 +538,8 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
       "update",
       "export",
       "share",
+      "request_approval",
+      "approve",
       "post_finance",
     ],
     WO_PM: ["view", "create", "update", "export"],
@@ -526,7 +567,15 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
   // Team Member: Operational staff, create and manage WOs
   [Role.TEAM_MEMBER]: {
     WO_CREATE: ["view", "create", "upload_media", "comment"],
-    WO_TRACK_ASSIGN: ["view", "assign", "update", "export", "post_finance"],
+    WO_TRACK_ASSIGN: [
+      "view",
+      "assign",
+      "update",
+      "export",
+      "post_finance",
+      "request_approval",
+      "approve",
+    ],
     WO_PM: ["view", "create", "update", "export"],
   },
   
@@ -554,6 +603,7 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
       "update",
       "export",
       "share",
+      "approve",
     ],
     WO_PM: ["view", "export"],
     WO_SERVICE_HISTORY: ["view", "export"],
@@ -622,7 +672,7 @@ export type AgentAuditLog = {
  */
 export async function logAgentAction(log: AgentAuditLog): Promise<void> {
   if (!log.agent_id || !log.assumed_user_id || !log.org_id) {
-    console.error("[AGENT_AUDIT_ERROR] Missing required audit fields", {
+    logger.error("[AGENT_AUDIT_ERROR] Missing required audit fields", {
       agent_id: log.agent_id,
       assumed_user_id: log.assumed_user_id,
       org_id: log.org_id,
@@ -634,10 +684,7 @@ export async function logAgentAction(log: AgentAuditLog): Promise<void> {
 
   // Log to console in development
   if (process.env.NODE_ENV === "development") {
-    console.log(
-      "[AGENT_AUDIT]",
-      JSON.stringify({ ...log, timestamp }, null, 2),
-    );
+    logger.info("[AGENT_AUDIT]", { ...log, timestamp });
   }
   
   // Persistent MongoDB audit logging (STRICT v4.1)
@@ -662,7 +709,7 @@ export async function logAgentAction(log: AgentAuditLog): Promise<void> {
     });
   } catch (error) {
     // Don't throw - audit logging failure shouldn't break the operation
-    console.error("[AGENT_AUDIT_ERROR] Failed to persist agent action:", error);
+    logger.error("[AGENT_AUDIT_ERROR] Failed to persist agent action:", error);
   }
 }
 
@@ -677,7 +724,7 @@ export function validateAgentAccess(ctx: ResourceCtx): boolean {
 
   // Agent must have assumed_user_id
   if (!ctx.assumedUserId) {
-    console.error("[AGENT_ERROR] Agent missing assumed_user_id", {
+    logger.error("[AGENT_ERROR] Agent missing assumed_user_id", {
       agent_id: ctx.agentId,
     });
     return false;
@@ -856,7 +903,10 @@ export function buildDataScopeFilter(ctx: ResourceCtx): DataScopeFilter {
     case Role.ADMIN:
     case Role.CORPORATE_OWNER:
       // Full tenant scope (org_id already set)
-      // Corporate Owner may have additional property_owner_id filter in practice
+      // Corporate Owner: restrict to owned/assigned properties when provided
+      if (ctx.assignedProperties && ctx.assignedProperties.length > 0) {
+        filter.property_id = { $in: ctx.assignedProperties };
+      }
       break;
 
     case Role.TECHNICIAN:
@@ -909,6 +959,8 @@ export function can(
   action: Action,
   ctx: ResourceCtx,
 ): boolean {
+  const requesterId = ctx.requesterUserId ?? ctx.userId;
+
   // If checking module-level access (not a submodule), use canAccessModule
   if (Object.values(ModuleKey).includes(submodule as ModuleKey)) {
     return canAccessModule(submodule as ModuleKey, action, ctx);
@@ -926,16 +978,31 @@ export function can(
   if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
 
   // Tenant: strict ownership - can only access own units/WOs
-  if (ctx.role === Role.TENANT && action !== "create") {
-    return ctx.requesterUserId === ctx.userId;
+  if (ctx.role === Role.TENANT) {
+    if (action === "create") {
+      if (ctx.unitId && ctx.units && !ctx.units.includes(ctx.unitId)) {
+        return false;
+      }
+      return requesterId === ctx.userId;
+    }
+    return requesterId === ctx.userId;
   }
 
-  // Corporate Owner / Property Manager: must own/manage the property
-  if (
-    ctx.role === Role.CORPORATE_OWNER ||
-    ctx.role === Role.PROPERTY_MANAGER
-  ) {
-    if (ctx.propertyId && !(ctx.isOwnerOfProperty || ctx.isSuperAdmin)) {
+  // Corporate Owner: must own/manage the property when propertyId provided
+  if (ctx.role === Role.CORPORATE_OWNER && ctx.propertyId) {
+    const ownsProperty =
+      ctx.isOwnerOfProperty ||
+      (ctx.assignedProperties && ctx.assignedProperties.includes(ctx.propertyId));
+    if (!ownsProperty && !ctx.isSuperAdmin) {
+      return false;
+    }
+  }
+
+  // Property Manager: must be assigned to the property when propertyId provided
+  if (ctx.role === Role.PROPERTY_MANAGER && ctx.propertyId) {
+    const managesProperty =
+      ctx.assignedProperties && ctx.assignedProperties.includes(ctx.propertyId);
+    if (!managesProperty && !ctx.isSuperAdmin) {
       return false;
     }
   }
@@ -1213,6 +1280,12 @@ const UnitSchema = new Schema(
   {
     unit_number: String,
     property_id: { type: Types.ObjectId, ref: "Property", index: true },
+    org_id: {
+      type: Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );
@@ -1221,6 +1294,12 @@ const TenancySchema = new Schema(
   {
     unit_id: { type: Types.ObjectId, ref: "Unit" },
     tenant_user_id: { type: Types.ObjectId, ref: "User" },
+    org_id: {
+      type: Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
     start_date: Date,
     end_date: Date,
   },
@@ -1398,14 +1477,12 @@ export function smokeTests() {
     isOrgMember: true,
     requesterUserId: "u1",
   };
-  console.assert(
-    can(SubmoduleKey.WO_CREATE, "create", tenantCtx) === true,
-    "Tenant can create WO for own unit",
-  );
-  console.assert(
-    !can(SubmoduleKey.WO_TRACK_ASSIGN, "approve", tenantCtx),
-    "Tenant cannot approve quotes",
-  );
+  if (can(SubmoduleKey.WO_CREATE, "create", tenantCtx) !== true) {
+    logger.error("Smoke test failed: Tenant can create WO for own unit");
+  }
+  if (can(SubmoduleKey.WO_TRACK_ASSIGN, "approve", tenantCtx)) {
+    logger.error("Smoke test failed: Tenant should not approve quotes");
+  }
 
   const techCtx: ResourceCtx = {
     orgId: "o1",
@@ -1415,10 +1492,9 @@ export function smokeTests() {
     isOrgMember: true,
     isTechnicianAssigned: true,
   };
-  console.assert(
-    can(SubmoduleKey.WO_TRACK_ASSIGN, "submit_estimate", techCtx),
-    "Tech can submit estimate when assigned",
-  );
+  if (!can(SubmoduleKey.WO_TRACK_ASSIGN, "submit_estimate", techCtx)) {
+    logger.error("Smoke test failed: Tech can submit estimate when assigned");
+  }
 }
 
 /* =========================

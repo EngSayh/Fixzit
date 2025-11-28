@@ -235,15 +235,15 @@ const AdminModule: React.FC = () => {
       subRole: adminUser.subRole as SubRole | undefined, // Preserve STRICT v4.1 sub-role
       status: adminUser.isActive ? "Active" : "Inactive",
       lastLogin:
-        adminUser.updatedAt ||
-        adminUser.createdAt ||
+        adminUser.updatedAt?.toString() ||
+        adminUser.createdAt?.toString() ||
         t("admin.users.table.noActivity", "No activity recorded"),
       department:
         adminUser.orgId || t("admin.users.table.departmentFallback", "General"),
       phone: adminUser.username,
-      createdAt: adminUser.createdAt || new Date().toISOString(),
-      // ORGID-FIX: Use undefined (not "platform") for missing orgId
-      org_id: adminUser.orgId || undefined,  // ✅ undefined for missing tenant
+      createdAt: adminUser.createdAt?.toString() || new Date().toISOString(),
+      // ORGID-FIX: Use empty string for missing orgId (type requires string)
+      org_id: adminUser.orgId || "",
     };
   };
 

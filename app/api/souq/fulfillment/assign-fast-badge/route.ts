@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    const orgId = (session.user as { orgId?: string }).orgId;
     const { listingId, sellerId } = body;
 
     let updated = 0;
@@ -29,18 +30,27 @@ export async function POST(request: NextRequest) {
 
     if (listingId) {
       // Assign badge to specific listing
-      const result = await fulfillmentService.assignFastBadge(listingId);
+      const result = await fulfillmentService.assignFastBadge(listingId, orgId);
       if (result) {
         eligible = 1;
         updated = 1;
       }
     } else if (sellerId) {
       // Assign badge to all seller's listings
-      const listings = await SouqListing.find({ sellerId, status: "active" });
+      let listings = await SouqListing.find({
+        sellerId,
+        status: "active",
+        ...(orgId ? { orgId } : {}),
+      });
+
+      if (listings.length === 0 && orgId) {
+        listings = await SouqListing.find({ sellerId, status: "active" });
+      }
 
       for (const listing of listings) {
         const result = await fulfillmentService.assignFastBadge(
           listing._id.toString(),
+          orgId,
         );
         if (result) {
           eligible++;

@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { useFMPermissions } from "@/hooks/useFMPermissions";
 import { useSession } from "next-auth/react";
 import { useCurrentOrg } from "@/contexts/CurrentOrgContext";
-import { Role, SubmoduleKey, Plan } from "@/domain/fm/fm.behavior";
+import { Role, SubmoduleKey, Plan, SubRole } from "@/domain/fm/fm.behavior";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 // Mock dependencies
@@ -22,6 +22,7 @@ describe("useFMPermissions", () => {
     role: string,
     orgId: string | null = null,
     userId: string = "user-123",
+    subRole: string | null = null,
   ) => {
     mockUseSession.mockReturnValue({
       data: {
@@ -29,6 +30,7 @@ describe("useFMPermissions", () => {
           id: userId,
           role,
           orgId,
+          subRole,
         },
       },
       status: "authenticated",
@@ -75,6 +77,28 @@ describe("useFMPermissions", () => {
     expect(result.current.plan).toBe(Plan.PRO);
   });
 
+  it("🟦 maps NextAuth matrix roles to canonical FM roles", () => {
+    mockSession("FM_MANAGER", "org-abc");
+    const { result } = renderHook(() => useFMPermissions());
+    expect(result.current.role).toBe(Role.PROPERTY_MANAGER);
+  });
+
+  it("🟦 infers finance specialization when subRole is missing", () => {
+    mockSession("FINANCE", "org-abc");
+    const { result } = renderHook(() => useFMPermissions());
+
+    expect(result.current.role).toBe(Role.TEAM_MEMBER);
+    expect(result.current.subRole).toBe(SubRole.FINANCE_OFFICER);
+  });
+
+  it("🟦 preserves subRole for TEAM_MEMBER specializations", () => {
+    mockSession("FINANCE", "org-abc", "user-finance", "FINANCE_OFFICER");
+    const { result } = renderHook(() => useFMPermissions());
+
+    expect(result.current.role).toBe(Role.TEAM_MEMBER);
+    expect(result.current.subRole).toBe(SubRole.FINANCE_OFFICER);
+  });
+
   it("🟧 should default to STARTER plan if org context is missing", () => {
     mockSession(Role.CORPORATE_ADMIN, "org-abc");
     mockUseCurrentOrg.mockReturnValue({ org: null, isLoading: false }); // Mock no org context
@@ -100,6 +124,9 @@ describe("useFMPermissions", () => {
     mockOrg(Plan.PRO);
     const { result } = renderHook(() => useFMPermissions());
 
+    expect(result.current.role).toBe(Role.TENANT);
+    expect(result.current.plan).toBe(Plan.PRO);
+    expect(result.current.orgId).toBe("org-abc");
     expect(result.current.isAdmin()).toBe(false);
     expect(result.current.isManagement()).toBe(false);
     expect(result.current.canCreateWO()).toBe(true);

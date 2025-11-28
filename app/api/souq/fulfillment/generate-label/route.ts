@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { orderId, carrier = "spl" } = body;
+    const orgId = (session.user as { orgId?: string }).orgId;
 
     if (!orderId) {
       return NextResponse.json(
@@ -30,7 +31,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Get order and verify seller ownership
-    const order = await SouqOrder.findOne({ orderId });
+    const order = await SouqOrder.findOne(
+      orgId ? { orderId, orgId } : { orderId },
+    );
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
@@ -69,6 +72,7 @@ export async function POST(request: NextRequest) {
       sellerId: seller._id.toString(),
       sellerAddress,
       carrierName: carrier,
+      orgId,
     });
 
     return NextResponse.json({

@@ -142,46 +142,46 @@ export function withAudit<
             action,
             endpoint: pathname,
           });
-          return res;  // Don't throw - just skip audit logging
+          // Skip audit logging but don't use return in finally block (unsafe)
+        } else {
+          const auditData = {
+            orgId,  // ✅ Validated above
+            action,
+            entityType,
+            entityId,
+            userId:
+              (session!.user.id as string) ||
+              (session!.user.email as string) ||
+              "unknown",
+            userName: (session!.user.name as string) || "Unknown User",
+            userEmail: (session!.user.email as string) || "",
+            userRole: (session!.user.role as string) || "USER",
+            correlationId: requestId,
+            context: {
+              method,
+              endpoint: pathname,
+              userAgent,
+              ipAddress,
+              sessionId: session!.user.sessionId as string,
+              browser: extractBrowser(userAgent),
+              os: extractOS(userAgent),
+              device: extractDevice(userAgent),
+              requestId,
+            },
+            metadata: {
+              source: finalCfg.source,
+              requestBody,
+              responseBody, // keep small!
+            },
+            result: {
+              success,
+              duration: Math.round(duration),
+              errorCode: success ? undefined : String(status),
+            },
+          };
+
+          await AuditLogModel.log(auditData);
         }
-
-        const auditData = {
-          orgId,  // ✅ Validated above
-          action,
-          entityType,
-          entityId,
-          userId:
-            (session!.user.id as string) ||
-            (session!.user.email as string) ||
-            "unknown",
-          userName: (session!.user.name as string) || "Unknown User",
-          userEmail: (session!.user.email as string) || "",
-          userRole: (session!.user.role as string) || "USER",
-          correlationId: requestId,
-          context: {
-            method,
-            endpoint: pathname,
-            userAgent,
-            ipAddress,
-            sessionId: session!.user.sessionId as string,
-            browser: extractBrowser(userAgent),
-            os: extractOS(userAgent),
-            device: extractDevice(userAgent),
-            requestId,
-          },
-          metadata: {
-            source: finalCfg.source,
-            requestBody,
-            responseBody, // keep small!
-          },
-          result: {
-            success,
-            duration: Math.round(duration),
-            errorCode: success ? undefined : String(status),
-          },
-        };
-
-        await AuditLogModel.log(auditData);
       } catch (err) {
         // never break the API
         logger.error("Failed to log audit entry", { error: err });

@@ -298,20 +298,23 @@ export async function POST(req: NextRequest) {
       // SEC-002 FIX: Scope user lookup to same org to prevent cross-org PII leakage
       const assigneeUserId = workOrder.assignment?.assignedTo?.userId;
       if (assigneeUserId) {
-        const assignee = await db
-          .collection("users")
-          .findOne({ 
-            _id: new ObjectId(assigneeUserId),
-            orgId: tenantId, // Ensure assignee belongs to same org
-          });
-        if (assignee?.email) {
-          recipients.push({
-            userId: assigneeUserId,
-            name: assignee.name || assignee.email,
-            email: assignee.email,
-            phone: assignee.phone,
-            preferredChannels: ["email", "push"] as NotificationChannel[],
-          });
+        const assigneeIdString = String(assigneeUserId);
+        const assigneeObjectId = ObjectId.isValid(assigneeIdString)
+          ? new ObjectId(assigneeIdString)
+          : null;
+        if (assigneeObjectId) {
+          const assignee = await db
+            .collection("users")
+            .findOne({ _id: assigneeObjectId, orgId: tenantId });
+          if (assignee?.email) {
+            recipients.push({
+              userId: assigneeIdString,
+              name: assignee.name || assignee.email,
+              email: assignee.email,
+              phone: assignee.phone,
+              preferredChannels: ["email", "push"] as NotificationChannel[],
+            });
+          }
         }
       }
 

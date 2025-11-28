@@ -13,6 +13,7 @@ import {
   SUPPORTED_LOCALES,
   type Locale,
 } from "./config";
+import { logger } from "@/lib/logger";
 
 // ⚡ PERFORMANCE: Lazy load dictionaries to reduce initial bundle size
 // Each dictionary is 27k lines (~500KB). Loading both upfront wastes 500KB + 200ms parse time.
@@ -75,10 +76,9 @@ export const I18nProvider: React.FC<{
         }
       })
       .catch((error) => {
-        console.error('[I18nProvider] Failed to load dictionary:', {
+        logger.error('[I18nProvider] Failed to load dictionary:', error, {
           locale,
-          error: error instanceof Error ? error.message : String(error),
-          availableLocales: Object.keys(DICTIONARIES)
+          availableLocales: Object.keys(DICTIONARIES).join(', ')
         });
         if (!cancelled) {
           setDict({});

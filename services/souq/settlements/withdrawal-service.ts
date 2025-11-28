@@ -256,10 +256,10 @@ export class WithdrawalService {
    */
   static async getWithdrawal(withdrawalId: string): Promise<Withdrawal | null> {
     const db = await getDatabase();
-    // @ts-expect-error - Fixed VSCode problem
-    return (await db
-      .collection(this.COLLECTION)
-      .findOne({ withdrawalId })) as Withdrawal | null;
+    const record = await db
+      .collection<Withdrawal>(this.COLLECTION)
+      .findOne({ withdrawalId });
+    return record || null;
   }
 
   /**
@@ -321,11 +321,10 @@ export class WithdrawalService {
 
       if (!payout.success) {
         logger.error(
-          "[Withdrawal] PayTabs payout failed, manual process required",
+            "[Withdrawal] PayTabs payout failed, manual process required",
           {
             withdrawalId,
             sellerId: request.sellerId,
-            // @ts-expect-error - Fixed VSCode problem
             error: payout.error,
           },
         );

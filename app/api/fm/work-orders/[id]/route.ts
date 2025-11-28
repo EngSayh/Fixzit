@@ -24,8 +24,19 @@ export async function GET(
   try {
     const actor = await requireFmAbility("VIEW")(req);
     if (actor instanceof NextResponse) return actor;
+    const orgId = actor.orgId?.trim();
+    if (!orgId) {
+      logger.error("[FM WO][GET] Missing orgId on actor - tenant isolation enforced", {
+        userId: actor.id,
+        role: actor.role,
+      });
+      return NextResponse.json(
+        { error: "Missing organization context" },
+        { status: 401 },
+      );
+    }
     // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
-    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId, {
+    const tenantResult = resolveTenantId(req, orgId, {
       isSuperAdmin: actor.isSuperAdmin,
       userId: actor.id,
       allowHeaderOverride: actor.isSuperAdmin,
@@ -42,10 +53,15 @@ export async function GET(
     const collection = db.collection<WorkOrderDocument>("workorders");
     
     // RBAC-005: Build role-based filter per STRICT v4 multi-tenant isolation
-    const baseFilter: Record<string, unknown> = {
+    const baseFilter: {
+      _id: ObjectId;
+      orgId: string;
+      $or?: Array<Record<string, unknown>>;
+    } = {
       _id: new ObjectId(id),
-      orgId: actor.orgId, // Fixed: use orgId (not tenantId)
+      orgId,
     };
+    const orFilters: Array<Record<string, unknown>> = [];
     
     // Scope by role to enforce assignment/ownership
     // BLOCKER FIX: Add empty-unit guard for TENANT role and use canonical paths
@@ -57,31 +73,32 @@ export async function GET(
         );
       }
       // Use $or to match both legacy and canonical field paths
-      baseFilter.$or = [
+      orFilters.push(
         { "location.unitNumber": { $in: actor.units } },
         { unit_id: { $in: actor.units } },
         { unitId: { $in: actor.units } },
-      ];
+      );
     }
     // BLOCKER FIX: Use correct session field 'id' (not 'userId') and canonical schema paths
     // MIGRATION FIX: Support both legacy flat fields and canonical paths for legacy data
     const actorId = actor.id;
     if (actor.role === "TECHNICIAN" && actorId) {
       // Support both canonical and legacy paths
-      baseFilter.$or = [
-        ...(baseFilter.$or || []),
+      orFilters.push(
         { "assignment.assignedTo.userId": actorId },
         { technicianId: actorId },
         { assignedTo: actorId },
-      ];
+      );
     }
     if (actor.role === "VENDOR" && actor.vendorId) {
       // Support both canonical and legacy paths
-      baseFilter.$or = [
-        ...(baseFilter.$or || []),
+      orFilters.push(
         { "assignment.assignedTo.vendorId": actor.vendorId },
         { vendorId: actor.vendorId },
-      ];
+      );
+    }
+    if (orFilters.length) {
+      baseFilter.$or = [...orFilters];
     }
     // ADMIN, MANAGER, FM_MANAGER, PROPERTY_MANAGER see all org work orders
     
@@ -108,8 +125,19 @@ export async function PATCH(
   try {
     const actor = await requireFmAbility("EDIT")(req);
     if (actor instanceof NextResponse) return actor;
+    const orgId = actor.orgId?.trim();
+    if (!orgId) {
+      logger.error("[FM WO][PATCH] Missing orgId on actor - tenant isolation enforced", {
+        userId: actor.id,
+        role: actor.role,
+      });
+      return NextResponse.json(
+        { error: "Missing organization context" },
+        { status: 401 },
+      );
+    }
     // AUDIT-2025-11-26: Pass Super Admin context for proper audit logging
-    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId, {
+    const tenantResult = resolveTenantId(req, orgId, {
       isSuperAdmin: actor.isSuperAdmin,
       userId: actor.id,
       allowHeaderOverride: actor.isSuperAdmin,
@@ -134,7 +162,7 @@ export async function PATCH(
     // RBAC-006: Build role-based filter for updates
     const baseFilter: Record<string, unknown> = {
       _id: new ObjectId(id),
-      orgId: actor.orgId, // Fixed: use orgId (not tenantId)
+      orgId, // Fixed: use orgId (not tenantId)
     };
     
     // BLOCKER FIX: Add empty-unit guard for TENANT role and use canonical paths
@@ -156,8 +184,11 @@ export async function PATCH(
     const actorIdForFilter = actor.id;
     if (actor.role === "TECHNICIAN" && actorIdForFilter) {
       // Support both canonical and legacy paths
+      const currentOr: Record<string, unknown>[] = Array.isArray(baseFilter.$or)
+        ? baseFilter.$or
+        : [];
       baseFilter.$or = [
-        ...(baseFilter.$or || []),
+        ...currentOr,
         { "assignment.assignedTo.userId": actorIdForFilter },
         { technicianId: actorIdForFilter },
         { assignedTo: actorIdForFilter },
@@ -165,8 +196,11 @@ export async function PATCH(
     }
     if (actor.role === "VENDOR" && actor.vendorId) {
       // Support both canonical and legacy paths
+      const currentOr: Record<string, unknown>[] = Array.isArray(baseFilter.$or)
+        ? baseFilter.$or
+        : [];
       baseFilter.$or = [
-        ...(baseFilter.$or || []),
+        ...currentOr,
         { "assignment.assignedTo.vendorId": actor.vendorId },
         { vendorId: actor.vendorId },
       ];

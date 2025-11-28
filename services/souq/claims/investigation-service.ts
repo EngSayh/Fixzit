@@ -43,7 +43,7 @@ export class InvestigationService {
     const [fraudIndicators, trackingInfo, sellerHistory, buyerHistory] =
       await Promise.all([
         this.detectFraudIndicators(claim),
-        this.getTrackingInfo(claim.orderId),
+        this.getTrackingInfo(claim.orderId, (claim as unknown as { orgId?: string })?.orgId),
         this.getSellerHistory(claim.sellerId),
         this.getBuyerHistory(claim.buyerId),
       ]);
@@ -89,7 +89,12 @@ export class InvestigationService {
     const db = await getDatabase();
     const order = await db
       .collection("souq_orders")
-      .findOne({ orderId: claim.orderId });
+      .findOne({
+        orderId: claim.orderId,
+        ...((claim as unknown as { orgId?: string })?.orgId
+          ? { orgId: (claim as unknown as { orgId?: string }).orgId }
+          : {}),
+      });
     const trackingShowsDelivered =
       order?.deliveryStatus === "delivered" && order?.deliveredAt !== undefined;
 
@@ -187,9 +192,12 @@ export class InvestigationService {
    */
   private static async getTrackingInfo(
     orderId: string,
+    orgId?: string,
   ): Promise<{ status: string; deliveredAt?: Date }> {
     const db = await getDatabase();
-    const order = await db.collection("souq_orders").findOne({ orderId });
+    const order = await db
+      .collection("souq_orders")
+      .findOne(orgId ? { orderId, orgId } : { orderId });
 
     if (!order) return { status: "unknown" };
 

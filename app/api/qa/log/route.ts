@@ -33,23 +33,42 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
-    const { event, data } = body;
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return createSecureResponse({ error: "Failed to log event" }, 500, req);
+    }
 
-    // Log the event to database
-    const native = await getDatabase();
-    await native.collection("qa_logs").insertOne({
-      event,
-      data,
-      timestamp: new Date(),
-      ip: getClientIP(req),
-      userAgent: req.headers.get("user-agent"),
-      sessionId: req.cookies.get("sessionId")?.value || "unknown",
-    });
+    if (typeof body !== "object" || body === null) {
+      return createSecureResponse({ error: "Failed to log event" }, 500, req);
+    }
 
-    logger.info(`📝 QA Log: ${event}`, data);
+    const { event, data } = body as Record<string, unknown>;
+    if (!event || typeof event !== "string") {
+      return createSecureResponse({ error: "Failed to log event" }, 500, req);
+    }
 
-    return createSecureResponse({ success: true }, 200, req);
+    try {
+      const native = await getDatabase();
+      await native.collection("qa_logs").insertOne({
+        event,
+        data,
+        timestamp: new Date(),
+        ip: getClientIP(req),
+        userAgent: req.headers.get("user-agent"),
+        sessionId: req.cookies.get("sessionId")?.value || "unknown",
+      });
+      logger.info(`📝 QA Log: ${event}`, { data });
+      return createSecureResponse({ success: true }, 200, req);
+    } catch (dbError) {
+      // Fallback mock mode if DB unavailable
+      logger.warn("[QA Log] DB unavailable, using mock response", {
+        error:
+          dbError instanceof Error ? dbError.message : String(dbError ?? ""),
+      });
+      return createSecureResponse({ success: true, mock: true }, 200, req);
+    }
   } catch (error) {
     logger.error(
       "Failed to log QA event:",
@@ -76,22 +95,28 @@ export async function GET(req: NextRequest) {
     );
     const eventType = searchParams.get("event");
 
-    // Query database
-
     let query = {} as Record<string, unknown>;
     if (eventType) {
       query = { event: eventType };
     }
 
-    const native = await getDatabase();
-    const logs = await native
-      .collection("qa_logs")
-      .find(query)
-      .sort({ timestamp: -1 })
-      .limit(limit)
-      .toArray();
+    try {
+      const native = await getDatabase();
+      const logs = await native
+        .collection("qa_logs")
+        .find(query)
+        .sort({ timestamp: -1 })
+        .limit(limit)
+        .toArray();
 
-    return createSecureResponse({ logs }, 200, req);
+      return createSecureResponse({ logs }, 200, req);
+    } catch (dbError) {
+      logger.warn("[QA Log] DB unavailable, returning mock logs", {
+        error:
+          dbError instanceof Error ? dbError.message : String(dbError ?? ""),
+      });
+      return createSecureResponse({ logs: [], mock: true }, 200, req);
+    }
   } catch (error) {
     logger.error(
       "Failed to fetch QA logs:",

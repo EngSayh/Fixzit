@@ -20,9 +20,12 @@ export async function GET(
     }
 
     const { orderId } = params;
+    const orgId = (session.user as { orgId?: string }).orgId;
 
     // Get order and verify access
-    const order = await SouqOrder.findOne({ orderId });
+    const order = await SouqOrder.findOne(
+      orgId ? { orderId, orgId } : { orderId },
+    );
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
@@ -37,7 +40,7 @@ export async function GET(
     }
 
     // Calculate SLA
-    const sla = await fulfillmentService.calculateSLA(orderId);
+    const sla = await fulfillmentService.calculateSLA(orderId, orgId);
 
     return NextResponse.json({
       success: true,

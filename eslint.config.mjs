@@ -28,6 +28,7 @@ export default [
       "**/playwright-report/**",
       "**/e2e-test-results/**",
       "**/test-results/**",
+      "tests/playwright-report/**",
 
       // Assets and static files
       "public/**",
@@ -102,6 +103,7 @@ export default [
       "no-empty": "off",
       "no-extra-semi": "off",
       "no-useless-escape": "warn",
+      "no-console": "error",
       "no-mixed-spaces-and-tabs": "off",
 
       /* Next.js specific rules */
@@ -279,6 +281,7 @@ export default [
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "no-unused-vars": "off", // Also disable base rule for test files
+      "no-console": "off",
       "no-undef": "off", // Disable for test files since we define globals
       "@typescript-eslint/no-require-imports": "off",
     },
@@ -309,6 +312,7 @@ export default [
       "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/ban-ts-comment": "off",
       "@typescript-eslint/no-explicit-any": ["error"],
+      "no-console": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {

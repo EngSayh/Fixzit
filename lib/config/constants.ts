@@ -9,6 +9,8 @@
  * Missing required vars in production will throw errors immediately
  */
 
+import { logger } from "@/lib/logger";
+
 type Environment = "development" | "test" | "production";
 
 class ConfigurationError extends Error {
@@ -279,8 +281,8 @@ if (Config.env.isProduction && !SKIP_CONFIG_VALIDATION) {
 
   // Warn if AWS is not configured (S3 uploads will not work)
   if (!Config.aws.region || !Config.aws.s3.bucket) {
-    console.warn(
-      "[Config] ⚠️  AWS not fully configured - S3 file uploads will be disabled",
+    logger.warn(
+      "[Config] AWS not fully configured - S3 file uploads will be disabled",
     );
   }
 
@@ -296,8 +298,8 @@ if (Config.env.isProduction && !SKIP_CONFIG_VALIDATION) {
 
   // Warn about insecure configurations
   if (Config.dev.bypassAuth) {
-    console.error(
-      "[Config] ⚠️  BYPASS_AUTH is enabled in production - THIS IS INSECURE!",
+    logger.error(
+      "[Config] BYPASS_AUTH is enabled in production - THIS IS INSECURE!",
     );
   }
 }

@@ -123,6 +123,13 @@ const nextConfig = {
     // Reduce parallel compilation (Next.js 15 handles Edge builds automatically)
     parallelServerCompiles: false,
   },
+  webpack: (config) => {
+    // Avoid bundling mongoose on the client to prevent schema errors during Playwright runs
+    config.resolve = config.resolve || {};
+    config.resolve.alias = config.resolve.alias || {};
+    config.resolve.alias.mongoose = false;
+    return config;
+  },
   
   // ⚡ FIX BUILD TIMEOUT: Add reasonable timeout for static page generation
   // Default is infinite which can cause CI to kill the process (exit 143 = SIGTERM)

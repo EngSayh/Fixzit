@@ -1,9 +1,13 @@
 import { UserRole, type UserRoleType } from "@/types/user";
+import { normalizeRole as normalizeFmRole } from "@/domain/fm/fm.behavior";
 
 type RoleChecker = (_role?: string | null) => boolean;
 
-const normalizeRole = (role?: string | null): string | null =>
-  typeof role === "string" ? role.trim().toUpperCase() : null;
+const normalizeRole = (role?: string | null): string | null => {
+  const canonical = normalizeFmRole(role);
+  if (canonical) return canonical;
+  return typeof role === "string" ? role.trim().toUpperCase() : null;
+};
 
 const buildRoleChecker = (
   allowed: readonly UserRoleType[],

@@ -20,7 +20,7 @@ This document provides the complete implementation of the Dynamic TopBar system 
    - Keyboard shortcut support (Ctrl/Cmd + K)
 
 3. **App Switcher** ✅
-   - Proper naming: "Fixzit Facility Management (FM)", "Fixizit Souq", "Aqar Souq"
+   - Proper naming: "Fixzit Facility Management (FM)", "Fixzit Souq", "Aqar Souq"
    - Visual icons for each app
    - Context-aware switching
 
@@ -70,7 +70,7 @@ app/
 ### App Definitions
 
 - **FM (Facility Management)**: Work Orders, Properties, Units, Tenants, Vendors, Invoices
-- **Fixizit Souq**: Products, Services, Vendors, RFQs, Orders
+- **Fixzit Souq**: Products, Services, Vendors, RFQs, Orders
 - **Aqar Souq**: Listings, Projects, Agents
 
 ### Search Entities

@@ -367,7 +367,10 @@ export function encryptFields<T extends Record<string, unknown>>(
         });
         continue;
       }
-      current[fieldName] = encryptField(value, path);
+      current[fieldName] = encryptField(
+        value as string | number | null | undefined,
+        path,
+      );
     }
   }
 

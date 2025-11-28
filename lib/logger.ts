@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- This IS the logger utility, console calls are intentional */
 /**
  * Production-safe logging utility
  * Replaces console.* calls with proper logging that:

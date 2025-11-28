@@ -24,6 +24,14 @@ import {
   Bell
 } from 'lucide-react';
 import { UserRole as UserRoleEnum, type UserRoleType } from '@/types/user';
+import { logger } from '@/lib/logger';
+import {
+  Role,
+  SubRole,
+  normalizeRole as normalizeFmRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from '@/domain/fm/fm.behavior';
 
 // ==========================================
 // Types & Interfaces
@@ -181,6 +189,38 @@ const coerceRoleValue = (role: NavigationRole): NavigationRole => {
   return role;
 };
 
+const canonicalizeRole = (role?: string | null, subRole?: string | null): string | null => {
+  const fmSubRole =
+    normalizeSubRole(subRole) ?? inferSubRoleFromRole(role);
+  const fmRole = normalizeFmRole(role, fmSubRole);
+  if (!fmRole) return null;
+
+  // Map canonical FM role back to navigation roles (UserRoleEnum)
+  switch (fmRole) {
+    case Role.SUPER_ADMIN:
+      return UserRoleEnum.SUPER_ADMIN;
+    case Role.ADMIN:
+      return UserRoleEnum.ADMIN;
+    case Role.CORPORATE_OWNER:
+      return UserRoleEnum.OWNER;
+    case Role.PROPERTY_MANAGER:
+      return UserRoleEnum.PROPERTY_MANAGER;
+    case Role.TECHNICIAN:
+      return UserRoleEnum.TECHNICIAN;
+    case Role.TENANT:
+      return UserRoleEnum.TENANT;
+    case Role.VENDOR:
+      return UserRoleEnum.VENDOR;
+    case Role.TEAM_MEMBER: {
+      if (fmSubRole === SubRole.FINANCE_OFFICER) return UserRoleEnum.FINANCE;
+      if (fmSubRole === SubRole.HR_OFFICER) return UserRoleEnum.HR;
+      return UserRoleEnum.MANAGER;
+    }
+    default:
+      return UserRoleEnum.MANAGER;
+  }
+};
+
 const roleIsAllowed = (
   allowedRoles: NavigationRole[] | undefined,
   role: UserRoleInput | null | undefined
@@ -193,7 +233,12 @@ const roleIsAllowed = (
     return false;
   }
 
-  const targetSet = new Set(expandRoleValue(role));
+  const canonical = canonicalizeRole(
+    typeof role === 'string' ? role : String(role),
+    null,
+  ) ?? role;
+
+  const targetSet = new Set(expandRoleValue(canonical as string));
   if (!targetSet.size) {
     return false;
   }
@@ -211,7 +256,7 @@ if (process.env.NODE_ENV !== 'production') {
   const financeNormalization = roleIsAllowed(['FINANCE'], 'BILLING_ADMIN');
 
   if (!managerNormalization || !corporateNormalization || !propertyNormalization || !financeNormalization) {
-    console.warn('[navigation] Role normalization failed', {
+    logger.warn('[navigation] Role normalization failed', {
       managerNormalization,
       corporateNormalization,
       propertyNormalization,
@@ -665,6 +710,12 @@ export const ROLE_PERMISSIONS = {
   PROCUREMENT: procurementOnly,
   TECHNICIAN: technicianOnly,
   EMPLOYEE: hrOnly,
+  CORPORATE_OWNER: propertyOps,
+  FINANCE_OFFICER: financeOnly,
+  HR_OFFICER: hrOnly,
+  SUPPORT_AGENT: ['dashboard', 'support', 'crm', 'reports'],
+  OPERATIONS_MANAGER: fmLeadership,
+  FINANCE_MANAGER: financeOnly,
   OWNER: ownerTenant,
   TENANT: ownerTenant,
   VENDOR: vendorOnly,

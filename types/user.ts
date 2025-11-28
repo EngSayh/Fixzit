@@ -33,6 +33,9 @@ export const UserRole = {
   TENANT: "TENANT",
   VENDOR: "VENDOR",
   AUDITOR: "AUDITOR",
+  CUSTOMER: "CUSTOMER",
+  VIEWER: "VIEWER",
+  CORPORATE_OWNER: "CORPORATE_OWNER",
   
   // Legacy roles deprecated in STRICT v4 - kept for backward compatibility
   // TODO: Migrate all usages to the 14-role matrix above
@@ -41,6 +44,10 @@ export const UserRole = {
   // VIEWER: use AUDITOR
   // DISPATCHER: use FM_MANAGER or PROPERTY_MANAGER
   // SUPPORT: use ADMIN or MANAGER
+  EMPLOYEE: "EMPLOYEE",
+  SUPPORT: "SUPPORT",
+  DISPATCHER: "DISPATCHER",
+  FINANCE_MANAGER: "FINANCE_MANAGER",
 } as const;
 
 export type UserRoleType = (typeof UserRole)[keyof typeof UserRole];

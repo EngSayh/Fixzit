@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
     const released = await inventoryService.releaseReservation({
       listingId,
       reservationId,
+      orgId: (session.user as { orgId?: string }).orgId,
     });
 
     if (!released) {

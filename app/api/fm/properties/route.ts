@@ -111,8 +111,8 @@ export async function GET(req: NextRequest) {
       );
     }
     
-    // AUDIT-2025-11-26: Fixed OWNER → CORPORATE_OWNER per STRICT v4.1
-    if (actor.role === "CORPORATE_OWNER") {
+    // AUDIT-2025-11-26: Support owner roles (corporate/owner)
+    if (actor.role === "CORPORATE_OWNER" || actor.role === "OWNER") {
       const ownedProperties = (actor as { ownedProperties?: string[] }).ownedProperties || [];
       if (ownedProperties.length === 0) {
         // Owners with no properties see empty list, not error

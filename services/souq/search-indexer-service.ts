@@ -231,7 +231,9 @@ export class SearchIndexerService {
       const index = searchClient.index(INDEXES.SELLERS);
 
       // Clear existing index
-      await index.deleteAllDocuments();
+      await withMeiliResilience("sellers-clear-index", "index", () =>
+        index.deleteAllDocuments(),
+      );
       logger.info("[SearchIndexer] Cleared existing seller index");
 
       // Fetch all active sellers in batches

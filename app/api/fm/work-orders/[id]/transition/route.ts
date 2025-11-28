@@ -49,11 +49,8 @@ interface WorkOrderForTransition {
   location?: string | { propertyId?: string };
   requester?: WorkOrderUser | { userId?: string; [key: string]: unknown };
   assignment?: {
-    assignedTo?: {
-      userId?: string;
-      vendorId?: string;
-      technicianId?: string;
-    };
+    assignedTo?: Record<string, unknown>;
+    [key: string]: unknown;
   };
   attachments?: Array<AttachmentWithCategory | string>;
   [key: string]: unknown;

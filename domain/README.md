@@ -27,57 +27,72 @@ The `domain/` directory follows Domain-Driven Design principles:
 
 ### FM Behavior (`fm/fm.behavior.ts`)
 
-Contains core FM business rules:
+Contains core FM business rules (STRICT v4.1-aligned RBAC + tenancy guards):
 
 ```typescript
-import { FMBehavior } from '@/domain/fm/fm.behavior';
+import { canTransition, Role, WOStatus } from "@/domain/fm/fm.behavior";
 
-// Work order state machine
-const canTransition = FMBehavior.canTransitionWorkOrder({
-  currentStatus: 'pending',
-  targetStatus: 'in_progress',
-  userRole: 'TECHNICIAN',
-});
-
-// SLA calculations
-const slaDeadline = FMBehavior.calculateSLADeadline({
-  priority: 'high',
-  createdAt: new Date(),
-  slaPolicy: orgSLAPolicy,
-});
-
-// Assignment rules
-const eligibleTechnicians = FMBehavior.getEligibleAssignees({
-  workOrderType: 'hvac',
-  location: propertyId,
-  skills: ['hvac-certified'],
-});
+const canMove = canTransition(
+  WOStatus.ESTIMATE_PENDING,
+  WOStatus.QUOTATION_REVIEW,
+  Role.TECHNICIAN,
+  {
+    orgId: user.org_id,
+    role: Role.TECHNICIAN,
+    userId: user._id,
+    isTechnicianAssigned: true,
+    uploadedMedia: ["BEFORE"],
+  },
+);
 ```
 
 ### Key Business Rules
 
-#### Work Order State Machine
+#### Work Order FSM (STRICT v4.1)
 
 ```
-┌──────────┐     ┌─────────────┐     ┌────────────┐     ┌───────────┐
-│  DRAFT   │ ──► │   PENDING   │ ──► │ IN_PROGRESS│ ──► │ COMPLETED │
-└──────────┘     └─────────────┘     └────────────┘     └───────────┘
-                       │                   │
-                       ▼                   ▼
-                 ┌───────────┐      ┌────────────┐
-                 │ CANCELLED │      │  ON_HOLD   │
-                 └───────────┘      └────────────┘
+NEW
+  └─► ASSESSMENT (requires BEFORE media)
+        └─► ESTIMATE_PENDING
+              └─► QUOTATION_REVIEW
+                    └─► PENDING_APPROVAL
+                          └─► APPROVED
+                                └─► IN_PROGRESS
+                                      └─► WORK_COMPLETE (requires AFTER media)
+                                              ├─► QUALITY_CHECK (optional)
+                                              └─► FINANCIAL_POSTING
+                                                    └─► CLOSED
 ```
 
-**Transition Rules:**
-| From | To | Allowed Roles |
-|------|-----|---------------|
-| DRAFT | PENDING | OWNER, ADMIN |
-| PENDING | IN_PROGRESS | TECHNICIAN, ADMIN |
-| PENDING | CANCELLED | OWNER, ADMIN |
-| IN_PROGRESS | COMPLETED | TECHNICIAN |
-| IN_PROGRESS | ON_HOLD | TECHNICIAN, ADMIN |
-| ON_HOLD | IN_PROGRESS | TECHNICIAN |
+**Transition Rules (mirrors `WORK_ORDER_FSM` in `fm.behavior.ts`):**
+
+| From | To | Allowed Roles/Sub-roles (STRICT v4.1) | Guards / Media | Action |
+|------|----|---------------------------------------|----------------|--------|
+| NEW | ASSESSMENT | Admin (Role.ADMIN / Corporate Admin), Team Member (Ops via EMPLOYEE alias), Management (TEAM_MEMBER), HR Officer (TEAM_MEMBER + HR) | None | — |
+| ASSESSMENT | ESTIMATE_PENDING | Technician (org + assigned) | BEFORE media required | — |
+| ESTIMATE_PENDING | QUOTATION_REVIEW | Technician (org + assigned) | — | attach_quote |
+| QUOTATION_REVIEW | PENDING_APPROVAL | Admin (Role.ADMIN), Team Member (Ops via EMPLOYEE alias) | — | request_approval |
+| PENDING_APPROVAL | APPROVED | Property Owner, Owner Deputy, Management, Finance Officer | — | approve |
+| APPROVED | IN_PROGRESS | Technician (org + assigned) | — | start_work |
+| IN_PROGRESS | WORK_COMPLETE | Technician (org + assigned) | AFTER media required | complete_work |
+| WORK_COMPLETE | QUALITY_CHECK (optional) | Management, Property Owner | — | — |
+| QUALITY_CHECK | FINANCIAL_POSTING | Admin, Team Member (Ops/Finance) | — | — |
+| WORK_COMPLETE | FINANCIAL_POSTING | Admin, Team Member (Ops/Finance) | — | — |
+| FINANCIAL_POSTING | CLOSED | Admin, Team Member (Finance) | — | post_finance |
+
+Role mapping to STRICT v4.1 canonical set:
+- SUPER_ADMIN: cross-org, all actions audited.
+- ADMIN: corporate admin, org-scoped full access.
+- TEAM_MEMBER: org-scoped staff; use sub-roles (Finance Officer, HR Officer, Support Agent, Operations Manager) to unlock module access.
+- PROPERTY_OWNER / OWNER_DEPUTY: org-scoped with property filters.
+- TECHNICIAN: org-scoped, assignment-locked to `assigned_to_user_id`.
+- TENANT, VENDOR, GUEST: least-privilege roles; not used in FSM above.
+- **Full 14-role matrix → FM canonical roles:** SUPER_ADMIN → SUPER_ADMIN; CORPORATE_ADMIN/ADMIN → ADMIN; MANAGEMENT/FM_MANAGER/PROPERTY_MANAGER → PROPERTY_MANAGER; CORPORATE_EMPLOYEE/TEAM_MEMBER/OPERATIONS_MANAGER/SUPPORT_AGENT/PROCUREMENT → TEAM_MEMBER (sub-roles required); FINANCE/FINANCE_OFFICER → TEAM_MEMBER + SubRole.FINANCE_OFFICER; HR/HR_OFFICER → TEAM_MEMBER + SubRole.HR_OFFICER; TECHNICIAN/FIELD_ENGINEER/CONTRACTOR_TECHNICIAN → TECHNICIAN; PROPERTY_OWNER/OWNER_DEPUTY → CORPORATE_OWNER/PROPERTY_MANAGER; TENANT/END_USER/RESIDENT → TENANT; VENDOR/MARKETPLACE_PARTNER → VENDOR; AUDITOR/VIEWER → GUEST (read-only).
+
+**Guards & invariants:**
+- Technician transitions require `isTechnicianAssigned === true` in context.
+- Media gates: BEFORE for ASSESSMENT entry; AFTER for completion.
+- All actions are org-scoped; SUPER_ADMIN bypasses org filter but is always audited.
 
 #### SLA Priority Mapping
 
@@ -111,7 +126,7 @@ export function calculateLateFee(
 
 // ❌ Bad - infrastructure mixed in
 export async function calculateLateFee(invoiceId: string) {
-  const invoice = await db.collection('invoices').findOne({ _id: invoiceId });
+  const invoice = await db.collection("invoices").findOne({ _id: invoiceId });
   // ...
 }
 ```
@@ -146,54 +161,65 @@ Business rules should be explicit and validated:
 
 ```typescript
 export function validateWorkOrderTransition(
-  current: Status,
-  target: Status,
+  current: WOStatus,
+  target: WOStatus,
   role: Role
 ): Result<void, TransitionError> {
-  // Rule 1: Only certain roles can cancel
-  if (target === 'CANCELLED' && !['OWNER', 'ADMIN'].includes(role)) {
-    return err(new TransitionError('Only owners/admins can cancel'));
+  // Rule 1: Only certain roles can approve
+  if (
+    target === WOStatus.APPROVED &&
+    ![
+      Role.PROPERTY_OWNER,
+      Role.OWNER_DEPUTY,
+      Role.MANAGEMENT,
+      Role.FINANCE,
+    ].includes(role)
+  ) {
+    return err(new TransitionError("Only finance/owner roles can approve"));
   }
   
   // Rule 2: Cannot skip states
-  if (current === 'DRAFT' && target === 'COMPLETED') {
-    return err(new TransitionError('Cannot skip from draft to completed'));
+  if (current === WOStatus.NEW && target === WOStatus.CLOSED) {
+    return err(new TransitionError("Cannot skip from new to closed"));
   }
   
   return ok(undefined);
 }
 ```
 
+### 4. Multi-tenancy & RBAC Invariants (STRICT v4.1)
+- Every domain operation must include `org_id` scoping; SUPER_ADMIN is the only cross-org role and must be audited.
+- Tenants: `unit_id ∈ user.units` and `org_id` required.
+- Technicians: `org_id` and `assigned_to_user_id === user._id`; FSM transitions must set `isTechnicianAssigned`.
+- Property Managers: `org_id` and `property_id ∈ user.assigned_properties`.
+- Vendors: `vendor_id === user.vendor_id`.
+- PII (HR/Finance) only accessible to Super Admin, Admin, HR Officer (Team Member + HR sub-role), and Finance Officer where applicable.
+
 ---
 
 ## Testing Domain Logic
 
-Domain logic is tested in isolation without mocks:
+Domain logic should be tested in isolation without infrastructure mocks. Recommended path: `tests/domain/fm/fm.behavior.test.ts`.
 
 ```typescript
-// tests/domain/fm/fm.behavior.test.ts
-import { describe, it, expect } from 'vitest';
-import { FMBehavior } from '@/domain/fm/fm.behavior';
+import { describe, it, expect } from "vitest";
+import { canTransition, Role, WOStatus } from "@/domain/fm/fm.behavior";
 
-describe('FMBehavior', () => {
-  describe('canTransitionWorkOrder', () => {
-    it('should allow technician to complete in_progress work order', () => {
-      const result = FMBehavior.canTransitionWorkOrder({
-        currentStatus: 'in_progress',
-        targetStatus: 'completed',
-        userRole: 'TECHNICIAN',
-      });
-      expect(result).toBe(true);
-    });
-
-    it('should prevent technician from cancelling work order', () => {
-      const result = FMBehavior.canTransitionWorkOrder({
-        currentStatus: 'pending',
-        targetStatus: 'cancelled',
-        userRole: 'TECHNICIAN',
-      });
-      expect(result).toBe(false);
-    });
+describe("canTransition", () => {
+  it("allows assigned technician to move to QUOTATION_REVIEW when media provided", () => {
+    const ok = canTransition(
+      WOStatus.ESTIMATE_PENDING,
+      WOStatus.QUOTATION_REVIEW,
+      Role.TECHNICIAN,
+      {
+        orgId: "org-1",
+        role: Role.TECHNICIAN,
+        userId: "tech-1",
+        isTechnicianAssigned: true,
+        uploadedMedia: ["BEFORE"],
+      },
+    );
+    expect(ok).toBe(true);
   });
 });
 ```
@@ -236,5 +262,6 @@ Planned domain modules:
 ## Related Documentation
 
 - [Services Documentation](../services/README.md)
-- [API Routes](../app/api/README.md)
 - [RBAC & Permissions](../lib/rbac.ts)
+- [Architecture Overview](../docs/architecture/ARCHITECTURE.md)
+- [OpenAPI Contract](../openapi.yaml)

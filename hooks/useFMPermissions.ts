@@ -17,54 +17,21 @@ import {
   Action,
   PLAN_GATES,
   Plan,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
 } from "@/domain/fm/fm.behavior";
 import { useCurrentOrg } from "@/contexts/CurrentOrgContext";
 
 export interface FMPermissionContext {
   role: Role;
-  orgId: string;
+  subRole?: SubRole;
+  orgId?: string;
   propertyId?: string;
   userId: string;
   plan: Plan;
 }
-
-// RBAC-003 FIX: Map NextAuth roles (14-role matrix from types/user.ts) to FM Role enum
-// FM domain uses 9 canonical roles: SUPER_ADMIN, ADMIN, CORPORATE_OWNER, TEAM_MEMBER,
-// TECHNICIAN, PROPERTY_MANAGER, TENANT, VENDOR, GUEST
-// The 14-role matrix roles (FINANCE, HR, FM_MANAGER, etc.) map to these canonical roles
-// PHASE-3 FIX: Added specialized sub-roles (FINANCE_OFFICER, HR_OFFICER, etc.)
-const roleMapping: Record<string, Role> = {
-  // STRICT v4 14-role matrix → FM canonical roles
-  SUPER_ADMIN: Role.SUPER_ADMIN,
-  CORPORATE_ADMIN: Role.ADMIN, // Fixed: CORPORATE_ADMIN → ADMIN (alias in fm.behavior.ts)
-  ADMIN: Role.ADMIN,
-  MANAGER: Role.TEAM_MEMBER, // Fixed: MANAGER → TEAM_MEMBER
-  
-  // FM roles
-  FM_MANAGER: Role.PROPERTY_MANAGER, // Fixed: FM_MANAGER → PROPERTY_MANAGER
-  PROPERTY_MANAGER: Role.PROPERTY_MANAGER,
-  TECHNICIAN: Role.TECHNICIAN,
-  
-  // Business function roles → TEAM_MEMBER (use SubRole for specialization)
-  FINANCE: Role.TEAM_MEMBER, // Fixed: Finance is TEAM_MEMBER with module access
-  FINANCE_OFFICER: Role.TEAM_MEMBER, // PHASE-3: Specialized finance sub-role
-  HR: Role.TEAM_MEMBER, // Fixed: HR is TEAM_MEMBER with module access
-  HR_OFFICER: Role.TEAM_MEMBER, // PHASE-3: Specialized HR sub-role
-  PROCUREMENT: Role.TEAM_MEMBER,
-  SUPPORT_AGENT: Role.TEAM_MEMBER, // PHASE-3: Support + CRM access
-  OPERATIONS_MANAGER: Role.TEAM_MEMBER, // PHASE-3: Wider operational scope
-  
-  // Property & External roles
-  OWNER: Role.CORPORATE_OWNER, // Fixed: OWNER → CORPORATE_OWNER
-  TENANT: Role.TENANT,
-  VENDOR: Role.VENDOR,
-  AUDITOR: Role.TEAM_MEMBER, // Fixed: AUDITOR → TEAM_MEMBER (read-only specialization)
-  
-  // Legacy aliases for backward compatibility
-  TEAM_MEMBER: Role.TEAM_MEMBER,
-  CORPORATE_OWNER: Role.CORPORATE_OWNER,
-  GUEST: Role.GUEST,
-};
 
 /**
  * Hook to check FM permissions in React components
@@ -91,19 +58,22 @@ export function useFMPermissions() {
     | {
         id?: string;
         role?: string;
+        subRole?: string | null;
         orgId?: string;
       }
     | undefined;
 
-  const userRole = user?.role || "GUEST";
-  const role = roleMapping[userRole] || Role.GUEST;
+  const subRole =
+    normalizeSubRole(user?.subRole) ?? inferSubRoleFromRole(user?.role);
+  const role = normalizeRole(user?.role, subRole) ?? Role.GUEST;
 
   // ORGID-FIX: Use undefined instead of empty string for client-side permission checks
   // Empty string would incorrectly indicate "valid orgId" rather than "no orgId"
   const ctx: FMPermissionContext = {
     role,
+    subRole,
     userId: user?.id || "",
-    orgId: user?.orgId || undefined,  // ✅ undefined (not "") for missing orgId
+    orgId: user?.orgId ?? undefined,
     propertyId: undefined,
     plan,
   };
@@ -124,7 +94,8 @@ export function useFMPermissions() {
     },
   ): boolean => {
     // Check against the resource's org or the user's org
-    const targetOrgId = options?.orgId ?? ctx.orgId;
+    // Empty string indicates "no org" which will fail org membership check
+    const targetOrgId = options?.orgId ?? ctx.orgId ?? "";
 
     return can(submodule, action, {
       role: ctx.role,
@@ -133,6 +104,7 @@ export function useFMPermissions() {
       userId: ctx.userId,
       plan: ctx.plan,
       isOrgMember: isMemberOf(targetOrgId), // 🟥 FIXED: Recompute for target org
+      subRole: ctx.subRole,
     });
   };
 
@@ -182,6 +154,7 @@ export function useFMPermissions() {
 
   return {
     role: ctx.role,
+    subRole: ctx.subRole,
     orgId: ctx.orgId,
     userId: ctx.userId,
     plan: ctx.plan,

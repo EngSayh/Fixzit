@@ -16,6 +16,7 @@ export interface IListing extends Document {
   sku?: string;
 
   sellerId: mongoose.Types.ObjectId;
+  orgId?: string;
 
   price: number;
   compareAtPrice?: number;
@@ -109,6 +110,10 @@ const ListingSchema = new Schema<IListing>(
       type: Schema.Types.ObjectId,
       ref: "SouqSeller",
       required: true,
+      index: true,
+    },
+    orgId: {
+      type: String,
       index: true,
     },
     price: {

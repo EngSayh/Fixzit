@@ -474,10 +474,20 @@ export const authConfig = {
       
       // ✅ FIX: OAuth user lookup and validation (SECURITY)
       // Import User model dynamically to avoid edge runtime issues
-      const { default: User } = await import('./server/models/User');
+      const { User } = await import('@/server/models/User');
       
       try {
-        const dbUser = await User.findOne({ email: _user.email }).lean().exec();
+        const dbUser = (await User.findOne({ email: _user.email })
+          .lean()
+          .exec()) as {
+            orgId?: { toString(): string } | string | null;
+            professional?: { role?: string | null };
+            role?: string | null;
+            isSuperAdmin?: boolean;
+            permissions?: string[];
+            roles?: string[];
+            status?: string;
+          } | null;
         
         // Block sign-in if user doesn't exist
         if (!dbUser) {
@@ -509,10 +519,19 @@ export const authConfig = {
           role?: string; 
           orgId?: string | null; 
           isSuperAdmin?: boolean; 
+          permissions?: string[];
+          roles?: string[];
         };
-        userWithMeta.role = dbUser.professional?.role || dbUser.role || 'USER';
-        userWithMeta.orgId = dbUser.orgId?.toString() || null;
-        userWithMeta.isSuperAdmin = dbUser.isSuperAdmin || false;
+        const dbUserMeta = dbUser ?? {};
+        userWithMeta.role = (dbUserMeta.professional?.role ||
+          dbUserMeta.role ||
+          'GUEST') as UserRoleType;
+        userWithMeta.orgId = dbUserMeta.orgId
+          ? dbUserMeta.orgId.toString()
+          : null;
+        userWithMeta.isSuperAdmin = Boolean(dbUserMeta.isSuperAdmin);
+        userWithMeta.permissions = dbUserMeta.permissions || [];
+        userWithMeta.roles = dbUserMeta.roles || [];
         
         logger.info('[NextAuth] OAuth sign-in allowed', { 
           email: _user.email.substring(0, 3) + '***',
@@ -538,7 +557,7 @@ export const authConfig = {
         session.user.id = token.sub;
       }
       if (token?.role) {
-        (session.user as ExtendedUser).role = token.role as string;
+        (session.user as ExtendedUser).role = token.role as UserRoleType;
       }
       if (token?.orgId) {
         (session.user as ExtendedUser).orgId = token.orgId as string | null;

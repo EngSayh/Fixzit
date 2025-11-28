@@ -73,9 +73,12 @@ const DEMO_EMPLOYEE_IDS = new Set([
 const TEST_USERS_FALLBACK_PHONE =
   process.env.NEXTAUTH_TEST_USERS_FALLBACK_PHONE ||
   process.env.TEST_USERS_FALLBACK_PHONE ||
-  "+966552233456";
+  "";
 
-const DEFAULT_TEST_FORCE_PHONE = "+966552233456";
+const DEFAULT_TEST_FORCE_PHONE =
+  process.env.NEXTAUTH_TEST_FORCE_PHONE ||
+  process.env.TEST_FORCE_PHONE ||
+  "";
 const FORCE_OTP_PHONE =
   process.env.NEXTAUTH_FORCE_OTP_PHONE || process.env.FORCE_OTP_PHONE || "";
 
@@ -173,8 +176,12 @@ const buildDemoUser = (
     role: "SUPER_ADMIN",
     status: "ACTIVE",
     isActive: true,
-    contact: { phone: TEST_USERS_FALLBACK_PHONE },
-    personal: { phone: TEST_USERS_FALLBACK_PHONE },
+    ...(TEST_USERS_FALLBACK_PHONE
+      ? {
+          contact: { phone: TEST_USERS_FALLBACK_PHONE },
+          personal: { phone: TEST_USERS_FALLBACK_PHONE },
+        }
+      : {}),
     professional: { role: "SUPER_ADMIN" },
     code: companyCode ?? "DEMO-ORG",
     __isDemoUser: true,

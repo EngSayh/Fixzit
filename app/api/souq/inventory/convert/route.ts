@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
       listingId,
       reservationId,
       orderId,
+      orgId: (session.user as { orgId?: string }).orgId,
     });
 
     if (!converted) {

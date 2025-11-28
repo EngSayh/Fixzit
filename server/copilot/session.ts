@@ -65,7 +65,7 @@ export async function resolveCopilotSession(
   // Copilot should handle missing tenant context explicitly
   return {
     userId: user.id,
-    tenantId: user.orgId || undefined,  // ✅ undefined for missing tenant
+    tenantId: user.orgId ?? "",
     role: (user.role || "GUEST") as CopilotRole,
     email: user.email,
     name: user.name,

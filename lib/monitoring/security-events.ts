@@ -5,7 +5,11 @@ import {
   trackRateLimitHit,
 } from "@/lib/security/monitoring";
 
-export type SecurityEventType = "rate_limit" | "cors_block" | "auth_failure";
+export type SecurityEventType =
+  | "rate_limit"
+  | "cors_block"
+  | "auth_failure"
+  | "csrf_violation";
 
 export async function logSecurityEvent(event: {
   type: SecurityEventType;
@@ -40,6 +44,14 @@ export async function logSecurityEvent(event: {
             ? (event.metadata.reason as string)
             : "unknown";
         trackAuthFailure(identifier, reason);
+        break;
+      }
+      case "csrf_violation": {
+        const reason =
+          typeof event.metadata?.reason === "string"
+            ? (event.metadata.reason as string)
+            : "csrf_violation";
+        trackAuthFailure(event.ip, reason);
         break;
       }
     }

@@ -41,6 +41,12 @@ services/
 
 ---
 
+## OpenAPI References (per domain)
+- **FM / Billing / HR**: see `../openapi.yaml` (FM work orders, billing, HR endpoints).
+- **Souq / Marketplace**: see `../docs/api/marketplace-openapi.yaml` and `../docs/fixzit-souq-openapi.yaml`.
+ 
+---
+
 ## Service Patterns
 
 ### Standard Service Structure
@@ -188,6 +194,7 @@ const recommendations = await recommendationEngine.getRecommendations({
 Market analysis and price suggestions:
 
 ```typescript
+import { logger } from '@/lib/logger';
 import { pricingInsightsService } from '@/services/aqar/pricing-insights-service';
 
 const insights = await pricingInsightsService.analyze({
@@ -197,7 +204,10 @@ const insights = await pricingInsightsService.analyze({
   areaSqm: 150,
 });
 
-console.log(insights.suggestedPrice); // Based on market data
+logger.info('Suggested price calculated', {
+  org_id: 'org-123',
+  suggestedPrice: insights.suggestedPrice,
+});
 ```
 
 ---
@@ -230,7 +240,7 @@ Wage Protection System file generation:
 import { wpsService } from '@/services/hr/wpsService';
 
 const wpsFile = await wpsService.generateFile({
-  organizationId: 'org-123',
+  org_id: 'org-123',
   month: 11,
   year: 2025,
 });
@@ -256,6 +266,17 @@ await fmNotificationEngine.notify({
   channels: ['push', 'email'],
 });
 ```
+
+---
+
+## RBAC & Tenancy Guardrails (STRICT v4.1)
+- Canonical roles (14): Super Admin, Corporate Admin, Management, Finance, HR, Corporate Employee, Property Owner, Technician, Tenant/End-User, plus sub-roles Finance Officer, HR Officer, Support, Operations/Ops, and Vendor-facing roles.
+- Always scope reads/writes by `org_id`. SUPER_ADMIN is the only cross-org role (and must be audited).
+- Tenants: `unit_id ∈ user.units`; never allow arbitrary unit access.
+- Technicians: require `org_id` + `assigned_to_user_id === user._id` for FM workflows; honor assignment guards from `domain/fm/fm.behavior.ts`.
+- Property Owners/Managers: filter by owned/managed `property_id`; use OWNER_DEPUTY aliases where present.
+- Vendors (Souq): `vendor_id === user.vendor_id`; never expose other vendors’ data.
+- Finance/HR: treat PII and salary data as sensitive—limit to Admin, Finance Officer, HR Officer with explicit checks.
 
 ---
 
@@ -329,14 +350,14 @@ async function processOrder(orderId: string) {
 Service tests are in `tests/services/`:
 
 ```bash
-# Run all service tests
-pnpm test tests/services/
+# Run all service tests (vitest)
+pnpm run test:services
 
 # Run specific service tests
-pnpm test tests/services/returns-service.test.ts
+pnpm exec vitest run tests/services/returns-service.test.ts
 
 # Run with coverage
-pnpm test:coverage services/
+pnpm exec vitest run --coverage tests/services
 ```
 
 ---
@@ -344,6 +365,7 @@ pnpm test:coverage services/
 ## Related Documentation
 
 - [Domain Logic](../domain/README.md)
-- [API Routes](../app/api/README.md)
+- [Architecture Overview](../docs/architecture/ARCHITECTURE.md)
+- [OpenAPI Contract](../openapi.yaml)
 - [Queue Jobs](../lib/queues/README.md)
-- [Database Models](../server/models/README.md)
+- [Database Models](../server/README.md)

@@ -17,11 +17,12 @@ import {
   Cog,
 } from "lucide-react";
 
+// STRICT v4.1 canonical roles for navigation gating
 export type Role =
   | "SUPER_ADMIN"
   | "ADMIN"
-  | "CORP_OWNER"
-  | "TEAM"
+  | "CORPORATE_OWNER"
+  | "TEAM_MEMBER"
   | "TECHNICIAN"
   | "PROPERTY_MANAGER"
   | "TENANT"
@@ -55,8 +56,8 @@ export const modules: ModuleDef[] = [
     roles: [
       "SUPER_ADMIN",
       "ADMIN",
-      "CORP_OWNER",
-      "TEAM",
+      "CORPORATE_OWNER",
+      "TEAM_MEMBER",
       "TECHNICIAN",
       "PROPERTY_MANAGER",
       "TENANT",
@@ -84,8 +85,8 @@ export const modules: ModuleDef[] = [
     roles: [
       "SUPER_ADMIN",
       "ADMIN",
-      "CORP_OWNER",
-      "TEAM",
+      "CORPORATE_OWNER",
+      "TEAM_MEMBER",
       "TECHNICIAN",
       "PROPERTY_MANAGER",
       "TENANT",
@@ -112,7 +113,7 @@ export const modules: ModuleDef[] = [
     label: "Properties",
     route: "/fm/properties",
     icon: Building2,
-    roles: ["SUPER_ADMIN", "ADMIN", "CORP_OWNER", "PROPERTY_MANAGER", "TENANT"],
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "PROPERTY_MANAGER", "TENANT"],
     children: [
       { label: "Property List", route: "/fm/properties" },
       { label: "Units & Tenants", route: "/fm/properties/units" },
@@ -139,7 +140,7 @@ export const modules: ModuleDef[] = [
     label: "Finance",
     route: "/fm/finance",
     icon: DollarSign,
-    roles: ["SUPER_ADMIN", "ADMIN", "CORP_OWNER"],
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER"],
     children: [
       { label: "Invoices", route: "/fm/finance/invoices" },
       { label: "Payments", route: "/fm/finance/payments" },
@@ -175,7 +176,7 @@ export const modules: ModuleDef[] = [
     label: "Human Resources",
     route: "/fm/hr",
     icon: Users,
-    roles: ["SUPER_ADMIN", "ADMIN", "CORP_OWNER"],
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER"],
     children: [
       { label: "Directory", route: "/fm/hr/directory" },
       { label: "Attendance & Leave", route: "/fm/hr/leave" },
@@ -197,7 +198,7 @@ export const modules: ModuleDef[] = [
     label: "Administration",
     route: "/fm/administration",
     icon: Settings,
-    roles: ["SUPER_ADMIN", "ADMIN", "CORP_OWNER"],
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER"],
     quickActions: [
       {
         id: "qa-admin-policy",
@@ -216,7 +217,7 @@ export const modules: ModuleDef[] = [
     label: "CRM",
     route: "/fm/crm",
     icon: UserCheck,
-    roles: ["SUPER_ADMIN", "ADMIN", "CORP_OWNER", "TEAM"],
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "TEAM_MEMBER"],
     quickActions: [
       { id: "qa-crm-lead", label: "Add Lead", path: "/fm/crm/leads/new" },
       {
@@ -231,7 +232,7 @@ export const modules: ModuleDef[] = [
     label: "Marketplace",
     route: "/fm/marketplace",
     icon: ShoppingBag,
-    roles: ["SUPER_ADMIN", "ADMIN", "CORP_OWNER", "TENANT", "VENDOR"],
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "TENANT", "VENDOR"],
     quickActions: [
       {
         id: "qa-mkt-vendor",
@@ -258,8 +259,8 @@ export const modules: ModuleDef[] = [
     roles: [
       "SUPER_ADMIN",
       "ADMIN",
-      "CORP_OWNER",
-      "TEAM",
+      "CORPORATE_OWNER",
+      "TEAM_MEMBER",
       "TECHNICIAN",
       "PROPERTY_MANAGER",
       "TENANT",
@@ -283,7 +284,7 @@ export const modules: ModuleDef[] = [
     label: "Compliance & Legal",
     route: "/fm/compliance",
     icon: ShieldCheck,
-    roles: ["SUPER_ADMIN", "ADMIN", "CORP_OWNER"],
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER"],
     quickActions: [
       {
         id: "qa-legal-contract",
@@ -305,8 +306,8 @@ export const modules: ModuleDef[] = [
     roles: [
       "SUPER_ADMIN",
       "ADMIN",
-      "CORP_OWNER",
-      "TEAM",
+      "CORPORATE_OWNER",
+      "TEAM_MEMBER",
       "TECHNICIAN",
       "PROPERTY_MANAGER",
       "TENANT",
@@ -326,7 +327,7 @@ export const modules: ModuleDef[] = [
     label: "System Management",
     route: "/fm/system",
     icon: Cog,
-    roles: ["SUPER_ADMIN", "ADMIN", "CORP_OWNER"],
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER"],
     quickActions: [
       {
         id: "qa-sys-invite",

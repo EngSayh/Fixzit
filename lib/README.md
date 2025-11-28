@@ -167,6 +167,17 @@ const apiKey = await getSecret('stripe-api-key');
 
 ---
 
+## STRICT v4.1 RBAC & Multi-tenancy Essentials
+- Canonical roles (14): Super Admin, Corporate Admin, Management, Finance, HR, Corporate Employee, Property Owner, Technician, Tenant/End-User, plus sub-roles Finance Officer, HR Officer, Support, Operations/Ops, and Vendor-facing roles.
+- Always include `org_id` scoping on data access; SUPER_ADMIN is the only cross-org role and must be audited.
+- Tenants: enforce `unit_id ∈ user.units`; never fetch across units without explicit ownership.
+- Technicians: require `org_id` + `assigned_to_user_id === user._id` for FM workflows; respect assignment guards in `domain/fm/fm.behavior.ts`.
+- Property Owners/Managers: filter by owned/managed `property_id`; OWNER_DEPUTY aliases follow the same filters.
+- Vendors: enforce `vendor_id === user.vendor_id` for Marketplace/Souq flows.
+- PII (HR/Finance): restrict to Super Admin, Admin, HR Officer, Finance Officer; avoid logging sensitive fields.
+
+---
+
 ## Environment Variables
 
 Key environment variables used by lib modules:
@@ -186,14 +197,14 @@ Key environment variables used by lib modules:
 Unit tests are located in `lib/__tests__/`:
 
 ```bash
-# Run lib tests
-pnpm test lib/
+# Run lib tests (vitest)
+pnpm exec vitest run lib/__tests__
 
 # Run specific test
-pnpm test lib/auth.test.ts
+pnpm exec vitest run lib/__tests__/auth.test.ts
 
 # Run with coverage
-pnpm test:coverage lib/
+pnpm exec vitest run --coverage lib/__tests__
 ```
 
 ---
@@ -252,7 +263,7 @@ try {
 
 ## Related Documentation
 
-- [Authentication Flow](../docs/AUTH_FLOW.md)
+- [Authentication & NextAuth Readiness](../docs/security/NEXTAUTH_V5_PRODUCTION_READINESS.md)
 - [CSRF Token Flow](../docs/CSRF_TOKEN_FLOW.md)
-- [API Security Guidelines](../docs/API_SECURITY.md)
-- [Codebase Architecture](../docs/ARCHITECTURE.md)
+- [Security Guidelines](../docs/SECURITY.md)
+- [Architecture Overview](../docs/architecture/ARCHITECTURE.md)

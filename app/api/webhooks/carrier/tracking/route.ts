@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       location: _location,
       timestamp: _timestamp,
       signature: _signature,
+      orgId,
     } = body;
 
     // Validation
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     // }
 
     // Update tracking
-    await fulfillmentService.updateTracking(trackingNumber, carrier);
+    await fulfillmentService.updateTracking(trackingNumber, carrier, orgId);
 
     return NextResponse.json({
       success: true,

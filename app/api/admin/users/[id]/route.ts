@@ -52,7 +52,6 @@ export async function DELETE(
       );
     }
 
-    // @ts-expect-error - Fixed VSCode problem
     const user = await UserModel.findOne({
       _id: id,
       orgId,  // ✅ Validated orgId
@@ -144,7 +143,6 @@ export async function PATCH(
       );
     }
 
-    // @ts-expect-error - Fixed VSCode problem
     const user = await UserModel.findOne({
       _id: id,
       orgId,  // ✅ Validated orgId
@@ -172,10 +170,8 @@ export async function PATCH(
     if (body.accessLevel) updates["security.accessLevel"] = body.accessLevel;
     if (body.status) updates.status = body.status;
 
-    // @ts-expect-error - Fixed VSCode problem
     await UserModel.updateOne({ _id: id }, { $set: updates });
 
-    // @ts-expect-error - Fixed VSCode problem
     const updatedUser = await UserModel.findById(id);
 
     return NextResponse.json({ user: updatedUser });

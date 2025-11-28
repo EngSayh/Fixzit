@@ -146,7 +146,13 @@ const SafeImage: React.FC<SafeImageProps> = (props) => {
   if (process.env.NODE_ENV === "test") {
     // In test env, use native img with compatible props
     const { src, alt, ...rest } = props;
-    return <img src={String(src)} alt={alt} {...rest} />;
+    return (
+      <img
+        src={String(src)}
+        alt={alt}
+        {...(rest as React.ImgHTMLAttributes<HTMLImageElement>)}
+      />
+    );
   }
   return <Image {...props} />;
 };

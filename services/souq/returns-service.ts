@@ -17,6 +17,7 @@ import { fulfillmentService } from './fulfillment-service';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 import { nanoid } from 'nanoid';
 import mongoose from 'mongoose';
+import { logger } from '@/lib/logger';
 
 // Helper type for accessing order properties safely
 interface OrderWithDates extends IOrder {
@@ -986,7 +987,7 @@ class ReturnsService {
           { $unset: { autoProcessingJobId: 1 } }
         );
         // Log but continue processing other RMAs
-        console.error(`Failed to auto-complete RMA ${rma._id}:`, error);
+        logger.error(`[ReturnsService] Failed to auto-complete RMA ${rma._id}`, error as Error);
       }
     }
 

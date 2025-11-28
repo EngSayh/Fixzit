@@ -671,7 +671,6 @@ async function approveQuotation(
     ]);
 
     const quotationObjectId = new Types.ObjectId(quotationId);
-    // @ts-expect-error - Fixed VSCode problem
     const quotation = await FMQuotation.findOne({
       _id: quotationObjectId,
       org_id: session.tenantId,
@@ -802,7 +801,6 @@ async function approveQuotation(
     }
 
     const now = new Date();
-    // @ts-expect-error - Fixed VSCode problem
     const updatedQuotation = await FMQuotation.findOneAndUpdate(
       {
         _id: quotationObjectId,

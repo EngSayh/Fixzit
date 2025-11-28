@@ -273,11 +273,13 @@ const ENCRYPTED_FIELDS = {
  * Pre-save hook: Encrypt sensitive PII fields before storing
  */
 UserSchema.pre('save', async function(next) {
+  // eslint-disable-next-line @typescript-eslint/no-this-alias -- Required for Mongoose hook traversal
+  const doc = this;
   try {
     // Only encrypt if fields are modified and not already encrypted
     for (const [path, fieldName] of Object.entries(ENCRYPTED_FIELDS)) {
       const parts = path.split('.');
-      let current: any = this;
+      let current: any = doc;
       
       // Navigate to parent object
       for (let i = 0; i < parts.length - 1; i++) {
@@ -298,8 +300,8 @@ UserSchema.pre('save', async function(next) {
           action: 'pre_save_encrypt',
           fieldPath: path,
           fieldName,
-          userId: this._id?.toString(),
-          orgId: (this as any).orgId,
+          userId: doc._id?.toString(),
+          orgId: (doc as any).orgId,
         });
       }
     }
@@ -309,7 +311,7 @@ UserSchema.pre('save', async function(next) {
     logger.error('user:encryption_failed', {
       action: 'pre_save_encrypt',
       error: error instanceof Error ? error.message : String(error),
-      userId: this._id?.toString(),
+      userId: doc._id?.toString(),
     });
     next(error as Error);
   }

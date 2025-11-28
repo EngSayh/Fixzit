@@ -95,7 +95,6 @@ export async function getCached<T>(
       const cached = await redis.get(key);
       if (cached) {
         logger.info(`📦 Cache HIT: ${key}`);
-        // @ts-expect-error - Fixed VSCode problem
         return JSON.parse(cached) as T;
       }
       logger.info(`🔍 Cache MISS: ${key}`);
@@ -220,7 +219,6 @@ export async function getCache<T>(key: string): Promise<T | null> {
     const cached = await redis.get(key);
     if (cached) {
       logger.info(`📦 Cache HIT: ${key}`);
-      // @ts-expect-error - Fixed VSCode problem
       return JSON.parse(cached) as T;
     }
     logger.info(`🔍 Cache MISS: ${key}`);

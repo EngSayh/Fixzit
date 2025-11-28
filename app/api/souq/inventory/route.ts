@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
       status,
       fulfillmentType,
       lowStockOnly,
+      orgId: (session.user as { orgId?: string }).orgId,
     });
 
     return NextResponse.json({
@@ -105,6 +106,7 @@ export async function POST(request: NextRequest) {
         listingId,
         productId,
         sellerId: session.user.id,
+        orgId: (session.user as { orgId?: string }).orgId,
         quantity,
         fulfillmentType,
         warehouseId,
@@ -128,6 +130,7 @@ export async function POST(request: NextRequest) {
         quantity,
         session.user.id,
         reason,
+        (session.user as { orgId?: string }).orgId,
       );
 
       return NextResponse.json({

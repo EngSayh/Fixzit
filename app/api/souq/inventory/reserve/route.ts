@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
       quantity,
       reservationId,
       expirationMinutes,
+      orgId: (session.user as { orgId?: string }).orgId,
     });
 
     if (!reserved) {

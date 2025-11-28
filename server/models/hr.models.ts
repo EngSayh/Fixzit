@@ -351,11 +351,13 @@ const EMPLOYEE_ENCRYPTED_FIELDS = {
  * Pre-save hook: Encrypt sensitive PII fields before storing
  */
 EmployeeSchema.pre('save', async function(next) {
+  // eslint-disable-next-line @typescript-eslint/no-this-alias -- Required for Mongoose hook traversal
+  const doc = this;
   try {
     // Only encrypt if fields are modified and not already encrypted
     for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
       const parts = path.split('.');
-      let current: any = this;
+      let current: any = doc;
       
       // Navigate to parent object
       for (let i = 0; i < parts.length - 1; i++) {
@@ -376,8 +378,8 @@ EmployeeSchema.pre('save', async function(next) {
           action: 'pre_save_encrypt',
           fieldPath: path,
           fieldName,
-          employeeId: this._id?.toString(),
-          orgId: this.orgId,
+          employeeId: doc._id?.toString(),
+          orgId: doc.orgId,
         });
       }
     }
@@ -387,7 +389,7 @@ EmployeeSchema.pre('save', async function(next) {
     logger.error('employee:encryption_failed', {
       action: 'pre_save_encrypt',
       error: error instanceof Error ? error.message : String(error),
-      employeeId: this._id?.toString(),
+      employeeId: doc._id?.toString(),
     });
     next(error as Error);
   }
@@ -927,9 +929,10 @@ PayrollRunSchema.pre("save", async function (this: PayrollRunDoc, next) {
           : (line.netPay ?? 0);
 
       // Encrypt IBAN if present and not already encrypted
-      let iban = line.iban;
+      let iban: string | undefined = line.iban ?? undefined;
       if (iban && !isEncrypted(iban)) {
-        iban = encryptField(iban, 'payroll.iban');
+        const encrypted = encryptField(iban as string, 'payroll.iban');
+        iban = encrypted ?? undefined;
         logger.info('payroll:iban_encrypted', {
           action: 'pre_save_encrypt',
           employeeId: line.employeeId.toString(),
@@ -939,7 +942,7 @@ PayrollRunSchema.pre("save", async function (this: PayrollRunDoc, next) {
 
       return {
         ...line,
-        iban,
+        iban: (iban ?? undefined) as string | undefined,
         netPay,
       };
     }));

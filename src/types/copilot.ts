@@ -1,29 +1,56 @@
 /**
  * Centralized Fixzit AI Assistant Type Definitions
  * Based on Blueprint Bible roles matrix and Design System specifications
+ * 
+ * 🔒 STRICT v4.1 COMPLIANT - Aligned with domain/fm/fm.behavior.ts canonical Role enum
  */
 
-// Role types from Blueprint Bible PDF - covers all system roles
-export type Role =
+import { Role, SubRole } from "@/domain/fm/fm.behavior";
+
+// Re-export canonical Role and SubRole from the single source of truth
+export { Role, SubRole };
+
+/**
+ * Legacy role type union - DEPRECATED
+ * Use Role enum from domain/fm/fm.behavior.ts instead.
+ * 
+ * STRICT v4.1 Canonical Roles:
+ * - SUPER_ADMIN: Platform operator, cross-org access
+ * - ADMIN: Tenant admin, org-scoped full access (alias: CORPORATE_ADMIN)
+ * - CORPORATE_OWNER: Portfolio owner (alias: PROPERTY_OWNER, OWNER)
+ * - TEAM_MEMBER: Corporate staff (alias: MANAGEMENT, FINANCE, HR, EMPLOYEE)
+ *   - Requires SubRole for specialization: FINANCE_OFFICER, HR_OFFICER, SUPPORT_AGENT, OPERATIONS_MANAGER
+ * - TECHNICIAN: Field worker
+ * - PROPERTY_MANAGER: Manages subset of properties (alias: FM_MANAGER)
+ * - TENANT: End-user (alias: CUSTOMER)
+ * - VENDOR: External service provider
+ * - GUEST: Public visitor (alias: AUDITOR, VIEWER)
+ * 
+ * @deprecated Import { Role } from "@/domain/fm/fm.behavior" instead
+ */
+export type LegacyRole =
   | "SUPER_ADMIN"
-  | "CORPORATE_ADMIN"
-  | "MANAGEMENT"
-  | "FINANCE"
-  | "HR"
-  | "CORPORATE_EMPLOYEE"
-  | "PROPERTY_OWNER"
+  | "ADMIN"
+  | "CORPORATE_OWNER"
+  | "TEAM_MEMBER"
   | "TECHNICIAN"
+  | "PROPERTY_MANAGER"
   | "TENANT"
   | "VENDOR"
   | "GUEST"
-  | "ADMIN"
-  | "FM_MANAGER"
-  | "PROCUREMENT"
-  | "PROPERTY_MANAGER"
-  | "EMPLOYEE"
-  | "CUSTOMER"
-  | "OWNER"
-  | "AUDITOR";
+  // Legacy aliases (mapped to canonical roles above)
+  | "CORPORATE_ADMIN" // → ADMIN
+  | "MANAGEMENT" // → TEAM_MEMBER (requires SubRole)
+  | "FINANCE" // → TEAM_MEMBER + SubRole.FINANCE_OFFICER
+  | "HR" // → TEAM_MEMBER + SubRole.HR_OFFICER
+  | "CORPORATE_EMPLOYEE" // → TEAM_MEMBER
+  | "PROPERTY_OWNER" // → CORPORATE_OWNER
+  | "FM_MANAGER" // → PROPERTY_MANAGER
+  | "PROCUREMENT" // → TEAM_MEMBER
+  | "EMPLOYEE" // → TEAM_MEMBER
+  | "CUSTOMER" // → TENANT
+  | "OWNER" // → CORPORATE_OWNER
+  | "AUDITOR"; // → GUEST (least privilege)
 
 // Session profile with locale and directionality for RTL support
 export interface SessionProfile {
@@ -31,6 +58,7 @@ export interface SessionProfile {
   name: string;
   email: string;
   role: Role;
+  subRole?: SubRole; // STRICT v4.1: Sub-role for Team Member specialization
   orgId: string | null;
   locale: "ar" | "en";
   dir: "rtl" | "ltr";
@@ -74,6 +102,7 @@ export interface SessionContext {
   userId: string | null;
   orgId: string | null;
   role: Role;
+  subRole?: SubRole;
   locale: "en" | "ar";
   tenantId?: string;
 }

@@ -137,7 +137,7 @@ export function requirePermission(
         actorId: "system",
         actorEmail: "system",
         action: "api.access.error",
-        orgId: deriveOrgId(req, session?.user?.orgId),
+        orgId: deriveOrgId(req),
         meta: {
           path: req.url,
           method: req.method,

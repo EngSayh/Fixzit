@@ -117,6 +117,7 @@ export interface IFulfillmentRequest {
   shippingAddress: IAddress;
   buyerPhone: string;
   buyerEmail: string;
+  orgId?: string;
 }
 
 export interface ISLAMetrics {
@@ -144,7 +145,11 @@ class FulfillmentService {
    */
   async fulfillOrder(request: IFulfillmentRequest): Promise<void> {
     try {
-      const order = await SouqOrder.findOne({ orderId: request.orderId });
+      const order = await SouqOrder.findOne(
+        request.orgId
+          ? { orderId: request.orderId, orgId: request.orgId }
+          : { orderId: request.orderId },
+      );
 
       if (!order) {
         throw new Error(`Order not found: ${request.orderId}`);
@@ -157,6 +162,7 @@ class FulfillmentService {
       for (const item of request.orderItems) {
         const inventory = await SouqInventory.findOne({
           listingId: item.listingId,
+          ...(request.orgId ? { orgId: request.orgId } : {}),
         });
 
         if (!inventory) {
@@ -350,13 +356,20 @@ class FulfillmentService {
     sellerId: string;
     sellerAddress: IAddress;
     carrierName: string;
+    orgId?: string;
   }): Promise<IShipmentResponse> {
-    const { orderId, sellerId, sellerAddress, carrierName } = params;
+    const { orderId, sellerId, sellerAddress, carrierName, orgId } = params;
     try {
-      const order = await SouqOrder.findOne({ orderId });
+      const order = await SouqOrder.findOne(
+        orgId ? { orderId, orgId } : { orderId },
+      );
 
       if (!order) {
         throw new Error(`Order not found: ${orderId}`);
+      }
+
+      if (orgId && order.orgId?.toString?.() !== orgId) {
+        throw new Error(`Order not found for org: ${orderId}`);
       }
 
       const carrier = this.carriers.get(carrierName.toLowerCase());
@@ -442,6 +455,7 @@ class FulfillmentService {
   async updateTracking(
     trackingNumber: string,
     carrierName: string,
+    orgId?: string,
   ): Promise<void> {
     try {
       const carrier = this.carriers.get(carrierName.toLowerCase());
@@ -456,7 +470,9 @@ class FulfillmentService {
 
       const tracking = await carrier.getTracking(trackingNumber);
 
-      const order = await SouqOrder.findOne({ trackingNumber });
+      const order = await SouqOrder.findOne(
+        orgId ? { trackingNumber, orgId } : { trackingNumber },
+      );
 
       if (!order) {
         logger.warn("Order not found for tracking number", { trackingNumber });
@@ -516,8 +532,12 @@ class FulfillmentService {
   /**
    * Calculate SLA metrics for an order
    */
-  async calculateSLA(orderId: string): Promise<ISLAMetrics> {
-    const order = await SouqOrder.findOne({ orderId });
+  async calculateSLA(orderId: string, orgId?: string): Promise<ISLAMetrics> {
+    // Build scoped query explicitly to avoid reference errors when orgId is undefined
+    const query: Record<string, unknown> = { orderId };
+    if (orgId) query.orgId = orgId;
+
+    const order = await SouqOrder.findOne(query);
 
     if (!order) {
       throw new Error(`Order not found: ${orderId}`);
@@ -579,15 +599,25 @@ class FulfillmentService {
   /**
    * Assign Fast Badge to listings that meet criteria
    */
-  async assignFastBadge(listingId: string): Promise<boolean> {
+  async assignFastBadge(listingId: string, orgId?: string): Promise<boolean> {
     try {
-      const listing = await SouqListing.findOne({ listingId });
+      const query: Record<string, unknown> = { listingId };
+      if (orgId) query.orgId = orgId;
+
+      let listing = await SouqListing.findOne(query);
+
+      if (!listing && orgId) {
+        listing = await SouqListing.findOne({ listingId });
+      }
 
       if (!listing) {
         return false;
       }
 
-      const inventory = await SouqInventory.findOne({ listingId });
+      const inventory = await SouqInventory.findOne({
+        listingId,
+        ...(orgId ? { orgId } : {}),
+      });
 
       if (!inventory) {
         return false;

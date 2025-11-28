@@ -114,10 +114,10 @@ filter = {
 **Supported Documents**:
 
 1. Monday options and workflow and system structure.pdf
-2. Fixizit Blue Print.pdf
+2. Fixzit Blue Print.pdf
 3. Targeted software layout for FM moduel.pdf
-4. Fixizit Blueprint Bible – vFinal.pdf
-5. Fixizit Facility Management Platform\_ Complete Implementation Guide.pdf
+4. Fixzit Blueprint Bible – vFinal.pdf
+5. Fixzit Facility Management Platform\_ Complete Implementation Guide.pdf
 6. Fixzit_Master_Design_System.pdf
 
 **Usage**:
@@ -780,7 +780,7 @@ db.properties.find({ status: "VACANT" }).limit(5)
 
 ```bash
 # Test single PDF
-node -e "const pdf = require('pdf-parse'); const fs = require('fs'); pdf(fs.readFileSync('docs/Fixizit Blue Print.pdf')).then(d => console.log(d.text.slice(0, 100)))"
+node -e "const pdf = require('pdf-parse'); const fs = require('fs'); pdf(fs.readFileSync('docs/Fixzit Blue Print.pdf')).then(d => console.log(d.text.slice(0, 100)))"
 ```
 
 ### Tests Fail in CI

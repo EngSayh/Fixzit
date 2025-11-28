@@ -183,10 +183,10 @@ if (/approve.*quotation|quotation.*approve|موافقة.*عرض/i.test(message))
 **Expected PDFs** (not found):
 
 - Monday options and workflow and system structure.pdf
-- Fixizit Blue Print.pdf
+- Fixzit Blue Print.pdf
 - Targeted software layout for FM moduel.pdf
-- Fixizit Blueprint Bible – vFinal.pdf
-- Fixizit Facility Management Platform\_ Complete Implementation Guide.pdf
+- Fixzit Blueprint Bible – vFinal.pdf
+- Fixzit Facility Management Platform\_ Complete Implementation Guide.pdf
 - Fixzit_Master_Design_System.pdf
 
 **Action Required**: Place Blueprint PDFs in project root or update DOCUMENTS array

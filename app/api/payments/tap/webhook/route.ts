@@ -473,7 +473,6 @@ async function upsertTransactionFromCharge(
     );
   }
 
-  // @ts-expect-error - Fixed VSCode problem
   transaction.events = transaction.events || [];
   const events = transaction.events as unknown as TransactionEvent[];
   events.push({
@@ -485,7 +484,7 @@ async function upsertTransactionFromCharge(
   if (events.length > 25) {
     transaction.events = events.slice(
       events.length - 25,
-    ) as unknown as typeof transaction.events;
+    ) as typeof transaction.events;
   }
 
   await transaction.save();
@@ -594,7 +593,6 @@ async function allocateInvoicePayment(
     });
   }
 
-  // @ts-expect-error - Fixed VSCode problem
   invoice.payments = invoice.payments || [];
   const paymentsTyped = invoice.payments as unknown as InvoicePayment[];
   const existing = paymentsTyped.find((p) => p.transactionId === charge.id);
@@ -613,7 +611,6 @@ async function allocateInvoicePayment(
     });
   }
   invoice.status = "PAID";
-  // @ts-expect-error - Fixed VSCode problem
   invoice.history = invoice.history || [];
   invoice.history.push({
     action: "PAID",
@@ -641,7 +638,6 @@ async function markInvoicePaymentStatus(
     return;
   }
 
-  // @ts-expect-error - Fixed VSCode problem
   invoice.payments = invoice.payments || [];
   const amount = tapPayments.halalasToSAR(
     charge.amount || transaction.amountHalalas || 0,
@@ -680,7 +676,6 @@ async function updateRefundRecord(
     return;
   }
 
-  // @ts-expect-error - Fixed VSCode problem
   transaction.refunds = transaction.refunds || [];
   const existingRefund = transaction.refunds.find(
     (r) => r.refundId === refund.id,
@@ -701,7 +696,6 @@ async function updateRefundRecord(
       processedAt: new Date(),
     });
   }
-  // @ts-expect-error - Fixed VSCode problem
   transaction.events = transaction.events || [];
   const eventsTyped = transaction.events as unknown as TransactionEvent[];
   eventsTyped.push({

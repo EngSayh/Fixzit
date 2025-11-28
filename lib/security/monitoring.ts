@@ -34,6 +34,31 @@ const ALERT_THRESHOLDS = {
   },
 };
 
+async function sendSentryAlert(eventType: string, payload: Record<string, unknown>): Promise<void> {
+  // Only attempt in server context with Sentry configured (avoid client bundles)
+  if (typeof window !== "undefined") return;
+  if (!process.env.SENTRY_DSN || process.env.NODE_ENV !== "production") return;
+
+  try {
+    const Sentry = await import("@sentry/nextjs").catch(() => null);
+    if (!Sentry) return;
+
+    Sentry.captureMessage(`[Security] ${eventType}`, {
+      level: "warning",
+      extra: payload,
+      tags: {
+        security_event: eventType,
+      },
+    });
+  } catch (error) {
+    // Avoid throwing from monitoring path
+    logger.error("[Security] Failed to send Sentry alert", {
+      eventType,
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+}
+
 function cleanOldEntries(map: Map<string, number[]>, windowMs: number): void {
   const cutoff = Date.now() - windowMs;
   for (const [key, timestamps] of map.entries()) {
@@ -64,6 +89,14 @@ function trackEvent(
       count: timestamps.length,
       windowMs: WINDOW_MS,
       threshold,
+    });
+
+    // Send to Sentry for centralized monitoring (non-blocking)
+    void sendSentryAlert(eventType, {
+      key,
+      count: timestamps.length,
+      threshold,
+      windowMs: WINDOW_MS,
     });
 
     // Emit webhook if configured

@@ -3,6 +3,8 @@
  * Centralized settings for referral rewards, limits, and expiry
  */
 
+import { logger } from "@/lib/logger";
+
 // Helper to safely parse integers with fallback
 function safeParseInt(value: string | undefined, fallback: number): number {
   if (!value) return fallback;
@@ -27,9 +29,9 @@ function validateRewardType(value: string | undefined): RewardType {
   if (ALLOWED_REWARD_TYPES.includes(rawValue as RewardType)) {
     return rawValue as RewardType;
   }
-  console.warn(
-    `[Config] Invalid REFERRAL_REWARD_TYPE: ${rawValue}. Falling back to 'CASH'.`,
-  );
+  logger.warn("[Config] Invalid REFERRAL_REWARD_TYPE - falling back to CASH", {
+    rawValue,
+  });
   return "CASH";
 }
 

@@ -27,7 +27,10 @@ export async function GET(request: NextRequest) {
     }
 
     const healthReport =
-      await inventoryService.getInventoryHealthReport(sellerId);
+      await inventoryService.getInventoryHealthReport(
+        sellerId,
+        (session.user as { orgId?: string }).orgId,
+      );
 
     // Calculate health score (0-100)
     const outOfStockRate =
