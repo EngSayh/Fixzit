@@ -1,23 +1,41 @@
 import { NextRequest } from "next/server";
 import { getUserFromToken } from "@/lib/auth";
 
+/**
+ * CopilotRole type - 🔒 STRICT v4.1 COMPLIANT
+ * 
+ * Canonical Roles (9):
+ * - SUPER_ADMIN, ADMIN, CORPORATE_OWNER, TEAM_MEMBER
+ * - TECHNICIAN, PROPERTY_MANAGER, TENANT, VENDOR, GUEST
+ * 
+ * Legacy aliases kept for backward compatibility:
+ * - CORPORATE_ADMIN → ADMIN
+ * - FM_MANAGER → PROPERTY_MANAGER
+ * - OWNER → CORPORATE_OWNER
+ * - CUSTOMER → TENANT
+ * - EMPLOYEE → TEAM_MEMBER
+ */
 export type CopilotRole =
+  // Canonical STRICT v4.1 roles
   | "SUPER_ADMIN"
   | "ADMIN"
-  | "CORPORATE_ADMIN"
-  | "FM_MANAGER"
-  | "FINANCE"
-  | "HR"
-  | "PROCUREMENT"
-  | "PROPERTY_MANAGER"
-  | "EMPLOYEE"
+  | "CORPORATE_OWNER"
+  | "TEAM_MEMBER"
   | "TECHNICIAN"
-  | "VENDOR"
-  | "CUSTOMER"
-  | "OWNER"
-  | "AUDITOR"
+  | "PROPERTY_MANAGER"
   | "TENANT"
-  | "GUEST";
+  | "VENDOR"
+  | "GUEST"
+  // Legacy aliases (kept for backward compatibility)
+  | "CORPORATE_ADMIN" // → ADMIN
+  | "FM_MANAGER" // → PROPERTY_MANAGER
+  | "FINANCE" // → TEAM_MEMBER + SubRole.FINANCE_OFFICER
+  | "HR" // → TEAM_MEMBER + SubRole.HR_OFFICER
+  | "PROCUREMENT" // → TEAM_MEMBER
+  | "EMPLOYEE" // → TEAM_MEMBER
+  | "CUSTOMER" // → TENANT
+  | "OWNER" // → CORPORATE_OWNER
+  | "AUDITOR"; // → GUEST
 
 export interface CopilotSession {
   userId: string;

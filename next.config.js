@@ -211,9 +211,11 @@ const nextConfig = {
         ...config.resolve.alias,
         mongoose: false,
         '@/server/models/User': false,
+        '@/server/plugins/tenantIsolation': false, // Uses async_hooks
         '@/lib/mongoUtils': false,
         '@/lib/mongoUtils.server': false,
         'bcryptjs': false,
+        'async_hooks': false,
       };
     }
 
@@ -232,6 +234,7 @@ const nextConfig = {
       net: false,
       tls: false,
       mongoose: false, // Exclude mongoose from client/edge bundles
+      async_hooks: false, // Node.js core module - not available in browser
     }
     
     // 🚀 MEMORY-OPTIMIZED: Balance speed with memory constraints

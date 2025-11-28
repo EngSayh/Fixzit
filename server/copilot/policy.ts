@@ -15,7 +15,13 @@ export interface PolicyDecision {
   dataClass?: DataClass;
 }
 
+/**
+ * ROLE_DATA_CLASS - 🔒 STRICT v4.1 COMPLIANT
+ * Maps roles to their permitted data classification levels.
+ * Includes both canonical roles and legacy aliases.
+ */
 const ROLE_DATA_CLASS: Record<CopilotRole, DataClass[]> = {
+  // Canonical STRICT v4.1 roles
   SUPER_ADMIN: [
     "PUBLIC",
     "TENANT_SCOPED",
@@ -25,26 +31,29 @@ const ROLE_DATA_CLASS: Record<CopilotRole, DataClass[]> = {
     "INTERNAL",
   ],
   ADMIN: ["PUBLIC", "TENANT_SCOPED", "OWNER_SCOPED", "FINANCE", "INTERNAL"],
+  CORPORATE_OWNER: ["PUBLIC", "OWNER_SCOPED", "FINANCE"], // Canonical (was OWNER)
+  TEAM_MEMBER: ["PUBLIC", "TENANT_SCOPED"], // Canonical base for specialized staff
+  TECHNICIAN: ["PUBLIC", "TENANT_SCOPED"],
+  PROPERTY_MANAGER: ["PUBLIC", "TENANT_SCOPED", "OWNER_SCOPED"],
+  TENANT: ["PUBLIC", "TENANT_SCOPED"],
+  VENDOR: ["PUBLIC", "TENANT_SCOPED"],
+  GUEST: ["PUBLIC"],
+  // Legacy aliases (kept for backward compatibility)
   CORPORATE_ADMIN: [
     "PUBLIC",
     "TENANT_SCOPED",
     "OWNER_SCOPED",
     "FINANCE",
     "INTERNAL",
-  ],
-  FM_MANAGER: ["PUBLIC", "TENANT_SCOPED", "OWNER_SCOPED"],
-  FINANCE: ["PUBLIC", "TENANT_SCOPED", "FINANCE"],
-  HR: ["PUBLIC", "TENANT_SCOPED", "HR"],
-  PROCUREMENT: ["PUBLIC", "TENANT_SCOPED"],
-  PROPERTY_MANAGER: ["PUBLIC", "TENANT_SCOPED", "OWNER_SCOPED"],
-  EMPLOYEE: ["PUBLIC", "TENANT_SCOPED"],
-  TECHNICIAN: ["PUBLIC", "TENANT_SCOPED"],
-  VENDOR: ["PUBLIC", "TENANT_SCOPED"],
-  CUSTOMER: ["PUBLIC"],
-  OWNER: ["PUBLIC", "OWNER_SCOPED"],
-  AUDITOR: ["PUBLIC", "INTERNAL"],
-  TENANT: ["PUBLIC", "TENANT_SCOPED"],
-  GUEST: ["PUBLIC"],
+  ], // → ADMIN
+  FM_MANAGER: ["PUBLIC", "TENANT_SCOPED", "OWNER_SCOPED"], // → PROPERTY_MANAGER
+  FINANCE: ["PUBLIC", "TENANT_SCOPED", "FINANCE"], // → TEAM_MEMBER + FINANCE_OFFICER
+  HR: ["PUBLIC", "TENANT_SCOPED", "HR"], // → TEAM_MEMBER + HR_OFFICER
+  PROCUREMENT: ["PUBLIC", "TENANT_SCOPED"], // → TEAM_MEMBER
+  EMPLOYEE: ["PUBLIC", "TENANT_SCOPED"], // → TEAM_MEMBER
+  CUSTOMER: ["PUBLIC"], // → TENANT
+  OWNER: ["PUBLIC", "OWNER_SCOPED", "FINANCE"], // → CORPORATE_OWNER
+  AUDITOR: ["PUBLIC", "INTERNAL"], // → GUEST
 };
 
 const RESTRICTED_PATTERNS: { pattern: RegExp; dataClass: DataClass }[] = [
@@ -102,7 +111,13 @@ export function evaluateMessagePolicy(
   return { allowed: true, dataClass: "PUBLIC" };
 }
 
+/**
+ * ROLE_TOOLS - 🔒 STRICT v4.1 COMPLIANT
+ * Maps roles to their permitted AI tools.
+ * Includes both canonical roles and legacy aliases.
+ */
 const ROLE_TOOLS: Record<CopilotRole, string[]> = {
+  // Canonical STRICT v4.1 roles
   SUPER_ADMIN: [
     "createWorkOrder",
     "listMyWorkOrders",
@@ -121,26 +136,14 @@ const ROLE_TOOLS: Record<CopilotRole, string[]> = {
     "approveQuotation",
     "ownerStatements",
   ],
-  CORPORATE_ADMIN: [
-    "createWorkOrder",
+  CORPORATE_OWNER: ["listMyWorkOrders", "approveQuotation", "ownerStatements"], // Canonical (was OWNER)
+  TEAM_MEMBER: ["createWorkOrder", "listMyWorkOrders", "scheduleVisit"], // Canonical base
+  TECHNICIAN: [
     "listMyWorkOrders",
     "dispatchWorkOrder",
     "scheduleVisit",
     "uploadWorkOrderPhoto",
-    "approveQuotation",
-    "ownerStatements",
   ],
-  FM_MANAGER: [
-    "createWorkOrder",
-    "listMyWorkOrders",
-    "dispatchWorkOrder",
-    "scheduleVisit",
-    "uploadWorkOrderPhoto",
-    "approveQuotation",
-  ],
-  FINANCE: ["listMyWorkOrders", "approveQuotation", "ownerStatements"],
-  HR: ["listMyWorkOrders"],
-  PROCUREMENT: ["listMyWorkOrders", "approveQuotation"],
   PROPERTY_MANAGER: [
     "createWorkOrder",
     "listMyWorkOrders",
@@ -150,19 +153,34 @@ const ROLE_TOOLS: Record<CopilotRole, string[]> = {
     "approveQuotation",
     "ownerStatements",
   ],
-  EMPLOYEE: ["createWorkOrder", "listMyWorkOrders", "scheduleVisit"],
-  TECHNICIAN: [
+  TENANT: ["createWorkOrder", "listMyWorkOrders", "uploadWorkOrderPhoto"],
+  VENDOR: ["listMyWorkOrders", "uploadWorkOrderPhoto"],
+  GUEST: [],
+  // Legacy aliases (kept for backward compatibility)
+  CORPORATE_ADMIN: [
+    "createWorkOrder",
     "listMyWorkOrders",
     "dispatchWorkOrder",
     "scheduleVisit",
     "uploadWorkOrderPhoto",
-  ],
-  VENDOR: ["listMyWorkOrders", "uploadWorkOrderPhoto"],
-  CUSTOMER: ["createWorkOrder", "listMyWorkOrders"],
-  OWNER: ["listMyWorkOrders", "approveQuotation", "ownerStatements"],
-  AUDITOR: ["listMyWorkOrders"],
-  TENANT: ["createWorkOrder", "listMyWorkOrders", "uploadWorkOrderPhoto"],
-  GUEST: [],
+    "approveQuotation",
+    "ownerStatements",
+  ], // → ADMIN
+  FM_MANAGER: [
+    "createWorkOrder",
+    "listMyWorkOrders",
+    "dispatchWorkOrder",
+    "scheduleVisit",
+    "uploadWorkOrderPhoto",
+    "approveQuotation",
+  ], // → PROPERTY_MANAGER
+  FINANCE: ["listMyWorkOrders", "approveQuotation", "ownerStatements"], // → TEAM_MEMBER + FINANCE_OFFICER
+  HR: ["listMyWorkOrders"], // → TEAM_MEMBER + HR_OFFICER
+  PROCUREMENT: ["listMyWorkOrders", "approveQuotation"], // → TEAM_MEMBER
+  EMPLOYEE: ["createWorkOrder", "listMyWorkOrders", "scheduleVisit"], // → TEAM_MEMBER
+  CUSTOMER: ["createWorkOrder", "listMyWorkOrders"], // → TENANT
+  OWNER: ["listMyWorkOrders", "approveQuotation", "ownerStatements"], // → CORPORATE_OWNER
+  AUDITOR: ["listMyWorkOrders"], // → GUEST
 };
 
 export function getPermittedTools(role: CopilotRole): string[] {

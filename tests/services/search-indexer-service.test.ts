@@ -26,17 +26,17 @@ mockIndex.mockReturnValue({
   deleteDocument: mockDeleteDocument,
 });
 
-vi.mock("@/lib/meilisearch", () => ({
-  searchClient: {
-    index: mockIndex,
-  },
-  INDEXES: {
-    PRODUCTS: "souq_products",
-    SELLERS: "souq_sellers",
-  },
-  ProductDocument: {},
-  SellerDocument: {},
-}));
+vi.mock("@/lib/meilisearch", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/meilisearch")>(
+    "@/lib/meilisearch",
+  );
+  return {
+    ...actual,
+    searchClient: {
+      index: mockIndex,
+    },
+  };
+});
 
 // Mock resilience wrapper - just execute the callback
 vi.mock("@/lib/meilisearch-resilience", () => ({
@@ -54,6 +54,7 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 // Import after mocks
+import { INDEXES } from "@/lib/meilisearch";
 import { SearchIndexerService } from "@/services/souq/search-indexer-service";
 import { logger } from "@/lib/logger";
 import { withMeiliResilience } from "@/lib/meilisearch-resilience";
@@ -76,7 +77,7 @@ describe("SearchIndexerService", () => {
     it("should delete a product from the search index", async () => {
       await SearchIndexerService.deleteFromIndex("FSIN123");
 
-      expect(mockIndex).toHaveBeenCalledWith("souq_products");
+      expect(mockIndex).toHaveBeenCalledWith(INDEXES.PRODUCTS);
       expect(mockDeleteDocument).toHaveBeenCalledWith("FSIN123");
       expect(logger.info).toHaveBeenCalledWith(
         expect.stringContaining("Deleted product from search")
@@ -98,7 +99,9 @@ describe("SearchIndexerService", () => {
       // The fetchListingById is private but we can test behavior
       // When no listing exists, it should log warning
       vi.spyOn(
-        SearchIndexerService as unknown as { fetchListingById: (id: string) => Promise<null> },
+        SearchIndexerService as unknown as {
+          fetchListingById: (id: string, orgId?: string) => Promise<null>;
+        },
         "fetchListingById"
       ).mockResolvedValue(null);
 
@@ -125,7 +128,9 @@ describe("SearchIndexerService", () => {
       };
 
       vi.spyOn(
-        SearchIndexerService as unknown as { fetchListingById: (id: string) => Promise<typeof mockListing> },
+        SearchIndexerService as unknown as {
+          fetchListingById: (id: string, orgId?: string) => Promise<typeof mockListing>;
+        },
         "fetchListingById"
       ).mockResolvedValue(mockListing);
 
@@ -138,6 +143,35 @@ describe("SearchIndexerService", () => {
       await SearchIndexerService.updateListing("L1");
 
       expect(deleteFromIndexSpy).toHaveBeenCalledWith("P1");
+    });
+
+    it("should scope listing fetch by org when provided", async () => {
+      const mockListing = {
+        listingId: "L1",
+        productId: "P1",
+        sellerId: "S1",
+        price: 100,
+        quantity: 10,
+        status: "inactive",
+        fulfillmentMethod: "FBF",
+        shippingOption: "standard",
+        createdAt: new Date().toISOString(),
+      };
+
+      const fetchListingSpy = vi.spyOn(
+        SearchIndexerService as unknown as {
+          fetchListingById: (
+            id: string,
+            orgId?: string,
+          ) => Promise<typeof mockListing>;
+        },
+        "fetchListingById",
+      );
+      fetchListingSpy.mockResolvedValue(mockListing);
+
+      await SearchIndexerService.updateListing("L1", { orgId: "ORG1" });
+
+      expect(fetchListingSpy).toHaveBeenCalledWith("L1", "ORG1");
     });
 
     it("should update active listing in search index", async () => {
@@ -154,7 +188,9 @@ describe("SearchIndexerService", () => {
       };
 
       vi.spyOn(
-        SearchIndexerService as unknown as { fetchListingById: (id: string) => Promise<typeof mockListing> },
+        SearchIndexerService as unknown as {
+          fetchListingById: (id: string, orgId?: string) => Promise<typeof mockListing>;
+        },
         "fetchListingById"
       ).mockResolvedValue(mockListing);
 
@@ -176,17 +212,44 @@ describe("SearchIndexerService", () => {
     it("should clear index when starting reindex", async () => {
       // Mock to return empty listings immediately
       vi.spyOn(
-        SearchIndexerService as unknown as { fetchActiveListings: (o: number, l: number) => Promise<[]> },
+        SearchIndexerService as unknown as {
+          fetchActiveListings: (
+            o: number,
+            l: number,
+            orgId?: string,
+          ) => Promise<[]>;
+        },
         "fetchActiveListings"
       ).mockResolvedValue([]);
 
       const result = await SearchIndexerService.fullReindexProducts();
 
-      expect(mockIndex).toHaveBeenCalledWith("souq_products");
+      expect(mockIndex).toHaveBeenCalledWith(INDEXES.PRODUCTS);
       expect(mockDeleteAllDocuments).toHaveBeenCalled();
       expect(result).toEqual({ indexed: 0, errors: 0 });
       expect(logger.info).toHaveBeenCalledWith(
         expect.stringContaining("Starting full product reindex")
+      );
+    });
+
+    it("should scope product reindex by org when provided", async () => {
+      const fetchListingsSpy = vi.spyOn(
+        SearchIndexerService as unknown as {
+          fetchActiveListings: (
+            o: number,
+            l: number,
+            orgId?: string,
+          ) => Promise<[]>;
+        },
+        "fetchActiveListings",
+      ).mockResolvedValue([]);
+
+      await SearchIndexerService.fullReindexProducts({ orgId: "ORG1" });
+
+      expect(fetchListingsSpy).toHaveBeenCalledWith(
+        0,
+        SearchIndexerService.BATCH_SIZE,
+        "ORG1",
       );
     });
 
@@ -209,22 +272,32 @@ describe("SearchIndexerService", () => {
         shippingOption: "standard",
         createdAt: new Date().toISOString(),
       };
-      const listingBatch1 = Array.from({ length: 1000 }, (_item, idx) => ({
-        ...templateListing,
-        listingId: `L1-${idx}`,
-        productId: `P1-${idx}`,
-        sellerId: `S1-${idx}`,
-      }));
-      const listingBatch2 = Array.from({ length: 1000 }, (_item, idx) => ({
-        ...templateListing,
-        listingId: `L2-${idx}`,
-        productId: `P2-${idx}`,
-        sellerId: `S2-${idx}`,
-      }));
+      const listingBatch1 = Array.from(
+        { length: SearchIndexerService.BATCH_SIZE },
+        (_item, idx) => ({
+          ...templateListing,
+          listingId: `L1-${idx}`,
+          productId: `P1-${idx}`,
+          sellerId: `S1-${idx}`,
+        }),
+      );
+      const listingBatch2 = Array.from(
+        { length: SearchIndexerService.BATCH_SIZE },
+        (_item, idx) => ({
+          ...templateListing,
+          listingId: `L2-${idx}`,
+          productId: `P2-${idx}`,
+          sellerId: `S2-${idx}`,
+        }),
+      );
 
       const fetchListingsSpy = vi.spyOn(
         SearchIndexerService as unknown as {
-          fetchActiveListings: (o: number, l: number) => Promise<typeof listingBatch1>;
+          fetchActiveListings: (
+            o: number,
+            l: number,
+            orgId?: string,
+          ) => Promise<typeof listingBatch1>;
         },
         "fetchActiveListings"
       );
@@ -248,9 +321,24 @@ describe("SearchIndexerService", () => {
 
       const result = await SearchIndexerService.fullReindexProducts();
 
-      expect(fetchListingsSpy).toHaveBeenNthCalledWith(1, 0, 1000);
-      expect(fetchListingsSpy).toHaveBeenNthCalledWith(2, 1000, 1000);
-      expect(fetchListingsSpy).toHaveBeenNthCalledWith(3, 2000, 1000);
+      expect(fetchListingsSpy).toHaveBeenNthCalledWith(
+        1,
+        0,
+        SearchIndexerService.BATCH_SIZE,
+        undefined,
+      );
+      expect(fetchListingsSpy).toHaveBeenNthCalledWith(
+        2,
+        SearchIndexerService.BATCH_SIZE,
+        SearchIndexerService.BATCH_SIZE,
+        undefined,
+      );
+      expect(fetchListingsSpy).toHaveBeenNthCalledWith(
+        3,
+        SearchIndexerService.BATCH_SIZE * 2,
+        SearchIndexerService.BATCH_SIZE,
+        undefined,
+      );
       expect(transformListingsSpy).toHaveBeenCalledTimes(2);
       expect(mockAddDocuments).toHaveBeenCalledTimes(2);
       expect(result).toEqual({ indexed: 1, errors: 1 });
@@ -271,17 +359,44 @@ describe("SearchIndexerService", () => {
   describe("fullReindexSellers", () => {
     it("should clear seller index when starting reindex", async () => {
       vi.spyOn(
-        SearchIndexerService as unknown as { fetchActiveSellers: (o: number, l: number) => Promise<[]> },
+        SearchIndexerService as unknown as {
+          fetchActiveSellers: (
+            o: number,
+            l: number,
+            orgId?: string,
+          ) => Promise<[]>;
+        },
         "fetchActiveSellers"
       ).mockResolvedValue([]);
 
       const result = await SearchIndexerService.fullReindexSellers();
 
-      expect(mockIndex).toHaveBeenCalledWith("souq_sellers");
+      expect(mockIndex).toHaveBeenCalledWith(INDEXES.SELLERS);
       expect(mockDeleteAllDocuments).toHaveBeenCalled();
       expect(result).toEqual({ indexed: 0, errors: 0 });
       expect(logger.info).toHaveBeenCalledWith(
         expect.stringContaining("Starting full seller reindex")
+      );
+    });
+
+    it("should scope seller reindex by org when provided", async () => {
+      const fetchSellersSpy = vi.spyOn(
+        SearchIndexerService as unknown as {
+          fetchActiveSellers: (
+            o: number,
+            l: number,
+            orgId?: string,
+          ) => Promise<[]>;
+        },
+        "fetchActiveSellers",
+      ).mockResolvedValue([]);
+
+      await SearchIndexerService.fullReindexSellers({ orgId: "ORG1" });
+
+      expect(fetchSellersSpy).toHaveBeenCalledWith(
+        0,
+        SearchIndexerService.BATCH_SIZE,
+        "ORG1",
       );
     });
 
@@ -294,18 +409,28 @@ describe("SearchIndexerService", () => {
         status: "active",
         createdAt: new Date().toISOString(),
       };
-      const sellersBatch1 = Array.from({ length: 1000 }, (_item, idx) => ({
-        ...templateSeller,
-        sellerId: `S1-${idx}`,
-      }));
-      const sellersBatch2 = Array.from({ length: 1000 }, (_item, idx) => ({
-        ...templateSeller,
-        sellerId: `S2-${idx}`,
-      }));
+      const sellersBatch1 = Array.from(
+        { length: SearchIndexerService.BATCH_SIZE },
+        (_item, idx) => ({
+          ...templateSeller,
+          sellerId: `S1-${idx}`,
+        }),
+      );
+      const sellersBatch2 = Array.from(
+        { length: SearchIndexerService.BATCH_SIZE },
+        (_item, idx) => ({
+          ...templateSeller,
+          sellerId: `S2-${idx}`,
+        }),
+      );
 
       const fetchSellersSpy = vi.spyOn(
         SearchIndexerService as unknown as {
-          fetchActiveSellers: (o: number, l: number) => Promise<typeof sellersBatch1>;
+          fetchActiveSellers: (
+            o: number,
+            l: number,
+            orgId?: string,
+          ) => Promise<typeof sellersBatch1>;
         },
         "fetchActiveSellers"
       );
@@ -338,9 +463,24 @@ describe("SearchIndexerService", () => {
         "index",
         expect.any(Function)
       );
-      expect(fetchSellersSpy).toHaveBeenNthCalledWith(1, 0, 1000);
-      expect(fetchSellersSpy).toHaveBeenNthCalledWith(2, 1000, 1000);
-      expect(fetchSellersSpy).toHaveBeenNthCalledWith(3, 2000, 1000);
+      expect(fetchSellersSpy).toHaveBeenNthCalledWith(
+        1,
+        0,
+        SearchIndexerService.BATCH_SIZE,
+        undefined,
+      );
+      expect(fetchSellersSpy).toHaveBeenNthCalledWith(
+        2,
+        SearchIndexerService.BATCH_SIZE,
+        SearchIndexerService.BATCH_SIZE,
+        undefined,
+      );
+      expect(fetchSellersSpy).toHaveBeenNthCalledWith(
+        3,
+        SearchIndexerService.BATCH_SIZE * 2,
+        SearchIndexerService.BATCH_SIZE,
+        undefined,
+      );
       expect(mockAddDocuments).toHaveBeenCalledTimes(2);
       expect(result).toEqual({ indexed: 1, errors: 1 });
       expect(logger.error).toHaveBeenCalledWith(

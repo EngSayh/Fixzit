@@ -28,6 +28,7 @@ interface SouqListing {
   listingId: string;
   productId: string;
   sellerId: string;
+  orgId?: string;
   price: number;
   quantity: number;
   status: string;
@@ -51,6 +52,7 @@ interface SouqProduct {
 
 interface SouqSeller {
   sellerId: string;
+  orgId?: string;
   tradeName: string;
   legalName?: string;
   accountHealth: {
@@ -68,11 +70,15 @@ interface SouqSeller {
 }
 
 export class SearchIndexerService {
+  static readonly BATCH_SIZE = BATCH_SIZE;
+
   /**
    * Full reindex of all products
    * Run daily at 2 AM via BullMQ cron job
    */
-  static async fullReindexProducts(): Promise<{
+  static async fullReindexProducts(options?: {
+    orgId?: string;
+  }): Promise<{
     indexed: number;
     errors: number;
   }> {
@@ -93,7 +99,11 @@ export class SearchIndexerService {
 
       // Fetch all active listings in batches
       while (true) {
-        const listings = await this.fetchActiveListings(offset, BATCH_SIZE);
+        const listings = await this.fetchActiveListings(
+          offset,
+          BATCH_SIZE,
+          options?.orgId,
+        );
         if (listings.length === 0) break;
 
         // Transform to search documents
@@ -146,14 +156,18 @@ export class SearchIndexerService {
    * Incremental update: Sync single listing
    * Triggered on listing create/update
    */
-  static async updateListing(listingId: string): Promise<void> {
+  static async updateListing(
+    listingId: string,
+    options?: { orgId?: string },
+  ): Promise<void> {
     try {
-      const listing = await this.fetchListingById(listingId);
+      const listing = await this.fetchListingById(listingId, options?.orgId);
       if (!listing) {
         logger.warn(`[SearchIndexer] Listing not found: ${listingId}`, {
           component: "SearchIndexerService",
           action: "updateListing",
           listingId,
+          orgId: options?.orgId,
         });
         return;
       }
@@ -217,7 +231,9 @@ export class SearchIndexerService {
   /**
    * Full reindex of all sellers
    */
-  static async fullReindexSellers(): Promise<{
+  static async fullReindexSellers(options?: {
+    orgId?: string;
+  }): Promise<{
     indexed: number;
     errors: number;
   }> {
@@ -238,7 +254,11 @@ export class SearchIndexerService {
 
       // Fetch all active sellers in batches
       while (true) {
-        const sellers = await this.fetchActiveSellers(offset, BATCH_SIZE);
+        const sellers = await this.fetchActiveSellers(
+          offset,
+          BATCH_SIZE,
+          options?.orgId,
+        );
         if (sellers.length === 0) break;
 
         // Transform to search documents
@@ -289,14 +309,18 @@ export class SearchIndexerService {
   /**
    * Update single seller in index
    */
-  static async updateSeller(sellerId: string): Promise<void> {
+  static async updateSeller(
+    sellerId: string,
+    options?: { orgId?: string },
+  ): Promise<void> {
     try {
-      const seller = await this.fetchSellerById(sellerId);
+      const seller = await this.fetchSellerById(sellerId, options?.orgId);
       if (!seller) {
         logger.warn(`[SearchIndexer] Seller not found: ${sellerId}`, {
           component: "SearchIndexerService",
           action: "updateSeller",
           sellerId,
+          orgId: options?.orgId,
         });
         return;
       }
@@ -336,13 +360,17 @@ export class SearchIndexerService {
   private static async fetchActiveListings(
     offset: number,
     limit: number,
+    orgId?: string,
   ): Promise<SouqListing[]> {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const results = await db
       .collection<SouqListing>("souq_listings")
-      .find({ status: "active" })
+      .find({
+        status: "active",
+        ...(orgId ? { orgId } : {}),
+      })
       .skip(offset)
       .limit(limit)
       .toArray();
@@ -355,13 +383,17 @@ export class SearchIndexerService {
    */
   private static async fetchListingById(
     listingId: string,
+    orgId?: string,
   ): Promise<SouqListing | null> {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const result = await db
       .collection<SouqListing>("souq_listings")
-      .findOne({ listingId });
+      .findOne({
+        listingId,
+        ...(orgId ? { orgId } : {}),
+      });
 
     return result;
   }
@@ -372,13 +404,17 @@ export class SearchIndexerService {
   private static async fetchActiveSellers(
     offset: number,
     limit: number,
+    orgId?: string,
   ): Promise<SouqSeller[]> {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const results = await db
       .collection<SouqSeller>("souq_sellers")
-      .find({ status: "active" })
+      .find({
+        status: "active",
+        ...(orgId ? { orgId } : {}),
+      })
       .skip(offset)
       .limit(limit)
       .toArray();
@@ -391,13 +427,17 @@ export class SearchIndexerService {
    */
   private static async fetchSellerById(
     sellerId: string,
+    orgId?: string,
   ): Promise<SouqSeller | null> {
     const { getDatabase } = await import("@/lib/mongodb-unified");
     const db = await getDatabase();
 
     const result = await db
       .collection<SouqSeller>("souq_sellers")
-      .findOne({ sellerId });
+      .findOne({
+        sellerId,
+        ...(orgId ? { orgId } : {}),
+      });
 
     return result;
   }
