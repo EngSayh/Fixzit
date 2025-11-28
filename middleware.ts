@@ -450,7 +450,10 @@ export async function middleware(request: NextRequest) {
     }
 
     // RBAC: Admin and System endpoints require elevated privileges
-    if (pathname.startsWith('/api/admin') || pathname.startsWith('/api/system')) {
+    // Use segment boundary matching to avoid false matches (e.g., /api/adminXYZ)
+    const isAdminRoute = pathname === '/api/admin' || pathname.startsWith('/api/admin/');
+    const isSystemRoute = pathname === '/api/system' || pathname.startsWith('/api/system/');
+    if (isAdminRoute || isSystemRoute) {
       // Super Admin always has access
       if (user.isSuperAdmin) {
         return attachUserHeaders(request, user);
