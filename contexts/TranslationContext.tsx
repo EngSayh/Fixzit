@@ -138,8 +138,11 @@ export function TranslationProvider({
         setActiveOption(nextOption);
         i18nSetLocale(nextOption.language as Locale);
       } else {
-        setActiveOption((prev) => prev);
-        i18nSetLocale(activeOption.language as Locale);
+        // ✅ FIX: Use functional update to get current state (avoids stale closure)
+        setActiveOption((prev) => {
+          i18nSetLocale(prev.language as Locale);
+          return prev;
+        });
       }
     };
 
