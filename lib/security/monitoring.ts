@@ -4,6 +4,7 @@
  */
 
 import { logger } from "@/lib/logger";
+import { redactIdentifier } from "@/lib/otp-utils";
 
 // Rate limit event tracking
 const rateLimitHits = new Map<string, number[]>();
@@ -117,7 +118,8 @@ function trackEvent(
 }
 
 export function trackRateLimitHit(identifier: string, endpoint: string): void {
-  const key = `${identifier}:${endpoint}`;
+  const redacted = redactIdentifier(identifier);
+  const key = `${redacted}:${endpoint}`;
   trackEvent(
     rateLimitHits,
     key,
@@ -126,7 +128,7 @@ export function trackRateLimitHit(identifier: string, endpoint: string): void {
   );
 
   logger.warn("[RateLimit] Request blocked", {
-    identifier,
+    identifier: redacted,
     endpoint,
     timestamp: new Date().toISOString(),
   });
@@ -144,15 +146,16 @@ export function trackCorsViolation(origin: string, endpoint: string): void {
 }
 
 export function trackAuthFailure(identifier: string, reason: string): void {
+  const redacted = redactIdentifier(identifier);
   trackEvent(
     authFailures,
-    identifier,
+    redacted,
     "Auth",
     ALERT_THRESHOLDS.auth.alertThreshold,
   );
 
   logger.error("[Auth] Authentication failed", {
-    identifier,
+    identifier: redacted,
     reason,
     timestamp: new Date().toISOString(),
   });

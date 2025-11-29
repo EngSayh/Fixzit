@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { redactIdentifier } from "@/lib/otp-utils";
 import {
   trackAuthFailure,
   trackCorsViolation,
@@ -18,7 +19,9 @@ export async function logSecurityEvent(event: {
   timestamp: string;
   metadata?: Record<string, unknown>;
 }) {
-  logger.warn("[SecurityEvent]", event);
+  // Redact IP for logging
+  const redactedIp = redactIdentifier(event.ip);
+  logger.warn("[SecurityEvent]", { ...event, ip: redactedIp });
   try {
     switch (event.type) {
       case "rate_limit": {
