@@ -4,7 +4,7 @@
  */
 
 import { logger } from "@/lib/logger";
-import { redactIdentifier } from "@/lib/otp-utils";
+import { redactIdentifier, hashIdentifier } from "@/lib/otp-utils";
 
 // Rate limit event tracking
 const rateLimitHits = new Map<string, number[]>();
@@ -120,11 +120,13 @@ function trackEvent(
 }
 
 export function trackRateLimitHit(identifier: string, endpoint: string, orgId?: string): void {
-  const redacted = redactIdentifier(identifier);
+  // Use hashIdentifier for tracking key (better cardinality than 3-char truncation)
+  // This prevents collision issues where many users share same prefix (e.g., "use***")
+  const hashedId = hashIdentifier(identifier);
   // Include orgId in key for multi-tenant isolation (prevents cross-tenant event collapse)
   const key = orgId 
-    ? `${orgId}:${redacted}:${endpoint}`
-    : `global:${redacted}:${endpoint}`;
+    ? `${orgId}:${hashedId}:${endpoint}`
+    : `global:${hashedId}:${endpoint}`;
   trackEvent(
     rateLimitHits,
     key,
@@ -132,9 +134,10 @@ export function trackRateLimitHit(identifier: string, endpoint: string, orgId?: 
     ALERT_THRESHOLDS.rateLimit.alertThreshold,
   );
 
+  // Use redactIdentifier for human-readable logs (PII protection)
   logger.warn("[RateLimit] Request blocked", {
     orgId: orgId ?? "global",
-    identifier: redacted,
+    identifier: redactIdentifier(identifier),
     endpoint,
     timestamp: new Date().toISOString(),
   });
@@ -156,11 +159,13 @@ export function trackCorsViolation(origin: string, endpoint: string, orgId?: str
 }
 
 export function trackAuthFailure(identifier: string, reason: string, orgId?: string): void {
-  const redacted = redactIdentifier(identifier);
+  // Use hashIdentifier for tracking key (better cardinality than 3-char truncation)
+  // This prevents collision issues where many users share same prefix (e.g., "use***")
+  const hashedId = hashIdentifier(identifier);
   // Include orgId in key for multi-tenant isolation
   const key = orgId
-    ? `${orgId}:${redacted}`
-    : `global:${redacted}`;
+    ? `${orgId}:${hashedId}`
+    : `global:${hashedId}`;
   trackEvent(
     authFailures,
     key,
@@ -168,9 +173,10 @@ export function trackAuthFailure(identifier: string, reason: string, orgId?: str
     ALERT_THRESHOLDS.auth.alertThreshold,
   );
 
+  // Use redactIdentifier for human-readable logs (PII protection)
   logger.error("[Auth] Authentication failed", {
     orgId: orgId ?? "global",
-    identifier: redacted,
+    identifier: redactIdentifier(identifier),
     reason,
     timestamp: new Date().toISOString(),
   });
