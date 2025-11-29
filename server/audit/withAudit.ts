@@ -135,53 +135,63 @@ export function withAudit<
         const success = status >= 200 && status < 400;
 
         // ORGID-FIX: Enforce mandatory orgId for multi-tenant isolation
-        const orgId = session!.user.orgId as string;
-        if (!orgId || orgId.trim() === "") {
-          logger.error("[Audit] CRITICAL: orgId missing in withAudit - skipping audit log", {
-            userId: session!.user.id,
+        // SEC-005 FIX: Log with sentinel value instead of skipping entirely
+        // This ensures audit trail visibility for security monitoring
+        const rawOrgId = session!.user.orgId as string;
+        const orgIdMissing = !rawOrgId || rawOrgId.trim() === "";
+        const orgId = orgIdMissing ? "__MISSING_ORG_ID__" : rawOrgId;
+        
+        if (orgIdMissing) {
+          // SEC-005: Log warning but DON'T skip - security team needs to see this
+          logger.warn("[Audit] SEC-005: orgId missing in request - logging with sentinel", {
+            userId: session!.user.id as string | undefined,
+            userEmail: session!.user.email as string | undefined,
             action,
             endpoint: pathname,
+            ipAddress,
+            timestamp: new Date().toISOString(),
           });
-          // Skip audit logging but don't use return in finally block (unsafe)
-        } else {
-          const auditData = {
-            orgId,  // ✅ Validated above
-            action,
-            entityType,
-            entityId,
-            userId:
-              (session!.user.id as string) ||
-              (session!.user.email as string) ||
-              "unknown",
-            userName: (session!.user.name as string) || "Unknown User",
-            userEmail: (session!.user.email as string) || "",
-            userRole: (session!.user.role as string) || "USER",
-            correlationId: requestId,
-            context: {
-              method,
-              endpoint: pathname,
-              userAgent,
-              ipAddress,
-              sessionId: session!.user.sessionId as string,
-              browser: extractBrowser(userAgent),
-              os: extractOS(userAgent),
-              device: extractDevice(userAgent),
-              requestId,
-            },
-            metadata: {
-              source: finalCfg.source,
-              requestBody,
-              responseBody, // keep small!
-            },
-            result: {
-              success,
-              duration: Math.round(duration),
-              errorCode: success ? undefined : String(status),
-            },
-          };
-
-          await AuditLogModel.log(auditData);
         }
+        
+        // Always proceed with audit logging
+        const auditData = {
+          orgId,  // ✅ Either validated orgId or sentinel value
+          action,
+          entityType,
+          entityId: entityId ?? undefined, // Ensure type compatibility
+          userId:
+            (session!.user.id as string) ||
+            (session!.user.email as string) ||
+            "unknown",
+          userName: (session!.user.name as string) || "Unknown User",
+          userEmail: (session!.user.email as string) || "",
+          userRole: (session!.user.role as string) || "USER",
+          correlationId: requestId,
+          context: {
+            method,
+            endpoint: pathname,
+            userAgent,
+            ipAddress,
+            sessionId: session!.user.sessionId as string,
+            browser: extractBrowser(userAgent),
+            os: extractOS(userAgent),
+            device: extractDevice(userAgent),
+            requestId,
+            orgIdMissing, // SEC-005: Flag for security monitoring dashboards
+          },
+          metadata: {
+            source: finalCfg.source,
+            requestBody,
+            responseBody, // keep small!
+          },
+          result: {
+            success,
+            duration: Math.round(duration),
+            errorCode: success ? undefined : String(status),
+          },
+        };
+
+        await AuditLogModel.log(auditData);
       } catch (err) {
         // never break the API
         logger.error("Failed to log audit entry", { error: err });

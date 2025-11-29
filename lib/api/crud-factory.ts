@@ -28,13 +28,21 @@
 import { logger } from "@/lib/logger";
 import { NextRequest } from "next/server";
 import { z, ZodSchema } from "zod";
-import { SortOrder } from "mongoose";
+import { SortOrder, Types } from "mongoose";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
 import type { MModel } from "@/src/types/mongoose-compat";
+
+/**
+ * SEC-006 FIX: Validate MongoDB ObjectId format to prevent IDOR attacks
+ * Rejects query operators like { $or: [...] } that could bypass tenant isolation
+ */
+function isValidObjectId(id: string): boolean {
+  return Types.ObjectId.isValid(id) && new Types.ObjectId(id).toString() === id;
+}
 
 /**
  * Escapes special regex characters to prevent ReDoS (Regular Expression Denial of Service) attacks
@@ -377,6 +385,25 @@ export function createSingleEntityHandlers<T = unknown>(
    * GET handler - Fetch single entity by ID
    */
   async function GET(req: NextRequest, context: { params: { id: string } }) {
+    // SEC-006 FIX: Validate ObjectId format to prevent IDOR via query operators
+    const entityId = context.params.id;
+    if (!isValidObjectId(entityId)) {
+      const correlationId = crypto.randomUUID();
+      logger.warn("Invalid ObjectId format in GET request", {
+        path: req.url,
+        providedId: entityId?.slice(0, 50), // Truncate for safety
+        correlationId,
+      });
+      return createSecureResponse(
+        {
+          error: "Invalid ID format",
+          correlationId,
+        },
+        400,
+        req,
+      );
+    }
+
     // Authentication (MUST be outside try block to properly return 401)
     let user;
     try {
@@ -426,8 +453,8 @@ export function createSingleEntityHandlers<T = unknown>(
     try {
       await connectToDatabase();
 
-      // Build query: Super Admin can access all tenants
-      const query: Record<string, unknown> = { _id: context.params.id };
+      // SEC-006 FIX: Use validated ObjectId to prevent query injection
+      const query: Record<string, unknown> = { _id: new Types.ObjectId(entityId) };
       if (user.role !== "SUPER_ADMIN") {
         query.orgId = user.orgId;
       }
@@ -451,7 +478,7 @@ export function createSingleEntityHandlers<T = unknown>(
       const correlationId = crypto.randomUUID();
       logger.error(`[GET /api/${entityName}/:id] Error:`, {
         correlationId,
-        id: context.params.id,
+        id: entityId,
         error: error instanceof Error ? error.message : String(error),
       });
       return createSecureResponse(
@@ -469,6 +496,25 @@ export function createSingleEntityHandlers<T = unknown>(
    * PUT handler - Update entity by ID
    */
   async function PUT(req: NextRequest, context: { params: { id: string } }) {
+    // SEC-006 FIX: Validate ObjectId format to prevent IDOR via query operators
+    const entityId = context.params.id;
+    if (!isValidObjectId(entityId)) {
+      const correlationId = crypto.randomUUID();
+      logger.warn("Invalid ObjectId format in PUT request", {
+        path: req.url,
+        providedId: entityId?.slice(0, 50),
+        correlationId,
+      });
+      return createSecureResponse(
+        {
+          error: "Invalid ID format",
+          correlationId,
+        },
+        400,
+        req,
+      );
+    }
+
     // Authentication (MUST be outside try block to properly return 401)
     let user;
     try {
@@ -528,8 +574,8 @@ export function createSingleEntityHandlers<T = unknown>(
       delete data.createdBy;
       delete data.updatedBy;
 
-      // Build query: Super Admin can update any tenant's entity
-      const query: Record<string, unknown> = { _id: context.params.id };
+      // SEC-006 FIX: Use validated ObjectId to prevent query injection
+      const query: Record<string, unknown> = { _id: new Types.ObjectId(entityId) };
       if (user.role !== "SUPER_ADMIN") {
         query.orgId = user.orgId;
       }
@@ -563,7 +609,7 @@ export function createSingleEntityHandlers<T = unknown>(
       const correlationId = crypto.randomUUID();
       logger.error(`[PUT /api/${entityName}/:id] Error:`, {
         correlationId,
-        id: context.params.id,
+        id: entityId,
         error: error instanceof Error ? error.message : String(error),
       });
 
@@ -584,6 +630,25 @@ export function createSingleEntityHandlers<T = unknown>(
    * DELETE handler - Delete entity by ID
    */
   async function DELETE(req: NextRequest, context: { params: { id: string } }) {
+    // SEC-006 FIX: Validate ObjectId format to prevent IDOR via query operators
+    const entityId = context.params.id;
+    if (!isValidObjectId(entityId)) {
+      const correlationId = crypto.randomUUID();
+      logger.warn("Invalid ObjectId format in DELETE request", {
+        path: req.url,
+        providedId: entityId?.slice(0, 50),
+        correlationId,
+      });
+      return createSecureResponse(
+        {
+          error: "Invalid ID format",
+          correlationId,
+        },
+        400,
+        req,
+      );
+    }
+
     // Authentication (MUST be outside try block to properly return 401)
     let user;
     try {
@@ -633,8 +698,8 @@ export function createSingleEntityHandlers<T = unknown>(
     try {
       await connectToDatabase();
 
-      // Build query: Super Admin can delete any tenant's entity
-      const query: Record<string, unknown> = { _id: context.params.id };
+      // SEC-006 FIX: Use validated ObjectId to prevent query injection
+      const query: Record<string, unknown> = { _id: new Types.ObjectId(entityId) };
       if (user.role !== "SUPER_ADMIN") {
         query.orgId = user.orgId;
       }
@@ -662,7 +727,7 @@ export function createSingleEntityHandlers<T = unknown>(
       const correlationId = crypto.randomUUID();
       logger.error(`[DELETE /api/${entityName}/:id] Error:`, {
         correlationId,
-        id: context.params.id,
+        id: entityId,
         error: error instanceof Error ? error.message : String(error),
       });
       return createSecureResponse(
