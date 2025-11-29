@@ -82,11 +82,20 @@ function setUpdateValue(
 
 /**
  * Convert value to string for encryption (handles numbers, etc.)
+ * Returns null for non-primitive values with a warning log.
  */
-function toEncryptableString(value: unknown): string | null {
+function toEncryptableString(value: unknown, fieldPath?: string): string | null {
   if (value === null || value === undefined) return null;
   if (typeof value === "string") return value.length > 0 ? value : null;
   if (typeof value === "number") return String(value);
+  
+  // Defensive check: log and skip non-primitive values (Buffer, Object, Array)
+  if (typeof value === "object") {
+    logger.warn("[EncryptionPlugin] Skipping non-primitive value for encryption", {
+      field: fieldPath,
+      valueType: Array.isArray(value) ? "array" : value?.constructor?.name || "object",
+    });
+  }
   return null;
 }
 
@@ -147,7 +156,7 @@ export function encryptionPlugin<T>(
 
     for (const path of fieldPaths) {
       const rawValue = getNestedValue(doc, path);
-      const value = toEncryptableString(rawValue);
+      const value = toEncryptableString(rawValue, path);
 
       if (value !== null && !isEncrypted(value)) {
         const encrypted = encryptField(value, path);
@@ -181,7 +190,7 @@ export function encryptionPlugin<T>(
     for (const path of fieldPaths) {
       // Check both dotted key and nested path
       const rawValue = getUpdateValue(targetObj, path);
-      const value = toEncryptableString(rawValue);
+      const value = toEncryptableString(rawValue, path);
 
       if (value !== null && !isEncrypted(value)) {
         const encrypted = encryptField(value, path);
@@ -222,7 +231,7 @@ export function encryptionPlugin<T>(
 
     for (const path of fieldPaths) {
       const rawValue = getUpdateValue(targetObj, path);
-      const value = toEncryptableString(rawValue);
+      const value = toEncryptableString(rawValue, path);
 
       if (value !== null && !isEncrypted(value)) {
         const encrypted = encryptField(value, path);
@@ -255,7 +264,7 @@ export function encryptionPlugin<T>(
 
     for (const path of fieldPaths) {
       const rawValue = getUpdateValue(targetObj, path);
-      const value = toEncryptableString(rawValue);
+      const value = toEncryptableString(rawValue, path);
 
       if (value !== null && !isEncrypted(value)) {
         const encrypted = encryptField(value, path);
@@ -282,7 +291,7 @@ export function encryptionPlugin<T>(
     for (const doc of docs) {
       for (const path of fieldPaths) {
         const rawValue = getNestedValue(doc, path);
-        const value = toEncryptableString(rawValue);
+        const value = toEncryptableString(rawValue, path);
 
         if (value !== null && !isEncrypted(value)) {
           const encrypted = encryptField(value, path);
@@ -341,7 +350,7 @@ function decryptDocument(
 ): void {
   for (const path of fieldPaths) {
     const rawValue = getNestedValue(doc, path);
-    const value = toEncryptableString(rawValue);
+    const value = toEncryptableString(rawValue, path);
 
     if (value !== null && isEncrypted(value)) {
       try {

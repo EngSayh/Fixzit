@@ -60,3 +60,20 @@ export const isValidCompanyCode = (code: string | null): boolean => {
   if (!code) return false;
   return COMPANY_CODE_REGEX.test(code);
 };
+
+/**
+ * Redact identifier for logging (GDPR/Saudi Labor Law data minimization).
+ * Shows first 3 chars + *** to allow debugging without exposing full PII.
+ * 
+ * @param identifier - Login identifier (email, employee ID, or composite OTP key)
+ * @returns Redacted string showing only first 3 characters
+ * 
+ * @example
+ * redactIdentifier("user@email.com") // "use***"
+ * redactIdentifier("EMP001::ACME") // "EMP***"
+ * redactIdentifier("ab") // "***"
+ */
+export const redactIdentifier = (identifier: string): string => {
+  if (!identifier || identifier.length <= 3) return '***';
+  return identifier.slice(0, 3) + '***';
+};

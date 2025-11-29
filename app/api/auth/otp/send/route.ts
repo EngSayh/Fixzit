@@ -19,6 +19,7 @@ import {
   EMPLOYEE_ID_REGEX,
   normalizeCompanyCode,
   buildOtpKey,
+  redactIdentifier,
 } from "@/lib/otp-utils";
 
 interface UserDocument {
@@ -396,7 +397,7 @@ export async function POST(request: NextRequest) {
     // 4. Check rate limit using normalized identifier
     const rateLimitResult = checkRateLimit(otpKey);
     if (!rateLimitResult.allowed) {
-      logger.warn("[OTP] Rate limit exceeded", { identifier: otpKey });
+      logger.warn("[OTP] Rate limit exceeded", { identifier: redactIdentifier(otpKey) });
       return NextResponse.json(
         {
           success: false,
@@ -440,13 +441,13 @@ export async function POST(request: NextRequest) {
           normalizedCompanyCode ?? "DEMO-ORG",
         );
         logger.warn("[OTP] Falling back to demo user profile", {
-          identifier: loginIdentifier,
+          identifier: redactIdentifier(loginIdentifier),
         });
       }
 
       if (!user) {
         logger.warn("[OTP] User not found", {
-          identifier: loginIdentifier,
+          identifier: redactIdentifier(loginIdentifier),
           loginType,
         });
         return NextResponse.json(
@@ -486,12 +487,12 @@ export async function POST(request: NextRequest) {
         if (!isValid && isDemoUserCandidate && matchesDemoPassword(password)) {
           isValid = true;
           logger.warn("[OTP] Accepted demo credentials", {
-            identifier: loginIdentifier,
+            identifier: redactIdentifier(loginIdentifier),
           });
         }
 
         if (!isValid) {
-          logger.warn("[OTP] Invalid password", { identifier: loginIdentifier });
+          logger.warn("[OTP] Invalid password", { identifier: redactIdentifier(loginIdentifier) });
           return NextResponse.json(
             {
               success: false,
@@ -510,7 +511,7 @@ export async function POST(request: NextRequest) {
       user.isActive !== undefined ? user.isActive : user.status === "ACTIVE";
     if (!isUserActive) {
       logger.warn("[OTP] Inactive user attempted login", {
-        identifier: loginIdentifier,
+        identifier: redactIdentifier(loginIdentifier),
         status: user.status,
       });
       return NextResponse.json(
@@ -550,8 +551,8 @@ export async function POST(request: NextRequest) {
     if (!userPhone && TEST_USERS_FALLBACK_PHONE && isDemoUserForPhone) {
       userPhone = TEST_USERS_FALLBACK_PHONE;
       logger.warn("[OTP] Using fallback phone for demo/test user", {
-        userId: user._id?.toString?.() || loginIdentifier,
-        identifier: loginIdentifier,
+        userId: user._id?.toString?.() || redactIdentifier(loginIdentifier),
+        identifier: redactIdentifier(loginIdentifier),
       });
     }
 
@@ -657,8 +658,8 @@ export async function POST(request: NextRequest) {
     }
 
     logger.info("[OTP] OTP sent successfully", {
-      userId: user._id?.toString?.() || loginIdentifier,
-      identifier: otpKey,
+      userId: user._id?.toString?.() || redactIdentifier(loginIdentifier),
+      identifier: redactIdentifier(otpKey),
       phone: userPhone.slice(-4),
     });
 
@@ -682,7 +683,7 @@ export async function POST(request: NextRequest) {
     if (smsDevMode && process.env.NODE_ENV === "development") {
       responseData.devCode = otp;
       logger.warn("[OTP] Dev code included in response - development only", {
-        identifier: otpKey,
+        identifier: redactIdentifier(otpKey),
       });
     }
 
