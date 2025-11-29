@@ -1,109 +1,76 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useProperties } from "@/hooks/fm/useProperties";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle, FileText, Plus, RefreshCw } from "lucide-react";
+
+// Lease data derived from property records
+// TODO: Implement dedicated /api/fm/leases endpoint for full lease management
 
 export default function PropertiesLeasesPage() {
+  const { t } = useTranslation();
   const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
     moduleId: "properties",
   });
-  const { t } = useTranslation();
-  const leases = [
-    {
-      id: "L-001",
-      unit: "Tower A / 1204",
-      tenant: "John Smith",
-      type: "Residential",
-      startDate: "2024-01-01",
-      endDate: "2025-12-31",
-      monthlyRent: "SAR 8,500",
-      status: "Active",
-      securityDeposit: "SAR 17,000",
-      paymentStatus: "Paid",
-    },
-    {
-      id: "L-002",
-      unit: "Tower B / 901",
-      tenant: "Sarah Johnson",
-      type: "Residential",
-      startDate: "2024-03-15",
-      endDate: "2025-03-14",
-      monthlyRent: "SAR 12,000",
-      status: "Active",
-      securityDeposit: "SAR 24,000",
-      paymentStatus: "Paid",
-    },
-    {
-      id: "L-003",
-      unit: "Villa 9",
-      tenant: "Ahmed Al-Rashid",
-      type: "Residential",
-      startDate: "2024-06-01",
-      endDate: "2025-05-31",
-      monthlyRent: "SAR 25,000",
-      status: "Expiring Soon",
-      securityDeposit: "SAR 50,000",
-      paymentStatus: "Paid",
-    },
-    {
-      id: "L-004",
-      unit: "Tower A / 1001",
-      tenant: "Available",
-      type: "Commercial",
-      startDate: null,
-      endDate: null,
-      monthlyRent: "SAR 15,000",
-      status: "Vacant",
-      securityDeposit: null,
-      paymentStatus: "N/A",
-    },
-  ];
+  const { properties, isLoading, error, refresh } = useProperties("?limit=100");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "bg-success/10 text-success border-[hsl(var(--success)) / 0.1]";
-      case "Expiring Soon":
-        return "bg-accent/10 text-accent border-accent/20";
-      case "Expired":
-        return "bg-destructive/10 text-destructive border-[hsl(var(--destructive)) / 0.1]";
-      case "Vacant":
-        return "bg-muted text-foreground border-border";
-      default:
-        return "bg-muted text-foreground border-border";
-    }
-  };
+  // Derive lease information from properties with occupied units
+  const leaseData = useMemo(() => {
+    const leases: Array<{
+      id: string;
+      property: string;
+      propertyId: string;
+      unit: string;
+      tenant: string;
+      status: string;
+      startDate: string;
+      endDate: string;
+      monthlyRent: number;
+    }> = [];
 
-  const getPaymentStatusColor = (status: string) => {
-    switch (status) {
-      case "Paid":
-        return "bg-success/10 text-success border-[hsl(var(--success)) / 0.1]";
-      case "Pending":
-        return "bg-accent/10 text-accent border-accent/20";
-      case "Overdue":
-        return "bg-destructive/10 text-destructive border-[hsl(var(--destructive)) / 0.1]";
-      case "N/A":
-        return "bg-muted text-foreground border-border";
-      default:
-        return "bg-muted text-foreground border-border";
-    }
-  };
+    properties.forEach((property) => {
+      if (property.units && property.units.length > 0) {
+        property.units.forEach((unit, idx) => {
+          const unitStatus = unit.status?.toLowerCase();
+          if (unitStatus === "occupied") {
+            leases.push({
+              id: `${property._id}-${idx}`,
+              property: property.name,
+              propertyId: property._id,
+              unit: unit.name || `Unit ${idx + 1}`,
+              tenant: "—", // Would come from tenant relationship
+              status: "Active",
+              startDate: property.createdAt || "—",
+              endDate: "—",
+              monthlyRent: 0,
+            });
+          }
+        });
+      }
+    });
 
-  const getStatusTranslation = (status: string) => {
-    const translations: { [key: string]: string } = {
-      Active: t("properties.leases.active", "Active"),
-      "Expiring Soon": t("properties.leases.expiringSoon", "Expiring Soon"),
-      Expired: t("properties.leases.expired", "Expired"),
-      Vacant: t("properties.leases.vacant", "Vacant"),
-      Paid: t("properties.leases.paid", "Paid"),
-      Pending: t("properties.leases.pending", "Pending"),
-      Overdue: t("properties.leases.overdue", "Overdue"),
-      "N/A": t("properties.leases.na", "N/A"),
-    };
-    return translations[status] || status;
-  };
+    return leases;
+  }, [properties]);
+
+  const filteredLeases = useMemo(() => {
+    if (statusFilter === "all") return leaseData;
+    return leaseData.filter(
+      (lease) => lease.status.toLowerCase() === statusFilter.toLowerCase()
+    );
+  }, [leaseData, statusFilter]);
+
+  const stats = useMemo(() => {
+    const total = leaseData.length;
+    const active = leaseData.filter((l) => l.status === "Active").length;
+    return { total, active, expiringSoon: 0, expired: 0 };
+  }, [leaseData]);
 
   if (!hasOrgContext) {
     return guard;
@@ -113,324 +80,230 @@ export default function PropertiesLeasesPage() {
     <div className="space-y-6">
       <ModuleViewTabs moduleId="properties" />
       {supportBanner}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            {t("properties.leases.title", "Lease Management")}
+            {t("fm.properties.leases.title", "Lease Management")}
           </h1>
           <p className="text-muted-foreground">
             {t(
-              "properties.leases.subtitle",
-              "Manage property leases and rental agreements",
+              "fm.properties.leases.subtitle",
+              "Track and manage property leases across your portfolio"
             )}
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">
-            {t("properties.leases.templates", "Lease Templates")}
-          </button>
-          <button className="btn-primary">
-            + {t("properties.leases.newLease", "New Lease")}
-          </button>
+          <Button variant="outline" onClick={() => refresh()}>
+            <RefreshCw className="me-2 h-4 w-4" />
+            {t("common.refresh", "Refresh")}
+          </Button>
+          <Button>
+            <Plus className="me-2 h-4 w-4" />
+            {t("fm.properties.leases.newLease", "New Lease")}
+          </Button>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                {t("properties.leases.activeLeases", "Active Leases")}
-              </p>
-              <p className="text-2xl font-bold text-success">142</p>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("fm.properties.leases.stats.total", "Total Leases")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {isLoading ? "—" : stats.total}
             </div>
-            <div className="text-success">📄</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                {t("properties.leases.expiringSoon", "Expiring Soon")}
-              </p>
-              <p className="text-2xl font-bold text-accent">8</p>
+            <p className="text-xs text-muted-foreground">
+              {t("fm.properties.leases.stats.hint", "Based on occupied units")}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("fm.properties.leases.stats.active", "Active Leases")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-success">
+              {isLoading ? "—" : stats.active}
             </div>
-            <div className="text-accent">⚠️</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                {t("properties.leases.monthlyRevenue", "Monthly Revenue")}
-              </p>
-              <p className="text-2xl font-bold text-primary">SAR 1.2M</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("fm.properties.leases.stats.expiring", "Expiring Soon")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-warning">
+              {isLoading ? "—" : stats.expiringSoon}
             </div>
-            <div className="text-primary">💰</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                {t("properties.leases.avgLeaseTerm", "Avg. Lease Term")}
-              </p>
-              <p className="text-2xl font-bold text-[hsl(var(--secondary))]">
-                18 {t("properties.leases.months", "months")}
-              </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("fm.properties.leases.stats.expired", "Expired")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">
+              {isLoading ? "—" : stats.expired}
             </div>
-            <div className="text-secondary">📅</div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Filters */}
-      <div className="card">
-        <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>
-                {t("properties.leases.allProperties", "All Properties")}
-              </option>
-              <option>Tower A</option>
-              <option>Tower B</option>
-              <option>Villa Complex</option>
-            </select>
+      {/* Filter Bar */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-2">
+            {["all", "active", "expiring", "expired"].map((status) => (
+              <Button
+                key={status}
+                variant={statusFilter === status ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter(status)}
+              >
+                {t(
+                  `fm.properties.leases.filter.${status}`,
+                  status.charAt(0).toUpperCase() + status.slice(1)
+                )}
+              </Button>
+            ))}
           </div>
-          <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>{t("properties.leases.allTypes", "All Types")}</option>
-              <option>
-                {t("properties.leases.residential", "Residential")}
-              </option>
-              <option>{t("properties.leases.commercial", "Commercial")}</option>
-            </select>
-          </div>
-          <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>{t("properties.leases.allStatus", "All Status")}</option>
-              <option>{t("properties.leases.active", "Active")}</option>
-              <option>
-                {t("properties.leases.expiringSoon", "Expiring Soon")}
-              </option>
-              <option>{t("properties.leases.expired", "Expired")}</option>
-              <option>{t("properties.leases.vacant", "Vacant")}</option>
-            </select>
-          </div>
-          <button className="btn-primary">
-            {t("workOrders.filter", "Filter")}
-          </button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Leases Table */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">
-            {t("properties.leases.overview", "Lease Overview")}
-          </h3>
-          <div className="flex gap-2">
-            <button className="btn-ghost">
-              📄 {t("workOrders.export", "Export")}
-            </button>
-            <button className="btn-ghost">
-              📊 {t("common.analytics", "Analytics")}
-            </button>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            {t("fm.properties.leases.list.title", "Lease Records")}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "fm.properties.leases.list.subtitle",
+              "Lease data derived from occupied units. Full lease management coming soon."
+            )}
+          </p>
+        </CardHeader>
+        <CardContent>
+          {error ? (
+            <div className="rounded-lg border border-destructive/60 bg-destructive/5 p-4 text-destructive">
+              <p className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                {t("fm.properties.leases.error", "Unable to load lease data.")}
+              </p>
+              <Button
+                size="sm"
+                className="mt-2"
+                variant="outline"
+                onClick={() => refresh()}
+              >
+                {t("common.retry", "Retry")}
+              </Button>
+            </div>
+          ) : isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {t("common.loading", "Loading...")}
+            </div>
+          ) : filteredLeases.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>
+                {t(
+                  "fm.properties.leases.empty",
+                  "No lease records found. Leases will appear when units are marked as occupied."
+                )}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                      {t("fm.properties.leases.table.property", "Property")}
+                    </th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                      {t("fm.properties.leases.table.unit", "Unit")}
+                    </th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                      {t("fm.properties.leases.table.tenant", "Tenant")}
+                    </th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                      {t("fm.properties.leases.table.status", "Status")}
+                    </th>
+                    <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                      {t("fm.properties.leases.table.actions", "Actions")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredLeases.map((lease) => (
+                    <tr key={lease.id} className="hover:bg-muted/50">
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span className="font-medium">{lease.property}</span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-muted-foreground">
+                        {lease.unit}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-muted-foreground">
+                        {lease.tenant}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <Badge
+                          className={
+                            lease.status === "Active"
+                              ? "bg-success/10 text-success"
+                              : lease.status === "Expiring"
+                                ? "bg-warning/10 text-warning"
+                                : "bg-destructive/10 text-destructive"
+                          }
+                        >
+                          {lease.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <Button variant="ghost" size="sm">
+                          {t("common.view", "View")}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Coming Soon Notice */}
+      <Card className="border-dashed">
+        <CardContent className="pt-6">
+          <div className="text-center py-4">
+            <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <h3 className="font-semibold mb-2">
+              {t("fm.properties.leases.comingSoon.title", "Full Lease Management Coming Soon")}
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              {t(
+                "fm.properties.leases.comingSoon.description",
+                "Contract uploads, renewal workflows, rent collection tracking, and financial reporting will be available in the next release."
+              )}
+            </p>
           </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-muted">
-              <tr>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("properties.leases.leaseId", "Lease ID")}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("properties.leases.unit", "Unit")}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("properties.leases.tenant", "Tenant")}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("properties.leases.type", "Type")}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("properties.leases.startDate", "Start Date")}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("properties.leases.endDate", "End Date")}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("properties.leases.monthlyRent", "Monthly Rent")}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("properties.leases.leaseStatus", "Lease Status")}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("properties.leases.paymentStatus", "Payment Status")}
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("properties.leases.actions", "Actions")}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-card divide-y divide-border">
-              {leases.map((lease) => (
-                <tr key={lease.id} className="hover:bg-muted">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-foreground">
-                    {lease.id}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {lease.unit}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {lease.tenant}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {lease.type}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {lease.startDate || "N/A"}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {lease.endDate || "N/A"}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {lease.monthlyRent}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(lease.status)}`}
-                    >
-                      {getStatusTranslation(lease.status)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getPaymentStatusColor(lease.paymentStatus)}`}
-                    >
-                      {getStatusTranslation(lease.paymentStatus)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex gap-2">
-                      <button className="text-primary hover:text-primary">
-                        {t("common.view", "View")}
-                      </button>
-                      <button className="text-success hover:text-success-foreground">
-                        {t("common.edit", "Edit")}
-                      </button>
-                      <button className="text-warning hover:text-warning">
-                        {t("properties.leases.renew", "Renew")}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Upcoming Renewals */}
-      <div className="card">
-        <h3 className="text-lg font-semibold mb-4">
-          {t("properties.leases.upcomingRenewals", "Upcoming Renewals")}
-        </h3>
-        <div className="space-y-3">
-          {[
-            {
-              unit: "A-101",
-              tenant: "Ahmed Al-Mansouri",
-              date: "2025-12-15",
-              days: 31,
-            },
-            {
-              unit: "B-305",
-              tenant: "Sarah Johnson",
-              date: "2025-12-22",
-              days: 38,
-            },
-            {
-              unit: "C-202",
-              tenant: "Mohammed Ali",
-              date: "2026-01-01",
-              days: 48,
-            },
-          ].map((renewal) => (
-            <div
-              key={renewal.unit}
-              className="flex items-center justify-between p-3 bg-accent/10 rounded-2xl border border-warning/20"
-            >
-              <div>
-                <p className="font-medium">
-                  {renewal.unit} - {renewal.tenant}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t("properties.leases.expires", "Expires")}: {renewal.date} (
-                  {renewal.days} {t("common.days", "days")})
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button className="btn-ghost text-sm">
-                  {t("properties.leases.renew", "Renew")}
-                </button>
-                <button className="btn-ghost text-sm">
-                  {t("properties.leases.contact", "Contact")}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="card">
-        <h3 className="text-lg font-semibold mb-4">
-          {t("common.quickActions", "Quick Actions")}
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <button className="btn-ghost text-center">
-            <div className="text-2xl mb-2">📄</div>
-            <div className="text-sm font-medium">
-              {t("properties.leases.newLease", "New Lease")}
-            </div>
-          </button>
-          <button className="btn-ghost text-center">
-            <div className="text-2xl mb-2">🔄</div>
-            <div className="text-sm font-medium">
-              {t("properties.leases.renewals", "Renewals")}
-            </div>
-          </button>
-          <button className="btn-ghost text-center">
-            <div className="text-2xl mb-2">💰</div>
-            <div className="text-sm font-medium">
-              {t("properties.leases.rentCollection", "Rent Collection")}
-            </div>
-          </button>
-          <button className="btn-ghost text-center">
-            <div className="text-2xl mb-2">📋</div>
-            <div className="text-sm font-medium">
-              {t("properties.leases.templates", "Templates")}
-            </div>
-          </button>
-          <button className="btn-ghost text-center">
-            <div className="text-2xl mb-2">📊</div>
-            <div className="text-sm font-medium">
-              {t("common.reports", "Reports")}
-            </div>
-          </button>
-          <button className="btn-ghost text-center">
-            <div className="text-2xl mb-2">⚙️</div>
-            <div className="text-sm font-medium">
-              {t("common.settings", "Settings")}
-            </div>
-          </button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

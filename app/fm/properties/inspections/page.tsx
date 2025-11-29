@@ -8,7 +8,6 @@ import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import {
   ClipboardList,
   Home,
-  Loader2,
   MapPin,
   Shield,
   Wrench,
@@ -24,7 +23,6 @@ export default function PropertyInspectionWorkspace() {
     moduleId: "properties",
   });
   const auto = useAutoTranslator("fm.properties.inspections");
-  const [isReserving, setReserving] = useState(false);
   const { properties, isLoading, error, refresh } = useProperties("?limit=50");
   const vendorAssignmentsApiEnabled =
     process.env.NEXT_PUBLIC_VENDOR_ASSIGNMENTS_API_ENABLED === "true";
@@ -33,35 +31,15 @@ export default function PropertyInspectionWorkspace() {
     process.env.NODE_ENV !== "production";
   const shouldQueryVendorAssignments =
     vendorAssignmentsApiEnabled || vendorAssignmentsMocksEnabled;
-  const handleReserveSlot = async () => {
-    setReserving(true);
-    const toastId = toast.loading(
-      auto("Securing inspection slot...", "header.reserve.loading"),
+
+  // Reserve slot feature - placeholder until API is implemented
+  const handleReserveSlot = () => {
+    toast.info(
+      auto(
+        "Inspection scheduling is coming soon. This feature requires the /api/fm/inspections endpoint.",
+        "header.reserve.comingSoon"
+      )
     );
-    try {
-      const response = await fetch("/api/properties/inspections/reserve", {
-        method: "POST",
-      });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(
-          payload?.error ??
-            auto("Unable to reserve slot.", "header.reserve.error"),
-        );
-      }
-      toast.success(
-        auto("Inspection slot reserved.", "header.reserve.success"),
-        { id: toastId },
-      );
-    } catch (_error) {
-      const message =
-        _error instanceof Error
-          ? _error.message
-          : auto("Unable to reserve slot.", "header.reserve.error");
-      toast.error(message, { id: toastId });
-    } finally {
-      setReserving(false);
-    }
   };
 
   const [vendorCount, setVendorCount] = useState<number>(0);
@@ -176,18 +154,9 @@ export default function PropertyInspectionWorkspace() {
             <ClipboardList className="me-2 h-4 w-4" />
             {auto("Import inspection plan", "header.import")}
           </Button>
-          <Button onClick={handleReserveSlot} disabled={isReserving}>
-            {isReserving ? (
-              <>
-                <Loader2 className="me-2 h-4 w-4 animate-spin" />
-                {auto("Reserving...", "header.reserving")}
-              </>
-            ) : (
-              <>
-                <Home className="me-2 h-4 w-4" />
-                {auto("Reserve inspection slot", "header.reserve")}
-              </>
-            )}
+          <Button onClick={handleReserveSlot}>
+            <Home className="me-2 h-4 w-4" />
+            {auto("Reserve inspection slot", "header.reserve")}
           </Button>
         </div>
       </header>

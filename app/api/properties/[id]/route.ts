@@ -144,7 +144,7 @@ export async function PATCH(
     const data = updatePropertySchema.parse(await req.json());
 
     const property = await Property.findOneAndUpdate(
-      { _id: params.id, tenantId: user.tenantId },
+      { _id: params.id, orgId: user.orgId },
       { $set: { ...data, updatedBy: user.id } },
       { new: true },
     );

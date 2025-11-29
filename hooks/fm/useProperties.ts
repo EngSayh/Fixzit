@@ -45,7 +45,8 @@ const fetcher = async <T>(url: string): Promise<T> => {
 };
 
 export function useProperties(params?: string) {
-  const url = params ? `/api/properties${params}` : "/api/properties";
+  // Use RBAC-secured FM endpoint instead of legacy /api/properties
+  const url = params ? `/api/fm/properties${params}` : "/api/fm/properties";
   const { data, error, isLoading, mutate } = useSWR<{
     items: PropertyRecord[];
   }>(url, fetcher);

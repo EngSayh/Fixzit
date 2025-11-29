@@ -169,7 +169,7 @@ export async function PATCH(
       orgId: tenantId 
     };
     
-    const updated = await collection.findOneAndUpdate(
+    const updateResult = await collection.findOneAndUpdate(
       query,
       { 
         $set: { 
@@ -180,9 +180,8 @@ export async function PATCH(
       { returnDocument: "after" }
     );
 
-    // MongoDB Driver v5+: findOneAndUpdate returns document directly
-
-    if (!updated) {
+    // MongoDB v6+ returns document directly, not { value: doc }
+    if (!updateResult) {
       return NextResponse.json(
         { success: false, error: "Budget not found" },
         { status: 404 }
@@ -191,7 +190,7 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      data: mapBudget(updated),
+      data: mapBudget(updateResult),
     });
   } catch (error) {
     logger.error("FM Budgets API - PATCH error", error as Error);
@@ -247,10 +246,10 @@ export async function DELETE(
       orgId: tenantId 
     };
     
-    const deleted = await collection.findOneAndDelete(query);
-    // MongoDB Driver v5+: findOneAndDelete returns document directly
+    const deleteResult = await collection.findOneAndDelete(query);
 
-    if (!deleted) {
+    // MongoDB v6+ returns document directly, not { value: doc }
+    if (!deleteResult) {
       return NextResponse.json(
         { success: false, error: "Budget not found" },
         { status: 404 }

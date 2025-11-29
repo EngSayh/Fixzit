@@ -8,11 +8,6 @@ import { FMErrors } from "@/app/api/fm/errors";
 import { requireFmPermission } from "@/app/api/fm/permissions";
 import { resolveTenantId } from "../utils/tenant";
 
-interface MongoFindAndModifyResult<T> {
-  value?: T;
-  ok?: number;
-}
-
 type PropertyDocument = {
   _id: ObjectId;
   orgId: string; // AUDIT-2025-11-26: Changed from org_id to orgId for consistency
@@ -387,17 +382,14 @@ export async function PATCH(req: NextRequest) {
       { returnDocument: "after" },
     );
 
-    const mongoResult = result as
-      | MongoFindAndModifyResult<PropertyDocument>
-      | PropertyDocument;
-    const doc = "value" in mongoResult ? mongoResult.value : mongoResult;
-    if (!doc) {
+    // MongoDB v6+ returns document directly, not { value: doc }
+    if (!result) {
       return FMErrors.notFound("Property");
     }
 
     return NextResponse.json({
       success: true,
-      data: mapProperty(doc as PropertyDocument),
+      data: mapProperty(result),
       message: "Property updated successfully",
     });
   } catch (error) {
@@ -443,11 +435,8 @@ export async function DELETE(req: NextRequest) {
       orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
     });
 
-    const mongoResult = result as
-      | MongoFindAndModifyResult<PropertyDocument>
-      | PropertyDocument;
-    const deleted = "value" in mongoResult ? mongoResult.value : mongoResult;
-    if (!deleted) {
+    // MongoDB v6+ returns document directly, not { value: doc }
+    if (!result) {
       return FMErrors.notFound("Property");
     }
 
