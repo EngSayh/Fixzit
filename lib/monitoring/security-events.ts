@@ -23,7 +23,11 @@ export async function logSecurityEvent(event: {
   const redactedIp = redactIdentifier(event.ip);
   const redactedMetadata = redactMetadata(event.metadata);
   
-  // Extract orgId from metadata for multi-tenant isolation
+  // Extract orgId from metadata for multi-tenant isolation.
+  // NOTE: Metadata-based orgId is used for TELEMETRY ONLY (monitoring/alerting isolation).
+  // This does NOT grant any permissions - it only affects how security events are grouped.
+  // Spoofing would only misclassify the attacker's own events in monitoring dashboards.
+  // For security-critical operations, use session.user.orgId from authenticated context.
   const orgId = typeof event.metadata?.orgId === "string" 
     ? event.metadata.orgId 
     : undefined;

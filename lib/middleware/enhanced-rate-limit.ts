@@ -25,7 +25,11 @@ export function enforceRateLimit(
   const prefix = options.keyPrefix ?? new URL(request.url).pathname;
   const key = `${prefix}:${identifier}`;
   
-  // Extract orgId from options or request headers for multi-tenant tracking
+  // Extract orgId from options or request headers for multi-tenant tracking.
+  // NOTE: Header-based orgId is used for TELEMETRY ONLY (monitoring/alerting isolation).
+  // This does NOT grant any permissions - it only affects how events are grouped.
+  // Spoofing would only misclassify the attacker's own events in monitoring dashboards.
+  // For security-critical operations, use session.user.orgId from authenticated context.
   const orgId = options.orgId 
     ?? request.headers.get("X-Org-ID") 
     ?? request.headers.get("X-Tenant-ID")

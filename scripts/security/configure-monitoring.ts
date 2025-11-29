@@ -1,13 +1,65 @@
 #!/usr/bin/env tsx
 /**
  * Security Event Monitoring Configuration
- * Adds logging hooks for rate limiting, CORS violations, and auth failures
- *
- * Usage: pnpm tsx scripts/security/configure-monitoring.ts
+ * 
+ * ⚠️ DEPRECATED - DO NOT RUN ⚠️
+ * 
+ * This generator script is OUTDATED and will overwrite the hardened 
+ * security monitoring implementations with insecure versions.
+ * 
+ * The following files have been manually hardened with:
+ * - PII redaction (redactIdentifier, redactMetadata)
+ * - Multi-tenant isolation (orgId scoping in tracking keys)
+ * - First-crossing alert guard (prevents alert spam)
+ * - Sentry integration with production guards
+ * - Accurate metrics (event counts, not just unique keys)
+ * 
+ * Files that would be overwritten (DO NOT REGENERATE):
+ * - lib/security/monitoring.ts
+ * - lib/middleware/enhanced-rate-limit.ts  
+ * - lib/middleware/enhanced-cors.ts
+ * 
+ * If you need to update monitoring configuration:
+ * 1. Edit the target files directly
+ * 2. Follow the patterns in the existing hardened implementations
+ * 3. Run tests: pnpm vitest run tests/unit/lib/otp-utils.test.ts
+ * 
+ * @deprecated Since 2025-11-29 - Security audit hardening applied manually
  */
 
-import { writeFileSync } from "fs";
+import { existsSync } from "fs";
 import { join } from "path";
+
+// Safety check - abort if hardened files exist
+const HARDENED_FILES = [
+  "lib/security/monitoring.ts",
+  "lib/middleware/enhanced-rate-limit.ts",
+  "lib/middleware/enhanced-cors.ts",
+];
+
+const cwd = process.cwd();
+const existingFiles = HARDENED_FILES.filter(f => existsSync(join(cwd, f)));
+
+if (existingFiles.length > 0) {
+  console.error("❌ ABORT: This script is DEPRECATED and would overwrite hardened security files.\n");
+  console.error("The following files have been manually hardened with security improvements:");
+  existingFiles.forEach(f => console.error(`  - ${f}`));
+  console.error("\n⚠️  DO NOT regenerate these files. Edit them directly if changes are needed.");
+  console.error("\nHardened features that would be lost:");
+  console.error("  - PII redaction (redactIdentifier, redactMetadata)");
+  console.error("  - Multi-tenant isolation (orgId in tracking keys)");
+  console.error("  - First-crossing alert guard (prevents spam)");
+  console.error("  - Sentry integration with production guards");
+  console.error("  - Accurate metrics (event counts, not just unique keys)");
+  console.error("\nExiting without changes.");
+  process.exit(1);
+}
+
+// Original generator code below (only runs if files don't exist)
+// This is kept for reference but should never execute in normal operation
+
+console.warn("⚠️  WARNING: Running deprecated generator. This should only happen on fresh installs.");
+console.warn("   Consider using the hardened implementations from git history instead.\n");
 
 const MONITORING_CONFIG = {
   rateLimit: {

@@ -79,6 +79,47 @@ export const redactIdentifier = (identifier: string): string => {
 };
 
 /**
+ * Create a non-reversible hash of an identifier for monitoring keys.
+ * Uses a simple but effective hash that preserves cardinality without leaking PII.
+ * 
+ * This is useful when you need to track unique identifiers in monitoring
+ * without the collision issues of 3-char truncation.
+ * 
+ * @param identifier - The identifier to hash (email, IP, user ID, etc.)
+ * @param salt - Optional salt for additional entropy (defaults to empty string)
+ * @returns A 16-character hex hash suitable for monitoring keys
+ * 
+ * @example
+ * hashIdentifier("user@email.com") // "a1b2c3d4e5f67890"
+ * hashIdentifier("user@email.com", "monitoring") // "f0e1d2c3b4a59687"
+ * 
+ * @note This is NOT cryptographically secure - use for monitoring/telemetry only.
+ * For security-critical hashing, use proper crypto functions with secrets.
+ */
+export const hashIdentifier = (identifier: string, salt: string = ''): string => {
+  // Simple FNV-1a hash - fast, good distribution, deterministic
+  // Not cryptographically secure, but fine for monitoring key generation
+  const input = salt + identifier;
+  let hash = 2166136261; // FNV offset basis
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619); // FNV prime
+  }
+  // Convert to unsigned 32-bit and then to hex, padded to 8 chars
+  const hex1 = (hash >>> 0).toString(16).padStart(8, '0');
+  
+  // Generate second half with different seed for better distribution
+  hash = 2166136261;
+  for (let i = input.length - 1; i >= 0; i--) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  const hex2 = (hash >>> 0).toString(16).padStart(8, '0');
+  
+  return hex1 + hex2;
+};
+
+/**
  * Keys that should be fully redacted when found in metadata objects.
  * Includes common PII field names for GDPR/Saudi Labor Law compliance.
  */

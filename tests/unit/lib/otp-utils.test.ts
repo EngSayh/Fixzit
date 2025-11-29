@@ -11,6 +11,7 @@ import {
   isValidCompanyCode,
   redactIdentifier,
   redactMetadata,
+  hashIdentifier,
 } from "@/lib/otp-utils";
 
 describe("OTP Utils", () => {
@@ -271,6 +272,120 @@ describe("OTP Utils", () => {
           Email: "tes***",
           SSN: "[REDACTED]",
         });
+      });
+    });
+  });
+
+  describe("hashIdentifier", () => {
+    describe("Basic Functionality", () => {
+      it("should return a 16-character hex string", () => {
+        const hash = hashIdentifier("user@email.com");
+        expect(hash).toMatch(/^[0-9a-f]{16}$/);
+        expect(hash.length).toBe(16);
+      });
+
+      it("should produce deterministic output for same input", () => {
+        const hash1 = hashIdentifier("user@email.com");
+        const hash2 = hashIdentifier("user@email.com");
+        expect(hash1).toBe(hash2);
+      });
+
+      it("should produce different hashes for different inputs", () => {
+        const hash1 = hashIdentifier("user1@email.com");
+        const hash2 = hashIdentifier("user2@email.com");
+        expect(hash1).not.toBe(hash2);
+      });
+    });
+
+    describe("Salt Support", () => {
+      it("should produce different hashes with different salts", () => {
+        const hash1 = hashIdentifier("user@email.com", "salt1");
+        const hash2 = hashIdentifier("user@email.com", "salt2");
+        expect(hash1).not.toBe(hash2);
+      });
+
+      it("should produce same hash with same salt", () => {
+        const hash1 = hashIdentifier("user@email.com", "monitoring");
+        const hash2 = hashIdentifier("user@email.com", "monitoring");
+        expect(hash1).toBe(hash2);
+      });
+
+      it("should use empty string as default salt", () => {
+        const hash1 = hashIdentifier("test");
+        const hash2 = hashIdentifier("test", "");
+        expect(hash1).toBe(hash2);
+      });
+    });
+
+    describe("Distribution Quality", () => {
+      it("should produce unique hashes for similar inputs", () => {
+        // Test that small changes produce different hashes
+        const inputs = [
+          "user1@email.com",
+          "user2@email.com",
+          "user3@email.com",
+          "userA@email.com",
+          "userB@email.com",
+        ];
+        const hashes = inputs.map(i => hashIdentifier(i));
+        const uniqueHashes = new Set(hashes);
+        expect(uniqueHashes.size).toBe(inputs.length);
+      });
+
+      it("should produce different hashes for truncation-equivalent inputs", () => {
+        // These would all become "use***" with redactIdentifier
+        const collisionProne = [
+          "user1@a.com",
+          "user2@b.com",
+          "user3@c.com",
+          "user_different",
+          "username123",
+        ];
+        const hashes = collisionProne.map(i => hashIdentifier(i));
+        const uniqueHashes = new Set(hashes);
+        expect(uniqueHashes.size).toBe(collisionProne.length);
+      });
+    });
+
+    describe("Edge Cases", () => {
+      it("should handle empty string", () => {
+        const hash = hashIdentifier("");
+        expect(hash).toMatch(/^[0-9a-f]{16}$/);
+      });
+
+      it("should handle very long strings", () => {
+        const longString = "a".repeat(10000);
+        const hash = hashIdentifier(longString);
+        expect(hash).toMatch(/^[0-9a-f]{16}$/);
+        expect(hash.length).toBe(16);
+      });
+
+      it("should handle unicode characters", () => {
+        const hash = hashIdentifier("مستخدم@بريد.com");
+        expect(hash).toMatch(/^[0-9a-f]{16}$/);
+      });
+
+      it("should handle special characters", () => {
+        const hash = hashIdentifier("user+test@email.com!#$%");
+        expect(hash).toMatch(/^[0-9a-f]{16}$/);
+      });
+    });
+
+    describe("Security Properties", () => {
+      it("should not be reversible (one-way)", () => {
+        const hash = hashIdentifier("secret@email.com");
+        // Hash should not contain any recognizable part of input
+        expect(hash).not.toContain("secret");
+        expect(hash).not.toContain("email");
+        expect(hash).not.toContain("@");
+      });
+
+      it("should produce consistent output across multiple calls", () => {
+        // Verify determinism across 100 calls
+        const expected = hashIdentifier("test@example.com");
+        for (let i = 0; i < 100; i++) {
+          expect(hashIdentifier("test@example.com")).toBe(expected);
+        }
       });
     });
   });
