@@ -196,11 +196,30 @@ class TapPaymentsClient {
   private readonly secretKey: string;
   private readonly publicKey: string;
   private readonly webhookSecret: string;
+  private readonly isConfigured: boolean;
 
   constructor() {
     this.secretKey = process.env.TAP_SECRET_KEY || "";
     this.publicKey = process.env.TAP_PUBLIC_KEY || "";
     this.webhookSecret = process.env.TAP_WEBHOOK_SECRET || "";
+    const paytabsConfigured =
+      Boolean(process.env.PAYTABS_PROFILE_ID) &&
+      Boolean(process.env.PAYTABS_SERVER_KEY);
+    const tapEnvPresent =
+      Boolean(this.secretKey) ||
+      Boolean(this.publicKey) ||
+      Boolean(this.webhookSecret);
+    this.isConfigured = tapEnvPresent;
+
+    // Suppress Tap warnings when PayTabs is configured and Tap is intentionally absent.
+    if (!tapEnvPresent) {
+      if (!paytabsConfigured) {
+        logger.warn(
+          "Tap Payments not configured and PayTabs not configured; payment routes will be disabled until one provider is set",
+        );
+      }
+      return;
+    }
 
     if (!this.secretKey) {
       logger.error("TAP_SECRET_KEY environment variable not set");
@@ -217,10 +236,19 @@ class TapPaymentsClient {
     }
   }
 
+  private ensureConfigured(action: string) {
+    if (!this.isConfigured) {
+      throw new Error(
+        `Tap Payments is not configured (${action}). Set TAP_SECRET_KEY and TAP_PUBLIC_KEY or use PayTabs instead.`,
+      );
+    }
+  }
+
   /**
    * Get public key for frontend card tokenization
    */
   getPublicKey(): string {
+    this.ensureConfigured("public key lookup");
     return this.publicKey;
   }
 
@@ -230,6 +258,7 @@ class TapPaymentsClient {
    * @returns Charge response with transaction URL
    */
   async createCharge(request: TapChargeRequest): Promise<TapChargeResponse> {
+    this.ensureConfigured("create charge");
     try {
       logger.info("Creating Tap payment charge", {
         amount: request.amount,
@@ -282,6 +311,7 @@ class TapPaymentsClient {
    * @returns Charge details
    */
   async getCharge(chargeId: string): Promise<TapChargeResponse> {
+    this.ensureConfigured("get charge");
     try {
       const response = await fetch(`${this.baseUrl}/charges/${chargeId}`, {
         method: "GET",
@@ -321,6 +351,7 @@ class TapPaymentsClient {
    * @returns Refund response
    */
   async createRefund(request: TapRefundRequest): Promise<TapRefundResponse> {
+    this.ensureConfigured("create refund");
     try {
       logger.info("Creating Tap refund", {
         chargeId: request.charge_id,
@@ -373,6 +404,7 @@ class TapPaymentsClient {
    * @returns True if signature is valid
    */
   verifyWebhookSignature(payload: string, signature: string): boolean {
+    this.ensureConfigured("verify webhook signature");
     if (!this.webhookSecret) {
       logger.warn(
         "Webhook signature verification skipped - TAP_WEBHOOK_SECRET not configured",
@@ -415,6 +447,7 @@ class TapPaymentsClient {
    * @throws Error if signature is invalid
    */
   parseWebhookEvent(payload: string, signature: string): TapWebhookEvent {
+    this.ensureConfigured("parse webhook event");
     if (!this.verifyWebhookSignature(payload, signature)) {
       throw new Error("Invalid webhook signature");
     }
