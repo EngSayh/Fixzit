@@ -10,6 +10,7 @@ import {
   buildOtpKey,
   isValidCompanyCode,
   redactIdentifier,
+  redactMetadata,
 } from "@/lib/otp-utils";
 
 describe("OTP Utils", () => {
@@ -130,6 +131,146 @@ describe("OTP Utils", () => {
         expect(redacted).not.toContain("ACME");
         expect(redacted).not.toContain("SECRET");
         expect(redacted).not.toContain("::");
+      });
+    });
+  });
+
+  describe("redactMetadata", () => {
+    describe("Sensitive Key Redaction", () => {
+      it("should fully redact password fields", () => {
+        const result = redactMetadata({ password: "secret123", name: "John" });
+        expect(result).toEqual({ password: "[REDACTED]", name: "John" });
+      });
+
+      it("should fully redact token fields", () => {
+        const result = redactMetadata({
+          token: "abc123",
+          accessToken: "xyz789",
+          sessionToken: "sess123",
+        });
+        expect(result).toEqual({
+          token: "[REDACTED]",
+          accessToken: "[REDACTED]",
+          sessionToken: "[REDACTED]",
+        });
+      });
+
+      it("should fully redact financial fields", () => {
+        const result = redactMetadata({
+          ssn: "123-45-6789",
+          creditCard: "4111111111111111",
+          bankAccount: "123456789",
+          salary: "50000",
+        });
+        expect(result).toEqual({
+          ssn: "[REDACTED]",
+          creditCard: "[REDACTED]",
+          bankAccount: "[REDACTED]",
+          salary: "[REDACTED]",
+        });
+      });
+
+      it("should redact OTP codes", () => {
+        const result = redactMetadata({ otp: "123456", otpCode: "654321" });
+        expect(result).toEqual({ otp: "[REDACTED]", otpCode: "[REDACTED]" });
+      });
+    });
+
+    describe("Identifier Partial Redaction", () => {
+      it("should partially redact email fields", () => {
+        const result = redactMetadata({ email: "user@test.com", name: "John" });
+        expect(result).toEqual({ email: "use***", name: "John" });
+      });
+
+      it("should partially redact phone fields", () => {
+        const result = redactMetadata({ phone: "+1234567890", mobile: "+9876543210" });
+        expect(result).toEqual({ phone: "+12***", mobile: "+98***" });
+      });
+
+      it("should partially redact IP addresses", () => {
+        const result = redactMetadata({ ip: "192.168.1.1", ipAddress: "10.0.0.1" });
+        expect(result).toEqual({ ip: "192***", ipAddress: "10.***" });
+      });
+
+      it("should partially redact user IDs", () => {
+        const result = redactMetadata({ userId: "user123", employeeId: "EMP001" });
+        expect(result).toEqual({ userId: "use***", employeeId: "EMP***" });
+      });
+    });
+
+    describe("Nested Objects", () => {
+      it("should recursively redact nested objects", () => {
+        const result = redactMetadata({
+          user: { email: "nested@test.com", password: "secret" },
+          data: { safe: "value" },
+        });
+        expect(result).toEqual({
+          user: { email: "nes***", password: "[REDACTED]" },
+          data: { safe: "value" },
+        });
+      });
+
+      it("should handle deeply nested structures", () => {
+        const result = redactMetadata({
+          level1: {
+            level2: {
+              email: "deep@test.com",
+            },
+          },
+        });
+        expect(result).toEqual({
+          level1: {
+            level2: {
+              email: "dee***",
+            },
+          },
+        });
+      });
+    });
+
+    describe("Edge Cases", () => {
+      it("should return undefined for null/undefined input", () => {
+        expect(redactMetadata(null)).toBeUndefined();
+        expect(redactMetadata(undefined)).toBeUndefined();
+      });
+
+      it("should handle empty objects", () => {
+        expect(redactMetadata({})).toEqual({});
+      });
+
+      it("should pass through safe values unchanged", () => {
+        const result = redactMetadata({
+          count: 42,
+          enabled: true,
+          items: ["a", "b"],
+          message: "Hello world",
+        });
+        expect(result).toEqual({
+          count: 42,
+          enabled: true,
+          items: ["a", "b"],
+          message: "Hello world",
+        });
+      });
+
+      it("should handle non-string sensitive values", () => {
+        const result = redactMetadata({ password: 12345, email: null });
+        expect(result).toEqual({ password: "[REDACTED]", email: "[REDACTED]" });
+      });
+    });
+
+    describe("Case Insensitivity", () => {
+      it("should redact regardless of key casing", () => {
+        const result = redactMetadata({
+          PASSWORD: "secret",
+          Email: "test@example.com",
+          SSN: "123-45-6789",
+        });
+        expect(result).toEqual({
+          PASSWORD: "[REDACTED]",
+          Email: "tes***",
+          SSN: "[REDACTED]",
+        });
       });
     });
   });

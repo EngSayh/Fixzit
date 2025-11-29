@@ -77,3 +77,74 @@ export const redactIdentifier = (identifier: string): string => {
   if (!identifier || identifier.length <= 3) return '***';
   return identifier.slice(0, 3) + '***';
 };
+
+/**
+ * Keys that should be fully redacted when found in metadata objects.
+ * Includes common PII field names for GDPR/Saudi Labor Law compliance.
+ */
+const SENSITIVE_KEYS = new Set([
+  'password', 'token', 'secret', 'apiKey', 'api_key', 'accessToken', 'access_token',
+  'refreshToken', 'refresh_token', 'ssn', 'nationalId', 'national_id', 'creditCard',
+  'credit_card', 'cvv', 'pin', 'bankAccount', 'bank_account', 'iban', 'salary',
+  'privateKey', 'private_key', 'otp', 'otpCode', 'otp_code', 'sessionToken',
+]);
+
+/**
+ * Keys containing identifiers that should be partially redacted (show first 3 chars).
+ */
+const IDENTIFIER_KEYS = new Set([
+  'identifier', 'email', 'phone', 'ip', 'ipAddress', 'ip_address', 'userId',
+  'user_id', 'employeeId', 'employee_id', 'username', 'mobile', 'cellphone',
+]);
+
+/**
+ * Redact sensitive fields in a metadata object for safe logging.
+ * - Fully redacts sensitive keys (passwords, tokens, SSN, etc.)
+ * - Partially redacts identifier keys (shows first 3 chars)
+ * - Recursively handles nested objects
+ * 
+ * @param metadata - Object potentially containing sensitive data
+ * @returns New object with sensitive fields redacted
+ * 
+ * @example
+ * redactMetadata({ email: "user@test.com", password: "secret123" })
+ * // { email: "use***", password: "[REDACTED]" }
+ */
+export const redactMetadata = (
+  metadata: Record<string, unknown> | undefined | null
+): Record<string, unknown> | undefined => {
+  if (!metadata || typeof metadata !== 'object') return undefined;
+
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(metadata)) {
+    const lowerKey = key.toLowerCase();
+    
+    // Fully redact sensitive keys
+    if (SENSITIVE_KEYS.has(key) || SENSITIVE_KEYS.has(lowerKey)) {
+      result[key] = '[REDACTED]';
+      continue;
+    }
+
+    // Partially redact identifier keys
+    if (IDENTIFIER_KEYS.has(key) || IDENTIFIER_KEYS.has(lowerKey)) {
+      if (typeof value === 'string') {
+        result[key] = redactIdentifier(value);
+      } else {
+        result[key] = '[REDACTED]';
+      }
+      continue;
+    }
+
+    // Recursively handle nested objects
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      result[key] = redactMetadata(value as Record<string, unknown>);
+      continue;
+    }
+
+    // Pass through safe values
+    result[key] = value;
+  }
+
+  return result;
+};

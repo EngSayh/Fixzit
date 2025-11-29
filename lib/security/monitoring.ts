@@ -84,7 +84,9 @@ function trackEvent(
   timestamps.push(Date.now());
   map.set(key, timestamps);
 
-  if (timestamps.length >= threshold) {
+  // Alert only on FIRST threshold crossing to prevent spam
+  // (uses === instead of >= so alert fires exactly once per key per window)
+  if (timestamps.length === threshold) {
     logger.warn(`[${eventType}] Alert threshold exceeded`, {
       key,
       count: timestamps.length,
@@ -117,9 +119,12 @@ function trackEvent(
   }
 }
 
-export function trackRateLimitHit(identifier: string, endpoint: string): void {
+export function trackRateLimitHit(identifier: string, endpoint: string, orgId?: string): void {
   const redacted = redactIdentifier(identifier);
-  const key = `${redacted}:${endpoint}`;
+  // Include orgId in key for multi-tenant isolation (prevents cross-tenant event collapse)
+  const key = orgId 
+    ? `${orgId}:${redacted}:${endpoint}`
+    : `global:${redacted}:${endpoint}`;
   trackEvent(
     rateLimitHits,
     key,
@@ -128,33 +133,43 @@ export function trackRateLimitHit(identifier: string, endpoint: string): void {
   );
 
   logger.warn("[RateLimit] Request blocked", {
+    orgId: orgId ?? "global",
     identifier: redacted,
     endpoint,
     timestamp: new Date().toISOString(),
   });
 }
 
-export function trackCorsViolation(origin: string, endpoint: string): void {
-  const key = `${origin}:${endpoint}`;
+export function trackCorsViolation(origin: string, endpoint: string, orgId?: string): void {
+  // Include orgId in key for multi-tenant isolation
+  const key = orgId
+    ? `${orgId}:${origin}:${endpoint}`
+    : `global:${origin}:${endpoint}`;
   trackEvent(corsViolations, key, "CORS", ALERT_THRESHOLDS.cors.alertThreshold);
 
   logger.warn("[CORS] Origin blocked", {
+    orgId: orgId ?? "global",
     origin,
     endpoint,
     timestamp: new Date().toISOString(),
   });
 }
 
-export function trackAuthFailure(identifier: string, reason: string): void {
+export function trackAuthFailure(identifier: string, reason: string, orgId?: string): void {
   const redacted = redactIdentifier(identifier);
+  // Include orgId in key for multi-tenant isolation
+  const key = orgId
+    ? `${orgId}:${redacted}`
+    : `global:${redacted}`;
   trackEvent(
     authFailures,
-    redacted,
+    key,
     "Auth",
     ALERT_THRESHOLDS.auth.alertThreshold,
   );
 
   logger.error("[Auth] Authentication failed", {
+    orgId: orgId ?? "global",
     identifier: redacted,
     reason,
     timestamp: new Date().toISOString(),
@@ -162,10 +177,18 @@ export function trackAuthFailure(identifier: string, reason: string): void {
 }
 
 export function getSecurityMetrics() {
+  // Sum actual event counts, not just unique keys
+  const sumEvents = (map: Map<string, number[]>): number =>
+    [...map.values()].reduce((acc, timestamps) => acc + timestamps.length, 0);
+
   return {
-    rateLimitHits: rateLimitHits.size,
-    corsViolations: corsViolations.size,
-    authFailures: authFailures.size,
+    rateLimitHits: sumEvents(rateLimitHits),
+    corsViolations: sumEvents(corsViolations),
+    authFailures: sumEvents(authFailures),
+    // Also expose unique key counts for cardinality analysis
+    rateLimitUniqueKeys: rateLimitHits.size,
+    corsUniqueKeys: corsViolations.size,
+    authUniqueKeys: authFailures.size,
     windowMs: WINDOW_MS,
   };
 }
