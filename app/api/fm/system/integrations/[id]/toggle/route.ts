@@ -14,7 +14,7 @@ import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
 type IntegrationDocument = {
   _id: ObjectId;
-  org_id: string;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
   integrationId: string;
   status: "connected" | "disconnected";
   updatedAt: Date;
@@ -47,9 +47,14 @@ export async function POST(
       action: FMAction.UPDATE,
     });
     if (actor instanceof NextResponse) return actor;
+
+    const isSuperAdmin = actor.isSuperAdmin === true;
+
+    // AUDIT-2025-11-29: Added RBAC context for proper tenant resolution
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      { isSuperAdmin, userId: actor.id, allowHeaderOverride: isSuperAdmin }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
@@ -61,15 +66,17 @@ export async function POST(
     const collection = db.collection<IntegrationDocument>(COLLECTION);
     const now = new Date();
 
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const existing = await collection.findOne({
-      org_id: tenantId,
+      orgId: tenantId,
       integrationId,
     });
     const nextStatus =
       existing?.status === "connected" ? "disconnected" : "connected";
 
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const result = await collection.findOneAndUpdate(
-      { org_id: tenantId, integrationId },
+      { orgId: tenantId, integrationId },
       {
         $set: {
           status: nextStatus,
