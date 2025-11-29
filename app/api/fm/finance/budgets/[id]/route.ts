@@ -203,8 +203,16 @@ export async function PATCH(
       );
     }
 
+    const rawBody = await req.json().catch(() => null);
+    if (!rawBody || typeof rawBody !== "object" || Array.isArray(rawBody)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid payload" },
+        { status: 400 },
+      );
+    }
+
     const { normalized: payload, provided } = parsePayload(
-      (await req.json()) as BudgetPayload,
+      rawBody as BudgetPayload,
     );
     const anyProvided = Object.values(provided).some(Boolean);
     if (!anyProvided) {

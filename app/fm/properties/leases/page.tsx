@@ -9,31 +9,31 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, FileText, Plus, RefreshCw } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useFmPermissions } from "@/components/fm/useFmPermissions";
+import { Role, SubRole } from "@/lib/rbac/client-roles";
 
 // Lease data derived from property records
 // TODO: Implement dedicated /api/fm/leases endpoint for full lease management
 
 export default function PropertiesLeasesPage() {
   const { t } = useTranslation();
-  const { data: session } = useSession();
+  const { hasAnyRole } = useFmPermissions();
   const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
     moduleId: "properties",
   });
   const { properties, isLoading, error, refresh } = useProperties("?limit=100");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const userRole = (session?.user as { role?: string })?.role;
-  const leaseActionRoles = new Set([
-    "SUPER_ADMIN",
-    "CORPORATE_ADMIN",
-    "MANAGEMENT",
-    "FINANCE",
-    "FINANCE_OFFICER",
-    "OPS",
-    "SUPPORT",
+  const canManageLeases = hasAnyRole([
+    Role.SUPER_ADMIN,
+    Role.CORPORATE_ADMIN,
+    Role.MANAGER,
+    Role.FINANCE,
+    Role.FINANCE_MANAGER,
+    SubRole.FINANCE_OFFICER,
+    Role.SUPPORT,
+    SubRole.OPERATIONS_MANAGER,
   ]);
-  const canManageLeases = Boolean(userRole && leaseActionRoles.has(userRole));
 
   // Derive lease information from properties with occupied units
   const leaseData = useMemo(() => {
@@ -83,7 +83,7 @@ export default function PropertiesLeasesPage() {
   const stats = useMemo(() => {
     const total = leaseData.length;
     const active = leaseData.filter((l) => l.status === "Active").length;
-    return { total, active, expiringSoon: 0, expired: 0 };
+    return { total, active };
   }, [leaseData]);
 
   if (!hasOrgContext) {
@@ -131,7 +131,7 @@ export default function PropertiesLeasesPage() {
       ) : null}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -159,37 +159,13 @@ export default function PropertiesLeasesPage() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t("fm.properties.leases.stats.expiring", "Expiring Soon")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-warning">
-              {isLoading ? "—" : stats.expiringSoon}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t("fm.properties.leases.stats.expired", "Expired")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">
-              {isLoading ? "—" : stats.expired}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Filter Bar */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-2">
-            {["all", "active", "expiring", "expired"].map((status) => (
+            {["all", "active"].map((status) => (
               <Button
                 key={status}
                 variant={statusFilter === status ? "default" : "outline"}

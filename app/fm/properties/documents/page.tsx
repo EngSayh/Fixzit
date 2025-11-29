@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
@@ -21,7 +21,6 @@ export default function PropertiesDocumentsPage() {
     moduleId: "properties",
   });
   const { properties, isLoading, error, refresh } = useProperties("?limit=100");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   const userRole = (session?.user as { role?: string })?.role;
   const documentActionRoles = new Set([
@@ -175,27 +174,6 @@ export default function PropertiesDocumentsPage() {
               )}
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Filter Bar */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-2">
-            {["all", "legal", "safety", "contract", "insurance"].map((type) => (
-              <Button
-                key={type}
-                variant={typeFilter === type ? "default" : "outline"}
-                size="sm"
-                onClick={() => setTypeFilter(type)}
-              >
-                {t(
-                  `fm.properties.documents.filter.${type}`,
-                  type.charAt(0).toUpperCase() + type.slice(1)
-                )}
-              </Button>
-            ))}
-          </div>
         </CardContent>
       </Card>
 
