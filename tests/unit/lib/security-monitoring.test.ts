@@ -204,10 +204,6 @@ describe("Security Monitoring", () => {
 
   describe("Multi-tenant Isolation", () => {
     it("should maintain separate event pools per org", () => {
-      const metricsBefore = getSecurityMetrics();
-      const hitsBefore = metricsBefore.rateLimitHits;
-      const keysBefore = metricsBefore.rateLimitUniqueKeys;
-      
       // Simulate attacks from different orgs with same endpoints
       const endpoint = "/api/multi-tenant-test";
       for (let i = 0; i < 5; i++) {
@@ -217,13 +213,25 @@ describe("Security Monitoring", () => {
         trackRateLimitHit(`mt-user${i}@email.com`, endpoint, "tenant-MT-B");
       }
       
-      const metricsAfter = getSecurityMetrics();
+      const metrics = getSecurityMetrics();
       
       // Total events should be 8
-      expect(metricsAfter.rateLimitHits).toBe(hitsBefore + 8);
+      expect(metrics.rateLimitHits).toBe(8);
       
-      // Should have at least 8 unique keys (5 from A + 3 from B, different hash:endpoint combos)
-      expect(metricsAfter.rateLimitUniqueKeys).toBeGreaterThanOrEqual(keysBefore + 8);
+      // Should have 8 unique keys (5 from A + 3 from B, each user:endpoint combo is unique)
+      expect(metrics.rateLimitUniqueKeys).toBe(8);
+    });
+
+    it("should isolate same-endpoint events across tenants", () => {
+      // Same endpoint hit by same user email but in different tenants
+      trackRateLimitHit("shared@test.com", "/api/shared", "tenant-1");
+      trackRateLimitHit("shared@test.com", "/api/shared", "tenant-2");
+      trackRateLimitHit("shared@test.com", "/api/shared", "tenant-3");
+      
+      const metrics = getSecurityMetrics();
+      // Each tenant has its own key, so 3 unique keys
+      expect(metrics.rateLimitUniqueKeys).toBe(3);
+      expect(metrics.rateLimitHits).toBe(3);
     });
   });
 });
