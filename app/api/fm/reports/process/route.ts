@@ -15,7 +15,7 @@ import { validateBucketPolicies } from "@/lib/security/s3-policy";
 
 type ReportJob = {
   _id: { toString(): string };
-  org_id: string;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
   name: string;
   type: string;
   format: string;
@@ -54,9 +54,13 @@ export async function POST(req: NextRequest) {
     });
     if (actor instanceof NextResponse) return actor;
 
+    const isSuperAdmin = actor.isSuperAdmin === true;
+
+    // AUDIT-2025-11-29: Added RBAC context for proper tenant resolution
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      { isSuperAdmin, userId: actor.id, allowHeaderOverride: isSuperAdmin }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
@@ -73,8 +77,9 @@ export async function POST(req: NextRequest) {
     const collection = db.collection<ReportJob>(COLLECTION);
     const queued: ReportJobDocument[] = [];
     while (queued.length < 5) {
+      // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
       const claimResult = (await collection.findOneAndUpdate(
-        { org_id: tenantId, status: "queued" },
+        { orgId: tenantId, status: "queued" },
         { $set: { status: "processing", updatedAt: new Date() } },
         { sort: { updatedAt: 1, _id: 1 }, returnDocument: "after" },
       )) as ModifyResult<ReportJob> | null;
@@ -144,8 +149,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Provide presigned URLs for the newly processed jobs
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const ready = await collection
-      .find({ org_id: tenantId, status: "ready" })
+      .find({ orgId: tenantId, status: "ready" })
       .sort({ updatedAt: -1 })
       .limit(5)
       .toArray();

@@ -167,10 +167,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Create product
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const product = new SouqProduct({
       fsin: finalFsin,
       ...validated,
-      org_id: orgId,
+      orgId,
       createdBy: session.user.id,
       isActive: true,
     });

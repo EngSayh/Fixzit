@@ -124,7 +124,10 @@ const patchSchema = z.object({
   attachments: z.array(attachmentInputSchema).optional()
 });
 
-export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
+export async function PATCH(
+  req: NextRequest,
+  props: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
   const params = await props.params;
   const workOrderId = params?.id || req.url.split('/').pop() || '';
   const ability: Ability = "EDIT"; // Type-safe: must match Ability union type
