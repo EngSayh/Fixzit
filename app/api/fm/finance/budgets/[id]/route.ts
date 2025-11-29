@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { logger } from "@/lib/logger";
 import { ModuleKey } from "@/domain/fm/fm.behavior";
 import { FMAction } from "@/types/fm/enums";
@@ -28,19 +29,57 @@ type BudgetPayload = {
 
 const COLLECTION = "fm_budgets";
 
-const sanitizePayload = (payload: BudgetPayload) => {
-  const sanitized: BudgetPayload = {};
-  if (payload.name) sanitized.name = payload.name.trim();
-  if (payload.department) sanitized.department = payload.department.trim();
+const parsePayload = (payload: BudgetPayload) => {
+  const provided = {
+    name: Object.prototype.hasOwnProperty.call(payload, "name"),
+    department: Object.prototype.hasOwnProperty.call(payload, "department"),
+    allocated: Object.prototype.hasOwnProperty.call(payload, "allocated"),
+    currency: Object.prototype.hasOwnProperty.call(payload, "currency"),
+  };
+
+  const normalized: BudgetPayload = {};
+
+  if (typeof payload.name === "string") {
+    normalized.name = payload.name.trim();
+  }
+  if (typeof payload.department === "string") {
+    normalized.department = payload.department.trim();
+  }
   if (
     typeof payload.allocated === "number" &&
     Number.isFinite(payload.allocated)
   ) {
-    sanitized.allocated = payload.allocated;
+    normalized.allocated = payload.allocated;
   }
-  if (payload.currency)
-    sanitized.currency = payload.currency.trim().toUpperCase();
-  return sanitized;
+  if (typeof payload.currency === "string") {
+    normalized.currency = payload.currency.trim().toUpperCase();
+  }
+
+  return { normalized, provided };
+};
+
+const validatePatchPayload = (
+  normalized: BudgetPayload,
+  provided: Record<keyof BudgetPayload, boolean>,
+): string | null => {
+  if (provided.name && !normalized.name) {
+    return "Name cannot be empty";
+  }
+  if (provided.department && !normalized.department) {
+    return "Department cannot be empty";
+  }
+  if (provided.allocated) {
+    if (normalized.allocated === undefined || !Number.isFinite(normalized.allocated)) {
+      return "Allocated amount must be a positive number";
+    }
+    if (normalized.allocated <= 0) {
+      return "Allocated amount must be greater than 0";
+    }
+  }
+  if (provided.currency && !normalized.currency) {
+    return "Currency cannot be empty";
+  }
+  return null;
 };
 
 const mapBudget = (doc: BudgetDocument) => ({
@@ -55,10 +94,10 @@ const mapBudget = (doc: BudgetDocument) => ({
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     
     if (!ObjectId.isValid(id)) {
       return NextResponse.json(
@@ -84,6 +123,18 @@ export async function GET(
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
+
+    // Reject cross-tenant mode for GET by id (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Super Admin must specify tenant context for budget retrieval",
+        },
+        { status: 400 },
+      );
+    }
 
     const db = await getDatabase();
     const collection = db.collection<BudgetDocument>(COLLECTION);
@@ -114,10 +165,10 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     
     if (!ObjectId.isValid(id)) {
       return NextResponse.json(
@@ -152,12 +203,22 @@ export async function PATCH(
       );
     }
 
-    const payload = sanitizePayload(await req.json());
-    
-    if (Object.keys(payload).length === 0) {
+    const { normalized: payload, provided } = parsePayload(
+      (await req.json()) as BudgetPayload,
+    );
+    const anyProvided = Object.values(provided).some(Boolean);
+    if (!anyProvided) {
       return NextResponse.json(
-        { success: false, error: "No valid fields to update" },
+        { success: false, error: "No fields provided to update" },
         { status: 400 }
+      );
+    }
+
+    const validationError = validatePatchPayload(payload, provided);
+    if (validationError) {
+      return NextResponse.json(
+        { success: false, error: validationError },
+        { status: 400 },
       );
     }
 
@@ -180,8 +241,8 @@ export async function PATCH(
       { returnDocument: "after" }
     );
 
-    // MongoDB v6+ returns document directly, not { value: doc }
-    if (!updateResult) {
+    const updated = unwrapFindOneResult(updateResult);
+    if (!updated) {
       return NextResponse.json(
         { success: false, error: "Budget not found" },
         { status: 404 }
@@ -190,7 +251,7 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      data: mapBudget(updateResult),
+      data: mapBudget(updated),
     });
   } catch (error) {
     logger.error("FM Budgets API - PATCH error", error as Error);
@@ -200,10 +261,10 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     
     if (!ObjectId.isValid(id)) {
       return NextResponse.json(
@@ -246,10 +307,10 @@ export async function DELETE(
       orgId: tenantId 
     };
     
-    const deleteResult = await collection.findOneAndDelete(query);
-
-    // MongoDB v6+ returns document directly, not { value: doc }
-    if (!deleteResult) {
+    const deleted = unwrapFindOneResult(
+      await collection.findOneAndDelete(query),
+    );
+    if (!deleted) {
       return NextResponse.json(
         { success: false, error: "Budget not found" },
         { status: 404 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { ModifyResult } from "mongodb";
+import type { ModifyResult, WithId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { logger } from "@/lib/logger";
 import { ModuleKey } from "@/domain/fm/fm.behavior";
 import { FMAction } from "@/types/fm/enums";
@@ -77,7 +78,9 @@ export async function POST(req: NextRequest) {
         { $set: { status: "processing", updatedAt: new Date() } },
         { sort: { updatedAt: 1, _id: 1 }, returnDocument: "after" },
       )) as ModifyResult<ReportJob> | null;
-      const claim = claimResult?.value as ReportJobDocument | undefined;
+      const claim = unwrapFindOneResult(
+        claimResult as ModifyResult<ReportJob> | WithId<ReportJob> | null,
+      ) as ReportJobDocument | null;
       if (!claim) break;
       queued.push(claim);
     }

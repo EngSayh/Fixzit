@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ModifyResult, ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
+import type { WithId } from "mongodb";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { logger } from "@/lib/logger";
 import {
   getCanonicalUserId,
@@ -64,7 +66,9 @@ export async function POST(
       { returnDocument: "after" },
     );
 
-    const updated = (result as ModifyResult<WorkOrderDocument> | null)?.value;
+    const updated = unwrapFindOneResult(
+      result as ModifyResult<WorkOrderDocument> | WithId<WorkOrderDocument> | null,
+    );
     if (!updated) {
       return FMErrors.notFound("Work order");
     }

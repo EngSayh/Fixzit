@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { logger } from "@/lib/logger";
 import { FMErrors } from "@/app/api/fm/errors";
 import { requireFmPermission } from "@/app/api/fm/permissions";
@@ -82,16 +83,7 @@ export async function POST(
       { upsert: true, returnDocument: "after" },
     );
 
-    interface MongoResult<T> {
-      value?: T;
-      ok?: number;
-    }
-    const mongoResult = result as
-      | MongoResult<IntegrationDocument>
-      | IntegrationDocument
-      | null;
-    const doc =
-      mongoResult && "value" in mongoResult ? mongoResult.value : mongoResult;
+    const doc = unwrapFindOneResult(result as IntegrationDocument | null | undefined);
     if (!doc) {
       return FMErrors.internalError();
     }

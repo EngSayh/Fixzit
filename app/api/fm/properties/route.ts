@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { logger } from "@/lib/logger";
 import { ModuleKey, SubmoduleKey } from "@/domain/fm/fm.behavior";
 import { FMAction } from "@/types/fm/enums";
@@ -382,14 +383,14 @@ export async function PATCH(req: NextRequest) {
       { returnDocument: "after" },
     );
 
-    // MongoDB v6+ returns document directly, not { value: doc }
-    if (!result) {
+    const updated = unwrapFindOneResult(result);
+    if (!updated) {
       return FMErrors.notFound("Property");
     }
 
     return NextResponse.json({
       success: true,
-      data: mapProperty(result),
+      data: mapProperty(updated),
       message: "Property updated successfully",
     });
   } catch (error) {
@@ -435,8 +436,8 @@ export async function DELETE(req: NextRequest) {
       orgId: tenantId, // AUDIT-2025-11-26: Changed from org_id
     });
 
-    // MongoDB v6+ returns document directly, not { value: doc }
-    if (!result) {
+    const deleted = unwrapFindOneResult(result);
+    if (!deleted) {
       return FMErrors.notFound("Property");
     }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { logger } from "@/lib/logger";
 import type { WorkOrderPhoto } from "@/types/fm";
 import {
@@ -205,15 +206,15 @@ export async function DELETE(
     }
 
     const db = await getDatabase();
-    const result = await db
-      .collection("workorder_attachments")
-      .findOneAndDelete({
+    const result = unwrapFindOneResult(
+      await db.collection("workorder_attachments").findOneAndDelete({
         _id: new ObjectId(attachmentId),
         orgId,
         workOrderId,
-      });
+      }),
+    );
 
-    if (!result?.value) {
+    if (!result) {
       return FMErrors.notFound("Attachment");
     }
 
@@ -221,7 +222,7 @@ export async function DELETE(
       workOrderId,
       tenantId: orgId,  // STRICT v4.1: Use orgId for timeline
       action: "photo_removed",
-      description: `Attachment removed: ${result.value.caption || result.value.fileName || result.value.url}`,
+      description: `Attachment removed: ${result.caption || result.fileName || result.url}`,
       metadata: {
         attachmentId,
       },

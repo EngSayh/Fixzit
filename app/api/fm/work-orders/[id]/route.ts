@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId, type ModifyResult } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { WOStatus } from "@/types/fm";
 import { logger } from "@/lib/logger";
 import {
@@ -253,7 +254,7 @@ export async function PATCH(
       { returnDocument: "after" },
     )) as unknown as ModifyResult<WorkOrderDocument>;
 
-    const updatedDoc = result.value;
+    const updatedDoc = unwrapFindOneResult(result);
     if (!updatedDoc) {
       return FMErrors.notFound("Work order");
     }
@@ -351,7 +352,7 @@ export async function DELETE(
       { returnDocument: "after" },
     )) as unknown as ModifyResult<WorkOrderDocument>;
 
-    const deletedWorkOrder = deleteResult.value;
+    const deletedWorkOrder = unwrapFindOneResult(deleteResult);
     if (!deletedWorkOrder) {
       return FMErrors.notFound("Work order");
     }

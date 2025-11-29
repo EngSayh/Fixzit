@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ModifyResult, ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { FMErrors } from "@/app/api/fm/errors";
 import {
   WORK_ORDER_FSM,
@@ -182,7 +183,7 @@ export async function POST(
       { $set: update },
       { returnDocument: "after" },
     )) as unknown as ModifyResult<WorkOrderDocument>;
-    const updated = result?.value;
+    const updated = unwrapFindOneResult(result);
 
     if (!updated) {
       return FMErrors.notFound("Work order");
