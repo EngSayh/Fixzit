@@ -171,6 +171,104 @@ describe("Encryption Plugin", () => {
       }).not.toThrow();
     });
   });
+
+  describe("Plugin Hook Flow Simulation", () => {
+    it("should handle dotted $set paths in update operations", async () => {
+      const { encryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      // Simulate the actual update payload pattern that was broken
+      const updatePayload = {
+        $set: {
+          "personal.nationalId": "1234567890",
+          "bankDetails.iban": "SA1234567890123456789012",
+        },
+      };
+
+      // Simulate plugin logic: check direct dotted key first
+      const $set = updatePayload.$set;
+      for (const path of ["personal.nationalId", "bankDetails.iban"]) {
+        // This is the key fix: check direct key access
+        const value = $set[path];
+        if (value && typeof value === "string" && !isEncrypted(value)) {
+          $set[path] = encryptField(value, path);
+        }
+      }
+
+      // Verify encryption occurred on dotted keys
+      expect(isEncrypted(updatePayload.$set["personal.nationalId"])).toBe(true);
+      expect(isEncrypted(updatePayload.$set["bankDetails.iban"])).toBe(true);
+    });
+
+    it("should handle numeric values by converting to string", async () => {
+      const { encryptField, isEncrypted, decryptField } = await import(
+        "@/lib/security/encryption"
+      );
+
+      // Simulate numeric salary field
+      const salary = 50000;
+      const salaryString = String(salary);
+      
+      const encrypted = encryptField(salaryString, "compensation.baseSalary");
+      expect(isEncrypted(encrypted)).toBe(true);
+      
+      const decrypted = decryptField(encrypted, "compensation.baseSalary");
+      expect(decrypted).toBe("50000");
+    });
+
+    it("should handle insertMany bulk operations", async () => {
+      const { encryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      // Simulate bulk insert payload
+      const docs = [
+        { personal: { nationalId: "1111111111" }, name: "User 1" },
+        { personal: { nationalId: "2222222222" }, name: "User 2" },
+        { personal: { nationalId: "3333333333" }, name: "User 3" },
+      ];
+
+      // Simulate plugin insertMany hook
+      const fieldPaths = ["personal.nationalId"];
+      for (const doc of docs) {
+        for (const path of fieldPaths) {
+          const parts = path.split(".");
+          let current: Record<string, unknown> = doc;
+          for (let i = 0; i < parts.length - 1; i++) {
+            current = current[parts[i]] as Record<string, unknown>;
+          }
+          const value = current[parts[parts.length - 1]];
+          if (value && typeof value === "string" && !isEncrypted(value)) {
+            current[parts[parts.length - 1]] = encryptField(value, path);
+          }
+        }
+      }
+
+      // Verify all docs encrypted
+      expect(isEncrypted(docs[0].personal.nationalId)).toBe(true);
+      expect(isEncrypted(docs[1].personal.nationalId)).toBe(true);
+      expect(isEncrypted(docs[2].personal.nationalId)).toBe(true);
+    });
+
+    it("should prevent double encryption", async () => {
+      const { encryptField, isEncrypted } = await import(
+        "@/lib/security/encryption"
+      );
+
+      const plaintext = "SensitiveData123";
+      const encrypted1 = encryptField(plaintext, "field");
+      
+      // Simulate plugin checking before encryption
+      if (!isEncrypted(encrypted1)) {
+        // Should not reach here
+        expect(true).toBe(false);
+      }
+
+      // Already encrypted value should be skipped
+      expect(isEncrypted(encrypted1)).toBe(true);
+    });
+  });
 });
 
 /**

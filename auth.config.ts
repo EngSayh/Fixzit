@@ -31,6 +31,15 @@ type SessionPlan = SubscriptionPlan | 'STARTER' | 'PROFESSIONAL';
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
+/**
+ * Redact identifier for logging (GDPR data minimization)
+ * Shows first 3 chars + *** to allow debugging without exposing full PII
+ */
+function redactIdentifier(identifier: string): string {
+  if (!identifier || identifier.length <= 3) return '***';
+  return identifier.slice(0, 3) + '***';
+}
+
 // Validate required environment variables at startup
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -357,7 +366,7 @@ export const authConfig = {
             user = await User.findOne({ email: loginIdentifier }).lean<LeanUser>();
           } else {
             if (!companyCode) {
-              logger.warn('[NextAuth] Corporate login missing company code', { loginIdentifier });
+              logger.warn('[NextAuth] Corporate login missing company code', { loginIdentifier: redactIdentifier(loginIdentifier) });
               return null;
             }
             // Corporate login uses employee number (stored in username field) + company code
@@ -366,8 +375,8 @@ export const authConfig = {
 
       if (!user) {
         // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
-        const notFoundError = new Error(`User not found: ${loginIdentifier}`);
-        logger.error('[NextAuth] User not found', notFoundError, { loginIdentifier, loginType });
+        const notFoundError = new Error('User not found');
+        logger.error('[NextAuth] User not found', notFoundError, { loginIdentifier: redactIdentifier(loginIdentifier), loginType });
         return null;
       }
 
@@ -377,7 +386,7 @@ export const authConfig = {
             const lockTime = locked.lockTime ? new Date(locked.lockTime).getTime() : 0;
             const stillLocked = lockTime && Date.now() - lockTime < LOCK_WINDOW_MS;
             if (stillLocked) {
-              logger.warn('[NextAuth] Locked account login attempt', { loginIdentifier });
+              logger.warn('[NextAuth] Locked account login attempt', { loginIdentifier: redactIdentifier(loginIdentifier) });
               throw new Error('ACCOUNT_LOCKED');
             }
           }
@@ -406,8 +415,8 @@ export const authConfig = {
                   },
                 );
               }
-              const passwordError = new Error(`Invalid password for: ${loginIdentifier}`);
-              logger.error('[NextAuth] Invalid password', passwordError, { loginIdentifier, loginType });
+              const passwordError = new Error('Invalid password');
+              logger.error('[NextAuth] Invalid password', passwordError, { loginIdentifier: redactIdentifier(loginIdentifier), loginType });
               throw new Error('INVALID_CREDENTIALS');
             }
             // Reset attempts on success
@@ -430,9 +439,9 @@ export const authConfig = {
           const isUserActive = user.status === 'ACTIVE';
           if (!isUserActive) {
             // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
-            const inactiveError = new Error(`Inactive user attempted login: ${loginIdentifier}`);
+            const inactiveError = new Error('Inactive user attempted login');
             logger.error('[NextAuth] Inactive user attempted login', inactiveError, { 
-              loginIdentifier, 
+              loginIdentifier: redactIdentifier(loginIdentifier), 
               loginType,
               status: user.status,
             });
@@ -444,7 +453,7 @@ export const authConfig = {
           const requireEmailVerification =
             process.env.NEXTAUTH_REQUIRE_EMAIL_VERIFICATION !== 'false';
           if (requireEmailVerification && !emailVerifiedAt) {
-            logger.warn('[NextAuth] Email not verified', { loginIdentifier });
+            logger.warn('[NextAuth] Email not verified', { loginIdentifier: redactIdentifier(loginIdentifier) });
             throw new Error('EMAIL_NOT_VERIFIED');
           }
 
@@ -459,7 +468,7 @@ export const authConfig = {
           const isSuperAdmin = Boolean((user as { isSuperAdmin?: boolean }).isSuperAdmin);
           if (!user.orgId && !isSuperAdmin) {
             logger.error('[NextAuth] Credentials login rejected: Missing orgId for non-superadmin user', { 
-              loginIdentifier,
+              loginIdentifier: redactIdentifier(loginIdentifier),
               userId: user._id.toString()
             });
             return null;
@@ -473,20 +482,20 @@ export const authConfig = {
 
           if (REQUIRE_SMS_OTP && !bypassOTP) {
             if (!otpProvided) {
-              logger.warn('[NextAuth] Missing OTP token for credentials login', { loginIdentifier });
+              logger.warn('[NextAuth] Missing OTP token for credentials login', { loginIdentifier: redactIdentifier(loginIdentifier) });
               return null;
             }
 
             const session = otpSessionStore.get(otpToken!);
             if (!session) {
-              logger.warn('[NextAuth] OTP session not found or already used', { loginIdentifier });
+              logger.warn('[NextAuth] OTP session not found or already used', { loginIdentifier: redactIdentifier(loginIdentifier) });
               return null;
             }
 
             const now = Date.now();
             if (now > session.expiresAt) {
               otpSessionStore.delete(otpToken!);
-              logger.warn('[NextAuth] OTP session expired', { loginIdentifier });
+              logger.warn('[NextAuth] OTP session expired', { loginIdentifier: redactIdentifier(loginIdentifier) });
               return null;
             }
 
@@ -496,15 +505,15 @@ export const authConfig = {
             ) {
               otpSessionStore.delete(otpToken!);
               logger.error('[NextAuth] OTP session mismatch', new Error('OTP session mismatch'), {
-                loginIdentifier,
-                sessionIdentifier: session.identifier,
+                loginIdentifier: redactIdentifier(loginIdentifier),
+                sessionIdentifier: redactIdentifier(session.identifier),
               });
               return null;
             }
 
             otpSessionStore.delete(otpToken!);
           } else if (bypassOTP) {
-            logger.info('[NextAuth] OTP bypassed for super admin', { loginIdentifier });
+            logger.info('[NextAuth] OTP bypassed for super admin', { loginIdentifier: redactIdentifier(loginIdentifier) });
           }
 
           // 9. Return user object for NextAuth session
