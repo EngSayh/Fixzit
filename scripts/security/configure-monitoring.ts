@@ -192,6 +192,7 @@ function trackEvent(
 
 export function trackRateLimitHit(identifier: string, endpoint: string, orgId?: string): void {
   // Use hashIdentifier for key (better cardinality than 3-char truncation)
+  // Salt is automatically loaded from MONITORING_HASH_SALT or LOG_HASH_SALT env vars
   const hashedId = hashIdentifier(identifier);
   // Include orgId in key for multi-tenant isolation
   const key = orgId 
@@ -224,6 +225,7 @@ export function trackCorsViolation(origin: string, endpoint: string, orgId?: str
 
 export function trackAuthFailure(identifier: string, reason: string, orgId?: string): void {
   // Use hashIdentifier for key (better cardinality than 3-char truncation)
+  // Salt is automatically loaded from MONITORING_HASH_SALT or LOG_HASH_SALT env vars
   const hashedId = hashIdentifier(identifier);
   // Include orgId in key for multi-tenant isolation
   const key = orgId

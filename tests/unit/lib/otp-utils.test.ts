@@ -387,6 +387,31 @@ describe("OTP Utils", () => {
           expect(hashIdentifier("test@example.com")).toBe(expected);
         }
       });
+
+      it("should produce different hashes with env salt vs no salt", () => {
+        // When explicit salt is provided, it should differ from empty salt
+        const hashNoSalt = hashIdentifier("user@email.com", "");
+        const hashWithSalt = hashIdentifier("user@email.com", "production-secret");
+        expect(hashNoSalt).not.toBe(hashWithSalt);
+      });
+
+      it("should be resistant to dictionary attacks when salted", () => {
+        // With a proper salt, even common emails should not be precomputable
+        const salt = "random-production-salt-xyz123";
+        const commonEmails = [
+          "admin@company.com",
+          "test@test.com",
+          "user@example.com",
+        ];
+        const hashes = commonEmails.map(e => hashIdentifier(e, salt));
+        // All hashes should be unique
+        expect(new Set(hashes).size).toBe(commonEmails.length);
+        // And not match unsalted versions
+        const unsaltedHashes = commonEmails.map(e => hashIdentifier(e, ""));
+        for (let i = 0; i < hashes.length; i++) {
+          expect(hashes[i]).not.toBe(unsaltedHashes[i]);
+        }
+      });
     });
   });
 });

@@ -122,6 +122,7 @@ function trackEvent(
 export function trackRateLimitHit(identifier: string, endpoint: string, orgId?: string): void {
   // Use hashIdentifier for tracking key (better cardinality than 3-char truncation)
   // This prevents collision issues where many users share same prefix (e.g., "use***")
+  // Salt is automatically loaded from MONITORING_HASH_SALT or LOG_HASH_SALT env vars
   const hashedId = hashIdentifier(identifier);
   // Include orgId in key for multi-tenant isolation (prevents cross-tenant event collapse)
   const key = orgId 
@@ -161,6 +162,7 @@ export function trackCorsViolation(origin: string, endpoint: string, orgId?: str
 export function trackAuthFailure(identifier: string, reason: string, orgId?: string): void {
   // Use hashIdentifier for tracking key (better cardinality than 3-char truncation)
   // This prevents collision issues where many users share same prefix (e.g., "use***")
+  // Salt is automatically loaded from MONITORING_HASH_SALT or LOG_HASH_SALT env vars
   const hashedId = hashIdentifier(identifier);
   // Include orgId in key for multi-tenant isolation
   const key = orgId
@@ -197,4 +199,26 @@ export function getSecurityMetrics() {
     authUniqueKeys: authFailures.size,
     windowMs: WINDOW_MS,
   };
+}
+
+/**
+ * Reset all monitoring state for test isolation.
+ * 
+ * ⚠️ TEST-ONLY: This function clears all tracking maps and should ONLY be used
+ * in test environments to prevent cross-test contamination. The monitoring maps
+ * are process-global, so without reset, tests can become order-dependent and flaky.
+ * 
+ * @example
+ * // In test file:
+ * import { __resetMonitoringStateForTests } from "@/lib/security/monitoring";
+ * beforeEach(() => __resetMonitoringStateForTests());
+ */
+export function __resetMonitoringStateForTests(): void {
+  if (process.env.NODE_ENV === "production") {
+    logger.error("[Security] __resetMonitoringStateForTests called in production - ignoring");
+    return;
+  }
+  rateLimitHits.clear();
+  corsViolations.clear();
+  authFailures.clear();
 }

@@ -79,27 +79,56 @@ export const redactIdentifier = (identifier: string): string => {
 };
 
 /**
+ * Get the monitoring hash salt from environment.
+ * Falls back to LOG_HASH_SALT if MONITORING_HASH_SALT is not set.
+ * In production, a salt is required; in dev, empty string is used as fallback.
+ * 
+ * Note: This is a low-level utility that cannot import logger to avoid circular deps.
+ * Missing salt is a configuration issue that should be caught by env validation.
+ */
+const getMonitoringSalt = (): string => {
+  // Check for dedicated monitoring salt first
+  const monitoringSalt = typeof process !== 'undefined' ? process.env?.MONITORING_HASH_SALT : undefined;
+  if (monitoringSalt && monitoringSalt.trim().length > 0) {
+    return monitoringSalt;
+  }
+  
+  // Fall back to LOG_HASH_SALT (used for email hashing)
+  const logSalt = typeof process !== 'undefined' ? process.env?.LOG_HASH_SALT : undefined;
+  if (logSalt && logSalt.trim().length > 0) {
+    return logSalt;
+  }
+  
+  // In production without salt, hashes will be deterministic (not ideal but functional)
+  // ENV validation scripts (check-vercel-env.ts) should catch missing salts at deploy time
+  return '';
+};
+
+/**
  * Create a non-reversible hash of an identifier for monitoring keys.
- * Uses a simple but effective hash that preserves cardinality without leaking PII.
+ * Uses FNV-1a hash with salt for dictionary-attack resistance.
  * 
  * This is useful when you need to track unique identifiers in monitoring
  * without the collision issues of 3-char truncation.
  * 
  * @param identifier - The identifier to hash (email, IP, user ID, etc.)
- * @param salt - Optional salt for additional entropy (defaults to empty string)
+ * @param salt - Optional explicit salt. If not provided, uses MONITORING_HASH_SALT or LOG_HASH_SALT from env.
  * @returns A 16-character hex hash suitable for monitoring keys
  * 
  * @example
- * hashIdentifier("user@email.com") // "a1b2c3d4e5f67890"
- * hashIdentifier("user@email.com", "monitoring") // "f0e1d2c3b4a59687"
+ * hashIdentifier("user@email.com") // Uses env salt automatically
+ * hashIdentifier("user@email.com", "explicit-salt") // Uses provided salt
  * 
- * @note This is NOT cryptographically secure - use for monitoring/telemetry only.
- * For security-critical hashing, use proper crypto functions with secrets.
+ * @note When salt is provided from env, the hash is resistant to dictionary attacks.
+ * Without salt, hashes are deterministic and could be reversed via precomputation.
  */
-export const hashIdentifier = (identifier: string, salt: string = ''): string => {
+export const hashIdentifier = (identifier: string, salt?: string): string => {
+  // Use provided salt, or get from environment
+  const effectiveSalt = salt !== undefined ? salt : getMonitoringSalt();
+  
   // Simple FNV-1a hash - fast, good distribution, deterministic
-  // Not cryptographically secure, but fine for monitoring key generation
-  const input = salt + identifier;
+  // With salt, resistant to dictionary attacks
+  const input = effectiveSalt + identifier;
   let hash = 2166136261; // FNV offset basis
   for (let i = 0; i < input.length; i++) {
     hash ^= input.charCodeAt(i);

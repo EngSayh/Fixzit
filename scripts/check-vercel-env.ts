@@ -100,6 +100,7 @@ const envVars = {
   // Security
   FILE_SIGNING_SECRET: !!process.env.FILE_SIGNING_SECRET,
   LOG_HASH_SALT: !!process.env.LOG_HASH_SALT,
+  MONITORING_HASH_SALT: !!process.env.MONITORING_HASH_SALT,
 
   // Shipping
   ARAMEX_ACCOUNT_NUMBER: !!process.env.ARAMEX_ACCOUNT_NUMBER,
@@ -161,7 +162,7 @@ const categories = {
   ],
   "📊 Monitoring": ["SENTRY_DSN", "DATADOG_API_KEY"],
   "⏱️ Jobs": ["CRON_SECRET"],
-  "🔒 Security": ["FILE_SIGNING_SECRET", "LOG_HASH_SALT"],
+  "🔒 Security": ["FILE_SIGNING_SECRET", "LOG_HASH_SALT", "MONITORING_HASH_SALT"],
   "📦 Shipping": [
     "ARAMEX_ACCOUNT_NUMBER",
     "ARAMEX_USERNAME",

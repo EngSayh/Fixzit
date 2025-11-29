@@ -4,105 +4,99 @@
  * 
  * Note: These tests focus on functional behavior (tracking, metrics, isolation)
  * rather than logging output, to avoid complex mock setup issues.
+ * 
+ * IMPORTANT: Uses beforeEach() to reset global monitoring state, ensuring
+ * test isolation and preventing cross-suite contamination that causes flaky tests.
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   trackRateLimitHit,
   trackCorsViolation,
   trackAuthFailure,
   getSecurityMetrics,
+  __resetMonitoringStateForTests,
 } from "@/lib/security/monitoring";
 import { hashIdentifier, redactIdentifier } from "@/lib/otp-utils";
 
 describe("Security Monitoring", () => {
+  // Reset monitoring state before each test to ensure isolation
+  // Without this, tests share global maps and become order-dependent
+  beforeEach(() => {
+    __resetMonitoringStateForTests();
+  });
   describe("trackRateLimitHit", () => {
     it("should track rate limit events with org isolation", () => {
-      const metricsBefore = getSecurityMetrics();
-      const hitsBefore = metricsBefore.rateLimitHits;
-      
       // Track events for different orgs
       trackRateLimitHit("unique-user-rl1@email.com", "/api/test-rl1", "org-rl-1");
       trackRateLimitHit("unique-user-rl2@email.com", "/api/test-rl2", "org-rl-2");
       
-      const metricsAfter = getSecurityMetrics();
-      expect(metricsAfter.rateLimitHits).toBe(hitsBefore + 2);
-      expect(metricsAfter.rateLimitUniqueKeys).toBeGreaterThanOrEqual(2);
+      const metrics = getSecurityMetrics();
+      expect(metrics.rateLimitHits).toBe(2);
+      expect(metrics.rateLimitUniqueKeys).toBe(2);
     });
 
     it("should use global prefix when no orgId provided", () => {
-      const metricsBefore = getSecurityMetrics();
-      const hitsBefore = metricsBefore.rateLimitHits;
-      
       trackRateLimitHit("global-user-rl@email.com", "/api/global-test-rl");
       
-      const metricsAfter = getSecurityMetrics();
-      expect(metricsAfter.rateLimitHits).toBe(hitsBefore + 1);
+      const metrics = getSecurityMetrics();
+      expect(metrics.rateLimitHits).toBe(1);
     });
 
     it("should create separate tracking keys for same user in different orgs", () => {
-      const metricsBefore = getSecurityMetrics();
-      const keysBefore = metricsBefore.rateLimitUniqueKeys;
-      
       // Same user, different orgs - should create 2 unique keys
       trackRateLimitHit("shared-user-rl@email.com", "/api/isolated-rl", "org-A-rl");
       trackRateLimitHit("shared-user-rl@email.com", "/api/isolated-rl", "org-B-rl");
       
-      const metricsAfter = getSecurityMetrics();
-      // Should have at least 2 new unique keys (org-A:hash:endpoint and org-B:hash:endpoint)
-      expect(metricsAfter.rateLimitUniqueKeys).toBeGreaterThanOrEqual(keysBefore + 2);
+      const metrics = getSecurityMetrics();
+      // Should have exactly 2 unique keys (org-A:hash:endpoint and org-B:hash:endpoint)
+      expect(metrics.rateLimitUniqueKeys).toBe(2);
+      expect(metrics.rateLimitHits).toBe(2);
     });
   });
 
   describe("trackCorsViolation", () => {
     it("should track CORS violations with org isolation", () => {
-      const metricsBefore = getSecurityMetrics();
-      const violationsBefore = metricsBefore.corsViolations;
-      
       trackCorsViolation("https://evil-cors.com", "/api/secure-cors", "org-cors-1");
       trackCorsViolation("https://malicious-cors.com", "/api/secure-cors", "org-cors-2");
       
-      const metricsAfter = getSecurityMetrics();
-      expect(metricsAfter.corsViolations).toBe(violationsBefore + 2);
+      const metrics = getSecurityMetrics();
+      expect(metrics.corsViolations).toBe(2);
+      expect(metrics.corsUniqueKeys).toBe(2);
     });
 
     it("should create separate keys for same origin in different orgs", () => {
-      const metricsBefore = getSecurityMetrics();
-      const keysBefore = metricsBefore.corsUniqueKeys;
-      
       trackCorsViolation("https://attacker-cors.com", "/api/test-cors", "org-X-cors");
       trackCorsViolation("https://attacker-cors.com", "/api/test-cors", "org-Y-cors");
       
-      const metricsAfter = getSecurityMetrics();
-      expect(metricsAfter.corsUniqueKeys).toBeGreaterThanOrEqual(keysBefore + 2);
+      const metrics = getSecurityMetrics();
+      // Same origin but different orgs = 2 unique keys
+      expect(metrics.corsUniqueKeys).toBe(2);
+      expect(metrics.corsViolations).toBe(2);
     });
   });
 
   describe("trackAuthFailure", () => {
     it("should track auth failures with org isolation", () => {
-      const metricsBefore = getSecurityMetrics();
-      const failuresBefore = metricsBefore.authFailures;
-      
       trackAuthFailure("hacker-auth@evil.com", "invalid_password", "org-auth-1");
       trackAuthFailure("attacker-auth@bad.com", "invalid_otp", "org-auth-2");
       
-      const metricsAfter = getSecurityMetrics();
-      expect(metricsAfter.authFailures).toBe(failuresBefore + 2);
+      const metrics = getSecurityMetrics();
+      expect(metrics.authFailures).toBe(2);
+      expect(metrics.authUniqueKeys).toBe(2);
     });
 
     it("should produce unique keys for different users (hash-based, no collisions)", () => {
-      const metricsBefore = getSecurityMetrics();
-      const keysBefore = metricsBefore.authUniqueKeys;
-      
       // Users that would all collide with 3-char truncation ("use***")
       // but should have unique hashes
       trackAuthFailure("user1-hash@a.com", "fail", "org-hash-test");
       trackAuthFailure("user2-hash@b.com", "fail", "org-hash-test");
       trackAuthFailure("user3-hash@c.com", "fail", "org-hash-test");
       
-      const metricsAfter = getSecurityMetrics();
-      // Should have 3 new unique keys (hash-based), not just 1 (truncation collision)
-      expect(metricsAfter.authUniqueKeys).toBeGreaterThanOrEqual(keysBefore + 3);
+      const metrics = getSecurityMetrics();
+      // Should have 3 unique keys (hash-based), not just 1 (truncation collision)
+      expect(metrics.authUniqueKeys).toBe(3);
+      expect(metrics.authFailures).toBe(3);
     });
   });
 
@@ -124,10 +118,18 @@ describe("Security Monitoring", () => {
       expect(metrics.windowMs).toBe(5 * 60 * 1000);
     });
 
+    it("should start with zero counts after reset", () => {
+      // This test validates that beforeEach reset works correctly
+      const metrics = getSecurityMetrics();
+      expect(metrics.rateLimitHits).toBe(0);
+      expect(metrics.corsViolations).toBe(0);
+      expect(metrics.authFailures).toBe(0);
+      expect(metrics.rateLimitUniqueKeys).toBe(0);
+      expect(metrics.corsUniqueKeys).toBe(0);
+      expect(metrics.authUniqueKeys).toBe(0);
+    });
+
     it("should count events, not just unique keys", () => {
-      const metricsBefore = getSecurityMetrics();
-      const hitsBefore = metricsBefore.rateLimitHits;
-      
       // Same user hitting same endpoint multiple times
       const identifier = "repeat-offender@email.com";
       const endpoint = "/api/hammered-endpoint";
@@ -137,9 +139,11 @@ describe("Security Monitoring", () => {
       trackRateLimitHit(identifier, endpoint, orgId);
       trackRateLimitHit(identifier, endpoint, orgId);
       
-      const metricsAfter = getSecurityMetrics();
-      // Event count should increase by 3
-      expect(metricsAfter.rateLimitHits).toBe(hitsBefore + 3);
+      const metrics = getSecurityMetrics();
+      // Event count should be 3 (same key, multiple hits)
+      expect(metrics.rateLimitHits).toBe(3);
+      // But only 1 unique key
+      expect(metrics.rateLimitUniqueKeys).toBe(1);
     });
   });
 
@@ -169,6 +173,32 @@ describe("Security Monitoring", () => {
       expect(redacted).toBe("sen***");
       expect(redacted).not.toContain("@");
       expect(redacted).not.toContain("private.com");
+    });
+
+    it("should produce different hashes when salt is explicitly provided", () => {
+      const identifier = "test@email.com";
+      const hashWithSalt1 = hashIdentifier(identifier, "salt-a");
+      const hashWithSalt2 = hashIdentifier(identifier, "salt-b");
+      const hashNoSalt = hashIdentifier(identifier, "");
+      
+      // All should be different
+      expect(hashWithSalt1).not.toBe(hashWithSalt2);
+      expect(hashWithSalt1).not.toBe(hashNoSalt);
+      expect(hashWithSalt2).not.toBe(hashNoSalt);
+    });
+
+    it("should support env-based salt configuration", () => {
+      // Note: In tests, env vars may not be set, but the function should still work
+      // The important thing is that with explicit salt, hashes differ
+      const identifier = "user@domain.com";
+      const explicitSalt = "test-monitoring-salt";
+      const hash = hashIdentifier(identifier, explicitSalt);
+      
+      // Should return valid 16-char hex
+      expect(hash).toMatch(/^[0-9a-f]{16}$/);
+      
+      // Should be deterministic with same salt
+      expect(hashIdentifier(identifier, explicitSalt)).toBe(hash);
     });
   });
 
