@@ -21,7 +21,8 @@ export async function GET(req: NextRequest) {
     privilegedRoles.has(user.role) || user.roles?.some((r) => privilegedRoles.has(r.toUpperCase?.() || r));
 
   const filter: Record<string, unknown> = {};
-  if (orgId) filter.org_id = orgId;
+  // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  if (orgId) filter.orgId = orgId;
   if (status && ONBOARDING_STATUSES.includes(status as (typeof ONBOARDING_STATUSES)[number])) {
     filter.status = status;
   }

@@ -17,7 +17,7 @@ export const ONBOARDING_STATUSES = [
 export type OnboardingStatus = (typeof ONBOARDING_STATUSES)[number];
 
 export interface IOnboardingCase {
-  org_id?: Types.ObjectId;
+  orgId?: Types.ObjectId; // AUDIT-2025-11-29: Changed from org_id to orgId
   role: OnboardingRole;
   status: OnboardingStatus;
   current_step: number;
@@ -25,7 +25,7 @@ export interface IOnboardingCase {
   country?: string;
   sla_deadline?: Date;
   subject_user_id?: Types.ObjectId;
-  subject_org_id?: Types.ObjectId;
+  subjectOrgId?: Types.ObjectId; // AUDIT-2025-11-29: Changed from subject_org_id
   basic_info: {
     name: string;
     email: string;
@@ -45,7 +45,7 @@ export interface IOnboardingCase {
 
 const OnboardingCaseSchema = new Schema<IOnboardingCase>(
   {
-    org_id: { type: Schema.Types.ObjectId, ref: 'Organization', index: true },
+    orgId: { type: Schema.Types.ObjectId, ref: 'Organization', index: true }, // AUDIT-2025-11-29: Changed from org_id
     role: { type: String, enum: ONBOARDING_ROLES, required: true },
     status: { type: String, enum: ONBOARDING_STATUSES, default: 'DRAFT', index: true },
     current_step: { type: Number, min: 1, max: 4, default: 1 },
@@ -53,7 +53,7 @@ const OnboardingCaseSchema = new Schema<IOnboardingCase>(
     country: { type: String, default: 'SA' },
     sla_deadline: { type: Date },
     subject_user_id: { type: Schema.Types.ObjectId, ref: 'User' },
-    subject_org_id: { type: Schema.Types.ObjectId, ref: 'Organization' },
+    subjectOrgId: { type: Schema.Types.ObjectId, ref: 'Organization' }, // AUDIT-2025-11-29: Changed from subject_org_id
     basic_info: {
       name: { type: String, required: true },
       email: { type: String, required: true },
@@ -84,7 +84,7 @@ const OnboardingCaseSchema = new Schema<IOnboardingCase>(
   { timestamps: true, collection: 'onboarding_cases' },
 );
 
-OnboardingCaseSchema.index({ org_id: 1, status: 1, role: 1 });
+OnboardingCaseSchema.index({ orgId: 1, status: 1, role: 1 }); // AUDIT-2025-11-29: Changed from org_id
 OnboardingCaseSchema.index({ subject_user_id: 1, tutorial_completed: 1 });
 OnboardingCaseSchema.index({ createdAt: 1, status: 1 });
 

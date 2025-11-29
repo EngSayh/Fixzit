@@ -41,7 +41,8 @@ export async function PATCH(
       onboarding.subject_user_id?.toString() === user.id ||
       onboarding.created_by_id?.toString() === user.id;
 
-    if (!isReviewer || (onboarding.org_id?.toString() !== user.orgId && !user.isSuperAdmin)) {
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    if (!isReviewer || (onboarding.orgId?.toString() !== user.orgId && !user.isSuperAdmin)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     if (isSubmitter) {

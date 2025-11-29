@@ -16,7 +16,7 @@ export interface IAgentAuditLog extends Document {
   action_summary: string;
   resource_type: string;
   resource_id?: string;
-  org_id: string;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId
   request_path?: string;
   success: boolean;
   error_message?: string;
@@ -80,7 +80,8 @@ const AgentAuditLogSchema = new Schema<IAgentAuditLog>(
     },
     
     // Organization context
-    org_id: {
+    // AUDIT-2025-11-29: Changed from org_id to orgId
+    orgId: {
       type: String,
       required: true,
       index: true,
@@ -132,11 +133,12 @@ const AgentAuditLogSchema = new Schema<IAgentAuditLog>(
 );
 
 // Indexes for query performance (STRICT v4.1 recommendations)
+// AUDIT-2025-11-29: Changed from org_id to orgId
 AgentAuditLogSchema.index({ agent_id: 1, timestamp: -1 }); // Query all actions by agent
 AgentAuditLogSchema.index({ assumed_user_id: 1, timestamp: -1 }); // Query actions on behalf of user
-AgentAuditLogSchema.index({ org_id: 1, timestamp: -1 }); // Tenant-scoped queries
-AgentAuditLogSchema.index({ org_id: 1, resource_type: 1, timestamp: -1 }); // Resource-type specific queries
-AgentAuditLogSchema.index({ org_id: 1, success: 1, timestamp: -1 }); // Failed actions audit
+AgentAuditLogSchema.index({ orgId: 1, timestamp: -1 }); // Tenant-scoped queries
+AgentAuditLogSchema.index({ orgId: 1, resource_type: 1, timestamp: -1 }); // Resource-type specific queries
+AgentAuditLogSchema.index({ orgId: 1, success: 1, timestamp: -1 }); // Failed actions audit
 AgentAuditLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 31536000 }); // TTL: 1 year retention
 
 // Virtual for easier querying

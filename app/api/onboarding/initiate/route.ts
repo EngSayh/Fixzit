@@ -28,8 +28,9 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectMongo();
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const onboarding = await OnboardingCase.create({
-      org_id: user.orgId ? new Types.ObjectId(user.orgId) : null,
+      orgId: user.orgId ? new Types.ObjectId(user.orgId) : null,
       subject_user_id: new Types.ObjectId(user.id),
       role,
       basic_info,

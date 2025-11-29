@@ -244,7 +244,8 @@ export async function POST(req: NextRequest) {
           if (sub.subscriber_type === "OWNER" && sub.owner_user_id) {
             paymentMethodPayload.owner_user_id = sub.owner_user_id;
           } else if (sub.tenant_id) {
-            paymentMethodPayload.org_id = sub.tenant_id;
+            // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+            paymentMethodPayload.orgId = sub.tenant_id;
           }
 
           const pm = await PaymentMethod.create(paymentMethodPayload);
