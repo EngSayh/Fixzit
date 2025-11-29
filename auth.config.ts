@@ -8,7 +8,9 @@ import { logger } from '@/lib/logger';
 import { otpSessionStore } from '@/lib/otp-store';
 import type { UserRoleType } from '@/types/user';
 import type { SubscriptionPlan } from '@/config/navigation';
-import type { UserDoc } from '@/server/models/User';
+// CRITICAL FIX: Use auth-specific types to prevent mongoose from bundling into client
+// See: https://github.com/vercel/next.js/issues/57792
+import type { AuthUserDoc } from '@/types/auth.types';
 // NOTE: Mongoose imports MUST be dynamic inside authorize() to avoid Edge Runtime issues
 // import { User } from '@/server/models/User'; // ❌ Breaks Edge Runtime
 // import { verifyPassword } from '@/lib/auth'; // ❌ Imports User model
@@ -164,13 +166,14 @@ if (!skipSecretValidation) {
 }
 
 // Helper functions for OAuth provisioning (reserved for future use)
- 
+// These will be used when auto-provisioning OAuth users from Google/Apple profiles
+
+/* eslint-disable @typescript-eslint/no-unused-vars -- Reserved for OAuth auto-provisioning */
 function _sanitizeName(name?: string | null): string {
   if (!name) return 'Unknown User';
   return name.trim().substring(0, 100);
 }
 
- 
 function _sanitizeImage(image?: string | null): string | undefined {
   if (!image) return undefined;
   try {
@@ -186,6 +189,7 @@ function _sanitizeImage(image?: string | null): string | undefined {
   }
   return undefined;
 }
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 // Validation schema for credentials login (unified identifier field)
 // NOTE: signIn() from next-auth/react sends checkbox values as 'on' when checked, undefined when unchecked
@@ -340,7 +344,8 @@ export const authConfig = {
           await connectToDatabase();
 
           // 4. Find user based on login type
-          type LeanUser = UserDoc & {
+          // CRITICAL FIX: Use AuthUserDoc instead of UserDoc to avoid mongoose bundling
+          type LeanUser = AuthUserDoc & {
             _id: string;
             subscriptionPlan?: string;
             orgId?: string | { toString(): string };
