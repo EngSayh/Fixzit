@@ -91,9 +91,9 @@ export default function SLATimer({
   };
 
   const urgencyColors = {
-    safe: "bg-green-50 text-success border-success/20",
+    safe: "bg-success/10 text-success border-success/20",
     warning: "bg-warning/5 text-warning border-warning/20",
-    critical: "bg-red-50 text-destructive border-destructive/20",
+    critical: "bg-destructive/10 text-destructive border-destructive/20",
   };
 
   const icon = isBreached

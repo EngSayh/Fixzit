@@ -24,6 +24,7 @@ const targetPath = path.resolve(__dirname, "../../lib/rbac/client-roles.ts");
 
 const roles = Array.from(new Set(Object.values(UserRole))).filter(Boolean);
 const subRoles = Array.from(new Set(TEAM_MEMBER_SUB_ROLES)).filter(Boolean);
+const primaryRoles = roles.filter((r) => !subRoles.includes(r));
 
 const header = `/**
  * Client-safe RBAC definitions (generated).
@@ -94,7 +95,6 @@ const roleModulePresets: Record<string, string[]> = {
 };
 
 const aliasMap: Record<string, string> = {
-  CORPORATE_ADMIN: "ADMIN",
   TENANT_ADMIN: "ADMIN",
   CLIENT_ADMIN: "ADMIN",
   MANAGEMENT: "MANAGER",
@@ -117,14 +117,19 @@ const aliasMap: Record<string, string> = {
   OWNER: "CORPORATE_OWNER",
 };
 
-const roleModuleLines = roles
+const accessPrincipals = [...primaryRoles, ...subRoles];
+
+const roleModuleLines = accessPrincipals
   .map((role) => {
+    const keyExpr = subRoles.includes(role)
+      ? `SubRole.${role}`
+      : `Role.${role}`;
     const preset = roleModulePresets[role] ?? ["DASHBOARD"];
     const modules =
       preset.length === 1 && preset[0] === "*"
         ? "FULL_ACCESS"
         : `[${preset.map((m) => `ModuleKey.${m}`).join(", ")}]`;
-    return `  [Role.${role}]: ${modules},`;
+    return `  [${keyExpr}]: ${modules},`;
   })
   .join("\n");
 
@@ -133,7 +138,7 @@ const aliasLines = Object.entries(aliasMap)
   .join("\n");
 
 const content = `${header}
-${enumFromArray("Role", roles)}
+${enumFromArray("Role", primaryRoles)}
 ${enumFromArray("SubRole", subRoles)}
 
 export enum ModuleKey {
@@ -142,8 +147,8 @@ ${MODULE_KEYS.map((key) => `  ${key} = "${key}",`).join("\n")}
 
 const FULL_ACCESS = Object.values(ModuleKey);
 
-// Default module access per role
-const ROLE_MODULES: Record<Role, ModuleKey[]> = {
+// Default module access per role and sub-role
+const ROLE_MODULES: Record<Role | SubRole, ModuleKey[]> = {
 ${roleModuleLines}
 } as const;
 
@@ -171,32 +176,11 @@ export function computeAllowedModules(
   const normalizedRole = normalizeRole(role) ?? Role.VIEWER;
   const normalizedSubRole = normalizeSubRole(subRole);
 
-  if (normalizedSubRole) {
-    switch (normalizedSubRole) {
-      case SubRole.FINANCE_OFFICER:
-        return [ModuleKey.DASHBOARD, ModuleKey.FINANCE, ModuleKey.REPORTS];
-      case SubRole.HR_OFFICER:
-        return [ModuleKey.DASHBOARD, ModuleKey.HR, ModuleKey.REPORTS];
-      case SubRole.SUPPORT_AGENT:
-        return [ModuleKey.DASHBOARD, ModuleKey.SUPPORT, ModuleKey.CRM, ModuleKey.REPORTS];
-      case SubRole.OPERATIONS_MANAGER:
-        return [
-          ModuleKey.DASHBOARD,
-          ModuleKey.WORK_ORDERS,
-          ModuleKey.PROPERTIES,
-          ModuleKey.SUPPORT,
-          ModuleKey.REPORTS,
-        ];
-      default:
-        break;
-    }
+  if (normalizedSubRole && ROLE_MODULES[normalizedSubRole as SubRole]) {
+    return ROLE_MODULES[normalizedSubRole as SubRole];
   }
 
   return ROLE_MODULES[normalizedRole] ?? [ModuleKey.DASHBOARD];
-}
-
-export function inferSubRoleFromRole(role?: string | null): SubRole | null {
-  return normalizeSubRole(role);
 }
 `;
 

@@ -112,7 +112,7 @@ export default function BalanceSheetWidget({
               {t("finance.balance.equity", "Equity")}: {data.equity.toFixed(2)}
             </p>
             <p
-              className={data.equationOk ? "text-emerald-600" : "text-rose-600"}
+              className={data.equationOk ? "text-success" : "text-destructive"}
             >
               {data.equationOk
                 ? t("finance.balance.ok", "Assets = Liabilities + Equity")

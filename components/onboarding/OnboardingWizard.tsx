@@ -581,7 +581,7 @@ export default function OnboardingWizard({
                 </div>
                 <div>
                   {uploadedDocs[docType] ? (
-                    <div className="flex items-center gap-2 text-green-600">
+                    <div className="flex items-center gap-2 text-success">
                       <Check className="h-4 w-4" />
                       <span className="text-sm">{isRTL ? "تم التحميل" : "Uploaded"}</span>
                     </div>
@@ -715,7 +715,7 @@ export default function OnboardingWizard({
                 className={cn(
                   "flex flex-col items-center gap-1",
                   isActive && "text-primary",
-                  isCompleted && "text-green-600",
+                  isCompleted && "text-success",
                   !isActive && !isCompleted && "text-muted-foreground"
                 )}
               >
@@ -723,7 +723,7 @@ export default function OnboardingWizard({
                   className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center border-2",
                     isActive && "border-primary bg-primary/10",
-                    isCompleted && "border-green-600 bg-green-600 text-white",
+                    isCompleted && "border-success bg-success text-success-foreground",
                     !isActive && !isCompleted && "border-muted"
                   )}
                 >

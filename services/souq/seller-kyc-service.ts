@@ -177,47 +177,13 @@ class SellerKYCService {
     const sellerObjectId = Types.ObjectId.isValid(sellerId)
       ? new Types.ObjectId(sellerId)
       : undefined;
-    let seller =
+    const seller =
       (sellerObjectId
         ? await SouqSeller.findById(sellerObjectId)
         : await SouqSeller.findById(sellerId)) ||
       (await SouqSeller.findOne({ sellerId }));
     if (!seller) {
-      // For admin-driven verification flows, create a stub seller so the action can proceed
-      const stubId = Types.ObjectId.isValid(sellerId)
-        ? new Types.ObjectId(sellerId)
-        : new Types.ObjectId();
-      seller = await SouqSeller.findOneAndUpdate(
-        { _id: stubId },
-        {
-          $setOnInsert: {
-            sellerId: sellerId || `TEMP-${stubId.toString()}`,
-            legalName: "Temp Seller",
-            contactEmail: "temp@fixzit.test",
-            contactPhone: "+0000000000",
-            registrationType: "company",
-            city: "Riyadh",
-            address: "Temp Address",
-            kycStatus: {
-              status: "in_review",
-              step: "verification",
-              companyInfoComplete: true,
-              documentsComplete: false,
-              bankDetailsComplete: true,
-            },
-            documents: [],
-            accountHealth: { status: "good", score: 80 },
-            status: "active",
-            tier: "professional",
-            autoRepricerSettings: { enabled: false, rules: {} },
-          },
-        },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
-      );
-    }
-
-    if (!seller) {
-      throw new Error("Seller not found");
+      throw new Error(`Seller not found for KYC submission: ${sellerId}`);
     }
 
     switch (step) {
@@ -466,27 +432,36 @@ class SellerKYCService {
     }
 
     const storedType = DOCUMENT_TYPE_MAP[documentType];
+    const documents = seller.documents ?? [];
+    const existingIdx = documents.findIndex((doc) => doc.type === storedType);
+    const existingDoc = existingIdx >= 0 ? documents[existingIdx] : undefined;
+
+    if (!existingDoc) {
+      throw new Error(
+        `Document not found for verification: ${documentType} for seller ${sellerId}`,
+      );
+    }
+
     const updatedDoc: IKYCDocumentEntry = {
       type: storedType,
-      url: "https://temp-docs.fixzit.test/auto-added.pdf",
-      uploadedAt: new Date(),
+      url: existingDoc.url,
+      uploadedAt: existingDoc.uploadedAt ?? new Date(),
       verified: approved,
       verifiedAt: approved ? new Date() : undefined,
       verifiedBy,
       rejectionReason: approved ? undefined : rejectionReason,
     };
 
-    const existingIdx = seller.documents?.findIndex(
-      (doc) => doc.type === storedType,
-    );
-    if (existingIdx !== undefined && existingIdx >= 0) {
-      seller.documents![existingIdx] = {
-        ...seller.documents![existingIdx],
+    if (existingIdx >= 0) {
+      documents[existingIdx] = {
+        ...existingDoc,
         ...updatedDoc,
       };
     } else {
-      seller.documents = [...(seller.documents ?? []), updatedDoc];
+      documents.push(updatedDoc);
     }
+
+    seller.documents = documents;
 
     await seller.save();
 
@@ -545,35 +520,9 @@ class SellerKYCService {
       (sellerObjectId
         ? await SouqSeller.findById(sellerObjectId)
         : await SouqSeller.findById(sellerId)) ||
-      (await SouqSeller.findOneAndUpdate(
-        { _id: sellerObjectId ?? new Types.ObjectId(sellerId) },
-        {
-          $setOnInsert: {
-            sellerId: sellerId || `TEMP-${Date.now()}`,
-            legalName: "Temp Seller",
-            contactEmail: "temp@fixzit.test",
-            contactPhone: "+0000000000",
-            registrationType: "company",
-            city: "Riyadh",
-            address: "Temp Address",
-            kycStatus: {
-              status: "pending",
-              step: "verification",
-              companyInfoComplete: true,
-              documentsComplete: true,
-              bankDetailsComplete: true,
-            },
-            documents: [],
-            accountHealth: { status: "good", score: 80 },
-            status: "active",
-            tier: "professional",
-            autoRepricerSettings: { enabled: false, rules: {} },
-          },
-        },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
-      ));
+      (await SouqSeller.findOne({ sellerId }));
     if (!seller) {
-      throw new Error("Seller not found");
+      throw new Error(`Seller not found for KYC approval: ${sellerId}`);
     }
 
     if (!seller.kycStatus) {
@@ -586,21 +535,20 @@ class SellerKYCService {
       { _id: targetId },
       {
         $set: {
-          kycStatus: {
-            status: "approved",
-            step: "verification",
-            companyInfoComplete: true,
-            documentsComplete: true,
-            bankDetailsComplete: true,
-            approvedAt: new Date(),
-            approvedBy,
-          },
+          "kycStatus.status": "approved",
+          "kycStatus.step": "verification",
+          "kycStatus.companyInfoComplete": true,
+          "kycStatus.documentsComplete": true,
+          "kycStatus.bankDetailsComplete": true,
+          "kycStatus.approvedAt": new Date(),
+          "kycStatus.approvedBy": approvedBy,
           isActive: true,
           isSuspended: false,
-          suspensionReason: undefined,
+        },
+        $unset: {
+          suspensionReason: "",
         },
       },
-      { upsert: true },
     );
 
     // Notify seller

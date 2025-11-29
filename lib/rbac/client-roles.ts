@@ -15,10 +15,6 @@ export enum Role {
   FINANCE = "FINANCE",
   HR = "HR",
   PROCUREMENT = "PROCUREMENT",
-  FINANCE_OFFICER = "FINANCE_OFFICER",
-  HR_OFFICER = "HR_OFFICER",
-  SUPPORT_AGENT = "SUPPORT_AGENT",
-  OPERATIONS_MANAGER = "OPERATIONS_MANAGER",
   OWNER = "OWNER",
   TENANT = "TENANT",
   VENDOR = "VENDOR",
@@ -57,8 +53,8 @@ export enum ModuleKey {
 
 const FULL_ACCESS = Object.values(ModuleKey);
 
-// Default module access per role
-const ROLE_MODULES: Record<Role, ModuleKey[]> = {
+// Default module access per role and sub-role
+const ROLE_MODULES: Record<Role | SubRole, ModuleKey[]> = {
   [Role.SUPER_ADMIN]: FULL_ACCESS,
   [Role.CORPORATE_ADMIN]: FULL_ACCESS,
   [Role.ADMIN]: FULL_ACCESS,
@@ -69,10 +65,6 @@ const ROLE_MODULES: Record<Role, ModuleKey[]> = {
   [Role.FINANCE]: [ModuleKey.DASHBOARD, ModuleKey.FINANCE, ModuleKey.REPORTS],
   [Role.HR]: [ModuleKey.DASHBOARD, ModuleKey.HR, ModuleKey.REPORTS],
   [Role.PROCUREMENT]: [ModuleKey.DASHBOARD, ModuleKey.MARKETPLACE, ModuleKey.SUPPORT, ModuleKey.REPORTS],
-  [Role.FINANCE_OFFICER]: [ModuleKey.DASHBOARD, ModuleKey.FINANCE, ModuleKey.REPORTS],
-  [Role.HR_OFFICER]: [ModuleKey.DASHBOARD, ModuleKey.HR, ModuleKey.REPORTS],
-  [Role.SUPPORT_AGENT]: [ModuleKey.DASHBOARD, ModuleKey.SUPPORT, ModuleKey.CRM, ModuleKey.REPORTS],
-  [Role.OPERATIONS_MANAGER]: [ModuleKey.DASHBOARD, ModuleKey.WORK_ORDERS, ModuleKey.PROPERTIES, ModuleKey.SUPPORT, ModuleKey.REPORTS],
   [Role.OWNER]: [ModuleKey.DASHBOARD, ModuleKey.PROPERTIES, ModuleKey.FINANCE, ModuleKey.REPORTS],
   [Role.TENANT]: [ModuleKey.DASHBOARD, ModuleKey.WORK_ORDERS, ModuleKey.PROPERTIES, ModuleKey.MARKETPLACE, ModuleKey.SUPPORT, ModuleKey.REPORTS],
   [Role.VENDOR]: [ModuleKey.DASHBOARD, ModuleKey.MARKETPLACE, ModuleKey.SUPPORT],
@@ -84,11 +76,14 @@ const ROLE_MODULES: Record<Role, ModuleKey[]> = {
   [Role.SUPPORT]: [ModuleKey.DASHBOARD, ModuleKey.SUPPORT, ModuleKey.CRM, ModuleKey.REPORTS],
   [Role.DISPATCHER]: [ModuleKey.DASHBOARD, ModuleKey.WORK_ORDERS, ModuleKey.SUPPORT],
   [Role.FINANCE_MANAGER]: [ModuleKey.DASHBOARD, ModuleKey.FINANCE, ModuleKey.REPORTS],
+  [SubRole.FINANCE_OFFICER]: [ModuleKey.DASHBOARD, ModuleKey.FINANCE, ModuleKey.REPORTS],
+  [SubRole.HR_OFFICER]: [ModuleKey.DASHBOARD, ModuleKey.HR, ModuleKey.REPORTS],
+  [SubRole.SUPPORT_AGENT]: [ModuleKey.DASHBOARD, ModuleKey.SUPPORT, ModuleKey.CRM, ModuleKey.REPORTS],
+  [SubRole.OPERATIONS_MANAGER]: [ModuleKey.DASHBOARD, ModuleKey.WORK_ORDERS, ModuleKey.PROPERTIES, ModuleKey.SUPPORT, ModuleKey.REPORTS],
 } as const;
 
 // Legacy/alias map (must stay in sync with server normalization rules)
 const ALIAS_MAP: Record<string, Role> = {
-  CORPORATE_ADMIN: Role.ADMIN,
   TENANT_ADMIN: Role.ADMIN,
   CLIENT_ADMIN: Role.ADMIN,
   MANAGEMENT: Role.MANAGER,
@@ -130,30 +125,9 @@ export function computeAllowedModules(
   const normalizedRole = normalizeRole(role) ?? Role.VIEWER;
   const normalizedSubRole = normalizeSubRole(subRole);
 
-  if (normalizedSubRole) {
-    switch (normalizedSubRole) {
-      case SubRole.FINANCE_OFFICER:
-        return [ModuleKey.DASHBOARD, ModuleKey.FINANCE, ModuleKey.REPORTS];
-      case SubRole.HR_OFFICER:
-        return [ModuleKey.DASHBOARD, ModuleKey.HR, ModuleKey.REPORTS];
-      case SubRole.SUPPORT_AGENT:
-        return [ModuleKey.DASHBOARD, ModuleKey.SUPPORT, ModuleKey.CRM, ModuleKey.REPORTS];
-      case SubRole.OPERATIONS_MANAGER:
-        return [
-          ModuleKey.DASHBOARD,
-          ModuleKey.WORK_ORDERS,
-          ModuleKey.PROPERTIES,
-          ModuleKey.SUPPORT,
-          ModuleKey.REPORTS,
-        ];
-      default:
-        break;
-    }
+  if (normalizedSubRole && ROLE_MODULES[normalizedSubRole as SubRole]) {
+    return ROLE_MODULES[normalizedSubRole as SubRole];
   }
 
   return ROLE_MODULES[normalizedRole] ?? [ModuleKey.DASHBOARD];
-}
-
-export function inferSubRoleFromRole(role?: string | null): SubRole | null {
-  return normalizeSubRole(role);
 }

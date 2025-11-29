@@ -1,9 +1,20 @@
 "use client";
 
+import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Eye,
   Edit,
@@ -13,9 +24,11 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle,
+  Loader2,
 } from "lucide-react";
 import ClientDate from "@/components/ClientDate";
 import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { CardGridSkeleton } from "@/components/skeletons";
 
 interface MaintenanceTask {
   id: string;
@@ -29,16 +42,19 @@ interface MaintenanceTask {
 }
 
 export default function MaintenancePage() {
+  const router = useRouter();
   const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({
     moduleId: "administration",
   });
   const { t } = useTranslation();
+  const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<MaintenanceTask | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  if (!hasOrgContext || !orgId) {
-    return guard;
-  }
-
-  const tasks: MaintenanceTask[] = [
+  // Mock data - in production, this would be fetched from API
+  const mockTasks: MaintenanceTask[] = [
     {
       id: "MT-001",
       title: "AC Unit Maintenance - Tower A",
@@ -70,6 +86,72 @@ export default function MaintenancePage() {
       description: "Monthly fire alarm system test and battery replacement",
     },
   ];
+
+  const fetchTasks = useCallback(async () => {
+    if (!orgId) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/fm/maintenance?orgId=${orgId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTasks(Array.isArray(data?.tasks) ? data.tasks : mockTasks);
+      } else {
+        // Fallback to mock data if API not ready
+        setTasks(mockTasks);
+      }
+    } catch {
+      // Fallback to mock data
+      setTasks(mockTasks);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [orgId]);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  const handleView = (task: MaintenanceTask) => {
+    router.push(`/fm/maintenance/${task.id}`);
+  };
+
+  const handleEdit = (task: MaintenanceTask) => {
+    router.push(`/fm/maintenance/${task.id}/edit`);
+  };
+
+  const handleDeleteClick = (task: MaintenanceTask) => {
+    setTaskToDelete(task);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!taskToDelete) return;
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/fm/maintenance/${taskToDelete.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId }),
+      });
+      if (response.ok) {
+        toast.success(t("maintenance.deleteSuccess", "Task deleted successfully"));
+        setTasks((prev) => prev.filter((t) => t.id !== taskToDelete.id));
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data?.error || t("maintenance.deleteError", "Failed to delete task"));
+      }
+    } catch {
+      toast.error(t("maintenance.deleteError", "Failed to delete task"));
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setTaskToDelete(null);
+    }
+  };
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
@@ -125,9 +207,38 @@ export default function MaintenancePage() {
     );
   }
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {supportBanner}
+        <CardGridSkeleton count={4} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {supportBanner}
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("maintenance.deleteTitle", "Delete Task")}</DialogTitle>
+            <DialogDescription>
+              {t("maintenance.deleteConfirm", "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.").replace("{{title}}", taskToDelete?.title || "")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
+              {t("common.cancel", "Cancel")}
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={isDeleting}>
+              {isDeleting && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
+              {t("common.delete", "Delete")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground mb-2">
@@ -264,11 +375,21 @@ export default function MaintenancePage() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleView(task)}
+                      aria-label={t("maintenance.viewTask", "View task {{title}}").replace("{{title}}", task.title)}
+                    >
                       <Eye className="h-4 w-4 me-2" />
                       {t("common.view", "View")}
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEdit(task)}
+                      aria-label={t("maintenance.editTask", "Edit task {{title}}").replace("{{title}}", task.title)}
+                    >
                       <Edit className="h-4 w-4 me-2" />
                       {t("common.edit", "Edit")}
                     </Button>
@@ -276,6 +397,8 @@ export default function MaintenancePage() {
                       variant="outline"
                       size="sm"
                       className="text-destructive hover:text-destructive"
+                      onClick={() => handleDeleteClick(task)}
+                      aria-label={t("maintenance.deleteTask", "Delete task {{title}}").replace("{{title}}", task.title)}
                     >
                       <Trash2 className="h-4 w-4 me-2" />
                       {t("common.delete", "Delete")}

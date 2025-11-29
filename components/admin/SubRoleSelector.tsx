@@ -88,10 +88,6 @@ export default function SubRoleSelector({
     Role.FINANCE,
     Role.HR,
     Role.SUPPORT,
-    Role.OPERATIONS_MANAGER,
-    Role.FINANCE_OFFICER,
-    Role.HR_OFFICER,
-    Role.SUPPORT_AGENT,
   ]);
 
   if (!normalizedRole || !eligibleRoles.has(normalizedRole)) {

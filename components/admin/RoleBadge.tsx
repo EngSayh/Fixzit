@@ -61,7 +61,7 @@ const ROLE_CONFIG: Partial<
   },
   [Role.TECHNICIAN]: {
     label: "Technician",
-    color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+    color: "bg-success/10 text-success dark:bg-success/20 dark:text-success",
     description: "Field worker handling work orders",
   },
   [Role.PROPERTY_MANAGER]: {

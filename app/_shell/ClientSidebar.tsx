@@ -12,7 +12,6 @@ import {
   SubRole,
   normalizeRole as normalizeFmRole,
   normalizeSubRole,
-  inferSubRoleFromRole,
 } from "@/lib/rbac/client-roles";
 
 type RoleLabel =
@@ -390,8 +389,7 @@ const toDisplayRole = (
   rawRole?: string | null,
   rawSubRole?: string | null,
 ): RoleLabel => {
-  const subRole =
-    normalizeSubRole(rawSubRole) ?? inferSubRoleFromRole(rawRole);
+  const subRole = normalizeSubRole(rawSubRole);
   const role = normalizeFmRole(rawRole) ?? CanonicalRole.VIEWER;
 
   switch (role) {
@@ -406,14 +404,11 @@ const toDisplayRole = (
     case CanonicalRole.FM_MANAGER:
     case CanonicalRole.PROCUREMENT:
     case CanonicalRole.SUPPORT:
-    case CanonicalRole.OPERATIONS_MANAGER:
       return "Management";
     case CanonicalRole.FINANCE:
     case CanonicalRole.FINANCE_MANAGER:
-    case CanonicalRole.FINANCE_OFFICER:
       return "Finance";
     case CanonicalRole.HR:
-    case CanonicalRole.HR_OFFICER:
       return "HR";
     case CanonicalRole.PROPERTY_MANAGER:
     case CanonicalRole.OWNER:

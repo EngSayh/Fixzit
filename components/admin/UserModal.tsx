@@ -110,10 +110,6 @@ export default function UserModal({
     Role.FINANCE,
     Role.HR,
     Role.SUPPORT,
-    Role.OPERATIONS_MANAGER,
-    Role.FINANCE_OFFICER,
-    Role.HR_OFFICER,
-    Role.SUPPORT_AGENT,
   ]);
 
   // Clear sub-role when role changes away from eligible buckets

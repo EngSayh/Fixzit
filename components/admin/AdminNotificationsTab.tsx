@@ -234,8 +234,8 @@ export default function AdminNotificationsTab({
         <div
           className={`p-4 rounded-lg flex items-center gap-3 ${
             notification.type === "success"
-              ? "bg-green-50 text-green-800"
-              : "bg-red-50 text-red-800"
+              ? "bg-success/10 text-success"
+              : "bg-destructive/10 text-destructive"
           }`}
         >
           {notification.type === "success" ? (

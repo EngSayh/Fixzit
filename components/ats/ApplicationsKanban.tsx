@@ -50,12 +50,12 @@ interface Application {
 }
 
 const STAGES = [
-  { id: "applied", title: "Applied", color: "bg-blue-500" },
-  { id: "screening", title: "Screening", color: "bg-yellow-500" },
-  { id: "interview", title: "Interview", color: "bg-purple-500" },
-  { id: "offer", title: "Offer", color: "bg-green-500" },
-  { id: "hired", title: "Hired", color: "bg-emerald-600" },
-  { id: "rejected", title: "Rejected", color: "bg-red-500" },
+  { id: "applied", title: "Applied", color: "bg-primary" },
+  { id: "screening", title: "Screening", color: "bg-warning" },
+  { id: "interview", title: "Interview", color: "bg-accent" },
+  { id: "offer", title: "Offer", color: "bg-success" },
+  { id: "hired", title: "Hired", color: "bg-success" },
+  { id: "rejected", title: "Rejected", color: "bg-destructive" },
 ];
 
 export default function ApplicationsKanban() {
@@ -165,9 +165,9 @@ export default function ApplicationsKanban() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600 bg-green-50";
-    if (score >= 60) return "text-yellow-600 bg-yellow-50";
-    return "text-red-600 bg-red-50";
+    if (score >= 80) return "text-success bg-success/10";
+    if (score >= 60) return "text-warning bg-warning/10";
+    return "text-destructive bg-destructive/10";
   };
 
   if (isLoading) {

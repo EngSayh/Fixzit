@@ -366,12 +366,14 @@ class ReturnsService {
     const order = await this.findOrder(rma.orderId);
     if (!order) {
       logger.error(
+        "RMA return label generation failed: order not found",
+        undefined,
         {
           rmaId: rma._id?.toString?.(),
           orderId: rma.orderId?.toString?.(),
           buyerId: rma.buyerId?.toString?.(),
+          metric: "returns.order_missing",
         },
-        "RMA return label generation failed: order not found",
       );
       throw new Error(`Order not found for RMA ${rma.orderId}`);
     }

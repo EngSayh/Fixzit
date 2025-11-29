@@ -97,6 +97,14 @@ export default function PaymentsPage() {
     );
   }, [payments, debouncedQuery]);
 
+  const handlePaymentStatusChange = (paymentId: string, newStatus: PaymentRecord["status"]) => {
+    setPayments(prev =>
+      prev.map(payment =>
+        payment.id === paymentId ? { ...payment, status: newStatus } : payment
+      )
+    );
+  };
+
   if (!session) {
     return <CardGridSkeleton count={4} />;
   }
@@ -121,7 +129,7 @@ export default function PaymentsPage() {
             )}
           </p>
         </div>
-        <RecordPaymentDialog orgId={orgId} />
+        <RecordPaymentDialog orgId={orgId} onRecorded={() => fetchPayments()} />
       </div>
 
       {supportOrg && (
@@ -170,7 +178,11 @@ export default function PaymentsPage() {
       ) : (
         <div className="grid gap-4">
           {filteredPayments.map((payment) => (
-            <PaymentCard key={payment.id} {...payment} />
+            <PaymentCard 
+              key={payment.id} 
+              {...payment} 
+              onStatusChange={handlePaymentStatusChange}
+            />
           ))}
         </div>
       )}
@@ -198,6 +210,7 @@ type PaymentRecord = {
 };
 
 function PaymentCard({
+  id,
   vendor,
   reference,
   amount,
@@ -205,13 +218,42 @@ function PaymentCard({
   date,
   method,
   status,
-}: PaymentRecord) {
+  onStatusChange,
+}: PaymentRecord & { onStatusChange?: (id: string, newStatus: PaymentRecord["status"]) => void }) {
   const auto = useAutoTranslator("fm.finance.payments.card");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const statusColors = {
-    pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
-    completed: "bg-green-100 text-green-800 border-green-300",
-    failed: "bg-red-100 text-red-800 border-red-300",
+    pending: "bg-warning/10 text-warning border-warning/30",
+    completed: "bg-success/10 text-success border-success/30",
+    failed: "bg-destructive/10 text-destructive border-destructive/30",
+  };
+
+  const handleMarkCompleted = async () => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`/api/finance/payments/${id}/complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to mark payment as completed");
+      }
+      toast.success(auto("Payment marked as completed", "toast.completeSuccess"));
+      onStatusChange?.(id, "completed");
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : auto("Failed to complete payment", "toast.completeError");
+      toast.error(message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleViewDetails = () => {
+    window.open(`/fm/finance/payments/${id}`, "_blank");
   };
 
   return (
@@ -241,10 +283,22 @@ function PaymentCard({
         </div>
         {status === "pending" && (
           <div className="flex gap-2 mt-4">
-            <Button size="sm" variant="default">
+            <Button 
+              size="sm" 
+              variant="default"
+              onClick={handleMarkCompleted}
+              disabled={isProcessing}
+              aria-label={auto("Mark payment as completed", "actions.completeLabel")}
+            >
               {auto("Mark Completed", "actions.complete")}
             </Button>
-            <Button size="sm" variant="outline">
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={handleViewDetails}
+              disabled={isProcessing}
+              aria-label={auto("View payment details", "actions.viewLabel")}
+            >
               {auto("View Details", "actions.view")}
             </Button>
           </div>
@@ -254,7 +308,7 @@ function PaymentCard({
   );
 }
 
-function RecordPaymentDialog({ orgId }: { orgId: string }) {
+function RecordPaymentDialog({ orgId, onRecorded: _onRecorded }: { orgId: string; onRecorded?: () => void }) {
   const auto = useAutoTranslator("fm.finance.payments.create");
   const [open, setOpen] = useState(false);
   const [vendor, setVendor] = useState("");
@@ -302,6 +356,7 @@ function RecordPaymentDialog({ orgId }: { orgId: string }) {
       setVendor("");
       setAmount("");
       setReference("");
+      _onRecorded?.();
     } catch (_error) {
       const message =
         _error instanceof Error
@@ -325,10 +380,11 @@ function RecordPaymentDialog({ orgId }: { orgId: string }) {
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium">
+            <label htmlFor="payment-vendor" className="text-sm font-medium">
               {auto("Vendor", "fields.vendor")}
             </label>
             <Input
+              id="payment-vendor"
               placeholder={auto(
                 "e.g. ABC Supplies Co.",
                 "fields.vendorPlaceholder",
@@ -339,10 +395,11 @@ function RecordPaymentDialog({ orgId }: { orgId: string }) {
             />
           </div>
           <div>
-            <label className="text-sm font-medium">
+            <label htmlFor="payment-amount" className="text-sm font-medium">
               {auto("Amount (SAR)", "fields.amount")}
             </label>
             <Input
+              id="payment-amount"
               type="number"
               placeholder="12500"
               value={amount}
@@ -351,10 +408,11 @@ function RecordPaymentDialog({ orgId }: { orgId: string }) {
             />
           </div>
           <div>
-            <label className="text-sm font-medium">
+            <label htmlFor="payment-method" className="text-sm font-medium">
               {auto("Payment Method", "fields.method")}
             </label>
             <select
+              id="payment-method"
               className="w-full border border-border rounded-md p-2"
               value={method}
               onChange={(e) => setMethod(e.target.value)}
@@ -371,10 +429,11 @@ function RecordPaymentDialog({ orgId }: { orgId: string }) {
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium">
+            <label htmlFor="payment-reference" className="text-sm font-medium">
               {auto("Reference Number", "fields.reference")}
             </label>
             <Input
+              id="payment-reference"
               placeholder={auto(
                 "e.g. PAY-2024-004",
                 "fields.referencePlaceholder",
