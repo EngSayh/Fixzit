@@ -14,6 +14,7 @@ export type RateLimitOptions = {
   keyPrefix?: string;
   requests?: number;
   windowMs?: number;
+  orgId?: string; // For multi-tenant isolation in monitoring
 };
 
 export function enforceRateLimit(
@@ -23,6 +24,12 @@ export function enforceRateLimit(
   const identifier = options.identifier ?? getClientIP(request);
   const prefix = options.keyPrefix ?? new URL(request.url).pathname;
   const key = `${prefix}:${identifier}`;
+  
+  // Extract orgId from options or request headers for multi-tenant tracking
+  const orgId = options.orgId 
+    ?? request.headers.get("X-Org-ID") 
+    ?? request.headers.get("X-Tenant-ID")
+    ?? undefined;
 
   const result = rateLimit(
     key,
@@ -31,8 +38,8 @@ export function enforceRateLimit(
   );
 
   if (!result.allowed) {
-    // Track rate limit event for monitoring
-    trackRateLimitHit(identifier, prefix);
+    // Track rate limit event for monitoring (with org context)
+    trackRateLimitHit(identifier, prefix, orgId ?? undefined);
     return rateLimitError();
   }
 

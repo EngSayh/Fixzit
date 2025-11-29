@@ -22,6 +22,12 @@ export async function logSecurityEvent(event: {
   // Redact IP and metadata for logging (PII protection)
   const redactedIp = redactIdentifier(event.ip);
   const redactedMetadata = redactMetadata(event.metadata);
+  
+  // Extract orgId from metadata for multi-tenant isolation
+  const orgId = typeof event.metadata?.orgId === "string" 
+    ? event.metadata.orgId 
+    : undefined;
+  
   logger.warn("[SecurityEvent]", { 
     ...event, 
     ip: redactedIp,
@@ -31,7 +37,7 @@ export async function logSecurityEvent(event: {
     switch (event.type) {
       case "rate_limit": {
         const endpoint = String(event.metadata?.keyPrefix ?? event.path);
-        trackRateLimitHit(event.ip, endpoint);
+        trackRateLimitHit(event.ip, endpoint, orgId);
         break;
       }
       case "cors_block": {
@@ -39,7 +45,7 @@ export async function logSecurityEvent(event: {
           typeof event.metadata?.origin === "string"
             ? (event.metadata.origin as string)
             : event.path;
-        trackCorsViolation(origin, event.path);
+        trackCorsViolation(origin, event.path, orgId);
         break;
       }
       case "auth_failure": {
@@ -51,7 +57,7 @@ export async function logSecurityEvent(event: {
           typeof event.metadata?.reason === "string"
             ? (event.metadata.reason as string)
             : "unknown";
-        trackAuthFailure(identifier, reason);
+        trackAuthFailure(identifier, reason, orgId);
         break;
       }
       case "csrf_violation": {
@@ -59,7 +65,7 @@ export async function logSecurityEvent(event: {
           typeof event.metadata?.reason === "string"
             ? (event.metadata.reason as string)
             : "csrf_violation";
-        trackAuthFailure(event.ip, reason);
+        trackAuthFailure(event.ip, reason, orgId);
         break;
       }
     }
