@@ -27,6 +27,7 @@ import {
   MModel,
   CommonModelStatics,
 } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 
 export enum BoostType {
   FEATURED = "FEATURED", // Top placement, highest visibility
@@ -195,6 +196,12 @@ BoostSchema.index(
     name: "uniq_active_boost_per_type",
   },
 );
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar Marketplace boosts
+// =============================================================================
+BoostSchema.plugin(tenantIsolationPlugin);
 
 /* ---------------- Static: Pricing ---------------- */
 

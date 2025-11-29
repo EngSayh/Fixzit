@@ -19,6 +19,9 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 import type { MModel } from '@/src/types/mongoose-compat';
 import { EscrowSource, EscrowState, type EscrowStateValue } from '@/server/models/finance/EscrowAccount';
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+import { encryptField, decryptField, isEncrypted } from '@/lib/security/encryption';
+import { logger } from '@/lib/logger';
 
 export enum BookingStatus {
   PENDING = 'PENDING',
@@ -188,6 +191,115 @@ BookingSchema.index(
   }
 );
 
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar Marketplace
+// =============================================================================
+BookingSchema.plugin(tenantIsolationPlugin);
+
+// =============================================================================
+// SEC-002 FIX: PII Encryption for guest personal data (GDPR Article 32)
+// Encrypts nationalId and phone for data protection compliance
+// =============================================================================
+const BOOKING_ENCRYPTED_FIELDS = {
+  'guestNationalId': 'Guest National ID',
+  'guestPhone': 'Guest Phone',
+} as const;
+
+/**
+ * Pre-save hook: Encrypt guest PII fields
+ */
+BookingSchema.pre('save', function(next) {
+  try {
+    for (const [field, fieldName] of Object.entries(BOOKING_ENCRYPTED_FIELDS)) {
+      const value = (this as any)[field];
+      if (value && !isEncrypted(value)) {
+        (this as any)[field] = encryptField(value, `booking.${field}`);
+        logger.info('booking:pii_encrypted', {
+          action: 'pre_save_encrypt',
+          fieldPath: field,
+          fieldName,
+          bookingId: this._id?.toString(),
+        });
+      }
+    }
+    next();
+  } catch (error) {
+    logger.error('booking:encryption_failed', {
+      action: 'pre_save_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
+/**
+ * Pre-findOneAndUpdate hook: Encrypt guest PII fields during updates
+ */
+BookingSchema.pre('findOneAndUpdate', function(next) {
+  try {
+    const update = this.getUpdate() as Record<string, any>;
+    if (!update) return next();
+    
+    const updateData = update.$set ?? update;
+    
+    for (const [field, fieldName] of Object.entries(BOOKING_ENCRYPTED_FIELDS)) {
+      const value = updateData[field];
+      if (value !== undefined && value !== null && !isEncrypted(String(value))) {
+        if (update.$set) {
+          update.$set[field] = encryptField(String(value), `booking.${field}`);
+        } else {
+          update[field] = encryptField(String(value), `booking.${field}`);
+        }
+        logger.info('booking:pii_encrypted', {
+          action: 'pre_findOneAndUpdate_encrypt',
+          fieldPath: field,
+          fieldName,
+        });
+      }
+    }
+    next();
+  } catch (error) {
+    logger.error('booking:encryption_failed', {
+      action: 'pre_findOneAndUpdate_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
+/**
+ * Post-find hooks: Decrypt guest PII fields after retrieval
+ */
+function decryptBookingPIIFields(doc: any) {
+  if (!doc) return;
+  try {
+    for (const field of Object.keys(BOOKING_ENCRYPTED_FIELDS)) {
+      const value = doc[field];
+      if (value && isEncrypted(value)) {
+        doc[field] = decryptField(value, `booking.${field}`);
+      }
+    }
+  } catch (error) {
+    logger.error('booking:decryption_failed', {
+      action: 'post_find_decrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+BookingSchema.post('find', function(docs: any[]) {
+  if (Array.isArray(docs)) docs.forEach(decryptBookingPIIFields);
+});
+
+BookingSchema.post('findOne', function(doc: any) {
+  decryptBookingPIIFields(doc);
+});
+
+BookingSchema.post('findOneAndUpdate', function(doc: any) {
+  decryptBookingPIIFields(doc);
+});
+
 /* ---------------- Helpers ---------------- */
 
 const MS_PER_DAY = 86_400_000;
@@ -251,6 +363,91 @@ BookingSchema.pre('validate', function (next) {
   }
 
   next();
+});
+
+// =============================================================================
+// DATA-003 FIX: Pre-findOneAndUpdate hook to recalculate derived fields
+// CRITICAL: Without this, Booking.findOneAndUpdate() bypasses derived field computation
+// This could lead to data inconsistency (wrong nights count, pricing, reservedNights)
+// =============================================================================
+BookingSchema.pre('findOneAndUpdate', function (next) {
+  try {
+    const update = this.getUpdate() as Record<string, any>;
+    if (!update) return next();
+    
+    const updateData = update.$set ?? update;
+    
+    // Check if dates are being updated
+    const checkInDate = updateData.checkInDate;
+    const checkOutDate = updateData.checkOutDate;
+    const pricePerNight = updateData.pricePerNight;
+    
+    // If dates are being updated, recalculate nights and reservedNights
+    if (checkInDate || checkOutDate) {
+      // We need both dates to calculate - this hook requires both to be set
+      // If only one is provided, we should skip recalculation (use service layer for partial updates)
+      if (checkInDate && checkOutDate) {
+        const inUTC = toUTCDateOnly(new Date(checkInDate));
+        const outUTC = toUTCDateOnly(new Date(checkOutDate));
+        const nights = Math.max(0, Math.round((outUTC.getTime() - inUTC.getTime()) / MS_PER_DAY));
+        
+        if (nights < 1) {
+          return next(new Error('Check-out must be at least 1 day after check-in'));
+        }
+        
+        const reservedNights = enumerateNightsUTC(inUTC, outUTC);
+        
+        if (update.$set) {
+          update.$set.checkInDate = inUTC;
+          update.$set.checkOutDate = outUTC;
+          update.$set.nights = nights;
+          update.$set.reservedNights = reservedNights;
+        } else {
+          update.checkInDate = inUTC;
+          update.checkOutDate = outUTC;
+          update.nights = nights;
+          update.reservedNights = reservedNights;
+        }
+        
+        // Recalculate pricing if we have nights
+        const price = pricePerNight ?? 0;
+        if (price > 0 || pricePerNight !== undefined) {
+          const total = Math.max(0, price * nights);
+          const feePercentage = Number(process.env.PLATFORM_FEE_PERCENTAGE) || 15;
+          const platform = Math.round(total * (feePercentage / 100));
+          const payout = Math.max(0, total - platform);
+          
+          if (update.$set) {
+            update.$set.totalPrice = total;
+            update.$set.platformFee = platform;
+            update.$set.hostPayout = payout;
+          } else {
+            update.totalPrice = total;
+            update.platformFee = platform;
+            update.hostPayout = payout;
+          }
+        }
+        
+        logger.info('booking:derived_fields_recalculated', {
+          action: 'pre_findOneAndUpdate',
+          nights,
+          reservedNightsCount: reservedNights.length,
+        });
+      }
+    }
+    
+    // If only pricePerNight is being updated, we need the existing nights count
+    // This requires a lookup - for simplicity, we'll handle this in service layer
+    // and only recalculate when we have all needed data
+    
+    next();
+  } catch (error) {
+    logger.error('booking:derived_field_calculation_failed', {
+      action: 'pre_findOneAndUpdate',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
 });
 
 /* ---------------- Methods: status transitions ---------------- */
