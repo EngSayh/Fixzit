@@ -143,8 +143,9 @@ class RatingAggregationService {
     const productIds = products.map((p) => p._id);
 
     // Fetch all reviews for seller's products
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const reviews = await SouqReview.find({
-      org_id: orgId,
+      orgId: orgId,
       productId: { $in: productIds },
       status: "published",
     })
@@ -243,8 +244,9 @@ class RatingAggregationService {
    * Get recent reviews for a product
    */
   async getRecentReviews(orgId: string, productId: string, limit: number = 5) {
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     return await SouqReview.find({
-      org_id: orgId,
+      orgId: orgId,
       productId,
       status: "published",
     })

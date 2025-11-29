@@ -133,7 +133,8 @@ async function main() {
       ],
       assignee_user_id: new Types.ObjectId(),
       signoff: undefined,
-      org_id: orgId,
+      // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+      orgId: orgId,
       createdAt: now,
       updatedAt: now,
     },
@@ -146,15 +147,17 @@ async function main() {
         { item: "Grounding test", severity: "HIGH", ok: true },
       ],
       assignee_user_id: new Types.ObjectId(),
-      org_id: orgId,
+      // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+      orgId: orgId,
       createdAt: now,
       updatedAt: now,
     },
   ];
 
   for (const insp of inspections) {
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     await FMInspection.updateOne(
-      { org_id: insp.org_id, type: insp.type, unit_id: insp.unit_id },
+      { orgId: insp.orgId, type: insp.type, unit_id: insp.unit_id },
       {
         $set: { ...insp, updatedAt: new Date() },
         $setOnInsert: { createdAt: insp.createdAt },

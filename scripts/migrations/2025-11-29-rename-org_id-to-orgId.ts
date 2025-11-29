@@ -54,6 +54,12 @@ const INDEXES_TO_UPDATE = [
     indexOptions: { background: true },
   },
   {
+    collection: "onboarding_cases",
+    dropIndex: { subject_org_id: 1 },
+    createIndex: { subjectOrgId: 1 },
+    indexOptions: { background: true },
+  },
+  {
     collection: "souq_settlements",
     dropIndex: { org_id: 1, status: 1 },
     createIndex: { orgId: 1, status: 1 },
