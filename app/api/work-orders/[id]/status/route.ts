@@ -51,7 +51,7 @@ const schema = z.object({
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   const user = await getSessionUser(req);
   const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
@@ -60,9 +60,10 @@ export async function POST(
   }
 
   await connectToDatabase();
+  const { id } = await props.params;
 
   const body = schema.parse(await req.json());
-  const wo = await WorkOrder.findOne({ _id: params.id, orgId: user.orgId });
+  const wo = await WorkOrder.findOne({ _id: id, orgId: user.orgId });
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 
   // Get current status and target status

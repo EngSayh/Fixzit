@@ -1,10 +1,5 @@
 name: Agent Governor CI
 
-# ℹ️ VSCode Warning Suppression:
-# The "Context access might be invalid" warnings for secrets are EXPECTED and SAFE to ignore.
-# These secrets have fallback values and are only required in production CI/CD.
-# See .github/WORKFLOW_SECRETS.md for details.
-
 on:
   pull_request:
   push:
@@ -64,9 +59,9 @@ jobs:
       
       - name: Build project
         env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/fixzit-ci-test' }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-test-secret-key-min-32-chars-long-for-testing-must-be-32-chars' }}
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
           NEXT_PUBLIC_APP_URL: http://localhost:3000
           DISABLE_MONGODB_FOR_BUILD: "true"
           SKIP_ENV_VALIDATION: "true"

@@ -17,15 +17,9 @@ This directory contains GitHub Actions workflow files and related documentation.
 
 ## 🚨 VSCode Warnings - Read This First!
 
-If you see warnings in VSCode's Problems tab like:
-```
-Context access might be invalid: SENTRY_AUTH_TOKEN
-Context access might be invalid: GOOGLE_OAUTH_CLIENT_SECRET
-```
+Secrets are now fully configured in GitHub/Vercel and referenced directly in the workflows. The prior “Context access might be invalid” hints should be gone after you reload VSCode.
 
-**These warnings are SAFE to ignore!** They're expected for local development.
-
-👉 **See [WORKFLOW_WARNINGS.md](./WORKFLOW_WARNINGS.md) for details and suppression methods.**
+👉 If you still see them, check [WORKFLOW_WARNINGS.md](./WORKFLOW_WARNINGS.md) for the quick reload/auth steps.
 
 ## 🔐 Secrets Configuration
 

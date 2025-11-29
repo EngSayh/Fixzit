@@ -10,31 +10,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, FileText, Upload, RefreshCw, FolderOpen } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useFMPermissions } from "@/hooks/useFMPermissions";
+import { SubmoduleKey } from "@/domain/fm/fm.behavior";
 
 // Document management - will be linked to properties
 // TODO: Implement dedicated /api/fm/documents endpoint for full document management
 
 export default function PropertiesDocumentsPage() {
   const { t } = useTranslation();
-  const { data: session } = useSession();
+  const { status: sessionStatus } = useSession();
+  const fmPermissions = useFMPermissions();
   const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
     moduleId: "properties",
   });
   const { properties, isLoading, error, refresh } = useProperties("?limit=100");
 
-  const userRole = (session?.user as { role?: string })?.role;
-  const documentActionRoles = new Set([
-    "SUPER_ADMIN",
-    "CORPORATE_ADMIN",
-    "MANAGEMENT",
-    "FINANCE",
-    "FINANCE_OFFICER",
-    "OPS",
-    "SUPPORT",
-  ]);
-  const canManageDocuments = Boolean(
-    userRole && documentActionRoles.has(userRole)
+  const canAccessDocuments = fmPermissions.canAccessModule(
+    SubmoduleKey.PROP_DOCUMENTS
   );
+  const canManageDocuments =
+    canAccessDocuments && fmPermissions.canManageProperties();
 
   // Calculate document stats based on properties
   const stats = useMemo(() => {
@@ -50,6 +45,46 @@ export default function PropertiesDocumentsPage() {
 
   if (!hasOrgContext) {
     return guard;
+  }
+
+  if (sessionStatus === "loading") {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="properties" />
+        <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3 animate-pulse">
+          <div className="h-4 w-44 rounded-md bg-muted" />
+          <div className="h-4 w-64 rounded-md bg-muted" />
+          <div className="h-3 w-72 rounded-md bg-muted/60" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!canAccessDocuments) {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="properties" />
+        {supportBanner}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">
+              {t(
+                "fm.properties.documents.planGate.title",
+                "Document management is not available on your plan"
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-muted-foreground">
+              {t(
+                "fm.properties.documents.planGate.body",
+                "Upgrade your subscription to upload, track expiry dates, and automate compliance alerts."
+              )}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

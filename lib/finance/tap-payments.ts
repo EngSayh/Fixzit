@@ -202,16 +202,16 @@ class TapPaymentsClient {
     this.secretKey = process.env.TAP_SECRET_KEY || "";
     this.publicKey = process.env.TAP_PUBLIC_KEY || "";
     this.webhookSecret = process.env.TAP_WEBHOOK_SECRET || "";
+    
     const paytabsConfigured =
       Boolean(process.env.PAYTABS_PROFILE_ID) &&
       Boolean(process.env.PAYTABS_SERVER_KEY);
-    const tapEnvPresent =
-      Boolean(this.secretKey) ||
-      Boolean(this.publicKey) ||
-      Boolean(this.webhookSecret);
-    this.isConfigured = tapEnvPresent;
+    
+    // Tap is only considered configured when BOTH essential API keys exist
+    this.isConfigured = Boolean(this.secretKey && this.publicKey);
 
-    // Suppress Tap warnings when PayTabs is configured and Tap is intentionally absent.
+    // Suppress Tap warnings when PayTabs is configured and Tap is intentionally absent
+    const tapEnvPresent = Boolean(this.secretKey) || Boolean(this.publicKey);
     if (!tapEnvPresent) {
       if (!paytabsConfigured) {
         logger.warn(
@@ -221,14 +221,13 @@ class TapPaymentsClient {
       return;
     }
 
-    if (!this.secretKey) {
-      logger.error("TAP_SECRET_KEY environment variable not set");
-    }
-    if (!this.publicKey) {
-      logger.warn(
-        "TAP_PUBLIC_KEY environment variable not set (required for frontend)",
+    // Warn if partially configured (one key present but not both)
+    if (!this.isConfigured) {
+      logger.error(
+        "Tap Payments partially configured: both TAP_SECRET_KEY and TAP_PUBLIC_KEY are required for API access",
       );
     }
+    
     if (!this.webhookSecret) {
       logger.warn(
         "TAP_WEBHOOK_SECRET environment variable not set (webhook verification disabled)",

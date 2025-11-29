@@ -37,16 +37,27 @@ export const UserRole = {
   VIEWER: "VIEWER",
   CORPORATE_OWNER: "CORPORATE_OWNER",
   
-  // Legacy roles deprecated in STRICT v4 - kept for backward compatibility
-  // TODO: Migrate all usages to the 14-role matrix above
-  // EMPLOYEE: use MANAGER or specific function role (HR, FINANCE, etc.)
-  // CUSTOMER: use TENANT or OWNER
-  // VIEWER: use AUDITOR
-  // DISPATCHER: use FM_MANAGER or PROPERTY_MANAGER
-  // SUPPORT: use ADMIN or MANAGER
+  /**
+   * @deprecated Legacy roles - DO NOT USE for new code
+   * These are kept only for backward compatibility during migration.
+   * Use the STRICT v4 14-role matrix above instead.
+   *
+   * Migration guide:
+   * - EMPLOYEE → Use MANAGER or specific function role (HR, FINANCE, etc.)
+   * - SUPPORT → Use SUPPORT_AGENT sub-role
+   * - DISPATCHER → Use FM_MANAGER or PROPERTY_MANAGER
+   * - FINANCE_MANAGER → Use FINANCE or FINANCE_OFFICER
+   *
+   * These will be removed in a future major release.
+   * @see ROLE_ALIAS_MAP in domain/fm/fm-lite.ts for alias resolution
+   */
+  /** @deprecated Use MANAGER or specific function role instead */
   EMPLOYEE: "EMPLOYEE",
+  /** @deprecated Use SUPPORT_AGENT sub-role instead */
   SUPPORT: "SUPPORT",
+  /** @deprecated Use FM_MANAGER or PROPERTY_MANAGER instead */
   DISPATCHER: "DISPATCHER",
+  /** @deprecated Use FINANCE or FINANCE_OFFICER instead */
   FINANCE_MANAGER: "FINANCE_MANAGER",
 } as const;
 
@@ -97,6 +108,21 @@ export const EXTERNAL_ROLES = [
   UserRole.VENDOR,
   UserRole.AUDITOR,
 ] as const;
+
+/**
+ * @deprecated Legacy roles that should not be used in new code
+ * Use ROLE_ALIAS_MAP in domain/fm/fm-lite.ts for mapping these to STRICT v4 roles
+ */
+export const DEPRECATED_ROLES = [
+  UserRole.EMPLOYEE,
+  UserRole.SUPPORT,
+  UserRole.DISPATCHER,
+  UserRole.FINANCE_MANAGER,
+] as const;
+
+/** Helper to check if a role is deprecated and should trigger migration warning */
+export const isDeprecatedRole = (role: UserRoleType): boolean =>
+  (DEPRECATED_ROLES as readonly string[]).includes(role);
 
 /**
  * User status values

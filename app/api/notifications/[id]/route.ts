@@ -33,7 +33,7 @@ const updateNotificationSchema = z.object({
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   let orgId: string;
   try {
@@ -46,10 +46,11 @@ export async function GET(
   } catch {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
+  const { id } = await props.params;
   const { notifications } = await getCollections();
   const _id = (() => {
     try {
-      return new ObjectId(params.id);
+      return new ObjectId(id);
     } catch {
       return null;
     }
@@ -64,7 +65,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   let orgId: string;
   try {
@@ -73,12 +74,13 @@ export async function PATCH(
   } catch {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
+  const { id } = await props.params;
   const body = updateNotificationSchema.parse(await req.json());
   const { read, archived } = body;
   const { notifications } = await getCollections();
   const _id = (() => {
     try {
-      return new ObjectId(params.id);
+      return new ObjectId(id);
     } catch {
       return null;
     }
@@ -105,7 +107,7 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   let orgId: string;
   try {
@@ -118,10 +120,11 @@ export async function DELETE(
   } catch {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
+  const { id } = await props.params;
   const { notifications } = await getCollections();
   const _id = (() => {
     try {
-      return new ObjectId(params.id);
+      return new ObjectId(id);
     } catch {
       return null;
     }

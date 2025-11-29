@@ -283,6 +283,7 @@ export default function Sidebar({
         "bg-background text-foreground border-border shadow-lg overflow-y-auto flex flex-col border-s",
         className,
       )}
+      role="navigation"
       aria-label={t("sidebar.mainNav", "Main navigation")}
       dir={isRTL ? "rtl" : "ltr"}
       data-testid="sidebar"

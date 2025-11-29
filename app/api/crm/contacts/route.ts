@@ -19,6 +19,8 @@ import CrmLead from "@/server/models/CrmLead";
 import type { CrmLeadKind } from "@/server/models/CrmLead";
 import { UserRole, type UserRoleType } from "@/types/user";
 
+// 🔒 STRICT v4: CRM access restricted to Admin roles + SUPPORT_AGENT sub-role
+// EMPLOYEE role removed - use specific sub-roles (SUPPORT_AGENT for CRM access)
 const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
   UserRole.SUPER_ADMIN,
   UserRole.CORPORATE_ADMIN,
@@ -26,7 +28,7 @@ const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
   UserRole.MANAGER,
   UserRole.FM_MANAGER,
   UserRole.PROPERTY_MANAGER,
-  UserRole.EMPLOYEE,
+  UserRole.SUPPORT_AGENT, // STRICT v4: CRM-specific sub-role
 ]);
 
 const LeadSchema = z.object({

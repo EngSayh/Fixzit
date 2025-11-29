@@ -1,14 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": [
-      "node",
-      "react",
-      "react-dom",
-      "next",
-      "google.maps",
-      "vitest/globals"
-    ],
     "noEmit": true
   },
   "include": [

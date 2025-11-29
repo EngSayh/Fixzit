@@ -2,6 +2,29 @@ import mongoose from 'mongoose';
 import { DocumentType } from '@/models/onboarding/DocumentType';
 import { DocumentProfile } from '@/models/onboarding/DocumentProfile';
 
+// Type guard for MongoDB bulk write errors
+interface MongoWriteError {
+  code?: number;
+  writeErrors?: Array<{ code?: number }>;
+}
+
+function isMongoWriteError(error: unknown): error is MongoWriteError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    ('code' in error || 'writeErrors' in error)
+  );
+}
+
+function isDuplicateKeyError(error: unknown): boolean {
+  if (!isMongoWriteError(error)) return false;
+  return (
+    error.code === 11000 ||
+    (Array.isArray(error.writeErrors) &&
+      error.writeErrors.every((e) => e?.code === 11000))
+  );
+}
+
 async function seedOnboarding() {
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error('MONGODB_URI is not set');
@@ -76,13 +99,9 @@ async function seedOnboarding() {
       { role: 'OWNER', country: 'SA', required_doc_codes: ['CR_LICENSE', 'VAT_CERT'] },
     ],
     { ordered: false },
-  ).catch((error: any) => {
+  ).catch((error: unknown) => {
     // Ignore duplicate key errors but surface anything else
-    const isDup =
-      error?.code === 11000 ||
-      (Array.isArray(error?.writeErrors) &&
-        error.writeErrors.every((e: any) => e?.code === 11000));
-    if (!isDup) {
+    if (!isDuplicateKeyError(error)) {
       throw error;
     }
   });

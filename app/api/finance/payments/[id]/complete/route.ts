@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
-import { Payment } from "@/server/models/finance/Payment";
+import { Payment, PaymentStatus } from "@/server/models/finance/Payment";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
 import { requirePermission } from "@/server/lib/rbac.config";
@@ -62,15 +62,26 @@ export async function POST(
           );
         }
 
-        if (payment.status === "CLEARED") {
+        if (payment.status === PaymentStatus.CLEARED) {
           return NextResponse.json(
             { success: false, error: "Payment is already completed" },
             { status: 400 }
           );
         }
 
+        if (payment.status !== PaymentStatus.POSTED) {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                "Payment must be in POSTED status before it can be marked as completed",
+            },
+            { status: 400 }
+          );
+        }
+
         // Update payment status to completed/cleared
-        payment.status = "CLEARED";
+        payment.status = PaymentStatus.CLEARED;
         payment.reconciliation = {
           ...payment.reconciliation,
           isReconciled: true,

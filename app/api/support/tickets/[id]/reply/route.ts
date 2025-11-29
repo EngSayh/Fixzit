@@ -43,7 +43,7 @@ const schema = z.object({ text: z.string().min(1) });
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   // Authenticate user first
   const user = await getSessionUser(req).catch(() => null);
@@ -67,8 +67,10 @@ export async function POST(
     );
   }
 
+  const { id } = await props.params;
+
   // Validate MongoDB ObjectId format
-  if (!Types.ObjectId.isValid(params.id)) {
+  if (!Types.ObjectId.isValid(id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
 
@@ -88,7 +90,7 @@ export async function POST(
       ? [{}]
       : [];
   const t = await SupportTicket.findOne({
-    _id: params.id,
+    _id: id,
     $or: [{ orgId: user?.orgId }, ...creatorMatch, ...adminMatch],
   });
   if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
@@ -119,6 +121,6 @@ export async function POST(
     updateOps.$set = { status: "Open", updatedAt: new Date() };
   }
 
-  await SupportTicket.updateOne({ _id: params.id }, updateOps);
+  await SupportTicket.updateOne({ _id: id }, updateOps);
   return createSecureResponse({ ok: true }, 200, req);
 }

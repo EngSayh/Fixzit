@@ -36,7 +36,7 @@ const MAX_SIZE_BYTES = 15 * 1024 * 1024; // 15MB
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
@@ -64,6 +64,8 @@ export async function POST(
   const rl = rateLimit(buildRateLimitKey(req, user.id), 30, 60_000);
   if (!rl.allowed) return rateLimitError();
 
+  const { id } = await props.params;
+
   const { name, type, size } = await req
     .json()
     .catch(() => ({}) as Record<string, unknown>);
@@ -88,7 +90,7 @@ export async function POST(
   const safeName = encodeURIComponent(
     String(name).replace(/[^a-zA-Z0-9._-]/g, "_"),
   );
-  const key = `wo/${params.id}/${Date.now()}-${randomUUID()}-${safeName}`;
+  const key = `wo/${id}/${Date.now()}-${randomUUID()}-${safeName}`;
   const { url: putUrl, headers } = await getPresignedPutUrl(
     key,
     String(type),
@@ -97,7 +99,7 @@ export async function POST(
       category: "work-order-attachment",
       user: user.id,
       tenant: user.tenantId || "global",
-      workOrderId: params.id,
+      workOrderId: id,
     },
   );
   const expiresAt = new Date(Date.now() + 900_000).toISOString();

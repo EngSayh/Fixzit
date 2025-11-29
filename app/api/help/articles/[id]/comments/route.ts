@@ -27,9 +27,10 @@ const buildArticleFilter = (id: string, orgId?: string | null) => {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   try {
+    const params = await props.params;
     const user = await getSessionUser(req);
     if (!user) {
       return createSecureResponse({ error: "Unauthorized" }, 401, req);

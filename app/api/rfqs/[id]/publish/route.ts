@@ -53,16 +53,17 @@ interface RFQDocument {
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await props.params;
     const user = await getSessionUser(req);
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
 
-    if (!Types.ObjectId.isValid(params.id)) {
+    if (!Types.ObjectId.isValid(id)) {
       return createSecureResponse({ error: "Invalid RFQ id" }, 400, req);
     }
 
@@ -70,7 +71,7 @@ export async function POST(
 
     const { RFQ } = await import("@/server/models/RFQ");
     const rfq = await RFQ.findOneAndUpdate(
-      { _id: params.id, tenantId: user.tenantId, status: "DRAFT" },
+      { _id: id, tenantId: user.tenantId, status: "DRAFT" },
       {
         $set: {
           status: "PUBLISHED",

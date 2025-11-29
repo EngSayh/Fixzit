@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Star, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { useTranslation } from "@/contexts/TranslationContext";
+
+type SortOption = "price" | "rating" | "delivery";
 
 interface Offer {
   _id: string;
@@ -45,6 +48,7 @@ interface OtherOffersTabProps {
   currentWinnerId?: string;
   onAddToCart: (_offerId: string, _quantity: number) => void;
   currency?: string;
+  locale?: string;
 }
 
 export default function OtherOffersTab({
@@ -52,23 +56,30 @@ export default function OtherOffersTab({
   currentWinnerId,
   onAddToCart,
   currency = "SAR",
+  locale: localeProp,
 }: OtherOffersTabProps) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [sortBy, setSortBy] = useState<SortOption>("price");
   const auto = useAutoTranslator("souq.otherOffers");
+  const { isRTL } = useTranslation();
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency,
-    }).format(value);
-  };
+  // Locale-aware currency formatting
+  const locale = localeProp ?? (isRTL ? "ar-SA" : "en-US");
+  const formatCurrency = useCallback(
+    (value: number) =>
+      new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency,
+      }).format(value),
+    [locale, currency],
+  );
 
   const getRatingDisplay = (rating: number, count: number) => {
     return (
       <div className="flex items-center gap-1">
         <Star className="w-4 h-4 fill-yellow-400 text-warning" />
         <span className="text-sm font-medium">{rating.toFixed(1)}</span>
-        <span className="text-xs text-gray-500">({count})</span>
+        <span className="text-xs text-muted-foreground">({count})</span>
       </div>
     );
   };
@@ -77,10 +88,30 @@ export default function OtherOffersTab({
     setQuantities((prev) => ({ ...prev, [offerId]: value }));
   };
 
+  // Sort offers based on selected option
+  const sortedOffers = useMemo(() => {
+    const sorted = [...offers];
+    switch (sortBy) {
+      case "price":
+        return sorted.sort((a, b) => (a.price + a.shippingCost) - (b.price + b.shippingCost));
+      case "rating":
+        return sorted.sort((a, b) => b.metrics.customerRating - a.metrics.customerRating);
+      case "delivery":
+        // FBF (Fulfillment by Fixzit) first, then by estimated delivery
+        return sorted.sort((a, b) => {
+          if (a.fulfillmentMethod === "fbf" && b.fulfillmentMethod !== "fbf") return -1;
+          if (b.fulfillmentMethod === "fbf" && a.fulfillmentMethod !== "fbf") return 1;
+          return a.estimatedDelivery.localeCompare(b.estimatedDelivery);
+        });
+      default:
+        return sorted;
+    }
+  }, [offers, sortBy]);
+
   if (offers.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           {auto(
             "No other offers available for this product.",
             "emptyState.message",
@@ -93,13 +124,17 @@ export default function OtherOffersTab({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold text-foreground">
           {offers.length}{" "}
           {offers.length > 1
             ? auto("sellers offering this product", "heading.multiple")
             : auto("seller offering this product", "heading.single")}
         </h3>
-        <select className="px-3 py-2 border border-gray-300 rounded-md text-sm">
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as SortOption)}
+          className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground"
+        >
           <option value="price">
             {auto("Sort by: Price (Low to High)", "sort.price")}
           </option>
@@ -125,23 +160,23 @@ export default function OtherOffersTab({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {offers.map((offer) => {
+          {sortedOffers.map((offer) => {
             const isWinner = offer._id === currentWinnerId;
             const quantity = quantities[offer._id] || 1;
 
             return (
               <TableRow
                 key={offer._id}
-                className={isWinner ? "bg-blue-50" : ""}
+                className={isWinner ? "bg-primary/10" : ""}
               >
                 {/* Price */}
                 <TableCell>
                   <div>
-                    <div className="font-bold text-gray-900">
+                    <div className="font-bold text-foreground">
                       {formatCurrency(offer.price)}
                     </div>
                     {offer.shippingCost > 0 ? (
-                      <div className="text-xs text-gray-600">
+                      <div className="text-xs text-muted-foreground">
                         {auto(
                           "+ {{amount}} shipping",
                           "price.shipping",
@@ -160,7 +195,7 @@ export default function OtherOffersTab({
 
                 {/* Condition */}
                 <TableCell>
-                  <span className="text-sm text-gray-700 capitalize">
+                  <span className="text-sm text-muted-foreground capitalize">
                     {offer.condition}
                   </span>
                 </TableCell>
@@ -168,7 +203,7 @@ export default function OtherOffersTab({
                 {/* Seller */}
                 <TableCell>
                   <div>
-                    <div className="font-medium text-gray-900">
+                    <div className="font-medium text-foreground">
                       {offer.sellerId.tradeName}
                     </div>
                     {offer.sellerId.accountHealth.status === "excellent" && (
@@ -198,7 +233,7 @@ export default function OtherOffersTab({
                 {/* Delivery */}
                 <TableCell>
                   <div className="space-y-1">
-                    <div className="text-sm text-gray-700">
+                    <div className="text-sm text-muted-foreground">
                       {offer.estimatedDelivery}
                     </div>
                     {offer.fulfillmentMethod === "fbf" && (
@@ -217,7 +252,7 @@ export default function OtherOffersTab({
                     onChange={(e) =>
                       handleQuantityChange(offer._id, Number(e.target.value))
                     }
-                    className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                    className="w-16 px-2 py-1 border border-border rounded text-sm bg-background text-foreground"
                     disabled={offer.availableQuantity === 0}
                   >
                     {[...Array(Math.min(10, offer.availableQuantity))].map(
@@ -252,11 +287,11 @@ export default function OtherOffersTab({
       </Table>
 
       {/* Summary */}
-      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-        <h4 className="font-semibold text-gray-900 mb-2">
+      <div className="mt-4 p-4 bg-muted rounded-lg">
+        <h4 className="font-semibold text-foreground mb-2">
           {auto("About these offers", "summary.title")}
         </h4>
-        <ul className="space-y-1 text-sm text-gray-600">
+        <ul className="space-y-1 text-sm text-muted-foreground">
           <li>
             •{" "}
             {auto(

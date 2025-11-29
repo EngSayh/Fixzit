@@ -31,7 +31,7 @@ import {
   normalizeRole as normalizeFmRole,
   normalizeSubRole,
   inferSubRoleFromRole,
-} from '@/domain/fm/fm.behavior';
+} from '@/domain/fm/fm-lite';
 
 // ==========================================
 // Types & Interfaces

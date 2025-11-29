@@ -78,9 +78,10 @@ const updateProjectSchema = z.object({
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await props.params;
     const user = await getSessionUser(req);
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
@@ -89,7 +90,7 @@ export async function GET(
     await connectToDatabase();
 
     const project = await Project.findOne({
-      _id: params.id,
+      _id: id,
       tenantId: user.tenantId,
     });
 
@@ -109,16 +110,21 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await props.params;
     const user = await getSessionUser(req);
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 30, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     await connectToDatabase();
 
     const data = updateProjectSchema.parse(await req.json());
 
     const project = await Project.findOneAndUpdate(
-      { _id: params.id, tenantId: user.tenantId },
+      { _id: id, tenantId: user.tenantId },
       {
         $set: {
           ...data,
@@ -141,9 +147,10 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await props.params;
     const user = await getSessionUser(req);
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
@@ -152,7 +159,7 @@ export async function DELETE(
     await connectToDatabase();
 
     const project = await Project.findOneAndUpdate(
-      { _id: params.id, tenantId: user.tenantId },
+      { _id: id, tenantId: user.tenantId },
       { $set: { status: "CANCELLED", updatedBy: user.id } },
       { new: true },
     );

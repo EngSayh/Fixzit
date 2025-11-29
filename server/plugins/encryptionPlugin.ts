@@ -51,6 +51,46 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
 }
 
 /**
+ * Get value from update object, handling both dotted keys and nested objects
+ * e.g., { "personal.nationalId": "123" } OR { personal: { nationalId: "123" } }
+ */
+function getUpdateValue(obj: Record<string, unknown>, path: string): unknown {
+  // First check for direct dotted key access (common in $set)
+  if (path in obj) {
+    return obj[path];
+  }
+  // Fall back to nested object traversal
+  return getNestedValue(obj, path);
+}
+
+/**
+ * Set value in update object, handling dotted keys for $set operations
+ */
+function setUpdateValue(
+  obj: Record<string, unknown>,
+  path: string,
+  value: unknown,
+  useDottedKey: boolean
+): void {
+  if (useDottedKey) {
+    // For $set operations, use dotted key directly
+    obj[path] = value;
+  } else {
+    setNestedValue(obj, path, value);
+  }
+}
+
+/**
+ * Convert value to string for encryption (handles numbers, etc.)
+ */
+function toEncryptableString(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string") return value.length > 0 ? value : null;
+  if (typeof value === "number") return String(value);
+  return null;
+}
+
+/**
  * Set a nested value in an object using dot notation
  */
 function setNestedValue(
@@ -106,15 +146,10 @@ export function encryptionPlugin<T>(
     const doc = this as unknown as Record<string, unknown>;
 
     for (const path of fieldPaths) {
-      const value = getNestedValue(doc, path);
+      const rawValue = getNestedValue(doc, path);
+      const value = toEncryptableString(rawValue);
 
-      if (
-        value !== undefined &&
-        value !== null &&
-        typeof value === "string" &&
-        value.length > 0 &&
-        !isEncrypted(value)
-      ) {
+      if (value !== null && !isEncrypted(value)) {
         const encrypted = encryptField(value, path);
         setNestedValue(doc, path, encrypted);
 
@@ -140,25 +175,23 @@ export function encryptionPlugin<T>(
     > | null;
     if (!update) return next();
 
-    const $set = (update.$set as Record<string, unknown>) ?? update;
+    const $set = (update.$set as Record<string, unknown>) ?? null;
+    const targetObj = $set ?? update;
 
     for (const path of fieldPaths) {
-      // Check both $set and direct update paths
-      const value = getNestedValue($set, path);
+      // Check both dotted key and nested path
+      const rawValue = getUpdateValue(targetObj, path);
+      const value = toEncryptableString(rawValue);
 
-      if (
-        value !== undefined &&
-        value !== null &&
-        typeof value === "string" &&
-        value.length > 0 &&
-        !isEncrypted(value)
-      ) {
+      if (value !== null && !isEncrypted(value)) {
         const encrypted = encryptField(value, path);
+        // Use dotted key if $set exists (most common update pattern)
+        const useDottedKey = $set !== null && path in $set;
 
-        if (update.$set) {
-          setNestedValue(update.$set as Record<string, unknown>, path, encrypted);
+        if ($set) {
+          setUpdateValue($set, path, encrypted, useDottedKey || path in $set || path.includes("."));
         } else {
-          setNestedValue(update, path, encrypted);
+          setUpdateValue(update, path, encrypted, path in update || path.includes("."));
         }
 
         if (logOperations) {
@@ -184,24 +217,21 @@ export function encryptionPlugin<T>(
     > | null;
     if (!update) return next();
 
-    const $set = (update.$set as Record<string, unknown>) ?? update;
+    const $set = (update.$set as Record<string, unknown>) ?? null;
+    const targetObj = $set ?? update;
 
     for (const path of fieldPaths) {
-      const value = getNestedValue($set, path);
+      const rawValue = getUpdateValue(targetObj, path);
+      const value = toEncryptableString(rawValue);
 
-      if (
-        value !== undefined &&
-        value !== null &&
-        typeof value === "string" &&
-        value.length > 0 &&
-        !isEncrypted(value)
-      ) {
+      if (value !== null && !isEncrypted(value)) {
         const encrypted = encryptField(value, path);
+        const useDottedKey = path.includes(".");
 
-        if (update.$set) {
-          setNestedValue(update.$set as Record<string, unknown>, path, encrypted);
+        if ($set) {
+          setUpdateValue($set, path, encrypted, useDottedKey || path in $set);
         } else {
-          setNestedValue(update, path, encrypted);
+          setUpdateValue(update, path, encrypted, useDottedKey || path in update);
         }
       }
     }
@@ -220,29 +250,54 @@ export function encryptionPlugin<T>(
     > | null;
     if (!update) return next();
 
-    const $set = (update.$set as Record<string, unknown>) ?? update;
+    const $set = (update.$set as Record<string, unknown>) ?? null;
+    const targetObj = $set ?? update;
 
     for (const path of fieldPaths) {
-      const value = getNestedValue($set, path);
+      const rawValue = getUpdateValue(targetObj, path);
+      const value = toEncryptableString(rawValue);
 
-      if (
-        value !== undefined &&
-        value !== null &&
-        typeof value === "string" &&
-        value.length > 0 &&
-        !isEncrypted(value)
-      ) {
+      if (value !== null && !isEncrypted(value)) {
         const encrypted = encryptField(value, path);
+        const useDottedKey = path.includes(".");
 
-        if (update.$set) {
-          setNestedValue(update.$set as Record<string, unknown>, path, encrypted);
+        if ($set) {
+          setUpdateValue($set, path, encrypted, useDottedKey || path in $set);
         } else {
-          setNestedValue(update, path, encrypted);
+          setUpdateValue(update, path, encrypted, useDottedKey || path in update);
         }
       }
     }
 
     (this as Query<unknown, unknown>).setUpdate(update);
+    next();
+  });
+
+  /**
+   * Pre-insertMany hook: Encrypt PII fields on bulk inserts
+   */
+  schema.pre("insertMany", function (next, docs: Record<string, unknown>[]) {
+    if (!Array.isArray(docs)) return next();
+
+    for (const doc of docs) {
+      for (const path of fieldPaths) {
+        const rawValue = getNestedValue(doc, path);
+        const value = toEncryptableString(rawValue);
+
+        if (value !== null && !isEncrypted(value)) {
+          const encrypted = encryptField(value, path);
+          setNestedValue(doc, path, encrypted);
+
+          if (logOperations) {
+            logger.debug("[EncryptionPlugin] Field encrypted on insertMany", {
+              field: path,
+              displayName: fields[path],
+            });
+          }
+        }
+      }
+    }
+
     next();
   });
 
@@ -285,14 +340,10 @@ function decryptDocument(
   logOperations: boolean
 ): void {
   for (const path of fieldPaths) {
-    const value = getNestedValue(doc, path);
+    const rawValue = getNestedValue(doc, path);
+    const value = toEncryptableString(rawValue);
 
-    if (
-      value !== undefined &&
-      value !== null &&
-      typeof value === "string" &&
-      isEncrypted(value)
-    ) {
+    if (value !== null && isEncrypted(value)) {
       try {
         const decrypted = decryptField(value, path);
         setNestedValue(doc, path, decrypted);

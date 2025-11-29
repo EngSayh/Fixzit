@@ -15,9 +15,11 @@ export const installFetchInterceptor = () => {
     const url =
       typeof input === "string"
         ? input
-        : input instanceof URL
-        ? input.toString()
-        : input?.toString?.() || "";
+        : typeof Request !== "undefined" && input instanceof Request
+          ? input.url
+          : input instanceof URL
+            ? input.toString()
+            : input?.toString?.() || "";
     if (!url) return false;
     return url.startsWith("/") || url.startsWith(window.location.origin);
   };
