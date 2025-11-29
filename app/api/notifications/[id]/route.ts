@@ -33,9 +33,8 @@ const updateNotificationSchema = z.object({
  */
 export async function GET(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = props.params;
   let orgId: string;
   try {
     const user = await getSessionUser(req);
@@ -65,9 +64,8 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = props.params;
   let orgId: string;
   try {
     const user = await getSessionUser(req);
@@ -107,9 +105,8 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = props.params;
   let orgId: string;
   try {
     const user = await getSessionUser(req);

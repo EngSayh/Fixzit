@@ -26,9 +26,8 @@ import { createSecureResponse } from "@/server/security/headers";
  */
 export async function GET(
   _req: NextRequest,
-  props: { params: Promise<{ slug: string }> },
+  { params }: { params: { slug: string } },
 ) {
-  const params = props.params;
   await connectToDatabase();
   const page = await CmsPage.findOne({ slug: params.slug }).lean();
   if (!page) return createSecureResponse({ error: "Not found" }, 404, _req);
@@ -43,9 +42,8 @@ const patchSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  props: { params: Promise<{ slug: string }> },
+  { params }: { params: { slug: string } },
 ) {
-  const params = props.params;
   await connectToDatabase();
   const user = await getSessionUser(req).catch(() => null);
   if (!user || !["SUPER_ADMIN", "CORPORATE_ADMIN"].includes(user.role)) {

@@ -36,9 +36,8 @@ const MAX_SIZE_BYTES = 15 * 1024 * 1024; // 15MB
  */
 export async function POST(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = props.params;
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
 

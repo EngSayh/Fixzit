@@ -27,9 +27,8 @@ const buildArticleFilter = (id: string, orgId?: string | null) => {
 
 export async function POST(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = props.params;
   try {
     const user = await getSessionUser(req);
     if (!user) {

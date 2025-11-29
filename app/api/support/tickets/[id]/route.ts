@@ -32,9 +32,8 @@ const patchSchema = z.object({
  */
 export async function GET(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = props.params;
   await connectToDatabase();
   
   // SECURITY: Add authorization check (was missing per CodeRabbit review)
@@ -63,9 +62,8 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = props.params;
   await connectToDatabase();
   const user = await getSessionUser(req);
   if (!["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role)) {

@@ -51,9 +51,8 @@ const schema = z.object({
  */
 export async function POST(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ): Promise<NextResponse> {
-  const params = props.params;
   const user = await getSessionUser(req);
   const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
   if (!rl.allowed) {

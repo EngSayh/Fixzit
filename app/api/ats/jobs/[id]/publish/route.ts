@@ -32,7 +32,7 @@ import { getClientIP } from "@/server/security/headers";
  */
 export async function POST(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   // Rate limiting
   const clientIp = getClientIP(req);
@@ -41,7 +41,6 @@ export async function POST(
     return rateLimitError();
   }
 
-  const params = props.params;
   try {
     await connectToDatabase();
 

@@ -43,10 +43,8 @@ const schema = z.object({ text: z.string().min(1) });
  */
 export async function POST(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = props.params;
-
   // Authenticate user first
   const user = await getSessionUser(req).catch(() => null);
   if (!user) {

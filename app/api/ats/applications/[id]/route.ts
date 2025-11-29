@@ -33,7 +33,7 @@ import { getClientIP } from "@/server/security/headers";
  */
 export async function GET(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   // Rate limiting
   const clientIp = getClientIP(req);
@@ -42,7 +42,6 @@ export async function GET(
     return rateLimitError();
   }
 
-  const params = props.params;
   try {
     await connectToDatabase();
 
@@ -81,7 +80,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
@@ -89,7 +88,6 @@ export async function PATCH(
     return rateLimitError();
   }
 
-  const params = props.params;
   try {
     await connectToDatabase();
     const body = await req.json();
