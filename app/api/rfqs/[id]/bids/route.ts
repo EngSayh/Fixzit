@@ -82,7 +82,7 @@ export async function POST(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
-  const params = await props.params;
+  const params = props.params;
   try {
     const user = await getSessionUser(req);
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
@@ -173,7 +173,7 @@ export async function GET(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
-  const params = await props.params;
+  const params = props.params;
   try {
     const user = await getSessionUser(req);
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);

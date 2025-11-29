@@ -225,9 +225,10 @@ export async function PATCH(
     const db = await getDatabase();
     const collection = db.collection<BudgetDocument>(COLLECTION);
     
+    const tenantFilter = buildTenantFilter(tenantId);
     const query = { 
       _id: new ObjectId(id),
-      orgId: tenantId 
+      ...tenantFilter 
     };
     
     const updateResult = await collection.findOneAndUpdate(
@@ -302,9 +303,10 @@ export async function DELETE(
     const db = await getDatabase();
     const collection = db.collection<BudgetDocument>(COLLECTION);
     
+    const tenantFilter = buildTenantFilter(tenantId);
     const query = { 
       _id: new ObjectId(id),
-      orgId: tenantId 
+      ...tenantFilter 
     };
     
     const deleted = unwrapFindOneResult(

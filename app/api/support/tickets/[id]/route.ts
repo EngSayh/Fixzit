@@ -34,7 +34,7 @@ export async function GET(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
-  const params = await props.params;
+  const params = props.params;
   await connectToDatabase();
   
   // SECURITY: Add authorization check (was missing per CodeRabbit review)
@@ -65,7 +65,7 @@ export async function PATCH(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
-  const params = await props.params;
+  const params = props.params;
   await connectToDatabase();
   const user = await getSessionUser(req);
   if (!["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role)) {

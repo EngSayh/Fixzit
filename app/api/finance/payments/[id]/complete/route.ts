@@ -25,10 +25,10 @@ async function getUserSession(req: NextRequest) {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const user = await getUserSession(req);
 
     if (!Types.ObjectId.isValid(id)) {
@@ -79,11 +79,26 @@ export async function POST(
         };
         await payment.save();
 
-        return NextResponse.json({
-          success: true,
-          data: payment,
-          message: "Payment marked as completed",
-        });
+        const responsePayload = {
+          id: payment._id.toString(),
+          paymentNumber: payment.paymentNumber,
+          status: payment.status,
+          amount: payment.amount,
+          currency: payment.currency,
+          paymentDate: payment.paymentDate,
+          reconciledAt: payment.reconciliation?.reconciledAt,
+          reconciledBy: payment.reconciliation?.reconciledBy
+            ? payment.reconciliation.reconciledBy.toString()
+            : undefined,
+        };
+
+        return NextResponse.json(
+          {
+            success: true,
+            data: responsePayload,
+            message: "Payment marked as completed",
+          }
+        );
       }
     );
   } catch (error) {

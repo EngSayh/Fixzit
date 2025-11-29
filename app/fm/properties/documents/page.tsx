@@ -9,17 +9,33 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, FileText, Upload, RefreshCw, FolderOpen } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 // Document management - will be linked to properties
 // TODO: Implement dedicated /api/fm/documents endpoint for full document management
 
 export default function PropertiesDocumentsPage() {
   const { t } = useTranslation();
+  const { data: session } = useSession();
   const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
     moduleId: "properties",
   });
   const { properties, isLoading, error, refresh } = useProperties("?limit=100");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+
+  const userRole = (session?.user as { role?: string })?.role;
+  const documentActionRoles = new Set([
+    "SUPER_ADMIN",
+    "CORPORATE_ADMIN",
+    "MANAGEMENT",
+    "FINANCE",
+    "FINANCE_OFFICER",
+    "OPS",
+    "SUPPORT",
+  ]);
+  const canManageDocuments = Boolean(
+    userRole && documentActionRoles.has(userRole)
+  );
 
   // Calculate document stats based on properties
   const stats = useMemo(() => {
@@ -60,12 +76,22 @@ export default function PropertiesDocumentsPage() {
             <RefreshCw className="me-2 h-4 w-4" />
             {t("common.refresh", "Refresh")}
           </Button>
-          <Button>
-            <Upload className="me-2 h-4 w-4" />
-            {t("fm.properties.documents.upload", "Upload Document")}
-          </Button>
+          {canManageDocuments ? (
+            <Button>
+              <Upload className="me-2 h-4 w-4" />
+              {t("fm.properties.documents.upload", "Upload Document")}
+            </Button>
+          ) : null}
         </div>
       </div>
+      {!canManageDocuments ? (
+        <p className="text-sm text-muted-foreground">
+          {t(
+            "fm.properties.documents.viewOnly",
+            "You have view-only access. Contact an admin to manage documents."
+          )}
+        </p>
+      ) : null}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -125,21 +151,30 @@ export default function PropertiesDocumentsPage() {
       {/* Upload Area */}
       <Card>
         <CardContent className="pt-6">
-          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center">
-            <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              {t("fm.properties.documents.uploadArea.title", "Upload Documents")}
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              {t("fm.properties.documents.uploadArea.description", "Drag and drop files here or click to browse")}
-            </p>
-            <Button>
-              {t("fm.properties.documents.uploadArea.button", "Choose Files")}
-            </Button>
-            <p className="text-sm text-muted-foreground mt-2">
-              {t("fm.properties.documents.uploadArea.hint", "Supports PDF, DOC, JPG up to 10MB each")}
-            </p>
-          </div>
+          {canManageDocuments ? (
+            <div className="border-2 border-dashed border-border rounded-xl p-8 text-center">
+              <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {t("fm.properties.documents.uploadArea.title", "Upload Documents")}
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {t("fm.properties.documents.uploadArea.description", "Drag and drop files here or click to browse")}
+              </p>
+              <Button>
+                {t("fm.properties.documents.uploadArea.button", "Choose Files")}
+              </Button>
+              <p className="text-sm text-muted-foreground mt-2">
+                {t("fm.properties.documents.uploadArea.hint", "Supports PDF, DOC, JPG up to 10MB each")}
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center text-muted-foreground">
+              {t(
+                "fm.properties.documents.uploadArea.readOnly",
+                "Document upload is restricted to admin/staff roles."
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -228,10 +263,12 @@ export default function PropertiesDocumentsPage() {
                     <Badge variant="outline" className="text-muted-foreground">
                       {t("fm.properties.documents.noDocuments", "No documents")}
                     </Badge>
-                    <Button variant="outline" size="sm">
-                      <Upload className="h-4 w-4 me-1" />
-                      {t("fm.properties.documents.addDocument", "Add")}
-                    </Button>
+                    {canManageDocuments ? (
+                      <Button variant="outline" size="sm">
+                        <Upload className="h-4 w-4 me-1" />
+                        {t("fm.properties.documents.addDocument", "Add")}
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               ))}

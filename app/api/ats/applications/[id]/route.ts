@@ -42,7 +42,7 @@ export async function GET(
     return rateLimitError();
   }
 
-  const params = await props.params;
+  const params = props.params;
   try {
     await connectToDatabase();
 
@@ -89,7 +89,7 @@ export async function PATCH(
     return rateLimitError();
   }
 
-  const params = await props.params;
+  const params = props.params;
   try {
     await connectToDatabase();
     const body = await req.json();

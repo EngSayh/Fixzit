@@ -45,7 +45,7 @@ export async function POST(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
-  const params = await props.params;
+  const params = props.params;
 
   // Authenticate user first
   const user = await getSessionUser(req).catch(() => null);

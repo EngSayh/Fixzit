@@ -34,7 +34,7 @@ export async function PATCH(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
-  const params = await props.params;
+  const params = props.params;
   try {
     // Handle authentication separately to return 401 instead of 500
     let user;

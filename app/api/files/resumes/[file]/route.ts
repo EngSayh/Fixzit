@@ -34,7 +34,7 @@ export async function GET(
   req: NextRequest,
   props: { params: Promise<{ file: string }> },
 ) {
-  const params = await props.params;
+  const params = props.params;
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
@@ -94,7 +94,7 @@ export async function POST(
   req: NextRequest,
   props: { params: Promise<{ file: string }> },
 ) {
-  const params = await props.params;
+  const params = props.params;
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);

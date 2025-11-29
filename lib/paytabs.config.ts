@@ -1,4 +1,7 @@
-import "server-only";
+// Avoid throwing in test runner (vitest sets VITEST=1) while preserving server-only intent in production.
+if (!process.env.VITEST) {
+  void import("server-only");
+}
 
 // PayTabs configuration
 // Note: Credentials validation is done lazily at runtime when PayTabs functions are called

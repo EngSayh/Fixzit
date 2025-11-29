@@ -32,7 +32,7 @@ export async function PATCH(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
-  const params = await props.params;
+  const params = props.params;
   await dbConnect();
   await requireSuperAdmin(req);
   const body = await req.json();

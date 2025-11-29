@@ -49,7 +49,7 @@ export async function POST(
     return rateLimitError();
   }
 
-  const params = await props.params;
+  const params = props.params;
 
   try {
     await connectToDatabase();

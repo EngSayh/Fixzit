@@ -56,7 +56,7 @@ export async function POST(
     return rateLimitError();
   }
 
-  const params = await props.params;
+  const params = props.params;
   const user = await requireAbility(WOAbility.ASSIGN)(req);
   if (user instanceof NextResponse) return user;
   await connectToDatabase();

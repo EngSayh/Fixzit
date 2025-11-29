@@ -43,7 +43,7 @@ export async function POST(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const params = await props.params;
+  const params = props.params;
   const user = await requireAbility(WOAbility.EDIT)(req);
   if (user instanceof NextResponse) return user;
   await connectToDatabase();

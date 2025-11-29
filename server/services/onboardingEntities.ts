@@ -30,9 +30,11 @@ const ticketMessages = {
 export async function createEntitiesFromCase(onboarding: OnboardingCaseLean): Promise<void> {
   const role = onboarding.role as string;
   const orgId =
-    onboarding.org_id ||
-    onboarding.subject_org_id ||
-    (onboarding as { orgId?: Types.ObjectId }).orgId;
+    (onboarding as { orgId?: Types.ObjectId }).orgId ??
+    (onboarding as { subjectOrgId?: Types.ObjectId }).subjectOrgId ??
+    // Legacy snake_case fallbacks
+    (onboarding as { org_id?: Types.ObjectId }).org_id ??
+    (onboarding as { subject_org_id?: Types.ObjectId }).subject_org_id;
 
   if (orgId) {
     setTenantContext({ orgId });

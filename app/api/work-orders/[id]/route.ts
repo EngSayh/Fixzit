@@ -62,7 +62,7 @@ export async function GET(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const params = await props.params;
+  const params = props.params;
   const user = await requireAbility("VIEW")(req);
   if (user instanceof NextResponse) return user;
 
@@ -128,7 +128,7 @@ export async function PATCH(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const params = await props.params;
+  const params = props.params;
   const workOrderId = params?.id || req.url.split('/').pop() || '';
   const ability: Ability = "EDIT"; // Type-safe: must match Ability union type
   const user = await requireAbility(ability)(req);

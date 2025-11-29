@@ -282,6 +282,7 @@
     }
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm lint:prod && pnpm guard:fm-hooks && bash scripts/security/check-hardcoded-uris.sh"
+    "pre-commit": "pnpm lint:prod && pnpm guard:fm-hooks && bash scripts/security/check-hardcoded-uris.sh",
+    "pre-push": "pnpm lint:mongo-unwrap && pnpm typecheck"
   }
 }

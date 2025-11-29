@@ -33,7 +33,7 @@ export async function POST(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
-  const params = await props.params;
+  const params = props.params;
   await connectToDatabase();
   const user = await getSessionUser(req);
   const { checklistIndex, itemIndex, done } = schema.parse(await req.json());

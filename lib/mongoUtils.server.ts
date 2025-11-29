@@ -1,4 +1,8 @@
-import "server-only";
+// Next.js guard: ensures this file is treated as server-only in real app.
+// Skip the hard throw when running vitest (VITEST=1) by using a dynamic import.
+if (!process.env.VITEST) {
+  void import("server-only");
+}
 import mongoose from "mongoose";
 import type { ModifyResult, WithId } from "mongodb";
 

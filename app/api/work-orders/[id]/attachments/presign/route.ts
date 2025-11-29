@@ -38,7 +38,7 @@ export async function POST(
   req: NextRequest,
   props: { params: Promise<{ id: string }> },
 ) {
-  const params = await props.params;
+  const params = props.params;
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
 

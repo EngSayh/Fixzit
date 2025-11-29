@@ -9,17 +9,31 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, FileText, Plus, RefreshCw } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 // Lease data derived from property records
 // TODO: Implement dedicated /api/fm/leases endpoint for full lease management
 
 export default function PropertiesLeasesPage() {
   const { t } = useTranslation();
+  const { data: session } = useSession();
   const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
     moduleId: "properties",
   });
   const { properties, isLoading, error, refresh } = useProperties("?limit=100");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const userRole = (session?.user as { role?: string })?.role;
+  const leaseActionRoles = new Set([
+    "SUPER_ADMIN",
+    "CORPORATE_ADMIN",
+    "MANAGEMENT",
+    "FINANCE",
+    "FINANCE_OFFICER",
+    "OPS",
+    "SUPPORT",
+  ]);
+  const canManageLeases = Boolean(userRole && leaseActionRoles.has(userRole));
 
   // Derive lease information from properties with occupied units
   const leaseData = useMemo(() => {
@@ -99,12 +113,22 @@ export default function PropertiesLeasesPage() {
             <RefreshCw className="me-2 h-4 w-4" />
             {t("common.refresh", "Refresh")}
           </Button>
-          <Button>
-            <Plus className="me-2 h-4 w-4" />
-            {t("fm.properties.leases.newLease", "New Lease")}
-          </Button>
+          {canManageLeases ? (
+            <Button>
+              <Plus className="me-2 h-4 w-4" />
+              {t("fm.properties.leases.newLease", "New Lease")}
+            </Button>
+          ) : null}
         </div>
       </div>
+      {!canManageLeases ? (
+        <p className="text-sm text-muted-foreground">
+          {t(
+            "fm.properties.leases.viewOnly",
+            "You have view-only access. Contact an admin to manage leases."
+          )}
+        </p>
+      ) : null}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
