@@ -10,6 +10,7 @@
  *   TEST_OPERATIONS_MANAGER_EMAIL, TEST_OPERATIONS_MANAGER_PASSWORD
  *   TEST_TEAM_MEMBER_EMAIL, TEST_TEAM_MEMBER_PASSWORD
  *   TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD
+ *   TEST_ORG_ID - Required for tenant-scoped validation (multi-tenancy checks)
  *
  * @security This module intentionally has NO fallback credentials.
  *           Tests will fail fast if env vars are missing.
@@ -18,6 +19,8 @@
 export interface TestCredentials {
   email: string;
   password: string;
+  /** Optional employee number for employee-number login tests */
+  employeeNumber?: string;
 }
 
 export type SubRoleKey =
@@ -43,9 +46,11 @@ export type SubRoleKey =
 export function getRequiredTestCredentials(subRole: SubRoleKey): TestCredentials {
   const emailKey = `TEST_${subRole}_EMAIL`;
   const passwordKey = `TEST_${subRole}_PASSWORD`;
+  const employeeKey = `TEST_${subRole}_EMPLOYEE`;
 
   const email = process.env[emailKey];
   const password = process.env[passwordKey];
+  const employeeNumber = process.env[employeeKey]; // Optional
 
   if (!email || !password) {
     const missing: string[] = [];
@@ -63,13 +68,18 @@ export function getRequiredTestCredentials(subRole: SubRoleKey): TestCredentials
         `  1. Copy env.example to .env.local (if not done)\n` +
         `  2. Set ${emailKey}=<test-user-email>\n` +
         `  3. Set ${passwordKey}=<test-user-password>\n` +
+        `  4. (Optional) Set ${employeeKey}=<employee-number> for employee login tests\n` +
         `\n` +
         `SECURITY: Never commit credentials. Use .env.local for local testing,\n` +
         `or CI secrets for automated pipelines.`
     );
   }
 
-  return { email, password };
+  return { 
+    email, 
+    password,
+    ...(employeeNumber ? { employeeNumber } : {}),
+  };
 }
 
 /**
@@ -132,4 +142,45 @@ export function validateRequiredCredentials(requiredSubRoles: SubRoleKey[]): voi
         `See env.example for documentation.`
     );
   }
+}
+
+/**
+ * Get the test organization ID for tenant-scoped validation.
+ * Required for multi-tenancy checks in E2E tests.
+ *
+ * @returns The TEST_ORG_ID environment variable value
+ * @throws Error if TEST_ORG_ID is not configured
+ *
+ * @example
+ * const orgId = getTestOrgId();
+ * // Use in expectAllowedWithBodyCheck for tenant validation
+ * body.forEach(item => expect(item.org_id).toBe(orgId));
+ */
+export function getTestOrgId(): string {
+  const orgId = process.env.TEST_ORG_ID;
+
+  if (!orgId) {
+    throw new Error(
+      `Missing required TEST_ORG_ID environment variable.\n\n` +
+        `TEST_ORG_ID is required for multi-tenancy validation in E2E tests.\n` +
+        `It should be set to the organization ID of your test tenant.\n\n` +
+        `To configure:\n` +
+        `  1. Set TEST_ORG_ID=<your-test-org-id> in .env.local\n` +
+        `  2. Or add TEST_ORG_ID to CI secrets\n\n` +
+        `SECURITY: This validates that API responses don't leak\n` +
+        `data from other tenants (cross-tenant data isolation).`
+    );
+  }
+
+  return orgId;
+}
+
+/**
+ * Get the test organization ID if configured, otherwise return undefined.
+ * Use this when tenant validation is optional (e.g., TEST_ORG_ID not yet set up).
+ *
+ * @returns The TEST_ORG_ID or undefined if not configured
+ */
+export function getTestOrgIdOptional(): string | undefined {
+  return process.env.TEST_ORG_ID || undefined;
 }

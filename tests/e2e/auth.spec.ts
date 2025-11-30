@@ -15,43 +15,33 @@ import { getRequiredTestCredentials, hasTestCredentials, type TestCredentials } 
 /**
  * Get primary admin user credentials.
  * Requires TEST_ADMIN_EMAIL and TEST_ADMIN_PASSWORD env vars.
+ * 
+ * SECURITY (PR #376 audit): NO FALLBACKS.
+ * Tests MUST fail fast if credentials are not configured.
  */
 function getPrimaryUser(): TestCredentials {
-  try {
-    return getRequiredTestCredentials('ADMIN');
-  } catch {
-    // Offline fallback (works with attemptLogin offline JWT injection)
-    return {
-      email: process.env.TEST_ADMIN_EMAIL || 'admin@offline.test',
-      password: process.env.TEST_ADMIN_PASSWORD || 'Test@1234',
-      employeeNumber: process.env.TEST_ADMIN_EMPLOYEE || 'EMP-OFFLINE-ADMIN',
-    };
-  }
+  return getRequiredTestCredentials('ADMIN');
 }
 
 /**
  * Get non-admin user credentials.
  * Requires TEST_TEAM_MEMBER_EMAIL and TEST_TEAM_MEMBER_PASSWORD env vars.
+ * 
+ * SECURITY (PR #376 audit): NO FALLBACKS.
+ * Tests MUST fail fast if credentials are not configured.
  */
 function getNonAdminUser(): TestCredentials {
-  try {
-    return getRequiredTestCredentials('TEAM_MEMBER');
-  } catch {
-    return {
-      email: process.env.TEST_TEAM_MEMBER_EMAIL || 'member@offline.test',
-      password: process.env.TEST_TEAM_MEMBER_PASSWORD || 'Test@1234',
-      employeeNumber: process.env.TEST_TEAM_MEMBER_EMPLOYEE || 'EMP-OFFLINE-MEMBER',
-    };
-  }
+  return getRequiredTestCredentials('TEAM_MEMBER');
 }
 
-// Credentials are loaded on demand - tests will fail fast if env vars missing
-const HAS_PRIMARY_USER = true; // allow offline fallback auth flow
-const HAS_NON_ADMIN_USER = true;
+// Check credential availability - these do NOT throw, just return boolean
+const HAS_PRIMARY_USER = hasTestCredentials('ADMIN');
+const HAS_NON_ADMIN_USER = hasTestCredentials('TEAM_MEMBER');
 
-// Lazy-load credentials - these throw if env vars are missing (fail-fast)
-const PRIMARY_USER = getPrimaryUser();
-const NON_ADMIN_USER = getNonAdminUser();
+// Credentials are loaded on demand - will throw if env vars missing (fail-fast)
+// Only access these if HAS_*_USER is true, or tests will fail immediately
+const PRIMARY_USER = HAS_PRIMARY_USER ? getPrimaryUser() : null;
+const NON_ADMIN_USER = HAS_NON_ADMIN_USER ? getNonAdminUser() : null;
 
 const PASSWORD_RESET_EMAIL = PRIMARY_USER?.email || 'admin@fixzit.co';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
@@ -106,6 +96,7 @@ test.describe('Authentication', () => {
     });
 
     test('should login with email and password', async ({ page }) => {
+      expect(PRIMARY_USER, 'TEST_ADMIN_EMAIL/PASSWORD env vars required').toBeTruthy();
       const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
       ensureLoginOrFail(result);
 
@@ -114,6 +105,12 @@ test.describe('Authentication', () => {
     });
 
     test('should login with employee number', async ({ page }) => {
+      expect(PRIMARY_USER, 'TEST_ADMIN_EMAIL/PASSWORD env vars required').toBeTruthy();
+      expect(
+        PRIMARY_USER!.employeeNumber,
+        'TEST_ADMIN_EMPLOYEE env var required for employee-number login test'
+      ).toBeTruthy();
+      
       const result = await attemptLogin(page, PRIMARY_USER!.employeeNumber!, PRIMARY_USER!.password);
       ensureLoginOrFail(result);
     });
@@ -285,8 +282,13 @@ test.describe('Authentication', () => {
         }
       });
 
-      expect([200, 403]).toContain(response.status());
-      expect(response.status()).not.toBe(401);
+      // SECURITY FIX (PR #376 audit): Admin MUST get 200, not 403
+      // Lenient [200, 403] would let RBAC regressions ship unnoticed
+      expect(
+        response.status(),
+        `Admin should access /api/work-orders - got ${response.status()}, expected 200.\n` +
+        `403 means RBAC is incorrectly denying admin access.`
+      ).toBe(200);
     });
   });
 

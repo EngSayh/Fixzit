@@ -22,10 +22,11 @@ test.describe('Database E2E Tests', () => {
     mongoClient = new MongoClient(mongoUri);
     await mongoClient.connect();
     
-    // Create test organization
+    // Create test organization with unique orgId to avoid dupes on reruns
     testOrgId = new ObjectId().toString();
     await mongoClient.db('fixzit').collection('organizations').insertOne({
       _id: new ObjectId(testOrgId),
+      orgId: testOrgId,
       name: 'E2E Test Org',
       createdAt: new Date()
     });

@@ -434,11 +434,18 @@ jobs:
           # Only default if Lighthouse was expected to run but parsing failed
           if [ "$lighthouse_parsed" = "false" ]; then
             if [ -d "lhci_reports" ] || [ -d ".lighthouseci" ]; then
+              echo "::warning::Lighthouse ran but couldn't parse scores - investigate report format"
               echo "⚠️ Lighthouse ran but couldn't parse scores - defaulting to 50 (investigate)"
               perf_score=50
             else
-              echo "ℹ️ No Lighthouse reports found - performance score is 0"
+              # AUDIT-2025-12: Emit GitHub warning when performance data is missing
+              # This ensures PRs cannot be merged silently without performance validation
+              echo "::warning::No Lighthouse performance data available - PR missing performance validation"
+              echo "⚠️ No Lighthouse reports found - performance score is 0"
+              echo "ℹ️ Consider running 'pnpm lighthouse' locally before merging"
               perf_score=0
+              # Set output for branch protection rules
+              echo "LIGHTHOUSE_MISSING=true" >> $GITHUB_OUTPUT
             fi
           fi
           
