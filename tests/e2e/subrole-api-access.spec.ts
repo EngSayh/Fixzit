@@ -23,7 +23,6 @@ import {
  */
 
 const DEFAULT_TIMEOUT = 30000;
-const TEST_ORG_ID = process.env.TEST_ORG_ID;
 
 /**
  * Get test credentials for a sub-role.
@@ -435,7 +434,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.finance.invoices,
         'FINANCE_OFFICER',
-        { expectedOrgId: TEST_ORG_ID }
+        { expectedOrgId: getTestOrgIdOptional() }
       );
     });
 
@@ -448,7 +447,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.finance.budgets,
         'FINANCE_OFFICER',
-        { expectedOrgId: TEST_ORG_ID }
+        { expectedOrgId: getTestOrgIdOptional() }
       );
     });
 
@@ -461,7 +460,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.finance.expenses,
         'FINANCE_OFFICER',
-        { expectedOrgId: TEST_ORG_ID }
+        { expectedOrgId: getTestOrgIdOptional() }
       );
     });
 
@@ -510,7 +509,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.hr.employees,
         'HR_OFFICER',
-        { expectedOrgId: TEST_ORG_ID }
+        { expectedOrgId: getTestOrgIdOptional() }
       );
     });
 
@@ -523,7 +522,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.hr.payroll,
         'HR_OFFICER',
-        { expectedOrgId: TEST_ORG_ID }
+        { expectedOrgId: getTestOrgIdOptional() }
       );
     });
 
@@ -536,7 +535,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.hr.attendance,
         'HR_OFFICER',
-        { expectedOrgId: TEST_ORG_ID }
+        { expectedOrgId: getTestOrgIdOptional() }
       );
     });
 
@@ -861,27 +860,14 @@ test.describe('Sub-Role API Access Control', () => {
           response,
           endpoint,
           'ADMIN',
-          (body) => {
-            // Verify response is valid JSON (array or object)
-            expect(
-              body !== null && (Array.isArray(body) || typeof body === 'object'),
-              `${endpoint} should return array or object, got ${typeof body}`
-            ).toBe(true);
-            
-            // If array, verify each item has org_id matching test tenant
-            // This is the critical multi-tenancy check
-            if (Array.isArray(body)) {
-              const testOrgId = process.env.TEST_ORG_ID;
-              if (testOrgId) {
-                (body as Record<string, unknown>[]).forEach((item, index) => {
-                  if (item && typeof item === 'object' && 'org_id' in item) {
-                    expect(
-                      item.org_id,
-                      `TENANT LEAK: ${endpoint}[${index}].org_id = ${item.org_id}, expected ${testOrgId}`
-                    ).toBe(testOrgId);
-                  }
-                });
-              }
+          {
+            expectedOrgId: getTestOrgIdOptional(),
+            validate: (body) => {
+              // Verify response is valid JSON (array or object)
+              expect(
+                body !== null && (Array.isArray(body) || typeof body === 'object'),
+                `${endpoint} should return array or object, got ${typeof body}`
+              ).toBe(true);
             }
           }
         );
@@ -899,21 +885,18 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.admin.users,
         'ADMIN',
-        (body) => {
-          expect(
-            body !== null && (Array.isArray(body) || typeof body === 'object'),
-            `Admin users should return array or object`
-          ).toBe(true);
-          
-          // Verify user data has expected fields
-          if (Array.isArray(body) && body.length > 0) {
-            const firstUser = body[0] as Record<string, unknown>;
-            expect(firstUser).toHaveProperty('email');
+        {
+          expectedOrgId: getTestOrgIdOptional(),
+          validate: (body) => {
+            expect(
+              body !== null && (Array.isArray(body) || typeof body === 'object'),
+              `Admin users should return array or object`
+            ).toBe(true);
             
-            // Tenant scoping: users should belong to test org
-            const testOrgId = process.env.TEST_ORG_ID;
-            if (testOrgId && 'org_id' in firstUser) {
-              expect(firstUser.org_id).toBe(testOrgId);
+            // Verify user data has expected fields
+            if (Array.isArray(body) && body.length > 0) {
+              const firstUser = body[0] as Record<string, unknown>;
+              expect(firstUser).toHaveProperty('email');
             }
           }
         }
