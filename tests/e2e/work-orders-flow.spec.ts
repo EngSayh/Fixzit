@@ -138,8 +138,19 @@ test.describe("Work Orders - SLA Management", () => {
 
     expect(page.url()).not.toContain("/login");
 
-    // Page should load
-    await expect(page.locator("body")).toBeVisible();
+    // AUDIT-2025-12-01: SLA watchlist is a critical work order management feature
+    // Page should display identifiable SLA/watchlist content, not just body.
+    const slaContent = page.locator(
+      'h1, h2, [data-testid*="sla"], [class*="watchlist"], [class*="sla"], ' +
+      '[aria-label*="SLA" i], table, [role="grid"]',
+    );
+    const slaCount = await slaContent.count();
+
+    expect(
+      slaCount,
+      'SLA watchlist page should display heading, table, or SLA-specific content. ' +
+      'If page is intentionally minimal, update this test with documented reason.'
+    ).toBeGreaterThan(0);
   });
 
   test("should display preventive maintenance", async ({ page }) => {
@@ -148,8 +159,19 @@ test.describe("Work Orders - SLA Management", () => {
 
     expect(page.url()).not.toContain("/login");
 
-    // Page should load
-    await expect(page.locator("body")).toBeVisible();
+    // AUDIT-2025-12-01: Preventive Maintenance is a critical work order feature
+    // Page should display identifiable PM content, not just body.
+    const pmContent = page.locator(
+      'h1, h2, [data-testid*="pm"], [data-testid*="preventive"], [class*="maintenance"], ' +
+      '[aria-label*="maintenance" i], table, [role="grid"], [class*="schedule"]',
+    );
+    const pmCount = await pmContent.count();
+
+    expect(
+      pmCount,
+      'Preventive Maintenance page should display heading, table, or PM-specific content. ' +
+      'If page is intentionally minimal, update this test with documented reason.'
+    ).toBeGreaterThan(0);
   });
 });
 
