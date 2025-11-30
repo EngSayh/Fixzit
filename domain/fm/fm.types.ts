@@ -951,6 +951,31 @@ export const SUB_ROLE_ACTIONS: Record<SubRole, ActionsBySubmodule> = {
   },
 };
 
+/**
+ * STRICT v4.1: Submodules that require specific sub-roles for TEAM_MEMBER access.
+ * TEAM_MEMBER without the required sub-role cannot access these specialized domains.
+ */
+export const SUBMODULE_REQUIRED_SUBROLE: Partial<Record<SubmoduleKey, SubRole[]>> = {
+  // Finance requires FINANCE_OFFICER
+  FINANCE_INVOICES: [SubRole.FINANCE_OFFICER],
+  FINANCE_EXPENSES: [SubRole.FINANCE_OFFICER],
+  FINANCE_BUDGETS: [SubRole.FINANCE_OFFICER],
+  REPORTS_FINANCE: [SubRole.FINANCE_OFFICER],
+  // HR requires HR_OFFICER
+  HR_EMPLOYEE_DIRECTORY: [SubRole.HR_OFFICER],
+  HR_ATTENDANCE: [SubRole.HR_OFFICER],
+  HR_PAYROLL: [SubRole.HR_OFFICER],
+  HR_RECRUITMENT: [SubRole.HR_OFFICER],
+  HR_TRAINING: [SubRole.HR_OFFICER],
+  HR_PERFORMANCE: [SubRole.HR_OFFICER],
+  // Support requires SUPPORT_AGENT (for advanced actions)
+  SUPPORT_SLA: [SubRole.SUPPORT_AGENT],
+  // Operations requires OPERATIONS_MANAGER
+  MARKETPLACE_VENDORS: [SubRole.OPERATIONS_MANAGER],
+  MARKETPLACE_REQUESTS: [SubRole.OPERATIONS_MANAGER],
+  MARKETPLACE_BIDS: [SubRole.OPERATIONS_MANAGER],
+};
+
 /* =========================
  * 7) Resource Context
  * ========================= */
@@ -1032,11 +1057,34 @@ export function can(
     return canAccessModule(submodule as ModuleKey, action, ctx);
   }
 
+  // 1) Plan gate
   if (!PLAN_GATES[ctx.plan]?.[submodule as SubmoduleKey]) return false;
 
-  const allowed = ROLE_ACTIONS[ctx.role]?.[submodule as SubmoduleKey];
-  if (!allowed?.includes(action)) return false;
+  // 2) STRICT v4.1: Sub-role enforcement for TEAM_MEMBER
+  if (ctx.role === Role.TEAM_MEMBER) {
+    // Check sub-role actions first (extends base TEAM_MEMBER permissions)
+    if (ctx.subRole && SUB_ROLE_ACTIONS[ctx.subRole]?.[submodule as SubmoduleKey]?.includes(action)) {
+      // Sub-role grants this action - continue to scope checks below
+    } else {
+      // Check if this submodule requires a specific sub-role for TEAM_MEMBER access
+      const requiredSubRoles = SUBMODULE_REQUIRED_SUBROLE[submodule as SubmoduleKey];
+      if (requiredSubRoles && requiredSubRoles.length > 0) {
+        // Submodule requires a sub-role that the user doesn't have
+        if (!ctx.subRole || !requiredSubRoles.includes(ctx.subRole)) {
+          return false;
+        }
+      }
+      // Fall back to base TEAM_MEMBER permissions
+      const baseAllowed = ROLE_ACTIONS[ctx.role]?.[submodule as SubmoduleKey];
+      if (!baseAllowed?.includes(action)) return false;
+    }
+  } else {
+    // 2b) Role action allow-list (non-TEAM_MEMBER roles)
+    const allowed = ROLE_ACTIONS[ctx.role]?.[submodule as SubmoduleKey];
+    if (!allowed?.includes(action)) return false;
+  }
 
+  // 3) Org membership check (Super Admin bypasses)
   if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
 
   // TENANT scope validation: must own the user record OR unit membership
