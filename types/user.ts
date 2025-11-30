@@ -93,6 +93,32 @@ export const EXTERNAL_ROLES = [
 ] as const;
 
 /**
+ * @deprecated Legacy roles that should NOT be used in new code.
+ * These are kept only for backward compatibility during migration.
+ * Use ROLE_ALIAS_MAP in domain/fm/fm-lite.ts for mapping to STRICT v4 roles.
+ * 
+ * Migration guide:
+ * - EMPLOYEE → MANAGER or specific function role (HR, FINANCE, etc.)
+ * - CUSTOMER → TENANT or OWNER
+ * - VIEWER → AUDITOR
+ * - DISPATCHER → FM_MANAGER or PROPERTY_MANAGER
+ * - SUPPORT → SUPPORT_AGENT
+ * - FINANCE_MANAGER → FINANCE or FINANCE_OFFICER
+ */
+export const DEPRECATED_ROLES = [
+  UserRole.EMPLOYEE,
+  UserRole.CUSTOMER,
+  UserRole.VIEWER,
+  UserRole.DISPATCHER,
+  UserRole.SUPPORT,
+  UserRole.FINANCE_MANAGER,
+] as const;
+
+/** Helper to check if a role is deprecated and should trigger migration warning */
+export const isDeprecatedRole = (role: UserRoleType): boolean =>
+  (DEPRECATED_ROLES as readonly string[]).includes(role);
+
+/**
  * User status values
  */
 export const UserStatus = {

@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { otpSessionStore } from '@/lib/otp-store';
 import type { UserRoleType } from '@/types/user';
+import type { AuthUserShape } from '@/types/auth';
+import { extractUserRole } from '@/types/auth';
 import type { SubscriptionPlan } from '@/config/navigation';
 import type { UserDoc } from '@/server/models/User';
 // NOTE: Mongoose imports MUST be dynamic inside authorize() to avoid Edge Runtime issues
@@ -477,13 +479,10 @@ export const authConfig = {
       const { User } = await import('./server/models/User');
       
       try {
-        const dbUser = (await User.findOne({ email: _user.email }).lean().exec()) as {
-          orgId?: string | null;
-          isSuperAdmin?: boolean;
-          status?: string;
-          professional?: { role?: string };
-          role?: string;
-        } | null;
+        const dbUser = (await User.findOne({ email: _user.email })
+          .select('orgId isSuperAdmin status role professional.role')
+          .lean<AuthUserShape>()
+          .exec());
         
         // Block sign-in if user doesn't exist
         if (!dbUser) {
@@ -516,7 +515,7 @@ export const authConfig = {
           orgId?: string | null; 
           isSuperAdmin?: boolean; 
         };
-        userWithMeta.role = (dbUser.professional?.role || dbUser.role || 'GUEST') as UserRoleType | 'GUEST';
+        userWithMeta.role = extractUserRole(dbUser, 'GUEST');
         userWithMeta.orgId = dbUser.orgId?.toString() || null;
         userWithMeta.isSuperAdmin = dbUser.isSuperAdmin || false;
         
