@@ -9,18 +9,28 @@ import {
   type TestCredentials,
 } from './utils/credentials';
 
-// Offline-safe defaults: inject non-secret placeholders when TEST_* secrets are absent.
-// These are for local/offline runs only; real CI should supply real credentials.
-if (!process.env.TEST_ADMIN_EMAIL) {
-  process.env.TEST_ADMIN_EMAIL = 'admin@offline.test';
-  process.env.TEST_ADMIN_PASSWORD = 'Test@1234';
-  process.env.TEST_ADMIN_EMPLOYEE = process.env.TEST_ADMIN_EMPLOYEE ?? 'EMP-OFFLINE-ADMIN';
-}
-if (!process.env.TEST_TEAM_MEMBER_EMAIL) {
-  process.env.TEST_TEAM_MEMBER_EMAIL = 'member@offline.test';
-  process.env.TEST_TEAM_MEMBER_PASSWORD = 'Test@1234';
-  process.env.TEST_TEAM_MEMBER_EMPLOYEE = process.env.TEST_TEAM_MEMBER_EMPLOYEE ?? 'EMP-OFFLINE-MEMBER';
-}
+// SECURITY FIX (2025-11-30): Removed insecure offline fallback injection.
+//
+// The previous code injected fake credentials (admin@offline.test / Test@1234)
+// at runtime, which COMPLETELY UNDERMINED the security pattern in credentials.ts.
+// 
+// Why this was dangerous:
+// 1. The fallback ran BEFORE validateRequiredCredentials()
+// 2. It set process.env vars, making validation pass with fake data
+// 3. Tests would run with insecure credentials and CI would report success
+// 4. A forked PR could pass E2E tests without real tenant isolation checks
+//
+// CORRECT BEHAVIOR:
+// - Local dev: Must configure .env.local with real TEST_* credentials
+// - CI internal: Secrets must be configured in GitHub Actions secrets
+// - CI fork: Tests skip gracefully via IS_FORK_OR_MISSING_SECRETS detection
+//
+// If you need to run tests locally without credentials:
+//   1. Copy env.example to .env.local
+//   2. Configure TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD, etc.
+//   3. For local-only smoke tests, create real test users in your dev DB
+//
+// See: tests/e2e/utils/credentials.ts for the secure credential pattern
 
 /**
  * Authentication E2E Tests
@@ -80,8 +90,13 @@ const IS_PULL_REQUEST = process.env.GITHUB_EVENT_NAME === 'pull_request';
 const HAS_AUTH_CREDENTIALS = HAS_PRIMARY_USER && HAS_NON_ADMIN_USER;
 const IS_FORK_OR_MISSING_SECRETS = IS_CI && IS_PULL_REQUEST && !HAS_AUTH_CREDENTIALS;
 
-// Fail fast if core creds missing
-validateRequiredCredentials(['ADMIN', 'TEAM_MEMBER']);
+// SECURITY (2025-11-30): Fail fast if core credentials are missing
+// BUT: Skip gracefully for forked PRs (secrets unavailable)
+if (!IS_FORK_OR_MISSING_SECRETS) {
+  // Internal CI or local dev: credentials MUST be configured
+  validateRequiredCredentials(['ADMIN', 'TEAM_MEMBER']);
+}
+// For forks: test.skip() guards in each test.describe() handle graceful skip
 
 // Enforce TEST_ORG_ID for internal CI runs (not forks)
 if (IS_CI && !TEST_ORG_ID && !IS_FORK_OR_MISSING_SECRETS) {
