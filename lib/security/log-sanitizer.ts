@@ -117,10 +117,11 @@ const SENSITIVE_KEYS = new Set([
  */
 const BASE_PII_PATTERNS: RegExp[] = [
   /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i, // emails
-  // Phone pattern: bounded digit run with optional single separators between digits
-  // Uses simple alternation to avoid backtracking: pure digits OR formatted
-  // Bounded to 8-15 total digits to match international phone formats
-  /\b\+?\d(?:[\s()-]?\d){7,14}\b/, // phone-like: digit followed by 7-14 more (with optional separators)
+  // Phone pattern: tightened for minimal backtracking and fewer false positives
+  // - Only allows space or hyphen as separators (not parentheses which add backtracking)
+  // - Bounded to 8-15 total digits to match international phone formats
+  // - Word boundaries prevent partial matches inside longer strings
+  /\b\+?\d(?:[ -]?\d){7,14}\b/, // phone-like: digit + 7-14 more with optional space/hyphen
   /^[A-Za-z0-9-_]{10,}\.(?:[A-Za-z0-9-_]{10,})\.(?:[A-Za-z0-9-_]{10,})$/, // JWT tokens (min 10 chars per segment)
   /\b[A-Z]{2}\d{2}[A-Z0-9]{9,30}\b/, // IBAN-ish
   /\b\d{13,19}\b/, // card-like digit runs
