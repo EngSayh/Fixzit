@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 // RBAC-DRIFT-FIX: Import from fm.types.ts (complete RBAC definitions)
 // instead of fm.behavior.ts (truncated, WO/Property only)
 import {
-  ROLE_MODULE_ACCESS,
   ROLE_ACTIONS,
   PLAN_GATES,
   Role,
@@ -14,6 +13,7 @@ import {
   normalizeRole,
   normalizeSubRole,
   inferSubRoleFromRole,
+  computeAllowedModules,
 } from "@/domain/fm/fm.types";
 import { FMErrors } from "./errors";
 import {
@@ -97,18 +97,10 @@ const resolveOrgContext = async (
 const hasModuleAccess = (role: Role, module?: ModuleKey, subRole?: SubRole): boolean => {
   if (!module) return true;
   
-  // SEC-001 FIX: TEAM_MEMBER requires sub-role for Finance/HR modules
-  // STRICT v4.1: Without sub-role, TEAM_MEMBER cannot access specialized modules
-  if (role === Role.TEAM_MEMBER) {
-    if (module === ModuleKey.FINANCE && subRole !== SubRole.FINANCE_OFFICER) {
-      return false;
-    }
-    if (module === ModuleKey.HR && subRole !== SubRole.HR_OFFICER) {
-      return false;
-    }
-  }
-  
-  return Boolean(ROLE_MODULE_ACCESS[role]?.[module]);
+  // PARITY: Use computeAllowedModules for complete sub-role handling
+  // This handles Finance, HR, Support, Ops sub-roles correctly
+  const allowedModules = computeAllowedModules(role, subRole);
+  return allowedModules.includes(module);
 };
 
 const hasSubmoduleAccess = (

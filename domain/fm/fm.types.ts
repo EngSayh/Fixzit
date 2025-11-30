@@ -1008,7 +1008,13 @@ export type ResourceCtx = {
  * 8) RBAC Functions
  * ========================= */
 
+/**
+ * STRICT v4.1: Compute allowed modules based on role and sub-role
+ * Used for dynamic module access (e.g., Team Member specializations)
+ * PARITY: Must match fm.behavior.ts computeAllowedModules exactly
+ */
 export function computeAllowedModules(role: Role, subRole?: SubRole): ModuleKey[] {
+  // Get base modules from ROLE_MODULE_ACCESS
   const baseModules = ROLE_MODULE_ACCESS[role];
   const allowed: ModuleKey[] = [];
 
@@ -1018,19 +1024,36 @@ export function computeAllowedModules(role: Role, subRole?: SubRole): ModuleKey[
     }
   }
 
+  // STRICT v4.1: Merge sub-role modules with base TEAM_MEMBER modules (union, not override)
   if (role === Role.TEAM_MEMBER && subRole) {
+    const subRoleModules: ModuleKey[] = [];
     switch (subRole) {
       case SubRole.FINANCE_OFFICER:
-        return [ModuleKey.DASHBOARD, ModuleKey.FINANCE, ModuleKey.REPORTS];
+        // Add Finance module to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.FINANCE);
+        break;
+
       case SubRole.HR_OFFICER:
-        return [ModuleKey.DASHBOARD, ModuleKey.HR, ModuleKey.REPORTS];
+        // Add HR module to base TEAM_MEMBER modules (+ PII access via separate check)
+        subRoleModules.push(ModuleKey.HR);
+        break;
+
       case SubRole.SUPPORT_AGENT:
-        return [ModuleKey.DASHBOARD, ModuleKey.SUPPORT, ModuleKey.CRM, ModuleKey.REPORTS];
+        // Add Support module to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.SUPPORT);
+        break;
+
       case SubRole.OPERATIONS_MANAGER:
-        return [ModuleKey.DASHBOARD, ModuleKey.WORK_ORDERS, ModuleKey.PROPERTIES, ModuleKey.SUPPORT, ModuleKey.REPORTS];
+        // Add Work Orders and Properties to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.WORK_ORDERS, ModuleKey.PROPERTIES);
+        break;
+
       default:
+        // Base Team Member access
         break;
     }
+    // Merge base + sub-role modules (union)
+    return [...new Set([...allowed, ...subRoleModules])];
   }
 
   return allowed;
@@ -1053,6 +1076,9 @@ export function can(
   action: Action,
   ctx: ResourceCtx
 ): boolean {
+  // PARITY: Must match fm.behavior.ts - fallback to userId when requesterUserId is not set
+  const requesterId = ctx.requesterUserId ?? ctx.userId;
+
   if (Object.values(ModuleKey).includes(submodule as ModuleKey)) {
     return canAccessModule(submodule as ModuleKey, action, ctx);
   }
@@ -1094,7 +1120,7 @@ export function can(
       if (ctx.unitId && ctx.units && !ctx.units.includes(ctx.unitId)) {
         return false;
       }
-      return ctx.requesterUserId === ctx.userId;
+      return requesterId === ctx.userId;
     }
     // Other actions: validate unit access + requester ownership
     if (ctx.unitId && ctx.units?.length) {
@@ -1103,7 +1129,7 @@ export function can(
         return false;
       }
     }
-    return ctx.requesterUserId === ctx.userId;
+    return requesterId === ctx.userId;
   }
 
   // CORPORATE_OWNER scope validation: must own/manage the property

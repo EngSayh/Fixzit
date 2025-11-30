@@ -115,6 +115,95 @@ Added `units` validation in `can()` function in `domain/fm/fm.types.ts`
 
 ---
 
+### RBAC-DRIFT-006: computeAllowedModules Override Instead of Union
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+`fm.types.ts` `computeAllowedModules()` used early `return` statements for sub-roles, overriding base TEAM_MEMBER modules instead of unioning them.
+
+**Impact**:
+- FINANCE_OFFICER loses base TEAM_MEMBER modules (DASHBOARD, WO, CRM, etc.)
+- Client-side module visibility different from server-side
+- Sub-role users denied actions they should have
+
+**Files Fixed**:
+- `domain/fm/fm.types.ts`: Changed to union pattern `[...new Set([...allowed, ...subRoleModules])]`
+
+---
+
+### RBAC-DRIFT-007: Tenant Requester Fallback Missing
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+Client `can()` in `fm.types.ts` used `ctx.requesterUserId === ctx.userId` without fallback to `userId` when `requesterUserId` is undefined.
+
+**Impact**:
+- Tenant actions fail when `requesterUserId` not explicitly set
+- Server-side `fm.behavior.ts` uses fallback: `const requesterId = ctx.requesterUserId ?? ctx.userId`
+- Parity broken for tenant workflows
+
+**Fix Applied**:
+Added `const requesterId = ctx.requesterUserId ?? ctx.userId` in `fm.types.ts` `can()` function.
+
+---
+
+### RBAC-DRIFT-008: hasModuleAccess Incomplete Sub-Role Handling
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+`hasModuleAccess()` in `app/api/fm/permissions.ts` only handled Finance/HR sub-roles explicitly, missing SUPPORT_AGENT and OPERATIONS_MANAGER.
+
+**Impact**:
+- SUPPORT_AGENT accessing SUPPORT module gets 403
+- OPERATIONS_MANAGER accessing WORK_ORDERS/PROPERTIES gets 403
+- Only Finance/HR sub-roles worked correctly
+
+**Fix Applied**:
+Refactored to use `computeAllowedModules(role, subRole)` for complete sub-role handling.
+
+---
+
+### RBAC-DRIFT-009: fm-lite ROLE_MODULES Drift
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟨 MINOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+`fm-lite.ts` `ROLE_MODULES` had outdated entries:
+- PROPERTY_MANAGER missing SUPPORT module
+- VENDOR missing WORK_ORDERS and REPORTS modules
+
+**Impact**:
+- Client façade `computeAllowedModules` returns different modules than server
+- UI visibility drift for Property Managers and Vendors
+
+**Fix Applied**:
+Added missing modules to `ROLE_MODULES` in `fm-lite.ts` to match `ROLE_MODULE_ACCESS` in behavior/types.
+
+---
+
 ### ISSUE-001: Missing SessionProvider
 
 **Category**: Runtime Error  

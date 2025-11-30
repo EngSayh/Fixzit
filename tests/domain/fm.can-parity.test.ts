@@ -14,11 +14,13 @@ import {
   SubRole,
   Plan,
   SubmoduleKey,
+  ModuleKey,
   type ResourceCtx as ServerResourceCtx,
   ROLE_ACTIONS as SERVER_ROLE_ACTIONS,
   SUB_ROLE_ACTIONS as SERVER_SUB_ROLE_ACTIONS,
   SUBMODULE_REQUIRED_SUBROLE as SERVER_SUBMODULE_REQUIRED_SUBROLE,
   PLAN_GATES as SERVER_PLAN_GATES,
+  computeAllowedModules as computeAllowedModulesServer,
 } from '@/domain/fm/fm.behavior';
 
 import {
@@ -28,7 +30,12 @@ import {
   SUBMODULE_REQUIRED_SUBROLE as CLIENT_SUBMODULE_REQUIRED_SUBROLE,
   PLAN_GATES as CLIENT_PLAN_GATES,
   type ResourceCtx as ClientResourceCtx,
+  computeAllowedModules as computeAllowedModulesClient,
 } from '@/domain/fm/fm.types';
+
+import {
+  computeAllowedModules as computeAllowedModulesLite,
+} from '@/domain/fm/fm-lite';
 
 /**
  * Helper to create a minimal valid context
@@ -456,6 +463,131 @@ describe('RBAC can() Client/Server Parity', () => {
       
       expect(canServer('PROP_LIST', 'view', ctx)).toBe(true);
       expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+  });
+
+  describe('computeAllowedModules Parity', () => {
+    it('returns same modules for all roles across server/client/lite', () => {
+      for (const role of Object.values(Role)) {
+        const serverModules = computeAllowedModulesServer(role).sort();
+        const clientModules = computeAllowedModulesClient(role).sort();
+        const liteModules = computeAllowedModulesLite(role).sort();
+        
+        expect(
+          serverModules,
+          `computeAllowedModules(${role}) mismatch: server vs client`
+        ).toEqual(clientModules);
+        expect(
+          serverModules,
+          `computeAllowedModules(${role}) mismatch: server vs lite`
+        ).toEqual(liteModules);
+      }
+    });
+
+    it('TEAM_MEMBER + FINANCE_OFFICER unions base modules with Finance', () => {
+      const serverModules = computeAllowedModulesServer(Role.TEAM_MEMBER, SubRole.FINANCE_OFFICER).sort();
+      const clientModules = computeAllowedModulesClient(Role.TEAM_MEMBER, SubRole.FINANCE_OFFICER).sort();
+      const liteModules = computeAllowedModulesLite(Role.TEAM_MEMBER, SubRole.FINANCE_OFFICER).sort();
+      
+      // Must include both base TEAM_MEMBER modules AND Finance
+      expect(serverModules).toContain(ModuleKey.FINANCE);
+      expect(serverModules).toContain(ModuleKey.DASHBOARD);
+      
+      // All three must match
+      expect(serverModules, 'FINANCE_OFFICER modules: server vs client').toEqual(clientModules);
+      expect(serverModules, 'FINANCE_OFFICER modules: server vs lite').toEqual(liteModules);
+    });
+
+    it('TEAM_MEMBER + HR_OFFICER unions base modules with HR', () => {
+      const serverModules = computeAllowedModulesServer(Role.TEAM_MEMBER, SubRole.HR_OFFICER).sort();
+      const clientModules = computeAllowedModulesClient(Role.TEAM_MEMBER, SubRole.HR_OFFICER).sort();
+      const liteModules = computeAllowedModulesLite(Role.TEAM_MEMBER, SubRole.HR_OFFICER).sort();
+      
+      // Must include both base TEAM_MEMBER modules AND HR
+      expect(serverModules).toContain(ModuleKey.HR);
+      expect(serverModules).toContain(ModuleKey.DASHBOARD);
+      
+      // All three must match
+      expect(serverModules, 'HR_OFFICER modules: server vs client').toEqual(clientModules);
+      expect(serverModules, 'HR_OFFICER modules: server vs lite').toEqual(liteModules);
+    });
+
+    it('TEAM_MEMBER + SUPPORT_AGENT unions base modules with Support', () => {
+      const serverModules = computeAllowedModulesServer(Role.TEAM_MEMBER, SubRole.SUPPORT_AGENT).sort();
+      const clientModules = computeAllowedModulesClient(Role.TEAM_MEMBER, SubRole.SUPPORT_AGENT).sort();
+      const liteModules = computeAllowedModulesLite(Role.TEAM_MEMBER, SubRole.SUPPORT_AGENT).sort();
+      
+      // Must include both base TEAM_MEMBER modules AND Support
+      expect(serverModules).toContain(ModuleKey.SUPPORT);
+      expect(serverModules).toContain(ModuleKey.DASHBOARD);
+      
+      // All three must match
+      expect(serverModules, 'SUPPORT_AGENT modules: server vs client').toEqual(clientModules);
+      expect(serverModules, 'SUPPORT_AGENT modules: server vs lite').toEqual(liteModules);
+    });
+
+    it('TEAM_MEMBER + OPERATIONS_MANAGER unions base modules with Work Orders & Properties', () => {
+      const serverModules = computeAllowedModulesServer(Role.TEAM_MEMBER, SubRole.OPERATIONS_MANAGER).sort();
+      const clientModules = computeAllowedModulesClient(Role.TEAM_MEMBER, SubRole.OPERATIONS_MANAGER).sort();
+      const liteModules = computeAllowedModulesLite(Role.TEAM_MEMBER, SubRole.OPERATIONS_MANAGER).sort();
+      
+      // Must include both base TEAM_MEMBER modules AND Work Orders + Properties
+      expect(serverModules).toContain(ModuleKey.WORK_ORDERS);
+      expect(serverModules).toContain(ModuleKey.PROPERTIES);
+      expect(serverModules).toContain(ModuleKey.DASHBOARD);
+      
+      // All three must match
+      expect(serverModules, 'OPERATIONS_MANAGER modules: server vs client').toEqual(clientModules);
+      expect(serverModules, 'OPERATIONS_MANAGER modules: server vs lite').toEqual(liteModules);
+    });
+
+    it('TEAM_MEMBER sub-roles do NOT lose base modules (union, not override)', () => {
+      const baseModules = computeAllowedModulesServer(Role.TEAM_MEMBER).sort();
+      
+      for (const subRole of Object.values(SubRole)) {
+        const serverModules = computeAllowedModulesServer(Role.TEAM_MEMBER, subRole).sort();
+        const clientModules = computeAllowedModulesClient(Role.TEAM_MEMBER, subRole).sort();
+        
+        // Every base module must still be present (union, not replacement)
+        for (const baseModule of baseModules) {
+          expect(
+            serverModules,
+            `SubRole ${subRole} lost base module ${baseModule}`
+          ).toContain(baseModule);
+          expect(
+            clientModules,
+            `Client SubRole ${subRole} lost base module ${baseModule}`
+          ).toContain(baseModule);
+        }
+      }
+    });
+  });
+
+  describe('Tenant Requester Fallback Parity', () => {
+    it('TENANT create allowed when requesterUserId is undefined (fallback to userId)', () => {
+      const ctx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-user-123',
+        requesterUserId: undefined,  // Server falls back to userId
+        unitId: 'unit-001',
+        units: ['unit-001'],
+      });
+      
+      // Both should allow because requesterUserId ?? userId === userId
+      expect(canServer('WO_CREATE', 'create', ctx)).toBe(true);
+      expect(canClient('WO_CREATE', 'create', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('TENANT view allowed when requesterUserId is undefined (fallback to userId)', () => {
+      const ctx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-user-123',
+        requesterUserId: undefined,  // Server falls back to userId
+      });
+      
+      // Both should allow because requesterUserId ?? userId === userId
+      expect(canServer('WO_CREATE', 'view', ctx)).toBe(true);
+      expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(true);
     });
   });
 });
