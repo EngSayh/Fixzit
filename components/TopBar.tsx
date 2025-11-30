@@ -364,9 +364,10 @@ function TopBarContent() {
   );
 
   // Handle logo click with unsaved changes check
-  // Smart routing: authenticated users go to dashboard, guests go to landing
+  // Smart routing: authenticated users go to FM dashboard, guests go to landing
+  // Uses /fm/dashboard to stay within FM route guards (aligns with MODULE_PATHS.dashboard)
   const handleLogoClick = (e: React.MouseEvent) => {
-    const targetPath = isAuthenticated ? "/dashboard" : "/";
+    const targetPath = isAuthenticated ? "/fm/dashboard" : "/";
     if (hasUnsavedChanges) {
       e.preventDefault();
       setShowUnsavedDialog(true);
