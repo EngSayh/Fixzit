@@ -250,7 +250,42 @@ Resolves ISSUE-SEC-003
 
 - Check permissions server-side
 - Principle of least privilege
-- Role hierarchy: SUPER_ADMIN > ADMIN > MANAGER > USER
+
+**🔒 STRICT v4.1 Role Hierarchy (9 canonical roles)**:
+```
+SUPER_ADMIN
+    ↓
+ADMIN
+    ↓
+MANAGER (org-level management)
+    ↓
+┌─────────────────────────────────────────────┐
+│         TEAM_MEMBER + Sub-Roles             │
+│  ┌─────────────┬─────────────┬───────────┐  │
+│  │ FINANCE_    │ HR_OFFICER  │ SUPPORT_  │  │
+│  │ OFFICER     │             │ AGENT     │  │
+│  ├─────────────┴─────────────┴───────────┤  │
+│  │        OPERATIONS_MANAGER             │  │
+│  └───────────────────────────────────────┘  │
+└─────────────────────────────────────────────┘
+    ↓
+TECHNICIAN (field workers)
+    ↓
+VENDOR (external contractors)
+    ↓
+GUEST (read-only dashboard access)
+```
+
+**Sub-roles** (assigned via `professional.subRole`):
+- `FINANCE_OFFICER` - Finance module + reports
+- `HR_OFFICER` - HR module + PII access + reports
+- `SUPPORT_AGENT` - Support + CRM + reports
+- `OPERATIONS_MANAGER` - Work Orders + Properties + Marketplace
+
+**Additional roles** (property/external context):
+- `OWNER`, `TENANT`, `AUDITOR`, `CUSTOMER`, `VIEWER`
+
+See `types/user.ts` for full role definitions and `domain/fm/fm-lite.ts` for module access mapping.
 
 #### Data Protection
 
@@ -263,17 +298,23 @@ Resolves ISSUE-SEC-003
 #### Running Tests
 
 ```bash
-# All tests
+# All tests (models + E2E)
 pnpm test
 
-# Unit tests only
-pnpm test:unit
+# Model tests only (fast, recommended for development)
+pnpm test:models
+
+# Service tests
+pnpm test:services
 
 # E2E tests
 pnpm test:e2e
 
-# Coverage
-pnpm test:coverage
+# Fast CI tests (bail on first failure)
+pnpm test:ci
+
+# Watch mode during development
+pnpm test:watch
 
 # RBAC Parity Tests (client/server alignment)
 pnpm rbac:parity

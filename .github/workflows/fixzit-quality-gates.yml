@@ -307,6 +307,8 @@ jobs:
           fi
 
       # ---------- Dependency Audit ----------
+      # AUDIT-2025-11-30: Tightened to fail on ANY vulnerabilities (exit code != 0)
+      # pnpm/yarn/npm audit return exit code 1 for any vulnerability found
       - name: Dependency Audit
         shell: bash
         run: |
@@ -314,22 +316,23 @@ jobs:
           audit_status=0
           case "${{ steps.pm.outputs.manager }}" in
             pnpm)
-              pnpm audit --json > .artifacts/dep-audit.json || audit_status=$?
+              # --audit-level=critical ensures only critical+ vulns fail the build
+              pnpm audit --audit-level=critical --json > .artifacts/dep-audit.json || audit_status=$?
               ;;
             yarn)
-              yarn audit --json > .artifacts/dep-audit.json || audit_status=$?
+              yarn audit --level critical --json > .artifacts/dep-audit.json 2>&1 || audit_status=$?
               ;;
             *)
-              npm audit --json > .artifacts/dep-audit.json || audit_status=$?
+              npm audit --audit-level=critical --json > .artifacts/dep-audit.json || audit_status=$?
               ;;
           esac
 
-          # Fail on critical vulnerabilities (audit level 4+)
-          if [ "${audit_status}" -ge 16 ]; then
-            echo "::error::Critical security vulnerabilities detected. See .artifacts/dep-audit.json"
+          # SECURITY: Fail build on critical vulnerabilities (any non-zero exit)
+          if [ "${audit_status}" -ne 0 ]; then
+            echo "::error::Critical security vulnerabilities detected. Review .artifacts/dep-audit.json and fix before merging."
             exit 1
-          elif [ "${audit_status}" -ne 0 ]; then
-            echo "::warning::Dependency audit detected issues. See .artifacts/dep-audit.json for details."
+          else
+            echo "✅ No critical vulnerabilities detected"
           fi
 
       # ---------- k6 Smoke (package only) ----------

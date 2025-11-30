@@ -35,6 +35,10 @@ import {
 
 import {
   computeAllowedModules as computeAllowedModulesLite,
+  PLAN_GATES as LITE_PLAN_GATES,
+  ROLE_ACTIONS as LITE_ROLE_ACTIONS,
+  SUB_ROLE_ACTIONS as LITE_SUB_ROLE_ACTIONS,
+  SUBMODULE_REQUIRED_SUBROLE as LITE_SUBMODULE_REQUIRED_SUBROLE,
 } from '@/domain/fm/fm-lite';
 
 /**
@@ -59,11 +63,25 @@ describe('RBAC can() Client/Server Parity', () => {
       expect(serverRoles).toEqual(clientRoles);
     });
 
+    it('ROLE_ACTIONS keys match between lite and server', () => {
+      const serverRoles = Object.keys(SERVER_ROLE_ACTIONS).sort();
+      const liteRoles = Object.keys(LITE_ROLE_ACTIONS).sort();
+      expect(liteRoles).toEqual(serverRoles);
+    });
+
     it('ROLE_ACTIONS submodule keys match for each role', () => {
       for (const role of Object.values(Role)) {
         const serverSubmodules = Object.keys(SERVER_ROLE_ACTIONS[role] || {}).sort();
         const clientSubmodules = Object.keys(CLIENT_ROLE_ACTIONS[role] || {}).sort();
         expect(serverSubmodules, `Role ${role} submodules mismatch`).toEqual(clientSubmodules);
+      }
+    });
+
+    it('ROLE_ACTIONS submodule keys match for each role (lite)', () => {
+      for (const role of Object.values(Role)) {
+        const serverSubmodules = Object.keys(SERVER_ROLE_ACTIONS[role] || {}).sort();
+        const liteSubmodules = Object.keys(LITE_ROLE_ACTIONS[role] || {}).sort();
+        expect(serverSubmodules, `Role ${role} submodules mismatch (lite)`).toEqual(liteSubmodules);
       }
     });
 
@@ -85,6 +103,23 @@ describe('RBAC can() Client/Server Parity', () => {
       }
     });
 
+    it('SUB_ROLE_ACTIONS match between lite and server', () => {
+      for (const subRole of Object.values(SubRole)) {
+        const serverActions = SERVER_SUB_ROLE_ACTIONS[subRole];
+        const liteActions = LITE_SUB_ROLE_ACTIONS[subRole];
+
+        const serverKeys = Object.keys(serverActions || {}).sort();
+        const liteKeys = Object.keys(liteActions || {}).sort();
+        expect(serverKeys, `SubRole ${subRole} submodule keys mismatch (lite)`).toEqual(liteKeys);
+
+        for (const key of serverKeys) {
+          const serverActionList = (serverActions as Record<string, string[]>)?.[key]?.sort() ?? [];
+          const liteActionList = (liteActions as Record<string, string[]>)?.[key]?.sort() ?? [];
+          expect(serverActionList, `SubRole ${subRole} actions for ${key} mismatch (lite)`).toEqual(liteActionList);
+        }
+      }
+    });
+
     it('SUBMODULE_REQUIRED_SUBROLE matches between client and server', () => {
       const serverKeys = Object.keys(SERVER_SUBMODULE_REQUIRED_SUBROLE).sort();
       const clientKeys = Object.keys(CLIENT_SUBMODULE_REQUIRED_SUBROLE).sort();
@@ -97,10 +132,34 @@ describe('RBAC can() Client/Server Parity', () => {
       }
     });
 
+    it('SUBMODULE_REQUIRED_SUBROLE matches between lite and server', () => {
+      const serverKeys = Object.keys(SERVER_SUBMODULE_REQUIRED_SUBROLE).sort();
+      const liteKeys = Object.keys(LITE_SUBMODULE_REQUIRED_SUBROLE).sort();
+      expect(serverKeys).toEqual(liteKeys);
+
+      for (const key of serverKeys) {
+        const serverSubRoles = SERVER_SUBMODULE_REQUIRED_SUBROLE[key as SubmoduleKey]?.sort() ?? [];
+        const liteSubRoles = LITE_SUBMODULE_REQUIRED_SUBROLE[key as SubmoduleKey]?.sort() ?? [];
+        expect(serverSubRoles, `SUBMODULE_REQUIRED_SUBROLE[${key}] mismatch (lite)`).toEqual(liteSubRoles);
+      }
+    });
+
     it('PLAN_GATES keys match between client and server', () => {
       const serverPlans = Object.keys(SERVER_PLAN_GATES).sort();
       const clientPlans = Object.keys(CLIENT_PLAN_GATES).sort();
       expect(serverPlans).toEqual(clientPlans);
+    });
+
+    it('PLAN_GATES match between lite and server', () => {
+      const serverPlans = Object.keys(SERVER_PLAN_GATES).sort();
+      const litePlans = Object.keys(LITE_PLAN_GATES).sort();
+      expect(serverPlans).toEqual(litePlans);
+
+      for (const plan of serverPlans) {
+        const serverGate = SERVER_PLAN_GATES[plan as Plan] || {};
+        const liteGate = LITE_PLAN_GATES[plan as Plan] || {};
+        expect(serverGate, `PLAN_GATES mismatch for plan ${plan} (lite)`).toEqual(liteGate);
+      }
     });
   });
 
@@ -656,14 +715,14 @@ describe('RBAC can() Client/Server Parity', () => {
       expect(canClient('FINANCE_INVOICES', 'view', ctx as ClientResourceCtx)).toBe(false);
     });
 
-    it('SUPPORT_AGENT cannot access WO_FSM_TRANSITIONS', () => {
+    it('SUPPORT_AGENT cannot access MARKETPLACE_VENDORS', () => {
       const ctx = createTestCtx({
         role: Role.TEAM_MEMBER,
         subRole: SubRole.SUPPORT_AGENT,
       });
       
-      expect(canServer('WO_FSM_TRANSITIONS', 'view', ctx)).toBe(false);
-      expect(canClient('WO_FSM_TRANSITIONS', 'view', ctx as ClientResourceCtx)).toBe(false);
+      expect(canServer('MARKETPLACE_VENDORS', 'view', ctx)).toBe(false);
+      expect(canClient('MARKETPLACE_VENDORS', 'view', ctx as ClientResourceCtx)).toBe(false);
     });
 
     it('OPERATIONS_MANAGER can access WO_TRACK_ASSIGN', () => {
@@ -710,6 +769,12 @@ describe('RBAC can() Client/Server Parity', () => {
       expect(canClient('FINANCE_INVOICES', 'view', ctx as ClientResourceCtx)).toBe(true);
       expect(canServer('SYSTEM_USERS', 'view', ctx)).toBe(false);
       expect(canClient('SYSTEM_USERS', 'view', ctx as ClientResourceCtx)).toBe(false);
+      expect(canServer('SUPPORT_CHAT', 'view', ctx)).toBe(false);
+      expect(canClient('SUPPORT_CHAT', 'view', ctx as ClientResourceCtx)).toBe(false);
+      expect(canServer('MARKETPLACE_REQUESTS', 'view', ctx)).toBe(false);
+      expect(canClient('MARKETPLACE_REQUESTS', 'view', ctx as ClientResourceCtx)).toBe(false);
+      expect(canServer('ADMIN_FACILITIES', 'view', ctx)).toBe(false);
+      expect(canClient('ADMIN_FACILITIES', 'view', ctx as ClientResourceCtx)).toBe(false);
     });
 
     it('PRO plan allows most features but blocks SYSTEM_USERS', () => {
@@ -722,6 +787,8 @@ describe('RBAC can() Client/Server Parity', () => {
       expect(canClient('HR_PAYROLL', 'view', ctx as ClientResourceCtx)).toBe(true);
       expect(canServer('SYSTEM_USERS', 'view', ctx)).toBe(false);
       expect(canClient('SYSTEM_USERS', 'view', ctx as ClientResourceCtx)).toBe(false);
+      expect(canServer('ADMIN_DOA', 'view', ctx)).toBe(true);
+      expect(canClient('ADMIN_DOA', 'view', ctx as ClientResourceCtx)).toBe(true);
     });
 
     it('ENTERPRISE plan allows all features including System Management', () => {

@@ -303,8 +303,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.support.tickets);
-      expect([200, 404]).toContain(response.status());
-      expect(response.status()).not.toBe(403);
+      expectAllowedOrEmpty(response, API_ENDPOINTS.support.tickets, 'SUPPORT_AGENT');
     });
 
     test('can access knowledge base API', async ({ page, request }) => {
@@ -312,8 +311,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.support.knowledgeBase);
-      expect([200, 404]).toContain(response.status());
-      expect(response.status()).not.toBe(403);
+      expectAllowedOrEmpty(response, API_ENDPOINTS.support.knowledgeBase, 'SUPPORT_AGENT');
     });
 
     test('CANNOT access HR payroll API', async ({ page, request }) => {
@@ -321,7 +319,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.payroll);
-      expect(response.status()).toBe(403); // Must be forbidden
+      expectDenied(response, API_ENDPOINTS.hr.payroll, 'SUPPORT_AGENT');
     });
 
     test('CANNOT access finance budgets API', async ({ page, request }) => {
@@ -329,7 +327,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.budgets);
-      expect(response.status()).toBe(403); // Must be forbidden
+      expectDenied(response, API_ENDPOINTS.finance.budgets, 'SUPPORT_AGENT');
     });
   });
 
@@ -350,8 +348,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.workOrders.list);
-      expect([200, 404]).toContain(response.status());
-      expect(response.status()).not.toBe(403);
+      expectAllowedOrEmpty(response, API_ENDPOINTS.workOrders.list, 'OPERATIONS_MANAGER');
     });
 
     test('can access properties API', async ({ page, request }) => {
@@ -359,8 +356,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.properties.list);
-      expect([200, 404]).toContain(response.status());
-      expect(response.status()).not.toBe(403);
+      expectAllowedOrEmpty(response, API_ENDPOINTS.properties.list, 'OPERATIONS_MANAGER');
     });
 
     test('can access marketplace vendors API', async ({ page, request }) => {
@@ -368,8 +364,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.marketplace.vendors);
-      expect([200, 404]).toContain(response.status());
-      expect(response.status()).not.toBe(403);
+      expectAllowedOrEmpty(response, API_ENDPOINTS.marketplace.vendors, 'OPERATIONS_MANAGER');
     });
 
     test('CANNOT access HR payroll API', async ({ page, request }) => {
@@ -377,7 +372,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.payroll);
-      expect(response.status()).toBe(403); // Must be forbidden
+      expectDenied(response, API_ENDPOINTS.hr.payroll, 'OPERATIONS_MANAGER');
     });
 
     test('CANNOT access admin users API', async ({ page, request }) => {
@@ -385,7 +380,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.admin.users);
-      expect(response.status()).toBe(403); // Must be forbidden
+      expectDenied(response, API_ENDPOINTS.admin.users, 'OPERATIONS_MANAGER');
     });
   });
 
@@ -406,7 +401,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.invoices);
-      expect(response.status()).toBe(403); // Must be forbidden without FINANCE_OFFICER sub-role
+      expectDenied(response, API_ENDPOINTS.finance.invoices, 'TEAM_MEMBER');
     });
 
     test('CANNOT access HR payroll API', async ({ page, request }) => {
@@ -414,7 +409,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.payroll);
-      expect(response.status()).toBe(403); // Must be forbidden without HR_OFFICER sub-role
+      expectDenied(response, API_ENDPOINTS.hr.payroll, 'TEAM_MEMBER');
     });
 
     test('CANNOT access marketplace vendors API', async ({ page, request }) => {
@@ -422,7 +417,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.marketplace.vendors);
-      expect(response.status()).toBe(403); // Must be forbidden without OPERATIONS_MANAGER sub-role
+      expectDenied(response, API_ENDPOINTS.marketplace.vendors, 'TEAM_MEMBER');
     });
 
     test('can access basic work orders API (base permission)', async ({ page, request }) => {
@@ -431,7 +426,8 @@ test.describe('Sub-Role API Access Control', () => {
 
       // TEAM_MEMBER base role should have read access to work orders
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.workOrders.list);
-      expect([200, 403, 404]).toContain(response.status()); // May or may not have access depending on exact config
+      // May or may not have access depending on exact config - accept any valid response
+      expect([200, 403, 404]).toContain(response.status());
     });
 
     test('CANNOT access admin users API', async ({ page, request }) => {
@@ -439,7 +435,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.admin.users);
-      expect(response.status()).toBe(403); // Must be forbidden
+      expectDenied(response, API_ENDPOINTS.admin.users, 'TEAM_MEMBER');
     });
   });
 
@@ -462,10 +458,7 @@ test.describe('Sub-Role API Access Control', () => {
 
       for (const endpoint of hrEndpoints) {
         const response = await makeAuthenticatedRequest(page, request, endpoint);
-        expect(
-          response.status(),
-          `FINANCE_OFFICER should NOT access ${endpoint}`
-        ).toBe(403);
+        expectDenied(response, endpoint, 'FINANCE_OFFICER');
       }
     });
 
@@ -487,10 +480,7 @@ test.describe('Sub-Role API Access Control', () => {
 
       for (const endpoint of financeEndpoints) {
         const response = await makeAuthenticatedRequest(page, request, endpoint);
-        expect(
-          response.status(),
-          `HR_OFFICER should NOT access ${endpoint}`
-        ).toBe(403);
+        expectDenied(response, endpoint, 'HR_OFFICER');
       }
     });
 
@@ -504,7 +494,7 @@ test.describe('Sub-Role API Access Control', () => {
 
       // Support agent should NOT have access to Work Orders assign endpoint
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.workOrders.assign);
-      expect(response.status()).toBe(403);
+      expectDenied(response, API_ENDPOINTS.workOrders.assign, 'SUPPORT_AGENT');
     });
   });
 
@@ -536,14 +526,7 @@ test.describe('Sub-Role API Access Control', () => {
 
       for (const endpoint of allEndpoints) {
         const response = await makeAuthenticatedRequest(page, request, endpoint);
-        expect(
-          [200, 404],
-          `ADMIN should have access to ${endpoint} (got ${response.status()})`
-        ).toContain(response.status());
-        expect(
-          response.status(),
-          `ADMIN should NOT be forbidden from ${endpoint}`
-        ).not.toBe(403);
+        expectAllowedOrEmpty(response, endpoint, 'ADMIN');
       }
     });
 
@@ -552,8 +535,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for ADMIN: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.admin.users);
-      expect([200, 404]).toContain(response.status());
-      expect(response.status()).not.toBe(403);
+      expectAllowedOrEmpty(response, API_ENDPOINTS.admin.users, 'ADMIN');
     });
   });
 
@@ -568,11 +550,12 @@ test.describe('Sub-Role API Access Control', () => {
 
       // GET should be allowed
       const getResponse = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.invoices, 'GET');
-      expect([200, 404]).toContain(getResponse.status());
+      expectAllowedOrEmpty(getResponse, API_ENDPOINTS.finance.invoices, 'FINANCE_OFFICER');
 
       // DELETE should be forbidden (only ADMIN can delete)
       const deleteResponse = await makeAuthenticatedRequest(page, request, `${API_ENDPOINTS.finance.invoices}/test-id`, 'DELETE');
-      expect([403, 404, 405]).toContain(deleteResponse.status()); // 403 Forbidden or 404/405 if endpoint doesn't exist
+      // 403 Forbidden, 404 if endpoint doesn't exist, or 405 Method Not Allowed
+      expect([403, 404, 405]).toContain(deleteResponse.status());
     });
 
     test('HR_OFFICER can GET but not approve payroll without specific action permission', async ({ page, request }) => {
@@ -585,7 +568,7 @@ test.describe('Sub-Role API Access Control', () => {
 
       // GET should be allowed
       const getResponse = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.payroll, 'GET');
-      expect([200, 404]).toContain(getResponse.status());
+      expectAllowedOrEmpty(getResponse, API_ENDPOINTS.hr.payroll, 'HR_OFFICER');
 
       // POST to approve endpoint should check for approve permission
       const approveResponse = await makeAuthenticatedRequest(

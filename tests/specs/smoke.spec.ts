@@ -277,7 +277,10 @@ test.describe('Branding & Theme Consistency', () => {
   test('Primary brand colors are applied', async ({ page }) => {
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
     if (page.url().includes('/login')) {
-      test.skip(true, 'Redirected to login; branding check skipped');
+      test.skip(
+        true,
+        'Redirected to login; branding check skipped – owner: QA/Smoke, ticket: QA-SMOKE-001'
+      );
     }
 
     // Check CSS variables for brand colors
@@ -313,7 +316,10 @@ test.describe('Accessibility Basics', () => {
   test('Main landmark and proper heading structure', async ({ page }) => {
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
     if (page.url().includes('/login')) {
-      test.skip(true, 'Redirected to login; accessibility check skipped');
+      test.skip(
+        true,
+        'Redirected to login; accessibility check skipped – owner: QA/Smoke, ticket: QA-SMOKE-002'
+      );
     }
 
     // Main content area
@@ -328,7 +334,10 @@ test.describe('Accessibility Basics', () => {
   test('Skip to content link for keyboard navigation', async ({ page }) => {
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
     if (page.url().includes('/login')) {
-      test.skip(true, 'Redirected to login; accessibility check skipped');
+      test.skip(
+        true,
+        'Redirected to login; accessibility check skipped – owner: QA/Smoke, ticket: QA-SMOKE-002'
+      );
     }
 
     // Press Tab to focus skip link (if implemented)

@@ -156,10 +156,10 @@ test.describe('i18n: Language Switching', () => {
 
 test.describe('i18n: RTL Layout Integrity', () => {
   test('Arabic: Sidebar, header, and content are right-aligned', async ({ page }) => {
-    // Skip if not Arabic project
-    if (!test.info().project.name.startsWith('AR:')) {
-      test.skip('Requires AR project configuration to validate RTL layout');
-    }
+    test.skip(
+      !test.info().project.name.startsWith('AR:'),
+      'Requires AR project configuration to validate RTL layout – owner: QA/i18n, ticket: QA-RTL-001'
+    );
 
     await page.goto('/dashboard', { waitUntil: 'networkidle' });
 
