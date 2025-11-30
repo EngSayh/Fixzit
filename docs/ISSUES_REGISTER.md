@@ -1,6 +1,6 @@
 # Issues Register - Fixzit Project
 
-**Last Updated**: January 9, 2025  
+**Last Updated**: January 13, 2025  
 **Status**: All Critical Issues Resolved
 
 ---
@@ -316,6 +316,136 @@ rm -rf /workspaces/Fixzit/.next
 - Add `pnpm clean` script to package.json
 - Document cache clearing procedures
 - Consider automated cleanup in CI/CD
+
+---
+
+### ISSUE-SEC-003: DEFAULT_PLAN Security (Least Privilege Violation)
+
+**Category**: Security - RBAC  
+**Severity**: 🔴 CRITICAL  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: #369
+
+**Description**:
+FM permission checks used `Plan.STANDARD` as the default fallback when user's subscription plan couldn't be determined, violating the principle of least privilege.
+
+**Root Cause**:
+- `app/api/fm/permissions.ts` had `const DEFAULT_PLAN = Plan.STANDARD`
+- `app/api/fm/work-orders/[id]/transition/route.ts` used `FMPlan.STANDARD` as fallback
+- This granted users access to features they may not have paid for
+
+**Impact**:
+- Users with no valid subscription plan could access STANDARD tier features
+- Preventive Maintenance, Leases, Inspections available without proper subscription
+- Potential revenue leakage from unpaid feature access
+
+**Fix Applied**:
+```typescript
+// File: app/api/fm/permissions.ts (line 50)
+// SEC-003 FIX: Use STARTER as default (least privilege principle)
+const DEFAULT_PLAN = Plan.STARTER;
+
+// File: app/api/fm/work-orders/[id]/transition/route.ts (lines 425-429)
+// SEC-003 FIX: Use STARTER as default
+function resolvePlan(plan?: string | null): FMPlan {
+  if (!plan) return FMPlan.STARTER;
+  const normalized = plan.toUpperCase();
+  return PLAN_ALIASES[normalized] ?? FMPlan.STARTER;
+}
+```
+
+**Verification**:
+- ✅ TypeScript clean
+- ✅ ESLint clean
+- ✅ useFMPermissions tests pass
+- ✅ PR #369 merged
+
+**Prevention**:
+- Documented pattern: DEFAULT_PLAN should always be STARTER
+- Added code comment explaining least privilege requirement
+- Consider adding security test to verify default plan is STARTER
+
+---
+
+### ISSUE-SEC-001: Sub-Role Ignored in FM Permission Checks
+
+**Category**: Security - RBAC  
+**Severity**: 🟠 HIGH  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: #369
+
+**Description**:
+`app/api/fm/permissions.ts` computed `fmSubRole` but didn't pass it to `hasModuleAccess()`, allowing TEAM_MEMBER roles to access Finance/HR modules without required sub-roles.
+
+**Root Cause**:
+- STRICT v4.1 requires FINANCE_OFFICER sub-role for Finance module access
+- STRICT v4.1 requires HR_OFFICER sub-role for HR module access
+- `hasModuleAccess()` function signature didn't accept `subRole` parameter
+
+**Impact**:
+- TEAM_MEMBER users could potentially access Finance without FINANCE_OFFICER sub-role
+- TEAM_MEMBER users could potentially access HR without HR_OFFICER sub-role
+- Violates STRICT v4.1 RBAC specification
+
+**Fix Applied**:
+```typescript
+// File: app/api/fm/permissions.ts (lines 85-97)
+const hasModuleAccess = (role: Role, module?: ModuleKey, subRole?: SubRole): boolean => {
+  if (!module) return true;
+  
+  // SEC-001 FIX: TEAM_MEMBER requires sub-role for Finance/HR modules
+  if (role === Role.TEAM_MEMBER) {
+    if (module === ModuleKey.FINANCE && subRole !== SubRole.FINANCE_OFFICER) {
+      return false;
+    }
+    if (module === ModuleKey.HR && subRole !== SubRole.HR_OFFICER) {
+      return false;
+    }
+  }
+  
+  return Boolean(ROLE_MODULE_ACCESS[role]?.[module]);
+};
+
+// Call site updated (line 162)
+if (!hasModuleAccess(fmRole, options.module, fmSubRole)) {
+```
+
+**Verification**:
+- ✅ TypeScript clean
+- ✅ ESLint clean
+- ✅ PR #369 merged
+
+**Prevention**:
+- Sub-role enforcement documented in code comments
+- Consider adding explicit test cases for TEAM_MEMBER + Finance/HR without sub-role
+
+---
+
+### ISSUE-SEC-002: Org Membership Not Verified (Previously Reported)
+
+**Category**: Security - RBAC  
+**Severity**: 🟠 HIGH  
+**Status**: ✅ ALREADY FIXED  
+**Date Reported**: 2025-01-13  
+**Note**: Issue was already fixed in previous PR #363
+
+**Description**:
+Originally flagged as needing org membership validation in `app/api/fm/permissions.ts`.
+
+**Root Cause Analysis**:
+Upon deep review, found that:
+1. `lib/fm-auth-middleware.ts` already properly validates org membership (lines 157-170)
+2. `app/api/fm/permissions.ts` now also has `resolveOrgContext()` function that verifies membership
+3. The fix was applied in PR #363 (Security Audit Remediation)
+
+**Verification**:
+- ✅ `lib/fm-auth-middleware.ts` checks `org.members` array
+- ✅ `app/api/fm/permissions.ts` has `resolveOrgContext()` with membership check
+- ✅ Returns 403 Forbidden if user is not an org member
 
 ---
 
