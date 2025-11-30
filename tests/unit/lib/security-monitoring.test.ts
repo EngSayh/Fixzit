@@ -5,8 +5,10 @@
  * Note: These tests focus on functional behavior (tracking, metrics, isolation)
  * rather than logging output, to avoid complex mock setup issues.
  * 
- * IMPORTANT: Uses beforeEach() to reset global monitoring state, ensuring
- * test isolation and preventing cross-suite contamination that causes flaky tests.
+ * IMPORTANT: Uses setupMonitoringTestIsolation() from shared utilities to:
+ * 1. Validate the reset helper exists (fails fast if missing)
+ * 2. Reset global monitoring state before each test
+ * 3. Prevent cross-suite contamination that causes flaky tests
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
@@ -19,9 +21,24 @@ import {
 } from "@/lib/security/monitoring";
 import { hashIdentifier, redactIdentifier } from "@/lib/otp-utils";
 
+// =============================================================================
+// CRITICAL: Test Isolation Enforcement
+// =============================================================================
+// This guard ensures tests fail fast if the reset helper is ever removed.
+// Without this, tests would silently become order-dependent and flaky.
+// =============================================================================
+if (typeof __resetMonitoringStateForTests !== "function") {
+  throw new Error(
+    "[Test Setup Error] Monitoring reset helper missing.\n" +
+    "The __resetMonitoringStateForTests function must be exported from @/lib/security/monitoring.\n" +
+    "This is required for test isolation. Without it, tests become order-dependent.\n" +
+    "See lib/security/monitoring.ts for the implementation."
+  );
+}
+
 describe("Security Monitoring", () => {
   // Reset monitoring state before each test to ensure isolation
-  // Without this, tests share global maps and become order-dependent
+  // The guard above ensures this function exists before we reach this point
   beforeEach(() => {
     __resetMonitoringStateForTests();
   });
