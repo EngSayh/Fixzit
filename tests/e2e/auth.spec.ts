@@ -124,7 +124,8 @@ async function gotoWithRetry(page: Page, path: string, attempts = 3) {
       return;
     } catch (error) {
       lastError = error;
-      await page.waitForTimeout(1000);
+      // Wait for network to settle before retry
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
     }
   }
   throw lastError;
@@ -277,8 +278,7 @@ test.describe('Authentication', () => {
         });
       });
 
-      // Wait for menu to open and click logout
-      await page.waitForTimeout(500); // Menu animation
+      // Wait for dropdown menu to become visible
       const logoutButton = page.locator('[data-testid="logout-button"]').first();
       await logoutButton.waitFor({ state: 'visible', timeout: 5000 });
       await logoutButton.click();
@@ -312,8 +312,7 @@ test.describe('Authentication', () => {
         });
       });
 
-      // Wait for menu and click logout
-      await page.waitForTimeout(500);
+      // Wait for dropdown menu to become visible
       const logoutButton = page.locator('[data-testid="logout-button"]').first();
       await logoutButton.waitFor({ state: 'visible', timeout: 5000 });
       await logoutButton.click();
@@ -321,8 +320,16 @@ test.describe('Authentication', () => {
       // Wait for logout to complete (logout page redirects to login)
       await page.waitForURL(/\/login/, { timeout: 15000 });
 
-      // Give cookies time to clear
-      await page.waitForTimeout(1000);
+      // Wait for session cookies to be cleared (poll with timeout)
+      await expect(async () => {
+        const checkCookies = await context.cookies();
+        const checkSessionCookie = checkCookies.find(c =>
+          c.name.includes('session-token') ||
+          c.name === 'next-auth.session-token' ||
+          c.name === '__Secure-next-auth.session-token'
+        );
+        expect(checkSessionCookie).toBeUndefined();
+      }).toPass({ timeout: 5000 });
 
       // Verify session cookies are cleared
       const cookies = await context.cookies();

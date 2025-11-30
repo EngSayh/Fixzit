@@ -145,8 +145,8 @@ test.describe("Critical User Flows", () => {
       await page.click('[data-testid="status-filter"]');
       await page.click("text=Open");
 
-      // Wait for filtered results
-      await page.waitForTimeout(1000);
+      // Wait for filtered results to load
+      await page.waitForLoadState('networkidle');
 
       // Verify all visible work orders have "Open" status
       const statusBadges = await page
@@ -295,8 +295,8 @@ test.describe("Critical User Flows", () => {
       await page.fill('input[placeholder*="Search"]', "air conditioner");
       await page.press('input[placeholder*="Search"]', "Enter");
 
-      // Wait for search results
-      await page.waitForTimeout(1000);
+      // Wait for search results to load
+      await page.waitForLoadState('networkidle');
 
       // Check results contain search term
       const productTitles = await page
@@ -657,8 +657,8 @@ test.describe("Critical User Flows", () => {
       await page.click('[data-testid="language-selector"]');
       await page.click("text=العربية");
 
-      // Wait for page reload
-      await page.waitForTimeout(1000);
+      // Wait for RTL direction to be applied
+      await expect(page.locator('body')).toHaveAttribute('dir', 'rtl', { timeout: 5000 });
 
       // Check RTL direction
       const body = page.locator("body");
@@ -673,7 +673,9 @@ test.describe("Critical User Flows", () => {
       await page.goto("/dashboard");
       await page.click('[data-testid="language-selector"]');
       await page.click("text=العربية");
-      await page.waitForTimeout(1000);
+      
+      // Wait for RTL direction to be applied
+      await expect(page.locator('body')).toHaveAttribute('dir', 'rtl', { timeout: 5000 });
 
       // Reload page
       await page.reload();

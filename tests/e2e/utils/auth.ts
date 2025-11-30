@@ -68,8 +68,10 @@ export async function fillLoginForm(page: Page, identifier: string, password: st
   await page.fill(loginSelectors.identifier, identifier);
   await page.fill(loginSelectors.password, password);
   
-  // Wait a bit for any validation to complete
-  await page.waitForTimeout(500);
+  // Wait for form validation to complete (button becomes enabled)
+  await page.locator(loginSelectors.submit).waitFor({ state: 'attached', timeout: 5000 });
+  // Give React/validation a tick to process
+  await page.waitForLoadState('domcontentloaded');
   
   await page.click(loginSelectors.submit);
 }
@@ -354,8 +356,8 @@ export async function logoutUser(page: Page, verifyRedirect = true): Promise<voi
     });
   });
 
-  // Wait for dropdown menu animation
-  await page.waitForTimeout(500);
+  // Wait for dropdown menu to become visible (animation complete)
+  await page.locator('[data-testid="logout-button"]').waitFor({ state: 'visible', timeout: 5000 });
 
   // Click logout button
   const logoutButton = page.locator('[data-testid="logout-button"]').first();
@@ -377,8 +379,16 @@ export async function logoutUser(page: Page, verifyRedirect = true): Promise<voi
     // Wait for redirect to login page (happens after cleanup completes)
     await page.waitForURL(/\/login/, { timeout: 15000 });
 
-    // Give cookies time to clear after redirect
-    await page.waitForTimeout(1000);
+    // Wait for session cookies to be cleared (poll with timeout)
+    await expect(async () => {
+      const cookies = await page.context().cookies();
+      const sessionCookie = cookies.find(c => 
+        c.name.includes('session-token') || 
+        c.name.includes('next-auth') ||
+        c.name.includes('authjs')
+      );
+      expect(sessionCookie).toBeUndefined();
+    }).toPass({ timeout: 5000 });
 
     // Verify session cookies are cleared
     const cookies = await page.context().cookies();

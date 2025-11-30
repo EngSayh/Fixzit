@@ -900,7 +900,8 @@ async function gotoWithRetry(page: Page, path: string, attempts = 3) {
       return;
     } catch (error) {
       lastError = error;
-      await page.waitForTimeout(1000);
+      // Wait for network to settle before retry
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
     }
   }
   throw lastError;

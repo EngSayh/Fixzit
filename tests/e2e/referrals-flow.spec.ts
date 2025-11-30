@@ -18,7 +18,7 @@ test.describe("Referrals Program", () => {
 
     // Page should load with referral content
     await expect(page.locator("body")).toBeVisible();
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
   });
 
   test("should show generate referral code button", async ({ page }) => {
@@ -114,11 +114,12 @@ test.describe("Referrals Program", () => {
     if (await copyButton.isVisible()) {
       await copyButton.click();
 
-      // Should see success feedback
-      await page.waitForTimeout(500);
+      // Should see success feedback (may appear briefly)
       const successText = page.locator("text=/copied|✓|success/i");
+      // Wait up to 2s for success feedback to appear
+      await successText.first().waitFor({ state: 'visible', timeout: 2000 }).catch(() => {});
 
-      if (await successText.isVisible()) {
+      if (await successText.first().isVisible()) {
         await expect(successText.first()).toBeVisible();
       }
     }
