@@ -3,6 +3,8 @@
  *
  * Provides organization context for the currently authenticated user.
  * Used for plan-based feature gating and multi-tenancy checks.
+ * 
+ * 🟢 FIX: Case-insensitive plan parsing to prevent entitlement downgrades
  */
 
 "use client";
@@ -41,6 +43,44 @@ interface CurrentOrgProviderProps {
 }
 
 /**
+ * Normalize plan string to Plan enum (case-insensitive).
+ * Handles variations like "Pro", "PRO", "pro" → Plan.PRO
+ * Falls back to STARTER for safety if unrecognized.
+ */
+function normalizePlan(planString?: string | null): Plan {
+  if (!planString) return Plan.STARTER;
+  
+  const normalizedKey = planString.toUpperCase().trim();
+  
+  // Direct enum lookup
+  if (normalizedKey in Plan) {
+    return Plan[normalizedKey as keyof typeof Plan];
+  }
+  
+  // Handle common variations
+  switch (normalizedKey) {
+    case "STARTER":
+    case "FREE":
+    case "BASIC":
+      return Plan.STARTER;
+    case "STANDARD":
+    case "STD":
+      return Plan.STANDARD;
+    case "PRO":
+    case "PROFESSIONAL":
+    case "PREMIUM":
+      return Plan.PRO;
+    case "ENTERPRISE":
+    case "ENT":
+    case "BUSINESS":
+      return Plan.ENTERPRISE;
+    default:
+      // Fail-safe: unknown plan defaults to STARTER
+      return Plan.STARTER;
+  }
+}
+
+/**
  * Provider that derives organization context from the user's session.
  *
  * In the future, this can be enhanced to fetch org details from an API.
@@ -64,9 +104,8 @@ export function CurrentOrgProvider({ children }: CurrentOrgProviderProps) {
       role?: string;
     };
 
-    const planString = user.orgPlan || "STARTER";
-    const plan = (Plan[planString as keyof typeof Plan] ||
-      Plan.STARTER) as Plan;
+    // 🟢 FIX: Case-insensitive plan normalization
+    const plan = normalizePlan(user.orgPlan);
 
     const org: Organization = {
       id: user.orgId!,

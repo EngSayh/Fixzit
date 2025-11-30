@@ -7,6 +7,7 @@
  * - Plan defaults to STARTER (fail-safe) instead of PRO
  * 
  * 🟢 CLIENT-SAFE: Imports from fm-lite.ts to avoid Mongoose bundle leak
+ * 🟢 STRICT v4.1: Sub-role enforcement for TEAM_MEMBER specialized access
  */
 
 "use client";
@@ -14,10 +15,10 @@
 import { useSession } from "next-auth/react";
 import {
   canClient,
+  canAccessSubmodule,
   Role,
   SubmoduleKey,
   Action,
-  PLAN_GATES,
   Plan,
   SubRole,
   normalizeRole,
@@ -86,6 +87,25 @@ export function useFMPermissions() {
     !!ctx.orgId && (!orgId || orgId === ctx.orgId);
 
   /**
+   * Build ClientResourceCtx for permission checks
+   */
+  const buildClientCtx = (options?: {
+    orgId?: string;
+    propertyId?: string;
+  }): ClientResourceCtx => {
+    const targetOrgId = options?.orgId ?? ctx.orgId;
+    return {
+      role: ctx.role,
+      subRole: ctx.subRole,
+      plan: ctx.plan,
+      userId: ctx.userId,
+      orgId: targetOrgId,
+      propertyId: options?.propertyId,
+      isOrgMember: isMemberOf(targetOrgId),
+    };
+  };
+
+  /**
    * Check if user can perform an action on a submodule
    */
   const canPerform = (
@@ -96,28 +116,14 @@ export function useFMPermissions() {
       propertyId?: string;
     },
   ): boolean => {
-    // Check against the resource's org or the user's org
-    const targetOrgId = options?.orgId ?? ctx.orgId;
-
-    const clientCtx: ClientResourceCtx = {
-      role: ctx.role,
-      subRole: ctx.subRole,
-      plan: ctx.plan,
-      userId: ctx.userId,
-      orgId: targetOrgId,
-      propertyId: options?.propertyId,
-      isOrgMember: isMemberOf(targetOrgId),
-    };
-
-    return canClient(submodule, action, clientCtx);
+    return canClient(submodule, action, buildClientCtx(options));
   };
 
   /**
-   * Check if user has access to a module based on subscription plan
+   * Check if user has access to a module based on subscription plan and role
    */
   const canAccessModule = (submodule: SubmoduleKey): boolean => {
-    const planGates = PLAN_GATES[ctx.plan || Plan.STARTER];
-    return planGates[submodule] === true;
+    return canAccessSubmodule(submodule, buildClientCtx());
   };
 
   /**
@@ -131,6 +137,7 @@ export function useFMPermissions() {
       "delete",
       "approve",
       "assign",
+      "export",
     ];
     return actions.filter((action) => canPerform(submodule, action));
   };
@@ -155,6 +162,42 @@ export function useFMPermissions() {
       ctx.role === Role.ADMIN
     );
   };
+  
+  /**
+   * Check if user can view financial data
+   * STRICT v4.1: Requires FINANCE_OFFICER sub-role for TEAM_MEMBER
+   */
+  const canViewFinancials = (): boolean => {
+    // Admins and Corporate Owners can always view financials
+    if (ctx.role === Role.SUPER_ADMIN || ctx.role === Role.ADMIN) {
+      return canPerform(SubmoduleKey.FINANCE_INVOICES, "view");
+    }
+    if (ctx.role === Role.CORPORATE_OWNER) {
+      return canPerform(SubmoduleKey.FINANCE_INVOICES, "view");
+    }
+    // TEAM_MEMBER requires FINANCE_OFFICER sub-role
+    if (ctx.role === Role.TEAM_MEMBER) {
+      return ctx.subRole === SubRole.FINANCE_OFFICER && 
+             canPerform(SubmoduleKey.FINANCE_INVOICES, "view");
+    }
+    // Other roles cannot view financials
+    return false;
+  };
+
+  /**
+   * Check if user can manage HR data
+   * STRICT v4.1: Requires HR_OFFICER sub-role for TEAM_MEMBER
+   */
+  const canViewHR = (): boolean => {
+    if (ctx.role === Role.SUPER_ADMIN || ctx.role === Role.ADMIN) {
+      return canPerform(SubmoduleKey.HR_EMPLOYEE_DIRECTORY, "view");
+    }
+    if (ctx.role === Role.TEAM_MEMBER) {
+      return ctx.subRole === SubRole.HR_OFFICER &&
+             canPerform(SubmoduleKey.HR_EMPLOYEE_DIRECTORY, "view");
+    }
+    return false;
+  };
 
   return {
     role: ctx.role,
@@ -170,10 +213,10 @@ export function useFMPermissions() {
     // Convenience methods for common checks
     canCreateWO: () => canPerform(SubmoduleKey.WO_CREATE, "create"),
     canAssignWO: () => canPerform(SubmoduleKey.WO_TRACK_ASSIGN, "assign"),
-    canApproveWO: () => canPerform(SubmoduleKey.WO_CREATE, "approve"),
+    canApproveWO: () => canPerform(SubmoduleKey.WO_TRACK_ASSIGN, "approve"),
     canViewProperties: () => canPerform(SubmoduleKey.PROP_LIST, "view"),
     canManageProperties: () => canPerform(SubmoduleKey.PROP_LIST, "update"),
-    canViewFinancials: () =>
-      canPerform(SubmoduleKey.PROP_LIST, "view") && ctx.role !== Role.TENANT,
+    canViewFinancials,
+    canViewHR,
   };
 }
