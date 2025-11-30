@@ -3,8 +3,7 @@
 **Generated**: 2025-11-30  
 **Analyst**: GitHub Copilot (Claude Opus 4.5 Preview)  
 **Updated**: 2025-11-30 (Session propagation & auth headers verified)  
-**Commit**: ca74fab7e (+ 3d38d7f02, f333dadb0)king hooks, auth header sanitization, RBAC streamlining  
-**Commits**: caccbd38a, 5b7005965, 9f7c678bb, ca74fab7e
+**Commits**: 9f7c678bb, ca74fab7e, 8dc4effbe, 05e07a981
 
 ---
 
