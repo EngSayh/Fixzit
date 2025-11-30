@@ -18,6 +18,7 @@ import {
   Action,
   PLAN_GATES,
   Plan,
+  normalizeRole,
 } from "@/domain/fm/fm.types";
 import { useCurrentOrg } from "@/contexts/CurrentOrgContext";
 
@@ -28,31 +29,6 @@ export interface FMPermissionContext {
   userId: string;
   plan: Plan;
 }
-
-// Map NextAuth roles to internal FM Role enum
-// Handles both legacy enum member names AND their string values
-const roleMapping: Record<string, Role> = {
-  // Canonical roles (string values)
-  SUPER_ADMIN: Role.SUPER_ADMIN,
-  ADMIN: Role.ADMIN,
-  CORPORATE_OWNER: Role.CORPORATE_OWNER,
-  TEAM_MEMBER: Role.TEAM_MEMBER,
-  TECHNICIAN: Role.TECHNICIAN,
-  PROPERTY_MANAGER: Role.PROPERTY_MANAGER,
-  TENANT: Role.TENANT,
-  VENDOR: Role.VENDOR,
-  GUEST: Role.GUEST,
-  // Legacy aliases (for backward compatibility)
-  CORPORATE_ADMIN: Role.ADMIN,
-  FM_MANAGER: Role.PROPERTY_MANAGER,
-  MANAGEMENT: Role.TEAM_MEMBER,
-  FINANCE: Role.TEAM_MEMBER,
-  HR: Role.TEAM_MEMBER,
-  EMPLOYEE: Role.TEAM_MEMBER,
-  PROPERTY_OWNER: Role.CORPORATE_OWNER,
-  OWNER: Role.CORPORATE_OWNER,
-  OWNER_DEPUTY: Role.PROPERTY_MANAGER,
-};
 
 /**
  * Hook to check FM permissions in React components
@@ -84,7 +60,9 @@ export function useFMPermissions() {
     | undefined;
 
   const userRole = user?.role || "GUEST";
-  const role = roleMapping[userRole] || Role.GUEST;
+  // 🟥 FIXED: Normalize role to handle case-sensitivity and legacy aliases
+  const normalizedRole = normalizeRole(userRole);
+  const role = normalizedRole || Role.GUEST;
 
   const ctx: FMPermissionContext = {
     role,

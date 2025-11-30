@@ -15,7 +15,7 @@
 
 import React from "react";
 // Import from fm.types (client-safe, no mongoose)
-import { SubRole, Role, ModuleKey, computeAllowedModules } from "@/domain/fm/fm.types";
+import { SubRole, Role, ModuleKey, computeAllowedModules, normalizeRole } from "@/domain/fm/fm.types";
 import { useTranslation } from "@/contexts/TranslationContext";
 
 interface SubRoleSelectorProps {
@@ -79,8 +79,9 @@ export default function SubRoleSelector({
 }: SubRoleSelectorProps) {
   const { t } = useTranslation();
   
-  // Only show for TEAM_MEMBER role
-  const isTeamMember = role === Role.TEAM_MEMBER || role === "TEAM_MEMBER";
+  // Normalize role to handle case-sensitivity and legacy aliases (EMPLOYEE, MANAGEMENT, etc.)
+  const normalizedRole = normalizeRole(role as string);
+  const isTeamMember = normalizedRole === Role.TEAM_MEMBER;
   
   if (!isTeamMember) {
     return null;
