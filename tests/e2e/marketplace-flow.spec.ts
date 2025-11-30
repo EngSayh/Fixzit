@@ -106,16 +106,21 @@ test.describe("Marketplace - Public Access", () => {
     await page.goto("/marketplace");
     await page.waitForLoadState("networkidle");
 
-    // Look for product cards/items
+    // AUDIT-2025-12-01: Product cards are the core marketplace UI element
+    // If the marketplace renders, there should be products. Silent pass on 0 masks regressions.
     const productCards = page.locator(
       '[data-testid*="product"], [class*="product-card"]',
     );
     const cardCount = await productCards.count();
 
-    if (cardCount > 0) {
-      // First product should be visible
-      await expect(productCards.first()).toBeVisible();
-    }
+    expect(
+      cardCount,
+      'Marketplace should display at least one product card. ' +
+      'If empty state is intentional, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    // First product should be visible
+    await expect(productCards.first()).toBeVisible();
   });
 
   test("should navigate to product details", async ({ page }) => {
@@ -140,30 +145,44 @@ test.describe("Marketplace - Public Access", () => {
     await page.goto("/marketplace");
     await page.waitForLoadState("networkidle");
 
-    // Look for filter controls
+    // AUDIT-2025-12-01: Filters are expected on marketplace for UX discoverability
+    // Silent pass when filters=0 masks UI regressions. Fail-closed is safer.
     const filters = page.locator(
       '[data-filter], [class*="filter"], select, button:has-text("Filter")',
     );
-    const hasFilters = (await filters.count()) > 0;
+    const filterCount = await filters.count();
 
-    if (hasFilters) {
-      expect(hasFilters).toBeTruthy();
-    }
+    expect(
+      filterCount,
+      'Marketplace should display at least one filter control (category, price, etc). ' +
+      'If filters are intentionally removed, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    // First filter should be visible
+    await expect(filters.first()).toBeVisible();
   });
 
   test("should handle pagination", async ({ page }) => {
     await page.goto("/marketplace");
     await page.waitForLoadState("networkidle");
 
-    // Look for pagination controls
+    // AUDIT-2025-12-01: Pagination is expected for marketplace with multiple products
+    // Silent pass when pagination=0 masks UI regressions. Fail-closed is safer.
+    // If infinite scroll is implemented, update this test with documented reason.
     const pagination = page.locator(
-      '[aria-label*="pagination" i], button:has-text("Next"), button:has-text("Previous")',
+      '[aria-label*="pagination" i], button:has-text("Next"), button:has-text("Previous"), ' +
+      '[class*="pagination"], nav[role="navigation"]',
     );
-    const hasPagination = (await pagination.count()) > 0;
+    const paginationCount = await pagination.count();
 
-    if (hasPagination) {
-      await expect(pagination.first()).toBeVisible();
-    }
+    expect(
+      paginationCount,
+      'Marketplace should display pagination controls (Next/Previous or page numbers). ' +
+      'If infinite scroll is used instead, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    // First pagination control should be visible
+    await expect(pagination.first()).toBeVisible();
   });
 });
 

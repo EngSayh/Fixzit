@@ -100,11 +100,17 @@ test.describe("Work Orders - Authenticated User", () => {
 
     expect(page.url()).not.toContain("/login");
 
-    // Look for status indicators or filters
+    // AUDIT-2025-12-01: Status indicators are a critical UI element for work orders
+    // If the page renders correctly, there should be at least one status indicator
+    // (either in filters, cards, or status badges). Silent pass on 0 masks regressions.
     const statusElements = await page
       .locator('[class*="status"], [data-status]')
       .count();
-    expect(statusElements).toBeGreaterThanOrEqual(0); // Just check page structure exists
+    expect(
+      statusElements,
+      'Work orders page should display at least one status element (filter, badge, or card). ' +
+      'If intentionally removed, update this test with documented reason.'
+    ).toBeGreaterThan(0);
   });
 });
 
