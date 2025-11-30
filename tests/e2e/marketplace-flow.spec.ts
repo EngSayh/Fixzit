@@ -404,7 +404,8 @@ test.describe("Marketplace - Language Support", () => {
 
     await expect(langSelector.first()).toBeVisible();
 
-    const initialDir = await page.locator("html").getAttribute("dir");
+    // AUDIT-2025-12-01: Removed unused initialDir variable
+    // Direction change is validated after language switch, not before
 
     await langSelector.first().click();
     
