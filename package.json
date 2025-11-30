@@ -21,6 +21,7 @@
     "lint:ci": "npm run lint:prod && npm run rbac:client:check && npm run typecheck",
     "lint:next": "next lint",
     "lint:rtl": "node scripts/check-rtl-logical.js",
+    "lint:rbac": "npx tsx scripts/lint-rbac-parity.ts",
     "style:scan": "node scripts/scan-hex.js",
     "typecheck": "tsc -p .",
     "type-check:last": "node scripts/typecheck-tail.mjs",

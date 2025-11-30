@@ -284,7 +284,7 @@ export const PLAN_GATES: Record<Plan, Partial<Record<SubmoduleKey, boolean>>> = 
     ADMIN_DOA: false,
     ADMIN_POLICIES: true,
     ADMIN_ASSETS: true,
-    ADMIN_FACILITIES: true,
+    ADMIN_FACILITIES: false,
     // CRM - Basic
     CRM_CUSTOMERS: true,
     CRM_LEADS: true,
@@ -293,12 +293,12 @@ export const PLAN_GATES: Record<Plan, Partial<Record<SubmoduleKey, boolean>>> = 
     // Marketplace - Basic
     MARKETPLACE_VENDORS: true,
     MARKETPLACE_CATALOG: true,
-    MARKETPLACE_REQUESTS: true,
+    MARKETPLACE_REQUESTS: false,
     MARKETPLACE_BIDS: false,
-    // Support - Full
+    // Support - Basic
     SUPPORT_TICKETS: true,
     SUPPORT_KB: true,
-    SUPPORT_CHAT: true,
+    SUPPORT_CHAT: false,
     SUPPORT_SLA: false,
     // Compliance - Disabled
     COMPLIANCE_CONTRACTS: false,
@@ -338,8 +338,8 @@ export const PLAN_GATES: Record<Plan, Partial<Record<SubmoduleKey, boolean>>> = 
     HR_RECRUITMENT: true,
     HR_TRAINING: true,
     HR_PERFORMANCE: true,
-    // Admin - Full except DoA
-    ADMIN_DOA: false,
+    // Admin - Full
+    ADMIN_DOA: true,
     ADMIN_POLICIES: true,
     ADMIN_ASSETS: true,
     ADMIN_FACILITIES: true,
