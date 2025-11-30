@@ -105,15 +105,15 @@ test.describe('Database E2E Tests', () => {
     const response = await request.get(`/api/aqar/properties?city=Riyadh`);
     expect(response.status()).toBe(200);
     
-    const data = (await response.json()) as { items?: Array<{ code?: string; name?: string; tenantId?: string }> };
+    const data = (await response.json()) as { items?: Array<{ code?: string; name?: string; org_id?: string }> };
     expect(data).toHaveProperty('items');
     expect(Array.isArray(data.items)).toBe(true);
     
     // Should find our test property (or at least not error)
-    const foundProperty = data.items.find((p: { code?: string; name?: string; tenantId?: string }) => p.code === 'E2E-TEST-001');
+    const foundProperty = data.items.find((p: { code?: string; name?: string; org_id?: string }) => p.code === 'E2E-TEST-001');
     if (foundProperty) {
       expect(foundProperty.name).toBe('E2E Test Property');
-      expect(foundProperty.tenantId).toBe(testOrgId);
+      expect(foundProperty.org_id).toBe(testOrgId);
     }
   });
 
