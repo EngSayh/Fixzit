@@ -1,9 +1,10 @@
 # PR Comments Status Analysis - PRs #355-367
 
-**Generated**: 2025-01-13  
+**Generated**: 2025-11-30  
 **Analyst**: GitHub Copilot (Claude Opus 4.5 Preview)  
 **Updated**: 2025-11-30 (Session propagation & auth headers verified)  
-**Commit**: caccbd38a + 5b7005965 + 9f7c678bb
+**Commit**: ca74fab7e (+ 3d38d7f02, f333dadb0)king hooks, auth header sanitization, RBAC streamlining  
+**Commits**: caccbd38a, 5b7005965, 9f7c678bb, ca74fab7e
 
 ---
 

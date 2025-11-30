@@ -844,9 +844,29 @@ const SUBMODULE_REQUIRED_SUBROLE: Partial<Record<SubmoduleKey, SubRole[]>> = {
 
 /**
  * Client-safe permission check function.
- * Simplified version of can() for UI rendering decisions.
+ * 
+ * 🔒 SINGLE SOURCE OF TRUTH for all client-side permission checks.
+ * All UI permission checks (useFMPermissions, route guards, menu visibility)
+ * MUST route through this function to ensure consistent plan gating and
+ * sub-role enforcement.
+ * 
+ * Checks performed in order:
+ * 1. Plan gate - subscription tier allows this submodule
+ * 2. Org membership - user belongs to target org (SUPER_ADMIN bypasses)
+ * 3. Sub-role enforcement - TEAM_MEMBER requires specific sub-role for restricted modules
+ * 4. Role action allow-list - role has permission for this action on this submodule
+ * 5. Technician assignment - field actions require assignment to work order
  * 
  * STRICT v4.1 Compliant: Enforces sub-role requirements for TEAM_MEMBER.
+ * 
+ * @example
+ * // In useFMPermissions hook:
+ * const canPerform = (submodule, action, options) => canClient(submodule, action, buildClientCtx(options));
+ * 
+ * @param submodule - The submodule to check access for (e.g., FINANCE_INVOICES)
+ * @param action - The action to perform (e.g., "view", "create")
+ * @param ctx - Client resource context with role, plan, org membership
+ * @returns true if the user can perform the action on the submodule
  */
 export function canClient(
   submodule: SubmoduleKey,
