@@ -590,4 +590,289 @@ describe('RBAC can() Client/Server Parity', () => {
       expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(true);
     });
   });
+
+  describe('Technician Assignment Parity', () => {
+    it('TECHNICIAN allowed for view action without assignment requirement', () => {
+      const ctx = createTestCtx({
+        role: Role.TECHNICIAN,
+        isTechnicianAssigned: false,
+      });
+      
+      expect(canServer('WO_CREATE', 'view', ctx)).toBe(true);
+      expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('TECHNICIAN allowed for update when assigned', () => {
+      const ctx = createTestCtx({
+        role: Role.TECHNICIAN,
+        isTechnicianAssigned: true,
+      });
+      
+      expect(canServer('WO_TRACK_ASSIGN', 'update', ctx)).toBe(true);
+      expect(canClient('WO_TRACK_ASSIGN', 'update', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('TECHNICIAN denied for start_work when not assigned', () => {
+      const ctx = createTestCtx({
+        role: Role.TECHNICIAN,
+        isTechnicianAssigned: false,
+      });
+      
+      // start_work is an ASSIGNED_ACTION - requires assignment
+      expect(canServer('WO_TRACK_ASSIGN', 'start_work', ctx)).toBe(false);
+      expect(canClient('WO_TRACK_ASSIGN', 'start_work', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('TECHNICIAN denied for delete even when assigned', () => {
+      const ctx = createTestCtx({
+        role: Role.TECHNICIAN,
+        isTechnicianAssigned: true,
+      });
+      
+      // Technicians cannot delete work orders regardless of assignment
+      expect(canServer('WO_TRACK_ASSIGN', 'delete', ctx)).toBe(false);
+      expect(canClient('WO_TRACK_ASSIGN', 'delete', ctx as ClientResourceCtx)).toBe(false);
+    });
+  });
+
+  describe('Cross-Role Sub-Role Boundaries', () => {
+    it('FINANCE_OFFICER cannot access HR_PAYROLL', () => {
+      const ctx = createTestCtx({
+        role: Role.TEAM_MEMBER,
+        subRole: SubRole.FINANCE_OFFICER,
+      });
+      
+      expect(canServer('HR_PAYROLL', 'view', ctx)).toBe(false);
+      expect(canClient('HR_PAYROLL', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('HR_OFFICER cannot access FINANCE_INVOICES', () => {
+      const ctx = createTestCtx({
+        role: Role.TEAM_MEMBER,
+        subRole: SubRole.HR_OFFICER,
+      });
+      
+      expect(canServer('FINANCE_INVOICES', 'view', ctx)).toBe(false);
+      expect(canClient('FINANCE_INVOICES', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('SUPPORT_AGENT cannot access WO_FSM_TRANSITIONS', () => {
+      const ctx = createTestCtx({
+        role: Role.TEAM_MEMBER,
+        subRole: SubRole.SUPPORT_AGENT,
+      });
+      
+      expect(canServer('WO_FSM_TRANSITIONS', 'view', ctx)).toBe(false);
+      expect(canClient('WO_FSM_TRANSITIONS', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('OPERATIONS_MANAGER can access WO_TRACK_ASSIGN', () => {
+      const ctx = createTestCtx({
+        role: Role.TEAM_MEMBER,
+        subRole: SubRole.OPERATIONS_MANAGER,
+      });
+      
+      expect(canServer('WO_TRACK_ASSIGN', 'view', ctx)).toBe(true);
+      expect(canClient('WO_TRACK_ASSIGN', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+  });
+
+  describe('Plan Downgrade Scenarios', () => {
+    it('STARTER plan blocks HR module entirely', () => {
+      const ctx = createTestCtx({
+        plan: Plan.STARTER,
+        role: Role.ADMIN,
+      });
+      
+      expect(canServer('HR_EMPLOYEE_DIRECTORY', 'view', ctx)).toBe(false);
+      expect(canClient('HR_EMPLOYEE_DIRECTORY', 'view', ctx as ClientResourceCtx)).toBe(false);
+      expect(canServer('HR_PAYROLL', 'view', ctx)).toBe(false);
+      expect(canClient('HR_PAYROLL', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('STARTER plan blocks Marketplace module', () => {
+      const ctx = createTestCtx({
+        plan: Plan.STARTER,
+        role: Role.ADMIN,
+      });
+      
+      expect(canServer('MARKETPLACE_VENDORS', 'view', ctx)).toBe(false);
+      expect(canClient('MARKETPLACE_VENDORS', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('STANDARD plan allows Finance but blocks System Management', () => {
+      const ctx = createTestCtx({
+        plan: Plan.STANDARD,
+        role: Role.ADMIN,
+      });
+      
+      expect(canServer('FINANCE_INVOICES', 'view', ctx)).toBe(true);
+      expect(canClient('FINANCE_INVOICES', 'view', ctx as ClientResourceCtx)).toBe(true);
+      expect(canServer('SYSTEM_USERS', 'view', ctx)).toBe(false);
+      expect(canClient('SYSTEM_USERS', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('PRO plan allows most features but blocks SYSTEM_USERS', () => {
+      const ctx = createTestCtx({
+        plan: Plan.PRO,
+        role: Role.ADMIN,
+      });
+      
+      expect(canServer('HR_PAYROLL', 'view', ctx)).toBe(true);
+      expect(canClient('HR_PAYROLL', 'view', ctx as ClientResourceCtx)).toBe(true);
+      expect(canServer('SYSTEM_USERS', 'view', ctx)).toBe(false);
+      expect(canClient('SYSTEM_USERS', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('ENTERPRISE plan allows all features including System Management', () => {
+      const ctx = createTestCtx({
+        plan: Plan.ENTERPRISE,
+        role: Role.ADMIN,
+      });
+      
+      expect(canServer('SYSTEM_USERS', 'view', ctx)).toBe(true);
+      expect(canClient('SYSTEM_USERS', 'view', ctx as ClientResourceCtx)).toBe(true);
+      expect(canServer('SYSTEM_INTEGRATIONS', 'view', ctx)).toBe(true);
+      expect(canClient('SYSTEM_INTEGRATIONS', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+  });
+
+  describe('Org Membership Edge Cases', () => {
+    it('Non-org member denied even with correct role', () => {
+      const ctx = createTestCtx({
+        role: Role.ADMIN,
+        isOrgMember: false,
+      });
+      
+      expect(canServer('WO_CREATE', 'view', ctx)).toBe(false);
+      expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('SUPER_ADMIN bypasses org membership requirement', () => {
+      const ctx = createTestCtx({
+        role: Role.SUPER_ADMIN,
+        isOrgMember: false,
+      });
+      
+      expect(canServer('WO_CREATE', 'view', ctx)).toBe(true);
+      expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('GUEST role limited to public data only', () => {
+      const ctx = createTestCtx({
+        role: Role.GUEST,
+        isOrgMember: false,
+      });
+      
+      // Guests should not have access to work orders
+      expect(canServer('WO_CREATE', 'view', ctx)).toBe(false);
+      expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+  });
+
+  describe('Vendor Role Parity', () => {
+    it('VENDOR can view assigned work orders', () => {
+      const ctx = createTestCtx({
+        role: Role.VENDOR,
+        vendorId: 'vendor-123',
+      });
+      
+      expect(canServer('WO_CREATE', 'view', ctx)).toBe(true);
+      expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('VENDOR cannot create work orders', () => {
+      const ctx = createTestCtx({
+        role: Role.VENDOR,
+        vendorId: 'vendor-123',
+      });
+      
+      expect(canServer('WO_CREATE', 'create', ctx)).toBe(false);
+      expect(canClient('WO_CREATE', 'create', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('VENDOR can access marketplace bids', () => {
+      const ctx = createTestCtx({
+        role: Role.VENDOR,
+        vendorId: 'vendor-123',
+      });
+      
+      // Vendors can view/create/update their own bids
+      expect(canServer('MARKETPLACE_BIDS', 'view', ctx)).toBe(true);
+      expect(canClient('MARKETPLACE_BIDS', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('VENDOR cannot access finance invoices', () => {
+      const ctx = createTestCtx({
+        role: Role.VENDOR,
+        vendorId: 'vendor-123',
+      });
+      
+      expect(canServer('FINANCE_INVOICES', 'view', ctx)).toBe(false);
+      expect(canClient('FINANCE_INVOICES', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+  });
+
+  describe('Action-Specific Parity', () => {
+    it('export action restricted to appropriate roles', () => {
+      const adminCtx = createTestCtx({ role: Role.ADMIN });
+      const technicianCtx = createTestCtx({ role: Role.TECHNICIAN });
+      const tenantCtx = createTestCtx({ 
+        role: Role.TENANT,
+        userId: 'tenant-123',
+        requesterUserId: 'tenant-123',
+      });
+      
+      // Admin can export
+      expect(canServer('REPORTS_OPERATIONS', 'export', adminCtx)).toBe(true);
+      expect(canClient('REPORTS_OPERATIONS', 'export', adminCtx as ClientResourceCtx)).toBe(true);
+      
+      // Technician cannot export reports
+      expect(canServer('REPORTS_OPERATIONS', 'export', technicianCtx)).toBe(false);
+      expect(canClient('REPORTS_OPERATIONS', 'export', technicianCtx as ClientResourceCtx)).toBe(false);
+      
+      // Tenant cannot export reports
+      expect(canServer('REPORTS_OPERATIONS', 'export', tenantCtx)).toBe(false);
+      expect(canClient('REPORTS_OPERATIONS', 'export', tenantCtx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('approve action restricted to management roles', () => {
+      const adminCtx = createTestCtx({ role: Role.ADMIN });
+      const technicianCtx = createTestCtx({ role: Role.TECHNICIAN });
+      
+      // Admin can approve on WO_TRACK_ASSIGN
+      expect(canServer('WO_TRACK_ASSIGN', 'approve', adminCtx)).toBe(true);
+      expect(canClient('WO_TRACK_ASSIGN', 'approve', adminCtx as ClientResourceCtx)).toBe(true);
+      
+      // Technician cannot approve
+      expect(canServer('WO_TRACK_ASSIGN', 'approve', technicianCtx)).toBe(false);
+      expect(canClient('WO_TRACK_ASSIGN', 'approve', technicianCtx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('assign action restricted to management roles', () => {
+      const adminCtx = createTestCtx({ role: Role.ADMIN });
+      const propertyManagerCtx = createTestCtx({
+        role: Role.PROPERTY_MANAGER,
+        propertyId: 'prop-123',
+        assignedProperties: ['prop-123'],
+      });
+      const tenantCtx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-123',
+        requesterUserId: 'tenant-123',
+      });
+      
+      // Admin can assign
+      expect(canServer('WO_TRACK_ASSIGN', 'assign', adminCtx)).toBe(true);
+      expect(canClient('WO_TRACK_ASSIGN', 'assign', adminCtx as ClientResourceCtx)).toBe(true);
+      
+      // Property Manager can assign within their properties
+      expect(canServer('WO_TRACK_ASSIGN', 'assign', propertyManagerCtx)).toBe(true);
+      expect(canClient('WO_TRACK_ASSIGN', 'assign', propertyManagerCtx as ClientResourceCtx)).toBe(true);
+      
+      // Tenant cannot assign
+      expect(canServer('WO_TRACK_ASSIGN', 'assign', tenantCtx)).toBe(false);
+      expect(canClient('WO_TRACK_ASSIGN', 'assign', tenantCtx as ClientResourceCtx)).toBe(false);
+    });
+  });
 });
