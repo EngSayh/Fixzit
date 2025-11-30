@@ -261,6 +261,28 @@ jobs:
           
           echo "✅ All required E2E secrets are configured"
 
+      # Notify forked PRs that E2E tests are skipped (they can't access secrets)
+      - name: Skip E2E for forked PRs
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
+        run: |
+          echo "::notice::E2E tests skipped for forked PR - secrets are unavailable."
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔒 Forked PR detected - E2E RBAC tests require secrets"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "Your PR will still receive feedback from:"
+          echo "  • TypeScript type checking"
+          echo "  • ESLint linting"
+          echo "  • Build verification"
+          echo "  • Unit tests (if configured)"
+          echo ""
+          echo "E2E RBAC tests will run when a maintainer merges to main"
+          echo "or when the PR is from an internal branch with secrets access."
+          echo ""
+          echo "### ⏭️ E2E Tests Skipped (Forked PR)" >> $GITHUB_STEP_SUMMARY
+          echo "Secrets are unavailable for forked PRs. E2E tests will run after merge." >> $GITHUB_STEP_SUMMARY
+
       # AUDIT-2025-11-30: Added fork guard to prevent hard-fail on external PRs
       # Forked PRs can't access secrets, so E2E tests with RBAC credentials would fail
       # External contributors still get lint/typecheck/build feedback from other workflows
