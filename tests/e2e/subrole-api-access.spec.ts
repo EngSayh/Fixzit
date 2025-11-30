@@ -1,48 +1,94 @@
 import { test, expect, Page, APIRequestContext } from '@playwright/test';
-import { attemptLogin, getTestUserFromEnv } from './utils/auth';
+import { attemptLogin } from './utils/auth';
+import {
+  getRequiredTestCredentials,
+  type TestCredentials,
+  type SubRoleKey,
+} from './utils/credentials';
 
 /**
  * Sub-Role API Access E2E Tests
- * 
+ *
  * Tests that sub-roles can/cannot access appropriate API endpoints.
  * Validates that RBAC rules are enforced at the API layer.
- * 
+ *
  * Resolves: E2E-001 from PR Comments Audit
+ *
+ * SECURITY FIX (PR #376):
+ * - Removed insecure fallback credentials (Test@1234)
+ * - Uses getRequiredTestCredentials() which throws if env not set
+ * - Replaced test.skip() with expect().toBeTruthy() for fail-fast
+ * - Login failures now fail tests explicitly instead of skipping
  */
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const DEFAULT_TIMEOUT = 30000;
 
-// Test users - set via environment variables for different sub-roles
-const FINANCE_OFFICER_USER = {
-  email: process.env.TEST_FINANCE_OFFICER_EMAIL || 'finance.officer@fixzit.co',
-  password: process.env.TEST_FINANCE_OFFICER_PASSWORD || 'Test@1234',
-};
+/**
+ * Get test credentials for a sub-role.
+ * Throws immediately if environment variables are not configured.
+ * This ensures tests fail fast rather than silently skipping.
+ */
+function getCredentials(subRole: SubRoleKey): TestCredentials {
+  return getRequiredTestCredentials(subRole);
+}
 
-const HR_OFFICER_USER = {
-  email: process.env.TEST_HR_OFFICER_EMAIL || 'hr.officer@fixzit.co',
-  password: process.env.TEST_HR_OFFICER_PASSWORD || 'Test@1234',
-};
+/**
+ * Assertion helper for endpoints that SHOULD be accessible.
+ * 
+ * IMPORTANT: We accept ONLY 200 to ensure RBAC is working.
+ * 404 could mask RBAC failures (e.g., guard returns 404 instead of 403).
+ * If an endpoint legitimately returns 404 for empty data, use expectAllowedOrEmpty.
+ */
+function expectAllowed(
+  response: { status: () => number },
+  endpoint: string,
+  role: string
+): void {
+  const status = response.status();
+  expect(
+    status,
+    `${role} SHOULD access ${endpoint} - got ${status}, expected 200. ` +
+    `If 403: RBAC guard may be misconfigured. If 404: endpoint may not exist or RBAC returns 404.`
+  ).toBe(200);
+}
 
-const SUPPORT_AGENT_USER = {
-  email: process.env.TEST_SUPPORT_AGENT_EMAIL || 'support.agent@fixzit.co',
-  password: process.env.TEST_SUPPORT_AGENT_PASSWORD || 'Test@1234',
-};
+/**
+ * Assertion helper for endpoints that SHOULD be accessible but may return empty data.
+ * Use this ONLY when the endpoint is known to return 404 for empty collections.
+ */
+function expectAllowedOrEmpty(
+  response: { status: () => number },
+  endpoint: string,
+  role: string
+): void {
+  const status = response.status();
+  expect(
+    [200, 404].includes(status),
+    `${role} SHOULD access ${endpoint} - got ${status}, expected 200 or 404 (empty). ` +
+    `If 403: RBAC guard is denying access incorrectly.`
+  ).toBe(true);
+  // Ensure we're NOT getting 403 - this is the critical RBAC check
+  expect(
+    status,
+    `${role} SHOULD NOT be forbidden from ${endpoint}`
+  ).not.toBe(403);
+}
 
-const OPERATIONS_MANAGER_USER = {
-  email: process.env.TEST_OPERATIONS_MANAGER_EMAIL || 'ops.manager@fixzit.co',
-  password: process.env.TEST_OPERATIONS_MANAGER_PASSWORD || 'Test@1234',
-};
-
-const TEAM_MEMBER_USER = {
-  email: process.env.TEST_TEAM_MEMBER_EMAIL || 'team.member@fixzit.co',
-  password: process.env.TEST_TEAM_MEMBER_PASSWORD || 'Test@1234',
-};
-
-const ADMIN_USER = getTestUserFromEnv() || {
-  email: process.env.TEST_USER_EMAIL || 'test-admin@fixzit.co',
-  password: process.env.TEST_USER_PASSWORD || 'Test@1234',
-};
+/**
+ * Assertion helper for endpoints that SHOULD be denied.
+ */
+function expectDenied(
+  response: { status: () => number },
+  endpoint: string,
+  role: string
+): void {
+  const status = response.status();
+  expect(
+    status,
+    `${role} should NOT access ${endpoint} - got ${status}, expected 403. ` +
+    `If 200: RBAC guard is not enforcing restrictions.`
+  ).toBe(403);
+}
 
 // API endpoints categorized by module
 const API_ENDPOINTS = {
@@ -135,114 +181,126 @@ async function gotoWithRetry(page: Page, path: string, attempts = 3) {
 
 test.describe('Sub-Role API Access Control', () => {
   test.describe('FINANCE_OFFICER Sub-Role', () => {
+    let credentials: TestCredentials;
+
+    test.beforeAll(() => {
+      credentials = getCredentials('FINANCE_OFFICER');
+    });
+
     test.beforeEach(async ({ page }) => {
       await page.context().clearCookies();
       await gotoWithRetry(page, '/login');
     });
 
     test('can access finance invoices API', async ({ page, request }) => {
-      const result = await attemptLogin(page, FINANCE_OFFICER_USER.email, FINANCE_OFFICER_USER.password);
-      test.skip(!result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.invoices);
-      expect([200, 404]).toContain(response.status()); // 200 or 404 (no data) are both acceptable
-      expect(response.status()).not.toBe(403); // Must NOT be forbidden
+      expectAllowedOrEmpty(response, API_ENDPOINTS.finance.invoices, 'FINANCE_OFFICER');
     });
 
     test('can access finance budgets API', async ({ page, request }) => {
-      const result = await attemptLogin(page, FINANCE_OFFICER_USER.email, FINANCE_OFFICER_USER.password);
-      test.skip(!result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.budgets);
-      expect([200, 404]).toContain(response.status());
-      expect(response.status()).not.toBe(403);
+      expectAllowedOrEmpty(response, API_ENDPOINTS.finance.budgets, 'FINANCE_OFFICER');
     });
 
     test('can access finance expenses API', async ({ page, request }) => {
-      const result = await attemptLogin(page, FINANCE_OFFICER_USER.email, FINANCE_OFFICER_USER.password);
-      test.skip(!result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.expenses);
-      expect([200, 404]).toContain(response.status());
-      expect(response.status()).not.toBe(403);
+      expectAllowedOrEmpty(response, API_ENDPOINTS.finance.expenses, 'FINANCE_OFFICER');
     });
 
     test('CANNOT access HR payroll API', async ({ page, request }) => {
-      const result = await attemptLogin(page, FINANCE_OFFICER_USER.email, FINANCE_OFFICER_USER.password);
-      test.skip(!result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.payroll);
-      expect(response.status()).toBe(403); // Must be forbidden
+      expectDenied(response, API_ENDPOINTS.hr.payroll, 'FINANCE_OFFICER');
     });
 
     test('CANNOT access admin users API', async ({ page, request }) => {
-      const result = await attemptLogin(page, FINANCE_OFFICER_USER.email, FINANCE_OFFICER_USER.password);
-      test.skip(!result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.admin.users);
-      expect(response.status()).toBe(403); // Must be forbidden
+      expectDenied(response, API_ENDPOINTS.admin.users, 'FINANCE_OFFICER');
     });
   });
 
   test.describe('HR_OFFICER Sub-Role', () => {
+    let credentials: TestCredentials;
+
+    test.beforeAll(() => {
+      credentials = getCredentials('HR_OFFICER');
+    });
+
     test.beforeEach(async ({ page }) => {
       await page.context().clearCookies();
       await gotoWithRetry(page, '/login');
     });
 
     test('can access HR employees API', async ({ page, request }) => {
-      const result = await attemptLogin(page, HR_OFFICER_USER.email, HR_OFFICER_USER.password);
-      test.skip(!result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.employees);
-      expect([200, 404]).toContain(response.status());
-      expect(response.status()).not.toBe(403);
+      expectAllowedOrEmpty(response, API_ENDPOINTS.hr.employees, 'HR_OFFICER');
     });
 
     test('can access HR payroll API', async ({ page, request }) => {
-      const result = await attemptLogin(page, HR_OFFICER_USER.email, HR_OFFICER_USER.password);
-      test.skip(!result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.payroll);
-      expect([200, 404]).toContain(response.status());
-      expect(response.status()).not.toBe(403);
+      expectAllowedOrEmpty(response, API_ENDPOINTS.hr.payroll, 'HR_OFFICER');
     });
 
     test('can access HR attendance API', async ({ page, request }) => {
-      const result = await attemptLogin(page, HR_OFFICER_USER.email, HR_OFFICER_USER.password);
-      test.skip(!result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.attendance);
-      expect([200, 404]).toContain(response.status());
-      expect(response.status()).not.toBe(403);
+      expectAllowedOrEmpty(response, API_ENDPOINTS.hr.attendance, 'HR_OFFICER');
     });
 
     test('CANNOT access finance invoices API', async ({ page, request }) => {
-      const result = await attemptLogin(page, HR_OFFICER_USER.email, HR_OFFICER_USER.password);
-      test.skip(!result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.invoices);
-      expect(response.status()).toBe(403); // Must be forbidden
+      expectDenied(response, API_ENDPOINTS.finance.invoices, 'HR_OFFICER');
     });
 
     test('CANNOT access marketplace vendors API', async ({ page, request }) => {
-      const result = await attemptLogin(page, HR_OFFICER_USER.email, HR_OFFICER_USER.password);
-      test.skip(!result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.marketplace.vendors);
-      expect(response.status()).toBe(403); // Must be forbidden
+      expectDenied(response, API_ENDPOINTS.marketplace.vendors, 'HR_OFFICER');
     });
   });
 
   test.describe('SUPPORT_AGENT Sub-Role', () => {
+    let credentials: TestCredentials;
+
+    test.beforeAll(() => {
+      credentials = getCredentials('SUPPORT_AGENT');
+    });
+
     test.beforeEach(async ({ page }) => {
       await page.context().clearCookies();
       await gotoWithRetry(page, '/login');
     });
 
     test('can access support tickets API', async ({ page, request }) => {
-      const result = await attemptLogin(page, SUPPORT_AGENT_USER.email, SUPPORT_AGENT_USER.password);
-      test.skip(!result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.support.tickets);
       expect([200, 404]).toContain(response.status());
@@ -250,8 +308,8 @@ test.describe('Sub-Role API Access Control', () => {
     });
 
     test('can access knowledge base API', async ({ page, request }) => {
-      const result = await attemptLogin(page, SUPPORT_AGENT_USER.email, SUPPORT_AGENT_USER.password);
-      test.skip(!result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.support.knowledgeBase);
       expect([200, 404]).toContain(response.status());
@@ -259,16 +317,16 @@ test.describe('Sub-Role API Access Control', () => {
     });
 
     test('CANNOT access HR payroll API', async ({ page, request }) => {
-      const result = await attemptLogin(page, SUPPORT_AGENT_USER.email, SUPPORT_AGENT_USER.password);
-      test.skip(!result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.payroll);
       expect(response.status()).toBe(403); // Must be forbidden
     });
 
     test('CANNOT access finance budgets API', async ({ page, request }) => {
-      const result = await attemptLogin(page, SUPPORT_AGENT_USER.email, SUPPORT_AGENT_USER.password);
-      test.skip(!result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.budgets);
       expect(response.status()).toBe(403); // Must be forbidden
@@ -276,14 +334,20 @@ test.describe('Sub-Role API Access Control', () => {
   });
 
   test.describe('OPERATIONS_MANAGER Sub-Role', () => {
+    let credentials: TestCredentials;
+
+    test.beforeAll(() => {
+      credentials = getCredentials('OPERATIONS_MANAGER');
+    });
+
     test.beforeEach(async ({ page }) => {
       await page.context().clearCookies();
       await gotoWithRetry(page, '/login');
     });
 
     test('can access work orders API', async ({ page, request }) => {
-      const result = await attemptLogin(page, OPERATIONS_MANAGER_USER.email, OPERATIONS_MANAGER_USER.password);
-      test.skip(!result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.workOrders.list);
       expect([200, 404]).toContain(response.status());
@@ -291,8 +355,8 @@ test.describe('Sub-Role API Access Control', () => {
     });
 
     test('can access properties API', async ({ page, request }) => {
-      const result = await attemptLogin(page, OPERATIONS_MANAGER_USER.email, OPERATIONS_MANAGER_USER.password);
-      test.skip(!result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.properties.list);
       expect([200, 404]).toContain(response.status());
@@ -300,8 +364,8 @@ test.describe('Sub-Role API Access Control', () => {
     });
 
     test('can access marketplace vendors API', async ({ page, request }) => {
-      const result = await attemptLogin(page, OPERATIONS_MANAGER_USER.email, OPERATIONS_MANAGER_USER.password);
-      test.skip(!result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.marketplace.vendors);
       expect([200, 404]).toContain(response.status());
@@ -309,16 +373,16 @@ test.describe('Sub-Role API Access Control', () => {
     });
 
     test('CANNOT access HR payroll API', async ({ page, request }) => {
-      const result = await attemptLogin(page, OPERATIONS_MANAGER_USER.email, OPERATIONS_MANAGER_USER.password);
-      test.skip(!result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.payroll);
       expect(response.status()).toBe(403); // Must be forbidden
     });
 
     test('CANNOT access admin users API', async ({ page, request }) => {
-      const result = await attemptLogin(page, OPERATIONS_MANAGER_USER.email, OPERATIONS_MANAGER_USER.password);
-      test.skip(!result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.admin.users);
       expect(response.status()).toBe(403); // Must be forbidden
@@ -326,38 +390,44 @@ test.describe('Sub-Role API Access Control', () => {
   });
 
   test.describe('TEAM_MEMBER (No Sub-Role)', () => {
+    let credentials: TestCredentials;
+
+    test.beforeAll(() => {
+      credentials = getCredentials('TEAM_MEMBER');
+    });
+
     test.beforeEach(async ({ page }) => {
       await page.context().clearCookies();
       await gotoWithRetry(page, '/login');
     });
 
     test('CANNOT access finance invoices API', async ({ page, request }) => {
-      const result = await attemptLogin(page, TEAM_MEMBER_USER.email, TEAM_MEMBER_USER.password);
-      test.skip(!result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.invoices);
       expect(response.status()).toBe(403); // Must be forbidden without FINANCE_OFFICER sub-role
     });
 
     test('CANNOT access HR payroll API', async ({ page, request }) => {
-      const result = await attemptLogin(page, TEAM_MEMBER_USER.email, TEAM_MEMBER_USER.password);
-      test.skip(!result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.payroll);
       expect(response.status()).toBe(403); // Must be forbidden without HR_OFFICER sub-role
     });
 
     test('CANNOT access marketplace vendors API', async ({ page, request }) => {
-      const result = await attemptLogin(page, TEAM_MEMBER_USER.email, TEAM_MEMBER_USER.password);
-      test.skip(!result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.marketplace.vendors);
       expect(response.status()).toBe(403); // Must be forbidden without OPERATIONS_MANAGER sub-role
     });
 
     test('can access basic work orders API (base permission)', async ({ page, request }) => {
-      const result = await attemptLogin(page, TEAM_MEMBER_USER.email, TEAM_MEMBER_USER.password);
-      test.skip(!result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       // TEAM_MEMBER base role should have read access to work orders
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.workOrders.list);
@@ -365,8 +435,8 @@ test.describe('Sub-Role API Access Control', () => {
     });
 
     test('CANNOT access admin users API', async ({ page, request }) => {
-      const result = await attemptLogin(page, TEAM_MEMBER_USER.email, TEAM_MEMBER_USER.password);
-      test.skip(!result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.admin.users);
       expect(response.status()).toBe(403); // Must be forbidden
@@ -375,11 +445,12 @@ test.describe('Sub-Role API Access Control', () => {
 
   test.describe('Cross-Sub-Role Boundaries', () => {
     test('FINANCE_OFFICER cannot access HR module (cross-boundary)', async ({ page, request }) => {
+      const credentials = getCredentials('FINANCE_OFFICER');
       await page.context().clearCookies();
       await gotoWithRetry(page, '/login');
 
-      const result = await attemptLogin(page, FINANCE_OFFICER_USER.email, FINANCE_OFFICER_USER.password);
-      test.skip(!result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       // Finance officer should NOT have access to HR endpoints
       const hrEndpoints = [
@@ -399,11 +470,12 @@ test.describe('Sub-Role API Access Control', () => {
     });
 
     test('HR_OFFICER cannot access Finance module (cross-boundary)', async ({ page, request }) => {
+      const credentials = getCredentials('HR_OFFICER');
       await page.context().clearCookies();
       await gotoWithRetry(page, '/login');
 
-      const result = await attemptLogin(page, HR_OFFICER_USER.email, HR_OFFICER_USER.password);
-      test.skip(!result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       // HR officer should NOT have access to Finance endpoints
       const financeEndpoints = [
@@ -423,11 +495,12 @@ test.describe('Sub-Role API Access Control', () => {
     });
 
     test('SUPPORT_AGENT cannot access Operations module (cross-boundary)', async ({ page, request }) => {
+      const credentials = getCredentials('SUPPORT_AGENT');
       await page.context().clearCookies();
       await gotoWithRetry(page, '/login');
 
-      const result = await attemptLogin(page, SUPPORT_AGENT_USER.email, SUPPORT_AGENT_USER.password);
-      test.skip(!result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       // Support agent should NOT have access to Work Orders assign endpoint
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.workOrders.assign);
@@ -436,14 +509,20 @@ test.describe('Sub-Role API Access Control', () => {
   });
 
   test.describe('Admin Full Access', () => {
+    let credentials: TestCredentials;
+
+    test.beforeAll(() => {
+      credentials = getCredentials('ADMIN');
+    });
+
     test.beforeEach(async ({ page }) => {
       await page.context().clearCookies();
       await gotoWithRetry(page, '/login');
     });
 
     test('ADMIN can access all module APIs', async ({ page, request }) => {
-      const result = await attemptLogin(page, ADMIN_USER.email, ADMIN_USER.password);
-      test.skip(!result.success, `Login failed for ADMIN: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for ADMIN: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       // Admin should have access to all endpoints
       const allEndpoints = [
@@ -469,8 +548,8 @@ test.describe('Sub-Role API Access Control', () => {
     });
 
     test('ADMIN can access admin users API', async ({ page, request }) => {
-      const result = await attemptLogin(page, ADMIN_USER.email, ADMIN_USER.password);
-      test.skip(!result.success, `Login failed for ADMIN: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for ADMIN: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.admin.users);
       expect([200, 404]).toContain(response.status());
@@ -480,11 +559,12 @@ test.describe('Sub-Role API Access Control', () => {
 
   test.describe('API Method Restrictions', () => {
     test('FINANCE_OFFICER can GET but not DELETE invoices', async ({ page, request }) => {
+      const credentials = getCredentials('FINANCE_OFFICER');
       await page.context().clearCookies();
       await gotoWithRetry(page, '/login');
 
-      const result = await attemptLogin(page, FINANCE_OFFICER_USER.email, FINANCE_OFFICER_USER.password);
-      test.skip(!result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       // GET should be allowed
       const getResponse = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.invoices, 'GET');
@@ -496,11 +576,12 @@ test.describe('Sub-Role API Access Control', () => {
     });
 
     test('HR_OFFICER can GET but not approve payroll without specific action permission', async ({ page, request }) => {
+      const credentials = getCredentials('HR_OFFICER');
       await page.context().clearCookies();
       await gotoWithRetry(page, '/login');
 
-      const result = await attemptLogin(page, HR_OFFICER_USER.email, HR_OFFICER_USER.password);
-      test.skip(!result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`);
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       // GET should be allowed
       const getResponse = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.payroll, 'GET');

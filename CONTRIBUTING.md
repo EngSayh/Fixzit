@@ -424,6 +424,81 @@ pnpm test:e2e
 - Dependency caching enabled for pnpm
 - Jobs run in parallel where possible
 
+### 15. E2E Testing Setup
+
+#### Prerequisites
+
+E2E tests require explicit credentials - no default passwords are used for security reasons.
+
+#### Required Environment Variables
+
+Add these to your `.env.local` file (see `env.example` for documentation):
+
+```bash
+# E2E Test Credentials - required for RBAC tests
+TEST_FINANCE_OFFICER_EMAIL=finance.officer@example.com
+TEST_FINANCE_OFFICER_PASSWORD=<secure-password>
+
+TEST_HR_OFFICER_EMAIL=hr.officer@example.com
+TEST_HR_OFFICER_PASSWORD=<secure-password>
+
+TEST_SUPPORT_AGENT_EMAIL=support.agent@example.com
+TEST_SUPPORT_AGENT_PASSWORD=<secure-password>
+
+TEST_OPERATIONS_MANAGER_EMAIL=ops.manager@example.com
+TEST_OPERATIONS_MANAGER_PASSWORD=<secure-password>
+
+TEST_TEAM_MEMBER_EMAIL=team.member@example.com
+TEST_TEAM_MEMBER_PASSWORD=<secure-password>
+
+TEST_ADMIN_EMAIL=admin@example.com
+TEST_ADMIN_PASSWORD=<secure-password>
+```
+
+#### Creating Test Users
+
+Each test user must exist in the database with the appropriate role configuration:
+
+| User Type | Role | subRole | Module Access |
+|-----------|------|---------|---------------|
+| FINANCE_OFFICER | TEAM_MEMBER | FINANCE_OFFICER | Finance APIs |
+| HR_OFFICER | TEAM_MEMBER | HR_OFFICER | HR APIs |
+| SUPPORT_AGENT | TEAM_MEMBER | SUPPORT_AGENT | Support APIs |
+| OPERATIONS_MANAGER | TEAM_MEMBER | OPERATIONS_MANAGER | Work Orders, Properties, Marketplace |
+| TEAM_MEMBER | TEAM_MEMBER | (none) | Limited access |
+| ADMIN | ADMIN | (any) | All modules |
+
+#### Running E2E Tests
+
+```bash
+# Start dev server (if not running)
+pnpm dev
+
+# Run all E2E tests
+pnpm test:e2e
+
+# Run specific sub-role tests
+pnpm playwright test subrole-api-access.spec.ts
+
+# Run with UI mode
+pnpm playwright test --ui
+```
+
+#### Troubleshooting E2E Tests
+
+**Tests fail with "Missing required test credentials"**
+- Ensure all `TEST_*_EMAIL` and `TEST_*_PASSWORD` vars are set in `.env.local`
+- No fallback defaults exist - this is intentional for security
+
+**Login failures**
+- Verify test users exist in database with correct roles
+- Check `professional.subRole` is set correctly for TEAM_MEMBER users
+- Ensure the dev server is running at `http://localhost:3000`
+
+**403 Forbidden errors**
+- Check RBAC configuration in `lib/auth/role-guards.ts`
+- Verify `subRole` is being propagated to session (see `auth.config.ts`)
+
 ---
 
 **Last Updated**: 2025-12-01  
