@@ -1869,4 +1869,29 @@ test.describe('Tenant Validation Helper Behavior', () => {
       });
     }).rejects.toThrow(/TENANT MISMATCH/);
   });
+
+  /**
+   * POSITIVE-PATH TEST: Non-allowlist keys with matching org_id
+   * 
+   * This ensures the helper doesn't over-restrict valid responses that use
+   * arbitrary keys (not in data/items/results allowlist) but have correct tenant IDs.
+   * Guards against future changes that might reject valid tenant-scoped responses.
+   */
+  test('accepts matching org_id under arbitrary non-allowlist key', async () => {
+    const body = {
+      org_id: 'correct-tenant',
+      summary: { org_id: 'correct-tenant', totalCount: 10 },
+      customPayload: {
+        org_id: 'correct-tenant',
+        records: [{ org_id: 'correct-tenant', id: '1' }],
+      },
+    };
+    
+    const response = createMockResponse(body);
+    
+    // Should NOT throw - all org_id values match across non-allowlist keys
+    await expectAllowedWithBodyCheck(response, '/api/test', 'TEST_ROLE', {
+      expectedOrgId: 'correct-tenant',
+    });
+  });
 });
