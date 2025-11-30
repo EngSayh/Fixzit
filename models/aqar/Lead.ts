@@ -7,6 +7,7 @@
 
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 
 export enum LeadStatus {
   NEW = "NEW", // Fresh inquiry
@@ -222,6 +223,12 @@ LeadSchema.index({ assignedTo: 1, status: 1, createdAt: -1 });
 LeadSchema.index({ inquirerPhone: 1 });
 LeadSchema.index({ createdAt: -1 });
 LeadSchema.index({ orgId: 1, status: 1, createdAt: -1 });
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar CRM leads
+// =============================================================================
+LeadSchema.plugin(tenantIsolationPlugin);
 
 // Methods
 LeadSchema.methods.addNote = async function (

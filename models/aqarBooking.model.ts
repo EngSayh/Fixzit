@@ -369,6 +369,9 @@ BookingSchema.pre('validate', function (next) {
 // DATA-003 FIX: Pre-findOneAndUpdate hook to recalculate derived fields
 // CRITICAL: Without this, Booking.findOneAndUpdate() bypasses derived field computation
 // This could lead to data inconsistency (wrong nights count, pricing, reservedNights)
+// 
+// NOTE: Partial date updates (only checkInDate OR checkOutDate) are NOT supported
+// by this hook - use service layer with full document fetch for partial updates.
 // =============================================================================
 BookingSchema.pre('findOneAndUpdate', function (next) {
   try {
@@ -384,8 +387,7 @@ BookingSchema.pre('findOneAndUpdate', function (next) {
     
     // If dates are being updated, recalculate nights and reservedNights
     if (checkInDate || checkOutDate) {
-      // We need both dates to calculate - this hook requires both to be set
-      // If only one is provided, we should skip recalculation (use service layer for partial updates)
+      // We need both dates to calculate derived fields correctly
       if (checkInDate && checkOutDate) {
         const inUTC = toUTCDateOnly(new Date(checkInDate));
         const outUTC = toUTCDateOnly(new Date(checkOutDate));
@@ -432,6 +434,16 @@ BookingSchema.pre('findOneAndUpdate', function (next) {
           action: 'pre_findOneAndUpdate',
           nights,
           reservedNightsCount: reservedNights.length,
+        });
+      } else {
+        // PARTIAL UPDATE WARNING: Only one date field provided
+        // Derived fields (nights, reservedNights, pricing) will NOT be recalculated
+        // Use service layer with full document fetch for partial date updates
+        logger.warn('booking:partial_date_update_skipped', {
+          action: 'pre_findOneAndUpdate',
+          hasCheckInDate: !!checkInDate,
+          hasCheckOutDate: !!checkOutDate,
+          warning: 'Derived fields not recalculated - both dates required. Use service layer for partial updates.',
         });
       }
     }

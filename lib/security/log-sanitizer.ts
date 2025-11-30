@@ -79,11 +79,15 @@ const SENSITIVE_KEYS = new Set([
 
 /**
  * PII value patterns to catch free-form data in non-sensitive keys
+ * 
+ * SECURITY: Patterns are bounded to prevent ReDoS attacks
+ * NOTE: Some patterns may have false positives - they are designed to be
+ * applied only when key-based filtering doesn't match, as a second layer
  */
 const BASE_PII_PATTERNS: RegExp[] = [
   /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i, // emails
-  /\+?\d[\d\s().-]{7,}\d/, // phone-like numeric runs
-  /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/, // JWT tokens
+  /\+?\d[\d\s().-]{7,20}\d/, // phone-like numeric runs (bounded 7-20 to prevent ReDoS)
+  /^[A-Za-z0-9-_]{10,}\.(?:[A-Za-z0-9-_]{10,})\.(?:[A-Za-z0-9-_]{10,})$/, // JWT tokens (min 10 chars per segment)
   /\b[A-Z]{2}\d{2}[A-Z0-9]{9,30}\b/, // IBAN-ish
   /\b\d{13,19}\b/, // card-like digit runs
 ];

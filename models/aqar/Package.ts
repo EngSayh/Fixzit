@@ -7,6 +7,7 @@
 
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 
 export enum PackageType {
   STARTER = "STARTER", // 50 SAR, 5 listings, 30 days
@@ -161,6 +162,12 @@ PackageSchema.methods.checkExpiry = async function (this: IPackage) {
     await this.save();
   }
 };
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar packages
+// =============================================================================
+PackageSchema.plugin(tenantIsolationPlugin);
 
 const Package = getModel<IPackage>("AqarPackage", PackageSchema);
 

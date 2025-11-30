@@ -7,6 +7,7 @@
 
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 
 export enum BoostType {
   FEATURED = "FEATURED", // Top of search, homepage
@@ -152,6 +153,12 @@ BoostSchema.methods.checkExpiry = async function (this: IBoost) {
     await this.save();
   }
 };
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar boosts
+// =============================================================================
+BoostSchema.plugin(tenantIsolationPlugin);
 
 const Boost = getModel<IBoost>("AqarBoost", BoostSchema);
 

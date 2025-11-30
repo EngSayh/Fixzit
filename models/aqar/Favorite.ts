@@ -6,6 +6,7 @@
 
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 
 export enum FavoriteType {
   LISTING = "LISTING",
@@ -72,6 +73,12 @@ FavoriteSchema.index(
   { userId: 1, targetId: 1, targetType: 1 },
   { unique: true },
 ); // Prevent duplicates
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar favorites
+// =============================================================================
+FavoriteSchema.plugin(tenantIsolationPlugin);
 
 const Favorite = getModel<IFavorite>("AqarFavorite", FavoriteSchema);
 
