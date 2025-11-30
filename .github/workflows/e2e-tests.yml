@@ -219,6 +219,24 @@ jobs:
           # Base URL
           BASE_URL: http://localhost:3000
           
+          # ============================================================
+          # E2E RBAC Test Credentials (Required for subrole-api-access.spec.ts)
+          # These must be configured in GitHub Settings > Secrets
+          # See env.example for documentation on creating test users
+          # ============================================================
+          TEST_FINANCE_OFFICER_EMAIL: ${{ secrets.TEST_FINANCE_OFFICER_EMAIL }}
+          TEST_FINANCE_OFFICER_PASSWORD: ${{ secrets.TEST_FINANCE_OFFICER_PASSWORD }}
+          TEST_HR_OFFICER_EMAIL: ${{ secrets.TEST_HR_OFFICER_EMAIL }}
+          TEST_HR_OFFICER_PASSWORD: ${{ secrets.TEST_HR_OFFICER_PASSWORD }}
+          TEST_SUPPORT_AGENT_EMAIL: ${{ secrets.TEST_SUPPORT_AGENT_EMAIL }}
+          TEST_SUPPORT_AGENT_PASSWORD: ${{ secrets.TEST_SUPPORT_AGENT_PASSWORD }}
+          TEST_OPERATIONS_MANAGER_EMAIL: ${{ secrets.TEST_OPERATIONS_MANAGER_EMAIL }}
+          TEST_OPERATIONS_MANAGER_PASSWORD: ${{ secrets.TEST_OPERATIONS_MANAGER_PASSWORD }}
+          TEST_TEAM_MEMBER_EMAIL: ${{ secrets.TEST_TEAM_MEMBER_EMAIL }}
+          TEST_TEAM_MEMBER_PASSWORD: ${{ secrets.TEST_TEAM_MEMBER_PASSWORD }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+          
         run: |
           project_arg=""
           test_path_arg=""
