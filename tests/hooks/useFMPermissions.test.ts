@@ -100,7 +100,7 @@ describe("useFMPermissions", () => {
   });
 
   it("🟧 should default to STARTER plan if org context is missing", () => {
-    mockSession(Role.CORPORATE_ADMIN, "org-abc");
+    mockSession("CORPORATE_ADMIN", "org-abc");
     mockUseCurrentOrg.mockReturnValue({ org: null, isLoading: false }); // Mock no org context
     const { result } = renderHook(() => useFMPermissions());
 
@@ -108,7 +108,7 @@ describe("useFMPermissions", () => {
   });
 
   it("🟩 should return correct convenience booleans for a CORPORATE_ADMIN", () => {
-    mockSession(Role.CORPORATE_ADMIN, "org-abc");
+    mockSession("CORPORATE_ADMIN", "org-abc");
     mockOrg(Plan.PRO);
     const { result } = renderHook(() => useFMPermissions());
 

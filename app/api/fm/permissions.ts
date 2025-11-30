@@ -20,6 +20,8 @@ import {
   type SessionUser,
 } from "@/server/middleware/withAuthRbac";
 import { fmErrorContext } from "./errors";
+import { connectDb } from "@/lib/mongo";
+import { Organization } from "@/server/models/Organization";
 
 type PermissionOptions = {
   module?: ModuleKey;
@@ -46,7 +48,9 @@ const PLAN_ALIAS_MAP: Record<string, Plan> = {
   ENTERPRISE_GROWTH: Plan.ENTERPRISE,
 };
 
-const DEFAULT_PLAN = Plan.STANDARD;
+// SEC-003 FIX: Use STARTER as default (least privilege principle)
+// Previously Plan.STANDARD granted features the user may not have paid for
+const DEFAULT_PLAN = Plan.STARTER;
 
 const normalizePlan = (plan?: string | null): Plan => {
   if (!plan) return DEFAULT_PLAN;
@@ -56,8 +60,52 @@ const normalizePlan = (plan?: string | null): Plan => {
   );
 };
 
-const hasModuleAccess = (role: Role, module?: ModuleKey): boolean => {
+const resolveOrgContext = async (
+  orgId: string,
+  userId?: string | null,
+): Promise<{ plan: Plan; isOrgMember: boolean }> => {
+  try {
+    await connectDb();
+    const org = await Organization.findOne({ orgId });
+    if (!org) {
+      return { plan: DEFAULT_PLAN, isOrgMember: false };
+    }
+
+    const subscriptionPlan =
+      org.subscription?.plan ?? (org as { plan?: string }).plan ?? undefined;
+    const plan = normalizePlan(subscriptionPlan);
+
+    const isOrgMember =
+      !!userId &&
+      Array.isArray(org.members) &&
+      org.members.some(
+        (member) =>
+          member &&
+          typeof member === "object" &&
+          typeof member.userId === "string" &&
+          member.userId === userId,
+      );
+
+    return { plan, isOrgMember };
+  } catch (_error) {
+    return { plan: DEFAULT_PLAN, isOrgMember: false };
+  }
+};
+
+const hasModuleAccess = (role: Role, module?: ModuleKey, subRole?: SubRole): boolean => {
   if (!module) return true;
+  
+  // SEC-001 FIX: TEAM_MEMBER requires sub-role for Finance/HR modules
+  // STRICT v4.1: Without sub-role, TEAM_MEMBER cannot access specialized modules
+  if (role === Role.TEAM_MEMBER) {
+    if (module === ModuleKey.FINANCE && subRole !== SubRole.FINANCE_OFFICER) {
+      return false;
+    }
+    if (module === ModuleKey.HR && subRole !== SubRole.HR_OFFICER) {
+      return false;
+    }
+  }
+  
   return Boolean(ROLE_MODULE_ACCESS[role]?.[module]);
 };
 
@@ -95,6 +143,14 @@ export async function requireFmPermission(
       inferSubRoleFromRole(rawRole);
     const fmRole = normalizeRole(rawRole);
 
+    // MT-ORG GUARD: Require tenant/org context
+    if (!sessionUser.orgId || String(sessionUser.orgId).trim() === "") {
+      return FMErrors.unauthorized(
+        "Organization context is required for FM permissions",
+        errorContext,
+      );
+    }
+
     if (!fmRole) {
       return FMErrors.forbidden(
         "Role is not authorized for FM module",
@@ -103,13 +159,26 @@ export async function requireFmPermission(
     }
 
     const plan = normalizePlan(sessionUser.subscriptionPlan);
+    const { plan: orgPlan, isOrgMember } = await resolveOrgContext(
+      String(sessionUser.orgId),
+      sessionUser.id ? String(sessionUser.id) : undefined,
+    );
+    const effectivePlan = orgPlan ?? plan;
 
     if (!sessionUser.isSuperAdmin) {
-      if (!hasModuleAccess(fmRole, options.module)) {
+      if (!isOrgMember) {
+        return FMErrors.forbidden(
+          "User is not a member of this organization",
+          errorContext,
+        );
+      }
+
+      // SEC-001 FIX: Pass subRole to hasModuleAccess for TEAM_MEMBER sub-role enforcement
+      if (!hasModuleAccess(fmRole, options.module, fmSubRole)) {
         return FMErrors.forbidden("Module access denied", errorContext);
       }
 
-      if (!hasSubmoduleAccess(fmRole, plan, options.submodule)) {
+      if (!hasSubmoduleAccess(fmRole, effectivePlan, options.submodule)) {
         return FMErrors.forbidden(
           "Submodule not enabled for this role/plan",
           errorContext,
@@ -131,7 +200,7 @@ export async function requireFmPermission(
       ...sessionUser,
       fmRole,
       fmSubRole: fmSubRole ?? undefined,
-      plan,
+      plan: effectivePlan,
       userId: sessionUser.id,
     };
   } catch (error) {

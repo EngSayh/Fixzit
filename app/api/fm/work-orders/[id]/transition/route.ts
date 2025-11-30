@@ -421,10 +421,12 @@ function mapSessionRole(role?: string | null): FMRole | null {
   return ROLE_ALIASES[normalized] ?? null;
 }
 
+// SEC-003 FIX: Use STARTER as default (least privilege principle)
+// Previously FMPlan.STANDARD granted WO features the user may not have paid for
 function resolvePlan(plan?: string | null): FMPlan {
-  if (!plan) return FMPlan.STANDARD;
+  if (!plan) return FMPlan.STARTER;
   const normalized = plan.toUpperCase();
-  return PLAN_ALIASES[normalized] ?? FMPlan.STANDARD;
+  return PLAN_ALIASES[normalized] ?? FMPlan.STARTER;
 }
 
 function buildResourceContext(

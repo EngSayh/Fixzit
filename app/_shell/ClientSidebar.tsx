@@ -390,47 +390,34 @@ const toDisplayRole = (
   rawSubRole?: string | null,
 ): RoleLabel => {
   const subRole = normalizeSubRole(rawSubRole);
-  const role = normalizeFmRole(rawRole) ?? CanonicalRole.VIEWER;
+  const role = normalizeFmRole(rawRole) ?? CanonicalRole.GUEST;
 
+  // After normalization, role is always one of the 9 canonical STRICT v4.1 roles
   switch (role) {
     case CanonicalRole.SUPER_ADMIN:
       return "Super Admin";
-    case CanonicalRole.CORPORATE_ADMIN:
     case CanonicalRole.ADMIN:
       return "Corporate Admin";
     case CanonicalRole.CORPORATE_OWNER:
       return "Corporate Owner";
-    case CanonicalRole.MANAGER:
-    case CanonicalRole.FM_MANAGER:
-    case CanonicalRole.PROCUREMENT:
-    case CanonicalRole.SUPPORT:
-      return "Management";
-    case CanonicalRole.FINANCE:
-    case CanonicalRole.FINANCE_MANAGER:
-      return "Finance";
-    case CanonicalRole.HR:
-      return "HR";
     case CanonicalRole.PROPERTY_MANAGER:
-    case CanonicalRole.OWNER:
       return "Property Owner";
     case CanonicalRole.TECHNICIAN:
       return "Technician";
     case CanonicalRole.TENANT:
-    case CanonicalRole.CUSTOMER:
       return "Tenant / End-User";
     case CanonicalRole.VENDOR:
       return "Corporate Employee";
-    case CanonicalRole.AUDITOR:
-    case CanonicalRole.VIEWER:
-    case CanonicalRole.EMPLOYEE:
-    case CanonicalRole.DISPATCHER:
-    default: {
+    case CanonicalRole.TEAM_MEMBER:
+      // Sub-role determines the display label for TEAM_MEMBER
       if (subRole === SubRole.FINANCE_OFFICER) return "Finance";
       if (subRole === SubRole.HR_OFFICER) return "HR";
       if (subRole === SubRole.SUPPORT_AGENT) return "Management";
       if (subRole === SubRole.OPERATIONS_MANAGER) return "Management";
+      return "Management";
+    case CanonicalRole.GUEST:
+    default:
       return "Corporate Employee";
-    }
   }
 };
 

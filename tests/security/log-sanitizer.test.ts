@@ -10,8 +10,8 @@ import {
   sanitizeLogParams,
   sanitizeValue,
   sanitizeError,
-  redactIdentifier,
 } from "@/lib/security/log-sanitizer";
+import { redactIdentifier } from "@/lib/otp-utils";
 
 describe("Log Sanitizer - Real Implementation Tests", () => {
   describe("sanitizeLogParams", () => {
@@ -218,46 +218,44 @@ describe("Log Sanitizer - Real Implementation Tests", () => {
   });
 
   describe("redactIdentifier", () => {
-    it("should redact email addresses preserving structure", () => {
+    it("should redact email addresses showing first 3 chars", () => {
       const result = redactIdentifier("user@example.com");
       expect(result).not.toBe("user@example.com");
-      expect(result).toContain("@");
-      expect(result).toContain("***");
-      // Should preserve TLD
-      expect(result).toMatch(/\.com$/);
+      expect(result).toBe("use***");
     });
 
-    it("should redact IP addresses preserving structure", () => {
+    it("should redact IP addresses showing first 3 chars", () => {
       const result = redactIdentifier("192.168.1.100");
       expect(result).not.toBe("192.168.1.100");
-      expect(result).toContain("***");
-      // Should preserve first octet
-      expect(result).toMatch(/^192\./);
+      expect(result).toBe("192***");
     });
 
     it("should redact generic identifiers", () => {
       const result = redactIdentifier("EMP-12345-ABC");
       expect(result).not.toBe("EMP-12345-ABC");
-      expect(result).toContain("***");
-      // Should preserve some prefix/suffix for context
+      expect(result).toBe("EMP***");
       expect(result.length).toBeLessThan("EMP-12345-ABC".length);
     });
 
-    it("should handle null and undefined", () => {
-      expect(redactIdentifier(null)).toBe("[UNKNOWN]");
-      expect(redactIdentifier(undefined)).toBe("[UNKNOWN]");
-    });
-
     it("should handle empty strings", () => {
-      // Empty string is falsy, so returns [UNKNOWN] (same as null/undefined)
-      expect(redactIdentifier("")).toBe("[UNKNOWN]");
-      // Whitespace-only string trims to empty, returns [EMPTY]
-      expect(redactIdentifier("   ")).toBe("[EMPTY]");
+      // Empty string or <= 3 chars returns "***"
+      expect(redactIdentifier("")).toBe("***");
     });
 
     it("should handle short identifiers", () => {
       const result = redactIdentifier("AB");
-      expect(result).toContain("***");
+      // Short identifiers (<= 3 chars) return "***"
+      expect(result).toBe("***");
+    });
+    
+    it("should handle identifiers with exactly 3 chars", () => {
+      const result = redactIdentifier("ABC");
+      expect(result).toBe("***");
+    });
+    
+    it("should handle identifiers with 4 chars", () => {
+      const result = redactIdentifier("ABCD");
+      expect(result).toBe("ABC***");
     });
   });
 

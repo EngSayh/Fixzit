@@ -106,13 +106,10 @@ export default function UserModal({
     }
   }, [isOpen, editingUser, reset]);
 
-  const subRoleEligible = new Set<Role>([
-    Role.FINANCE,
-    Role.HR,
-    Role.SUPPORT,
-  ]);
+  // TEAM_MEMBER is eligible for sub-roles (FINANCE_OFFICER, HR_OFFICER, SUPPORT_AGENT)
+  const subRoleEligible = new Set<Role>([Role.TEAM_MEMBER]);
 
-  // Clear sub-role when role changes away from eligible buckets
+  // Clear sub-role when role changes away from TEAM_MEMBER
   useEffect(() => {
     const normalizedRole = normalizeRole(watchedRole || '');
     if (

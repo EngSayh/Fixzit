@@ -14,9 +14,7 @@ test.describe("Referrals Program", () => {
     await page.goto("/referrals");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip(); // Not authenticated
-    }
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
 
     // Page should load with referral content
     await expect(page.locator("body")).toBeVisible();
@@ -27,9 +25,7 @@ test.describe("Referrals Program", () => {
     await page.goto("/referrals");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
 
     // Look for generate button or existing code
     const generateButton = page.locator('button:has-text("Generate")');
@@ -46,9 +42,7 @@ test.describe("Referrals Program", () => {
     await page.goto("/referrals");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
 
     // Look for copy buttons
     const copyButtons = page.locator('button:has-text("Copy")');
@@ -63,9 +57,7 @@ test.describe("Referrals Program", () => {
     await page.goto("/referrals");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
 
     // Look for WhatsApp and Email share buttons
     const whatsappButton = page.locator('button[data-testid="share-whatsapp"]');
@@ -84,9 +76,7 @@ test.describe("Referrals Program", () => {
     await page.goto("/referrals");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
 
     // Look for stats section
     const statsSection = page.locator('[data-testid="referral-stats"]');
@@ -101,9 +91,7 @@ test.describe("Referrals Program", () => {
     await page.goto("/referrals");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
 
     // Look for referrals table
     const table = page.locator('table, [data-testid="referrals-table"]');
@@ -118,9 +106,7 @@ test.describe("Referrals Program", () => {
     await page.goto("/referrals");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
 
     // Look for copy button and click it
     const copyButton = page.locator('button:has-text("Copy")').first();
@@ -142,9 +128,7 @@ test.describe("Referrals Program", () => {
     await page.goto("/referrals");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
 
     // Look for currency formatting (SAR symbol or amount)
     const currencyPattern = /ر\.س|SAR|\$|€|£/;
@@ -161,9 +145,7 @@ test.describe("Referrals - Error Handling", () => {
     await page.goto("/referrals");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
 
     // Page should load without crashing
     await expect(page.locator("body")).toBeVisible();
@@ -177,9 +159,7 @@ test.describe("Referrals - Error Handling", () => {
     await page.goto("/referrals");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login"); // Requires authenticated session state
 
     // Look for retry or error message
     const retryButton = page.locator(

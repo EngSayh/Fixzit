@@ -297,6 +297,71 @@ export default [
     },
   },
 
+  // FM tenant isolation guardrails
+  {
+    files: [
+      "app/api/fm/**/*.{ts,tsx}",
+      "lib/fm-**/*.{ts,tsx}",
+      "server/**/*fm*.{ts,tsx}",
+      "domain/fm/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector:
+            "CallExpression[callee.property.name=/^(find|findOne|findMany|aggregate)$/][arguments.0.type='ObjectExpression']",
+          message:
+            "FM tenant isolation: ensure the query filter includes orgId/tenantId (add // tenant-scope-checked if verified).",
+        },
+        {
+          selector:
+            "CallExpression[callee.property.name=/^(find|findOne)$/][arguments.0.type='ObjectExpression']:not(:has(arguments.0.properties > Property[key.name=/^(orgId|tenantId)$/]))",
+          message:
+            "FM tenant isolation: include orgId/tenantId in the primary filter for find/findOne.",
+        },
+      ],
+    },
+  },
+
+  // RTL directionality guardrails (prefer logical properties)
+  {
+    files: ["app/**/*.{ts,tsx,jsx}", "components/**/*.{ts,tsx,jsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "Literal[value=/\\btext-(left|right)\\b|\\bpl-\\d|\\bpr-\\d/]",
+          message:
+            "Use logical direction classes (text-start/text-end, ps-/pe-) for RTL/LTR compliance.",
+        },
+      ],
+    },
+  },
+
+  // Test guardrails: block committed .only and require documented skips
+  {
+    files: [
+      "tests/**/*.{ts,tsx,js,jsx}",
+      "**/*.test.{ts,tsx,js,jsx}",
+      "**/*.spec.{ts,tsx,js,jsx}",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "CallExpression[callee.property.name='only']",
+          message: "Do not commit .only in tests.",
+        },
+        {
+          selector: "CallExpression[callee.property.name='skip'][arguments.length=0]",
+          message:
+            "Document skip reason (string/issue id) or remove skip before merge.",
+        },
+      ],
+    },
+  },
+
   // Warn on deprecated role usage in new code (STRICT v4 migration)
   // Skip test files, scripts, and migration files
   {

@@ -63,6 +63,13 @@ export async function GET(req: NextRequest) {
   const limit =
     Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
 
+  if (process.env.ALLOW_OFFLINE_MONGODB === "true") {
+    return NextResponse.json(
+      { items: [], total: 0, page, limit, hasMore: false },
+      { status: 200 },
+    );
+  }
+
   let orgId: string;
   try {
     const user = await getSessionUser(req);
@@ -129,6 +136,17 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (process.env.ALLOW_OFFLINE_MONGODB === "true") {
+    return NextResponse.json(
+      {
+        error: "ServiceUnavailable",
+        message:
+          "Notifications API is disabled in ALLOW_OFFLINE_MONGODB mode. Provide MongoDB or disable offline mode.",
+      },
+      { status: 503 },
+    );
+  }
+
   let orgId: string;
   try {
     const user = await getSessionUser(req);
