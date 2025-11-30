@@ -15,10 +15,12 @@ import {
   can,
   Role,
   SubmoduleKey,
+  ModuleKey,
   Action,
   PLAN_GATES,
   Plan,
   normalizeRole,
+  ROLE_MODULE_ACCESS,
 } from "@/domain/fm/fm.types";
 import { useCurrentOrg } from "@/contexts/CurrentOrgContext";
 
@@ -101,11 +103,30 @@ export function useFMPermissions() {
   };
 
   /**
-   * Check if user has access to a module based on subscription plan
+   * Check if user has access to a module based on subscription plan AND role permissions
+   * 🟥 FIXED: Now checks both plan gates AND role-based module access
    */
   const canAccessModule = (submodule: SubmoduleKey): boolean => {
+    // First check: Plan gates
     const planGates = PLAN_GATES[ctx.plan || Plan.STARTER];
-    return planGates[submodule] === true;
+    if (planGates[submodule] !== true) {
+      return false;
+    }
+    
+    // Second check: User must be an org member (not just any authenticated user)
+    if (!isMemberOf(ctx.orgId)) {
+      return false;
+    }
+    
+    // Third check: Role-based permission via the can() function
+    return can(submodule, "view", {
+      role: ctx.role,
+      orgId: ctx.orgId,
+      propertyId: undefined,
+      userId: ctx.userId,
+      plan: ctx.plan,
+      isOrgMember: true,
+    });
   };
 
   /**
@@ -159,7 +180,17 @@ export function useFMPermissions() {
     canApproveWO: () => canPerform(SubmoduleKey.WO_CREATE, "approve"),
     canViewProperties: () => canPerform(SubmoduleKey.PROP_LIST, "view"),
     canManageProperties: () => canPerform(SubmoduleKey.PROP_LIST, "update"),
-    canViewFinancials: () =>
-      canPerform(SubmoduleKey.PROP_LIST, "view") && ctx.role !== Role.TENANT,
+    /**
+     * 🟥 FIXED: Use Finance-specific module access instead of property permissions
+     * Checks ROLE_MODULE_ACCESS for FINANCE module + org membership
+     */
+    canViewFinancials: () => {
+      // Must be an org member
+      if (!isMemberOf(ctx.orgId)) return false;
+      
+      // Check if role has access to Finance module
+      const moduleAccess = ROLE_MODULE_ACCESS[ctx.role];
+      return moduleAccess?.[ModuleKey.FINANCE] === true;
+    },
   };
 }

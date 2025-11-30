@@ -28,7 +28,9 @@ interface RoleBadgeProps {
 }
 
 // Role display configuration
-const ROLE_CONFIG: Record<Role, { label: string; color: string; description: string }> = {
+// Note: Only canonical STRICT v4.1 roles are defined here.
+// Legacy role aliases (CORPORATE_ADMIN, MANAGER, etc.) are mapped via normalizeRole()
+const ROLE_CONFIG: Partial<Record<Role, { label: string; color: string; description: string }>> = {
   [Role.SUPER_ADMIN]: {
     label: "Super Admin",
     color: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
