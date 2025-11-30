@@ -116,14 +116,20 @@ export function walkAndVerifyOrgId(
 }
 
 /**
- * Simplified wrapper for health check tests where you just want to verify
- * any org_id fields match the expected tenant (without requiring presence).
+ * Strict tenant scoping verification for data-bearing API responses.
+ * 
+ * AUDIT-2025-11-30: Default to requirePresence: true (fail-closed pattern).
+ * This ensures future callers don't accidentally mask missing org_id fields.
+ * 
+ * Use this for:
+ * - API responses that SHOULD contain tenant-scoped data (products, work orders, etc.)
+ * - Any endpoint where missing org_id indicates a potential cross-tenant leak
  * 
  * @example
  * ```ts
  * if (response.status() === 200 && TEST_ORG_ID) {
  *   const body = await response.json();
- *   verifyTenantScoping(body, TEST_ORG_ID, '/api/work-orders');
+ *   verifyTenantScoping(body, TEST_ORG_ID, '/api/work-orders', 'work order list');
  * }
  * ```
  */
@@ -137,6 +143,43 @@ export function verifyTenantScoping(
     expectedOrgId,
     endpoint,
     context,
-    requirePresence: false,
+    requirePresence: true, // AUDIT-2025-11-30: Fail-closed by default
+  });
+}
+
+/**
+ * Lenient tenant scoping verification for health checks and edge cases.
+ * 
+ * AUDIT-2025-11-30: Explicit lenient helper for cases where org_id presence
+ * cannot be guaranteed (empty responses, health endpoints, etc.).
+ * 
+ * Use this ONLY when:
+ * - The endpoint may legitimately return empty/null responses
+ * - You're testing authentication/connectivity, not data scoping
+ * - You've documented why leniency is acceptable
+ * 
+ * WARNING: Using this helper means missing org_id will NOT fail the test.
+ * Prefer verifyTenantScoping() for data-bearing responses.
+ * 
+ * @example
+ * ```ts
+ * // Health check - may return empty body or non-tenant-scoped status
+ * if (response.status() === 200 && TEST_ORG_ID) {
+ *   const body = await response.json();
+ *   verifyTenantScopingLenient(body, TEST_ORG_ID, '/api/health', 'health check');
+ * }
+ * ```
+ */
+export function verifyTenantScopingLenient(
+  body: unknown,
+  expectedOrgId: string,
+  endpoint: string,
+  context?: string
+): void {
+  walkAndVerifyOrgId(body, {
+    expectedOrgId,
+    endpoint,
+    context,
+    requirePresence: false, // Explicit leniency - document why you need this
   });
 }
