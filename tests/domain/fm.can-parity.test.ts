@@ -302,4 +302,160 @@ describe('RBAC can() Client/Server Parity', () => {
       expect(canClient('SYSTEM_USERS', 'view', ctx as ClientResourceCtx)).toBe(false);
     });
   });
+
+  describe('Tenant Create Parity', () => {
+    it('TENANT create denied when unitId not in units array', () => {
+      const ctx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-user-123',
+        requesterUserId: 'tenant-user-123',
+        unitId: 'unit-999',
+        units: ['unit-001', 'unit-002'],
+      });
+      
+      // Create action should fail when unit not accessible
+      expect(canServer('WO_CREATE', 'create', ctx)).toBe(false);
+      expect(canClient('WO_CREATE', 'create', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('TENANT create allowed when unitId in units array', () => {
+      const ctx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-user-123',
+        requesterUserId: 'tenant-user-123',
+        unitId: 'unit-001',
+        units: ['unit-001', 'unit-002'],
+      });
+      
+      // Create action should succeed when unit accessible
+      expect(canServer('WO_CREATE', 'create', ctx)).toBe(true);
+      expect(canClient('WO_CREATE', 'create', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('TENANT create denied when requesterId !== userId', () => {
+      const ctx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-user-123',
+        requesterUserId: 'different-user-456',
+        unitId: 'unit-001',
+        units: ['unit-001'],
+      });
+      
+      // Create action should fail when requester is different
+      expect(canServer('WO_CREATE', 'create', ctx)).toBe(false);
+      expect(canClient('WO_CREATE', 'create', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('TENANT create allowed when requesterId === userId and no unit context', () => {
+      const ctx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-user-123',
+        requesterUserId: 'tenant-user-123',
+        // No unitId or units provided
+      });
+      
+      // Create action should succeed when requester matches owner
+      expect(canServer('WO_CREATE', 'create', ctx)).toBe(true);
+      expect(canClient('WO_CREATE', 'create', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('TENANT view denied when requesterId !== userId', () => {
+      const ctx = createTestCtx({
+        role: Role.TENANT,
+        userId: 'tenant-user-123',
+        requesterUserId: 'different-user-456',
+      });
+      
+      // View action should fail when requester is different
+      expect(canServer('WO_CREATE', 'view', ctx)).toBe(false);
+      expect(canClient('WO_CREATE', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+  });
+
+  describe('Property Scoping Parity', () => {
+    it('CORPORATE_OWNER allowed when isOwnerOfProperty', () => {
+      const ctx = createTestCtx({
+        role: Role.CORPORATE_OWNER,
+        propertyId: 'prop-123',
+        isOwnerOfProperty: true,
+        assignedProperties: [],
+      });
+      
+      expect(canServer('PROP_LIST', 'view', ctx)).toBe(true);
+      expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('CORPORATE_OWNER allowed when propertyId in assignedProperties', () => {
+      const ctx = createTestCtx({
+        role: Role.CORPORATE_OWNER,
+        propertyId: 'prop-123',
+        isOwnerOfProperty: false,
+        assignedProperties: ['prop-123', 'prop-456'],
+      });
+      
+      expect(canServer('PROP_LIST', 'view', ctx)).toBe(true);
+      expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('CORPORATE_OWNER denied when neither owner nor assigned', () => {
+      const ctx = createTestCtx({
+        role: Role.CORPORATE_OWNER,
+        propertyId: 'prop-123',
+        isOwnerOfProperty: false,
+        assignedProperties: ['prop-other'],
+      });
+      
+      expect(canServer('PROP_LIST', 'view', ctx)).toBe(false);
+      expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('PROPERTY_MANAGER allowed when propertyId in assignedProperties', () => {
+      const ctx = createTestCtx({
+        role: Role.PROPERTY_MANAGER,
+        propertyId: 'prop-123',
+        isOwnerOfProperty: false,
+        assignedProperties: ['prop-123', 'prop-456'],
+      });
+      
+      expect(canServer('PROP_LIST', 'view', ctx)).toBe(true);
+      expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+
+    it('PROPERTY_MANAGER denied when propertyId not in assignedProperties', () => {
+      const ctx = createTestCtx({
+        role: Role.PROPERTY_MANAGER,
+        propertyId: 'prop-123',
+        isOwnerOfProperty: false,
+        assignedProperties: ['prop-other'],
+      });
+      
+      expect(canServer('PROP_LIST', 'view', ctx)).toBe(false);
+      expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('PROPERTY_MANAGER denied even with isOwnerOfProperty (must be assigned)', () => {
+      const ctx = createTestCtx({
+        role: Role.PROPERTY_MANAGER,
+        propertyId: 'prop-123',
+        isOwnerOfProperty: true,  // This shouldn't grant access
+        assignedProperties: [],   // Not assigned
+      });
+      
+      // Server behavior: Property Manager must be assigned, ownership alone doesn't grant access
+      expect(canServer('PROP_LIST', 'view', ctx)).toBe(false);
+      expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(false);
+    });
+
+    it('SUPER_ADMIN bypasses property scoping', () => {
+      const ctx = createTestCtx({
+        role: Role.SUPER_ADMIN,
+        propertyId: 'prop-123',
+        isOwnerOfProperty: false,
+        assignedProperties: [],
+      });
+      
+      expect(canServer('PROP_LIST', 'view', ctx)).toBe(true);
+      expect(canClient('PROP_LIST', 'view', ctx as ClientResourceCtx)).toBe(true);
+    });
+  });
 });

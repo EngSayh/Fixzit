@@ -30,6 +30,7 @@ export async function GET(_request: NextRequest) {
     const authConfig = {
       // Core Auth (CRITICAL)
       NEXTAUTH_SECRET: checkEnvVar("NEXTAUTH_SECRET"),
+      AUTH_SECRET: checkEnvVar("AUTH_SECRET"),
       NEXTAUTH_URL: checkEnvVar("NEXTAUTH_URL"),
       AUTH_TRUST_HOST: checkEnvVar("AUTH_TRUST_HOST"),
       NEXTAUTH_TRUST_HOST: checkEnvVar("NEXTAUTH_TRUST_HOST"),
@@ -52,8 +53,8 @@ export async function GET(_request: NextRequest) {
     // Determine overall status
     const criticalMissing: string[] = [];
 
-    if (!authConfig.NEXTAUTH_SECRET.set) {
-      criticalMissing.push("NEXTAUTH_SECRET");
+    if (!authConfig.NEXTAUTH_SECRET.set && !authConfig.AUTH_SECRET.set) {
+      criticalMissing.push("NEXTAUTH_SECRET (or AUTH_SECRET fallback)");
     }
 
     // trustHost is required on Vercel
@@ -90,7 +91,9 @@ export async function GET(_request: NextRequest) {
         // Only show set/not-set status, never actual values
         NEXTAUTH_SECRET: authConfig.NEXTAUTH_SECRET.set
           ? `✅ Set (${authConfig.NEXTAUTH_SECRET.length} chars)`
-          : "❌ Missing",
+          : authConfig.AUTH_SECRET.set
+            ? `✅ Set via AUTH_SECRET (${authConfig.AUTH_SECRET.length} chars)`
+            : "❌ Missing",
         NEXTAUTH_URL: authConfig.NEXTAUTH_URL.set
           ? "✅ Set"
           : authConfig.VERCEL_URL.set

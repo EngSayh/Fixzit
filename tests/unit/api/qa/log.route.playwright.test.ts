@@ -29,8 +29,14 @@ test.describe("Unit-ish /api/qa/log", () => {
     }
   });
 
-  test.skip("POST invalid JSON yields 500 error - requires raw fetch, not Playwright request API", async () => {
-    // Note: Playwright's request.post doesn't support sending invalid JSON via 'body' parameter
-    // This test would need to use raw fetch or a different approach to test malformed JSON
+  test("POST invalid JSON yields 500 error (malformed body)", async ({ request }) => {
+    const res = await request.fetch("/api/qa/log", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{ invalid-json",
+    });
+    expect(res.status()).toBe(500);
+    const body = await res.json();
+    expect(body).toMatchObject({ error: "Failed to log event" });
   });
 });

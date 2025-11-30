@@ -1088,32 +1088,39 @@ export function can(
   if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
 
   // TENANT scope validation: must own the user record OR unit membership
-  if (ctx.role === Role.TENANT && action !== "create") {
-    // If unit context provided, validate tenant has access to the unit
+  if (ctx.role === Role.TENANT) {
+    // Create action: validate unit membership + requester ownership
+    if (action === "create") {
+      if (ctx.unitId && ctx.units && !ctx.units.includes(ctx.unitId)) {
+        return false;
+      }
+      return ctx.requesterUserId === ctx.userId;
+    }
+    // Other actions: validate unit access + requester ownership
     if (ctx.unitId && ctx.units?.length) {
       const hasUnitAccess = ctx.units.includes(ctx.unitId);
       if (!hasUnitAccess && !ctx.isSuperAdmin) {
         return false;
       }
     }
-    // Fallback to user ownership check
     return ctx.requesterUserId === ctx.userId;
   }
 
-  // PROPERTY_MANAGER scope validation: must manage the property
-  if (ctx.role === Role.PROPERTY_MANAGER && ctx.propertyId) {
-    const managesProperty =
-      ctx.assignedProperties?.includes(ctx.propertyId) ||
+  // CORPORATE_OWNER scope validation: must own/manage the property
+  if (ctx.role === Role.CORPORATE_OWNER && ctx.propertyId) {
+    const ownsProperty =
       ctx.isOwnerOfProperty ||
-      ctx.isSuperAdmin;
-    if (!managesProperty) {
+      (ctx.assignedProperties && ctx.assignedProperties.includes(ctx.propertyId));
+    if (!ownsProperty && !ctx.isSuperAdmin) {
       return false;
     }
   }
 
-  // CORPORATE_OWNER scope validation: must own the property
-  if (ctx.role === Role.CORPORATE_OWNER && ctx.propertyId) {
-    if (!(ctx.isOwnerOfProperty || ctx.isSuperAdmin)) {
+  // PROPERTY_MANAGER scope validation: must be assigned to the property
+  if (ctx.role === Role.PROPERTY_MANAGER && ctx.propertyId) {
+    const managesProperty =
+      ctx.assignedProperties && ctx.assignedProperties.includes(ctx.propertyId);
+    if (!managesProperty && !ctx.isSuperAdmin) {
       return false;
     }
   }

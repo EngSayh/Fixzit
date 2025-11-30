@@ -1259,40 +1259,36 @@ export function computeAllowedModules(
     }
   }
 
-  // STRICT v4.1: Override for Team Member sub-roles
+  // STRICT v4.1: Merge sub-role modules with base TEAM_MEMBER modules
   if (role === Role.TEAM_MEMBER && subRole) {
+    const subRoleModules: ModuleKey[] = [];
     switch (subRole) {
       case SubRole.FINANCE_OFFICER:
-        // Dashboard, Finance, Reports only
-        return [ModuleKey.DASHBOARD, ModuleKey.FINANCE, ModuleKey.REPORTS];
+        // Add Finance module to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.FINANCE);
+        break;
 
       case SubRole.HR_OFFICER:
-        // Dashboard, HR, Reports only (+ PII access via separate check)
-        return [ModuleKey.DASHBOARD, ModuleKey.HR, ModuleKey.REPORTS];
+        // Add HR module to base TEAM_MEMBER modules (+ PII access via separate check)
+        subRoleModules.push(ModuleKey.HR);
+        break;
 
       case SubRole.SUPPORT_AGENT:
-        // Dashboard, Support, CRM, Reports
-        return [
-          ModuleKey.DASHBOARD,
-          ModuleKey.SUPPORT,
-          ModuleKey.CRM,
-          ModuleKey.REPORTS,
-        ];
+        // Add Support module to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.SUPPORT);
+        break;
 
       case SubRole.OPERATIONS_MANAGER:
-        // Dashboard, Work Orders, Properties, Support, Reports (wider scope)
-        return [
-          ModuleKey.DASHBOARD,
-          ModuleKey.WORK_ORDERS,
-          ModuleKey.PROPERTIES,
-          ModuleKey.SUPPORT,
-          ModuleKey.REPORTS,
-        ];
+        // Add Work Orders and Properties to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.WORK_ORDERS, ModuleKey.PROPERTIES);
+        break;
 
       default:
         // Base Team Member access
         break;
     }
+    // Merge base + sub-role modules (union)
+    return [...new Set([...allowed, ...subRoleModules])];
   }
 
   return allowed;
