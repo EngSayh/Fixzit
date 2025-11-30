@@ -140,12 +140,38 @@ test.skip(
 );
 
 /**
+ * SCOPED ROLES that require user-level RBAC assertions.
+ * These roles should only see data assigned/owned by them, not all org data.
+ * 
+ * AUDIT-2025-12-01: TEST_${ROLE}_USER_ID is REQUIRED for these roles in CI.
+ * Without it, row-level validators pass even if API returns over-broad data.
+ */
+const SCOPED_ROLES: SubRoleKey[] = ['TEAM_MEMBER', 'SUPPORT_AGENT'];
+
+/**
  * Get test credentials for a sub-role.
  * Throws immediately if environment variables are not configured.
- * This ensures tests fail fast rather than silently skipping.
+ * 
+ * AUDIT-2025-12-01: For SCOPED_ROLES (TEAM_MEMBER, SUPPORT_AGENT), userId is REQUIRED
+ * in CI to enable row-level RBAC assertions. Without userId, tests would pass
+ * even if the API returns all org data instead of user-scoped data.
  */
 function getCredentials(subRole: SubRoleKey): TestCredentials {
-  return getRequiredTestCredentials(subRole);
+  const creds = getRequiredTestCredentials(subRole);
+  
+  // AUDIT-2025-12-01: Enforce userId for scoped roles in CI
+  // This ensures row-level validators actually assert user ownership
+  if (SCOPED_ROLES.includes(subRole) && IS_CI && !IS_FORK_OR_MISSING_SECRETS) {
+    expect(
+      creds.userId,
+      `TEST_${subRole}_USER_ID is REQUIRED in CI for row-level RBAC assertions.\n` +
+      `Without it, ${subRole} tests pass even if API returns all org data.\n\n` +
+      `ACTION: Add TEST_${subRole}_USER_ID to GitHub Secrets.\n` +
+      `Value should be the MongoDB _id of the test user for this role.`
+    ).toBeTruthy();
+  }
+  
+  return creds;
 }
 
 /**
@@ -1502,7 +1528,7 @@ test.describe('Tenant Validation Helper Behavior', () => {
     
     const response = createMockResponse(wrongTenantBody);
     
-    // This should fail because org_id doesn't match expected
+    // This should fail because org_id in nested data doesn't match expected
     await expect(async () => {
       await expectAllowedWithBodyCheck(response, '/api/test', 'TEST_ROLE', {
         expectedOrgId: 'correct-tenant',
@@ -1510,11 +1536,10 @@ test.describe('Tenant Validation Helper Behavior', () => {
     }).rejects.toThrow(/TENANT MISMATCH/);
   });
 
-  test('catches org_id mismatch in arbitrary nested key (summary)', async () => {
-    // This tests the "all nested objects" traversal - summary is not in the
-    // old hardcoded wrapperKeys list (data/items/results)
+  test('catches org_id mismatch in items wrapper', async () => {
+    // Tests the "items" wrapper which is in the allowed wrapper list
     const wrongTenantBody = {
-      summary: { totalCount: 10, org_id: 'wrong-tenant' },
+      items: [{ id: '1', org_id: 'wrong-tenant', name: 'Test' }],
       meta: { page: 1 },
     };
     
@@ -1527,12 +1552,27 @@ test.describe('Tenant Validation Helper Behavior', () => {
     }).rejects.toThrow(/TENANT MISMATCH/);
   });
 
-  test('catches org_id mismatch in deeply nested user object', async () => {
+  test('catches org_id mismatch in results wrapper', async () => {
+    // Tests the "results" wrapper which is in the allowed wrapper list
     const wrongTenantBody = {
-      result: {
-        user: {
-          profile: { org_id: 'wrong-tenant', name: 'John' },
-        },
+      results: [{ id: '1', org_id: 'wrong-tenant' }],
+    };
+    
+    const response = createMockResponse(wrongTenantBody);
+    
+    await expect(async () => {
+      await expectAllowedWithBodyCheck(response, '/api/test', 'TEST_ROLE', {
+        expectedOrgId: 'correct-tenant',
+      });
+    }).rejects.toThrow(/TENANT MISMATCH/);
+  });
+
+  test('catches org_id mismatch in nested data.items structure', async () => {
+    // Tests deeply nested paginated response
+    const wrongTenantBody = {
+      data: {
+        items: [{ id: '1', org_id: 'wrong-tenant', name: 'Test' }],
+        total: 1,
       },
     };
     
@@ -1561,15 +1601,32 @@ test.describe('Tenant Validation Helper Behavior', () => {
     });
   });
 
-  test('accepts matching org_id in non-standard wrapper', async () => {
+  test('accepts matching org_id in various wrapper structures', async () => {
     const validBody = {
-      payload: { record: { org_id: 'correct-tenant', value: 42 } },
-      rows: [{ org_id: 'correct-tenant', name: 'Item 1' }],
+      data: [
+        { id: '1', org_id: 'correct-tenant', name: 'Item 1' },
+        { id: '2', org_id: 'correct-tenant', name: 'Item 2' },
+      ],
+      meta: { page: 1, total: 2 },
     };
     
     const response = createMockResponse(validBody);
     
-    // Should NOT throw - org_id matches in all nested objects
+    // Should NOT throw - org_id matches in all data items
+    await expectAllowedWithBodyCheck(response, '/api/test', 'TEST_ROLE', {
+      expectedOrgId: 'correct-tenant',
+    });
+  });
+
+  test('accepts matching org_id in nested items structure', async () => {
+    const validBody = {
+      items: [{ org_id: 'correct-tenant', value: 42 }],
+      pagination: { next: '/api/test?page=2' },
+    };
+    
+    const response = createMockResponse(validBody);
+    
+    // Should NOT throw - org_id matches in items
     await expectAllowedWithBodyCheck(response, '/api/test', 'TEST_ROLE', {
       expectedOrgId: 'correct-tenant',
     });
