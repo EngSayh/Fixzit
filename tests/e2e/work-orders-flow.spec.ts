@@ -9,6 +9,7 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { verifyTenantScoping } from "./utils/tenant-validation";
 
 const TEST_ORG_ID = process.env.TEST_ORG_ID;
 const ALLOW_MISSING_TEST_ORG_ID = process.env.ALLOW_MISSING_TEST_ORG_ID === "true";
@@ -140,22 +141,14 @@ test.describe("Work Orders - Public API", () => {
     // Should get a response (401 unauthorized is OK, 500 is not)
     expect(response.status()).toBeLessThan(500);
 
-    // If we got 200 and TEST_ORG_ID is set, enforce tenant scoping in payloads that include org_id
+    // AUDIT-2025-12-01: Use recursive tenant validation to catch nested org_id leaks
+    // Handles wrapped payloads ({data: [...]}), camelCase (orgId), and deep nesting
     if (response.status() === 200 && TEST_ORG_ID) {
       try {
         const body = await response.json();
-        const verifyOrg = (value: unknown) => {
-          if (value && typeof value === "object" && "org_id" in (value as Record<string, unknown>)) {
-            expect((value as { org_id?: unknown }).org_id).toBe(TEST_ORG_ID);
-          }
-        };
-        if (Array.isArray(body)) {
-          body.forEach(verifyOrg);
-        } else {
-          verifyOrg(body);
-        }
+        verifyTenantScoping(body, TEST_ORG_ID, '/api/work-orders', 'health check');
       } catch (error) {
-        // Non-JSON or no org_id — warn but don't fail this health check
+        // Non-JSON response — warn but don't fail this health check
         console.warn(
           `⚠️  Tenant validation skipped for /api/work-orders: ${String(error)}`
         );

@@ -600,6 +600,125 @@ function expectDenied(
   ).toBe(403);
 }
 
+/**
+ * AUDIT-2025-11-30: Assertion helper for POST/PUT/PATCH write operations.
+ * 
+ * Write operations have different success patterns than reads:
+ * - 200/201: Resource created/updated - MUST validate tenant scoping on response
+ * - 400/422: Validation error - RBAC passed, but data invalid (acceptable for RBAC tests)
+ * - 403: RBAC denied - test failure for allowed roles
+ * - 401: Auth failure - test failure
+ * 
+ * This helper ensures that:
+ * 1. RBAC allows the operation (not 401/403)
+ * 2. If resource is returned (200/201), tenant scoping is validated
+ * 3. Validation errors (400/422) are acceptable for RBAC-focused tests
+ * 
+ * @param response - Playwright API response
+ * @param endpoint - API endpoint path
+ * @param role - Role name for error messages
+ * @param options - Validation options including expectedOrgId for tenant checks
+ */
+async function expectWriteAllowedWithTenantCheck(
+  response: { status: () => number; json: () => Promise<unknown>; text: () => Promise<string> },
+  endpoint: string,
+  role: string,
+  options?: {
+    expectedOrgId?: string;
+    requireOrgIdPresence?: boolean;
+    validate?: (body: unknown) => void;
+  }
+): Promise<void> {
+  const status = response.status();
+  
+  // First, verify RBAC didn't block the request
+  expect(
+    [200, 201, 400, 422].includes(status),
+    `${role} POST/PUT to ${endpoint} got ${status}.\n` +
+    `Expected 200/201 (success), 400/422 (validation - RBAC passed).\n` +
+    `DIAGNOSIS:\n` +
+    `  • 403: RBAC incorrectly denying write access\n` +
+    `  • 401: Authentication failure\n` +
+    `  • 404: Route missing or guard returns 404 instead of 403\n` +
+    `  • 500: Server error\n` +
+    `ACTION: Check RBAC configuration for ${role} write permissions on ${endpoint}.`
+  ).toBe(true);
+  
+  // For validation errors (400/422), RBAC passed but data was invalid
+  // This is acceptable for RBAC-focused tests with minimal payloads
+  if (status === 400 || status === 422) {
+    // Log for visibility, but don't fail - RBAC passed
+    console.info(
+      `ℹ️  ${role} POST/PUT to ${endpoint} returned ${status} (validation error).\n` +
+      `RBAC allowed the request, but payload was invalid. This is expected for RBAC tests.`
+    );
+    return;
+  }
+  
+  // For 200/201, validate tenant scoping on the response
+  // This catches cross-tenant write bugs where wrong org_id is assigned
+  if (status === 200 || status === 201) {
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      // Some write endpoints return empty body on success - that's OK
+      const raw = await response.text();
+      if (raw.trim() === '' || raw === 'null') {
+        console.info(
+          `ℹ️  ${role} POST/PUT to ${endpoint} returned ${status} with empty body.\n` +
+          `Cannot validate tenant scoping on empty response.`
+        );
+        return;
+      }
+      throw new Error(`Failed to parse response body as JSON: ${raw}`);
+    }
+    
+    // AUDIT-2025-11-30: Validate tenant scoping on created/updated resource
+    // This catches cross-tenant write bugs where:
+    // - Backend assigns wrong org_id to created resource
+    // - Backend omits org_id entirely on response
+    if (options?.expectedOrgId && body && typeof body === 'object') {
+      const requirePresence = options.requireOrgIdPresence ?? true;
+      const b = body as Record<string, unknown>;
+      
+      // Check for org_id in response (direct or nested in data wrapper)
+      const directOrgId = b.org_id ?? b.orgId;
+      const nestedOrgId = (b.data as Record<string, unknown>)?.org_id ?? 
+                          (b.data as Record<string, unknown>)?.orgId;
+      const foundOrgId = directOrgId ?? nestedOrgId;
+      
+      if (requirePresence && foundOrgId === undefined) {
+        expect(
+          false,
+          `TENANT ID MISSING on write response: ${endpoint}\n` +
+          `Role: ${role}, Status: ${status}\n` +
+          `Expected: org_id or orgId field with value ${options.expectedOrgId}\n\n` +
+          `SECURITY RISK: Created/updated resource may not be tenant-scoped.\n` +
+          `ACTION:\n` +
+          `  • If write response SHOULD include org_id: Fix backend\n` +
+          `  • If response intentionally omits org_id: Set requireOrgIdPresence: false`
+        ).toBe(true);
+      }
+      
+      if (foundOrgId !== undefined) {
+        expect(
+          String(foundOrgId),
+          `TENANT MISMATCH on write: ${endpoint}\n` +
+          `Role: ${role}, Status: ${status}\n` +
+          `Expected org_id: ${options.expectedOrgId}, got: ${foundOrgId}\n\n` +
+          `SECURITY RISK: Cross-tenant write detected! Resource assigned to wrong tenant.`
+        ).toBe(options.expectedOrgId);
+      }
+    }
+    
+    // Run custom validator if provided
+    if (options?.validate && body) {
+      options.validate(body);
+    }
+  }
+}
+
 // API endpoints categorized by module
 const API_ENDPOINTS = {
   finance: {
@@ -1508,8 +1627,11 @@ test.describe('Sub-Role API Access Control', () => {
      * AUDIT-2025-11-30: Added verb-level tests for ADMIN write operations.
      * Previous coverage was GET-heavy; these tests verify POST/PUT permissions
      * for work orders and marketplace bids to catch RBAC/tenancy regressions on writes.
+     * 
+     * AUDIT-2025-11-30 UPDATE: Now uses expectWriteAllowedWithTenantCheck to validate
+     * org_id on successful responses, catching cross-tenant write bugs.
      */
-    test('ADMIN can POST to work orders API (create)', async ({ page, request }) => {
+    test('ADMIN can POST to work orders API (create) with tenant validation', async ({ page, request }) => {
       const result = await attemptLogin(page, credentials.email, credentials.password);
       expect(result.success, `Login failed for ADMIN: ${result.errorText || 'unknown'}`).toBeTruthy();
 
@@ -1527,18 +1649,22 @@ test.describe('Sub-Role API Access Control', () => {
         }
       );
       
-      const status = response.status();
-      // 200/201 = success, 400/422 = validation error (RBAC passed), 403 = RBAC denied
-      expect(
-        [200, 201, 400, 422].includes(status),
-        `ADMIN POST ${API_ENDPOINTS.workOrders.create} got ${status}.\n` +
-        `Expected 200/201 (created), 400/422 (validation - RBAC passed).\n` +
-        `If 403: RBAC incorrectly denying Admin write access.\n` +
-        `If 401: Authentication issue.`
-      ).toBe(true);
+      // AUDIT-2025-11-30: Validate tenant scoping on write response
+      // This catches cross-tenant write bugs where backend assigns wrong org_id
+      await expectWriteAllowedWithTenantCheck(
+        response,
+        API_ENDPOINTS.workOrders.create,
+        'ADMIN',
+        {
+          expectedOrgId: getTestOrgIdOptional(),
+          // For POST responses that return the created resource, validate org_id
+          // Set to false only if this endpoint intentionally omits org_id in response
+          requireOrgIdPresence: true,
+        }
+      );
     });
 
-    test('ADMIN can POST to marketplace bids API', async ({ page, request }) => {
+    test('ADMIN can POST to marketplace bids API with tenant validation', async ({ page, request }) => {
       const result = await attemptLogin(page, credentials.email, credentials.password);
       expect(result.success, `Login failed for ADMIN: ${result.errorText || 'unknown'}`).toBeTruthy();
 
@@ -1555,13 +1681,80 @@ test.describe('Sub-Role API Access Control', () => {
         }
       );
       
-      const status = response.status();
-      expect(
-        [200, 201, 400, 422].includes(status),
-        `ADMIN POST ${API_ENDPOINTS.marketplace.bids} got ${status}.\n` +
-        `Expected 200/201 (created), 400/422 (validation - RBAC passed).\n` +
-        `If 403: RBAC incorrectly denying Admin write access.`
-      ).toBe(true);
+      // AUDIT-2025-11-30: Validate tenant scoping on write response
+      await expectWriteAllowedWithTenantCheck(
+        response,
+        API_ENDPOINTS.marketplace.bids,
+        'ADMIN',
+        {
+          expectedOrgId: getTestOrgIdOptional(),
+          requireOrgIdPresence: true,
+        }
+      );
+    });
+
+    /**
+     * AUDIT-2025-11-30: Added workOrders.assign test for comprehensive write coverage.
+     * This endpoint requires both RBAC check AND tenant scoping on assignment.
+     */
+    test('ADMIN can POST to work orders assign API with tenant validation', async ({ page, request }) => {
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for ADMIN: ${result.errorText || 'unknown'}`).toBeTruthy();
+
+      // POST to assign endpoint - Admin should be allowed
+      const response = await makeAuthenticatedRequest(
+        page, 
+        request, 
+        API_ENDPOINTS.workOrders.assign, 
+        'POST',
+        { 
+          workOrderId: 'rbac-test-wo-id',
+          assigneeId: 'rbac-test-assignee',
+          _rbacTest: true
+        }
+      );
+      
+      await expectWriteAllowedWithTenantCheck(
+        response,
+        API_ENDPOINTS.workOrders.assign,
+        'ADMIN',
+        {
+          expectedOrgId: getTestOrgIdOptional(),
+          requireOrgIdPresence: true,
+        }
+      );
+    });
+
+    /**
+     * AUDIT-2025-11-30: Added admin.settings update test for comprehensive write coverage.
+     */
+    test('ADMIN can PUT to admin settings API with tenant validation', async ({ page, request }) => {
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for ADMIN: ${result.errorText || 'unknown'}`).toBeTruthy();
+
+      // PUT to settings endpoint - Admin should be allowed
+      const response = await makeAuthenticatedRequest(
+        page, 
+        request, 
+        API_ENDPOINTS.admin.settings, 
+        'PUT',
+        { 
+          _rbacTest: true,
+          // Minimal settings payload - actual validation may require more fields
+          notifications: { email: true }
+        }
+      );
+      
+      await expectWriteAllowedWithTenantCheck(
+        response,
+        API_ENDPOINTS.admin.settings,
+        'ADMIN',
+        {
+          expectedOrgId: getTestOrgIdOptional(),
+          // Settings may not return org_id in response - adjust if needed
+          requireOrgIdPresence: false,
+        }
+      );
     });
   });
 
