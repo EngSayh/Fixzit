@@ -5,9 +5,9 @@
  * 🔒 STRICT v4.1 COMPLIANT - Aligned with domain/fm/fm.behavior.ts canonical Role enum
  */
 
-import { Role, SubRole } from "@/domain/fm/fm.behavior";
+import { Role, SubRole } from "@/domain/fm/fm-lite";
 
-// Re-export canonical Role and SubRole from the single source of truth
+// Re-export canonical Role and SubRole from the single source of truth (client-safe)
 export { Role, SubRole };
 
 /**

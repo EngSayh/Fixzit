@@ -3,6 +3,10 @@
  * 
  * STRICT v4.1 COMPLIANT - Governance V5/V6 Aligned
  * 
+ * ⚠️  WARNING: This file contains Mongoose schemas. Avoid importing directly in
+ *    client components ("use client"). For client-side usage of types/enums only,
+ *    prefer importing from domain/fm/fm-lite.ts instead.
+ * 
  * This file implements the canonical RBAC matrix from STRICT v4.1 specification,
  * fully aligned with Master System Governance V5 and Sidebar Specs V6.
  * 

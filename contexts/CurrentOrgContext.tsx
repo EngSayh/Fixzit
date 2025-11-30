@@ -9,7 +9,7 @@
 
 import React, { createContext, useContext, useMemo, ReactNode } from "react";
 import { useSession } from "next-auth/react";
-import { Plan } from "@/domain/fm/fm.behavior";
+import { Plan } from "@/domain/fm/fm-lite";
 
 export interface Organization {
   id: string;

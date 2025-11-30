@@ -24,6 +24,14 @@ export enum SubRole {
   OPERATIONS_MANAGER = "OPERATIONS_MANAGER",
 }
 
+/** Organization subscription plan levels */
+export enum Plan {
+  STARTER = "STARTER",
+  STANDARD = "STANDARD",
+  PRO = "PRO",
+  ENTERPRISE = "ENTERPRISE",
+}
+
 export enum ModuleKey {
   DASHBOARD = "DASHBOARD",
   WORK_ORDERS = "WORK_ORDERS",
