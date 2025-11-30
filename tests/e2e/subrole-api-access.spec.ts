@@ -334,6 +334,20 @@ async function expectAllowedWithBodyCheck(
      */
     expectedOrgId?: string;
     /**
+     * AUDIT-2025-11-30: Require org_id/orgId to be PRESENT in every response object.
+     * 
+     * When true, the test FAILS if any response object is missing org_id/orgId.
+     * This catches APIs that omit tenant identifiers entirely, which would
+     * otherwise pass validation silently (since there's no wrong value to detect).
+     * 
+     * Use this for endpoints that MUST return tenant-scoped data.
+     * Set to false for endpoints that legitimately return tenant-agnostic data
+     * (e.g., system configs, public metadata).
+     * 
+     * @default false for backward compatibility
+     */
+    requireOrgIdPresence?: boolean;
+    /**
      * Custom payload validator.
      */
     validate?: (body: unknown) => void;
@@ -391,18 +405,42 @@ async function expectAllowedWithBodyCheck(
   }
 
   // Basic tenant/org_id guardrail if provided
+  // AUDIT-2025-11-30: Check BOTH org_id (snake_case) and orgId (camelCase)
+  // Mongoose models typically use orgId, but API responses may use org_id
   if (options?.expectedOrgId) {
-    const verifyOrgId = (value: unknown) => {
-      if (value && typeof value === 'object' && 'org_id' in (value as Record<string, unknown>)) {
-        expect(
-          (value as { org_id?: unknown }).org_id,
-          `Expected org_id=${options.expectedOrgId} in payload for ${endpoint}`
-        ).toBe(options.expectedOrgId);
+    const verifyOrgId = (value: unknown, index?: number) => {
+      if (value && typeof value === 'object') {
+        const v = value as Record<string, unknown>;
+        // Check both org_id and orgId - Mongoose uses camelCase, some APIs use snake_case
+        const foundOrgId = v.org_id ?? v.orgId;
+        
+        // AUDIT-2025-11-30: Enforce org_id PRESENCE when requireOrgIdPresence is true
+        // This catches APIs that omit tenant identifiers entirely
+        if (options.requireOrgIdPresence && foundOrgId === undefined) {
+          const location = index !== undefined ? `[${index}]` : '';
+          expect(
+            false,
+            `TENANT ID MISSING: ${endpoint} response${location} has no org_id or orgId field.\n` +
+            `Role: ${role}\n` +
+            `Expected: org_id or orgId field with value ${options.expectedOrgId}\n\n` +
+            `SECURITY RISK: APIs that omit tenant identifiers can leak cross-tenant data.\n` +
+            `ACTION:\n` +
+            `  • If this endpoint SHOULD return tenant-scoped data: Fix backend to include org_id\n` +
+            `  • If this endpoint is tenant-agnostic by design: Set requireOrgIdPresence: false`
+          ).toBe(true);
+        }
+        
+        if (foundOrgId !== undefined) {
+          expect(
+            String(foundOrgId),
+            `Expected org_id/orgId=${options.expectedOrgId} in payload for ${endpoint}, got ${foundOrgId}`
+          ).toBe(options.expectedOrgId);
+        }
       }
     };
 
     if (Array.isArray(body)) {
-      body.forEach(verifyOrgId);
+      body.forEach((item, idx) => verifyOrgId(item, idx));
     } else {
       verifyOrgId(body);
     }
