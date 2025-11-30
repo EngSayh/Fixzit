@@ -9,7 +9,7 @@
  */
 
 import { test, expect } from "@playwright/test";
-import { verifyTenantScoping } from "./utils/tenant-validation";
+import { verifyTenantScoping, walkAndVerifyOrgId } from "./utils/tenant-validation";
 
 const TEST_ORG_ID = process.env.TEST_ORG_ID;
 const ALLOW_MISSING_TEST_ORG_ID = process.env.ALLOW_MISSING_TEST_ORG_ID === "true";
@@ -58,8 +58,12 @@ test.describe("Marketplace - Public Access", () => {
     const categories = page.locator('[data-category], [class*="category"]');
     const categoryCount = await categories.count();
 
-    // Should have some category elements
-    expect(categoryCount).toBeGreaterThanOrEqual(0);
+    // AUDIT-2025-11-30: Strengthened assertion - categories should exist on marketplace
+    // If categories are intentionally hidden, update this assertion with documented reason
+    expect(
+      categoryCount,
+      'Marketplace should display at least one category. If this is intentional, document the reason.'
+    ).toBeGreaterThan(0);
   });
 
   test("should have working search functionality", async ({ page }) => {
@@ -237,13 +241,17 @@ test.describe("Marketplace - API Integration", () => {
 
     // AUDIT-2025-12-01: Use recursive tenant validation to catch nested org_id leaks
     // Handles wrapped payloads ({data: [...], items: [...]}), camelCase (orgId), and deep nesting
+    // AUDIT-2025-12-01 (Phase 19): CRITICAL - Tenant validation errors MUST fail tests
+    // DO NOT wrap in try/catch that swallows errors - cross-tenant leaks are security violations
+    // AUDIT-2025-11-30: requirePresence: true for data-bearing endpoints - missing org_id should FAIL
     if (response.status() === 200 && TEST_ORG_ID) {
-      try {
-        const body = await response.json();
-        verifyTenantScoping(body, TEST_ORG_ID, '/api/marketplace/products', 'product search');
-      } catch (error) {
-        console.warn(`⚠️  Tenant validation skipped for marketplace search: ${String(error)}`);
-      }
+      const body = await response.json();
+      walkAndVerifyOrgId(body, {
+        expectedOrgId: TEST_ORG_ID,
+        endpoint: '/api/marketplace/products',
+        context: 'product search',
+        requirePresence: true, // FAIL if org_id/orgId missing on tenant-scoped product data
+      });
     }
     // Note: Missing TEST_ORG_ID warnings are now handled at module-level guard
   });

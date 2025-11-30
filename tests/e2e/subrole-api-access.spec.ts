@@ -7,6 +7,7 @@ import {
   type TestCredentials,
   type SubRoleKey,
 } from './utils/credentials';
+import { walkAndVerifyOrgId } from './utils/tenant-validation';
 
 // SECURITY FIX (2025-11-30): Removed ALLOW_OFFLINE_E2E_DEFAULTS block
 //
@@ -476,87 +477,21 @@ async function expectAllowedWithBodyCheck(
   // - Recursively walks ALL nested objects/arrays (skips metadata: meta/pagination/_metadata/__v)
   // - Catches tenant leaks in any response shape, not just data/items/results
   // - Defaults requireOrgIdPresence to TRUE when expectedOrgId is provided (fail-closed)
+  //
+  // AUDIT-2025-12-01: Now using shared walkAndVerifyOrgId from tenant-validation.ts
+  // to ensure consistent validation depth across all E2E suites.
   if (options?.expectedOrgId) {
     // SECURITY: Default to requiring presence when checking tenant ID
     // This ensures APIs that omit org_id entirely fail instead of passing silently.
     // Callers can opt-out with requireOrgIdPresence: false for tenant-agnostic endpoints.
     const requirePresence = options.requireOrgIdPresence ?? true;
     
-    /**
-     * Recursively verifies tenant ID on objects and walks ALL nested objects/arrays.
-     * Skips metadata-only keys (meta, pagination, _metadata, __v) that never contain
-     * tenant-scoped business data.
-     * 
-     * Handles any API response shape:
-     * - Direct object: { org_id: "...", ... }
-     * - Array: [{ org_id: "..." }, ...]
-     * - Wrapped: { data: [...] }, { items: [...] }, { results: [...] }
-     * - Paginated: { data: { items: [...] } }
-     * - Custom nested: { summary: { org_id: "..." }, user: {...}, rows: [...] }
-     */
-    const walkAndVerifyOrgId = (value: unknown, path = 'body'): void => {
-      if (!value || typeof value !== 'object') return;
-      
-      // Handle arrays - verify each item
-      if (Array.isArray(value)) {
-        value.forEach((item, idx) => walkAndVerifyOrgId(item, `${path}[${idx}]`));
-        return;
-      }
-      
-      const v = value as Record<string, unknown>;
-      
-      // Check both org_id and orgId - Mongoose uses camelCase, some APIs use snake_case
-      const foundOrgId = v.org_id ?? v.orgId;
-      
-      // AUDIT-2025-11-30: Enforce org_id PRESENCE (fail-closed security pattern)
-      // This catches APIs that omit tenant identifiers entirely
-      if (requirePresence && foundOrgId === undefined) {
-        // Before failing, check if this is a wrapper object (no org_id expected at wrapper level)
-        const isWrapperOnly = ['data', 'items', 'results', 'meta', 'pagination'].some(
-          key => key in v && !('org_id' in v) && !('orgId' in v)
-        );
-        
-        if (!isWrapperOnly) {
-          expect(
-            false,
-            `TENANT ID MISSING: ${endpoint} at ${path} has no org_id or orgId field.\n` +
-            `Role: ${role}\n` +
-            `Expected: org_id or orgId field with value ${options.expectedOrgId}\n\n` +
-            `SECURITY RISK: APIs that omit tenant identifiers can leak cross-tenant data.\n` +
-            `ACTION:\n` +
-            `  • If this endpoint SHOULD return tenant-scoped data: Fix backend to include org_id\n` +
-            `  • If this endpoint is tenant-agnostic by design: Set requireOrgIdPresence: false`
-          ).toBe(true);
-        }
-      }
-      
-      // Verify org_id value when present
-      if (foundOrgId !== undefined) {
-        expect(
-          String(foundOrgId),
-          `TENANT MISMATCH at ${path}: Expected org_id/orgId=${options.expectedOrgId}, got ${foundOrgId}\n` +
-          `Endpoint: ${endpoint}\n` +
-          `Role: ${role}\n\n` +
-          `SECURITY RISK: Cross-tenant data leak detected!`
-        ).toBe(options.expectedOrgId);
-      }
-      
-      // AUDIT-2025-11-30: Recurse into ALL nested objects to catch tenant leaks
-      // regardless of the key name (summary, payload, user, rows, etc.)
-      // Only skip pure metadata keys that never contain tenant-scoped business data.
-      const METADATA_ONLY_KEYS = new Set(['meta', 'pagination', '_metadata', '__v']);
-      
-      for (const [key, val] of Object.entries(v)) {
-        // Skip non-objects and metadata-only keys
-        if (!val || typeof val !== 'object') continue;
-        if (METADATA_ONLY_KEYS.has(key)) continue;
-        
-        // Recurse into this nested object/array
-        walkAndVerifyOrgId(val, `${path}.${key}`);
-      }
-    };
-    
-    walkAndVerifyOrgId(body);
+    walkAndVerifyOrgId(body, {
+      expectedOrgId: options.expectedOrgId,
+      endpoint,
+      context: role,
+      requirePresence,
+    });
   }
 
   if (options?.validate) {
