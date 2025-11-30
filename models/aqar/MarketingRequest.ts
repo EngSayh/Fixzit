@@ -7,6 +7,7 @@
 
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 
 export enum MarketingRequestStatus {
   PENDING = "PENDING", // Awaiting broker response
@@ -224,6 +225,12 @@ MarketingRequestSchema.methods.linkListing = async function (
   // Update this instance
   Object.assign(this, result.toObject());
 };
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar marketing requests
+// =============================================================================
+MarketingRequestSchema.plugin(tenantIsolationPlugin);
 
 const MarketingRequest = getModel<IMarketingRequest>(
   "AqarMarketingRequest",

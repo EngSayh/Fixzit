@@ -61,6 +61,37 @@ const SENSITIVE_KEYS = new Set([
   "mfa_secret",
   "otp",
   "pin",
+  // HTTP Headers containing auth data
+  "authorization",
+  "cookie",
+  "setcookie",
+  "set_cookie",
+  "idtoken",
+  "id_token",
+  "sessionid",
+  "session_id",
+  "csrftoken",
+  "csrf_token",
+  "xsrftoken",
+  "xsrf_token",
+  // Additional auth header variants (custom APIs, proxies)
+  "xaccesstoken",
+  "x_access_token",
+  "authtoken",
+  "auth_token",
+  "bearertoken",
+  "bearer_token",
+  // Common HTTP header patterns
+  "xapikey",
+  "x_api_key",
+  "xauthtoken",
+  "x_auth_token",
+  "xforwardedfor",
+  "x_forwarded_for",
+  "xrealip",
+  "x_real_ip",
+  "proxyauthorization",
+  "proxy_authorization",
 
   // Address details
   "address",
@@ -79,13 +110,30 @@ const SENSITIVE_KEYS = new Set([
 
 /**
  * PII value patterns to catch free-form data in non-sensitive keys
+ * 
+ * SECURITY: Patterns are bounded to prevent ReDoS attacks
+ * NOTE: Some patterns may have false positives - they are designed to be
+ * applied only when key-based filtering doesn't match, as a second layer
  */
 const BASE_PII_PATTERNS: RegExp[] = [
   /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i, // emails
-  /\+?\d[\d\s().-]{7,}\d/, // phone-like numeric runs
-  /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/, // JWT tokens
+  // Phone pattern: tightened for minimal backtracking and fewer false positives
+  // - Only allows space or hyphen as separators (not parentheses which add backtracking)
+  // - Bounded to 8-15 total digits to match international phone formats
+  // - Word boundaries prevent partial matches inside longer strings
+  /\b\+?\d(?:[ -]?\d){7,14}\b/, // phone-like: digit + 7-14 more with optional space/hyphen
+  /^[A-Za-z0-9-_]{10,}\.(?:[A-Za-z0-9-_]{10,})\.(?:[A-Za-z0-9-_]{10,})$/, // JWT tokens (min 10 chars per segment)
   /\b[A-Z]{2}\d{2}[A-Z0-9]{9,30}\b/, // IBAN-ish
   /\b\d{13,19}\b/, // card-like digit runs
+  // Bearer tokens with prefix (Authorization header values)
+  /\bBearer\s+[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\b/i, // Bearer JWT
+  /\bBearer\s+[A-Za-z0-9._~-]{20,}\b/i, // Bearer opaque tokens
+  // Basic auth header values
+  /\bBasic\s+[A-Za-z0-9+/=]{10,}\b/i, // Basic auth base64
+  // Bare JWT tokens (no Bearer prefix) - three dot-separated base64url segments
+  /\b[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\b/, // Bare JWT
+  // Bare opaque tokens (API keys, session tokens, etc.)
+  /\b[A-Za-z0-9._~-]{32,}\b/, // Bare opaque tokens (min 32 chars)
 ];
 
 /**

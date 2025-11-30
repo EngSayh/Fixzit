@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, FileText, Plus, RefreshCw } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useFMPermissions } from "@/hooks/useFMPermissions";
-import { SubmoduleKey } from "@/domain/fm/fm.behavior";
+import { SubmoduleKey } from "@/domain/fm/fm-lite";
 
 // Lease data derived from property records
 // TODO: Implement dedicated /api/fm/leases endpoint for full lease management

@@ -7,6 +7,7 @@
 
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 
 export enum PaymentType {
   PACKAGE = "PACKAGE", // Listing package
@@ -350,6 +351,12 @@ PaymentSchema.methods.markAsRefunded = async function (
   this.status = (result as IPayment).status;
   this.refundedAt = (result as IPayment).refundedAt;
 };
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar payments
+// =============================================================================
+PaymentSchema.plugin(tenantIsolationPlugin);
 
 const Payment = getModel<IPayment>("AqarPayment", PaymentSchema);
 

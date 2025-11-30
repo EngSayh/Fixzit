@@ -5,28 +5,33 @@
  * 🟥 SECURITY FIX: Now properly integrates with NextAuth session and org context
  * - isOrgMember is derived from actual session data (not hardcoded)
  * - Plan defaults to STARTER (fail-safe) instead of PRO
+ * 
+ * 🟢 CLIENT-SAFE: Imports from fm-lite.ts to avoid Mongoose bundle leak
+ * 🟢 STRICT v4.1: Sub-role enforcement for TEAM_MEMBER specialized access
  */
 
 "use client";
 
 import { useSession } from "next-auth/react";
-// Import from fm.types (client-safe, no mongoose)
 import {
-  can,
+  canClient,
+  canAccessSubmodule,
   Role,
   SubmoduleKey,
-  ModuleKey,
   Action,
-  PLAN_GATES,
   Plan,
+  SubRole,
   normalizeRole,
-  ROLE_MODULE_ACCESS,
-} from "@/domain/fm/fm.types";
+  normalizeSubRole,
+  inferSubRoleFromRole,
+  type ClientResourceCtx,
+} from "@/domain/fm/fm-lite";
 import { useCurrentOrg } from "@/contexts/CurrentOrgContext";
 
 export interface FMPermissionContext {
   role: Role;
-  orgId: string;
+  subRole?: SubRole;
+  orgId?: string;
   propertyId?: string;
   userId: string;
   plan: Plan;
@@ -57,19 +62,22 @@ export function useFMPermissions() {
     | {
         id?: string;
         role?: string;
+        subRole?: string | null;
         orgId?: string;
       }
     | undefined;
 
-  const userRole = user?.role || "GUEST";
-  // 🟥 FIXED: Normalize role to handle case-sensitivity and legacy aliases
-  const normalizedRole = normalizeRole(userRole);
-  const role = normalizedRole || Role.GUEST;
+  const subRole =
+    normalizeSubRole(user?.subRole) ?? inferSubRoleFromRole(user?.role);
+  const role = normalizeRole(user?.role, subRole) ?? Role.GUEST;
 
+  // ORGID-FIX: Use undefined instead of empty string for client-side permission checks
+  // Empty string would incorrectly indicate "valid orgId" rather than "no orgId"
   const ctx: FMPermissionContext = {
     role,
+    subRole,
     userId: user?.id || "",
-    orgId: user?.orgId || "",
+    orgId: user?.orgId ?? undefined,
     propertyId: undefined,
     plan,
   };
@@ -77,6 +85,25 @@ export function useFMPermissions() {
   // 🟥 FIXED: Compute membership dynamically based on target org
   const isMemberOf = (orgId?: string): boolean =>
     !!ctx.orgId && (!orgId || orgId === ctx.orgId);
+
+  /**
+   * Build ClientResourceCtx for permission checks
+   */
+  const buildClientCtx = (options?: {
+    orgId?: string;
+    propertyId?: string;
+  }): ClientResourceCtx => {
+    const targetOrgId = options?.orgId ?? ctx.orgId;
+    return {
+      role: ctx.role,
+      subRole: ctx.subRole,
+      plan: ctx.plan,
+      userId: ctx.userId,
+      orgId: targetOrgId,
+      propertyId: options?.propertyId,
+      isOrgMember: isMemberOf(targetOrgId),
+    };
+  };
 
   /**
    * Check if user can perform an action on a submodule
@@ -89,83 +116,84 @@ export function useFMPermissions() {
       propertyId?: string;
     },
   ): boolean => {
-    // Check against the resource's org or the user's org
-    const targetOrgId = options?.orgId ?? ctx.orgId;
-
-    return can(submodule, action, {
-      role: ctx.role,
-      orgId: targetOrgId,
-      propertyId: options?.propertyId,
-      userId: ctx.userId,
-      plan: ctx.plan,
-      isOrgMember: isMemberOf(targetOrgId), // 🟥 FIXED: Recompute for target org
-    });
+    return canClient(submodule, action, buildClientCtx(options));
   };
 
   /**
-   * Check if user has access to a module based on subscription plan AND role permissions
-   * 🟥 FIXED: Now checks both plan gates AND role-based module access
+   * Check if user has access to a module based on subscription plan and role
    */
   const canAccessModule = (submodule: SubmoduleKey): boolean => {
-    // First check: Plan gates
-    const planGates = PLAN_GATES[ctx.plan || Plan.STARTER];
-    if (planGates[submodule] !== true) {
-      return false;
-    }
-    
-    // Second check: User must be an org member (not just any authenticated user)
-    if (!isMemberOf(ctx.orgId)) {
-      return false;
-    }
-    
-    // Third check: Role-based permission via the can() function
-    return can(submodule, "view", {
-      role: ctx.role,
-      orgId: ctx.orgId,
-      propertyId: undefined,
-      userId: ctx.userId,
-      plan: ctx.plan,
-      isOrgMember: true,
-    });
+    return canAccessSubmodule(submodule, buildClientCtx());
   };
 
   /**
    * Get allowed actions for a submodule
+   * Checks all possible Action types defined in fm-lite.ts
    */
   const getAllowedActions = (submodule: SubmoduleKey): Action[] => {
-    const actions: Action[] = [
-      "view",
-      "create",
-      "update",
-      "delete",
-      "approve",
-      "assign",
+    const allActions: Action[] = [
+      "view", "create", "update", "delete", "comment", "upload_media",
+      "assign", "schedule", "dispatch", "submit_estimate", "attach_quote",
+      "request_approval", "approve", "reject", "request_changes",
+      "start_work", "pause_work", "complete_work", "close", "reopen",
+      "export", "share", "link_finance", "link_hr", "link_marketplace", "post_finance",
     ];
-    return actions.filter((action) => canPerform(submodule, action));
+    return allActions.filter((action) => canPerform(submodule, action));
   };
 
   /**
    * Check if user is admin (SUPER_ADMIN or ADMIN)
+   * RBAC-003 FIX: Use canonical FM roles
    */
   const isAdmin = (): boolean => {
     return ctx.role === Role.SUPER_ADMIN || ctx.role === Role.ADMIN;
   };
 
   /**
-   * Check if user is management level (admin or manager roles)
+   * Check if user is management level
+   * RBAC-003 FIX: Use canonical FM roles (TEAM_MEMBER hierarchy)
    */
   const isManagement = (): boolean => {
     return (
       ctx.role === Role.TEAM_MEMBER ||
+      ctx.role === Role.PROPERTY_MANAGER ||
       ctx.role === Role.SUPER_ADMIN ||
-      ctx.role === Role.ADMIN ||
-      ctx.role === Role.CORPORATE_OWNER ||
-      ctx.role === Role.PROPERTY_MANAGER
+      ctx.role === Role.ADMIN
     );
+  };
+  
+  /**
+   * Check if user can view financial data
+   * STRICT v4.1: Requires FINANCE_OFFICER sub-role for TEAM_MEMBER
+   * Uses canPerform which handles plan gates, org membership, and role/sub-role checks
+   */
+  const canViewFinancials = (): boolean => {
+    // canPerform already handles:
+    // - Plan gates (FINANCE_INVOICES availability per plan)
+    // - Org membership check
+    // - Role-based action checks (SUPER_ADMIN, ADMIN, CORPORATE_OWNER have view in ROLE_ACTIONS)
+    // - Sub-role enforcement for TEAM_MEMBER (FINANCE_OFFICER required)
+    return canPerform(SubmoduleKey.FINANCE_INVOICES, "view");
+  };
+
+  /**
+   * Check if user can manage HR data
+   * STRICT v4.1: Requires HR_OFFICER sub-role for TEAM_MEMBER
+   * Uses canPerform which handles plan gates, org membership, and role/sub-role checks
+   */
+  const canViewHR = (): boolean => {
+    // canPerform already handles:
+    // - Plan gates (HR_EMPLOYEE_DIRECTORY availability per plan)
+    // - Org membership check
+    // - Role-based action checks (SUPER_ADMIN, ADMIN have view in ROLE_ACTIONS)
+    // - Sub-role enforcement for TEAM_MEMBER (HR_OFFICER required)
+    // - CORPORATE_OWNER has limited view access per ROLE_ACTIONS
+    return canPerform(SubmoduleKey.HR_EMPLOYEE_DIRECTORY, "view");
   };
 
   return {
     role: ctx.role,
+    subRole: ctx.subRole,
     orgId: ctx.orgId,
     userId: ctx.userId,
     plan: ctx.plan,
@@ -177,20 +205,10 @@ export function useFMPermissions() {
     // Convenience methods for common checks
     canCreateWO: () => canPerform(SubmoduleKey.WO_CREATE, "create"),
     canAssignWO: () => canPerform(SubmoduleKey.WO_TRACK_ASSIGN, "assign"),
-    canApproveWO: () => canPerform(SubmoduleKey.WO_CREATE, "approve"),
+    canApproveWO: () => canPerform(SubmoduleKey.WO_TRACK_ASSIGN, "approve"),
     canViewProperties: () => canPerform(SubmoduleKey.PROP_LIST, "view"),
     canManageProperties: () => canPerform(SubmoduleKey.PROP_LIST, "update"),
-    /**
-     * 🟥 FIXED: Use Finance-specific module access instead of property permissions
-     * Checks ROLE_MODULE_ACCESS for FINANCE module + org membership
-     */
-    canViewFinancials: () => {
-      // Must be an org member
-      if (!isMemberOf(ctx.orgId)) return false;
-      
-      // Check if role has access to Finance module
-      const moduleAccess = ROLE_MODULE_ACCESS[ctx.role];
-      return moduleAccess?.[ModuleKey.FINANCE] === true;
-    },
+    canViewFinancials,
+    canViewHR,
   };
 }

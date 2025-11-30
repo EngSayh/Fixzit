@@ -2,8 +2,8 @@
 
 **Generated**: 2025-11-30  
 **Analyst**: GitHub Copilot (Claude Opus 4.5 Preview)  
-**Updated**: 2025-11-30 (PII redaction monitoring tests added, ACCEPTABLE verdict)  
-**Commits**: 9f7c678bb, ca74fab7e, 8dc4effbe, 05e07a981, fdd8c1340, 11064d05f
+**Updated**: 2025-11-30 (Session propagation & auth headers verified)  
+**Commits**: 9f7c678bb, ca74fab7e, 8dc4effbe, 05e07a981
 
 ---
 

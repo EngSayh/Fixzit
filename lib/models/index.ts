@@ -2,11 +2,14 @@
 import type { ObjectId } from "mongodb";
 
 /**
- * @deprecated Import Role from '@/domain/fm/fm.behavior' instead.
+ * @deprecated Import Role from '@/domain/fm/fm-lite' instead.
  * This re-export maintains backward compatibility with existing imports.
- * The canonical Role enum is defined in domain/fm/fm.behavior.ts (STRICT v4.1).
+ * The canonical Role enum is defined in domain/fm/fm-lite.ts (client-safe).
+ * 
+ * CRITICAL: Do NOT import from fm.behavior.ts here - it contains Mongoose schemas
+ * that will leak into client bundles and cause "Invalid schema configuration" errors.
  */
-export { Role } from "@/domain/fm/fm.behavior";
+export { Role } from "@/domain/fm/fm-lite";
 
 export interface Tenant {
   _id?: string;
@@ -22,7 +25,7 @@ export interface User {
   email: string;
   password: string;
   name: string;
-  role: import("@/domain/fm/fm.behavior").Role;
+  role: import("@/domain/fm/fm-lite").Role;
   phone?: string;
   locale?: string;
   currency?: string;

@@ -7,6 +7,7 @@
 
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 
 export interface ISavedSearchCriteria {
   intent?: "BUY" | "RENT" | "DAILY";
@@ -150,6 +151,12 @@ SavedSearchSchema.methods.toggleActive = async function (this: ISavedSearch) {
   this.active = !this.active;
   await this.save();
 };
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar saved searches
+// =============================================================================
+SavedSearchSchema.plugin(tenantIsolationPlugin);
 
 const SavedSearch = getModel<ISavedSearch>(
   "AqarSavedSearch",

@@ -850,12 +850,18 @@ async function sendEmailNotifications(
   /**
    * SEC-007 FIX: URL domain allowlist validation to prevent phishing attacks
    * Only allows URLs from trusted Fixzit domains
+   * 
+   * NOTE: Includes app.fixzit.com to match generateLinks() fallback default
    */
   const ALLOWED_LINK_DOMAINS = [
+    // Root marketing domains
     "fixzit.co",
     "fixzit.sa",
+    "fixzit.com",
+    // App subdomains
     "app.fixzit.co",
     "app.fixzit.sa",
+    "app.fixzit.com", // matches generateLinks() default fallback
     // Development domains (only in non-production)
     ...(process.env.NODE_ENV !== "production" ? ["localhost"] : []),
   ];

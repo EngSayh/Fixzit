@@ -369,76 +369,99 @@ BookingSchema.pre('validate', function (next) {
 // DATA-003 FIX: Pre-findOneAndUpdate hook to recalculate derived fields
 // CRITICAL: Without this, Booking.findOneAndUpdate() bypasses derived field computation
 // This could lead to data inconsistency (wrong nights count, pricing, reservedNights)
+// 
+// ENHANCED: Now fetches existing document for partial updates to ensure derived
+// fields are always recalculated correctly. Also enforces runValidators.
 // =============================================================================
-BookingSchema.pre('findOneAndUpdate', function (next) {
+BookingSchema.pre('findOneAndUpdate', async function (next) {
   try {
+    // Enforce validation and return updated document
+    this.setOptions({ runValidators: true, new: true, context: 'query' });
+    
     const update = this.getUpdate() as Record<string, any>;
     if (!update) return next();
     
     const updateData = update.$set ?? update;
     
-    // Check if dates are being updated
-    const checkInDate = updateData.checkInDate;
-    const checkOutDate = updateData.checkOutDate;
-    const pricePerNight = updateData.pricePerNight;
+    // Check if dates or price are being updated
+    const hasCheckInUpdate = updateData.checkInDate !== undefined;
+    const hasCheckOutUpdate = updateData.checkOutDate !== undefined;
+    const hasPriceUpdate = updateData.pricePerNight !== undefined;
     
-    // If dates are being updated, recalculate nights and reservedNights
-    if (checkInDate || checkOutDate) {
-      // We need both dates to calculate - this hook requires both to be set
-      // If only one is provided, we should skip recalculation (use service layer for partial updates)
-      if (checkInDate && checkOutDate) {
-        const inUTC = toUTCDateOnly(new Date(checkInDate));
-        const outUTC = toUTCDateOnly(new Date(checkOutDate));
-        const nights = Math.max(0, Math.round((outUTC.getTime() - inUTC.getTime()) / MS_PER_DAY));
-        
-        if (nights < 1) {
-          return next(new Error('Check-out must be at least 1 day after check-in'));
-        }
-        
-        const reservedNights = enumerateNightsUTC(inUTC, outUTC);
-        
-        if (update.$set) {
-          update.$set.checkInDate = inUTC;
-          update.$set.checkOutDate = outUTC;
-          update.$set.nights = nights;
-          update.$set.reservedNights = reservedNights;
-        } else {
-          update.checkInDate = inUTC;
-          update.checkOutDate = outUTC;
-          update.nights = nights;
-          update.reservedNights = reservedNights;
-        }
-        
-        // Recalculate pricing if we have nights
-        const price = pricePerNight ?? 0;
-        if (price > 0 || pricePerNight !== undefined) {
-          const total = Math.max(0, price * nights);
-          const feePercentage = Number(process.env.PLATFORM_FEE_PERCENTAGE) || 15;
-          const platform = Math.round(total * (feePercentage / 100));
-          const payout = Math.max(0, total - platform);
-          
-          if (update.$set) {
-            update.$set.totalPrice = total;
-            update.$set.platformFee = platform;
-            update.$set.hostPayout = payout;
-          } else {
-            update.totalPrice = total;
-            update.platformFee = platform;
-            update.hostPayout = payout;
-          }
-        }
-        
-        logger.info('booking:derived_fields_recalculated', {
-          action: 'pre_findOneAndUpdate',
-          nights,
-          reservedNightsCount: reservedNights.length,
-        });
+    // If any date or price field is being updated, we need to recalculate derived fields
+    if (hasCheckInUpdate || hasCheckOutUpdate || hasPriceUpdate) {
+      // Fetch existing document to get current values for partial updates
+      // IMPORTANT: Attach session to respect active transactions
+      const session = this.getOptions().session ?? null;
+      // Use explicit type for lean() result (plain object, not Mongoose Document)
+      const existing = await this.model.findOne(this.getQuery()).session(session).lean().exec() as {
+        checkInDate?: Date;
+        checkOutDate?: Date;
+        pricePerNight?: number;
+      } | null;
+      if (!existing) {
+        return next(new Error('Booking not found for update'));
       }
+      
+      // Merge existing values with updates (updates take precedence)
+      // BOOK-002 FIX: Validate that dates exist before processing
+      const checkInDate = hasCheckInUpdate ? updateData.checkInDate : existing.checkInDate;
+      const checkOutDate = hasCheckOutUpdate ? updateData.checkOutDate : existing.checkOutDate;
+      const pricePerNight = hasPriceUpdate ? updateData.pricePerNight : existing.pricePerNight;
+      
+      // Validate required date fields are present
+      if (!checkInDate || !checkOutDate) {
+        return next(new Error('Booking must have valid check-in and check-out dates'));
+      }
+      
+      // Calculate derived fields with merged values
+      const inUTC = toUTCDateOnly(new Date(checkInDate));
+      const outUTC = toUTCDateOnly(new Date(checkOutDate));
+      
+      // BOOK-002 FIX: Validate dates are valid before proceeding
+      if (isNaN(inUTC.getTime()) || isNaN(outUTC.getTime())) {
+        return next(new Error('Invalid check-in or check-out date format'));
+      }
+      const nights = Math.max(0, Math.round((outUTC.getTime() - inUTC.getTime()) / MS_PER_DAY));
+      
+      if (nights < 1) {
+        return next(new Error('Check-out must be at least 1 day after check-in'));
+      }
+      
+      const reservedNights = enumerateNightsUTC(inUTC, outUTC);
+      
+      // Calculate pricing
+      const price = pricePerNight ?? 0;
+      const total = Math.max(0, price * nights);
+      const feePercentage = Number(process.env.PLATFORM_FEE_PERCENTAGE) || 15;
+      const platform = Math.round(total * (feePercentage / 100));
+      const payout = Math.max(0, total - platform);
+      
+      // Apply all derived fields to update
+      const derivedFields = {
+        checkInDate: inUTC,
+        checkOutDate: outUTC,
+        nights,
+        reservedNights,
+        totalPrice: total,
+        platformFee: platform,
+        hostPayout: payout,
+      };
+      
+      if (update.$set) {
+        Object.assign(update.$set, derivedFields);
+      } else {
+        Object.assign(update, derivedFields);
+      }
+      
+      logger.info('booking:derived_fields_recalculated', {
+        action: 'pre_findOneAndUpdate',
+        nights,
+        reservedNightsCount: reservedNights.length,
+        isPartialUpdate: !hasCheckInUpdate || !hasCheckOutUpdate,
+        updatedFields: Object.keys(updateData).filter(k => ['checkInDate', 'checkOutDate', 'pricePerNight'].includes(k)),
+      });
     }
-    
-    // If only pricePerNight is being updated, we need the existing nights count
-    // This requires a lookup - for simplicity, we'll handle this in service layer
-    // and only recalculate when we have all needed data
     
     next();
   } catch (error) {
