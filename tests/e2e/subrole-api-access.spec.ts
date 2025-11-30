@@ -120,9 +120,14 @@ if (IS_CI && !testOrgId && !IS_FORK_OR_MISSING_SECRETS) {
     'See docs/E2E_SETUP.md for configuration details.'
   );
 } else if (!testOrgId && !IS_CI) {
+  // AUDIT-2025-12-01: Clarified message to match actual behavior
+  // Tests will FAIL (not skip) unless ALLOW_MISSING_TEST_ORG_ID=true
   console.info(
-    'ℹ️  INFO: TEST_ORG_ID not set. Tenant scoping checks will be skipped.\n' +
-    'For full multi-tenancy validation, set TEST_ORG_ID in .env.local.'
+    'ℹ️  INFO: TEST_ORG_ID not set.\n' +
+    'Tenant scoping assertions will FAIL unless you either:\n' +
+    '  1. Set TEST_ORG_ID in .env.local (recommended), OR\n' +
+    '  2. Set ALLOW_MISSING_TEST_ORG_ID=true to bypass (not recommended)\n' +
+    'For full multi-tenancy validation, configure TEST_ORG_ID.'
   );
 }
 
@@ -602,15 +607,33 @@ const API_ENDPOINTS = {
  * beyond just org_id tenant scoping. These check that data returned is appropriately
  * scoped to the user's permissions (assigned work orders, accessible properties, etc.)
  * 
+ * USAGE PATTERN - When to pass expectedUserId:
+ * 
+ * | Role              | Work Orders         | Properties          | Support Tickets    |
+ * |-------------------|---------------------|---------------------|--------------------|
+ * | OPERATIONS_MANAGER| NO userId (sees all)| NO userId (sees all)| N/A                |
+ * | TEAM_MEMBER       | YES userId (own)    | N/A                 | N/A                |
+ * | SUPPORT_AGENT     | N/A                 | N/A                 | YES userId (queue) |
+ * | FINANCE_OFFICER   | N/A                 | N/A                 | N/A                |
+ * | HR_OFFICER        | N/A                 | N/A                 | N/A                |
+ * | ADMIN             | NO userId (sees all)| NO userId (sees all)| NO userId (all)    |
+ * 
+ * - Management roles (OPERATIONS_MANAGER, ADMIN) see all data within their org → omit expectedUserId
+ * - Individual contributors see only their assigned/owned data → pass credentials.userId
+ * - If TEST_${ROLE}_USER_ID env var is set, it's available via credentials.userId
+ * 
  * Best-Practice Pattern: Structural validation ensures required fields exist,
- * while logging enables investigation of unexpected values.
+ * while userId assertions catch intra-tenant over-permission leaks.
  */
 
 /**
  * Validate work order row-level fields.
  * Ensures work orders have required assignment/property fields for visibility scoping.
+ * 
+ * @param items - Array of work order objects from API response
+ * @param expectedUserId - If provided, asserts that assignment fields match this user
  */
-function validateWorkOrderStructure(items: unknown[]): void {
+function validateWorkOrderStructure(items: unknown[], expectedUserId?: string): void {
   items.forEach((item, idx) => {
     const wo = item as Record<string, unknown>;
     
@@ -622,7 +645,8 @@ function validateWorkOrderStructure(items: unknown[]): void {
     
     // RBAC v4.1: Work orders should have assignment or property_id for user-level filtering
     // At least one of these should be present for proper row-level access control
-    const hasAssignment = wo.assigned_to !== undefined || wo.assigned_to_user_id !== undefined || wo.assignee_id !== undefined;
+    const assignedTo = wo.assigned_to ?? wo.assigned_to_user_id ?? wo.assignee_id;
+    const hasAssignment = assignedTo !== undefined;
     const hasProperty = wo.property_id !== undefined || wo.property !== undefined;
     
     expect(
@@ -630,14 +654,27 @@ function validateWorkOrderStructure(items: unknown[]): void {
       `Work order [${idx}] missing both assignment fields (assigned_to/assigned_to_user_id) and property fields (property_id). ` +
       `Row-level RBAC requires at least one for user-scoped visibility.`
     ).toBe(true);
+    
+    // USER-LEVEL ASSERTION: If expectedUserId provided, verify work order belongs to this user
+    // This catches intra-tenant overexposure (seeing other users' work orders)
+    if (expectedUserId && hasAssignment) {
+      expect(
+        String(assignedTo),
+        `Work order [${idx}] RBAC violation: assigned to ${assignedTo}, expected ${expectedUserId}.\n` +
+        `User should only see work orders assigned to them or their properties.`
+      ).toBe(expectedUserId);
+    }
   });
 }
 
 /**
  * Validate support ticket row-level fields.
  * Ensures tickets have requester/assignee fields for agent visibility scoping.
+ * 
+ * @param items - Array of ticket objects from API response
+ * @param expectedUserId - If provided, asserts that requester/assignee fields match this user
  */
-function validateSupportTicketStructure(items: unknown[]): void {
+function validateSupportTicketStructure(items: unknown[], expectedUserId?: string): void {
   items.forEach((item, idx) => {
     const ticket = item as Record<string, unknown>;
     
@@ -648,22 +685,38 @@ function validateSupportTicketStructure(items: unknown[]): void {
     ).toBe(true);
     
     // RBAC v4.1: Support tickets should have requester OR assignee for agent visibility
-    const hasRequester = ticket.requester !== undefined || ticket.requester_id !== undefined || ticket.created_by !== undefined;
-    const hasAssignee = ticket.assignee !== undefined || ticket.assigned_to !== undefined || ticket.agent_id !== undefined;
+    const requester = ticket.requester ?? ticket.requester_id ?? ticket.created_by;
+    const assignee = ticket.assignee ?? ticket.assigned_to ?? ticket.agent_id;
+    const hasRequester = requester !== undefined;
+    const hasAssignee = assignee !== undefined;
     
     expect(
       hasRequester || hasAssignee,
       `Support ticket [${idx}] missing both requester and assignee fields. ` +
       `Row-level RBAC requires at least one for agent-scoped visibility.`
     ).toBe(true);
+    
+    // USER-LEVEL ASSERTION: If expectedUserId provided, verify ticket is visible to this agent
+    // Agent should see tickets assigned to them OR where they are the requester
+    if (expectedUserId && (hasRequester || hasAssignee)) {
+      const userCanSee = String(requester) === expectedUserId || String(assignee) === expectedUserId;
+      expect(
+        userCanSee,
+        `Support ticket [${idx}] RBAC violation: requester=${requester}, assignee=${assignee}, expected user ${expectedUserId}.\n` +
+        `Agent should only see tickets assigned to them or created by them.`
+      ).toBe(true);
+    }
   });
 }
 
 /**
  * Validate property row-level fields.
  * Ensures properties have owner/manager fields for user visibility scoping.
+ * 
+ * @param items - Array of property objects from API response
+ * @param expectedUserId - If provided, asserts that owner/manager fields match this user
  */
-function validatePropertyStructure(items: unknown[]): void {
+function validatePropertyStructure(items: unknown[], expectedUserId?: string): void {
   items.forEach((item, idx) => {
     const prop = item as Record<string, unknown>;
     
@@ -675,15 +728,27 @@ function validatePropertyStructure(items: unknown[]): void {
     ).toBe(true);
     
     // RBAC v4.1: Properties should have owner or manager for visibility scoping
-    const hasOwner = prop.owner_id !== undefined || prop.property_owner_id !== undefined || prop.owner !== undefined;
-    const hasManager = prop.manager_id !== undefined || prop.property_manager_id !== undefined || prop.managed_by !== undefined;
+    const owner = prop.owner_id ?? prop.property_owner_id ?? prop.owner;
+    const manager = prop.manager_id ?? prop.property_manager_id ?? prop.managed_by;
+    const hasOwner = owner !== undefined;
+    const hasManager = manager !== undefined;
     
-    // Note: Some properties may be "unassigned" - warn but don't fail
-    if (!hasOwner && !hasManager) {
-      console.warn(
-        `⚠️  Property [${idx}] has no owner or manager fields. ` +
-        `Consider adding property_owner_id or manager_id for row-level access control.`
-      );
+    // AUDIT-2025-11-30: FAIL instead of warn for consistency with other validators
+    // Properties without ownership/management linkage break row-level RBAC
+    expect(
+      hasOwner || hasManager,
+      `Property [${idx}] missing both owner and manager fields (owner_id/property_owner_id/manager_id). ` +
+      `Row-level RBAC requires at least one for visibility scoping.`
+    ).toBe(true);
+    
+    // USER-LEVEL ASSERTION: If expectedUserId provided, verify property belongs to this user
+    if (expectedUserId && (hasOwner || hasManager)) {
+      const userCanSee = String(owner) === expectedUserId || String(manager) === expectedUserId;
+      expect(
+        userCanSee,
+        `Property [${idx}] RBAC violation: owner=${owner}, manager=${manager}, expected user ${expectedUserId}.\n` +
+        `User should only see properties they own or manage.`
+      ).toBe(true);
     }
   });
 }
@@ -910,8 +975,9 @@ test.describe('Sub-Role API Access Control', () => {
           requireOrgIdPresence: true,
           validate: (body) => {
             expect(Array.isArray(body), 'Support tickets list should return an array').toBe(true);
+            // Pass credentials.userId to verify agent sees only tickets assigned to them
             if (Array.isArray(body) && body.length > 0) {
-              validateSupportTicketStructure(body);
+              validateSupportTicketStructure(body, credentials.userId);
             }
           }
         }
@@ -978,6 +1044,8 @@ test.describe('Sub-Role API Access Control', () => {
           requireOrgIdPresence: true,
           validate: (body) => {
             expect(Array.isArray(body), 'Work orders list should return an array').toBe(true);
+            // OPERATIONS_MANAGER may see all org work orders, so don't enforce user-level
+            // Only structural validation for manager role
             if (Array.isArray(body) && body.length > 0) {
               validateWorkOrderStructure(body);
             }
@@ -1002,6 +1070,8 @@ test.describe('Sub-Role API Access Control', () => {
           requireOrgIdPresence: true,
           validate: (body) => {
             expect(Array.isArray(body), 'Properties list should return an array').toBe(true);
+            // OPERATIONS_MANAGER may see all org properties, so don't enforce user-level
+            // Only structural validation for manager role
             if (Array.isArray(body) && body.length > 0) {
               validatePropertyStructure(body);
             }
@@ -1100,8 +1170,9 @@ test.describe('Sub-Role API Access Control', () => {
             expect(Array.isArray(body), 'Work orders list should return an array').toBe(true);
             
             // Row-level validation: ensure work orders have required fields for RBAC
+            // Pass credentials.userId to verify user only sees their assigned work orders
             if (Array.isArray(body) && body.length > 0) {
-              validateWorkOrderStructure(body);
+              validateWorkOrderStructure(body, credentials.userId);
             }
           }
         }
@@ -1200,13 +1271,31 @@ test.describe('Sub-Role API Access Control', () => {
 
       // Admin should have access to all endpoints - STRICT 200 required
       // Missing routes or 404 responses indicate configuration issues that must be fixed
+      // AUDIT-2025-11-30: Expanded to cover ALL defined API_ENDPOINTS for comprehensive RBAC/tenancy testing
       const allEndpoints = [
+        // Finance module (all 4 endpoints)
         API_ENDPOINTS.finance.invoices,
+        API_ENDPOINTS.finance.budgets,
+        API_ENDPOINTS.finance.expenses,
+        API_ENDPOINTS.finance.payments,
+        // HR module (all 4 endpoints)
         API_ENDPOINTS.hr.employees,
+        API_ENDPOINTS.hr.payroll,
+        API_ENDPOINTS.hr.attendance,
+        API_ENDPOINTS.hr.leaves,
+        // Support module (all 2 endpoints)
         API_ENDPOINTS.support.tickets,
+        API_ENDPOINTS.support.knowledgeBase,
+        // Work Orders module (list only - create/assign tested separately for verb coverage)
         API_ENDPOINTS.workOrders.list,
+        // Marketplace module (all 2 endpoints)
         API_ENDPOINTS.marketplace.vendors,
+        API_ENDPOINTS.marketplace.bids,
+        // Properties module (all 2 endpoints)
         API_ENDPOINTS.properties.list,
+        API_ENDPOINTS.properties.units,
+        // Admin module (users tested separately, settings added here)
+        API_ENDPOINTS.admin.settings,
       ];
 
       for (const endpoint of allEndpoints) {

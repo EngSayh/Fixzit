@@ -21,6 +21,8 @@ export interface TestCredentials {
   password: string;
   /** Optional employee number for employee-number login tests */
   employeeNumber?: string;
+  /** Optional user ID for row-level RBAC assertions (validates assigned_to_user_id, etc.) */
+  userId?: string;
 }
 
 export type SubRoleKey =
@@ -55,10 +57,12 @@ export function getRequiredTestCredentials(subRole: SubRoleKey): TestCredentials
   const emailKey = `TEST_${subRole}_EMAIL`;
   const passwordKey = `TEST_${subRole}_PASSWORD`;
   const employeeKey = `TEST_${subRole}_EMPLOYEE`;
+  const userIdKey = `TEST_${subRole}_USER_ID`;
 
   const email = process.env[emailKey];
   const password = process.env[passwordKey];
   const employeeNumber = process.env[employeeKey]; // Optional - only needed for employee-number login test
+  const userId = process.env[userIdKey]; // Optional - enables user-level row assertions
 
   const missing: string[] = [];
   if (!email) missing.push(emailKey);
@@ -89,6 +93,7 @@ export function getRequiredTestCredentials(subRole: SubRoleKey): TestCredentials
     email, 
     password,
     ...(employeeNumber ? { employeeNumber } : {}),
+    ...(userId ? { userId } : {}),
   };
 }
 
