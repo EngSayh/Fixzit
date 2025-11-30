@@ -98,14 +98,19 @@ test.describe("Marketplace - Public Access", () => {
 
     // Type search query
     await searchInput.first().fill("pump");
-    await page.waitForTimeout(1000);
+    
+    // AUDIT-2025-12-01: Wait for search response instead of hardcoded timeout
+    // Either products appear OR a "no results" message appears
+    const productSelector = '[class*="product"], [data-product]';
+    const noResultsSelector = 'text=/no.*results|not.*found/i';
+    await Promise.race([
+      page.locator(productSelector).first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {}),
+      page.locator(noResultsSelector).waitFor({ state: 'visible', timeout: 10000 }).catch(() => {}),
+    ]);
 
     // Should show results or no results message
-    const hasResults =
-      (await page.locator('[class*="product"], [data-product]').count()) > 0;
-    const hasNoResultsMsg = await page
-      .locator("text=/no.*results|not.*found/i")
-      .isVisible();
+    const hasResults = (await page.locator(productSelector).count()) > 0;
+    const hasNoResultsMsg = await page.locator(noResultsSelector).isVisible();
 
     expect(
       hasResults || hasNoResultsMsg,
@@ -404,10 +409,14 @@ test.describe("Marketplace - Language Support", () => {
     const initialDir = await page.locator("html").getAttribute("dir");
 
     await langSelector.first().click();
-    await page.waitForTimeout(500);
+    
+    // AUDIT-2025-12-01: Wait for language options to appear instead of hardcoded timeout
+    const langOption = page.locator('[role="option"], [role="menuitem"], li[data-lang], button[data-lang]');
+    await langOption.first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {
+      // Options may already be visible or use different selector
+    });
 
     // Language options should appear after clicking selector
-    const langOption = page.locator('[role="option"], [role="menuitem"], li[data-lang], button[data-lang]');
     const optionCount = await langOption.count();
 
     expect(
@@ -417,7 +426,13 @@ test.describe("Marketplace - Language Support", () => {
     ).toBeGreaterThan(0);
 
     await langOption.first().click();
-    await page.waitForTimeout(500);
+    
+    // AUDIT-2025-12-01: Wait for page to respond to language change
+    // Either dir attribute changes or page reloads
+    await page.waitForFunction(() => {
+      const html = document.querySelector('html');
+      return html?.getAttribute('dir') !== null;
+    }, { timeout: 5000 }).catch(() => {});
 
     const newDir = await page.locator("html").getAttribute("dir");
     // Direction should be set (RTL or LTR)
