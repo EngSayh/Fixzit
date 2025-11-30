@@ -379,7 +379,52 @@ Before requesting review:
 - **Build Errors**: Check `pnpm typecheck` and `pnpm lint`
 - **Test Failures**: Check `playwright-report/index.html` for E2E
 
+### 14. CI/CD Troubleshooting
+
+#### GitHub Actions Minutes Quota Exhausted
+
+If CI pipelines fail due to GitHub Actions minutes quota exhaustion, you have several options:
+
+**Option 1: Upgrade GitHub Plan**
+- Free tier: 2,000 minutes/month (500 for private repos)
+- Pro tier: 3,000 minutes/month
+- Team/Enterprise: More minutes available
+- Contact your admin to upgrade the plan
+
+**Option 2: Make Repository Public** (if allowed)
+- Public repositories have unlimited GitHub Actions minutes
+- Only viable for open-source projects
+
+**Option 3: Self-Hosted Runners**
+- Set up self-hosted runners on your own infrastructure
+- No GitHub Actions minutes consumed
+- Guide: [GitHub Self-Hosted Runners](https://docs.github.com/en/actions/hosting-your-own-runners)
+
+**Option 4: Optimize Workflows**
+- Use caching (`actions/cache`) to reduce build times
+- Skip unnecessary steps with conditional execution
+- Use concurrency groups to cancel redundant runs
+- Split workflows to run only affected tests
+
+**Option 5: Run Tests Locally**
+While CI is unavailable, run quality checks locally:
+```bash
+# Run all quality checks
+pnpm typecheck && pnpm lint && pnpm test
+
+# Run RBAC parity tests
+pnpm rbac:parity
+
+# Run E2E tests locally
+pnpm test:e2e
+```
+
+**Current Workflow Optimizations:**
+- `fixzit-quality-gates.yml` uses concurrency groups to cancel redundant runs
+- Dependency caching enabled for pnpm
+- Jobs run in parallel where possible
+
 ---
 
-**Last Updated**: 2025-11-30  
+**Last Updated**: 2025-12-01  
 **Maintained By**: Engineering Team

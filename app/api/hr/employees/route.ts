@@ -56,11 +56,11 @@ export async function GET(req: NextRequest) {
     // Build query
     // MINOR FIX: Use projection to exclude PII by default (compensation, bankDetails)
     // to avoid leaking sensitive data in bulk list responses
+    // 🔒 STRICT v4.1: Support subRole for PII access (TEAM_MEMBER + HR_OFFICER)
     const piiAllowedRoles = ["HR", "HR_OFFICER"];
     const includePii =
       includePiiRequested &&
-      !!session.user.role &&
-      piiAllowedRoles.includes(session.user.role);
+      hasAllowedRole(user.role, user.subRole, piiAllowedRoles);
     
     const {
       items,
@@ -124,8 +124,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+    // Now supports TEAM_MEMBER + subRole: HR_OFFICER pattern
     const allowedRoles = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
-    if (!session.user.role || !allowedRoles.includes(session.user.role)) {
+    const user = session.user as SessionUser;
+    if (!hasAllowedRole(user.role, user.subRole, allowedRoles)) {
       return NextResponse.json(
         { error: "Forbidden: HR access required" },
         { status: 403 }
