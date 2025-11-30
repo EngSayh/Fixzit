@@ -474,10 +474,16 @@ export const authConfig = {
       
       // ✅ FIX: OAuth user lookup and validation (SECURITY)
       // Import User model dynamically to avoid edge runtime issues
-      const { default: User } = await import('./server/models/User');
+      const { User } = await import('./server/models/User');
       
       try {
-        const dbUser = await User.findOne({ email: _user.email }).lean().exec();
+        const dbUser = (await User.findOne({ email: _user.email }).lean().exec()) as {
+          orgId?: string | null;
+          isSuperAdmin?: boolean;
+          status?: string;
+          professional?: { role?: string };
+          role?: string;
+        } | null;
         
         // Block sign-in if user doesn't exist
         if (!dbUser) {
@@ -510,7 +516,7 @@ export const authConfig = {
           orgId?: string | null; 
           isSuperAdmin?: boolean; 
         };
-        userWithMeta.role = dbUser.professional?.role || dbUser.role || 'USER';
+        userWithMeta.role = (dbUser.professional?.role || dbUser.role || 'GUEST') as UserRoleType | 'GUEST';
         userWithMeta.orgId = dbUser.orgId?.toString() || null;
         userWithMeta.isSuperAdmin = dbUser.isSuperAdmin || false;
         
