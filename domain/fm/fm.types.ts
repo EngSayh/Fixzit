@@ -83,15 +83,62 @@ export enum ModuleKey {
 }
 
 export enum SubmoduleKey {
+  // Work Orders
   WO_CREATE = "WO_CREATE",
   WO_TRACK_ASSIGN = "WO_TRACK_ASSIGN",
   WO_PM = "WO_PM",
   WO_SERVICE_HISTORY = "WO_SERVICE_HISTORY",
+  // Properties
   PROP_LIST = "PROP_LIST",
   PROP_UNITS_TENANTS = "PROP_UNITS_TENANTS",
   PROP_LEASES = "PROP_LEASES",
   PROP_INSPECTIONS = "PROP_INSPECTIONS",
   PROP_DOCUMENTS = "PROP_DOCUMENTS",
+  // Finance
+  FINANCE_INVOICES = "FINANCE_INVOICES",
+  FINANCE_EXPENSES = "FINANCE_EXPENSES",
+  FINANCE_BUDGETS = "FINANCE_BUDGETS",
+  // HR
+  HR_EMPLOYEE_DIRECTORY = "HR_EMPLOYEE_DIRECTORY",
+  HR_ATTENDANCE = "HR_ATTENDANCE",
+  HR_PAYROLL = "HR_PAYROLL",
+  HR_RECRUITMENT = "HR_RECRUITMENT",
+  HR_TRAINING = "HR_TRAINING",
+  HR_PERFORMANCE = "HR_PERFORMANCE",
+  // Administration
+  ADMIN_DOA = "ADMIN_DOA",
+  ADMIN_POLICIES = "ADMIN_POLICIES",
+  ADMIN_ASSETS = "ADMIN_ASSETS",
+  ADMIN_FACILITIES = "ADMIN_FACILITIES",
+  // CRM
+  CRM_CUSTOMERS = "CRM_CUSTOMERS",
+  CRM_LEADS = "CRM_LEADS",
+  CRM_CONTRACTS = "CRM_CONTRACTS",
+  CRM_FEEDBACK = "CRM_FEEDBACK",
+  // Marketplace
+  MARKETPLACE_VENDORS = "MARKETPLACE_VENDORS",
+  MARKETPLACE_CATALOG = "MARKETPLACE_CATALOG",
+  MARKETPLACE_REQUESTS = "MARKETPLACE_REQUESTS",
+  MARKETPLACE_BIDS = "MARKETPLACE_BIDS",
+  // Support
+  SUPPORT_TICKETS = "SUPPORT_TICKETS",
+  SUPPORT_KB = "SUPPORT_KB",
+  SUPPORT_CHAT = "SUPPORT_CHAT",
+  SUPPORT_SLA = "SUPPORT_SLA",
+  // Compliance
+  COMPLIANCE_CONTRACTS = "COMPLIANCE_CONTRACTS",
+  COMPLIANCE_DISPUTES = "COMPLIANCE_DISPUTES",
+  COMPLIANCE_INSPECTIONS = "COMPLIANCE_INSPECTIONS",
+  // Reports
+  REPORTS_FINANCE = "REPORTS_FINANCE",
+  REPORTS_OPERATIONS = "REPORTS_OPERATIONS",
+  REPORTS_COMPLIANCE = "REPORTS_COMPLIANCE",
+  // System Management
+  SYSTEM_USERS = "SYSTEM_USERS",
+  SYSTEM_ROLES = "SYSTEM_ROLES",
+  SYSTEM_BILLING = "SYSTEM_BILLING",
+  SYSTEM_INTEGRATIONS = "SYSTEM_INTEGRATIONS",
+  SYSTEM_SETTINGS = "SYSTEM_SETTINGS",
 }
 
 export enum WOStatus {
@@ -148,52 +195,241 @@ export const SLA = {
 
 /* =========================
  * 3) Plan Gates
+ * STRICT v4.1: All domains gated by plan tier with progressive unlocking.
  * ========================= */
 
 export const PLAN_GATES: Record<Plan, Partial<Record<SubmoduleKey, boolean>>> = {
   [Plan.STARTER]: {
+    // Work Orders - Basic
     WO_CREATE: true,
     WO_TRACK_ASSIGN: true,
     WO_PM: false,
     WO_SERVICE_HISTORY: true,
+    // Properties - Basic
     PROP_LIST: true,
     PROP_UNITS_TENANTS: true,
     PROP_LEASES: false,
     PROP_INSPECTIONS: false,
     PROP_DOCUMENTS: true,
+    // Finance - Disabled
+    FINANCE_INVOICES: false,
+    FINANCE_EXPENSES: false,
+    FINANCE_BUDGETS: false,
+    // HR - Disabled
+    HR_EMPLOYEE_DIRECTORY: false,
+    HR_ATTENDANCE: false,
+    HR_PAYROLL: false,
+    HR_RECRUITMENT: false,
+    HR_TRAINING: false,
+    HR_PERFORMANCE: false,
+    // Admin - Disabled
+    ADMIN_DOA: false,
+    ADMIN_POLICIES: false,
+    ADMIN_ASSETS: false,
+    ADMIN_FACILITIES: false,
+    // CRM - Disabled
+    CRM_CUSTOMERS: false,
+    CRM_LEADS: false,
+    CRM_CONTRACTS: false,
+    CRM_FEEDBACK: false,
+    // Marketplace - Disabled
+    MARKETPLACE_VENDORS: false,
+    MARKETPLACE_CATALOG: false,
+    MARKETPLACE_REQUESTS: false,
+    MARKETPLACE_BIDS: false,
+    // Support - Basic
+    SUPPORT_TICKETS: true,
+    SUPPORT_KB: true,
+    SUPPORT_CHAT: false,
+    SUPPORT_SLA: false,
+    // Compliance - Disabled
+    COMPLIANCE_CONTRACTS: false,
+    COMPLIANCE_DISPUTES: false,
+    COMPLIANCE_INSPECTIONS: false,
+    // Reports - Disabled
+    REPORTS_FINANCE: false,
+    REPORTS_OPERATIONS: false,
+    REPORTS_COMPLIANCE: false,
+    // System - Disabled
+    SYSTEM_USERS: false,
+    SYSTEM_ROLES: false,
+    SYSTEM_BILLING: false,
+    SYSTEM_INTEGRATIONS: false,
+    SYSTEM_SETTINGS: false,
   },
   [Plan.STANDARD]: {
+    // Work Orders - Full
     WO_CREATE: true,
     WO_TRACK_ASSIGN: true,
     WO_PM: true,
     WO_SERVICE_HISTORY: true,
+    // Properties - Full
     PROP_LIST: true,
     PROP_UNITS_TENANTS: true,
     PROP_LEASES: true,
     PROP_INSPECTIONS: true,
     PROP_DOCUMENTS: true,
+    // Finance - Basic
+    FINANCE_INVOICES: true,
+    FINANCE_EXPENSES: true,
+    FINANCE_BUDGETS: false,
+    // HR - Basic
+    HR_EMPLOYEE_DIRECTORY: true,
+    HR_ATTENDANCE: true,
+    HR_PAYROLL: false,
+    HR_RECRUITMENT: false,
+    HR_TRAINING: false,
+    HR_PERFORMANCE: false,
+    // Admin - Basic
+    ADMIN_DOA: false,
+    ADMIN_POLICIES: true,
+    ADMIN_ASSETS: true,
+    ADMIN_FACILITIES: true,
+    // CRM - Basic
+    CRM_CUSTOMERS: true,
+    CRM_LEADS: true,
+    CRM_CONTRACTS: false,
+    CRM_FEEDBACK: true,
+    // Marketplace - Basic
+    MARKETPLACE_VENDORS: true,
+    MARKETPLACE_CATALOG: true,
+    MARKETPLACE_REQUESTS: true,
+    MARKETPLACE_BIDS: false,
+    // Support - Full
+    SUPPORT_TICKETS: true,
+    SUPPORT_KB: true,
+    SUPPORT_CHAT: true,
+    SUPPORT_SLA: false,
+    // Compliance - Disabled
+    COMPLIANCE_CONTRACTS: false,
+    COMPLIANCE_DISPUTES: false,
+    COMPLIANCE_INSPECTIONS: false,
+    // Reports - Basic
+    REPORTS_FINANCE: false,
+    REPORTS_OPERATIONS: true,
+    REPORTS_COMPLIANCE: false,
+    // System - Disabled
+    SYSTEM_USERS: false,
+    SYSTEM_ROLES: false,
+    SYSTEM_BILLING: false,
+    SYSTEM_INTEGRATIONS: false,
+    SYSTEM_SETTINGS: false,
   },
   [Plan.PRO]: {
+    // Work Orders - Full
     WO_CREATE: true,
     WO_TRACK_ASSIGN: true,
     WO_PM: true,
     WO_SERVICE_HISTORY: true,
+    // Properties - Full
     PROP_LIST: true,
     PROP_UNITS_TENANTS: true,
     PROP_LEASES: true,
     PROP_INSPECTIONS: true,
     PROP_DOCUMENTS: true,
+    // Finance - Full
+    FINANCE_INVOICES: true,
+    FINANCE_EXPENSES: true,
+    FINANCE_BUDGETS: true,
+    // HR - Full
+    HR_EMPLOYEE_DIRECTORY: true,
+    HR_ATTENDANCE: true,
+    HR_PAYROLL: true,
+    HR_RECRUITMENT: true,
+    HR_TRAINING: true,
+    HR_PERFORMANCE: true,
+    // Admin - Full except DoA
+    ADMIN_DOA: false,
+    ADMIN_POLICIES: true,
+    ADMIN_ASSETS: true,
+    ADMIN_FACILITIES: true,
+    // CRM - Full
+    CRM_CUSTOMERS: true,
+    CRM_LEADS: true,
+    CRM_CONTRACTS: true,
+    CRM_FEEDBACK: true,
+    // Marketplace - Full
+    MARKETPLACE_VENDORS: true,
+    MARKETPLACE_CATALOG: true,
+    MARKETPLACE_REQUESTS: true,
+    MARKETPLACE_BIDS: true,
+    // Support - Full
+    SUPPORT_TICKETS: true,
+    SUPPORT_KB: true,
+    SUPPORT_CHAT: true,
+    SUPPORT_SLA: true,
+    // Compliance - Full
+    COMPLIANCE_CONTRACTS: true,
+    COMPLIANCE_DISPUTES: true,
+    COMPLIANCE_INSPECTIONS: true,
+    // Reports - Full
+    REPORTS_FINANCE: true,
+    REPORTS_OPERATIONS: true,
+    REPORTS_COMPLIANCE: true,
+    // System - Disabled (Enterprise only)
+    SYSTEM_USERS: false,
+    SYSTEM_ROLES: false,
+    SYSTEM_BILLING: false,
+    SYSTEM_INTEGRATIONS: false,
+    SYSTEM_SETTINGS: false,
   },
   [Plan.ENTERPRISE]: {
+    // Work Orders - Full
     WO_CREATE: true,
     WO_TRACK_ASSIGN: true,
     WO_PM: true,
     WO_SERVICE_HISTORY: true,
+    // Properties - Full
     PROP_LIST: true,
     PROP_UNITS_TENANTS: true,
     PROP_LEASES: true,
     PROP_INSPECTIONS: true,
     PROP_DOCUMENTS: true,
+    // Finance - Full
+    FINANCE_INVOICES: true,
+    FINANCE_EXPENSES: true,
+    FINANCE_BUDGETS: true,
+    // HR - Full
+    HR_EMPLOYEE_DIRECTORY: true,
+    HR_ATTENDANCE: true,
+    HR_PAYROLL: true,
+    HR_RECRUITMENT: true,
+    HR_TRAINING: true,
+    HR_PERFORMANCE: true,
+    // Admin - Full
+    ADMIN_DOA: true,
+    ADMIN_POLICIES: true,
+    ADMIN_ASSETS: true,
+    ADMIN_FACILITIES: true,
+    // CRM - Full
+    CRM_CUSTOMERS: true,
+    CRM_LEADS: true,
+    CRM_CONTRACTS: true,
+    CRM_FEEDBACK: true,
+    // Marketplace - Full
+    MARKETPLACE_VENDORS: true,
+    MARKETPLACE_CATALOG: true,
+    MARKETPLACE_REQUESTS: true,
+    MARKETPLACE_BIDS: true,
+    // Support - Full
+    SUPPORT_TICKETS: true,
+    SUPPORT_KB: true,
+    SUPPORT_CHAT: true,
+    SUPPORT_SLA: true,
+    // Compliance - Full
+    COMPLIANCE_CONTRACTS: true,
+    COMPLIANCE_DISPUTES: true,
+    COMPLIANCE_INSPECTIONS: true,
+    // Reports - Full
+    REPORTS_FINANCE: true,
+    REPORTS_OPERATIONS: true,
+    REPORTS_COMPLIANCE: true,
+    // System - Full
+    SYSTEM_USERS: true,
+    SYSTEM_ROLES: true,
+    SYSTEM_BILLING: true,
+    SYSTEM_INTEGRATIONS: true,
+    SYSTEM_SETTINGS: true,
   },
 };
 
@@ -433,81 +669,286 @@ type ActionsBySubmodule = Partial<Record<SubmoduleKey, Action[]>>;
 
 export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
   [Role.SUPER_ADMIN]: {
+    // Work Orders
     WO_CREATE: ["view", "create", "upload_media", "comment"],
-    WO_TRACK_ASSIGN: ["view", "assign", "schedule", "dispatch", "update", "export", "share", "post_finance"],
+    WO_TRACK_ASSIGN: ["view", "assign", "schedule", "dispatch", "update", "export", "share", "request_approval", "approve", "post_finance"],
     WO_PM: ["view", "create", "update", "export"],
     WO_SERVICE_HISTORY: ["view", "export"],
+    // Properties
     PROP_LIST: ["view", "create", "update", "delete", "export"],
-    PROP_UNITS_TENANTS: ["view", "update", "export"],
-    PROP_LEASES: ["view", "create", "update", "export"],
-    PROP_INSPECTIONS: ["view", "create", "update", "export"],
-    PROP_DOCUMENTS: ["view", "create", "update", "export"],
+    PROP_UNITS_TENANTS: ["view", "create", "update", "delete", "export"],
+    PROP_LEASES: ["view", "create", "update", "delete", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "delete", "export"],
+    PROP_DOCUMENTS: ["view", "create", "update", "delete", "export"],
+    // Finance
+    FINANCE_INVOICES: ["view", "create", "update", "delete", "approve", "export"],
+    FINANCE_EXPENSES: ["view", "create", "update", "delete", "approve", "export"],
+    FINANCE_BUDGETS: ["view", "create", "update", "delete", "approve", "export"],
+    // HR
+    HR_EMPLOYEE_DIRECTORY: ["view", "create", "update", "delete", "export"],
+    HR_ATTENDANCE: ["view", "create", "update", "delete", "export"],
+    HR_PAYROLL: ["view", "create", "update", "delete", "approve", "export"],
+    HR_RECRUITMENT: ["view", "create", "update", "delete", "export"],
+    HR_TRAINING: ["view", "create", "update", "delete", "export"],
+    HR_PERFORMANCE: ["view", "create", "update", "delete", "export"],
+    // Admin
+    ADMIN_DOA: ["view", "create", "update", "delete", "approve", "export"],
+    ADMIN_POLICIES: ["view", "create", "update", "delete", "export"],
+    ADMIN_ASSETS: ["view", "create", "update", "delete", "export"],
+    ADMIN_FACILITIES: ["view", "create", "update", "delete", "export"],
+    // CRM
+    CRM_CUSTOMERS: ["view", "create", "update", "delete", "export"],
+    CRM_LEADS: ["view", "create", "update", "delete", "assign", "export"],
+    CRM_CONTRACTS: ["view", "create", "update", "delete", "approve", "export"],
+    CRM_FEEDBACK: ["view", "create", "update", "delete", "export"],
+    // Marketplace
+    MARKETPLACE_VENDORS: ["view", "create", "update", "delete", "approve", "export"],
+    MARKETPLACE_CATALOG: ["view", "create", "update", "delete", "export"],
+    MARKETPLACE_REQUESTS: ["view", "create", "update", "delete", "assign", "approve", "export"],
+    MARKETPLACE_BIDS: ["view", "create", "update", "delete", "approve", "export"],
+    // Support
+    SUPPORT_TICKETS: ["view", "create", "update", "delete", "assign", "close", "export"],
+    SUPPORT_KB: ["view", "create", "update", "delete", "export"],
+    SUPPORT_CHAT: ["view", "create", "update", "export"],
+    SUPPORT_SLA: ["view", "create", "update", "delete", "export"],
+    // Compliance
+    COMPLIANCE_CONTRACTS: ["view", "create", "update", "delete", "approve", "export"],
+    COMPLIANCE_DISPUTES: ["view", "create", "update", "delete", "assign", "export"],
+    COMPLIANCE_INSPECTIONS: ["view", "create", "update", "delete", "export"],
+    // Reports
+    REPORTS_FINANCE: ["view", "create", "export"],
+    REPORTS_OPERATIONS: ["view", "create", "export"],
+    REPORTS_COMPLIANCE: ["view", "create", "export"],
+    // System
+    SYSTEM_USERS: ["view", "create", "update", "delete", "export"],
+    SYSTEM_ROLES: ["view", "create", "update", "delete", "export"],
+    SYSTEM_BILLING: ["view", "create", "update", "export"],
+    SYSTEM_INTEGRATIONS: ["view", "create", "update", "delete", "export"],
+    SYSTEM_SETTINGS: ["view", "update", "export"],
   },
   [Role.ADMIN]: {
+    // Work Orders - Full org-scoped
     WO_CREATE: ["view", "create", "upload_media", "comment"],
-    WO_TRACK_ASSIGN: ["view", "assign", "schedule", "dispatch", "update", "export", "share", "post_finance"],
+    WO_TRACK_ASSIGN: ["view", "assign", "schedule", "dispatch", "update", "export", "share", "request_approval", "approve", "post_finance"],
     WO_PM: ["view", "create", "update", "export"],
     WO_SERVICE_HISTORY: ["view", "export"],
+    // Properties - Full org-scoped
     PROP_LIST: ["view", "create", "update", "delete", "export"],
-    PROP_UNITS_TENANTS: ["view", "update", "export"],
-    PROP_LEASES: ["view", "create", "update", "export"],
-    PROP_INSPECTIONS: ["view", "create", "update", "export"],
-    PROP_DOCUMENTS: ["view", "create", "update", "export"],
+    PROP_UNITS_TENANTS: ["view", "create", "update", "delete", "export"],
+    PROP_LEASES: ["view", "create", "update", "delete", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "delete", "export"],
+    PROP_DOCUMENTS: ["view", "create", "update", "delete", "export"],
+    // Finance - Full org-scoped
+    FINANCE_INVOICES: ["view", "create", "update", "delete", "approve", "export"],
+    FINANCE_EXPENSES: ["view", "create", "update", "delete", "approve", "export"],
+    FINANCE_BUDGETS: ["view", "create", "update", "delete", "approve", "export"],
+    // HR - Full org-scoped
+    HR_EMPLOYEE_DIRECTORY: ["view", "create", "update", "delete", "export"],
+    HR_ATTENDANCE: ["view", "create", "update", "delete", "export"],
+    HR_PAYROLL: ["view", "create", "update", "delete", "approve", "export"],
+    HR_RECRUITMENT: ["view", "create", "update", "delete", "export"],
+    HR_TRAINING: ["view", "create", "update", "delete", "export"],
+    HR_PERFORMANCE: ["view", "create", "update", "delete", "export"],
+    // Admin - Full org-scoped
+    ADMIN_DOA: ["view", "create", "update", "delete", "approve", "export"],
+    ADMIN_POLICIES: ["view", "create", "update", "delete", "export"],
+    ADMIN_ASSETS: ["view", "create", "update", "delete", "export"],
+    ADMIN_FACILITIES: ["view", "create", "update", "delete", "export"],
+    // CRM - Full org-scoped
+    CRM_CUSTOMERS: ["view", "create", "update", "delete", "export"],
+    CRM_LEADS: ["view", "create", "update", "delete", "assign", "export"],
+    CRM_CONTRACTS: ["view", "create", "update", "delete", "approve", "export"],
+    CRM_FEEDBACK: ["view", "create", "update", "delete", "export"],
+    // Marketplace - Full org-scoped
+    MARKETPLACE_VENDORS: ["view", "create", "update", "delete", "approve", "export"],
+    MARKETPLACE_CATALOG: ["view", "create", "update", "delete", "export"],
+    MARKETPLACE_REQUESTS: ["view", "create", "update", "delete", "assign", "approve", "export"],
+    MARKETPLACE_BIDS: ["view", "create", "update", "delete", "approve", "export"],
+    // Support - Full org-scoped
+    SUPPORT_TICKETS: ["view", "create", "update", "delete", "assign", "close", "export"],
+    SUPPORT_KB: ["view", "create", "update", "delete", "export"],
+    SUPPORT_CHAT: ["view", "create", "update", "export"],
+    SUPPORT_SLA: ["view", "create", "update", "delete", "export"],
+    // Compliance - Full org-scoped
+    COMPLIANCE_CONTRACTS: ["view", "create", "update", "delete", "approve", "export"],
+    COMPLIANCE_DISPUTES: ["view", "create", "update", "delete", "assign", "export"],
+    COMPLIANCE_INSPECTIONS: ["view", "create", "update", "delete", "export"],
+    // Reports - Full org-scoped
+    REPORTS_FINANCE: ["view", "create", "export"],
+    REPORTS_OPERATIONS: ["view", "create", "export"],
+    REPORTS_COMPLIANCE: ["view", "create", "export"],
+    // System - Limited (no cross-org)
+    SYSTEM_USERS: ["view", "create", "update", "export"],
+    SYSTEM_ROLES: ["view", "export"],
+    SYSTEM_BILLING: ["view", "export"],
+    SYSTEM_INTEGRATIONS: ["view", "update", "export"],
+    SYSTEM_SETTINGS: ["view", "update"],
   },
   [Role.CORPORATE_OWNER]: {
+    // Work Orders - Approval focus
     WO_CREATE: ["view", "create", "upload_media", "comment"],
     WO_TRACK_ASSIGN: ["view", "approve", "reject", "request_changes", "export"],
     WO_PM: ["view"],
     WO_SERVICE_HISTORY: ["view", "export"],
+    // Properties - Full ownership
     PROP_LIST: ["view", "create", "update", "export"],
     PROP_UNITS_TENANTS: ["view", "update", "export"],
     PROP_LEASES: ["view", "create", "update", "export"],
     PROP_INSPECTIONS: ["view", "create", "update", "export"],
     PROP_DOCUMENTS: ["view", "create", "update", "export"],
+    // Finance - View and approve
+    FINANCE_INVOICES: ["view", "approve", "export"],
+    FINANCE_EXPENSES: ["view", "approve", "export"],
+    FINANCE_BUDGETS: ["view", "approve", "export"],
+    // HR - View only (PII restricted)
+    HR_EMPLOYEE_DIRECTORY: ["view"],
+    // CRM - View own portfolio
+    CRM_CUSTOMERS: ["view", "export"],
+    CRM_CONTRACTS: ["view", "approve", "export"],
+    // Compliance - View
+    COMPLIANCE_CONTRACTS: ["view", "export"],
+    COMPLIANCE_INSPECTIONS: ["view", "export"],
+    // Reports - View own
+    REPORTS_FINANCE: ["view", "export"],
+    REPORTS_OPERATIONS: ["view", "export"],
   },
   [Role.TEAM_MEMBER]: {
+    // Work Orders - Basic operations (privileged actions require sub-role)
     WO_CREATE: ["view", "create", "upload_media", "comment"],
-    WO_TRACK_ASSIGN: ["view", "assign", "schedule", "dispatch", "update"],
-    WO_PM: ["view", "create", "update"],
-    WO_SERVICE_HISTORY: ["view"],
+    WO_TRACK_ASSIGN: ["view", "update", "export", "request_approval"],
+    WO_PM: ["view", "create", "update", "export"],
+    // Properties - View only for generic team member
     PROP_LIST: ["view"],
-    PROP_UNITS_TENANTS: ["view"],
-    PROP_LEASES: ["view"],
-    PROP_INSPECTIONS: ["view"],
     PROP_DOCUMENTS: ["view"],
+    // Support - Basic
+    SUPPORT_TICKETS: ["view", "create", "update"],
+    SUPPORT_KB: ["view"],
+    // NOTE: Finance/HR/etc. access controlled by sub-role in canClient
   },
   [Role.TECHNICIAN]: {
+    // Work Orders - Field work
     WO_CREATE: ["view", "comment"],
-    WO_TRACK_ASSIGN: ["view", "submit_estimate", "attach_quote", "upload_media", "start_work", "pause_work", "complete_work"],
-    WO_PM: ["view"],
+    WO_TRACK_ASSIGN: ["view", "update", ...TECHNICIAN_ASSIGNED_ACTIONS, "upload_media"],
+    WO_PM: ["view", "update"],
     WO_SERVICE_HISTORY: ["view"],
+    // Properties - View assigned
+    PROP_LIST: ["view"],
+    PROP_DOCUMENTS: ["view"],
+    // Support - Basic
+    SUPPORT_TICKETS: ["view", "create", "comment"],
+    SUPPORT_KB: ["view"],
   },
   [Role.PROPERTY_MANAGER]: {
+    // Work Orders - Manage for assigned properties
     WO_CREATE: ["view", "create", "upload_media", "comment"],
-    WO_TRACK_ASSIGN: ["view", "assign", "schedule", "update"],
-    WO_PM: ["view", "create", "update"],
+    WO_TRACK_ASSIGN: ["view", "assign", "schedule", "dispatch", "update", "export", "share", "approve"],
+    WO_PM: ["view", "export"],
     WO_SERVICE_HISTORY: ["view", "export"],
-    PROP_LIST: ["view", "update"],
-    PROP_UNITS_TENANTS: ["view", "update"],
-    PROP_LEASES: ["view", "update"],
-    PROP_INSPECTIONS: ["view", "create", "update"],
-    PROP_DOCUMENTS: ["view", "create", "update"],
+    // Properties - Manage assigned
+    PROP_LIST: ["view", "update", "export"],
+    PROP_UNITS_TENANTS: ["view", "update", "export"],
+    PROP_LEASES: ["view", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "export"],
+    PROP_DOCUMENTS: ["view", "create", "update", "export"],
+    // CRM - Tenant relations
+    CRM_CUSTOMERS: ["view", "update"],
+    CRM_FEEDBACK: ["view", "create", "update"],
+    // Support - Property-scoped
+    SUPPORT_TICKETS: ["view", "create", "update", "assign"],
+    SUPPORT_KB: ["view"],
+    // Compliance - Property-scoped
+    COMPLIANCE_INSPECTIONS: ["view", "create", "update"],
   },
   [Role.TENANT]: {
+    // Work Orders - Create and view own
     WO_CREATE: ["view", "create", "upload_media", "comment"],
     WO_TRACK_ASSIGN: ["view", "comment"],
     WO_PM: ["view"],
     WO_SERVICE_HISTORY: ["view"],
+    // Properties - View own unit
     PROP_LIST: ["view"],
     PROP_UNITS_TENANTS: ["view"],
+    PROP_DOCUMENTS: ["view"],
+    // Support - Own tickets
+    SUPPORT_TICKETS: ["view", "create", "comment"],
+    SUPPORT_KB: ["view"],
+    SUPPORT_CHAT: ["view", "create"],
   },
   [Role.VENDOR]: {
+    // Work Orders - Assigned jobs
     WO_CREATE: ["view", "comment"],
     WO_TRACK_ASSIGN: ["view", "submit_estimate", "attach_quote", "upload_media", "complete_work"],
     WO_PM: ["view"],
     WO_SERVICE_HISTORY: ["view"],
+    // Marketplace - Own bids
+    MARKETPLACE_BIDS: ["view", "create", "update"],
+    MARKETPLACE_REQUESTS: ["view"],
+    // Support - Basic
+    SUPPORT_TICKETS: ["view", "create", "comment"],
+    SUPPORT_KB: ["view"],
   },
-  [Role.GUEST]: {},
+  [Role.GUEST]: {
+    // Public access only
+    SUPPORT_KB: ["view"],
+  },
+};
+
+/* =========================
+ * Sub-Role Action Extensions
+ * STRICT v4.1: Team members require sub-role for specialized access.
+ * ========================= */
+
+export const SUB_ROLE_ACTIONS: Record<SubRole, ActionsBySubmodule> = {
+  [SubRole.FINANCE_OFFICER]: {
+    // Finance - Full access
+    FINANCE_INVOICES: ["view", "create", "update", "approve", "export"],
+    FINANCE_EXPENSES: ["view", "create", "update", "approve", "export"],
+    FINANCE_BUDGETS: ["view", "create", "update", "export"],
+    // Work Orders - Finance linking
+    WO_TRACK_ASSIGN: ["view", "update", "export", "request_approval", "approve", "post_finance"],
+    // Reports - Finance
+    REPORTS_FINANCE: ["view", "create", "export"],
+  },
+  [SubRole.HR_OFFICER]: {
+    // HR - Full access (including PII)
+    HR_EMPLOYEE_DIRECTORY: ["view", "create", "update", "export"],
+    HR_ATTENDANCE: ["view", "create", "update", "export"],
+    HR_PAYROLL: ["view", "create", "update", "approve", "export"],
+    HR_RECRUITMENT: ["view", "create", "update", "export"],
+    HR_TRAINING: ["view", "create", "update", "export"],
+    HR_PERFORMANCE: ["view", "create", "update", "export"],
+    // Reports - HR
+    REPORTS_OPERATIONS: ["view", "export"],
+  },
+  [SubRole.SUPPORT_AGENT]: {
+    // Support - Full access
+    SUPPORT_TICKETS: ["view", "create", "update", "assign", "close", "export"],
+    SUPPORT_KB: ["view", "create", "update"],
+    SUPPORT_CHAT: ["view", "create", "update"],
+    SUPPORT_SLA: ["view"],
+    // CRM - Customer interactions
+    CRM_CUSTOMERS: ["view", "update"],
+    CRM_FEEDBACK: ["view", "create", "update"],
+    // Work Orders - Support escalation
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: ["view", "update", "assign", "export"],
+  },
+  [SubRole.OPERATIONS_MANAGER]: {
+    // Work Orders - Full operations
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: ["view", "assign", "schedule", "dispatch", "update", "export", "approve"],
+    WO_PM: ["view", "create", "update", "export"],
+    WO_SERVICE_HISTORY: ["view", "export"],
+    // Properties - Operations view
+    PROP_LIST: ["view", "update", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "export"],
+    // Marketplace - Vendor management
+    MARKETPLACE_VENDORS: ["view", "update"],
+    MARKETPLACE_REQUESTS: ["view", "create", "update", "assign", "approve"],
+    MARKETPLACE_BIDS: ["view", "approve"],
+    // Reports - Operations
+    REPORTS_OPERATIONS: ["view", "create", "export"],
+  },
 };
 
 /* =========================
