@@ -7,80 +7,37 @@
  * 
  * IMPORTANT: Uses setupMonitoringTestIsolation() from shared utilities to:
  * 1. Validate the reset helper exists (fails fast if missing)
- * 2. Reset global monitoring state before each test
- * 3. Prevent cross-suite contamination that causes flaky tests
+ * 2. Reset global monitoring state before AND after each test
+ * 3. Verify state is actually clean (catches no-op regressions)
+ * 4. Prevent cross-suite contamination that causes flaky tests
+ * 
+ * ALL monitoring tests MUST use the shared utility to ensure consistent isolation.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   trackRateLimitHit,
   trackCorsViolation,
   trackAuthFailure,
   getSecurityMetrics,
-  __resetMonitoringStateForTests,
 } from "@/lib/security/monitoring";
 import { hashIdentifier, redactIdentifier } from "@/lib/otp-utils";
-
-// =============================================================================
-// CRITICAL: Test Isolation Enforcement
-// =============================================================================
-// This guard ensures tests fail fast if the reset helper is ever removed.
-// Without this, tests would silently become order-dependent and flaky.
-// =============================================================================
-if (typeof __resetMonitoringStateForTests !== "function") {
-  throw new Error(
-    "[Test Setup Error] Monitoring reset helper missing.\n" +
-    "The __resetMonitoringStateForTests function must be exported from @/lib/security/monitoring.\n" +
-    "This is required for test isolation. Without it, tests become order-dependent.\n" +
-    "See lib/security/monitoring.ts for the implementation."
-  );
-}
+import { setupMonitoringTestIsolation } from "@/tests/utils/monitoring-test-utils";
 
 describe("Security Monitoring", () => {
-  /**
-   * Helper to verify all 6 monitoring metrics are at zero.
-   * Checks both event counts AND unique key counts for complete verification.
-   */
-  function assertMonitoringStateIsClean(context: string): void {
-    const metrics = getSecurityMetrics();
-    const issues: string[] = [];
-    
-    // Check event counts
-    if (metrics.rateLimitHits !== 0) issues.push(`rateLimitHits: ${metrics.rateLimitHits}`);
-    if (metrics.corsViolations !== 0) issues.push(`corsViolations: ${metrics.corsViolations}`);
-    if (metrics.authFailures !== 0) issues.push(`authFailures: ${metrics.authFailures}`);
-    
-    // Check unique key counts (important for cardinality verification)
-    if (metrics.rateLimitUniqueKeys !== 0) issues.push(`rateLimitUniqueKeys: ${metrics.rateLimitUniqueKeys}`);
-    if (metrics.corsUniqueKeys !== 0) issues.push(`corsUniqueKeys: ${metrics.corsUniqueKeys}`);
-    if (metrics.authUniqueKeys !== 0) issues.push(`authUniqueKeys: ${metrics.authUniqueKeys}`);
-    
-    if (issues.length > 0) {
-      throw new Error(
-        `[Test Isolation Error] Monitoring state not clean ${context}!\n` +
-        `Non-zero metrics: ${issues.join(", ")}\n` +
-        `This indicates __resetMonitoringStateForTests is not clearing all state.\n` +
-        `Fix lib/security/monitoring.ts or check for state leakage.`
-      );
-    }
-  }
+  // =============================================================================
+  // CRITICAL: Test Isolation via Shared Utility
+  // =============================================================================
+  // This sets up beforeEach AND afterEach hooks that:
+  // 1. Validate the reset helper exists (fails fast if missing)
+  // 2. Reset monitoring state before each test
+  // 3. Verify state is clean after reset (catches no-op regressions)
+  // 4. Reset and verify after each test (catches state leakage)
+  //
+  // DO NOT add custom beforeEach/afterEach for monitoring state - use this utility.
+  // =============================================================================
+  setupMonitoringTestIsolation();
 
-  // Reset monitoring state before each test to ensure isolation
-  // The guard above ensures this function exists before we reach this point
-  beforeEach(() => {
-    __resetMonitoringStateForTests();
-    
-    // VERIFY reset actually cleared ALL state - catches no-op regressions
-    assertMonitoringStateIsClean("after beforeEach reset");
-  });
-
-  // Reset after each test and verify cleanliness to catch state leakage
-  afterEach(() => {
-    __resetMonitoringStateForTests();
-    
-    // Verify reset worked - catches no-op regressions after any test modifications
-    assertMonitoringStateIsClean("after afterEach reset");
-  });
   describe("trackRateLimitHit", () => {
     it("should track rate limit events with org isolation", () => {
       // Track events for different orgs
