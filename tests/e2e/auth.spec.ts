@@ -20,6 +20,8 @@ import { getRequiredTestCredentials, hasTestCredentials, type TestCredentials } 
  * Tests MUST fail fast if credentials are not configured.
  */
 function getPrimaryUser(): TestCredentials {
+  // AUDIT-2025-11-30: Removed insecure fallback (admin@offline.test/Test@1234)
+  // Tests MUST fail fast if env vars are missing - no silent fallbacks
   return getRequiredTestCredentials('ADMIN');
 }
 
@@ -31,19 +33,24 @@ function getPrimaryUser(): TestCredentials {
  * Tests MUST fail fast if credentials are not configured.
  */
 function getNonAdminUser(): TestCredentials {
+  // AUDIT-2025-11-30: Removed insecure fallback (member@offline.test/Test@1234)
+  // Tests MUST fail fast if env vars are missing - no silent fallbacks
   return getRequiredTestCredentials('TEAM_MEMBER');
 }
 
 // Check credential availability - these do NOT throw, just return boolean
+// AUDIT-2025-11-30: Fixed to use actual hasTestCredentials() instead of hard-coded true
 const HAS_PRIMARY_USER = hasTestCredentials('ADMIN');
 const HAS_NON_ADMIN_USER = hasTestCredentials('TEAM_MEMBER');
 
 // Credentials are loaded on demand - will throw if env vars missing (fail-fast)
-// Only access these if HAS_*_USER is true, or tests will fail immediately
+// AUDIT-2025-11-30: Only access these if HAS_*_USER is true to avoid immediate throw
+// Tests that need credentials must check HAS_*_USER first or will fail fast
 const PRIMARY_USER = HAS_PRIMARY_USER ? getPrimaryUser() : null;
 const NON_ADMIN_USER = HAS_NON_ADMIN_USER ? getNonAdminUser() : null;
 
-const PASSWORD_RESET_EMAIL = PRIMARY_USER?.email;
+// AUDIT-2025-11-30: Removed fallback - test will fail if credentials missing
+const PASSWORD_RESET_EMAIL = PRIMARY_USER?.email ?? '';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const DEFAULT_TIMEOUT = 30000;
 

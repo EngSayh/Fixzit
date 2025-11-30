@@ -8,7 +8,26 @@ test("Finance HFV - Invoice post", async ({ page }) => {
       route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ ok: true }),
+        body: JSON.stringify({
+          ok: true,
+          incomeStatement: {
+            revenue: 125000,
+            expenses: 45000,
+            netIncome: 80000,
+          },
+          balanceSheet: {
+            assets: 500000,
+            liabilities: 150000,
+            equity: 350000,
+          },
+          cashFlow: {
+            operating: 60000,
+            investing: -10000,
+            financing: -5000,
+          },
+          invoices: [],
+          payments: [],
+        }),
       }),
     );
 

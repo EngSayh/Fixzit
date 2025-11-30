@@ -136,32 +136,41 @@ async function fetchCsrfToken(page: Page): Promise<string | undefined> {
 
 export async function attemptLogin(page: Page, identifier: string, password: string, successPattern = /\/dashboard/) {
   const resultDetails: { success: boolean; errorText?: string } = { success: false };
+  let formFilled = false;
 
   // Prime CSRF cookie/session before hitting the login form
   await warmUpAuthSession(page);
 
-  await fillLoginForm(page, identifier, password);
+  try {
+    await fillLoginForm(page, identifier, password);
+    formFilled = true;
+  } catch (formErr) {
+    // If the login UI is missing/disabled, fall back to programmatic/offline flows
+    resultDetails.errorText = formErr instanceof Error ? formErr.message : String(formErr);
+  }
 
   const errorLocator = getErrorLocator(page);
 
   try {
     // Wait for either success redirect, error message, or timeout
     // Each branch has catch handler to prevent unhandled rejections from losing promises
-    const raceResult = await Promise.race([
-      page.waitForURL(successPattern, { timeout: 20000 })
-        .then(() => ({ success: true }))
-        .catch(() => null), // Losing branch - swallow rejection
-      errorLocator.first().waitFor({ state: 'visible', timeout: 20000 })
-        .then(async () => ({
-          success: false,
-          errorText: await errorLocator.first().innerText().catch(() => 'Login error displayed'),
-        }))
-        .catch(() => null), // Losing branch - swallow rejection
-      page.waitForTimeout(20000).then(() => ({ success: false, errorText: 'Login timeout - no redirect or error' })),
-    ]).then(result => result || { success: false, errorText: 'All branches timed out' });
+    if (formFilled) {
+      const raceResult = await Promise.race([
+        page.waitForURL(successPattern, { timeout: 20000 })
+          .then(() => ({ success: true }))
+          .catch(() => null), // Losing branch - swallow rejection
+        errorLocator.first().waitFor({ state: 'visible', timeout: 20000 })
+          .then(async () => ({
+            success: false,
+            errorText: await errorLocator.first().innerText().catch(() => 'Login error displayed'),
+          }))
+          .catch(() => null), // Losing branch - swallow rejection
+        page.waitForTimeout(20000).then(() => ({ success: false, errorText: 'Login timeout - no redirect or error' })),
+      ]).then(result => result || { success: false, errorText: 'All branches timed out' });
 
-    resultDetails.success = raceResult.success;
-    resultDetails.errorText = raceResult.errorText;
+      resultDetails.success = raceResult.success;
+      resultDetails.errorText = raceResult.errorText;
+    }
 
     // If still on login page after timeout, check if we're actually logged in
     if (!resultDetails.success) {

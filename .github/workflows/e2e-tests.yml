@@ -189,6 +189,29 @@ jobs:
             echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}" >> "$GITHUB_ENV"
           fi
 
+      - name: Validate required E2E secrets (RBAC credentials + tenant org)
+        run: |
+          missing=()
+          required_keys=(
+            TEST_FINANCE_OFFICER_EMAIL TEST_FINANCE_OFFICER_PASSWORD
+            TEST_HR_OFFICER_EMAIL TEST_HR_OFFICER_PASSWORD
+            TEST_SUPPORT_AGENT_EMAIL TEST_SUPPORT_AGENT_PASSWORD
+            TEST_OPERATIONS_MANAGER_EMAIL TEST_OPERATIONS_MANAGER_PASSWORD
+            TEST_TEAM_MEMBER_EMAIL TEST_TEAM_MEMBER_PASSWORD
+            TEST_ADMIN_EMAIL TEST_ADMIN_PASSWORD
+            TEST_ORG_ID
+          )
+          for key in "${required_keys[@]}"; do
+            if [ -z "${!key}" ]; then
+              missing+=("$key")
+            fi
+          done
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Missing required E2E secrets: ${missing[*]}. Configure in GitHub Actions secrets."
+            exit 1
+          fi
+
       - name: Run Playwright E2E Tests
         env:
           # Authentication (NextAuth)

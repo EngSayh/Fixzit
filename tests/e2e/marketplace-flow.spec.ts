@@ -28,6 +28,17 @@ test.describe("Marketplace - Public Access", () => {
   });
 
   test("should have working search functionality", async ({ page }) => {
+    // Stub search API to ensure deterministic results in offline mode
+    await page.route("**/api/marketplace/search**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          items: [{ id: "p1", name: "Test Pump", price: 100 }],
+        }),
+      }),
+    );
+
     await page.goto("/marketplace");
     await page.waitForLoadState("networkidle");
 

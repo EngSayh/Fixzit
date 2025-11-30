@@ -27,22 +27,28 @@ const DEFAULT_TIMEOUT = 30000;
 /**
  * MULTI-TENANCY VALIDATION GUARD
  * 
- * In CI (process.env.CI === 'true'), TEST_ORG_ID is required to validate
+ * In CI (process.env.CI === 'true'), TEST_ORG_ID is REQUIRED to validate
  * that API responses don't leak cross-tenant data. Without it, tenant
  * isolation regressions can slip through.
  * 
- * Local runs without TEST_ORG_ID will skip org_id checks with a warning.
+ * AUDIT-2025-11-30: Changed from warning to hard failure in CI.
+ * Multi-tenant isolation is a critical security property - cannot be optional.
  */
 const testOrgId = getTestOrgIdOptional();
 if (process.env.CI && !testOrgId) {
-  console.warn(
-    '⚠️  WARNING: TEST_ORG_ID not configured in CI.\\n' +
-    'Multi-tenant validation will be skipped, potentially missing cross-tenant data leaks.\\n' +
-    'Configure TEST_ORG_ID in GitHub Secrets for complete RBAC coverage.'
+  throw new Error(
+    'CI REQUIRES TEST_ORG_ID for multi-tenant isolation validation.\n\n' +
+    'Cross-tenant data leaks are a critical security vulnerability.\n' +
+    'Without TEST_ORG_ID, E2E tests cannot verify tenant scoping.\n\n' +
+    'ACTION:\n' +
+    '  1. Add TEST_ORG_ID to GitHub Secrets\n' +
+    '  2. Pass it to E2E workflow via environment variable\n' +
+    '  3. Value should be the org_id of the test tenant in your test database\n\n' +
+    'See docs/E2E_SETUP.md for configuration details.'
   );
 } else if (!testOrgId) {
   console.info(
-    'ℹ️  INFO: TEST_ORG_ID not set. Tenant scoping checks will be skipped.\\n' +
+    'ℹ️  INFO: TEST_ORG_ID not set. Tenant scoping checks will be skipped.\n' +
     'For full multi-tenancy validation, set TEST_ORG_ID in .env.local.'
   );
 }
@@ -926,9 +932,23 @@ test.describe('Sub-Role API Access Control', () => {
       const result = await attemptLogin(page, credentials.email, credentials.password);
       expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
-      // GET should be allowed - STRICT 200 required
+      // GET should be allowed - AUDIT-2025-11-30: Upgraded to body check for tenant scoping
       const getResponse = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.invoices, 'GET');
-      expectAllowed(getResponse, API_ENDPOINTS.finance.invoices, 'FINANCE_OFFICER');
+      await expectAllowedWithBodyCheck(
+        getResponse,
+        API_ENDPOINTS.finance.invoices,
+        'FINANCE_OFFICER',
+        {
+          expectedOrgId: testOrgId,
+          validate: (body) => {
+            // Verify response is valid JSON (array or object with data)
+            expect(
+              body !== null && (Array.isArray(body) || typeof body === 'object'),
+              `${API_ENDPOINTS.finance.invoices} should return array or object`
+            ).toBe(true);
+          }
+        }
+      );
 
       // DELETE should be forbidden (only ADMIN can delete)
       // NOTE: We test with a known non-existent ID to ensure we're testing permissions, not data
@@ -955,12 +975,26 @@ test.describe('Sub-Role API Access Control', () => {
       const result = await attemptLogin(page, credentials.email, credentials.password);
       expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
-      // GET should be allowed - STRICT 200 required
+      // GET should be allowed - AUDIT-2025-11-30: Upgraded to body check for tenant scoping
       const getResponse = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.payroll, 'GET');
-      expectAllowed(getResponse, API_ENDPOINTS.hr.payroll, 'HR_OFFICER');
+      await expectAllowedWithBodyCheck(
+        getResponse,
+        API_ENDPOINTS.hr.payroll,
+        'HR_OFFICER',
+        {
+          expectedOrgId: testOrgId,
+          validate: (body) => {
+            // Verify response is valid JSON (array or object with data)
+            expect(
+              body !== null && (Array.isArray(body) || typeof body === 'object'),
+              `${API_ENDPOINTS.hr.payroll} should return array or object`
+            ).toBe(true);
+          }
+        }
+      );
 
-      // POST to approve endpoint - HR_OFFICER may or may not have approve permission
-      // depending on RBAC v4.1 configuration for action-level permissions
+      // POST to approve endpoint - HR_OFFICER should NOT have approve permission
+      // per RBAC v4.1 action-level permissions
       const cookies = await getAuthCookies(page);
       const approveResponse = await request.post(`${API_ENDPOINTS.hr.payroll}/approve`, {
         headers: {
