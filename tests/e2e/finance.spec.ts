@@ -11,14 +11,16 @@ import { assertNoConsoleErrors } from "../helpers/console";
 test("Finance HFV - Invoice post", async ({ page }) => {
   await assertNoConsoleErrors(page, async () => {
     // Stub finance APIs to avoid 401/403 in offline mode
-    // AUDIT-2025-12-01: Added org_id to match production response shape
+    // AUDIT-2025-12-01: org_id uses TEST_ORG_ID or undefined (no fallback)
+    // This ensures tenant validation helpers correctly skip/warn when TEST_ORG_ID is missing
+    // instead of passing with a fake 'stub-org-id' that could mask validation issues
     await page.route("**/api/finance/**", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           ok: true,
-          org_id: process.env.TEST_ORG_ID || 'stub-org-id',
+          org_id: process.env.TEST_ORG_ID,
           incomeStatement: {
             revenue: 125000,
             expenses: 45000,

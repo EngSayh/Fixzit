@@ -190,10 +190,15 @@ test.describe('Database E2E Tests', () => {
     const hasOrg1 = codes.includes('ORG1-PROP');
     const hasOrg2 = codes.includes('ORG2-PROP');
     
+    // AUDIT-2025-12-01: Fail-closed assertion for multi-tenant isolation
     // At least one should be filtered out (unless using super admin context)
-    if (hasOrg1 && hasOrg2) {
-      console.warn('Warning: Multi-tenant isolation may not be working - both org properties visible');
-    }
+    // Previously this was a console.warn - converted to assertion to catch regressions
+    expect(
+      hasOrg1 && hasOrg2,
+      'MULTI-TENANT ISOLATION FAILED: Both ORG1-PROP and ORG2-PROP visible in single response.\n' +
+      'This indicates cross-tenant data leakage - API is not scoping by org_id.\n' +
+      'ACTION: Check API middleware and Mongoose query scoping for org_id enforcement.'
+    ).toBe(false);
 
     // Cleanup
     await mongoClient.db('fixzit').collection('organizations').deleteOne({
