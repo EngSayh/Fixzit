@@ -37,8 +37,8 @@ function getCredentials(subRole: SubRoleKey): TestCredentials {
  * 
  * SECURITY AUDIT (2025-11-30):
  * - expectAllowed(): Strict 200 only - detects RBAC failures AND missing routes
- * - expectAllowedOrEmpty(): DEPRECATED - only use for documented empty-as-404 endpoints
- * - expectAllowedWithBodyCheck(): Preferred - validates 200 AND response structure
+ * - expectAllowedOrEmpty(): Only accepts 404 if endpoint is in ENDPOINTS_DOCUMENTED_404_FOR_EMPTY
+ * - expectAllowedWithBodyCheck(): Preferred - validates 200 AND response structure + tenant scoping
  * - expectDenied(): Strict 403 only
  * 
  * WHY WE DON'T ACCEPT 404 FOR "ALLOWED" ENDPOINTS:
@@ -49,6 +49,31 @@ function getCredentials(subRole: SubRoleKey): TestCredentials {
  * If an endpoint legitimately returns 404 for empty collections, the backend
  * should be fixed to return 200 with empty array. This is REST best practice.
  */
+
+/**
+ * Categorize endpoints by their documented 404-for-empty behavior.
+ * This makes explicit which endpoints are expected to return 404 for empty data.
+ * 
+ * ⚠️ AUDIT REQUIREMENT: Any endpoint added here MUST have:
+ * 1. A documented reason in API docs why it returns 404 for empty
+ * 2. A tracking issue to fix the backend to return 200 + empty array
+ * 3. Approval from code review
+ * 
+ * @see https://restfulapi.net/http-status-codes/ - REST best practice is 200 + empty array
+ */
+const ENDPOINTS_DOCUMENTED_404_FOR_EMPTY: string[] = [
+  // Empty by design - all endpoints should return 200 + empty array
+  // If you must add an endpoint here, include:
+  // - '/api/path' - JIRA-123: Legacy API, fix planned for Q2 2025
+];
+
+/**
+ * Check if an endpoint is documented to return 404 for empty collections.
+ * Used by expectAllowedOrEmpty to enforce the exception list.
+ */
+function isDocumentedEmpty404Endpoint(endpoint: string): boolean {
+  return ENDPOINTS_DOCUMENTED_404_FOR_EMPTY.includes(endpoint);
+}
 
 /**
  * Strict assertion for endpoints that MUST return 200.
@@ -77,18 +102,19 @@ function expectAllowed(
 }
 
 /**
- * Assertion that accepts 404 for empty collections.
+ * Assertion that accepts 404 for empty collections ONLY if explicitly documented.
  * 
- * ⚠️ AUDIT NOTE (2025-11-30): Using this helper is acceptable for read endpoints
- * where the backend legitimately returns 404 for empty collections.
+ * ⚠️ AUDIT ENFORCED (2025-11-30): 404 is ONLY accepted if the endpoint is listed in 
+ * ENDPOINTS_DOCUMENTED_404_FOR_EMPTY. Undocumented 404s will FAIL the test.
  * 
  * Critical checks:
  * 1. MUST NOT get 403 - indicates RBAC failure
- * 2. SHOULD get 200 (preferred) or 404 (empty collection)
+ * 2. MUST get 200 (preferred) - or 404 ONLY if documented
  * 3. MUST NOT get 401 (auth failure) or 500 (server error)
  * 
- * TODO: Track endpoints returning 404 and coordinate with backend to return
- * 200 + empty array instead (REST best practice).
+ * @param response - Playwright API response
+ * @param endpoint - API endpoint path for error messages
+ * @param role - Role name for error messages
  */
 function expectAllowedOrEmpty(
   response: { status: () => number },
@@ -121,22 +147,90 @@ function expectAllowedOrEmpty(
     `ACTION: Check server logs for the error stack trace.`
   ).not.toBe(500);
   
-  // Valid statuses: 200 (success) or 404 (empty collection)
-  expect(
-    [200, 404].includes(status),
-    `UNEXPECTED STATUS: ${role} got ${status} from ${endpoint}.\n` +
-    `Expected 200 (success) or 404 (empty collection).\n` +
-    `• 400: Invalid request parameters\n` +
-    `• 405: Method not allowed\n` +
-    `ACTION: Investigate the specific error response.`
-  ).toBe(true);
-  
-  // Track 404 responses for backend improvement
+  // AUDIT ENFORCEMENT: 404 only acceptable if endpoint is documented
   if (status === 404) {
+    const isDocumented = isDocumentedEmpty404Endpoint(endpoint);
+    expect(
+      isDocumented,
+      `UNDOCUMENTED 404: ${endpoint} returned 404 for ${role}.\n` +
+      `This endpoint is NOT in ENDPOINTS_DOCUMENTED_404_FOR_EMPTY.\n\n` +
+      `POSSIBLE CAUSES:\n` +
+      `  • Route is missing (configuration bug)\n` +
+      `  • RBAC guard returns 404 instead of 403 (security-through-obscurity)\n` +
+      `  • Backend returns 404 for empty collections (should be 200 + [])\n\n` +
+      `ACTIONS:\n` +
+      `  1. Verify route exists in /app/api/ or /pages/api/\n` +
+      `  2. If empty collection: fix backend to return 200 + empty array\n` +
+      `  3. If legitimate 404-for-empty: add to ENDPOINTS_DOCUMENTED_404_FOR_EMPTY\n` +
+      `     with tracking issue number and justification`
+    ).toBe(true);
+    
     console.warn(
-      `📝 BACKEND TODO: ${endpoint} returned 404 for ${role}. ` +
-      `REST best practice: return 200 + empty array for empty collections.`
+      `📝 DOCUMENTED 404: ${endpoint} returned 404 for ${role}. ` +
+      `Backend should migrate to 200 + empty array (REST best practice).`
     );
+  } else {
+    // Must be 200 if not 404
+    expect(
+      status,
+      `UNEXPECTED STATUS: ${role} got ${status} from ${endpoint}.\n` +
+      `Expected 200 (success).\n` +
+      `• 400: Invalid request parameters\n` +
+      `• 405: Method not allowed\n` +
+      `ACTION: Investigate the specific error response.`
+    ).toBe(200);
+  }
+}
+
+/**
+ * Assertion helper for endpoints that validates both access AND response structure.
+ * Use this for comprehensive tests that verify tenant scoping and data integrity.
+ * 
+ * @param response - Playwright API response object
+ * @param endpoint - API endpoint path for error messages
+ * @param role - Role name for error messages
+ * @param validate - Validation function to check response body (schema, tenant scoping, etc.)
+ * 
+ * @example
+ * // Validate that returned work orders belong to the test tenant
+ * await expectAllowedWithBodyCheck(
+ *   response,
+ *   '/api/work-orders',
+ *   'TEAM_MEMBER',
+ *   (body) => {
+ *     expect(Array.isArray(body)).toBe(true);
+ *     body.forEach(item => {
+ *       expect(item.org_id).toBe(process.env.TEST_ORG_ID);
+ *     });
+ *   }
+ * );
+ */
+async function expectAllowedWithBodyCheck(
+  response: { status: () => number; json: () => Promise<unknown> },
+  endpoint: string,
+  role: string,
+  validate: (body: unknown) => void
+): Promise<void> {
+  // First, ensure the status is 200
+  expectAllowed(response, endpoint, role);
+  
+  // Then validate the response body
+  try {
+    const body = await response.json();
+    validate(body);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    expect(
+      false,
+      `BODY VALIDATION FAILED: ${endpoint} for ${role}\n` +
+      `Status was 200 but response body validation failed.\n` +
+      `Error: ${errorMessage}\n\n` +
+      `POSSIBLE CAUSES:\n` +
+      `  • Cross-tenant data leak (org_id mismatch)\n` +
+      `  • Invalid response schema\n` +
+      `  • Missing required fields\n` +
+      `ACTION: Check the validate() function and response payload.`
+    ).toBe(true);
   }
 }
 
@@ -159,25 +253,6 @@ function expectDenied(
     `  • 401: Authentication issue, not authorization\n` +
     `ACTION: Verify RBAC guard exists and returns 403 for unauthorized access.`
   ).toBe(403);
-}
-
-/**
- * Categorize endpoints by their documented 404-for-empty behavior.
- * This makes explicit which endpoints are expected to return 404 for empty data.
- * 
- * TODO: Remove this once all backends return 200 + empty array (REST best practice).
- */
-const ENDPOINTS_DOCUMENTED_404_FOR_EMPTY: string[] = [
-  // Add endpoints here that are DOCUMENTED to return 404 for empty collections
-  // Example: '/api/legacy/items' - documented in API docs as returning 404 when no items
-  // NOTE: This should be empty - all endpoints should return 200 + empty array
-];
-
-/**
- * Check if an endpoint is documented to return 404 for empty collections.
- */
-function isDocumentedEmpty404Endpoint(endpoint: string): boolean {
-  return ENDPOINTS_DOCUMENTED_404_FOR_EMPTY.includes(endpoint);
 }
 
 // API endpoints categorized by module

@@ -375,11 +375,71 @@ jobs:
             [ "$rbac_result" = "failed" ] && rbac_score=0
           fi
           
-          # Performance: Parse Lighthouse if available
+          # Performance: Parse ACTUAL Lighthouse scores from manifest.json
+          # AUDIT-2025-11-30: Parse real scores instead of defaulting to 70
           perf_score=0
-          if [ -f .artifacts/lhci_reports/manifest.json ] || [ -f lhci_reports/manifest.json ]; then
-            # Default to 70 if Lighthouse ran but we can't parse scores
-            perf_score=70
+          lighthouse_parsed="false"
+          
+          # Try multiple possible locations for Lighthouse reports
+          for lhci_path in ".artifacts/lhci_reports/manifest.json" "lhci_reports/manifest.json" ".lighthouseci/manifest.json"; do
+            if [ -f "$lhci_path" ]; then
+              echo "📊 Found Lighthouse report at: $lhci_path"
+              
+              # Check if jq is available for JSON parsing
+              if command -v jq &> /dev/null; then
+                # Parse average performance score from all runs
+                # Lighthouse stores scores as decimals (0-1), multiply by 100
+                raw_score=$(jq -r '[.[].summary.performance // 0] | add / length * 100 | floor' "$lhci_path" 2>/dev/null || echo "0")
+                
+                if [ "$raw_score" != "0" ] && [ "$raw_score" != "null" ]; then
+                  perf_score=$raw_score
+                  lighthouse_parsed="true"
+                  echo "✅ Parsed Lighthouse performance score: ${perf_score}"
+                else
+                  echo "⚠️ Could not parse performance from manifest, checking for lhr files..."
+                  
+                  # Fallback: try to parse individual LHR JSON files
+                  lhr_dir=$(dirname "$lhci_path")
+                  if ls "$lhr_dir"/*.json 2>/dev/null | head -1 | grep -v manifest.json > /dev/null; then
+                    for lhr_file in "$lhr_dir"/*.json; do
+                      if [ "$lhr_file" != "$lhci_path" ]; then
+                        lhr_score=$(jq -r '.categories.performance.score // 0' "$lhr_file" 2>/dev/null || echo "0")
+                        if [ "$lhr_score" != "0" ] && [ "$lhr_score" != "null" ]; then
+                          perf_score=$(echo "$lhr_score * 100" | bc -l | cut -d. -f1)
+                          lighthouse_parsed="true"
+                          echo "✅ Parsed from LHR file: ${perf_score}"
+                          break
+                        fi
+                      fi
+                    done
+                  fi
+                fi
+              else
+                echo "⚠️ jq not available, using grep fallback..."
+                # Fallback without jq: extract performance value with grep/sed
+                raw_score=$(grep -o '"performance":[0-9.]*' "$lhci_path" | head -1 | grep -o '[0-9.]*' || echo "0")
+                if [ -n "$raw_score" ] && [ "$raw_score" != "0" ]; then
+                  perf_score=$(echo "$raw_score * 100" | bc -l 2>/dev/null | cut -d. -f1 || echo "0")
+                  if [ "$perf_score" != "0" ]; then
+                    lighthouse_parsed="true"
+                    echo "✅ Parsed (grep fallback): ${perf_score}"
+                  fi
+                fi
+              fi
+              
+              break  # Found manifest, stop looking
+            fi
+          done
+          
+          # Only default if Lighthouse was expected to run but parsing failed
+          if [ "$lighthouse_parsed" = "false" ]; then
+            if [ -d "lhci_reports" ] || [ -d ".lighthouseci" ]; then
+              echo "⚠️ Lighthouse ran but couldn't parse scores - defaulting to 50 (investigate)"
+              perf_score=50
+            else
+              echo "ℹ️ No Lighthouse reports found - performance score is 0"
+              perf_score=0
+            fi
           fi
           
           # Calculate section scores
@@ -394,7 +454,7 @@ jobs:
           # Generate dynamic scorecard
           cat > .artifacts/fixzit_scorecard.json << EOF
           {
-            "version": "2.0",
+            "version": "2.1",
             "generated_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "workflow_run": "${{ github.run_id }}",
             "commit": "${{ github.sha }}",
@@ -419,6 +479,7 @@ jobs:
               {
                 "name": "Performance",
                 "score": ${performance_score},
+                "lighthouse_parsed": ${lighthouse_parsed},
                 "checks": {
                   "Lighthouse CI": ${perf_score}
                 }
@@ -428,12 +489,14 @@ jobs:
             "notes": [
               "Scores derived from actual CI step results",
               "Security audit: high+ vulnerabilities block merge",
-              "RBAC parity: 66 behavioral tests for client/server alignment"
+              "RBAC parity: 66 behavioral tests for client/server alignment",
+              "Performance: ${lighthouse_parsed} = parsed from Lighthouse, false = estimated or unavailable"
             ]
           }
           EOF
           
           echo "📊 Security Scorecard generated with total score: ${total_score}"
+          echo "   Code Quality: ${code_quality_score}, Security: ${security_score}, Performance: ${performance_score}"
 
       # ---------- Upload artifacts ----------
       - name: Upload Artifacts
