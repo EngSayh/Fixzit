@@ -189,7 +189,28 @@ jobs:
             echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}" >> "$GITHUB_ENV"
           fi
 
+      # AUDIT-2025-11-30: Fixed secrets validation
+      # - Added env: block to wire secrets into the step (was missing, causing false negatives)
+      # - Added condition to skip forks (secrets are unavailable on forked PRs)
       - name: Validate required E2E secrets (RBAC credentials + tenant org)
+        # Skip validation for forked PRs (secrets aren't available)
+        # Internal PRs and main branch must have all secrets configured
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true
+        env:
+          # Wire secrets into step environment for validation
+          TEST_FINANCE_OFFICER_EMAIL: ${{ secrets.TEST_FINANCE_OFFICER_EMAIL }}
+          TEST_FINANCE_OFFICER_PASSWORD: ${{ secrets.TEST_FINANCE_OFFICER_PASSWORD }}
+          TEST_HR_OFFICER_EMAIL: ${{ secrets.TEST_HR_OFFICER_EMAIL }}
+          TEST_HR_OFFICER_PASSWORD: ${{ secrets.TEST_HR_OFFICER_PASSWORD }}
+          TEST_SUPPORT_AGENT_EMAIL: ${{ secrets.TEST_SUPPORT_AGENT_EMAIL }}
+          TEST_SUPPORT_AGENT_PASSWORD: ${{ secrets.TEST_SUPPORT_AGENT_PASSWORD }}
+          TEST_OPERATIONS_MANAGER_EMAIL: ${{ secrets.TEST_OPERATIONS_MANAGER_EMAIL }}
+          TEST_OPERATIONS_MANAGER_PASSWORD: ${{ secrets.TEST_OPERATIONS_MANAGER_PASSWORD }}
+          TEST_TEAM_MEMBER_EMAIL: ${{ secrets.TEST_TEAM_MEMBER_EMAIL }}
+          TEST_TEAM_MEMBER_PASSWORD: ${{ secrets.TEST_TEAM_MEMBER_PASSWORD }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+          TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
         run: |
           missing=()
           required_keys=(
@@ -211,6 +232,8 @@ jobs:
             echo "::error::Missing required E2E secrets: ${missing[*]}. Configure in GitHub Actions secrets."
             exit 1
           fi
+          
+          echo "✅ All required E2E secrets are configured"
 
       - name: Run Playwright E2E Tests
         env:
