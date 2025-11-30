@@ -58,13 +58,15 @@ export function getRequiredTestCredentials(subRole: SubRoleKey): TestCredentials
 
   const email = process.env[emailKey];
   const password = process.env[passwordKey];
-  const employeeNumber = process.env[employeeKey]; // Optional
+  const employeeNumber = process.env[employeeKey]; // Optional except where enforced below
 
-  if (!email || !password) {
-    const missing: string[] = [];
-    if (!email) missing.push(emailKey);
-    if (!password) missing.push(passwordKey);
+  const missing: string[] = [];
+  if (!email) missing.push(emailKey);
+  if (!password) missing.push(passwordKey);
+  // Employee-number login test requires ADMIN employee number
+  if (subRole === 'ADMIN' && !employeeNumber) missing.push(employeeKey);
 
+  if (missing.length > 0) {
     throw new Error(
       `Missing required test credentials for ${subRole}:\n` +
         `  ${missing.join(', ')}\n` +

@@ -37,6 +37,11 @@ jobs:
   e2e-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # AUDIT-2025-11-30: Skip E2E tests for forked PRs
+    # Forked PRs cannot access secrets (TEST_* credentials, TEST_ORG_ID)
+    # Without these, tests will fail or skip anyway, wasting CI minutes
+    # External contributors can request maintainer review to run tests
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true
     
     # MongoDB service per job to avoid port conflicts
     services:
@@ -161,6 +166,25 @@ jobs:
           echo "❌ MongoDB health check failed after 10 attempts"
           exit 1
 
+      - name: Validate E2E test credentials
+        run: |
+          required_vars=(
+            TEST_FINANCE_OFFICER_EMAIL TEST_FINANCE_OFFICER_PASSWORD
+            TEST_HR_OFFICER_EMAIL TEST_HR_OFFICER_PASSWORD
+            TEST_SUPPORT_AGENT_EMAIL TEST_SUPPORT_AGENT_PASSWORD
+            TEST_OPERATIONS_MANAGER_EMAIL TEST_OPERATIONS_MANAGER_PASSWORD
+            TEST_TEAM_MEMBER_EMAIL TEST_TEAM_MEMBER_PASSWORD
+            TEST_ADMIN_EMAIL TEST_ADMIN_PASSWORD TEST_ADMIN_EMPLOYEE
+          )
+          missing=()
+          for v in "${required_vars[@]}"; do
+            if [ -z "${!v}" ]; then missing+=("$v"); fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "❌ Missing required E2E env vars: ${missing[*]}" >&2
+            exit 1
+          fi
+
       - name: Prepare E2E env vars
         env:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
@@ -237,7 +261,13 @@ jobs:
           
           echo "✅ All required E2E secrets are configured"
 
+      # AUDIT-2025-11-30: Added fork guard to prevent hard-fail on external PRs
+      # Forked PRs can't access secrets, so E2E tests with RBAC credentials would fail
+      # External contributors still get lint/typecheck/build feedback from other workflows
       - name: Run Playwright E2E Tests
+        # Skip E2E tests for forked PRs (secrets unavailable)
+        # Internal PRs and main branch run full E2E suite with RBAC credentials
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true
         env:
           # Authentication (NextAuth)
           NEXTAUTH_URL: http://localhost:3000

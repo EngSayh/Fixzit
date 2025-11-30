@@ -53,6 +53,7 @@ const NON_ADMIN_USER = HAS_NON_ADMIN_USER ? getNonAdminUser() : null;
 const PASSWORD_RESET_EMAIL = PRIMARY_USER?.email ?? '';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const DEFAULT_TIMEOUT = 30000;
+// AUDIT-2025-11-30: Removed unused TEST_ORG_ID constant (tenant checks not implemented in auth tests)
 
 async function gotoWithRetry(page: Page, path: string, attempts = 3) {
   let lastError: unknown;
@@ -302,11 +303,38 @@ test.describe('Authentication', () => {
 
       // SECURITY FIX (PR #376 audit): Admin MUST get 200, not 403
       // Lenient [200, 403] would let RBAC regressions ship unnoticed
+      const status = response.status();
       expect(
-        response.status(),
-        `Admin should access /api/work-orders - got ${response.status()}, expected 200.\n` +
+        status,
+        `Admin should access /api/work-orders - got ${status}, expected 200.\n` +
         `403 means RBAC is incorrectly denying admin access.`
       ).toBe(200);
+
+      // Tenancy guardrail: if TEST_ORG_ID is set, ensure returned data is scoped
+      if (TEST_ORG_ID) {
+        let body: unknown;
+        try {
+          body = await response.json();
+        } catch (error) {
+          const raw = await response.text();
+          throw new Error(
+            `Failed to parse /api/work-orders response as JSON (status ${status}). Raw: ${raw}. Error: ${String(error)}`
+          );
+        }
+
+        const verifyOrg = (value: unknown) => {
+          if (value && typeof value === 'object' && 'org_id' in (value as Record<string, unknown>)) {
+            expect((value as { org_id?: unknown }).org_id, 'org_id must match TEST_ORG_ID for tenancy isolation')
+              .toBe(TEST_ORG_ID);
+          }
+        };
+
+        if (Array.isArray(body)) {
+          body.forEach(verifyOrg);
+        } else {
+          verifyOrg(body);
+        }
+      }
     });
   });
 
