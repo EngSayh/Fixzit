@@ -128,6 +128,7 @@
     "check:mock-flags": "node scripts/check-mock-flags.js",
     "rbac:client:generate": "tsx scripts/rbac/generate-client-roles.ts",
     "rbac:client:check": "tsx scripts/rbac/generate-client-roles.ts --check",
+    "rbac:parity": "node scripts/rbac/check-parity.mjs",
     "lint:md": "markdownlint \"**/*.md\" \"!node_modules\" \"!.next\"",
     "lint:md:fix": "markdownlint --fix \"**/*.md\" \"!node_modules\" \"!.next\"",
     "guard:fm-hooks": "node -e \"const {execSync} = require('child_process'); try { const result = execSync('grep -rn \\'eslint-disable react-hooks/rules-of-hooks\\' app/fm 2>/dev/null || true', {encoding: 'utf8'}); if (result.trim()) { console.log('❌ Found react-hooks/rules-of-hooks disables in app/fm (use FmGuardedPage)'); process.exit(1); } } catch(e) { }\"",
