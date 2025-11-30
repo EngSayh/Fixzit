@@ -74,6 +74,13 @@ const SENSITIVE_KEYS = new Set([
   "csrf_token",
   "xsrftoken",
   "xsrf_token",
+  // Additional auth header variants (custom APIs, proxies)
+  "xaccesstoken",
+  "x_access_token",
+  "authtoken",
+  "auth_token",
+  "bearertoken",
+  "bearer_token",
 
   // Address details
   "address",
@@ -108,6 +115,10 @@ const BASE_PII_PATTERNS: RegExp[] = [
   /\bBearer\s+[A-Za-z0-9._~-]{20,}\b/i, // Bearer opaque tokens
   // Basic auth header values
   /\bBasic\s+[A-Za-z0-9+/=]{10,}\b/i, // Basic auth base64
+  // Bare JWT tokens (no Bearer prefix) - three dot-separated base64url segments
+  /\b[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\b/, // Bare JWT
+  // Bare opaque tokens (API keys, session tokens, etc.)
+  /\b[A-Za-z0-9._~-]{32,}\b/, // Bare opaque tokens (min 32 chars)
 ];
 
 /**

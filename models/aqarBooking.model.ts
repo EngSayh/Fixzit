@@ -391,8 +391,10 @@ BookingSchema.pre('findOneAndUpdate', async function (next) {
     // If any date or price field is being updated, we need to recalculate derived fields
     if (hasCheckInUpdate || hasCheckOutUpdate || hasPriceUpdate) {
       // Fetch existing document to get current values for partial updates
+      // IMPORTANT: Attach session to respect active transactions
+      const session = this.getOptions().session ?? null;
       // Use explicit type for lean() result (plain object, not Mongoose Document)
-      const existing = await this.model.findOne(this.getQuery()).lean().exec() as {
+      const existing = await this.model.findOne(this.getQuery()).session(session).lean().exec() as {
         checkInDate?: Date;
         checkOutDate?: Date;
         pricePerNight?: number;

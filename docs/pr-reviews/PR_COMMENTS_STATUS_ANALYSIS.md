@@ -1,9 +1,9 @@
 # PR Comments Status Analysis - PRs #355-367
 
-**Generated**: 2025-11-30  
+**Generated**: 2025-01-13  
 **Analyst**: GitHub Copilot (Claude Opus 4.5 Preview)  
-**Updated**: 2025-11-30 (All fixes committed)  
-**Commit**: caccbd38a + [current session]
+**Updated**: 2025-01-13 (All fixes committed)  
+**Commit**: caccbd38a + 5b7005965 + [current session]
 
 ---
 
@@ -30,6 +30,24 @@
 - **File**: `lib/security/log-sanitizer.ts`
 - **Fix**: Added `authorization`, `cookie`, `set-cookie`, `session_id`, `csrf_token` to SENSITIVE_KEYS
 - **Fix**: Added Bearer JWT and Basic auth patterns to BASE_PII_PATTERNS
+- **Commit**: ✅ COMMITTED (this session)
+
+### ✅ FIXED: Transaction Session in findOneAndUpdate Hook (BUG-001)
+- **File**: `models/aqarBooking.model.ts` (line ~395)
+- **Issue**: `findOne().lean()` ignored active transaction session, causing stale reads
+- **Fix**: Added `.session(this.getOptions().session ?? null)` to preserve transaction context
+- **Commit**: ✅ COMMITTED (this session)
+
+### ✅ FIXED: Additional Auth Header Variants (SEC-001)
+- **File**: `lib/security/log-sanitizer.ts`
+- **Issue**: Missing `x-access-token`, `auth-token`, `bearer-token` header variants
+- **Fix**: Added `xaccesstoken`, `x_access_token`, `authtoken`, `auth_token`, `bearertoken`, `bearer_token` to SENSITIVE_KEYS
+- **Commit**: ✅ COMMITTED (this session)
+
+### ✅ FIXED: Bare JWT Pattern Coverage (SEC-002)
+- **File**: `lib/security/log-sanitizer.ts`
+- **Issue**: Bare JWT tokens (without `Bearer ` prefix) not caught by patterns
+- **Fix**: Added bare JWT pattern and bare opaque token pattern (32+ chars)
 - **Commit**: ✅ COMMITTED (this session)
 
 ### ✅ FIXED: Partial Date Update - Now Fully Recalculates (ENHANCED)
