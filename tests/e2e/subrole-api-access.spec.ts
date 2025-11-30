@@ -431,7 +431,8 @@ async function expectAllowedWithBodyCheck(
 
   // AUDIT-2025-11-30: Enhanced tenant/org_id validation
   // - Checks BOTH org_id (snake_case) and orgId (camelCase)
-  // - Recursively walks nested wrappers: data, items, results (common API patterns)
+  // - Recursively walks ALL nested objects/arrays (skips metadata: meta/pagination/_metadata/__v)
+  // - Catches tenant leaks in any response shape, not just data/items/results
   // - Defaults requireOrgIdPresence to TRUE when expectedOrgId is provided (fail-closed)
   if (options?.expectedOrgId) {
     // SECURITY: Default to requiring presence when checking tenant ID
@@ -440,12 +441,16 @@ async function expectAllowedWithBodyCheck(
     const requirePresence = options.requireOrgIdPresence ?? true;
     
     /**
-     * Recursively verifies tenant ID on objects and walks nested wrappers.
-     * Handles common API response shapes:
+     * Recursively verifies tenant ID on objects and walks ALL nested objects/arrays.
+     * Skips metadata-only keys (meta, pagination, _metadata, __v) that never contain
+     * tenant-scoped business data.
+     * 
+     * Handles any API response shape:
      * - Direct object: { org_id: "...", ... }
      * - Array: [{ org_id: "..." }, ...]
      * - Wrapped: { data: [...] }, { items: [...] }, { results: [...] }
      * - Paginated: { data: { items: [...] } }
+     * - Custom nested: { summary: { org_id: "..." }, user: {...}, rows: [...] }
      */
     const walkAndVerifyOrgId = (value: unknown, path = 'body'): void => {
       if (!value || typeof value !== 'object') return;
