@@ -494,14 +494,18 @@ async function expectAllowedWithBodyCheck(
         ).toBe(options.expectedOrgId);
       }
       
-      // AUDIT-2025-11-30: Recurse into common wrapper patterns
-      // This catches tenant leaks in paginated/wrapped responses like:
-      // { data: [{ org_id: "wrong" }] } or { items: [...] } or { results: [...] }
-      const wrapperKeys = ['data', 'items', 'results'];
-      for (const key of wrapperKeys) {
-        if (key in v) {
-          walkAndVerifyOrgId(v[key], `${path}.${key}`);
-        }
+      // AUDIT-2025-11-30: Recurse into ALL nested objects to catch tenant leaks
+      // regardless of the key name (summary, payload, user, rows, etc.)
+      // Only skip pure metadata keys that never contain tenant-scoped business data.
+      const METADATA_ONLY_KEYS = new Set(['meta', 'pagination', '_metadata', '__v']);
+      
+      for (const [key, val] of Object.entries(v)) {
+        // Skip non-objects and metadata-only keys
+        if (!val || typeof val !== 'object') continue;
+        if (METADATA_ONLY_KEYS.has(key)) continue;
+        
+        // Recurse into this nested object/array
+        walkAndVerifyOrgId(val, `${path}.${key}`);
       }
     };
     
