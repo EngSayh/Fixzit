@@ -58,13 +58,13 @@ export function getRequiredTestCredentials(subRole: SubRoleKey): TestCredentials
 
   const email = process.env[emailKey];
   const password = process.env[passwordKey];
-  const employeeNumber = process.env[employeeKey]; // Optional except where enforced below
+  const employeeNumber = process.env[employeeKey]; // Optional - only needed for employee-number login test
 
   const missing: string[] = [];
   if (!email) missing.push(emailKey);
   if (!password) missing.push(passwordKey);
-  // Employee-number login test requires ADMIN employee number
-  if (subRole === 'ADMIN' && !employeeNumber) missing.push(employeeKey);
+  // AUDIT-2025-11-30: Employee number is optional, not required for suite gating
+  // The employee-number login test uses test.skip() to gate itself
 
   if (missing.length > 0) {
     throw new Error(
@@ -96,24 +96,33 @@ export function getRequiredTestCredentials(subRole: SubRoleKey): TestCredentials
  * Check if credentials are available for a specific sub-role.
  * Does not throw - returns boolean for conditional logic.
  *
- * For ADMIN, also checks TEST_ADMIN_EMPLOYEE since getRequiredTestCredentials('ADMIN')
- * requires it for employee-number login tests.
+ * NOTE: Only checks email/password availability. Employee number is optional
+ * and should only gate the specific employee-number login test, not entire suites.
+ * Use hasTestCredentialsWithEmployee() if you need to check employee number.
  *
  * @param subRole - The sub-role key
- * @returns true if all required credentials for the role are configured
+ * @returns true if email and password are configured
  */
 export function hasTestCredentials(subRole: SubRoleKey): boolean {
   const emailKey = `TEST_${subRole}_EMAIL`;
   const passwordKey = `TEST_${subRole}_PASSWORD`;
 
-  const hasBasic = Boolean(process.env[emailKey] && process.env[passwordKey]);
+  return Boolean(process.env[emailKey] && process.env[passwordKey]);
+}
 
-  // ADMIN requires employee number for employee-number login test
+/**
+ * Check if full credentials (including employee number) are available for ADMIN.
+ * Use this to gate employee-number-specific tests.
+ *
+ * @param subRole - The sub-role key
+ * @returns true if all credentials including employee number are configured
+ */
+export function hasTestCredentialsWithEmployee(subRole: SubRoleKey): boolean {
+  const hasBasic = hasTestCredentials(subRole);
   if (subRole === 'ADMIN') {
     const employeeKey = `TEST_${subRole}_EMPLOYEE`;
     return hasBasic && Boolean(process.env[employeeKey]);
   }
-
   return hasBasic;
 }
 

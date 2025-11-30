@@ -93,7 +93,10 @@ const createSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req).catch(() => null);
-    const rl = rateLimit(buildRateLimitKey(req, user?.id ?? null), 60, 60_000);
+    if (!user) {
+      return createSecureResponse({ error: "Unauthorized" }, 401, req);
+    }
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }

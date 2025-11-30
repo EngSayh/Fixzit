@@ -1,6 +1,13 @@
 import { test, expect, Page } from '@playwright/test';
 import { attemptLogin, fillLoginForm, getErrorLocator, loginSelectors } from './utils/auth';
-import { getRequiredTestCredentials, hasTestCredentials, getTestOrgIdOptional, type TestCredentials } from './utils/credentials';
+import {
+  getRequiredTestCredentials,
+  hasTestCredentials,
+  hasTestCredentialsWithEmployee,
+  getTestOrgIdOptional,
+  validateRequiredCredentials,
+  type TestCredentials,
+} from './utils/credentials';
 
 /**
  * Authentication E2E Tests
@@ -53,26 +60,15 @@ const NON_ADMIN_USER = HAS_NON_ADMIN_USER ? getNonAdminUser() : null;
 const PASSWORD_RESET_EMAIL = PRIMARY_USER?.email ?? '';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const DEFAULT_TIMEOUT = 30000;
-
-/**
- * MULTI-TENANCY VALIDATION
- * 
- * TEST_ORG_ID is used to verify tenant isolation in RBAC tests.
- * When set, tests validate that API responses only contain data for the test tenant.
- * 
- * AUDIT-2025-11-30: Added CI enforcement to align with subrole-api-access.spec.ts
- * - Internal CI runs MUST have TEST_ORG_ID configured
- * - Forked PRs skip this check (secrets unavailable)
- * - Local dev can run without it (optional tenant checks)
- */
+const TEST_ORG_ID = getTestOrgIdOptional();
+const ALLOW_MISSING_TEST_ORG_ID = process.env.ALLOW_MISSING_TEST_ORG_ID === 'true';
 const IS_CI = process.env.CI === 'true';
 const IS_PULL_REQUEST = process.env.GITHUB_EVENT_NAME === 'pull_request';
 const HAS_AUTH_CREDENTIALS = HAS_PRIMARY_USER && HAS_NON_ADMIN_USER;
-
-// Fork detection: CI + PR + missing credentials indicates a fork
 const IS_FORK_OR_MISSING_SECRETS = IS_CI && IS_PULL_REQUEST && !HAS_AUTH_CREDENTIALS;
 
-const TEST_ORG_ID = getTestOrgIdOptional();
+// Fail fast if core creds missing
+validateRequiredCredentials(['ADMIN', 'TEAM_MEMBER']);
 
 // Enforce TEST_ORG_ID for internal CI runs (not forks)
 if (IS_CI && !TEST_ORG_ID && !IS_FORK_OR_MISSING_SECRETS) {
@@ -115,6 +111,19 @@ function ensureLoginOrSkip(result: { success: boolean; errorText?: string }) {
     result.success,
     `Login failed: ${result.errorText || 'unknown error'} – owner: QA/Auth, ticket: QA-AUTH-002`
   ).toBeTruthy();
+}
+
+async function assertTenantScopedUsers(page: Page) {
+  if (!TEST_ORG_ID) return;
+  const resp = await page.request.get('/api/admin/users');
+  expect(resp.status(), 'Admin users API should be accessible').toBe(200);
+  const body = await resp.json();
+  const users = Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : [];
+  for (const user of users) {
+    if (user?.org_id !== undefined) {
+      expect(String(user.org_id)).toBe(TEST_ORG_ID);
+    }
+  }
 }
 
 test.describe('Authentication', () => {
@@ -347,30 +356,45 @@ test.describe('Authentication', () => {
         `403 means RBAC is incorrectly denying admin access.`
       ).toBe(200);
 
-      // Tenancy guardrail: if TEST_ORG_ID is set, ensure returned data is scoped
-      if (TEST_ORG_ID) {
-        let body: unknown;
-        try {
-          body = await response.json();
-        } catch (error) {
-          const raw = await response.text();
-          throw new Error(
-            `Failed to parse /api/work-orders response as JSON (status ${status}). Raw: ${raw}. Error: ${String(error)}`
-          );
-        }
-
-        const verifyOrg = (value: unknown) => {
-          if (value && typeof value === 'object' && 'org_id' in (value as Record<string, unknown>)) {
-            expect((value as { org_id?: unknown }).org_id, 'org_id must match TEST_ORG_ID for tenancy isolation')
-              .toBe(TEST_ORG_ID);
-          }
-        };
-
-        if (Array.isArray(body)) {
-          body.forEach(verifyOrg);
+      // Tenancy guardrail: require TEST_ORG_ID locally unless explicitly bypassed
+      if (!TEST_ORG_ID) {
+        if (!IS_CI && !ALLOW_MISSING_TEST_ORG_ID) {
+          expect(
+            false,
+            'TEST_ORG_ID is required for tenant validation in auth E2E. ' +
+            'Set TEST_ORG_ID in .env.local or export ALLOW_MISSING_TEST_ORG_ID=true to bypass locally.'
+          ).toBe(true);
         } else {
-          verifyOrg(body);
+          console.warn(
+            '⚠️  Tenant validation skipped in auth E2E: TEST_ORG_ID not set. ' +
+            'Set TEST_ORG_ID (preferred) or ALLOW_MISSING_TEST_ORG_ID=true to acknowledge the skip.'
+          );
+          return;
         }
+      }
+
+      // Tenancy guardrail: ensure returned data is scoped
+      let body: unknown;
+      try {
+        body = await response.json();
+      } catch (error) {
+        const raw = await response.text();
+        throw new Error(
+          `Failed to parse /api/work-orders response as JSON (status ${status}). Raw: ${raw}. Error: ${String(error)}`
+        );
+      }
+
+      const verifyOrg = (value: unknown) => {
+        if (value && typeof value === 'object' && 'org_id' in (value as Record<string, unknown>)) {
+          expect((value as { org_id?: unknown }).org_id, 'org_id must match TEST_ORG_ID for tenancy isolation')
+            .toBe(TEST_ORG_ID);
+        }
+      };
+
+      if (Array.isArray(body)) {
+        body.forEach(verifyOrg);
+      } else {
+        verifyOrg(body);
       }
     });
   });
@@ -524,6 +548,10 @@ test.describe('Authentication', () => {
 
     test('interactive elements should be keyboard accessible', async ({ page }) => {
       await gotoWithRetry(page, '/login');
+
+      // Enable the submit button to ensure it is focusable (disabled by default when fields are empty)
+      await fillLoginForm(page, 'a11y@example.com', 'StrongPass1!');
+      // Do not submit; we only need the control focusable
 
       // Check buttons and links are focusable
       const submitButton = page.locator('button[type="submit"]');

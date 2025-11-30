@@ -232,8 +232,12 @@ export async function attemptLogin(page: Page, identifier: string, password: str
       }
     }
 
-    // Last-resort offline session injection (mock JWT or storageState) to keep auth flows passing in CI/offline mode
-    if (!resultDetails.success) {
+    // Last-resort offline session injection (mock JWT or storageState)
+    // AUDIT-2025-11-30: Made opt-in via ALLOW_OFFLINE_LOGIN to prevent masking real auth failures
+    // In RBAC-critical E2E suites, this should be OFF to catch real regressions
+    const allowOfflineFallback = process.env.ALLOW_OFFLINE_LOGIN === 'true';
+    if (!resultDetails.success && allowOfflineFallback) {
+      console.warn('[auth.ts] Using SUPER_ADMIN offline fallback - real auth may be broken!');
       try {
         const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
         const secret =

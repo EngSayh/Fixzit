@@ -318,6 +318,23 @@ async function expectAllowedWithBodyCheck(
 ): Promise<void> {
   const status = response.status();
 
+  // Local enforcement: if org_id is not provided and we're not in CI, fail loudly unless explicitly allowed.
+  if (!options?.expectedOrgId) {
+    if (!IS_CI && !ALLOW_MISSING_TEST_ORG_ID && !IS_FORK_OR_MISSING_SECRETS) {
+      expect(
+        false,
+        `TEST_ORG_ID is required for tenant validation in expectAllowedWithBodyCheck.\n` +
+        `Set TEST_ORG_ID in .env.local or export ALLOW_MISSING_TEST_ORG_ID=true to bypass locally.`
+      ).toBe(true);
+    } else {
+      console.warn(
+        '⚠️  Tenant validation skipped: TEST_ORG_ID not set. ' +
+        'Set TEST_ORG_ID (preferred) or ALLOW_MISSING_TEST_ORG_ID=true to acknowledge the skip.'
+      );
+      // Continue without org_id validation if explicitly bypassed or in fork/missing secrets scenario
+    }
+  }
+
   if (status === 404) {
     expect(
       options?.allowDocumentedEmpty404 && isDocumentedEmpty404Endpoint(endpoint),

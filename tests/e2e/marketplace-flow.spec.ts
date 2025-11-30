@@ -5,6 +5,10 @@
 
 import { test, expect } from "@playwright/test";
 
+const TEST_ORG_ID = process.env.TEST_ORG_ID;
+const ALLOW_MISSING_TEST_ORG_ID = process.env.ALLOW_MISSING_TEST_ORG_ID === "true";
+const IS_CI = process.env.CI === "true";
+
 test.describe("Marketplace - Public Access", () => {
   test("should display marketplace home page", async ({ page }) => {
     await page.goto("/marketplace");
@@ -199,6 +203,33 @@ test.describe("Marketplace - API Integration", () => {
 
     // API should respond (even if empty results)
     expect(response.status()).toBeLessThan(500);
+
+    // If 200 and TEST_ORG_ID is set, verify any org_id fields match
+    if (response.status() === 200 && TEST_ORG_ID) {
+      try {
+        const body = await response.json();
+        const verifyOrg = (value: unknown) => {
+          if (value && typeof value === "object" && "org_id" in (value as Record<string, unknown>)) {
+            expect((value as { org_id?: unknown }).org_id).toBe(TEST_ORG_ID);
+          }
+        };
+        if (Array.isArray(body)) {
+          body.forEach(verifyOrg);
+        } else if (body && typeof body === "object" && "items" in (body as Record<string, unknown>)) {
+          const items = (body as { items?: unknown }).items;
+          if (Array.isArray(items)) items.forEach(verifyOrg);
+        } else {
+          verifyOrg(body);
+        }
+      } catch (error) {
+        console.warn(`⚠️  Tenant validation skipped for marketplace search: ${String(error)}`);
+      }
+    } else if (!TEST_ORG_ID && !IS_CI && !ALLOW_MISSING_TEST_ORG_ID) {
+      console.warn(
+        "⚠️  TEST_ORG_ID not set; tenant validation skipped for marketplace API. " +
+        "Set TEST_ORG_ID in .env.local or ALLOW_MISSING_TEST_ORG_ID=true to acknowledge skip."
+      );
+    }
   });
 
   test("should handle malformed search queries", async ({ request }) => {

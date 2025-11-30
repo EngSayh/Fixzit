@@ -34,13 +34,45 @@ permissions:
   pull-requests: write
 
 jobs:
+  # AUDIT-2025-11-30: Dedicated job for forked PRs to provide clear feedback
+  # The main e2e-tests job is skipped for forks (no secrets), so this job
+  # ensures external contributors get an explicit summary explaining why.
+  e2e-fork-notice:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
+    steps:
+      - name: Notify forked PR about E2E skip
+        run: |
+          echo "::notice::E2E tests are skipped for forked PRs (secrets unavailable)."
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔒 Forked PR detected - E2E RBAC tests require secrets"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "Your PR will still receive feedback from:"
+          echo "  • TypeScript type checking"
+          echo "  • ESLint linting"
+          echo "  • Build verification"
+          echo "  • Unit tests (if configured)"
+          echo ""
+          echo "E2E RBAC tests will run when a maintainer merges to main"
+          echo "or when the PR is from an internal branch with secrets access."
+          echo ""
+          echo "### ⏭️ E2E Tests Skipped (Forked PR)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Secrets are unavailable for forked PRs. E2E tests will run after merge." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Your PR still receives:**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ TypeScript type checking" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ ESLint linting" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Build verification" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Unit tests" >> $GITHUB_STEP_SUMMARY
+
   e2e-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # AUDIT-2025-11-30: Skip E2E tests for forked PRs
-    # Forked PRs cannot access secrets (TEST_* credentials, TEST_ORG_ID)
-    # Without these, tests will fail or skip anyway, wasting CI minutes
-    # External contributors can request maintainer review to run tests
+    # Skip E2E tests for forked PRs - secrets are unavailable
+    # Fork contributors get feedback from the e2e-fork-notice job above
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true
     
     # MongoDB service per job to avoid port conflicts
@@ -176,35 +208,21 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
-            echo "Using generated secrets for forked PR (GitHub secrets are unavailable)."
-            RAND_SECRET="$(node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\")"
-            echo "NEXTAUTH_SECRET=${RAND_SECRET}" >> "$GITHUB_ENV"
-            echo "AUTH_SECRET=${RAND_SECRET}" >> "$GITHUB_ENV"
-            echo "GOOGLE_CLIENT_ID=" >> "$GITHUB_ENV"
-            echo "GOOGLE_CLIENT_SECRET=" >> "$GITHUB_ENV"
-          else
-            # Use shell parameter expansion for secret checking and fallback
-            if [ -z "${NEXTAUTH_SECRET}" ]; then
-              echo "Missing NEXTAUTH_SECRET secret for internal run." >&2
-              exit 1
-            fi
-            echo "NEXTAUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
-            echo "AUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
-            # Google OAuth is optional - set to empty string if not configured
-            GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
-            GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
-            echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}" >> "$GITHUB_ENV"
-            echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}" >> "$GITHUB_ENV"
+          # This job only runs for internal PRs/branches (forks are handled by e2e-fork-notice)
+          if [ -z "${NEXTAUTH_SECRET}" ]; then
+            echo "::error::Missing NEXTAUTH_SECRET secret. Configure in GitHub Settings > Secrets."
+            exit 1
           fi
+          echo "NEXTAUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
+          echo "AUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
+          # Google OAuth is optional - set to empty string if not configured
+          echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}" >> "$GITHUB_ENV"
+          echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}" >> "$GITHUB_ENV"
 
       # AUDIT-2025-11-30: Fixed secrets validation
       # - Added env: block to wire secrets into the step (was missing, causing false negatives)
-      # - Added condition to skip forks (secrets are unavailable on forked PRs)
+      # - Job-level guard already skips forks, so no need for step-level fork check
       - name: Validate required E2E secrets (RBAC credentials + tenant org)
-        # Skip validation for forked PRs (secrets aren't available)
-        # Internal PRs and main branch must have all secrets configured
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true
         env:
           # Wire secrets into step environment for validation
           TEST_FINANCE_OFFICER_EMAIL: ${{ secrets.TEST_FINANCE_OFFICER_EMAIL }}
@@ -246,35 +264,10 @@ jobs:
           
           echo "✅ All required E2E secrets are configured"
 
-      # Notify forked PRs that E2E tests are skipped (they can't access secrets)
-      - name: Skip E2E for forked PRs
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
-        run: |
-          echo "::notice::E2E tests skipped for forked PR - secrets are unavailable."
-          echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🔒 Forked PR detected - E2E RBAC tests require secrets"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          echo "Your PR will still receive feedback from:"
-          echo "  • TypeScript type checking"
-          echo "  • ESLint linting"
-          echo "  • Build verification"
-          echo "  • Unit tests (if configured)"
-          echo ""
-          echo "E2E RBAC tests will run when a maintainer merges to main"
-          echo "or when the PR is from an internal branch with secrets access."
-          echo ""
-          echo "### ⏭️ E2E Tests Skipped (Forked PR)" >> $GITHUB_STEP_SUMMARY
-          echo "Secrets are unavailable for forked PRs. E2E tests will run after merge." >> $GITHUB_STEP_SUMMARY
-
       # AUDIT-2025-11-30: Added fork guard to prevent hard-fail on external PRs
       # Forked PRs can't access secrets, so E2E tests with RBAC credentials would fail
       # External contributors still get lint/typecheck/build feedback from other workflows
       - name: Run Playwright E2E Tests
-        # Skip E2E tests for forked PRs (secrets unavailable)
-        # Internal PRs and main branch run full E2E suite with RBAC credentials
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true
         env:
           # Authentication (NextAuth)
           NEXTAUTH_URL: http://localhost:3000

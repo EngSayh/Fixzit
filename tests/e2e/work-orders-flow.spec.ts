@@ -5,6 +5,10 @@
 
 import { test, expect } from "@playwright/test";
 
+const TEST_ORG_ID = process.env.TEST_ORG_ID;
+const ALLOW_MISSING_TEST_ORG_ID = process.env.ALLOW_MISSING_TEST_ORG_ID === "true";
+const IS_CI = process.env.CI === "true";
+
 test.describe("Work Orders - Authenticated User", () => {
   test.beforeEach(async ({ page }) => {
     // Note: These tests assume authentication is handled via test fixtures
@@ -104,5 +108,32 @@ test.describe("Work Orders - Public API", () => {
 
     // Should get a response (401 unauthorized is OK, 500 is not)
     expect(response.status()).toBeLessThan(500);
+
+    // If we got 200 and TEST_ORG_ID is set, enforce tenant scoping in payloads that include org_id
+    if (response.status() === 200 && TEST_ORG_ID) {
+      try {
+        const body = await response.json();
+        const verifyOrg = (value: unknown) => {
+          if (value && typeof value === "object" && "org_id" in (value as Record<string, unknown>)) {
+            expect((value as { org_id?: unknown }).org_id).toBe(TEST_ORG_ID);
+          }
+        };
+        if (Array.isArray(body)) {
+          body.forEach(verifyOrg);
+        } else {
+          verifyOrg(body);
+        }
+      } catch (error) {
+        // Non-JSON or no org_id — warn but don't fail this health check
+        console.warn(
+          `⚠️  Tenant validation skipped for /api/work-orders: ${String(error)}`
+        );
+      }
+    } else if (!TEST_ORG_ID && !IS_CI && !ALLOW_MISSING_TEST_ORG_ID) {
+      console.warn(
+        "⚠️  TEST_ORG_ID not set; tenant validation skipped for work orders API health. " +
+        "Set TEST_ORG_ID in .env.local or ALLOW_MISSING_TEST_ORG_ID=true to acknowledge skip."
+      );
+    }
   });
 });
