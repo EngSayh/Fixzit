@@ -398,7 +398,7 @@ jobs:
           echo "- **OpenAPI Specification** (if found or generated)" >> $GITHUB_STEP_SUMMARY
           echo "- **Postman Collection** (exported from OpenAPI)" >> $GITHUB_STEP_SUMMARY
           echo "- **RBAC Matrix CSV** (role-based access control analysis)" >> $GITHUB_STEP_SUMMARY
-          echo "- **RBAC Parity Tests** (43 tests ensuring client/server alignment)" >> $GITHUB_STEP_SUMMARY
+          echo "- **RBAC Parity Tests** (66 tests ensuring client/server alignment)" >> $GITHUB_STEP_SUMMARY
           echo "- **Lighthouse CI Reports** (performance and accessibility)" >> $GITHUB_STEP_SUMMARY
           echo "- **Dependency Audit** (security vulnerability scan)" >> $GITHUB_STEP_SUMMARY
           echo "- **Test Results** (JUnit XML format)" >> $GITHUB_STEP_SUMMARY

@@ -4,20 +4,25 @@
 
 ### 1. Setup Git Hooks
 
-Run the setup script to install pre-commit hooks:
+Git hooks are configured via `simple-git-hooks` in `package.json`. They install automatically when you run `pnpm install`.
 
-```bash
-./scripts/setup-git-hooks.sh
-```
+**Pre-commit hook runs:**
 
-This installs a pre-commit hook that:
+- ✅ `pnpm lint:prod` – ESLint on production code (0 warnings allowed)
+- ✅ `pnpm guard:fm-hooks` – FM hooks safety check
+- ✅ `bash scripts/security/check-hardcoded-uris.sh` – Security URI scan
 
-- ✅ Runs translation audit before every commit
-- ✅ Ensures 100% EN-AR parity
-- ✅ Validates all translation keys in code are present in catalogs
-- ✅ Blocks commits if gaps are detected
+**Pre-push hook runs:**
 
-**To bypass the hook** (emergency only):
+- ✅ `pnpm lint:mongo-unwrap` – MongoDB unwrap safety check
+- ✅ `pnpm typecheck` – TypeScript compilation
+
+> ⚠️ **Translation audit is NOT in pre-commit hooks.** Run it manually before committing i18n changes:
+> ```bash
+> node scripts/audit-translations.mjs
+> ```
+
+**To bypass hooks** (emergency only):
 
 ```bash
 git commit --no-verify
@@ -119,9 +124,14 @@ git commit -m "feat(module): Description"
 
 Pre-commit hook will automatically:
 
-- Run translation audit
-- Block commit if gaps detected
-- Show helpful error messages
+- Run `lint:prod` (ESLint with 0 warnings)
+- Run `guard:fm-hooks` (FM hooks safety)
+- Run security URI scan
+
+> ℹ️ Translation audit is **not** in hooks. Run manually for i18n changes:
+> ```bash
+> node scripts/audit-translations.mjs
+> ```
 
 #### Push and Create PR
 
@@ -277,20 +287,27 @@ pnpm lint:rbac
 The RBAC parity tests ensure that client-side permission checks (UI visibility) match server-side authorization (API access control). This prevents drift between what users see and what they can actually do.
 
 ```bash
-# Run RBAC parity tests (43 tests)
+# Run RBAC parity tests (66 tests)
 pnpm rbac:parity
 ```
 
-**What it tests:**
-- Static data structure parity (ROLE_ACTIONS, SUB_ROLE_ACTIONS, PLAN_GATES)
-- `can()` function behavioral parity across all roles and sub-roles
+**What it tests (66 tests):**
+- Static data structure parity (ROLE_ACTIONS, SUB_ROLE_ACTIONS, PLAN_GATES, SUBMODULE_REQUIRED_SUBROLE)
+- `can()` function behavioral parity across all 9 canonical roles
 - Sub-role enforcement (FINANCE_OFFICER, HR_OFFICER, SUPPORT_AGENT, OPERATIONS_MANAGER)
 - Plan gate enforcement (STARTER, STANDARD, PRO, ENTERPRISE)
-- Tenant requester fallback logic
-- Property/unit scoping for CORPORATE_OWNER and PROPERTY_MANAGER
+- Technician assignment and work order lifecycle permissions
+- Cross-role sub-role boundary enforcement
+- Plan downgrade scenarios
+- Org membership edge cases (non-member denial, SUPER_ADMIN bypass, GUEST limits)
+- Vendor role parity (marketplace access, work order restrictions)
+- Action-specific parity (export, approve, assign)
 - `computeAllowedModules()` parity (server/client/lite)
 
-**CI Integration:** RBAC parity tests run automatically in the CI pipeline via `pnpm rbac:parity`.
+**CI Integration:**
+- `pnpm rbac:parity` runs in the **`fixzit-quality-gates.yml`** workflow (not in `lint:ci`)
+- **Always run locally** when changing RBAC logic: `pnpm rbac:parity`
+- The `lint:ci` script runs static checks only; behavioral parity tests are in quality-gates
 
 #### Writing Tests
 
@@ -305,8 +322,8 @@ Before committing, ensure:
 - [ ] `pnpm typecheck` passes (0 errors)
 - [ ] `pnpm lint` passes (0 errors)
 - [ ] `pnpm test` passes (all tests)
-- [ ] `pnpm rbac:parity` passes (43 RBAC parity tests)
-- [ ] Translation audit passes
+- [ ] `pnpm rbac:parity` passes (66 RBAC parity tests) – **run manually for RBAC changes**
+- [ ] Translation audit passes (run `node scripts/audit-translations.mjs` for i18n changes)
 - [ ] No `console.log` statements (except error handling)
 - [ ] Documentation updated if needed
 - [ ] Commit message follows format
