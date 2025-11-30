@@ -884,6 +884,20 @@ test.describe('Sub-Role API Access Control', () => {
       );
     });
 
+    // AUDIT-2025-11-30: Added payments endpoint - was missing from positive coverage
+    test('can access finance payments API', async ({ page, request }) => {
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
+
+      const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.payments);
+      await expectAllowedWithBodyCheck(
+        response,
+        API_ENDPOINTS.finance.payments,
+        'FINANCE_OFFICER',
+        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
+      );
+    });
+
     test('CANNOT access HR payroll API (cross-boundary)', async ({ page, request }) => {
       const result = await attemptLogin(page, credentials.email, credentials.password);
       expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
@@ -949,6 +963,20 @@ test.describe('Sub-Role API Access Control', () => {
       await expectAllowedWithBodyCheck(
         response,
         API_ENDPOINTS.hr.attendance,
+        'HR_OFFICER',
+        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
+      );
+    });
+
+    // AUDIT-2025-11-30: Added leaves endpoint - was missing from positive coverage
+    test('can access HR leaves API', async ({ page, request }) => {
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
+
+      const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.leaves);
+      await expectAllowedWithBodyCheck(
+        response,
+        API_ENDPOINTS.hr.leaves,
         'HR_OFFICER',
         { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
       );
@@ -1101,6 +1129,31 @@ test.describe('Sub-Role API Access Control', () => {
             if (Array.isArray(body) && body.length > 0) {
               validatePropertyStructure(body);
             }
+          }
+        }
+      );
+    });
+
+    // AUDIT-2025-11-30: Added properties.units endpoint - was missing from positive coverage
+    test('can access properties units API', async ({ page, request }) => {
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`).toBeTruthy();
+
+      const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.properties.units);
+      
+      await expectAllowedWithBodyCheck(
+        response,
+        API_ENDPOINTS.properties.units,
+        'OPERATIONS_MANAGER',
+        {
+          expectedOrgId: getTestOrgIdOptional(),
+          requireOrgIdPresence: true,
+          validate: (body) => {
+            // Units list should return array
+            expect(
+              body !== null && (Array.isArray(body) || typeof body === 'object'),
+              'Properties units should return array or object'
+            ).toBe(true);
           }
         }
       );
@@ -1277,6 +1330,68 @@ test.describe('Sub-Role API Access Control', () => {
       );
       expectDenied(response, API_ENDPOINTS.workOrders.assign, 'SUPPORT_AGENT');
     });
+
+    /**
+     * AUDIT-2025-11-30: Added verb-level denial tests for unprivileged roles.
+     * These verify that TEAM_MEMBER cannot perform write operations even though
+     * they can read work orders. Tests POST to workOrders.create and workOrders.assign.
+     */
+    test('TEAM_MEMBER cannot POST to work orders create (verb denial)', async ({ page, request }) => {
+      const credentials = getCredentials('TEAM_MEMBER');
+      await page.context().clearCookies();
+      await gotoWithRetry(page, '/login');
+
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`).toBeTruthy();
+
+      // TEAM_MEMBER should NOT be able to create work orders - only OPERATIONS_MANAGER/ADMIN
+      const response = await makeAuthenticatedRequest(
+        page,
+        request,
+        API_ENDPOINTS.workOrders.create,
+        'POST',
+        { title: 'RBAC-TEST-UNAUTHORIZED', description: 'Should be denied', _rbacTest: true }
+      );
+      expectDenied(response, API_ENDPOINTS.workOrders.create, 'TEAM_MEMBER');
+    });
+
+    test('TEAM_MEMBER cannot POST to work orders assign (verb denial)', async ({ page, request }) => {
+      const credentials = getCredentials('TEAM_MEMBER');
+      await page.context().clearCookies();
+      await gotoWithRetry(page, '/login');
+
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`).toBeTruthy();
+
+      // TEAM_MEMBER should NOT be able to assign work orders
+      const response = await makeAuthenticatedRequest(
+        page,
+        request,
+        API_ENDPOINTS.workOrders.assign,
+        'POST',
+        { workOrderId: 'rbac-test', assigneeId: 'rbac-test' }
+      );
+      expectDenied(response, API_ENDPOINTS.workOrders.assign, 'TEAM_MEMBER');
+    });
+
+    test('FINANCE_OFFICER cannot POST to marketplace bids (verb denial)', async ({ page, request }) => {
+      const credentials = getCredentials('FINANCE_OFFICER');
+      await page.context().clearCookies();
+      await gotoWithRetry(page, '/login');
+
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
+
+      // FINANCE_OFFICER should NOT be able to submit marketplace bids
+      const response = await makeAuthenticatedRequest(
+        page,
+        request,
+        API_ENDPOINTS.marketplace.bids,
+        'POST',
+        { vendor_id: 'rbac-test', amount: 0, _rbacTest: true }
+      );
+      expectDenied(response, API_ENDPOINTS.marketplace.bids, 'FINANCE_OFFICER');
+    });
   });
 
   test.describe('Admin Full Access', () => {
@@ -1376,6 +1491,66 @@ test.describe('Sub-Role API Access Control', () => {
           }
         }
       );
+    });
+
+    /**
+     * AUDIT-2025-11-30: Added verb-level tests for ADMIN write operations.
+     * Previous coverage was GET-heavy; these tests verify POST/PUT permissions
+     * for work orders and marketplace bids to catch RBAC/tenancy regressions on writes.
+     */
+    test('ADMIN can POST to work orders API (create)', async ({ page, request }) => {
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for ADMIN: ${result.errorText || 'unknown'}`).toBeTruthy();
+
+      // POST to work orders - Admin should be allowed to create
+      // Using minimal payload to test RBAC, not data validation
+      const response = await makeAuthenticatedRequest(
+        page, 
+        request, 
+        API_ENDPOINTS.workOrders.create, 
+        'POST',
+        { 
+          title: 'RBAC-TEST-ADMIN-CREATE',
+          description: 'E2E RBAC test - safe to delete',
+          _rbacTest: true // Flag for cleanup scripts
+        }
+      );
+      
+      const status = response.status();
+      // 200/201 = success, 400/422 = validation error (RBAC passed), 403 = RBAC denied
+      expect(
+        [200, 201, 400, 422].includes(status),
+        `ADMIN POST ${API_ENDPOINTS.workOrders.create} got ${status}.\n` +
+        `Expected 200/201 (created), 400/422 (validation - RBAC passed).\n` +
+        `If 403: RBAC incorrectly denying Admin write access.\n` +
+        `If 401: Authentication issue.`
+      ).toBe(true);
+    });
+
+    test('ADMIN can POST to marketplace bids API', async ({ page, request }) => {
+      const result = await attemptLogin(page, credentials.email, credentials.password);
+      expect(result.success, `Login failed for ADMIN: ${result.errorText || 'unknown'}`).toBeTruthy();
+
+      // POST to marketplace bids - Admin should be allowed
+      const response = await makeAuthenticatedRequest(
+        page, 
+        request, 
+        API_ENDPOINTS.marketplace.bids, 
+        'POST',
+        { 
+          vendor_id: 'rbac-test-vendor',
+          amount: 0,
+          _rbacTest: true
+        }
+      );
+      
+      const status = response.status();
+      expect(
+        [200, 201, 400, 422].includes(status),
+        `ADMIN POST ${API_ENDPOINTS.marketplace.bids} got ${status}.\n` +
+        `Expected 200/201 (created), 400/422 (validation - RBAC passed).\n` +
+        `If 403: RBAC incorrectly denying Admin write access.`
+      ).toBe(true);
     });
   });
 
@@ -1630,5 +1805,55 @@ test.describe('Tenant Validation Helper Behavior', () => {
     await expectAllowedWithBodyCheck(response, '/api/test', 'TEST_ROLE', {
       expectedOrgId: 'correct-tenant',
     });
+  });
+
+  /**
+   * CRITICAL REGRESSION TEST: Non-allowlist key traversal
+   * 
+   * This test ensures the helper's "all nested objects" traversal catches
+   * org_id mismatches under arbitrary keys (summary, payload, user, etc.)
+   * that are NOT in the isWrapperOnly allowlist (data/items/results/meta/pagination).
+   * 
+   * If the helper ever regresses to only checking allowlisted wrapper keys,
+   * this test will fail - preventing cross-tenant leaks in custom response shapes.
+   */
+  test('catches org_id mismatch under arbitrary non-allowlist key', async () => {
+    // Top-level has correct org_id (satisfies presence check at body level)
+    // But nested 'summary' key (not in allowlist) has wrong tenant
+    const body = {
+      org_id: 'correct-tenant',
+      summary: { totalCount: 10, org_id: 'wrong-tenant' },
+    };
+    
+    const response = createMockResponse(body);
+    
+    // Should fail because summary.org_id doesn't match expected
+    await expect(async () => {
+      await expectAllowedWithBodyCheck(response, '/api/test', 'TEST_ROLE', {
+        expectedOrgId: 'correct-tenant',
+      });
+    }).rejects.toThrow(/TENANT MISMATCH/);
+  });
+
+  test('catches org_id mismatch in deeply nested non-allowlist structure', async () => {
+    // Uses non-allowlist keys: payload, record, user
+    // Top-level has correct org_id; deeply nested has wrong
+    const body = {
+      org_id: 'correct-tenant',
+      payload: {
+        record: {
+          user: { org_id: 'wrong-tenant', name: 'John' },
+        },
+      },
+    };
+    
+    const response = createMockResponse(body);
+    
+    // Should fail because payload.record.user.org_id doesn't match
+    await expect(async () => {
+      await expectAllowedWithBodyCheck(response, '/api/test', 'TEST_ROLE', {
+        expectedOrgId: 'correct-tenant',
+      });
+    }).rejects.toThrow(/TENANT MISMATCH/);
   });
 });
