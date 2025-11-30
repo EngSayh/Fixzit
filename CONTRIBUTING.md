@@ -286,6 +286,11 @@ pnpm lint:rbac
 
 The RBAC parity tests ensure that client-side permission checks (UI visibility) match server-side authorization (API access control). This prevents drift between what users see and what they can actually do.
 
+**Key Files:**
+- Static lint script: [`scripts/lint-rbac-parity.ts`](scripts/lint-rbac-parity.ts) – 7-dimension parity checks
+- Behavioral tests: [`tests/domain/fm.can-parity.test.ts`](tests/domain/fm.can-parity.test.ts) – 66 tests
+- Contributor guide: [`docs/rbac/TOOLING.md`](docs/rbac/TOOLING.md) – detailed documentation
+
 ```bash
 # Run RBAC parity tests (66 tests)
 pnpm rbac:parity
