@@ -162,15 +162,17 @@ test.describe("Work Orders - Public API", () => {
 
     const status = response.status();
 
-    // AUDIT-2025-12-01 (Phase 20): Strict status handling for tenant validation
+    // AUDIT-2025-12-01 (Phase 21): Strict status allowlist for tenant validation
     // - 200: Data returned - MUST run tenant validation
     // - 401: Not authenticated - acceptable health check response, no data to validate
-    // - 403/404/5xx: Unexpected - fail test to surface configuration issues
+    // - 403/404/429/5xx: Unexpected - fail test to surface configuration/auth issues
     // Previous: toBeLessThan(500) allowed 403/404 to silently skip tenant validation
+    const ALLOWED_STATUSES = [200, 401];
     expect(
-      [200, 401],
+      ALLOWED_STATUSES,
       `Work Orders API should return 200 (authenticated) or 401 (unauthenticated).\n` +
-      `Got ${status} - unexpected response indicates configuration or permission issue.`
+      `Got ${status} - unexpected response indicates configuration or permission issue.\n` +
+      `If ${status} is now intentional, add it to ALLOWED_STATUSES with documentation.`
     ).toContain(status);
 
     // AUDIT-2025-12-01: Use shared verifyTenantScoping helper (fail-closed by default)
