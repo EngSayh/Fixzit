@@ -19,6 +19,8 @@
  * - AI Agent governance (assumed identity, audit logging)
  * - Work Order state machine with FSM transitions
  * - Approvals DSL with delegation and escalation
+
+import { logger } from "@/lib/logger";
  * - SLA policies and notification rules
  * - Mongoose schemas for MongoDB persistence
  * 
@@ -48,6 +50,7 @@
  */
 
 import mongoose, { Schema, Types } from "mongoose";
+import { logger } from "@/lib/logger";
 
 /* =========================
  * 1) Enums & Constants
@@ -653,7 +656,7 @@ export type AgentAuditLog = {
  */
 export async function logAgentAction(log: AgentAuditLog): Promise<void> {
   if (!log.agent_id || !log.assumed_user_id || !log.org_id) {
-    console.error("[AGENT_AUDIT_ERROR] Missing required audit fields", {
+    logger.error("[AGENT_AUDIT_ERROR] Missing required audit fields", {
       agent_id: log.agent_id,
       assumed_user_id: log.assumed_user_id,
       org_id: log.org_id,
@@ -665,7 +668,7 @@ export async function logAgentAction(log: AgentAuditLog): Promise<void> {
 
   // Log to console in development
   if (process.env.NODE_ENV === "development") {
-    console.log(
+    logger.debug(
       "[AGENT_AUDIT]",
       JSON.stringify({ ...log, timestamp }, null, 2),
     );
@@ -693,7 +696,7 @@ export async function logAgentAction(log: AgentAuditLog): Promise<void> {
     });
   } catch (error) {
     // Don't throw - audit logging failure shouldn't break the operation
-    console.error("[AGENT_AUDIT_ERROR] Failed to persist agent action:", error);
+    logger.error("[AGENT_AUDIT_ERROR] Failed to persist agent action:", error);
   }
 }
 
@@ -708,7 +711,7 @@ export function validateAgentAccess(ctx: ResourceCtx): boolean {
 
   // Agent must have assumed_user_id
   if (!ctx.assumedUserId) {
-    console.error("[AGENT_ERROR] Agent missing assumed_user_id", {
+    logger.error("[AGENT_ERROR] Agent missing assumed_user_id", {
       agent_id: ctx.agentId,
     });
     return false;
@@ -1420,6 +1423,7 @@ export const DEFAULT_SLA = SLA;
  * Smoke test utility for basic RBAC and FSM checks.
  * Intended for development and maintenance validation, not for production use.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Smoke test utility for dev
 export function smokeTests() {
   const tenantCtx: ResourceCtx = {
     orgId: "o1",
@@ -1429,10 +1433,12 @@ export function smokeTests() {
     isOrgMember: true,
     requesterUserId: "u1",
   };
+  // eslint-disable-next-line no-console -- Test assertions
   console.assert(
     can(SubmoduleKey.WO_CREATE, "create", tenantCtx) === true,
     "Tenant can create WO for own unit",
   );
+  // eslint-disable-next-line no-console -- Test assertions
   console.assert(
     !can(SubmoduleKey.WO_TRACK_ASSIGN, "approve", tenantCtx),
     "Tenant cannot approve quotes",
@@ -1446,6 +1452,7 @@ export function smokeTests() {
     isOrgMember: true,
     isTechnicianAssigned: true,
   };
+  // eslint-disable-next-line no-console -- Test assertions
   console.assert(
     can(SubmoduleKey.WO_TRACK_ASSIGN, "submit_estimate", techCtx),
     "Tech can submit estimate when assigned",
