@@ -6,6 +6,8 @@
 import { logger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromToken } from "@/lib/auth";
+// RBAC-DRIFT-FIX: Import from fm.types.ts (complete RBAC definitions)
+// instead of fm.behavior.ts (truncated, WO/Property only)
 import {
   can,
   Role,
@@ -16,7 +18,7 @@ import {
   normalizeRole,
   normalizeSubRole,
   inferSubRoleFromRole,
-} from "@/domain/fm/fm.behavior";
+} from "@/domain/fm/fm.types";
 import { connectDb } from "@/lib/mongo";
 import { Organization } from "@/server/models/Organization";
 
