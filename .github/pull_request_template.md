@@ -6,6 +6,18 @@
 - [ ] Language selector standards met
 - [ ] Artifacts attached
 
+## RBAC Changes (if applicable)
+
+> Skip this section if your PR doesn't touch RBAC logic (`domain/fm/`, `app/api/fm/`, role/permission code)
+
+- [ ] `pnpm rbac:parity` passes (66 tests)
+- [ ] `pnpm lint:rbac` passes (7-dimension static checks)
+- [ ] Reviewed [RBAC Tooling Guide](docs/rbac/TOOLING.md)
+
+**Key RBAC Files:**
+- Static lint: `scripts/lint-rbac-parity.ts`
+- Behavioral tests: `tests/domain/fm.can-parity.test.ts`
+
 ## Artifacts
 
 - [ ] Screenshots (before/after)
