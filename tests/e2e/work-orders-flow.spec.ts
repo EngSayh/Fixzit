@@ -1,6 +1,11 @@
 /**
  * E2E Test: Work Orders Flow
  * Tests work order creation, viewing, and management
+ * 
+ * AUDIT-2025-12-01: Aligned tenant validation with subrole-api-access.spec.ts pattern
+ * - CI: Hard fail if TEST_ORG_ID missing (security-critical)
+ * - Local: Warn if TEST_ORG_ID missing (developer visibility)
+ * - Fork PRs: Skip gracefully (secrets unavailable)
  */
 
 import { test, expect } from "@playwright/test";
@@ -8,6 +13,32 @@ import { test, expect } from "@playwright/test";
 const TEST_ORG_ID = process.env.TEST_ORG_ID;
 const ALLOW_MISSING_TEST_ORG_ID = process.env.ALLOW_MISSING_TEST_ORG_ID === "true";
 const IS_CI = process.env.CI === "true";
+const IS_GITHUB_ACTIONS = Boolean(process.env.GITHUB_ACTIONS);
+const IS_PULL_REQUEST = process.env.GITHUB_EVENT_NAME === "pull_request";
+
+/**
+ * Fork detection: Forked PRs cannot access secrets.
+ * We detect this to skip gracefully instead of crashing.
+ */
+const IS_FORK_OR_MISSING_SECRETS = IS_CI && IS_PULL_REQUEST && !TEST_ORG_ID;
+
+/**
+ * AUDIT-2025-12-01: Tenant validation guard
+ * Aligned with subrole-api-access.spec.ts for consistent behavior
+ */
+if (IS_CI && !TEST_ORG_ID && !IS_FORK_OR_MISSING_SECRETS) {
+  throw new Error(
+    "CI REQUIRES TEST_ORG_ID for tenant isolation validation in work-orders-flow.\n\n" +
+    "Cross-tenant data leaks are a critical security vulnerability.\n" +
+    "ACTION: Add TEST_ORG_ID to GitHub Secrets and pass to E2E workflow."
+  );
+} else if (!TEST_ORG_ID && !IS_CI && !ALLOW_MISSING_TEST_ORG_ID) {
+  console.warn(
+    "⚠️  TENANT VALIDATION DISABLED: TEST_ORG_ID not set.\n" +
+    "   Set TEST_ORG_ID in .env.local for full multi-tenancy validation.\n" +
+    "   Or set ALLOW_MISSING_TEST_ORG_ID=true to acknowledge skip."
+  );
+}
 
 test.describe("Work Orders - Authenticated User", () => {
   test.beforeEach(async ({ page }) => {
@@ -129,11 +160,7 @@ test.describe("Work Orders - Public API", () => {
           `⚠️  Tenant validation skipped for /api/work-orders: ${String(error)}`
         );
       }
-    } else if (!TEST_ORG_ID && !IS_CI && !ALLOW_MISSING_TEST_ORG_ID) {
-      console.warn(
-        "⚠️  TEST_ORG_ID not set; tenant validation skipped for work orders API health. " +
-        "Set TEST_ORG_ID in .env.local or ALLOW_MISSING_TEST_ORG_ID=true to acknowledge skip."
-      );
     }
+    // Note: Missing TEST_ORG_ID warnings are now handled at module-level guard
   });
 });
