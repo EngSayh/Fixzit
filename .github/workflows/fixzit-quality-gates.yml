@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [main, develop]
   workflow_dispatch: {}
+  schedule:
+    # Run nightly at 2 AM UTC for RBAC E2E tests
+    - cron: '0 2 * * *'
 
 # Prevent concurrent runs for same PR/ref - saves CI resources
 concurrency:
@@ -536,3 +539,211 @@ jobs:
           echo "- **Security Scorecard** (comprehensive security assessment)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "All artifacts are available for download from the Actions tab." >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # RBAC E2E TESTS - Sub-Role API Access Validation
+  # =============================================================================
+  # Runs subrole-api-access.spec.ts to verify RBAC enforcement at the API layer.
+  # Triggered on:
+  #   - Schedule (nightly at 2 AM UTC)
+  #   - PRs with 'run-rbac-e2e' label
+  #   - Manual workflow dispatch
+  #
+  # AUDIT-2025-11-30: This job validates:
+  #   - Sub-role access permissions (Finance, HR, Support, Ops, Admin)
+  #   - Cross-boundary access denials
+  #   - Tenant data isolation (org_id scoping)
+  #   - Method restrictions (GET vs DELETE)
+  # =============================================================================
+  rbac-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: gates
+    
+    # Run on schedule, manual dispatch, or when PR has 'run-rbac-e2e' label
+    if: |
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-rbac-e2e'))
+    
+    services:
+      mongodb:
+        image: mongo:7
+        env:
+          MONGO_INITDB_DATABASE: fixzit_test
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node with pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          cache-dependency-path: 'pnpm-lock.yaml'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(pnpm list @playwright/test --depth=0 --json | jq -r '.[0].devDependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Playwright Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps
+      
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps
+
+      - name: Build app
+        env:
+          NODE_ENV: test
+          SKIP_ENV_VALIDATION: 'true'
+          ALLOW_OFFLINE_MONGODB: 'true'
+        run: pnpm build
+
+      - name: Run RBAC E2E Tests
+        env:
+          # Authentication
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          AUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_SKIP_CSRF_CHECK: 'true'
+          AUTH_TRUST_HOST: 'true'
+          
+          # Database
+          MONGODB_URI: mongodb://localhost:27017/fixzit_test
+          ALLOW_OFFLINE_MONGODB: 'true'
+          
+          # Test environment
+          NODE_ENV: test
+          CI: 'true'
+          SKIP_ENV_VALIDATION: 'true'
+          BASE_URL: http://localhost:3000
+          
+          # ============================================================
+          # RBAC TEST CREDENTIALS (Required - from GitHub Secrets)
+          # These validate sub-role permissions at the API layer
+          # ============================================================
+          TEST_FINANCE_OFFICER_EMAIL: ${{ secrets.TEST_FINANCE_OFFICER_EMAIL }}
+          TEST_FINANCE_OFFICER_PASSWORD: ${{ secrets.TEST_FINANCE_OFFICER_PASSWORD }}
+          TEST_HR_OFFICER_EMAIL: ${{ secrets.TEST_HR_OFFICER_EMAIL }}
+          TEST_HR_OFFICER_PASSWORD: ${{ secrets.TEST_HR_OFFICER_PASSWORD }}
+          TEST_SUPPORT_AGENT_EMAIL: ${{ secrets.TEST_SUPPORT_AGENT_EMAIL }}
+          TEST_SUPPORT_AGENT_PASSWORD: ${{ secrets.TEST_SUPPORT_AGENT_PASSWORD }}
+          TEST_OPERATIONS_MANAGER_EMAIL: ${{ secrets.TEST_OPERATIONS_MANAGER_EMAIL }}
+          TEST_OPERATIONS_MANAGER_PASSWORD: ${{ secrets.TEST_OPERATIONS_MANAGER_PASSWORD }}
+          TEST_TEAM_MEMBER_EMAIL: ${{ secrets.TEST_TEAM_MEMBER_EMAIL }}
+          TEST_TEAM_MEMBER_PASSWORD: ${{ secrets.TEST_TEAM_MEMBER_PASSWORD }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+          
+          # Multi-tenancy validation
+          TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
+          
+        run: |
+          echo "🔒 Running RBAC E2E Tests - Sub-Role API Access"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "This validates:"
+          echo "  • Finance Officer access to /api/finance/*"
+          echo "  • HR Officer access to /api/hr/*"
+          echo "  • Support Agent access to /api/support/*"
+          echo "  • Operations Manager access to /api/work-orders/*"
+          echo "  • Cross-boundary access denials"
+          echo "  • Tenant data isolation (org_id scoping)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          pnpm exec playwright test \
+            tests/e2e/subrole-api-access.spec.ts \
+            --retries=2 \
+            --reporter=list,html || {
+              echo "❌ RBAC E2E tests failed!"
+              echo "Check the test report for details on which permissions are misconfigured."
+              exit 1
+            }
+          
+          echo "✅ All RBAC E2E tests passed - Sub-role permissions verified"
+
+      - name: Upload RBAC E2E Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rbac-e2e-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+      - name: Comment PR on RBAC failure
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request' && failure()
+        with:
+          script: |
+            const body = `## 🔒 RBAC E2E Tests Failed
+            
+            One or more sub-role API access tests failed. This indicates:
+            - A role may have too much or too little access
+            - Cross-tenant data may be leaking
+            - An API endpoint may be returning wrong status codes
+            
+            **Action Required:** Review the [test report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts) and fix RBAC configuration.
+            
+            See \`tests/e2e/subrole-api-access.spec.ts\` for test details.`;
+            
+            try {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            } catch (error) {
+              core.warning(`Failed to create PR comment: ${error.message}`);
+            }
+
+      - name: RBAC E2E Summary
+        if: always()
+        run: |
+          echo "## 🔒 RBAC E2E Tests - Sub-Role API Access" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ **All RBAC tests passed!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Verified:" >> $GITHUB_STEP_SUMMARY
+            echo "- Finance Officer permissions" >> $GITHUB_STEP_SUMMARY
+            echo "- HR Officer permissions" >> $GITHUB_STEP_SUMMARY
+            echo "- Support Agent permissions" >> $GITHUB_STEP_SUMMARY
+            echo "- Operations Manager permissions" >> $GITHUB_STEP_SUMMARY
+            echo "- Admin full access" >> $GITHUB_STEP_SUMMARY
+            echo "- Cross-boundary denials" >> $GITHUB_STEP_SUMMARY
+            echo "- Tenant data isolation" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **RBAC tests failed - review permissions**" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[Download report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY

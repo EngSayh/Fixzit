@@ -237,6 +237,9 @@ jobs:
           TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
           
+          # Multi-tenancy validation (org_id scoping for data isolation checks)
+          TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
+          
         run: |
           project_arg=""
           test_path_arg=""

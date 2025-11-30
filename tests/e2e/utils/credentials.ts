@@ -32,6 +32,14 @@ export type SubRoleKey =
   | 'ADMIN';
 
 /**
+ * Get optional test org identifier used for tenant-scoping assertions.
+ * Returns undefined if not configured, allowing tests to skip org_id checks gracefully.
+ */
+export function getTestOrgIdOptional(): string | undefined {
+  return process.env.TEST_ORG_ID;
+}
+
+/**
  * Get required test credentials for a specific sub-role.
  * Throws immediately if environment variables are not configured.
  *

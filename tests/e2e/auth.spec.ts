@@ -43,7 +43,7 @@ const HAS_NON_ADMIN_USER = hasTestCredentials('TEAM_MEMBER');
 const PRIMARY_USER = HAS_PRIMARY_USER ? getPrimaryUser() : null;
 const NON_ADMIN_USER = HAS_NON_ADMIN_USER ? getNonAdminUser() : null;
 
-const PASSWORD_RESET_EMAIL = PRIMARY_USER?.email || 'admin@fixzit.co';
+const PASSWORD_RESET_EMAIL = PRIMARY_USER?.email;
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const DEFAULT_TIMEOUT = 30000;
 
@@ -306,7 +306,7 @@ test.describe('Authentication', () => {
     test('should submit password reset request', async ({ page }) => {
       expect(
         HAS_PRIMARY_USER,
-        'Missing TEST_USER_* env vars for password reset test – owner: QA/Auth, ticket: QA-AUTH-001'
+        'Missing TEST_ADMIN_EMAIL/TEST_ADMIN_PASSWORD env vars for password reset test – owner: QA/Auth, ticket: QA-AUTH-001'
       ).toBeTruthy();
 
       await gotoWithRetry(page, '/forgot-password');
@@ -321,7 +321,7 @@ test.describe('Authentication', () => {
   test.describe('Security', () => {
     expect(
       HAS_PRIMARY_USER,
-      'Missing TEST_USER_* env vars for security tests – owner: QA/Auth, ticket: QA-AUTH-001'
+      'Missing TEST_ADMIN_EMAIL/TEST_ADMIN_PASSWORD env vars for security tests – owner: QA/Auth, ticket: QA-AUTH-001'
     ).toBeTruthy();
 
     test('should have secure session cookie attributes', async ({ page, context }) => {
