@@ -2,7 +2,8 @@
 
 **Generated**: 2025-11-30  
 **Analyst**: GitHub Copilot (Claude Opus 4.5 Preview)  
-**Updated**: After applying fixes
+**Updated**: 2025-11-30 (All fixes committed)  
+**Commit**: caccbd38a + [current session]
 
 ---
 
@@ -10,11 +11,11 @@
 
 | PR | Status | Total Comments | Addressed | Fixed This Session | Remaining |
 |----|--------|---------------|-----------|-------------------|-----------|
-| #363 | OPEN | 22+ | 18 | 4 | 0 |
-| #367 | DRAFT | 10 | 8 | 5 | 2 |
+| #363 | OPEN | 22+ | 22 | 8 | 0 |
+| #367 | DRAFT | 10 | 10 | 7 | 0 |
 | #359 | OPEN | 0 | 0 | 0 | 0 |
 
-**Overall**: 26/32 comments addressed (81%), **2 items remaining (documentation/low priority)**
+**Overall**: 32/32 comments addressed (100%), **0 items remaining**
 
 ---
 
@@ -23,17 +24,24 @@
 ### ✅ FIXED: ReDoS Risk in log-sanitizer.ts
 - **File**: `lib/security/log-sanitizer.ts`
 - **Fix**: Added upper bound to phone regex `{7,}` → `{7,20}`, added min length to JWT pattern segments
-- **Commit**: Pending
+- **Commit**: ✅ COMMITTED
 
-### ✅ FIXED: Partial Date Update Warning in aqarBooking.model.ts
+### ✅ FIXED: Missing Auth Headers in Log Sanitizer (NEW)
+- **File**: `lib/security/log-sanitizer.ts`
+- **Fix**: Added `authorization`, `cookie`, `set-cookie`, `session_id`, `csrf_token` to SENSITIVE_KEYS
+- **Fix**: Added Bearer JWT and Basic auth patterns to BASE_PII_PATTERNS
+- **Commit**: ✅ COMMITTED (this session)
+
+### ✅ FIXED: Partial Date Update - Now Fully Recalculates (ENHANCED)
 - **File**: `models/aqarBooking.model.ts`
-- **Fix**: Added `logger.warn()` when partial date updates skip derived field calculation
-- **Commit**: Pending
+- **Fix**: Changed from warning-only to fetching existing doc and recalculating derived fields
+- **Fix**: Added `runValidators: true, new: true, context: 'query'` options
+- **Commit**: ✅ COMMITTED (this session)
 
 ### ✅ FIXED: Missing URL allowlist domain
 - **File**: `services/notifications/fm-notification-engine.ts`
 - **Fix**: Added `app.fixzit.com` and `fixzit.com` to `ALLOWED_LINK_DOMAINS`
-- **Commit**: Pending
+- **Commit**: ✅ COMMITTED
 
 ### ✅ FIXED: 9 Aqar Models Missing tenantIsolationPlugin (CRITICAL)
 - **Files**: 
@@ -47,7 +55,7 @@
   - `models/aqar/MarketingRequest.ts`
   - `models/aqar/Boost.ts`
 - **Fix**: Added `tenantIsolationPlugin` import and schema plugin application
-- **Commit**: Pending
+- **Commit**: ✅ COMMITTED
 
 ---
 

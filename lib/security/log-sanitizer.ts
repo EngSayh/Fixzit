@@ -61,6 +61,19 @@ const SENSITIVE_KEYS = new Set([
   "mfa_secret",
   "otp",
   "pin",
+  // HTTP Headers containing auth data
+  "authorization",
+  "cookie",
+  "setcookie",
+  "set_cookie",
+  "idtoken",
+  "id_token",
+  "sessionid",
+  "session_id",
+  "csrftoken",
+  "csrf_token",
+  "xsrftoken",
+  "xsrf_token",
 
   // Address details
   "address",
@@ -90,6 +103,11 @@ const BASE_PII_PATTERNS: RegExp[] = [
   /^[A-Za-z0-9-_]{10,}\.(?:[A-Za-z0-9-_]{10,})\.(?:[A-Za-z0-9-_]{10,})$/, // JWT tokens (min 10 chars per segment)
   /\b[A-Z]{2}\d{2}[A-Z0-9]{9,30}\b/, // IBAN-ish
   /\b\d{13,19}\b/, // card-like digit runs
+  // Bearer tokens with prefix (Authorization header values)
+  /\bBearer\s+[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\b/i, // Bearer JWT
+  /\bBearer\s+[A-Za-z0-9._~-]{20,}\b/i, // Bearer opaque tokens
+  // Basic auth header values
+  /\bBasic\s+[A-Za-z0-9+/=]{10,}\b/i, // Basic auth base64
 ];
 
 /**
