@@ -11,7 +11,7 @@
  * 3. Prevent cross-suite contamination that causes flaky tests
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   trackRateLimitHit,
   trackCorsViolation,
@@ -37,10 +37,49 @@ if (typeof __resetMonitoringStateForTests !== "function") {
 }
 
 describe("Security Monitoring", () => {
+  /**
+   * Helper to verify all 6 monitoring metrics are at zero.
+   * Checks both event counts AND unique key counts for complete verification.
+   */
+  function assertMonitoringStateIsClean(context: string): void {
+    const metrics = getSecurityMetrics();
+    const issues: string[] = [];
+    
+    // Check event counts
+    if (metrics.rateLimitHits !== 0) issues.push(`rateLimitHits: ${metrics.rateLimitHits}`);
+    if (metrics.corsViolations !== 0) issues.push(`corsViolations: ${metrics.corsViolations}`);
+    if (metrics.authFailures !== 0) issues.push(`authFailures: ${metrics.authFailures}`);
+    
+    // Check unique key counts (important for cardinality verification)
+    if (metrics.rateLimitUniqueKeys !== 0) issues.push(`rateLimitUniqueKeys: ${metrics.rateLimitUniqueKeys}`);
+    if (metrics.corsUniqueKeys !== 0) issues.push(`corsUniqueKeys: ${metrics.corsUniqueKeys}`);
+    if (metrics.authUniqueKeys !== 0) issues.push(`authUniqueKeys: ${metrics.authUniqueKeys}`);
+    
+    if (issues.length > 0) {
+      throw new Error(
+        `[Test Isolation Error] Monitoring state not clean ${context}!\n` +
+        `Non-zero metrics: ${issues.join(", ")}\n` +
+        `This indicates __resetMonitoringStateForTests is not clearing all state.\n` +
+        `Fix lib/security/monitoring.ts or check for state leakage.`
+      );
+    }
+  }
+
   // Reset monitoring state before each test to ensure isolation
   // The guard above ensures this function exists before we reach this point
   beforeEach(() => {
     __resetMonitoringStateForTests();
+    
+    // VERIFY reset actually cleared ALL state - catches no-op regressions
+    assertMonitoringStateIsClean("after beforeEach reset");
+  });
+
+  // Reset after each test and verify cleanliness to catch state leakage
+  afterEach(() => {
+    __resetMonitoringStateForTests();
+    
+    // Verify reset worked - catches no-op regressions after any test modifications
+    assertMonitoringStateIsClean("after afterEach reset");
   });
   describe("trackRateLimitHit", () => {
     it("should track rate limit events with org isolation", () => {

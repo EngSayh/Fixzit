@@ -81,7 +81,8 @@ export function resetMonitoringState(): void {
  * This function:
  * 1. Validates the reset helper exists (fails fast if missing)
  * 2. Registers beforeEach to reset state before every test
- * 3. Optionally registers afterEach for cleanup
+ * 3. VERIFIES reset actually cleared state (catches no-op regressions)
+ * 4. Registers afterEach to reset and verify cleanliness after each test
  * 
  * @example
  * ```typescript
@@ -105,12 +106,19 @@ export function setupMonitoringTestIsolation(): void {
     
     // Reset state before each test
     resetMonitoringState();
+    
+    // CRITICAL: Verify reset actually cleared state
+    // This catches regressions where reset becomes a no-op
+    await assertMonitoringStateClean();
   });
   
-  // Optional: Also reset after each test for extra safety
-  afterEach(() => {
+  // Reset after each test AND verify cleanliness
+  // This catches tests that leak state (forget to clean up)
+  afterEach(async () => {
     if (resetHelper !== null) {
       resetHelper();
+      // Verify the reset worked - catches no-op regressions
+      await assertMonitoringStateClean();
     }
   });
 }
