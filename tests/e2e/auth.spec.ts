@@ -53,9 +53,44 @@ const NON_ADMIN_USER = HAS_NON_ADMIN_USER ? getNonAdminUser() : null;
 const PASSWORD_RESET_EMAIL = PRIMARY_USER?.email ?? '';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const DEFAULT_TIMEOUT = 30000;
-// TEST_ORG_ID is optional - if set, RBAC tests verify tenant isolation
-// Uses getTestOrgIdOptional() for consistency with other E2E suites
+
+/**
+ * MULTI-TENANCY VALIDATION
+ * 
+ * TEST_ORG_ID is used to verify tenant isolation in RBAC tests.
+ * When set, tests validate that API responses only contain data for the test tenant.
+ * 
+ * AUDIT-2025-11-30: Added CI enforcement to align with subrole-api-access.spec.ts
+ * - Internal CI runs MUST have TEST_ORG_ID configured
+ * - Forked PRs skip this check (secrets unavailable)
+ * - Local dev can run without it (optional tenant checks)
+ */
+const IS_CI = process.env.CI === 'true';
+const IS_PULL_REQUEST = process.env.GITHUB_EVENT_NAME === 'pull_request';
+const HAS_AUTH_CREDENTIALS = HAS_PRIMARY_USER && HAS_NON_ADMIN_USER;
+
+// Fork detection: CI + PR + missing credentials indicates a fork
+const IS_FORK_OR_MISSING_SECRETS = IS_CI && IS_PULL_REQUEST && !HAS_AUTH_CREDENTIALS;
+
 const TEST_ORG_ID = getTestOrgIdOptional();
+
+// Enforce TEST_ORG_ID for internal CI runs (not forks)
+if (IS_CI && !TEST_ORG_ID && !IS_FORK_OR_MISSING_SECRETS) {
+  throw new Error(
+    'CI REQUIRES TEST_ORG_ID for multi-tenant isolation validation in auth RBAC tests.\n\n' +
+    'Cross-tenant data leaks are a critical security vulnerability.\n' +
+    'Without TEST_ORG_ID, tests cannot verify org_id scoping on /api/work-orders.\n\n' +
+    'ACTION:\n' +
+    '  1. Add TEST_ORG_ID to GitHub Secrets\n' +
+    '  2. Set it to the org_id of your test tenant\n\n' +
+    'See env.example for configuration details.'
+  );
+} else if (!TEST_ORG_ID && !IS_CI) {
+  console.info(
+    'ℹ️  INFO: TEST_ORG_ID not set. Tenant isolation checks will be skipped.\n' +
+    'For full multi-tenancy validation, set TEST_ORG_ID in .env.local.'
+  );
+}
 
 async function gotoWithRetry(page: Page, path: string, attempts = 3) {
   let lastError: unknown;

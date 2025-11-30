@@ -166,24 +166,9 @@ jobs:
           echo "❌ MongoDB health check failed after 10 attempts"
           exit 1
 
-      - name: Validate E2E test credentials
-        run: |
-          required_vars=(
-            TEST_FINANCE_OFFICER_EMAIL TEST_FINANCE_OFFICER_PASSWORD
-            TEST_HR_OFFICER_EMAIL TEST_HR_OFFICER_PASSWORD
-            TEST_SUPPORT_AGENT_EMAIL TEST_SUPPORT_AGENT_PASSWORD
-            TEST_OPERATIONS_MANAGER_EMAIL TEST_OPERATIONS_MANAGER_PASSWORD
-            TEST_TEAM_MEMBER_EMAIL TEST_TEAM_MEMBER_PASSWORD
-            TEST_ADMIN_EMAIL TEST_ADMIN_PASSWORD TEST_ADMIN_EMPLOYEE
-          )
-          missing=()
-          for v in "${required_vars[@]}"; do
-            if [ -z "${!v}" ]; then missing+=("$v"); fi
-          done
-          if [ "${#missing[@]}" -gt 0 ]; then
-            echo "❌ Missing required E2E env vars: ${missing[*]}" >&2
-            exit 1
-          fi
+      # AUDIT-2025-11-30: Removed duplicate "Validate E2E test credentials" step
+      # that was missing env: block to wire secrets. The correctly-wired validation
+      # step below handles this check ("Validate required E2E secrets").
 
       - name: Prepare E2E env vars
         env:

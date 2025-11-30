@@ -68,6 +68,7 @@ const HAS_TENANT_ID = Boolean(getTestOrgIdOptional());
  * - Misconfigured internal PRs (missing secrets)
  */
 const IS_FORK_OR_MISSING_SECRETS = IS_CI && IS_PULL_REQUEST && (!HAS_ALL_CREDENTIALS || !HAS_TENANT_ID);
+const ALLOW_MISSING_TEST_ORG_ID = process.env.ALLOW_MISSING_TEST_ORG_ID === 'true';
 
 /**
  * MULTI-TENANCY VALIDATION GUARD
