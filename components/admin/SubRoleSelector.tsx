@@ -14,7 +14,8 @@
 "use client";
 
 import React from "react";
-import { SubRole, Role, ModuleKey, computeAllowedModules } from "@/domain/fm/fm.behavior";
+// Import from fm.types (client-safe, no mongoose)
+import { SubRole, Role, ModuleKey, computeAllowedModules } from "@/domain/fm/fm.types";
 import { useTranslation } from "@/contexts/TranslationContext";
 
 interface SubRoleSelectorProps {

@@ -15,7 +15,8 @@
 "use client";
 
 import React from "react";
-import { Role, SubRole, normalizeRole } from "@/domain/fm/fm.behavior";
+// Import from fm.types (client-safe, no mongoose)
+import { Role, SubRole, normalizeRole } from "@/domain/fm/fm.types";
 
 interface RoleBadgeProps {
   role: Role | string;

@@ -10,6 +10,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+// Import from fm.types (client-safe, no mongoose)
 import {
   can,
   Role,
@@ -17,7 +18,7 @@ import {
   Action,
   PLAN_GATES,
   Plan,
-} from "@/domain/fm/fm.behavior";
+} from "@/domain/fm/fm.types";
 import { useCurrentOrg } from "@/contexts/CurrentOrgContext";
 
 export interface FMPermissionContext {
@@ -29,22 +30,28 @@ export interface FMPermissionContext {
 }
 
 // Map NextAuth roles to internal FM Role enum
-// This provides a single source of truth for role mapping.
+// Handles both legacy enum member names AND their string values
 const roleMapping: Record<string, Role> = {
+  // Canonical roles (string values)
   SUPER_ADMIN: Role.SUPER_ADMIN,
-  CORPORATE_ADMIN: Role.CORPORATE_ADMIN,
-  FM_MANAGER: Role.MANAGEMENT,
-  MANAGEMENT: Role.MANAGEMENT,
-  FINANCE: Role.FINANCE,
-  HR: Role.HR,
-  EMPLOYEE: Role.EMPLOYEE,
-  PROPERTY_OWNER: Role.PROPERTY_OWNER,
-  OWNER: Role.PROPERTY_OWNER,
-  OWNER_DEPUTY: Role.OWNER_DEPUTY,
+  ADMIN: Role.ADMIN,
+  CORPORATE_OWNER: Role.CORPORATE_OWNER,
+  TEAM_MEMBER: Role.TEAM_MEMBER,
   TECHNICIAN: Role.TECHNICIAN,
+  PROPERTY_MANAGER: Role.PROPERTY_MANAGER,
   TENANT: Role.TENANT,
   VENDOR: Role.VENDOR,
   GUEST: Role.GUEST,
+  // Legacy aliases (for backward compatibility)
+  CORPORATE_ADMIN: Role.ADMIN,
+  FM_MANAGER: Role.PROPERTY_MANAGER,
+  MANAGEMENT: Role.TEAM_MEMBER,
+  FINANCE: Role.TEAM_MEMBER,
+  HR: Role.TEAM_MEMBER,
+  EMPLOYEE: Role.TEAM_MEMBER,
+  PROPERTY_OWNER: Role.CORPORATE_OWNER,
+  OWNER: Role.CORPORATE_OWNER,
+  OWNER_DEPUTY: Role.PROPERTY_MANAGER,
 };
 
 /**
@@ -139,20 +146,22 @@ export function useFMPermissions() {
   };
 
   /**
-   * Check if user is admin (SUPER_ADMIN or CORPORATE_ADMIN)
+   * Check if user is admin (SUPER_ADMIN or ADMIN)
    */
   const isAdmin = (): boolean => {
-    return ctx.role === Role.SUPER_ADMIN || ctx.role === Role.CORPORATE_ADMIN;
+    return ctx.role === Role.SUPER_ADMIN || ctx.role === Role.ADMIN;
   };
 
   /**
-   * Check if user is management level
+   * Check if user is management level (admin or manager roles)
    */
   const isManagement = (): boolean => {
     return (
-      ctx.role === Role.MANAGEMENT ||
+      ctx.role === Role.TEAM_MEMBER ||
       ctx.role === Role.SUPER_ADMIN ||
-      ctx.role === Role.CORPORATE_ADMIN
+      ctx.role === Role.ADMIN ||
+      ctx.role === Role.CORPORATE_OWNER ||
+      ctx.role === Role.PROPERTY_MANAGER
     );
   };
 
