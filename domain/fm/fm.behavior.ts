@@ -255,8 +255,8 @@ export const PLAN_GATES: Record<
     MARKETPLACE_CATALOG: false,
     MARKETPLACE_REQUESTS: false,
     MARKETPLACE_BIDS: false,
-    // Support - KB only
-    SUPPORT_TICKETS: false,
+    // Support - Basic (aligned with fm.types.ts)
+    SUPPORT_TICKETS: true,
     SUPPORT_KB: true,
     SUPPORT_CHAT: false,
     SUPPORT_SLA: false,
@@ -1677,7 +1677,12 @@ const UserSchema = new Schema(
     name: String,
     email: { type: String, index: true },
     role: { type: String, enum: Object.values(Role), index: true },
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );
@@ -1688,7 +1693,12 @@ const PropertySchema = new Schema(
     address: String,
     owner_user_id: { type: Schema.Types.ObjectId, ref: "User" },
     deputy_user_id: { type: Schema.Types.ObjectId, ref: "User" },
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );
@@ -1733,7 +1743,12 @@ const WorkOrderSchema = new Schema(
     property_id: { type: Schema.Types.ObjectId, ref: "Property", index: true },
     created_by_user_id: { type: Schema.Types.ObjectId, ref: "User" },
     technician_user_id: { type: Schema.Types.ObjectId, ref: "User" },
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
     chargeable: Boolean,
     estimated_cost: Number,
     actual_cost: Number,
@@ -1746,7 +1761,12 @@ const AttachmentSchema = new Schema(
     work_order_id: { type: Schema.Types.ObjectId, ref: "WorkOrder", index: true },
     file_url: String,
     role: { type: String, enum: ["BEFORE", "DURING", "AFTER", "QUOTE"] },
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );
@@ -1757,7 +1777,12 @@ const QuotationSchema = new Schema(
     amount: Number,
     status: { type: String, enum: ["PENDING", "APPROVED", "REJECTED"] },
     approved_by_user_id: { type: Schema.Types.ObjectId, ref: "User" },
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
     line_items: [
       {
         description: String,
@@ -1779,7 +1804,12 @@ const ApprovalSchema = new Schema(
       enum: ["APPROVED", "REJECTED", "CHANGES_REQUESTED"],
     },
     comments: String,
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );
@@ -1794,7 +1824,12 @@ const FinancialTxnSchema = new Schema(
     description: String,
     property_id: { type: Schema.Types.ObjectId, ref: "Property", index: true },
     work_order_id: { type: Schema.Types.ObjectId, ref: "WorkOrder", index: true },
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
     status: { type: String, enum: ["OPEN", "PAID", "VOID"] },
   },
   { timestamps: true },
@@ -1811,7 +1846,12 @@ const PMPlanSchema = new Schema(
     checklist: [String],
     next_run_at: Date,
     responsible_team: [String],
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );
@@ -1824,7 +1864,12 @@ const InspectionSchema = new Schema(
     checklist: [{ item: String, severity: String, ok: Boolean }],
     assignee_user_id: { type: Schema.Types.ObjectId, ref: "User" },
     signoff: { by: { type: Schema.Types.ObjectId, ref: "User" }, at: Date },
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );
@@ -1838,7 +1883,12 @@ const DocumentSchema = new Schema(
     expiry: Date,
     tags: [String],
     linked: [{ entity: String, id: Schema.Types.ObjectId }],
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );

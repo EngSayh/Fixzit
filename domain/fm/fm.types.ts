@@ -1039,12 +1039,33 @@ export function can(
 
   if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
 
+  // TENANT scope validation: must own the user record OR unit membership
   if (ctx.role === Role.TENANT && action !== "create") {
+    // If unit context provided, validate tenant has access to the unit
+    if (ctx.unitId && ctx.units?.length) {
+      const hasUnitAccess = ctx.units.includes(ctx.unitId);
+      if (!hasUnitAccess && !ctx.isSuperAdmin) {
+        return false;
+      }
+    }
+    // Fallback to user ownership check
     return ctx.requesterUserId === ctx.userId;
   }
 
-  if (ctx.role === Role.CORPORATE_OWNER || ctx.role === Role.PROPERTY_MANAGER) {
-    if (ctx.propertyId && !(ctx.isOwnerOfProperty || ctx.isSuperAdmin)) {
+  // PROPERTY_MANAGER scope validation: must manage the property
+  if (ctx.role === Role.PROPERTY_MANAGER && ctx.propertyId) {
+    const managesProperty =
+      ctx.assignedProperties?.includes(ctx.propertyId) ||
+      ctx.isOwnerOfProperty ||
+      ctx.isSuperAdmin;
+    if (!managesProperty) {
+      return false;
+    }
+  }
+
+  // CORPORATE_OWNER scope validation: must own the property
+  if (ctx.role === Role.CORPORATE_OWNER && ctx.propertyId) {
+    if (!(ctx.isOwnerOfProperty || ctx.isSuperAdmin)) {
       return false;
     }
   }
