@@ -567,7 +567,7 @@ BookingSchema.methods.cancel = async function (
 
 /* ---------------- Statics: availability & atomic create ---------------- */
 
-interface BookingModel extends MModel<IBooking> {
+export interface BookingModel extends MModel<IBooking> {
   /**
    * Check if any active booking overlaps with the given nights
    * @param orgId - Organization ID

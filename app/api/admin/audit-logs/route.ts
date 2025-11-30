@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       endDate = parsed;
     }
 
-    // ORGID-FIX: Validate orgId before querying (tenant isolation)
+    // SEC-001: Validate orgId exists for tenant isolation
     const orgId = session.user.orgId;
     if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
       return NextResponse.json(

@@ -84,8 +84,8 @@ const canonicalToWorkOrderRole = (
 const normalizeWorkOrderRole = (role?: UserRoleType): CanonicalRole | null => {
   if (!role) return null;
   const inferredSubRole = inferSubRoleFromRole(role);
-  const canonical = normalizeFmRole(role, inferredSubRole);
-  const mapped = canonicalToWorkOrderRole(canonical, inferredSubRole);
+  const canonical = normalizeFmRole(role);
+  const mapped = canonicalToWorkOrderRole(canonical, inferredSubRole ?? undefined);
   if (mapped && WORK_ORDER_ROLES.includes(mapped)) {
     return mapped;
   }

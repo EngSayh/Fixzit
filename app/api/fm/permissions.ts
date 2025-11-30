@@ -93,7 +93,7 @@ export async function requireFmPermission(
     const fmSubRole =
       normalizeSubRole((sessionUser as { subRole?: string | null }).subRole) ??
       inferSubRoleFromRole(rawRole);
-    const fmRole = normalizeRole(rawRole, fmSubRole);
+    const fmRole = normalizeRole(rawRole);
 
     if (!fmRole) {
       return FMErrors.forbidden(
@@ -130,7 +130,7 @@ export async function requireFmPermission(
     return {
       ...sessionUser,
       fmRole,
-      fmSubRole,
+      fmSubRole: fmSubRole ?? undefined,
       plan,
       userId: sessionUser.id,
     };
