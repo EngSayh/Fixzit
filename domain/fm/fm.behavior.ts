@@ -19,6 +19,8 @@
  * - AI Agent governance (assumed identity, audit logging)
  * - Work Order state machine with FSM transitions
  * - Approvals DSL with delegation and escalation
+
+import { logger } from "@/lib/logger";
  * - SLA policies and notification rules
  * - Mongoose schemas for MongoDB persistence
  * 
@@ -238,16 +240,13 @@ export const ROLE_ALIAS_MAP: Record<string, Role> = {
   MANAGEMENT: Role.TEAM_MEMBER,
   MANAGER: Role.TEAM_MEMBER,
   FM_MANAGER: Role.PROPERTY_MANAGER,
-  // Sub-role required aliases - these map to TEAM_MEMBER but REQUIRE subRole for module access
-  FINANCE: Role.TEAM_MEMBER, // Requires SubRole.FINANCE_OFFICER for Finance module access
-  HR: Role.TEAM_MEMBER, // Requires SubRole.HR_OFFICER for HR module + PII data access
+  FINANCE: Role.TEAM_MEMBER,
+  HR: Role.TEAM_MEMBER,
   PROCUREMENT: Role.TEAM_MEMBER,
   EMPLOYEE: Role.TEAM_MEMBER,
-  DISPATCHER: Role.TEAM_MEMBER, // Requires SubRole.OPERATIONS_MANAGER for cross-module dispatch
+  DISPATCHER: Role.TEAM_MEMBER,
   CORPORATE_STAFF: Role.TEAM_MEMBER,
   FIXZIT_EMPLOYEE: Role.TEAM_MEMBER,
-  FINANCE_MANAGER: Role.TEAM_MEMBER, // Finance-aligned legacy role
-  HR_MANAGER: Role.TEAM_MEMBER, // HR-aligned legacy role
   OWNER: Role.CORPORATE_OWNER,
   PROPERTY_OWNER: Role.CORPORATE_OWNER,
   INDIVIDUAL_PROPERTY_OWNER: Role.CORPORATE_OWNER,
@@ -257,8 +256,8 @@ export const ROLE_ALIAS_MAP: Record<string, Role> = {
   RESIDENT: Role.TENANT,
   OCCUPANT: Role.TENANT,
   END_USER: Role.TENANT,
-  SUPPORT: Role.TEAM_MEMBER, // Requires SubRole.SUPPORT_AGENT for Support + CRM access
-  AUDITOR: Role.GUEST, // STRICT v4.1: Least privilege - view-only access (no TEAM_MEMBER escalation)
+  SUPPORT: Role.TEAM_MEMBER,
+  AUDITOR: Role.GUEST, // SEC: Auditors should have read-only GUEST access, not TEAM_MEMBER
   VIEWER: Role.GUEST,
   FIELD_ENGINEER: Role.TECHNICIAN,
   INTERNAL_TECHNICIAN: Role.TECHNICIAN,
@@ -272,67 +271,65 @@ export const ROLE_ALIAS_MAP: Record<string, Role> = {
  * Normalizes a role string (legacy or canonical) to a STRICT v4.1 canonical Role enum value.
  * Returns null if the role is not recognized.
  * 
- * @param role - The role string to normalize
- * @param expectedSubRole - Optional subRole required for TEAM_MEMBER in strict mode
- * @param strict - If true, throws error when TEAM_MEMBER requires subRole but none provided
  * @example
  * normalizeRole("CORPORATE_ADMIN") // Role.ADMIN
  * normalizeRole("EMPLOYEE") // Role.TEAM_MEMBER
  * normalizeRole("ADMIN") // Role.ADMIN
- * normalizeRole("FINANCE", SubRole.FINANCE_OFFICER, true) // Role.TEAM_MEMBER (validated)
  */
-export function normalizeRole(
-  role?: string | Role | null,
-  expectedSubRole?: SubRole,
-  strict = false,
-): Role | null {
+export function normalizeRole(role?: string | Role | null): Role | null {
   if (!role) return null;
   if (typeof role !== 'string') return role; // Already a Role enum
   const key = role.toUpperCase();
-  const normalized = ROLE_ALIAS_MAP[key] ?? (Role as Record<string, string>)[key] as Role ?? null;
-  
-  // STRICT v4.1: Enforce sub-role requirement for TEAM_MEMBER in strict mode
-  // When strict=true and role maps to TEAM_MEMBER, expectedSubRole MUST be provided
-  if (strict && normalized === Role.TEAM_MEMBER && !expectedSubRole) {
-    throw new Error(
-      `STRICT v4.1 violation: Role "${role}" maps to TEAM_MEMBER but requires a subRole to be specified`
-    );
-  }
-  
-  return normalized;
+  return ROLE_ALIAS_MAP[key] ?? (Role as Record<string, string>)[key] as Role ?? null;
 }
 
-/** Normalizes sub-role strings to SubRole enum */
-export function normalizeSubRole(subRole?: string | null): SubRole | undefined {
-  if (!subRole) return undefined;
+/**
+ * Normalizes a sub-role string to a STRICT v4.1 canonical SubRole enum value.
+ * Returns null if the sub-role is not recognized.
+ * 
+ * @param subRole - The sub-role string to normalize
+ * @example
+ * normalizeSubRole("FINANCE_OFFICER") // SubRole.FINANCE_OFFICER
+ * normalizeSubRole("finance_officer") // SubRole.FINANCE_OFFICER
+ * normalizeSubRole("INVALID") // null
+ */
+export function normalizeSubRole(subRole?: string | SubRole | null): SubRole | null {
+  if (!subRole) return null;
+  if (typeof subRole !== 'string') return subRole; // Already a SubRole enum
   const key = subRole.toUpperCase();
-  return (Object.values(SubRole) as string[]).includes(key)
-    ? (key as SubRole)
-    : undefined;
+  return (SubRole as Record<string, string>)[key] as SubRole ?? null;
 }
 
-/** Infers sub-role from a raw role string when explicit subRole is missing */
-export function inferSubRoleFromRole(role?: string | Role | null): SubRole | undefined {
-  if (!role) return undefined;
-  const key = typeof role === "string" ? role.toUpperCase() : String(role);
-  switch (key) {
-    case "FINANCE":
-    case "FINANCE_OFFICER":
-    case "FINANCE_MANAGER":
-      return SubRole.FINANCE_OFFICER;
-    case "HR":
-    case "HR_OFFICER":
-    case "HR_MANAGER":
-      return SubRole.HR_OFFICER;
-    case "SUPPORT":
-    case "SUPPORT_AGENT":
-      return SubRole.SUPPORT_AGENT;
-    case "OPERATIONS_MANAGER":
-    case "DISPATCHER":
-      return SubRole.OPERATIONS_MANAGER;
-    default:
-      return undefined;
-  }
+/**
+ * Infers a default SubRole from a legacy role string.
+ * Used when migrating from old role system where role implied function.
+ * 
+ * @param role - The role string to infer sub-role from
+ * @example
+ * inferSubRoleFromRole("FINANCE") // SubRole.FINANCE_OFFICER
+ * inferSubRoleFromRole("HR") // SubRole.HR_OFFICER
+ * inferSubRoleFromRole("SUPPORT") // SubRole.SUPPORT_AGENT
+ * inferSubRoleFromRole("ADMIN") // null (no inference for admin roles)
+ */
+export function inferSubRoleFromRole(role?: string | null): SubRole | null {
+  if (!role) return null;
+  const key = role.toUpperCase();
+  
+  // Direct mappings from legacy functional roles to sub-roles
+  const ROLE_TO_SUBROLE: Record<string, SubRole> = {
+    FINANCE: SubRole.FINANCE_OFFICER,
+    FINANCE_MANAGER: SubRole.FINANCE_OFFICER,
+    FINANCE_OFFICER: SubRole.FINANCE_OFFICER,
+    HR: SubRole.HR_OFFICER,
+    HR_OFFICER: SubRole.HR_OFFICER,
+    SUPPORT: SubRole.SUPPORT_AGENT,
+    SUPPORT_AGENT: SubRole.SUPPORT_AGENT,
+    OPERATIONS: SubRole.OPERATIONS_MANAGER,
+    OPERATIONS_MANAGER: SubRole.OPERATIONS_MANAGER,
+    FM_MANAGER: SubRole.OPERATIONS_MANAGER,
+  };
+  
+  return ROLE_TO_SUBROLE[key] ?? null;
 }
 
 /* =========================
@@ -514,8 +511,6 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
       "update",
       "export",
       "share",
-      "request_approval",
-      "approve",
       "post_finance",
     ],
     WO_PM: ["view", "create", "update", "export"],
@@ -538,8 +533,6 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
       "update",
       "export",
       "share",
-      "request_approval",
-      "approve",
       "post_finance",
     ],
     WO_PM: ["view", "create", "update", "export"],
@@ -567,15 +560,7 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
   // Team Member: Operational staff, create and manage WOs
   [Role.TEAM_MEMBER]: {
     WO_CREATE: ["view", "create", "upload_media", "comment"],
-    WO_TRACK_ASSIGN: [
-      "view",
-      "assign",
-      "update",
-      "export",
-      "post_finance",
-      "request_approval",
-      "approve",
-    ],
+    WO_TRACK_ASSIGN: ["view", "assign", "update", "export", "post_finance"],
     WO_PM: ["view", "create", "update", "export"],
   },
   
@@ -603,7 +588,6 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
       "update",
       "export",
       "share",
-      "approve",
     ],
     WO_PM: ["view", "export"],
     WO_SERVICE_HISTORY: ["view", "export"],
@@ -684,7 +668,10 @@ export async function logAgentAction(log: AgentAuditLog): Promise<void> {
 
   // Log to console in development
   if (process.env.NODE_ENV === "development") {
-    logger.info("[AGENT_AUDIT]", { ...log, timestamp });
+    logger.debug(
+      "[AGENT_AUDIT]",
+      JSON.stringify({ ...log, timestamp }, null, 2),
+    );
   }
   
   // Persistent MongoDB audit logging (STRICT v4.1)
@@ -903,10 +890,7 @@ export function buildDataScopeFilter(ctx: ResourceCtx): DataScopeFilter {
     case Role.ADMIN:
     case Role.CORPORATE_OWNER:
       // Full tenant scope (org_id already set)
-      // Corporate Owner: restrict to owned/assigned properties when provided
-      if (ctx.assignedProperties && ctx.assignedProperties.length > 0) {
-        filter.property_id = { $in: ctx.assignedProperties };
-      }
+      // Corporate Owner may have additional property_owner_id filter in practice
       break;
 
     case Role.TECHNICIAN:
@@ -959,8 +943,6 @@ export function can(
   action: Action,
   ctx: ResourceCtx,
 ): boolean {
-  const requesterId = ctx.requesterUserId ?? ctx.userId;
-
   // If checking module-level access (not a submodule), use canAccessModule
   if (Object.values(ModuleKey).includes(submodule as ModuleKey)) {
     return canAccessModule(submodule as ModuleKey, action, ctx);
@@ -978,31 +960,16 @@ export function can(
   if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
 
   // Tenant: strict ownership - can only access own units/WOs
-  if (ctx.role === Role.TENANT) {
-    if (action === "create") {
-      if (ctx.unitId && ctx.units && !ctx.units.includes(ctx.unitId)) {
-        return false;
-      }
-      return requesterId === ctx.userId;
-    }
-    return requesterId === ctx.userId;
+  if (ctx.role === Role.TENANT && action !== "create") {
+    return ctx.requesterUserId === ctx.userId;
   }
 
-  // Corporate Owner: must own/manage the property when propertyId provided
-  if (ctx.role === Role.CORPORATE_OWNER && ctx.propertyId) {
-    const ownsProperty =
-      ctx.isOwnerOfProperty ||
-      (ctx.assignedProperties && ctx.assignedProperties.includes(ctx.propertyId));
-    if (!ownsProperty && !ctx.isSuperAdmin) {
-      return false;
-    }
-  }
-
-  // Property Manager: must be assigned to the property when propertyId provided
-  if (ctx.role === Role.PROPERTY_MANAGER && ctx.propertyId) {
-    const managesProperty =
-      ctx.assignedProperties && ctx.assignedProperties.includes(ctx.propertyId);
-    if (!managesProperty && !ctx.isSuperAdmin) {
+  // Corporate Owner / Property Manager: must own/manage the property
+  if (
+    ctx.role === Role.CORPORATE_OWNER ||
+    ctx.role === Role.PROPERTY_MANAGER
+  ) {
+    if (ctx.propertyId && !(ctx.isOwnerOfProperty || ctx.isSuperAdmin)) {
       return false;
     }
   }
@@ -1062,8 +1029,7 @@ export const WORK_ORDER_FSM: {
     {
       from: "NEW",
       to: "ASSESSMENT",
-      // STRICT v4.1: Using canonical roles - TEAM_MEMBER replaces legacy EMPLOYEE, MANAGEMENT, HR
-      by: [Role.TEAM_MEMBER, Role.ADMIN],
+      by: [Role.EMPLOYEE, Role.CORPORATE_ADMIN, Role.MANAGEMENT, Role.HR],
     },
     {
       from: "ASSESSMENT",
@@ -1080,19 +1046,17 @@ export const WORK_ORDER_FSM: {
     {
       from: "QUOTATION_REVIEW",
       to: "PENDING_APPROVAL",
-      // STRICT v4.1: Using canonical roles
-      by: [Role.TEAM_MEMBER, Role.ADMIN],
+      by: [Role.EMPLOYEE, Role.CORPORATE_ADMIN],
       action: "request_approval",
     },
     {
       from: "PENDING_APPROVAL",
       to: "APPROVED",
-      // STRICT v4.1: Using canonical roles - CORPORATE_OWNER replaces PROPERTY_OWNER
-      // PROPERTY_MANAGER replaces OWNER_DEPUTY, TEAM_MEMBER replaces MANAGEMENT/FINANCE
       by: [
-        Role.CORPORATE_OWNER,
-        Role.PROPERTY_MANAGER,
-        Role.TEAM_MEMBER,
+        Role.PROPERTY_OWNER,
+        Role.OWNER_DEPUTY,
+        Role.MANAGEMENT,
+        Role.FINANCE,
       ],
       action: "approve",
     },
@@ -1112,27 +1076,23 @@ export const WORK_ORDER_FSM: {
     {
       from: "WORK_COMPLETE",
       to: "QUALITY_CHECK",
-      // STRICT v4.1: Using canonical roles
-      by: [Role.TEAM_MEMBER, Role.CORPORATE_OWNER],
+      by: [Role.MANAGEMENT, Role.PROPERTY_OWNER],
       optional: true,
     },
     {
       from: "QUALITY_CHECK",
       to: "FINANCIAL_POSTING",
-      // STRICT v4.1: Using canonical roles
-      by: [Role.TEAM_MEMBER, Role.ADMIN],
+      by: [Role.EMPLOYEE, Role.CORPORATE_ADMIN],
     },
     {
       from: "WORK_COMPLETE",
       to: "FINANCIAL_POSTING",
-      // STRICT v4.1: Using canonical roles
-      by: [Role.TEAM_MEMBER, Role.ADMIN],
+      by: [Role.EMPLOYEE, Role.CORPORATE_ADMIN],
     },
     {
       from: "FINANCIAL_POSTING",
       to: "CLOSED",
-      // STRICT v4.1: Using canonical roles
-      by: [Role.TEAM_MEMBER, Role.ADMIN],
+      by: [Role.EMPLOYEE, Role.CORPORATE_ADMIN],
       action: "post_finance",
     },
   ],
@@ -1287,12 +1247,6 @@ const UnitSchema = new Schema(
   {
     unit_number: String,
     property_id: { type: Types.ObjectId, ref: "Property", index: true },
-    org_id: {
-      type: Types.ObjectId,
-      ref: "Organization",
-      index: true,
-      required: true,
-    },
   },
   { timestamps: true },
 );
@@ -1301,12 +1255,6 @@ const TenancySchema = new Schema(
   {
     unit_id: { type: Types.ObjectId, ref: "Unit" },
     tenant_user_id: { type: Types.ObjectId, ref: "User" },
-    org_id: {
-      type: Types.ObjectId,
-      ref: "Organization",
-      index: true,
-      required: true,
-    },
     start_date: Date,
     end_date: Date,
   },
@@ -1475,6 +1423,7 @@ export const DEFAULT_SLA = SLA;
  * Smoke test utility for basic RBAC and FSM checks.
  * Intended for development and maintenance validation, not for production use.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Smoke test utility for dev
 export function smokeTests() {
   const tenantCtx: ResourceCtx = {
     orgId: "o1",
@@ -1484,12 +1433,16 @@ export function smokeTests() {
     isOrgMember: true,
     requesterUserId: "u1",
   };
-  if (can(SubmoduleKey.WO_CREATE, "create", tenantCtx) !== true) {
-    logger.error("Smoke test failed: Tenant can create WO for own unit");
-  }
-  if (can(SubmoduleKey.WO_TRACK_ASSIGN, "approve", tenantCtx)) {
-    logger.error("Smoke test failed: Tenant should not approve quotes");
-  }
+  // eslint-disable-next-line no-console -- Test assertions
+  console.assert(
+    can(SubmoduleKey.WO_CREATE, "create", tenantCtx) === true,
+    "Tenant can create WO for own unit",
+  );
+  // eslint-disable-next-line no-console -- Test assertions
+  console.assert(
+    !can(SubmoduleKey.WO_TRACK_ASSIGN, "approve", tenantCtx),
+    "Tenant cannot approve quotes",
+  );
 
   const techCtx: ResourceCtx = {
     orgId: "o1",
@@ -1499,9 +1452,11 @@ export function smokeTests() {
     isOrgMember: true,
     isTechnicianAssigned: true,
   };
-  if (!can(SubmoduleKey.WO_TRACK_ASSIGN, "submit_estimate", techCtx)) {
-    logger.error("Smoke test failed: Tech can submit estimate when assigned");
-  }
+  // eslint-disable-next-line no-console -- Test assertions
+  console.assert(
+    can(SubmoduleKey.WO_TRACK_ASSIGN, "submit_estimate", techCtx),
+    "Tech can submit estimate when assigned",
+  );
 }
 
 /* =========================
@@ -1561,10 +1516,8 @@ export function canTransition(
     return false;
 
   // Enforce RBAC for transition-specific actions
-  // STRICT v4.1: Ensure actorRole + subRole are propagated in context for sub-role checks
   if (transition.action) {
-    const fullCtx = { ...ctx, role: actorRole }; // Propagate role + subRole for ABAC checks
-    if (!can(SubmoduleKey.WO_TRACK_ASSIGN, transition.action, fullCtx))
+    if (!can(SubmoduleKey.WO_TRACK_ASSIGN, transition.action, ctx))
       return false;
   }
 

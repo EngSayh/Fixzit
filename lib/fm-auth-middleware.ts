@@ -65,7 +65,7 @@ export async function getFMAuthContext(
     const subRole =
       normalizeSubRole((user as { subRole?: string | null }).subRole) ??
       inferSubRoleFromRole(rawRole);
-    const role = normalizeRole(rawRole, subRole) ?? Role.GUEST;
+    const role = normalizeRole(rawRole) ?? Role.GUEST;
 
     // ORGID-FIX: Enforce mandatory orgId for multi-tenant isolation
     const orgId = (user as { orgId?: string }).orgId;
@@ -80,7 +80,7 @@ export async function getFMAuthContext(
     return {
       userId: user.id || user.email || "",
       role,
-      subRole,
+      subRole: subRole ?? undefined,
       orgId,  // ✅ Validated above
       propertyIds: (user as { propertyIds?: string[] }).propertyIds || [],
       user: {

@@ -297,6 +297,42 @@ export default [
     },
   },
 
+  // Warn on deprecated role usage in new code (STRICT v4 migration)
+  // Skip test files, scripts, and migration files
+  {
+    files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}", "services/**/*.{ts,tsx}", "server/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "**/tests/**", "scripts/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "MemberExpression[object.name='UserRole'][property.name='EMPLOYEE']",
+          message: "UserRole.EMPLOYEE is deprecated. Use MANAGER or a specific function role (HR, FINANCE, etc.) instead. See types/user.ts for migration guide.",
+        },
+        {
+          selector: "MemberExpression[object.name='UserRole'][property.name='DISPATCHER']",
+          message: "UserRole.DISPATCHER is deprecated. Use FM_MANAGER or PROPERTY_MANAGER instead. See types/user.ts for migration guide.",
+        },
+        {
+          selector: "MemberExpression[object.name='UserRole'][property.name='FINANCE_MANAGER']",
+          message: "UserRole.FINANCE_MANAGER is deprecated. Use FINANCE or FINANCE_OFFICER instead. See types/user.ts for migration guide.",
+        },
+        {
+          selector: "MemberExpression[object.name='UserRole'][property.name='SUPPORT']",
+          message: "UserRole.SUPPORT is deprecated. Use SUPPORT_AGENT instead. See types/user.ts for migration guide.",
+        },
+        {
+          selector: "MemberExpression[object.name='UserRole'][property.name='CUSTOMER']",
+          message: "UserRole.CUSTOMER is deprecated. Use TENANT or OWNER instead. See types/user.ts for migration guide.",
+        },
+        {
+          selector: "MemberExpression[object.name='UserRole'][property.name='VIEWER']",
+          message: "UserRole.VIEWER is deprecated. Use AUDITOR instead. See types/user.ts for migration guide.",
+        },
+      ],
+    },
+  },
+
   // Scripts and tooling - Most permissive
   {
     files: ["scripts/**/*", "packages/**/*", "deployment/**/*", "tools/**/*"],
@@ -347,27 +383,27 @@ export default [
               target: "./components",
               from: [
                 "./server",
-                "./domain",
                 "./models",
                 "./server/models",
-                "./domain/fm/fm.behavior",
+                "./domain/fm/fm.behavior.ts",
                 "mongoose",
               ],
+              except: ["./domain/fm/fm.types.ts"],
               message:
-                "Do not import server-only modules (models/mongoose/fm.behavior) into client components. Use client-safe facades (e.g., lib/rbac/client-roles).",
+                "Do not import server-only modules (models/mongoose/fm.behavior) into client components. Use client-safe facades (e.g., lib/rbac/client-roles or domain/fm/fm.types).",
             },
             {
               target: "./pages",
               from: [
                 "./server",
-                "./domain",
                 "./models",
                 "./server/models",
-                "./domain/fm/fm.behavior",
+                "./domain/fm/fm.behavior.ts",
                 "mongoose",
               ],
+              except: ["./domain/fm/fm.types.ts"],
               message:
-                "Do not import server-only modules (models/mongoose/fm.behavior) into client components. Use client-safe facades (e.g., lib/rbac/client-roles).",
+                "Do not import server-only modules (models/mongoose/fm.behavior) into client components. Use client-safe facades (e.g., lib/rbac/client-roles or domain/fm/fm.types).",
             },
           ],
         },

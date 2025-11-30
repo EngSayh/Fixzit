@@ -199,14 +199,5 @@ export function parseDecimalInput(value: string | number): number {
   return parsed;
 }
 
-/**
- * Helper function to format currency for display
- */
-export function formatCurrency(amount: number, currency = "OMR"): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
+// NOTE: Use formatCurrency from lib/payments/currencyUtils.ts or utils/formatters.ts
+// This duplicate was removed to consolidate currency formatting logic.

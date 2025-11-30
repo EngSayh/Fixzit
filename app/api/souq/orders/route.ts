@@ -355,27 +355,71 @@ export async function POST(request: NextRequest) {
       (process.env.NODE_ENV === "test" ? "false" : "true");
 
     if (escrowFeatureFlag !== "false" && typeof order.save === "function") {
-      const escrowAccount = await escrowService.createEscrowAccount({
-        source: EscrowSource.MARKETPLACE_ORDER,
-        sourceId: order._id,
-        orderId: order._id,
-        orgId: new Types.ObjectId(sellerOrgId),
-        buyerId: customerObjectId,
-        sellerId: escrowSellerId,
-        expectedAmount: total,
-        currency: "SAR",
-        releaseAfter: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        idempotencyKey: request.headers.get("x-idempotency-key") ?? orderId,
-        riskHold: false,
-      });
+      try {
+        const escrowAccount = await escrowService.createEscrowAccount({
+          source: EscrowSource.MARKETPLACE_ORDER,
+          sourceId: order._id,
+          orderId: order._id,
+          orgId: new Types.ObjectId(sellerOrgId),
+          buyerId: customerObjectId,
+          sellerId: escrowSellerId,
+          expectedAmount: total,
+          currency: "SAR",
+          releaseAfter: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          idempotencyKey: request.headers.get("x-idempotency-key") ?? orderId,
+          riskHold: false,
+        });
 
-      order.escrow = {
-        accountId: escrowAccount._id,
-        status: escrowAccount.status,
-        releaseAfter: escrowAccount.releasePolicy?.autoReleaseAt,
-        idempotencyKey: escrowAccount.idempotencyKeys?.[0],
-      };
-      await order.save();
+        order.escrow = {
+          accountId: escrowAccount._id,
+          status: escrowAccount.status,
+          releaseAfter: escrowAccount.releasePolicy?.autoReleaseAt,
+          idempotencyKey: escrowAccount.idempotencyKeys?.[0],
+        };
+        await order.save();
+      } catch (escrowError) {
+        // **COMPENSATING ACTION**: Cancel order and release reservations on escrow failure
+        logger.error("[Escrow] Failed to create account for order, applying compensating action", {
+          orderId,
+          error: escrowError instanceof Error ? escrowError.message : String(escrowError),
+        });
+
+        try {
+          // Mark order as cancelled with reason (preserves audit trail)
+          order.status = "cancelled";
+          order.cancelledAt = new Date();
+          order.cancellationReason = "Escrow creation failed - system rollback";
+          await order.save();
+
+          // Release stock reservations
+          await releaseReservations();
+
+          logger.warn("[Escrow] Order cancelled due to escrow failure (inventory released)", {
+            orderId,
+          });
+        } catch (compensationError) {
+          // If compensation fails, try hard delete as last resort
+          logger.error("[Escrow] Compensation failed, attempting hard delete", {
+            orderId,
+            compensationError: compensationError instanceof Error ? compensationError.message : String(compensationError),
+          });
+          try {
+            await SouqOrder.deleteOne({ _id: order._id });
+            await releaseReservations();
+            logger.warn("[Escrow] Order hard-deleted after escrow failure", { orderId });
+          } catch (deleteError) {
+            logger.error("[Escrow] CRITICAL: Unable to clean up order after escrow failure - manual intervention required", {
+              orderId,
+              deleteError: deleteError instanceof Error ? deleteError.message : String(deleteError),
+            });
+          }
+        }
+
+        return SouqErrors.internalError("Order creation failed: Unable to create escrow account", {
+          orderId,
+          error: escrowError instanceof Error ? escrowError.message : "Unknown escrow error",
+        });
+      }
     } else {
       if (typeof logger?.info === "function") {
         logger.info(

@@ -18,7 +18,6 @@ import { UserRole, type UserRoleType } from "@/types/user";
 // PHASE-3 FIX: CRM access aligned with STRICT v4.1 canonical matrix
 // CRM should be accessible to: Super Admin, Admin/Corporate Admin, Team Members, Corporate Owner
 // NOT to: Technician, Tenant, Vendor (they have no CRM use case)
-// REMOVED: FM_MANAGER, PROPERTY_MANAGER (these are FM-specific, not CRM)
 const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
   UserRole.SUPER_ADMIN,
   UserRole.CORPORATE_ADMIN,

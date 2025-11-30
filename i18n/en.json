@@ -1504,6 +1504,40 @@
       "title": "Results"
     }
   },
+  "admin": {
+    "subRoles": {
+      "financeOfficer": {
+        "label": "Finance Officer",
+        "description": "Manages budgets, invoices, and financial reports"
+      },
+      "hrOfficer": {
+        "label": "HR Officer",
+        "description": "Manages employee records, payroll, and PII data"
+      },
+      "supportAgent": {
+        "label": "Support Agent",
+        "description": "Handles customer inquiries and tickets"
+      },
+      "operationsManager": {
+        "label": "Operations Manager",
+        "description": "Oversees work orders and property operations"
+      }
+    },
+    "modules": {
+      "dashboard": "Dashboard",
+      "workOrders": "Work Orders",
+      "properties": "Properties",
+      "finance": "Finance",
+      "hr": "HR",
+      "administration": "Administration",
+      "crm": "CRM",
+      "marketplace": "Marketplace",
+      "support": "Support",
+      "compliance": "Compliance",
+      "reports": "Reports",
+      "system": "System"
+    }
+  },
   "ats": {
     "errors": {
       "authenticationRequired": "Authentication required",
