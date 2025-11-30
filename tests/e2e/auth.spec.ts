@@ -1,27 +1,40 @@
 import { test, expect, Page } from '@playwright/test';
-import { attemptLogin, fillLoginForm, getErrorLocator, getNonAdminUserFromEnv, getTestUserFromEnv, loginSelectors } from './utils/auth';
+import { attemptLogin, fillLoginForm, getErrorLocator, loginSelectors } from './utils/auth';
+import { getRequiredTestCredentials, hasTestCredentials, type TestCredentials } from './utils/credentials';
 
 /**
  * Authentication E2E Tests
  * Tests user authentication flows, RBAC, and session management
+ * 
+ * SECURITY FIX (PR #376):
+ * - Removed insecure fallback credentials (Test@1234)
+ * - Uses getRequiredTestCredentials() which throws if env not set
+ * - Tests will fail fast if TEST_ADMIN_* or TEST_TEAM_MEMBER_* env vars are missing
  */
 
-const FALLBACK_PRIMARY = {
-  email: process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || 'test-admin@fixzit.co',
-  password: process.env.TEST_USER_PASSWORD || process.env.TEST_SUPERADMIN_PASSWORD || 'Test@1234',
-  employeeNumber: process.env.TEST_USER_EMPLOYEE || process.env.TEST_SUPERADMIN_EMPLOYEE || 'EMP-TEST-001',
-};
-const PRIMARY_USER = getTestUserFromEnv() || FALLBACK_PRIMARY;
-const HAS_PRIMARY_USER = Boolean(PRIMARY_USER);
-const HAS_EMPLOYEE_NUMBER = Boolean(PRIMARY_USER?.employeeNumber);
+/**
+ * Get primary admin user credentials.
+ * Requires TEST_ADMIN_EMAIL and TEST_ADMIN_PASSWORD env vars.
+ */
+function getPrimaryUser(): TestCredentials {
+  return getRequiredTestCredentials('ADMIN');
+}
 
-const FALLBACK_NON_ADMIN = {
-  email: process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || 'test-nonadmin@fixzit.co',
-  password: process.env.TEST_NONADMIN_PASSWORD || process.env.TEST_MANAGER_PASSWORD || 'Test@1234',
-  employeeNumber: process.env.TEST_NONADMIN_EMPLOYEE || process.env.TEST_MANAGER_EMPLOYEE || 'EMP-TEST-100',
-};
-const NON_ADMIN_USER = getNonAdminUserFromEnv() || FALLBACK_NON_ADMIN;
-const HAS_NON_ADMIN_USER = Boolean(NON_ADMIN_USER);
+/**
+ * Get non-admin user credentials.
+ * Requires TEST_TEAM_MEMBER_EMAIL and TEST_TEAM_MEMBER_PASSWORD env vars.
+ */
+function getNonAdminUser(): TestCredentials {
+  return getRequiredTestCredentials('TEAM_MEMBER');
+}
+
+// Credentials are loaded on demand - tests will fail fast if env vars missing
+const HAS_PRIMARY_USER = hasTestCredentials('ADMIN');
+const HAS_NON_ADMIN_USER = hasTestCredentials('TEAM_MEMBER');
+
+// Lazy-load credentials - these throw if env vars are missing (fail-fast)
+const PRIMARY_USER = HAS_PRIMARY_USER ? getPrimaryUser() : null;
+const NON_ADMIN_USER = HAS_NON_ADMIN_USER ? getNonAdminUser() : null;
 
 const PASSWORD_RESET_EMAIL = PRIMARY_USER?.email || 'admin@fixzit.co';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
@@ -47,7 +60,9 @@ function ensureLoginOrFail(result: { success: boolean; errorText?: string }) {
 
 function ensureLoginOrSkip(result: { success: boolean; errorText?: string }) {
   if (!result.success) {
-    test.skip(`Login failed: ${result.errorText || 'unknown error'}`);
+    test.skip(
+      `Login failed: ${result.errorText || 'unknown error'} – owner: QA/Auth, ticket: QA-AUTH-002`
+    );
   }
 }
 

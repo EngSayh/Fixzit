@@ -37,7 +37,7 @@ test.describe("Landing page data hygiene", () => {
   test("does not expose FM metrics on public landing", async ({ page }) => {
     test.skip(
       test.info().project.name === "Microsoft Edge",
-      "Edge channel not installed locally",
+      "Edge channel not installed locally – owner: QA/Landing, ticket: QA-LANDING-001",
     );
 
     await assertNoConsoleErrors(page, async () => {

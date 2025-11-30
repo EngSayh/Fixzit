@@ -425,9 +425,10 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for TEAM_MEMBER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       // TEAM_MEMBER base role should have read access to work orders
+      // Using expectAllowedOrEmpty: accepts 200 or 404 (empty), but NOT 403
+      // This ensures RBAC is not incorrectly denying access
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.workOrders.list);
-      // May or may not have access depending on exact config - accept any valid response
-      expect([200, 403, 404]).toContain(response.status());
+      expectAllowedOrEmpty(response, API_ENDPOINTS.workOrders.list, 'TEAM_MEMBER');
     });
 
     test('CANNOT access admin users API', async ({ page, request }) => {
