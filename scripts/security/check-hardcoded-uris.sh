@@ -51,6 +51,8 @@ PATTERNS=(
 )
 
 # Directories to scan (code only)
+# NOTE: src/ and models/ removed in system organization cleanup (PR #380)
+# Canonical locations: server/models/, types/, lib/, services/
 SCAN_PATHS=(
   "app"
   "components"
@@ -58,9 +60,9 @@ SCAN_PATHS=(
   "services"
   "scripts"
   "tools"
-  "src"
   "server"
-  "models"
+  "config"
+  "types"
 )
 
 # Allowed fixtures/patterns (avoid flagging test stubs)
