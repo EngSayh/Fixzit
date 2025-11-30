@@ -294,7 +294,7 @@ export default [
   // Warn on deprecated role usage in new code (STRICT v4 migration)
   // Skip test files, scripts, and migration files
   {
-    files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}", "services/**/*.{ts,tsx}"],
+    files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}", "services/**/*.{ts,tsx}", "server/**/*.{ts,tsx}"],
     ignores: ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "**/tests/**", "scripts/**"],
     rules: {
       "no-restricted-syntax": [
