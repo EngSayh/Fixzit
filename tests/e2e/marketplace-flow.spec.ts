@@ -370,29 +370,47 @@ test.describe("Marketplace - Language Support", () => {
     await page.goto("/marketplace");
     await page.waitForLoadState("networkidle");
 
-    // Find language selector
-    const langSelector = page
-      .locator(
-        '[aria-label*="language" i], button:has-text("العربية"), button:has-text("English")',
-      )
-      .first();
+    // AUDIT-2025-12-01: Language toggle is critical for RTL-first platform (Arabic/English)
+    // Silent pass when selector is missing masks L10n regressions. Fail-closed is safer.
+    // If language toggle is feature-flagged, add explicit env check here.
+    const langSelector = page.locator(
+      '[aria-label*="language" i], [aria-label*="اللغة" i], ' +
+      'button:has-text("العربية"), button:has-text("English"), ' +
+      '[data-testid*="language"], [class*="language-switch"]',
+    );
+    const langCount = await langSelector.count();
 
-    if (await langSelector.isVisible()) {
-      const initialDir = await page.locator("html").getAttribute("dir");
+    expect(
+      langCount,
+      'Marketplace should display a language selector (RTL-first platform requirement). ' +
+      'If language toggle is feature-flagged, add explicit skip condition with documented reason.'
+    ).toBeGreaterThan(0);
 
-      await langSelector.click();
-      await page.waitForTimeout(500);
+    await expect(langSelector.first()).toBeVisible();
 
-      // Try to select a language
-      const langOption = page.locator('[role="option"], li').first();
-      if (await langOption.isVisible()) {
-        await langOption.click();
-        await page.waitForTimeout(500);
+    const initialDir = await page.locator("html").getAttribute("dir");
 
-        const newDir = await page.locator("html").getAttribute("dir");
-        // Direction should be set (may or may not change)
-        expect(newDir).toBeTruthy();
-      }
-    }
+    await langSelector.first().click();
+    await page.waitForTimeout(500);
+
+    // Language options should appear after clicking selector
+    const langOption = page.locator('[role="option"], [role="menuitem"], li[data-lang], button[data-lang]');
+    const optionCount = await langOption.count();
+
+    expect(
+      optionCount,
+      'Language selector should display at least one language option when clicked. ' +
+      'If options are loaded async, increase wait timeout.'
+    ).toBeGreaterThan(0);
+
+    await langOption.first().click();
+    await page.waitForTimeout(500);
+
+    const newDir = await page.locator("html").getAttribute("dir");
+    // Direction should be set (RTL or LTR)
+    expect(
+      newDir,
+      'HTML dir attribute should be set after language selection'
+    ).toBeTruthy();
   });
 });

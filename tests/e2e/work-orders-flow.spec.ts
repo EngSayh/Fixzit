@@ -64,17 +64,29 @@ test.describe("Work Orders - Authenticated User", () => {
 
     expect(page.url()).not.toContain("/login");
 
-    // Look for create button
+    // AUDIT-2025-12-01: Create/New CTA is critical for work order management workflow
+    // Silent pass when create button is missing masks UX regressions. Fail-closed is safer.
     const createButton = page.locator(
-      'button:has-text("Create"), button:has-text("New"), a[href*="work-orders/new"]',
+      'button:has-text("Create"), button:has-text("New"), a[href*="work-orders/new"], ' +
+      'button:has-text("إنشاء"), button:has-text("جديد")',
     );
-    if (await createButton.isVisible()) {
-      await createButton.first().click();
-      await page.waitForLoadState("networkidle");
+    const createCount = await createButton.count();
 
-      // Should be on create page
-      expect(page.url()).toContain("work-order");
-    }
+    expect(
+      createCount,
+      'Work orders page should display a Create/New button or link. ' +
+      'If creation is intentionally restricted, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    await expect(createButton.first()).toBeVisible();
+    await createButton.first().click();
+    await page.waitForLoadState("networkidle");
+
+    // Should be on create page
+    expect(
+      page.url(),
+      'Clicking Create should navigate to work order creation page'
+    ).toContain("work-order");
   });
 
   test("should display work order filters", async ({ page }) => {
@@ -150,15 +162,16 @@ test.describe("Work Orders - Public API", () => {
 
     const status = response.status();
 
-    // AUDIT-2025-12-01 (Phase 20): Explicit status handling for tenant validation
+    // AUDIT-2025-12-01 (Phase 20): Strict status handling for tenant validation
     // - 200: Data returned - MUST run tenant validation
-    // - 401: Not authenticated - acceptable for public health check, but no data to validate
-    // - 5xx: Server error - fail the test
+    // - 401: Not authenticated - acceptable health check response, no data to validate
+    // - 403/404/5xx: Unexpected - fail test to surface configuration issues
+    // Previous: toBeLessThan(500) allowed 403/404 to silently skip tenant validation
     expect(
-      status,
+      [200, 401],
       `Work Orders API should return 200 (authenticated) or 401 (unauthenticated).\n` +
-      `Got ${status} - unexpected response for health check.`
-    ).toBeLessThan(500);
+      `Got ${status} - unexpected response indicates configuration or permission issue.`
+    ).toContain(status);
 
     // AUDIT-2025-12-01: Use shared verifyTenantScoping helper (fail-closed by default)
     // - Recursive validation catches nested/wrapped/camelCase org_id leaks
