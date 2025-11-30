@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getPresignedPutUrl } from "@/lib/storage/s3";
@@ -35,9 +36,8 @@ const MAX_SIZE_BYTES = 15 * 1024 * 1024; // 15MB
  */
 export async function POST(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = await props.params;
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
 
@@ -88,7 +88,7 @@ export async function POST(
   const safeName = encodeURIComponent(
     String(name).replace(/[^a-zA-Z0-9._-]/g, "_"),
   );
-  const key = `wo/${params.id}/${Date.now()}-${safeName}`;
+  const key = `wo/${params.id}/${Date.now()}-${randomUUID()}-${safeName}`;
   const { url: putUrl, headers } = await getPresignedPutUrl(
     key,
     String(type),

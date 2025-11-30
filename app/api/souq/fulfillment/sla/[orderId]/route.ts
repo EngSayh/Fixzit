@@ -20,14 +20,17 @@ export async function GET(
     }
 
     const { orderId } = params;
+    const orgId = (session.user as { orgId?: string }).orgId;
 
     // Get order and verify access
-    const order = await SouqOrder.findOne({ orderId });
+    const order = await SouqOrder.findOne(
+      orgId ? { orderId, orgId } : { orderId },
+    );
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
+    const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role);
     const isSeller = order.items.some(
       (item) => item.sellerId?.toString() === session.user.id,
     );
@@ -37,7 +40,7 @@ export async function GET(
     }
 
     // Calculate SLA
-    const sla = await fulfillmentService.calculateSLA(orderId);
+    const sla = await fulfillmentService.calculateSLA(orderId, orgId);
 
     return NextResponse.json({
       success: true,

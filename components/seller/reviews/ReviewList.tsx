@@ -1,17 +1,18 @@
+"use client";
+
 /**
  * ReviewList Component - Paginated list of reviews with filters
  */
-"use client";
 
 import React, { useState, useEffect } from "react";
 import { ReviewCard } from "./ReviewCard";
-import type { IReview } from "@/server/models/souq/Review";
+import type { SellerReview } from "@/lib/souq/review-types";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { logger } from "@/lib/logger";
 
 interface ReviewListProps {
   productId?: string;
-  initialReviews?: IReview[];
+  initialReviews?: SellerReview[];
   onMarkHelpful?: (_reviewId: string) => Promise<void>;
   onReport?: (_reviewId: string, _reason: string) => Promise<void>;
 }
@@ -28,7 +29,7 @@ export function ReviewList({
   onMarkHelpful,
   onReport,
 }: ReviewListProps) {
-  const [reviews, setReviews] = useState<IReview[]>(initialReviews);
+  const [reviews, setReviews] = useState<SellerReview[]>(initialReviews);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);

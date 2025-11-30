@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { logger } from "@/lib/logger";
 
 /**
  * Marketplace Request Correlation Utilities
@@ -62,7 +63,23 @@ export function logWithCorrelation(
     ...additional,
   };
 
-  console[level](`[MarketplaceCorrelation] ${message}`, logData);
+  const formattedMessage = `[MarketplaceCorrelation] ${message}`;
+  
+  // Use proper logger instead of console
+  switch (level) {
+    case "debug":
+      logger.debug(formattedMessage, logData);
+      break;
+    case "info":
+      logger.info(formattedMessage, logData);
+      break;
+    case "warn":
+      logger.warn(formattedMessage, logData);
+      break;
+    case "error":
+      logger.error(formattedMessage, undefined, logData);
+      break;
+  }
 }
 
 /**

@@ -360,7 +360,8 @@ async function seedOrders(products: SeedProduct[]): Promise<SeedOrder[]> {
 
     orders.push({
       orderId,
-      org_id: TEST_ORG_ID,
+      // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+      orgId: TEST_ORG_ID,
       sellerId: TEST_SELLER_ID,
       customerId,
       customerName,
@@ -382,7 +383,8 @@ async function seedOrders(products: SeedProduct[]): Promise<SeedOrder[]> {
   }
 
   // Clear existing test orders
-  await SouqOrder.deleteMany({ org_id: TEST_ORG_ID });
+  // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  await SouqOrder.deleteMany({ orgId: TEST_ORG_ID });
 
   // Insert new orders
   const insertedOrders = (await SouqOrder.insertMany(orders)) as SeedOrder[];
@@ -448,7 +450,8 @@ async function seedReviews(products: SeedProduct[], orders: SeedOrder[]) {
 
     reviews.push({
       reviewId,
-      org_id: TEST_ORG_ID,
+      // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+      orgId: TEST_ORG_ID,
       productId: item.productId,
       fsin: item.fsin,
       customerId: order.customerId,
@@ -488,7 +491,8 @@ async function seedReviews(products: SeedProduct[], orders: SeedOrder[]) {
 
     reviews.push({
       reviewId: `REV-${nanoid(10).toUpperCase()}`,
-      org_id: TEST_ORG_ID,
+      // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+      orgId: TEST_ORG_ID,
       productId: product.productId,
       fsin: product.fsin,
       customerId: `CUST-${nanoid(10).toUpperCase()}`,
@@ -508,7 +512,8 @@ async function seedReviews(products: SeedProduct[], orders: SeedOrder[]) {
   }
 
   // Clear existing test reviews
-  await SouqReview.deleteMany({ org_id: TEST_ORG_ID });
+  // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+  await SouqReview.deleteMany({ orgId: TEST_ORG_ID });
 
   // Insert new reviews
   const insertedReviews = await SouqReview.insertMany(reviews);

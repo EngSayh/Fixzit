@@ -8,6 +8,7 @@ import { logger } from "@/lib/logger";
 
 interface OTPVerificationProps {
   identifier: string;
+  companyCode?: string;
   maskedPhone: string;
   expiresIn: number;
   devCode?: string;
@@ -15,6 +16,7 @@ interface OTPVerificationProps {
   onResend: () => Promise<{
     success: boolean;
     expiresIn?: number;
+    accessToken?: string;
     error?: string;
   }>;
   onBack: () => void;
@@ -24,6 +26,7 @@ interface OTPVerificationProps {
 
 export default function OTPVerification({
   identifier,
+  companyCode,
   maskedPhone,
   expiresIn: initialExpiresIn,
   devCode,
@@ -92,7 +95,11 @@ export default function OTPVerification({
       const response = await fetch("/api/auth/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, otp }),
+        body: JSON.stringify(
+          companyCode
+            ? { identifier, otp, companyCode }
+            : { identifier, otp },
+        ),
       });
 
       const data = await response.json();

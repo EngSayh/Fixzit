@@ -232,6 +232,9 @@ export interface WorkOrder {
   // Assignment
   requesterId?: string;
   requester?: WorkOrderUser;
+  /**
+   * @deprecated Use `assignedTo` instead. This field is kept for backward compatibility.
+   */
   assigneeId?: string; // Legacy field (deprecated, use assignedTo)
   assignedTo?: string; // Fixed: normalized field name for assignment
   assignee?: WorkOrderUser;

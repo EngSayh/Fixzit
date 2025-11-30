@@ -6,7 +6,11 @@ import {
   trackRateLimitHit,
 } from "@/lib/security/monitoring";
 
-export type SecurityEventType = "rate_limit" | "cors_block" | "auth_failure";
+export type SecurityEventType =
+  | "rate_limit"
+  | "cors_block"
+  | "auth_failure"
+  | "csrf_violation";
 
 /**
  * Log a security event with PII redaction.
@@ -65,6 +69,14 @@ export async function logSecurityEvent(event: {
             : "unknown";
         // Note: trackAuthFailure now handles its own redaction internally
         trackAuthFailure(identifier, reason);
+        break;
+      }
+      case "csrf_violation": {
+        const reason =
+          typeof event.metadata?.reason === "string"
+            ? (event.metadata.reason as string)
+            : "csrf_violation";
+        trackAuthFailure(event.ip, reason);
         break;
       }
     }

@@ -244,7 +244,7 @@ export async function POST(req: NextRequest) {
         ...metadata,
         userId: user.id,
         userEmail: user.email,
-        organizationId: user.orgId || "",
+        organizationId: user.orgId || undefined,  // ORGID-FIX: Payment system should track orgId for reconciliation
         orderId: orderId || "",
         invoiceId: invoiceId || "",
       },

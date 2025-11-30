@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { getPresignedPutUrl } from '@/lib/storage/s3';
@@ -35,16 +36,18 @@ export async function POST(
   try {
     await connectMongo();
     const onboarding = await OnboardingCase.findById(params.caseId);
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     if (
       !onboarding ||
       (onboarding.subject_user_id?.toString() !== user.id &&
         onboarding.created_by_id?.toString() !== user.id &&
-        onboarding.org_id?.toString() !== user.orgId)
+        onboarding.orgId?.toString() !== user.orgId)
     ) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    const profile = await DocumentProfile.findOne({ role: onboarding.role, country: country || DEFAULT_COUNTRY }).lean();
+    const profileCountry = onboarding.country || country || DEFAULT_COUNTRY;
+    const profile = await DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean();
     if (!profile || !profile.required_doc_codes.includes(document_type_code)) {
       return NextResponse.json({ error: 'Document type not required for this role' }, { status: 400 });
     }
@@ -62,7 +65,7 @@ export async function POST(
 
     const contentType = requestedType;
     const safeName = sanitizeFileName(file_name || document_type_code);
-    const key = `onboarding/${onboarding._id}/${Date.now()}-${document_type_code}-${safeName}`;
+    const key = `onboarding/${onboarding._id}/${Date.now()}-${randomUUID()}-${document_type_code}-${safeName}`;
 
     const { url: uploadUrl, headers: uploadHeaders } = await getPresignedPutUrl(
       key,

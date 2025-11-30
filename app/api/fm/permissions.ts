@@ -8,6 +8,10 @@ import {
   SubmoduleKey,
   Action,
   Plan,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
 } from "@/domain/fm/fm.behavior";
 import { FMErrors } from "./errors";
 import {
@@ -25,54 +29,9 @@ type PermissionOptions = {
 
 type PermissionSuccess = SessionUser & {
   fmRole: Role;
+  fmSubRole?: SubRole;
   plan: Plan;
   userId?: string;
-};
-
-const ROLE_ALIAS_MAP: Record<string, Role> = {
-  // STRICT v4 Canonical Roles
-  SUPER_ADMIN: Role.SUPER_ADMIN,
-  ADMIN: Role.ADMIN,
-  CORPORATE_OWNER: Role.CORPORATE_OWNER,
-  TEAM_MEMBER: Role.TEAM_MEMBER,
-  TECHNICIAN: Role.TECHNICIAN,
-  PROPERTY_MANAGER: Role.PROPERTY_MANAGER,
-  TENANT: Role.TENANT,
-  VENDOR: Role.VENDOR,
-  GUEST: Role.GUEST,
-  
-  // Legacy aliases (backward compatibility)
-  CORPORATE_ADMIN: Role.ADMIN,
-  TENANT_ADMIN: Role.ADMIN,
-  CLIENT_ADMIN: Role.ADMIN,
-  MANAGEMENT: Role.TEAM_MEMBER,
-  MANAGER: Role.TEAM_MEMBER,
-  FM_MANAGER: Role.PROPERTY_MANAGER,
-  FINANCE: Role.TEAM_MEMBER, // Finance Officer = Team Member with Finance module
-  HR: Role.TEAM_MEMBER, // HR Officer = Team Member with HR module
-  PROCUREMENT: Role.TEAM_MEMBER,
-  EMPLOYEE: Role.TEAM_MEMBER,
-  DISPATCHER: Role.TEAM_MEMBER,
-  CORPORATE_STAFF: Role.TEAM_MEMBER,
-  FIXZIT_EMPLOYEE: Role.TEAM_MEMBER,
-  OWNER: Role.CORPORATE_OWNER,
-  PROPERTY_OWNER: Role.CORPORATE_OWNER,
-  INDIVIDUAL_PROPERTY_OWNER: Role.CORPORATE_OWNER,
-  OWNER_DEPUTY: Role.PROPERTY_MANAGER,
-  DEPUTY: Role.PROPERTY_MANAGER,
-  CUSTOMER: Role.TENANT,
-  RESIDENT: Role.TENANT,
-  OCCUPANT: Role.TENANT,
-  END_USER: Role.TENANT,
-  SUPPORT: Role.TEAM_MEMBER,
-  AUDITOR: Role.TEAM_MEMBER,
-  VIEWER: Role.GUEST,
-  FIELD_ENGINEER: Role.TECHNICIAN,
-  INTERNAL_TECHNICIAN: Role.TECHNICIAN,
-  CONTRACTOR_TECHNICIAN: Role.TECHNICIAN,
-  MARKETPLACE_PARTNER: Role.VENDOR,
-  SERVICE_PROVIDER: Role.VENDOR,
-  SUPPLIER: Role.VENDOR,
 };
 
 const PLAN_ALIAS_MAP: Record<string, Plan> = {
@@ -88,12 +47,6 @@ const PLAN_ALIAS_MAP: Record<string, Plan> = {
 };
 
 const DEFAULT_PLAN = Plan.STANDARD;
-
-const normalizeRole = (role?: string | null): Role | null => {
-  if (!role) return null;
-  const key = role.toUpperCase();
-  return ROLE_ALIAS_MAP[key] ?? (Role as Record<string, Role>)[key] ?? null;
-};
 
 const normalizePlan = (plan?: string | null): Plan => {
   if (!plan) return DEFAULT_PLAN;
@@ -136,7 +89,11 @@ export async function requireFmPermission(
   try {
     const errorContext = fmErrorContext(req);
     const sessionUser = await getSessionUser(req);
-    const fmRole = normalizeRole(sessionUser.role);
+    const rawRole = sessionUser.role;
+    const fmSubRole =
+      normalizeSubRole((sessionUser as { subRole?: string | null }).subRole) ??
+      inferSubRoleFromRole(rawRole);
+    const fmRole = normalizeRole(rawRole, fmSubRole);
 
     if (!fmRole) {
       return FMErrors.forbidden(
@@ -173,6 +130,7 @@ export async function requireFmPermission(
     return {
       ...sessionUser,
       fmRole,
+      fmSubRole,
       plan,
       userId: sessionUser.id,
     };

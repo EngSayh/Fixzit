@@ -24,10 +24,10 @@ import { logger } from "@/lib/logger";
 // Note: Only .pdf files are supported. .docx files will be skipped.
 const DOCUMENTS = [
   "Monday options and workflow and system structure.pdf",
-  "Fixizit Blue Print.pdf",
+  "Fixzit Blue Print.pdf",
   "Targeted software layout for FM moduel.pdf",
-  "Fixizit Blueprint Bible – vFinal.pdf",
-  "Fixizit Facility Management Platform_ Complete Implementation Guide.pdf",
+  "Fixzit Blueprint Bible – vFinal.pdf",
+  "Fixzit Facility Management Platform_ Complete Implementation Guide.pdf",
   "Fixzit_Master_Design_System.pdf",
   // Fallback: Use existing PDFs if Blueprints not available
   "public/docs/msds/nitrile-gloves.pdf",

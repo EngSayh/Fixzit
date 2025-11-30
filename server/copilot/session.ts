@@ -5,6 +5,8 @@ export type CopilotRole =
   | "SUPER_ADMIN"
   | "ADMIN"
   | "CORPORATE_ADMIN"
+  | "CORPORATE_OWNER"
+  | "TEAM_MEMBER"
   | "FM_MANAGER"
   | "FINANCE"
   | "HR"

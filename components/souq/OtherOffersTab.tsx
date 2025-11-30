@@ -174,7 +174,7 @@ export default function OtherOffersTab({
                     {offer.sellerId.accountHealth.status === "excellent" && (
                       <Badge
                         variant="outline"
-                        className="text-xs bg-success/5 text-success-dark border-green-300"
+                        className="text-xs bg-success/5 text-success-dark border-success/30"
                       >
                         {auto("Top Seller", "badge.topSeller")}
                       </Badge>

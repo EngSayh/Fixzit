@@ -40,8 +40,11 @@ export async function authenticateRequest(
       };
     }
 
-    // Verify JWT token
-    const { payload } = await jwtVerify(token, secretKey);
+    // Verify JWT token with algorithm constraint for security
+    const { payload } = await jwtVerify(token, secretKey, {
+      algorithms: ['HS256'],
+      clockTolerance: 5, // 5 second tolerance for clock skew
+    });
 
     // Safely extract typed fields from payload (jose JWTPayload is indexable as unknown)
     const pl: Record<string, unknown> = payload as Record<string, unknown>;

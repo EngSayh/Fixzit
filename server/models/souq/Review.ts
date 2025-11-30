@@ -10,7 +10,7 @@ export interface IReview extends Document {
   _id: mongoose.Types.ObjectId;
   reviewId: string;
 
-  org_id: mongoose.Types.ObjectId;
+  orgId: mongoose.Types.ObjectId; // AUDIT-2025-11-29: Changed from org_id to orgId
   productId: mongoose.Types.ObjectId;
   fsin: string;
 
@@ -60,7 +60,7 @@ const ReviewSchema = new Schema<IReview>(
       unique: true,
       index: true,
     },
-    org_id: {
+    orgId: { // AUDIT-2025-11-29: Changed from org_id
       type: Schema.Types.ObjectId,
       ref: "Organization",
       required: true,

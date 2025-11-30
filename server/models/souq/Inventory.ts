@@ -42,6 +42,7 @@ export interface IInventory extends Document {
   listingId: string; // Link to SouqListing
   productId: string; // Link to SouqProduct (FSIN)
   sellerId: string;
+  orgId?: string;
 
   // Stock Levels
   availableQuantity: number; // Sellable units minus reservations
@@ -152,6 +153,7 @@ const InventorySchema = new Schema<IInventory>(
     listingId: { type: String, required: true, index: true },
     productId: { type: String, required: true, index: true },
     sellerId: { type: String, required: true, index: true },
+    orgId: { type: String, index: true },
 
     availableQuantity: { type: Number, required: true, min: 0, default: 0 },
     totalQuantity: { type: Number, required: true, min: 0, default: 0 },
@@ -183,6 +185,7 @@ const InventorySchema = new Schema<IInventory>(
 
 // Indexes
 InventorySchema.index({ listingId: 1, status: 1 });
+InventorySchema.index({ orgId: 1, listingId: 1 });
 InventorySchema.index({ sellerId: 1, fulfillmentType: 1 });
 InventorySchema.index({ "health.isStranded": 1 });
 InventorySchema.index({ "health.agingDays": -1 });

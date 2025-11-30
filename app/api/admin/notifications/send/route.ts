@@ -82,12 +82,13 @@ export async function POST(req: NextRequest) {
       permissions.includes("notifications.broadcast") ||
       permissions.includes("notifications.*");
     // Check authorization: single role field OR roles array (normalized to uppercase)
+    // 🔒 STRICT v4.1: ADMIN is canonical, CORPORATE_ADMIN is legacy alias
     const isAuthorizedRole =
       role === "SUPER_ADMIN" ||
       role === "ADMIN" ||
-      role === "CORPORATE_ADMIN" ||
+      role === "CORPORATE_ADMIN" || // Legacy alias for ADMIN
       (Array.isArray(sessionUser.roles) &&
-        sessionUser.roles.includes("SUPER_ADMIN"));
+        (sessionUser.roles.includes("SUPER_ADMIN") || sessionUser.roles.includes("ADMIN")));
 
     if (!isAuthorizedRole && !hasBroadcastPermission) {
       logger.warn("[Admin Notification] Broadcast denied for user", {

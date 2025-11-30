@@ -10,6 +10,7 @@ import { createEntitiesFromCase } from '@/server/services/onboardingEntities';
 import { logger } from '@/lib/logger';
 
 const ALLOWED_DECISIONS: Array<(typeof DOCUMENT_STATUSES)[number]> = ['VERIFIED', 'REJECTED'];
+const REVIEWER_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'COMPLIANCE_OFFICER', 'REVIEWER']);
 
 export async function PATCH(
   req: NextRequest,
@@ -34,12 +35,18 @@ export async function PATCH(
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    if (
-      onboarding.subject_user_id?.toString() !== user.id &&
-      onboarding.created_by_id?.toString() !== user.id &&
-      onboarding.org_id?.toString() !== user.orgId
-    ) {
+    const isReviewer =
+      REVIEWER_ROLES.has(user.role) || user.roles?.some((r) => REVIEWER_ROLES.has(r.toUpperCase?.() || r));
+    const isSubmitter =
+      onboarding.subject_user_id?.toString() === user.id ||
+      onboarding.created_by_id?.toString() === user.id;
+
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    if (!isReviewer || (onboarding.orgId?.toString() !== user.orgId && !user.isSuperAdmin)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    if (isSubmitter) {
+      return NextResponse.json({ error: 'Self-approval is not allowed' }, { status: 403 });
     }
 
     const previousStatus = doc.status;
@@ -61,8 +68,9 @@ export async function PATCH(
     });
 
     if (decision === 'VERIFIED') {
+      const profileCountry = onboarding.country || 'SA';
       const [profile, docs] = await Promise.all([
-        DocumentProfile.findOne({ role: onboarding.role, country: 'SA' }).lean(),
+        DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean(),
         VerificationDocument.find({ onboarding_case_id: onboarding._id }).lean(),
       ]);
 

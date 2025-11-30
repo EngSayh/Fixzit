@@ -74,7 +74,6 @@ export async function createSubscriptionFromCheckout(
     status: "INCOMPLETE",
   })) as SubscriptionNonNull;
 
-  // @ts-expect-error - Fixed VSCode problem
   logger.info("[Subscription] Created new subscription", { id: created._id });
   return created;
 }

@@ -7,10 +7,17 @@ import { useSession } from "next-auth/react";
 import type { DefaultSession } from "next-auth";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { logger } from "@/lib/logger";
+import {
+  Role as CanonicalRole,
+  SubRole,
+  normalizeRole as normalizeFmRole,
+  normalizeSubRole,
+} from "@/lib/rbac/client-roles";
 
-type Role =
+type RoleLabel =
   | "Super Admin"
   | "Corporate Admin"
+  | "Corporate Owner"
   | "Management"
   | "Finance"
   | "HR"
@@ -18,10 +25,12 @@ type Role =
   | "Property Owner"
   | "Technician"
   | "Tenant / End-User";
+type LocalRole = RoleLabel;
 
 type Counters = Record<string, number>;
 type SessionUserExtras = DefaultSession["user"] & {
-  role?: Role;
+  role?: string | null;
+  subRole?: string | null;
   orgId?: string;
 };
 
@@ -346,7 +355,7 @@ async function fetchCounters(orgId: string): Promise<Counters> {
   return res.json();
 }
 
-function hasAccess(role: Role, path: string): boolean {
+function hasAccess(role: LocalRole, path: string): boolean {
   if (role === "Super Admin") return true;
   if (role === "Corporate Admin") return !path.startsWith("/dashboard/system");
   if (role === "Management")
@@ -364,42 +373,64 @@ function hasAccess(role: Role, path: string): boolean {
       path.startsWith("/dashboard/properties") ||
       path.startsWith("/dashboard/finance")
     );
+  if (role === "Corporate Owner")
+    return (
+      path.startsWith("/dashboard/properties") ||
+      path.startsWith("/dashboard/finance") ||
+      path.startsWith("/dashboard/reports")
+    );
   if (role === "Technician") return path.startsWith("/dashboard/work-orders");
   if (role === "Tenant / End-User")
     return path.startsWith("/dashboard/work-orders");
   return false;
 }
 
-const normalizeRole = (raw?: string | null): Role => {
-  const value = (raw || "").toString().toUpperCase();
-  switch (value) {
-    case "SUPER_ADMIN":
+const toDisplayRole = (
+  rawRole?: string | null,
+  rawSubRole?: string | null,
+): RoleLabel => {
+  const subRole = normalizeSubRole(rawSubRole);
+  const role = normalizeFmRole(rawRole) ?? CanonicalRole.VIEWER;
+
+  switch (role) {
+    case CanonicalRole.SUPER_ADMIN:
       return "Super Admin";
-    case "ADMIN":
-    case "CORPORATE_ADMIN":
+    case CanonicalRole.CORPORATE_ADMIN:
+    case CanonicalRole.ADMIN:
       return "Corporate Admin";
-    case "MANAGEMENT":
-    case "MANAGER":
-    case "PROPERTY_MANAGER":
-    case "FACILITY_MANAGER":
+    case CanonicalRole.CORPORATE_OWNER:
+      return "Corporate Owner";
+    case CanonicalRole.MANAGER:
+    case CanonicalRole.FM_MANAGER:
+    case CanonicalRole.PROCUREMENT:
+    case CanonicalRole.SUPPORT:
       return "Management";
-    case "FINANCE":
+    case CanonicalRole.FINANCE:
+    case CanonicalRole.FINANCE_MANAGER:
       return "Finance";
-    case "HR":
-    case "HUMAN_RESOURCES":
+    case CanonicalRole.HR:
       return "HR";
-    case "EMPLOYEE":
-    case "STAFF":
-      return "Corporate Employee";
-    case "PROPERTY_OWNER":
-    case "OWNER":
+    case CanonicalRole.PROPERTY_MANAGER:
+    case CanonicalRole.OWNER:
       return "Property Owner";
-    case "TENANT":
-      return "Tenant / End-User";
-    case "TECHNICIAN":
+    case CanonicalRole.TECHNICIAN:
       return "Technician";
-    default:
+    case CanonicalRole.TENANT:
+    case CanonicalRole.CUSTOMER:
+      return "Tenant / End-User";
+    case CanonicalRole.VENDOR:
       return "Corporate Employee";
+    case CanonicalRole.AUDITOR:
+    case CanonicalRole.VIEWER:
+    case CanonicalRole.EMPLOYEE:
+    case CanonicalRole.DISPATCHER:
+    default: {
+      if (subRole === SubRole.FINANCE_OFFICER) return "Finance";
+      if (subRole === SubRole.HR_OFFICER) return "HR";
+      if (subRole === SubRole.SUPPORT_AGENT) return "Management";
+      if (subRole === SubRole.OPERATIONS_MANAGER) return "Management";
+      return "Corporate Employee";
+    }
   }
 };
 
@@ -409,7 +440,10 @@ export default function ClientSidebar() {
   const { t } = useTranslation();
 
   const sessionUser = session?.user as SessionUserExtras | undefined;
-  const role: Role = normalizeRole(sessionUser?.role);
+  const role: RoleLabel = toDisplayRole(
+    sessionUser?.role,
+    sessionUser?.subRole,
+  );
   const orgId = sessionUser?.orgId ?? "platform";
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {

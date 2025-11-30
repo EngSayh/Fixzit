@@ -130,10 +130,12 @@ export async function GET(req: NextRequest) {
       filter.category = categoryFilter;
     }
     if (search) {
+      // SECURITY: Escape regex special characters to prevent ReDoS
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [
-        { title: new RegExp(search, "i") },
-        { owner: new RegExp(search, "i") },
-        { tags: new RegExp(search, "i") },
+        { title: new RegExp(escapedSearch, "i") },
+        { owner: new RegExp(escapedSearch, "i") },
+        { tags: new RegExp(escapedSearch, "i") },
       ];
     }
 

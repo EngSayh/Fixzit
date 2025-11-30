@@ -25,7 +25,7 @@ async function seedOnboarding() {
         code: 'CR_LICENSE',
         name_en: 'Commercial Register',
         name_ar: 'السجل التجاري',
-        applies_to: ['VENDOR', 'CUSTOMER', 'AGENT'],
+        applies_to: ['VENDOR', 'OWNER', 'AGENT'],
         is_mandatory: true,
         requires_expiry: true,
         max_file_size_mb: 10,
@@ -36,7 +36,7 @@ async function seedOnboarding() {
         code: 'VAT_CERT',
         name_en: 'VAT Certificate',
         name_ar: 'شهادة ضريبة القيمة المضافة',
-        applies_to: ['VENDOR', 'CUSTOMER'],
+        applies_to: ['VENDOR', 'OWNER'],
         is_mandatory: true,
         requires_expiry: true,
         max_file_size_mb: 10,
@@ -71,9 +71,9 @@ async function seedOnboarding() {
     [
       { role: 'TENANT', country: 'SA', required_doc_codes: ['NATIONAL_ID'] },
       { role: 'VENDOR', country: 'SA', required_doc_codes: ['CR_LICENSE', 'VAT_CERT', 'IBAN_CERT'] },
-      { role: 'CUSTOMER', country: 'SA', required_doc_codes: ['CR_LICENSE', 'VAT_CERT'] },
       { role: 'AGENT', country: 'SA', required_doc_codes: ['CR_LICENSE'] },
       { role: 'PROPERTY_OWNER', country: 'SA', required_doc_codes: ['NATIONAL_ID'] },
+      { role: 'OWNER', country: 'SA', required_doc_codes: ['CR_LICENSE', 'VAT_CERT'] },
     ],
     { ordered: false },
   ).catch((error: any) => {

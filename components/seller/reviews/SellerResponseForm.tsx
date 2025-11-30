@@ -1,7 +1,8 @@
+"use client";
+
 /**
  * SellerResponseForm Component - Seller response to reviews
  */
-"use client";
 
 import React, { useState } from "react";
 import { MessageSquare } from "lucide-react";

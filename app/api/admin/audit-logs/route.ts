@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     // Search logs
     const logs = await AuditLogModel.search({
-      orgId,
+      orgId,  // ✅ Validated orgId
       userId: userId || undefined,
       entityType: entityType || undefined,
       action: action || undefined,

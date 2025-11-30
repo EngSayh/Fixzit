@@ -32,7 +32,7 @@ import { getClientIP } from "@/server/security/headers";
  */
 export async function POST(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   // Rate limiting
   const clientIp = getClientIP(req);
@@ -41,14 +41,13 @@ export async function POST(
     return rateLimitError();
   }
 
-  const params = await props.params;
   try {
     await connectToDatabase();
 
     // RBAC: Check permissions
     const authResult = await atsRBAC(req, ["jobs:publish"]);
     if (!authResult.authorized) {
-      return (authResult as any).response;
+      return authResult.response;
     }
     const { orgId, isSuperAdmin } = authResult;
 

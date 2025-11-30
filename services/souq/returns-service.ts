@@ -17,6 +17,7 @@ import { fulfillmentService } from './fulfillment-service';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 import { nanoid } from 'nanoid';
 import mongoose from 'mongoose';
+import { logger } from '@/lib/logger';
 
 // Helper type for accessing order properties safely
 interface OrderWithDates extends IOrder {
@@ -81,12 +82,16 @@ class ReturnsService {
   /**
    * Check if an order item is eligible for return
    */
-  async checkEligibility(orderId: string, listingId: string): Promise<{
+  async checkEligibility(
+    orderId: string,
+    listingId: string,
+    preloadedOrder?: IOrder | null,
+  ): Promise<{
     eligible: boolean;
     reason?: string;
     daysRemaining?: number;
   }> {
-    const order = await this.findOrder(orderId);
+    const order = preloadedOrder ?? (await this.findOrder(orderId));
     if (!order) {
       return { eligible: false, reason: 'Order not found' };
     }
@@ -145,7 +150,7 @@ class ReturnsService {
 
     // Validate eligibility for all items
     for (const item of items) {
-      const eligibility = await this.checkEligibility(orderId, item.listingId);
+      const eligibility = await this.checkEligibility(orderId, item.listingId, order);
       if (!eligibility.eligible) {
         throw new Error(`Item ${item.listingId} not eligible: ${eligibility.reason}`);
       }
@@ -244,17 +249,42 @@ class ReturnsService {
 
   /**
    * Manually approve return (admin action)
+   * 
+   * RACE CONDITION FIX: Uses atomic findOneAndUpdate to prevent double-approval.
    */
   async approveReturn(params: ApproveReturnParams): Promise<void> {
     const { rmaId, adminId, approvalNotes } = params;
 
-    const rma = await RMA.findById(rmaId);
-    if (!rma) {
-      throw new Error('RMA not found');
-    }
+    const now = new Date();
 
-    if (rma.status !== 'initiated') {
-      throw new Error(`Cannot approve RMA in status: ${rma.status}`);
+    // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
+    const rma = await RMA.findOneAndUpdate(
+      { 
+        _id: rmaId, 
+        status: 'initiated'  // Atomic condition - prevents double-approval
+      },
+      { 
+        $set: { 
+          status: 'approving',  // Intermediate state to block concurrent requests
+        },
+        $push: {
+          timeline: {
+            status: 'approving',
+            timestamp: now,
+            note: `Approval initiated by ${adminId}`,
+            performedBy: adminId,
+          }
+        }
+      },
+      { new: true }
+    );
+
+    if (!rma) {
+      const existing = await RMA.findById(rmaId).lean();
+      if (!existing) {
+        throw new Error('RMA not found');
+      }
+      throw new Error(`Cannot approve RMA: already in status '${existing.status}' (expected 'initiated')`);
     }
 
     await rma.approve(adminId, approvalNotes);
@@ -273,15 +303,40 @@ class ReturnsService {
 
   /**
    * Reject return request
+   * 
+   * RACE CONDITION FIX: Uses atomic findOneAndUpdate to prevent double-rejection.
    */
   async rejectReturn(rmaId: string, adminId: string, rejectionReason: string): Promise<void> {
-    const rma = await RMA.findById(rmaId);
-    if (!rma) {
-      throw new Error('RMA not found');
-    }
+    const now = new Date();
 
-    if (rma.status !== 'initiated') {
-      throw new Error(`Cannot reject RMA in status: ${rma.status}`);
+    // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
+    const rma = await RMA.findOneAndUpdate(
+      { 
+        _id: rmaId, 
+        status: 'initiated'  // Atomic condition - prevents double-rejection
+      },
+      { 
+        $set: { 
+          status: 'rejecting',  // Intermediate state to block concurrent requests
+        },
+        $push: {
+          timeline: {
+            status: 'rejecting',
+            timestamp: now,
+            note: `Rejection initiated by ${adminId}`,
+            performedBy: adminId,
+          }
+        }
+      },
+      { new: true }
+    );
+
+    if (!rma) {
+      const existing = await RMA.findById(rmaId).lean();
+      if (!existing) {
+        throw new Error('RMA not found');
+      }
+      throw new Error(`Cannot reject RMA: already in status '${existing.status}' (expected 'initiated')`);
     }
 
     await rma.reject(adminId, rejectionReason);
@@ -310,7 +365,17 @@ class ReturnsService {
 
     const order = await this.findOrder(rma.orderId);
     if (!order) {
-      throw new Error('Order not found for RMA');
+      logger.error(
+        "RMA return label generation failed: order not found",
+        undefined,
+        {
+          rmaId: rma._id?.toString?.(),
+          orderId: rma.orderId?.toString?.(),
+          buyerId: rma.buyerId?.toString?.(),
+          metric: "returns.order_missing",
+        },
+      );
+      throw new Error(`Order not found for RMA ${rma.orderId}`);
     }
     
     // Get buyer's address from order
@@ -445,17 +510,43 @@ class ReturnsService {
 
   /**
    * Inspect returned item
+   * 
+   * RACE CONDITION FIX: Uses atomic findOneAndUpdate to prevent concurrent inspections.
+   * Only one inspection can succeed for an RMA in 'received' status.
    */
   async inspectReturn(params: InspectReturnParams): Promise<void> {
     const { rmaId, inspectorId, condition, restockable, inspectionNotes, inspectionPhotos } = params;
 
-    const rma = await RMA.findById(rmaId);
-    if (!rma) {
-      throw new Error('RMA not found');
-    }
+    const now = new Date();
 
-    if (rma.status !== 'received') {
-      throw new Error(`Cannot inspect RMA in status: ${rma.status}`);
+    // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
+    const rma = await RMA.findOneAndUpdate(
+      { 
+        _id: rmaId, 
+        status: 'received'  // Atomic condition - prevents double-inspection
+      },
+      { 
+        $set: { 
+          status: 'inspecting',  // Intermediate state to block concurrent requests
+        },
+        $push: {
+          timeline: {
+            status: 'inspecting',
+            timestamp: now,
+            note: `Inspection started by ${inspectorId}`,
+            performedBy: inspectorId,
+          }
+        }
+      },
+      { new: true }
+    );
+
+    if (!rma) {
+      const existing = await RMA.findById(rmaId).lean();
+      if (!existing) {
+        throw new Error('RMA not found');
+      }
+      throw new Error(`Cannot inspect RMA: already in status '${existing.status}' (expected 'received')`);
     }
 
     const rmaDoc = rma as unknown as {
@@ -478,7 +569,6 @@ class ReturnsService {
       );
     } else {
       // Fallback for mocked models without instance methods
-      const now = new Date();
       const timeline = Array.isArray(rmaDoc.timeline) ? [...rmaDoc.timeline] : [];
       timeline.push({
         status: 'inspection_complete',
@@ -522,6 +612,32 @@ class ReturnsService {
 
     // Calculate refund amount
     const refundAmount = await this.calculateRefundAmount(rmaId, condition, restockable);
+
+    // If nothing is refundable, close the RMA to avoid stuck "inspected" states
+    if (refundAmount <= 0) {
+      const transactionId = `REF-${Date.now()}-${rma._id.toString().slice(-6)}`;
+      const timeline = Array.isArray(rma.timeline) ? rma.timeline : [];
+      timeline.push({
+        status: 'completed',
+        timestamp: now,
+        note: 'No refund due after inspection; closing RMA',
+        performedBy: inspectorId,
+      });
+
+      rma.timeline = timeline;
+      rma.status = 'completed';
+      rma.completedAt = now;
+      rma.refund = {
+        amount: 0,
+        method: 'original_payment',
+        processedBy: inspectorId,
+        processedAt: now,
+        transactionId,
+        status: 'completed',
+      };
+      await rma.save();
+      return;
+    }
     
     // Auto-process refund for approved returns
     if (refundAmount > 0) {
@@ -577,40 +693,63 @@ class ReturnsService {
 
   /**
    * Process refund
+   * 
+   * RACE CONDITION FIX: Uses atomic findOneAndUpdate to prevent double-processing.
+   * The status transition from 'inspected' to 'refund_processing' is atomic,
+   * so concurrent calls will fail safely instead of processing twice.
    */
   async processRefund(params: ProcessRefundParams): Promise<void> {
     const { rmaId, refundAmount, refundMethod, processorId } = params;
 
-    const rma = await RMA.findById(rmaId);
-    if (!rma) {
-      throw new Error('RMA not found');
-    }
+    const now = new Date();
+    const transactionId = `REF-${Date.now()}-${rmaId.slice(-6)}`;
 
-    if (rma.status !== 'inspected') {
-      throw new Error(`Cannot refund RMA in status: ${rma.status}`);
+    // ATOMIC STATUS TRANSITION: Only one concurrent request can succeed
+    // If status is not 'inspected', the update returns null (already processed or wrong state)
+    const rma = await RMA.findOneAndUpdate(
+      { 
+        _id: rmaId, 
+        status: 'inspected'  // Atomic condition - prevents double-processing
+      },
+      { 
+        $set: { 
+          status: 'refund_processing',  // Intermediate state to block concurrent requests
+          'refund.status': 'processing',
+          'refund.amount': refundAmount,
+          'refund.method': refundMethod,
+        },
+        $push: {
+          timeline: {
+            status: 'refund_processing',
+            timestamp: now,
+            note: 'Refund processing initiated',
+            performedBy: processorId,
+          }
+        }
+      },
+      { new: true }
+    );
+
+    if (!rma) {
+      // Either RMA doesn't exist or it's not in 'inspected' status (already processing/completed)
+      const existing = await RMA.findById(rmaId).lean();
+      if (!existing) {
+        throw new Error('RMA not found');
+      }
+      // Provide clear error message about current state
+      throw new Error(`Cannot refund RMA: already in status '${existing.status}' (expected 'inspected')`);
     }
 
     const refundData = {
       amount: refundAmount,
       method: refundMethod,
       processedBy: processorId,
-      processedAt: new Date(),
+      processedAt: now,
       status: 'completed' as const,
-      transactionId: `REF-${Date.now()}`
+      transactionId,
     };
 
-    // Ensure persisted refund fields reflect the calculated amount and chosen method
-    // Defensive check for legacy/corrupted documents or test mocks
-    if (!rma.refund) {
-      rma.refund = {
-        amount: 0,
-        method: 'original_payment' as const,
-        status: 'pending' as const,
-      };
-    }
-    rma.refund.amount = refundAmount;
-    rma.refund.method = refundMethod;
-
+    // Complete the refund (this is the actual processing step)
     const rmaRefundDoc = rma as unknown as {
       completeRefund?: (data: typeof refundData) => Promise<unknown> | unknown;
       save?: () => Promise<unknown>;
@@ -630,7 +769,7 @@ class ReturnsService {
       rmaRefundDoc.status = 'completed';
       rmaRefundDoc.completedAt = refundData.processedAt;
     }
-    // Save the updated RMA document
+    // Save the final completed state
     await rma.save();
 
     // Notify buyer
@@ -813,39 +952,83 @@ class ReturnsService {
   /**
    * Background job: Auto-complete received returns
    * Auto-approve refunds for returns received 7+ days ago (for simple cases)
+   * 
+   * RACE CONDITION FIX: Uses atomic updateMany to mark RMAs as 'auto_processing'
+   * before iterating, preventing concurrent job runs from processing the same RMAs.
    */
   async autoCompleteReceivedReturns(): Promise<number> {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    
+    const jobId = `auto-complete-${Date.now()}`;  // Unique job identifier for tracking
+
+    // ATOMIC BATCH CLAIM: Mark eligible RMAs as being processed by this job instance
+    // This prevents concurrent job runs from picking up the same RMAs
+    const claimResult = await RMA.updateMany(
+      {
+        status: 'received',
+        updatedAt: { $lt: sevenDaysAgo },
+        autoProcessingJobId: { $exists: false }  // Not already claimed by another job
+      },
+      {
+        $set: { autoProcessingJobId: jobId }
+      }
+    );
+
+    if (claimResult.modifiedCount === 0) {
+      return 0;  // No eligible RMAs to process
+    }
+
+    // Now fetch only the RMAs claimed by this job instance
     const receivedReturns = await RMA.find({
-      status: 'received',
-      updatedAt: { $lt: sevenDaysAgo }
+      autoProcessingJobId: jobId
     });
 
     let completed = 0;
     for (const rma of receivedReturns) {
-      const hasReceivedScan = Array.isArray((rma as { timeline?: Array<{ status?: string }> }).timeline)
-        ? (rma as { timeline: Array<{ status?: string }> }).timeline.some(t => t.status === 'received')
-        : false;
-      if (!hasReceivedScan || !rma.shipping?.trackingNumber) {
-        await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
-          type: 'internal',
-          to: 'inspection-team',
-          priority: 'medium',
-          message: `RMA ${rma._id} skipped auto-complete due to missing receipt confirmation`
-        }, { priority: 3 });
-        continue;
-      }
+      try {
+        const hasReceivedScan = Array.isArray((rma as { timeline?: Array<{ status?: string }> }).timeline)
+          ? (rma as { timeline: Array<{ status?: string }> }).timeline.some(t => t.status === 'received')
+          : false;
+        
+        if (!hasReceivedScan || !rma.shipping?.trackingNumber) {
+          await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
+            type: 'internal',
+            to: 'inspection-team',
+            priority: 'medium',
+            message: `RMA ${rma._id} skipped auto-complete due to missing receipt confirmation`
+          }, { priority: 3 });
+          
+          // Clear the job claim so it can be picked up by manual review
+          await RMA.updateOne(
+            { _id: rma._id },
+            { $unset: { autoProcessingJobId: 1 } }
+          );
+          continue;
+        }
 
-      // Auto-inspect as "good" condition, restockable
-      await this.inspectReturn({
-        rmaId: rma._id.toString(),
-        inspectorId: 'SYSTEM',
-        condition: 'good',
-        restockable: true,
-        inspectionNotes: 'Auto-inspected after 7 days - assumed good condition'
-      });
-      completed++;
+        // Auto-inspect as "good" condition, restockable
+        await this.inspectReturn({
+          rmaId: rma._id.toString(),
+          inspectorId: 'SYSTEM',
+          condition: 'good',
+          restockable: true,
+          inspectionNotes: 'Auto-inspected after 7 days - assumed good condition'
+        });
+        
+        // Clear the job claim on success
+        await RMA.updateOne(
+          { _id: rma._id },
+          { $unset: { autoProcessingJobId: 1 } }
+        );
+        completed++;
+      } catch (error) {
+        // Clear the job claim on error so it can be retried
+        await RMA.updateOne(
+          { _id: rma._id },
+          { $unset: { autoProcessingJobId: 1 } }
+        );
+        // Log but continue processing other RMAs
+        logger.error(`[ReturnsService] Failed to auto-complete RMA ${rma._id}`, error as Error);
+      }
     }
 
     return completed;

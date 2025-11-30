@@ -6,6 +6,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { STORAGE_KEYS } from "@/config/constants";
+import { logger } from "@/lib/logger";
 
 /**
  * Maximum number of messages to send as context window to the AI API.
@@ -118,9 +119,8 @@ export const useAIChatStore = create<AIChatState>()(
             correlationId,
           });
         } catch (error) {
-          console.error("[AI Chat] Error sending message:", {
+          logger.error("[AI Chat] Error sending message:", error, {
             correlationId,
-            error,
           });
 
           // Add error message using i18n translation key

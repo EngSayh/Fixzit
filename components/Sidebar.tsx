@@ -123,6 +123,7 @@ export default function Sidebar({
   const sessionUser = session?.user as
     | { role?: string; subscriptionPlan?: string; plan?: string }
     | undefined;
+  const [planOverride, setPlanOverride] = useState<string | null>(null);
 
   const { t, isRTL } = useTranslation();
   const { screenInfo } = useResponsiveLayout();
@@ -130,8 +131,37 @@ export default function Sidebar({
   const isAuthenticated = status === "authenticated" && !!sessionUser;
   const role = resolveNavigationRole(sessionUser?.role);
   const subscription = normalizePlan(
-    sessionUser?.subscriptionPlan ?? sessionUser?.plan,
+    planOverride ?? sessionUser?.subscriptionPlan ?? sessionUser?.plan,
   );
+
+  // Fetch subscription plan when not present in session to enforce gating
+  useEffect(() => {
+    const fetchPlan = async () => {
+      if (!isAuthenticated || planOverride) return;
+      try {
+        const resp = await fetch("/api/subscriptions/tenant", {
+          credentials: "include",
+        });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const plan =
+          (data?.metadata?.plan as string) ||
+          (data?.plan as string) ||
+          (data?.subscription_plan as string);
+        if (typeof plan === "string" && plan.trim()) {
+          const normalized = normalizePlan(plan);
+          if (normalized !== "DEFAULT") {
+            setPlanOverride(normalized);
+          }
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") {
+          logger.warn("[Sidebar] Failed to fetch subscription plan", { error });
+        }
+      }
+    };
+    fetchPlan();
+  }, [isAuthenticated, planOverride]);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
 

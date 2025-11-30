@@ -15,14 +15,22 @@ import CrmLead from "@/server/models/CrmLead";
 import CrmActivity from "@/server/models/CrmActivity";
 import { UserRole, type UserRoleType } from "@/types/user";
 
+// PHASE-3 FIX: CRM access aligned with STRICT v4.1 canonical matrix
+// CRM should be accessible to: Super Admin, Admin/Corporate Admin, Team Members, Corporate Owner
+// NOT to: Technician, Tenant, Vendor (they have no CRM use case)
 const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
   UserRole.SUPER_ADMIN,
   UserRole.CORPORATE_ADMIN,
   UserRole.ADMIN,
-  UserRole.MANAGER,
-  UserRole.FM_MANAGER,
-  UserRole.PROPERTY_MANAGER,
-  // Note: EMPLOYEE deprecated in STRICT v4 - MANAGER covers this use case
+  UserRole.MANAGER, // Maps to TEAM_MEMBER in FM domain
+  UserRole.OWNER, // CORPORATE_OWNER - may need CRM for customer management
+  UserRole.SUPPORT_AGENT, // CRM access for support
+  // PHASE-3: Explicitly exclude FM/Property-specific roles
+  // UserRole.FM_MANAGER - NO CRM access
+  // UserRole.PROPERTY_MANAGER - NO CRM access
+  // UserRole.TECHNICIAN - NO CRM access
+  // UserRole.TENANT - NO CRM access
+  // UserRole.VENDOR - NO CRM access
 ]);
 
 function isUnauthenticatedError(error: unknown): boolean {
@@ -59,6 +67,10 @@ export async function GET(req: NextRequest) {
   try {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    // CRM-001 FIX: All queries MUST be org-scoped per STRICT v4 multi-tenant isolation
+    // Without orgId filter, aggregations expose cross-org CRM data
+    const orgFilter = { orgId: user.orgId };
 
     const [
       totalLeads,
@@ -70,22 +82,28 @@ export async function GET(req: NextRequest) {
       recentCalls,
       recentEmails,
     ] = await Promise.all([
-      CrmLead.countDocuments({ kind: "LEAD" }),
+      // CRM-001 FIX: Add orgId to all countDocuments and aggregations
+      CrmLead.countDocuments({ ...orgFilter, kind: "LEAD" }),
       CrmLead.aggregate([
-        { $match: { kind: "LEAD", status: "OPEN" } },
+        { $match: { ...orgFilter, kind: "LEAD", status: "OPEN" } },
         {
           $group: { _id: null, total: { $sum: "$value" }, count: { $sum: 1 } },
         },
       ]),
-      CrmLead.countDocuments({ status: "WON" }),
-      CrmLead.aggregate([{ $group: { _id: "$stage", total: { $sum: 1 } } }]),
-      CrmLead.find({ kind: "ACCOUNT" }).sort({ revenue: -1 }).limit(5).lean(),
-      CrmActivity.find().sort({ performedAt: -1 }).limit(6).lean(),
+      CrmLead.countDocuments({ ...orgFilter, status: "WON" }),
+      CrmLead.aggregate([
+        { $match: orgFilter }, // CRM-001 FIX: Scope stage aggregation to org
+        { $group: { _id: "$stage", total: { $sum: 1 } } },
+      ]),
+      CrmLead.find({ ...orgFilter, kind: "ACCOUNT" }).sort({ revenue: -1 }).limit(5).lean(),
+      CrmActivity.find(orgFilter).sort({ performedAt: -1 }).limit(6).lean(),
       CrmActivity.countDocuments({
+        ...orgFilter,
         type: "CALL",
         performedAt: { $gte: sevenDaysAgo },
       }),
       CrmActivity.countDocuments({
+        ...orgFilter,
         type: "EMAIL",
         performedAt: { $gte: sevenDaysAgo },
       }),

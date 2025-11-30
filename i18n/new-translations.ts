@@ -1556,7 +1556,7 @@ export const newTranslations: TranslationBundle = {
     'app.currentApp': 'Current App',
     'app.fm': 'Facility Management (FM)',
     'app.searchableEntities': 'searchable entities',
-    'app.souq': 'Materials Marketplace (Fixizit Souq)',
+    'app.souq': 'Materials Marketplace (Fixzit Souq)',
     'app.switchApplication': 'Switch Application',
     'appliances.airConditioner': 'Air Conditioner',
     'appliances.appliance': 'Appliance',

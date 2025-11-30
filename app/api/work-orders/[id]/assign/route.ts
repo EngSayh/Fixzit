@@ -47,7 +47,7 @@ const schema = z
  */
 export async function POST(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ): Promise<NextResponse> {
   // Rate limiting
   const clientIp = getClientIP(req);
@@ -56,7 +56,6 @@ export async function POST(
     return rateLimitError();
   }
 
-  const params = await props.params;
   const user = await requireAbility(WOAbility.ASSIGN)(req);
   if (user instanceof NextResponse) return user;
   await connectToDatabase();

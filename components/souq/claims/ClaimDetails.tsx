@@ -460,11 +460,11 @@ export default function ClaimDetails({
                       className={cn(
                         "p-4 rounded-lg space-y-2",
                         claim.decision.outcome === "approve-full" &&
-                          "bg-green-50 border border-green-200",
+                          "bg-success/10 border border-success/20",
                         claim.decision.outcome === "approve-partial" &&
-                          "bg-blue-50 border border-blue-200",
+                          "bg-primary/10 border border-primary/20",
                         claim.decision.outcome === "reject" &&
-                          "bg-red-50 border border-red-200",
+                          "bg-destructive/10 border border-destructive/20",
                       )}
                     >
                       <div className="flex justify-between items-center">

@@ -43,10 +43,8 @@ const schema = z.object({ text: z.string().min(1) });
  */
 export async function POST(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = await props.params;
-
   // Authenticate user first
   const user = await getSessionUser(req).catch(() => null);
   if (!user) {
@@ -86,7 +84,7 @@ export async function POST(
       ]
     : [];
   const adminMatch =
-    user && ["SUPER_ADMIN", "SUPPORT", "CORPORATE_ADMIN"].includes(user.role)
+    user && ["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role)
       ? [{}]
       : [];
   const t = await SupportTicket.findOne({
@@ -97,7 +95,7 @@ export async function POST(
 
   // End user may reply only to own ticket; admins can reply to any
   const isAdmin =
-    !!user && ["SUPER_ADMIN", "SUPPORT", "CORPORATE_ADMIN"].includes(user.role);
+    !!user && ["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role);
   const ticketTyped = t as unknown as TicketDocument;
   const isOwner = !!user && ticketTyped.createdBy?.toString?.() === user.id;
   if (!isAdmin && !isOwner)

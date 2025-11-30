@@ -19,23 +19,14 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      // @ts-expect-error - Fixed VSCode problem
       id: subscription._id,
-      // @ts-expect-error - Fixed VSCode problem
       status: subscription.status,
-      // @ts-expect-error - Fixed VSCode problem
       modules: subscription.modules,
-      // @ts-expect-error - Fixed VSCode problem
       seats: subscription.seats,
-      // @ts-expect-error - Fixed VSCode problem
       billing_cycle: subscription.billing_cycle,
-      // @ts-expect-error - Fixed VSCode problem
       amount: subscription.amount,
-      // @ts-expect-error - Fixed VSCode problem
       currency: subscription.currency,
-      // @ts-expect-error - Fixed VSCode problem
       next_billing_date: subscription.next_billing_date,
-      // @ts-expect-error - Fixed VSCode problem
       metadata: subscription.metadata,
     });
   } catch (_error) {

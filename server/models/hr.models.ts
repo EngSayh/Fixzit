@@ -35,6 +35,8 @@ import mongoose, {
   Model,
 } from "mongoose";
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
+import { encryptField, decryptField, isEncrypted } from "@/lib/security/encryption";
+import { logger } from "@/lib/logger";
 
 export type ObjectId = Types.ObjectId;
 
@@ -319,6 +321,132 @@ EmployeeSchema.index({
   employmentStatus: 1,
 });
 EmployeeSchema.plugin(tenantIsolationPlugin);
+
+// =============================================================================
+// PII ENCRYPTION MIDDLEWARE (GDPR Article 32 - Security of Processing)
+// =============================================================================
+
+/**
+ * Sensitive PII fields requiring encryption at rest
+ * 
+ * COMPLIANCE:
+ * - GDPR Article 32: Security of processing (encryption)
+ * - Saudi Labor Law: Salary confidentiality (Article 52)
+ * - ISO 27001: Cryptographic controls (A.10.1.1)
+ * 
+ * RBAC-005: HR PII Protection - Encrypt compensation and bank details
+ */
+const EMPLOYEE_ENCRYPTED_FIELDS = {
+  // Compensation data (salary confidentiality)
+  'compensation.baseSalary': 'Base Salary',
+  'compensation.housingAllowance': 'Housing Allowance',
+  'compensation.transportAllowance': 'Transport Allowance',
+  
+  // Bank account details (financial PII)
+  'bankDetails.iban': 'IBAN',
+  'bankDetails.accountNumber': 'Account Number',
+} as const;
+
+/**
+ * Pre-save hook: Encrypt sensitive PII fields before storing
+ */
+EmployeeSchema.pre('save', async function(next) {
+  // eslint-disable-next-line @typescript-eslint/no-this-alias -- Required for Mongoose hook traversal
+  const doc = this;
+  try {
+    // Only encrypt if fields are modified and not already encrypted
+    for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
+      const parts = path.split('.');
+      let current: any = doc;
+      
+      // Navigate to parent object
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!current[parts[i]]) {
+          current[parts[i]] = {};
+        }
+        current = current[parts[i]];
+      }
+      
+      const field = parts[parts.length - 1];
+      const value = current[field];
+      
+      // Encrypt if value exists and is not already encrypted
+      if (value && !isEncrypted(String(value))) {
+        current[field] = encryptField(String(value), path);
+        
+        logger.info('employee:pii_encrypted', {
+          action: 'pre_save_encrypt',
+          fieldPath: path,
+          fieldName,
+          employeeId: doc._id?.toString(),
+          orgId: doc.orgId,
+        });
+      }
+    }
+    
+    next();
+  } catch (error) {
+    logger.error('employee:encryption_failed', {
+      action: 'pre_save_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+      employeeId: doc._id?.toString(),
+    });
+    next(error as Error);
+  }
+});
+
+/**
+ * Post-find hooks: Decrypt sensitive PII fields after retrieval
+ * Applied to: find, findOne, findById, findOneAndUpdate
+ */
+function decryptEmployeePIIFields(doc: any) {
+  if (!doc) return;
+  
+  try {
+    for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
+      const parts = path.split('.');
+      let current: any = doc;
+      
+      // Navigate to parent object
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!current[parts[i]]) {
+          break;
+        }
+        current = current[parts[i]];
+      }
+      
+      const field = parts[parts.length - 1];
+      const value = current?.[field];
+      
+      // Decrypt if value is encrypted
+      if (value && isEncrypted(String(value))) {
+        current[field] = decryptField(String(value), path);
+      }
+    }
+  } catch (error) {
+    logger.error('employee:decryption_failed', {
+      action: 'post_find_decrypt',
+      error: error instanceof Error ? error.message : String(error),
+      employeeId: doc._id?.toString(),
+    });
+    // Don't throw - return encrypted value rather than breaking app
+  }
+}
+
+// Apply decryption to various find operations
+EmployeeSchema.post('find', function(docs: any[]) {
+  if (Array.isArray(docs)) {
+    docs.forEach(decryptEmployeePIIFields);
+  }
+});
+
+EmployeeSchema.post('findOne', function(doc: any) {
+  decryptEmployeePIIFields(doc);
+});
+
+EmployeeSchema.post('findOneAndUpdate', function(doc: any) {
+  decryptEmployeePIIFields(doc);
+});
 
 export const Employee: Model<EmployeeDoc> =
   models.Employee || model<EmployeeDoc>("Employee", EmployeeSchema);
@@ -791,53 +919,111 @@ const PayrollRunSchema = new Schema<PayrollRunDoc>(
 PayrollRunSchema.index({ orgId: 1, periodStart: 1, periodEnd: 1 });
 PayrollRunSchema.plugin(tenantIsolationPlugin);
 
-PayrollRunSchema.pre("save", function (this: PayrollRunDoc, next) {
-  const normalizedLines = (this.lines || []).map((line) => {
-    const netPay =
-      typeof line.calculatedNetPay === "number"
-        ? line.calculatedNetPay
-        : (line.netPay ?? 0);
+PayrollRunSchema.pre("save", async function (this: PayrollRunDoc, next) {
+  try {
+    // Encrypt sensitive payroll line data (IBAN, salary details)
+    const encryptedLines = await Promise.all((this.lines || []).map(async (line) => {
+      const netPay =
+        typeof line.calculatedNetPay === "number"
+          ? line.calculatedNetPay
+          : (line.netPay ?? 0);
 
-    return {
-      ...line,
-      netPay,
+      // Encrypt IBAN if present and not already encrypted
+      let iban: string | undefined = line.iban ?? undefined;
+      if (iban && !isEncrypted(iban)) {
+        const encrypted = encryptField(iban as string, 'payroll.iban');
+        iban = encrypted ?? undefined;
+        logger.info('payroll:iban_encrypted', {
+          action: 'pre_save_encrypt',
+          employeeId: line.employeeId.toString(),
+          orgId: this.orgId,
+        });
+      }
+
+      return {
+        ...line,
+        iban: (iban ?? undefined) as string | undefined,
+        netPay,
+      };
+    }));
+
+    this.lines = encryptedLines;
+
+    const totals = encryptedLines.reduce(
+      (acc, line) => {
+        acc.baseSalary += line.baseSalary || 0;
+        acc.allowances += line.allowances || 0;
+        acc.overtime += line.overtimeAmount || 0;
+        acc.deductions += line.deductions || 0;
+        acc.gosi += line.gosiContribution || 0;
+        acc.net += line.netPay || 0;
+        return acc;
+      },
+      {
+        baseSalary: 0,
+        allowances: 0,
+        overtime: 0,
+        deductions: 0,
+        gosi: 0,
+        net: 0,
+      },
+    );
+
+    this.totals = {
+      baseSalary: Math.round(totals.baseSalary * 100) / 100,
+      allowances: Math.round(totals.allowances * 100) / 100,
+      overtime: Math.round(totals.overtime * 100) / 100,
+      deductions: Math.round(totals.deductions * 100) / 100,
+      gosi: Math.round(totals.gosi * 100) / 100,
+      net: Math.round(totals.net * 100) / 100,
     };
-  });
 
-  this.lines = normalizedLines;
+    this.employeeCount = encryptedLines.length;
 
-  const totals = normalizedLines.reduce(
-    (acc, line) => {
-      acc.baseSalary += line.baseSalary || 0;
-      acc.allowances += line.allowances || 0;
-      acc.overtime += line.overtimeAmount || 0;
-      acc.deductions += line.deductions || 0;
-      acc.gosi += line.gosiContribution || 0;
-      acc.net += line.netPay || 0;
-      return acc;
-    },
-    {
-      baseSalary: 0,
-      allowances: 0,
-      overtime: 0,
-      deductions: 0,
-      gosi: 0,
-      net: 0,
-    },
-  );
+    next();
+  } catch (error) {
+    logger.error('payroll:encryption_failed', {
+      action: 'pre_save_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
 
-  this.totals = {
-    baseSalary: Math.round(totals.baseSalary * 100) / 100,
-    allowances: Math.round(totals.allowances * 100) / 100,
-    overtime: Math.round(totals.overtime * 100) / 100,
-    deductions: Math.round(totals.deductions * 100) / 100,
-    gosi: Math.round(totals.gosi * 100) / 100,
-    net: Math.round(totals.net * 100) / 100,
-  };
+/**
+ * Post-find hooks: Decrypt payroll IBAN fields after retrieval
+ */
+function decryptPayrollPIIFields(doc: any) {
+  if (!doc || !doc.lines) return;
+  
+  try {
+    doc.lines = doc.lines.map((line: any) => {
+      if (line.iban && isEncrypted(line.iban)) {
+        line.iban = decryptField(line.iban, 'payroll.iban');
+      }
+      return line;
+    });
+  } catch (error) {
+    logger.error('payroll:decryption_failed', {
+      action: 'post_find_decrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    // Don't throw - return encrypted value rather than breaking app
+  }
+}
 
-  this.employeeCount = normalizedLines.length;
+PayrollRunSchema.post('find', function(docs: any[]) {
+  if (Array.isArray(docs)) {
+    docs.forEach(decryptPayrollPIIFields);
+  }
+});
 
-  next();
+PayrollRunSchema.post('findOne', function(doc: any) {
+  decryptPayrollPIIFields(doc);
+});
+
+PayrollRunSchema.post('findOneAndUpdate', function(doc: any) {
+  decryptPayrollPIIFields(doc);
 });
 
 export type PayrollLineDoc = PayrollRunDoc["lines"][number];

@@ -67,14 +67,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = listingCreateSchema.parse(body);
 
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const [product, seller] = await Promise.all([
       SouqProduct.findOne({
         _id: validatedData.productId,
-        org_id: session.user.orgId,
+        orgId: session.user.orgId,
       }),
       SouqSeller.findOne({
         _id: validatedData.sellerId,
-        org_id: session.user.orgId,
+        orgId: session.user.orgId,
       }),
     ]);
 
@@ -100,10 +101,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const existingListing = await SouqListing.findOne({
       productId: validatedData.productId,
       sellerId: validatedData.sellerId,
-      org_id: session.user.orgId,
+      orgId: session.user.orgId,
     });
 
     if (existingListing) {
@@ -115,10 +117,11 @@ export async function POST(request: NextRequest) {
 
     const listingId = `LST-${nanoid(10).toUpperCase()}`;
 
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const listing = await SouqListing.create({
       ...validatedData,
       listingId,
-      org_id: session.user.orgId,
+      orgId: session.user.orgId,
       availableQuantity: validatedData.stockQuantity,
       reservedQuantity: 0,
       status: "active",
@@ -193,8 +196,9 @@ export async function GET(request: NextRequest) {
       100,
     );
 
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const query: Record<string, unknown> = {
-      org_id: session.user.orgId,
+      orgId: session.user.orgId,
     };
 
     if (fsin) {

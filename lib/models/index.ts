@@ -1,6 +1,13 @@
 // MongoDB Models with TypeScript interfaces
 import type { ObjectId } from "mongodb";
 
+/**
+ * @deprecated Import Role from '@/domain/fm/fm.behavior' instead.
+ * This re-export maintains backward compatibility with existing imports.
+ * The canonical Role enum is defined in domain/fm/fm.behavior.ts (STRICT v4.1).
+ */
+export { Role } from "@/domain/fm/fm.behavior";
+
 export interface Tenant {
   _id?: string;
   name: string;
@@ -15,29 +22,12 @@ export interface User {
   email: string;
   password: string;
   name: string;
-  role: Role;
+  role: import("@/domain/fm/fm.behavior").Role;
   phone?: string;
   locale?: string;
   currency?: string;
   createdAt: Date;
   updatedAt: Date;
-}
-
-export enum Role {
-  SUPER_ADMIN = "SUPER_ADMIN",
-  CORPORATE_ADMIN = "CORPORATE_ADMIN",
-  FINANCE = "FINANCE",
-  HR = "HR",
-  ADMIN = "ADMIN",
-  CRM = "CRM",
-  FM_MANAGER = "FM_MANAGER",
-  TECHNICIAN = "TECHNICIAN",
-  VENDOR = "VENDOR",
-  TENANT = "TENANT",
-  OWNER = "OWNER",
-  SUPPORT = "SUPPORT",
-  PROCUREMENT = "PROCUREMENT",
-  AUDITOR = "AUDITOR",
 }
 
 export interface Property {

@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR from "swr";
+import { logger } from "@/lib/logger";
 
 export type PropertyRecord = {
   _id: string;
@@ -31,14 +32,21 @@ export type PropertyRecord = {
 const fetcher = async <T>(url: string): Promise<T> => {
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
-    const payload = await res.json().catch(() => ({}));
+    const payload = await res.json().catch((jsonError) => {
+      logger.error('[useProperties] Failed to parse JSON response:', jsonError, {
+        status: res.status.toString(),
+        statusText: res.statusText
+      });
+      return {};
+    });
     throw new Error(payload?.error ?? "Request failed");
   }
   return res.json();
 };
 
 export function useProperties(params?: string) {
-  const url = params ? `/api/properties${params}` : "/api/properties";
+  // Use RBAC-secured FM endpoint instead of legacy /api/properties
+  const url = params ? `/api/fm/properties${params}` : "/api/fm/properties";
   const { data, error, isLoading, mutate } = useSWR<{
     items: PropertyRecord[];
   }>(url, fetcher);

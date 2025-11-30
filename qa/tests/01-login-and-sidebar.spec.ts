@@ -3,10 +3,8 @@ import { cfg } from "../config";
 
 async function login(page: Page) {
   await page.goto("/login");
-  await page
-    .getByLabelText(/email or employee number/i)
-    .fill(cfg.users.admin.email);
-  await page.getByLabelText(/password/i).fill(cfg.users.admin.password);
+  await page.getByLabel(/email or employee number/i).fill(cfg.users.admin.email);
+  await page.getByLabel(/password/i).fill(cfg.users.admin.password);
   // Click the submit button (type="submit"), not the SSO Login button
   await page.getByRole("button", { name: /^Sign In$/i }).click();
   await page.waitForLoadState("networkidle");

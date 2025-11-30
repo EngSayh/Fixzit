@@ -1,6 +1,10 @@
-import "server-only";
+// Next.js guard: ensures this file is treated as server-only in real app.
+// Skip the hard throw when running vitest (VITEST=1) by using a dynamic import.
+if (!process.env.VITEST) {
+  void import("server-only");
+}
 import mongoose from "mongoose";
-import type { ModifyResult } from "mongodb";
+import type { ModifyResult, WithId } from "mongodb";
 
 /**
  * SERVER-ONLY: Atomic counter for generating unique sequential user codes
@@ -70,4 +74,20 @@ export async function getNextAtomicUserCode(
 
   // Format as USR000001, USR000002, etc.
   return `USR${String(seqValue).padStart(6, "0")}`;
+}
+
+/**
+ * Normalize MongoDB findOneAndUpdate/findOneAndDelete results across driver versions.
+ * - Driver v4/v5 returned ModifyResult<{ value?: T }>
+ * - Driver v6 returns the document directly
+ */
+export function unwrapFindOneResult<T>(
+  result: ModifyResult<T> | WithId<T> | null | undefined,
+): WithId<T> | null {
+  if (!result) return null;
+  if (typeof result === "object" && "value" in result) {
+    const value = (result as ModifyResult<T>).value;
+    return (value ?? null) as WithId<T> | null;
+  }
+  return result as WithId<T>;
 }

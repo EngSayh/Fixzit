@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR from "swr";
+import { logger } from "@/lib/logger";
 
 type LeaveRequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 
@@ -36,7 +37,10 @@ const fetcher = async <T>(url: string): Promise<T> => {
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) {
     throw new Error(
-      (await res.json().catch(() => ({})))?.error ?? "Request failed",
+      (await res.json().catch((jsonError) => {
+        logger.error('[useHrData] Failed to parse JSON response:', jsonError);
+        return {};
+      }))?.error ?? "Request failed",
     );
   }
   return res.json();

@@ -14,6 +14,12 @@ import {
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
 import { Types } from "mongoose";
+import {
+  signVerificationToken,
+  verificationLink as buildVerificationLink,
+} from "@/lib/auth/emailVerification";
+import { sendEmail } from "@/lib/email";
+import { logger } from "@/lib/logger";
 
 const signupSchema = z
   .object({
@@ -221,6 +227,109 @@ export async function POST(req: NextRequest) {
           email: newUser.email,
           role: newUser.professional?.role || "VIEWER",
         },
+        verification: await (async () => {
+          const secret = process.env.NEXTAUTH_SECRET;
+          if (!secret) return { sent: false, reason: "not_configured" };
+          
+          const token = signVerificationToken(normalizedEmail, secret);
+          const origin =
+            process.env.NEXT_PUBLIC_APP_URL ||
+            process.env.VERCEL_URL ||
+            new URL(req.url).origin;
+          const verificationLink = buildVerificationLink(origin, token);
+          
+          // Determine locale from request or body
+          const locale = body.preferredLanguage === "ar" ? "ar" : "en";
+          const userName = fullName;
+          
+          // Localized email content
+          const emailContent = locale === "ar" ? {
+            subject: "مرحباً بك في Fixzit - تأكيد البريد الإلكتروني",
+            body: `مرحباً ${userName}،\n\nشكراً لتسجيلك في Fixzit. يرجى تأكيد عنوان بريدك الإلكتروني بالضغط على الرابط أدناه:\n\n${verificationLink}\n\nهذا الرابط صالح لمدة 24 ساعة.\n\nمع أطيب التحيات،\nفريق Fixzit`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; direction: rtl; text-align: right;">
+                <div style="background: linear-gradient(135deg, #0070f3, #00c4cc); padding: 30px; border-radius: 10px 10px 0 0;">
+                  <h1 style="color: white; margin: 0; font-size: 24px;">مرحباً بك في Fixzit</h1>
+                </div>
+                <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+                  <p style="color: #333; font-size: 16px; line-height: 1.6;">مرحباً ${userName}،</p>
+                  <p style="color: #666; font-size: 14px; line-height: 1.6;">
+                    شكراً لتسجيلك في Fixzit. يرجى تأكيد عنوان بريدك الإلكتروني للوصول الكامل إلى حسابك.
+                  </p>
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${verificationLink}" style="background: #0070f3; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                      تأكيد البريد الإلكتروني
+                    </a>
+                  </div>
+                  <p style="color: #999; font-size: 12px; line-height: 1.6;">
+                    هذا الرابط صالح لمدة 24 ساعة.
+                  </p>
+                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                  <p style="color: #999; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Fixzit</p>
+                </div>
+              </div>
+            `,
+          } : {
+            subject: "Welcome to Fixzit - Verify your email",
+            body: `Hello ${userName},\n\nThank you for signing up for Fixzit. Please verify your email address by clicking the link below:\n\n${verificationLink}\n\nThis link expires in 24 hours.\n\nBest regards,\nThe Fixzit Team`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background: linear-gradient(135deg, #0070f3, #00c4cc); padding: 30px; border-radius: 10px 10px 0 0;">
+                  <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to Fixzit</h1>
+                </div>
+                <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+                  <p style="color: #333; font-size: 16px; line-height: 1.6;">Hello ${userName},</p>
+                  <p style="color: #666; font-size: 14px; line-height: 1.6;">
+                    Thank you for signing up for Fixzit. Please verify your email address to get full access to your account.
+                  </p>
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${verificationLink}" style="background: #0070f3; color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                      Verify Email Address
+                    </a>
+                  </div>
+                  <p style="color: #999; font-size: 12px; line-height: 1.6;">
+                    This link expires in 24 hours.
+                  </p>
+                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                  <p style="color: #999; font-size: 11px; text-align: center;">© ${new Date().getFullYear()} Fixzit</p>
+                </div>
+              </div>
+            `,
+          };
+          
+          // Send verification email
+          const emailResult = await sendEmail(normalizedEmail, emailContent.subject, emailContent.body, {
+            html: emailContent.html,
+          });
+          
+          if (emailResult.success) {
+            logger.info("[auth/signup] Verification email sent", {
+              email: normalizedEmail,
+              messageId: emailResult.messageId,
+            });
+            return { sent: true };
+          }
+          
+          // Fallback for development (SendGrid not configured)
+          if (emailResult.error?.includes("not configured")) {
+            logger.warn("[auth/signup] SendGrid not configured, verification email not sent", {
+              email: normalizedEmail,
+            });
+            return { 
+              sent: false, 
+              reason: "email_not_configured",
+              // Only include link in non-production for testing
+              ...(process.env.NODE_ENV !== "production" && { link: verificationLink }),
+            };
+          }
+          
+          // Email send failed but user was created
+          logger.error("[auth/signup] Failed to send verification email", {
+            email: normalizedEmail,
+            error: emailResult.error,
+          });
+          return { sent: false, reason: "send_failed" };
+        })(),
       },
       201,
       req,

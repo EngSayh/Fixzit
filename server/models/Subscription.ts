@@ -85,6 +85,14 @@ const SubscriptionSchema = new Schema(
       required: false,
       index: true,
     },
+    current_period_start: {
+      type: Date,
+      required: false,
+    },
+    current_period_end: {
+      type: Date,
+      required: false,
+    },
     billing_history: {
       type: [BillingHistorySchema],
       default: [],
@@ -168,6 +176,8 @@ interface ISubscription extends Document {
   status: "INCOMPLETE" | "ACTIVE" | "PAST_DUE" | "CANCELED";
   paytabs?: IPayTabsInfo;
   next_billing_date?: Date;
+  current_period_start?: Date;
+  current_period_end?: Date;
   billing_history: IBillingHistory[];
   paytabs_token_id?: Types.ObjectId;
   metadata?: Record<string, unknown>;

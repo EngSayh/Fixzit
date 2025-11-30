@@ -13,7 +13,13 @@ import {
   RATE_LIMIT_WINDOW_MS,
   MAX_SENDS_PER_WINDOW,
 } from "@/lib/otp-store";
+import { rateLimit } from "@/server/security/rateLimit";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import {
+  EMPLOYEE_ID_REGEX,
+  normalizeCompanyCode,
+  buildOtpKey,
+} from "@/lib/otp-utils";
 
 interface UserDocument {
   _id?: { toString: () => string };
@@ -68,15 +74,16 @@ const DEMO_EMPLOYEE_IDS = new Set([
 const TEST_USERS_FALLBACK_PHONE =
   process.env.NEXTAUTH_TEST_USERS_FALLBACK_PHONE ||
   process.env.TEST_USERS_FALLBACK_PHONE ||
-  "+966552233456";
+  "";
 
-const DEFAULT_TEST_FORCE_PHONE = "+966552233456";
+const DEFAULT_TEST_FORCE_PHONE =
+  process.env.NEXTAUTH_TEST_FORCE_PHONE ||
+  process.env.TEST_FORCE_PHONE ||
+  "";
 const FORCE_OTP_PHONE =
   process.env.NEXTAUTH_FORCE_OTP_PHONE || process.env.FORCE_OTP_PHONE || "";
 
-const DEMO_AUTH_ENABLED =
-  process.env.ALLOW_DEMO_LOGIN === "true" ||
-  process.env.NODE_ENV !== "production";
+// Note: DEMO_AUTH_ENABLED is defined below with demo password configuration
 const OFFLINE_MODE = process.env.ALLOW_OFFLINE_MONGODB === "true";
 
 const TEST_USER_CONFIG = [
@@ -118,7 +125,14 @@ const TEST_USER_CONFIG = [
   },
 ] as const;
 
-const DEFAULT_DEMO_PASSWORDS = ["admin123", "password123", "Admin@123"];
+// SECURITY: Demo passwords are ONLY for local development/testing
+// In production (NODE_ENV=production), demo auth is completely disabled
+const DEMO_AUTH_ENABLED =
+  process.env.NODE_ENV !== "production" &&
+  (process.env.ALLOW_DEMO_LOGIN === "true" || process.env.NODE_ENV === "development");
+
+// SECURITY: Demo passwords are not hardcoded - must be set via environment variable
+// If not set, demo auth is effectively disabled even in development
 const CUSTOM_DEMO_PASSWORDS = (
   process.env.NEXTAUTH_DEMO_PASSWORDS ||
   process.env.DEMO_LOGIN_PASSWORDS ||
@@ -127,9 +141,9 @@ const CUSTOM_DEMO_PASSWORDS = (
   .split(",")
   .map((pwd) => pwd.trim())
   .filter(Boolean);
-const DEMO_PASSWORD_WHITELIST = (
-  CUSTOM_DEMO_PASSWORDS.length ? CUSTOM_DEMO_PASSWORDS : DEFAULT_DEMO_PASSWORDS
-).filter(Boolean);
+
+// Only use demo passwords if explicitly configured via environment
+const DEMO_PASSWORD_WHITELIST = DEMO_AUTH_ENABLED ? CUSTOM_DEMO_PASSWORDS : [];
 
 const isDemoIdentifier = (identifier: string | undefined | null): boolean => {
   if (!identifier) return false;
@@ -147,6 +161,7 @@ const matchesDemoPassword = (password: string): boolean => {
 const buildDemoUser = (
   identifier: string,
   loginType: "personal" | "corporate",
+  companyCode?: string | null,
 ) => {
   const normalizedEmail =
     loginType === "personal"
@@ -162,9 +177,14 @@ const buildDemoUser = (
     role: "SUPER_ADMIN",
     status: "ACTIVE",
     isActive: true,
-    contact: { phone: TEST_USERS_FALLBACK_PHONE },
-    personal: { phone: TEST_USERS_FALLBACK_PHONE },
+    ...(TEST_USERS_FALLBACK_PHONE
+      ? {
+          contact: { phone: TEST_USERS_FALLBACK_PHONE },
+          personal: { phone: TEST_USERS_FALLBACK_PHONE },
+        }
+      : {}),
     professional: { role: "SUPER_ADMIN" },
+    code: companyCode ?? "DEMO-ORG",
     __isDemoUser: true,
   };
 };
@@ -174,6 +194,7 @@ const buildTestUser = (
   loginType: "personal" | "corporate",
   role: string,
   phone?: string,
+  companyCode?: string | null,
 ) => {
   const normalizedEmail =
     loginType === "personal"
@@ -192,6 +213,7 @@ const buildTestUser = (
     contact: { phone: phone ?? TEST_USERS_FALLBACK_PHONE },
     personal: { phone: phone ?? TEST_USERS_FALLBACK_PHONE },
     professional: { role },
+    code: companyCode ?? "TEST-ORG",
     __isDemoUser: true,
     __isTestUser: true,
   };
@@ -199,21 +221,48 @@ const buildTestUser = (
 
 const resolveTestUser = (
   identifier: string,
-  password: string,
+  password: string | undefined,
   loginType: "personal" | "corporate",
+  companyCode?: string | null,
 ) => {
+  if (!password) {
+    return null;
+  }
   const normalized =
     loginType === "personal"
       ? identifier.toLowerCase()
       : identifier.toUpperCase();
+  const normalizedCompanyCode = normalizeCompanyCode(
+    companyCode || process.env.TEST_COMPANY_CODE,
+  );
   for (const config of TEST_USER_CONFIG) {
     if (!config.identifier || !config.password) continue;
     const configIdentifier =
       loginType === "personal"
         ? config.identifier.toLowerCase()
         : config.identifier.toUpperCase();
-    if (normalized === configIdentifier && password === config.password) {
-      return buildTestUser(normalized, loginType, config.role, config.phone);
+    const configCompanyCode = normalizeCompanyCode(
+      (config as { companyCode?: string }).companyCode ||
+        process.env.TEST_COMPANY_CODE,
+    );
+    const companyCodeMatches =
+      loginType === "corporate"
+        ? !configCompanyCode ||
+          !normalizedCompanyCode ||
+          configCompanyCode === normalizedCompanyCode
+        : true;
+    if (
+      normalized === configIdentifier &&
+      password === config.password &&
+      companyCodeMatches
+    ) {
+      return buildTestUser(
+        normalized,
+        loginType,
+        config.role,
+        config.phone,
+        normalizedCompanyCode ?? configCompanyCode,
+      );
     }
   }
   return null;
@@ -221,8 +270,9 @@ const resolveTestUser = (
 
 // Validation schema
 const SendOTPSchema = z.object({
-  identifier: z.string().trim().min(1, "Email or employee number is required"),
-  password: z.string().min(1, "Password is required"),
+  identifier: z.string().trim().min(1, "Email, phone, or employee number is required"),
+  password: z.string().trim().optional(),
+  companyCode: z.string().trim().optional(),
 });
 
 // Generate random OTP
@@ -261,8 +311,8 @@ function checkRateLimit(identifier: string): {
  * Send OTP via SMS for login verification
  *
  * Request Body:
- * - identifier: Email or employee number
- * - password: User password (for authentication)
+ * - identifier: Email, phone, or employee number
+ * - password: User password (for authentication; optional for phone-only OTP when allowed)
  *
  * Response:
  * - 200: OTP sent successfully (includes phone last 4 digits for UI)
@@ -277,6 +327,14 @@ export async function POST(request: NextRequest) {
     windowMs: 60_000,
   });
   if (ipRateLimited) return ipRateLimited;
+  const clientIp = request.headers.get("x-forwarded-for") || "otp-ip";
+  const rl = rateLimit(`auth:otp-send:${clientIp}`, 5, 300_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { success: false, error: "Too many attempts. Please try again later." },
+      { status: 429 },
+    );
+  }
 
   try {
     // 1. Parse and validate request body
@@ -300,10 +358,11 @@ export async function POST(request: NextRequest) {
     // 3. Determine login type (email or employee number)
     const emailOk = z.string().email().safeParse(identifierRaw).success;
     const empUpper = identifierRaw.toUpperCase();
-    const empOk = /^EMP\d+$/.test(empUpper);
+    const empOk = EMPLOYEE_ID_REGEX.test(empUpper);
 
     let loginIdentifier = "";
     let loginType: "personal" | "corporate";
+    const normalizedCompanyCode = normalizeCompanyCode(parsed.data.companyCode);
 
     if (emailOk) {
       loginIdentifier = identifierRaw.toLowerCase();
@@ -322,10 +381,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (loginType === "corporate" && !normalizedCompanyCode) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Company number is required for corporate login",
+        },
+        { status: 400 },
+      );
+    }
+
+    const otpKey = buildOtpKey(loginIdentifier, normalizedCompanyCode);
+
     // 4. Check rate limit using normalized identifier
-    const rateLimitResult = checkRateLimit(loginIdentifier);
+    const rateLimitResult = checkRateLimit(otpKey);
     if (!rateLimitResult.allowed) {
-      logger.warn("[OTP] Rate limit exceeded", { identifier: loginIdentifier });
+      logger.warn("[OTP] Rate limit exceeded", { identifier: otpKey });
       return NextResponse.json(
         {
           success: false,
@@ -338,7 +409,12 @@ export async function POST(request: NextRequest) {
     // 5. Resolve user (test users → skip DB, otherwise perform lookup)
     let user: UserDocument | null = null;
     const testUser = smsDevMode
-      ? resolveTestUser(loginIdentifier, password, loginType)
+      ? resolveTestUser(
+          loginIdentifier,
+          password,
+          loginType,
+          normalizedCompanyCode,
+        )
       : null;
 
     if (testUser) {
@@ -351,11 +427,18 @@ export async function POST(request: NextRequest) {
       if (loginType === "personal") {
         user = await User.findOne({ email: loginIdentifier });
       } else {
-        user = await User.findOne({ username: loginIdentifier });
+        user = await User.findOne({
+          username: loginIdentifier,
+          code: normalizedCompanyCode,
+        });
       }
 
       if (!user && DEMO_AUTH_ENABLED && isDemoIdentifier(loginIdentifier)) {
-        user = buildDemoUser(loginIdentifier, loginType);
+        user = buildDemoUser(
+          loginIdentifier,
+          loginType,
+          normalizedCompanyCode ?? "DEMO-ORG",
+        );
         logger.warn("[OTP] Falling back to demo user profile", {
           identifier: loginIdentifier,
         });
@@ -375,45 +458,48 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 6. Verify password via bcrypt (demo users may bypass)
+      // 6. Verify password via bcrypt (demo users may bypass), unless phone-only OTP is allowed and we're in phone flow
       let isValid = false;
       const hashedPassword =
         typeof user.password === "string" ? user.password : "";
-      if (hashedPassword) {
-        try {
-          const compareResult = await bcrypt.compare(password, hashedPassword);
-          isValid = !!compareResult;
-        } catch (compareError) {
-          logger.error(
-            "[OTP] Password comparison failed",
-            compareError as Error,
+
+      if (password) {
+        if (hashedPassword) {
+          try {
+            const compareResult = await bcrypt.compare(password, hashedPassword);
+            isValid = !!compareResult;
+          } catch (compareError) {
+            logger.error(
+              "[OTP] Password comparison failed",
+              compareError as Error,
+            );
+          }
+        }
+
+        const isDemoUserCandidate =
+          isDemoIdentifier(loginIdentifier) ||
+          isDemoIdentifier(user.email) ||
+          isDemoIdentifier(user.username) ||
+          isDemoIdentifier(user.employeeId) ||
+          Boolean(user.__isDemoUser);
+
+        if (!isValid && isDemoUserCandidate && matchesDemoPassword(password)) {
+          isValid = true;
+          logger.warn("[OTP] Accepted demo credentials", {
+            identifier: loginIdentifier,
+          });
+        }
+
+        if (!isValid) {
+          logger.warn("[OTP] Invalid password", { identifier: loginIdentifier });
+          return NextResponse.json(
+            {
+              success: false,
+              error: "Invalid credentials",
+            },
+            { status: 401 },
           );
         }
-      }
-
-      const isDemoUserCandidate =
-        isDemoIdentifier(loginIdentifier) ||
-        isDemoIdentifier(user.email) ||
-        isDemoIdentifier(user.username) ||
-        isDemoIdentifier(user.employeeId) ||
-        Boolean(user.__isDemoUser);
-
-      if (!isValid && isDemoUserCandidate && matchesDemoPassword(password)) {
-        isValid = true;
-        logger.warn("[OTP] Accepted demo credentials", {
-          identifier: loginIdentifier,
-        });
-      }
-
-      if (!isValid) {
-        logger.warn("[OTP] Invalid password", { identifier: loginIdentifier });
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Invalid credentials",
-          },
-          { status: 401 },
-        );
       }
     }
 
@@ -517,12 +603,13 @@ export async function POST(request: NextRequest) {
     const expiresAt = Date.now() + OTP_EXPIRY_MS;
 
     // 11. Store OTP (in production, use Redis or database)
-    otpStore.set(loginIdentifier, {
+    otpStore.set(otpKey, {
       otp,
       expiresAt,
       attempts: 0,
       userId: user._id?.toString?.() || loginIdentifier,
       phone: userPhone,
+      companyCode: normalizedCompanyCode,
     });
 
     // 12. Send OTP via SMS
@@ -543,7 +630,7 @@ export async function POST(request: NextRequest) {
           otpExpiresAt: new Date(expiresAt),
           otpAttempts: MAX_ATTEMPTS,
           rateLimitRemaining: rateLimitResult.remaining,
-          identifier: loginIdentifier,
+          identifier: otpKey,
         },
       });
 
@@ -555,7 +642,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!smsResult.success) {
-      otpStore.delete(loginIdentifier);
+      otpStore.delete(otpKey);
       logger.error("[OTP] Failed to send SMS", {
         userId: user._id?.toString?.() || loginIdentifier,
         error: smsResult.error,
@@ -571,7 +658,7 @@ export async function POST(request: NextRequest) {
 
     logger.info("[OTP] OTP sent successfully", {
       userId: user._id?.toString?.() || loginIdentifier,
-      identifier: loginIdentifier,
+      identifier: otpKey,
       phone: userPhone.slice(-4),
     });
 
@@ -589,8 +676,14 @@ export async function POST(request: NextRequest) {
       attemptsRemaining: MAX_ATTEMPTS,
     };
 
-    if (smsDevMode) {
+    // SECURITY FIX: Only expose OTP code in dev mode when NOT in production
+    // and when SMS_DEV_MODE is explicitly enabled
+    // This prevents accidental OTP exposure in staging/preview environments
+    if (smsDevMode && process.env.NODE_ENV === "development") {
       responseData.devCode = otp;
+      logger.warn("[OTP] Dev code included in response - development only", {
+        identifier: otpKey,
+      });
     }
 
     return NextResponse.json({

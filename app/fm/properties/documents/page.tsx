@@ -1,172 +1,52 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
+import { useProperties } from "@/hooks/fm/useProperties";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle, FileText, Upload, RefreshCw, FolderOpen } from "lucide-react";
+import { useSession } from "next-auth/react";
+
+// Document management - will be linked to properties
+// TODO: Implement dedicated /api/fm/documents endpoint for full document management
 
 export default function PropertiesDocumentsPage() {
+  const { t } = useTranslation();
+  const { data: session } = useSession();
   const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
     moduleId: "properties",
   });
-  const { t } = useTranslation();
-  const documents = [
-    {
-      id: "DOC-001",
-      name: "Tower A - Building Permit",
-      type: "Legal",
-      property: "Tower A",
-      uploadedBy: "Admin User",
-      uploadDate: "2024-01-15",
-      expiryDate: "2026-01-15",
-      status: "Active",
-      size: "2.4 MB",
-    },
-    {
-      id: "DOC-002",
-      name: "Fire Safety Certificate",
-      type: "Safety",
-      property: "Tower B",
-      uploadedBy: "Safety Officer",
-      uploadDate: "2024-01-10",
-      expiryDate: "2025-01-10",
-      status: "Expiring Soon",
-      size: "1.8 MB",
-    },
-    {
-      id: "DOC-003",
-      name: "Lease Agreement - Unit 1204",
-      type: "Contract",
-      property: "Tower A",
-      uploadedBy: "Property Manager",
-      uploadDate: "2024-01-05",
-      expiryDate: "2025-12-31",
-      status: "Active",
-      size: "3.2 MB",
-    },
-    {
-      id: "DOC-004",
-      name: "Insurance Policy - All Properties",
-      type: "Insurance",
-      property: "All Properties",
-      uploadedBy: "Admin User",
-      uploadDate: "2023-12-20",
-      expiryDate: "2024-12-20",
-      status: "Expired",
-      size: "5.1 MB",
-    },
-    {
-      id: "DOC-005",
-      name: "Maintenance Contract - Elevators",
-      type: "Contract",
-      property: "Tower A & B",
-      uploadedBy: "Maintenance Manager",
-      uploadDate: "2024-01-01",
-      expiryDate: "2025-12-31",
-      status: "Active",
-      size: "1.5 MB",
-    },
-  ];
-  const propertyOptions = [
-    {
-      value: "all",
-      key: "properties.filters.allProperties",
-      fallback: "All Properties",
-    },
-    { value: "tower-a", key: "properties.filters.towerA", fallback: "Tower A" },
-    { value: "tower-b", key: "properties.filters.towerB", fallback: "Tower B" },
-    {
-      value: "villa-complex",
-      key: "properties.filters.villaComplex",
-      fallback: "Villa Complex",
-    },
-  ];
+  const { properties, isLoading, error, refresh } = useProperties("?limit=100");
 
-  const documentTypeOptions = [
-    {
-      value: "all",
-      key: "properties.documents.filters.types.all",
-      fallback: "All Types",
-    },
-    {
-      value: "legal",
-      key: "properties.documents.filters.types.legal",
-      fallback: "Legal",
-    },
-    {
-      value: "safety",
-      key: "properties.documents.filters.types.safety",
-      fallback: "Safety",
-    },
-    {
-      value: "contract",
-      key: "properties.documents.filters.types.contract",
-      fallback: "Contract",
-    },
-    {
-      value: "insurance",
-      key: "properties.documents.filters.types.insurance",
-      fallback: "Insurance",
-    },
-  ];
+  const userRole = (session?.user as { role?: string })?.role;
+  const documentActionRoles = new Set([
+    "SUPER_ADMIN",
+    "CORPORATE_ADMIN",
+    "MANAGEMENT",
+    "FINANCE",
+    "FINANCE_OFFICER",
+    "OPS",
+    "SUPPORT",
+  ]);
+  const canManageDocuments = Boolean(
+    userRole && documentActionRoles.has(userRole)
+  );
 
-  const documentStatusOptions = [
-    {
-      value: "all",
-      key: "properties.documents.filters.status.all",
-      fallback: "All Status",
-    },
-    {
-      value: "active",
-      key: "properties.documents.filters.status.active",
-      fallback: "Active",
-    },
-    {
-      value: "expiring",
-      key: "properties.documents.filters.status.expiringSoon",
-      fallback: "Expiring Soon",
-    },
-    {
-      value: "expired",
-      key: "properties.documents.filters.status.expired",
-      fallback: "Expired",
-    },
-    {
-      value: "pending",
-      key: "properties.documents.filters.status.pendingReview",
-      fallback: "Pending Review",
-    },
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "bg-success/10 text-success-foreground border-success/20";
-      case "Expiring Soon":
-        return "bg-warning/10 text-warning-foreground border-warning/20";
-      case "Expired":
-        return "bg-destructive/10 text-destructive-foreground border-destructive/20";
-      case "Pending Review":
-        return "bg-primary/10 text-primary-foreground border-primary/20";
-      default:
-        return "bg-muted text-foreground border-border";
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "Legal":
-        return "bg-primary/10 text-primary-foreground border-primary/20";
-      case "Safety":
-        return "bg-destructive/10 text-destructive-foreground border-destructive/20";
-      case "Contract":
-        return "bg-success/10 text-success-foreground border-success/20";
-      case "Insurance":
-        return "bg-secondary/10 text-secondary border-secondary/30";
-      default:
-        return "bg-muted text-foreground border-border";
-    }
-  };
+  // Calculate document stats based on properties
+  const stats = useMemo(() => {
+    const totalProperties = properties.length;
+    return {
+      totalDocuments: 0, // Would come from document API
+      propertiesWithDocs: 0,
+      expiringSoon: 0,
+      expired: 0,
+      totalProperties,
+    };
+  }, [properties]);
 
   if (!hasOrgContext) {
     return guard;
@@ -176,337 +56,222 @@ export default function PropertiesDocumentsPage() {
     <div className="space-y-6">
       <ModuleViewTabs moduleId="properties" />
       {supportBanner}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Property Documents
+            {t("fm.properties.documents.title", "Property Documents")}
           </h1>
           <p className="text-muted-foreground">
-            Manage property documents, certificates, and legal files
+            {t(
+              "fm.properties.documents.subtitle",
+              "Manage property documents, certificates, and legal files"
+            )}
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">Document Templates</button>
-          <button className="btn-primary">+ Upload Document</button>
+          <Button variant="outline" onClick={() => refresh()}>
+            <RefreshCw className="me-2 h-4 w-4" />
+            {t("common.refresh", "Refresh")}
+          </Button>
+          {canManageDocuments ? (
+            <Button>
+              <Upload className="me-2 h-4 w-4" />
+              {t("fm.properties.documents.upload", "Upload Document")}
+            </Button>
+          ) : null}
         </div>
       </div>
+      {!canManageDocuments ? (
+        <p className="text-sm text-muted-foreground">
+          {t(
+            "fm.properties.documents.viewOnly",
+            "You have view-only access. Contact an admin to manage documents."
+          )}
+        </p>
+      ) : null}
 
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Total Documents
-              </p>
-              <p className="text-2xl font-bold text-primary">247</p>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("fm.properties.documents.stats.total", "Total Documents")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {isLoading ? "—" : stats.totalDocuments}
             </div>
-            <div className="text-primary">📄</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Expiring Soon
-              </p>
-              <p className="text-2xl font-bold text-accent">8</p>
+            <p className="text-xs text-muted-foreground">
+              {t("fm.properties.documents.stats.acrossProperties", "Across {{count}} properties", { count: stats.totalProperties })}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("fm.properties.documents.stats.active", "Active Documents")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-success">
+              {isLoading ? "—" : 0}
             </div>
-            <div className="text-accent">⚠️</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Expired
-              </p>
-              <p className="text-2xl font-bold text-destructive">3</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("fm.properties.documents.stats.expiring", "Expiring Soon")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-warning">
+              {isLoading ? "—" : stats.expiringSoon}
             </div>
-            <div className="text-[hsl(var(--destructive)) / 0.1]">🔴</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Storage Used
-              </p>
-              <p className="text-2xl font-bold text-[hsl(var(--secondary))]">
-                2.4 GB
-              </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t("fm.properties.documents.stats.expired", "Expired")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">
+              {isLoading ? "—" : stats.expired}
             </div>
-            <div className="text-secondary">💾</div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Upload Area */}
-      <div className="card">
-        <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center">
-          <div className="text-muted-foreground mb-4">📎</div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">
-            Upload Documents
-          </h3>
-          <p className="text-muted-foreground mb-4">
-            Drag and drop files here or click to browse
-          </p>
-          <button className="px-6 py-3 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors">
-            Choose Files
-          </button>
-          <p className="text-sm text-muted-foreground mt-2">
-            Supports PDF, DOC, JPG up to 10MB each
-          </p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="card">
-        <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              {propertyOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {t(option.key, option.fallback)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              {documentTypeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {t(option.key, option.fallback)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              {documentStatusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {t(option.key, option.fallback)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button className="btn-primary">
-            {t("common.filter", "Filter")}
-          </button>
-        </div>
-      </div>
-
-      {/* Documents Table */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Document Library</h3>
-          <div className="flex gap-2">
-            <button className="btn-ghost">📄 Export</button>
-            <button className="btn-ghost">📊 Reports</button>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-muted">
-              <tr>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Document
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Property
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Uploaded By
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Upload Date
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Expiry Date
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Size
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-card divide-y divide-border">
-              {documents.map((doc) => (
-                <tr key={doc.id} className="hover:bg-muted">
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="text-muted-foreground me-3">📄</div>
-                      <div>
-                        <div className="text-sm font-medium text-foreground">
-                          {doc.name}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {doc.id}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {doc.property}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getTypeColor(doc.type)}`}
-                    >
-                      {doc.type}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {doc.uploadedBy}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {doc.uploadDate}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {doc.expiryDate || "N/A"}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {doc.size}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(doc.status)}`}
-                    >
-                      {doc.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex gap-2">
-                      <button className="text-primary hover:text-primary">
-                        {t("common.view", "View")}
-                      </button>
-                      <button className="text-success hover:text-success-foreground">
-                        {t("common.download", "Download")}
-                      </button>
-                      <button className="text-warning hover:text-warning">
-                        {t("common.edit", "Edit")}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Expiring Documents Alert */}
-      <div className="card border-warning/20 bg-accent/10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="text-accent">⚠️</div>
-            <div>
-              <h3 className="font-semibold text-accent">
-                Documents Expiring Soon
+      <Card>
+        <CardContent className="pt-6">
+          {canManageDocuments ? (
+            <div className="border-2 border-dashed border-border rounded-xl p-8 text-center">
+              <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {t("fm.properties.documents.uploadArea.title", "Upload Documents")}
               </h3>
-              <p className="text-sm text-accent">
-                8 documents will expire within the next 30 days
+              <p className="text-muted-foreground mb-4">
+                {t("fm.properties.documents.uploadArea.description", "Drag and drop files here or click to browse")}
+              </p>
+              <Button>
+                {t("fm.properties.documents.uploadArea.button", "Choose Files")}
+              </Button>
+              <p className="text-sm text-muted-foreground mt-2">
+                {t("fm.properties.documents.uploadArea.hint", "Supports PDF, DOC, JPG up to 10MB each")}
               </p>
             </div>
-          </div>
-          <button className="px-4 py-2 bg-[hsl(var(--accent))] text-white rounded-2xl hover:bg-accent/90 transition-colors">
-            Review Now
-          </button>
-        </div>
-      </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center text-muted-foreground">
+              {t(
+                "fm.properties.documents.uploadArea.readOnly",
+                "Document upload is restricted to admin/staff roles."
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Document Categories */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Legal Documents
+      {/* Properties with Documents */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FolderOpen className="h-5 w-5" />
+            {t("fm.properties.documents.byProperty.title", "Documents by Property")}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "fm.properties.documents.byProperty.subtitle",
+              "Select a property to view and manage its documents"
+            )}
+          </p>
+        </CardHeader>
+        <CardContent>
+          {error ? (
+            <div className="rounded-lg border border-destructive/60 bg-destructive/5 p-4 text-destructive">
+              <p className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                {t("fm.properties.documents.error", "Unable to load properties.")}
               </p>
-              <p className="text-2xl font-bold text-primary">45</p>
+              <Button
+                size="sm"
+                className="mt-2"
+                variant="outline"
+                onClick={() => refresh()}
+              >
+                {t("common.retry", "Retry")}
+              </Button>
             </div>
-            <div className="text-primary">⚖️</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Safety Certificates
-              </p>
-              <p className="text-2xl font-bold text-destructive">23</p>
+          ) : isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {t("common.loading", "Loading...")}
             </div>
-            <div className="text-[hsl(var(--destructive)) / 0.1]">🛡️</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Contracts
-              </p>
-              <p className="text-2xl font-bold text-success">89</p>
-            </div>
-            <div className="text-success">📋</div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Insurance
-              </p>
-              <p className="text-2xl font-bold text-[hsl(var(--secondary))]">
-                12
+          ) : properties.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>
+                {t(
+                  "fm.properties.documents.empty",
+                  "No properties found. Create properties first to manage their documents."
+                )}
               </p>
             </div>
-            <div className="text-secondary">🛡️</div>
-          </div>
-        </div>
-      </div>
+          ) : (
+            <div className="space-y-3">
+              {properties.map((property) => (
+                <div
+                  key={property._id}
+                  className="flex items-center justify-between p-4 border rounded-xl hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <FolderOpen className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">{property.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {property.type || "—"} • {property.address?.city || "—"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="text-muted-foreground">
+                      {t("fm.properties.documents.noDocuments", "No documents")}
+                    </Badge>
+                    {canManageDocuments ? (
+                      <Button variant="outline" size="sm">
+                        <Upload className="h-4 w-4 me-1" />
+                        {t("fm.properties.documents.addDocument", "Add")}
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Quick Actions */}
-      <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <button className="btn-ghost text-center">
-            <div className="text-2xl mb-2">📤</div>
-            <div className="text-sm font-medium">
-              {t("common.upload", "Upload")}
-            </div>
-          </button>
-          <button className="btn-ghost text-center">
-            <div className="text-2xl mb-2">🔍</div>
-            <div className="text-sm font-medium">Search</div>
-          </button>
-          <button className="btn-ghost text-center">
-            <div className="text-2xl mb-2">📋</div>
-            <div className="text-sm font-medium">Templates</div>
-          </button>
-          <button className="btn-ghost text-center">
-            <div className="text-2xl mb-2">⚠️</div>
-            <div className="text-sm font-medium">Expiring</div>
-          </button>
-          <button className="btn-ghost text-center">
-            <div className="text-2xl mb-2">📊</div>
-            <div className="text-sm font-medium">Reports</div>
-          </button>
-          <button className="btn-ghost text-center">
-            <div className="text-2xl mb-2">⚙️</div>
-            <div className="text-sm font-medium">Settings</div>
-          </button>
-        </div>
-      </div>
+      {/* Coming Soon Notice */}
+      <Card className="border-dashed">
+        <CardContent className="pt-6">
+          <div className="text-center py-4">
+            <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <h3 className="font-semibold mb-2">
+              {t("fm.properties.documents.comingSoon.title", "Full Document Management Coming Soon")}
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              {t(
+                "fm.properties.documents.comingSoon.description",
+                "Document uploads, version control, expiry tracking, and automated compliance alerts will be available in the next release."
+              )}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

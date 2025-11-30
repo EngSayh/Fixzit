@@ -107,11 +107,13 @@ export async function GET(req: NextRequest) {
       filter.riskLevel = riskFilter;
     }
     if (search) {
+      // SECURITY: Escape regex special characters to prevent ReDoS
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [
-        { name: new RegExp(search, "i") },
-        { owner: new RegExp(search, "i") },
-        { scope: new RegExp(search, "i") },
-        { tags: new RegExp(search, "i") },
+        { name: new RegExp(escapedSearch, "i") },
+        { owner: new RegExp(escapedSearch, "i") },
+        { scope: new RegExp(escapedSearch, "i") },
+        { tags: new RegExp(escapedSearch, "i") },
       ];
     }
 

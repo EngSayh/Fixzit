@@ -55,13 +55,14 @@ export async function DELETE(
     // @ts-expect-error - Fixed VSCode problem
     const user = await UserModel.findOne({
       _id: id,
-      orgId,
+      orgId,  // ✅ Validated orgId
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // DEFENSE-IN-DEPTH: Include orgId in delete filter (per CodeRabbit review)
     await UserModel.deleteOne({ _id: id, orgId });
 
     return NextResponse.json({
@@ -143,10 +144,9 @@ export async function PATCH(
       );
     }
 
-    // @ts-expect-error - Fixed VSCode problem
     const user = await UserModel.findOne({
       _id: id,
-      orgId,
+      orgId,  // ✅ Validated orgId
     });
 
     if (!user) {
@@ -171,10 +171,8 @@ export async function PATCH(
     if (body.accessLevel) updates["security.accessLevel"] = body.accessLevel;
     if (body.status) updates.status = body.status;
 
-    // @ts-expect-error - Fixed VSCode problem
     await UserModel.updateOne({ _id: id }, { $set: updates });
 
-    // @ts-expect-error - Fixed VSCode problem
     const updatedUser = await UserModel.findById(id);
 
     return NextResponse.json({ user: updatedUser });

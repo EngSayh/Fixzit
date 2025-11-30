@@ -1,7 +1,8 @@
+"use client";
+
 /**
  * ReviewForm Component - Submit/edit product reviews
  */
-"use client";
 
 import React, { useState } from "react";
 import { Star } from "lucide-react";

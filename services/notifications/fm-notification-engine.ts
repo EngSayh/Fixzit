@@ -199,7 +199,6 @@ async function saveNotification(
       preferredChannels: recipient.preferredChannels,
     }));
 
-    // @ts-expect-error - Fixed VSCode problem
     await NotificationLogModel.findOneAndUpdate(
       { notificationId: notification.id },
       {
@@ -244,7 +243,6 @@ async function enqueueDeadLetters(
   try {
     await dbConnect();
     await NotificationDeadLetterModel.insertMany(
-      // @ts-expect-error - Fixed VSCode problem
       failedChannels.map((channel) => ({
         notificationId: notification.id,
         event: notification.event,
@@ -878,7 +876,7 @@ async function sendEmailNotifications(
         <p style="color: #666; line-height: 1.6;">${escapedBody}</p>
         ${safeLink ? `<p><a href="${escapedLink}" style="background: #0070f3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">View Details</a></p>` : ""}
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
-        <p style="color: #999; font-size: 12px;">This is an automated notification from Fixizit. Please do not reply.</p>
+        <p style="color: #999; font-size: 12px;">This is an automated notification from Fixzit. Please do not reply.</p>
       </div>
     `,
     // Note: Priority can be set via headers if needed: headers: { 'X-Priority': notification.priority === 'high' ? '1' : '3' }

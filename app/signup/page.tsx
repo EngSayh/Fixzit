@@ -78,6 +78,7 @@ export default function SignupPage() {
 
   // Form validation
   const validateForm = () => {
+    const passwordStrength = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
     if (!formData.firstName.trim())
       return t("signup.validation.firstNameRequired", "First name is required");
     if (!formData.lastName.trim())
@@ -93,10 +94,10 @@ export default function SignupPage() {
         "signup.validation.companyRequired",
         "Company name is required for corporate accounts",
       );
-    if (formData.password.length < 8)
+    if (!passwordStrength.test(formData.password))
       return t(
-        "signup.validation.passwordLength",
-        "Password must be at least 8 characters",
+        "signup.validation.passwordStrength",
+        "Password must be at least 8 characters and include letters, numbers, and symbols",
       );
     if (formData.password !== formData.confirmPassword)
       return t("signup.validation.passwordMatch", "Passwords do not match");
@@ -178,7 +179,7 @@ export default function SignupPage() {
             <p className="text-muted-foreground mb-6">
               {t(
                 "signup.success.message",
-                "Welcome to Fixzit Enterprise! Your account has been created and you can now sign in.",
+                "Welcome to Fixzit Enterprise! Your account has been created. Please check your email to verify your account, then sign in.",
               )}
             </p>
             <p className="text-sm text-muted-foreground">
@@ -294,7 +295,10 @@ export default function SignupPage() {
                 {t("signup.form.title", "Create Your Account")}
               </h2>
               <p className="text-muted-foreground">
-                {t("signup.form.subtitle", "Join Fixzit Enterprise today")}
+                {t(
+                  "signup.form.subtitle",
+                  "Join Fixzit Enterprise today. We'll send a verification email after signup.",
+                )}
               </p>
             </div>
 

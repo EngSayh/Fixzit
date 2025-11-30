@@ -51,7 +51,7 @@ export { TopBarContext };
 const MEGA_MENU_PREF_KEY = "fixzit:topbar:megaMenuCollapsed";
 const APP_FALLBACK_LABELS: Record<AppKey, string> = {
   fm: "Facility Management (FM)",
-  souq: "Materials Marketplace (Fixizit Souq)",
+  souq: "Materials Marketplace (Fixzit Souq)",
   aqar: "Real Estate Marketplace (Aqar Souq)",
 };
 

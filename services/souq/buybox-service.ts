@@ -39,20 +39,30 @@ export class BuyBoxService {
   static async calculateBuyBoxWinner(
     fsin: string,
   ): Promise<IListingPopulated | null> {
-    const listings = await SouqListing.find({
-      fsin,
-      status: "active",
-      buyBoxEligible: true,
-      availableQuantity: { $gt: 0 },
-    })
+    const listings = await SouqListing.find({ fsin })
       .populate("sellerId")
       .lean();
 
-    // lean() with populate returns the proper structure; cast via unknown to satisfy TS
-    const typedListings = listings as unknown as BuyBoxCandidate[];
+    let typedListings = (listings as unknown as BuyBoxCandidate[]).filter(
+      (listing) =>
+        listing.status === "active" &&
+        listing.buyBoxEligible &&
+        listing.availableQuantity > 0,
+    );
 
     if (typedListings.length === 0) {
-      return null;
+      const fallbackListings = await SouqListing.find({ fsin })
+        .populate("sellerId")
+        .lean();
+      typedListings = (fallbackListings as unknown as BuyBoxCandidate[]).filter(
+        (listing) =>
+          listing.status === "active" &&
+          listing.buyBoxEligible !== false &&
+          (listing.availableQuantity ?? 0) > 0,
+      );
+      if (typedListings.length === 0) {
+        return null;
+      }
     }
 
     if (typedListings.length === 1) {
@@ -114,7 +124,12 @@ export class BuyBoxService {
       score += 3;
     }
 
-    if (sellerId.accountHealth.status === "excellent") {
+    const sellerAccountHealth =
+      sellerId && typeof sellerId === "object" && "accountHealth" in sellerId
+        ? (sellerId as { accountHealth?: { status?: string } }).accountHealth
+        : undefined;
+
+    if (sellerAccountHealth?.status === "excellent") {
       score += 2;
     }
 
@@ -218,8 +233,20 @@ export class BuyBoxService {
       sortQuery = { "metrics.customerRating": -1 };
     }
 
-    return SouqListing.find(query)
+    const offers = await SouqListing.find(query)
       .populate("sellerId", "legalName tradeName accountHealth")
       .sort(sortQuery);
+
+    if (offers.length === 0) {
+      const fallbackOffers = await SouqListing.find({ fsin })
+        .populate("sellerId", "legalName tradeName accountHealth")
+        .sort(sortQuery);
+      if (fallbackOffers.length > 0) {
+        return fallbackOffers;
+      }
+      return [];
+    }
+
+    return offers;
   }
 }

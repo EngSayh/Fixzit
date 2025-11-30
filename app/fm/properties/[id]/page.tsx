@@ -101,7 +101,7 @@ function PropertyDetailsContent({
       t("fm.properties.detail.toasts.deleting", "Deleting property..."),
     );
     try {
-      const res = await fetch(`/api/properties/${params.id}`, {
+      const res = await fetch(`/api/fm/properties/${params.id}`, {
         method: "DELETE",
         headers: { "x-tenant-id": orgId },
       });
@@ -141,7 +141,7 @@ function PropertyDetailsContent({
     error,
     isLoading,
   } = useSWR(
-    orgId && params?.id ? [`/api/properties/${params.id}`, orgId] : null,
+    orgId && params?.id ? [`/api/fm/properties/${params.id}`, orgId] : null,
     ([url]) => fetcher(url),
   );
 

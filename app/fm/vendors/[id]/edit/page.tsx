@@ -251,7 +251,11 @@ export default function EditVendorPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href={vendorId ? `/fm/vendors/${vendorId}` : "/fm/vendors"}>
-          <Button variant="ghost" size="icon">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={auto("Back to vendor details", "common.back")}
+          >
             <ChevronLeft className="h-5 w-5" />
           </Button>
         </Link>

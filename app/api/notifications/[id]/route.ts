@@ -1,12 +1,13 @@
 import { NextRequest } from "next/server";
 import { getCollections } from "@/lib/db/collections";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { ObjectId } from "mongodb";
+import { ObjectId, type ModifyResult } from "mongodb";
 import { z } from "zod";
 import { rateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import type { NotificationDoc } from "@/lib/models";
 
 const updateNotificationSchema = z.object({
   read: z.boolean().optional(),
@@ -32,9 +33,8 @@ const updateNotificationSchema = z.object({
  */
 export async function GET(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = await props.params;
   let orgId: string;
   try {
     const user = await getSessionUser(req);
@@ -64,9 +64,8 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = await props.params;
   let orgId: string;
   try {
     const user = await getSessionUser(req);
@@ -92,21 +91,22 @@ export async function PATCH(
   if (typeof read === "boolean") update.$set.read = read;
   if (typeof archived === "boolean") update.$set.archived = archived;
 
-  const updated = await notifications.findOneAndUpdate({ _id, orgId }, update, {
-    returnDocument: "after",
-  });
-  const value = updated;
+  const updated = (await notifications.findOneAndUpdate(
+    { _id, orgId },
+    update,
+    { returnDocument: "after" },
+  )) as ModifyResult<NotificationDoc> | null;
+  const value = updated?.value;
   if (!value)
     return createSecureResponse({ error: "Notification not found" }, 404, req);
-  const normalized = { id: String(value._id), ...value, _id: undefined };
-  return createSecureResponse(normalized);
+  const { _id: rawId, ...rest } = value;
+  return createSecureResponse({ id: String(rawId), ...rest });
 }
 
 export async function DELETE(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = await props.params;
   let orgId: string;
   try {
     const user = await getSessionUser(req);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 /**
  * GET /api/settings/logo
@@ -9,13 +10,11 @@ import { logger } from "@/lib/logger";
  */
 export async function GET(request: NextRequest) {
   try {
+    const sessionUser = await getSessionUser(request).catch(() => null);
     await connectToDatabase();
 
-    // Get orgId from header (set by middleware) or use default
-    const orgId =
-      request.headers.get("x-org-id") ||
-      process.env.NEXT_PUBLIC_ORG_ID ||
-      "fixzit-platform";
+    // Prefer authenticated org; fall back to configured default
+    const orgId = sessionUser?.orgId || process.env.NEXT_PUBLIC_ORG_ID || "fixzit-platform";
 
     const { PlatformSettings } = await import(
       "@/server/models/PlatformSettings"

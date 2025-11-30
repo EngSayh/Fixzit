@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const isDevelopment = process.env.NODE_ENV === 'development';
+const isTruthy = (value) => value === 'true' || value === '1';
 
 // Bundle analyzer configuration
 const path = require('path');
@@ -15,22 +16,28 @@ const isVercelDeploy = process.env.VERCEL_ENV === 'production' || process.env.VE
 
 if (isVercelDeploy) {
   const violations = [];
+  const warnings = [];
+  const tapConfigured =
+    Boolean(process.env.TAP_PUBLIC_KEY) &&
+    Boolean(process.env.TAP_WEBHOOK_SECRET);
+  const paytabsConfigured =
+    Boolean(process.env.PAYTABS_PROFILE_ID) &&
+    Boolean(process.env.PAYTABS_SERVER_KEY);
   
   // Critical security checks for all Vercel deployments
-  if (process.env.SKIP_ENV_VALIDATION === 'true') {
+  if (isTruthy(process.env.SKIP_ENV_VALIDATION)) {
     violations.push('SKIP_ENV_VALIDATION must be false in production');
   }
-  if (process.env.DISABLE_MONGODB_FOR_BUILD === 'true') {
+  if (isTruthy(process.env.DISABLE_MONGODB_FOR_BUILD)) {
     violations.push('DISABLE_MONGODB_FOR_BUILD must be false in production');
   }
   
-  // Payment keys only required for actual production (not preview)
+  // Payment provider guardrails (at least one provider configured in production)
   if (isProdDeploy) {
-    if (!process.env.TAP_PUBLIC_KEY) {
-      violations.push('TAP_PUBLIC_KEY is required for production payment flows');
-    }
-    if (!process.env.TAP_WEBHOOK_SECRET) {
-      violations.push('TAP_WEBHOOK_SECRET is required to verify payment webhooks');
+    if (!tapConfigured && !paytabsConfigured) {
+      warnings.push(
+        'No payment provider configured: set PayTabs (PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY) or Tap (TAP_PUBLIC_KEY, TAP_WEBHOOK_SECRET)',
+      );
     }
   }
 
@@ -39,6 +46,12 @@ if (isVercelDeploy) {
     throw new Error(
       `Production env validation failed:\n- ${violations.join('\n- ')}`
     );
+  }
+
+  if (warnings.length > 0) {
+    warnings.forEach((warning) => {
+      process.stderr.write(`Production env warning (non-blocking): ${warning}\n`);
+    });
   }
 }
 
@@ -94,8 +107,10 @@ const nextConfig = {
   poweredByHeader: false,
   // Note: SWC is the default compiler in Next.js 15+
   
-  // Enable production browser sourcemaps for Sentry error tracking
-  productionBrowserSourceMaps: true,
+  // SECURITY FIX: Disable production browser sourcemaps to prevent source code exposure
+  // Source maps are generated server-side only (hidden-source-map) for error tracking
+  // If you need source maps for Sentry/monitoring, upload them during CI/CD instead
+  productionBrowserSourceMaps: false,
   
   // 🚀 SPEED OPTIMIZATIONS - Memory-optimized for constrained environments
   experimental: {
@@ -121,7 +136,6 @@ const nextConfig = {
     // Reduce parallel compilation (Next.js 15 handles Edge builds automatically)
     parallelServerCompiles: false,
   },
-  
   // ⚡ FIX BUILD TIMEOUT: Add reasonable timeout for static page generation
   // Default is infinite which can cause CI to kill the process (exit 143 = SIGTERM)
   staticPageGenerationTimeout: 180, // 3 minutes per page (was hanging at 135/181 pages)
@@ -202,9 +216,19 @@ const nextConfig = {
         ...config.resolve.alias,
         mongoose: false,
         '@/server/models/User': false,
+        '@/server/plugins/tenantIsolation': false, // Uses async_hooks
         '@/lib/mongoUtils': false,
         '@/lib/mongoUtils.server': false,
         'bcryptjs': false,
+        'async_hooks': false,
+      };
+    }
+
+    // Avoid bundling mongoose on the client to prevent schema errors during Playwright runs
+    if (nextRuntime === 'web') {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        mongoose: false,
       };
     }
 
@@ -223,6 +247,7 @@ const nextConfig = {
       net: false,
       tls: false,
       mongoose: false, // Exclude mongoose from client/edge bundles
+      async_hooks: false, // Node.js core module - not available in browser
     }
     
     // 🚀 MEMORY-OPTIMIZED: Balance speed with memory constraints

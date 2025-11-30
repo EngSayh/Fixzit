@@ -106,9 +106,8 @@ const updatePropertySchema = z.object({
  */
 export async function GET(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = await props.params;
   try {
     const user = await getSessionUser(req);
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
@@ -119,7 +118,7 @@ export async function GET(
 
     const property = await Property.findOne({
       _id: params.id,
-      tenantId: user.tenantId,
+      orgId: user.orgId,
     });
 
     if (!property) {
@@ -134,9 +133,8 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = await props.params;
   try {
     const user = await getSessionUser(req);
     await connectToDatabase();
@@ -144,7 +142,7 @@ export async function PATCH(
     const data = updatePropertySchema.parse(await req.json());
 
     const property = await Property.findOneAndUpdate(
-      { _id: params.id, tenantId: user.tenantId },
+      { _id: params.id, orgId: user.orgId },
       { $set: { ...data, updatedBy: user.id } },
       { new: true },
     );
@@ -161,9 +159,8 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = await props.params;
   try {
     const user = await getSessionUser(req);
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
@@ -174,7 +171,7 @@ export async function DELETE(
 
     // Soft delete by updating status
     const property = await Property.findOneAndUpdate(
-      { _id: params.id, tenantId: user.tenantId },
+      { _id: params.id, orgId: user.orgId },
       { $set: { "units.$[].status": "SOLD", updatedBy: user.id } },
       { new: true },
     );

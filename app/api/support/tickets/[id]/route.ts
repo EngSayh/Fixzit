@@ -31,29 +31,47 @@ const patchSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function GET(
-  _req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  req: NextRequest,
+  { params }: { params: { id: string } },
 ) {
-  const params = await props.params;
   await connectToDatabase();
-  const t = await SupportTicket.findById(params.id);
-  if (!t) return createSecureResponse({ error: "Not found" }, 404, _req);
-  return createSecureResponse(t, 200, _req);
+  
+  // SECURITY: Add authorization check (was missing per CodeRabbit review)
+  const user = await getSessionUser(req);
+  
+  // Validate MongoDB ObjectId format
+  if (!Types.ObjectId.isValid(params.id)) {
+    return createSecureResponse({ error: "Invalid id" }, 400, req);
+  }
+  
+  const isAdmin = ["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role);
+  const query: Record<string, unknown> = { _id: params.id };
+  
+  // Non-admins can only view their own tickets or tickets in their org
+  if (!isAdmin) {
+    query.$or = [
+      { createdBy: Types.ObjectId.isValid(user.id) ? new Types.ObjectId(user.id) : user.id },
+      { orgId: user.orgId },
+    ];
+  }
+  
+  const t = await SupportTicket.findOne(query);
+  if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
+  return createSecureResponse(t, 200, req);
 }
 
 export async function PATCH(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = await props.params;
   await connectToDatabase();
   const user = await getSessionUser(req);
-  if (!["SUPER_ADMIN", "SUPPORT", "CORPORATE_ADMIN"].includes(user.role)) {
+  if (!["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role)) {
     return createSecureResponse({ error: "Forbidden" }, 403, req);
   }
   const data = patchSchema.parse(await req.json());
   // Validate MongoDB ObjectId format
-  if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
+  if (!Types.ObjectId.isValid(params.id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
   const t = await SupportTicket.findOne({
@@ -61,7 +79,7 @@ export async function PATCH(
     $or: [
       { orgId: user.orgId },
       // Allow admins to modify any ticket
-      ...(["SUPER_ADMIN", "SUPPORT", "CORPORATE_ADMIN"].includes(user.role)
+      ...(["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role)
         ? [{}]
         : []),
     ],

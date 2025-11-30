@@ -21,13 +21,16 @@ export async function GET(request: NextRequest) {
     // Authorization: Can only view own health report unless admin
     if (
       sellerId !== session.user.id &&
-      !["ADMIN", "SUPER_ADMIN"].includes(session.user.role)
+      !["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role)
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const healthReport =
-      await inventoryService.getInventoryHealthReport(sellerId);
+      await inventoryService.getInventoryHealthReport(
+        sellerId,
+        (session.user as { orgId?: string }).orgId,
+      );
 
     // Calculate health score (0-100)
     const outOfStockRate =

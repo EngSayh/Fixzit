@@ -113,8 +113,8 @@ PART 2: FRONTEND LAYOUT (YOUR EXACT REQUIREMENTS)
 # Check if HTML file exists
 if [ -f "public/index.html" ]; then
     HTML_FILE="public/index.html"
-elif [ -f "Fixizit Complete System Layout.html" ]; then
-    HTML_FILE="Fixizit Complete System Layout.html"
+elif [ -f "Fixzit Complete System Layout.html" ]; then
+    HTML_FILE="Fixzit Complete System Layout.html"
 elif [ -f "index.html" ]; then
     HTML_FILE="index.html"
 else

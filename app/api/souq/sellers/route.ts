@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     const seller = await SouqSeller.create({
       ...validatedData,
       sellerId,
-      org_id: orgId,
+      orgId, // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
       country: validatedData.country || "SA",
       tier: validatedData.tier || "individual",
       kycStatus: {
@@ -159,7 +159,8 @@ export async function GET(request: NextRequest) {
       100,
     );
 
-    const query: Record<string, unknown> = { org_id: orgId };
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    const query: Record<string, unknown> = { orgId };
 
     if (status) {
       query["kycStatus.status"] = status;

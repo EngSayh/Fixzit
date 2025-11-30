@@ -33,16 +33,18 @@ export async function POST(
   try {
     await connectMongo();
     const onboarding = await OnboardingCase.findById(params.caseId);
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     if (
       !onboarding ||
       (onboarding.subject_user_id?.toString() !== user.id &&
         onboarding.created_by_id?.toString() !== user.id &&
-        onboarding.org_id?.toString() !== user.orgId)
+        onboarding.orgId?.toString() !== user.orgId)
     ) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    const profile = await DocumentProfile.findOne({ role: onboarding.role, country: 'SA' }).lean();
+    const profileCountry = onboarding.country || 'SA';
+    const profile = await DocumentProfile.findOne({ role: onboarding.role, country: profileCountry }).lean();
     if (!profile || !profile.required_doc_codes.includes(document_type_code)) {
       return NextResponse.json({ error: 'Document type not required for this role' }, { status: 400 });
     }

@@ -4,7 +4,7 @@ import { getDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { FMErrors } from "@/app/api/fm/errors";
 import { requireFmPermission } from "@/app/api/fm/permissions";
-import { resolveTenantId } from "@/app/api/fm/utils/tenant";
+import { resolveTenantId, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
 import { ModuleKey } from "@/domain/fm/fm.behavior";
 import { FMAction } from "@/types/fm/enums";
 import { rateLimit } from "@/server/security/rateLimit";
@@ -13,7 +13,7 @@ import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
 type InviteDocument = {
   _id: ObjectId;
-  org_id: string;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
   email: string;
   firstName: string;
   lastName: string;
@@ -66,9 +66,15 @@ export async function GET(req: NextRequest) {
       action: FMAction.VIEW,
     });
     if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
@@ -76,7 +82,7 @@ export async function GET(req: NextRequest) {
     const db = await getDatabase();
     const collection = db.collection<InviteDocument>(COLLECTION);
     const invites = await collection
-      .find({ org_id: tenantId })
+      .find({ orgId: tenantId }) // AUDIT-2025-11-29: Changed from org_id
       .sort({ updatedAt: -1 })
       .limit(200)
       .toArray();
@@ -94,12 +100,26 @@ export async function POST(req: NextRequest) {
       action: FMAction.CREATE,
     });
     if (actor instanceof NextResponse) return actor;
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-29: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for user invitations" },
+        { status: 400 }
+      );
+    }
 
     const rl = rateLimit(buildRateLimitKey(req, actor.id), 30, 60_000);
     if (!rl.allowed) return rateLimitError();
@@ -116,7 +136,7 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const doc: InviteDocument = {
       _id: new ObjectId(),
-      org_id: tenantId,
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
       email: payload.email!,
       firstName: payload.firstName!,
       lastName: payload.lastName!,
@@ -130,7 +150,7 @@ export async function POST(req: NextRequest) {
     const collection = db.collection<InviteDocument>(COLLECTION);
 
     const existing = await collection.findOne({
-      org_id: tenantId,
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
       email: doc.email,
     });
     if (existing) {

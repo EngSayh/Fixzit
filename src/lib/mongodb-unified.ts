@@ -17,7 +17,7 @@ export async function connectMongo(): Promise<Mongoose> {
     global.__mongoose.promise = mongoose.connect(MONGODB_URI as string, {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 10_000,
-      appName: "Fixizit",
+      appName: "Fixzit",
     });
   }
   global.__mongoose.conn = await global.__mongoose.promise;

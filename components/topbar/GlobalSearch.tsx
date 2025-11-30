@@ -10,6 +10,7 @@ import { CommandPalette } from "./CommandPalette";
 import type { GlobalSearchResult } from "./types";
 import { usePermittedQuickActions } from "./usePermittedQuickActions";
 import { logger } from "@/lib/logger";
+import { fetchWithAuth } from "@/lib/http/fetchWithAuth";
 import type { SavedSearchConfig } from "@/config/topbar-modules";
 
 interface GlobalSearchProps {
@@ -106,7 +107,7 @@ export default function GlobalSearch({
           q: trimmed,
           entities: scopeEntities.join(","),
         });
-        const response = await fetch(`/api/search?${params.toString()}`);
+        const response = await fetchWithAuth(`/api/search?${params.toString()}`);
         if (!response.ok) throw new Error("Search request failed");
         const data = await response.json();
         setResults(data.results || []);

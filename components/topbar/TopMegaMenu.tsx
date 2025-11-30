@@ -15,6 +15,7 @@ export function TopMegaMenu() {
   const router = useRouter();
   const { data: session } = useSession();
   const rawRole = (session?.user as { role?: string } | undefined)?.role;
+  // STRICT v4.1: Check canonical roles first, then legacy aliases for migration period
   const canSeeAdmin = (rawRole || '').toUpperCase() === 'SUPER_ADMIN' || (rawRole || '').toUpperCase() === 'ADMIN' || (rawRole || '').toUpperCase() === 'CORPORATE_ADMIN';
 
   if (megaMenuCollapsed) {

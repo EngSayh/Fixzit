@@ -33,7 +33,7 @@ import { getClientIP } from "@/server/security/headers";
  */
 export async function GET(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   // Rate limiting
   const clientIp = getClientIP(req);
@@ -42,14 +42,13 @@ export async function GET(
     return rateLimitError();
   }
 
-  const params = await props.params;
   try {
     await connectToDatabase();
 
     // RBAC: Check permissions
     const authResult = await atsRBAC(req, ["applications:read"]);
     if (!authResult.authorized) {
-      return (authResult as any).response;
+      return authResult.response;
     }
     const { orgId, isSuperAdmin } = authResult;
 
@@ -81,7 +80,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
   const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
@@ -89,7 +88,6 @@ export async function PATCH(
     return rateLimitError();
   }
 
-  const params = await props.params;
   try {
     await connectToDatabase();
     const body = await req.json();
@@ -100,7 +98,7 @@ export async function PATCH(
       "applications:stage-transition",
     ]);
     if (!authResult.authorized) {
-      return (authResult as any).response;
+      return authResult.response;
     }
     const { userId, orgId, isSuperAdmin } = authResult;
 

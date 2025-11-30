@@ -41,7 +41,8 @@ export async function POST(request: NextRequest) {
     const userRole = session.user.role;
     const isSuperAdmin = session.user.isSuperAdmin;
 
-    if (!isSuperAdmin && userRole !== "ADMIN") {
+    // 🔒 SECURITY FIX: Include CORPORATE_ADMIN per 14-role matrix
+    if (!isSuperAdmin && !["ADMIN", "CORPORATE_ADMIN"].includes(userRole || "")) {
       return NextResponse.json(
         { error: "Forbidden: Admin access required" },
         { status: 403 },
@@ -100,6 +101,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ✅ PERF FIX: Batch load all orders to avoid N+1 queries
+    const orderIds = claims.map((c) => c.orderId).filter(Boolean);
+    const orders = await SouqOrder.find({ _id: { $in: orderIds } }).lean();
+    const orderMap = new Map(orders.map((o) => [String(o._id), o as unknown as IOrder]));
+
     const results = {
       success: 0,
       failed: 0,
@@ -129,13 +135,10 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Fetch order for payment details (required for refund)
+        // Fetch order for payment details (required for refund) from pre-loaded map
         let order: IOrder | null = null;
         if (action === "approve" && refundAmount > 0) {
-          // @ts-expect-error - Fixed VSCode problem
-          order = (await SouqOrder.findById(
-            claim.orderId,
-          ).lean()) as IOrder | null;
+          order = orderMap.get(String(claim.orderId)) || null;
 
           if (!order) {
             results.failed++;

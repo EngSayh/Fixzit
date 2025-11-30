@@ -9,6 +9,8 @@
  * Missing required vars in production will throw errors immediately
  */
 
+import { logger } from "@/lib/logger";
+
 type Environment = "development" | "test" | "production";
 
 class ConfigurationError extends Error {
@@ -24,9 +26,22 @@ class ConfigurationError extends Error {
  */
 function _getRequired(key: string, fallback?: string): string {
   const value = process.env[key];
+  const isProduction = process.env.NODE_ENV === "production";
+  const shouldSkipValidation =
+    SKIP_CONFIG_VALIDATION && (isProduction || IS_NEXT_BUILD);
 
   if (!value || value.trim() === "") {
-    if (process.env.NODE_ENV === "production") {
+    // During build-time (or when explicitly skipped), fall back to the provided default
+    // so preview builds don't crash when secrets aren't injected. Runtime validation below
+    // still enforces presence in real production environments.
+    if (shouldSkipValidation && fallback !== undefined) {
+      logger.warn(
+        `[Config] ${key} not set; using fallback because SKIP_CONFIG_VALIDATION is enabled`,
+      );
+      return fallback;
+    }
+
+    if (isProduction && !shouldSkipValidation) {
       throw new ConfigurationError(
         `Required environment variable ${key} is not set`,
       );
@@ -80,8 +95,9 @@ function getInteger(key: string, fallback: number): number {
 const NODE_ENV = (process.env.NODE_ENV || "development") as Environment;
 const IS_NEXT_BUILD = process.env.NEXT_PHASE === "phase-production-build";
 const SKIP_CONFIG_VALIDATION =
-  process.env.SKIP_CONFIG_VALIDATION === "true" ||
-  process.env.DISABLE_MONGODB_FOR_BUILD === "true" ||
+  getBoolean("SKIP_CONFIG_VALIDATION") ||
+  getBoolean("SKIP_ENV_VALIDATION") ||
+  getBoolean("DISABLE_MONGODB_FOR_BUILD") ||
   IS_NEXT_BUILD;
 
 /**
@@ -308,8 +324,8 @@ if (Config.env.isProduction && !SKIP_CONFIG_VALIDATION) {
 
   // Warn if AWS is not configured (S3 uploads will not work)
   if (!Config.aws.region || !Config.aws.s3.bucket) {
-    console.warn(
-      "[Config] ⚠️  AWS not fully configured - S3 file uploads will be disabled",
+    logger.warn(
+      "[Config] AWS not fully configured - S3 file uploads will be disabled",
     );
   }
 
@@ -325,8 +341,8 @@ if (Config.env.isProduction && !SKIP_CONFIG_VALIDATION) {
 
   // Warn about insecure configurations
   if (Config.dev.bypassAuth) {
-    console.error(
-      "[Config] ⚠️  BYPASS_AUTH is enabled in production - THIS IS INSECURE!",
+    logger.error(
+      "[Config] BYPASS_AUTH is enabled in production - THIS IS INSECURE!",
     );
   }
 }

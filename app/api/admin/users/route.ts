@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     // Build query
     // 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB query
     const query: Record<string, unknown> = {
-      orgId,
+      orgId,  // ✅ Validated above
     };
 
     if (search) {
@@ -105,7 +105,6 @@ export async function GET(request: NextRequest) {
       query["professional.role"] = role;
     }
 
-    // @ts-expect-error - Fixed VSCode problem
     const users = await UserModel.find(query)
       .select(
         "code username email phone personal professional security status createdAt",
@@ -200,9 +199,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    // @ts-expect-error - Fixed VSCode problem
     const existing = await UserModel.findOne({
-      orgId,
+      orgId,  // ✅ Validated above
       $or: [{ email: body.email }, { username: body.username }],
     });
 
@@ -229,9 +227,8 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(body.password, 12); // 12 rounds = industry standard
 
-    // @ts-expect-error - Fixed VSCode problem
     const newUser = await UserModel.create({
-      orgId, // Uses validated orgId from above
+      orgId,  // ✅ Already validated above
       code: body.code || `USER-${crypto.randomUUID()}`, // SECURITY: Use crypto instead of Date.now()
       username: body.username,
       email: body.email,

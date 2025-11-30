@@ -9,11 +9,19 @@ import {
   otpSessionStore,
   OTP_SESSION_EXPIRY_MS,
 } from "@/lib/otp-store";
+import {
+  EMPLOYEE_ID_REGEX,
+  normalizeCompanyCode,
+  buildOtpKey,
+} from "@/lib/otp-utils";
+import { ACCESS_COOKIE, ACCESS_TTL_SECONDS, REFRESH_COOKIE, REFRESH_TTL_SECONDS } from "@/app/api/auth/refresh/route";
+import jwt from "jsonwebtoken";
 
 // Validation schema
 const VerifyOTPSchema = z.object({
   identifier: z.string().trim().min(1, "Email or employee number is required"),
   otp: z.string().length(6, "OTP must be 6 digits"),
+  companyCode: z.string().trim().optional(),
 });
 
 /**
@@ -60,9 +68,10 @@ export async function POST(request: NextRequest) {
     // 2. Normalize identifier (same logic as send endpoint)
     const emailOk = z.string().email().safeParse(identifierRaw).success;
     const empUpper = identifierRaw.toUpperCase();
-    const empOk = /^EMP\d+$/.test(empUpper);
+    const empOk = EMPLOYEE_ID_REGEX.test(empUpper);
 
     let loginIdentifier = "";
+    const normalizedCompanyCode = normalizeCompanyCode(parsed.data.companyCode);
 
     if (emailOk) {
       loginIdentifier = identifierRaw.toLowerCase();
@@ -78,12 +87,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (empOk && !normalizedCompanyCode) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Company number is required for corporate login",
+        },
+        { status: 400 },
+      );
+    }
+
+    const otpKey = buildOtpKey(
+      loginIdentifier,
+      empOk ? normalizedCompanyCode : null,
+    );
+
     // 3. Retrieve OTP data from store
-    const otpData = otpStore.get(loginIdentifier);
+    const otpData = otpStore.get(otpKey);
 
     if (!otpData) {
       logger.warn("[OTP] No OTP found for identifier", {
-        identifier: loginIdentifier,
+        identifier: otpKey,
       });
       return NextResponse.json(
         {
@@ -96,8 +120,8 @@ export async function POST(request: NextRequest) {
 
     // 4. Check if OTP expired
     if (Date.now() > otpData.expiresAt) {
-      otpStore.delete(loginIdentifier);
-      logger.warn("[OTP] OTP expired", { identifier: loginIdentifier });
+      otpStore.delete(otpKey);
+      logger.warn("[OTP] OTP expired", { identifier: otpKey });
       return NextResponse.json(
         {
           success: false,
@@ -109,8 +133,8 @@ export async function POST(request: NextRequest) {
 
     // 5. Check attempts limit
     if (otpData.attempts >= MAX_ATTEMPTS) {
-      otpStore.delete(loginIdentifier);
-      logger.warn("[OTP] Too many attempts", { identifier: loginIdentifier });
+      otpStore.delete(otpKey);
+      logger.warn("[OTP] Too many attempts", { identifier: otpKey });
       return NextResponse.json(
         {
           success: false,
@@ -126,7 +150,7 @@ export async function POST(request: NextRequest) {
       const remainingAttempts = MAX_ATTEMPTS - otpData.attempts;
 
       logger.warn("[OTP] Incorrect OTP", {
-        identifier: loginIdentifier,
+        identifier: otpKey,
         attempts: otpData.attempts,
         remaining: remainingAttempts,
       });
@@ -144,28 +168,76 @@ export async function POST(request: NextRequest) {
     // 7. OTP verified successfully
     logger.info("[OTP] OTP verified successfully", {
       userId: otpData.userId,
-      identifier: loginIdentifier,
+      identifier: otpKey,
     });
 
     // 8. Clean up OTP from store
-    otpStore.delete(loginIdentifier);
+    otpStore.delete(otpKey);
 
     // 9. Generate temporary OTP login session token (server-side store, not user-modifiable)
     const sessionToken = randomBytes(32).toString("hex");
     otpSessionStore.set(sessionToken, {
       userId: otpData.userId,
-      identifier: loginIdentifier,
+      identifier: otpKey,
       expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "OTP verified successfully",
-      data: {
-        otpToken: sessionToken,
-        userId: otpData.userId,
+    const secret = process.env.NEXTAUTH_SECRET;
+    if (!secret) {
+      return NextResponse.json(
+        { success: false, error: "Server config error" },
+        { status: 500 },
+      );
+    }
+
+    const accessToken = jwt.sign(
+      { sub: otpData.userId },
+      secret,
+      { expiresIn: ACCESS_TTL_SECONDS },
+    );
+    const refreshToken = jwt.sign(
+      { sub: otpData.userId },
+      secret,
+      { expiresIn: REFRESH_TTL_SECONDS },
+    );
+
+    const res = NextResponse.json(
+      {
+        success: true,
+        message: "OTP verified successfully",
+        data: {
+          otpToken: sessionToken,
+          userId: otpData.userId,
+          expiresIn: OTP_SESSION_EXPIRY_MS / 1000,
+          accessToken,
+        },
       },
+    );
+    const secure =
+      request.nextUrl.protocol === "https:" ||
+      process.env.NODE_ENV === "production";
+    res.cookies.set("fxz.otp", sessionToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure,
+      path: "/",
+      maxAge: Math.floor(OTP_SESSION_EXPIRY_MS / 1000),
     });
+    res.cookies.set(ACCESS_COOKIE, accessToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure,
+      path: "/",
+      maxAge: ACCESS_TTL_SECONDS,
+    });
+    res.cookies.set(REFRESH_COOKIE, refreshToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure,
+      path: "/",
+      maxAge: REFRESH_TTL_SECONDS,
+    });
+    return res;
   } catch (error) {
     logger.error("[OTP] Verify OTP error", error as Error);
     return NextResponse.json(

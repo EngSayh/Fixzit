@@ -30,7 +30,8 @@ export default function SubscriptionPage() {
   const auto = useAutoTranslator("subscription.management");
 
   useEffect(() => {
-    fetch("/api/subscriptions/tenant")
+    import("@/lib/http/fetchWithAuth")
+      .then(({ fetchWithAuth }) => fetchWithAuth("/api/subscriptions/tenant"))
       .then((res) => res.json())
       .then((data) => {
         if (!data.error) {

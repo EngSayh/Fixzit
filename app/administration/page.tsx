@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Administration Module - Fully Integrated with API and RBAC
  *
@@ -10,8 +12,6 @@
  * Access Control: Super Admin and Corporate Admin only
  * Compliance: WCAG 2.1 AA, RTL-first, Gov V5 structure
  */
-
-"use client";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -47,9 +47,11 @@ import {
 import AdminNotificationsTab from "@/components/admin/AdminNotificationsTab";
 import CommunicationDashboard from "@/components/admin/CommunicationDashboard";
 import RoleBadge from "@/components/admin/RoleBadge";
+import UserModal, { type UserFormData } from "@/components/admin/UserModal";
 import { logger } from "@/lib/logger";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useAuthRbac } from "@/hooks/useAuthRbac";
+import { SubRole } from "@/lib/rbac/client-roles";
 import {
   adminApi,
   type OrgSettings,
@@ -57,6 +59,15 @@ import {
   type AdminRole,
   type AuditLogEntry,
 } from "@/lib/api/admin";
+import {
+  useUsers,
+  useRoles,
+  useAuditLogs,
+  useOrgSettings,
+  useCreateUser,
+  useUpdateUser,
+  useDeleteUser,
+} from "@/hooks/useAdminData";
 
 // Types
 interface User {
@@ -64,6 +75,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  subRole?: SubRole; // STRICT v4.1: Team Member sub-role
   status: "Active" | "Inactive" | "Locked";
   lastLogin: string;
   department: string;
@@ -132,61 +144,108 @@ const AdminModule: React.FC = () => {
     | "communications"
   >("users");
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoadingData, setIsLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Users state
-  const [users, setUsers] = useState<User[]>([]);
-  // const [_selectedUsers, _setSelectedUsers] = useState<Set<string>>(new Set());
   // User management state
   const [userModalOpen, setUserModalOpen] = React.useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  // Keep userModalOpen for future implementation
-  logger.debug("User modal state:", { userModalOpen });
-
-  // Roles state
-  const [roles, setRoles] = useState<Role[]>([]);
-  // const [_roleModalOpen, _setRoleModalOpen] = useState(false);
-  // const [_editingRole, _setEditingRole] = useState<Role | null>(null);
-
-  // Audit state
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  // const [_auditFilters, _setAuditFilters] = useState({ action: '', status: '', dateFrom: '', dateTo: '' });
-
   // Settings state
-  const [settings, setSettings] = useState<SystemSetting[]>([]);
   const [editedSettings, setEditedSettings] = useState<Map<string, string>>(
     new Map(),
   );
-  const [orgSettings, setOrgSettings] = useState<OrgSettings | null>(null);
 
-  const mapAdminUser = (adminUser: AdminUser): User => ({
-    id: adminUser.id,
-    name:
-      adminUser.name ||
-      adminUser.email ||
-      adminUser.username ||
-      t("admin.users.table.unknownUser", "Unknown user"),
-    email: adminUser.email || adminUser.username || "—",
-    role:
-      adminUser.role ||
-      adminUser.roles?.[0] ||
-      (adminUser.isSuperAdmin
-        ? "Super Admin"
-        : t("admin.users.table.roleFallback", "User")),
-    status: adminUser.isActive ? "Active" : "Inactive",
-    lastLogin:
-      adminUser.updatedAt ||
-      adminUser.createdAt ||
-      t("admin.users.table.noActivity", "No activity recorded"),
-    department:
-      adminUser.orgId || t("admin.users.table.departmentFallback", "General"),
-    phone: adminUser.username,
-    createdAt: adminUser.createdAt || new Date().toISOString(),
-    org_id: adminUser.orgId || "platform",
-  });
+  // TanStack Query hooks for data fetching (Step 3)
+  const {
+    data: usersData,
+    isLoading: isLoadingUsers,
+    error: usersError,
+  } = useUsers({ limit: 100, search: searchQuery || undefined });
+  const {
+    data: rolesData,
+    isLoading: isLoadingRoles,
+    error: rolesError,
+  } = useRoles({ limit: 100 });
+  const {
+    data: auditLogsData,
+    isLoading: isLoadingAuditLogs,
+    error: auditLogsError,
+  } = useAuditLogs({ limit: 100 });
+  const {
+    data: orgSettings,
+    isLoading: isLoadingOrgSettings,
+    error: orgSettingsError,
+  } = useOrgSettings(activeOrgId);
+
+  // Mutations
+  const createUserMutation = useCreateUser();
+  const updateUserMutation = useUpdateUser();
+  const deleteUserMutation = useDeleteUser();
+
+  // Map API data to UI format
+  const users = useMemo(
+    () => (usersData ? usersData.map(mapAdminUser) : []),
+    [usersData]
+  );
+  const roles = useMemo(
+    () => (rolesData ? rolesData.map(mapAdminRole) : []),
+    [rolesData]
+  );
+  const auditLogs = useMemo(
+    () => (auditLogsData ? auditLogsData.map(mapAuditLogEntry) : []),
+    [auditLogsData]
+  );
+  const settings = useMemo(
+    () => (orgSettings ? normalizeSettingsFromOrg(orgSettings) : []),
+    [orgSettings]
+  );
+
+  // Determine loading state based on active tab
+  const isLoadingData =
+    (activeTab === "users" && isLoadingUsers) ||
+    (activeTab === "roles" && isLoadingRoles) ||
+    (activeTab === "audit" && isLoadingAuditLogs) ||
+    (activeTab === "settings" && isLoadingOrgSettings);
+
+  const mapAdminUser = (adminUser: AdminUser): User => {
+    // Normalize role to canonical form for STRICT v4.1
+    let canonicalRole = adminUser.role || adminUser.roles?.[0];
+    
+    // Handle special cases
+    if (adminUser.isSuperAdmin) {
+      canonicalRole = "SUPER_ADMIN";
+    } else if (!canonicalRole) {
+      canonicalRole = "TENANT"; // Default fallback
+    }
+    
+    // Normalize legacy role names (e.g., "Super Admin" -> "SUPER_ADMIN")
+    // This ensures UI always works with canonical enums
+    canonicalRole = canonicalRole.toUpperCase().replace(/\s+/g, "_");
+    
+    return {
+      id: adminUser.id,
+      name:
+        adminUser.name ||
+        adminUser.email ||
+        adminUser.username ||
+        t("admin.users.table.unknownUser", "Unknown user"),
+      email: adminUser.email || adminUser.username || "—",
+      role: canonicalRole,
+      subRole: adminUser.subRole as SubRole | undefined, // Preserve STRICT v4.1 sub-role
+      status: adminUser.isActive ? "Active" : "Inactive",
+      lastLogin:
+        adminUser.updatedAt?.toString() ||
+        adminUser.createdAt?.toString() ||
+        t("admin.users.table.noActivity", "No activity recorded"),
+      department:
+        adminUser.orgId || t("admin.users.table.departmentFallback", "General"),
+      phone: adminUser.username,
+      createdAt: adminUser.createdAt?.toString() || new Date().toISOString(),
+      // ORGID-FIX: Use empty string for missing orgId (type requires string)
+      org_id: adminUser.orgId || "",
+    };
+  };
 
   const mapAdminRole = (role: AdminRole): Role => ({
     id: role.id,
@@ -292,100 +351,32 @@ const AdminModule: React.FC = () => {
     }
   }, [authLoading, sessionUser, hasAdminAccess, router]);
 
-  // Data fetching
+  // Handle query errors (Step 3: TanStack Query integration)
   useEffect(() => {
-    if (sessionUser && hasAdminAccess) {
-      fetchData();
-    }
-  }, [activeTab, sessionUser, hasAdminAccess]);
+    const queryError =
+      (activeTab === "users" && usersError) ||
+      (activeTab === "roles" && rolesError) ||
+      (activeTab === "audit" && auditLogsError) ||
+      (activeTab === "settings" && orgSettingsError);
 
-  const fetchData = async () => {
-    setIsLoadingData(true);
-    setError(null);
-
-    try {
-      switch (activeTab) {
-        case "users":
-          await fetchUsers();
-          break;
-        case "roles":
-          await fetchRoles();
-          break;
-        case "audit":
-          await fetchAuditLogs();
-          break;
-        case "settings":
-          await fetchSettings();
-          break;
-      }
-    } catch (err) {
+    if (queryError) {
       const errorMessage =
-        err instanceof Error
-          ? err.message
+        queryError instanceof Error
+          ? queryError.message
           : t("admin.common.errors.fetchData", "Failed to fetch data");
       setError(errorMessage);
-      logger.error(`Failed to fetch ${activeTab} data:`, err);
-    } finally {
-      setIsLoadingData(false);
+      logger.error(`Failed to fetch ${activeTab} data:`, queryError);
+    } else {
+      setError(null);
     }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const response = await adminApi.listUsers({
-        limit: 100,
-        search: searchQuery || undefined,
-      });
-      const normalized = response.data.map(mapAdminUser);
-      setUsers(normalized);
-      logger.info("Users fetched successfully", { count: normalized.length });
-    } catch (apiError) {
-      logger.error("Failed to fetch users", apiError);
-      throw new Error(t("admin.users.errors.fetch", "Failed to fetch users"));
-    }
-  };
-
-  const fetchRoles = async () => {
-    try {
-      const response = await adminApi.listRoles({ limit: 100 });
-      const normalized = response.data.map(mapAdminRole);
-      setRoles(normalized);
-      logger.info("Roles fetched successfully", { count: normalized.length });
-    } catch (apiError) {
-      logger.error("Failed to fetch roles", apiError);
-      throw new Error(t("admin.roles.errors.fetch", "Failed to fetch roles"));
-    }
-  };
-
-  const fetchAuditLogs = async () => {
-    try {
-      const response = await adminApi.listAuditLogs({ limit: 100 });
-      const normalized = response.data.map(mapAuditLogEntry);
-      setAuditLogs(normalized);
-      logger.info("Audit logs fetched successfully", {
-        count: normalized.length,
-      });
-    } catch (apiError) {
-      logger.error("Failed to fetch audit logs", apiError);
-      throw new Error(
-        t("admin.audit.errors.fetch", "Failed to fetch audit logs"),
-      );
-    }
-  };
-
-  const fetchSettings = async () => {
-    try {
-      const payload = await adminApi.getOrgSettings(activeOrgId);
-      setOrgSettings(payload);
-      setSettings(normalizeSettingsFromOrg(payload));
-      logger.info("Settings fetched successfully");
-    } catch (apiError) {
-      logger.error("Failed to fetch settings", apiError);
-      throw new Error(
-        t("admin.settings.errors.fetch", "Failed to fetch settings"),
-      );
-    }
-  };
+  }, [
+    activeTab,
+    usersError,
+    rolesError,
+    auditLogsError,
+    orgSettingsError,
+    t,
+  ]);
 
   // User actions
   const handleAddUser = () => {
@@ -398,34 +389,38 @@ const AdminModule: React.FC = () => {
     setUserModalOpen(true);
   };
 
-  const handleSaveUser = async (userData: Partial<User>) => {
+  const handleSaveUser = async (userData: UserFormData) => {
     try {
       if (editingUser) {
-        await adminApi.updateUser(editingUser.id, {
-          name: userData.name,
-          email: userData.email,
-          role: userData.role,
-          isActive: userData.status
-            ? userData.status !== "Inactive"
-            : undefined,
+        // Update existing user with org scoping (B.1 Multi-tenancy Enforcement)
+        await updateUserMutation.mutateAsync({
+          id: editingUser.id,
+          data: {
+            name: userData.name,
+            email: userData.email,
+            role: userData.role,
+            orgId: activeOrgId, // Enforce tenant scope to prevent cross-tenant updates
+            isActive: userData.status ? userData.status !== "Inactive" : undefined,
+            // Include subRole if provided (STRICT v4.1)
+            ...(userData.subRole ? { subRole: userData.subRole } : {}),
+          },
         });
-        await fetchUsers();
         setSuccessMessage(
           t("admin.users.toast.updated", "User updated successfully"),
         );
-        logger.info("User updated", { userId: editingUser.id });
       } else {
-        const created = await adminApi.createUser({
-          name: userData.name,
-          email: userData.email,
-          role: userData.role,
+        // Create new user
+        await createUserMutation.mutateAsync({
+          name: userData.name!,
+          email: userData.email!,
+          role: userData.role!,
           orgId: activeOrgId,
+          // Include subRole if provided (STRICT v4.1)
+          ...(userData.subRole ? { subRole: userData.subRole } : {}),
         });
-        setUsers((prev) => [mapAdminUser(created), ...prev]);
         setSuccessMessage(
           t("admin.users.toast.created", "User created successfully"),
         );
-        logger.info("User created", { userId: created.id });
       }
       setUserModalOpen(false);
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -436,11 +431,9 @@ const AdminModule: React.FC = () => {
           : t("admin.users.errors.save", "Failed to save user");
       setError(errorMessage);
       logger.error("Failed to save user:", err);
+      throw err; // Re-throw so UserModal can show the error
     }
   };
-
-  // Keep for future implementation
-  logger.debug("Handler available:", { handleSaveUser });
 
   const handleToggleUserStatus = async (
     userId: string,
@@ -448,18 +441,15 @@ const AdminModule: React.FC = () => {
   ) => {
     try {
       const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
-      await adminApi.updateUser(userId, { isActive: newStatus === "Active" });
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === userId ? { ...u, status: newStatus as User["status"] } : u,
-        ),
-      );
+      await updateUserMutation.mutateAsync({
+        id: userId,
+        data: { isActive: newStatus === "Active", orgId: activeOrgId },
+      });
       setSuccessMessage(
         newStatus === "Active"
           ? t("admin.users.toast.activated", "User activated successfully")
           : t("admin.users.toast.deactivated", "User deactivated successfully"),
       );
-      logger.info("User status updated", { userId, newStatus });
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       setError(t("admin.users.errors.status", "Failed to update user status"));
@@ -479,12 +469,10 @@ const AdminModule: React.FC = () => {
       return;
 
     try {
-      await adminApi.deleteUser(userId);
-      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      await deleteUserMutation.mutateAsync(userId);
       setSuccessMessage(
         t("admin.users.toast.deleted", "User deleted successfully"),
       );
-      logger.info("User deleted", { userId });
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       setError(t("admin.users.errors.delete", "Failed to delete user"));
@@ -525,9 +513,8 @@ const AdminModule: React.FC = () => {
         };
       }
 
-      const updated = await adminApi.updateOrgSettings(activeOrgId, updates);
-      setOrgSettings(updated);
-      setSettings(normalizeSettingsFromOrg(updated));
+      const _updated = await adminApi.updateOrgSettings(activeOrgId, updates);
+      // Note: orgSettings and settings will be updated automatically via TanStack Query refetch
       setEditedSettings(new Map());
       setSuccessMessage(
         t("admin.settings.toast.saved", "Settings saved successfully"),
@@ -1278,6 +1265,18 @@ const AdminModule: React.FC = () => {
         {activeTab === "tenants" && renderTenantManagement()}
         {activeTab === "billing" && renderBilling()}
       </div>
+
+      {/* User Modal - Create/Edit Users with Sub-Role Support */}
+      <UserModal
+        isOpen={userModalOpen}
+        onClose={() => {
+          setUserModalOpen(false);
+          setEditingUser(null);
+        }}
+        onSave={handleSaveUser}
+        editingUser={editingUser}
+        t={t}
+      />
     </div>
   );
 };

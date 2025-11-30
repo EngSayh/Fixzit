@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
 import { OwnerModel } from "@/server/models/Owner";
 import { logger } from "@/lib/logger";
+import { getSessionUser } from "./withAuthRbac";
 
 export interface SubscriptionCheckOptions {
   requireFeature?: string; // Specific feature required (e.g., 'roiAnalytics', 'utilitiesTracking')
@@ -154,12 +155,8 @@ export async function requireSubscription(
   orgId?: Types.ObjectId;
 }> {
   try {
-    // Extract owner ID and org ID from request
-    // This assumes auth middleware has already run
-    const ownerId = req.headers.get("x-owner-id");
-    const orgId = req.headers.get("x-org-id");
-
-    if (!ownerId || !orgId) {
+    const session = await getSessionUser(req).catch(() => null);
+    if (!session) {
       return {
         error: NextResponse.json(
           { error: "Authentication required" },
@@ -168,8 +165,35 @@ export async function requireSubscription(
       };
     }
 
-    const ownerObjectId = new Types.ObjectId(ownerId);
-    const orgObjectId = new Types.ObjectId(orgId);
+    const allowedRoles = new Set([
+      "OWNER",
+      "CORPORATE_OWNER",
+      "ADMIN",
+      "SUPER_ADMIN",
+    ]);
+    const isAllowed =
+      allowedRoles.has(session.role) ||
+      session.roles?.some((r) => allowedRoles.has(r.toUpperCase?.() || r));
+    if (!isAllowed) {
+      return {
+        error: NextResponse.json(
+          { error: "Forbidden" },
+          { status: 403 },
+        ),
+      };
+    }
+
+    if (!session.orgId) {
+      return {
+        error: NextResponse.json(
+          { error: "Organization context required" },
+          { status: 401 },
+        ),
+      };
+    }
+
+    const ownerObjectId = new Types.ObjectId(session.id);
+    const orgObjectId = new Types.ObjectId(session.orgId);
 
     // Check subscription status
     const status = await checkSubscriptionStatus(
@@ -236,7 +260,7 @@ export async function requireSubscription(
       status.daysUntilExpiry <= 7
     ) {
       logger.warn(
-        `Subscription expiring soon for owner ${ownerId}: ${status.daysUntilExpiry} days remaining`,
+        `Subscription expiring soon for owner ${ownerObjectId}: ${status.daysUntilExpiry} days remaining`,
       );
     }
 

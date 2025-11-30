@@ -47,8 +47,13 @@ export async function POST(req: NextRequest) {
     paytabs_token_id: { $ne: null },
   });
 
+  // ✅ PERF FIX: Batch load all payment methods to avoid N+1 queries
+  const tokenIds = dueSubs.map((s) => s.paytabs_token_id).filter(Boolean);
+  const paymentMethods = await PaymentMethod.find({ _id: { $in: tokenIds } });
+  const pmMap = new Map(paymentMethods.map((pm) => [String(pm._id), pm]));
+
   for (const s of dueSubs) {
-    const pm = await PaymentMethod.findById(s.paytabs_token_id);
+    const pm = pmMap.get(String(s.paytabs_token_id));
     if (!pm) continue;
 
     // Calculate billing period

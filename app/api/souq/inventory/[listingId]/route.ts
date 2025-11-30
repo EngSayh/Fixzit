@@ -18,7 +18,12 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const inventory = await inventoryService.getInventory(params.listingId);
+    const orgId = (session.user as { orgId?: string }).orgId;
+
+    const inventory = await inventoryService.getInventory(
+      params.listingId,
+      orgId,
+    );
 
     if (!inventory) {
       return NextResponse.json(
@@ -30,10 +35,14 @@ export async function GET(
     }
 
     // Authorization: Can only view own inventory unless admin
-    if (
-      inventory.sellerId !== session.user.id &&
-      !["ADMIN", "SUPER_ADMIN"].includes(session.user.role)
-    ) {
+    const sellerMatches =
+      inventory.sellerId?.toString() === session.user.id ||
+      (orgId && inventory.orgId && inventory.orgId === orgId);
+    const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(
+      session.user.role,
+    );
+
+    if (!sellerMatches && !isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

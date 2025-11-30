@@ -14,8 +14,8 @@
 "use client";
 
 import React from "react";
-// Import from fm.types (client-safe, no mongoose)
-import { SubRole, Role, ModuleKey, computeAllowedModules, normalizeRole, PLAN_GATES, Plan, SubmoduleKey } from "@/domain/fm/fm.types";
+// Import from client-safe roles module (no mongoose)
+import { SubRole, Role, ModuleKey, computeAllowedModules, normalizeRole, PLAN_GATES, Plan, SubmoduleKey } from "@/lib/rbac/client-roles";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useCurrentOrg } from "@/contexts/CurrentOrgContext";
 

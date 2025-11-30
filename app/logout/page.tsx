@@ -36,6 +36,9 @@ export default function LogoutPage() {
         '__Secure-authjs.csrf-token',
         '__Secure-next-auth.csrf-token',
         '__Host-next-auth.csrf-token',
+        'fxz.access',
+        'fxz.refresh',
+        'fxz.otp',
       ];
       try {
         const isHttps = window.location.protocol === 'https:';

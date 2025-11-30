@@ -26,7 +26,7 @@ export async function GET(
       | "year";
 
     // Check access
-    const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
+    const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role);
     const isSeller = sellerId === session.user.id;
 
     if (!isAdmin && !isSeller) {

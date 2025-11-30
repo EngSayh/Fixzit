@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 import { ModuleKey } from "@/domain/fm/fm.behavior";
 import { FMAction } from "@/types/fm/enums";
 import { requireFmPermission } from "@/app/api/fm/permissions";
-import { resolveTenantId } from "@/app/api/fm/utils/tenant";
+import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
 import { FMErrors } from "@/app/api/fm/errors";
 
 type OrderItem = {
@@ -17,7 +17,7 @@ type OrderItem = {
 
 type OrderDocument = {
   _id: ObjectId;
-  org_id: string;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
   requester: string;
   department: string;
   justification: string;
@@ -81,6 +81,92 @@ const mapOrder = (doc: OrderDocument) => ({
   createdAt: doc.createdAt,
 });
 
+// FUNC-003 FIX: Add GET route for listing marketplace orders
+export async function GET(req: NextRequest) {
+  try {
+    const actor = await requireFmPermission(req, {
+      module: ModuleKey.MARKETPLACE,
+      action: FMAction.VIEW,
+    });
+    if (actor instanceof NextResponse) return actor;
+
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
+    const tenantResolution = resolveTenantId(
+      req,
+      actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
+    );
+    if ("error" in tenantResolution) return tenantResolution.error;
+    const { tenantId } = tenantResolution;
+
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "20", 10)),
+    );
+    const q = searchParams.get("q");
+    const status = searchParams.get("status");
+    const department = searchParams.get("department");
+
+    // AUDIT-2025-11-29: Use buildTenantFilter for cross-tenant support
+    const query: Record<string, unknown> = { ...buildTenantFilter(tenantId) };
+    
+    // Use $and to combine filters
+    const filters: Record<string, unknown>[] = [];
+    
+    if (q) {
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = { $regex: escaped, $options: "i" };
+      filters.push({ $or: [{ requester: regex }, { department: regex }, { justification: regex }] });
+    }
+    
+    if (status) {
+      query.status = status;
+    }
+    
+    if (department) {
+      query.department = department;
+    }
+    
+    if (filters.length > 0) {
+      query.$and = filters;
+    }
+
+    const db = await getDatabase();
+    const collection = db.collection<OrderDocument>(COLLECTION);
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      collection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(query),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: items.map(mapOrder),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    logger.error("FM Marketplace Orders API - GET error", error as Error);
+    return FMErrors.internalError();
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const actor = await requireFmPermission(req, {
@@ -89,12 +175,26 @@ export async function POST(req: NextRequest) {
     });
     if (actor instanceof NextResponse) return actor;
 
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-29: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: "Super Admin must specify tenant context for order creation" },
+        { status: 400 }
+      );
+    }
 
     const payload = sanitizePayload(await req.json());
     const validationError = validatePayload(payload);
@@ -112,7 +212,7 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const doc: OrderDocument = {
       _id: new ObjectId(),
-      org_id: tenantId,
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
       requester: payload.requester!,
       department: payload.department!,
       justification: payload.justification!,

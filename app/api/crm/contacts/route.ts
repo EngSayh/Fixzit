@@ -99,10 +99,12 @@ export async function GET(req: NextRequest) {
     filter.kind = kind;
   }
   if (search) {
+    // SECURITY: Escape regex special characters to prevent ReDoS
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter.$or = [
-      { company: new RegExp(search, "i") },
-      { contactName: new RegExp(search, "i") },
-      { email: new RegExp(search, "i") },
+      { company: new RegExp(escapedSearch, "i") },
+      { contactName: new RegExp(escapedSearch, "i") },
+      { email: new RegExp(escapedSearch, "i") },
     ];
   }
 

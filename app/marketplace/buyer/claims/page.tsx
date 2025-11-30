@@ -62,7 +62,12 @@ export default function BuyerClaimsPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           {viewMode !== "list" && (
-            <Button variant="ghost" size="icon" onClick={handleBackToList}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBackToList}
+              aria-label={t("common.back") || "Back"}
+            >
               <ArrowLeft className="w-5 h-5" />
             </Button>
           )}

@@ -31,9 +31,8 @@ const schema = z.object({
  */
 export async function POST(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ) {
-  const params = await props.params;
   await connectToDatabase();
   const user = await getSessionUser(req);
   const { checklistIndex, itemIndex, done } = schema.parse(await req.json());

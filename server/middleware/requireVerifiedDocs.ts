@@ -44,12 +44,16 @@ export async function ensureVerifiedDocs(
       status: 'APPROVED',
     }).populate('documents');
 
-    const docs = caseRecord?.documents as Array<{ status?: string }> | undefined;
+    const docs = caseRecord?.documents as Array<{ status?: string; expiry_date?: Date }> | undefined;
+    const now = new Date();
     const notVerified =
       !caseRecord ||
       !Array.isArray(docs) ||
       docs.length === 0 ||
-      docs.some((doc) => doc.status !== 'VERIFIED');
+      docs.some((doc) => {
+        const expired = doc.expiry_date && new Date(doc.expiry_date) < now;
+        return doc.status !== 'VERIFIED' || expired;
+      });
 
     if (notVerified) {
       const escalation = await resolveEscalationContact(user);

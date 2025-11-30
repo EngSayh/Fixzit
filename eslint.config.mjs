@@ -5,7 +5,9 @@ import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
+import importPlugin from "eslint-plugin-import";
 import nextPlugin from "@next/eslint-plugin-next";
+import path from "node:path";
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 export default [
@@ -28,6 +30,7 @@ export default [
       "**/playwright-report/**",
       "**/e2e-test-results/**",
       "**/test-results/**",
+      "tests/playwright-report/**",
 
       // Assets and static files
       "public/**",
@@ -84,6 +87,7 @@ export default [
     },
     plugins: {
       "react-hooks": reactHooks,
+      import: importPlugin,
       "@next/next": nextPlugin,
       "@typescript-eslint": tseslint.plugin,
     },
@@ -102,6 +106,7 @@ export default [
       "no-empty": "off",
       "no-extra-semi": "off",
       "no-useless-escape": "warn",
+      "no-console": "error",
       "no-mixed-spaces-and-tabs": "off",
 
       /* Next.js specific rules */
@@ -279,6 +284,7 @@ export default [
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "no-unused-vars": "off", // Also disable base rule for test files
+      "no-console": "off",
       "no-undef": "off", // Disable for test files since we define globals
       "@typescript-eslint/no-require-imports": "off",
     },
@@ -345,6 +351,7 @@ export default [
       "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/ban-ts-comment": "off",
       "@typescript-eslint/no-explicit-any": ["error"],
+      "no-console": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
@@ -361,6 +368,62 @@ export default [
           caughtErrorsIgnorePattern: "^_",
         },
       ],
+    },
+  },
+
+  // Client-side guardrails to prevent server-only imports in bundles
+  {
+    files: ["components/**/*.{ts,tsx}", "pages/**/*.{ts,tsx}"],
+    rules: {
+      "import/no-restricted-paths": [
+        "error",
+        {
+          zones: [
+            {
+              target: "./components",
+              from: [
+                "./server",
+                "./domain",
+                "./models",
+                "./server/models",
+                "./domain/fm/fm.behavior",
+                "mongoose",
+              ],
+              message:
+                "Do not import server-only modules (models/mongoose/fm.behavior) into client components. Use client-safe facades (e.g., lib/rbac/client-roles).",
+            },
+            {
+              target: "./pages",
+              from: [
+                "./server",
+                "./domain",
+                "./models",
+                "./server/models",
+                "./domain/fm/fm.behavior",
+                "mongoose",
+              ],
+              message:
+                "Do not import server-only modules (models/mongoose/fm.behavior) into client components. Use client-safe facades (e.g., lib/rbac/client-roles).",
+            },
+          ],
+        },
+      ],
+    },
+    settings: {
+      "import/resolver": {
+        node: true,
+        alias: {
+          map: [
+            ["@", path.resolve("./")],
+            ["@/app", path.resolve("./app")],
+            ["@/components", path.resolve("./components")],
+            ["@/lib", path.resolve("./lib")],
+            ["@/domain", path.resolve("./domain")],
+            ["@/server", path.resolve("./server")],
+          ],
+          extensions: [".ts", ".tsx", ".js", ".jsx"],
+        },
+      },
     },
   },
 ];

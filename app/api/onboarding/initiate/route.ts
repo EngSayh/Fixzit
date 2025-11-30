@@ -9,6 +9,7 @@ type InitiateBody = {
   role?: OnboardingRole;
   basic_info?: Record<string, unknown>;
   payload?: Record<string, unknown>;
+  country?: string;
 };
 
 export async function POST(req: NextRequest) {
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = (await req.json().catch(() => ({}))) as InitiateBody;
-  const { role, basic_info, payload } = body;
+  const { role, basic_info, payload, country } = body;
 
   if (!role || !ONBOARDING_ROLES.includes(role)) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
@@ -27,12 +28,14 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectMongo();
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const onboarding = await OnboardingCase.create({
-      org_id: user.orgId ? new Types.ObjectId(user.orgId) : null,
+      orgId: user.orgId ? new Types.ObjectId(user.orgId) : null,
       subject_user_id: new Types.ObjectId(user.id),
       role,
       basic_info,
       payload,
+      country: typeof country === 'string' && country.trim() ? country.trim() : 'SA',
       created_by_id: new Types.ObjectId(user.id),
       source_channel: 'web',
     });

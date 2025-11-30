@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,15 +81,15 @@ export function WorkOrderAttachments({
       ...att,
       scanStatus: att.scanStatus || "pending",
     }));
-    const currKeys = new Set(attachments.map((a) => a.key));
-    const nextKeys = new Set(normalized.map((a) => a.key));
-    const changed =
-      currKeys.size !== nextKeys.size ||
-      [...currKeys].some((k) => !nextKeys.has(k));
-    if (changed) {
-      setAttachments(normalized);
-    }
-  }, [initialAttachments, attachments]);
+    setAttachments((prev) => {
+      const currKeys = new Set(prev.map((a) => a.key));
+      const nextKeys = new Set(normalized.map((a) => a.key));
+      const changed =
+        currKeys.size !== nextKeys.size ||
+        [...currKeys].some((k) => !nextKeys.has(k));
+      return changed ? normalized : prev;
+    });
+  }, [initialAttachments]);
 
   // Poll AV scan status for pending items
   useEffect(() => {
@@ -221,9 +223,10 @@ export function WorkOrderAttachments({
       for (const file of files) {
         const ext = file.name.split(".").pop()?.toLowerCase();
         const presignRes = await fetch(
-          `/api/work-orders/${targetId}/attachments/presign`,
+          `/api/fm/work-orders/${targetId}/attachments/presign`,
           {
             method: "POST",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               name: file.name,
@@ -366,8 +369,9 @@ export function WorkOrderAttachments({
       onChange?.(merged);
       if (targetId) {
         try {
-          const saveRes = await fetch(`/api/work-orders/${targetId}`, {
+          const saveRes = await fetch(`/api/fm/work-orders/${targetId}`, {
             method: "PATCH",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ attachments: merged }),
           });
@@ -395,8 +399,9 @@ export function WorkOrderAttachments({
     onChange?.(updated);
 
     try {
-      const res = await fetch(`/api/work-orders/${workOrderId}`, {
+      const res = await fetch(`/api/fm/work-orders/${workOrderId}`, {
         method: "PATCH",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ attachments: updated }),
       });
@@ -459,7 +464,7 @@ export function WorkOrderAttachments({
           type="file"
           multiple
           onChange={(e) => handleFiles(e.target.files)}
-          disabled={uploading && !workOrderId}
+          disabled={uploading}
           className="max-w-xs"
         />
       </div>

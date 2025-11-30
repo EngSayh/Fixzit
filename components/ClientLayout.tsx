@@ -13,6 +13,8 @@ import AutoFixInitializer from "./AutoFixInitializer";
 import ResponsiveLayout from "./ResponsiveLayout";
 import HtmlAttrs from "./HtmlAttrs";
 import PreferenceBroadcast from "./PreferenceBroadcast";
+import TrialBanner from "./TrialBanner";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useTranslation } from "@/contexts/TranslationContext";
 import {
   AUTH_ROUTES,
@@ -356,6 +358,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     }
   }, [loading, role, isProtectedRoute, router]);
 
+  const { subscriptionStatus, isLoading: subLoading, isActive } = useSubscription();
+
   // Auth pages => minimal layout, no widgets
   if (isAuthPage) {
     return (
@@ -416,7 +420,12 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           showSidebarToggle={true}
           footer={<Footer />}
         >
-          {children}
+          <div className="relative min-h-full">
+            {children}
+            {!subLoading && !isActive && (
+              <TrialBanner subscriptionStatus={subscriptionStatus ?? null} />
+            )}
+          </div>
         </ResponsiveLayout>
         <PreferenceBroadcast />
         <CopilotWidget />

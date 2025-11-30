@@ -22,7 +22,11 @@ async function decodeToken(token?: string | null) {
     const secret = new TextEncoder().encode(
       requireEnv("JWT_SECRET", { testFallback: TEST_JWT_SECRET }),
     );
-    const { payload } = await jwtVerify(token, secret);
+    // Verify JWT with algorithm constraint for security
+    const { payload } = await jwtVerify(token, secret, {
+      algorithms: ['HS256'],
+      clockTolerance: 5, // 5 second tolerance for clock skew
+    });
     return payload;
   } catch {
     // Failed to decode marketplace JWT payload

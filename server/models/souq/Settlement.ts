@@ -10,7 +10,7 @@ export interface ISettlement {
   _id: Types.ObjectId;
   settlementId: string;
   sellerId: Types.ObjectId;
-  org_id: string;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId
   escrowAccountId?: Types.ObjectId;
   period: string; // YYYY-MM format
   startDate: Date;
@@ -51,7 +51,7 @@ const SettlementSchema = new Schema<ISettlement>(
       type: Schema.Types.ObjectId,
       ref: "EscrowAccount",
     },
-    org_id: {
+    orgId: { // AUDIT-2025-11-29: Changed from org_id
       type: String,
       required: true,
       index: true,
@@ -136,7 +136,7 @@ const SettlementSchema = new Schema<ISettlement>(
 
 // Indexes
 SettlementSchema.index({ sellerId: 1, period: 1 }, { unique: true });
-SettlementSchema.index({ org_id: 1, status: 1 });
+SettlementSchema.index({ orgId: 1, status: 1 }); // AUDIT-2025-11-29: Changed from org_id
 SettlementSchema.index({ dueDate: 1 });
 
 // Pre-save hook to calculate payout amount

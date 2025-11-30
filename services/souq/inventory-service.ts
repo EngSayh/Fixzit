@@ -14,6 +14,7 @@ export interface IReceiveInventoryParams {
   sellerId: string;
   quantity: number;
   fulfillmentType: "FBM" | "FBF";
+  orgId?: string;
   warehouseId?: string;
   binLocation?: string;
   performedBy: string;
@@ -24,18 +25,21 @@ export interface IReserveInventoryParams {
   listingId: string;
   quantity: number;
   reservationId: string;
+  orgId?: string;
   expirationMinutes?: number;
 }
 
 export interface IReleaseInventoryParams {
   listingId: string;
   reservationId: string;
+  orgId?: string;
 }
 
 export interface IConvertReservationParams {
   listingId: string;
   reservationId: string;
   orderId: string;
+  orgId?: string;
 }
 
 export interface IReturnInventoryParams {
@@ -43,6 +47,7 @@ export interface IReturnInventoryParams {
   rmaId: string;
   quantity: number;
   condition: "sellable" | "unsellable";
+  orgId?: string;
 }
 
 export interface IAdjustInventoryParams {
@@ -51,6 +56,7 @@ export interface IAdjustInventoryParams {
   type: "damage" | "lost";
   reason: string;
   performedBy: string;
+  orgId?: string;
 }
 
 export interface IInventoryHealthReport {
@@ -79,6 +85,7 @@ class InventoryService {
         listingId: params.listingId,
         productId: params.productId,
         sellerId: params.sellerId,
+        orgId: params.orgId,
         availableQuantity: params.quantity,
         totalQuantity: params.quantity,
         reservedQuantity: 0,
@@ -108,7 +115,11 @@ class InventoryService {
       });
 
       // Update listing stock status
-      await this.updateListingStockStatus(params.listingId, params.quantity);
+      await this.updateListingStockStatus(
+        params.listingId,
+        params.quantity,
+        params.orgId,
+      );
 
       logger.info("Inventory initialized", {
         inventoryId,
@@ -134,12 +145,16 @@ class InventoryService {
     quantity: number,
     performedBy: string,
     reason?: string,
+    orgId?: string,
   ): Promise<IInventory> {
     try {
-      const inventory = await SouqInventory.findOne({
-        listingId,
-        status: { $ne: "suspended" },
-      });
+      const inventory = await SouqInventory.findOne(
+        {
+          listingId,
+          status: { $ne: "suspended" },
+          ...(orgId ? { orgId } : {}),
+        },
+      );
 
       if (!inventory) {
         throw new Error(`Inventory not found for listing: ${listingId}`);
@@ -152,6 +167,7 @@ class InventoryService {
       await this.updateListingStockStatus(
         listingId,
         inventory.availableQuantity,
+        orgId,
       );
 
       logger.info("Stock received", {
@@ -178,6 +194,7 @@ class InventoryService {
       const inventory = await SouqInventory.findOne({
         listingId: params.listingId,
         status: "active",
+        ...(params.orgId ? { orgId: params.orgId } : {}),
       });
 
       if (!inventory) {
@@ -208,7 +225,11 @@ class InventoryService {
 
       // Update listing if out of stock
       if (inventory.isOutOfStock()) {
-        await this.updateListingStockStatus(params.listingId, 0);
+        await this.updateListingStockStatus(
+          params.listingId,
+          0,
+          params.orgId,
+        );
       }
 
       logger.info("Inventory reserved", {
@@ -234,6 +255,7 @@ class InventoryService {
     try {
       const inventory = await SouqInventory.findOne({
         listingId: params.listingId,
+        ...(params.orgId ? { orgId: params.orgId } : {}),
       });
 
       if (!inventory) {
@@ -256,6 +278,7 @@ class InventoryService {
       await this.updateListingStockStatus(
         params.listingId,
         inventory.availableQuantity,
+        params.orgId,
       );
 
       logger.info("Reservation released", {
@@ -282,6 +305,7 @@ class InventoryService {
     try {
       const inventory = await SouqInventory.findOne({
         listingId: params.listingId,
+        ...(params.orgId ? { orgId: params.orgId } : {}),
       });
 
       if (!inventory) {
@@ -303,6 +327,7 @@ class InventoryService {
       await this.updateListingStockStatus(
         params.listingId,
         inventory.availableQuantity,
+        params.orgId,
       );
 
       // Trigger Buy Box recompute if stock changed significantly
@@ -335,6 +360,7 @@ class InventoryService {
     try {
       const inventory = await SouqInventory.findOne({
         listingId: params.listingId,
+        ...(params.orgId ? { orgId: params.orgId } : {}),
       });
 
       if (!inventory) {
@@ -348,6 +374,7 @@ class InventoryService {
       await this.updateListingStockStatus(
         params.listingId,
         inventory.availableQuantity,
+        params.orgId,
       );
 
       logger.info("Return processed", {
@@ -374,6 +401,7 @@ class InventoryService {
     try {
       const inventory = await SouqInventory.findOne({
         listingId: params.listingId,
+        ...(params.orgId ? { orgId: params.orgId } : {}),
       });
 
       if (!inventory) {
@@ -407,8 +435,14 @@ class InventoryService {
   /**
    * Get inventory for a listing
    */
-  async getInventory(listingId: string): Promise<IInventory | null> {
-    return await SouqInventory.findOne({ listingId });
+  async getInventory(
+    listingId: string,
+    orgId?: string,
+  ): Promise<IInventory | null> {
+    return await SouqInventory.findOne({
+      listingId,
+      ...(orgId ? { orgId } : {}),
+    });
   }
 
   /**
@@ -420,6 +454,7 @@ class InventoryService {
       status?: string;
       fulfillmentType?: "FBM" | "FBF";
       lowStockOnly?: boolean;
+      orgId?: string;
     },
   ): Promise<IInventory[]> {
     const query: Record<string, unknown> = { sellerId };
@@ -430,6 +465,10 @@ class InventoryService {
 
     if (filters?.fulfillmentType) {
       query.fulfillmentType = filters.fulfillmentType;
+    }
+
+    if (filters?.orgId) {
+      query.orgId = filters.orgId;
     }
 
     let inventory = await SouqInventory.find(query).sort({ updatedAt: -1 });
@@ -446,8 +485,13 @@ class InventoryService {
    */
   async getInventoryHealthReport(
     sellerId: string,
+    orgId?: string,
   ): Promise<IInventoryHealthReport> {
-    const inventory = await SouqInventory.find({ sellerId, status: "active" });
+    const inventory = await SouqInventory.find({
+      sellerId,
+      status: "active",
+      ...(orgId ? { orgId } : {}),
+    });
 
     const report: IInventoryHealthReport = {
       totalListings: inventory.length,
@@ -477,7 +521,7 @@ class InventoryService {
   /**
    * Clean expired reservations (run periodically via cron)
    */
-  async cleanExpiredReservations(): Promise<{
+  async cleanExpiredReservations(orgId?: string): Promise<{
     cleaned: number;
     released: number;
   }> {
@@ -488,6 +532,7 @@ class InventoryService {
       const inventories = await SouqInventory.find({
         status: "active",
         "reservations.status": "active",
+        ...(orgId ? { orgId } : {}),
       });
 
       for (const inventory of inventories) {
@@ -497,6 +542,7 @@ class InventoryService {
           await this.updateListingStockStatus(
             inventory.listingId,
             inventory.availableQuantity,
+            orgId ?? inventory.orgId,
           );
           cleaned++;
           released += count;
@@ -518,10 +564,11 @@ class InventoryService {
   /**
    * Update inventory health metrics (run daily)
    */
-  async updateHealthMetrics(sellerId?: string): Promise<void> {
+  async updateHealthMetrics(sellerId?: string, orgId?: string): Promise<void> {
     try {
       const query: Record<string, unknown> = { status: "active" };
       if (sellerId) query.sellerId = sellerId;
+      if (orgId) query.orgId = orgId;
 
       const inventories = await SouqInventory.find(query);
 
@@ -550,10 +597,11 @@ class InventoryService {
   /**
    * Queue low stock alerts
    */
-  async queueLowStockAlerts(sellerId?: string): Promise<number> {
+  async queueLowStockAlerts(sellerId?: string, orgId?: string): Promise<number> {
     try {
       const query: Record<string, unknown> = { status: "active" };
       if (sellerId) query.sellerId = sellerId;
+      if (orgId) query.orgId = orgId;
 
       const inventories = await SouqInventory.find(query);
       let alertCount = 0;
@@ -588,9 +636,18 @@ class InventoryService {
   private async updateListingStockStatus(
     listingId: string,
     availableQuantity: number,
+    orgId?: string,
   ): Promise<void> {
     try {
-      const listing = await SouqListing.findOne({ listingId });
+      const query: Record<string, unknown> = { listingId };
+      if (orgId) query.orgId = orgId;
+
+      let listing = await SouqListing.findOne(query);
+
+      // Backward compatibility: if orgId is set but listing schema/data lacks it
+      if (!listing && orgId) {
+        listing = await SouqListing.findOne({ listingId });
+      }
 
       if (!listing) {
         logger.warn("Listing not found for inventory update", { listingId });

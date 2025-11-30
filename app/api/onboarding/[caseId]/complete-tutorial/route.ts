@@ -21,7 +21,7 @@ export async function PUT(
     if (
       onboarding.subject_user_id?.toString() !== user.id &&
       onboarding.created_by_id?.toString() !== user.id &&
-      onboarding.org_id?.toString() !== user.orgId
+      onboarding.orgId?.toString() !== user.orgId // AUDIT-2025-11-29: Changed from org_id to orgId
     ) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

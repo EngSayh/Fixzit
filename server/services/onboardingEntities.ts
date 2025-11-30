@@ -28,11 +28,13 @@ const ticketMessages = {
  * a CRM trail and setting the right tenant context.
  */
 export async function createEntitiesFromCase(onboarding: OnboardingCaseLean): Promise<void> {
-  const role = onboarding.role;
+  const role = onboarding.role as string;
   const orgId =
-    onboarding.org_id ||
-    onboarding.subject_org_id ||
-    (onboarding as { orgId?: Types.ObjectId }).orgId;
+    (onboarding as { orgId?: Types.ObjectId }).orgId ??
+    (onboarding as { subjectOrgId?: Types.ObjectId }).subjectOrgId ??
+    // Legacy snake_case fallbacks
+    (onboarding as { org_id?: Types.ObjectId }).org_id ??
+    (onboarding as { subject_org_id?: Types.ObjectId }).subject_org_id;
 
   if (orgId) {
     setTenantContext({ orgId });
@@ -113,9 +115,9 @@ export async function createEntitiesFromCase(onboarding: OnboardingCaseLean): Pr
 
   // Stub hooks to be replaced with actual integrations.
   switch (role) {
-    case 'CUSTOMER':
-    case 'PROPERTY_OWNER': {
-      logger.info('[Onboarding] Org provisioning stub (customer/owner)', summary);
+    case 'PROPERTY_OWNER':
+    case 'OWNER': {
+      logger.info('[Onboarding] Org provisioning stub (owner)', summary);
       break;
     }
     case 'VENDOR': {

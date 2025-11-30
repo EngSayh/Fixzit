@@ -87,7 +87,7 @@ export default function PropertiesPage() {
   const { data, mutate, isLoading } = useSWR(
     orgId
       ? [
-          `/api/properties?search=${encodeURIComponent(search)}&type=${typeFilter}`,
+          `/api/fm/properties?search=${encodeURIComponent(search)}&type=${typeFilter}`,
           orgId,
         ]
       : null,
@@ -277,7 +277,7 @@ function PropertyCard({
       t("fm.properties.toast.deleting", "Deleting property..."),
     );
     try {
-      const res = await fetch(`/api/properties/${property.id}`, {
+      const res = await fetch(`/api/fm/properties/${property.id}`, {
         method: "DELETE",
         headers: { "x-tenant-id": orgId },
       });
@@ -437,9 +437,17 @@ function PropertyCard({
               {t("fm.properties.status", "Status")}:
             </span>
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-success/20 rounded-full"></div>
+              <div className={`w-2 h-2 rounded-full ${
+                property.status === "INACTIVE" 
+                  ? "bg-destructive/20" 
+                  : property.status === "MAINTENANCE" 
+                    ? "bg-warning/20"
+                    : "bg-success/20"
+              }`}></div>
               <span className="text-sm font-medium">
-                {t("fm.properties.active", "Active")}
+                {property.status 
+                  ? t(`fm.properties.status.${property.status.toLowerCase()}`, property.status)
+                  : t("fm.properties.active", "Active")}
               </span>
             </div>
           </div>
@@ -564,7 +572,7 @@ export function CreatePropertyForm({
     );
 
     try {
-      const response = await fetch("/api/properties", {
+      const response = await fetch("/api/fm/properties", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

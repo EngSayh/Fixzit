@@ -46,18 +46,21 @@ export const searchIndexQueue = connection
 interface FullReindexJob {
   type: "full_reindex";
   target: "products" | "sellers" | "all";
+  orgId?: string;
 }
 
 interface IncrementalUpdateJob {
   type: "incremental_update";
   target: "product" | "seller";
   id: string; // listingId or sellerId
+  orgId: string;
 }
 
 interface DeleteFromIndexJob {
   type: "delete";
   target: "product" | "seller";
   id: string; // fsin or sellerId
+  orgId: string;
 }
 
 type SearchIndexJobData =
@@ -103,6 +106,7 @@ export async function scheduleFullReindex() {
  */
 export async function triggerFullReindex(
   target: "products" | "sellers" | "all" = "all",
+  orgId?: string,
 ) {
   if (!searchIndexQueue) {
     logger.warn("[SearchIndex] Cannot trigger reindex - Redis not configured");
@@ -113,6 +117,7 @@ export async function triggerFullReindex(
     {
       type: "full_reindex",
       target,
+      orgId,
     } as FullReindexJob,
     {
       priority: 1, // High priority for manual trigger
@@ -129,6 +134,7 @@ export async function triggerFullReindex(
 export async function triggerIncrementalUpdate(
   target: "product" | "seller",
   id: string,
+  orgId: string,
 ) {
   if (!searchIndexQueue) {
     logger.warn(
@@ -142,6 +148,7 @@ export async function triggerIncrementalUpdate(
       type: "incremental_update",
       target,
       id,
+      orgId,
     } as IncrementalUpdateJob,
     {
       priority: 5, // Medium priority
@@ -163,6 +170,7 @@ export async function triggerIncrementalUpdate(
 export async function triggerDeleteFromIndex(
   target: "product" | "seller",
   id: string,
+  orgId: string,
 ) {
   if (!searchIndexQueue) {
     logger.warn("[SearchIndex] Cannot queue delete - Redis not configured");
@@ -174,6 +182,7 @@ export async function triggerDeleteFromIndex(
       type: "delete",
       target,
       id,
+      orgId,
     } as DeleteFromIndexJob,
     {
       priority: 10, // Low priority (deletions can be delayed)
@@ -205,13 +214,17 @@ async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
     switch (data.type) {
       case "full_reindex": {
         if (data.target === "products" || data.target === "all") {
-          const result = await SearchIndexerService.fullReindexProducts();
+          const result = await SearchIndexerService.fullReindexProducts({
+            orgId: data.orgId,
+          });
           await job.updateProgress(50);
           logger.info(`[SearchIndex] Products reindexed: ${result.indexed}`);
         }
 
         if (data.target === "sellers" || data.target === "all") {
-          const result = await SearchIndexerService.fullReindexSellers();
+          const result = await SearchIndexerService.fullReindexSellers({
+            orgId: data.orgId,
+          });
           await job.updateProgress(100);
           logger.info(`[SearchIndex] Sellers reindexed: ${result.indexed}`);
         }
@@ -220,16 +233,22 @@ async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
 
       case "incremental_update": {
         if (data.target === "product") {
-          await SearchIndexerService.updateListing(data.id);
+          await SearchIndexerService.updateListing(data.id, {
+            orgId: data.orgId,
+          });
         } else if (data.target === "seller") {
-          await SearchIndexerService.updateSeller(data.id);
+          await SearchIndexerService.updateSeller(data.id, {
+            orgId: data.orgId,
+          });
         }
         await job.updateProgress(100);
         break;
       }
 
       case "delete": {
-        await SearchIndexerService.deleteFromIndex(data.id);
+        await SearchIndexerService.deleteFromIndex(data.id, {
+          orgId: data.orgId,
+        });
         await job.updateProgress(100);
         break;
       }
@@ -318,29 +337,29 @@ export async function stopSearchIndexWorker() {
 /**
  * Hook: Call this after listing created
  */
-export async function onListingCreated(listingId: string) {
-  await triggerIncrementalUpdate("product", listingId);
+export async function onListingCreated(listingId: string, orgId: string) {
+  await triggerIncrementalUpdate("product", listingId, orgId);
 }
 
 /**
  * Hook: Call this after listing updated
  */
-export async function onListingUpdated(listingId: string) {
-  await triggerIncrementalUpdate("product", listingId);
+export async function onListingUpdated(listingId: string, orgId: string) {
+  await triggerIncrementalUpdate("product", listingId, orgId);
 }
 
 /**
  * Hook: Call this after listing deleted
  */
-export async function onListingDeleted(fsin: string) {
-  await triggerDeleteFromIndex("product", fsin);
+export async function onListingDeleted(fsin: string, orgId: string) {
+  await triggerDeleteFromIndex("product", fsin, orgId);
 }
 
 /**
  * Hook: Call this after seller profile updated
  */
-export async function onSellerUpdated(sellerId: string) {
-  await triggerIncrementalUpdate("seller", sellerId);
+export async function onSellerUpdated(sellerId: string, orgId: string) {
+  await triggerIncrementalUpdate("seller", sellerId, orgId);
 }
 
 // ============================================================================
@@ -352,6 +371,7 @@ export async function onSellerUpdated(sellerId: string) {
  */
 export async function adminTriggerFullReindex(
   target: "products" | "sellers" | "all",
+  orgId?: string,
 ) {
-  return await triggerFullReindex(target);
+  return await triggerFullReindex(target, orgId);
 }

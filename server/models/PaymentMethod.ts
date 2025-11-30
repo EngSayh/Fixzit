@@ -5,9 +5,10 @@ import { auditPlugin } from "../plugins/auditPlugin";
 const PaymentMethodSchema = new Schema(
   {
     // NOTE: This schema uses a flexible ownership model (XOR validation)
-    // Either org_id (organization payment method) OR owner_user_id (user payment method)
+    // Either orgId (organization payment method) OR owner_user_id (user payment method)
     // This is intentional and does NOT use tenantIsolationPlugin
-    org_id: {
+    // AUDIT-2025-11-29: Changed from org_id to orgId
+    orgId: {
       type: Schema.Types.ObjectId,
       ref: "Organization",
       // Note: required conditionally in validation - see validate hook below
@@ -25,17 +26,18 @@ const PaymentMethodSchema = new Schema(
   { timestamps: true },
 );
 
-// XOR validation: Either org_id OR owner_user_id must be provided, but not both
+// XOR validation: Either orgId OR owner_user_id must be provided, but not both
+// AUDIT-2025-11-29: Changed from org_id to orgId
 PaymentMethodSchema.pre("validate", function (next) {
-  const hasOrg = !!this.org_id;
+  const hasOrg = !!this.orgId;
   const hasOwner = !!this.owner_user_id;
 
   if (!hasOrg && !hasOwner) {
-    return next(new Error("Either org_id or owner_user_id must be provided"));
+    return next(new Error("Either orgId or owner_user_id must be provided"));
   }
 
   if (hasOrg && hasOwner) {
-    return next(new Error("Cannot set both org_id and owner_user_id"));
+    return next(new Error("Cannot set both orgId and owner_user_id"));
   }
 
   next();
@@ -45,13 +47,13 @@ PaymentMethodSchema.pre("validate", function (next) {
 PaymentMethodSchema.plugin(auditPlugin);
 
 // Indexes for efficient queries
-PaymentMethodSchema.index({ org_id: 1 });
+PaymentMethodSchema.index({ orgId: 1 }); // AUDIT-2025-11-29: Changed from org_id
 PaymentMethodSchema.index({ owner_user_id: 1 });
 PaymentMethodSchema.index({ pt_token: 1 }, { sparse: true }); // For quick token lookup
 
 // TypeScript-safe model export
 interface IPaymentMethod extends Document {
-  org_id?: Schema.Types.ObjectId;
+  orgId?: Schema.Types.ObjectId; // AUDIT-2025-11-29: Changed from org_id
   owner_user_id?: Schema.Types.ObjectId;
   gateway: string;
   pt_token?: string;

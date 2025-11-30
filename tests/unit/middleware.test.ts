@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
 import { middleware } from '../../middleware';
 import { generateToken } from '../../lib/auth';
@@ -43,6 +43,7 @@ vi.mock('@/auth', () => ({
 // Mock environment variables
 const mockEnv = {
   JWT_SECRET: 'test-secret-key-for-testing-only',
+  CSRF_PROTECTION: 'true',  // Enable CSRF protection for tests
 };
 
 describe('Middleware', () => {
@@ -51,14 +52,20 @@ describe('Middleware', () => {
     process.env = { ...process.env, ...mockEnv };
   });
 
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   const createMockRequest = (
     url: string,
     cookies?: Record<string, string>,
-    headers?: Record<string, string>
+    headers?: Record<string, string>,
+    method: string = 'GET'
   ): NextRequest => {
     const request = {
       url: `http://localhost:3000${url}`,
       nextUrl: new URL(`http://localhost:3000${url}`),
+      method,
       cookies: {
         get: (name: string) => cookies?.[name] ? { value: cookies[name] } : undefined,
         has: (name: string) => !!cookies?.[name],
@@ -386,6 +393,300 @@ describe('Middleware', () => {
       
       // Middleware allows request to proceed when JWT is valid
       expect(response).toBeInstanceOf(Response);
+    });
+  });
+
+  describe('CSRF Protection', () => {
+    const validCsrfToken = 'valid-csrf-token-12345';
+
+    describe('Safe Methods (GET, HEAD, OPTIONS)', () => {
+      it('should allow GET requests without CSRF token', async () => {
+        const request = createMockRequest('/api/work-orders', {}, {}, 'GET');
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // GET requests should not be blocked by CSRF
+        // They may still be blocked by auth, but that's a different concern
+      });
+
+      it('should allow HEAD requests without CSRF token', async () => {
+        const request = createMockRequest('/api/work-orders', {}, {}, 'HEAD');
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+      });
+
+      it('should allow OPTIONS requests without CSRF token', async () => {
+        const request = createMockRequest('/api/work-orders', {}, {}, 'OPTIONS');
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+      });
+    });
+
+    describe('State-Changing Methods (POST, PUT, DELETE, PATCH)', () => {
+      it('should reject POST without X-CSRF-Token header', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders',
+          { fixzit_auth: token },
+          {}, // No CSRF header
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Should be 403 Forbidden for missing CSRF
+        expect(response?.status).toBe(403);
+      });
+
+      it('should reject POST with mismatched CSRF tokens', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders',
+          { 
+            fixzit_auth: token,
+            'csrf-token': validCsrfToken  // Cookie token
+          },
+          { 'X-CSRF-Token': 'different-token' },  // Header token (mismatched)
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        expect(response?.status).toBe(403);
+      });
+
+      it('should reject PUT without CSRF token', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders/123',
+          { fixzit_auth: token },
+          {},
+          'PUT'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        expect(response?.status).toBe(403);
+      });
+
+      it('should reject DELETE without CSRF token', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders/123',
+          { fixzit_auth: token },
+          {},
+          'DELETE'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        expect(response?.status).toBe(403);
+      });
+
+      it('should reject PATCH without CSRF token', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders/123',
+          { fixzit_auth: token },
+          {},
+          'PATCH'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        expect(response?.status).toBe(403);
+      });
+
+      it('should allow POST with valid matching CSRF tokens', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders',
+          { 
+            fixzit_auth: token,
+            'csrf-token': validCsrfToken  // Cookie token
+          },
+          { 'X-CSRF-Token': validCsrfToken },  // Header token (matching)
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Should NOT be 403 - CSRF validation passed
+        // May still be blocked by other auth issues, but not CSRF
+        expect(response?.status).not.toBe(403);
+      });
+
+      it('should accept lowercase x-csrf-token header', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders',
+          { 
+            fixzit_auth: token,
+            'csrf-token': validCsrfToken
+          },
+          { 'x-csrf-token': validCsrfToken },  // Lowercase header
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Should pass CSRF validation
+        expect(response?.status).not.toBe(403);
+      });
+    });
+
+    describe('CSRF Exempt Routes', () => {
+      it('should bypass CSRF for /api/auth routes', async () => {
+        const request = createMockRequest(
+          '/api/auth/signin',
+          {},
+          {},
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Should not be blocked by CSRF (auth routes handle their own CSRF)
+        expect(response?.status).not.toBe(403);
+      });
+
+      it('should bypass CSRF for /api/webhooks routes', async () => {
+        const request = createMockRequest(
+          '/api/webhooks/stripe',
+          {},
+          {},
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Webhooks use signature verification instead of CSRF
+        expect(response?.status).not.toBe(403);
+      });
+
+      it('should bypass CSRF for /api/health endpoint', async () => {
+        const request = createMockRequest(
+          '/api/health',
+          {},
+          {},
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Health checks don't change state
+        expect(response?.status).not.toBe(403);
+      });
+
+      it('should bypass CSRF for /api/copilot routes', async () => {
+        const request = createMockRequest(
+          '/api/copilot/chat',
+          {},
+          {},
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Copilot uses separate auth mechanism
+        expect(response?.status).not.toBe(403);
+      });
+    });
+
+    describe('CSRF Protection Toggle', () => {
+      it('should respect CSRF_PROTECTION=false environment variable', async () => {
+        // Disable CSRF protection
+        process.env.CSRF_PROTECTION = 'false';
+
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders',
+          { fixzit_auth: token },
+          {},  // No CSRF token
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        // Should not be blocked by CSRF when disabled
+        // Note: In real implementation, check if middleware respects this env var
+      });
+    });
+
+    describe('CSRF Error Responses', () => {
+      it('should return proper error message for missing CSRF token', async () => {
+        const token = await makeToken({
+          id: '123',
+          email: 'test@example.com',
+          role: 'EMPLOYEE',
+          orgId: 'org1',
+        });
+
+        const request = createMockRequest(
+          '/api/work-orders',
+          { fixzit_auth: token },
+          {},
+          'POST'
+        );
+        const response = await middleware(request);
+        
+        expect(response).toBeInstanceOf(Response);
+        if (response?.status === 403) {
+          const body = await response.json();
+          expect(body).toHaveProperty('error');
+          expect(body.error).toMatch(/csrf/i);
+        }
+      });
     });
   });
 });

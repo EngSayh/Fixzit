@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "installCommand": "pnpm install --frozen-lockfile=false",
+  "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm build",
   "outputDirectory": ".next",
   "build": {
@@ -12,5 +12,6 @@
     "enabled": true,
     "autoAlias": true,
     "silent": false
-  }
+  },
+  "regions": ["cdg1"]
 }

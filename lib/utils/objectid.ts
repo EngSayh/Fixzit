@@ -2,6 +2,16 @@ import { ObjectId } from "mongodb";
 import { Types } from "mongoose";
 
 /**
+ * Custom validation error for ObjectId validation failures
+ */
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
+/**
  * Validate if a string is a valid MongoDB ObjectId
  * @param id - The string to validate
  * @returns true if valid ObjectId, false otherwise
@@ -9,6 +19,24 @@ import { Types } from "mongoose";
 export function isValidObjectId(id: string | undefined | null): boolean {
   if (!id) return false;
   return Types.ObjectId.isValid(id);
+}
+
+/**
+ * Parse a string to ObjectId, throwing ValidationError if invalid
+ * Use this for API endpoints that require strict ObjectId validation
+ * @param id - The string to parse
+ * @param fieldName - Optional field name for error message context
+ * @throws ValidationError if the id is not a valid ObjectId
+ * @returns ObjectId
+ */
+export function parseObjectId(id: string | undefined | null, fieldName = "id"): ObjectId {
+  if (!id) {
+    throw new ValidationError(`${fieldName} is required`);
+  }
+  if (!isValidObjectId(id)) {
+    throw new ValidationError(`Invalid ${fieldName}: must be a valid ObjectId format`);
+  }
+  return new ObjectId(id);
 }
 
 /**

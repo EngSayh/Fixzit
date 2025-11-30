@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { logger } from "@/lib/logger";
 import type { WorkOrderPhoto } from "@/types/fm";
 import {
@@ -33,12 +34,14 @@ export async function GET(
   try {
     const actor = await requireFmAbility("VIEW")(req);
     if (actor instanceof NextResponse) return actor;
+    const isSuperAdmin = actor.role === 'SUPER_ADMIN';
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId || actor.tenantId,
+      { isSuperAdmin }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
-    const { tenantId } = tenantResolution;
+    const { tenantId: orgId } = tenantResolution;  // Use orgId for consistency
 
     if (!getCanonicalUserId(actor)) {
       return FMErrors.validationError("User identifier is required");
@@ -52,7 +55,7 @@ export async function GET(
     const db = await getDatabase();
     const attachments = await db
       .collection("workorder_attachments")
-      .find({ tenantId, workOrderId })
+      .find({ orgId, workOrderId })
       .sort({ uploadedAt: -1 })
       .toArray();
 
@@ -73,12 +76,14 @@ export async function POST(
   try {
     const actor = await requireFmAbility("EDIT")(req);
     if (actor instanceof NextResponse) return actor;
+    const isSuperAdmin = actor.role === 'SUPER_ADMIN';
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId || actor.tenantId,
+      { isSuperAdmin }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
-    const { tenantId } = tenantResolution;
+    const { tenantId: orgId } = tenantResolution;  // Use orgId for consistency
 
     const actorId = getCanonicalUserId(actor);
     if (!actorId) {
@@ -102,12 +107,12 @@ export async function POST(
     await assertWorkOrderQuota(
       db,
       "workorder_attachments",
-      tenantId,
+      orgId,
       workOrderId,
       WORK_ORDER_ATTACHMENT_LIMIT,
     );
     const attachmentDoc = {
-      tenantId,
+      orgId,  // STRICT v4.1: Use orgId instead of tenantId
       workOrderId,
       url,
       thumbnailUrl: body?.thumbnailUrl,
@@ -130,7 +135,7 @@ export async function POST(
 
     await recordTimelineEntry(db, {
       workOrderId,
-      tenantId,
+      tenantId: orgId,  // STRICT v4.1: Use orgId for timeline
       action: "photo_uploaded",
       description: body?.caption || body?.fileName || "Attachment uploaded",
       metadata: {
@@ -170,12 +175,14 @@ export async function DELETE(
   try {
     const actor = await requireFmAbility("EDIT")(req);
     if (actor instanceof NextResponse) return actor;
+    const isSuperAdmin = actor.role === 'SUPER_ADMIN';
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId || actor.tenantId,
+      { isSuperAdmin }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
-    const { tenantId } = tenantResolution;
+    const { tenantId: orgId } = tenantResolution;  // Use orgId for consistency
 
     const actorId = getCanonicalUserId(actor);
     if (!actorId) {
@@ -199,23 +206,23 @@ export async function DELETE(
     }
 
     const db = await getDatabase();
-    const result = await db
-      .collection("workorder_attachments")
-      .findOneAndDelete({
+    const result = unwrapFindOneResult(
+      await db.collection("workorder_attachments").findOneAndDelete({
         _id: new ObjectId(attachmentId),
-        tenantId,
+        orgId,
         workOrderId,
-      });
+      }),
+    );
 
-    if (!result?.value) {
+    if (!result) {
       return FMErrors.notFound("Attachment");
     }
 
     await recordTimelineEntry(db, {
       workOrderId,
-      tenantId,
+      tenantId: orgId,  // STRICT v4.1: Use orgId for timeline
       action: "photo_removed",
-      description: `Attachment removed: ${result.value.caption || result.value.fileName || result.value.url}`,
+      description: `Attachment removed: ${result.caption || result.fileName || result.url}`,
       metadata: {
         attachmentId,
       },

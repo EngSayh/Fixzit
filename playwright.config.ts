@@ -2,6 +2,12 @@ import { defineConfig, devices } from '@playwright/test';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
+const isCI = !!process.env.CI;
+const requestedProjects = process.env.PLAYWRIGHT_PROJECTS
+  ?.split(',')
+  .map((p) => p.trim())
+  .filter(Boolean);
+
 // Load environment variables from .env.test if it exists
 // This ensures GOOGLE_CLIENT_ID/SECRET and other test credentials are available
 const envPath = path.resolve(process.cwd(), '.env.test');
@@ -70,34 +76,48 @@ export default defineConfig({
   },
 
   /* Configure projects for major browsers */
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
+  projects: (() => {
+    const allProjects = [
+      {
+        name: 'chromium',
+        use: { ...devices['Desktop Chrome'] },
+      },
+      {
+        name: 'firefox',
+        use: { ...devices['Desktop Firefox'] },
+      },
+      {
+        name: 'webkit',
+        use: { ...devices['Desktop Safari'] },
+      },
+      // Mobile viewports
+      {
+        name: 'Mobile Chrome',
+        use: { ...devices['Pixel 5'] },
+      },
+      {
+        name: 'Mobile Safari',
+        use: { ...devices['iPhone 12'] },
+      },
+    ];
 
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
+    // Local default: run only chromium to avoid multi-browser slowdown.
+    // CI or explicit PLAYWRIGHT_PROJECTS runs full matrix.
+    if (!requestedProjects || requestedProjects.length === 0) {
+      return isCI
+        ? allProjects
+        : allProjects.filter((p) => p.name === 'chromium');
+    }
 
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    const selected = allProjects.filter((p) =>
+      requestedProjects.includes(p.name),
+    );
 
-    /* Test against mobile viewports. */
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
-
-    // Branded channels disabled for local runs (avoid missing msedge/chrome channel)
-  ],
+    // Fallback to chromium if filtering removed everything
+    return selected.length > 0
+      ? selected
+      : allProjects.filter((p) => p.name === 'chromium');
+  })(),
 
   /* Run your local dev server before starting the tests */
   webServer: {

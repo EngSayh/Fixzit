@@ -28,6 +28,7 @@ type ExpenseCardProps = {
   description?: string;
   status: "pending" | "approved" | "rejected";
   createdAt?: string;
+  onStatusChange?: (id: string, newStatus: "approved" | "rejected") => void;
 };
 
 export default function ExpensesPage() {
@@ -56,6 +57,14 @@ export default function ExpensesPage() {
     };
     fetchExpenses();
   }, [auto]);
+
+  const handleExpenseStatusChange = (expenseId: string, newStatus: "approved" | "rejected") => {
+    setExpenses(prev => 
+      prev.map(exp => 
+        exp.id === expenseId ? { ...exp, status: newStatus } : exp
+      )
+    );
+  };
 
   if (!session) {
     return <CardGridSkeleton count={4} />;
@@ -124,7 +133,11 @@ export default function ExpensesPage() {
           <CardGridSkeleton count={3} />
         ) : (
           filteredExpenses.map((expense) => (
-            <ExpenseCard key={expense.id} {...expense} />
+            <ExpenseCard 
+              key={expense.id} 
+              {...expense} 
+              onStatusChange={handleExpenseStatusChange}
+            />
           ))
         )}
       </div>
@@ -142,6 +155,7 @@ export default function ExpensesPage() {
 }
 
 function ExpenseCard({
+  id,
   vendor,
   category,
   amount,
@@ -149,13 +163,66 @@ function ExpenseCard({
   status,
   description,
   createdAt,
+  onStatusChange,
 }: ExpenseCardProps) {
   const auto = useAutoTranslator("fm.finance.expenses.card");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const statusColors = {
-    pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
-    approved: "bg-green-100 text-green-800 border-green-300",
-    rejected: "bg-red-100 text-red-800 border-red-300",
+    pending: "bg-warning/10 text-warning border-warning/30",
+    approved: "bg-success/10 text-success border-success/30",
+    rejected: "bg-destructive/10 text-destructive border-destructive/30",
+  };
+
+  const handleApprove = async () => {
+    if (!id) return;
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`/api/finance/expenses/${id}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comments: "" }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to approve expense");
+      }
+      toast.success(auto("Expense approved successfully", "toast.approveSuccess"));
+      onStatusChange?.(id, "approved");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : auto("Failed to approve expense", "toast.approveError");
+      toast.error(message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!id) return;
+    const reason = window.prompt(auto("Please provide a reason for rejection:", "prompt.rejectReason"));
+    if (!reason) {
+      toast.error(auto("Rejection reason is required", "toast.rejectReasonRequired"));
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`/api/finance/expenses/${id}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comments: reason }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to reject expense");
+      }
+      toast.success(auto("Expense rejected", "toast.rejectSuccess"));
+      onStatusChange?.(id, "rejected");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : auto("Failed to reject expense", "toast.rejectError");
+      toast.error(message);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -188,10 +255,22 @@ function ExpenseCard({
         </div>
         {status === "pending" && (
           <div className="flex gap-2 mt-4">
-            <Button size="sm" variant="default">
+            <Button 
+              size="sm" 
+              variant="default" 
+              onClick={handleApprove}
+              disabled={isProcessing}
+              aria-label={auto("Approve expense", "actions.approveLabel")}
+            >
               {auto("Approve", "actions.approve")}
             </Button>
-            <Button size="sm" variant="destructive">
+            <Button 
+              size="sm" 
+              variant="destructive" 
+              onClick={handleReject}
+              disabled={isProcessing}
+              aria-label={auto("Reject expense", "actions.rejectLabel")}
+            >
               {auto("Reject", "actions.reject")}
             </Button>
           </div>
@@ -275,10 +354,11 @@ function CreateExpenseDialog({
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium">
+            <label htmlFor="expense-vendor" className="text-sm font-medium">
               {auto("Vendor", "fields.vendor")}
             </label>
             <Input
+              id="expense-vendor"
               placeholder={auto(
                 "e.g. ABC Supplies Co.",
                 "fields.vendorPlaceholder",
@@ -288,10 +368,11 @@ function CreateExpenseDialog({
             />
           </div>
           <div>
-            <label className="text-sm font-medium">
+            <label htmlFor="expense-category" className="text-sm font-medium">
               {auto("Category", "fields.category")}
             </label>
             <Input
+              id="expense-category"
               placeholder={auto(
                 "e.g. Office Supplies",
                 "fields.categoryPlaceholder",
@@ -301,10 +382,11 @@ function CreateExpenseDialog({
             />
           </div>
           <div>
-            <label className="text-sm font-medium">
+            <label htmlFor="expense-amount" className="text-sm font-medium">
               {auto("Amount (SAR)", "fields.amount")}
             </label>
             <Input
+              id="expense-amount"
               type="number"
               placeholder="2500"
               value={amount}
@@ -312,10 +394,11 @@ function CreateExpenseDialog({
             />
           </div>
           <div>
-            <label className="text-sm font-medium">
+            <label htmlFor="expense-description" className="text-sm font-medium">
               {auto("Description", "fields.description")}
             </label>
             <Input
+              id="expense-description"
               placeholder={auto(
                 "Brief description of expense",
                 "fields.descriptionPlaceholder",

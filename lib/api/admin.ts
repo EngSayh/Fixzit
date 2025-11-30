@@ -30,6 +30,7 @@ export interface AdminUser {
   username?: string;
   role: string;
   roles: string[];
+  subRole?: string; // STRICT v4.1: Team Member sub-role specialization
   isSuperAdmin: boolean;
   isActive: boolean;
   orgId?: string;

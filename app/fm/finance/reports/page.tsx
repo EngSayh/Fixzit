@@ -4,7 +4,22 @@ import { useEffect, useState, type ReactNode } from "react";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ExternalLink, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { FmGuardedPage } from "@/components/fm/FmGuardedPage";
@@ -39,14 +54,14 @@ type ReportsContentProps = {
 
 function ReportsContent({ orgId, supportBanner }: ReportsContentProps) {
   const auto = useAutoTranslator("fm.reports");
-  void orgId;
   const [jobs, setJobs] = useState<ReportJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  
   const loadJobs = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/fm/reports");
+      const res = await fetch(`/api/fm/reports?orgId=${encodeURIComponent(orgId)}`);
       const data = await res.json();
       if (res.ok && data?.success) {
         setJobs(data.data || []);
@@ -60,7 +75,11 @@ function ReportsContent({ orgId, supportBanner }: ReportsContentProps) {
 
   useEffect(() => {
     void loadJobs();
-  }, []);
+  }, [orgId]);
+
+  const handleReportCreated = (newJob: ReportJob) => {
+    setJobs((prev) => [newJob, ...prev]);
+  };
 
   const handleDownload = async (id: string) => {
     try {
@@ -95,6 +114,7 @@ function ReportsContent({ orgId, supportBanner }: ReportsContentProps) {
             {auto("Analytics and reporting dashboard", "header.subtitle")}
           </p>
         </div>
+        <CreateReportDialog orgId={orgId} onCreated={handleReportCreated} />
       </div>
 
       <div className="bg-card rounded-2xl shadow-md border border-border p-8 text-center">
@@ -194,5 +214,191 @@ function ReportsContent({ orgId, supportBanner }: ReportsContentProps) {
         )}
       </div>
     </div>
+  );
+}
+
+function CreateReportDialog({
+  orgId,
+  onCreated,
+}: {
+  orgId: string;
+  onCreated: (job: ReportJob) => void;
+}) {
+  const auto = useAutoTranslator("fm.reports.create");
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [type, setType] = useState("financial_summary");
+  const [format, setFormat] = useState("pdf");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const reportTypes = [
+    { value: "financial_summary", label: auto("Financial Summary", "types.financialSummary") },
+    { value: "income_statement", label: auto("Income Statement", "types.incomeStatement") },
+    { value: "balance_sheet", label: auto("Balance Sheet", "types.balanceSheet") },
+    { value: "expense_report", label: auto("Expense Report", "types.expenseReport") },
+    { value: "budget_variance", label: auto("Budget Variance", "types.budgetVariance") },
+    { value: "invoice_aging", label: auto("Invoice Aging", "types.invoiceAging") },
+    { value: "payment_history", label: auto("Payment History", "types.paymentHistory") },
+  ];
+
+  const formats = [
+    { value: "pdf", label: "PDF" },
+    { value: "xlsx", label: "Excel (XLSX)" },
+    { value: "csv", label: "CSV" },
+  ];
+
+  const handleSubmit = async () => {
+    if (!name.trim()) {
+      toast.error(auto("Report name is required", "errors.nameRequired"));
+      return;
+    }
+
+    setIsSubmitting(true);
+    const toastId = toast.loading(auto("Creating report...", "toast.loading"));
+
+    try {
+      const response = await fetch("/api/fm/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orgId,
+          name: name.trim(),
+          type,
+          format,
+          dateFrom: dateFrom || undefined,
+          dateTo: dateTo || undefined,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "Failed to create report");
+      }
+
+      toast.success(auto("Report job queued successfully", "toast.success"), {
+        id: toastId,
+      });
+      onCreated(data.data as ReportJob);
+      setOpen(false);
+      setName("");
+      setType("financial_summary");
+      setFormat("pdf");
+      setDateFrom("");
+      setDateTo("");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : auto("Failed to create report", "toast.error");
+      toast.error(message, { id: toastId });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="w-4 h-4 me-2" />
+          {auto("Create Report", "trigger")}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{auto("Generate New Report", "title")}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="report-name" className="text-sm font-medium">
+              {auto("Report Name", "fields.name")} *
+            </label>
+            <Input
+              id="report-name"
+              placeholder={auto("e.g. Q1 2024 Financial Summary", "fields.namePlaceholder")}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="report-type" className="text-sm font-medium">
+              {auto("Report Type", "fields.type")}
+            </label>
+            <Select value={type} onValueChange={setType} disabled={isSubmitting}>
+              <SelectTrigger id="report-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {reportTypes.map((rt) => (
+                  <SelectItem key={rt.value} value={rt.value}>
+                    {rt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label htmlFor="report-format" className="text-sm font-medium">
+              {auto("Format", "fields.format")}
+            </label>
+            <Select value={format} onValueChange={setFormat} disabled={isSubmitting}>
+              <SelectTrigger id="report-format">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {formats.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="report-date-from" className="text-sm font-medium">
+                {auto("Date From", "fields.dateFrom")}
+              </label>
+              <Input
+                id="report-date-from"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <label htmlFor="report-date-to" className="text-sm font-medium">
+                {auto("Date To", "fields.dateTo")}
+              </label>
+              <Input
+                id="report-date-to"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting || !name.trim()}
+            className="w-full"
+          >
+            {isSubmitting
+              ? auto("Creating...", "submit.loading")
+              : auto("Generate Report", "submit")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -3,6 +3,8 @@ import { getModel } from "@/src/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 import { UserRole, UserStatus } from "@/types/user";
+import { encryptField, decryptField, isEncrypted } from "@/lib/security/encryption";
+import { logger } from "@/lib/logger";
 
 // Re-export for backward compatibility
 export { UserRole };
@@ -19,6 +21,7 @@ const UserSchema = new Schema(
     password: { type: String, required: true }, // Hashed password
     phone: String,
     mobile: String,
+    emailVerifiedAt: { type: Date },
     employeeId: String, // Top-level for unique compound index {orgId, employeeId}
 
     // Personal Information
@@ -242,6 +245,133 @@ UserSchema.index({ orgId: 1, "professional.skills.category": 1 });
 UserSchema.index({ orgId: 1, "workload.available": 1 });
 UserSchema.index({ orgId: 1, "performance.rating": -1 });
 UserSchema.index({ orgId: 1, isSuperAdmin: 1 }); // RBAC index
+
+// =============================================================================
+// PII ENCRYPTION MIDDLEWARE (GDPR Article 32 - Security of Processing)
+// =============================================================================
+
+/**
+ * Sensitive PII fields requiring encryption at rest
+ * 
+ * COMPLIANCE:
+ * - GDPR Article 32: Security of processing (encryption)
+ * - HIPAA: PHI encryption requirements
+ * - ISO 27001: Cryptographic controls (A.10.1.1)
+ */
+const ENCRYPTED_FIELDS = {
+  // Personal identification
+  'personal.nationalId': 'National ID',
+  'personal.passport': 'Passport Number',
+  
+  // Financial data
+  'employment.salary': 'Salary',
+  
+  // Security credentials
+  'security.mfa.secret': 'MFA Secret',
+} as const;
+
+/**
+ * Pre-save hook: Encrypt sensitive PII fields before storing
+ */
+UserSchema.pre('save', async function(next) {
+  // eslint-disable-next-line @typescript-eslint/no-this-alias -- Required for Mongoose hook traversal
+  const doc = this;
+  try {
+    // Only encrypt if fields are modified and not already encrypted
+    for (const [path, fieldName] of Object.entries(ENCRYPTED_FIELDS)) {
+      const parts = path.split('.');
+      let current: any = doc;
+      
+      // Navigate to parent object
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!current[parts[i]]) {
+          current[parts[i]] = {};
+        }
+        current = current[parts[i]];
+      }
+      
+      const field = parts[parts.length - 1];
+      const value = current[field];
+      
+      // Encrypt if value exists and is not already encrypted
+      if (value && !isEncrypted(value)) {
+        current[field] = encryptField(value, path);
+        
+        logger.info('user:pii_encrypted', {
+          action: 'pre_save_encrypt',
+          fieldPath: path,
+          fieldName,
+          userId: doc._id?.toString(),
+          orgId: (doc as any).orgId,
+        });
+      }
+    }
+    
+    next();
+  } catch (error) {
+    logger.error('user:encryption_failed', {
+      action: 'pre_save_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+      userId: doc._id?.toString(),
+    });
+    next(error as Error);
+  }
+});
+
+/**
+ * Post-find hooks: Decrypt sensitive PII fields after retrieval
+ * Applied to: find, findOne, findById, findOneAndUpdate
+ */
+function decryptPIIFields(doc: any) {
+  if (!doc) return;
+  
+  try {
+    for (const [path, fieldName] of Object.entries(ENCRYPTED_FIELDS)) {
+      const parts = path.split('.');
+      let current: any = doc;
+      
+      // Navigate to parent object
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!current[parts[i]]) {
+          break;
+        }
+        current = current[parts[i]];
+      }
+      
+      const field = parts[parts.length - 1];
+      const value = current?.[field];
+      
+      // Decrypt if value is encrypted
+      if (value && isEncrypted(value)) {
+        current[field] = decryptField(value, path);
+      }
+    }
+  } catch (error) {
+    logger.error('user:decryption_failed', {
+      action: 'post_find_decrypt',
+      error: error instanceof Error ? error.message : String(error),
+      userId: doc._id?.toString(),
+    });
+    // Don't throw - return encrypted value rather than breaking app
+  }
+}
+
+// Apply decryption to various find operations
+UserSchema.post('find', function(docs: any[]) {
+  if (Array.isArray(docs)) {
+    docs.forEach(decryptPIIFields);
+  }
+});
+
+UserSchema.post('findOne', function(doc: any) {
+  decryptPIIFields(doc);
+});
+
+UserSchema.post('findOneAndUpdate', function(doc: any) {
+  decryptPIIFields(doc);
+});
+
+// Note: findById uses findOne internally, so it's covered by the findOne hook
 
 export type UserDoc = InferSchemaType<typeof UserSchema>;
 

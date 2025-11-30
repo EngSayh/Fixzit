@@ -34,9 +34,8 @@ const upsertSchema = z.object({
  */
 export async function POST(
   req: NextRequest,
-  props: { params: Promise<{ id: string }> },
+  { params }: { params: { id: string } },
 ): Promise<NextResponse> {
-  const params = await props.params;
   const user = await requireAbility(WOAbility.EDIT)(req);
   if (user instanceof NextResponse) return user;
   await connectToDatabase();

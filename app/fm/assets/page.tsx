@@ -301,16 +301,15 @@ function AssetCard({
   orgId: string;
 }) {
   const auto = useAutoTranslator("fm.assets.card");
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const handleView = () => {
-    // Placeholder: Navigate to asset detail view or open modal
-    logger.info(`View asset: ${asset.id}`);
+    setViewDialogOpen(true);
   };
 
   const handleEdit = () => {
-    // Placeholder: Open edit modal or navigate to edit page
-    logger.info(`Edit asset: ${asset.id}`);
-    // After successful edit, call onUpdated()
+    setEditDialogOpen(true);
   };
 
   const handleDelete = async () => {
@@ -475,10 +474,20 @@ function AssetCard({
             )}
           </span>
           <div className="flex space-x-2">
-            <Button variant="ghost" size="sm" onClick={handleView}>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleView}
+              aria-label={auto("View asset {{name}}", "actions.viewLabel").replace("{{name}}", asset.name || "")}
+            >
               <Eye className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleEdit}>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleEdit}
+              aria-label={auto("Edit asset {{name}}", "actions.editLabel").replace("{{name}}", asset.name || "")}
+            >
               <Edit className="w-4 h-4" />
             </Button>
             <Button
@@ -486,11 +495,71 @@ function AssetCard({
               size="sm"
               className="text-destructive hover:text-destructive"
               onClick={handleDelete}
+              aria-label={auto("Delete asset {{name}}", "actions.deleteLabel").replace("{{name}}", asset.name || "")}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
         </div>
+
+        {/* View Dialog */}
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{asset.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">{auto("Code", "view.code")}</p>
+                  <p className="font-medium">{asset.code || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{auto("Type", "view.type")}</p>
+                  <p className="font-medium">{asset.type || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{auto("Category", "view.category")}</p>
+                  <p className="font-medium">{asset.category || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{auto("Status", "view.status")}</p>
+                  <Badge className={getStatusColor(asset.status || "")}>{asset.status || "-"}</Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{auto("Criticality", "view.criticality")}</p>
+                  <p className="font-medium">{asset.criticality || "-"}</p>
+                </div>
+                {asset.location && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">{auto("Location", "view.location")}</p>
+                    <p className="font-medium">
+                      {asset.location.building}{asset.location.floor ? `, Floor ${asset.location.floor}` : ""}{asset.location.room ? `, Room ${asset.location.room}` : ""}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{auto("Edit Asset", "edit.title")}</DialogTitle>
+            </DialogHeader>
+            <EditAssetForm
+              asset={asset}
+              orgId={orgId}
+              onUpdated={() => {
+                onUpdated();
+                setEditDialogOpen(false);
+              }}
+              onCancel={() => setEditDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
@@ -778,6 +847,178 @@ function CreateAssetForm({
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="submit" className="bg-primary hover:bg-primary/90">
           {auto("Create Asset", "form.actions.submit")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function EditAssetForm({
+  asset,
+  onUpdated,
+  onCancel,
+  orgId,
+}: {
+  asset: AssetItem;
+  onUpdated: () => void;
+  onCancel: () => void;
+  orgId: string;
+}) {
+  const auto = useAutoTranslator("fm.assets.form");
+  const [formData, setFormData] = useState({
+    name: asset.name || "",
+    type: asset.type || "",
+    category: asset.category || "",
+    status: asset.status || "ACTIVE",
+    criticality: asset.criticality || "MEDIUM",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    const toastId = toast.loading(auto("Updating asset...", "edit.loading"));
+
+    try {
+      const response = await fetch(`/api/assets/${asset.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-tenant-id": orgId,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        toast.success(auto("Asset updated successfully", "edit.success"), {
+          id: toastId,
+        });
+        onUpdated();
+      } else {
+        const error = await response.json();
+        toast.error(
+          auto("Failed to update asset: {{error}}", "edit.failed").replace(
+            "{{error}}",
+            error.error || auto("Unknown error", "toast.unknown"),
+          ),
+          { id: toastId },
+        );
+      }
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      logger.error("Error updating asset:", error);
+      toast.error(auto("Error updating asset. Please try again.", "edit.error"), {
+        id: toastId,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-1">
+          {auto("Asset Name *", "form.labels.name")}
+        </label>
+        <Input
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          required
+          disabled={isSubmitting}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {auto("Type *", "form.labels.type")}
+          </label>
+          <Select
+            value={formData.type}
+            onValueChange={(value) => setFormData({ ...formData, type: value })}
+            disabled={isSubmitting}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={auto("Select type", "form.placeholders.type")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="HVAC">{auto("HVAC", "filters.types.hvac")}</SelectItem>
+              <SelectItem value="ELECTRICAL">{auto("Electrical", "filters.types.electrical")}</SelectItem>
+              <SelectItem value="PLUMBING">{auto("Plumbing", "filters.types.plumbing")}</SelectItem>
+              <SelectItem value="SECURITY">{auto("Security", "filters.types.security")}</SelectItem>
+              <SelectItem value="ELEVATOR">{auto("Elevator", "filters.types.elevator")}</SelectItem>
+              <SelectItem value="GENERATOR">{auto("Generator", "filters.types.generator")}</SelectItem>
+              <SelectItem value="FIRE_SYSTEM">{auto("Fire System", "filters.types.fireSystem")}</SelectItem>
+              <SelectItem value="IT_EQUIPMENT">{auto("IT Equipment", "filters.types.itEquipment")}</SelectItem>
+              <SelectItem value="VEHICLE">{auto("Vehicle", "filters.types.vehicle")}</SelectItem>
+              <SelectItem value="OTHER">{auto("Other", "filters.types.other")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {auto("Category *", "form.labels.category")}
+          </label>
+          <Input
+            value={formData.category}
+            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            required
+            disabled={isSubmitting}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {auto("Status", "form.labels.status")}
+          </label>
+          <Select
+            value={formData.status}
+            onValueChange={(value) => setFormData({ ...formData, status: value })}
+            disabled={isSubmitting}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={auto("Select status", "form.placeholders.status")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ACTIVE">{auto("Active", "status.active")}</SelectItem>
+              <SelectItem value="MAINTENANCE">{auto("Maintenance", "status.maintenance")}</SelectItem>
+              <SelectItem value="OUT_OF_SERVICE">{auto("Out of Service", "status.outOfService")}</SelectItem>
+              <SelectItem value="DECOMMISSIONED">{auto("Decommissioned", "status.decommissioned")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {auto("Criticality", "form.labels.criticality")}
+          </label>
+          <Select
+            value={formData.criticality}
+            onValueChange={(value) => setFormData({ ...formData, criticality: value })}
+            disabled={isSubmitting}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={auto("Select criticality", "form.placeholders.criticality")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="LOW">{auto("Low", "form.criticality.low")}</SelectItem>
+              <SelectItem value="MEDIUM">{auto("Medium", "form.criticality.medium")}</SelectItem>
+              <SelectItem value="HIGH">{auto("High", "form.criticality.high")}</SelectItem>
+              <SelectItem value="CRITICAL">{auto("Critical", "form.criticality.critical")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          {auto("Cancel", "form.actions.cancel")}
+        </Button>
+        <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+          {isSubmitting ? auto("Saving...", "form.actions.saving") : auto("Save Changes", "form.actions.save")}
         </Button>
       </div>
     </form>

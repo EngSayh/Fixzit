@@ -3,13 +3,13 @@
 import { Zap, Wifi, Lock, Shield, Wind, Sun } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
 import type {
-  IListingProptech,
-  IListingIotFeature,
-} from "@/models/aqar/Listing";
+  ListingProptech,
+  ListingIotFeature,
+} from "@/lib/aqar/client-types";
 
 interface ProptechBadgesProps {
-  proptech?: IListingProptech;
-  iotFeatures?: IListingIotFeature[];
+  proptech?: ListingProptech;
+  iotFeatures?: ListingIotFeature[];
 }
 
 const FEATURE_ICONS: Record<string, typeof Zap> = {

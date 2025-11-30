@@ -259,7 +259,8 @@ export async function GET(request: NextRequest) {
     const userRole = session.user.role;
     const isSuperAdmin = session.user.isSuperAdmin;
 
-    if (!isSuperAdmin && userRole !== "ADMIN") {
+    // 🔒 SECURITY FIX: Include CORPORATE_ADMIN per 14-role matrix
+    if (!isSuperAdmin && !["ADMIN", "CORPORATE_ADMIN"].includes(userRole || "")) {
       return NextResponse.json(
         { error: "Forbidden: Admin access required" },
         { status: 403 },
@@ -289,10 +290,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
+      // Escape special regex characters to prevent injection
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       query.$or = [
-        { claimId: { $regex: search, $options: "i" } },
-        { orderNumber: { $regex: search, $options: "i" } },
-        { orderId: { $regex: search, $options: "i" } },
+        { claimId: { $regex: escapedSearch, $options: "i" } },
+        { orderNumber: { $regex: escapedSearch, $options: "i" } },
+        { orderId: { $regex: escapedSearch, $options: "i" } },
       ];
     }
 

@@ -58,7 +58,9 @@ if (require.main === module) {
     logger.info('[OnboardingExpiry] Worker started', { queue: QUEUE_NAME });
   } else {
     // eslint-disable-next-line no-console
-    console.error('[OnboardingExpiry] Worker not started; Redis missing');
+    logger.error('onboarding_expiry:worker_not_started', {
+      reason: 'Redis connection missing',
+    });
     process.exit(1);
   }
 }

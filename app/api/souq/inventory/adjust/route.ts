@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
       type,
       reason,
       performedBy: session.user.id,
+      orgId: (session.user as { orgId?: string }).orgId,
     });
 
     return NextResponse.json({

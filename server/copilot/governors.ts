@@ -37,20 +37,19 @@ function checkRoleAccess(context: GovernorContext): GovernorResult {
   const { session } = context;
 
   // Super admin and owner have full access
+  // 🔒 STRICT v4.1: Use canonical role names with legacy fallbacks
   if (
     session.role === "SUPER_ADMIN" ||
-    session.role === "OWNER" ||
-    session.role === "ADMIN"
+    session.role === "CORPORATE_OWNER" || // Canonical (was OWNER)
+    session.role === "OWNER" || // Legacy alias
+    session.role === "ADMIN" ||
+    session.role === "CORPORATE_ADMIN" // Legacy alias for ADMIN
   ) {
     return { allowed: true };
   }
 
-  // Corporate admin has access to AI features
-  if (session.role === "CORPORATE_ADMIN") {
-    return { allowed: true };
-  }
-
   // Property manager has limited access
+  // 🔒 STRICT v4.1: PROPERTY_MANAGER is canonical, FM_MANAGER is legacy alias
   if (session.role === "PROPERTY_MANAGER" || session.role === "FM_MANAGER") {
     // Check if asking for sensitive financial data
     const sensitiveKeywords = [
@@ -118,8 +117,8 @@ function checkRoleAccess(context: GovernorContext): GovernorResult {
     return { allowed: true };
   }
 
-  // Tenant has read-only access
-  if (session.role === "TENANT" || session.role === "CUSTOMER") {
+  // Tenant has read-only access (STRICT v4: CUSTOMER deprecated, use TENANT)
+  if (session.role === "TENANT") {
     // Block any attempt to modify data
     const modifyKeywords = [
       "create",

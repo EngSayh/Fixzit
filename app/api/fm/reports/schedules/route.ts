@@ -1,23 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
-import { ObjectId } from "mongodb";
-import { getDatabase } from "@/lib/mongodb-unified";
-import { logger } from "@/lib/logger";
-import { ModuleKey } from "@/domain/fm/fm.behavior";
-import { FMAction } from "@/types/fm/enums";
-import { requireFmPermission } from "@/app/api/fm/permissions";
-import { resolveTenantId } from "@/app/api/fm/utils/tenant";
-import { FMErrors } from "@/app/api/fm/errors";
+import { NextRequest, NextResponse } from 'next/server';
+import { ObjectId } from 'mongodb';
+import { getDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
+import { ModuleKey } from '@/domain/fm/fm.behavior';
+import { requireFmPermission } from '@/app/api/fm/permissions';
+import { FMAction } from '@/types/fm/enums';
+import { resolveTenantId, buildTenantFilter, isCrossTenantMode } from '@/app/api/fm/utils/tenant';
+import { FMErrors } from '@/app/api/fm/errors';
 
 type ScheduleDocument = {
   _id: ObjectId;
-  org_id: string;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
   name: string;
   type: string;
   frequency: string;
   format: string;
   recipients: string[];
   startDate: string;
-  status: "active" | "paused";
+  status: 'active' | 'paused';
   createdBy?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -32,7 +32,7 @@ type SchedulePayload = {
   startDate?: string;
 };
 
-const COLLECTION = "fm_report_schedules";
+const COLLECTION = 'fm_report_schedules';
 
 const sanitizePayload = (payload: SchedulePayload): SchedulePayload => {
   const sanitized: SchedulePayload = {};
@@ -46,12 +46,12 @@ const sanitizePayload = (payload: SchedulePayload): SchedulePayload => {
 };
 
 const validatePayload = (payload: SchedulePayload): string | null => {
-  if (!payload.title) return "Schedule name is required";
-  if (!payload.reportType) return "Report type is required";
-  if (!payload.frequency) return "Frequency is required";
-  if (!payload.format) return "Format is required";
-  if (!payload.recipients) return "Recipients are required";
-  if (!payload.startDate) return "Start date is required";
+  if (!payload.title) return 'Schedule name is required';
+  if (!payload.reportType) return 'Report type is required';
+  if (!payload.frequency) return 'Frequency is required';
+  if (!payload.format) return 'Format is required';
+  if (!payload.recipients) return 'Recipients are required';
+  if (!payload.startDate) return 'Start date is required';
   return null;
 };
 
@@ -70,77 +70,82 @@ const mapSchedule = (doc: ScheduleDocument) => ({
 
 export async function GET(req: NextRequest) {
   try {
-    const actor = await requireFmPermission(req, {
-      module: ModuleKey.FINANCE,
-      action: FMAction.EXPORT,
-    });
+    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.EXPORT });
     if (actor instanceof NextResponse) return actor;
 
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
     );
-    if ("error" in tenantResolution) return tenantResolution.error;
+    if ('error' in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
 
     const db = await getDatabase();
     const collection = db.collection<ScheduleDocument>(COLLECTION);
-    const schedules = await collection
-      .find({ org_id: tenantId })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .toArray();
+    // AUDIT-2025-11-29: Use buildTenantFilter for cross-tenant support
+    const schedules = await collection.find({ ...buildTenantFilter(tenantId) }).sort({ createdAt: -1 }).limit(50).toArray();
 
-    return NextResponse.json({
-      success: true,
-      data: schedules.map(mapSchedule),
-    });
+    return NextResponse.json({ success: true, data: schedules.map(mapSchedule) });
   } catch (error) {
-    logger.error("FM Report Schedules API - GET error", error as Error);
+    logger.error('FM Report Schedules API - GET error', error as Error);
     return FMErrors.internalError();
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const actor = await requireFmPermission(req, {
-      module: ModuleKey.FINANCE,
-      action: FMAction.EXPORT,
-    });
+    const actor = await requireFmPermission(req, { module: ModuleKey.FINANCE, action: FMAction.EXPORT });
     if (actor instanceof NextResponse) return actor;
 
+    // AUDIT-2025-11-29: Pass Super Admin context for proper audit logging
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      {
+        isSuperAdmin: actor.isSuperAdmin,
+        userId: actor.userId,
+        allowHeaderOverride: actor.isSuperAdmin,
+      }
     );
-    if ("error" in tenantResolution) return tenantResolution.error;
+    if ('error' in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
+
+    // AUDIT-2025-11-29: Reject cross-tenant mode for POST (must specify explicit tenant)
+    if (isCrossTenantMode(tenantId)) {
+      return NextResponse.json(
+        { success: false, error: 'Super Admin must specify tenant context for schedule creation' },
+        { status: 400 }
+      );
+    }
 
     const payload = sanitizePayload(await req.json());
     const validationError = validatePayload(payload);
     if (validationError) {
-      return NextResponse.json(
-        { success: false, error: validationError },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, error: validationError }, { status: 400 });
     }
 
-    const recipientList = payload
-      .recipients!.split(",")
+    const recipientList = payload.recipients!
+      .split(',')
       .map((r) => r.trim())
       .filter(Boolean);
 
     const now = new Date();
     const doc: ScheduleDocument = {
       _id: new ObjectId(),
-      org_id: tenantId,
+      orgId: tenantId, // AUDIT-2025-11-29: Changed from org_id
       name: payload.title!,
       type: payload.reportType!,
-      frequency: payload.frequency || "monthly",
-      format: payload.format || "pdf",
+      frequency: payload.frequency || 'monthly',
+      format: payload.format || 'pdf',
       recipients: recipientList,
       startDate: payload.startDate!,
-      status: "active",
+      status: 'active',
       createdBy: actor.userId,
       createdAt: now,
       updatedAt: now,
@@ -150,12 +155,9 @@ export async function POST(req: NextRequest) {
     const collection = db.collection<ScheduleDocument>(COLLECTION);
     await collection.insertOne(doc);
 
-    return NextResponse.json(
-      { success: true, data: mapSchedule(doc) },
-      { status: 201 },
-    );
+    return NextResponse.json({ success: true, data: mapSchedule(doc) }, { status: 201 });
   } catch (error) {
-    logger.error("FM Report Schedules API - POST error", error as Error);
+    logger.error('FM Report Schedules API - POST error', error as Error);
     return FMErrors.internalError();
   }
 }

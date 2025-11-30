@@ -6,19 +6,31 @@
 import { logger } from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromToken } from "@/lib/auth";
-import { can, Role, SubmoduleKey, Action, Plan } from "@/domain/fm/fm.behavior";
+import {
+  can,
+  Role,
+  SubmoduleKey,
+  Action,
+  Plan,
+  SubRole,
+  normalizeRole,
+  normalizeSubRole,
+  inferSubRoleFromRole,
+} from "@/domain/fm/fm.behavior";
 import { connectDb } from "@/lib/mongo";
 import { Organization } from "@/server/models/Organization";
 
 export interface FMAuthContext {
   userId: string;
   role: Role;
+  subRole?: SubRole;
   orgId: string;
   propertyIds?: string[];
   user: {
     id: string;
     email: string;
     role?: string;
+    subRole?: string | null;
     orgId?: string;
     propertyIds?: string[];
   };
@@ -48,24 +60,12 @@ export async function getFMAuthContext(
       return null;
     }
 
-    // Map user role to FM Role enum
-    const roleMapping: Record<string, Role> = {
-      SUPER_ADMIN: Role.SUPER_ADMIN,
-      CORPORATE_ADMIN: Role.CORPORATE_ADMIN,
-      MANAGEMENT: Role.MANAGEMENT,
-      FINANCE: Role.FINANCE,
-      HR: Role.HR,
-      EMPLOYEE: Role.EMPLOYEE,
-      PROPERTY_OWNER: Role.PROPERTY_OWNER,
-      OWNER_DEPUTY: Role.OWNER_DEPUTY,
-      TECHNICIAN: Role.TECHNICIAN,
-      TENANT: Role.TENANT,
-      VENDOR: Role.VENDOR,
-      GUEST: Role.GUEST,
-    };
-
-    const userRole = user.role || "GUEST";
-    const role = roleMapping[userRole] || Role.GUEST;
+    // Map user role to FM Role enum using canonical STRICT v4.1 normalization
+    const rawRole = (user as { role?: string | null }).role;
+    const subRole =
+      normalizeSubRole((user as { subRole?: string | null }).subRole) ??
+      inferSubRoleFromRole(rawRole);
+    const role = normalizeRole(rawRole, subRole) ?? Role.GUEST;
 
     // ORGID-FIX: Enforce mandatory orgId for multi-tenant isolation
     const orgId = (user as { orgId?: string }).orgId;
@@ -80,12 +80,14 @@ export async function getFMAuthContext(
     return {
       userId: user.id || user.email || "",
       role,
+      subRole,
       orgId,  // ✅ Validated above
       propertyIds: (user as { propertyIds?: string[] }).propertyIds || [],
       user: {
         id: user.id || "",
         email: user.email || "",
         role: user.role,
+        subRole: (user as { subRole?: string | null }).subRole ?? null,
         orgId,  // ✅ Validated above
         propertyIds: (user as { propertyIds?: string[] }).propertyIds,
       },
@@ -206,6 +208,7 @@ export async function requireFMAuth(
     userId: ctx.userId,
     plan,
     isOrgMember,
+    subRole: ctx.subRole,
   });
 
   if (!allowed) {
@@ -290,49 +293,91 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
         .select("ownerId orgId")
         .lean();
 
-      if (property) {
+      const propertyDoc = property as
+        | { orgId?: unknown; ownerId?: unknown }
+        | null;
+      if (propertyDoc) {
         // ORGID-FIX: Validate orgId exists before returning
-        const orgId = property.orgId?.toString() || null;
+        const orgIdVal =
+          (propertyDoc.orgId as { toString?: () => string } | string | null) ||
+          null;
+        const orgId =
+          typeof orgIdVal === "string"
+            ? orgIdVal
+            : typeof (orgIdVal as { toString?: unknown })?.toString ===
+                "function"
+              ? (orgIdVal as { toString: () => string }).toString()
+              : null;
         if (!orgId || orgId.trim() === "") {
           logger.error("[FM Auth] Property has no orgId - data integrity issue", {
             propertyId: _propertyId,
-            ownerId: property.ownerId,
+            ownerId: propertyDoc.ownerId,
           });
           return null;
         }
 
         logger.debug("[FM Auth] Property ownership found", {
           propertyId: _propertyId,
-          ownerId: property.ownerId,
+          ownerId: propertyDoc.ownerId,
           orgId,
         });
         return {
-          ownerId: property.ownerId?.toString() || "",
+          ownerId:
+            typeof propertyDoc.ownerId === "string"
+              ? propertyDoc.ownerId
+              : typeof (propertyDoc.ownerId as { toString?: unknown })?.toString ===
+                  "function"
+                ? (propertyDoc.ownerId as { toString: () => string }).toString()
+                : "",
           orgId,
         };
       }
     } else {
       // Fallback: Try WorkOrder model which may have propertyId reference
       logger.debug("[FM Auth] FMProperty model not found, checking WorkOrders");
-      const FMWorkOrderModule = await import("@/domain/fm/fm.behavior");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const workOrder = await (FMWorkOrderModule.FMWorkOrder as any).findOne({ propertyId: _propertyId })
-        .select("propertyOwnerId orgId")
-        .lean();
+      const FMWorkOrderModule = await import("@/domain/fm/fm.behavior").catch(
+        () => null,
+      );
+      const workOrder = FMWorkOrderModule
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic import requires type assertion
+        ? await (FMWorkOrderModule.FMWorkOrder as any)
+            .findOne({ propertyId: _propertyId })
+            .select("propertyOwnerId orgId")
+            .lean()
+        : null;
 
-      if (workOrder && workOrder.propertyOwnerId) {
+      const workOrderDoc = workOrder as
+        | { orgId?: unknown; propertyOwnerId?: unknown }
+        | null;
+      if (workOrderDoc && workOrderDoc.propertyOwnerId) {
         // ORGID-FIX: Validate orgId exists before returning
-        const orgId = workOrder.orgId?.toString() || null;
+        const orgIdVal =
+          (workOrderDoc.orgId as { toString?: () => string } | string | null) ||
+          null;
+        const orgId =
+          typeof orgIdVal === "string"
+            ? orgIdVal
+            : typeof (orgIdVal as { toString?: unknown })?.toString ===
+                "function"
+              ? (orgIdVal as { toString: () => string }).toString()
+              : null;
         if (!orgId || orgId.trim() === "") {
           logger.error("[FM Auth] WorkOrder has no orgId - data integrity issue", {
             propertyId: _propertyId,
-            ownerId: workOrder.propertyOwnerId,
+            ownerId: workOrderDoc.propertyOwnerId,
           });
           return null;
         }
 
+        const ownerVal = workOrderDoc.propertyOwnerId as
+          | { toString?: () => string }
+          | string
+          | null
+          | undefined;
+        const ownerIdStr = ownerVal ? (ownerVal as { toString?: () => string }).toString?.() ?? String(ownerVal) : "";
+
         return {
-          ownerId: workOrder.propertyOwnerId.toString(),
+          ownerId: ownerIdStr,
           orgId,
         };
       }

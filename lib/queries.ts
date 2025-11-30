@@ -1,6 +1,7 @@
 // MongoDB Queries Library - Server-Side Only
-// All queries MUST include org_id for multi-tenant isolation
+// All queries MUST include orgId for multi-tenant isolation
 // Use these in Server Components, Server Actions, or API Routes only
+// AUDIT-2025-11-29: Standardized from org_id to orgId
 
 import { getDatabase } from "./mongodb-unified";
 import { logger } from "./logger";
@@ -23,7 +24,7 @@ export async function getSLAWatchlist(orgId: string, limit = 50) {
     .aggregate([
       {
         $match: {
-          org_id: orgId,
+          orgId: orgId,
           status: { $in: ["Open", "In Progress", "Pending Approval"] },
           sla_due: { $exists: true },
         },
@@ -64,15 +65,15 @@ export async function getWorkOrderStats(orgId: string) {
   const collection = db.collection("work_orders");
 
   const [total, open, inProgress, overdue, completed] = await Promise.all([
-    collection.countDocuments({ org_id: orgId }),
-    collection.countDocuments({ org_id: orgId, status: "Open" }),
-    collection.countDocuments({ org_id: orgId, status: "In Progress" }),
+    collection.countDocuments({ orgId: orgId }),
+    collection.countDocuments({ orgId: orgId, status: "Open" }),
+    collection.countDocuments({ orgId: orgId, status: "In Progress" }),
     collection.countDocuments({
-      org_id: orgId,
+      orgId: orgId,
       status: { $in: ["Open", "In Progress"] },
       sla_due: { $lt: new Date() },
     }),
-    collection.countDocuments({ org_id: orgId, status: "Completed" }),
+    collection.countDocuments({ orgId: orgId, status: "Completed" }),
   ]);
 
   return {
@@ -97,14 +98,14 @@ export async function getInvoiceCounters(orgId: string) {
   const collection = db.collection("invoices");
 
   const [unpaid, overdue, paid, total] = await Promise.all([
-    collection.countDocuments({ org_id: orgId, status: "Unpaid" }),
+    collection.countDocuments({ orgId: orgId, status: "Unpaid" }),
     collection.countDocuments({
-      org_id: orgId,
+      orgId: orgId,
       status: "Unpaid",
       due_date: { $lt: new Date() },
     }),
-    collection.countDocuments({ org_id: orgId, status: "Paid" }),
-    collection.countDocuments({ org_id: orgId }),
+    collection.countDocuments({ orgId: orgId, status: "Paid" }),
+    collection.countDocuments({ orgId: orgId }),
   ]);
 
   return { unpaid, overdue, paid, total };
@@ -123,7 +124,7 @@ export async function getRevenueStats(orgId: string, days = 30) {
     .aggregate([
       {
         $match: {
-          org_id: orgId,
+          orgId: orgId,
           status: "Paid",
           paid_date: { $gte: startDate },
         },
@@ -157,10 +158,10 @@ export async function getEmployeeCounters(orgId: string) {
   const collection = db.collection("employees");
 
   const [total, active, onLeave, probation] = await Promise.all([
-    collection.countDocuments({ org_id: orgId }),
-    collection.countDocuments({ org_id: orgId, status: "Active" }),
-    collection.countDocuments({ org_id: orgId, status: "On Leave" }),
-    collection.countDocuments({ org_id: orgId, status: "Probation" }),
+    collection.countDocuments({ orgId: orgId }),
+    collection.countDocuments({ orgId: orgId, status: "Active" }),
+    collection.countDocuments({ orgId: orgId, status: "On Leave" }),
+    collection.countDocuments({ orgId: orgId, status: "Probation" }),
   ]);
 
   return { total, active, onLeave, probation };
@@ -179,7 +180,7 @@ export async function getAttendanceSummary(orgId: string) {
     .aggregate([
       {
         $match: {
-          org_id: orgId,
+          orgId: orgId,
           date: { $gte: today },
         },
       },
@@ -224,10 +225,10 @@ export async function getPropertyCounters(orgId: string) {
   const collection = db.collection("properties");
 
   const [total, active, maintenance, leased] = await Promise.all([
-    collection.countDocuments({ org_id: orgId }),
-    collection.countDocuments({ org_id: orgId, status: "Active" }),
-    collection.countDocuments({ org_id: orgId, status: "Under Maintenance" }),
-    collection.countDocuments({ org_id: orgId, lease_status: "Leased" }),
+    collection.countDocuments({ orgId: orgId }),
+    collection.countDocuments({ orgId: orgId, status: "Active" }),
+    collection.countDocuments({ orgId: orgId, status: "Under Maintenance" }),
+    collection.countDocuments({ orgId: orgId, lease_status: "Leased" }),
   ]);
 
   const occupancyRate = total > 0 ? ((leased / total) * 100).toFixed(1) : "0";
@@ -247,12 +248,12 @@ export async function getCustomerCounters(orgId: string) {
   const collection = db.collection("customers");
 
   const [total, active, leads, contracts] = await Promise.all([
-    collection.countDocuments({ org_id: orgId }),
-    collection.countDocuments({ org_id: orgId, status: "Active" }),
-    collection.countDocuments({ org_id: orgId, type: "Lead" }),
+    collection.countDocuments({ orgId: orgId }),
+    collection.countDocuments({ orgId: orgId, status: "Active" }),
+    collection.countDocuments({ orgId: orgId, type: "Lead" }),
     db
       .collection("contracts")
-      .countDocuments({ org_id: orgId, status: "Active" }),
+      .countDocuments({ orgId: orgId, status: "Active" }),
   ]);
 
   return { total, active, leads, contracts };
@@ -270,10 +271,10 @@ export async function getSupportCounters(orgId: string) {
   const collection = db.collection("support_tickets");
 
   const [total, open, pending, resolved] = await Promise.all([
-    collection.countDocuments({ org_id: orgId }),
-    collection.countDocuments({ org_id: orgId, status: "Open" }),
-    collection.countDocuments({ org_id: orgId, status: "Pending" }),
-    collection.countDocuments({ org_id: orgId, status: "Resolved" }),
+    collection.countDocuments({ orgId: orgId }),
+    collection.countDocuments({ orgId: orgId, status: "Open" }),
+    collection.countDocuments({ orgId: orgId, status: "Pending" }),
+    collection.countDocuments({ orgId: orgId, status: "Resolved" }),
   ]);
 
   return { total, open, pending, resolved };
@@ -407,24 +408,24 @@ export async function createPerformanceIndexes() {
 
   const indexes: Array<{ collection: string; index: Record<string, 1 | -1> }> =
     [
-      // Work Orders
+      // Work Orders - AUDIT-2025-11-29: Updated to orgId
       {
         collection: "work_orders",
-        index: { org_id: 1, status: 1, sla_due: 1 },
+        index: { orgId: 1, status: 1, sla_due: 1 },
       },
-      { collection: "work_orders", index: { org_id: 1, created_at: -1 } },
+      { collection: "work_orders", index: { orgId: 1, created_at: -1 } },
 
-      // Invoices
-      { collection: "invoices", index: { org_id: 1, status: 1, due_date: 1 } },
-      { collection: "invoices", index: { org_id: 1, paid_date: -1 } },
+      // Invoices - AUDIT-2025-11-29: Updated to orgId
+      { collection: "invoices", index: { orgId: 1, status: 1, due_date: 1 } },
+      { collection: "invoices", index: { orgId: 1, paid_date: -1 } },
 
-      // Employees
-      { collection: "employees", index: { org_id: 1, status: 1 } },
+      // Employees - AUDIT-2025-11-29: Updated to orgId
+      { collection: "employees", index: { orgId: 1, status: 1 } },
 
-      // Properties
+      // Properties - AUDIT-2025-11-29: Updated to orgId
       {
         collection: "properties",
-        index: { org_id: 1, status: 1, lease_status: 1 },
+        index: { orgId: 1, status: 1, lease_status: 1 },
       },
 
       // Souq

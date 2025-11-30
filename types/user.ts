@@ -28,8 +28,9 @@ export const UserRole = {
   SUPPORT_AGENT: "SUPPORT_AGENT", // Support + CRM + reports
   OPERATIONS_MANAGER: "OPERATIONS_MANAGER", // Wider scope: WO + Properties + Support
   
-  // Property & External Roles (4)
+  // Property & External Roles (5)
   OWNER: "OWNER",
+  CORPORATE_OWNER: "CORPORATE_OWNER", // Portfolio owner managing multiple properties
   TENANT: "TENANT",
   VENDOR: "VENDOR",
   AUDITOR: "AUDITOR",
@@ -84,6 +85,7 @@ export const isSubRole = (role: UserRoleType): boolean =>
 
 export const PROPERTY_ROLES = [
   UserRole.OWNER,
+  UserRole.CORPORATE_OWNER, // Portfolio owner with multiple properties
   UserRole.TENANT,
 ] as const;
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { Types } from "mongoose";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { EmployeeService } from "@/server/services/hr/employee.service";
@@ -9,6 +10,15 @@ export async function GET(req: NextRequest) {
     const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+    const allowedRoles = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
+    if (!session.user.role || !allowedRoles.includes(session.user.role)) {
+      return NextResponse.json(
+        { error: "Forbidden: HR access required" },
+        { status: 403 }
+      );
     }
 
     await connectToDatabase();
@@ -23,9 +33,30 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const department = searchParams.get("department");
     const search = searchParams.get("search");
+    const includePiiRequested = searchParams.get("includePii") === "true";
+
+    if (department && !Types.ObjectId.isValid(department)) {
+      return NextResponse.json(
+        { error: "Invalid department parameter" },
+        { status: 400 },
+      );
+    }
 
     // Build query
-    const { items, total } = await EmployeeService.searchWithPagination(
+    // MINOR FIX: Use projection to exclude PII by default (compensation, bankDetails)
+    // to avoid leaking sensitive data in bulk list responses
+    const piiAllowedRoles = ["HR", "HR_OFFICER"];
+    const includePii =
+      includePiiRequested &&
+      !!session.user.role &&
+      piiAllowedRoles.includes(session.user.role);
+    
+    const {
+      items,
+      total,
+      page: safePage,
+      limit: safeLimit,
+    } = await EmployeeService.searchWithPagination(
       {
         orgId: session.user.orgId,
         employmentStatus: (() => {
@@ -42,16 +73,26 @@ export async function GET(req: NextRequest) {
         departmentId: department || undefined,
         text: search || undefined,
       },
-      { page, limit },
+      { page, limit, includePii },
     );
+    
+    const itemArray = Array.isArray(items) ? items : [];
+    // Strip PII fields unless explicitly requested
+    const sanitizedItems = includePii
+      ? itemArray
+      : itemArray.map((emp: Record<string, unknown>) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { compensation, bankDetails, ...safeEmployee } = emp;
+          return safeEmployee;
+        });
 
     return NextResponse.json({
-      employees: items,
+      employees: sanitizedItems,
       pagination: {
-        page,
-        limit,
+        page: safePage,
+        limit: safeLimit,
         total,
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / safeLimit),
       },
     });
   } catch (error) {
@@ -69,6 +110,15 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+    const allowedRoles = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
+    if (!session.user.role || !allowedRoles.includes(session.user.role)) {
+      return NextResponse.json(
+        { error: "Forbidden: HR access required" },
+        { status: 403 }
+      );
     }
 
     await connectToDatabase();
@@ -89,6 +139,23 @@ export async function POST(req: NextRequest) {
           error:
             "Missing required fields: employeeCode, firstName, lastName, email, jobTitle, hireDate",
         },
+        { status: 400 },
+      );
+    }
+
+    if (
+      body.departmentId &&
+      !Types.ObjectId.isValid(body.departmentId as string)
+    ) {
+      return NextResponse.json(
+        { error: "Invalid departmentId" },
+        { status: 400 },
+      );
+    }
+
+    if (body.managerId && !Types.ObjectId.isValid(body.managerId as string)) {
+      return NextResponse.json(
+        { error: "Invalid managerId" },
         { status: 400 },
       );
     }

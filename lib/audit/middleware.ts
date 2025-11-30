@@ -192,8 +192,11 @@ export async function auditLogMiddleware(
 
   // ORGID-FIX: Enforce mandatory orgId for authenticated users
   // SUPER ADMIN FIX: Log Super Admin cross-tenant actions with marker
-  const isSuperAdmin = Boolean((session?.user as { isSuperAdmin?: boolean })?.isSuperAdmin);
-  const assumedOrgId = (session?.user as { assumedOrgId?: string })?.assumedOrgId;
+  // DRY FIX: Extract isSuperAdmin check to avoid repeated type assertions
+  type UserWithSuperAdmin = { isSuperAdmin?: boolean; assumedOrgId?: string };
+  const userWithAdmin = session?.user as UserWithSuperAdmin | undefined;
+  const isSuperAdmin = Boolean(userWithAdmin?.isSuperAdmin);
+  const assumedOrgId = userWithAdmin?.assumedOrgId;
   const rawOrgId = session?.user?.orgId;
   
   // Super Admin can operate cross-tenant - use assumedOrgId or marker
@@ -216,7 +219,7 @@ export async function auditLogMiddleware(
     userEmail: session?.user?.email || "unknown",
     userRole: session?.user?.role || "USER",
     // PHASE-2 FIX: Track Super Admin status for elevated access auditing
-    isSuperAdmin: Boolean((session?.user as { isSuperAdmin?: boolean })?.isSuperAdmin),
+    isSuperAdmin,
     context: {
       method,
       endpoint: pathname,
@@ -227,7 +230,7 @@ export async function auditLogMiddleware(
     metadata: {
       source: "WEB" as const,
       // PHASE-2 FIX: Flag elevated access in metadata
-      elevatedAccess: Boolean((session?.user as { isSuperAdmin?: boolean })?.isSuperAdmin),
+      elevatedAccess: isSuperAdmin,
     },
     result: {
       success: true, // Will be updated after request completes
@@ -236,7 +239,7 @@ export async function auditLogMiddleware(
   };
 
   // PHASE-2 FIX: Log Super Admin access explicitly
-  if ((session?.user as { isSuperAdmin?: boolean })?.isSuperAdmin) {
+  if (isSuperAdmin) {
     logger.info('superadmin_api_access', {
       action: auditData.action,
       endpoint: pathname,

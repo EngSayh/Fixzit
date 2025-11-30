@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       rmaId,
       quantity,
       condition,
+      orgId: (session.user as { orgId?: string }).orgId,
     });
 
     return NextResponse.json({

@@ -112,11 +112,11 @@ export default function IncomeStatementWidget({
               {new Date(data.from).toLocaleDateString()} →{" "}
               {new Date(data.to).toLocaleDateString()}
             </p>
-            <p className="font-semibold text-emerald-700">
+            <p className="font-semibold text-success">
               {t("finance.income.revenue", "Revenue")}:{" "}
               {data.revenue.toFixed(2)}
             </p>
-            <p className="font-semibold text-rose-700">
+            <p className="font-semibold text-destructive">
               {t("finance.income.expense", "Expenses")}:{" "}
               {data.expense.toFixed(2)}
             </p>

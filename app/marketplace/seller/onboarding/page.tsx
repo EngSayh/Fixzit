@@ -25,6 +25,7 @@ export default function SellerOnboarding() {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [onboardingId, setOnboardingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     businessName: "",
     businessType: "",
@@ -80,6 +81,131 @@ export default function SellerOnboarding() {
     }
   };
 
+  const buildBasicInfo = () => ({
+    name: formData.contactName || formData.businessName,
+    email: formData.email,
+    phone: formData.phone,
+    type: formData.businessType,
+  });
+
+  const buildPayload = () => ({
+    business: {
+      name: formData.businessName,
+      type: formData.businessType,
+      taxId: formData.taxId,
+      address: formData.address,
+    },
+    contact: {
+      name: formData.contactName,
+      email: formData.email,
+      phone: formData.phone,
+    },
+    banking: {
+      bankName: formData.bankName,
+      accountNumber: formData.accountNumber,
+      iban: formData.iban,
+    },
+  });
+
+  const ensureOnboardingCase = async () => {
+    if (onboardingId) return onboardingId;
+    const res = await fetch("/api/onboarding/initiate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        role: "VENDOR",
+        country: "SA",
+        basic_info: buildBasicInfo(),
+        payload: buildPayload(),
+      }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to start onboarding");
+    }
+    const data = (await res.json()) as { id: string };
+    setOnboardingId(data.id);
+    return data.id;
+  };
+
+  const syncOnboarding = async (
+    updates: Record<string, unknown> & { current_step?: number; status?: string },
+  ) => {
+    const caseId = await ensureOnboardingCase();
+    const res = await fetch(`/api/onboarding/${caseId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        payload: buildPayload(),
+        basic_info: buildBasicInfo(),
+        ...updates,
+      }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to save onboarding progress");
+    }
+    return res.json();
+  };
+
+  const uploadDocument = async (
+    caseId: string,
+    file: File,
+    documentTypeCode: string,
+  ) => {
+    const presign = await fetch(
+      `/api/onboarding/${caseId}/documents/request-upload`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type_code: documentTypeCode,
+          file_name: file.name,
+          mime_type: file.type,
+          country: "SA",
+        }),
+      },
+    );
+    if (!presign.ok) {
+      const data = await presign.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to request upload");
+    }
+    const { uploadUrl, uploadHeaders, file_storage_key } =
+      (await presign.json()) as {
+        uploadUrl: string;
+        uploadHeaders: Record<string, string>;
+        file_storage_key: string;
+      };
+
+    const putRes = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: uploadHeaders,
+      body: file,
+    });
+    if (!putRes.ok) {
+      throw new Error("Failed to upload document");
+    }
+
+    const confirm = await fetch(
+      `/api/onboarding/${caseId}/documents/confirm-upload`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          document_type_code: documentTypeCode,
+          file_storage_key,
+          original_name: file.name,
+          mime_type: file.type,
+          size_bytes: file.size,
+        }),
+      },
+    );
+    if (!confirm.ok) {
+      const data = await confirm.json().catch(() => ({}));
+      throw new Error(data.error || "Failed to confirm document upload");
+    }
+  };
+
   const handleFileChange = (
     type: "commercialRegistration" | "taxCertificate",
     e: React.ChangeEvent<HTMLInputElement>,
@@ -129,7 +255,7 @@ export default function SellerOnboarding() {
     }));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!validateStep(step)) {
       setSubmitError(
         t(
@@ -140,7 +266,16 @@ export default function SellerOnboarding() {
       return;
     }
     setSubmitError(null);
-    if (step < 4) setStep(step + 1);
+    try {
+      if (step === 1 || step === 2) {
+        await syncOnboarding({ current_step: step + 1 });
+      }
+      if (step < 4) setStep(step + 1);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "Failed to save progress",
+      );
+    }
   };
 
   const handlePrevious = () => {
@@ -162,23 +297,30 @@ export default function SellerOnboarding() {
     setSubmitError(null);
 
     try {
-      // In production, upload files first and get URLs
-      const response = await fetch("/api/souq/sellers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          documents: {
-            commercialRegistration: documents.commercialRegistration.file?.name,
-            taxCertificate: documents.taxCertificate.file?.name,
-          },
-        }),
-      });
+      const caseId = await ensureOnboardingCase();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Onboarding failed");
+      if (!documents.commercialRegistration.file || !documents.taxCertificate.file) {
+        throw new Error(
+          t(
+            "marketplace.sellerOnboarding.errors.required",
+            "Please fill in all required fields.",
+          ),
+        );
       }
+
+      // Upload required documents for vendor profile
+      await uploadDocument(
+        caseId,
+        documents.commercialRegistration.file,
+        "CR_LICENSE",
+      );
+      await uploadDocument(
+        caseId,
+        documents.taxCertificate.file,
+        "VAT_CERT",
+      );
+
+      await syncOnboarding({ current_step: 4, status: "SUBMITTED" });
 
       router.push("/marketplace/vendor/portal");
     } catch (error) {

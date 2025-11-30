@@ -1,10 +1,18 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import ClientDate from "@/components/ClientDate";
 import { formatServerDate } from "@/lib/formatServerDate";
 import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ShieldAlert, Loader2 } from "lucide-react";
+
+// Roles allowed to access audit logs
+const ADMIN_ROLES = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"];
 
 // Fixzit primary timezone for audit logs (canonical timeline)
 const DEFAULT_TIMEZONE = "Asia/Riyadh";
@@ -53,6 +61,9 @@ interface AuditLogFilters {
 
 export default function AuditLogViewer() {
   const auto = useAutoTranslator("admin.auditLogs");
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +72,17 @@ export default function AuditLogViewer() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalLogs, setTotalLogs] = useState(0);
+
+  // RBAC Check: Only allow admin roles
+  const userRole = session?.user?.role as string | undefined;
+  const hasAccess = userRole && ADMIN_ROLES.includes(userRole);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login?callbackUrl=/admin/audit-logs");
+    }
+  }, [status, router]);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -172,6 +194,44 @@ export default function AuditLogViewer() {
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
+
+  // Show loading while checking session
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Show access denied if no permission
+  if (status === "authenticated" && !hasAccess) {
+    return (
+      <div className="container max-w-2xl py-16 px-4">
+        <Card className="border-destructive/50">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <ShieldAlert className="h-6 w-6 text-destructive" />
+            </div>
+            <CardTitle className="text-xl">
+              {auto("Access Denied", "accessDenied")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center text-muted-foreground">
+            <p className="mb-4">
+              {auto(
+                "You do not have permission to access Audit Logs. This page is restricted to Admin users only.",
+                "noPermission"
+              )}
+            </p>
+            <Button variant="outline" onClick={() => router.push("/dashboard")}>
+              {auto("Back to Dashboard", "backToDashboard")}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const getActionColor = (action: string) => {
     switch (action) {

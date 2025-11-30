@@ -280,6 +280,55 @@ export function normalizeRole(role?: string | Role | null): Role | null {
   return ROLE_ALIAS_MAP[key] ?? (Role as Record<string, string>)[key] as Role ?? null;
 }
 
+/**
+ * Normalizes a sub-role string to a STRICT v4.1 canonical SubRole enum value.
+ * Returns null if the sub-role is not recognized.
+ * 
+ * @param subRole - The sub-role string to normalize
+ * @example
+ * normalizeSubRole("FINANCE_OFFICER") // SubRole.FINANCE_OFFICER
+ * normalizeSubRole("finance_officer") // SubRole.FINANCE_OFFICER
+ * normalizeSubRole("INVALID") // null
+ */
+export function normalizeSubRole(subRole?: string | SubRole | null): SubRole | null {
+  if (!subRole) return null;
+  if (typeof subRole !== 'string') return subRole; // Already a SubRole enum
+  const key = subRole.toUpperCase();
+  return (SubRole as Record<string, string>)[key] as SubRole ?? null;
+}
+
+/**
+ * Infers a default SubRole from a legacy role string.
+ * Used when migrating from old role system where role implied function.
+ * 
+ * @param role - The role string to infer sub-role from
+ * @example
+ * inferSubRoleFromRole("FINANCE") // SubRole.FINANCE_OFFICER
+ * inferSubRoleFromRole("HR") // SubRole.HR_OFFICER
+ * inferSubRoleFromRole("SUPPORT") // SubRole.SUPPORT_AGENT
+ * inferSubRoleFromRole("ADMIN") // null (no inference for admin roles)
+ */
+export function inferSubRoleFromRole(role?: string | null): SubRole | null {
+  if (!role) return null;
+  const key = role.toUpperCase();
+  
+  // Direct mappings from legacy functional roles to sub-roles
+  const ROLE_TO_SUBROLE: Record<string, SubRole> = {
+    FINANCE: SubRole.FINANCE_OFFICER,
+    FINANCE_MANAGER: SubRole.FINANCE_OFFICER,
+    FINANCE_OFFICER: SubRole.FINANCE_OFFICER,
+    HR: SubRole.HR_OFFICER,
+    HR_OFFICER: SubRole.HR_OFFICER,
+    SUPPORT: SubRole.SUPPORT_AGENT,
+    SUPPORT_AGENT: SubRole.SUPPORT_AGENT,
+    OPERATIONS: SubRole.OPERATIONS_MANAGER,
+    OPERATIONS_MANAGER: SubRole.OPERATIONS_MANAGER,
+    FM_MANAGER: SubRole.OPERATIONS_MANAGER,
+  };
+  
+  return ROLE_TO_SUBROLE[key] ?? null;
+}
+
 /* =========================
  * 3) Role → Module access (STRICT v4 Matrix)
  * ========================= */

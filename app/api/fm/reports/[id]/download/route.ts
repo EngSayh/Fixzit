@@ -17,14 +17,18 @@ export async function GET(
 ) {
   try {
     const actor = await requireFmPermission(req, {
-      module: ModuleKey.FINANCE,
+      module: ModuleKey.REPORTS,
       action: FMAction.EXPORT,
     });
     if (actor instanceof NextResponse) return actor;
 
+    const isSuperAdmin = actor.isSuperAdmin === true;
+
+    // AUDIT-2025-11-29: Added RBAC context for proper tenant resolution
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      { isSuperAdmin, userId: actor.id, allowHeaderOverride: isSuperAdmin }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
@@ -38,9 +42,10 @@ export async function GET(
     }
 
     const db = await getDatabase();
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const job = await db
       .collection(COLLECTION)
-      .findOne({ _id: new ObjectId(id), org_id: tenantId });
+      .findOne({ _id: new ObjectId(id), orgId: tenantId });
     if (!job) {
       return NextResponse.json(
         { success: false, error: "Report not found" },

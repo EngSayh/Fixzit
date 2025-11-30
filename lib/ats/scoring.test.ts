@@ -88,8 +88,8 @@ describe("calculateExperienceFromText", () => {
   });
 
   it("handles nullish input gracefully", () => {
-    expect(calculateExperienceFromText(null)).toBe(0);
-    expect(calculateExperienceFromText(undefined)).toBe(0);
+    expect(calculateExperienceFromText(null as unknown as string)).toBe(0);
+    expect(calculateExperienceFromText(undefined as unknown as string)).toBe(0);
   });
 });
 

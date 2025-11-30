@@ -3,6 +3,10 @@
  * Automatically creates financial transactions when work orders are closed
  */
 
+if (!process.env.VITEST) {
+  void import("server-only");
+}
+
 import type { HydratedDocument, Types } from "mongoose";
 import { FMFinancialTransaction } from "@/server/models/FMFinancialTransaction";
 import type { FMFinancialTransactionDoc } from "@/server/models/FMFinancialTransaction";

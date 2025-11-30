@@ -1,15 +1,18 @@
-export type Role =
-  | "SUPER_ADMIN"
-  | "CORPORATE_ADMIN"
-  | "FM_MANAGER"
-  | "DISPATCHER"
-  | "TECHNICIAN"
-  | "VENDOR"
-  | "TENANT"
-  | "OWNER"
-  | "FINANCE"
-  | "SUPPORT"
-  | "AUDITOR";
+/**
+ * Work Orders RBAC Policy
+ * Re-exports Role from canonical source for backward compatibility.
+ * @see domain/fm/fm.behavior.ts for the canonical STRICT v4.1 Role enum
+ */
+import { Role } from "@/domain/fm/fm.behavior";
+
+// Re-export for backward compatibility with existing imports
+export { Role };
+
+/**
+ * @deprecated Use Role enum values directly instead of this type.
+ * Maintained for backward compatibility with existing code.
+ */
+export type RoleString = `${Role}`;
 
 export type Ability =
   | "VIEW"
@@ -23,8 +26,8 @@ export type Ability =
   | "EXPORT"
   | "COMMENT";
 
-const ROLE_ABILITIES: Record<Role, Ability[]> = {
-  SUPER_ADMIN: [
+const ROLE_ABILITIES: Partial<Record<Role, Ability[]>> = {
+  [Role.SUPER_ADMIN]: [
     "VIEW",
     "CREATE",
     "EDIT",
@@ -36,7 +39,7 @@ const ROLE_ABILITIES: Record<Role, Ability[]> = {
     "EXPORT",
     "COMMENT",
   ],
-  CORPORATE_ADMIN: [
+  [Role.ADMIN]: [
     "VIEW",
     "CREATE",
     "EDIT",
@@ -48,7 +51,7 @@ const ROLE_ABILITIES: Record<Role, Ability[]> = {
     "EXPORT",
     "COMMENT",
   ],
-  FM_MANAGER: [
+  [Role.CORPORATE_OWNER]: [
     "VIEW",
     "CREATE",
     "EDIT",
@@ -59,18 +62,28 @@ const ROLE_ABILITIES: Record<Role, Ability[]> = {
     "EXPORT",
     "COMMENT",
   ],
-  DISPATCHER: ["VIEW", "CREATE", "EDIT", "ASSIGN", "STATUS", "COMMENT"],
-  TECHNICIAN: ["VIEW", "STATUS", "COMMENT"],
-  VENDOR: ["VIEW", "STATUS", "COMMENT"],
-  TENANT: ["VIEW", "CREATE", "COMMENT"],
-  OWNER: ["VIEW", "COMMENT"],
-  FINANCE: ["VIEW", "EXPORT", "COMMENT"],
-  SUPPORT: ["VIEW", "COMMENT"],
-  AUDITOR: ["VIEW"],
+  [Role.PROPERTY_MANAGER]: [
+    "VIEW",
+    "CREATE",
+    "EDIT",
+    "ASSIGN",
+    "STATUS",
+    "VERIFY",
+    "CLOSE",
+    "EXPORT",
+    "COMMENT",
+  ],
+  [Role.TEAM_MEMBER]: ["VIEW", "CREATE", "EDIT", "ASSIGN", "STATUS", "COMMENT"],
+  [Role.TECHNICIAN]: ["VIEW", "STATUS", "COMMENT"],
+  [Role.VENDOR]: ["VIEW", "STATUS", "COMMENT"],
+  [Role.TENANT]: ["VIEW", "CREATE", "COMMENT"],
+  [Role.GUEST]: ["VIEW"],
 };
 
-export function can(role: Role, ability: Ability) {
-  return ROLE_ABILITIES[role]?.includes(ability) ?? false;
+export function can(role: Role | string, ability: Ability): boolean {
+  // Normalize string roles to Role enum
+  const normalizedRole = typeof role === "string" ? (role as Role) : role;
+  return ROLE_ABILITIES[normalizedRole]?.includes(ability) ?? false;
 }
 
 // Re-export Role for middleware compatibility

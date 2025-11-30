@@ -6,12 +6,14 @@
 import React from "react";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import PublicProviders from "./PublicProviders";
+import QueryProvider from "./QueryProvider";
 import type { Locale } from "@/i18n/config";
 
 /**
  * Complete provider tree for authenticated pages
  *
  * Wraps PublicProviders and adds authentication-specific providers:
+ * - QueryProvider (TanStack Query for data fetching and caching)
  * - TranslationProvider (user-specific translations with backend sync)
  *
  * PublicProviders already includes:
@@ -20,6 +22,7 @@ import type { Locale } from "@/i18n/config";
  *
  * Provider hierarchy (outer → inner):
  * PublicProviders (all base providers including TopBarProvider) →
+ * QueryProvider (TanStack Query) →
  * TranslationProvider → children
  *
  * @param {React.ReactNode} children - Application content to render inside provider tree
@@ -34,9 +37,11 @@ export default function AuthenticatedProviders({
 }) {
   return (
     <PublicProviders initialLocale={initialLocale}>
-      <TranslationProvider initialLanguage={initialLocale}>
-        {children}
-      </TranslationProvider>
+      <QueryProvider>
+        <TranslationProvider initialLanguage={initialLocale}>
+          {children}
+        </TranslationProvider>
+      </QueryProvider>
     </PublicProviders>
   );
 }

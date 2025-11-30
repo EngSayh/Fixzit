@@ -109,7 +109,6 @@ export class SellerBalanceService {
     if (redis) {
       const cached = await redis.get(key);
       if (cached) {
-        // @ts-expect-error - Fixed VSCode problem
         return JSON.parse(cached) as SellerBalance;
       }
     }

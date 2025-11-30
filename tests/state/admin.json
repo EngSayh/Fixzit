@@ -2,7 +2,7 @@
   "cookies": [
     {
       "name": "authjs.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..T1_UV37MElrlmhPoE65CWg.OjTYJ5DcIojk2DCdKSdwuUHwl2_gQY8u1IR1XmCat-9uFz5ST5tNuYv2Vw3Qp4loVchaBLh0BkN8ek3h_xARoLqyWtkCUonk2UnOl2_e--cHC4BfuB_lYWXa0dN431ul9S8kJNf-EXffr-T8lDYZB4FgO8sFMaIJ2qrvf7BVr_CxXAeeLHRAaCCe8t_1wmtGPfGwDt6fPwEcomJLUHQWg7YHJbGdlouBTvE1lpX1t5ywrTpBwUpjEM-NurtVhF_8yAc7MCnHNbPAL8Yd3acjy2blEXzUgCrkD61lYm78HZBf9ThejmGr2wQQAHzHjNXFvch9PEEqmLkNUGvAdAjdXliE2ckmYhfWV02NbIfpl5Rvp4DHTg9ofyt-yRsf9KVOLH2a8jlFAjMOArnXOfMVmz9TU9mJo-O8DjO5_71wiRg.VDZa4QVxFT1Z2_g9SYWSgml9GlAqT42OSI1-ZkG7g7U",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..3zcrXalsfvzHAAdqnuyPUA.q7eTUjH-G6bWEO2E_vWIgEoLOSsaTGao58P_Jlt2JthcrlldPXW5IHh3j2N3NLTDxB9-XtWnzCOjtYiLA0NvoS9q2bjsITXDk3QtOS38zm_J1JowhKQbu1x-eGRTv8SGlbsn3mBs_uJJ_xAZ9nEBONjM53hqwpkP28wvU-sI4IVWLizb407riWyjVjYebY1KBfCbaexJre__xal6cTrczP4oj24ukQIjm4bp8zu99D89-t8g5hSj8iZqEs5N_mrePeflkhHQYgCcSuJAdJRGJ0XTJvbVkUJeaG-5cso6nRyxd-2YYGI4geAJcqnxrQmwviSzv_JlDjpuo72iAeUen3B_0xH20-eMdD665nN7dpCA-gQqqqqmyhGIQN7JaxKrofDDxvRo1zd43iwqph263OHygkWLlxa7-b_FXEyBJL8.aExEPXqzi0LHF20yxkwzhuYnegCfJLAr6VZkmhNfCUs",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
@@ -12,30 +12,10 @@
     },
     {
       "name": "next-auth.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..T1_UV37MElrlmhPoE65CWg.OjTYJ5DcIojk2DCdKSdwuUHwl2_gQY8u1IR1XmCat-9uFz5ST5tNuYv2Vw3Qp4loVchaBLh0BkN8ek3h_xARoLqyWtkCUonk2UnOl2_e--cHC4BfuB_lYWXa0dN431ul9S8kJNf-EXffr-T8lDYZB4FgO8sFMaIJ2qrvf7BVr_CxXAeeLHRAaCCe8t_1wmtGPfGwDt6fPwEcomJLUHQWg7YHJbGdlouBTvE1lpX1t5ywrTpBwUpjEM-NurtVhF_8yAc7MCnHNbPAL8Yd3acjy2blEXzUgCrkD61lYm78HZBf9ThejmGr2wQQAHzHjNXFvch9PEEqmLkNUGvAdAjdXliE2ckmYhfWV02NbIfpl5Rvp4DHTg9ofyt-yRsf9KVOLH2a8jlFAjMOArnXOfMVmz9TU9mJo-O8DjO5_71wiRg.VDZa4QVxFT1Z2_g9SYWSgml9GlAqT42OSI1-ZkG7g7U",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..3zcrXalsfvzHAAdqnuyPUA.q7eTUjH-G6bWEO2E_vWIgEoLOSsaTGao58P_Jlt2JthcrlldPXW5IHh3j2N3NLTDxB9-XtWnzCOjtYiLA0NvoS9q2bjsITXDk3QtOS38zm_J1JowhKQbu1x-eGRTv8SGlbsn3mBs_uJJ_xAZ9nEBONjM53hqwpkP28wvU-sI4IVWLizb407riWyjVjYebY1KBfCbaexJre__xal6cTrczP4oj24ukQIjm4bp8zu99D89-t8g5hSj8iZqEs5N_mrePeflkhHQYgCcSuJAdJRGJ0XTJvbVkUJeaG-5cso6nRyxd-2YYGI4geAJcqnxrQmwviSzv_JlDjpuo72iAeUen3B_0xH20-eMdD665nN7dpCA-gQqqqqmyhGIQN7JaxKrofDDxvRo1zd43iwqph263OHygkWLlxa7-b_FXEyBJL8.aExEPXqzi0LHF20yxkwzhuYnegCfJLAr6VZkmhNfCUs",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
-      "httpOnly": true,
-      "secure": false,
-      "sameSite": "Lax"
-    },
-    {
-      "name": "fxz.currency",
-      "value": "SAR",
-      "domain": "localhost",
-      "path": "/",
-      "expires": 1795386721.388264,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Strict"
-    },
-    {
-      "name": "authjs.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..kH9BNVuUC2yHvTAw_TiU1Q.BkHH9Nf4Hvqs4W2UyIpztjk0xkp0v13zK_DuGgaE_1yge4foyxnGLdfaRiNEo7E3zzvpaFyzw1PRfiRfTEMm6djEJKpfND8_XV8NsRtn_xf0Kk1Pvn02QDOkqrYKGV5TY27-nyuJjA0krWneBAe68nJmmSbImivn1n-GDh9GgPq1hO1a94Xrbb507OSf6Bo0sKp02SdEFvjazMLwXOcLdwaWnj7Tdmg0K9Nit_q_BPinrwWGEHtD-krm_bsRMuyj0rwy_nGa4MwviB9cWM128nW59wOacv5appld3wtHPXQaOY8N-deR5QxeRZBGo8U4byvifcalgC2Zt8W2V2kW6axA-ki6yA79JibjasoBN8hMBQDnHfwrTGkRlvC2QHcVPWy128UmwUcWJrjbT-jaQt4bhCylnfBY9NYrxrbP99s.qaH5zItvbgRnc_VwiEGvr7m7g679A95Yf_tedpac3gk",
-      "domain": "localhost",
-      "path": "/",
-      "expires": 1766442722.817761,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
@@ -46,24 +26,8 @@
       "origin": "http://localhost:3000",
       "localStorage": [
         {
-          "name": "theme",
-          "value": "light"
-        },
-        {
-          "name": "fxz.theme",
-          "value": "light"
-        },
-        {
-          "name": "fixzit-currency",
-          "value": "SAR"
-        },
-        {
           "name": "fixzit-role",
-          "value": "ADMIN"
-        },
-        {
-          "name": "sidebarCollapsed",
-          "value": "{}"
+          "value": "admin"
         }
       ]
     }

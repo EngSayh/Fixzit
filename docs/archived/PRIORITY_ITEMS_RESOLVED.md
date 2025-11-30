@@ -248,10 +248,10 @@ const DOCS_DIR = DOCS_DIRS.find((dir) => fs.existsSync(dir)) || DOCS_DIRS[0];
 const DOCUMENTS = [
   // Blueprint PDFs (if available)
   "Monday options and workflow and system structure.pdf",
-  "Fixizit Blue Print.pdf",
+  "Fixzit Blue Print.pdf",
   "Targeted software layout for FM moduel.pdf",
-  "Fixizit Blueprint Bible – vFinal.pdf",
-  "Fixizit Facility Management Platform_ Complete Implementation Guide.pdf",
+  "Fixzit Blueprint Bible – vFinal.pdf",
+  "Fixzit Facility Management Platform_ Complete Implementation Guide.pdf",
   "Fixzit_Master_Design_System.pdf",
 
   // Fallback: Use existing PDFs
@@ -337,9 +337,9 @@ $ pnpm tsx scripts/ai/systemScan.ts
 
 [systemScan] Starting document scan...
 [systemScan] Skipped missing file: Monday options and workflow.pdf
-[systemScan] Skipped missing file: Fixizit Blue Print.pdf
+[systemScan] Skipped missing file: Fixzit Blue Print.pdf
 [systemScan] Skipped missing file: Targeted software layout.pdf
-[systemScan] Skipped missing file: Fixizit Blueprint Bible.pdf
+[systemScan] Skipped missing file: Fixzit Blueprint Bible.pdf
 [systemScan] Skipped missing file: Complete Implementation Guide.pdf
 [systemScan] Skipped missing file: Master_Design_System.pdf
 [systemScan] Processing: public/docs/msds/nitrile-gloves.pdf

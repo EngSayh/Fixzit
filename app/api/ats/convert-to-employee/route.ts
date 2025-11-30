@@ -5,7 +5,6 @@ import { Application } from "@/server/models/Application";
 import { Candidate } from "@/server/models/Candidate";
 import { Job } from "@/server/models/Job";
 import { Employee } from "@/server/models/hr.models";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from "@/server/security/rateLimit";
 import {
   notFoundError,
@@ -14,6 +13,8 @@ import {
 } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { atsRBAC } from "@/lib/ats/rbac";
+import type { ATSPermission } from "@/lib/ats/permissions";
 
 interface JobDocument {
   code?: string;
@@ -46,29 +47,21 @@ interface JobDocument {
  */
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
-    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
-    if (!rl.allowed) {
-      return rateLimitError();
+    // Enforce ATS RBAC (requires application update/stage-transition)
+    const required: ATSPermission[] = [
+      "applications:update",
+      "applications:stage-transition",
+    ];
+    const authz = await atsRBAC(req, required);
+    if (!authz.authorized) {
+      return authz.response;
     }
+    const { userId, orgId, isSuperAdmin } = authz;
+
+    const rl = rateLimit(buildRateLimitKey(req, userId), 60, 60_000);
+    if (!rl.allowed) return rateLimitError();
+
     await connectToDatabase();
-
-    // Verify user authentication
-    if (!user) {
-      return createSecureResponse({ error: "Unauthorized" }, 401, req);
-    }
-
-    // Check user permissions (SUPER_ADMIN, ADMIN, or MANAGER can convert applications)
-    const canConvertApplications = ["SUPER_ADMIN", "ADMIN", "MANAGER"].includes(
-      user.role,
-    );
-    if (!canConvertApplications) {
-      return createSecureResponse(
-        { error: "Forbidden: Insufficient permissions" },
-        403,
-        req,
-      );
-    }
 
     const { applicationId } = await req.json();
     if (!applicationId) return validationError("applicationId is required");
@@ -76,8 +69,8 @@ export async function POST(req: NextRequest) {
     const app = await Application.findById(applicationId).lean();
     if (!app) return notFoundError("Application");
 
-    // Verify org authorization (only SUPER_ADMIN can access cross-org)
-    if (app.orgId !== user.orgId && user.role !== "SUPER_ADMIN") {
+    // Verify org authorization (only Super Admin via ATS RBAC can access cross-org)
+    if (app.orgId !== orgId && !isSuperAdmin) {
       return createSecureResponse({ error: "Forbidden" }, 403, req);
     }
 
@@ -90,9 +83,8 @@ export async function POST(req: NextRequest) {
     ]);
     if (!cand || !job) return validationError("Candidate or Job missing");
 
-    const orgId = app.orgId;
     const existing = await Employee.findOne({
-      orgId,
+      orgId: app.orgId,
       email: cand.email,
       isDeleted: false,
     }).lean();
@@ -129,7 +121,7 @@ export async function POST(req: NextRequest) {
         source: "ats",
         jobId: jobTyped._id?.toString?.() || String(jobTyped._id),
         applicationId: app._id.toString(),
-        convertedBy: user?.id || "system",
+        convertedBy: userId || "system",
       },
     });
     return NextResponse.json({ success: true, data: employee });

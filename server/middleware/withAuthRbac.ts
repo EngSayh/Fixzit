@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { can } from "../rbac/workOrdersPolicy";
-import type {
-  Role as WorkOrderRole,
-  Ability as WorkOrderAbility,
-} from "../rbac/workOrdersPolicy";
+import type { Ability as WorkOrderAbility } from "../rbac/workOrdersPolicy";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { verifyToken } from "@/lib/auth";
 import { ALL_ROLES, type UserRoleType } from "@/types/user";
+import {
+  Role as CanonicalRole,
+  SubRole,
+  normalizeRole as normalizeFmRole,
+  inferSubRoleFromRole,
+} from "@/domain/fm/fm.behavior";
 
 export class UnauthorizedError extends Error {
   constructor(message: string = "Unauthenticated") {
@@ -19,8 +22,12 @@ export class UnauthorizedError extends Error {
 export type SessionUser = {
   id: string;
   role: UserRoleType;
+  subRole?: string | null;
   orgId: string;
   tenantId: string;
+  units?: string[];
+  vendorId?: string;
+  assignedProperties?: string[];
   email?: string;
   name?: string;
   subscriptionPlan?: string | null;
@@ -31,24 +38,65 @@ export type SessionUser = {
   impersonatedOrgId?: string | null;
 };
 
-const WORK_ORDER_ROLES: WorkOrderRole[] = [
-  "SUPER_ADMIN",
-  "CORPORATE_ADMIN",
-  "FM_MANAGER",
-  "DISPATCHER",
-  "TECHNICIAN",
-  "VENDOR",
-  "TENANT",
-  "OWNER",
-  "FINANCE",
-  "SUPPORT",
-  "AUDITOR",
+const WORK_ORDER_ROLES: CanonicalRole[] = [
+  CanonicalRole.SUPER_ADMIN,
+  CanonicalRole.ADMIN,
+  CanonicalRole.CORPORATE_OWNER,
+  CanonicalRole.PROPERTY_MANAGER,
+  CanonicalRole.TEAM_MEMBER,
+  CanonicalRole.TECHNICIAN,
+  CanonicalRole.VENDOR,
+  CanonicalRole.TENANT,
+  CanonicalRole.GUEST,
 ];
 
-const normalizeWorkOrderRole = (role?: UserRoleType): WorkOrderRole | null => {
+const canonicalToWorkOrderRole = (
+  role: CanonicalRole | null,
+  subRole?: SubRole,
+): CanonicalRole | null => {
   if (!role) return null;
-  const upper = role.toUpperCase() as WorkOrderRole;
+  switch (role) {
+    case CanonicalRole.SUPER_ADMIN:
+      return CanonicalRole.SUPER_ADMIN;
+    case CanonicalRole.ADMIN:
+      return CanonicalRole.ADMIN;
+    case CanonicalRole.CORPORATE_OWNER:
+      return CanonicalRole.CORPORATE_OWNER;
+    case CanonicalRole.PROPERTY_MANAGER:
+      return CanonicalRole.PROPERTY_MANAGER;
+    case CanonicalRole.TECHNICIAN:
+      return CanonicalRole.TECHNICIAN;
+    case CanonicalRole.TENANT:
+      return CanonicalRole.TENANT;
+    case CanonicalRole.VENDOR:
+      return CanonicalRole.VENDOR;
+    case CanonicalRole.TEAM_MEMBER: {
+      if (subRole === SubRole.FINANCE_OFFICER) return CanonicalRole.TEAM_MEMBER;
+      if (subRole === SubRole.SUPPORT_AGENT) return CanonicalRole.TEAM_MEMBER;
+      if (subRole === SubRole.OPERATIONS_MANAGER) return CanonicalRole.TEAM_MEMBER;
+      return CanonicalRole.TEAM_MEMBER;
+    }
+    default:
+      return null;
+  }
+};
+
+const normalizeWorkOrderRole = (role?: UserRoleType): CanonicalRole | null => {
+  if (!role) return null;
+  const inferredSubRole = inferSubRoleFromRole(role);
+  const canonical = normalizeFmRole(role, inferredSubRole);
+  const mapped = canonicalToWorkOrderRole(canonical, inferredSubRole);
+  if (mapped && WORK_ORDER_ROLES.includes(mapped)) {
+    return mapped;
+  }
+
+  const upper = role.toUpperCase() as CanonicalRole;
   return WORK_ORDER_ROLES.includes(upper) ? upper : null;
+};
+
+// Expose internals for testing
+export const __internals = {
+  normalizeWorkOrderRole,
 };
 
 const WORK_ORDER_ABILITIES: WorkOrderAbility[] = [
@@ -210,7 +258,8 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
 
     if (session?.user?.id) {
       userId = session.user.id;
-      const sessionOrgId = session.user.orgId || "";
+      // ORGID-FIX: Use undefined (not empty string) for missing orgId
+      const sessionOrgId = session.user.orgId ? String(session.user.orgId).trim() : undefined;
       realOrgId = sessionOrgId || undefined;
       sessionIsSuperAdmin = Boolean(
         (session.user as { isSuperAdmin?: boolean }).isSuperAdmin,
@@ -233,7 +282,9 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
         orgId = supportOrgOverride;
         impersonatedOrgId = supportOrgOverride;
       } else {
-        orgId = sessionOrgId || "";
+        // ORGID-FIX: Use undefined (not empty string) for missing orgId
+        // Empty string would bypass tenant isolation checks
+        orgId = sessionOrgId || undefined;  // ✅ undefined (not "")
       }
 
       // Validate role before casting
@@ -285,12 +336,6 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
       }
       if (!name && typeof parsed.name === "string") {
         name = parsed.name;
-      }
-      if (
-        subscriptionPlan === undefined &&
-        typeof parsed.subscriptionPlan === "string"
-      ) {
-        subscriptionPlan = parsed.subscriptionPlan;
       }
     } catch (e) {
       logger.error("Failed to parse x-user header", { error: e });

@@ -723,7 +723,7 @@ export default function JournalEntryForm({
 
         {/* Balance Status */}
         <div
-          className={`p-4 rounded-2xl ${isBalanced ? "bg-green-50 border border-success/20" : "bg-red-50 border border-destructive/20"}`}
+          className={`p-4 rounded-2xl ${isBalanced ? "bg-success/10 border border-success/20" : "bg-destructive/10 border border-destructive/20"}`}
         >
           <div className="flex items-center justify-between">
             <div>

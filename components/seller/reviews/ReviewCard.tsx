@@ -1,15 +1,16 @@
+"use client";
+
 /**
  * ReviewCard Component - Display individual review
  */
-"use client";
 
 import React, { useState } from "react";
 import { Star, ThumbsUp, Flag, MessageSquare } from "lucide-react";
-import type { IReview } from "@/server/models/souq/Review";
+import type { SellerReview } from "@/lib/souq/review-types";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
 interface ReviewCardProps {
-  review: IReview;
+  review: SellerReview;
   onMarkHelpful?: (_reviewId: string) => Promise<void>;
   onReport?: (_reviewId: string, _reason: string) => Promise<void>;
   showSellerResponse?: boolean;

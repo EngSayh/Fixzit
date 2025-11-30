@@ -68,9 +68,9 @@ All AI chatbot enhancements have been successfully implemented, committed, and d
   - Populates `ai_kb` MongoDB collection
 - **Supported Documents**:
   - Monday options and workflow.pdf
-  - Fixizit Blue Print.pdf
+  - Fixzit Blue Print.pdf
   - Targeted software layout for FM.pdf
-  - Fixizit Blueprint Bible – vFinal.pdf
+  - Fixzit Blueprint Bible – vFinal.pdf
   - Complete Implementation Guide.pdf
   - Master Design System.pdf
 - **Status**: ✅ PDF parsing verified (tested with nitrile-gloves.pdf - 665 chars extracted)
@@ -155,7 +155,7 @@ pnpm tsx scripts/ai/systemScan.ts --daemon
 
 ```
 [systemScan] Starting document scan...
-[systemScan] Processed Fixizit Blue Print.pdf: 45 chunks, 42,351 chars
+[systemScan] Processed Fixzit Blue Print.pdf: 45 chunks, 42,351 chars
 [systemScan] Scan complete: 234 chunks across 6 documents
 ```
 

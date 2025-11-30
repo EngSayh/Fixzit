@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 import { useTranslation } from "@/contexts/TranslationContext";
 import landingTranslations from "@/i18n/sources/landing.translations.json";
@@ -138,15 +139,30 @@ export default function LandingPage() {
               )}
             </p>
             <div className="flex flex-wrap gap-3">
-              <button className="fxz-btn-primary px-4 py-2 text-sm font-medium">
-                {translate(
-                  "Get started with Fixzit",
-                  "hero.actions.getStarted",
-                )}
-              </button>
-              <button className="fxz-btn-outline px-4 py-2 text-sm font-medium">
+              <Link
+                href="/login"
+                className="fxz-btn-primary px-4 py-2 text-sm font-medium"
+              >
+                {translate("Sign in", "hero.actions.signIn")}
+              </Link>
+              <Link
+                href="/help"
+                className="fxz-btn-outline px-4 py-2 text-sm font-medium"
+              >
                 {translate("Book a live demo", "hero.actions.bookDemo")}
-              </button>
+              </Link>
+              <Link
+                href="/pricing"
+                className="fxz-btn-ghost px-4 py-2 text-sm font-medium border border-primary text-primary hover:bg-primary/10"
+              >
+                {translate("Pricing & Free Trial", "hero.actions.pricing")}
+              </Link>
+              <Link
+                href="/vendor/apply"
+                className="fxz-btn-ghost px-4 py-2 text-sm font-medium border border-secondary text-secondary hover:bg-secondary/10"
+              >
+                {translate("Apply as Vendor", "hero.actions.vendorApply")}
+              </Link>
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-3 text-sm font-semibold">
               {heroHighlights.map((highlight) => (

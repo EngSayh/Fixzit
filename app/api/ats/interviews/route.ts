@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     // RBAC: Check permissions for reading interviews
     const authResult = await atsRBAC(req, ["interviews:read"]);
     if (!authResult.authorized) {
-      return (authResult as any).response;
+      return authResult.response;
     }
     const { orgId } = authResult;
 
@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
     // RBAC: Check permissions for creating interviews
     const authResult = await atsRBAC(req, ["interviews:create"]);
     if (!authResult.authorized) {
-      return (authResult as any).response;
+      return authResult.response;
     }
     const { userId, orgId } = authResult;
 

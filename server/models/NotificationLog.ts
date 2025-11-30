@@ -1,9 +1,9 @@
-import { Schema, model, models, Document } from 'mongoose';
+import { Schema, model, models, Document, Types } from 'mongoose';
 import { logger } from '@/lib/logger';
 
 const NotificationRecipientSchema = new Schema(
   {
-    userId: { type: String, required: true },
+    userId: { type: Schema.Types.ObjectId, required: true },
     preferredChannels: { type: [String], default: [] },
   },
   { _id: false }
@@ -18,14 +18,14 @@ const ChannelResultSchema = new Schema(
     failedCount: { type: Number, default: 0 },
     skipped: { type: Number, default: 0 },
     lastAttemptAt: Date,
-    errors: { type: [String], default: [] },
+    errorMessages: { type: [String], default: [] },
   },
   { _id: false }
 );
 
 const NotificationIssueSchema = new Schema(
   {
-    userId: { type: String, required: true },
+    userId: { type: Schema.Types.ObjectId, required: true },
     channel: { type: String, enum: ['push', 'email', 'sms', 'whatsapp'], required: true },
     type: { type: String, enum: ['failed', 'skipped'], required: true },
     reason: { type: String, required: true },
@@ -64,7 +64,8 @@ const dlqTtlDays = parseValidTtl(process.env.NOTIFICATION_DLQ_TTL_DAYS, 30, 'NOT
 
 const NotificationLogSchema = new Schema(
   {
-    notificationId: { type: String, required: true, unique: true },
+    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
+    notificationId: { type: String, required: true },
     event: { type: String, required: true },
     recipients: { type: [NotificationRecipientSchema], default: [] },
     payload: { type: Schema.Types.Mixed },
@@ -87,6 +88,8 @@ const NotificationLogSchema = new Schema(
   { timestamps: true }
 );
 
+NotificationLogSchema.index({ orgId: 1, notificationId: 1 }, { unique: true });
+
 if (notificationTtlDays > 0) {
   NotificationLogSchema.index(
     { createdAt: 1 },
@@ -95,10 +98,11 @@ if (notificationTtlDays > 0) {
 }
 
 export interface NotificationLogDocument extends Document {
+  orgId: Types.ObjectId;
   notificationId: string;
   event: string;
-  recipients: Array<{ userId: string; preferredChannels: string[] }>;
-  payload: Record<string, unknown>;
+  recipients: Array<{ userId: Types.ObjectId; preferredChannels: string[] }>;
+  payload?: Record<string, unknown>;
   priority: 'high' | 'normal' | 'low';
   sentAt?: Date;
   deliveredAt?: Date;
@@ -112,7 +116,7 @@ export interface NotificationLogDocument extends Document {
     failedCount: number;
     skipped: number;
     lastAttemptAt?: Date;
-    errors?: string[];
+    errorMessages?: string[];
   }>;
   metrics?: {
     attempted: number;
@@ -121,7 +125,7 @@ export interface NotificationLogDocument extends Document {
     skipped: number;
   };
   issues: Array<{
-    userId: string;
+    userId: Types.ObjectId;
     channel: string;
     type: 'failed' | 'skipped';
     reason: string;
@@ -138,6 +142,7 @@ export const NotificationLogModel =
 
 const NotificationDeadLetterSchema = new Schema(
   {
+    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
     notificationId: { type: String, required: true, index: true },
     event: { type: String, required: true },
     channel: { type: String, enum: ['push', 'email', 'sms', 'whatsapp'], required: true },
@@ -148,7 +153,7 @@ const NotificationDeadLetterSchema = new Schema(
     priority: { type: String, enum: ['high', 'normal', 'low'], default: 'normal' },
     status: { type: String, enum: ['pending', 'replayed', 'discarded'], default: 'pending' },
     recipient: {
-      userId: String,
+      userId: Schema.Types.ObjectId,
       email: String,
       phone: String,
       preferredChannels: { type: [String], default: [] },
@@ -156,6 +161,8 @@ const NotificationDeadLetterSchema = new Schema(
   },
   { timestamps: true }
 );
+
+NotificationDeadLetterSchema.index({ orgId: 1, notificationId: 1 });
 
 if (dlqTtlDays > 0) {
   NotificationDeadLetterSchema.index(
@@ -165,17 +172,18 @@ if (dlqTtlDays > 0) {
 }
 
 export interface NotificationDeadLetterDocument extends Document {
+  orgId: Types.ObjectId;
   notificationId: string;
   event: string;
   channel: string;
   attempts: number;
   lastAttemptAt?: Date;
   error: string;
-  payload: Record<string, unknown>;
+  payload?: Record<string, unknown>;
   priority: 'high' | 'normal' | 'low';
   status: 'pending' | 'replayed' | 'discarded';
   recipient?: {
-    userId?: string;
+    userId?: Types.ObjectId;
     email?: string;
     phone?: string;
     preferredChannels?: string[];

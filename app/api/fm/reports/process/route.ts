@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { ModifyResult } from "mongodb";
+import type { ModifyResult, WithId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
+import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { logger } from "@/lib/logger";
 import { ModuleKey } from "@/domain/fm/fm.behavior";
 import { FMAction } from "@/types/fm/enums";
@@ -14,7 +15,7 @@ import { validateBucketPolicies } from "@/lib/security/s3-policy";
 
 type ReportJob = {
   _id: { toString(): string };
-  org_id: string;
+  orgId: string; // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
   name: string;
   type: string;
   format: string;
@@ -43,19 +44,23 @@ const COLLECTION = "fm_report_jobs";
  * recovered by a separate cleanup job that resets status back to 'queued' based
  * on updatedAt timestamp (e.g., older than 10 minutes).
  *
- * @security Requires FM FINANCE/EXPORT permission
+ * @security Requires FM REPORTS/EXPORT permission
  */
 export async function POST(req: NextRequest) {
   try {
     const actor = await requireFmPermission(req, {
-      module: ModuleKey.FINANCE,
+      module: ModuleKey.REPORTS,
       action: FMAction.EXPORT,
     });
     if (actor instanceof NextResponse) return actor;
 
+    const isSuperAdmin = actor.isSuperAdmin === true;
+
+    // AUDIT-2025-11-29: Added RBAC context for proper tenant resolution
     const tenantResolution = resolveTenantId(
       req,
       actor.orgId ?? actor.tenantId,
+      { isSuperAdmin, userId: actor.id, allowHeaderOverride: isSuperAdmin }
     );
     if ("error" in tenantResolution) return tenantResolution.error;
     const { tenantId } = tenantResolution;
@@ -72,13 +77,15 @@ export async function POST(req: NextRequest) {
     const collection = db.collection<ReportJob>(COLLECTION);
     const queued: ReportJobDocument[] = [];
     while (queued.length < 5) {
-      // @ts-expect-error - Fixed VSCode problem
+      // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
       const claimResult = (await collection.findOneAndUpdate(
-        { org_id: tenantId, status: "queued" },
+        { orgId: tenantId, status: "queued" },
         { $set: { status: "processing", updatedAt: new Date() } },
         { sort: { updatedAt: 1, _id: 1 }, returnDocument: "after" },
       )) as ModifyResult<ReportJob> | null;
-      const claim = claimResult?.value as ReportJobDocument | undefined;
+      const claim = unwrapFindOneResult(
+        claimResult as ModifyResult<ReportJob> | WithId<ReportJob> | null,
+      ) as ReportJobDocument | null;
       if (!claim) break;
       queued.push(claim);
     }
@@ -142,8 +149,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Provide presigned URLs for the newly processed jobs
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
     const ready = await collection
-      .find({ org_id: tenantId, status: "ready" })
+      .find({ orgId: tenantId, status: "ready" })
       .sort({ updatedAt: -1 })
       .limit(5)
       .toArray();

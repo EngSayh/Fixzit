@@ -164,7 +164,7 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-emerald-600 hover:bg-emerald-700">
+            <Button className="bg-success hover:bg-success/90">
               <Plus className="w-4 h-4 me-2" />
               {t("fm.invoices.newInvoice", "New Invoice")}
             </Button>
@@ -213,7 +213,7 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
                   SAR
                 </p>
               </div>
-              <DollarSign className="w-8 h-8 text-emerald-600" />
+              <DollarSign className="w-8 h-8 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -400,7 +400,7 @@ function InvoicesContent({ orgId, supportOrg }: InvoicesContentProps) {
                 </p>
                 <Button
                   onClick={() => setCreateOpen(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700"
+                  className="bg-success hover:bg-success/90"
                 >
                   <Plus className="w-4 h-4 me-2" />
                   {t("fm.invoices.createInvoice", "Create Invoice")}
@@ -435,10 +435,79 @@ function InvoiceCard({
   orgId: string;
 }) {
   const { t } = useTranslation();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Suppress unused variable warnings - these props are for future use
-  void onUpdated;
-  void orgId;
+  const handleViewInvoice = () => {
+    // Open invoice detail view in a new tab or modal
+    window.open(`/fm/finance/invoices/${invoice.id}`, "_blank");
+  };
+
+  const handleDownloadInvoice = async () => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`/api/finance/invoices/${invoice.id}/download?org=${encodeURIComponent(orgId)}`);
+      if (!response.ok) {
+        throw new Error("Failed to download invoice");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `invoice-${invoice.number}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success(t("fm.invoices.toast.downloadSuccess", "Invoice downloaded successfully"));
+    } catch (error) {
+      logger.error("Invoice download failed", error);
+      toast.error(t("fm.invoices.toast.downloadFailed", "Failed to download invoice"));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSendInvoice = async () => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`/api/finance/invoices/${invoice.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "SENT" }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to send invoice");
+      }
+      toast.success(t("fm.invoices.toast.sendSuccess", "Invoice sent successfully"));
+      onUpdated();
+    } catch (error) {
+      logger.error("Invoice send failed", error);
+      toast.error(t("fm.invoices.toast.sendFailed", "Failed to send invoice"));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSendReminder = async () => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`/api/finance/invoices/${invoice.id}/reminder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to send reminder");
+      }
+      toast.success(t("fm.invoices.toast.reminderSuccess", "Payment reminder sent"));
+      onUpdated();
+    } catch (error) {
+      logger.error("Invoice reminder failed", error);
+      toast.error(t("fm.invoices.toast.reminderFailed", "Failed to send reminder"));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -451,7 +520,7 @@ function InvoiceCard({
       case "APPROVED":
         return "bg-success/10 text-success-foreground";
       case "PAID":
-        return "bg-emerald-100 text-emerald-800";
+        return "bg-success/10 text-success";
       case "OVERDUE":
         return "bg-destructive/10 text-destructive-foreground";
       case "CANCELLED":
@@ -572,19 +641,43 @@ function InvoiceCard({
             )}
           </div>
           <div className="flex space-x-2">
-            <Button variant="ghost" size="sm">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleViewInvoice}
+              disabled={isProcessing}
+              aria-label={t("fm.invoices.viewInvoice", "View invoice")}
+            >
               <Eye className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleDownloadInvoice}
+              disabled={isProcessing}
+              aria-label={t("fm.invoices.downloadInvoice", "Download invoice")}
+            >
               <Download className="w-4 h-4" />
             </Button>
             {invoice.status === "DRAFT" && (
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleSendInvoice}
+                disabled={isProcessing}
+                aria-label={t("fm.invoices.sendInvoice", "Send invoice")}
+              >
                 <Send className="w-4 h-4" />
               </Button>
             )}
             {(invoice.status === "SENT" || invoice.status === "VIEWED") && (
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleSendReminder}
+                disabled={isProcessing}
+                aria-label={t("fm.invoices.sendReminder", "Send payment reminder")}
+              >
                 <Mail className="w-4 h-4" />
               </Button>
             )}
@@ -714,12 +807,26 @@ function CreateInvoiceForm({
           issueDate: formData.issueDate,
           dueDate: formData.dueDate,
           currency: formData.currency,
+          // Include recipient/customer data
+          recipient: {
+            name: formData.recipient.name,
+            taxId: formData.recipient.taxId || undefined,
+            address: formData.recipient.address || undefined,
+            phone: formData.recipient.phone || undefined,
+            email: formData.recipient.email || undefined,
+            customerId: formData.recipient.customerId || undefined,
+          },
+          // Include issuer data
+          issuer: formData.issuer,
           lines: formData.items.map((it: InvoiceItem) => ({
             description: it.description,
             qty: it.quantity,
             unitPrice: it.unitPrice,
+            discount: it.discount,
             vatRate: it.tax?.rate ?? 15,
           })),
+          // Include payment terms
+          payment: formData.payment,
         }),
       });
 
@@ -962,7 +1069,7 @@ function CreateInvoiceForm({
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
+        <Button type="submit" className="bg-success hover:bg-success/90">
           {t("fm.invoices.createInvoice", "Create Invoice")}
         </Button>
       </div>
