@@ -59,11 +59,10 @@ function ensureLoginOrFail(result: { success: boolean; errorText?: string }) {
 }
 
 function ensureLoginOrSkip(result: { success: boolean; errorText?: string }) {
-  if (!result.success) {
-    test.skip(
-      `Login failed: ${result.errorText || 'unknown error'} – owner: QA/Auth, ticket: QA-AUTH-002`
-    );
-  }
+  expect(
+    result.success,
+    `Login failed: ${result.errorText || 'unknown error'} – owner: QA/Auth, ticket: QA-AUTH-002`
+  ).toBeTruthy();
 }
 
 test.describe('Authentication', () => {
@@ -286,10 +285,10 @@ test.describe('Authentication', () => {
     });
 
     test('should submit password reset request', async ({ page }) => {
-      test.skip(
-        !HAS_PRIMARY_USER,
+      expect(
+        HAS_PRIMARY_USER,
         'Missing TEST_USER_* env vars for password reset test – owner: QA/Auth, ticket: QA-AUTH-001'
-      );
+      ).toBeTruthy();
 
       await gotoWithRetry(page, '/forgot-password');
       await page.fill('input[name="email"]', PASSWORD_RESET_EMAIL);
@@ -301,17 +300,17 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Security', () => {
-    test.skip(
-      !HAS_PRIMARY_USER,
+    expect(
+      HAS_PRIMARY_USER,
       'Missing TEST_USER_* env vars for security tests – owner: QA/Auth, ticket: QA-AUTH-001'
-    );
+    ).toBeTruthy();
 
     test('should have secure session cookie attributes', async ({ page, context }) => {
       const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
-      test.skip(
-        !result.success,
+      expect(
+        result.success,
         `Login failed: ${result.errorText || 'unknown error'} – owner: QA/Auth, ticket: QA-AUTH-002`
-      );
+      ).toBeTruthy();
       await expect(page).toHaveURL(/\/dashboard/);
 
       const cookies = await context.cookies();

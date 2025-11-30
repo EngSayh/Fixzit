@@ -17,7 +17,7 @@ import {
  * SECURITY FIX (PR #376):
  * - Removed insecure fallback credentials (Test@1234)
  * - Uses getRequiredTestCredentials() which throws if env not set
- * - Replaced test.skip() with expect().toBeTruthy() for fail-fast
+ * - Fail-fast via assertions (no skips)
  * - Login failures now fail tests explicitly instead of skipping
  */
 
@@ -33,11 +33,30 @@ function getCredentials(subRole: SubRoleKey): TestCredentials {
 }
 
 /**
- * Assertion helper for endpoints that SHOULD be accessible.
+ * RBAC E2E Assertion Helpers
  * 
- * IMPORTANT: We accept ONLY 200 to ensure RBAC is working.
- * 404 could mask RBAC failures (e.g., guard returns 404 instead of 403).
- * If an endpoint legitimately returns 404 for empty data, use expectAllowedOrEmpty.
+ * SECURITY AUDIT (2025-11-30):
+ * - expectAllowed(): Strict 200 only - detects RBAC failures AND missing routes
+ * - expectAllowedOrEmpty(): DEPRECATED - only use for documented empty-as-404 endpoints
+ * - expectAllowedWithBodyCheck(): Preferred - validates 200 AND response structure
+ * - expectDenied(): Strict 403 only
+ * 
+ * WHY WE DON'T ACCEPT 404 FOR "ALLOWED" ENDPOINTS:
+ * 1. Backends may return 404 instead of 403 (security-through-obscurity)
+ * 2. Missing routes return 404 - masks route configuration bugs
+ * 3. RBAC guards that throw NotFound instead of Forbidden go undetected
+ * 
+ * If an endpoint legitimately returns 404 for empty collections, the backend
+ * should be fixed to return 200 with empty array. This is REST best practice.
+ */
+
+/**
+ * Strict assertion for endpoints that MUST return 200.
+ * Use this for all "allowed" endpoint tests unless there's a documented exception.
+ * 
+ * @param response - Playwright API response
+ * @param endpoint - API endpoint path for error messages
+ * @param role - Role name for error messages
  */
 function expectAllowed(
   response: { status: () => number },
@@ -47,14 +66,27 @@ function expectAllowed(
   const status = response.status();
   expect(
     status,
-    `${role} SHOULD access ${endpoint} - got ${status}, expected 200. ` +
-    `If 403: RBAC guard may be misconfigured. If 404: endpoint may not exist or RBAC returns 404.`
+    `${role} SHOULD access ${endpoint} - got ${status}, expected 200.\n` +
+    `DIAGNOSIS:\n` +
+    `  • 403: RBAC guard denying access incorrectly\n` +
+    `  • 404: Route missing OR guard returns 404 instead of 403 (security-through-obscurity)\n` +
+    `  • 401: Authentication failed - check login/session\n` +
+    `  • 500: Server error - check logs\n` +
+    `ACTION: If 404, verify route exists and RBAC guard returns proper 403 for denied access.`
   ).toBe(200);
 }
 
 /**
- * Assertion helper for endpoints that SHOULD be accessible but may return empty data.
- * Use this ONLY when the endpoint is known to return 404 for empty collections.
+ * DEPRECATED: Assertion that accepts 404 for empty collections.
+ * 
+ * ⚠️ WARNING: This can mask RBAC failures where guards return 404 instead of 403.
+ * 
+ * Only use when:
+ * 1. Backend is DOCUMENTED to return 404 for empty collections
+ * 2. You've verified the endpoint exists and returns 200 for non-empty data
+ * 3. There's a tracking issue to fix the backend to return 200 + empty array
+ * 
+ * @deprecated Prefer expectAllowed() and fix backend to return 200 + empty array
  */
 function expectAllowedOrEmpty(
   response: { status: () => number },
@@ -62,20 +94,34 @@ function expectAllowedOrEmpty(
   role: string
 ): void {
   const status = response.status();
-  expect(
-    [200, 404].includes(status),
-    `${role} SHOULD access ${endpoint} - got ${status}, expected 200 or 404 (empty). ` +
-    `If 403: RBAC guard is denying access incorrectly.`
-  ).toBe(true);
-  // Ensure we're NOT getting 403 - this is the critical RBAC check
+  
+  // First, ensure we're NOT getting 403 - this is the critical RBAC check
   expect(
     status,
-    `${role} SHOULD NOT be forbidden from ${endpoint}`
+    `${role} SHOULD NOT be forbidden from ${endpoint} - got 403.\n` +
+    `RBAC guard is incorrectly denying access to authorized role.`
   ).not.toBe(403);
+  
+  // Then check for valid statuses
+  expect(
+    [200, 404].includes(status),
+    `${role} SHOULD access ${endpoint} - got ${status}, expected 200 (or 404 for documented empty-as-404 endpoints).\n` +
+    `⚠️ NOTE: 404 acceptance is DEPRECATED. Backend should return 200 + empty array.\n` +
+    `If 401: Authentication failed. If 500: Server error.`
+  ).toBe(true);
+  
+  // Log warning for 404 responses to track endpoints needing backend fixes
+  if (status === 404) {
+    console.warn(
+      `⚠️ ${endpoint} returned 404 for ${role}. ` +
+      `Consider fixing backend to return 200 + empty array instead.`
+    );
+  }
 }
 
 /**
- * Assertion helper for endpoints that SHOULD be denied.
+ * Strict assertion for endpoints that MUST be denied.
+ * Expects exactly 403 Forbidden.
  */
 function expectDenied(
   response: { status: () => number },
@@ -85,9 +131,32 @@ function expectDenied(
   const status = response.status();
   expect(
     status,
-    `${role} should NOT access ${endpoint} - got ${status}, expected 403. ` +
-    `If 200: RBAC guard is not enforcing restrictions.`
+    `${role} should NOT access ${endpoint} - got ${status}, expected 403.\n` +
+    `DIAGNOSIS:\n` +
+    `  • 200: RBAC guard not enforcing restrictions - SECURITY ISSUE\n` +
+    `  • 404: Guard may be hiding unauthorized access as "not found"\n` +
+    `  • 401: Authentication issue, not authorization\n` +
+    `ACTION: Verify RBAC guard exists and returns 403 for unauthorized access.`
   ).toBe(403);
+}
+
+/**
+ * Categorize endpoints by their documented 404-for-empty behavior.
+ * This makes explicit which endpoints are expected to return 404 for empty data.
+ * 
+ * TODO: Remove this once all backends return 200 + empty array (REST best practice).
+ */
+const ENDPOINTS_DOCUMENTED_404_FOR_EMPTY: string[] = [
+  // Add endpoints here that are DOCUMENTED to return 404 for empty collections
+  // Example: '/api/legacy/items' - documented in API docs as returning 404 when no items
+  // NOTE: This should be empty - all endpoints should return 200 + empty array
+];
+
+/**
+ * Check if an endpoint is documented to return 404 for empty collections.
+ */
+function isDocumentedEmpty404Endpoint(endpoint: string): boolean {
+  return ENDPOINTS_DOCUMENTED_404_FOR_EMPTY.includes(endpoint);
 }
 
 // API endpoints categorized by module

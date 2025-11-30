@@ -12,13 +12,16 @@ const skipGlobalSetup = process.env.PW_SKIP_GLOBAL_SETUP === 'true';
 const skipAuthState = process.env.PW_SKIP_AUTH_STATE === 'true';
 // Resolve test directory relative to repo root (process.cwd()), not the config file location.
 // This avoids accidental paths like tests/tests/e2e when PW_TEST_DIR includes "tests/".
-const rawTestDir = process.env.PW_TEST_DIR || 'tests/specs';
+// Default to full tests directory so unit-style Playwright suites run without extra flags.
+const rawTestDir = process.env.PW_TEST_DIR || 'tests';
 const resolvedTestDir = path.isAbsolute(rawTestDir)
   ? rawTestDir
   : path.resolve(process.cwd(), rawTestDir);
 const resolvedTestMatch = process.env.PW_TEST_MATCH
   ? process.env.PW_TEST_MATCH.split(',').map(pattern => pattern.trim()).filter(Boolean)
   : undefined;
+// Ignore backup files when running the broader testDir
+const resolvedTestIgnore = ['**/*.bak', '**/*.bak.*', '**/_archive/**', '**/_old/**'];
 
 const initialBaseURL = process.env.BASE_URL ?? 'http://localhost:3000';
 
@@ -156,6 +159,7 @@ const resolvedNavigationTimeout = isPlaywrightTestMode ? 60_000 : 30_000;
 export default defineConfig({
   testDir: resolvedTestDir,
   ...(resolvedTestMatch ? { testMatch: resolvedTestMatch } : {}),
+  testIgnore: resolvedTestIgnore,
   
   // Global timeouts
   timeout: 120_000,          // 2 minutes per test

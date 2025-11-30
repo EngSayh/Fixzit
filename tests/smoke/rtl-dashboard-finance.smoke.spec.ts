@@ -6,10 +6,6 @@ import {
 } from "./utils/rtl-helpers";
 
 test.describe("RTL dashboard finance smoke", () => {
-  test.skip(
-    !hasAdminState,
-    `Admin auth state missing at ${ADMIN_STATE_PATH}. Run "pnpm exec playwright test tests/setup-auth.ts". – owner: QA/RTL, ticket: QA-RTL-002`
-  );
   test.use({ storageState: ADMIN_STATE_PATH });
 
   test("finance dashboard renders Arabic heading and counters", async ({

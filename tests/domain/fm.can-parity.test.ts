@@ -39,6 +39,8 @@ import {
   ROLE_ACTIONS as LITE_ROLE_ACTIONS,
   SUB_ROLE_ACTIONS as LITE_SUB_ROLE_ACTIONS,
   SUBMODULE_REQUIRED_SUBROLE as LITE_SUBMODULE_REQUIRED_SUBROLE,
+  canClient as canLite,
+  type ClientResourceCtx as LiteClientResourceCtx,
 } from '@/domain/fm/fm-lite';
 
 /**
@@ -52,6 +54,22 @@ function createTestCtx(overrides: Partial<ServerResourceCtx> = {}): ServerResour
     userId: 'test-user-123',
     isOrgMember: true,
     ...overrides,
+  };
+}
+
+/**
+ * Convert server ctx to lite client ctx for parity checks
+ */
+function toLiteCtx(ctx: ServerResourceCtx): LiteClientResourceCtx {
+  return {
+    role: ctx.role,
+    subRole: ctx.subRole,
+    plan: ctx.plan,
+    userId: ctx.userId,
+    orgId: ctx.orgId,
+    propertyId: ctx.propertyId,
+    isOrgMember: ctx.isOrgMember,
+    isTechnicianAssigned: ctx.isTechnicianAssigned,
   };
 }
 
@@ -940,6 +958,48 @@ describe('RBAC can() Client/Server Parity', () => {
       // Tenant cannot assign
       expect(canServer('WO_TRACK_ASSIGN', 'assign', tenantCtx)).toBe(false);
       expect(canClient('WO_TRACK_ASSIGN', 'assign', tenantCtx as ClientResourceCtx)).toBe(false);
+    });
+  });
+
+  describe('Behavioral Parity (lite canClient vs server can)', () => {
+    const cases: Array<{
+      submodule: SubmoduleKey;
+      action: Parameters<typeof canServer>[1];
+      ctx: ServerResourceCtx;
+      note?: string;
+    }> = [
+      {
+        submodule: 'WO_TRACK_ASSIGN',
+        action: 'assign',
+        ctx: createTestCtx({ role: Role.ADMIN }),
+        note: 'management assignment allowed for admin',
+      },
+      {
+        submodule: 'WO_TRACK_ASSIGN',
+        action: 'start_work',
+        ctx: createTestCtx({ role: Role.TECHNICIAN, isTechnicianAssigned: false }),
+        note: 'technician must be assigned to start work',
+      },
+      {
+        submodule: 'WO_CREATE',
+        action: 'create',
+        ctx: createTestCtx({
+          role: Role.TENANT,
+          userId: 'tenant-user-123',
+          requesterUserId: 'tenant-user-123',
+          unitId: 'unit-001',
+          units: ['unit-001'],
+        }),
+        note: 'tenant can create for own unit',
+      },
+    ];
+
+    cases.forEach(({ submodule, action, ctx, note }) => {
+      it(`${submodule} ${action} parity (lite vs server)${note ? ` – ${note}` : ''}`, () => {
+        const serverResult = canServer(submodule, action, ctx);
+        const liteResult = canLite(submodule, action, toLiteCtx(ctx));
+        expect(liteResult).toBe(serverResult);
+      });
     });
   });
 });
