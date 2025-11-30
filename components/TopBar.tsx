@@ -364,13 +364,15 @@ function TopBarContent() {
   );
 
   // Handle logo click with unsaved changes check
+  // Smart routing: authenticated users go to dashboard, guests go to landing
   const handleLogoClick = (e: React.MouseEvent) => {
+    const targetPath = isAuthenticated ? "/dashboard" : "/";
     if (hasUnsavedChanges) {
       e.preventDefault();
       setShowUnsavedDialog(true);
-      setPendingNavigation("/");
+      setPendingNavigation(targetPath);
     } else {
-      router.push("/");
+      router.push(targetPath);
     }
   };
 
@@ -695,12 +697,15 @@ function TopBarContent() {
               />
             </>
           ) : (
-            <Link
-              href="/login"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              {t("common.signIn")}
-            </Link>
+            // Don't show "Sign In" button when already on /login page (avoids redundant CTA)
+            pathname !== '/login' && (
+              <Link
+                href="/login"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                {t("common.signIn")}
+              </Link>
+            )
           )}
         </div>
       </div>
