@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [main, develop]
   workflow_dispatch: {}
+  schedule:
+    # Run nightly at 2 AM UTC for RBAC E2E tests
+    - cron: '0 2 * * *'
 
 # Prevent concurrent runs for same PR/ref - saves CI resources
 concurrency:
@@ -274,12 +277,20 @@ jobs:
       - name: RBAC Parity Check
         shell: bash
         run: |
+          mkdir -p .artifacts
           echo "Running RBAC parity tests to detect client/server drift..."
+          rbac_result="passed"
           case "${{ steps.pm.outputs.manager }}" in
-            pnpm) pnpm rbac:parity ;;
-            yarn) yarn rbac:parity ;;
-            *) npm run rbac:parity ;;
+            pnpm) pnpm rbac:parity || rbac_result="failed" ;;
+            yarn) yarn rbac:parity || rbac_result="failed" ;;
+            *) npm run rbac:parity || rbac_result="failed" ;;
           esac
+          # Store result for scorecard generation
+          echo "$rbac_result" > .artifacts/rbac-parity-result.txt
+          if [ "$rbac_result" = "failed" ]; then
+            echo "::error::RBAC parity tests failed - client/server drift detected"
+            exit 1
+          fi
 
       # ---------- Lighthouse CI (static export if available) ----------
       - name: Lighthouse CI
@@ -307,6 +318,9 @@ jobs:
           fi
 
       # ---------- Dependency Audit ----------
+      # AUDIT-2025-11-30: Fail on HIGH or CRITICAL vulnerabilities
+      # Policy: Block high+ CVEs to prevent known exploitable vulnerabilities from deploying
+      # Note: Moderate/low vulns generate warnings but don't block (tracked in dep-audit.json)
       - name: Dependency Audit
         shell: bash
         run: |
@@ -314,22 +328,23 @@ jobs:
           audit_status=0
           case "${{ steps.pm.outputs.manager }}" in
             pnpm)
-              pnpm audit --json > .artifacts/dep-audit.json || audit_status=$?
+              # --audit-level=high: fail on high or critical severity vulnerabilities
+              pnpm audit --audit-level=high --json > .artifacts/dep-audit.json || audit_status=$?
               ;;
             yarn)
-              yarn audit --json > .artifacts/dep-audit.json || audit_status=$?
+              yarn audit --level high --json > .artifacts/dep-audit.json 2>&1 || audit_status=$?
               ;;
             *)
-              npm audit --json > .artifacts/dep-audit.json || audit_status=$?
+              npm audit --audit-level=high --json > .artifacts/dep-audit.json || audit_status=$?
               ;;
           esac
 
-          # Fail on critical vulnerabilities (audit level 4+)
-          if [ "${audit_status}" -ge 16 ]; then
-            echo "::error::Critical security vulnerabilities detected. See .artifacts/dep-audit.json"
+          # SECURITY: Fail build on high+ vulnerabilities
+          if [ "${audit_status}" -ne 0 ]; then
+            echo "::error::High or critical security vulnerabilities detected. Review .artifacts/dep-audit.json and fix before merging."
             exit 1
-          elif [ "${audit_status}" -ne 0 ]; then
-            echo "::warning::Dependency audit detected issues. See .artifacts/dep-audit.json for details."
+          else
+            echo "✅ No high/critical vulnerabilities detected"
           fi
 
       # ---------- k6 Smoke (package only) ----------
@@ -339,41 +354,159 @@ jobs:
           mkdir -p .artifacts
           [ -f scripts/load/smoke.js ] && cp -f scripts/load/smoke.js .artifacts/smoke.js || true
 
-      # ---------- Security Scorecard ----------
+      # ---------- Security Scorecard (Dynamic) ----------
+      # AUDIT-2025-11-30: Generate scorecard from actual CI results, not static values
       - name: Security Scorecard
         shell: bash
         run: |
           mkdir -p .artifacts
-          cat > .artifacts/fixzit_scorecard.json << 'JSON'
+          
+          # Calculate scores based on actual step outcomes
+          # Each check contributes to its section score
+          
+          # Code Quality: lint passed (step wouldn't reach here otherwise)
+          lint_score=100
+          typecheck_score=100
+          
+          # Security: Check if audit passed (we're here so it did) 
+          audit_score=100
+          
+          # Check if RBAC parity passed
+          rbac_score=100
+          if [ -f .artifacts/rbac-parity-result.txt ]; then
+            rbac_result=$(cat .artifacts/rbac-parity-result.txt)
+            [ "$rbac_result" = "failed" ] && rbac_score=0
+          fi
+          
+          # Performance: Parse ACTUAL Lighthouse scores from manifest.json
+          # AUDIT-2025-11-30: Parse real scores instead of defaulting to 70
+          perf_score=0
+          lighthouse_parsed="false"
+          
+          # Try multiple possible locations for Lighthouse reports
+          for lhci_path in ".artifacts/lhci_reports/manifest.json" "lhci_reports/manifest.json" ".lighthouseci/manifest.json"; do
+            if [ -f "$lhci_path" ]; then
+              echo "📊 Found Lighthouse report at: $lhci_path"
+              
+              # Check if jq is available for JSON parsing
+              if command -v jq &> /dev/null; then
+                # Parse average performance score from all runs
+                # Lighthouse stores scores as decimals (0-1), multiply by 100
+                raw_score=$(jq -r '[.[].summary.performance // 0] | add / length * 100 | floor' "$lhci_path" 2>/dev/null || echo "0")
+                
+                if [ "$raw_score" != "0" ] && [ "$raw_score" != "null" ]; then
+                  perf_score=$raw_score
+                  lighthouse_parsed="true"
+                  echo "✅ Parsed Lighthouse performance score: ${perf_score}"
+                else
+                  echo "⚠️ Could not parse performance from manifest, checking for lhr files..."
+                  
+                  # Fallback: try to parse individual LHR JSON files
+                  lhr_dir=$(dirname "$lhci_path")
+                  if ls "$lhr_dir"/*.json 2>/dev/null | head -1 | grep -v manifest.json > /dev/null; then
+                    for lhr_file in "$lhr_dir"/*.json; do
+                      if [ "$lhr_file" != "$lhci_path" ]; then
+                        lhr_score=$(jq -r '.categories.performance.score // 0' "$lhr_file" 2>/dev/null || echo "0")
+                        if [ "$lhr_score" != "0" ] && [ "$lhr_score" != "null" ]; then
+                          perf_score=$(echo "$lhr_score * 100" | bc -l | cut -d. -f1)
+                          lighthouse_parsed="true"
+                          echo "✅ Parsed from LHR file: ${perf_score}"
+                          break
+                        fi
+                      fi
+                    done
+                  fi
+                fi
+              else
+                echo "⚠️ jq not available, using grep fallback..."
+                # Fallback without jq: extract performance value with grep/sed
+                raw_score=$(grep -o '"performance":[0-9.]*' "$lhci_path" | head -1 | grep -o '[0-9.]*' || echo "0")
+                if [ -n "$raw_score" ] && [ "$raw_score" != "0" ]; then
+                  perf_score=$(echo "$raw_score * 100" | bc -l 2>/dev/null | cut -d. -f1 || echo "0")
+                  if [ "$perf_score" != "0" ]; then
+                    lighthouse_parsed="true"
+                    echo "✅ Parsed (grep fallback): ${perf_score}"
+                  fi
+                fi
+              fi
+              
+              break  # Found manifest, stop looking
+            fi
+          done
+          
+          # Only default if Lighthouse was expected to run but parsing failed
+          if [ "$lighthouse_parsed" = "false" ]; then
+            if [ -d "lhci_reports" ] || [ -d ".lighthouseci" ]; then
+              echo "::warning::Lighthouse ran but couldn't parse scores - investigate report format"
+              echo "⚠️ Lighthouse ran but couldn't parse scores - defaulting to 50 (investigate)"
+              perf_score=50
+            else
+              # AUDIT-2025-12: Emit GitHub warning when performance data is missing
+              # This ensures PRs cannot be merged silently without performance validation
+              echo "::warning::No Lighthouse performance data available - PR missing performance validation"
+              echo "⚠️ No Lighthouse reports found - performance score is 0"
+              echo "ℹ️ Consider running 'pnpm lighthouse' locally before merging"
+              perf_score=0
+              # Set output for branch protection rules
+              echo "LIGHTHOUSE_MISSING=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+          
+          # Calculate section scores
+          code_quality_score=$(( (lint_score + typecheck_score) / 2 ))
+          security_score=$(( (audit_score + rbac_score) / 2 ))
+          performance_score=$perf_score
+          
+          # Calculate total (weighted average)
+          # Code Quality: 40%, Security: 40%, Performance: 20%
+          total_score=$(( (code_quality_score * 40 + security_score * 40 + performance_score * 20) / 100 ))
+          
+          # Generate dynamic scorecard
+          cat > .artifacts/fixzit_scorecard.json << EOF
           {
-            "version": "1.0",
-            "total_score": 85,
+            "version": "2.1",
+            "generated_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "workflow_run": "${{ github.run_id }}",
+            "commit": "${{ github.sha }}",
+            "total_score": ${total_score},
             "sections": [
               {
                 "name": "Code Quality",
-                "score": 90,
-                "checks": ["ESLint", "TypeScript", "Test Coverage"]
+                "score": ${code_quality_score},
+                "checks": {
+                  "ESLint": ${lint_score},
+                  "TypeScript": ${typecheck_score}
+                }
               },
               {
                 "name": "Security",
-                "score": 88,
-                "checks": ["Dependency Audit", "JWT Security", "RBAC Matrix"]
+                "score": ${security_score},
+                "checks": {
+                  "Dependency Audit": ${audit_score},
+                  "RBAC Parity": ${rbac_score}
+                }
               },
               {
                 "name": "Performance",
-                "score": 78,
-                "checks": ["Lighthouse CI", "Load Testing", "Bundle Analysis"]
+                "score": ${performance_score},
+                "lighthouse_parsed": ${lighthouse_parsed},
+                "checks": {
+                  "Lighthouse CI": ${perf_score}
+                }
               }
             ],
-            "must_pass": ["Build", "Tests", "Lint"],
-            "actions": [
-              "Review dependency audit results",
-              "Optimize Lighthouse performance scores",
-              "Enhance RBAC coverage"
-            ],
-            "final_self_score": 85
+            "gates_passed": ["Lint", "TypeCheck", "Build", "Audit"],
+            "notes": [
+              "Scores derived from actual CI step results",
+              "Security audit: high+ vulnerabilities block merge",
+              "RBAC parity: 66 behavioral tests for client/server alignment",
+              "Performance: ${lighthouse_parsed} = parsed from Lighthouse, false = estimated or unavailable"
+            ]
           }
-          JSON
+          EOF
+          
+          echo "📊 Security Scorecard generated with total score: ${total_score}"
+          echo "   Code Quality: ${code_quality_score}, Security: ${security_score}, Performance: ${performance_score}"
 
       # ---------- Upload artifacts ----------
       - name: Upload Artifacts
@@ -406,3 +539,217 @@ jobs:
           echo "- **Security Scorecard** (comprehensive security assessment)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "All artifacts are available for download from the Actions tab." >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # RBAC E2E TESTS - Sub-Role API Access Validation
+  # =============================================================================
+  # Runs subrole-api-access.spec.ts to verify RBAC enforcement at the API layer.
+  # Triggered on:
+  #   - Schedule (nightly at 2 AM UTC)
+  #   - PRs with 'run-rbac-e2e' label
+  #   - Manual workflow dispatch
+  #
+  # AUDIT-2025-11-30: This job validates:
+  #   - Sub-role access permissions (Finance, HR, Support, Ops, Admin)
+  #   - Cross-boundary access denials
+  #   - Tenant data isolation (org_id scoping)
+  #   - Method restrictions (GET vs DELETE)
+  # =============================================================================
+  rbac-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: gates
+    
+    # Run on schedule, manual dispatch, or when PR has 'run-rbac-e2e' label
+    if: |
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-rbac-e2e'))
+    
+    services:
+      mongodb:
+        image: mongo:7
+        env:
+          MONGO_INITDB_DATABASE: fixzit_test
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node with pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          cache-dependency-path: 'pnpm-lock.yaml'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(pnpm list @playwright/test --depth=0 --json | jq -r '.[0].devDependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Playwright Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps
+      
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps
+
+      - name: Build app
+        env:
+          NODE_ENV: test
+          SKIP_ENV_VALIDATION: 'true'
+          # AUDIT-2025-11-30: Build with ALLOW_OFFLINE_MONGODB: 'false'
+          # Next.js embeds env values at build time. Building with 'true'
+          # bakes offline paths into the bundle, defeating test-runtime 'false'.
+          ALLOW_OFFLINE_MONGODB: 'false'
+        run: pnpm build
+
+      - name: Run RBAC E2E Tests
+        env:
+          # Authentication
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          AUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_SKIP_CSRF_CHECK: 'true'
+          AUTH_TRUST_HOST: 'true'
+          
+          # Database - AUDIT-2025-12-01: Changed from 'true' to 'false'
+          # E2E tests MUST hit real MongoDB to validate RBAC/tenancy correctly.
+          # With offline mode, API handlers return empty data, making tests pass
+          # without actually validating permissions or tenant isolation.
+          MONGODB_URI: mongodb://localhost:27017/fixzit_test
+          ALLOW_OFFLINE_MONGODB: 'false'
+          
+          # Test environment
+          NODE_ENV: test
+          CI: 'true'
+          SKIP_ENV_VALIDATION: 'true'
+          BASE_URL: http://localhost:3000
+          
+          # ============================================================
+          # RBAC TEST CREDENTIALS (Required - from GitHub Secrets)
+          # These validate sub-role permissions at the API layer
+          # ============================================================
+          TEST_FINANCE_OFFICER_EMAIL: ${{ secrets.TEST_FINANCE_OFFICER_EMAIL }}
+          TEST_FINANCE_OFFICER_PASSWORD: ${{ secrets.TEST_FINANCE_OFFICER_PASSWORD }}
+          TEST_HR_OFFICER_EMAIL: ${{ secrets.TEST_HR_OFFICER_EMAIL }}
+          TEST_HR_OFFICER_PASSWORD: ${{ secrets.TEST_HR_OFFICER_PASSWORD }}
+          TEST_SUPPORT_AGENT_EMAIL: ${{ secrets.TEST_SUPPORT_AGENT_EMAIL }}
+          TEST_SUPPORT_AGENT_PASSWORD: ${{ secrets.TEST_SUPPORT_AGENT_PASSWORD }}
+          TEST_OPERATIONS_MANAGER_EMAIL: ${{ secrets.TEST_OPERATIONS_MANAGER_EMAIL }}
+          TEST_OPERATIONS_MANAGER_PASSWORD: ${{ secrets.TEST_OPERATIONS_MANAGER_PASSWORD }}
+          TEST_TEAM_MEMBER_EMAIL: ${{ secrets.TEST_TEAM_MEMBER_EMAIL }}
+          TEST_TEAM_MEMBER_PASSWORD: ${{ secrets.TEST_TEAM_MEMBER_PASSWORD }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+          
+          # Multi-tenancy validation
+          TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
+          
+        run: |
+          echo "🔒 Running RBAC E2E Tests - Sub-Role API Access"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "This validates:"
+          echo "  • Finance Officer access to /api/finance/*"
+          echo "  • HR Officer access to /api/hr/*"
+          echo "  • Support Agent access to /api/support/*"
+          echo "  • Operations Manager access to /api/work-orders/*"
+          echo "  • Cross-boundary access denials"
+          echo "  • Tenant data isolation (org_id scoping)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          pnpm exec playwright test \
+            tests/e2e/subrole-api-access.spec.ts \
+            --retries=2 \
+            --reporter=list,html || {
+              echo "❌ RBAC E2E tests failed!"
+              echo "Check the test report for details on which permissions are misconfigured."
+              exit 1
+            }
+          
+          echo "✅ All RBAC E2E tests passed - Sub-role permissions verified"
+
+      - name: Upload RBAC E2E Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rbac-e2e-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+      - name: Comment PR on RBAC failure
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request' && failure()
+        with:
+          script: |
+            const body = `## 🔒 RBAC E2E Tests Failed
+            
+            One or more sub-role API access tests failed. This indicates:
+            - A role may have too much or too little access
+            - Cross-tenant data may be leaking
+            - An API endpoint may be returning wrong status codes
+            
+            **Action Required:** Review the [test report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts) and fix RBAC configuration.
+            
+            See \`tests/e2e/subrole-api-access.spec.ts\` for test details.`;
+            
+            try {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            } catch (error) {
+              core.warning(`Failed to create PR comment: ${error.message}`);
+            }
+
+      - name: RBAC E2E Summary
+        if: always()
+        run: |
+          echo "## 🔒 RBAC E2E Tests - Sub-Role API Access" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ **All RBAC tests passed!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Verified:" >> $GITHUB_STEP_SUMMARY
+            echo "- Finance Officer permissions" >> $GITHUB_STEP_SUMMARY
+            echo "- HR Officer permissions" >> $GITHUB_STEP_SUMMARY
+            echo "- Support Agent permissions" >> $GITHUB_STEP_SUMMARY
+            echo "- Operations Manager permissions" >> $GITHUB_STEP_SUMMARY
+            echo "- Admin full access" >> $GITHUB_STEP_SUMMARY
+            echo "- Cross-boundary denials" >> $GITHUB_STEP_SUMMARY
+            echo "- Tenant data isolation" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **RBAC tests failed - review permissions**" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[Download report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY

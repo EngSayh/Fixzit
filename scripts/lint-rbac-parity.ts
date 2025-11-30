@@ -35,6 +35,10 @@ import {
 
 import {
   ROLE_MODULES as LITE_ROLE_MODULES,
+  PLAN_GATES as LITE_PLAN_GATES,
+  ROLE_ACTIONS as LITE_ROLE_ACTIONS,
+  SUB_ROLE_ACTIONS as LITE_SUB_ROLE_ACTIONS,
+  SUBMODULE_REQUIRED_SUBROLE as LITE_SUBMODULE_REQUIRED_SUBROLE,
   computeAllowedModules as liteComputeAllowedModules,
 } from "../domain/fm/fm-lite";
 
@@ -186,6 +190,22 @@ function checkPlanGatesParity() {
 }
 
 // ============================================
+// 5b. PLAN_GATES Parity (Server vs Lite)
+// ============================================
+function checkLitePlanGatesParity() {
+  console.log("\n📋 Checking PLAN_GATES parity (server vs lite)...");
+
+  if (!objectsEqual(
+    SERVER_PLAN_GATES as unknown as Record<string, unknown>,
+    LITE_PLAN_GATES as unknown as Record<string, unknown>
+  )) {
+    logError("PLAN_GATES_LITE", "Mismatch between server and lite");
+  } else {
+    logSuccess("PLAN_GATES_LITE fully aligned");
+  }
+}
+
+// ============================================
 // 6. computeAllowedModules Parity (Server vs Client vs Lite)
 // ============================================
 function checkComputeAllowedModulesParity() {
@@ -269,6 +289,72 @@ function checkLiteRoleModulesParity() {
 }
 
 // ============================================
+// 8. fm-lite ROLE_ACTIONS / SUB_ROLE_ACTIONS / SUBMODULE_REQUIRED_SUBROLE parity
+// ============================================
+function checkLiteRoleActionsParity() {
+  console.log("\n📋 Checking fm-lite ROLE_ACTIONS parity (server vs lite)...");
+
+  for (const role of Object.values(Role)) {
+    const serverActions = SERVER_ROLE_ACTIONS[role] || {};
+    const liteActions = LITE_ROLE_ACTIONS[role] || {};
+
+    const serverKeys = Object.keys(serverActions).sort();
+    const liteKeys = Object.keys(liteActions).sort();
+
+    if (!arraysEqual(serverKeys, liteKeys)) {
+      logError("ROLE_ACTIONS_LITE", `Role ${role} submodule keys mismatch`,
+        `Server: ${serverKeys.join(", ")}\nLite: ${liteKeys.join(", ")}`);
+      continue;
+    }
+
+    for (const submodule of serverKeys) {
+      const serverActionList = (serverActions as Record<string, string[]>)[submodule] || [];
+      const liteActionList = (liteActions as Record<string, string[]>)[submodule] || [];
+
+      if (!arraysEqual(serverActionList, liteActionList)) {
+        logError("ROLE_ACTIONS_LITE", `Role ${role} actions for ${submodule} mismatch`,
+          `Server: ${serverActionList.join(", ")}\nLite: ${liteActionList.join(", ")}`);
+      }
+    }
+  }
+
+  if (!errors.some(e => e.category === "ROLE_ACTIONS_LITE")) {
+    logSuccess("fm-lite ROLE_ACTIONS aligned with server");
+  }
+}
+
+function checkLiteSubRoleActionsParity() {
+  console.log("\n📋 Checking fm-lite SUB_ROLE_ACTIONS parity (server vs lite)...");
+
+  for (const subRole of Object.values(SubRole)) {
+    const serverActions = SERVER_SUB_ROLE_ACTIONS[subRole] || {};
+    const liteActions = LITE_SUB_ROLE_ACTIONS[subRole] || {};
+
+    if (!objectsEqual(serverActions as Record<string, unknown>, liteActions as Record<string, unknown>)) {
+      logError("SUB_ROLE_ACTIONS_LITE", `SubRole ${subRole} mismatch`,
+        `Server: ${JSON.stringify(serverActions)}\nLite: ${JSON.stringify(liteActions)}`);
+    }
+  }
+
+  if (!errors.some(e => e.category === "SUB_ROLE_ACTIONS_LITE")) {
+    logSuccess("fm-lite SUB_ROLE_ACTIONS aligned with server");
+  }
+}
+
+function checkLiteSubmoduleRequiredSubroleParity() {
+  console.log("\n📋 Checking fm-lite SUBMODULE_REQUIRED_SUBROLE parity (server vs lite)...");
+
+  if (!objectsEqual(
+    SERVER_SUBMODULE_REQUIRED_SUBROLE as unknown as Record<string, unknown>,
+    LITE_SUBMODULE_REQUIRED_SUBROLE as unknown as Record<string, unknown>
+  )) {
+    logError("SUBMODULE_REQUIRED_SUBROLE_LITE", "Mismatch between server and lite");
+  } else {
+    logSuccess("fm-lite SUBMODULE_REQUIRED_SUBROLE fully aligned with server");
+  }
+}
+
+// ============================================
 // Main
 // ============================================
 async function main() {
@@ -280,8 +366,12 @@ async function main() {
   checkSubRoleActionsParity();
   checkSubmoduleRequiredSubroleParity();
   checkPlanGatesParity();
+  checkLitePlanGatesParity();
   checkComputeAllowedModulesParity();
   checkLiteRoleModulesParity();
+  checkLiteRoleActionsParity();
+  checkLiteSubRoleActionsParity();
+  checkLiteSubmoduleRequiredSubroleParity();
   
   console.log("\n" + "=".repeat(50));
   

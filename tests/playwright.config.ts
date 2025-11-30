@@ -12,13 +12,35 @@ const skipGlobalSetup = process.env.PW_SKIP_GLOBAL_SETUP === 'true';
 const skipAuthState = process.env.PW_SKIP_AUTH_STATE === 'true';
 // Resolve test directory relative to repo root (process.cwd()), not the config file location.
 // This avoids accidental paths like tests/tests/e2e when PW_TEST_DIR includes "tests/".
-const rawTestDir = process.env.PW_TEST_DIR || 'tests/specs';
+// Default to full tests directory; constrain to *.spec.* so Vitest/Jest *.test.* suites are excluded.
+const rawTestDir = process.env.PW_TEST_DIR || 'tests';
 const resolvedTestDir = path.isAbsolute(rawTestDir)
   ? rawTestDir
   : path.resolve(process.cwd(), rawTestDir);
 const resolvedTestMatch = process.env.PW_TEST_MATCH
   ? process.env.PW_TEST_MATCH.split(',').map(pattern => pattern.trim()).filter(Boolean)
-  : undefined;
+  : [
+      'tests/e2e/**/*.spec.@(ts|tsx|mts|mjs)',
+      'tests/specs/**/*.spec.@(ts|tsx|mts|mjs)',
+      'tests/smoke/**/*.spec.@(ts|tsx|mts|mjs)',
+      'tests/qa/**/*.spec.@(ts|tsx|mts|mjs)',
+      '**/*.playwright.spec.@(ts|tsx|mts|mjs)',
+      '**/*.playwright.test.@(ts|tsx|mts|mjs)',
+    ];
+// Ignore backup files and non-Playwright test suites (*.test.*, unit/api/domain, archives)
+const resolvedTestIgnore = [
+  '**/*.bak',
+  '**/*.bak.*',
+  '**/*.test.*',
+  '**/tests/api/**',
+  '**/tests/unit/**',
+  '**/tests/domain/**',
+  '**/tests/validation/**',
+  '**/tests/debug/**',
+  '**/tests/vitest.config.test.ts',
+  '**/_archive/**',
+  '**/_old/**',
+];
 
 const initialBaseURL = process.env.BASE_URL ?? 'http://localhost:3000';
 
@@ -156,6 +178,7 @@ const resolvedNavigationTimeout = isPlaywrightTestMode ? 60_000 : 30_000;
 export default defineConfig({
   testDir: resolvedTestDir,
   ...(resolvedTestMatch ? { testMatch: resolvedTestMatch } : {}),
+  testIgnore: resolvedTestIgnore,
   
   // Global timeouts
   timeout: 120_000,          // 2 minutes per test

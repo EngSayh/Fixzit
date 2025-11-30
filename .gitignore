@@ -11,6 +11,8 @@ tests/playwright-artifacts/
 /playwright/.cache/
 /test-results/
 /tests/playwright-artifacts/
+# Playwright auth state (contains session tokens - never commit)
+tests/state/*.json
 /cypress/videos/
 /cypress/screenshots/
 tsconfig.tsbuildinfo

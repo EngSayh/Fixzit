@@ -34,9 +34,46 @@ permissions:
   pull-requests: write
 
 jobs:
+  # AUDIT-2025-11-30: Dedicated job for forked PRs to provide clear feedback
+  # The main e2e-tests job is skipped for forks (no secrets), so this job
+  # ensures external contributors get an explicit summary explaining why.
+  e2e-fork-notice:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true
+    steps:
+      - name: Notify forked PR about E2E skip
+        run: |
+          echo "::notice::E2E tests are skipped for forked PRs (secrets unavailable)."
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔒 Forked PR detected - E2E RBAC tests require secrets"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "Your PR will still receive feedback from:"
+          echo "  • TypeScript type checking"
+          echo "  • ESLint linting"
+          echo "  • Build verification"
+          echo "  • Unit tests (if configured)"
+          echo ""
+          echo "E2E RBAC tests will run when a maintainer merges to main"
+          echo "or when the PR is from an internal branch with secrets access."
+          echo ""
+          echo "### ⏭️ E2E Tests Skipped (Forked PR)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Secrets are unavailable for forked PRs. E2E tests will run after merge." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Your PR still receives:**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ TypeScript type checking" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ ESLint linting" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Build verification" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Unit tests" >> $GITHUB_STEP_SUMMARY
+
   e2e-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Skip E2E tests for forked PRs - secrets are unavailable
+    # Fork contributors get feedback from the e2e-fork-notice job above
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true
     
     # MongoDB service per job to avoid port conflicts
     services:
@@ -132,12 +169,13 @@ jobs:
         env:
           NODE_ENV: test
           SKIP_ENV_VALIDATION: 'true'
-          ALLOW_OFFLINE_MONGODB: 'true'
+          # AUDIT-2025-11-30: Build with ALLOW_OFFLINE_MONGODB: 'false'
+          # Next.js embeds env values at build time for Server Components.
+          # Building with 'true' would bake offline paths into the bundle,
+          # making the test-runtime 'false' setting ineffective.
+          ALLOW_OFFLINE_MONGODB: 'false'
         run: |
-          echo "Building Next.js app for E2E tests..."
-          if [ "$ALLOW_OFFLINE_MONGODB" = "true" ]; then
-            echo "⏭️  Building in offline mode (MongoDB disabled)..."
-          fi
+          echo "Building Next.js app for E2E tests (MongoDB required)..."
           pnpm build || {
             echo "❌ Build failed! Checking for common issues..."
             echo "NODE_ENV: $NODE_ENV"
@@ -161,35 +199,109 @@ jobs:
           echo "❌ MongoDB health check failed after 10 attempts"
           exit 1
 
+      # AUDIT-2025-11-30: Removed duplicate "Validate E2E test credentials" step
+      # that was missing env: block to wire secrets. The correctly-wired validation
+      # step below handles this check ("Validate required E2E secrets").
+
       - name: Prepare E2E env vars
         env:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
-            echo "Using generated secrets for forked PR (GitHub secrets are unavailable)."
-            RAND_SECRET="$(node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\")"
-            echo "NEXTAUTH_SECRET=${RAND_SECRET}" >> "$GITHUB_ENV"
-            echo "AUTH_SECRET=${RAND_SECRET}" >> "$GITHUB_ENV"
-            echo "GOOGLE_CLIENT_ID=" >> "$GITHUB_ENV"
-            echo "GOOGLE_CLIENT_SECRET=" >> "$GITHUB_ENV"
-          else
-            # Use shell parameter expansion for secret checking and fallback
-            if [ -z "${NEXTAUTH_SECRET}" ]; then
-              echo "Missing NEXTAUTH_SECRET secret for internal run." >&2
-              exit 1
+          # This job only runs for internal PRs/branches (forks are handled by e2e-fork-notice)
+          if [ -z "${NEXTAUTH_SECRET}" ]; then
+            echo "::error::Missing NEXTAUTH_SECRET secret. Configure in GitHub Settings > Secrets."
+            exit 1
+          fi
+          echo "NEXTAUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
+          echo "AUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
+          # Google OAuth is optional - set to empty string if not configured
+          echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}" >> "$GITHUB_ENV"
+          echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}" >> "$GITHUB_ENV"
+
+      # AUDIT-2025-11-30: Fixed secrets validation
+      # - Added env: block to wire secrets into the step (was missing, causing false negatives)
+      # - Job-level guard already skips forks, but we validate to fail fast on misconfigured CI
+      # NOTE: _EMPLOYEE secrets for non-ADMIN roles are optional (passed through but not required by tests)
+      # AUDIT-2025-12-01: _USER_ID secrets are REQUIRED for scoped roles (TEAM_MEMBER, SUPPORT_AGENT)
+      - name: Validate required E2E secrets (RBAC credentials + tenant org)
+        env:
+          # Wire secrets into step environment for validation
+          TEST_FINANCE_OFFICER_EMAIL: ${{ secrets.TEST_FINANCE_OFFICER_EMAIL }}
+          TEST_FINANCE_OFFICER_PASSWORD: ${{ secrets.TEST_FINANCE_OFFICER_PASSWORD }}
+          TEST_HR_OFFICER_EMAIL: ${{ secrets.TEST_HR_OFFICER_EMAIL }}
+          TEST_HR_OFFICER_PASSWORD: ${{ secrets.TEST_HR_OFFICER_PASSWORD }}
+          TEST_SUPPORT_AGENT_EMAIL: ${{ secrets.TEST_SUPPORT_AGENT_EMAIL }}
+          TEST_SUPPORT_AGENT_PASSWORD: ${{ secrets.TEST_SUPPORT_AGENT_PASSWORD }}
+          # REQUIRED: MongoDB _id for row-level RBAC assertions
+          TEST_SUPPORT_AGENT_USER_ID: ${{ secrets.TEST_SUPPORT_AGENT_USER_ID }}
+          TEST_OPERATIONS_MANAGER_EMAIL: ${{ secrets.TEST_OPERATIONS_MANAGER_EMAIL }}
+          TEST_OPERATIONS_MANAGER_PASSWORD: ${{ secrets.TEST_OPERATIONS_MANAGER_PASSWORD }}
+          TEST_TEAM_MEMBER_EMAIL: ${{ secrets.TEST_TEAM_MEMBER_EMAIL }}
+          TEST_TEAM_MEMBER_PASSWORD: ${{ secrets.TEST_TEAM_MEMBER_PASSWORD }}
+          # REQUIRED: MongoDB _id for row-level RBAC assertions
+          TEST_TEAM_MEMBER_USER_ID: ${{ secrets.TEST_TEAM_MEMBER_USER_ID }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+          # Required for employee-number login test in auth.spec.ts
+          # Other _EMPLOYEE secrets are optional (tests skip or use fallbacks)
+          TEST_ADMIN_EMPLOYEE: ${{ secrets.TEST_ADMIN_EMPLOYEE }}
+          TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
+        run: |
+          missing=()
+          required_keys=(
+            TEST_FINANCE_OFFICER_EMAIL TEST_FINANCE_OFFICER_PASSWORD
+            TEST_HR_OFFICER_EMAIL TEST_HR_OFFICER_PASSWORD
+            TEST_SUPPORT_AGENT_EMAIL TEST_SUPPORT_AGENT_PASSWORD TEST_SUPPORT_AGENT_USER_ID
+            TEST_OPERATIONS_MANAGER_EMAIL TEST_OPERATIONS_MANAGER_PASSWORD
+            TEST_TEAM_MEMBER_EMAIL TEST_TEAM_MEMBER_PASSWORD TEST_TEAM_MEMBER_USER_ID
+            TEST_ADMIN_EMAIL TEST_ADMIN_PASSWORD TEST_ADMIN_EMPLOYEE
+            TEST_ORG_ID
+          )
+          for key in "${required_keys[@]}"; do
+            if [ -z "${!key}" ]; then
+              missing+=("$key")
             fi
-            echo "NEXTAUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
-            echo "AUTH_SECRET=${NEXTAUTH_SECRET}" >> "$GITHUB_ENV"
-            # Google OAuth is optional - set to empty string if not configured
-            GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
-            GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
-            echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}" >> "$GITHUB_ENV"
-            echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}" >> "$GITHUB_ENV"
+          done
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Missing required E2E secrets: ${missing[*]}. Configure in GitHub Actions secrets."
+            exit 1
+          fi
+          
+          echo "✅ All required E2E secrets are configured"
+
+      # AUDIT-2025-11-30: Warn about optional employee secrets that may be needed in the future
+      # These are not currently required by tests, but alerting now prevents late failures
+      - name: Check optional employee secrets
+        env:
+          TEST_FINANCE_OFFICER_EMPLOYEE: ${{ secrets.TEST_FINANCE_OFFICER_EMPLOYEE }}
+          TEST_HR_OFFICER_EMPLOYEE: ${{ secrets.TEST_HR_OFFICER_EMPLOYEE }}
+          TEST_SUPPORT_AGENT_EMPLOYEE: ${{ secrets.TEST_SUPPORT_AGENT_EMPLOYEE }}
+          TEST_OPERATIONS_MANAGER_EMPLOYEE: ${{ secrets.TEST_OPERATIONS_MANAGER_EMPLOYEE }}
+          TEST_TEAM_MEMBER_EMPLOYEE: ${{ secrets.TEST_TEAM_MEMBER_EMPLOYEE }}
+        run: |
+          missing=()
+          for key in TEST_FINANCE_OFFICER_EMPLOYEE TEST_HR_OFFICER_EMPLOYEE TEST_SUPPORT_AGENT_EMPLOYEE TEST_OPERATIONS_MANAGER_EMPLOYEE TEST_TEAM_MEMBER_EMPLOYEE; do
+            if [ -z "${!key}" ]; then
+              missing+=("$key")
+            fi
+          done
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::notice::Optional employee numbers not configured: ${missing[*]}. Tests will skip employee-number login for these roles."
+          else
+            echo "✅ All optional employee numbers are configured"
           fi
 
+      # AUDIT-2025-11-30: Added fork guard to prevent hard-fail on external PRs
+      # Forked PRs can't access secrets, so E2E tests with RBAC credentials would fail
+      # External contributors still get lint/typecheck/build feedback from other workflows
+      # NOTE: Even though the job has a fork guard, this step-level guard ensures safety
+      # if the job condition is ever relaxed or the step is copied elsewhere.
       - name: Run Playwright E2E Tests
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true
         env:
           # Authentication (NextAuth)
           NEXTAUTH_URL: http://localhost:3000
@@ -206,9 +318,12 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ env.GOOGLE_CLIENT_SECRET }}
           
-          # Database - use offline mode with mock sessions
+          # Database - require real MongoDB for meaningful RBAC/tenancy testing
+          # AUDIT-2025-11-30: Changed from 'true' to 'false' to ensure E2E tests hit real DB
+          # With offline mode enabled, API handlers return empty data, making RBAC/tenancy
+          # checks validate empty payloads - allowing regressions to slip through undetected.
           MONGODB_URI: mongodb://localhost:27017/fixzit_test
-          ALLOW_OFFLINE_MONGODB: 'true'
+          ALLOW_OFFLINE_MONGODB: 'false'
           PLAYWRIGHT_TESTS: 'true'
           
           # Test environment
@@ -218,6 +333,46 @@ jobs:
           
           # Base URL
           BASE_URL: http://localhost:3000
+          
+          # ============================================================
+          # E2E RBAC Test Credentials (Required for subrole-api-access.spec.ts)
+          # These must be configured in GitHub Settings > Secrets
+          # See env.example for documentation on creating test users
+          # 
+          # REQUIRED: email + password for each role
+          # OPTIONAL: _EMPLOYEE secrets (only TEST_ADMIN_EMPLOYEE is required for
+          #           the employee-number login test; others are pass-through)
+          # 
+          # AUDIT-2025-12-01: _USER_ID secrets are REQUIRED for scoped roles
+          # (TEAM_MEMBER, SUPPORT_AGENT) to enable row-level RBAC assertions.
+          # Without them, tests pass even if API returns over-broad data.
+          # ============================================================
+          TEST_FINANCE_OFFICER_EMAIL: ${{ secrets.TEST_FINANCE_OFFICER_EMAIL }}
+          TEST_FINANCE_OFFICER_PASSWORD: ${{ secrets.TEST_FINANCE_OFFICER_PASSWORD }}
+          TEST_FINANCE_OFFICER_EMPLOYEE: ${{ secrets.TEST_FINANCE_OFFICER_EMPLOYEE }}
+          TEST_HR_OFFICER_EMAIL: ${{ secrets.TEST_HR_OFFICER_EMAIL }}
+          TEST_HR_OFFICER_PASSWORD: ${{ secrets.TEST_HR_OFFICER_PASSWORD }}
+          TEST_HR_OFFICER_EMPLOYEE: ${{ secrets.TEST_HR_OFFICER_EMPLOYEE }}
+          TEST_SUPPORT_AGENT_EMAIL: ${{ secrets.TEST_SUPPORT_AGENT_EMAIL }}
+          TEST_SUPPORT_AGENT_PASSWORD: ${{ secrets.TEST_SUPPORT_AGENT_PASSWORD }}
+          TEST_SUPPORT_AGENT_EMPLOYEE: ${{ secrets.TEST_SUPPORT_AGENT_EMPLOYEE }}
+          # REQUIRED: MongoDB _id of SUPPORT_AGENT user for row-level RBAC assertions
+          TEST_SUPPORT_AGENT_USER_ID: ${{ secrets.TEST_SUPPORT_AGENT_USER_ID }}
+          TEST_OPERATIONS_MANAGER_EMAIL: ${{ secrets.TEST_OPERATIONS_MANAGER_EMAIL }}
+          TEST_OPERATIONS_MANAGER_PASSWORD: ${{ secrets.TEST_OPERATIONS_MANAGER_PASSWORD }}
+          TEST_OPERATIONS_MANAGER_EMPLOYEE: ${{ secrets.TEST_OPERATIONS_MANAGER_EMPLOYEE }}
+          TEST_TEAM_MEMBER_EMAIL: ${{ secrets.TEST_TEAM_MEMBER_EMAIL }}
+          TEST_TEAM_MEMBER_PASSWORD: ${{ secrets.TEST_TEAM_MEMBER_PASSWORD }}
+          TEST_TEAM_MEMBER_EMPLOYEE: ${{ secrets.TEST_TEAM_MEMBER_EMPLOYEE }}
+          # REQUIRED: MongoDB _id of TEAM_MEMBER user for row-level RBAC assertions
+          TEST_TEAM_MEMBER_USER_ID: ${{ secrets.TEST_TEAM_MEMBER_USER_ID }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+          # REQUIRED: Used by employee-number login test (auth.spec.ts)
+          TEST_ADMIN_EMPLOYEE: ${{ secrets.TEST_ADMIN_EMPLOYEE }}
+          
+          # Multi-tenancy validation (org_id scoping for data isolation checks)
+          TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
           
         run: |
           project_arg=""

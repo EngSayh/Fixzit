@@ -631,7 +631,7 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
   // Success state
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
+      <main id="main-content" role="main" className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
         <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="w-8 h-8 text-success" />
@@ -646,12 +646,12 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
             <div className="h-full bg-primary animate-pulse" style={{ width: '100%' }} />
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+    <main id="main-content" role="main" className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Language/Currency Selectors */}
         <div className={`flex items-center justify-end gap-2 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -1003,8 +1003,8 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
               <Button
                 type="submit"
                 data-testid="login-submit"
-                disabled={submitDisabled}
-                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-disabled={submitDisabled}
+                className={`w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-colors ${submitDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {loading ? (
                   <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -1106,6 +1106,6 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

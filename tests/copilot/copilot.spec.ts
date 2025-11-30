@@ -322,7 +322,7 @@ test.describe("Fixzit AI Assistant - STRICT v4 Compliance", () => {
     });
 
     test("AUTHENTICATED: Gets full apartment details", async ({ page }) => {
-      test.skip(!process.env.CI, "Requires authentication");
+      // Requires authentication; if CI flag missing we still proceed with offline JWT
 
       const testName = "apartment-search-authenticated";
 

@@ -1,31 +1,120 @@
 import { test, expect, Page } from '@playwright/test';
-import { attemptLogin, fillLoginForm, getErrorLocator, getNonAdminUserFromEnv, getTestUserFromEnv, loginSelectors } from './utils/auth';
+import { attemptLogin, fillLoginForm, getErrorLocator, loginSelectors } from './utils/auth';
+import {
+  getRequiredTestCredentials,
+  hasTestCredentials,
+  hasTestCredentialsWithEmployee,
+  getTestOrgIdOptional,
+  validateRequiredCredentials,
+  type TestCredentials,
+} from './utils/credentials';
+
+// SECURITY FIX (2025-11-30): Removed insecure offline fallback injection.
+//
+// The previous code injected fake credentials (admin@offline.test / Test@1234)
+// at runtime, which COMPLETELY UNDERMINED the security pattern in credentials.ts.
+// 
+// Why this was dangerous:
+// 1. The fallback ran BEFORE validateRequiredCredentials()
+// 2. It set process.env vars, making validation pass with fake data
+// 3. Tests would run with insecure credentials and CI would report success
+// 4. A forked PR could pass E2E tests without real tenant isolation checks
+//
+// CORRECT BEHAVIOR:
+// - Local dev: Must configure .env.local with real TEST_* credentials
+// - CI internal: Secrets must be configured in GitHub Actions secrets
+// - CI fork: Tests skip gracefully via IS_FORK_OR_MISSING_SECRETS detection
+//
+// If you need to run tests locally without credentials:
+//   1. Copy env.example to .env.local
+//   2. Configure TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD, etc.
+//   3. For local-only smoke tests, create real test users in your dev DB
+//
+// See: tests/e2e/utils/credentials.ts for the secure credential pattern
 
 /**
  * Authentication E2E Tests
  * Tests user authentication flows, RBAC, and session management
+ * 
+ * SECURITY FIX (PR #376):
+ * - Removed insecure fallback credentials (Test@1234)
+ * - Uses getRequiredTestCredentials() which throws if env not set
+ * - Tests will fail fast if TEST_ADMIN_* or TEST_TEAM_MEMBER_* env vars are missing
  */
 
-const FALLBACK_PRIMARY = {
-  email: process.env.TEST_USER_EMAIL || process.env.TEST_SUPERADMIN_IDENTIFIER || 'test-admin@fixzit.co',
-  password: process.env.TEST_USER_PASSWORD || process.env.TEST_SUPERADMIN_PASSWORD || 'Test@1234',
-  employeeNumber: process.env.TEST_USER_EMPLOYEE || process.env.TEST_SUPERADMIN_EMPLOYEE || 'EMP-TEST-001',
-};
-const PRIMARY_USER = getTestUserFromEnv() || FALLBACK_PRIMARY;
-const HAS_PRIMARY_USER = Boolean(PRIMARY_USER);
-const HAS_EMPLOYEE_NUMBER = Boolean(PRIMARY_USER?.employeeNumber);
+/**
+ * Get primary admin user credentials.
+ * Requires TEST_ADMIN_EMAIL and TEST_ADMIN_PASSWORD env vars.
+ * 
+ * SECURITY (PR #376 audit): NO FALLBACKS.
+ * Tests MUST fail fast if credentials are not configured.
+ */
+function getPrimaryUser(): TestCredentials {
+  // AUDIT-2025-11-30: Removed insecure fallback (admin@offline.test/Test@1234)
+  // Tests MUST fail fast if env vars are missing - no silent fallbacks
+  return getRequiredTestCredentials('ADMIN');
+}
 
-const FALLBACK_NON_ADMIN = {
-  email: process.env.TEST_NONADMIN_IDENTIFIER || process.env.TEST_MANAGER_IDENTIFIER || 'test-nonadmin@fixzit.co',
-  password: process.env.TEST_NONADMIN_PASSWORD || process.env.TEST_MANAGER_PASSWORD || 'Test@1234',
-  employeeNumber: process.env.TEST_NONADMIN_EMPLOYEE || process.env.TEST_MANAGER_EMPLOYEE || 'EMP-TEST-100',
-};
-const NON_ADMIN_USER = getNonAdminUserFromEnv() || FALLBACK_NON_ADMIN;
-const HAS_NON_ADMIN_USER = Boolean(NON_ADMIN_USER);
+/**
+ * Get non-admin user credentials.
+ * Requires TEST_TEAM_MEMBER_EMAIL and TEST_TEAM_MEMBER_PASSWORD env vars.
+ * 
+ * SECURITY (PR #376 audit): NO FALLBACKS.
+ * Tests MUST fail fast if credentials are not configured.
+ */
+function getNonAdminUser(): TestCredentials {
+  // AUDIT-2025-11-30: Removed insecure fallback (member@offline.test/Test@1234)
+  // Tests MUST fail fast if env vars are missing - no silent fallbacks
+  return getRequiredTestCredentials('TEAM_MEMBER');
+}
 
-const PASSWORD_RESET_EMAIL = PRIMARY_USER?.email || 'admin@fixzit.co';
+// Check credential availability - these do NOT throw, just return boolean
+// AUDIT-2025-11-30: Fixed to use actual hasTestCredentials() instead of hard-coded true
+const HAS_PRIMARY_USER = hasTestCredentials('ADMIN');
+const HAS_NON_ADMIN_USER = hasTestCredentials('TEAM_MEMBER');
+
+// Credentials are loaded on demand - will throw if env vars missing (fail-fast)
+// AUDIT-2025-11-30: Only access these if HAS_*_USER is true to avoid immediate throw
+// Tests that need credentials must check HAS_*_USER first or will fail fast
+const PRIMARY_USER = HAS_PRIMARY_USER ? getPrimaryUser() : null;
+const NON_ADMIN_USER = HAS_NON_ADMIN_USER ? getNonAdminUser() : null;
+
+// AUDIT-2025-11-30: Removed fallback - test will fail if credentials missing
+const PASSWORD_RESET_EMAIL = PRIMARY_USER?.email ?? '';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const DEFAULT_TIMEOUT = 30000;
+const TEST_ORG_ID = getTestOrgIdOptional();
+const ALLOW_MISSING_TEST_ORG_ID = process.env.ALLOW_MISSING_TEST_ORG_ID === 'true';
+const IS_CI = process.env.CI === 'true';
+const IS_PULL_REQUEST = process.env.GITHUB_EVENT_NAME === 'pull_request';
+const HAS_AUTH_CREDENTIALS = HAS_PRIMARY_USER && HAS_NON_ADMIN_USER;
+const IS_FORK_OR_MISSING_SECRETS = IS_CI && IS_PULL_REQUEST && !HAS_AUTH_CREDENTIALS;
+
+// SECURITY (2025-11-30): Fail fast if core credentials are missing
+// BUT: Skip gracefully for forked PRs (secrets unavailable)
+if (!IS_FORK_OR_MISSING_SECRETS) {
+  // Internal CI or local dev: credentials MUST be configured
+  validateRequiredCredentials(['ADMIN', 'TEAM_MEMBER']);
+}
+// For forks: test.skip() guards in each test.describe() handle graceful skip
+
+// Enforce TEST_ORG_ID for internal CI runs (not forks)
+if (IS_CI && !TEST_ORG_ID && !IS_FORK_OR_MISSING_SECRETS) {
+  throw new Error(
+    'CI REQUIRES TEST_ORG_ID for multi-tenant isolation validation in auth RBAC tests.\n\n' +
+    'Cross-tenant data leaks are a critical security vulnerability.\n' +
+    'Without TEST_ORG_ID, tests cannot verify org_id scoping on /api/work-orders.\n\n' +
+    'ACTION:\n' +
+    '  1. Add TEST_ORG_ID to GitHub Secrets\n' +
+    '  2. Set it to the org_id of your test tenant\n\n' +
+    'See env.example for configuration details.'
+  );
+} else if (!TEST_ORG_ID && !IS_CI) {
+  console.info(
+    'ℹ️  INFO: TEST_ORG_ID not set. Tenant isolation checks will be skipped.\n' +
+    'For full multi-tenancy validation, set TEST_ORG_ID in .env.local.'
+  );
+}
 
 async function gotoWithRetry(page: Page, path: string, attempts = 3) {
   let lastError: unknown;
@@ -35,7 +124,8 @@ async function gotoWithRetry(page: Page, path: string, attempts = 3) {
       return;
     } catch (error) {
       lastError = error;
-      await page.waitForTimeout(1000);
+      // Wait for network to settle before retry
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
     }
   }
   throw lastError;
@@ -46,8 +136,22 @@ function ensureLoginOrFail(result: { success: boolean; errorText?: string }) {
 }
 
 function ensureLoginOrSkip(result: { success: boolean; errorText?: string }) {
-  if (!result.success) {
-    test.skip(`Login failed: ${result.errorText || 'unknown error'}`);
+  expect(
+    result.success,
+    `Login failed: ${result.errorText || 'unknown error'} – owner: QA/Auth, ticket: QA-AUTH-002`
+  ).toBeTruthy();
+}
+
+async function assertTenantScopedUsers(page: Page) {
+  if (!TEST_ORG_ID) return;
+  const resp = await page.request.get('/api/admin/users');
+  expect(resp.status(), 'Admin users API should be accessible').toBe(200);
+  const body = await resp.json();
+  const users = Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : [];
+  for (const user of users) {
+    if (user?.org_id !== undefined) {
+      expect(String(user.org_id)).toBe(TEST_ORG_ID);
+    }
   }
 }
 
@@ -67,6 +171,10 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Login Flow', () => {
+    // AUDIT-2025-11-30: Skip entire suite if credentials are missing
+    // This provides clear "skipped" output instead of noisy assertion failures
+    test.skip(!HAS_PRIMARY_USER, 'TEST_ADMIN_EMAIL/PASSWORD env vars required for Login Flow tests');
+
     test('should display login form', async ({ page }) => {
       await expect(page).toHaveURL(/\/login/);
       await expect(page.locator(loginSelectors.identifier)).toBeVisible({ timeout: 15000 });
@@ -83,6 +191,9 @@ test.describe('Authentication', () => {
     });
 
     test('should login with employee number', async ({ page }) => {
+      // Employee number is optional - skip if not configured
+      test.skip(!PRIMARY_USER?.employeeNumber, 'TEST_ADMIN_EMPLOYEE env var required for employee-number login test');
+      
       const result = await attemptLogin(page, PRIMARY_USER!.employeeNumber!, PRIMARY_USER!.password);
       ensureLoginOrFail(result);
     });
@@ -105,6 +216,9 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Session Management', () => {
+    // AUDIT-2025-11-30: Skip entire suite if credentials are missing
+    test.skip(!HAS_PRIMARY_USER, 'TEST_ADMIN_EMAIL/PASSWORD env vars required for Session Management tests');
+
     test('should persist session after page reload', async ({ page }) => {
       const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
       ensureLoginOrFail(result);
@@ -141,6 +255,9 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Logout', () => {
+    // AUDIT-2025-11-30: Skip entire suite if credentials are missing
+    test.skip(!HAS_PRIMARY_USER, 'TEST_ADMIN_EMAIL/PASSWORD env vars required for Logout tests');
+
     test.beforeEach(async ({ page }) => {
       const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
       ensureLoginOrFail(result);
@@ -161,8 +278,7 @@ test.describe('Authentication', () => {
         });
       });
 
-      // Wait for menu to open and click logout
-      await page.waitForTimeout(500); // Menu animation
+      // Wait for dropdown menu to become visible
       const logoutButton = page.locator('[data-testid="logout-button"]').first();
       await logoutButton.waitFor({ state: 'visible', timeout: 5000 });
       await logoutButton.click();
@@ -196,8 +312,7 @@ test.describe('Authentication', () => {
         });
       });
 
-      // Wait for menu and click logout
-      await page.waitForTimeout(500);
+      // Wait for dropdown menu to become visible
       const logoutButton = page.locator('[data-testid="logout-button"]').first();
       await logoutButton.waitFor({ state: 'visible', timeout: 5000 });
       await logoutButton.click();
@@ -205,8 +320,16 @@ test.describe('Authentication', () => {
       // Wait for logout to complete (logout page redirects to login)
       await page.waitForURL(/\/login/, { timeout: 15000 });
 
-      // Give cookies time to clear
-      await page.waitForTimeout(1000);
+      // Wait for session cookies to be cleared (poll with timeout)
+      await expect(async () => {
+        const checkCookies = await context.cookies();
+        const checkSessionCookie = checkCookies.find(c =>
+          c.name.includes('session-token') ||
+          c.name === 'next-auth.session-token' ||
+          c.name === '__Secure-next-auth.session-token'
+        );
+        expect(checkSessionCookie).toBeUndefined();
+      }).toPass({ timeout: 5000 });
 
       // Verify session cookies are cleared
       const cookies = await context.cookies();
@@ -220,6 +343,11 @@ test.describe('Authentication', () => {
   });
 
   test.describe('RBAC (Role-Based Access Control)', () => {
+    // AUDIT-2025-11-30: Skip entire suite if credentials are missing
+    // RBAC tests require both admin and non-admin users to validate role separation
+    test.skip(!HAS_PRIMARY_USER || !HAS_NON_ADMIN_USER, 
+      'TEST_ADMIN_* and TEST_TEAM_MEMBER_* env vars required for RBAC tests');
+
     test('should load user permissions after login', async ({ page }) => {
       const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
       ensureLoginOrSkip(result);
@@ -254,8 +382,63 @@ test.describe('Authentication', () => {
         }
       });
 
-      expect([200, 403]).toContain(response.status());
-      expect(response.status()).not.toBe(401);
+      // SECURITY FIX (PR #376 audit): Admin MUST get 200, not 403
+      // Lenient [200, 403] would let RBAC regressions ship unnoticed
+      const status = response.status();
+      expect(
+        status,
+        `Admin should access /api/work-orders - got ${status}, expected 200.\n` +
+        `403 means RBAC is incorrectly denying admin access.`
+      ).toBe(200);
+
+      // Tenancy guardrail: require TEST_ORG_ID locally unless explicitly bypassed
+      if (!TEST_ORG_ID) {
+        if (!IS_CI && !ALLOW_MISSING_TEST_ORG_ID) {
+          expect(
+            false,
+            'TEST_ORG_ID is required for tenant validation in auth E2E. ' +
+            'Set TEST_ORG_ID in .env.local or export ALLOW_MISSING_TEST_ORG_ID=true to bypass locally.'
+          ).toBe(true);
+        } else {
+          console.warn(
+            '⚠️  Tenant validation skipped in auth E2E: TEST_ORG_ID not set. ' +
+            'Set TEST_ORG_ID (preferred) or ALLOW_MISSING_TEST_ORG_ID=true to acknowledge the skip.'
+          );
+          return;
+        }
+      }
+
+      // Tenancy guardrail: ensure returned data is scoped
+      // AUDIT-2025-11-30: Check BOTH org_id (snake_case) and orgId (camelCase)
+      let body: unknown;
+      try {
+        body = await response.json();
+      } catch (error) {
+        const raw = await response.text();
+        throw new Error(
+          `Failed to parse /api/work-orders response as JSON (status ${status}). Raw: ${raw}. Error: ${String(error)}`
+        );
+      }
+
+      const verifyOrg = (value: unknown) => {
+        if (value && typeof value === 'object') {
+          const v = value as Record<string, unknown>;
+          // Check both org_id and orgId - Mongoose uses camelCase, some APIs use snake_case
+          const foundOrgId = v.org_id ?? v.orgId;
+          if (foundOrgId !== undefined) {
+            expect(
+              String(foundOrgId),
+              `org_id/orgId must match TEST_ORG_ID for tenancy isolation. Expected ${TEST_ORG_ID}, got ${foundOrgId}`
+            ).toBe(TEST_ORG_ID);
+          }
+        }
+      };
+
+      if (Array.isArray(body)) {
+        body.forEach(verifyOrg);
+      } else {
+        verifyOrg(body);
+      }
     });
   });
 
@@ -271,7 +454,8 @@ test.describe('Authentication', () => {
     });
 
     test('should submit password reset request', async ({ page }) => {
-      test.skip(!HAS_PRIMARY_USER, 'Missing TEST_USER_* env vars for password reset test');
+      // AUDIT-2025-11-30: Use skip instead of expect for clearer output
+      test.skip(!HAS_PRIMARY_USER, 'TEST_ADMIN_EMAIL/PASSWORD env vars required for password reset test');
 
       await gotoWithRetry(page, '/forgot-password');
       await page.fill('input[name="email"]', PASSWORD_RESET_EMAIL);
@@ -283,11 +467,15 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Security', () => {
-    test.skip(!HAS_PRIMARY_USER, 'Missing TEST_USER_* env vars for security tests');
+    // AUDIT-2025-11-30: Use test.skip() for clearer output when credentials missing
+    test.skip(!HAS_PRIMARY_USER, 'TEST_ADMIN_EMAIL/PASSWORD env vars required for Security tests');
 
     test('should have secure session cookie attributes', async ({ page, context }) => {
       const result = await attemptLogin(page, PRIMARY_USER!.email, PRIMARY_USER!.password);
-      test.skip(!result.success, `Login failed: ${result.errorText || 'unknown error'}`);
+      expect(
+        result.success,
+        `Login failed: ${result.errorText || 'unknown error'} – owner: QA/Auth, ticket: QA-AUTH-002`
+      ).toBeTruthy();
       await expect(page).toHaveURL(/\/dashboard/);
 
       const cookies = await context.cookies();
@@ -403,6 +591,10 @@ test.describe('Authentication', () => {
 
     test('interactive elements should be keyboard accessible', async ({ page }) => {
       await gotoWithRetry(page, '/login');
+
+      // Enable the submit button to ensure it is focusable (disabled by default when fields are empty)
+      await fillLoginForm(page, 'a11y@example.com', 'StrongPass1!');
+      // Do not submit; we only need the control focusable
 
       // Check buttons and links are focusable
       const submitButton = page.locator('button[type="submit"]');

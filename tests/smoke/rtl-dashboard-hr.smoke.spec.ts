@@ -6,10 +6,6 @@ import {
 } from "./utils/rtl-helpers";
 
 test.describe("RTL dashboard HR smoke", () => {
-  test.skip(
-    !hasAdminState,
-    `Admin auth state missing at ${ADMIN_STATE_PATH}. Run "pnpm exec playwright test tests/setup-auth.ts".`,
-  );
   test.use({ storageState: ADMIN_STATE_PATH });
 
   test("dashboard tiles render in Arabic and dir=rtl", async ({ page }) => {

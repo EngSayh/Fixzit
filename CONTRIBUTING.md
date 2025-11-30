@@ -250,7 +250,42 @@ Resolves ISSUE-SEC-003
 
 - Check permissions server-side
 - Principle of least privilege
-- Role hierarchy: SUPER_ADMIN > ADMIN > MANAGER > USER
+
+**🔒 STRICT v4.1 Role Hierarchy (9 canonical roles)**:
+```
+SUPER_ADMIN
+    ↓
+ADMIN
+    ↓
+MANAGER (org-level management)
+    ↓
+┌─────────────────────────────────────────────┐
+│         TEAM_MEMBER + Sub-Roles             │
+│  ┌─────────────┬─────────────┬───────────┐  │
+│  │ FINANCE_    │ HR_OFFICER  │ SUPPORT_  │  │
+│  │ OFFICER     │             │ AGENT     │  │
+│  ├─────────────┴─────────────┴───────────┤  │
+│  │        OPERATIONS_MANAGER             │  │
+│  └───────────────────────────────────────┘  │
+└─────────────────────────────────────────────┘
+    ↓
+TECHNICIAN (field workers)
+    ↓
+VENDOR (external contractors)
+    ↓
+GUEST (read-only dashboard access)
+```
+
+**Sub-roles** (assigned via `professional.subRole`):
+- `FINANCE_OFFICER` - Finance module + reports
+- `HR_OFFICER` - HR module + PII access + reports
+- `SUPPORT_AGENT` - Support + CRM + reports
+- `OPERATIONS_MANAGER` - Work Orders + Properties + Marketplace
+
+**Additional roles** (property/external context):
+- `OWNER`, `TENANT`, `AUDITOR`, `CUSTOMER`, `VIEWER`
+
+See `types/user.ts` for full role definitions and `domain/fm/fm-lite.ts` for module access mapping.
 
 #### Data Protection
 
@@ -263,17 +298,23 @@ Resolves ISSUE-SEC-003
 #### Running Tests
 
 ```bash
-# All tests
+# All tests (models + E2E)
 pnpm test
 
-# Unit tests only
-pnpm test:unit
+# Model tests only (fast, recommended for development)
+pnpm test:models
+
+# Service tests
+pnpm test:services
 
 # E2E tests
 pnpm test:e2e
 
-# Coverage
-pnpm test:coverage
+# Fast CI tests (bail on first failure)
+pnpm test:ci
+
+# Watch mode during development
+pnpm test:watch
 
 # RBAC Parity Tests (client/server alignment)
 pnpm rbac:parity
@@ -424,7 +465,82 @@ pnpm test:e2e
 - Dependency caching enabled for pnpm
 - Jobs run in parallel where possible
 
+### 15. E2E Testing Setup
+
+#### Prerequisites
+
+E2E tests require explicit credentials - no default passwords are used for security reasons.
+
+#### Required Environment Variables
+
+Add these to your `.env.local` file (see `env.example` for documentation):
+
+```bash
+# E2E Test Credentials - required for RBAC tests
+TEST_FINANCE_OFFICER_EMAIL=finance.officer@example.com
+TEST_FINANCE_OFFICER_PASSWORD=<secure-password>
+
+TEST_HR_OFFICER_EMAIL=hr.officer@example.com
+TEST_HR_OFFICER_PASSWORD=<secure-password>
+
+TEST_SUPPORT_AGENT_EMAIL=support.agent@example.com
+TEST_SUPPORT_AGENT_PASSWORD=<secure-password>
+
+TEST_OPERATIONS_MANAGER_EMAIL=ops.manager@example.com
+TEST_OPERATIONS_MANAGER_PASSWORD=<secure-password>
+
+TEST_TEAM_MEMBER_EMAIL=team.member@example.com
+TEST_TEAM_MEMBER_PASSWORD=<secure-password>
+
+TEST_ADMIN_EMAIL=admin@example.com
+TEST_ADMIN_PASSWORD=<secure-password>
+```
+
+#### Creating Test Users
+
+Each test user must exist in the database with the appropriate role configuration:
+
+| User Type | Role | subRole | Module Access |
+|-----------|------|---------|---------------|
+| FINANCE_OFFICER | TEAM_MEMBER | FINANCE_OFFICER | Finance APIs |
+| HR_OFFICER | TEAM_MEMBER | HR_OFFICER | HR APIs |
+| SUPPORT_AGENT | TEAM_MEMBER | SUPPORT_AGENT | Support APIs |
+| OPERATIONS_MANAGER | TEAM_MEMBER | OPERATIONS_MANAGER | Work Orders, Properties, Marketplace |
+| TEAM_MEMBER | TEAM_MEMBER | (none) | Limited access |
+| ADMIN | ADMIN | (any) | All modules |
+
+#### Running E2E Tests
+
+```bash
+# Start dev server (if not running)
+pnpm dev
+
+# Run all E2E tests
+pnpm test:e2e
+
+# Run specific sub-role tests
+pnpm playwright test subrole-api-access.spec.ts
+
+# Run with UI mode
+pnpm playwright test --ui
+```
+
+#### Troubleshooting E2E Tests
+
+**Tests fail with "Missing required test credentials"**
+- Ensure all `TEST_*_EMAIL` and `TEST_*_PASSWORD` vars are set in `.env.local`
+- No fallback defaults exist - this is intentional for security
+
+**Login failures**
+- Verify test users exist in database with correct roles
+- Check `professional.subRole` is set correctly for TEAM_MEMBER users
+- Ensure the dev server is running at `http://localhost:3000`
+
+**403 Forbidden errors**
+- Check RBAC configuration in `lib/auth/role-guards.ts`
+- Verify `subRole` is being propagated to session (see `auth.config.ts`)
+
 ---
 
-**Last Updated**: 2025-11-30  
+**Last Updated**: 2025-12-01  
 **Maintained By**: Engineering Team

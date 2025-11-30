@@ -35,11 +35,6 @@ const riskPatterns = [
 
 test.describe("Landing page data hygiene", () => {
   test("does not expose FM metrics on public landing", async ({ page }) => {
-    test.skip(
-      test.info().project.name === "Microsoft Edge",
-      "Edge channel not installed locally",
-    );
-
     await assertNoConsoleErrors(page, async () => {
       await page.goto("/");
       const body = page.locator("body");
