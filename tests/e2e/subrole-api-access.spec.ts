@@ -1468,3 +1468,100 @@ test.describe('Unauthenticated API Access', () => {
     }
   });
 });
+
+/**
+ * Regression tests for tenant validation helper behavior.
+ * These verify that walkAndVerifyOrgId catches tenant leaks in any nested shape,
+ * not just the common data/items/results wrappers.
+ * 
+ * AUDIT-2025-11-30: Added to lock in "all nested objects" traversal behavior
+ * after expanding recursion from hardcoded keys to full Object.entries() walk.
+ */
+test.describe('Tenant Validation Helper Behavior', () => {
+  // Mock response factory for testing
+  const createMockResponse = (body: unknown) => ({
+    status: () => 200,
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+  });
+
+  test('catches org_id mismatch in standard data wrapper', async () => {
+    const wrongTenantBody = {
+      data: [{ id: '1', org_id: 'wrong-tenant', name: 'Test' }],
+    };
+    
+    const response = createMockResponse(wrongTenantBody);
+    
+    // This should fail because org_id doesn't match expected
+    await expect(async () => {
+      await expectAllowedWithBodyCheck(response, '/api/test', 'TEST_ROLE', {
+        expectedOrgId: 'correct-tenant',
+      });
+    }).rejects.toThrow(/TENANT MISMATCH/);
+  });
+
+  test('catches org_id mismatch in arbitrary nested key (summary)', async () => {
+    // This tests the "all nested objects" traversal - summary is not in the
+    // old hardcoded wrapperKeys list (data/items/results)
+    const wrongTenantBody = {
+      summary: { totalCount: 10, org_id: 'wrong-tenant' },
+      meta: { page: 1 },
+    };
+    
+    const response = createMockResponse(wrongTenantBody);
+    
+    await expect(async () => {
+      await expectAllowedWithBodyCheck(response, '/api/test', 'TEST_ROLE', {
+        expectedOrgId: 'correct-tenant',
+      });
+    }).rejects.toThrow(/TENANT MISMATCH/);
+  });
+
+  test('catches org_id mismatch in deeply nested user object', async () => {
+    const wrongTenantBody = {
+      result: {
+        user: {
+          profile: { org_id: 'wrong-tenant', name: 'John' },
+        },
+      },
+    };
+    
+    const response = createMockResponse(wrongTenantBody);
+    
+    await expect(async () => {
+      await expectAllowedWithBodyCheck(response, '/api/test', 'TEST_ROLE', {
+        expectedOrgId: 'correct-tenant',
+      });
+    }).rejects.toThrow(/TENANT MISMATCH/);
+  });
+
+  test('skips metadata keys and does not require org_id in them', async () => {
+    // meta, pagination, _metadata, __v should be skipped
+    const validBody = {
+      data: [{ id: '1', org_id: 'correct-tenant' }],
+      meta: { page: 1, total: 100 }, // No org_id here - should be fine
+      pagination: { next: '/api/test?page=2' }, // No org_id here - should be fine
+    };
+    
+    const response = createMockResponse(validBody);
+    
+    // Should NOT throw - metadata keys are exempt
+    await expectAllowedWithBodyCheck(response, '/api/test', 'TEST_ROLE', {
+      expectedOrgId: 'correct-tenant',
+    });
+  });
+
+  test('accepts matching org_id in non-standard wrapper', async () => {
+    const validBody = {
+      payload: { record: { org_id: 'correct-tenant', value: 42 } },
+      rows: [{ org_id: 'correct-tenant', name: 'Item 1' }],
+    };
+    
+    const response = createMockResponse(validBody);
+    
+    // Should NOT throw - org_id matches in all nested objects
+    await expectAllowedWithBodyCheck(response, '/api/test', 'TEST_ROLE', {
+      expectedOrgId: 'correct-tenant',
+    });
+  });
+});
