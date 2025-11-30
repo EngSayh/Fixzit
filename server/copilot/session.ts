@@ -61,9 +61,11 @@ export async function resolveCopilotSession(
     };
   }
 
+  // SEC-001: If user has no orgId, they're effectively a guest with public tenant
+  // This is valid for copilot context - authenticated users without org belong to public tenant
   return {
     userId: user.id,
-    tenantId: user.orgId || "default",
+    tenantId: user.orgId || "public",
     role: (user.role || "GUEST") as CopilotRole,
     email: user.email,
     name: user.name,

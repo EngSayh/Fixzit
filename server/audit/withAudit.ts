@@ -134,8 +134,17 @@ export function withAudit<
         const status = res?.status ?? 0;
         const success = status >= 200 && status < 400;
 
-        const auditData = {
-          orgId: (session!.user.orgId as string) || "default",
+        // SEC-001: Use actual orgId or skip audit for users without org context
+        // Audit logs MUST have valid orgId for tenant isolation
+        const userOrgId = session!.user.orgId as string | undefined;
+        if (!userOrgId || userOrgId.trim() === '') {
+          // Skip audit logging for users without valid org context
+          // This prevents cross-tenant data leakage in audit logs
+          // eslint-disable-next-line no-unsafe-finally -- Early return to skip audit, response already returned
+          // Note: We don't return here to avoid eslint error, just skip the audit log
+        } else {
+          const auditData = {
+            orgId: userOrgId,
           action,
           entityType,
           entityId,
@@ -168,9 +177,10 @@ export function withAudit<
             duration: Math.round(duration),
             errorCode: success ? undefined : String(status),
           },
-        };
+          };
 
-        await AuditLogModel.log(auditData);
+          await AuditLogModel.log(auditData);
+        }
       } catch (err) {
         // never break the API
         logger.error("Failed to log audit entry", { error: err });

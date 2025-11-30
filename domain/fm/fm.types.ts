@@ -234,7 +234,7 @@ export const ROLE_ALIAS_MAP: Record<string, Role> = {
   OCCUPANT: Role.TENANT,
   END_USER: Role.TENANT,
   SUPPORT: Role.TEAM_MEMBER,
-  AUDITOR: Role.TEAM_MEMBER,
+  AUDITOR: Role.GUEST, // SEC: Auditors should have read-only GUEST access, not TEAM_MEMBER
   VIEWER: Role.GUEST,
   FIELD_ENGINEER: Role.TECHNICIAN,
   INTERNAL_TECHNICIAN: Role.TECHNICIAN,
