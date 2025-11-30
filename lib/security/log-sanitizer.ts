@@ -81,6 +81,17 @@ const SENSITIVE_KEYS = new Set([
   "auth_token",
   "bearertoken",
   "bearer_token",
+  // Common HTTP header patterns
+  "xapikey",
+  "x_api_key",
+  "xauthtoken",
+  "x_auth_token",
+  "xforwardedfor",
+  "x_forwarded_for",
+  "xrealip",
+  "x_real_ip",
+  "proxyauthorization",
+  "proxy_authorization",
 
   // Address details
   "address",
@@ -106,7 +117,7 @@ const SENSITIVE_KEYS = new Set([
  */
 const BASE_PII_PATTERNS: RegExp[] = [
   /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i, // emails
-  /\+?\d[\d\s().-]{7,20}\d/, // phone-like numeric runs (bounded 7-20 to prevent ReDoS)
+  /\+?\d(?:[\d]{6,14}|[\d\s()-]{7,18}\d)/, // phone-like: pure digits OR formatted (bounded, non-greedy)
   /^[A-Za-z0-9-_]{10,}\.(?:[A-Za-z0-9-_]{10,})\.(?:[A-Za-z0-9-_]{10,})$/, // JWT tokens (min 10 chars per segment)
   /\b[A-Z]{2}\d{2}[A-Z0-9]{9,30}\b/, // IBAN-ish
   /\b\d{13,19}\b/, // card-like digit runs

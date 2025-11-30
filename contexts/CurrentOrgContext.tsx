@@ -75,7 +75,15 @@ function normalizePlan(planString?: string | null): Plan {
     case "BUSINESS":
       return Plan.ENTERPRISE;
     default:
-      // Fail-safe: unknown plan defaults to STARTER
+      // CTX-001 FIX: Log warning for unknown plan before defaulting to STARTER
+      // This helps debug plan misconfigurations in production
+      if (typeof window !== "undefined") {
+        // eslint-disable-next-line no-console -- Intentional: debugging plan misconfigurations
+        console.warn(
+          `[CurrentOrgContext] Unknown plan "${planString}" received, defaulting to STARTER. ` +
+          `Expected one of: STARTER, STANDARD, PRO, ENTERPRISE`
+        );
+      }
       return Plan.STARTER;
   }
 }

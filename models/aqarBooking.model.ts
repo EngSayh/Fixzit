@@ -404,13 +404,24 @@ BookingSchema.pre('findOneAndUpdate', async function (next) {
       }
       
       // Merge existing values with updates (updates take precedence)
+      // BOOK-002 FIX: Validate that dates exist before processing
       const checkInDate = hasCheckInUpdate ? updateData.checkInDate : existing.checkInDate;
       const checkOutDate = hasCheckOutUpdate ? updateData.checkOutDate : existing.checkOutDate;
       const pricePerNight = hasPriceUpdate ? updateData.pricePerNight : existing.pricePerNight;
       
+      // Validate required date fields are present
+      if (!checkInDate || !checkOutDate) {
+        return next(new Error('Booking must have valid check-in and check-out dates'));
+      }
+      
       // Calculate derived fields with merged values
       const inUTC = toUTCDateOnly(new Date(checkInDate));
       const outUTC = toUTCDateOnly(new Date(checkOutDate));
+      
+      // BOOK-002 FIX: Validate dates are valid before proceeding
+      if (isNaN(inUTC.getTime()) || isNaN(outUTC.getTime())) {
+        return next(new Error('Invalid check-in or check-out date format'));
+      }
       const nights = Math.max(0, Math.round((outUTC.getTime() - inUTC.getTime()) / MS_PER_DAY));
       
       if (nights < 1) {

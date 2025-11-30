@@ -861,21 +861,18 @@ export function canClient(
 
   // 3) STRICT v4.1: Sub-role enforcement for TEAM_MEMBER
   if (ctx.role === Role.TEAM_MEMBER) {
-    const requiredSubRoles = SUBMODULE_REQUIRED_SUBROLE[submodule];
-    if (requiredSubRoles && requiredSubRoles.length > 0) {
-      // Submodule requires a sub-role for TEAM_MEMBER
-      if (!ctx.subRole || !requiredSubRoles.includes(ctx.subRole)) {
-        // Check if sub-role grants access via SUB_ROLE_ACTIONS
-        if (ctx.subRole && SUB_ROLE_ACTIONS[ctx.subRole]?.[submodule]?.includes(action)) {
-          return true;
-        }
-        return false;
-      }
-    }
-    
     // Check sub-role actions first (extends base TEAM_MEMBER permissions)
     if (ctx.subRole && SUB_ROLE_ACTIONS[ctx.subRole]?.[submodule]?.includes(action)) {
       return true;
+    }
+    
+    // Check if this submodule requires a specific sub-role for TEAM_MEMBER access
+    const requiredSubRoles = SUBMODULE_REQUIRED_SUBROLE[submodule];
+    if (requiredSubRoles && requiredSubRoles.length > 0) {
+      // Submodule requires a sub-role that the user doesn't have
+      if (!ctx.subRole || !requiredSubRoles.includes(ctx.subRole)) {
+        return false;
+      }
     }
   }
 

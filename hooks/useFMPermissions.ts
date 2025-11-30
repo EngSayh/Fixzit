@@ -128,18 +128,17 @@ export function useFMPermissions() {
 
   /**
    * Get allowed actions for a submodule
+   * Checks all possible Action types defined in fm-lite.ts
    */
   const getAllowedActions = (submodule: SubmoduleKey): Action[] => {
-    const actions: Action[] = [
-      "view",
-      "create",
-      "update",
-      "delete",
-      "approve",
-      "assign",
-      "export",
+    const allActions: Action[] = [
+      "view", "create", "update", "delete", "comment", "upload_media",
+      "assign", "schedule", "dispatch", "submit_estimate", "attach_quote",
+      "request_approval", "approve", "reject", "request_changes",
+      "start_work", "pause_work", "complete_work", "close", "reopen",
+      "export", "share", "link_finance", "link_hr", "link_marketplace", "post_finance",
     ];
-    return actions.filter((action) => canPerform(submodule, action));
+    return allActions.filter((action) => canPerform(submodule, action));
   };
 
   /**
@@ -166,37 +165,30 @@ export function useFMPermissions() {
   /**
    * Check if user can view financial data
    * STRICT v4.1: Requires FINANCE_OFFICER sub-role for TEAM_MEMBER
+   * Uses canPerform which handles plan gates, org membership, and role/sub-role checks
    */
   const canViewFinancials = (): boolean => {
-    // Admins and Corporate Owners can always view financials
-    if (ctx.role === Role.SUPER_ADMIN || ctx.role === Role.ADMIN) {
-      return canPerform(SubmoduleKey.FINANCE_INVOICES, "view");
-    }
-    if (ctx.role === Role.CORPORATE_OWNER) {
-      return canPerform(SubmoduleKey.FINANCE_INVOICES, "view");
-    }
-    // TEAM_MEMBER requires FINANCE_OFFICER sub-role
-    if (ctx.role === Role.TEAM_MEMBER) {
-      return ctx.subRole === SubRole.FINANCE_OFFICER && 
-             canPerform(SubmoduleKey.FINANCE_INVOICES, "view");
-    }
-    // Other roles cannot view financials
-    return false;
+    // canPerform already handles:
+    // - Plan gates (FINANCE_INVOICES availability per plan)
+    // - Org membership check
+    // - Role-based action checks (SUPER_ADMIN, ADMIN, CORPORATE_OWNER have view in ROLE_ACTIONS)
+    // - Sub-role enforcement for TEAM_MEMBER (FINANCE_OFFICER required)
+    return canPerform(SubmoduleKey.FINANCE_INVOICES, "view");
   };
 
   /**
    * Check if user can manage HR data
    * STRICT v4.1: Requires HR_OFFICER sub-role for TEAM_MEMBER
+   * Uses canPerform which handles plan gates, org membership, and role/sub-role checks
    */
   const canViewHR = (): boolean => {
-    if (ctx.role === Role.SUPER_ADMIN || ctx.role === Role.ADMIN) {
-      return canPerform(SubmoduleKey.HR_EMPLOYEE_DIRECTORY, "view");
-    }
-    if (ctx.role === Role.TEAM_MEMBER) {
-      return ctx.subRole === SubRole.HR_OFFICER &&
-             canPerform(SubmoduleKey.HR_EMPLOYEE_DIRECTORY, "view");
-    }
-    return false;
+    // canPerform already handles:
+    // - Plan gates (HR_EMPLOYEE_DIRECTORY availability per plan)
+    // - Org membership check
+    // - Role-based action checks (SUPER_ADMIN, ADMIN have view in ROLE_ACTIONS)
+    // - Sub-role enforcement for TEAM_MEMBER (HR_OFFICER required)
+    // - CORPORATE_OWNER has limited view access per ROLE_ACTIONS
+    return canPerform(SubmoduleKey.HR_EMPLOYEE_DIRECTORY, "view");
   };
 
   return {
