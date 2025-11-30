@@ -224,6 +224,7 @@ jobs:
       # - Added env: block to wire secrets into the step (was missing, causing false negatives)
       # - Job-level guard already skips forks, but we validate to fail fast on misconfigured CI
       # NOTE: _EMPLOYEE secrets for non-ADMIN roles are optional (passed through but not required by tests)
+      # AUDIT-2025-12-01: _USER_ID secrets are REQUIRED for scoped roles (TEAM_MEMBER, SUPPORT_AGENT)
       - name: Validate required E2E secrets (RBAC credentials + tenant org)
         env:
           # Wire secrets into step environment for validation
@@ -233,10 +234,14 @@ jobs:
           TEST_HR_OFFICER_PASSWORD: ${{ secrets.TEST_HR_OFFICER_PASSWORD }}
           TEST_SUPPORT_AGENT_EMAIL: ${{ secrets.TEST_SUPPORT_AGENT_EMAIL }}
           TEST_SUPPORT_AGENT_PASSWORD: ${{ secrets.TEST_SUPPORT_AGENT_PASSWORD }}
+          # REQUIRED: MongoDB _id for row-level RBAC assertions
+          TEST_SUPPORT_AGENT_USER_ID: ${{ secrets.TEST_SUPPORT_AGENT_USER_ID }}
           TEST_OPERATIONS_MANAGER_EMAIL: ${{ secrets.TEST_OPERATIONS_MANAGER_EMAIL }}
           TEST_OPERATIONS_MANAGER_PASSWORD: ${{ secrets.TEST_OPERATIONS_MANAGER_PASSWORD }}
           TEST_TEAM_MEMBER_EMAIL: ${{ secrets.TEST_TEAM_MEMBER_EMAIL }}
           TEST_TEAM_MEMBER_PASSWORD: ${{ secrets.TEST_TEAM_MEMBER_PASSWORD }}
+          # REQUIRED: MongoDB _id for row-level RBAC assertions
+          TEST_TEAM_MEMBER_USER_ID: ${{ secrets.TEST_TEAM_MEMBER_USER_ID }}
           TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
           # Required for employee-number login test in auth.spec.ts
@@ -248,9 +253,9 @@ jobs:
           required_keys=(
             TEST_FINANCE_OFFICER_EMAIL TEST_FINANCE_OFFICER_PASSWORD
             TEST_HR_OFFICER_EMAIL TEST_HR_OFFICER_PASSWORD
-            TEST_SUPPORT_AGENT_EMAIL TEST_SUPPORT_AGENT_PASSWORD
+            TEST_SUPPORT_AGENT_EMAIL TEST_SUPPORT_AGENT_PASSWORD TEST_SUPPORT_AGENT_USER_ID
             TEST_OPERATIONS_MANAGER_EMAIL TEST_OPERATIONS_MANAGER_PASSWORD
-            TEST_TEAM_MEMBER_EMAIL TEST_TEAM_MEMBER_PASSWORD
+            TEST_TEAM_MEMBER_EMAIL TEST_TEAM_MEMBER_PASSWORD TEST_TEAM_MEMBER_USER_ID
             TEST_ADMIN_EMAIL TEST_ADMIN_PASSWORD TEST_ADMIN_EMPLOYEE
             TEST_ORG_ID
           )
@@ -337,6 +342,10 @@ jobs:
           # REQUIRED: email + password for each role
           # OPTIONAL: _EMPLOYEE secrets (only TEST_ADMIN_EMPLOYEE is required for
           #           the employee-number login test; others are pass-through)
+          # 
+          # AUDIT-2025-12-01: _USER_ID secrets are REQUIRED for scoped roles
+          # (TEAM_MEMBER, SUPPORT_AGENT) to enable row-level RBAC assertions.
+          # Without them, tests pass even if API returns over-broad data.
           # ============================================================
           TEST_FINANCE_OFFICER_EMAIL: ${{ secrets.TEST_FINANCE_OFFICER_EMAIL }}
           TEST_FINANCE_OFFICER_PASSWORD: ${{ secrets.TEST_FINANCE_OFFICER_PASSWORD }}
@@ -347,12 +356,16 @@ jobs:
           TEST_SUPPORT_AGENT_EMAIL: ${{ secrets.TEST_SUPPORT_AGENT_EMAIL }}
           TEST_SUPPORT_AGENT_PASSWORD: ${{ secrets.TEST_SUPPORT_AGENT_PASSWORD }}
           TEST_SUPPORT_AGENT_EMPLOYEE: ${{ secrets.TEST_SUPPORT_AGENT_EMPLOYEE }}
+          # REQUIRED: MongoDB _id of SUPPORT_AGENT user for row-level RBAC assertions
+          TEST_SUPPORT_AGENT_USER_ID: ${{ secrets.TEST_SUPPORT_AGENT_USER_ID }}
           TEST_OPERATIONS_MANAGER_EMAIL: ${{ secrets.TEST_OPERATIONS_MANAGER_EMAIL }}
           TEST_OPERATIONS_MANAGER_PASSWORD: ${{ secrets.TEST_OPERATIONS_MANAGER_PASSWORD }}
           TEST_OPERATIONS_MANAGER_EMPLOYEE: ${{ secrets.TEST_OPERATIONS_MANAGER_EMPLOYEE }}
           TEST_TEAM_MEMBER_EMAIL: ${{ secrets.TEST_TEAM_MEMBER_EMAIL }}
           TEST_TEAM_MEMBER_PASSWORD: ${{ secrets.TEST_TEAM_MEMBER_PASSWORD }}
           TEST_TEAM_MEMBER_EMPLOYEE: ${{ secrets.TEST_TEAM_MEMBER_EMPLOYEE }}
+          # REQUIRED: MongoDB _id of TEAM_MEMBER user for row-level RBAC assertions
+          TEST_TEAM_MEMBER_USER_ID: ${{ secrets.TEST_TEAM_MEMBER_USER_ID }}
           TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
           # REQUIRED: Used by employee-number login test (auth.spec.ts)
