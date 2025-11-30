@@ -3,7 +3,8 @@ import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { unwrapFindOneResult } from "@/lib/mongoUtils.server";
 import { logger } from "@/lib/logger";
-import { ModuleKey, SubmoduleKey } from "@/domain/fm/fm.behavior";
+// RBAC-DRIFT-FIX: Import from fm.types.ts (canonical RBAC source)
+import { ModuleKey, SubmoduleKey } from "@/domain/fm/fm.types";
 import { FMAction } from "@/types/fm/enums";
 import { FMErrors } from "@/app/api/fm/errors";
 import { requireFmPermission } from "@/app/api/fm/permissions";

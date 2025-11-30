@@ -251,6 +251,39 @@ export function normalizeRole(role?: string | Role | null): Role | null {
   return ROLE_ALIAS_MAP[key] ?? ((Role as Record<string, string>)[key] as Role) ?? null;
 }
 
+/** Normalizes sub-role strings to SubRole enum */
+export function normalizeSubRole(subRole?: string | null): SubRole | undefined {
+  if (!subRole) return undefined;
+  const key = subRole.toUpperCase();
+  return (Object.values(SubRole) as string[]).includes(key)
+    ? (key as SubRole)
+    : undefined;
+}
+
+/** Infers sub-role from a raw role string when explicit subRole is missing */
+export function inferSubRoleFromRole(role?: string | Role | null): SubRole | undefined {
+  if (!role) return undefined;
+  const key = typeof role === "string" ? role.toUpperCase() : String(role);
+  switch (key) {
+    case "FINANCE":
+    case "FINANCE_OFFICER":
+    case "FINANCE_MANAGER":
+      return SubRole.FINANCE_OFFICER;
+    case "HR":
+    case "HR_OFFICER":
+    case "HR_MANAGER":
+      return SubRole.HR_OFFICER;
+    case "SUPPORT":
+    case "SUPPORT_AGENT":
+      return SubRole.SUPPORT_AGENT;
+    case "OPERATIONS_MANAGER":
+    case "DISPATCHER":
+      return SubRole.OPERATIONS_MANAGER;
+    default:
+      return undefined;
+  }
+}
+
 /* =========================
  * 5) Role → Module Access
  * ========================= */

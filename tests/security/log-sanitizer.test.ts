@@ -230,19 +230,17 @@ describe("Log Sanitizer - Real Implementation Tests", () => {
       expect(result).toBe("192***");
     });
 
-    it("should redact generic identifiers", () => {
+    it("should redact generic identifiers showing first 3 chars", () => {
       const result = redactIdentifier("EMP-12345-ABC");
       expect(result).not.toBe("EMP-12345-ABC");
       expect(result).toBe("EMP***");
-      expect(result.length).toBeLessThan("EMP-12345-ABC".length);
     });
 
     it("should handle empty strings", () => {
-      // Empty string or <= 3 chars returns "***"
       expect(redactIdentifier("")).toBe("***");
     });
 
-    it("should handle short identifiers", () => {
+    it("should handle short identifiers (2 chars)", () => {
       const result = redactIdentifier("AB");
       // Short identifiers (<= 3 chars) return "***"
       expect(result).toBe("***");

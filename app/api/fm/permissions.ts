@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+// RBAC-DRIFT-FIX: Import from fm.types.ts (complete RBAC definitions)
+// instead of fm.behavior.ts (truncated, WO/Property only)
 import {
   ROLE_MODULE_ACCESS,
   ROLE_ACTIONS,
@@ -12,7 +14,7 @@ import {
   normalizeRole,
   normalizeSubRole,
   inferSubRoleFromRole,
-} from "@/domain/fm/fm.behavior";
+} from "@/domain/fm/fm.types";
 import { FMErrors } from "./errors";
 import {
   getSessionUser,

@@ -130,6 +130,51 @@ export enum SubmoduleKey {
   PROP_LEASES = "PROP_LEASES",
   PROP_INSPECTIONS = "PROP_INSPECTIONS",
   PROP_DOCUMENTS = "PROP_DOCUMENTS",
+  // Finance
+  FINANCE_INVOICES = "FINANCE_INVOICES",
+  FINANCE_EXPENSES = "FINANCE_EXPENSES",
+  FINANCE_BUDGETS = "FINANCE_BUDGETS",
+  // HR
+  HR_EMPLOYEE_DIRECTORY = "HR_EMPLOYEE_DIRECTORY",
+  HR_ATTENDANCE = "HR_ATTENDANCE",
+  HR_PAYROLL = "HR_PAYROLL",
+  HR_RECRUITMENT = "HR_RECRUITMENT",
+  HR_TRAINING = "HR_TRAINING",
+  HR_PERFORMANCE = "HR_PERFORMANCE",
+  // Administration
+  ADMIN_DOA = "ADMIN_DOA",
+  ADMIN_POLICIES = "ADMIN_POLICIES",
+  ADMIN_ASSETS = "ADMIN_ASSETS",
+  ADMIN_FACILITIES = "ADMIN_FACILITIES",
+  // CRM
+  CRM_CUSTOMERS = "CRM_CUSTOMERS",
+  CRM_LEADS = "CRM_LEADS",
+  CRM_CONTRACTS = "CRM_CONTRACTS",
+  CRM_FEEDBACK = "CRM_FEEDBACK",
+  // Marketplace
+  MARKETPLACE_VENDORS = "MARKETPLACE_VENDORS",
+  MARKETPLACE_CATALOG = "MARKETPLACE_CATALOG",
+  MARKETPLACE_REQUESTS = "MARKETPLACE_REQUESTS",
+  MARKETPLACE_BIDS = "MARKETPLACE_BIDS",
+  // Support
+  SUPPORT_TICKETS = "SUPPORT_TICKETS",
+  SUPPORT_KB = "SUPPORT_KB",
+  SUPPORT_CHAT = "SUPPORT_CHAT",
+  SUPPORT_SLA = "SUPPORT_SLA",
+  // Compliance
+  COMPLIANCE_CONTRACTS = "COMPLIANCE_CONTRACTS",
+  COMPLIANCE_DISPUTES = "COMPLIANCE_DISPUTES",
+  COMPLIANCE_INSPECTIONS = "COMPLIANCE_INSPECTIONS",
+  // Reports
+  REPORTS_FINANCE = "REPORTS_FINANCE",
+  REPORTS_OPERATIONS = "REPORTS_OPERATIONS",
+  REPORTS_COMPLIANCE = "REPORTS_COMPLIANCE",
+  // System Management
+  SYSTEM_USERS = "SYSTEM_USERS",
+  SYSTEM_ROLES = "SYSTEM_ROLES",
+  SYSTEM_BILLING = "SYSTEM_BILLING",
+  SYSTEM_INTEGRATIONS = "SYSTEM_INTEGRATIONS",
+  SYSTEM_SETTINGS = "SYSTEM_SETTINGS",
 }
 
 export type Action =
@@ -173,48 +218,236 @@ export const PLAN_GATES: Record<
   Partial<Record<SubmoduleKey, boolean>>
 > = {
   [Plan.STARTER]: {
+    // Work Orders - Basic
     WO_CREATE: true,
     WO_TRACK_ASSIGN: true,
     WO_PM: false,
     WO_SERVICE_HISTORY: true,
+    // Properties - Basic
     PROP_LIST: true,
     PROP_UNITS_TENANTS: true,
     PROP_LEASES: false,
     PROP_INSPECTIONS: false,
     PROP_DOCUMENTS: true,
+    // Finance - None
+    FINANCE_INVOICES: false,
+    FINANCE_EXPENSES: false,
+    FINANCE_BUDGETS: false,
+    // HR - None
+    HR_EMPLOYEE_DIRECTORY: false,
+    HR_ATTENDANCE: false,
+    HR_PAYROLL: false,
+    HR_RECRUITMENT: false,
+    HR_TRAINING: false,
+    HR_PERFORMANCE: false,
+    // Admin - None
+    ADMIN_DOA: false,
+    ADMIN_POLICIES: false,
+    ADMIN_ASSETS: false,
+    ADMIN_FACILITIES: false,
+    // CRM - None
+    CRM_CUSTOMERS: false,
+    CRM_LEADS: false,
+    CRM_CONTRACTS: false,
+    CRM_FEEDBACK: false,
+    // Marketplace - None
+    MARKETPLACE_VENDORS: false,
+    MARKETPLACE_CATALOG: false,
+    MARKETPLACE_REQUESTS: false,
+    MARKETPLACE_BIDS: false,
+    // Support - KB only
+    SUPPORT_TICKETS: false,
+    SUPPORT_KB: true,
+    SUPPORT_CHAT: false,
+    SUPPORT_SLA: false,
+    // Compliance - None
+    COMPLIANCE_CONTRACTS: false,
+    COMPLIANCE_DISPUTES: false,
+    COMPLIANCE_INSPECTIONS: false,
+    // Reports - None
+    REPORTS_FINANCE: false,
+    REPORTS_OPERATIONS: false,
+    REPORTS_COMPLIANCE: false,
+    // System - None
+    SYSTEM_USERS: false,
+    SYSTEM_ROLES: false,
+    SYSTEM_BILLING: false,
+    SYSTEM_INTEGRATIONS: false,
+    SYSTEM_SETTINGS: false,
   },
   [Plan.STANDARD]: {
+    // Work Orders - Full
     WO_CREATE: true,
     WO_TRACK_ASSIGN: true,
     WO_PM: true,
     WO_SERVICE_HISTORY: true,
+    // Properties - Full
     PROP_LIST: true,
     PROP_UNITS_TENANTS: true,
     PROP_LEASES: true,
     PROP_INSPECTIONS: true,
     PROP_DOCUMENTS: true,
+    // Finance - Basic
+    FINANCE_INVOICES: true,
+    FINANCE_EXPENSES: true,
+    FINANCE_BUDGETS: false,
+    // HR - Basic
+    HR_EMPLOYEE_DIRECTORY: true,
+    HR_ATTENDANCE: true,
+    HR_PAYROLL: false,
+    HR_RECRUITMENT: false,
+    HR_TRAINING: false,
+    HR_PERFORMANCE: false,
+    // Admin - Basic
+    ADMIN_DOA: false,
+    ADMIN_POLICIES: true,
+    ADMIN_ASSETS: true,
+    ADMIN_FACILITIES: false,
+    // CRM - Basic
+    CRM_CUSTOMERS: true,
+    CRM_LEADS: true,
+    CRM_CONTRACTS: false,
+    CRM_FEEDBACK: true,
+    // Marketplace - Basic
+    MARKETPLACE_VENDORS: true,
+    MARKETPLACE_CATALOG: true,
+    MARKETPLACE_REQUESTS: false,
+    MARKETPLACE_BIDS: false,
+    // Support - Basic
+    SUPPORT_TICKETS: true,
+    SUPPORT_KB: true,
+    SUPPORT_CHAT: false,
+    SUPPORT_SLA: false,
+    // Compliance - None
+    COMPLIANCE_CONTRACTS: false,
+    COMPLIANCE_DISPUTES: false,
+    COMPLIANCE_INSPECTIONS: false,
+    // Reports - Basic
+    REPORTS_FINANCE: false,
+    REPORTS_OPERATIONS: true,
+    REPORTS_COMPLIANCE: false,
+    // System - None
+    SYSTEM_USERS: false,
+    SYSTEM_ROLES: false,
+    SYSTEM_BILLING: false,
+    SYSTEM_INTEGRATIONS: false,
+    SYSTEM_SETTINGS: false,
   },
   [Plan.PRO]: {
+    // Work Orders - Full
     WO_CREATE: true,
     WO_TRACK_ASSIGN: true,
     WO_PM: true,
     WO_SERVICE_HISTORY: true,
+    // Properties - Full
     PROP_LIST: true,
     PROP_UNITS_TENANTS: true,
     PROP_LEASES: true,
     PROP_INSPECTIONS: true,
     PROP_DOCUMENTS: true,
+    // Finance - Full
+    FINANCE_INVOICES: true,
+    FINANCE_EXPENSES: true,
+    FINANCE_BUDGETS: true,
+    // HR - Full
+    HR_EMPLOYEE_DIRECTORY: true,
+    HR_ATTENDANCE: true,
+    HR_PAYROLL: true,
+    HR_RECRUITMENT: true,
+    HR_TRAINING: true,
+    HR_PERFORMANCE: true,
+    // Admin - Full
+    ADMIN_DOA: true,
+    ADMIN_POLICIES: true,
+    ADMIN_ASSETS: true,
+    ADMIN_FACILITIES: true,
+    // CRM - Full
+    CRM_CUSTOMERS: true,
+    CRM_LEADS: true,
+    CRM_CONTRACTS: true,
+    CRM_FEEDBACK: true,
+    // Marketplace - Full
+    MARKETPLACE_VENDORS: true,
+    MARKETPLACE_CATALOG: true,
+    MARKETPLACE_REQUESTS: true,
+    MARKETPLACE_BIDS: true,
+    // Support - Full
+    SUPPORT_TICKETS: true,
+    SUPPORT_KB: true,
+    SUPPORT_CHAT: true,
+    SUPPORT_SLA: true,
+    // Compliance - Full
+    COMPLIANCE_CONTRACTS: true,
+    COMPLIANCE_DISPUTES: true,
+    COMPLIANCE_INSPECTIONS: true,
+    // Reports - Full
+    REPORTS_FINANCE: true,
+    REPORTS_OPERATIONS: true,
+    REPORTS_COMPLIANCE: true,
+    // System - None (Enterprise only)
+    SYSTEM_USERS: false,
+    SYSTEM_ROLES: false,
+    SYSTEM_BILLING: false,
+    SYSTEM_INTEGRATIONS: false,
+    SYSTEM_SETTINGS: false,
   },
   [Plan.ENTERPRISE]: {
+    // Work Orders - Full
     WO_CREATE: true,
     WO_TRACK_ASSIGN: true,
     WO_PM: true,
     WO_SERVICE_HISTORY: true,
+    // Properties - Full
     PROP_LIST: true,
     PROP_UNITS_TENANTS: true,
     PROP_LEASES: true,
     PROP_INSPECTIONS: true,
     PROP_DOCUMENTS: true,
+    // Finance - Full
+    FINANCE_INVOICES: true,
+    FINANCE_EXPENSES: true,
+    FINANCE_BUDGETS: true,
+    // HR - Full
+    HR_EMPLOYEE_DIRECTORY: true,
+    HR_ATTENDANCE: true,
+    HR_PAYROLL: true,
+    HR_RECRUITMENT: true,
+    HR_TRAINING: true,
+    HR_PERFORMANCE: true,
+    // Admin - Full
+    ADMIN_DOA: true,
+    ADMIN_POLICIES: true,
+    ADMIN_ASSETS: true,
+    ADMIN_FACILITIES: true,
+    // CRM - Full
+    CRM_CUSTOMERS: true,
+    CRM_LEADS: true,
+    CRM_CONTRACTS: true,
+    CRM_FEEDBACK: true,
+    // Marketplace - Full
+    MARKETPLACE_VENDORS: true,
+    MARKETPLACE_CATALOG: true,
+    MARKETPLACE_REQUESTS: true,
+    MARKETPLACE_BIDS: true,
+    // Support - Full
+    SUPPORT_TICKETS: true,
+    SUPPORT_KB: true,
+    SUPPORT_CHAT: true,
+    SUPPORT_SLA: true,
+    // Compliance - Full
+    COMPLIANCE_CONTRACTS: true,
+    COMPLIANCE_DISPUTES: true,
+    COMPLIANCE_INSPECTIONS: true,
+    // Reports - Full
+    REPORTS_FINANCE: true,
+    REPORTS_OPERATIONS: true,
+    REPORTS_COMPLIANCE: true,
+    // System Management - Full (Enterprise only)
+    SYSTEM_USERS: true,
+    SYSTEM_ROLES: true,
+    SYSTEM_BILLING: true,
+    SYSTEM_INTEGRATIONS: true,
+    SYSTEM_SETTINGS: true,
   },
 };
 
