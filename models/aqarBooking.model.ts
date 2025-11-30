@@ -19,6 +19,7 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 import type { MModel } from '@/src/types/mongoose-compat';
 import { EscrowSource, EscrowState, type EscrowStateValue } from '@/server/models/finance/EscrowAccount';
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
 
 export enum BookingStatus {
   PENDING = 'PENDING',
@@ -163,6 +164,11 @@ const BookingSchema = new Schema<IBooking>(
   }
 );
 
+/* ---------------- Tenant Isolation Plugin ---------------- */
+// Enforces orgId scoping on all queries (find, update, delete, count, distinct)
+// Prevents cross-tenant data leakage at the model layer
+BookingSchema.plugin(tenantIsolationPlugin);
+
 /* ---------------- Indexes ---------------- */
 
 // Query patterns: bookings by listing/guest/host within tenant, sorted by date
@@ -251,6 +257,86 @@ BookingSchema.pre('validate', function (next) {
   }
 
   next();
+});
+
+/* ---------------- Pre-findOneAndUpdate: derived fields on query updates ---------------- */
+
+/**
+ * Pre-findOneAndUpdate hook: recompute derived fields when dates or pricing change
+ * This ensures findOneAndUpdate/updateOne paths don't leave stale data
+ * 
+ * Note: This hook runs BEFORE the update, so we need to merge existing doc data
+ * with the update payload to correctly compute derived values.
+ */
+BookingSchema.pre('findOneAndUpdate', async function (next) {
+  // Enable validators and return new document
+  this.setOptions({ runValidators: true, new: true, context: 'query' });
+  
+  const update = this.getUpdate() as Record<string, unknown> | null;
+  if (!update) return next();
+  
+  // Check if dates or price are being updated
+  const hasDateUpdate = update.checkInDate || update.checkOutDate || 
+    (update.$set && ((update.$set as Record<string, unknown>).checkInDate || (update.$set as Record<string, unknown>).checkOutDate));
+  const hasPriceUpdate = update.pricePerNight || 
+    (update.$set && (update.$set as Record<string, unknown>).pricePerNight);
+  
+  if (!hasDateUpdate && !hasPriceUpdate) return next();
+  
+  try {
+    // Fetch existing document to merge with updates
+    const session = this.getOptions().session ?? null;
+    const existingDoc = await this.model.findOne(this.getQuery()).session(session).lean<IBooking>().exec();
+    if (!existingDoc) return next();
+    
+    // Type-safe access to existing document fields
+    const existing = existingDoc as Pick<IBooking, 'checkInDate' | 'checkOutDate' | 'pricePerNight' | 'nights'>;
+    
+    // Get new values or fall back to existing
+    const $set = (update.$set || {}) as Record<string, unknown>;
+    const checkIn = $set.checkInDate || update.checkInDate || existing.checkInDate;
+    const checkOut = $set.checkOutDate || update.checkOutDate || existing.checkOutDate;
+    const pricePerNight = $set.pricePerNight || update.pricePerNight || existing.pricePerNight;
+    
+    if (hasDateUpdate && checkIn && checkOut) {
+      const inUTC = toUTCDateOnly(new Date(checkIn as string | number | Date));
+      const outUTC = toUTCDateOnly(new Date(checkOut as string | number | Date));
+      const nights = Math.max(0, Math.round((outUTC.getTime() - inUTC.getTime()) / MS_PER_DAY));
+      
+      if (nights < 1) {
+        return next(new Error('Check-out must be at least 1 day after check-in'));
+      }
+      
+      const reservedNights = enumerateNightsUTC(inUTC, outUTC);
+      
+      // Update the $set with computed values
+      this.set({
+        checkInDate: inUTC,
+        checkOutDate: outUTC,
+        nights,
+        reservedNights,
+      });
+    }
+    
+    // Recompute pricing if needed
+    const currentNights = ((this.getUpdate() as Record<string, unknown>).nights as number | undefined) ?? existing.nights;
+    if ((hasDateUpdate || hasPriceUpdate) && pricePerNight && currentNights) {
+      const total = Math.max(0, (pricePerNight as number) * currentNights);
+      const feePercentage = Number(process.env.PLATFORM_FEE_PERCENTAGE) || 15;
+      const platform = Math.round(total * (feePercentage / 100));
+      const payout = Math.max(0, total - platform);
+      
+      this.set({
+        totalPrice: total,
+        platformFee: platform,
+        hostPayout: payout,
+      });
+    }
+    
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
 });
 
 /* ---------------- Methods: status transitions ---------------- */
@@ -623,3 +709,4 @@ const Booking: BookingModel =
 
 export default Booking;
 export type BookingDoc = IBooking;
+export type { BookingModel };

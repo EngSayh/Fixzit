@@ -20,8 +20,9 @@ class ConfigurationError extends Error {
 
 /**
  * Get required environment variable (throws if missing in production)
+ * @deprecated Use getRequiredWithBuildSkip for variables needed at runtime but not build time
  */
-function getRequired(key: string, fallback?: string): string {
+function _getRequired(key: string, fallback?: string): string {
   const value = process.env[key];
 
   if (!value || value.trim() === "") {
