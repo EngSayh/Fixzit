@@ -1450,6 +1450,15 @@ test.describe('Sub-Role API Access Control', () => {
 });
 
 test.describe('Unauthenticated API Access', () => {
+  /**
+   * Unauthenticated requests MUST return 401 Unauthorized.
+   * - 401 = "Who are you?" (no valid authentication)
+   * - 403 = "I know who you are, but you can't do this" (authenticated but not authorized)
+   * 
+   * AUDIT-2025-12-01: Strengthened from [401, 403] to strict 401.
+   * If we accept 403 here, we're masking potential middleware misconfigurations
+   * where auth checks run before session validation.
+   */
   test('unauthenticated requests return 401', async ({ request }) => {
     const protectedEndpoints = [
       API_ENDPOINTS.finance.invoices,
@@ -1461,10 +1470,11 @@ test.describe('Unauthenticated API Access', () => {
 
     for (const endpoint of protectedEndpoints) {
       const response = await request.get(endpoint);
+      // Strict 401 requirement - unauthenticated is NOT the same as unauthorized
       expect(
-        [401, 403],
-        `Unauthenticated request to ${endpoint} should return 401 or 403`
-      ).toContain(response.status());
+        response.status(),
+        `Unauthenticated request to ${endpoint} should return 401 (not 403 - that's for authenticated but unauthorized)`
+      ).toBe(401);
     }
   });
 });
