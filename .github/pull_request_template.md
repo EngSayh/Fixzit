@@ -18,6 +18,8 @@
 - Static lint: `scripts/lint-rbac-parity.ts`
 - Behavioral tests: `tests/domain/fm.can-parity.test.ts`
 
+> **Note:** `rbac:parity` also runs in CI (`fixzit-quality-gates.yml`), but run locally first to catch issues early.
+
 ## Artifacts
 
 - [ ] Screenshots (before/after)
