@@ -26,7 +26,7 @@ const ALLOWED_ROLES: ReadonlySet<UserRoleType> = new Set([
   UserRole.MANAGER,
   UserRole.FM_MANAGER,
   UserRole.PROPERTY_MANAGER,
-  UserRole.EMPLOYEE,
+  // Note: EMPLOYEE deprecated in STRICT v4 - MANAGER covers this use case
 ]);
 
 const LeadSchema = z.object({

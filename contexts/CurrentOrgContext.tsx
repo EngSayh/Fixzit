@@ -9,7 +9,8 @@
 
 import React, { createContext, useContext, useMemo, ReactNode } from "react";
 import { useSession } from "next-auth/react";
-import { Plan } from "@/domain/fm/fm.behavior";
+// Import from fm.types (client-safe, no mongoose)
+import { Plan } from "@/domain/fm/fm.types";
 
 export interface Organization {
   id: string;

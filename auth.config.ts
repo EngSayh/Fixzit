@@ -1,12 +1,13 @@
 // Import from symbols path to align with NextAuth v5 typings (prevents mismatched symbol versions)
 import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
-import Apple from 'next-auth/providers/apple';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { otpSessionStore } from '@/lib/otp-store';
 import type { UserRoleType } from '@/types/user';
+import type { AuthUserShape } from '@/types/auth';
+import { extractUserRole } from '@/types/auth';
 import type { SubscriptionPlan } from '@/config/navigation';
 import type { UserDoc } from '@/server/models/User';
 // NOTE: Mongoose imports MUST be dynamic inside authorize() to avoid Edge Runtime issues
@@ -26,14 +27,10 @@ type ExtendedUser = {
   roles?: string[];
 };
 type SessionPlan = SubscriptionPlan | 'STARTER' | 'PROFESSIONAL';
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOCK_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
 // Validate required environment variables at startup
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID;
-const APPLE_CLIENT_SECRET = process.env.APPLE_CLIENT_SECRET;
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
 
 // Derive NEXTAUTH_URL when missing (helps preview builds)
@@ -131,12 +128,6 @@ if (!skipSecretValidation) {
     logger.info('✅ Google OAuth configured successfully.');
   }
 
-  // Apple OAuth credentials are optional; warn if partial
-  if ((APPLE_CLIENT_ID && !APPLE_CLIENT_SECRET) || (!APPLE_CLIENT_ID && APPLE_CLIENT_SECRET)) {
-    missingSecrets.push(!APPLE_CLIENT_ID ? 'APPLE_CLIENT_ID' : 'APPLE_CLIENT_SECRET');
-    logger.warn('⚠️  Apple OAuth partial configuration detected. Buttons will be disabled.');
-  }
-
   if (missingSecrets.length > 0) {
     const errorMsg = `Missing required authentication secrets: ${missingSecrets.join(', ')}.`;
     logger.error(`❌ ${errorMsg}`);
@@ -202,8 +193,8 @@ const trustHost =
 
 const LoginSchema = z
   .object({
-    identifier: z.string().trim().min(1, 'Email, phone, or employee number is required'),
-    password: z.string().min(0, 'Password is required').optional(),
+    identifier: z.string().trim().min(1, 'Email or employee number is required'),
+    password: z.string().min(1, 'Password is required'),
     // ✅ FIX: Make OTP fully optional (validation happens after user lookup)
     otpToken: z.string().trim().optional(),
     // ✅ FIXED: Handle HTML checkbox behavior ('on' when checked, undefined when unchecked)
@@ -219,7 +210,6 @@ const LoginSchema = z
   .transform((data, ctx) => {
     const idRaw = data.identifier.trim();
     const emailOk = z.string().email().safeParse(idRaw).success;
-    const phoneOk = /^\+?[0-9\-()\s]{6,20}$/.test(idRaw);
     const empUpper = idRaw.toUpperCase();
     const empOk = EMPLOYEE_ID_REGEX.test(empUpper);
 
@@ -229,9 +219,6 @@ const LoginSchema = z
     if (emailOk) {
       loginIdentifier = idRaw.toLowerCase();
       loginType = 'personal';
-    } else if (phoneOk) {
-      loginIdentifier = idRaw;
-      loginType = 'personal';
     } else if (empOk) {
       loginIdentifier = empUpper;
       loginType = 'corporate';
@@ -239,7 +226,7 @@ const LoginSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['identifier'],
-        message: 'Enter a valid email, phone number, or employee number (e.g., EMP-001)',
+        message: 'Enter a valid email address or employee number (e.g., EMP-001)',
       });
       return z.NEVER;
     }
@@ -257,20 +244,10 @@ const LoginSchema = z
       return z.NEVER;
     }
 
-    const passwordProvided = typeof data.password === 'string' && data.password.length > 0;
-    if (!passwordProvided && !data.otpToken) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['password'],
-        message: 'Password or OTP token is required',
-      });
-      return z.NEVER;
-    }
-
     return {
       loginIdentifier,
       loginType,
-      password: passwordProvided ? data.password : null,
+      password: data.password,
       otpToken: data.otpToken || null,
       rememberMe: data.rememberMe,
       companyCode: normalizedCompanyCode,
@@ -292,14 +269,6 @@ export const authConfig = {
                 response_type: 'code',
               },
             },
-          }),
-        ]
-      : []),
-    ...(APPLE_CLIENT_ID && APPLE_CLIENT_SECRET
-      ? [
-          Apple({
-            clientId: APPLE_CLIENT_ID,
-            clientSecret: APPLE_CLIENT_SECRET,
           }),
         ]
       : []),
@@ -359,67 +328,21 @@ export const authConfig = {
             user = await User.findOne({ username: loginIdentifier, code: companyCode }).lean<LeanUser>();
           }
 
-      if (!user) {
-        // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
-        const notFoundError = new Error(`User not found: ${loginIdentifier}`);
-        logger.error('[NextAuth] User not found', notFoundError, { loginIdentifier, loginType });
-        return null;
-      }
-
-          // 4.5 Account lockout check
-          const locked = (user as { security?: { locked?: boolean; lockReason?: string; lockTime?: Date; loginAttempts?: number } }).security;
-          if (locked?.locked) {
-            const lockTime = locked.lockTime ? new Date(locked.lockTime).getTime() : 0;
-            const stillLocked = lockTime && Date.now() - lockTime < LOCK_WINDOW_MS;
-            if (stillLocked) {
-              logger.warn('[NextAuth] Locked account login attempt', { loginIdentifier });
-              throw new Error('ACCOUNT_LOCKED');
-            }
+          if (!user) {
+            // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
+            const notFoundError = new Error(`User not found: ${loginIdentifier}`);
+            logger.error('[NextAuth] User not found', notFoundError, { loginIdentifier, loginType });
+            return null;
           }
 
-          // 5. Verify password unless otpToken provided (passwordless OTP flow)
-          if (password) {
-            const isValid = await bcrypt.compare(password, user.password);
-            if (!isValid) {
-              const attempts = (user.security?.loginAttempts || 0) + 1;
-              if (attempts >= MAX_LOGIN_ATTEMPTS) {
-                await User.updateOne(
-                  { _id: user._id },
-                  {
-                    $set: {
-                      'security.locked': true,
-                      'security.lockReason': 'Too many failed logins',
-                      'security.lockTime': new Date(),
-                    },
-                  },
-                );
-              } else {
-                await User.updateOne(
-                  { _id: user._id },
-                  {
-                    $inc: { 'security.loginAttempts': 1 },
-                  },
-                );
-              }
-              const passwordError = new Error(`Invalid password for: ${loginIdentifier}`);
-              logger.error('[NextAuth] Invalid password', passwordError, { loginIdentifier, loginType });
-              throw new Error('INVALID_CREDENTIALS');
-            }
-            // Reset attempts on success
-            await User.updateOne(
-              { _id: user._id },
-              {
-                $set: {
-                  'security.loginAttempts': 0,
-                  'security.locked': false,
-                  'security.lockReason': null,
-                  'security.lockTime': null,
-                },
-              },
-            );
+          // 5. Verify password (inline to avoid importing @/lib/auth)
+          const isValid = await bcrypt.compare(password, user.password);
+          if (!isValid) {
+            // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
+            const passwordError = new Error(`Invalid password for: ${loginIdentifier}`);
+            logger.error('[NextAuth] Invalid password', passwordError, { loginIdentifier, loginType });
+            return null;
           }
-
-          // Reset attempts on success
 
           // 6. Check if user is active
           const isUserActive = user.status === 'ACTIVE';
@@ -432,15 +355,6 @@ export const authConfig = {
               status: user.status,
             });
             return null;
-          }
-
-          // 6.5 Enforce email verification if required
-          const emailVerifiedAt = (user as { emailVerifiedAt?: Date }).emailVerifiedAt;
-          const requireEmailVerification =
-            process.env.NEXTAUTH_REQUIRE_EMAIL_VERIFICATION !== 'false';
-          if (requireEmailVerification && !emailVerifiedAt) {
-            logger.warn('[NextAuth] Email not verified', { loginIdentifier });
-            throw new Error('EMAIL_NOT_VERIFIED');
           }
 
           // 7. Update last login timestamp
@@ -460,19 +374,19 @@ export const authConfig = {
             return null;
           }
 
-          // 8. Enforce OTP session usage unless explicitly disabled, or OTP token provided for passwordless flow
+          // 8. Enforce OTP session usage unless explicitly disabled
+          // ✅ FIX: Bypass OTP ONLY in development for super admin (NEVER in production)
           const isDevelopment = process.env.NODE_ENV !== 'production';
           const explicitBypass = process.env.NEXTAUTH_SUPERADMIN_BYPASS_OTP === 'true';
           const bypassOTP = isSuperAdmin && isDevelopment && explicitBypass;
-          const otpProvided = Boolean(otpToken);
 
           if (REQUIRE_SMS_OTP && !bypassOTP) {
-            if (!otpProvided) {
+            if (!otpToken) {
               logger.warn('[NextAuth] Missing OTP token for credentials login', { loginIdentifier });
               return null;
             }
 
-            const session = otpSessionStore.get(otpToken!);
+            const session = otpSessionStore.get(otpToken);
             if (!session) {
               logger.warn('[NextAuth] OTP session not found or already used', { loginIdentifier });
               return null;
@@ -480,7 +394,7 @@ export const authConfig = {
 
             const now = Date.now();
             if (now > session.expiresAt) {
-              otpSessionStore.delete(otpToken!);
+              otpSessionStore.delete(otpToken);
               logger.warn('[NextAuth] OTP session expired', { loginIdentifier });
               return null;
             }
@@ -489,7 +403,7 @@ export const authConfig = {
               session.userId !== user._id.toString() ||
               session.identifier !== otpIdentifier
             ) {
-              otpSessionStore.delete(otpToken!);
+              otpSessionStore.delete(otpToken);
               logger.error('[NextAuth] OTP session mismatch', new Error('OTP session mismatch'), {
                 loginIdentifier,
                 sessionIdentifier: session.identifier,
@@ -497,7 +411,7 @@ export const authConfig = {
               return null;
             }
 
-            otpSessionStore.delete(otpToken!);
+            otpSessionStore.delete(otpToken);
           } else if (bypassOTP) {
             logger.info('[NextAuth] OTP bypassed for super admin', { loginIdentifier });
           }
@@ -562,20 +476,13 @@ export const authConfig = {
       
       // ✅ FIX: OAuth user lookup and validation (SECURITY)
       // Import User model dynamically to avoid edge runtime issues
-      const { User } = await import('@/server/models/User');
+      const { User } = await import('./server/models/User');
       
       try {
         const dbUser = (await User.findOne({ email: _user.email })
-          .lean()
-          .exec()) as {
-            orgId?: { toString(): string } | string | null;
-            professional?: { role?: string | null };
-            role?: string | null;
-            isSuperAdmin?: boolean;
-            permissions?: string[];
-            roles?: string[];
-            status?: string;
-          } | null;
+          .select('orgId isSuperAdmin status role professional.role')
+          .lean<AuthUserShape>()
+          .exec());
         
         // Block sign-in if user doesn't exist
         if (!dbUser) {
@@ -607,19 +514,10 @@ export const authConfig = {
           role?: string; 
           orgId?: string | null; 
           isSuperAdmin?: boolean; 
-          permissions?: string[];
-          roles?: string[];
         };
-        const dbUserMeta = dbUser ?? {};
-        userWithMeta.role = (dbUserMeta.professional?.role ||
-          dbUserMeta.role ||
-          'GUEST') as UserRoleType;
-        userWithMeta.orgId = dbUserMeta.orgId
-          ? dbUserMeta.orgId.toString()
-          : null;
-        userWithMeta.isSuperAdmin = Boolean(dbUserMeta.isSuperAdmin);
-        userWithMeta.permissions = dbUserMeta.permissions || [];
-        userWithMeta.roles = dbUserMeta.roles || [];
+        userWithMeta.role = extractUserRole(dbUser, 'GUEST');
+        userWithMeta.orgId = dbUser.orgId?.toString() || null;
+        userWithMeta.isSuperAdmin = dbUser.isSuperAdmin || false;
         
         logger.info('[NextAuth] OAuth sign-in allowed', { 
           email: _user.email.substring(0, 3) + '***',
@@ -645,7 +543,7 @@ export const authConfig = {
         session.user.id = token.sub;
       }
       if (token?.role) {
-        (session.user as ExtendedUser).role = token.role as UserRoleType;
+        (session.user as ExtendedUser).role = token.role as string;
       }
       if (token?.orgId) {
         (session.user as ExtendedUser).orgId = token.orgId as string | null;
@@ -669,7 +567,7 @@ export const authConfig = {
         const normalizedRole = (user as ExtendedUser).role?.toUpperCase() as UserRoleType | undefined;
         token.role = normalizedRole ?? (token.role as UserRoleType | 'GUEST') ?? 'GUEST';
         token.orgId = (user as ExtendedUser).orgId || null;
-
+        
         // Handle rememberMe for credentials provider
         if (account?.provider === 'credentials' && (user as ExtendedUser).rememberMe) {
           // Extend token lifetime for "remember me"
@@ -694,12 +592,7 @@ export const authConfig = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 15 * 60, // 15 minutes access token
-    updateAge: 5 * 60,
-    generateSessionToken: () => {
-      // Short-lived session token; actual refresh handled via /api/auth/refresh cookies
-      return crypto.randomUUID();
-    },
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: NEXTAUTH_SECRET,
   trustHost,

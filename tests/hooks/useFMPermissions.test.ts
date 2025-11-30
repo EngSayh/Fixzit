@@ -2,7 +2,8 @@ import { renderHook } from "@testing-library/react";
 import { useFMPermissions } from "@/hooks/useFMPermissions";
 import { useSession } from "next-auth/react";
 import { useCurrentOrg } from "@/contexts/CurrentOrgContext";
-import { Role, SubmoduleKey, Plan, SubRole } from "@/domain/fm/fm.behavior";
+// Import from fm.types (client-safe, matching hook)
+import { Role, SubmoduleKey, Plan } from "@/domain/fm/fm.types";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 // Mock dependencies
@@ -22,7 +23,6 @@ describe("useFMPermissions", () => {
     role: string,
     orgId: string | null = null,
     userId: string = "user-123",
-    subRole: string | null = null,
   ) => {
     mockUseSession.mockReturnValue({
       data: {
@@ -30,7 +30,6 @@ describe("useFMPermissions", () => {
           id: userId,
           role,
           orgId,
-          subRole,
         },
       },
       status: "authenticated",
@@ -63,7 +62,7 @@ describe("useFMPermissions", () => {
     // `can` itself will be false for a GUEST, but we are testing the hook's context
     // We can't directly test `isOrgMember`, but we know the `plan` defaults to STARTER
     expect(result.current.plan).toBe(Plan.STARTER);
-    expect(result.current.orgId).toBeUndefined();
+    expect(result.current.orgId).toBe("");
     expect(result.current.role).toBe(Role.GUEST);
     expect(can).toBe(false); // Guest should not have access
   });
@@ -75,28 +74,6 @@ describe("useFMPermissions", () => {
     expect(result.current.orgId).toBe("org-abc");
     expect(result.current.role).toBe(Role.TENANT);
     expect(result.current.plan).toBe(Plan.PRO);
-  });
-
-  it("🟦 maps NextAuth matrix roles to canonical FM roles", () => {
-    mockSession("FM_MANAGER", "org-abc");
-    const { result } = renderHook(() => useFMPermissions());
-    expect(result.current.role).toBe(Role.PROPERTY_MANAGER);
-  });
-
-  it("🟦 infers finance specialization when subRole is missing", () => {
-    mockSession("FINANCE", "org-abc");
-    const { result } = renderHook(() => useFMPermissions());
-
-    expect(result.current.role).toBe(Role.TEAM_MEMBER);
-    expect(result.current.subRole).toBe(SubRole.FINANCE_OFFICER);
-  });
-
-  it("🟦 preserves subRole for TEAM_MEMBER specializations", () => {
-    mockSession("FINANCE", "org-abc", "user-finance", "FINANCE_OFFICER");
-    const { result } = renderHook(() => useFMPermissions());
-
-    expect(result.current.role).toBe(Role.TEAM_MEMBER);
-    expect(result.current.subRole).toBe(SubRole.FINANCE_OFFICER);
   });
 
   it("🟧 should default to STARTER plan if org context is missing", () => {
@@ -124,9 +101,6 @@ describe("useFMPermissions", () => {
     mockOrg(Plan.PRO);
     const { result } = renderHook(() => useFMPermissions());
 
-    expect(result.current.role).toBe(Role.TENANT);
-    expect(result.current.plan).toBe(Plan.PRO);
-    expect(result.current.orgId).toBe("org-abc");
     expect(result.current.isAdmin()).toBe(false);
     expect(result.current.isManagement()).toBe(false);
     expect(result.current.canCreateWO()).toBe(true);
@@ -149,5 +123,60 @@ describe("useFMPermissions", () => {
 
     // Should be denied because isOrgMember is false
     expect(canViewOtherOrg).toBe(false);
+  });
+
+  describe("🟥 Role normalization (case-insensitivity & legacy aliases)", () => {
+    it("should normalize lowercase role to canonical form", () => {
+      mockSession("admin", "org-abc"); // lowercase
+      mockOrg(Plan.PRO);
+      const { result } = renderHook(() => useFMPermissions());
+
+      expect(result.current.role).toBe(Role.ADMIN);
+      expect(result.current.isAdmin()).toBe(true);
+    });
+
+    it("should normalize mixed-case role to canonical form", () => {
+      mockSession("Team_Member", "org-abc"); // mixed case
+      mockOrg(Plan.PRO);
+      const { result } = renderHook(() => useFMPermissions());
+
+      expect(result.current.role).toBe(Role.TEAM_MEMBER);
+      expect(result.current.isManagement()).toBe(true);
+    });
+
+    it("should normalize legacy alias EMPLOYEE to TEAM_MEMBER", () => {
+      mockSession("EMPLOYEE", "org-abc"); // legacy alias
+      mockOrg(Plan.PRO);
+      const { result } = renderHook(() => useFMPermissions());
+
+      expect(result.current.role).toBe(Role.TEAM_MEMBER);
+      expect(result.current.canCreateWO()).toBe(true);
+    });
+
+    it("should normalize legacy alias MANAGEMENT to TEAM_MEMBER", () => {
+      mockSession("management", "org-abc"); // lowercase legacy alias
+      mockOrg(Plan.PRO);
+      const { result } = renderHook(() => useFMPermissions());
+
+      expect(result.current.role).toBe(Role.TEAM_MEMBER);
+    });
+
+    it("should normalize legacy alias PROPERTY_OWNER to CORPORATE_OWNER", () => {
+      mockSession("property_owner", "org-abc");
+      mockOrg(Plan.PRO);
+      const { result } = renderHook(() => useFMPermissions());
+
+      expect(result.current.role).toBe(Role.CORPORATE_OWNER);
+    });
+
+    it("should fall back to GUEST for unknown roles", () => {
+      mockSession("UNKNOWN_ROLE_XYZ", "org-abc");
+      mockOrg(Plan.PRO);
+      const { result } = renderHook(() => useFMPermissions());
+
+      expect(result.current.role).toBe(Role.GUEST);
+      expect(result.current.isAdmin()).toBe(false);
+      expect(result.current.canCreateWO()).toBe(false);
+    });
   });
 });

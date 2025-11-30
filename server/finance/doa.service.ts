@@ -20,7 +20,7 @@ interface StageConfig {
 }
 
 const BUDGET_APPROVAL_MATRIX: StageConfig[] = [
-  { threshold: 0, roles: [UserRole.FINANCE_MANAGER], timeoutHours: 24 },
+  { threshold: 0, roles: [UserRole.FINANCE_OFFICER], timeoutHours: 24 },
   { threshold: 100_000, roles: [UserRole.MANAGER], timeoutHours: 24 },
   { threshold: 250_000, roles: [UserRole.ADMIN], timeoutHours: 24 },
 ];
@@ -76,7 +76,7 @@ function buildStages(_: string, amount: number) {
   if (stages.length === 0) {
     stages.push({
       stage: 1,
-      roles: [UserRole.FINANCE_MANAGER],
+      roles: [UserRole.FINANCE_OFFICER],
       timeoutHours: 24,
     });
   }

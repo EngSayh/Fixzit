@@ -22,8 +22,9 @@ class ConfigurationError extends Error {
 
 /**
  * Get required environment variable (throws if missing in production)
+ * @deprecated Use getRequiredWithBuildSkip for variables needed at runtime but not build time
  */
-function getRequired(key: string, fallback?: string): string {
+function _getRequired(key: string, fallback?: string): string {
   const value = process.env[key];
   const isProduction = process.env.NODE_ENV === "production";
   const shouldSkipValidation =
@@ -99,6 +100,34 @@ const SKIP_CONFIG_VALIDATION =
   getBoolean("DISABLE_MONGODB_FOR_BUILD") ||
   IS_NEXT_BUILD;
 
+/**
+ * Get required environment variable (throws if missing in production)
+ * Skips validation during Next.js build phase to allow static analysis
+ */
+function getRequiredWithBuildSkip(key: string, fallback?: string): string {
+  const value = process.env[key];
+
+  if (!value || value.trim() === "") {
+    // During build, use fallback to allow static analysis
+    if (SKIP_CONFIG_VALIDATION && fallback !== undefined) {
+      return fallback;
+    }
+    if (process.env.NODE_ENV === "production" && !SKIP_CONFIG_VALIDATION) {
+      throw new ConfigurationError(
+        `Required environment variable ${key} is not set`,
+      );
+    }
+    if (fallback !== undefined) {
+      return fallback;
+    }
+    throw new ConfigurationError(
+      `Required environment variable ${key} is not set (no fallback provided)`,
+    );
+  }
+
+  return value;
+}
+
 export const Config = {
   /**
    * Environment configuration
@@ -123,7 +152,7 @@ export const Config = {
    * NextAuth / Authentication
    */
   auth: {
-    secret: getRequired("NEXTAUTH_SECRET", "dev-secret-change-in-production"),
+    secret: getRequiredWithBuildSkip("NEXTAUTH_SECRET", "dev-secret-change-in-production"),
     url: getOptional("NEXTAUTH_URL", "http://localhost:3000"),
 
     // Google OAuth
@@ -142,7 +171,7 @@ export const Config = {
    * Database Configuration
    */
   database: {
-    mongoUri: getRequired("MONGODB_URI", "mongodb://127.0.0.1:27017/fixzit"),
+    mongoUri: getRequiredWithBuildSkip("MONGODB_URI", "mongodb://127.0.0.1:27017/fixzit"),
     maxPoolSize: getInteger("MONGO_MAX_POOL_SIZE", 10),
     minPoolSize: getInteger("MONGO_MIN_POOL_SIZE", 2),
   },

@@ -1,41 +1,25 @@
 import { NextRequest } from "next/server";
 import { getUserFromToken } from "@/lib/auth";
 
-/**
- * CopilotRole type - 🔒 STRICT v4.1 COMPLIANT
- * 
- * Canonical Roles (9):
- * - SUPER_ADMIN, ADMIN, CORPORATE_OWNER, TEAM_MEMBER
- * - TECHNICIAN, PROPERTY_MANAGER, TENANT, VENDOR, GUEST
- * 
- * Legacy aliases kept for backward compatibility:
- * - CORPORATE_ADMIN → ADMIN
- * - FM_MANAGER → PROPERTY_MANAGER
- * - OWNER → CORPORATE_OWNER
- * - CUSTOMER → TENANT
- * - EMPLOYEE → TEAM_MEMBER
- */
 export type CopilotRole =
-  // Canonical STRICT v4.1 roles
   | "SUPER_ADMIN"
   | "ADMIN"
+  | "CORPORATE_ADMIN"
   | "CORPORATE_OWNER"
   | "TEAM_MEMBER"
-  | "TECHNICIAN"
+  | "FM_MANAGER"
+  | "FINANCE"
+  | "HR"
+  | "PROCUREMENT"
   | "PROPERTY_MANAGER"
-  | "TENANT"
+  | "EMPLOYEE"
+  | "TECHNICIAN"
   | "VENDOR"
-  | "GUEST"
-  // Legacy aliases (kept for backward compatibility)
-  | "CORPORATE_ADMIN" // → ADMIN
-  | "FM_MANAGER" // → PROPERTY_MANAGER
-  | "FINANCE" // → TEAM_MEMBER + SubRole.FINANCE_OFFICER
-  | "HR" // → TEAM_MEMBER + SubRole.HR_OFFICER
-  | "PROCUREMENT" // → TEAM_MEMBER
-  | "EMPLOYEE" // → TEAM_MEMBER
-  | "CUSTOMER" // → TENANT
-  | "OWNER" // → CORPORATE_OWNER
-  | "AUDITOR"; // → GUEST
+  | "CUSTOMER"
+  | "OWNER"
+  | "AUDITOR"
+  | "TENANT"
+  | "GUEST";
 
 export interface CopilotSession {
   userId: string;
@@ -79,11 +63,11 @@ export async function resolveCopilotSession(
     };
   }
 
-  // ORGID-FIX: Use undefined (not "default") for missing orgId
-  // Copilot should handle missing tenant context explicitly
+  // SEC-001: If user has no orgId, they're effectively a guest with public tenant
+  // This is valid for copilot context - authenticated users without org belong to public tenant
   return {
     userId: user.id,
-    tenantId: user.orgId ?? "",
+    tenantId: user.orgId || "public",
     role: (user.role || "GUEST") as CopilotRole,
     email: user.email,
     name: user.name,

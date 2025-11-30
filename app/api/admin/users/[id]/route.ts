@@ -43,7 +43,7 @@ export async function DELETE(
 
     const UserModel = models.User || model("User", UserSchema);
 
-    // ORGID-FIX: Validate orgId before querying (tenant isolation)
+    // SEC-001: Validate orgId exists for tenant isolation
     const orgId = session.user.orgId;
     if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
       return NextResponse.json(
@@ -134,7 +134,7 @@ export async function PATCH(
 
     const UserModel = models.User || model("User", UserSchema);
 
-    // ORGID-FIX: Validate orgId before querying (tenant isolation)
+    // SEC-001: Validate orgId exists for tenant isolation
     const orgId = session.user.orgId;
     if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
       return NextResponse.json(

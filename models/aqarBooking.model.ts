@@ -19,6 +19,7 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 import type { MModel } from '@/src/types/mongoose-compat';
 import { EscrowSource, EscrowState, type EscrowStateValue } from '@/server/models/finance/EscrowAccount';
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
 
 export enum BookingStatus {
   PENDING = 'PENDING',
@@ -163,6 +164,11 @@ const BookingSchema = new Schema<IBooking>(
   }
 );
 
+/* ---------------- Tenant Isolation Plugin ---------------- */
+// Enforces orgId scoping on all queries (find, update, delete, count, distinct)
+// Prevents cross-tenant data leakage at the model layer
+BookingSchema.plugin(tenantIsolationPlugin);
+
 /* ---------------- Indexes ---------------- */
 
 // Query patterns: bookings by listing/guest/host within tenant, sorted by date
@@ -251,6 +257,86 @@ BookingSchema.pre('validate', function (next) {
   }
 
   next();
+});
+
+/* ---------------- Pre-findOneAndUpdate: derived fields on query updates ---------------- */
+
+/**
+ * Pre-findOneAndUpdate hook: recompute derived fields when dates or pricing change
+ * This ensures findOneAndUpdate/updateOne paths don't leave stale data
+ * 
+ * Note: This hook runs BEFORE the update, so we need to merge existing doc data
+ * with the update payload to correctly compute derived values.
+ */
+BookingSchema.pre('findOneAndUpdate', async function (next) {
+  // Enable validators and return new document
+  this.setOptions({ runValidators: true, new: true, context: 'query' });
+  
+  const update = this.getUpdate() as Record<string, unknown> | null;
+  if (!update) return next();
+  
+  // Check if dates or price are being updated
+  const hasDateUpdate = update.checkInDate || update.checkOutDate || 
+    (update.$set && ((update.$set as Record<string, unknown>).checkInDate || (update.$set as Record<string, unknown>).checkOutDate));
+  const hasPriceUpdate = update.pricePerNight || 
+    (update.$set && (update.$set as Record<string, unknown>).pricePerNight);
+  
+  if (!hasDateUpdate && !hasPriceUpdate) return next();
+  
+  try {
+    // Fetch existing document to merge with updates
+    const session = this.getOptions().session ?? null;
+    const existingDoc = await this.model.findOne(this.getQuery()).session(session).lean<IBooking>().exec();
+    if (!existingDoc) return next();
+    
+    // Type-safe access to existing document fields
+    const existing = existingDoc as Pick<IBooking, 'checkInDate' | 'checkOutDate' | 'pricePerNight' | 'nights'>;
+    
+    // Get new values or fall back to existing
+    const $set = (update.$set || {}) as Record<string, unknown>;
+    const checkIn = $set.checkInDate || update.checkInDate || existing.checkInDate;
+    const checkOut = $set.checkOutDate || update.checkOutDate || existing.checkOutDate;
+    const pricePerNight = $set.pricePerNight || update.pricePerNight || existing.pricePerNight;
+    
+    if (hasDateUpdate && checkIn && checkOut) {
+      const inUTC = toUTCDateOnly(new Date(checkIn as string | number | Date));
+      const outUTC = toUTCDateOnly(new Date(checkOut as string | number | Date));
+      const nights = Math.max(0, Math.round((outUTC.getTime() - inUTC.getTime()) / MS_PER_DAY));
+      
+      if (nights < 1) {
+        return next(new Error('Check-out must be at least 1 day after check-in'));
+      }
+      
+      const reservedNights = enumerateNightsUTC(inUTC, outUTC);
+      
+      // Update the $set with computed values
+      this.set({
+        checkInDate: inUTC,
+        checkOutDate: outUTC,
+        nights,
+        reservedNights,
+      });
+    }
+    
+    // Recompute pricing if needed
+    const currentNights = ((this.getUpdate() as Record<string, unknown>).nights as number | undefined) ?? existing.nights;
+    if ((hasDateUpdate || hasPriceUpdate) && pricePerNight && currentNights) {
+      const total = Math.max(0, (pricePerNight as number) * currentNights);
+      const feePercentage = Number(process.env.PLATFORM_FEE_PERCENTAGE) || 15;
+      const platform = Math.round(total * (feePercentage / 100));
+      const payout = Math.max(0, total - platform);
+      
+      this.set({
+        totalPrice: total,
+        platformFee: platform,
+        hostPayout: payout,
+      });
+    }
+    
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
 });
 
 /* ---------------- Methods: status transitions ---------------- */
@@ -441,14 +527,20 @@ BookingSchema.statics.isAvailable = (async function (
 }) as BookingModel['isAvailable'];
 
 /**
- * Atomically create booking with availability check
- * Throws if dates are not available
- * The unique index on reservedNights provides final race protection
+ * Atomically create booking with availability check and escrow account.
+ * 
+ * **Atomicity Strategy:**
+ * 1. If a session is provided, uses it for transactional guarantees
+ * 2. If no session, creates escrow FIRST, then booking (fail-fast)
+ * 3. On escrow failure: compensating action cancels/deletes the booking
+ * 
+ * Throws if dates are not available or escrow creation fails.
+ * The unique index on reservedNights provides final race protection.
  */
 BookingSchema.statics.createWithAvailability = (async function (
   this: BookingModel,
   doc: Partial<IBooking>,
-  session?: mongoose.ClientSession
+  sessionArg?: mongoose.ClientSession
 ): Promise<IBooking> {
   const inUTC = toUTCDateOnly(doc.checkInDate as Date);
   const outUTC = toUTCDateOnly(doc.checkOutDate as Date);
@@ -464,7 +556,67 @@ BookingSchema.statics.createWithAvailability = (async function (
     throw new Error('Dates not available for this listing');
   }
 
-  // Create (unique index also guards race condition)
+  const { escrowService } = await import('@/services/souq/settlements/escrow-service');
+  const { logger } = await import('@/lib/logger');
+  const escrowEnabled = process.env.FEATURE_ESCROW_ENABLED !== 'false';
+
+  // Strategy: Use transaction if session provided, otherwise use compensating action
+  if (sessionArg) {
+    // Transactional flow: All operations within the same session
+    const created = await this.create(
+      [
+        {
+          ...doc,
+          checkInDate: inUTC,
+          checkOutDate: outUTC,
+          reservedNights: nights,
+        },
+      ],
+      { session: sessionArg }
+    );
+    const bookingDoc = created[0];
+
+    if (escrowEnabled) {
+      try {
+        const account = await escrowService.createEscrowAccount({
+          source: EscrowSource.AQAR_BOOKING,
+          sourceId: bookingDoc._id,
+          bookingId: bookingDoc._id,
+          orgId: bookingDoc.orgId,
+          buyerId: bookingDoc.guestId,
+          sellerId: bookingDoc.hostId,
+          expectedAmount: bookingDoc.totalPrice,
+          currency: 'SAR',
+          releaseAfter: bookingDoc.checkOutDate,
+          idempotencyKey: bookingDoc._id.toString(),
+          riskHold: false,
+        });
+
+        bookingDoc.escrow = {
+          accountId: account._id,
+          status: account.status,
+          releaseAfter: account.releasePolicy?.autoReleaseAt,
+          idempotencyKey: account.idempotencyKeys?.[0],
+        };
+        await bookingDoc.save({ session: sessionArg });
+      } catch (escrowError) {
+        // Transaction will auto-rollback; re-throw to propagate
+        logger.error('[Escrow] Failed to create account for booking (transaction will rollback)', {
+          bookingId: bookingDoc._id.toString(),
+          error: escrowError,
+        });
+        throw escrowError;
+      }
+    } else {
+      logger.info('[Escrow] Skipping escrow creation for booking (feature flag disabled)', {
+        bookingId: bookingDoc._id.toString(),
+      });
+    }
+
+    return bookingDoc;
+  }
+
+  // Non-transactional flow: Use compensating action on failure
   const created = await this.create(
     [
       {
@@ -473,16 +625,12 @@ BookingSchema.statics.createWithAvailability = (async function (
         checkOutDate: outUTC,
         reservedNights: nights,
       },
-    ],
-    { session }
+    ]
   );
   const bookingDoc = created[0];
 
-  // Create escrow account tied to this booking (critical for payouts)
-  const { escrowService } = await import('@/services/souq/settlements/escrow-service');
-  const { logger } = await import('@/lib/logger');
-  try {
-    if (process.env.FEATURE_ESCROW_ENABLED !== 'false') {
+  if (escrowEnabled) {
+    try {
       const account = await escrowService.createEscrowAccount({
         source: EscrowSource.AQAR_BOOKING,
         sourceId: bookingDoc._id,
@@ -504,17 +652,49 @@ BookingSchema.statics.createWithAvailability = (async function (
         idempotencyKey: account.idempotencyKeys?.[0],
       };
       await bookingDoc.save();
-    } else {
-      logger.info('[Escrow] Skipping escrow creation for booking (feature flag disabled)', {
+    } catch (escrowError) {
+      // **COMPENSATING ACTION**: Cancel/delete booking to release inventory
+      logger.error('[Escrow] Failed to create account for booking, applying compensating action', {
         bookingId: bookingDoc._id.toString(),
+        error: escrowError,
       });
+      
+      try {
+        // Option 1: Mark as CANCELLED with reason (preserves audit trail)
+        bookingDoc.status = BookingStatus.CANCELLED;
+        bookingDoc.cancelledAt = new Date();
+        bookingDoc.cancellationReason = 'Escrow creation failed - system rollback';
+        bookingDoc.reservedNights = []; // Clear reserved nights to release inventory
+        await bookingDoc.save();
+        
+        logger.warn('[Escrow] Booking cancelled due to escrow failure (inventory released)', {
+          bookingId: bookingDoc._id.toString(),
+        });
+      } catch (compensationError) {
+        // If compensation fails, try hard delete as last resort
+        logger.error('[Escrow] Compensation failed, attempting hard delete', {
+          bookingId: bookingDoc._id.toString(),
+          compensationError,
+        });
+        try {
+          await this.deleteOne({ _id: bookingDoc._id });
+          logger.warn('[Escrow] Booking hard-deleted after escrow failure', {
+            bookingId: bookingDoc._id.toString(),
+          });
+        } catch (deleteError) {
+          logger.error('[Escrow] CRITICAL: Unable to clean up booking after escrow failure - manual intervention required', {
+            bookingId: bookingDoc._id.toString(),
+            deleteError,
+          });
+        }
+      }
+      
+      throw new Error(`Booking failed: Unable to create escrow account. ${escrowError instanceof Error ? escrowError.message : 'Unknown error'}`);
     }
-  } catch (error) {
-    logger.error('[Escrow] Failed to create account for booking', {
+  } else {
+    logger.info('[Escrow] Skipping escrow creation for booking (feature flag disabled)', {
       bookingId: bookingDoc._id.toString(),
-      error,
     });
-    throw error;
   }
 
   return bookingDoc;
@@ -529,3 +709,4 @@ const Booking: BookingModel =
 
 export default Booking;
 export type BookingDoc = IBooking;
+export type { BookingModel };

@@ -192,7 +192,7 @@ const coerceRoleValue = (role: NavigationRole): NavigationRole => {
 const canonicalizeRole = (role?: string | null, subRole?: string | null): string | null => {
   const fmSubRole =
     normalizeSubRole(subRole) ?? inferSubRoleFromRole(role);
-  const fmRole = normalizeFmRole(role, fmSubRole);
+  const fmRole = normalizeFmRole(role);
   if (!fmRole) return null;
 
   // Map canonical FM role back to navigation roles (UserRoleEnum)
@@ -709,13 +709,13 @@ export const ROLE_PERMISSIONS = {
   HR: hrOnly,
   PROCUREMENT: procurementOnly,
   TECHNICIAN: technicianOnly,
-  EMPLOYEE: hrOnly,
-  CORPORATE_OWNER: propertyOps,
   FINANCE_OFFICER: financeOnly,
   HR_OFFICER: hrOnly,
-  SUPPORT_AGENT: ['dashboard', 'support', 'crm', 'reports'],
+  SUPPORT_AGENT: ['dashboard', 'support', 'crm', 'reports'] as ModuleId[],
   OPERATIONS_MANAGER: fmLeadership,
   FINANCE_MANAGER: financeOnly,
+  EMPLOYEE: hrOnly,
+  CORPORATE_OWNER: propertyOps,
   OWNER: ownerTenant,
   TENANT: ownerTenant,
   VENDOR: vendorOnly,
@@ -723,7 +723,7 @@ export const ROLE_PERMISSIONS = {
   AUDITOR: complianceOnly,
   VIEWER: viewerOnly,
   DISPATCHER: technicianOnly,
-  SUPPORT: ['dashboard', 'support'],
+  SUPPORT: ['dashboard', 'support'] as ModuleId[],
   // External roles fall back to view-only
   guest: viewerOnly,
 } satisfies Record<UserRoleType | 'guest', readonly ModuleId[]>;

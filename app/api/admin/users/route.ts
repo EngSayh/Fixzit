@@ -76,9 +76,7 @@ export async function GET(request: NextRequest) {
 
     const UserModel = models.User || model("User", UserSchema);
 
-    // Build query
-    // 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB query
-    // ORGID-FIX: Enforce mandatory orgId for admin queries
+    // SEC-001: Validate orgId exists for tenant isolation
     const orgId = session.user.orgId;
     if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
       return NextResponse.json(
@@ -87,6 +85,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Build query
+    // 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB query
     const query: Record<string, unknown> = {
       orgId,  // ✅ Validated above
     };
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
 
     const UserModel = models.User || model("User", UserSchema);
 
-    // ORGID-FIX: Enforce mandatory orgId for user creation
+    // SEC-001: Validate orgId exists for tenant isolation
     const orgId = session.user.orgId;
     if (!orgId || typeof orgId !== 'string' || orgId.trim() === '') {
       return NextResponse.json(

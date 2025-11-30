@@ -28,26 +28,21 @@ export const UserRole = {
   SUPPORT_AGENT: "SUPPORT_AGENT", // Support + CRM + reports
   OPERATIONS_MANAGER: "OPERATIONS_MANAGER", // Wider scope: WO + Properties + Support
   
-  // Property & External Roles (4)
+  // Property & External Roles (5)
   OWNER: "OWNER",
+  CORPORATE_OWNER: "CORPORATE_OWNER", // Portfolio owner managing multiple properties
   TENANT: "TENANT",
   VENDOR: "VENDOR",
   AUDITOR: "AUDITOR",
-  CUSTOMER: "CUSTOMER",
-  VIEWER: "VIEWER",
-  CORPORATE_OWNER: "CORPORATE_OWNER",
   
   // Legacy roles deprecated in STRICT v4 - kept for backward compatibility
   // TODO: Migrate all usages to the 14-role matrix above
-  // EMPLOYEE: use MANAGER or specific function role (HR, FINANCE, etc.)
-  // CUSTOMER: use TENANT or OWNER
-  // VIEWER: use AUDITOR
-  // DISPATCHER: use FM_MANAGER or PROPERTY_MANAGER
-  // SUPPORT: use ADMIN or MANAGER
-  EMPLOYEE: "EMPLOYEE",
-  SUPPORT: "SUPPORT",
-  DISPATCHER: "DISPATCHER",
-  FINANCE_MANAGER: "FINANCE_MANAGER",
+  EMPLOYEE: "EMPLOYEE", // Deprecated - replace with MANAGER or specific function role
+  CUSTOMER: "CUSTOMER", // Deprecated - replace with TENANT or OWNER
+  VIEWER: "VIEWER", // Deprecated - replace with AUDITOR
+  DISPATCHER: "DISPATCHER", // Deprecated - replace with FM_MANAGER or PROPERTY_MANAGER
+  SUPPORT: "SUPPORT", // Deprecated - replace with ADMIN or MANAGER
+  FINANCE_MANAGER: "FINANCE_MANAGER", // Deprecated - replace with FINANCE or FINANCE_OFFICER
 } as const;
 
 export type UserRoleType = (typeof UserRole)[keyof typeof UserRole];
@@ -90,6 +85,7 @@ export const isSubRole = (role: UserRoleType): boolean =>
 
 export const PROPERTY_ROLES = [
   UserRole.OWNER,
+  UserRole.CORPORATE_OWNER, // Portfolio owner with multiple properties
   UserRole.TENANT,
 ] as const;
 
@@ -97,6 +93,32 @@ export const EXTERNAL_ROLES = [
   UserRole.VENDOR,
   UserRole.AUDITOR,
 ] as const;
+
+/**
+ * @deprecated Legacy roles that should NOT be used in new code.
+ * These are kept only for backward compatibility during migration.
+ * Use ROLE_ALIAS_MAP in domain/fm/fm-lite.ts for mapping to STRICT v4 roles.
+ * 
+ * Migration guide:
+ * - EMPLOYEE → MANAGER or specific function role (HR, FINANCE, etc.)
+ * - CUSTOMER → TENANT or OWNER
+ * - VIEWER → AUDITOR
+ * - DISPATCHER → FM_MANAGER or PROPERTY_MANAGER
+ * - SUPPORT → SUPPORT_AGENT
+ * - FINANCE_MANAGER → FINANCE or FINANCE_OFFICER
+ */
+export const DEPRECATED_ROLES = [
+  UserRole.EMPLOYEE,
+  UserRole.CUSTOMER,
+  UserRole.VIEWER,
+  UserRole.DISPATCHER,
+  UserRole.SUPPORT,
+  UserRole.FINANCE_MANAGER,
+] as const;
+
+/** Helper to check if a role is deprecated and should trigger migration warning */
+export const isDeprecatedRole = (role: UserRoleType): boolean =>
+  (DEPRECATED_ROLES as readonly string[]).includes(role);
 
 /**
  * User status values

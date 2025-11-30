@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { redactIdentifier } from "@/lib/security/log-sanitizer";
 import {
   trackAuthFailure,
   trackCorsViolation,
@@ -11,6 +12,12 @@ export type SecurityEventType =
   | "auth_failure"
   | "csrf_violation";
 
+/**
+ * Log a security event with PII redaction.
+ * 
+ * All identifiers (IPs, emails, etc.) are redacted in logs to prevent
+ * PII leakage while preserving enough context for debugging.
+ */
 export async function logSecurityEvent(event: {
   type: SecurityEventType;
   ip: string;
@@ -18,11 +25,27 @@ export async function logSecurityEvent(event: {
   timestamp: string;
   metadata?: Record<string, unknown>;
 }) {
-  logger.warn("[SecurityEvent]", event);
+  // Redact PII in the event log itself
+  const safeEvent = {
+    ...event,
+    ip: redactIdentifier(event.ip),
+    metadata: event.metadata ? {
+      ...event.metadata,
+      identifier: event.metadata.identifier 
+        ? redactIdentifier(String(event.metadata.identifier))
+        : undefined,
+      origin: event.metadata.origin
+        ? redactIdentifier(String(event.metadata.origin))
+        : undefined,
+    } : undefined,
+  };
+  
+  logger.warn("[SecurityEvent]", safeEvent);
   try {
     switch (event.type) {
       case "rate_limit": {
         const endpoint = String(event.metadata?.keyPrefix ?? event.path);
+        // Note: trackRateLimitHit now handles its own redaction internally
         trackRateLimitHit(event.ip, endpoint);
         break;
       }
@@ -31,6 +54,7 @@ export async function logSecurityEvent(event: {
           typeof event.metadata?.origin === "string"
             ? (event.metadata.origin as string)
             : event.path;
+        // Note: trackCorsViolation now handles its own redaction internally
         trackCorsViolation(origin, event.path);
         break;
       }
@@ -43,6 +67,7 @@ export async function logSecurityEvent(event: {
           typeof event.metadata?.reason === "string"
             ? (event.metadata.reason as string)
             : "unknown";
+        // Note: trackAuthFailure now handles its own redaction internally
         trackAuthFailure(identifier, reason);
         break;
       }

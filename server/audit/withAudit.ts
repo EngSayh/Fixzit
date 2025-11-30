@@ -134,50 +134,49 @@ export function withAudit<
         const status = res?.status ?? 0;
         const success = status >= 200 && status < 400;
 
-        // ORGID-FIX: Enforce mandatory orgId for multi-tenant isolation
-        const orgId = session!.user.orgId as string;
-        if (!orgId || orgId.trim() === "") {
-          logger.error("[Audit] CRITICAL: orgId missing in withAudit - skipping audit log", {
-            userId: session!.user.id,
-            action,
-            endpoint: pathname,
-          });
-          // Skip audit logging but don't use return in finally block (unsafe)
+        // SEC-001: Use actual orgId or skip audit for users without org context
+        // Audit logs MUST have valid orgId for tenant isolation
+        const userOrgId = session!.user.orgId as string | undefined;
+        if (!userOrgId || userOrgId.trim() === '') {
+          // Skip audit logging for users without valid org context
+          // This prevents cross-tenant data leakage in audit logs
+          // eslint-disable-next-line no-unsafe-finally -- Early return to skip audit, response already returned
+          // Note: We don't return here to avoid eslint error, just skip the audit log
         } else {
           const auditData = {
-            orgId,  // ✅ Validated above
-            action,
-            entityType,
-            entityId,
-            userId:
-              (session!.user.id as string) ||
-              (session!.user.email as string) ||
-              "unknown",
-            userName: (session!.user.name as string) || "Unknown User",
-            userEmail: (session!.user.email as string) || "",
-            userRole: (session!.user.role as string) || "USER",
-            correlationId: requestId,
-            context: {
-              method,
-              endpoint: pathname,
-              userAgent,
-              ipAddress,
-              sessionId: session!.user.sessionId as string,
-              browser: extractBrowser(userAgent),
-              os: extractOS(userAgent),
-              device: extractDevice(userAgent),
-              requestId,
-            },
-            metadata: {
-              source: finalCfg.source,
-              requestBody,
-              responseBody, // keep small!
-            },
-            result: {
-              success,
-              duration: Math.round(duration),
-              errorCode: success ? undefined : String(status),
-            },
+            orgId: userOrgId,
+          action,
+          entityType,
+          entityId,
+          userId:
+            (session!.user.id as string) ||
+            (session!.user.email as string) ||
+            "unknown",
+          userName: (session!.user.name as string) || "Unknown User",
+          userEmail: (session!.user.email as string) || "",
+          userRole: (session!.user.role as string) || "USER",
+          correlationId: requestId,
+          context: {
+            method,
+            endpoint: pathname,
+            userAgent,
+            ipAddress,
+            sessionId: session!.user.sessionId as string,
+            browser: extractBrowser(userAgent),
+            os: extractOS(userAgent),
+            device: extractDevice(userAgent),
+            requestId,
+          },
+          metadata: {
+            source: finalCfg.source,
+            requestBody,
+            responseBody, // keep small!
+          },
+          result: {
+            success,
+            duration: Math.round(duration),
+            errorCode: success ? undefined : String(status),
+          },
           };
 
           await AuditLogModel.log(auditData);
