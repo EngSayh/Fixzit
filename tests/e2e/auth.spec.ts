@@ -9,6 +9,19 @@ import {
   type TestCredentials,
 } from './utils/credentials';
 
+// Offline-safe defaults: inject non-secret placeholders when TEST_* secrets are absent.
+// These are for local/offline runs only; real CI should supply real credentials.
+if (!process.env.TEST_ADMIN_EMAIL) {
+  process.env.TEST_ADMIN_EMAIL = 'admin@offline.test';
+  process.env.TEST_ADMIN_PASSWORD = 'Test@1234';
+  process.env.TEST_ADMIN_EMPLOYEE = process.env.TEST_ADMIN_EMPLOYEE ?? 'EMP-OFFLINE-ADMIN';
+}
+if (!process.env.TEST_TEAM_MEMBER_EMAIL) {
+  process.env.TEST_TEAM_MEMBER_EMAIL = 'member@offline.test';
+  process.env.TEST_TEAM_MEMBER_PASSWORD = 'Test@1234';
+  process.env.TEST_TEAM_MEMBER_EMPLOYEE = process.env.TEST_TEAM_MEMBER_EMPLOYEE ?? 'EMP-OFFLINE-MEMBER';
+}
+
 /**
  * Authentication E2E Tests
  * Tests user authentication flows, RBAC, and session management

@@ -221,7 +221,8 @@ jobs:
 
       # AUDIT-2025-11-30: Fixed secrets validation
       # - Added env: block to wire secrets into the step (was missing, causing false negatives)
-      # - Job-level guard already skips forks, so no need for step-level fork check
+      # - Job-level guard already skips forks, but we validate to fail fast on misconfigured CI
+      # NOTE: _EMPLOYEE secrets for non-ADMIN roles are optional (passed through but not required by tests)
       - name: Validate required E2E secrets (RBAC credentials + tenant org)
         env:
           # Wire secrets into step environment for validation
@@ -238,6 +239,7 @@ jobs:
           TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
           # Required for employee-number login test in auth.spec.ts
+          # Other _EMPLOYEE secrets are optional (tests skip or use fallbacks)
           TEST_ADMIN_EMPLOYEE: ${{ secrets.TEST_ADMIN_EMPLOYEE }}
           TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}
         run: |
@@ -267,7 +269,10 @@ jobs:
       # AUDIT-2025-11-30: Added fork guard to prevent hard-fail on external PRs
       # Forked PRs can't access secrets, so E2E tests with RBAC credentials would fail
       # External contributors still get lint/typecheck/build feedback from other workflows
+      # NOTE: Even though the job has a fork guard, this step-level guard ensures safety
+      # if the job condition is ever relaxed or the step is copied elsewhere.
       - name: Run Playwright E2E Tests
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true
         env:
           # Authentication (NextAuth)
           NEXTAUTH_URL: http://localhost:3000
@@ -301,6 +306,10 @@ jobs:
           # E2E RBAC Test Credentials (Required for subrole-api-access.spec.ts)
           # These must be configured in GitHub Settings > Secrets
           # See env.example for documentation on creating test users
+          # 
+          # REQUIRED: email + password for each role
+          # OPTIONAL: _EMPLOYEE secrets (only TEST_ADMIN_EMPLOYEE is required for
+          #           the employee-number login test; others are pass-through)
           # ============================================================
           TEST_FINANCE_OFFICER_EMAIL: ${{ secrets.TEST_FINANCE_OFFICER_EMAIL }}
           TEST_FINANCE_OFFICER_PASSWORD: ${{ secrets.TEST_FINANCE_OFFICER_PASSWORD }}
@@ -319,7 +328,7 @@ jobs:
           TEST_TEAM_MEMBER_EMPLOYEE: ${{ secrets.TEST_TEAM_MEMBER_EMPLOYEE }}
           TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
-          # Required for employee-number login test (auth.spec.ts)
+          # REQUIRED: Used by employee-number login test (auth.spec.ts)
           TEST_ADMIN_EMPLOYEE: ${{ secrets.TEST_ADMIN_EMPLOYEE }}
           
           # Multi-tenancy validation (org_id scoping for data isolation checks)

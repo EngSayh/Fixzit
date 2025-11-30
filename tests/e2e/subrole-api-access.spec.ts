@@ -8,6 +8,23 @@ import {
   type SubRoleKey,
 } from './utils/credentials';
 
+// Offline-safe defaults for local/offline runs. CI should set real secrets.
+const OFFLINE_DEFAULTS: Record<SubRoleKey, { email: string; password: string }> = {
+  FINANCE_OFFICER: { email: 'finance@offline.test', password: 'Test@1234' },
+  HR_OFFICER: { email: 'hr@offline.test', password: 'Test@1234' },
+  SUPPORT_AGENT: { email: 'support@offline.test', password: 'Test@1234' },
+  OPERATIONS_MANAGER: { email: 'ops@offline.test', password: 'Test@1234' },
+  TEAM_MEMBER: { email: 'member@offline.test', password: 'Test@1234' },
+  ADMIN: { email: 'admin@offline.test', password: 'Test@1234' },
+};
+
+for (const [role, creds] of Object.entries(OFFLINE_DEFAULTS) as Array<[SubRoleKey, { email: string; password: string }]>) {
+  const emailKey = `TEST_${role}_EMAIL`;
+  const passwordKey = `TEST_${role}_PASSWORD`;
+  if (!process.env[emailKey]) process.env[emailKey] = creds.email;
+  if (!process.env[passwordKey]) process.env[passwordKey] = creds.password;
+}
+
 /**
  * Sub-Role API Access E2E Tests
  *
