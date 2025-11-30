@@ -226,16 +226,23 @@ jobs:
           # ============================================================
           TEST_FINANCE_OFFICER_EMAIL: ${{ secrets.TEST_FINANCE_OFFICER_EMAIL }}
           TEST_FINANCE_OFFICER_PASSWORD: ${{ secrets.TEST_FINANCE_OFFICER_PASSWORD }}
+          TEST_FINANCE_OFFICER_EMPLOYEE: ${{ secrets.TEST_FINANCE_OFFICER_EMPLOYEE }}
           TEST_HR_OFFICER_EMAIL: ${{ secrets.TEST_HR_OFFICER_EMAIL }}
           TEST_HR_OFFICER_PASSWORD: ${{ secrets.TEST_HR_OFFICER_PASSWORD }}
+          TEST_HR_OFFICER_EMPLOYEE: ${{ secrets.TEST_HR_OFFICER_EMPLOYEE }}
           TEST_SUPPORT_AGENT_EMAIL: ${{ secrets.TEST_SUPPORT_AGENT_EMAIL }}
           TEST_SUPPORT_AGENT_PASSWORD: ${{ secrets.TEST_SUPPORT_AGENT_PASSWORD }}
+          TEST_SUPPORT_AGENT_EMPLOYEE: ${{ secrets.TEST_SUPPORT_AGENT_EMPLOYEE }}
           TEST_OPERATIONS_MANAGER_EMAIL: ${{ secrets.TEST_OPERATIONS_MANAGER_EMAIL }}
           TEST_OPERATIONS_MANAGER_PASSWORD: ${{ secrets.TEST_OPERATIONS_MANAGER_PASSWORD }}
+          TEST_OPERATIONS_MANAGER_EMPLOYEE: ${{ secrets.TEST_OPERATIONS_MANAGER_EMPLOYEE }}
           TEST_TEAM_MEMBER_EMAIL: ${{ secrets.TEST_TEAM_MEMBER_EMAIL }}
           TEST_TEAM_MEMBER_PASSWORD: ${{ secrets.TEST_TEAM_MEMBER_PASSWORD }}
+          TEST_TEAM_MEMBER_EMPLOYEE: ${{ secrets.TEST_TEAM_MEMBER_EMPLOYEE }}
           TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+          # Required for employee-number login test (auth.spec.ts)
+          TEST_ADMIN_EMPLOYEE: ${{ secrets.TEST_ADMIN_EMPLOYEE }}
           
           # Multi-tenancy validation (org_id scoping for data isolation checks)
           TEST_ORG_ID: ${{ secrets.TEST_ORG_ID }}

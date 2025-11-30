@@ -258,6 +258,7 @@ test.describe('Authentication', () => {
     });
 
     test('should hide admin features for non-admin users', async ({ page }) => {
+      expect(NON_ADMIN_USER, 'TEST_TEAM_MEMBER_EMAIL/PASSWORD env vars required').toBeTruthy();
       const result = await attemptLogin(page, NON_ADMIN_USER!.email, NON_ADMIN_USER!.password);
       ensureLoginOrSkip(result);
       await expect(page).toHaveURL(/\/dashboard/);
