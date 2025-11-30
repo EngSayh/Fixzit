@@ -44,7 +44,7 @@ export default function TrialBanner({ subscriptionStatus }: TrialBannerProps) {
   return (
     <div
       className={cn(
-        "fixed bottom-4 right-4 left-4 z-40 max-w-4xl mx-auto rounded-2xl border border-primary/30 bg-primary/10 backdrop-blur px-4 py-3 shadow-lg",
+        "fixed bottom-4 end-4 start-4 z-40 max-w-4xl mx-auto rounded-2xl border border-primary/30 bg-primary/10 backdrop-blur px-4 py-3 shadow-lg",
       )}
     >
       <div className="flex items-center gap-3">
