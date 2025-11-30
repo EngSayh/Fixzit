@@ -121,7 +121,7 @@ export default function Sidebar({
   const pathname = usePathname() || "";
   const { data: session, status } = useSession();
   const sessionUser = session?.user as
-    | { role?: string; subscriptionPlan?: string; plan?: string }
+    | { role?: string; subscriptionPlan?: string; plan?: string; orgId?: string }
     | undefined;
   const [planOverride, setPlanOverride] = useState<string | null>(null);
 
@@ -133,6 +133,13 @@ export default function Sidebar({
   const subscription = normalizePlan(
     planOverride ?? sessionUser?.subscriptionPlan ?? sessionUser?.plan,
   );
+
+  // Tenant-scoped collapse key to prevent cross-tenant UI state bleed
+  // Uses orgId prefix so different tenants have separate sidebar preferences
+  const tenantScopedCollapseKey = useMemo(() => {
+    const orgId = sessionUser?.orgId || "public";
+    return `${orgId}:${COLLAPSE_KEY}`;
+  }, [sessionUser?.orgId]);
 
   // Fetch subscription plan when not present in session to enforce gating
   useEffect(() => {
@@ -165,31 +172,32 @@ export default function Sidebar({
 
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // Load collapsed state from tenant-scoped localStorage
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const stored = window.localStorage.getItem(COLLAPSE_KEY);
+      const stored = window.localStorage.getItem(tenantScopedCollapseKey);
       if (stored) {
         setIsCollapsed(Boolean(JSON.parse(stored)));
       }
     } catch {
       // ignore corrupted state
     }
-  }, []);
+  }, [tenantScopedCollapseKey]);
 
   const toggleCollapse = useCallback(() => {
     setIsCollapsed((prev) => {
       const next = !prev;
       if (typeof window !== "undefined") {
         try {
-          window.localStorage.setItem(COLLAPSE_KEY, JSON.stringify(next));
+          window.localStorage.setItem(tenantScopedCollapseKey, JSON.stringify(next));
         } catch {
           // ignore storage issues
         }
       }
       return next;
     });
-  }, []);
+  }, [tenantScopedCollapseKey]);
 
   const allowedModules = useMemo(() => {
     const roleModules = (ROLE_PERMISSIONS[role] ??
@@ -254,7 +262,7 @@ export default function Sidebar({
 
   const asideBase = isMobile
     ? `fixed inset-y-0 z-50 ${asideWidth} transform transition-transform duration-300 ease-in-out start-0`
-    : `sticky top-14 ${asideWidth} h-[calc(100vh-3.5rem)] transition-[width] duration-300 ease-in-out`;
+    : `sticky top-16 ${asideWidth} h-[calc(100vh-4rem)] transition-[width] duration-300 ease-in-out`;
 
   const handleNavigate = useCallback(() => {
     if (isMobile && onNavigate) {

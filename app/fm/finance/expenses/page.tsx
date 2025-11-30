@@ -118,7 +118,7 @@ export default function ExpensesPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="max-w-md"
         />
-        <Button variant="secondary">{auto("Search", "search.button")}</Button>
+        {/* AUDIT-2025-11-30: Removed non-functional search button - filtering happens on input change */}
       </div>
 
       <div className="grid gap-4">

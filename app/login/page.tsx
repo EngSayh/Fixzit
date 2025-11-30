@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn, getCsrfToken } from 'next-auth/react';
+import { signIn, getCsrfToken, useSession } from 'next-auth/react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import type { Language } from '@/contexts/TranslationContext';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
@@ -115,6 +115,15 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t, isRTL, setLanguage, setLocale } = useTranslation();
+  const { status } = useSession();
+
+  // Auth redirect: bounce authenticated users away from login page
+  useEffect(() => {
+    if (status === 'authenticated') {
+      const target = searchParams?.get('callbackUrl') || searchParams?.get('next') || '/dashboard';
+      router.replace(target);
+    }
+  }, [status, router, searchParams]);
 
   const redirectTarget = searchParams?.get('next') || searchParams?.get('callbackUrl') || null;
   // Only show demo credentials in development, never in production

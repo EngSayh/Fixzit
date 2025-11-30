@@ -180,7 +180,8 @@ export default function PaymentsPage() {
           {filteredPayments.map((payment) => (
             <PaymentCard 
               key={payment.id} 
-              {...payment} 
+              {...payment}
+              orgId={orgId} // AUDIT-2025-11-30: Pass orgId for API calls
               onStatusChange={handlePaymentStatusChange}
             />
           ))}
@@ -218,8 +219,9 @@ function PaymentCard({
   date,
   method,
   status,
+  orgId, // AUDIT-2025-11-30: Added orgId for multi-tenant API calls
   onStatusChange,
-}: PaymentRecord & { onStatusChange?: (id: string, newStatus: PaymentRecord["status"]) => void }) {
+}: PaymentRecord & { orgId: string; onStatusChange?: (id: string, newStatus: PaymentRecord["status"]) => void }) {
   const auto = useAutoTranslator("fm.finance.payments.card");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -232,7 +234,9 @@ function PaymentCard({
   const handleMarkCompleted = async () => {
     setIsProcessing(true);
     try {
-      const response = await fetch(`/api/finance/payments/${id}/complete`, {
+      // AUDIT-2025-11-30: Include orgId in query params for multi-tenant scoping
+      const params = new URLSearchParams({ orgId });
+      const response = await fetch(`/api/finance/payments/${id}/complete?${params.toString()}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });

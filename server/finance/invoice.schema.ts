@@ -9,7 +9,7 @@ export const InvoiceLine = z.object({
 });
 
 export const InvoiceCreate = z.object({
-  tenantId: z.string().cuid(),
+  orgId: z.string().cuid(), // AUDIT-2025-11-30: Changed from tenantId to orgId for model alignment
   issueDate: z.coerce.date(),
   dueDate: z.coerce.date(),
   customerRef: z.string().optional(),

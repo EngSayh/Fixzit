@@ -20,6 +20,7 @@ type ExtendedUser = {
   id: string;
   email?: string | null;
   role?: string;
+  subRole?: string | null; // STRICT v4.1: Sub-role for Team Member specialization
   orgId?: string | null;
   sessionId?: string | null;
   rememberMe?: boolean;
@@ -533,11 +534,15 @@ export const authConfig = {
           const sessionPlan: SessionPlan =
             (user.subscriptionPlan as SubscriptionPlan | undefined) ?? 'STARTER';
 
+          // 🔒 STRICT v4.1: Extract subRole for Team Member specialization
+          const sessionSubRole = (user as { professional?: { subRole?: string } }).professional?.subRole || null;
+
           const authUser = {
             id: user._id.toString(),
             email: user.email,
             name: `${user.personal?.firstName || ''} ${user.personal?.lastName || ''}`.trim() || user.email,
             role: sessionRole,
+            subRole: sessionSubRole, // STRICT v4.1: Propagate subRole for HR_OFFICER, FINANCE_OFFICER, etc.
             subscriptionPlan: sessionPlan,
             orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || null),
             sessionId: null, // NextAuth will generate session ID
@@ -663,6 +668,10 @@ export const authConfig = {
       if (token?.role) {
         (session.user as ExtendedUser).role = token.role as UserRoleType;
       }
+      // 🔒 STRICT v4.1: Propagate subRole to session
+      if (token?.subRole !== undefined) {
+        (session.user as ExtendedUser).subRole = token.subRole as string | null;
+      }
       if (token?.orgId) {
         (session.user as ExtendedUser).orgId = token.orgId as string | null;
       }
@@ -684,6 +693,8 @@ export const authConfig = {
         token.id = user.id;
         const normalizedRole = (user as ExtendedUser).role?.toUpperCase() as UserRoleType | undefined;
         token.role = normalizedRole ?? (token.role as UserRoleType | 'GUEST') ?? 'GUEST';
+        // 🔒 STRICT v4.1: Store subRole in token
+        token.subRole = (user as ExtendedUser).subRole || null;
         token.orgId = (user as ExtendedUser).orgId || null;
 
         // Handle rememberMe for credentials provider
