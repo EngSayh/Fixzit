@@ -9,7 +9,7 @@
  */
 
 import { test, expect } from "@playwright/test";
-import { walkAndVerifyOrgId } from "./utils/tenant-validation";
+import { verifyTenantScoping } from "./utils/tenant-validation";
 
 const TEST_ORG_ID = process.env.TEST_ORG_ID;
 const ALLOW_MISSING_TEST_ORG_ID = process.env.ALLOW_MISSING_TEST_ORG_ID === "true";
@@ -140,19 +140,13 @@ test.describe("Work Orders - Public API", () => {
     // Should get a response (401 unauthorized is OK, 500 is not)
     expect(response.status()).toBeLessThan(500);
 
-    // AUDIT-2025-12-01: Use recursive tenant validation to catch nested org_id leaks
-    // Handles wrapped payloads ({data: [...]}), camelCase (orgId), and deep nesting
-    // AUDIT-2025-12-01 (Phase 19): CRITICAL - Tenant validation errors MUST fail tests
-    // DO NOT wrap in try/catch that swallows errors - cross-tenant leaks are security violations
-    // AUDIT-2025-11-30: requirePresence: true for data-bearing 200 responses - missing org_id should FAIL
+    // AUDIT-2025-12-01: Use shared verifyTenantScoping helper (fail-closed by default)
+    // - Recursive validation catches nested/wrapped/camelCase org_id leaks
+    // - requirePresence: true enforced via helper default
+    // - DO NOT wrap in try/catch - tenant leaks are security violations
     if (response.status() === 200 && TEST_ORG_ID) {
       const body = await response.json();
-      walkAndVerifyOrgId(body, {
-        expectedOrgId: TEST_ORG_ID,
-        endpoint: '/api/work-orders',
-        context: 'health check',
-        requirePresence: true, // FAIL if org_id/orgId missing on tenant-scoped work order data
-      });
+      verifyTenantScoping(body, TEST_ORG_ID, '/api/work-orders', 'work order list');
     }
     // Note: Missing TEST_ORG_ID warnings are now handled at module-level guard
   });
