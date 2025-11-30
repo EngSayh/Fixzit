@@ -81,25 +81,36 @@ test.describe("Marketplace - Public Access", () => {
     await page.goto("/marketplace");
     await page.waitForLoadState("networkidle");
 
-    // Find search input
+    // AUDIT-2025-12-01: Search is a critical marketplace UX element
+    // Silent pass when search is missing masks UI regressions. Fail-closed is safer.
     const searchInput = page.locator(
       'input[type="search"], input[placeholder*="search" i], input[placeholder*="بحث" i]',
     );
+    const searchCount = await searchInput.count();
 
-    if (await searchInput.isVisible()) {
-      // Type search query
-      await searchInput.fill("pump");
-      await page.waitForTimeout(1000);
+    expect(
+      searchCount,
+      'Marketplace should display at least one search input. ' +
+      'If search is intentionally removed, update this test with documented reason.'
+    ).toBeGreaterThan(0);
 
-      // Should show results or no results message
-      const hasResults =
-        (await page.locator('[class*="product"], [data-product]').count()) > 0;
-      const hasNoResultsMsg = await page
-        .locator("text=/no.*results|not.*found/i")
-        .isVisible();
+    await expect(searchInput.first()).toBeVisible();
 
-      expect(hasResults || hasNoResultsMsg).toBeTruthy();
-    }
+    // Type search query
+    await searchInput.first().fill("pump");
+    await page.waitForTimeout(1000);
+
+    // Should show results or no results message
+    const hasResults =
+      (await page.locator('[class*="product"], [data-product]').count()) > 0;
+    const hasNoResultsMsg = await page
+      .locator("text=/no.*results|not.*found/i")
+      .isVisible();
+
+    expect(
+      hasResults || hasNoResultsMsg,
+      'Search should display either product results or a "no results" message'
+    ).toBeTruthy();
   });
 
   test("should display product cards", async ({ page }) => {
@@ -127,18 +138,27 @@ test.describe("Marketplace - Public Access", () => {
     await page.goto("/marketplace");
     await page.waitForLoadState("networkidle");
 
-    // Find a product link
+    // AUDIT-2025-12-01: Product links are essential for marketplace navigation
+    // If products are displayed, they must be clickable. Silent pass on missing links masks regressions.
     const productLink = page
       .locator('a[href*="/marketplace/"], a[href*="/product/"]')
       .first();
+    const linkCount = await page
+      .locator('a[href*="/marketplace/"], a[href*="/product/"]')
+      .count();
 
-    if (await productLink.isVisible()) {
-      await productLink.click();
-      await page.waitForLoadState("networkidle");
+    expect(
+      linkCount,
+      'Marketplace should display at least one clickable product link. ' +
+      'If products are non-clickable by design, update this test with documented reason.'
+    ).toBeGreaterThan(0);
 
-      // Should navigate to product page
-      expect(page.url()).toMatch(/marketplace|product/);
-    }
+    await expect(productLink).toBeVisible();
+    await productLink.click();
+    await page.waitForLoadState("networkidle");
+
+    // Should navigate to product page
+    expect(page.url()).toMatch(/marketplace|product/);
   });
 
   test("should display product filters", async ({ page }) => {
@@ -192,35 +212,53 @@ test.describe("Marketplace - Product Details", () => {
     await page.goto("/marketplace");
     await page.waitForLoadState("networkidle");
 
-    // Try to click first product
+    // AUDIT-2025-12-01: Product detail navigation is critical for marketplace flow
+    // Products must be clickable and lead to detail pages. Fail if navigation targets missing.
     const firstProduct = page
       .locator('a[href*="/product/"], a[href*="/marketplace/"]')
       .first();
+    const productCount = await page
+      .locator('a[href*="/product/"], a[href*="/marketplace/"]')
+      .count();
 
-    if (await firstProduct.isVisible()) {
-      await firstProduct.click();
-      await page.waitForLoadState("networkidle");
+    expect(
+      productCount,
+      'Marketplace should display clickable product links for detail navigation. ' +
+      'If this is intentional, update this test with documented reason.'
+    ).toBeGreaterThan(0);
 
-      // Should show product details
-      const hasTitle = (await page.locator("h1, h2").count()) > 0;
-      expect(hasTitle).toBeTruthy();
-    }
+    await expect(firstProduct).toBeVisible();
+    await firstProduct.click();
+    await page.waitForLoadState("networkidle");
+
+    // Should show product details - title is mandatory on detail pages
+    const titleCount = await page.locator("h1, h2").count();
+    expect(
+      titleCount,
+      'Product detail page should display a title (h1 or h2). ' +
+      'If title is intentionally missing, update this test with documented reason.'
+    ).toBeGreaterThan(0);
   });
 
   test("should display product price", async ({ page }) => {
     await page.goto("/marketplace");
     await page.waitForLoadState("networkidle");
 
-    // Look for price indicators
+    // AUDIT-2025-12-01: Prices are essential marketplace information
+    // Products should display pricing. Silent pass on missing prices masks regressions.
     const pricePattern = /ر\.س|SAR|\$|€|£|\d+/;
     const prices = page.locator('[class*="price"], [data-price]');
+    const priceCount = await prices.count();
 
-    if ((await prices.count()) > 0) {
-      const priceText = await prices.first().textContent();
-      if (priceText) {
-        expect(priceText).toMatch(pricePattern);
-      }
-    }
+    expect(
+      priceCount,
+      'Marketplace should display at least one price indicator. ' +
+      'If prices are intentionally hidden, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    const priceText = await prices.first().textContent();
+    expect(priceText).toBeTruthy();
+    expect(priceText).toMatch(pricePattern);
   });
 
   test("should display add to cart or request quote button", async ({
@@ -229,23 +267,39 @@ test.describe("Marketplace - Product Details", () => {
     await page.goto("/marketplace");
     await page.waitForLoadState("networkidle");
 
+    // AUDIT-2025-12-01: Action buttons are critical for marketplace conversion
+    // Product details must have a CTA (add to cart, request quote, etc).
     const firstProduct = page
       .locator('a[href*="/product/"], a[href*="/marketplace/"]')
       .first();
+    const productCount = await page
+      .locator('a[href*="/product/"], a[href*="/marketplace/"]')
+      .count();
 
-    if (await firstProduct.isVisible()) {
-      await firstProduct.click();
-      await page.waitForLoadState("networkidle");
+    expect(
+      productCount,
+      'Marketplace should display clickable product links. ' +
+      'If this is intentional, update this test with documented reason.'
+    ).toBeGreaterThan(0);
 
-      // Look for action buttons
-      const actionButton = page.locator(
-        'button:has-text("Cart"), button:has-text("Quote"), button:has-text("Add"), button:has-text("Request")',
-      );
+    await expect(firstProduct).toBeVisible();
+    await firstProduct.click();
+    await page.waitForLoadState("networkidle");
 
-      if ((await actionButton.count()) > 0) {
-        await expect(actionButton.first()).toBeVisible();
-      }
-    }
+    // Look for action buttons - at least one CTA should exist on product detail
+    const actionButton = page.locator(
+      'button:has-text("Cart"), button:has-text("Quote"), button:has-text("Add"), button:has-text("Request"), ' +
+      'button:has-text("سلة"), button:has-text("طلب"), button:has-text("إضافة")',
+    );
+    const actionCount = await actionButton.count();
+
+    expect(
+      actionCount,
+      'Product detail page should display at least one action button (Add to Cart, Request Quote, etc). ' +
+      'If CTAs are intentionally hidden, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    await expect(actionButton.first()).toBeVisible();
   });
 });
 
@@ -255,14 +309,20 @@ test.describe("Marketplace - API Integration", () => {
       failOnStatusCode: false,
     });
 
-    // API should respond (even if empty results)
-    expect(response.status()).toBeLessThan(500);
+    // AUDIT-2025-12-01 (Phase 20): Require 200 status to ensure tenant validation runs
+    // Previously: status < 500 allowed 401/403/404 to silently skip org_id checks
+    // Now: fail if not 200, guaranteeing scoping validation executes
+    expect(
+      response.status(),
+      `Marketplace product search should return 200 for tenant validation to run.\n` +
+      `Got ${response.status()} - this may mask cross-tenant leaks.`
+    ).toBe(200);
 
     // AUDIT-2025-12-01: Use shared verifyTenantScoping helper (fail-closed by default)
     // - Recursive validation catches nested/wrapped/camelCase org_id leaks
     // - requirePresence: true enforced via helper default
     // - DO NOT wrap in try/catch - tenant leaks are security violations
-    if (response.status() === 200 && TEST_ORG_ID) {
+    if (TEST_ORG_ID) {
       const body = await response.json();
       verifyTenantScoping(body, TEST_ORG_ID, '/api/marketplace/products', 'product search');
     }
@@ -278,7 +338,11 @@ test.describe("Marketplace - API Integration", () => {
       },
     );
 
-    // Should not crash (404, 400, or 200 are all acceptable)
+    // AUDIT-2025-12-01 (Phase 20): Intentionally lenient status assertion
+    // This test validates XSS input handling (security boundary), not data scoping.
+    // Acceptable responses: 200 (sanitized), 400 (rejected), 404 (not found)
+    // Only 5xx indicates server failure.
+    // NOTE: Tenant validation is NOT enforced here - use product search test for that.
     expect(response.status()).toBeLessThan(500);
   });
 });

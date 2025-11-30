@@ -480,6 +480,15 @@ async function expectAllowedWithBodyCheck(
   //
   // AUDIT-2025-12-01: Now using shared walkAndVerifyOrgId from tenant-validation.ts
   // to ensure consistent validation depth across all E2E suites.
+  //
+  // NOTE: This spec intentionally uses walkAndVerifyOrgId directly (not verifyTenantScoping)
+  // because:
+  // 1. Conditional validation: only validates when expectedOrgId is provided by caller
+  // 2. Override support: callers can set requireOrgIdPresence: false for tenant-agnostic endpoints
+  // 3. Integration: this flows through expectAllowedWithBodyCheck which has additional logic
+  //
+  // Flow specs (work-orders-flow.spec.ts, marketplace-flow.spec.ts) use verifyTenantScoping
+  // because they always validate and don't need the override capability.
   if (options?.expectedOrgId) {
     // SECURITY: Default to requiring presence when checking tenant ID
     // This ensures APIs that omit org_id entirely fail instead of passing silently.
@@ -1826,6 +1835,12 @@ test.describe('Unauthenticated API Access', () => {
  * 
  * AUDIT-2025-11-30: Added to lock in "all nested objects" traversal behavior
  * after expanding recursion from hardcoded keys to full Object.entries() walk.
+ * 
+ * ARCHITECTURE NOTE (AUDIT-2025-12-01):
+ * - walkAndVerifyOrgId: Low-level recursive validator (tenant-validation.ts)
+ * - verifyTenantScoping: Strict helper with requirePresence: true (tenant-validation.ts)
+ * - This spec uses walkAndVerifyOrgId directly for override flexibility
+ * - Flow specs use verifyTenantScoping for consistent strict defaults
  */
 test.describe('Tenant Validation Helper Behavior', () => {
   // Mock response factory for testing

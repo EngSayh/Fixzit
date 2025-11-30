@@ -24,7 +24,15 @@ export interface WalkOrgIdOptions {
   endpoint: string;
   /** Role or context for error messages (optional) */
   context?: string;
-  /** Whether to require org_id presence on leaf objects (default: false for health checks) */
+  /**
+   * Whether to require org_id presence on leaf objects.
+   * 
+   * Raw default: false (for backward compatibility with walkAndVerifyOrgId direct calls).
+   * 
+   * IMPORTANT: Use verifyTenantScoping() for tenant-scoped data APIs - it sets
+   * requirePresence: true (fail-closed pattern). Only use walkAndVerifyOrgId
+   * directly with requirePresence: false for documented edge cases.
+   */
   requirePresence?: boolean;
 }
 

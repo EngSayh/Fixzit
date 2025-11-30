@@ -83,15 +83,20 @@ test.describe("Work Orders - Authenticated User", () => {
 
     expect(page.url()).not.toContain("/login");
 
-    // Check for filter/search inputs
+    // AUDIT-2025-12-01: Search/filter inputs are critical for work order management UX
+    // Silent pass when search is missing masks UI regressions. Fail-closed is safer.
     const searchInput = page.locator(
       'input[placeholder*="search" i], input[placeholder*="بحث" i]',
     );
-    const hasFilters = (await searchInput.count()) > 0;
+    const searchCount = await searchInput.count();
 
-    if (hasFilters) {
-      await expect(searchInput.first()).toBeVisible();
-    }
+    expect(
+      searchCount,
+      'Work orders page should display at least one search/filter input. ' +
+      'If search is intentionally removed, update this test with documented reason.'
+    ).toBeGreaterThan(0);
+
+    await expect(searchInput.first()).toBeVisible();
   });
 
   test("should display work order status options", async ({ page }) => {
@@ -143,16 +148,31 @@ test.describe("Work Orders - Public API", () => {
       failOnStatusCode: false,
     });
 
-    // Should get a response (401 unauthorized is OK, 500 is not)
-    expect(response.status()).toBeLessThan(500);
+    const status = response.status();
+
+    // AUDIT-2025-12-01 (Phase 20): Explicit status handling for tenant validation
+    // - 200: Data returned - MUST run tenant validation
+    // - 401: Not authenticated - acceptable for public health check, but no data to validate
+    // - 5xx: Server error - fail the test
+    expect(
+      status,
+      `Work Orders API should return 200 (authenticated) or 401 (unauthenticated).\n` +
+      `Got ${status} - unexpected response for health check.`
+    ).toBeLessThan(500);
 
     // AUDIT-2025-12-01: Use shared verifyTenantScoping helper (fail-closed by default)
     // - Recursive validation catches nested/wrapped/camelCase org_id leaks
     // - requirePresence: true enforced via helper default
     // - DO NOT wrap in try/catch - tenant leaks are security violations
-    if (response.status() === 200 && TEST_ORG_ID) {
-      const body = await response.json();
-      verifyTenantScoping(body, TEST_ORG_ID, '/api/work-orders', 'work order list');
+    if (status === 200) {
+      if (TEST_ORG_ID) {
+        const body = await response.json();
+        verifyTenantScoping(body, TEST_ORG_ID, '/api/work-orders', 'work order list');
+      }
+    } else if (status === 401) {
+      // Expected for unauthenticated requests - no tenant data to validate
+      // Log for visibility but don't fail
+      console.log('ℹ️  Work Orders API returned 401 (unauthenticated) - tenant validation skipped');
     }
     // Note: Missing TEST_ORG_ID warnings are now handled at module-level guard
   });
