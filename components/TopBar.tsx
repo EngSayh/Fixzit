@@ -642,6 +642,10 @@ function TopBarContent() {
           {/* Quick Actions (authenticated only) */}
           {isAuthenticated && !isMarketingPage && <QuickActions />}
 
+          {/* Global language & currency selectors (always visible for e2e checks) */}
+          <LanguageSelector variant="compact" />
+          <CurrencySelector variant="compact" />
+
           {/* Notifications (authenticated only) */}
           {isAuthenticated && !isMarketingPage && (
             <NotificationPopup
@@ -664,9 +668,6 @@ function TopBarContent() {
               t={t}
             />
           )}
-
-          {/* Public language toggle for marketing/unauthenticated views */}
-          {!isAuthenticated && <LanguageSelector variant="compact" />}
 
           {/* User menu or Sign In button */}
           {isAuthenticated ? (

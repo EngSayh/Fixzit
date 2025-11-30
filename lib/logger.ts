@@ -7,6 +7,8 @@
  * - Provides structured logging
  */
 
+import { sanitizeError, sanitizeLogParams } from "@/lib/security/log-sanitizer";
+
 type LogLevel = "info" | "warn" | "error" | "debug";
 
 interface LogContext {
@@ -25,12 +27,18 @@ class Logger {
     return process.env.NODE_ENV === "test";
   }
 
+  private sanitizeContext(context?: LogContext): LogContext | undefined {
+    if (!context) return undefined;
+    return sanitizeLogParams(context as Record<string, unknown>) as LogContext;
+  }
+
   /**
    * Log informational message (development only)
    */
   info(message: string, context?: LogContext): void {
+    const safeContext = this.sanitizeContext(context);
     if (this.isDevelopment && !this.isTest) {
-      console.info(`[INFO] ${message}`, context || "");
+      console.info(`[INFO] ${message}`, safeContext || "");
     }
   }
 
@@ -38,12 +46,13 @@ class Logger {
    * Log warning message
    */
   warn(message: string, context?: LogContext): void {
+    const safeContext = this.sanitizeContext(context);
     if (this.isDevelopment || !this.isTest) {
-      console.warn(`[WARN] ${message}`, context || "");
+      console.warn(`[WARN] ${message}`, safeContext || "");
     }
     // In production, send to monitoring service
     if (!this.isDevelopment && !this.isTest) {
-      this.sendToMonitoring("warn", message, context);
+      this.sendToMonitoring("warn", message, safeContext);
     }
   }
 
@@ -51,6 +60,7 @@ class Logger {
    * Log error message and send to monitoring
    */
   error(message: string, error?: Error | unknown, context?: LogContext): void {
+    const safeContext = this.sanitizeContext(context);
     const errorInfo =
       error instanceof Error
         ? {
@@ -58,15 +68,15 @@ class Logger {
             stack: error.stack,
             name: error.name,
           }
-        : { error };
+        : sanitizeError(error);
 
     if (this.isDevelopment && !this.isTest) {
-      console.error(`[ERROR] ${message}`, errorInfo, context || "");
+      console.error(`[ERROR] ${message}`, errorInfo, safeContext || "");
     }
 
     // Always send errors to monitoring (except in tests)
     if (!this.isTest) {
-      this.sendToMonitoring("error", message, { ...context, ...errorInfo });
+      this.sendToMonitoring("error", message, { ...safeContext, ...errorInfo });
     }
   }
 
@@ -74,8 +84,12 @@ class Logger {
    * Debug logging (development only)
    */
   debug(message: string, data?: unknown): void {
+    const safeData =
+      data && typeof data === "object"
+        ? sanitizeLogParams(data as Record<string, unknown>)
+        : data;
     if (this.isDevelopment && !this.isTest) {
-      console.debug(`[DEBUG] ${message}`, data || "");
+      console.debug(`[DEBUG] ${message}`, safeData || "");
     }
   }
 

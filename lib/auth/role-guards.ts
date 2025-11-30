@@ -36,26 +36,28 @@ export const canManageSubscriptions = buildRoleChecker(
 );
 
 // 🔒 STRICT v4: Finance access limited to Finance Officer + Corporate Admin
-// NOTE: Finance Officer (FINANCE role) is granted view access for daily operations
+// NOTE: Both FINANCE (base role) and FINANCE_OFFICER (sub-role) are granted access
 // Per least-privilege principle, view-only access is appropriate for routine work
 export const canViewInvoices = buildRoleChecker(
   [
     UserRole.SUPER_ADMIN,
     UserRole.CORPORATE_ADMIN,
-    UserRole.FINANCE, // Finance Officer role
+    UserRole.FINANCE, // Finance base role
+    UserRole.FINANCE_OFFICER, // STRICT v4 sub-role
   ],
   ["BILLING_ADMIN", "FINANCE_ADMIN"],
 );
 
 // 🔒 STRICT v4: Finance edit limited to Finance Officer + Corporate Admin
-// SECURITY NOTE: Finance Officer (FINANCE role) can edit but NOT delete invoices
+// SECURITY NOTE: Finance Officer (FINANCE/FINANCE_OFFICER roles) can edit but NOT delete invoices
 // Delete operations require SUPER_ADMIN or CORPORATE_ADMIN approval
 // This guards against accidental/malicious deletion by standard finance staff
 export const canEditInvoices = buildRoleChecker(
   [
     UserRole.SUPER_ADMIN,
     UserRole.CORPORATE_ADMIN,
-    UserRole.FINANCE, // Finance Officer role
+    UserRole.FINANCE, // Finance base role
+    UserRole.FINANCE_OFFICER, // STRICT v4 sub-role
   ],
   ["BILLING_ADMIN", "FINANCE_ADMIN"],
 );
@@ -81,4 +83,96 @@ export const canManageOwnerGroups = buildRoleChecker(
     UserRole.PROPERTY_MANAGER,
   ],
   ["PROPERTY_ADMIN"],
+);
+
+// =============================================================================
+// SEC-004 FIX: HR Role Guards for Payroll Access Control
+// STRICT v4.1: Least-privilege access to sensitive payroll data
+// =============================================================================
+
+/**
+ * 🔒 STRICT v4: Payroll VIEW access - HR, Finance, and Admins
+ * Read-only access to payroll data for reporting and audit purposes
+ * 
+ * COMPLIANCE:
+ * - Saudi Labor Law Article 52: Salary confidentiality
+ * - GDPR Article 6: Lawful basis for processing (legitimate interest)
+ * - ISO 27001 A.9.1.1: Access control policy
+ */
+export const canViewPayroll = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR,              // HR base role
+    UserRole.HR_OFFICER,      // STRICT v4.1 sub-role - view only
+    UserRole.FINANCE,         // Finance base role
+    UserRole.FINANCE_OFFICER, // STRICT v4.1 sub-role - view only
+  ],
+  ["PAYROLL_ADMIN", "HR_ADMIN", "HR_MANAGER"],
+);
+
+/**
+ * 🔒 STRICT v4: Payroll EDIT access - HR and Admins ONLY
+ * Write access restricted to prevent unauthorized salary modifications
+ * 
+ * SECURITY NOTE: Finance Officer can VIEW but NOT EDIT payroll
+ * This separation of duties prevents fraud and ensures audit compliance
+ * 
+ * COMPLIANCE:
+ * - SOX Section 404: Internal controls over financial reporting
+ * - Saudi Labor Law Article 90: Wage protection
+ */
+export const canEditPayroll = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR,              // HR base role can edit
+    // NOTE: HR_OFFICER intentionally excluded - requires manager approval for edits
+    // NOTE: FINANCE roles intentionally excluded - separation of duties
+  ],
+  ["PAYROLL_ADMIN", "HR_MANAGER"],
+);
+
+/**
+ * 🔒 STRICT v4: Payroll DELETE access - Admin-level roles ONLY
+ * Delete operations require highest-level approval
+ * 
+ * SECURITY NOTE: Even HR cannot delete payroll records
+ * This ensures audit trail integrity and regulatory compliance
+ */
+export const canDeletePayroll = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    // NOTE: HR role intentionally excluded - requires admin approval
+  ],
+  [],
+);
+
+/**
+ * 🔒 STRICT v4: Payroll APPROVE access - For finalizing payroll runs
+ * Dual approval: requires both HR and Finance approval
+ * This function checks if user can give HR approval
+ */
+export const canApprovePayrollHR = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.HR,
+  ],
+  ["PAYROLL_ADMIN", "HR_MANAGER"],
+);
+
+/**
+ * 🔒 STRICT v4: Payroll Finance Approval - For budget sign-off
+ * This function checks if user can give Finance approval
+ */
+export const canApprovePayrollFinance = buildRoleChecker(
+  [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER,
+  ],
+  ["FINANCE_ADMIN"],
 );

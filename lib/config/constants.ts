@@ -9,6 +9,7 @@
  * Missing required vars in production will throw errors immediately
  */
 
+import { createHash } from "crypto";
 import { logger } from "@/lib/logger";
 
 type Environment = "development" | "test" | "production";
@@ -99,6 +100,40 @@ const SKIP_CONFIG_VALIDATION =
   getBoolean("SKIP_ENV_VALIDATION") ||
   getBoolean("DISABLE_MONGODB_FOR_BUILD") ||
   IS_NEXT_BUILD;
+const IS_VERCEL_PREVIEW =
+  process.env.VERCEL === "1" && process.env.VERCEL_ENV === "preview";
+const IS_CI = process.env.CI === "true" || process.env.CI === "1";
+const IS_BUILD_COMMAND = process.env.npm_lifecycle_event === "build";
+
+// Automatically provision a deterministic secret for preview/CI/builds so the
+// Next.js build step does not fail when NEXTAUTH_SECRET is intentionally not
+// injected (e.g., Vercel preview deployments). Production runtime still fails
+// fast when the secret is missing.
+const shouldAutoProvisionAuthSecret =
+  IS_NEXT_BUILD ||
+  IS_BUILD_COMMAND ||
+  IS_VERCEL_PREVIEW ||
+  IS_CI ||
+  SKIP_CONFIG_VALIDATION;
+
+if (!process.env.NEXTAUTH_SECRET && shouldAutoProvisionAuthSecret) {
+  const seed =
+    process.env.AUTH_SECRET ||
+    process.env.VERCEL_DEPLOYMENT_ID ||
+    process.env.VERCEL_PROJECT_ID ||
+    process.env.VERCEL_URL ||
+    process.env.VERCEL_BRANCH_URL ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    "fixzit-preview-fallback-secret";
+
+  process.env.NEXTAUTH_SECRET = createHash("sha256")
+    .update(seed)
+    .digest("hex");
+
+  logger.warn(
+    "[Config] NEXTAUTH_SECRET missing; generated a temporary secret for build/preview environments. Configure a real secret for production deployments.",
+  );
+}
 
 /**
  * Get required environment variable (throws if missing in production)

@@ -12,8 +12,13 @@ export default function HtmlAttrs() {
 
   useEffect(() => {
     if (typeof document !== "undefined") {
-      document.documentElement.lang = language;
-      document.documentElement.dir = isRTL ? "rtl" : "ltr";
+      const resolvedLang = language || "en";
+      const resolvedDir = isRTL ? "rtl" : "ltr";
+      // Explicitly set both attributes to avoid null dir reads in tests
+      document.documentElement.setAttribute("lang", resolvedLang);
+      document.documentElement.setAttribute("dir", resolvedDir);
+      document.documentElement.lang = resolvedLang;
+      document.documentElement.dir = resolvedDir;
     }
   }, [language, isRTL]);
 

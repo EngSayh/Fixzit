@@ -31,10 +31,11 @@ const schema = z.object({
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   await connectToDatabase();
   const user = await getSessionUser(req);
+  const { id } = await props.params;
   const { checklistIndex, itemIndex, done } = schema.parse(await req.json());
   interface WorkOrderDoc {
     checklists?: Array<{
@@ -43,7 +44,7 @@ export async function POST(
     save: () => Promise<void>;
   }
   const wo = (await WorkOrder.findOne({
-    _id: params.id,
+    _id: id,
     tenantId: user.tenantId,
   })) as WorkOrderDoc | null;
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);

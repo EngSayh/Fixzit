@@ -47,7 +47,7 @@ const schema = z
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   // Rate limiting
   const clientIp = getClientIP(req);
@@ -56,19 +56,20 @@ export async function POST(
     return rateLimitError();
   }
 
+  const { id } = await props.params;
   const user = await requireAbility(WOAbility.ASSIGN)(req);
   if (user instanceof NextResponse) return user;
   await connectToDatabase();
 
   const body = schema.parse(await req.json());
 
-  const wo = await WorkOrder.findOne({ _id: params.id, orgId: user.orgId });
+  const wo = await WorkOrder.findOne({ _id: id, orgId: user.orgId });
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 
   const now = new Date();
   const nextStatus = wo.status === "SUBMITTED" ? "ASSIGNED" : wo.status;
   const updated = await WorkOrder.findOneAndUpdate(
-    { _id: params.id, orgId: user.orgId },
+    { _id: id, orgId: user.orgId },
     {
       $set: {
         "assignment.assignedTo.userId": body.assigneeUserId ?? null,

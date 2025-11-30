@@ -26,10 +26,11 @@ import { createSecureResponse } from "@/server/security/headers";
  */
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { slug: string } },
+  props: { params: Promise<{ slug: string }> },
 ) {
   await connectToDatabase();
-  const page = await CmsPage.findOne({ slug: params.slug }).lean();
+  const { slug } = await props.params;
+  const page = await CmsPage.findOne({ slug }).lean();
   if (!page) return createSecureResponse({ error: "Not found" }, 404, _req);
   return createSecureResponse(page, 200, _req);
 }
@@ -42,9 +43,10 @@ const patchSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { slug: string } },
+  props: { params: Promise<{ slug: string }> },
 ) {
   await connectToDatabase();
+  const { slug } = await props.params;
   const user = await getSessionUser(req).catch(() => null);
   if (!user || !["SUPER_ADMIN", "CORPORATE_ADMIN"].includes(user.role)) {
     return createSecureResponse({ error: "Forbidden" }, 403, req);
@@ -53,7 +55,7 @@ export async function PATCH(
   const body = await req.json();
   const validated = patchSchema.parse(body);
   const page = await CmsPage.findOneAndUpdate(
-    { slug: params.slug },
+    { slug },
     { $set: validated },
     { new: true },
   );

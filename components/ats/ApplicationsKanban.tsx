@@ -209,10 +209,10 @@ export default function ApplicationsKanban() {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`bg-gray-50 dark:bg-gray-900 min-h-[500px] p-3 rounded-b-lg border-2 ${
+                    className={`bg-muted min-h-[500px] p-3 rounded-b-lg border-2 ${
                       snapshot.isDraggingOver
-                        ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                        : "border-gray-200 dark:border-gray-700"
+                        ? "border-primary bg-primary/10"
+                        : "border-border"
                     } transition-colors`}
                   >
                     <div className="space-y-3">
@@ -231,9 +231,9 @@ export default function ApplicationsKanban() {
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                className={`bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700 cursor-grab active:cursor-grabbing ${
+                                className={`bg-card rounded-lg p-4 shadow-sm border border-border cursor-grab active:cursor-grabbing ${
                                   snapshot.isDragging
-                                    ? "shadow-lg ring-2 ring-blue-400 rotate-2"
+                                    ? "shadow-lg ring-2 ring-primary rotate-2"
                                     : "hover:shadow-md"
                                 } transition-all`}
                                 style={{

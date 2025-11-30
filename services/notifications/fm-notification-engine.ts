@@ -846,14 +846,59 @@ async function sendEmailNotifications(
           "'": "&#039;",
         })[match]!,
     );
+
+  /**
+   * SEC-007 FIX: URL domain allowlist validation to prevent phishing attacks
+   * Only allows URLs from trusted Fixzit domains
+   */
+  const ALLOWED_LINK_DOMAINS = [
+    "fixzit.co",
+    "fixzit.sa",
+    "app.fixzit.co",
+    "app.fixzit.sa",
+    // Development domains (only in non-production)
+    ...(process.env.NODE_ENV !== "production" ? ["localhost"] : []),
+  ];
+
   const sanitizeUrl = (url?: string): string => {
+    if (!url) return "";
+
+    // Block javascript: and data: protocols
     if (
-      !url ||
       url.toLowerCase().startsWith("javascript:") ||
       url.toLowerCase().startsWith("data:")
     )
       return "";
-    return url;
+
+    // SEC-007 FIX: Validate domain is in allowlist
+    try {
+      const parsed = new URL(url);
+      const hostname = parsed.hostname.toLowerCase();
+
+      // Check if hostname matches an allowed domain or is a subdomain of one
+      const isAllowed = ALLOWED_LINK_DOMAINS.some(
+        (domain) =>
+          hostname === domain ||
+          hostname.endsWith(`.${domain}`) ||
+          (domain === "localhost" && hostname === "localhost")
+      );
+
+      if (!isAllowed) {
+        logger.warn("[Notifications] SEC-007: Blocked untrusted email link", {
+          providedUrl: url.slice(0, 200), // Truncate for safety
+          hostname,
+        });
+        return "";
+      }
+
+      return url;
+    } catch {
+      // Invalid URL format
+      logger.warn("[Notifications] SEC-007: Blocked invalid URL format", {
+        providedUrl: url.slice(0, 200),
+      });
+      return "";
+    }
   };
 
   const escapedTitle = escapeHtml(notification.title);

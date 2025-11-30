@@ -1,0 +1,474 @@
+{
+  "metadata": {
+    "generated": "2025-11-25T00:00:00.000Z",
+    "generator": "GitHub Copilot (Claude Opus 4.5 Preview)",
+    "workspace": "Fixzit Enterprise Platform",
+    "version": "1.0.0"
+  },
+  "summary": {
+    "totalIssues": 51,
+    "byPriority": {
+      "P0_CRITICAL": 10,
+      "P1_HIGH": 16,
+      "P2_MEDIUM": 18,
+      "P3_LOW": 7
+    },
+    "byCategory": {
+      "security_rbac_auth": 11,
+      "data_schema_db": 9,
+      "business_logic": 10,
+      "testing_qa": 6,
+      "error_logging": 5,
+      "docs_process": 6,
+      "performance": 4
+    }
+  },
+  "issues": [
+    {
+      "id": "SEC-001",
+      "title": "PII Encryption Bypass via findOneAndUpdate",
+      "category": "security_rbac_auth",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:governance_violation", "compliance:GDPR"],
+      "files": [
+        {
+          "path": "/Fixzit/server/models/User.ts",
+          "lines": "276-320"
+        },
+        {
+          "path": "/Fixzit/server/models/hr.models.ts",
+          "lines": "353-394, 920-988"
+        }
+      ],
+      "rootCause": "Mongoose document middleware (pre('save')) doesn't execute for query middleware operations",
+      "verification": [
+        "pnpm test tests/unit/security/encryption-update-hooks.test.ts",
+        "Manual: Create user, update via findOneAndUpdate, check DB for encrypted value"
+      ],
+      "estimatedEffort": "2-4 hours",
+      "dependencies": []
+    },
+    {
+      "id": "SEC-002",
+      "title": "Aqar Lead/Booking PII Unencrypted",
+      "category": "security_rbac_auth",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:governance_violation", "compliance:GDPR"],
+      "files": [
+        {
+          "path": "/Fixzit/models/aqar/Lead.ts",
+          "lines": "59, 130"
+        },
+        {
+          "path": "/Fixzit/models/aqar/Booking.ts",
+          "lines": "48-50, 125-126"
+        }
+      ],
+      "rootCause": "PII fields (inquirerNationalId, inquirerPhone, guestNationalId, guestPhone) stored without encryption or select:false",
+      "verification": [
+        "pnpm test tests/unit/models/aqar/lead-pii.test.ts",
+        "pnpm test tests/unit/models/aqar/booking-pii.test.ts"
+      ],
+      "estimatedEffort": "3-4 hours",
+      "dependencies": ["SEC-001"]
+    },
+    {
+      "id": "SEC-003",
+      "title": "Tenant Context Global Leakage Risk",
+      "category": "security_rbac_auth",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:governance_violation"],
+      "files": [
+        {
+          "path": "/Fixzit/server/plugins/tenantIsolation.ts",
+          "lines": "17-39"
+        }
+      ],
+      "rootCause": "Mutable currentTenantContext global alongside AsyncLocalStorage risks cross-request leakage",
+      "verification": [
+        "pnpm test tests/integration/tenant-isolation-concurrent.test.ts"
+      ],
+      "estimatedEffort": "2-3 hours",
+      "dependencies": []
+    },
+    {
+      "id": "SEC-004",
+      "title": "Missing HR Role Guards (canViewPayroll, canEditPayroll)",
+      "category": "security_rbac_auth",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:rbac_gap"],
+      "files": [
+        {
+          "path": "/Fixzit/lib/auth/role-guards.ts",
+          "lines": "end of file"
+        }
+      ],
+      "rootCause": "No dedicated role guards for payroll access control",
+      "verification": [
+        "pnpm test tests/unit/auth/role-guards.test.ts",
+        "Manual: Verify HR_MANAGER can access payroll, EMPLOYEE cannot"
+      ],
+      "estimatedEffort": "1-2 hours",
+      "dependencies": []
+    },
+    {
+      "id": "SEC-005",
+      "title": "Audit Trail Blind Spot (Missing orgId)",
+      "category": "error_logging",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:audit_gap"],
+      "files": [
+        {
+          "path": "/Fixzit/lib/middleware/withAudit.ts",
+          "lines": "137-146"
+        }
+      ],
+      "rootCause": "Audit logging skipped entirely when orgId missing instead of logging with sentinel",
+      "verification": [
+        "pnpm test tests/unit/middleware/withAudit.test.ts"
+      ],
+      "estimatedEffort": "1 hour",
+      "dependencies": []
+    },
+    {
+      "id": "DATA-001",
+      "title": "Aqar Models Missing tenantIsolationPlugin",
+      "category": "data_schema_db",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:multi_tenancy_gap"],
+      "files": [
+        {
+          "path": "/Fixzit/models/aqar/Lead.ts",
+          "lines": "schema definition"
+        },
+        {
+          "path": "/Fixzit/models/aqar/Booking.ts",
+          "lines": "schema definition"
+        },
+        {
+          "path": "/Fixzit/models/aqar/Listing.ts",
+          "lines": "schema definition"
+        },
+        {
+          "path": "/Fixzit/models/aqar/Project.ts",
+          "lines": "schema definition"
+        },
+        {
+          "path": "/Fixzit/models/aqar/SavedSearch.ts",
+          "lines": "schema definition"
+        },
+        {
+          "path": "/Fixzit/models/aqar/Favorite.ts",
+          "lines": "schema definition"
+        }
+      ],
+      "rootCause": "Aqar models have orgId but don't use tenantIsolationPlugin for automatic query scoping",
+      "verification": [
+        "grep -r 'tenantIsolationPlugin' models/aqar/",
+        "pnpm test tests/integration/security/tenant-isolation.test.ts"
+      ],
+      "estimatedEffort": "2-3 hours",
+      "dependencies": ["SEC-003"]
+    },
+    {
+      "id": "DATA-002",
+      "title": "PayrollLine baseSalary Not Encrypted",
+      "category": "data_schema_db",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:compliance_violation"],
+      "files": [
+        {
+          "path": "/Fixzit/server/models/hr.models.ts",
+          "lines": "800-850, 920-988"
+        }
+      ],
+      "rootCause": "PayrollLine only encrypts IBAN, not salary components in embedded subdocument",
+      "verification": [
+        "pnpm test tests/unit/models/hr/payroll-encryption.test.ts"
+      ],
+      "estimatedEffort": "2-3 hours",
+      "dependencies": ["SEC-001"]
+    },
+    {
+      "id": "DATA-003",
+      "title": "Booking Derived Fields Bypass on findOneAndUpdate",
+      "category": "business_logic",
+      "severity": "P0_CRITICAL",
+      "labels": ["copilot:ready", "owner:backend", "flag:data_integrity"],
+      "files": [
+        {
+          "path": "/Fixzit/models/aqar/Booking.ts",
+          "lines": "129-159"
+        }
+      ],
+      "rootCause": "Derived fields (nights, totalPrice, platformFee, hostPayout) only calculated in pre('validate'), bypassed by findOneAndUpdate",
+      "verification": [
+        "pnpm test tests/unit/models/aqar/booking-derived-fields.test.ts"
+      ],
+      "estimatedEffort": "2-3 hours",
+      "dependencies": []
+    },
+    {
+      "id": "SEC-006",
+      "title": "IDOR Risk in crud-factory.ts",
+      "category": "security_rbac_auth",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:backend"],
+      "files": [
+        {
+          "path": "/Fixzit/lib/crud-factory.ts",
+          "lines": "429-435"
+        }
+      ],
+      "rootCause": "Query trusts user.orgId without validating against entity's tenant",
+      "verification": [
+        "pnpm test tests/unit/lib/crud-factory.test.ts"
+      ],
+      "estimatedEffort": "2-3 hours",
+      "dependencies": []
+    },
+    {
+      "id": "SEC-007",
+      "title": "Unsafe Email Link Injection",
+      "category": "security_rbac_auth",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:backend"],
+      "files": [
+        {
+          "path": "/Fixzit/server/services/fm-notification-engine.ts",
+          "lines": "878-882"
+        }
+      ],
+      "rootCause": "Email links not validated against domain allowlist before injection",
+      "verification": [
+        "pnpm test tests/unit/services/fm-notification-engine.test.ts"
+      ],
+      "estimatedEffort": "1-2 hours",
+      "dependencies": []
+    },
+    {
+      "id": "SEC-008",
+      "title": "Company Code Enumeration Attack Surface",
+      "category": "security_rbac_auth",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:backend"],
+      "files": [
+        {
+          "path": "/Fixzit/app/(auth)/login/page.tsx",
+          "lines": "282-295"
+        }
+      ],
+      "rootCause": "companyCode in auth flow without rate limiting enables enumeration",
+      "verification": [
+        "Manual: Attempt 20 logins with different company codes, verify rate limit triggers"
+      ],
+      "estimatedEffort": "2-3 hours",
+      "dependencies": []
+    },
+    {
+      "id": "DATA-004",
+      "title": "Incomplete Encryption Coverage Pattern",
+      "category": "data_schema_db",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:backend", "flag:refactor_opportunity"],
+      "files": [
+        {
+          "path": "/Fixzit/server/models/User.ts",
+          "lines": "261-360"
+        },
+        {
+          "path": "/Fixzit/server/models/hr.models.ts",
+          "lines": "320-430"
+        }
+      ],
+      "rootCause": "Encryption logic duplicated across models instead of centralized plugin",
+      "verification": [
+        "pnpm test tests/unit/plugins/encryption-plugin.test.ts"
+      ],
+      "estimatedEffort": "4-6 hours",
+      "dependencies": ["SEC-001", "SEC-002", "DATA-002"]
+    },
+    {
+      "id": "LOG-001",
+      "title": "PII in Client Logs",
+      "category": "error_logging",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:frontend"],
+      "files": [
+        {
+          "path": "/Fixzit/hooks/useAdminData.ts",
+          "lines": "38-45"
+        }
+      ],
+      "rootCause": "Client-side logs expose admin query params containing user IDs",
+      "verification": [
+        "Manual: Check browser console in production for PII exposure"
+      ],
+      "estimatedEffort": "1-2 hours",
+      "dependencies": []
+    },
+    {
+      "id": "LOG-002",
+      "title": "Console.error Exposes Internal Details",
+      "category": "error_logging",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:frontend"],
+      "files": [
+        {
+          "path": "/Fixzit/hooks/useProperties.ts",
+          "lines": "31-41"
+        }
+      ],
+      "rootCause": "console.error logs response status/statusText in production",
+      "verification": [
+        "Manual: Trigger API error and check browser console"
+      ],
+      "estimatedEffort": "1 hour",
+      "dependencies": []
+    },
+    {
+      "id": "BIZ-001",
+      "title": "Lead State Machine Allows Invalid Transitions",
+      "category": "business_logic",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:backend"],
+      "files": [
+        {
+          "path": "/Fixzit/models/aqar/Lead.ts",
+          "lines": "180-220"
+        }
+      ],
+      "rootCause": "State transition methods don't validate allowed transitions consistently",
+      "verification": [
+        "pnpm test tests/unit/models/aqar/lead-state-machine.test.ts"
+      ],
+      "estimatedEffort": "2-3 hours",
+      "dependencies": []
+    },
+    {
+      "id": "TEST-001",
+      "title": "Missing Integration Tests for Encryption",
+      "category": "testing_qa",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:qa"],
+      "files": [
+        {
+          "path": "/Fixzit/tests/integration/security/encryption-lifecycle.test.ts",
+          "lines": "new file"
+        }
+      ],
+      "rootCause": "No tests verify encryption works across save/update/find operations",
+      "verification": [
+        "pnpm test tests/integration/security/encryption-lifecycle.test.ts"
+      ],
+      "estimatedEffort": "4-6 hours",
+      "dependencies": ["SEC-001"]
+    },
+    {
+      "id": "TEST-002",
+      "title": "Missing Tenant Isolation Tests",
+      "category": "testing_qa",
+      "severity": "P1_HIGH",
+      "labels": ["copilot:ready", "owner:qa"],
+      "files": [
+        {
+          "path": "/Fixzit/tests/integration/security/tenant-isolation.test.ts",
+          "lines": "new file"
+        }
+      ],
+      "rootCause": "No tests verify cross-tenant data access is prevented",
+      "verification": [
+        "pnpm test tests/integration/security/tenant-isolation.test.ts"
+      ],
+      "estimatedEffort": "4-6 hours",
+      "dependencies": ["SEC-003", "DATA-001"]
+    },
+    {
+      "id": "DOC-001",
+      "title": "Deprecated Owner Portal Architecture Doc",
+      "category": "docs_process",
+      "severity": "P2_MEDIUM",
+      "labels": ["copilot:ready", "owner:docs"],
+      "files": [
+        {
+          "path": "/Fixzit/docs/owner-portal-architecture.md",
+          "lines": "all"
+        }
+      ],
+      "rootCause": "Still references Prisma despite MongoDB-only stack",
+      "verification": [
+        "Manual: Review updated documentation"
+      ],
+      "estimatedEffort": "1-2 hours",
+      "dependencies": []
+    },
+    {
+      "id": "DOC-002",
+      "title": "Missing RBAC Role Matrix",
+      "category": "docs_process",
+      "severity": "P2_MEDIUM",
+      "labels": ["copilot:ready", "owner:docs"],
+      "files": [
+        {
+          "path": "/Fixzit/docs/security/RBAC_ROLE_MATRIX.md",
+          "lines": "new file"
+        }
+      ],
+      "rootCause": "No central document mapping all 14 roles to permissions",
+      "verification": [
+        "Manual: Review role matrix completeness"
+      ],
+      "estimatedEffort": "2-4 hours",
+      "dependencies": []
+    },
+    {
+      "id": "PERF-001",
+      "title": "Missing Index on aqar_leads.inquirerPhone",
+      "category": "performance",
+      "severity": "P2_MEDIUM",
+      "labels": ["copilot:ready", "owner:backend"],
+      "files": [
+        {
+          "path": "/Fixzit/models/aqar/Lead.ts",
+          "lines": "index definitions"
+        }
+      ],
+      "rootCause": "Common query patterns not indexed",
+      "verification": [
+        "db.aqar_leads.getIndexes()"
+      ],
+      "estimatedEffort": "30 minutes",
+      "dependencies": []
+    }
+  ],
+  "phases": {
+    "phase1_critical_security": {
+      "name": "Critical Security",
+      "duration": "Days 1-2",
+      "issues": ["SEC-001", "SEC-002", "SEC-003", "DATA-001", "DATA-002"]
+    },
+    "phase2_data_integrity": {
+      "name": "Data Integrity",
+      "duration": "Days 3-4",
+      "issues": ["DATA-003", "SEC-004", "SEC-005", "BIZ-001"]
+    },
+    "phase3_hardening": {
+      "name": "Hardening",
+      "duration": "Days 5-7",
+      "issues": ["SEC-006", "SEC-007", "SEC-008", "LOG-001", "LOG-002"]
+    },
+    "phase4_testing_docs": {
+      "name": "Testing & Docs",
+      "duration": "Week 2",
+      "issues": ["TEST-001", "TEST-002", "DOC-001", "DOC-002", "DATA-004", "PERF-001"]
+    }
+  },
+  "verificationCommands": {
+    "lint": "pnpm lint",
+    "typecheck": "pnpm tsc --noEmit",
+    "test": "pnpm test",
+    "build": "pnpm build",
+    "securityTests": "pnpm test tests/integration/security/",
+    "coverage": "pnpm test:coverage --reporter=lcov"
+  }
+}

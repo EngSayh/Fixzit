@@ -13,11 +13,20 @@ import { trackCorsViolation } from "@/lib/security/monitoring";
 export function handleCorsRequest(request: NextRequest): NextResponse | null {
   const origin = request.headers.get("origin");
   const pathname = new URL(request.url).pathname;
+  
+  // Extract orgId from request headers for multi-tenant monitoring.
+  // NOTE: Header-based orgId is used for TELEMETRY ONLY (monitoring/alerting isolation).
+  // This does NOT grant any permissions - it only affects how CORS violations are grouped.
+  // Spoofing would only misclassify the attacker's own events in monitoring dashboards.
+  // For security-critical operations, use session.user.orgId from authenticated context.
+  const orgId = request.headers.get("X-Org-ID") 
+    ?? request.headers.get("X-Tenant-ID")
+    ?? undefined;
 
   // Check if origin is allowed
   if (origin && !isOriginAllowed(origin)) {
-    // Track CORS violation for monitoring
-    trackCorsViolation(origin, pathname);
+    // Track CORS violation for monitoring (with org context)
+    trackCorsViolation(origin, pathname, orgId ?? undefined);
 
     return new NextResponse("Forbidden: Origin not allowed", {
       status: 403,

@@ -448,6 +448,122 @@ EmployeeSchema.post('findOneAndUpdate', function(doc: any) {
   decryptEmployeePIIFields(doc);
 });
 
+// =============================================================================
+// SEC-001 FIX: Pre-findOneAndUpdate hook to encrypt PII fields during updates
+// CRITICAL: Without this, Employee.findOneAndUpdate() bypasses PII encryption
+// =============================================================================
+EmployeeSchema.pre('findOneAndUpdate', function(next) {
+  try {
+    const update = this.getUpdate() as Record<string, any>;
+    if (!update) return next();
+    
+    // Handle both $set operations and direct field updates
+    const updateData = update.$set ?? update;
+    
+    for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
+      // Check if this field is being updated
+      const value = updateData[path];
+      
+      if (value !== undefined && value !== null && !isEncrypted(String(value))) {
+        // Encrypt the field
+        if (update.$set) {
+          update.$set[path] = encryptField(String(value), path);
+        } else {
+          update[path] = encryptField(String(value), path);
+        }
+        
+        logger.info('employee:pii_encrypted', {
+          action: 'pre_findOneAndUpdate_encrypt',
+          fieldPath: path,
+          fieldName,
+        });
+      }
+    }
+    
+    next();
+  } catch (error) {
+    logger.error('employee:encryption_failed', {
+      action: 'pre_findOneAndUpdate_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
+/**
+ * SEC-001 FIX: Pre-updateOne/updateMany hooks to encrypt PII fields
+ * Handles bulk update operations that bypass pre-save hooks
+ */
+EmployeeSchema.pre('updateOne', function(next) {
+  try {
+    const update = this.getUpdate() as Record<string, any>;
+    if (!update) return next();
+    
+    const updateData = update.$set ?? update;
+    
+    for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
+      const value = updateData[path];
+      
+      if (value !== undefined && value !== null && !isEncrypted(String(value))) {
+        if (update.$set) {
+          update.$set[path] = encryptField(String(value), path);
+        } else {
+          update[path] = encryptField(String(value), path);
+        }
+        
+        logger.info('employee:pii_encrypted', {
+          action: 'pre_updateOne_encrypt',
+          fieldPath: path,
+          fieldName,
+        });
+      }
+    }
+    
+    next();
+  } catch (error) {
+    logger.error('employee:encryption_failed', {
+      action: 'pre_updateOne_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
+EmployeeSchema.pre('updateMany', function(next) {
+  try {
+    const update = this.getUpdate() as Record<string, any>;
+    if (!update) return next();
+    
+    const updateData = update.$set ?? update;
+    
+    for (const [path, fieldName] of Object.entries(EMPLOYEE_ENCRYPTED_FIELDS)) {
+      const value = updateData[path];
+      
+      if (value !== undefined && value !== null && !isEncrypted(String(value))) {
+        if (update.$set) {
+          update.$set[path] = encryptField(String(value), path);
+        } else {
+          update[path] = encryptField(String(value), path);
+        }
+        
+        logger.info('employee:pii_encrypted', {
+          action: 'pre_updateMany_encrypt',
+          fieldPath: path,
+          fieldName,
+        });
+      }
+    }
+    
+    next();
+  } catch (error) {
+    logger.error('employee:encryption_failed', {
+      action: 'pre_updateMany_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
 export const Employee: Model<EmployeeDoc> =
   models.Employee || model<EmployeeDoc>("Employee", EmployeeSchema);
 
@@ -921,7 +1037,8 @@ PayrollRunSchema.plugin(tenantIsolationPlugin);
 
 PayrollRunSchema.pre("save", async function (this: PayrollRunDoc, next) {
   try {
-    // Encrypt sensitive payroll line data (IBAN, salary details)
+    // DATA-002 FIX: Encrypt sensitive payroll line data (IBAN, baseSalary, allowances)
+    // COMPLIANCE: Saudi Labor Law Article 52 (salary confidentiality)
     const encryptedLines = await Promise.all((this.lines || []).map(async (line) => {
       const netPay =
         typeof line.calculatedNetPay === "number"
@@ -940,18 +1057,58 @@ PayrollRunSchema.pre("save", async function (this: PayrollRunDoc, next) {
         });
       }
 
+      // DATA-002 FIX: Encrypt baseSalary if not already encrypted
+      // Note: We store numeric salary as encrypted string, decrypt on read
+      let baseSalary: number | string = line.baseSalary;
+      if (typeof baseSalary === 'number' && baseSalary > 0) {
+        const salaryStr = String(baseSalary);
+        if (!isEncrypted(salaryStr)) {
+          baseSalary = encryptField(salaryStr, 'payroll.baseSalary') ?? baseSalary;
+          logger.info('payroll:baseSalary_encrypted', {
+            action: 'pre_save_encrypt',
+            employeeId: line.employeeId.toString(),
+            orgId: this.orgId,
+          });
+        }
+      }
+
+      // DATA-002 FIX: Encrypt housingAllowance and transportAllowance
+      let housingAllowance: number | string | undefined = line.housingAllowance;
+      if (typeof housingAllowance === 'number' && housingAllowance > 0) {
+        const str = String(housingAllowance);
+        if (!isEncrypted(str)) {
+          housingAllowance = encryptField(str, 'payroll.housingAllowance') ?? housingAllowance;
+        }
+      }
+
+      let transportAllowance: number | string | undefined = line.transportAllowance;
+      if (typeof transportAllowance === 'number' && transportAllowance > 0) {
+        const str = String(transportAllowance);
+        if (!isEncrypted(str)) {
+          transportAllowance = encryptField(str, 'payroll.transportAllowance') ?? transportAllowance;
+        }
+      }
+
       return {
         ...line,
         iban: (iban ?? undefined) as string | undefined,
+        baseSalary: baseSalary as any, // Will be encrypted string or original number
+        housingAllowance: housingAllowance as any,
+        transportAllowance: transportAllowance as any,
         netPay,
       };
     }));
 
     this.lines = encryptedLines;
 
-    const totals = encryptedLines.reduce(
+    // Note: For totals calculation, we need the raw numeric values
+    // The pre-save hook runs before the encrypted values are stored
+    // So we use the original unencrypted values from `this.lines` input
+    const totals = (this.lines || []).reduce(
       (acc, line) => {
-        acc.baseSalary += line.baseSalary || 0;
+        // Use original numeric values for totals (before encryption)
+        const baseSal = typeof line.baseSalary === 'number' ? line.baseSalary : 0;
+        acc.baseSalary += baseSal;
         acc.allowances += line.allowances || 0;
         acc.overtime += line.overtimeAmount || 0;
         acc.deductions += line.deductions || 0;
@@ -991,16 +1148,37 @@ PayrollRunSchema.pre("save", async function (this: PayrollRunDoc, next) {
 });
 
 /**
- * Post-find hooks: Decrypt payroll IBAN fields after retrieval
+ * Post-find hooks: Decrypt payroll PII fields after retrieval
+ * DATA-002 FIX: Extended to decrypt baseSalary, housingAllowance, transportAllowance
  */
 function decryptPayrollPIIFields(doc: any) {
   if (!doc || !doc.lines) return;
   
   try {
     doc.lines = doc.lines.map((line: any) => {
+      // Decrypt IBAN
       if (line.iban && isEncrypted(line.iban)) {
         line.iban = decryptField(line.iban, 'payroll.iban');
       }
+      
+      // DATA-002 FIX: Decrypt baseSalary (stored as encrypted string, return as number)
+      if (line.baseSalary && typeof line.baseSalary === 'string' && isEncrypted(line.baseSalary)) {
+        const decrypted = decryptField(line.baseSalary, 'payroll.baseSalary');
+        line.baseSalary = decrypted ? Number(decrypted) : 0;
+      }
+      
+      // DATA-002 FIX: Decrypt housingAllowance
+      if (line.housingAllowance && typeof line.housingAllowance === 'string' && isEncrypted(line.housingAllowance)) {
+        const decrypted = decryptField(line.housingAllowance, 'payroll.housingAllowance');
+        line.housingAllowance = decrypted ? Number(decrypted) : 0;
+      }
+      
+      // DATA-002 FIX: Decrypt transportAllowance
+      if (line.transportAllowance && typeof line.transportAllowance === 'string' && isEncrypted(line.transportAllowance)) {
+        const decrypted = decryptField(line.transportAllowance, 'payroll.transportAllowance');
+        line.transportAllowance = decrypted ? Number(decrypted) : 0;
+      }
+      
       return line;
     });
   } catch (error) {

@@ -19,6 +19,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Types } from 'mongoose';
 
+// Type for work order query filter
+interface WorkOrderFilter {
+  orgId?: string;
+  assignedTo?: string;
+  vendorId?: string;
+  unitId?: { $in: string[] };
+}
+
 // Mock the buildWorkOrderFilter function logic
 function buildWorkOrderFilter(params: {
   orgId: string;
@@ -27,7 +35,7 @@ function buildWorkOrderFilter(params: {
   vendorId?: string;
   units?: string[];
   isSuperAdmin?: boolean;
-}) {
+}): WorkOrderFilter {
   const { orgId, userRole, userId, vendorId, units, isSuperAdmin } = params;
   
   // Super admin bypasses all scoping
@@ -35,7 +43,7 @@ function buildWorkOrderFilter(params: {
     return {};
   }
   
-  const filter: any = { orgId };
+  const filter: WorkOrderFilter = { orgId };
   
   // 🔒 RBAC: Scope by role per STRICT v4 multi-tenant isolation
   if (userRole === 'TECHNICIAN' && userId) {

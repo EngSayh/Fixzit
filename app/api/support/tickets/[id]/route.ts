@@ -32,20 +32,21 @@ const patchSchema = z.object({
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   await connectToDatabase();
-  
+  const { id } = await props.params;
+
   // SECURITY: Add authorization check (was missing per CodeRabbit review)
   const user = await getSessionUser(req);
   
   // Validate MongoDB ObjectId format
-  if (!Types.ObjectId.isValid(params.id)) {
+  if (!Types.ObjectId.isValid(id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
   
   const isAdmin = ["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role);
-  const query: Record<string, unknown> = { _id: params.id };
+  const query: Record<string, unknown> = { _id: id };
   
   // Non-admins can only view their own tickets or tickets in their org
   if (!isAdmin) {
@@ -62,20 +63,21 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   await connectToDatabase();
+  const { id } = await props.params;
   const user = await getSessionUser(req);
   if (!["SUPER_ADMIN", "ADMIN", "CORPORATE_ADMIN"].includes(user.role)) {
     return createSecureResponse({ error: "Forbidden" }, 403, req);
   }
   const data = patchSchema.parse(await req.json());
   // Validate MongoDB ObjectId format
-  if (!Types.ObjectId.isValid(params.id)) {
+  if (!Types.ObjectId.isValid(id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
   const t = await SupportTicket.findOne({
-    _id: params.id,
+    _id: id,
     $or: [
       { orgId: user.orgId },
       // Allow admins to modify any ticket

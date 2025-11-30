@@ -19,6 +19,39 @@ export enum LeadStatus {
   SPAM = "SPAM", // Marked as spam
 }
 
+/**
+ * BIZ-001 FIX: Lead State Machine Transition Rules
+ *
+ * Defines valid state transitions to prevent invalid business logic.
+ * Terminal states (WON, LOST, SPAM) have no outgoing transitions.
+ */
+const LEAD_STATE_TRANSITIONS: Record<LeadStatus, LeadStatus[]> = {
+  [LeadStatus.NEW]: [LeadStatus.CONTACTED, LeadStatus.QUALIFIED, LeadStatus.SPAM],
+  [LeadStatus.CONTACTED]: [LeadStatus.QUALIFIED, LeadStatus.VIEWING, LeadStatus.LOST, LeadStatus.SPAM],
+  [LeadStatus.QUALIFIED]: [LeadStatus.VIEWING, LeadStatus.NEGOTIATING, LeadStatus.LOST],
+  [LeadStatus.VIEWING]: [LeadStatus.NEGOTIATING, LeadStatus.QUALIFIED, LeadStatus.LOST],
+  [LeadStatus.NEGOTIATING]: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.VIEWING],
+  [LeadStatus.WON]: [], // Terminal state
+  [LeadStatus.LOST]: [], // Terminal state
+  [LeadStatus.SPAM]: [], // Terminal state
+};
+
+/**
+ * Validate that a state transition is allowed
+ * @param from - Current status
+ * @param to - Target status
+ * @throws Error if transition is invalid
+ */
+function validateTransition(from: LeadStatus, to: LeadStatus): void {
+  const allowed = LEAD_STATE_TRANSITIONS[from] || [];
+  if (!allowed.includes(to)) {
+    throw new Error(
+      `Invalid lead status transition: ${from} → ${to}. ` +
+        `Allowed transitions from ${from}: ${allowed.length > 0 ? allowed.join(", ") : "none (terminal state)"}`
+    );
+  }
+}
+
 export enum LeadIntent {
   BUY = "BUY",
   RENT = "RENT",
@@ -211,6 +244,8 @@ LeadSchema.methods.assign = async function (
   this.assignedTo = agentId;
   this.assignedAt = new Date();
   if (this.status === LeadStatus.NEW) {
+    // BIZ-001 FIX: Validate transition to CONTACTED
+    validateTransition(this.status, LeadStatus.CONTACTED);
     this.status = LeadStatus.CONTACTED;
   }
   await this.save();
@@ -220,17 +255,8 @@ LeadSchema.methods.scheduleViewing = async function (
   this: ILead,
   dateTime: Date,
 ) {
-  // Don't regress from advanced states
-  const advancedStates = [
-    LeadStatus.NEGOTIATING,
-    LeadStatus.WON,
-    LeadStatus.LOST,
-  ];
-  if (advancedStates.includes(this.status)) {
-    throw new Error(
-      `Cannot schedule viewing for lead in ${this.status} status`,
-    );
-  }
+  // BIZ-001 FIX: Use state machine validation instead of hardcoded list
+  validateTransition(this.status, LeadStatus.VIEWING);
   this.viewingScheduledAt = dateTime;
   this.status = LeadStatus.VIEWING;
   await this.save();
@@ -240,6 +266,8 @@ LeadSchema.methods.completeViewing = async function (this: ILead) {
   if (!this.viewingScheduledAt) {
     throw new Error("No viewing scheduled");
   }
+  // BIZ-001 FIX: Validate transition to NEGOTIATING
+  validateTransition(this.status, LeadStatus.NEGOTIATING);
   this.viewingCompletedAt = new Date();
   this.status = LeadStatus.NEGOTIATING;
   await this.save();
@@ -249,6 +277,8 @@ LeadSchema.methods.markAsWon = async function (
   this: ILead,
   userId: mongoose.Types.ObjectId,
 ) {
+  // BIZ-001 FIX: Validate transition to WON (only from NEGOTIATING)
+  validateTransition(this.status, LeadStatus.WON);
   this.status = LeadStatus.WON;
   this.closedAt = new Date();
   this.closedBy = userId;
@@ -260,6 +290,8 @@ LeadSchema.methods.markAsLost = async function (
   userId: mongoose.Types.ObjectId,
   reason?: string,
 ) {
+  // BIZ-001 FIX: Validate transition to LOST
+  validateTransition(this.status, LeadStatus.LOST);
   this.status = LeadStatus.LOST;
   this.closedAt = new Date();
   this.closedBy = userId;
@@ -268,6 +300,8 @@ LeadSchema.methods.markAsLost = async function (
 };
 
 LeadSchema.methods.markAsSpam = async function (this: ILead) {
+  // BIZ-001 FIX: Validate transition to SPAM (only from early states)
+  validateTransition(this.status, LeadStatus.SPAM);
   this.status = LeadStatus.SPAM;
   await this.save();
 };

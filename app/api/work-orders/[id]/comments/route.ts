@@ -27,11 +27,12 @@ const schema = z.object({ text: z.string().min(1) });
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   const user = await getSessionUser(req);
+  const { id } = await props.params;
   await connectToDatabase();
-  const wo = await WorkOrder.findOne({ _id: params.id, orgId: user.orgId });
+  const wo = await WorkOrder.findOne({ _id: id, orgId: user.orgId });
   const communication = (
     wo as { communication?: { comments?: unknown[] } } | null
   )?.communication;
@@ -40,12 +41,13 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   const user = await getSessionUser(req);
+  const { id } = await props.params;
   await connectToDatabase();
   const { text } = schema.parse(await req.json());
-  const wo = await WorkOrder.findOne({ _id: params.id, orgId: user.orgId });
+  const wo = await WorkOrder.findOne({ _id: id, orgId: user.orgId });
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
   type Comment = {
     commentId?: string;

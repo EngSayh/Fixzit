@@ -371,6 +371,122 @@ UserSchema.post('findOneAndUpdate', function(doc: any) {
   decryptPIIFields(doc);
 });
 
+// =============================================================================
+// SEC-001 FIX: Pre-findOneAndUpdate hook to encrypt PII fields during updates
+// CRITICAL: Without this, User.findOneAndUpdate() bypasses PII encryption
+// =============================================================================
+UserSchema.pre('findOneAndUpdate', function(next) {
+  try {
+    const update = this.getUpdate() as Record<string, any>;
+    if (!update) return next();
+    
+    // Handle both $set operations and direct field updates
+    const updateData = update.$set ?? update;
+    
+    for (const [path, fieldName] of Object.entries(ENCRYPTED_FIELDS)) {
+      // Check if this field is being updated
+      const value = updateData[path];
+      
+      if (value !== undefined && value !== null && !isEncrypted(String(value))) {
+        // Encrypt the field
+        if (update.$set) {
+          update.$set[path] = encryptField(String(value), path);
+        } else {
+          update[path] = encryptField(String(value), path);
+        }
+        
+        logger.info('user:pii_encrypted', {
+          action: 'pre_findOneAndUpdate_encrypt',
+          fieldPath: path,
+          fieldName,
+        });
+      }
+    }
+    
+    next();
+  } catch (error) {
+    logger.error('user:encryption_failed', {
+      action: 'pre_findOneAndUpdate_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
+/**
+ * SEC-001 FIX: Pre-updateOne/updateMany hooks to encrypt PII fields
+ * Handles bulk update operations that bypass pre-save hooks
+ */
+UserSchema.pre('updateOne', function(next) {
+  try {
+    const update = this.getUpdate() as Record<string, any>;
+    if (!update) return next();
+    
+    const updateData = update.$set ?? update;
+    
+    for (const [path, fieldName] of Object.entries(ENCRYPTED_FIELDS)) {
+      const value = updateData[path];
+      
+      if (value !== undefined && value !== null && !isEncrypted(String(value))) {
+        if (update.$set) {
+          update.$set[path] = encryptField(String(value), path);
+        } else {
+          update[path] = encryptField(String(value), path);
+        }
+        
+        logger.info('user:pii_encrypted', {
+          action: 'pre_updateOne_encrypt',
+          fieldPath: path,
+          fieldName,
+        });
+      }
+    }
+    
+    next();
+  } catch (error) {
+    logger.error('user:encryption_failed', {
+      action: 'pre_updateOne_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
+UserSchema.pre('updateMany', function(next) {
+  try {
+    const update = this.getUpdate() as Record<string, any>;
+    if (!update) return next();
+    
+    const updateData = update.$set ?? update;
+    
+    for (const [path, fieldName] of Object.entries(ENCRYPTED_FIELDS)) {
+      const value = updateData[path];
+      
+      if (value !== undefined && value !== null && !isEncrypted(String(value))) {
+        if (update.$set) {
+          update.$set[path] = encryptField(String(value), path);
+        } else {
+          update[path] = encryptField(String(value), path);
+        }
+        
+        logger.info('user:pii_encrypted', {
+          action: 'pre_updateMany_encrypt',
+          fieldPath: path,
+          fieldName,
+        });
+      }
+    }
+    
+    next();
+  } catch (error) {
+    logger.error('user:encryption_failed', {
+      action: 'pre_updateMany_encrypt',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    next(error as Error);
+  }
+});
+
 // Note: findById uses findOne internally, so it's covered by the findOne hook
 
 export type UserDoc = InferSchemaType<typeof UserSchema>;

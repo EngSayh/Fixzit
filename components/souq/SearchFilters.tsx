@@ -173,10 +173,10 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
                     category === currentCategory ? null : category,
                   )
                 }
-                className={`w-full text-start px-3 py-2 rounded-lg hover:bg-gray-50 flex items-center justify-between ${
+                className={`w-full text-start px-3 py-2 rounded-lg hover:bg-muted flex items-center justify-between ${
                   currentCategory === category
-                    ? "bg-blue-50 text-blue-700 font-medium"
-                    : "text-gray-700"
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-foreground"
                 }`}
               >
                 <span className="text-sm">{category}</span>
@@ -223,10 +223,10 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
                       router.push(`/souq/search?${params.toString()}`);
                     }
                   }}
-                  className={`w-full text-start px-3 py-2 rounded-lg hover:bg-gray-50 flex items-center justify-between ${
+                  className={`w-full text-start px-3 py-2 rounded-lg hover:bg-muted flex items-center justify-between ${
                     isActive
-                      ? "bg-blue-50 text-blue-700 font-medium"
-                      : "text-gray-700"
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-foreground"
                   }`}
                 >
                   <span className="text-sm">{range}</span>
@@ -255,10 +255,10 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
                     : rating.toString(),
                 )
               }
-              className={`w-full text-start px-3 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-2 ${
+              className={`w-full text-start px-3 py-2 rounded-lg hover:bg-muted flex items-center gap-2 ${
                 currentMinRating === rating.toString()
-                  ? "bg-blue-50 text-blue-700 font-medium"
-                  : "text-gray-700"
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-foreground"
               }`}
             >
               <div className="flex items-center">

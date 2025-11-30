@@ -10,9 +10,9 @@ function OnboardingContent() {
   const searchParams = useSearchParams();
   const { t, isRTL } = useTranslation();
 
-  const role = searchParams.get("role") as OnboardingRole | null;
-  const caseId = searchParams.get("caseId");
-  const step = searchParams.get("step");
+  const role = searchParams?.get("role") as OnboardingRole | null;
+  const caseId = searchParams?.get("caseId");
+  const step = searchParams?.get("step");
 
   return (
     <div className="container max-w-4xl py-8 px-4">

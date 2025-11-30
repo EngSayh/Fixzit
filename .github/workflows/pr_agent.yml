@@ -1,10 +1,5 @@
 name: PR Agent
 
-# ℹ️ VSCode Warning Suppression:
-# The "Context access might be invalid" warning for OPENAI_API_KEY is EXPECTED.
-# This secret is only required when PR Agent workflow runs on GitHub Actions.
-# See .github/WORKFLOW_SECRETS.md for details.
-
 on:
   pull_request:
     types: [opened, reopened, ready_for_review]
@@ -23,7 +18,5 @@ jobs:
       - name: PR Agent action step
         uses: qodo-ai/pr-agent@main
         env:
-          # ℹ️ OPENAI_KEY: Configure in GitHub Settings > Secrets (production only)
-          # VSCode warning can be safely ignored - only needed when workflow runs
-          OPENAI_KEY: ${{ secrets.OPENAI_KEY || '' }}
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
           GITHUB_TOKEN: ${{ github.token }}

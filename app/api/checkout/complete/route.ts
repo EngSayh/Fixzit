@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   }
 
   await dbConnect();
-  let body: any;
+  let body: { subscriptionId?: string; cartId?: string; payload?: unknown };
   try {
     body = await req.json();
   } catch (_error) {

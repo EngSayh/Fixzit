@@ -1,7 +1,20 @@
 # Owner Portal Architecture - Fixzit Integration Plan
 
-**Status:** Architectural Correction - Prisma + PostgreSQL  
-**Date:** 2025-11-08  
+> ⚠️ **DEPRECATED DOCUMENT - DO NOT USE**
+>
+> This document references Prisma/PostgreSQL which is **NOT** the production stack.
+> Fixzit uses **MongoDB Atlas with Mongoose** exclusively.
+>
+> This document is kept for historical reference only.
+> For current architecture, see `/docs/architecture/` folder.
+>
+> **Status:** ARCHIVED - November 2025
+> **Reason:** Stack drift - document mandates Prisma/PostgreSQL which violates Mongo-only architecture
+
+---
+
+**Status:** ~~Architectural Correction - Prisma + PostgreSQL~~ **DEPRECATED**
+**Date:** 2025-11-08
 **Aligns With:** Phase 1 SDD, Multi-tenant RBAC, Finance/WO/Approvals Integration
 
 ## 🔴 Critical Correction

@@ -41,18 +41,19 @@ interface WorkOrderDoc {
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   const user = await requireAbility(WOAbility.EDIT)(req);
   if (user instanceof NextResponse) return user;
+  const { id } = await props.params;
   await connectToDatabase();
   const data = schema.parse(await req.json());
   // Validate MongoDB ObjectId format
-  if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
+  if (!/^[a-fA-F0-9]{24}$/.test(id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
   const wo = (await WorkOrder.findOne({
-    _id: params.id,
+    _id: id,
     tenantId: user.tenantId,
   })) as WorkOrderDoc | null;
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);

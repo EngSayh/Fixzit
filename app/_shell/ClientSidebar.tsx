@@ -534,7 +534,11 @@ export default function ClientSidebar() {
     : t("sidebar.legacy.theme.dark", "Dark");
 
   return (
-    <aside className="h-screen w-64 border-r bg-[var(--light-surface)] dark:bg-[var(--dark-surface)]">
+    <aside
+      className="h-screen w-64 border-r bg-[var(--light-surface)] dark:bg-[var(--dark-surface)]"
+      role="navigation"
+      aria-label={navHeading}
+    >
       <div className="p-3 flex items-center justify-between border-b">
         <span className="font-semibold text-sm">{navHeading}</span>
         <button

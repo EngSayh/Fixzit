@@ -13,6 +13,7 @@ import {
   EMPLOYEE_ID_REGEX,
   normalizeCompanyCode,
   buildOtpKey,
+  redactIdentifier,
 } from "@/lib/otp-utils";
 import { ACCESS_COOKIE, ACCESS_TTL_SECONDS, REFRESH_COOKIE, REFRESH_TTL_SECONDS } from "@/app/api/auth/refresh/route";
 import jwt from "jsonwebtoken";
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
 
     if (!otpData) {
       logger.warn("[OTP] No OTP found for identifier", {
-        identifier: otpKey,
+        identifier: redactIdentifier(otpKey),
       });
       return NextResponse.json(
         {
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
     // 4. Check if OTP expired
     if (Date.now() > otpData.expiresAt) {
       otpStore.delete(otpKey);
-      logger.warn("[OTP] OTP expired", { identifier: otpKey });
+      logger.warn("[OTP] OTP expired", { identifier: redactIdentifier(otpKey) });
       return NextResponse.json(
         {
           success: false,
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
     // 5. Check attempts limit
     if (otpData.attempts >= MAX_ATTEMPTS) {
       otpStore.delete(otpKey);
-      logger.warn("[OTP] Too many attempts", { identifier: otpKey });
+      logger.warn("[OTP] Too many attempts", { identifier: redactIdentifier(otpKey) });
       return NextResponse.json(
         {
           success: false,
@@ -150,7 +151,7 @@ export async function POST(request: NextRequest) {
       const remainingAttempts = MAX_ATTEMPTS - otpData.attempts;
 
       logger.warn("[OTP] Incorrect OTP", {
-        identifier: otpKey,
+        identifier: redactIdentifier(otpKey),
         attempts: otpData.attempts,
         remaining: remainingAttempts,
       });
@@ -168,7 +169,7 @@ export async function POST(request: NextRequest) {
     // 7. OTP verified successfully
     logger.info("[OTP] OTP verified successfully", {
       userId: otpData.userId,
-      identifier: otpKey,
+      identifier: redactIdentifier(otpKey),
     });
 
     // 8. Clean up OTP from store

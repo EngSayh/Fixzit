@@ -28,21 +28,37 @@ export const UserRole = {
   SUPPORT_AGENT: "SUPPORT_AGENT", // Support + CRM + reports
   OPERATIONS_MANAGER: "OPERATIONS_MANAGER", // Wider scope: WO + Properties + Support
   
-  // Property & External Roles (5)
+  // Property & External Roles (4)
   OWNER: "OWNER",
-  CORPORATE_OWNER: "CORPORATE_OWNER", // Portfolio owner managing multiple properties
   TENANT: "TENANT",
   VENDOR: "VENDOR",
   AUDITOR: "AUDITOR",
+  CUSTOMER: "CUSTOMER",
+  VIEWER: "VIEWER",
+  CORPORATE_OWNER: "CORPORATE_OWNER",
   
-  // Legacy roles deprecated in STRICT v4 - kept for backward compatibility
-  // TODO: Migrate all usages to the 14-role matrix above
-  EMPLOYEE: "EMPLOYEE", // Deprecated - replace with MANAGER or specific function role
-  CUSTOMER: "CUSTOMER", // Deprecated - replace with TENANT or OWNER
-  VIEWER: "VIEWER", // Deprecated - replace with AUDITOR
-  DISPATCHER: "DISPATCHER", // Deprecated - replace with FM_MANAGER or PROPERTY_MANAGER
-  SUPPORT: "SUPPORT", // Deprecated - replace with ADMIN or MANAGER
-  FINANCE_MANAGER: "FINANCE_MANAGER", // Deprecated - replace with FINANCE or FINANCE_OFFICER
+  /**
+   * @deprecated Legacy roles - DO NOT USE for new code
+   * These are kept only for backward compatibility during migration.
+   * Use the STRICT v4 14-role matrix above instead.
+   *
+   * Migration guide:
+   * - EMPLOYEE → Use MANAGER or specific function role (HR, FINANCE, etc.)
+   * - SUPPORT → Use SUPPORT_AGENT sub-role
+   * - DISPATCHER → Use FM_MANAGER or PROPERTY_MANAGER
+   * - FINANCE_MANAGER → Use FINANCE or FINANCE_OFFICER
+   *
+   * These will be removed in a future major release.
+   * @see ROLE_ALIAS_MAP in domain/fm/fm-lite.ts for alias resolution
+   */
+  /** @deprecated Use MANAGER or specific function role instead */
+  EMPLOYEE: "EMPLOYEE",
+  /** @deprecated Use SUPPORT_AGENT sub-role instead */
+  SUPPORT: "SUPPORT",
+  /** @deprecated Use FM_MANAGER or PROPERTY_MANAGER instead */
+  DISPATCHER: "DISPATCHER",
+  /** @deprecated Use FINANCE or FINANCE_OFFICER instead */
+  FINANCE_MANAGER: "FINANCE_MANAGER",
 } as const;
 
 export type UserRoleType = (typeof UserRole)[keyof typeof UserRole];
@@ -85,7 +101,6 @@ export const isSubRole = (role: UserRoleType): boolean =>
 
 export const PROPERTY_ROLES = [
   UserRole.OWNER,
-  UserRole.CORPORATE_OWNER, // Portfolio owner with multiple properties
   UserRole.TENANT,
 ] as const;
 
@@ -95,24 +110,13 @@ export const EXTERNAL_ROLES = [
 ] as const;
 
 /**
- * @deprecated Legacy roles that should NOT be used in new code.
- * These are kept only for backward compatibility during migration.
- * Use ROLE_ALIAS_MAP in domain/fm/fm-lite.ts for mapping to STRICT v4 roles.
- * 
- * Migration guide:
- * - EMPLOYEE → MANAGER or specific function role (HR, FINANCE, etc.)
- * - CUSTOMER → TENANT or OWNER
- * - VIEWER → AUDITOR
- * - DISPATCHER → FM_MANAGER or PROPERTY_MANAGER
- * - SUPPORT → SUPPORT_AGENT
- * - FINANCE_MANAGER → FINANCE or FINANCE_OFFICER
+ * @deprecated Legacy roles that should not be used in new code
+ * Use ROLE_ALIAS_MAP in domain/fm/fm-lite.ts for mapping these to STRICT v4 roles
  */
 export const DEPRECATED_ROLES = [
   UserRole.EMPLOYEE,
-  UserRole.CUSTOMER,
-  UserRole.VIEWER,
-  UserRole.DISPATCHER,
   UserRole.SUPPORT,
+  UserRole.DISPATCHER,
   UserRole.FINANCE_MANAGER,
 ] as const;
 

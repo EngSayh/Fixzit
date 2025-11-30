@@ -134,20 +134,31 @@ export function withAudit<
         const status = res?.status ?? 0;
         const success = status >= 200 && status < 400;
 
-        // SEC-001: Use actual orgId or skip audit for users without org context
-        // Audit logs MUST have valid orgId for tenant isolation
-        const userOrgId = session!.user.orgId as string | undefined;
-        if (!userOrgId || userOrgId.trim() === '') {
-          // Skip audit logging for users without valid org context
-          // This prevents cross-tenant data leakage in audit logs
-          // eslint-disable-next-line no-unsafe-finally -- Early return to skip audit, response already returned
-          // Note: We don't return here to avoid eslint error, just skip the audit log
-        } else {
-          const auditData = {
-            orgId: userOrgId,
+        // ORGID-FIX: Enforce mandatory orgId for multi-tenant isolation
+        // SEC-005 FIX: Log with sentinel value instead of skipping entirely
+        // This ensures audit trail visibility for security monitoring
+        const rawOrgId = session!.user.orgId as string;
+        const orgIdMissing = !rawOrgId || rawOrgId.trim() === "";
+        const orgId = orgIdMissing ? "__MISSING_ORG_ID__" : rawOrgId;
+        
+        if (orgIdMissing) {
+          // SEC-005: Log warning but DON'T skip - security team needs to see this
+          logger.warn("[Audit] SEC-005: orgId missing in request - logging with sentinel", {
+            userId: session!.user.id as string | undefined,
+            userEmail: session!.user.email as string | undefined,
+            action,
+            endpoint: pathname,
+            ipAddress,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        
+        // Always proceed with audit logging
+        const auditData = {
+          orgId,  // ✅ Either validated orgId or sentinel value
           action,
           entityType,
-          entityId,
+          entityId: entityId ?? undefined, // Ensure type compatibility
           userId:
             (session!.user.id as string) ||
             (session!.user.email as string) ||
@@ -166,6 +177,7 @@ export function withAudit<
             os: extractOS(userAgent),
             device: extractDevice(userAgent),
             requestId,
+            orgIdMissing, // SEC-005: Flag for security monitoring dashboards
           },
           metadata: {
             source: finalCfg.source,
@@ -177,10 +189,9 @@ export function withAudit<
             duration: Math.round(duration),
             errorCode: success ? undefined : String(status),
           },
-          };
+        };
 
-          await AuditLogModel.log(auditData);
-        }
+        await AuditLogModel.log(auditData);
       } catch (err) {
         // never break the API
         logger.error("Failed to log audit entry", { error: err });

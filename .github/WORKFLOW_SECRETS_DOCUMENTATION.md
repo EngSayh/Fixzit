@@ -1,8 +1,8 @@
-# GitHub Actions Workflow Secrets - Expected Warnings
+# GitHub Actions Workflow Secrets - Updated Status
 
 ## Overview
 
-This document explains the **expected informational warnings** that appear in GitHub Actions workflows related to secret context access. These warnings are **NOT errors** and do **NOT block builds or deployments**.
+All required secrets are now configured in GitHub/Vercel, and the workflows reference them directly (no fallback placeholders). The “context access might be invalid” hints that VSCode used to surface should no longer appear after reloading. The notes below are kept for historical reference and troubleshooting only.
 
 ---
 

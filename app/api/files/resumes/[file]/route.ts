@@ -32,9 +32,10 @@ const BASE_DIR = path.join(process.cwd(), "private-uploads", "resumes");
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { file: string } },
+  props: { params: Promise<{ file: string }> },
 ) {
   try {
+    const { file } = await props.params;
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
     const allowed = new Set(["SUPER_ADMIN", "ADMIN", "HR"]);
@@ -53,7 +54,7 @@ export async function GET(
       return createSecureResponse({ error: "Missing token" }, 400, req);
     if (Date.now() > exp)
       return createSecureResponse({ error: "Token expired" }, 403, req);
-    const safeName = path.basename(params.file);
+    const safeName = path.basename(file);
     const tenant = String(user.tenantId || "global");
     const expected = generateToken(
       `${tenant}:${safeName}`,
@@ -91,9 +92,10 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { file: string } },
+  props: { params: Promise<{ file: string }> },
 ) {
   try {
+    const { file } = await props.params;
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: "Unauthorized" }, 401, req);
     const allowed = new Set(["SUPER_ADMIN", "ADMIN", "HR"]);
@@ -104,7 +106,7 @@ export async function POST(
       return rateLimitError();
     }
     const expires = Date.now() + 1000 * 60 * 10; // 10 minutes
-    const safeName = path.basename(params.file);
+    const safeName = path.basename(file);
     const tenant = String(user.tenantId || "global");
     const token = generateToken(
       `${tenant}:${safeName}`,

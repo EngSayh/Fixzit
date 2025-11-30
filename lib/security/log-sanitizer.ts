@@ -61,37 +61,6 @@ const SENSITIVE_KEYS = new Set([
   "mfa_secret",
   "otp",
   "pin",
-  // HTTP Headers containing auth data
-  "authorization",
-  "cookie",
-  "setcookie",
-  "set_cookie",
-  "idtoken",
-  "id_token",
-  "sessionid",
-  "session_id",
-  "csrftoken",
-  "csrf_token",
-  "xsrftoken",
-  "xsrf_token",
-  // Additional auth header variants (custom APIs, proxies)
-  "xaccesstoken",
-  "x_access_token",
-  "authtoken",
-  "auth_token",
-  "bearertoken",
-  "bearer_token",
-  // Common HTTP header patterns
-  "xapikey",
-  "x_api_key",
-  "xauthtoken",
-  "x_auth_token",
-  "xforwardedfor",
-  "x_forwarded_for",
-  "xrealip",
-  "x_real_ip",
-  "proxyauthorization",
-  "proxy_authorization",
 
   // Address details
   "address",
@@ -110,30 +79,13 @@ const SENSITIVE_KEYS = new Set([
 
 /**
  * PII value patterns to catch free-form data in non-sensitive keys
- * 
- * SECURITY: Patterns are bounded to prevent ReDoS attacks
- * NOTE: Some patterns may have false positives - they are designed to be
- * applied only when key-based filtering doesn't match, as a second layer
  */
 const BASE_PII_PATTERNS: RegExp[] = [
   /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i, // emails
-  // Phone pattern: tightened for minimal backtracking and fewer false positives
-  // - Only allows space or hyphen as separators (not parentheses which add backtracking)
-  // - Bounded to 8-15 total digits to match international phone formats
-  // - Word boundaries prevent partial matches inside longer strings
-  /\b\+?\d(?:[ -]?\d){7,14}\b/, // phone-like: digit + 7-14 more with optional space/hyphen
-  /^[A-Za-z0-9-_]{10,}\.(?:[A-Za-z0-9-_]{10,})\.(?:[A-Za-z0-9-_]{10,})$/, // JWT tokens (min 10 chars per segment)
+  /\+?\d[\d\s().-]{7,}\d/, // phone-like numeric runs
+  /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/, // JWT tokens
   /\b[A-Z]{2}\d{2}[A-Z0-9]{9,30}\b/, // IBAN-ish
   /\b\d{13,19}\b/, // card-like digit runs
-  // Bearer tokens with prefix (Authorization header values)
-  /\bBearer\s+[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\b/i, // Bearer JWT
-  /\bBearer\s+[A-Za-z0-9._~-]{20,}\b/i, // Bearer opaque tokens
-  // Basic auth header values
-  /\bBasic\s+[A-Za-z0-9+/=]{10,}\b/i, // Basic auth base64
-  // Bare JWT tokens (no Bearer prefix) - three dot-separated base64url segments
-  /\b[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\b/, // Bare JWT
-  // Bare opaque tokens (API keys, session tokens, etc.)
-  /\b[A-Za-z0-9._~-]{32,}\b/, // Bare opaque tokens (min 32 chars)
 ];
 
 /**
@@ -323,53 +275,8 @@ export function sanitizeError(error: unknown): Record<string, unknown> {
   return { message: String(error) };
 }
 
-/**
- * Redact an identifier (email, IP, user ID) for safe logging.
- * Masks the middle portion while preserving enough context for debugging.
- * 
- * @param identifier - The identifier to redact (email, IP, user ID, etc.)
- * @returns Redacted string with visible prefix/suffix for context
- * 
- * @example
- * redactIdentifier("user@example.com") // "us***@***.com"
- * redactIdentifier("192.168.1.100") // "192.***.***.100"
- * redactIdentifier("EMP-12345") // "EMP-***45"
- */
-export function redactIdentifier(identifier: string | null | undefined): string {
-  if (!identifier || typeof identifier !== "string") {
-    return "[UNKNOWN]";
-  }
-
-  const trimmed = identifier.trim();
-  if (trimmed.length === 0) {
-    return "[EMPTY]";
-  }
-
-  // Email pattern: show first 2 chars + domain TLD
-  if (trimmed.includes("@")) {
-    const [local, domain] = trimmed.split("@");
-    const domainParts = domain?.split(".") ?? [];
-    const tld = domainParts[domainParts.length - 1] ?? "***";
-    const localPrefix = local?.slice(0, 2) ?? "**";
-    return `${localPrefix}***@***.${tld}`;
-  }
-
-  // IP address pattern: show first and last octet
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(trimmed)) {
-    const octets = trimmed.split(".");
-    return `${octets[0]}.***.***.${octets[3]}`;
-  }
-
-  // Generic identifier: show first 3 and last 2 chars
-  if (trimmed.length <= 5) {
-    return `${trimmed.slice(0, 1)}***`;
-  }
-  return `${trimmed.slice(0, 3)}***${trimmed.slice(-2)}`;
-}
-
 export default {
   sanitizeLogParams,
   sanitizeValue,
   sanitizeError,
-  redactIdentifier,
 };

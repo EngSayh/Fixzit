@@ -7,6 +7,7 @@
 
 import mongoose, { Schema, Document } from "mongoose";
 import { getModel } from "@/src/types/mongoose-compat";
+import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 
 // Enums
 export enum ListingIntent {
@@ -587,6 +588,12 @@ ListingSchema.index({ "ai.recommendationScore": -1, status: 1 });
 ListingSchema.index({ "pricingInsights.pricePerSqm": 1, city: 1 });
 ListingSchema.index({ "proptech.smartHomeLevel": 1, status: 1 });
 ListingSchema.index({ "offline.cacheKey": 1 }, { sparse: true });
+
+// =============================================================================
+// DATA-001 FIX: Apply tenantIsolationPlugin for multi-tenant data isolation
+// CRITICAL: Prevents cross-tenant data access in Aqar Marketplace listings
+// =============================================================================
+ListingSchema.plugin(tenantIsolationPlugin);
 
 // Virtual text for Atlas Search
 ListingSchema.virtual("searchText").get(function (this: IListing) {

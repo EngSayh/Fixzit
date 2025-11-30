@@ -9,31 +9,28 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, FileText, Plus, RefreshCw } from "lucide-react";
-import { useFmPermissions } from "@/components/fm/useFmPermissions";
-import { Role, SubRole } from "@/lib/rbac/client-roles";
+import { useSession } from "next-auth/react";
+import { useFMPermissions } from "@/hooks/useFMPermissions";
+import { SubmoduleKey } from "@/domain/fm/fm.behavior";
 
 // Lease data derived from property records
 // TODO: Implement dedicated /api/fm/leases endpoint for full lease management
 
 export default function PropertiesLeasesPage() {
   const { t } = useTranslation();
-  const { hasAnyRole } = useFmPermissions();
+  const { status: sessionStatus } = useSession();
+  const fmPermissions = useFMPermissions();
   const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({
     moduleId: "properties",
   });
   const { properties, isLoading, error, refresh } = useProperties("?limit=100");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const canManageLeases = hasAnyRole([
-    Role.SUPER_ADMIN,
-    Role.CORPORATE_ADMIN,
-    Role.MANAGER,
-    Role.FINANCE,
-    Role.FINANCE_MANAGER,
-    SubRole.FINANCE_OFFICER,
-    Role.SUPPORT,
-    SubRole.OPERATIONS_MANAGER,
-  ]);
+  const canAccessLeases = fmPermissions.canAccessModule(
+    SubmoduleKey.PROP_LEASES
+  );
+  const canManageLeases =
+    canAccessLeases && fmPermissions.canManageProperties();
 
   // Derive lease information from properties with occupied units
   const leaseData = useMemo(() => {
@@ -88,6 +85,46 @@ export default function PropertiesLeasesPage() {
 
   if (!hasOrgContext) {
     return guard;
+  }
+
+  if (sessionStatus === "loading") {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="properties" />
+        <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3 animate-pulse">
+          <div className="h-4 w-44 rounded-md bg-muted" />
+          <div className="h-4 w-64 rounded-md bg-muted" />
+          <div className="h-3 w-72 rounded-md bg-muted/60" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!canAccessLeases) {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="properties" />
+        {supportBanner}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">
+              {t(
+                "fm.properties.leases.planGate.title",
+                "Leases require the Standard plan or above"
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-muted-foreground">
+              {t(
+                "fm.properties.leases.planGate.body",
+                "Upgrade your subscription to enable lease tracking, renewals, and rent visibility."
+              )}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

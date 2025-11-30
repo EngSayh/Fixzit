@@ -79,13 +79,16 @@ components/
 ```
 lib/
 ├── db.ts                     ✅ CANONICAL - MongoDB connection singleton
-├── prisma.ts                 ✅ CANONICAL - Prisma client (if used)
+├── mongodb-unified.ts        ✅ CANONICAL - Unified MongoDB/Mongoose client
 └── repositories/             # Data access layer
     ├── base.repository.ts    ✅ CANONICAL - Base repository pattern
     ├── property.repository.ts
     ├── workorder.repository.ts
     └── ...
 ```
+
+> **Note:** Fixzit uses MongoDB Atlas with Mongoose exclusively.
+> Prisma/PostgreSQL references in legacy docs are deprecated.
 
 ### Authentication & Authorization
 

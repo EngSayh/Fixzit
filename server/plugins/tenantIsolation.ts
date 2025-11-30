@@ -13,14 +13,22 @@ export interface TenantContext {
   assumedOrgId?: string; // Org assumed by Super Admin (for audit)
 }
 
-// Request-scoped tenant context (avoids process-global leakage across requests)
+// =============================================================================
+// SEC-003 FIX: Request-scoped tenant context using ONLY AsyncLocalStorage
+// CRITICAL: Removed global `currentTenantContext` to prevent cross-request leakage
+// in serverless environments (Vercel Edge, AWS Lambda, etc.)
+// =============================================================================
 const tenantStorage = new AsyncLocalStorage<TenantContext>();
-let currentTenantContext: TenantContext = {};
 
-const getStoredContext = () => tenantStorage.getStore();
+/**
+ * Get the stored context from AsyncLocalStorage
+ * Returns empty object {} if no context is set (prevents undefined access errors)
+ */
+const getStoredContext = (): TenantContext => tenantStorage.getStore() ?? {};
 
 // Function to set tenant context
 // PHASE-2 FIX: Enhanced with Super Admin audit trail
+// SEC-003 FIX: Uses ONLY AsyncLocalStorage, no global state
 export function setTenantContext(context: TenantContext) {
   // AUDIT: Log Super Admin cross-tenant access
   if (context.isSuperAdmin && context.assumedOrgId && context.userId) {
@@ -35,7 +43,6 @@ export function setTenantContext(context: TenantContext) {
 
   const merged = { ...getTenantContext(), ...context };
   tenantStorage.enterWith(merged);
-  currentTenantContext = merged;
 }
 
 /**
@@ -65,13 +72,14 @@ export function setSuperAdminTenantContext(
 }
 
 // Function to get current tenant context
+// SEC-003 FIX: Uses ONLY AsyncLocalStorage, no global fallback
 export function getTenantContext(): TenantContext {
-  return getStoredContext() ?? currentTenantContext;
+  return getStoredContext();
 }
 
 // Function to clear tenant context
+// SEC-003 FIX: Uses ONLY AsyncLocalStorage
 export function clearTenantContext() {
-  currentTenantContext = {};
   tenantStorage.enterWith({});
 }
 
@@ -289,6 +297,7 @@ export function tenantIsolationPlugin(
 }
 
 // Utility function to execute operations within tenant context
+// SEC-003 FIX: Uses ONLY AsyncLocalStorage.run() for proper request isolation
 export async function withTenantContext<T>(
   orgId: string | Types.ObjectId,
   operation: () => Promise<T>,
@@ -297,16 +306,12 @@ export async function withTenantContext<T>(
   const nextContext = { ...originalContext, orgId };
 
   return tenantStorage.run(nextContext, async () => {
-    currentTenantContext = nextContext;
-    try {
-      return await operation();
-    } finally {
-      currentTenantContext = originalContext;
-    }
+    return await operation();
   });
 }
 
 // Utility function to execute operations without tenant filtering
+// SEC-003 FIX: Uses ONLY AsyncLocalStorage.run() for proper request isolation
 export async function withoutTenantFilter<T>(
   operation: () => Promise<T>,
 ): Promise<T> {
@@ -314,11 +319,6 @@ export async function withoutTenantFilter<T>(
   const nextContext = { ...originalContext, skipTenantFilter: true };
 
   return tenantStorage.run(nextContext, async () => {
-    currentTenantContext = nextContext;
-    try {
-      return await operation();
-    } finally {
-      currentTenantContext = originalContext;
-    }
+    return await operation();
   });
 }

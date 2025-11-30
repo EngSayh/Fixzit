@@ -32,9 +32,10 @@ const patchSchema = z.object({
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await props.params;
     // Handle authentication separately to return 401 instead of 500
     let user;
     try {
@@ -55,9 +56,9 @@ export async function PATCH(
 
     const baseFilter = (() => {
       try {
-        return { _id: new ObjectId(params.id) };
+        return { _id: new ObjectId(id) };
       } catch {
-        return { slug: params.id };
+        return { slug: id };
       }
     })();
     // Scope updates to caller's tenant or global articles

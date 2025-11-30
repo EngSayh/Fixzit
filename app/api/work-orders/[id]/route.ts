@@ -60,10 +60,11 @@ function normalizeAttachments(attachments: AttachmentInput[], userId: string) {
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   const user = await requireAbility("VIEW")(req);
   if (user instanceof NextResponse) return user;
+  const { id } = await props.params;
 
   // Basic rate limit to avoid hot path abuse
   const clientIp = getClientIP(req);
@@ -77,8 +78,8 @@ export async function GET(
   await connectToDatabase();
   const scopedQuery =
     user.isSuperAdmin === true
-      ? { _id: params.id }
-      : { _id: params.id, orgId: user.orgId };
+      ? { _id: id }
+      : { _id: id, orgId: user.orgId };
 
   const wo = await WorkOrder.findOne(scopedQuery).lean();
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
@@ -125,9 +126,10 @@ const patchSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  props: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const workOrderId = params?.id || req.url.split('/').pop() || '';
+  const { id } = await props.params;
+  const workOrderId = id || req.url.split('/').pop() || '';
   const ability: Ability = "EDIT"; // Type-safe: must match Ability union type
   const user = await requireAbility(ability)(req);
   if (user instanceof NextResponse) return user;

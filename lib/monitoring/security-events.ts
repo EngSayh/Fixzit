@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger";
-import { redactIdentifier } from "@/lib/security/log-sanitizer";
+import { redactIdentifier, redactMetadata } from "@/lib/otp-utils";
 import {
   trackAuthFailure,
   trackCorsViolation,
@@ -12,12 +12,6 @@ export type SecurityEventType =
   | "auth_failure"
   | "csrf_violation";
 
-/**
- * Log a security event with PII redaction.
- * 
- * All identifiers (IPs, emails, etc.) are redacted in logs to prevent
- * PII leakage while preserving enough context for debugging.
- */
 export async function logSecurityEvent(event: {
   type: SecurityEventType;
   ip: string;
@@ -25,28 +19,29 @@ export async function logSecurityEvent(event: {
   timestamp: string;
   metadata?: Record<string, unknown>;
 }) {
-  // Redact PII in the event log itself
-  const safeEvent = {
-    ...event,
-    ip: redactIdentifier(event.ip),
-    metadata: event.metadata ? {
-      ...event.metadata,
-      identifier: event.metadata.identifier 
-        ? redactIdentifier(String(event.metadata.identifier))
-        : undefined,
-      origin: event.metadata.origin
-        ? redactIdentifier(String(event.metadata.origin))
-        : undefined,
-    } : undefined,
-  };
+  // Redact IP and metadata for logging (PII protection)
+  const redactedIp = redactIdentifier(event.ip);
+  const redactedMetadata = redactMetadata(event.metadata);
   
-  logger.warn("[SecurityEvent]", safeEvent);
+  // Extract orgId from metadata for multi-tenant isolation.
+  // NOTE: Metadata-based orgId is used for TELEMETRY ONLY (monitoring/alerting isolation).
+  // This does NOT grant any permissions - it only affects how security events are grouped.
+  // Spoofing would only misclassify the attacker's own events in monitoring dashboards.
+  // For security-critical operations, use session.user.orgId from authenticated context.
+  const orgId = typeof event.metadata?.orgId === "string" 
+    ? event.metadata.orgId 
+    : undefined;
+  
+  logger.warn("[SecurityEvent]", { 
+    ...event, 
+    ip: redactedIp,
+    metadata: redactedMetadata,
+  });
   try {
     switch (event.type) {
       case "rate_limit": {
         const endpoint = String(event.metadata?.keyPrefix ?? event.path);
-        // Note: trackRateLimitHit now handles its own redaction internally
-        trackRateLimitHit(event.ip, endpoint);
+        trackRateLimitHit(event.ip, endpoint, orgId);
         break;
       }
       case "cors_block": {
@@ -54,8 +49,7 @@ export async function logSecurityEvent(event: {
           typeof event.metadata?.origin === "string"
             ? (event.metadata.origin as string)
             : event.path;
-        // Note: trackCorsViolation now handles its own redaction internally
-        trackCorsViolation(origin, event.path);
+        trackCorsViolation(origin, event.path, orgId);
         break;
       }
       case "auth_failure": {
@@ -67,8 +61,7 @@ export async function logSecurityEvent(event: {
           typeof event.metadata?.reason === "string"
             ? (event.metadata.reason as string)
             : "unknown";
-        // Note: trackAuthFailure now handles its own redaction internally
-        trackAuthFailure(identifier, reason);
+        trackAuthFailure(identifier, reason, orgId);
         break;
       }
       case "csrf_violation": {
@@ -76,7 +69,7 @@ export async function logSecurityEvent(event: {
           typeof event.metadata?.reason === "string"
             ? (event.metadata.reason as string)
             : "csrf_violation";
-        trackAuthFailure(event.ip, reason);
+        trackAuthFailure(event.ip, reason, orgId);
         break;
       }
     }

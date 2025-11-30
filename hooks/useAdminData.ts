@@ -18,6 +18,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi, type OrgSettings } from "@/lib/api/admin";
 import { logger } from "@/lib/logger";
+import { sanitizeLogParams } from "@/lib/security/log-sanitizer";
 
 // Query keys for cache management
 export const adminQueryKeys = {
@@ -37,7 +38,8 @@ export function useUsers(params?: { limit?: number; search?: string }) {
   return useQuery({
     queryKey: adminQueryKeys.users(params),
     queryFn: async () => {
-      logger.info("Fetching users", { params });
+      // LOG-001 FIX: Sanitize params to prevent PII leakage in client logs
+      logger.info("Fetching users", { params: params ? sanitizeLogParams(params as Record<string, unknown>) : undefined });
       const response = await adminApi.listUsers(params);
       return response.data;
     },
@@ -52,7 +54,8 @@ export function useRoles(params?: { limit?: number }) {
   return useQuery({
     queryKey: adminQueryKeys.roles(params),
     queryFn: async () => {
-      logger.info("Fetching roles", { params });
+      // LOG-001 FIX: Sanitize params
+      logger.info("Fetching roles", { params: params ? sanitizeLogParams(params as Record<string, unknown>) : undefined });
       const response = await adminApi.listRoles(params);
       return response.data;
     },
@@ -67,7 +70,8 @@ export function useAuditLogs(params?: { limit?: number }) {
   return useQuery({
     queryKey: adminQueryKeys.auditLogs(params),
     queryFn: async () => {
-      logger.info("Fetching audit logs", { params });
+      // LOG-001 FIX: Sanitize params
+      logger.info("Fetching audit logs", { params: params ? sanitizeLogParams(params as Record<string, unknown>) : undefined });
       const response = await adminApi.listAuditLogs(params);
       return response.data;
     },
@@ -104,7 +108,8 @@ export function useCreateUser() {
       orgId: string;
       subRole?: string;
     }) => {
-      logger.info("Creating user", { email: data.email, role: data.role });
+      // LOG-001 FIX: Sanitize data to prevent PII leakage (redacts email)
+      logger.info("Creating user", { data: sanitizeLogParams(data as Record<string, unknown>) });
       return await adminApi.createUser(data);
     },
     onSuccess: (newUser) => {
