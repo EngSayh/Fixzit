@@ -7,10 +7,13 @@
  * - Conditional validation (sub-role required for TEAM_MEMBER)
  * - Email format validation
  * - Integration with react-hook-form
+ * 
+ * CRITICAL: Import from fm-lite.ts (client-safe) NOT fm.behavior.ts
+ * fm.behavior.ts contains Mongoose schemas that will leak into client bundles
  */
 
 import { z } from "zod";
-import { SubRole } from "@/domain/fm/fm.behavior";
+import { SubRole } from "@/domain/fm/fm-lite";
 
 /**
  * User form validation schema
