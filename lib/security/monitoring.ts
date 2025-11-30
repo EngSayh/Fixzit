@@ -4,6 +4,7 @@
  * 
  * SECURITY: All identifiers are redacted before logging/alerting to prevent PII leakage.
  * Verbose logging is gated to threshold events only to reduce log noise.
+ * Webhook payloads use hashed keys for correlation without exposing raw identifiers.
  */
 
 import { logger } from "@/lib/logger";
