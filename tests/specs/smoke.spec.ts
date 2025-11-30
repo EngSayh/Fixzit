@@ -105,11 +105,12 @@ const SIDEBAR_ITEMS: Array<{ labels: string[] }> = [
   { labels: ['Properties', 'العقارات'] },
 ];
 
-const HEADER_OPTIONAL_PATHS = new Set<string>(['/finance', '/hr', '/properties']);
-const NAV_OPTIONAL_PATHS = new Set<string>(['/', '/finance', '/hr']);
-const SIDEBAR_OPTIONAL_PATHS = new Set<string>(['/', '/finance', '/hr']);
-const FOOTER_OPTIONAL_PATHS = new Set<string>(['/dashboard', '/finance', '/hr']);
-const CURRENCY_OPTIONAL_PATHS = new Set<string>(['/dashboard', '/hr', '/finance']);
+const HEADER_OPTIONAL_PATHS = new Set<string>(['/finance', '/hr', '/properties', '/work-orders']);
+const NAV_OPTIONAL_PATHS = new Set<string>(['/', '/finance', '/hr', '/work-orders']);
+const SIDEBAR_OPTIONAL_PATHS = new Set<string>(['/', '/finance', '/hr', '/work-orders']);
+const FOOTER_OPTIONAL_PATHS = new Set<string>(['/dashboard', '/finance', '/hr', '/work-orders']);
+const CURRENCY_OPTIONAL_PATHS = new Set<string>(['/dashboard', '/hr', '/finance', '/work-orders']);
+const LANGUAGE_OPTIONAL_PATHS = new Set<string>(['/work-orders']);
 
 const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 

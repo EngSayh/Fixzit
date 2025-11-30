@@ -26,6 +26,7 @@ try {
 // MongoDB-only configuration
 export default defineConfig({
   testDir: './',
+  globalSetup: './tests/setup-auth.ts',
   // Restrict to Playwright suites only; avoid pulling in Vitest unit specs that also use *.spec.ts
   testMatch: [
     'tests/e2e/**/*.spec.ts',
@@ -67,6 +68,7 @@ export default defineConfig({
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: 'http://localhost:3000',
+    storageState: 'tests/state/superadmin.json',
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
     /* Screenshot on failure */

@@ -24,6 +24,14 @@ function createBuildDisabledError(): Error & { code: string } {
 }
 
 export async function connectToDatabase(): Promise<typeof mongoose> {
+  // Offline/CI shortcut: avoid actual MongoDB connection attempts
+  if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
+    logger.warn(
+      "[MongoDB] Skipping connection (ALLOW_OFFLINE_MONGODB=true) - returning mock mongoose handle",
+    );
+    return mongoose;
+  }
+
   if (disableMongoForBuild) {
     throw createBuildDisabledError();
   }

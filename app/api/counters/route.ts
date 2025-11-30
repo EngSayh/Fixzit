@@ -14,6 +14,11 @@ import { logger } from "@/lib/logger";
  */
 export async function GET() {
   try {
+    // Offline/CI mode: avoid DB lookups to prevent 500s
+    if (process.env.ALLOW_OFFLINE_MONGODB === "true") {
+      return NextResponse.json({}, { status: 200 });
+    }
+
     const session = await auth();
     if (!session?.user) {
       // Guest: return empty counters to avoid 401 noise on public/unauth pages

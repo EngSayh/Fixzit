@@ -17,12 +17,7 @@ test.describe("Work Orders - Authenticated User", () => {
 
     // Check if redirected to login or page loads
     await page.waitForLoadState("networkidle");
-
-    const url = page.url();
-    if (url.includes("/login")) {
-      // Not authenticated - skip rest of test
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login");
 
     // Page should have work orders content
     await expect(page.locator("h1, h2").first()).toBeVisible();
@@ -32,9 +27,7 @@ test.describe("Work Orders - Authenticated User", () => {
     await page.goto("/work-orders");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login");
 
     // Look for create button
     const createButton = page.locator(
@@ -53,9 +46,7 @@ test.describe("Work Orders - Authenticated User", () => {
     await page.goto("/work-orders");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login");
 
     // Check for filter/search inputs
     const searchInput = page.locator(
@@ -72,9 +63,7 @@ test.describe("Work Orders - Authenticated User", () => {
     await page.goto("/work-orders");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login");
 
     // Look for status indicators or filters
     const statusElements = await page
@@ -89,9 +78,7 @@ test.describe("Work Orders - SLA Management", () => {
     await page.goto("/work-orders/sla-watchlist");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login");
 
     // Page should load
     await expect(page.locator("body")).toBeVisible();
@@ -101,9 +88,7 @@ test.describe("Work Orders - SLA Management", () => {
     await page.goto("/work-orders/pm");
     await page.waitForLoadState("networkidle");
 
-    if (page.url().includes("/login")) {
-      test.skip();
-    }
+    expect(page.url()).not.toContain("/login");
 
     // Page should load
     await expect(page.locator("body")).toBeVisible();

@@ -249,6 +249,8 @@ export async function middleware(request: NextRequest) {
   const method = request.method;
   const isApiRequest = pathname.startsWith('/api');
   const isPlaywright = process.env.PLAYWRIGHT_TESTS === 'true';
+  const stubPagesForPlaywright =
+    process.env.PLAYWRIGHT_STUB_PAGES === 'true';
   const clientIp = getClientIP(request) || 'unknown';
 
   // Lightweight rate limit specifically for credential callback to satisfy abuse protection and tests
@@ -267,7 +269,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Playwright stub pages to avoid runtime client errors during E2E smoke checks
-  if (isPlaywright && !isApiRequest) {
+  // Disabled by default so full layouts render in E2E runs; opt-in with PLAYWRIGHT_STUB_PAGES=true.
+  if (isPlaywright && stubPagesForPlaywright && !isApiRequest) {
     const modules = [
       "Dashboard",
       "Work Orders",

@@ -46,7 +46,9 @@ const PLAN_ALIAS_MAP: Record<string, Plan> = {
   ENTERPRISE_GROWTH: Plan.ENTERPRISE,
 };
 
-const DEFAULT_PLAN = Plan.STANDARD;
+// SEC-003 FIX: Use STARTER as default (least privilege principle)
+// Previously Plan.STANDARD granted features the user may not have paid for
+const DEFAULT_PLAN = Plan.STARTER;
 
 const normalizePlan = (plan?: string | null): Plan => {
   if (!plan) return DEFAULT_PLAN;
@@ -56,8 +58,20 @@ const normalizePlan = (plan?: string | null): Plan => {
   );
 };
 
-const hasModuleAccess = (role: Role, module?: ModuleKey): boolean => {
+const hasModuleAccess = (role: Role, module?: ModuleKey, subRole?: SubRole): boolean => {
   if (!module) return true;
+  
+  // SEC-001 FIX: TEAM_MEMBER requires sub-role for Finance/HR modules
+  // STRICT v4.1: Without sub-role, TEAM_MEMBER cannot access specialized modules
+  if (role === Role.TEAM_MEMBER) {
+    if (module === ModuleKey.FINANCE && subRole !== SubRole.FINANCE_OFFICER) {
+      return false;
+    }
+    if (module === ModuleKey.HR && subRole !== SubRole.HR_OFFICER) {
+      return false;
+    }
+  }
+  
   return Boolean(ROLE_MODULE_ACCESS[role]?.[module]);
 };
 
@@ -95,6 +109,14 @@ export async function requireFmPermission(
       inferSubRoleFromRole(rawRole);
     const fmRole = normalizeRole(rawRole);
 
+    // MT-ORG GUARD: Require tenant/org context
+    if (!sessionUser.orgId || String(sessionUser.orgId).trim() === "") {
+      return FMErrors.unauthorized(
+        "Organization context is required for FM permissions",
+        errorContext,
+      );
+    }
+
     if (!fmRole) {
       return FMErrors.forbidden(
         "Role is not authorized for FM module",
@@ -105,7 +127,8 @@ export async function requireFmPermission(
     const plan = normalizePlan(sessionUser.subscriptionPlan);
 
     if (!sessionUser.isSuperAdmin) {
-      if (!hasModuleAccess(fmRole, options.module)) {
+      // SEC-001 FIX: Pass subRole to hasModuleAccess for TEAM_MEMBER sub-role enforcement
+      if (!hasModuleAccess(fmRole, options.module, fmSubRole)) {
         return FMErrors.forbidden("Module access denied", errorContext);
       }
 

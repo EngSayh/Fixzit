@@ -155,14 +155,29 @@ export function createCrudHandlers<T = unknown>(
       return rateLimitError();
     }
 
+    // Parse query parameters early (used for offline short-circuit)
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const limit = Math.min(100, Number(searchParams.get("limit")) || 20);
+    const query = searchParams.get("q") || searchParams.get("search") || "";
+
+    // OFFLINE MODE: Avoid MongoDB entirely to prevent 500s in CI/offline runs
+    if (process.env.ALLOW_OFFLINE_MONGODB === "true") {
+      return createSecureResponse(
+        {
+          items: [],
+          page,
+          limit,
+          total: 0,
+          pages: 0,
+        },
+        200,
+        req,
+      );
+    }
+
     try {
       await connectToDatabase();
-
-      // Parse query parameters
-      const { searchParams } = new URL(req.url);
-      const page = Math.max(1, Number(searchParams.get("page")) || 1);
-      const limit = Math.min(100, Number(searchParams.get("limit")) || 20);
-      const query = searchParams.get("q") || searchParams.get("search") || "";
 
       // Build base filter
       const match: Record<string, unknown> = buildFilter
@@ -288,6 +303,19 @@ export function createCrudHandlers<T = unknown>(
     );
     if (!rl.allowed) {
       return rateLimitError();
+    }
+
+    // OFFLINE MODE: Reject mutations gracefully to avoid 500s in CI/offline runs
+    if (process.env.ALLOW_OFFLINE_MONGODB === "true") {
+      return createSecureResponse(
+        {
+          error: "ServiceUnavailable",
+          message:
+            "Data mutations are disabled in ALLOW_OFFLINE_MONGODB mode. Provide MongoDB or disable offline mode.",
+        },
+        503,
+        req,
+      );
     }
 
     try {
