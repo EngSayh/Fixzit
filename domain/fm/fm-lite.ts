@@ -349,6 +349,7 @@ export const ROLE_MODULES: Partial<Record<Role | SubRole, ModuleKey[]>> = {
     ModuleKey.DASHBOARD,
     ModuleKey.WORK_ORDERS,
     ModuleKey.PROPERTIES,
+    ModuleKey.SUPPORT,
     ModuleKey.REPORTS,
   ],
   // Technician - field work focused
@@ -368,7 +369,13 @@ export const ROLE_MODULES: Partial<Record<Role | SubRole, ModuleKey[]>> = {
     ModuleKey.REPORTS,
   ],
   // Vendor - marketplace focused
-  [Role.VENDOR]: [ModuleKey.DASHBOARD, ModuleKey.MARKETPLACE, ModuleKey.SUPPORT],
+  [Role.VENDOR]: [
+    ModuleKey.DASHBOARD,
+    ModuleKey.WORK_ORDERS,
+    ModuleKey.MARKETPLACE,
+    ModuleKey.SUPPORT,
+    ModuleKey.REPORTS,
+  ],
   // Guest - read-only
   [Role.GUEST]: [ModuleKey.DASHBOARD],
   // Sub-roles grant additional module access

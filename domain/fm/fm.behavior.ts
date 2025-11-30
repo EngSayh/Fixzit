@@ -255,8 +255,8 @@ export const PLAN_GATES: Record<
     MARKETPLACE_CATALOG: false,
     MARKETPLACE_REQUESTS: false,
     MARKETPLACE_BIDS: false,
-    // Support - KB only
-    SUPPORT_TICKETS: false,
+    // Support - Basic (aligned with fm.types.ts)
+    SUPPORT_TICKETS: true,
     SUPPORT_KB: true,
     SUPPORT_CHAT: false,
     SUPPORT_SLA: false,
@@ -1052,6 +1052,31 @@ export const SUB_ROLE_ACTIONS: Record<SubRole, ActionsBySubmodule> = {
   },
 };
 
+/**
+ * STRICT v4.1: Submodules that require specific sub-roles for TEAM_MEMBER access.
+ * TEAM_MEMBER without the required sub-role cannot access these specialized domains.
+ */
+export const SUBMODULE_REQUIRED_SUBROLE: Partial<Record<SubmoduleKey, SubRole[]>> = {
+  // Finance requires FINANCE_OFFICER
+  FINANCE_INVOICES: [SubRole.FINANCE_OFFICER],
+  FINANCE_EXPENSES: [SubRole.FINANCE_OFFICER],
+  FINANCE_BUDGETS: [SubRole.FINANCE_OFFICER],
+  REPORTS_FINANCE: [SubRole.FINANCE_OFFICER],
+  // HR requires HR_OFFICER
+  HR_EMPLOYEE_DIRECTORY: [SubRole.HR_OFFICER],
+  HR_ATTENDANCE: [SubRole.HR_OFFICER],
+  HR_PAYROLL: [SubRole.HR_OFFICER],
+  HR_RECRUITMENT: [SubRole.HR_OFFICER],
+  HR_TRAINING: [SubRole.HR_OFFICER],
+  HR_PERFORMANCE: [SubRole.HR_OFFICER],
+  // Support requires SUPPORT_AGENT (for advanced actions)
+  SUPPORT_SLA: [SubRole.SUPPORT_AGENT],
+  // Operations requires OPERATIONS_MANAGER
+  MARKETPLACE_VENDORS: [SubRole.OPERATIONS_MANAGER],
+  MARKETPLACE_REQUESTS: [SubRole.OPERATIONS_MANAGER],
+  MARKETPLACE_BIDS: [SubRole.OPERATIONS_MANAGER],
+};
+
 /* =========================
  * 5) AI Agent Governance (STRICT v4.1)
  * ========================= */
@@ -1234,40 +1259,36 @@ export function computeAllowedModules(
     }
   }
 
-  // STRICT v4.1: Override for Team Member sub-roles
+  // STRICT v4.1: Merge sub-role modules with base TEAM_MEMBER modules
   if (role === Role.TEAM_MEMBER && subRole) {
+    const subRoleModules: ModuleKey[] = [];
     switch (subRole) {
       case SubRole.FINANCE_OFFICER:
-        // Dashboard, Finance, Reports only
-        return [ModuleKey.DASHBOARD, ModuleKey.FINANCE, ModuleKey.REPORTS];
+        // Add Finance module to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.FINANCE);
+        break;
 
       case SubRole.HR_OFFICER:
-        // Dashboard, HR, Reports only (+ PII access via separate check)
-        return [ModuleKey.DASHBOARD, ModuleKey.HR, ModuleKey.REPORTS];
+        // Add HR module to base TEAM_MEMBER modules (+ PII access via separate check)
+        subRoleModules.push(ModuleKey.HR);
+        break;
 
       case SubRole.SUPPORT_AGENT:
-        // Dashboard, Support, CRM, Reports
-        return [
-          ModuleKey.DASHBOARD,
-          ModuleKey.SUPPORT,
-          ModuleKey.CRM,
-          ModuleKey.REPORTS,
-        ];
+        // Add Support module to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.SUPPORT);
+        break;
 
       case SubRole.OPERATIONS_MANAGER:
-        // Dashboard, Work Orders, Properties, Support, Reports (wider scope)
-        return [
-          ModuleKey.DASHBOARD,
-          ModuleKey.WORK_ORDERS,
-          ModuleKey.PROPERTIES,
-          ModuleKey.SUPPORT,
-          ModuleKey.REPORTS,
-        ];
+        // Add Work Orders and Properties to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.WORK_ORDERS, ModuleKey.PROPERTIES);
+        break;
 
       default:
         // Base Team Member access
         break;
     }
+    // Merge base + sub-role modules (union)
+    return [...new Set([...allowed, ...subRoleModules])];
   }
 
   return allowed;
@@ -1379,9 +1400,29 @@ export function can(
   // 1) Plan gate
   if (!PLAN_GATES[ctx.plan]?.[submodule as SubmoduleKey]) return false;
 
-  // 2) Role action allow-list
-  const allowed = ROLE_ACTIONS[ctx.role]?.[submodule as SubmoduleKey];
-  if (!allowed?.includes(action)) return false;
+  // 2) STRICT v4.1: Sub-role enforcement for TEAM_MEMBER
+  if (ctx.role === Role.TEAM_MEMBER) {
+    // Check sub-role actions first (extends base TEAM_MEMBER permissions)
+    if (ctx.subRole && SUB_ROLE_ACTIONS[ctx.subRole]?.[submodule as SubmoduleKey]?.includes(action)) {
+      // Sub-role grants this action - continue to scope checks below
+    } else {
+      // Check if this submodule requires a specific sub-role for TEAM_MEMBER access
+      const requiredSubRoles = SUBMODULE_REQUIRED_SUBROLE[submodule as SubmoduleKey];
+      if (requiredSubRoles && requiredSubRoles.length > 0) {
+        // Submodule requires a sub-role that the user doesn't have
+        if (!ctx.subRole || !requiredSubRoles.includes(ctx.subRole)) {
+          return false;
+        }
+      }
+      // Fall back to base TEAM_MEMBER permissions
+      const baseAllowed = ROLE_ACTIONS[ctx.role]?.[submodule as SubmoduleKey];
+      if (!baseAllowed?.includes(action)) return false;
+    }
+  } else {
+    // 2b) Role action allow-list (non-TEAM_MEMBER roles)
+    const allowed = ROLE_ACTIONS[ctx.role]?.[submodule as SubmoduleKey];
+    if (!allowed?.includes(action)) return false;
+  }
 
   // 3) Ownership / scope checks (row-level security)
   // Super Admin bypasses org checks (cross-org access)
@@ -1677,7 +1718,12 @@ const UserSchema = new Schema(
     name: String,
     email: { type: String, index: true },
     role: { type: String, enum: Object.values(Role), index: true },
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );
@@ -1688,7 +1734,12 @@ const PropertySchema = new Schema(
     address: String,
     owner_user_id: { type: Schema.Types.ObjectId, ref: "User" },
     deputy_user_id: { type: Schema.Types.ObjectId, ref: "User" },
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );
@@ -1733,7 +1784,12 @@ const WorkOrderSchema = new Schema(
     property_id: { type: Schema.Types.ObjectId, ref: "Property", index: true },
     created_by_user_id: { type: Schema.Types.ObjectId, ref: "User" },
     technician_user_id: { type: Schema.Types.ObjectId, ref: "User" },
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
     chargeable: Boolean,
     estimated_cost: Number,
     actual_cost: Number,
@@ -1746,7 +1802,12 @@ const AttachmentSchema = new Schema(
     work_order_id: { type: Schema.Types.ObjectId, ref: "WorkOrder", index: true },
     file_url: String,
     role: { type: String, enum: ["BEFORE", "DURING", "AFTER", "QUOTE"] },
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );
@@ -1757,7 +1818,12 @@ const QuotationSchema = new Schema(
     amount: Number,
     status: { type: String, enum: ["PENDING", "APPROVED", "REJECTED"] },
     approved_by_user_id: { type: Schema.Types.ObjectId, ref: "User" },
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
     line_items: [
       {
         description: String,
@@ -1779,7 +1845,12 @@ const ApprovalSchema = new Schema(
       enum: ["APPROVED", "REJECTED", "CHANGES_REQUESTED"],
     },
     comments: String,
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );
@@ -1794,7 +1865,12 @@ const FinancialTxnSchema = new Schema(
     description: String,
     property_id: { type: Schema.Types.ObjectId, ref: "Property", index: true },
     work_order_id: { type: Schema.Types.ObjectId, ref: "WorkOrder", index: true },
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
     status: { type: String, enum: ["OPEN", "PAID", "VOID"] },
   },
   { timestamps: true },
@@ -1811,7 +1887,12 @@ const PMPlanSchema = new Schema(
     checklist: [String],
     next_run_at: Date,
     responsible_team: [String],
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );
@@ -1824,7 +1905,12 @@ const InspectionSchema = new Schema(
     checklist: [{ item: String, severity: String, ok: Boolean }],
     assignee_user_id: { type: Schema.Types.ObjectId, ref: "User" },
     signoff: { by: { type: Schema.Types.ObjectId, ref: "User" }, at: Date },
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );
@@ -1838,7 +1924,12 @@ const DocumentSchema = new Schema(
     expiry: Date,
     tags: [String],
     linked: [{ entity: String, id: Schema.Types.ObjectId }],
-    org_id: { type: Schema.Types.ObjectId, ref: "Organization", index: true },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      index: true,
+      required: true,
+    },
   },
   { timestamps: true },
 );

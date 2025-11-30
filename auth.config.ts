@@ -45,7 +45,9 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID;
 const APPLE_CLIENT_SECRET = process.env.APPLE_CLIENT_SECRET;
-const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
+// Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+const NEXTAUTH_SECRET =
+  process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
 
 // Derive NEXTAUTH_URL when missing (helps preview builds)
 const vercelHost =
@@ -118,8 +120,8 @@ const skipSecretValidation =
 if (!skipSecretValidation) {
   const missingSecrets: string[] = [];
   
-  // NEXTAUTH_SECRET is always required (for session signing)
-  if (!NEXTAUTH_SECRET) missingSecrets.push('NEXTAUTH_SECRET');
+  // NEXTAUTH_SECRET (or AUTH_SECRET) is always required (for session signing)
+  if (!NEXTAUTH_SECRET) missingSecrets.push('NEXTAUTH_SECRET or AUTH_SECRET');
   
   // Google OAuth credentials are optional (can use credentials provider only)
   if (!GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_SECRET) {

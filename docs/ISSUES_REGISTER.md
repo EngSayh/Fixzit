@@ -22,6 +22,221 @@ _No active critical issues_
 
 ## Resolved Issues
 
+### TENANT-001: Missing `required: true` on org_id in FM Schemas
+
+**Category**: Security / Multi-Tenancy  
+**Severity**: 🔴 BLOCKER  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+10 FM Mongoose schemas had `org_id` field without `required: true`, allowing documents to be created without tenant isolation.
+
+**Affected Schemas**:
+- UserSchema, PropertySchema, WorkOrderSchema, AttachmentSchema
+- QuotationSchema, ApprovalSchema, FinancialTxnSchema, PMPlanSchema
+- InspectionSchema, DocumentSchema
+
+**Impact**:
+- Cross-tenant data leakage risk
+- Orphaned records bypassing tenant filters
+- Compliance violation for STRICT v4.1 multi-tenancy
+
+**Fix Applied**:
+Added `required: true` to all `org_id` fields in `domain/fm/fm.behavior.ts`
+
+---
+
+### RBAC-DRIFT-005: SUPPORT_TICKETS Plan Gate Mismatch
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+`SUPPORT_TICKETS` plan gate had different values between RBAC sources:
+- `fm.behavior.ts`: `SUPPORT_TICKETS: false` for STARTER
+- `fm.types.ts`: `SUPPORT_TICKETS: true` for STARTER
+
+**Impact**:
+- Users on STARTER plan see support features in UI
+- Server-side code using `fm.behavior.ts` would deny access → 403
+- Inconsistent user experience
+
+**Fix Applied**:
+Aligned `fm.behavior.ts` PLAN_GATES to match canonical `fm.types.ts`
+
+---
+
+### ABAC-001: Client `can()` Missing Property Manager Scope Validation
+
+**Category**: Security / ABAC  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+Client-side `can()` function didn't validate `assignedProperties[]` for PROPERTY_MANAGER role.
+
+**Impact**:
+- UI may show "allowed" actions for properties user doesn't manage
+- Client-server RBAC parity broken
+
+**Fix Applied**:
+Added `assignedProperties` validation in `can()` function in `domain/fm/fm.types.ts`
+
+---
+
+### ABAC-002: Client `can()` Missing Tenant Unit Scope Validation
+
+**Category**: Security / ABAC  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+Client-side `can()` function didn't validate `units[]` for TENANT role.
+
+**Impact**:
+- UI may show actions for units tenant doesn't have access to
+- Client-server ABAC parity broken
+
+**Fix Applied**:
+Added `units` validation in `can()` function in `domain/fm/fm.types.ts`
+
+---
+
+### RBAC-DRIFT-006: computeAllowedModules Override Instead of Union
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+`fm.types.ts` `computeAllowedModules()` used early `return` statements for sub-roles, overriding base TEAM_MEMBER modules instead of unioning them.
+
+**Impact**:
+- FINANCE_OFFICER loses base TEAM_MEMBER modules (DASHBOARD, WO, CRM, etc.)
+- Client-side module visibility different from server-side
+- Sub-role users denied actions they should have
+
+**Files Fixed**:
+- `domain/fm/fm.types.ts`: Changed to union pattern `[...new Set([...allowed, ...subRoleModules])]`
+
+---
+
+### RBAC-DRIFT-007: Tenant Requester Fallback Missing
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+Client `can()` in `fm.types.ts` used `ctx.requesterUserId === ctx.userId` without fallback to `userId` when `requesterUserId` is undefined.
+
+**Impact**:
+- Tenant actions fail when `requesterUserId` not explicitly set
+- Server-side `fm.behavior.ts` uses fallback: `const requesterId = ctx.requesterUserId ?? ctx.userId`
+- Parity broken for tenant workflows
+
+**Fix Applied**:
+Added `const requesterId = ctx.requesterUserId ?? ctx.userId` in `fm.types.ts` `can()` function.
+
+---
+
+### RBAC-DRIFT-008: hasModuleAccess Incomplete Sub-Role Handling
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+`hasModuleAccess()` in `app/api/fm/permissions.ts` only handled Finance/HR sub-roles explicitly, missing SUPPORT_AGENT and OPERATIONS_MANAGER.
+
+**Impact**:
+- SUPPORT_AGENT accessing SUPPORT module gets 403
+- OPERATIONS_MANAGER accessing WORK_ORDERS/PROPERTIES gets 403
+- Only Finance/HR sub-roles worked correctly
+
+**Fix Applied**:
+Refactored to use `computeAllowedModules(role, subRole)` for complete sub-role handling.
+
+---
+
+### RBAC-DRIFT-009: fm-lite ROLE_MODULES Drift
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟨 MINOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+`fm-lite.ts` `ROLE_MODULES` had outdated entries:
+- PROPERTY_MANAGER missing SUPPORT module
+- VENDOR missing WORK_ORDERS and REPORTS modules
+
+**Impact**:
+- Client façade `computeAllowedModules` returns different modules than server
+- UI visibility drift for Property Managers and Vendors
+
+**Fix Applied**:
+Added missing modules to `ROLE_MODULES` in `fm-lite.ts` to match `ROLE_MODULE_ACCESS` in behavior/types.
+
+---
+
+### RBAC-DRIFT-010: PLAN_GATES Server/Client Mismatch
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-30  
+**Date Resolved**: 2025-01-30  
+**Commit**: `3e3d43b32`
+
+**Description**:
+`PLAN_GATES` in `fm.types.ts` (client) had 4 values that differed from `fm.behavior.ts` (server), causing client to grant/deny features inconsistently with server authorization.
+
+**Drift Details**:
+| Plan | Submodule | Server | Client (was) |
+|------|-----------|--------|--------------|
+| STANDARD | ADMIN_FACILITIES | `false` | `true` |
+| STANDARD | MARKETPLACE_REQUESTS | `false` | `true` |
+| STANDARD | SUPPORT_CHAT | `false` | `true` |
+| PRO | ADMIN_DOA | `true` | `false` |
+
+**Impact**:
+- Client UI showed features that server would deny (STANDARD plan)
+- Client UI hid features that server would allow (PRO plan)
+- User confusion and failed API requests
+
+**Fix Applied**:
+Aligned `fm.types.ts` PLAN_GATES with `fm.behavior.ts` (server is canonical source of truth).
+
+**Preventive Measure**:
+Added `scripts/lint-rbac-parity.ts` and `pnpm lint:rbac` command to catch future RBAC drift between server/client/lite.
+
+---
+
 ### ISSUE-001: Missing SessionProvider
 
 **Category**: Runtime Error  

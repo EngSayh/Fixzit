@@ -284,7 +284,7 @@ export const PLAN_GATES: Record<Plan, Partial<Record<SubmoduleKey, boolean>>> = 
     ADMIN_DOA: false,
     ADMIN_POLICIES: true,
     ADMIN_ASSETS: true,
-    ADMIN_FACILITIES: true,
+    ADMIN_FACILITIES: false,
     // CRM - Basic
     CRM_CUSTOMERS: true,
     CRM_LEADS: true,
@@ -293,12 +293,12 @@ export const PLAN_GATES: Record<Plan, Partial<Record<SubmoduleKey, boolean>>> = 
     // Marketplace - Basic
     MARKETPLACE_VENDORS: true,
     MARKETPLACE_CATALOG: true,
-    MARKETPLACE_REQUESTS: true,
+    MARKETPLACE_REQUESTS: false,
     MARKETPLACE_BIDS: false,
-    // Support - Full
+    // Support - Basic
     SUPPORT_TICKETS: true,
     SUPPORT_KB: true,
-    SUPPORT_CHAT: true,
+    SUPPORT_CHAT: false,
     SUPPORT_SLA: false,
     // Compliance - Disabled
     COMPLIANCE_CONTRACTS: false,
@@ -338,8 +338,8 @@ export const PLAN_GATES: Record<Plan, Partial<Record<SubmoduleKey, boolean>>> = 
     HR_RECRUITMENT: true,
     HR_TRAINING: true,
     HR_PERFORMANCE: true,
-    // Admin - Full except DoA
-    ADMIN_DOA: false,
+    // Admin - Full
+    ADMIN_DOA: true,
     ADMIN_POLICIES: true,
     ADMIN_ASSETS: true,
     ADMIN_FACILITIES: true,
@@ -951,6 +951,31 @@ export const SUB_ROLE_ACTIONS: Record<SubRole, ActionsBySubmodule> = {
   },
 };
 
+/**
+ * STRICT v4.1: Submodules that require specific sub-roles for TEAM_MEMBER access.
+ * TEAM_MEMBER without the required sub-role cannot access these specialized domains.
+ */
+export const SUBMODULE_REQUIRED_SUBROLE: Partial<Record<SubmoduleKey, SubRole[]>> = {
+  // Finance requires FINANCE_OFFICER
+  FINANCE_INVOICES: [SubRole.FINANCE_OFFICER],
+  FINANCE_EXPENSES: [SubRole.FINANCE_OFFICER],
+  FINANCE_BUDGETS: [SubRole.FINANCE_OFFICER],
+  REPORTS_FINANCE: [SubRole.FINANCE_OFFICER],
+  // HR requires HR_OFFICER
+  HR_EMPLOYEE_DIRECTORY: [SubRole.HR_OFFICER],
+  HR_ATTENDANCE: [SubRole.HR_OFFICER],
+  HR_PAYROLL: [SubRole.HR_OFFICER],
+  HR_RECRUITMENT: [SubRole.HR_OFFICER],
+  HR_TRAINING: [SubRole.HR_OFFICER],
+  HR_PERFORMANCE: [SubRole.HR_OFFICER],
+  // Support requires SUPPORT_AGENT (for advanced actions)
+  SUPPORT_SLA: [SubRole.SUPPORT_AGENT],
+  // Operations requires OPERATIONS_MANAGER
+  MARKETPLACE_VENDORS: [SubRole.OPERATIONS_MANAGER],
+  MARKETPLACE_REQUESTS: [SubRole.OPERATIONS_MANAGER],
+  MARKETPLACE_BIDS: [SubRole.OPERATIONS_MANAGER],
+};
+
 /* =========================
  * 7) Resource Context
  * ========================= */
@@ -983,7 +1008,13 @@ export type ResourceCtx = {
  * 8) RBAC Functions
  * ========================= */
 
+/**
+ * STRICT v4.1: Compute allowed modules based on role and sub-role
+ * Used for dynamic module access (e.g., Team Member specializations)
+ * PARITY: Must match fm.behavior.ts computeAllowedModules exactly
+ */
 export function computeAllowedModules(role: Role, subRole?: SubRole): ModuleKey[] {
+  // Get base modules from ROLE_MODULE_ACCESS
   const baseModules = ROLE_MODULE_ACCESS[role];
   const allowed: ModuleKey[] = [];
 
@@ -993,19 +1024,36 @@ export function computeAllowedModules(role: Role, subRole?: SubRole): ModuleKey[
     }
   }
 
+  // STRICT v4.1: Merge sub-role modules with base TEAM_MEMBER modules (union, not override)
   if (role === Role.TEAM_MEMBER && subRole) {
+    const subRoleModules: ModuleKey[] = [];
     switch (subRole) {
       case SubRole.FINANCE_OFFICER:
-        return [ModuleKey.DASHBOARD, ModuleKey.FINANCE, ModuleKey.REPORTS];
+        // Add Finance module to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.FINANCE);
+        break;
+
       case SubRole.HR_OFFICER:
-        return [ModuleKey.DASHBOARD, ModuleKey.HR, ModuleKey.REPORTS];
+        // Add HR module to base TEAM_MEMBER modules (+ PII access via separate check)
+        subRoleModules.push(ModuleKey.HR);
+        break;
+
       case SubRole.SUPPORT_AGENT:
-        return [ModuleKey.DASHBOARD, ModuleKey.SUPPORT, ModuleKey.CRM, ModuleKey.REPORTS];
+        // Add Support module to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.SUPPORT);
+        break;
+
       case SubRole.OPERATIONS_MANAGER:
-        return [ModuleKey.DASHBOARD, ModuleKey.WORK_ORDERS, ModuleKey.PROPERTIES, ModuleKey.SUPPORT, ModuleKey.REPORTS];
+        // Add Work Orders and Properties to base TEAM_MEMBER modules
+        subRoleModules.push(ModuleKey.WORK_ORDERS, ModuleKey.PROPERTIES);
+        break;
+
       default:
+        // Base Team Member access
         break;
     }
+    // Merge base + sub-role modules (union)
+    return [...new Set([...allowed, ...subRoleModules])];
   }
 
   return allowed;
@@ -1028,23 +1076,77 @@ export function can(
   action: Action,
   ctx: ResourceCtx
 ): boolean {
+  // PARITY: Must match fm.behavior.ts - fallback to userId when requesterUserId is not set
+  const requesterId = ctx.requesterUserId ?? ctx.userId;
+
   if (Object.values(ModuleKey).includes(submodule as ModuleKey)) {
     return canAccessModule(submodule as ModuleKey, action, ctx);
   }
 
+  // 1) Plan gate
   if (!PLAN_GATES[ctx.plan]?.[submodule as SubmoduleKey]) return false;
 
-  const allowed = ROLE_ACTIONS[ctx.role]?.[submodule as SubmoduleKey];
-  if (!allowed?.includes(action)) return false;
-
-  if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
-
-  if (ctx.role === Role.TENANT && action !== "create") {
-    return ctx.requesterUserId === ctx.userId;
+  // 2) STRICT v4.1: Sub-role enforcement for TEAM_MEMBER
+  if (ctx.role === Role.TEAM_MEMBER) {
+    // Check sub-role actions first (extends base TEAM_MEMBER permissions)
+    if (ctx.subRole && SUB_ROLE_ACTIONS[ctx.subRole]?.[submodule as SubmoduleKey]?.includes(action)) {
+      // Sub-role grants this action - continue to scope checks below
+    } else {
+      // Check if this submodule requires a specific sub-role for TEAM_MEMBER access
+      const requiredSubRoles = SUBMODULE_REQUIRED_SUBROLE[submodule as SubmoduleKey];
+      if (requiredSubRoles && requiredSubRoles.length > 0) {
+        // Submodule requires a sub-role that the user doesn't have
+        if (!ctx.subRole || !requiredSubRoles.includes(ctx.subRole)) {
+          return false;
+        }
+      }
+      // Fall back to base TEAM_MEMBER permissions
+      const baseAllowed = ROLE_ACTIONS[ctx.role]?.[submodule as SubmoduleKey];
+      if (!baseAllowed?.includes(action)) return false;
+    }
+  } else {
+    // 2b) Role action allow-list (non-TEAM_MEMBER roles)
+    const allowed = ROLE_ACTIONS[ctx.role]?.[submodule as SubmoduleKey];
+    if (!allowed?.includes(action)) return false;
   }
 
-  if (ctx.role === Role.CORPORATE_OWNER || ctx.role === Role.PROPERTY_MANAGER) {
-    if (ctx.propertyId && !(ctx.isOwnerOfProperty || ctx.isSuperAdmin)) {
+  // 3) Org membership check (Super Admin bypasses)
+  if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
+
+  // TENANT scope validation: must own the user record OR unit membership
+  if (ctx.role === Role.TENANT) {
+    // Create action: validate unit membership + requester ownership
+    if (action === "create") {
+      if (ctx.unitId && ctx.units && !ctx.units.includes(ctx.unitId)) {
+        return false;
+      }
+      return requesterId === ctx.userId;
+    }
+    // Other actions: validate unit access + requester ownership
+    if (ctx.unitId && ctx.units?.length) {
+      const hasUnitAccess = ctx.units.includes(ctx.unitId);
+      if (!hasUnitAccess && !ctx.isSuperAdmin) {
+        return false;
+      }
+    }
+    return requesterId === ctx.userId;
+  }
+
+  // CORPORATE_OWNER scope validation: must own/manage the property
+  if (ctx.role === Role.CORPORATE_OWNER && ctx.propertyId) {
+    const ownsProperty =
+      ctx.isOwnerOfProperty ||
+      (ctx.assignedProperties && ctx.assignedProperties.includes(ctx.propertyId));
+    if (!ownsProperty && !ctx.isSuperAdmin) {
+      return false;
+    }
+  }
+
+  // PROPERTY_MANAGER scope validation: must be assigned to the property
+  if (ctx.role === Role.PROPERTY_MANAGER && ctx.propertyId) {
+    const managesProperty =
+      ctx.assignedProperties && ctx.assignedProperties.includes(ctx.propertyId);
+    if (!managesProperty && !ctx.isSuperAdmin) {
       return false;
     }
   }
