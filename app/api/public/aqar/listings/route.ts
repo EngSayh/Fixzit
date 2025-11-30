@@ -11,13 +11,13 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongo";
-import { AqarListing } from "@/models/aqar";
+import { AqarListing } from "@/server/models/aqar";
 import {
   ListingIntent,
   PropertyType,
   ListingStatus,
   type IListing,
-} from "@/models/aqar/Listing";
+} from "@/server/models/aqar/Listing";
 import { checkRateLimit } from "@/lib/rateLimit";
 import type { Model } from "mongoose";
 

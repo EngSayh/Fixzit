@@ -18,7 +18,7 @@
  * @since 2025-11-29 - Marked as deprecated
  */
 import { Schema, model, models, InferSchemaType, Document } from "mongoose";
-import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { getModel, MModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 

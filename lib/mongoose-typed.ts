@@ -1,5 +1,5 @@
 import { model, models, type Schema } from "mongoose";
-import type { MModel } from "@/src/types/mongoose-compat";
+import type { MModel } from "@/types/mongoose-compat";
 
 export function typedModel<T>(
   name: string,

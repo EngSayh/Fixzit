@@ -1,5 +1,5 @@
 import { Schema, Model, models, InferSchemaType } from "mongoose";
-import { getModel } from "@/src/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 import { UserRole, UserStatus } from "@/types/user";

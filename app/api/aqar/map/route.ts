@@ -6,7 +6,7 @@ import { rateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
-import { AqarListing } from "@/models/aqar";
+import { AqarListing } from "@/server/models/aqar";
 
 // Constants for clustering grid cell calculation
 const MIN_CELL_SIZE_DEGREES = 0.01; // avoid excessive granularity

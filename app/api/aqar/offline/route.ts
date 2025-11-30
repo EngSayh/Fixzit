@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { ListingIntent } from "@/models/aqar/Listing";
+import { ListingIntent } from "@/server/models/aqar/Listing";
 import { AqarOfflineCacheService } from "@/services/aqar/offline-cache-service";
 
 export const runtime = "nodejs";

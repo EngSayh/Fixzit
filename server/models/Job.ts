@@ -6,7 +6,7 @@ import {
   Model,
   Document,
 } from "mongoose";
-import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { getModel, MModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 

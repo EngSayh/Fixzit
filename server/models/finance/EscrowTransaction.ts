@@ -9,7 +9,7 @@ import { Schema, Types } from "mongoose";
 import { ensureMongoConnection } from "@/server/lib/db";
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 import { auditPlugin } from "@/server/plugins/auditPlugin";
-import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { getModel, MModel } from "@/types/mongoose-compat";
 
 ensureMongoConnection();
 

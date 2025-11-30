@@ -5,7 +5,7 @@ import {
   type Document,
   Types,
 } from "mongoose";
-import { getModel } from "@/src/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 import { ensureMongoConnection } from "@/server/lib/db";
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 

@@ -1,5 +1,5 @@
 import { Schema, model, models, Types } from "mongoose";
-import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { getModel, MModel } from "@/types/mongoose-compat";
 
 export type AgentStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
 export type AgentTier = "BASIC" | "PREMIUM" | "ELITE";

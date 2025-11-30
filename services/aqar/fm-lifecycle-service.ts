@@ -1,11 +1,11 @@
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongo";
-import { AqarListing } from "@/models/aqar";
+import { AqarListing } from "@/server/models/aqar";
 import {
   ListingStatus,
   type IListing,
   type IListingFmLifecycle,
-} from "@/models/aqar/Listing";
+} from "@/server/models/aqar/Listing";
 import { generateZATCAQR } from "@/lib/zatca";
 import { create as createWorkOrder } from "@/server/work-orders/wo.service";
 import { Types } from "mongoose";

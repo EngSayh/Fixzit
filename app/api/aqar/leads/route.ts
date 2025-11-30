@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongo";
-import { AqarLead, AqarListing } from "@/models/aqar";
+import { AqarLead, AqarListing } from "@/server/models/aqar";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { incrementAnalyticsWithRetry } from "@/lib/analytics/incrementWithRetry";
 import { checkRateLimit } from "@/lib/rateLimit";
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
         }
       })();
     } else if (projectId) {
-      const { AqarProject } = await import("@/models/aqar");
+      const { AqarProject } = await import("@/server/models/aqar");
       const project = await AqarProject.findById(projectId);
       if (!project) {
         return NextResponse.json(

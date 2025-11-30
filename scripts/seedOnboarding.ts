@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { DocumentType } from '@/models/onboarding/DocumentType';
-import { DocumentProfile } from '@/models/onboarding/DocumentProfile';
+import { DocumentType } from '@/server/models/onboarding/DocumentType';
+import { DocumentProfile } from '@/server/models/onboarding/DocumentProfile';
 
 // Type guard for MongoDB bulk write errors
 interface MongoWriteError {

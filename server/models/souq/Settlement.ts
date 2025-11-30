@@ -4,7 +4,7 @@
  */
 
 import mongoose, { Schema, Model, Types } from "mongoose";
-import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { getModel, MModel } from "@/types/mongoose-compat";
 
 export interface ISettlement {
   _id: Types.ObjectId;

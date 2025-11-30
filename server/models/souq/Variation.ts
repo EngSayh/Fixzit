@@ -4,7 +4,7 @@
  */
 
 import mongoose, { Schema, type Document } from "mongoose";
-import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { getModel, MModel } from "@/types/mongoose-compat";
 
 export interface IVariation extends Document {
   _id: mongoose.Types.ObjectId;

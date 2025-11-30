@@ -3,7 +3,7 @@ import {
   ProptechFeature,
   type IListingProptech,
   type IListingImmersive,
-} from "@/models/aqar/Listing";
+} from "@/server/models/aqar/Listing";
 
 const SMART_HOME_LEVELS = new Set<string>(Object.values(SmartHomeLevel));
 const PROPTECH_FEATURES = new Set<string>(Object.values(ProptechFeature));

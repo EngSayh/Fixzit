@@ -13,7 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
-import { requirePermission } from "@/server/lib/rbac.config";
+import { requirePermission } from "@/config/rbac.config";
 import { dbConnect } from "@/lib/mongodb-unified";
 import Journal from "@/server/models/finance/Journal";
 import postingService from "@/server/services/finance/postingService";

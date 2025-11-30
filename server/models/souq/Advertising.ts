@@ -4,7 +4,7 @@
  */
 
 import mongoose, { Schema, type Document } from "mongoose";
-import { getModel } from "@/src/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 
 // Campaign Model
 export interface ICampaign extends Document {

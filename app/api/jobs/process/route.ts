@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { JobQueue, Job } from "@/lib/jobs/queue";
 import sgMail from "@sendgrid/mail";
-import { getSendGridConfig } from "@/lib/sendgrid-config";
+import { getSendGridConfig } from "@/config/sendgrid.config";
 import { deleteObject } from "@/lib/storage/s3";
 
 /**

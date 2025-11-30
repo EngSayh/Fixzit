@@ -11,7 +11,7 @@ import { z } from "zod";
 import { Expense } from "@/server/models/finance/Expense";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
-import { requirePermission } from "@/server/lib/rbac.config";
+import { requirePermission } from "@/config/rbac.config";
 
 async function getUserSession(req: NextRequest) {
   const user = await getSessionUser(req);

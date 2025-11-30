@@ -7,7 +7,7 @@ import { logger } from "@/lib/logger";
  */
 
 import mongoose from "mongoose";
-import { AqarPackage, AqarPayment, PaymentStatus } from "@/models/aqar";
+import { AqarPackage, AqarPayment, PaymentStatus } from "@/server/models/aqar";
 
 /**
  * Activates an Aqar package after successful payment

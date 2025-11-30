@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongo";
-import { AqarListing } from "@/models/aqar";
+import { AqarListing } from "@/server/models/aqar";
 import {
   ListingStatus,
   type IListing,
@@ -12,7 +12,7 @@ import {
   ListingIntent,
   PropertyType,
   SmartHomeLevel,
-} from "@/models/aqar/Listing";
+} from "@/server/models/aqar/Listing";
 import type { FilterQuery } from "mongoose";
 import { Types } from "mongoose";
 
@@ -199,6 +199,12 @@ export class AqarRecommendationEngine {
     const query: FilterQuery<IListing> = {
       status: ListingStatus.ACTIVE,
     };
+
+    // Multi-tenancy: scope by org/tenant when provided to avoid cross-tenant leakage
+    const scopedOrgId = context.orgId || context.tenantId;
+    if (scopedOrgId && Types.ObjectId.isValid(scopedOrgId)) {
+      query.orgId = new Types.ObjectId(scopedOrgId);
+    }
 
     if (context.intent) {
       query.intent = context.intent;

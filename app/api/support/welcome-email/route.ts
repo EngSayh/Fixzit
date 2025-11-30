@@ -13,7 +13,7 @@ import {
   getBaseEmailOptions,
   isSendGridConfigured,
   getTemplateId,
-} from "@/lib/sendgrid-config";
+} from "@/config/sendgrid.config";
 
 const welcomeEmailSchema = z.object({
   email: z.string().email(),

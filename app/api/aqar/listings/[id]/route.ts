@@ -9,9 +9,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { connectDb } from "@/lib/mongo";
-import { AqarListing } from "@/models/aqar";
+import { AqarListing } from "@/server/models/aqar";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { FurnishingStatus, ListingStatus } from "@/models/aqar/Listing";
+import { FurnishingStatus, ListingStatus } from "@/server/models/aqar/Listing";
 import { ok, badRequest, notFound } from "@/lib/api/http";
 import { isValidObjectIdSafe } from "@/lib/api/validation";
 

@@ -370,7 +370,7 @@ async function updatePaymentRecord(
     complianceStatus: string;
   },
 ) {
-  const { AqarPayment } = await import("@/models/aqar");
+  const { AqarPayment } = await import("@/server/models/aqar");
 
   const result = await AqarPayment.findOneAndUpdate(
     { _id: cartId },

@@ -5,7 +5,7 @@ import {
   withoutTenantFilter,
 } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
-import { getModel } from "@/src/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 
 const FeatureStatus = ["ENABLED", "DISABLED", "BETA", "DEPRECATED"] as const;
 const FeatureCategory = [

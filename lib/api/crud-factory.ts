@@ -34,7 +34,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
-import type { MModel } from "@/src/types/mongoose-compat";
+import type { MModel } from "@/types/mongoose-compat";
 
 /**
  * SEC-006 FIX: Validate MongoDB ObjectId format to prevent IDOR attacks

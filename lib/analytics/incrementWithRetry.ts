@@ -7,7 +7,7 @@
 
 import { logger } from "@/lib/logger";
 import type { Types, UpdateQuery, Document } from "mongoose";
-import type { MModel } from "@/src/types/mongoose-compat";
+import type { MModel } from "@/types/mongoose-compat";
 
 interface IncrementOptions<T = unknown> {
   model: MModel<T>;

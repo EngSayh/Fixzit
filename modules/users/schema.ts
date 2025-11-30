@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
-import { getModel } from "@/src/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 import { auditPlugin } from "@/server/plugins/auditPlugin";
 import { Role } from "@/domain/fm/fm.behavior";

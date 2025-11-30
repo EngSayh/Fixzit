@@ -8,8 +8,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongo";
-import { AqarListing } from "@/models/aqar";
-import { SmartHomeLevel } from "@/models/aqar/Listing";
+import { AqarListing } from "@/server/models/aqar";
+import { SmartHomeLevel } from "@/server/models/aqar/Listing";
 
 import { logger } from "@/lib/logger";
 export const runtime = "nodejs"; // Atlas Search requires Node.js runtime

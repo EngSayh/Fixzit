@@ -1,7 +1,7 @@
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { RequestContext } from "@/server/lib/authContext";
 import { log } from "@/server/lib/logger";
-import { UserRole } from "@/server/lib/rbac.config";
+import { UserRole } from "@/config/rbac.config";
 import { FMApproval } from "@/server/models/FMApproval";
 import { User } from "@/server/models/User";
 

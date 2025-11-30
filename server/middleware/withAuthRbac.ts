@@ -140,8 +140,8 @@ async function loadRBACData(
   try {
     // Dynamic imports to avoid issues in Edge Runtime
     const { User } = await import("@/server/models/User");
-    const RoleModel = (await import("@/models/Role")).default;
-    const PermissionModel = (await import("@/models/Permission")).default;
+    const RoleModel = (await import("@/server/models/Role")).default;
+    const PermissionModel = (await import("@/server/models/Permission")).default;
     const { default: mongoose } = await import("mongoose");
 
     // Query user with populated roles

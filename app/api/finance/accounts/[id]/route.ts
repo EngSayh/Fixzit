@@ -14,7 +14,7 @@ import { dbConnect } from "@/lib/mongodb-unified";
 import ChartAccount from "@/server/models/finance/ChartAccount";
 import LedgerEntry from "@/server/models/finance/LedgerEntry";
 import { runWithContext } from "@/server/lib/authContext";
-import { requirePermission } from "@/server/lib/rbac.config";
+import { requirePermission } from "@/config/rbac.config";
 import { Types } from "mongoose";
 import { z } from "zod";
 
