@@ -22,6 +22,99 @@ _No active critical issues_
 
 ## Resolved Issues
 
+### TENANT-001: Missing `required: true` on org_id in FM Schemas
+
+**Category**: Security / Multi-Tenancy  
+**Severity**: 🔴 BLOCKER  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+10 FM Mongoose schemas had `org_id` field without `required: true`, allowing documents to be created without tenant isolation.
+
+**Affected Schemas**:
+- UserSchema, PropertySchema, WorkOrderSchema, AttachmentSchema
+- QuotationSchema, ApprovalSchema, FinancialTxnSchema, PMPlanSchema
+- InspectionSchema, DocumentSchema
+
+**Impact**:
+- Cross-tenant data leakage risk
+- Orphaned records bypassing tenant filters
+- Compliance violation for STRICT v4.1 multi-tenancy
+
+**Fix Applied**:
+Added `required: true` to all `org_id` fields in `domain/fm/fm.behavior.ts`
+
+---
+
+### RBAC-DRIFT-005: SUPPORT_TICKETS Plan Gate Mismatch
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+`SUPPORT_TICKETS` plan gate had different values between RBAC sources:
+- `fm.behavior.ts`: `SUPPORT_TICKETS: false` for STARTER
+- `fm.types.ts`: `SUPPORT_TICKETS: true` for STARTER
+
+**Impact**:
+- Users on STARTER plan see support features in UI
+- Server-side code using `fm.behavior.ts` would deny access → 403
+- Inconsistent user experience
+
+**Fix Applied**:
+Aligned `fm.behavior.ts` PLAN_GATES to match canonical `fm.types.ts`
+
+---
+
+### ABAC-001: Client `can()` Missing Property Manager Scope Validation
+
+**Category**: Security / ABAC  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+Client-side `can()` function didn't validate `assignedProperties[]` for PROPERTY_MANAGER role.
+
+**Impact**:
+- UI may show "allowed" actions for properties user doesn't manage
+- Client-server RBAC parity broken
+
+**Fix Applied**:
+Added `assignedProperties` validation in `can()` function in `domain/fm/fm.types.ts`
+
+---
+
+### ABAC-002: Client `can()` Missing Tenant Unit Scope Validation
+
+**Category**: Security / ABAC  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-13  
+**Date Resolved**: 2025-01-13  
+**PR**: [#373](https://github.com/EngSayh/Fixzit/pull/373)
+
+**Description**:
+Client-side `can()` function didn't validate `units[]` for TENANT role.
+
+**Impact**:
+- UI may show actions for units tenant doesn't have access to
+- Client-server ABAC parity broken
+
+**Fix Applied**:
+Added `units` validation in `can()` function in `domain/fm/fm.types.ts`
+
+---
+
 ### ISSUE-001: Missing SessionProvider
 
 **Category**: Runtime Error  

@@ -7,6 +7,7 @@ const envVars = {
   MONGODB_URI: !!process.env.MONGODB_URI,
   NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
   NEXTAUTH_URL: !!process.env.NEXTAUTH_URL,
+  AUTH_TRUST_HOST: !!process.env.AUTH_TRUST_HOST,
   JWT_SECRET: !!process.env.JWT_SECRET,
   INTERNAL_API_SECRET: !!process.env.INTERNAL_API_SECRET,
 
@@ -114,10 +115,11 @@ console.log("✅ = Configured (exists)");
 console.log("❌ = Missing (not set)\n");
 
 const categories = {
-  "🔐 Core Authentication": [
+  "🔐 Core Authentication (CRITICAL)": [
     "MONGODB_URI",
     "NEXTAUTH_SECRET",
     "NEXTAUTH_URL",
+    "AUTH_TRUST_HOST",
     "JWT_SECRET",
     "INTERNAL_API_SECRET",
   ],
