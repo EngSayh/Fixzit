@@ -25,6 +25,29 @@ import {
 const DEFAULT_TIMEOUT = 30000;
 
 /**
+ * MULTI-TENANCY VALIDATION GUARD
+ * 
+ * In CI (process.env.CI === 'true'), TEST_ORG_ID is required to validate
+ * that API responses don't leak cross-tenant data. Without it, tenant
+ * isolation regressions can slip through.
+ * 
+ * Local runs without TEST_ORG_ID will skip org_id checks with a warning.
+ */
+const testOrgId = getTestOrgIdOptional();
+if (process.env.CI && !testOrgId) {
+  console.warn(
+    '⚠️  WARNING: TEST_ORG_ID not configured in CI.\\n' +
+    'Multi-tenant validation will be skipped, potentially missing cross-tenant data leaks.\\n' +
+    'Configure TEST_ORG_ID in GitHub Secrets for complete RBAC coverage.'
+  );
+} else if (!testOrgId) {
+  console.info(
+    'ℹ️  INFO: TEST_ORG_ID not set. Tenant scoping checks will be skipped.\\n' +
+    'For full multi-tenancy validation, set TEST_ORG_ID in .env.local.'
+  );
+}
+
+/**
  * Get test credentials for a sub-role.
  * Throws immediately if environment variables are not configured.
  * This ensures tests fail fast rather than silently skipping.
@@ -464,19 +487,14 @@ test.describe('Sub-Role API Access Control', () => {
       );
     });
 
-    test('can access HR payroll API', async ({ page, request }) => {
+    test('CANNOT access HR payroll API (cross-boundary)', async ({ page, request }) => {
       const result = await attemptLogin(page, credentials.email, credentials.password);
-      expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
+      expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
+      // STRICT v4 RBAC: Finance Officer should NOT have access to HR module
+      // This enforces cross-boundary denial between Finance and HR domains
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.payroll);
-      
-      // AUDIT-2025-11-30: Use body check to verify tenant scoping
-      await expectAllowedWithBodyCheck(
-        response,
-        API_ENDPOINTS.hr.payroll,
-        'HR_OFFICER',
-        { expectedOrgId: getTestOrgIdOptional() }
-      );
+      expectDenied(response, API_ENDPOINTS.hr.payroll, 'FINANCE_OFFICER');
     });
 
     test('CANNOT access admin users API', async ({ page, request }) => {
@@ -539,19 +557,14 @@ test.describe('Sub-Role API Access Control', () => {
       );
     });
 
-    test('can access finance invoices API', async ({ page, request }) => {
+    test('CANNOT access finance invoices API (cross-boundary)', async ({ page, request }) => {
       const result = await attemptLogin(page, credentials.email, credentials.password);
-      expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
+      expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
+      // STRICT v4 RBAC: HR Officer should NOT have access to Finance module
+      // This enforces cross-boundary denial between HR and Finance domains
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.invoices);
-      
-      // AUDIT-2025-11-30: Use body check to verify tenant scoping
-      await expectAllowedWithBodyCheck(
-        response,
-        API_ENDPOINTS.finance.invoices,
-        'FINANCE_OFFICER',
-        { expectedOrgId: getTestOrgIdOptional() }
-      );
+      expectDenied(response, API_ENDPOINTS.finance.invoices, 'HR_OFFICER');
     });
 
     test('CANNOT access marketplace vendors API', async ({ page, request }) => {

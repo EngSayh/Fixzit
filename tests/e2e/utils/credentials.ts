@@ -182,13 +182,3 @@ export function getTestOrgId(): string {
 
   return orgId;
 }
-
-/**
- * Get the test organization ID if configured, otherwise return undefined.
- * Use this when tenant validation is optional (e.g., TEST_ORG_ID not yet set up).
- *
- * @returns The TEST_ORG_ID or undefined if not configured
- */
-export function getTestOrgIdOptional(): string | undefined {
-  return process.env.TEST_ORG_ID || undefined;
-}
