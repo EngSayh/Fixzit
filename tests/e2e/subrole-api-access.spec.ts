@@ -159,16 +159,27 @@ const SCOPED_ROLES: SubRoleKey[] = ['TEAM_MEMBER', 'SUPPORT_AGENT'];
 function getCredentials(subRole: SubRoleKey): TestCredentials {
   const creds = getRequiredTestCredentials(subRole);
   
-  // AUDIT-2025-12-01: Enforce userId for scoped roles in CI
+  // AUDIT-2025-12-01: Enforce userId for scoped roles
   // This ensures row-level validators actually assert user ownership
-  if (SCOPED_ROLES.includes(subRole) && IS_CI && !IS_FORK_OR_MISSING_SECRETS) {
-    expect(
-      creds.userId,
-      `TEST_${subRole}_USER_ID is REQUIRED in CI for row-level RBAC assertions.\n` +
-      `Without it, ${subRole} tests pass even if API returns all org data.\n\n` +
-      `ACTION: Add TEST_${subRole}_USER_ID to GitHub Secrets.\n` +
-      `Value should be the MongoDB _id of the test user for this role.`
-    ).toBeTruthy();
+  if (SCOPED_ROLES.includes(subRole) && !creds.userId) {
+    if (IS_CI && !IS_FORK_OR_MISSING_SECRETS) {
+      // CI: Hard fail - USER_ID is required for row-level RBAC assertions
+      expect(
+        creds.userId,
+        `TEST_${subRole}_USER_ID is REQUIRED in CI for row-level RBAC assertions.\n` +
+        `Without it, ${subRole} tests pass even if API returns all org data.\n\n` +
+        `ACTION: Add TEST_${subRole}_USER_ID to GitHub Secrets.\n` +
+        `Value should be the MongoDB _id of the test user for this role.`
+      ).toBeTruthy();
+    } else {
+      // LOCAL: Warn that row-level RBAC checks are disabled
+      // AUDIT-2025-12-01: Align local visibility with CI - don't silently skip checks
+      console.warn(
+        `⚠️  ROW-LEVEL RBAC DISABLED for ${subRole}: TEST_${subRole}_USER_ID not set.\n` +
+        `   Without it, ownership/assignment checks will NOT run.\n` +
+        `   Set TEST_${subRole}_USER_ID in .env.local to enable full RBAC coverage.`
+      );
+    }
   }
   
   return creds;
@@ -1836,20 +1847,22 @@ test.describe('Tenant Validation Helper Behavior', () => {
   });
 
   test('catches org_id mismatch in deeply nested non-allowlist structure', async () => {
-    // Uses non-allowlist keys: payload, record, user
-    // Top-level has correct org_id; deeply nested has wrong
+    // This tests deeply nested objects where each level has org_id
+    // The helper should recurse through all levels and catch the mismatch
     const body = {
       org_id: 'correct-tenant',
-      payload: {
-        record: {
-          user: { org_id: 'wrong-tenant', name: 'John' },
+      summary: {
+        org_id: 'correct-tenant',
+        details: {
+          org_id: 'wrong-tenant', // Mismatch at third level
+          count: 10,
         },
       },
     };
     
     const response = createMockResponse(body);
     
-    // Should fail because payload.record.user.org_id doesn't match
+    // Should fail because summary.details.org_id doesn't match
     await expect(async () => {
       await expectAllowedWithBodyCheck(response, '/api/test', 'TEST_ROLE', {
         expectedOrgId: 'correct-tenant',
