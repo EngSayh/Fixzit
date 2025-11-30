@@ -624,7 +624,10 @@ jobs:
         env:
           NODE_ENV: test
           SKIP_ENV_VALIDATION: 'true'
-          ALLOW_OFFLINE_MONGODB: 'true'
+          # AUDIT-2025-11-30: Build with ALLOW_OFFLINE_MONGODB: 'false'
+          # Next.js embeds env values at build time. Building with 'true'
+          # bakes offline paths into the bundle, defeating test-runtime 'false'.
+          ALLOW_OFFLINE_MONGODB: 'false'
         run: pnpm build
 
       - name: Run RBAC E2E Tests

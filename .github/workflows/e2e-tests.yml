@@ -169,12 +169,13 @@ jobs:
         env:
           NODE_ENV: test
           SKIP_ENV_VALIDATION: 'true'
-          ALLOW_OFFLINE_MONGODB: 'true'
+          # AUDIT-2025-11-30: Build with ALLOW_OFFLINE_MONGODB: 'false'
+          # Next.js embeds env values at build time for Server Components.
+          # Building with 'true' would bake offline paths into the bundle,
+          # making the test-runtime 'false' setting ineffective.
+          ALLOW_OFFLINE_MONGODB: 'false'
         run: |
-          echo "Building Next.js app for E2E tests..."
-          if [ "$ALLOW_OFFLINE_MONGODB" = "true" ]; then
-            echo "⏭️  Building in offline mode (MongoDB disabled)..."
-          fi
+          echo "Building Next.js app for E2E tests (MongoDB required)..."
           pnpm build || {
             echo "❌ Build failed! Checking for common issues..."
             echo "NODE_ENV: $NODE_ENV"

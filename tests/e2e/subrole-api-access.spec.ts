@@ -341,10 +341,10 @@ async function expectAllowedWithBodyCheck(
      * otherwise pass validation silently (since there's no wrong value to detect).
      * 
      * Use this for endpoints that MUST return tenant-scoped data.
-     * Set to false for endpoints that legitimately return tenant-agnostic data
+     * Set to false ONLY for endpoints that legitimately return tenant-agnostic data
      * (e.g., system configs, public metadata).
      * 
-     * @default false for backward compatibility
+     * @default true when expectedOrgId is provided (fail-closed security pattern)
      */
     requireOrgIdPresence?: boolean;
     /**
@@ -429,23 +429,50 @@ async function expectAllowedWithBodyCheck(
     return;
   }
 
-  // Basic tenant/org_id guardrail if provided
-  // AUDIT-2025-11-30: Check BOTH org_id (snake_case) and orgId (camelCase)
-  // Mongoose models typically use orgId, but API responses may use org_id
+  // AUDIT-2025-11-30: Enhanced tenant/org_id validation
+  // - Checks BOTH org_id (snake_case) and orgId (camelCase)
+  // - Recursively walks nested wrappers: data, items, results (common API patterns)
+  // - Defaults requireOrgIdPresence to TRUE when expectedOrgId is provided (fail-closed)
   if (options?.expectedOrgId) {
-    const verifyOrgId = (value: unknown, index?: number) => {
-      if (value && typeof value === 'object') {
-        const v = value as Record<string, unknown>;
-        // Check both org_id and orgId - Mongoose uses camelCase, some APIs use snake_case
-        const foundOrgId = v.org_id ?? v.orgId;
+    // SECURITY: Default to requiring presence when checking tenant ID
+    // This ensures APIs that omit org_id entirely fail instead of passing silently.
+    // Callers can opt-out with requireOrgIdPresence: false for tenant-agnostic endpoints.
+    const requirePresence = options.requireOrgIdPresence ?? true;
+    
+    /**
+     * Recursively verifies tenant ID on objects and walks nested wrappers.
+     * Handles common API response shapes:
+     * - Direct object: { org_id: "...", ... }
+     * - Array: [{ org_id: "..." }, ...]
+     * - Wrapped: { data: [...] }, { items: [...] }, { results: [...] }
+     * - Paginated: { data: { items: [...] } }
+     */
+    const walkAndVerifyOrgId = (value: unknown, path = 'body'): void => {
+      if (!value || typeof value !== 'object') return;
+      
+      // Handle arrays - verify each item
+      if (Array.isArray(value)) {
+        value.forEach((item, idx) => walkAndVerifyOrgId(item, `${path}[${idx}]`));
+        return;
+      }
+      
+      const v = value as Record<string, unknown>;
+      
+      // Check both org_id and orgId - Mongoose uses camelCase, some APIs use snake_case
+      const foundOrgId = v.org_id ?? v.orgId;
+      
+      // AUDIT-2025-11-30: Enforce org_id PRESENCE (fail-closed security pattern)
+      // This catches APIs that omit tenant identifiers entirely
+      if (requirePresence && foundOrgId === undefined) {
+        // Before failing, check if this is a wrapper object (no org_id expected at wrapper level)
+        const isWrapperOnly = ['data', 'items', 'results', 'meta', 'pagination'].some(
+          key => key in v && !('org_id' in v) && !('orgId' in v)
+        );
         
-        // AUDIT-2025-11-30: Enforce org_id PRESENCE when requireOrgIdPresence is true
-        // This catches APIs that omit tenant identifiers entirely
-        if (options.requireOrgIdPresence && foundOrgId === undefined) {
-          const location = index !== undefined ? `[${index}]` : '';
+        if (!isWrapperOnly) {
           expect(
             false,
-            `TENANT ID MISSING: ${endpoint} response${location} has no org_id or orgId field.\n` +
+            `TENANT ID MISSING: ${endpoint} at ${path} has no org_id or orgId field.\n` +
             `Role: ${role}\n` +
             `Expected: org_id or orgId field with value ${options.expectedOrgId}\n\n` +
             `SECURITY RISK: APIs that omit tenant identifiers can leak cross-tenant data.\n` +
@@ -454,21 +481,31 @@ async function expectAllowedWithBodyCheck(
             `  • If this endpoint is tenant-agnostic by design: Set requireOrgIdPresence: false`
           ).toBe(true);
         }
-        
-        if (foundOrgId !== undefined) {
-          expect(
-            String(foundOrgId),
-            `Expected org_id/orgId=${options.expectedOrgId} in payload for ${endpoint}, got ${foundOrgId}`
-          ).toBe(options.expectedOrgId);
+      }
+      
+      // Verify org_id value when present
+      if (foundOrgId !== undefined) {
+        expect(
+          String(foundOrgId),
+          `TENANT MISMATCH at ${path}: Expected org_id/orgId=${options.expectedOrgId}, got ${foundOrgId}\n` +
+          `Endpoint: ${endpoint}\n` +
+          `Role: ${role}\n\n` +
+          `SECURITY RISK: Cross-tenant data leak detected!`
+        ).toBe(options.expectedOrgId);
+      }
+      
+      // AUDIT-2025-11-30: Recurse into common wrapper patterns
+      // This catches tenant leaks in paginated/wrapped responses like:
+      // { data: [{ org_id: "wrong" }] } or { items: [...] } or { results: [...] }
+      const wrapperKeys = ['data', 'items', 'results'];
+      for (const key of wrapperKeys) {
+        if (key in v) {
+          walkAndVerifyOrgId(v[key], `${path}.${key}`);
         }
       }
     };
-
-    if (Array.isArray(body)) {
-      body.forEach((item, idx) => verifyOrgId(item, idx));
-    } else {
-      verifyOrgId(body);
-    }
+    
+    walkAndVerifyOrgId(body);
   }
 
   if (options?.validate) {
@@ -624,7 +661,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.finance.invoices,
         'FINANCE_OFFICER',
-        { expectedOrgId: getTestOrgIdOptional() }
+        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
       );
     });
 
@@ -637,7 +674,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.finance.budgets,
         'FINANCE_OFFICER',
-        { expectedOrgId: getTestOrgIdOptional() }
+        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
       );
     });
 
@@ -650,7 +687,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.finance.expenses,
         'FINANCE_OFFICER',
-        { expectedOrgId: getTestOrgIdOptional() }
+        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
       );
     });
 
@@ -694,7 +731,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.hr.employees,
         'HR_OFFICER',
-        { expectedOrgId: getTestOrgIdOptional() }
+        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
       );
     });
 
@@ -707,7 +744,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.hr.payroll,
         'HR_OFFICER',
-        { expectedOrgId: getTestOrgIdOptional() }
+        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
       );
     });
 
@@ -720,7 +757,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.hr.attendance,
         'HR_OFFICER',
-        { expectedOrgId: getTestOrgIdOptional() }
+        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
       );
     });
 
@@ -766,7 +803,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.support.tickets,
         'SUPPORT_AGENT',
-        { expectedOrgId: getTestOrgIdOptional() }
+        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
       );
     });
 
@@ -781,7 +818,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.support.knowledgeBase,
         'SUPPORT_AGENT',
-        { expectedOrgId: getTestOrgIdOptional() }
+        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
       );
     });
 
@@ -825,7 +862,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.workOrders.list,
         'OPERATIONS_MANAGER',
-        { expectedOrgId: getTestOrgIdOptional() }
+        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
       );
     });
 
@@ -840,7 +877,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.properties.list,
         'OPERATIONS_MANAGER',
-        { expectedOrgId: getTestOrgIdOptional() }
+        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
       );
     });
 
@@ -855,7 +892,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.marketplace.vendors,
         'OPERATIONS_MANAGER',
-        { expectedOrgId: getTestOrgIdOptional() }
+        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
       );
     });
 
@@ -926,7 +963,7 @@ test.describe('Sub-Role API Access Control', () => {
         response,
         API_ENDPOINTS.workOrders.list,
         'TEAM_MEMBER',
-        { expectedOrgId: getTestOrgIdOptional() }
+        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
       );
     });
 
