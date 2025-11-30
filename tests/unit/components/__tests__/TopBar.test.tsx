@@ -16,6 +16,7 @@ import {
   fireEvent,
   waitFor,
   act,
+  within,
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { SessionProvider, signOut } from "next-auth/react";
@@ -562,8 +563,11 @@ describe("TopBar Component", () => {
       fireEvent.click(userButton);
 
       await waitFor(() => {
-        expect(screen.getByTestId("language-selector")).toBeInTheDocument();
-        expect(screen.getByTestId("currency-selector")).toBeInTheDocument();
+        // Use within() to scope queries to the user menu dropdown only
+        // The selectors also appear in the header, so we need to be specific
+        const userMenu = screen.getByRole("menu");
+        expect(within(userMenu).getByTestId("language-selector")).toBeInTheDocument();
+        expect(within(userMenu).getByTestId("currency-selector")).toBeInTheDocument();
       });
     });
 
