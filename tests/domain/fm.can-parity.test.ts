@@ -992,6 +992,25 @@ describe('RBAC can() Client/Server Parity', () => {
         }),
         note: 'tenant can create for own unit',
       },
+      {
+        submodule: 'FINANCE_INVOICES',
+        action: 'approve',
+        ctx: createTestCtx({
+          role: Role.TEAM_MEMBER,
+          subRole: SubRole.FINANCE_OFFICER,
+          plan: Plan.ENTERPRISE,
+        }),
+        note: 'finance officer approval via sub-role extension',
+      },
+      {
+        submodule: 'SUPPORT_CHAT',
+        action: 'view',
+        ctx: createTestCtx({
+          role: Role.ADMIN,
+          plan: Plan.STANDARD,
+        }),
+        note: 'plan gate blocks support chat on Standard plan',
+      },
     ];
 
     cases.forEach(({ submodule, action, ctx, note }) => {
