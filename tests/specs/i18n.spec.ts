@@ -102,31 +102,34 @@ test.describe('i18n: Language Switching', () => {
     // Start in English (force locale in URL)
     await page.goto('/dashboard?locale=en', { waitUntil: 'domcontentloaded' });
     
-    // Wait for page to stabilize with correct direction
-    await page.waitForTimeout(1000);
+    // Wait for page to stabilize
+    await page.waitForLoadState('networkidle');
     
     // Verify LTR (or accept RTL if already set)
     let dir = await page.evaluate(() => document.documentElement.getAttribute('dir'));
     const initialDir = dir;
     console.log(`Initial direction: ${initialDir}`);
 
-    // Switch to Arabic
-    const langButton = page.getByRole('button', { name: /language|lang|english|عربي/i }).first();
+    // Switch to Arabic using data-testid for the language selector
+    // The LanguageSelector has data-testid="language-selector" and aria-label containing "Select language"
+    const langSelectorContainer = page.locator('[data-testid="language-selector"]');
+    const langButton = langSelectorContainer.locator('button').first();
+    
+    // Wait for the button to be visible and click it
+    await expect(langButton).toBeVisible({ timeout: 10000 });
     await langButton.click();
     
-    const arabicOption = page.getByRole('menuitem', { name: /arabic|عربي/i }).or(
-      page.getByText(/arabic|عربي/i).first()
-    );
+    // The dropdown uses role="listbox" with role="option" items (not menuitem)
+    // Look for Arabic option which contains "عربي" (Arabic native name) or "Arabic" (English name)
+    const arabicOption = page.locator('[role="option"]').filter({ hasText: /عربي|Arabic/i }).first();
+    await expect(arabicOption).toBeVisible({ timeout: 5000 });
     await arabicOption.click();
 
     // Wait for language change to apply (check dir attribute)
-    await page.waitForFunction(() => document.documentElement.getAttribute('dir') === 'rtl', {
-      timeout: 5000
-    });
-
-    // Verify RTL
-    dir = await page.evaluate(() => document.documentElement.getAttribute('dir'));
-    expect(dir).toBe('rtl');
+    await expect(async () => {
+      dir = await page.evaluate(() => document.documentElement.getAttribute('dir'));
+      expect(dir).toBe('rtl');
+    }).toPass({ timeout: 10000 });
 
     // Verify Arabic content is visible
     const bodyText = await page.locator('body').innerText();
