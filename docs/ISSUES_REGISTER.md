@@ -204,6 +204,39 @@ Added missing modules to `ROLE_MODULES` in `fm-lite.ts` to match `ROLE_MODULE_AC
 
 ---
 
+### RBAC-DRIFT-010: PLAN_GATES Server/Client Mismatch
+
+**Category**: RBAC / Authorization  
+**Severity**: 🟠 MAJOR  
+**Status**: ✅ RESOLVED  
+**Date Reported**: 2025-01-30  
+**Date Resolved**: 2025-01-30  
+**Commit**: `3e3d43b32`
+
+**Description**:
+`PLAN_GATES` in `fm.types.ts` (client) had 4 values that differed from `fm.behavior.ts` (server), causing client to grant/deny features inconsistently with server authorization.
+
+**Drift Details**:
+| Plan | Submodule | Server | Client (was) |
+|------|-----------|--------|--------------|
+| STANDARD | ADMIN_FACILITIES | `false` | `true` |
+| STANDARD | MARKETPLACE_REQUESTS | `false` | `true` |
+| STANDARD | SUPPORT_CHAT | `false` | `true` |
+| PRO | ADMIN_DOA | `true` | `false` |
+
+**Impact**:
+- Client UI showed features that server would deny (STANDARD plan)
+- Client UI hid features that server would allow (PRO plan)
+- User confusion and failed API requests
+
+**Fix Applied**:
+Aligned `fm.types.ts` PLAN_GATES with `fm.behavior.ts` (server is canonical source of truth).
+
+**Preventive Measure**:
+Added `scripts/lint-rbac-parity.ts` and `pnpm lint:rbac` command to catch future RBAC drift between server/client/lite.
+
+---
+
 ### ISSUE-001: Missing SessionProvider
 
 **Category**: Runtime Error  
