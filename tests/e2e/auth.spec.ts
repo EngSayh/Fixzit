@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { attemptLogin, fillLoginForm, getErrorLocator, loginSelectors } from './utils/auth';
-import { getRequiredTestCredentials, hasTestCredentials, type TestCredentials } from './utils/credentials';
+import { getRequiredTestCredentials, hasTestCredentials, getTestOrgIdOptional, type TestCredentials } from './utils/credentials';
 
 /**
  * Authentication E2E Tests
@@ -53,7 +53,9 @@ const NON_ADMIN_USER = HAS_NON_ADMIN_USER ? getNonAdminUser() : null;
 const PASSWORD_RESET_EMAIL = PRIMARY_USER?.email ?? '';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const DEFAULT_TIMEOUT = 30000;
-// AUDIT-2025-11-30: Removed unused TEST_ORG_ID constant (tenant checks not implemented in auth tests)
+// TEST_ORG_ID is optional - if set, RBAC tests verify tenant isolation
+// Uses getTestOrgIdOptional() for consistency with other E2E suites
+const TEST_ORG_ID = getTestOrgIdOptional();
 
 async function gotoWithRetry(page: Page, path: string, attempts = 3) {
   let lastError: unknown;

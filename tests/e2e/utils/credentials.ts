@@ -96,14 +96,25 @@ export function getRequiredTestCredentials(subRole: SubRoleKey): TestCredentials
  * Check if credentials are available for a specific sub-role.
  * Does not throw - returns boolean for conditional logic.
  *
+ * For ADMIN, also checks TEST_ADMIN_EMPLOYEE since getRequiredTestCredentials('ADMIN')
+ * requires it for employee-number login tests.
+ *
  * @param subRole - The sub-role key
- * @returns true if both email and password are configured
+ * @returns true if all required credentials for the role are configured
  */
 export function hasTestCredentials(subRole: SubRoleKey): boolean {
   const emailKey = `TEST_${subRole}_EMAIL`;
   const passwordKey = `TEST_${subRole}_PASSWORD`;
 
-  return Boolean(process.env[emailKey] && process.env[passwordKey]);
+  const hasBasic = Boolean(process.env[emailKey] && process.env[passwordKey]);
+
+  // ADMIN requires employee number for employee-number login test
+  if (subRole === 'ADMIN') {
+    const employeeKey = `TEST_${subRole}_EMPLOYEE`;
+    return hasBasic && Boolean(process.env[employeeKey]);
+  }
+
+  return hasBasic;
 }
 
 /**
