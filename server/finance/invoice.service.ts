@@ -14,7 +14,7 @@ class MockInvoiceService {
   async create(input: Record<string, unknown>) {
     const invoice = {
       id: this.nextId.toString(),
-      tenantId: input.tenantId,
+      orgId: input.orgId, // AUDIT-2025-11-30: Changed from tenantId to orgId
       number: `INV-${String(this.nextId).padStart(6, "0")}`,
       ...input,
       status: "DRAFT",
@@ -24,8 +24,8 @@ class MockInvoiceService {
     return invoice;
   }
 
-  async list(tenantId: string, q?: string, status?: string) {
-    let results = this.invoices.filter((inv) => inv.tenantId === tenantId);
+  async list(orgId: string, q?: string, status?: string) {
+    let results = this.invoices.filter((inv) => inv.orgId === orgId); // AUDIT-2025-11-30: Changed from tenantId
 
     if (status) {
       results = results.filter((inv) => inv.status === status);
@@ -66,11 +66,11 @@ export async function create(input: unknown, actorId?: string, _ip?: string) {
 
   await connectToDatabase();
 
-  const number = await nextInvoiceNumber(data.tenantId);
+  const number = await nextInvoiceNumber(data.orgId); // AUDIT-2025-11-30: Changed from tenantId
   const totals = computeTotals(data.lines);
 
   const invoice = await Invoice.create({
-    tenantId: data.tenantId,
+    orgId: data.orgId, // AUDIT-2025-11-30: Changed from tenantId to match model
     number,
     type: "SERVICE",
     status: "DRAFT",
@@ -100,10 +100,10 @@ export async function create(input: unknown, actorId?: string, _ip?: string) {
   return invoice.toObject();
 }
 
-export async function list(tenantId: string, q?: string, status?: string) {
+export async function list(orgId: string, q?: string, status?: string) {
   await connectToDatabase();
 
-  const filters: Record<string, unknown> = { tenantId };
+  const filters: Record<string, unknown> = { orgId }; // AUDIT-2025-11-30: Changed from tenantId
 
   if (status) {
     filters.status = status;
@@ -129,7 +129,7 @@ export async function list(tenantId: string, q?: string, status?: string) {
 }
 
 export async function post(
-  tenantId: string,
+  orgId: string, // AUDIT-2025-11-30: Changed from tenantId
   id: string,
   input: unknown,
   actorId?: string,
@@ -150,7 +150,7 @@ export async function post(
   };
 
   const invoice = await Invoice.findOneAndUpdate(
-    { _id: id, tenantId },
+    { _id: id, orgId }, // AUDIT-2025-11-30: Changed from tenantId
     {
       status,
       updatedBy: actorId ?? "system",
@@ -166,8 +166,8 @@ export async function post(
   return invoice;
 }
 
-async function nextInvoiceNumber(tenantId: string) {
-  const latest = (await Invoice.findOne({ tenantId })
+async function nextInvoiceNumber(orgId: string) {
+  const latest = (await Invoice.findOne({ orgId }) // AUDIT-2025-11-30: Changed from tenantId
     .sort({ createdAt: -1 })
     .select("number")
     .lean()) as { number: string } | null;

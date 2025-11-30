@@ -32,7 +32,36 @@ function warnIfMissing(name, msg) {
 requireFalse('SKIP_ENV_VALIDATION', 'SKIP_ENV_VALIDATION must be false in production');
 requireFalse('DISABLE_MONGODB_FOR_BUILD', 'DISABLE_MONGODB_FOR_BUILD must be false in production');
 
+// SECURITY: Validate critical auth secrets in production runtime
 if (isProdRuntime) {
+  // NEXTAUTH_SECRET (or AUTH_SECRET) is required for session signing
+  // Without this, JWTs cannot be signed/verified securely
+  const authSecretConfigured = Boolean(env.NEXTAUTH_SECRET || env.AUTH_SECRET);
+  if (!authSecretConfigured) {
+    violations.push(
+      'NEXTAUTH_SECRET (or AUTH_SECRET) is required in production for secure session signing. ' +
+      'Generate a secure value with: openssl rand -base64 32'
+    );
+  }
+  
+  // Warn if using known placeholder values (defense in depth)
+  const secretValue = env.NEXTAUTH_SECRET || env.AUTH_SECRET || '';
+  const insecurePlaceholders = [
+    'your-secret-key',
+    'your-secret-key-here',
+    'change-me',
+    'supersecret',
+    'supersecretjwt',
+    'secret',
+    'test',
+  ];
+  if (insecurePlaceholders.some(p => secretValue.toLowerCase().includes(p))) {
+    violations.push(
+      'NEXTAUTH_SECRET contains a known insecure placeholder value. ' +
+      'Replace with a cryptographically secure random string: openssl rand -base64 32'
+    );
+  }
+
   if (!tapConfigured && !paytabsConfigured) {
     warnings.push(
       'No payment provider configured: set PayTabs (PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY) or Tap (TAP_PUBLIC_KEY, TAP_WEBHOOK_SECRET)',

@@ -9,6 +9,62 @@ const normalizeRole = (role?: string | null): string | null => {
   return typeof role === "string" ? role.trim().toUpperCase() : null;
 };
 
+/**
+ * 🔒 STRICT v4.1: Get effective role for permission checks
+ * 
+ * For users with role: TEAM_MEMBER + subRole: HR_OFFICER/FINANCE_OFFICER/etc,
+ * returns the subRole as the effective role for permission checks.
+ * 
+ * @param role - Primary role from session
+ * @param subRole - Sub-role from session (for TEAM_MEMBER specialization)
+ * @returns Effective role to use for permission checks
+ */
+export function getEffectiveRole(
+  role?: string | null,
+  subRole?: string | null
+): string | null {
+  // If subRole is set, it takes precedence for permission checks
+  // This handles TEAM_MEMBER + HR_OFFICER, TEAM_MEMBER + FINANCE_OFFICER, etc.
+  if (subRole) {
+    const normalizedSubRole = normalizeRole(subRole);
+    if (normalizedSubRole) {
+      return normalizedSubRole;
+    }
+  }
+  return normalizeRole(role);
+}
+
+/**
+ * 🔒 STRICT v4.1: Check if role matches allowed roles (with subRole support)
+ * 
+ * @param role - Primary role from session
+ * @param subRole - Sub-role from session
+ * @param allowedRoles - Array of allowed roles
+ * @returns true if role or subRole matches any allowed role
+ */
+export function hasAllowedRole(
+  role?: string | null,
+  subRole?: string | null,
+  allowedRoles: readonly string[] = []
+): boolean {
+  const normalizedRole = normalizeRole(role);
+  const normalizedSubRole = normalizeRole(subRole);
+  
+  const allowedSet = new Set(allowedRoles.map(r => r.toUpperCase()));
+  
+  // Check if direct role matches
+  if (normalizedRole && allowedSet.has(normalizedRole)) {
+    return true;
+  }
+  
+  // Check if subRole matches (for TEAM_MEMBER + HR_OFFICER, etc.)
+  if (normalizedSubRole && allowedSet.has(normalizedSubRole)) {
+    return true;
+  }
+  
+  return false;
+}
+
 const buildRoleChecker = (
   allowed: readonly UserRoleType[],
   legacy: readonly string[] = [],

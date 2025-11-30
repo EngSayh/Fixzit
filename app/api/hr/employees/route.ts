@@ -4,6 +4,15 @@ import { Types } from "mongoose";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
 import { EmployeeService } from "@/server/services/hr/employee.service";
+import { hasAllowedRole } from "@/lib/auth/role-guards";
+
+// Define session user type with subRole support
+interface SessionUser {
+  role?: string;
+  subRole?: string | null;
+  orgId?: string;
+}
+
 // GET /api/hr/employees - List all employees for the organization
 export async function GET(req: NextRequest) {
   try {
@@ -13,8 +22,10 @@ export async function GET(req: NextRequest) {
     }
 
     // 🔒 STRICT v4.1: HR endpoints require HR, HR Officer, or Admin role
+    // Now supports TEAM_MEMBER + subRole: HR_OFFICER pattern
     const allowedRoles = ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'HR', 'HR_OFFICER'];
-    if (!session.user.role || !allowedRoles.includes(session.user.role)) {
+    const user = session.user as SessionUser;
+    if (!hasAllowedRole(user.role, user.subRole, allowedRoles)) {
       return NextResponse.json(
         { error: "Forbidden: HR access required" },
         { status: 403 }
