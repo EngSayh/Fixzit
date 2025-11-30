@@ -266,6 +266,29 @@ jobs:
           
           echo "✅ All required E2E secrets are configured"
 
+      # AUDIT-2025-11-30: Warn about optional employee secrets that may be needed in the future
+      # These are not currently required by tests, but alerting now prevents late failures
+      - name: Check optional employee secrets
+        env:
+          TEST_FINANCE_OFFICER_EMPLOYEE: ${{ secrets.TEST_FINANCE_OFFICER_EMPLOYEE }}
+          TEST_HR_OFFICER_EMPLOYEE: ${{ secrets.TEST_HR_OFFICER_EMPLOYEE }}
+          TEST_SUPPORT_AGENT_EMPLOYEE: ${{ secrets.TEST_SUPPORT_AGENT_EMPLOYEE }}
+          TEST_OPERATIONS_MANAGER_EMPLOYEE: ${{ secrets.TEST_OPERATIONS_MANAGER_EMPLOYEE }}
+          TEST_TEAM_MEMBER_EMPLOYEE: ${{ secrets.TEST_TEAM_MEMBER_EMPLOYEE }}
+        run: |
+          missing=()
+          for key in TEST_FINANCE_OFFICER_EMPLOYEE TEST_HR_OFFICER_EMPLOYEE TEST_SUPPORT_AGENT_EMPLOYEE TEST_OPERATIONS_MANAGER_EMPLOYEE TEST_TEAM_MEMBER_EMPLOYEE; do
+            if [ -z "${!key}" ]; then
+              missing+=("$key")
+            fi
+          done
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::notice::Optional employee numbers not configured: ${missing[*]}. Tests will skip employee-number login for these roles."
+          else
+            echo "✅ All optional employee numbers are configured"
+          fi
+
       # AUDIT-2025-11-30: Added fork guard to prevent hard-fail on external PRs
       # Forked PRs can't access secrets, so E2E tests with RBAC credentials would fail
       # External contributors still get lint/typecheck/build feedback from other workflows

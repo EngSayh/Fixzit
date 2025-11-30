@@ -8,21 +8,28 @@ import {
   type SubRoleKey,
 } from './utils/credentials';
 
-// Offline-safe defaults for local/offline runs. CI should set real secrets.
-const OFFLINE_DEFAULTS: Record<SubRoleKey, { email: string; password: string }> = {
-  FINANCE_OFFICER: { email: 'finance@offline.test', password: 'Test@1234' },
-  HR_OFFICER: { email: 'hr@offline.test', password: 'Test@1234' },
-  SUPPORT_AGENT: { email: 'support@offline.test', password: 'Test@1234' },
-  OPERATIONS_MANAGER: { email: 'ops@offline.test', password: 'Test@1234' },
-  TEAM_MEMBER: { email: 'member@offline.test', password: 'Test@1234' },
-  ADMIN: { email: 'admin@offline.test', password: 'Test@1234' },
-};
+// AUDIT-2025-11-30: Offline defaults MUST be explicitly enabled
+// Default: fail-fast when secrets are missing (CI behavior)
+// Set ALLOW_OFFLINE_E2E_DEFAULTS=true for local smoke tests without real credentials
+const USE_OFFLINE_DEFAULTS = process.env.ALLOW_OFFLINE_E2E_DEFAULTS === 'true';
 
-for (const [role, creds] of Object.entries(OFFLINE_DEFAULTS) as Array<[SubRoleKey, { email: string; password: string }]>) {
-  const emailKey = `TEST_${role}_EMAIL`;
-  const passwordKey = `TEST_${role}_PASSWORD`;
-  if (!process.env[emailKey]) process.env[emailKey] = creds.email;
-  if (!process.env[passwordKey]) process.env[passwordKey] = creds.password;
+if (USE_OFFLINE_DEFAULTS) {
+  console.warn('[subrole-api-access.spec.ts] OFFLINE DEFAULTS ENABLED - tests will use dummy credentials!');
+  const OFFLINE_DEFAULTS: Record<SubRoleKey, { email: string; password: string }> = {
+    FINANCE_OFFICER: { email: 'finance@offline.test', password: 'Test@1234' },
+    HR_OFFICER: { email: 'hr@offline.test', password: 'Test@1234' },
+    SUPPORT_AGENT: { email: 'support@offline.test', password: 'Test@1234' },
+    OPERATIONS_MANAGER: { email: 'ops@offline.test', password: 'Test@1234' },
+    TEAM_MEMBER: { email: 'member@offline.test', password: 'Test@1234' },
+    ADMIN: { email: 'admin@offline.test', password: 'Test@1234' },
+  };
+
+  for (const [role, creds] of Object.entries(OFFLINE_DEFAULTS) as Array<[SubRoleKey, { email: string; password: string }]>) {
+    const emailKey = `TEST_${role}_EMAIL`;
+    const passwordKey = `TEST_${role}_PASSWORD`;
+    if (!process.env[emailKey]) process.env[emailKey] = creds.email;
+    if (!process.env[passwordKey]) process.env[passwordKey] = creds.password;
+  }
 }
 
 /**
