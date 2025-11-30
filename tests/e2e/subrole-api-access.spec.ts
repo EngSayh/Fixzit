@@ -362,7 +362,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.invoices);
-      expectAllowedOrEmpty(response, API_ENDPOINTS.finance.invoices, 'FINANCE_OFFICER');
+      expectAllowed(response, API_ENDPOINTS.finance.invoices, 'FINANCE_OFFICER');
     });
 
     test('can access finance budgets API', async ({ page, request }) => {
@@ -370,7 +370,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.budgets);
-      expectAllowedOrEmpty(response, API_ENDPOINTS.finance.budgets, 'FINANCE_OFFICER');
+      expectAllowed(response, API_ENDPOINTS.finance.budgets, 'FINANCE_OFFICER');
     });
 
     test('can access finance expenses API', async ({ page, request }) => {
@@ -378,7 +378,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.expenses);
-      expectAllowedOrEmpty(response, API_ENDPOINTS.finance.expenses, 'FINANCE_OFFICER');
+      expectAllowed(response, API_ENDPOINTS.finance.expenses, 'FINANCE_OFFICER');
     });
 
     test('CANNOT access HR payroll API', async ({ page, request }) => {
@@ -415,7 +415,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.employees);
-      expectAllowedOrEmpty(response, API_ENDPOINTS.hr.employees, 'HR_OFFICER');
+      expectAllowed(response, API_ENDPOINTS.hr.employees, 'HR_OFFICER');
     });
 
     test('can access HR payroll API', async ({ page, request }) => {
@@ -423,7 +423,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.payroll);
-      expectAllowedOrEmpty(response, API_ENDPOINTS.hr.payroll, 'HR_OFFICER');
+      expectAllowed(response, API_ENDPOINTS.hr.payroll, 'HR_OFFICER');
     });
 
     test('can access HR attendance API', async ({ page, request }) => {
@@ -431,7 +431,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.attendance);
-      expectAllowedOrEmpty(response, API_ENDPOINTS.hr.attendance, 'HR_OFFICER');
+      expectAllowed(response, API_ENDPOINTS.hr.attendance, 'HR_OFFICER');
     });
 
     test('CANNOT access finance invoices API', async ({ page, request }) => {
@@ -468,7 +468,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.support.tickets);
-      expectAllowedOrEmpty(response, API_ENDPOINTS.support.tickets, 'SUPPORT_AGENT');
+      expectAllowed(response, API_ENDPOINTS.support.tickets, 'SUPPORT_AGENT');
     });
 
     test('can access knowledge base API', async ({ page, request }) => {
@@ -476,7 +476,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for SUPPORT_AGENT: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.support.knowledgeBase);
-      expectAllowedOrEmpty(response, API_ENDPOINTS.support.knowledgeBase, 'SUPPORT_AGENT');
+      expectAllowed(response, API_ENDPOINTS.support.knowledgeBase, 'SUPPORT_AGENT');
     });
 
     test('CANNOT access HR payroll API', async ({ page, request }) => {
@@ -513,7 +513,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.workOrders.list);
-      expectAllowedOrEmpty(response, API_ENDPOINTS.workOrders.list, 'OPERATIONS_MANAGER');
+      expectAllowed(response, API_ENDPOINTS.workOrders.list, 'OPERATIONS_MANAGER');
     });
 
     test('can access properties API', async ({ page, request }) => {
@@ -521,7 +521,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.properties.list);
-      expectAllowedOrEmpty(response, API_ENDPOINTS.properties.list, 'OPERATIONS_MANAGER');
+      expectAllowed(response, API_ENDPOINTS.properties.list, 'OPERATIONS_MANAGER');
     });
 
     test('can access marketplace vendors API', async ({ page, request }) => {
@@ -529,7 +529,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for OPERATIONS_MANAGER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.marketplace.vendors);
-      expectAllowedOrEmpty(response, API_ENDPOINTS.marketplace.vendors, 'OPERATIONS_MANAGER');
+      expectAllowed(response, API_ENDPOINTS.marketplace.vendors, 'OPERATIONS_MANAGER');
     });
 
     test('CANNOT access HR payroll API', async ({ page, request }) => {
@@ -592,11 +592,10 @@ test.describe('Sub-Role API Access Control', () => {
       // TEAM_MEMBER base role should have read access to work orders
       // RBAC v4.1: TEAM_MEMBER can view work orders assigned to them or their properties
       // 
-      // CRITICAL: We MUST verify this is allowed (200 or 404), NOT forbidden (403)
-      // The previous test accepted [200, 403, 404] which was a no-op that couldn't
-      // detect either over-permission or under-permission.
+      // STRICT ASSERTION: We require 200 (not 404) to prove the endpoint exists and RBAC allows access.
+      // If the endpoint is missing or returns 404, this test will fail - as intended.
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.workOrders.list);
-      expectAllowedOrEmpty(response, API_ENDPOINTS.workOrders.list, 'TEAM_MEMBER');
+      expectAllowed(response, API_ENDPOINTS.workOrders.list, 'TEAM_MEMBER');
     });
 
     test('CANNOT access admin users API', async ({ page, request }) => {
@@ -683,7 +682,8 @@ test.describe('Sub-Role API Access Control', () => {
       const result = await attemptLogin(page, credentials.email, credentials.password);
       expect(result.success, `Login failed for ADMIN: ${result.errorText || 'unknown'}`).toBeTruthy();
 
-      // Admin should have access to all endpoints
+      // Admin should have access to all endpoints - STRICT 200 required
+      // Missing routes or 404 responses indicate configuration issues that must be fixed
       const allEndpoints = [
         API_ENDPOINTS.finance.invoices,
         API_ENDPOINTS.hr.employees,
@@ -695,7 +695,7 @@ test.describe('Sub-Role API Access Control', () => {
 
       for (const endpoint of allEndpoints) {
         const response = await makeAuthenticatedRequest(page, request, endpoint);
-        expectAllowedOrEmpty(response, endpoint, 'ADMIN');
+        expectAllowed(response, endpoint, 'ADMIN');
       }
     });
 
@@ -704,7 +704,7 @@ test.describe('Sub-Role API Access Control', () => {
       expect(result.success, `Login failed for ADMIN: ${result.errorText || 'unknown'}`).toBeTruthy();
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.admin.users);
-      expectAllowedOrEmpty(response, API_ENDPOINTS.admin.users, 'ADMIN');
+      expectAllowed(response, API_ENDPOINTS.admin.users, 'ADMIN');
     });
   });
 
@@ -717,9 +717,9 @@ test.describe('Sub-Role API Access Control', () => {
       const result = await attemptLogin(page, credentials.email, credentials.password);
       expect(result.success, `Login failed for FINANCE_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
-      // GET should be allowed
+      // GET should be allowed - STRICT 200 required
       const getResponse = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.finance.invoices, 'GET');
-      expectAllowedOrEmpty(getResponse, API_ENDPOINTS.finance.invoices, 'FINANCE_OFFICER');
+      expectAllowed(getResponse, API_ENDPOINTS.finance.invoices, 'FINANCE_OFFICER');
 
       // DELETE should be forbidden (only ADMIN can delete)
       // NOTE: We test with a known non-existent ID to ensure we're testing permissions, not data
@@ -746,9 +746,9 @@ test.describe('Sub-Role API Access Control', () => {
       const result = await attemptLogin(page, credentials.email, credentials.password);
       expect(result.success, `Login failed for HR_OFFICER: ${result.errorText || 'unknown'}`).toBeTruthy();
 
-      // GET should be allowed
+      // GET should be allowed - STRICT 200 required
       const getResponse = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.hr.payroll, 'GET');
-      expectAllowedOrEmpty(getResponse, API_ENDPOINTS.hr.payroll, 'HR_OFFICER');
+      expectAllowed(getResponse, API_ENDPOINTS.hr.payroll, 'HR_OFFICER');
 
       // POST to approve endpoint - HR_OFFICER may or may not have approve permission
       // depending on RBAC v4.1 configuration for action-level permissions
@@ -764,15 +764,22 @@ test.describe('Sub-Role API Access Control', () => {
       
       const approveStatus = approveResponse.status();
       
-      // Valid outcomes:
-      // 200: HR_OFFICER has approve permission (document this in RBAC matrix)
-      // 403: HR_OFFICER lacks approve permission (expected based on current RBAC)
-      // 404: Endpoint doesn't exist yet (acceptable during development)
-      // 400: Payload validation failed (still tells us we got past auth/RBAC)
+      // RBAC v4.1 MATRIX: HR_OFFICER should NOT have payroll approve permission
+      // This is an action-level permission that requires explicit grant.
+      // 
+      // Expected: 403 Forbidden
+      // 
+      // If this test fails with 200, the RBAC matrix has changed and this test
+      // should be updated to expect 200 (with documentation of the change).
+      // 
+      // If this test fails with 404, the endpoint may not exist yet - acceptable
+      // during development but should be tracked.
       //
       // NOT acceptable:
-      // 401: Authentication failed (login issue, not RBAC test)
-      // 500: Server error (backend bug)
+      // - 401: Authentication failed (login issue)
+      // - 500: Server error (backend bug)
+      // - 400: We send valid payload; 400 shouldn't happen
+      
       expect(
         approveStatus,
         `HR_OFFICER payroll approve got 401 - authentication issue, not RBAC`
@@ -783,13 +790,21 @@ test.describe('Sub-Role API Access Control', () => {
         `HR_OFFICER payroll approve got 500 - server error`
       ).not.toBe(500);
       
-      // Log the actual behavior for RBAC documentation
-      if (approveStatus === 200) {
-        console.log(`📝 RBAC: HR_OFFICER CAN approve payroll (status 200)`);
-      } else if (approveStatus === 403) {
-        console.log(`📝 RBAC: HR_OFFICER CANNOT approve payroll (status 403) - as expected`);
-      } else {
-        console.log(`📝 RBAC: Payroll approve endpoint returned ${approveStatus}`);
+      // Primary assertion: HR_OFFICER should be denied (403)
+      // 404 is acceptable if endpoint is not yet implemented
+      expect(
+        [403, 404].includes(approveStatus),
+        `HR_OFFICER payroll approve got ${approveStatus}.\n` +
+        `Expected 403 (Forbidden - HR_OFFICER lacks approve permission per RBAC v4.1 matrix).\n` +
+        `If 200: RBAC matrix may have changed - verify and update test expectation.\n` +
+        `If 400: Check payload format requirements.`
+      ).toBe(true);
+      
+      // Log the actual behavior for audit trail
+      if (approveStatus === 403) {
+        console.log(`✅ RBAC: HR_OFFICER correctly denied payroll approve (403)`);
+      } else if (approveStatus === 404) {
+        console.log(`⚠️ RBAC: Payroll approve endpoint not found (404) - track implementation`);
       }
     });
   });
