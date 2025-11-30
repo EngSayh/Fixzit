@@ -355,20 +355,45 @@ async function expectAllowedWithBodyCheck(
 ): Promise<void> {
   const status = response.status();
 
-  // Local enforcement: if org_id is not provided and we're not in CI, fail loudly unless explicitly allowed.
+  // AUDIT-2025-12-01: Fixed inverted logic that was allowing CI to skip tenant validation
+  //
+  // CORRECT BEHAVIOR:
+  // - Internal CI (non-fork): TEST_ORG_ID is REQUIRED - fail loudly if missing
+  // - Fork PRs: Skip gracefully (forks can't access secrets)
+  // - Local dev: Require unless ALLOW_MISSING_TEST_ORG_ID=true
+  //
+  // The previous logic was inverted: it failed locally but warned in CI,
+  // which meant tenant isolation regressions could slip through in CI.
   if (!options?.expectedOrgId) {
-    if (!IS_CI && !ALLOW_MISSING_TEST_ORG_ID && !IS_FORK_OR_MISSING_SECRETS) {
+    if (IS_FORK_OR_MISSING_SECRETS) {
+      // Fork PRs: graceful skip (forks can't access secrets)
+      console.warn(
+        '⚠️  Tenant validation skipped: Fork/missing secrets detected. ' +
+        'This is expected for external contributor PRs.'
+      );
+    } else if (IS_CI) {
+      // Internal CI: MUST have TEST_ORG_ID - fail hard
+      expect(
+        false,
+        `TEST_ORG_ID is REQUIRED in CI for tenant validation.\n` +
+        `Without TEST_ORG_ID, cross-tenant data leaks would not be detected.\n` +
+        `\n` +
+        `ACTION: Configure TEST_ORG_ID in GitHub Actions secrets.\n` +
+        `See env.example for documentation.`
+      ).toBe(true);
+    } else if (ALLOW_MISSING_TEST_ORG_ID) {
+      // Local dev with explicit bypass
+      console.warn(
+        '⚠️  Tenant validation bypassed locally via ALLOW_MISSING_TEST_ORG_ID=true. ' +
+        'Set TEST_ORG_ID for full tenant isolation testing.'
+      );
+    } else {
+      // Local dev without bypass - fail to encourage proper setup
       expect(
         false,
         `TEST_ORG_ID is required for tenant validation in expectAllowedWithBodyCheck.\n` +
         `Set TEST_ORG_ID in .env.local or export ALLOW_MISSING_TEST_ORG_ID=true to bypass locally.`
       ).toBe(true);
-    } else {
-      console.warn(
-        '⚠️  Tenant validation skipped: TEST_ORG_ID not set. ' +
-        'Set TEST_ORG_ID (preferred) or ALLOW_MISSING_TEST_ORG_ID=true to acknowledge the skip.'
-      );
-      // Continue without org_id validation if explicitly bypassed or in fork/missing secrets scenario
     }
   }
 

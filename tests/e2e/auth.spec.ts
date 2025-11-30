@@ -402,6 +402,7 @@ test.describe('Authentication', () => {
       }
 
       // Tenancy guardrail: ensure returned data is scoped
+      // AUDIT-2025-11-30: Check BOTH org_id (snake_case) and orgId (camelCase)
       let body: unknown;
       try {
         body = await response.json();
@@ -413,9 +414,16 @@ test.describe('Authentication', () => {
       }
 
       const verifyOrg = (value: unknown) => {
-        if (value && typeof value === 'object' && 'org_id' in (value as Record<string, unknown>)) {
-          expect((value as { org_id?: unknown }).org_id, 'org_id must match TEST_ORG_ID for tenancy isolation')
-            .toBe(TEST_ORG_ID);
+        if (value && typeof value === 'object') {
+          const v = value as Record<string, unknown>;
+          // Check both org_id and orgId - Mongoose uses camelCase, some APIs use snake_case
+          const foundOrgId = v.org_id ?? v.orgId;
+          if (foundOrgId !== undefined) {
+            expect(
+              String(foundOrgId),
+              `org_id/orgId must match TEST_ORG_ID for tenancy isolation. Expected ${TEST_ORG_ID}, got ${foundOrgId}`
+            ).toBe(TEST_ORG_ID);
+          }
         }
       };
 

@@ -636,9 +636,12 @@ jobs:
           NEXTAUTH_SKIP_CSRF_CHECK: 'true'
           AUTH_TRUST_HOST: 'true'
           
-          # Database
+          # Database - AUDIT-2025-12-01: Changed from 'true' to 'false'
+          # E2E tests MUST hit real MongoDB to validate RBAC/tenancy correctly.
+          # With offline mode, API handlers return empty data, making tests pass
+          # without actually validating permissions or tenant isolation.
           MONGODB_URI: mongodb://localhost:27017/fixzit_test
-          ALLOW_OFFLINE_MONGODB: 'true'
+          ALLOW_OFFLINE_MONGODB: 'false'
           
           # Test environment
           NODE_ENV: test

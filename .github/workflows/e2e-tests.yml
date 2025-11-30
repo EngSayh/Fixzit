@@ -312,9 +312,12 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ env.GOOGLE_CLIENT_SECRET }}
           
-          # Database - use offline mode with mock sessions
+          # Database - require real MongoDB for meaningful RBAC/tenancy testing
+          # AUDIT-2025-11-30: Changed from 'true' to 'false' to ensure E2E tests hit real DB
+          # With offline mode enabled, API handlers return empty data, making RBAC/tenancy
+          # checks validate empty payloads - allowing regressions to slip through undetected.
           MONGODB_URI: mongodb://localhost:27017/fixzit_test
-          ALLOW_OFFLINE_MONGODB: 'true'
+          ALLOW_OFFLINE_MONGODB: 'false'
           PLAYWRIGHT_TESTS: 'true'
           
           # Test environment
