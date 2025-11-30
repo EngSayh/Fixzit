@@ -891,12 +891,21 @@ test.describe('Sub-Role API Access Control', () => {
 
       const response = await makeAuthenticatedRequest(page, request, API_ENDPOINTS.support.tickets);
       
-      // AUDIT-2025-11-30: Use body check to verify tenant scoping
+      // AUDIT-2025-11-30: Use body check to verify tenant scoping + row-level structure
       await expectAllowedWithBodyCheck(
         response,
         API_ENDPOINTS.support.tickets,
         'SUPPORT_AGENT',
-        { expectedOrgId: getTestOrgIdOptional(), requireOrgIdPresence: true }
+        {
+          expectedOrgId: getTestOrgIdOptional(),
+          requireOrgIdPresence: true,
+          validate: (body) => {
+            expect(Array.isArray(body), 'Support tickets list should return an array').toBe(true);
+            if (Array.isArray(body) && body.length > 0) {
+              validateSupportTicketStructure(body);
+            }
+          }
+        }
       );
     });
 
