@@ -32,6 +32,89 @@ export enum Plan {
   ENTERPRISE = "ENTERPRISE",
 }
 
+/**
+ * Action types for RBAC permission checks.
+ * Client-safe subset of actions commonly needed for UI permission checks.
+ */
+export type Action =
+  | "view"
+  | "create"
+  | "update"
+  | "delete"
+  | "comment"
+  | "upload_media"
+  | "assign"
+  | "schedule"
+  | "dispatch"
+  | "submit_estimate"
+  | "attach_quote"
+  | "request_approval"
+  | "approve"
+  | "reject"
+  | "request_changes"
+  | "start_work"
+  | "pause_work"
+  | "complete_work"
+  | "close"
+  | "reopen"
+  | "export"
+  | "share"
+  | "link_finance"
+  | "link_hr"
+  | "link_marketplace"
+  | "post_finance";
+
+/**
+ * Plan-based feature gates for subscription tiers.
+ * Maps plans to submodules that are enabled/disabled.
+ */
+export const PLAN_GATES: Record<Plan, Partial<Record<SubmoduleKey, boolean>>> = {
+  [Plan.STARTER]: {
+    WO_CREATE: true,
+    WO_TRACK_ASSIGN: true,
+    WO_PM: false,
+    WO_SERVICE_HISTORY: true,
+    PROP_LIST: true,
+    PROP_UNITS_TENANTS: true,
+    PROP_LEASES: false,
+    PROP_INSPECTIONS: false,
+    PROP_DOCUMENTS: true,
+  },
+  [Plan.STANDARD]: {
+    WO_CREATE: true,
+    WO_TRACK_ASSIGN: true,
+    WO_PM: true,
+    WO_SERVICE_HISTORY: true,
+    PROP_LIST: true,
+    PROP_UNITS_TENANTS: true,
+    PROP_LEASES: true,
+    PROP_INSPECTIONS: true,
+    PROP_DOCUMENTS: true,
+  },
+  [Plan.PRO]: {
+    WO_CREATE: true,
+    WO_TRACK_ASSIGN: true,
+    WO_PM: true,
+    WO_SERVICE_HISTORY: true,
+    PROP_LIST: true,
+    PROP_UNITS_TENANTS: true,
+    PROP_LEASES: true,
+    PROP_INSPECTIONS: true,
+    PROP_DOCUMENTS: true,
+  },
+  [Plan.ENTERPRISE]: {
+    WO_CREATE: true,
+    WO_TRACK_ASSIGN: true,
+    WO_PM: true,
+    WO_SERVICE_HISTORY: true,
+    PROP_LIST: true,
+    PROP_UNITS_TENANTS: true,
+    PROP_LEASES: true,
+    PROP_INSPECTIONS: true,
+    PROP_DOCUMENTS: true,
+  },
+};
+
 export enum ModuleKey {
   DASHBOARD = "DASHBOARD",
   WORK_ORDERS = "WORK_ORDERS",
@@ -193,4 +276,161 @@ export function inferSubRoleFromRole(
     default:
       return undefined;
   }
+}
+
+/* =========================
+ * Role-Action Permissions Matrix (Client-Safe)
+ * ========================= */
+
+/** Actions that require technician assignment */
+const TECHNICIAN_ASSIGNED_ACTIONS: Action[] = [
+  "start_work",
+  "pause_work",
+  "complete_work",
+  "submit_estimate",
+  "attach_quote",
+];
+
+type ActionsBySubmodule = Partial<Record<SubmoduleKey, Action[]>>;
+
+/**
+ * Role-based action permissions for each submodule.
+ * Defines what actions each role can perform on each submodule.
+ */
+export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
+  [Role.SUPER_ADMIN]: {
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: [
+      "view", "assign", "schedule", "dispatch", "update", "export",
+      "share", "request_approval", "approve", "post_finance",
+    ],
+    WO_PM: ["view", "create", "update", "export"],
+    WO_SERVICE_HISTORY: ["view", "export"],
+    PROP_LIST: ["view", "create", "update", "delete", "export"],
+    PROP_UNITS_TENANTS: ["view", "update", "export"],
+    PROP_LEASES: ["view", "create", "update", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "export"],
+    PROP_DOCUMENTS: ["view", "create", "update", "export"],
+  },
+  [Role.ADMIN]: {
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: [
+      "view", "assign", "schedule", "dispatch", "update", "export",
+      "share", "request_approval", "approve", "post_finance",
+    ],
+    WO_PM: ["view", "create", "update", "export"],
+    WO_SERVICE_HISTORY: ["view", "export"],
+    PROP_LIST: ["view", "create", "update", "delete", "export"],
+    PROP_UNITS_TENANTS: ["view", "update", "export"],
+    PROP_LEASES: ["view", "create", "update", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "export"],
+    PROP_DOCUMENTS: ["view", "create", "update", "export"],
+  },
+  [Role.CORPORATE_OWNER]: {
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: ["view", "approve", "reject", "request_changes", "export"],
+    WO_PM: ["view"],
+    WO_SERVICE_HISTORY: ["view", "export"],
+    PROP_LIST: ["view", "create", "update", "export"],
+    PROP_UNITS_TENANTS: ["view", "update", "export"],
+    PROP_LEASES: ["view", "create", "update", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "export"],
+    PROP_DOCUMENTS: ["view", "create", "update", "export"],
+  },
+  [Role.TEAM_MEMBER]: {
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: [
+      "view", "assign", "update", "export", "post_finance",
+      "request_approval", "approve",
+    ],
+    WO_PM: ["view", "create", "update", "export"],
+  },
+  [Role.TECHNICIAN]: {
+    WO_CREATE: ["view", "comment"],
+    WO_TRACK_ASSIGN: [
+      "view", "update", ...TECHNICIAN_ASSIGNED_ACTIONS, "upload_media",
+    ],
+    WO_PM: ["view", "update"],
+    WO_SERVICE_HISTORY: ["view"],
+  },
+  [Role.PROPERTY_MANAGER]: {
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: [
+      "view", "assign", "schedule", "dispatch", "update",
+      "export", "share", "approve",
+    ],
+    WO_PM: ["view", "export"],
+    WO_SERVICE_HISTORY: ["view", "export"],
+    PROP_LIST: ["view", "update", "export"],
+    PROP_UNITS_TENANTS: ["view", "update", "export"],
+    PROP_LEASES: ["view", "export"],
+    PROP_INSPECTIONS: ["view", "create", "update", "export"],
+    PROP_DOCUMENTS: ["view", "create", "update", "export"],
+  },
+  [Role.TENANT]: {
+    WO_CREATE: ["view", "create", "upload_media", "comment"],
+    WO_TRACK_ASSIGN: ["view", "comment"],
+    WO_PM: ["view"],
+    WO_SERVICE_HISTORY: ["view"],
+    PROP_LIST: ["view"],
+    PROP_UNITS_TENANTS: ["view"],
+  },
+  [Role.VENDOR]: {
+    WO_CREATE: ["view", "comment"],
+    WO_TRACK_ASSIGN: [
+      "view", "submit_estimate", "attach_quote", "upload_media", "complete_work",
+    ],
+    WO_PM: ["view"],
+    WO_SERVICE_HISTORY: ["view"],
+  },
+  [Role.GUEST]: {},
+};
+
+/* =========================
+ * Client-Safe Permission Context & Check
+ * ========================= */
+
+/**
+ * Simplified resource context for client-side permission checks.
+ * Does not include server-only fields like vendorId, assignedProperties.
+ */
+export type ClientResourceCtx = {
+  role: Role;
+  subRole?: SubRole;
+  plan: Plan;
+  userId: string;
+  orgId?: string;
+  propertyId?: string;
+  isOrgMember: boolean;
+  isTechnicianAssigned?: boolean;
+};
+
+/**
+ * Client-safe permission check function.
+ * Simplified version of can() for UI rendering decisions.
+ */
+export function canClient(
+  submodule: SubmoduleKey,
+  action: Action,
+  ctx: ClientResourceCtx,
+): boolean {
+  // 1) Plan gate
+  if (!PLAN_GATES[ctx.plan]?.[submodule]) return false;
+
+  // 2) Role action allow-list
+  const allowed = ROLE_ACTIONS[ctx.role]?.[submodule];
+  if (!allowed?.includes(action)) return false;
+
+  // 3) Basic org membership check (Super Admin bypasses)
+  if (!ctx.isOrgMember && ctx.role !== Role.SUPER_ADMIN) return false;
+
+  // 4) Technician assignment check for specific actions
+  if (
+    ctx.role === Role.TECHNICIAN &&
+    TECHNICIAN_ASSIGNED_ACTIONS.includes(action)
+  ) {
+    return !!ctx.isTechnicianAssigned;
+  }
+
+  return true;
 }

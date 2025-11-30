@@ -5,13 +5,15 @@
  * 🟥 SECURITY FIX: Now properly integrates with NextAuth session and org context
  * - isOrgMember is derived from actual session data (not hardcoded)
  * - Plan defaults to STARTER (fail-safe) instead of PRO
+ * 
+ * 🟢 CLIENT-SAFE: Imports from fm-lite.ts to avoid Mongoose bundle leak
  */
 
 "use client";
 
 import { useSession } from "next-auth/react";
 import {
-  can,
+  canClient,
   Role,
   SubmoduleKey,
   Action,
@@ -21,7 +23,8 @@ import {
   normalizeRole,
   normalizeSubRole,
   inferSubRoleFromRole,
-} from "@/domain/fm/fm.behavior";
+  type ClientResourceCtx,
+} from "@/domain/fm/fm-lite";
 import { useCurrentOrg } from "@/contexts/CurrentOrgContext";
 
 export interface FMPermissionContext {
@@ -94,18 +97,19 @@ export function useFMPermissions() {
     },
   ): boolean => {
     // Check against the resource's org or the user's org
-    // Empty string indicates "no org" which will fail org membership check
-    const targetOrgId = options?.orgId ?? ctx.orgId ?? "";
+    const targetOrgId = options?.orgId ?? ctx.orgId;
 
-    return can(submodule, action, {
+    const clientCtx: ClientResourceCtx = {
       role: ctx.role,
+      subRole: ctx.subRole,
+      plan: ctx.plan,
+      userId: ctx.userId,
       orgId: targetOrgId,
       propertyId: options?.propertyId,
-      userId: ctx.userId,
-      plan: ctx.plan,
-      isOrgMember: isMemberOf(targetOrgId), // 🟥 FIXED: Recompute for target org
-      subRole: ctx.subRole,
-    });
+      isOrgMember: isMemberOf(targetOrgId),
+    };
+
+    return canClient(submodule, action, clientCtx);
   };
 
   /**

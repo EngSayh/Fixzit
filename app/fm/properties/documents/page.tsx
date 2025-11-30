@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, FileText, Upload, RefreshCw, FolderOpen } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useFMPermissions } from "@/hooks/useFMPermissions";
-import { SubmoduleKey } from "@/domain/fm/fm.behavior";
+import { SubmoduleKey } from "@/domain/fm/fm-lite";
 
 // Document management - will be linked to properties
 // TODO: Implement dedicated /api/fm/documents endpoint for full document management

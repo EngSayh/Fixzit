@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { useFMPermissions } from "@/hooks/useFMPermissions";
 import { useSession } from "next-auth/react";
 import { useCurrentOrg } from "@/contexts/CurrentOrgContext";
-import { Role, SubmoduleKey, Plan, SubRole } from "@/domain/fm/fm.behavior";
+import { Role, SubmoduleKey, Plan, SubRole } from "@/domain/fm/fm-lite";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 // Mock dependencies

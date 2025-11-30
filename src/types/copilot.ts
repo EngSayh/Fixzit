@@ -12,7 +12,8 @@ export { Role, SubRole };
 
 /**
  * Legacy role type union - DEPRECATED
- * Use Role enum from domain/fm/fm.behavior.ts instead.
+ * Use Role enum from domain/fm/fm-lite.ts for client components
+ * or domain/fm/fm.behavior.ts for server components.
  * 
  * STRICT v4.1 Canonical Roles:
  * - SUPER_ADMIN: Platform operator, cross-org access
@@ -26,7 +27,7 @@ export { Role, SubRole };
  * - VENDOR: External service provider
  * - GUEST: Public visitor (alias: AUDITOR, VIEWER)
  * 
- * @deprecated Import { Role } from "@/domain/fm/fm.behavior" instead
+ * @deprecated Import { Role } from "@/domain/fm/fm-lite" for client-safe usage
  */
 export type LegacyRole =
   | "SUPER_ADMIN"
