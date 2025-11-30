@@ -99,14 +99,12 @@ test.describe("Marketplace - Public Access", () => {
     // Type search query
     await searchInput.first().fill("pump");
     
-    // AUDIT-2025-12-01: Wait for search response instead of hardcoded timeout
+    // AUDIT-2025-12-01: Wait for search response using Playwright's or() combinator
     // Either products appear OR a "no results" message appears
     const productSelector = '[class*="product"], [data-product]';
     const noResultsSelector = 'text=/no.*results|not.*found/i';
-    await Promise.race([
-      page.locator(productSelector).first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {}),
-      page.locator(noResultsSelector).waitFor({ state: 'visible', timeout: 10000 }).catch(() => {}),
-    ]);
+    const resultOrEmpty = page.locator(productSelector).first().or(page.locator(noResultsSelector));
+    await resultOrEmpty.waitFor({ state: 'visible', timeout: 10000 });
 
     // Should show results or no results message
     const hasResults = (await page.locator(productSelector).count()) > 0;

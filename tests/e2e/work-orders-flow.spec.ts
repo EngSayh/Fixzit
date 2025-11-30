@@ -41,11 +41,8 @@ if (IS_CI && !TEST_ORG_ID && !IS_FORK_OR_MISSING_SECRETS) {
 }
 
 test.describe("Work Orders - Authenticated User", () => {
-  test.beforeEach(async ({ page }) => {
-    // Note: These tests assume authentication is handled via test fixtures
-    // In production, you'd use test.use() with storageState for authenticated sessions
-    await page.goto("/");
-  });
+  // Note: These tests assume authentication is handled via test fixtures
+  // In production, you'd use test.use() with storageState for authenticated sessions
 
   test("should display work orders page", async ({ page }) => {
     await page.goto("/work-orders");
