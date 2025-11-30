@@ -324,6 +324,97 @@ export enum ModuleKey {
   SYSTEM_MANAGEMENT = "SYSTEM_MANAGEMENT",
 }
 
+const ALL_MODULES = Object.values(ModuleKey);
+
+/**
+ * Role-based module access mapping.
+ * STRICT v4.1: Maps roles and sub-roles to their allowed modules.
+ * SubRoles grant additional module access beyond base role.
+ */
+export const ROLE_MODULES: Partial<Record<Role | SubRole, ModuleKey[]>> = {
+  // Admin roles - full access
+  [Role.SUPER_ADMIN]: ALL_MODULES,
+  [Role.ADMIN]: ALL_MODULES,
+  [Role.CORPORATE_OWNER]: ALL_MODULES,
+  // Team Member - base access (expanded by sub-roles)
+  [Role.TEAM_MEMBER]: [
+    ModuleKey.DASHBOARD,
+    ModuleKey.WORK_ORDERS,
+    ModuleKey.CRM,
+    ModuleKey.SUPPORT,
+    ModuleKey.REPORTS,
+  ],
+  // Property Manager - FM focused
+  [Role.PROPERTY_MANAGER]: [
+    ModuleKey.DASHBOARD,
+    ModuleKey.WORK_ORDERS,
+    ModuleKey.PROPERTIES,
+    ModuleKey.REPORTS,
+  ],
+  // Technician - field work focused
+  [Role.TECHNICIAN]: [
+    ModuleKey.DASHBOARD,
+    ModuleKey.WORK_ORDERS,
+    ModuleKey.SUPPORT,
+    ModuleKey.REPORTS,
+  ],
+  // Tenant - self-service
+  [Role.TENANT]: [
+    ModuleKey.DASHBOARD,
+    ModuleKey.WORK_ORDERS,
+    ModuleKey.PROPERTIES,
+    ModuleKey.MARKETPLACE,
+    ModuleKey.SUPPORT,
+    ModuleKey.REPORTS,
+  ],
+  // Vendor - marketplace focused
+  [Role.VENDOR]: [ModuleKey.DASHBOARD, ModuleKey.MARKETPLACE, ModuleKey.SUPPORT],
+  // Guest - read-only
+  [Role.GUEST]: [ModuleKey.DASHBOARD],
+  // Sub-roles grant additional module access
+  [SubRole.FINANCE_OFFICER]: [
+    ModuleKey.DASHBOARD,
+    ModuleKey.FINANCE,
+    ModuleKey.REPORTS,
+  ],
+  [SubRole.HR_OFFICER]: [ModuleKey.DASHBOARD, ModuleKey.HR, ModuleKey.REPORTS],
+  [SubRole.SUPPORT_AGENT]: [
+    ModuleKey.DASHBOARD,
+    ModuleKey.SUPPORT,
+    ModuleKey.CRM,
+    ModuleKey.REPORTS,
+  ],
+  [SubRole.OPERATIONS_MANAGER]: [
+    ModuleKey.DASHBOARD,
+    ModuleKey.WORK_ORDERS,
+    ModuleKey.PROPERTIES,
+    ModuleKey.SUPPORT,
+    ModuleKey.REPORTS,
+  ],
+} as const;
+
+/**
+ * Compute the modules a user can access based on role and sub-role.
+ * Sub-role modules are merged with base role modules.
+ */
+export function computeAllowedModules(
+  role: Role | string,
+  subRole?: SubRole | string | null,
+): ModuleKey[] {
+  const normalizedRole = normalizeRole(role) ?? Role.GUEST;
+  const normalizedSubRole = normalizeSubRole(subRole ?? undefined);
+
+  const baseModules = ROLE_MODULES[normalizedRole] ?? [ModuleKey.DASHBOARD];
+
+  // If sub-role has specific modules, merge with base
+  if (normalizedSubRole && ROLE_MODULES[normalizedSubRole]) {
+    const subModules = ROLE_MODULES[normalizedSubRole] ?? [];
+    return [...new Set([...baseModules, ...subModules])];
+  }
+
+  return baseModules as ModuleKey[];
+}
+
 export enum SubmoduleKey {
   WO_CREATE = "WO_CREATE",
   WO_TRACK_ASSIGN = "WO_TRACK_ASSIGN",
