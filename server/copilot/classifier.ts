@@ -4,7 +4,7 @@
  * Based on Blueprint Bible and Design System specifications
  */
 
-import type { Intent } from "@/src/types/copilot";
+import type { Intent } from "@/types/copilot";
 
 /**
  * Classifies user message into one of 10 intents using pattern matching

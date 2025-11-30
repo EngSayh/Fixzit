@@ -6,7 +6,7 @@
 
 import { Property } from "@/server/models/Property";
 import { db } from "@/lib/mongo";
-import type { SessionContext } from "@/src/types/copilot";
+import type { SessionContext } from "@/types/copilot";
 import { extractApartmentSearchParams } from "./classifier";
 import { logger } from "@/lib/logger";
 
