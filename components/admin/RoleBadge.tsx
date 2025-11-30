@@ -17,6 +17,7 @@
 import React from "react";
 // Import from fm.types (client-safe, no mongoose)
 import { Role, SubRole, normalizeRole } from "@/domain/fm/fm.types";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 interface RoleBadgeProps {
   role: Role | string;
@@ -95,6 +96,8 @@ export default function RoleBadge({
   showTooltip = true,
   className = "",
 }: RoleBadgeProps) {
+  const { t } = useTranslation();
+  
   // Normalize legacy role names
   const normalizedRole = normalizeRole(role) || Role.GUEST;
   const config = ROLE_CONFIG[normalizedRole];
@@ -107,30 +110,42 @@ export default function RoleBadge({
     );
   }
   
+  // Localize role label and description with fallbacks
+  const roleKey = normalizedRole.toLowerCase().replace(/_/g, "");
+  const label = t(`admin.roles.${roleKey}.label`, config.label);
+  const description = t(`admin.roles.${roleKey}.description`, config.description);
+  
   const sizeClass = SIZE_CLASSES[size];
+  
+  // Localize sub-role if present
+  const subRoleConfig = subRole ? SUB_ROLE_CONFIG[subRole as SubRole] : null;
+  const subRoleKey = subRole ? (subRole as string).toLowerCase().replace(/_/g, "") : "";
+  const subRoleLabel = subRoleConfig 
+    ? t(`admin.subRoles.${subRoleKey}.label`, subRoleConfig.label)
+    : "";
   
   return (
     <div className={`inline-flex items-center gap-1 ${className}`}>
       {/* Main role badge */}
       <span
         className={`inline-flex items-center rounded-full font-medium ${config.color} ${sizeClass}`}
-        title={showTooltip ? config.description : undefined}
+        title={showTooltip ? description : undefined}
         role="status"
-        aria-label={`Role: ${config.label}`}
+        aria-label={t("admin.roles.ariaLabel", `Role: ${label}`, { role: label })}
       >
-        {config.label}
+        {label}
       </span>
       
       {/* Sub-role badge (for Team Members) */}
-      {subRole && normalizedRole === Role.TEAM_MEMBER && (
+      {subRole && normalizedRole === Role.TEAM_MEMBER && subRoleConfig && (
         <span
           className={`inline-flex items-center rounded-full font-medium bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800 ${sizeClass}`}
-          title={showTooltip ? `Specialization: ${SUB_ROLE_CONFIG[subRole as SubRole]?.label}` : undefined}
+          title={showTooltip ? t("admin.subRoles.specializationTooltip", `Specialization: ${subRoleLabel}`, { subRole: subRoleLabel }) : undefined}
           role="status"
-          aria-label={`Sub-role: ${SUB_ROLE_CONFIG[subRole as SubRole]?.label}`}
+          aria-label={t("admin.subRoles.ariaLabel", `Sub-role: ${subRoleLabel}`, { subRole: subRoleLabel })}
         >
-          <span className="me-1">{SUB_ROLE_CONFIG[subRole as SubRole]?.icon}</span>
-          {SUB_ROLE_CONFIG[subRole as SubRole]?.label}
+          <span className="me-1">{subRoleConfig.icon}</span>
+          {subRoleLabel}
         </span>
       )}
     </div>

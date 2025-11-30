@@ -81,11 +81,30 @@ const MODULE_NAME_KEYS: Record<ModuleKey, { key: string; fallback: string }> = {
 
 /**
  * Map ModuleKey → SubmoduleKey for plan-aware filtering.
- * If a module has no corresponding submodule in PLAN_GATES, it's always allowed.
+ * If a module has no corresponding submodule in PLAN_GATES, check PREMIUM_MODULES.
  */
 const MODULE_TO_SUBMODULE: Partial<Record<ModuleKey, SubmoduleKey>> = {
   [ModuleKey.WORK_ORDERS]: SubmoduleKey.WO_CREATE,
   [ModuleKey.PROPERTIES]: SubmoduleKey.PROP_LIST,
+};
+
+/**
+ * Premium modules require at least STANDARD plan.
+ * These don't have SubmoduleKey entries but should still be plan-gated.
+ */
+const PREMIUM_MODULES: Set<ModuleKey> = new Set([
+  ModuleKey.FINANCE,
+  ModuleKey.HR,
+  ModuleKey.COMPLIANCE,
+  ModuleKey.SYSTEM_MANAGEMENT,
+]);
+
+/**
+ * Check if a plan allows premium modules.
+ * STARTER plan does not include Finance, HR, Compliance, or System Management.
+ */
+const planAllowsPremiumModules = (plan: Plan): boolean => {
+  return plan !== Plan.STARTER;
 };
 
 export default function SubRoleSelector({
@@ -125,8 +144,12 @@ export default function SubRoleSelector({
   // Filter modules by plan gates to avoid overpromising
   const planGates = PLAN_GATES[effectivePlan];
   const allowedModules = baseModules.filter((module) => {
+    // Check if this is a premium module (Finance, HR, Compliance, System)
+    if (PREMIUM_MODULES.has(module)) {
+      return planAllowsPremiumModules(effectivePlan);
+    }
+    // Check if module has a corresponding submodule in plan gates
     const submodule = MODULE_TO_SUBMODULE[module];
-    // If no corresponding submodule in plan gates, module is always allowed
     if (!submodule) return true;
     // Check if plan allows this submodule
     return planGates[submodule] !== false;
