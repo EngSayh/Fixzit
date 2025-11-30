@@ -52,7 +52,6 @@ export async function DELETE(
       );
     }
 
-    // @ts-expect-error - Fixed VSCode problem
     const user = await UserModel.findOne({
       _id: id,
       orgId,  // ✅ Validated orgId
