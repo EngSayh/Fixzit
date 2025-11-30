@@ -2,8 +2,8 @@
 
 **Generated**: 2025-01-13  
 **Analyst**: GitHub Copilot (Claude Opus 4.5 Preview)  
-**Updated**: 2025-01-13 (All fixes committed)  
-**Commit**: caccbd38a + 5b7005965 + [current session]
+**Updated**: 2025-11-30 (Session propagation & auth headers verified)  
+**Commit**: caccbd38a + 5b7005965 + 9f7c678bb
 
 ---
 
