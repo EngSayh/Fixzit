@@ -118,10 +118,16 @@ export default function LoginPage() {
   const { status } = useSession();
 
   // Auth redirect: bounce authenticated users away from login page
+  // SECURITY: Validate redirect target to prevent open redirect attacks
   useEffect(() => {
     if (status === 'authenticated') {
-      const target = searchParams?.get('callbackUrl') || searchParams?.get('next') || '/dashboard';
-      router.replace(target);
+      const rawTarget = searchParams?.get('callbackUrl') || searchParams?.get('next');
+      // Only allow same-origin paths (starts with / but not //)
+      const safeTarget = 
+        rawTarget && rawTarget.startsWith('/') && !rawTarget.startsWith('//')
+          ? rawTarget
+          : '/fm/dashboard';
+      router.replace(safeTarget);
     }
   }, [status, router, searchParams]);
 
@@ -253,8 +259,11 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
     const identifierErr = validateIdentifier(resolveIdentifier());
     if (identifierErr) next.identifier = identifierErr;
     
-    const pwErr = validatePassword(password);
-    if (pwErr) next.password = pwErr;
+    // Skip password validation for phone OTP mode (password field is disabled)
+    if (!phoneMode) {
+      const pwErr = validatePassword(password);
+      if (pwErr) next.password = pwErr;
+    }
     
     // PHASE-4 FIX: Require company code for corporate login
     if (loginMethod === 'corporate' && !companyCode.trim()) {
