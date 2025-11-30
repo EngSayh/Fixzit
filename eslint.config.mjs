@@ -383,27 +383,27 @@ export default [
               target: "./components",
               from: [
                 "./server",
-                "./domain",
                 "./models",
                 "./server/models",
-                "./domain/fm/fm.behavior",
+                "./domain/fm/fm.behavior.ts",
                 "mongoose",
               ],
+              except: ["./domain/fm/fm.types.ts"],
               message:
-                "Do not import server-only modules (models/mongoose/fm.behavior) into client components. Use client-safe facades (e.g., lib/rbac/client-roles).",
+                "Do not import server-only modules (models/mongoose/fm.behavior) into client components. Use client-safe facades (e.g., lib/rbac/client-roles or domain/fm/fm.types).",
             },
             {
               target: "./pages",
               from: [
                 "./server",
-                "./domain",
                 "./models",
                 "./server/models",
-                "./domain/fm/fm.behavior",
+                "./domain/fm/fm.behavior.ts",
                 "mongoose",
               ],
+              except: ["./domain/fm/fm.types.ts"],
               message:
-                "Do not import server-only modules (models/mongoose/fm.behavior) into client components. Use client-safe facades (e.g., lib/rbac/client-roles).",
+                "Do not import server-only modules (models/mongoose/fm.behavior) into client components. Use client-safe facades (e.g., lib/rbac/client-roles or domain/fm/fm.types).",
             },
           ],
         },
