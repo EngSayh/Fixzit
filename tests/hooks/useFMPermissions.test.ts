@@ -124,4 +124,59 @@ describe("useFMPermissions", () => {
     // Should be denied because isOrgMember is false
     expect(canViewOtherOrg).toBe(false);
   });
+
+  describe("🟥 Role normalization (case-insensitivity & legacy aliases)", () => {
+    it("should normalize lowercase role to canonical form", () => {
+      mockSession("admin", "org-abc"); // lowercase
+      mockOrg(Plan.PRO);
+      const { result } = renderHook(() => useFMPermissions());
+
+      expect(result.current.role).toBe(Role.ADMIN);
+      expect(result.current.isAdmin()).toBe(true);
+    });
+
+    it("should normalize mixed-case role to canonical form", () => {
+      mockSession("Team_Member", "org-abc"); // mixed case
+      mockOrg(Plan.PRO);
+      const { result } = renderHook(() => useFMPermissions());
+
+      expect(result.current.role).toBe(Role.TEAM_MEMBER);
+      expect(result.current.isManagement()).toBe(true);
+    });
+
+    it("should normalize legacy alias EMPLOYEE to TEAM_MEMBER", () => {
+      mockSession("EMPLOYEE", "org-abc"); // legacy alias
+      mockOrg(Plan.PRO);
+      const { result } = renderHook(() => useFMPermissions());
+
+      expect(result.current.role).toBe(Role.TEAM_MEMBER);
+      expect(result.current.canCreateWO()).toBe(true);
+    });
+
+    it("should normalize legacy alias MANAGEMENT to TEAM_MEMBER", () => {
+      mockSession("management", "org-abc"); // lowercase legacy alias
+      mockOrg(Plan.PRO);
+      const { result } = renderHook(() => useFMPermissions());
+
+      expect(result.current.role).toBe(Role.TEAM_MEMBER);
+    });
+
+    it("should normalize legacy alias PROPERTY_OWNER to CORPORATE_OWNER", () => {
+      mockSession("property_owner", "org-abc");
+      mockOrg(Plan.PRO);
+      const { result } = renderHook(() => useFMPermissions());
+
+      expect(result.current.role).toBe(Role.CORPORATE_OWNER);
+    });
+
+    it("should fall back to GUEST for unknown roles", () => {
+      mockSession("UNKNOWN_ROLE_XYZ", "org-abc");
+      mockOrg(Plan.PRO);
+      const { result } = renderHook(() => useFMPermissions());
+
+      expect(result.current.role).toBe(Role.GUEST);
+      expect(result.current.isAdmin()).toBe(false);
+      expect(result.current.canCreateWO()).toBe(false);
+    });
+  });
 });

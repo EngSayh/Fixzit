@@ -1504,6 +1504,40 @@
       "title": "نتائج"
     }
   },
+  "admin": {
+    "subRoles": {
+      "financeOfficer": {
+        "label": "مسؤول المالية",
+        "description": "يدير الميزانيات والفواتير والتقارير المالية"
+      },
+      "hrOfficer": {
+        "label": "مسؤول الموارد البشرية",
+        "description": "يدير سجلات الموظفين والرواتب والبيانات الشخصية"
+      },
+      "supportAgent": {
+        "label": "وكيل الدعم",
+        "description": "يتعامل مع استفسارات العملاء والتذاكر"
+      },
+      "operationsManager": {
+        "label": "مدير العمليات",
+        "description": "يشرف على أوامر العمل وعمليات العقارات"
+      }
+    },
+    "modules": {
+      "dashboard": "لوحة التحكم",
+      "workOrders": "أوامر العمل",
+      "properties": "العقارات",
+      "finance": "المالية",
+      "hr": "الموارد البشرية",
+      "administration": "الإدارة",
+      "crm": "إدارة علاقات العملاء",
+      "marketplace": "السوق",
+      "support": "الدعم",
+      "compliance": "الامتثال",
+      "reports": "التقارير",
+      "system": "النظام"
+    }
+  },
   "ats": {
     "errors": {
       "authenticationRequired": "المصادقة مطلوبة",
