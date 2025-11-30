@@ -555,16 +555,14 @@ describe("TopBar Component", () => {
       });
     });
 
-    it("should show language and currency selectors in user menu", async () => {
+    it("should show language and currency selectors in TopBar (always visible)", async () => {
+      // Language and currency selectors are now always visible in TopBar,
+      // not inside the user menu dropdown
       await renderWithProviders(<TopBar />);
 
-      const userButton = await screen.findByLabelText(/toggle user menu/i);
-      fireEvent.click(userButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId("language-selector")).toBeInTheDocument();
-        expect(screen.getByTestId("currency-selector")).toBeInTheDocument();
-      });
+      // They should be visible without clicking user menu
+      expect(screen.getByTestId("language-selector")).toBeInTheDocument();
+      expect(screen.getByTestId("currency-selector")).toBeInTheDocument();
     });
 
     it("should handle sign out correctly", async () => {
