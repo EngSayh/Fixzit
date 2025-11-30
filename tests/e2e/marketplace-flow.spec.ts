@@ -9,7 +9,7 @@
  */
 
 import { test, expect } from "@playwright/test";
-import { verifyTenantScoping, walkAndVerifyOrgId } from "./utils/tenant-validation";
+import { walkAndVerifyOrgId } from "./utils/tenant-validation";
 
 const TEST_ORG_ID = process.env.TEST_ORG_ID;
 const ALLOW_MISSING_TEST_ORG_ID = process.env.ALLOW_MISSING_TEST_ORG_ID === "true";

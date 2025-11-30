@@ -9,12 +9,11 @@
  */
 
 import { test, expect } from "@playwright/test";
-import { verifyTenantScoping, walkAndVerifyOrgId } from "./utils/tenant-validation";
+import { walkAndVerifyOrgId } from "./utils/tenant-validation";
 
 const TEST_ORG_ID = process.env.TEST_ORG_ID;
 const ALLOW_MISSING_TEST_ORG_ID = process.env.ALLOW_MISSING_TEST_ORG_ID === "true";
 const IS_CI = process.env.CI === "true";
-const IS_GITHUB_ACTIONS = Boolean(process.env.GITHUB_ACTIONS);
 const IS_PULL_REQUEST = process.env.GITHUB_EVENT_NAME === "pull_request";
 
 /**
