@@ -44,7 +44,7 @@ pnpm lint:rbac
 pnpm rbac:parity
 ```
 
-**What it tests** (43 tests):
+**What it tests** (66 tests across 11 categories):
 - Static data structure parity (5 tests)
 - `can()` behavioral parity across roles (7 tests)
 - Sub-role enforcement (7 tests)
@@ -53,6 +53,11 @@ pnpm rbac:parity
 - Property scoping (CORPORATE_OWNER, PROPERTY_MANAGER) (7 tests)
 - `computeAllowedModules` union behavior (6 tests)
 - Tenant requester fallback (2 tests)
+- Technician assignment parity (4 tests)
+- Cross-role sub-role boundaries (4 tests)
+- Plan downgrade scenarios (5 tests)
+- Org membership edge cases (3 tests)
+- Vendor role parity (7 tests)
 
 **When to run:**
 - After modifying `can()` function logic
@@ -75,13 +80,15 @@ pnpm rbac:client:check
 
 ## CI Integration
 
-The `lint:ci` script runs all RBAC checks:
+The `lint:ci` script runs static RBAC checks:
 
 ```json
 "lint:ci": "npm run lint:prod && npm run rbac:client:check && npm run lint:rbac && npm run typecheck"
 ```
 
-This ensures RBAC drift is caught before merge.
+This ensures **static** RBAC drift is caught before merge.
+
+**Note:** The behavioral parity tests (`rbac:parity`) are not included in `lint:ci` to keep CI fast. Run `pnpm rbac:parity` locally when modifying `can()` logic or scoping rules. Consider adding it to CI if behavioral drift becomes a concern.
 
 ## Adding New Roles/Modules/Sub-roles
 
@@ -243,4 +250,4 @@ RBAC drift issues are tracked in `docs/ISSUES_REGISTER.md`:
 - RBAC-DRIFT-009: fm-lite ROLE_MODULES Drift
 - RBAC-DRIFT-010: PLAN_GATES Server/Client Mismatch
 
-All resolved as of January 2025.
+All resolved as of November 2025.

@@ -264,7 +264,33 @@ pnpm test:e2e
 
 # Coverage
 pnpm test:coverage
+
+# RBAC Parity Tests (client/server alignment)
+pnpm rbac:parity
+
+# RBAC Linting
+pnpm lint:rbac
 ```
+
+#### RBAC Parity Testing
+
+The RBAC parity tests ensure that client-side permission checks (UI visibility) match server-side authorization (API access control). This prevents drift between what users see and what they can actually do.
+
+```bash
+# Run RBAC parity tests (43 tests)
+pnpm rbac:parity
+```
+
+**What it tests:**
+- Static data structure parity (ROLE_ACTIONS, SUB_ROLE_ACTIONS, PLAN_GATES)
+- `can()` function behavioral parity across all roles and sub-roles
+- Sub-role enforcement (FINANCE_OFFICER, HR_OFFICER, SUPPORT_AGENT, OPERATIONS_MANAGER)
+- Plan gate enforcement (STARTER, STANDARD, PRO, ENTERPRISE)
+- Tenant requester fallback logic
+- Property/unit scoping for CORPORATE_OWNER and PROPERTY_MANAGER
+- `computeAllowedModules()` parity (server/client/lite)
+
+**CI Integration:** RBAC parity tests run automatically in the CI pipeline via `pnpm rbac:parity`.
 
 #### Writing Tests
 
@@ -279,6 +305,7 @@ Before committing, ensure:
 - [ ] `pnpm typecheck` passes (0 errors)
 - [ ] `pnpm lint` passes (0 errors)
 - [ ] `pnpm test` passes (all tests)
+- [ ] `pnpm rbac:parity` passes (43 RBAC parity tests)
 - [ ] Translation audit passes
 - [ ] No `console.log` statements (except error handling)
 - [ ] Documentation updated if needed
@@ -319,6 +346,9 @@ Before requesting review:
 - **Translation Audit**: `scripts/audit-translations.mjs`
 - **Issues Register**: `ISSUES_REGISTER.md` (if exists)
 - **Daily Progress Reports**: `docs/archived/DAILY_PROGRESS_REPORTS/`
+- **RBAC Parity Tests**: `tests/domain/fm.can-parity.test.ts`
+- **E2E Sub-Role Tests**: `tests/e2e/subrole-api-access.spec.ts`
+- **PR Comments Audit**: `reports/pr-comments-audit-20251130.md`
 
 ### 13. Getting Help
 
@@ -329,5 +359,5 @@ Before requesting review:
 
 ---
 
-**Last Updated**: 2025-01-11  
+**Last Updated**: 2025-11-30  
 **Maintained By**: Engineering Team

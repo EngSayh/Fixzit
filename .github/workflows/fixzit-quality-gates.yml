@@ -270,6 +270,17 @@ jobs:
 
           [ -f rbac-matrix.csv ] && cp -f rbac-matrix.csv .artifacts/rbac-matrix.csv || true
 
+      # ---------- RBAC Parity Check ----------
+      - name: RBAC Parity Check
+        shell: bash
+        run: |
+          echo "Running RBAC parity tests to detect client/server drift..."
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm rbac:parity ;;
+            yarn) yarn rbac:parity ;;
+            *) npm run rbac:parity ;;
+          esac
+
       # ---------- Lighthouse CI (static export if available) ----------
       - name: Lighthouse CI
         shell: bash
@@ -387,6 +398,7 @@ jobs:
           echo "- **OpenAPI Specification** (if found or generated)" >> $GITHUB_STEP_SUMMARY
           echo "- **Postman Collection** (exported from OpenAPI)" >> $GITHUB_STEP_SUMMARY
           echo "- **RBAC Matrix CSV** (role-based access control analysis)" >> $GITHUB_STEP_SUMMARY
+          echo "- **RBAC Parity Tests** (43 tests ensuring client/server alignment)" >> $GITHUB_STEP_SUMMARY
           echo "- **Lighthouse CI Reports** (performance and accessibility)" >> $GITHUB_STEP_SUMMARY
           echo "- **Dependency Audit** (security vulnerability scan)" >> $GITHUB_STEP_SUMMARY
           echo "- **Test Results** (JUnit XML format)" >> $GITHUB_STEP_SUMMARY
