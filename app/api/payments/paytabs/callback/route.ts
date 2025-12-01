@@ -636,7 +636,11 @@ async function tryActivatePackage(cartId: string, orgId?: string): Promise<void>
     const { activatePackageAfterPayment } = await import(
       "@/lib/aqar/package-activation"
     );
-    await activatePackageAfterPayment(String(cartId), orgId);
+    const activated = await activatePackageAfterPayment(String(cartId), orgId);
+    // SECURITY: Fail-closed if activation returned false (validation failure)
+    if (!activated) {
+      throw new Error(`Package activation returned false for cart_id=${cartId.slice(0, 8)}... - validation failure`);
+    }
   } catch (err) {
     logger.error("[PayTabs] Package activation failed", {
       cart_id: cartId.slice(0, 8) + "...",

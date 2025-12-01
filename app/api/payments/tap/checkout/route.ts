@@ -181,7 +181,12 @@ export async function POST(req: NextRequest) {
         );
       }
       invoiceObjectId = new Types.ObjectId(invoiceId);
-      invoiceDoc = await Invoice.findById(invoiceObjectId).lean();
+      // SECURITY: Org-scoped filter prevents cross-tenant invoice access
+      const orgScopedInvoiceFilter = {
+        _id: invoiceObjectId,
+        $or: [{ orgId: orgObjectId }, { org_id: orgObjectId }, { orgId: user.orgId }, { org_id: user.orgId }],
+      };
+      invoiceDoc = await Invoice.findOne(orgScopedInvoiceFilter).lean();
       if (!invoiceDoc) {
         return NextResponse.json(
           { error: "Invoice not found" },

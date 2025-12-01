@@ -165,15 +165,33 @@ export function startActivationWorker(): Worker | null {
         const { activatePackageAfterPayment } = await import(
           "@/lib/aqar/package-activation"
         );
-        await activatePackageAfterPayment(aqarPaymentId, orgId);
+        const activated = await activatePackageAfterPayment(aqarPaymentId, orgId);
 
-        // Update invoice metadata on success
+        // SECURITY: Fail-closed if activation returned false (validation failure)
+        if (!activated) {
+          throw new Error(`Package activation returned false for aqarPaymentId=${aqarPaymentId} - validation failure`);
+        }
+
+        // SECURITY: Import tenant context utilities for scoped operations
+        const { setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
+
+        // Update invoice metadata on success with org-scoped query
         const { Invoice } = await import("@/server/models/Invoice");
-        const invoice = await Invoice.findById(invoiceId);
-        if (invoice && invoice.metadata?.aqarPaymentId === aqarPaymentId) {
-          invoice.metadata.activationStatus = "completed";
-          invoice.metadata.activationCompletedAt = new Date();
-          await invoice.save();
+        // SECURITY: Org-scoped filter prevents cross-tenant invoice modification
+        const orgScopedInvoiceFilter = {
+          _id: invoiceId,
+          $or: [{ orgId }, { org_id: orgId }],
+        };
+        try {
+          setTenantContext({ orgId, userId: "activation-worker" });
+          const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
+          if (invoice && invoice.metadata?.aqarPaymentId === aqarPaymentId) {
+            invoice.metadata.activationStatus = "completed";
+            invoice.metadata.activationCompletedAt = new Date();
+            await invoice.save();
+          }
+        } finally {
+          clearTenantContext();
         }
 
         logger.info("[ActivationQueue] Package activated successfully", {
@@ -193,15 +211,26 @@ export function startActivationWorker(): Worker | null {
           error,
         });
 
-        // Update invoice metadata on failure
+        // Update invoice metadata on failure with org-scoped query
         try {
+          const { setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
           const { Invoice } = await import("@/server/models/Invoice");
-          const invoice = await Invoice.findById(invoiceId);
-          if (invoice && invoice.metadata?.aqarPaymentId === aqarPaymentId) {
-            invoice.metadata.lastActivationError =
-              error instanceof Error ? error.message : String(error);
-            invoice.metadata.lastActivationAttempt = new Date();
-            await invoice.save();
+          // SECURITY: Org-scoped filter prevents cross-tenant invoice modification
+          const orgScopedInvoiceFilter = {
+            _id: invoiceId,
+            $or: [{ orgId }, { org_id: orgId }],
+          };
+          try {
+            setTenantContext({ orgId, userId: "activation-worker" });
+            const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
+            if (invoice && invoice.metadata?.aqarPaymentId === aqarPaymentId) {
+              invoice.metadata.lastActivationError =
+                error instanceof Error ? error.message : String(error);
+              invoice.metadata.lastActivationAttempt = new Date();
+              await invoice.save();
+            }
+          } finally {
+            clearTenantContext();
           }
         } catch (updateError) {
           logger.error("[ActivationQueue] Failed to update invoice metadata", {
