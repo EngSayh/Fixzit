@@ -282,13 +282,19 @@ PaymentSchema.methods.markAsCompleted = async function (
   transactionId?: string,
   response?: Record<string, unknown>,
 ) {
+  // SECURITY: Require orgId to prevent cross-tenant mutations even if caller context is missing
+  if (!this.orgId) {
+    throw new Error("Cannot mark payment as completed: orgId is required for tenant isolation");
+  }
+
   // Atomic update with state precondition to prevent invalid transitions
-  // Use this.constructor for consistency with other instance methods
+  // SECURITY: Include orgId in predicate to enforce tenant isolation at data layer
   const result = await (
     this.constructor as typeof mongoose.Model
   ).findOneAndUpdate(
     {
       _id: this._id,
+      orgId: this.orgId, // SECURITY: Explicit org scoping
       status: PaymentStatus.PENDING, // Only allow PENDING → COMPLETED
     },
     {
@@ -320,12 +326,18 @@ PaymentSchema.methods.markAsFailed = async function (
   this: IPayment,
   response?: Record<string, unknown>,
 ) {
+  // SECURITY: Require orgId to prevent cross-tenant mutations even if caller context is missing
+  if (!this.orgId) {
+    throw new Error("Cannot mark payment as failed: orgId is required for tenant isolation");
+  }
+
   // Atomic update with state precondition to prevent invalid transitions
-  // Use this.constructor for consistency with markAsCompleted and to avoid model registration issues
+  // SECURITY: Include orgId in predicate to enforce tenant isolation at data layer
   const PaymentModel = this.constructor as typeof mongoose.Model;
   const result = await PaymentModel.findOneAndUpdate(
     {
       _id: this._id,
+      orgId: this.orgId, // SECURITY: Explicit org scoping
       status: PaymentStatus.PENDING, // Only allow PENDING → FAILED
     },
     {
@@ -377,11 +389,18 @@ PaymentSchema.methods.markAsRefunded = async function (
       ? PaymentStatus.REFUNDED
       : PaymentStatus.PARTIALLY_REFUNDED;
 
+  // SECURITY: Require orgId to prevent cross-tenant mutations even if caller context is missing
+  if (!this.orgId) {
+    throw new Error("Cannot mark payment as refunded: orgId is required for tenant isolation");
+  }
+
+  // SECURITY: Include orgId in predicate to enforce tenant isolation at data layer
   const result = await (
     this.constructor as typeof import("mongoose").Model
   ).findOneAndUpdate(
     {
       _id: this._id,
+      orgId: this.orgId, // SECURITY: Explicit org scoping
       status: {
         $in: [PaymentStatus.COMPLETED, PaymentStatus.PARTIALLY_REFUNDED],
       },
