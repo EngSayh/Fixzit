@@ -86,10 +86,28 @@ Where:
 TWILIO_ACCOUNT_SID=your_account_sid
 TWILIO_AUTH_TOKEN=your_auth_token
 TWILIO_PHONE_NUMBER=+966xxxxxxxxx
-
-# Optional: Fallback phone for super admin (if user profile has no phone)
-NEXTAUTH_SUPERADMIN_FALLBACK_PHONE=+966500000000
 ```
+
+### Production Test Phone Configuration
+
+For production testing, all test users should have their phone number set to the designated test number in the database:
+
+```
+Phone: +966552233456
+```
+
+The super admin can manage these test users and update phone numbers as needed.
+
+### Fallback Phone (Emergency Use Only)
+
+```env
+# ⚠️ SECURITY WARNING: Avoid in production unless absolutely necessary
+# Only use for time-bound emergency break-glass procedures
+# Remove immediately after emergency access is no longer needed
+# NEXTAUTH_SUPERADMIN_FALLBACK_PHONE=+966500000000
+```
+
+**Caution**: Do not set `NEXTAUTH_SUPERADMIN_FALLBACK_PHONE` in production unless there is a documented, time-limited break-glass procedure approved by security. Using a static fallback phone weakens MFA assurance by bypassing user-profile phone validation.
 
 ### Troubleshooting OTP Issues
 
@@ -144,5 +162,5 @@ curl -s https://your-domain.com/api/auth/session
 
 ---
 
-**Last Updated**: $(date -I)
-**Version**: 1.0
+**Last Updated**: 2025-12-01  
+**Version**: 1.1
