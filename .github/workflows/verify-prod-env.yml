@@ -76,14 +76,15 @@ jobs:
         if: failure()
         run: |
           echo "❌ Production environment validation failed!"
-          echo "Please ensure all required environment variables are configured:"
+          echo "The guard:prod-env script detected missing or invalid secrets."
+          echo ""
+          echo "Please configure the following secrets in GitHub Actions:"
           echo ""
           echo "Auth (REQUIRED):"
           echo "  - NEXTAUTH_SECRET (or AUTH_SECRET) - for session signing"
           echo ""
-          echo "Payments (at least one provider REQUIRED):"
-          echo "  - PayTabs: PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY"
-          echo "  - Tap: TAP_PUBLIC_KEY, TAP_WEBHOOK_SECRET"
+          echo "Payments (REQUIRED for marketplace):"
+          echo "  - PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY"
           echo ""
           echo "ZATCA Saudi e-invoicing (REQUIRED for PayTabs callbacks):"
           echo "  - ZATCA_API_KEY"
@@ -91,9 +92,12 @@ jobs:
           echo "  - ZATCA_VAT_NUMBER"
           echo "  - ZATCA_SELLER_ADDRESS"
           echo ""
+          echo "Redis (REQUIRED for queues):"
+          echo "  - REDIS_URL or BULLMQ_REDIS_URL"
+          echo ""
           echo "Set these in:"
-          echo "  - Vercel: Project Settings → Environment Variables"
           echo "  - GitHub: Repository Settings → Secrets and Variables → Actions"
+          echo "  - Vercel: Project Settings → Environment Variables"
           exit 1
       
       - name: Post validation success
@@ -105,7 +109,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ **Production Environment Validation Script Verified**\\n\\nThe production validation script exists and will run during Vercel deployment.'
+              body: '✅ **Production Environment Validation Passed**\\n\\nAll required secrets (Auth, PayTabs, ZATCA, Redis) are configured.'
             })
       
       - name: Summary
@@ -116,29 +120,13 @@ jobs:
           if [ "${{ steps.validate.outcome }}" == "success" ]; then
             echo "✅ **Status**: PASSED" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "The validation script exists and will run during Vercel deployment." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "#### Required Production Variables" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Auth (REQUIRED):**" >> $GITHUB_STEP_SUMMARY
-            echo "- \`NEXTAUTH_SECRET\` (or \`AUTH_SECRET\`)" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Payments (at least one provider):**" >> $GITHUB_STEP_SUMMARY
-            echo "- PayTabs: \`PAYTABS_PROFILE_ID\`, \`PAYTABS_SERVER_KEY\`" >> $GITHUB_STEP_SUMMARY
-            echo "- Tap: \`TAP_PUBLIC_KEY\`, \`TAP_WEBHOOK_SECRET\`" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**ZATCA Saudi e-invoicing (REQUIRED for PayTabs):**" >> $GITHUB_STEP_SUMMARY
-            echo "- \`ZATCA_API_KEY\`" >> $GITHUB_STEP_SUMMARY
-            echo "- \`ZATCA_SELLER_NAME\`" >> $GITHUB_STEP_SUMMARY
-            echo "- \`ZATCA_VAT_NUMBER\`" >> $GITHUB_STEP_SUMMARY
-            echo "- \`ZATCA_SELLER_ADDRESS\`" >> $GITHUB_STEP_SUMMARY
+            echo "All required production secrets are configured." >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ **Status**: FAILED" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Missing validation script or environment configuration.**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Please ensure \`scripts/ci/verify-prod-env.js\` exists and configure:" >> $GITHUB_STEP_SUMMARY
+            echo "Missing required secrets. Configure in GitHub Actions Secrets:" >> $GITHUB_STEP_SUMMARY
             echo "- \`NEXTAUTH_SECRET\` / \`AUTH_SECRET\`" >> $GITHUB_STEP_SUMMARY
-            echo "- PayTabs or Tap payment credentials" >> $GITHUB_STEP_SUMMARY
-            echo "- ZATCA e-invoicing credentials" >> $GITHUB_STEP_SUMMARY
+            echo "- \`PAYTABS_PROFILE_ID\`, \`PAYTABS_SERVER_KEY\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`ZATCA_API_KEY\`, \`ZATCA_SELLER_NAME\`, \`ZATCA_VAT_NUMBER\`, \`ZATCA_SELLER_ADDRESS\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`REDIS_URL\` / \`BULLMQ_REDIS_URL\`" >> $GITHUB_STEP_SUMMARY
           fi
