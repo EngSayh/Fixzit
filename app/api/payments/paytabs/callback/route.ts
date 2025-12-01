@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { validateCallback } from "@/lib/paytabs";
+import { connectToDatabase } from "@/lib/mongodb-unified";
 import {
   buildPaytabsIdempotencyKey,
   enforcePaytabsPayloadSize,
@@ -137,6 +138,18 @@ export async function POST(req: NextRequest) {
     }
 
     const success = normalized.respStatus === "A";
+
+    // Validate cartId is a valid ObjectId before any DB operations
+    // This prevents Mongoose cast errors from malformed webhook payloads
+    if (!Types.ObjectId.isValid(normalized.cartId)) {
+      logger.error("[PayTabs] Invalid cart_id format received", {
+        cartId: normalized.cartId?.slice?.(0, 8) || "invalid",
+      });
+      return validationError("Invalid payment identifier format");
+    }
+
+    // Ensure DB connection is established (critical for serverless cold starts)
+    await connectToDatabase();
     
     // CRITICAL: Verify payment record exists for all callbacks (success or failure)
     const { AqarPayment } = await import("@/server/models/aqar");

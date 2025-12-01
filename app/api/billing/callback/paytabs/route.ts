@@ -187,6 +187,17 @@ export async function POST(req: NextRequest) {
   const verifiedOk = verificationData?.payment_result?.response_status === "A";
 
   const subId = cartId?.replace("SUB-", "");
+
+  // Validate subId is a valid ObjectId before DB query
+  // This prevents Mongoose cast errors from malformed webhook payloads
+  const { Types } = await import("mongoose");
+  if (!subId || !Types.ObjectId.isValid(subId)) {
+    logger.error("[Billing Callback] Invalid subscription ID format", {
+      cartId: cartId?.slice?.(0, 12) || "invalid",
+    });
+    return createSecureResponse({ error: "INVALID_SUB_ID" }, 400, req);
+  }
+
   const sub = await Subscription.findById(subId);
   if (!sub) return createSecureResponse({ error: "SUB_NOT_FOUND" }, 400, req);
 
