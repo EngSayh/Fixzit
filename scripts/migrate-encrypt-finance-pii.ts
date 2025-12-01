@@ -14,6 +14,8 @@
  * - Idempotent: skips already-encrypted values (isEncrypted check).
  * - Processes documents in batches to avoid memory spikes.
  * - Creates backup collections before migrating.
+ * - Rollback respects --org scope when provided.
+ * - Failed document IDs are logged for targeted reruns.
  *
  * Encrypted Fields:
  *   Invoice:
@@ -35,6 +37,7 @@ import { FMFinancialTransaction } from "@/server/models/FMFinancialTransaction";
 import { logger } from "@/lib/logger";
 
 const BATCH_SIZE = 200;
+const BACKUP_BATCH_SIZE = 500;
 
 interface EncryptTarget {
   path: string;
@@ -46,6 +49,7 @@ interface MigrationStats {
   encrypted: number;
   skipped: number;
   errors: number;
+  failedIds: string[]; // Track failed document IDs for targeted reruns
   fields: Record<string, { encrypted: number; skipped: number }>;
 }
 
@@ -169,59 +173,166 @@ async function createBackup(
 
   const sourceCollection = db.collection(collectionName);
   const filter = orgId ? { orgId } : {};
+  const backupCollection = db.collection(backupName);
 
-  const docs = await sourceCollection.find(filter).toArray();
-  if (docs.length > 0) {
-    const backupCollection = db.collection(backupName);
-    await backupCollection.insertMany(docs);
+  // Stream backup in batches to avoid memory issues with large collections
+  let totalBacked = 0;
+  let batch: mongoose.mongo.Document[] = [];
+
+  const cursor = sourceCollection.find(filter);
+
+  for await (const doc of cursor) {
+    batch.push(doc);
+
+    if (batch.length >= BACKUP_BATCH_SIZE) {
+      await backupCollection.insertMany(batch);
+      totalBacked += batch.length;
+      batch = [];
+
+      if (totalBacked % 2000 === 0) {
+        logger.info(`[FINANCE PII MIGRATION] Backup progress: ${totalBacked} docs`);
+      }
+    }
+  }
+
+  // Insert remaining batch
+  if (batch.length > 0) {
+    await backupCollection.insertMany(batch);
+    totalBacked += batch.length;
+  }
+
+  if (totalBacked > 0) {
     logger.info(`[FINANCE PII MIGRATION] Backup created: ${backupName}`, {
-      count: docs.length,
+      count: totalBacked,
     });
+  } else {
+    logger.info(`[FINANCE PII MIGRATION] No documents to backup for ${collectionName}${orgId ? ` (org: ${orgId})` : ""}`);
   }
 
   return backupName;
 }
 
-async function restoreFromBackup(collectionName: string): Promise<void> {
+async function restoreFromBackup(
+  collectionName: string,
+  orgId?: string,
+): Promise<void> {
   const db = mongoose.connection.db;
   if (!db) {
     throw new Error("Database connection not established");
   }
 
-  // Find the most recent backup
+  // Find backups - prefer org-scoped backups when orgId is provided
   const collections = await db.listCollections().toArray();
-  const backups = collections
-    .filter((c) => c.name.startsWith(`${collectionName}_backup_finance_pii`))
+
+  // Build backup name pattern based on scope
+  const scopedPattern = orgId
+    ? `${collectionName}_backup_finance_pii_${orgId}_`
+    : `${collectionName}_backup_finance_pii`;
+
+  // Filter backups matching the scope pattern
+  let backups = collections
+    .filter((c) => c.name.startsWith(scopedPattern))
     .sort((a, b) => {
       const tsA = parseInt(a.name.split("_").pop() || "0");
       const tsB = parseInt(b.name.split("_").pop() || "0");
-      return tsB - tsA;
+      return tsB - tsA; // Most recent first
     });
 
+  // If org-scoped and no scoped backup found, look for global backups as fallback
+  if (backups.length === 0 && orgId) {
+    logger.warn(
+      `[FINANCE PII MIGRATION] No org-scoped backup found for ${collectionName} (org: ${orgId}). Checking for global backups...`,
+    );
+    backups = collections
+      .filter(
+        (c) =>
+          c.name.startsWith(`${collectionName}_backup_finance_pii`) &&
+          !c.name.includes(`_${orgId}_`), // Exclude other org-specific backups
+      )
+      .sort((a, b) => {
+        const tsA = parseInt(a.name.split("_").pop() || "0");
+        const tsB = parseInt(b.name.split("_").pop() || "0");
+        return tsB - tsA;
+      });
+  }
+
   if (backups.length === 0) {
-    throw new Error(`No backup found for ${collectionName}`);
+    throw new Error(
+      `No backup found for ${collectionName}${orgId ? ` (org: ${orgId})` : ""}`,
+    );
   }
 
   const backupName = backups[0].name;
   logger.info(`[FINANCE PII MIGRATION] Restoring from backup: ${backupName}`);
 
   const backupCollection = db.collection(backupName);
-  const docs = await backupCollection.find({}).toArray();
-
-  // Truncate target collection with same orgId scope (or all)
   const targetCollection = db.collection(collectionName);
-  const backupOrgIds = [...new Set(docs.map((d) => d.orgId))];
 
-  for (const orgId of backupOrgIds) {
+  // Determine if this is an org-scoped restore
+  const isOrgScopedBackup = backupName.includes(`_${orgId}_`);
+
+  if (orgId && isOrgScopedBackup) {
+    // Org-scoped restore: only delete and restore for this org
+    logger.info(
+      `[FINANCE PII MIGRATION] Performing org-scoped restore for org: ${orgId}`,
+    );
     await targetCollection.deleteMany({ orgId });
+  } else if (orgId) {
+    // Restoring from global backup but only for specific org
+    logger.info(
+      `[FINANCE PII MIGRATION] Restoring from global backup, filtering to org: ${orgId}`,
+    );
+    await targetCollection.deleteMany({ orgId });
+  } else {
+    // Full restore: delete all documents that exist in the backup by orgId
+    // Stream to get unique orgIds without loading all docs
+    const orgIdsSet = new Set<string>();
+    const orgCursor = backupCollection.find({}, { projection: { orgId: 1 } });
+    for await (const doc of orgCursor) {
+      if (doc.orgId) {
+        orgIdsSet.add(doc.orgId as string);
+      }
+    }
+
+    for (const backupOrgId of orgIdsSet) {
+      await targetCollection.deleteMany({ orgId: backupOrgId });
+    }
   }
 
-  // Restore
-  if (docs.length > 0) {
-    await targetCollection.insertMany(docs);
+  // Stream restore in batches to avoid memory issues
+  let totalRestored = 0;
+  let batch: mongoose.mongo.Document[] = [];
+
+  // Apply org filter if restoring from global backup with org scope
+  const restoreFilter =
+    orgId && !isOrgScopedBackup ? { orgId } : {};
+  const cursor = backupCollection.find(restoreFilter);
+
+  for await (const doc of cursor) {
+    batch.push(doc);
+
+    if (batch.length >= BACKUP_BATCH_SIZE) {
+      await targetCollection.insertMany(batch);
+      totalRestored += batch.length;
+      batch = [];
+
+      if (totalRestored % 2000 === 0) {
+        logger.info(
+          `[FINANCE PII MIGRATION] Restore progress: ${totalRestored} docs`,
+        );
+      }
+    }
   }
 
-  logger.info(`[FINANCE PII MIGRATION] Restored ${docs.length} documents`);
+  // Insert remaining batch
+  if (batch.length > 0) {
+    await targetCollection.insertMany(batch);
+    totalRestored += batch.length;
+  }
+
+  logger.info(
+    `[FINANCE PII MIGRATION] Restored ${totalRestored} documents${orgId ? ` for org: ${orgId}` : ""}`,
+  );
 }
 
 async function migrateCollection(
@@ -235,6 +346,7 @@ async function migrateCollection(
     encrypted: 0,
     skipped: 0,
     errors: 0,
+    failedIds: [],
     fields: {},
   };
 
@@ -258,6 +370,7 @@ async function migrateCollection(
 
   for await (const doc of cursor) {
     const docObj = doc as unknown as mongoose.Document & {
+      _id: mongoose.Types.ObjectId;
       toObject: () => Record<string, unknown>;
       save: () => Promise<unknown>;
     };
@@ -282,7 +395,9 @@ async function migrateCollection(
           await docObj.save();
         } catch (err) {
           stats.errors++;
+          stats.failedIds.push(docObj._id.toString());
           logger.error(`${prefix}[FINANCE PII MIGRATION] Error saving doc`, {
+            docId: docObj._id.toString(),
             error: err,
           });
         }
@@ -296,6 +411,7 @@ async function migrateCollection(
       logger.info(`${prefix}[FINANCE PII MIGRATION] ${name} progress`, {
         processed: stats.processed,
         encrypted: stats.encrypted,
+        errors: stats.errors,
       });
     }
   }
@@ -317,11 +433,16 @@ function printSummary(
   let totalProcessed = 0;
   let totalEncrypted = 0;
   let totalErrors = 0;
+  const allFailedIds: Record<string, string[]> = {};
 
   for (const [collection, stats] of Object.entries(collectionStats)) {
     totalProcessed += stats.processed;
     totalEncrypted += stats.encrypted;
     totalErrors += stats.errors;
+
+    if (stats.failedIds.length > 0) {
+      allFailedIds[collection] = stats.failedIds;
+    }
 
     console.log(`\n${collection}:`);
     console.log(`  Processed: ${stats.processed}`);
@@ -348,9 +469,29 @@ function printSummary(
   console.log(`  Total Errors:    ${totalErrors}`);
   console.log("═".repeat(60));
 
+  // Print failed IDs for targeted reruns
+  if (Object.keys(allFailedIds).length > 0) {
+    console.log("\n⚠️  FAILED DOCUMENT IDs (for targeted retry):");
+    for (const [collection, ids] of Object.entries(allFailedIds)) {
+      console.log(`\n  ${collection}:`);
+      for (const id of ids) {
+        console.log(`    - ${id}`);
+      }
+    }
+    console.log("\n  To retry failed documents, fix the underlying issue");
+    console.log("  and re-run the migration with the same --org scope.");
+  }
+
   if (options.dryRun) {
     console.log("\n⚠️  This was a DRY RUN. No changes were made.");
     console.log("   Remove --dry-run to apply changes.");
+  }
+
+  if (totalErrors === 0 && totalEncrypted > 0) {
+    console.log("\n✅ Migration completed successfully!");
+  } else if (totalErrors > 0) {
+    console.log(`\n⚠️  Migration completed with ${totalErrors} error(s).`);
+    console.log("   Review the failed IDs above and the logs for details.");
   }
 }
 
@@ -375,9 +516,11 @@ async function main(): Promise<void> {
   const collectionStats: Record<string, MigrationStats> = {};
 
   if (options.rollback) {
-    logger.info("[FINANCE PII MIGRATION] Performing rollback...");
-    await restoreFromBackup("invoices");
-    await restoreFromBackup("fm_financial_transactions");
+    logger.info(
+      `[FINANCE PII MIGRATION] Performing rollback${options.orgId ? ` for org: ${options.orgId}` : ""}...`,
+    );
+    await restoreFromBackup("invoices", options.orgId);
+    await restoreFromBackup("fm_financial_transactions", options.orgId);
     logger.info("[FINANCE PII MIGRATION] Rollback complete");
   } else {
     // Migrate Invoice collection

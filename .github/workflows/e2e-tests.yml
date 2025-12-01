@@ -204,6 +204,7 @@ jobs:
       # step below handles this check ("Validate required E2E secrets").
 
       - name: Prepare E2E env vars
+        if: github.event_name != 'pull_request' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork != true)
         env:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
@@ -226,6 +227,7 @@ jobs:
       # NOTE: _EMPLOYEE secrets for non-ADMIN roles are optional (passed through but not required by tests)
       # AUDIT-2025-12-01: _USER_ID secrets are REQUIRED for scoped roles (TEAM_MEMBER, SUPPORT_AGENT)
       - name: Validate required E2E secrets (RBAC credentials + tenant org)
+        if: github.event_name != 'pull_request' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork != true)
         env:
           # Wire secrets into step environment for validation
           TEST_FINANCE_OFFICER_EMAIL: ${{ secrets.TEST_FINANCE_OFFICER_EMAIL }}
@@ -275,6 +277,7 @@ jobs:
       # AUDIT-2025-11-30: Warn about optional employee secrets that may be needed in the future
       # These are not currently required by tests, but alerting now prevents late failures
       - name: Check optional employee secrets
+        if: github.event_name != 'pull_request' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork != true)
         env:
           TEST_FINANCE_OFFICER_EMPLOYEE: ${{ secrets.TEST_FINANCE_OFFICER_EMPLOYEE }}
           TEST_HR_OFFICER_EMPLOYEE: ${{ secrets.TEST_HR_OFFICER_EMPLOYEE }}
@@ -301,12 +304,12 @@ jobs:
       # NOTE: Even though the job has a fork guard, this step-level guard ensures safety
       # if the job condition is ever relaxed or the step is copied elsewhere.
       - name: Run Playwright E2E Tests
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true
+        if: github.event_name != 'pull_request' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork != true)
         env:
           # Authentication (NextAuth)
           NEXTAUTH_URL: http://localhost:3000
-          NEXTAUTH_SECRET: ${{ env.NEXTAUTH_SECRET }}
-          AUTH_SECRET: ${{ env.AUTH_SECRET }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          AUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
           NEXTAUTH_SKIP_CSRF_CHECK: 'true'
           AUTH_TRUST_HOST: 'true'
           
@@ -315,8 +318,8 @@ jobs:
           NEXTAUTH_REQUIRE_SMS_OTP: 'false'
           
           # Google OAuth (from GitHub Secrets - optional)
-          GOOGLE_CLIENT_ID: ${{ env.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ env.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           
           # Database - require real MongoDB for meaningful RBAC/tenancy testing
           # AUDIT-2025-11-30: Changed from 'true' to 'false' to ensure E2E tests hit real DB
