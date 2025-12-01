@@ -250,12 +250,8 @@ export class AqarRecommendationEngine {
     if (Object.keys(idFilters).length) {
       query._id = idFilters;
     }
-    if (context.orgId && Types.ObjectId.isValid(context.orgId)) {
-      query.orgId = new Types.ObjectId(context.orgId);
-    }
-    if (context.tenantId && Types.ObjectId.isValid(context.tenantId)) {
-      query.orgId = new Types.ObjectId(context.tenantId);
-    }
+    // NOTE: orgId/tenantId scoping is handled at the start of buildFilter via scopedOrgId
+    // to avoid duplicate assignments which could cause confusion during debugging
 
     return query;
   }

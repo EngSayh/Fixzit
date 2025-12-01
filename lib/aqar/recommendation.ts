@@ -6,12 +6,8 @@ import {
   type RecommendationResultItem,
 } from "@/services/aqar/recommendation-engine";
 
-export {
-  AqarRecommendationEngine,
-  RecommendationContext,
-  RecommendationResponse,
-  RecommendationResultItem,
-};
+export { AqarRecommendationEngine };
+export type { RecommendationContext, RecommendationResponse, RecommendationResultItem };
 
 /**
  * Backwards-compatible wrapper for getting recommended listings

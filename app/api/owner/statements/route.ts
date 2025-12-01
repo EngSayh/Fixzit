@@ -19,7 +19,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { requireSubscription } from "@/server/middleware/subscriptionCheck";
-import { setTenantContext } from "@/server/plugins/tenantIsolation";
+import {
+  clearTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
 import { logger } from "@/lib/logger";
 
 interface StatementLine {
@@ -145,16 +148,17 @@ export async function GET(req: NextRequest) {
     await connectToDatabase();
     setTenantContext({ orgId });
 
-    // Import Mongoose models
-    const { Property } = await import("@/server/models/Property");
-    const { Payment } = await import("@/server/models/finance/Payment");
-    const { WorkOrder } = await import("@/server/models/WorkOrder");
-    const { UtilityBillModel: UtilityBill } = await import(
-      "@/server/models/owner/UtilityBill"
-    );
-    const { AgentContractModel: AgentContract } = await import(
-      "@/server/models/owner/AgentContract"
-    );
+    try {
+      // Import Mongoose models
+      const { Property } = await import("@/server/models/Property");
+      const { Payment } = await import("@/server/models/finance/Payment");
+      const { WorkOrder } = await import("@/server/models/WorkOrder");
+      const { UtilityBillModel: UtilityBill } = await import(
+        "@/server/models/owner/UtilityBill"
+      );
+      const { AgentContractModel: AgentContract } = await import(
+        "@/server/models/owner/AgentContract"
+      );
 
     // Build property filter
     const propertyFilter: Record<string, unknown> = {
@@ -368,6 +372,10 @@ export async function GET(req: NextRequest) {
         { error: "PDF and Excel formats not yet implemented" },
         { status: 501 }, // Not Implemented
       );
+    }
+    } finally {
+      // Ensure tenant context is always cleared, even on error paths
+      clearTenantContext();
     }
   } catch (error) {
     logger.error("Error generating owner statement", { error });

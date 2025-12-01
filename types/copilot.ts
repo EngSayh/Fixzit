@@ -61,8 +61,8 @@ export interface SessionProfile {
   role: Role;
   subRole?: SubRole; // STRICT v4.1: Sub-role for Team Member specialization
   orgId: string | null;
-  locale: "ar" | "en";
-  dir: "rtl" | "ltr";
+  locale: "en" | "ar";
+  dir: "ltr" | "rtl";
 }
 
 // Chat message structure

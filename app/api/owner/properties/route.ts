@@ -15,7 +15,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Property } from "@/server/models/Property";
 import { requireSubscription } from "@/server/middleware/subscriptionCheck";
-import { setTenantContext } from "@/server/plugins/tenantIsolation";
+import {
+  clearTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
 import { logger } from "@/lib/logger";
 
 interface PropertyUnit {
@@ -52,8 +55,9 @@ export async function GET(req: NextRequest) {
     // Set tenant context for automatic filtering
     setTenantContext({ orgId });
 
-    // Build projection
-    const projection: Record<string, number> = {
+    try {
+      // Build projection
+      const projection: Record<string, number> = {
       code: 1,
       name: 1,
       description: 1,
@@ -119,6 +123,10 @@ export async function GET(req: NextRequest) {
       },
       subscription: subCheck.status,
     });
+    } finally {
+      // Ensure tenant context is always cleared, even on error paths
+      clearTenantContext();
+    }
   } catch (error) {
     logger.error("Error fetching owner properties", { error });
     return NextResponse.json(

@@ -401,6 +401,9 @@ async function updatePaymentRecord(
       );
     }
 
+    // Normalize orgId to string for tenant context.
+    // MongoDB may store orgId as either a string or ObjectId depending on migration state.
+    // We build a query filter that matches both representations to ensure cross-version compatibility.
     const normalizedOrgId = String(orgId);
     const orgAsObjectId = Types.ObjectId.isValid(normalizedOrgId)
       ? new Types.ObjectId(normalizedOrgId)

@@ -14,6 +14,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { FurnishingStatus, ListingStatus } from "@/server/models/aqar/Listing";
 import { ok, badRequest, notFound } from "@/lib/api/http";
 import { isValidObjectIdSafe } from "@/lib/api/validation";
+import { incrementAnalyticsWithRetry } from "@/lib/analytics/incrementWithRetry";
 
 import mongoose from "mongoose";
 
@@ -51,19 +52,22 @@ export async function GET(
       return notFound("Listing not found", { correlationId });
     }
 
-    // Best-effort analytics increment with error capture (no await to avoid blocking response)
-    AqarListing.findByIdAndUpdate(id, {
-      $inc: { "analytics.views": 1 },
-      $set: { "analytics.lastViewedAt": new Date() },
-    })
-      .exec()
-      .catch((err: Error) => {
-        logger.warn("VIEW_INC_FAILED", {
-          correlationId,
-          id,
-          err: String(err?.message || err),
-        });
+    // Best-effort analytics increment with retry logic (non-blocking)
+    incrementAnalyticsWithRetry({
+      model: AqarListing,
+      id: new mongoose.Types.ObjectId(id),
+      updateOp: {
+        $inc: { "analytics.views": 1 },
+        $set: { "analytics.lastViewedAt": new Date() },
+      },
+      entityType: "listing",
+    }).catch((err: Error) => {
+      logger.warn("VIEW_INC_FAILED", {
+        correlationId,
+        id,
+        err: String(err?.message || err),
       });
+    });
 
     return ok({ listing }, { correlationId });
   } catch (error) {

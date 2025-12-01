@@ -277,7 +277,8 @@ export async function POST(request: NextRequest) {
 
     await lead.save();
 
-    clearTenantContext();
+    // NOTE: clearTenantContext() is called in the finally block to ensure cleanup
+    // even on error paths, avoiding the need for a success-path call here
 
     // FUTURE: Send notification to recipient (email/SMS/push).
     // Implementation: Use lib/fm-notifications.ts sendNotification() or SendGrid for emails.
