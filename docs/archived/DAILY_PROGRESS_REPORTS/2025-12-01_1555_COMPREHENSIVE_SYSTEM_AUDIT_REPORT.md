@@ -9,6 +9,14 @@
 
 ---
 
+## Addendum (2025-12-01 17:25 +03)
+
+- **Finance PII Encryption Added:** `server/models/Invoice.ts` and `server/models/FMFinancialTransaction.ts` now use `encryptionPlugin` for tax IDs, contact emails/phones, national IDs, payment references, and bank/IBAN/SWIFT details. Historical finance data still needs migration.
+- **PII Documentation Updated:** `.github/PII_ENCRYPTION_REPORT.md` now documents finance coverage; categorized task list updated with a P0 item for migration follow-up.
+- **Test Status Correction:** `pnpm test -- --run --reporter=dot` currently fails early in Playwright `tests/e2e/auth-flow.spec.ts` (dashboard redirect, missing email locator, strict locator on signup name field, language switch click blocked). Full 3104-test run aborts; the previously stated “0 failures” needs reevaluation (task list still shows 143 failing tests).
+
+---
+
 ## Executive Summary
 
 This session performed a deep-dive system organization and security audit per the Fixizit System Prompt requirements. The focus was on:

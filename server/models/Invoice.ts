@@ -2,6 +2,7 @@ import { Schema, Model, InferSchemaType } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { encryptionPlugin } from "../plugins/encryptionPlugin";
 
 const InvoiceStatus = [
   "DRAFT",
@@ -238,6 +239,20 @@ InvoiceSchema.set("toObject", { virtuals: true });
 // Apply plugins BEFORE indexes for proper tenant isolation and audit tracking
 InvoiceSchema.plugin(tenantIsolationPlugin);
 InvoiceSchema.plugin(auditPlugin);
+InvoiceSchema.plugin(encryptionPlugin, {
+  fields: {
+    "issuer.taxId": "Issuer Tax ID",
+    "issuer.phone": "Issuer Phone",
+    "issuer.email": "Issuer Email",
+    "recipient.taxId": "Recipient Tax ID",
+    "recipient.phone": "Recipient Phone",
+    "recipient.email": "Recipient Email",
+    "recipient.nationalId": "Recipient National ID",
+    "payment.account.accountNumber": "Payment Account Number",
+    "payment.account.iban": "Payment IBAN",
+    "payment.account.swift": "Payment SWIFT",
+  },
+});
 
 // Tenant-scoped indexes for performance and data isolation
 InvoiceSchema.index({ orgId: 1, number: 1 }, { unique: true });

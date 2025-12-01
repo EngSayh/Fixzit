@@ -104,6 +104,14 @@
 - **Time**: ✅ COMPLETE (1 hour)
 - **Priority**: P2 (DONE)
 
+### 0.6 Finance PII Encryption (Invoices & FMFinancialTransaction)
+
+- **Status**: ✅ Schema encryption applied (2025-12-01); **migration pending** for existing finance records
+- **Files**: server/models/Invoice.ts, server/models/FMFinancialTransaction.ts
+- **Scope**: Encrypts issuer/recipient tax IDs, phones, emails, national IDs, payment account numbers/IBAN/SWIFT, payment references, and bank accounts
+- **Next**: Run finance data migration; add validation checks in test suite
+- **Priority**: P0 - CRITICAL (security)
+
 ---
 
 ## 🔴 CATEGORY 1: TESTING & QUALITY ASSURANCE (Priority: HIGH)

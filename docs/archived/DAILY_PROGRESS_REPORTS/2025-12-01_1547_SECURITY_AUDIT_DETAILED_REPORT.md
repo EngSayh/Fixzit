@@ -8,6 +8,14 @@
 
 ---
 
+## Addendum (2025-12-01 17:25 +03)
+
+- Finance PII encryption added post-report to `server/models/Invoice.ts` and `server/models/FMFinancialTransaction.ts` (tax IDs, contact emails/phones, national IDs, payment references, bank/IBAN/SWIFT). Migration for historical finance data is still pending.
+- PII documentation and task tracker updated to reflect the new finance encryption scope and migration requirement (P0).
+- Latest `pnpm test -- --run --reporter=dot` run fails early in Playwright `tests/e2e/auth-flow.spec.ts` (dashboard redirect/locator issues); full-suite status remains failing/unknown despite model tests passing.
+
+---
+
 ## Executive Summary
 
 This session performed a deep security audit focusing on tenant isolation, PII encryption, rate limiting, and notification system security. A **critical tenant isolation gap** was discovered and fixed in the notification system where `orgId` was missing throughout the entire notification chain.

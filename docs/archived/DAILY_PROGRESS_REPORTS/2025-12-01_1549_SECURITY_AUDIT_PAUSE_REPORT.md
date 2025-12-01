@@ -9,6 +9,14 @@
 
 ---
 
+## Addendum (2025-12-01 17:25 +03)
+
+- Finance PII encryption has now been applied to `server/models/Invoice.ts` and `server/models/FMFinancialTransaction.ts` (tax IDs, contact emails/phones, national IDs, payment references, bank/IBAN/SWIFT). A migration is still needed to encrypt existing finance records.
+- `.github/PII_ENCRYPTION_REPORT.md` and `docs/CATEGORIZED_TASKS_LIST.md` were updated to track the finance encryption work as a P0 security task (migration pending).
+- Latest `pnpm test -- --run --reporter=dot` run aborts early in Playwright `tests/e2e/auth-flow.spec.ts` (dashboard redirect, auth page locators, language switch). The “91/91 model tests” remain passing, but full-suite status is currently failing/unknown (task list references 143 failing tests).
+
+---
+
 ## Session Summary
 
 ### ✅ COMPLETED Work
