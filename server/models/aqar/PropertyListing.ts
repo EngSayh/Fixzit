@@ -1,5 +1,6 @@
 import { Schema, model, models, Types } from "mongoose";
 import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 
 export type PropertyType =
   | "APARTMENT"
@@ -304,6 +305,12 @@ PropertyListingSchema.index({
   "location.address.district": "text",
   "location.address.city": "text",
 });
+
+/**
+ * Multi-tenancy Plugin - Auto-filters queries by orgId
+ * SECURITY: Ensures property listings are isolated per organization
+ */
+PropertyListingSchema.plugin(tenantIsolationPlugin);
 
 const PropertyListingModel = getModel<PropertyListing>(
   "PropertyListing",

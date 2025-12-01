@@ -1,5 +1,7 @@
 import { Schema, model, models, Types } from "mongoose";
 import { getModel, MModel } from "@/types/mongoose-compat";
+import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
+import { encryptionPlugin } from "../../plugins/encryptionPlugin";
 
 export type AgentStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
 export type AgentTier = "BASIC" | "PREMIUM" | "ELITE";
@@ -197,6 +199,23 @@ RealEstateAgentSchema.index({
   displayName: "text",
   "bio.en": "text",
   "bio.ar": "text",
+});
+
+/**
+ * Multi-tenancy Plugin - Auto-filters queries by orgId
+ * SECURITY: Ensures agent profiles are isolated per organization
+ */
+RealEstateAgentSchema.plugin(tenantIsolationPlugin);
+
+/**
+ * PII Encryption (GDPR Article 32 - Security of Processing)
+ * Encrypts sensitive contact information
+ */
+RealEstateAgentSchema.plugin(encryptionPlugin, {
+  fields: {
+    "contact.email": "Agent Email",
+    "contact.phone": "Agent Phone",
+  },
 });
 
 const RealEstateAgentModel = getModel<RealEstateAgent>(

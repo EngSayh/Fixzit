@@ -1,5 +1,7 @@
 import { Schema, Types, type HydratedDocument } from 'mongoose';
 import { getModel } from '@/types/mongoose-compat';
+import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
+import { encryptionPlugin } from '../../plugins/encryptionPlugin';
 
 // STRICT v4: Migrated CUSTOMER → TENANT (both are property roles)
 export const ONBOARDING_ROLES = ['TENANT', 'PROPERTY_OWNER', 'OWNER', 'VENDOR', 'AGENT'] as const;
@@ -87,6 +89,23 @@ const OnboardingCaseSchema = new Schema<IOnboardingCase>(
 OnboardingCaseSchema.index({ orgId: 1, status: 1, role: 1 }); // AUDIT-2025-11-29: Changed from org_id
 OnboardingCaseSchema.index({ subject_user_id: 1, tutorial_completed: 1 });
 OnboardingCaseSchema.index({ createdAt: 1, status: 1 });
+
+/**
+ * Multi-tenancy Plugin - Auto-filters queries by orgId
+ * SECURITY: Ensures onboarding cases are isolated per organization
+ */
+OnboardingCaseSchema.plugin(tenantIsolationPlugin);
+
+/**
+ * PII Encryption (GDPR Article 32 - Security of Processing)
+ * Encrypts sensitive contact information in basic_info
+ */
+OnboardingCaseSchema.plugin(encryptionPlugin, {
+  fields: {
+    'basic_info.email': 'Applicant Email',
+    'basic_info.phone': 'Applicant Phone',
+  },
+});
 
 export type OnboardingCaseDocument = HydratedDocument<IOnboardingCase>;
 export const OnboardingCase = getModel<IOnboardingCase>('OnboardingCase', OnboardingCaseSchema);
