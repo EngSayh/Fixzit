@@ -77,6 +77,7 @@ export interface IKYCWorkflow {
 export interface ISeller extends Document {
   _id: mongoose.Types.ObjectId;
   sellerId: string; // SEL-{UUID}
+  orgId: mongoose.Types.ObjectId;
 
   // Legal Entity
   legalName: string;
@@ -212,6 +213,12 @@ export interface ISeller extends Document {
 
 const SellerSchema = new Schema<ISeller>(
   {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
     sellerId: {
       type: String,
       required: true,
@@ -608,6 +615,9 @@ SellerSchema.index({ "kycStatus.status": 1, isActive: 1 });
 SellerSchema.index({ "accountHealth.status": 1 });
 SellerSchema.index({ tier: 1, isActive: 1 });
 SellerSchema.index({ legalName: "text", tradeName: "text" });
+SellerSchema.index({ orgId: 1, contactEmail: 1 });
+SellerSchema.index({ orgId: 1, registrationNumber: 1 });
+SellerSchema.index({ orgId: 1, sellerId: 1 });
 
 // Method: Calculate account health score
 SellerSchema.methods.calculateAccountHealth = function (): number {

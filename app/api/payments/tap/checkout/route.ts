@@ -11,7 +11,7 @@ import {
   type TapChargeRequest,
   type TapChargeResponse,
 } from "@/lib/finance/tap-payments";
-import { getSessionUser } from "@/lib/auth-middleware";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { TapTransaction } from "@/server/models/finance/TapTransaction";
 import { Invoice } from "@/server/models/Invoice";

@@ -26,7 +26,6 @@ export const FinancePermissions = {
     UserRole.CORPORATE_ADMIN,
     UserRole.FINANCE,
     UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
-    UserRole.AUDITOR,
   ],
   "finance.accounts.create": [
     UserRole.SUPER_ADMIN,
@@ -51,7 +50,6 @@ export const FinancePermissions = {
     UserRole.CORPORATE_ADMIN,
     UserRole.FINANCE,
     UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
-    UserRole.AUDITOR,
   ],
   "finance.expenses.create": [
     UserRole.SUPER_ADMIN,
@@ -96,7 +94,6 @@ export const FinancePermissions = {
     UserRole.CORPORATE_ADMIN,
     UserRole.FINANCE,
     UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
-    UserRole.AUDITOR,
   ],
   "finance.payments.create": [
     UserRole.SUPER_ADMIN,
@@ -153,7 +150,6 @@ export const FinancePermissions = {
     UserRole.CORPORATE_ADMIN,
     UserRole.FINANCE,
     UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
-    UserRole.AUDITOR,
   ],
   "finance.journals.create": [
     UserRole.SUPER_ADMIN,
@@ -180,21 +176,18 @@ export const FinancePermissions = {
     UserRole.CORPORATE_ADMIN,
     UserRole.FINANCE,
     UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
-    UserRole.AUDITOR,
   ],
   "finance.ledger.trial-balance": [
     UserRole.SUPER_ADMIN,
     UserRole.CORPORATE_ADMIN,
     UserRole.FINANCE,
     UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
-    UserRole.AUDITOR,
   ],
   "finance.ledger.account-activity": [
     UserRole.SUPER_ADMIN,
     UserRole.CORPORATE_ADMIN,
     UserRole.FINANCE,
     UserRole.FINANCE_OFFICER, // PHASE-3: Sub-role support
-    UserRole.AUDITOR,
   ],
 
   // Reporting

@@ -38,8 +38,7 @@ export type Role =
   | "HR"
   | "HR_OFFICER"
   | "SUPPORT_AGENT"
-  | "OPERATIONS_MANAGER"
-  | "AUDITOR";
+  | "OPERATIONS_MANAGER";
 
 export type QuickAction = {
   id: string;
@@ -152,8 +151,8 @@ export const modules: ModuleDef[] = [
     label: "Finance",
     route: "/fm/finance",
     icon: DollarSign,
-    // STRICT v4.1: FINANCE, FINANCE_OFFICER have full access; AUDITOR has read-only (visible for navigation)
-    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "CORPORATE_ADMIN", "FINANCE", "FINANCE_OFFICER", "AUDITOR"],
+    // STRICT v4.1: Finance roles and officers; visibility for admin and corporate owner/admin
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "CORPORATE_ADMIN", "FINANCE", "FINANCE_OFFICER"],
     children: [
       { label: "Invoices", route: "/fm/finance/invoices" },
       { label: "Payments", route: "/fm/finance/payments" },

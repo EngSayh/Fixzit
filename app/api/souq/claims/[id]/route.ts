@@ -15,7 +15,8 @@ export async function GET(
 ) {
   try {
     const session = await resolveRequestSession(request);
-    if (!session?.user?.id) {
+    const userOrgId = session?.user?.orgId;
+    if (!session?.user?.id || !userOrgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -39,26 +40,32 @@ export async function GET(
     if (ObjectId.isValid(orderIdValue)) {
       order = await db
         .collection("orders")
-        .findOne({ _id: new ObjectId(orderIdValue) })
+        .findOne({ _id: new ObjectId(orderIdValue), orgId: new ObjectId(userOrgId) })
         .catch(() => null);
     }
     if (!order) {
       order = await db
         .collection("orders")
-        .findOne({ orderId: orderIdValue })
+        .findOne({ orderId: orderIdValue, orgId: new ObjectId(userOrgId) })
         .catch(() => null);
+    }
+    if (!order) {
+      return NextResponse.json(
+        { error: "Forbidden: order not found in your organization" },
+        { status: 403 },
+      );
     }
 
     const buyerDoc = ObjectId.isValid(String(claim.buyerId))
       ? await db
           .collection("users")
-          .findOne({ _id: new ObjectId(String(claim.buyerId)) })
+          .findOne({ _id: new ObjectId(String(claim.buyerId)), orgId: new ObjectId(userOrgId) })
           .catch(() => null)
       : null;
     const sellerDoc = ObjectId.isValid(String(claim.sellerId))
       ? await db
           .collection("users")
-          .findOne({ _id: new ObjectId(String(claim.sellerId)) })
+          .findOne({ _id: new ObjectId(String(claim.sellerId)), orgId: new ObjectId(userOrgId) })
           .catch(() => null)
       : null;
 
@@ -91,7 +98,8 @@ export async function PUT(
 ) {
   try {
     const session = await resolveRequestSession(request);
-    if (!session?.user?.id) {
+    const userOrgId = session?.user?.orgId;
+    if (!session?.user?.id || !userOrgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -101,6 +109,19 @@ export async function PUT(
     const claim = await ClaimService.getClaim(params.id);
     if (!claim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+    // Ensure claim/order belongs to the same org
+    const db = await getDatabase();
+    const orderIdValue = String(claim.orderId);
+    const orderFilter = ObjectId.isValid(orderIdValue)
+      ? { _id: new ObjectId(orderIdValue), orgId: new ObjectId(userOrgId) }
+      : { orderId: orderIdValue, orgId: new ObjectId(userOrgId) };
+    const order = await db.collection("orders").findOne(orderFilter);
+    if (!order) {
+      return NextResponse.json(
+        { error: "Forbidden: claim does not belong to your organization" },
+        { status: 403 },
+      );
     }
 
     // Only buyer can withdraw

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbConnect } from "@/lib/db/mongoose";
+import { dbConnect } from "@/db/mongoose";
 import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
 import { rateLimit } from "@/server/security/rateLimit";
 import { getClientIP } from "@/server/security/headers";

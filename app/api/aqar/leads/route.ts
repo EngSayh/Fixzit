@@ -11,7 +11,7 @@ import { connectDb } from "@/lib/mongo";
 import { AqarLead, AqarListing } from "@/server/models/aqar";
 import { LeadSource, LeadStatus } from "@/server/models/aqar/Lead";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { checkRateLimit } from "@/lib/rateLimit";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import {
   clearTenantContext,
   setTenantContext,
@@ -54,10 +54,10 @@ export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   try {
     // Apply rate limiting BEFORE DB connection to shed load early
-    const rateLimitResponse = checkRateLimit(request, {
-      maxRequests: 10,
+    const rateLimitResponse = enforceRateLimit(request, {
+      keyPrefix: "aqar-leads:create",
+      requests: 10,
       windowMs: 60 * 60 * 1000, // 1 hour
-      message: "Too many lead submissions. Please try again in an hour.",
     });
 
     if (rateLimitResponse) {

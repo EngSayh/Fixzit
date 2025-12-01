@@ -47,7 +47,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const seller = await SouqSeller.findById(session.user.id);
+    const seller = await SouqSeller.findOne(
+      orgId ? { _id: session.user.id, orgId } : { _id: session.user.id },
+    );
     if (!seller) {
       return NextResponse.json(
         { error: "Seller profile not found" },

@@ -54,6 +54,10 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) {
     return unauthorizedError("Authentication required");
   }
+  const orgId = session.user.orgId;
+  if (!orgId || typeof orgId !== "string" || orgId.trim() === "") {
+    return unauthorizedError("Organization context required");
+  }
 
   // Rate limiting
   const clientIp = getClientIP(req);
@@ -75,10 +79,9 @@ export async function POST(req: NextRequest) {
 
     // SECURITY: Scope benchmarks to user's organization (tenant isolation)
     // Admins can query all if needed via admin route
-    const tenantId = session.user.orgId;
-    const query = tenantId ? { tenantId } : {};
-    
-    const rows = (await Benchmark.find(query)) as unknown as BenchmarkDocument[];
+    const query = { tenantId: orgId };
+
+    const rows = (await Benchmark.find(query).lean()) as unknown as BenchmarkDocument[];
     const perUserRows = rows.filter(
       (r) => r.pricingModel === "per_user_month" && r.priceMonthly,
     );

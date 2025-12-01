@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { connectDb } from "@/lib/mongo";
-import { Schema, model, models } from "mongoose";
-
+import { Schema, model, models, Types } from "mongoose";
 import { logger } from "@/lib/logger";
+
 /**
  * DELETE /api/admin/users/[id]
  *
@@ -30,18 +30,24 @@ export async function DELETE(
     await connectDb();
 
     const { id } = await params;
+    if (!Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
+    }
 
-    const UserSchema = new Schema(
-      {
-        orgId: String,
-        code: String,
-        username: String,
-        email: String,
-      },
-      { collection: "users" },
-    );
-
-    const UserModel = models.User || model("User", UserSchema);
+    const UserSchema =
+      (models.User && models.User.schema) ||
+      new Schema(
+        {
+          orgId: String,
+          code: String,
+          username: String,
+          email: String,
+        },
+        { collection: "users" },
+      );
+    const UserModel =
+      models.User ||
+      model("User", UserSchema); // lightweight schema to avoid full model import overhead
 
     // SEC-001: Validate orgId exists for tenant isolation
     const orgId = session.user.orgId;
@@ -53,16 +59,16 @@ export async function DELETE(
     }
 
     const user = await UserModel.findOne({
-      _id: id,
-      orgId,  // ✅ Validated orgId
-    });
+      _id: new Types.ObjectId(id),
+      orgId, // ✅ Validated orgId
+    }).lean();
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // DEFENSE-IN-DEPTH: Include orgId in delete filter (per CodeRabbit review)
-    await UserModel.deleteOne({ _id: id, orgId });
+    await UserModel.deleteOne({ _id: new Types.ObjectId(id), orgId });
 
     return NextResponse.json({
       success: true,
@@ -103,6 +109,9 @@ export async function PATCH(
     await connectDb();
 
     const { id } = await params;
+    if (!Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
+    }
     const body = await request.json();
 
     const UserSchema = new Schema(
@@ -132,7 +141,9 @@ export async function PATCH(
       { collection: "users" },
     );
 
-    const UserModel = models.User || model("User", UserSchema);
+    const UserModel =
+      models.User ||
+      model("User", UserSchema); // lightweight schema to avoid full model import overhead
 
     // SEC-001: Validate orgId exists for tenant isolation
     const orgId = session.user.orgId;
@@ -144,9 +155,9 @@ export async function PATCH(
     }
 
     const user = await UserModel.findOne({
-      _id: id,
-      orgId,  // ✅ Validated orgId
-    });
+      _id: new Types.ObjectId(id),
+      orgId, // ✅ Validated orgId
+    }).lean();
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -171,10 +182,15 @@ export async function PATCH(
     if (body.status) updates.status = body.status;
 
     // SECURITY: Include orgId in update filter to prevent cross-tenant updates (TOCTOU protection)
-    await UserModel.updateOne({ _id: id, orgId }, { $set: updates });
+    await UserModel.updateOne(
+      { _id: new Types.ObjectId(id), orgId },
+      { $set: updates },
+    );
 
     // SECURITY: Use org-scoped query for returning updated user
-    const updatedUser = await UserModel.findOne({ _id: id, orgId });
+    const updatedUser = await UserModel.findOne(
+      { _id: new Types.ObjectId(id), orgId },
+    ).lean();
 
     return NextResponse.json({ user: updatedUser });
   } catch (error) {

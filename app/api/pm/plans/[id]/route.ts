@@ -3,6 +3,18 @@ import { logger } from "@/lib/logger";
 import { FMPMPlan } from "@/server/models/FMPMPlan";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse } from "@/server/security/headers";
+import { UserRole } from "@/types/user";
+
+const PM_ALLOWED_ROLES = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.FM_MANAGER,
+  UserRole.PROPERTY_MANAGER,
+  UserRole.TECHNICIAN,
+  UserRole.OPERATIONS_MANAGER,
+] as const;
 
 /**
  * GET /api/pm/plans/[id]
@@ -15,6 +27,10 @@ export async function GET(
   let orgId: string;
   try {
     const user = await getSessionUser(request);
+    const isAllowed = PM_ALLOWED_ROLES.some((role) => role === user.role);
+    if (!isAllowed) {
+      return createSecureResponse({ error: "Forbidden" }, 403, request);
+    }
     orgId = user.orgId;
   } catch {
     return createSecureResponse({ error: "Unauthorized" }, 401, request);
@@ -59,6 +75,10 @@ export async function PATCH(
   let orgId: string;
   try {
     const user = await getSessionUser(request);
+    const isAllowed = PM_ALLOWED_ROLES.some((role) => role === user.role);
+    if (!isAllowed) {
+      return createSecureResponse({ error: "Forbidden" }, 403, request);
+    }
     orgId = user.orgId;
   } catch {
     return createSecureResponse({ error: "Unauthorized" }, 401, request);
@@ -138,6 +158,10 @@ export async function DELETE(
   let orgId: string;
   try {
     const user = await getSessionUser(request);
+    const isAllowed = PM_ALLOWED_ROLES.some((role) => role === user.role);
+    if (!isAllowed) {
+      return createSecureResponse({ error: "Forbidden" }, 403, request);
+    }
     orgId = user.orgId;
   } catch {
     return createSecureResponse({ error: "Unauthorized" }, 401, request);

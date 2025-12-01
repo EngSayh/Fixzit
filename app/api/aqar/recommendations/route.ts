@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { dbConnect } from "@/lib/db/mongoose";
+import { dbConnect } from "@/db/mongoose";
 import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from "@/server/security/rateLimit";

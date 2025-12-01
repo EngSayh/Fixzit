@@ -33,8 +33,6 @@ export const UserRole = {
   TENANT: "TENANT",
   VENDOR: "VENDOR",
   AUDITOR: "AUDITOR",
-  CUSTOMER: "CUSTOMER",
-  VIEWER: "VIEWER",
   CORPORATE_OWNER: "CORPORATE_OWNER",
   
   /**
@@ -59,12 +57,50 @@ export const UserRole = {
   DISPATCHER: "DISPATCHER",
   /** @deprecated Use FINANCE or FINANCE_OFFICER instead */
   FINANCE_MANAGER: "FINANCE_MANAGER",
+  /** @deprecated B2C portal roles - not part of STRICT v4 */
+  CUSTOMER: "CUSTOMER",
+  /** @deprecated View-only placeholder - not part of STRICT v4 */
+  VIEWER: "VIEWER",
 } as const;
 
 export type UserRoleType = (typeof UserRole)[keyof typeof UserRole];
 
-// Array of all valid roles for validation
-export const ALL_ROLES = Object.values(UserRole);
+// Canonical STRICT v4 roles (14 base + sub-roles + property/external)
+export const CANONICAL_ROLES = [
+  UserRole.SUPER_ADMIN,
+  UserRole.CORPORATE_ADMIN,
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.FM_MANAGER,
+  UserRole.PROPERTY_MANAGER,
+  UserRole.TECHNICIAN,
+  UserRole.FINANCE,
+  UserRole.HR,
+  UserRole.PROCUREMENT,
+  UserRole.FINANCE_OFFICER,
+  UserRole.HR_OFFICER,
+  UserRole.SUPPORT_AGENT,
+  UserRole.OPERATIONS_MANAGER,
+  UserRole.OWNER,
+  UserRole.TENANT,
+  UserRole.VENDOR,
+  UserRole.AUDITOR,
+  UserRole.CORPORATE_OWNER,
+] as const;
+
+// Legacy/Deprecated roles (kept for data migration compatibility only)
+export const LEGACY_ROLES = [
+  UserRole.EMPLOYEE,
+  UserRole.SUPPORT,
+  UserRole.DISPATCHER,
+  UserRole.FINANCE_MANAGER,
+  UserRole.CUSTOMER,
+  UserRole.VIEWER,
+] as const;
+
+// Preferred arrays for validation
+export const ALL_ROLES = CANONICAL_ROLES;
+export const ALL_ROLES_WITH_LEGACY = [...CANONICAL_ROLES, ...LEGACY_ROLES] as const;
 
 // 🔒 STRICT v4: Role categories for the 14-role matrix
 export const ADMIN_ROLES = [
@@ -118,6 +154,8 @@ export const DEPRECATED_ROLES = [
   UserRole.SUPPORT,
   UserRole.DISPATCHER,
   UserRole.FINANCE_MANAGER,
+  UserRole.CUSTOMER,
+  UserRole.VIEWER,
 ] as const;
 
 /** Helper to check if a role is deprecated and should trigger migration warning */

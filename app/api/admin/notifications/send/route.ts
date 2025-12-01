@@ -89,6 +89,9 @@ export async function POST(req: NextRequest) {
       role === "CORPORATE_ADMIN" || // Legacy alias for ADMIN
       (Array.isArray(sessionUser.roles) &&
         (sessionUser.roles.includes("SUPER_ADMIN") || sessionUser.roles.includes("ADMIN")));
+    const isSuperAdmin =
+      role === "SUPER_ADMIN" ||
+      (Array.isArray(sessionUser.roles) && sessionUser.roles.includes("SUPER_ADMIN"));
 
     if (!isAuthorizedRole && !hasBroadcastPermission) {
       logger.warn("[Admin Notification] Broadcast denied for user", {
@@ -138,6 +141,16 @@ export async function POST(req: NextRequest) {
     const triggeredBy =
       (session.user as { id?: string }).id || session.user.email || "unknown";
     const senderEmail: string | undefined = session.user.email ?? undefined;
+    const orgFilter =
+      session.user && "orgId" in session.user && session.user.orgId
+        ? { orgId: new ObjectId(session.user.orgId as string) }
+        : {};
+    if (!isSuperAdmin && !orgFilter.orgId) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized: org context required" },
+        { status: 401 },
+      );
+    }
 
     // Fetch recipient contacts based on type
     let targetContacts: Array<{
@@ -184,7 +197,9 @@ export async function POST(req: NextRequest) {
 
       const users = await db
         .collection("users")
-        .find(query ?? {})
+        .find(
+          query ?? (!isSuperAdmin && orgFilter.orgId ? { orgId: orgFilter.orgId } : {}),
+        )
         .toArray();
       targetContacts = users.map((u) => ({
         id: u._id.toString(),
@@ -203,7 +218,9 @@ export async function POST(req: NextRequest) {
 
       const tenants = await db
         .collection("tenants")
-        .find(query ?? {})
+        .find(
+          query ?? (!isSuperAdmin && orgFilter.orgId ? { orgId: orgFilter.orgId } : {}),
+        )
         .toArray();
       targetContacts = tenants.map((t) => ({
         id: t._id.toString(),
@@ -222,7 +239,9 @@ export async function POST(req: NextRequest) {
 
       const corps = await db
         .collection("organizations")
-        .find(query ?? {})
+        .find(
+          query ?? (!isSuperAdmin && orgFilter.orgId ? { _id: orgFilter.orgId } : {}),
+        )
         .toArray();
       targetContacts = corps.map((c) => ({
         id: c._id.toString(),
@@ -231,8 +250,11 @@ export async function POST(req: NextRequest) {
         phone: c.contactPhone,
       }));
     } else if (recipients.type === "all") {
-      // Fetch all users
-      const users = await db.collection("users").find({}).toArray();
+      // Fetch all users; non-super-admins are scoped to their org
+      const users = await db
+        .collection("users")
+        .find(!isSuperAdmin && orgFilter.orgId ? { orgId: orgFilter.orgId } : {})
+        .toArray();
       targetContacts = users.map((u) => ({
         id: u._id.toString(),
         name: u.name || u.email,
