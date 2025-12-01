@@ -1,18 +1,29 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { FMPMPlan } from "@/server/models/FMPMPlan";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { createSecureResponse } from "@/server/security/headers";
 
 /**
  * GET /api/pm/plans/[id]
- * Get single PM plan by ID
+ * Get single PM plan by ID (tenant-scoped)
  */
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  let orgId: string;
+  try {
+    const user = await getSessionUser(request);
+    orgId = user.orgId;
+  } catch {
+    return createSecureResponse({ error: "Unauthorized" }, 401, request);
+  }
+
   try {
     const { id } = await params;
-    const plan = await FMPMPlan.findById(id);
+    // 🔒 TENANT-SCOPED: Use findOne with orgId filter instead of findById
+    const plan = await FMPMPlan.findOne({ _id: id, orgId });
 
     if (!plan) {
       return NextResponse.json(
@@ -39,12 +50,20 @@ export async function GET(
 
 /**
  * PATCH /api/pm/plans/[id]
- * Update PM plan
+ * Update PM plan (tenant-scoped)
  */
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  let orgId: string;
+  try {
+    const user = await getSessionUser(request);
+    orgId = user.orgId;
+  } catch {
+    return createSecureResponse({ error: "Unauthorized" }, 401, request);
+  }
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -78,8 +97,9 @@ export async function PATCH(
       );
     }
 
-    const plan = await FMPMPlan.findByIdAndUpdate(
-      id,
+    // 🔒 TENANT-SCOPED: Use findOneAndUpdate with orgId filter
+    const plan = await FMPMPlan.findOneAndUpdate(
+      { _id: id, orgId },
       { $set: updateData },
       { new: true, runValidators: true },
     );
@@ -109,16 +129,25 @@ export async function PATCH(
 
 /**
  * DELETE /api/pm/plans/[id]
- * Delete PM plan (soft delete - set status to INACTIVE)
+ * Delete PM plan (soft delete - set status to INACTIVE) (tenant-scoped)
  */
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  let orgId: string;
+  try {
+    const user = await getSessionUser(request);
+    orgId = user.orgId;
+  } catch {
+    return createSecureResponse({ error: "Unauthorized" }, 401, request);
+  }
+
   try {
     const { id } = await params;
-    const plan = await FMPMPlan.findByIdAndUpdate(
-      id,
+    // 🔒 TENANT-SCOPED: Use findOneAndUpdate with orgId filter
+    const plan = await FMPMPlan.findOneAndUpdate(
+      { _id: id, orgId },
       { $set: { status: "INACTIVE" } },
       { new: true },
     );

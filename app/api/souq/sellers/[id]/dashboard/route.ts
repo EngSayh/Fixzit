@@ -3,7 +3,8 @@
  * @route /api/souq/sellers/[id]/dashboard
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { SouqSeller } from "@/server/models/souq/Seller";
 import { SouqListing } from "@/server/models/souq/Listing";
@@ -12,10 +13,16 @@ import { SouqReview } from "@/server/models/souq/Review";
 import { connectDb } from "@/lib/mongodb-unified";
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   context: { params: { id: string } },
 ) {
   try {
+    // 🔒 AUTH: Require authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     await connectDb();
 
     const sellerId = context.params.id;
@@ -24,6 +31,14 @@ export async function GET(
 
     if (!seller) {
       return NextResponse.json({ error: "Seller not found" }, { status: 404 });
+    }
+
+    // 🔒 ACCESS CONTROL: Only seller owner or admin can view dashboard
+    const isAdmin = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(session.user.role);
+    const isOwner = seller.userId?.toString() === session.user.id;
+    
+    if (!isAdmin && !isOwner) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const thirtyDaysAgo = new Date();
