@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongo";
 import { AqarLead, AqarListing } from "@/server/models/aqar";
+import { LeadSource } from "@/server/models/aqar/Lead";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { incrementAnalyticsWithRetry } from "@/lib/analytics/incrementWithRetry";
 import { checkRateLimit } from "@/lib/rateLimit";
@@ -38,15 +39,9 @@ const LeadCreateSchema = z.object({
     .or(z.literal("")),
   intent: z.enum(["BUY", "RENT", "DAILY"]),
   message: z.string().trim().max(1000).optional(),
-  source: z.enum([
-    "LISTING_INQUIRY",
-    "PROJECT_INQUIRY",
-    "WHATSAPP",
-    "PHONE_CALL",
-    "WALK_IN",
-    "REFERRAL",
-    "OTHER",
-  ]),
+  source: z.enum(
+    Object.values(LeadSource) as [LeadSource, ...LeadSource[]]
+  ),
 });
 
 // Pagination constants
@@ -172,26 +167,32 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Increment inquiries count with timestamp (async, non-blocking with retry logic)
-      (async () => {
-        try {
-          await incrementAnalyticsWithRetry({
-            model: AqarListing,
-            id: new mongoose.Types.ObjectId(listingId),
-            updateOp: {
-              $inc: { "analytics.inquiries": 1 },
-              $set: { "analytics.lastInquiryAt": new Date() },
-            },
-            entityType: "listing",
-          });
-        } catch (error) {
-          logger.error(
-            "Failed to increment listing analytics:",
-            error instanceof Error ? error : new Error(String(error)),
-            { listingId },
-          );
-        }
-      })();
+      // Increment inquiries count with tenant context (async, non-blocking with retry logic)
+      // Set tenant context for analytics to ensure org_id scoping
+      if (orgIdForLead) {
+        (async () => {
+          try {
+            setTenantContext({ orgId: String(orgIdForLead), userId });
+            await incrementAnalyticsWithRetry({
+              model: AqarListing,
+              id: new mongoose.Types.ObjectId(listingId),
+              updateOp: {
+                $inc: { "analytics.inquiries": 1 },
+                $set: { "analytics.lastInquiryAt": new Date() },
+              },
+              entityType: "listing",
+            });
+          } catch (error) {
+            logger.error(
+              "Failed to increment listing analytics:",
+              error instanceof Error ? error : new Error(String(error)),
+              { listingId },
+            );
+          } finally {
+            clearTenantContext();
+          }
+        })();
+      }
     } else if (projectId) {
       const { AqarProject } = await import("@/server/models/aqar");
       const project = await AqarProject.findById(projectId);
@@ -220,26 +221,32 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Increment inquiries count with timestamp (async, non-blocking with retry logic)
-      (async () => {
-        try {
-          await incrementAnalyticsWithRetry({
-            model: AqarProject,
-            id: new mongoose.Types.ObjectId(projectId),
-            updateOp: {
-              $inc: { inquiries: 1 },
-              $set: { lastInquiryAt: new Date() },
-            },
-            entityType: "project",
-          });
-        } catch (error) {
-          logger.error(
-            "Failed to increment project analytics:",
-            error instanceof Error ? error : new Error(String(error)),
-            { projectId },
-          );
-        }
-      })();
+      // Increment inquiries count with tenant context (async, non-blocking with retry logic)
+      // Set tenant context for analytics to ensure org_id scoping
+      if (orgIdForLead) {
+        (async () => {
+          try {
+            setTenantContext({ orgId: String(orgIdForLead), userId });
+            await incrementAnalyticsWithRetry({
+              model: AqarProject,
+              id: new mongoose.Types.ObjectId(projectId),
+              updateOp: {
+                $inc: { inquiries: 1 },
+                $set: { lastInquiryAt: new Date() },
+              },
+              entityType: "project",
+            });
+          } catch (error) {
+            logger.error(
+              "Failed to increment project analytics:",
+              error instanceof Error ? error : new Error(String(error)),
+              { projectId },
+            );
+          } finally {
+            clearTenantContext();
+          }
+        })();
+      }
     }
 
     // Require tenant attribution from listing/project
@@ -299,6 +306,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// STRICT v4: Roles allowed to access CRM lead data (PII-bearing)
+const LEADS_READ_ALLOWED_ROLES = [
+  "SUPER_ADMIN",
+  "CORPORATE_ADMIN",
+  "CORPORATE_OWNER",
+  "PROPERTY_OWNER",
+  "OWNER",
+  "SUPPORT_AGENT",
+  "MANAGER",
+] as const;
+
 // GET /api/aqar/leads
 export async function GET(request: NextRequest) {
   try {
@@ -313,6 +331,17 @@ export async function GET(request: NextRequest) {
         authError instanceof Error ? authError.message : "Unknown error",
       );
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // STRICT v4: RBAC gate for CRM lead access (PII protection)
+    const userRole = user.role?.toUpperCase() || "";
+    if (!LEADS_READ_ALLOWED_ROLES.includes(userRole as typeof LEADS_READ_ALLOWED_ROLES[number])) {
+      logger.warn("Leads access denied - insufficient role", {
+        userId: user.id,
+        role: user.role,
+        requiredRoles: LEADS_READ_ALLOWED_ROLES,
+      });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Only connect to database after authentication succeeds

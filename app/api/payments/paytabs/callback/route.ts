@@ -106,17 +106,19 @@ export async function POST(req: NextRequest) {
     }
 
     const signature = extractPaytabsSignature(req, payload);
-    if (!signature && PAYTABS_CONFIGURED) {
+    
+    // SECURITY: Fail closed - reject callbacks without signature OR when PayTabs not configured
+    // This prevents spoofed payment completions in misconfigured environments
+    if (!signature) {
+      logger.error("[PayTabs] Callback rejected - missing signature", {
+        paytabsConfigured: PAYTABS_CONFIGURED,
+      });
       return unauthorizedError("Invalid payment callback signature");
     }
-
-    if (!signature) {
-      logger.warn(
-        "[PayTabs] Signature missing; skipping validation in dev mode",
-        {
-          paytabsConfigured: PAYTABS_CONFIGURED,
-        },
-      );
+    
+    if (!PAYTABS_CONFIGURED) {
+      logger.error("[PayTabs] Callback rejected - PayTabs not configured");
+      return unauthorizedError("Payment gateway not configured");
     }
 
     const isValid = validateCallback(payload, signature || "");
@@ -141,13 +143,87 @@ export async function POST(req: NextRequest) {
         return validationError("Invalid payment amount");
       }
 
+      // CRITICAL: Verify payment record exists and validate amount/currency before processing
+      const { AqarPayment } = await import("@/server/models/aqar");
+      const payment = await AqarPayment.findById(normalized.cartId)
+        .select("status amount currency orgId org_id")
+        .lean();
+
+      if (!payment) {
+        logger.error("[PayTabs] Payment record not found", {
+          cartId: normalized.cartId.slice(0, 8) + "...",
+        });
+        return validationError("Payment record not found");
+      }
+
+      // Prevent duplicate processing - only PENDING payments can be completed
+      if ((payment as { status?: string }).status !== "PENDING") {
+        logger.warn("[PayTabs] Payment already processed", {
+          cartId: normalized.cartId.slice(0, 8) + "...",
+          currentStatus: (payment as { status?: string }).status,
+        });
+        // Return success to acknowledge callback - idempotent behavior
+        return createSecureResponse(
+          { ok: true, status: "ALREADY_PROCESSED", message: "Payment already processed" },
+          200,
+          req,
+        );
+      }
+
+      // Validate amount integrity - prevent tampered callbacks with lower amounts
+      const paymentAmount = (payment as { amount?: number }).amount;
+      const paymentCurrency = (payment as { currency?: string }).currency || "SAR";
+      if (paymentAmount !== total) {
+        logger.error("[PayTabs] Amount mismatch - possible tampering", {
+          cartId: normalized.cartId.slice(0, 8) + "...",
+          expected: paymentAmount,
+          received: total,
+        });
+        return validationError("Payment amount mismatch");
+      }
+
+      if (normalized.currency && normalized.currency !== paymentCurrency) {
+        logger.error("[PayTabs] Currency mismatch", {
+          cartId: normalized.cartId.slice(0, 8) + "...",
+          expected: paymentCurrency,
+          received: normalized.currency,
+        });
+        return validationError("Payment currency mismatch");
+      }
+
       try {
         await withIdempotency(
           buildPaytabsIdempotencyKey(normalized, { route: "marketplace" }),
           async () => {
+            // Get orgId from payment record for tenant context
+            const orgId =
+              (payment as { orgId?: unknown; org_id?: unknown }).orgId ??
+              (payment as { orgId?: unknown; org_id?: unknown }).org_id;
+
+            // Update payment status to COMPLETED BEFORE ZATCA clearance
+            // This ensures the payment is marked as paid even if ZATCA fails
+            const { AqarPayment: PaymentModel } = await import("@/server/models/aqar");
+            await PaymentModel.findByIdAndUpdate(
+              normalized.cartId,
+              {
+                $set: {
+                  status: "COMPLETED",
+                  paidAt: new Date(),
+                  gatewayTransactionId: normalized.tranRef,
+                  method: normalized.paymentMethod || "CREDIT_CARD",
+                },
+              },
+              { runValidators: true },
+            );
+            logger.info("[PayTabs] Payment marked as COMPLETED", {
+              cartId: normalized.cartId.slice(0, 8) + "...",
+            });
+
             await handleSuccessfulMarketplacePayment({
               cartId: normalized.cartId,
               amount: total as number,
+              currency: paymentCurrency,
+              orgId: orgId ? String(orgId) : undefined,
             });
             logger.info("Payment successful", {
               order: normalized.cartId.slice(0, 8) + "...",
@@ -219,10 +295,19 @@ class ZatcaClearanceError extends Error {
 async function handleSuccessfulMarketplacePayment({
   cartId,
   amount,
+  currency = "SAR",
+  orgId,
 }: {
   cartId: string;
   amount: number;
+  currency?: string;
+  orgId?: string;
 }): Promise<void> {
+  // Set tenant context if orgId is available
+  if (orgId) {
+    setTenantContext({ orgId, userId: "paytabs-webhook" });
+  }
+
   if (process.env.NODE_ENV !== "production") {
     logger.warn(
       "[ZATCA] Skipping Fatoora clearance in non-production environment",
@@ -234,16 +319,36 @@ async function handleSuccessfulMarketplacePayment({
     return;
   }
 
+  // ZATCA COMPLIANCE: Require all seller identity envs - no production fallbacks
+  const zatcaSellerName = process.env.ZATCA_SELLER_NAME;
+  const zatcaVatNumber = process.env.ZATCA_VAT_NUMBER;
+  const zatcaSellerAddress = process.env.ZATCA_SELLER_ADDRESS;
+  const clearanceApiKey = process.env.ZATCA_API_KEY;
+
+  if (!clearanceApiKey || !zatcaSellerName || !zatcaVatNumber || !zatcaSellerAddress) {
+    const missingEnvs = [
+      !clearanceApiKey && "ZATCA_API_KEY",
+      !zatcaSellerName && "ZATCA_SELLER_NAME",
+      !zatcaVatNumber && "ZATCA_VAT_NUMBER",
+      !zatcaSellerAddress && "ZATCA_SELLER_ADDRESS",
+    ].filter(Boolean);
+    
+    throw new ZatcaClearanceError(
+      `ZATCA configuration incomplete - missing: ${missingEnvs.join(", ")}`
+    );
+  }
+
   const invoicePayload = {
     invoiceType: "SIMPLIFIED",
     invoiceNumber: `PAY-${cartId}`,
     issueDate: new Date().toISOString(),
     seller: {
-      name: process.env.ZATCA_SELLER_NAME || "Fixzit Enterprise",
-      vatNumber: process.env.ZATCA_VAT_NUMBER || "300123456789012",
-      address: process.env.ZATCA_SELLER_ADDRESS || "Saudi Arabia",
+      name: zatcaSellerName,
+      vatNumber: zatcaVatNumber,
+      address: zatcaSellerAddress,
     },
     total: String(amount),
+    currency,
     vatAmount: String(+(amount * 0.15).toFixed(2)),
     items: [
       {
@@ -258,12 +363,6 @@ async function handleSuccessfulMarketplacePayment({
   const clearanceApiUrl =
     process.env.ZATCA_CLEARANCE_API_URL ||
     "https://gw-fatoora.zatca.gov.sa/e-invoicing/core/invoices/clearance/single";
-  const clearanceApiKey = process.env.ZATCA_API_KEY;
-  if (!clearanceApiKey) {
-    throw new ZatcaClearanceError(
-      "ZATCA API key not configured - cannot proceed with clearance",
-    );
-  }
 
   const zatcaResilience = SERVICE_RESILIENCE.zatca;
   const zatcaBreaker = getCircuitBreaker("zatca");
