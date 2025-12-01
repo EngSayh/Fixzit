@@ -124,7 +124,7 @@ Navigate to: **<http://localhost:3000/login>**
 
 #### Document Results
 
-After each user, update `/docs/E2E_TEST_RESULTS.md`:
+After each user, update `docs/testing/E2E_TEST_RESULTS.md`:
 
 ```markdown
 ### [User Role] - [Email]
@@ -248,7 +248,7 @@ pnpm lint
 - [ ] Role-specific features work for each user
 - [ ] Permissions properly enforced
 - [ ] No critical or high severity blocking bugs
-- [ ] All results documented in E2E_TEST_RESULTS.md
+- [ ] All results documented in docs/testing/E2E_TEST_RESULTS.md
 - [ ] Screenshots captured for each user
 - [ ] Issues categorized and prioritized
 
@@ -256,10 +256,10 @@ pnpm lint
 
 ### 10. Documentation Files
 
-- **Testing Plan:** `/docs/E2E_TESTING_PLAN.md`
-- **Test Results:** `/docs/E2E_TEST_RESULTS.md`
-- **Blockers Fixed:** `/docs/E2E_TESTING_BLOCKERS_RESOLVED.md`
-- **Session Report:** `/docs/archived/progress/PHASE5_AUTH_DEBUG_SESSION.md`
+- **Testing Plan:** `docs/guides/E2E_TESTING_PLAN.md`
+- **Test Results:** `docs/testing/E2E_TEST_RESULTS.md`
+- **Blockers Fixed:** `docs/archived/E2E_TESTING_BLOCKERS_RESOLVED.md`
+- **Session Report:** `docs/archived/progress/PHASE5_AUTH_DEBUG_SESSION.md`
 - **Session Summary:** `/PHASE5_SESSION_SUMMARY.md`
 - **This Guide:** `/E2E_TESTING_QUICK_START.md`
 

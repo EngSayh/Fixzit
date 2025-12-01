@@ -116,8 +116,8 @@ pnpm test
 
 - [Auth Components](./auth/README.md) - Authentication component documentation
 - [UI Components](./ui/) - Shadcn UI component library
-- [TopBar Testing Guide](/docs/guides/TOPBAR_TESTING_GUIDE.md)
-- [Form Save Events](/docs/FORM_SAVE_EVENTS.md)
+- [TopBar Testing Guide](../docs/guides/TOPBAR_TESTING_GUIDE.md)
+- [Form Save Events](../docs/archived/FORM_SAVE_EVENTS.md)
 
 ## 🎨 Styling
 

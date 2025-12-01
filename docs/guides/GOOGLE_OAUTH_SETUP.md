@@ -73,7 +73,7 @@ Instead of:
 
 For detailed setup instructions, see:
 
-- [Google OAuth Setup Guide](./docs/GOOGLE_OAUTH_SETUP.md)
+- [Google OAuth Setup Guide](./GOOGLE_OAUTH_SETUP.md)
 - [TypeScript Audit Report](./TYPESCRIPT_AUDIT_REPORT.md) - See "Authentication Configuration" section
 
 ## 🐛 Troubleshooting
