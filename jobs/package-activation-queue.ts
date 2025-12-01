@@ -125,7 +125,6 @@ export async function enqueueActivationRetry(
     return job.id || null;
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
-    void error;
     logger.error("[ActivationQueue] Failed to enqueue retry", {
       error,
       aqarPaymentId,
@@ -226,7 +225,6 @@ export async function startActivationWorker(): Promise<Worker> {
       } catch (_error) {
         const error =
           _error instanceof Error ? _error : new Error(String(_error));
-        void error;
         logger.error("[ActivationQueue] Activation attempt failed", {
           jobId: job.id,
           aqarPaymentId,

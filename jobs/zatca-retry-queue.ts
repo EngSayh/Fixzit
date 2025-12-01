@@ -454,18 +454,32 @@ export async function startZatcaRetryWorker(): Promise<Worker> {
 }
 
 /**
- * Graceful shutdown
+ * Stop the ZATCA retry worker gracefully
+ * Call this before application shutdown
+ */
+export async function stopZatcaRetryWorker(): Promise<void> {
+  if (activeWorker) {
+    logger.info("[ZatcaRetryQueue] Stopping worker...");
+    await activeWorker.close();
+    activeWorker = null;
+    logger.info("[ZatcaRetryQueue] Worker stopped");
+  }
+}
+
+/**
+ * Graceful shutdown - closes worker, queue, and connection
  * Note: Redis connection is managed by shared singleton, not disconnected here
  */
 export async function closeZatcaRetryQueue(): Promise<void> {
-  if (activeWorker) {
-    await activeWorker.close();
-    activeWorker = null;
-  }
+  // Stop worker first
+  await stopZatcaRetryWorker();
+  
+  // Close queue
   if (queue) {
     await queue.close();
     queue = null;
   }
+  
   // Redis connection is managed by shared singleton in @/lib/redis
   // Do not disconnect here - other parts of the app may still need it
   logger.info("[ZatcaRetryQueue] Closed");

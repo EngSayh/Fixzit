@@ -114,7 +114,6 @@ export async function activatePackageAfterPayment(
       return true;
     } catch (_error) {
       const error = _error instanceof Error ? _error : new Error(String(_error));
-      void error;
       logger.error("activatePackageAfterPayment: Error activating package", {
         paymentId,
         error: String((error as Error)?.message || error),
