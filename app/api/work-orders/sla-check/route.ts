@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { WorkOrder } from "@/server/models/WorkOrder";
+import { requireSuperAdmin } from "@/lib/authz";
 
 import { logger } from "@/lib/logger";
 import { parseDate } from "@/lib/date-utils";
@@ -19,17 +20,28 @@ interface WorkOrderWithSLA {
  * POST /api/work-orders/sla-check
  * Check for SLA breaches and send escalation notifications
  *
- * This endpoint should be called by a cron job (e.g., every 15 minutes)
- * It identifies work orders approaching or breaching their SLA deadlines
+ * SECURITY: Requires SUPER_ADMIN authentication.
+ * This is a system-wide cron job that should be triggered by internal scheduler.
+ * Production deployments should use a secure cron service with proper credentials.
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
+  // SECURITY: Require SUPER_ADMIN for system-wide SLA checking
+  // This endpoint runs across ALL tenants and should only be called by system cron
+  try {
+    await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const now = new Date();
     const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
-    // Find work orders that:
-    // 1. Are not closed/cancelled
-    // 2. Have SLA deadline approaching (within 2 hours) or breached
+    // NOTE: System-wide query across all tenants is intentional for SLA monitoring
+    // This is an admin-only endpoint for platform-wide SLA compliance tracking
     const workOrders = await WorkOrder.find({
       status: { $nin: ["CLOSED", "CANCELLED", "ARCHIVED"] },
       "sla.resolutionDeadline": { $exists: true, $lte: twoHoursFromNow },
@@ -112,11 +124,24 @@ export async function POST() {
 /**
  * GET /api/work-orders/sla-check
  * Preview SLA status without sending notifications
+ *
+ * SECURITY: Requires SUPER_ADMIN authentication.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // SECURITY: Require SUPER_ADMIN for system-wide SLA preview
+  try {
+    await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const now = new Date();
 
+    // NOTE: System-wide query across all tenants is intentional for SLA monitoring
     const allWorkOrders = await WorkOrder.find({
       status: { $nin: ["CLOSED", "CANCELLED", "ARCHIVED"] },
       "sla.resolutionDeadline": { $exists: true },

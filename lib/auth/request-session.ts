@@ -4,6 +4,7 @@ type SessionUser = {
   id: string;
   role?: string;
   email?: string;
+  orgId?: string;
 };
 
 type SessionShape = {
@@ -41,6 +42,7 @@ export async function resolveRequestSession(
         id: headerUserId,
         role: request.headers.get("x-user-role") ?? undefined,
         email: request.headers.get("x-user-email") ?? undefined,
+        orgId: request.headers.get("x-user-org-id") ?? undefined,
       },
     };
   }

@@ -4,13 +4,16 @@ import type { Ability as WorkOrderAbility } from "../rbac/workOrdersPolicy";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { verifyToken } from "@/lib/auth";
-import { ALL_ROLES, type UserRoleType } from "@/types/user";
+import { ALL_ROLES_WITH_LEGACY, type UserRoleType } from "@/types/user";
 import {
   Role as CanonicalRole,
   SubRole,
   normalizeRole as normalizeFmRole,
   inferSubRoleFromRole,
 } from "@/domain/fm/fm.behavior";
+
+// Support legacy roles during migration period
+const ALL_ROLES = ALL_ROLES_WITH_LEGACY;
 
 export class UnauthorizedError extends Error {
   constructor(message: string = "Unauthenticated") {
