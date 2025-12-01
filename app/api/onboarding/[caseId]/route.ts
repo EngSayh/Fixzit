@@ -3,7 +3,7 @@ import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { OnboardingCase, type OnboardingStatus } from '@/server/models/onboarding/OnboardingCase';
 import { logger } from '@/lib/logger';
-import { setTenantContext } from '@/server/plugins/tenantIsolation';
+import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
 
 const ALLOWED_STATUS_UPDATES: OnboardingStatus[] = ['SUBMITTED', 'UNDER_REVIEW', 'DOCS_PENDING'];
 const REVIEWER_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'COMPLIANCE_OFFICER', 'REVIEWER']);
@@ -19,13 +19,17 @@ export async function GET(
     setTenantContext({ orgId: user.orgId });
   }
 
-  const onboarding = await OnboardingCase.findById(params.caseId).lean();
-  // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
-  if (!onboarding || (onboarding.subject_user_id?.toString() !== user.id && onboarding.created_by_id?.toString() !== user.id && onboarding.orgId?.toString() !== user.orgId)) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  }
+  try {
+    const onboarding = await OnboardingCase.findById(params.caseId).lean();
+    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
+    if (!onboarding || (onboarding.subject_user_id?.toString() !== user.id && onboarding.created_by_id?.toString() !== user.id && onboarding.orgId?.toString() !== user.orgId)) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
 
-  return NextResponse.json(onboarding, { status: 200 });
+    return NextResponse.json(onboarding, { status: 200 });
+  } finally {
+    clearTenantContext();
+  }
 }
 
 export async function PATCH(
@@ -83,5 +87,7 @@ export async function PATCH(
   } catch (error) {
     logger.error('[Onboarding] Failed to update case', { error });
     return NextResponse.json({ error: 'Failed to update onboarding' }, { status: 500 });
+  } finally {
+    clearTenantContext();
   }
 }

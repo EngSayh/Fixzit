@@ -12,6 +12,10 @@ import { AqarLead, AqarListing } from "@/server/models/aqar";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { incrementAnalyticsWithRetry } from "@/lib/analytics/incrementWithRetry";
 import { checkRateLimit } from "@/lib/rateLimit";
+import {
+  clearTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -69,11 +73,9 @@ export async function POST(request: NextRequest) {
 
     // Auth is optional for public inquiries
     let userId: string | undefined;
-    let userOrgId: string | undefined;
     try {
       const user = await getSessionUser(request);
       userId = user.id;
-      userOrgId = user.orgId;
     } catch (authError) {
       // Distinguish between "not authenticated" (public inquiry allowed) vs actual errors
       // Expected: getSessionUser throws Error with 'Unauthorized' message when no session
@@ -139,7 +141,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get recipient (listing owner or project developer)
-    let recipientId;
+    let recipientId: string | undefined;
+    let orgIdForLead: string | undefined;
 
     if (listingId) {
       const listing = await AqarListing.findById(listingId);
@@ -149,10 +152,20 @@ export async function POST(request: NextRequest) {
           { status: 404 },
         );
       }
-      recipientId = listing.listerId;
+      recipientId = String(listing.listerId);
+      // Enforce tenant ownership from the listing document (authoritative)
+      const listingOrg =
+        (listing as { orgId?: unknown; org_id?: unknown }).orgId ??
+        (listing as { orgId?: unknown; org_id?: unknown }).org_id;
+      orgIdForLead =
+        typeof listingOrg === "string"
+          ? listingOrg
+          : listingOrg
+            ? String(listingOrg)
+            : undefined;
 
       // Validate recipientId is a valid ObjectId
-      if (!recipientId) {
+      if (!recipientId || !mongoose.Types.ObjectId.isValid(recipientId)) {
         return NextResponse.json(
           { error: "Listing has no owner" },
           { status: 400 },
@@ -188,10 +201,19 @@ export async function POST(request: NextRequest) {
           { status: 404 },
         );
       }
-      recipientId = project.developerId;
+      recipientId = String(project.developerId);
+      const projectOrg =
+        (project as { orgId?: unknown; org_id?: unknown }).orgId ??
+        (project as { orgId?: unknown; org_id?: unknown }).org_id;
+      orgIdForLead =
+        typeof projectOrg === "string"
+          ? projectOrg
+          : projectOrg
+            ? String(projectOrg)
+            : undefined;
 
       // Validate recipientId is a valid ObjectId
-      if (!recipientId) {
+      if (!recipientId || !mongoose.Types.ObjectId.isValid(recipientId)) {
         return NextResponse.json(
           { error: "Project has no developer" },
           { status: 400 },
@@ -220,8 +242,27 @@ export async function POST(request: NextRequest) {
       })();
     }
 
+    // Require tenant attribution from listing/project
+    if (!orgIdForLead) {
+      return NextResponse.json(
+        { error: "Unable to determine tenant for lead" },
+        { status: 400 },
+      );
+    }
+
+    // Safety net to satisfy TypeScript definite assignment analysis
+    if (!recipientId) {
+      return NextResponse.json(
+        { error: "Unable to determine lead recipient" },
+        { status: 400 },
+      );
+    }
+
+    setTenantContext({ orgId: String(orgIdForLead), userId });
+
     const lead = new AqarLead({
-      orgId: userOrgId || recipientId,
+      // Source-of-truth org comes from listing/project
+      orgId: orgIdForLead,
       listingId,
       projectId,
       source,
@@ -236,6 +277,8 @@ export async function POST(request: NextRequest) {
 
     await lead.save();
 
+    clearTenantContext();
+
     // FUTURE: Send notification to recipient (email/SMS/push).
     // Implementation: Use lib/fm-notifications.ts sendNotification() or SendGrid for emails.
 
@@ -249,6 +292,9 @@ export async function POST(request: NextRequest) {
       { error: "Failed to create lead" },
       { status: 500 },
     );
+  } finally {
+    // Ensure tenant context is always cleared, even on error
+    clearTenantContext();
   }
 }
 
@@ -270,6 +316,9 @@ export async function GET(request: NextRequest) {
 
     // Only connect to database after authentication succeeds
     await connectDb();
+    if (user.orgId) {
+      setTenantContext({ orgId: user.orgId, userId: user.id });
+    }
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
@@ -290,6 +339,10 @@ export async function GET(request: NextRequest) {
     const query: Record<string, unknown> = {
       recipientId: user.id,
     };
+
+    if (user.orgId) {
+      query.orgId = user.orgId;
+    }
 
     if (status) {
       query.status = status;
@@ -324,5 +377,7 @@ export async function GET(request: NextRequest) {
       { error: "Failed to fetch leads" },
       { status: 500 },
     );
+  } finally {
+    clearTenantContext();
   }
 }

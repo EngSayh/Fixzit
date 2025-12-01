@@ -24,6 +24,11 @@ import {
 } from "@/server/utils/errorResponses";
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
 import { Config } from "@/lib/config/constants";
+import {
+  clearTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
+import { Types } from "mongoose";
 
 const PAYTABS_SERVER_KEY = Config.payment.paytabs.serverKey;
 const PAYTABS_CONFIGURED = Boolean(
@@ -173,6 +178,9 @@ export async function POST(req: NextRequest) {
     );
   } catch (error: unknown) {
     return handleApiError(error);
+  } finally {
+    // Ensure any tenant context set during webhook handling is cleared
+    clearTenantContext();
   }
 }
 
@@ -372,30 +380,82 @@ async function updatePaymentRecord(
 ) {
   const { AqarPayment } = await import("@/server/models/aqar");
 
-  const result = await AqarPayment.findOneAndUpdate(
-    { _id: cartId },
-    {
-      $set: {
-        "zatca.qrCode": evidence.zatcaQR,
-        "zatca.invoiceHash": evidence.zatcaInvoiceHash,
-        "zatca.clearanceId": evidence.fatooraClearanceId,
-        "zatca.clearedAt": evidence.fatooraClearedAt,
-        "zatca.submittedAt": evidence.zatcaSubmittedAt,
-        "zatca.invoicePayload": evidence.invoicePayload,
-        "zatca.complianceStatus": evidence.complianceStatus,
-        updatedAt: new Date(),
-      },
-    },
-    {
-      new: true,
-      upsert: false,
-      runValidators: true,
-    },
-  );
+  // Enforce tenant scoping for payment updates
+  const existing = await AqarPayment.findOne({ _id: cartId })
+    .select("orgId org_id")
+    .lean()
+    .exec();
 
-  if (!result) {
+  if (!existing) {
     throw new Error(`Payment record not found for cart_id: ${cartId}`);
   }
 
-  return result;
+  const orgId =
+    (existing as { orgId?: unknown; org_id?: unknown }).orgId ??
+    (existing as { orgId?: unknown; org_id?: unknown }).org_id;
+
+  try {
+    if (orgId === undefined || orgId === null || orgId === "") {
+      throw new Error(
+        `Payment record found for cart_id: ${cartId} but missing orgId`,
+      );
+    }
+
+    const normalizedOrgId = String(orgId);
+    const orgAsObjectId = Types.ObjectId.isValid(normalizedOrgId)
+      ? new Types.ObjectId(normalizedOrgId)
+      : undefined;
+
+    setTenantContext({
+      orgId: normalizedOrgId,
+      userId: "paytabs-webhook",
+    });
+
+    const orgScopedFilter = {
+      $or: [
+        { orgId },
+        { org_id: orgId },
+        ...(orgAsObjectId
+          ? [
+              { orgId: orgAsObjectId },
+              { org_id: orgAsObjectId },
+            ]
+          : []),
+      ],
+    };
+
+    const result = await AqarPayment.findOneAndUpdate(
+      { _id: cartId, ...orgScopedFilter },
+      {
+        $set: {
+          "zatca.qrCode": evidence.zatcaQR,
+          "zatca.invoiceHash": evidence.zatcaInvoiceHash,
+          "zatca.clearanceId": evidence.fatooraClearanceId,
+          "zatca.clearedAt": evidence.fatooraClearedAt,
+          "zatca.submittedAt": evidence.zatcaSubmittedAt,
+          "zatca.invoicePayload": evidence.invoicePayload,
+          "zatca.complianceStatus": evidence.complianceStatus,
+          updatedAt: new Date(),
+        },
+      },
+      {
+        new: true,
+        upsert: false,
+        runValidators: true,
+      },
+    );
+
+    if (!result) {
+      throw new Error(
+        `Payment record not found for cart_id: ${cartId} (org scoped)`,
+      );
+    }
+
+    return result;
+  } finally {
+    clearTenantContext();
+  }
 }
+
+// Exported for testing to validate tenant alias handling
+export { updatePaymentRecord };
