@@ -188,7 +188,12 @@ const PaymentSchema = new Schema<IPayment>(
 PaymentSchema.index({ userId: 1, status: 1, createdAt: -1 });
 PaymentSchema.index({ gatewayTransactionId: 1 });
 // ZATCA retry query index: supports scanAndEnqueuePendingRetries() in jobs/zatca-retry-queue.ts
-PaymentSchema.index({ orgId: 1, "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1 });
+// Leading key is zatca.complianceStatus to support cross-org scans (which don't filter by orgId)
+// Partial filter keeps index tight by only including PENDING_RETRY documents
+PaymentSchema.index(
+  { "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1, orgId: 1 },
+  { partialFilterExpression: { "zatca.complianceStatus": "PENDING_RETRY" } }
+);
 
 // =============================================================================
 // LEGACY SUPPORT: org_id alias for backward compatibility
@@ -208,7 +213,11 @@ PaymentSchema.set("toJSON", { virtuals: true });
 PaymentSchema.set("toObject", { virtuals: true });
 // Legacy org_id index: covers $or queries for documents with org_id field
 // Required until all legacy documents are migrated to orgId
-PaymentSchema.index({ org_id: 1, "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1 });
+// Leading key is zatca.complianceStatus to support cross-org scans
+PaymentSchema.index(
+  { "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1, org_id: 1 },
+  { partialFilterExpression: { "zatca.complianceStatus": "PENDING_RETRY" } }
+);
 
 // Static: Get standard fees
 PaymentSchema.statics.getStandardFees = function () {

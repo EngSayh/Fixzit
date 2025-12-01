@@ -29,10 +29,23 @@ jobs:
       pull-requests: write
     
     env:
-      # Skip validation in CI - this workflow validates that the script works
-      # Actual production validation happens in Vercel deployment
-      VERCEL_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || '' }}
+      # Production validation requires actual secrets
+      VERCEL_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
       CI: true
+      # Auth secrets (required)
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+      # PayTabs secrets (required for payment processing)
+      PAYTABS_PROFILE_ID: ${{ secrets.PAYTABS_PROFILE_ID }}
+      PAYTABS_SERVER_KEY: ${{ secrets.PAYTABS_SERVER_KEY }}
+      # ZATCA secrets (required for Saudi e-invoicing)
+      ZATCA_API_KEY: ${{ secrets.ZATCA_API_KEY }}
+      ZATCA_SELLER_NAME: ${{ secrets.ZATCA_SELLER_NAME }}
+      ZATCA_VAT_NUMBER: ${{ secrets.ZATCA_VAT_NUMBER }}
+      ZATCA_SELLER_ADDRESS: ${{ secrets.ZATCA_SELLER_ADDRESS }}
+      # Redis (required for queues)
+      REDIS_URL: ${{ secrets.REDIS_URL }}
+      BULLMQ_REDIS_URL: ${{ secrets.BULLMQ_REDIS_URL }}
     
     steps:
       - name: Checkout code
@@ -52,31 +65,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       
-      - name: Verify script exists and is executable
+      - name: Run production environment validation
         id: validate
         run: |
-          echo "🔍 Checking production environment validation script..."
-          if [ -f "scripts/ci/verify-prod-env.js" ]; then
-            echo "✅ Script found: scripts/ci/verify-prod-env.js"
-            echo "Note: Full validation runs in Vercel deployment environment with actual secrets"
-            echo ""
-            echo "Required production environment variables:"
-            echo "  Auth:"
-            echo "    - NEXTAUTH_SECRET (or AUTH_SECRET)"
-            echo "  Payments (at least one provider):"
-            echo "    - PayTabs: PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY"
-            echo "    - Tap: TAP_PUBLIC_KEY, TAP_WEBHOOK_SECRET"
-            echo "  ZATCA (Saudi e-invoicing, REQUIRED):"
-            echo "    - ZATCA_API_KEY"
-            echo "    - ZATCA_SELLER_NAME"
-            echo "    - ZATCA_VAT_NUMBER"
-            echo "    - ZATCA_SELLER_ADDRESS"
-            echo "validation_status=success" >> $GITHUB_OUTPUT
-          else
-            echo "❌ Script not found: scripts/ci/verify-prod-env.js"
-            exit 1
-          fi
-        continue-on-error: false
+          echo "🔍 Running production environment validation..."
+          pnpm guard:prod-env
+          echo "validation_status=success" >> $GITHUB_OUTPUT
       
       - name: Check validation result
         if: failure()

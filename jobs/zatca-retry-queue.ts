@@ -369,6 +369,14 @@ export async function startZatcaRetryWorker(): Promise<Worker> {
                 "zatca.clearanceId": clearanceId,
                 "zatca.clearedAt": new Date(),
                 "zatca.retryCompletedAt": new Date(),
+                // Evidence fields for compliance audit trail (aligned with PayTabs callback)
+                "zatca.submittedAt": new Date(),
+                "zatca.invoicePayload": invoicePayload,
+              },
+              // Clear prior error fields on successful clearance
+              $unset: {
+                "zatca.lastError": "",
+                "zatca.lastRetryError": "",
               },
             },
           );

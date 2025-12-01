@@ -28,9 +28,11 @@ let isConnecting = false;
  */
 export function getRedisClient(): Redis | null {
   // Redis is optional - return null if no URL configured
-  if (!process.env.REDIS_URL) {
+  // Support both REDIS_URL and BULLMQ_REDIS_URL for compatibility with different deployment configs
+  const redisUrl = process.env.REDIS_URL || process.env.BULLMQ_REDIS_URL;
+  if (!redisUrl) {
     if (process.env.NODE_ENV === "development") {
-      logger.warn("[Redis] No REDIS_URL configured - Redis features disabled");
+      logger.warn("[Redis] No REDIS_URL or BULLMQ_REDIS_URL configured - Redis features disabled");
     }
     return null;
   }
@@ -54,7 +56,7 @@ export function getRedisClient(): Redis | null {
   try {
     isConnecting = true;
 
-    redis = new Redis(process.env.REDIS_URL, {
+    redis = new Redis(redisUrl, {
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
       enableOfflineQueue: false, // Fail fast if Redis is down
