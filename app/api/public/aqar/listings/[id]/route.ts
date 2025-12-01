@@ -11,7 +11,7 @@ import { connectDb } from "@/lib/mongo";
 import { AqarListing } from "@/server/models/aqar";
 import { ListingStatus, type IListing } from "@/server/models/aqar/Listing";
 import { isValidObjectIdSafe } from "@/lib/api/validation";
-import { checkRateLimit } from "@/lib/rateLimit";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import type { Model } from "mongoose";
 
 export const runtime = "nodejs";
@@ -31,10 +31,9 @@ export async function GET(
 
   try {
     // Rate limiting: 200 requests per hour per IP
-    const rateLimitResponse = checkRateLimit(request, {
-      maxRequests: 200,
+    const rateLimitResponse = enforceRateLimit(request, {
+      requests: 200,
       windowMs: 60 * 60 * 1000,
-      message: "Too many public API requests. Please try again later.",
     });
 
     if (rateLimitResponse) {

@@ -1,6 +1,7 @@
 import { Schema, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { encryptionPlugin } from "../plugins/encryptionPlugin";
 import { getModel } from "@/types/mongoose-compat";
 
 const InvitationStatus = [
@@ -96,6 +97,14 @@ const FamilyMemberSchema = new Schema(
 // CRITICAL: Apply plugins BEFORE indexes to ensure proper tenant scoping
 FamilyMemberSchema.plugin(tenantIsolationPlugin);
 FamilyMemberSchema.plugin(auditPlugin);
+// SEC-PII-004: Encrypt family member PII (dependent data is highly sensitive)
+FamilyMemberSchema.plugin(encryptionPlugin, {
+  fields: {
+    "email": "Family Member Email",
+    "phone": "Family Member Phone",
+    "nationalId": "National ID",
+  },
+});
 
 // Tenant-scoped indexes for data isolation and performance
 FamilyMemberSchema.index({ orgId: 1, primaryUserId: 1 });

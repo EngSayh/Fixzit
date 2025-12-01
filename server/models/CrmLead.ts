@@ -2,6 +2,7 @@ import { Schema, Document } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { encryptionPlugin } from "../plugins/encryptionPlugin";
 
 const LeadKinds = ["LEAD", "ACCOUNT"] as const;
 const LeadStages = [
@@ -67,6 +68,13 @@ const CrmLeadSchema = new Schema<CrmLeadDocument>(
 
 CrmLeadSchema.plugin(tenantIsolationPlugin);
 CrmLeadSchema.plugin(auditPlugin);
+// SEC-PII-003: Encrypt CRM lead contact information (GDPR Article 32)
+CrmLeadSchema.plugin(encryptionPlugin, {
+  fields: {
+    "email": "Lead Email",
+    "phone": "Lead Phone",
+  },
+});
 
 CrmLeadSchema.index({ orgId: 1, kind: 1, stage: 1 });
 CrmLeadSchema.index({ orgId: 1, status: 1 });

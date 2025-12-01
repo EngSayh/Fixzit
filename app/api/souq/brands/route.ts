@@ -6,6 +6,13 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 
 /**
  * GET /api/souq/brands - List all brands
+ * 
+ * NOTE: Brands are PLATFORM-WIDE resources shared across all tenants.
+ * This is intentional - brands (Nike, Samsung, etc.) are not tenant-specific.
+ * The Brand model does NOT use tenantIsolationPlugin by design.
+ * 
+ * Authorization is handled via brand gating (authorizedSellers) for who can SELL,
+ * but all users can VIEW the brand catalog.
  */
 export async function GET() {
   try {
