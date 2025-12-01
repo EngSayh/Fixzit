@@ -244,7 +244,7 @@
   .fxz-sidebar {
     background-color: hsl(var(--sidebar-background));
     color: hsl(var(--sidebar-foreground));
-    border-right: 1px solid hsl(var(--sidebar-border));
+    border-inline-end: 1px solid hsl(var(--sidebar-border));
   }
 
   .fxz-sidebar-title {
