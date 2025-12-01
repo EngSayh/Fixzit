@@ -19,6 +19,7 @@ import {
 } from "@/server/plugins/tenantIsolation";
 import mongoose from "mongoose";
 import { z } from "zod";
+import { Role, SubRole, normalizeRole, normalizeSubRole } from "@/domain/fm/fm-lite";
 
 // Validation schema for lead creation
 const LeadCreateSchema = z.object({
@@ -306,16 +307,44 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// STRICT v4: Roles allowed to access CRM lead data (PII-bearing)
-const LEADS_READ_ALLOWED_ROLES = [
-  "SUPER_ADMIN",
-  "CORPORATE_ADMIN",
-  "CORPORATE_OWNER",
-  "PROPERTY_OWNER",
-  "OWNER",
-  "SUPPORT_AGENT",
-  "MANAGER",
-] as const;
+// STRICT v4.1: Roles allowed to access CRM lead data (PII-bearing)
+// Uses canonical Role/SubRole enums to prevent RBAC drift
+const LEADS_READ_ALLOWED_ROLES = new Set<Role>([
+  Role.SUPER_ADMIN,
+  Role.ADMIN,
+  Role.CORPORATE_OWNER,
+  Role.PROPERTY_MANAGER,
+]);
+
+// SubRoles that grant CRM lead access (combined with TEAM_MEMBER base role)
+const LEADS_READ_ALLOWED_SUBROLES = new Set<SubRole>([
+  SubRole.SUPPORT_AGENT,
+  SubRole.OPERATIONS_MANAGER,
+]);
+
+/**
+ * Check if user has permission to access CRM leads.
+ * Uses canonical Role/SubRole normalization to handle legacy role aliases.
+ */
+function canAccessLeads(userRole?: string | null, userSubRole?: string | null): boolean {
+  const normalizedRole = normalizeRole(userRole);
+  if (!normalizedRole) return false;
+  
+  // Direct role match (admin, owner, property manager)
+  if (LEADS_READ_ALLOWED_ROLES.has(normalizedRole)) {
+    return true;
+  }
+  
+  // Team member with appropriate sub-role
+  if (normalizedRole === Role.TEAM_MEMBER) {
+    const normalizedSubRole = normalizeSubRole(userSubRole);
+    if (normalizedSubRole && LEADS_READ_ALLOWED_SUBROLES.has(normalizedSubRole)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
 
 // GET /api/aqar/leads
 export async function GET(request: NextRequest) {
@@ -333,13 +362,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // STRICT v4: RBAC gate for CRM lead access (PII protection)
-    const userRole = user.role?.toUpperCase() || "";
-    if (!LEADS_READ_ALLOWED_ROLES.includes(userRole as typeof LEADS_READ_ALLOWED_ROLES[number])) {
+    // STRICT v4.1: RBAC gate for CRM lead access (PII protection)
+    // Uses canonical Role/SubRole normalization to handle all role aliases
+    if (!canAccessLeads(user.role, user.subRole)) {
       logger.warn("Leads access denied - insufficient role", {
         userId: user.id,
         role: user.role,
-        requiredRoles: LEADS_READ_ALLOWED_ROLES,
+        subRole: user.subRole,
       });
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

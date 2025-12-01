@@ -137,23 +137,82 @@ export async function POST(req: NextRequest) {
     }
 
     const success = normalized.respStatus === "A";
+    
+    // CRITICAL: Verify payment record exists for all callbacks (success or failure)
+    const { AqarPayment } = await import("@/server/models/aqar");
+    const payment = await AqarPayment.findById(normalized.cartId)
+      .select("status amount currency orgId org_id")
+      .lean();
+
+    if (!payment) {
+      logger.error("[PayTabs] Payment record not found", {
+        cartId: normalized.cartId.slice(0, 8) + "...",
+        respStatus: normalized.respStatus,
+      });
+      return validationError("Payment record not found");
+    }
+
+    // Get orgId for tenant-scoped updates
+    const orgId =
+      (payment as { orgId?: unknown; org_id?: unknown }).orgId ??
+      (payment as { orgId?: unknown; org_id?: unknown }).org_id;
+    const normalizedOrgId = orgId ? String(orgId) : undefined;
+    const orgAsObjectId = normalizedOrgId && Types.ObjectId.isValid(normalizedOrgId)
+      ? new Types.ObjectId(normalizedOrgId)
+      : undefined;
+
+    // Build org-scoped filter to prevent cross-tenant updates
+    const orgScopedFilter = normalizedOrgId ? {
+      _id: normalized.cartId,
+      $or: [
+        { orgId: normalizedOrgId },
+        { org_id: normalizedOrgId },
+        ...(orgAsObjectId ? [{ orgId: orgAsObjectId }, { org_id: orgAsObjectId }] : []),
+      ],
+    } : { _id: normalized.cartId };
+
+    // Handle non-success callbacks - mark payment as FAILED
+    if (!success) {
+      const currentStatus = (payment as { status?: string }).status;
+      if (currentStatus === "PENDING" || currentStatus === "PROCESSING") {
+        if (normalizedOrgId) {
+          setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
+        }
+        try {
+          await AqarPayment.findOneAndUpdate(
+            orgScopedFilter,
+            {
+              $set: {
+                status: "FAILED",
+                failedAt: new Date(),
+                gatewayTransactionId: normalized.tranRef,
+                "gatewayResponse.respStatus": normalized.respStatus,
+                "gatewayResponse.respMessage": normalized.respMessage,
+              },
+            },
+            { runValidators: true },
+          );
+          logger.info("[PayTabs] Payment marked as FAILED", {
+            cartId: normalized.cartId.slice(0, 8) + "...",
+            respStatus: normalized.respStatus,
+            respMessage: normalized.respMessage,
+          });
+        } finally {
+          if (normalizedOrgId) clearTenantContext();
+        }
+      }
+      return createSecureResponse(
+        { ok: true, status: "FAILED", message: normalized.respMessage },
+        200,
+        req,
+      );
+    }
+
+    // Success path continues below
     if (success) {
       const total = normalized.amount;
       if (!Number.isFinite(total) || (total as number) <= 0) {
         return validationError("Invalid payment amount");
-      }
-
-      // CRITICAL: Verify payment record exists and validate amount/currency before processing
-      const { AqarPayment } = await import("@/server/models/aqar");
-      const payment = await AqarPayment.findById(normalized.cartId)
-        .select("status amount currency orgId org_id")
-        .lean();
-
-      if (!payment) {
-        logger.error("[PayTabs] Payment record not found", {
-          cartId: normalized.cartId.slice(0, 8) + "...",
-        });
-        return validationError("Payment record not found");
       }
 
       // Prevent duplicate processing - only PENDING payments can be completed
@@ -195,27 +254,26 @@ export async function POST(req: NextRequest) {
         await withIdempotency(
           buildPaytabsIdempotencyKey(normalized, { route: "marketplace" }),
           async () => {
-            // Get orgId from payment record for tenant context
-            const orgId =
-              (payment as { orgId?: unknown; org_id?: unknown }).orgId ??
-              (payment as { orgId?: unknown; org_id?: unknown }).org_id;
+            // Set tenant context for all operations
+            if (normalizedOrgId) {
+              setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
+            }
 
-            // Update payment status to COMPLETED BEFORE ZATCA clearance
-            // This ensures the payment is marked as paid even if ZATCA fails
+            // Update payment status to PROCESSING first (reversible state)
+            // Only mark COMPLETED after successful ZATCA clearance
             const { AqarPayment: PaymentModel } = await import("@/server/models/aqar");
-            await PaymentModel.findByIdAndUpdate(
-              normalized.cartId,
+            await PaymentModel.findOneAndUpdate(
+              orgScopedFilter,
               {
                 $set: {
-                  status: "COMPLETED",
-                  paidAt: new Date(),
+                  status: "PROCESSING",
                   gatewayTransactionId: normalized.tranRef,
                   method: normalized.paymentMethod || "CREDIT_CARD",
                 },
               },
               { runValidators: true },
             );
-            logger.info("[PayTabs] Payment marked as COMPLETED", {
+            logger.info("[PayTabs] Payment marked as PROCESSING", {
               cartId: normalized.cartId.slice(0, 8) + "...",
             });
 
@@ -223,7 +281,8 @@ export async function POST(req: NextRequest) {
               cartId: normalized.cartId,
               amount: total as number,
               currency: paymentCurrency,
-              orgId: orgId ? String(orgId) : undefined,
+              orgId: normalizedOrgId,
+              orgScopedFilter,
             });
             logger.info("Payment successful", {
               order: normalized.cartId.slice(0, 8) + "...",
@@ -233,10 +292,41 @@ export async function POST(req: NextRequest) {
         );
       } catch (error) {
         if (error instanceof ZatcaClearanceError) {
-          logger.error("[ZATCA] Fatoora clearance FAILED - Payment aborted", {
+          logger.error("[ZATCA] Fatoora clearance FAILED - marking payment as ZATCA_PENDING", {
             cartId: normalized.cartId.slice(0, 8) + "...",
             error: error.message,
           });
+          
+          // Rollback: Mark payment as COMPLETED but with ZATCA pending status
+          // This allows retry of ZATCA clearance without losing payment info
+          try {
+            const { AqarPayment: PaymentModel } = await import("@/server/models/aqar");
+            if (normalizedOrgId) {
+              setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
+            }
+            await PaymentModel.findOneAndUpdate(
+              orgScopedFilter,
+              {
+                $set: {
+                  status: "COMPLETED",
+                  paidAt: new Date(),
+                  "zatca.complianceStatus": "PENDING_RETRY",
+                  "zatca.lastError": error.message,
+                  "zatca.lastAttemptAt": new Date(),
+                },
+              },
+              { runValidators: true },
+            );
+            logger.info("[PayTabs] Payment marked as COMPLETED with ZATCA_PENDING_RETRY", {
+              cartId: normalized.cartId.slice(0, 8) + "...",
+            });
+          } catch (updateError) {
+            logger.error("[PayTabs] Failed to update payment status after ZATCA failure", {
+              cartId: normalized.cartId.slice(0, 8) + "...",
+              error: updateError instanceof Error ? updateError.message : String(updateError),
+            });
+          }
+          
           return NextResponse.json(error.body, { status: error.status });
         }
         throw error;
@@ -297,18 +387,34 @@ async function handleSuccessfulMarketplacePayment({
   amount,
   currency = "SAR",
   orgId,
+  orgScopedFilter,
 }: {
   cartId: string;
   amount: number;
   currency?: string;
   orgId?: string;
+  orgScopedFilter: Record<string, unknown>;
 }): Promise<void> {
-  // Set tenant context if orgId is available
+  // Tenant context should already be set by caller
+  // but ensure it's set if orgId is available
   if (orgId) {
     setTenantContext({ orgId, userId: "paytabs-webhook" });
   }
 
   if (process.env.NODE_ENV !== "production") {
+    // In non-production, mark as COMPLETED immediately (no ZATCA)
+    const { AqarPayment: PaymentModel } = await import("@/server/models/aqar");
+    await PaymentModel.findOneAndUpdate(
+      orgScopedFilter,
+      {
+        $set: {
+          status: "COMPLETED",
+          paidAt: new Date(),
+          "zatca.complianceStatus": "NOT_REQUIRED",
+        },
+      },
+      { runValidators: true },
+    );
     logger.warn(
       "[ZATCA] Skipping Fatoora clearance in non-production environment",
       {
@@ -316,6 +422,9 @@ async function handleSuccessfulMarketplacePayment({
         amount,
       },
     );
+    
+    // Still try to activate package
+    await tryActivatePackage(cartId);
     return;
   }
 
@@ -530,6 +639,9 @@ async function updatePaymentRecord(
       { _id: cartId, ...orgScopedFilter },
       {
         $set: {
+          // Mark as COMPLETED only after successful ZATCA clearance
+          status: "COMPLETED",
+          paidAt: new Date(),
           "zatca.qrCode": evidence.zatcaQR,
           "zatca.invoiceHash": evidence.zatcaInvoiceHash,
           "zatca.clearanceId": evidence.fatooraClearanceId,
