@@ -17,18 +17,35 @@ import { AqarPackage, AqarPayment, PaymentStatus } from "@/server/models/aqar";
  * - app/api/payments/paytabs/callback/route.ts
  *
  * @param paymentId - The AqarPayment ID that was paid
+ * @param orgId - The organization ID for tenant-scoped queries (REQUIRED)
  * @returns true if activation succeeded, false otherwise
  */
 export async function activatePackageAfterPayment(
   paymentId: string | mongoose.Types.ObjectId,
+  orgId: string,
 ): Promise<boolean> {
+  // SECURITY: orgId is required to prevent cross-tenant data access
+  if (!orgId) {
+    logger.error("activatePackageAfterPayment: orgId is required for tenant isolation", {
+      paymentId,
+    });
+    return false;
+  }
+
+  // Build org-scoped filter to prevent cross-tenant reads
+  const buildOrgFilter = (id: string | mongoose.Types.ObjectId) => ({
+    _id: id,
+    $or: [{ orgId }, { org_id: orgId }],
+  });
+
   try {
-    // Find the payment
-    const payment = await AqarPayment.findById(paymentId);
+    // Find the payment with org-scoped query (SECURITY: prevents cross-tenant reads)
+    const payment = await AqarPayment.findOne(buildOrgFilter(paymentId));
 
     if (!payment) {
-      logger.error("activatePackageAfterPayment: Payment not found", {
+      logger.error("activatePackageAfterPayment: Payment not found (or wrong org)", {
         paymentId,
+        orgId,
       });
       return false;
     }
@@ -55,13 +72,23 @@ export async function activatePackageAfterPayment(
       return false;
     }
 
-    // Find and activate the package
-    const pkg = await AqarPackage.findById(payment.relatedId);
+    // Verify payment has a related package ID
+    if (!payment.relatedId) {
+      logger.error("activatePackageAfterPayment: Payment missing relatedId", {
+        paymentId,
+        orgId,
+      });
+      return false;
+    }
+
+    // Find and activate the package with org-scoped query (SECURITY: prevents cross-tenant reads)
+    const pkg = await AqarPackage.findOne(buildOrgFilter(payment.relatedId));
 
     if (!pkg) {
-      logger.error("activatePackageAfterPayment: Package not found", {
+      logger.error("activatePackageAfterPayment: Package not found (or wrong org)", {
         paymentId,
         packageId: payment.relatedId,
+        orgId,
       });
       return false;
     }

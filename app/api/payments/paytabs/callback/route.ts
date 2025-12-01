@@ -485,8 +485,8 @@ async function handleSuccessfulMarketplacePayment({
       },
     );
     
-    // Still try to activate package
-    await tryActivatePackage(cartId);
+    // Still try to activate package (pass orgId for tenant isolation)
+    await tryActivatePackage(cartId, orgId);
     return;
   }
 
@@ -619,15 +619,22 @@ async function handleSuccessfulMarketplacePayment({
     clearanceId: clearanceId ? String(clearanceId).slice(0, 16) + "..." : "N/A",
   });
 
-  await tryActivatePackage(cartId);
+  // Pass orgId for tenant-scoped package activation
+  await tryActivatePackage(cartId, orgId);
 }
 
-async function tryActivatePackage(cartId: string): Promise<void> {
+async function tryActivatePackage(cartId: string, orgId?: string): Promise<void> {
+  if (!orgId) {
+    logger.warn("Package activation skipped: orgId required for tenant isolation", {
+      cart_id: cartId.slice(0, 8) + "...",
+    });
+    return;
+  }
   try {
     const { activatePackageAfterPayment } = await import(
       "@/lib/aqar/package-activation"
     );
-    await activatePackageAfterPayment(String(cartId));
+    await activatePackageAfterPayment(String(cartId), orgId);
   } catch (err) {
     logger.warn("Package activation skipped or failed", {
       cart_id: cartId.slice(0, 8) + "...",

@@ -56,6 +56,7 @@ export function getActivationQueue(): Queue | null {
 interface ActivationJobData {
   aqarPaymentId: string;
   invoiceId: string;
+  orgId: string; // Required for tenant-scoped queries
   attemptNumber?: number;
 }
 
@@ -65,7 +66,17 @@ interface ActivationJobData {
 export async function enqueueActivationRetry(
   aqarPaymentId: string,
   invoiceId: string,
+  orgId: string,
 ): Promise<string | null> {
+  // Validate orgId is provided (required for tenant isolation)
+  if (!orgId) {
+    logger.error("[ActivationQueue] Cannot enqueue - orgId is required for tenant isolation", {
+      aqarPaymentId,
+      invoiceId,
+    });
+    return null;
+  }
+
   const activationQueue = getActivationQueue();
   if (!activationQueue) {
     logger.warn("[ActivationQueue] Cannot enqueue - queue not available");
@@ -78,6 +89,7 @@ export async function enqueueActivationRetry(
       {
         aqarPaymentId,
         invoiceId,
+        orgId,
         attemptNumber: 0,
       } as ActivationJobData,
       {
@@ -89,6 +101,7 @@ export async function enqueueActivationRetry(
       jobId: job.id,
       aqarPaymentId,
       invoiceId,
+      orgId,
     });
 
     return job.id || null;
@@ -99,6 +112,7 @@ export async function enqueueActivationRetry(
       error,
       aqarPaymentId,
       invoiceId,
+      orgId,
     });
     return null;
   }
@@ -117,12 +131,23 @@ export function startActivationWorker(): Worker | null {
   const worker = new Worker<ActivationJobData>(
     QUEUE_NAME,
     async (job: Job<ActivationJobData>) => {
-      const { aqarPaymentId, invoiceId } = job.data;
+      const { aqarPaymentId, invoiceId, orgId } = job.data;
+
+      // Validate orgId exists for tenant isolation
+      if (!orgId) {
+        logger.error("[ActivationQueue] Job missing orgId, skipping", {
+          jobId: job.id,
+          aqarPaymentId,
+          invoiceId,
+        });
+        return { success: false, error: "Missing orgId for tenant isolation" };
+      }
 
       logger.info("[ActivationQueue] Processing activation retry", {
         jobId: job.id,
         aqarPaymentId,
         invoiceId,
+        orgId,
         attempt: job.attemptsMade,
       });
 
@@ -131,7 +156,7 @@ export function startActivationWorker(): Worker | null {
         const { activatePackageAfterPayment } = await import(
           "@/lib/aqar/package-activation"
         );
-        await activatePackageAfterPayment(aqarPaymentId);
+        await activatePackageAfterPayment(aqarPaymentId, orgId);
 
         // Update invoice metadata on success
         const { Invoice } = await import("@/server/models/Invoice");
