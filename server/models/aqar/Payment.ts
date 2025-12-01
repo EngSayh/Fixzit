@@ -194,24 +194,6 @@ PaymentSchema.index(
   { "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1, orgId: 1 },
   { partialFilterExpression: { "zatca.complianceStatus": "PENDING_RETRY" } }
 );
-// Legacy org_id variant to keep retries indexed for historical documents stored with org_id
-PaymentSchema.index(
-  { "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1, org_id: 1 },
-  { partialFilterExpression: { "zatca.complianceStatus": "PENDING_RETRY" } }
-);
-
-// =============================================================================
-// LEGACY SUPPORT: org_id alias for backward compatibility
-// Some older payment records may use org_id instead of orgId. This virtual
-// allows queries and updates using org_id to work transparently.
-// =============================================================================
-PaymentSchema.virtual("org_id")
-  .get(function (this: IPayment) {
-    return this.orgId;
-  })
-  .set(function (this: IPayment, value: mongoose.Types.ObjectId) {
-    this.orgId = value;
-  });
 
 // Enable virtuals in JSON/Object output for API responses
 PaymentSchema.set("toJSON", { virtuals: true });

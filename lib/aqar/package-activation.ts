@@ -15,7 +15,6 @@ import { AqarPackage, AqarPayment, PaymentStatus } from "@/server/models/aqar";
  * Activates an Aqar package after successful payment
  *
  * Call this from payment webhook handlers when payment succeeds:
- * - app/api/payments/callback/route.ts
  * - app/api/payments/paytabs/callback/route.ts
  *
  * @param paymentId - The AqarPayment ID that was paid

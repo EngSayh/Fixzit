@@ -133,7 +133,6 @@ export async function enqueueZatcaRetry(
     return job.id || null;
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
-    void error;
     logger.error("[ZatcaRetryQueue] Failed to enqueue retry", {
       error,
       aqarPaymentId,
@@ -167,11 +166,7 @@ export async function scanAndEnqueuePendingRetries(): Promise<number> {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const pendingPayments = await AqarPayment.find({
       "zatca.complianceStatus": "PENDING_RETRY",
-      // Handle both org field naming conventions (orgId and org_id)
-      $or: [
-        { orgId: { $exists: true, $ne: null } },
-        { org_id: { $exists: true, $ne: null } },
-      ],
+      orgId: { $exists: true, $ne: null },
       $and: [
         {
           $or: [
@@ -181,14 +176,13 @@ export async function scanAndEnqueuePendingRetries(): Promise<number> {
         },
       ],
     })
-      .select("_id orgId org_id amount currency zatca")
+      .select("_id orgId amount currency zatca")
       .limit(100) // Process in batches
       .lean();
 
     for (const payment of pendingPayments) {
       const paymentId = payment._id.toString();
-      // Handle both org field naming conventions (orgId takes precedence for new data, org_id for legacy)
-      const orgId = payment.orgId?.toString() ?? (payment as { org_id?: { toString(): string } }).org_id?.toString();
+      const orgId = payment.orgId?.toString();
 
       if (!orgId) {
         logger.error("[ZatcaRetryQueue] Payment missing orgId/org_id, skipping", {
@@ -228,7 +222,6 @@ export async function scanAndEnqueuePendingRetries(): Promise<number> {
     return enqueuedCount;
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
-    void error;
     logger.error("[ZatcaRetryQueue] Scan failed", { error });
     return enqueuedCount;
   }
@@ -398,7 +391,6 @@ export async function startZatcaRetryWorker(): Promise<Worker> {
         return { success: true, aqarPaymentId, clearanceId };
       } catch (_error) {
         const error = _error instanceof Error ? _error : new Error(String(_error));
-        void error;
         logger.error("[ZatcaRetryQueue] ZATCA clearance attempt failed", {
           jobId: job.id,
           aqarPaymentId,

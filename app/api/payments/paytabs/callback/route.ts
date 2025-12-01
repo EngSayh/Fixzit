@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
     // Note: Initial lookup by _id only to get orgId, then we validate tenant context exists
     const { AqarPayment } = await import("@/server/models/aqar");
     const payment = await AqarPayment.findById(normalized.cartId)
-      .select("status amount currency orgId org_id")
+      .select("status amount currency orgId")
       .lean();
 
     if (!payment) {
@@ -167,9 +167,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get orgId for tenant-scoped updates
-    const orgId =
-      (payment as { orgId?: unknown; org_id?: unknown }).orgId ??
-      (payment as { orgId?: unknown; org_id?: unknown }).org_id;
+    const orgId = (payment as { orgId?: unknown }).orgId;
     const normalizedOrgId = orgId ? String(orgId) : undefined;
 
     // SECURITY: Fail closed when orgId is missing - prevents unscoped updates
@@ -182,20 +180,10 @@ export async function POST(req: NextRequest) {
       return validationError("Payment record missing tenant context");
     }
 
-    const orgAsObjectId = Types.ObjectId.isValid(normalizedOrgId)
-      ? new Types.ObjectId(normalizedOrgId)
-      : undefined;
-
-    // Build org-scoped filter to prevent cross-tenant updates
-    // This filter is ALWAYS org-scoped since we fail closed above when orgId is missing
-    const orgScopedFilter = {
-      _id: normalized.cartId,
-      $or: [
-        { orgId: normalizedOrgId },
-        { org_id: normalizedOrgId },
-        ...(orgAsObjectId ? [{ orgId: orgAsObjectId }, { org_id: orgAsObjectId }] : []),
-      ],
-    };
+    // SECURITY: Build org-scoped filter to prevent cross-tenant updates
+    // Using shared utility to avoid duplication and ensure consistent ObjectId handling
+    const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
+    const orgScopedFilter = buildOrgScopedFilter(normalized.cartId, normalizedOrgId);
 
     // Handle non-success callbacks - mark payment as FAILED
     if (!success) {
