@@ -99,15 +99,17 @@ const createWorkOrderSchema = z.object({
 function buildWorkOrderFilter(
   searchParams: URLSearchParams,
   orgId: string,
-  userId?: string,
-  userRole?: string,
-  vendorId?: string,
-  units?: string[]
+  user?: { id: string; orgId: string; role: string; vendorId?: string; units?: string[] }
 ) {
   const filter: Record<string, unknown> = { orgId, isDeleted: { $ne: true } };
 
   // 🔒 RBAC: Scope by role per STRICT v4 multi-tenant isolation
   // BLOCKER FIX: Use canonical schema paths from server/models/WorkOrder.ts
+  const userRole = user?.role;
+  const userId = user?.id;
+  const vendorId = user?.vendorId;
+  const units = user?.units;
+  
   if (userRole === 'TECHNICIAN' && userId) {
     // Technicians only see work orders assigned to them (canonical: assignment.assignedTo.userId)
     filter["assignment.assignedTo.userId"] = userId;
