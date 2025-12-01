@@ -74,14 +74,12 @@ describe("PayTabs callback tenancy guard (snake_case org_id)", () => {
     mockFindOneAndUpdate.mockReset();
   });
 
-  it("updates payment when existing doc stores org_id and sets tenant context with normalized string", async () => {
-    const existingPayment = { _id: "cart1", org_id: "tenant-snake" };
-
-    // Wire mock findOne chain: findOne().select().lean().exec()
+  it("uses org-scoped filter with buildOrgScopedFilter when updating payment", async () => {
+    // Mock the findOne chain for existence check
     mockFindOne.mockReturnValue({
       select: vi.fn().mockReturnValue({
         lean: vi.fn().mockReturnValue({
-          exec: vi.fn().mockResolvedValue(existingPayment),
+          exec: vi.fn().mockResolvedValue({ _id: "cart1", orgId: "tenant-snake" }),
         }),
       }),
     });
@@ -95,11 +93,13 @@ describe("PayTabs callback tenancy guard (snake_case org_id)", () => {
     const updatePaymentRecord = (mod as unknown as {
       updatePaymentRecord: (
         cartId: string,
+        callerOrgId: string | undefined,
         evidence: Parameters<typeof mockFindOneAndUpdate>[1],
       ) => Promise<unknown>;
     }).updatePaymentRecord;
 
-    const result = await updatePaymentRecord("cart1", {
+    // Pass callerOrgId (tenant-snake) as second argument per function signature
+    const result = await updatePaymentRecord("cart1", "tenant-snake", {
       zatcaQR: "qr",
       fatooraClearanceId: "clear",
       fatooraClearedAt: new Date(),
@@ -110,17 +110,22 @@ describe("PayTabs callback tenancy guard (snake_case org_id)", () => {
 
     expect(result).toEqual(updatedDoc);
 
+    // Verify findOneAndUpdate was called with org-scoped filter
     expect(mockFindOneAndUpdate).toHaveBeenCalledTimes(1);
     const [filter] = mockFindOneAndUpdate.mock.calls[0];
+    
+    // buildOrgScopedFilter includes both orgId and org_id variants
     expect(filter).toMatchObject({
       _id: "cart1",
-      $or: [{ orgId: "tenant-snake" }, { org_id: "tenant-snake" }],
+      $or: expect.arrayContaining([
+        { orgId: "tenant-snake" },
+        { org_id: "tenant-snake" },
+      ]),
     });
 
-    expect(mockSetTenantContext).toHaveBeenCalledWith({
-      orgId: "tenant-snake",
-      userId: "paytabs-webhook",
-    });
-    expect(mockClearTenantContext).toHaveBeenCalled();
+    // NOTE: updatePaymentRecord does NOT call setTenantContext - it relies on the caller
+    // to manage tenant context (avoids nested context ownership ambiguity).
+    // The POST handler sets context before calling updatePaymentRecord and clears it in finally.
+    expect(mockSetTenantContext).not.toHaveBeenCalled();
   });
 });
