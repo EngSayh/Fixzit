@@ -58,7 +58,19 @@ jobs:
           echo "🔍 Checking production environment validation script..."
           if [ -f "scripts/ci/verify-prod-env.js" ]; then
             echo "✅ Script found: scripts/ci/verify-prod-env.js"
-            echo "Note: Actual validation runs in Vercel deployment environment"
+            echo "Note: Full validation runs in Vercel deployment environment with actual secrets"
+            echo ""
+            echo "Required production environment variables:"
+            echo "  Auth:"
+            echo "    - NEXTAUTH_SECRET (or AUTH_SECRET)"
+            echo "  Payments (at least one provider):"
+            echo "    - PayTabs: PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY"
+            echo "    - Tap: TAP_PUBLIC_KEY, TAP_WEBHOOK_SECRET"
+            echo "  ZATCA (Saudi e-invoicing, REQUIRED):"
+            echo "    - ZATCA_API_KEY"
+            echo "    - ZATCA_SELLER_NAME"
+            echo "    - ZATCA_VAT_NUMBER"
+            echo "    - ZATCA_SELLER_ADDRESS"
             echo "validation_status=success" >> $GITHUB_OUTPUT
           else
             echo "❌ Script not found: scripts/ci/verify-prod-env.js"
@@ -71,10 +83,19 @@ jobs:
         run: |
           echo "❌ Production environment validation failed!"
           echo "Please ensure all required environment variables are configured:"
-          echo "  - NEXTAUTH_SECRET (required for session signing)"
-          echo "  - NEXTAUTH_URL (required for production runtime)"
-          echo "  - TAP_PUBLIC_KEY (required for payment integration)"
-          echo "  - TAP_WEBHOOK_SECRET (required for webhook verification)"
+          echo ""
+          echo "Auth (REQUIRED):"
+          echo "  - NEXTAUTH_SECRET (or AUTH_SECRET) - for session signing"
+          echo ""
+          echo "Payments (at least one provider REQUIRED):"
+          echo "  - PayTabs: PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY"
+          echo "  - Tap: TAP_PUBLIC_KEY, TAP_WEBHOOK_SECRET"
+          echo ""
+          echo "ZATCA Saudi e-invoicing (REQUIRED for PayTabs callbacks):"
+          echo "  - ZATCA_API_KEY"
+          echo "  - ZATCA_SELLER_NAME"
+          echo "  - ZATCA_VAT_NUMBER"
+          echo "  - ZATCA_SELLER_ADDRESS"
           echo ""
           echo "Set these in:"
           echo "  - Vercel: Project Settings → Environment Variables"
@@ -101,15 +122,29 @@ jobs:
           if [ "${{ steps.validate.outcome }}" == "success" ]; then
             echo "✅ **Status**: PASSED" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "All required environment variables are configured correctly." >> $GITHUB_STEP_SUMMARY
+            echo "The validation script exists and will run during Vercel deployment." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### Required Production Variables" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Auth (REQUIRED):**" >> $GITHUB_STEP_SUMMARY
+            echo "- \`NEXTAUTH_SECRET\` (or \`AUTH_SECRET\`)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Payments (at least one provider):**" >> $GITHUB_STEP_SUMMARY
+            echo "- PayTabs: \`PAYTABS_PROFILE_ID\`, \`PAYTABS_SERVER_KEY\`" >> $GITHUB_STEP_SUMMARY
+            echo "- Tap: \`TAP_PUBLIC_KEY\`, \`TAP_WEBHOOK_SECRET\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**ZATCA Saudi e-invoicing (REQUIRED for PayTabs):**" >> $GITHUB_STEP_SUMMARY
+            echo "- \`ZATCA_API_KEY\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`ZATCA_SELLER_NAME\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`ZATCA_VAT_NUMBER\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`ZATCA_SELLER_ADDRESS\`" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ **Status**: FAILED" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Missing or invalid environment variables detected.**" >> $GITHUB_STEP_SUMMARY
+            echo "**Missing validation script or environment configuration.**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Please configure the following in Vercel and GitHub Secrets:" >> $GITHUB_STEP_SUMMARY
-            echo "- NEXTAUTH_SECRET" >> $GITHUB_STEP_SUMMARY
-            echo "- NEXTAUTH_URL" >> $GITHUB_STEP_SUMMARY
-            echo "- TAP_PUBLIC_KEY" >> $GITHUB_STEP_SUMMARY
-            echo "- TAP_WEBHOOK_SECRET" >> $GITHUB_STEP_SUMMARY
+            echo "Please ensure \`scripts/ci/verify-prod-env.js\` exists and configure:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`NEXTAUTH_SECRET\` / \`AUTH_SECRET\`" >> $GITHUB_STEP_SUMMARY
+            echo "- PayTabs or Tap payment credentials" >> $GITHUB_STEP_SUMMARY
+            echo "- ZATCA e-invoicing credentials" >> $GITHUB_STEP_SUMMARY
           fi

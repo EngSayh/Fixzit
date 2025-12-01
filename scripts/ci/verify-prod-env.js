@@ -72,12 +72,14 @@ if (isProdRuntime) {
     );
   }
 
-  // ZATCA e-invoicing is required for Saudi operations (Finance domain)
-  // Without these, PayTabs callback will fail after successful payments
+  // ZATCA e-invoicing is REQUIRED for Saudi operations (Finance domain)
+  // Without these, PayTabs callbacks WILL fail after successful payments
+  // Changed from warning to violation (blocker) to prevent production misconfigurations
   if (!zatcaConfigured) {
-    warnings.push(
+    violations.push(
       'ZATCA e-invoicing not configured: set ZATCA_API_KEY, ZATCA_SELLER_NAME, ' +
-      'ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS. PayTabs callbacks will fail without these.'
+      'ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS. PayTabs callbacks will fail without these. ' +
+      'Configure these in Vercel Environment Variables before deploying to production.'
     );
   }
 }

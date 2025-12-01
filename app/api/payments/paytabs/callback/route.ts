@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import { validateCallback } from "@/lib/paytabs";
 import { connectToDatabase } from "@/lib/mongodb-unified";
@@ -343,16 +343,47 @@ export async function POST(req: NextRequest) {
               cartId: normalized.cartId.slice(0, 8) + "...",
             });
 
-            await handleSuccessfulMarketplacePayment({
-              cartId: normalized.cartId,
-              amount: total as number,
-              currency: paymentCurrency,
-              orgId: normalizedOrgId,
-              orgScopedFilter,
-            });
-            logger.info("Payment successful", {
-              order: normalized.cartId.slice(0, 8) + "...",
-            });
+            try {
+              await handleSuccessfulMarketplacePayment({
+                cartId: normalized.cartId,
+                amount: total as number,
+                currency: paymentCurrency,
+                orgId: normalizedOrgId,
+                orgScopedFilter,
+              });
+              logger.info("Payment successful", {
+                order: normalized.cartId.slice(0, 8) + "...",
+              });
+            } catch (innerError) {
+              // COMPENSATION: Revert PROCESSING to FAILED on non-ZATCA errors
+              // This prevents payments from being stuck in PROCESSING forever
+              if (!(innerError instanceof ZatcaClearanceError)) {
+                logger.error("[PayTabs] Non-ZATCA error during payment processing - reverting to FAILED", {
+                  cartId: normalized.cartId.slice(0, 8) + "...",
+                  error: innerError instanceof Error ? innerError.message : String(innerError),
+                });
+                try {
+                  await PaymentModel.findOneAndUpdate(
+                    orgScopedFilter,
+                    {
+                      $set: {
+                        status: "FAILED",
+                        failedAt: new Date(),
+                        failureReason: "PROCESSING_ERROR",
+                        lastError: innerError instanceof Error ? innerError.message : String(innerError),
+                      },
+                    },
+                    { runValidators: true },
+                  );
+                } catch (rollbackError) {
+                  logger.error("[PayTabs] Failed to rollback PROCESSING status", {
+                    cartId: normalized.cartId.slice(0, 8) + "...",
+                    rollbackError: rollbackError instanceof Error ? rollbackError.message : String(rollbackError),
+                  });
+                }
+              }
+              throw innerError;
+            }
           },
           PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS,
         );
@@ -392,7 +423,8 @@ export async function POST(req: NextRequest) {
             });
           }
           
-          return NextResponse.json(error.body, { status: error.status });
+          // Use createSecureResponse for consistent security headers on error responses
+          return createSecureResponse(error.body, error.status, req);
         }
         throw error;
       }
@@ -486,7 +518,8 @@ async function handleSuccessfulMarketplacePayment({
     );
     
     // Still try to activate package (pass orgId for tenant isolation)
-    await tryActivatePackage(cartId, orgId);
+    // Use retry-safe version that enqueues on failure instead of throwing
+    await tryActivatePackageWithRetry(cartId, orgId);
     return;
   }
 
@@ -620,10 +653,82 @@ async function handleSuccessfulMarketplacePayment({
   });
 
   // Pass orgId for tenant-scoped package activation
-  await tryActivatePackage(cartId, orgId);
+  // If activation fails, enqueue for retry instead of failing the webhook
+  await tryActivatePackageWithRetry(cartId, orgId);
 }
 
-async function tryActivatePackage(cartId: string, orgId?: string): Promise<void> {
+/**
+ * Attempt package activation with automatic retry queue fallback.
+ * If activation fails, enqueue a retry job instead of failing the webhook.
+ * This ensures paid tenants are provisioned even if activation has transient failures.
+ */
+async function tryActivatePackageWithRetry(cartId: string, orgId?: string): Promise<void> {
+  // SECURITY: Fail-closed - if orgId missing, log error but don't block webhook
+  if (!orgId) {
+    logger.error("[PayTabs] Package activation skipped: orgId required for tenant isolation", {
+      cart_id: cartId.slice(0, 8) + "...",
+    });
+    // Don't throw - webhook should succeed to acknowledge PayTabs
+    return;
+  }
+
+  try {
+    const { activatePackageAfterPayment } = await import(
+      "@/lib/aqar/package-activation"
+    );
+    const activated = await activatePackageAfterPayment(String(cartId), orgId);
+
+    if (!activated) {
+      // Activation returned false - validation failure, enqueue for retry
+      throw new Error(`Package activation returned false for cart_id=${cartId.slice(0, 8)}...`);
+    }
+
+    logger.info("[PayTabs] Package activated successfully", {
+      cart_id: cartId.slice(0, 8) + "...",
+    });
+  } catch (err) {
+    logger.warn("[PayTabs] Package activation failed, enqueueing retry", {
+      cart_id: cartId.slice(0, 8) + "...",
+      error: err instanceof Error ? err.message : String(err),
+    });
+
+    // Enqueue for background retry instead of failing webhook
+    try {
+      // Get invoiceId from payment record for retry tracking
+      const { AqarPayment } = await import("@/server/models/aqar");
+      const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
+      const payment = await AqarPayment.findOne(buildOrgScopedFilter(cartId, orgId))
+        .select("invoiceId")
+        .lean();
+
+      const invoiceId = payment?.invoiceId?.toString() || cartId; // Fallback to cartId if no invoiceId
+
+      const { enqueueActivationRetry } = await import("@/jobs/package-activation-queue");
+      const jobId = await enqueueActivationRetry(cartId, invoiceId, orgId);
+
+      if (jobId) {
+        logger.info("[PayTabs] Activation retry enqueued", {
+          cart_id: cartId.slice(0, 8) + "...",
+          jobId,
+        });
+      } else {
+        logger.error("[PayTabs] Failed to enqueue activation retry (Redis unavailable?)", {
+          cart_id: cartId.slice(0, 8) + "...",
+        });
+      }
+    } catch (queueErr) {
+      logger.error("[PayTabs] Failed to enqueue activation retry", {
+        cart_id: cartId.slice(0, 8) + "...",
+        error: queueErr instanceof Error ? queueErr.message : String(queueErr),
+      });
+    }
+    // Don't re-throw - webhook should succeed to acknowledge PayTabs
+  }
+}
+
+// NOTE: _tryActivatePackage is kept as a reference for strict fail-closed behavior
+// Use tryActivatePackageWithRetry for production webhooks (enqueues retries on failure)
+async function _tryActivatePackage(cartId: string, orgId?: string): Promise<void> {
   // SECURITY: Fail-closed - throw if orgId missing to surface upstream issues
   if (!orgId) {
     const msg = "Package activation BLOCKED: orgId required for tenant isolation";

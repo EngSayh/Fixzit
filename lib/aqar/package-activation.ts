@@ -1,5 +1,6 @@
 import { logger } from "@/lib/logger";
 import { buildOrgScopedFilter, isValidOrgId } from "@/lib/utils/org-scope";
+import { withTenantContext } from "@/server/plugins/tenantIsolation";
 /**
  * Aqar Package Activation Utility
  *
@@ -33,9 +34,12 @@ export async function activatePackageAfterPayment(
     return false;
   }
 
-  try {
-    // Find the payment with org-scoped query (SECURITY: prevents cross-tenant reads)
-    const payment = await AqarPayment.findOne(buildOrgScopedFilter(paymentId, orgId));
+  // SECURITY: Wrap all DB operations in tenant context to engage the
+  // tenantIsolation plugin's automatic scoping and audit metadata
+  return withTenantContext(orgId, async () => {
+    try {
+      // Find the payment with org-scoped query (SECURITY: prevents cross-tenant reads)
+      const payment = await AqarPayment.findOne(buildOrgScopedFilter(paymentId, orgId));
 
     if (!payment) {
       logger.error("activatePackageAfterPayment: Payment not found (or wrong org)", {
@@ -109,15 +113,16 @@ export async function activatePackageAfterPayment(
     }
 
     return true;
-  } catch (_error) {
-    const error = _error instanceof Error ? _error : new Error(String(_error));
-    void error;
-    logger.error("activatePackageAfterPayment: Error activating package", {
-      paymentId,
-      error: String((error as Error)?.message || error),
-    });
-    return false;
-  }
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error("activatePackageAfterPayment: Error activating package", {
+        paymentId,
+        error: String((error as Error)?.message || error),
+      });
+      return false;
+    }
+  });
 }
 
 /**
