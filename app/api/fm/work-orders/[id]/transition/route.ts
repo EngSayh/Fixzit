@@ -211,6 +211,8 @@ export async function POST(
       performedAt: new Date(),
     });
 
+    const orgId = workOrder.orgId?.toString?.() ?? tenantId;
+
     // Trigger notifications for important status changes
     try {
       const { onAssign } = await import("@/lib/fm-notifications");
@@ -256,6 +258,7 @@ export async function POST(
 
       if (recipients.length > 0) {
         await onAssign(
+          orgId,
           workOrder.workOrderNumber || id,
           user.name || user.email || "Manager",
           `Status changed to ${toStatus}`,
@@ -311,6 +314,7 @@ export async function POST(
               }));
 
             await onAssign(
+              orgId,
               updated.workOrderNumber || id,
               "SLA Manager",
               `⚠️ SLA BREACH: Work order ${updated.workOrderNumber || id} has exceeded SLA by ${breachHours} hours (${updated.slaHours}h limit). Current status: ${toStatus}`,

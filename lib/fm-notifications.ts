@@ -34,6 +34,7 @@ export interface NotificationRecipient {
 
 export interface NotificationPayload {
   id: string;
+  orgId: string; // SECURITY: Required for tenant isolation
   event: keyof typeof NOTIFY;
   recipients: NotificationRecipient[];
   title: string;
@@ -310,6 +311,7 @@ function requireContextValue(
 export function buildNotification(
   event: keyof typeof NOTIFY,
   context: {
+    orgId: string; // SECURITY: Required for tenant isolation
     workOrderId?: string;
     quotationId?: string;
     propertyId?: string;
@@ -403,6 +405,7 @@ export function buildNotification(
 
   return {
     id: randomUUID(),
+    orgId: context.orgId, // SECURITY: Required for tenant isolation
     event,
     recipients,
     title,
@@ -544,6 +547,7 @@ export async function sendNotification(
  */
 
 export async function onTicketCreated(
+  orgId: string, // SECURITY: Required for tenant isolation
   workOrderId: string,
   tenantName: string,
   priority: string,
@@ -553,6 +557,7 @@ export async function onTicketCreated(
   const notification = buildNotification(
     "onTicketCreated",
     {
+      orgId,
       workOrderId,
       tenantName,
       priority,
@@ -565,6 +570,7 @@ export async function onTicketCreated(
 }
 
 export async function onAssign(
+  orgId: string, // SECURITY: Required for tenant isolation
   workOrderId: string,
   technicianName: string,
   description: string,
@@ -573,6 +579,7 @@ export async function onAssign(
   const notification = buildNotification(
     "onAssign",
     {
+      orgId,
       workOrderId,
       technicianName,
       description,
@@ -584,6 +591,7 @@ export async function onAssign(
 }
 
 export async function onApprovalRequested(
+  orgId: string, // SECURITY: Required for tenant isolation
   quotationId: string,
   amount: number,
   description: string,
@@ -592,6 +600,7 @@ export async function onApprovalRequested(
   const notification = buildNotification(
     "onApprovalRequested",
     {
+      orgId,
       quotationId,
       amount,
       description,
@@ -603,6 +612,7 @@ export async function onApprovalRequested(
 }
 
 export async function onClosed(
+  orgId: string, // SECURITY: Required for tenant isolation
   workOrderId: string,
   propertyId: string,
   recipients: NotificationRecipient[],
@@ -610,6 +620,7 @@ export async function onClosed(
   const notification = buildNotification(
     "onClosed",
     {
+      orgId,
       workOrderId,
       propertyId,
     },

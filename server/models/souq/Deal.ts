@@ -9,6 +9,7 @@ import { getModel, MModel } from "@/types/mongoose-compat";
 export interface IDeal extends Document {
   _id: mongoose.Types.ObjectId;
   dealId: string;
+  orgId: mongoose.Types.ObjectId;
 
   type:
     | "lightning_deal"
@@ -54,6 +55,12 @@ export interface IDeal extends Document {
 
 const DealSchema = new Schema<IDeal>(
   {
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
     dealId: {
       type: String,
       required: true,
@@ -181,6 +188,8 @@ const DealSchema = new Schema<IDeal>(
 
 DealSchema.index({ status: 1, startDate: 1, endDate: 1 });
 DealSchema.index({ "applicableProducts.fsin": 1, status: 1 });
+DealSchema.index({ orgId: 1, couponCode: 1 });
+DealSchema.index({ orgId: 1, sellerId: 1, status: 1 });
 
 export const SouqDeal = getModel<IDeal>("SouqDeal", DealSchema);
 

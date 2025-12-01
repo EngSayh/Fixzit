@@ -320,6 +320,7 @@ export async function POST(req: NextRequest) {
 
       if (recipients.length > 0) {
         await onTicketCreated(
+          tenantId,
           workOrderNumber,
           abilityCheck.name || abilityCheck.email || "User",
           body.priority || WOPriority.MEDIUM,

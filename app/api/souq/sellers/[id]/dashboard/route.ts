@@ -83,6 +83,7 @@ export async function GET(
         {
           $match: {
             "items.sellerId": seller._id,
+            orgId: seller.orgId,
             createdAt: { $gte: thirtyDaysAgo },
           },
         },
