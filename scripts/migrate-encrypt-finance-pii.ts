@@ -243,12 +243,13 @@ async function restoreFromBackup(
     logger.warn(
       `[FINANCE PII MIGRATION] No org-scoped backup found for ${collectionName} (org: ${orgId}). Checking for global backups...`,
     );
+    // Only match truly global backups (format: {collection}_backup_finance_pii_{timestamp})
+    // Exclude any org-specific backups by checking for pattern without org segment
+    const globalBackupPattern = new RegExp(
+      `^${collectionName}_backup_finance_pii_\\d+$`,
+    );
     backups = collections
-      .filter(
-        (c) =>
-          c.name.startsWith(`${collectionName}_backup_finance_pii`) &&
-          !c.name.includes(`_${orgId}_`), // Exclude other org-specific backups
-      )
+      .filter((c) => globalBackupPattern.test(c.name))
       .sort((a, b) => {
         const tsA = parseInt(a.name.split("_").pop() || "0");
         const tsB = parseInt(b.name.split("_").pop() || "0");
@@ -328,6 +329,15 @@ async function restoreFromBackup(
   if (batch.length > 0) {
     await targetCollection.insertMany(batch);
     totalRestored += batch.length;
+  }
+
+  // Warn if no documents were restored for the target org
+  if (totalRestored === 0 && orgId) {
+    logger.warn(
+      `[FINANCE PII MIGRATION] WARNING: Zero documents restored for org: ${orgId}. ` +
+        `This may indicate the backup does not contain data for this org, or the org filter found no matches. ` +
+        `Verify the backup contents before proceeding.`,
+    );
   }
 
   logger.info(
@@ -416,7 +426,10 @@ async function migrateCollection(
     }
   }
 
-  logger.info(`${prefix}[FINANCE PII MIGRATION] Completed ${name}`, stats);
+  logger.info(
+    `${prefix}[FINANCE PII MIGRATION] Completed ${name}`,
+    stats as unknown as Record<string, unknown>,
+  );
   return stats;
 }
 

@@ -178,7 +178,10 @@ describe("Finance Model PII Encryption", () => {
 
       // Find and verify decryption
       const found = await Invoice.findById(invoice._id);
-      const foundObj = found?.toObject() as Record<string, Record<string, unknown>>;
+      expect(found).toBeTruthy();
+      if (!found) return;
+
+      const foundObj = found.toObject() as Record<string, any>;
 
       expect(foundObj.issuer.taxId).toBe(data.issuer.taxId);
       expect(foundObj.issuer.phone).toBe(data.issuer.phone);
@@ -220,7 +223,10 @@ describe("Finance Model PII Encryption", () => {
 
       // Verify decryption returns new values
       const found = await Invoice.findById(invoice._id);
-      const foundObj = found?.toObject() as Record<string, Record<string, unknown>>;
+      expect(found).toBeTruthy();
+      if (!found) return;
+
+      const foundObj = found.toObject() as Record<string, any>;
       expect(foundObj.issuer.taxId).toBe("999888777");
       expect(foundObj.recipient.nationalId).toBe("0987654321");
     });
@@ -313,7 +319,10 @@ describe("Finance Model PII Encryption", () => {
 
       // Find and verify decryption
       const found = await FMFinancialTransaction.findById(transaction._id);
-      const foundObj = found?.toObject() as Record<string, Record<string, unknown>>;
+      expect(found).toBeTruthy();
+      if (!found) return;
+
+      const foundObj = found.toObject() as Record<string, any>;
 
       expect(foundObj.paymentDetails.paymentRef).toBe(data.paymentDetails.paymentRef);
       expect(foundObj.paymentDetails.receivedFrom).toBe(data.paymentDetails.receivedFrom);
@@ -348,7 +357,10 @@ describe("Finance Model PII Encryption", () => {
 
       // Verify decryption returns new values
       const found = await FMFinancialTransaction.findById(transaction._id);
-      const foundObj = found?.toObject() as Record<string, Record<string, unknown>>;
+      expect(found).toBeTruthy();
+      if (!found) return;
+
+      const foundObj = found.toObject() as Record<string, any>;
       expect(foundObj.paymentDetails.paymentRef).toBe("CHK-999999");
       expect(foundObj.paymentDetails.receivedFrom).toBe("Jane Smith");
     });
