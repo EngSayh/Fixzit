@@ -315,9 +315,8 @@ export async function startZatcaRetryWorker(): Promise<Worker> {
           ],
         };
 
-        const clearanceApiUrl =
-          process.env.ZATCA_CLEARANCE_API_URL ||
-          "https://gw-fatoora.zatca.gov.sa/e-invoicing/core/invoices/clearance/single";
+        // Use centralized ZATCA config URL (avoids duplication)
+        const clearanceApiUrl = zatcaResilience.clearanceApiUrl;
 
         // Call ZATCA clearance API with resilience (retry + timeout)
         const response = await fetchWithRetry(clearanceApiUrl, {

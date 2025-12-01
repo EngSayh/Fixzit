@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getDatabase } from "@/lib/mongodb";
+import { getDatabase } from "@/lib/mongodb-unified";
 
 export const revalidate = 60;
 

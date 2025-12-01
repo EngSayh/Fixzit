@@ -1,19 +1,30 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { FMPMPlan } from "@/server/models/FMPMPlan";
+import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { createSecureResponse } from "@/server/security/headers";
 
 /**
  * GET /api/pm/plans
- * List all PM plans with optional filters
+ * List all PM plans with optional filters (tenant-scoped)
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  let orgId: string;
+  try {
+    const user = await getSessionUser(request);
+    orgId = user.orgId;
+  } catch {
+    return createSecureResponse({ error: "Unauthorized" }, 401, request);
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const propertyId = searchParams.get("propertyId");
     const status = searchParams.get("status");
     const category = searchParams.get("category");
 
-    const query: Record<string, string> = {};
+    // 🔒 TENANT-SCOPED: Always include orgId in query
+    const query: Record<string, string> = { orgId };
     if (propertyId) query.propertyId = propertyId;
     if (status) query.status = status;
     if (category) query.category = category;
@@ -41,9 +52,17 @@ export async function GET(request: Request) {
 
 /**
  * POST /api/pm/plans
- * Create new PM plan
+ * Create new PM plan (tenant-scoped)
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  let orgId: string;
+  try {
+    const user = await getSessionUser(request);
+    orgId = user.orgId;
+  } catch {
+    return createSecureResponse({ error: "Unauthorized" }, 401, request);
+  }
+
   try {
     const body = await request.json();
 
@@ -69,9 +88,10 @@ export async function POST(request: Request) {
       instructions: body.instructions,
     };
 
-    // Create PM plan with whitelisted fields
+    // 🔒 TENANT-SCOPED: Always include orgId when creating
     const plan = await FMPMPlan.create({
       ...whitelistedData,
+      orgId, // Enforce tenant scope
       nextScheduledDate: body.startDate || new Date(),
     });
 

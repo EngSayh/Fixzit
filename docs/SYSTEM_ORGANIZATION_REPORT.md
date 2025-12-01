@@ -1,21 +1,50 @@
 # System Organization Report
 
-**Generated**: 2025-01-XX  
+**Generated**: 2025-12-01  
 **Branch**: `chore/system-organization-cleanup`  
 **Scan Type**: Folder Structure + Duplicate Detection  
+**Status**: ✅ Phase 1 Complete
 
 ---
 
 ## Executive Summary
 
-| Metric | Status |
-|--------|--------|
-| **Overall Organization Health** | ⚠️ Needs Attention |
-| **Domain Separation** | ✅ Good (clear app/lib/server/services split) |
-| **File Duplicates Found** | 🔴 12+ files with potential duplicates |
-| **Config Folder Inconsistency** | 🟡 `config/` vs `configs/` naming |
-| **Root Clutter** | 🔴 100+ items in root directory |
-| **Shim Files** | 🟡 Several re-export compatibility shims |
+| Metric | Status | Notes |
+|--------|--------|-------|
+| **Overall Organization Health** | 🟢 Improved | Phase 1 cleanup done |
+| **Domain Separation** | ✅ Good | Clear app/lib/server/services split |
+| **File Duplicates Resolved** | ✅ 5 files cleaned | Shims and wrappers deleted |
+| **Config Folder Inconsistency** | 🟡 Acceptable | config/ vs configs/ serves different purposes |
+| **Root Clutter** | ✅ Clean | Only CONTRIBUTING.md at root |
+| **MongoDB Connection Files** | 🟡 Layered | 5 files form proper hierarchy |
+
+---
+
+## Recent Cleanup Actions (Commit `6fd4034c0`)
+
+### Deleted Files
+| File | Reason |
+|------|--------|
+| `utils/tenant.ts` | Shim re-exporting app/api/fm/utils/tenant |
+| `server/lib/logger.ts` | Thin wrapper around @/lib/logger |
+| `server/utils/tenant.ts` | Dead code (functions never imported) |
+| `auth.config.ts.bak` | Backup file |
+| `auth.ts.bak` | Backup file |
+| `eslint.config.mjs.bak` | Backup file |
+
+### Renamed Files
+| Old | New | Reason |
+|-----|-----|--------|
+| `lib/finance/paytabs.ts` | `lib/finance/paytabs-subscription.ts` | Distinguish from PayTabs API client |
+
+### Updated Imports
+| File | Change |
+|------|--------|
+| `server/finance/budget.service.ts` | `log()` → `logger.info/error()` |
+| `server/finance/doa.service.ts` | `log()` → `logger.warn()` |
+| `server/finance/fx.service.ts` | `log()` → `logger.info()` |
+| `server/finance/posting.service.ts` | `log()` → `logger.info/error()` |
+| `app/api/paytabs/callback/route.ts` | Import path updated to paytabs-subscription |
 
 ---
 
@@ -397,6 +426,81 @@ rbac.ts (2 files):
 
 ---
 
+## Appendix C: MongoDB Connection Architecture
+
+The MongoDB connection system uses a **layered architecture** with 5 files:
+
+```
+lib/mongodb-unified.ts (262 imports) ← CANONICAL
+    ↑
+lib/mongo.ts (41 imports) ← Core connection logic
+    ↑
+db/mongoose.ts (15 imports) ← Mongoose Connection wrapper
+    ↑
+lib/mongodb.ts (1 import) ← Compatibility shim (CAN DELETE)
+lib/database.ts ← Health checks + shutdown handlers
+```
+
+### File Purposes
+
+| File | Lines | Purpose | Imports |
+|------|-------|---------|---------|
+| `lib/mongodb-unified.ts` | 262 | Main entry point, connection management | 262 |
+| `lib/mongo.ts` | 270 | Low-level connection, Vercel optimization | 41 |
+| `db/mongoose.ts` | 33 | Mongoose Connection API wrapper | 15 |
+| `lib/mongodb.ts` | 7 | **DELETE** - Just re-exports from mongodb-unified | 1 |
+| `lib/database.ts` | 80 | Health checks, graceful shutdown | - |
+
+### Recommendation
+- Delete `lib/mongodb.ts` (thin compatibility wrapper)
+- Update 1 import to use `@/lib/mongodb-unified` directly
+
+---
+
+## Appendix D: Function-Level Duplicate Analysis
+
+### Currency Formatting Functions
+
+| Location | Function | Purpose |
+|----------|----------|---------|
+| `lib/payments/currencyUtils.ts:71` | `formatCurrency()` | Frontend - robust parsing, fallbacks |
+| `server/lib/currency.ts:107` | `formatCurrency()` | Backend - minor/major unit conversion |
+| `config/currencies.ts:96` | `formatCurrencyAmount()` | Config - locale-aware formatting |
+
+**Verdict**: Different signatures and purposes. **Keep all** but document distinction:
+- `lib/payments/currencyUtils.ts` → For payment UIs (handles `unknown` input)
+- `server/lib/currency.ts` → For finance backend (expects minor units)
+- `config/currencies.ts` → For general locale display
+
+### Date Formatting Functions
+
+| Location | Function | Purpose |
+|----------|----------|---------|
+| `lib/formatServerDate.ts:61` | `formatDate()` | Server-safe with timezone |
+| `lib/date-utils.ts:29` | `parseDate()` | Safe parsing with fallbacks |
+
+**Verdict**: Complementary functions. **Keep both**.
+
+---
+
+## Appendix E: Config Folder Analysis
+
+### Current State
+
+| Folder | Type | Files |
+|--------|------|-------|
+| `config/` | TypeScript (runtime) | constants.ts, navigation.ts, rbac.config.ts, etc. |
+| `configs/` | JSON/YAML (static) | brand.tokens.json, governance.yaml, etc. |
+
+### Verdict
+The split is **intentional and reasonable**:
+- `config/` = Code that runs (TypeScript)
+- `configs/` = Data files (JSON/YAML)
+
+**Recommendation**: Keep as-is. The naming difference actually clarifies the distinction.
+
+---
+
 **Report Generated By**: System Organizer Scan  
-**Last Updated**: 2025-01-XX  
-**Status**: Ready for Implementation
+**Last Updated**: 2025-12-01  
+**Status**: ✅ Phase 1 Complete - Ready for Phase 2

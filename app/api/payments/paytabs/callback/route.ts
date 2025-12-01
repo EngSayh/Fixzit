@@ -552,9 +552,8 @@ async function handleSuccessfulMarketplacePayment({
     ],
   };
 
-  const clearanceApiUrl =
-    process.env.ZATCA_CLEARANCE_API_URL ||
-    "https://gw-fatoora.zatca.gov.sa/e-invoicing/core/invoices/clearance/single";
+  // Use centralized ZATCA config URL (avoids duplication)
+  const clearanceApiUrl = SERVICE_RESILIENCE.zatca.clearanceApiUrl;
 
   const zatcaResilience = SERVICE_RESILIENCE.zatca;
   const zatcaBreaker = getCircuitBreaker("zatca");

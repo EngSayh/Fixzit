@@ -1,6 +1,11 @@
 import crypto from "crypto";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { FMPMPlan } from "@/server/models/FMPMPlan";
+import { Config } from "@/lib/config/constants";
+import { createSecureResponse } from "@/server/security/headers";
+import { rateLimit } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { getClientIP } from "@/server/security/headers";
 
 import { logger } from "@/lib/logger";
 
@@ -30,8 +35,22 @@ interface PMPlanDocument {
  *
  * This endpoint should be called by a cron job (e.g., daily at midnight)
  * It checks all ACTIVE PM plans and generates WOs for those due
+ * 
+ * SECURITY: Protected by CRON_SECRET header - not accessible to regular users
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  // 🔒 CRON AUTH: Only allow calls with valid cron secret
+  if (req.headers.get("x-cron-secret") !== Config.security.cronSecret) {
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
+  }
+
   try {
     // Find all ACTIVE PM plans that should generate WOs now
     const plans = await FMPMPlan.find({
@@ -135,8 +154,22 @@ export async function POST() {
 /**
  * GET /api/pm/generate-wos
  * Preview which PM plans would generate WOs if run now
+ * 
+ * SECURITY: Protected by CRON_SECRET header - not accessible to regular users
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 30, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
+  // 🔒 CRON AUTH: Only allow calls with valid cron secret
+  if (req.headers.get("x-cron-secret") !== Config.security.cronSecret) {
+    return createSecureResponse({ error: "Unauthorized" }, 401, req);
+  }
+
   try {
     const plans = await FMPMPlan.find({
       status: "ACTIVE",
