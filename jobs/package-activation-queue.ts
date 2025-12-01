@@ -28,7 +28,6 @@ type ActivationJobData = z.infer<typeof ActivationJobDataSchema>;
 
 // Queue and worker instances (for graceful shutdown)
 let queue: Queue | null = null;
-// eslint-disable-next-line prefer-const -- Worker is assigned in startActivationWorker
 let activeWorker: Worker | null = null;
 
 /**
