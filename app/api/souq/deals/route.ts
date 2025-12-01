@@ -10,6 +10,7 @@ import { z } from "zod";
 import { SouqDeal } from "@/server/models/souq/Deal";
 import { connectDb } from "@/lib/mongodb-unified";
 import { nanoid } from "nanoid";
+import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
 
 const dealCreateSchema = z.object({
   type: z.enum([
@@ -46,6 +47,29 @@ const dealCreateSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // SEC-001: Authentication required - only sellers/admins can create deals
+  let session;
+  try {
+    session = await getSessionUser(request);
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json(
+        { error: "Authentication required to create deals" },
+        { status: 401 }
+      );
+    }
+    throw error;
+  }
+
+  // Only ADMIN, SUPER_ADMIN, or users with seller role can create deals
+  const allowedRoles = ["SUPER_ADMIN", "ADMIN", "VENDOR"];
+  if (!allowedRoles.includes(session.role)) {
+    return NextResponse.json(
+      { error: "Only sellers or admins can create deals" },
+      { status: 403 }
+    );
+  }
+
   try {
     await connectDb();
 
