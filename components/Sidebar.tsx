@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useResponsiveLayout } from "@/contexts/ResponsiveContext";
 import { STORAGE_KEYS } from "@/config/constants";
+import { SimpleTooltip } from "@/components/ui/tooltip";
 import {
   MODULES,
   MODULE_SUB_VIEWS,
@@ -298,17 +299,23 @@ export default function Sidebar({
     >
       <div className={cn(isMobile ? "p-3" : "p-4", "flex flex-col h-full")}>
         {!isMobile && (
-          <button
-            onClick={toggleCollapse}
-            className="mb-4 p-2 rounded-full border border-border hover:bg-muted transition-all duration-200 ms-auto"
-            aria-label={
-              isCollapsed
-                ? t("sidebar.expand", "Expand sidebar")
-                : t("sidebar.collapse", "Collapse sidebar")
-            }
+          <SimpleTooltip 
+            content={isCollapsed ? t("sidebar.expand", "Expand sidebar") : t("sidebar.collapse", "Collapse sidebar")}
+            side={isRTL ? "left" : "right"}
           >
-            <CollapseIcon className="h-4 w-4" aria-hidden />
-          </button>
+            <button
+              onClick={toggleCollapse}
+              className="mb-4 p-2 rounded-full border border-border hover:bg-muted transition-all duration-200 ms-auto"
+              aria-label={
+                isCollapsed
+                  ? t("sidebar.expand", "Expand sidebar")
+                  : t("sidebar.collapse", "Collapse sidebar")
+              }
+              data-cursor-interactive
+            >
+              <CollapseIcon className="h-4 w-4" aria-hidden />
+            </button>
+          </SimpleTooltip>
         )}
 
         {!isCollapsed && (

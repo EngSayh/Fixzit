@@ -132,9 +132,9 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
 
     if (tooltip) {
       return (
-        <Tooltip content={tooltip}>
+        <SimpleTooltip content={tooltip}>
           {button}
-        </Tooltip>
+        </SimpleTooltip>
       );
     }
 
