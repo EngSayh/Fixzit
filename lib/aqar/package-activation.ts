@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { buildOrgScopedFilter, isValidOrgId } from "@/lib/utils/org-scope";
 /**
  * Aqar Package Activation Utility
  *
@@ -24,23 +25,17 @@ export async function activatePackageAfterPayment(
   paymentId: string | mongoose.Types.ObjectId,
   orgId: string,
 ): Promise<boolean> {
-  // SECURITY: orgId is required to prevent cross-tenant data access
-  if (!orgId) {
+  // SECURITY: orgId is required to prevent cross-tenant data access (fail-closed)
+  if (!isValidOrgId(orgId, "activatePackageAfterPayment")) {
     logger.error("activatePackageAfterPayment: orgId is required for tenant isolation", {
       paymentId,
     });
     return false;
   }
 
-  // Build org-scoped filter to prevent cross-tenant reads
-  const buildOrgFilter = (id: string | mongoose.Types.ObjectId) => ({
-    _id: id,
-    $or: [{ orgId }, { org_id: orgId }],
-  });
-
   try {
     // Find the payment with org-scoped query (SECURITY: prevents cross-tenant reads)
-    const payment = await AqarPayment.findOne(buildOrgFilter(paymentId));
+    const payment = await AqarPayment.findOne(buildOrgScopedFilter(paymentId, orgId));
 
     if (!payment) {
       logger.error("activatePackageAfterPayment: Payment not found (or wrong org)", {
@@ -82,7 +77,7 @@ export async function activatePackageAfterPayment(
     }
 
     // Find and activate the package with org-scoped query (SECURITY: prevents cross-tenant reads)
-    const pkg = await AqarPackage.findOne(buildOrgFilter(payment.relatedId));
+    const pkg = await AqarPackage.findOne(buildOrgScopedFilter(payment.relatedId, orgId));
 
     if (!pkg) {
       logger.error("activatePackageAfterPayment: Package not found (or wrong org)", {
