@@ -2,6 +2,7 @@ import { Schema, Model, models, InferSchemaType } from "mongoose";
 import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { encryptionPlugin } from "../plugins/encryptionPlugin";
 
 const VendorStatus = [
   "PENDING",
@@ -236,6 +237,13 @@ const VendorSchema = new Schema(
 // APPLY PLUGINS (BEFORE INDEXES)
 VendorSchema.plugin(tenantIsolationPlugin);
 VendorSchema.plugin(auditPlugin);
+// PII encryption for sensitive financial data
+VendorSchema.plugin(encryptionPlugin, {
+  fields: {
+    "financial.bankDetails.accountNumber": "Bank Account Number",
+    "financial.bankDetails.iban": "IBAN",
+  },
+});
 
 // INDEXES (AFTER PLUGINS)
 // CRITICAL FIX: Tenant-scoped unique index for 'code'

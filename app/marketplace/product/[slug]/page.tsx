@@ -21,7 +21,6 @@ interface MediaFile {
   role?: string;
 }
 
-// [CODE REVIEW]: FIX - Use 'id', not '_id' (Prisma/PostgreSQL convention)
 interface Product {
   id: string;
   slug: string;

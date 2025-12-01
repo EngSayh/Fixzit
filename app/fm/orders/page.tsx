@@ -34,7 +34,6 @@ import {
 } from "lucide-react";
 import { logger } from "@/lib/logger";
 
-// [CODE REVIEW]: FIX - Use 'id', not '_id' (Prisma/PostgreSQL convention)
 interface Order {
   id: string;
   orderNumber?: string;

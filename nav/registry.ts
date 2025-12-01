@@ -18,16 +18,28 @@ import {
 } from "lucide-react";
 
 // STRICT v4.1 canonical roles for navigation gating
+// Includes base roles + specialized sub-roles from types/user.ts
 export type Role =
   | "SUPER_ADMIN"
   | "ADMIN"
   | "CORPORATE_OWNER"
+  | "CORPORATE_ADMIN"
   | "TEAM_MEMBER"
   | "TECHNICIAN"
   | "PROPERTY_MANAGER"
+  | "FM_MANAGER"
   | "TENANT"
   | "VENDOR"
-  | "GUEST";
+  | "OWNER"
+  | "GUEST"
+  // Sub-roles (PHASE-3 STRICT v4.1)
+  | "FINANCE"
+  | "FINANCE_OFFICER"
+  | "HR"
+  | "HR_OFFICER"
+  | "SUPPORT_AGENT"
+  | "OPERATIONS_MANAGER"
+  | "AUDITOR";
 
 export type QuickAction = {
   id: string;
@@ -140,7 +152,8 @@ export const modules: ModuleDef[] = [
     label: "Finance",
     route: "/fm/finance",
     icon: DollarSign,
-    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER"],
+    // STRICT v4.1: FINANCE, FINANCE_OFFICER have full access; AUDITOR has read-only (visible for navigation)
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "CORPORATE_ADMIN", "FINANCE", "FINANCE_OFFICER", "AUDITOR"],
     children: [
       { label: "Invoices", route: "/fm/finance/invoices" },
       { label: "Payments", route: "/fm/finance/payments" },
@@ -176,7 +189,8 @@ export const modules: ModuleDef[] = [
     label: "Human Resources",
     route: "/fm/hr",
     icon: Users,
-    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER"],
+    // STRICT v4.1: HR, HR_OFFICER have module access
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "CORPORATE_ADMIN", "HR", "HR_OFFICER"],
     children: [
       { label: "Directory", route: "/fm/hr/directory" },
       { label: "Attendance & Leave", route: "/fm/hr/leave" },
@@ -256,13 +270,18 @@ export const modules: ModuleDef[] = [
     label: "Support & Helpdesk",
     route: "/fm/support",
     icon: Headphones,
+    // STRICT v4.1: SUPPORT_AGENT has dedicated access
     roles: [
       "SUPER_ADMIN",
       "ADMIN",
       "CORPORATE_OWNER",
+      "CORPORATE_ADMIN",
       "TEAM_MEMBER",
       "TECHNICIAN",
       "PROPERTY_MANAGER",
+      "FM_MANAGER",
+      "SUPPORT_AGENT",
+      "OPERATIONS_MANAGER",
       "TENANT",
       "VENDOR",
     ],

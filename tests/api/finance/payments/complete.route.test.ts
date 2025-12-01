@@ -29,7 +29,7 @@ vi.mock("@/server/lib/authContext", () => ({
   runWithContext: (...args: unknown[]) => mockRunWithContext(...args),
 }));
 
-vi.mock("@/server/lib/rbac.config", () => ({
+vi.mock("@/config/rbac.config", () => ({
   requirePermission: (...args: unknown[]) => mockRequirePermission(...args),
 }));
 

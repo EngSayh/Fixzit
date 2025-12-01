@@ -3,7 +3,6 @@ import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
 import ClientDate from "@/components/ClientDate";
 import { getServerI18n } from "@/lib/i18n/server";
 
-// [CODE REVIEW]: FIX - Use 'id', not '_id' (Prisma/PostgreSQL convention)
 interface Product {
   id: string;
   title: { en: string };
