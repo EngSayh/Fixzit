@@ -480,6 +480,7 @@ export const authConfig = {
           // 8. Enforce OTP session usage unless explicitly disabled, or OTP token provided for passwordless flow
           const isDevelopment = process.env.NODE_ENV !== 'production';
           const explicitBypass = process.env.NEXTAUTH_SUPERADMIN_BYPASS_OTP === 'true';
+          // OTP bypass only works in development mode - production always requires real OTP
           const bypassOTP = isSuperAdmin && isDevelopment && explicitBypass;
           const otpProvided = Boolean(otpToken);
 
@@ -516,7 +517,7 @@ export const authConfig = {
 
             otpSessionStore.delete(otpToken!);
           } else if (bypassOTP) {
-            logger.info('[NextAuth] OTP bypassed for super admin', { loginIdentifier: redactIdentifier(loginIdentifier) });
+            logger.info('[NextAuth] OTP bypassed for super admin (dev mode only)', { loginIdentifier: redactIdentifier(loginIdentifier) });
           }
 
           // 9. Return user object for NextAuth session

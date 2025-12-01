@@ -10,6 +10,10 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { generateEncryptionKey, isEncrypted } from "@/lib/security/encryption";
+import {
+  setAuditContext,
+  clearAuditContext,
+} from "@/server/plugins/auditPlugin";
 
 // Mock getModel to avoid model re-registration issues in tests
 vi.mock("@/types/mongoose-compat", () => ({
@@ -28,6 +32,7 @@ function createTestInvoiceData(overrides = {}) {
     number: `INV-${Date.now()}`,
     type: "SALES",
     status: "DRAFT",
+    createdBy: new mongoose.Types.ObjectId(),
     issueDate: new Date(),
     dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     orgId: new mongoose.Types.ObjectId().toString(),
@@ -74,6 +79,7 @@ function createTestTransactionData(overrides = {}) {
     transactionNumber: `TXN-${Date.now()}`,
     type: "PAYMENT",
     status: "PENDING",
+    createdBy: new mongoose.Types.ObjectId(),
     propertyId: new mongoose.Types.ObjectId().toString(),
     ownerId: new mongoose.Types.ObjectId().toString(),
     orgId: new mongoose.Types.ObjectId().toString(),
@@ -101,13 +107,20 @@ describe("Finance Model PII Encryption", () => {
     // Set encryption key
     process.env.ENCRYPTION_KEY = testKey;
 
+    // Reset any existing connections (guards against accidental shared connection across tests)
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
+
     // Start in-memory MongoDB
     mongoServer = await MongoMemoryServer.create();
     const uri = mongoServer.getUri();
     await mongoose.connect(uri);
+    setAuditContext({ userId: new mongoose.Types.ObjectId() });
   });
 
   afterAll(async () => {
+    clearAuditContext();
     await mongoose.disconnect();
     await mongoServer.stop();
     delete process.env.ENCRYPTION_KEY;

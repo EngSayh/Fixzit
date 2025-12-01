@@ -272,6 +272,24 @@ async function restoreFromBackup(
   // Determine if this is an org-scoped restore
   const isOrgScopedBackup = backupName.includes(`_${orgId}_`);
 
+  // PRE-RESTORE GUARD: Verify backup has documents for target org before deleting live data
+  if (orgId) {
+    const restoreQuery = isOrgScopedBackup ? {} : { orgId };
+    const backupDocCount = await backupCollection.countDocuments(restoreQuery);
+    
+    if (backupDocCount === 0) {
+      throw new Error(
+        `SAFETY STOP: Backup "${backupName}" contains zero documents for org: ${orgId}. ` +
+          `Refusing to delete live data without matching backup. ` +
+          `Verify the backup was created for this org, or remove --org to restore globally.`,
+      );
+    }
+    
+    logger.info(
+      `[FINANCE PII MIGRATION] Pre-restore check passed: ${backupDocCount} documents found for org: ${orgId}`,
+    );
+  }
+
   if (orgId && isOrgScopedBackup) {
     // Org-scoped restore: only delete and restore for this org
     logger.info(
