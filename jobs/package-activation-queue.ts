@@ -197,11 +197,10 @@ export function startActivationWorker(): Worker {
 
         // Update invoice metadata on success with org-scoped query
         const { Invoice } = await import("@/server/models/Invoice");
+        const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
         // SECURITY: Org-scoped filter prevents cross-tenant invoice modification
-        const orgScopedInvoiceFilter = {
-          _id: invoiceId,
-          $or: [{ orgId }, { org_id: orgId }],
-        };
+        // buildOrgScopedFilter includes ObjectId variants for mixed storage scenarios
+        const orgScopedInvoiceFilter = buildOrgScopedFilter(invoiceId, orgId);
         try {
           setTenantContext({ orgId, userId: "activation-worker" });
           const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
@@ -235,11 +234,10 @@ export function startActivationWorker(): Worker {
         try {
           const { setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
           const { Invoice } = await import("@/server/models/Invoice");
+          const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
           // SECURITY: Org-scoped filter prevents cross-tenant invoice modification
-          const orgScopedInvoiceFilter = {
-            _id: invoiceId,
-            $or: [{ orgId }, { org_id: orgId }],
-          };
+          // buildOrgScopedFilter includes ObjectId variants for mixed storage scenarios
+          const orgScopedInvoiceFilter = buildOrgScopedFilter(invoiceId, orgId);
           try {
             setTenantContext({ orgId, userId: "activation-worker" });
             const invoice = await Invoice.findOne(orgScopedInvoiceFilter);

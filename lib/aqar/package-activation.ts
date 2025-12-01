@@ -129,9 +129,9 @@ export async function activatePackageAfterPayment(
  * Example usage in payment webhook:
  *
  * ```typescript
- * // After marking payment as successful
+ * // After marking payment as successful (tenant context should be set by caller)
  * if (payment.status === PaymentStatus.COMPLETED && payment.type === 'PACKAGE') {
- *   await activatePackageAfterPayment(payment._id).catch(err => {
+ *   await activatePackageAfterPayment(payment._id, payment.orgId).catch(err => {
  *     console.error('Failed to activate package:', err);
  *   });
  * }

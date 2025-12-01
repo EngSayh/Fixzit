@@ -32,20 +32,32 @@ type ZatcaRetryJobData = z.infer<typeof ZatcaRetryJobDataSchema>;
 // ZATCA resilience configuration
 const zatcaResilience = SERVICE_RESILIENCE.zatca;
 
-// Redis connection for BullMQ - use shared singleton
-const connection = getRedisClient();
-
-// Queue instance
+// Queue and worker instances (for graceful shutdown)
 let queue: Queue | null = null;
+let activeWorker: Worker | null = null;
+
+/**
+ * Require Redis connection - fail fast if not configured.
+ * ZATCA is a critical compliance queue - silently disabling could cause
+ * regulatory violations (invoices not being cleared with tax authority).
+ */
+function requireRedisConnection(context: string) {
+  const connection = getRedisClient();
+  if (!connection) {
+    throw new Error(
+      `[ZatcaRetryQueue] Redis not configured (${context}). ` +
+      `REDIS_URL is required for ZATCA clearance retries - this is a critical compliance queue.`
+    );
+  }
+  return connection;
+}
 
 /**
  * Get or create the ZATCA retry queue
+ * Throws if Redis is not configured (fail-fast for critical compliance queue)
  */
-export function getZatcaRetryQueue(): Queue | null {
-  if (!connection) {
-    logger.warn("[ZatcaRetryQueue] Redis not configured, queue disabled");
-    return null;
-  }
+export function getZatcaRetryQueue(): Queue {
+  const connection = requireRedisConnection("getZatcaRetryQueue");
 
   if (!queue) {
     queue = new Queue(QUEUE_NAME, {
@@ -99,10 +111,7 @@ export async function enqueueZatcaRetry(
   }
 
   const zatcaQueue = getZatcaRetryQueue();
-  if (!zatcaQueue) {
-    logger.warn("[ZatcaRetryQueue] Cannot enqueue - queue not available");
-    return null;
-  }
+  // getZatcaRetryQueue throws if Redis not configured, so queue is always valid here
 
   try {
     const job = await zatcaQueue.add(
@@ -158,22 +167,31 @@ export async function scanAndEnqueuePendingRetries(): Promise<number> {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const pendingPayments = await AqarPayment.find({
       "zatca.complianceStatus": "PENDING_RETRY",
-      orgId: { $exists: true, $ne: null }, // Only process payments with valid orgId
+      // Handle both org field naming conventions (orgId and org_id)
       $or: [
-        { "zatca.lastRetryAt": { $exists: false } },
-        { "zatca.lastRetryAt": { $lt: oneHourAgo } },
+        { orgId: { $exists: true, $ne: null } },
+        { org_id: { $exists: true, $ne: null } },
+      ],
+      $and: [
+        {
+          $or: [
+            { "zatca.lastRetryAt": { $exists: false } },
+            { "zatca.lastRetryAt": { $lt: oneHourAgo } },
+          ],
+        },
       ],
     })
-      .select("_id orgId org_id amount currency zatca")
+      .select("_id orgId amount currency zatca")
       .limit(100) // Process in batches
       .lean();
 
     for (const payment of pendingPayments) {
       const paymentId = payment._id.toString();
+      // orgId is required field in AqarPayment schema
       const orgId = payment.orgId?.toString();
 
       if (!orgId) {
-        logger.error("[ZatcaRetryQueue] Payment missing orgId, skipping", {
+        logger.error("[ZatcaRetryQueue] Payment missing orgId/org_id, skipping", {
           paymentId,
         });
         continue;
@@ -213,11 +231,15 @@ export async function scanAndEnqueuePendingRetries(): Promise<number> {
 /**
  * Process ZATCA retry jobs.
  * Call this from a worker process.
+ * Throws if Redis is not configured (fail-fast for critical compliance queue)
  */
-export function startZatcaRetryWorker(): Worker | null {
-  if (!connection) {
-    logger.warn("[ZatcaRetryQueue] Redis not configured, worker disabled");
-    return null;
+export function startZatcaRetryWorker(): Worker {
+  // SECURITY: requireRedisConnection throws if Redis not configured
+  // to ensure ZATCA compliance queue cannot be silently disabled
+  const connection = requireRedisConnection("startZatcaRetryWorker");
+
+  if (activeWorker) {
+    return activeWorker;
   }
 
   const worker = new Worker<ZatcaRetryJobData>(
@@ -408,6 +430,7 @@ export function startZatcaRetryWorker(): Worker | null {
   });
 
   logger.info("[ZatcaRetryQueue] Worker started");
+  activeWorker = worker;
   return worker;
 }
 
@@ -416,6 +439,10 @@ export function startZatcaRetryWorker(): Worker | null {
  * Note: Redis connection is managed by shared singleton, not disconnected here
  */
 export async function closeZatcaRetryQueue(): Promise<void> {
+  if (activeWorker) {
+    await activeWorker.close();
+    activeWorker = null;
+  }
   if (queue) {
     await queue.close();
     queue = null;

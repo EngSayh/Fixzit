@@ -770,31 +770,18 @@ async function updatePaymentRecord(
   },
 ) {
   const { AqarPayment } = await import("@/server/models/aqar");
+  const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
 
   // SECURITY: Use org-scoped lookup from the start to prevent cross-tenant reads
   // Caller provides orgId from already-validated context (main POST handler)
+  // NOTE: Tenant context is managed by the caller (POST handler) - we rely on that
+  // to avoid nested context ownership ambiguity. The caller's finally block clears context.
   if (!callerOrgId) {
     throw new Error(`Payment update requires orgId for cart_id: ${cartId}`);
   }
 
-  const orgAsObjectId = Types.ObjectId.isValid(callerOrgId)
-    ? new Types.ObjectId(callerOrgId)
-    : undefined;
-
-  // Build org-scoped filter for BOTH read and write operations
-  const orgScopedFilter = {
-    _id: cartId,
-    $or: [
-      { orgId: callerOrgId },
-      { org_id: callerOrgId },
-      ...(orgAsObjectId
-        ? [
-            { orgId: orgAsObjectId },
-            { org_id: orgAsObjectId },
-          ]
-        : []),
-    ],
-  };
+  // Build org-scoped filter using shared helper (includes ObjectId variants)
+  const orgScopedFilter = buildOrgScopedFilter(cartId, callerOrgId);
 
   // Verify payment exists with org-scoped query (no unscoped read)
   const existing = await AqarPayment.findOne(orgScopedFilter)
@@ -806,46 +793,39 @@ async function updatePaymentRecord(
     throw new Error(`Payment record not found for cart_id: ${cartId} (org-scoped)`);
   }
 
-  try {
-    setTenantContext({
-      orgId: callerOrgId,
-      userId: "paytabs-webhook",
-    });
+  // NOTE: No setTenantContext here - caller already manages tenant context
+  // This avoids nested context ownership ambiguity
+  const result = await AqarPayment.findOneAndUpdate(
+    orgScopedFilter,
+    {
+      $set: {
+        // Mark as COMPLETED only after successful ZATCA clearance
+        status: "COMPLETED",
+        paidAt: new Date(),
+        "zatca.qrCode": evidence.zatcaQR,
+        "zatca.invoiceHash": evidence.zatcaInvoiceHash,
+        "zatca.clearanceId": evidence.fatooraClearanceId,
+        "zatca.clearedAt": evidence.fatooraClearedAt,
+        "zatca.submittedAt": evidence.zatcaSubmittedAt,
+        "zatca.invoicePayload": evidence.invoicePayload,
+        "zatca.complianceStatus": evidence.complianceStatus,
+        updatedAt: new Date(),
+      },
+    },
+    {
+      new: true,
+      upsert: false,
+      runValidators: true,
+    },
+  );
 
-    const result = await AqarPayment.findOneAndUpdate(
-      orgScopedFilter,
-      {
-        $set: {
-          // Mark as COMPLETED only after successful ZATCA clearance
-          status: "COMPLETED",
-          paidAt: new Date(),
-          "zatca.qrCode": evidence.zatcaQR,
-          "zatca.invoiceHash": evidence.zatcaInvoiceHash,
-          "zatca.clearanceId": evidence.fatooraClearanceId,
-          "zatca.clearedAt": evidence.fatooraClearedAt,
-          "zatca.submittedAt": evidence.zatcaSubmittedAt,
-          "zatca.invoicePayload": evidence.invoicePayload,
-          "zatca.complianceStatus": evidence.complianceStatus,
-          updatedAt: new Date(),
-        },
-      },
-      {
-        new: true,
-        upsert: false,
-        runValidators: true,
-      },
+  if (!result) {
+    throw new Error(
+      `Payment record not found for cart_id: ${cartId} (org scoped)`,
     );
-
-    if (!result) {
-      throw new Error(
-        `Payment record not found for cart_id: ${cartId} (org scoped)`,
-      );
-    }
-
-    return result;
-  } finally {
-    clearTenantContext();
   }
+
+  return result;
 }
 
 // Exported for testing to validate tenant alias handling
