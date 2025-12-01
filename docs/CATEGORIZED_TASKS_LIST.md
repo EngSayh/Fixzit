@@ -132,20 +132,38 @@
 - **Priority**: P0 - CRITICAL (security)
 - **Last Updated**: 2025-12-01
 
+### 0.7 Legacy Role Cleanup (STRICT v4.1 Compliance)
+
+- **Status**: 🔄 IN PROGRESS (Deprecation tags added, removal pending)
+- **Current State**: 
+  - Legacy roles (`CUSTOMER`, `VIEWER`, `CORPORATE_OWNER`, `EMPLOYEE`, `SUPPORT`, `DISPATCHER`, `FINANCE_MANAGER`) have `@deprecated` JSDoc tags in `types/user.ts`
+  - `LEGACY_ROLES` and `DEPRECATED_ROLES` arrays exported for migration tooling
+  - `isDeprecatedRole()` helper available for runtime checks
+- **Remaining Actions**:
+  1. Audit codebase for any active usage of deprecated roles
+  2. Migrate existing users with deprecated roles to STRICT v4.1 equivalents
+  3. Add database migration script to update role values
+  4. Remove deprecated roles from enum after migration complete
+- **Files**: `types/user.ts`, database migration script (TBD)
+- **Time**: 2-3 hours
+- **Priority**: P2 (post-migration cleanup)
+- **Last Updated**: 2025-12-01
+
 ---
 
 ## 🔴 CATEGORY 1: TESTING & QUALITY ASSURANCE (Priority: HIGH)
 
-### 1.1 Fix Failing Tests ⚠️ CRITICAL
+### 1.1 Fix Failing Tests ⚠️ IN PROGRESS
 
-- **Status**: 143 tests failing
-- **Issues**:
-  - RBAC tests failing (role-based access control)
-  - Secret scan issues in test files
-  - Some test paths may need updating after file moves
-- **Files**: Across test suite
-- **Time**: 4-6 hours
-- **Priority**: P0 - MUST FIX IMMEDIATELY
+- **Status**: 46 tests failing (down from 143)
+- **Latest Run**: 2025-12-01: 46 failed | 1467 passed (1513 total)
+- **Primary Issues**:
+  - Auth-related failures (401 instead of expected 200/403) in Souq claims tests
+  - PayTabs callback signature validation
+  - Test auth context not properly mocked
+- **Files**: tests/api/souq/claims.test.ts, tests/unit/api/api-paytabs-callback.test.ts
+- **Time**: 3-4 hours (remaining)
+- **Priority**: P0 - MUST FIX
 
 ### 1.2 Update Test Import Paths
 
