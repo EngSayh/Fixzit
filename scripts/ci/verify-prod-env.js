@@ -9,7 +9,6 @@ const warnings = [];
 const env = process.env;
 // Only validate in actual production/preview deployments (Vercel), not in CI test builds
 const isProdDeploy = env.VERCEL_ENV === 'production' || env.VERCEL_ENV === 'preview';
-const isProdRuntime = env.VERCEL_ENV === 'production';
 const tapConfigured = Boolean(env.TAP_PUBLIC_KEY) && Boolean(env.TAP_WEBHOOK_SECRET);
 const paytabsConfigured = Boolean(env.PAYTABS_PROFILE_ID) && Boolean(env.PAYTABS_SERVER_KEY);
 
@@ -40,14 +39,15 @@ function warnIfMissing(name, msg) {
 requireFalse('SKIP_ENV_VALIDATION', 'SKIP_ENV_VALIDATION must be false in production');
 requireFalse('DISABLE_MONGODB_FOR_BUILD', 'DISABLE_MONGODB_FOR_BUILD must be false in production');
 
-// SECURITY: Validate critical auth secrets in production runtime
-if (isProdRuntime) {
+// SECURITY: Validate critical auth secrets in both production and preview
+// Preview deployments should also be secure to prevent accidental data exposure
+{
   // NEXTAUTH_SECRET (or AUTH_SECRET) is required for session signing
   // Without this, JWTs cannot be signed/verified securely
   const authSecretConfigured = Boolean(env.NEXTAUTH_SECRET || env.AUTH_SECRET);
   if (!authSecretConfigured) {
     violations.push(
-      'NEXTAUTH_SECRET (or AUTH_SECRET) is required in production for secure session signing. ' +
+      `NEXTAUTH_SECRET (or AUTH_SECRET) is required in ${env.VERCEL_ENV} for secure session signing. ` +
       'Generate a secure value with: openssl rand -base64 32'
     );
   }
@@ -83,16 +83,21 @@ if (isProdRuntime) {
     violations.push(
       'ZATCA e-invoicing not configured but PayTabs is enabled: set ZATCA_API_KEY, ZATCA_SELLER_NAME, ' +
       'ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS. PayTabs callbacks will fail without these. ' +
-      'Configure these in Vercel Environment Variables before deploying to production.'
+      `Configure these in Vercel Environment Variables before deploying to ${env.VERCEL_ENV}.`
     );
   }
 
-  // Redis is required for critical background queues (package activation, ZATCA compliance)
-  // Without this, failed payments cannot be retried and ZATCA clearance cannot be queued
-  if (!redisConfigured) {
+  // Redis is REQUIRED when PayTabs/payment processing is configured
+  // Background queues (package activation, ZATCA compliance) will fail without Redis
+  if (paytabsConfigured && !redisConfigured) {
+    violations.push(
+      'Redis not configured (REDIS_URL or BULLMQ_REDIS_URL) but PayTabs is enabled. ' +
+      'Background queues (package activation retries, ZATCA compliance retries) require Redis. ' +
+      `Configure Redis in Vercel Environment Variables before deploying to ${env.VERCEL_ENV}.`
+    );
+  } else if (!redisConfigured) {
     warnings.push(
-      'Redis not configured (REDIS_URL or BULLMQ_REDIS_URL). Background queues (package activation ' +
-      'retries, ZATCA compliance retries) will be disabled. Configure Redis for production workloads.'
+      'Redis not configured (REDIS_URL or BULLMQ_REDIS_URL). Background queues will be disabled.'
     );
   }
 }

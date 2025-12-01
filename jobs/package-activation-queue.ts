@@ -184,19 +184,16 @@ export async function startActivationWorker(): Promise<Worker> {
 
       try {
         // SECURITY: Import tenant context utilities for scoped operations
-        // Must be imported BEFORE activation to wrap the entire operation
-        const { withTenantContext, setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
+        const { setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
 
         // Import dynamically to avoid circular dependencies
         const { activatePackageAfterPayment } = await import(
           "@/lib/aqar/package-activation"
         );
 
-        // SECURITY: Wrap activation in tenant context to engage the
-        // tenantIsolation plugin's automatic scoping and audit metadata
-        const activated = await withTenantContext(orgId, async () => {
-          return activatePackageAfterPayment(aqarPaymentId, orgId);
-        });
+        // SECURITY: activatePackageAfterPayment already wraps its operations in withTenantContext,
+        // so we don't wrap here to avoid nested context ownership ambiguity
+        const activated = await activatePackageAfterPayment(aqarPaymentId, orgId);
 
         // SECURITY: Fail-closed if activation returned false (validation failure)
         if (!activated) {

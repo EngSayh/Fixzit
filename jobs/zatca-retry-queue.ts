@@ -272,24 +272,23 @@ export async function startZatcaRetryWorker(): Promise<Worker> {
         attempt: job.attemptsMade,
       });
 
-      // Check required ZATCA envs
-      const zatcaSellerName = process.env.ZATCA_SELLER_NAME;
-      const zatcaVatNumber = process.env.ZATCA_VAT_NUMBER;
-      const zatcaSellerAddress = process.env.ZATCA_SELLER_ADDRESS;
-      const clearanceApiKey = process.env.ZATCA_API_KEY;
-
-      if (!clearanceApiKey || !zatcaSellerName || !zatcaVatNumber || !zatcaSellerAddress) {
-        const missingEnvs = [
-          !clearanceApiKey && "ZATCA_API_KEY",
-          !zatcaSellerName && "ZATCA_SELLER_NAME",
-          !zatcaVatNumber && "ZATCA_VAT_NUMBER",
-          !zatcaSellerAddress && "ZATCA_SELLER_ADDRESS",
-        ].filter(Boolean);
-        
-        throw new Error(`ZATCA configuration incomplete - missing: ${missingEnvs.join(", ")}`);
-      }
-
       try {
+        // Check required ZATCA envs - INSIDE try block so we can persist retry metadata on config failures
+        const zatcaSellerName = process.env.ZATCA_SELLER_NAME;
+        const zatcaVatNumber = process.env.ZATCA_VAT_NUMBER;
+        const zatcaSellerAddress = process.env.ZATCA_SELLER_ADDRESS;
+        const clearanceApiKey = process.env.ZATCA_API_KEY;
+
+        if (!clearanceApiKey || !zatcaSellerName || !zatcaVatNumber || !zatcaSellerAddress) {
+          const missingEnvs = [
+            !clearanceApiKey && "ZATCA_API_KEY",
+            !zatcaSellerName && "ZATCA_SELLER_NAME",
+            !zatcaVatNumber && "ZATCA_VAT_NUMBER",
+            !zatcaSellerAddress && "ZATCA_SELLER_ADDRESS",
+          ].filter(Boolean);
+          
+          throw new Error(`ZATCA configuration incomplete - missing: ${missingEnvs.join(", ")}`);
+        }
         const { setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
         const { AqarPayment } = await import("@/server/models/aqar");
         const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
