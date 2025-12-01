@@ -9,7 +9,22 @@ import {
 } from "@/server/models/NotificationLog";
 
 /**
- * FM Notification Template Engine
+ * @deprecated This legacy notification engine is DEPRECATED as of 2025-12-01.
+ * 
+ * ⚠️ SECURITY WARNING: This file was missing orgId for multi-tenant isolation.
+ * orgId has been added, but the canonical notification system is:
+ * 
+ *   `lib/fm-notifications.ts` - USE THIS INSTEAD
+ * 
+ * This file is retained for reference only and should NOT be used in production.
+ * All new notification code should use the canonical system which has:
+ * - Full orgId tenant isolation
+ * - Integration with approval engine
+ * - Proper RBAC support
+ * 
+ * TODO: Remove this file after migration is complete.
+ * 
+ * FM Notification Template Engine (LEGACY)
  * Generates notifications with deep links for various FM events
  *
  * CODE REVIEW FIXES IMPLEMENTED (November 14, 2025):
@@ -121,6 +136,11 @@ export interface NotificationRecipient {
 
 export interface NotificationPayload {
   id: string;
+  /**
+   * SECURITY FIX (2025-12-01): Added orgId for multi-tenant isolation.
+   * All notifications MUST include orgId to prevent cross-tenant data leakage.
+   */
+  orgId: string;
   event: keyof typeof NOTIFY;
   recipients: NotificationRecipient[];
   title: string;
@@ -147,6 +167,11 @@ interface ChannelDispatchResult {
 // Define Discriminated Unions for Context (Strong Typing)
 interface BaseContext {
   description?: string;
+  /**
+   * SECURITY FIX (2025-12-01): Added orgId for multi-tenant isolation.
+   * All notification contexts MUST include orgId.
+   */
+  orgId: string;
 }
 
 interface TicketCreatedContext extends BaseContext {
@@ -199,9 +224,19 @@ async function saveNotification(
       preferredChannels: recipient.preferredChannels,
     }));
 
+    // SECURITY FIX (2025-12-01): Enforce orgId for multi-tenant isolation
+    if (!notification.orgId) {
+      logger.error("[Notifications] CRITICAL: Missing orgId - skipping save to prevent cross-tenant leak", {
+        id: notification.id,
+        event: notification.event,
+      });
+      return;
+    }
+
     await NotificationLogModel.findOneAndUpdate(
-      { notificationId: notification.id },
+      { orgId: notification.orgId, notificationId: notification.id },
       {
+        orgId: notification.orgId,
         notificationId: notification.id,
         event: notification.event,
         recipients,
@@ -240,10 +275,21 @@ async function enqueueDeadLetters(
 ): Promise<void> {
   if (failedChannels.length === 0) return;
 
+  // SECURITY FIX (2025-12-01): Enforce orgId for multi-tenant isolation
+  if (!notification.orgId) {
+    logger.error("[Notifications] CRITICAL: Missing orgId in DLQ - skipping to prevent cross-tenant leak", {
+      id: notification.id,
+      event: notification.event,
+      failedChannels: failedChannels.length,
+    });
+    return;
+  }
+
   try {
     await dbConnect();
     await NotificationDeadLetterModel.insertMany(
       failedChannels.map((channel) => ({
+        orgId: notification.orgId,
         notificationId: notification.id,
         event: notification.event,
         channel: channel.channel,
@@ -426,8 +472,14 @@ export function buildNotification(
     }
   }
 
+  // SECURITY FIX (2025-12-01): Validate orgId before building notification
+  if (!context.orgId) {
+    throw new Error("SECURITY: orgId is required for multi-tenant isolation");
+  }
+
   const payload: NotificationPayload = {
     id: randomUUID(), // FIX: Use crypto.randomUUID() for collision resistance
+    orgId: context.orgId, // SECURITY FIX: Include orgId for tenant isolation
     event: event as keyof typeof NOTIFY,
     recipients,
     title,
@@ -1026,18 +1078,24 @@ async function sendWhatsAppNotifications(
 
 /**
  * Event handlers with strongly-typed context (Type Safety Fix)
+ * 
+ * SECURITY FIX (2025-12-01): All handlers now require orgId parameter
+ * for multi-tenant isolation.
  */
 export async function onTicketCreated(
+  orgId: string,
   workOrderId: string,
   tenantName: string,
   priority: string,
   description: string,
   recipients: NotificationRecipient[],
 ): Promise<void> {
+  if (!orgId) throw new Error("SECURITY: orgId required for multi-tenant isolation");
   if (!workOrderId) throw new Error("workOrderId required");
 
   const context: TicketCreatedContext = {
     event: "onTicketCreated",
+    orgId,
     workOrderId,
     tenantName,
     priority,
@@ -1048,15 +1106,18 @@ export async function onTicketCreated(
 }
 
 export async function onAssign(
+  orgId: string,
   workOrderId: string,
   technicianName: string,
   description: string,
   recipients: NotificationRecipient[],
 ): Promise<void> {
+  if (!orgId) throw new Error("SECURITY: orgId required for multi-tenant isolation");
   if (!workOrderId) throw new Error("workOrderId required");
 
   const context: AssignContext = {
     event: "onAssign",
+    orgId,
     workOrderId,
     technicianName,
     description,
@@ -1066,15 +1127,18 @@ export async function onAssign(
 }
 
 export async function onApprovalRequested(
+  orgId: string,
   quotationId: string,
   amount: number,
   description: string,
   recipients: NotificationRecipient[],
 ): Promise<void> {
+  if (!orgId) throw new Error("SECURITY: orgId required for multi-tenant isolation");
   if (!quotationId) throw new Error("quotationId required");
 
   const context: ApprovalRequestedContext = {
     event: "onApprovalRequested",
+    orgId,
     quotationId,
     amount,
     description,
@@ -1084,13 +1148,16 @@ export async function onApprovalRequested(
 }
 
 export async function onApproved(
+  orgId: string,
   quotationId: string,
   recipients: NotificationRecipient[],
 ): Promise<void> {
+  if (!orgId) throw new Error("SECURITY: orgId required for multi-tenant isolation");
   if (!quotationId) throw new Error("quotationId required");
 
   const context: ApprovedContext = {
     event: "onApproved",
+    orgId,
     quotationId,
   };
 
@@ -1098,15 +1165,18 @@ export async function onApproved(
 }
 
 export async function onClosed(
+  orgId: string,
   workOrderId: string,
   propertyId: string,
   recipients: NotificationRecipient[],
 ): Promise<void> {
+  if (!orgId) throw new Error("SECURITY: orgId required for multi-tenant isolation");
   if (!workOrderId || !propertyId)
     throw new Error("workOrderId and propertyId required");
 
   const context: ClosedContext = {
     event: "onClosed",
+    orgId,
     workOrderId,
     propertyId,
   };
