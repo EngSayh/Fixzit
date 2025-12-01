@@ -3,7 +3,7 @@
 **Generated**: 2025-12-01  
 **Branch**: `chore/system-organization-cleanup`  
 **Scan Type**: Folder Structure + Duplicate Detection  
-**Status**: ✅ Phase 1 Complete
+**Status**: ✅ Phase 3 Complete
 
 ---
 
@@ -11,18 +11,23 @@
 
 | Metric | Status | Notes |
 |--------|--------|-------|
-| **Overall Organization Health** | 🟢 Improved | Phase 1 cleanup done |
+| **Overall Organization Health** | 🟢 Good | Phase 1-3 cleanup done |
 | **Domain Separation** | ✅ Good | Clear app/lib/server/services split |
 | **File Duplicates Resolved** | ✅ 5 files cleaned | Shims and wrappers deleted |
+| **API Route Duplicates** | ✅ None | Domain-specific variants are intentional |
+| **Mongoose Schema Duplicates** | ✅ None | Same-name models in different domains |
 | **Config Folder Inconsistency** | 🟡 Acceptable | config/ vs configs/ serves different purposes |
-| **Root Clutter** | ✅ Clean | Only CONTRIBUTING.md at root |
-| **MongoDB Connection Files** | 🟡 Layered | 5 files form proper hierarchy |
+| **MongoDB Connection Files** | 🟢 Clean | 4 files form proper hierarchy |
+| **Env Files** | 🟡 Acceptable | 5 files serve different purposes |
+| **GitHub Workflows** | 🟡 Overlap | test-runner.yml is lighter gate for pushes |
 
 ---
 
-## Recent Cleanup Actions (Commit `6fd4034c0`)
+## Recent Cleanup Actions
 
-### Deleted Files
+### Phase 1 (Commit `6fd4034c0`)
+
+**Deleted Files:**
 | File | Reason |
 |------|--------|
 | `utils/tenant.ts` | Shim re-exporting app/api/fm/utils/tenant |
@@ -32,12 +37,12 @@
 | `auth.ts.bak` | Backup file |
 | `eslint.config.mjs.bak` | Backup file |
 
-### Renamed Files
+**Renamed Files:**
 | Old | New | Reason |
 |-----|-----|--------|
 | `lib/finance/paytabs.ts` | `lib/finance/paytabs-subscription.ts` | Distinguish from PayTabs API client |
 
-### Updated Imports
+**Updated Imports:**
 | File | Change |
 |------|--------|
 | `server/finance/budget.service.ts` | `log()` → `logger.info/error()` |
@@ -45,6 +50,58 @@
 | `server/finance/fx.service.ts` | `log()` → `logger.info()` |
 | `server/finance/posting.service.ts` | `log()` → `logger.info/error()` |
 | `app/api/paytabs/callback/route.ts` | Import path updated to paytabs-subscription |
+
+### Phase 2 (Commit `ee97fb588`)
+
+**Deleted Files:**
+| File | Reason |
+|------|--------|
+| `lib/mongodb.ts` | Compatibility wrapper with only 1 import |
+
+**Updated Imports:**
+| File | Change |
+|------|--------|
+| `app/help/[slug]/page.tsx` | Import from `@/lib/mongodb-unified` |
+
+### Phase 3 Analysis (Deep Scan)
+
+**API Route Duplicates:**
+| Pattern | Locations | Verdict |
+|---------|-----------|---------|
+| `/api/work-orders` vs `/api/fm/work-orders` | 2 directories | ✅ Different domains (65 vs 20 imports) |
+| `/api/properties` vs `/api/fm/properties` | 2 directories | ✅ Different domains |
+| `/api/aqar/properties` vs `/api/owner/properties` | 2 directories | ✅ Different audiences |
+| `/api/vendors` vs `/api/fm/marketplace/vendors` | 2 directories | ✅ Different purposes (16 vs 1 imports) |
+
+**Mongoose Schema Analysis:**
+| Model | Locations | Purpose | Verdict |
+|-------|-----------|---------|---------|
+| `RFQ` | `server/models/`, `server/models/marketplace/` | Procurement vs Marketplace RFQ | ✅ Keep both |
+| `Project` | `server/models/`, `server/models/aqar/` | PMO vs Real Estate Projects | ✅ Keep both |
+| `Product` | `server/models/marketplace/`, `server/models/souq/` | Different marketplaces | ✅ Keep both |
+| `Payment` | `server/models/aqar/`, `server/models/finance/` | Booking vs Finance payments | ✅ Keep both |
+| `Order` | `server/models/marketplace/`, `server/models/souq/` | Different marketplaces | ✅ Keep both |
+| `Listing` | `server/models/aqar/`, `server/models/souq/` | Property vs Product listings | ✅ Keep both |
+| `Category` | `server/models/marketplace/`, `server/models/souq/` | Different domains | ✅ Keep both |
+
+**GitHub Workflow Analysis:**
+| Workflow | Purpose | Triggers | Overlap |
+|----------|---------|----------|---------|
+| `fixzit-quality-gates.yml` | Full CI (lint, typecheck, build, tests, audit) | PR, schedule | Main gate |
+| `test-runner.yml` | Light gate (lint, typecheck, unit tests) | Push, PR | Subset of quality-gates |
+
+**Verdict**: `test-runner.yml` is a **faster feedback loop** for pushes. Keep both.
+
+**Environment Files Analysis:**
+| File | Lines | Purpose | Verdict |
+|------|-------|---------|---------|
+| `.env.example` | 330 | Full production template | ✅ Keep |
+| `.env.local.template` | 133 | Subset for local dev | ⚠️ Merge into .env.example |
+| `.env.test` | local | CI test config | ✅ Keep (gitignored) |
+| `.env.test.example` | 47 | Test credentials template | ✅ Keep |
+| `env.example` | root | Alternative name | ❓ Check if needed |
+
+**Recommendation**: Consider merging `.env.local.template` into `.env.example` with clear section headers.
 
 ---
 
@@ -503,4 +560,26 @@ The split is **intentional and reasonable**:
 
 **Report Generated By**: System Organizer Scan  
 **Last Updated**: 2025-12-01  
-**Status**: ✅ Phase 1 Complete - Ready for Phase 2
+**Status**: ✅ Phase 3 Complete - All Scans Done
+
+### Summary of Actions Taken
+
+| Phase | Files Deleted | Files Renamed | Imports Updated |
+|-------|---------------|---------------|-----------------|
+| Phase 1 | 6 | 1 | 5 |
+| Phase 2 | 1 | 0 | 1 |
+| **Total** | **7** | **1** | **6** |
+
+### Key Findings
+
+1. **No True File Duplicates Remaining** - All remaining same-name files serve different domains
+2. **API Routes Are Domain-Specific** - `/api/work-orders` (general) vs `/api/fm/work-orders` (FM module)
+3. **Mongoose Schemas Are Domain-Specific** - Same model names in different domains are intentional
+4. **CI Workflows Have Purpose** - `test-runner.yml` is a faster subset for push events
+5. **Env Files Need Minor Cleanup** - `.env.local.template` could merge into `.env.example`
+
+### Remaining Recommendations (Low Priority)
+
+1. Consolidate `.env.local.template` into `.env.example`
+2. Clean up root markdown files (move reports to `docs/archived/`)
+3. Consider documenting the domain-specific model pattern in CONTRIBUTING.md
