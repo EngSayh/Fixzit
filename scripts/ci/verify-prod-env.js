@@ -87,17 +87,14 @@ requireFalse('DISABLE_MONGODB_FOR_BUILD', 'DISABLE_MONGODB_FOR_BUILD must be fal
     );
   }
 
-  // Redis is REQUIRED when PayTabs/payment processing is configured
-  // Background queues (package activation, ZATCA compliance) will fail without Redis
-  if (paytabsConfigured && !redisConfigured) {
+  // Redis is REQUIRED for background queues that use requireRedisConnection()
+  // Workers call requireRedisConnection() which throws if missing - align CI with runtime behavior
+  // This applies regardless of PayTabs config since workers crash on startup without Redis
+  if (!redisConfigured) {
     violations.push(
-      'Redis not configured (REDIS_URL or BULLMQ_REDIS_URL) but PayTabs is enabled. ' +
-      'Background queues (package activation retries, ZATCA compliance retries) require Redis. ' +
+      'Redis not configured (REDIS_URL or BULLMQ_REDIS_URL). ' +
+      'Background queues (package activation retries, ZATCA compliance retries) require Redis and will crash without it. ' +
       `Configure Redis in Vercel Environment Variables before deploying to ${env.VERCEL_ENV}.`
-    );
-  } else if (!redisConfigured) {
-    warnings.push(
-      'Redis not configured (REDIS_URL or BULLMQ_REDIS_URL). Background queues will be disabled.'
     );
   }
 }

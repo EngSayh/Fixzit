@@ -392,21 +392,27 @@ export async function startZatcaRetryWorker(): Promise<Worker> {
           error: error.message,
         });
 
-        // Update last retry attempt time
+        // Update last retry attempt time with tenant context for audit consistency
         try {
+          const { setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
           const { AqarPayment } = await import("@/server/models/aqar");
           const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
           
-          await AqarPayment.updateOne(
-            buildOrgScopedFilter(aqarPaymentId, orgId),
-            {
-              $set: {
-                "zatca.lastRetryAt": new Date(),
-                "zatca.lastRetryError": error.message,
-                "zatca.retryAttempts": job.attemptsMade + 1,
+          setTenantContext({ orgId, userId: "zatca-retry-worker" });
+          try {
+            await AqarPayment.updateOne(
+              buildOrgScopedFilter(aqarPaymentId, orgId),
+              {
+                $set: {
+                  "zatca.lastRetryAt": new Date(),
+                  "zatca.lastRetryError": error.message,
+                  "zatca.retryAttempts": job.attemptsMade + 1,
+                },
               },
-            },
-          );
+            );
+          } finally {
+            clearTenantContext();
+          }
         } catch (updateError) {
           logger.error("[ZatcaRetryQueue] Failed to update retry metadata", { updateError });
         }

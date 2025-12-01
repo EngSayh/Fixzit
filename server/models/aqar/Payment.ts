@@ -82,6 +82,10 @@ export interface IPayment extends Document {
     clearanceId?: string;
     clearedAt?: Date;
     retryCompletedAt?: Date;
+    // Evidence fields for compliance audit trail
+    lastError?: string;
+    submittedAt?: Date;
+    invoicePayload?: Record<string, unknown>;
   };
 
   // Metadata
@@ -162,6 +166,12 @@ const PaymentSchema = new Schema<IPayment>(
       clearanceId: { type: String },
       clearedAt: { type: Date },
       retryCompletedAt: { type: Date },
+      // Evidence fields for compliance audit trail (written by PayTabs callback)
+      lastError: { type: String },
+      submittedAt: { type: Date },
+      // Sensitive: Invoice payload may contain business details
+      // Use select: false to prevent accidental exposure in queries
+      invoicePayload: { type: Schema.Types.Mixed, select: false },
     },
 
     // Sensitive: Metadata may contain internal notes, debugging info, or PII
@@ -179,6 +189,26 @@ PaymentSchema.index({ userId: 1, status: 1, createdAt: -1 });
 PaymentSchema.index({ gatewayTransactionId: 1 });
 // ZATCA retry query index: supports scanAndEnqueuePendingRetries() in jobs/zatca-retry-queue.ts
 PaymentSchema.index({ orgId: 1, "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1 });
+
+// =============================================================================
+// LEGACY SUPPORT: org_id alias for backward compatibility
+// Some older payment records may use org_id instead of orgId. This virtual
+// allows queries and updates using org_id to work transparently.
+// =============================================================================
+PaymentSchema.virtual("org_id")
+  .get(function (this: IPayment) {
+    return this.orgId;
+  })
+  .set(function (this: IPayment, value: mongoose.Types.ObjectId) {
+    this.orgId = value;
+  });
+
+// Enable virtuals in JSON/Object output for API responses
+PaymentSchema.set("toJSON", { virtuals: true });
+PaymentSchema.set("toObject", { virtuals: true });
+// Legacy org_id index: covers $or queries for documents with org_id field
+// Required until all legacy documents are migrated to orgId
+PaymentSchema.index({ org_id: 1, "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1 });
 
 // Static: Get standard fees
 PaymentSchema.statics.getStandardFees = function () {
