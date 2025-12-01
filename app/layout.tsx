@@ -4,6 +4,7 @@ import ConditionalProviders from '@/providers/ConditionalProviders';
 import { Toaster } from 'sonner';
 import { Inter, Noto_Sans_Arabic } from 'next/font/google';
 import ClientLayout from '@/components/ClientLayout';
+import CustomCursor from '@/components/CustomCursor';
 import { getServerI18n } from '@/lib/i18n/server';
 
 export const metadata: Metadata = {
@@ -58,6 +59,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <ClientLayout>
               {children}
             </ClientLayout>
+            {/* Custom cursor with trailing particles */}
+            <CustomCursor />
             <Toaster
               position="top-right"
               richColors
