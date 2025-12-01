@@ -194,6 +194,11 @@ PaymentSchema.index(
   { "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1, orgId: 1 },
   { partialFilterExpression: { "zatca.complianceStatus": "PENDING_RETRY" } }
 );
+// Legacy org_id variant to keep retries indexed for historical documents stored with org_id
+PaymentSchema.index(
+  { "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1, org_id: 1 },
+  { partialFilterExpression: { "zatca.complianceStatus": "PENDING_RETRY" } }
+);
 
 // =============================================================================
 // LEGACY SUPPORT: org_id alias for backward compatibility

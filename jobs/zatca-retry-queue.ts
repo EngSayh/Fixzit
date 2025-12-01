@@ -206,10 +206,16 @@ export async function scanAndEnqueuePendingRetries(): Promise<number> {
 
       if (jobId) {
         // Mark that we've scheduled a retry using tenant-scoped filter
-        await AqarPayment.updateOne(
-          buildOrgScopedFilter(paymentId, orgId),
-          { $set: { "zatca.lastRetryAt": new Date() } },
-        );
+        const { setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
+        try {
+          setTenantContext({ orgId, userId: "zatca-retry-scan" });
+          await AqarPayment.updateOne(
+            buildOrgScopedFilter(paymentId, orgId),
+            { $set: { "zatca.lastRetryAt": new Date() } },
+          );
+        } finally {
+          clearTenantContext();
+        }
         enqueuedCount++;
       }
     }

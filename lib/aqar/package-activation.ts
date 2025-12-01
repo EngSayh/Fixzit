@@ -41,78 +41,78 @@ export async function activatePackageAfterPayment(
       // Find the payment with org-scoped query (SECURITY: prevents cross-tenant reads)
       const payment = await AqarPayment.findOne(buildOrgScopedFilter(paymentId, orgId));
 
-    if (!payment) {
-      logger.error("activatePackageAfterPayment: Payment not found (or wrong org)", {
-        paymentId,
-        orgId,
-      });
-      return false;
-    }
-
-    // Verify it's a package payment
-    if (payment.type !== "PACKAGE" || payment.relatedModel !== "AqarPackage") {
-      logger.warn("activatePackageAfterPayment: Not a package payment", {
-        paymentId,
-        type: payment.type,
-        relatedModel: payment.relatedModel,
-      });
-      return false;
-    }
-
-    // Verify payment is successful
-    if (payment.status !== PaymentStatus.COMPLETED) {
-      logger.warn(
-        "activatePackageAfterPayment: Payment not marked as COMPLETED",
-        {
+      if (!payment) {
+        logger.error("activatePackageAfterPayment: Payment not found (or wrong org)", {
           paymentId,
-          status: payment.status,
-        },
-      );
-      return false;
-    }
+          orgId,
+        });
+        return false;
+      }
 
-    // Verify payment has a related package ID
-    if (!payment.relatedId) {
-      logger.error("activatePackageAfterPayment: Payment missing relatedId", {
-        paymentId,
-        orgId,
-      });
-      return false;
-    }
-
-    // Find and activate the package with org-scoped query (SECURITY: prevents cross-tenant reads)
-    const pkg = await AqarPackage.findOne(buildOrgScopedFilter(payment.relatedId, orgId));
-
-    if (!pkg) {
-      logger.error("activatePackageAfterPayment: Package not found (or wrong org)", {
-        paymentId,
-        packageId: payment.relatedId,
-        orgId,
-      });
-      return false;
-    }
-
-    // Mark package as paid
-    if (!pkg.paidAt) {
-      pkg.paidAt = new Date();
-      await pkg.save();
-    }
-
-    // Activate if not already active
-    if (!pkg.active) {
-      await pkg.activate();
-      logger.info(
-        "activatePackageAfterPayment: Package activated successfully",
-        {
+      // Verify it's a package payment
+      if (payment.type !== "PACKAGE" || payment.relatedModel !== "AqarPackage") {
+        logger.warn("activatePackageAfterPayment: Not a package payment", {
           paymentId,
-          packageId: (pkg as { _id: { toString(): string } })._id.toString(),
-          userId: pkg.userId.toString(),
-          type: pkg.type,
-        },
-      );
-    }
+          type: payment.type,
+          relatedModel: payment.relatedModel,
+        });
+        return false;
+      }
 
-    return true;
+      // Verify payment is successful
+      if (payment.status !== PaymentStatus.COMPLETED) {
+        logger.warn(
+          "activatePackageAfterPayment: Payment not marked as COMPLETED",
+          {
+            paymentId,
+            status: payment.status,
+          },
+        );
+        return false;
+      }
+
+      // Verify payment has a related package ID
+      if (!payment.relatedId) {
+        logger.error("activatePackageAfterPayment: Payment missing relatedId", {
+          paymentId,
+          orgId,
+        });
+        return false;
+      }
+
+      // Find and activate the package with org-scoped query (SECURITY: prevents cross-tenant reads)
+      const pkg = await AqarPackage.findOne(buildOrgScopedFilter(payment.relatedId, orgId));
+
+      if (!pkg) {
+        logger.error("activatePackageAfterPayment: Package not found (or wrong org)", {
+          paymentId,
+          packageId: payment.relatedId,
+          orgId,
+        });
+        return false;
+      }
+
+      // Mark package as paid
+      if (!pkg.paidAt) {
+        pkg.paidAt = new Date();
+        await pkg.save();
+      }
+
+      // Activate if not already active
+      if (!pkg.active) {
+        await pkg.activate();
+        logger.info(
+          "activatePackageAfterPayment: Package activated successfully",
+          {
+            paymentId,
+            packageId: (pkg as { _id: { toString(): string } })._id.toString(),
+            userId: pkg.userId.toString(),
+            type: pkg.type,
+          },
+        );
+      }
+
+      return true;
     } catch (_error) {
       const error = _error instanceof Error ? _error : new Error(String(_error));
       void error;
