@@ -10,7 +10,9 @@
 
 import { Queue, Worker, Job } from "bullmq";
 import { logger } from "@/lib/logger";
-import IORedis from "ioredis";
+import { getRedisClient } from "@/lib/redis";
+import { fetchWithRetry } from "@/lib/http/fetchWithRetry";
+import { SERVICE_RESILIENCE } from "@/config/service-timeouts";
 import { z } from "zod";
 
 const QUEUE_NAME = "zatca-clearance-retry";
@@ -27,10 +29,11 @@ const ZatcaRetryJobDataSchema = z.object({
 
 type ZatcaRetryJobData = z.infer<typeof ZatcaRetryJobDataSchema>;
 
-// Redis connection for BullMQ
-const connection = process.env.REDIS_URL
-  ? new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
-  : undefined;
+// ZATCA resilience configuration
+const zatcaResilience = SERVICE_RESILIENCE.zatca;
+
+// Redis connection for BullMQ - use shared singleton
+const connection = getRedisClient();
 
 // Queue instance
 let queue: Queue | null = null;
@@ -134,6 +137,10 @@ export async function enqueueZatcaRetry(
 /**
  * Find payments needing ZATCA retry and enqueue them.
  * Call this from a scheduled job (e.g., cron) to pick up PENDING_RETRY payments.
+ *
+ * SECURITY: This function scans payments across orgs in a controlled manner.
+ * Each payment is processed with its own tenant context, ensuring proper isolation.
+ * The updateOne call uses buildOrgScopedFilter for tenant-safe writes.
  */
 export async function scanAndEnqueuePendingRetries(): Promise<number> {
   let enqueuedCount = 0;
@@ -143,11 +150,15 @@ export async function scanAndEnqueuePendingRetries(): Promise<number> {
     await connectToDatabase();
 
     const { AqarPayment } = await import("@/server/models/aqar");
+    const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
 
     // Find payments with PENDING_RETRY status that haven't been retried recently
+    // NOTE: This cross-org scan is intentional for background job processing.
+    // Each payment is subsequently processed within its own tenant context.
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const pendingPayments = await AqarPayment.find({
       "zatca.complianceStatus": "PENDING_RETRY",
+      orgId: { $exists: true, $ne: null }, // Only process payments with valid orgId
       $or: [
         { "zatca.lastRetryAt": { $exists: false } },
         { "zatca.lastRetryAt": { $lt: oneHourAgo } },
@@ -176,9 +187,9 @@ export async function scanAndEnqueuePendingRetries(): Promise<number> {
       );
 
       if (jobId) {
-        // Mark that we've scheduled a retry
+        // Mark that we've scheduled a retry using tenant-scoped filter
         await AqarPayment.updateOne(
-          { _id: payment._id },
+          buildOrgScopedFilter(paymentId, orgId),
           { $set: { "zatca.lastRetryAt": new Date() } },
         );
         enqueuedCount++;
@@ -280,8 +291,8 @@ export function startZatcaRetryWorker(): Worker | null {
           process.env.ZATCA_CLEARANCE_API_URL ||
           "https://gw-fatoora.zatca.gov.sa/e-invoicing/core/invoices/clearance/single";
 
-        // Call ZATCA clearance API
-        const response = await fetch(clearanceApiUrl, {
+        // Call ZATCA clearance API with resilience (retry + timeout)
+        const response = await fetchWithRetry(clearanceApiUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -289,6 +300,11 @@ export function startZatcaRetryWorker(): Worker | null {
             Accept: "application/json",
           },
           body: JSON.stringify(invoicePayload),
+        }, {
+          timeoutMs: zatcaResilience.timeouts.clearanceMs,
+          maxAttempts: zatcaResilience.retries.maxAttempts,
+          retryDelayMs: zatcaResilience.retries.baseDelayMs,
+          label: "zatca-clearance-retry",
         });
 
         if (!response.ok) {
@@ -397,14 +413,14 @@ export function startZatcaRetryWorker(): Worker | null {
 
 /**
  * Graceful shutdown
+ * Note: Redis connection is managed by shared singleton, not disconnected here
  */
 export async function closeZatcaRetryQueue(): Promise<void> {
   if (queue) {
     await queue.close();
     queue = null;
   }
-  if (connection) {
-    connection.disconnect();
-  }
+  // Redis connection is managed by shared singleton in @/lib/redis
+  // Do not disconnect here - other parts of the app may still need it
   logger.info("[ZatcaRetryQueue] Closed");
 }
