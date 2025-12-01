@@ -13,6 +13,10 @@ const isProdRuntime = env.VERCEL_ENV === 'production';
 const tapConfigured = Boolean(env.TAP_PUBLIC_KEY) && Boolean(env.TAP_WEBHOOK_SECRET);
 const paytabsConfigured = Boolean(env.PAYTABS_PROFILE_ID) && Boolean(env.PAYTABS_SERVER_KEY);
 
+// ZATCA (Saudi e-invoicing) configuration required for Finance/ZATCA domain
+const zatcaConfigured = Boolean(env.ZATCA_API_KEY) && Boolean(env.ZATCA_SELLER_NAME) &&
+                        Boolean(env.ZATCA_VAT_NUMBER) && Boolean(env.ZATCA_SELLER_ADDRESS);
+
 if (!isProdDeploy) {
   console.log('[verify-prod-env] Skipping validation (not a Vercel production/preview deployment)');
   process.exit(0);
@@ -65,6 +69,15 @@ if (isProdRuntime) {
   if (!tapConfigured && !paytabsConfigured) {
     warnings.push(
       'No payment provider configured: set PayTabs (PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY) or Tap (TAP_PUBLIC_KEY, TAP_WEBHOOK_SECRET)',
+    );
+  }
+
+  // ZATCA e-invoicing is required for Saudi operations (Finance domain)
+  // Without these, PayTabs callback will fail after successful payments
+  if (!zatcaConfigured) {
+    warnings.push(
+      'ZATCA e-invoicing not configured: set ZATCA_API_KEY, ZATCA_SELLER_NAME, ' +
+      'ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS. PayTabs callbacks will fail without these.'
     );
   }
 }
