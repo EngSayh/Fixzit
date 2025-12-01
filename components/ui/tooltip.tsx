@@ -33,6 +33,7 @@ TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 /**
  * Simple tooltip wrapper for convenience.
  * Use this when you just need a basic tooltip on a single element.
+ * Note: Requires TooltipProvider to be present in the component tree (see app/layout.tsx)
  *
  * @example
  * ```tsx
@@ -53,16 +54,27 @@ export const SimpleTooltip: React.FC<SimpleTooltipProps> = ({
   content,
   children,
   side = "top",
-  delayDuration = 200,
+  delayDuration,
   asChild = true,
 }) => {
-  return (
-    <TooltipProvider delayDuration={delayDuration}>
-      <Tooltip>
-        <TooltipTrigger asChild={asChild}>{children}</TooltipTrigger>
-        <TooltipContent side={side}>{content}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+  // Use global TooltipProvider from layout.tsx
+  // Only wrap with local provider if delayDuration is explicitly set (overriding global)
+  const tooltipContent = (
+    <Tooltip>
+      <TooltipTrigger asChild={asChild}>{children}</TooltipTrigger>
+      <TooltipContent side={side}>{content}</TooltipContent>
+    </Tooltip>
   );
+
+  // If custom delay is specified, wrap with local provider to override
+  if (delayDuration !== undefined) {
+    return (
+      <TooltipProvider delayDuration={delayDuration}>
+        {tooltipContent}
+      </TooltipProvider>
+    );
+  }
+
+  return tooltipContent;
 };
 

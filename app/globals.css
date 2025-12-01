@@ -299,6 +299,14 @@
    Custom Cursor Styles
    ============================================ */
 
+/* Cursor brand colors (actual Fixzit brand, not theme tokens) */
+:root {
+  --cursor-primary: #0061A8;    /* Fixzit primary blue */
+  --cursor-secondary: #00A859;  /* Marketplace green */
+  --cursor-accent: #FFB400;     /* Gold accent */
+  --cursor-glow: #36aff8;       /* Light blue glow */
+}
+
 /* Hide native cursor when custom cursor is active */
 body.custom-cursor-active {
   cursor: none;
@@ -334,7 +342,7 @@ body.custom-cursor-active * {
 .cursor-main {
   width: 10px;
   height: 10px;
-  background-color: #0061A8; /* Fixzit primary blue */
+  background-color: var(--cursor-primary);
   /* Smooth transition for hover pop effect */
   transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, width 0.2s ease-out, height 0.2s ease-out;
 }
@@ -343,14 +351,14 @@ body.custom-cursor-active * {
   width: 6px;
   height: 6px;
   /* Default color (overridden per-dot via inline style) */
-  background-color: #0061A8;
+  background-color: var(--cursor-primary);
 }
 
 /* Glow expansion on hoverable elements */
 .cursor-main.cursor--hover {
   width: 16px;
   height: 16px;
-  box-shadow: 0 0 12px #36aff8, 0 0 24px rgba(54, 175, 248, 0.5);
+  box-shadow: 0 0 12px var(--cursor-glow), 0 0 24px rgba(54, 175, 248, 0.5);
 }
 
 /* ============================================

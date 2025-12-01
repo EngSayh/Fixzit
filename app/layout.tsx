@@ -5,6 +5,7 @@ import { Toaster } from 'sonner';
 import { Inter, Noto_Sans_Arabic } from 'next/font/google';
 import ClientLayout from '@/components/ClientLayout';
 import CustomCursor from '@/components/CustomCursor';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { getServerI18n } from '@/lib/i18n/server';
 
 export const metadata: Metadata = {
@@ -55,7 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {t('common.skipToContent')}
         </a>
         <ConditionalProviders initialLocale={locale}>
-          <>
+          <TooltipProvider delayDuration={200}>
             <ClientLayout>
               {children}
             </ClientLayout>
@@ -67,7 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               closeButton
               duration={4000}
             />
-          </>
+          </TooltipProvider>
         </ConditionalProviders>
       </body>
     </html>

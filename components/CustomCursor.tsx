@@ -41,6 +41,12 @@ const CustomCursor: React.FC = () => {
       if (isTouchDevice) {
         return;
       }
+      
+      // Respect reduced motion preference for accessibility
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) {
+        return; // Don't show animated cursor for users who prefer reduced motion
+      }
     }
 
     const body = document.body;
@@ -166,11 +172,12 @@ const CustomCursor: React.FC = () => {
     };
   }, []);
 
-  // Do not render on touch devices or during SSR
+  // Do not render on touch devices, during SSR, or when reduced motion is preferred
   if (typeof window !== 'undefined') {
     const isTouchDevice =
       'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    if (isTouchDevice) {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (isTouchDevice || prefersReducedMotion) {
       return null;
     }
   }
@@ -187,8 +194,9 @@ const CustomCursor: React.FC = () => {
           }}
           className="cursor-dot cursor-trail"
           // Inline styles for trailing dots (color/opacity vary by index)
+          // Uses CSS variables defined in globals.css for maintainability
           style={{
-            backgroundColor: i % 3 === 0 ? '#0061A8' : i % 3 === 1 ? '#00A859' : '#FFB400',
+            backgroundColor: i % 3 === 0 ? 'var(--cursor-primary)' : i % 3 === 1 ? 'var(--cursor-secondary)' : 'var(--cursor-accent)',
             opacity: 0.6 + (0.4 * (TRAIL_COUNT - i - 1)) / TRAIL_COUNT, // more faint for further particles
           }}
         />
