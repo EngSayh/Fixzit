@@ -3,7 +3,7 @@ import { dbConnect } from "@/db/mongoose";
 import {
   finalizePayTabsTransaction,
   normalizePayTabsPayload,
-} from "@/lib/finance/paytabs";
+} from "@/lib/finance/paytabs-subscription";
 import { validateCallback } from "@/lib/paytabs";
 import {
   buildPaytabsIdempotencyKey,

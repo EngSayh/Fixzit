@@ -2,7 +2,7 @@ import Budget from "../models/finance/Budget";
 import { RequestContext } from "../lib/authContext";
 import { ForbiddenError } from "../lib/errors";
 import { minorToDecimal128 } from "../lib/money";
-import { log } from "../lib/logger";
+import { logger } from "@/lib/logger";
 import { submitBudgetForApproval } from "./doa.service";
 
 export async function createBudget(
@@ -30,7 +30,7 @@ export async function createBudget(
       currency: (budget as { currency?: string }).currency,
     });
   } catch (error) {
-    log("Failed to submit budget for DoA approval", "error");
+    logger.error("Failed to submit budget for DoA approval");
     await Budget.deleteOne({ _id: budget._id });
     throw error;
   }

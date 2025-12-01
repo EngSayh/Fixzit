@@ -10,7 +10,7 @@ import {
 } from "../lib/money";
 import { ForbiddenError } from "../lib/errors";
 import { RequestContext } from "../lib/authContext";
-import { log } from "../lib/logger";
+import { logger } from "@/lib/logger";
 
 export async function postJournal(
   ctx: RequestContext,
@@ -142,10 +142,10 @@ export async function postJournal(
     await j.save({ session });
 
     await session.commitTransaction();
-    log(`Journal ${j.journalNumber} posted`);
+    logger.info(`Journal ${j.journalNumber} posted`);
   } catch (e) {
     await session.abortTransaction();
-    log((e as Error).message, "error");
+    logger.error((e as Error).message);
     throw e;
   } finally {
     session.endSession();
