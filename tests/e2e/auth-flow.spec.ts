@@ -195,7 +195,7 @@ test.describe("Authentication Flow", () => {
       expect(htmlDir === 'ltr' || htmlDir === 'rtl' || htmlDir === null).toBeTruthy();
     } else {
       // Skip test if language selector not found (acceptable in minimal UI mode)
-      test.skip();
+      test.skip(true, 'Language selector not visible in minimal UI mode');
     }
   });
 });

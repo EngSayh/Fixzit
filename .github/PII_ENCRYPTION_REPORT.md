@@ -2,7 +2,7 @@
 
 **Report Date**: 2025-12-01T17:25:00+03:00  
 **Issue ID**: SECURITY-1, SECURITY-2, M-06  
-**Status**: ✅ **RESOLVED - PRODUCTION READY (updated with finance models)**  
+**Status**: ⚠️ **PARTIALLY COMPLETE – Finance models encrypt new writes; legacy data migration pending**  
 **Compliance**: GDPR Article 32, HIPAA, ISO 27001
 
 ---
@@ -13,16 +13,17 @@ Successfully implemented **field-level AES-256-GCM encryption** for all sensitiv
 
 ### Key Achievements
 
-✅ **4 sensitive fields encrypted**:
+✅ **4 sensitive fields encrypted** (User model):
 - `personal.nationalId` (National ID numbers)
 - `personal.passport` (Passport numbers)
 - `employment.salary` (Salary information)
 - `security.mfa.secret` (MFA secrets)
 
-🔒 **2025-12-01 Update (Finance Models)**:
+⚠️ **2025-12-01 Update (Finance Models)**:
 - `server/models/Invoice.ts` now encrypts issuer/recipient tax IDs, phones, emails, national IDs, and payment account numbers/IBAN/SWIFT.
 - `server/models/FMFinancialTransaction.ts` now encrypts payment references, payment originator, and bank account numbers.
-- Finance collections require a follow-up migration to encrypt existing records (schema hooks cover new writes/updates automatically).
+- **NEW WRITES ARE ENCRYPTED** via schema hooks; existing records require migration.
+- **ACTION REQUIRED**: Run `scripts/migrate-encrypt-finance-pii.ts` to encrypt legacy finance records.
 
 ✅ **Enterprise-grade security**:
 - AES-256-GCM authenticated encryption (NIST recommended)

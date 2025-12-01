@@ -106,11 +106,31 @@
 
 ### 0.6 Finance PII Encryption (Invoices & FMFinancialTransaction)
 
-- **Status**: ✅ Schema encryption applied (2025-12-01); **migration pending** for existing finance records
-- **Files**: server/models/Invoice.ts, server/models/FMFinancialTransaction.ts
+- **Status**: ✅ Schema encryption applied (2025-12-01); Migration script created
+- **Files Modified**: 
+  - `server/models/Invoice.ts` - encryptionPlugin added
+  - `server/models/FMFinancialTransaction.ts` - encryptionPlugin added
+  - `scripts/migrate-encrypt-finance-pii.ts` - migration script for legacy data
+  - `tests/unit/finance/finance-encryption.test.ts` - encryption tests
 - **Scope**: Encrypts issuer/recipient tax IDs, phones, emails, national IDs, payment account numbers/IBAN/SWIFT, payment references, and bank accounts
-- **Next**: Run finance data migration; add validation checks in test suite
+- **New Writes**: ✅ Encrypted automatically via model hooks
+- **Legacy Data**: ⚠️ Run `scripts/migrate-encrypt-finance-pii.ts` to encrypt existing records
+- **Usage**:
+  ```bash
+  # Preview changes (dry-run)
+  ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts --dry-run
+  
+  # Migrate single organization
+  ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts --org=<orgId>
+  
+  # Migrate all organizations
+  ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts
+  
+  # Rollback from backup
+  ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts --rollback
+  ```
 - **Priority**: P0 - CRITICAL (security)
+- **Last Updated**: 2025-12-01
 
 ---
 
