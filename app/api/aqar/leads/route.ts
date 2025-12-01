@@ -184,10 +184,15 @@ export async function POST(request: NextRequest) {
               entityType: "listing",
             });
           } catch (error) {
-            logger.error(
-              "Failed to increment listing analytics:",
-              error instanceof Error ? error : new Error(String(error)),
-              { listingId },
+            // Structured warning for observability - allows alerting on analytics drift
+            logger.warn(
+              "[Analytics] Listing inquiry increment failed after retries",
+              {
+                listingId,
+                orgId: orgIdForLead,
+                metric: "analytics.listing.inquiry.increment.failed",
+                error: error instanceof Error ? error.message : String(error),
+              },
             );
           } finally {
             clearTenantContext();
@@ -238,10 +243,15 @@ export async function POST(request: NextRequest) {
               entityType: "project",
             });
           } catch (error) {
-            logger.error(
-              "Failed to increment project analytics:",
-              error instanceof Error ? error : new Error(String(error)),
-              { projectId },
+            // Structured warning for observability - allows alerting on analytics drift
+            logger.warn(
+              "[Analytics] Project inquiry increment failed after retries",
+              {
+                projectId,
+                orgId: orgIdForLead,
+                metric: "analytics.project.inquiry.increment.failed",
+                error: error instanceof Error ? error.message : String(error),
+              },
             );
           } finally {
             clearTenantContext();

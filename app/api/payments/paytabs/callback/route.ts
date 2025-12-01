@@ -238,15 +238,59 @@ export async function POST(req: NextRequest) {
           expected: paymentAmount,
           received: total,
         });
+        // Mark as FAILED to close out PENDING record and prevent retry loops
+        if (normalizedOrgId) {
+          setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
+        }
+        try {
+          await AqarPayment.findOneAndUpdate(
+            orgScopedFilter,
+            {
+              $set: {
+                status: "FAILED",
+                failedAt: new Date(),
+                failureReason: "AMOUNT_MISMATCH",
+                "gatewayResponse.respStatus": normalized.respStatus,
+                "gatewayResponse.amountReceived": total,
+                "gatewayResponse.amountExpected": paymentAmount,
+              },
+            },
+            { runValidators: true },
+          );
+        } finally {
+          if (normalizedOrgId) clearTenantContext();
+        }
         return validationError("Payment amount mismatch");
       }
 
       if (normalized.currency && normalized.currency !== paymentCurrency) {
-        logger.error("[PayTabs] Currency mismatch", {
+        logger.error("[PayTabs] Currency mismatch - possible tampering", {
           cartId: normalized.cartId.slice(0, 8) + "...",
           expected: paymentCurrency,
           received: normalized.currency,
         });
+        // Mark as FAILED to close out PENDING record and prevent retry loops
+        if (normalizedOrgId) {
+          setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
+        }
+        try {
+          await AqarPayment.findOneAndUpdate(
+            orgScopedFilter,
+            {
+              $set: {
+                status: "FAILED",
+                failedAt: new Date(),
+                failureReason: "CURRENCY_MISMATCH",
+                "gatewayResponse.respStatus": normalized.respStatus,
+                "gatewayResponse.currencyReceived": normalized.currency,
+                "gatewayResponse.currencyExpected": paymentCurrency,
+              },
+            },
+            { runValidators: true },
+          );
+        } finally {
+          if (normalizedOrgId) clearTenantContext();
+        }
         return validationError("Payment currency mismatch");
       }
 
