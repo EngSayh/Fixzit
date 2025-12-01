@@ -102,7 +102,7 @@ export async function GET(
 
     const vendor = await Vendor.findOne({
       _id: id,
-      tenantId: user.tenantId,
+      orgId: user.orgId,
     });
 
     if (!vendor) {
@@ -127,7 +127,7 @@ export async function PATCH(
     const data = updateVendorSchema.parse(await req.json());
 
     const vendor = await Vendor.findOneAndUpdate(
-      { _id: id, tenantId: user.tenantId },
+      { _id: id, orgId: user.orgId },
       { $set: { ...data, updatedBy: user.id } },
       { new: true },
     );
@@ -156,7 +156,7 @@ export async function DELETE(
     await connectToDatabase();
 
     const vendor = await Vendor.findOneAndUpdate(
-      { _id: id, tenantId: user.tenantId },
+      { _id: id, orgId: user.orgId },
       { $set: { status: "BLACKLISTED", updatedBy: user.id } },
       { new: true },
     );

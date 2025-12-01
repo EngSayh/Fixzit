@@ -76,7 +76,7 @@ export async function GET(
 
     const invoice = await Invoice.findOne({
       _id: params.id,
-      tenantId: user.tenantId,
+      orgId: user.orgId,
     });
 
     if (!invoice) {
@@ -117,7 +117,7 @@ export async function PATCH(
 
     const invoice = await Invoice.findOne({
       _id: params.id,
-      tenantId: user.tenantId,
+      orgId: user.orgId,
     });
 
     if (!invoice) {
@@ -269,7 +269,7 @@ export async function DELETE(
 
     const invoice = await Invoice.findOne({
       _id: params.id,
-      tenantId: user.tenantId,
+      orgId: user.orgId,
       status: "DRAFT",
     });
 

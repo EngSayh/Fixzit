@@ -278,7 +278,7 @@ export interface Review {
 
 export interface NotificationDoc {
   id?: ObjectId | string;
-  tenantId: string;
+  orgId: string;
   type: "work-order" | "vendor" | "payment" | "maintenance" | "system" | string;
   title: string;
   message: string;

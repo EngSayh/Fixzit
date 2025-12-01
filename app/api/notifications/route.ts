@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
   const data = notificationSchema.parse(body);
   const { notifications } = await getCollections();
   const doc: Omit<NotificationDoc, "id"> = {
-    tenantId: orgId,
+    orgId,
     type: data.type,
     title: data.title,
     message: data.message,
