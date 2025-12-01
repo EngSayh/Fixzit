@@ -170,9 +170,11 @@ export async function PATCH(
     if (body.accessLevel) updates["security.accessLevel"] = body.accessLevel;
     if (body.status) updates.status = body.status;
 
-    await UserModel.updateOne({ _id: id }, { $set: updates });
+    // SECURITY: Include orgId in update filter to prevent cross-tenant updates (TOCTOU protection)
+    await UserModel.updateOne({ _id: id, orgId }, { $set: updates });
 
-    const updatedUser = await UserModel.findById(id);
+    // SECURITY: Use org-scoped query for returning updated user
+    const updatedUser = await UserModel.findOne({ _id: id, orgId });
 
     return NextResponse.json({ user: updatedUser });
   } catch (error) {
