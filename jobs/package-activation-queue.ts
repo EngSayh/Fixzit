@@ -140,8 +140,16 @@ export async function enqueueActivationRetry(
  * Process activation retry jobs
  * Call this from a worker process (e.g., in a separate Node.js process or serverless function)
  * Throws if Redis is not configured (fail-fast for critical queue)
+ * 
+ * NOTE: This function is async to ensure MongoDB is connected before processing.
+ * The Worker is returned after connection is established.
  */
-export function startActivationWorker(): Worker {
+export async function startActivationWorker(): Promise<Worker> {
+  // CRITICAL: Ensure MongoDB is connected before any BullMQ handlers run.
+  // In standalone worker processes, mongoose may not be connected yet.
+  const { connectToDatabase } = await import("@/lib/mongodb-unified");
+  await connectToDatabase();
+
   const connection = requireRedisConnection("startActivationWorker");
   
   // Return existing worker if already running

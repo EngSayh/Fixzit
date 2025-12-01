@@ -181,14 +181,14 @@ export async function scanAndEnqueuePendingRetries(): Promise<number> {
         },
       ],
     })
-      .select("_id orgId amount currency zatca")
+      .select("_id orgId org_id amount currency zatca")
       .limit(100) // Process in batches
       .lean();
 
     for (const payment of pendingPayments) {
       const paymentId = payment._id.toString();
-      // orgId is required field in AqarPayment schema
-      const orgId = payment.orgId?.toString();
+      // Handle both org field naming conventions (orgId takes precedence for new data, org_id for legacy)
+      const orgId = payment.orgId?.toString() ?? (payment as { org_id?: { toString(): string } }).org_id?.toString();
 
       if (!orgId) {
         logger.error("[ZatcaRetryQueue] Payment missing orgId/org_id, skipping", {
@@ -232,8 +232,16 @@ export async function scanAndEnqueuePendingRetries(): Promise<number> {
  * Process ZATCA retry jobs.
  * Call this from a worker process.
  * Throws if Redis is not configured (fail-fast for critical compliance queue)
+ * 
+ * NOTE: This function is async to ensure MongoDB is connected before processing.
+ * The Worker is returned after connection is established.
  */
-export function startZatcaRetryWorker(): Worker {
+export async function startZatcaRetryWorker(): Promise<Worker> {
+  // CRITICAL: Ensure MongoDB is connected before any BullMQ handlers run.
+  // In standalone worker processes, mongoose may not be connected yet.
+  const { connectToDatabase } = await import("@/lib/mongodb-unified");
+  await connectToDatabase();
+
   // SECURITY: requireRedisConnection throws if Redis not configured
   // to ensure ZATCA compliance queue cannot be silently disabled
   const connection = requireRedisConnection("startZatcaRetryWorker");

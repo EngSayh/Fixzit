@@ -66,6 +66,24 @@ export interface IPayment extends Document {
   // Integration
   invoiceId?: mongoose.Types.ObjectId; // Link to Finance Invoice
 
+  // Failure tracking
+  failureReason?: string;
+  lastError?: string;
+
+  // ZATCA compliance (Saudi Arabia e-invoicing)
+  zatca?: {
+    complianceStatus?: "NOT_REQUIRED" | "PENDING_RETRY" | "CLEARED" | "FAILED";
+    lastRetryAt?: Date;
+    lastRetryError?: string;
+    retryAttempts?: number;
+    lastAttemptAt?: Date;
+    qrCode?: string;
+    invoiceHash?: string;
+    clearanceId?: string;
+    clearedAt?: Date;
+    retryCompletedAt?: Date;
+  };
+
   // Metadata
   metadata?: Record<string, unknown>;
 }
@@ -124,6 +142,28 @@ const PaymentSchema = new Schema<IPayment>(
 
     invoiceId: { type: Schema.Types.ObjectId, ref: "Invoice" },
 
+    // Failure tracking
+    failureReason: { type: String },
+    lastError: { type: String },
+
+    // ZATCA compliance (Saudi Arabia e-invoicing)
+    zatca: {
+      complianceStatus: {
+        type: String,
+        enum: ["NOT_REQUIRED", "PENDING_RETRY", "CLEARED", "FAILED"],
+        index: true,
+      },
+      lastRetryAt: { type: Date },
+      lastRetryError: { type: String },
+      retryAttempts: { type: Number, default: 0 },
+      lastAttemptAt: { type: Date },
+      qrCode: { type: String },
+      invoiceHash: { type: String },
+      clearanceId: { type: String },
+      clearedAt: { type: Date },
+      retryCompletedAt: { type: Date },
+    },
+
     // Sensitive: Metadata may contain internal notes, debugging info, or PII
     // Use select: false to prevent accidental exposure in queries
     metadata: { type: Schema.Types.Mixed, select: false },
@@ -137,6 +177,8 @@ const PaymentSchema = new Schema<IPayment>(
 // Indexes (compound index covers status queries)
 PaymentSchema.index({ userId: 1, status: 1, createdAt: -1 });
 PaymentSchema.index({ gatewayTransactionId: 1 });
+// ZATCA retry query index: supports scanAndEnqueuePendingRetries() in jobs/zatca-retry-queue.ts
+PaymentSchema.index({ orgId: 1, "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1 });
 
 // Static: Get standard fees
 PaymentSchema.statics.getStandardFees = function () {

@@ -13,6 +13,10 @@ const isProdRuntime = env.VERCEL_ENV === 'production';
 const tapConfigured = Boolean(env.TAP_PUBLIC_KEY) && Boolean(env.TAP_WEBHOOK_SECRET);
 const paytabsConfigured = Boolean(env.PAYTABS_PROFILE_ID) && Boolean(env.PAYTABS_SERVER_KEY);
 
+// Redis is required for BullMQ queues (activation retries, ZATCA compliance)
+// Support both REDIS_URL and BULLMQ_REDIS_URL for compatibility with different configs
+const redisConfigured = Boolean(env.REDIS_URL || env.BULLMQ_REDIS_URL);
+
 // ZATCA (Saudi e-invoicing) configuration required for Finance/ZATCA domain
 const zatcaConfigured = Boolean(env.ZATCA_API_KEY) && Boolean(env.ZATCA_SELLER_NAME) &&
                         Boolean(env.ZATCA_VAT_NUMBER) && Boolean(env.ZATCA_SELLER_ADDRESS);
@@ -80,6 +84,15 @@ if (isProdRuntime) {
       'ZATCA e-invoicing not configured but PayTabs is enabled: set ZATCA_API_KEY, ZATCA_SELLER_NAME, ' +
       'ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS. PayTabs callbacks will fail without these. ' +
       'Configure these in Vercel Environment Variables before deploying to production.'
+    );
+  }
+
+  // Redis is required for critical background queues (package activation, ZATCA compliance)
+  // Without this, failed payments cannot be retried and ZATCA clearance cannot be queued
+  if (!redisConfigured) {
+    warnings.push(
+      'Redis not configured (REDIS_URL or BULLMQ_REDIS_URL). Background queues (package activation ' +
+      'retries, ZATCA compliance retries) will be disabled. Configure Redis for production workloads.'
     );
   }
 }
