@@ -125,7 +125,7 @@ export async function PUT(
     }
 
     // Only buyer can withdraw
-    if (status === "withdrawn" && claim.buyerId !== session.user.id) {
+    if (status === "withdrawn" && String(claim.buyerId) !== session.user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

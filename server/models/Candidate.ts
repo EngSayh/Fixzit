@@ -69,10 +69,6 @@ export interface CandidateModel extends Model<CandidateDoc> {
   findByEmail(orgId: string, email: string): Promise<CandidateDoc | null>;
 }
 
-CandidateSchema.statics.findByEmail = function (orgId: string, email: string) {
-  return this.findOne({ orgId, emailLower: email.toLowerCase() });
-};
-
 // Add pre-save middleware to set defaults
 CandidateSchema.pre("save", function () {
   if (this.isNew) {
@@ -88,7 +84,7 @@ CandidateSchema.pre("save", function () {
   }
 });
 
-// Add static method
+// Add static method for org-scoped email lookup
 CandidateSchema.statics.findByEmail = async function (
   orgId: string,
   email: string,
