@@ -96,7 +96,12 @@ For production testing, all test users should have their phone number set to the
 Phone: +966552233456
 ```
 
-The super admin can manage these test users and update phone numbers as needed.
+**Test Phone Scope & Security Constraints**:
+- ✅ Use `+966552233456` **only** on non-privileged, clearly flagged test accounts
+- ✅ Test accounts should have `role=TEST_USER` or equivalent non-privileged role
+- ❌ **Never** assign to privileged roles: `SUPER_ADMIN`, `CORPORATE_ADMIN`, `FINANCE_OFFICER`, `HR_OFFICER`
+- 📋 Audit test phone usage after each test cycle and remove from any production user accounts
+- 🔒 Super admin manages these test users and can update phone numbers as needed
 
 ### Fallback Phone (Emergency Use Only)
 
