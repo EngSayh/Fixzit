@@ -90,18 +90,16 @@ TWILIO_PHONE_NUMBER=+966xxxxxxxxx
 
 ### Production Test Phone Configuration
 
-For production testing, all test users should have their phone number set to the designated test number in the database:
+For production testing, the designated test phone number is configured in the database:
 
 ```
 Phone: +966552233456
 ```
 
-**Test Phone Scope & Security Constraints**:
-- ✅ Use `+966552233456` **only** on non-privileged, clearly flagged test accounts
-- ✅ Test accounts should have `role=TEST_USER` or equivalent non-privileged role
-- ❌ **Never** assign to privileged roles: `SUPER_ADMIN`, `CORPORATE_ADMIN`, `FINANCE_OFFICER`, `HR_OFFICER`
-- 📋 Audit test phone usage after each test cycle and remove from any production user accounts
-- 🔒 Super admin manages these test users and can update phone numbers as needed
+**Usage**:
+- ✅ This phone number is used by the **Super Admin** for full privileged access
+- ✅ Super admin manages all test users and can update phone numbers as needed
+- ✅ OTP will be sent to this number for authentication
 
 ### Fallback Phone (Emergency Use Only)
 
