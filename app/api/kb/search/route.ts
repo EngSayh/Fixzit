@@ -82,7 +82,8 @@ export async function POST(req: NextRequest) {
       $and: [
         {
           $or: [
-            ...(user?.tenantId ? [{ tenantId: user.orgId }] : []),
+            // SEC-001: Use orgId consistently (not tenantId) for tenant isolation
+            ...(user?.orgId ? [{ tenantId: user.orgId }] : []),
             { tenantId: { $exists: false } },
             { tenantId: null },
           ],

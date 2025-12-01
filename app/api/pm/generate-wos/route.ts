@@ -37,6 +37,8 @@ interface PMPlanDocument {
  * It checks all ACTIVE PM plans and generates WOs for those due
  * 
  * SECURITY: Protected by CRON_SECRET header - not accessible to regular users
+ * NOTE: System-wide query across all tenants is intentional for cron job
+ * Each generated WO inherits orgId from its parent PM plan
  */
 export async function POST(req: NextRequest) {
   // Rate limiting
@@ -52,11 +54,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Find all ACTIVE PM plans that should generate WOs now
+    // NOTE: System-wide query is intentional - cron job processes ALL tenants
+    // Each PM plan has its own orgId which is inherited by generated WOs
+    // This is secured by CRON_SECRET authentication above
     const plans = await FMPMPlan.find({
       status: "ACTIVE",
       nextScheduledDate: { $exists: true },
-    });
+    }).lean();
 
     const results = {
       checked: plans.length,
@@ -156,6 +160,7 @@ export async function POST(req: NextRequest) {
  * Preview which PM plans would generate WOs if run now
  * 
  * SECURITY: Protected by CRON_SECRET header - not accessible to regular users
+ * NOTE: System-wide query across all tenants is intentional for cron preview
  */
 export async function GET(req: NextRequest) {
   // Rate limiting
@@ -171,6 +176,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // NOTE: System-wide query is intentional - cron preview for ALL tenants
+    // Secured by CRON_SECRET authentication above
     const plans = await FMPMPlan.find({
       status: "ACTIVE",
       nextScheduledDate: { $exists: true },

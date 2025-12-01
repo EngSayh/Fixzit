@@ -8,6 +8,7 @@ import {
 } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { encryptionPlugin } from "../plugins/encryptionPlugin";
 
 const CandidateSchema = new Schema(
   {
@@ -35,6 +36,15 @@ const CandidateSchema = new Schema(
 // Apply plugins BEFORE indexes
 CandidateSchema.plugin(tenantIsolationPlugin);
 CandidateSchema.plugin(auditPlugin);
+// SEC-PII-002: Encrypt candidate PII fields (job applicant data is sensitive)
+CandidateSchema.plugin(encryptionPlugin, {
+  fields: {
+    "email": "Candidate Email",
+    "phone": "Candidate Phone",
+    "linkedin": "LinkedIn Profile",
+    "resumeText": "Resume Content",
+  },
+});
 
 // Tenant-scoped index
 CandidateSchema.index({ orgId: 1, emailLower: 1 }, { unique: true });

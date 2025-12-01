@@ -34,6 +34,9 @@ export async function GET(req: NextRequest) {
   }
 
   await connectToDatabase();
+  // SEC-001: requireSuperAdmin returns void on success, throws/returns Response on failure
+  // Super Admin can view all benchmarks for platform-wide pricing analysis
+  // NOTE: Benchmark data is platform configuration, not tenant-specific business data
   await requireSuperAdmin(req);
   const docs = await Benchmark.find({}).lean();
   return createSecureResponse(docs, 200, req);
