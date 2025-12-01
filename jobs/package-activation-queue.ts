@@ -8,9 +8,20 @@
 import { Queue, Worker, Job } from "bullmq";
 import { logger } from "@/lib/logger";
 import IORedis from "ioredis";
+import { z } from "zod";
 
 const QUEUE_NAME = "package-activation-retry";
 const MAX_ATTEMPTS = 5;
+
+// Zod schema for job payload validation - enforces tenant isolation
+const ActivationJobDataSchema = z.object({
+  aqarPaymentId: z.string().min(1, "aqarPaymentId is required"),
+  invoiceId: z.string().min(1, "invoiceId is required"),
+  orgId: z.string().min(1, "orgId is required for tenant isolation"),
+  attemptNumber: z.number().optional(),
+});
+
+type ActivationJobData = z.infer<typeof ActivationJobDataSchema>;
 
 // Redis connection for BullMQ
 const connection = process.env.REDIS_URL
@@ -53,13 +64,6 @@ export function getActivationQueue(): Queue | null {
   return queue;
 }
 
-interface ActivationJobData {
-  aqarPaymentId: string;
-  invoiceId: string;
-  orgId: string; // Required for tenant-scoped queries
-  attemptNumber?: number;
-}
-
 /**
  * Enqueue a package activation retry job
  */
@@ -68,11 +72,20 @@ export async function enqueueActivationRetry(
   invoiceId: string,
   orgId: string,
 ): Promise<string | null> {
-  // Validate orgId is provided (required for tenant isolation)
-  if (!orgId) {
-    logger.error("[ActivationQueue] Cannot enqueue - orgId is required for tenant isolation", {
+  // Validate payload with Zod schema (fail-closed on invalid data)
+  const parseResult = ActivationJobDataSchema.safeParse({
+    aqarPaymentId,
+    invoiceId,
+    orgId,
+    attemptNumber: 0,
+  });
+
+  if (!parseResult.success) {
+    logger.error("[ActivationQueue] Invalid job payload - tenant isolation requires valid orgId", {
       aqarPaymentId,
       invoiceId,
+      orgId,
+      validationErrors: parseResult.error.flatten().fieldErrors,
     });
     return null;
   }
@@ -86,12 +99,7 @@ export async function enqueueActivationRetry(
   try {
     const job = await activationQueue.add(
       "activate-package",
-      {
-        aqarPaymentId,
-        invoiceId,
-        orgId,
-        attemptNumber: 0,
-      } as ActivationJobData,
+      parseResult.data,
       {
         jobId: `activation-${aqarPaymentId}-${Date.now()}`,
       },
@@ -131,17 +139,18 @@ export function startActivationWorker(): Worker | null {
   const worker = new Worker<ActivationJobData>(
     QUEUE_NAME,
     async (job: Job<ActivationJobData>) => {
-      const { aqarPaymentId, invoiceId, orgId } = job.data;
-
-      // Validate orgId exists for tenant isolation
-      if (!orgId) {
-        logger.error("[ActivationQueue] Job missing orgId, skipping", {
+      // Validate job data with Zod schema (fail-closed on invalid)
+      const parseResult = ActivationJobDataSchema.safeParse(job.data);
+      if (!parseResult.success) {
+        logger.error("[ActivationQueue] Job has invalid payload, failing permanently", {
           jobId: job.id,
-          aqarPaymentId,
-          invoiceId,
+          validationErrors: parseResult.error.flatten().fieldErrors,
         });
-        return { success: false, error: "Missing orgId for tenant isolation" };
+        // Throw to mark job as failed (won't retry invalid payloads)
+        throw new Error(`Invalid job payload: ${JSON.stringify(parseResult.error.flatten().fieldErrors)}`);
       }
+
+      const { aqarPaymentId, invoiceId, orgId } = parseResult.data;
 
       logger.info("[ActivationQueue] Processing activation retry", {
         jobId: job.id,

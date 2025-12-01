@@ -624,12 +624,13 @@ async function handleSuccessfulMarketplacePayment({
 }
 
 async function tryActivatePackage(cartId: string, orgId?: string): Promise<void> {
-  // SECURITY: Fail-closed - do not proceed without orgId for tenant isolation
+  // SECURITY: Fail-closed - throw if orgId missing to surface upstream issues
   if (!orgId) {
-    logger.error("[PayTabs] Package activation BLOCKED: orgId required for tenant isolation", {
+    const msg = "Package activation BLOCKED: orgId required for tenant isolation";
+    logger.error(`[PayTabs] ${msg}`, {
       cart_id: cartId.slice(0, 8) + "...",
     });
-    return;
+    throw new Error(msg);
   }
   try {
     const { activatePackageAfterPayment } = await import(
@@ -641,6 +642,8 @@ async function tryActivatePackage(cartId: string, orgId?: string): Promise<void>
       cart_id: cartId.slice(0, 8) + "...",
       error: err instanceof Error ? err.message : String(err),
     });
+    // Re-throw to propagate failure to caller
+    throw err;
   }
 }
 
