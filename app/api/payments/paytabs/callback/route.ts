@@ -152,6 +152,7 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
     
     // CRITICAL: Verify payment record exists for all callbacks (success or failure)
+    // Note: Initial lookup by _id only to get orgId, then we validate tenant context exists
     const { AqarPayment } = await import("@/server/models/aqar");
     const payment = await AqarPayment.findById(normalized.cartId)
       .select("status amount currency orgId org_id")
@@ -170,27 +171,38 @@ export async function POST(req: NextRequest) {
       (payment as { orgId?: unknown; org_id?: unknown }).orgId ??
       (payment as { orgId?: unknown; org_id?: unknown }).org_id;
     const normalizedOrgId = orgId ? String(orgId) : undefined;
-    const orgAsObjectId = normalizedOrgId && Types.ObjectId.isValid(normalizedOrgId)
+
+    // SECURITY: Fail closed when orgId is missing - prevents unscoped updates
+    // All payments MUST have tenant attribution for multi-tenancy compliance
+    if (!normalizedOrgId) {
+      logger.error("[PayTabs] Payment record missing tenant context (orgId)", {
+        cartId: normalized.cartId.slice(0, 8) + "...",
+        respStatus: normalized.respStatus,
+      });
+      return validationError("Payment record missing tenant context");
+    }
+
+    const orgAsObjectId = Types.ObjectId.isValid(normalizedOrgId)
       ? new Types.ObjectId(normalizedOrgId)
       : undefined;
 
     // Build org-scoped filter to prevent cross-tenant updates
-    const orgScopedFilter = normalizedOrgId ? {
+    // This filter is ALWAYS org-scoped since we fail closed above when orgId is missing
+    const orgScopedFilter = {
       _id: normalized.cartId,
       $or: [
         { orgId: normalizedOrgId },
         { org_id: normalizedOrgId },
         ...(orgAsObjectId ? [{ orgId: orgAsObjectId }, { org_id: orgAsObjectId }] : []),
       ],
-    } : { _id: normalized.cartId };
+    };
 
     // Handle non-success callbacks - mark payment as FAILED
     if (!success) {
       const currentStatus = (payment as { status?: string }).status;
       if (currentStatus === "PENDING" || currentStatus === "PROCESSING") {
-        if (normalizedOrgId) {
-          setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
-        }
+        // normalizedOrgId is guaranteed to exist (fail-closed validation above)
+        setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
         try {
           await AqarPayment.findOneAndUpdate(
             orgScopedFilter,
@@ -211,7 +223,7 @@ export async function POST(req: NextRequest) {
             respMessage: normalized.respMessage,
           });
         } finally {
-          if (normalizedOrgId) clearTenantContext();
+          clearTenantContext();
         }
       }
       return createSecureResponse(
@@ -252,9 +264,8 @@ export async function POST(req: NextRequest) {
           received: total,
         });
         // Mark as FAILED to close out PENDING record and prevent retry loops
-        if (normalizedOrgId) {
-          setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
-        }
+        // normalizedOrgId is guaranteed to exist (fail-closed validation above)
+        setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
         try {
           await AqarPayment.findOneAndUpdate(
             orgScopedFilter,
@@ -271,7 +282,7 @@ export async function POST(req: NextRequest) {
             { runValidators: true },
           );
         } finally {
-          if (normalizedOrgId) clearTenantContext();
+          clearTenantContext();
         }
         return validationError("Payment amount mismatch");
       }
@@ -283,9 +294,8 @@ export async function POST(req: NextRequest) {
           received: normalized.currency,
         });
         // Mark as FAILED to close out PENDING record and prevent retry loops
-        if (normalizedOrgId) {
-          setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
-        }
+        // normalizedOrgId is guaranteed to exist (fail-closed validation above)
+        setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
         try {
           await AqarPayment.findOneAndUpdate(
             orgScopedFilter,
@@ -302,7 +312,7 @@ export async function POST(req: NextRequest) {
             { runValidators: true },
           );
         } finally {
-          if (normalizedOrgId) clearTenantContext();
+          clearTenantContext();
         }
         return validationError("Payment currency mismatch");
       }
@@ -312,9 +322,8 @@ export async function POST(req: NextRequest) {
           buildPaytabsIdempotencyKey(normalized, { route: "marketplace" }),
           async () => {
             // Set tenant context for all operations
-            if (normalizedOrgId) {
-              setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
-            }
+            // normalizedOrgId is guaranteed to exist (fail-closed validation above)
+            setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
 
             // Update payment status to PROCESSING first (reversible state)
             // Only mark COMPLETED after successful ZATCA clearance
@@ -358,9 +367,8 @@ export async function POST(req: NextRequest) {
           // This allows retry of ZATCA clearance without losing payment info
           try {
             const { AqarPayment: PaymentModel } = await import("@/server/models/aqar");
-            if (normalizedOrgId) {
-              setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
-            }
+            // normalizedOrgId is guaranteed to exist (fail-closed validation above)
+            setTenantContext({ orgId: normalizedOrgId, userId: "paytabs-webhook" });
             await PaymentModel.findOneAndUpdate(
               orgScopedFilter,
               {
