@@ -460,11 +460,8 @@ async function handleSuccessfulMarketplacePayment({
   orgId?: string;
   orgScopedFilter: Record<string, unknown>;
 }): Promise<void> {
-  // Tenant context should already be set by caller
-  // but ensure it's set if orgId is available
-  if (orgId) {
-    setTenantContext({ orgId, userId: "paytabs-webhook" });
-  }
+  // Tenant context is set by caller (POST handler) and cleared in its finally block.
+  // Do NOT set context here to avoid nested context ownership ambiguity.
 
   if (process.env.NODE_ENV !== "production") {
     // In non-production, mark as COMPLETED immediately (no ZATCA)
@@ -598,7 +595,7 @@ async function handleSuccessfulMarketplacePayment({
   }
 
   try {
-    await updatePaymentRecord(cartId, {
+    await updatePaymentRecord(cartId, orgId, {
       zatcaQR,
       zatcaInvoiceHash: invoiceHash,
       fatooraClearanceId: clearanceId,
@@ -641,6 +638,7 @@ async function tryActivatePackage(cartId: string): Promise<void> {
 
 async function updatePaymentRecord(
   cartId: string,
+  callerOrgId: string | undefined,
   evidence: {
     zatcaQR: string;
     zatcaInvoiceHash?: string;
@@ -653,55 +651,49 @@ async function updatePaymentRecord(
 ) {
   const { AqarPayment } = await import("@/server/models/aqar");
 
-  // Enforce tenant scoping for payment updates
-  const existing = await AqarPayment.findOne({ _id: cartId })
-    .select("orgId org_id")
+  // SECURITY: Use org-scoped lookup from the start to prevent cross-tenant reads
+  // Caller provides orgId from already-validated context (main POST handler)
+  if (!callerOrgId) {
+    throw new Error(`Payment update requires orgId for cart_id: ${cartId}`);
+  }
+
+  const orgAsObjectId = Types.ObjectId.isValid(callerOrgId)
+    ? new Types.ObjectId(callerOrgId)
+    : undefined;
+
+  // Build org-scoped filter for BOTH read and write operations
+  const orgScopedFilter = {
+    _id: cartId,
+    $or: [
+      { orgId: callerOrgId },
+      { org_id: callerOrgId },
+      ...(orgAsObjectId
+        ? [
+            { orgId: orgAsObjectId },
+            { org_id: orgAsObjectId },
+          ]
+        : []),
+    ],
+  };
+
+  // Verify payment exists with org-scoped query (no unscoped read)
+  const existing = await AqarPayment.findOne(orgScopedFilter)
+    .select("_id orgId org_id")
     .lean()
     .exec();
 
   if (!existing) {
-    throw new Error(`Payment record not found for cart_id: ${cartId}`);
+    throw new Error(`Payment record not found for cart_id: ${cartId} (org-scoped)`);
   }
 
-  const orgId =
-    (existing as { orgId?: unknown; org_id?: unknown }).orgId ??
-    (existing as { orgId?: unknown; org_id?: unknown }).org_id;
-
   try {
-    if (orgId === undefined || orgId === null || orgId === "") {
-      throw new Error(
-        `Payment record found for cart_id: ${cartId} but missing orgId`,
-      );
-    }
-
-    // Normalize orgId to string for tenant context.
-    // MongoDB may store orgId as either a string or ObjectId depending on migration state.
-    // We build a query filter that matches both representations to ensure cross-version compatibility.
-    const normalizedOrgId = String(orgId);
-    const orgAsObjectId = Types.ObjectId.isValid(normalizedOrgId)
-      ? new Types.ObjectId(normalizedOrgId)
-      : undefined;
-
     setTenantContext({
-      orgId: normalizedOrgId,
+      orgId: callerOrgId,
       userId: "paytabs-webhook",
     });
 
-    const orgScopedFilter = {
-      $or: [
-        { orgId },
-        { org_id: orgId },
-        ...(orgAsObjectId
-          ? [
-              { orgId: orgAsObjectId },
-              { org_id: orgAsObjectId },
-            ]
-          : []),
-      ],
-    };
-
     const result = await AqarPayment.findOneAndUpdate(
-      { _id: cartId, ...orgScopedFilter },
+      orgScopedFilter,
       {
         $set: {
           // Mark as COMPLETED only after successful ZATCA clearance

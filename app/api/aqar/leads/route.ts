@@ -9,9 +9,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongo";
 import { AqarLead, AqarListing } from "@/server/models/aqar";
-import { LeadSource } from "@/server/models/aqar/Lead";
+import { LeadSource, LeadStatus } from "@/server/models/aqar/Lead";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { incrementAnalyticsWithRetry } from "@/lib/analytics/incrementWithRetry";
 import { checkRateLimit } from "@/lib/rateLimit";
 import {
   clearTenantContext,
@@ -168,37 +167,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Increment inquiries count with tenant context (async, non-blocking with retry logic)
-      // Set tenant context for analytics to ensure org_id scoping
-      if (orgIdForLead) {
-        (async () => {
-          try {
-            setTenantContext({ orgId: String(orgIdForLead), userId });
-            await incrementAnalyticsWithRetry({
-              model: AqarListing,
-              id: new mongoose.Types.ObjectId(listingId),
-              updateOp: {
-                $inc: { "analytics.inquiries": 1 },
-                $set: { "analytics.lastInquiryAt": new Date() },
-              },
-              entityType: "listing",
-            });
-          } catch (error) {
-            // Structured warning for observability - allows alerting on analytics drift
-            logger.warn(
-              "[Analytics] Listing inquiry increment failed after retries",
-              {
-                listingId,
-                orgId: orgIdForLead,
-                metric: "analytics.listing.inquiry.increment.failed",
-                error: error instanceof Error ? error.message : String(error),
-              },
-            );
-          } finally {
-            clearTenantContext();
-          }
-        })();
-      }
+      // Analytics increment deferred to after main save to avoid tenant context race
+      // See post-save analytics section below
     } else if (projectId) {
       const { AqarProject } = await import("@/server/models/aqar");
       const project = await AqarProject.findById(projectId);
@@ -227,37 +197,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Increment inquiries count with tenant context (async, non-blocking with retry logic)
-      // Set tenant context for analytics to ensure org_id scoping
-      if (orgIdForLead) {
-        (async () => {
-          try {
-            setTenantContext({ orgId: String(orgIdForLead), userId });
-            await incrementAnalyticsWithRetry({
-              model: AqarProject,
-              id: new mongoose.Types.ObjectId(projectId),
-              updateOp: {
-                $inc: { inquiries: 1 },
-                $set: { lastInquiryAt: new Date() },
-              },
-              entityType: "project",
-            });
-          } catch (error) {
-            // Structured warning for observability - allows alerting on analytics drift
-            logger.warn(
-              "[Analytics] Project inquiry increment failed after retries",
-              {
-                projectId,
-                orgId: orgIdForLead,
-                metric: "analytics.project.inquiry.increment.failed",
-                error: error instanceof Error ? error.message : String(error),
-              },
-            );
-          } finally {
-            clearTenantContext();
-          }
-        })();
-      }
+      // Analytics increment deferred to after main save to avoid tenant context race
+      // See post-save analytics section below
     }
 
     // Require tenant attribution from listing/project
@@ -294,6 +235,61 @@ export async function POST(request: NextRequest) {
     });
 
     await lead.save();
+
+    // POST-SAVE ANALYTICS: Increment after main save succeeds
+    // Run in isolated context to prevent tenant context race with request lifecycle
+    // Uses fire-and-forget but with isolated tenant context per operation
+    if (listingId && orgIdForLead) {
+      // Increment listing analytics (non-blocking, isolated context)
+      void (async () => {
+        try {
+          // Use direct findOneAndUpdate with org filter instead of shared tenant context
+          await AqarListing.findOneAndUpdate(
+            {
+              _id: new mongoose.Types.ObjectId(listingId),
+              $or: [{ orgId: orgIdForLead }, { org_id: orgIdForLead }],
+            },
+            {
+              $inc: { "analytics.inquiries": 1 },
+              $set: { "analytics.lastInquiryAt": new Date() },
+            },
+            { runValidators: true },
+          );
+        } catch (error) {
+          logger.warn("[Analytics] Listing inquiry increment failed", {
+            listingId,
+            orgId: orgIdForLead,
+            metric: "analytics.listing.inquiry.increment.failed",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+    } else if (projectId && orgIdForLead) {
+      // Increment project analytics (non-blocking, isolated context)
+      void (async () => {
+        try {
+          const { AqarProject } = await import("@/server/models/aqar");
+          await AqarProject.findOneAndUpdate(
+            {
+              _id: new mongoose.Types.ObjectId(projectId),
+              $or: [{ orgId: orgIdForLead }, { org_id: orgIdForLead }],
+            },
+            {
+              $inc: { inquiries: 1 },
+              $set: { lastInquiryAt: new Date() },
+            },
+            { runValidators: true },
+          );
+        } catch (error) {
+          logger.warn("[Analytics] Project inquiry increment failed", {
+            projectId,
+            orgId: orgIdForLead,
+            metric: "analytics.project.inquiry.increment.failed",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+    }
 
     // NOTE: clearTenantContext() is called in the finally block to ensure cleanup
     // even on error paths, avoiding the need for a success-path call here
@@ -413,7 +409,15 @@ export async function GET(request: NextRequest) {
       query.orgId = user.orgId;
     }
 
+    // Validate status filter against LeadStatus enum to prevent unindexed scans
     if (status) {
+      const validStatuses = Object.values(LeadStatus);
+      if (!validStatuses.includes(status as LeadStatus)) {
+        return NextResponse.json(
+          { error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
+          { status: 400 },
+        );
+      }
       query.status = status;
     }
 
@@ -422,8 +426,10 @@ export async function GET(request: NextRequest) {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("listingId")
-        .populate("projectId")
+        // SECURITY: Project only necessary fields from populated documents
+        // Prevents PII/business data overexposure from full document inclusion
+        .populate("listingId", "title price location media.images orgId listingType")
+        .populate("projectId", "name location media.logo developerId orgId")
         .lean(),
       AqarLead.countDocuments(query),
     ]);

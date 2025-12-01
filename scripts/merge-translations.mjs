@@ -37,16 +37,32 @@ function deepMerge(target, source) {
   return result;
 }
 
+// Helper to read and parse JSON files with error handling
+function readJsonFile(filePath, description) {
+  if (!fs.existsSync(filePath)) {
+    console.error(`Error: ${description} not found at ${filePath}`);
+    console.error('Run "node scripts/generate-missing-translations.mjs" first.');
+    process.exit(1);
+  }
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  } catch (err) {
+    console.error(`Error: Failed to parse ${description} at ${filePath}`);
+    console.error(err.message);
+    process.exit(1);
+  }
+}
+
 // Read files
 const enMainPath = path.join(ROOT, 'i18n/en.json');
 const arMainPath = path.join(ROOT, 'i18n/ar.json');
 const enMissingPath = path.join(ROOT, 'i18n/generated/missing-en.json');
 const arMissingPath = path.join(ROOT, 'i18n/generated/missing-ar.json');
 
-const enMain = JSON.parse(fs.readFileSync(enMainPath, 'utf-8'));
-const arMain = JSON.parse(fs.readFileSync(arMainPath, 'utf-8'));
-const enMissing = JSON.parse(fs.readFileSync(enMissingPath, 'utf-8'));
-const arMissing = JSON.parse(fs.readFileSync(arMissingPath, 'utf-8'));
+const enMain = readJsonFile(enMainPath, 'EN main catalog');
+const arMain = readJsonFile(arMainPath, 'AR main catalog');
+const enMissing = readJsonFile(enMissingPath, 'EN missing translations');
+const arMissing = readJsonFile(arMissingPath, 'AR missing translations');
 
 // Count existing keys
 function countKeys(obj, prefix = '') {

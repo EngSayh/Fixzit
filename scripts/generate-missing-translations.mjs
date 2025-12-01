@@ -17,6 +17,13 @@ const ROOT = path.join(__dirname, '..');
 
 // Read audit CSV
 const auditPath = path.join(ROOT, 'docs/translations/translation-audit.csv');
+
+if (!fs.existsSync(auditPath)) {
+  console.error(`Error: Audit file not found at ${auditPath}`);
+  console.error('Run "node scripts/audit-translations.mjs" first to generate the audit report.');
+  process.exit(1);
+}
+
 const auditContent = fs.readFileSync(auditPath, 'utf-8');
 
 // Parse CSV
@@ -25,8 +32,13 @@ const missingKeys = lines
   .filter(line => line.startsWith('USED_MISSING'))
   .map(line => {
     const parts = line.split(',');
+    if (parts.length < 2) {
+      console.warn(`Skipping malformed CSV line: ${line}`);
+      return null;
+    }
     return parts[1]; // key column
-  });
+  })
+  .filter(Boolean);
 
 console.log(`Found ${missingKeys.length} missing keys\n`);
 
@@ -433,9 +445,19 @@ Object.entries(byDomain)
     console.log(`  ${domain}: ${keys.length} keys`);
   });
 
-// Count translations needing manual review
-const needsReview = Object.values(arTranslations).flat()
-  .filter(v => typeof v === 'string' && v.startsWith('[AR]'))
-  .length;
+// Count translations needing manual review (recursively)
+function countArMarkers(obj) {
+  let count = 0;
+  for (const value of Object.values(obj)) {
+    if (typeof value === 'string' && value.startsWith('[AR]')) {
+      count++;
+    } else if (value && typeof value === 'object') {
+      count += countArMarkers(value);
+    }
+  }
+  return count;
+}
+
+const needsReview = countArMarkers(arTranslations);
 
 console.log(`\n⚠️  ${needsReview} Arabic translations need manual review (marked with [AR])`);
