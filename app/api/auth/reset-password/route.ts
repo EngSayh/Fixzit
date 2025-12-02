@@ -60,9 +60,13 @@ export async function POST(req: NextRequest) {
 
     const { token, password } = parseResult.data;
 
-    const secret = process.env.NEXTAUTH_SECRET;
+    // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+    // MUST align with auth.config.ts to prevent environment drift
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
     if (!secret) {
-      logger.error("[reset-password] NEXTAUTH_SECRET not configured");
+      logger.error("[reset-password] NEXTAUTH_SECRET/AUTH_SECRET not configured", {
+        hint: "Set NEXTAUTH_SECRET or AUTH_SECRET env var in Vercel/production",
+      });
       return NextResponse.json(
         { error: "Password reset not configured" },
         { status: 500 }
@@ -171,7 +175,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const secret = process.env.NEXTAUTH_SECRET;
+    // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+    // MUST align with auth.config.ts to prevent environment drift
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
     if (!secret) {
       return NextResponse.json(
         { valid: false, error: "Not configured" },

@@ -21,7 +21,9 @@ export async function POST(req: NextRequest) {
     if (!refreshToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const secret = process.env.NEXTAUTH_SECRET;
+    // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+    // MUST align with auth.config.ts to prevent environment drift
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
     if (!secret) {
       return NextResponse.json({ error: "Not configured" }, { status: 500 });
     }
