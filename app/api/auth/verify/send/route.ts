@@ -22,7 +22,9 @@ export async function POST(req: NextRequest) {
   if (!body.email) {
     return NextResponse.json({ error: "email is required" }, { status: 400 });
   }
-  const secret = process.env.NEXTAUTH_SECRET;
+  // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+  // MUST align with auth.config.ts to prevent environment drift
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
   if (!secret) {
     return NextResponse.json(
       { error: "verification not configured" },
@@ -31,10 +33,11 @@ export async function POST(req: NextRequest) {
   }
 
   // SECURITY: Resolve default organization for public auth flow
+  // STRICT v4.1 FIX: In production, ONLY PUBLIC_ORG_ID is allowed to prevent
+  // cross-tenant verification (mirrors signup/route.ts scoping rules)
   const resolvedOrgId =
     process.env.PUBLIC_ORG_ID ||
-    process.env.TEST_ORG_ID ||
-    process.env.DEFAULT_ORG_ID;
+    (process.env.NODE_ENV !== "production" && (process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID));
 
   await connectToDatabase();
   // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)

@@ -183,7 +183,9 @@ export async function POST(request: NextRequest) {
       expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
     });
 
-    const secret = process.env.NEXTAUTH_SECRET;
+    // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+    // MUST align with auth.config.ts to prevent environment drift
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
     if (!secret) {
       return NextResponse.json(
         { success: false, error: "Server config error" },
