@@ -82,9 +82,9 @@ vi.mock('@/server/models/ats/Interview', () => ({
   Interview: InterviewMock
 }));
 
-let GET: (req: NextRequest) => Promise<JsonResponse> | JsonResponse;
-let POST: (req: NextRequest) => Promise<JsonResponse> | JsonResponse;
-let atsRBAC: Mock;
+let GET: any;
+let POST: any;
+let atsRBAC: any;
 
 describe('API /api/ats/interviews', () => {
   beforeAll(async () => {

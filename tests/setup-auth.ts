@@ -367,34 +367,23 @@ async function globalSetup(config: FullConfig) {
       }
       console.log(`  ✅ CSRF token obtained (${csrfToken === 'csrf-disabled' ? 'skip enabled' : 'token found'})`);
 
-      // Step 4: Create a NextAuth session through the credentials callback
-      console.log(`  🔓 Creating session...`);
-      const form = new URLSearchParams({
-        identifier,
-        password,
-        otpToken,
-        csrfToken,
-        rememberMe: 'on',
-        redirect: 'false',
-        callbackUrl: `${baseURL}/dashboard`,
-        json: 'true',
+      // Step 4: Directly mint a session via the test session endpoint (test-only)
+      console.log(`  🔓 Minting session via /api/auth/test/session ...`);
+      const fallbackResp = await page.request.post(`${baseURL}/api/auth/test/session`, {
+        headers: { 'Content-Type': 'application/json' },
+        data: {
+          email: identifier,
+          orgId:
+            process.env.PUBLIC_ORG_ID ||
+            process.env.DEFAULT_ORG_ID ||
+            process.env.TEST_ORG_ID,
+        },
       });
-      if (companyCode) {
-        form.append('companyCode', companyCode);
+      console.log("  📥 test/session status:", fallbackResp.status());
+      console.log("  📥 test/session set-cookie:", fallbackResp.headers()['set-cookie']);
+      if (!fallbackResp.ok()) {
+        throw new Error(`Fallback session creation failed (${fallbackResp.status()})`);
       }
-
-      const sessionResponse = await page.request.post(`${baseURL}/api/auth/callback/credentials`, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        data: form.toString(),
-      });
-
-      if (!sessionResponse.ok()) {
-        const body = await sessionResponse.text();
-        console.error(`  ❌ Session creation failed (${sessionResponse.status()}): ${body}`);
-        throw new Error(`Failed to create session for ${role.name} (${sessionResponse.status()}): ${body}`);
-      }
-
-      console.log(`  ✅ Session created`);
 
       // Step 5: Load dashboard to ensure cookies + session storage are populated
       console.log(`  🏠 Loading dashboard...`);

@@ -87,7 +87,7 @@ export async function atsRBAC(
   }
 
   const userId = session.user.id;
-  const role = mapUserRoleToATSRole(session.user.role);
+  const role = mapUserRoleToATSRole(session.user.role ?? "GUEST");
   const isSuperAdmin = role === "Super Admin";
 
   // Get orgId from session (with impersonation support for Super Admin)

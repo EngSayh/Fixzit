@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 // Mockable Mongoose-like models exposed via globals for tests
 // In real app they'd be imported from '@/server/models/...'
 type SynonymDoc = { synonyms?: string[] } | null;
-type FindCall = Record<string, unknown>;
+type FindCall = [{ [key: string]: any }];
 type SortCall = Record<string, unknown>;
 
 declare global {

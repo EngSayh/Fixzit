@@ -30,8 +30,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // SECURITY: Resolve default organization for public auth flow
+  const resolvedOrgId =
+    process.env.PUBLIC_ORG_ID ||
+    process.env.TEST_ORG_ID ||
+    process.env.DEFAULT_ORG_ID;
+
   await connectToDatabase();
-  const user = await User.findOne({ email: body.email.toLowerCase() }).lean();
+  // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
+  const user = resolvedOrgId
+    ? await User.findOne({ orgId: resolvedOrgId, email: body.email.toLowerCase() }).lean()
+    : await User.findOne({ email: body.email.toLowerCase() }).lean();
   if (!user) {
     // Don't reveal if email exists for security
     return NextResponse.json({ ok: true, message: "Verification email sent if account exists" });
@@ -41,9 +50,14 @@ export async function POST(req: NextRequest) {
   }
 
   const token = signVerificationToken(body.email.toLowerCase(), secret);
+  // SECURITY: Ensure VERCEL_URL has https:// scheme for production
+  const vercelUrl = process.env.VERCEL_URL;
+  const normalizedVercelUrl = vercelUrl 
+    ? (vercelUrl.startsWith("http") ? vercelUrl : `https://${vercelUrl}`)
+    : undefined;
   const origin =
     process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.VERCEL_URL ||
+    normalizedVercelUrl ||
     req.nextUrl.origin;
   const link = verificationLink(origin, token);
 

@@ -1,8 +1,48 @@
 {
   "cookies": [
     {
-      "name": "authjs.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..pGSfj7x7j6d7uLqfutZByQ.zD-S96jvZJWWkE5fDI_EuZekGWqBkey8iuZQPHKQekBJQm1VjUPwGOwSw9ErRRx6MhgLc68sg7jHQslF0lLipBlXkHg-T-5Y9AXIuycpQ0xF9Ge9-yJggsVSbgjQu2vGvL7A6U4lngeja9dgXkis_QzM94LRauKb4PEVKIm16eFZHfKkURONP50DNBBHOeKkJiBGrYZs_IdG6A3Cglwyw-OPA_kCJO4WFSFPg59NHRylcdhmL31EgUJvR-JM8hlticuw9Vy7lhttlX2Ll9iIhsi3-pg1QKCzMIQbF-s8drnoBuxkw3Rp5trz5uwVqf_C_ARGz4Gp67dY8oMmxoiF3-PwiVFn2C0B9OdTJYt_ZRg4dRdA300d9IrDAuXZ-D8ziiDYRtpzXMFmcg9AXEAjG6zzYDMqNBIaMtdU9XAl6RCvymdLPKbeHc3dUhv0ChsZ.NVO1xyVsUODlWPiINe0T8hAIrW5At0rcN9HUS9wtVK0",
+      "name": "fxz.otp",
+      "value": "a48d4566ff741f3c6799da407c7a139f210ca64afeb2402f23f3d291b36808c0",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1764662083.412,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "fxz.access",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2MmE4M2EyODJhYWM5MDcxMmFjNDljYjkiLCJpYXQiOjE3NjQ2NjE3ODMsImV4cCI6MTc2NDY2MjY4M30.ONDPV3z8IeKDGYK6JSCjqyp3BSG0PSmQwpvKOCkKWkc",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1764662683.412,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "fxz.refresh",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2MmE4M2EyODJhYWM5MDcxMmFjNDljYjkiLCJpYXQiOjE3NjQ2NjE3ODMsImV4cCI6MTc2NTI2NjU4M30.YcXI6Ct04Fsk9xwTM5KGa_WW_kAA64rBSLCQLk5QaWk",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1765266583.412,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "authjs.csrf-token",
+      "value": "e1e1663cd5e325549179dd926f56ab8ac4eb36522dcbc6d887d81dd789e2c5d6%7Cec7a5c4f68d629e8d2d8816e346fa2153128bbcc155fd35abc8af0e383c0e302",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "authjs.callback-url",
+      "value": "http%3A%2F%2Flocalhost%3A3000",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
@@ -12,13 +52,23 @@
     },
     {
       "name": "next-auth.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..pGSfj7x7j6d7uLqfutZByQ.zD-S96jvZJWWkE5fDI_EuZekGWqBkey8iuZQPHKQekBJQm1VjUPwGOwSw9ErRRx6MhgLc68sg7jHQslF0lLipBlXkHg-T-5Y9AXIuycpQ0xF9Ge9-yJggsVSbgjQu2vGvL7A6U4lngeja9dgXkis_QzM94LRauKb4PEVKIm16eFZHfKkURONP50DNBBHOeKkJiBGrYZs_IdG6A3Cglwyw-OPA_kCJO4WFSFPg59NHRylcdhmL31EgUJvR-JM8hlticuw9Vy7lhttlX2Ll9iIhsi3-pg1QKCzMIQbF-s8drnoBuxkw3Rp5trz5uwVqf_C_ARGz4Gp67dY8oMmxoiF3-PwiVFn2C0B9OdTJYt_ZRg4dRdA300d9IrDAuXZ-D8ziiDYRtpzXMFmcg9AXEAjG6zzYDMqNBIaMtdU9XAl6RCvymdLPKbeHc3dUhv0ChsZ.NVO1xyVsUODlWPiINe0T8hAIrW5At0rcN9HUS9wtVK0",
+      "value": "eyJpZCI6IjY5MjI5MWRlMTFmOWM4ZTE1NzQ0MmJiMSIsInN1YiI6IjY5MjI5MWRlMTFmOWM4ZTE1NzQ0MmJiMSIsImVtYWlsIjoidGVzdC1hZG1pbkBmaXh6aXQuY28iLCJyb2xlIjoiU1VQRVJfQURNSU4iLCJvcmdJZCI6IjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMSIsImlzU3VwZXJBZG1pbiI6dHJ1ZSwicGVybWlzc2lvbnMiOlsiKiJdLCJyb2xlcyI6WyJTVVBFUl9BRE1JTiIsIlNVUEVSX0FETUlOIl0sImlhdCI6MTc2NDY2MTc4NDY0MiwiZXhwIjoxNzY0NjYyNjg0NjQyfQ",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
+    },
+    {
+      "name": "fxz.currency",
+      "value": "SAR",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1796197788.296138,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Strict"
     }
   ],
   "origins": [
@@ -26,8 +76,12 @@
       "origin": "http://localhost:3000",
       "localStorage": [
         {
-          "name": "fixzit-role",
-          "value": "super_admin"
+          "name": "fixzit-currency",
+          "value": "SAR"
+        },
+        {
+          "name": "fxz.theme",
+          "value": "system"
         }
       ]
     }

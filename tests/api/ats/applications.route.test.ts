@@ -60,8 +60,8 @@ vi.mock('@/server/models/Application', () => ({
   Application: ApplicationMock
 }));
 
-let GET: (req: NextRequest) => Promise<JsonResponse> | JsonResponse;
-let atsRBAC: Mock;
+let GET: any;
+let atsRBAC: any;
 
 describe('API /api/ats/applications', () => {
   beforeAll(async () => {
