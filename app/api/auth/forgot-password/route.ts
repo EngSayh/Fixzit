@@ -49,9 +49,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
     }
 
-    const secret = process.env.NEXTAUTH_SECRET;
+    // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+    // MUST align with auth.config.ts to prevent environment drift
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
     if (!secret) {
-      logger.error("[forgot-password] NEXTAUTH_SECRET not configured");
+      logger.error("[forgot-password] NEXTAUTH_SECRET/AUTH_SECRET not configured", {
+        hint: "Set NEXTAUTH_SECRET or AUTH_SECRET env var in Vercel/production",
+      });
       return NextResponse.json(
         { error: "Password reset not configured" },
         { status: 500 }
