@@ -240,16 +240,19 @@ export async function POST(req: NextRequest) {
           role: newUser.professional?.role || "VIEWER",
         },
         verification: await (async () => {
-          const secret = process.env.NEXTAUTH_SECRET;
+          // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+          // MUST align with auth.config.ts to prevent environment drift
+          const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
           // STRICT v4.1 FIX: In production, verification infrastructure MUST be available
           // to prevent ACTIVE accounts without verified emails (account integrity risk)
           if (!secret) {
             if (process.env.NODE_ENV === "production") {
               // Production: fail the entire signup to prevent unverified accounts
               // The user was already created above, so we need to roll back
-              logger.error("[auth/signup] CRITICAL: NEXTAUTH_SECRET missing in production - cannot verify email", {
+              logger.error("[auth/signup] CRITICAL: NEXTAUTH_SECRET/AUTH_SECRET missing in production - cannot verify email", {
                 email: normalizedEmail,
                 userId: newUser._id,
+                hint: "Set NEXTAUTH_SECRET or AUTH_SECRET env var in Vercel/production",
               });
               // Delete the just-created user to prevent orphaned unverified accounts
               await User.deleteOne({ _id: newUser._id });

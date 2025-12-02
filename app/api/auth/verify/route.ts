@@ -13,10 +13,12 @@ export async function GET(req: NextRequest) {
   if (!token) {
     return NextResponse.json({ error: "token is required" }, { status: 400 });
   }
-  const secret = process.env.NEXTAUTH_SECRET;
+  // STRICT v4.1 FIX: Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
+  // MUST align with auth.config.ts and signup/route.ts to prevent environment drift
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
   if (!secret) {
     return NextResponse.json(
-      { error: "verification not configured" },
+      { error: "verification not configured (NEXTAUTH_SECRET or AUTH_SECRET required)" },
       { status: 500 },
     );
   }
@@ -31,10 +33,11 @@ export async function GET(req: NextRequest) {
   }
 
   // SECURITY: Resolve default organization for public auth flow
+  // STRICT v4.1 FIX: In production, ONLY PUBLIC_ORG_ID is allowed to prevent
+  // cross-tenant verification (mirrors signup/route.ts scoping rules)
   const resolvedOrgId =
     process.env.PUBLIC_ORG_ID ||
-    process.env.TEST_ORG_ID ||
-    process.env.DEFAULT_ORG_ID;
+    (process.env.NODE_ENV !== "production" && (process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID));
 
   await connectToDatabase();
   // SECURITY FIX: Scope findOneAndUpdate by orgId to prevent cross-tenant attacks (SEC-001)
