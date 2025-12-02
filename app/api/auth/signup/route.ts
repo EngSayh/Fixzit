@@ -338,8 +338,21 @@ export async function POST(req: NextRequest) {
             return { sent: true };
           }
           
+          // STRICT v4.1 FIX: In production, email verification MUST succeed
+          // Roll back user creation if email fails to prevent unverifiable ACTIVE accounts
+          const isProd = process.env.NODE_ENV === "production";
+          
           // Fallback for development (SendGrid not configured)
           if (emailResult.error?.includes("not configured")) {
+            if (isProd) {
+              // Production: roll back user - cannot have unverifiable accounts
+              logger.error("[auth/signup] CRITICAL: SendGrid not configured in production - rolling back user", {
+                email: normalizedEmail,
+                userId: newUser._id,
+              });
+              await User.deleteOne({ _id: newUser._id });
+              throw new Error("Email service not configured. Signup aborted for production safety.");
+            }
             logger.warn("[auth/signup] SendGrid not configured, verification email not sent", {
               email: normalizedEmail,
             });
@@ -347,11 +360,23 @@ export async function POST(req: NextRequest) {
               sent: false, 
               reason: "email_not_configured",
               // Only include link in non-production for testing
-              ...(process.env.NODE_ENV !== "production" && { link: verificationLink }),
+              link: verificationLink,
             };
           }
           
-          // Email send failed but user was created
+          // Email send failed
+          if (isProd) {
+            // Production: roll back user - cannot have unverifiable accounts
+            logger.error("[auth/signup] CRITICAL: Email send failed in production - rolling back user", {
+              email: normalizedEmail,
+              userId: newUser._id,
+              error: emailResult.error,
+            });
+            await User.deleteOne({ _id: newUser._id });
+            throw new Error("Verification email failed to send. Signup aborted for production safety.");
+          }
+          
+          // Non-production: log warning but allow user to remain
           logger.error("[auth/signup] Failed to send verification email", {
             email: normalizedEmail,
             error: emailResult.error,

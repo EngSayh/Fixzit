@@ -71,10 +71,19 @@ export async function POST(req: NextRequest) {
       message: "If an account exists with this email, a reset link has been sent." 
     };
     
-    // In production, if no PUBLIC_ORG_ID, return success (anti-enumeration) but log error
+    // STRICT v4.1 FIX: In production, if no PUBLIC_ORG_ID, return 503 for operational visibility
+    // while keeping the generic message to prevent enumeration
     if (!resolvedOrgId && process.env.NODE_ENV === "production") {
-      logger.error("[forgot-password] PUBLIC_ORG_ID not configured in production - cannot process reset");
-      return NextResponse.json(successResponse);
+      logger.error("[forgot-password] CRITICAL: PUBLIC_ORG_ID not configured in production - password reset disabled", {
+        severity: "ops_critical",
+        action: "Set PUBLIC_ORG_ID env var in Vercel/production to enable password resets",
+      });
+      // Return 503 Service Unavailable to surface the issue to ops/monitoring
+      // Message stays generic to prevent user enumeration
+      return NextResponse.json(
+        { ok: false, message: "Password reset temporarily unavailable. Please try again later." },
+        { status: 503 }
+      );
     }
 
     await connectToDatabase();

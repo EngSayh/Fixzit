@@ -53,6 +53,13 @@ const KEY_LENGTH = 32; // 256 bits for AES-256
 // SECURITY: Fail fast if encryption key is missing to prevent partial migrations
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.PII_ENCRYPTION_KEY;
 if (!ENCRYPTION_KEY) {
+  // STRICT v4.1: Use central logger for observability (captured by log pipelines)
+  logger.error("[FINANCE PII MIGRATION] PREFLIGHT FAILED: Missing encryption key", {
+    severity: "critical",
+    required: ["ENCRYPTION_KEY", "PII_ENCRYPTION_KEY"],
+    hint: "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
+  });
+  // Also print to console for interactive terminal visibility
   console.error(`
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║  ERROR: Missing ENCRYPTION_KEY or PII_ENCRYPTION_KEY                       ║
@@ -90,6 +97,16 @@ function validateKeyStrength(key: string): void {
   }
 
   if (keyBytes < KEY_LENGTH) {
+    // STRICT v4.1: Use central logger for observability (captured by log pipelines)
+    logger.error("[FINANCE PII MIGRATION] PREFLIGHT FAILED: Encryption key too weak", {
+      severity: "critical",
+      currentKeyBytes: keyBytes,
+      currentKeyBits: keyBytes * 8,
+      requiredKeyBytes: KEY_LENGTH,
+      requiredKeyBits: KEY_LENGTH * 8,
+      hint: "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
+    });
+    // Also print to console for interactive terminal visibility
     console.error(`
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║  ERROR: ENCRYPTION_KEY is too weak for finance PII migration               ║
@@ -109,6 +126,12 @@ function validateKeyStrength(key: string): void {
     process.exit(1);
   }
 
+  // STRICT v4.1: Use central logger for observability
+  logger.info("[FINANCE PII MIGRATION] Encryption key strength validated", {
+    keyBits: keyBytes * 8,
+    algorithm: "AES-256",
+    status: "compliant",
+  });
   console.log(`✅ Encryption key strength validated: ${keyBytes * 8}-bit (AES-256 compliant)`);
 }
 
