@@ -30,14 +30,15 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
     const { searchParams } = new URL(req.url);
-    const city = searchParams.get("city") || undefined;
+    // Support both old (cityId/neighborhoodId) and new (city/neighborhood) param names
+    const city = searchParams.get("city") || searchParams.get("cityId") || undefined;
     if (!city) {
       return NextResponse.json(
         { ok: false, error: "city is required" },
         { status: 400 },
       );
     }
-    const neighborhood = searchParams.get("neighborhood") || undefined;
+    const neighborhood = searchParams.get("neighborhood") || searchParams.get("neighborhoodId") || undefined;
     const propertyType = sanitizeEnum<PropertyType>(
       searchParams.get("propertyType"),
       Object.values(PropertyType),

@@ -307,13 +307,16 @@
   --cursor-glow: #36aff8;       /* Light blue glow */
 }
 
-/* Hide native cursor when custom cursor is active */
-body.custom-cursor-active {
-  cursor: none;
-}
+/* Hide native cursor when custom cursor is active
+   Respect reduced-motion preference for accessibility */
+@media (prefers-reduced-motion: no-preference) {
+  body.custom-cursor-active {
+    cursor: none;
+  }
 
-body.custom-cursor-active * {
-  cursor: none !important;
+  body.custom-cursor-active * {
+    cursor: none !important;
+  }
 }
 
 /* Base styles for custom cursor elements */

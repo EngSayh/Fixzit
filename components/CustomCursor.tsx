@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const TRAIL_COUNT = 8; // number of trailing particles (adjust 5–10 as needed)
 
@@ -8,6 +8,34 @@ interface Position {
   x: number;
   y: number;
 }
+
+/**
+ * Check if an element or any of its ancestors is an interactive element.
+ * Used to determine when to show hover state on the custom cursor.
+ */
+const isInteractiveElement = (el: HTMLElement | null): boolean => {
+  while (el) {
+    const tag = el.tagName.toLowerCase();
+    const role = el.getAttribute('role') || '';
+    if (
+      tag === 'a' ||
+      tag === 'button' ||
+      tag === 'input' ||
+      tag === 'select' ||
+      tag === 'textarea' ||
+      el.hasAttribute('data-cursor-interactive') ||
+      role === 'button' ||
+      role === 'link' ||
+      role === 'menuitem' ||
+      role === 'checkbox' ||
+      role === 'switch'
+    ) {
+      return true;
+    }
+    el = el.parentElement;
+  }
+  return false;
+};
 
 /**
  * CustomCursor component
@@ -18,6 +46,9 @@ interface Position {
  * - Uses brand colors: #0061A8 (blue), #00A859 (green), #FFB400 (gold)
  */
 const CustomCursor: React.FC = () => {
+  // State for client-side detection (prevents SSR hydration mismatch)
+  const [shouldRender, setShouldRender] = useState(false);
+  
   // Refs for cursor elements
   const mainDotRef = useRef<HTMLDivElement>(null);
   const trailRefs = useRef<HTMLDivElement[]>([]);
@@ -31,23 +62,20 @@ const CustomCursor: React.FC = () => {
   // Track if component is mounted (for SSR safety)
   const isMounted = useRef(false);
 
+  // Determine if cursor should render (client-side only to prevent SSR mismatch)
   useEffect(() => {
-    isMounted.current = true;
+    if (typeof window === 'undefined') return;
     
-    // Disable custom cursor on touch devices (fallback to native cursor)
-    if (typeof window !== 'undefined') {
-      const isTouchDevice =
-        'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      if (isTouchDevice) {
-        return;
-      }
-      
-      // Respect reduced motion preference for accessibility
-      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (prefersReducedMotion) {
-        return; // Don't show animated cursor for users who prefer reduced motion
-      }
-    }
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    
+    setShouldRender(!isTouchDevice && !prefersReducedMotion);
+  }, []);
+
+  useEffect(() => {
+    if (!shouldRender) return;
+    
+    isMounted.current = true;
 
     const body = document.body;
     body.classList.add('custom-cursor-active'); // hide native cursor
@@ -62,31 +90,7 @@ const CustomCursor: React.FC = () => {
     const handlePointerOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target) return;
-      // Determine if target or any parent is interactive
-      let interactive = false;
-      let el: HTMLElement | null = target;
-      while (el) {
-        const tag = el.tagName.toLowerCase();
-        const role = el.getAttribute('role') || '';
-        if (
-          tag === 'a' ||
-          tag === 'button' ||
-          tag === 'input' ||
-          tag === 'select' ||
-          tag === 'textarea' ||
-          el.hasAttribute('data-cursor-interactive') || // custom hook
-          role === 'button' ||
-          role === 'link' ||
-          role === 'menuitem' ||
-          role === 'checkbox' ||
-          role === 'switch'
-        ) {
-          interactive = true;
-          break;
-        }
-        el = el.parentElement;
-      }
-      if (interactive && mainDotRef.current) {
+      if (isInteractiveElement(target) && mainDotRef.current) {
         mainDotRef.current.classList.add('cursor--hover');
       }
     };
@@ -95,29 +99,8 @@ const CustomCursor: React.FC = () => {
       if (!mainDotRef.current) return;
       const related = e.relatedTarget as HTMLElement;
       // If moving to another interactive element, do not remove glow yet
-      if (related) {
-        let el: HTMLElement | null = related;
-        while (el) {
-          const tag = el.tagName.toLowerCase();
-          const role = el.getAttribute('role') || '';
-          if (
-            tag === 'a' ||
-            tag === 'button' ||
-            tag === 'input' ||
-            tag === 'select' ||
-            tag === 'textarea' ||
-            el.hasAttribute('data-cursor-interactive') ||
-            role === 'button' ||
-            role === 'link' ||
-            role === 'menuitem' ||
-            role === 'checkbox' ||
-            role === 'switch'
-          ) {
-            // still in an interactive context
-            return;
-          }
-          el = el.parentElement;
-        }
+      if (related && isInteractiveElement(related)) {
+        return;
       }
       // Otherwise, remove hover class
       mainDotRef.current.classList.remove('cursor--hover');
@@ -170,16 +153,11 @@ const CustomCursor: React.FC = () => {
       document.removeEventListener('pointerout', handlePointerOut);
       if (rafId.current) cancelAnimationFrame(rafId.current);
     };
-  }, []);
+  }, [shouldRender]);
 
-  // Do not render on touch devices, during SSR, or when reduced motion is preferred
-  if (typeof window !== 'undefined') {
-    const isTouchDevice =
-      'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (isTouchDevice || prefersReducedMotion) {
-      return null;
-    }
+  // Don't render on server or when disabled
+  if (!shouldRender) {
+    return null;
   }
 
   // Render custom cursor elements

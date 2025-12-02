@@ -34,8 +34,9 @@ export async function GET(req: NextRequest) {
     }
 
     // Rate limit per user/tenant (include org for multi-tenant throttling)
+    const baseKey = buildRateLimitKey(req, session.id);
     const rl = rateLimit(
-      buildRateLimitKey(req, session.id, session.orgId),
+      `${baseKey}:${session.orgId}`,
       60,
       60_000,
     ); // 60 requests per minute
