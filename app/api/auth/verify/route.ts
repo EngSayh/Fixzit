@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
 import { verifyVerificationToken } from "@/lib/auth/emailVerification";
+import { UserStatus } from "@/types/user";
 
 /**
  * Stateless email verification endpoint.
@@ -37,20 +38,25 @@ export async function GET(req: NextRequest) {
 
   await connectToDatabase();
   // SECURITY FIX: Scope findOneAndUpdate by orgId to prevent cross-tenant attacks (SEC-001)
+  // STRICT v4.1: Also activate user (set status to ACTIVE) when email is verified
+  const updateFields = { 
+    emailVerifiedAt: new Date(),
+    status: UserStatus.ACTIVE, // Activate user upon successful email verification
+  };
   const updated = resolvedOrgId
     ? await User.findOneAndUpdate(
         { orgId: resolvedOrgId, email: result.email.toLowerCase() },
-        { $set: { emailVerifiedAt: new Date() } },
+        { $set: updateFields },
         { new: true },
       )
-        .select("email emailVerifiedAt")
+        .select("email emailVerifiedAt status")
         .lean()
     : await User.findOneAndUpdate(
         { email: result.email.toLowerCase() },
-        { $set: { emailVerifiedAt: new Date() } },
+        { $set: updateFields },
         { new: true },
       )
-        .select("email emailVerifiedAt")
+        .select("email emailVerifiedAt status")
         .lean();
 
   if (!updated) {
