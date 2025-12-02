@@ -59,22 +59,38 @@ export async function POST(req: NextRequest) {
     }
 
     // SECURITY: Resolve default organization for public auth flow
+    // STRICT v4.1 FIX: In production, ONLY PUBLIC_ORG_ID is allowed to prevent
+    // password reset attacks targeting users in TEST/DEFAULT orgs (cross-tenant attack vector)
     const resolvedOrgId =
       process.env.PUBLIC_ORG_ID ||
-      process.env.TEST_ORG_ID ||
-      process.env.DEFAULT_ORG_ID;
-
-    await connectToDatabase();
-    // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
-    const user = resolvedOrgId
-      ? await User.findOne({ orgId: resolvedOrgId, email }).lean()
-      : await User.findOne({ email }).lean(); // Fallback if no orgId configured (dev mode)
+      (process.env.NODE_ENV !== "production" && (process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID));
 
     // Always return success to prevent email enumeration
     const successResponse = { 
       ok: true, 
       message: "If an account exists with this email, a reset link has been sent." 
     };
+    
+    // STRICT v4.1 FIX: In production, if no PUBLIC_ORG_ID, return 503 for operational visibility
+    // while keeping the generic message to prevent enumeration
+    if (!resolvedOrgId && process.env.NODE_ENV === "production") {
+      logger.error("[forgot-password] CRITICAL: PUBLIC_ORG_ID not configured in production - password reset disabled", {
+        severity: "ops_critical",
+        action: "Set PUBLIC_ORG_ID env var in Vercel/production to enable password resets",
+      });
+      // Return 503 Service Unavailable to surface the issue to ops/monitoring
+      // Message stays generic to prevent user enumeration
+      return NextResponse.json(
+        { ok: false, message: "Password reset temporarily unavailable. Please try again later." },
+        { status: 503 }
+      );
+    }
+
+    await connectToDatabase();
+    // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
+    const user = resolvedOrgId
+      ? await User.findOne({ orgId: resolvedOrgId, email }).lean()
+      : await User.findOne({ email }).lean(); // Fallback if no orgId configured (dev mode)
 
     if (!user) {
       logger.info("[forgot-password] Reset requested for non-existent email", { email });

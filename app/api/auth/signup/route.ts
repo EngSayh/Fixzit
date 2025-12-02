@@ -20,6 +20,7 @@ import {
 } from "@/lib/auth/emailVerification";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import { UserRole } from "@/types/user";
 
 const signupSchema = z
   .object({
@@ -113,15 +114,17 @@ export async function POST(req: NextRequest) {
 
     // Resolve default organization - must be explicitly configured
     // SECURITY: Never fallback to arbitrary user's orgId (breaks tenant isolation)
+    // STRICT v4.1 FIX: In production, ONLY PUBLIC_ORG_ID is allowed to prevent
+    // real users from accidentally landing in TEST/DEFAULT orgs (cross-tenant contamination)
     const resolvedOrgId =
       process.env.PUBLIC_ORG_ID ||
-      process.env.TEST_ORG_ID ||
-      process.env.DEFAULT_ORG_ID;
+      (process.env.NODE_ENV !== "production" && (process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID));
 
     if (!resolvedOrgId) {
-      throw new Error(
-        "Default organization not configured. Set PUBLIC_ORG_ID, TEST_ORG_ID, or DEFAULT_ORG_ID environment variable with a valid ObjectId.",
-      );
+      const errorMsg = process.env.NODE_ENV === "production"
+        ? "PUBLIC_ORG_ID is required for signup in production. TEST_ORG_ID and DEFAULT_ORG_ID are blocked in prod to prevent tenant contamination."
+        : "Default organization not configured. Set PUBLIC_ORG_ID, TEST_ORG_ID, or DEFAULT_ORG_ID environment variable with a valid ObjectId.";
+      throw new Error(errorMsg);
     }
 
     if (!Types.ObjectId.isValid(resolvedOrgId)) {
@@ -134,7 +137,8 @@ export async function POST(req: NextRequest) {
     // The 'userType' from the client is only a hint for data categorization.
     // The 'role' assigned is ALWAYS the lowest-privilege personal user.
     // Admin/Vendor accounts must be created via an internal, authenticated admin endpoint.
-    const role = "TENANT";
+    // Use canonical enum to align with STRICT v4.1 role matrix
+    const role = UserRole.TENANT;
 
     // Only store companyName if the user self-identifies as corporate/vendor
     const companyName =
@@ -233,7 +237,22 @@ export async function POST(req: NextRequest) {
         },
         verification: await (async () => {
           const secret = process.env.NEXTAUTH_SECRET;
-          if (!secret) return { sent: false, reason: "not_configured" };
+          // STRICT v4.1 FIX: In production, verification infrastructure MUST be available
+          // to prevent ACTIVE accounts without verified emails (account integrity risk)
+          if (!secret) {
+            if (process.env.NODE_ENV === "production") {
+              // Production: fail the entire signup to prevent unverified accounts
+              // The user was already created above, so we need to roll back
+              logger.error("[auth/signup] CRITICAL: NEXTAUTH_SECRET missing in production - cannot verify email", {
+                email: normalizedEmail,
+                userId: newUser._id,
+              });
+              // Delete the just-created user to prevent orphaned unverified accounts
+              await User.deleteOne({ _id: newUser._id });
+              throw new Error("Email verification not configured. Signup aborted for production safety.");
+            }
+            return { sent: false, reason: "not_configured" };
+          }
           
           const token = signVerificationToken(normalizedEmail, secret);
           // SECURITY: Ensure VERCEL_URL has https:// scheme for production
@@ -319,8 +338,21 @@ export async function POST(req: NextRequest) {
             return { sent: true };
           }
           
+          // STRICT v4.1 FIX: In production, email verification MUST succeed
+          // Roll back user creation if email fails to prevent unverifiable ACTIVE accounts
+          const isProd = process.env.NODE_ENV === "production";
+          
           // Fallback for development (SendGrid not configured)
           if (emailResult.error?.includes("not configured")) {
+            if (isProd) {
+              // Production: roll back user - cannot have unverifiable accounts
+              logger.error("[auth/signup] CRITICAL: SendGrid not configured in production - rolling back user", {
+                email: normalizedEmail,
+                userId: newUser._id,
+              });
+              await User.deleteOne({ _id: newUser._id });
+              throw new Error("Email service not configured. Signup aborted for production safety.");
+            }
             logger.warn("[auth/signup] SendGrid not configured, verification email not sent", {
               email: normalizedEmail,
             });
@@ -328,11 +360,23 @@ export async function POST(req: NextRequest) {
               sent: false, 
               reason: "email_not_configured",
               // Only include link in non-production for testing
-              ...(process.env.NODE_ENV !== "production" && { link: verificationLink }),
+              link: verificationLink,
             };
           }
           
-          // Email send failed but user was created
+          // Email send failed
+          if (isProd) {
+            // Production: roll back user - cannot have unverifiable accounts
+            logger.error("[auth/signup] CRITICAL: Email send failed in production - rolling back user", {
+              email: normalizedEmail,
+              userId: newUser._id,
+              error: emailResult.error,
+            });
+            await User.deleteOne({ _id: newUser._id });
+            throw new Error("Verification email failed to send. Signup aborted for production safety.");
+          }
+          
+          // Non-production: log warning but allow user to remain
           logger.error("[auth/signup] Failed to send verification email", {
             email: normalizedEmail,
             error: emailResult.error,

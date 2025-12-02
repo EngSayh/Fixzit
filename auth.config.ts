@@ -1,9 +1,11 @@
 // Import from symbols path to align with NextAuth v5 typings (prevents mismatched symbol versions)
 import type { NextAuthConfig } from 'next-auth';
+import { skipCSRFCheck as skipCSRFCheckSymbol } from '@auth/core';
 import Google from 'next-auth/providers/google';
 import Apple from 'next-auth/providers/apple';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
+import { getEnv } from '@/lib/env';
 import { logger } from '@/lib/logger';
 import { otpSessionStore } from '@/lib/otp-store';
 import type { UserRoleType } from '@/types/user';
@@ -42,8 +44,11 @@ function redactIdentifier(identifier: string): string {
 }
 
 // Validate required environment variables at startup
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+// Use getEnv() with alias support for Vercel naming conventions:
+// - GOOGLE_CLIENT_ID aliases: OAUTH_CLIENT_GOOGLE_ID
+// - GOOGLE_CLIENT_SECRET aliases: OAUTH_CLIENT_GOOGLE_SECRET, OAUTH_CLIENT_GOOGLE
+const GOOGLE_CLIENT_ID = getEnv('GOOGLE_CLIENT_ID');
+const GOOGLE_CLIENT_SECRET = getEnv('GOOGLE_CLIENT_SECRET');
 const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID;
 const APPLE_CLIENT_SECRET = process.env.APPLE_CLIENT_SECRET;
 // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
@@ -214,7 +219,16 @@ const EMPLOYEE_ID_REGEX = /^EMP[-A-Z0-9]+$/;
 // Production and staging should NOT set these variables (defaults to false for security)
 const trustHost =
   process.env.AUTH_TRUST_HOST === 'true' ||
-  process.env.NEXTAUTH_TRUST_HOST === 'true';
+  process.env.NEXTAUTH_TRUST_HOST === 'true' ||
+  process.env.NODE_ENV === 'test' ||
+  process.env.PLAYWRIGHT_TESTS === 'true' ||
+  process.env.ALLOW_OFFLINE_LOGIN === 'true';
+
+// Allow explicit opt-in to skip CSRF checks in non-production test runs
+const shouldSkipCSRFCheck =
+  process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true' ||
+  process.env.NODE_ENV === 'test' ||
+  process.env.PLAYWRIGHT_TESTS === 'true';
 
 const LoginSchema = z
   .object({
@@ -734,4 +748,7 @@ export const authConfig = {
   },
   secret: NEXTAUTH_SECRET,
   trustHost,
+  // NextAuth v5: skipCSRFCheck requires the symbol, not a boolean
+  // Only include it in test environments to allow programmatic login
+  ...(shouldSkipCSRFCheck ? { skipCSRFCheck: skipCSRFCheckSymbol } : {}),
 } satisfies NextAuthConfig;

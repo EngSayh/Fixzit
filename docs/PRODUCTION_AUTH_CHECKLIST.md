@@ -12,6 +12,21 @@ The following environment variables **MUST** be set in your production environme
 | `AUTH_TRUST_HOST` | ✅ **REQUIRED** for Vercel/proxied deployments | Set to `true` to allow NextAuth to trust the host header behind a proxy |
 | `NEXTAUTH_URL` | ✅ **REQUIRED** | Your production URL (e.g., `https://app.fixzit.co`) |
 
+### Multi-Tenant Organization Defaults (Required for Public Auth Routes)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PUBLIC_ORG_ID` | ✅ **REQUIRED** | MongoDB ObjectId for the default public organization. Used by signup, forgot-password, reset-password, and verify routes. Create a "Public" org in your database. |
+| `DEFAULT_ORG_ID` | ✅ **REQUIRED** | Fallback organization ID when no specific tenant context is available. Typically the same as `PUBLIC_ORG_ID`. |
+| `TEST_ORG_ID` | Optional | Organization ID for test/E2E environments. Used by test utilities and can override public flows in testing. |
+
+> ⚠️ **CRITICAL**: Without `PUBLIC_ORG_ID` and `DEFAULT_ORG_ID`, the following endpoints will return 500 errors:
+> - `/api/auth/signup`
+> - `/api/auth/forgot-password`
+> - `/api/auth/reset-password`
+> - `/api/auth/verify/*`
+> - `/api/auth/otp/send`
+
 ### Generate a Secret
 
 ```bash
@@ -26,12 +41,38 @@ openssl rand -base64 32
 3. Add the following for **Production** environment:
 
 ```env
+# Auth secrets
 NEXTAUTH_SECRET=<your-generated-secret>
 AUTH_TRUST_HOST=true
 NEXTAUTH_URL=https://your-domain.com
+
+# Multi-tenant organization defaults (REQUIRED)
+PUBLIC_ORG_ID=<mongodb-objectid-for-public-org>
+DEFAULT_ORG_ID=<mongodb-objectid-for-default-org>
+# TEST_ORG_ID=<mongodb-objectid-for-test-org>  # Optional, for staging/test
 ```
 
+> **Note**: To get your organization ObjectIds, query your MongoDB database:
+> ```javascript
+> db.organizations.find({ name: /public|default/i }, { _id: 1, name: 1 })
+> ```
+
 ## Common Auth Errors and Fixes
+
+### 500 Error on `/api/auth/signup`, `/api/auth/forgot-password`, or `/api/auth/reset-password`
+
+**Cause**: Missing `PUBLIC_ORG_ID` or `DEFAULT_ORG_ID` environment variables
+
+**Fix**:
+1. Create a "Public" organization in your MongoDB database if it doesn't exist
+2. Set `PUBLIC_ORG_ID` to the ObjectId of that organization
+3. Set `DEFAULT_ORG_ID` (typically the same as `PUBLIC_ORG_ID`)
+4. Redeploy after adding the environment variables
+
+**Error Message**:
+```text
+Default organization not configured. Set PUBLIC_ORG_ID, TEST_ORG_ID, or DEFAULT_ORG_ID environment variable with a valid ObjectId.
+```
 
 ### 500 Error on `/api/auth/session` or `/api/auth/csrf`
 
@@ -150,13 +191,26 @@ curl -s https://your-domain.com/api/auth/session
 
 ## Checklist Before Deployment
 
+### Auth Secrets
 - [ ] `NEXTAUTH_SECRET` set (32+ chars, unique per environment)
 - [ ] `AUTH_TRUST_HOST=true` set for Vercel/proxied deployments
 - [ ] `NEXTAUTH_URL` set to production domain with https
+
+### Multi-Tenant Configuration
+- [ ] `PUBLIC_ORG_ID` set to a valid MongoDB ObjectId for the public organization
+- [ ] `DEFAULT_ORG_ID` set to a valid MongoDB ObjectId (typically same as PUBLIC_ORG_ID)
+- [ ] (Optional) `TEST_ORG_ID` set for staging/test environments
+
+### Database & Services
 - [ ] Database connection string (`MONGODB_URI`) is correct
 - [ ] SMS gateway configured for OTP (if using SMS)
 - [ ] Super admin user exists in database with `status: 'ACTIVE'`
+- [ ] Public organization exists in database with appropriate permissions
+
+### Testing
 - [ ] Test login flow on staging before production
+- [ ] Test signup flow with a new email
+- [ ] Test forgot-password flow
 - [ ] Finance index migration executed: run `MONGODB_URI=<prod-uri> pnpm tsx scripts/drop-legacy-fm-transaction-index.ts` and verify `db.fm_financial_transactions.getIndexes()` only includes the org-scoped unique `{ orgId: 1, transactionNumber: 1 }` (legacy global `{ transactionNumber: 1 }` removed)
 
 ## Vercel Specific Notes
@@ -167,5 +221,13 @@ curl -s https://your-domain.com/api/auth/session
 
 ---
 
-**Last Updated**: 2025-12-01  
-**Version**: 1.1
+## Related Documentation
+
+- [PII Migration Break-Glass Runbook](./operations/PII_MIGRATION_BREAK_GLASS_RUNBOOK.md) - Emergency procedure for finance PII encryption migration
+- [Post-Stabilization Audit Report](./POST_STABILIZATION_AUDIT_REPORT.md) - STRICT v4.1 compliance status
+- [Security Documentation](./SECURITY.md) - Security policies and procedures
+
+---
+
+**Last Updated**: 2025-12-02  
+**Version**: 1.3

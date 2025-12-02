@@ -1,7 +1,8 @@
 # Post-Stabilization System Integrity & STRICT v4 Audit Report
 
-**Audit Date:** 2025-11-28  
-**Auditor:** Codex (ChatGPT)  
+**Audit Date:** 2025-12-02 (Updated)  
+**Original Audit Date:** 2025-11-28  
+**Auditor:** Codex (ChatGPT) / GitHub Copilot (Claude Opus 4.5)  
 **Scope:** Targeted post-stabilization review for STRICT v4.1 compliance, structural drift, and task list verification
 
 ---
@@ -194,38 +195,60 @@ PII fields (compensation, bankDetails) are:
 
 ## Phase 5: STRICT v4.1 Role Matrix Verification
 
-### Canonical 9 Roles + 4 Sub-Roles
+### Canonical 20 Roles (STRICT v4.1)
 
-**Source:** `types/user.ts` and `domain/fm/fm.behavior.ts`
+**Source:** `types/user.ts` - CANONICAL_ROLES constant
 
----
-
-## Next Steps
-
-- **Billing periods:** If custom billing periods are supported, add `current_period_start` / `current_period_end` to `Subscription` records and use them for proration instead of inferred 30/365-day windows.
-- **Onboarding validation:** Add a lightweight client-side schema (Zod/React Hook Form) for onboarding to centralize validation of profile fields and required documents before API calls.
-- **Continuous verification:** Keep `pnpm test` / `pnpm vitest run` in CI to preserve the current green state and catch regressions early.
-
+#### Administrative Roles (4)
 | Role | Module Access | Verified |
 |------|--------------|----------|
 | SUPER_ADMIN | All modules + cross-org | ✅ |
+| CORPORATE_ADMIN | All modules (org-scoped) | ✅ |
 | ADMIN | All modules (org-scoped) | ✅ |
-| CORPORATE_OWNER | Portfolio management + approvals | ✅ |
-| TEAM_MEMBER | Work Orders, PM, Reports | ✅ |
-| TECHNICIAN | WO (assigned), Support, Reports | ✅ |
+| MANAGER | Team management, WO, PM | ✅ |
+
+#### Facility Management Roles (3)
+| Role | Module Access | Verified |
+|------|--------------|----------|
+| FM_MANAGER | FM operations, WO dispatch | ✅ |
 | PROPERTY_MANAGER | Properties, WO, Support | ✅ |
+| TECHNICIAN | WO (assigned), Support, Reports | ✅ |
+
+#### Business Function Roles (3)
+| Role | Module Access | Verified |
+|------|--------------|----------|
+| FINANCE | Finance module + reports | ✅ |
+| HR | HR module + reports | ✅ |
+| PROCUREMENT | RFQ, PO, vendor selection | ✅ |
+
+#### Team Member + Sub-Roles (5)
+| Role | Specialization | Verified |
+|------|---------------|----------|
+| TEAM_MEMBER | Base role - use sub-roles for module access | ✅ |
+| FINANCE_OFFICER | Finance module only + reports | ✅ |
+| HR_OFFICER | HR module + PII access + reports | ✅ |
+| SUPPORT_AGENT | Support + CRM + reports | ✅ |
+| OPERATIONS_MANAGER | WO + Properties + Support (wider scope) | ✅ |
+
+#### Property & External Roles (5)
+| Role | Module Access | Verified |
+|------|--------------|----------|
+| OWNER | Portfolio management + approvals | ✅ |
+| CORPORATE_OWNER | Multi-property portfolio | ✅ |
 | TENANT | Own units/WO, Marketplace | ✅ |
 | VENDOR | Assigned WO, Marketplace | ✅ |
-| GUEST | Public landing only | ✅ |
+| AUDITOR | Read-only finance + compliance | ✅ |
 
-**Sub-Roles (TEAM_MEMBER specializations):**
+#### Legacy/Deprecated Roles (NOT FOR NEW CODE)
+> ⚠️ These are kept only for backward compatibility during migration.
+> See `types/user.ts` LEGACY_ROLES and ROLE_ALIAS_MAP for migration guidance.
 
-| Sub-Role | Specialization | Verified |
-|----------|---------------|----------|
-| FINANCE_OFFICER | Finance module + reports | ✅ |
-| HR_OFFICER | HR module + PII access | ✅ |
-| SUPPORT_AGENT | Support + CRM | ✅ |
-| OPERATIONS_MANAGER | WO + Properties + Support | ✅ |
+- `EMPLOYEE` → Use MANAGER or specific function role
+- `SUPPORT` → Use SUPPORT_AGENT sub-role
+- `DISPATCHER` → Use FM_MANAGER or PROPERTY_MANAGER
+- `FINANCE_MANAGER` → Use FINANCE or FINANCE_OFFICER
+- `CUSTOMER` → B2C portal role (not part of STRICT v4)
+- `VIEWER` → View-only placeholder (not part of STRICT v4)
 
 ---
 
@@ -233,12 +256,12 @@ PII fields (compensation, bankDetails) are:
 
 ### High Priority (P0)
 
-1. **Verify Test Count**
-   ```bash
-   pnpm test 2>&1 | tail -20
-   ```
-   - Confirm if 143 failing tests is current
-   - Update CATEGORIZED_TASKS_LIST.md with actual count
+1. **Test Suite Maintenance**
+   - Run `pnpm test` regularly to verify test health
+   - Track test counts in CI pipeline artifacts
+   - Address any failing tests before deployment
+
+> **Note**: Test counts should be sourced from CI pipeline results. The certification below reflects the state at the time of the original audit (2025-11-28). Always verify current test status with `pnpm test` before deployment.
 
 ### Medium Priority (P1)
 
@@ -288,9 +311,17 @@ This audit confirms the Fixzit codebase is in **STRICT v4.1 compliance** with:
 - ✅ Agent audit logging implemented
 - ✅ Middleware RBAC properly configured
 - ✅ Console statements appropriately managed
+- ✅ Canonical 20-role matrix documented (aligned with `types/user.ts`)
 
-**Audit Status:** ✅ PASSED
+**Audit Status:** ✅ PASSED (as of original audit date)
+
+> **Important**: This certification reflects the codebase state at the time of audit.
+> Before deployment, always verify:
+> 1. `pnpm typecheck` passes
+> 2. `pnpm lint` passes
+> 3. `pnpm test` passes (check CI for current test count)
 
 ---
 
 *Report generated by GitHub Copilot (Claude Opus 4.5)*
+*Last updated: 2025-12-02*

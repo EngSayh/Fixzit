@@ -8,6 +8,7 @@
  *   --dry-run   Preview changes without modifying the database
  *   --org=ID    Migrate only records for a specific organization
  *   --rollback  Restore from backup collections (if available)
+ *   --allow-plaintext-backup  Continue even if TTL index creation fails (SECURITY RISK)
  *
  * Notes:
  * - Requires ENCRYPTION_KEY or PII_ENCRYPTION_KEY in env.
@@ -16,6 +17,11 @@
  * - Creates backup collections before migrating.
  * - Rollback respects --org scope when provided.
  * - Failed document IDs are logged for targeted reruns.
+ *
+ * BREAK-GLASS PROCEDURE:
+ *   The --allow-plaintext-backup flag is BLOCKED in production by default.
+ *   For emergency use, set MIGRATION_ALLOW_PLAINTEXT=true (requires approvals).
+ *   See: docs/operations/PII_MIGRATION_BREAK_GLASS_RUNBOOK.md
  *
  * Encrypted Fields:
  *   Invoice:
@@ -37,11 +43,23 @@ import { FMFinancialTransaction } from "@/server/models/FMFinancialTransaction";
 import { logger } from "@/lib/logger";
 
 // ============================================================================
-// ENV PREFLIGHT CHECK
+// CONSTANTS FOR KEY VALIDATION
+// ============================================================================
+const KEY_LENGTH = 32; // 256 bits for AES-256
+
+// ============================================================================
+// ENV PREFLIGHT CHECK - KEY PRESENCE
 // ============================================================================
 // SECURITY: Fail fast if encryption key is missing to prevent partial migrations
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.PII_ENCRYPTION_KEY;
 if (!ENCRYPTION_KEY) {
+  // STRICT v4.1: Use central logger for observability (captured by log pipelines)
+  logger.error("[FINANCE PII MIGRATION] PREFLIGHT FAILED: Missing encryption key", {
+    severity: "critical",
+    required: ["ENCRYPTION_KEY", "PII_ENCRYPTION_KEY"],
+    hint: "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
+  });
+  // Also print to console for interactive terminal visibility
   console.error(`
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║  ERROR: Missing ENCRYPTION_KEY or PII_ENCRYPTION_KEY                       ║
@@ -49,8 +67,11 @@ if (!ENCRYPTION_KEY) {
 ║  This script requires an encryption key to encrypt PII fields.             ║
 ║  Set one of these environment variables before running:                    ║
 ║                                                                            ║
-║    ENCRYPTION_KEY=<your-32-byte-hex-key>                                   ║
-║    PII_ENCRYPTION_KEY=<your-32-byte-hex-key>                               ║
+║    ENCRYPTION_KEY=<your-32-byte-base64-key>                                ║
+║    PII_ENCRYPTION_KEY=<your-32-byte-base64-key>                            ║
+║                                                                            ║
+║  Generate a strong key:                                                    ║
+║    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"║
 ║                                                                            ║
 ║  Example:                                                                  ║
 ║    ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts      ║
@@ -58,6 +79,64 @@ if (!ENCRYPTION_KEY) {
 `);
   process.exit(1);
 }
+
+// ============================================================================
+// ENV PREFLIGHT CHECK - KEY STRENGTH (STRICT v4.1)
+// ============================================================================
+// SECURITY: Always validate key strength for finance PII migrations, even in non-prod
+// This prevents weak-key encryptions that would require costly re-migrations
+function validateKeyStrength(key: string): void {
+  let keyBytes: number;
+  try {
+    // Try base64 decode first (preferred format)
+    const decoded = Buffer.from(key, 'base64');
+    keyBytes = decoded.length;
+  } catch {
+    // Fallback to raw string length
+    keyBytes = key.length;
+  }
+
+  if (keyBytes < KEY_LENGTH) {
+    // STRICT v4.1: Use central logger for observability (captured by log pipelines)
+    logger.error("[FINANCE PII MIGRATION] PREFLIGHT FAILED: Encryption key too weak", {
+      severity: "critical",
+      currentKeyBytes: keyBytes,
+      currentKeyBits: keyBytes * 8,
+      requiredKeyBytes: KEY_LENGTH,
+      requiredKeyBits: KEY_LENGTH * 8,
+      hint: "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
+    });
+    // Also print to console for interactive terminal visibility
+    console.error(`
+╔════════════════════════════════════════════════════════════════════════════╗
+║  ERROR: ENCRYPTION_KEY is too weak for finance PII migration               ║
+║                                                                            ║
+║  Finance PII encryption requires a 256-bit (32-byte) key for compliance.   ║
+║                                                                            ║
+║  Current key: ${keyBytes} bytes (${keyBytes * 8}-bit)
+║  Required:    ${KEY_LENGTH} bytes (256-bit)
+║                                                                            ║
+║  STRICT v4.1: Weak keys are BLOCKED even in non-production to prevent      ║
+║  irreversible weak encryptions that would require costly re-migrations.    ║
+║                                                                            ║
+║  Generate a compliant key:                                                 ║
+║    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"║
+╚════════════════════════════════════════════════════════════════════════════╝
+`);
+    process.exit(1);
+  }
+
+  // STRICT v4.1: Use central logger for observability
+  logger.info("[FINANCE PII MIGRATION] Encryption key strength validated", {
+    keyBits: keyBytes * 8,
+    algorithm: "AES-256",
+    status: "compliant",
+  });
+  console.log(`✅ Encryption key strength validated: ${keyBytes * 8}-bit (AES-256 compliant)`);
+}
+
+// Run key strength validation immediately
+validateKeyStrength(ENCRYPTION_KEY);
 
 const BATCH_SIZE = 200;
 const BACKUP_BATCH_SIZE = 500;
@@ -172,6 +251,7 @@ interface MigrationOptions {
   dryRun: boolean;
   orgId?: string;
   rollback: boolean;
+  allowPlaintextBackup?: boolean;
 }
 
 function parseArgs(): MigrationOptions {
@@ -179,7 +259,28 @@ function parseArgs(): MigrationOptions {
   const options: MigrationOptions = {
     dryRun: args.includes("--dry-run"),
     rollback: args.includes("--rollback"),
+    allowPlaintextBackup: args.includes("--allow-plaintext-backup"),
   };
+
+  // SECURITY: Block --allow-plaintext-backup in production to prevent accidental PII retention
+  // Use dedicated MIGRATION_ALLOW_PLAINTEXT env var for break-glass, NOT NODE_ENV override
+  const hasBreakGlassOverride = process.env.MIGRATION_ALLOW_PLAINTEXT === "true";
+  if (options.allowPlaintextBackup && process.env.NODE_ENV === "production" && !hasBreakGlassOverride) {
+    console.error(`
+╔════════════════════════════════════════════════════════════════════════════╗
+║  ERROR: --allow-plaintext-backup is BLOCKED in production                  ║
+║                                                                            ║
+║  This flag would disable TTL auto-expiry on backup collections,            ║
+║  leaving plaintext PII indefinitely. This is a compliance violation.       ║
+║                                                                            ║
+║  If you absolutely must proceed (emergency break-glass only):              ║
+║    1. Set MIGRATION_ALLOW_PLAINTEXT=true (keeps NODE_ENV=production)       ║
+║    2. Document the exception in the incident log                           ║
+║    3. Manually delete backups within 24h                                   ║
+╚════════════════════════════════════════════════════════════════════════════╝
+`);
+    process.exit(1);
+  }
 
   const orgArg = args.find((a) => a.startsWith("--org="));
   if (orgArg) {
@@ -192,6 +293,7 @@ function parseArgs(): MigrationOptions {
 async function createBackup(
   collectionName: string,
   orgId?: string,
+  allowPlaintextBackup?: boolean,
 ): Promise<string> {
   const db = mongoose.connection.db;
   if (!db) {
@@ -235,17 +337,33 @@ async function createBackup(
   if (totalBacked > 0) {
     // Add TTL index (24h) to auto-cleanup backup collections
     // SECURITY: Prevents plaintext PII from lingering indefinitely
+    // NOTE: Use _backupCreatedAt (not createdAt) to preserve original document timestamps for audit accuracy on restore
     try {
       await backupCollection.createIndex(
-        { createdAt: 1 },
+        { _backupCreatedAt: 1 },
         { expireAfterSeconds: 24 * 60 * 60 } // 24 hours
       );
-      // Add createdAt timestamp for TTL tracking
-      await backupCollection.updateMany({}, { $set: { createdAt: new Date() } });
+      // Add _backupCreatedAt timestamp for TTL tracking (preserves original createdAt)
+      await backupCollection.updateMany({}, { $set: { _backupCreatedAt: new Date() } });
       logger.info(`[FINANCE PII MIGRATION] Backup TTL set (24h auto-cleanup): ${backupName}`);
     } catch (ttlError) {
-      // TTL index creation is best-effort; log warning but continue
-      logger.warn(`[FINANCE PII MIGRATION] Could not set TTL on backup: ${backupName}`, { error: ttlError });
+      // SECURITY: TTL failure means plaintext PII could persist indefinitely
+      // Default: FAIL HARD to prevent compliance violations
+      if (allowPlaintextBackup) {
+        logger.warn(`[FINANCE PII MIGRATION] ⚠️ TTL creation failed, continuing with --allow-plaintext-backup: ${backupName}`, { error: ttlError });
+        logger.warn(`[FINANCE PII MIGRATION] SECURITY RISK: Plaintext PII backup will NOT auto-expire. Manual cleanup required!`);
+      } else {
+        logger.error(`[FINANCE PII MIGRATION] ❌ TTL index creation failed. Aborting to prevent plaintext PII retention.`);
+        logger.error(`[FINANCE PII MIGRATION] To proceed anyway (NOT RECOMMENDED), re-run with: --allow-plaintext-backup`);
+        // Clean up the backup we just created to avoid leaving orphan plaintext data
+        try {
+          await db.dropCollection(backupName);
+          logger.info(`[FINANCE PII MIGRATION] Cleaned up incomplete backup: ${backupName}`);
+        } catch (cleanupError) {
+          logger.error(`[FINANCE PII MIGRATION] Failed to cleanup backup: ${backupName}`, { error: cleanupError });
+        }
+        throw new Error(`TTL index creation failed for backup ${backupName}. Plaintext PII retention risk.`);
+      }
     }
 
     logger.info(`[FINANCE PII MIGRATION] Backup created: ${backupName}`, {
@@ -348,63 +466,74 @@ async function restoreFromBackup(
     );
   }
 
-  if (orgId && isOrgScopedBackup) {
-    // Org-scoped restore: only delete and restore for this org
-    logger.info(
-      `[FINANCE PII MIGRATION] Performing org-scoped restore for org: ${orgId}`,
-    );
-    await targetCollection.deleteMany({ orgId });
-  } else if (orgId) {
-    // Restoring from global backup but only for specific org
-    logger.info(
-      `[FINANCE PII MIGRATION] Restoring from global backup, filtering to org: ${orgId}`,
-    );
-    await targetCollection.deleteMany({ orgId });
-  } else {
-    // Full restore: delete all documents that exist in the backup by orgId
-    // Stream to get unique orgIds without loading all docs
-    const orgIdsSet = new Set<string>();
-    const orgCursor = backupCollection.find({}, { projection: { orgId: 1 } });
-    for await (const doc of orgCursor) {
-      if (doc.orgId) {
-        orgIdsSet.add(doc.orgId as string);
-      }
-    }
-
-    for (const backupOrgId of orgIdsSet) {
-      await targetCollection.deleteMany({ orgId: backupOrgId });
-    }
-  }
-
-  // Stream restore in batches to avoid memory issues
+  // Use MongoDB session for atomic rollback to prevent partial data loss on failure
+  const session = await mongoose.startSession();
   let totalRestored = 0;
-  let batch: mongoose.mongo.Document[] = [];
 
-  // Apply org filter if restoring from global backup with org scope
-  const restoreFilter =
-    orgId && !isOrgScopedBackup ? { orgId } : {};
-  const cursor = backupCollection.find(restoreFilter);
-
-  for await (const doc of cursor) {
-    batch.push(doc);
-
-    if (batch.length >= BACKUP_BATCH_SIZE) {
-      await targetCollection.insertMany(batch);
-      totalRestored += batch.length;
-      batch = [];
-
-      if (totalRestored % 2000 === 0) {
+  try {
+    await session.withTransaction(async () => {
+      if (orgId && isOrgScopedBackup) {
+        // Org-scoped restore: only delete and restore for this org
         logger.info(
-          `[FINANCE PII MIGRATION] Restore progress: ${totalRestored} docs`,
+          `[FINANCE PII MIGRATION] Performing org-scoped restore for org: ${orgId}`,
         );
-      }
-    }
-  }
+        await targetCollection.deleteMany({ orgId }, { session });
+      } else if (orgId) {
+        // Restoring from global backup but only for specific org
+        logger.info(
+          `[FINANCE PII MIGRATION] Restoring from global backup, filtering to org: ${orgId}`,
+        );
+        await targetCollection.deleteMany({ orgId }, { session });
+      } else {
+        // Full restore: delete all documents that exist in the backup by orgId
+        // Stream to get unique orgIds without loading all docs
+        const orgIdsSet = new Set<string>();
+        const orgCursor = backupCollection.find({}, { projection: { orgId: 1 } });
+        for await (const doc of orgCursor) {
+          if (doc.orgId) {
+            orgIdsSet.add(doc.orgId as string);
+          }
+        }
 
-  // Insert remaining batch
-  if (batch.length > 0) {
-    await targetCollection.insertMany(batch);
-    totalRestored += batch.length;
+        for (const backupOrgId of orgIdsSet) {
+          await targetCollection.deleteMany({ orgId: backupOrgId }, { session });
+        }
+      }
+
+      // Stream restore in batches to avoid memory issues
+      let batch: mongoose.mongo.Document[] = [];
+
+      // Apply org filter if restoring from global backup with org scope
+      const restoreFilter =
+        orgId && !isOrgScopedBackup ? { orgId } : {};
+      const cursor = backupCollection.find(restoreFilter);
+
+      for await (const doc of cursor) {
+        // Remove TTL marker field before restoring (preserves original createdAt)
+        const { _backupCreatedAt, ...cleanDoc } = doc as mongoose.mongo.Document & { _backupCreatedAt?: Date };
+        batch.push(cleanDoc);
+
+        if (batch.length >= BACKUP_BATCH_SIZE) {
+          await targetCollection.insertMany(batch, { session, ordered: false });
+          totalRestored += batch.length;
+          batch = [];
+
+          if (totalRestored % 2000 === 0) {
+            logger.info(
+              `[FINANCE PII MIGRATION] Restore progress: ${totalRestored} docs`,
+            );
+          }
+        }
+      }
+
+      // Insert remaining batch
+      if (batch.length > 0) {
+        await targetCollection.insertMany(batch, { session, ordered: false });
+        totalRestored += batch.length;
+      }
+    });
+  } finally {
+    await session.endSession();
   }
 
   // Warn if no documents were restored for the target org
@@ -441,7 +570,7 @@ async function migrateCollection(
 
   // Create backup (unless dry-run)
   if (!options.dryRun && !options.rollback) {
-    await createBackup(model.collection.name, options.orgId);
+    await createBackup(model.collection.name, options.orgId, options.allowPlaintextBackup);
   }
 
   // Build query filter
@@ -460,8 +589,25 @@ async function migrateCollection(
       toObject: () => Record<string, unknown>;
       save: () => Promise<unknown>;
     };
-    const plainDoc = docObj.toObject() as Record<string, unknown>;
-    const mutated = encryptDocument(plainDoc, targets, stats);
+    
+    // Per-document error handling: catch encryption errors to continue processing other documents
+    // This prevents a single malformed record from halting the entire migration
+    let plainDoc: Record<string, unknown>;
+    let mutated: boolean;
+    
+    try {
+      plainDoc = docObj.toObject() as Record<string, unknown>;
+      mutated = encryptDocument(plainDoc, targets, stats);
+    } catch (encryptErr) {
+      stats.errors++;
+      stats.failedIds.push(docObj._id.toString());
+      logger.error(`${prefix}[FINANCE PII MIGRATION] Encryption failed for doc`, {
+        docId: docObj._id.toString(),
+        error: encryptErr,
+      });
+      stats.processed++;
+      continue; // Continue with next document instead of aborting
+    }
 
     if (mutated) {
       stats.encrypted++;
