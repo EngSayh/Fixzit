@@ -185,7 +185,9 @@ function parseArgs(): MigrationOptions {
   };
 
   // SECURITY: Block --allow-plaintext-backup in production to prevent accidental PII retention
-  if (options.allowPlaintextBackup && process.env.NODE_ENV === "production") {
+  // Use dedicated MIGRATION_ALLOW_PLAINTEXT env var for break-glass, NOT NODE_ENV override
+  const hasBreakGlassOverride = process.env.MIGRATION_ALLOW_PLAINTEXT === "true";
+  if (options.allowPlaintextBackup && process.env.NODE_ENV === "production" && !hasBreakGlassOverride) {
     console.error(`
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║  ERROR: --allow-plaintext-backup is BLOCKED in production                  ║
@@ -194,7 +196,7 @@ function parseArgs(): MigrationOptions {
 ║  leaving plaintext PII indefinitely. This is a compliance violation.       ║
 ║                                                                            ║
 ║  If you absolutely must proceed (emergency break-glass only):              ║
-║    1. Set NODE_ENV=migration-override                                      ║
+║    1. Set MIGRATION_ALLOW_PLAINTEXT=true (keeps NODE_ENV=production)       ║
 ║    2. Document the exception in the incident log                           ║
 ║    3. Manually delete backups within 24h                                   ║
 ╚════════════════════════════════════════════════════════════════════════════╝

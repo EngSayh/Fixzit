@@ -20,6 +20,7 @@ import {
 } from "@/lib/auth/emailVerification";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import { UserRole } from "@/types/user";
 
 const signupSchema = z
   .object({
@@ -134,7 +135,8 @@ export async function POST(req: NextRequest) {
     // The 'userType' from the client is only a hint for data categorization.
     // The 'role' assigned is ALWAYS the lowest-privilege personal user.
     // Admin/Vendor accounts must be created via an internal, authenticated admin endpoint.
-    const role = "TENANT";
+    // Use canonical enum to align with STRICT v4.1 role matrix
+    const role = UserRole.TENANT;
 
     // Only store companyName if the user self-identifies as corporate/vendor
     const companyName =
