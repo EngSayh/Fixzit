@@ -91,6 +91,22 @@ const signupSchema = z
  */
 export async function POST(req: NextRequest) {
   try {
+    // 🔒 SECURITY: Fail-fast if NEXTAUTH_SECRET is missing in production
+    // This prevents creating unverifiable accounts that break onboarding
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+    if (!secret && process.env.NODE_ENV === "production") {
+      logger.error("[auth/signup] NEXTAUTH_SECRET is not configured in production");
+      return createSecureResponse(
+        {
+          ok: false,
+          error: "signup_not_configured",
+          message: "Account registration is temporarily unavailable. Please try again later.",
+        },
+        503, // Service Unavailable
+        req,
+      );
+    }
+
     const clientIp = getClientIP(req);
     const rl = rateLimit(`auth-signup:${clientIp}`, 5, 900000);
     if (!rl.allowed) {
@@ -232,7 +248,8 @@ export async function POST(req: NextRequest) {
           role: newUser.professional?.role || "VIEWER",
         },
         verification: await (async () => {
-          const secret = process.env.NEXTAUTH_SECRET;
+          // secret was validated at the top of POST handler
+          // In production, we already fail-fast; in dev, allow soft-fail for testing
           if (!secret) return { sent: false, reason: "not_configured" };
           
           const token = signVerificationToken(normalizedEmail, secret);
