@@ -218,3 +218,116 @@ export async function safeRedisOp<T>(
     return fallback;
   }
 }
+
+// =============================================================================
+// Cache helpers (shared ioredis client)
+// =============================================================================
+
+export const CacheTTL = {
+  FIVE_MINUTES: 300,
+  FIFTEEN_MINUTES: 900,
+  ONE_HOUR: 3600,
+  ONE_DAY: 86400,
+  ONE_WEEK: 604800,
+} as const;
+
+/**
+ * Get cached value or compute/store using provided function.
+ */
+export async function getCached<T>(
+  key: string,
+  ttl: number,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const client = getRedisClient();
+  if (client) {
+    try {
+      const cached = await client.get(key);
+      if (cached) {
+        logger.info(`[Cache] HIT: ${key}`);
+        return JSON.parse(cached) as T;
+      }
+      logger.info(`[Cache] MISS: ${key}`);
+    } catch (error) {
+      logger.error(`[Cache] Read error for key ${key}`, { error });
+    }
+  }
+
+  const data = await fn();
+
+  if (client && data !== undefined) {
+    try {
+      await client.setex(key, ttl, JSON.stringify(data));
+      logger.info(`[Cache] SET: ${key} (TTL ${ttl}s)`);
+    } catch (error) {
+      logger.error(`[Cache] Write error for key ${key}`, { error });
+    }
+  }
+
+  return data;
+}
+
+export async function setCache<T>(
+  key: string,
+  value: T,
+  ttl: number,
+): Promise<void> {
+  const client = getRedisClient();
+  if (!client) return;
+  try {
+    await client.setex(key, ttl, JSON.stringify(value));
+    logger.info(`[Cache] SET: ${key} (TTL ${ttl}s)`);
+  } catch (error) {
+    logger.error(`[Cache] Error setting key ${key}`, { error });
+  }
+}
+
+export async function getCache<T>(key: string): Promise<T | null> {
+  const client = getRedisClient();
+  if (!client) return null;
+  try {
+    const cached = await client.get(key);
+    if (cached) {
+      logger.info(`[Cache] HIT: ${key}`);
+      return JSON.parse(cached) as T;
+    }
+    logger.info(`[Cache] MISS: ${key}`);
+    return null;
+  } catch (error) {
+    logger.error(`[Cache] Error reading key ${key}`, { error });
+    return null;
+  }
+}
+
+export async function invalidateCache(pattern: string): Promise<void> {
+  const client = getRedisClient();
+  if (!client) return;
+
+  const keys: string[] = [];
+  try {
+    const stream = client.scanStream({ match: pattern, count: 200 });
+    for await (const chunk of stream as AsyncIterable<string[]>) {
+      keys.push(...chunk);
+    }
+
+    if (keys.length > 0) {
+      await client.del(...keys);
+      logger.info(`[Cache] Invalidated ${keys.length} keys for pattern ${pattern}`);
+    } else {
+      logger.info(`[Cache] No keys found for pattern ${pattern}`);
+    }
+  } catch (error) {
+    logger.error(`[Cache] Error invalidating pattern ${pattern}`, { error });
+  }
+}
+
+export async function invalidateCacheKey(key: string): Promise<void> {
+  const client = getRedisClient();
+  if (!client) return;
+  try {
+    await client.del(key);
+    logger.info(`[Cache] Invalidated key ${key}`);
+  } catch (error) {
+    logger.error(`[Cache] Error invalidating key ${key}`, { error });
+  }
+}
