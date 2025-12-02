@@ -60,6 +60,14 @@ jobs:
             echo "::warning::No test runner configured or tests failed"
           fi
 
+      - name: Run Auth API Tests
+        run: |
+          if npm pkg get scripts | grep -q '"test:auth"'; then
+            pnpm test:auth --passWithNoTests
+          else
+            echo "No auth test suite configured, skipping"
+          fi
+
       - name: Run Model Tests
         run: |
           if npm pkg get scripts | grep -q '"test:models"'; then

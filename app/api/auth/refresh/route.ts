@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import jwt from "jsonwebtoken";
+import { validateRefreshJti, persistRefreshJti } from "@/lib/refresh-token-store";
 
 export const REFRESH_COOKIE = "fxz.refresh";
 export const ACCESS_COOKIE = "fxz.access";
@@ -35,10 +36,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // STRICT v4.1 FIX: Validate token type to prevent access token replay as refresh
-    if (payload.type && payload.type !== "refresh") {
+    // STRICT v4.1 FIX: Require explicit refresh token type to prevent access-token replay
+    if (payload.type !== "refresh") {
       logger.warn("[auth/refresh] Invalid token type", { type: payload.type });
       return NextResponse.json({ error: "Invalid token type" }, { status: 401 });
+    }
+
+    // SECURITY: Require JTI for replay protection (STRICT v4.1)
+    const jti = payload.jti;
+    if (!jti) {
+      logger.warn("[auth/refresh] Token missing JTI", { sub: payload.sub });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // SECURITY: Validate JTI against refresh token store for replay protection
+    const isValidJti = await validateRefreshJti(payload.sub as string, jti);
+    if (!isValidJti) {
+      // In production, reject unknown JTIs (potential replay attack)
+      if (process.env.NODE_ENV === "production") {
+        logger.warn("[auth/refresh] Unknown JTI - potential replay attack", {
+          sub: payload.sub,
+          jti,
+        });
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      // In non-production, allow legacy tokens and register them (migration path)
+      logger.info("[auth/refresh] Registering legacy JTI for first use", {
+        sub: payload.sub,
+        jti,
+      });
+      await persistRefreshJti(payload.sub as string, jti, REFRESH_TTL_SECONDS);
     }
 
     // Verify session is still valid using NextAuth v5 auth()
@@ -63,16 +90,19 @@ export async function POST(req: NextRequest) {
     );
 
     // Token rotation: issue new refresh token to prevent replay attacks
+    const newJti = crypto.randomUUID();
     const newRefresh = jwt.sign(
       {
         sub: session.user?.id,
         type: "refresh",
-        // Add jti (JWT ID) for potential blacklisting in future
-        jti: crypto.randomUUID(),
+        jti: newJti,
       },
       secret,
       { expiresIn: REFRESH_TTL_SECONDS },
     );
+    
+    // SECURITY: Persist new JTI and invalidate old one (rotation)
+    await persistRefreshJti(session.user?.id as string, newJti, REFRESH_TTL_SECONDS);
 
     const res = NextResponse.json(
       { ok: true, accessToken },
