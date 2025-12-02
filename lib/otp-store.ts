@@ -5,6 +5,18 @@
  * for distributed systems and persistence.
  */
 
+import { logger } from "@/lib/logger";
+
+// STRICT v4.1: Production warning for in-memory storage
+// In-memory Maps are not shared across Vercel/serverless instances
+if (typeof process !== "undefined" && process.env.NODE_ENV === "production" && !process.env.OTP_STORE_REDIS_URL) {
+  logger.warn(
+    "[OTP STORE] Using in-memory storage in production. " +
+    "OTP state is NOT shared across instances. " +
+    "Set OTP_STORE_REDIS_URL for distributed deployments."
+  );
+}
+
 export interface OTPData {
   otp: string;
   expiresAt: number;

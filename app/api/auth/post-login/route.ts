@@ -37,9 +37,12 @@ export async function POST(req: NextRequest) {
     expiresIn: ACCESS_TTL_SECONDS,
   });
 
-  const refreshToken = jwt.sign({ sub, type: "refresh" }, secret, {
-    expiresIn: REFRESH_TTL_SECONDS,
-  });
+  // Add jti for consistency with refresh route's replay protection
+  const refreshToken = jwt.sign(
+    { sub, type: "refresh", jti: crypto.randomUUID() },
+    secret,
+    { expiresIn: REFRESH_TTL_SECONDS },
+  );
 
   const res = NextResponse.json({ ok: true });
   const secure =

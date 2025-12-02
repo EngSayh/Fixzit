@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { randomBytes } from "crypto";
+import { randomBytes, randomUUID } from "crypto";
 import { logger } from "@/lib/logger";
 import { enforceRateLimit } from "@/lib/middleware/rate-limit";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
 import {
   otpStore,
   MAX_ATTEMPTS,
@@ -193,13 +195,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // STRICT v4.1 FIX: Revalidate user from DB before issuing tokens
+    // Prevents issuing tokens to disabled/deleted users or users who changed orgs
+    await connectToDatabase();
+    const user = await User.findById(otpData.userId)
+      .select("status professional.role orgId")
+      .lean() as { status: string; professional?: { role?: string }; orgId?: string } | null;
+
+    if (!user || user.status !== "ACTIVE") {
+      logger.warn("[OTP] User inactive or not found during token issuance", {
+        userId: otpData.userId,
+        status: user?.status,
+      });
+      return NextResponse.json(
+        { success: false, error: "Account not active" },
+        { status: 401 },
+      );
+    }
+
+    // STRICT v4.1 FIX: Include role and orgId in access token for downstream RBAC/tenancy
     const accessToken = jwt.sign(
-      { sub: otpData.userId },
+      {
+        sub: otpData.userId,
+        role: user.professional?.role,
+        orgId: user.orgId,
+      },
       secret,
       { expiresIn: ACCESS_TTL_SECONDS },
     );
+    // Add jti and type for consistency with refresh/post-login routes
     const refreshToken = jwt.sign(
-      { sub: otpData.userId },
+      {
+        sub: otpData.userId,
+        type: "refresh",
+        jti: randomUUID(),
+      },
       secret,
       { expiresIn: REFRESH_TTL_SECONDS },
     );
