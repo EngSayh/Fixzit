@@ -156,6 +156,36 @@ curl -s https://your-domain.com/api/auth/session
 - [ ] SMS gateway configured for OTP (if using SMS)
 - [ ] Super admin user exists in database with `status: 'ACTIVE'`
 - [ ] Test login flow on staging before production
+- [ ] **FM Finance Index Migration** (see below)
+
+## Database Migrations
+
+### FM Financial Transaction Index Migration (One-Time)
+
+The `fm_financial_transactions` collection previously had a global `{ transactionNumber: 1 }` unique index which caused cross-tenant collisions. This has been replaced with an org-scoped unique `{ orgId: 1, transactionNumber: 1 }` index.
+
+**Run this migration in each environment:**
+
+```bash
+MONGODB_URI=<your-mongodb-uri> pnpm tsx scripts/drop-legacy-fm-transaction-index.ts
+```
+
+**Dry run first:**
+
+```bash
+MONGODB_URI=<your-mongodb-uri> pnpm tsx scripts/drop-legacy-fm-transaction-index.ts --dry-run
+```
+
+**Verify after running:**
+
+```javascript
+// In MongoDB shell
+db.fm_financial_transactions.getIndexes()
+```
+
+**Expected result:**
+- ❌ NO index with key: `{ transactionNumber: 1 }`
+- ✅ EXISTS index with key: `{ orgId: 1, transactionNumber: 1 }` with `unique: true`
 
 ## Vercel Specific Notes
 
@@ -165,5 +195,5 @@ curl -s https://your-domain.com/api/auth/session
 
 ---
 
-**Last Updated**: 2025-12-01  
-**Version**: 1.1
+**Last Updated**: 2025-12-02  
+**Version**: 1.2

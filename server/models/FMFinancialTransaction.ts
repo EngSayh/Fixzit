@@ -40,7 +40,8 @@ const FMFinancialTransactionSchema = new Schema(
     // orgId: added by plugin
 
     // Transaction Identification
-    transactionNumber: { type: String, required: true, unique: true },
+    // NOTE: Uniqueness enforced at org level via compound index below
+    transactionNumber: { type: String, required: true },
     type: { type: String, enum: TransactionType, required: true },
     status: {
       type: String,
@@ -169,7 +170,11 @@ FMFinancialTransactionSchema.plugin(encryptionPlugin, {
 });
 
 // Indexes for performance
-FMFinancialTransactionSchema.index({ orgId: 1, transactionNumber: 1 });
+// Org-scoped unique index for transaction numbers (prevents cross-tenant collisions)
+FMFinancialTransactionSchema.index(
+  { orgId: 1, transactionNumber: 1 },
+  { unique: true },
+);
 FMFinancialTransactionSchema.index({ orgId: 1, workOrderId: 1 });
 FMFinancialTransactionSchema.index({
   orgId: 1,
