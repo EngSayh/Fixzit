@@ -257,13 +257,14 @@ async function createBackup(
   if (totalBacked > 0) {
     // Add TTL index (24h) to auto-cleanup backup collections
     // SECURITY: Prevents plaintext PII from lingering indefinitely
+    // NOTE: Use _backupCreatedAt (not createdAt) to preserve original document timestamps for audit accuracy on restore
     try {
       await backupCollection.createIndex(
-        { createdAt: 1 },
+        { _backupCreatedAt: 1 },
         { expireAfterSeconds: 24 * 60 * 60 } // 24 hours
       );
-      // Add createdAt timestamp for TTL tracking
-      await backupCollection.updateMany({}, { $set: { createdAt: new Date() } });
+      // Add _backupCreatedAt timestamp for TTL tracking (preserves original createdAt)
+      await backupCollection.updateMany({}, { $set: { _backupCreatedAt: new Date() } });
       logger.info(`[FINANCE PII MIGRATION] Backup TTL set (24h auto-cleanup): ${backupName}`);
     } catch (ttlError) {
       // SECURITY: TTL failure means plaintext PII could persist indefinitely
@@ -385,63 +386,74 @@ async function restoreFromBackup(
     );
   }
 
-  if (orgId && isOrgScopedBackup) {
-    // Org-scoped restore: only delete and restore for this org
-    logger.info(
-      `[FINANCE PII MIGRATION] Performing org-scoped restore for org: ${orgId}`,
-    );
-    await targetCollection.deleteMany({ orgId });
-  } else if (orgId) {
-    // Restoring from global backup but only for specific org
-    logger.info(
-      `[FINANCE PII MIGRATION] Restoring from global backup, filtering to org: ${orgId}`,
-    );
-    await targetCollection.deleteMany({ orgId });
-  } else {
-    // Full restore: delete all documents that exist in the backup by orgId
-    // Stream to get unique orgIds without loading all docs
-    const orgIdsSet = new Set<string>();
-    const orgCursor = backupCollection.find({}, { projection: { orgId: 1 } });
-    for await (const doc of orgCursor) {
-      if (doc.orgId) {
-        orgIdsSet.add(doc.orgId as string);
-      }
-    }
-
-    for (const backupOrgId of orgIdsSet) {
-      await targetCollection.deleteMany({ orgId: backupOrgId });
-    }
-  }
-
-  // Stream restore in batches to avoid memory issues
+  // Use MongoDB session for atomic rollback to prevent partial data loss on failure
+  const session = await mongoose.startSession();
   let totalRestored = 0;
-  let batch: mongoose.mongo.Document[] = [];
 
-  // Apply org filter if restoring from global backup with org scope
-  const restoreFilter =
-    orgId && !isOrgScopedBackup ? { orgId } : {};
-  const cursor = backupCollection.find(restoreFilter);
-
-  for await (const doc of cursor) {
-    batch.push(doc);
-
-    if (batch.length >= BACKUP_BATCH_SIZE) {
-      await targetCollection.insertMany(batch);
-      totalRestored += batch.length;
-      batch = [];
-
-      if (totalRestored % 2000 === 0) {
+  try {
+    await session.withTransaction(async () => {
+      if (orgId && isOrgScopedBackup) {
+        // Org-scoped restore: only delete and restore for this org
         logger.info(
-          `[FINANCE PII MIGRATION] Restore progress: ${totalRestored} docs`,
+          `[FINANCE PII MIGRATION] Performing org-scoped restore for org: ${orgId}`,
         );
-      }
-    }
-  }
+        await targetCollection.deleteMany({ orgId }, { session });
+      } else if (orgId) {
+        // Restoring from global backup but only for specific org
+        logger.info(
+          `[FINANCE PII MIGRATION] Restoring from global backup, filtering to org: ${orgId}`,
+        );
+        await targetCollection.deleteMany({ orgId }, { session });
+      } else {
+        // Full restore: delete all documents that exist in the backup by orgId
+        // Stream to get unique orgIds without loading all docs
+        const orgIdsSet = new Set<string>();
+        const orgCursor = backupCollection.find({}, { projection: { orgId: 1 } });
+        for await (const doc of orgCursor) {
+          if (doc.orgId) {
+            orgIdsSet.add(doc.orgId as string);
+          }
+        }
 
-  // Insert remaining batch
-  if (batch.length > 0) {
-    await targetCollection.insertMany(batch);
-    totalRestored += batch.length;
+        for (const backupOrgId of orgIdsSet) {
+          await targetCollection.deleteMany({ orgId: backupOrgId }, { session });
+        }
+      }
+
+      // Stream restore in batches to avoid memory issues
+      let batch: mongoose.mongo.Document[] = [];
+
+      // Apply org filter if restoring from global backup with org scope
+      const restoreFilter =
+        orgId && !isOrgScopedBackup ? { orgId } : {};
+      const cursor = backupCollection.find(restoreFilter);
+
+      for await (const doc of cursor) {
+        // Remove TTL marker field before restoring (preserves original createdAt)
+        const { _backupCreatedAt, ...cleanDoc } = doc as mongoose.mongo.Document & { _backupCreatedAt?: Date };
+        batch.push(cleanDoc);
+
+        if (batch.length >= BACKUP_BATCH_SIZE) {
+          await targetCollection.insertMany(batch, { session, ordered: false });
+          totalRestored += batch.length;
+          batch = [];
+
+          if (totalRestored % 2000 === 0) {
+            logger.info(
+              `[FINANCE PII MIGRATION] Restore progress: ${totalRestored} docs`,
+            );
+          }
+        }
+      }
+
+      // Insert remaining batch
+      if (batch.length > 0) {
+        await targetCollection.insertMany(batch, { session, ordered: false });
+        totalRestored += batch.length;
+      }
+    });
+  } finally {
+    await session.endSession();
   }
 
   // Warn if no documents were restored for the target org
@@ -497,8 +509,25 @@ async function migrateCollection(
       toObject: () => Record<string, unknown>;
       save: () => Promise<unknown>;
     };
-    const plainDoc = docObj.toObject() as Record<string, unknown>;
-    const mutated = encryptDocument(plainDoc, targets, stats);
+    
+    // Per-document error handling: catch encryption errors to continue processing other documents
+    // This prevents a single malformed record from halting the entire migration
+    let plainDoc: Record<string, unknown>;
+    let mutated: boolean;
+    
+    try {
+      plainDoc = docObj.toObject() as Record<string, unknown>;
+      mutated = encryptDocument(plainDoc, targets, stats);
+    } catch (encryptErr) {
+      stats.errors++;
+      stats.failedIds.push(docObj._id.toString());
+      logger.error(`${prefix}[FINANCE PII MIGRATION] Encryption failed for doc`, {
+        docId: docObj._id.toString(),
+        error: encryptErr,
+      });
+      stats.processed++;
+      continue; // Continue with next document instead of aborting
+    }
 
     if (mutated) {
       stats.encrypted++;
