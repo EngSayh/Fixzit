@@ -5,6 +5,7 @@ import Google from 'next-auth/providers/google';
 import Apple from 'next-auth/providers/apple';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
+import { getEnv } from '@/lib/env';
 import { logger } from '@/lib/logger';
 import { otpSessionStore } from '@/lib/otp-store';
 import type { UserRoleType } from '@/types/user';
@@ -43,8 +44,11 @@ function redactIdentifier(identifier: string): string {
 }
 
 // Validate required environment variables at startup
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+// Use getEnv() with alias support for Vercel naming conventions:
+// - GOOGLE_CLIENT_ID aliases: OAUTH_CLIENT_GOOGLE_ID
+// - GOOGLE_CLIENT_SECRET aliases: OAUTH_CLIENT_GOOGLE_SECRET, OAUTH_CLIENT_GOOGLE
+const GOOGLE_CLIENT_ID = getEnv('GOOGLE_CLIENT_ID');
+const GOOGLE_CLIENT_SECRET = getEnv('GOOGLE_CLIENT_SECRET');
 const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID;
 const APPLE_CLIENT_SECRET = process.env.APPLE_CLIENT_SECRET;
 // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
