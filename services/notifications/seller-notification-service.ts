@@ -1,3 +1,4 @@
+import { getEnv } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { sendSMS as sendSMSViaService } from "@/lib/sms";
@@ -179,7 +180,9 @@ async function sendEmail(
   body: string,
   locale: Locale,
 ): Promise<void> {
-  if (!process.env.SENDGRID_API_KEY) {
+  // Use getEnv with alias support for Vercel naming conventions
+  const sendgridApiKey = getEnv("SENDGRID_API_KEY");
+  if (!sendgridApiKey) {
     logger.warn("[SellerNotification] SendGrid not configured, skipping email");
     return;
   }
@@ -198,7 +201,7 @@ async function sendEmail(
 
   try {
     const sgMail = (await import("@sendgrid/mail")).default;
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    sgMail.setApiKey(sendgridApiKey);
 
     await sgMail.send({
       to,

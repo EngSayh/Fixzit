@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto"; // Use built-in crypto for collision-resistant UUIDs
 
 import { dbConnect } from "@/db/mongoose";
+import { getEnv } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { sendBulkSMS, withTwilioResilience } from "@/lib/sms";
 import {
@@ -873,12 +874,14 @@ async function sendEmailNotifications(
     recipientCount: recipients.length,
   });
 
-  if (!process.env.SENDGRID_API_KEY) {
-    throw new Error("SendGrid not configured");
+  // Use getEnv with alias support for Vercel naming conventions
+  const sendgridApiKey = getEnv("SENDGRID_API_KEY");
+  if (!sendgridApiKey) {
+    throw new Error("SendGrid not configured (SENDGRID_API_KEY, SEND_GRID, or SEND_GRID_EMAIL_FIXZIT_TOKEN)");
   }
 
   const sgMail = (await import("@sendgrid/mail")).default;
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  sgMail.setApiKey(sendgridApiKey);
 
   const emails = recipients
     .map((r) => r.email)
