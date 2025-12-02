@@ -35,6 +35,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // STRICT v4.1 FIX: Validate token type to prevent access token replay as refresh
+    if (payload.type && payload.type !== "refresh") {
+      logger.warn("[auth/refresh] Invalid token type", { type: payload.type });
+      return NextResponse.json({ error: "Invalid token type" }, { status: 401 });
+    }
+
     // Verify session is still valid using NextAuth v5 auth()
     const session = await auth();
     if (!session || session.user?.id !== payload.sub) {
@@ -60,6 +66,7 @@ export async function POST(req: NextRequest) {
     const newRefresh = jwt.sign(
       {
         sub: session.user?.id,
+        type: "refresh",
         // Add jti (JWT ID) for potential blacklisting in future
         jti: crypto.randomUUID(),
       },
