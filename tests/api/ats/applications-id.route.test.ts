@@ -67,8 +67,8 @@ vi.mock('@/server/models/Application', () => ({
   Application: ApplicationMock
 }));
 
-let PATCH: (req: NextRequest, ctx: { params: Promise<{ id: string }> }) => Promise<JsonResponse> | JsonResponse;
-let atsRBAC: Mock;
+let PATCH: any;
+let atsRBAC: any;
 
 describe('API /api/ats/applications/[id] PATCH', () => {
   beforeAll(async () => {

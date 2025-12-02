@@ -726,7 +726,10 @@ export const authConfig = {
     updateAge: 5 * 60,
     generateSessionToken: () => {
       // Short-lived session token; actual refresh handled via /api/auth/refresh cookies
-      return crypto.randomUUID();
+      if (typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.randomUUID === 'function') {
+        return globalThis.crypto.randomUUID();
+      }
+      return Math.random().toString(36).slice(2) + Date.now().toString(36);
     },
   },
   secret: NEXTAUTH_SECRET,

@@ -90,8 +90,18 @@ export async function POST(req: NextRequest) {
 
     const email = tokenResult.email;
 
+    // SECURITY: Resolve default organization for public auth flow
+    // Password resets should be scoped to the default public org
+    const resolvedOrgId =
+      process.env.PUBLIC_ORG_ID ||
+      process.env.TEST_ORG_ID ||
+      process.env.DEFAULT_ORG_ID;
+
     await connectToDatabase();
-    const user = await User.findOne({ email });
+    // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
+    const user = resolvedOrgId
+      ? await User.findOne({ orgId: resolvedOrgId, email })
+      : await User.findOne({ email }); // Fallback if no orgId configured (dev mode)
 
     if (!user) {
       // Don't reveal if user exists

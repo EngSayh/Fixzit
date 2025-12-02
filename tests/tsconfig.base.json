@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.vitest.json",
+  "compilerOptions": {
+    "types": [
+      "vitest/globals",
+      "vitest/importMeta",
+      "@testing-library/jest-dom",
+      "node"
+    ]
+  }
+}

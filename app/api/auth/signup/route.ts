@@ -145,8 +145,12 @@ export async function POST(req: NextRequest) {
     const normalizedEmail = body.email.toLowerCase();
     const hashedPassword = await bcrypt.hash(body.password, 12);
 
-    // ✅ FIX: Pre-check for existing user (good for a fast, clean error)
-    const existingUser = await User.findOne({ email: normalizedEmail });
+    // ✅ SECURITY FIX: Pre-check for existing user SCOPED by orgId
+    // This prevents cross-tenant information disclosure (SEC-001 pattern)
+    const existingUser = await User.findOne({
+      orgId: resolvedOrgId,
+      email: normalizedEmail,
+    });
     if (existingUser) {
       return duplicateKeyError("An account with this email already exists.");
     }
@@ -232,9 +236,14 @@ export async function POST(req: NextRequest) {
           if (!secret) return { sent: false, reason: "not_configured" };
           
           const token = signVerificationToken(normalizedEmail, secret);
+          // SECURITY: Ensure VERCEL_URL has https:// scheme for production
+          const vercelUrl = process.env.VERCEL_URL;
+          const normalizedVercelUrl = vercelUrl 
+            ? (vercelUrl.startsWith("http") ? vercelUrl : `https://${vercelUrl}`)
+            : undefined;
           const origin =
             process.env.NEXT_PUBLIC_APP_URL ||
-            process.env.VERCEL_URL ||
+            normalizedVercelUrl ||
             new URL(req.url).origin;
           const verificationLink = buildVerificationLink(origin, token);
           

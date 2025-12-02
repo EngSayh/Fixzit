@@ -58,8 +58,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // SECURITY: Resolve default organization for public auth flow
+    const resolvedOrgId =
+      process.env.PUBLIC_ORG_ID ||
+      process.env.TEST_ORG_ID ||
+      process.env.DEFAULT_ORG_ID;
+
     await connectToDatabase();
-    const user = await User.findOne({ email }).lean();
+    // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
+    const user = resolvedOrgId
+      ? await User.findOne({ orgId: resolvedOrgId, email }).lean()
+      : await User.findOne({ email }).lean(); // Fallback if no orgId configured (dev mode)
 
     // Always return success to prevent email enumeration
     const successResponse = { 
@@ -82,9 +91,14 @@ export async function POST(req: NextRequest) {
 
     // Generate password reset token
     const token = signPasswordResetToken(email, secret);
+    // SECURITY: Ensure VERCEL_URL has https:// scheme for production
+    const vercelUrl = process.env.VERCEL_URL;
+    const normalizedVercelUrl = vercelUrl 
+      ? (vercelUrl.startsWith("http") ? vercelUrl : `https://${vercelUrl}`)
+      : undefined;
     const origin =
       process.env.NEXT_PUBLIC_APP_URL ||
-      process.env.VERCEL_URL ||
+      normalizedVercelUrl ||
       req.nextUrl.origin;
     const resetLink = passwordResetLink(origin, token);
 

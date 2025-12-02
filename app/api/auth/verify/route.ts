@@ -29,14 +29,29 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // SECURITY: Resolve default organization for public auth flow
+  const resolvedOrgId =
+    process.env.PUBLIC_ORG_ID ||
+    process.env.TEST_ORG_ID ||
+    process.env.DEFAULT_ORG_ID;
+
   await connectToDatabase();
-  const updated = await User.findOneAndUpdate(
-    { email: result.email.toLowerCase() },
-    { $set: { emailVerifiedAt: new Date() } },
-    { new: true },
-  )
-    .select("email emailVerifiedAt")
-    .lean();
+  // SECURITY FIX: Scope findOneAndUpdate by orgId to prevent cross-tenant attacks (SEC-001)
+  const updated = resolvedOrgId
+    ? await User.findOneAndUpdate(
+        { orgId: resolvedOrgId, email: result.email.toLowerCase() },
+        { $set: { emailVerifiedAt: new Date() } },
+        { new: true },
+      )
+        .select("email emailVerifiedAt")
+        .lean()
+    : await User.findOneAndUpdate(
+        { email: result.email.toLowerCase() },
+        { $set: { emailVerifiedAt: new Date() } },
+        { new: true },
+      )
+        .select("email emailVerifiedAt")
+        .lean();
 
   if (!updated) {
     return NextResponse.json({ error: "not found" }, { status: 404 });

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "api/ats/**/*.ts",
+    "unit/ats/**/*.ts",
+    "integration/ats/**/*.ts",
+    "../types/vitest.d.ts",
+    "../types/**/*.d.ts"
+  ]
+}

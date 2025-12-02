@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "api/marketplace/**/*.ts",
+    "unit/components/marketplace/**/*.ts",
+    "integration/marketplace/**/*.ts",
+    "../types/vitest.d.ts",
+    "../types/**/*.d.ts"
+  ]
+}

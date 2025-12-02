@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "unit/finance/**/*.ts",
+    "../types/vitest.d.ts",
+    "../types/**/*.d.ts"
+  ]
+}

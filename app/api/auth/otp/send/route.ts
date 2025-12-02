@@ -425,9 +425,19 @@ export async function POST(request: NextRequest) {
       const { User } = await import("@/server/models/User");
       const bcrypt = await import("bcryptjs");
 
+      // SECURITY: Resolve default organization for public auth flow
+      const resolvedOrgId =
+        process.env.PUBLIC_ORG_ID ||
+        process.env.TEST_ORG_ID ||
+        process.env.DEFAULT_ORG_ID;
+
       if (loginType === "personal") {
-        user = await User.findOne({ email: loginIdentifier });
+        // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
+        user = resolvedOrgId
+          ? await User.findOne({ orgId: resolvedOrgId, email: loginIdentifier })
+          : await User.findOne({ email: loginIdentifier });
       } else {
+        // Corporate login uses username + company code (already scoped by company)
         user = await User.findOne({
           username: loginIdentifier,
           code: normalizedCompanyCode,

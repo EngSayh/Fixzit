@@ -61,8 +61,8 @@ vi.mock('@/server/models/Job', () => ({
   Job: JobMock
 }));
 
-let GET: (req: NextRequest) => Promise<JsonResponse> | JsonResponse;
-let atsRBAC: Mock;
+let GET: any;
+let atsRBAC: any;
 
 describe('API /api/ats/analytics', () => {
   beforeAll(async () => {

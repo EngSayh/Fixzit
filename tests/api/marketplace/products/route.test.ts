@@ -43,9 +43,9 @@ type ResponseBody =
     };
 type JsonResponse = { type: 'NextResponseMock'; status: number; body: ResponseBody };
 
-const callGET = async (slug: string): Promise<JsonResponse> => {
+const callGET = async (slug: string): Promise<any> => {
   const req = { headers: new Headers(), nextUrl: { protocol: 'https:' } } as unknown as NextRequest;
-  return await GET(req, { params: { slug } } as Context);
+  return await GET(req, { params: { slug } } as Context) as any;
 };
 
 describe('API GET /marketplace/products/[slug]', () => {

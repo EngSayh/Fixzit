@@ -55,8 +55,13 @@ export async function GET() {
     // Connect to database
     await connectToDatabase();
 
-    // Fetch user by email from session
-    const user = (await User.findOne({ email: session.user.email })
+    // Fetch user by email from session, scoped by orgId if available
+    // SECURITY FIX: Scope by orgId to ensure tenant isolation (SEC-001)
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const query = sessionOrgId
+      ? { orgId: sessionOrgId, email: session.user.email }
+      : { email: session.user.email }; // Fallback for sessions without orgId
+    const user = (await User.findOne(query)
       .select("-password -__v") // Exclude sensitive fields
       .lean()) as unknown as UserProfileDocument | null;
 
@@ -124,9 +129,14 @@ export async function PATCH(request: NextRequest) {
     // Connect to database
     await connectToDatabase();
 
-    // Update user
+    // Update user, scoped by orgId if available
+    // SECURITY FIX: Scope by orgId to ensure tenant isolation (SEC-001)
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const query = sessionOrgId
+      ? { orgId: sessionOrgId, email: session.user.email }
+      : { email: session.user.email }; // Fallback for sessions without orgId
     const user = (await User.findOneAndUpdate(
-      { email: session.user.email },
+      query,
       { $set: updates },
       { new: true, select: "-password -__v" },
     ).lean()) as unknown as UserProfileDocument | null;
