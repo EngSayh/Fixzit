@@ -6,8 +6,8 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { sendOTP, isValidSaudiPhone, isSMSDevModeEnabled } from "@/lib/sms";
 import { logCommunication } from "@/lib/communication-logger";
 import {
-  otpStore,
-  rateLimitStore,
+  redisOtpStore,
+  redisRateLimitStore,
   OTP_EXPIRY_MS,
   MAX_ATTEMPTS,
   RATE_LIMIT_WINDOW_MS,
@@ -281,29 +281,13 @@ function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Check rate limit
-function checkRateLimit(identifier: string): {
+// Check rate limit (ASYNC for multi-instance Redis support)
+async function checkRateLimit(identifier: string): Promise<{
   allowed: boolean;
   remaining: number;
-} {
-  const now = Date.now();
-  const limit = rateLimitStore.get(identifier);
-
-  if (!limit || now > limit.resetAt) {
-    // Reset rate limit
-    rateLimitStore.set(identifier, {
-      count: 1,
-      resetAt: now + RATE_LIMIT_WINDOW_MS,
-    });
-    return { allowed: true, remaining: MAX_SENDS_PER_WINDOW - 1 };
-  }
-
-  if (limit.count >= MAX_SENDS_PER_WINDOW) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  limit.count += 1;
-  return { allowed: true, remaining: MAX_SENDS_PER_WINDOW - limit.count };
+}> {
+  // Use atomic Redis increment for distributed rate limiting
+  return redisRateLimitStore.increment(identifier, MAX_SENDS_PER_WINDOW, RATE_LIMIT_WINDOW_MS);
 }
 
 /**
@@ -394,8 +378,8 @@ export async function POST(request: NextRequest) {
 
     const otpKey = buildOtpKey(loginIdentifier, normalizedCompanyCode);
 
-    // 4. Check rate limit using normalized identifier
-    const rateLimitResult = checkRateLimit(otpKey);
+    // 4. Check rate limit using normalized identifier (ASYNC for multi-instance)
+    const rateLimitResult = await checkRateLimit(otpKey);
     if (!rateLimitResult.allowed) {
       logger.warn("[OTP] Rate limit exceeded", { identifier: redactIdentifier(otpKey) });
       return NextResponse.json(
@@ -613,8 +597,8 @@ export async function POST(request: NextRequest) {
     const otp = generateOTP();
     const expiresAt = Date.now() + OTP_EXPIRY_MS;
 
-    // 11. Store OTP (in production, use Redis or database)
-    otpStore.set(otpKey, {
+    // 11. Store OTP in Redis for multi-instance support
+    await redisOtpStore.set(otpKey, {
       otp,
       expiresAt,
       attempts: 0,
@@ -653,7 +637,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!smsResult.success) {
-      otpStore.delete(otpKey);
+      await redisOtpStore.delete(otpKey);
       logger.error("[OTP] Failed to send SMS", {
         userId: user._id?.toString?.() || loginIdentifier,
         error: smsResult.error,

@@ -6,9 +6,9 @@ import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
 import {
-  otpStore,
+  redisOtpStore,
+  redisOtpSessionStore,
   MAX_ATTEMPTS,
-  otpSessionStore,
   OTP_SESSION_EXPIRY_MS,
 } from "@/lib/otp-store";
 import {
@@ -19,6 +19,7 @@ import {
 } from "@/lib/otp-utils";
 import { ACCESS_COOKIE, ACCESS_TTL_SECONDS, REFRESH_COOKIE, REFRESH_TTL_SECONDS } from "@/app/api/auth/refresh/route";
 import jwt from "jsonwebtoken";
+import { persistRefreshJti } from "@/lib/refresh-token-store";
 
 // Validation schema
 const VerifyOTPSchema = z.object({
@@ -105,8 +106,8 @@ export async function POST(request: NextRequest) {
       empOk ? normalizedCompanyCode : null,
     );
 
-    // 3. Retrieve OTP data from store
-    const otpData = otpStore.get(otpKey);
+    // 3. Retrieve OTP data from store (ASYNC for multi-instance Redis support)
+    const otpData = await redisOtpStore.get(otpKey);
 
     if (!otpData) {
       logger.warn("[OTP] No OTP found for identifier", {
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
 
     // 4. Check if OTP expired
     if (Date.now() > otpData.expiresAt) {
-      otpStore.delete(otpKey);
+      await redisOtpStore.delete(otpKey);
       logger.warn("[OTP] OTP expired", { identifier: redactIdentifier(otpKey) });
       return NextResponse.json(
         {
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest) {
 
     // 5. Check attempts limit
     if (otpData.attempts >= MAX_ATTEMPTS) {
-      otpStore.delete(otpKey);
+      await redisOtpStore.delete(otpKey);
       logger.warn("[OTP] Too many attempts", { identifier: redactIdentifier(otpKey) });
       return NextResponse.json(
         {
@@ -150,6 +151,8 @@ export async function POST(request: NextRequest) {
     // 6. Verify OTP
     if (otp !== otpData.otp) {
       otpData.attempts += 1;
+      // STRICT v4.1: Persist attempt increment to Redis for multi-instance consistency
+      await redisOtpStore.update(otpKey, otpData);
       const remainingAttempts = MAX_ATTEMPTS - otpData.attempts;
 
       logger.warn("[OTP] Incorrect OTP", {
@@ -175,11 +178,11 @@ export async function POST(request: NextRequest) {
     });
 
     // 8. Clean up OTP from store
-    otpStore.delete(otpKey);
+    await redisOtpStore.delete(otpKey);
 
     // 9. Generate temporary OTP login session token (server-side store, not user-modifiable)
     const sessionToken = randomBytes(32).toString("hex");
-    otpSessionStore.set(sessionToken, {
+    await redisOtpSessionStore.set(sessionToken, {
       userId: otpData.userId,
       identifier: otpKey,
       expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
@@ -224,15 +227,17 @@ export async function POST(request: NextRequest) {
       { expiresIn: ACCESS_TTL_SECONDS },
     );
     // Add jti and type for consistency with refresh/post-login routes
+    const newJti = randomUUID();
     const refreshToken = jwt.sign(
       {
         sub: otpData.userId,
         type: "refresh",
-        jti: randomUUID(),
+        jti: newJti,
       },
       secret,
       { expiresIn: REFRESH_TTL_SECONDS },
     );
+    await persistRefreshJti(otpData.userId, newJti, REFRESH_TTL_SECONDS);
 
     const res = NextResponse.json(
       {

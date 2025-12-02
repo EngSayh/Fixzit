@@ -1,37 +1,68 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import jwt from "jsonwebtoken";
+import { connectToDatabase } from "@/lib/mongodb-unified";
+import { User } from "@/server/models/User";
+import { UserStatus } from "@/types/user";
 import {
   ACCESS_COOKIE,
   ACCESS_TTL_SECONDS,
   REFRESH_COOKIE,
   REFRESH_TTL_SECONDS,
 } from "@/app/api/auth/refresh/route";
+import { persistRefreshJti } from "@/lib/refresh-token-store";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) {
+    logger.warn("[auth/post-login] No session found", { hasSession: false });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
   // MUST align with auth.config.ts to prevent environment drift
   const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
   if (!secret) {
+    logger.error("[auth/post-login] NEXTAUTH_SECRET/AUTH_SECRET not configured", {
+      severity: "ops_critical",
+      hint: "Set NEXTAUTH_SECRET or AUTH_SECRET env var in Vercel/production",
+    });
     return NextResponse.json({ error: "Not configured" }, { status: 500 });
   }
 
   const sub = session.user?.id;
   if (!sub || typeof sub !== "string") {
+    logger.warn("[auth/post-login] Invalid session: missing user id", {
+      hasSession: !!session,
+      hasUserId: !!sub,
+      userIdType: typeof sub,
+    });
     return NextResponse.json(
       { error: "Invalid session: missing user id" },
       { status: 401 },
     );
   }
 
+  // SECURITY: Revalidate user status/role/org from DB to prevent issuing tokens for disabled users or stale roles
+  await connectToDatabase();
+  const user = await User.findById(sub)
+    .select("status professional.role orgId")
+    .lean() as { status?: string; professional?: { role?: string }; orgId?: string } | null;
+
+  if (!user || user.status !== UserStatus.ACTIVE) {
+    logger.warn("[auth/post-login] User inactive or not found during token issuance", {
+      userId: sub,
+      status: user?.status,
+    });
+    return NextResponse.json(
+      { error: "Account not active" },
+      { status: 401 },
+    );
+  }
+
   const accessPayload: Record<string, unknown> = { sub };
-  if (session.user?.role) accessPayload.role = session.user.role;
-  const orgId = (session.user as { orgId?: string })?.orgId;
-  if (orgId) accessPayload.orgId = orgId;
+  if (user.professional?.role) accessPayload.role = user.professional.role;
+  if (user.orgId) accessPayload.orgId = user.orgId;
 
   const accessToken = jwt.sign(accessPayload, secret, {
     expiresIn: ACCESS_TTL_SECONDS,
@@ -43,6 +74,7 @@ export async function POST(req: NextRequest) {
     secret,
     { expiresIn: REFRESH_TTL_SECONDS },
   );
+  await persistRefreshJti(sub, (jwt.decode(refreshToken) as jwt.JwtPayload)?.jti as string, REFRESH_TTL_SECONDS);
 
   const res = NextResponse.json({ ok: true });
   const secure =
@@ -62,6 +94,12 @@ export async function POST(req: NextRequest) {
     secure,
     path: "/",
     maxAge: REFRESH_TTL_SECONDS,
+  });
+
+  logger.info("[auth/post-login] Tokens issued successfully", {
+    userId: sub,
+    hasOrgId: !!user?.orgId,
+    hasRole: !!user?.professional?.role,
   });
   return res;
 }
