@@ -25,6 +25,7 @@ describe("Claims API - Core Functionality", () => {
   let testBuyerId: ObjectId;
   let testSellerId: ObjectId;
   let testClaimId: ObjectId;
+  let testOrgId: ObjectId;
 
   beforeAll(async () => {
     const uri =
@@ -43,7 +44,7 @@ describe("Claims API - Core Functionality", () => {
     await db.collection("claims").deleteMany({ testData: true });
     await db.collection("orders").deleteMany({ testData: true });
     await db.collection("users").deleteMany({ testData: true });
-    const orgId = new ObjectId();
+    testOrgId = new ObjectId();
     const buyerCode = new ObjectId().toHexString();
     const sellerCode = new ObjectId().toHexString();
 
@@ -51,7 +52,7 @@ describe("Claims API - Core Functionality", () => {
     const buyerResult = await db.collection("users").insertOne({
       email: "buyer@test.com",
       role: "tenant",
-      orgId,
+      orgId: testOrgId,
       code: buyerCode,
       username: "buyer_user",
       testData: true,
@@ -62,7 +63,7 @@ describe("Claims API - Core Functionality", () => {
     const sellerResult = await db.collection("users").insertOne({
       email: "seller@test.com",
       role: "vendor",
-      orgId,
+      orgId: testOrgId,
       code: sellerCode,
       username: "seller_user",
       testData: true,
@@ -70,10 +71,11 @@ describe("Claims API - Core Functionality", () => {
     });
     testSellerId = sellerResult.insertedId;
 
-    // Create test order
+    // Create test order with orgId for multi-tenant isolation
     const orderResult = await db.collection("orders").insertOne({
       buyerId: testBuyerId,
       sellerId: testSellerId,
+      orgId: testOrgId,
       items: [
         {
           productId: new ObjectId(),
@@ -107,6 +109,7 @@ describe("Claims API - Core Functionality", () => {
         headers: {
           "Content-Type": "application/json",
           "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
         },
         body: JSON.stringify(claim),
       });
@@ -131,6 +134,7 @@ describe("Claims API - Core Functionality", () => {
         headers: {
           "Content-Type": "application/json",
           "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
         },
         body: JSON.stringify(claim),
       });
@@ -164,6 +168,7 @@ describe("Claims API - Core Functionality", () => {
         headers: {
           "Content-Type": "application/json",
           "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
         },
         body: JSON.stringify(claim),
       });
@@ -198,6 +203,7 @@ describe("Claims API - Core Functionality", () => {
         headers: {
           "Content-Type": "application/json",
           "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
         },
         body: JSON.stringify(claim),
       });
@@ -221,6 +227,7 @@ describe("Claims API - Core Functionality", () => {
         headers: {
           "Content-Type": "application/json",
           "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
         },
         body: JSON.stringify(claim),
       });
@@ -260,6 +267,7 @@ describe("Claims API - Core Functionality", () => {
           method: "POST",
           headers: {
             "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
           body: formData,
         },
@@ -286,6 +294,7 @@ describe("Claims API - Core Functionality", () => {
           method: "POST",
           headers: {
             "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
           body: formData,
         },
@@ -309,6 +318,7 @@ describe("Claims API - Core Functionality", () => {
           method: "POST",
           headers: {
             "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
           body: formData,
         },
@@ -346,6 +356,7 @@ describe("Claims API - Core Functionality", () => {
           method: "POST",
           headers: {
             "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
           body: formData,
         },
@@ -382,6 +393,7 @@ describe("Claims API - Core Functionality", () => {
           headers: {
             "Content-Type": "application/json",
             "x-user-id": testSellerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
           body: JSON.stringify({
             action: "accept",
@@ -408,6 +420,7 @@ describe("Claims API - Core Functionality", () => {
           headers: {
             "Content-Type": "application/json",
             "x-user-id": testSellerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
           body: JSON.stringify({
             action: "dispute",
@@ -447,6 +460,7 @@ describe("Claims API - Core Functionality", () => {
           headers: {
             "Content-Type": "application/json",
             "x-user-id": testSellerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
           body: JSON.stringify({
             action: "dispute",
@@ -467,7 +481,8 @@ describe("Claims API - Core Functionality", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-user-id": testBuyerId.toString(), // Wrong user
+            "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(), // Wrong user
           },
           body: JSON.stringify({
             action: "accept",
@@ -488,6 +503,7 @@ describe("Claims API - Core Functionality", () => {
         email: "admin@fixzit.co",
         // 🔒 SECURITY FIX: Use standard role name from UserRole enum (SUPER_ADMIN not SUPERADMIN)
         role: "SUPER_ADMIN",
+        orgId: testOrgId,
         testData: true,
       });
       adminId = adminResult.insertedId;
@@ -519,6 +535,8 @@ describe("Claims API - Core Functionality", () => {
           headers: {
             "Content-Type": "application/json",
             "x-user-id": adminId.toString(),
+            "x-user-role": "SUPER_ADMIN",
+            "x-user-org-id": testOrgId.toString(),
           },
           body: JSON.stringify({
             decision: "approve",
@@ -542,6 +560,8 @@ describe("Claims API - Core Functionality", () => {
           headers: {
             "Content-Type": "application/json",
             "x-user-id": adminId.toString(),
+            "x-user-role": "SUPER_ADMIN",
+            "x-user-org-id": testOrgId.toString(),
           },
           body: JSON.stringify({
             decision: "approve",
@@ -565,6 +585,8 @@ describe("Claims API - Core Functionality", () => {
           headers: {
             "Content-Type": "application/json",
             "x-user-id": adminId.toString(),
+            "x-user-role": "SUPER_ADMIN",
+            "x-user-org-id": testOrgId.toString(),
           },
           body: JSON.stringify({
             decision: "reject",
@@ -587,6 +609,7 @@ describe("Claims API - Core Functionality", () => {
           headers: {
             "Content-Type": "application/json",
             "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
           body: JSON.stringify({
             decision: "approve",
@@ -624,6 +647,8 @@ describe("Claims API - Core Functionality", () => {
           headers: {
             "Content-Type": "application/json",
             "x-user-id": adminId.toString(),
+            "x-user-role": "SUPER_ADMIN",
+            "x-user-org-id": testOrgId.toString(),
           },
           body: JSON.stringify({
             decision: "reject",
@@ -668,6 +693,7 @@ describe("Claims API - Core Functionality", () => {
           headers: {
             "Content-Type": "application/json",
             "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
           body: JSON.stringify({
             reasoning: "New evidence discovered",
@@ -708,6 +734,7 @@ describe("Claims API - Core Functionality", () => {
           headers: {
             "Content-Type": "application/json",
             "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
           body: JSON.stringify({
             reasoning: "Too late",
@@ -742,6 +769,7 @@ describe("Claims API - Core Functionality", () => {
           headers: {
             "Content-Type": "application/json",
             "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
           body: JSON.stringify({
             reasoning: "Second appeal",
@@ -791,6 +819,7 @@ describe("Claims API - Core Functionality", () => {
         headers: {
           "Content-Type": "application/json",
           "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
         },
         body: JSON.stringify(claim),
       });
@@ -820,6 +849,7 @@ describe("Claims API - Core Functionality", () => {
         headers: {
           "Content-Type": "application/json",
           "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
         },
         body: JSON.stringify(claim),
       });
@@ -870,6 +900,7 @@ describe("Claims API - Core Functionality", () => {
         {
           headers: {
             "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
         },
       );
@@ -885,6 +916,7 @@ describe("Claims API - Core Functionality", () => {
         {
           headers: {
             "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
         },
       );
@@ -901,6 +933,7 @@ describe("Claims API - Core Functionality", () => {
         {
           headers: {
             "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
         },
       );
@@ -950,6 +983,7 @@ describe("Claims API - Core Functionality", () => {
         {
           headers: {
             "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
         },
       );
@@ -967,6 +1001,7 @@ describe("Claims API - Core Functionality", () => {
         {
           headers: {
             "x-user-id": testBuyerId.toString(),
+          "x-user-org-id": testOrgId.toString(),
           },
         },
       );
@@ -986,6 +1021,7 @@ describe("Claims API - Core Functionality", () => {
         {
           headers: {
             "x-user-id": unauthorizedId.toString(),
+            "x-user-org-id": testOrgId.toString(),
           },
         },
       );
