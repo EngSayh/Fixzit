@@ -68,9 +68,10 @@ const memorySessionStore = new Map<string, OTPLoginSession>();
 let warnedMemoryFallback = false;
 
 /**
- * Check if Redis is available for OTP storage
+ * Check if Redis is available for OTP storage.
+ * Prefixed with underscore to indicate it's reserved for future use.
  */
-function isRedisAvailable(): boolean {
+function _isRedisAvailable(): boolean {
   const client = getRedisClient();
   return client !== null && (client.status === "ready" || client.status === "connecting");
 }
@@ -413,140 +414,17 @@ export const redisOtpSessionStore = {
 // ============================================================================
 // SYNCHRONOUS WRAPPERS (for backward compatibility)
 // ============================================================================
-
-/**
- * Synchronous Map-like interface for OTP store
- * Used for backward compatibility with existing code
- *
- * NOTE: These wrap async operations with best-effort sync behavior.
- * New code should use the async redisOtpStore directly.
- */
-export class SyncOTPStore {
-  private pendingOps = new Map<string, Promise<unknown>>();
-
-  get(identifier: string): OTPData | undefined {
-    // For sync access, check in-memory first, then trigger async update
-    const memData = memoryOtpStore.get(identifier);
-    if (memData && Date.now() > memData.expiresAt) {
-      memoryOtpStore.delete(identifier);
-      return undefined;
-    }
-
-    // Trigger async fetch to populate memory cache
-    if (isRedisAvailable() && !this.pendingOps.has(identifier)) {
-      const op = redisOtpStore.get(identifier).then((data) => {
-        if (data) {
-          memoryOtpStore.set(identifier, data);
-        }
-        this.pendingOps.delete(identifier);
-      });
-      this.pendingOps.set(identifier, op);
-    }
-
-    return memData;
-  }
-
-  set(identifier: string, data: OTPData): void {
-    memoryOtpStore.set(identifier, data);
-
-    // Async persist to Redis
-    if (isRedisAvailable()) {
-      void redisOtpStore.set(identifier, data);
-    }
-  }
-
-  delete(identifier: string): void {
-    memoryOtpStore.delete(identifier);
-
-    // Async delete from Redis
-    if (isRedisAvailable()) {
-      void redisOtpStore.delete(identifier);
-    }
-  }
-
-  entries(): IterableIterator<[string, OTPData]> {
-    return memoryOtpStore.entries();
-  }
-}
-
-/**
- * Synchronous Map-like interface for rate limit store
- */
-export class SyncRateLimitStore {
-  get(identifier: string): RateLimitData | undefined {
-    const memData = memoryRateLimitStore.get(identifier);
-    if (memData && Date.now() > memData.resetAt) {
-      memoryRateLimitStore.delete(identifier);
-      return undefined;
-    }
-    return memData;
-  }
-
-  set(identifier: string, data: RateLimitData): void {
-    memoryRateLimitStore.set(identifier, data);
-
-    if (isRedisAvailable()) {
-      void redisRateLimitStore.set(identifier, data);
-    }
-  }
-
-  entries(): IterableIterator<[string, RateLimitData]> {
-    return memoryRateLimitStore.entries();
-  }
-}
-
-/**
- * Synchronous Map-like interface for OTP session store
- */
-export class SyncOTPSessionStore {
-  private pendingOps = new Map<string, Promise<unknown>>();
-
-  get(token: string): OTPLoginSession | undefined {
-    const memData = memorySessionStore.get(token);
-    if (memData && Date.now() > memData.expiresAt) {
-      memorySessionStore.delete(token);
-      return undefined;
-    }
-
-    // Trigger async fetch
-    if (isRedisAvailable() && !this.pendingOps.has(token)) {
-      const op = redisOtpSessionStore.get(token).then((data) => {
-        if (data) {
-          memorySessionStore.set(token, data);
-        }
-        this.pendingOps.delete(token);
-      });
-      this.pendingOps.set(token, op);
-    }
-
-    return memData;
-  }
-
-  set(token: string, data: OTPLoginSession): void {
-    memorySessionStore.set(token, data);
-
-    if (isRedisAvailable()) {
-      void redisOtpSessionStore.set(token, data);
-    }
-  }
-
-  delete(token: string): void {
-    memorySessionStore.delete(token);
-
-    if (isRedisAvailable()) {
-      void redisOtpSessionStore.delete(token);
-    }
-  }
-
-  entries(): IterableIterator<[string, OTPLoginSession]> {
-    return memorySessionStore.entries();
-  }
-}
-
-// Export singleton instances for sync access
-export const syncOtpStore = new SyncOTPStore();
-export const syncRateLimitStore = new SyncRateLimitStore();
-export const syncOtpSessionStore = new SyncOTPSessionStore();
+// DEPRECATED SYNC WRAPPERS REMOVED
+// ============================================================================
+// The synchronous Map-like wrappers (SyncOTPStore, SyncRateLimitStore,
+// SyncOTPSessionStore) have been removed as they caused race conditions
+// in multi-instance deployments.
+//
+// All code should use the async Redis stores directly:
+// - redisOtpStore
+// - redisRateLimitStore
+// - redisOtpSessionStore
+// ============================================================================
 
 // Cleanup interval for memory stores (fallback mode only)
 if (typeof setInterval !== "undefined") {

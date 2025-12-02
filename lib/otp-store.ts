@@ -12,9 +12,6 @@
  */
 
 import {
-  syncOtpStore,
-  syncRateLimitStore,
-  syncOtpSessionStore,
   // Re-export types
   type OTPData,
   type RateLimitData,
@@ -26,7 +23,7 @@ import {
   RATE_LIMIT_WINDOW_MS,
   MAX_SENDS_PER_WINDOW,
   OTP_SESSION_EXPIRY_MS,
-  // Re-export async stores for new code
+  // Re-export async stores
   redisOtpStore,
   redisRateLimitStore,
   redisOtpSessionStore,
@@ -45,42 +42,12 @@ export {
   OTP_SESSION_EXPIRY_MS,
 };
 
-// Re-export async stores for new code that can use promises
+// Re-export async stores for distributed OTP operations
 export {
   redisOtpStore,
   redisRateLimitStore,
   redisOtpSessionStore,
 };
-
-/**
- * Synchronous OTP store with Map-like interface
- *
- * Uses Redis when available, falls back to in-memory.
- * Maintains backward compatibility with existing sync code.
- *
- * For new code, prefer using redisOtpStore (async) directly.
- */
-export const otpStore = syncOtpStore;
-
-/**
- * Synchronous rate limit store with Map-like interface
- *
- * Uses Redis when available, falls back to in-memory.
- * Maintains backward compatibility with existing sync code.
- *
- * For new code, prefer using redisRateLimitStore (async) directly.
- */
-export const rateLimitStore = syncRateLimitStore;
-
-/**
- * Synchronous OTP session store with Map-like interface
- *
- * Uses Redis when available, falls back to in-memory.
- * Maintains backward compatibility with existing sync code.
- *
- * For new code, prefer using redisOtpSessionStore (async) directly.
- */
-export const otpSessionStore = syncOtpSessionStore;
 
 // NOTE: Cleanup is handled in otp-store-redis.ts
 // The Redis stores use TTL for automatic expiry, memory stores have cleanup interval
