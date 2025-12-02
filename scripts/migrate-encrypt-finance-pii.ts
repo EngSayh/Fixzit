@@ -155,9 +155,9 @@ function encryptDocument(
       continue;
     }
 
-    // Encrypt the value
-    if (typeof value === "string") {
-      const encrypted = encryptField(value, t.path);
+    // Encrypt the value (strings or numbers - numbers get stringified)
+    if (typeof value === "string" || typeof value === "number") {
+      const encrypted = encryptField(String(value), t.path);
       if (encrypted) {
         setNested(doc, t.path, encrypted);
         stats.fields[t.path].encrypted++;

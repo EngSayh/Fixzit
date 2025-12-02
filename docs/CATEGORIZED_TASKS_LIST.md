@@ -107,7 +107,7 @@
 ### 0.6 Finance PII Encryption (Invoices & FMFinancialTransaction)
 
 - **Status**: ✅ COMPLETE (2025-12-01)
-- **Files Modified**: 
+- **Files Modified**:
   - `server/models/Invoice.ts` - encryptionPlugin added
   - `server/models/FMFinancialTransaction.ts` - encryptionPlugin added, **global unique removed** (now compound unique per orgId)
   - `scripts/migrate-encrypt-finance-pii.ts` - migration script with **24h TTL on backups**
@@ -133,6 +133,7 @@
   # Rollback from backup (within 24h window)
   ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts --rollback
   ```
+
 - **Priority**: P0 - CRITICAL (security) ✅ DONE
 - **Last Updated**: 2025-12-01
 

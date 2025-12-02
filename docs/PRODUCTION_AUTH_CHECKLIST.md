@@ -93,14 +93,14 @@ TWILIO_PHONE_NUMBER=+966xxxxxxxxx
 
 For production testing, the designated test phone number is configured in the database:
 
-```
+```text
 Phone: +966552233456
 ```
 
 **Usage**:
-- ✅ This phone number is used by the **Super Admin** for full privileged access
-- ✅ Super admin manages all test users and can update phone numbers as needed
-- ✅ OTP will be sent to this number for authentication
+- ✅ This phone number (+966552233456) is the **Super Admin's designated phone** for full privileged access
+- ✅ Super Admin manages all test users and can update phone numbers as needed
+- ✅ OTP will be sent to this number for Super Admin authentication
 
 ### Fallback Phone (Emergency Use Only)
 
