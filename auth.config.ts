@@ -7,7 +7,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import { getEnv } from '@/lib/env';
 import { logger } from '@/lib/logger';
-import { otpSessionStore } from '@/lib/otp-store';
+import { redisOtpSessionStore } from '@/lib/otp-store';
 import type { UserRoleType } from '@/types/user';
 import type { SubscriptionPlan } from '@/config/navigation';
 // CRITICAL FIX: Use auth-specific types to prevent mongoose from bundling into client
@@ -504,7 +504,8 @@ export const authConfig = {
               return null;
             }
 
-            const session = otpSessionStore.get(otpToken!);
+            // STRICT v4.1: Use async Redis store for multi-instance OTP session validation
+            const session = await redisOtpSessionStore.get(otpToken!);
             if (!session) {
               logger.warn('[NextAuth] OTP session not found or already used', { loginIdentifier: redactIdentifier(loginIdentifier) });
               return null;
@@ -512,7 +513,7 @@ export const authConfig = {
 
             const now = Date.now();
             if (now > session.expiresAt) {
-              otpSessionStore.delete(otpToken!);
+              await redisOtpSessionStore.delete(otpToken!);
               logger.warn('[NextAuth] OTP session expired', { loginIdentifier: redactIdentifier(loginIdentifier) });
               return null;
             }
@@ -521,7 +522,7 @@ export const authConfig = {
               session.userId !== user._id.toString() ||
               session.identifier !== otpIdentifier
             ) {
-              otpSessionStore.delete(otpToken!);
+              await redisOtpSessionStore.delete(otpToken!);
               logger.error('[NextAuth] OTP session mismatch', new Error('OTP session mismatch'), {
                 loginIdentifier: redactIdentifier(loginIdentifier),
                 sessionIdentifier: redactIdentifier(session.identifier),
@@ -529,7 +530,7 @@ export const authConfig = {
               return null;
             }
 
-            otpSessionStore.delete(otpToken!);
+            await redisOtpSessionStore.delete(otpToken!);
           } else if (bypassOTP) {
             logger.info('[NextAuth] OTP bypassed for super admin (dev mode only)', { loginIdentifier: redactIdentifier(loginIdentifier) });
           }
