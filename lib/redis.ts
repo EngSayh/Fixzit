@@ -1,4 +1,3 @@
-import { logger } from "@/lib/logger";
 /**
  * Redis Singleton Connection Pool
  *
@@ -13,11 +12,21 @@ import { logger } from "@/lib/logger";
  * - Automatically reconnects on failure
  * - Gracefully handles Redis unavailability
  *
+ * IMPORTANT: This module uses dynamic require() to avoid bundling ioredis
+ * into Edge/client bundles. The 'dns' module required by ioredis is not
+ * available in Edge runtime.
+ *
  * @module lib/redis
  */
 
-type RedisCtor = typeof import("ioredis")["default"];
-type RedisInstance = InstanceType<RedisCtor>;
+import { logger } from "@/lib/logger";
+
+// Use 'any' for Redis types to avoid importing ioredis at module level
+// which would cause webpack to bundle it for Edge runtime
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RedisCtor = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RedisInstance = any;
 
 let RedisModule: RedisCtor | null = null;
 let redis: RedisInstance | null = null;
@@ -94,19 +103,19 @@ export function getRedisClient(): RedisInstance | null {
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
       enableOfflineQueue: false, // Fail fast if Redis is down
-      retryStrategy(times) {
+      retryStrategy(times: number) {
         // Exponential backoff: 50ms, 100ms, 200ms, 400ms, max 2s
         const delay = Math.min(times * 50, 2000);
         return delay;
       },
-      reconnectOnError(err) {
+      reconnectOnError(err: Error) {
         // Reconnect on specific errors
         const targetErrors = ["READONLY", "ECONNRESET", "ETIMEDOUT"];
         return targetErrors.some((target) => err.message.includes(target));
       },
     });
 
-    redis.on("error", (err) => {
+    redis.on("error", (err: Error) => {
       logger.error("[Redis] Connection error:", {
         message: err.message,
         code: (err as { code?: string }).code,

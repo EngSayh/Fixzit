@@ -17,12 +17,18 @@
  * - ratelimit:otp:{identifier} - Rate limit counters
  * - otpsession:{token} - OTP login sessions
  *
+ * IMPORTANT: This module avoids importing ioredis types at module level
+ * to prevent webpack from bundling ioredis into Edge/client bundles.
+ *
  * @module lib/otp-store-redis
  */
 
 import { logger } from "@/lib/logger";
 import { getRedisClient, safeRedisOp } from "@/lib/redis";
-import type Redis from "ioredis";
+
+// Use 'any' for Redis client type to avoid importing ioredis
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RedisClient = any;
 
 // Re-export types from otp-store for compatibility
 export interface OTPData {
@@ -105,7 +111,7 @@ export const redisOtpStore = {
     const client = getRedisClient();
     if (client) {
       const data = await safeRedisOp(
-        async (c: Redis) => c.get(`${KEY_PREFIX.OTP}${identifier}`),
+        async (c: RedisClient) => c.get(`${KEY_PREFIX.OTP}${identifier}`),
         null
       );
       if (data) {
@@ -138,7 +144,7 @@ export const redisOtpStore = {
     const client = getRedisClient();
     if (client) {
       await safeRedisOp(
-        async (c: Redis) => c.setex(
+        async (c: RedisClient) => c.setex(
           `${KEY_PREFIX.OTP}${identifier}`,
           ttlSec,
           JSON.stringify(data)
@@ -160,7 +166,7 @@ export const redisOtpStore = {
     const client = getRedisClient();
     if (client) {
       await safeRedisOp(
-        async (c: Redis) => c.del(`${KEY_PREFIX.OTP}${identifier}`),
+        async (c: RedisClient) => c.del(`${KEY_PREFIX.OTP}${identifier}`),
         0
       );
       return;
@@ -179,13 +185,13 @@ export const redisOtpStore = {
     if (client) {
       // Get remaining TTL
       const ttl = await safeRedisOp(
-        async (c: Redis) => c.ttl(`${KEY_PREFIX.OTP}${identifier}`),
+        async (c: RedisClient) => c.ttl(`${KEY_PREFIX.OTP}${identifier}`),
         -1
       );
       const ttlSec = ttl > 0 ? ttl : Math.ceil(OTP_EXPIRY_MS / 1000);
 
       await safeRedisOp(
-        async (c: Redis) => c.setex(
+        async (c: RedisClient) => c.setex(
           `${KEY_PREFIX.OTP}${identifier}`,
           ttlSec,
           JSON.stringify(data)
@@ -215,7 +221,7 @@ export const redisRateLimitStore = {
     const client = getRedisClient();
     if (client) {
       const data = await safeRedisOp(
-        async (c: Redis) => c.get(`${KEY_PREFIX.RATE_LIMIT}${identifier}`),
+        async (c: RedisClient) => c.get(`${KEY_PREFIX.RATE_LIMIT}${identifier}`),
         null
       );
       if (data) {
@@ -248,7 +254,7 @@ export const redisRateLimitStore = {
     const client = getRedisClient();
     if (client) {
       await safeRedisOp(
-        async (c: Redis) => c.setex(
+        async (c: RedisClient) => c.setex(
           `${KEY_PREFIX.RATE_LIMIT}${identifier}`,
           ttlSec,
           JSON.stringify(data)
@@ -279,7 +285,7 @@ export const redisRateLimitStore = {
     if (client) {
       // Use MULTI for atomic increment + TTL set
       const result = await safeRedisOp(
-        async (c: Redis) => {
+        async (c: RedisClient) => {
           const multi = c.multi();
           multi.incr(key);
           multi.ttl(key);
@@ -345,7 +351,7 @@ export const redisOtpSessionStore = {
     const client = getRedisClient();
     if (client) {
       const data = await safeRedisOp(
-        async (c: Redis) => c.get(`${KEY_PREFIX.SESSION}${token}`),
+        async (c: RedisClient) => c.get(`${KEY_PREFIX.SESSION}${token}`),
         null
       );
       if (data) {
@@ -378,7 +384,7 @@ export const redisOtpSessionStore = {
     const client = getRedisClient();
     if (client) {
       await safeRedisOp(
-        async (c: Redis) => c.setex(
+        async (c: RedisClient) => c.setex(
           `${KEY_PREFIX.SESSION}${token}`,
           ttlSec,
           JSON.stringify(data)
@@ -400,7 +406,7 @@ export const redisOtpSessionStore = {
     const client = getRedisClient();
     if (client) {
       await safeRedisOp(
-        async (c: Redis) => c.del(`${KEY_PREFIX.SESSION}${token}`),
+        async (c: RedisClient) => c.del(`${KEY_PREFIX.SESSION}${token}`),
         0
       );
       return;

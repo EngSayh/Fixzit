@@ -181,6 +181,7 @@ const nextConfig = {
   serverExternalPackages: [
     'mongoose', 
     'bcryptjs',
+    'ioredis', // Keep ioredis server-side only - requires 'dns' module not available in Edge
   ],
 
   // ✅ FIXED: Turbopack configuration added above to silence warning
@@ -221,6 +222,7 @@ const nextConfig = {
         '@/lib/mongoUtils.server': false,
         'bcryptjs': false,
         'async_hooks': false,
+        'ioredis': false, // ioredis uses 'dns' module not available in Edge
       };
     }
 
@@ -246,6 +248,7 @@ const nextConfig = {
       fs: false,
       net: false,
       tls: false,
+      dns: false, // Required by ioredis but not available in browser/Edge
       mongoose: false, // Exclude mongoose from client/edge bundles
       async_hooks: false, // Node.js core module - not available in browser
     }
