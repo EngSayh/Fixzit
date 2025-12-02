@@ -55,27 +55,6 @@ export function useAuthSession(): AuthSession | null {
   };
 }
 
-/**
- * Server-side session helper (for Server Components and API routes)
- */
-export async function getServerAuthSession(): Promise<AuthSession | null> {
-  const { auth } = await import("@/auth");
-
-  const session = await auth();
-
-  if (!session?.user) {
-    return null;
-  }
-
-  const user = session.user as ExtendedUser;
-
-  return {
-    userId: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role || "GUEST",
-    tenantId: user.tenantId || "",
-    sellerId: user.sellerId,
-    isAuthenticated: true,
-  };
-}
+// NOTE: getServerAuthSession has been moved to hooks/useAuthSession.server.ts
+// to prevent ioredis from being bundled into client components.
+// Import it from there for Server Components and API routes.

@@ -14,7 +14,7 @@
 
 import { ObjectId } from "mongodb";
 import { connectDb } from "@/lib/mongodb-unified";
-import { getRedisClient as getCacheRedisClient } from "@/lib/cache/redis";
+import { getCache, setCache, CacheTTL, getRedisClient } from "@/lib/redis";
 import { PayoutProcessorService } from "@/services/souq/settlements/payout-processor";
 
 /**
@@ -102,24 +102,15 @@ export class SellerBalanceService {
    * Get seller balance (real-time from Redis)
    */
   static async getBalance(sellerId: string): Promise<SellerBalance> {
-    const redis = await getCacheRedisClient();
     const key = `seller:${sellerId}:balance`;
-
-    // Try to get from Redis cache
-    if (redis) {
-      const cached = await redis.get(key);
-      if (cached) {
-        return JSON.parse(cached) as SellerBalance;
-      }
-    }
+    const cached = await getCache<SellerBalance>(key);
+    if (cached) return cached;
 
     // Calculate from database if not cached
     const balance = await this.calculateBalance(sellerId);
 
     // Cache for 5 minutes
-    if (redis) {
-      await redis.setEx(key, 300, JSON.stringify(balance));
-    }
+    await setCache(key, balance, CacheTTL.FIVE_MINUTES);
 
     return balance;
   }
@@ -644,7 +635,7 @@ export class SellerBalanceService {
    * Invalidate Redis cache for seller balance
    */
   private static async invalidateBalanceCache(sellerId: string): Promise<void> {
-    const redis = await getCacheRedisClient();
+    const redis = getRedisClient();
     if (!redis) return;
     const key = `seller:${sellerId}:balance`;
     await redis.del(key);

@@ -18,6 +18,7 @@ import { logger } from "@/lib/logger";
 // ⚡ PERFORMANCE: Lazy load dictionaries to reduce initial bundle size
 // Each dictionary is 27k lines (~500KB). Loading both upfront wastes 500KB + 200ms parse time.
 // With dynamic imports, only the active locale is loaded, saving ~250KB and 100ms.
+// Note: Only enabled locales (en, ar) have dictionaries. fr/es marked comingSoon.
 const DICTIONARIES: Record<
   Locale,
   () => Promise<{ default: Record<string, unknown> }>
