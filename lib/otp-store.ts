@@ -1,82 +1,86 @@
 /**
  * Shared OTP store for SMS verification
  *
- * In production, replace this with Redis or database storage
- * for distributed systems and persistence.
+ * This module provides a unified interface for OTP storage that:
+ * - Uses Redis when REDIS_URL is configured (production/distributed)
+ * - Falls back to in-memory Maps when Redis unavailable (dev/local)
+ *
+ * For multi-instance deployments (Vercel, K8s, etc.), configure REDIS_URL
+ * to ensure OTP state is shared across all instances.
+ *
+ * @module lib/otp-store
  */
 
-import { logger } from "@/lib/logger";
+import {
+  syncOtpStore,
+  syncRateLimitStore,
+  syncOtpSessionStore,
+  // Re-export types
+  type OTPData,
+  type RateLimitData,
+  type OTPLoginSession,
+  // Re-export constants
+  OTP_LENGTH,
+  OTP_EXPIRY_MS,
+  MAX_ATTEMPTS,
+  RATE_LIMIT_WINDOW_MS,
+  MAX_SENDS_PER_WINDOW,
+  OTP_SESSION_EXPIRY_MS,
+  // Re-export async stores for new code
+  redisOtpStore,
+  redisRateLimitStore,
+  redisOtpSessionStore,
+} from "@/lib/otp-store-redis";
 
-// STRICT v4.1: Production warning for in-memory storage
-// In-memory Maps are not shared across Vercel/serverless instances
-if (typeof process !== "undefined" && process.env.NODE_ENV === "production" && !process.env.OTP_STORE_REDIS_URL) {
-  logger.warn(
-    "[OTP STORE] Using in-memory storage in production. " +
-    "OTP state is NOT shared across instances. " +
-    "Set OTP_STORE_REDIS_URL for distributed deployments."
-  );
-}
+// Re-export types
+export type { OTPData, RateLimitData, OTPLoginSession };
 
-export interface OTPData {
-  otp: string;
-  expiresAt: number;
-  attempts: number;
-  userId: string;
-  phone: string;
-  companyCode?: string | null;
-}
+// Re-export constants
+export {
+  OTP_LENGTH,
+  OTP_EXPIRY_MS,
+  MAX_ATTEMPTS,
+  RATE_LIMIT_WINDOW_MS,
+  MAX_SENDS_PER_WINDOW,
+  OTP_SESSION_EXPIRY_MS,
+};
 
-export interface RateLimitData {
-  count: number;
-  resetAt: number;
-}
+// Re-export async stores for new code that can use promises
+export {
+  redisOtpStore,
+  redisRateLimitStore,
+  redisOtpSessionStore,
+};
 
-export interface OTPLoginSession {
-  userId: string;
-  identifier: string;
-  expiresAt: number;
-}
+/**
+ * Synchronous OTP store with Map-like interface
+ *
+ * Uses Redis when available, falls back to in-memory.
+ * Maintains backward compatibility with existing sync code.
+ *
+ * For new code, prefer using redisOtpStore (async) directly.
+ */
+export const otpStore = syncOtpStore;
 
-// In-memory stores (use Redis in production)
-export const otpStore = new Map<string, OTPData>();
-export const rateLimitStore = new Map<string, RateLimitData>();
-export const otpSessionStore = new Map<string, OTPLoginSession>();
+/**
+ * Synchronous rate limit store with Map-like interface
+ *
+ * Uses Redis when available, falls back to in-memory.
+ * Maintains backward compatibility with existing sync code.
+ *
+ * For new code, prefer using redisRateLimitStore (async) directly.
+ */
+export const rateLimitStore = syncRateLimitStore;
 
-// Constants
-export const OTP_LENGTH = 6;
-export const OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
-export const MAX_ATTEMPTS = 3;
-export const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-export const MAX_SENDS_PER_WINDOW = 5;
-export const OTP_SESSION_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+/**
+ * Synchronous OTP session store with Map-like interface
+ *
+ * Uses Redis when available, falls back to in-memory.
+ * Maintains backward compatibility with existing sync code.
+ *
+ * For new code, prefer using redisOtpSessionStore (async) directly.
+ */
+export const otpSessionStore = syncOtpSessionStore;
 
-// Cleanup expired OTPs periodically (every 10 minutes)
-if (typeof setInterval !== "undefined") {
-  setInterval(
-    () => {
-      const now = Date.now();
-
-      // Clean up expired OTPs
-      for (const [identifier, data] of otpStore.entries()) {
-        if (now > data.expiresAt) {
-          otpStore.delete(identifier);
-        }
-      }
-
-      // Clean up expired rate limits
-      for (const [identifier, data] of rateLimitStore.entries()) {
-        if (now > data.resetAt) {
-          rateLimitStore.delete(identifier);
-        }
-      }
-
-      // Clean up expired OTP login sessions
-      for (const [token, session] of otpSessionStore.entries()) {
-        if (now > session.expiresAt) {
-          otpSessionStore.delete(token);
-        }
-      }
-    },
-    10 * 60 * 1000,
-  ); // 10 minutes
-}
+// NOTE: Cleanup is handled in otp-store-redis.ts
+// The Redis stores use TTL for automatic expiry, memory stores have cleanup interval
