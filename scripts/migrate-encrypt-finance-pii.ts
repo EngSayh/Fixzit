@@ -184,6 +184,24 @@ function parseArgs(): MigrationOptions {
     allowPlaintextBackup: args.includes("--allow-plaintext-backup"),
   };
 
+  // SECURITY: Block --allow-plaintext-backup in production to prevent accidental PII retention
+  if (options.allowPlaintextBackup && process.env.NODE_ENV === "production") {
+    console.error(`
+╔════════════════════════════════════════════════════════════════════════════╗
+║  ERROR: --allow-plaintext-backup is BLOCKED in production                  ║
+║                                                                            ║
+║  This flag would disable TTL auto-expiry on backup collections,            ║
+║  leaving plaintext PII indefinitely. This is a compliance violation.       ║
+║                                                                            ║
+║  If you absolutely must proceed (emergency break-glass only):              ║
+║    1. Set NODE_ENV=migration-override                                      ║
+║    2. Document the exception in the incident log                           ║
+║    3. Manually delete backups within 24h                                   ║
+╚════════════════════════════════════════════════════════════════════════════╝
+`);
+    process.exit(1);
+  }
+
   const orgArg = args.find((a) => a.startsWith("--org="));
   if (orgArg) {
     options.orgId = orgArg.split("=")[1];
