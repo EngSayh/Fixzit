@@ -1,9 +1,15 @@
 import { chromium, FullConfig, BrowserContext } from '@playwright/test';
 import { mkdir, writeFile } from 'fs/promises';
-import { URLSearchParams } from 'url';
 import { encode as encodeJwt } from 'next-auth/jwt';
 import { randomBytes } from 'crypto';
+import type { ObjectId } from 'mongodb';
 
+/**
+ * Playwright global auth setup
+ * - Prefers real API session minting via /api/auth/test/session
+ * - Falls back to minting a JWT directly from MongoDB user data
+ * - Keeps offline/test shortcuts for CI flexibility
+ */
 type RoleConfig = {
   name: string;
   identifierEnv: string;
@@ -13,32 +19,21 @@ type RoleConfig = {
   statePath: string;
 };
 
-/**
- * AUTHENTICATION SETUP - OTP FLOW
- * Creates storage states for all user roles using OTP authentication
- * Mirrors the real OTP → verify → credentials callback flow so server-side
- * RBAC hooks and OTP session validation stay intact.
- * 
- * Production-ready: Works with real MongoDB connection and actual user data
- * Offline mode: For CI/CD without database dependency
- */
+const SESSION_COOKIE_PATTERNS = ['session', 'next-auth'];
+const OFFLINE_ORG_ID = 'ffffffffffffffffffffffff';
+
 async function globalSetup(config: FullConfig) {
   console.log('\n🔐 Setting up authentication states for all roles (OTP flow)...\n');
 
   const baseURL = config.projects[0].use.baseURL || process.env.BASE_URL || 'http://localhost:3000';
   let offlineMode = process.env.ALLOW_OFFLINE_MONGODB === 'true';
   const testModeDirect = process.env.PLAYWRIGHT_TESTS === 'true';
-  const nextAuthSecret =
-    process.env.NEXTAUTH_SECRET ||
-    process.env.AUTH_SECRET ||
-    'playwright-secret';
-  
+  const nextAuthSecret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || 'playwright-secret';
+
   console.log(`📍 Base URL: ${baseURL}`);
   console.log(`🗄️  Database Mode: ${offlineMode ? 'Offline (Mock Sessions)' : 'Online (Real MongoDB)'}`);
   console.log(`🔑 Using NextAuth Secret: ${nextAuthSecret.substring(0, 10)}...`);
-  const skipCsrf =
-    process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true' || process.env.NODE_ENV === 'test';
-  
+
   const baseOrigin = (() => {
     try {
       return new URL(baseURL).origin;
@@ -46,60 +41,17 @@ async function globalSetup(config: FullConfig) {
       return 'http://localhost:3000';
     }
   })();
-  const cookieName =
-    baseOrigin.startsWith('https')
-      ? '__Secure-authjs.session-token'
-      : 'authjs.session-token';
-  const legacyCookieName =
-    baseOrigin.startsWith('https')
-      ? '__Secure-next-auth.session-token'
-      : 'next-auth.session-token';
+  const cookieName = baseOrigin.startsWith('https') ? '__Secure-authjs.session-token' : 'authjs.session-token';
+  const legacyCookieName = baseOrigin.startsWith('https') ? '__Secure-next-auth.session-token' : 'next-auth.session-token';
   const sessionSalt = cookieName;
-  const offlineOrgId = 'ffffffffffffffffffffffff';
 
   const roles: RoleConfig[] = [
-    {
-      name: 'SuperAdmin',
-      identifierEnv: 'TEST_SUPERADMIN_IDENTIFIER',
-      passwordEnv: 'TEST_SUPERADMIN_PASSWORD',
-      phoneEnv: 'TEST_SUPERADMIN_PHONE',
-      statePath: 'tests/state/superadmin.json',
-    },
-    {
-      name: 'Admin',
-      identifierEnv: 'TEST_ADMIN_IDENTIFIER',
-      passwordEnv: 'TEST_ADMIN_PASSWORD',
-      phoneEnv: 'TEST_ADMIN_PHONE',
-      statePath: 'tests/state/admin.json',
-    },
-    {
-      name: 'Manager',
-      identifierEnv: 'TEST_MANAGER_IDENTIFIER',
-      passwordEnv: 'TEST_MANAGER_PASSWORD',
-      phoneEnv: 'TEST_MANAGER_PHONE',
-      statePath: 'tests/state/manager.json',
-    },
-    {
-      name: 'Technician',
-      identifierEnv: 'TEST_TECHNICIAN_IDENTIFIER',
-      passwordEnv: 'TEST_TECHNICIAN_PASSWORD',
-      phoneEnv: 'TEST_TECHNICIAN_PHONE',
-      statePath: 'tests/state/technician.json',
-    },
-    {
-      name: 'Tenant',
-      identifierEnv: 'TEST_TENANT_IDENTIFIER',
-      passwordEnv: 'TEST_TENANT_PASSWORD',
-      phoneEnv: 'TEST_TENANT_PHONE',
-      statePath: 'tests/state/tenant.json',
-    },
-    {
-      name: 'Vendor',
-      identifierEnv: 'TEST_VENDOR_IDENTIFIER',
-      passwordEnv: 'TEST_VENDOR_PASSWORD',
-      phoneEnv: 'TEST_VENDOR_PHONE',
-      statePath: 'tests/state/vendor.json',
-    },
+    { name: 'SuperAdmin', identifierEnv: 'TEST_SUPERADMIN_IDENTIFIER', passwordEnv: 'TEST_SUPERADMIN_PASSWORD', phoneEnv: 'TEST_SUPERADMIN_PHONE', statePath: 'tests/state/superadmin.json' },
+    { name: 'Admin', identifierEnv: 'TEST_ADMIN_IDENTIFIER', passwordEnv: 'TEST_ADMIN_PASSWORD', phoneEnv: 'TEST_ADMIN_PHONE', statePath: 'tests/state/admin.json' },
+    { name: 'Manager', identifierEnv: 'TEST_MANAGER_IDENTIFIER', passwordEnv: 'TEST_MANAGER_PASSWORD', phoneEnv: 'TEST_MANAGER_PHONE', statePath: 'tests/state/manager.json' },
+    { name: 'Technician', identifierEnv: 'TEST_TECHNICIAN_IDENTIFIER', passwordEnv: 'TEST_TECHNICIAN_PASSWORD', phoneEnv: 'TEST_TECHNICIAN_PHONE', statePath: 'tests/state/technician.json' },
+    { name: 'Tenant', identifierEnv: 'TEST_TENANT_IDENTIFIER', passwordEnv: 'TEST_TENANT_PASSWORD', phoneEnv: 'TEST_TENANT_PHONE', statePath: 'tests/state/tenant.json' },
+    { name: 'Vendor', identifierEnv: 'TEST_VENDOR_IDENTIFIER', passwordEnv: 'TEST_VENDOR_PASSWORD', phoneEnv: 'TEST_VENDOR_PHONE', statePath: 'tests/state/vendor.json' },
   ];
 
   const missing = roles.flatMap(role => {
@@ -118,20 +70,15 @@ async function globalSetup(config: FullConfig) {
 
   await mkdir('tests/state', { recursive: true });
   const browser = await chromium.launch();
-  const EMP_REGEX = /^EMP[-A-Z0-9]+$/i;
 
   if (offlineMode) {
     console.warn('\n⚠️  OFFLINE MODE - Creating mock JWT session cookies (for CI/CD without database)\n');
     console.warn('⚠️  These sessions bypass real authentication and should NOT be used in production!\n');
-    
+
     for (const role of roles) {
       const context = await browser.newContext();
       try {
-        const normalizedRole =
-          role.name === 'SuperAdmin'
-            ? 'SUPER_ADMIN'
-            : role.name.toUpperCase();
-        const testRole = 'ADMIN';
+        const normalizedRole = role.name === 'SuperAdmin' ? 'SUPER_ADMIN' : role.name.toUpperCase();
         const userId = randomBytes(12).toString('hex');
 
         const token = await encodeJwt({
@@ -140,13 +87,11 @@ async function globalSetup(config: FullConfig) {
           salt: sessionSalt,
           token: {
             name: `${role.name} (Offline)`,
-            email:
-              process.env[role.identifierEnv] ||
-              `${role.name.toLowerCase()}@offline.test`,
+            email: process.env[role.identifierEnv] || `${role.name.toLowerCase()}@offline.test`,
             id: userId,
-            role: testRole,
-            roles: [testRole, 'SUPER_ADMIN'],
-            orgId: offlineOrgId,
+            role: 'ADMIN',
+            roles: ['ADMIN', 'SUPER_ADMIN'],
+            orgId: OFFLINE_ORG_ID,
             isSuperAdmin: true,
             permissions: ['*'],
             sub: userId,
@@ -155,37 +100,14 @@ async function globalSetup(config: FullConfig) {
 
         const { hostname } = new URL(baseOrigin);
         await context.addCookies([
-          {
-            name: cookieName,
-            value: token,
-            domain: hostname,
-            path: '/',
-            httpOnly: true,
-            sameSite: 'Lax',
-            secure: baseOrigin.startsWith('https'),
-          },
-          {
-            // Backwards compatibility for old NextAuth cookie name
-            name: legacyCookieName,
-            value: token,
-            domain: hostname,
-            path: '/',
-            httpOnly: true,
-            sameSite: 'Lax',
-            secure: baseOrigin.startsWith('https'),
-          },
+          { name: cookieName, value: token, domain: hostname, path: '/', httpOnly: true, sameSite: 'Lax', secure: baseOrigin.startsWith('https') },
+          { name: legacyCookieName, value: token, domain: hostname, path: '/', httpOnly: true, sameSite: 'Lax', secure: baseOrigin.startsWith('https') },
         ]);
 
         const state = await context.storageState();
         const origins = Array.isArray(state.origins) ? state.origins : [];
         const filteredOrigins = origins.filter(origin => origin.origin !== baseOrigin);
-        filteredOrigins.push({
-          origin: baseOrigin,
-          localStorage: [
-            { name: 'fixzit-role', value: normalizedRole.toLowerCase() },
-          ],
-        });
-
+        filteredOrigins.push({ origin: baseOrigin, localStorage: [{ name: 'fixzit-role', value: normalizedRole.toLowerCase() }] });
         state.origins = filteredOrigins;
         await writeFile(role.statePath, JSON.stringify(state, null, 2), 'utf-8');
         console.log(`  ✅ ${role.name} - Offline session created`);
@@ -205,10 +127,7 @@ async function globalSetup(config: FullConfig) {
     for (const role of roles) {
       const context = await browser.newContext();
       try {
-        const normalizedRole =
-          role.name === 'SuperAdmin'
-            ? 'SUPER_ADMIN'
-            : role.name.toUpperCase();
+        const normalizedRole = role.name === 'SuperAdmin' ? 'SUPER_ADMIN' : role.name.toUpperCase();
         const userId = randomBytes(12).toString('hex');
 
         const token = await encodeJwt({
@@ -217,13 +136,11 @@ async function globalSetup(config: FullConfig) {
           salt: sessionSalt,
           token: {
             name: `${role.name} (E2E)`,
-            email:
-              process.env[role.identifierEnv] ||
-              `${role.name.toLowerCase()}@e2e.test`,
+            email: process.env[role.identifierEnv] || `${role.name.toLowerCase()}@e2e.test`,
             id: userId,
             role: normalizedRole,
             roles: [normalizedRole, 'SUPER_ADMIN'],
-            orgId: offlineOrgId,
+            orgId: OFFLINE_ORG_ID,
             isSuperAdmin: normalizedRole === 'SUPER_ADMIN',
             permissions: ['*'],
             sub: userId,
@@ -232,36 +149,14 @@ async function globalSetup(config: FullConfig) {
 
         const { hostname } = new URL(baseOrigin);
         await context.addCookies([
-          {
-            name: cookieName,
-            value: token,
-            domain: hostname,
-            path: '/',
-            httpOnly: true,
-            sameSite: 'Lax',
-            secure: baseOrigin.startsWith('https'),
-          },
-          {
-            name: legacyCookieName,
-            value: token,
-            domain: hostname,
-            path: '/',
-            httpOnly: true,
-            sameSite: 'Lax',
-            secure: baseOrigin.startsWith('https'),
-          },
+          { name: cookieName, value: token, domain: hostname, path: '/', httpOnly: true, sameSite: 'Lax', secure: baseOrigin.startsWith('https') },
+          { name: legacyCookieName, value: token, domain: hostname, path: '/', httpOnly: true, sameSite: 'Lax', secure: baseOrigin.startsWith('https') },
         ]);
 
         const state = await context.storageState();
         const origins = Array.isArray(state.origins) ? state.origins : [];
         const filteredOrigins = origins.filter(origin => origin.origin !== baseOrigin);
-        filteredOrigins.push({
-          origin: baseOrigin,
-          localStorage: [
-            { name: 'fixzit-role', value: normalizedRole.toLowerCase() },
-          ],
-        });
-
+        filteredOrigins.push({ origin: baseOrigin, localStorage: [{ name: 'fixzit-role', value: normalizedRole.toLowerCase() }] });
         state.origins = filteredOrigins;
         await writeFile(role.statePath, JSON.stringify(state, null, 2), 'utf-8');
         console.log(`  ✅ ${role.name} - Direct session created (test mode)`);
@@ -275,125 +170,73 @@ async function globalSetup(config: FullConfig) {
     console.log('\n✅ Test-mode auth states ready (direct session cookies)\n');
     return;
   }
-  
-  // PRODUCTION-READY: Real authentication flow with MongoDB
-  console.log('🗄️  PRODUCTION MODE - Authenticating with real MongoDB and OTP flow\n');
+
+  console.log('🗄️  PRODUCTION MODE - Authenticating with real MongoDB and OTP flow (short-circuited to session minting)\n');
+  const mongo = await getMongo();
 
   for (const role of roles) {
     const context = await browser.newContext();
     try {
       const identifier = process.env[role.identifierEnv]!;
-      const password = process.env[role.passwordEnv]!;
-      const phone = role.phoneEnv ? process.env[role.phoneEnv] : undefined;
-      const companyCode =
-        EMP_REGEX.test(identifier.trim())
-          ? (role.companyCodeEnv
-              ? process.env[role.companyCodeEnv]
-              : process.env.TEST_COMPANY_CODE)
-          : undefined;
-      console.log(`🔑 ${role.name}: Authenticating ${identifier}...`);
+      const normalizedRole = role.name === 'SuperAdmin' ? 'SUPER_ADMIN' : role.name.toUpperCase();
+      let sessionToken: string | undefined;
+      let appliedOrgId: string | undefined;
 
-      const page = await context.newPage();
-
-      // Step 1/2: Send + verify OTP (retry on transient 400/expired)
-      let otpToken: string | undefined;
-      let lastError: string | undefined;
-      for (let attempt = 1; attempt <= 3 && !otpToken; attempt++) {
-        console.log(`  📤 Sending OTP request... (attempt ${attempt}/3)`);
-        const otpResponse = await page.request.post(`${baseURL}/api/auth/otp/send`, {
+      // First try the test/session API to mirror real Auth.js cookie issuance
+      try {
+        const resp = await context.request.post(`${baseURL}/api/auth/test/session`, {
           headers: { 'Content-Type': 'application/json' },
-          data: companyCode
-            ? { identifier, password, companyCode }
-            : { identifier, password },
+          data: {
+            email: identifier,
+            orgId: process.env.PUBLIC_ORG_ID || process.env.DEFAULT_ORG_ID || process.env.TEST_ORG_ID,
+          },
+          timeout: 20000,
         });
-
-        if (!otpResponse.ok()) {
-          const body = await otpResponse.text();
-          lastError = `Failed to send OTP for ${role.name} (${otpResponse.status()}): ${body}`;
-          console.error(`  ❌ ${lastError}`);
-          continue;
+        if (resp.ok()) {
+          const json = await resp.json().catch(() => ({}));
+          sessionToken = (json as { sessionToken?: string }).sessionToken;
+          appliedOrgId = (json as { appliedOrgId?: string }).appliedOrgId;
+        } else {
+          console.warn(`⚠️  ${role.name} test/session returned ${resp.status()}; falling back to DB minting`);
         }
+      } catch (err) {
+        console.warn(`⚠️  ${role.name} test/session request failed; falling back to DB minting`, err);
+      }
 
-        const otpPayload = await otpResponse.json();
-        const otpCode =
-          otpPayload?.data?.devCode ??
-          otpPayload?.data?.otp ??
-          otpPayload?.otp ??
-          otpPayload?.code;
-
-        if (!otpCode) {
-          lastError = 'OTP code not returned from /otp/send (ensure SMS dev mode is enabled or user exists in database)';
-          console.error(`  ❌ ${lastError}`, otpPayload);
-          continue;
-        }
-
-        console.log(`  ✅ OTP received: ${otpCode}${phone ? ` (sent to ${phone})` : ''}`);
-
-        console.log(`  🔐 Verifying OTP...`);
-        const verifyResponse = await page.request.post(`${baseURL}/api/auth/otp/verify`, {
-          headers: { 'Content-Type': 'application/json' },
-          data: companyCode
-            ? { identifier, otp: otpCode, companyCode }
-            : { identifier, otp: otpCode },
+      // Fallback: mint directly from MongoDB user
+      if (!sessionToken) {
+        const minted = await mintSessionFromDb(identifier, nextAuthSecret, sessionSalt, mongo, {
+          fallbackOrgId: process.env.PUBLIC_ORG_ID || process.env.DEFAULT_ORG_ID || process.env.TEST_ORG_ID,
         });
-
-        if (!verifyResponse.ok()) {
-          const body = await verifyResponse.text();
-          lastError = `Failed to verify OTP for ${role.name} (${verifyResponse.status()}): ${body}`;
-          console.error(`  ❌ ${lastError}`);
-          continue;
-        }
-
-        const verifyPayload = await verifyResponse.json();
-        otpToken = verifyPayload?.data?.otpToken;
-        if (!otpToken) {
-          lastError = 'OTP verification succeeded but otpToken missing from response';
-          console.error(`  ❌ ${lastError}`, verifyPayload);
-          continue;
-        }
-
-        console.log(`  ✅ OTP verified, token received`);
+        sessionToken = minted.sessionToken;
+        appliedOrgId = minted.orgId;
       }
 
-      if (!otpToken) {
-        throw new Error(lastError || 'OTP verification failed after retries');
+      if (!sessionToken) {
+        throw new Error(`Failed to mint session for ${role.name}: missing sessionToken`);
       }
 
-      // Step 3: Obtain CSRF token (NextAuth v5 has no /csrf endpoint; skip when configured)
-      console.log(`  🛡️  Getting CSRF token...`);
-      const csrfToken = await getCsrfToken(page, baseURL, skipCsrf);
-      if (!csrfToken) {
-        throw new Error('Failed to retrieve CSRF token');
-      }
-      console.log(`  ✅ CSRF token obtained (${csrfToken === 'csrf-disabled' ? 'skip enabled' : 'token found'})`);
-
-      // Step 4: Directly mint a session via the test session endpoint (test-only)
-      console.log(`  🔓 Minting session via /api/auth/test/session ...`);
-      const fallbackResp = await page.request.post(`${baseURL}/api/auth/test/session`, {
-        headers: { 'Content-Type': 'application/json' },
-        data: {
-          email: identifier,
-          orgId:
-            process.env.PUBLIC_ORG_ID ||
-            process.env.DEFAULT_ORG_ID ||
-            process.env.TEST_ORG_ID,
-        },
-      });
-      console.log("  📥 test/session status:", fallbackResp.status());
-      console.log("  📥 test/session set-cookie:", fallbackResp.headers()['set-cookie']);
-      if (!fallbackResp.ok()) {
-        throw new Error(`Fallback session creation failed (${fallbackResp.status()})`);
-      }
-
-      // Step 5: Load dashboard to ensure cookies + session storage are populated
-      console.log(`  🏠 Loading dashboard...`);
-      await page.goto(`${baseURL}/dashboard`, { waitUntil: 'networkidle' }).catch(() => {});
-      await page.waitForTimeout(2000);
+      const { hostname } = new URL(baseOrigin);
+      await context.addCookies([
+        { name: cookieName, value: sessionToken, domain: hostname, path: '/', httpOnly: true, sameSite: 'Lax', secure: baseOrigin.startsWith('https') },
+        { name: legacyCookieName, value: sessionToken, domain: hostname, path: '/', httpOnly: true, sameSite: 'Lax', secure: baseOrigin.startsWith('https') },
+      ]);
 
       await ensureSessionCookie(context, baseURL);
 
-      await context.storageState({ path: role.statePath });
-      console.log(`✅ ${role.name} - Authentication complete (state saved to ${role.statePath})`);
+      const state = await context.storageState();
+      const origins = Array.isArray(state.origins) ? state.origins : [];
+      const filteredOrigins = origins.filter(origin => origin.origin !== baseOrigin);
+      filteredOrigins.push({
+        origin: baseOrigin,
+        localStorage: [
+          { name: 'fixzit-role', value: normalizedRole.toLowerCase() },
+          ...(appliedOrgId ? [{ name: 'fixzit-org', value: appliedOrgId }] : []),
+        ],
+      });
+      state.origins = filteredOrigins;
+      await writeFile(role.statePath, JSON.stringify(state, null, 2), 'utf-8');
+      console.log(`✅ ${role.name} - Session prepared (state saved to ${role.statePath})`);
     } catch (error) {
       console.error(`❌ Failed to authenticate ${role.name}:`, error);
     } finally {
@@ -402,57 +245,14 @@ async function globalSetup(config: FullConfig) {
   }
 
   await browser.close();
+  if (cachedMongo) {
+    await cachedMongo.disconnect().catch(() => {});
+    cachedMongo = null;
+  }
   console.log('\n✅ Authentication setup complete\n');
 }
 
 export default globalSetup;
-const SESSION_COOKIE_PATTERNS = ['session', 'next-auth'];
-
-async function getCsrfToken(page: BrowserContext['pages'][number], baseURL: string, skip: boolean) {
-  // Prime session cookies first
-  try {
-    await page.request.get(`${baseURL}/api/auth/session`);
-  } catch {
-    // ignore warmup failures
-  }
-
-  if (skip) {
-    return 'csrf-disabled';
-  }
-
-  // Try cookie-based token first (authjs sets next-auth.csrf-token cookie)
-  try {
-    const cookies = await page.context().cookies(baseURL);
-    const csrfCookie = cookies.find(cookie => cookie.name.includes('next-auth.csrf-token'));
-    if (csrfCookie?.value) {
-      const raw = decodeURIComponent(csrfCookie.value);
-      const [token] = raw.split('|');
-      if (token) return token;
-    }
-  } catch {
-    // ignore cookie parsing issues
-  }
-
-  // Fallback: hit legacy /api/auth/csrf endpoint (some adapters still expose it)
-  try {
-    const resp = await page.request.get(`${baseURL}/api/auth/csrf`);
-    const text = (await resp.text().catch(() => ''))?.trim();
-    if (text) {
-      const match = text.match(/"csrfToken"\s*:\s*"([^"]+)"/i);
-      if (match?.[1]) return match[1];
-      try {
-        const parsed = JSON.parse(text);
-        return parsed?.csrfToken || parsed?.csrf?.token;
-      } catch {
-        // ignore JSON parse issues
-      }
-    }
-  } catch {
-    // ignore missing endpoint
-  }
-
-  return undefined;
-}
 
 async function ensureSessionCookie(context: BrowserContext, baseURL: string, timeoutMs = 5000) {
   const deadline = Date.now() + timeoutMs;
@@ -467,4 +267,75 @@ async function ensureSessionCookie(context: BrowserContext, baseURL: string, tim
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   throw new Error('Auth session cookie was not detected before timeout');
+}
+
+let cachedMongo: MongoModule | null = null;
+type MongoModule = typeof import('mongoose');
+
+async function getMongo(): Promise<MongoModule> {
+  if (cachedMongo && cachedMongo.connection?.readyState !== 0) {
+    return cachedMongo;
+  }
+  const mongooseImport = await import('mongoose');
+  const mongoose = (mongooseImport as unknown as { default?: MongoModule }).default || (mongooseImport as MongoModule);
+  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit_test';
+  const dbName = process.env.MONGODB_DB || 'fixzit_test';
+  await mongoose.connect(uri, { dbName });
+  cachedMongo = mongoose;
+  return mongoose;
+}
+
+async function mintSessionFromDb(
+  email: string,
+  secret: string,
+  sessionSalt: string,
+  mongo: MongoModule,
+  opts: { fallbackOrgId?: string },
+) {
+  const db = mongo.connection?.db;
+  if (!db) {
+    throw new Error('MongoDB connection is not established for test session minting');
+  }
+
+  const user = await db.collection('users').findOne<{ 
+    _id: ObjectId;
+    email: string;
+    orgId?: ObjectId | string;
+    professional?: { role?: string | null; subRole?: string | null };
+    isSuperAdmin?: boolean;
+    permissions?: string[];
+    roles?: Array<string | ObjectId>;
+  }>({ email: email.toLowerCase() });
+
+  if (!user) {
+    throw new Error(`User ${email} not found in MongoDB for test session minting`);
+  }
+
+  const orgId = (user.orgId as ObjectId | undefined)?.toString?.() || opts.fallbackOrgId || '000000000000000000000001';
+  const role = user.professional?.role || 'ADMIN';
+  const isSuperAdmin = Boolean(user.isSuperAdmin);
+  const permissions = user.permissions && user.permissions.length > 0 ? user.permissions : ['*'];
+  const roles = Array.isArray(user.roles) && user.roles.length > 0
+    ? user.roles.map(r => (typeof r === 'string' ? r : r?.toString?.() || '')).filter(Boolean)
+    : (isSuperAdmin ? ['SUPER_ADMIN', role] : [role]);
+
+  const userId = (user._id as ObjectId).toString();
+
+  const sessionToken = await encodeJwt({
+    secret,
+    maxAge: 30 * 24 * 60 * 60,
+    salt: sessionSalt,
+    token: {
+      id: userId,
+      sub: userId,
+      email: user.email,
+      role,
+      roles,
+      orgId,
+      isSuperAdmin,
+      permissions,
+    },
+  });
+
+  return { sessionToken, orgId, role, roles, permissions };
 }

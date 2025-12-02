@@ -65,6 +65,7 @@
     "test:legacy": "vitest -c vitest.config.api.ts run",
     "test:models": "vitest -c vitest.config.models.ts run",
     "test:services": "pnpm exec vitest run tests/services",
+    "test:auth": "vitest -c vitest.config.api.ts run tests/api/auth/**/*.test.{ts,tsx}",
     "test:api": "vitest -c vitest.config.api.ts run",
     "test:watch": "vitest",
     "test:ci": "vitest run --bail 1",

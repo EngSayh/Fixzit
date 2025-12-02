@@ -1,48 +1,8 @@
 {
   "cookies": [
     {
-      "name": "fxz.otp",
-      "value": "3246fac969e1a7560bf14f678146a786cba55d75392baca2f616a273cce2cbc0",
-      "domain": "localhost",
-      "path": "/",
-      "expires": 1764662150.75,
-      "httpOnly": true,
-      "secure": false,
-      "sameSite": "Strict"
-    },
-    {
-      "name": "fxz.access",
-      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwZjI3ZjFmMzEzNWMzZGVmOTU1YzQ5NmEiLCJpYXQiOjE3NjQ2NjE4NTAsImV4cCI6MTc2NDY2Mjc1MH0.qeJh1YFp-slt94Ajvg2y5uLSMbz5C8q1KS1Cdx7VmcI",
-      "domain": "localhost",
-      "path": "/",
-      "expires": 1764662750.75,
-      "httpOnly": true,
-      "secure": false,
-      "sameSite": "Strict"
-    },
-    {
-      "name": "fxz.refresh",
-      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwZjI3ZjFmMzEzNWMzZGVmOTU1YzQ5NmEiLCJpYXQiOjE3NjQ2NjE4NTAsImV4cCI6MTc2NTI2NjY1MH0.Dj6jbfNf6WD07_SUCTX6zw3bQ9-t4M-lXFxz-JsKeE4",
-      "domain": "localhost",
-      "path": "/",
-      "expires": 1765266650.75,
-      "httpOnly": true,
-      "secure": false,
-      "sameSite": "Strict"
-    },
-    {
-      "name": "authjs.csrf-token",
-      "value": "d9e8c5791e3c1d0e11f52b81297627a88cdc6f180b402a75faee03da23b97a3c%7C4c614fa1872a3b133792a6da231ab35b33bf8400ec6b594a154d21b4dfea9449",
-      "domain": "localhost",
-      "path": "/",
-      "expires": -1,
-      "httpOnly": true,
-      "secure": false,
-      "sameSite": "Lax"
-    },
-    {
-      "name": "authjs.callback-url",
-      "value": "http%3A%2F%2Flocalhost%3A3000",
+      "name": "authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..M9PVSKNm1V5xpIz9fV8tIQ.nplznE_C9qhBQqRVJ3SGEEOBjxWfuGEwP1ns_RRzOTpinbcpwCPo-VrNj88brKlCSv3oOkVFm5jWDcIdxBMYLkCsQbyfJIcdQZzAWAw8bA-eC45adDGe3z_qqtsBGgOEEzh_jyiotu2fMokpI4SSF4hQ3Aleea_vpoxbsI6CvTrl4CB-1kuUM6-r2BViJFTosvxFCBLVU9LOeNNOackBvZVMLrkLfGY5Fzo2GBBNJnDPKXQ1zSwt-U_wJw5EuVT9nVs6EeQA_pvnE_0fB7AslOPpQ97DM4_7ARM3TuzoepcoCd7YA5pV96ozV-50q_dVWh7JD_nCItD71vUHURq7KGDckDwy6EjKl6sUUc-mwcNgftLIq3C_Yymk2Qnjv_3KQHFnCIFHPUnNU9ikwGV7OJOeZFX-WMPS927bU1BABjw.MDr70on0KlBT_q-xmX9sKPTIyhdqe-IjpZKPtZpytn4",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
@@ -52,23 +12,13 @@
     },
     {
       "name": "next-auth.session-token",
-      "value": "eyJpZCI6IjY5MjI5ODlkMjY0OWVlODc5NDBjNDk4MiIsInN1YiI6IjY5MjI5ODlkMjY0OWVlODc5NDBjNDk4MiIsImVtYWlsIjoibWFuYWdlckBmaXh6aXQuY28iLCJyb2xlIjoiUFJPUEVSVFlfTUFOQUdFUiIsIm9yZ0lkIjoiMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAxIiwiaXNTdXBlckFkbWluIjpmYWxzZSwicGVybWlzc2lvbnMiOlsiKiJdLCJyb2xlcyI6W10sImlhdCI6MTc2NDY2MTg1MTMxMSwiZXhwIjoxNzY0NjYyNzUxMzExfQ",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..M9PVSKNm1V5xpIz9fV8tIQ.nplznE_C9qhBQqRVJ3SGEEOBjxWfuGEwP1ns_RRzOTpinbcpwCPo-VrNj88brKlCSv3oOkVFm5jWDcIdxBMYLkCsQbyfJIcdQZzAWAw8bA-eC45adDGe3z_qqtsBGgOEEzh_jyiotu2fMokpI4SSF4hQ3Aleea_vpoxbsI6CvTrl4CB-1kuUM6-r2BViJFTosvxFCBLVU9LOeNNOackBvZVMLrkLfGY5Fzo2GBBNJnDPKXQ1zSwt-U_wJw5EuVT9nVs6EeQA_pvnE_0fB7AslOPpQ97DM4_7ARM3TuzoepcoCd7YA5pV96ozV-50q_dVWh7JD_nCItD71vUHURq7KGDckDwy6EjKl6sUUc-mwcNgftLIq3C_Yymk2Qnjv_3KQHFnCIFHPUnNU9ikwGV7OJOeZFX-WMPS927bU1BABjw.MDr70on0KlBT_q-xmX9sKPTIyhdqe-IjpZKPtZpytn4",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
-    },
-    {
-      "name": "fxz.currency",
-      "value": "SAR",
-      "domain": "localhost",
-      "path": "/",
-      "expires": 1796197851.618238,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Strict"
     }
   ],
   "origins": [
@@ -76,12 +26,12 @@
       "origin": "http://localhost:3000",
       "localStorage": [
         {
-          "name": "fixzit-currency",
-          "value": "SAR"
+          "name": "fixzit-role",
+          "value": "manager"
         },
         {
-          "name": "fxz.theme",
-          "value": "system"
+          "name": "fixzit-org",
+          "value": "68dc8955a1ba6ed80ff372dc"
         }
       ]
     }

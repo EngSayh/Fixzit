@@ -2,6 +2,12 @@
 # Wrapper to run Playwright tests and always clean up artifacts
 set -euo pipefail
 
+# Allow explicit skip for environments without running app/DB
+if [[ "${SKIP_PLAYWRIGHT:-false}" == "true" || "${PW_SKIP_E2E:-false}" == "true" ]]; then
+  echo "Skipping Playwright E2E tests (SKIP_PLAYWRIGHT/PW_SKIP_E2E=true)."
+  exit 0
+fi
+
 cleanup() {
   rm -rf tests/playwright-artifacts || true
 }
