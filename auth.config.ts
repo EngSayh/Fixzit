@@ -1,5 +1,6 @@
 // Import from symbols path to align with NextAuth v5 typings (prevents mismatched symbol versions)
 import type { NextAuthConfig } from 'next-auth';
+import { skipCSRFCheck as skipCSRFCheckSymbol } from '@auth/core';
 import Google from 'next-auth/providers/google';
 import Apple from 'next-auth/providers/apple';
 import Credentials from 'next-auth/providers/credentials';
@@ -214,7 +215,16 @@ const EMPLOYEE_ID_REGEX = /^EMP[-A-Z0-9]+$/;
 // Production and staging should NOT set these variables (defaults to false for security)
 const trustHost =
   process.env.AUTH_TRUST_HOST === 'true' ||
-  process.env.NEXTAUTH_TRUST_HOST === 'true';
+  process.env.NEXTAUTH_TRUST_HOST === 'true' ||
+  process.env.NODE_ENV === 'test' ||
+  process.env.PLAYWRIGHT_TESTS === 'true' ||
+  process.env.ALLOW_OFFLINE_LOGIN === 'true';
+
+// Allow explicit opt-in to skip CSRF checks in non-production test runs
+const shouldSkipCSRFCheck =
+  process.env.NEXTAUTH_SKIP_CSRF_CHECK === 'true' ||
+  process.env.NODE_ENV === 'test' ||
+  process.env.PLAYWRIGHT_TESTS === 'true';
 
 const LoginSchema = z
   .object({
@@ -734,4 +744,7 @@ export const authConfig = {
   },
   secret: NEXTAUTH_SECRET,
   trustHost,
+  // NextAuth v5: skipCSRFCheck requires the symbol, not a boolean
+  // Only include it in test environments to allow programmatic login
+  ...(shouldSkipCSRFCheck ? { skipCSRFCheck: skipCSRFCheckSymbol } : {}),
 } satisfies NextAuthConfig;
