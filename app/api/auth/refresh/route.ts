@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import jwt from "jsonwebtoken";
-import { validateRefreshJti, persistRefreshJti } from "@/lib/refresh-token-store";
+import { validateRefreshJti, persistRefreshJti, revokeRefreshJti } from "@/lib/refresh-token-store";
 
 export const REFRESH_COOKIE = "fxz.refresh";
 export const ACCESS_COOKIE = "fxz.access";
@@ -101,8 +101,9 @@ export async function POST(req: NextRequest) {
       { expiresIn: REFRESH_TTL_SECONDS },
     );
     
-    // SECURITY: Persist new JTI and invalidate old one (rotation)
+    // SECURITY: Persist new JTI and explicitly revoke old one (rotation)
     await persistRefreshJti(session.user?.id as string, newJti, REFRESH_TTL_SECONDS);
+    await revokeRefreshJti(session.user?.id as string, jti);
 
     const res = NextResponse.json(
       { ok: true, accessToken },

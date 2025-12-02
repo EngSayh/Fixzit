@@ -17,9 +17,11 @@ vi.mock("@/lib/logger", () => ({
 
 const mockValidate = vi.fn(async () => true);
 const mockPersist = vi.fn(async () => undefined);
+const mockRevoke = vi.fn(async () => undefined);
 vi.mock("@/lib/refresh-token-store", () => ({
   validateRefreshJti: (...args: unknown[]) => mockValidate(...args),
   persistRefreshJti: (...args: unknown[]) => mockPersist(...args),
+  revokeRefreshJti: (...args: unknown[]) => mockRevoke(...args),
 }));
 
 const mockConnect = vi.fn();

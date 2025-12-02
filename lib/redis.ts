@@ -16,18 +16,45 @@ import { logger } from "@/lib/logger";
  * @module lib/redis
  */
 
-import Redis from "ioredis";
+type RedisCtor = typeof import("ioredis")["default"];
+type RedisInstance = InstanceType<RedisCtor>;
 
-let redis: Redis | null = null;
+let RedisModule: RedisCtor | null = null;
+let redis: RedisInstance | null = null;
 let isConnecting = false;
 let loggedMissingRedisUrl = false;
+
+function isEdgeRuntime(): boolean {
+  // Edge runtime sets global EdgeRuntime
+  return typeof (globalThis as Record<string, unknown>).EdgeRuntime !== "undefined" ||
+    process?.env?.NEXT_RUNTIME === "edge";
+}
+
+function getRedisCtor(): RedisCtor | null {
+  if (RedisModule) return RedisModule;
+  if (typeof require === "undefined") return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require("ioredis");
+    RedisModule = mod.default || mod;
+    return RedisModule;
+  } catch (error) {
+    logger.warn("[Redis] ioredis not available in this runtime", { error });
+    return null;
+  }
+}
 
 /**
  * Get or create singleton Redis connection
  *
  * @returns Redis client instance or null if Redis is unavailable
  */
-export function getRedisClient(): Redis | null {
+export function getRedisClient(): RedisInstance | null {
+  // Never attempt Redis on Edge runtime
+  if (isEdgeRuntime()) {
+    return null;
+  }
+
   // Redis is optional - return null if no URL configured
   // Support both REDIS_URL and BULLMQ_REDIS_URL for compatibility with different deployment configs
   const redisUrl = process.env.REDIS_URL || process.env.BULLMQ_REDIS_URL;
@@ -36,6 +63,11 @@ export function getRedisClient(): Redis | null {
       logger.warn("[Redis] No REDIS_URL or BULLMQ_REDIS_URL configured - Redis-backed features disabled");
       loggedMissingRedisUrl = true;
     }
+    return null;
+  }
+
+  const RedisCtorLocal = getRedisCtor();
+  if (!RedisCtorLocal) {
     return null;
   }
 
@@ -58,7 +90,7 @@ export function getRedisClient(): Redis | null {
   try {
     isConnecting = true;
 
-    redis = new Redis(redisUrl, {
+    redis = new RedisCtorLocal(redisUrl, {
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
       enableOfflineQueue: false, // Fail fast if Redis is down
@@ -172,7 +204,7 @@ export async function isRedisHealthy(): Promise<boolean> {
  * );
  */
 export async function safeRedisOp<T>(
-  operation: (client: Redis) => Promise<T>,
+  operation: (client: RedisInstance) => Promise<T>,
   fallback: T,
 ): Promise<T> {
   const client = getRedisClient();

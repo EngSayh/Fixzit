@@ -37,9 +37,11 @@ vi.mock("@/server/models/User", () => ({
 
 const mockValidate = vi.fn();
 const mockPersist = vi.fn();
+const mockRevoke = vi.fn();
 vi.mock("@/lib/refresh-token-store", () => ({
   validateRefreshJti: (...args: unknown[]) => mockValidate(...args),
   persistRefreshJti: (...args: unknown[]) => mockPersist(...args),
+  revokeRefreshJti: (...args: unknown[]) => mockRevoke(...args),
 }));
 
 let POST: any;
@@ -118,5 +120,7 @@ describe("API /api/auth/refresh replay protection", () => {
     const res = await POST(makeReq(token));
     expect(res.status).toBe(200);
     expect(mockPersist).toHaveBeenCalledWith("u1", expect.any(String), expect.any(Number));
+    // Verify old JTI is revoked during rotation
+    expect(mockRevoke).toHaveBeenCalledWith("u1", "known");
   });
 });
