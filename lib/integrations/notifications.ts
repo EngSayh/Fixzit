@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getEnv } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import type {
   NotificationChannel,
@@ -258,8 +259,11 @@ async function initializeSendGrid() {
   if (sendGridInitialized) return sgMailInstance!;
 
   try {
-    if (!process.env.SENDGRID_API_KEY) {
-      logger.warn("[SendGrid] API key not configured");
+    // Use getEnv with alias support for Vercel naming conventions
+    // Checks: SENDGRID_API_KEY, SEND_GRID, SEND_GRID_EMAIL_FIXZIT_TOKEN
+    const sendgridApiKey = getEnv("SENDGRID_API_KEY");
+    if (!sendgridApiKey) {
+      logger.warn("[SendGrid] API key not configured (checked SENDGRID_API_KEY, SEND_GRID, SEND_GRID_EMAIL_FIXZIT_TOKEN)");
       throw new Error("SendGrid not configured");
     }
 
@@ -267,7 +271,7 @@ async function initializeSendGrid() {
       import("@sendgrid/mail"),
     );
     sgMailInstance = sgMail;
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    sgMail.setApiKey(sendgridApiKey);
     sendGridInitialized = true;
     logger.info("[SendGrid] Initialized successfully");
     return sgMail;
