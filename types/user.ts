@@ -21,6 +21,9 @@ export const UserRole = {
   HR: "HR", // HR module access
   PROCUREMENT: "PROCUREMENT",
   
+  // Team Member base role (used for general staff, specializes via sub-roles)
+  TEAM_MEMBER: "TEAM_MEMBER", // General staff - use sub-roles for module access
+  
   // PHASE-3 FIX: Specialized Sub-Roles (Team Member specializations)
   // These provide granular access to Finance/HR/Support modules
   FINANCE_OFFICER: "FINANCE_OFFICER", // Finance module only + reports
@@ -74,6 +77,7 @@ export const CANONICAL_ROLES = [
   UserRole.FM_MANAGER,
   UserRole.PROPERTY_MANAGER,
   UserRole.TECHNICIAN,
+  UserRole.TEAM_MEMBER, // Base role for staff, specializes via sub-roles
   UserRole.FINANCE,
   UserRole.HR,
   UserRole.PROCUREMENT,

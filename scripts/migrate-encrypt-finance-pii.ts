@@ -36,8 +36,39 @@ import { Invoice } from "@/server/models/Invoice";
 import { FMFinancialTransaction } from "@/server/models/FMFinancialTransaction";
 import { logger } from "@/lib/logger";
 
+// ============================================================================
+// ENV PREFLIGHT CHECK
+// ============================================================================
+// SECURITY: Fail fast if encryption key is missing to prevent partial migrations
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.PII_ENCRYPTION_KEY;
+if (!ENCRYPTION_KEY) {
+  console.error(`
+╔════════════════════════════════════════════════════════════════════════════╗
+║  ERROR: Missing ENCRYPTION_KEY or PII_ENCRYPTION_KEY                       ║
+║                                                                            ║
+║  This script requires an encryption key to encrypt PII fields.             ║
+║  Set one of these environment variables before running:                    ║
+║                                                                            ║
+║    ENCRYPTION_KEY=<your-32-byte-hex-key>                                   ║
+║    PII_ENCRYPTION_KEY=<your-32-byte-hex-key>                               ║
+║                                                                            ║
+║  Example:                                                                  ║
+║    ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts      ║
+╚════════════════════════════════════════════════════════════════════════════╝
+`);
+  process.exit(1);
+}
+
 const BATCH_SIZE = 200;
 const BACKUP_BATCH_SIZE = 500;
+
+/**
+ * Escape special regex characters in a string to prevent ReDoS attacks
+ * when constructing patterns from variable input.
+ */
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 interface EncryptTarget {
   path: string;
@@ -202,6 +233,21 @@ async function createBackup(
   }
 
   if (totalBacked > 0) {
+    // Add TTL index (24h) to auto-cleanup backup collections
+    // SECURITY: Prevents plaintext PII from lingering indefinitely
+    try {
+      await backupCollection.createIndex(
+        { createdAt: 1 },
+        { expireAfterSeconds: 24 * 60 * 60 } // 24 hours
+      );
+      // Add createdAt timestamp for TTL tracking
+      await backupCollection.updateMany({}, { $set: { createdAt: new Date() } });
+      logger.info(`[FINANCE PII MIGRATION] Backup TTL set (24h auto-cleanup): ${backupName}`);
+    } catch (ttlError) {
+      // TTL index creation is best-effort; log warning but continue
+      logger.warn(`[FINANCE PII MIGRATION] Could not set TTL on backup: ${backupName}`, { error: ttlError });
+    }
+
     logger.info(`[FINANCE PII MIGRATION] Backup created: ${backupName}`, {
       count: totalBacked,
     });
@@ -224,29 +270,41 @@ async function restoreFromBackup(
   // Find backups - prefer org-scoped backups when orgId is provided
   const collections = await db.listCollections().toArray();
 
-  // Build backup name pattern based on scope
-  const scopedPattern = orgId
-    ? `${collectionName}_backup_finance_pii_${orgId}_`
-    : `${collectionName}_backup_finance_pii`;
+  let backups: { name: string }[];
 
-  // Filter backups matching the scope pattern
-  let backups = collections
-    .filter((c) => c.name.startsWith(scopedPattern))
-    .sort((a, b) => {
-      const tsA = parseInt(a.name.split("_").pop() || "0");
-      const tsB = parseInt(b.name.split("_").pop() || "0");
-      return tsB - tsA; // Most recent first
-    });
+  if (orgId) {
+    // Org-scoped: match exact org prefix
+    const scopedPrefix = `${collectionName}_backup_finance_pii_${orgId}_`;
+    backups = collections
+      .filter((c) => c.name.startsWith(scopedPrefix))
+      .sort((a, b) => {
+        const tsA = parseInt(a.name.split("_").pop() || "0");
+        const tsB = parseInt(b.name.split("_").pop() || "0");
+        return tsB - tsA; // Most recent first
+      });
 
-  // If org-scoped and no scoped backup found, look for global backups as fallback
-  if (backups.length === 0 && orgId) {
-    logger.warn(
-      `[FINANCE PII MIGRATION] No org-scoped backup found for ${collectionName} (org: ${orgId}). Checking for global backups...`,
-    );
-    // Only match truly global backups (format: {collection}_backup_finance_pii_{timestamp})
-    // Exclude any org-specific backups by checking for pattern without org segment
+    // Fallback to global backups if no org-scoped backup found
+    if (backups.length === 0) {
+      logger.warn(
+        `[FINANCE PII MIGRATION] No org-scoped backup found for ${collectionName} (org: ${orgId}). Checking for global backups...`,
+      );
+      // Only match truly global backups (format: {collection}_backup_finance_pii_{timestamp})
+      // Exclude any org-specific backups by checking for pattern without org segment
+      const globalBackupPattern = new RegExp(
+        `^${escapeRegExp(collectionName)}_backup_finance_pii_\\d+$`,
+      );
+      backups = collections
+        .filter((c) => globalBackupPattern.test(c.name))
+        .sort((a, b) => {
+          const tsA = parseInt(a.name.split("_").pop() || "0");
+          const tsB = parseInt(b.name.split("_").pop() || "0");
+          return tsB - tsA;
+        });
+    }
+  } else {
+    // Global: only match truly global backups (no org segment)
     const globalBackupPattern = new RegExp(
-      `^${collectionName}_backup_finance_pii_\\d+$`,
+      `^${escapeRegExp(collectionName)}_backup_finance_pii_\\d+$`,
     );
     backups = collections
       .filter((c) => globalBackupPattern.test(c.name))
@@ -546,42 +604,44 @@ async function main(): Promise<void> {
 
   const collectionStats: Record<string, MigrationStats> = {};
 
-  if (options.rollback) {
-    logger.info(
-      `[FINANCE PII MIGRATION] Performing rollback${options.orgId ? ` for org: ${options.orgId}` : ""}...`,
-    );
-    await restoreFromBackup("invoices", options.orgId);
-    await restoreFromBackup("fm_financial_transactions", options.orgId);
-    logger.info("[FINANCE PII MIGRATION] Rollback complete");
-  } else {
-    // Migrate Invoice collection
-    collectionStats.invoices = await migrateCollection(
-      "Invoice",
-      Invoice as mongoose.Model<unknown>,
-      invoiceTargets,
-      options,
-    );
+  try {
+    if (options.rollback) {
+      logger.info(
+        `[FINANCE PII MIGRATION] Performing rollback${options.orgId ? ` for org: ${options.orgId}` : ""}...`,
+      );
+      // Use model collection names instead of hardcoded strings
+      await restoreFromBackup(Invoice.collection.name, options.orgId);
+      await restoreFromBackup(FMFinancialTransaction.collection.name, options.orgId);
+      logger.info("[FINANCE PII MIGRATION] Rollback complete");
+    } else {
+      // Migrate Invoice collection
+      collectionStats.invoices = await migrateCollection(
+        "Invoice",
+        Invoice as mongoose.Model<unknown>,
+        invoiceTargets,
+        options,
+      );
 
-    // Migrate FMFinancialTransaction collection
-    collectionStats.fm_financial_transactions = await migrateCollection(
-      "FMFinancialTransaction",
-      FMFinancialTransaction as mongoose.Model<unknown>,
-      transactionTargets,
-      options,
-    );
+      // Migrate FMFinancialTransaction collection
+      collectionStats.fm_financial_transactions = await migrateCollection(
+        "FMFinancialTransaction",
+        FMFinancialTransaction as mongoose.Model<unknown>,
+        transactionTargets,
+        options,
+      );
 
-    printSummary(collectionStats, options);
+      printSummary(collectionStats, options);
+    }
+  } finally {
+    await mongoose.disconnect();
   }
-
-  await mongoose.disconnect();
 }
 
 main()
   .then(() => {
     logger.info("[FINANCE PII MIGRATION] Migration complete");
-    process.exit(0);
   })
   .catch((err) => {
     logger.error("[FINANCE PII MIGRATION] Migration failed", { error: err });
-    process.exit(1);
+    process.exitCode = 1;
   });

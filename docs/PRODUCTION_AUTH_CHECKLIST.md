@@ -25,7 +25,7 @@ openssl rand -base64 32
 2. Navigate to **Settings → Environment Variables**
 3. Add the following for **Production** environment:
 
-```
+```env
 NEXTAUTH_SECRET=<your-generated-secret>
 AUTH_TRUST_HOST=true
 NEXTAUTH_URL=https://your-domain.com
@@ -64,6 +64,7 @@ This NextAuth error message appears when:
 ### Development Bypass (Dev Only)
 
 The bypass only works when ALL these conditions are true:
+
 ```typescript
 isSuperAdmin && isDevelopment && explicitBypass
 ```
@@ -123,7 +124,7 @@ Phone: +966552233456
 
 Auth config validates environment at startup. Check logs for messages like:
 
-```
+```text
 Missing required runtime configuration: NEXTAUTH_URL. These are required for production runtime.
 Missing secrets: NEXTAUTH_SECRET or AUTH_SECRET. Authentication will not work.
 ```
@@ -156,6 +157,7 @@ curl -s https://your-domain.com/api/auth/session
 - [ ] SMS gateway configured for OTP (if using SMS)
 - [ ] Super admin user exists in database with `status: 'ACTIVE'`
 - [ ] Test login flow on staging before production
+- [ ] Finance index migration executed: run `MONGODB_URI=<prod-uri> pnpm tsx scripts/drop-legacy-fm-transaction-index.ts` and verify `db.fm_financial_transactions.getIndexes()` only includes the org-scoped unique `{ orgId: 1, transactionNumber: 1 }` (legacy global `{ transactionNumber: 1 }` removed)
 
 ## Vercel Specific Notes
 

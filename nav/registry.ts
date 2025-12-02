@@ -16,29 +16,11 @@ import {
   BarChart3,
   Cog,
 } from "lucide-react";
+import type { Role } from "@/config/rbac.config";
 
-// STRICT v4.1 canonical roles for navigation gating
-// Includes base roles + specialized sub-roles from types/user.ts
-export type Role =
-  | "SUPER_ADMIN"
-  | "ADMIN"
-  | "CORPORATE_OWNER"
-  | "CORPORATE_ADMIN"
-  | "TEAM_MEMBER"
-  | "TECHNICIAN"
-  | "PROPERTY_MANAGER"
-  | "FM_MANAGER"
-  | "TENANT"
-  | "VENDOR"
-  | "OWNER"
-  | "GUEST"
-  // Sub-roles (PHASE-3 STRICT v4.1)
-  | "FINANCE"
-  | "FINANCE_OFFICER"
-  | "HR"
-  | "HR_OFFICER"
-  | "SUPPORT_AGENT"
-  | "OPERATIONS_MANAGER";
+// Nav gating uses the canonical STRICT v4.1 Role from config/rbac.config.
+// To add/remove roles, update UserRole in types/user.ts / rbac.config, not here.
+export type { Role };
 
 export type QuickAction = {
   id: string;

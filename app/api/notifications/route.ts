@@ -77,6 +77,14 @@ export async function GET(req: NextRequest) {
     if (!rl.allowed) {
       return rateLimitError();
     }
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
     orgId = user.orgId;
   } catch {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
@@ -153,6 +161,14 @@ export async function POST(req: NextRequest) {
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
+    }
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
     }
     orgId = user.orgId;
   } catch {

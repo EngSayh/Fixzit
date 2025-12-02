@@ -94,6 +94,14 @@ export async function GET(
   try {
     const { id } = await props.params;
     const user = await getSessionUser(req);
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
@@ -122,6 +130,14 @@ export async function PATCH(
   try {
     const { id } = await props.params;
     const user = await getSessionUser(req);
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
     await connectToDatabase();
 
     const data = updateVendorSchema.parse(await req.json());
@@ -149,6 +165,14 @@ export async function DELETE(
   try {
     const { id } = await props.params;
     const user = await getSessionUser(req);
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
