@@ -87,40 +87,69 @@ if (!ENCRYPTION_KEY) {
 // This prevents weak-key encryptions that would require costly re-migrations
 function validateKeyStrength(key: string): void {
   let keyBytes: number;
-  try {
-    // Try base64 decode first (preferred format)
-    const decoded = Buffer.from(key, 'base64');
-    keyBytes = decoded.length;
-  } catch {
-    // Fallback to raw string length
-    keyBytes = key.length;
+  let decodingMethod: 'base64' | 'hex' | 'INVALID' = 'INVALID';
+  
+  // STRICT v4.1 FIX: Require explicit encoding format (base64 or hex)
+  // Raw string length fallback is BLOCKED to prevent accepting weak-entropy keys
+  // A 32-char ASCII string only provides 32 bytes of characters, not 256 bits of entropy
+  if (key.startsWith('0x')) {
+    // Hex-encoded key (e.g., 0x followed by 64 hex chars = 32 bytes)
+    try {
+      const decoded = Buffer.from(key.slice(2), 'hex');
+      keyBytes = decoded.length;
+      decodingMethod = 'hex';
+    } catch {
+      keyBytes = 0;
+    }
+  } else {
+    // Base64-encoded key (preferred format, 44 base64 chars = 32 bytes)
+    try {
+      const decoded = Buffer.from(key, 'base64');
+      // Verify it's actually valid base64 by re-encoding and comparing
+      const reEncoded = decoded.toString('base64');
+      // Allow for padding variations
+      if (reEncoded.replace(/=+$/, '') === key.replace(/=+$/, '')) {
+        keyBytes = decoded.length;
+        decodingMethod = 'base64';
+      } else {
+        // Not valid base64 - reject
+        keyBytes = 0;
+      }
+    } catch {
+      keyBytes = 0;
+    }
   }
 
-  if (keyBytes < KEY_LENGTH) {
+  if (keyBytes < KEY_LENGTH || decodingMethod === 'INVALID') {
     // STRICT v4.1: Use central logger for observability (captured by log pipelines)
-    logger.error("[FINANCE PII MIGRATION] PREFLIGHT FAILED: Encryption key too weak", {
+    logger.error("[FINANCE PII MIGRATION] PREFLIGHT FAILED: Encryption key too weak or invalid format", {
       severity: "critical",
       currentKeyBytes: keyBytes,
       currentKeyBits: keyBytes * 8,
       requiredKeyBytes: KEY_LENGTH,
       requiredKeyBits: KEY_LENGTH * 8,
+      decodingMethod,
       hint: "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
     });
     // Also print to console for interactive terminal visibility
     console.error(`
 ╔════════════════════════════════════════════════════════════════════════════╗
-║  ERROR: ENCRYPTION_KEY is too weak for finance PII migration               ║
+║  ERROR: ENCRYPTION_KEY is too weak or invalid format                       ║
 ║                                                                            ║
 ║  Finance PII encryption requires a 256-bit (32-byte) key for compliance.   ║
+║  Keys must be properly encoded as base64 or hex (0x prefix).               ║
 ║                                                                            ║
-║  Current key: ${keyBytes} bytes (${keyBytes * 8}-bit)
+║  Current key: ${keyBytes} bytes (${keyBytes * 8}-bit) via ${decodingMethod}
 ║  Required:    ${KEY_LENGTH} bytes (256-bit)
 ║                                                                            ║
-║  STRICT v4.1: Weak keys are BLOCKED even in non-production to prevent      ║
-║  irreversible weak encryptions that would require costly re-migrations.    ║
+║  STRICT v4.1: Raw string fallback is BLOCKED to prevent weak-entropy keys. ║
+║  A 32-char ASCII string does NOT provide 256 bits of cryptographic entropy.║
 ║                                                                            ║
 ║  Generate a compliant key:                                                 ║
 ║    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"║
+║                                                                            ║
+║  Or hex format (64 hex chars):                                             ║
+║    node -e "console.log('0x' + require('crypto').randomBytes(32).toString('hex'))"║
 ╚════════════════════════════════════════════════════════════════════════════╝
 `);
     process.exit(1);
@@ -130,9 +159,10 @@ function validateKeyStrength(key: string): void {
   logger.info("[FINANCE PII MIGRATION] Encryption key strength validated", {
     keyBits: keyBytes * 8,
     algorithm: "AES-256",
+    encoding: decodingMethod,
     status: "compliant",
   });
-  console.log(`✅ Encryption key strength validated: ${keyBytes * 8}-bit (AES-256 compliant)`);
+  console.log(`✅ Encryption key strength validated: ${keyBytes * 8}-bit (AES-256 compliant, ${decodingMethod} encoded)`);
 }
 
 // Run key strength validation immediately

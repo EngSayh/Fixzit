@@ -20,7 +20,7 @@ import {
 } from "@/lib/auth/emailVerification";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
-import { UserRole } from "@/types/user";
+import { UserRole, UserStatus } from "@/types/user";
 
 const signupSchema = z
   .object({
@@ -202,7 +202,11 @@ export async function POST(req: NextRequest) {
             app: true,
           },
         },
-        status: "ACTIVE",
+        // STRICT v4.1: Create users as PENDING in production (requires email verification)
+        // Non-production environments get ACTIVE status for testing flexibility
+        status: process.env.NODE_ENV === "production" && process.env.NEXTAUTH_REQUIRE_EMAIL_VERIFICATION !== "false"
+          ? UserStatus.PENDING
+          : UserStatus.ACTIVE,
         customFields: {
           companyName,
           termsAccepted: body.termsAccepted,
