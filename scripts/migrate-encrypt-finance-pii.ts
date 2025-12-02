@@ -18,6 +18,11 @@
  * - Rollback respects --org scope when provided.
  * - Failed document IDs are logged for targeted reruns.
  *
+ * BREAK-GLASS PROCEDURE:
+ *   The --allow-plaintext-backup flag is BLOCKED in production by default.
+ *   For emergency use, set MIGRATION_ALLOW_PLAINTEXT=true (requires approvals).
+ *   See: docs/operations/PII_MIGRATION_BREAK_GLASS_RUNBOOK.md
+ *
  * Encrypted Fields:
  *   Invoice:
  *     - issuer.taxId, issuer.phone, issuer.email

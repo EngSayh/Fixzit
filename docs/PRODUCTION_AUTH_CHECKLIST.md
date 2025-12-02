@@ -221,5 +221,13 @@ curl -s https://your-domain.com/api/auth/session
 
 ---
 
+## Related Documentation
+
+- [PII Migration Break-Glass Runbook](./operations/PII_MIGRATION_BREAK_GLASS_RUNBOOK.md) - Emergency procedure for finance PII encryption migration
+- [Post-Stabilization Audit Report](./POST_STABILIZATION_AUDIT_REPORT.md) - STRICT v4.1 compliance status
+- [Security Documentation](./SECURITY.md) - Security policies and procedures
+
+---
+
 **Last Updated**: 2025-12-02  
-**Version**: 1.2
+**Version**: 1.3
