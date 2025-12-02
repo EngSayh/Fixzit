@@ -8,7 +8,7 @@ import { NextRequest } from "next/server";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
 import { connectDb } from "@/lib/mongo";
-import { AqarListing, AqarPackage } from "@/models/aqar";
+import { AqarListing, AqarPackage } from "@/server/models/aqar";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { ok, badRequest, forbidden, serverError } from "@/lib/api/http";
 import {

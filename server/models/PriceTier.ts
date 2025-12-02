@@ -1,5 +1,5 @@
 import { Schema, model, models, Document } from "mongoose";
-import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { getModel, MModel } from "@/types/mongoose-compat";
 import { auditPlugin } from "../plugins/auditPlugin";
 
 export interface IPriceTier extends Document {

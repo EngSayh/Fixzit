@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dbConnect } from "@/lib/db/mongoose";
-import { computePricingInsight } from "@/src/lib/aqar/pricingInsights";
-import { ListingIntent, PropertyType } from "@/models/aqar/Listing";
+import { dbConnect } from "@/db/mongoose";
+import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
 import { rateLimit } from "@/server/security/rateLimit";
 import { getClientIP } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
+import { PricingInsightsService } from "@/services/aqar/pricing-insights-service";
 
 export const runtime = "nodejs";
 
@@ -30,14 +30,15 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
     const { searchParams } = new URL(req.url);
-    const cityId = searchParams.get("cityId");
-    if (!cityId) {
+    // Support both old (cityId/neighborhoodId) and new (city/neighborhood) param names
+    const city = searchParams.get("city") || searchParams.get("cityId") || undefined;
+    if (!city) {
       return NextResponse.json(
-        { ok: false, error: "cityId is required" },
+        { ok: false, error: "city is required" },
         { status: 400 },
       );
     }
-    const neighborhoodId = searchParams.get("neighborhoodId") || undefined;
+    const neighborhood = searchParams.get("neighborhood") || searchParams.get("neighborhoodId") || undefined;
     const propertyType = sanitizeEnum<PropertyType>(
       searchParams.get("propertyType"),
       Object.values(PropertyType),
@@ -48,14 +49,14 @@ export async function GET(req: NextRequest) {
         Object.values(ListingIntent),
       ) || ListingIntent.BUY;
 
-    const insight = await computePricingInsight({
-      cityId,
-      neighborhoodId,
+    const insights = await PricingInsightsService.getInsights({
+      city,
+      neighborhood,
       propertyType,
       intent,
     });
 
-    return NextResponse.json({ ok: true, insight });
+    return NextResponse.json({ ok: true, insight: insights });
   } catch (err) {
     logger.error("GET /api/aqar/pricing error", { error: err });
     return NextResponse.json(

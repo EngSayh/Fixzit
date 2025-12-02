@@ -9,11 +9,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { connectDb } from "@/lib/mongo";
-import { AqarListing } from "@/models/aqar";
+import { AqarListing } from "@/server/models/aqar";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { FurnishingStatus, ListingStatus } from "@/models/aqar/Listing";
+import { FurnishingStatus, ListingStatus } from "@/server/models/aqar/Listing";
 import { ok, badRequest, notFound } from "@/lib/api/http";
 import { isValidObjectIdSafe } from "@/lib/api/validation";
+import { incrementAnalyticsWithRetry } from "@/lib/analytics/incrementWithRetry";
+import {
+  setTenantContext,
+  clearTenantContext,
+} from "@/server/plugins/tenantIsolation";
 
 import mongoose from "mongoose";
 
@@ -51,19 +56,54 @@ export async function GET(
       return notFound("Listing not found", { correlationId });
     }
 
-    // Best-effort analytics increment with error capture (no await to avoid blocking response)
-    AqarListing.findByIdAndUpdate(id, {
-      $inc: { "analytics.views": 1 },
-      $set: { "analytics.lastViewedAt": new Date() },
-    })
-      .exec()
-      .catch((err: Error) => {
+    // Extract org_id from listing for tenant-scoped analytics
+    const listingOrg =
+      (listing as { orgId?: unknown; org_id?: unknown }).orgId ??
+      (listing as { orgId?: unknown; org_id?: unknown }).org_id;
+
+    // Best-effort analytics increment with tenant context (non-blocking)
+    // Set tenant context to ensure org_id scoping for analytics updates
+    if (listingOrg) {
+      (async () => {
+        try {
+          setTenantContext({ orgId: String(listingOrg), userId: undefined });
+          await incrementAnalyticsWithRetry({
+            model: AqarListing,
+            id: new mongoose.Types.ObjectId(id),
+            updateOp: {
+              $inc: { "analytics.views": 1 },
+              $set: { "analytics.lastViewedAt": new Date() },
+            },
+            entityType: "listing",
+          });
+        } catch (err) {
+          logger.warn("VIEW_INC_FAILED", {
+            correlationId,
+            id,
+            err: String((err as Error)?.message || err),
+          });
+        } finally {
+          clearTenantContext();
+        }
+      })();
+    } else {
+      // Fallback: increment without tenant context if orgId missing (legacy data)
+      incrementAnalyticsWithRetry({
+        model: AqarListing,
+        id: new mongoose.Types.ObjectId(id),
+        updateOp: {
+          $inc: { "analytics.views": 1 },
+          $set: { "analytics.lastViewedAt": new Date() },
+        },
+        entityType: "listing",
+      }).catch((err: Error) => {
         logger.warn("VIEW_INC_FAILED", {
           correlationId,
           id,
           err: String(err?.message || err),
         });
       });
+    }
 
     return ok({ listing }, { correlationId });
   } catch (error) {

@@ -92,7 +92,7 @@ export default function ChatWidget() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="rounded-full bg-[#0061A8] text-white px-4 py-2 text-sm shadow-lg"
+          className="rounded-full bg-primary text-primary-foreground px-4 py-2 text-sm shadow-lg"
         >
           مساعدة
         </button>
@@ -120,7 +120,7 @@ export default function ChatWidget() {
                 key={m.id}
                 className={`max-w-[90%] rounded-md px-2 py-1 ${
                   m.from === "user"
-                    ? "ms-auto bg-[#0061A8] text-white"
+                    ? "ms-auto bg-primary text-primary-foreground"
                     : "me-auto bg-white text-slate-800 shadow"
                 }`}
               >
@@ -142,7 +142,7 @@ export default function ChatWidget() {
               type="button"
               onClick={send}
               disabled={sending}
-              className="px-3 py-1 rounded bg-[#0061A8] text-white text-xs disabled:opacity-60"
+              className="px-3 py-1 rounded bg-primary text-primary-foreground text-xs disabled:opacity-60"
             >
               إرسال
             </button>

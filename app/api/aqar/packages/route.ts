@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import mongoose from "mongoose";
 import { connectDb } from "@/lib/mongo";
-import { AqarPackage, AqarPayment, PackageType } from "@/models/aqar";
+import { AqarPackage, AqarPayment, PackageType } from "@/server/models/aqar";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { ok, badRequest, serverError } from "@/lib/api/http";
 

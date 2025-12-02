@@ -1,7 +1,8 @@
 import { Schema, Model, InferSchemaType } from "mongoose";
-import { getModel } from "@/src/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 import { auditPlugin } from "@/server/plugins/auditPlugin";
+import { encryptionPlugin } from "@/server/plugins/encryptionPlugin";
 
 /**
  * FMFinancialTransaction Model
@@ -159,6 +160,13 @@ const FMFinancialTransactionSchema = new Schema(
 // Plugins
 FMFinancialTransactionSchema.plugin(tenantIsolationPlugin);
 FMFinancialTransactionSchema.plugin(auditPlugin);
+FMFinancialTransactionSchema.plugin(encryptionPlugin, {
+  fields: {
+    "paymentDetails.paymentRef": "Payment Reference",
+    "paymentDetails.receivedFrom": "Payment Received From",
+    "paymentDetails.bankAccount": "Payment Bank Account",
+  },
+});
 
 // Indexes for performance
 FMFinancialTransactionSchema.index({ orgId: 1, transactionNumber: 1 });

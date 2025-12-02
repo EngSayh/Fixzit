@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
-import { OnboardingCase } from '@/models/onboarding/OnboardingCase';
-import { VerificationDocument } from '@/models/onboarding/VerificationDocument';
+import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
+import { VerificationDocument } from '@/server/models/onboarding/VerificationDocument';
 
 export async function getOnboardingKPIs(orgId: string) {
   const orgObjectId = new Types.ObjectId(orgId);

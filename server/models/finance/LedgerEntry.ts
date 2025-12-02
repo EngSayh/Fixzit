@@ -19,7 +19,7 @@ import {
   getModel,
   MModel,
   CommonModelStatics,
-} from "@/src/types/mongoose-compat";
+} from "@/types/mongoose-compat";
 import { ensureMongoConnection } from "@/server/lib/db";
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 import { auditPlugin } from "@/server/plugins/auditPlugin";

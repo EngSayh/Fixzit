@@ -18,7 +18,7 @@
  */
 
 import { Schema, model, models, Types } from "mongoose";
-import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { getModel, MModel } from "@/types/mongoose-compat";
 import Decimal from "decimal.js";
 import { ensureMongoConnection } from "@/server/lib/db";
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";

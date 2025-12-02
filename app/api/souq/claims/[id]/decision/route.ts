@@ -20,7 +20,8 @@ export async function POST(
 ) {
   try {
     const session = await resolveRequestSession(request);
-    if (!session?.user?.id) {
+    const userOrgId = session?.user?.orgId;
+    if (!session?.user?.id || !userOrgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -55,6 +56,17 @@ export async function POST(
     const claim = await ClaimService.getClaim(params.id);
     if (!claim) {
       return NextResponse.json({ error: "Claim not found" }, { status: 404 });
+    }
+    // Enforce org scoping via order/org lookup
+    const claimOrgFilter = ObjectId.isValid(claim.orderId)
+      ? { orgId: new ObjectId(userOrgId), _id: new ObjectId(claim.orderId) }
+      : { orgId: new ObjectId(userOrgId), orderId: claim.orderId };
+    const orderForScope = await db.collection("orders").findOne(claimOrgFilter);
+    if (!orderForScope) {
+      return NextResponse.json(
+        { error: "Forbidden: claim does not belong to your organization" },
+        { status: 403 },
+      );
     }
 
     const filter = ObjectId.isValid(params.id)

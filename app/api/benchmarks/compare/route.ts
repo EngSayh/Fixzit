@@ -4,11 +4,13 @@ import Benchmark from "@/server/models/Benchmark";
 import { computeQuote } from "@/lib/pricing";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { z } from "zod";
+import { auth } from "@/auth";
 
 import { rateLimit } from "@/server/security/rateLimit";
 import {
   zodValidationError,
   rateLimitError,
+  unauthorizedError,
 } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
@@ -47,6 +49,16 @@ const compareSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
+  // SECURITY: Require authentication to prevent enumeration attacks
+  const session = await auth();
+  if (!session?.user?.id) {
+    return unauthorizedError("Authentication required");
+  }
+  const orgId = session.user.orgId;
+  if (!orgId || typeof orgId !== "string" || orgId.trim() === "") {
+    return unauthorizedError("Organization context required");
+  }
+
   // Rate limiting
   const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
@@ -65,7 +77,11 @@ export async function POST(req: NextRequest) {
     });
     if (ours.contactSales) return createSecureResponse(ours, 200, req);
 
-    const rows = (await Benchmark.find({})) as unknown as BenchmarkDocument[];
+    // SECURITY: Scope benchmarks to user's organization (tenant isolation)
+    // Admins can query all if needed via admin route
+    const query = { tenantId: orgId };
+
+    const rows = (await Benchmark.find(query).lean()) as unknown as BenchmarkDocument[];
     const perUserRows = rows.filter(
       (r) => r.pricingModel === "per_user_month" && r.priceMonthly,
     );

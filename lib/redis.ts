@@ -20,6 +20,7 @@ import Redis from "ioredis";
 
 let redis: Redis | null = null;
 let isConnecting = false;
+let loggedMissingRedisUrl = false;
 
 /**
  * Get or create singleton Redis connection
@@ -28,9 +29,12 @@ let isConnecting = false;
  */
 export function getRedisClient(): Redis | null {
   // Redis is optional - return null if no URL configured
-  if (!process.env.REDIS_URL) {
-    if (process.env.NODE_ENV === "development") {
-      logger.warn("[Redis] No REDIS_URL configured - Redis features disabled");
+  // Support both REDIS_URL and BULLMQ_REDIS_URL for compatibility with different deployment configs
+  const redisUrl = process.env.REDIS_URL || process.env.BULLMQ_REDIS_URL;
+  if (!redisUrl) {
+    if (!loggedMissingRedisUrl) {
+      logger.warn("[Redis] No REDIS_URL or BULLMQ_REDIS_URL configured - Redis-backed features disabled");
+      loggedMissingRedisUrl = true;
     }
     return null;
   }
@@ -54,7 +58,7 @@ export function getRedisClient(): Redis | null {
   try {
     isConnecting = true;
 
-    redis = new Redis(process.env.REDIS_URL, {
+    redis = new Redis(redisUrl, {
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
       enableOfflineQueue: false, // Fail fast if Redis is down
@@ -108,7 +112,6 @@ export function getRedisClient(): Redis | null {
     return redis;
   } catch (_error: unknown) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
-    void error;
     isConnecting = false;
     logger.error("[Redis] Failed to create connection:", { error });
     return null;
@@ -128,7 +131,6 @@ export async function closeRedis(): Promise<void> {
     } catch (_error) {
       const error =
         _error instanceof Error ? _error : new Error(String(_error));
-      void error;
       logger.error("[Redis] Error closing connection:", { error });
       // Force disconnect if graceful close fails
       if (redis) {
@@ -180,7 +182,6 @@ export async function safeRedisOp<T>(
     return await operation(client);
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
-    void error;
     logger.error("[Redis] Operation failed:", { error });
     return fallback;
   }

@@ -8,7 +8,8 @@ import {
 } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
-import { getModel } from "@/src/types/mongoose-compat";
+import { encryptionPlugin } from "../plugins/encryptionPlugin";
+import { getModel } from "@/types/mongoose-compat";
 
 // ----- Enums -----
 const ProviderStatus = [
@@ -388,6 +389,19 @@ ServiceProviderSchema.index({
 // Plugins
 ServiceProviderSchema.plugin(tenantIsolationPlugin);
 ServiceProviderSchema.plugin(auditPlugin);
+
+/**
+ * PII Encryption (GDPR Article 32 - Security of Processing)
+ * Encrypts sensitive contact and identity information at rest
+ */
+ServiceProviderSchema.plugin(encryptionPlugin, {
+  fields: {
+    "owner.nationalId": "Owner National ID",
+    "owner.email": "Owner Email",
+    "contact.email": "Contact Email",
+    "contact.phone": "Contact Phone",
+  },
+});
 
 // Virtual for completion rate
 ServiceProviderSchema.virtual("completionRatePercent").get(function () {

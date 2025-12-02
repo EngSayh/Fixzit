@@ -268,19 +268,30 @@ export async function POST(req: NextRequest) {
    * 2. Fallback: Simple title/content substring matching
    * 3. Return top 5 articles with citations
    *
-   * This provides general help without requiring authentication.
+   * NOTE: KB articles can be public (no orgId) or tenant-specific
+   * If user is authenticated, we include their org's articles + public articles
+   * If anonymous, only public articles are returned
    */
   let docs: HelpArticleDoc[] = [];
+  // SEC-001: Scope KB search to user's org or public articles
+  const kbFilter: Record<string, unknown> = { status: "PUBLISHED" };
+  if (user?.orgId) {
+    // Authenticated: user's org articles + public (no orgId) articles
+    kbFilter.$or = [{ orgId: user.orgId }, { orgId: { $exists: false } }];
+  } else {
+    // Anonymous: only public articles
+    kbFilter.orgId = { $exists: false };
+  }
   try {
     docs =
-      (await HelpArticle.find({ status: "PUBLISHED", $text: { $search: q } })
+      (await HelpArticle.find({ ...kbFilter, $text: { $search: q } })
         .sort?.({ updatedAt: -1 })
         .limit?.(5)) || [];
   } catch {
     // Fallback: simple title match in mock mode
     try {
       docs =
-        (await HelpArticle.find({ status: "PUBLISHED" })
+        (await HelpArticle.find(kbFilter)
           .sort?.({ updatedAt: -1 })
           .limit?.(20)) || [];
       const s = q.toLowerCase();

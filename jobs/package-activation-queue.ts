@@ -3,31 +3,54 @@
  *
  * Handles background retries for failed package activations after payment.
  * Uses BullMQ for reliable job processing with exponential backoff.
+ * 
+ * SECURITY: This is a critical queue - Redis is REQUIRED (fail-fast on missing config)
+ * to ensure activation retries are processed reliably.
  */
 
 import { Queue, Worker, Job } from "bullmq";
 import { logger } from "@/lib/logger";
-import IORedis from "ioredis";
+import { getRedisClient } from "@/lib/redis";
+import { z } from "zod";
 
 const QUEUE_NAME = "package-activation-retry";
 const MAX_ATTEMPTS = 5;
 
-// Redis connection for BullMQ
-const connection = process.env.REDIS_URL
-  ? new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
-  : undefined;
+// Zod schema for job payload validation - enforces tenant isolation
+const ActivationJobDataSchema = z.object({
+  aqarPaymentId: z.string().min(1, "aqarPaymentId is required"),
+  invoiceId: z.string().min(1, "invoiceId is required"),
+  orgId: z.string().min(1, "orgId is required for tenant isolation"),
+  attemptNumber: z.number().optional(),
+});
 
-// Queue instance
+type ActivationJobData = z.infer<typeof ActivationJobDataSchema>;
+
+// Queue and worker instances (for graceful shutdown)
 let queue: Queue | null = null;
+let activeWorker: Worker | null = null;
+
+/**
+ * Require Redis connection - fail fast if not configured
+ * Critical queues MUST have Redis to ensure reliability
+ */
+function requireRedisConnection(context: string) {
+  const connection = getRedisClient();
+  if (!connection) {
+    throw new Error(
+      `[ActivationQueue] Redis not configured (${context}). ` +
+      `REDIS_URL is required for activation retries - this is a critical queue.`
+    );
+  }
+  return connection;
+}
 
 /**
  * Get or create the activation retry queue
+ * Throws if Redis is not configured (fail-fast for critical queue)
  */
-export function getActivationQueue(): Queue | null {
-  if (!connection) {
-    logger.warn("[ActivationQueue] Redis not configured, queue disabled");
-    return null;
-  }
+export function getActivationQueue(): Queue {
+  const connection = requireRedisConnection("getActivationQueue");
 
   if (!queue) {
     queue = new Queue(QUEUE_NAME, {
@@ -53,35 +76,42 @@ export function getActivationQueue(): Queue | null {
   return queue;
 }
 
-interface ActivationJobData {
-  aqarPaymentId: string;
-  invoiceId: string;
-  attemptNumber?: number;
-}
-
 /**
  * Enqueue a package activation retry job
  */
 export async function enqueueActivationRetry(
   aqarPaymentId: string,
   invoiceId: string,
+  orgId: string,
 ): Promise<string | null> {
-  const activationQueue = getActivationQueue();
-  if (!activationQueue) {
-    logger.warn("[ActivationQueue] Cannot enqueue - queue not available");
+  // Validate payload with Zod schema (fail-closed on invalid data)
+  const parseResult = ActivationJobDataSchema.safeParse({
+    aqarPaymentId,
+    invoiceId,
+    orgId,
+    attemptNumber: 0,
+  });
+
+  if (!parseResult.success) {
+    logger.error("[ActivationQueue] Invalid job payload - tenant isolation requires valid orgId", {
+      aqarPaymentId,
+      invoiceId,
+      orgId,
+      validationErrors: parseResult.error.flatten().fieldErrors,
+    });
     return null;
   }
 
+  const activationQueue = getActivationQueue();
+
   try {
+    // Use deterministic job ID to prevent duplicate concurrent activations
+    // Same payment enqueued twice will dedupe automatically
     const job = await activationQueue.add(
       "activate-package",
+      parseResult.data,
       {
-        aqarPaymentId,
-        invoiceId,
-        attemptNumber: 0,
-      } as ActivationJobData,
-      {
-        jobId: `activation-${aqarPaymentId}-${Date.now()}`,
+        jobId: `activation-${aqarPaymentId}`,
       },
     );
 
@@ -89,16 +119,17 @@ export async function enqueueActivationRetry(
       jobId: job.id,
       aqarPaymentId,
       invoiceId,
+      orgId,
     });
 
     return job.id || null;
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
-    void error;
     logger.error("[ActivationQueue] Failed to enqueue retry", {
       error,
       aqarPaymentId,
       invoiceId,
+      orgId,
     });
     return null;
   }
@@ -107,39 +138,83 @@ export async function enqueueActivationRetry(
 /**
  * Process activation retry jobs
  * Call this from a worker process (e.g., in a separate Node.js process or serverless function)
+ * Throws if Redis is not configured (fail-fast for critical queue)
+ * 
+ * NOTE: This function is async to ensure MongoDB is connected before processing.
+ * The Worker is returned after connection is established.
  */
-export function startActivationWorker(): Worker | null {
-  if (!connection) {
-    logger.warn("[ActivationQueue] Redis not configured, worker disabled");
-    return null;
+export async function startActivationWorker(): Promise<Worker> {
+  // CRITICAL: Ensure MongoDB is connected before any BullMQ handlers run.
+  // In standalone worker processes, mongoose may not be connected yet.
+  const { connectToDatabase } = await import("@/lib/mongodb-unified");
+  await connectToDatabase();
+
+  const connection = requireRedisConnection("startActivationWorker");
+  
+  // Return existing worker if already running
+  if (activeWorker) {
+    logger.warn("[ActivationQueue] Worker already running, returning existing worker");
+    return activeWorker;
   }
 
   const worker = new Worker<ActivationJobData>(
     QUEUE_NAME,
     async (job: Job<ActivationJobData>) => {
-      const { aqarPaymentId, invoiceId } = job.data;
+      // Validate job data with Zod schema (fail-closed on invalid)
+      const parseResult = ActivationJobDataSchema.safeParse(job.data);
+      if (!parseResult.success) {
+        logger.error("[ActivationQueue] Job has invalid payload, failing permanently", {
+          jobId: job.id,
+          validationErrors: parseResult.error.flatten().fieldErrors,
+        });
+        // Throw to mark job as failed (won't retry invalid payloads)
+        throw new Error(`Invalid job payload: ${JSON.stringify(parseResult.error.flatten().fieldErrors)}`);
+      }
+
+      const { aqarPaymentId, invoiceId, orgId } = parseResult.data;
 
       logger.info("[ActivationQueue] Processing activation retry", {
         jobId: job.id,
         aqarPaymentId,
         invoiceId,
+        orgId,
         attempt: job.attemptsMade,
       });
 
       try {
+        // SECURITY: Import tenant context utilities for scoped operations
+        const { setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
+
         // Import dynamically to avoid circular dependencies
         const { activatePackageAfterPayment } = await import(
           "@/lib/aqar/package-activation"
         );
-        await activatePackageAfterPayment(aqarPaymentId);
 
-        // Update invoice metadata on success
+        // SECURITY: activatePackageAfterPayment already wraps its operations in withTenantContext,
+        // so we don't wrap here to avoid nested context ownership ambiguity
+        const activated = await activatePackageAfterPayment(aqarPaymentId, orgId);
+
+        // SECURITY: Fail-closed if activation returned false (validation failure)
+        if (!activated) {
+          throw new Error(`Package activation returned false for aqarPaymentId=${aqarPaymentId} - validation failure`);
+        }
+
+        // Update invoice metadata on success with org-scoped query
         const { Invoice } = await import("@/server/models/Invoice");
-        const invoice = await Invoice.findById(invoiceId);
-        if (invoice && invoice.metadata?.aqarPaymentId === aqarPaymentId) {
-          invoice.metadata.activationStatus = "completed";
-          invoice.metadata.activationCompletedAt = new Date();
-          await invoice.save();
+        const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
+        // SECURITY: Org-scoped filter prevents cross-tenant invoice modification
+        // buildOrgScopedFilter includes ObjectId variants for mixed storage scenarios
+        const orgScopedInvoiceFilter = buildOrgScopedFilter(invoiceId, orgId);
+        try {
+          setTenantContext({ orgId, userId: "activation-worker" });
+          const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
+          if (invoice && invoice.metadata?.aqarPaymentId === aqarPaymentId) {
+            invoice.metadata.activationStatus = "completed";
+            invoice.metadata.activationCompletedAt = new Date();
+            await invoice.save();
+          }
+        } finally {
+          clearTenantContext();
         }
 
         logger.info("[ActivationQueue] Package activated successfully", {
@@ -150,7 +225,6 @@ export function startActivationWorker(): Worker | null {
       } catch (_error) {
         const error =
           _error instanceof Error ? _error : new Error(String(_error));
-        void error;
         logger.error("[ActivationQueue] Activation attempt failed", {
           jobId: job.id,
           aqarPaymentId,
@@ -159,15 +233,25 @@ export function startActivationWorker(): Worker | null {
           error,
         });
 
-        // Update invoice metadata on failure
+        // Update invoice metadata on failure with org-scoped query
         try {
+          const { setTenantContext, clearTenantContext } = await import("@/server/plugins/tenantIsolation");
           const { Invoice } = await import("@/server/models/Invoice");
-          const invoice = await Invoice.findById(invoiceId);
-          if (invoice && invoice.metadata?.aqarPaymentId === aqarPaymentId) {
-            invoice.metadata.lastActivationError =
-              error instanceof Error ? error.message : String(error);
-            invoice.metadata.lastActivationAttempt = new Date();
-            await invoice.save();
+          const { buildOrgScopedFilter } = await import("@/lib/utils/org-scope");
+          // SECURITY: Org-scoped filter prevents cross-tenant invoice modification
+          // buildOrgScopedFilter includes ObjectId variants for mixed storage scenarios
+          const orgScopedInvoiceFilter = buildOrgScopedFilter(invoiceId, orgId);
+          try {
+            setTenantContext({ orgId, userId: "activation-worker" });
+            const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
+            if (invoice && invoice.metadata?.aqarPaymentId === aqarPaymentId) {
+              invoice.metadata.lastActivationError =
+                error instanceof Error ? error.message : String(error);
+              invoice.metadata.lastActivationAttempt = new Date();
+              await invoice.save();
+            }
+          } finally {
+            clearTenantContext();
           }
         } catch (updateError) {
           logger.error("[ActivationQueue] Failed to update invoice metadata", {
@@ -200,20 +284,42 @@ export function startActivationWorker(): Worker | null {
     });
   });
 
+  // Store reference for graceful shutdown
+  activeWorker = worker;
+  
   logger.info("[ActivationQueue] Worker started");
   return worker;
 }
 
 /**
- * Graceful shutdown
+ * Stop the activation worker gracefully
+ * Call this before application shutdown
+ */
+export async function stopActivationWorker(): Promise<void> {
+  if (activeWorker) {
+    logger.info("[ActivationQueue] Stopping worker...");
+    await activeWorker.close();
+    activeWorker = null;
+    logger.info("[ActivationQueue] Worker stopped");
+  }
+}
+
+/**
+ * Graceful shutdown - closes worker, queue, and connection
+ * Call this during application shutdown
  */
 export async function closeActivationQueue(): Promise<void> {
+  // Stop worker first
+  await stopActivationWorker();
+  
+  // Close queue
   if (queue) {
     await queue.close();
     queue = null;
   }
-  if (connection) {
-    connection.disconnect();
-  }
+  
+  // Note: Redis connection is managed by lib/redis singleton
+  // Don't disconnect here as it may be shared with other services
+  
   logger.info("[ActivationQueue] Closed");
 }

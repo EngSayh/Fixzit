@@ -1,12 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AuctionEngine } from "@/services/souq/ads/auction-engine";
 import { logger } from "@/lib/logger";
+import { rateLimit } from "@/server/security/rateLimit";
+import { getClientIP } from "@/server/security/headers";
 
 /**
  * POST /api/souq/ads/impressions
  * Track ad impression
+ * 
+ * SECURITY: Rate limited to prevent impression fraud.
+ * For production, consider server-side impression tracking.
  */
 export async function POST(request: NextRequest) {
+  // Rate limit by IP to prevent automated impression fraud
+  const clientIp = getClientIP(request);
+  const rl = rateLimit(`ad-impression:${clientIp}`, 100, 60_000); // 100 impressions per minute per IP
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { success: false, error: "Rate limit exceeded" },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await request.json();
 

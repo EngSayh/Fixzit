@@ -1,5 +1,5 @@
 import FxRate from "../models/finance/FxRate";
-import { log } from "../lib/logger";
+import { logger } from "@/lib/logger";
 
 export async function getFxRate(
   orgId: string,
@@ -14,7 +14,7 @@ export async function getFxRate(
     date: { $lte: date },
   }).sort({ date: -1 });
   if (!rate) {
-    log(`FX rate fallback for ${base}/${quote}`);
+    logger.info(`FX rate fallback for ${base}/${quote}`);
     const fallbackRate = 3.75;
     rate = await FxRate.create({
       orgId,

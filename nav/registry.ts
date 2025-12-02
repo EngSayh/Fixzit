@@ -16,18 +16,11 @@ import {
   BarChart3,
   Cog,
 } from "lucide-react";
+import type { Role } from "@/config/rbac.config";
 
-// STRICT v4.1 canonical roles for navigation gating
-export type Role =
-  | "SUPER_ADMIN"
-  | "ADMIN"
-  | "CORPORATE_OWNER"
-  | "TEAM_MEMBER"
-  | "TECHNICIAN"
-  | "PROPERTY_MANAGER"
-  | "TENANT"
-  | "VENDOR"
-  | "GUEST";
+// Nav gating uses the canonical STRICT v4.1 Role from config/rbac.config.
+// To add/remove roles, update UserRole in types/user.ts / rbac.config, not here.
+export type { Role };
 
 export type QuickAction = {
   id: string;
@@ -140,7 +133,8 @@ export const modules: ModuleDef[] = [
     label: "Finance",
     route: "/fm/finance",
     icon: DollarSign,
-    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER"],
+    // STRICT v4.1: Finance roles and officers; visibility for admin and corporate owner/admin
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "CORPORATE_ADMIN", "FINANCE", "FINANCE_OFFICER"],
     children: [
       { label: "Invoices", route: "/fm/finance/invoices" },
       { label: "Payments", route: "/fm/finance/payments" },
@@ -176,7 +170,8 @@ export const modules: ModuleDef[] = [
     label: "Human Resources",
     route: "/fm/hr",
     icon: Users,
-    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER"],
+    // STRICT v4.1: HR, HR_OFFICER have module access
+    roles: ["SUPER_ADMIN", "ADMIN", "CORPORATE_OWNER", "CORPORATE_ADMIN", "HR", "HR_OFFICER"],
     children: [
       { label: "Directory", route: "/fm/hr/directory" },
       { label: "Attendance & Leave", route: "/fm/hr/leave" },
@@ -256,13 +251,18 @@ export const modules: ModuleDef[] = [
     label: "Support & Helpdesk",
     route: "/fm/support",
     icon: Headphones,
+    // STRICT v4.1: SUPPORT_AGENT has dedicated access
     roles: [
       "SUPER_ADMIN",
       "ADMIN",
       "CORPORATE_OWNER",
+      "CORPORATE_ADMIN",
       "TEAM_MEMBER",
       "TECHNICIAN",
       "PROPERTY_MANAGER",
+      "FM_MANAGER",
+      "SUPPORT_AGENT",
+      "OPERATIONS_MANAGER",
       "TENANT",
       "VENDOR",
     ],

@@ -1,7 +1,8 @@
 import { Schema, model, models, Document } from "mongoose";
-import { getModel, MModel } from "@/src/types/mongoose-compat";
+import { getModel, MModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { encryptionPlugin } from "../plugins/encryptionPlugin";
 
 export interface ICustomer extends Document {
   // NOTE: orgId, createdBy, updatedBy added by plugins
@@ -62,6 +63,16 @@ const CustomerSchema = new Schema<ICustomer>(
 // APPLY PLUGINS (BEFORE INDEXES)
 CustomerSchema.plugin(tenantIsolationPlugin);
 CustomerSchema.plugin(auditPlugin);
+// SEC-PII-001: Encrypt customer contact PII fields
+CustomerSchema.plugin(encryptionPlugin, {
+  fields: {
+    "email": "Customer Email",
+    "phone": "Customer Phone",
+    "vatNumber": "VAT Number",
+    "billingContact.email": "Billing Contact Email",
+    "billingContact.phone": "Billing Contact Phone",
+  },
+});
 
 // Compound indexes for multi-tenant queries (now using orgId from plugin)
 CustomerSchema.index({ orgId: 1, email: 1 }, { sparse: true });

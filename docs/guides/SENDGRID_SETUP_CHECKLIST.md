@@ -126,7 +126,7 @@ db.email_logs.aggregate([
 
 ## 📚 Documentation
 
-**Full Guide**: `/docs/SENDGRID_PRODUCTION_GUIDE.md`
+**Full Guide**: `docs/guides/SENDGRID_PRODUCTION_GUIDE.md`
 
 **Key Files**:
 
@@ -218,7 +218,7 @@ SENDGRID_WEBHOOK_VERIFICATION_KEY=xxx
 
 ## 🆘 Need Help?
 
-**Documentation**: `/docs/SENDGRID_PRODUCTION_GUIDE.md`
+**Documentation**: `docs/guides/SENDGRID_PRODUCTION_GUIDE.md`
 **SendGrid Support**: https://support.sendgrid.com/
 **SendGrid Status**: https://status.sendgrid.com/
 

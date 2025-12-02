@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import {
@@ -13,6 +13,8 @@ import { rateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
+import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
+import { ObjectId } from "mongodb";
 
 // Helper function to generate href based on entity type
 function generateHref(entity: string, id: string): string {
@@ -70,6 +72,37 @@ export async function GET(req: NextRequest) {
     return rateLimitError();
   }
 
+  // SEC-001: Authentication required - search exposes sensitive data
+  let orgId: string;
+  let orgObjectId: ObjectId;
+  try {
+    const session = await getSessionUser(req);
+    if (!session.orgId) {
+      return NextResponse.json(
+        { error: "Organization context required" },
+        { status: 401 }
+      );
+    }
+    orgId = session.orgId;
+    // Convert to ObjectId for MongoDB queries (tenantIsolationPlugin stores orgId as ObjectId)
+    if (!ObjectId.isValid(orgId)) {
+      logger.error("Invalid orgId format in session", { orgId });
+      return NextResponse.json(
+        { error: "Invalid organization context" },
+        { status: 400 }
+      );
+    }
+    orgObjectId = new ObjectId(orgId);
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+    throw error;
+  }
+
   try {
     const mongoose = await connectToDatabase(); // Ensure database connection
     const { searchParams } = new URL(req.url);
@@ -123,6 +156,7 @@ export async function GET(req: NextRequest) {
             collection = mdb.collection("work_orders");
             searchQuery = {
               $text: { $search: q },
+              orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
             };
             break;
@@ -130,6 +164,7 @@ export async function GET(req: NextRequest) {
             collection = mdb.collection("properties");
             searchQuery = {
               $text: { $search: q },
+              orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
             };
             break;
@@ -137,6 +172,7 @@ export async function GET(req: NextRequest) {
             collection = mdb.collection("units");
             searchQuery = {
               $text: { $search: q },
+              orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
             };
             break;
@@ -144,6 +180,7 @@ export async function GET(req: NextRequest) {
             collection = mdb.collection("tenants");
             searchQuery = {
               $text: { $search: q },
+              orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
             };
             break;
@@ -151,6 +188,7 @@ export async function GET(req: NextRequest) {
             collection = mdb.collection("vendors");
             searchQuery = {
               $text: { $search: q },
+              orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
             };
             break;
@@ -158,6 +196,7 @@ export async function GET(req: NextRequest) {
             collection = mdb.collection("invoices");
             searchQuery = {
               $text: { $search: q },
+              orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
             };
             break;
@@ -165,6 +204,7 @@ export async function GET(req: NextRequest) {
             collection = mdb.collection("products");
             searchQuery = {
               $text: { $search: q },
+              orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
             };
             break;
@@ -172,6 +212,7 @@ export async function GET(req: NextRequest) {
             collection = mdb.collection("services");
             searchQuery = {
               $text: { $search: q },
+              orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
             };
             break;
@@ -179,6 +220,7 @@ export async function GET(req: NextRequest) {
             collection = mdb.collection("rfqs");
             searchQuery = {
               $text: { $search: q },
+              orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
             };
             break;
@@ -186,6 +228,7 @@ export async function GET(req: NextRequest) {
             collection = mdb.collection("orders");
             searchQuery = {
               $text: { $search: q },
+              orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
             };
             break;
@@ -193,6 +236,7 @@ export async function GET(req: NextRequest) {
             collection = mdb.collection("listings");
             searchQuery = {
               $text: { $search: q },
+              orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
             };
             break;
@@ -200,6 +244,7 @@ export async function GET(req: NextRequest) {
             collection = mdb.collection("projects");
             searchQuery = {
               $text: { $search: q },
+              orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
             };
             break;
@@ -207,6 +252,7 @@ export async function GET(req: NextRequest) {
             collection = mdb.collection("agents");
             searchQuery = {
               $text: { $search: q },
+              orgId: orgObjectId, // SEC-001: Tenant isolation
               deletedAt: { $exists: false },
             };
             break;

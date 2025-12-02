@@ -8,7 +8,6 @@ import { addProductToCart } from "@/lib/marketplace/cartClient";
 import { logger } from "@/lib/logger";
 import { useAutoTranslator } from "@/i18n/useAutoTranslator";
 
-// [CODE REVIEW]: FIX - Use 'id', not '_id' (Prisma/PostgreSQL convention)
 interface PDPBuyBoxProps {
   product: {
     id: string;

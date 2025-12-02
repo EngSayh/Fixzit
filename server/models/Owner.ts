@@ -1,7 +1,8 @@
 import { Schema, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
-import { getModel } from "@/src/types/mongoose-compat";
+import { encryptionPlugin } from "../plugins/encryptionPlugin";
+import { getModel } from "@/types/mongoose-compat";
 
 const OwnerType = ["INDIVIDUAL", "COMPANY", "TRUST", "GOVERNMENT"] as const;
 const OwnerStatus = ["ACTIVE", "INACTIVE", "SUSPENDED"] as const;
@@ -186,6 +187,14 @@ const OwnerSchema = new Schema(
 // Plugins (apply BEFORE indexes so orgId field exists)
 OwnerSchema.plugin(tenantIsolationPlugin);
 OwnerSchema.plugin(auditPlugin);
+// PII encryption for sensitive financial data
+OwnerSchema.plugin(encryptionPlugin, {
+  fields: {
+    "nationalId": "National ID",
+    "financial.bankAccounts.accountNumber": "Bank Account Number",
+    "financial.bankAccounts.iban": "IBAN",
+  },
+});
 
 // Indexes (after plugins to ensure orgId exists)
 OwnerSchema.index({ orgId: 1, code: 1 }, { unique: true }); // ⚡ Tenant-scoped uniqueness for code

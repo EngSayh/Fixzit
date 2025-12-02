@@ -1,5 +1,5 @@
 import { Schema } from "mongoose";
-import { getModel } from "@/src/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 
 interface QaEventDoc {
   type: string;

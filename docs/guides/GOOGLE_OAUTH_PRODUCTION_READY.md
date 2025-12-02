@@ -327,7 +327,7 @@ pnpm exec playwright test tests/specs/smoke.spec.ts --project="Mobile:AR:Tenant"
 ## 🔗 Related Documentation
 
 - [TypeScript Audit Report](./TYPESCRIPT_AUDIT_REPORT.md) - See "Authentication Configuration" section
-- [Google OAuth Setup Guide](./docs/GOOGLE_OAUTH_SETUP.md) - Detailed setup instructions
+- [Google OAuth Setup Guide](./GOOGLE_OAUTH_SETUP.md) - Detailed setup instructions
 - [Quick Start Guide](./GOOGLE_OAUTH_SETUP.md) - Fast setup reference
 - [NextAuth Documentation](https://next-auth.js.org/providers/google) - Official provider docs
 

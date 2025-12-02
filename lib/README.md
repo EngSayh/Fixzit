@@ -264,6 +264,6 @@ try {
 ## Related Documentation
 
 - [Authentication & NextAuth Readiness](../docs/security/NEXTAUTH_V5_PRODUCTION_READINESS.md)
-- [CSRF Token Flow](../docs/CSRF_TOKEN_FLOW.md)
-- [Security Guidelines](../docs/SECURITY.md)
+- [CSRF Token Flow](../docs/archived/CSRF_TOKEN_FLOW.md)
+- [Security Guidelines](../docs/guides/SECURITY.md)
 - [Architecture Overview](../docs/architecture/ARCHITECTURE.md)

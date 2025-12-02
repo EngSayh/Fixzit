@@ -6,7 +6,7 @@ import {
   UnauthorizedError,
 } from "@/server/middleware/withAuthRbac";
 import { PricingInsightsService } from "@/services/aqar/pricing-insights-service";
-import { ListingIntent, PropertyType } from "@/models/aqar/Listing";
+import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
 import { isValidObjectIdSafe } from "@/lib/api/validation";
 
 export const runtime = "nodejs";

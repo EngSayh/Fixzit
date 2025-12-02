@@ -2,7 +2,7 @@ import { createHash } from "crypto";
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongo";
 import type { Db, Collection } from "mongodb";
-import { AqarListing } from "@/models/aqar";
+import { AqarListing } from "@/server/models/aqar";
 import {
   ListingStatus,
   type IListing,
@@ -11,7 +11,7 @@ import {
   type IListingProptech,
   ListingIntent,
   PropertyType,
-} from "@/models/aqar/Listing";
+} from "@/server/models/aqar/Listing";
 import type { FilterQuery } from "mongoose";
 import { Types } from "mongoose";
 

@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongo";
-import { AqarListing } from "@/models/aqar";
+import { AqarListing } from "@/server/models/aqar";
 import {
   ListingStatus,
   type IListing,
@@ -12,7 +12,7 @@ import {
   ListingIntent,
   PropertyType,
   SmartHomeLevel,
-} from "@/models/aqar/Listing";
+} from "@/server/models/aqar/Listing";
 import type { FilterQuery } from "mongoose";
 import { Types } from "mongoose";
 
@@ -200,6 +200,12 @@ export class AqarRecommendationEngine {
       status: ListingStatus.ACTIVE,
     };
 
+    // Multi-tenancy: scope by org/tenant when provided to avoid cross-tenant leakage
+    const scopedOrgId = context.orgId || context.tenantId;
+    if (scopedOrgId && Types.ObjectId.isValid(scopedOrgId)) {
+      query.orgId = new Types.ObjectId(scopedOrgId);
+    }
+
     if (context.intent) {
       query.intent = context.intent;
     }
@@ -244,12 +250,8 @@ export class AqarRecommendationEngine {
     if (Object.keys(idFilters).length) {
       query._id = idFilters;
     }
-    if (context.orgId && Types.ObjectId.isValid(context.orgId)) {
-      query.orgId = new Types.ObjectId(context.orgId);
-    }
-    if (context.tenantId && Types.ObjectId.isValid(context.tenantId)) {
-      query.orgId = new Types.ObjectId(context.tenantId);
-    }
+    // NOTE: orgId/tenantId scoping is handled at the start of buildFilter via scopedOrgId
+    // to avoid duplicate assignments which could cause confusion during debugging
 
     return query;
   }

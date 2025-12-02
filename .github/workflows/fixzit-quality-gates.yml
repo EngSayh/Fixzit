@@ -631,6 +631,7 @@ jobs:
         run: pnpm build
 
       - name: Run RBAC E2E Tests
+        if: github.event_name != 'pull_request' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork != true)
         env:
           # Authentication
           NEXTAUTH_URL: http://localhost:3000

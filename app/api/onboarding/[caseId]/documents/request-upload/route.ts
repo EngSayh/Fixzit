@@ -3,9 +3,9 @@ import { randomUUID } from 'crypto';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { getPresignedPutUrl } from '@/lib/storage/s3';
-import { OnboardingCase } from '@/models/onboarding/OnboardingCase';
-import { DocumentProfile } from '@/models/onboarding/DocumentProfile';
-import { DocumentType } from '@/models/onboarding/DocumentType';
+import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
+import { DocumentProfile } from '@/server/models/onboarding/DocumentProfile';
+import { DocumentType } from '@/server/models/onboarding/DocumentType';
 import { logger } from '@/lib/logger';
 
 const DEFAULT_COUNTRY = 'SA';

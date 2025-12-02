@@ -1,5 +1,5 @@
 import { Schema, model, models, HydratedDocument } from "mongoose";
-import { MModel } from "@/src/types/mongoose-compat";
+import { MModel } from "@/types/mongoose-compat";
 import { customAlphabet } from "nanoid";
 import { auditPlugin } from "../plugins/auditPlugin";
 

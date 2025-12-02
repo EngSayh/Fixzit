@@ -104,20 +104,70 @@
 - **Time**: ✅ COMPLETE (1 hour)
 - **Priority**: P2 (DONE)
 
+### 0.6 Finance PII Encryption (Invoices & FMFinancialTransaction)
+
+- **Status**: ✅ COMPLETE (2025-12-01)
+- **Files Modified**: 
+  - `server/models/Invoice.ts` - encryptionPlugin added
+  - `server/models/FMFinancialTransaction.ts` - encryptionPlugin added, **global unique removed** (now compound unique per orgId)
+  - `scripts/migrate-encrypt-finance-pii.ts` - migration script with **24h TTL on backups**
+  - `tests/unit/finance/finance-encryption.test.ts` - encryption tests
+- **Scope**: Encrypts issuer/recipient tax IDs, phones, emails, national IDs, payment account numbers/IBAN/SWIFT, payment references, and bank accounts
+- **New Writes**: ✅ Encrypted automatically via model hooks
+- **Legacy Data**: ⚠️ Run `scripts/migrate-encrypt-finance-pii.ts` to encrypt existing records
+- **Security Improvements (2025-12-01)**:
+  - Added 24h TTL auto-cleanup on backup collections (prevents plaintext PII lingering)
+  - Fixed global unique constraint on `transactionNumber` → compound unique `{ orgId, transactionNumber }`
+- **Usage**:
+
+  ```bash
+  # Preview changes (dry-run)
+  ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts --dry-run
+  
+  # Migrate single organization
+  ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts --org=<orgId>
+  
+  # Migrate all organizations
+  ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts
+  
+  # Rollback from backup (within 24h window)
+  ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts --rollback
+  ```
+- **Priority**: P0 - CRITICAL (security) ✅ DONE
+- **Last Updated**: 2025-12-01
+
+### 0.7 Legacy Role Cleanup (STRICT v4.1 Compliance)
+
+- **Status**: ✅ VIEWER DEFAULT FIXED (2025-12-01)
+- **Current State**:
+  - ✅ `app/api/auth/signup/route.ts` - Changed default from `VIEWER` to `TENANT` (canonical)
+  - Legacy roles have `@deprecated` JSDoc tags in `types/user.ts`
+  - `LEGACY_ROLES` and `DEPRECATED_ROLES` arrays exported for migration tooling
+  - `isDeprecatedRole()` helper available for runtime checks
+- **Remaining Actions** (P3 - Low Priority):
+  1. ~~Audit codebase for any active usage of deprecated roles~~ ✅ Done
+  2. Migrate existing users with deprecated roles to STRICT v4.1 equivalents (DB migration)
+  3. Clean up `scripts/rbac/generate-client-roles.ts` and `scripts/mongo-init.js`
+- **Files**: `types/user.ts`, `app/api/auth/signup/route.ts` ✅
+- **Time**: ✅ Core fix complete; remaining cleanup ~1 hour
+- **Priority**: P1 (RBAC) → P3 (remaining cleanup)
+- **Last Updated**: 2025-12-01
+
 ---
 
 ## 🔴 CATEGORY 1: TESTING & QUALITY ASSURANCE (Priority: HIGH)
 
-### 1.1 Fix Failing Tests ⚠️ CRITICAL
+### 1.1 Fix Failing Tests ⚠️ IN PROGRESS
 
-- **Status**: 143 tests failing
-- **Issues**:
-  - RBAC tests failing (role-based access control)
-  - Secret scan issues in test files
-  - Some test paths may need updating after file moves
-- **Files**: Across test suite
-- **Time**: 4-6 hours
-- **Priority**: P0 - MUST FIX IMMEDIATELY
+- **Status**: 45 tests failing (down from 143)
+- **Latest Run**: 2025-12-01: 45 failed | 1468 passed (1513 total)
+- **Primary Issues**:
+  - Auth-related failures (401 instead of expected 200/403) in Souq claims tests
+  - PayTabs callback signature validation
+  - Test auth context not properly mocked
+- **Files**: tests/api/souq/claims.test.ts, tests/unit/api/api-paytabs-callback.test.ts
+- **Time**: 3-4 hours (remaining)
+- **Priority**: P0 - MUST FIX
 
 ### 1.2 Update Test Import Paths
 

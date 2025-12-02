@@ -38,6 +38,10 @@ export const SERVICE_RESILIENCE = {
     },
   },
   zatca: {
+    // Centralized ZATCA API URL - avoids duplication across files
+    clearanceApiUrl:
+      process.env.ZATCA_CLEARANCE_API_URL ||
+      "https://gw-fatoora.zatca.gov.sa/e-invoicing/core/invoices/clearance/single",
     timeouts: {
       clearanceMs: toNumber(process.env.ZATCA_TIMEOUT_MS, 10_000),
     },

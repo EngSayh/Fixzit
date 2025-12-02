@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { OnboardingCase, ONBOARDING_ROLES, type OnboardingRole } from '@/models/onboarding/OnboardingCase';
+import { OnboardingCase, ONBOARDING_ROLES, type OnboardingRole } from '@/server/models/onboarding/OnboardingCase';
 import { logger } from '@/lib/logger';
 
 type InitiateBody = {

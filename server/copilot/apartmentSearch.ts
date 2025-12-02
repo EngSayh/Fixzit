@@ -9,6 +9,10 @@ import { db } from "@/lib/mongo";
 import type { SessionContext } from "@/types/copilot";
 import { extractApartmentSearchParams } from "./classifier";
 import { logger } from "@/lib/logger";
+import {
+  clearTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
 
 /**
  * Guest-safe apartment search result
@@ -49,6 +53,15 @@ export async function searchAvailableUnits(
 ): Promise<ApartmentSearchResult[]> {
   await db;
 
+  // Enforce tenant isolation for authenticated users to avoid cross-tenant leakage
+  const tenantContextOrgId = context.orgId ?? context.tenantId ?? undefined;
+  if (tenantContextOrgId) {
+    setTenantContext({
+      orgId: tenantContextOrgId,
+      userId: context.userId ?? undefined,
+    });
+  }
+
   try {
     // Extract search parameters from natural language query
     const params = extractApartmentSearchParams(query, context.locale);
@@ -81,7 +94,7 @@ export async function searchAvailableUnits(
     // Apply search parameters
     if (params.city) {
       // SECURITY: Escape regex special characters to prevent ReDoS
-      const escapedCity = params.city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedCity = params.city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       filter["address.city"] = new RegExp(escapedCity, "i");
     }
 
@@ -91,9 +104,15 @@ export async function searchAvailableUnits(
 
     if (params.priceRange) {
       const rentFilter: Record<string, unknown> = {};
-      if (params.priceRange.min) rentFilter.$gte = params.priceRange.min;
-      if (params.priceRange.max) rentFilter.$lte = params.priceRange.max;
-      filter["financial.monthlyRent"] = rentFilter;
+      if (params.priceRange.min !== undefined) {
+        rentFilter.$gte = params.priceRange.min;
+      }
+      if (params.priceRange.max !== undefined) {
+        rentFilter.$lte = params.priceRange.max;
+      }
+      if (Object.keys(rentFilter).length > 0) {
+        filter["financial.monthlyRent"] = rentFilter;
+      }
     }
 
     // Query properties with populated units
@@ -197,6 +216,9 @@ export async function searchAvailableUnits(
   } catch (error) {
     logger.error("[apartmentSearch] Search failed", { error, query, context });
     return [];
+  } finally {
+    // Prevent tenant context leakage across requests
+    clearTenantContext();
   }
 }
 

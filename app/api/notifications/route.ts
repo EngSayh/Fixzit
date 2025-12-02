@@ -77,6 +77,14 @@ export async function GET(req: NextRequest) {
     if (!rl.allowed) {
       return rateLimitError();
     }
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
     orgId = user.orgId;
   } catch {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
@@ -154,6 +162,14 @@ export async function POST(req: NextRequest) {
     if (!rl.allowed) {
       return rateLimitError();
     }
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
     orgId = user.orgId;
   } catch {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
@@ -163,7 +179,7 @@ export async function POST(req: NextRequest) {
   const data = notificationSchema.parse(body);
   const { notifications } = await getCollections();
   const doc: Omit<NotificationDoc, "id"> = {
-    tenantId: orgId,
+    orgId,
     type: data.type,
     title: data.title,
     message: data.message,

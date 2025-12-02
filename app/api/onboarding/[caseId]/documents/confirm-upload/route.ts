@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { OnboardingCase } from '@/models/onboarding/OnboardingCase';
-import { VerificationDocument } from '@/models/onboarding/VerificationDocument';
-import { VerificationLog } from '@/models/onboarding/VerificationLog';
-import { DocumentProfile } from '@/models/onboarding/DocumentProfile';
+import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
+import { VerificationDocument } from '@/server/models/onboarding/VerificationDocument';
+import { VerificationLog } from '@/server/models/onboarding/VerificationLog';
+import { DocumentProfile } from '@/server/models/onboarding/DocumentProfile';
 import { enqueueOnboardingOcr } from '@/jobs/onboarding-queue';
 import { logger } from '@/lib/logger';
 

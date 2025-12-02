@@ -4,6 +4,8 @@
  * GET /api/performance/metrics
  *
  * Returns current performance statistics and recent metrics
+ * 
+ * SECURITY: Restricted to SUPER_ADMIN only - exposes internal system metrics
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -12,8 +14,28 @@ import {
   getRecentMetrics,
   getExceededMetrics,
 } from "@/lib/performance";
+import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
 
 export async function GET(req: NextRequest) {
+  // SEC-001: Restrict to SUPER_ADMIN - performance metrics expose internal system info
+  try {
+    const session = await getSessionUser(req);
+    if (session.role !== "SUPER_ADMIN") {
+      return NextResponse.json(
+        { error: "Forbidden - SUPER_ADMIN access required" },
+        { status: 403 }
+      );
+    }
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+    throw error;
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type") || "stats";

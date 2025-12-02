@@ -9,9 +9,16 @@ const warnings = [];
 const env = process.env;
 // Only validate in actual production/preview deployments (Vercel), not in CI test builds
 const isProdDeploy = env.VERCEL_ENV === 'production' || env.VERCEL_ENV === 'preview';
-const isProdRuntime = env.VERCEL_ENV === 'production';
 const tapConfigured = Boolean(env.TAP_PUBLIC_KEY) && Boolean(env.TAP_WEBHOOK_SECRET);
 const paytabsConfigured = Boolean(env.PAYTABS_PROFILE_ID) && Boolean(env.PAYTABS_SERVER_KEY);
+
+// Redis is required for BullMQ queues (activation retries, ZATCA compliance)
+// Support both REDIS_URL and BULLMQ_REDIS_URL for compatibility with different configs
+const redisConfigured = Boolean(env.REDIS_URL || env.BULLMQ_REDIS_URL);
+
+// ZATCA (Saudi e-invoicing) configuration required for Finance/ZATCA domain
+const zatcaConfigured = Boolean(env.ZATCA_API_KEY) && Boolean(env.ZATCA_SELLER_NAME) &&
+                        Boolean(env.ZATCA_VAT_NUMBER) && Boolean(env.ZATCA_SELLER_ADDRESS);
 
 if (!isProdDeploy) {
   console.log('[verify-prod-env] Skipping validation (not a Vercel production/preview deployment)');
@@ -32,14 +39,15 @@ function warnIfMissing(name, msg) {
 requireFalse('SKIP_ENV_VALIDATION', 'SKIP_ENV_VALIDATION must be false in production');
 requireFalse('DISABLE_MONGODB_FOR_BUILD', 'DISABLE_MONGODB_FOR_BUILD must be false in production');
 
-// SECURITY: Validate critical auth secrets in production runtime
-if (isProdRuntime) {
+// SECURITY: Validate critical auth secrets in both production and preview
+// Preview deployments should also be secure to prevent accidental data exposure
+{
   // NEXTAUTH_SECRET (or AUTH_SECRET) is required for session signing
   // Without this, JWTs cannot be signed/verified securely
   const authSecretConfigured = Boolean(env.NEXTAUTH_SECRET || env.AUTH_SECRET);
   if (!authSecretConfigured) {
     violations.push(
-      'NEXTAUTH_SECRET (or AUTH_SECRET) is required in production for secure session signing. ' +
+      `NEXTAUTH_SECRET (or AUTH_SECRET) is required in ${env.VERCEL_ENV} for secure session signing. ` +
       'Generate a secure value with: openssl rand -base64 32'
     );
   }
@@ -65,6 +73,28 @@ if (isProdRuntime) {
   if (!tapConfigured && !paytabsConfigured) {
     warnings.push(
       'No payment provider configured: set PayTabs (PAYTABS_PROFILE_ID, PAYTABS_SERVER_KEY) or Tap (TAP_PUBLIC_KEY, TAP_WEBHOOK_SECRET)',
+    );
+  }
+
+  // ZATCA e-invoicing is REQUIRED when PayTabs is configured (Saudi operations)
+  // Without these, PayTabs callbacks WILL fail after successful payments
+  // Only check if PayTabs is configured, since ZATCA clearance is triggered by PayTabs webhooks
+  if (paytabsConfigured && !zatcaConfigured) {
+    violations.push(
+      'ZATCA e-invoicing not configured but PayTabs is enabled: set ZATCA_API_KEY, ZATCA_SELLER_NAME, ' +
+      'ZATCA_VAT_NUMBER, ZATCA_SELLER_ADDRESS. PayTabs callbacks will fail without these. ' +
+      `Configure these in Vercel Environment Variables before deploying to ${env.VERCEL_ENV}.`
+    );
+  }
+
+  // Redis is REQUIRED for background queues that use requireRedisConnection()
+  // Workers call requireRedisConnection() which throws if missing - align CI with runtime behavior
+  // This applies regardless of PayTabs config since workers crash on startup without Redis
+  if (!redisConfigured) {
+    violations.push(
+      'Redis not configured (REDIS_URL or BULLMQ_REDIS_URL). ' +
+      'Background queues (package activation retries, ZATCA compliance retries) require Redis and will crash without it. ' +
+      `Configure Redis in Vercel Environment Variables before deploying to ${env.VERCEL_ENV}.`
     );
   }
 }

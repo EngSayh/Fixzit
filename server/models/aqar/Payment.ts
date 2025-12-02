@@ -66,6 +66,28 @@ export interface IPayment extends Document {
   // Integration
   invoiceId?: mongoose.Types.ObjectId; // Link to Finance Invoice
 
+  // Failure tracking
+  failureReason?: string;
+  lastError?: string;
+
+  // ZATCA compliance (Saudi Arabia e-invoicing)
+  zatca?: {
+    complianceStatus?: "NOT_REQUIRED" | "PENDING_RETRY" | "CLEARED" | "FAILED";
+    lastRetryAt?: Date;
+    lastRetryError?: string;
+    retryAttempts?: number;
+    lastAttemptAt?: Date;
+    qrCode?: string;
+    invoiceHash?: string;
+    clearanceId?: string;
+    clearedAt?: Date;
+    retryCompletedAt?: Date;
+    // Evidence fields for compliance audit trail
+    lastError?: string;
+    submittedAt?: Date;
+    invoicePayload?: Record<string, unknown>;
+  };
+
   // Metadata
   metadata?: Record<string, unknown>;
 }
@@ -124,6 +146,34 @@ const PaymentSchema = new Schema<IPayment>(
 
     invoiceId: { type: Schema.Types.ObjectId, ref: "Invoice" },
 
+    // Failure tracking
+    failureReason: { type: String },
+    lastError: { type: String },
+
+    // ZATCA compliance (Saudi Arabia e-invoicing)
+    zatca: {
+      complianceStatus: {
+        type: String,
+        enum: ["NOT_REQUIRED", "PENDING_RETRY", "CLEARED", "FAILED"],
+        index: true,
+      },
+      lastRetryAt: { type: Date },
+      lastRetryError: { type: String },
+      retryAttempts: { type: Number, default: 0 },
+      lastAttemptAt: { type: Date },
+      qrCode: { type: String },
+      invoiceHash: { type: String },
+      clearanceId: { type: String },
+      clearedAt: { type: Date },
+      retryCompletedAt: { type: Date },
+      // Evidence fields for compliance audit trail (written by PayTabs callback)
+      lastError: { type: String },
+      submittedAt: { type: Date },
+      // Sensitive: Invoice payload may contain business details
+      // Use select: false to prevent accidental exposure in queries
+      invoicePayload: { type: Schema.Types.Mixed, select: false },
+    },
+
     // Sensitive: Metadata may contain internal notes, debugging info, or PII
     // Use select: false to prevent accidental exposure in queries
     metadata: { type: Schema.Types.Mixed, select: false },
@@ -137,6 +187,24 @@ const PaymentSchema = new Schema<IPayment>(
 // Indexes (compound index covers status queries)
 PaymentSchema.index({ userId: 1, status: 1, createdAt: -1 });
 PaymentSchema.index({ gatewayTransactionId: 1 });
+// ZATCA retry query index: supports scanAndEnqueuePendingRetries() in jobs/zatca-retry-queue.ts
+// Leading key is zatca.complianceStatus to support cross-org scans (which don't filter by orgId)
+// Partial filter keeps index tight by only including PENDING_RETRY documents
+PaymentSchema.index(
+  { "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1, orgId: 1 },
+  { partialFilterExpression: { "zatca.complianceStatus": "PENDING_RETRY" } }
+);
+
+// Enable virtuals in JSON/Object output for API responses
+PaymentSchema.set("toJSON", { virtuals: true });
+PaymentSchema.set("toObject", { virtuals: true });
+// Legacy org_id index: covers $or queries for documents with org_id field
+// Required until all legacy documents are migrated to orgId
+// Leading key is zatca.complianceStatus to support cross-org scans
+PaymentSchema.index(
+  { "zatca.complianceStatus": 1, "zatca.lastRetryAt": 1, org_id: 1 },
+  { partialFilterExpression: { "zatca.complianceStatus": "PENDING_RETRY" } }
+);
 
 // Static: Get standard fees
 PaymentSchema.statics.getStandardFees = function () {
@@ -210,13 +278,19 @@ PaymentSchema.methods.markAsCompleted = async function (
   transactionId?: string,
   response?: Record<string, unknown>,
 ) {
+  // SECURITY: Require orgId to prevent cross-tenant mutations even if caller context is missing
+  if (!this.orgId) {
+    throw new Error("Cannot mark payment as completed: orgId is required for tenant isolation");
+  }
+
   // Atomic update with state precondition to prevent invalid transitions
-  // Use this.constructor for consistency with other instance methods
+  // SECURITY: Include orgId in predicate to enforce tenant isolation at data layer
   const result = await (
     this.constructor as typeof mongoose.Model
   ).findOneAndUpdate(
     {
       _id: this._id,
+      orgId: this.orgId, // SECURITY: Explicit org scoping
       status: PaymentStatus.PENDING, // Only allow PENDING → COMPLETED
     },
     {
@@ -248,12 +322,18 @@ PaymentSchema.methods.markAsFailed = async function (
   this: IPayment,
   response?: Record<string, unknown>,
 ) {
+  // SECURITY: Require orgId to prevent cross-tenant mutations even if caller context is missing
+  if (!this.orgId) {
+    throw new Error("Cannot mark payment as failed: orgId is required for tenant isolation");
+  }
+
   // Atomic update with state precondition to prevent invalid transitions
-  // Use this.constructor for consistency with markAsCompleted and to avoid model registration issues
+  // SECURITY: Include orgId in predicate to enforce tenant isolation at data layer
   const PaymentModel = this.constructor as typeof mongoose.Model;
   const result = await PaymentModel.findOneAndUpdate(
     {
       _id: this._id,
+      orgId: this.orgId, // SECURITY: Explicit org scoping
       status: PaymentStatus.PENDING, // Only allow PENDING → FAILED
     },
     {
@@ -305,11 +385,18 @@ PaymentSchema.methods.markAsRefunded = async function (
       ? PaymentStatus.REFUNDED
       : PaymentStatus.PARTIALLY_REFUNDED;
 
+  // SECURITY: Require orgId to prevent cross-tenant mutations even if caller context is missing
+  if (!this.orgId) {
+    throw new Error("Cannot mark payment as refunded: orgId is required for tenant isolation");
+  }
+
+  // SECURITY: Include orgId in predicate to enforce tenant isolation at data layer
   const result = await (
     this.constructor as typeof import("mongoose").Model
   ).findOneAndUpdate(
     {
       _id: this._id,
+      orgId: this.orgId, // SECURITY: Explicit org scoping
       status: {
         $in: [PaymentStatus.COMPLETED, PaymentStatus.PARTIALLY_REFUNDED],
       },

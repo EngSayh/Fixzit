@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import mongoose from "mongoose";
 import { connectDb } from "@/lib/mongo";
-import { AqarFavorite, AqarListing, AqarProject } from "@/models/aqar";
+import { AqarFavorite, AqarListing, AqarProject } from "@/server/models/aqar";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 export const runtime = "nodejs";

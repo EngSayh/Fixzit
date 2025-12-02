@@ -10,6 +10,8 @@ import { z } from "zod";
 import { SouqDeal } from "@/server/models/souq/Deal";
 import { connectDb } from "@/lib/mongodb-unified";
 import { nanoid } from "nanoid";
+import { getSessionUser, UnauthorizedError } from "@/server/middleware/withAuthRbac";
+import { Types } from "mongoose";
 
 const dealCreateSchema = z.object({
   type: z.enum([
@@ -46,6 +48,37 @@ const dealCreateSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // SEC-001: Authentication required - only sellers/admins can create deals
+  let session;
+  try {
+    session = await getSessionUser(request);
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json(
+        { error: "Authentication required to create deals" },
+        { status: 401 }
+      );
+    }
+    throw error;
+  }
+
+  const orgId = session.orgId;
+  if (!orgId) {
+    return NextResponse.json(
+      { error: "Organization context required" },
+      { status: 403 },
+    );
+  }
+
+  // Only admin roles or sellers can create deals (tenant-scoped)
+  const allowedRoles = ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN", "VENDOR"];
+  if (!allowedRoles.includes(session.role)) {
+    return NextResponse.json(
+      { error: "Only sellers or admins can create deals" },
+      { status: 403 }
+    );
+  }
+
   try {
     await connectDb();
 
@@ -68,8 +101,9 @@ export async function POST(request: NextRequest) {
 
     if (validatedData.couponCode) {
       const existing = await SouqDeal.findOne({
+        orgId,
         couponCode: validatedData.couponCode.toUpperCase(),
-      });
+      }).select("_id");
 
       if (existing) {
         return NextResponse.json(
@@ -112,6 +146,7 @@ export async function POST(request: NextRequest) {
 
     const deal = await SouqDeal.create({
       ...validatedData,
+      orgId: new Types.ObjectId(orgId),
       dealId,
       couponCode: validatedData.couponCode?.toUpperCase(),
       currentUsageCount: 0,
@@ -141,6 +176,28 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  // SEC-002: Authentication required for listing deals
+  let session;
+  try {
+    session = await getSessionUser(request);
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+    throw error;
+  }
+
+  const orgId = session.orgId;
+  if (!orgId) {
+    return NextResponse.json(
+      { error: "Organization context required" },
+      { status: 403 },
+    );
+  }
+
   try {
     await connectDb();
 
@@ -156,7 +213,7 @@ export async function GET(request: NextRequest) {
       100,
     );
 
-    const query: Record<string, unknown> = {};
+    const query: Record<string, unknown> = { orgId };
 
     if (type) {
       query.type = type;

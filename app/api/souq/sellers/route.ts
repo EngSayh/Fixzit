@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
     const sellerId = `SEL-${nanoid(10).toUpperCase()}`;
 
     const existingSeller = await SouqSeller.findOne({
+      orgId,
       $or: [
         { contactEmail: validatedData.contactEmail },
         { registrationNumber: validatedData.registrationNumber },

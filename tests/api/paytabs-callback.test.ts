@@ -13,11 +13,9 @@ const mockNormalizePayload = vi.fn(() => ({
 }));
 const mockFinalizeTransaction = vi.fn(async () => ({ ok: true }));
 
-vi.mock("@/lib/finance/paytabs", () => ({
-  normalizePayTabsPayload: (...args: unknown[]) =>
-    mockNormalizePayload(...args),
-  finalizePayTabsTransaction: (...args: unknown[]) =>
-    mockFinalizeTransaction(...args),
+vi.mock("@/lib/finance/paytabs-subscription", () => ({
+  normalizePayTabsPayload: (...args: unknown[]) => mockNormalizePayload(...args),
+  finalizePayTabsTransaction: (...args: unknown[]) => mockFinalizeTransaction(...args),
 }));
 
 const mockValidateCallback = vi.fn(() => true);

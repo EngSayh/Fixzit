@@ -1,7 +1,7 @@
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { RequestContext } from "@/server/lib/authContext";
-import { log } from "@/server/lib/logger";
-import { UserRole } from "@/server/lib/rbac.config";
+import { logger } from "@/lib/logger";
+import { UserRole } from "@/config/rbac.config";
 import { FMApproval } from "@/server/models/FMApproval";
 import { User } from "@/server/models/User";
 
@@ -111,7 +111,7 @@ export async function submitBudgetForApproval(
   for (const config of stagesConfig) {
     const approvers = await findApprovers(ctx.orgId, config.roles);
     if (approvers.length === 0) {
-      log("[BudgetDoA] No approvers found for stage", "warn", {
+      logger.warn("[BudgetDoA] No approvers found for stage", {
         orgId: ctx.orgId,
         roles: config.roles,
       });

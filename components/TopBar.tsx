@@ -17,6 +17,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "./ui/dialog";
+import { SimpleTooltip } from "./ui/tooltip";
 
 // Context imports
 import { useTranslation } from "@/contexts/TranslationContext";
@@ -835,27 +836,30 @@ function NotificationPopup({
 }: NotificationPopupProps) {
   return (
     <div className="notification-container relative">
-      <Button
-        ref={notifBtnRef}
-        variant="ghost"
-        size="icon"
-        onClick={() => {
-          setUserOpen(false);
-          const next = !notifOpen;
-          if (next && notifBtnRef.current) {
-            // compute AND SET the position (previous code threw this away)
-            setNotifPos(placeDropdown(notifBtnRef.current, 384));
-          }
-          setNotifOpen(next);
-        }}
-        className="relative"
-        aria-label={t("nav.notifications", "Toggle notifications")}
-      >
-        <Bell className="w-5 h-5" />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -end-1 w-3 h-3 bg-destructive rounded-full animate-pulse"></span>
-        )}
-      </Button>
+      <SimpleTooltip content={t("nav.notifications", "Notifications")} side="bottom">
+        <Button
+          ref={notifBtnRef}
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            setUserOpen(false);
+            const next = !notifOpen;
+            if (next && notifBtnRef.current) {
+              // compute AND SET the position (previous code threw this away)
+              setNotifPos(placeDropdown(notifBtnRef.current, 384));
+            }
+            setNotifOpen(next);
+          }}
+          className="relative"
+          aria-label={t("nav.notifications", "Toggle notifications")}
+          data-cursor-interactive
+        >
+          <Bell className="w-5 h-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -end-1 w-3 h-3 bg-destructive rounded-full animate-pulse"></span>
+          )}
+        </Button>
+      </SimpleTooltip>
 
       {notifOpen && (
         <div
@@ -1026,25 +1030,28 @@ function UserMenuPopup({
 }: UserMenuPopupProps) {
   return (
     <div className="user-menu-container relative">
-      <Button
-        ref={userBtnRef}
-        variant="ghost"
-        size="sm"
-        data-testid="user-menu"
-        onClick={() => {
-          setNotifOpen(false);
-          const next = !userOpen;
-          if (next && userBtnRef.current) {
-            setUserPos(placeDropdown(userBtnRef.current, 224));
-          }
-          setUserOpen(next);
-        }}
-        className="flex items-center gap-1"
-        aria-label={t("nav.profile", "Profile")}
-      >
-        <User className="w-5 h-5" />
-        <ChevronDown className="w-4 h-4" />
-      </Button>
+      <SimpleTooltip content={t("nav.profile", "Profile")} side="bottom">
+        <Button
+          ref={userBtnRef}
+          variant="ghost"
+          size="sm"
+          data-testid="user-menu"
+          onClick={() => {
+            setNotifOpen(false);
+            const next = !userOpen;
+            if (next && userBtnRef.current) {
+              setUserPos(placeDropdown(userBtnRef.current, 224));
+            }
+            setUserOpen(next);
+          }}
+          className="flex items-center gap-1"
+          aria-label={t("nav.profile", "Profile")}
+          data-cursor-interactive
+        >
+          <User className="w-5 h-5" />
+          <ChevronDown className="w-4 h-4" />
+        </Button>
+      </SimpleTooltip>
 
       {userOpen && (
         <div

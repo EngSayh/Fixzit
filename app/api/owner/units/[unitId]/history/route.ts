@@ -23,7 +23,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { requireSubscription } from "@/server/middleware/subscriptionCheck";
 import { Property } from "@/server/models/Property";
-import { setTenantContext } from "@/server/plugins/tenantIsolation";
+import {
+  clearTenantContext,
+  setTenantContext,
+} from "@/server/plugins/tenantIsolation";
 import { logger } from "@/lib/logger";
 
 interface PropertyUnit {
@@ -113,8 +116,9 @@ export async function GET(
     await connectToDatabase();
     setTenantContext({ orgId });
 
-    // Import Mongoose models
-    const { WorkOrder } = await import("@/server/models/WorkOrder");
+    try {
+      // Import Mongoose models
+      const { WorkOrder } = await import("@/server/models/WorkOrder");
     const { MoveInOutInspectionModel: MoveInOutInspection } = await import(
       "@/server/models/owner/MoveInOutInspection"
     );
@@ -348,6 +352,10 @@ export async function GET(
       data: historyData,
       subscription: subCheck.status,
     });
+    } finally {
+      // Ensure tenant context is always cleared, even on error paths
+      clearTenantContext();
+    }
   } catch (error) {
     logger.error("Error fetching unit history", { error });
     return NextResponse.json(

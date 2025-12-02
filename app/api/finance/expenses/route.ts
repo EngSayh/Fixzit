@@ -10,7 +10,7 @@ import { Expense } from "@/server/models/finance/Expense";
 import ChartAccount from "@/server/models/finance/ChartAccount";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
-import { requirePermission } from "@/server/lib/rbac.config";
+import { requirePermission } from "@/config/rbac.config";
 import { Types } from "mongoose";
 
 import { logger } from "@/lib/logger";

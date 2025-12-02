@@ -2,9 +2,9 @@ import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongo";
-import { AqarListing } from "@/models/aqar";
+import { AqarListing } from "@/server/models/aqar";
 import { PricingInsightsService } from "@/services/aqar/pricing-insights-service";
-import type { IListing } from "@/models/aqar/Listing";
+import type { IListing } from "@/server/models/aqar/Listing";
 import { Types, Model } from "mongoose";
 
 export const runtime = "nodejs";

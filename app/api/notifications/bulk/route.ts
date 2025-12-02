@@ -32,14 +32,22 @@ const bulkActionSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  let tenantId: string;
+  let orgId: string;
   try {
     const user = await getSessionUser(req);
     const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
-    tenantId = user.orgId;
+    // SEC-001: Validate orgId to prevent undefined in tenant-scoped queries
+    if (!user?.orgId) {
+      return createSecureResponse(
+        { error: "Unauthorized", message: "Missing tenant context" },
+        401,
+        req,
+      );
+    }
+    orgId = user.orgId;
   } catch {
     return createSecureResponse({ error: "Unauthorized" }, 401, req);
   }
@@ -56,7 +64,7 @@ export async function POST(req: NextRequest) {
     }
   };
   const ids = notificationIds.map(toObjectId).filter(Boolean) as ObjectId[];
-  const filter = { _id: { $in: ids }, tenantId };
+  const filter = { _id: { $in: ids }, orgId };
 
   interface BulkUpdateResult {
     deletedCount?: number;

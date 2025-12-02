@@ -8,7 +8,7 @@ import { Types } from "mongoose";
 import { Payment, PaymentStatus } from "@/server/models/finance/Payment";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
-import { requirePermission } from "@/server/lib/rbac.config";
+import { requirePermission } from "@/config/rbac.config";
 import { logger } from "@/lib/logger";
 
 async function getUserSession(req: NextRequest) {

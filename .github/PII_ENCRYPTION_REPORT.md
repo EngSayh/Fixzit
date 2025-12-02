@@ -1,8 +1,8 @@
 # 🔐 PII Encryption Implementation Report
 
-**Report Date**: 2025-11-25T12:00:00+03:00  
+**Report Date**: 2025-12-01T17:25:00+03:00  
 **Issue ID**: SECURITY-1, SECURITY-2, M-06  
-**Status**: ✅ **RESOLVED - PRODUCTION READY**  
+**Status**: ⚠️ **PARTIALLY COMPLETE – Finance models encrypt new writes; legacy data migration pending**  
 **Compliance**: GDPR Article 32, HIPAA, ISO 27001
 
 ---
@@ -13,11 +13,17 @@ Successfully implemented **field-level AES-256-GCM encryption** for all sensitiv
 
 ### Key Achievements
 
-✅ **4 sensitive fields encrypted**:
+✅ **4 sensitive fields encrypted** (User model):
 - `personal.nationalId` (National ID numbers)
 - `personal.passport` (Passport numbers)
 - `employment.salary` (Salary information)
 - `security.mfa.secret` (MFA secrets)
+
+⚠️ **2025-12-01 Update (Finance Models)**:
+- `server/models/Invoice.ts` now encrypts issuer/recipient tax IDs, phones, emails, national IDs, and payment account numbers/IBAN/SWIFT.
+- `server/models/FMFinancialTransaction.ts` now encrypts payment references, payment originator, and bank account numbers.
+- **NEW WRITES ARE ENCRYPTED** via schema hooks; existing records require migration.
+- **ACTION REQUIRED**: Run `scripts/migrate-encrypt-finance-pii.ts` to encrypt legacy finance records.
 
 ✅ **Enterprise-grade security**:
 - AES-256-GCM authenticated encryption (NIST recommended)
@@ -214,6 +220,16 @@ Field Statistics:
     Encrypted: 30
     Skipped:   10
 ```
+
+### 2.4 Finance Model Integration (2025-12-01)
+
+**Files**:
+- `server/models/Invoice.ts` — encrypts issuer/recipient tax IDs, phones, emails, national IDs, and payment account numbers/IBAN/SWIFT.
+- `server/models/FMFinancialTransaction.ts` — encrypts payment references, payment originators (`receivedFrom`), and payment bank accounts.
+
+**Notes**:
+- Uses the shared `encryptionPlugin` hooks (save/update/find) already validated for the User model.
+- Existing finance records still require migration to encrypt historical data; new writes and updates are encrypted automatically.
 
 ---
 

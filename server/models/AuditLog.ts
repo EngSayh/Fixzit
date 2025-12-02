@@ -304,7 +304,7 @@ export interface AuditLogStaticMethods {
 }
 
 import type { Model } from "mongoose";
-import { getModel } from "@/src/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 
 export type AuditLogModelType = Model<AuditLog> & AuditLogStaticMethods;
 

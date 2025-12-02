@@ -226,7 +226,7 @@ git push origin your-branch
 
 Review and update if needed:
 
-- ✅ `/docs/ROUTE_VERIFICATION_GUIDE.md` - Route verification documentation
+- ✅ `docs/guides/ROUTE_VERIFICATION_GUIDE.md` - Route verification documentation
 - ✅ `/scripts/verify-deployment-readiness.sh` - Automated verification script
 - ⚠️ `README.md` or deployment docs - Add note about managed MongoDB requirement
 
@@ -239,7 +239,7 @@ Review and update if needed:
 
 - **MongoDB Atlas** (or compatible cloud database)
 - Local MongoDB URIs (`mongodb://localhost`) are rejected in production builds
-- See `/docs/ROUTE_VERIFICATION_GUIDE.md` for setup instructions
+- See `docs/guides/ROUTE_VERIFICATION_GUIDE.md` for setup instructions
 
 ### Environment Variables
 
@@ -369,7 +369,7 @@ For issues during verification:
    ```
 
 3. **Review documentation:**
-   - `/docs/ROUTE_VERIFICATION_GUIDE.md`
+   - `docs/guides/ROUTE_VERIFICATION_GUIDE.md`
    - `/scripts/verify-deployment-readiness.sh` (inline comments)
 
 4. **Check environment:**

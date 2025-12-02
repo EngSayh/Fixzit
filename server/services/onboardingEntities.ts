@@ -2,7 +2,7 @@ import { Types, startSession } from 'mongoose';
 import { randomUUID } from 'crypto';
 import { setTenantContext } from '@/server/plugins/tenantIsolation';
 import { logger } from '@/lib/logger';
-import { type IOnboardingCase } from '@/models/onboarding/OnboardingCase';
+import { type IOnboardingCase } from '@/server/models/onboarding/OnboardingCase';
 
 type OnboardingCaseLean = IOnboardingCase & { _id: Types.ObjectId };
 

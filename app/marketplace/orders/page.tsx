@@ -10,7 +10,6 @@ interface OrderLine {
   currency: string;
 }
 
-// [CODE REVIEW]: FIX - Use 'id', not '_id' (Prisma/PostgreSQL convention)
 interface Order {
   id: string;
   lines: OrderLine[];
@@ -25,7 +24,7 @@ interface Order {
   };
 }
 
-// [CODE REVIEW]: FIX - Use Tailwind theme classes instead of hardcoded colors
+// Status badge and translation mapping using Tailwind theme classes
 const STATUS_RESOURCES: Record<
   string,
   { badge: string; translationKey: string; fallback: string }
@@ -46,7 +45,7 @@ const STATUS_RESOURCES: Record<
     fallback: "Confirmed",
   },
   FULFILLED: {
-    badge: "bg-teal-500/10 text-teal-700",
+    badge: "bg-success/10 text-success-foreground",
     translationKey: "marketplace.orders.status.fulfilled",
     fallback: "Fulfilled",
   },
@@ -74,7 +73,6 @@ export default async function OrdersPage() {
 
     const orders = ordersResponse.data;
 
-    // [CODE REVIEW]: FIX - Replace hardcoded colors with theme classes, fix id references
     return (
       <div className="min-h-screen bg-muted flex flex-col">
         <main className="mx-auto max-w-7xl px-4 py-8">

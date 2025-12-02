@@ -18,6 +18,9 @@ vi.mock('@/lib/logger', () => ({
     debug: vi.fn(),
   }
 }));
+vi.mock('@/lib/authz', () => ({
+  requireSuperAdmin: vi.fn(async () => true),
+}));
 
 // Route handlers will be dynamically imported per-test to avoid module cache leakage across suites
 let POST: typeof import('@/app/api/qa/alert/route').POST;

@@ -11,14 +11,14 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { logger } from "@/lib/logger";
 import { connectDb } from "@/lib/mongo";
-import { AqarListing } from "@/models/aqar";
+import { AqarListing } from "@/server/models/aqar";
 import {
   ListingIntent,
   PropertyType,
   ListingStatus,
   type IListing,
-} from "@/models/aqar/Listing";
-import { checkRateLimit } from "@/lib/rateLimit";
+} from "@/server/models/aqar/Listing";
+import { enforceRateLimit } from "@/lib/middleware/rate-limit";
 import type { Model } from "mongoose";
 
 interface ListingQuery {
@@ -86,10 +86,10 @@ export async function GET(request: NextRequest) {
 
   try {
     // Rate limiting: 100 requests per hour per IP
-    const rateLimitResponse = checkRateLimit(request, {
-      maxRequests: 100,
+    const rateLimitResponse = enforceRateLimit(request, {
+      keyPrefix: "public-aqar-listings",
+      requests: 100,
       windowMs: 60 * 60 * 1000,
-      message: "Too many public API requests. Please try again later.",
     });
 
     if (rateLimitResponse) {

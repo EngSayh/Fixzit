@@ -20,6 +20,7 @@ import {
 import "@testing-library/jest-dom";
 import { SessionProvider, signOut } from "next-auth/react";
 import TopBar from "@/components/TopBar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 // Stub TranslationProvider/useTranslation to avoid i18n context errors in unit tests
@@ -242,7 +243,9 @@ const renderWithProviders = async (
       <SessionProvider session={mockSession}>
         <TranslationProvider>
           <ResponsiveProvider>
-            <FormStateProvider>{component}</FormStateProvider>
+            <TooltipProvider>
+              <FormStateProvider>{component}</FormStateProvider>
+            </TooltipProvider>
           </ResponsiveProvider>
         </TranslationProvider>
       </SessionProvider>,

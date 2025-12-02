@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import { randomUUID } from 'crypto';
 import { connectMongo } from '@/lib/mongo';
-import { OnboardingCase } from '@/models/onboarding/OnboardingCase';
+import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
 import { resolveEscalationContact } from '@/server/services/escalation.service';
 import { setTenantContext } from '@/server/plugins/tenantIsolation';
 import { logger } from '@/lib/logger';

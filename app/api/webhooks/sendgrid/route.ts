@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { createSecureResponse } from "@/server/security/headers";
 import { getDatabase } from "@/lib/mongodb-unified";
-import { verifyWebhookSignature } from "@/lib/sendgrid-config";
+import { verifyWebhookSignature } from "@/config/sendgrid.config";
 import { getClientIp } from "@/lib/security/client-ip";
 
 import { logger } from "@/lib/logger";

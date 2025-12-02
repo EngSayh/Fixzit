@@ -2,8 +2,8 @@ import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import { connectMongo } from '@/lib/mongo';
 import { logger } from '@/lib/logger';
-import { VerificationDocument } from '@/models/onboarding/VerificationDocument';
-import { VerificationLog } from '@/models/onboarding/VerificationLog';
+import { VerificationDocument } from '@/server/models/onboarding/VerificationDocument';
+import { VerificationLog } from '@/server/models/onboarding/VerificationLog';
 
 type OcrJob = { docId: string; onboardingCaseId: string };
 

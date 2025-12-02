@@ -1,7 +1,8 @@
 import { Schema, Model, models, InferSchemaType } from "mongoose";
-import { getModel } from "@/src/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { encryptionPlugin } from "../plugins/encryptionPlugin";
 
 const TenantType = ["INDIVIDUAL", "COMPANY", "GOVERNMENT"] as const;
 const LeaseStatus = [
@@ -202,6 +203,14 @@ const TenantSchema = new Schema(
 // Apply plugins BEFORE indexes
 TenantSchema.plugin(tenantIsolationPlugin);
 TenantSchema.plugin(auditPlugin);
+// PII encryption for sensitive financial and identity data
+TenantSchema.plugin(encryptionPlugin, {
+  fields: {
+    "identification.nationalId": "National ID",
+    "financial.bankDetails.accountNumber": "Bank Account Number",
+    "financial.bankDetails.iban": "IBAN",
+  },
+});
 
 // Indexes for performance (orgId from plugin)
 TenantSchema.index({ orgId: 1, type: 1 });

@@ -148,6 +148,7 @@ export interface ApprovalWorkflow {
   requestId: string;
   quotationId: string;
   workOrderId: string;
+  orgId: string;
   stages: ApprovalStage[];
   currentStage: number;
   status: "pending" | "approved" | "rejected" | "escalated";
@@ -259,6 +260,7 @@ function docToWorkflow(doc: FMApprovalDoc): ApprovalWorkflow {
     requestId: doc.workflowId.toString(),
     quotationId: (dbDoc.quotationId ?? doc.entityId)?.toString() ?? "",
     workOrderId: (dbDoc.workOrderId ?? doc.entityId)?.toString() ?? "",
+    orgId: (dbDoc.orgId as unknown as { toString?: () => string })?.toString?.() ?? "",
     stages,
     currentStage: doc.currentStage ?? 1,
     status: mapDbStatusToWorkflowStatus(doc.status),
@@ -411,6 +413,7 @@ export async function routeApproval(
     requestId: `APR-${Date.now()}-${crypto.randomUUID().substring(0, 8)}`,
     quotationId: request.quotationId,
     workOrderId: request.workOrderId,
+    orgId: request.orgId,
     stages,
     currentStage: 1,
     status: "pending",
@@ -931,6 +934,9 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
         const notification = buildNotification(
           "onApprovalRequested",
           {
+            orgId: approvalDoc.orgId
+              ? approvalDoc.orgId.toString()
+              : "",
             quotationId: String(
               approvalDoc.quotationId ?? approvalDoc.entityId ?? "",
             ),
@@ -1024,6 +1030,7 @@ export async function notifyApprovers(
     const notification = buildNotification(
       "onApprovalRequested",
       {
+        orgId: workflow.orgId,
         quotationId: workflow.quotationId,
         workOrderId: workflow.workOrderId,
         description: `Stage ${stage.stage} approval required`,

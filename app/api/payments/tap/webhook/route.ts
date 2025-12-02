@@ -565,12 +565,26 @@ async function allocateInvoicePayment(
     return;
   }
 
-  const invoice = await Invoice.findById(transaction.invoiceId);
+  // SECURITY: Org-scoped filter prevents cross-tenant invoice access
+  const orgId = transaction.orgId?.toString();
+  if (!orgId) {
+    logger.warn("[Webhook] No orgId on TapTransaction, skipping invoice allocation", {
+      correlationId,
+      invoiceId: transaction.invoiceId?.toString(),
+    });
+    return;
+  }
+  const orgScopedInvoiceFilter = {
+    _id: transaction.invoiceId,
+    $or: [{ orgId }, { org_id: orgId }],
+  };
+  const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
   if (!invoice) {
-    logger.warn("[Webhook] Invoice not found for Tap payment allocation", {
+    logger.warn("[Webhook] Invoice not found for Tap payment allocation (org-scoped)", {
       correlationId,
       invoiceId: transaction.invoiceId?.toString(),
       chargeId: charge.id,
+      orgId,
     });
     return;
   }
@@ -633,7 +647,16 @@ async function markInvoicePaymentStatus(
   if (!transaction.invoiceId) {
     return;
   }
-  const invoice = await Invoice.findById(transaction.invoiceId);
+  // SECURITY: Org-scoped filter prevents cross-tenant invoice access
+  const orgId = transaction.orgId?.toString();
+  if (!orgId) {
+    return;
+  }
+  const orgScopedInvoiceFilter = {
+    _id: transaction.invoiceId,
+    $or: [{ orgId }, { org_id: orgId }],
+  };
+  const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
   if (!invoice) {
     return;
   }
@@ -736,19 +759,27 @@ async function updateRefundRecord(
   }
 
   if (transaction.invoiceId) {
-    const invoice = await Invoice.findById(transaction.invoiceId);
-    if (invoice) {
-      const paymentsTyped = invoice.payments as unknown as
-        | InvoicePayment[]
-        | undefined;
-      const entry = paymentsTyped?.find(
-        (p) => p.transactionId === refund.charge,
-      );
-      if (entry) {
-        entry.status = status === "SUCCEEDED" ? "REFUNDED" : status;
-        entry.notes = refund.reason || entry.notes;
+    // SECURITY: Org-scoped filter prevents cross-tenant invoice access
+    const orgId = transaction.orgId?.toString();
+    if (orgId) {
+      const orgScopedInvoiceFilter = {
+        _id: transaction.invoiceId,
+        $or: [{ orgId }, { org_id: orgId }],
+      };
+      const invoice = await Invoice.findOne(orgScopedInvoiceFilter);
+      if (invoice) {
+        const paymentsTyped = invoice.payments as unknown as
+          | InvoicePayment[]
+          | undefined;
+        const entry = paymentsTyped?.find(
+          (p) => p.transactionId === refund.charge,
+        );
+        if (entry) {
+          entry.status = status === "SUCCEEDED" ? "REFUNDED" : status;
+          entry.notes = refund.reason || entry.notes;
+        }
+        await invoice.save();
       }
-      await invoice.save();
     }
   }
 }

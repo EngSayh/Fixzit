@@ -1,7 +1,8 @@
 import { Schema, Model, models, InferSchemaType } from "mongoose";
-import { getModel } from "@/src/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { encryptionPlugin } from "../plugins/encryptionPlugin";
 
 const Message = new Schema(
   {
@@ -112,6 +113,13 @@ const SupportTicketSchema = new Schema(
 // APPLY PLUGINS (BEFORE INDEXES)
 SupportTicketSchema.plugin(tenantIsolationPlugin);
 SupportTicketSchema.plugin(auditPlugin);
+// SEC-PII-005: Encrypt support ticket requester contact info
+SupportTicketSchema.plugin(encryptionPlugin, {
+  fields: {
+    "requester.email": "Requester Email",
+    "requester.phone": "Requester Phone",
+  },
+});
 
 // INDEXES (AFTER PLUGINS)
 SupportTicketSchema.index({ orgId: 1, code: 1 }, { unique: true }); // Tenant-scoped unique code

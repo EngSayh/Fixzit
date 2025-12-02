@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { runWithContext } from "@/server/lib/authContext";
-import { requirePermission } from "@/server/lib/rbac.config";
+import { requirePermission } from "@/config/rbac.config";
 import { incomeStatement } from "@/server/finance/reporting.service";
 import { decimal128ToMinor } from "@/server/lib/money";
 import { Types } from "mongoose";

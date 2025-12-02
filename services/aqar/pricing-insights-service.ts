@@ -1,13 +1,13 @@
 import crypto from "crypto";
 import { connectDb } from "@/lib/mongo";
-import { AqarListing } from "@/models/aqar";
+import { AqarListing } from "@/server/models/aqar";
 import {
   ListingStatus,
   type IListing,
   type IListingPricingInsights,
   ListingIntent,
   PropertyType,
-} from "@/models/aqar/Listing";
+} from "@/server/models/aqar/Listing";
 import type { FilterQuery, PipelineStage } from "mongoose";
 import { Types } from "mongoose";
 

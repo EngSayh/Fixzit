@@ -44,7 +44,9 @@ export async function GET(req: NextRequest) {
     // Get database connection
     const db = await getDatabase();
 
-    // Fetch notification history
+    // NOTE: Super Admin can view all notification history across tenants
+    // This is intentional for platform-wide admin audit capability
+    // Regular users cannot access this endpoint (role check above)
     const notifications = await db
       .collection("admin_notifications")
       .find({})

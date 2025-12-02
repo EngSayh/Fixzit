@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { OnboardingCase } from '@/models/onboarding/OnboardingCase';
+import { OnboardingCase } from '@/server/models/onboarding/OnboardingCase';
 import { logger } from '@/lib/logger';
 
 export async function PUT(

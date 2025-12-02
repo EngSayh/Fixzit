@@ -1,6 +1,6 @@
 import { Schema, InferSchemaType } from "mongoose";
 import { auditPlugin } from "../plugins/auditPlugin";
-import { getModel } from "@/src/types/mongoose-compat";
+import { getModel } from "@/types/mongoose-compat";
 
 const SearchSynonymSchemaDef = {
   locale: { type: String, enum: ["en", "ar"], required: true },

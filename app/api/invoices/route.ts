@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
     const result = await Invoice.db
       .collection("invoice_counters")
       .findOneAndUpdate(
-        { tenantId: user.orgId, year },
+        { orgId: user.orgId, year },
         { $inc: { sequence: 1 } },
         { upsert: true, returnDocument: "after" },
       );
@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
     });
 
     const invoice = await Invoice.create({
-      tenantId: user.orgId,
+      orgId: user.orgId,
       number,
       ...data,
       subtotal,
@@ -263,7 +263,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type");
     const search = searchParams.get("search");
 
-    const match: Record<string, unknown> = { tenantId: user.orgId };
+    const match: Record<string, unknown> = { orgId: user.orgId };
 
     if (status) match.status = status;
     if (type) match.type = type;

@@ -3,7 +3,8 @@
  * @route /api/souq/sellers/[id]/dashboard
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { SouqSeller } from "@/server/models/souq/Seller";
 import { SouqListing } from "@/server/models/souq/Listing";
@@ -12,18 +13,44 @@ import { SouqReview } from "@/server/models/souq/Review";
 import { connectDb } from "@/lib/mongodb-unified";
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   context: { params: { id: string } },
 ) {
   try {
+    // 🔒 AUTH: Require authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const sessionOrgId = (session.user as { orgId?: string }).orgId;
+    const isSuperAdmin = session.user.role === "SUPER_ADMIN";
+
     await connectDb();
 
     const sellerId = context.params.id;
 
-    const seller = await SouqSeller.findById(sellerId);
+    const sellerQuery: Record<string, unknown> = { _id: sellerId };
+    if (!isSuperAdmin && sessionOrgId) {
+      sellerQuery.orgId = sessionOrgId;
+    }
+
+    const seller = await SouqSeller.findOne(sellerQuery);
 
     if (!seller) {
       return NextResponse.json({ error: "Seller not found" }, { status: 404 });
+    }
+
+    // 🔒 ACCESS CONTROL: Only seller owner or same-org admin (or super admin) can view dashboard
+    const isOwner = seller.userId?.toString() === session.user.id;
+    const isSameOrgAdmin =
+      sessionOrgId &&
+      ["CORPORATE_ADMIN", "ADMIN", "MANAGER"].includes(session.user.role) &&
+      seller.orgId &&
+      seller.orgId.toString() === sessionOrgId;
+
+    if (!isOwner && !isSuperAdmin && !isSameOrgAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const thirtyDaysAgo = new Date();
@@ -38,16 +65,17 @@ export async function GET(
       recentRevenue,
       averageRating,
     ] = await Promise.all([
-      SouqListing.countDocuments({ sellerId }),
-      SouqListing.countDocuments({ sellerId, status: "active" }),
-      SouqOrder.countDocuments({ "items.sellerId": sellerId }),
+      SouqListing.countDocuments({ sellerId, orgId: seller.orgId }),
+      SouqListing.countDocuments({ sellerId, orgId: seller.orgId, status: "active" }),
+      SouqOrder.countDocuments({ "items.sellerId": sellerId, orgId: seller.orgId }),
       SouqOrder.countDocuments({
         "items.sellerId": sellerId,
+        orgId: seller.orgId,
         createdAt: { $gte: thirtyDaysAgo },
       }),
       SouqOrder.aggregate([
         { $unwind: "$items" },
-        { $match: { "items.sellerId": seller._id } },
+        { $match: { "items.sellerId": seller._id, orgId: seller.orgId } },
         { $group: { _id: null, total: { $sum: "$items.subtotal" } } },
       ]),
       SouqOrder.aggregate([
@@ -55,6 +83,7 @@ export async function GET(
         {
           $match: {
             "items.sellerId": seller._id,
+            orgId: seller.orgId,
             createdAt: { $gte: thirtyDaysAgo },
           },
         },
@@ -85,7 +114,10 @@ export async function GET(
     ]);
 
     // Extract distinct productIds before the next two queries to avoid redundant calls
-    const productIds = await SouqListing.distinct("productId", { sellerId });
+    const productIds = await SouqListing.distinct("productId", {
+      sellerId,
+      orgId: seller.orgId,
+    });
 
     const [totalReviews, pendingReviews] = await Promise.all([
       SouqReview.countDocuments({

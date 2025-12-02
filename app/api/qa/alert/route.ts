@@ -4,8 +4,9 @@ import { getDatabase, type ConnectionDb } from '@/lib/mongodb-unified';
 import { getClientIP } from '@/server/security/headers';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError } from '@/server/utils/errorResponses';
+import { rateLimitError, unauthorizedError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
+import { requireSuperAdmin } from '@/lib/authz';
 
 type GetDbFn = () => Promise<ConnectionDb>;
 type QaAlertPayload = { event: string; data: unknown };
@@ -37,6 +38,17 @@ async function resolveDatabase() {
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
+  // SECURITY: Require SUPER_ADMIN to write QA alerts - prevents abuse and spam
+  try {
+    await requireSuperAdmin(req);
+  } catch (error) {
+    // requireSuperAdmin throws Response objects for auth failures
+    if (error instanceof Response) {
+      return error;
+    }
+    return unauthorizedError('Authentication failed');
+  }
+
   // Rate limiting
   const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
@@ -74,6 +86,17 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  // SECURITY: Require SUPER_ADMIN to read QA alerts - contains sensitive debugging info
+  try {
+    await requireSuperAdmin(req);
+  } catch (error) {
+    // requireSuperAdmin throws Response objects for auth failures
+    if (error instanceof Response) {
+      return error;
+    }
+    return unauthorizedError('Authentication failed');
+  }
+
   // Rate limiting
   const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);

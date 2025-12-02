@@ -217,7 +217,7 @@ export function extractApartmentSearchParams(
   }
 
   // Extract price range (under 5000, between 3000-8000, etc.)
-  const priceMatch = lower.match(/(\d+)\s*[-to]\s*(\d+)/);
+  const priceMatch = lower.match(/(\d+)\s*(?:-|to|الى|إلى)\s*(\d+)/i);
   if (priceMatch) {
     params.priceRange = {
       min: parseInt(priceMatch[1], 10),

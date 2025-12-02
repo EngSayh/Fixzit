@@ -34,7 +34,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
-import type { MModel } from "@/src/types/mongoose-compat";
+import type { MModel } from "@/types/mongoose-compat";
 
 /**
  * SEC-006 FIX: Validate MongoDB ObjectId format to prevent IDOR attacks
@@ -70,10 +70,12 @@ export interface CrudFactoryOptions<T = unknown> {
   searchFields?: string[];
   /** Optional: Rate limit config (requests per window) */
   rateLimit?: { requests: number; windowMs: number };
-  /** Optional: Custom filter builder */
+  /** Optional: Custom filter builder - receives full user context for role-based filtering */
   buildFilter?: (
     searchParams: URLSearchParams,
     orgId: string,
+    /** Full user context for role-based filtering (TECHNICIAN, VENDOR, TENANT scoping) */
+    user?: { id: string; orgId: string; role: string; vendorId?: string; units?: string[] },
   ) => Record<string, unknown>;
   /** Optional: Hook to transform data before creation (e.g., add SLA, init state) */
   onCreate?: (
@@ -179,9 +181,10 @@ export function createCrudHandlers<T = unknown>(
     try {
       await connectToDatabase();
 
-      // Build base filter
+      // Build base filter - pass full user context for role-based filtering
+      // RBAC FIX: buildFilter now receives user context for TECHNICIAN/VENDOR/TENANT scoping
       const match: Record<string, unknown> = buildFilter
-        ? buildFilter(searchParams, user.orgId)
+        ? buildFilter(searchParams, user.orgId, user)
         : {};
 
       // RBAC: Super Admin can access all tenants, others are scoped to their org_id

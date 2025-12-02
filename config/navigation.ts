@@ -706,6 +706,7 @@ export const ROLE_PERMISSIONS = {
   MANAGER: fmLeadership,
   FM_MANAGER: fmLeadership,
   PROPERTY_MANAGER: propertyOps,
+  TEAM_MEMBER: ['dashboard', 'work_orders', 'support', 'reports'] as ModuleId[], // Base team member access - specialize via sub-roles
   FINANCE: financeOnly,
   HR: hrOnly,
   PROCUREMENT: procurementOnly,

@@ -13,7 +13,7 @@ import {
   getBaseEmailOptions,
   isSendGridConfigured,
   getTemplateId,
-} from "@/lib/sendgrid-config";
+} from "@/config/sendgrid.config";
 
 const welcomeEmailSchema = z.object({
   email: z.string().email(),
@@ -120,7 +120,7 @@ The Fixzit Enterprise Team
      * - MongoDB tracking for email delivery status
      *
      * @see https://docs.sendgrid.com/for-developers/sending-email/quickstart-nodejs
-     * @see /lib/sendgrid-config.ts
+     * @see /config/sendgrid.config.ts for centralized configuration
      */
 
     // Initialize SendGrid with API key

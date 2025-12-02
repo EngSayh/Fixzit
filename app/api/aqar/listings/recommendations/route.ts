@@ -6,13 +6,13 @@ import {
   UnauthorizedError,
 } from "@/server/middleware/withAuthRbac";
 import { connectDb } from "@/lib/mongo";
-import { AqarFavorite } from "@/models/aqar";
-import { FavoriteType, type IFavorite } from "@/models/aqar/Favorite";
+import { AqarFavorite } from "@/server/models/aqar";
+import { FavoriteType, type IFavorite } from "@/server/models/aqar/Favorite";
 import {
   AqarRecommendationEngine,
   type RecommendationContext,
 } from "@/services/aqar/recommendation-engine";
-import { ListingIntent, PropertyType } from "@/models/aqar/Listing";
+import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
 import { Types, type Model } from "mongoose";
 
 export const runtime = "nodejs";

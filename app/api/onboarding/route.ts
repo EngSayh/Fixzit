@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectMongo } from '@/lib/mongo';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { OnboardingCase, ONBOARDING_STATUSES, ONBOARDING_ROLES } from '@/models/onboarding/OnboardingCase';
+import { OnboardingCase, ONBOARDING_STATUSES, ONBOARDING_ROLES } from '@/server/models/onboarding/OnboardingCase';
 import { logger } from '@/lib/logger';
-import { setTenantContext } from '@/server/plugins/tenantIsolation';
+import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
 
 export async function GET(req: NextRequest) {
   const user = await getSessionUser(req).catch(() => null);
@@ -51,5 +51,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     logger.error('[Onboarding] Failed to list cases', { error });
     return NextResponse.json({ error: 'Failed to load onboarding queue' }, { status: 500 });
+  } finally {
+    clearTenantContext();
   }
 }
