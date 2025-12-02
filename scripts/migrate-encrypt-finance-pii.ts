@@ -8,6 +8,7 @@
  *   --dry-run   Preview changes without modifying the database
  *   --org=ID    Migrate only records for a specific organization
  *   --rollback  Restore from backup collections (if available)
+ *   --allow-plaintext-backup  Continue even if TTL index creation fails (SECURITY RISK)
  *
  * Notes:
  * - Requires ENCRYPTION_KEY or PII_ENCRYPTION_KEY in env.
@@ -172,6 +173,7 @@ interface MigrationOptions {
   dryRun: boolean;
   orgId?: string;
   rollback: boolean;
+  allowPlaintextBackup?: boolean;
 }
 
 function parseArgs(): MigrationOptions {
@@ -179,6 +181,7 @@ function parseArgs(): MigrationOptions {
   const options: MigrationOptions = {
     dryRun: args.includes("--dry-run"),
     rollback: args.includes("--rollback"),
+    allowPlaintextBackup: args.includes("--allow-plaintext-backup"),
   };
 
   const orgArg = args.find((a) => a.startsWith("--org="));
@@ -192,6 +195,7 @@ function parseArgs(): MigrationOptions {
 async function createBackup(
   collectionName: string,
   orgId?: string,
+  allowPlaintextBackup?: boolean,
 ): Promise<string> {
   const db = mongoose.connection.db;
   if (!db) {
@@ -244,8 +248,23 @@ async function createBackup(
       await backupCollection.updateMany({}, { $set: { createdAt: new Date() } });
       logger.info(`[FINANCE PII MIGRATION] Backup TTL set (24h auto-cleanup): ${backupName}`);
     } catch (ttlError) {
-      // TTL index creation is best-effort; log warning but continue
-      logger.warn(`[FINANCE PII MIGRATION] Could not set TTL on backup: ${backupName}`, { error: ttlError });
+      // SECURITY: TTL failure means plaintext PII could persist indefinitely
+      // Default: FAIL HARD to prevent compliance violations
+      if (allowPlaintextBackup) {
+        logger.warn(`[FINANCE PII MIGRATION] ⚠️ TTL creation failed, continuing with --allow-plaintext-backup: ${backupName}`, { error: ttlError });
+        logger.warn(`[FINANCE PII MIGRATION] SECURITY RISK: Plaintext PII backup will NOT auto-expire. Manual cleanup required!`);
+      } else {
+        logger.error(`[FINANCE PII MIGRATION] ❌ TTL index creation failed. Aborting to prevent plaintext PII retention.`);
+        logger.error(`[FINANCE PII MIGRATION] To proceed anyway (NOT RECOMMENDED), re-run with: --allow-plaintext-backup`);
+        // Clean up the backup we just created to avoid leaving orphan plaintext data
+        try {
+          await db.dropCollection(backupName);
+          logger.info(`[FINANCE PII MIGRATION] Cleaned up incomplete backup: ${backupName}`);
+        } catch (cleanupError) {
+          logger.error(`[FINANCE PII MIGRATION] Failed to cleanup backup: ${backupName}`, { error: cleanupError });
+        }
+        throw new Error(`TTL index creation failed for backup ${backupName}. Plaintext PII retention risk.`);
+      }
     }
 
     logger.info(`[FINANCE PII MIGRATION] Backup created: ${backupName}`, {
@@ -441,7 +460,7 @@ async function migrateCollection(
 
   // Create backup (unless dry-run)
   if (!options.dryRun && !options.rollback) {
-    await createBackup(model.collection.name, options.orgId);
+    await createBackup(model.collection.name, options.orgId, options.allowPlaintextBackup);
   }
 
   // Build query filter
