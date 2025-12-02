@@ -295,7 +295,14 @@ function parseArgs(): MigrationOptions {
   // SECURITY: Block --allow-plaintext-backup in production to prevent accidental PII retention
   // Use dedicated MIGRATION_ALLOW_PLAINTEXT env var for break-glass, NOT NODE_ENV override
   const hasBreakGlassOverride = process.env.MIGRATION_ALLOW_PLAINTEXT === "true";
-  if (options.allowPlaintextBackup && process.env.NODE_ENV === "production" && !hasBreakGlassOverride) {
+  const isProd = process.env.NODE_ENV === "production";
+  if (options.allowPlaintextBackup && isProd && !hasBreakGlassOverride) {
+    // STRICT v4.1 FIX: Use central logger for observability (captured by log pipelines/alerts)
+    logger.error("[FINANCE PII MIGRATION] BLOCKED: --allow-plaintext-backup in production", {
+      severity: "critical",
+      reason: "Plaintext PII backup without TTL is a compliance violation",
+      hint: "Set MIGRATION_ALLOW_PLAINTEXT=true for break-glass (requires documented approval)",
+    });
     console.error(`
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║  ERROR: --allow-plaintext-backup is BLOCKED in production                  ║
