@@ -114,15 +114,17 @@ export async function POST(req: NextRequest) {
 
     // Resolve default organization - must be explicitly configured
     // SECURITY: Never fallback to arbitrary user's orgId (breaks tenant isolation)
+    // STRICT v4.1 FIX: In production, ONLY PUBLIC_ORG_ID is allowed to prevent
+    // real users from accidentally landing in TEST/DEFAULT orgs (cross-tenant contamination)
     const resolvedOrgId =
       process.env.PUBLIC_ORG_ID ||
-      process.env.TEST_ORG_ID ||
-      process.env.DEFAULT_ORG_ID;
+      (process.env.NODE_ENV !== "production" && (process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID));
 
     if (!resolvedOrgId) {
-      throw new Error(
-        "Default organization not configured. Set PUBLIC_ORG_ID, TEST_ORG_ID, or DEFAULT_ORG_ID environment variable with a valid ObjectId.",
-      );
+      const errorMsg = process.env.NODE_ENV === "production"
+        ? "PUBLIC_ORG_ID is required for signup in production. TEST_ORG_ID and DEFAULT_ORG_ID are blocked in prod to prevent tenant contamination."
+        : "Default organization not configured. Set PUBLIC_ORG_ID, TEST_ORG_ID, or DEFAULT_ORG_ID environment variable with a valid ObjectId.";
+      throw new Error(errorMsg);
     }
 
     if (!Types.ObjectId.isValid(resolvedOrgId)) {
@@ -235,7 +237,22 @@ export async function POST(req: NextRequest) {
         },
         verification: await (async () => {
           const secret = process.env.NEXTAUTH_SECRET;
-          if (!secret) return { sent: false, reason: "not_configured" };
+          // STRICT v4.1 FIX: In production, verification infrastructure MUST be available
+          // to prevent ACTIVE accounts without verified emails (account integrity risk)
+          if (!secret) {
+            if (process.env.NODE_ENV === "production") {
+              // Production: fail the entire signup to prevent unverified accounts
+              // The user was already created above, so we need to roll back
+              logger.error("[auth/signup] CRITICAL: NEXTAUTH_SECRET missing in production - cannot verify email", {
+                email: normalizedEmail,
+                userId: newUser._id,
+              });
+              // Delete the just-created user to prevent orphaned unverified accounts
+              await User.deleteOne({ _id: newUser._id });
+              throw new Error("Email verification not configured. Signup aborted for production safety.");
+            }
+            return { sent: false, reason: "not_configured" };
+          }
           
           const token = signVerificationToken(normalizedEmail, secret);
           // SECURITY: Ensure VERCEL_URL has https:// scheme for production

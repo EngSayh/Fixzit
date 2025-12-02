@@ -59,22 +59,29 @@ export async function POST(req: NextRequest) {
     }
 
     // SECURITY: Resolve default organization for public auth flow
+    // STRICT v4.1 FIX: In production, ONLY PUBLIC_ORG_ID is allowed to prevent
+    // password reset attacks targeting users in TEST/DEFAULT orgs (cross-tenant attack vector)
     const resolvedOrgId =
       process.env.PUBLIC_ORG_ID ||
-      process.env.TEST_ORG_ID ||
-      process.env.DEFAULT_ORG_ID;
-
-    await connectToDatabase();
-    // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
-    const user = resolvedOrgId
-      ? await User.findOne({ orgId: resolvedOrgId, email }).lean()
-      : await User.findOne({ email }).lean(); // Fallback if no orgId configured (dev mode)
+      (process.env.NODE_ENV !== "production" && (process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID));
 
     // Always return success to prevent email enumeration
     const successResponse = { 
       ok: true, 
       message: "If an account exists with this email, a reset link has been sent." 
     };
+    
+    // In production, if no PUBLIC_ORG_ID, return success (anti-enumeration) but log error
+    if (!resolvedOrgId && process.env.NODE_ENV === "production") {
+      logger.error("[forgot-password] PUBLIC_ORG_ID not configured in production - cannot process reset");
+      return NextResponse.json(successResponse);
+    }
+
+    await connectToDatabase();
+    // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
+    const user = resolvedOrgId
+      ? await User.findOne({ orgId: resolvedOrgId, email }).lean()
+      : await User.findOne({ email }).lean(); // Fallback if no orgId configured (dev mode)
 
     if (!user) {
       logger.info("[forgot-password] Reset requested for non-existent email", { email });

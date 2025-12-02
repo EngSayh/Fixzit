@@ -38,7 +38,12 @@ import { FMFinancialTransaction } from "@/server/models/FMFinancialTransaction";
 import { logger } from "@/lib/logger";
 
 // ============================================================================
-// ENV PREFLIGHT CHECK
+// CONSTANTS FOR KEY VALIDATION
+// ============================================================================
+const KEY_LENGTH = 32; // 256 bits for AES-256
+
+// ============================================================================
+// ENV PREFLIGHT CHECK - KEY PRESENCE
 // ============================================================================
 // SECURITY: Fail fast if encryption key is missing to prevent partial migrations
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.PII_ENCRYPTION_KEY;
@@ -50,8 +55,11 @@ if (!ENCRYPTION_KEY) {
 ║  This script requires an encryption key to encrypt PII fields.             ║
 ║  Set one of these environment variables before running:                    ║
 ║                                                                            ║
-║    ENCRYPTION_KEY=<your-32-byte-hex-key>                                   ║
-║    PII_ENCRYPTION_KEY=<your-32-byte-hex-key>                               ║
+║    ENCRYPTION_KEY=<your-32-byte-base64-key>                                ║
+║    PII_ENCRYPTION_KEY=<your-32-byte-base64-key>                            ║
+║                                                                            ║
+║  Generate a strong key:                                                    ║
+║    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"║
 ║                                                                            ║
 ║  Example:                                                                  ║
 ║    ENCRYPTION_KEY=... pnpm tsx scripts/migrate-encrypt-finance-pii.ts      ║
@@ -59,6 +67,48 @@ if (!ENCRYPTION_KEY) {
 `);
   process.exit(1);
 }
+
+// ============================================================================
+// ENV PREFLIGHT CHECK - KEY STRENGTH (STRICT v4.1)
+// ============================================================================
+// SECURITY: Always validate key strength for finance PII migrations, even in non-prod
+// This prevents weak-key encryptions that would require costly re-migrations
+function validateKeyStrength(key: string): void {
+  let keyBytes: number;
+  try {
+    // Try base64 decode first (preferred format)
+    const decoded = Buffer.from(key, 'base64');
+    keyBytes = decoded.length;
+  } catch {
+    // Fallback to raw string length
+    keyBytes = key.length;
+  }
+
+  if (keyBytes < KEY_LENGTH) {
+    console.error(`
+╔════════════════════════════════════════════════════════════════════════════╗
+║  ERROR: ENCRYPTION_KEY is too weak for finance PII migration               ║
+║                                                                            ║
+║  Finance PII encryption requires a 256-bit (32-byte) key for compliance.   ║
+║                                                                            ║
+║  Current key: ${keyBytes} bytes (${keyBytes * 8}-bit)
+║  Required:    ${KEY_LENGTH} bytes (256-bit)
+║                                                                            ║
+║  STRICT v4.1: Weak keys are BLOCKED even in non-production to prevent      ║
+║  irreversible weak encryptions that would require costly re-migrations.    ║
+║                                                                            ║
+║  Generate a compliant key:                                                 ║
+║    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"║
+╚════════════════════════════════════════════════════════════════════════════╝
+`);
+    process.exit(1);
+  }
+
+  console.log(`✅ Encryption key strength validated: ${keyBytes * 8}-bit (AES-256 compliant)`);
+}
+
+// Run key strength validation immediately
+validateKeyStrength(ENCRYPTION_KEY);
 
 const BATCH_SIZE = 200;
 const BACKUP_BATCH_SIZE = 500;
