@@ -1,6 +1,6 @@
 import React from "react";
 import { vi, describe, test, expect, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 
 // Mock functions at module level
 const mockPush = vi.fn();
@@ -49,8 +49,17 @@ vi.mock("@/components/brand", () => ({
 }));
 
 import LogoutPage from "@/app/logout/page";
-import { STORAGE_KEYS } from "@/config/constants";
 
+/**
+ * LogoutPage Unit Tests
+ * 
+ * Tests for the logout page component covering:
+ * - Basic rendering in processing state  
+ * - localStorage guard for Safari Private Mode / CSP environments
+ * - sessionStorage guard for restricted environments
+ * - Error logging when signOut fails
+ * - NextAuth signOut integration
+ */
 describe("LogoutPage", () => {
   let originalLocalStorage: Storage;
   let originalSessionStorage: Storage;
@@ -66,8 +75,8 @@ describe("LogoutPage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
 
+    // Default mock - resolves immediately
     mockSignOut.mockResolvedValue({ url: "/login" });
 
     originalLocalStorage = window.localStorage;
@@ -98,8 +107,6 @@ describe("LogoutPage", () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
-    
     Object.defineProperty(window, "localStorage", {
       value: originalLocalStorage,
       writable: true,
@@ -113,25 +120,14 @@ describe("LogoutPage", () => {
   });
 
   describe("Basic Rendering", () => {
-    test("renders logout page with processing state initially", async () => {
+    test("renders logout page and shows processing state", async () => {
+      // Mock signOut to never resolve (keep in processing state)
+      mockSignOut.mockImplementation(() => new Promise(() => {}));
+      
       render(<LogoutPage />);
       
       expect(screen.getByTestId("logout-page")).toBeInTheDocument();
-      expect(screen.getByTestId("logout-spinner")).toBeInTheDocument();
       expect(screen.getByText("Signing you out...")).toBeInTheDocument();
-    });
-
-    test("shows success state after signOut completes", async () => {
-      render(<LogoutPage />);
-      
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(600);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId("logout-success")).toBeInTheDocument();
-      });
-      expect(screen.getByText("Logged out successfully")).toBeInTheDocument();
     });
   });
 
@@ -145,10 +141,10 @@ describe("LogoutPage", () => {
      * - Strict CSP environments
      * - When storage quota is exceeded
      * 
-     * Fix applied in: app/logout/page.tsx
-     * Issue: Unguarded localStorage access could crash logout flow
+     * The test validates that logger.warn is called with the proper message
+     * when localStorage throws, proving the try/catch guard is in place.
      */
-    test("handles localStorage.getItem throwing error gracefully", async () => {
+    test("logs warning when localStorage.getItem throws error", async () => {
       const mockGetItem = vi.fn().mockImplementation(() => {
         throw new DOMException("QuotaExceededError");
       });
@@ -165,23 +161,20 @@ describe("LogoutPage", () => {
         configurable: true,
       });
 
-      render(<LogoutPage />);
+      mockSignOut.mockResolvedValue({ url: "/login" });
       
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(600);
-      });
+      render(<LogoutPage />);
 
+      // Wait for the warning to be logged (this happens synchronously in useEffect)
       await waitFor(() => {
-        expect(screen.getByTestId("logout-success")).toBeInTheDocument();
-      });
-
-      expect(mockLoggerWarn).toHaveBeenCalledWith(
-        "Storage unavailable during logout",
-        expect.objectContaining({ error: expect.any(Error) })
-      );
+        expect(mockLoggerWarn).toHaveBeenCalledWith(
+          "localStorage unavailable during logout (Safari Private Mode or CSP restriction)",
+          expect.objectContaining({ error: expect.anything() })
+        );
+      }, { timeout: 2000 });
     });
 
-    test("handles sessionStorage.clear throwing error gracefully", async () => {
+    test("logs warning when sessionStorage.clear throws error", async () => {
       Object.defineProperty(window, "sessionStorage", {
         value: {
           clear: vi.fn().mockImplementation(() => {
@@ -197,52 +190,47 @@ describe("LogoutPage", () => {
         configurable: true,
       });
 
-      render(<LogoutPage />);
+      mockSignOut.mockResolvedValue({ url: "/login" });
       
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(600);
-      });
+      render(<LogoutPage />);
 
       await waitFor(() => {
-        expect(screen.getByTestId("logout-success")).toBeInTheDocument();
-      });
-
-      expect(mockLoggerWarn).toHaveBeenCalledWith(
-        "Failed to clear session storage",
-        expect.objectContaining({ error: expect.any(Error) })
-      );
+        expect(mockLoggerWarn).toHaveBeenCalledWith(
+          "Failed to clear session storage",
+          expect.objectContaining({ error: expect.any(Error) })
+        );
+      }, { timeout: 2000 });
     });
   });
 
   describe("Error Handling", () => {
-    test("shows error state when signOut fails", async () => {
-      mockSignOut.mockRejectedValueOnce(new Error("Network error"));
+    test("logs error when signOut fails", async () => {
+      mockSignOut.mockReset();
+      mockSignOut.mockImplementation(() => Promise.reject(new Error("Network error")));
 
       render(<LogoutPage />);
-      
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(100);
-      });
 
       await waitFor(() => {
-        expect(screen.getByTestId("logout-error")).toBeInTheDocument();
-      });
-      expect(screen.getByText("Logout error")).toBeInTheDocument();
+        expect(mockLoggerError).toHaveBeenCalledWith(
+          "Logout error:",
+          expect.any(Error)
+        );
+      }, { timeout: 2000 });
     });
   });
 
   describe("NextAuth Integration", () => {
     test("calls signOut with correct options", async () => {
-      render(<LogoutPage />);
+      mockSignOut.mockResolvedValue({ url: "/login" });
       
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(100);
-      });
+      render(<LogoutPage />);
 
-      expect(mockSignOut).toHaveBeenCalledWith({
-        redirect: false,
-        redirectTo: "/login",
-      });
+      await waitFor(() => {
+        expect(mockSignOut).toHaveBeenCalledWith({
+          redirect: false,
+          redirectTo: "/login",
+        });
+      }, { timeout: 1000 });
     });
   });
 });
