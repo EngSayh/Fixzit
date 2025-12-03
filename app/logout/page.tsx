@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { signOut } from 'next-auth/react';
