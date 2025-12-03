@@ -64,12 +64,64 @@ const CustomCursor: React.FC = () => {
 
   // Determine if cursor should render (client-side only to prevent SSR mismatch)
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    
-    setShouldRender(!isTouchDevice && !prefersReducedMotion);
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      setShouldRender(true);
+      return;
+    }
+
+    const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const finePointerQuery = window.matchMedia('(any-pointer: fine)');
+    const fallbackFinePointerQuery = window.matchMedia('(pointer: fine)');
+
+    const addMediaListener = (query: MediaQueryList, handler: () => void) => {
+      if (typeof query.addEventListener === 'function') {
+        query.addEventListener('change', handler);
+      } else if (typeof query.addListener === 'function') {
+        query.addListener(handler);
+      }
+    };
+
+    const removeMediaListener = (query: MediaQueryList, handler: () => void) => {
+      if (typeof query.removeEventListener === 'function') {
+        query.removeEventListener('change', handler);
+      } else if (typeof query.removeListener === 'function') {
+        query.removeListener(handler);
+      }
+    };
+
+    const updateShouldRender = () => {
+      const prefersReducedMotion = reduceMotionQuery.matches;
+      const hasFinePointer = finePointerQuery.matches || fallbackFinePointerQuery.matches;
+      const touchOnlyDevice =
+        typeof navigator.maxTouchPoints === 'number'
+          ? navigator.maxTouchPoints > 0 && !hasFinePointer
+          : !hasFinePointer;
+
+      setShouldRender(!prefersReducedMotion && !touchOnlyDevice);
+    };
+
+    const handlePointerDetected = (event: PointerEvent) => {
+      if (reduceMotionQuery.matches) return;
+      if (event.pointerType === 'mouse' || event.pointerType === 'pen') {
+        setShouldRender(true);
+      }
+    };
+
+    updateShouldRender();
+
+    addMediaListener(reduceMotionQuery, updateShouldRender);
+    addMediaListener(finePointerQuery, updateShouldRender);
+    addMediaListener(fallbackFinePointerQuery, updateShouldRender);
+    window.addEventListener('pointermove', handlePointerDetected);
+    window.addEventListener('pointerdown', handlePointerDetected);
+
+    return () => {
+      removeMediaListener(reduceMotionQuery, updateShouldRender);
+      removeMediaListener(finePointerQuery, updateShouldRender);
+      removeMediaListener(fallbackFinePointerQuery, updateShouldRender);
+      window.removeEventListener('pointermove', handlePointerDetected);
+      window.removeEventListener('pointerdown', handlePointerDetected);
+    };
   }, []);
 
   useEffect(() => {

@@ -14,7 +14,7 @@ const useBuild = process.env.PW_USE_BUILD === 'true';
 const WEB_COMMAND = process.env.PW_WEB_SERVER
   ? process.env.PW_WEB_SERVER
   : useBuild
-    ? 'node .next/standalone/server.js'
+    ? 'sh -c "mkdir -p .next/standalone/.next && cp -R .next/static .next/standalone/.next/static 2>/dev/null || true; cp -R public .next/standalone/public 2>/dev/null || true; node .next/standalone/server.js"'
     : 'npm run dev:webpack -- --hostname 0.0.0.0 --port 3000';
 const WEB_URL = process.env.PW_WEB_URL || 'http://localhost:3000';
 

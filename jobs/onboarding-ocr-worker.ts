@@ -7,8 +7,8 @@ import { VerificationLog } from '@/server/models/onboarding/VerificationLog';
 
 type OcrJob = { docId: string; onboardingCaseId: string };
 
-// Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
-const redisUrl = process.env.REDIS_URL || process.env.REDIS_KEY;
+// Resolution order: BULLMQ_REDIS_URL → REDIS_URL → REDIS_KEY (Vercel/GitHub naming)
+const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
 const connection = redisUrl
   ? new IORedis(redisUrl, { maxRetriesPerRequest: null })
   : null;
