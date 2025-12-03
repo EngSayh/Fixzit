@@ -8,7 +8,7 @@ import { logger } from "@/lib/logger";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { validateBucketPolicies } from "@/lib/security/s3-policy";
 import { getClientIp } from "@/lib/security/client-ip";
 
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const safeIp = (() => {
+    const _safeIp = (() => {
       try {
         return getClientIp(req);
       } catch {
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       }
     })();
     const rl = await smartRateLimit(
-      buildRateLimitKey(req, user?.id || safeIp),
+      buildOrgAwareRateLimitKey(req, user?.orgId ?? null, user?.id ?? null),
       user ? 60 : 20, // tighter window for anonymous callers
       60_000,
     );
