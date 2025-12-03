@@ -83,4 +83,47 @@ describe("admin/price-tiers route", () => {
       expect.any(Object),
     );
   });
+
+  it("POST rejects isGlobal for non super admin", async () => {
+    vi.mocked(getUserFromToken).mockResolvedValue({
+      id: "u2",
+      email: "b@test.com",
+      role: "ADMIN",
+      orgId: "org1",
+    } as any);
+
+    const res = await POST(
+      makeRequest("POST", {
+        moduleCode: "MOD",
+        seatsMin: 1,
+        seatsMax: 10,
+        pricePerSeatMonthly: 5,
+        currency: "USD",
+        isGlobal: true,
+      }),
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("POST allows isGlobal for super admin and tags record", async () => {
+    vi.mocked(Module.findOne).mockResolvedValue({ _id: "mod1" } as any);
+    vi.mocked(PriceTier.findOneAndUpdate).mockResolvedValue({ _id: "tier1", isGlobal: true } as any);
+
+    const res = await POST(
+      makeRequest("POST", {
+        moduleCode: "MOD",
+        seatsMin: 1,
+        seatsMax: 10,
+        pricePerSeatMonthly: 5,
+        currency: "USD",
+        isGlobal: true,
+      }),
+    );
+    expect(res.status).toBe(201);
+    expect(PriceTier.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ isGlobal: true }),
+      expect.objectContaining({ isGlobal: true }),
+      expect.any(Object),
+    );
+  });
 });

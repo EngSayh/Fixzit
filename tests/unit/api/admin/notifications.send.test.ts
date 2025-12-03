@@ -39,9 +39,28 @@ function makeRequest(body: unknown) {
 describe("admin/notifications/send route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(auth).mockResolvedValue({
-      user: { id: "u1", email: "a@test.com", orgId: ORG_ID, role: "SUPER_ADMIN" },
+  vi.mocked(auth).mockResolvedValue({
+    user: { id: "u1", email: "a@test.com", orgId: ORG_ID, role: "SUPER_ADMIN" },
+  });
+});
+
+  it("returns 404 when no recipients found", async () => {
+    const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+    const find = vi.fn().mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([]), // no recipients
     });
+    const collection = vi.fn().mockReturnValue({ find, insertOne });
+    vi.mocked(mongo).getDatabase.mockResolvedValue({ collection } as any);
+
+    const body = {
+      recipients: { type: "users", ids: [] },
+      channels: ["email"],
+      subject: "s",
+      message: "m",
+      priority: "normal",
+    };
+    const res = await POST(makeRequest(body));
+    expect(res.status).toBe(404);
   });
 
   it("scopes user fetches to orgId", async () => {

@@ -278,10 +278,9 @@ export async function POST(req: NextRequest) {
         recipients,
         orgId,
       });
-      // Return 200 to keep admin flows observable without hard-failing automation; surface in payload
       return NextResponse.json(
         { success: false, error: "No recipients found", results: { totalRecipients: 0 } },
-        { status: 200 },
+        { status: 404 },
       );
     }
 

@@ -63,6 +63,14 @@ export async function GET(req: NextRequest) {
       (user as { tenantId?: string }).tenantId ||
       null;
 
+    if (!orgId) {
+      return createSecureResponse(
+        { error: "Organization context required" },
+        400,
+        req,
+      );
+    }
+
     // Rate limiting (org-aware) after authentication
     const key = buildOrgAwareRateLimitKey(req, orgId, user.id ?? null);
     const rl = await smartRateLimit(key, 100, 60_000);
@@ -71,11 +79,10 @@ export async function GET(req: NextRequest) {
     }
 
     await connectToDatabase();
-    // TENANCY: Discounts are tenant-scoped; fall back to global only if orgId absent
-    const query = orgId ? { code: "ANNUAL", orgId } : { code: "ANNUAL" };
-    const d = await DiscountRule.findOne(query).lean();
+    // TENANCY: Discounts are tenant-scoped; require orgId
+    const d = await DiscountRule.findOne({ key: "ANNUAL", orgId }).lean();
     return NextResponse.json(
-      d || { code: "ANNUAL", value: 0, active: false, orgId: orgId ?? null },
+      d || { key: "ANNUAL", percentage: 0, editableBySuperAdminOnly: true, orgId },
     );
   } catch (error: unknown) {
     if (error instanceof Error && error.message === "Authentication required") {
@@ -108,6 +115,14 @@ export async function PUT(req: NextRequest) {
       (user as { tenantId?: string }).tenantId ||
       null;
 
+    if (!orgId) {
+      return createSecureResponse(
+        { error: "Organization context required" },
+        400,
+        req,
+      );
+    }
+
     // Rate limiting for admin operations
     const key = buildOrgAwareRateLimitKey(req, orgId, user.id ?? null);
     const rl = await smartRateLimit(key, 5, 60_000); // 5 requests per minute for discount changes
@@ -118,16 +133,13 @@ export async function PUT(req: NextRequest) {
     await connectToDatabase();
     const body = discountSchema.parse(await req.json());
 
-    const filter = orgId ? { code: "ANNUAL", orgId } : { code: "ANNUAL" };
-
     const d = await DiscountRule.findOneAndUpdate(
-      filter,
+      { key: "ANNUAL", orgId },
       {
-        code: "ANNUAL",
-        orgId: orgId ?? undefined,
-        type: "percent",
-        value: body.value,
-        active: true,
+        key: "ANNUAL",
+        orgId,
+        percentage: body.value,
+        editableBySuperAdminOnly: true,
         updatedBy: user.id,
         updatedAt: new Date(),
       },
