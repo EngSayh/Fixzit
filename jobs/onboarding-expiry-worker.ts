@@ -37,10 +37,15 @@ const QUEUE_NAME = process.env.EXPIRY_QUEUE_NAME || 'onboarding-expiry';
  * Multi-tenant isolation: Scopes queries via OnboardingCase.orgId
  * Performance: Uses batched bulk updates instead of per-doc saves
  * Auditability: Uses SYSTEM_ACTOR_ID for performed_by_id
+ * 
+ * CRITICAL FIX: Only expire documents where expiry_date <= NOW (not 30 days ahead!)
+ * The previous implementation expired documents 30 days before their actual expiry.
  */
 async function processOrgExpiries(orgId: string, onboardingCaseId?: string): Promise<number> {
   const now = new Date();
-  const threshold = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days ahead
+  // CRITICAL FIX: Expire documents that have ACTUALLY expired (expiry_date <= now)
+  // NOT documents that will expire in 30 days
+  const expiryThreshold = now; // Documents expired as of right now
 
   // Step 1: Find all onboarding cases for this org to get their IDs
   const caseFilter: Record<string, unknown> = { orgId: new Types.ObjectId(orgId) };
@@ -60,10 +65,11 @@ async function processOrgExpiries(orgId: string, onboardingCaseId?: string): Pro
 
   // Step 2: Process in batches to prevent memory exhaustion
   while (true) {
-    // Find documents that are VERIFIED, expiring, and belong to this org's cases
+    // CRITICAL FIX: Find documents that are VERIFIED and ACTUALLY expired (expiry_date <= now)
+    // Previously this used threshold = now + 30 days, which expired documents 30 days early!
     const expiringDocs = await VerificationDocument.find({
       status: 'VERIFIED',
-      expiry_date: { $lte: threshold },
+      expiry_date: { $lte: expiryThreshold }, // Documents that have actually expired
       onboarding_case_id: { $in: caseIds },
     })
       .limit(BATCH_SIZE)
