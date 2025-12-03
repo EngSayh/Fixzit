@@ -7,7 +7,9 @@ import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import { getEnv } from '@/lib/env';
 import { logger } from '@/lib/logger';
-import { redisOtpSessionStore } from '@/lib/otp-store';
+// CRITICAL FIX: Removed static import of redisOtpSessionStore to avoid bundling ioredis into Edge Runtime
+// See: https://nextjs.org/docs/messages/edge-dynamic-code-evaluation
+// The OTP session store is now dynamically imported inside authorize() where it's actually used
 import type { UserRoleType } from '@/types/user';
 import type { SubscriptionPlan } from '@/config/navigation';
 // CRITICAL FIX: Use auth-specific types to prevent mongoose from bundling into client
@@ -505,6 +507,8 @@ export const authConfig = {
             }
 
             // STRICT v4.1: Use async Redis store for multi-instance OTP session validation
+            // CRITICAL FIX: Dynamic import to avoid bundling ioredis into Edge Runtime
+            const { redisOtpSessionStore } = await import('@/lib/otp-store');
             const session = await redisOtpSessionStore.get(otpToken!);
             if (!session) {
               logger.warn('[NextAuth] OTP session not found or already used', { loginIdentifier: redactIdentifier(loginIdentifier) });

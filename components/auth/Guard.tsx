@@ -1,42 +1,25 @@
 "use client";
 
 import React from "react";
-import { useAuthRbac, useCan, useIsSuperAdmin } from "@/hooks/useAuthRbac";
+import BaseGuard, {
+  RequirePermission as BaseRequirePermission,
+  RequireAnyPermission as BaseRequireAnyPermission,
+  RequireAllPermissions as BaseRequireAllPermissions,
+  RequireRole as BaseRequireRole,
+  SuperAdminOnly as BaseSuperAdminOnly,
+} from "@/components/Guard";
+import { useAuthRbac, useCan } from "@/hooks/useAuthRbac";
 
 /**
- * Guard Component - Conditional rendering based on RBAC permissions
- *
- * Usage:
- *   <Guard can="finance:invoice.create">
- *     <CreateInvoiceButton />
- *   </Guard>
- *
- *   <Guard canAny={["hr:employee.read", "hr:employee.write"]}>
- *     <EmployeeSection />
- *   </Guard>
- *
- *   <Guard canAll={["finance:budget.read", "finance:report.read"]}>
- *     <BudgetReportSection />
- *   </Guard>
- *
- *   <Guard role="admin">
- *     <AdminPanel />
- *   </Guard>
- *
- *   <Guard superAdmin>
- *     <SuperAdminDashboard />
- *   </Guard>
- *
- *   <Guard can="aqar:property.delete" fallback={<AccessDenied />}>
- *     <DeletePropertyButton />
- *   </Guard>
+ * Compatibility wrapper around the canonical Guard in components/Guard.tsx.
+ * Supports legacy props (can/canAny/canAll) while delegating to the shared guard logic.
  */
 
 interface GuardProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
 
-  // Permission-based guards
+  // Permission-based guards (legacy naming)
   can?: string;
   canAny?: string[];
   canAll?: string[];
@@ -52,9 +35,6 @@ interface GuardProps {
   loading?: React.ReactNode;
 }
 
-/**
- * Guard Component - Renders children only if permission/role checks pass
- */
 export function Guard({
   children,
   fallback = null,
@@ -66,62 +46,23 @@ export function Guard({
   superAdmin,
   loading = null,
 }: GuardProps) {
-  const {
-    can: checkCan,
-    canAny: checkCanAny,
-    canAll: checkCanAll,
-    hasRole,
-    hasAnyRole,
-    isLoading,
-  } = useAuthRbac();
+  // Map legacy props onto the canonical Guard API
+  const mappedProps = {
+    permission: can,
+    permissions: canAll ?? canAny ?? undefined,
+    requireAll: !!canAll,
+    requireAny: !!canAny && !canAll,
+    role,
+    roles: anyRole,
+    requireAnyRole: Array.isArray(anyRole),
+    superAdminOnly: superAdmin,
+    fallback,
+    loadingFallback: loading,
+  };
 
-  // Show loading state if still loading session
-  if (isLoading) {
-    return <>{loading}</>;
-  }
-
-  // Check permissions
-  if (can && !checkCan(can)) {
-    return <>{fallback}</>;
-  }
-
-  if (canAny && !checkCanAny(canAny)) {
-    return <>{fallback}</>;
-  }
-
-  if (canAll && !checkCanAll(canAll)) {
-    return <>{fallback}</>;
-  }
-
-  // Check roles
-  if (role && !hasRole(role)) {
-    return <>{fallback}</>;
-  }
-
-  if (anyRole && !hasAnyRole(anyRole)) {
-    return <>{fallback}</>;
-  }
-
-  // Check super admin
-  if (superAdmin && !checkCan("*")) {
-    return <>{fallback}</>;
-  }
-
-  // All checks passed, render children
-  return <>{children}</>;
+  return <BaseGuard {...mappedProps}>{children}</BaseGuard>;
 }
 
-/**
- * ProtectedSection - Shows different content based on permission
- *
- * Usage:
- *   <ProtectedSection
- *     can="finance:invoice.create"
- *     denied={<UpgradePrompt />}
- *   >
- *     <CreateInvoiceForm />
- *   </ProtectedSection>
- */
 interface ProtectedSectionProps {
   children: React.ReactNode;
   denied?: React.ReactNode;
@@ -137,9 +78,6 @@ export function ProtectedSection(props: ProtectedSectionProps) {
   return <Guard {...props} fallback={props.denied} />;
 }
 
-/**
- * CanView - Simple permission check wrapper (alias for Guard with can prop)
- */
 interface CanViewProps {
   permission: string;
   children: React.ReactNode;
@@ -148,35 +86,21 @@ interface CanViewProps {
 
 export function CanView({ permission, children, fallback }: CanViewProps) {
   const canAccess = useCan(permission);
-
   if (!canAccess) {
     return <>{fallback || null}</>;
   }
-
   return <>{children}</>;
 }
 
-/**
- * SuperAdminOnly - Renders children only for Super Admins
- */
 interface SuperAdminOnlyProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }
 
 export function SuperAdminOnly({ children, fallback }: SuperAdminOnlyProps) {
-  const isSuperAdmin = useIsSuperAdmin();
-
-  if (!isSuperAdmin) {
-    return <>{fallback || null}</>;
-  }
-
-  return <>{children}</>;
+  return <BaseSuperAdminOnly fallback={fallback}>{children}</BaseSuperAdminOnly>;
 }
 
-/**
- * RoleGuard - Renders children only for specific roles
- */
 interface RoleGuardProps {
   role: string | string[];
   children: React.ReactNode;
@@ -185,19 +109,13 @@ interface RoleGuardProps {
 
 export function RoleGuard({ role, children, fallback }: RoleGuardProps) {
   const { hasRole, hasAnyRole } = useAuthRbac();
-
   const hasAccess = Array.isArray(role) ? hasAnyRole(role) : hasRole(role);
-
   if (!hasAccess) {
     return <>{fallback || null}</>;
   }
-
   return <>{children}</>;
 }
 
-/**
- * AccessDenied - Default fallback component for unauthorized access
- */
 export function AccessDenied({
   message = "Access Denied",
 }: {
@@ -207,7 +125,7 @@ export function AccessDenied({
     <div className="flex items-center justify-center p-8 text-gray-500">
       <div className="text-center">
         <svg
-          className="mx-auto h-12 w-12 text-gray-400 mb-4"
+          className="mx-auto mb-4 h-12 w-12 text-gray-400"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -221,10 +139,16 @@ export function AccessDenied({
           />
         </svg>
         <p className="text-sm font-medium">{message}</p>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="mt-1 text-xs text-gray-400">
           You don&apos;t have permission to view this content
         </p>
       </div>
     </div>
   );
 }
+
+// Re-export common helpers from the canonical guard for convenience
+export const RequirePermission = BaseRequirePermission;
+export const RequireAnyPermission = BaseRequireAnyPermission;
+export const RequireAllPermissions = BaseRequireAllPermissions;
+export const RequireRole = BaseRequireRole;

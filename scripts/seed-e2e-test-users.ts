@@ -557,7 +557,7 @@ async function seedE2ETestUsers() {
       employeeId: normalizedEmployeeId,
       orgId: orgObjectId,
       status: 'ACTIVE',
-      emailVerified: userData.emailVerified || new Date(),
+      emailVerifiedAt: userData.emailVerified || new Date(),
       updatedAt: new Date(),
     };
 

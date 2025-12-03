@@ -1,5 +1,5 @@
 import { cookies, headers } from "next/headers";
-import { findLanguageByCode } from "@/data/language-options";
+import { findLanguageByCode } from "@/config/language-options";
 import { NextRequest } from "next/server";
 import { readFileSync } from "node:fs";
 import path from "node:path";

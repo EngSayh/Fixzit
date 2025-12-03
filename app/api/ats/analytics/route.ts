@@ -5,7 +5,7 @@ import { Application } from "@/server/models/Application";
 import { Job } from "@/server/models/Job";
 import { Interview } from "@/server/models/ats/Interview";
 import { atsRBAC } from "@/lib/ats/rbac";
-import { getCached, CacheTTL } from "@/lib/cache/redis";
+import { getCached, CacheTTL } from "@/lib/redis";
 import { Types } from "mongoose";
 
 import { rateLimit } from "@/server/security/rateLimit";

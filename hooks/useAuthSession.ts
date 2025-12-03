@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import type { AuthSession, ExtendedUser } from "@/types/auth-session";
+export type { AuthSession } from "@/types/auth-session";
 
 /**
  * Hook to get current authenticated session
@@ -30,3 +31,7 @@ export function useAuthSession(): AuthSession | null {
     isAuthenticated: true,
   };
 }
+
+// NOTE: getServerAuthSession has been moved to hooks/useAuthSession.server.ts
+// to prevent ioredis from being bundled into client components.
+// Import it from there for Server Components and API routes.
