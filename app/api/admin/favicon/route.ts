@@ -6,10 +6,19 @@ import { writeFile, mkdir, copyFile, unlink } from "fs/promises";
 import path from "path";
 import { existsSync } from "fs";
 import { logger } from "@/lib/logger";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import { promisify } from "util";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+// Map MIME types to safe extensions to prevent path traversal attacks
+const mimeToExtension: Record<string, string> = {
+  "image/png": "png",
+  "image/x-icon": "ico",
+  "image/vnd.microsoft.icon": "ico",
+  "image/ico": "ico",
+  "image/svg+xml": "svg",
+};
 
 interface PlatformSettingsDocument {
   faviconUrl?: string;
@@ -55,14 +64,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    const allowedTypes = [
-      "image/png",
-      "image/x-icon",
-      "image/vnd.microsoft.icon",
-      "image/ico",
-      "image/svg+xml",
-    ];
+    // Validate file type using allowedTypes derived from mimeToExtension
+    const allowedTypes = Object.keys(mimeToExtension);
     if (!allowedTypes.includes(faviconFile.type)) {
       return NextResponse.json(
         { error: "Invalid file type. Allowed: PNG, ICO, SVG" },
@@ -79,9 +82,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique filename
+    // Generate unique filename using safe extension derived from validated MIME type
+    // This prevents path traversal attacks from user-controlled filenames
     const timestamp = Date.now();
-    const extension = faviconFile.name.split(".").pop()?.toLowerCase() || "png";
+    const extension = mimeToExtension[faviconFile.type];
     const tempFileName = `favicon-${timestamp}.${extension}`;
 
     // Define storage paths
@@ -104,14 +108,22 @@ export async function POST(request: NextRequest) {
     // If PNG, convert to ICO format using ImageMagick
     if (faviconFile.type === "image/png") {
       try {
-        // Try to use ImageMagick to convert PNG to ICO (multiple sizes)
-        await execAsync(
-          `magick "${tempFilePath}" -resize 32x32 -background none -gravity center -extent 32x32 "${finalFaviconPath}"`
-        );
+        // Use execFile instead of exec to prevent command injection
+        // execFile does not spawn a shell, so special characters in paths are safe
+        await execFileAsync("magick", [
+          tempFilePath,
+          "-resize", "32x32",
+          "-background", "none",
+          "-gravity", "center",
+          "-extent", "32x32",
+          finalFaviconPath,
+        ]);
         logger.info("[Favicon] Converted PNG to ICO using ImageMagick");
-      } catch {
+      } catch (error) {
         // If ImageMagick not available, just copy as-is and let browser handle it
-        logger.warn("[Favicon] ImageMagick not available, using PNG directly");
+        logger.warn("[Favicon] ImageMagick conversion failed, using PNG directly", { 
+          error: error instanceof Error ? error.message : String(error) 
+        });
         await copyFile(tempFilePath, finalFaviconPath);
       }
     } else if (extension === "ico") {

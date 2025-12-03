@@ -61,8 +61,9 @@ export async function redisRateLimit(
     multi.expire(redisKey, windowSec);
     const results = await multi.exec();
 
-    // results[0] = [error, count] from INCR
-    const count = (results?.[0]?.[1] as number) ?? 1;
+    // node-redis v5 returns values directly: results[0] = count from INCR
+    // (not [error, value] tuples like in older versions)
+    const count = (results?.[0] as number) ?? 1;
 
     if (count > limit) {
       return { allowed: false, remaining: 0 };
