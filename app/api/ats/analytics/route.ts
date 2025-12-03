@@ -8,7 +8,7 @@ import { atsRBAC } from "@/lib/ats/rbac";
 import { getCached, CacheTTL } from "@/lib/redis";
 import { Types } from "mongoose";
 
-import { redisRateLimit, buildRateLimitKey } from "@/server/security/rateLimit";
+import { rateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 
@@ -16,6 +16,13 @@ import { getClientIP } from "@/server/security/headers";
  * GET /api/ats/analytics - Get recruitment pipeline analytics
  */
 export async function GET(req: NextRequest) {
+  // Rate limiting
+  const clientIp = getClientIP(req);
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     await connectToDatabase();
 
@@ -35,16 +42,6 @@ export async function GET(req: NextRequest) {
       return authResult.response;
     }
     const { orgId } = authResult;
-
-    // SECURITY FIX: Distributed rate limiting with org-aware keys
-    // Uses Redis when available for cross-instance consistency
-    // Falls back to in-memory when Redis unavailable
-    const clientIp = getClientIP(req);
-    const rateLimitKey = buildRateLimitKey(orgId, clientIp, '/api/ats/analytics');
-    const rl = await redisRateLimit(rateLimitKey, 60, 60_000);
-    if (!rl.allowed) {
-      return rateLimitError();
-    }
 
     const { searchParams } = new URL(req.url);
     const periodParam = searchParams.get("period") || "30"; // days

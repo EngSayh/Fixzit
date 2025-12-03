@@ -13,6 +13,10 @@ const memoryCache = new LRUCache<string, { count: number; resetAt: number }>({
   max: 5000,
 });
 
+// Track whether we've already warned about Redis unavailability
+// to avoid log spam on every request
+let warnedNoRedis = false;
+
 /**
  * Distributed rate limiting result
  */
@@ -79,7 +83,11 @@ export async function redisRateLimit(
   
   // Fall back to in-memory if Redis unavailable
   if (!client) {
-    logger.warn('[RateLimit] Redis unavailable, falling back to in-memory rate limiting');
+    // Only warn once to avoid log spam
+    if (!warnedNoRedis) {
+      logger.warn('[RateLimit] Redis unavailable, falling back to in-memory rate limiting (this message will not repeat)');
+      warnedNoRedis = true;
+    }
     return rateLimit(key, limit, windowMs);
   }
 
@@ -102,7 +110,10 @@ export async function redisRateLimit(
     
     if (!results || results.length < 3) {
       // Redis transaction failed, fall back to memory
-      logger.warn('[RateLimit] Redis transaction returned unexpected results, falling back');
+      if (!warnedNoRedis) {
+        logger.warn('[RateLimit] Redis transaction returned unexpected results, falling back');
+        warnedNoRedis = true;
+      }
       return rateLimit(key, limit, windowMs);
     }
 
@@ -126,7 +137,13 @@ export async function redisRateLimit(
       resetAt 
     };
   } catch (error) {
-    logger.error('[RateLimit] Redis error, falling back to in-memory', { error });
+    // Redis error - fall back to in-memory
+    if (!warnedNoRedis) {
+      logger.error('[RateLimit] Redis error, falling back to in-memory', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      warnedNoRedis = true;
+    }
     return rateLimit(key, limit, windowMs);
   }
 }

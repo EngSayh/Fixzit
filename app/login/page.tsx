@@ -15,6 +15,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import type { Language } from '@/contexts/TranslationContext';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
 import CurrencySelector from '@/components/i18n/CurrencySelector';
+import { BrandLogoWithCard } from '@/components/brand';
 // ⚡ PERFORMANCE OPTIMIZATION: Lazy-load OAuth component (only needed for SSO tab)
 import dynamic from 'next/dynamic';
 
@@ -684,8 +685,13 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
             <>
               {/* Logo */}
               <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4">
-                  <span className="text-primary-foreground text-2xl font-bold">F</span>
+                <div className="flex justify-center mb-4">
+                  <BrandLogoWithCard 
+                    size="lg" 
+                    alt="Fixzit Logo"
+                    fetchOrgLogo={false}
+                    data-testid="login-logo"
+                  />
                 </div>
                 <h1 className="text-3xl font-bold text-foreground mb-2">
                   {t('login.welcome', 'Welcome Back')}

@@ -194,23 +194,11 @@ export class UserService {
     }
   }
 
-  /**
-   * Verify user password and update last login.
-   * 
-   * @param orgId - Organization ID for tenant isolation (REQUIRED for security)
-   * @param email - User email address
-   * @param password - Plain text password to verify
-   * @returns User object without password hash, or null if invalid credentials
-   * 
-   * SECURITY: Always scoped by orgId to prevent cross-tenant authentication (SEC-001)
-   */
   static async verifyPassword(
-    orgId: string,
     email: string,
     password: string,
   ): Promise<Record<string, unknown> | null> {
-    // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
-    const user = await User.findOne({ orgId, email }).select("+passwordHash").exec();
+    const user = await User.findOne({ email }).select("+passwordHash").exec();
     if (!user || !user.isActive) return null;
 
     const isValid = await bcrypt.compare(password, user.passwordHash);

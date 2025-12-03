@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   description: 'Unified FM + Souq + Aqar experience powered by Fixzit.',
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: 'any' },
       { url: '/img/fixzit-logo.png', sizes: '32x32', type: 'image/png' },
       { url: '/img/fixzit-logo.png', sizes: '192x192', type: 'image/png' },
     ],

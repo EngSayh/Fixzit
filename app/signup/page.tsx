@@ -27,6 +27,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { BrandLogoWithCard } from "@/components/brand";
 
 // ✅ FIXED: Import config instead of redefining
 import { SIGNUP_USER_TYPES } from "@/config/signup.config";
@@ -201,11 +202,12 @@ export default function SignupPage() {
         <div className="max-w-md text-center">
           <div className="mb-8">
             <div className="flex justify-center mb-6">
-              <div className="bg-card p-6 rounded-2xl shadow-lg">
-                <div className="w-20 h-20 bg-primary rounded-xl flex items-center justify-center text-white font-bold text-2xl">
-                  F
-                </div>
-              </div>
+              <BrandLogoWithCard 
+                size="xl" 
+                alt="Fixzit Logo"
+                fetchOrgLogo={false}
+                data-testid="signup-logo"
+              />
             </div>
             <h1 className="text-4xl font-bold mb-4">
               {t("signup.branding.title", "Join Fixzit Enterprise")}

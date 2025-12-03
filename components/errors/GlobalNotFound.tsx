@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Home, ArrowLeft, Search } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { BrandLogo } from "@/components/brand";
 
 export function GlobalNotFound() {
   const { t } = useTranslation();
@@ -40,6 +41,16 @@ export function GlobalNotFound() {
   return (
     <div className="min-h-screen bg-muted flex flex-col items-center justify-center px-4">
       <div className="max-w-md w-full text-center">
+        {/* Brand Logo */}
+        <div className="mb-6">
+          <BrandLogo 
+            size="lg" 
+            alt="Fixzit" 
+            fetchOrgLogo={false}
+            data-testid="not-found-logo"
+          />
+        </div>
+        
         <div className="mb-8">
           <h1 className="text-6xl font-bold text-primary mb-4">
             {t("errors.404.code", "404")}

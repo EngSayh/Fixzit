@@ -7,6 +7,7 @@ import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';
 import { APP_STORAGE_KEYS, STORAGE_KEYS, STORAGE_PREFIXES } from '@/config/constants';
+import { BrandLogo } from '@/components/brand';
 
 type LogoutState = 'processing' | 'success' | 'error';
 
@@ -150,6 +151,16 @@ export default function LogoutPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background" data-testid="logout-page">
       <div className="text-center p-8 max-w-md">
+        {/* Brand Logo - consistent across all auth pages */}
+        <div className="mb-6">
+          <BrandLogo 
+            size="lg" 
+            alt="Fixzit" 
+            fetchOrgLogo={false}
+            data-testid="logout-logo"
+          />
+        </div>
+        
         {state === 'processing' && (
           <>
             <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" data-testid="logout-spinner" />
