@@ -5,7 +5,8 @@
   "outputDirectory": ".next",
   "build": {
     "env": {
-      "NODE_OPTIONS": "--max-old-space-size=4096"
+      "NODE_OPTIONS": "--max-old-space-size=8192",
+      "DISABLE_MONGODB_FOR_BUILD": "true"
     }
   },
   "github": {
