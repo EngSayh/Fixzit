@@ -54,6 +54,15 @@ export async function enqueueOnboardingOcr(data: OcrJob): Promise<string | null>
 }
 
 export async function enqueueOnboardingExpiry(data: ExpiryJob): Promise<string | null> {
+  // Validate required orgId to fail fast - worker requires it for tenant isolation
+  if (!data.orgId || typeof data.orgId !== 'string' || data.orgId.trim() === '') {
+    logger.error('[OnboardingQueue] Missing or invalid orgId for expiry job - cannot enqueue without tenant scope', {
+      providedOrgId: data.orgId,
+      onboardingCaseId: data.onboardingCaseId,
+    });
+    return null;
+  }
+
   if (!expiryQueue) return null;
   try {
     const job = await expiryQueue.add('expiry-check', data);
