@@ -130,7 +130,18 @@ function buildWorker(): Worker<ExpiryJob> | null {
         return; // Don't throw - just skip malformed jobs
       }
 
-      const count = await processOrgExpiries(orgId.trim(), onboardingCaseId);
+      const trimmedOrgId = orgId.trim();
+
+      // Validate orgId is a valid ObjectId to prevent crash in processOrgExpiries
+      if (!Types.ObjectId.isValid(trimmedOrgId)) {
+        logger.error('[OnboardingExpiry] Invalid ObjectId format for orgId - skipping malformed job', {
+          jobId: job.id,
+          providedOrgId: orgId,
+        });
+        return; // Don't throw - just skip malformed jobs
+      }
+
+      const count = await processOrgExpiries(trimmedOrgId, onboardingCaseId);
 
       logger.info('[OnboardingExpiry] Processed expiring documents', {
         orgId,

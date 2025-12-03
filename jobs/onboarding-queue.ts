@@ -1,5 +1,6 @@
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
+import { Types } from 'mongoose';
 import { logger } from '@/lib/logger';
 
 const OCR_QUEUE_NAME = process.env.OCR_QUEUE_NAME || 'onboarding-ocr';
@@ -63,9 +64,20 @@ export async function enqueueOnboardingExpiry(data: ExpiryJob): Promise<string |
     return null;
   }
 
+  // Validate orgId is a valid ObjectId to prevent worker crashes
+  const trimmedOrgId = data.orgId.trim();
+  if (!Types.ObjectId.isValid(trimmedOrgId)) {
+    logger.error('[OnboardingQueue] Invalid ObjectId format for orgId - cannot enqueue malformed job', {
+      providedOrgId: data.orgId,
+      onboardingCaseId: data.onboardingCaseId,
+    });
+    return null;
+  }
+
   if (!expiryQueue) return null;
   try {
-    const job = await expiryQueue.add('expiry-check', data);
+    // Use trimmed orgId to ensure consistency
+    const job = await expiryQueue.add('expiry-check', { ...data, orgId: trimmedOrgId });
     return job.id ? String(job.id) : null;
   } catch (error) {
     logger.error('[OnboardingQueue] Failed to enqueue expiry job', { error });
