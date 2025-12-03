@@ -307,15 +307,13 @@
   --cursor-glow: #36aff8;       /* Light blue glow */
 }
 
-/* Hide native cursor when custom cursor is active
-   Respect reduced-motion preference for accessibility */
+/* Custom cursor enhancement styles
+   Keep native cursor visible but add visual effects around it
+   This ensures the mouse pointer is always visible while showing the animation */
 @media (prefers-reduced-motion: no-preference) {
+  /* Native cursor remains visible - custom cursor adds trailing effect */
   body.custom-cursor-active {
-    cursor: none;
-  }
-
-  body.custom-cursor-active * {
-    cursor: none !important;
+    /* cursor: default; - keep native cursor visible */
   }
 }
 
@@ -332,10 +330,13 @@
 
 .cursor-dot {
   position: fixed;
+  top: 0;
+  left: 0;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   pointer-events: none;
+  z-index: 99999;
   /* Default transform will be overridden by JS, but ensure centering if needed */
   transform: translate(-50%, -50%);
   transition: transform 0.1s ease-out;
