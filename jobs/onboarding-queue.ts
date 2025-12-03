@@ -1,5 +1,6 @@
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
+import { Types } from 'mongoose';
 import { logger } from '@/lib/logger';
 
 const OCR_QUEUE_NAME = process.env.OCR_QUEUE_NAME || 'onboarding-ocr';
@@ -31,7 +32,16 @@ const ocrQueue = buildQueue(OCR_QUEUE_NAME);
 const expiryQueue = buildQueue(EXPIRY_QUEUE_NAME);
 
 type OcrJob = { docId: string; onboardingCaseId: string };
-type ExpiryJob = { onboardingCaseId: string };
+
+/**
+ * ExpiryJob payload type
+ * - orgId: Required for tenant-scoped processing (multi-tenant isolation)
+ * - onboardingCaseId: Optional for case-specific processing
+ */
+type ExpiryJob = {
+  orgId: string;
+  onboardingCaseId?: string;
+};
 
 export async function enqueueOnboardingOcr(data: OcrJob): Promise<string | null> {
   if (!ocrQueue) return null;
@@ -45,9 +55,29 @@ export async function enqueueOnboardingOcr(data: OcrJob): Promise<string | null>
 }
 
 export async function enqueueOnboardingExpiry(data: ExpiryJob): Promise<string | null> {
+  // Validate required orgId to fail fast - worker requires it for tenant isolation
+  if (!data.orgId || typeof data.orgId !== 'string' || data.orgId.trim() === '') {
+    logger.error('[OnboardingQueue] Missing or invalid orgId for expiry job - cannot enqueue without tenant scope', {
+      providedOrgId: data.orgId,
+      onboardingCaseId: data.onboardingCaseId,
+    });
+    return null;
+  }
+
+  // Validate orgId is a valid ObjectId to prevent worker crashes
+  const trimmedOrgId = data.orgId.trim();
+  if (!Types.ObjectId.isValid(trimmedOrgId)) {
+    logger.error('[OnboardingQueue] Invalid ObjectId format for orgId - cannot enqueue malformed job', {
+      providedOrgId: data.orgId,
+      onboardingCaseId: data.onboardingCaseId,
+    });
+    return null;
+  }
+
   if (!expiryQueue) return null;
   try {
-    const job = await expiryQueue.add('expiry-check', data);
+    // Use trimmed orgId to ensure consistency
+    const job = await expiryQueue.add('expiry-check', { ...data, orgId: trimmedOrgId });
     return job.id ? String(job.id) : null;
   } catch (error) {
     logger.error('[OnboardingQueue] Failed to enqueue expiry job', { error });
