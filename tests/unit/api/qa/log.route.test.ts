@@ -5,7 +5,7 @@
  * Tests RBAC enforcement, org-scoped isolation, and input validation.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as mongodbUnified from '@/lib/mongodb-unified';
 
 vi.mock('@/lib/mongodb-unified');
@@ -28,6 +28,7 @@ vi.mock('@/server/security/rateLimit', () => ({
 import { POST, GET } from "@/app/api/qa/log/route";
 import { logger } from '@/lib/logger';
 import { requireSuperAdmin } from '@/lib/authz';
+import { smartRateLimit } from '@/server/security/rateLimit';
 
 type HeadersLike = {
   get: (key: string) => string | null;
@@ -76,6 +77,7 @@ function createPostRequest(body: Record<string, unknown>): NextRequestLike {
 describe('api/qa/log route - RBAC', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetAllMocks();
     // Reset auth mock to default success
     vi.mocked(requireSuperAdmin).mockResolvedValue({ 
       id: 'test-user', 
@@ -83,6 +85,12 @@ describe('api/qa/log route - RBAC', () => {
       role: 'SUPER_ADMIN', 
       email: 'admin@test.com' 
     });
+    // Reset rate limit mock
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
   });
 
   describe('POST /api/qa/log', () => {
@@ -177,12 +185,18 @@ describe('api/qa/log route - RBAC', () => {
 describe('api/qa/log route - POST', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.mocked(requireSuperAdmin).mockResolvedValue({ 
       id: 'test-user', 
       tenantId: 'test-org', 
       role: 'SUPER_ADMIN', 
       email: 'admin@test.com' 
     });
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
   });
 
   it('returns success when request is valid', async () => {
@@ -257,12 +271,18 @@ describe('api/qa/log route - POST', () => {
 describe('api/qa/log route - GET', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.mocked(requireSuperAdmin).mockResolvedValue({ 
       id: 'test-user', 
       tenantId: 'test-org', 
       role: 'SUPER_ADMIN', 
       email: 'admin@test.com' 
     });
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
   });
 
   it('returns logs scoped to caller org', async () => {
