@@ -71,11 +71,12 @@ export async function GET(req: NextRequest) {
         if (jobId) filter.jobId = new Types.ObjectId(jobId);
 
         // Get applications by stage
+        // allowDiskUse prevents memory overflow for large orgs
         const applicationsByStage = await Application.aggregate([
           { $match: filter },
           { $group: { _id: "$stage", count: { $sum: 1 } } },
           { $sort: { _id: 1 } },
-        ]);
+        ]).allowDiskUse(true);
 
         // Get total applications
         const totalApplications = await Application.countDocuments(filter);
@@ -93,7 +94,7 @@ export async function GET(req: NextRequest) {
           },
           { $sort: { _id: 1 } },
           { $limit: 30 },
-        ]);
+        ]).allowDiskUse(true);
 
         // Get conversion rates
         const stageTransitions = await Application.aggregate([
@@ -117,7 +118,7 @@ export async function GET(req: NextRequest) {
               },
             },
           },
-        ]);
+        ]).allowDiskUse(true);
 
         const stages = stageTransitions[0] || {};
         const conversionRates = {
@@ -163,7 +164,7 @@ export async function GET(req: NextRequest) {
               avgDays: { $avg: "$timeInStage" },
             },
           },
-        ]);
+        ]).allowDiskUse(true);
 
         // Get top performing jobs
         const topJobs = await Application.aggregate([
@@ -193,7 +194,7 @@ export async function GET(req: NextRequest) {
               avgScore: { $round: ["$avgScore", 1] },
             },
           },
-        ]);
+        ]).allowDiskUse(true);
 
         // Get interview statistics
         const interviewStats = await Interview.aggregate([
@@ -204,7 +205,7 @@ export async function GET(req: NextRequest) {
               count: { $sum: 1 },
             },
           },
-        ]);
+        ]).allowDiskUse(true);
 
         const totalInterviews = await Interview.countDocuments({
           orgId,

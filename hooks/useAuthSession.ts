@@ -22,7 +22,7 @@ export interface AuthSession {
   email: string;
   name: string;
   role: string;
-  tenantId: string;
+  tenantId: string | null; // null when missing (e.g., SUPER_ADMIN or incomplete profile)
   sellerId?: string; // For marketplace sellers
   isAuthenticated: boolean;
 }
@@ -49,7 +49,7 @@ export function useAuthSession(): AuthSession | null {
     email: user.email,
     name: user.name,
     role: user.role || "GUEST",
-    tenantId: user.tenantId || "",
+    tenantId: user.tenantId || null, // Use null instead of empty string
     sellerId: user.sellerId,
     isAuthenticated: true,
   };

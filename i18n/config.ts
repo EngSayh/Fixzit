@@ -10,7 +10,8 @@ const ENABLED_LANGUAGE_OPTIONS = LANGUAGE_OPTIONS.filter(
 ) as LanguageOption[];
 
 // Locale = only enabled languages (en, ar) - fr, es are comingSoon
-// Note: This is explicitly typed since runtime filtering doesn't narrow TypeScript types
+// Note: This must be explicitly typed since runtime filtering doesn't narrow TypeScript types.
+// When adding new enabled languages, update this type AND add dictionary imports in I18nProvider.tsx
 export type Locale = "en" | "ar";
 
 export const SUPPORTED_LOCALES: Locale[] = ENABLED_LANGUAGE_OPTIONS.map(

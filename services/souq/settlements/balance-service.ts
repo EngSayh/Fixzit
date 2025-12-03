@@ -14,7 +14,7 @@
 
 import { ObjectId } from "mongodb";
 import { connectDb } from "@/lib/mongodb-unified";
-import { getCache, setCache, CacheTTL, getRedisClient } from "@/lib/redis";
+import { getCache, setCache, CacheTTL, invalidateCacheKey } from "@/lib/redis";
 import { PayoutProcessorService } from "@/services/souq/settlements/payout-processor";
 
 /**
@@ -635,10 +635,8 @@ export class SellerBalanceService {
    * Invalidate Redis cache for seller balance
    */
   private static async invalidateBalanceCache(sellerId: string): Promise<void> {
-    const redis = getRedisClient();
-    if (!redis) return;
     const key = `seller:${sellerId}:balance`;
-    await redis.del(key);
+    await invalidateCacheKey(key);
   }
 
   /**

@@ -12,6 +12,7 @@
  */
 
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import type { AuthSession } from "./useAuthSession";
 
 /**
@@ -48,12 +49,20 @@ export async function getServerAuthSession(): Promise<AuthSession | null> {
 
   const user = session.user as ExtendedUser;
 
+  // Warn if critical auth fields are missing rather than silently defaulting
+  if (!user.role) {
+    logger.warn(`[Auth] User ${user.id} missing role field`);
+  }
+  if (!user.tenantId && user.role !== "SUPER_ADMIN") {
+    logger.warn(`[Auth] User ${user.id} missing tenantId (role: ${user.role})`);
+  }
+
   return {
     userId: user.id,
     email: user.email,
     name: user.name,
     role: user.role || "GUEST",
-    tenantId: user.tenantId || "",
+    tenantId: user.tenantId || null, // Use null instead of empty string to distinguish from missing data
     sellerId: user.sellerId,
     isAuthenticated: true,
   };

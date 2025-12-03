@@ -122,7 +122,11 @@ export function AccessDenied({
   message?: string;
 }) {
   return (
-    <div className="flex items-center justify-center p-8 text-gray-500">
+    <div 
+      className="flex items-center justify-center p-8 text-gray-500"
+      role="alert"
+      aria-live="polite"
+    >
       <div className="text-center">
         <svg
           className="mx-auto mb-4 h-12 w-12 text-gray-400"
@@ -138,7 +142,7 @@ export function AccessDenied({
             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
           />
         </svg>
-        <p className="text-sm font-medium">{message}</p>
+        <p className="text-sm font-medium" id="access-denied-message">{message}</p>
         <p className="mt-1 text-xs text-gray-400">
           You don&apos;t have permission to view this content
         </p>

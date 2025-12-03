@@ -50,18 +50,19 @@ export async function GET(req: NextRequest) {
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
-    const orgId =
-      searchParams.get("orgId") ||
-      process.env.PUBLIC_JOBS_ORG_ID ||
-      process.env.PLATFORM_ORG_ID;
+    
+    // Security: Only allow configured orgs for public job board
+    // Do NOT accept arbitrary orgId from query params to prevent cross-tenant enumeration
+    const orgId = process.env.PUBLIC_JOBS_ORG_ID || process.env.PLATFORM_ORG_ID;
 
     if (!orgId) {
+      logger.error("[ATS/Public] No PUBLIC_JOBS_ORG_ID or PLATFORM_ORG_ID configured");
       return NextResponse.json(
         {
-          error: "Missing orgId",
-          message: "Specify the organization whose jobs should be returned.",
+          error: "Service not configured",
+          message: "Public job board is not available.",
         },
-        { status: 400 },
+        { status: 503 },
       );
     }
 
@@ -97,8 +98,13 @@ export async function GET(req: NextRequest) {
       cacheKey,
       CacheTTL.FIFTEEN_MINUTES,
       async () => {
-        // Build query for published jobs only
-        const query: Record<string, unknown> = { status: "published", orgId };
+        // Build query for published AND publicly visible jobs only
+        // This prevents internal-only job postings from appearing on public feeds
+        const query: Record<string, unknown> = { 
+          status: "published", 
+          visibility: "public",
+          orgId 
+        };
         const andFilters: Record<string, unknown>[] = [];
 
         // Search across title and description
