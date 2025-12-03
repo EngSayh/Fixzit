@@ -223,8 +223,11 @@ const EMPLOYEE_ID_REGEX = /^EMP[-A-Z0-9]+$/;
 
 // Secure by default: trustHost requires explicit environment variable opt-in
 // For development, set AUTH_TRUST_HOST=true or NEXTAUTH_TRUST_HOST=true in .env.local
-// Production and staging should NOT set these variables (defaults to false for security)
+// CRITICAL FIX: Vercel is a proxied environment and MUST trust host to avoid 500 errors on /api/auth/*
+// When VERCEL === '1', we are running on Vercel's infrastructure with proper TLS termination
+const isVercelDeployment = process.env.VERCEL === '1';
 const trustHost =
+  isVercelDeployment || // Auto-trust on Vercel (proxied TLS)
   process.env.AUTH_TRUST_HOST === 'true' ||
   process.env.NEXTAUTH_TRUST_HOST === 'true' ||
   process.env.NODE_ENV === 'test' ||
