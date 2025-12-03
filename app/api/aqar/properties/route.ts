@@ -5,7 +5,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 
 // Query: /api/aqar/properties?city=&district=&type=&bedsMin=&bathsMin=&areaMin=&areaMax=&priceMin=&priceMax=&sort=&page=&pageSize=
 // sort: newest|price_asc|price_desc|area_desc
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
         tenantId: "demo-tenant",
       };
     }
-    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }

@@ -12,7 +12,7 @@ import {
   rateLimitError,
 } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 
 const createSchema = z.object({
   subject: z.string().min(4),
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return createSecureResponse({ error: "Unauthorized" }, 401, req);
     }
-    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
@@ -158,7 +158,7 @@ export async function GET(req: NextRequest) {
     let user;
     try {
       user = await getSessionUser(req);
-      const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+      const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
       if (!rl.allowed) {
         return rateLimitError();
       }

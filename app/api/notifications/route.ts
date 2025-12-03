@@ -8,7 +8,7 @@ import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 
 import type { NotificationDoc } from "@/lib/models";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 
 const notificationSchema = z.object({
   title: z.string().min(1),
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
   let orgId: string;
   try {
     const user = await getSessionUser(req);
-    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
   let orgId: string;
   try {
     const user = await getSessionUser(req);
-    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }

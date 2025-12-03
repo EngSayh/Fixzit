@@ -39,6 +39,7 @@ vi.mock("@/server/security/idempotency", () => ({
 }));
 vi.mock("@/server/security/rateLimit", () => ({
   rateLimit: () => ({ allowed: true }),
+  smartRateLimit: async () => ({ allowed: true }),
 }));
 vi.mock("@/server/utils/errorResponses", () => ({
   unauthorizedError: (msg: string) =>

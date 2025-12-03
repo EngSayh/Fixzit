@@ -25,7 +25,8 @@ vi.mock('@/lib/mongodb-unified', () => ({
 }));
 
 vi.mock('@/server/security/rateLimit', () => ({
-  rateLimit: vi.fn().mockReturnValue({ allowed: true })
+  rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+  smartRateLimit: vi.fn(async () => ({ allowed: true }))
 }));
 
 vi.mock('@/server/utils/errorResponses', () => ({
@@ -440,6 +441,19 @@ describe('API /api/ats/jobs/public - Edge Cases & Input Validation', () => {
 describe('API /api/ats/jobs/public - Cache Key Normalization', () => {
   beforeAll(async () => {
     vi.resetModules();
+    // Re-register mocks after module reset
+    vi.doMock('@/server/security/rateLimit', () => ({
+      rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+      smartRateLimit: vi.fn(async () => ({ allowed: true }))
+    }));
+    vi.doMock('@/lib/redis', () => ({
+      getCached: vi.fn().mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => {
+        return fn();
+      }),
+      CacheTTL: {
+        FIFTEEN_MINUTES: 900
+      }
+    }));
     ({ GET } = await import('@/app/api/ats/jobs/public/route'));
   });
 

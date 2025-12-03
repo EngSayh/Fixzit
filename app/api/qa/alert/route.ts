@@ -39,8 +39,9 @@ async function resolveDatabase() {
  */
 export async function POST(req: NextRequest) {
   // SECURITY: Require SUPER_ADMIN to write QA alerts - prevents abuse and spam
+  let authContext: { id: string; tenantId: string } | null = null;
   try {
-    await requireSuperAdmin(req);
+    authContext = await requireSuperAdmin(req);
   } catch (error) {
     // requireSuperAdmin throws Response objects for auth failures
     if (error instanceof Response) {
@@ -49,8 +50,8 @@ export async function POST(req: NextRequest) {
     return unauthorizedError('Authentication failed');
   }
 
-  // Rate limiting - SECURITY: Use distributed rate limiting to prevent cross-instance bypass
-  const key = buildOrgAwareRateLimitKey(req, null, null);
+  // Rate limiting - SECURITY: Use distributed rate limiting with org isolation
+  const key = buildOrgAwareRateLimitKey(req, authContext?.tenantId ?? null, authContext?.id ?? null);
   const rl = await smartRateLimit(key, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -60,12 +61,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json() as QaAlertPayload;
     const { event, data } = body;
 
-    // Log the alert to database
+    // Log the alert to database with org tagging for multi-tenant isolation
     const native = await resolveDatabase();
     await native.collection('qa_alerts').insertOne({
       event,
       data,
       timestamp: new Date(),
+      // ORG TAGGING: Include tenant context for multi-tenant isolation
+      orgId: authContext?.tenantId ?? null,
+      userId: authContext?.id ?? null,
       ip: getClientIP(req),
       userAgent: req.headers.get('user-agent'),
     });
@@ -87,8 +91,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   // SECURITY: Require SUPER_ADMIN to read QA alerts - contains sensitive debugging info
+  let authContext: { id: string; tenantId: string } | null = null;
   try {
-    await requireSuperAdmin(req);
+    authContext = await requireSuperAdmin(req);
   } catch (error) {
     // requireSuperAdmin throws Response objects for auth failures
     if (error instanceof Response) {
@@ -97,8 +102,8 @@ export async function GET(req: NextRequest) {
     return unauthorizedError('Authentication failed');
   }
 
-  // Rate limiting - SECURITY: Use distributed rate limiting to prevent cross-instance bypass
-  const key = buildOrgAwareRateLimitKey(req, null, null);
+  // Rate limiting - SECURITY: Use distributed rate limiting with org isolation
+  const key = buildOrgAwareRateLimitKey(req, authContext?.tenantId ?? null, authContext?.id ?? null);
   const rl = await smartRateLimit(key, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();

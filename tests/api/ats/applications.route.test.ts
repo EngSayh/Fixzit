@@ -30,7 +30,8 @@ vi.mock('@/lib/ats/rbac', () => ({
 }));
 
 vi.mock('@/server/security/rateLimit', () => ({
-  rateLimit: vi.fn().mockReturnValue({ allowed: true })
+  rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+  smartRateLimit: vi.fn(async () => ({ allowed: true }))
 }));
 
 vi.mock('@/server/utils/errorResponses', () => ({

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { createSecureResponse } from "@/server/security/headers";
 import { getPresignedPutUrl } from "@/lib/storage/s3";
 import { Config } from "@/lib/config/constants";
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     const { tenantId, id: userId } = user;
 
     // Rate limit to avoid abuse
-    const rl = await smartRateLimit(buildRateLimitKey(req, userId), 30, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user?.orgId ?? null, userId), 30, 60_000);
     if (!rl.allowed) return rateLimitError();
 
     const body = await req.json().catch(() => ({}));

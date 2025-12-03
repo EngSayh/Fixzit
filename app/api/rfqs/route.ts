@@ -10,7 +10,7 @@ import {
   handleApiError,
 } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 
 const createRFQSchema = z.object({
   title: z.string().min(1),
@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
         { status: 401 },
       );
     }
-    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
@@ -203,7 +203,7 @@ export async function GET(req: NextRequest) {
         { status: 401 },
       );
     }
-    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }

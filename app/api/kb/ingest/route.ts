@@ -5,7 +5,7 @@ import { upsertArticleEmbeddings, deleteArticleEmbeddings } from "@/kb/ingest";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 
 import { logger } from "@/lib/logger";
 /**
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     if (!user || !["SUPER_ADMIN", "ADMIN"].includes(user.role)) {
       return createSecureResponse({ error: "Forbidden" }, 403, req);
     }
-    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
@@ -70,7 +70,7 @@ export async function DELETE(req: NextRequest) {
     if (!user || !["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"].includes(user.role)) {
       return createSecureResponse({ error: "Forbidden" }, 403, req);
     }
-    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }

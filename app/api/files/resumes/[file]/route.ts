@@ -8,7 +8,7 @@ import { getPresignedGetUrl, buildResumeKey } from "@/lib/storage/s3";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 
 // Resume files are stored under a non-public project directory with UUID-based names
 const BASE_DIR = path.join(process.cwd(), "private-uploads", "resumes");
@@ -41,7 +41,7 @@ export async function GET(
     const allowed = new Set(["SUPER_ADMIN", "ADMIN", "HR"]);
     if (!allowed.has(user.role || ""))
       return createSecureResponse({ error: "Forbidden" }, 403, req);
-    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
@@ -101,7 +101,7 @@ export async function POST(
     const allowed = new Set(["SUPER_ADMIN", "ADMIN", "HR"]);
     if (!allowed.has(user.role || ""))
       return createSecureResponse({ error: "Forbidden" }, 403, req);
-    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }

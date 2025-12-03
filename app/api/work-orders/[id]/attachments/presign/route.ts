@@ -4,7 +4,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getPresignedPutUrl } from "@/lib/storage/s3";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { createSecureResponse } from "@/server/security/headers";
 import { validateBucketPolicies } from "@/lib/security/s3-policy";
 
@@ -61,7 +61,7 @@ export async function POST(
     );
   }
 
-  const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 30, 60_000);
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 30, 60_000);
   if (!rl.allowed) return rateLimitError();
 
   const { id } = await props.params;

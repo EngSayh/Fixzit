@@ -8,7 +8,7 @@ import { Types } from "mongoose";
 import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
-import { buildRateLimitKey } from "@/server/security/rateLimitKey";
+import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 
 interface TicketDocument {
   createdBy?: { toString?: () => string } | string;
@@ -52,7 +52,7 @@ export async function POST(
   }
 
   // Apply rate limiting with authenticated user ID
-  const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user.orgId, user.id), 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }
