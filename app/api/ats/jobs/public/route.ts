@@ -105,9 +105,18 @@ export async function GET(req: NextRequest) {
 
     const skip = (page - 1) * limit;
 
+    // CRITICAL FIX: Normalize inputs BEFORE using in both cache key AND query
+    // This ensures cache hits always serve correct data for the exact query being made.
+    // Without this, a 100-char search would have a 64-char cache key, but query uses full 100 chars,
+    // causing subsequent 100-char searches sharing first 64 chars to serve wrong cached results.
+    const normalizedSearch = normalizeCacheKeySegment(search);
+    const normalizedDepartment = normalizeCacheKeySegment(department);
+    const normalizedLocation = normalizeCacheKeySegment(location);
+    const normalizedJobType = normalizeCacheKeySegment(jobType);
+
     // Cache key with normalized segments to prevent Redis key bloat from unbounded user input
     // Security: Clamp search/filter lengths to prevent cache churn attacks
-    const cacheKey = `public-jobs:${orgId}:${normalizeCacheKeySegment(search)}:${normalizeCacheKeySegment(department)}:${normalizeCacheKeySegment(location)}:${normalizeCacheKeySegment(jobType)}:${page}:${limit}`;
+    const cacheKey = `public-jobs:${orgId}:${normalizedSearch}:${normalizedDepartment}:${normalizedLocation}:${normalizedJobType}:${page}:${limit}`;
 
     // Use cached data if available (15 minutes TTL)
     const result = await getCached(
@@ -123,9 +132,9 @@ export async function GET(req: NextRequest) {
         };
         const andFilters: Record<string, unknown>[] = [];
 
-        // Search across title and description
-        if (search) {
-          const regex = new RegExp(escapeRegex(search), "i");
+        // Search across title and description (using normalized input)
+        if (normalizedSearch) {
+          const regex = new RegExp(escapeRegex(normalizedSearch), "i");
           query.$or = [
             { title: regex },
             { description: regex },
@@ -134,14 +143,14 @@ export async function GET(req: NextRequest) {
           ];
         }
 
-        // Filter by department
-        if (department) {
-          query.department = department;
+        // Filter by department (using normalized input)
+        if (normalizedDepartment) {
+          query.department = normalizedDepartment;
         }
 
-        // Filter by location
-        if (location) {
-          const locationRegex = new RegExp(escapeRegex(location), "i");
+        // Filter by location (using normalized input)
+        if (normalizedLocation) {
+          const locationRegex = new RegExp(escapeRegex(normalizedLocation), "i");
           andFilters.push({
             $or: [
               { "location.city": locationRegex },
@@ -151,9 +160,9 @@ export async function GET(req: NextRequest) {
           });
         }
 
-        // Filter by job type
-        if (jobType) {
-          query.jobType = jobType;
+        // Filter by job type (using normalized input)
+        if (normalizedJobType) {
+          query.jobType = normalizedJobType;
         }
 
         if (andFilters.length) {

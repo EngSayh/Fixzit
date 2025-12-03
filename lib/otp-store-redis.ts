@@ -17,14 +17,54 @@
  * - ratelimit:otp:{identifier} - Rate limit counters
  * - otpsession:{token} - OTP login sessions
  *
- * IMPORTANT: This module avoids importing ioredis types at module level
- * to prevent webpack from bundling ioredis into Edge/client bundles.
+ * CRITICAL: This module uses DYNAMIC imports for lib/redis to prevent
+ * webpack from bundling ioredis into Edge/client bundles.
+ * The 'dns' module required by ioredis is NOT available in Edge/browser runtime.
  *
  * @module lib/otp-store-redis
  */
 
 import { logger } from "@/lib/logger";
-import { getRedisClient, safeRedisOp } from "@/lib/redis";
+
+// CRITICAL FIX: Dynamic import pattern for Redis functions
+// This prevents ioredis from being bundled into Edge/client bundles
+// The import is deferred until runtime in Node.js context only
+let _redisModule: typeof import("@/lib/redis") | null = null;
+
+async function getRedisModule(): Promise<typeof import("@/lib/redis") | null> {
+  // Return cached module if already loaded
+  if (_redisModule) return _redisModule;
+  
+  // Only attempt to load Redis in Node.js runtime (not Edge/browser)
+  if (typeof window !== "undefined") {
+    return null;
+  }
+  
+  try {
+    _redisModule = await import("@/lib/redis");
+    return _redisModule;
+  } catch (error) {
+    logger.warn("[OTP Redis] Failed to load Redis module", { error });
+    return null;
+  }
+}
+
+// Lazy wrapper for getRedisClient
+async function getRedisClientLazy(): Promise<ReturnType<typeof import("@/lib/redis").getRedisClient> | null> {
+  const mod = await getRedisModule();
+  if (!mod) return null;
+  return mod.getRedisClient();
+}
+
+// Lazy wrapper for safeRedisOp
+async function safeRedisOpLazy<T>(
+  operation: (client: RedisClient) => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  const mod = await getRedisModule();
+  if (!mod) return fallback;
+  return mod.safeRedisOp(operation, fallback);
+}
 
 // Use 'any' for Redis client type to avoid importing ioredis
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,10 +115,11 @@ let warnedMemoryFallback = false;
 
 /**
  * Check if Redis is available for OTP storage.
- * Prefixed with underscore to indicate it's reserved for future use.
+ * Now async due to dynamic import pattern.
+ * Prefixed with underscore - reserved for future use.
  */
-function _isRedisAvailable(): boolean {
-  const client = getRedisClient();
+async function _isRedisAvailableAsync(): Promise<boolean> {
+  const client = await getRedisClientLazy();
   return client !== null && (client.status === "ready" || client.status === "connecting");
 }
 
@@ -108,9 +149,9 @@ export const redisOtpStore = {
    * Get OTP data by identifier
    */
   async get(identifier: string): Promise<OTPData | undefined> {
-    const client = getRedisClient();
+    const client = await getRedisClientLazy();
     if (client) {
-      const data = await safeRedisOp(
+      const data = await safeRedisOpLazy(
         async (c: RedisClient) => c.get(`${KEY_PREFIX.OTP}${identifier}`),
         null
       );
@@ -141,9 +182,9 @@ export const redisOtpStore = {
     const ttlMs = data.expiresAt - Date.now();
     const ttlSec = Math.max(1, Math.ceil(ttlMs / 1000));
 
-    const client = getRedisClient();
+    const client = await getRedisClientLazy();
     if (client) {
-      await safeRedisOp(
+      await safeRedisOpLazy(
         async (c: RedisClient) => c.setex(
           `${KEY_PREFIX.OTP}${identifier}`,
           ttlSec,
@@ -163,9 +204,9 @@ export const redisOtpStore = {
    * Delete OTP data
    */
   async delete(identifier: string): Promise<void> {
-    const client = getRedisClient();
+    const client = await getRedisClientLazy();
     if (client) {
-      await safeRedisOp(
+      await safeRedisOpLazy(
         async (c: RedisClient) => c.del(`${KEY_PREFIX.OTP}${identifier}`),
         0
       );
@@ -181,16 +222,16 @@ export const redisOtpStore = {
    * Re-sets with remaining TTL
    */
   async update(identifier: string, data: OTPData): Promise<void> {
-    const client = getRedisClient();
+    const client = await getRedisClientLazy();
     if (client) {
       // Get remaining TTL
-      const ttl = await safeRedisOp(
+      const ttl = await safeRedisOpLazy(
         async (c: RedisClient) => c.ttl(`${KEY_PREFIX.OTP}${identifier}`),
         -1
       );
       const ttlSec = ttl > 0 ? ttl : Math.ceil(OTP_EXPIRY_MS / 1000);
 
-      await safeRedisOp(
+      await safeRedisOpLazy(
         async (c: RedisClient) => c.setex(
           `${KEY_PREFIX.OTP}${identifier}`,
           ttlSec,
@@ -218,9 +259,9 @@ export const redisRateLimitStore = {
    * Get rate limit data by identifier
    */
   async get(identifier: string): Promise<RateLimitData | undefined> {
-    const client = getRedisClient();
+    const client = await getRedisClientLazy();
     if (client) {
-      const data = await safeRedisOp(
+      const data = await safeRedisOpLazy(
         async (c: RedisClient) => c.get(`${KEY_PREFIX.RATE_LIMIT}${identifier}`),
         null
       );
@@ -251,9 +292,9 @@ export const redisRateLimitStore = {
     const ttlMs = data.resetAt - Date.now();
     const ttlSec = Math.max(1, Math.ceil(ttlMs / 1000));
 
-    const client = getRedisClient();
+    const client = await getRedisClientLazy();
     if (client) {
-      await safeRedisOp(
+      await safeRedisOpLazy(
         async (c: RedisClient) => c.setex(
           `${KEY_PREFIX.RATE_LIMIT}${identifier}`,
           ttlSec,
@@ -281,10 +322,10 @@ export const redisRateLimitStore = {
     const key = `${KEY_PREFIX.RATE_LIMIT}${identifier}`;
     const windowSec = Math.ceil(windowMs / 1000);
 
-    const client = getRedisClient();
+    const client = await getRedisClientLazy();
     if (client) {
       // Use MULTI for atomic increment + TTL set
-      const result = await safeRedisOp(
+      const result = await safeRedisOpLazy(
         async (c: RedisClient) => {
           const multi = c.multi();
           multi.incr(key);
@@ -348,9 +389,9 @@ export const redisOtpSessionStore = {
    * Get session by token
    */
   async get(token: string): Promise<OTPLoginSession | undefined> {
-    const client = getRedisClient();
+    const client = await getRedisClientLazy();
     if (client) {
-      const data = await safeRedisOp(
+      const data = await safeRedisOpLazy(
         async (c: RedisClient) => c.get(`${KEY_PREFIX.SESSION}${token}`),
         null
       );
@@ -381,9 +422,9 @@ export const redisOtpSessionStore = {
     const ttlMs = data.expiresAt - Date.now();
     const ttlSec = Math.max(1, Math.ceil(ttlMs / 1000));
 
-    const client = getRedisClient();
+    const client = await getRedisClientLazy();
     if (client) {
-      await safeRedisOp(
+      await safeRedisOpLazy(
         async (c: RedisClient) => c.setex(
           `${KEY_PREFIX.SESSION}${token}`,
           ttlSec,
@@ -403,9 +444,9 @@ export const redisOtpSessionStore = {
    * Delete session (single-use token pattern)
    */
   async delete(token: string): Promise<void> {
-    const client = getRedisClient();
+    const client = await getRedisClientLazy();
     if (client) {
-      await safeRedisOp(
+      await safeRedisOpLazy(
         async (c: RedisClient) => c.del(`${KEY_PREFIX.SESSION}${token}`),
         0
       );

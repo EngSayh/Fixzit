@@ -202,14 +202,22 @@ export async function GET(req: NextRequest) {
         );
 
         // Get top performing jobs
+        // FIXED: Use consistent filter with jobId if provided (was previously org-wide only)
+        // FIXED: Output shape now matches declared type (jobTitle instead of job.title)
+        const topJobsFilter: Record<string, unknown> = {
+          orgId,
+          createdAt: { $gte: startDate },
+        };
+        if (jobId) topJobsFilter.jobId = new Types.ObjectId(jobId);
+
         const topJobs = await runAggregate<{
           _id: Types.ObjectId;
           applicationsCount: number;
           avgScore: number;
-          job: { title: string };
+          jobTitle: string;
         }>(
           Application.aggregate([
-            { $match: { orgId, createdAt: { $gte: startDate } } },
+            { $match: topJobsFilter },
             {
               $group: {
                 _id: "$jobId",
