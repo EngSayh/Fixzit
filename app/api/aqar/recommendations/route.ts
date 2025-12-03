@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { dbConnect } from "@/db/mongoose";
 import { ListingIntent, PropertyType } from "@/server/models/aqar/Listing";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 import { logger } from "@/lib/logger";
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
     // Rate limit per user/tenant (include org for multi-tenant throttling)
     const baseKey = buildRateLimitKey(req, session.id);
-    const rl = rateLimit(
+    const rl = await smartRateLimit(
       `${baseKey}:${session.orgId}`,
       60,
       60_000,

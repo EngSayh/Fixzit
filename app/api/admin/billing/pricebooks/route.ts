@@ -3,7 +3,7 @@ import { dbConnect } from "@/db/mongoose";
 import PriceBook from "@/server/models/PriceBook";
 import { requireSuperAdmin } from "@/lib/authz";
 
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
@@ -28,7 +28,7 @@ import { getClientIP } from "@/server/security/headers";
 export async function POST(req: NextRequest) {
   // Rate limiting
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
   if (!rl.allowed) {
     return rateLimitError();
   }

@@ -10,7 +10,7 @@ import { WORK_ORDER_FSM } from "@/domain/fm/fm.behavior";
 import { postFromWorkOrder } from "@/server/finance/fmFinance.service";
 import { logger } from "@/lib/logger";
 
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
@@ -54,7 +54,7 @@ export async function POST(
   props: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   const user = await getSessionUser(req);
-  const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+  const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }

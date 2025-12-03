@@ -5,7 +5,7 @@ import crypto from "crypto";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getPresignedGetUrl, buildResumeKey } from "@/lib/storage/s3";
 
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
@@ -41,7 +41,7 @@ export async function GET(
     const allowed = new Set(["SUPER_ADMIN", "ADMIN", "HR"]);
     if (!allowed.has(user.role || ""))
       return createSecureResponse({ error: "Forbidden" }, 403, req);
-    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
@@ -101,7 +101,7 @@ export async function POST(
     const allowed = new Set(["SUPER_ADMIN", "ADMIN", "HR"]);
     if (!allowed.has(user.role || ""))
       return createSecureResponse({ error: "Forbidden" }, 403, req);
-    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }

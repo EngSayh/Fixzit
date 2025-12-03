@@ -10,7 +10,7 @@ import { WOPriority } from "@/server/work-orders/wo.schema";
 import { createSecureResponse } from "@/server/security/headers";
 import { deleteObject } from "@/lib/storage/s3";
 import { getClientIP } from "@/server/security/headers";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 
 const attachmentInputSchema = z.object({
@@ -68,7 +68,7 @@ export async function GET(
 
   // Basic rate limit to avoid hot path abuse
   const clientIp = getClientIP(req);
-  const rl = rateLimit(
+  const rl = await smartRateLimit(
     `${new URL(req.url).pathname}:${clientIp}:${user.id}`,
     60,
     60_000,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 import { getS3Client } from "@/lib/storage/s3";
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+  const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
   if (!rl.allowed) return rateLimitError();
 
   const { searchParams } = new URL(req.url);
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+  const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
   if (!rl.allowed) return rateLimitError();
 
   const body = await req.json().catch(() => ({}) as Record<string, unknown>);

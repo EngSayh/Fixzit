@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
     userId = user.id;
   }
 
-  const rl = rateLimit(
+  const rl = await smartRateLimit(
     buildRateLimitKey(req, userId ?? getClientIP(req)),
     60,
     60_000,
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
     userId = user.id;
   }
 
-  const rl = rateLimit(
+  const rl = await smartRateLimit(
     buildRateLimitKey(req, userId ?? getClientIP(req)),
     60,
     60_000,

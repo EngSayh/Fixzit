@@ -4,7 +4,7 @@ import { z } from "zod";
 import { resolveMarketplaceContext } from "@/lib/marketplace/context";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import Product from "@/server/models/marketplace/Product";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { createSecureResponse } from "@/server/security/headers";
 import { objectIdFrom } from "@/lib/marketplace/objectIds";
 import {
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     // Rate limiting for cart operations
     const key = `marketplace:cart:${context.userId}`;
-    const rl = rateLimit(key, 60, 60_000); // 60 cart operations per minute
+    const rl = await smartRateLimit(key, 60, 60_000); // 60 cart operations per minute
     if (!rl.allowed) {
       return rateLimitError();
     }

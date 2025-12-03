@@ -4,7 +4,7 @@ import ServiceContract from "@/server/models/ServiceContract";
 import { NextRequest } from "next/server";
 import { getUserFromToken } from "@/lib/auth";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { createSecureResponse } from "@/server/security/headers";
 import {
   createErrorResponse,
@@ -71,7 +71,7 @@ const contractSchema = z.object({
 export async function POST(req: NextRequest) {
   // Rate limiting
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     // Rate limiting for contract operations
     const key = `contracts:${user.orgId}:${user.id}`;
-    const rl = rateLimit(key, 10, 60_000); // 10 contracts per minute
+    const rl = await smartRateLimit(key, 10, 60_000); // 10 contracts per minute
     if (!rl.allowed) {
       return createErrorResponse(
         "Contract creation rate limit exceeded",

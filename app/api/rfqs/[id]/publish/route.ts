@@ -6,7 +6,7 @@ import {
 } from "@/server/middleware/withAuthRbac";
 import { Types } from "mongoose";
 
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError, handleApiError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
@@ -58,7 +58,7 @@ export async function POST(
   try {
     const { id } = await props.params;
     const user = await getSessionUser(req);
-    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }

@@ -5,7 +5,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import RFQ from "@/server/models/marketplace/RFQ";
 import { serializeRFQ } from "@/lib/marketplace/serializers";
 import { objectIdFrom } from "@/lib/marketplace/objectIds";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import {
   unauthorizedError,
   zodValidationError,
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
 
     // Rate limiting - read operations: 60 req/min
     const key = `marketplace:rfq:list:${context.orgId}`;
-    const rl = rateLimit(key, 60, 60_000);
+    const rl = await smartRateLimit(key, 60, 60_000);
     if (!rl.allowed) return rateLimitError();
 
     // Database connection
@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
 
     // Rate limiting - write operations: 20 req/min
     const key = `marketplace:rfq:create:${context.orgId}`;
-    const rl = rateLimit(key, 20, 60_000);
+    const rl = await smartRateLimit(key, 20, 60_000);
     if (!rl.allowed) return rateLimitError();
 
     // Input validation

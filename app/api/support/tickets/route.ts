@@ -6,7 +6,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import crypto from "crypto";
 
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import {
   zodValidationError,
   rateLimitError,
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return createSecureResponse({ error: "Unauthorized" }, 401, req);
     }
-    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
@@ -158,7 +158,7 @@ export async function GET(req: NextRequest) {
     let user;
     try {
       user = await getSessionUser(req);
-      const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+      const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
       if (!rl.allowed) {
         return rateLimitError();
       }

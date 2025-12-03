@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Job } from "@/server/models/Job";
 import { logger } from "@/lib/logger";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 import { getCached, CacheTTL } from "@/lib/redis";
@@ -56,7 +56,7 @@ const parsePositiveInt = (
 export async function GET(req: NextRequest) {
   // Rate limiting (higher limit for public endpoint)
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60_000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }
