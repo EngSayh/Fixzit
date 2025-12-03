@@ -112,12 +112,19 @@ export async function POST(req: NextRequest) {
       return handleApiError(error);
     }
   } catch (error) {
-    if (error instanceof PaytabsCallbackValidationError) {
+    if (
+      error instanceof PaytabsCallbackValidationError ||
+      error instanceof SyntaxError
+    ) {
       logger.error("PayTabs callback rejected: Invalid JSON payload");
-      const errorMessage = `Payment verification failed: ${error.message}`;
+      const msg =
+        error instanceof PaytabsCallbackValidationError
+          ? error.message
+          : "Invalid JSON payload";
+      const errorMessage = `Payment verification failed: ${msg}`;
       return createSecureResponse(
         { error: errorMessage },
-        /exceeds limit/.test(error.message) ? 413 : 400,
+        /exceeds limit/.test(msg) ? 413 : 400,
         req,
       );
     }

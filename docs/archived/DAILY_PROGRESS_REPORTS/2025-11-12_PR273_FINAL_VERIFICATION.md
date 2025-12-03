@@ -1,4 +1,5 @@
 # PR #273 - Final Verification Report
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 **Date**: 2025-11-12  
 **PR**: fix: Comprehensive stability & i18n improvements (Phases 2-4)  

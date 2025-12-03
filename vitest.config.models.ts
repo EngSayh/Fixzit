@@ -23,6 +23,7 @@ export default defineConfig({
       NEXTAUTH_SECRET: "test-secret",
       AUTH_SECRET: "test-secret",
       NEXTAUTH_URL: "http://localhost:3000",
+      MONGOMS_PORT: "27028",
     },
     // Use the setup that starts MongoDB Memory Server and connects real mongoose
     setupFiles: ["./vitest.setup.ts"],

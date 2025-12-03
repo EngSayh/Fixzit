@@ -1,4 +1,5 @@
 # 📋 Consolidation Complete - 2025-11-13
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 ## Executive Summary
 

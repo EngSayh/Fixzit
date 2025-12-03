@@ -1,4 +1,5 @@
 # Security Audit Progress Report
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 **Report Generated:** 2025-12-01 15:47:14 +03 (AST)  
 **Branch:** `chore/system-organization-cleanup`  

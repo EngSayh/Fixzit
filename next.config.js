@@ -200,19 +200,31 @@ const nextConfig = {
             const serverDir = path.join(nextDir, 'server');
             const manifests = [
               path.join(nextDir, 'routes-manifest.json'),
+              path.join(nextDir, 'build-manifest.json'),
+              path.join(nextDir, 'prerender-manifest.json'),
+              path.join(nextDir, 'required-server-files.json'),
+              path.join(nextDir, 'BUILD_ID'),
               path.join(serverDir, 'pages-manifest.json'),
+              path.join(serverDir, 'app-paths-manifest.json'),
+              path.join(serverDir, 'next-font-manifest.json'),
             ];
             const stubs = [
               path.join(serverDir, 'pages', '_document.js'),
               path.join(serverDir, 'pages', '_app.js'),
               path.join(serverDir, 'app', 'page.js'),
+              path.join(serverDir, 'vendor-chunks', '@auth+core@0.41.0.js'),
             ];
 
             for (const file of manifests) {
               const dir = path.dirname(file);
               if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
               if (!fs.existsSync(file)) {
-                fs.writeFileSync(file, JSON.stringify({}), 'utf8');
+                const isBuildId = path.basename(file) === 'BUILD_ID';
+                fs.writeFileSync(
+                  file,
+                  isBuildId ? `${Date.now().toString(36)}` : JSON.stringify({}),
+                  'utf8',
+                );
               }
             }
 

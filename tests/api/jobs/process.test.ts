@@ -37,7 +37,7 @@ vi.mock('@/lib/storage/s3', () => ({
   deleteObject: (...args: unknown[]) => mockDeleteObject(...args),
 }));
 
-vi.mock('@/lib/sendgrid-config', () => ({
+vi.mock('@/config/sendgrid.config', () => ({
   getSendGridConfig: () => ({
     apiKey: 'sendgrid-key',
     from: { email: 'no-reply@test.local' },

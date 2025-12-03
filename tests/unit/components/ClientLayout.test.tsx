@@ -55,6 +55,16 @@ vi.mock("@/contexts/TopBarContext", () => ({
   })),
 }));
 
+// Mock TopBar to avoid TooltipProvider dependency
+vi.mock("@/components/TopBar", () => ({
+  default: () => React.createElement("div", { "data-testid": "mock-topbar" }, "TopBar"),
+}));
+
+// Mock Sidebar to avoid complex dependencies
+vi.mock("@/components/Sidebar", () => ({
+  default: () => React.createElement("div", { "data-testid": "mock-sidebar" }, "Sidebar"),
+}));
+
 // Mock dynamic imports
 vi.mock("next/dynamic", () => ({
   default: (fn: () => Promise<unknown>) => {

@@ -29,11 +29,14 @@ import { SouqSeller } from "@/server/models/souq/Seller";
 // Deferred service import
 let BuyBoxService: typeof import("@/services/souq/buybox-service").BuyBoxService;
 
+// Test fixture ObjectId for consistent test data
+const testOrgId = new Types.ObjectId();
+
 /**
  * Helper to seed a test seller
  */
 async function seedSeller({
-  orgId = "org-test",
+  orgId = testOrgId,
   accountHealth = { status: "good", score: 85 },
 } = {}) {
   const sellerId = new Types.ObjectId();

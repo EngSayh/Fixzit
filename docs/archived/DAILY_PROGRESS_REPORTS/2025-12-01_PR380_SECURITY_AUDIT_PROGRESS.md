@@ -1,4 +1,5 @@
 # PR #380 Security Audit Progress Report
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 **Date**: December 1, 2025  
 **Time**: 15:43:58 +03 (Arabia Standard Time)  

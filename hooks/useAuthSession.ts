@@ -26,12 +26,18 @@ export function useAuthSession(): AuthSession | null {
     email: user.email,
     name: user.name,
     role: user.role || "GUEST",
-    tenantId: user.tenantId || "",
+    orgId: user.orgId || null, // Organization ID for tenant isolation
+    tenantId: user.tenantId || null, // Use null instead of empty string
     sellerId: user.sellerId,
     isAuthenticated: true,
+    // RBAC fields (STRICT v4.1) - aligned with auth.config.ts JWT/session callbacks
+    subRole: user.subRole ?? null,
+    permissions: user.permissions ?? [],
+    roles: user.roles ?? [],
+    isSuperAdmin: Boolean(user.isSuperAdmin),
   };
 }
 
-// NOTE: getServerAuthSession has been moved to hooks/useAuthSession.server.ts
+// NOTE: getServerAuthSession has been moved to lib/server-auth-session.ts
 // to prevent ioredis from being bundled into client components.
-// Import it from there for Server Components and API routes.
+// Import it from @/hooks/useAuthSession.server for Server Components and API routes.

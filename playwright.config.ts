@@ -7,6 +7,16 @@ const requestedProjects = process.env.PLAYWRIGHT_PROJECTS
   ?.split(',')
   .map((p) => p.trim())
   .filter(Boolean);
+const ARTIFACTS_DIR = path.join(__dirname, '_artifacts/playwright');
+const RESULTS_DIR = path.join(ARTIFACTS_DIR, 'results');
+
+const useBuild = process.env.PW_USE_BUILD === 'true';
+const WEB_COMMAND = process.env.PW_WEB_SERVER
+  ? process.env.PW_WEB_SERVER
+  : useBuild
+    ? 'node .next/standalone/server.js'
+    : 'npm run dev:webpack -- --hostname 0.0.0.0 --port 3000';
+const WEB_URL = process.env.PW_WEB_URL || 'http://localhost:3000';
 
 // Load environment variables from .env.test if it exists
 // This ensures GOOGLE_CLIENT_ID/SECRET and other test credentials are available
@@ -26,7 +36,7 @@ try {
 // MongoDB-only configuration
 export default defineConfig({
   testDir: './',
-  globalSetup: './tests/setup-auth.ts',
+  globalSetup: path.join(__dirname, 'tests/setup-auth.ts'),
   // Restrict to Playwright suites only; avoid pulling in Vitest unit specs that also use *.spec.ts
   testMatch: [
     'tests/e2e/**/*.spec.ts',
@@ -60,10 +70,12 @@ export default defineConfig({
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     // Keep HTML artifacts but never launch the preview server (it was keeping CLI runs alive)
-    ['html', { outputFolder: './playwright-report', open: 'never' }],
-    ['json', { outputFile: './test-results/results.json' }],
+    ['html', { outputFolder: path.join(ARTIFACTS_DIR, 'html-report'), open: 'never' }],
+    ['json', { outputFile: path.join(RESULTS_DIR, 'results.json') }],
     ['list']
   ],
+  // Centralize Playwright artifacts away from tracked source folders (absolute to avoid config-dir drift)
+  outputDir: RESULTS_DIR,
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -123,17 +135,22 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    // Use webpack dev server to avoid Turbopack/OTel instability during Playwright
-    command: 'npm run dev:webpack -- --hostname 0.0.0.0 --port 3000',
-    url: 'http://localhost:3000',
+    // Command is configurable so CI can prefer `pnpm start` after a build
+    command: WEB_COMMAND,
+    url: WEB_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 180 * 1000, // Increased to 3 minutes for slower builds
     stdout: 'pipe',
     stderr: 'pipe',
     env: {
+      PLAYWRIGHT: 'true',
+      NODE_ENV: useBuild ? 'production' : 'test',
+      PORT: process.env.PW_PORT || '3000',
+      HOSTNAME: process.env.PW_HOSTNAME || '0.0.0.0',
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'playwright-secret',
       AUTH_SECRET: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'playwright-secret',
       NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+      CORS_ORIGINS: process.env.CORS_ORIGINS || 'http://localhost:3000',
       // Pass Google OAuth credentials to prevent warning logs
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
       GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
@@ -143,7 +160,6 @@ export default defineConfig({
       ALLOW_OFFLINE_MONGODB: 'true',
       AUTH_TRUST_HOST: 'true',
       NEXTAUTH_TRUST_HOST: 'true',
-      NODE_ENV: 'test',
       LOGIN_RATE_LIMIT_MAX_ATTEMPTS: '100',
       LOGIN_RATE_LIMIT_WINDOW_MS: '120000',
       // Reduce noise from telemetry/instrumentation in E2E

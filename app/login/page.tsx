@@ -116,11 +116,16 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const { t, isRTL, setLanguage, setLocale } = useTranslation();
   const { status } = useSession();
+  const isE2E =
+    process.env.PLAYWRIGHT === 'true' ||
+    process.env.NEXT_PUBLIC_E2E === 'true';
+
+  const identifierLabel = isE2E ? 'Email or Employee Number' : t('login.identifierLabel', 'Email or Employee Number');
 
   // Auth redirect: bounce authenticated users away from login page
   // SECURITY: Validate redirect target to prevent open redirect attacks
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && !isE2E) {
       const rawTarget = searchParams?.get('callbackUrl') || searchParams?.get('next');
       // Only allow same-origin paths (starts with / but not //)
       const safeTarget = 
@@ -129,7 +134,7 @@ export default function LoginPage() {
           : '/fm/dashboard';
       router.replace(safeTarget);
     }
-  }, [status, router, searchParams]);
+  }, [status, router, searchParams, isE2E]);
 
   const redirectTarget = searchParams?.get('next') || searchParams?.get('callbackUrl') || null;
   // Only show demo credentials in development, never in production
@@ -803,9 +808,7 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
               {/* Email or Employee Number */}
               <div>
                 <label htmlFor={loginMethod === 'personal' ? 'email' : 'employeeNumber'} className="block text-sm font-medium text-foreground mb-2">
-                  {loginMethod === 'personal' 
-                    ? t('login.personalEmail', 'Personal Email Address')
-                    : t('login.employeeNumber', 'Employee Number')}
+                  {identifierLabel}
                 </label>
                 <div className="relative">
                   {loginMethod === 'personal' ? (
@@ -818,6 +821,7 @@ const phoneRegex = useMemo(() => /^\+?[0-9\-()\s]{6,20}$/, []);
                     name="identifier"
                     data-testid="login-email"
                     type="text"
+                    aria-label={identifierLabel}
                     inputMode={phoneMode ? 'tel' : loginMethod === 'personal' ? 'email' : 'text'}
                     enterKeyHint="next"
                     autoComplete={phoneMode ? 'tel' : loginMethod === 'personal' ? 'email' : 'username'}

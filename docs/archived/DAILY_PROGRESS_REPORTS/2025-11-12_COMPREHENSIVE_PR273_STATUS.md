@@ -1,4 +1,5 @@
 # PR #273 Comprehensive Status Report
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 **Date**: 2025-11-12  
 **Branch**: `fix/unhandled-promises-batch1`  

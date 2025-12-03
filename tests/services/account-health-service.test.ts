@@ -29,11 +29,14 @@ import { SouqOrder } from "@/server/models/souq/Order";
 // Deferred service import
 let accountHealthService: typeof import("@/services/souq/account-health-service").accountHealthService;
 
+// Test fixture ObjectId for consistent test data
+const testOrgId = new Types.ObjectId();
+
 /**
  * Helper to seed a test seller
  */
 async function seedSeller({
-  orgId = "org-test",
+  orgId = testOrgId,
   accountHealth = { status: "good", score: 85 },
 } = {}) {
   const sellerId = new Types.ObjectId();

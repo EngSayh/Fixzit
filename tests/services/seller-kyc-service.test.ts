@@ -28,11 +28,14 @@ import { SouqSeller } from "@/server/models/souq/Seller";
 // Deferred service import
 let sellerKYCService: typeof import("@/services/souq/seller-kyc-service").sellerKYCService;
 
+// Test fixture ObjectId for consistent test data
+const testOrgId = new Types.ObjectId();
+
 /**
  * Helper to create a minimal seller for KYC testing
  */
 async function seedPendingSeller({
-  orgId = "org-test",
+  orgId = testOrgId,
   kycStatus = "pending",
 } = {}) {
   const sellerId = new Types.ObjectId();

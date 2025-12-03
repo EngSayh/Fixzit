@@ -140,6 +140,13 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
+                href="/signup"
+                role="button"
+                className="fxz-btn-primary px-4 py-2 text-sm font-medium"
+              >
+                {translate("Get Started", "hero.actions.getStarted")}
+              </Link>
+              <Link
                 href="/login"
                 className="fxz-btn-primary px-4 py-2 text-sm font-medium"
               >

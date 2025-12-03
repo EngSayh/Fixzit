@@ -1,4 +1,5 @@
 # Comprehensive Progress Report: PR #273 & #272 Fixes
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 **Date**: 2025-11-11
 **Agent**: GitHub Copilot

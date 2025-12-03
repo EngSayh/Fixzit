@@ -26,6 +26,16 @@ export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
 
+    const runAggregate = async <T>(aggResult: unknown): Promise<T[]> => {
+      const maybe = aggResult as {
+        allowDiskUse?: (flag: boolean) => Promise<T[]>;
+      };
+      if (maybe && typeof maybe.allowDiskUse === "function") {
+        return (await maybe.allowDiskUse(true)) ?? [];
+      }
+      return (await (aggResult as Promise<T[]>)) ?? [];
+    };
+
     // RBAC: Check permissions for reading analytics
     const authResult = await atsRBAC(req, ["applications:read"]);
     if (!authResult.authorized) {
@@ -71,53 +81,74 @@ export async function GET(req: NextRequest) {
         if (jobId) filter.jobId = new Types.ObjectId(jobId);
 
         // Get applications by stage
-        const applicationsByStage = await Application.aggregate([
-          { $match: filter },
-          { $group: { _id: "$stage", count: { $sum: 1 } } },
-          { $sort: { _id: 1 } },
-        ]);
+        // allowDiskUse prevents memory overflow for large orgs
+        const applicationsByStage = await runAggregate<{ _id: string; count: number }>(
+          Application.aggregate([
+            { $match: filter },
+            { $group: { _id: "$stage", count: { $sum: 1 } } },
+            { $sort: { _id: 1 } },
+          ]),
+        );
 
         // Get total applications
         const totalApplications = await Application.countDocuments(filter);
 
-        // Get applications over time (last 7 days)
-        const applicationsOverTime = await Application.aggregate([
-          { $match: filter },
-          {
-            $group: {
-              _id: {
-                $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+        // Get applications over time for the requested period
+        // NOTE: Previously had hard-coded { $limit: 30 } which truncated data for longer periods
+        // Now returns all days within the filter's date range
+        const applicationsOverTime = await runAggregate<{ _id: string; count: number }>(
+          Application.aggregate([
+            { $match: filter },
+            {
+              $group: {
+                _id: {
+                  $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+                },
+                count: { $sum: 1 },
               },
-              count: { $sum: 1 },
             },
-          },
-          { $sort: { _id: 1 } },
-          { $limit: 30 },
-        ]);
+            { $sort: { _id: 1 } },
+            // Removed { $limit: 30 } - full period data now returned
+          ]),
+        );
 
         // Get conversion rates
-        const stageTransitions = await Application.aggregate([
-          { $match: filter },
-          {
-            $group: {
-              _id: null,
-              applied: {
-                $sum: { $cond: [{ $eq: ["$stage", "applied"] }, 1, 0] },
-              },
-              screening: {
-                $sum: { $cond: [{ $eq: ["$stage", "screening"] }, 1, 0] },
-              },
-              interview: {
-                $sum: { $cond: [{ $eq: ["$stage", "interview"] }, 1, 0] },
-              },
-              offer: { $sum: { $cond: [{ $eq: ["$stage", "offer"] }, 1, 0] } },
-              hired: { $sum: { $cond: [{ $eq: ["$stage", "hired"] }, 1, 0] } },
-              rejected: {
-                $sum: { $cond: [{ $eq: ["$stage", "rejected"] }, 1, 0] },
+        const stageTransitions = await runAggregate<{
+          _id: null;
+          applied: number;
+          screening: number;
+          interview: number;
+          offer: number;
+          hired: number;
+          rejected: number;
+        }>(
+          Application.aggregate([
+            { $match: filter },
+            {
+              $group: {
+                _id: null,
+                applied: {
+                  $sum: { $cond: [{ $eq: ["$stage", "applied"] }, 1, 0] },
+                },
+                screening: {
+                  $sum: { $cond: [{ $eq: ["$stage", "screening"] }, 1, 0] },
+                },
+                interview: {
+                  $sum: { $cond: [{ $eq: ["$stage", "interview"] }, 1, 0] },
+                },
+                offer: {
+                  $sum: { $cond: [{ $eq: ["$stage", "offer"] }, 1, 0] },
+                },
+                hired: {
+                  $sum: { $cond: [{ $eq: ["$stage", "hired"] }, 1, 0] },
+                },
+                rejected: {
+                  $sum: { $cond: [{ $eq: ["$stage", "rejected"] }, 1, 0] },
+                },
               },
             },
-          },
-        ]);
+          ]),
+        );
 
         const stages = stageTransitions[0] || {};
         const conversionRates = {
@@ -144,67 +175,92 @@ export async function GET(req: NextRequest) {
         };
 
         // Get average time in stage
-        const avgTimeInStage = await Application.aggregate([
-          { $match: filter },
-          {
-            $project: {
-              stage: 1,
-              timeInStage: {
-                $divide: [
-                  { $subtract: [new Date(), "$createdAt"] },
-                  1000 * 60 * 60 * 24, // Convert to days
-                ],
+        const avgTimeInStage = await runAggregate<{
+          _id: string;
+          avgDays: number;
+        }>(
+          Application.aggregate([
+            { $match: filter },
+            {
+              $project: {
+                stage: 1,
+                timeInStage: {
+                  $divide: [
+                    { $subtract: [new Date(), "$createdAt"] },
+                    1000 * 60 * 60 * 24, // Convert to days
+                  ],
+                },
               },
             },
-          },
-          {
-            $group: {
-              _id: "$stage",
-              avgDays: { $avg: "$timeInStage" },
+            {
+              $group: {
+                _id: "$stage",
+                avgDays: { $avg: "$timeInStage" },
+              },
             },
-          },
-        ]);
+          ]),
+        );
 
         // Get top performing jobs
-        const topJobs = await Application.aggregate([
-          { $match: { orgId, createdAt: { $gte: startDate } } },
-          {
-            $group: {
-              _id: "$jobId",
-              applicationsCount: { $sum: 1 },
-              avgScore: { $avg: "$score" },
+        // FIXED: Use consistent filter with jobId if provided (was previously org-wide only)
+        // FIXED: Output shape now matches declared type (jobTitle instead of job.title)
+        const topJobsFilter: Record<string, unknown> = {
+          orgId,
+          createdAt: { $gte: startDate },
+        };
+        if (jobId) topJobsFilter.jobId = new Types.ObjectId(jobId);
+
+        const topJobs = await runAggregate<{
+          _id: Types.ObjectId;
+          applicationsCount: number;
+          avgScore: number;
+          jobTitle: string;
+        }>(
+          Application.aggregate([
+            { $match: topJobsFilter },
+            {
+              $group: {
+                _id: "$jobId",
+                applicationsCount: { $sum: 1 },
+                avgScore: { $avg: "$score" },
+              },
             },
-          },
-          { $sort: { applicationsCount: -1 } },
-          { $limit: 5 },
-          {
-            $lookup: {
-              from: "jobs",
-              localField: "_id",
-              foreignField: "_id",
-              as: "job",
+            { $sort: { applicationsCount: -1 } },
+            { $limit: 5 },
+            {
+              $lookup: {
+                from: "jobs",
+                localField: "_id",
+                foreignField: "_id",
+                as: "job",
+              },
             },
-          },
-          { $unwind: "$job" },
-          {
-            $project: {
-              jobTitle: "$job.title",
-              applicationsCount: 1,
-              avgScore: { $round: ["$avgScore", 1] },
+            { $unwind: "$job" },
+            {
+              $project: {
+                jobTitle: "$job.title",
+                applicationsCount: 1,
+                avgScore: { $round: ["$avgScore", 1] },
+              },
             },
-          },
-        ]);
+          ]),
+        );
 
         // Get interview statistics
-        const interviewStats = await Interview.aggregate([
-          { $match: { orgId, createdAt: { $gte: startDate } } },
-          {
-            $group: {
-              _id: "$status",
-              count: { $sum: 1 },
+        const interviewStats = await runAggregate<{
+          _id: string;
+          count: number;
+        }>(
+          Interview.aggregate([
+            { $match: { orgId, createdAt: { $gte: startDate } } },
+            {
+              $group: {
+                _id: "$status",
+                count: { $sum: 1 },
+              },
             },
-          },
-        ]);
+          ]),
+        );
 
         const totalInterviews = await Interview.countDocuments({
           orgId,

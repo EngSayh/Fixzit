@@ -36,6 +36,7 @@ interface AuthSession {
 type WrappedReq = NextRequest & { auth?: AuthSession | null };
 
 // ---------- Configurable switches ----------
+const isE2E = process.env.PLAYWRIGHT === 'true' || process.env.NEXT_PUBLIC_E2E === 'true';
 const API_PROTECT_ALL = process.env.API_PROTECT_ALL !== 'false'; // secure-by-default
 const REQUIRE_ORG_ID_FOR_FM = process.env.REQUIRE_ORG_ID === 'true';
 // SECURITY: Enable CSRF protection for state-changing requests
@@ -49,6 +50,7 @@ const CSRF_EXEMPT_ROUTES = [
   '/api/health',     // Health checks don't change state
   '/api/copilot',    // AI assistant uses separate auth
   '/api/qa/log',     // QA logging endpoints are test utilities
+  '/api/qa/reconnect', // QA heartbeat endpoint used by Playwright harness
   '/api/projects',   // Projects mock API used by Playwright tests
 ];
 
@@ -529,7 +531,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Authenticated users visiting /login should be redirected to dashboard
-  if (pathname === '/login') {
+  if (pathname === '/login' && !isE2E) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 

@@ -9,9 +9,24 @@ import { getCached, CacheTTL } from "@/lib/redis";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
+const MAX_CACHE_KEY_SEGMENT = 64; // Limit cache key segment length to prevent Redis key bloat
 
 const escapeRegex = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Clamp and normalize a string for use in cache keys.
+ * Prevents cache key bloat from unbounded user input (e.g., long search strings).
+ * 
+ * @param value - The input string to normalize
+ * @param maxLen - Maximum length (default: MAX_CACHE_KEY_SEGMENT)
+ * @returns Normalized string safe for cache keys
+ */
+const normalizeCacheKeySegment = (value: string, maxLen = MAX_CACHE_KEY_SEGMENT): string => {
+  if (!value) return "";
+  // Clamp length and replace colons (cache key delimiter) with underscores
+  return value.slice(0, maxLen).replace(/:/g, "_").toLowerCase();
+};
 
 const parsePositiveInt = (
   value: string | null,
@@ -50,18 +65,19 @@ export async function GET(req: NextRequest) {
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
-    const orgId =
-      searchParams.get("orgId") ||
-      process.env.PUBLIC_JOBS_ORG_ID ||
-      process.env.PLATFORM_ORG_ID;
+    
+    // Security: Only allow configured orgs for public job board
+    // Do NOT accept arbitrary orgId from query params to prevent cross-tenant enumeration
+    const orgId = process.env.PUBLIC_JOBS_ORG_ID || process.env.PLATFORM_ORG_ID;
 
     if (!orgId) {
+      logger.error("[ATS/Public] No PUBLIC_JOBS_ORG_ID or PLATFORM_ORG_ID configured");
       return NextResponse.json(
         {
-          error: "Missing orgId",
-          message: "Specify the organization whose jobs should be returned.",
+          error: "Service not configured",
+          message: "Public job board is not available.",
         },
-        { status: 400 },
+        { status: 503 },
       );
     }
 
@@ -89,21 +105,43 @@ export async function GET(req: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    // Cache key: public-jobs:{orgId}:{search}:{department}:{location}:{jobType}:{page}:{limit}
-    const cacheKey = `public-jobs:${orgId}:${search}:${department}:${location}:${jobType}:${page}:${limit}`;
+    // CACHE KEY: Use normalized (lowercased, clamped to 64 chars) segments to prevent Redis key bloat
+    // QUERY: Use sanitized but unclamped original input to preserve search fidelity
+    // This ensures cache correctness while not truncating user's actual search terms
+    const cacheSearch = normalizeCacheKeySegment(search);
+    const cacheDepartment = normalizeCacheKeySegment(department);
+    const cacheLocation = normalizeCacheKeySegment(location);
+    const cacheJobType = normalizeCacheKeySegment(jobType);
+
+    // Query terms: trim and escape but preserve original case and full length for accurate matching
+    // Only clamp to reasonable max (256 chars) to prevent regex DoS, not for cache key safety
+    const MAX_QUERY_LENGTH = 256;
+    const querySearch = search.slice(0, MAX_QUERY_LENGTH);
+    const queryDepartment = department.slice(0, MAX_QUERY_LENGTH);
+    const queryLocation = location.slice(0, MAX_QUERY_LENGTH);
+    const queryJobType = jobType.slice(0, MAX_QUERY_LENGTH);
+
+    // Cache key with normalized segments to prevent Redis key bloat from unbounded user input
+    // Security: Clamp search/filter lengths to prevent cache churn attacks
+    const cacheKey = `public-jobs:${orgId}:${cacheSearch}:${cacheDepartment}:${cacheLocation}:${cacheJobType}:${page}:${limit}`;
 
     // Use cached data if available (15 minutes TTL)
     const result = await getCached(
       cacheKey,
       CacheTTL.FIFTEEN_MINUTES,
       async () => {
-        // Build query for published jobs only
-        const query: Record<string, unknown> = { status: "published", orgId };
+        // Build query for published AND publicly visible jobs only
+        // This prevents internal-only job postings from appearing on public feeds
+        const query: Record<string, unknown> = { 
+          status: "published", 
+          visibility: "public",
+          orgId 
+        };
         const andFilters: Record<string, unknown>[] = [];
 
-        // Search across title and description
-        if (search) {
-          const regex = new RegExp(escapeRegex(search), "i");
+        // Search across title and description (using full query input for accuracy)
+        if (querySearch) {
+          const regex = new RegExp(escapeRegex(querySearch), "i");
           query.$or = [
             { title: regex },
             { description: regex },
@@ -112,14 +150,14 @@ export async function GET(req: NextRequest) {
           ];
         }
 
-        // Filter by department
-        if (department) {
-          query.department = department;
+        // Filter by department (case-insensitive regex for better matching)
+        if (queryDepartment) {
+          query.department = new RegExp(`^${escapeRegex(queryDepartment)}$`, "i");
         }
 
-        // Filter by location
-        if (location) {
-          const locationRegex = new RegExp(escapeRegex(location), "i");
+        // Filter by location (using full query input for accuracy)
+        if (queryLocation) {
+          const locationRegex = new RegExp(escapeRegex(queryLocation), "i");
           andFilters.push({
             $or: [
               { "location.city": locationRegex },
@@ -129,9 +167,9 @@ export async function GET(req: NextRequest) {
           });
         }
 
-        // Filter by job type
-        if (jobType) {
-          query.jobType = jobType;
+        // Filter by job type (case-insensitive regex for better matching)
+        if (queryJobType) {
+          query.jobType = new RegExp(`^${escapeRegex(queryJobType)}$`, "i");
         }
 
         if (andFilters.length) {

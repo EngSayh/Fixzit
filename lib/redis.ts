@@ -65,11 +65,12 @@ export function getRedisClient(): RedisInstance | null {
   }
 
   // Redis is optional - return null if no URL configured
-  // Support both REDIS_URL and BULLMQ_REDIS_URL for compatibility with different deployment configs
-  const redisUrl = process.env.REDIS_URL || process.env.BULLMQ_REDIS_URL;
+  // Support REDIS_URL, OTP_STORE_REDIS_URL, and BULLMQ_REDIS_URL for compatibility
+  // with different deployment configs (OTP store, BullMQ queues, general caching)
+  const redisUrl = process.env.REDIS_URL || process.env.OTP_STORE_REDIS_URL || process.env.BULLMQ_REDIS_URL;
   if (!redisUrl) {
     if (!loggedMissingRedisUrl) {
-      logger.warn("[Redis] No REDIS_URL or BULLMQ_REDIS_URL configured - Redis-backed features disabled");
+      logger.warn("[Redis] No REDIS_URL, OTP_STORE_REDIS_URL, or BULLMQ_REDIS_URL configured - Redis-backed features disabled");
       loggedMissingRedisUrl = true;
     }
     return null;
@@ -232,6 +233,32 @@ export async function safeRedisOp<T>(
 // Cache helpers (shared ioredis client)
 // =============================================================================
 
+/**
+ * Redact sensitive parts of cache keys for logging.
+ * Prevents ID enumeration attacks by masking middle segments of keys.
+ * 
+ * @param key - The cache key to redact
+ * @returns Redacted key safe for logging
+ * 
+ * @example
+ * redactCacheKey("seller:12345:balance") // "seller:1234****:balance"
+ * redactCacheKey("analytics:org123:30") // "analytics:org1****:30"
+ */
+function redactCacheKey(key: string): string {
+  const parts = key.split(":");
+  if (parts.length > 1) {
+    return parts
+      .map((part, i) =>
+        i === 0 || i === parts.length - 1
+          ? part
+          : part.slice(0, 4) + "****"
+      )
+      .join(":");
+  }
+  // Fallback: show first 8 chars + mask
+  return key.slice(0, 8) + "****";
+}
+
 export const CacheTTL = {
   FIVE_MINUTES: 300,
   FIFTEEN_MINUTES: 900,
@@ -243,6 +270,21 @@ export const CacheTTL = {
 /**
  * Get cached value or compute/store using provided function.
  */
+/**
+ * Get cached value or compute/store using provided function.
+ * 
+ * @param key - Cache key (will be redacted in logs)
+ * @param ttl - Time to live in seconds
+ * @param fn - Function to compute value on cache miss
+ * @returns Cached or computed value
+ * 
+ * @example
+ * const balance = await getCached(
+ *   `seller:${sellerId}:balance`,
+ *   CacheTTL.FIVE_MINUTES,
+ *   () => calculateBalance(sellerId)
+ * );
+ */
 export async function getCached<T>(
   key: string,
   ttl: number,
@@ -253,23 +295,24 @@ export async function getCached<T>(
     try {
       const cached = await client.get(key);
       if (cached) {
-        logger.info(`[Cache] HIT: ${key}`);
+        logger.info(`[Cache] HIT: ${redactCacheKey(key)}`);
         return JSON.parse(cached) as T;
       }
-      logger.info(`[Cache] MISS: ${key}`);
+      logger.info(`[Cache] MISS: ${redactCacheKey(key)}`);
     } catch (error) {
-      logger.error(`[Cache] Read error for key ${key}`, { error });
+      logger.error(`[Cache] Read error for key ${redactCacheKey(key)}`, { error });
     }
   }
 
   const data = await fn();
 
-  if (client && data !== undefined) {
+  // Use != null to prevent caching null values (which would mask "not found" states)
+  if (client && data != null) {
     try {
       await client.setex(key, ttl, JSON.stringify(data));
-      logger.info(`[Cache] SET: ${key} (TTL ${ttl}s)`);
+      logger.info(`[Cache] SET: ${redactCacheKey(key)} (TTL ${ttl}s)`);
     } catch (error) {
-      logger.error(`[Cache] Write error for key ${key}`, { error });
+      logger.error(`[Cache] Write error for key ${redactCacheKey(key)}`, { error });
     }
   }
 
@@ -285,9 +328,9 @@ export async function setCache<T>(
   if (!client) return;
   try {
     await client.setex(key, ttl, JSON.stringify(value));
-    logger.info(`[Cache] SET: ${key} (TTL ${ttl}s)`);
+    logger.info(`[Cache] SET: ${redactCacheKey(key)} (TTL ${ttl}s)`);
   } catch (error) {
-    logger.error(`[Cache] Error setting key ${key}`, { error });
+    logger.error(`[Cache] Error setting key ${redactCacheKey(key)}`, { error });
   }
 }
 
@@ -297,13 +340,13 @@ export async function getCache<T>(key: string): Promise<T | null> {
   try {
     const cached = await client.get(key);
     if (cached) {
-      logger.info(`[Cache] HIT: ${key}`);
+      logger.info(`[Cache] HIT: ${redactCacheKey(key)}`);
       return JSON.parse(cached) as T;
     }
-    logger.info(`[Cache] MISS: ${key}`);
+    logger.info(`[Cache] MISS: ${redactCacheKey(key)}`);
     return null;
   } catch (error) {
-    logger.error(`[Cache] Error reading key ${key}`, { error });
+    logger.error(`[Cache] Error reading key ${redactCacheKey(key)}`, { error });
     return null;
   }
 }
@@ -321,12 +364,12 @@ export async function invalidateCache(pattern: string): Promise<void> {
 
     if (keys.length > 0) {
       await client.del(...keys);
-      logger.info(`[Cache] Invalidated ${keys.length} keys for pattern ${pattern}`);
+      logger.info(`[Cache] Invalidated ${keys.length} keys for pattern ${redactCacheKey(pattern)}`);
     } else {
-      logger.info(`[Cache] No keys found for pattern ${pattern}`);
+      logger.info(`[Cache] No keys found for pattern ${redactCacheKey(pattern)}`);
     }
   } catch (error) {
-    logger.error(`[Cache] Error invalidating pattern ${pattern}`, { error });
+    logger.error(`[Cache] Error invalidating pattern ${redactCacheKey(pattern)}`, { error });
   }
 }
 
@@ -335,8 +378,8 @@ export async function invalidateCacheKey(key: string): Promise<void> {
   if (!client) return;
   try {
     await client.del(key);
-    logger.info(`[Cache] Invalidated key ${key}`);
+    logger.info(`[Cache] Invalidated key ${redactCacheKey(key)}`);
   } catch (error) {
-    logger.error(`[Cache] Error invalidating key ${key}`, { error });
+    logger.error(`[Cache] Error invalidating key ${redactCacheKey(key)}`, { error });
   }
 }

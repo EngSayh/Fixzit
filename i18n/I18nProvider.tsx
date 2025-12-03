@@ -7,6 +7,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { type LanguageCode } from "@/config/language-options";
 import {
   DEFAULT_LOCALE,
   LOCALE_META,
@@ -20,11 +21,13 @@ import { logger } from "@/lib/logger";
 // With dynamic imports, only the active locale is loaded, saving ~250KB and 100ms.
 // Note: Only enabled locales (en, ar) have dictionaries. fr/es marked comingSoon.
 const DICTIONARIES: Record<
-  Locale,
+  LanguageCode,
   () => Promise<{ default: Record<string, unknown> }>
 > = {
   en: () => import("./dictionaries/en"),
   ar: () => import("./dictionaries/ar"),
+  fr: () => import("./dictionaries/en"),
+  es: () => import("./dictionaries/en"),
 };
 
 type ContextValue = {

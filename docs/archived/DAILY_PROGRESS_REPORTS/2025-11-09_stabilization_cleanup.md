@@ -1,4 +1,5 @@
 # Stabilization Cleanup - Daily Progress Report
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 **Date**: 2025-11-09  
 **Engineer**: Eng. Sultan Al Hassni  
