@@ -183,7 +183,9 @@ describe('API /api/ats/jobs/public - Edge Cases & Input Validation', () => {
       expect(res.status).toBe(200);
       const filter = JobMock.find.mock.calls[0][0];
       expect(filter.department).toBeDefined();
-      expect(filter.department.flags).toContain('i'); // Case-insensitive flag
+      // Now uses $regex object format for better index compatibility
+      expect(filter.department.$regex).toBe('^ENGINEERING$');
+      expect(filter.department.$options).toBe('i'); // Case-insensitive flag
     });
 
     it('handles department with special characters', async () => {
@@ -197,8 +199,8 @@ describe('API /api/ats/jobs/public - Edge Cases & Input Validation', () => {
       // escapeRegex escapes: [.*+?^${}()|[\]\\]
       // Parentheses ( and ) should be escaped as \( and \)
       // Note: & is NOT a regex special char, so it won't be escaped
-      expect(filter.department.source).toContain('\\(Research');
-      expect(filter.department.source).toContain('Development\\)');
+      expect(filter.department.$regex).toContain('\\(Research');
+      expect(filter.department.$regex).toContain('Development\\)');
     });
 
     it('handles long department name (256+ chars)', async () => {
@@ -209,7 +211,7 @@ describe('API /api/ats/jobs/public - Edge Cases & Input Validation', () => {
       const filter = JobMock.find.mock.calls[0][0];
       expect(filter.department).toBeDefined();
       // Should be clamped to 256 chars
-      expect(filter.department.source.length).toBeLessThanOrEqual(260); // +2 for ^$
+      expect(filter.department.$regex.length).toBeLessThanOrEqual(260); // +2 for ^$
     });
   });
 
@@ -220,7 +222,7 @@ describe('API /api/ats/jobs/public - Edge Cases & Input Validation', () => {
       expect(res.status).toBe(200);
       const filter = JobMock.find.mock.calls[0][0];
       expect(filter.jobType).toBeDefined();
-      expect(filter.jobType.source).toBe('^full-time$');
+      expect(filter.jobType.$regex).toBe('^full-time$');
     });
 
     it('handles job type with mixed case', async () => {
@@ -229,7 +231,7 @@ describe('API /api/ats/jobs/public - Edge Cases & Input Validation', () => {
       expect(res.status).toBe(200);
       const filter = JobMock.find.mock.calls[0][0];
       expect(filter.jobType).toBeDefined();
-      expect(filter.jobType.flags).toContain('i');
+      expect(filter.jobType.$options).toBe('i');
     });
   });
 
@@ -401,7 +403,10 @@ describe('API /api/ats/jobs/public - Edge Cases & Input Validation', () => {
     });
 
     it('returns 503 when org is not configured', async () => {
-      const originalEnv = process.env.PUBLIC_JOBS_ORG_ID;
+      // Save both env vars to restore after test (prevent cross-test leakage)
+      const originalPublicJobsOrgId = process.env.PUBLIC_JOBS_ORG_ID;
+      const originalPlatformOrgId = process.env.PLATFORM_ORG_ID;
+      
       delete process.env.PUBLIC_JOBS_ORG_ID;
       delete process.env.PLATFORM_ORG_ID;
 
@@ -421,8 +426,13 @@ describe('API /api/ats/jobs/public - Edge Cases & Input Validation', () => {
       expect(res.status).toBe(503);
       expect(res.body.error).toContain('Service not configured');
 
-      // Restore
-      process.env.PUBLIC_JOBS_ORG_ID = originalEnv;
+      // Restore both env vars to prevent cross-test leakage
+      if (originalPublicJobsOrgId !== undefined) {
+        process.env.PUBLIC_JOBS_ORG_ID = originalPublicJobsOrgId;
+      }
+      if (originalPlatformOrgId !== undefined) {
+        process.env.PLATFORM_ORG_ID = originalPlatformOrgId;
+      }
     });
   });
 });

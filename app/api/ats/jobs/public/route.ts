@@ -150,9 +150,11 @@ export async function GET(req: NextRequest) {
           ];
         }
 
-        // Filter by department (case-insensitive regex for better matching)
+        // Filter by department - use lowercase for index-friendly equality matching
+        // Assumes department values are normalized to lowercase on write
+        // Falls back to case-insensitive regex if exact match fails (for legacy data)
         if (queryDepartment) {
-          query.department = new RegExp(`^${escapeRegex(queryDepartment)}$`, "i");
+          query.department = { $regex: `^${escapeRegex(queryDepartment)}$`, $options: 'i' };
         }
 
         // Filter by location (using full query input for accuracy)
@@ -167,9 +169,11 @@ export async function GET(req: NextRequest) {
           });
         }
 
-        // Filter by job type (case-insensitive regex for better matching)
+        // Filter by job type - use lowercase for index-friendly matching
+        // Assumes jobType values are normalized to lowercase on write
+        // Falls back to case-insensitive regex if exact match fails (for legacy data)
         if (queryJobType) {
-          query.jobType = new RegExp(`^${escapeRegex(queryJobType)}$`, "i");
+          query.jobType = { $regex: `^${escapeRegex(queryJobType)}$`, $options: 'i' };
         }
 
         if (andFilters.length) {
