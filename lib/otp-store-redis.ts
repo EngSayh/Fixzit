@@ -131,7 +131,7 @@ function warnMemoryFallback(): void {
     logger.warn(
       "[OTP Redis] Redis unavailable, falling back to in-memory storage. " +
       "OTP state will NOT be shared across instances. " +
-      "Set REDIS_URL or OTP_STORE_REDIS_URL for distributed deployments."
+      "Set REDIS_URL, REDIS_KEY, or OTP_STORE_REDIS_URL for distributed deployments."
     );
     warnedMemoryFallback = true;
   }

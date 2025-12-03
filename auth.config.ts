@@ -54,8 +54,6 @@ const GOOGLE_CLIENT_SECRET = getEnv('GOOGLE_CLIENT_SECRET');
 const APPLE_CLIENT_ID = process.env.APPLE_CLIENT_ID;
 const APPLE_CLIENT_SECRET = process.env.APPLE_CLIENT_SECRET;
 // Support both NEXTAUTH_SECRET (preferred) and AUTH_SECRET (legacy/Auth.js name)
-const NEXTAUTH_SECRET =
-  process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
 
 // Derive NEXTAUTH_URL when missing (helps preview builds)
 const vercelHost =
@@ -68,14 +66,21 @@ const derivedNextAuthUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
   process.env.BASE_URL;
 
-// Use local constant instead of mutating process.env at runtime
-// This prevents race conditions where NextAuth may initialize before the mutation
-const resolvedNextAuthUrl = process.env.NEXTAUTH_URL || derivedNextAuthUrl;
+// Resolve the canonical Auth.js URL (supports NEXTAUTH_URL or AUTH_URL)
+const resolvedNextAuthUrl =
+  process.env.NEXTAUTH_URL ||
+  process.env.AUTH_URL ||
+  derivedNextAuthUrl;
 
-if (!process.env.NEXTAUTH_URL && resolvedNextAuthUrl) {
+// Auth.js v5 requires a trusted host (NEXTAUTH_URL/AUTH_URL) when trustHost is false.
+// Set a safe default from the derived URL so /api/auth/* endpoints don't 500 when the env var is omitted.
+const missingAuthUrlEnv = !process.env.NEXTAUTH_URL && !process.env.AUTH_URL;
+if (missingAuthUrlEnv && resolvedNextAuthUrl) {
   if (process.env.NODE_ENV === 'production') {
-    logger.warn(`⚠️  NEXTAUTH_URL not provided. Using derived value: ${resolvedNextAuthUrl}`);
+    logger.warn(`⚠️  NEXTAUTH_URL/AUTH_URL not provided. Using derived value: ${resolvedNextAuthUrl}`);
   }
+  process.env.NEXTAUTH_URL = resolvedNextAuthUrl;
+  process.env.AUTH_URL = resolvedNextAuthUrl;
 }
 
 // Validate non-secret variables always (fail-fast at startup), but allow CI builds
@@ -107,10 +112,10 @@ const shouldEnforceNextAuthUrl =
 // Only validate NEXTAUTH_URL in production runtime (not during builds)
 if (shouldEnforceNextAuthUrl) {
   if (!resolvedNextAuthUrl) {
-    missingNonSecrets.push('NEXTAUTH_URL');
+    missingNonSecrets.push('NEXTAUTH_URL or AUTH_URL');
   }
 } else if (!resolvedNextAuthUrl && !isCI && !isBuildPhase) {
-  logger.warn('⚠️  NEXTAUTH_URL not set; continuing with derived/default value for non-production build.');
+  logger.warn('⚠️  NEXTAUTH_URL/AUTH_URL not set; continuing with derived/default value for non-production build.');
 }
 
 if (missingNonSecrets.length > 0) {
@@ -129,7 +134,7 @@ if (!skipSecretValidation) {
   const missingSecrets: string[] = [];
   
   // NEXTAUTH_SECRET (or AUTH_SECRET) is always required (for session signing)
-  if (!NEXTAUTH_SECRET) missingSecrets.push('NEXTAUTH_SECRET or AUTH_SECRET');
+  if (!(process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET)) missingSecrets.push('NEXTAUTH_SECRET or AUTH_SECRET');
   
   // Google OAuth credentials are optional (can use credentials provider only)
   if (!GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_SECRET) {
@@ -751,7 +756,7 @@ export const authConfig = {
       return Math.random().toString(36).slice(2) + Date.now().toString(36);
     },
   },
-  secret: NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   trustHost,
   // NextAuth v5: skipCSRFCheck requires the symbol, not a boolean
   // Only include it in test environments to allow programmatic login

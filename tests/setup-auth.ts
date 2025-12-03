@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'fs/promises';
 import { encode as encodeJwt } from 'next-auth/jwt';
 import { randomBytes } from 'crypto';
 import type { ObjectId } from 'mongodb';
+import fetch from 'node-fetch';
 
 /**
  * Playwright global auth setup
@@ -172,7 +173,15 @@ async function globalSetup(config: FullConfig) {
   }
 
   console.log('🗄️  PRODUCTION MODE - Authenticating with real MongoDB and OTP flow (short-circuited to session minting)\n');
+  // Fail fast if app/DB are not reachable. Allow opt-out via PLAYWRIGHT_SKIP_SERVICE_CHECK for intentional offline runs.
+  const skipChecks = process.env.PLAYWRIGHT_SKIP_SERVICE_CHECK === 'true';
+  if (!skipChecks) {
+    await ensureServices({ baseURL, requireServer: true });
+  }
   const mongo = await getMongo();
+  if (!skipChecks) {
+    await ensureServices({ baseURL, requireServer: true, requireDb: true, mongo });
+  }
 
   for (const role of roles) {
     const context = await browser.newContext();
@@ -253,6 +262,38 @@ async function globalSetup(config: FullConfig) {
 }
 
 export default globalSetup;
+
+type EnsureServicesOpts = { baseURL: string; requireServer?: boolean; requireDb?: boolean; mongo?: MongoModule };
+
+async function ensureServices(opts: EnsureServicesOpts) {
+  const { baseURL, requireServer, requireDb, mongo } = opts;
+
+  if (requireServer) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 7000);
+    try {
+      const resp = await fetch(baseURL, { method: 'HEAD', signal: controller.signal });
+      if (!resp.ok) {
+        throw new Error(`Server responded with status ${resp.status} ${resp.statusText}`);
+      }
+    } catch (err) {
+      throw new Error(
+        `App server not reachable at ${baseURL}. Start the Next.js server before running e2e. Underlying error: ${String(err)}`
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  if (requireDb) {
+    const connectionReady = mongo?.connection?.readyState === 1;
+    if (!connectionReady) {
+      throw new Error(
+        "MongoDB connection is not established. Ensure MONGODB_URI/MONGODB_DB are configured and the database is reachable before running e2e."
+      );
+    }
+  }
+}
 
 async function ensureSessionCookie(context: BrowserContext, baseURL: string, timeoutMs = 5000) {
   const deadline = Date.now() + timeoutMs;

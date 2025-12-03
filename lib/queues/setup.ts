@@ -32,7 +32,7 @@ const queueEvents = new Map<QueueName, QueueEvents>();
 function requireRedisConnection(context: string): Redis {
   const connection = getRedisClient();
   if (!connection) {
-    throw new Error(`[Queues] Redis not configured (${context}). Set REDIS_URL to enable BullMQ queues.`);
+    throw new Error(`[Queues] Redis not configured (${context}). Set REDIS_URL or REDIS_KEY to enable BullMQ queues.`);
   }
   return connection;
 }

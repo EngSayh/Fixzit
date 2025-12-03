@@ -33,6 +33,47 @@ let redis: RedisInstance | null = null;
 let isConnecting = false;
 let loggedMissingRedisUrl = false;
 
+// =============================================================================
+// Connection Metrics for Observability
+// =============================================================================
+
+interface RedisMetrics {
+  connectionAttempts: number;
+  successfulConnections: number;
+  connectionErrors: number;
+  reconnectAttempts: number;
+  lastConnectedAt: Date | null;
+  lastErrorAt: Date | null;
+  lastError: string | null;
+  currentStatus: string;
+}
+
+const metrics: RedisMetrics = {
+  connectionAttempts: 0,
+  successfulConnections: 0,
+  connectionErrors: 0,
+  reconnectAttempts: 0,
+  lastConnectedAt: null,
+  lastErrorAt: null,
+  lastError: null,
+  currentStatus: "disconnected",
+};
+
+/**
+ * Get Redis connection metrics for observability/monitoring.
+ * Useful for health dashboards and alerting systems.
+ *
+ * @returns Current Redis connection metrics
+ *
+ * @example
+ * const metrics = getRedisMetrics();
+ * console.log(`Connection attempts: ${metrics.connectionAttempts}`);
+ * console.log(`Current status: ${metrics.currentStatus}`);
+ */
+export function getRedisMetrics(): Readonly<RedisMetrics> {
+  return { ...metrics };
+}
+
 function isEdgeRuntime(): boolean {
   // Edge runtime sets global EdgeRuntime
   return typeof (globalThis as Record<string, unknown>).EdgeRuntime !== "undefined" ||
@@ -65,12 +106,19 @@ export function getRedisClient(): RedisInstance | null {
   }
 
   // Redis is optional - return null if no URL configured
-  // Support REDIS_URL, OTP_STORE_REDIS_URL, and BULLMQ_REDIS_URL for compatibility
-  // with different deployment configs (OTP store, BullMQ queues, general caching)
-  const redisUrl = process.env.REDIS_URL || process.env.OTP_STORE_REDIS_URL || process.env.BULLMQ_REDIS_URL;
+  // Support multiple env aliases for compatibility with different deployment configs:
+  // - REDIS_URL: Standard convention (preferred)
+  // - REDIS_KEY: Vercel/GitHub Actions naming convention
+  // - OTP_STORE_REDIS_URL: Dedicated OTP Redis instance
+  // - BULLMQ_REDIS_URL: Dedicated queue Redis instance
+  const redisUrl = 
+    process.env.REDIS_URL || 
+    process.env.REDIS_KEY ||
+    process.env.OTP_STORE_REDIS_URL || 
+    process.env.BULLMQ_REDIS_URL;
   if (!redisUrl) {
     if (!loggedMissingRedisUrl) {
-      logger.warn("[Redis] No REDIS_URL, OTP_STORE_REDIS_URL, or BULLMQ_REDIS_URL configured - Redis-backed features disabled");
+      logger.warn("[Redis] No REDIS_URL, REDIS_KEY, OTP_STORE_REDIS_URL, or BULLMQ_REDIS_URL configured - Redis-backed features disabled");
       loggedMissingRedisUrl = true;
     }
     return null;
@@ -88,17 +136,28 @@ export function getRedisClient(): RedisInstance | null {
       redis.status === "connecting" ||
       redis.status === "reconnecting")
   ) {
+    metrics.currentStatus = redis.status;
+    return redis;
+  }
+
+  // Return in-flight client instead of null to preserve cache usage during connection
+  // This prevents cache misses when a connection is being established
+  if (isConnecting && redis) {
+    metrics.currentStatus = "connecting";
     return redis;
   }
 
   // Prevent multiple simultaneous connection attempts
   if (isConnecting) {
+    metrics.currentStatus = "connecting";
     return null;
   }
 
   // Wrap Redis instantiation in try-catch to handle constructor errors
   try {
     isConnecting = true;
+    metrics.connectionAttempts++;
+    metrics.currentStatus = "connecting";
 
     redis = new RedisCtorLocal(redisUrl, {
       maxRetriesPerRequest: 3,
@@ -122,31 +181,44 @@ export function getRedisClient(): RedisInstance | null {
         code: (err as { code?: string }).code,
         timestamp: new Date().toISOString(),
       });
+      // Update metrics
+      metrics.connectionErrors++;
+      metrics.lastErrorAt = new Date();
+      metrics.lastError = err.message;
+      metrics.currentStatus = "error";
       // Reset isConnecting flag on error to allow retry attempts
       isConnecting = false;
     });
 
     redis.on("connect", () => {
       logger.info("[Redis] Connected successfully");
+      metrics.successfulConnections++;
+      metrics.lastConnectedAt = new Date();
+      metrics.currentStatus = "connected";
     });
 
     redis.on("ready", () => {
       logger.info("[Redis] Ready to accept commands");
+      metrics.currentStatus = "ready";
       isConnecting = false;
     });
 
     redis.on("close", () => {
       logger.warn("[Redis] Connection closed");
+      metrics.currentStatus = "closed";
       // Reset isConnecting flag on close to allow reconnection
       isConnecting = false;
     });
 
     redis.on("reconnecting", () => {
       logger.info("[Redis] Reconnecting...");
+      metrics.reconnectAttempts++;
+      metrics.currentStatus = "reconnecting";
     });
 
     redis.on("end", () => {
       logger.info("[Redis] Connection ended");
+      metrics.currentStatus = "ended";
       // Reset isConnecting flag when connection ends
       isConnecting = false;
     });

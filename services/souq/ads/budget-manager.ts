@@ -17,7 +17,8 @@ const DAY_SECONDS = 86400;
 const DAY_MS = DAY_SECONDS * 1000;
 
 function createRedisClient(): Redis | null {
-  const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL;
+  // Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
+  const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
   const redisHost = process.env.BULLMQ_REDIS_HOST;
   const redisPort = parseInt(process.env.BULLMQ_REDIS_PORT || "6379", 10);
   const redisPassword =
