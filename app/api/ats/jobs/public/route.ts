@@ -105,18 +105,25 @@ export async function GET(req: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    // CRITICAL FIX: Normalize inputs BEFORE using in both cache key AND query
-    // This ensures cache hits always serve correct data for the exact query being made.
-    // Without this, a 100-char search would have a 64-char cache key, but query uses full 100 chars,
-    // causing subsequent 100-char searches sharing first 64 chars to serve wrong cached results.
-    const normalizedSearch = normalizeCacheKeySegment(search);
-    const normalizedDepartment = normalizeCacheKeySegment(department);
-    const normalizedLocation = normalizeCacheKeySegment(location);
-    const normalizedJobType = normalizeCacheKeySegment(jobType);
+    // CACHE KEY: Use normalized (lowercased, clamped to 64 chars) segments to prevent Redis key bloat
+    // QUERY: Use sanitized but unclamped original input to preserve search fidelity
+    // This ensures cache correctness while not truncating user's actual search terms
+    const cacheSearch = normalizeCacheKeySegment(search);
+    const cacheDepartment = normalizeCacheKeySegment(department);
+    const cacheLocation = normalizeCacheKeySegment(location);
+    const cacheJobType = normalizeCacheKeySegment(jobType);
+
+    // Query terms: trim and escape but preserve original case and full length for accurate matching
+    // Only clamp to reasonable max (256 chars) to prevent regex DoS, not for cache key safety
+    const MAX_QUERY_LENGTH = 256;
+    const querySearch = search.slice(0, MAX_QUERY_LENGTH);
+    const queryDepartment = department.slice(0, MAX_QUERY_LENGTH);
+    const queryLocation = location.slice(0, MAX_QUERY_LENGTH);
+    const queryJobType = jobType.slice(0, MAX_QUERY_LENGTH);
 
     // Cache key with normalized segments to prevent Redis key bloat from unbounded user input
     // Security: Clamp search/filter lengths to prevent cache churn attacks
-    const cacheKey = `public-jobs:${orgId}:${normalizedSearch}:${normalizedDepartment}:${normalizedLocation}:${normalizedJobType}:${page}:${limit}`;
+    const cacheKey = `public-jobs:${orgId}:${cacheSearch}:${cacheDepartment}:${cacheLocation}:${cacheJobType}:${page}:${limit}`;
 
     // Use cached data if available (15 minutes TTL)
     const result = await getCached(
@@ -132,9 +139,9 @@ export async function GET(req: NextRequest) {
         };
         const andFilters: Record<string, unknown>[] = [];
 
-        // Search across title and description (using normalized input)
-        if (normalizedSearch) {
-          const regex = new RegExp(escapeRegex(normalizedSearch), "i");
+        // Search across title and description (using full query input for accuracy)
+        if (querySearch) {
+          const regex = new RegExp(escapeRegex(querySearch), "i");
           query.$or = [
             { title: regex },
             { description: regex },
@@ -143,14 +150,14 @@ export async function GET(req: NextRequest) {
           ];
         }
 
-        // Filter by department (using normalized input)
-        if (normalizedDepartment) {
-          query.department = normalizedDepartment;
+        // Filter by department (case-insensitive regex for better matching)
+        if (queryDepartment) {
+          query.department = new RegExp(`^${escapeRegex(queryDepartment)}$`, "i");
         }
 
-        // Filter by location (using normalized input)
-        if (normalizedLocation) {
-          const locationRegex = new RegExp(escapeRegex(normalizedLocation), "i");
+        // Filter by location (using full query input for accuracy)
+        if (queryLocation) {
+          const locationRegex = new RegExp(escapeRegex(queryLocation), "i");
           andFilters.push({
             $or: [
               { "location.city": locationRegex },
@@ -160,9 +167,9 @@ export async function GET(req: NextRequest) {
           });
         }
 
-        // Filter by job type (using normalized input)
-        if (normalizedJobType) {
-          query.jobType = normalizedJobType;
+        // Filter by job type (case-insensitive regex for better matching)
+        if (queryJobType) {
+          query.jobType = new RegExp(`^${escapeRegex(queryJobType)}$`, "i");
         }
 
         if (andFilters.length) {

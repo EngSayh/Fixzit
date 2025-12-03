@@ -37,5 +37,10 @@ export async function getServerAuthSession(): Promise<AuthSession | null> {
     tenantId: user.tenantId || null, // Use null instead of empty string to distinguish from missing data
     sellerId: user.sellerId,
     isAuthenticated: true,
+    // RBAC fields (STRICT v4.1) - aligned with auth.config.ts JWT/session callbacks
+    subRole: user.subRole ?? null,
+    permissions: user.permissions ?? [],
+    roles: user.roles ?? [],
+    isSuperAdmin: Boolean(user.isSuperAdmin),
   };
 }

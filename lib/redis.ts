@@ -65,11 +65,12 @@ export function getRedisClient(): RedisInstance | null {
   }
 
   // Redis is optional - return null if no URL configured
-  // Support both REDIS_URL and BULLMQ_REDIS_URL for compatibility with different deployment configs
-  const redisUrl = process.env.REDIS_URL || process.env.BULLMQ_REDIS_URL;
+  // Support REDIS_URL, OTP_STORE_REDIS_URL, and BULLMQ_REDIS_URL for compatibility
+  // with different deployment configs (OTP store, BullMQ queues, general caching)
+  const redisUrl = process.env.REDIS_URL || process.env.OTP_STORE_REDIS_URL || process.env.BULLMQ_REDIS_URL;
   if (!redisUrl) {
     if (!loggedMissingRedisUrl) {
-      logger.warn("[Redis] No REDIS_URL or BULLMQ_REDIS_URL configured - Redis-backed features disabled");
+      logger.warn("[Redis] No REDIS_URL, OTP_STORE_REDIS_URL, or BULLMQ_REDIS_URL configured - Redis-backed features disabled");
       loggedMissingRedisUrl = true;
     }
     return null;
