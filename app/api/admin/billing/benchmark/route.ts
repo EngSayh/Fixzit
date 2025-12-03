@@ -3,10 +3,9 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import Benchmark from "@/server/models/Benchmark";
 import { requireSuperAdmin } from "@/lib/authz";
 
-import { smartRateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
-import { getClientIP } from "@/server/security/headers";
 
 /**
  * @openapi
@@ -26,18 +25,29 @@ import { getClientIP } from "@/server/security/headers";
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
+  // AuthZ + tenancy
+  let authContext: { id: string; tenantId: string } | null = null;
+  try {
+    authContext = await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) return error;
+    return createSecureResponse({ error: "Authentication failed" }, 401, req);
+  }
+
+  const orgId = authContext?.tenantId?.trim();
+  if (!orgId) {
+    return createSecureResponse({ error: "Missing organization context" }, 400, req);
+  }
+
+  // Rate limiting (org + user aware)
+  const key = buildOrgAwareRateLimitKey(req, orgId, authContext.id);
+  const rl = await smartRateLimit(key, 100, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }
 
   await connectToDatabase();
-  // SEC-001: requireSuperAdmin returns void on success, throws/returns Response on failure
-  // Super Admin can view all benchmarks for platform-wide pricing analysis
-  // NOTE: Benchmark data is platform configuration, not tenant-specific business data
-  await requireSuperAdmin(req);
-  const docs = await Benchmark.find({}).lean();
+  // Scope benchmarks to tenant to avoid cross-tenant leakage
+  const docs = await Benchmark.find({ tenantId: orgId }).lean();
   return createSecureResponse(docs, 200, req);
 }

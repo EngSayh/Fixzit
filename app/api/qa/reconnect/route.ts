@@ -35,8 +35,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
   }
 
+  // SECURITY: Require tenant context before using it in rate-limit key (org isolation)
+  if (!authContext?.tenantId) {
+    return NextResponse.json({ error: "Missing organization context" }, { status: 400 });
+  }
+
   // Rate limiting - org-aware key for tenant isolation
-  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authContext?.tenantId ?? null, authContext?.id ?? null), 60, 60_000);
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authContext.tenantId, authContext.id), 60, 60_000);
   if (!rl.allowed) return rateLimitError();
 
   try {

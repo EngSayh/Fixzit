@@ -7,6 +7,7 @@ import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rat
 import { rateLimitError, unauthorizedError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { requireSuperAdmin } from '@/lib/authz';
+import { ensureQaIndexes } from '@/lib/db/collections';
 
 type GetDbFn = () => Promise<ConnectionDb>;
 type QaAlertPayload = { event: string; data: unknown };
@@ -65,7 +66,14 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json() as QaAlertPayload;
+    await ensureQaIndexes();
+
+    let body: QaAlertPayload;
+    try {
+      body = await req.json() as QaAlertPayload;
+    } catch {
+      return createSecureResponse({ error: 'Invalid JSON body' }, 400, req);
+    }
     const { event, data } = body;
 
     // VALIDATION: Ensure event is a non-empty string (max 128 chars)
@@ -82,17 +90,24 @@ export async function POST(req: NextRequest) {
     }
 
     // Log the alert to database with org tagging for multi-tenant isolation
-    const native = await resolveDatabase();
-    await native.collection('qa_alerts').insertOne({
-      event: sanitizedEvent,
-      data,
-      timestamp: new Date(),
-      // ORG TAGGING: Include tenant context for multi-tenant isolation
-      orgId,
-      userId,
-      ip: getClientIP(req),
-      userAgent: req.headers.get('user-agent'),
-    });
+    try {
+      const native = await resolveDatabase();
+      await native.collection('qa_alerts').insertOne({
+        event: sanitizedEvent,
+        data,
+        timestamp: new Date(),
+        // ORG TAGGING: Include tenant context for multi-tenant isolation
+        orgId,
+        userId,
+        ip: getClientIP(req),
+        userAgent: req.headers.get('user-agent'),
+      });
+    } catch (dbError) {
+      logger.error('[QA alert] DB unavailable, cannot persist alert', {
+        error: dbError instanceof Error ? dbError.message : String(dbError ?? ''),
+      });
+      return createSecureResponse({ error: 'Service temporarily unavailable' }, 503, req);
+    }
 
     // Log alert event with redacted payload for observability (no PII leakage)
     const payloadSize = dataStr.length;
@@ -123,24 +138,26 @@ export async function GET(req: NextRequest) {
     return unauthorizedError('Authentication failed');
   }
 
-  // Rate limiting - SECURITY: Use distributed rate limiting with org isolation
-  const key = buildOrgAwareRateLimitKey(req, authContext?.tenantId ?? null, authContext?.id ?? null);
+  // SECURITY: Require tenant context for reads BEFORE rate limiting
+  // This ensures we have verified orgId for the rate limit key
+  if (!authContext?.tenantId) {
+    return createSecureResponse({ error: 'Missing organization context' }, 400, req);
+  }
+  const orgId = authContext.tenantId;
+  const userId = authContext.id;
+
+  // Rate limiting - SECURITY: Use verified orgId for tenant-isolated rate limiting
+  const key = buildOrgAwareRateLimitKey(req, orgId, userId);
   const rl = await smartRateLimit(key, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }
 
   try {
-    // SECURITY: Require tenant context for reads to prevent cross-tenant exposure
-    // Even SUPER_ADMINs must have org context to read org-scoped telemetry
-    if (!authContext?.tenantId) {
-      return createSecureResponse({ error: 'Missing organization context' }, 400, req);
-    }
-
     const native = await resolveDatabase();
     // SECURITY: Scope QA alerts to caller's org to prevent cross-tenant data exposure
     // Uses the { orgId: 1, timestamp: -1 } index created by migration script
-    const orgFilter = { orgId: authContext.tenantId };
+    const orgFilter = { orgId };
     const alerts = await native.collection('qa_alerts')
       .find(orgFilter)
       .sort({ timestamp: -1 })
@@ -150,6 +167,6 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ alerts }, 200, req);
   } catch (error) {
     logger.error('Failed to fetch QA alerts:', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Failed to fetch alerts' }, 500, req);
+    return createSecureResponse({ error: 'Service temporarily unavailable' }, 503, req);
   }
 }

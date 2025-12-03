@@ -141,16 +141,22 @@ export async function POST(req: NextRequest) {
     const triggeredBy =
       (session.user as { id?: string }).id || session.user.email || "unknown";
     const senderEmail: string | undefined = session.user.email ?? undefined;
-    const orgFilter =
-      session.user && "orgId" in session.user && session.user.orgId
-        ? { orgId: new ObjectId(session.user.orgId as string) }
-        : {};
-    if (!isSuperAdmin && !orgFilter.orgId) {
+    const orgIdString =
+      (session.user as { orgId?: string; tenantId?: string }).orgId ||
+      (session.user as { tenantId?: string }).tenantId ||
+      "";
+    const orgId = ObjectId.isValid(orgIdString)
+      ? new ObjectId(orgIdString)
+      : null;
+
+    if (!orgId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized: org context required" },
         { status: 401 },
       );
     }
+
+    const orgFilter = { orgId };
 
     // Fetch recipient contacts based on type
     let targetContacts: Array<{
@@ -488,6 +494,7 @@ export async function POST(req: NextRequest) {
     // Log notification in database
     await db.collection("admin_notifications").insertOne({
       _id: broadcastId,
+      orgId,
       senderId: session.user.id,
       senderEmail: session.user.email,
       recipients: {

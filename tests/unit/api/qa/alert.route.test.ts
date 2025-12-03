@@ -18,6 +18,9 @@ vi.mock('@/lib/logger', () => ({
     debug: vi.fn(),
   }
 }));
+vi.mock('@/lib/db/collections', () => ({
+  ensureQaIndexes: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('@/lib/authz', () => ({
   requireSuperAdmin: vi.fn(async () => ({ id: 'test-user-id', tenantId: 'test-org-id' })),
 }));
@@ -168,6 +171,8 @@ describe('QA Alert Route', () => {
       expect(insertedDoc).toMatchObject({
         event,
         data: payload,
+        orgId: 'test-org-id',
+        userId: 'test-user-id',
         ip: '203.0.113.10',
         userAgent: 'Mozilla/5.0 Test',
       });
@@ -209,7 +214,7 @@ describe('QA Alert Route', () => {
       expect(insertedDoc?.userAgent).toBe('UA-123');
     });
 
-    it('returns 500 on DB insertion error', async () => {
+    it('returns 503 on DB insertion error', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       const insertOne = vi.fn().mockRejectedValue(new Error('insert failed'));
@@ -224,16 +229,16 @@ describe('QA Alert Route', () => {
       });
 
       const res = await POST(req);
-      expect((res as Response).status).toBe(500);
+      expect((res as Response).status).toBe(503);
       const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Failed to process alert' });
+      expect(body).toEqual({ error: 'Service temporarily unavailable' });
       expect(logger.error).toHaveBeenCalledWith(
-        'Failed to process QA alert:',
-        expect.anything()
+        '[QA alert] DB unavailable, cannot persist alert',
+        expect.objectContaining({ error: expect.any(String) })
       );
     });
 
-    it('returns 500 if parsing JSON body throws', async () => {
+    it('returns 400 if parsing JSON body throws', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       const req = asNextRequest({
@@ -243,11 +248,28 @@ describe('QA Alert Route', () => {
       });
 
       const res = await POST(req);
-      expect((res as Response).status).toBe(500);
+      expect((res as Response).status).toBe(400);
       const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Failed to process alert' });
+      expect(body).toEqual({ error: 'Invalid JSON body' });
       expect(mod.getDatabase).not.toHaveBeenCalled();
-      expect(logger.error).toHaveBeenCalled();
+      expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 when tenantId is missing from auth context on POST', async () => {
+      const mod = vi.mocked(mongodbUnified);
+      const { requireSuperAdmin } = await import('@/lib/authz');
+      vi.mocked(requireSuperAdmin).mockResolvedValueOnce({ id: 'user-x', tenantId: '' } as any);
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'x', data: {} }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(400);
+      const body = await (res as Response).json();
+      expect(body).toEqual({ error: 'Missing organization context' });
+      expect(mod.getDatabase).not.toHaveBeenCalled();
     });
   });
 
@@ -330,7 +352,7 @@ describe('QA Alert Route', () => {
       expect(body).toEqual({ error: 'Missing organization context' });
     });
 
-    it('returns 500 when DB query fails', async () => {
+    it('returns 503 when DB query fails', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       const toArray = vi.fn().mockRejectedValue(new Error('query failed'));
@@ -348,9 +370,9 @@ describe('QA Alert Route', () => {
       });
 
       const res = await GET(req);
-      expect((res as Response).status).toBe(500);
+      expect((res as Response).status).toBe(503);
       const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Failed to fetch alerts' });
+      expect(body).toEqual({ error: 'Service temporarily unavailable' });
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to fetch QA alerts:',
         expect.anything()

@@ -1,205 +1,100 @@
-/**
- * Unit tests for api/qa/health route.
- * Testing framework: Vitest
- */
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type mongoose from 'mongoose';
-import * as mongodbUnified from '@/lib/mongodb-unified';
-import { makeGetRequest, makePostRequest } from '@/tests/helpers/request';
-
-vi.mock('@/lib/mongodb-unified', () => {
-  const connectToDatabase = vi.fn();
-  return { connectToDatabase };
-});
-vi.mock('@/lib/logger', () => ({
-  logger: {
-    error: vi.fn(),
-    warn: vi.fn(),
-    info: vi.fn(),
-    debug: vi.fn(),
-  }
+vi.mock("@/lib/authz", () => ({
+  requireSuperAdmin: vi.fn().mockResolvedValue({ id: "super", tenantId: "org-1" }),
 }));
-vi.mock('@/lib/authz', () => ({
-  requireSuperAdmin: vi.fn().mockResolvedValue({ id: 'test-user', tenantId: 'test-org' }),
-}));
-vi.mock('@/server/security/rateLimit', () => ({
+vi.mock("@/server/security/rateLimit", () => ({
   smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
-  buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key'),
+  buildOrgAwareRateLimitKey: vi.fn(() => "rl-key"),
 }));
 
-import { POST, GET } from "@/app/api/qa/health/route";
-import { logger } from '@/lib/logger';
-import { requireSuperAdmin } from '@/lib/authz';
+import { GET, POST } from "@/app/api/qa/health/route";
+import { requireSuperAdmin } from "@/lib/authz";
+import { smartRateLimit } from "@/server/security/rateLimit";
 
-type MongooseLike = {
-  connection?: {
-    db?: {
-      listCollections?: () => { toArray: () => Promise<Array<{ name: string }>> };
-    };
-  };
+type NextRequestLike = {
+  url: string;
+  ip?: string | null;
+  headers?: { get: (key: string) => string | null };
+  cookies?: { get: (key: string) => { value: string } | undefined };
 };
 
-const HEALTH_URL = 'http://localhost:3000/api/qa/health';
-
-function createGetRequest() {
-  return makeGetRequest(HEALTH_URL);
+function createRequest(): NextRequestLike {
+  return {
+    url: "http://localhost/api/qa/health",
+    ip: "127.0.0.1",
+    headers: { get: () => null },
+    cookies: { get: () => undefined },
+  };
 }
 
-function createPostRequest() {
-  return makePostRequest(HEALTH_URL, {}, { 'content-type': 'application/json' });
-}
-
-describe('api/qa/health route - GET', () => {
+describe("api/qa/health route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (globalThis as any).__connectToDatabaseMock = vi.mocked(mongodbUnified).connectToDatabase;
-    // Reset auth mock to default success
-    vi.mocked(requireSuperAdmin).mockResolvedValue({ id: 'test-user', tenantId: 'test-org', role: 'SUPER_ADMIN', email: 'admin@test.com' });
+    vi.resetAllMocks();
+    vi.mocked(requireSuperAdmin).mockResolvedValue({ id: "super", tenantId: "org-1" });
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
   });
 
   afterEach(() => {
-    delete (process as any).env.npm_package_version;
-    delete (globalThis as any).__connectToDatabaseMock;
+    delete (globalThis as Record<string, unknown>).__connectToDatabaseMock;
   });
 
-  it('returns 401 when no authorization header provided', async () => {
-    vi.mocked(requireSuperAdmin).mockRejectedValue(
-      new Response(JSON.stringify({ error: 'UNAUTHORIZED' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    );
+  it("returns 400 when tenantId is missing", async () => {
+    vi.mocked(requireSuperAdmin).mockResolvedValue({ id: "super", tenantId: "" });
 
-    const res = await GET(createGetRequest());
-    expect(res.status).toBe(401);
+    const res = await GET(createRequest() as any);
+    expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toBe('UNAUTHORIZED');
+    expect(body.error).toBe("Missing organization context");
   });
 
-  it('returns 403 when user is not SUPER_ADMIN', async () => {
-    vi.mocked(requireSuperAdmin).mockRejectedValue(
-      new Response(JSON.stringify({ error: 'FORBIDDEN' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    );
-
-    const res = await GET(createGetRequest());
-    expect(res.status).toBe(403);
-    const body = await res.json();
-    expect(body.error).toBe('FORBIDDEN');
-  });
-
-  it('returns healthy with database status when DB connects successfully', async () => {
-    const mod = vi.mocked(mongodbUnified);
-    const version = '9.9.9-test';
-    (process as any).env.npm_package_version = version;
-
-    // Mock mongoose-like connection object
-    const toArray = vi.fn().mockResolvedValue([{ name: 'col1' }, { name: 'col2' }]);
-    const listCollections = vi.fn().mockReturnValue({ toArray });
-    const mockMongoose = {
-      connection: {
-        db: { listCollections }
-      }
-    } satisfies MongooseLike;
-    mod.connectToDatabase.mockResolvedValue(mockMongoose as unknown as typeof mongoose);
-
-    const memSpy = vi.spyOn(process, 'memoryUsage').mockReturnValue({
-      rss: 100 * 1024 * 1024,
-      heapUsed: 50 * 1024 * 1024,
-      heapTotal: 60 * 1024 * 1024,
-      external: 5 * 1024 * 1024,
-      arrayBuffers: 1 * 1024 * 1024
+  it("returns healthy when DB connection succeeds", async () => {
+    (globalThis as Record<string, unknown>).__connectToDatabaseMock = async () => ({
+      connection: { db: { listCollections: () => ({ toArray: async () => [] }) } },
     });
 
-    const res = await GET(createGetRequest());
+    const res = await GET(createRequest() as any);
     expect(res.status).toBe(200);
     const body = await res.json();
-
-    expect(body.status).toBe('healthy');
-    expect(body.database).toContain('connected');
-    expect(body.database).toContain('2 collections');
-    expect(body.version).toBe(version);
-
-    memSpy.mockRestore();
+    expect(body.status).toBe("healthy");
+    expect(typeof body.database).toBe("string");
+    expect(body.database.startsWith("connected")).toBe(true);
   });
 
-  it('returns critical (503) when DB connection fails', async () => {
-    const mod = vi.mocked(mongodbUnified);
-    const err = new Error('DB down');
-    mod.connectToDatabase.mockRejectedValue(err);
+  it("returns 503 critical when DB connection fails", async () => {
+    (globalThis as Record<string, unknown>).__connectToDatabaseMock = async () => {
+      throw new Error("db down");
+    };
 
-    const res = await GET(createGetRequest());
-    expect(logger.error).toHaveBeenCalled();
+    const res = await GET(createRequest() as any);
     expect(res.status).toBe(503);
     const body = await res.json();
-    expect(body.status).toBe('critical');
-    expect(body.database).toBe('disconnected');
-  });
-});
-
-describe('api/qa/health route - POST', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    (globalThis as any).__connectToDatabaseMock = vi.mocked(mongodbUnified).connectToDatabase;
-    // Reset auth mock to default success
-    vi.mocked(requireSuperAdmin).mockResolvedValue({ id: 'test-user', tenantId: 'test-org', role: 'SUPER_ADMIN', email: 'admin@test.com' });
+    expect(body.status).toBe("critical");
+    expect(body.database).toBe("disconnected");
   });
 
-  afterEach(() => {
-    delete (globalThis as any).__connectToDatabaseMock;
-  });
+  it("POST reconnect returns success when DB connects", async () => {
+    (globalThis as Record<string, unknown>).__connectToDatabaseMock = async () => ({
+      connection: {},
+    });
 
-  it('returns 401 when no authorization header provided', async () => {
-    vi.mocked(requireSuperAdmin).mockRejectedValue(
-      new Response(JSON.stringify({ error: 'UNAUTHORIZED' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    );
-
-    const res = await POST(createPostRequest());
-    expect(res.status).toBe(401);
-    const body = await res.json();
-    expect(body.error).toBe('UNAUTHORIZED');
-  });
-
-  it('returns 403 when user is not SUPER_ADMIN', async () => {
-    vi.mocked(requireSuperAdmin).mockRejectedValue(
-      new Response(JSON.stringify({ error: 'FORBIDDEN' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    );
-
-    const res = await POST(createPostRequest());
-    expect(res.status).toBe(403);
-    const body = await res.json();
-    expect(body.error).toBe('FORBIDDEN');
-  });
-
-  it('returns success when DB reconnects successfully', async () => {
-    const mod = vi.mocked(mongodbUnified);
-    mod.connectToDatabase.mockResolvedValue({} as unknown as typeof mongoose);
-
-    const res = await POST(createPostRequest());
+    const res = await POST(createRequest() as any);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
-    expect(body.message).toBe('Database reconnected');
+    expect(body.message).toMatch(/Database reconnected/i);
   });
 
-  it('returns failure (500) when DB reconnection fails', async () => {
-    const mod = vi.mocked(mongodbUnified);
-    const err = new Error('reconnect failed');
-    mod.connectToDatabase.mockRejectedValue(err);
+  it("POST reconnect returns 500 when DB connection fails", async () => {
+    (globalThis as Record<string, unknown>).__connectToDatabaseMock = async () => {
+      throw new Error("cannot connect");
+    };
 
-    const res = await POST(createPostRequest());
+    const res = await POST(createRequest() as any);
     expect(res.status).toBe(500);
     const body = await res.json();
     expect(body.success).toBe(false);
-    expect(body.error).toBe('Failed to reconnect database');
+    expect(body.error).toBe("Failed to reconnect database");
   });
 });

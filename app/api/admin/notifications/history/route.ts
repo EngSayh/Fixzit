@@ -9,6 +9,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
+import { rateLimitError } from "@/server/utils/errorResponses";
+import { ObjectId } from "mongodb";
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,6 +33,32 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const orgIdString =
+      (session.user as { orgId?: string; tenantId?: string }).orgId ||
+      (session.user as { tenantId?: string }).tenantId ||
+      "";
+    if (!orgIdString) {
+      return NextResponse.json(
+        { success: false, error: "Missing organization context" },
+        { status: 400 },
+      );
+    }
+
+    const orgId = ObjectId.isValid(orgIdString) ? new ObjectId(orgIdString) : null;
+    if (!orgId) {
+      return NextResponse.json(
+        { success: false, error: "Invalid organization context" },
+        { status: 400 },
+      );
+    }
+
+    // Rate limiting with org-aware key
+    const rlKey = buildOrgAwareRateLimitKey(req, orgIdString, session.user.id ?? null);
+    const rl = await smartRateLimit(rlKey, 100, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     // Get query parameters
     const searchParams = req.nextUrl.searchParams;
     const limitParam = Number.parseInt(searchParams.get("limit") || "", 10);
@@ -44,21 +73,22 @@ export async function GET(req: NextRequest) {
     // Get database connection
     const db = await getDatabase();
 
-    // NOTE: Super Admin can view all notification history across tenants
-    // This is intentional for platform-wide admin audit capability
-    // Regular users cannot access this endpoint (role check above)
+    // Scope to orgId to prevent cross-tenant access; Super Admin is still org-bound
     const notifications = await db
       .collection("admin_notifications")
-      .find({})
+      .find({ orgId })
       .sort({ sentAt: -1 })
       .limit(limit)
       .skip(skip)
       .toArray();
 
-    const total = await db.collection("admin_notifications").countDocuments({});
+    const total = await db
+      .collection("admin_notifications")
+      .countDocuments({ orgId });
 
     logger.info("[Admin Notification] History fetched", {
       user: session.user.email,
+      orgId: orgIdString,
       count: notifications.length,
       total,
     });

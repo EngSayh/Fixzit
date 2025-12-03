@@ -49,6 +49,11 @@ jobs:
       - name: Run Type Check
         run: pnpm typecheck || pnpm tsc --noEmit
 
+      - name: Ensure Mongo Indexes (idempotent)
+        env:
+          MONGODB_URI: ${{ env.MONGODB_URI }}
+        run: pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); await (await getDatabase()).client?.close?.(); })();"
+
       - name: Run Unit Tests
         run: |
           # Run unit tests with coverage

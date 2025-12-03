@@ -4,7 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import PriceTier from "@/server/models/PriceTier";
 import Module from "@/server/models/Module";
 import { getUserFromToken } from "@/lib/auth";
-import { smartRateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { createSecureResponse } from "@/server/security/headers";
 import {
   createErrorResponse,
@@ -12,7 +12,6 @@ import {
   rateLimitError,
 } from "@/server/utils/errorResponses";
 import { z } from "zod";
-import { getClientIP } from "@/server/security/headers";
 
 const priceTierSchema = z.object({
   moduleCode: z.string().min(1),
@@ -63,16 +62,23 @@ async function authenticateAdmin(req: NextRequest) {
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
-    await authenticateAdmin(req);
+    const user = await authenticateAdmin(req);
+
+    const orgId =
+      (user as { orgId?: string; tenantId?: string }).orgId ||
+      (user as { tenantId?: string }).tenantId ||
+      null;
+
+    // Rate limiting (org-aware) after successful auth
+    const key = buildOrgAwareRateLimitKey(req, orgId, user.id ?? null);
+    const rl = await smartRateLimit(key, 100, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     await connectToDatabase();
+    // NOTE: Price tiers are global platform configuration (SUPER_ADMIN only), intentionally not org-scoped
     const rows = await PriceTier.find({}).populate("moduleId", "code name");
     return createSecureResponse(rows, 200, req);
   } catch (error: unknown) {
@@ -97,18 +103,16 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     const user = await authenticateAdmin(req);
 
-    // Rate limiting for admin operations
-    const key = `admin:price-tiers:${user.id}`;
+    const orgId =
+      (user as { orgId?: string; tenantId?: string }).orgId ||
+      (user as { tenantId?: string }).tenantId ||
+      null;
+
+    // Rate limiting for admin operations (org-aware)
+    const key = buildOrgAwareRateLimitKey(req, orgId, user.id ?? null);
     const rl = await smartRateLimit(key, 20, 60_000); // 20 requests per minute
     if (!rl.allowed) {
       return createErrorResponse("Rate limit exceeded", 429, req);

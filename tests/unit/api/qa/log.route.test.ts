@@ -1,365 +1,261 @@
 /**
  * Unit tests for api/qa/log route.
- * Testing framework: Vitest
- * 
- * Tests RBAC enforcement, org-scoped isolation, and input validation.
+ * Validates RBAC, org isolation, input validation, and DB failure handling.
  */
+import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
+import { NextRequest } from "next/server";
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import * as mongodbUnified from '@/lib/mongodb-unified';
+// =============================================================================
+// MOCK STATE - must be declared BEFORE vi.mock calls that reference it
+// =============================================================================
+const mockState = {
+  authResult: null as any,
+  authError: null as Error | Response | null,
+  dbResult: null as any,
+  dbError: null as Error | null,
+};
 
-vi.mock('@/lib/mongodb-unified');
-vi.mock('@/lib/logger', () => ({
+// =============================================================================
+// MOCKS - vi.mock hoists, but factory functions run at import time
+// =============================================================================
+vi.mock("@/lib/mongodb-unified", () => ({
+  getDatabase: vi.fn(async () => {
+    if (mockState.dbError) throw mockState.dbError;
+    return mockState.dbResult;
+  }),
+}));
+
+vi.mock("@/lib/logger", () => ({
   logger: {
     error: vi.fn(),
     warn: vi.fn(),
     info: vi.fn(),
     debug: vi.fn(),
-  }
+  },
 }));
-vi.mock('@/lib/authz', () => ({
-  requireSuperAdmin: vi.fn().mockResolvedValue({ id: 'test-user', tenantId: 'test-org' }),
+
+vi.mock("@/lib/authz", () => ({
+  requireSuperAdmin: vi.fn(async () => {
+    if (mockState.authError) throw mockState.authError;
+    return mockState.authResult;
+  }),
 }));
-vi.mock('@/server/security/rateLimit', () => ({
+
+vi.mock("@/server/security/rateLimit", () => ({
   smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
-  buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key'),
+  buildOrgAwareRateLimitKey: vi.fn(() => "test-rate-limit-key"),
 }));
 
+// =============================================================================
+// IMPORTS - must come AFTER mocks
+// =============================================================================
 import { POST, GET } from "@/app/api/qa/log/route";
-import { logger } from '@/lib/logger';
-import { requireSuperAdmin } from '@/lib/authz';
-import { smartRateLimit } from '@/server/security/rateLimit';
+import { logger } from "@/lib/logger";
 
-type HeadersLike = {
-  get: (key: string) => string | null;
-};
-type CookiesLike = {
-  get: (key: string) => { value: string } | undefined;
-};
-type NextRequestLike = {
-  json: () => Promise<Record<string, unknown>>;
-  headers: HeadersLike;
-  cookies: CookiesLike;
-  ip?: string | null;
-  url: string;
-  nextUrl?: { protocol: string };
-};
+// =============================================================================
+// TEST UTILITIES
+// =============================================================================
+const LOG_URL = "http://localhost:3000/api/qa/log";
 
-const LOG_URL = 'http://localhost:3000/api/qa/log';
-
-function createGetRequest(queryParams?: Record<string, string>): NextRequestLike {
-  const url = queryParams
-    ? `${LOG_URL}?${new URLSearchParams(queryParams).toString()}`
-    : LOG_URL;
-  return {
-    url,
-    nextUrl: { protocol: 'http:' },
-    json: async () => ({}),
-    headers: { get: () => null },
-    cookies: { get: () => undefined },
-    ip: '127.0.0.1',
-  };
-}
-
-function createPostRequest(body: Record<string, unknown>): NextRequestLike {
-  return {
-    url: LOG_URL,
-    nextUrl: { protocol: 'http:' },
-    json: async () => body,
-    headers: { 
-      get: (key: string) => key.toLowerCase() === 'content-type' ? 'application/json' : null 
+function makePostRequest(
+  body: unknown,
+  opts?: { cookies?: string; authHeader?: string },
+): NextRequest {
+  return new NextRequest(LOG_URL, {
+    method: "POST",
+    body: typeof body === "string" ? body : JSON.stringify(body),
+    headers: {
+      "content-type": "application/json",
+      ...(opts?.authHeader ? { authorization: opts.authHeader } : {}),
+      ...(opts?.cookies ? { cookie: opts.cookies } : {}),
     },
-    cookies: { get: () => undefined },
-    ip: '127.0.0.1',
-  };
+  });
 }
 
-describe('api/qa/log route - RBAC', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.resetAllMocks();
-    // Reset auth mock to default success
-    vi.mocked(requireSuperAdmin).mockResolvedValue({ 
-      id: 'test-user', 
-      tenantId: 'test-org', 
-      role: 'SUPER_ADMIN', 
-      email: 'admin@test.com' 
+function makeGetRequest(query?: Record<string, string>): NextRequest {
+  const url = query
+    ? `${LOG_URL}?${new URLSearchParams(query).toString()}`
+    : LOG_URL;
+  return new NextRequest(url, {
+    method: "GET",
+    headers: { authorization: "Bearer test" },
+  });
+}
+
+function createDbMock(overrides?: { insertOne?: Mock; find?: Mock; createIndex?: Mock }) {
+  const insertOne = overrides?.insertOne ?? vi.fn().mockResolvedValue({ acknowledged: true });
+  const createIndex = overrides?.createIndex ?? vi.fn().mockResolvedValue({ ok: 1 });
+  const toArray = vi.fn().mockResolvedValue([]);
+  const limit = vi.fn().mockReturnValue({ toArray });
+  const sort = vi.fn().mockReturnValue({ limit });
+  const find = overrides?.find ?? vi.fn().mockReturnValue({ sort });
+  const collection = vi.fn().mockReturnValue({ insertOne, find, createIndex });
+  return { insertOne, find, sort, limit, toArray, collection, db: { collection } };
+}
+
+function resetMocks() {
+  vi.clearAllMocks();
+  mockState.authError = null;
+  mockState.authResult = {
+    id: "test-user",
+    tenantId: "test-org",
+    role: "SUPER_ADMIN",
+    email: "admin@test.com",
+  };
+  mockState.dbError = null;
+  mockState.dbResult = createDbMock().db;
+}
+
+beforeEach(() => {
+  resetMocks();
+});
+
+// =============================================================================
+// TESTS
+// =============================================================================
+describe("api/qa/log - RBAC", () => {
+  it("returns 401 when auth missing", async () => {
+    mockState.authError = new Response(JSON.stringify({ error: "UNAUTHORIZED" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
     });
-    // Reset rate limit mock
-    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
+
+    const res = await POST(makePostRequest({ event: "e1", data: {} }));
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "UNAUTHORIZED" });
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
+  it("returns 403 when not SUPER_ADMIN", async () => {
+    mockState.authError = new Response(JSON.stringify({ error: "FORBIDDEN" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const res = await GET(makeGetRequest());
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: "FORBIDDEN" });
   });
 
-  describe('POST /api/qa/log', () => {
-    it('returns 401 when no authorization header provided', async () => {
-      vi.mocked(requireSuperAdmin).mockRejectedValue(
-        new Response(JSON.stringify({ error: 'UNAUTHORIZED' }), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        })
-      );
+  it("returns 400 when tenantId missing", async () => {
+    mockState.authResult = { id: "test-user", tenantId: "", role: "SUPER_ADMIN", email: "a@b.com" };
 
-      const res = await POST(createPostRequest({ event: 'test', data: {} }));
-      expect(res.status).toBe(401);
-      const body = await res.json();
-      expect(body.error).toBe('UNAUTHORIZED');
-    });
-
-    it('returns 403 when user is not SUPER_ADMIN', async () => {
-      vi.mocked(requireSuperAdmin).mockRejectedValue(
-        new Response(JSON.stringify({ error: 'FORBIDDEN' }), {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' },
-        })
-      );
-
-      const res = await POST(createPostRequest({ event: 'test', data: {} }));
-      expect(res.status).toBe(403);
-      const body = await res.json();
-      expect(body.error).toBe('FORBIDDEN');
-    });
-
-    it('returns 400 when tenantId is missing from auth context', async () => {
-      vi.mocked(requireSuperAdmin).mockResolvedValue({
-        id: 'test-user',
-        tenantId: '', // Empty tenantId
-        role: 'SUPER_ADMIN',
-        email: 'admin@test.com'
-      });
-
-      const res = await POST(createPostRequest({ event: 'test', data: {} }));
-      expect(res.status).toBe(400);
-      const body = await res.json();
-      expect(body.error).toBe('Missing organization context');
-    });
-  });
-
-  describe('GET /api/qa/log', () => {
-    it('returns 401 when no authorization header provided', async () => {
-      vi.mocked(requireSuperAdmin).mockRejectedValue(
-        new Response(JSON.stringify({ error: 'UNAUTHORIZED' }), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        })
-      );
-
-      const res = await GET(createGetRequest());
-      expect(res.status).toBe(401);
-      const body = await res.json();
-      expect(body.error).toBe('UNAUTHORIZED');
-    });
-
-    it('returns 403 when user is not SUPER_ADMIN', async () => {
-      vi.mocked(requireSuperAdmin).mockRejectedValue(
-        new Response(JSON.stringify({ error: 'FORBIDDEN' }), {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' },
-        })
-      );
-
-      const res = await GET(createGetRequest());
-      expect(res.status).toBe(403);
-      const body = await res.json();
-      expect(body.error).toBe('FORBIDDEN');
-    });
-
-    it('returns 400 when tenantId is missing from auth context', async () => {
-      vi.mocked(requireSuperAdmin).mockResolvedValue({
-        id: 'test-user',
-        tenantId: '', // Empty tenantId
-        role: 'SUPER_ADMIN',
-        email: 'admin@test.com'
-      });
-
-      const res = await GET(createGetRequest());
-      expect(res.status).toBe(400);
-      const body = await res.json();
-      expect(body.error).toBe('Missing organization context');
-    });
+    const res = await POST(makePostRequest({ event: "e1", data: {} }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "Missing organization context" });
   });
 });
 
-describe('api/qa/log route - POST', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.resetAllMocks();
-    vi.mocked(requireSuperAdmin).mockResolvedValue({ 
-      id: 'test-user', 
-      tenantId: 'test-org', 
-      role: 'SUPER_ADMIN', 
-      email: 'admin@test.com' 
-    });
-    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('returns success when request is valid', async () => {
-    const mod = vi.mocked(mongodbUnified);
-
+describe("api/qa/log - POST", () => {
+  it("persists with org/user tags and hashed sessionId", async () => {
     const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
-    const collection = vi.fn().mockReturnValue({ insertOne });
-    const nativeDb = { collection } as any;
-    mod.getDatabase.mockResolvedValue(nativeDb);
+    const db = createDbMock({ insertOne });
+    mockState.dbResult = db.db;
 
-    const event = 'button_click';
-    const data = { id: 123, label: 'Save' };
-
-    const res = await POST(createPostRequest({ event, data }));
-    const body = await res.json();
-
-    expect(body).toEqual({ success: true });
-    expect(logger.info).toHaveBeenCalledWith(`📝 QA Log: ${event}`, expect.objectContaining({ orgId: 'test-org' }));
-    expect(mod.getDatabase).toHaveBeenCalled();
-    expect(collection).toHaveBeenCalledWith('qa_logs');
-    expect(insertOne).toHaveBeenCalledTimes(1);
-    
-    // Verify org tagging on inserted document
-    const insertedDoc = insertOne.mock.calls[0][0];
-    expect(insertedDoc.orgId).toBe('test-org');
-    expect(insertedDoc.userId).toBe('test-user');
-  });
-
-  it('validates event name is required', async () => {
-    const res = await POST(createPostRequest({ data: {} }));
-    expect(res.status).toBe(500);
-    const body = await res.json();
-    expect(body.error).toBe('Failed to log event');
-  });
-
-  it('rejects payloads larger than 10KB', async () => {
-    const largeData = 'x'.repeat(11 * 1024); // 11KB
-    const res = await POST(createPostRequest({ event: 'test', data: largeData }));
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toBe('Payload too large');
-  });
-
-  it('sanitizes event name to max 128 chars', async () => {
-    const mod = vi.mocked(mongodbUnified);
-
-    const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
-    const collection = vi.fn().mockReturnValue({ insertOne });
-    const nativeDb = { collection } as any;
-    mod.getDatabase.mockResolvedValue(nativeDb);
-
-    const longEvent = 'a'.repeat(200);
-    const res = await POST(createPostRequest({ event: longEvent, data: {} }));
+    const res = await POST(
+      makePostRequest({ event: "click", data: { a: 1 } }, { cookies: "sessionId=secret-token" }),
+    );
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true });
 
-    const insertedDoc = insertOne.mock.calls[0][0];
-    expect(insertedDoc.event.length).toBe(128);
+    expect(db.collection).toHaveBeenCalledWith("qa_logs");
+    const doc = insertOne.mock.calls[0][0];
+    expect(doc.orgId).toBe("test-org");
+    expect(doc.userId).toBe("test-user");
+    expect(doc.sessionIdHash).toBeDefined();
+    expect(doc.sessionIdHash).toHaveLength(16);
+    expect(doc.sessionId).toBeUndefined();
   });
 
-  it('returns 503 when DB is unavailable to make outages visible', async () => {
-    const mod = vi.mocked(mongodbUnified);
-    mod.getDatabase.mockRejectedValue(new Error('DB connection failed'));
+  it("returns 400 for invalid JSON body", async () => {
+    const res = await POST(makePostRequest("{ bad json"));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "Invalid JSON body" });
+  });
 
-    const res = await POST(createPostRequest({ event: 'test', data: {} }));
+  it("returns 400 when body is not object", async () => {
+    const res = await POST(makePostRequest(123));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "Body must be an object" });
+  });
+
+  it("rejects payload larger than 10KB", async () => {
+    const res = await POST(makePostRequest({ event: "e1", data: "x".repeat(11 * 1024) }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "Payload too large" });
+  });
+
+  it("caps event length to 128 chars", async () => {
+    const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
+    mockState.dbResult = createDbMock({ insertOne }).db;
+
+    const res = await POST(makePostRequest({ event: "a".repeat(200), data: {} }));
+    expect(res.status).toBe(200);
+    expect(insertOne.mock.calls[0][0].event.length).toBe(128);
+  });
+
+  it("returns 503 when DB unavailable", async () => {
+    mockState.dbError = new Error("db down");
+
+    const res = await POST(makePostRequest({ event: "e1", data: {} }));
     expect(res.status).toBe(503);
-    const body = await res.json();
-    expect(body.error).toBe('Service temporarily unavailable');
+    expect(await res.json()).toEqual({ error: "Service temporarily unavailable" });
     expect(logger.error).toHaveBeenCalled();
   });
 });
 
-describe('api/qa/log route - GET', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.resetAllMocks();
-    vi.mocked(requireSuperAdmin).mockResolvedValue({ 
-      id: 'test-user', 
-      tenantId: 'test-org', 
-      role: 'SUPER_ADMIN', 
-      email: 'admin@test.com' 
+describe("api/qa/log - GET", () => {
+  it("scopes to org and omits data by default", async () => {
+    const find = vi.fn().mockReturnValue({
+      sort: vi.fn().mockReturnValue({
+        limit: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([{ event: "e1", orgId: "test-org" }]),
+        }),
+      }),
     });
-    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
+    mockState.dbResult = createDbMock({ find }).db;
+
+    const res = await GET(makeGetRequest());
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ logs: [{ event: "e1", orgId: "test-org" }] });
+    expect(find).toHaveBeenCalledWith({ orgId: "test-org" }, { projection: { data: 0 } });
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
+  it("applies event filter and includeData", async () => {
+    const find = vi.fn().mockReturnValue({
+      sort: vi.fn().mockReturnValue({
+        limit: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+    });
+    mockState.dbResult = createDbMock({ find }).db;
+
+    const res = await GET(makeGetRequest({ event: "click", includeData: "true" }));
+    expect(res.status).toBe(200);
+    expect(find).toHaveBeenCalledWith({ orgId: "test-org", event: "click" }, { projection: {} });
   });
 
-  it('returns logs scoped to caller org', async () => {
-    const mod = vi.mocked(mongodbUnified);
-
-    const logs = [
-      { event: 'event1', orgId: 'test-org', timestamp: new Date() },
-      { event: 'event2', orgId: 'test-org', timestamp: new Date() },
-    ];
-
-    const toArray = vi.fn().mockResolvedValue(logs);
-    const limit = vi.fn().mockReturnValue({ toArray });
+  it("caps limit at 200", async () => {
+    let capturedLimit: number | undefined;
+    const limit = vi.fn().mockImplementation((n: number) => {
+      capturedLimit = n;
+      return { toArray: vi.fn().mockResolvedValue([]) };
+    });
     const sort = vi.fn().mockReturnValue({ limit });
     const find = vi.fn().mockReturnValue({ sort });
-    const collection = vi.fn().mockReturnValue({ find });
-    const nativeDb = { collection } as any;
-    mod.getDatabase.mockResolvedValue(nativeDb);
+    const collection = vi.fn().mockReturnValue({ find, insertOne: vi.fn(), createIndex: vi.fn() });
+    mockState.dbResult = { collection };
 
-    const res = await GET(createGetRequest());
-    expect(res.status).toBe(200);
-    const body = await res.json();
-
-    expect(body.logs).toHaveLength(2);
-    expect(body.logs[0].event).toBe('event1');
-    expect(body.logs[0].orgId).toBe('test-org');
-    
-    // Verify org-scoped query
-    expect(find).toHaveBeenCalledWith({ orgId: 'test-org' });
-    expect(sort).toHaveBeenCalledWith({ timestamp: -1 });
-    expect(limit).toHaveBeenCalledWith(100); // Default limit
+    await GET(makeGetRequest({ limit: "5000" }));
+    expect(capturedLimit).toBe(200);
   });
 
-  it('filters by event type when provided', async () => {
-    const mod = vi.mocked(mongodbUnified);
+  it("returns 503 when DB unavailable", async () => {
+    mockState.dbError = new Error("db down");
 
-    const toArray = vi.fn().mockResolvedValue([]);
-    const limit = vi.fn().mockReturnValue({ toArray });
-    const sort = vi.fn().mockReturnValue({ limit });
-    const find = vi.fn().mockReturnValue({ sort });
-    const collection = vi.fn().mockReturnValue({ find });
-    const nativeDb = { collection } as any;
-    mod.getDatabase.mockResolvedValue(nativeDb);
-
-    const res = await GET(createGetRequest({ event: 'button_click' }));
-    expect(res.status).toBe(200);
-
-    expect(find).toHaveBeenCalledWith({ orgId: 'test-org', event: 'button_click' });
-  });
-
-  it('respects custom limit parameter (capped at 1000)', async () => {
-    const mod = vi.mocked(mongodbUnified);
-
-    const toArray = vi.fn().mockResolvedValue([]);
-    const limit = vi.fn().mockReturnValue({ toArray });
-    const sort = vi.fn().mockReturnValue({ limit });
-    const find = vi.fn().mockReturnValue({ sort });
-    const collection = vi.fn().mockReturnValue({ find });
-    const nativeDb = { collection } as any;
-    mod.getDatabase.mockResolvedValue(nativeDb);
-
-    // Request 50 logs
-    await GET(createGetRequest({ limit: '50' }));
-    expect(limit).toHaveBeenCalledWith(50);
-
-    // Request 5000 logs (should be capped at 1000)
-    await GET(createGetRequest({ limit: '5000' }));
-    expect(limit).toHaveBeenCalledWith(1000);
-  });
-
-  it('returns mock response when DB is unavailable', async () => {
-    const mod = vi.mocked(mongodbUnified);
-    mod.getDatabase.mockRejectedValue(new Error('DB connection failed'));
-
-    const res = await GET(createGetRequest());
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toEqual({ logs: [], mock: true });
-    expect(logger.warn).toHaveBeenCalled();
+    const res = await GET(makeGetRequest());
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: "Service temporarily unavailable" });
+    expect(logger.error).toHaveBeenCalled();
   });
 });
