@@ -122,6 +122,20 @@ export function buildRateLimitKey(
     return `anonymous:${path}:${identifier}`;
   }
   
+  // FAIL-FAST: For new calls (3+ args), require orgId for authenticated endpoints
+  // If caller passed 3+ args but orgIdOrUserId is null/undefined, that's a bug.
+  // The caller should either:
+  // 1. Pass a valid orgId for tenant isolation
+  // 2. Explicitly use buildOrgAwareRateLimitKey(req, null, null) for anonymous paths
+  if (!orgIdOrUserId) {
+    // Log error but continue with anonymous fallback for resilience
+    logger.error('[RateLimit] buildRateLimitKey called with 3+ args but missing orgId. ' +
+      'This may indicate a tenant isolation gap. Use buildOrgAwareRateLimitKey for clarity.', {
+      path: path.replace(/[a-f0-9]{24}/gi, '***').replace(/\d{3,}/g, '***'),
+      hasUserId: !!userId,
+    });
+  }
+  
   // New: buildRateLimitKey(req, orgId, userId, overridePath?)
   // Full tenant isolation with per-user or per-IP limiting
   const org = orgIdOrUserId || "anonymous";
