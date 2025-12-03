@@ -35,7 +35,15 @@ export default function LogoutPage() {
         '__Secure-next-auth.session-token',
         '__Secure-authjs.csrf-token',
         '__Secure-next-auth.csrf-token',
+        // __Host- variants (stricter: no Domain, Path must be /, Secure required)
+        // These are used in some Auth.js deployments for enhanced security
         '__Host-next-auth.csrf-token',
+        '__Host-next-auth.session-token',
+        '__Host-next-auth.callback-url',
+        '__Host-authjs.csrf-token',
+        '__Host-authjs.session-token',
+        '__Host-authjs.callback-url',
+        // App-specific tokens
         'fxz.access',
         'fxz.refresh',
         'fxz.otp',
@@ -97,9 +105,10 @@ export default function LogoutPage() {
         clearAuthCookies();
 
         // Step 4: Sign out with NextAuth (clears cookies)
+        // NOTE: Use callbackUrl (supported) instead of redirectTo (non-standard)
         const signOutResult = await signOut({ 
           redirect: false, // Manual redirect for better control
-          redirectTo: '/login',
+          callbackUrl: '/login',
         });
         const redirectUrl = signOutResult?.url || '/login';
 

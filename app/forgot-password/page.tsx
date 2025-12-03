@@ -7,13 +7,14 @@ import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { logger } from '@/lib/logger';
+import { redactIdentifier } from '@/lib/otp-utils';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,19 +27,45 @@ export default function ForgotPassword() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email })
+        // Pass locale so backend can send localized email (RTL/i18n requirement)
+        body: JSON.stringify({ email, locale })
       });
 
+      const data = await response.json().catch(() => ({}));
+
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to send reset email');
+        // Differentiate validation errors (4xx) from infrastructure failures (5xx)
+        if (response.status >= 500) {
+          // Infrastructure failure - log at error level for ops visibility
+          // Use redactIdentifier to prevent PII in logs (GDPR compliance)
+          logger.error('[forgot-password] Server error during reset request', {
+            email: redactIdentifier(email),
+            status: response.status,
+            severity: 'infra'
+          });
+          // Show generic error but keep anti-enumeration (don't reveal if user exists)
+          setError(t('forgotPassword.errorGeneric', 'Password reset is temporarily unavailable. Please try again shortly.'));
+          return;
+        } else {
+          // Client/validation error (4xx) - surface to user
+          // The API already handles anti-enumeration by returning 200 for unknown users
+          // 4xx errors are for validation failures like invalid email format
+          setError(data.error || t('forgotPassword.validation', 'Please enter a valid email address.'));
+          return;
+        }
       }
       
       setSuccess(true);
     } catch (err) {
-      // For tests and offline flows, show success state even if the backend stub fails
-      logger.warn('Password reset request failed (stub)', { error: err, email });
-      setSuccess(true);
+      // Network error or fetch failure - infrastructure issue
+      // Use redactIdentifier to prevent PII in logs (GDPR compliance)
+      logger.error('[forgot-password] Network error during reset request', {
+        email: redactIdentifier(email),
+        cause: err instanceof Error ? err.message : String(err),
+        severity: 'infra'
+      });
+      // Show generic error to user while preserving anti-enumeration
+      setError(t('forgotPassword.errorGeneric', 'Password reset is temporarily unavailable. Please try again shortly.'));
     } finally {
       setLoading(false);
     }
