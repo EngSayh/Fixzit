@@ -130,7 +130,13 @@ const CustomCursor: React.FC = () => {
     isMounted.current = true;
 
     const body = document.body;
-    body.classList.add('custom-cursor-active'); // hide native cursor
+    body.classList.add('custom-cursor-active'); // add class for custom cursor styling
+
+    // Initialize positions to center of viewport (fallback until first mouse move)
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    pointerPos.current = { x: centerX, y: centerY };
+    trailPositions.current = Array.from({ length: TRAIL_COUNT }, () => ({ x: centerX, y: centerY }));
 
     // Pointer move handler: update target pointer coordinates
     const handlePointerMove = (e: MouseEvent) => {
