@@ -387,22 +387,45 @@ export const authConfig = {
           };
           let user: LeanUser | null;
           if (loginType === 'personal') {
-            user = await User.findOne({ email: loginIdentifier }).lean<LeanUser>();
+            // SECURITY FIX: Handle cross-tenant email collision
+            // Emails are unique per-org (indexed orgId + email), so we must check for duplicates
+            const matchingUsers = await User.find({ email: loginIdentifier })
+              .select('_id email orgId status isSuperAdmin')
+              .limit(2) // Only need to know if there's more than 1
+              .lean<Pick<LeanUser, '_id' | 'email' | 'orgId' | 'status' | 'isSuperAdmin'>[]>();
+            
+            if (matchingUsers.length === 0) {
+              user = null;
+            } else if (matchingUsers.length === 1) {
+              // Single match - safe to proceed
+              user = await User.findOne({ email: loginIdentifier }).lean<LeanUser>();
+            } else {
+              // CRITICAL: Multiple users with same email across orgs - FAIL CLOSED
+              // This prevents cross-tenant authentication confusion
+              logger.error('[NextAuth] Cross-tenant email collision detected - login rejected for security', {
+                loginIdentifier: redactIdentifier(loginIdentifier),
+                matchCount: matchingUsers.length,
+                orgIds: matchingUsers.map(u => u.orgId?.toString()).join(','),
+              });
+              // User must use corporate login (with company code) to disambiguate
+              throw new Error('AMBIGUOUS_ACCOUNT');
+            }
           } else {
             if (!companyCode) {
               logger.warn('[NextAuth] Corporate login missing company code', { loginIdentifier: redactIdentifier(loginIdentifier) });
               return null;
             }
             // Corporate login uses employee number (stored in username field) + company code
+            // This is already tenant-scoped via companyCode
             user = await User.findOne({ username: loginIdentifier, code: companyCode }).lean<LeanUser>();
           }
 
-      if (!user) {
-        // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
-        const notFoundError = new Error('User not found');
-        logger.error('[NextAuth] User not found', notFoundError, { loginIdentifier: redactIdentifier(loginIdentifier), loginType });
-        return null;
-      }
+          if (!user) {
+            // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
+            const notFoundError = new Error('User not found');
+            logger.error('[NextAuth] User not found', notFoundError, { loginIdentifier: redactIdentifier(loginIdentifier), loginType });
+            return null;
+          }
 
           // 4.5 Account lockout check
           const locked = (user as { security?: { locked?: boolean; lockReason?: string; lockTime?: Date; loginAttempts?: number } }).security;
@@ -611,9 +634,36 @@ export const authConfig = {
       const { User } = await import('@/server/models/User');
       
       try {
-        const dbUser = (await User.findOne({ email: _user.email })
+        // SECURITY FIX: Handle cross-tenant email collision for OAuth
+        // Check if multiple users share this email across orgs
+        const matchingUsers = await User.find({ email: _user.email })
+          .select('_id email orgId status isSuperAdmin professional.role role permissions roles')
+          .limit(2) // Only need to know if there's more than 1
           .lean()
-          .exec()) as {
+          .exec();
+        
+        // Block sign-in if user doesn't exist
+        if (matchingUsers.length === 0) {
+          logger.warn('[NextAuth] OAuth sign-in rejected: User not found in database', { 
+            email: _user.email.substring(0, 3) + '***' // Privacy: partial email
+          });
+          return false;
+        }
+        
+        // CRITICAL: Multiple users with same email across orgs - FAIL CLOSED
+        if (matchingUsers.length > 1) {
+          logger.error('[NextAuth] OAuth cross-tenant email collision - sign-in rejected for security', {
+            email: _user.email.substring(0, 3) + '***',
+            matchCount: matchingUsers.length,
+            // Don't log orgIds for privacy, just log that collision occurred
+          });
+          // OAuth cannot disambiguate - user must use credentials with company code
+          return false;
+        }
+        
+        // Single match - safe to proceed
+        // Use unknown first to avoid type overlap issues with Mongoose lean() result
+        const dbUser = matchingUsers[0] as unknown as {
             orgId?: { toString(): string } | string | null;
             professional?: { role?: string | null };
             role?: string | null;
@@ -621,15 +671,7 @@ export const authConfig = {
             permissions?: string[];
             roles?: string[];
             status?: string;
-          } | null;
-        
-        // Block sign-in if user doesn't exist
-        if (!dbUser) {
-          logger.warn('[NextAuth] OAuth sign-in rejected: User not found in database', { 
-            email: _user.email.substring(0, 3) + '***' // Privacy: partial email
-          });
-          return false;
-        }
+          };
         
         // Block sign-in if user is not ACTIVE
         if (dbUser.status !== 'ACTIVE') {

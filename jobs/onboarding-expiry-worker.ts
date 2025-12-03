@@ -37,33 +37,74 @@ const QUEUE_NAME = process.env.EXPIRY_QUEUE_NAME || 'onboarding-expiry';
  * Multi-tenant isolation: Scopes queries via OnboardingCase.orgId
  * Performance: Uses batched bulk updates instead of per-doc saves
  * Auditability: Uses SYSTEM_ACTOR_ID for performed_by_id
+ * 
+ * CRITICAL FIX: Only expire documents where expiry_date <= NOW (not 30 days ahead!)
+ * The previous implementation expired documents 30 days before their actual expiry.
+ * 
+ * PERFORMANCE FIX: Stream case IDs using cursor to prevent memory exhaustion for large tenants
+ * Previous implementation loaded ALL case IDs at once, causing memory spikes.
  */
 async function processOrgExpiries(orgId: string, onboardingCaseId?: string): Promise<number> {
   const now = new Date();
-  const threshold = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days ahead
+  // CRITICAL FIX: Expire documents that have ACTUALLY expired (expiry_date <= now)
+  // NOT documents that will expire in 30 days
+  const expiryThreshold = now; // Documents expired as of right now
 
-  // Step 1: Find all onboarding cases for this org to get their IDs
+  // Step 1: Build filter for onboarding cases
   const caseFilter: Record<string, unknown> = { orgId: new Types.ObjectId(orgId) };
   if (onboardingCaseId) {
     caseFilter._id = new Types.ObjectId(onboardingCaseId);
   }
 
-  const cases = await OnboardingCase.find(caseFilter).select('_id').lean();
-  const caseIds = cases.map(c => c._id);
-
-  if (caseIds.length === 0) {
-    logger.info('[OnboardingExpiry] No onboarding cases found for org', { orgId });
-    return 0;
+  // PERFORMANCE FIX: Stream case IDs using cursor instead of loading all at once
+  // This prevents memory exhaustion for large tenants with tens of thousands of cases
+  let totalProcessed = 0;
+  let caseIds: Types.ObjectId[] = [];
+  
+  const cursor = OnboardingCase.find(caseFilter).select('_id').cursor({ batchSize: BATCH_SIZE });
+  
+  for await (const caseDoc of cursor) {
+    caseIds.push(caseDoc._id);
+    
+    // Process documents when we've collected a full batch of case IDs
+    if (caseIds.length >= BATCH_SIZE) {
+      const batchCount = await processDocumentBatch(caseIds, expiryThreshold, orgId, now);
+      totalProcessed += batchCount;
+      caseIds = []; // Reset for next batch
+    }
+  }
+  
+  // Process remaining case IDs (partial batch)
+  if (caseIds.length > 0) {
+    const batchCount = await processDocumentBatch(caseIds, expiryThreshold, orgId, now);
+    totalProcessed += batchCount;
   }
 
-  let totalProcessed = 0;
+  if (totalProcessed === 0) {
+    logger.info('[OnboardingExpiry] No expiring documents found for org', { orgId });
+  }
 
-  // Step 2: Process in batches to prevent memory exhaustion
+  return totalProcessed;
+}
+
+/**
+ * Process a batch of documents for the given case IDs
+ * Handles document expiration and audit logging
+ */
+async function processDocumentBatch(
+  caseIds: Types.ObjectId[],
+  expiryThreshold: Date,
+  orgId: string,
+  now: Date
+): Promise<number> {
+  let batchProcessed = 0;
+
+  // Process documents in sub-batches to prevent memory exhaustion
   while (true) {
-    // Find documents that are VERIFIED, expiring, and belong to this org's cases
+    // Find documents that are VERIFIED and ACTUALLY expired
     const expiringDocs = await VerificationDocument.find({
       status: 'VERIFIED',
-      expiry_date: { $lte: threshold },
+      expiry_date: { $lte: expiryThreshold },
       onboarding_case_id: { $in: caseIds },
     })
       .limit(BATCH_SIZE)
@@ -71,18 +112,18 @@ async function processOrgExpiries(orgId: string, onboardingCaseId?: string): Pro
       .lean<Pick<VerificationDocumentDoc, '_id'>[]>();
 
     if (expiringDocs.length === 0) {
-      break; // No more documents to process
+      break;
     }
 
     const docIds = expiringDocs.map(d => d._id);
 
-    // Step 3: Bulk update all documents in batch
+    // Bulk update all documents in batch
     await VerificationDocument.updateMany(
       { _id: { $in: docIds } },
       { $set: { status: 'EXPIRED' } }
     );
 
-    // Step 4: Bulk insert verification logs for audit trail
+    // Bulk insert verification logs for audit trail
     const logEntries = docIds.map(docId => ({
       document_id: docId,
       action: 'STATUS_CHANGE' as const,
@@ -90,22 +131,22 @@ async function processOrgExpiries(orgId: string, onboardingCaseId?: string): Pro
       details: {
         to: 'EXPIRED',
         reason: 'Auto-expired by worker (document expiry date reached)',
-        orgId, // Include for audit traceability
+        orgId,
       },
       timestamp: now,
     }));
 
     await VerificationLog.insertMany(logEntries);
 
-    totalProcessed += expiringDocs.length;
+    batchProcessed += expiringDocs.length;
 
-    // If we got less than batch size, we're done
+    // If we got less than batch size, we're done with this case batch
     if (expiringDocs.length < BATCH_SIZE) {
       break;
     }
   }
 
-  return totalProcessed;
+  return batchProcessed;
 }
 
 function buildWorker(): Worker<ExpiryJob> | null {
