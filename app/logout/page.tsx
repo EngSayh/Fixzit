@@ -77,22 +77,33 @@ export default function LogoutPage() {
         setState('processing');
 
         // Step 1: Clear app-specific storage (preserve language/locale)
-        const savedLang = localStorage.getItem(STORAGE_KEYS.language);
-        const savedLocale = localStorage.getItem(STORAGE_KEYS.locale);
+        // FIX: Guard localStorage access to handle restricted browsers
+        // (Safari private mode, strict ITP, CSP restrictions)
+        let savedLang: string | null = null;
+        let savedLocale: string | null = null;
+        
+        try {
+          savedLang = localStorage.getItem(STORAGE_KEYS.language);
+          savedLocale = localStorage.getItem(STORAGE_KEYS.locale);
 
-        Object.keys(localStorage).forEach(key => {
-          const isAppKey =
-            APP_STORAGE_KEYS.includes(key) ||
-            key.startsWith(STORAGE_PREFIXES.app) ||
-            key.startsWith(STORAGE_PREFIXES.shortDash) ||
-            key.startsWith(STORAGE_PREFIXES.shortDot);
-          const preserve = key === STORAGE_KEYS.language || key === STORAGE_KEYS.locale;
-          if (isAppKey && !preserve) localStorage.removeItem(key);
-        });
+          Object.keys(localStorage).forEach(key => {
+            const isAppKey =
+              APP_STORAGE_KEYS.includes(key) ||
+              key.startsWith(STORAGE_PREFIXES.app) ||
+              key.startsWith(STORAGE_PREFIXES.shortDash) ||
+              key.startsWith(STORAGE_PREFIXES.shortDot);
+            const preserve = key === STORAGE_KEYS.language || key === STORAGE_KEYS.locale;
+            if (isAppKey && !preserve) localStorage.removeItem(key);
+          });
 
-        // Restore language preferences
-        if (savedLang) localStorage.setItem(STORAGE_KEYS.language, savedLang);
-        if (savedLocale) localStorage.setItem(STORAGE_KEYS.locale, savedLocale);
+          // Restore language preferences
+          if (savedLang) localStorage.setItem(STORAGE_KEYS.language, savedLang);
+          if (savedLocale) localStorage.setItem(STORAGE_KEYS.locale, savedLocale);
+        } catch (storageErr) {
+          // Storage unavailable (Safari private mode, strict ITP, CSP)
+          // Continue with logout - cookies and signOut will still clear the session
+          logger.warn('localStorage unavailable during logout', { error: storageErr });
+        }
 
         // Step 2: Clear session storage
         try {

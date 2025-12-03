@@ -1,9 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { rateLimit } from "@/server/security/rateLimit";
+
+vi.mock("@/lib/redis", () => ({
+  getRedisClient: vi.fn(() => null),
+}));
+
+import { getRedisClient } from "@/lib/redis";
+import { logger } from "@/lib/logger";
+import {
+  rateLimit,
+  redisRateLimit,
+  __resetRateLimitStateForTests,
+} from "@/server/security/rateLimit";
 
 describe("rateLimit helper", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    __resetRateLimitStateForTests();
   });
 
   afterEach(() => {
@@ -51,5 +63,23 @@ describe("rateLimit helper", () => {
 
     expect(alphaBlocked.allowed).toBe(false);
     expect(betaStillAllowed.allowed).toBe(false); // beta hit its own limit separately
+  });
+
+  it("falls back to in-memory without log spam when Redis is unavailable", async () => {
+    const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const mockedGetRedisClient = vi.mocked(getRedisClient);
+    mockedGetRedisClient.mockReturnValue(null as unknown as ReturnType<typeof getRedisClient>);
+
+    const key = "rate:redisless";
+    const first = await redisRateLimit(key, 2, 1_000);
+    const second = await redisRateLimit(key, 2, 1_000);
+    const third = await redisRateLimit(key, 2, 1_000);
+
+    expect(first.allowed).toBe(true);
+    expect(second.allowed).toBe(true);
+    expect(third.allowed).toBe(false);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    warnSpy.mockRestore();
   });
 });

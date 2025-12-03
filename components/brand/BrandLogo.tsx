@@ -221,8 +221,13 @@ export function BrandLogo({
     minimal: '',
   };
   
+  // FIX: When custom dimensions are provided, don't apply preset size classes
+  // This allows callers to set arbitrary logo dimensions without being overridden
+  const useCustomDimensions = customWidth !== undefined || customHeight !== undefined;
+  
   const imageClassName = cn(
-    sizeClassName,
+    // Only apply preset size class when no custom dimensions are provided
+    !useCustomDimensions && sizeClassName,
     rounded && 'rounded-2xl',
     'object-contain',
     variantStyles[variant],

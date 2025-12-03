@@ -13,6 +13,9 @@ const memoryCache = new LRUCache<string, { count: number; resetAt: number }>({
   max: 5000,
 });
 
+// Avoid log spam when Redis is unavailable
+let warnedNoRedis = false;
+
 /**
  * Distributed rate limiting result
  */
@@ -44,12 +47,17 @@ export function rateLimit(key: string, limit = 60, windowMs = 60_000): RateLimit
   const now = Date.now();
   const entry = memoryCache.get(key);
   if (!entry || now > entry.resetAt) {
-    memoryCache.set(key, { count: 1, resetAt: now + windowMs });
-    return { allowed: true, remaining: limit - 1 };
+    const resetAt = now + windowMs;
+    memoryCache.set(
+      key,
+      { count: 1, resetAt },
+      { ttl: windowMs },
+    );
+    return { allowed: true, remaining: limit - 1, resetAt };
   }
   if (entry.count >= limit) return { allowed: false, remaining: 0 };
   entry.count += 1;
-  return { allowed: true, remaining: limit - entry.count };
+  return { allowed: true, remaining: limit - entry.count, resetAt: entry.resetAt };
 }
 
 /**
@@ -79,9 +87,15 @@ export async function redisRateLimit(
   
   // Fall back to in-memory if Redis unavailable
   if (!client) {
-    logger.warn('[RateLimit] Redis unavailable, falling back to in-memory rate limiting');
+    if (!warnedNoRedis) {
+      logger.warn('[RateLimit] Redis unavailable, falling back to in-memory rate limiting');
+      warnedNoRedis = true;
+    }
     return rateLimit(key, limit, windowMs);
   }
+
+  // Redis is back - reset warning flag
+  warnedNoRedis = false;
 
   const now = Date.now();
   const windowKey = `ratelimit:${key}`;
@@ -126,7 +140,10 @@ export async function redisRateLimit(
       resetAt 
     };
   } catch (error) {
-    logger.error('[RateLimit] Redis error, falling back to in-memory', { error });
+    if (!warnedNoRedis) {
+      logger.error('[RateLimit] Redis error, falling back to in-memory', { error });
+      warnedNoRedis = true;
+    }
     return rateLimit(key, limit, windowMs);
   }
 }
@@ -152,4 +169,10 @@ export function buildRateLimitKey(
   // This prevents one org from exhausting rate limits for another
   const org = orgId || 'anonymous';
   return `${org}:${path}:${clientIp}`;
+}
+
+// Test hook to reset internal state between unit tests
+export function __resetRateLimitStateForTests() {
+  warnedNoRedis = false;
+  memoryCache.clear();
 }
