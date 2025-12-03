@@ -4,7 +4,7 @@ import { User } from "@/server/models/User";
 import { getNextAtomicUserCode } from "@/lib/mongoUtils.server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import {
   zodValidationError,
   rateLimitError,
@@ -93,7 +93,8 @@ const signupSchema = z
 export async function POST(req: NextRequest) {
   try {
     const clientIp = getClientIP(req);
-    const rl = rateLimit(`auth-signup:${clientIp}`, 5, 900000);
+    // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
+    const rl = await smartRateLimit(`auth-signup:${clientIp}`, 5, 900000);
     if (!rl.allowed) {
       return rateLimitError();
     }

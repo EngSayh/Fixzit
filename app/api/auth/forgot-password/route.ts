@@ -4,7 +4,7 @@ import { User } from "@/server/models/User";
 import { signPasswordResetToken, passwordResetLink } from "@/lib/auth/passwordReset";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { getClientIP } from "@/server/security/headers";
 
 export const runtime = "nodejs";
@@ -26,8 +26,9 @@ type ForgotPasswordBody = {
 export async function POST(req: NextRequest) {
   try {
     // Rate limit: 5 requests per 15 minutes per IP
+    // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
     const clientIp = getClientIP(req);
-    const rl = rateLimit(`forgot-password:${clientIp}`, 5, 15 * 60 * 1000);
+    const rl = await smartRateLimit(`forgot-password:${clientIp}`, 5, 15 * 60 * 1000);
     if (!rl.allowed) {
       // Return success even when rate limited to prevent enumeration
       return NextResponse.json({ 

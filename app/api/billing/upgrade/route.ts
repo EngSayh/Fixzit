@@ -6,7 +6,7 @@ import Subscription from "@/server/models/Subscription";
 import { computeQuote } from "@/lib/pricing";
 import { createSubscriptionCheckout } from "@/lib/finance/checkout";
 import { logger } from "@/lib/logger";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError, zodValidationError } from "@/server/utils/errorResponses";
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
 import { canManageSubscriptions } from "@/lib/auth/role-guards";
@@ -99,9 +99,9 @@ const PLAN_CONFIGS: Record<string, { modules: string[]; baseSeats: number; allow
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
+  // Rate limiting - SECURITY: Use distributed rate limiting (Redis)
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300_000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 10, 300_000);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -134,8 +134,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Additional rate limiting per tenant
-    const tenantRl = rateLimit(`billing:upgrade:${user.orgId}`, 3, 300_000);
+    // Additional rate limiting per tenant - SECURITY: Distributed for multi-instance
+    const tenantRl = await smartRateLimit(`billing:upgrade:${user.orgId}`, 3, 300_000);
     if (!tenantRl.allowed) {
       return createSecureResponse(
         { error: "Upgrade rate limit exceeded. Please wait before trying again." },
@@ -414,9 +414,9 @@ export async function POST(req: NextRequest) {
  * Returns available upgrade options for the current subscription.
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting
+  // Rate limiting - SECURITY: Use distributed rate limiting (Redis)
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 30, 60_000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 30, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }
