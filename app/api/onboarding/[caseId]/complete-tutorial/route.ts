@@ -13,17 +13,17 @@ export async function PUT(
 
   try {
     await connectMongo();
-    const onboarding = await OnboardingCase.findById(params.caseId);
+    // Defense-in-depth: Query scoped to user's org from the start
+    const onboarding = await OnboardingCase.findOne({
+      _id: params.caseId,
+      $or: [
+        { subject_user_id: user.id },
+        { created_by_id: user.id },
+        ...(user.orgId ? [{ orgId: user.orgId }] : []),
+      ],
+    });
     if (!onboarding) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    }
-
-    if (
-      onboarding.subject_user_id?.toString() !== user.id &&
-      onboarding.created_by_id?.toString() !== user.id &&
-      onboarding.orgId?.toString() !== user.orgId // AUDIT-2025-11-29: Changed from org_id to orgId
-    ) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     onboarding.tutorial_completed = true;

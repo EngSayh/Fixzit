@@ -155,6 +155,8 @@ export default async function AboutPage() {
   // Strip duplicate H1 from CMS markdown content if present
   // CMS editors often add an H1 which duplicates the hero title
   const contentWithoutH1 = renderedContent.replace(/<h1[^>]*>.*?<\/h1>/i, "");
+  const contactPhone = (CONTACT_INFO.phone || "").trim();
+  const sanitizedTel = contactPhone ? contactPhone.replace(/[^+\d]/g, "") : "";
 
   // JSON-LD structured data for Organization
   const organizationSchema = {
@@ -174,7 +176,7 @@ export default async function AboutPage() {
     },
     contactPoint: {
       "@type": "ContactPoint",
-      telephone: CONTACT_INFO.phone,
+      telephone: contactPhone || undefined,
       contactType: "customer service",
       email: CONTACT_INFO.email,
       availableLanguage: ["en", "ar"],
@@ -366,16 +368,25 @@ export default async function AboutPage() {
                     <div className="font-semibold text-foreground mb-1">
                       {t("about.phone", "Phone")}
                     </div>
-                    <a
-                      href={`tel:${CONTACT_INFO.phone.replace(/[^+\d]/g, "")}`}
-                      className="text-primary hover:text-primary"
-                      aria-label={t(
-                        "about.phoneLabel",
-                        `Call ${CONTACT_INFO.phone}`,
-                      )}
-                    >
-                      {CONTACT_INFO.phone}
-                    </a>
+                    {contactPhone ? (
+                      <a
+                        href={`tel:${sanitizedTel}`}
+                        className="text-primary hover:text-primary"
+                        aria-label={t(
+                          "about.phoneLabel",
+                          `Call ${contactPhone}`,
+                        )}
+                      >
+                        {contactPhone}
+                      </a>
+                    ) : (
+                      <div className="text-muted-foreground">
+                        {t(
+                          "about.phoneUnavailable",
+                          "Phone number not configured",
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
