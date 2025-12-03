@@ -50,8 +50,15 @@ export async function POST(req: NextRequest) {
     return unauthorizedError('Authentication failed');
   }
 
+  // SECURITY: Require tenant context for writes to prevent unscoped telemetry
+  if (!authContext?.tenantId) {
+    return createSecureResponse({ error: 'Missing organization context' }, 400, req);
+  }
+  const orgId = authContext.tenantId;
+  const userId = authContext.id;
+
   // Rate limiting - SECURITY: Use distributed rate limiting with org isolation
-  const key = buildOrgAwareRateLimitKey(req, authContext?.tenantId ?? null, authContext?.id ?? null);
+  const key = buildOrgAwareRateLimitKey(req, orgId, userId);
   const rl = await smartRateLimit(key, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
@@ -81,15 +88,15 @@ export async function POST(req: NextRequest) {
       data,
       timestamp: new Date(),
       // ORG TAGGING: Include tenant context for multi-tenant isolation
-      orgId: authContext?.tenantId ?? null,
-      userId: authContext?.id ?? null,
+      orgId,
+      userId,
       ip: getClientIP(req),
       userAgent: req.headers.get('user-agent'),
     });
 
     // Log alert event with redacted payload for observability (no PII leakage)
     const payloadSize = dataStr.length;
-    logger.info(`🚨 QA Alert: ${sanitizedEvent}`, { orgId: authContext?.tenantId, payloadSize });
+    logger.info(`🚨 QA Alert: ${sanitizedEvent}`, { orgId, payloadSize });
 
     const successBody = { success: true };
     return createSecureResponse(successBody, 200, req);

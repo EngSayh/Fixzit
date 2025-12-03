@@ -37,8 +37,15 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: "Authentication failed" }, 401, req);
   }
 
+  // SECURITY: Require tenant context for multi-tenant isolation (matches qa/alert behavior)
+  if (!authContext?.tenantId) {
+    return createSecureResponse({ error: "Missing organization context" }, 400, req);
+  }
+  const orgId = authContext.tenantId;
+  const userId = authContext.id;
+
   // Rate limiting - org-aware key for tenant isolation
-  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authContext?.tenantId ?? null, authContext?.id ?? null), 60, 60_000);
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, orgId, userId), 60, 60_000);
   if (!rl.allowed) return rateLimitError();
 
   try {
@@ -72,23 +79,23 @@ export async function POST(req: NextRequest) {
         event: sanitizedEvent,
         data,
         timestamp: new Date(),
-        orgId: authContext?.tenantId ?? null,
-        userId: authContext?.id ?? null,
+        orgId,
+        userId,
         ip: getClientIP(req),
         userAgent: req.headers.get("user-agent"),
         sessionId: req.cookies.get("sessionId")?.value || "unknown",
       });
       // Log event with redacted payload for observability (no PII leakage)
       const payloadSize = dataStr.length;
-      logger.info(`📝 QA Log: ${sanitizedEvent}`, { orgId: authContext?.tenantId, payloadSize });
+      logger.info(`📝 QA Log: ${sanitizedEvent}`, { orgId, payloadSize });
       return createSecureResponse({ success: true }, 200, req);
     } catch (dbError) {
-      // Fallback mock mode if DB unavailable
-      logger.warn("[QA Log] DB unavailable, using mock response", {
+      // Return 503 on DB failure to make outages visible - don't mask with 200
+      logger.error("[QA Log] DB unavailable, cannot persist event", {
         error:
           dbError instanceof Error ? dbError.message : String(dbError ?? ""),
       });
-      return createSecureResponse({ success: true, mock: true }, 200, req);
+      return createSecureResponse({ error: "Service temporarily unavailable" }, 503, req);
     }
   } catch (error) {
     logger.error(
@@ -111,8 +118,15 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ error: "Authentication failed" }, 401, req);
   }
 
+  // SECURITY: Require tenant context for multi-tenant isolation (matches qa/alert behavior)
+  if (!authContext?.tenantId) {
+    return createSecureResponse({ error: "Missing organization context" }, 400, req);
+  }
+  const orgId = authContext.tenantId;
+  const userId = authContext.id;
+
   // Rate limiting - org-aware key for tenant isolation
-  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authContext?.tenantId ?? null, authContext?.id ?? null), 60, 60_000);
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, orgId, userId), 60, 60_000);
   if (!rl.allowed) return rateLimitError();
 
   try {
@@ -125,7 +139,7 @@ export async function GET(req: NextRequest) {
     const eventType = searchParams.get("event");
 
     // Scope to caller's org to prevent cross-tenant access
-    const query: Record<string, unknown> = { orgId: authContext?.tenantId ?? null };
+    const query: Record<string, unknown> = { orgId };
     if (eventType) {
       query.event = eventType;
     }
