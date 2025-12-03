@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 import { rateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
-import { getCached, CacheTTL } from "@/lib/cache/redis";
+import { getCached, CacheTTL } from "@/lib/redis";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
