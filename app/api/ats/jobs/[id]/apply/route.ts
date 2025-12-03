@@ -5,7 +5,7 @@ import {
   submitApplicationFromForm,
   ApplicationSubmissionError,
 } from "@/server/services/ats/application-intake";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { getClientIP } from "@/server/security/headers";
 import { logger } from "@/lib/logger";
@@ -44,7 +44,8 @@ export async function POST(
   { params }: { params: { id: string } },
 ) {
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }

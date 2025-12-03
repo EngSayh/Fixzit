@@ -3,7 +3,7 @@ import { AuctionEngine } from "@/services/souq/ads/auction-engine";
 import { BudgetManager } from "@/services/souq/ads/budget-manager";
 import { logger } from "@/lib/logger";
 import { createHmac, timingSafeEqual } from "crypto";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { getClientIP } from "@/server/security/headers";
 
 // SEC-001: Click signature validation to prevent click fraud
@@ -39,9 +39,9 @@ function validateClickSignature(bidId: string, campaignId: string, timestamp: nu
  * The signature must be generated server-side when rendering the ad.
  */
 export async function POST(request: NextRequest) {
-  // Rate limit by IP to prevent automated click attacks
+  // Rate limit by IP to prevent automated click attacks (distributed for multi-instance)
   const clientIp = getClientIP(request);
-  const rl = rateLimit(`ad-click:${clientIp}`, 30, 60_000); // 30 clicks per minute per IP
+  const rl = await smartRateLimit(`ad-click:${clientIp}`, 30, 60_000); // 30 clicks per minute per IP
   if (!rl.allowed) {
     return NextResponse.json(
       { success: false, error: "Rate limit exceeded" },
