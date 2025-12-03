@@ -11,6 +11,13 @@ import { getServerI18n } from '@/lib/i18n/server';
 export const metadata: Metadata = {
   title: 'Fixzit Enterprise Platform',
   description: 'Unified FM + Souq + Aqar experience powered by Fixzit.',
+  icons: {
+    icon: [
+      { url: '/img/fixzit-logo.png', sizes: '32x32', type: 'image/png' },
+      { url: '/img/fixzit-logo.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: { url: '/img/fixzit-logo.png', sizes: '180x180', type: 'image/png' },
+  },
 };
 
 const inter = Inter({

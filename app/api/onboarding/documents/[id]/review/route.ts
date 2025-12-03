@@ -27,24 +27,30 @@ export async function PATCH(
 
   try {
     await connectMongo();
+
+    // First check if user has reviewer role
+    const isReviewer =
+      REVIEWER_ROLES.has(user.role) || user.roles?.some((r) => REVIEWER_ROLES.has(r.toUpperCase?.() || r));
+    if (!isReviewer) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const doc = await VerificationDocument.findById(params.id);
     if (!doc) return NextResponse.json({ error: 'Document not found' }, { status: 404 });
 
-    const onboarding = await OnboardingCase.findById(doc.onboarding_case_id);
+    // Defense-in-depth: Query scoped to user's org (Super Admins can access any org)
+    const orgFilter = user.isSuperAdmin ? {} : { orgId: user.orgId };
+    const onboarding = await OnboardingCase.findOne({
+      _id: doc.onboarding_case_id,
+      ...orgFilter,
+    });
     if (!onboarding) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    const isReviewer =
-      REVIEWER_ROLES.has(user.role) || user.roles?.some((r) => REVIEWER_ROLES.has(r.toUpperCase?.() || r));
     const isSubmitter =
       onboarding.subject_user_id?.toString() === user.id ||
       onboarding.created_by_id?.toString() === user.id;
-
-    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
-    if (!isReviewer || (onboarding.orgId?.toString() !== user.orgId && !user.isSuperAdmin)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
     if (isSubmitter) {
       return NextResponse.json({ error: 'Self-approval is not allowed' }, { status: 403 });
     }

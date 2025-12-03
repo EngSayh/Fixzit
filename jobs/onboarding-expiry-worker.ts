@@ -101,10 +101,11 @@ async function processDocumentBatch(
 
   // Process documents in sub-batches to prevent memory exhaustion
   while (true) {
-    // Find documents that are VERIFIED and ACTUALLY expired
+    // CRITICAL FIX: Find documents that are VERIFIED and ACTUALLY expired (expiry_date <= now)
+    // Previously this used threshold = now + 30 days, which expired documents 30 days early!
     const expiringDocs = await VerificationDocument.find({
       status: 'VERIFIED',
-      expiry_date: { $lte: expiryThreshold },
+      expiry_date: { $lte: expiryThreshold }, // Documents that have actually expired
       onboarding_case_id: { $in: caseIds },
     })
       .limit(BATCH_SIZE)
