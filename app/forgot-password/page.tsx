@@ -7,6 +7,7 @@ import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { logger } from '@/lib/logger';
+import { BrandLogoWithCard } from '@/components/brand';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -87,8 +88,13 @@ export default function ForgotPassword() {
     <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex items-center justify-center p-4">
       <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-            <Mail className="w-8 h-8 text-white" />
+          <div className="flex justify-center mb-4">
+            <BrandLogoWithCard 
+              size="lg" 
+              alt="Fixzit Logo"
+              fetchOrgLogo={false}
+              data-testid="forgot-password-logo"
+            />
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-2">
             {t('forgotPassword.title', 'Reset Your Password')}

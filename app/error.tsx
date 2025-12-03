@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
+import { BrandLogo } from "@/components/brand";
 
 /**
  * Root Error Boundary Component
@@ -65,6 +66,16 @@ export default function ErrorPage({
       dir={isRTL ? "rtl" : "ltr"}
     >
       <div className="max-w-md w-full text-center">
+        {/* Brand Logo */}
+        <div className="mb-6">
+          <BrandLogo 
+            size="lg" 
+            alt="Fixzit" 
+            fetchOrgLogo={false}
+            data-testid="error-logo"
+          />
+        </div>
+        
         {/* Error Icon */}
         <div className="mb-6">
           <div className="w-20 h-20 mx-auto bg-destructive/10 rounded-full flex items-center justify-center">
