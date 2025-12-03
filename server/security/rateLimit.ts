@@ -149,9 +149,11 @@ export async function redisRateLimit(
   }
 }
 
-// Re-export the consolidated buildRateLimitKey from rateLimitKey.ts
-// This ensures all callers use the same org-aware key builder
-export { buildRateLimitKey } from './rateLimitKey';
+// Re-export key builders from rateLimitKey.ts
+// buildRateLimitKey: backward-compatible, auto-detects legacy vs new call pattern
+// buildOrgAwareRateLimitKey: explicit org-aware key builder (recommended for new code)
+// safeGetClientIp: helper for getting client IP with fallback
+export { buildRateLimitKey, buildOrgAwareRateLimitKey, safeGetClientIp } from './rateLimitKey';
 
 /**
  * Smart rate limiting that automatically uses Redis when available.
