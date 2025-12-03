@@ -122,7 +122,8 @@ export async function redisRateLimit(
     const ttl = (ttlResult?.[1] as number) || windowSeconds;
     const resetAt = now + (ttl * 1000);
 
-    if (count > limit) {
+    // CRITICAL FIX: Use >= to match in-memory behavior (both block at limit, not limit+1)
+    if (count >= limit) {
       logger.warn('[RateLimit] Rate limit exceeded', { 
         key: key.replace(/:[^:]+$/, ':***'), // Redact last segment (IP)
         count, 
@@ -148,25 +149,40 @@ export async function redisRateLimit(
   }
 }
 
+// Re-export the consolidated buildRateLimitKey from rateLimitKey.ts
+// This ensures all callers use the same org-aware key builder
+export { buildRateLimitKey } from './rateLimitKey';
+
 /**
- * Create an org-aware rate limit key for tenant isolation
+ * Smart rate limiting that automatically uses Redis when available.
  * 
- * @param orgId - Organization ID for tenant scoping
- * @param clientIp - Client IP address
- * @param path - API path/endpoint
- * @returns Formatted rate limit key
+ * This is the RECOMMENDED rate limiting function for all new endpoints.
+ * It provides:
+ * - Distributed rate limiting via Redis (when REDIS_URL is configured)
+ * - Automatic fallback to in-memory LRU cache
+ * - Consistent behavior across both paths
+ * 
+ * @param key - Rate limit key (use buildRateLimitKey for org-aware keys)
+ * @param limit - Maximum requests allowed in window
+ * @param windowMs - Time window in milliseconds
+ * @returns Rate limit result
  * 
  * @example
- * const key = buildRateLimitKey(orgId, clientIp, '/api/ats/analytics');
- * const { allowed } = await redisRateLimit(key, 60, 60_000);
+ * // Recommended usage with org-aware key
+ * const key = buildRateLimitKey(req, user.orgId, user.id);
+ * const { allowed, remaining } = await smartRateLimit(key, 60, 60_000);
+ * if (!allowed) {
+ *   return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+ * }
  */
-export function buildRateLimitKey(
-  orgId: string | null | undefined, 
-  clientIp: string, 
-  path: string
-): string {
-  // Include orgId for tenant-aware rate limiting
-  // This prevents one org from exhausting rate limits for another
-  const org = orgId || 'anonymous';
-  return `${org}:${path}:${clientIp}`;
+export async function smartRateLimit(
+  key: string,
+  limit = 60,
+  windowMs = 60_000
+): Promise<RateLimitResult> {
+  // Always try Redis first for distributed rate limiting
+  return redisRateLimit(key, limit, windowMs);
 }
+
+// Export type for consumers
+export type { RateLimitResult };
