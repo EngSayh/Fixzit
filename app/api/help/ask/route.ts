@@ -357,10 +357,12 @@ const MAX_RATE_PER_MIN =
     : 30;
 
 // Initialize Redis client if connection URL is provided
+// Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
+const redisConnectionUrl = process.env.REDIS_URL || process.env.REDIS_KEY;
 let redis: Redis | null = null;
-if (process.env.REDIS_URL) {
+if (redisConnectionUrl) {
   try {
-    redis = new Redis(process.env.REDIS_URL, {
+    redis = new Redis(redisConnectionUrl, {
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => Math.min(times * 50, 2000),
       connectTimeout: 5000,

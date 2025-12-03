@@ -9,7 +9,8 @@ import { logger } from "@/lib/logger";
 
 type MemoryEntry = { value: string; expiresAt: number };
 
-const redisUrl = process.env.REDIS_URL;
+// Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
+const redisUrl = process.env.REDIS_URL || process.env.REDIS_KEY;
 const redisHost = process.env.REDIS_HOST;
 const redisPort = parseInt(process.env.REDIS_PORT || "6379", 10);
 const redisPassword = process.env.REDIS_PASSWORD;

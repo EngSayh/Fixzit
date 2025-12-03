@@ -3,7 +3,8 @@ import { SearchIndexerService } from "@/services/souq/search-indexer-service";
 import Redis from "ioredis";
 import { logger } from "@/lib/logger";
 
-const bullRedisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL;
+// Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
+const bullRedisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
 const bullRedisHost = process.env.BULLMQ_REDIS_HOST;
 const bullRedisPort = parseInt(process.env.BULLMQ_REDIS_PORT || "6379", 10);
 const bullRedisPassword =

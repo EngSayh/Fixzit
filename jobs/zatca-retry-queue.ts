@@ -46,7 +46,7 @@ function requireRedisConnection(context: string) {
   if (!connection) {
     throw new Error(
       `[ZatcaRetryQueue] Redis not configured (${context}). ` +
-      `REDIS_URL is required for ZATCA clearance retries - this is a critical compliance queue.`
+      `REDIS_URL or REDIS_KEY is required for ZATCA clearance retries - this is a critical compliance queue.`
     );
   }
   return connection;

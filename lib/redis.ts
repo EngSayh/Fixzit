@@ -106,12 +106,19 @@ export function getRedisClient(): RedisInstance | null {
   }
 
   // Redis is optional - return null if no URL configured
-  // Support REDIS_URL, OTP_STORE_REDIS_URL, and BULLMQ_REDIS_URL for compatibility
-  // with different deployment configs (OTP store, BullMQ queues, general caching)
-  const redisUrl = process.env.REDIS_URL || process.env.OTP_STORE_REDIS_URL || process.env.BULLMQ_REDIS_URL;
+  // Support multiple env aliases for compatibility with different deployment configs:
+  // - REDIS_URL: Standard convention (preferred)
+  // - REDIS_KEY: Vercel/GitHub Actions naming convention
+  // - OTP_STORE_REDIS_URL: Dedicated OTP Redis instance
+  // - BULLMQ_REDIS_URL: Dedicated queue Redis instance
+  const redisUrl = 
+    process.env.REDIS_URL || 
+    process.env.REDIS_KEY ||
+    process.env.OTP_STORE_REDIS_URL || 
+    process.env.BULLMQ_REDIS_URL;
   if (!redisUrl) {
     if (!loggedMissingRedisUrl) {
-      logger.warn("[Redis] No REDIS_URL, OTP_STORE_REDIS_URL, or BULLMQ_REDIS_URL configured - Redis-backed features disabled");
+      logger.warn("[Redis] No REDIS_URL, REDIS_KEY, OTP_STORE_REDIS_URL, or BULLMQ_REDIS_URL configured - Redis-backed features disabled");
       loggedMissingRedisUrl = true;
     }
     return null;

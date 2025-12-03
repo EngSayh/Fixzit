@@ -39,7 +39,7 @@ function requireRedisConnection(context: string) {
   if (!connection) {
     throw new Error(
       `[ActivationQueue] Redis not configured (${context}). ` +
-      `REDIS_URL is required for activation retries - this is a critical queue.`
+      `REDIS_URL or REDIS_KEY is required for activation retries - this is a critical queue.`
     );
   }
   return connection;

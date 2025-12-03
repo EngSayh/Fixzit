@@ -5,8 +5,10 @@ import { logger } from '@/lib/logger';
 const OCR_QUEUE_NAME = process.env.OCR_QUEUE_NAME || 'onboarding-ocr';
 const EXPIRY_QUEUE_NAME = process.env.EXPIRY_QUEUE_NAME || 'onboarding-expiry';
 
-const connection = process.env.REDIS_URL
-  ? new IORedis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
+// Support REDIS_URL or REDIS_KEY (Vercel/GitHub naming convention)
+const redisUrl = process.env.REDIS_URL || process.env.REDIS_KEY;
+const connection = redisUrl
+  ? new IORedis(redisUrl, { maxRetriesPerRequest: null })
   : null;
 
 function buildQueue(name: string): Queue | null {
