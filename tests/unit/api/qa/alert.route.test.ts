@@ -19,7 +19,11 @@ vi.mock('@/lib/logger', () => ({
   }
 }));
 vi.mock('@/lib/authz', () => ({
-  requireSuperAdmin: vi.fn(async () => true),
+  requireSuperAdmin: vi.fn(async () => ({ id: 'test-user-id', tenantId: 'test-org-id' })),
+}));
+vi.mock('@/server/security/rateLimit', () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key'),
 }));
 
 // Route handlers will be dynamically imported per-test to avoid module cache leakage across suites
@@ -114,7 +118,11 @@ describe('QA Alert Route', () => {
       const body = await (res as Response).json();
 
       expect(body).toEqual({ success: true });
-      expect(logger.warn).toHaveBeenCalledWith(`🚨 QA Alert: ${event}`, { payload: data });
+      // Now logs to info with payloadSize instead of warn with payload
+      expect(logger.info).toHaveBeenCalledWith(
+        `🚨 QA Alert: ${event}`, 
+        { orgId: 'test-org-id', payloadSize: expect.any(Number) }
+      );
 
       // Verify DB interaction
       expect(mod.getDatabase).toHaveBeenCalled();
@@ -166,8 +174,11 @@ describe('QA Alert Route', () => {
       // timestamp should be a Date
       expect(insertedDoc.timestamp instanceof Date).toBe(true);
 
-      // Logs non-mock variant
-      expect(logger.warn).toHaveBeenCalledWith(`🚨 QA Alert: ${event}`, { payload });
+      // Now logs to info with payloadSize instead of warn with payload
+      expect(logger.info).toHaveBeenCalledWith(
+        `🚨 QA Alert: ${event}`, 
+        { orgId: 'test-org-id', payloadSize: expect.any(Number) }
+      );
     });
 
     it('uses req.ip fallback when x-forwarded-for header is missing', async () => {
@@ -241,7 +252,7 @@ describe('QA Alert Route', () => {
   });
 
   describe('GET /api/qa/alert', () => {
-    it('returns empty list when no alerts exist', async () => {
+    it('returns empty list when no alerts exist for org', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       const toArray = vi.fn().mockResolvedValue([]);
@@ -264,9 +275,11 @@ describe('QA Alert Route', () => {
       expect(body).toEqual({ alerts: [] });
       expect(mod.getDatabase).toHaveBeenCalled();
       expect(collection).toHaveBeenCalledWith('qa_alerts');
+      // Now expects org-scoped filter
+      expect(find).toHaveBeenCalledWith({ orgId: 'test-org-id' });
     });
 
-    it('fetches latest 50 alerts sorted by timestamp desc from DB', async () => {
+    it('fetches latest 50 alerts sorted by timestamp desc from DB with org scoping', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       const docs = [{ event: 'e1' }, { event: 'e2' }];
@@ -293,10 +306,28 @@ describe('QA Alert Route', () => {
       expect(mod.getDatabase).toHaveBeenCalledTimes(1);
 
       expect(collection).toHaveBeenCalledWith('qa_alerts');
-      expect(find).toHaveBeenCalledWith({});
+      // Now expects org-scoped filter instead of {}
+      expect(find).toHaveBeenCalledWith({ orgId: 'test-org-id' });
       expect(sort).toHaveBeenCalledWith({ timestamp: -1 });
       expect(limit).toHaveBeenCalledWith(50);
       expect(toArray).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns 400 when tenantId is missing from auth context', async () => {
+      // Import requireSuperAdmin to mock it for this specific test
+      const { requireSuperAdmin } = await import('@/lib/authz');
+      vi.mocked(requireSuperAdmin).mockResolvedValueOnce({ id: 'test-user', tenantId: '' } as any);
+
+      const req = asNextRequest({
+        json: async () => ({}),
+        headers: buildHeaders({}),
+        ip: '127.0.0.1',
+      });
+
+      const res = await GET(req);
+      expect((res as Response).status).toBe(400);
+      const body = await (res as Response).json();
+      expect(body).toEqual({ error: 'Missing organization context' });
     });
 
     it('returns 500 when DB query fails', async () => {

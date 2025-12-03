@@ -7,6 +7,7 @@
  * This migration creates the following indexes:
  * - { timestamp: -1 } - For efficient reverse chronological queries
  * - { orgId: 1, timestamp: -1 } - For org-scoped queries (future multi-tenant)
+ * - { timestamp: 1 } with TTL - Auto-delete after 30 days to bound storage
  * 
  * Run with: npx tsx scripts/migrations/2025-create-qa-alerts-indexes.ts
  * 
@@ -38,6 +39,16 @@ const INDEXES_TO_CREATE = [
     collection: "qa_alerts",
     index: { orgId: 1, timestamp: -1 },
     options: { name: "orgId_timestamp", background: true, sparse: true },
+  },
+  {
+    // TTL index: Auto-delete qa_alerts after 30 days to bound storage growth
+    collection: "qa_alerts",
+    index: { timestamp: 1 },
+    options: { 
+      name: "qa_alerts_ttl_30d", 
+      expireAfterSeconds: 30 * 24 * 60 * 60,  // 30 days
+      background: true 
+    },
   },
 ];
 

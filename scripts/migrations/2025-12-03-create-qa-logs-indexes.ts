@@ -8,6 +8,7 @@
  * - { timestamp: -1 } - For efficient reverse chronological queries
  * - { orgId: 1, timestamp: -1 } - For org-scoped queries (STRICT v4 tenant isolation)
  * - { orgId: 1, event: 1, timestamp: -1 } - For event-specific org-scoped queries
+ * - { timestamp: 1 } with TTL - Auto-delete after 90 days to bound storage
  * 
  * CONTEXT:
  * Previously qa_logs had no orgId field and allowed anonymous writes.
@@ -57,6 +58,16 @@ const INDEXES_TO_CREATE = [
       name: "orgId_event_timestamp", 
       background: true, 
       sparse: true,  // Exclude documents without orgId
+    },
+  },
+  {
+    // TTL index: Auto-delete qa_logs after 90 days to bound storage growth
+    collection: "qa_logs",
+    index: { timestamp: 1 },
+    options: { 
+      name: "qa_logs_ttl_90d", 
+      expireAfterSeconds: 90 * 24 * 60 * 60,  // 90 days
+      background: true 
     },
   },
 ];

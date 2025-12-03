@@ -87,8 +87,9 @@ export async function POST(req: NextRequest) {
       userAgent: req.headers.get('user-agent'),
     });
 
-    // Log minimal payload for observability (flatten for easier inspection)
-    logger.warn(`🚨 QA Alert: ${sanitizedEvent}`, { payload: data });
+    // Log alert event with redacted payload for observability (no PII leakage)
+    const payloadSize = dataStr.length;
+    logger.info(`🚨 QA Alert: ${sanitizedEvent}`, { orgId: authContext?.tenantId, payloadSize });
 
     const successBody = { success: true };
     return createSecureResponse(successBody, 200, req);
@@ -123,10 +124,16 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // SECURITY: Require tenant context for reads to prevent cross-tenant exposure
+    // Even SUPER_ADMINs must have org context to read org-scoped telemetry
+    if (!authContext?.tenantId) {
+      return createSecureResponse({ error: 'Missing organization context' }, 400, req);
+    }
+
     const native = await resolveDatabase();
     // SECURITY: Scope QA alerts to caller's org to prevent cross-tenant data exposure
     // Uses the { orgId: 1, timestamp: -1 } index created by migration script
-    const orgFilter = authContext?.tenantId ? { orgId: authContext.tenantId } : {};
+    const orgFilter = { orgId: authContext.tenantId };
     const alerts = await native.collection('qa_alerts')
       .find(orgFilter)
       .sort({ timestamp: -1 })

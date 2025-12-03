@@ -78,7 +78,9 @@ export async function POST(req: NextRequest) {
         userAgent: req.headers.get("user-agent"),
         sessionId: req.cookies.get("sessionId")?.value || "unknown",
       });
-      logger.info(`📝 QA Log: ${sanitizedEvent}`, { data });
+      // Log event with redacted payload for observability (no PII leakage)
+      const payloadSize = dataStr.length;
+      logger.info(`📝 QA Log: ${sanitizedEvent}`, { orgId: authContext?.tenantId, payloadSize });
       return createSecureResponse({ success: true }, 200, req);
     } catch (dbError) {
       // Fallback mock mode if DB unavailable
