@@ -3,7 +3,7 @@ import { logger } from '@/lib/logger';
 import { getDatabase, type ConnectionDb } from '@/lib/mongodb-unified';
 import { getClientIP } from '@/server/security/headers';
 
-import { rateLimit } from '@/server/security/rateLimit';
+import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rateLimit';
 import { rateLimitError, unauthorizedError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { requireSuperAdmin } from '@/lib/authz';
@@ -49,9 +49,9 @@ export async function POST(req: NextRequest) {
     return unauthorizedError('Authentication failed');
   }
 
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  // Rate limiting - SECURITY: Use distributed rate limiting to prevent cross-instance bypass
+  const key = buildOrgAwareRateLimitKey(req, null, null);
+  const rl = await smartRateLimit(key, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -97,9 +97,9 @@ export async function GET(req: NextRequest) {
     return unauthorizedError('Authentication failed');
   }
 
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  // Rate limiting - SECURITY: Use distributed rate limiting to prevent cross-instance bypass
+  const key = buildOrgAwareRateLimitKey(req, null, null);
+  const rl = await smartRateLimit(key, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }

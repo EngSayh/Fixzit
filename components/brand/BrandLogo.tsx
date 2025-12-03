@@ -33,7 +33,7 @@ const sizeConfig: Record<BrandLogoSize, { width: number; height: number; classNa
   md: { width: 48, height: 48, className: 'w-12 h-12' },
   lg: { width: 64, height: 64, className: 'w-16 h-16' },
   xl: { width: 80, height: 80, className: 'w-20 h-20' },
-  '2xl': { width: 120, height: 120, className: 'w-30 h-30' },
+  '2xl': { width: 120, height: 120, className: 'w-[120px] h-[120px]' },
 };
 
 export interface BrandLogoProps {

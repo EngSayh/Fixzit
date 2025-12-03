@@ -3,9 +3,9 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { BrandLogo, BrandLogoWithCard } from '@/components/brand/BrandLogo';
 
-// Mock fetch for org logo tests
+// Mock fetch for org logo tests - save original for proper restoration
+const originalFetch = global.fetch;
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
 
 // Mock Next.js Image (we're in test env so native img is used, but mock for completeness)
 vi.mock('next/image', () => ({
@@ -35,6 +35,7 @@ vi.mock('next/image', () => ({
 describe('BrandLogo', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    global.fetch = mockFetch; // Set mock before each test
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({ logo: '/org-logo.png' }),
@@ -43,6 +44,7 @@ describe('BrandLogo', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    global.fetch = originalFetch; // Restore original fetch after each test
   });
 
   describe('Size Presets', () => {
@@ -83,8 +85,8 @@ describe('BrandLogo', () => {
       
       expect(img).toHaveAttribute('width', '120');
       expect(img).toHaveAttribute('height', '120');
-      expect(img.className).toContain('w-30');
-      expect(img.className).toContain('h-30');
+      expect(img.className).toContain('w-[120px]');
+      expect(img.className).toContain('h-[120px]');
     });
   });
 
