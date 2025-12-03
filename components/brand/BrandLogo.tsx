@@ -6,12 +6,19 @@ import { cn } from '@/lib/utils';
 
 /**
  * Fetches organization settings including logo URL
+ * 
+ * SECURITY: Uses no-store to avoid cross-tenant logo caching.
+ * Each session/page load gets fresh org settings to prevent
+ * stale or cross-tenant branding on shared devices.
  */
 async function fetchOrgLogo(): Promise<string | null> {
   try {
+    // NOTE: cache: 'no-store' is required for tenant-scoped resources
+    // to prevent cross-tenant branding after logout/org switch.
+    // The 'next' option is ignored in client-side fetch (browser fetch API).
     const response = await fetch('/api/organization/settings', {
-      cache: 'force-cache',
-      next: { revalidate: 300 }, // Revalidate every 5 minutes
+      cache: 'no-store', // Tenant-specific, avoid reuse across sessions
+      credentials: 'include', // Include cookies for session-based org resolution
     });
     
     if (!response.ok) {
@@ -33,7 +40,8 @@ const sizeConfig: Record<BrandLogoSize, { width: number; height: number; classNa
   md: { width: 48, height: 48, className: 'w-12 h-12' },
   lg: { width: 64, height: 64, className: 'w-16 h-16' },
   xl: { width: 80, height: 80, className: 'w-20 h-20' },
-  '2xl': { width: 120, height: 120, className: 'w-30 h-30' },
+  // NOTE: w-30/h-30 are not valid Tailwind classes. Using arbitrary values.
+  '2xl': { width: 120, height: 120, className: 'w-[120px] h-[120px]' },
 };
 
 export interface BrandLogoProps {

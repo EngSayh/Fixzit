@@ -37,8 +37,29 @@ export default function ForgotPassword() {
       
       setSuccess(true);
     } catch (err) {
-      // For tests and offline flows, show success state even if the backend stub fails
-      logger.warn('Password reset request failed (stub)', { error: err, email });
+      // SECURITY: Always show success to prevent email enumeration attacks.
+      // However, we need to distinguish between:
+      // 1. User not found (expected, show success for anti-enumeration)
+      // 2. Server/network error (unexpected, log for ops visibility)
+      const isNetworkError = err instanceof TypeError && err.message.includes('fetch');
+      const isServerError = err instanceof Error && err.message.includes('500');
+      
+      if (isNetworkError || isServerError) {
+        // Real infrastructure failure - log at error level for ops visibility
+        // but still show success to user for anti-enumeration
+        logger.error('Password reset request failed (infrastructure)', { 
+          error: err instanceof Error ? err.message : String(err),
+          email: email.split('@')[0] + '@***', // Redact domain for logs
+          type: isNetworkError ? 'network' : 'server'
+        });
+      } else {
+        // User not found or validation error - expected behavior, warn level
+        logger.warn('Password reset request completed (user may not exist)', { 
+          email: email.split('@')[0] + '@***' // Redact domain for logs
+        });
+      }
+      
+      // Always show success to prevent email enumeration
       setSuccess(true);
     } finally {
       setLoading(false);
