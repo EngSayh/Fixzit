@@ -21,6 +21,7 @@ const priceTierSchema = z.object({
   flatMonthly: z.number().min(0).optional(),
   currency: z.string().min(1).default("USD"),
   region: z.string().optional(),
+  isGlobal: z.boolean().optional(),
 });
 
 async function authenticateAdmin(req: NextRequest) {
@@ -77,9 +78,20 @@ export async function GET(req: NextRequest) {
       return rateLimitError();
     }
 
+    // Optional includeGlobal=true to merge shared tiers with org-scoped tiers
+    const includeGlobal = req.nextUrl.searchParams.get("includeGlobal") === "true";
+    const query = includeGlobal && orgId
+      ? { $or: [{ orgId }, { isGlobal: true }] }
+      : orgId
+        ? { orgId }
+        : includeGlobal
+          ? { isGlobal: true }
+          : {};
+
     await connectToDatabase();
-    // NOTE: Price tiers are global platform configuration (SUPER_ADMIN only), intentionally not org-scoped
-    const rows = await PriceTier.find({}).populate("moduleId", "code name");
+    const rows = await PriceTier.find(query)
+      .populate("moduleId", "code name")
+      .lean();
     return createSecureResponse(rows, 200, req);
   } catch (error: unknown) {
     // Check for specific authentication errors
@@ -121,6 +133,13 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
     const body = priceTierSchema.parse(await req.json());
 
+    const isGlobalRequested = body.isGlobal === true;
+    const isSuperAdmin = user.role === "SUPER_ADMIN";
+    if (isGlobalRequested && !isSuperAdmin) {
+      return createErrorResponse("Global tiers require SUPER_ADMIN", 403, req);
+    }
+    const isGlobal = isSuperAdmin && isGlobalRequested;
+
     // body: { moduleCode, seatsMin, seatsMax, pricePerSeatMonthly, flatMonthly, currency, region }
     const mod = await Module.findOne({ code: body.moduleCode });
     if (!mod) return createErrorResponse("MODULE_NOT_FOUND", 400, req);
@@ -131,8 +150,16 @@ export async function POST(req: NextRequest) {
         seatsMin: body.seatsMin,
         seatsMax: body.seatsMax,
         currency: body.currency || "USD",
+        ...(isGlobal ? { isGlobal: true } : orgId ? { orgId } : {}),
       },
-      { ...body, moduleId: mod._id, updatedBy: user.id, updatedAt: new Date() },
+      {
+        ...body,
+        moduleId: mod._id,
+        orgId: isGlobal ? undefined : orgId,
+        isGlobal,
+        updatedBy: user.id,
+        updatedAt: new Date(),
+      },
       { upsert: true, new: true },
     );
     return createSecureResponse(doc, 201, req);

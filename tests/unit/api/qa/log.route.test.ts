@@ -13,6 +13,7 @@ const mockState = {
   authError: null as Error | Response | null,
   dbResult: null as any,
   dbError: null as Error | null,
+  indexError: null as Error | null,
 };
 
 // =============================================================================
@@ -44,6 +45,13 @@ vi.mock("@/lib/authz", () => ({
 vi.mock("@/server/security/rateLimit", () => ({
   smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
   buildOrgAwareRateLimitKey: vi.fn(() => "test-rate-limit-key"),
+}));
+
+vi.mock("@/lib/db/collections", () => ({
+  ensureQaIndexes: vi.fn(async () => {
+    if (mockState.indexError) throw mockState.indexError;
+    return undefined;
+  }),
 }));
 
 // =============================================================================
@@ -104,6 +112,7 @@ function resetMocks() {
   };
   mockState.dbError = null;
   mockState.dbResult = createDbMock().db;
+  mockState.indexError = null;
 }
 
 beforeEach(() => {
@@ -201,6 +210,18 @@ describe("api/qa/log - POST", () => {
     expect(await res.json()).toEqual({ error: "Service temporarily unavailable" });
     expect(logger.error).toHaveBeenCalled();
   });
+
+  it("returns 503 when ensureQaIndexes fails", async () => {
+    mockState.indexError = new Error("index bootstrap failed");
+
+    const res = await POST(makePostRequest({ event: "e1", data: {} }));
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: "Service temporarily unavailable" });
+    expect(logger.error).toHaveBeenCalledWith(
+      "[QA Log] DB unavailable during index bootstrap",
+      expect.objectContaining({ error: "index bootstrap failed" })
+    );
+  });
 });
 
 describe("api/qa/log - GET", () => {
@@ -257,5 +278,17 @@ describe("api/qa/log - GET", () => {
     expect(res.status).toBe(503);
     expect(await res.json()).toEqual({ error: "Service temporarily unavailable" });
     expect(logger.error).toHaveBeenCalled();
+  });
+
+  it("returns 503 when ensureQaIndexes fails on GET", async () => {
+    mockState.indexError = new Error("index bootstrap failed");
+
+    const res = await GET(makeGetRequest());
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: "Service temporarily unavailable" });
+    expect(logger.error).toHaveBeenCalledWith(
+      "[QA Log] DB unavailable during index bootstrap",
+      expect.objectContaining({ error: "index bootstrap failed" })
+    );
   });
 });

@@ -65,64 +65,63 @@ export async function POST(req: NextRequest) {
     return rateLimitError();
   }
 
+  // RELIABILITY: Ensure indexes exist before writes (idempotent, process-level singleton)
   try {
     await ensureQaIndexes();
-
-    let body: QaAlertPayload;
-    try {
-      body = await req.json() as QaAlertPayload;
-    } catch {
-      return createSecureResponse({ error: 'Invalid JSON body' }, 400, req);
-    }
-    const { event, data } = body;
-
-    // VALIDATION: Ensure event is a non-empty string (max 128 chars)
-    if (!event || typeof event !== 'string' || event.trim().length === 0) {
-      return createSecureResponse({ error: 'Event name is required' }, 400, req);
-    }
-    const sanitizedEvent = event.trim().slice(0, 128);
-
-    // VALIDATION: Cap payload size to prevent storage bloat (10KB max)
-    const MAX_PAYLOAD_SIZE = 10 * 1024;
-    const dataStr = JSON.stringify(data ?? null);
-    if (dataStr.length > MAX_PAYLOAD_SIZE) {
-      return createSecureResponse({ error: 'Payload too large (max 10KB)' }, 400, req);
-    }
-
-    // Log the alert to database with org tagging for multi-tenant isolation
-    try {
-      const native = await resolveDatabase();
-      await native.collection('qa_alerts').insertOne({
-        event: sanitizedEvent,
-        data,
-        timestamp: new Date(),
-        // ORG TAGGING: Include tenant context for multi-tenant isolation
-        orgId,
-        userId,
-        ip: getClientIP(req),
-        userAgent: req.headers.get('user-agent'),
-      });
-    } catch (dbError) {
-      logger.error('[QA alert] DB unavailable, cannot persist alert', {
-        error: dbError instanceof Error ? dbError.message : String(dbError ?? ''),
-      });
-      return createSecureResponse({ error: 'Service temporarily unavailable' }, 503, req);
-    }
-
-    // Log alert event with redacted payload for observability (no PII leakage)
-    const payloadSize = dataStr.length;
-    logger.info(`🚨 QA Alert: ${sanitizedEvent}`, { orgId, payloadSize });
-
-    const successBody = { success: true };
-    return createSecureResponse(successBody, 200, req);
-  } catch (error) {
-    if (process.env.NODE_ENV === 'test') {
-      logger.error('[QA alert debug]', error);
-    }
-    logger.error('Failed to process QA alert:', error instanceof Error ? error.message : 'Unknown error');
-    const errorBody = { error: 'Failed to process alert' };
-    return createSecureResponse(errorBody, 500, req);
+  } catch (indexError) {
+    logger.error('[QA alert] DB unavailable during index bootstrap', {
+      error: indexError instanceof Error ? indexError.message : String(indexError ?? ''),
+    });
+    return createSecureResponse({ error: 'Service temporarily unavailable' }, 503, req);
   }
+
+  // Parse and validate request body
+  let body: QaAlertPayload;
+  try {
+    body = await req.json() as QaAlertPayload;
+  } catch {
+    return createSecureResponse({ error: 'Invalid JSON body' }, 400, req);
+  }
+  const { event, data } = body;
+
+  // VALIDATION: Ensure event is a non-empty string (max 128 chars)
+  if (!event || typeof event !== 'string' || event.trim().length === 0) {
+    return createSecureResponse({ error: 'Event name is required' }, 400, req);
+  }
+  const sanitizedEvent = event.trim().slice(0, 128);
+
+  // VALIDATION: Cap payload size to prevent storage bloat (10KB max)
+  const MAX_PAYLOAD_SIZE = 10 * 1024;
+  const dataStr = JSON.stringify(data ?? null);
+  if (dataStr.length > MAX_PAYLOAD_SIZE) {
+    return createSecureResponse({ error: 'Payload too large (max 10KB)' }, 400, req);
+  }
+
+  // Log the alert to database with org tagging for multi-tenant isolation
+  try {
+    const native = await resolveDatabase();
+    await native.collection('qa_alerts').insertOne({
+      event: sanitizedEvent,
+      data,
+      timestamp: new Date(),
+      // ORG TAGGING: Include tenant context for multi-tenant isolation
+      orgId,
+      userId,
+      ip: getClientIP(req),
+      userAgent: req.headers.get('user-agent'),
+    });
+  } catch (dbError) {
+    logger.error('[QA alert] DB unavailable, cannot persist alert', {
+      error: dbError instanceof Error ? dbError.message : String(dbError ?? ''),
+    });
+    return createSecureResponse({ error: 'Service temporarily unavailable' }, 503, req);
+  }
+
+  // Log alert event with redacted payload for observability (no PII leakage)
+  const payloadSize = dataStr.length;
+  logger.info(`🚨 QA Alert: ${sanitizedEvent}`, { orgId, payloadSize });
+
+  return createSecureResponse({ success: true }, 200, req);
 }
 
 export async function GET(req: NextRequest) {
@@ -153,10 +152,20 @@ export async function GET(req: NextRequest) {
     return rateLimitError();
   }
 
+  // RELIABILITY: Ensure indexes exist before reads (guarantees TTL and query perf on cold starts)
+  try {
+    await ensureQaIndexes();
+  } catch (indexError) {
+    logger.error('[QA alert] DB unavailable during index bootstrap', {
+      error: indexError instanceof Error ? indexError.message : String(indexError ?? ''),
+    });
+    return createSecureResponse({ error: 'Service temporarily unavailable' }, 503, req);
+  }
+
   try {
     const native = await resolveDatabase();
     // SECURITY: Scope QA alerts to caller's org to prevent cross-tenant data exposure
-    // Uses the { orgId: 1, timestamp: -1 } index created by migration script
+    // Uses the { orgId: 1, timestamp: -1 } index created by ensureQaIndexes
     const orgFilter = { orgId };
     const alerts = await native.collection('qa_alerts')
       .find(orgFilter)

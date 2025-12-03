@@ -46,6 +46,11 @@ jobs:
         run: pnpm run lint
         # CRITICAL: Removed continue-on-error - lint failures must block PRs
 
+      - name: Ensure Mongo Indexes (idempotent)
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/fixzit' }}
+        run: pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
+
       - name: Run RBAC v4.1 Tests
         run: |
           echo "🔒 Running STRICT v4.1 RBAC validation tests..."

@@ -1,78 +1,86 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-
-vi.mock("next/server", () => {
-  return {
-    NextRequest: class {},
-    NextResponse: {
-      json: (body: unknown, init?: ResponseInit) => ({
-        status: init?.status ?? 200,
-        body,
-      }),
-    },
-  };
-});
+import { NextRequest } from "next/server";
 
 vi.mock("@/lib/logger", () => ({
-  logger: {
-    info: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-    debug: vi.fn(),
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+}));
+vi.mock("@/lib/mongodb-unified", () => ({
+  connectToDatabase: vi.fn(),
+}));
+vi.mock("@/lib/auth", () => ({
+  getUserFromToken: vi.fn(),
+}));
+vi.mock("@/server/security/rateLimit", () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  buildOrgAwareRateLimitKey: vi.fn(() => "rl-key"),
+}));
+vi.mock("@/server/models/Module", () => ({
+  __esModule: true,
+  default: { findOne: vi.fn() },
+}));
+vi.mock("@/server/models/PriceTier", () => ({
+  __esModule: true,
+  default: {
+    find: vi.fn().mockReturnThis(),
+    populate: vi.fn().mockReturnThis(),
+    lean: vi.fn().mockResolvedValue([]),
+    findOneAndUpdate: vi.fn(),
   },
 }));
 
-vi.mock("@/lib/mongodb-unified", () => ({
-  connectToDatabase: vi.fn().mockResolvedValue(undefined),
-}));
+import { GET, POST } from "@/app/api/admin/price-tiers/route";
+import { getUserFromToken } from "@/lib/auth";
+import Module from "@/server/models/Module";
+import PriceTier from "@/server/models/PriceTier";
 
-vi.mock("@/lib/auth", () => ({
-  getUserFromToken: vi.fn(async () => ({
-    id: "admin-1",
-    role: "SUPER_ADMIN",
-    orgId: "org-1",
-  })),
-}));
+function makeRequest(method: "GET" | "POST", body?: any, headers?: Record<string, string>) {
+  return new NextRequest("http://localhost/api/admin/price-tiers", {
+    method,
+    body: body ? JSON.stringify(body) : undefined,
+    headers: {
+      authorization: "Bearer token",
+      "content-type": "application/json",
+      ...headers,
+    },
+  });
+}
 
-const populate = vi.fn().mockResolvedValue([{ _id: "pt1" }]);
-const find = vi.fn().mockReturnValue({ populate });
-vi.mock("@/server/models/PriceTier", () => ({
-  __esModule: true,
-  default: { find },
-}));
-
-const smartRateLimit = vi.fn().mockResolvedValue({ allowed: true });
-const buildOrgAwareRateLimitKey = vi.fn(() => "rl-key");
-vi.mock("@/server/security/rateLimit", () => ({
-  smartRateLimit,
-  buildOrgAwareRateLimitKey,
-}));
-
-describe("GET /api/admin/price-tiers", () => {
-  let GET: typeof import("@/app/api/admin/price-tiers/route").GET;
-
-  beforeEach(async () => {
+describe("admin/price-tiers route", () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    ({ GET } = await import("@/app/api/admin/price-tiers/route"));
+    vi.mocked(getUserFromToken).mockResolvedValue({
+      id: "u1",
+      email: "a@test.com",
+      role: "SUPER_ADMIN",
+      orgId: "org1",
+    } as any);
   });
 
-  it("uses org-aware rate limiting after auth", async () => {
-    const req = {
-      url: "https://example.com/api/admin/price-tiers",
-      headers: new Map([["authorization", "Bearer token"]]),
-    } as unknown as Request;
-
-    const res = await GET(req as any);
-
+  it("GET scopes by orgId when present", async () => {
+    const res = await GET(makeRequest("GET"));
     expect(res.status).toBe(200);
-    expect((res as any).body).toEqual([{ _id: "pt1" }]);
+    expect(PriceTier.find).toHaveBeenCalledWith({ orgId: "org1" });
+  });
 
-    expect(buildOrgAwareRateLimitKey).toHaveBeenCalledWith(
-      expect.anything(),
-      "org-1",
-      "admin-1",
+  it("POST upserts with orgId", async () => {
+    vi.mocked(Module.findOne).mockResolvedValue({ _id: "mod1" } as any);
+    vi.mocked(PriceTier.findOneAndUpdate).mockResolvedValue({ _id: "tier1", orgId: "org1" } as any);
+
+    const res = await POST(
+      makeRequest("POST", {
+        moduleCode: "MOD",
+        seatsMin: 1,
+        seatsMax: 10,
+        pricePerSeatMonthly: 5,
+        currency: "USD",
+      }),
     );
-    expect(smartRateLimit).toHaveBeenCalledWith("rl-key", 100, 60_000);
-    expect(find).toHaveBeenCalledWith({});
-    expect(populate).toHaveBeenCalledWith("moduleId", "code name");
+
+    expect(res.status).toBe(201);
+    expect(PriceTier.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: "org1" }),
+      expect.objectContaining({ orgId: "org1" }),
+      expect.any(Object),
+    );
   });
 });

@@ -38,25 +38,44 @@ export async function POST(req: NextRequest) {
       return rateLimitError();
     }
 
-    const body = await req.json();
-    const { level, message, context } = body;
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    if (typeof body !== "object" || body === null) {
+      return NextResponse.json({ error: "Body must be an object" }, { status: 400 });
+    }
+
+    const { level, message, context } = body as Record<string, unknown>;
 
     // Validate input
-    if (!level || !message) {
+    if (!level || !message || typeof message !== "string") {
       return NextResponse.json(
         { error: "Missing required fields: level, message" },
         { status: 400 },
       );
     }
 
-    if (!["info", "warn", "error"].includes(level)) {
+    if (typeof level !== "string" || !["info", "warn", "error"].includes(level)) {
       return NextResponse.json(
         { error: "Invalid level. Must be info, warn, or error" },
         { status: 400 },
       );
     }
 
-    // Cap payload size (context) to avoid oversized log ingestion
+    // Validate context shape
+    if (context !== undefined && (typeof context !== "object" || context === null)) {
+      return NextResponse.json(
+        { error: "Context must be an object" },
+        { status: 400 },
+      );
+    }
+
+    // Cap message/context size to avoid oversized log ingestion
+    const sanitizedMessage = message.slice(0, 2048);
     const serializedContext = JSON.stringify(context ?? {});
     const MAX_CONTEXT_SIZE = 8 * 1024; // 8KB
     if (serializedContext.length > MAX_CONTEXT_SIZE) {
@@ -80,7 +99,7 @@ export async function POST(req: NextRequest) {
             service: "web-app",
             hostname: req.headers.get("host") || "unknown",
             level,
-            message,
+            message: sanitizedMessage,
             timestamp: new Date().toISOString(),
             user: session?.user?.email || "anonymous",
             orgId,

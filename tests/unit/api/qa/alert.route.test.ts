@@ -271,6 +271,27 @@ describe('QA Alert Route', () => {
       expect(body).toEqual({ error: 'Missing organization context' });
       expect(mod.getDatabase).not.toHaveBeenCalled();
     });
+
+    it('returns 503 when ensureQaIndexes fails during POST', async () => {
+      const mod = vi.mocked(mongodbUnified);
+      const { ensureQaIndexes } = await import('@/lib/db/collections');
+      vi.mocked(ensureQaIndexes).mockRejectedValueOnce(new Error('index bootstrap failed'));
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'test_event', data: {} }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(503);
+      const body = await (res as Response).json();
+      expect(body).toEqual({ error: 'Service temporarily unavailable' });
+      expect(logger.error).toHaveBeenCalledWith(
+        '[QA alert] DB unavailable during index bootstrap',
+        expect.objectContaining({ error: 'index bootstrap failed' })
+      );
+      expect(mod.getDatabase).not.toHaveBeenCalled();
+    });
   });
 
   describe('GET /api/qa/alert', () => {
@@ -350,6 +371,28 @@ describe('QA Alert Route', () => {
       expect((res as Response).status).toBe(400);
       const body = await (res as Response).json();
       expect(body).toEqual({ error: 'Missing organization context' });
+    });
+
+    it('returns 503 when ensureQaIndexes fails during GET', async () => {
+      const mod = vi.mocked(mongodbUnified);
+      const { ensureQaIndexes } = await import('@/lib/db/collections');
+      vi.mocked(ensureQaIndexes).mockRejectedValueOnce(new Error('index bootstrap failed'));
+
+      const req = asNextRequest({
+        json: async () => ({}),
+        headers: buildHeaders({}),
+        ip: '127.0.0.1',
+      });
+
+      const res = await GET(req);
+      expect((res as Response).status).toBe(503);
+      const body = await (res as Response).json();
+      expect(body).toEqual({ error: 'Service temporarily unavailable' });
+      expect(logger.error).toHaveBeenCalledWith(
+        '[QA alert] DB unavailable during index bootstrap',
+        expect.objectContaining({ error: 'index bootstrap failed' })
+      );
+      expect(mod.getDatabase).not.toHaveBeenCalled();
     });
 
     it('returns 503 when DB query fails', async () => {

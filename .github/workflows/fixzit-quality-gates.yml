@@ -142,6 +142,17 @@ jobs:
             *) npm run typecheck || npm run tsc --noEmit ;;
           esac
 
+      - name: Ensure Mongo Indexes (idempotent)
+        shell: bash
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/fixzit_test' }}
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();" ;;
+            yarn) yarn tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();" ;;
+            *) npx tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();" ;;
+          esac
+
       # ---------- Unit Tests -------------
       - name: Unit Tests
         shell: bash

@@ -201,11 +201,13 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // SECURITY: Always scope to orgId to prevent cross-tenant exposure (even for super admins)
       const users = await db
         .collection("users")
-        .find(
-          query ?? (!isSuperAdmin && orgFilter.orgId ? { orgId: orgFilter.orgId } : {}),
-        )
+        .find({
+          orgId,
+          ...(query ?? {}),
+        })
         .toArray();
       targetContacts = users.map((u) => ({
         id: u._id.toString(),
@@ -222,11 +224,13 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // SECURITY: Always scope to orgId to prevent cross-tenant exposure (even for super admins)
       const tenants = await db
         .collection("tenants")
-        .find(
-          query ?? (!isSuperAdmin && orgFilter.orgId ? { orgId: orgFilter.orgId } : {}),
-        )
+        .find({
+          orgId,
+          ...(query ?? {}),
+        })
         .toArray();
       targetContacts = tenants.map((t) => ({
         id: t._id.toString(),
@@ -270,9 +274,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (targetContacts.length === 0) {
+      logger.warn("[Admin Notification] No recipients found for broadcast", {
+        recipients,
+        orgId,
+      });
+      // Return 200 to keep admin flows observable without hard-failing automation; surface in payload
       return NextResponse.json(
-        { success: false, error: "No recipients found" },
-        { status: 404 },
+        { success: false, error: "No recipients found", results: { totalRecipients: 0 } },
+        { status: 200 },
       );
     }
 

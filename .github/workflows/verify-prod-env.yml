@@ -64,6 +64,11 @@ jobs:
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Ensure Mongo Indexes (idempotent)
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        run: pnpm tsx -e "import { createIndexes } from './lib/db/collections'; import { getDatabase } from './lib/mongodb-unified'; (async () => { await createIndexes(); try { const db = await getDatabase(); (db as any)?.client?.close?.(); } catch (_) {} })();"
       
       - name: Run production environment validation
         id: validate

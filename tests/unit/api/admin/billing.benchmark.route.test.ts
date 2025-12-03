@@ -4,10 +4,16 @@ vi.mock("next/server", () => {
   return {
     NextRequest: class {},
     NextResponse: {
-      json: (body: unknown, init?: ResponseInit) => ({
-        status: init?.status ?? 200,
-        body,
-      }),
+      json: (body: unknown, init?: ResponseInit) => {
+        const status = init?.status ?? 200;
+        return {
+          status,
+          body,
+          async json() {
+            return body;
+          },
+        };
+      },
     },
   };
 });
@@ -50,7 +56,7 @@ describe("GET /api/admin/billing/benchmark", () => {
 
     const res = await GET(req as any);
     expect(res.status).toBe(200);
-    expect((res as any).body).toEqual([{ vendor: "v1" }]);
+    expect(await (res as any).json()).toEqual([{ vendor: "v1" }]);
 
     expect(buildOrgAwareRateLimitKey).toHaveBeenCalledWith(
       expect.anything(),

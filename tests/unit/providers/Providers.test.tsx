@@ -4,7 +4,7 @@ import { vi, beforeAll, afterAll, describe, test, expect, beforeEach, afterEach 
  * If this project uses Vitest, replace jest import aliases with vitest and keep RTL usage.
  */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import Providers from '@/providers/Providers';
 
 // Silence console.error during ErrorBoundary test (intentional "Boom" error)
@@ -129,15 +129,17 @@ describe('Providers', () => {
     vi.useRealTimers();
   });
 
-  test('renders loading UI before client hydration', () => {
+  test('renders loading UI before client hydration', async () => {
     // Note: In jsdom/vitest, useEffect runs synchronously after first render
     // so we can't actually test the "loading" state in this environment
     // This test documents the expected behavior even though we can't verify it in tests
-    render(
-      <Providers>
-        <Child />
-      </Providers>
-    );
+    await act(async () => {
+      render(
+        <Providers>
+          <Child />
+        </Providers>
+      );
+    });
 
     // In a real browser, loading UI would be visible before useEffect runs
     // But in jsdom, useEffect is synchronous, so isClient is already true
@@ -147,12 +149,14 @@ describe('Providers', () => {
     expect(screen.getByTestId('session-provider')).toBeInTheDocument();
   });
 
-  test('renders children after client hydration and nests providers correctly (happy path)', () => {
-    render(
-      <Providers>
-        <Child label="Happy child" />
-      </Providers>
-    );
+  test('renders children after client hydration and nests providers correctly (happy path)', async () => {
+    await act(async () => {
+      render(
+        <Providers>
+          <Child label="Happy child" />
+        </Providers>
+      );
+    });
     // Advance effects to flip isClient
     vi.runAllTimers();
 
@@ -194,24 +198,28 @@ describe('Providers', () => {
     expect(formstate).toContainElement(child);
   });
 
-  test('renders TranslationProvider', () => {
-    render(
-      <Providers>
-        <Child />
-      </Providers>
-    );
+  test('renders TranslationProvider', async () => {
+    await act(async () => {
+      render(
+        <Providers>
+          <Child />
+        </Providers>
+      );
+    });
     vi.runAllTimers();
 
     const translation = screen.getByTestId('translation-provider');
     expect(translation).toBeInTheDocument();
   });
 
-  test('defaults initialLocale to empty when not provided', () => {
-    render(
-      <Providers>
-        <Child />
-      </Providers>
-    );
+  test('defaults initialLocale to empty when not provided', async () => {
+    await act(async () => {
+      render(
+        <Providers>
+          <Child />
+        </Providers>
+      );
+    });
     vi.runAllTimers();
 
     const translation = screen.getByTestId('translation-provider');
@@ -219,12 +227,14 @@ describe('Providers', () => {
     expect(translation.getAttribute('data-locale')).toBe('');
   });
 
-  test('shows error fallback when a child throws (ErrorBoundary behavior)', () => {
-    render(
-      <Providers>
-        <Child shouldThrow />
-      </Providers>
-    );
+  test('shows error fallback when a child throws (ErrorBoundary behavior)', async () => {
+    await act(async () => {
+      render(
+        <Providers>
+          <Child shouldThrow />
+        </Providers>
+      );
+    });
     vi.runAllTimers();
 
     // Our mocked ErrorBoundary renders role="alert" with error message
@@ -233,15 +243,17 @@ describe('Providers', () => {
     expect(alert).toHaveTextContent('Error: Boom');
   });
 
-  test('maintains SSR safety by not rendering children pre-client', () => {
+  test('maintains SSR safety by not rendering children pre-client', async () => {
     // Note: In jsdom/vitest, we can't actually test SSR behavior because
     // useEffect runs synchronously. This test documents the expected behavior.
     // In a real SSR environment, children would not render until client hydration.
-    render(
-      <Providers>
-        <Child />
-      </Providers>
-    );
+    await act(async () => {
+      render(
+        <Providers>
+          <Child />
+        </Providers>
+      );
+    });
 
     // In jsdom, isClient is set immediately, so child is rendered
     // This is acceptable for unit tests; SSR behavior is tested via E2E
