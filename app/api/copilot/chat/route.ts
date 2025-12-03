@@ -91,8 +91,19 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: "Tool name is required" }, 400, req);
     }
 
-    const args: Record<string, unknown> =
-      typeof argsRaw === "string" && argsRaw ? JSON.parse(argsRaw) : {};
+    let args: Record<string, unknown> = {};
+    if (typeof argsRaw === "string" && argsRaw) {
+      try {
+        args = JSON.parse(argsRaw) as Record<string, unknown>;
+      } catch (error) {
+        logger.warn("[copilot] Invalid JSON in multipart args", { error });
+        return createSecureResponse(
+          { error: "Invalid args payload (must be JSON)" },
+          400,
+          req,
+        );
+      }
+    }
 
     if (file instanceof File) {
       // Validate file size (10MB limit)
@@ -118,7 +129,17 @@ export async function POST(req: NextRequest) {
     // Validate the constructed body against schema
     body = multipartRequestSchema.parse({ tool: { name: toolName, args } });
   } else {
-    const json = await req.json();
+    let json: unknown;
+    try {
+      json = await req.json();
+    } catch (error) {
+      logger.warn("[copilot] Invalid JSON body", { error });
+      return createSecureResponse(
+        { error: "Invalid JSON payload" },
+        400,
+        req,
+      );
+    }
     body = requestSchema.parse(json);
   }
 

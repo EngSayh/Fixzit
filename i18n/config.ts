@@ -14,8 +14,11 @@ const ENABLED_LANGUAGE_OPTIONS = LANGUAGE_OPTIONS.filter(
 // When adding new enabled languages, update this type AND add dictionary imports in I18nProvider.tsx
 export type Locale = "en" | "ar";
 
-export const SUPPORTED_LOCALES: Locale[] = ENABLED_LANGUAGE_OPTIONS.map(
-  (opt) => opt.language as Locale,
+// Keep a consistent order (en first, then ar) to match UI/test expectations.
+const LOCALE_DISPLAY_ORDER: Locale[] = ["en", "ar"];
+
+export const SUPPORTED_LOCALES: Locale[] = LOCALE_DISPLAY_ORDER.filter((loc) =>
+  ENABLED_LANGUAGE_OPTIONS.some((opt) => opt.language === loc),
 );
 
 export const DEFAULT_LOCALE: Locale = getDefaultLanguage()
@@ -28,16 +31,24 @@ export const LOCALE_META: Record<
     nativeName: string;
     countryName: string;
     dir: "ltr" | "rtl";
-    flag: string;
+    flag: string; // country code (lowercase) for flag icons
   }
 > = ENABLED_LANGUAGE_OPTIONS.reduce(
   (acc, opt) => {
+    const isoCode =
+      (opt.iso?.split("-")[0] || opt.language || "").toUpperCase();
+    const flagCode = (opt.iso?.split("-")[1] || opt.country || "")
+      .toLowerCase()
+      .replace(/[^a-z]/g, "");
+    const countryName =
+      opt.language === "ar" ? "المملكة العربية السعودية" : opt.country;
+
     acc[opt.language as Locale] = {
-      iso: opt.iso,
+      iso: isoCode,
       nativeName: opt.native,
-      countryName: opt.country,
+      countryName: countryName,
       dir: opt.dir,
-      flag: opt.flag,
+      flag: flagCode,
     };
     return acc;
   },

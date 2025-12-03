@@ -1,4 +1,5 @@
 # Daily Progress Report - Souq Marketplace Phase 0
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 **Date**: January 2025  
 **Session**: Day 1 - Foundation Setup  

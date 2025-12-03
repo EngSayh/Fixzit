@@ -69,6 +69,8 @@ duplicate-detection-report.json
 !/_artifacts/eslint-baseline.json
 !/_artifacts/eslint-any-scan.json
 !/_artifacts/eslint-scripts-tools-scan.json
+/tests/_artifacts/
+/qa/artifacts/sidebar-*.png
 /reports/
 /exports/
 /screenshots/

@@ -29,11 +29,14 @@ import { SouqSeller } from "@/server/models/souq/Seller";
 // Deferred service import
 let AutoRepricerService: typeof import("@/services/souq/auto-repricer-service").AutoRepricerService;
 
+// Test fixture ObjectId for consistent test data
+const testOrgId = new Types.ObjectId();
+
 /**
  * Helper to seed a test seller with repricer settings
  */
 async function seedSeller({
-  orgId = "org-test",
+  orgId = testOrgId,
   repricerEnabled = false,
   repricerRules = {},
   defaultRule = undefined as {
@@ -155,7 +158,7 @@ describe("AutoRepricerService", () => {
       await SouqSeller.create({
         _id: sellerId,
         sellerId: `SEL-${nanoid(8)}`,
-        orgId: "org-test",
+        orgId: testOrgId,
         legalName: `Seller-${nanoid(6)}`,
         tradeName: `Trade-${nanoid(6)}`,
         crNumber: `CR-${nanoid(8)}`,

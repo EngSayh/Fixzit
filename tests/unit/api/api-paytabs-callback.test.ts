@@ -9,7 +9,8 @@ vi.mock("@/db/mongoose", () => ({
 const mockNormalizePayload = vi.fn(() => ({ cart_id: "C123" }));
 const mockFinalizeTransaction = vi.fn(async () => ({ ok: true }));
 
-vi.mock("@/lib/finance/paytabs", () => ({
+// Route imports from @/lib/finance/paytabs-subscription
+vi.mock("@/lib/finance/paytabs-subscription", () => ({
   normalizePayTabsPayload: (...args: unknown[]) =>
     mockNormalizePayload(...args),
   finalizePayTabsTransaction: (...args: unknown[]) =>
@@ -20,6 +21,30 @@ const mockValidateCallback = vi.fn(() => true);
 
 vi.mock("@/lib/paytabs", () => ({
   validateCallback: (...args: unknown[]) => mockValidateCallback(...args),
+}));
+
+// Mock paytabs-callback.contract functions
+vi.mock("@/lib/payments/paytabs-callback.contract", () => ({
+  buildPaytabsIdempotencyKey: vi.fn(() => "test-idempotency-key"),
+  enforcePaytabsPayloadSize: vi.fn(),
+  extractPaytabsSignature: vi.fn((req: unknown, payload: unknown) => {
+    const headers = (req as { headers: Headers }).headers;
+    return headers.get("signature");
+  }),
+  parsePaytabsJsonPayload: vi.fn((rawBody: string) => JSON.parse(rawBody)),
+  PaytabsCallbackValidationError: class extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = "PaytabsCallbackValidationError";
+    }
+  },
+  PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS: 60000,
+  PAYTABS_CALLBACK_RATE_LIMIT: { requests: 100, windowMs: 60000 },
+}));
+
+// Mock idempotency wrapper to just call the function
+vi.mock("@/server/security/idempotency", () => ({
+  withIdempotency: vi.fn(async (_key: string, fn: () => Promise<unknown>) => fn()),
 }));
 
 type JsonBody = Record<string, unknown>;

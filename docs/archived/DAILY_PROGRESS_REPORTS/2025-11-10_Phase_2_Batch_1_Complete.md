@@ -1,4 +1,5 @@
 # Phase 2 Batch 1 Complete - Unhandled Promise Rejections
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 **Date**: 2025-11-10  
 **Branch**: `fix/unhandled-promises-batch1`  

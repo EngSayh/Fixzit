@@ -1,4 +1,5 @@
 # PR #272 - All AI Reviewer Comments Addressed
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 **Date**: November 11, 2025  
 **PR**: #272 (Decimal.js for Finance)  

@@ -24,6 +24,10 @@ const DEV_ALLOWED_ORIGINS = [
   "http://localhost:3001",
 ] as const;
 
+const isE2E =
+  process.env.PLAYWRIGHT === "true" ||
+  process.env.NEXT_PUBLIC_E2E === "true";
+
 export function parseOrigins(value?: string | null): string[] {
   if (!value) return [];
   return value
@@ -48,6 +52,7 @@ export function parseOrigins(value?: string | null): string[] {
         // Disallow localhost in production CORS_ORIGINS
         if (
           process.env.NODE_ENV === "production" &&
+          !isE2E &&
           (url.hostname === "localhost" || url.hostname === "127.0.0.1")
         ) {
           if (process.env.NODE_ENV !== "production") {
@@ -96,7 +101,7 @@ export function isOriginAllowed(origin: string | null): boolean {
     return true;
   }
   const allowDev =
-    process.env.NODE_ENV !== "production" &&
+    (process.env.NODE_ENV !== "production" || isE2E) &&
     DEV_ALLOWED_ORIGINS.includes(
       origin as (typeof DEV_ALLOWED_ORIGINS)[number],
     );
@@ -121,7 +126,7 @@ export function resolveAllowedOrigin(
       return origin;
     }
     if (
-      process.env.NODE_ENV !== "production" &&
+      (process.env.NODE_ENV !== "production" || isE2E) &&
       DEV_ALLOWED_ORIGINS.includes(
         origin as (typeof DEV_ALLOWED_ORIGINS)[number],
       )
@@ -131,7 +136,7 @@ export function resolveAllowedOrigin(
     return undefined;
   }
 
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production" || isE2E) {
     return DEV_ALLOWED_ORIGINS[0];
   }
 

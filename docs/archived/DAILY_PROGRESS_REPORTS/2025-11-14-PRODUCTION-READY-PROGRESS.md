@@ -1,4 +1,5 @@
 # Production Readiness Progress Report
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 **Date**: November 14, 2025  
 **Branch**: `fix/date-hydration-complete-system-wide`  

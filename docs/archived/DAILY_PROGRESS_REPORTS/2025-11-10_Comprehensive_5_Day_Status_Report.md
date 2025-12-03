@@ -1,4 +1,5 @@
 # Comprehensive 5-Day Status Report (Nov 5-10, 2025)
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 **Generated**: 2025-11-10  
 **Scope**: Past 5 days of development work  

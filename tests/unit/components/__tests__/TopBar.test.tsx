@@ -350,14 +350,15 @@ describe("TopBar Component", () => {
   });
 
   describe("Logo Navigation", () => {
-    it("should navigate to home when logo is clicked without unsaved changes", async () => {
+    it("should navigate to FM dashboard when logo is clicked by authenticated user", async () => {
       await renderWithProviders(<TopBar />);
 
       const logoButton = screen.getByLabelText("Go to home");
       fireEvent.click(logoButton);
 
+      // Authenticated users are redirected to /fm/dashboard, not /
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith("/");
+        expect(mockPush).toHaveBeenCalledWith("/fm/dashboard");
       });
     });
 
@@ -639,13 +640,17 @@ describe("TopBar Component", () => {
       // Simulate route change
       (usePathname as Mock).mockReturnValue("/settings");
       rerender(
-        <TranslationProvider>
-          <ResponsiveProvider>
-            <FormStateProvider>
-              <TopBar />
-            </FormStateProvider>
-          </ResponsiveProvider>
-        </TranslationProvider>,
+        <SessionProvider session={mockSession}>
+          <TranslationProvider>
+            <ResponsiveProvider>
+              <TooltipProvider>
+                <FormStateProvider>
+                  <TopBar />
+                </FormStateProvider>
+              </TooltipProvider>
+            </ResponsiveProvider>
+          </TranslationProvider>
+        </SessionProvider>,
       );
 
       await waitFor(() => {

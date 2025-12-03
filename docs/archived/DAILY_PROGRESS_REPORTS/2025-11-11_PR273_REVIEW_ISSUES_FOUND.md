@@ -1,4 +1,5 @@
 # PR #273 Review Issues & System-Wide Similar Patterns
+> **Historical snapshot.** Archived status report; verify latest CI/build/test/deploy data before acting. Evidence placeholders: CI run: <link>, Tests: <link>, Deploy: <link>.
 
 **Date**: November 11, 2025  
 **Reporter**: GitHub Copilot (automated review)  

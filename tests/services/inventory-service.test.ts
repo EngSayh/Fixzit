@@ -32,12 +32,15 @@ let inventoryService: typeof import("@/services/souq/inventory-service").invento
 /**
  * Helper to seed a test listing and inventory
  */
+// Test fixture ObjectId for consistent test data
+const testOrgId = new Types.ObjectId();
+
 async function seedInventory({
   quantity = 100,
   reservedQuantity = 0,
   fulfillmentType = "FBM" as const,
   lowStockThreshold = 10,
-  orgId = "org-test",
+  orgId = testOrgId,
 } = {}) {
   const sellerId = new Types.ObjectId();
   const productId = new Types.ObjectId();
