@@ -66,10 +66,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { tenantId, id: userId } = user;
+    const { tenantId, id: userId, orgId } = user;
 
-    // Rate limit to avoid abuse
-    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user?.orgId ?? null, userId), 30, 60_000);
+    // SECURITY: Require orgId for tenant-isolated rate limiting
+    // Missing orgId indicates session/data issue - fail fast rather than sharing anonymous bucket
+    if (!orgId) {
+      logger.warn('[Presign] Missing orgId in authenticated session', { userId });
+      return createSecureResponse({ error: "Missing organization context" }, 400, req);
+    }
+
+    // Rate limit to avoid abuse - tenant-isolated bucket
+    const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, orgId, userId), 30, 60_000);
     if (!rl.allowed) return rateLimitError();
 
     const body = await req.json().catch(() => ({}));

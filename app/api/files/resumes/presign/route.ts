@@ -10,7 +10,6 @@ import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
 import { validateBucketPolicies } from "@/lib/security/s3-policy";
-import { getClientIp } from "@/lib/security/client-ip";
 
 const ALLOWED_TYPES = new Set(["application/pdf", "application/x-pdf"]);
 const ALLOWED_EXTENSIONS = new Set(["pdf"]);
@@ -60,15 +59,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const _safeIp = (() => {
-      try {
-        return getClientIp(req);
-      } catch {
-        return "unknown";
-      }
-    })();
+    // Rate limiting: Authenticated users get tenant-isolated buckets,
+    // anonymous users (careers form) share IP-based bucket with tighter limits
+    const orgId = user?.orgId ?? null;
+    const userId = user?.id ?? null;
+    
+    // For authenticated users, warn if orgId is missing (data quality issue)
+    if (user && !orgId) {
+      logger.warn('[Resumes Presign] Authenticated user missing orgId - using anonymous bucket', { 
+        userId: user.id 
+      });
+    }
+    
     const rl = await smartRateLimit(
-      buildOrgAwareRateLimitKey(req, user?.orgId ?? null, user?.id ?? null),
+      buildOrgAwareRateLimitKey(req, orgId, userId),
       user ? 60 : 20, // tighter window for anonymous callers
       60_000,
     );

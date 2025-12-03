@@ -91,8 +91,20 @@ export async function POST(req: NextRequest) {
     sessionUser = null;
   }
 
+  // Rate limiting: Authenticated users get tenant-isolated buckets,
+  // anonymous users (if enabled) share IP-based bucket
+  const orgId = sessionUser?.orgId ?? null;
+  const userId = sessionUser?.id ?? null;
+  
+  // For authenticated users, warn if orgId is missing (data quality issue)
+  if (sessionUser && !orgId) {
+    logger.warn('[Incidents] Authenticated user missing orgId - using anonymous bucket', { 
+      userId: sessionUser.id 
+    });
+  }
+  
   const rl = await smartRateLimit(
-    buildOrgAwareRateLimitKey(req, sessionUser?.orgId ?? null, sessionUser?.id ?? null),
+    buildOrgAwareRateLimitKey(req, orgId, userId),
     60,
     60_000,
   );

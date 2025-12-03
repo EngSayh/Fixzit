@@ -61,10 +61,23 @@ export async function POST(req: NextRequest) {
     const body = await req.json() as QaAlertPayload;
     const { event, data } = body;
 
+    // VALIDATION: Ensure event is a non-empty string (max 128 chars)
+    if (!event || typeof event !== 'string' || event.trim().length === 0) {
+      return createSecureResponse({ error: 'Event name is required' }, 400, req);
+    }
+    const sanitizedEvent = event.trim().slice(0, 128);
+
+    // VALIDATION: Cap payload size to prevent storage bloat (10KB max)
+    const MAX_PAYLOAD_SIZE = 10 * 1024;
+    const dataStr = JSON.stringify(data ?? null);
+    if (dataStr.length > MAX_PAYLOAD_SIZE) {
+      return createSecureResponse({ error: 'Payload too large (max 10KB)' }, 400, req);
+    }
+
     // Log the alert to database with org tagging for multi-tenant isolation
     const native = await resolveDatabase();
     await native.collection('qa_alerts').insertOne({
-      event,
+      event: sanitizedEvent,
       data,
       timestamp: new Date(),
       // ORG TAGGING: Include tenant context for multi-tenant isolation
@@ -75,7 +88,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Log minimal payload for observability (flatten for easier inspection)
-    logger.warn(`🚨 QA Alert: ${event}`, { payload: data });
+    logger.warn(`🚨 QA Alert: ${sanitizedEvent}`, { payload: data });
 
     const successBody = { success: true };
     return createSecureResponse(successBody, 200, req);
@@ -111,8 +124,11 @@ export async function GET(req: NextRequest) {
 
   try {
     const native = await resolveDatabase();
+    // SECURITY: Scope QA alerts to caller's org to prevent cross-tenant data exposure
+    // Uses the { orgId: 1, timestamp: -1 } index created by migration script
+    const orgFilter = authContext?.tenantId ? { orgId: authContext.tenantId } : {};
     const alerts = await native.collection('qa_alerts')
-      .find({})
+      .find(orgFilter)
       .sort({ timestamp: -1 })
       .limit(50)
       .toArray();

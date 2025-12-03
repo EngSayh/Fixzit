@@ -133,7 +133,19 @@ export async function POST(req: NextRequest) {
     user = null; // allow public help queries without actions
   }
 
-  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, user?.orgId ?? null, user?.id ?? null), 60, 60_000);
+  // Rate limiting: Authenticated users get tenant-isolated buckets,
+  // anonymous users (public help queries) share IP-based bucket
+  const orgId = user?.orgId ?? null;
+  const userId = user?.id ?? null;
+  
+  // For authenticated users, warn if orgId is missing (data quality issue)
+  if (user && !orgId) {
+    logger.warn('[Assistant] Authenticated user missing orgId - using anonymous bucket', { 
+      userId: user.id 
+    });
+  }
+  
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, orgId, userId), 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }

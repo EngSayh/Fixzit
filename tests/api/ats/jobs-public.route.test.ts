@@ -26,7 +26,8 @@ vi.mock('@/lib/mongodb-unified', () => ({
 
 vi.mock('@/server/security/rateLimit', () => ({
   rateLimit: vi.fn().mockReturnValue({ allowed: true }),
-  smartRateLimit: vi.fn(async () => ({ allowed: true }))
+  smartRateLimit: vi.fn(async () => ({ allowed: true })),
+  buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key')
 }));
 
 vi.mock('@/server/utils/errorResponses', () => ({
@@ -444,7 +445,8 @@ describe('API /api/ats/jobs/public - Cache Key Normalization', () => {
     // Re-register mocks after module reset
     vi.doMock('@/server/security/rateLimit', () => ({
       rateLimit: vi.fn().mockReturnValue({ allowed: true }),
-      smartRateLimit: vi.fn(async () => ({ allowed: true }))
+      smartRateLimit: vi.fn(async () => ({ allowed: true })),
+      buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key')
     }));
     vi.doMock('@/lib/redis', () => ({
       getCached: vi.fn().mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => {

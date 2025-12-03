@@ -3,7 +3,7 @@ import { logger } from "@/lib/logger";
 import { getDatabase } from "@/lib/mongodb-unified";
 import { getClientIP } from "@/server/security/headers";
 
-import { smartRateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 
@@ -25,9 +25,12 @@ import { createSecureResponse } from "@/server/security/headers";
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  // Rate limiting - use org-aware key for tenant isolation (null org for anonymous QA endpoint)
+  const rl = await smartRateLimit(
+    buildOrgAwareRateLimitKey(req, null, null),
+    60,
+    60_000
+  );
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -79,9 +82,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  // Rate limiting - use org-aware key for tenant isolation (null org for anonymous QA endpoint)
+  const rl = await smartRateLimit(
+    buildOrgAwareRateLimitKey(req, null, null),
+    60,
+    60_000
+  );
   if (!rl.allowed) {
     return rateLimitError();
   }
