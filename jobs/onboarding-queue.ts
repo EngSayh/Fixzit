@@ -31,7 +31,16 @@ const ocrQueue = buildQueue(OCR_QUEUE_NAME);
 const expiryQueue = buildQueue(EXPIRY_QUEUE_NAME);
 
 type OcrJob = { docId: string; onboardingCaseId: string };
-type ExpiryJob = { onboardingCaseId: string };
+
+/**
+ * ExpiryJob payload type
+ * - orgId: Required for tenant-scoped processing (multi-tenant isolation)
+ * - onboardingCaseId: Optional for case-specific processing
+ */
+type ExpiryJob = {
+  orgId: string;
+  onboardingCaseId?: string;
+};
 
 export async function enqueueOnboardingOcr(data: OcrJob): Promise<string | null> {
   if (!ocrQueue) return null;
