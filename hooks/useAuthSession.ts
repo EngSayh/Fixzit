@@ -10,6 +10,7 @@ interface ExtendedUser {
   email: string;
   name: string;
   role?: string;
+  orgId?: string;
   tenantId?: string;
   sellerId?: string;
 }
@@ -22,6 +23,7 @@ export interface AuthSession {
   email: string;
   name: string;
   role: string;
+  orgId: string | null; // Organization ID for multi-tenant scoping
   tenantId: string | null; // null when missing (e.g., SUPER_ADMIN or incomplete profile)
   sellerId?: string; // For marketplace sellers
   isAuthenticated: boolean;
@@ -49,6 +51,7 @@ export function useAuthSession(): AuthSession | null {
     email: user.email,
     name: user.name,
     role: user.role || "GUEST",
+    orgId: user.orgId || null, // Organization ID for tenant isolation
     tenantId: user.tenantId || null, // Use null instead of empty string
     sellerId: user.sellerId,
     isAuthenticated: true,

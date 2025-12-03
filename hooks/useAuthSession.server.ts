@@ -23,6 +23,7 @@ interface ExtendedUser {
   email: string;
   name: string;
   role?: string;
+  orgId?: string;
   tenantId?: string;
   sellerId?: string;
 }
@@ -53,6 +54,9 @@ export async function getServerAuthSession(): Promise<AuthSession | null> {
   if (!user.role) {
     logger.warn(`[Auth] User ${user.id} missing role field`);
   }
+  if (!user.orgId && user.role !== "SUPER_ADMIN") {
+    logger.warn(`[Auth] User ${user.id} missing orgId (role: ${user.role})`);
+  }
   if (!user.tenantId && user.role !== "SUPER_ADMIN") {
     logger.warn(`[Auth] User ${user.id} missing tenantId (role: ${user.role})`);
   }
@@ -62,6 +66,7 @@ export async function getServerAuthSession(): Promise<AuthSession | null> {
     email: user.email,
     name: user.name,
     role: user.role || "GUEST",
+    orgId: user.orgId || null, // Organization ID for tenant isolation
     tenantId: user.tenantId || null, // Use null instead of empty string to distinguish from missing data
     sellerId: user.sellerId,
     isAuthenticated: true,

@@ -9,9 +9,24 @@ import { getCached, CacheTTL } from "@/lib/redis";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
+const MAX_CACHE_KEY_SEGMENT = 64; // Limit cache key segment length to prevent Redis key bloat
 
 const escapeRegex = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Clamp and normalize a string for use in cache keys.
+ * Prevents cache key bloat from unbounded user input (e.g., long search strings).
+ * 
+ * @param value - The input string to normalize
+ * @param maxLen - Maximum length (default: MAX_CACHE_KEY_SEGMENT)
+ * @returns Normalized string safe for cache keys
+ */
+const normalizeCacheKeySegment = (value: string, maxLen = MAX_CACHE_KEY_SEGMENT): string => {
+  if (!value) return "";
+  // Clamp length and replace colons (cache key delimiter) with underscores
+  return value.slice(0, maxLen).replace(/:/g, "_").toLowerCase();
+};
 
 const parsePositiveInt = (
   value: string | null,
@@ -90,8 +105,9 @@ export async function GET(req: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    // Cache key: public-jobs:{orgId}:{search}:{department}:{location}:{jobType}:{page}:{limit}
-    const cacheKey = `public-jobs:${orgId}:${search}:${department}:${location}:${jobType}:${page}:${limit}`;
+    // Cache key with normalized segments to prevent Redis key bloat from unbounded user input
+    // Security: Clamp search/filter lengths to prevent cache churn attacks
+    const cacheKey = `public-jobs:${orgId}:${normalizeCacheKeySegment(search)}:${normalizeCacheKeySegment(department)}:${normalizeCacheKeySegment(location)}:${normalizeCacheKeySegment(jobType)}:${page}:${limit}`;
 
     // Use cached data if available (15 minutes TTL)
     const result = await getCached(
