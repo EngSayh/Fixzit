@@ -1,18 +1,10 @@
-"use client";
+"use server";
 
-import { useSession } from "next-auth/react";
+import { auth } from "@/auth";
 import type { AuthSession, ExtendedUser } from "@/types/auth-session";
 
-/**
- * Hook to get current authenticated session
- * @returns AuthSession or null if not authenticated
- */
-export function useAuthSession(): AuthSession | null {
-  const { data: session, status } = useSession();
-
-  if (status === "loading") {
-    return null;
-  }
+export async function getServerAuthSession(): Promise<AuthSession | null> {
+  const session = await auth();
 
   if (!session?.user) {
     return null;
