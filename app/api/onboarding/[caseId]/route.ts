@@ -20,9 +20,16 @@ export async function GET(
   }
 
   try {
-    const onboarding = await OnboardingCase.findById(params.caseId).lean();
-    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
-    if (!onboarding || (onboarding.subject_user_id?.toString() !== user.id && onboarding.created_by_id?.toString() !== user.id && onboarding.orgId?.toString() !== user.orgId)) {
+    // Defense-in-depth: Query scoped to user's org from the start
+    const onboarding = await OnboardingCase.findOne({
+      _id: params.caseId,
+      $or: [
+        { subject_user_id: user.id },
+        { created_by_id: user.id },
+        ...(user.orgId ? [{ orgId: user.orgId }] : []),
+      ],
+    }).lean();
+    if (!onboarding) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
@@ -50,9 +57,16 @@ export async function PATCH(
     if (user.orgId) {
       setTenantContext({ orgId: user.orgId });
     }
-    const onboarding = await OnboardingCase.findById(params.caseId);
-    // AUDIT-2025-11-29: Changed from org_id to orgId for consistency
-    if (!onboarding || (onboarding.subject_user_id?.toString() !== user.id && onboarding.created_by_id?.toString() !== user.id && onboarding.orgId?.toString() !== user.orgId)) {
+    // Defense-in-depth: Query scoped to user's org from the start
+    const onboarding = await OnboardingCase.findOne({
+      _id: params.caseId,
+      $or: [
+        { subject_user_id: user.id },
+        { created_by_id: user.id },
+        ...(user.orgId ? [{ orgId: user.orgId }] : []),
+      ],
+    });
+    if (!onboarding) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
