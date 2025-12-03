@@ -1,31 +1,8 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-
-/**
- * Extended User Type with Fixzit-specific fields
- */
-interface ExtendedUser {
-  id: string;
-  email: string;
-  name: string;
-  role?: string;
-  tenantId?: string;
-  sellerId?: string;
-}
-
-/**
- * Authenticated Session Data
- */
-export interface AuthSession {
-  userId: string;
-  email: string;
-  name: string;
-  role: string;
-  tenantId: string;
-  sellerId?: string; // For marketplace sellers
-  isAuthenticated: boolean;
-}
+import type { AuthSession, ExtendedUser } from "@/types/auth-session";
+export type { AuthSession } from "@/types/auth-session";
 
 /**
  * Hook to get current authenticated session
