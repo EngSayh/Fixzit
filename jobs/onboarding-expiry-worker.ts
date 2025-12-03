@@ -1,5 +1,5 @@
 import { Worker, Job } from 'bullmq';
-import IORedis from 'ioredis';
+import IORedis, { type RedisOptions } from 'ioredis';
 import { connectMongo } from '@/lib/mongo';
 import { logger } from '@/lib/logger';
 import { VerificationDocument, type VerificationDocumentDoc } from '@/server/models/onboarding/VerificationDocument';
@@ -25,9 +25,47 @@ const BATCH_SIZE = 500;
 
 // Resolution order: BULLMQ_REDIS_URL → REDIS_URL → REDIS_KEY (Vercel/GitHub naming)
 const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL || process.env.REDIS_KEY;
-const connection = redisUrl
-  ? new IORedis(redisUrl, { maxRetriesPerRequest: null })
-  : null;
+
+/**
+ * Build IORedis connection with security validation
+ * 
+ * SECURITY: In non-development environments, enforce TLS for Redis connections
+ * to prevent plaintext credential/traffic exposure in shared/VPC setups.
+ * 
+ * - rediss:// URLs automatically use TLS
+ * - redis:// URLs in production are logged as warnings and TLS is forced
+ * - Local/development redis:// URLs are allowed without TLS
+ */
+function buildRedisConnection(): IORedis | null {
+  if (!redisUrl) {
+    return null;
+  }
+  
+  const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+  const isSecureUrl = redisUrl.startsWith('rediss://');
+  const isLocalhost = redisUrl.includes('localhost') || redisUrl.includes('127.0.0.1');
+  
+  // In production, warn if using non-TLS Redis (unless localhost for local dev/test)
+  if (!isDev && !isSecureUrl && !isLocalhost) {
+    logger.warn('[OnboardingExpiry] Redis URL is not using TLS (rediss://). Adding TLS config for security.', {
+      hint: 'Consider using rediss:// URL for encrypted connections',
+    });
+  }
+  
+  // Build connection options with proper typing
+  const options: RedisOptions = {
+    maxRetriesPerRequest: null, // Required for BullMQ
+  };
+  
+  // Force TLS in production for non-secure URLs (unless localhost)
+  if (!isDev && !isSecureUrl && !isLocalhost) {
+    options.tls = {}; // Enable TLS with default settings
+  }
+  
+  return new IORedis(redisUrl, options);
+}
+
+const connection = buildRedisConnection();
 
 const QUEUE_NAME = process.env.EXPIRY_QUEUE_NAME || 'onboarding-expiry';
 
