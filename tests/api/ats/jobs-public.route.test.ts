@@ -415,7 +415,11 @@ describe('API /api/ats/jobs/public - Edge Cases & Input Validation', () => {
       // Re-import to get new module with updated env
       vi.resetModules();
       vi.doMock('@/lib/mongodb-unified', () => ({ connectToDatabase: vi.fn().mockResolvedValue(undefined) }));
-      vi.doMock('@/server/security/rateLimit', () => ({ rateLimit: vi.fn().mockReturnValue({ allowed: true }) }));
+      vi.doMock('@/server/security/rateLimit', () => ({
+        rateLimit: vi.fn().mockReturnValue({ allowed: true }),
+        smartRateLimit: vi.fn(async () => ({ allowed: true })),
+        buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key')
+      }));
       vi.doMock('@/server/utils/errorResponses', () => ({ rateLimitError: vi.fn() }));
       vi.doMock('@/server/security/headers', () => ({ getClientIP: vi.fn().mockReturnValue('127.0.0.1') }));
       vi.doMock('@/lib/redis', () => ({ getCached: vi.fn(), CacheTTL: { FIFTEEN_MINUTES: 900 } }));
