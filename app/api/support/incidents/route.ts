@@ -91,17 +91,23 @@ export async function POST(req: NextRequest) {
     sessionUser = null;
   }
 
+  if (sessionUser && !sessionUser.orgId) {
+    logger.error("[Incidents] Authenticated user missing orgId - denying to preserve tenant isolation", {
+      userId: sessionUser.id,
+    });
+    return NextResponse.json(
+      {
+        error: "Missing organization context",
+        detail: "Authenticated incident reports require an org-scoped session.",
+      },
+      { status: 400 },
+    );
+  }
+
   // Rate limiting: Authenticated users get tenant-isolated buckets,
   // anonymous users (if enabled) share IP-based bucket
   const orgId = sessionUser?.orgId ?? null;
   const userId = sessionUser?.id ?? null;
-  
-  // For authenticated users, warn if orgId is missing (data quality issue)
-  if (sessionUser && !orgId) {
-    logger.warn('[Incidents] Authenticated user missing orgId - using anonymous bucket', { 
-      userId: sessionUser.id 
-    });
-  }
   
   const rl = await smartRateLimit(
     buildOrgAwareRateLimitKey(req, orgId, userId),

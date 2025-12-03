@@ -133,18 +133,16 @@ export async function POST(req: NextRequest) {
     user = null; // allow public help queries without actions
   }
 
-  // Rate limiting: Authenticated users get tenant-isolated buckets,
-  // anonymous users (public help queries) share IP-based bucket
+  // Rate limiting: Authenticated users must have org context; anonymous users are allowed but share IP bucket
+  if (user && !user.orgId) {
+    logger.error("[Assistant] Authenticated user missing orgId - denying to preserve tenant isolation", {
+      userId: user.id,
+    });
+    return createSecureResponse({ error: "Missing organization context" }, 400, req);
+  }
+
   const orgId = user?.orgId ?? null;
   const userId = user?.id ?? null;
-  
-  // For authenticated users, warn if orgId is missing (data quality issue)
-  if (user && !orgId) {
-    logger.warn('[Assistant] Authenticated user missing orgId - using anonymous bucket', { 
-      userId: user.id 
-    });
-  }
-  
   const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, orgId, userId), 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();

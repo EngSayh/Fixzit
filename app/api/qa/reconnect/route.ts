@@ -5,6 +5,7 @@ import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rat
 import { rateLimitError } from "@/server/utils/errorResponses";
 
 import { logger } from "@/lib/logger";
+import { requireSuperAdmin } from "@/lib/authz";
 /**
  * @openapi
  * /api/qa/reconnect:
@@ -23,15 +24,20 @@ import { logger } from "@/lib/logger";
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting - use org-aware key for tenant isolation (null org for anonymous reconnect)
-  const rl = await smartRateLimit(
-    buildOrgAwareRateLimitKey(req, null, null),
-    60,
-    60_000
-  );
-  if (!rl.allowed) {
-    return rateLimitError();
+  // Require SUPER_ADMIN to trigger reconnect
+  let authContext: { id: string; tenantId: string } | null = null;
+  try {
+    authContext = await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
   }
+
+  // Rate limiting - org-aware key for tenant isolation
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authContext?.tenantId ?? null, authContext?.id ?? null), 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
 
   try {
     // Force database reconnection by accessing it

@@ -35,6 +35,12 @@ const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req).catch(() => null);
+    if (user && !user.orgId) {
+      logger.error("[Resumes Presign] Authenticated user missing orgId - denying to preserve tenant isolation", {
+        userId: user.id,
+      });
+      return createSecureResponse({ error: "Missing organization context" }, 400, req);
+    }
     if (!process.env.AWS_S3_BUCKET || !process.env.AWS_REGION) {
       return createSecureResponse(
         { error: "Storage not configured" },
@@ -63,13 +69,6 @@ export async function POST(req: NextRequest) {
     // anonymous users (careers form) share IP-based bucket with tighter limits
     const orgId = user?.orgId ?? null;
     const userId = user?.id ?? null;
-    
-    // For authenticated users, warn if orgId is missing (data quality issue)
-    if (user && !orgId) {
-      logger.warn('[Resumes Presign] Authenticated user missing orgId - using anonymous bucket', { 
-        userId: user.id 
-      });
-    }
     
     const rl = await smartRateLimit(
       buildOrgAwareRateLimitKey(req, orgId, userId),

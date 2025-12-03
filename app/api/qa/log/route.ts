@@ -6,6 +6,7 @@ import { getClientIP } from "@/server/security/headers";
 import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
+import { requireSuperAdmin } from "@/lib/authz";
 
 /**
  * @openapi
@@ -25,15 +26,20 @@ import { createSecureResponse } from "@/server/security/headers";
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting - use org-aware key for tenant isolation (null org for anonymous QA endpoint)
-  const rl = await smartRateLimit(
-    buildOrgAwareRateLimitKey(req, null, null),
-    60,
-    60_000
-  );
-  if (!rl.allowed) {
-    return rateLimitError();
+  // Require SUPER_ADMIN to write QA logs (sensitive telemetry)
+  let authContext: { id: string; tenantId: string } | null = null;
+  try {
+    authContext = await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return createSecureResponse({ error: "Authentication failed" }, 401, req);
   }
+
+  // Rate limiting - org-aware key for tenant isolation
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authContext?.tenantId ?? null, authContext?.id ?? null), 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
 
   try {
     let body: unknown;
@@ -48,21 +54,31 @@ export async function POST(req: NextRequest) {
     }
 
     const { event, data } = body as Record<string, unknown>;
-    if (!event || typeof event !== "string") {
+    if (!event || typeof event !== "string" || event.trim().length === 0) {
       return createSecureResponse({ error: "Failed to log event" }, 500, req);
+    }
+    const sanitizedEvent = event.trim().slice(0, 128);
+
+    // Cap payload size to avoid log bloat (10KB)
+    const MAX_PAYLOAD_SIZE = 10 * 1024;
+    const dataStr = JSON.stringify(data ?? null);
+    if (dataStr.length > MAX_PAYLOAD_SIZE) {
+      return createSecureResponse({ error: "Payload too large" }, 400, req);
     }
 
     try {
       const native = await getDatabase();
       await native.collection("qa_logs").insertOne({
-        event,
+        event: sanitizedEvent,
         data,
         timestamp: new Date(),
+        orgId: authContext?.tenantId ?? null,
+        userId: authContext?.id ?? null,
         ip: getClientIP(req),
         userAgent: req.headers.get("user-agent"),
         sessionId: req.cookies.get("sessionId")?.value || "unknown",
       });
-      logger.info(`📝 QA Log: ${event}`, { data });
+      logger.info(`📝 QA Log: ${sanitizedEvent}`, { data });
       return createSecureResponse({ success: true }, 200, req);
     } catch (dbError) {
       // Fallback mock mode if DB unavailable
@@ -82,15 +98,20 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  // Rate limiting - use org-aware key for tenant isolation (null org for anonymous QA endpoint)
-  const rl = await smartRateLimit(
-    buildOrgAwareRateLimitKey(req, null, null),
-    60,
-    60_000
-  );
-  if (!rl.allowed) {
-    return rateLimitError();
+  // Require SUPER_ADMIN to read QA logs (sensitive telemetry)
+  let authContext: { id: string; tenantId: string } | null = null;
+  try {
+    authContext = await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return createSecureResponse({ error: "Authentication failed" }, 401, req);
   }
+
+  // Rate limiting - org-aware key for tenant isolation
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authContext?.tenantId ?? null, authContext?.id ?? null), 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
 
   try {
     const { searchParams } = new URL(req.url);
@@ -101,9 +122,10 @@ export async function GET(req: NextRequest) {
     );
     const eventType = searchParams.get("event");
 
-    let query = {} as Record<string, unknown>;
+    // Scope to caller's org to prevent cross-tenant access
+    const query: Record<string, unknown> = { orgId: authContext?.tenantId ?? null };
     if (eventType) {
-      query = { event: eventType };
+      query.event = eventType;
     }
 
     try {

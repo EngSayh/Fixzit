@@ -3,6 +3,7 @@ import { logger } from "@/lib/logger";
 import { smartRateLimit, buildOrgAwareRateLimitKey } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import type mongoose from "mongoose";
+import { requireSuperAdmin } from "@/lib/authz";
 
 type ConnectFn = () => Promise<typeof mongoose>;
 
@@ -37,15 +38,20 @@ export const dynamic = "force-dynamic";
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting - use org-aware key for tenant isolation (null org for anonymous health check)
-  const rl = await smartRateLimit(
-    buildOrgAwareRateLimitKey(req, null, null),
-    60,
-    60_000
-  );
-  if (!rl.allowed) {
-    return rateLimitError();
+  // Require SUPER_ADMIN to access health diagnostics
+  let authContext: { id: string; tenantId: string } | null = null;
+  try {
+    authContext = await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
   }
+
+  // Rate limiting - org-aware key for tenant isolation
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authContext?.tenantId ?? null, authContext?.id ?? null), 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
 
   const healthStatus = {
     timestamp: new Date().toISOString(),
@@ -112,15 +118,20 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // Rate limiting - use org-aware key for tenant isolation (null org for anonymous health check)
-  const rl = await smartRateLimit(
-    buildOrgAwareRateLimitKey(req, null, null),
-    60,
-    60_000
-  );
-  if (!rl.allowed) {
-    return rateLimitError();
+  // Require SUPER_ADMIN to trigger reconnects
+  let authContext: { id: string; tenantId: string } | null = null;
+  try {
+    authContext = await requireSuperAdmin(req);
+  } catch (error) {
+    if (error instanceof Response) {
+      return error;
+    }
+    return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
   }
+
+  // Rate limiting - org-aware key for tenant isolation
+  const rl = await smartRateLimit(buildOrgAwareRateLimitKey(req, authContext?.tenantId ?? null, authContext?.id ?? null), 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
 
   // Force database reconnection
   try {

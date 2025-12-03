@@ -20,9 +20,17 @@ vi.mock('@/lib/logger', () => ({
     debug: vi.fn(),
   }
 }));
+vi.mock('@/lib/authz', () => ({
+  requireSuperAdmin: vi.fn().mockResolvedValue({ id: 'test-user', tenantId: 'test-org' }),
+}));
+vi.mock('@/server/security/rateLimit', () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key'),
+}));
 
 import { POST, GET } from "@/app/api/qa/health/route";
 import { logger } from '@/lib/logger';
+import { requireSuperAdmin } from '@/lib/authz';
 
 type MongooseLike = {
   connection?: {
@@ -46,11 +54,41 @@ describe('api/qa/health route - GET', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (globalThis as any).__connectToDatabaseMock = vi.mocked(mongodbUnified).connectToDatabase;
+    // Reset auth mock to default success
+    vi.mocked(requireSuperAdmin).mockResolvedValue({ id: 'test-user', tenantId: 'test-org', role: 'SUPER_ADMIN', email: 'admin@test.com' });
   });
 
   afterEach(() => {
     delete (process as any).env.npm_package_version;
     delete (globalThis as any).__connectToDatabaseMock;
+  });
+
+  it('returns 401 when no authorization header provided', async () => {
+    vi.mocked(requireSuperAdmin).mockRejectedValue(
+      new Response(JSON.stringify({ error: 'UNAUTHORIZED' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+
+    const res = await GET(createGetRequest());
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toBe('UNAUTHORIZED');
+  });
+
+  it('returns 403 when user is not SUPER_ADMIN', async () => {
+    vi.mocked(requireSuperAdmin).mockRejectedValue(
+      new Response(JSON.stringify({ error: 'FORBIDDEN' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+
+    const res = await GET(createGetRequest());
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe('FORBIDDEN');
   });
 
   it('returns healthy with database status when DB connects successfully', async () => {
@@ -106,10 +144,40 @@ describe('api/qa/health route - POST', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (globalThis as any).__connectToDatabaseMock = vi.mocked(mongodbUnified).connectToDatabase;
+    // Reset auth mock to default success
+    vi.mocked(requireSuperAdmin).mockResolvedValue({ id: 'test-user', tenantId: 'test-org', role: 'SUPER_ADMIN', email: 'admin@test.com' });
   });
 
   afterEach(() => {
     delete (globalThis as any).__connectToDatabaseMock;
+  });
+
+  it('returns 401 when no authorization header provided', async () => {
+    vi.mocked(requireSuperAdmin).mockRejectedValue(
+      new Response(JSON.stringify({ error: 'UNAUTHORIZED' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+
+    const res = await POST(createPostRequest());
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toBe('UNAUTHORIZED');
+  });
+
+  it('returns 403 when user is not SUPER_ADMIN', async () => {
+    vi.mocked(requireSuperAdmin).mockRejectedValue(
+      new Response(JSON.stringify({ error: 'FORBIDDEN' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+
+    const res = await POST(createPostRequest());
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe('FORBIDDEN');
   });
 
   it('returns success when DB reconnects successfully', async () => {

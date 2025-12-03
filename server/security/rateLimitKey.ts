@@ -104,7 +104,8 @@ export function buildRateLimitKey(
   // Detection logic:
   // - arguments.length <= 2 → legacy call, treat 2nd arg as userId
   // - arguments.length >= 3 → new call with explicit org/user
-  const isLegacyCall = arguments.length <= 2;
+  const argCount = arguments.length;
+  const isLegacyCall = argCount <= 2;
   
   if (isLegacyCall) {
     // Emit deprecation warning in development (once per endpoint)
@@ -128,12 +129,19 @@ export function buildRateLimitKey(
   // 1. Pass a valid orgId for tenant isolation
   // 2. Explicitly use buildOrgAwareRateLimitKey(req, null, null) for anonymous paths
   if (!orgIdOrUserId) {
-    // Log error but continue with anonymous fallback for resilience
-    logger.error('[RateLimit] buildRateLimitKey called with 3+ args but missing orgId. ' +
-      'This may indicate a tenant isolation gap. Use buildOrgAwareRateLimitKey for clarity.', {
-      path: path.replace(/[a-f0-9]{24}/gi, '***').replace(/\d{3,}/g, '***'),
-      hasUserId: !!userId,
-    });
+    const redactedPath = path
+      .replace(/[a-f0-9]{24}/gi, '***')
+      .replace(/\d{3,}/g, '***');
+    logger.error(
+      '[RateLimit] buildRateLimitKey called with 3+ args but missing orgId. ' +
+        'This is prohibited—use buildOrgAwareRateLimitKey(req, null, userId) for anonymous/public flows.',
+      {
+        path: redactedPath,
+        hasUserId: !!userId,
+        argCount,
+      },
+    );
+    throw new Error('buildRateLimitKey requires orgId when called with 3+ arguments');
   }
   
   // New: buildRateLimitKey(req, orgId, userId, overridePath?)
