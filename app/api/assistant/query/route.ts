@@ -8,7 +8,7 @@ import {
   type SessionUser,
 } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
     user = null; // allow public help queries without actions
   }
 
-  const rl = rateLimit(buildRateLimitKey(req, user?.id ?? null), 60, 60_000);
+  const rl = await smartRateLimit(buildRateLimitKey(req, user?.id ?? null), 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }

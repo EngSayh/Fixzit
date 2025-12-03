@@ -5,7 +5,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getPresignedPutUrl, buildResumeKey } from "@/lib/storage/s3";
 import { logger } from "@/lib/logger";
 
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
         return "unknown";
       }
     })();
-    const rl = rateLimit(
+    const rl = await smartRateLimit(
       buildRateLimitKey(req, user?.id || safeIp),
       user ? 60 : 20, // tighter window for anonymous callers
       60_000,

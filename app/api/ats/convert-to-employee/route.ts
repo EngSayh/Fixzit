@@ -5,7 +5,7 @@ import { Application } from "@/server/models/Application";
 import { Candidate } from "@/server/models/Candidate";
 import { Job } from "@/server/models/Job";
 import { Employee } from "@/server/models/hr.models";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import {
   notFoundError,
   validationError,
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     }
     const { userId, orgId, isSuperAdmin } = authz;
 
-    const rl = rateLimit(buildRateLimitKey(req, userId), 60, 60_000);
+    const rl = await smartRateLimit(buildRateLimitKey(req, userId), 60, 60_000);
     if (!rl.allowed) return rateLimitError();
 
     await connectToDatabase();

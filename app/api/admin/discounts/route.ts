@@ -3,7 +3,7 @@ import { logger } from "@/lib/logger";
 import DiscountRule from "@/server/models/DiscountRule";
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromToken } from "@/lib/auth";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import {
   rateLimitError,
   zodValidationError,
@@ -59,7 +59,7 @@ async function authenticateAdmin(req: NextRequest) {
 export async function GET(req: NextRequest) {
   // Rate limiting
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   // Rate limiting
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 100, 60000);
   if (!rl.allowed) {
     return rateLimitError();
   }
@@ -104,7 +104,7 @@ export async function PUT(req: NextRequest) {
 
     // Rate limiting for admin operations
     const key = `admin:discounts:${user.id}`;
-    const rl = rateLimit(key, 5, 60_000); // 5 requests per minute for discount changes
+    const rl = await smartRateLimit(key, 5, 60_000); // 5 requests per minute for discount changes
     if (!rl.allowed) {
       return createSecureResponse({ error: "Rate limit exceeded" }, 429, req);
     }

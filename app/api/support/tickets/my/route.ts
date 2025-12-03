@@ -5,7 +5,7 @@ import { SupportTicket } from "@/server/models/SupportTicket";
 import { Types } from "mongoose";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     let user;
     try {
       user = await getSessionUser(req);
-      const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+      const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
       if (!rl.allowed) {
         return rateLimitError();
       }

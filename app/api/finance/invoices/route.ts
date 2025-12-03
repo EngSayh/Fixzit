@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { logger } from "@/lib/logger";
 import * as svc from "@/server/finance/invoice.service";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { getUserFromToken } from "@/lib/auth";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
     if (!rl.allowed) {
       return rateLimitError();
     }
@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
     }
 
     const key = `inv:${user.orgId}:${user.id}`;
-    const rl = rateLimit(key, 20, 60_000);
+    const rl = await smartRateLimit(key, 20, 60_000);
     if (!rl.allowed)
       return createSecureResponse({ error: "Rate limit exceeded" }, 429, req);
 

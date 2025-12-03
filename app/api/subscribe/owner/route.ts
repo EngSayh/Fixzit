@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { dbConnect } from "@/db/mongoose";
 import { createSubscriptionCheckout } from "@/lib/finance/checkout";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import {
   forbiddenError,
   validationError,
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser(req);
 
     // Rate limiting: 3 req/5min for subscription operations (very sensitive)
-    const rl = rateLimit(`subscribe-owner:${user.id}`, 3, 300000);
+    const rl = await smartRateLimit(`subscribe-owner:${user.id}`, 3, 300000);
     if (!rl.allowed) {
       return rateLimitError();
     }

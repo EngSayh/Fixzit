@@ -5,7 +5,7 @@ import { z } from "zod";
 import { requireAbility } from "@/server/middleware/withAuthRbac";
 import { WOAbility } from "@/types/work-orders/abilities";
 
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
@@ -51,7 +51,7 @@ export async function POST(
 ): Promise<NextResponse> {
   // Rate limiting
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }

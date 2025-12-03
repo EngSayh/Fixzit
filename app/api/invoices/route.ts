@@ -7,7 +7,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { generateZATCAQR } from "@/lib/zatca";
 import { nanoid } from "nanoid";
 
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse } from "@/server/security/headers";
 import { getClientIP } from "@/server/security/headers";
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
 
     // Rate limiting AFTER authentication
     const clientIp = getClientIP(req);
-    const rl = rateLimit(
+    const rl = await smartRateLimit(
       `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
       60,
       60_000,
@@ -241,7 +241,7 @@ export async function GET(req: NextRequest) {
 
     // Rate limiting AFTER authentication
     const clientIp = getClientIP(req);
-    const rl = rateLimit(
+    const rl = await smartRateLimit(
       `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
       60,
       60_000,

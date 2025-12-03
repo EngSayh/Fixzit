@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { getPresignedPutUrl } from "@/lib/storage/s3";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 import { createSecureResponse } from "@/server/security/headers";
@@ -61,7 +61,7 @@ export async function POST(
     );
   }
 
-  const rl = rateLimit(buildRateLimitKey(req, user.id), 30, 60_000);
+  const rl = await smartRateLimit(buildRateLimitKey(req, user.id), 30, 60_000);
   if (!rl.allowed) return rateLimitError();
 
   const { id } = await props.params;

@@ -16,7 +16,7 @@ import { fetchWithRetry } from "@/lib/http/fetchWithRetry";
 import { SERVICE_RESILIENCE } from "@/config/service-timeouts";
 import { getCircuitBreaker } from "@/lib/resilience";
 import { withIdempotency } from "@/server/security/idempotency";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import {
   unauthorizedError,
   validationError,
@@ -74,7 +74,7 @@ const PAYTABS_CONFIGURED = Boolean(
 export async function POST(req: NextRequest) {
   try {
     const clientIp = getClientIP(req);
-    const rl = rateLimit(
+    const rl = await smartRateLimit(
       `payment-callback:${clientIp}`,
       PAYTABS_CALLBACK_RATE_LIMIT.requests,
       PAYTABS_CALLBACK_RATE_LIMIT.windowMs,

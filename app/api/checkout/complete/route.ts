@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { dbConnect } from "@/db/mongoose";
 import Subscription from "@/server/models/Subscription";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { createSecureResponse, getClientIP } from "@/server/security/headers";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
    * Protects against checkout spam and payment fraud attempts
    */
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  const rl = await smartRateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }

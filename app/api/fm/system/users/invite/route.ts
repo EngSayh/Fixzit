@@ -7,7 +7,7 @@ import { requireFmPermission } from "@/app/api/fm/permissions";
 import { resolveTenantId, isCrossTenantMode } from "@/app/api/fm/utils/tenant";
 import { ModuleKey } from "@/domain/fm/fm.behavior";
 import { FMAction } from "@/types/fm/enums";
-import { rateLimit } from "@/server/security/rateLimit";
+import { smartRateLimit } from "@/server/security/rateLimit";
 import { rateLimitError } from "@/server/utils/errorResponses";
 import { buildRateLimitKey } from "@/server/security/rateLimitKey";
 
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const rl = rateLimit(buildRateLimitKey(req, actor.id), 30, 60_000);
+    const rl = await smartRateLimit(buildRateLimitKey(req, actor.id), 30, 60_000);
     if (!rl.allowed) return rateLimitError();
 
     const payload = sanitize(await req.json());
