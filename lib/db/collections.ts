@@ -485,7 +485,7 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.PROPERTIES)
     .createIndex(
-      { orgId: 1, name: "text", "address.street": "text", "address.city": "text" },
+      { orgId: 1, name: "text", description: "text", code: "text", "address.street": "text", "address.city": "text" },
       {
         background: true,
         name: "properties_orgId_text_search",
