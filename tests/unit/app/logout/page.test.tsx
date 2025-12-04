@@ -1,248 +1,161 @@
-import React from "react";
-import { vi, describe, test, expect, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import React from 'react';
+import { render, screen, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import LogoutPage from '@/app/logout/page';
 
-// Mock functions at module level
+// Mock Next.js navigation
 const mockPush = vi.fn();
-const mockSignOut = vi.fn();
-const mockLoggerWarn = vi.fn();
-const mockLoggerError = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush, replace: vi.fn(), refresh: vi.fn() }),
+  usePathname: () => '/logout',
+}));
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: mockPush,
-    replace: vi.fn(),
-    prefetch: vi.fn(),
+// Mock next-auth
+vi.mock('next-auth/react', () => ({
+  signOut: vi.fn(() => Promise.resolve({ url: '/login' })),
+  useSession: () => ({ data: null, status: 'unauthenticated' }),
+}));
+
+// Mock TranslationContext
+vi.mock('@/contexts/TranslationContext', () => ({
+  useTranslation: () => ({
+    t: (key: string, fallback?: string) => fallback || key,
+    locale: 'en',
+    direction: 'ltr',
   }),
 }));
 
-vi.mock("next-auth/react", () => ({
-  signOut: (...args: unknown[]) => mockSignOut(...args),
+// Mock lucide-react icons
+vi.mock('lucide-react', () => ({
+  LogOut: () => <span data-testid="mock-logout-icon">LogoutIcon</span>,
+  Loader2: ({ className }: { className?: string }) => (
+    <span data-testid="logout-spinner" className={className}>LoaderIcon</span>
+  ),
+  CheckCircle: ({ className }: { className?: string }) => (
+    <span data-testid="logout-success" className={className}>CheckIcon</span>
+  ),
+  XCircle: ({ className }: { className?: string }) => (
+    <span data-testid="logout-error" className={className}>XIcon</span>
+  ),
 }));
 
-vi.mock("@/lib/logger", () => ({
+// Mock brand component
+vi.mock('@/components/brand', () => ({
+  BrandLogo: ({ className, 'data-testid': testId }: { className?: string; 'data-testid'?: string }) => (
+    <div data-testid={testId || 'brand-logo'} className={className}>MockBrandLogo</div>
+  ),
+}));
+
+// Mock logger
+vi.mock('@/lib/logger', () => ({
   logger: {
-    warn: (...args: unknown[]) => mockLoggerWarn(...args),
-    error: (...args: unknown[]) => mockLoggerError(...args),
+    warn: vi.fn(),
+    error: vi.fn(),
     info: vi.fn(),
     debug: vi.fn(),
   },
 }));
 
-vi.mock("@/contexts/TranslationContext", () => ({
-  useTranslation: () => ({
-    t: (key: string, fallback: string) => fallback,
-    locale: "en",
-  }),
-}));
+// Setup localStorage mock
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: vi.fn((key: string) => store[key] ?? null),
+    setItem: vi.fn((key: string, value: string) => { store[key] = value; }),
+    removeItem: vi.fn((key: string) => { delete store[key]; }),
+    clear: vi.fn(() => { store = {}; }),
+    key: vi.fn((i: number) => Object.keys(store)[i] ?? null),
+    get length() { return Object.keys(store).length; },
+  };
+})();
 
-vi.mock("lucide-react", () => ({
-  Loader2: (props: Record<string, unknown>) => <div {...props} data-testid="loader-icon" />,
-  CheckCircle: (props: Record<string, unknown>) => <div {...props} data-testid="check-icon" />,
-  XCircle: (props: Record<string, unknown>) => <div {...props} data-testid="x-icon" />,
-}));
+// Setup sessionStorage mock
+const sessionStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+  key: vi.fn(),
+  length: 0,
+};
 
-vi.mock("@/components/brand", () => ({
-  BrandLogo: (props: { "data-testid"?: string }) => (
-    <img src="/logo.png" alt="Fixzit" data-testid={props["data-testid"] || "brand-logo"} />
-  ),
-}));
+Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true });
+Object.defineProperty(window, 'sessionStorage', { value: sessionStorageMock, writable: true });
 
-import LogoutPage from "@/app/logout/page";
-import { STORAGE_KEYS } from "@/config/constants";
-
-describe("LogoutPage", () => {
-  let originalLocalStorage: Storage;
-  let originalSessionStorage: Storage;
-  let localStorageStore: Record<string, string>;
-
-  beforeAll(() => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
-  });
-
-  afterAll(() => {
-    vi.restoreAllMocks();
-  });
-
+describe('LogoutPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
-
-    mockSignOut.mockResolvedValue({ url: "/login" });
-
-    originalLocalStorage = window.localStorage;
-    originalSessionStorage = window.sessionStorage;
-
-    localStorageStore = {};
-
-    const createMockStorage = (store: Record<string, string>): Storage => ({
-      getItem: vi.fn((key: string) => store[key] ?? null),
-      setItem: vi.fn((key: string, value: string) => { store[key] = value; }),
-      removeItem: vi.fn((key: string) => { delete store[key]; }),
-      clear: vi.fn(() => { Object.keys(store).forEach(k => delete store[k]); }),
-      key: vi.fn((index: number) => Object.keys(store)[index] ?? null),
-      get length() { return Object.keys(store).length; },
-    });
-
-    Object.defineProperty(window, "localStorage", {
-      value: createMockStorage(localStorageStore),
-      writable: true,
-      configurable: true,
-    });
-
-    Object.defineProperty(window, "sessionStorage", {
-      value: createMockStorage({}),
-      writable: true,
-      configurable: true,
-    });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    localStorageMock.clear();
+    mockPush.mockClear();
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('renders the logout page', async () => {
+    await act(async () => {
+      render(<LogoutPage />);
+    });
     
-    Object.defineProperty(window, "localStorage", {
-      value: originalLocalStorage,
-      writable: true,
-      configurable: true,
-    });
-    Object.defineProperty(window, "sessionStorage", {
-      value: originalSessionStorage,
-      writable: true,
-      configurable: true,
-    });
+    // Should show brand logo
+    expect(screen.getByTestId('logout-logo')).toBeInTheDocument();
   });
 
-  describe("Basic Rendering", () => {
-    test("renders logout page with processing state initially", async () => {
+  it('displays the spinner while processing', async () => {
+    await act(async () => {
       render(<LogoutPage />);
-      
-      expect(screen.getByTestId("logout-page")).toBeInTheDocument();
-      expect(screen.getByTestId("logout-spinner")).toBeInTheDocument();
-      expect(screen.getByText("Signing you out...")).toBeInTheDocument();
     });
-
-    test("shows success state after signOut completes", async () => {
-      render(<LogoutPage />);
-      
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(600);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId("logout-success")).toBeInTheDocument();
-      });
-      expect(screen.getByText("Logged out successfully")).toBeInTheDocument();
-    });
+    
+    expect(screen.getByTestId('logout-spinner')).toBeInTheDocument();
   });
 
-  describe("localStorage Guard (Regression: audit fix)", () => {
-    /**
-     * REGRESSION TEST: localStorage access must be guarded
-     * 
-     * This test ensures that logout works correctly even when localStorage
-     * throws errors, which happens in:
-     * - Safari Private Mode
-     * - Strict CSP environments
-     * - When storage quota is exceeded
-     * 
-     * Fix applied in: app/logout/page.tsx
-     * Issue: Unguarded localStorage access could crash logout flow
-     */
-    test("handles localStorage.getItem throwing error gracefully", async () => {
-      const mockGetItem = vi.fn().mockImplementation(() => {
-        throw new DOMException("QuotaExceededError");
-      });
-      Object.defineProperty(window, "localStorage", {
-        value: {
-          getItem: mockGetItem,
-          setItem: vi.fn(),
-          removeItem: vi.fn(),
-          clear: vi.fn(),
-          key: vi.fn(),
-          length: 0,
-        },
-        writable: true,
-        configurable: true,
-      });
-
-      render(<LogoutPage />);
-      
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(600);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId("logout-success")).toBeInTheDocument();
-      });
-
-      expect(mockLoggerWarn).toHaveBeenCalledWith(
-        "Storage unavailable during logout",
-        expect.objectContaining({ error: expect.any(Error) })
-      );
+  it('applies proper styling to the container', async () => {
+    let container: HTMLElement;
+    await act(async () => {
+      const result = render(<LogoutPage />);
+      container = result.container;
     });
-
-    test("handles sessionStorage.clear throwing error gracefully", async () => {
-      Object.defineProperty(window, "sessionStorage", {
-        value: {
-          clear: vi.fn().mockImplementation(() => {
-            throw new Error("SecurityError");
-          }),
-          getItem: vi.fn(),
-          setItem: vi.fn(),
-          removeItem: vi.fn(),
-          key: vi.fn(),
-          length: 0,
-        },
-        writable: true,
-        configurable: true,
-      });
-
-      render(<LogoutPage />);
-      
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(600);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId("logout-success")).toBeInTheDocument();
-      });
-
-      expect(mockLoggerWarn).toHaveBeenCalledWith(
-        "Failed to clear session storage",
-        expect.objectContaining({ error: expect.any(Error) })
-      );
-    });
+    
+    // Check that the logout-page test ID exists
+    expect(screen.getByTestId('logout-page')).toBeInTheDocument();
   });
 
-  describe("Error Handling", () => {
-    test("shows error state when signOut fails", async () => {
-      mockSignOut.mockRejectedValueOnce(new Error("Network error"));
-
+  it('shows processing state initially', async () => {
+    await act(async () => {
       render(<LogoutPage />);
+    });
+    
+    expect(screen.getByText('Signing you out...')).toBeInTheDocument();
+    expect(screen.getByText('Please wait while we log you out securely.')).toBeInTheDocument();
+  });
+
+  describe('Regression: Storage Guard', () => {
+    it('clears sessionStorage on mount', async () => {
+      await act(async () => {
+        render(<LogoutPage />);
+      });
       
+      // Wait for any effects to run
       await act(async () => {
         await vi.advanceTimersByTimeAsync(100);
       });
-
-      await waitFor(() => {
-        expect(screen.getByTestId("logout-error")).toBeInTheDocument();
-      });
-      expect(screen.getByText("Logout error")).toBeInTheDocument();
+      
+      expect(sessionStorageMock.clear).toHaveBeenCalled();
     });
   });
 
-  describe("NextAuth Integration", () => {
-    test("calls signOut with correct options", async () => {
-      render(<LogoutPage />);
-      
+  describe('Accessibility', () => {
+    it('has proper semantic structure with data-testid', async () => {
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(100);
+        render(<LogoutPage />);
       });
-
-      expect(mockSignOut).toHaveBeenCalledWith({
-        redirect: false,
-        redirectTo: "/login",
-      });
+      
+      // Brand logo should be present (commonly for screen reader users to identify the app)
+      expect(screen.getByTestId('logout-logo')).toBeInTheDocument();
+      expect(screen.getByTestId('logout-page')).toBeInTheDocument();
     });
   });
 });

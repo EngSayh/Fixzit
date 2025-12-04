@@ -19,13 +19,24 @@ vi.mock('@/lib/logger', () => ({
   }
 }));
 vi.mock('@/lib/authz', () => ({
-  requireSuperAdmin: vi.fn(async () => true),
+  requireSuperAdmin: vi.fn(async () => ({
+    id: 'test-user-id',
+    email: 'admin@test.com',
+    role: 'SUPER_ADMIN',
+    tenantId: 'test-org-id',
+  })),
+}));
+vi.mock('@/server/security/rateLimit', () => ({
+  smartRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  buildOrgAwareRateLimitKey: vi.fn(() => 'test-rate-limit-key'),
 }));
 
 // Route handlers will be dynamically imported per-test to avoid module cache leakage across suites
 let POST: typeof import('@/app/api/qa/alert/route').POST;
 let GET: typeof import('@/app/api/qa/alert/route').GET;
 import { logger } from '@/lib/logger';
+import { requireSuperAdmin } from '@/lib/authz';
+import { smartRateLimit, buildOrgAwareRateLimitKey } from '@/server/security/rateLimit';
 
 // Type helper for building minimal NextRequest-like object
 
@@ -71,6 +82,15 @@ describe('QA Alert Route', () => {
     // Save original env
     originalEnv = process.env.NEXT_PUBLIC_USE_MOCK_DB;
 
+    // Reset mocks to defaults
+    vi.mocked(requireSuperAdmin).mockResolvedValue({
+      id: 'test-user-id',
+      email: 'admin@test.com',
+      role: 'SUPER_ADMIN',
+      tenantId: 'test-org-id',
+    });
+    vi.mocked(smartRateLimit).mockResolvedValue({ allowed: true });
+
     // Re-import handlers with fresh module cache so mocks are applied even if other suites touched the module
     return import('@/app/api/qa/alert/route').then(mod => {
       POST = mod.POST;
@@ -114,15 +134,24 @@ describe('QA Alert Route', () => {
       const body = await (res as Response).json();
 
       expect(body).toEqual({ success: true });
-      expect(logger.warn).toHaveBeenCalledWith(`🚨 QA Alert: ${event}`, { payload: data });
+      // Verify logging includes org context (not payload data for PII safety)
+      expect(logger.warn).toHaveBeenCalledWith(
+        `🚨 QA Alert: ${event}`,
+        expect.objectContaining({ orgId: 'test-org-id', userId: 'test-user-id' })
+      );
 
       // Verify DB interaction
       expect(mod.getDatabase).toHaveBeenCalled();
       expect(collection).toHaveBeenCalledWith('qa_alerts');
       expect(insertOne).toHaveBeenCalledTimes(1);
+      
+      // Verify org/user attribution in inserted doc
+      const insertedDoc = insertOne.mock.calls[0][0];
+      expect(insertedDoc.orgId).toBe('test-org-id');
+      expect(insertedDoc.userId).toBe('test-user-id');
     });
 
-    it('inserts alert into DB with forwarded IP and returns success', async () => {
+    it('inserts alert into DB with org/user attribution and forwarded IP', async () => {
       const mod = vi.mocked(mongodbUnified);
 
       // Setup the chained collection/find/insertOne mock structure
@@ -154,20 +183,86 @@ describe('QA Alert Route', () => {
       expect(collection).toHaveBeenCalledWith('qa_alerts');
       expect(insertOne).toHaveBeenCalledTimes(1);
 
-      // Validate inserted document shape
+      // Validate inserted document shape with org/user attribution
       const insertedDoc = insertOne.mock.calls[0][0];
 
       expect(insertedDoc).toMatchObject({
         event,
         data: payload,
+        orgId: 'test-org-id',
+        userId: 'test-user-id',
         ip: '203.0.113.10',
         userAgent: 'Mozilla/5.0 Test',
       });
       // timestamp should be a Date
       expect(insertedDoc.timestamp instanceof Date).toBe(true);
 
-      // Logs non-mock variant
-      expect(logger.warn).toHaveBeenCalledWith(`🚨 QA Alert: ${event}`, { payload });
+      // Verify rate limit uses org-aware key
+      expect(buildOrgAwareRateLimitKey).toHaveBeenCalledWith(
+        expect.anything(),
+        'test-org-id',
+        'test-user-id'
+      );
+    });
+
+    it('returns 400 when event is missing', async () => {
+      const req = asNextRequest({
+        json: () => Promise.resolve({ data: { foo: 'bar' } }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(400);
+      const body = await (res as Response).json();
+      expect(body.error).toBe('Event name is required');
+    });
+
+    it('returns 400 when event is empty string', async () => {
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: '', data: {} }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(400);
+      const body = await (res as Response).json();
+      expect(body.error).toBe('Event name is required');
+    });
+
+    it('returns 400 when event is too long', async () => {
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'x'.repeat(200), data: {} }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(400);
+      const body = await (res as Response).json();
+      expect(body.error).toBe('Event name too long');
+    });
+
+    it('returns 400 when payload is too large', async () => {
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'test', data: 'x'.repeat(15000) }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(400);
+      const body = await (res as Response).json();
+      expect(body.error).toBe('Payload too large (max 10KB)');
+    });
+
+    it('returns 400 when JSON body is invalid', async () => {
+      const req = asNextRequest({
+        json: () => Promise.reject(new Error('bad json')),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(400);
+      const body = await (res as Response).json();
+      expect(body.error).toBe('Invalid JSON body');
     });
 
     it('uses req.ip fallback when x-forwarded-for header is missing', async () => {
@@ -196,6 +291,8 @@ describe('QA Alert Route', () => {
       // Since req.ip may not be accessible in our mock, it falls back to 'unknown'
       expect(insertedDoc?.ip).toBeTruthy();
       expect(insertedDoc?.userAgent).toBe('UA-123');
+      expect(insertedDoc?.orgId).toBe('test-org-id');
+      expect(insertedDoc?.userId).toBe('test-user-id');
     });
 
     it('returns 500 on DB insertion error', async () => {
@@ -222,21 +319,33 @@ describe('QA Alert Route', () => {
       );
     });
 
-    it('returns 500 if parsing JSON body throws', async () => {
-      const mod = vi.mocked(mongodbUnified);
+    it('returns 401 when not authenticated', async () => {
+      vi.mocked(requireSuperAdmin).mockRejectedValue(
+        new Response(JSON.stringify({ error: 'UNAUTHORIZED' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
 
       const req = asNextRequest({
-        json: () => Promise.reject(new Error('bad json')),
+        json: () => Promise.resolve({ event: 'test', data: {} }),
         headers: buildHeaders({}),
-        ip: undefined,
       });
 
       const res = await POST(req);
-      expect((res as Response).status).toBe(500);
-      const body = await (res as Response).json();
-      expect(body).toEqual({ error: 'Failed to process alert' });
-      expect(mod.getDatabase).not.toHaveBeenCalled();
-      expect(logger.error).toHaveBeenCalled();
+      expect((res as Response).status).toBe(401);
+    });
+
+    it('returns 429 when rate limited', async () => {
+      vi.mocked(smartRateLimit).mockResolvedValue({ allowed: false });
+
+      const req = asNextRequest({
+        json: () => Promise.resolve({ event: 'test', data: {} }),
+        headers: buildHeaders({}),
+      });
+
+      const res = await POST(req);
+      expect((res as Response).status).toBe(429);
     });
   });
 

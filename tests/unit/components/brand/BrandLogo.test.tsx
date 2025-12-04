@@ -91,22 +91,11 @@ describe('BrandLogo', () => {
   });
 
   describe('Custom Dimensions (Regression: audit fix)', () => {
-    /**
-     * REGRESSION TEST: Custom dimensions should override size presets
-     * 
-     * This test ensures that when customWidth or customHeight is provided,
-     * the component uses those values instead of the preset sizeClassName.
-     * 
-     * Fix applied in: components/brand/BrandLogo.tsx
-     * Issue: Size preset classes were being applied even when custom dimensions were provided
-     */
     test('customWidth overrides size preset width attribute', () => {
       render(<BrandLogo size="md" width={100} />);
       const img = screen.getByTestId('brand-logo');
       
-      // Custom width should be used instead of md preset (48)
       expect(img).toHaveAttribute('width', '100');
-      // Height should still use preset since not customized
       expect(img).toHaveAttribute('height', '48');
     });
 
@@ -114,9 +103,7 @@ describe('BrandLogo', () => {
       render(<BrandLogo size="md" height={100} />);
       const img = screen.getByTestId('brand-logo');
       
-      // Width should use preset
       expect(img).toHaveAttribute('width', '48');
-      // Custom height should be used
       expect(img).toHaveAttribute('height', '100');
     });
 
@@ -124,7 +111,6 @@ describe('BrandLogo', () => {
       render(<BrandLogo size="xs" width={200} height={150} />);
       const img = screen.getByTestId('brand-logo');
       
-      // Both custom dimensions should be used
       expect(img).toHaveAttribute('width', '200');
       expect(img).toHaveAttribute('height', '150');
     });
@@ -133,15 +119,12 @@ describe('BrandLogo', () => {
       const { rerender } = render(<BrandLogo size="2xl" width={50} height={50} />);
       let img = screen.getByTestId('brand-logo');
       
-      // Custom should override 2xl preset (120x120)
       expect(img).toHaveAttribute('width', '50');
       expect(img).toHaveAttribute('height', '50');
 
-      // Try with another preset
       rerender(<BrandLogo size="xs" width={300} height={300} />);
       img = screen.getByTestId('brand-logo');
       
-      // Custom should override xs preset (24x24)
       expect(img).toHaveAttribute('width', '300');
       expect(img).toHaveAttribute('height', '300');
     });
@@ -229,7 +212,6 @@ describe('BrandLogo', () => {
       render(<BrandLogo fetchOrgLogo={true} />);
       const img = screen.getByTestId('brand-logo');
       
-      // Should still show default after fetch fails
       await waitFor(() => {
         expect(img).toHaveAttribute('src', '/img/fixzit-logo.png');
       });
@@ -264,7 +246,6 @@ describe('BrandLogo', () => {
       render(<BrandLogo onError={handleError} />);
       const img = screen.getByTestId('brand-logo');
       
-      // Simulate image load error
       img.dispatchEvent(new Event('error'));
       
       expect(handleError).toHaveBeenCalled();
@@ -288,7 +269,6 @@ describe('BrandLogoWithCard', () => {
     render(<BrandLogoWithCard />);
     const img = screen.getByTestId('brand-logo');
     
-    // xl preset: 80x80
     expect(img).toHaveAttribute('width', '80');
     expect(img).toHaveAttribute('height', '80');
   });
@@ -297,7 +277,6 @@ describe('BrandLogoWithCard', () => {
     render(<BrandLogoWithCard size="sm" />);
     const img = screen.getByTestId('brand-logo');
     
-    // sm preset: 32x32
     expect(img).toHaveAttribute('width', '32');
     expect(img).toHaveAttribute('height', '32');
   });
