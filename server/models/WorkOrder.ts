@@ -612,7 +612,8 @@ WorkOrderSchema.virtual("code").get(function (this: WorkOrderDoc) {
 // DB-001: Critical Database Indexes for Performance
 // Fix applied: 2025-11-25T11:00:00+03:00
 WorkOrderSchema.index({ orgId: 1, status: 1, createdAt: -1 }); // List queries
-WorkOrderSchema.index({ orgId: 1, assignedTo: 1, status: 1 }); // Assigned WOs
+// FIXED: assignedTo was never a valid field - correct path is assignment.assignedTo.userId
+WorkOrderSchema.index({ orgId: 1, "assignment.assignedTo.userId": 1, status: 1 }); // Assigned WOs
 WorkOrderSchema.index({ orgId: 1, "location.propertyId": 1, status: 1 }); // Property WOs
 // FIXED: unit_id was never defined in schema - actual field is location.unitNumber (String)
 WorkOrderSchema.index({ orgId: 1, "location.unitNumber": 1, status: 1 }); // TENANT unit filtering

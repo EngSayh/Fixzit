@@ -8,7 +8,7 @@
  */
 
 import { ensureCoreIndexes } from "../lib/db/index";
-import { createIndexes, COLLECTIONS } from "../lib/db/collections";
+import { COLLECTIONS } from "../lib/db/collections";
 import { connectToDatabase } from "../lib/mongodb-unified";
 import mongoose from "mongoose";
 
@@ -106,14 +106,11 @@ async function main() {
 
     if (!verifyOnly) {
       // Create indexes using Mongoose-based ensureCoreIndexes
-      console.log("📦 Running ensureCoreIndexes (Mongoose-based)...");
+      // NOTE: ensureCoreIndexes internally calls createIndexes() from lib/db/collections.ts
+      // so we don't need to call it again here.
+      console.log("📦 Running ensureCoreIndexes (calls createIndexes + Mongoose model indexes)...");
       await ensureCoreIndexes();
       console.log("✅ ensureCoreIndexes completed\n");
-
-      // Also run native driver createIndexes for full coverage
-      console.log("📦 Running createIndexes (native driver)...");
-      await createIndexes();
-      console.log("✅ createIndexes completed\n");
     }
 
     // Verify indexes

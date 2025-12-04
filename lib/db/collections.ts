@@ -177,9 +177,17 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.PRODUCTS)
     .createIndex({ orgId: 1, status: 1 }, { background: true, name: "products_orgId_status" });
+  // STRICT v4.1: Text search must be org-scoped to prevent cross-tenant scans
   await db
     .collection(COLLECTIONS.PRODUCTS)
-    .createIndex({ title: "text", description: "text" }, { background: true, name: "products_text_search" });
+    .createIndex(
+      { orgId: 1, title: "text", description: "text" },
+      {
+        background: true,
+        name: "products_orgId_text_search",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
 
   // Orders - STRICT v4.1: orderNumber unique per org
   await db
@@ -393,8 +401,10 @@ async function dropLegacyGlobalUniqueIndexes(db: Awaited<ReturnType<typeof getDa
   const targets: Array<{ collection: string; indexes: string[] }> = [
     { collection: COLLECTIONS.USERS, indexes: ["email_1"] },
     { collection: COLLECTIONS.PROPERTIES, indexes: ["code_1"] },
-    { collection: COLLECTIONS.WORK_ORDERS, indexes: ["code_1", "workOrderNumber_1"] },
-    { collection: COLLECTIONS.PRODUCTS, indexes: ["sku_1"] },
+    // Also drop stale assignedTo index (field never existed - correct path is assignment.assignedTo.userId)
+    { collection: COLLECTIONS.WORK_ORDERS, indexes: ["code_1", "workOrderNumber_1", "orgId_1_assignedTo_1_status_1"] },
+    // Drop old non-org-scoped text index (replaced with products_orgId_text_search)
+    { collection: COLLECTIONS.PRODUCTS, indexes: ["sku_1", "products_text_search"] },
     { collection: COLLECTIONS.ORDERS, indexes: ["orderNumber_1"] },
     { collection: COLLECTIONS.INVOICES, indexes: ["invoiceNumber_1", "number_1", "code_1"] },
   ];
