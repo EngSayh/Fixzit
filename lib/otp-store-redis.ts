@@ -77,6 +77,7 @@ export interface OTPData {
   attempts: number;
   userId: string;
   phone: string;
+  orgId?: string | null;
   companyCode?: string | null;
 }
 
@@ -88,6 +89,8 @@ export interface RateLimitData {
 export interface OTPLoginSession {
   userId: string;
   identifier: string;
+  orgId?: string | null;
+  companyCode?: string | null;
   expiresAt: number;
 }
 

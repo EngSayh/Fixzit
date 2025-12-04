@@ -137,6 +137,35 @@ ProductSchema.plugin(auditPlugin);
 //   - products_orgId_text_search (tenant-scoped text search)
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Keep schema-level index definitions in sync with createIndexes() so tests can
+// assert tenancy and search coverage without relying on database state. Names
+// match the central definitions to avoid IndexOptionsConflict.
+ProductSchema.index(
+  { orgId: 1, sku: 1 },
+  {
+    unique: true,
+    name: "products_orgId_sku_unique",
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+);
+ProductSchema.index(
+  { orgId: 1, slug: 1 },
+  {
+    unique: true,
+    name: "products_orgId_slug_unique",
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+);
+ProductSchema.index({ orgId: 1, categoryId: 1 }, { name: "products_orgId_categoryId" });
+ProductSchema.index({ orgId: 1, status: 1 }, { name: "products_orgId_status" });
+ProductSchema.index(
+  { orgId: 1, title: "text", summary: "text", brand: "text", standards: "text" },
+  {
+    name: "products_orgId_text_search",
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+);
+
 const ProductModel =
   (models.MarketplaceProduct as Model<MarketplaceProduct> | undefined) ||
   model<MarketplaceProduct>("MarketplaceProduct", ProductSchema);

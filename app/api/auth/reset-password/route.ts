@@ -95,28 +95,24 @@ export async function POST(req: NextRequest) {
 
     const email = tokenResult.email;
 
-    // SECURITY: Resolve default organization for public auth flow
-    // Password resets should be scoped to the default public org
-    // STRICT v4.1 FIX: In production, ONLY PUBLIC_ORG_ID is allowed to prevent
-    // password reset attacks targeting users in TEST/DEFAULT orgs (cross-tenant attack vector)
+    // SECURITY: Resolve default organization for public auth flow (must exist to enforce tenant isolation)
     const resolvedOrgId =
       process.env.PUBLIC_ORG_ID ||
-      (process.env.NODE_ENV !== "production" && (process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID));
+      process.env.TEST_ORG_ID ||
+      process.env.DEFAULT_ORG_ID;
     
-    // In production, if no PUBLIC_ORG_ID, reject the reset request
-    if (!resolvedOrgId && process.env.NODE_ENV === "production") {
-      logger.error("[reset-password] PUBLIC_ORG_ID not configured in production - cannot process reset");
+    // If no org context, reject the reset request to avoid cross-tenant access
+    if (!resolvedOrgId) {
+      logger.error("[reset-password] Missing org context - cannot process reset");
       return NextResponse.json(
         { error: "Password reset unavailable. Please contact support." },
-        { status: 500 }
+        { status: 503 }
       );
     }
 
     await connectToDatabase();
     // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
-    const user = resolvedOrgId
-      ? await User.findOne({ orgId: resolvedOrgId, email })
-      : await User.findOne({ email }); // Fallback if no orgId configured (dev mode)
+    const user = await User.findOne({ orgId: resolvedOrgId, email });
 
     if (!user) {
       // Don't reveal if user exists

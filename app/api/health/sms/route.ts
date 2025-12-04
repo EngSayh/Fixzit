@@ -110,8 +110,8 @@ export async function GET(request: NextRequest) {
     const isAuthorized = isAuthorizedInternal(request);
     const deepCheckRequested =
       isAuthorized &&
-      (request.headers.get("X-Health-Deep") === "1" ||
-        request.headers.get("x-health-deep") === "1");
+      request.headers.get("X-Health-Deep") !== "0" &&
+      request.headers.get("x-health-deep") !== "0";
 
     const twilioConfigured = Boolean(
       process.env.TWILIO_ACCOUNT_SID &&

@@ -333,7 +333,11 @@ export async function POST(request: NextRequest) {
     windowMs: 60_000,
   });
   if (ipRateLimited) return ipRateLimited;
-  const clientIp = request.headers.get("x-forwarded-for") || "otp-ip";
+  const clientIp =
+    (request as unknown as { ip?: string }).ip ||
+    request.headers.get("x-real-ip") ||
+    request.headers.get("x-forwarded-for") ||
+    "otp-ip";
   // SECURITY: Use distributed rate limiting (Redis) to prevent cross-instance bypass
   const rl = await smartRateLimit(`auth:otp-send:${clientIp}`, 5, 300_000);
   if (!rl.allowed) {
@@ -388,19 +392,56 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (loginType === "corporate" && !normalizedCompanyCode) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Company number is required for corporate login",
-        },
-        { status: 400 },
+    // Resolve org scope early to build tenant-scoped OTP key
+    let orgScopeId: string | null = null;
+    const resolvedDefaultOrgId =
+      process.env.PUBLIC_ORG_ID ||
+      process.env.TEST_ORG_ID ||
+      process.env.DEFAULT_ORG_ID;
+
+    if (loginType === "corporate") {
+      if (!normalizedCompanyCode) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Company number is required for corporate login",
+          },
+          { status: 400 },
+        );
+      }
+      await connectToDatabase();
+      const resolvedCompanyOrgId = await resolveOrgIdFromCompanyCode(
+        normalizedCompanyCode,
       );
+
+      if (!resolvedCompanyOrgId) {
+        logger.warn("[OTP] Invalid company code", {
+          identifier: redactIdentifier(loginIdentifier),
+          code: normalizedCompanyCode,
+        });
+        return NextResponse.json(
+          { success: false, error: "Invalid credentials" },
+          { status: 401 },
+        );
+      }
+
+      orgScopeId = resolvedCompanyOrgId;
+    } else {
+      if (!resolvedDefaultOrgId) {
+        logger.error("[OTP] Missing org context for personal login", {
+          identifier: redactIdentifier(loginIdentifier),
+        });
+        return NextResponse.json(
+          { success: false, error: "Login temporarily unavailable" },
+          { status: 503 },
+        );
+      }
+      orgScopeId = resolvedDefaultOrgId;
     }
 
-    const otpKey = buildOtpKey(loginIdentifier, normalizedCompanyCode);
+    const otpKey = buildOtpKey(loginIdentifier, normalizedCompanyCode, orgScopeId);
 
-    // 4. Check rate limit using normalized identifier (ASYNC for multi-instance)
+    // 4. Check rate limit using normalized identifier + org (ASYNC for multi-instance)
     const rateLimitResult = await checkRateLimit(otpKey);
     if (!rateLimitResult.allowed) {
       logger.warn("[OTP] Rate limit exceeded", { identifier: redactIdentifier(otpKey) });
@@ -415,7 +456,6 @@ export async function POST(request: NextRequest) {
 
     // 5. Resolve user (test users → skip DB, otherwise perform lookup)
     let user: UserDocument | null = null;
-    let orgScopeId: string | null = null;
     const testUser = smsDevMode
       ? resolveTestUser(
           loginIdentifier,
@@ -432,43 +472,13 @@ export async function POST(request: NextRequest) {
       const { User } = await import("@/server/models/User");
       const bcrypt = await import("bcryptjs");
 
-      // SECURITY: Resolve default organization for public auth flow
-      const resolvedOrgId =
-        process.env.PUBLIC_ORG_ID ||
-        process.env.TEST_ORG_ID ||
-        process.env.DEFAULT_ORG_ID;
-
-      // Track the org scope for logging and downstream usage
-      orgScopeId = loginType === "personal" ? resolvedOrgId ?? null : null;
-
       if (loginType === "personal") {
         // SECURITY FIX: Scope email lookup by orgId to prevent cross-tenant attacks (SEC-001)
-        user = resolvedOrgId
-          ? await User.findOne({ orgId: resolvedOrgId, email: loginIdentifier })
-          : await User.findOne({ email: loginIdentifier });
+        user = await User.findOne({ orgId: orgScopeId, email: loginIdentifier });
       } else {
-        // SECURITY FIX: Corporate login - resolve orgId from company code first (SEC-002)
-        // This prevents cross-tenant OTP delivery if company codes could collide
-        const resolvedCompanyOrgId = await resolveOrgIdFromCompanyCode(
-          normalizedCompanyCode!,
-        );
-
-        if (!resolvedCompanyOrgId) {
-          logger.warn("[OTP] Invalid company code", {
-            identifier: redactIdentifier(loginIdentifier),
-            code: normalizedCompanyCode,
-          });
-          return NextResponse.json(
-            { success: false, error: "Invalid credentials" },
-            { status: 401 },
-          );
-        }
-
-        orgScopeId = resolvedCompanyOrgId;
-
         // Scope user lookup by both orgId AND company code for defense in depth
         user = await User.findOne({
-          orgId: resolvedCompanyOrgId,
+          orgId: orgScopeId,
           username: loginIdentifier,
           code: normalizedCompanyCode,
         });
@@ -545,7 +555,7 @@ export async function POST(request: NextRequest) {
     }
 
     const isDemoUser = Boolean(user.__isDemoUser);
-    const _userOrgId =
+    const userOrgId =
       (user as { orgId?: { toString?: () => string } }).orgId?.toString?.() ||
       orgScopeId;
 
@@ -647,12 +657,14 @@ export async function POST(request: NextRequest) {
     const expiresAt = Date.now() + OTP_EXPIRY_MS;
 
     // 11. Store OTP in Redis for multi-instance support
+    // SECURITY: Include orgId in payload for tenant validation during verify (SEC-BLOCKER-001)
     await redisOtpStore.set(otpKey, {
       otp,
       expiresAt,
       attempts: 0,
       userId: user._id?.toString?.() || loginIdentifier,
       phone: userPhone,
+      orgId: orgScopeId,
       companyCode: normalizedCompanyCode,
     });
 

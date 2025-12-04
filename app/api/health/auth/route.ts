@@ -4,6 +4,9 @@
  *
  * Returns auth configuration status WITHOUT exposing secrets.
  * Use this to debug 500 errors on /api/auth/session in production.
+ * SECURITY: Detailed config is only returned to authorized callers that provide
+ * X-Health-Token matching HEALTH_CHECK_TOKEN. Unauthenticated callers receive
+ * a minimal status payload to avoid recon/fingerprinting.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
@@ -12,6 +15,22 @@ export const dynamic = "force-dynamic";
 
 // Ensure this runs in Node.js runtime (not Edge) for consistent behavior
 export const runtime = "nodejs";
+
+function isAuthorizedInternal(request: NextRequest): boolean {
+  const token = process.env.HEALTH_CHECK_TOKEN;
+  if (!token) return false;
+  const provided =
+    request.headers.get("X-Health-Token") || request.headers.get("x-health-token");
+  return provided === token;
+}
+
+function resolveEnvironment() {
+  const vercelEnv = process.env.VERCEL_ENV;
+  const nodeEnv = process.env.NODE_ENV || "development";
+  const isProd = vercelEnv ? vercelEnv === "production" : nodeEnv === "production";
+  const isPreview = vercelEnv === "preview";
+  return { isProd, isPreview, vercelEnv: vercelEnv || "not-set", nodeEnv };
+}
 
 /**
  * Check if an environment variable is set (without exposing its value)
@@ -26,6 +45,9 @@ function checkEnvVar(name: string): { set: boolean; length?: number } {
 
 export async function GET(_request: NextRequest) {
   try {
+    const { isProd, isPreview, vercelEnv, nodeEnv } = resolveEnvironment();
+    const isAuthorized = isAuthorizedInternal(_request);
+
     // Check critical auth environment variables
     const authConfig = {
       // Core Auth (CRITICAL)
@@ -79,13 +101,27 @@ export async function GET(_request: NextRequest) {
 
     const status = criticalMissing.length === 0 ? "healthy" : "unhealthy";
 
+    // Redact details for unauthenticated callers to avoid recon. Only minimal
+    // status + timestamp is exposed publicly.
+    if (!isAuthorized) {
+      return NextResponse.json(
+        {
+          status,
+          timestamp: new Date().toISOString(),
+        },
+        { status: status === "healthy" ? 200 : 503 },
+      );
+    }
+
     const response = {
       status,
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || "development",
+      environment: nodeEnv,
       vercel: {
         isVercel,
-        env: process.env.VERCEL_ENV || "not-set",
+        env: vercelEnv,
+        isPreview,
+        isProd,
       },
       config: {
         // Only show set/not-set status, never actual values

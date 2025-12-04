@@ -32,6 +32,7 @@ import {
   normalizeSubRole,
   inferSubRoleFromRole,
 } from '@/domain/fm/fm-lite';
+import { WORK_ORDERS_MODULE_ID } from './navigation/constants';
 
 // ==========================================
 // Types & Interfaces
@@ -141,7 +142,8 @@ export interface NavigationConfig {
 }
 
 // Canonical module IDs (phase out snake_case)
-export const WORK_ORDERS_ID = 'workOrders';
+export { WORK_ORDERS_MODULE_ID };
+export const WORK_ORDERS_ID = WORK_ORDERS_MODULE_ID;
 export const WORK_ORDERS_ID_LEGACY = 'work_orders'; // temporary alias during migration
 
 // Normalize module identifiers to canonical form

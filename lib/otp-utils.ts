@@ -28,21 +28,28 @@ export const normalizeCompanyCode = (code?: string | null): string | null =>
   code?.trim() ? code.trim().toUpperCase() : null;
 
 /**
- * Builds a composite OTP key that includes company code for corporate logins.
- * For personal logins (no company code), returns just the identifier.
+ * Builds a composite OTP key that includes company code and orgId for tenant isolation.
+ * For personal logins (no company code), returns identifier + orgId.
  * 
  * @param identifier - Login identifier (email or employee ID)
  * @param companyCode - Normalized company code (null for personal logins)
- * @returns Composite key for OTP storage: "identifier::companyCode" or just "identifier"
+ * @param orgId - Tenant orgId for isolation (optional but recommended)
+ * @returns Composite key for OTP storage: "identifier::companyCode::orgId" or parts joined when provided
  * 
  * @example
- * buildOtpKey("EMP001", "ACME-001") // "EMP001::ACME-001"
- * buildOtpKey("user@email.com", null) // "user@email.com"
+ * buildOtpKey("EMP001", "ACME-001", "ORG123") // "EMP001::ACME-001::ORG123"
+ * buildOtpKey("user@email.com", null, "ORG123") // "user@email.com::ORG123"
  */
 export const buildOtpKey = (
   identifier: string,
-  companyCode: string | null
-): string => (companyCode ? `${identifier}::${companyCode}` : identifier);
+  companyCode: string | null,
+  orgId?: string | null,
+): string => {
+  const parts = [identifier];
+  if (companyCode) parts.push(companyCode);
+  if (orgId) parts.push(orgId);
+  return parts.join("::");
+};
 
 /**
  * Company code validation regex pattern.

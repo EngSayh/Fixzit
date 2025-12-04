@@ -36,6 +36,7 @@ export const COLLECTIONS: Record<string, string> = {
   // Admin + org
   ORGANIZATIONS: "organizations",
   ADMIN_NOTIFICATIONS: "admin_notifications",
+  COMMUNICATION_LOGS: "communication_logs",
   // ATS module
   ATS_JOBS: "jobs",
   ATS_APPLICATIONS: "applications",
@@ -666,6 +667,38 @@ export async function createIndexes() {
   await db
     .collection("cmspages")
     .createIndex({ orgId: 1, published: 1 }, { background: true, name: "cmspages_orgId_published" });
+
+  // Communication Logs - STRICT v4.1: always org-scoped for tenant isolation
+  await db
+    .collection(COLLECTIONS.COMMUNICATION_LOGS)
+    .createIndex(
+      { orgId: 1, userId: 1, createdAt: -1 },
+      {
+        background: true,
+        name: "communication_logs_orgId_userId_createdAt_desc",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.COMMUNICATION_LOGS)
+    .createIndex(
+      { orgId: 1, channel: 1, type: 1, createdAt: -1 },
+      {
+        background: true,
+        name: "communication_logs_orgId_channel_type_createdAt_desc",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.COMMUNICATION_LOGS)
+    .createIndex(
+      { orgId: 1, status: 1, createdAt: -1 },
+      {
+        background: true,
+        name: "communication_logs_orgId_status_createdAt_desc",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
 
   // ============================================================================
   // TEXT INDEXES FOR GLOBAL SEARCH (app/api/search/route.ts)

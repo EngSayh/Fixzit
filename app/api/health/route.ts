@@ -10,8 +10,17 @@ import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_request: NextRequest) {
+function isAuthorizedInternal(request: NextRequest): boolean {
+  const token = process.env.HEALTH_CHECK_TOKEN;
+  if (!token) return false;
+  const provided =
+    request.headers.get("x-health-token") || request.headers.get("X-Health-Token");
+  return provided === token;
+}
+
+export async function GET(request: NextRequest) {
   try {
+    const isAuthorized = isAuthorizedInternal(request);
     // Check database connection
     let dbStatus = "disconnected";
     let dbLatency = 0;
@@ -35,16 +44,18 @@ export async function GET(_request: NextRequest) {
       status: dbStatus === "connected" ? "healthy" : "unhealthy",
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      database: {
-        status: dbStatus,
-        latency: dbLatency,
-      },
-      memory: {
-        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
-        unit: "MB",
-      },
-      environment: process.env.NODE_ENV || "development",
+      ...(isAuthorized && {
+        database: {
+          status: dbStatus,
+          latency: dbLatency,
+        },
+        memory: {
+          used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+          total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+          unit: "MB",
+        },
+        environment: process.env.NODE_ENV || "development",
+      }),
     };
 
     const statusCode = health.status === "healthy" ? 200 : 503;
