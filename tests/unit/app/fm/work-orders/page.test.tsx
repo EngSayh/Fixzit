@@ -70,7 +70,7 @@ describe("app/fm/work-orders/page", () => {
 
     render(<WorkOrdersPage />);
 
-    expect(screen.getByTestId("module-tabs")).toHaveTextContent("work_orders");
+    expect(screen.getByTestId("module-tabs")).toHaveTextContent("workOrders");
     expect(screen.getByText("Support context: Acme Corp")).toBeInTheDocument();
     expect(screen.getByTestId("work-orders-view")).toHaveTextContent(
       "org:org-abc",

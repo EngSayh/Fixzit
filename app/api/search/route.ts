@@ -38,7 +38,10 @@ type EntityPermissionConfig = {
   allowedRoles: readonly UserRoleType[];
 };
 
-export const ENTITY_PERMISSION_CONFIG: Record<SearchEntity, EntityPermissionConfig> = {
+// Extended type to include legacy alias for backward compatibility
+type ExtendedSearchEntity = SearchEntity | typeof WORK_ORDERS_ENTITY_LEGACY;
+
+export const ENTITY_PERMISSION_CONFIG: Record<ExtendedSearchEntity, EntityPermissionConfig> = {
   workOrders: {
     permission: "workorders:read",
     allowedRoles: [
@@ -267,9 +270,9 @@ export const ENTITY_PERMISSION_CONFIG: Record<SearchEntity, EntityPermissionConf
 };
 
 // Text-search-ready entities (must have a text index). Exported for regression tests.
-export const TEXT_INDEXED_ENTITIES = new Set<SearchEntity>([
+export const TEXT_INDEXED_ENTITIES = new Set<ExtendedSearchEntity>([
   WORK_ORDERS_ENTITY,
-  WORK_ORDERS_ENTITY_LEGACY,
+  WORK_ORDERS_ENTITY_LEGACY, // legacy alias for API backward compatibility
   "properties",
   "units",
   "tenants",
@@ -285,9 +288,9 @@ export const TEXT_INDEXED_ENTITIES = new Set<SearchEntity>([
 ]);
 
 // Entity -> collection name map for text search; keeps coverage and testability aligned with COLLECTIONS.
-export const ENTITY_COLLECTION_MAP = {
-  [WORK_ORDERS_ENTITY]: COLLECTIONS.WORK_ORDERS,
-  [WORK_ORDERS_ENTITY_LEGACY]: COLLECTIONS.WORK_ORDERS, // legacy alias
+export const ENTITY_COLLECTION_MAP: Record<string, string | undefined> = {
+  workOrders: COLLECTIONS.WORK_ORDERS,
+  work_orders: COLLECTIONS.WORK_ORDERS, // legacy alias for API backward compatibility
   properties: COLLECTIONS.PROPERTIES,
   units: COLLECTIONS.UNITS,
   tenants: COLLECTIONS.TENANTS,
@@ -300,7 +303,7 @@ export const ENTITY_COLLECTION_MAP = {
   listings: COLLECTIONS.LISTINGS, // FIXED: Use LISTINGS (aqar_listings), not SOUQ_LISTINGS
   projects: COLLECTIONS.PROJECTS,
   agents: COLLECTIONS.AGENTS,
-} as Record<SearchEntity, string | undefined>;
+};
 
 // Normalize legacy entity names to canonical form
 const normalizeEntity = (entity: string): SearchEntity =>
@@ -365,6 +368,7 @@ export function applyEntityScope(
     hasRole(session, UserRole.MANAGER) ||
     hasRole(session, UserRole.FM_MANAGER) ||
     hasRole(session, UserRole.OPERATIONS_MANAGER) ||
+    // TEAM_MEMBER and SUPPORT_AGENT are org-facing roles; they retain org-wide visibility for search
     hasRole(session, UserRole.TEAM_MEMBER) ||
     hasRole(session, UserRole.SUPPORT_AGENT);
 

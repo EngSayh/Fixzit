@@ -46,7 +46,7 @@ type SubModuleItem = {
 const COLLAPSE_KEY = STORAGE_KEYS.sidebarCollapsed;
 
 const GOVERNANCE_GROUPS: Record<GovernanceGroup, ModuleId[]> = {
-  core: ["dashboard", "work_orders", "properties", "finance", "hr"],
+  core: ["dashboard", "workOrders", "properties", "finance", "hr"],
   business: ["crm", "marketplace", "support", "compliance", "reports"],
   system: ["system", "administration"],
 };

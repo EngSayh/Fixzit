@@ -4,11 +4,12 @@ import React from "react";
 import ModuleViewTabs from "@/components/fm/ModuleViewTabs";
 import { useFmOrgGuard } from "@/components/fm/useFmOrgGuard";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { WORK_ORDERS_MODULE_ID } from "@/config/navigation/constants";
 
 export default function WorkOrdersBoardPage() {
   const { t } = useTranslation();
   const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({
-    moduleId: "work_orders",
+    moduleId: WORK_ORDERS_MODULE_ID,
   });
   const workOrders = [
     {
@@ -64,7 +65,7 @@ export default function WorkOrdersBoardPage() {
 
   return (
     <div className="space-y-6">
-      <ModuleViewTabs moduleId="work_orders" />
+      <ModuleViewTabs moduleId={WORK_ORDERS_MODULE_ID} />
       {supportOrg && (
         <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
           {t("fm.org.supportContext", "Support context: {{name}}", {

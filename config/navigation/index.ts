@@ -341,8 +341,7 @@ export type ModuleId =
 
 export const MODULE_PATHS = {
   dashboard: '/fm/dashboard',
-  work_orders: '/fm/work-orders',
-  workOrders: '/fm/work-orders', // camel-case alias for legacy consumers
+  workOrders: '/fm/work-orders',
   properties: '/fm/properties',
   tenants: '/fm/tenants',
   finance: '/fm/finance',

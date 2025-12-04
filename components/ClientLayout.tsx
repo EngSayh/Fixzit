@@ -102,10 +102,10 @@ const mapCountersToBadgeCounts = (
   };
 
   const workOrders = counters.workOrders ?? {};
-  setCount("work_orders", workOrders.total);
-  setCount("pending_work_orders", workOrders.open);
-  setCount("in_progress_work_orders", workOrders.inProgress);
-  setCount("urgent_work_orders", workOrders.overdue);
+  setCount("workOrders", workOrders.total);
+  setCount("pendingWorkOrders", workOrders.open);
+  setCount("inProgressWorkOrders", workOrders.inProgress);
+  setCount("urgentWorkOrders", workOrders.overdue);
 
   const finance = counters.finance ?? counters.invoices ?? {};
   setCount("pending_invoices", finance.unpaid);

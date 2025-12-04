@@ -1,8 +1,9 @@
 import type { UserRoleType } from "@/types/user";
+import { WORK_ORDERS_MODULE_ID } from "@/config/navigation/constants";
 
 export type AppKey = "fm" | "souq" | "aqar";
 export type SearchEntity =
-  | "work_orders"
+  | typeof WORK_ORDERS_MODULE_ID
   | "properties"
   | "units"
   | "tenants"
@@ -18,7 +19,7 @@ export type SearchEntity =
 
 export type ModuleScope =
   | "dashboard"
-  | "work_orders"
+  | typeof WORK_ORDERS_MODULE_ID
   | "properties"
   | "finance"
   | "hr"
@@ -33,7 +34,7 @@ export type ModuleScope =
 
 export type SidebarModuleKey =
   | "dashboard"
-  | "work_orders"
+  | typeof WORK_ORDERS_MODULE_ID
   | "properties"
   | "finance"
   | "hr"
@@ -91,7 +92,7 @@ export const APPS: Record<AppKey, AppConfig> = {
     routePrefix: "/fm",
     searchPlaceholderKey: "search.placeholders.fmDefault",
     searchEntities: [
-      "work_orders",
+      WORK_ORDERS_MODULE_ID,
       "properties",
       "units",
       "tenants",
@@ -199,7 +200,8 @@ export const APPS: Record<AppKey, AppConfig> = {
 
 export const DEFAULT_SCOPE: ModuleScope = "dashboard";
 
-const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
+// Some deployments may not expose every module; keep this partial to allow extensibility
+const MODULE_SCOPE_CONFIG: Partial<Record<ModuleScope, ModuleScopeConfig>> = {
   dashboard: {
     id: "dashboard",
     app: "fm",
@@ -208,7 +210,7 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
     fallbackLabel: "Dashboard",
     searchPlaceholderKey: "search.placeholders.dashboard",
     placeholderFallback: "Search work orders, properties, tenants…",
-    searchEntities: ["work_orders", "properties", "tenants"],
+    searchEntities: [WORK_ORDERS_MODULE_ID, "properties", "tenants"],
     savedSearches: [
       {
         id: "recent-activity",
@@ -220,15 +222,15 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
     ],
     quickActions: [],
   },
-  work_orders: {
-    id: "work_orders",
+  [WORK_ORDERS_MODULE_ID]: {
+    id: WORK_ORDERS_MODULE_ID,
     app: "fm",
-    navKey: "work_orders",
+    navKey: WORK_ORDERS_MODULE_ID,
     labelKey: "nav.workOrders",
     fallbackLabel: "Work Orders",
     searchPlaceholderKey: "search.placeholders.workOrders",
     placeholderFallback: "Search work orders, technicians, assets…",
-    searchEntities: ["work_orders", "properties", "tenants"],
+    searchEntities: [WORK_ORDERS_MODULE_ID, "properties", "tenants"],
     savedSearches: [
       {
         id: "urgent-wo",
@@ -355,7 +357,7 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
     fallbackLabel: "Administration",
     searchPlaceholderKey: "search.placeholders.dashboard",
     placeholderFallback: "Search administrative records…",
-    searchEntities: ["properties", "work_orders"],
+    searchEntities: ["properties", WORK_ORDERS_MODULE_ID],
     savedSearches: [],
     quickActions: [],
   },
@@ -379,7 +381,7 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
     fallbackLabel: "Support",
     searchPlaceholderKey: "search.placeholders.dashboard",
     placeholderFallback: "Search tickets and knowledge base…",
-    searchEntities: ["work_orders"],
+    searchEntities: [WORK_ORDERS_MODULE_ID],
     savedSearches: [],
     quickActions: [],
   },
@@ -391,7 +393,7 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
     fallbackLabel: "Compliance",
     searchPlaceholderKey: "search.placeholders.dashboard",
     placeholderFallback: "Search policies, audits, disputes…",
-    searchEntities: ["work_orders"],
+    searchEntities: [WORK_ORDERS_MODULE_ID],
     savedSearches: [],
     quickActions: [],
   },
@@ -403,7 +405,7 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
     fallbackLabel: "Reports",
     searchPlaceholderKey: "search.placeholders.dashboard",
     placeholderFallback: "Search reports and dashboards…",
-    searchEntities: ["work_orders", "properties", "invoices"],
+    searchEntities: [WORK_ORDERS_MODULE_ID, "properties", "invoices"],
     savedSearches: [],
     quickActions: [],
   },
@@ -518,7 +520,7 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
 };
 
 const MODULE_ROUTE_MATCHERS: { pattern: RegExp; scope: ModuleScope }[] = [
-  { pattern: /^\/(fm\/)?work-orders/i, scope: "work_orders" },
+  { pattern: /^\/(fm\/)?work-orders/i, scope: WORK_ORDERS_MODULE_ID },
   { pattern: /^\/(fm\/)?properties/i, scope: "properties" },
   { pattern: /^\/(fm\/)?finance/i, scope: "finance" },
   { pattern: /^\/(fm\/)?hr/i, scope: "hr" },
@@ -558,7 +560,13 @@ export function getModuleFromPath(pathname: string): ModuleScope {
 }
 
 export function getModuleSearchConfig(scope: ModuleScope): ModuleScopeConfig {
-  return MODULE_SCOPE_CONFIG[scope] ?? MODULE_SCOPE_CONFIG[DEFAULT_SCOPE];
+  const config = MODULE_SCOPE_CONFIG[scope];
+  // Fallback to DEFAULT_SCOPE config to satisfy return type when scope is unknown/missing
+  // DEFAULT_SCOPE (dashboard) is always present in MODULE_SCOPE_CONFIG
+  if (!config) {
+    return MODULE_SCOPE_CONFIG[DEFAULT_SCOPE] as ModuleScopeConfig;
+  }
+  return config;
 }
 
 export function getModuleSavedSearches(

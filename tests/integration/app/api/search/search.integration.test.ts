@@ -3,6 +3,10 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import { MongoClient, ObjectId, type Db } from "mongodb";
 import { NextRequest } from "next/server";
 import { UserRole } from "@/types/user";
+import {
+  WORK_ORDERS_ENTITY_LEGACY,
+  WORK_ORDERS_ENTITY,
+} from "@/config/topbar-modules";
 
 let db: Db;
 let client: MongoClient;
@@ -87,7 +91,9 @@ describe("GET /api/search (integration, in-memory Mongo)", () => {
       vendorId: "",
     };
 
-    const res = await GET(buildRequest("app=fm&q=Alpha&entities=workOrders"));
+    const res = await GET(
+      buildRequest(`app=fm&q=Alpha&entities=${WORK_ORDERS_ENTITY}`),
+    );
     const json = await res.json();
 
     expect(json.results).toHaveLength(1);
@@ -103,7 +109,9 @@ describe("GET /api/search (integration, in-memory Mongo)", () => {
       vendorId: "",
     };
 
-    const res = await GET(buildRequest("app=fm&q=Alpha&entities=workOrders"));
+    const res = await GET(
+      buildRequest(`app=fm&q=Alpha&entities=${WORK_ORDERS_ENTITY}`),
+    );
     const json = await res.json();
 
     expect(json.results).toHaveLength(1);
@@ -167,7 +175,9 @@ describe("GET /api/search (integration, in-memory Mongo)", () => {
       vendorId: "",
     };
 
-    const res = await GET(buildRequest("app=fm&q=Alpha&entities=work_orders"));
+    const res = await GET(
+      buildRequest(`app=fm&q=Alpha&entities=${WORK_ORDERS_ENTITY_LEGACY}`),
+    );
     const json = await res.json();
 
     expect(json.results).toHaveLength(1);
