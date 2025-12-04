@@ -149,6 +149,8 @@ export async function createIndexes() {
   await dropLegacyQaIndexes(db);
   // Clean up legacy user indexes that clash with named variants
   await dropLegacyUserIndexes(db);
+  // Clean up legacy work order indexes that clash with named variants
+  await dropLegacyWorkOrderIndexes(db);
   // Clean up default orgId index names so named orgId indexes can be recreated idempotently
   await dropDefaultOrgIdIndexes(db);
   // Ensure employeeId unique index uses canonical partial filter
@@ -1069,6 +1071,52 @@ async function dropLegacyUserIndexes(db: Awaited<ReturnType<typeof getDatabase>>
   }
 }
 
+/**
+ * Drop legacy work order indexes that use default names and conflict with canonical named indexes.
+ * This allows the canonical indexes (e.g., workorders_orgId_priority_slaStatus) to be created idempotently.
+ */
+async function dropLegacyWorkOrderIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const workOrderIndexes = [
+    // Default-named orgId-prefixed compound indexes that conflict with canonical named versions
+    "orgId_1_status_1",
+    "orgId_1_priority_1",
+    "orgId_1_priority_1_sla.status_1", // conflicts with workorders_orgId_priority_slaStatus
+    "orgId_1_location.propertyId_1",
+    "orgId_1_location.propertyId_1_status_1",
+    "orgId_1_location.unitNumber_1_status_1",
+    "orgId_1_assignment.assignedTo.userId_1",
+    "orgId_1_assignment.assignedTo.vendorId_1",
+    "orgId_1_requester.userId_1",
+    "orgId_1_scheduledDate_1",
+    "orgId_1_createdAt_-1",
+    "orgId_1_updatedAt_-1",
+    "orgId_1_category_1",
+    "orgId_1_subCategory_1",
+    "orgId_1_type_1",
+    // Text index that may have default name
+    "orgId_1_title_text_description_text_work.solutionDescription_text",
+  ];
+
+  for (const indexName of workOrderIndexes) {
+    try {
+      await db.collection(COLLECTIONS.WORK_ORDERS).dropIndex(indexName);
+    } catch (error) {
+      const err = error as { code?: number; codeName?: string; message?: string };
+      const isMissing =
+        err?.code === 27 ||
+        err?.codeName === "IndexNotFound" ||
+        err?.message?.includes("index not found");
+      if (isMissing) {
+        continue;
+      }
+      logger.warn("[indexes] Failed to drop legacy work order index", {
+        indexName,
+        error: err?.message,
+      });
+    }
+  }
+}
+
 async function dropLegacyGlobalUniqueIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
   const targets: Array<{ collection: string; indexes: string[] }> = [
     { collection: COLLECTIONS.USERS, indexes: ["email_1"] },
@@ -1096,6 +1144,7 @@ async function dropLegacyGlobalUniqueIndexes(db: Awaited<ReturnType<typeof getDa
         "orgId_1_assignedTo_1_status_1",
         "orgId_1_status_1",
         "orgId_1_priority_1",
+        "orgId_1_priority_1_sla.status_1", // Mongoose auto-created, conflicts with workorders_orgId_priority_slaStatus
         "orgId_1_location.propertyId_1",
         "orgId_1_location.unitNumber_1_status_1",
         "orgId_1_assignment.assignedTo.userId_1",

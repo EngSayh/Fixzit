@@ -27,6 +27,8 @@ if [[ "${PW_USE_BUILD:-true}" == "true" ]]; then
   if [[ "${PW_SKIP_BUILD:-false}" == "true" ]]; then
     echo "🔄 Skipping pnpm build (PW_SKIP_BUILD=true); using existing .next output"
   else
+    # Ensure a clean build output to avoid stale traces/manifests breaking standalone builds
+    rm -rf .next || true
     pnpm build
   fi
   # Pass host/port directly to next start; leading -- caused Next to treat flags as project dir
