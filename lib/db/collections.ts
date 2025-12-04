@@ -15,6 +15,7 @@ import type {
   NotificationDoc,
 } from "@/lib/models";
 import { validateCollection, sanitizeTimestamps } from "@/lib/utils/timestamp";
+import { logger } from "@/lib/logger";
 
 // Collection names
 export const COLLECTIONS = {
@@ -61,24 +62,51 @@ export async function getCollections() {
 export async function createIndexes() {
   const db = await getDatabase();
 
+  // Clean up legacy global unique indexes so org-scoped uniques can be enforced
+  await dropLegacyGlobalUniqueIndexes(db);
+
   await createQaIndexes(db);
 
   // Users - STRICT v4.1: email unique per org, not globally
   await db
     .collection(COLLECTIONS.USERS)
-    .createIndex({ orgId: 1, email: 1 }, { unique: true, background: true, name: "users_orgId_email_unique" });
+    .createIndex(
+      { orgId: 1, email: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "users_orgId_email_unique",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
   await db.collection(COLLECTIONS.USERS).createIndex({ orgId: 1 }, { background: true, name: "users_orgId" });
 
   // Properties - STRICT v4.1: code unique per org
   await db
     .collection(COLLECTIONS.PROPERTIES)
-    .createIndex({ orgId: 1, code: 1 }, { unique: true, background: true, name: "properties_orgId_code_unique" });
+    .createIndex(
+      { orgId: 1, code: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "properties_orgId_code_unique",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
   await db.collection(COLLECTIONS.PROPERTIES).createIndex({ orgId: 1 }, { background: true, name: "properties_orgId" });
 
   // Work Orders - STRICT v4.1: code unique per org
   await db
     .collection(COLLECTIONS.WORK_ORDERS)
-    .createIndex({ orgId: 1, code: 1 }, { unique: true, background: true, name: "workorders_orgId_code_unique" });
+    .createIndex(
+      { orgId: 1, code: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "workorders_orgId_code_unique",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
   await db
     .collection(COLLECTIONS.WORK_ORDERS)
     .createIndex({ orgId: 1, status: 1 }, { background: true, name: "workorders_orgId_status" });
@@ -86,7 +114,15 @@ export async function createIndexes() {
   // Products - STRICT v4.1: sku unique per org
   await db
     .collection(COLLECTIONS.PRODUCTS)
-    .createIndex({ orgId: 1, sku: 1 }, { unique: true, background: true, name: "products_orgId_sku_unique" });
+    .createIndex(
+      { orgId: 1, sku: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "products_orgId_sku_unique",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
   await db
     .collection(COLLECTIONS.PRODUCTS)
     .createIndex({ orgId: 1, categoryId: 1 }, { background: true, name: "products_orgId_categoryId" });
@@ -97,7 +133,15 @@ export async function createIndexes() {
   // Orders - STRICT v4.1: orderNumber unique per org
   await db
     .collection(COLLECTIONS.ORDERS)
-    .createIndex({ orgId: 1, orderNumber: 1 }, { unique: true, background: true, name: "orders_orgId_orderNumber_unique" });
+    .createIndex(
+      { orgId: 1, orderNumber: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "orders_orgId_orderNumber_unique",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
   await db
     .collection(COLLECTIONS.ORDERS)
     .createIndex({ orgId: 1, userId: 1 }, { background: true, name: "orders_orgId_userId" });
@@ -105,7 +149,15 @@ export async function createIndexes() {
   // Invoices - STRICT v4.1: invoiceNumber unique per org
   await db
     .collection(COLLECTIONS.INVOICES)
-    .createIndex({ orgId: 1, invoiceNumber: 1 }, { unique: true, background: true, name: "invoices_orgId_invoiceNumber_unique" });
+    .createIndex(
+      { orgId: 1, invoiceNumber: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "invoices_orgId_invoiceNumber_unique",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
   await db.collection(COLLECTIONS.INVOICES).createIndex({ orgId: 1 }, { background: true, name: "invoices_orgId" });
 }
 
@@ -204,6 +256,39 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
       expireAfterSeconds: 30 * 24 * 60 * 60,  // 30 days
       background: true 
     });
+}
+
+async function dropLegacyGlobalUniqueIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const targets: Array<{ collection: string; indexes: string[] }> = [
+    { collection: COLLECTIONS.USERS, indexes: ["email_1"] },
+    { collection: COLLECTIONS.PROPERTIES, indexes: ["code_1"] },
+    { collection: COLLECTIONS.WORK_ORDERS, indexes: ["code_1"] },
+    { collection: COLLECTIONS.PRODUCTS, indexes: ["sku_1"] },
+    { collection: COLLECTIONS.ORDERS, indexes: ["orderNumber_1"] },
+    { collection: COLLECTIONS.INVOICES, indexes: ["invoiceNumber_1"] },
+  ];
+
+  for (const { collection, indexes } of targets) {
+    for (const indexName of indexes) {
+      try {
+        await db.collection(collection).dropIndex(indexName);
+      } catch (error) {
+        const err = error as { code?: number; codeName?: string; message?: string };
+        const isMissing =
+          err?.code === 27 ||
+          err?.codeName === "IndexNotFound" ||
+          err?.message?.includes("index not found");
+        if (isMissing) {
+          continue;
+        }
+        logger.warn(`[indexes] Failed to drop legacy index`, {
+          collection,
+          indexName,
+          error: err?.message,
+        });
+      }
+    }
+  }
 }
 
 let qaIndexesPromise: Promise<void> | null = null;
