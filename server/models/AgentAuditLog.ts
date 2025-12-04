@@ -129,17 +129,10 @@ const AgentAuditLogSchema = new Schema<IAgentAuditLog>(
   {
     timestamps: true, // createdAt, updatedAt
     collection: "agent_audit_logs",
+    // Indexes are managed centrally in lib/db/collections.ts
+    autoIndex: false,
   }
 );
-
-// Indexes for query performance (STRICT v4.1 recommendations)
-// AUDIT-2025-11-29: Changed from org_id to orgId
-AgentAuditLogSchema.index({ agent_id: 1, timestamp: -1 }); // Query all actions by agent
-AgentAuditLogSchema.index({ assumed_user_id: 1, timestamp: -1 }); // Query actions on behalf of user
-AgentAuditLogSchema.index({ orgId: 1, timestamp: -1 }); // Tenant-scoped queries
-AgentAuditLogSchema.index({ orgId: 1, resource_type: 1, timestamp: -1 }); // Resource-type specific queries
-AgentAuditLogSchema.index({ orgId: 1, success: 1, timestamp: -1 }); // Failed actions audit
-AgentAuditLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 31536000 }); // TTL: 1 year retention
 
 // Virtual for easier querying
 AgentAuditLogSchema.virtual("age_days").get(function () {

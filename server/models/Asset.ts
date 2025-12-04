@@ -180,23 +180,14 @@ const AssetSchema = new Schema(
   },
   {
     timestamps: true,
+    // Indexes are managed centrally in lib/db/collections.ts
+    autoIndex: false,
   },
 );
 
 // Apply plugins BEFORE indexes for proper tenant isolation and audit tracking
 AssetSchema.plugin(tenantIsolationPlugin);
 AssetSchema.plugin(auditPlugin);
-
-// Indexes for performance (orgId added by plugin)
-AssetSchema.index({ orgId: 1, type: 1 });
-AssetSchema.index({ orgId: 1, status: 1 });
-AssetSchema.index({ orgId: 1, "pmSchedule.nextPM": 1 });
-AssetSchema.index({ orgId: 1, "condition.score": 1 });
-// Compound tenant-scoped unique index for code
-AssetSchema.index(
-  { orgId: 1, code: 1 },
-  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
-);
 
 export type AssetDoc = InferSchemaType<typeof AssetSchema>;
 

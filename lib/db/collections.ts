@@ -18,7 +18,7 @@ import { validateCollection, sanitizeTimestamps } from "@/lib/utils/timestamp";
 import { logger } from "@/lib/logger";
 
 // Collection names
-export const COLLECTIONS = {
+export const COLLECTIONS: Record<string, string> = {
   TENANTS: "tenants",
   USERS: "users",
   PROPERTIES: "properties",
@@ -29,7 +29,6 @@ export const COLLECTIONS = {
   CARTS: "carts",
   ORDERS: "orders",
   INVOICES: "invoices",
-  SUBSCRIPTION_INVOICES: "subscriptioninvoices",
   RFQS: "rfqs",
   REVIEWS: "reviews",
   NOTIFICATIONS: "notifications",
@@ -49,6 +48,11 @@ export const COLLECTIONS = {
   // QA collections
   QA_LOGS: "qa_logs",
   QA_ALERTS: "qa_alerts",
+  // Approvals / Assets / SLA / Agent audit
+  FM_APPROVALS: "fm_approvals",
+  ASSETS: "assets",
+  SLAS: "slas",
+  AGENT_AUDIT_LOGS: "agent_audit_logs",
   // Search-related collections (used in app/api/search/route.ts)
   UNITS: "units",
   SERVICES: "services",
@@ -56,6 +60,8 @@ export const COLLECTIONS = {
   AGENTS: "agents",
   LISTINGS: "listings",
   RFQ_RESPONSES: "rfq_responses",
+  // Subscription/billing collections
+  SUBSCRIPTION_INVOICES: "subscriptioninvoices",
 } as const;
 
 // Get typed collections
@@ -394,6 +400,110 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.INVOICES)
     .createIndex({ orgId: 1, type: 1, status: 1 }, { background: true, name: "invoices_orgId_type_status" });
+
+  // Subscription Invoices (recurring billing)
+  await db
+    .collection(COLLECTIONS.SUBSCRIPTION_INVOICES)
+    .createIndex({ orgId: 1, status: 1, dueDate: 1 }, { background: true, name: "subscriptioninvoices_orgId_status_dueDate" });
+  await db
+    .collection(COLLECTIONS.SUBSCRIPTION_INVOICES)
+    .createIndex(
+      { orgId: 1, subscriptionId: 1, dueDate: -1 },
+      { background: true, name: "subscriptioninvoices_orgId_subscription_dueDate_desc" },
+    );
+  await db
+    .collection(COLLECTIONS.SUBSCRIPTION_INVOICES)
+    .createIndex(
+      { orgId: 1, subscriptionId: 1, status: 1 },
+      { background: true, name: "subscriptioninvoices_orgId_subscription_status" },
+    );
+  await db
+    .collection(COLLECTIONS.SUBSCRIPTION_INVOICES)
+    .createIndex({ paytabsRef: 1 }, { background: true, sparse: true, name: "subscriptioninvoices_paytabsRef" });
+
+  // Assets
+  await db
+    .collection(COLLECTIONS.ASSETS)
+    .createIndex({ orgId: 1, type: 1 }, { background: true, name: "assets_orgId_type" });
+  await db
+    .collection(COLLECTIONS.ASSETS)
+    .createIndex({ orgId: 1, status: 1 }, { background: true, name: "assets_orgId_status" });
+  await db
+    .collection(COLLECTIONS.ASSETS)
+    .createIndex({ orgId: 1, "pmSchedule.nextPM": 1 }, { background: true, name: "assets_orgId_nextPM" });
+  await db
+    .collection(COLLECTIONS.ASSETS)
+    .createIndex({ orgId: 1, "condition.score": 1 }, { background: true, name: "assets_orgId_conditionScore" });
+  await db
+    .collection(COLLECTIONS.ASSETS)
+    .createIndex(
+      { orgId: 1, code: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "assets_orgId_code_unique",
+        partialFilterExpression: { orgId: { $exists: true }, code: { $exists: true } },
+      },
+    );
+
+  // SLA
+  await db
+    .collection(COLLECTIONS.SLAS)
+    .createIndex(
+      { orgId: 1, code: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "slas_orgId_code_unique",
+        partialFilterExpression: { orgId: { $exists: true }, code: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.SLAS)
+    .createIndex({ orgId: 1, type: 1 }, { background: true, name: "slas_orgId_type" });
+  await db
+    .collection(COLLECTIONS.SLAS)
+    .createIndex({ orgId: 1, status: 1 }, { background: true, name: "slas_orgId_status" });
+  await db
+    .collection(COLLECTIONS.SLAS)
+    .createIndex({ orgId: 1, priority: 1 }, { background: true, name: "slas_orgId_priority" });
+
+  // FM Approvals
+  await db
+    .collection(COLLECTIONS.FM_APPROVALS)
+    .createIndex({ orgId: 1, approvalNumber: 1 }, { background: true, unique: true, name: "fmApprovals_orgId_approvalNumber_unique" });
+  await db
+    .collection(COLLECTIONS.FM_APPROVALS)
+    .createIndex({ orgId: 1, entityId: 1, entityType: 1 }, { background: true, name: "fmApprovals_orgId_entity" });
+  await db
+    .collection(COLLECTIONS.FM_APPROVALS)
+    .createIndex({ orgId: 1, approverId: 1, status: 1 }, { background: true, name: "fmApprovals_orgId_approver_status" });
+  await db
+    .collection(COLLECTIONS.FM_APPROVALS)
+    .createIndex({ orgId: 1, status: 1, dueDate: 1 }, { background: true, name: "fmApprovals_orgId_status_dueDate" });
+  await db
+    .collection(COLLECTIONS.FM_APPROVALS)
+    .createIndex({ orgId: 1, workflowId: 1 }, { background: true, name: "fmApprovals_orgId_workflowId" });
+
+  // Agent Audit Logs (includes TTL)
+  await db
+    .collection(COLLECTIONS.AGENT_AUDIT_LOGS)
+    .createIndex({ agent_id: 1, timestamp: -1 }, { background: true, name: "agentAudit_agent_timestamp_desc" });
+  await db
+    .collection(COLLECTIONS.AGENT_AUDIT_LOGS)
+    .createIndex({ assumed_user_id: 1, timestamp: -1 }, { background: true, name: "agentAudit_assumedUser_timestamp_desc" });
+  await db
+    .collection(COLLECTIONS.AGENT_AUDIT_LOGS)
+    .createIndex({ orgId: 1, timestamp: -1 }, { background: true, name: "agentAudit_orgId_timestamp_desc" });
+  await db
+    .collection(COLLECTIONS.AGENT_AUDIT_LOGS)
+    .createIndex({ orgId: 1, resource_type: 1, timestamp: -1 }, { background: true, name: "agentAudit_orgId_resourceType_timestamp_desc" });
+  await db
+    .collection(COLLECTIONS.AGENT_AUDIT_LOGS)
+    .createIndex({ orgId: 1, success: 1, timestamp: -1 }, { background: true, name: "agentAudit_orgId_success_timestamp_desc" });
+  await db
+    .collection(COLLECTIONS.AGENT_AUDIT_LOGS)
+    .createIndex({ timestamp: 1 }, { background: true, expireAfterSeconds: 31536000, name: "agentAudit_timestamp_ttl_1y" });
 
   // Subscription Invoices (recurring billing)
   await db

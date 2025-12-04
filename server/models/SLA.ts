@@ -177,21 +177,14 @@ const SLASchema = new Schema(
   },
   {
     timestamps: true,
+    // Indexes are managed centrally in lib/db/collections.ts
+    autoIndex: false,
   },
 );
 
 // Apply plugins BEFORE indexes
 SLASchema.plugin(tenantIsolationPlugin);
 SLASchema.plugin(auditPlugin); // Adds orgId, createdBy, updatedBy (as ObjectId)
-
-// Tenant-scoped indexes (orgId from plugin)
-SLASchema.index(
-  { orgId: 1, code: 1 },
-  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
-); // FIXED: tenant-scoped code
-SLASchema.index({ orgId: 1, type: 1 });
-SLASchema.index({ orgId: 1, status: 1 });
-SLASchema.index({ orgId: 1, priority: 1 });
 
 export type SLADoc = InferSchemaType<typeof SLASchema>;
 
