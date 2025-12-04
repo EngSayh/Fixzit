@@ -36,6 +36,7 @@ jobs:
           --health-retries 5
 
     env:
+      NODE_OPTIONS: --max-old-space-size=8192
       NODE_ENV: test
       CI: true
       # Auth secrets from GitHub Secrets (fallback to deterministic test values)

@@ -41,7 +41,8 @@ async function main() {
     process.exit(0);
   }
 
-  const failures: string[] = [];
+  /** @type {string[]} */
+  const failures = [];
   try {
     const db = await getDatabase();
     console.log("✅ Connected\n");
@@ -53,7 +54,7 @@ async function main() {
           `✅ Deleted ${result.deletedCount} user(s) with role: ${role}`,
         );
       } catch (error) {
-        const msg = `Failed role "${role}": ${(error as Error).message}`;
+        const msg = `Failed role "${role}": ${/** @type {Error} */ (error).message}`;
         console.error(`❌ ${msg}`);
         failures.push(msg);
       }
@@ -67,7 +68,7 @@ async function main() {
     }
     console.log("\n✅ Complete!\n");
   } catch (error) {
-    console.error(`\n❌ FATAL: ${(error as Error).message}`);
+    console.error(`\n❌ FATAL: ${/** @type {Error} */ (error).message}`);
     process.exit(1);
   } finally {
     await disconnectFromDatabase();

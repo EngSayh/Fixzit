@@ -104,7 +104,7 @@ jobs:
           - 'Mobile:AR:Tenant'       # Mobile iOS self-service
 
     env:
-      NODE_OPTIONS: --max-old-space-size=4096
+      NODE_OPTIONS: --max-old-space-size=8192
       PLAYWRIGHT_CONFIG: tests/playwright.config.ts
       PW_WEB_SERVER: pnpm dev -- --hostname 0.0.0.0 --port 3000
       PW_WEB_PORT: 3000
@@ -172,6 +172,7 @@ jobs:
           echo "✅ All 41 RBAC tests passing"
 
       - name: Build app (for E2E tests)
+        timeout-minutes: 15
         env:
           NODE_ENV: test
           SKIP_ENV_VALIDATION: 'true'
