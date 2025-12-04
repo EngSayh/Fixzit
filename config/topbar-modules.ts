@@ -3,7 +3,6 @@ import type { UserRoleType } from "@/types/user";
 export type AppKey = "fm" | "souq" | "aqar";
 export type SearchEntity =
   | "workOrders"
-  | "work_orders" // legacy alias, to be phased out
   | "properties"
   | "units"
   | "tenants"
@@ -19,11 +18,11 @@ export type SearchEntity =
 
 // Canonical constants to avoid repeating string literals across the app
 export const WORK_ORDERS_ENTITY: SearchEntity = "workOrders";
-export const WORK_ORDERS_ENTITY_LEGACY: SearchEntity = "work_orders";
+/** @deprecated Use WORK_ORDERS_ENTITY instead. Kept for API backward compatibility only. */
+export const WORK_ORDERS_ENTITY_LEGACY = "work_orders" as const;
 
 export type ModuleScope =
   | "dashboard"
-  | "work_orders" // legacy alias for routing, to be phased out
   | "workOrders"
   | "properties"
   | "finance"
@@ -39,7 +38,6 @@ export type ModuleScope =
 
 export type SidebarModuleKey =
   | "dashboard"
-  | "work_orders" // legacy alias for routing, to be phased out
   | "workOrders"
   | "properties"
   | "finance"
@@ -207,8 +205,9 @@ export const APPS: Record<AppKey, AppConfig> = {
 export const DEFAULT_SCOPE: ModuleScope = "dashboard";
 
 // Normalize legacy scope strings to canonical
-const normalizeScope = (scope: ModuleScope): ModuleScope =>
-  scope === WORK_ORDERS_ENTITY_LEGACY ? WORK_ORDERS_ENTITY : scope;
+// Note: WORK_ORDERS_ENTITY_LEGACY is kept for API backward compatibility but removed from ModuleScope type
+const normalizeScope = (scope: string): ModuleScope =>
+  scope === WORK_ORDERS_ENTITY_LEGACY ? WORK_ORDERS_ENTITY : (scope as ModuleScope);
 
 const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
   dashboard: {
@@ -274,19 +273,6 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
         roles: ["SUPER_ADMIN", "CORPORATE_ADMIN", "FM_MANAGER", "DISPATCHER"],
       },
     ],
-  },
-  // Legacy alias for work_orders - maps to workOrders config
-  work_orders: {
-    id: "workOrders",
-    app: "fm",
-    navKey: "workOrders",
-    labelKey: "nav.workOrders",
-    fallbackLabel: "Work Orders",
-    searchPlaceholderKey: "search.placeholders.workOrders",
-    placeholderFallback: "Search work orders, technicians, assets…",
-    searchEntities: ["workOrders", "properties", "tenants"],
-    savedSearches: [],
-    quickActions: [],
   },
   properties: {
     id: "properties",
@@ -541,8 +527,8 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
   },
 };
 
-// Legacy alias support: map snake_case scope to canonical config
-MODULE_SCOPE_CONFIG[WORK_ORDERS_ENTITY_LEGACY] = MODULE_SCOPE_CONFIG[WORK_ORDERS_ENTITY];
+// Legacy alias support is handled via normalizeScope() function
+// API backward compatibility: work_orders -> workOrders is done at runtime
 
 const MODULE_ROUTE_MATCHERS: { pattern: RegExp; scope: ModuleScope }[] = [
   { pattern: /^\/(fm\/)?work-orders/i, scope: WORK_ORDERS_ENTITY },
