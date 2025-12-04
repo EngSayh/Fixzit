@@ -35,8 +35,9 @@ import { UserRole, type UserRoleType } from "@/types/user";
  * Entity-to-permission mapping for search RBAC
  * Format: entity -> required permission key
  */
-const SEARCH_ENTITY_PERMISSIONS: Record<SearchEntity, string> = {
-  work_orders: "wo.read",
+const SEARCH_ENTITY_PERMISSIONS: Partial<Record<SearchEntity, string>> = {
+  workOrders: "wo.read",
+  work_orders: "wo.read", // legacy alias (to be removed after migration)
   properties: "properties.read",
   units: "properties.read", // Units are sub-entities of properties
   tenants: "tenants.read",
@@ -201,6 +202,10 @@ const PERMISSION_ROLES: Record<string, readonly UserRoleType[]> = {
   ],
 };
 
+// Normalize legacy entity names to canonical form
+const normalizeEntity = (entity: string): SearchEntity =>
+  entity === "work_orders" ? "workOrders" : (entity as SearchEntity);
+
 // Evaluate whether the requester can search a given entity
 function canSearchEntity(session: SessionUser, entity: SearchEntity): boolean {
   if (session.isSuperAdmin) return true;
@@ -230,12 +235,11 @@ function canSearchEntity(session: SessionUser, entity: SearchEntity): boolean {
   return allowedRoles.some((role) => normalizedRoles.has(role));
 }
 
-const WORK_ORDERS_ENTITY = "work_orders" as SearchEntity;
-
 // Helper function to generate href based on entity type
 function generateHref(entity: string, id: string): string {
   const baseRoutes: Record<string, string> = {
-    [WORK_ORDERS_ENTITY]: "/fm/work-orders",
+    workOrders: "/fm/work-orders",
+    work_orders: "/fm/work-orders",
     properties: "/fm/properties",
     units: "/fm/properties/units",
     tenants: "/fm/tenants",
@@ -343,12 +347,12 @@ export async function GET(req: NextRequest) {
 
     let searchEntities =
       entities.length > 0
-        ? entities
-        : getSearchEntitiesForScope(moduleScope, app);
+        ? entities.map(normalizeEntity)
+        : getSearchEntitiesForScope(moduleScope, app).map(normalizeEntity);
     if (scope === "all") {
-      const combined = new Set([
+      const combined = new Set<SearchEntity>([
         ...searchEntities,
-        ...appConfig.searchEntities,
+        ...appConfig.searchEntities.map(normalizeEntity),
       ]);
       searchEntities = Array.from(combined);
     }
@@ -387,7 +391,8 @@ export async function GET(req: NextRequest) {
         if (!mdb) continue;
 
         switch (entity) {
-          case WORK_ORDERS_ENTITY:
+          case "workOrders":
+          case "work_orders":
             collection = mdb.collection(COLLECTIONS.WORK_ORDERS);
             searchQuery = {
               $text: { $search: q },

@@ -8,8 +8,7 @@ type TenantResolutionSuccess = {
   source: "header" | "query" | "session";
 };
 
-// Legacy field name kept for backward compatibility with some collections
-type TenantFieldName = "orgId" | "org_id";
+type TenantFieldName = "orgId";
 
 export type TenantResolutionResult =
   | TenantResolutionSuccess
