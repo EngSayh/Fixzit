@@ -20,6 +20,7 @@ import {
   type SessionUser,
 } from "@/server/middleware/withAuthRbac";
 import { ObjectId } from "mongodb";
+import { UserRole, type UserRoleType } from "@/types/user";
 
 // ============================================================================
 // SEARCH RBAC CONFIGURATION - SEC-002
@@ -49,153 +50,187 @@ const SEARCH_ENTITY_PERMISSIONS: Record<SearchEntity, string> = {
   projects: "aqar.projects.read",
   agents: "aqar.agents.read",
 };
-
 /**
  * Roles that have access to each permission
  * STRICT v4.1: Based on 14-role matrix from types/user.ts
  */
-const PERMISSION_ROLES: Record<string, string[]> = {
+const PERMISSION_ROLES: Record<string, readonly UserRoleType[]> = {
   // Work Orders - FM core functionality
   "wo.read": [
-    "SUPER_ADMIN",
-    "CORPORATE_ADMIN",
-    "ADMIN",
-    "FM_MANAGER",
-    "PROPERTY_MANAGER",
-    "DISPATCHER",
-    "TECHNICIAN",
-    "VENDOR",
-    "OWNER",
-    "TENANT",
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.FM_MANAGER,
+    UserRole.PROPERTY_MANAGER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.TEAM_MEMBER,
+    UserRole.TECHNICIAN,
+    UserRole.VENDOR,
+    UserRole.OWNER,
+    UserRole.TENANT,
   ],
   // Properties & Units
   "properties.read": [
-    "SUPER_ADMIN",
-    "CORPORATE_ADMIN",
-    "ADMIN",
-    "FM_MANAGER",
-    "PROPERTY_MANAGER",
-    "DISPATCHER",
-    "OWNER",
-    "TENANT",
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.FM_MANAGER,
+    UserRole.PROPERTY_MANAGER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.TEAM_MEMBER,
+    UserRole.OWNER,
   ],
   // Tenants (lease tenants)
   "tenants.read": [
-    "SUPER_ADMIN",
-    "CORPORATE_ADMIN",
-    "ADMIN",
-    "FM_MANAGER",
-    "PROPERTY_MANAGER",
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.FM_MANAGER,
+    UserRole.PROPERTY_MANAGER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.SUPPORT_AGENT,
   ],
   // Vendors
   "vendors.read": [
-    "SUPER_ADMIN",
-    "CORPORATE_ADMIN",
-    "ADMIN",
-    "FM_MANAGER",
-    "DISPATCHER",
-    "PROCUREMENT",
-    "FINANCE",
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.FM_MANAGER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.PROCUREMENT,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER,
+    UserRole.VENDOR,
   ],
   // Finance - Invoices (restricted)
   "finance.invoices.read": [
-    "SUPER_ADMIN",
-    "CORPORATE_ADMIN",
-    "FINANCE",
-    "FINANCE_OFFICER",
-    "AUDITOR",
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER,
+    UserRole.PROCUREMENT,
+    UserRole.AUDITOR,
   ],
   // Souq - Products
   "souq.products.read": [
-    "SUPER_ADMIN",
-    "CORPORATE_ADMIN",
-    "ADMIN",
-    "PROCUREMENT",
-    "VENDOR",
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.PROCUREMENT,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER,
+    UserRole.FM_MANAGER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.VENDOR,
   ],
   // Souq - Services
   "souq.services.read": [
-    "SUPER_ADMIN",
-    "CORPORATE_ADMIN",
-    "ADMIN",
-    "PROCUREMENT",
-    "VENDOR",
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.PROCUREMENT,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER,
+    UserRole.FM_MANAGER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.VENDOR,
   ],
   // Souq - RFQs
   "souq.rfq.read": [
-    "SUPER_ADMIN",
-    "CORPORATE_ADMIN",
-    "ADMIN",
-    "PROCUREMENT",
-    "VENDOR",
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.PROCUREMENT,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER,
+    UserRole.FM_MANAGER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.VENDOR,
   ],
   // Souq - Orders
   "souq.orders.read": [
-    "SUPER_ADMIN",
-    "CORPORATE_ADMIN",
-    "ADMIN",
-    "PROCUREMENT",
-    "FINANCE",
-    "VENDOR",
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.PROCUREMENT,
+    UserRole.FINANCE,
+    UserRole.FINANCE_OFFICER,
   ],
   // Aqar - Listings
   "aqar.listings.read": [
-    "SUPER_ADMIN",
-    "CORPORATE_ADMIN",
-    "ADMIN",
-    "PROPERTY_MANAGER",
-    "OWNER",
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.PROPERTY_MANAGER,
+    UserRole.FM_MANAGER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.OWNER,
   ],
   // Aqar - Projects
   "aqar.projects.read": [
-    "SUPER_ADMIN",
-    "CORPORATE_ADMIN",
-    "ADMIN",
-    "PROPERTY_MANAGER",
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.PROPERTY_MANAGER,
+    UserRole.FM_MANAGER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.OWNER,
   ],
   // Aqar - Agents
-  "aqar.agents.read": ["SUPER_ADMIN", "CORPORATE_ADMIN", "ADMIN"],
+  "aqar.agents.read": [
+    UserRole.SUPER_ADMIN,
+    UserRole.CORPORATE_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.PROPERTY_MANAGER,
+    UserRole.FM_MANAGER,
+    UserRole.OPERATIONS_MANAGER,
+    UserRole.OWNER,
+  ],
 };
 
-/**
- * Check if user has permission to search a specific entity based on role
- * @param session - User session with role information
- * @param entity - The entity type to check permission for
- * @returns true if user can search this entity
- */
+// Evaluate whether the requester can search a given entity
 function canSearchEntity(session: SessionUser, entity: SearchEntity): boolean {
-  // Super admins can search everything
-  if (session.isSuperAdmin) {
-    return true;
-  }
+  if (session.isSuperAdmin) return true;
 
-  // First check explicit permissions array if present
   const permission = SEARCH_ENTITY_PERMISSIONS[entity];
-  if (permission) {
-    const perms = session.permissions || [];
-    if (perms.includes("*") || perms.includes(permission)) {
-      return true;
-    }
+  if (!permission) {
+    logger.warn("[search] Unknown entity requested", { entity });
+    return false;
   }
 
-  // Role-based fallback
-  if (!permission) {
-    logger.warn("Unknown search entity requested", { entity });
-    return false;
+  const perms = session.permissions || [];
+  if (perms.includes("*") || perms.includes(permission)) {
+    return true;
   }
 
   const allowedRoles = PERMISSION_ROLES[permission];
   if (!allowedRoles) {
-    logger.warn("No roles defined for permission", { permission, entity });
+    logger.warn("[search] No roles configured for permission", { permission, entity });
     return false;
   }
 
-  // Check if user's role is in the allowed roles
-  const userRole = session.role?.toUpperCase() || "";
-  return allowedRoles.includes(userRole);
+  const normalizedRoles = new Set<string>();
+  const primaryRole = session.role?.toUpperCase();
+  if (primaryRole) normalizedRoles.add(primaryRole);
+  (session.roles || []).forEach((role) => normalizedRoles.add(String(role).toUpperCase()));
+
+  return allowedRoles.some((role) => normalizedRoles.has(role));
 }
 
-const WORK_ORDERS_ENTITY = ["work", "orders"].join("_") as SearchEntity;
+const WORK_ORDERS_ENTITY = "work_orders" as SearchEntity;
 
 // Helper function to generate href based on entity type
 function generateHref(entity: string, id: string): string {
@@ -324,7 +359,10 @@ export async function GET(req: NextRequest) {
     );
 
     if (searchEntities.length === 0) {
-      return createSecureResponse({ results: [] }, 200, req);
+      return NextResponse.json(
+        { error: "Forbidden: no accessible search entities for this role" },
+        { status: 403 },
+      );
     }
 
     const results: SearchResult[] = [];

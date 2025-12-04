@@ -24,7 +24,11 @@ export AUTH_SALT="${AUTH_SALT:-authjs.session-token}"
 
 # Prefer running against a built server to avoid dev-mode manifest gaps
 if [[ "${PW_USE_BUILD:-true}" == "true" ]]; then
-  pnpm build
+  if [[ "${PW_SKIP_BUILD:-false}" == "true" ]]; then
+    echo "🔄 Skipping pnpm build (PW_SKIP_BUILD=true); using existing .next output"
+  else
+    pnpm build
+  fi
   # Pass host/port directly to next start; leading -- caused Next to treat flags as project dir
   export PW_WEB_SERVER="pnpm start --hostname 0.0.0.0 --port 3000"
   export PW_WEB_URL="${PW_WEB_URL:-http://localhost:3000}"

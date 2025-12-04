@@ -33,6 +33,8 @@ describe("COLLECTIONS constant", () => {
     expect(COLLECTIONS.AGENTS).toBe("agents");
     expect(COLLECTIONS.LISTINGS).toBe("listings");
     expect(COLLECTIONS.RFQ_RESPONSES).toBe("rfq_responses");
+    expect(COLLECTIONS.LISTINGS).toBe("listings");
+    expect(COLLECTIONS.RFQ_RESPONSES).toBe("rfq_responses");
 
     // Support/CRM collections
     expect(COLLECTIONS.SUPPORT_TICKETS).toBe("supporttickets");
@@ -112,6 +114,8 @@ describe("Collection name usage validation", () => {
     "services",
     "projects",
     "agents",
+    "listings",
+    "rfq_responses",
     "supporttickets",
     "support_tickets", // Legacy variant - should not exist
     "employees",
