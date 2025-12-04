@@ -1137,6 +1137,7 @@ async function dropLegacyInvoiceIndexes(db: Awaited<ReturnType<typeof getDatabas
     "orgId_1_number_1",
     "orgId_1_recipient.customerId_1",
     "orgId_1_zatca.status_1",
+    "orgId_1_type_1_status_1", // conflicts with invoices_orgId_type_status
   ];
 
   for (const indexName of invoiceIndexes) {
