@@ -186,7 +186,10 @@ FeatureFlagSchema.plugin(tenantIsolationPlugin);
 FeatureFlagSchema.plugin(auditPlugin);
 
 // Indexes (tenant-aware after plugins)
-FeatureFlagSchema.index({ orgId: 1, key: 1 }, { unique: true });
+FeatureFlagSchema.index(
+  { orgId: 1, key: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 FeatureFlagSchema.index({ orgId: 1, status: 1 });
 FeatureFlagSchema.index({ orgId: 1, category: 1 });
 FeatureFlagSchema.index({ isGlobal: 1 });

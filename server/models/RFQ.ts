@@ -181,7 +181,10 @@ RFQSchema.plugin(tenantIsolationPlugin);
 RFQSchema.plugin(auditPlugin);
 
 // Tenant-scoped indexes (orgId from plugin)
-RFQSchema.index({ orgId: 1, code: 1 }, { unique: true }); // FIXED: tenant-scoped code
+RFQSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+); // FIXED: tenant-scoped code
 RFQSchema.index({ orgId: 1, status: 1 });
 RFQSchema.index({ orgId: 1, category: 1 });
 RFQSchema.index({ orgId: 1, "timeline.bidDeadline": 1 });

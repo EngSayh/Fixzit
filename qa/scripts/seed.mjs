@@ -31,7 +31,7 @@ async function up() {
         email: cfg.users.admin.email,
         password_hash: cfg.users.admin.password, // NOTE: replace with real hash if your app requires it
         roles: ["super_admin"],
-        org_id: org.value?._id || org._id,
+        orgId: org.value?._id || org._id,
         active: true,
         createdAt: new Date(),
       },
@@ -46,28 +46,28 @@ async function up() {
         code: "QA-PROP-001",
         name: "QA Tower",
         city: "Riyadh",
-        org_id: org.value?._id || org._id,
+        orgId: org.value?._id || org._id,
         createdAt: new Date(),
       },
     },
     { upsert: true },
   );
 
-  await db.collection("work_orders").updateOne(
+  await db.collection("workorders").updateOne(
     { code: "QA-WO-0001" },
     {
       $setOnInsert: {
         code: "QA-WO-0001",
         title: "QA Smoke Test WO",
         status: "New",
-        org_id: org.value?._id || org._id,
+        orgId: org.value?._id || org._id,
         createdAt: new Date(),
       },
     },
     { upsert: true },
   );
 
-  console.log(pc.green("✔ Seed complete (org/users/properties/work_orders)."));
+  console.log(pc.green("✔ Seed complete (org/users/properties/workorders)."));
 }
 
 up()

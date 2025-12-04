@@ -197,11 +197,21 @@ OwnerSchema.plugin(encryptionPlugin, {
 });
 
 // Indexes (after plugins to ensure orgId exists)
-OwnerSchema.index({ orgId: 1, code: 1 }, { unique: true }); // ⚡ Tenant-scoped uniqueness for code
+OwnerSchema.index(
+  { orgId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+); // ⚡ Tenant-scoped uniqueness for code
 OwnerSchema.index({ orgId: 1, userId: 1 });
 OwnerSchema.index({ orgId: 1, status: 1 });
 OwnerSchema.index({ orgId: 1, "contact.email": 1 });
-OwnerSchema.index({ orgId: 1, nationalId: 1 }, { unique: true, sparse: true }); // ⚡ Tenant-scoped uniqueness for nationalId
+OwnerSchema.index(
+  { orgId: 1, nationalId: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+); // ⚡ Tenant-scoped uniqueness for nationalId
 OwnerSchema.index({ orgId: 1, "properties.propertyId": 1 });
 
 // Pre-save hook to update portfolio summary (simplified)

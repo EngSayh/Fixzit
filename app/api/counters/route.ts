@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getAllCounters } from "@/lib/queries";
 import { logger } from "@/lib/logger";
+import { isTruthy } from "@/lib/utils/env";
 
 /**
  * GET /api/counters - Fetch live dashboard counters
@@ -15,7 +16,7 @@ import { logger } from "@/lib/logger";
 export async function GET() {
   try {
     // Offline/CI mode: avoid DB lookups to prevent 500s
-    if (process.env.ALLOW_OFFLINE_MONGODB === "true") {
+    if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
       return NextResponse.json({}, { status: 200 });
     }
 

@@ -196,7 +196,10 @@ AgentContractSchema.plugin(tenantIsolationPlugin);
 AgentContractSchema.plugin(auditPlugin);
 
 // Indexes
-AgentContractSchema.index({ orgId: 1, contractNumber: 1 }, { unique: true });
+AgentContractSchema.index(
+  { orgId: 1, contractNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 AgentContractSchema.index({ orgId: 1, ownerId: 1, status: 1 });
 AgentContractSchema.index({ orgId: 1, agentId: 1, status: 1 });
 AgentContractSchema.index({ orgId: 1, "properties.propertyId": 1 });

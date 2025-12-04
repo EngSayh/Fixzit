@@ -21,7 +21,10 @@ const BudgetSchema = new Schema(
 
 tenantIsolationPlugin(BudgetSchema);
 auditPlugin(BudgetSchema);
-BudgetSchema.index({ orgId: 1, propertyId: 1, period: 1 }, { unique: true });
+BudgetSchema.index(
+  { orgId: 1, propertyId: 1, period: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 export const Budget =
   mongoose.models.Budget || mongoose.model("Budget", BudgetSchema);

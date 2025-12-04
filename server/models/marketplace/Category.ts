@@ -43,7 +43,10 @@ CategorySchema.plugin(tenantIsolationPlugin);
 CategorySchema.plugin(auditPlugin);
 
 // All indexes MUST be tenant-scoped
-CategorySchema.index({ orgId: 1, slug: 1 }, { unique: true });
+CategorySchema.index(
+  { orgId: 1, slug: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 CategorySchema.index({ orgId: 1, parentId: 1 });
 
 const CategoryModel =

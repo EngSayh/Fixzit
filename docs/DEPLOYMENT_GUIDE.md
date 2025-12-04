@@ -204,16 +204,15 @@ mongosh "mongodb+srv://cluster.mongodb.net/fixzit" --username fixzit-app
 
 # Run index creation script
 use fixzit
-db.users.createIndex({ email: 1 }, { unique: true })
-db.users.createIndex({ employeeId: 1, orgId: 1 }, { unique: true })
+db.users.createIndex({ orgId: 1, email: 1 }, { unique: true })
+db.users.createIndex({ orgId: 1, employeeId: 1 }, { unique: true })
 db.users.createIndex({ orgId: 1 })
 db.organizations.createIndex({ orgId: 1 }, { unique: true })
 db.workorders.createIndex({ orgId: 1, status: 1 })
 db.properties.createIndex({ orgId: 1 })
-db.assets.createIndex({ propertyId: 1 })
-db.auditlogs.createIndex({ timestamp: -1 })
-db.auditlogs.createIndex({ userId: 1 })
-db.auditlogs.createIndex({ orgId: 1 })
+db.assets.createIndex({ orgId: 1, propertyId: 1 })
+db.auditlogs.createIndex({ orgId: 1, timestamp: -1 })
+db.auditlogs.createIndex({ orgId: 1, userId: 1 })
 
 # Exit
 exit

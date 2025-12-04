@@ -64,7 +64,10 @@ PlatformSettingsSchema.plugin(tenantIsolationPlugin);
 PlatformSettingsSchema.plugin(auditPlugin);
 
 // Ensure only one settings document per tenant (singleton pattern)
-PlatformSettingsSchema.index({ orgId: 1 }, { unique: true });
+PlatformSettingsSchema.index(
+  { orgId: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 export type PlatformSettingsDoc = InferSchemaType<
   typeof PlatformSettingsSchema

@@ -92,7 +92,7 @@ async function addDatabaseIndexes() {
       .createIndex({ orgId: 1, propertyId: 1 }, { name: "contracts_orgId_propertyId" });
     await db
       .collection("contracts")
-      .createIndex({ orgId: 1, tenantId: 1 }, { name: "contracts_orgId_tenantId" });
+      .createIndex({ orgId: 1 }, { name: "contracts_orgId" });
     await db
       .collection("contracts")
       .createIndex({ orgId: 1, contractNumber: 1 }, { unique: true, name: "contracts_orgId_number_unique" });
@@ -114,7 +114,7 @@ async function addDatabaseIndexes() {
       .createIndex({ orgId: 1, propertyId: 1 }, { name: "invoices_orgId_propertyId" });
     await db
       .collection("invoices")
-      .createIndex({ orgId: 1, tenantId: 1 }, { name: "invoices_orgId_tenantId" });
+      .createIndex({ orgId: 1 }, { name: "invoices_orgId" });
     await db.collection("invoices").createIndex({ orgId: 1, dueDate: 1, status: 1 }, { name: "invoices_orgId_dueDate_status" });
     await db.collection("invoices").createIndex({ orgId: 1, createdAt: -1 }, { name: "invoices_orgId_createdAt_desc" });
     await db

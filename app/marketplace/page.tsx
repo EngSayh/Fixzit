@@ -4,6 +4,7 @@ import ProductCard from "@/components/marketplace/ProductCard";
 import { serverFetchJsonWithTenant } from "@/lib/marketplace/serverFetch";
 import { MARKETPLACE_OFFLINE_DATA } from "@/data/marketplace-offline";
 import { getServerI18n } from "@/lib/i18n/server";
+import { isTruthy } from "@/lib/utils/env";
 
 interface Category {
   id: string;
@@ -41,7 +42,7 @@ interface MarketplaceProductCard {
   [key: string]: unknown;
 }
 
-const offlineMarketplaceEnabled = process.env.ALLOW_OFFLINE_MONGODB === "true";
+const offlineMarketplaceEnabled = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
 
 async function loadHomepageData() {
   if (offlineMarketplaceEnabled) {

@@ -21,6 +21,7 @@ import {
   buildOtpKey,
   redactIdentifier,
 } from "@/lib/otp-utils";
+import { isTruthy } from "@/lib/utils/env";
 
 interface UserDocument {
   _id?: { toString: () => string };
@@ -85,7 +86,7 @@ const FORCE_OTP_PHONE =
   process.env.NEXTAUTH_FORCE_OTP_PHONE || process.env.FORCE_OTP_PHONE || "";
 
 // Note: DEMO_AUTH_ENABLED is defined below with demo password configuration
-const OFFLINE_MODE = process.env.ALLOW_OFFLINE_MONGODB === "true";
+const OFFLINE_MODE = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
 
 const TEST_USER_CONFIG = [
   {

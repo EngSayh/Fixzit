@@ -136,8 +136,18 @@ ChartAccountSchema.plugin(tenantIsolationPlugin);
 ChartAccountSchema.plugin(auditPlugin);
 
 // All indexes MUST be tenant-scoped
-ChartAccountSchema.index({ orgId: 1, accountCode: 1 }, { unique: true }); // Unique per org
-ChartAccountSchema.index({ orgId: 1, code: 1 }, { unique: true, sparse: true });
+ChartAccountSchema.index(
+  { orgId: 1, accountCode: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+); // Unique per org
+ChartAccountSchema.index(
+  { orgId: 1, code: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: { orgId: { $exists: true } },
+  },
+);
 ChartAccountSchema.index({ orgId: 1, accountType: 1, isActive: 1 });
 ChartAccountSchema.index({ orgId: 1, parentId: 1 });
 ChartAccountSchema.index({ orgId: 1, accountName: "text" }); // For search

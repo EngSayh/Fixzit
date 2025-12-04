@@ -220,7 +220,10 @@ JournalSchema.plugin(tenantIsolationPlugin);
 JournalSchema.plugin(auditPlugin);
 
 // All indexes MUST be tenant-scoped
-JournalSchema.index({ orgId: 1, journalNumber: 1 }, { unique: true });
+JournalSchema.index(
+  { orgId: 1, journalNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 JournalSchema.index({ orgId: 1, journalDate: -1, status: 1 });
 JournalSchema.index({ orgId: 1, sourceType: 1, sourceId: 1 });
 JournalSchema.index({ orgId: 1, fiscalYear: 1, fiscalPeriod: 1, status: 1 });

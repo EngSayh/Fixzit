@@ -24,8 +24,8 @@ async function tryRealMongo() {
     const got = await col.findOne({ key: token.key });
     if (!got) throw new Error("DB write/read failed");
     console.log(pc.green("✔ Real MongoDB reachable; write/read OK."));
-    await db.collection("work_orders").createIndex({ org_id: 1 });
-    console.log(pc.green("✔ Index check (org_id) ensured on work_orders."));
+    await db.collection("workorders").createIndex({ orgId: 1 });
+    console.log(pc.green("✔ Index check (orgId) ensured on workorders."));
   } finally {
     // Cleanup: Silently ignore close errors (already in finally block)
     await client.close().catch(() => {});

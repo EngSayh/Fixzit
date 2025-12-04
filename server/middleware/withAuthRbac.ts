@@ -4,6 +4,7 @@ import type { Ability as WorkOrderAbility } from "../rbac/workOrdersPolicy";
 import { auth } from "@/auth";
 import { logger } from "@/lib/logger";
 import { verifyToken } from "@/lib/auth";
+import { isTruthy } from "@/lib/utils/env";
 import { ALL_ROLES_WITH_LEGACY, type UserRoleType } from "@/types/user";
 import {
   Role as CanonicalRole,
@@ -133,7 +134,7 @@ async function loadRBACData(
   permissions: string[];
   roles: string[];
 }> {
-  if (process.env.ALLOW_OFFLINE_MONGODB === "true") {
+  if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
     return {
       isSuperAdmin: false,
       permissions: [],

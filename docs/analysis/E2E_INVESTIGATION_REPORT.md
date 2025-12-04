@@ -209,7 +209,7 @@ services:
 
 **Offline Mode (CI/CD):**
 1. Global setup runs before all tests (`tests/setup-auth.ts`)
-2. Detects `ALLOW_OFFLINE_MONGODB=true`
+2. Detects `ALLOW_OFFLINE_MONGODB=true` (accepts `"true"` or `"1"`)
 3. Generates mock JWT sessions for all 6 roles
 4. Creates session cookies with proper domain/path
 5. Saves auth state to `tests/state/{role}.json`

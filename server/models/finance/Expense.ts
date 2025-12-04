@@ -433,7 +433,10 @@ ExpenseSchema.plugin(auditPlugin);
 // ============================================================================
 
 // Compound tenant-scoped unique index
-ExpenseSchema.index({ orgId: 1, expenseNumber: 1 }, { unique: true });
+ExpenseSchema.index(
+  { orgId: 1, expenseNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 
 // Query indexes (tenant-scoped)
 ExpenseSchema.index({ orgId: 1, expenseDate: -1 });

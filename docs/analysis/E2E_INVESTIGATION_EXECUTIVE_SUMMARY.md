@@ -151,7 +151,7 @@ After these fixes, the E2E workflow should:
 ### Authentication Strategy
 
 **Offline Mode (CI/CD):**
-- Enabled via `ALLOW_OFFLINE_MONGODB=true`
+- Enabled via `ALLOW_OFFLINE_MONGODB=true` (accepts `"true"` or `"1"`)
 - Creates mock JWT sessions (no database required)
 - Pre-authenticates all 6 roles before tests
 - Session files: `tests/state/{role}.json`

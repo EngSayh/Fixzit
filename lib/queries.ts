@@ -2,9 +2,11 @@
 // All queries MUST include orgId for multi-tenant isolation
 // Use these in Server Components, Server Actions, or API Routes only
 // AUDIT-2025-11-29: Standardized from org_id to orgId
+// AUDIT-2025-12-04: Fixed collection names to use COLLECTIONS constant
 
 import { getDatabase } from "./mongodb-unified";
 import { logger } from "./logger";
+import { COLLECTIONS } from "./db/collections";
 
 // Alias for consistency
 const getDb = getDatabase;
@@ -20,7 +22,7 @@ type MongoDb = Awaited<ReturnType<typeof getDb>>;
 export async function getSLAWatchlist(orgId: string, limit = 50) {
   const db = await getDb();
   return db
-    .collection("work_orders")
+    .collection(COLLECTIONS.WORK_ORDERS)
     .aggregate([
       {
         $match: {
@@ -62,7 +64,7 @@ export async function getSLAWatchlist(orgId: string, limit = 50) {
  */
 export async function getWorkOrderStats(orgId: string) {
   const db = await getDb();
-  const collection = db.collection("work_orders");
+  const collection = db.collection(COLLECTIONS.WORK_ORDERS);
 
   const [total, open, inProgress, overdue, completed] = await Promise.all([
     collection.countDocuments({ orgId: orgId }),
@@ -95,7 +97,7 @@ export async function getWorkOrderStats(orgId: string) {
  */
 export async function getInvoiceCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection("invoices");
+  const collection = db.collection(COLLECTIONS.INVOICES);
 
   const [unpaid, overdue, paid, total] = await Promise.all([
     collection.countDocuments({ orgId: orgId, status: "Unpaid" }),
@@ -120,7 +122,7 @@ export async function getRevenueStats(orgId: string, days = 30) {
   startDate.setDate(startDate.getDate() - days);
 
   const result = await db
-    .collection("invoices")
+    .collection(COLLECTIONS.INVOICES)
     .aggregate([
       {
         $match: {
@@ -155,7 +157,7 @@ export async function getRevenueStats(orgId: string, days = 30) {
  */
 export async function getEmployeeCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection("employees");
+  const collection = db.collection(COLLECTIONS.EMPLOYEES);
 
   const [total, active, onLeave, probation] = await Promise.all([
     collection.countDocuments({ orgId: orgId }),
@@ -176,7 +178,7 @@ export async function getAttendanceSummary(orgId: string) {
   today.setHours(0, 0, 0, 0);
 
   const result = await db
-    .collection("attendance")
+    .collection(COLLECTIONS.ATTENDANCE)
     .aggregate([
       {
         $match: {
@@ -222,7 +224,7 @@ export async function getAttendanceSummary(orgId: string) {
  */
 export async function getPropertyCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection("properties");
+  const collection = db.collection(COLLECTIONS.PROPERTIES);
 
   const [total, active, maintenance, leased] = await Promise.all([
     collection.countDocuments({ orgId: orgId }),
@@ -245,14 +247,14 @@ export async function getPropertyCounters(orgId: string) {
  */
 export async function getCustomerCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection("customers");
+  const collection = db.collection(COLLECTIONS.CUSTOMERS);
 
   const [total, active, leads, contracts] = await Promise.all([
     collection.countDocuments({ orgId: orgId }),
     collection.countDocuments({ orgId: orgId, status: "Active" }),
     collection.countDocuments({ orgId: orgId, type: "Lead" }),
     db
-      .collection("contracts")
+      .collection(COLLECTIONS.CONTRACTS)
       .countDocuments({ orgId: orgId, status: "Active" }),
   ]);
 
@@ -268,7 +270,7 @@ export async function getCustomerCounters(orgId: string) {
  */
 export async function getSupportCounters(orgId: string) {
   const db = await getDb();
-  const collection = db.collection("support_tickets");
+  const collection = db.collection(COLLECTIONS.SUPPORT_TICKETS);
 
   const [total, open, pending, resolved] = await Promise.all([
     collection.countDocuments({ orgId: orgId }),
@@ -291,13 +293,13 @@ export async function getMarketplaceCounters(sellerId: string) {
   const db = await getDb();
 
   const [listings, orders, reviews, activeListings] = await Promise.all([
-    db.collection("souq_listings").countDocuments({ sellerId }),
-    db.collection("souq_orders").countDocuments({ "items.sellerId": sellerId }),
-    db.collection("souq_reviews").countDocuments({
+    db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments({ sellerId }),
+    db.collection(COLLECTIONS.SOUQ_ORDERS).countDocuments({ "items.sellerId": sellerId }),
+    db.collection(COLLECTIONS.SOUQ_REVIEWS).countDocuments({
       productId: { $in: await getSellerProductIds(sellerId, db) },
     }),
     db
-      .collection("souq_listings")
+      .collection(COLLECTIONS.SOUQ_LISTINGS)
       .countDocuments({ sellerId, status: "active" }),
   ]);
 
@@ -312,9 +314,9 @@ export async function getMarketplaceCountersForOrg(orgId: string) {
   const db = await getDb();
 
   const [listings, orders, reviews] = await Promise.all([
-    db.collection("souq_listings").countDocuments({ orgId }), // ✅ Tenant-scoped
-    db.collection("souq_orders").countDocuments({ orgId }), // ✅ Tenant-scoped
-    db.collection("souq_reviews").countDocuments({ orgId }), // ✅ Tenant-scoped
+    db.collection(COLLECTIONS.SOUQ_LISTINGS).countDocuments({ orgId }), // ✅ Tenant-scoped
+    db.collection(COLLECTIONS.SOUQ_ORDERS).countDocuments({ orgId }), // ✅ Tenant-scoped
+    db.collection(COLLECTIONS.SOUQ_REVIEWS).countDocuments({ orgId }), // ✅ Tenant-scoped
   ]);
 
   return { listings, orders, reviews };
@@ -325,7 +327,7 @@ async function getSellerProductIds(
   db: MongoDb,
 ): Promise<string[]> {
   const listings = await db
-    .collection("souq_listings")
+    .collection(COLLECTIONS.SOUQ_LISTINGS)
     .find({ sellerId })
     .project({ productId: 1 })
     .toArray();
@@ -343,10 +345,10 @@ export async function getSystemCounters(orgId: string) {
   const db = await getDb();
 
   const [users, roles, tenants, apiKeys] = await Promise.all([
-    db.collection("users").countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
-    db.collection("roles").countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
-    db.collection("tenants").countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
-    db.collection("api_keys").countDocuments({ orgId, status: "Active" }), // ✅ Fixed: use orgId not org_id
+    db.collection(COLLECTIONS.USERS).countDocuments({ orgId }),
+    db.collection(COLLECTIONS.ROLES).countDocuments({ orgId }),
+    db.collection(COLLECTIONS.TENANTS).countDocuments({ orgId }),
+    db.collection(COLLECTIONS.API_KEYS).countDocuments({ orgId, status: "Active" }),
   ]);
 
   return { users, roles, tenants, apiKeys };
@@ -410,28 +412,28 @@ export async function createPerformanceIndexes() {
     [
       // Work Orders - AUDIT-2025-11-29: Updated to orgId
       {
-        collection: "work_orders",
+        collection: COLLECTIONS.WORK_ORDERS,
         index: { orgId: 1, status: 1, sla_due: 1 },
       },
-      { collection: "work_orders", index: { orgId: 1, created_at: -1 } },
+      { collection: COLLECTIONS.WORK_ORDERS, index: { orgId: 1, created_at: -1 } },
 
       // Invoices - AUDIT-2025-11-29: Updated to orgId
-      { collection: "invoices", index: { orgId: 1, status: 1, due_date: 1 } },
-      { collection: "invoices", index: { orgId: 1, paid_date: -1 } },
+      { collection: COLLECTIONS.INVOICES, index: { orgId: 1, status: 1, due_date: 1 } },
+      { collection: COLLECTIONS.INVOICES, index: { orgId: 1, paid_date: -1 } },
 
       // Employees - AUDIT-2025-11-29: Updated to orgId
-      { collection: "employees", index: { orgId: 1, status: 1 } },
+      { collection: COLLECTIONS.EMPLOYEES, index: { orgId: 1, status: 1 } },
 
       // Properties - AUDIT-2025-11-29: Updated to orgId
       {
-        collection: "properties",
+        collection: COLLECTIONS.PROPERTIES,
         index: { orgId: 1, status: 1, lease_status: 1 },
       },
 
       // Souq
-      { collection: "souq_listings", index: { sellerId: 1, status: 1 } },
+      { collection: COLLECTIONS.SOUQ_LISTINGS, index: { sellerId: 1, status: 1 } },
       {
-        collection: "souq_orders",
+        collection: COLLECTIONS.SOUQ_ORDERS,
         index: { "items.sellerId": 1, createdAt: -1 },
       },
     ];

@@ -112,7 +112,7 @@ const OrderSchema = new Schema<MarketplaceOrder>(
       approverIds: [{ type: Schema.Types.ObjectId, ref: "User" }],
     },
   },
-  { timestamps: true },
+  { timestamps: true, collection: "orders" },
 );
 
 // Apply plugins BEFORE indexes for proper tenant isolation

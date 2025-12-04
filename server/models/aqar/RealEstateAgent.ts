@@ -185,7 +185,10 @@ RealEstateAgentSchema.index({ verified: 1, featured: 1 });
 RealEstateAgentSchema.index({ "statistics.averageRating": -1 });
 RealEstateAgentSchema.index({ tier: 1, "statistics.totalListings": -1 });
 // ⚡ FIXED: Add compound tenant-scoped unique indexes
-RealEstateAgentSchema.index({ orgId: 1, userId: 1 }, { unique: true });
+RealEstateAgentSchema.index(
+  { orgId: 1, userId: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 RealEstateAgentSchema.index(
   { orgId: 1, "license.number": 1 },
   { unique: true },

@@ -193,7 +193,10 @@ UtilityMeterSchema.plugin(tenantIsolationPlugin);
 UtilityMeterSchema.plugin(auditPlugin);
 
 // Indexes
-UtilityMeterSchema.index({ orgId: 1, meterNumber: 1 }, { unique: true });
+UtilityMeterSchema.index(
+  { orgId: 1, meterNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 UtilityMeterSchema.index({ orgId: 1, propertyId: 1, utilityType: 1 });
 UtilityMeterSchema.index({ orgId: 1, utilityType: 1, status: 1 });
 UtilityMeterSchema.index({ orgId: 1, accountNumber: 1 });

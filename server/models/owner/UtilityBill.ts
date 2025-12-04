@@ -230,7 +230,10 @@ UtilityBillSchema.plugin(tenantIsolationPlugin);
 UtilityBillSchema.plugin(auditPlugin);
 
 // Indexes
-UtilityBillSchema.index({ orgId: 1, billNumber: 1 }, { unique: true });
+UtilityBillSchema.index(
+  { orgId: 1, billNumber: 1 },
+  { unique: true, partialFilterExpression: { orgId: { $exists: true } } },
+);
 UtilityBillSchema.index({
   orgId: 1,
   meterId: 1,

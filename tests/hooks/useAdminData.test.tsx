@@ -136,13 +136,16 @@ describe('Admin Data Hooks - TanStack Query Integration', () => {
         wrapper: createWrapper(),
       });
 
-      await result.current.mutateAsync({
-        name: 'Jane Smith',
-        email: 'jane@example.com',
-        role: 'TEAM_MEMBER',
-        orgId: 'org-123',
-        subRole: 'HR_OFFICER',
+      await act(async () => {
+        await result.current.mutateAsync({
+          name: 'Jane Smith',
+          email: 'jane@example.com',
+          role: 'TEAM_MEMBER',
+          orgId: 'org-123',
+          subRole: 'HR_OFFICER',
+        });
       });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(adminApi.createUser).toHaveBeenCalledWith({
         name: 'Jane Smith',
@@ -170,12 +173,15 @@ describe('Admin Data Hooks - TanStack Query Integration', () => {
         wrapper: createWrapper(),
       });
 
-      await result.current.mutateAsync({
-        name: 'Test User',
-        email: 'test@example.com',
-        role: 'TENANT',
-        orgId: 'org-456', // Multi-tenancy enforcement
+      await act(async () => {
+        await result.current.mutateAsync({
+          name: 'Test User',
+          email: 'test@example.com',
+          role: 'TENANT',
+          orgId: 'org-456', // Multi-tenancy enforcement
+        });
       });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(adminApi.createUser).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -202,13 +208,16 @@ describe('Admin Data Hooks - TanStack Query Integration', () => {
         wrapper: createWrapper(),
       });
 
-      await result.current.mutateAsync({
-        name: 'Team Member',
-        email: 'tm@example.com',
-        role: 'TEAM_MEMBER',
-        orgId: 'org-123',
-        subRole: 'OPERATIONS_MANAGER',
+      await act(async () => {
+        await result.current.mutateAsync({
+          name: 'Team Member',
+          email: 'tm@example.com',
+          role: 'TEAM_MEMBER',
+          orgId: 'org-123',
+          subRole: 'OPERATIONS_MANAGER',
+        });
       });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(adminApi.createUser).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -238,13 +247,16 @@ describe('Admin Data Hooks - TanStack Query Integration', () => {
         wrapper: createWrapper(),
       });
 
-      await result.current.mutateAsync({
-        id: 'user-1',
-        data: {
-          name: 'John Updated',
-          orgId: 'org-123', // Enforce tenant scope
-        },
+      await act(async () => {
+        await result.current.mutateAsync({
+          id: 'user-1',
+          data: {
+            name: 'John Updated',
+            orgId: 'org-123', // Enforce tenant scope
+          },
+        });
       });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(adminApi.updateUser).toHaveBeenCalledWith('user-1', {
         name: 'John Updated',
@@ -271,14 +283,17 @@ describe('Admin Data Hooks - TanStack Query Integration', () => {
         wrapper: createWrapper(),
       });
 
-      await result.current.mutateAsync({
-        id: 'user-tm',
-        data: {
-          name: 'Team Member Updated',
-          subRole: 'SUPPORT_AGENT',
-          orgId: 'org-123',
-        },
+      await act(async () => {
+        await result.current.mutateAsync({
+          id: 'user-tm',
+          data: {
+            name: 'Team Member Updated',
+            subRole: 'SUPPORT_AGENT',
+            orgId: 'org-123',
+          },
+        });
       });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(adminApi.updateUser).toHaveBeenCalledWith(
         'user-tm',
@@ -306,13 +321,16 @@ describe('Admin Data Hooks - TanStack Query Integration', () => {
         wrapper: createWrapper(),
       });
 
-      await result.current.mutateAsync({
-        id: 'user-1',
-        data: {
-          isActive: false,
-          orgId: 'org-789', // Must match user's orgId
-        },
+      await act(async () => {
+        await result.current.mutateAsync({
+          id: 'user-1',
+          data: {
+            isActive: false,
+            orgId: 'org-789', // Must match user's orgId
+          },
+        });
       });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(adminApi.updateUser).toHaveBeenCalledWith(
         'user-1',
@@ -331,7 +349,10 @@ describe('Admin Data Hooks - TanStack Query Integration', () => {
         wrapper: createWrapper(),
       });
 
-      await result.current.mutateAsync('user-1');
+      await act(async () => {
+        await result.current.mutateAsync('user-1');
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(adminApi.deleteUser).toHaveBeenCalledWith('user-1');
     });
@@ -365,12 +386,15 @@ describe('Admin Data Hooks - TanStack Query Integration', () => {
       const { result } = renderHook(() => useCreateUser(), { wrapper });
 
       // Create user
-      await result.current.mutateAsync({
-        name: 'New User',
-        email: 'new@example.com',
-        role: 'TENANT',
-        orgId: 'org-123',
+      await act(async () => {
+        await result.current.mutateAsync({
+          name: 'New User',
+          email: 'new@example.com',
+          role: 'TENANT',
+          orgId: 'org-123',
+        });
       });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       // Verify invalidateQueries was called with users query key (partial match)
       expect(invalidateSpy).toHaveBeenCalledWith(

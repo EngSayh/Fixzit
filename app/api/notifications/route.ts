@@ -9,6 +9,7 @@ import { createSecureResponse } from "@/server/security/headers";
 
 import type { NotificationDoc } from "@/lib/models";
 import { buildOrgAwareRateLimitKey } from "@/server/security/rateLimitKey";
+import { isTruthy } from "@/lib/utils/env";
 
 const notificationSchema = z.object({
   title: z.string().min(1),
@@ -63,7 +64,7 @@ export async function GET(req: NextRequest) {
   const limit =
     Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
 
-  if (process.env.ALLOW_OFFLINE_MONGODB === "true") {
+  if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
     return NextResponse.json(
       { items: [], total: 0, page, limit, hasMore: false },
       { status: 200 },
@@ -144,7 +145,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (process.env.ALLOW_OFFLINE_MONGODB === "true") {
+  if (isTruthy(process.env.ALLOW_OFFLINE_MONGODB)) {
     return NextResponse.json(
       {
         error: "ServiceUnavailable",

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { COLLECTIONS } from "@/lib/db/collections";
 import {
   APPS,
   AppKey,
@@ -153,7 +154,7 @@ export async function GET(req: NextRequest) {
 
         switch (entity) {
           case "work_orders":
-            collection = mdb.collection("work_orders");
+            collection = mdb.collection(COLLECTIONS.WORK_ORDERS);
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
@@ -161,7 +162,7 @@ export async function GET(req: NextRequest) {
             };
             break;
           case "properties":
-            collection = mdb.collection("properties");
+            collection = mdb.collection(COLLECTIONS.PROPERTIES);
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
@@ -177,7 +178,7 @@ export async function GET(req: NextRequest) {
             };
             break;
           case "tenants":
-            collection = mdb.collection("tenants");
+            collection = mdb.collection(COLLECTIONS.TENANTS);
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
@@ -185,7 +186,7 @@ export async function GET(req: NextRequest) {
             };
             break;
           case "vendors":
-            collection = mdb.collection("vendors");
+            collection = mdb.collection(COLLECTIONS.VENDORS);
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
@@ -193,7 +194,7 @@ export async function GET(req: NextRequest) {
             };
             break;
           case "invoices":
-            collection = mdb.collection("invoices");
+            collection = mdb.collection(COLLECTIONS.INVOICES);
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
@@ -201,7 +202,7 @@ export async function GET(req: NextRequest) {
             };
             break;
           case "products":
-            collection = mdb.collection("products");
+            collection = mdb.collection(COLLECTIONS.PRODUCTS);
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
@@ -209,7 +210,7 @@ export async function GET(req: NextRequest) {
             };
             break;
           case "services":
-            collection = mdb.collection("services");
+            collection = mdb.collection("services"); // No COLLECTIONS constant yet
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
@@ -217,7 +218,7 @@ export async function GET(req: NextRequest) {
             };
             break;
           case "rfqs":
-            collection = mdb.collection("rfqs");
+            collection = mdb.collection(COLLECTIONS.RFQS);
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
@@ -225,7 +226,7 @@ export async function GET(req: NextRequest) {
             };
             break;
           case "orders":
-            collection = mdb.collection("orders");
+            collection = mdb.collection(COLLECTIONS.ORDERS);
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
@@ -233,7 +234,7 @@ export async function GET(req: NextRequest) {
             };
             break;
           case "listings":
-            collection = mdb.collection("listings");
+            collection = mdb.collection(COLLECTIONS.SOUQ_LISTINGS);
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
@@ -241,7 +242,7 @@ export async function GET(req: NextRequest) {
             };
             break;
           case "projects":
-            collection = mdb.collection("projects");
+            collection = mdb.collection("projects"); // No COLLECTIONS constant yet
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation
@@ -249,7 +250,7 @@ export async function GET(req: NextRequest) {
             };
             break;
           case "agents":
-            collection = mdb.collection("agents");
+            collection = mdb.collection("agents"); // No COLLECTIONS constant yet
             searchQuery = {
               $text: { $search: q },
               orgId: orgObjectId, // SEC-001: Tenant isolation

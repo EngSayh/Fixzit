@@ -9,26 +9,26 @@
 
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { logger } from "@/lib/logger";
+import { isTruthy } from "@/lib/utils/env";
 import mongoose from "mongoose";
 import { createIndexes } from "@/lib/db/collections";
-import { User } from "@/server/models/User";
-import { Property } from "@/server/models/Property";
-import { Invoice } from "@/server/models/Invoice";
-import { SupportTicket } from "@/server/models/SupportTicket";
-import { HelpArticle } from "@/server/models/HelpArticle";
-import { CmsPage } from "@/server/models/CmsPage";
-import { WorkOrder } from "@/server/models/WorkOrder";
 import { WorkOrderComment } from "@/server/models/workorder/WorkOrderComment";
 import { WorkOrderAttachment } from "@/server/models/workorder/WorkOrderAttachment";
 import { WorkOrderTimeline } from "@/server/models/workorder/WorkOrderTimeline";
+import { QaLog } from "@/server/models/qa/QaLog";
+import { QaAlert } from "@/server/models/qa/QaAlert";
+import { Tenant } from "@/server/models/Tenant";
+import { Vendor } from "@/server/models/Vendor";
+import { Organization } from "@/server/models/Organization";
 
 /**
  * Ensures core indexes are created on all collections.
  * Should be run during deployment to optimize query performance.
  */
 export async function ensureCoreIndexes(): Promise<void> {
-  // Skip index creation in offline mode (local dev without MongoDB)
-  if (process.env.ALLOW_OFFLINE_MONGODB === "true" && !mongoose.connection.db) {
+  // Skip index creation entirely in offline mode (local dev without MongoDB)
+  const offline = isTruthy(process.env.ALLOW_OFFLINE_MONGODB);
+  if (offline) {
     logger.info("[indexes] Skipped ensureCoreIndexes – offline mode active");
     return;
   }
@@ -52,19 +52,17 @@ export async function ensureCoreIndexes(): Promise<void> {
     });
   }
 
-  // Schema-driven indexes for core models to avoid drift.
-  // WorkOrder is included here to ensure text search and all schema indexes are created.
+  // Schema-driven indexes for collections NOT already covered by createIndexes()
+  // This prevents IndexOptionsConflict when key specs exist with different names/options.
   const modelIndexTargets = [
-    { name: "User", model: User },
-    { name: "Property", model: Property },
-    { name: "Invoice", model: Invoice },
-    { name: "SupportTicket", model: SupportTicket },
-    { name: "HelpArticle", model: HelpArticle },
-    { name: "CmsPage", model: CmsPage },
-    { name: "WorkOrder", model: WorkOrder },
+    { name: "Tenant", model: Tenant },
+    { name: "Vendor", model: Vendor },
+    { name: "Organization", model: Organization },
     { name: "WorkOrderComment", model: WorkOrderComment },
     { name: "WorkOrderAttachment", model: WorkOrderAttachment },
     { name: "WorkOrderTimeline", model: WorkOrderTimeline },
+    { name: "QaLog", model: QaLog },
+    { name: "QaAlert", model: QaAlert },
   ];
 
   for (const { name, model } of modelIndexTargets) {

@@ -33,6 +33,21 @@ export const COLLECTIONS = {
   REVIEWS: "reviews",
   NOTIFICATIONS: "notifications",
   AUDIT_LOGS: "auditLogs",
+  // Additional collections used in lib/queries.ts
+  SUPPORT_TICKETS: "supporttickets",
+  EMPLOYEES: "employees",
+  ATTENDANCE: "attendances",
+  CUSTOMERS: "customers",
+  CONTRACTS: "contracts",
+  ROLES: "roles",
+  API_KEYS: "api_keys",
+  // Souq marketplace collections
+  SOUQ_LISTINGS: "souq_listings",
+  SOUQ_ORDERS: "souq_orders",
+  SOUQ_REVIEWS: "souq_reviews",
+  // QA collections
+  QA_LOGS: "qa_logs",
+  QA_ALERTS: "qa_alerts",
 } as const;
 
 // Get typed collections
@@ -64,6 +79,8 @@ export async function createIndexes() {
 
   // Clean up legacy global unique indexes so org-scoped uniques can be enforced
   await dropLegacyGlobalUniqueIndexes(db);
+  // Clean up legacy QA indexes that conflict with TTL/org-scoped variants
+  await dropLegacyQaIndexes(db);
 
   await createQaIndexes(db);
 
@@ -173,6 +190,17 @@ export async function createIndexes() {
     );
   await db
     .collection(COLLECTIONS.PRODUCTS)
+    .createIndex(
+      { orgId: 1, slug: 1 },
+      {
+        unique: true,
+        background: true,
+        name: "products_orgId_slug_unique",
+        partialFilterExpression: { orgId: { $exists: true } },
+      },
+    );
+  await db
+    .collection(COLLECTIONS.PRODUCTS)
     .createIndex({ orgId: 1, categoryId: 1 }, { background: true, name: "products_orgId_categoryId" });
   await db
     .collection(COLLECTIONS.PRODUCTS)
@@ -181,7 +209,7 @@ export async function createIndexes() {
   await db
     .collection(COLLECTIONS.PRODUCTS)
     .createIndex(
-      { orgId: 1, title: "text", description: "text" },
+      { orgId: 1, title: "text", summary: "text", brand: "text", standards: "text" },
       {
         background: true,
         name: "products_orgId_text_search",
@@ -237,15 +265,12 @@ export async function createIndexes() {
   // Support Tickets - STRICT v4.1: code unique per org
   await db
     .collection("supporttickets")
-    .createIndex(
-      { orgId: 1, code: 1 },
-      {
-        unique: true,
-        background: true,
-        name: "supporttickets_orgId_code_unique",
-        partialFilterExpression: { orgId: { $exists: true } },
-      },
-    );
+    .createIndex({ orgId: 1, code: 1 }, {
+      unique: true,
+      background: true,
+      name: "supporttickets_orgId_code_unique",
+      partialFilterExpression: { orgId: { $exists: true } },
+    });
   await db
     .collection("supporttickets")
     .createIndex({ orgId: 1 }, { background: true, name: "supporttickets_orgId" });
@@ -261,6 +286,58 @@ export async function createIndexes() {
   await db
     .collection("supporttickets")
     .createIndex({ orgId: 1, createdAt: -1 }, { background: true, name: "supporttickets_orgId_createdAt_desc" });
+
+  // HR - Employees
+  await db
+    .collection(COLLECTIONS.EMPLOYEES)
+    .createIndex({ orgId: 1, status: 1 }, { background: true, name: "employees_orgId_status" });
+  await db
+    .collection(COLLECTIONS.EMPLOYEES)
+    .createIndex({ orgId: 1 }, { background: true, name: "employees_orgId" });
+
+  // HR - Attendance
+  await db
+    .collection(COLLECTIONS.ATTENDANCE)
+    .createIndex({ orgId: 1, date: 1 }, { background: true, name: "attendance_orgId_date" });
+
+  // CRM - Customers & Contracts
+  await db
+    .collection(COLLECTIONS.CUSTOMERS)
+    .createIndex({ orgId: 1, status: 1 }, { background: true, name: "customers_orgId_status" });
+  await db
+    .collection(COLLECTIONS.CUSTOMERS)
+    .createIndex({ orgId: 1, type: 1 }, { background: true, name: "customers_orgId_type" });
+  await db
+    .collection(COLLECTIONS.CONTRACTS)
+    .createIndex({ orgId: 1, status: 1 }, { background: true, name: "contracts_orgId_status" });
+
+  // Admin - Roles & API Keys
+  await db
+    .collection(COLLECTIONS.ROLES)
+    .createIndex({ orgId: 1, slug: 1 }, { background: true, name: "roles_orgId_slug" });
+  await db
+    .collection(COLLECTIONS.API_KEYS)
+    .createIndex({ orgId: 1, status: 1 }, { background: true, name: "apikeys_orgId_status" });
+
+  // Souq marketplace
+  await db
+    .collection(COLLECTIONS.SOUQ_LISTINGS)
+    .createIndex({ orgId: 1, status: 1 }, { background: true, name: "souq_listings_orgId_status" });
+  await db
+    .collection(COLLECTIONS.SOUQ_LISTINGS)
+    .createIndex({ orgId: 1, sellerId: 1, status: 1 }, { background: true, name: "souq_listings_orgId_seller_status" });
+  await db
+    .collection(COLLECTIONS.SOUQ_ORDERS)
+    .createIndex({ orgId: 1, createdAt: -1 }, { background: true, name: "souq_orders_orgId_createdAt" });
+  await db
+    .collection(COLLECTIONS.SOUQ_ORDERS)
+    .createIndex(
+      { orgId: 1, "items.sellerId": 1, createdAt: -1 },
+      { background: true, name: "souq_orders_orgId_seller_createdAt" },
+    );
+  await db
+    .collection(COLLECTIONS.SOUQ_REVIEWS)
+    .createIndex({ orgId: 1, productId: 1 }, { background: true, name: "souq_reviews_orgId_productId" });
 
   // Help Articles - STRICT v4.1: slug unique per org
   await db
@@ -400,13 +477,43 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
 async function dropLegacyGlobalUniqueIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
   const targets: Array<{ collection: string; indexes: string[] }> = [
     { collection: COLLECTIONS.USERS, indexes: ["email_1"] },
-    { collection: COLLECTIONS.PROPERTIES, indexes: ["code_1"] },
+    {
+      collection: COLLECTIONS.PROPERTIES,
+      indexes: [
+        "code_1",
+        // Legacy non-partial unique
+        "orgId_1_code_1",
+        // Legacy default-named secondary indexes that collide with canonical names
+        "orgId_1_type_1",
+        "orgId_1_status_1",
+        "orgId_1_address.city_1",
+        "orgId_1_units.status_1",
+      ],
+    },
     // Also drop stale assignedTo index (field never existed - correct path is assignment.assignedTo.userId)
-    { collection: COLLECTIONS.WORK_ORDERS, indexes: ["code_1", "workOrderNumber_1", "orgId_1_assignedTo_1_status_1"] },
+    {
+      collection: COLLECTIONS.WORK_ORDERS,
+      indexes: [
+        "code_1",
+        "workOrderNumber_1",
+        "orgId_1_assignedTo_1_status_1",
+        "orgId_1_status_1",
+        "orgId_1_priority_1",
+        "orgId_1_location.propertyId_1",
+        "orgId_1_location.unitNumber_1_status_1",
+        "orgId_1_assignment.assignedTo.userId_1",
+        "orgId_1_assignment.assignedTo.vendorId_1",
+        "createdAt_-1",
+        "orgId_1_title_text_description_text_work.solutionDescription_text",
+      ],
+    },
     // Drop old non-org-scoped text index (replaced with products_orgId_text_search)
     { collection: COLLECTIONS.PRODUCTS, indexes: ["sku_1", "products_text_search"] },
     { collection: COLLECTIONS.ORDERS, indexes: ["orderNumber_1"] },
     { collection: COLLECTIONS.INVOICES, indexes: ["invoiceNumber_1", "number_1", "code_1"] },
+    { collection: "supporttickets", indexes: ["code_1", "orgId_1_code_1"] },
+    { collection: "helparticles", indexes: ["slug_1", "orgId_1_slug_1"] },
+    { collection: "cmspages", indexes: ["slug_1", "orgId_1_slug_1"] },
   ];
 
   for (const { collection, indexes } of targets) {
@@ -423,6 +530,39 @@ async function dropLegacyGlobalUniqueIndexes(db: Awaited<ReturnType<typeof getDa
           continue;
         }
         logger.warn(`[indexes] Failed to drop legacy index`, {
+          collection,
+          indexName,
+          error: err?.message,
+        });
+      }
+    }
+  }
+}
+
+/**
+ * Drop legacy QA indexes that conflict with TTL/org-scoped definitions.
+ * Older seeds had a bare timestamp index without TTL and different names.
+ */
+async function dropLegacyQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const qaTargets: Array<{ collection: string; indexes: string[] }> = [
+    { collection: "qa_logs", indexes: ["timestamp_1", "event_1_timestamp_-1"] },
+    { collection: "qa_alerts", indexes: ["timestamp_1", "event_1_timestamp_-1"] },
+  ];
+
+  for (const { collection, indexes } of qaTargets) {
+    for (const indexName of indexes) {
+      try {
+        await db.collection(collection).dropIndex(indexName);
+      } catch (error) {
+        const err = error as { code?: number; codeName?: string; message?: string };
+        const isMissing =
+          err?.code === 27 ||
+          err?.codeName === "IndexNotFound" ||
+          err?.message?.includes("index not found");
+        if (isMissing) {
+          continue;
+        }
+        logger.warn(`[indexes] Failed to drop legacy QA index`, {
           collection,
           indexName,
           error: err?.message,

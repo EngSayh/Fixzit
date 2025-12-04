@@ -30,7 +30,7 @@ if [ -z "${MONGODB_URI:-}" ]; then
   exit 1
 fi
 
-if [ "${ALLOW_OFFLINE_MONGODB:-false}" = "true" ]; then
+if [ "${ALLOW_OFFLINE_MONGODB:-false}" = "true" ] || [ "${ALLOW_OFFLINE_MONGODB:-0}" = "1" ]; then
   echo "❌ ALLOW_OFFLINE_MONGODB=true is not allowed for production-ready auth state generation."
   echo "   Set ALLOW_OFFLINE_MONGODB=false and point MONGODB_URI to your real database."
   exit 1
