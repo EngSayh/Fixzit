@@ -9,6 +9,7 @@
  * a minimal status payload to avoid recon/fingerprinting.
  */
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +17,20 @@ export const dynamic = "force-dynamic";
 // Ensure this runs in Node.js runtime (not Edge) for consistent behavior
 export const runtime = "nodejs";
 
+/**
+ * Use constant-time comparison to prevent timing attacks on token validation.
+ */
 function isAuthorizedInternal(request: NextRequest): boolean {
   const token = process.env.HEALTH_CHECK_TOKEN;
   if (!token) return false;
   const provided =
     request.headers.get("X-Health-Token") || request.headers.get("x-health-token");
-  return provided === token;
+  if (!provided) return false;
+  try {
+    return timingSafeEqual(Buffer.from(token, "utf8"), Buffer.from(provided, "utf8"));
+  } catch {
+    return false;
+  }
 }
 
 function resolveEnvironment() {

@@ -8,6 +8,7 @@
  * treated as non-prod for dev-mode SMS.
  */
 import { NextRequest } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { logger } from "@/lib/logger";
 import { createSecureResponse } from "@/server/security/headers";
 import { withTimeout } from "@/lib/resilience";
@@ -19,8 +20,9 @@ const TWILIO_TIMEOUT_MS = 3_000;
 const REDIS_TIMEOUT_MS = 1_500;
 
 /**
- * Check if the request is from an authorized internal tool
- * Uses X-Health-Token header to authenticate monitoring systems
+ * Check if the request is from an authorized internal tool.
+ * Uses X-Health-Token header to authenticate monitoring systems.
+ * Uses constant-time comparison to prevent timing attacks.
  */
 function isAuthorizedInternal(request: NextRequest): boolean {
   const healthToken = process.env.HEALTH_CHECK_TOKEN;
@@ -28,7 +30,12 @@ function isAuthorizedInternal(request: NextRequest): boolean {
 
   const providedToken =
     request.headers.get("X-Health-Token") || request.headers.get("x-health-token");
-  return providedToken === healthToken;
+  if (!providedToken) return false;
+  try {
+    return timingSafeEqual(Buffer.from(healthToken, "utf8"), Buffer.from(providedToken, "utf8"));
+  } catch {
+    return false;
+  }
 }
 
 /**

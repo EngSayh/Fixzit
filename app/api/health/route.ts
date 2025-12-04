@@ -5,17 +5,27 @@
  * Returns server health status for monitoring and E2E test readiness checks
  */
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { db } from "@/lib/mongo";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Use constant-time comparison to prevent timing attacks on token validation.
+ */
 function isAuthorizedInternal(request: NextRequest): boolean {
   const token = process.env.HEALTH_CHECK_TOKEN;
   if (!token) return false;
   const provided =
     request.headers.get("x-health-token") || request.headers.get("X-Health-Token");
-  return provided === token;
+  if (!provided) return false;
+  try {
+    return timingSafeEqual(Buffer.from(token, "utf8"), Buffer.from(provided, "utf8"));
+  } catch {
+    // Buffers have different lengths - tokens don't match
+    return false;
+  }
 }
 
 export async function GET(request: NextRequest) {

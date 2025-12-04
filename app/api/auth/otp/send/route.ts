@@ -749,16 +749,11 @@ export async function POST(request: NextRequest) {
       data: responseData,
     });
   } catch (error) {
-    // Enhanced error logging for production debugging
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    const errorName = error instanceof Error ? error.name : "UnknownError";
+    // Enhanced error logging for production debugging - pass Error object for stack trace capture
+    logger.error("[OTP] Send OTP error", error as Error);
     
-    logger.error("[OTP] Send OTP error", {
-      errorName,
-      errorMessage,
-      errorStack: errorStack?.slice(0, 500), // Truncate for log size
-    });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorName = error instanceof Error ? error.name : "UnknownError";
     
     return NextResponse.json(
       {
