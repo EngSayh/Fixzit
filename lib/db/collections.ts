@@ -159,6 +159,12 @@ export async function createIndexes() {
   await dropLegacyAssetIndexes(db);
   // Clean up legacy SLA indexes that clash with named variants
   await dropLegacySLAIndexes(db);
+  // Clean up legacy support ticket indexes that clash with named variants
+  await dropLegacySupportTicketIndexes(db);
+  // Clean up legacy FM approval indexes that clash with named variants
+  await dropLegacyFMApprovalIndexes(db);
+  // Clean up legacy employee indexes that clash with named variants
+  await dropLegacyEmployeeIndexes(db);
   // Clean up default orgId index names so named orgId indexes can be recreated idempotently
   await dropDefaultOrgIdIndexes(db);
   // Ensure employeeId unique index uses canonical partial filter
@@ -1266,6 +1272,88 @@ async function dropLegacySLAIndexes(db: Awaited<ReturnType<typeof getDatabase>>)
         indexName,
         error: err?.message,
       });
+    }
+  }
+}
+
+/**
+ * Drop legacy support ticket indexes that use default names and conflict with canonical named indexes.
+ */
+async function dropLegacySupportTicketIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const supportTicketIndexes = [
+    "orgId_1_status_1",
+    "orgId_1_priority_1",
+    "orgId_1_assignment.assignedTo.userId_1",
+    "orgId_1_createdAt_-1",
+  ];
+
+  for (const indexName of supportTicketIndexes) {
+    try {
+      await db.collection(COLLECTIONS.SUPPORT_TICKETS).dropIndex(indexName);
+    } catch (error) {
+      const err = error as { code?: number; codeName?: string; message?: string };
+      const isMissing =
+        err?.code === 27 ||
+        err?.codeName === "IndexNotFound" ||
+        err?.message?.includes("index not found");
+      if (isMissing) continue;
+      logger.warn("[indexes] Failed to drop legacy support ticket index", { indexName, error: err?.message });
+    }
+  }
+}
+
+/**
+ * Drop legacy FM approval indexes.
+ */
+async function dropLegacyFMApprovalIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const fmApprovalIndexes = [
+    "orgId_1_approvalNumber_1",
+    "orgId_1_status_1",
+    "orgId_1_requestedBy.userId_1",
+    "orgId_1_createdAt_-1",
+  ];
+
+  for (const indexName of fmApprovalIndexes) {
+    try {
+      await db.collection(COLLECTIONS.FM_APPROVALS).dropIndex(indexName);
+    } catch (error) {
+      const err = error as { code?: number; codeName?: string; message?: string };
+      const isMissing =
+        err?.code === 27 ||
+        err?.codeName === "IndexNotFound" ||
+        err?.message?.includes("index not found");
+      if (isMissing) continue;
+      logger.warn("[indexes] Failed to drop legacy FM approval index", { indexName, error: err?.message });
+    }
+  }
+}
+
+/**
+ * Drop legacy employee indexes.
+ */
+async function dropLegacyEmployeeIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
+  const employeeIndexes = [
+    "orgId_1_status_1",
+    "orgId_1_department_1",
+    "orgId_1_position_1",
+    "orgId_1_employeeId_1",
+    "orgId_1_email_1",
+    "orgId_1_supervisorId_1",
+    "orgId_1_hireDate_1",
+    "orgId_1_terminationDate_1",
+  ];
+
+  for (const indexName of employeeIndexes) {
+    try {
+      await db.collection(COLLECTIONS.EMPLOYEES).dropIndex(indexName);
+    } catch (error) {
+      const err = error as { code?: number; codeName?: string; message?: string };
+      const isMissing =
+        err?.code === 27 ||
+        err?.codeName === "IndexNotFound" ||
+        err?.message?.includes("index not found");
+      if (isMissing) continue;
+      logger.warn("[indexes] Failed to drop legacy employee index", { indexName, error: err?.message });
     }
   }
 }
