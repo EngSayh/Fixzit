@@ -1206,6 +1206,8 @@ async function dropLegacyAssetIndexes(db: Awaited<ReturnType<typeof getDatabase>
     "orgId_1_type_1",
     "orgId_1_status_1",
     "orgId_1_pmSchedule.nextPM_1",
+    "orgId_1_condition.score_1", // conflicts with assets_orgId_conditionScore
+    "orgId_1_code_1", // conflicts with assets_orgId_code_unique
     "orgId_1_location.propertyId_1",
     "orgId_1_location.unitId_1",
     "orgId_1_assignedTo_1",
