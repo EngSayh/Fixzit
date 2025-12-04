@@ -1,6 +1,10 @@
 /**
-import { logger } from '@/lib/logger';
  * Database index management for MongoDB
+ * 
+ * STRICT v4.1 Multi-Tenancy Compliance:
+ * - All unique indexes are org-scoped (e.g., { orgId: 1, email: 1 } not { email: 1 })
+ * - Normalized tenant key naming to `orgId` (no more tenantId drift)
+ * - Prevents cross-tenant collisions (same email/slug/code in different orgs)
  */
 
 import { connectToDatabase } from "@/lib/mongodb-unified";
@@ -20,22 +24,25 @@ export async function ensureCoreIndexes(): Promise<void> {
   }
 
   // Define indexes for each collection
+  // STRICT v4.1: All unique indexes MUST be org-scoped for proper multi-tenancy.
+  // This prevents cross-tenant collisions (e.g., same email/slug/code in different orgs).
+  // NAMING: Normalized to `orgId` across all collections (no more tenantId drift).
   const indexes = [
-    // Users
+    // Users - STRICT v4.1: email unique per org
     {
       collection: "users",
       indexes: [
-        { key: { email: 1 }, unique: true },
-        { key: { tenantId: 1 } },
+        { key: { orgId: 1, email: 1 }, unique: true },
+        { key: { orgId: 1 } },
         { key: { role: 1 } },
         { key: { "personal.phone": 1 } },
       ],
     },
-    // Work Orders
+    // Work Orders - STRICT v4.1: workOrderNumber unique per org
     {
       collection: "workorders",
       indexes: [
-        { key: { workOrderNumber: 1 }, unique: true },
+        { key: { orgId: 1, workOrderNumber: 1 }, unique: true },
         { key: { orgId: 1 } },
         { key: { status: 1 } },
         { key: { priority: 1 } },
@@ -47,83 +54,83 @@ export async function ensureCoreIndexes(): Promise<void> {
         { key: { orgId: 1, status: 1, createdAt: -1 } },
       ],
     },
-    // Work Order Comments
+    // Work Order Comments - normalized to orgId
     {
       collection: "workorder_comments",
       indexes: [
-        { key: { tenantId: 1, workOrderId: 1, createdAt: -1 } },
+        { key: { orgId: 1, workOrderId: 1, createdAt: -1 } },
         { key: { workOrderId: 1, createdAt: -1 } },
         { key: { createdAt: -1 } },
       ],
     },
-    // Work Order Attachments
+    // Work Order Attachments - normalized to orgId
     {
       collection: "workorder_attachments",
       indexes: [
-        { key: { tenantId: 1, workOrderId: 1, uploadedAt: -1 } },
+        { key: { orgId: 1, workOrderId: 1, uploadedAt: -1 } },
         { key: { workOrderId: 1, uploadedAt: -1 } },
         { key: { uploadedAt: -1 } },
       ],
     },
-    // Work Order Timeline
+    // Work Order Timeline - normalized to orgId
     {
       collection: "workorder_timeline",
       indexes: [
-        { key: { tenantId: 1, workOrderId: 1, performedAt: -1 } },
+        { key: { orgId: 1, workOrderId: 1, performedAt: -1 } },
         { key: { workOrderId: 1, performedAt: -1 } },
         { key: { performedAt: -1 } },
       ],
     },
-    // Properties
+    // Properties - STRICT v4.1: code unique per org
     {
       collection: "properties",
       indexes: [
-        { key: { code: 1 }, unique: true },
-        { key: { tenantId: 1 } },
+        { key: { orgId: 1, code: 1 }, unique: true },
+        { key: { orgId: 1 } },
         { key: { type: 1 } },
         { key: { status: 1 } },
         { key: { "location.city": 1 } },
       ],
     },
-    // Invoices
+    // Invoices - STRICT v4.1: code unique per org
     {
       collection: "invoices",
       indexes: [
-        { key: { code: 1 }, unique: true },
-        { key: { tenantId: 1 } },
+        { key: { orgId: 1, code: 1 }, unique: true },
+        { key: { orgId: 1 } },
         { key: { status: 1 } },
         { key: { dueDate: 1 } },
         { key: { customerId: 1 } },
       ],
     },
-    // Support Tickets
+    // Support Tickets - STRICT v4.1: code unique per org
     {
       collection: "supporttickets",
       indexes: [
-        { key: { code: 1 }, unique: true },
-        { key: { tenantId: 1 } },
+        { key: { orgId: 1, code: 1 }, unique: true },
+        { key: { orgId: 1 } },
         { key: { status: 1 } },
         { key: { priority: 1 } },
         { key: { assigneeUserId: 1 } },
         { key: { createdAt: -1 } },
       ],
     },
-    // Help Articles
+    // Help Articles - STRICT v4.1: slug unique per org
     {
       collection: "helparticles",
       indexes: [
-        { key: { tenantId: 1 } },
-        { key: { slug: 1 }, unique: true },
+        { key: { orgId: 1, slug: 1 }, unique: true },
+        { key: { orgId: 1 } },
         { key: { category: 1 } },
         { key: { published: 1 } },
       ],
     },
-    // CMS Pages
+    // CMS Pages - STRICT v4.1: slug unique per org
     {
       collection: "cmspages",
       indexes: [
-        { key: { tenantId: 1 } },
-        { key: { slug: 1 }, unique: true },
+        { key: { orgId: 1, slug: 1 }, unique: true },
+        { key: { orgId: 1 } },
         { key: { published: 1 } },
       ],
     },

@@ -56,75 +56,99 @@ export async function getCollections() {
 }
 
 // Create indexes
+// STRICT v4.1: All unique indexes MUST be org-scoped for proper multi-tenancy.
+// This prevents cross-tenant collisions (e.g., same email/SKU in different orgs).
 export async function createIndexes() {
   const db = await getDatabase();
 
   await createQaIndexes(db);
 
-  // Users
+  // Users - STRICT v4.1: email unique per org, not globally
   await db
     .collection(COLLECTIONS.USERS)
-    .createIndex({ email: 1 }, { unique: true });
-  await db.collection(COLLECTIONS.USERS).createIndex({ tenantId: 1 });
+    .createIndex({ orgId: 1, email: 1 }, { unique: true, background: true, name: "users_orgId_email_unique" });
+  await db.collection(COLLECTIONS.USERS).createIndex({ orgId: 1 }, { background: true, name: "users_orgId" });
 
-  // Properties
+  // Properties - STRICT v4.1: code unique per org
   await db
     .collection(COLLECTIONS.PROPERTIES)
-    .createIndex({ code: 1 }, { unique: true });
-  await db.collection(COLLECTIONS.PROPERTIES).createIndex({ tenantId: 1 });
+    .createIndex({ orgId: 1, code: 1 }, { unique: true, background: true, name: "properties_orgId_code_unique" });
+  await db.collection(COLLECTIONS.PROPERTIES).createIndex({ orgId: 1 }, { background: true, name: "properties_orgId" });
 
-  // Work Orders
+  // Work Orders - STRICT v4.1: code unique per org
   await db
     .collection(COLLECTIONS.WORK_ORDERS)
-    .createIndex({ code: 1 }, { unique: true });
+    .createIndex({ orgId: 1, code: 1 }, { unique: true, background: true, name: "workorders_orgId_code_unique" });
   await db
     .collection(COLLECTIONS.WORK_ORDERS)
-    .createIndex({ tenantId: 1, status: 1 });
+    .createIndex({ orgId: 1, status: 1 }, { background: true, name: "workorders_orgId_status" });
 
-  // Products
+  // Products - STRICT v4.1: sku unique per org
   await db
     .collection(COLLECTIONS.PRODUCTS)
-    .createIndex({ sku: 1 }, { unique: true });
+    .createIndex({ orgId: 1, sku: 1 }, { unique: true, background: true, name: "products_orgId_sku_unique" });
   await db
     .collection(COLLECTIONS.PRODUCTS)
-    .createIndex({ tenantId: 1, categoryId: 1 });
+    .createIndex({ orgId: 1, categoryId: 1 }, { background: true, name: "products_orgId_categoryId" });
   await db
     .collection(COLLECTIONS.PRODUCTS)
-    .createIndex({ title: "text", description: "text" });
+    .createIndex({ title: "text", description: "text" }, { background: true, name: "products_text_search" });
 
-  // Orders
+  // Orders - STRICT v4.1: orderNumber unique per org
   await db
     .collection(COLLECTIONS.ORDERS)
-    .createIndex({ orderNumber: 1 }, { unique: true });
+    .createIndex({ orgId: 1, orderNumber: 1 }, { unique: true, background: true, name: "orders_orgId_orderNumber_unique" });
   await db
     .collection(COLLECTIONS.ORDERS)
-    .createIndex({ tenantId: 1, userId: 1 });
+    .createIndex({ orgId: 1, userId: 1 }, { background: true, name: "orders_orgId_userId" });
 
-  // Invoices
+  // Invoices - STRICT v4.1: invoiceNumber unique per org
   await db
     .collection(COLLECTIONS.INVOICES)
-    .createIndex({ invoiceNumber: 1 }, { unique: true });
-  await db.collection(COLLECTIONS.INVOICES).createIndex({ tenantId: 1 });
+    .createIndex({ orgId: 1, invoiceNumber: 1 }, { unique: true, background: true, name: "invoices_orgId_invoiceNumber_unique" });
+  await db.collection(COLLECTIONS.INVOICES).createIndex({ orgId: 1 }, { background: true, name: "invoices_orgId" });
 }
 
 async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
-  // QA Logs - AUDIT-2025-12-03: Multi-tenant isolation and TTL
+  // ============================================================================
+  // QA LOGS - AUDIT-2025-12-04: Multi-tenant isolation, platform queries, and TTL
+  // ============================================================================
+  
   // Org-scoped query index (sparse to exclude legacy docs without orgId)
   await db
     .collection("qa_logs")
     .createIndex({ orgId: 1, timestamp: -1 }, { 
-      name: "orgId_timestamp", 
+      name: "qa_logs_orgId_timestamp", 
       background: true, 
       sparse: true 
     });
+  
   // Event-specific org-scoped query index
   await db
     .collection("qa_logs")
     .createIndex({ orgId: 1, event: 1, timestamp: -1 }, { 
-      name: "orgId_event_timestamp", 
+      name: "qa_logs_orgId_event_timestamp", 
       background: true, 
       sparse: true 
     });
+  
+  // PLATFORM-FRIENDLY: Global timestamp index for platform admin queries (no orgId filter)
+  // Supports: db.qa_logs.find({}).sort({timestamp:-1}) and db.qa_logs.find({event:x}).sort({timestamp:-1})
+  await db
+    .collection("qa_logs")
+    .createIndex({ timestamp: -1 }, { 
+      name: "qa_logs_timestamp_desc", 
+      background: true 
+    });
+  
+  // PLATFORM-FRIENDLY: Event + timestamp for platform admin event-filtered queries
+  await db
+    .collection("qa_logs")
+    .createIndex({ event: 1, timestamp: -1 }, { 
+      name: "qa_logs_event_timestamp", 
+      background: true 
+    });
+  
   // TTL index: Auto-delete qa_logs after 90 days to bound storage growth
   await db
     .collection("qa_logs")
@@ -134,7 +158,11 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
       background: true 
     });
 
-  // QA Alerts - AUDIT-2025: Multi-tenant isolation and TTL
+  // ============================================================================
+  // QA ALERTS - AUDIT-2025-12-04: Multi-tenant isolation, platform queries, and TTL
+  // ============================================================================
+  
+  // Org-scoped query index (sparse to exclude legacy docs without orgId)
   await db
     .collection("qa_alerts")
     .createIndex({ orgId: 1, timestamp: -1 }, { 
@@ -142,6 +170,7 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
       background: true, 
       sparse: true 
     });
+  
   // Event-specific org-scoped query index (parity with qa_logs for event filtering)
   await db
     .collection("qa_alerts")
@@ -150,12 +179,24 @@ async function createQaIndexes(db: Awaited<ReturnType<typeof getDatabase>>) {
       background: true, 
       sparse: true 
     });
+  
+  // PLATFORM-FRIENDLY: Global timestamp index for platform admin queries (no orgId filter)
   await db
     .collection("qa_alerts")
     .createIndex({ timestamp: -1 }, { 
       name: "qa_alerts_timestamp_desc", 
       background: true 
     });
+  
+  // PLATFORM-FRIENDLY: Event + timestamp for platform admin event-filtered queries
+  await db
+    .collection("qa_alerts")
+    .createIndex({ event: 1, timestamp: -1 }, { 
+      name: "qa_alerts_event_timestamp", 
+      background: true 
+    });
+  
+  // TTL index: Auto-delete qa_alerts after 30 days to bound storage growth
   await db
     .collection("qa_alerts")
     .createIndex({ timestamp: 1 }, { 
