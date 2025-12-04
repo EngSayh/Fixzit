@@ -53,7 +53,7 @@ jobs:
             exit $scan_exit
           fi
         env:
-          THRESHOLD_MB: 5 # Fail if duplicates exceed 5MB
+          THRESHOLD_MB: 5  # Fail if duplicates exceed 5MB
 
       - name: Upload duplicate report
         if: always()
