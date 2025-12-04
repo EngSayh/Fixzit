@@ -1094,6 +1094,8 @@ async function dropLegacyWorkOrderIndexes(db: Awaited<ReturnType<typeof getDatab
     "orgId_1_category_1",
     "orgId_1_subCategory_1",
     "orgId_1_type_1",
+    // SLA deadline indexes
+    "sla.resolutionDeadline_1", // non-org-scoped legacy - conflicts with workorders_sla_resolutionDeadline
     // Text indexes - MongoDB only allows one text index per collection
     "orgId_1_title_text_description_text_work.solutionDescription_text",
     "title_text_description_text_work.solutionDescription_text", // non-org-scoped legacy text index
